@@ -2,7 +2,7 @@ import json
 import time
 import unittest
 from unittest.mock import patch
-from kitchen import Food
+from kitchen import Food, load_config
 from web_server import GameSession
 
 
@@ -179,3 +179,23 @@ class WebSessionTests(unittest.TestCase):
 
 
 if __name__=='__main__':unittest.main()
+
+
+class FixedTickTests(unittest.TestCase):
+    def make(self):
+        from kitchen import Kitchen
+        g = GameSession(config=load_config() | {'order_seed': 1, 'spawn_seed': 0}, client_factory=lambda c: None,
+                        journal_factory=lambda *a: (lambda *b: None), kitchen_factory=Kitchen)
+        return g
+
+    def test_polling_rate_does_not_change_game_steps(self):
+        results = []
+        for polls in (7, 50, 333):
+            g = self.make();g.phase = 'running';g.ai = None
+            g.last_tick = g.last_seen = 0.
+            for i in range(1, polls + 1):
+                g.last_seen = i * 3 / polls
+                g.tick(i * 3 / polls)
+            results.append((g.ticks, round(g.k.time, 9), [e['t'] for e in g.k.events]))
+        self.assertEqual(results[0], results[1]);self.assertEqual(results[1], results[2])
+        self.assertEqual(results[0][0], 45)  # 3 s wall x 0.75 / 0.05 s ticks

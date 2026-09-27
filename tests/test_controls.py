@@ -172,7 +172,8 @@ class ControlsTests(unittest.TestCase):
             self.assertEqual(g.k.manual['human'],(0,0))
             self.cmd(g,'move',dx=1,dy=0,seq=13)
         with patch.object(g.ai,'poll'):g.tick(101)
-        self.assertAlmostEqual(g.k.positions['human'][0],5+.5*g.speed*WALK_SPEED)
+        # Movement expiry is applied at fixed game-tick boundaries: within one tick.
+        self.assertLessEqual(abs(g.k.positions['human'][0]-(5+.5*g.speed*WALK_SPEED)),g.k.rules.tick*WALK_SPEED+1e-9)
         self.assertFalse(any(g.k.manual['human']))
         self.cmd(g,'move',dx=1,dy=0,seq=14);self.cmd(g,'pause')
         self.assertFalse(any(g.k.manual['human']))

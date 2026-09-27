@@ -55,6 +55,8 @@ class GameSession:
         self.receipts = OrderedDict()
         self.last_tick = time.monotonic()
         self.last_seen = self.last_tick
+        self.game_backlog = 0.
+        self.ticks = 0
         self.move_seq = -1
         self.move_until = 0.
         self.interaction_focus = None
@@ -90,6 +92,30 @@ class GameSession:
             self.journal.close()
             self.journal = None
 
+    def _advance_ticks(self, elapsed, now):
+        """Advance whole fixed game ticks; the fractional remainder carries over.
+
+        Wall-clock polling decides only how many ticks run, never their size, so
+        the same inputs at the same tick produce the same rule results.
+        """
+        tick = self.k.rules.tick
+        self.game_backlog += elapsed*self.speed
+        steps = int(self.game_backlog/tick+1e-9)
+        self.game_backlog = max(0., self.game_backlog-steps*tick)
+        moving = hasattr(self.k,'manual') and any(self.k.manual['human'])
+        for i in range(steps):
+            # Wall time at which this tick starts; a click-move ends at move_until.
+            start = now-(self.game_backlog+(steps-i)*tick)/self.speed
+            if moving and start >= self.move_until-1e-9:
+                self.k.set_manual('human',0,0)
+                moving = False
+            self.k.advance(tick)
+            self.ticks += 1
+            if self.k.ended:
+                break
+        if moving and now >= self.move_until:
+            self.k.set_manual('human',0,0)
+
     def tick(self, now=None):
         with self.lock:
             now = time.monotonic() if now is None else now
@@ -104,13 +130,7 @@ class GameSession:
                     self.ai.invalidate()
                     self.note('页面已断开，厨房自动暂停。回来后点击继续。')
                 else:
-                    if hasattr(self.k,'manual') and any(self.k.manual['human']):
-                        active = max(0.,min(elapsed,self.move_until-(now-elapsed)))
-                        self.k.advance(active*self.speed)
-                        if now >= self.move_until: self.k.set_manual('human',0,0)
-                        self.k.advance((elapsed-active)*self.speed)
-                    else:
-                        self.k.advance(elapsed*self.speed)
+                    self._advance_ticks(elapsed, now)
                     if self.k.ended:
                         self.phase = 'ended'
                         self._finish()
@@ -359,6 +379,8 @@ class GameSession:
             self._finish(aborted=self.phase != 'ended')
             # Unconfigured seeds are drawn again when the new round is frozen.
             self.k = self.kitchen_factory(self.c)
+            self.game_backlog = 0.
+            self.ticks = 0
             self.c = self.k.c
             self.move_seq = -1
             self.move_until = 0.
