@@ -331,7 +331,10 @@
     "工位有食材正在飞入，本次放置取消": "An ingredient is landing on the workstation; placement cancelled",
     "工位可从相邻可达空地就近操作。墙、设备和厨师不能穿过；普通走路可穿过地面食物，自动行走遇到厨师会绕行或等待。冲刺不撞飞厨师。": "Work from an accessible adjacent side. Walls, stations and chefs block movement; loose food does not. Automatic movement detours or waits for a chef. Sprinting does not knock chefs away.",
     "放下优先选脚下或相邻空格。冲刺每次最多推动散落食材0.25格，允许食物重叠；盘子锅具不被推动，不自动装盘，不弹飞或损坏。地面不能切配或加热。": "Place items on the current or an adjacent empty floor cell. Each sprint can nudge loose ingredients up to 0.25 tile. Food may overlap; plates and pots stay still. Contact never assembles, launches or damages food. No chopping or heating on the floor.",
-    "工位可从相邻可达空地就近操作。墙和设备不能穿过；厨师接触时贴边滑动并缓慢推挤，冲刺可轻撞对方至多四分之一格。人类和 AI 共用接触规则，不自动重新规划绕人路线。普通走路可穿过地面食物。": "Stations can be operated from adjacent reachable floor. Walls and equipment block movement. Chefs slide along contact and gently push; each sprint can bump another chef by up to a quarter tile. Humans and AI share the same contact rules, without planning a new route around chefs. Ordinary walking passes through floor food."
+    "工位可从相邻可达空地就近操作。墙和设备不能穿过；厨师接触时贴边滑动并缓慢推挤，冲刺可轻撞对方至多四分之一格。人类和 AI 共用接触规则，不自动重新规划绕人路线。普通走路可穿过地面食物。": "Stations can be operated from adjacent reachable floor. Walls and equipment block movement. Chefs slide along contact and gently push; each sprint can bump another chef by up to a quarter tile. Humans and AI share the same contact rules, without planning a new route around chefs. Ordinary walking passes through floor food.",
+    "目标达成": "Goal reached",
+    "未达目标": "Goal not reached",
+    "提前退出": "Ended early"
   },
   "templates": [
     [
@@ -641,6 +644,22 @@
     [
       "{0} 落到{1}，可取走",
       "{0} landed on {1}; available to take"
+    ],
+    [
+      "{0}在关店时仍未完成",
+      "{0} was still open at closing time"
+    ],
+    [
+      "已达成最低目标：出餐 {0}/{1}；继续营业至关店",
+      "Minimum goal reached: {0}/{1} served; service continues until closing"
+    ],
+    [
+      "已无法达成最低目标：最多还能出餐 {0}/{1}；本局继续至关店",
+      "The minimum goal can no longer be reached: at most {0}/{1} can be served; the round continues until closing"
+    ],
+    [
+      "{0}：出餐 {1}/{2}（最低）；超时 {3}；关店未完 {4}；净收入 {5} 元；差评 {6}；糊锅 {7}，着火 {8}",
+      "{0}: served {1}/{2} (minimum); expired {3}; open at closing {4}; net revenue {5} yuan; bad reviews {6}; burnt {7}, fires {8}"
     ]
   ]
 }

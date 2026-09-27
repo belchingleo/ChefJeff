@@ -514,13 +514,15 @@ def legacy_flat_config(resolved):
     level, ruleset, recipes = resolved['level'], resolved['ruleset'], resolved['recipe_catalog']
     policy, stations = resolved['order_policy'], resolved['stations']
     catalog = resolved['equipment_catalog']['types']
-    transform = {t['id']: t for t in recipes['transforms']}
-    rate = lambda kind, capability: catalog[kind].get('work_rates', {}).get(capability, 1.0)
-    cook = transform['cook_beef']
+    first = lambda operation: next((t for t in recipes['transforms'] if t['operation'] == operation), None)
+    rate = lambda kind, capability: catalog.get(kind, {}).get('work_rates', {}).get(capability, 1.0)
+    chop, cook = first('chop'), first('heat')
     goal = level['goal']
+    legacy_goal = goal['type'] == 'legacy_all_gates'
     inventory = level['initial_inventory']
     s = seconds
-    return {
+    whole = lambda v: int(v) if v is not None and float(v).is_integer() else v
+    flat = {
         'level': level.get('menu_order'),
         'boards': sum(st['type'] == 'board' for st in stations),
         'pots': sum(st['type'] == 'stove' for st in stations),
@@ -530,12 +532,16 @@ def legacy_flat_config(resolved):
         'order_count': _order_count(policy, level['round_limit_game_ms']),
         'order_interval': s(policy['interval_game_ms']),
         'order_patience': s(policy['patience_default_game_ms']),
-        'target_served': goal['min_served'], 'target_money': goal['min_money'], 'max_bad_reviews': goal['max_bad_reviews'],
+        'target_served': goal['min_served'] if legacy_goal else goal['min_deliveries'],
+        'target_money': goal['min_money'] if legacy_goal else None,
+        'max_bad_reviews': goal['max_bad_reviews'] if legacy_goal else None,
         'time_bonus_per_second': level['scoring']['time_bonus_per_second'],
-        'chop_seconds': s(transform['chop_beef']['work_game_ms']) / rate('board', 'chop'),
-        'cook_seconds': s(cook['work_game_ms']) / rate('stove', 'heat'),
-        'burn_after_ready': s(cook['overcook']['after_done_game_ms']),
-        'fire_after_burn': s(cook['overcook']['fire_after_overcook_game_ms']),
+        'chop_seconds': s(chop['work_game_ms']) / rate('board', 'chop') if chop else None,
+        'cook_seconds': s(cook['work_game_ms']) / rate('stove', 'heat') if cook else None,
+        'burn_after_ready': s(cook['overcook']['after_done_game_ms']) if cook else None,
+        'fire_after_burn': s(cook['overcook']['fire_after_overcook_game_ms']) if cook else None,
+        'extinguish_seconds': s(ruleset['operations']['extinguish_game_ms']),
+        'clear_seconds': s(ruleset['operations']['clear_game_ms']),
         'same_area_walk': s(ruleset['abstract_travel']['same_area_game_ms']),
         'cross_area_walk': s(ruleset['abstract_travel']['cross_area_game_ms']),
         'handling_seconds': s(ruleset['operations']['handling_game_ms']),
@@ -546,6 +552,9 @@ def legacy_flat_config(resolved):
         'order_seed': resolved['seeds']['orders'],
         'spawn_seed': resolved['seeds']['spawn'],
     }
+    for key in ('chop_seconds', 'cook_seconds', 'wash_seconds'):
+        flat[key] = whole(flat[key])
+    return flat
 
 
 def main(argv=None):
