@@ -497,7 +497,7 @@
     ],
     [
       "{0}着火！损失 5 元；必须先灭火再清锅",
-      "{0} is on fire! −¥5; extinguish it before clearing the pot"
+      "{0} is on fire! -¥5; extinguish it before clearing the pot"
     ],
     [
       " · 本局使用 {0} 局，结算后可修改",
@@ -513,7 +513,7 @@
     ],
     [
       "{0}超时，顾客离开并差评，扣 10 元",
-      "{0} expired: customer left a bad review, −¥10"
+      "{0} expired: customer left a bad review, -¥10"
     ],
     [
       "{0} · 当前模型已保存 {1} / {2} 局{3}",
@@ -565,7 +565,7 @@
     ],
     [
       "顾客差评：{0}；扣 15 元{1}",
-      "Bad review: {0}; −¥15{1}"
+      "Bad review: {0}; -¥15{1}"
     ],
     [
       "{0} 落到{1}，可继续切配或取走",
@@ -749,11 +749,11 @@
     ],
     [
       "（菜品糊了，扣 {0} 元）",
-      " (burnt dish, −¥{0})"
+      " (burnt dish, -¥{0})"
     ],
     [
       "没有等待{0}的订单；扣 {1} 元",
-      "No order is waiting for {0}: −¥{1}"
+      "No order is waiting for {0}: -¥{1}"
     ],
     [
       "{0}的顾客拒收糊菜，订单继续等待",
@@ -761,7 +761,7 @@
     ],
     [
       "{0}超时，顾客离开，扣 {1} 元",
-      "{0} expired: the customer left, −¥{1}"
+      "{0} expired: the customer left, -¥{1}"
     ],
     [
       "已无法达成目标金额 {0} 元；本局继续至关店",
