@@ -17,7 +17,7 @@ PUBLIC_FILES = ('hosted_server.py','hosted_records.py','hosted/browser-agent.js'
                 'docs/地图数据格式.md','docs/current-rules.md','docs/当前交互清单.md','docs/第二关-窄巷汉堡.md','docs/第二关-长台汉堡.md','docs/第三关-窄巷汉堡.md','docs/status.md','docs/privacy-and-costs.md','docs/agent-integration.md',
                 'cocos-kitchen/THIRD_PARTY_LICENSE.md','docs/art/integration.md',
                 'scripts/build_cocos.py','scripts/package_web.py','scripts/audit_release.py',
-                'cocos-kitchen/web-shell.html','cocos-kitchen/i18n.js','cocos-kitchen/i18n.json','cocos-kitchen/package.json','cocos-kitchen/build-web.json',
+                'cocos-kitchen/web-shell.html','cocos-kitchen/i18n.js','cocos-kitchen/i18n.json','cocos-kitchen/favicon.ico','cocos-kitchen/fonts/chefjeff-pixel.woff2','cocos-kitchen/fonts/OFL.txt','scripts/subset_pixel_font.py','cocos-kitchen/package.json','cocos-kitchen/build-web.json',
                 'cocos-kitchen/tsconfig.json','cocos-kitchen/assets/scenes.meta','cocos-kitchen/assets/scripts.meta',
                 'cocos-kitchen/assets/scripts/KitchenClient.ts','cocos-kitchen/assets/scripts/KitchenClient.ts.meta',
                 'cocos-kitchen/assets/scripts/LevelOneArt.ts','cocos-kitchen/assets/scripts/LevelOneArt.ts.meta',

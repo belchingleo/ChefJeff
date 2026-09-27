@@ -393,7 +393,30 @@
     "本局会立即结算，当前进度不会保留。": "The round is scored now; its progress won't be kept.",
     "重新开局？": "Restart this round?",
     "当前这局会被放弃，并立即开始新的一局。": "This round will be abandoned and a new one starts right away.",
-    "返回": "Back"
+    "返回": "Back",
+    "设置分页": "Settings tabs",
+    "连接": "Connection",
+    "协作记忆": "Memory",
+    "调用上限": "Call limit",
+    "导出": "Export",
+    "费用与隐私说明": "Costs and privacy",
+    "说明分页": "Controls tabs",
+    "基础操作": "Basics",
+    "规则细节": "Rule details",
+    "关卡": "Levels",
+    "按住移动，松开停止；方向键也可以。鼠标点地面或工位会走过去。": "Hold to move, release to stop; arrow keys work too. Click the floor or a station to walk there.",
+    "双击同一方向冲刺：1.4 倍速 1 秒，之后冷却 3 秒。": "Double-tap a direction to sprint: 1.4× speed for 1 second, then a 3-second cooldown.",
+    "空格": "Space",
+    "长按空格": "Hold Space",
+    "+ 左键": "+ left click",
+    "操作面前或选中的目标：取料、切菜、下锅、装盘、洗碗、出餐。底部会提示将执行的动作。": "Use the station or item in front of you or selected: fetch, chop, cook, plate, wash or serve. The bottom line shows what will happen.",
+    "把生食材或切好的原料抛到落点，最远 7 格。": "Throw raw or chopped ingredients to the clicked spot, up to 7 tiles.",
+    "暂停与继续。": "Pause and resume.",
+    "标记当前片段，导出本局时可以回看。": "Bookmark this moment to review it in the run export.",
+    "告诉 Jeff 你更想做哪类工作；6 表示他做错了。": "Tell Jeff which work you prefer; 6 says he made a mistake.",
+    "牛排练习厨房，180 游戏秒。取生牛肉 → 案板切好 → 下锅煎熟 → 装进干净盘 → 出餐。出餐 3 单、收入 ¥60、差评不超过 2 次即过关。熟了之后 10 秒内出锅，否则会糊，再过 8 秒着火。": "A steak practice kitchen, 180 game seconds. Fetch raw beef → chop it on a board → cook it in a pot → plate it on a clean plate → serve. Clear the level with 3 orders, ¥60 revenue and at most 2 bad reviews. Take the pot off within 10 seconds of it being cooked or it burns; 8 seconds later it catches fire.",
+    "更换并测试": "Replace and test",
+    "已保存；要更换时粘贴新的 Key": "Saved; paste a new key to replace it"
   },
   "templates": [
     [
@@ -705,12 +728,16 @@
       "Jeff: {0}"
     ],
     [
-      "差评 −¥{0}",
-      "Bad review −¥{0}"
+      "差评 -¥{0}",
+      "Bad review -¥{0}"
     ],
     [
-      "{0} 超时 −¥{1}",
-      "{0} expired −¥{1}"
+      "{0} 超时 -¥{1}",
+      "{0} expired -¥{1}"
+    ],
+    [
+      "{0} · 当前",
+      "{0} · current"
     ]
   ]
 }

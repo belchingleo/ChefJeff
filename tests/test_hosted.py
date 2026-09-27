@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import patch
 from pathlib import Path
 import http.client
-from hosted_server import HostedSession, BrowserRelay, Sessions, make_server, hosted_html
+from hosted_server import HostedSession, BrowserRelay, Sessions, make_server, hosted_html, SHELL_REPLACEMENTS, CONTRIBUTION_SLOT
 from kitchen import load_config
 
 
@@ -77,6 +77,12 @@ class HostedTests(unittest.TestCase):
         self.assertNotIn('记住后以明文保存在这台电脑的本地配置文件',html)
         self.assertIn('<section hidden aria-labelledby="memory-title"',html)
         self.assertNotIn(b'hosted-agent.js',raw)
+    def test_web_shell_keeps_every_hosted_anchor(self):
+        shell=(Path(__file__).resolve().parents[1]/'cocos-kitchen/web-shell.html').read_text()
+        for old,_ in SHELL_REPLACEMENTS:self.assertIn(old,shell)
+        self.assertIn(CONTRIBUTION_SLOT,shell)
+        html=hosted_html(('<head></head>'+shell).encode()).decode()
+        self.assertIn('contribution-save',html);self.assertNotIn(CONTRIBUTION_SLOT,html)
 
 
 class HostedHTTPTests(unittest.TestCase):
