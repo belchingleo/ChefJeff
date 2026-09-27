@@ -50,7 +50,7 @@ The resolver rejects catalog types the ruleset does not support (`UNSUPPORTED_EQ
 
 ### Map (`maps/<id>.json`, schema 2)
 
-Geometry fields are unchanged (see `docs/地图数据格式.md`). Schema 2 adds `areas` (`{area_id: {name}}`), optional `floor_areas` (`{axis, split, below, at_or_above}`) and per-instance `type` (catalog type), `name`, `area` and `params` (e.g. `{"item": "beef"}` for an ingredient source). Instance order is the engine's station order. Schema-1 maps remain loadable: `upgrade_map` infers types from the historical ID conventions.
+Geometry fields are unchanged (see `docs/map-format.md`). Schema 2 adds `areas` (`{area_id: {name}}`), optional `floor_areas` (`{axis, split, below, at_or_above}`) and per-instance `type` (catalog type), `name`, `area` and `params` (e.g. `{"item": "beef"}` for an ingredient source). Instance order is the engine's station order. Schema-1 maps remain loadable: `upgrade_map` infers types from the historical ID conventions.
 
 ### Recipe catalog (`content/recipes/<id>.json`)
 

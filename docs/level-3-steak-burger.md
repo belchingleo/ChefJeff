@@ -2,7 +2,7 @@
 
 Two work areas connect through a one-cell passage. Ingredient sources, three boards and a sink occupy the left; two stoves, serving, dirty returns and plate counters are on the right. Chefs spawn near opposite area centers with randomized sides. Both use shared sliding/pushing contact, while walls and equipment remain solid.
 
-Three pots and three clean plates are available: two pots start on stoves, the third on a counter. Pots may be moved, parked and swapped, preserving food and heating progress. Off-stove pots do not heat. Plates, pots and tools cannot be thrown.
+Three pots and three clean plates are available: two pots start on stoves, the third on a counter. Pots may be moved, parked and swapped, preserving food and heating progress. Off-stove pots do not heat. Plates, pots and tools can be passed within 3 cells, to a partner or the floor.
 
 ## Recipes and assembly
 
@@ -31,7 +31,7 @@ Click-selected targets take priority for Space, with a reason when unavailable. 
 
 两个工作区通过一格宽通道连接。左侧为食材来源、三块案板及水槽，右侧为两台灶、出餐口、脏盘回收与餐盘柜台。两名厨师分别在两区中央附近出生，左右身份随机，双方采用共用滑动／推挤碰撞，墙与设备不可穿过。
 
-本关三锅三净盘：两锅在灶上，一锅在柜台备用。锅可搬动、暂放或交换，内容与加热进度保留，离灶不加热。盘、锅、工具不可抛掷。
+本关三锅三净盘：两锅在灶上，一锅在柜台备用。锅可搬动、暂放或交换，内容与加热进度保留，离灶不加热。盘、锅、工具可在 3 格内传给队友或地面。
 
 ## 菜谱与组装
 

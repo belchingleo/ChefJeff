@@ -1,17 +1,28 @@
 import { _decorator, Component, Node, UITransform, Graphics, Color, Label, Layers,
-    view, ResolutionPolicy, sys, game, Game, profiler, Mask } from 'cc';
+    view, ResolutionPolicy, sys, game, Game, profiler, Mask, Vec2, Camera, director } from 'cc';
 import { LevelOneArt } from './LevelOneArt';
 import { GRID_ART, stationView, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, workingChefDepth, flightDepth, burgerLayers, heatCountdown } from './KitchenGeometry';
 const { ccclass } = _decorator;
 type Action = { key: string; label: string; kind: string; target: string; expected: unknown[] };
 type KitchenState = { game_id: string; phase: string; speed: number; kitchen: any; actions: Action[]; limits?:any; release?:any; interaction?:Action; interaction_hint?:string; interaction_focus?:string; interaction_cell?:number[];
-    events: {message:string}[]; ai: {thinking:boolean; error:string|null}; won:boolean; aborted?:boolean; rules?:Record<string,number>; connection?:any; memory?:any; communication?:any };
+    events: {t:number; message:string; kind?:string}[]; ai: {thinking:boolean; error:string|null}; won:boolean; aborted?:boolean; rules?:Record<string,number>; connection?:any; memory?:any; communication?:any };
 type ChefMotion = {body:Node; leftLeg:Node; rightLeg:Node; leftArm:Node; rightArm:Node; knife:Node; facing:string; step:number};
 type PotEffects = {steam:Node; smoke:Node; fire:Node; ready:Node};
-// Warm timber, enamel and order slips. Shapes use a shared 2–4 px pixel grid.
-const COLORS = { ink:'#382f29', muted:'#786b59', bg:'#e7d7b8', paper:'#fff5dc', line:'#c2a67d',
-    human:'#4c7661', jeff:'#567fa4', hot:'#b64032', counter:'#8baab7', counterEdge:'#587582', counterLight:'#c6d9de', wall:'#ae8055', wood:'#795539', light:'#f6e8ca' };
-type ButtonView = {node:Node;label:Label;callback:()=>void;enabled:boolean;width:number;height:number;tone:string;hover:boolean};
+// Tokens from the "ChefJeff 厨房 UI" design system: every colour is sampled from the art
+// (denim overalls, copper-eared Jeff, honey floorboards, walnut walls, steel stoves).
+const COLORS = { ink:'#2b1a12', muted:'#6e4e38', bg:'#f0d9b5', paper:'#fdf3e1', honeyTint:'#fbe3b8', walnut:'#6b3418', honey:'#e8983a', steel:'#3d5566',
+    human:'#2a5a9e', humanHover:'#224a82', jeff:'#a8520e', herb:'#3c7a2a', hot:'#b8321e', hotHover:'#9c2a19',
+    // alert: danger text on the surface ground (tomato itself is 4.35:1 there).
+    alert:'#9c2a19', frame:'#4a2616',
+    // Fallback programmer art only.
+    wood:'#6b3418', wall:'#ae8055', counter:'#8baab7', counterEdge:'#587582', counterLight:'#c6d9de' };
+// Pixel face for titles, buttons, tags and HUD numbers (loaded by the web shell); body text stays system.
+const PIXEL='ChefJeffPixel, sans-serif';
+// Result events reach the player; AI decision notes have their own status line.
+const RESULT_ANNOUNCE=new Set(['order','served','bad_service','expired','ready','burn','fire','fire_spread','fire_loss']);
+const TAB_ORDER=['language','level1','level2','level3','main','reset','cover-connection','help','resume','pause','end'];
+const LEVEL_NAMES=['','第一关 · 牛排','第二关 · 汉堡','第三关 · 牛-堡'];
+type ButtonView = {node:Node;label:Label;callback:()=>void;enabled:boolean;width:number;height:number;tone:string;hover:boolean;selected?:boolean};
 const STAGES: Record<string,string> = {raw:'生肉',chopped:'半成品',cooking:'加热中',ready:'熟牛排',burnt:'糊菜',extinguisher:'灭火器',clean_plate:'干净餐盘',dirty_plate:'脏餐盘',plated_ready:'已装盘牛排',plated_burnt:'已装盘糊菜',pot:'空锅',pot_cooking:'锅 · 未熟',pot_chopped:'锅 · 未熟',pot_ready:'锅 · 熟牛排',pot_burnt:'锅 · 糊菜'};
 const FOOD_COLORS: Record<string,string> = {raw:'#d68f8c',chopped:'#dcaa86',cooking:'#b58359',ready:'#846144',burnt:'#3e3733',extinguisher:'#c65138'};
 const TILE=GRID_ART.tile, MAPX=GRID_ART.originX, MAPY=GRID_ART.originY;
@@ -55,6 +66,12 @@ export class KitchenClient extends Component {
     private labels: Record<string,Label>={};
     private buttons: Record<string,ButtonView>={};
     private controlAccess:HTMLDivElement|null=null;
+    private reduceMotion=!sys.isNative&&!!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    private eventsGame='';
+    private seenEvents=new Set<string>();
+    private lastAiError:string|null=null;
+    private pops:{node:Node;label:Label;born:number;y:number;fill:Color}[]=[];
+    private flashes:Record<string,{until:number;fill:string}>={};
     private tickets:Node[]=[];
     private orderArt:string[]=[];
     private focusId="";
@@ -93,47 +110,50 @@ export class KitchenClient extends Component {
     private endpoint=sys.isNative?'http://127.0.0.1:8769':'';
 
     start(){
-        if(!sys.isNative)document.getElementById('kitchen-loading')?.remove();
         if(!sys.isNative&&new URLSearchParams(location.search).has('qaPerf'))profiler.showStats();else profiler.hideStats();
         view.setDesignResolutionSize(1280,720,ResolutionPolicy.SHOW_ALL);
+        // Letterbox bands match the page's wall-plank frame instead of the engine's default grey.
+        for(const cam of director.getScene()?.getComponentsInChildren(Camera)||[])cam.clearColor=color(COLORS.frame);
         this.node.getComponent(UITransform)!.setContentSize(1280,720);
         this.box(this.node,'background',640,360,1280,720,COLORS.bg);
         this.box(this.node,'header',640,35,1280,70,COLORS.paper);
         this.icon(this.node,'brand-icon',45,35,'pot',1.1);
-        this.text('brand','ChefJeff',80,30,170,36,27).isBold=true;
+        this.pixel(this.text('brand','ChefJeff',80,30,170,36,24),24);
         this.text('edition','和AI一起经营餐馆',81,53,290,20,11).color=color(COLORS.muted);
         for(const [i,id,title] of [[0,'served','完成订单'],[1,'money','营业收入'],[2,'reviews','顾客差评']] as [number,string,string][]){
             const x=690+i*130;
             this.text(id+'-title',title,x,19,120,20,12).color=color(COLORS.muted);
-            this.text(id,'—',x,46,120,32,24).isBold=true;
+            this.pixel(this.text(id,'—',x,46,120,32,24),24);
         }
-        this.text('clock','准备开店',470,34,220,28,20).fontFamily='monospace';
-        this.box(this.node,'order-rail',640,81,812,8,COLORS.wood);
+        this.pixel(this.text('clock','准备开店',470,34,220,28,24),24).color=color(COLORS.muted);
+        this.box(this.node,'order-rail',640,81,812,8,COLORS.walnut);
         for(let i=0;i<5;i++){
             const x=234+i*164,n=this.make('ticket-'+i,x+78,112,156,67);this.tickets.push(n);
-            this.text('order-id-'+i,'',x+12,96,145,18,12);
-            this.text('order-name-'+i,'',x+12,111,87,21,16).isBold=true;
-            this.text('order-time-'+i,'',x+103,111,45,22,14).fontFamily='monospace';
+            this.pixel(this.text('order-id-'+i,'',x+12,96,100,16,12),12);
+            this.pixel(this.text('order-name-'+i,'',x+12,117,132,26,24),24);
+            this.pixel(this.text('order-time-'+i,'',x+104,96,40,16,12),12).horizontalAlign=Label.HorizontalAlign.RIGHT;
         }
         // Map geometry has a shared projection; the exterior remains plain.
         this.text('sprint-status','',1070,63,190,16,11).horizontalAlign=Label.HorizontalAlign.RIGHT;
-        this.text('fire-status','',1060,112,205,25,14).color=color(COLORS.hot);
-        this.button('pause','Ⅱ',1110,34,44,36,()=>this.post('/api/pause'));
-        this.button('resume','▶',1162,34,44,36,()=>this.post('/api/resume'),this.node,'primary');
-        this.button('end','■',1214,34,44,36,()=>this.post('/api/end'),this.node,'danger');
-        for(const id of ['pause','resume','end'])this.buttons[id].label.fontSize=22;
-        this.text('hand','',234,691,235,22,14).color=color(COLORS.muted);
+        this.text('fire-status','',1060,112,205,25,14).color=color(COLORS.alert);
+        // End sits apart from pause/resume; both destructive actions ask first.
+        this.button('pause','Ⅱ',1100,34,44,36,()=>this.post('/api/pause'));
+        this.button('resume','▶',1152,34,44,36,()=>this.post('/api/resume'),this.node,'primary');
+        this.button('end','■',1226,34,44,36,()=>this.confirm('end'),this.node,'danger');
+        for(const id of ['pause','resume','end'])this.pixel(this.buttons[id].label,24);
+        this.text('hand','',234,691,235,22,14).color=color(COLORS.ink);
         this.text('interaction','',470,691,575,22,14).color=color(COLORS.ink);
-        this.text('event','',234,709,812,18,12).color=color(COLORS.muted);
+        this.text('event','',234,709,500,18,13).color=color(COLORS.ink);
+        this.text('ai-status','',744,709,302,18,13).horizontalAlign=Label.HorizontalAlign.RIGHT;
         this.cover=this.make('cover',640,360,1280,720);
         this.cover.on(Node.EventType.TOUCH_END,(e:any)=>{e.propagationStopped=true;});
-        const shade=this.cover.addComponent(Graphics);shade.fillColor=new Color(40,32,25,160);shade.rect(-640,-360,1280,720);shade.fill();
+        const shade=this.cover.addComponent(Graphics);shade.fillColor=new Color(43,26,18,170);shade.rect(-640,-360,1280,720);shade.fill();
         // A cafe awning frames the start/pause board; the kitchen stays visible behind it.
         this.box(this.cover,'welcome-shadow',646,367,736,464,COLORS.ink);
         this.box(this.cover,'welcome-board',640,358,736,464,COLORS.paper);
-        for(let i=0;i<16;i++)this.box(this.cover,'awning',295+i*46,145,46,38,i%2?COLORS.light:COLORS.human);
+        for(let i=0;i<16;i++)this.box(this.cover,'awning',295+i*46,145,46,38,i%2?COLORS.paper:COLORS.human);
         this.text('welcome-kicker','和AI一起经营餐馆',340,193,600,25,13,this.cover).horizontalAlign=Label.HorizontalAlign.CENTER;
-        this.text('coverTitle','ChefJeff',316,257,648,64,46,this.cover).isBold=true;
+        this.pixel(this.text('coverTitle','ChefJeff',316,244,648,56,48,this.cover),48);
         this.labels.coverTitle.horizontalAlign=Label.HorizontalAlign.CENTER;
         this.chef(this.cover,'welcome-human',550,332,'human',1.25);
         this.chef(this.cover,'welcome-jeff',730,332,'jeff',1.25);
@@ -145,32 +165,45 @@ export class KitchenClient extends Component {
             if(phase==='ready'&&this.state?.connection&&!this.state.connection.configured){this.set('coverText','请先从下方「设置」连接自己的 API，再开始经营。');return;}
             this.post(phase==='ready'?'/api/start':phase==='paused'?'/api/resume':'/api/reset',phase==='ready'?{speed:.75}:{});
         },this.cover,'primary');
-        this.button('reset','重新开局',553,520,158,48,()=>this.post('/api/restart'),this.cover);
+        this.button('reset','重新开局',553,520,158,48,()=>this.confirm('restart'),this.cover);
         this.buttons.reset.node.active=false;
         this.button('cover-connection','设置',727,520,158,48,()=>this.openConnection(),this.cover);
         this.button('help','操作说明',901,520,158,48,()=>this.openHelp(),this.cover);
-        this.button('level1','第一关 · 牛排',414,464,210,28,()=>this.post('/api/level',{level:1}),this.cover);
-        this.button('level2','第二关 · 汉堡',640,464,210,28,()=>this.post('/api/level',{level:2}),this.cover);
-        this.button('level3','第三关 · 牛-堡',866,464,210,28,()=>this.post('/api/level',{level:3}),this.cover);
+        for(const n of [1,2,3])this.pixel(this.button('level'+n,LEVEL_NAMES[n],188+n*226,464,210,30,()=>this.post('/api/level',{level:n}),this.cover).getComponentInChildren(Label)!,12);
+        // Language sits on the board where people look first, not only inside Settings.
+        this.pixel(this.button('language','English',944,196,88,30,()=>{const i18n=(window as any).kitchenI18n;i18n?.setLanguage(i18n.language==='en'?'zh':'en');},this.cover).getComponentInChildren(Label)!,12);
+        if(sys.isNative)this.buttons.language.node.active=false;
         this.text('welcome-tip','先看操作说明，准备好了就开店。',333,577,614,19,11,this.cover).horizontalAlign=Label.HorizontalAlign.CENTER;
         if(!sys.isNative){
-            // Screen-reader proxies; the visible controls remain icon-only.
+            // Screen-reader proxies for every canvas button. Canvas focus moves DOM
+            // focus to the matching proxy so assistive technology follows it.
             this.controlAccess=document.createElement('div');
             this.controlAccess.style.cssText='position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);';
-            for(const id of ['pause','resume','end']){
+            for(const id of TAB_ORDER){
                 const b=document.createElement('button');b.dataset.control=id;b.tabIndex=-1;
                 b.onclick=()=>{if(this.buttons[id].enabled)this.buttons[id].callback();};
                 this.controlAccess.appendChild(b);
             }
             document.body.appendChild(this.controlAccess);
+            const canvas=document.getElementById('GameCanvas');
+            canvas?.setAttribute('role','img');canvas?.setAttribute('aria-label','ChefJeff 厨房画面');
         }
         game.on(Game.EVENT_HIDE,this.onHide,this);game.on(Game.EVENT_SHOW,this.onShow,this);
-        if(!sys.isNative){window.addEventListener('kitchen-language-changed',this.onLanguage);window.addEventListener('keydown',this.onKey,true);window.addEventListener('keyup',this.onKeyUp,true);window.addEventListener('mousedown',this.onMouseDown,true);window.addEventListener('mouseup',this.onMouseUp,true);window.addEventListener('blur',this.onBlur);document.addEventListener('visibilitychange',this.onVisibility);document.addEventListener('contextmenu',this.onContextMenu);}
+        if(!sys.isNative){window.addEventListener('kitchen-language-changed',this.onLanguage);window.addEventListener('kitchen-confirmed',this.onConfirmed);window.addEventListener('keydown',this.onKey,true);window.addEventListener('keyup',this.onKeyUp,true);window.addEventListener('mousedown',this.onMouseDown,true);window.addEventListener('mouseup',this.onMouseUp,true);window.addEventListener('blur',this.onBlur);document.addEventListener('visibilitychange',this.onVisibility);document.addEventListener('contextmenu',this.onContextMenu);}
         // Idle screens need neither gameplay frame rate nor five snapshots a second.
         game.frameRate=15;
-        this.art.load().then(()=>{this.artLoaded=true;if(this.isValid)this.poll();});this.schedule(this.scheduledPoll,.2);
+        this.art.load().then(()=>{this.artLoaded=true;this.loadingStep('正在连接厨房…');if(this.isValid)this.poll();});
+        if(!sys.isNative)(document as any).fonts?.load('24px ChefJeffPixel').then(()=>{
+            // Labels drawn before the pixel face arrived keep the fallback until re-rendered.
+            for(const l of this.node.getComponentsInChildren(Label))l.updateRenderData(true);
+            this.tagText={};if(this.state&&this.mounted)this.render();
+        }).catch(()=>{});this.schedule(this.scheduledPoll,.2);
     }
-    onDestroy(){this.controlAccess?.remove();this.clearInput();game.off(Game.EVENT_HIDE,this.onHide,this);game.off(Game.EVENT_SHOW,this.onShow,this);if(!sys.isNative){window.removeEventListener('kitchen-language-changed',this.onLanguage);window.removeEventListener('keydown',this.onKey,true);window.removeEventListener('keyup',this.onKeyUp,true);window.removeEventListener('mousedown',this.onMouseDown,true);window.removeEventListener('mouseup',this.onMouseUp,true);window.removeEventListener('blur',this.onBlur);document.removeEventListener('visibilitychange',this.onVisibility);document.removeEventListener('contextmenu',this.onContextMenu);}}
+    // The page's loading screen stays up until the kitchen first answers (or fails), so the
+    // cover never flashes placeholder art or a second "connecting" state.
+    private loadingStep(text:string){const el=!sys.isNative&&document.querySelector('#kitchen-loading span');if(el)el.textContent=text;}
+    private hideLoading(){if(!sys.isNative)document.getElementById('kitchen-loading')?.remove();}
+    onDestroy(){this.controlAccess?.remove();this.clearInput();game.off(Game.EVENT_HIDE,this.onHide,this);game.off(Game.EVENT_SHOW,this.onShow,this);if(!sys.isNative){window.removeEventListener('kitchen-language-changed',this.onLanguage);window.removeEventListener('kitchen-confirmed',this.onConfirmed);window.removeEventListener('keydown',this.onKey,true);window.removeEventListener('keyup',this.onKeyUp,true);window.removeEventListener('mousedown',this.onMouseDown,true);window.removeEventListener('mouseup',this.onMouseUp,true);window.removeEventListener('blur',this.onBlur);document.removeEventListener('visibilitychange',this.onVisibility);document.removeEventListener('contextmenu',this.onContextMenu);}}
     private onHide(){this.hidden=true;this.clearInput();if(this.state?.phase==='running')this.post('/api/pause',{reason:'hidden'});}
     private onShow(){this.hidden=false;this.poll();}
     private onBlur=()=>this.clearInput();
@@ -181,10 +214,18 @@ export class KitchenClient extends Component {
     private openHelp(){this.clearInput();if(!sys.isNative)window.dispatchEvent(new Event('kitchen-open-help'));}
     private openConnection(){this.clearInput();if(!sys.isNative)window.dispatchEvent(new Event('kitchen-open-connection'));}
     private onKey=(e:KeyboardEvent)=>{
-        if(e.key==='Escape'){if(this.state?.phase==='running'){e.preventDefault();this.clearInput();this.post('/api/pause');}return;}
+        // The communication dock keeps native Tab/Enter/Space; Esc hands the keyboard back.
+        const dock=!sys.isNative?(document.activeElement as HTMLElement)?.closest('#kitchen-communication') as HTMLElement|null:null;
+        if(e.key==='Escape'){
+            if(dock){(document.activeElement as HTMLElement).blur();return;}
+            if(e.repeat||(!sys.isNative&&document.querySelector('dialog[open]')))return;
+            if(this.state?.phase==='running'){e.preventDefault();this.clearInput();this.post('/api/pause');}
+            else if(this.state?.phase==='paused'&&this.connected){e.preventDefault();this.post('/api/resume');}
+            return;
+        }
         if(e.isComposing||e.keyCode===229)return;
         if(!sys.isNative&&(document.querySelector('dialog[open]')||(document.activeElement as HTMLElement)?.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"]')))return;
-        if(!sys.isNative&&(e.key==='Enter'||e.code==='Space')&&(document.activeElement as HTMLElement)?.closest('#kitchen-communication button'))return;
+        if(dock&&(e.key==='Enter'||e.code==='Space'||e.key==='Tab'))return;
         if(e.key==='Shift'&&this.state?.phase==='running'){
             e.preventDefault();e.stopImmediatePropagation();
             if(!e.repeat&&!e.ctrlKey&&!e.altKey&&!e.metaKey)this.bookmark();
@@ -203,11 +244,31 @@ export class KitchenClient extends Component {
                 this.heldKeys.add(key);this.refreshMovement(dash);return;}
         }
         if(e.key==='Tab'){
-            e.preventDefault();const ids=Object.keys(this.buttons).filter(id=>this.buttons[id].enabled&&this.buttons[id].node.activeInHierarchy&&(!this.cover.active||['main','reset','cover-connection','help','level1','level2','level3','pause','resume','end'].includes(id)));
-            if(!ids.length)return;const at=ids.indexOf(this.focusId),old=this.focusId;
-            this.focusId=ids[(at+(e.shiftKey?-1:1)+ids.length)%ids.length];this.styleButton(old);this.styleButton(this.focusId);
+            e.preventDefault();const ids=TAB_ORDER.filter(id=>this.buttons[id].enabled&&this.buttons[id].node.activeInHierarchy);
+            if(!ids.length)return;const at=ids.indexOf(this.focusId);
+            this.setFocus(ids[(at+(e.shiftKey?-1:1)+ids.length)%ids.length]);
         }else if(e.key==='Enter'&&this.focusId){const b=this.buttons[this.focusId];if(b?.enabled&&b.node.activeInHierarchy){e.preventDefault();b.callback();}}
     };
+    private setFocus(id:string){
+        const old=this.focusId;this.focusId=id;this.styleButton(old);this.styleButton(id);
+        const proxy=this.controlAccess?.querySelector(`[data-control="${id}"]`) as HTMLButtonElement|null;
+        if(proxy&&!proxy.hidden)proxy.focus({preventScroll:true});
+        else if(this.controlAccess?.contains(document.activeElement))(document.activeElement as HTMLElement).blur();
+    }
+    // Ending or abandoning a live round asks first; the round is paused meanwhile.
+    private async confirm(kind:'end'|'restart'){
+        const phase=this.state?.phase;
+        if(sys.isNative||(kind==='restart'&&phase!=='paused')){this.post(kind==='end'?'/api/end':'/api/restart');return;}
+        this.clearInput();const resume=phase==='running';
+        if(resume)await this.post('/api/pause');
+        window.dispatchEvent(new CustomEvent('kitchen-confirm',{detail:{kind,resume}}));
+    }
+    private onConfirmed=(e:Event)=>{
+        const d=(e as CustomEvent).detail;
+        if(d.ok)this.post(d.kind==='end'?'/api/end':'/api/restart');
+        else if(d.resume&&this.state?.phase==='paused')this.post('/api/resume');
+    };
+    private announce(message:string){if(!sys.isNative&&message)window.dispatchEvent(new CustomEvent('kitchen-announce',{detail:{message}}));}
     private onKeyUp=(e:KeyboardEvent)=>{
         if(e.code==='Space'&&this.spacePressedAt!==null){
             e.preventDefault();const held=this.spaceHold||this.clock-this.spacePressedAt>=.3;
@@ -224,7 +285,8 @@ export class KitchenClient extends Component {
             this.spaceHold=true;if(!this.throwReady)this.toggleThrow();
         }
     }
-    private toggleThrow(){const hand=this.state?.kitchen.chefs.human.holding;if(!this.throwReady&&(!hand||!['raw','chopped'].includes(hand.stage)||!!hand.plate_id)){this.set('event','只能抛生食材或切好的原料；餐盘、带盘菜、锅和工具请放下或搬运。');return;}this.throwReady=!this.throwReady;this.updateThrowCue();}
+    // Anything held can be thrown or passed; the server applies each item's range (ingredients 7, tableware and tools 3).
+    private toggleThrow(){const hand=this.state?.kitchen.chefs.human.holding;if(!this.throwReady&&!hand){this.set('event','手里没有可以抛出的东西。');return;}this.throwReady=!this.throwReady;this.updateThrowCue();}
     private updateThrowCue(){this.set('interaction',this.throwReady?(this.spaceHold?'按住空格 · 左键选落点':'抛掷已准备 · 左键选落点'):'');if(!sys.isNative){const canvas=document.querySelector('canvas') as HTMLCanvasElement|null;if(canvas)canvas.style.cursor=this.throwReady?'crosshair':'';}}
     private async sendMove(dx:number,dy:number,sprint=false){if(!this.state||this.state.phase!=='running'||!this.connected)return;const seq=++this.moveSeq;this.lastMoveAt=this.clock;try{await this.request('/api/move',{game_id:this.state.game_id,dx,dy,seq,sprint});}catch(e){this.set('event',(e as Error).message);}}
     private refreshMovement(sprint=false){
@@ -251,6 +313,12 @@ export class KitchenClient extends Component {
         const n=new Node(name);n.layer=Layers.Enum.UI_2D;parent.addChild(n);n.addComponent(UITransform).setContentSize(w,h);n.setPosition(x,y);return n;
     }
     private rect(g:Graphics,x:number,y:number,w:number,h:number,fill:string){g.fillColor=color(fill);g.rect(x,y,w,h);g.fill();}
+    private pixel(l:Label,size:number){l.fontFamily=PIXEL;l.fontSize=size;l.lineHeight=size+4;l.isBold=false;return l;}
+    // Selected target: ink edge for contrast on any floor or counter, green for the player.
+    private focusFrame(g:Graphics,x:number,y:number,w:number,h:number){
+        g.lineWidth=2;g.strokeColor=color(COLORS.ink);g.rect(x+1,y+1,w-2,h-2);g.stroke();
+        g.lineWidth=3;g.strokeColor=color(COLORS.human);g.rect(x+3.5,y+3.5,w-7,h-7);g.stroke();
+    }
     private paintBox(n:Node,w:number,h:number,fill:string){
         const g=n.getComponent(Graphics)||n.addComponent(Graphics);g.clear();
         this.rect(g,-w/2,-h/2-3,w,h,COLORS.wood);this.rect(g,-w/2,-h/2,w,h,fill);return g;
@@ -265,7 +333,7 @@ export class KitchenClient extends Component {
     private button(id:string,title:string,x:number,y:number,w:number,h:number,callback:()=>void,parent=this.node,tone='normal'){
         const n=this.make('button-'+id,x,y,w,h,parent);
         const labelNode=new Node('label');labelNode.layer=Layers.Enum.UI_2D;n.addChild(labelNode);labelNode.addComponent(UITransform).setContentSize(w-22,h-6);
-        const l=labelNode.addComponent(Label);this.writeLabel(l,title);l.fontSize=17;l.lineHeight=22;l.isBold=true;l.overflow=Label.Overflow.SHRINK;l.verticalAlign=Label.VerticalAlign.CENTER;
+        const l=labelNode.addComponent(Label);this.writeLabel(l,title);this.pixel(l,24);l.overflow=Label.Overflow.SHRINK;l.verticalAlign=Label.VerticalAlign.CENTER;
         this.buttons[id]={node:n,label:l,callback,enabled:true,width:w,height:h,tone,hover:false};this.styleButton(id);
         n.on(Node.EventType.MOUSE_ENTER,()=>{const b=this.buttons[id];if(b){b.hover=true;this.styleButton(id);}});
         n.on(Node.EventType.MOUSE_LEAVE,()=>{const b=this.buttons[id];if(b){b.hover=false;this.styleButton(id);}});
@@ -273,11 +341,19 @@ export class KitchenClient extends Component {
     }
     private styleButton(id:string){
         const b=this.buttons[id];if(!b)return;
-        const fill=!b.enabled?'#d9cbb1':b.tone==='primary'?(b.hover?'#3d6551':COLORS.human):b.hover?'#ffe4a5':COLORS.paper;
-        const g=this.paintBox(b.node,b.width,b.height,fill);
-        g.strokeColor=color(this.focusId===id?'#e4a43b':b.tone==='primary'?COLORS.human:COLORS.line);g.lineWidth=this.focusId===id?4:2;
-        g.rect(-b.width/2+1,-b.height/2+1,b.width-2,b.height-2);g.stroke();
-        b.label.color=color(!b.enabled?'#82755f':b.tone==='primary'?COLORS.paper:b.tone==='danger'?COLORS.hot:COLORS.ink);
+        // Pressable: 2px ink border over a 3px ink shadow. Selected sits pressed-in on honey;
+        // disabled goes flat on the surface so the two never look alike.
+        const sel=!!b.selected,flat=sel||!b.enabled,dy=sel?-3:0,w=b.width,h=b.height;
+        const fill=sel?COLORS.honey:!b.enabled?COLORS.bg:b.tone==='primary'?(b.hover?COLORS.humanHover:COLORS.human)
+            :b.tone==='danger'?(b.hover?COLORS.hotHover:COLORS.hot):b.hover?COLORS.honeyTint:COLORS.paper;
+        const g=b.node.getComponent(Graphics)||b.node.addComponent(Graphics);g.clear();
+        if(!flat)this.rect(g,-w/2,-h/2-3,w,h,COLORS.ink);
+        this.rect(g,-w/2,-h/2+dy,w,h,fill);
+        g.strokeColor=color(flat&&!sel?COLORS.muted:COLORS.ink);g.lineWidth=2;g.rect(-w/2+1,-h/2+1+dy,w-2,h-2);g.stroke();
+        // Keyboard focus: an ink ring outside the button (and its shadow) with a gap.
+        if(this.focusId===id){g.strokeColor=color(COLORS.ink);g.lineWidth=3;g.rect(-w/2-5,-h/2-8,w+10,h+13);g.stroke();}
+        b.label.node.setPosition(0,dy);
+        b.label.color=color(sel?COLORS.ink:!b.enabled?COLORS.muted:b.tone==='primary'||b.tone==='danger'?COLORS.paper:COLORS.ink);
     }
     private enable(id:string,enabled:boolean){const b=this.buttons[id];if(!b)return;if(b.enabled!==enabled){b.enabled=enabled;this.styleButton(id);}}
     private labelSources=new WeakMap<Label,string>();
@@ -486,7 +562,7 @@ export class KitchenClient extends Component {
                 this.set('coverTitle','等待厨房更新');
                 this.set('coverText','新版页面已就绪，厨房服务仍在保留旧对局。\n服务更新后会自动连接，请先完成更新确认。');
                 for(const id of ['main','reset','cover-connection'])this.enable(id,false);
-                return;
+                this.hideLoading();return;
             }
             this.enable('cover-connection',true);
             if(this.mounted&&this.mountedLayout!==next.kitchen.map.layout_version){
@@ -501,8 +577,8 @@ export class KitchenClient extends Component {
             const frameRate=next.phase==='running'?60:15;
             if(game.frameRate!==frameRate)game.frameRate=frameRate;
             if(!sys.isNative)window.dispatchEvent(new CustomEvent('kitchen-state',{detail:{game_id:next.game_id,phase:next.phase,connection:next.connection,memory:next.memory,limits:next.limits,release:next.release,communication:next.communication}}));
-            if(!this.mounted)this.mountMap();this.render();
-        }catch(e){game.frameRate=15;this.clearInput();this.connected=false;if(this.jeffThinking)this.jeffThinking.active=false;this.set('event',String((e as Error).message)+'，厨房会自动暂停。');this.cover.active=true;this.set('coverTitle','连接厨房');this.set('coverText','暂时连接不上厨房，请稍后重试。\n连接中断时，游戏会自动暂停。');this.writeLabel(this.buttons.main.label,'重新连接');this.buttons.reset.node.active=false;this.labels['welcome-tip'].node.active=true;
+            if(!this.mounted)this.mountMap();this.processEvents();this.render();this.hideLoading();
+        }catch(e){this.hideLoading();game.frameRate=15;this.clearInput();this.connected=false;if(this.jeffThinking)this.jeffThinking.active=false;this.set('event',String((e as Error).message)+'，厨房会自动暂停。');this.cover.active=true;this.set('coverTitle','连接厨房');this.set('coverText','暂时连接不上厨房，请稍后重试。\n连接中断时，游戏会自动暂停。');this.writeLabel(this.buttons.main.label,'重新连接');this.buttons.reset.node.active=false;this.labels['welcome-tip'].node.active=true;
         }finally{this.polling=false;}
     };
     private async bookmark(){
@@ -633,7 +709,7 @@ export class KitchenClient extends Component {
             if(wall)n.on(Node.EventType.TOUCH_END,()=>{if(!this.mapTarget(x,y))this.cancelManualMovement();});
         }
         this.focusMarker=this.child(this.node,'focus-cell',TILE,TILE);
-        const fg=this.focusMarker.addComponent(Graphics);fg.strokeColor=color(COLORS.human);fg.lineWidth=3;fg.rect(-TILE/2+3,-TILE/2+3,TILE-6,TILE-6);fg.stroke();
+        this.focusFrame(this.focusMarker.addComponent(Graphics),-TILE/2+1,-TILE/2+1,TILE-2,TILE-2);
         // Signs sit on the wall, leaving all walkable tiles visible.
 
         this.text('prep-sign',this.useModularArt?'':this.state!.kitchen.level===2?'长 台 厨 房':'备 菜 区',MAPX+TILE,MAPY+25,295,24,14).horizontalAlign=Label.HorizontalAlign.CENTER;
@@ -678,8 +754,8 @@ export class KitchenClient extends Component {
                 this.rect(bg,-12,-6,9,8,'#665e57');this.rect(bg,-3,1,10,8,'#504a45');this.rect(bg,5,8,8,7,'#746b62');
                 const fire=this.child(n,'fire-flame',32,34,0,39),fg=fire.addComponent(Graphics);this.drawIcon(fg,'fire');fire.setScale(.55,.55,1);
                 const ready=this.child(n,'ready-pop',76,24,0,38),rg=ready.addComponent(Graphics);
-                this.rect(rg,-35,-11,70,22,'#e4a43b');this.rect(rg,-32,-8,64,16,COLORS.paper);
-                const cue=this.child(ready,'cue',70,22).addComponent(Label);this.writeLabel(cue,'熟了！');cue.fontSize=14;cue.lineHeight=18;cue.isBold=true;cue.color=color(COLORS.ink);cue.horizontalAlign=Label.HorizontalAlign.CENTER;cue.verticalAlign=Label.VerticalAlign.CENTER;
+                this.rect(rg,-35,-11,70,22,COLORS.honey);this.rect(rg,-32,-8,64,16,COLORS.paper);
+                const cue=this.child(ready,'cue',70,22).addComponent(Label);this.writeLabel(cue,'熟了！');this.pixel(cue,12);cue.color=color(COLORS.ink);cue.horizontalAlign=Label.HorizontalAlign.CENTER;cue.verticalAlign=Label.VerticalAlign.CENTER;
                 steam.active=false;smoke.active=false;fire.active=false;ready.active=false;
                 this.potEffects[id]={steam,smoke,fire,ready};
             }
@@ -694,8 +770,10 @@ export class KitchenClient extends Component {
                 const p=this.state?.kitchen.chefs[who].position;if(this.mapTarget(p[0],p[1]))return;
                 if(who==='jeff'){this.set('event','靠近 Jeff，按空格给他手中的干净盘装菜。');}
             });
-            const ln=new Node('name');ln.layer=Layers.Enum.UI_2D;n.addChild(ln);ln.setPosition(0,this.useModularArt?-12:-39);ln.addComponent(UITransform).setContentSize(155,25);
-            const l=ln.addComponent(Label);l.fontSize=16;l.lineHeight=19;l.isBold=true;l.color=color(COLORS[who]);this.labels['person-'+who]=l;
+            // Name tag: a solid pixel plate in the identity colour, sized to the text in drawNameTag.
+            const ln=this.child(n,'name',155,25,0,this.useModularArt?-12:-39);this.child(ln,'tag',40,18).addComponent(Graphics);
+            const l=this.pixel(this.child(ln,'text',40,18).addComponent(Label),12);delete this.tagText[who]; // new nodes after a layout change need their plate drawn
+            l.overflow=Label.Overflow.NONE;this.labels['person-'+who]=l;
             const body=n.getChildByName('body')!,held=this.child(body,'held',25,25,22,0);held.setScale(.9,.9,1);held.addComponent(Graphics);this.people[who]=n;
             if(this.prepSample){
                 const pose=this.child(this.world!,'prep-pose-'+who,68,88);pose.active=false;this.prepPoses[who]=pose;
@@ -706,7 +784,7 @@ export class KitchenClient extends Component {
         }
         const marker=(name:string,fill:string)=>{const n=this.child(this.people.jeff,name,30,18,0,65),g=n.addComponent(Graphics);
             g.fillColor=color(COLORS.paper);g.circle(0,0,8);g.fill();for(const x of [-5,0,5])this.rect(g,x-1,-1,2,3,fill);return n;};
-        this.jeffThinking=marker('jeff-thinking','#567fa4');
+        this.jeffThinking=marker('jeff-thinking',COLORS.jeff);
         const error=this.child(this.people.jeff,'jeff-api-error',24,23,0,66),eg=error.addComponent(Graphics);
         this.rect(eg,-9,-9,18,18,COLORS.hot);this.rect(eg,-2,-6,4,8,COLORS.paper);this.rect(eg,-2,4,4,3,COLORS.paper);this.jeffError=error;
         this.jeffThinking.active=false;this.jeffError.active=false;
@@ -904,28 +982,75 @@ export class KitchenClient extends Component {
         child.active=!this.useModularArt;
         if(click)n.on(Node.EventType.TOUCH_END,click);return n;
     }
+    private statColor(id:string){
+        const f=this.flashes[id],k=this.state!.kitchen;if(f&&f.until>this.clock)return f.fill;
+        return id==='reviews'&&k.goals.max_bad_reviews!=null&&k.bad_reviews>k.goals.max_bad_reviews?COLORS.hot:COLORS.ink;
+    }
+    // New result events: a short pop where it happened, a header pulse, and a
+    // screen-reader announcement. Events already present when a round loads stay quiet.
+    private processEvents(){
+        const s=this.state!,fresh=s.game_id!==this.eventsGame;
+        if(fresh){this.eventsGame=s.game_id;this.seenEvents.clear();}
+        for(const e of s.events){
+            const key=e.t+'|'+e.message;if(this.seenEvents.has(key))continue;
+            this.seenEvents.add(key);if(!fresh)this.feedback(e);
+        }
+        if(this.seenEvents.size>300)this.seenEvents=new Set(s.events.map(e=>e.t+'|'+e.message));
+    }
+    private feedback(e:{message:string;kind?:string}){
+        const k=this.state!.kitchen,amount=/(\d+) 元/.exec(e.message)?.[1]||'',serve=k.map.equipment.serve?.cell;
+        const at=(cell:number[]|undefined)=>cell?[MAPX+(cell[0]+.5)*TILE,MAPY+(cell[1]-.1)*TILE]:[640,150];
+        if(e.kind==='served'){this.pop(at(serve),'+¥'+amount,COLORS.herb);this.flash(['served','money'],COLORS.herb);}
+        else if(e.kind==='bad_service'){this.pop(at(serve),`差评 -¥${amount}`,COLORS.alert);this.flash(['reviews','money'],COLORS.alert);}
+        else if(e.kind==='expired'){this.pop([312,180],`${/^(\S+?)超时/.exec(e.message)?.[1]||''} 超时 -¥${amount}`,COLORS.alert);this.flash(['reviews','money'],COLORS.alert);}
+        else if(e.kind==='fire'||e.kind==='fire_spread')this.flash(['money'],COLORS.alert);
+        if(e.kind&&RESULT_ANNOUNCE.has(e.kind))this.announce(e.message);
+    }
+    private flash(ids:string[],fill:string){for(const id of ids){this.flashes[id]={until:this.clock+1.2,fill};this.labels[id].color=color(fill);}}
+    private pop(p:number[],text:string,fill:string){
+        const n=this.make('result-pop',p[0],p[1],220,28),l=n.addComponent(Label);
+        this.writeLabel(l,text);this.pixel(l,24);l.horizontalAlign=Label.HorizontalAlign.CENTER;
+        l.enableShadow=true;l.shadowColor=color(COLORS.ink);l.shadowOffset=new Vec2(2,-2);l.shadowBlur=0;l.color=color(fill); // hard pixel shadow
+        this.pops.push({node:n,label:l,born:this.clock,y:n.position.y,fill:color(fill)});
+    }
     private drawOrders(){
         const s=this.state!,k=s.kitchen,orders=k.orders.filter((o:any)=>o.status==='pending');
         // Service levels have a money target and no bad-review limit.
         const service=k.goals.max_bad_reviews==null;
         this.set('served',service?`${k.served}`:`${k.served} / ${k.goals.target_served}`);this.set('money',service?`¥ ${k.money} / ${k.goals.target_money}`:`¥ ${k.money}`);this.set('reviews',service?'—':`${k.bad_reviews} / ${k.goals.max_bad_reviews}`);
-        this.labels.reviews.color=color(!service&&k.bad_reviews>k.goals.max_bad_reviews?COLORS.hot:COLORS.ink);
+        for(const id of ['served','money','reviews'])this.labels[id].color=color(this.statColor(id));
         for(let i=0;i<5;i++){
             const o=orders[i],n=this.tickets[i],g=n.getComponent(Graphics)||n.addComponent(Graphics),urgent=o&&o.remaining<=15;g.clear();
-            this.rect(g,-78,-34,156,67,COLORS.paper);
-            g.strokeColor=color(COLORS.line);g.lineWidth=1;g.rect(-77.5,-33.5,155,66);g.stroke();
-            this.rect(g,-10,26,20,8,COLORS.wood);
-            this.rect(g,-66,-26,132,4,'#d6c5a2');
-            if(o){this.rect(g,-66,-26,132*Math.max(0,Math.min(1,o.remaining/(o.patience||s.rules?.order_patience||90))),4,urgent?COLORS.hot:COLORS.human);}
+            // Paper slip clipped to the walnut rail; empty clips stay bare instead of drawing blank slips.
+            this.rect(g,-10,26,20,6,COLORS.walnut);
+            if(o||i===0){
+                this.rect(g,-78,-36,156,62,COLORS.walnut);this.rect(g,-77,-34,154,59,COLORS.paper);
+                if(o){
+                    // Patience: herb while comfortable, honey past half, tomato when urgent (the label also says so).
+                    const left=Math.max(0,Math.min(1,o.remaining/(o.patience||s.rules?.order_patience||90)));
+                    this.rect(g,-67,-30,134,7,COLORS.ink);this.rect(g,-66,-29,132,5,COLORS.bg);
+                    this.rect(g,-66,-29,132*left,5,urgent?COLORS.hot:left>.5?COLORS.herb:COLORS.honey);
+                }
+            }
             const signature=o?JSON.stringify(o.ingredients||['beef']):'';
             if(this.orderArt[i]!==signature){this.orderArt[i]=signature;
             const prev=n.getChildByName('ingredients');if(prev)prev.destroy();
-            if(o){const row=this.child(n,'ingredients',150,16,0,-16);const ingredients=o.ingredients||['beef'];
-                ingredients.forEach((name:string,j:number)=>{const item=this.child(row,'ingredient-'+j,30,14,-51+j*34,0);item.setScale(this.useArt?.5:.32,this.useArt?.5:.32,1);this.drawIcon(item.addComponent(Graphics),name==='beef'?'ready':name+'_raw');});}}
-            this.set('order-id-'+i,o?`${o.id}  /  ${urgent?'快超时了':'待出餐'}`:i===0?'订单夹':'');
+            if(o){const row=this.child(n,'ingredients',150,16,0,-5);const ingredients=o.ingredients||['beef'];
+                ingredients.forEach((name:string,j:number)=>{const item=this.child(row,'ingredient-'+j,30,14,66-(ingredients.length-1-j)*15,0);item.setScale(this.useArt?.5:.32,this.useArt?.5:.32,1);this.drawIcon(item.addComponent(Graphics),name==='beef'?'ready':name+'_raw');});}}
+            this.set('order-id-'+i,o?`${o.id} · ${urgent?'快超时了':'待出餐'}`:i===0?'订单夹':'');this.labels['order-id-'+i].color=color(urgent?COLORS.hot:COLORS.muted);
             this.set('order-name-'+i,o?(o.dish==='burger'?'汉堡':'香煎牛排'):i===0?(k.future_orders?'等待新订单':'订单已结清'):'');
             this.set('order-time-'+i,o?`${Math.max(0,Math.ceil(o.remaining))}s`:'');this.labels['order-time-'+i].color=color(urgent?COLORS.hot:COLORS.muted);
         }
+    }
+    private tagText:Record<string,string>={};
+    private drawNameTag(who:string){
+        const l=this.labels['person-'+who];if(this.tagText[who]===l.string)return;this.tagText[who]=l.string;
+        l.updateRenderData(true);const w=Math.ceil(l.node.getComponent(UITransform)!.width)+10,h=18;
+        const g=l.node.parent!.getChildByName('tag')!.getComponent(Graphics)!;g.clear();
+        // 1px ink border with a 2px hard ink shadow below, like the game's buttons.
+        // You: denim plate, paper text. Jeff: paper plate (his white body), copper text.
+        this.rect(g,-w/2-1,-h/2-3,w+2,h+4,COLORS.ink);this.rect(g,-w/2,-h/2,w,h,who==='human'?COLORS.human:COLORS.paper);
+        l.color=color(who==='human'?COLORS.paper:COLORS.jeff);
     }
     private locate(n:Node,p:number[],height=0){n.setPosition(MAPX+(p[0]+.5)*TILE-640,360-MAPY-(p[1]+.5)*TILE+height);}
     private render(){
@@ -944,10 +1069,8 @@ export class KitchenClient extends Component {
             this.foodStages[id]=foodKey;
             if(st.fire&&!this.useArt){this.rect(g,-26,-26,52,52,'#f1b589');}
             if(s.interaction_focus===id){
-                g.strokeColor=color(COLORS.human);g.lineWidth=3;
-                if(this.useModularArt)g.rect(-TILE/2+2,this.workSurfaceY(id)-TILE/2+2,TILE-4,TILE-4);
-                else g.rect(-26,-26,52,52);
-                g.stroke();
+                if(this.useModularArt)this.focusFrame(g,-TILE/2,this.workSurfaceY(id)-TILE/2,TILE,TILE);
+                else this.focusFrame(g,-27,-27,54,54);
             }
             this.writeLabel(dev.label,st.fire?'着火了！':st.food?(this.itemName(st.food)+(st.food.stage==='cooking'?` ${Math.ceil(st.ready_in)}s`:st.food.stage==='ready'&&st.heating&&st.burn_in!==undefined?` ${Math.ceil(st.burn_in)}s 后糊`:'')):id==='fridge'&&this.useModularArt?'牛肉柜':st.name);
             const countdown=heatCountdown(st);
@@ -956,14 +1079,14 @@ export class KitchenClient extends Component {
                 timer=this.child(dev.node,'heat-countdown',48,15,0,this.workSurfaceY(id)+TILE/2-5);
                 timer.addComponent(Graphics);
                 const text=this.child(timer,'time',48,15).addComponent(Label);
-                text.fontSize=10;text.lineHeight=13;text.isBold=true;text.overflow=Label.Overflow.SHRINK;
+                this.pixel(text,12);text.overflow=Label.Overflow.SHRINK;
             }
             if(timer){
                 timer.active=!!countdown;
                 if(countdown){
                     timer.setSiblingIndex(dev.node.children.length-1);
                     const tg=timer.getComponent(Graphics)!;tg.clear();
-                    this.rect(tg,-24,-7.5,48,15,countdown.paused?COLORS.muted:countdown.ready?COLORS.hot:COLORS.human);
+                    this.rect(tg,-24,-7.5,48,15,countdown.paused?COLORS.steel:countdown.ready?COLORS.hot:COLORS.walnut);
                     const label=timer.getChildByName('time')!.getComponent(Label)!;label.color=color(COLORS.paper);
                     this.writeLabel(label,`${countdown.paused?'Ⅱ ':''}${countdown.seconds}s ${countdown.ready?'糊':'熟'}`);
                 }
@@ -990,7 +1113,7 @@ export class KitchenClient extends Component {
             if(st.food&&st.stove)progress=Math.min(1,st.food.heat_elapsed/(s.rules?.cook_seconds||12));
             if(progress>=0){
                 const py=this.useModularArt?this.workSurfaceY(id)-TILE/2+3:-18;
-                this.rect(g,-22,py,44,4,COLORS.line);this.rect(g,-22,py,44*progress,4,st.fire?COLORS.hot:COLORS.human);
+                this.rect(g,-23,py-1,46,6,COLORS.ink);this.rect(g,-22,py,44*progress,4,st.fire?COLORS.hot:COLORS.paper);
             }
             const effects=this.potEffects[id];if(effects){
                 effects.steam.active=!!st.food&&st.food.stage==='cooking'&&!!st.heating&&!st.fire;
@@ -1010,7 +1133,7 @@ export class KitchenClient extends Component {
         }
         for(const who of ['human','jeff']){
             const c=k.chefs[who];
-            this.set('person-'+who,(who==='human'?'你':'Jeff')+(c.sprint?.active_remaining>0?' »':''));
+            this.set('person-'+who,(who==='human'?'你':'Jeff')+(c.sprint?.active_remaining>0?' »':''));this.drawNameTag(who);
             const held=this.motions[who].body.getChildByName('held')!;held.active=!!c.holding;
             if(c.holding)this.drawIcon(held.getComponent(Graphics)!,this.itemStage(c.holding));
         }
@@ -1023,35 +1146,78 @@ export class KitchenClient extends Component {
         this.enable('pause',active);
         this.enable('resume',s.phase==='paused'&&!this.pending&&this.connected);
         this.enable('end',['running','paused'].includes(s.phase)&&!this.pending&&this.connected);
-        for(const id of ['pause','resume','end']){
-            this.buttons[id].node.active=true;
-            const proxy=this.controlAccess?.querySelector(`[data-control="${id}"]`) as HTMLButtonElement|null;
-            if(proxy){proxy.disabled=!this.buttons[id].enabled;proxy.setAttribute('aria-label',(window as any).kitchenI18n?.t(({pause:'暂停',resume:'继续经营',end:'结束本局'} as Record<string,string>)[id])||id);}
-        }
+        for(const id of ['pause','resume','end'])this.buttons[id].node.active=true;
         if(this.focusMarker){const cell=s.interaction_cell;this.focusMarker.active=!!cell&&!k.map.equipment[s.interaction_focus||'']&&cell[0]>=0&&cell[1]>=0&&cell[0]<k.map.width&&cell[1]<k.map.height&&!k.map.walls.some((p:number[])=>p[0]===cell[0]&&p[1]===cell[1]);if(this.focusMarker.active)this.locate(this.focusMarker,cell!);}
         const held=k.chefs.human.holding;this.set('hand','手中：'+(held?this.itemName(held):'空手'));
         if(held?.stage==='assembled')this.set('hand','缺少：'+held.missing.map((x:string)=>({beef:'熟牛肉',bread:'面包',lettuce:'生菜',tomato:'番茄'}[x])).join('+'));
         if(!this.throwReady)this.set('interaction',s.interaction?'空格 · '+s.interaction.label.split('（')[0]:(s.interaction_hint||'靠近工位或物品，再按空格'));
-        if(s.limits?.reached&&s.phase==='running')this.set('event','本局 AI 调用已达上限；已有动作继续。你可继续玩或暂停，下局可调整上限。');
-        else if(s.ai.error)this.set('event',s.ai.error);else if(s.events.length)this.set('event',s.events[s.events.length-1].message);
-        for(const n of [1,2,3]){this.buttons['level'+n].node.active=s.phase==='ready'||s.phase==='ended';this.enable('level'+n,!this.pending&&k.level!==n);}
+        // Game results keep the event line; Jeff's decisions and errors use their own status.
+        const results=s.events.filter(e=>!this.isAiNote(e));
+        this.set('event',results.length?results[results.length-1].message:'');
+        this.set('ai-status',this.aiStatus(s));
+        this.labels['ai-status'].color=color(s.ai.error||(s.limits?.reached&&s.phase==='running')?COLORS.alert:COLORS.muted);
+        for(const n of [1,2,3]){
+            const b=this.buttons['level'+n],sel=k.level===n;b.node.active=s.phase==='ready'||s.phase==='ended';
+            this.writeLabel(b.label,LEVEL_NAMES[n]+(sel?' · 当前':''));
+            if(b.selected!==sel){b.selected=sel;this.styleButton('level'+n);}this.enable('level'+n,!this.pending&&!sel);
+        }
+        const lang=(window as any).kitchenI18n?.language==='en'?'中文':'English';if(this.buttons.language.label.string!==lang)this.buttons.language.label.string=lang;
         this.cover.active=s.phase!=='running';this.buttons.reset.node.active=true;
-        this.enable('main',!this.pending);this.buttons.main.node.active=s.phase!=='paused';
-        for(const [id,x] of [['reset',s.phase==='paused'?466:553],['cover-connection',s.phase==='paused'?640:727],['help',s.phase==='paused'?814:901]] as [string,number][])this.buttons[id].node.setPosition(x-640,360-520);
+        this.enable('main',!this.pending);this.buttons.main.node.active=true;
         this.enable('reset',!this.pending&&s.phase!=='ready');
         this.writeLabel(this.buttons.main.label,s.phase==='ready'?'开始经营':s.phase==='paused'?'继续经营':'准备下一局');
         if(s.phase==='ready'&&s.connection&&!s.connection.configured)this.writeLabel(this.buttons.main.label,'先连接搭档');
-        this.labels['welcome-tip'].node.active=s.phase!=='paused';
-        if(this.overlayPhase!==s.phase){this.overlayPhase=s.phase;const old=this.focusId;this.focusId='';this.styleButton(old);}
+        this.labels['welcome-tip'].node.active=s.phase==='ready';
         this.set('coverTitle',s.phase==='ready'?'ChefJeff':s.phase==='paused'?'歇一小会儿':k.failure_reason==='fire_spread'?'火势失控':s.aborted?'本局已结束':s.won?'今天，配合得不错！':'明天再接再厉');
         const settlement=k.settlement;
         const service=k.goals.max_bad_reviews==null;
         this.set('coverText',s.phase==='ready'?(service?`你和 AI 搭档，一起照顾这间小厨房。\n本局目标：关店时净收入达到 ¥${k.goals.target_money}`:`你和 AI 搭档，一起照顾这间小厨房。\n本局目标：出餐 ${k.goals.target_served} 单 · 收入 ¥${k.goals.target_money} · 差评不超过 ${k.goals.max_bad_reviews} 次`):s.phase==='paused'?'锅火和订单都按下了暂停。\n准备好了，就和 Jeff 接着做菜。':service?`出餐 ${k.served} 单 · 净收入 ¥${k.money} / ¥${k.goals.target_money}`:`出餐 ${k.served} 单 · 营业收入 ¥${k.money} · 差评 ${k.bad_reviews} 次`+(settlement?`\n剩余 ${settlement.remaining_seconds} 整秒 · 时间奖励 +¥${settlement.time_bonus} · 合计 ¥${settlement.total_income}`:''));
+        this.syncAccess();
+        if(this.overlayPhase!==s.phase){
+            // Pause defaults to "Resume" so Enter, Space or Esc all return to the kitchen.
+            const first=!this.overlayPhase;this.overlayPhase=s.phase;this.setFocus(s.phase==='paused'?'main':'');
+            if(!first&&s.phase!=='running')this.announce(this.labelSources.get(this.labels.coverTitle)+'\n'+this.labelSources.get(this.labels.coverText));
+        }
+        if(s.ai.error&&s.ai.error!==this.lastAiError)this.announce(s.ai.error);
+        this.lastAiError=s.ai.error;
         this.cover.setSiblingIndex(this.node.children.length-1);
         for(const id of ['pause','resume','end'])this.buttons[id].node.setSiblingIndex(this.node.children.length-1);
     }
+    private isAiNote(e:{message:string;kind?:string}){return !e.kind&&/^(Jeff |本局 AI)/.test(e.message);}
+    private aiStatus(s:KitchenState){
+        if(s.limits?.reached&&s.phase==='running')return 'Jeff 已达本局调用上限';
+        if(s.ai.error)return 'Jeff 暂时连不上，正在重试';
+        const note=[...s.events].reverse().find(e=>this.isAiNote(e));
+        const m=note&&/^Jeff 选择：(.*?) \| [\d.]+s(?: \| 未执行：(.*))?$/s.exec(note.message);
+        if(m)return m[2]?`Jeff：${m[1]}（未执行）`:`Jeff：${m[1]}`; // full reason stays in the event log/export
+        return note?.message.startsWith('Jeff 请求失败')?'Jeff 暂时连不上，正在重试':'';
+    }
+    // Keeps the screen-reader proxies in step with the visible canvas buttons.
+    private syncAccess(){
+        if(!this.controlAccess)return;
+        const icons:Record<string,string>={pause:'暂停',resume:'继续经营',end:'结束本局'};
+        for(const id of TAB_ORDER){
+            const b=this.buttons[id],proxy=this.controlAccess.querySelector(`[data-control="${id}"]`) as HTMLButtonElement|null;if(!proxy)continue;
+            const text=id==='language'?b.label.string:icons[id]||this.labelSources.get(b.label)||id;
+            if(id==='language')proxy.setAttribute('data-no-i18n','');
+            if(proxy.dataset.source!==text){proxy.dataset.source=text;proxy.textContent=text;}
+            proxy.disabled=!b.enabled;proxy.hidden=!b.node.activeInHierarchy;
+        }
+    }
     update(dt:number){
         this.clock+=dt;if(!this.state||!this.mounted)return;const k=this.state.kitchen;
+        // Result pops rise and fade over 1.4s (no rise with reduced motion); header numbers pulse.
+        this.pops=this.pops.filter(p=>{
+            const age=(this.clock-p.born)/1.4;if(age>=1||!p.node.isValid){p.node.destroy();return false;}
+            if(!this.reduceMotion)p.node.setPosition(p.node.position.x,p.y+34*(1-(1-age)*(1-age)));
+            const a=Math.round(255*(age<.6?1:1-(age-.6)/.4));
+            p.label.color=new Color(p.fill.r,p.fill.g,p.fill.b,a);p.label.shadowColor=new Color(43,26,18,a);return true;
+        });
+        for(const [id,f] of Object.entries(this.flashes)){
+            const left=f.until-this.clock,n=this.labels[id].node;
+            if(left<=0){delete this.flashes[id];n.setScale(1,1,1);this.labels[id].color=color(this.statColor(id));continue;}
+            const s=this.reduceMotion?1:1+.18*Math.max(0,left-.9)/.3;n.setScale(s,s,1);
+        }
         const running=this.connected&&!this.hidden&&this.state.phase==='running';
         this.updateSpaceGesture();
         const animate=running&&!this.qaNoMotion;

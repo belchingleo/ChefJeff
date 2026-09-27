@@ -63,7 +63,7 @@ cd ChefJeff
 python3 scripts/launch_web.py
 ```
 
-On Windows, use `py -3 scripts/launch_web.py`. You can also launch with `开始网页版.command` on macOS or `开始网页版.bat` on Windows.
+On Windows, use `py -3 scripts/launch_web.py`. You can also launch with `start-web.command` on macOS or `start-web.bat` on Windows.
 
 Open <http://127.0.0.1:8775/>, enter your own TypeSafe Jev, DeepSeek, or compatible Chat Completions credentials in Settings, test the connection, and start a round. Connection tests and gameplay requests use your model account and may incur charges. ChefJeff is a real-time game and is designed for fast, low-latency models (for example TypeSafe Jev or DeepSeek's fast models); a slow model keeps its chef idle while the kitchen keeps running.
 
@@ -83,7 +83,7 @@ The current release supports **desktop and laptop browsers with a keyboard and m
 
 - **WASD / arrow keys:** move. Click a floor tile or workstation to approach it. Double-tap a direction to sprint.
 - **Space:** perform the nearby action shown in the bottom hint. Cancelling chopping or washing preserves progress.
-- **Throw:** hold Space briefly, then left-click a target; release to cancel. Alternatively, right-click to prepare, left-click to throw, and right-click to cancel. Only loose ingredients can be thrown.
+- **Throw:** hold Space briefly, then left-click a target; release to cancel. Alternatively, right-click to prepare, left-click to throw, and right-click to cancel. Ingredients fly up to 7 cells; plates, dishes, pots and the extinguisher can be passed up to 3.
 - **Serve and wash:** use a clean plate to collect cooked food; return dirty plates to the sink and wash with empty hands.
 - **Esc:** pause. Settings provide model connections, language selection, usage limits, and feedback export.
 
@@ -105,7 +105,7 @@ The environment separates kitchen rules, spatial movement, agent decisions, and 
 
 For a new model adapter, implement `payload(state, actions)` and `ask(payload)` and return the chosen action to `DecisionLoop`. The environment handles action validation and execution. Existing compatible services can be configured directly in Settings.
 
-Start with [agent integration](docs/agent-integration.md) and [map format](docs/地图数据格式.md). The character is named Jeff; TypeSafe Jev is one supported model service, and `jeff` is the internal actor identifier.
+Start with [agent integration](docs/agent-integration.md) and [map format](docs/map-format.md). The character is named Jeff; TypeSafe Jev is one supported model service, and `jeff` is the internal actor identifier.
 
 ### Development
 
@@ -194,7 +194,7 @@ ChefJeff 让人类玩家和 AI 厨师进入同一个厨房。订单不断到来�
 **0.5.9-alpha** 提供本地浏览器游戏、三张可玩地图，以及玩家自带的模型连接。
 
 - 牛排、汉堡和混合菜谱厨房，包含备料、烹饪、装盘、出餐、餐具回收、洗碗和消防。
-- 共享工位、合作切菜、抛接原料、搬锅和厨师之间的温和碰撞。
+- 共享工位、合作切菜、抛接原料、传菜、搬锅和厨师之间的温和碰撞。
 - 按朝向呈现的操作动画、食材叠层及熟成／烧糊倒计时；锅离灶暂停加热，放回后续算。
 - 中文／英文界面、暂停与重开、调用上限、玩家偏好沟通、局内标记和反馈导出。
 - 结构化的 agent 观察与动作、事件记录、有限本地跨局记忆和数据化地图。
@@ -217,7 +217,7 @@ cd ChefJeff
 python3 scripts/launch_web.py
 ```
 
-Windows 使用 `py -3 scripts/launch_web.py`。也可双击 `开始网页版.command`（macOS）或 `开始网页版.bat`（Windows）。
+Windows 使用 `py -3 scripts/launch_web.py`。也可双击 `start-web.command`（macOS）或 `start-web.bat`（Windows）。
 
 打开 <http://127.0.0.1:8775/>，在「设置」中填写自己的 TypeSafe Jev、DeepSeek 或兼容 Chat Completions 的 API，测试连接后开局。连接测试和游戏请求使用你的模型账号，费用由该账号承担。ChefJeff 是实时游戏，面向低延迟的快模型设计（例如 TypeSafe Jev 或 DeepSeek 的快速模型）；模型太慢时，厨房照常运转，Jeff 却会一直等待。
 
@@ -237,7 +237,7 @@ python3 cocos_server.py --port 8775
 
 - **WASD／方向键：**移动；点击地面或工位走近；双击同一方向键冲刺。
 - **空格：**执行底部提示的就近动作；主动取消切菜或洗碗时保留加工进度。
-- **抛原料：**短暂按住空格后左键点击目标，松开取消；也可右键准备、左键抛出、右键取消。仅散装原料可抛掷。
+- **抛原料：**短暂按住空格后左键点击目标，松开取消；也可右键准备、左键抛出、右键取消。原料最远 7 格；盘子、菜、锅和灭火器可以传，最远 3 格。
 - **出餐和洗碗：**用净盘收取熟食；将脏盘送进水槽，空手洗净。
 - **Esc：**暂停；设置中可连接模型、切换语言、控制调用次数和导出反馈。
 
@@ -259,7 +259,7 @@ python3 cocos_server.py --port 8775
 
 接入新模型时，实现 `payload(state, actions)` 和 `ask(payload)`，将动作选择返回给 `DecisionLoop`；环境负责校验与执行。已有兼容服务可直接通过设置接入。
 
-从 [agent 接入](docs/agent-integration.md) 和 [地图数据格式](docs/地图数据格式.md) 开始了解。游戏角色名是 Jeff；TypeSafe Jev 是支持的模型服务之一，`jeff` 是内部角色标识。
+从 [agent 接入](docs/agent-integration.md) 和 [地图数据格式](docs/map-format.md) 开始了解。游戏角色名是 Jeff；TypeSafe Jev 是支持的模型服务之一，`jeff` 是内部角色标识。
 
 ### 开发与验证
 

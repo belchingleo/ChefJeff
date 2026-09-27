@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "map.schema.json",
   "title": "Map document, schema 2 (geometry and equipment instances)",
-  "description": "Structural contract. Geometric rules (closed boundary, connected floor, access adjacency, footprints) are checked by map_definition.validate_map; equipment types are checked against the level's equipment catalog by the resolver. See docs/地图数据格式.md.",
+  "description": "Structural contract. Geometric rules (closed boundary, connected floor, access adjacency, footprints) are checked by map_definition.validate_map; equipment types are checked against the level's equipment catalog by the resolver. See docs/map-format.md.",
   "type": "object",
   "required": ["schema_version", "id", "revision", "size", "areas", "walls", "equipment"],
   "properties": {

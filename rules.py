@@ -197,6 +197,9 @@ class Rules:
         self.throw_speed = throw['speed_cells_per_game_s']
         self.min_flight = s(throw['min_flight_game_ms'])
         self.catch_radius = throw['catch_radius_cells']
+        # Optional: items that are not throwable ingredients (plates, plated food, pots, tools)
+        # can be passed to the floor or a chef within this shorter range. Absent = not passable.
+        self.pass_range = throw.get('pass_range_cells')
 
         self.items = recipes['items']
         self.item_names = {k: v['name'] for k, v in self.items.items()}
@@ -295,6 +298,12 @@ class Rules:
     def throwable(self, food):
         return bool(food and food.ingredient in self.items and food.stage in self.items[food.ingredient]['throwable_states']
                     and not food.plate_id)
+
+    def throw_reach(self, food):
+        """Flight range for a held item: throw range for loose ingredients, pass range otherwise."""
+        if not food:
+            return None
+        return self.throw_range if self.throwable(food) else self.pass_range
 
     def dish(self, parts):
         parts = frozenset(parts)

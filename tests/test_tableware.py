@@ -6,6 +6,7 @@ from kitchen import Kitchen, Food, load_config
 from spatial_kitchen import SpatialKitchen, EQUIPMENT
 from jev import JevClient
 from web_server import GameSession
+from levels import level_config
 
 
 class TablewareTests(unittest.TestCase):
@@ -14,6 +15,10 @@ class TablewareTests(unittest.TestCase):
         config.update(round_seconds=500, order_patience=400, order_interval=10)
         config.update(overrides)
         return (SpatialKitchen if spatial else Kitchen)(config)
+
+    def make_service(self, level=1):
+        # Passing plates, dishes and pots is a service-ruleset feature (throw.pass_range_cells).
+        return SpatialKitchen(level_config(load_config(), level) | {'spawn_seed': 0})
 
     def do(self, k, who, command):
         ok, reason = k.command(who, command)
@@ -120,26 +125,30 @@ class TablewareTests(unittest.TestCase):
         self.assertEqual(k.chefs['jeff'].hand.plate_id, 'D1')
         k.assert_invariants()
 
-    def test_plates_cannot_throw_but_can_drop_and_pickup_for_both_chefs(self):
-        from spatial_kitchen import EQUIPMENT
+    def test_plates_pass_at_short_range_and_can_drop_and_pickup_for_both_chefs(self):
+        import math
+        from spatial_kitchen import EQUIPMENT, PASS_RANGE
         from kitchen import Action
         for who in ('human','jeff'):
             for stage in ('clean_plate','dirty_plate','ready','burnt'):
-                k=self.make(True)
+                k=self.make_service()
                 if stage in ('ready','burnt'):
                     self.ready(k);self.plate(k);k.chefs['human'].hand.stage=stage
                 else:
                     self.do(k,'human','take plates');k.chefs['human'].hand.stage=stage
                 if who=='jeff':k.chefs['jeff'].hand,k.chefs['human'].hand=k.chefs['human'].hand,None
-                item=k.chefs[who].hand;k.positions[who]=(3.,4.)
-                self.assertFalse(any(a.kind=='throw' for a in k.actions(who)))
-                self.assertFalse(k.snapshot()['chefs'][who]['can_throw'])
-                self.assertIsNone(k.snapshot()['chefs'][who]['handoff_target'])
-                for target in ((6,4),EQUIPMENT['b1']['cell']):
-                    self.assertIsNone(k.throw_action(who,target))
-                forged=Action('throw','throw','throw','floor_6_4',(item.id,'floor_6_4',6,4))
-                self.assertFalse(k.start(who,forged)[0])
-                self.assertIs(k.chefs[who].hand,item)
+                item=k.chefs[who].hand;k.positions[who]=(3.,4.);before=(item.stage,item.plate_id,item.components)
+                snap=k.snapshot()['chefs'][who]
+                self.assertTrue(snap['can_throw']);self.assertEqual(snap['throw_range'],PASS_RANGE)
+                # Plates never land on boards or counters: that throw is refused, the plate stays in hand.
+                forged=Action('throw','throw','throw','b1',(item.id,'b1',*EQUIPMENT['b1']['cell']))
+                self.assertFalse(k.start(who,forged)[0]);self.assertIs(k.chefs[who].hand,item)
+                # A long aim falls on the floor at the pass range, intact and pickable.
+                self.assertTrue(k.start(who,k.throw_action(who,(12,4)))[0]);k.advance(1)
+                self.assertIsNone(k.chefs[who].hand);self.assertFalse(k.projectiles)
+                self.assertIs(k.ground[item.id].food,item);self.assertEqual((item.stage,item.plate_id,item.components),before)
+                self.assertLessEqual(math.dist((3.,4.),k.cell(k.ground[item.id].location)),PASS_RANGE+1e-8)
+                self.do(k,who,'pickup '+item.id);self.assertIs(k.chefs[who].hand,item)
                 self.do(k,who,'drop');self.assertIs(k.ground[item.id].food,item)
                 self.do(k,who,'pickup '+item.id)
                 self.assertIs(k.chefs[who].hand,item);self.assertFalse(k.projectiles)
@@ -292,7 +301,6 @@ class TablewareTests(unittest.TestCase):
         heated = k.chefs['human'].hand.contents.heated
         k.advance(5)
         self.assertEqual(k.chefs['human'].hand.contents.heated, heated)
-        self.assertFalse(k.command('human', 'throw partner')[0])
         self.do(k, 'human', 'put pot p1')
         k.advance(1)
         self.assertAlmostEqual(k.stations['p1'].food.heated, heated+1, places=4)

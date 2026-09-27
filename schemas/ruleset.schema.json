@@ -151,6 +151,10 @@
         },
         "catch_radius_cells": {
           "$ref": "common.schema.json#/$defs/positive_number"
+        },
+        "pass_range_cells": {
+          "$ref": "common.schema.json#/$defs/positive_number",
+          "description": "Range for passing held items that are not throwable ingredients (plates, plated food, pots, the extinguisher) to the floor or a chef. Absent: only throwable ingredients fly."
         }
       },
       "additionalProperties": false

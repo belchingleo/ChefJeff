@@ -25,7 +25,7 @@ Hold WASD/arrows to move; release to stop. Click floor to approach a point, or a
 
 Tap Space for the selected target, or the nearby facing target when none is explicitly selected. An unavailable selected target shows a reason instead of switching to a bin. Empty hands can pick up eligible food at the chef's feet; carried items favor the facing station. With no usable station, drop or pick up nearby. Pickups can swap with raw/chopped ground ingredients; the old item stays on legal floor. Each logical floor tile or counter slot holds one resting item; small visual overlaps do not trigger automatic plating.
 
-Hold Space for about 0.3 seconds and left-click to throw; release cancels. Alternatively right-click to prepare/cancel, then left-click the target. Only loose raw/chopped ingredients can be thrown, up to 7 cells at 12 cells/game-second. Walls truncate the route; equipment can be crossed. Empty boards accept ingredients. An empty-handed idle partner can catch; busy/full-handed partners are not interrupted. Plates, pots, plated dishes and tools cannot be thrown.
+Hold Space for about 0.3 seconds and left-click to throw; release cancels. Alternatively right-click to prepare/cancel, then left-click the target. Loose raw/chopped ingredients fly up to 7 cells; plates, plated dishes, pots and the extinguisher can be passed up to 3 cells. Everything travels at 12 cells/game-second. Walls truncate the route; equipment can be crossed. Empty boards accept ingredients only. A throw aimed beyond the range lands on the floor at the limit. An empty-handed partner who is walking or standing can catch; a partner chopping, washing or holding something is not interrupted and the item lands beside them. Dropped plates keep their food and dropped pots their contents; both can be picked up again. The rules are identical for the player and the AI.
 
 ## Work and shared stations
 
@@ -51,7 +51,7 @@ Models receive English structured observations (`en-v1`), factual rules (`rules-
 
 ## Levels
 
-Every level lasts 180 game seconds (about 4 minutes at the default 0.75 clock). Level 1 serves steak, [Level 2](第二关-长台汉堡.md) burgers and [Level 3](第三关-窄巷汉堡.md) both. Orders arrive one at a time at a fixed interval until closing; several can wait at once (at most five tickets). Each dish has its own countdown; an expired order costs 10 and disappears. The goal is a net revenue target at closing: the round always runs to the end, penalties after reaching the target count, and orders still open at closing carry no penalty. There is no remaining-time bonus. The accepted 0.5.9 rules remain available only for replaying old sessions.
+Every level lasts 180 game seconds (about 4 minutes at the default 0.75 clock). [Level 1](level-1-steak.md) serves steak, [Level 2](level-2-burger.md) burgers and [Level 3](level-3-steak-burger.md) both. Orders arrive one at a time at a fixed interval until closing; several can wait at once (at most five tickets). Each dish has its own countdown; an expired order costs 10 and disappears. The goal is a net revenue target at closing: the round always runs to the end, penalties after reaching the target count, and orders still open at closing carry no penalty. There is no remaining-time bonus. The accepted 0.5.9 rules remain available only for replaying old sessions.
 
 ---
 
@@ -84,7 +84,7 @@ Cocos 浏览器版共用 `kitchen.py`、`spatial_kitchen.py`、地图 JSON 和�
 
 短按空格操作选中目标，未明确选择时操作附近朝向目标。选中目标不可用会说明原因，不转向垃圾桶。空手可捡脚下符合条件的物品，持物时优先面前工位；无可用工位时就近放下或拾取。可与地面生／切好原料换手，旧物品留在合法地面。每个逻辑地面格或柜台槽容纳一件静置物品；小范围视觉重叠不会自动装盘。
 
-按住空格约 0.3 秒后左键抛出，松开取消；也可右键准备／取消、左键选择落点。仅散放的生／切好原料可抛，最远 7 格、速度 12 格／游戏秒。墙截断路线，可越过设备，空案板能接收。空手且未工作的队友可接住，忙碌或满手时不打断操作。盘、锅、装盘菜及工具不能抛。
+按住空格约 0.3 秒后左键抛出，松开取消；也可右键准备／取消、左键选择落点。散放的生／切好原料最远 7 格；餐盘、装盘菜、锅和灭火器可以传，最远 3 格。速度均为 12 格／游戏秒。墙截断路线，可越过设备，空案板只接收原料。瞄得超过射程时，东西落在射程尽头的地上。空手且在走路或站着的队友可接住；正在切菜、洗碗或手里有东西时不打断，东西落在他旁边。掉在地上的盘子保留菜、锅保留内容，都能再捡起。玩家与 AI 规则相同。
 
 ## 加工与合作工位
 
@@ -110,4 +110,4 @@ Shift 标记本局片段，不影响玩法或模型输入；间隔五个现实�
 
 ## 关卡
 
-每关 180 游戏秒（默认 0.75 时钟约 4 分钟）。第一关做牛排，[第二关](第二关-长台汉堡.md)做汉堡，[第三关](第三关-窄巷汉堡.md)两者都有。订单按固定间隔逐张到来直至关店，可同时等待多张（最多 5 张）。每道菜有各自的倒计时，超时扣 10 元并消失。目标是关店时的净收入：本局总是打满全场，达标后的罚款照样计入，关店时未完成的订单不罚款。剩余时间不折算奖励。0.5.9 旧规则仅用于重放历史对局。
+每关 180 游戏秒（默认 0.75 时钟约 4 分钟）。[第一关](level-1-steak.md)做牛排，[第二关](level-2-burger.md)做汉堡，[第三关](level-3-steak-burger.md)两者都有。订单按固定间隔逐张到来直至关店，可同时等待多张（最多 5 张）。每道菜有各自的倒计时，超时扣 10 元并消失。目标是关店时的净收入：本局总是打满全场，达标后的罚款照样计入，关店时未完成的订单不罚款。剩余时间不折算奖励。0.5.9 旧规则仅用于重放历史对局。

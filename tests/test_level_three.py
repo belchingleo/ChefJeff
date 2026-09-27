@@ -2,6 +2,7 @@ import json
 import math
 import re
 import unittest
+from levels import level_config
 from unittest.mock import patch
 from kitchen import Food,GroundItem,load_config
 from spatial_kitchen import SpatialKitchen,tile_key,WALK_SPEED
@@ -63,7 +64,11 @@ class LevelThreeTests(unittest.TestCase):
         self.assertEqual(k.orders[0]['status'],'pending');self.assertEqual(k.orders[1]['status'],'served');self.assertEqual(k.money,60)
     def test_incomplete_duplicate_and_dirty_plate_are_rejected(self):
         k=self.kitchen();self.do(k,'fetch bread');self.do(k,'assemble plates');self.do(k,'take plates')
-        self.assertNotIn('serve',[a.key for a in k.actions('human')]);self.assertFalse(k.can_throw('human'))
+        self.assertNotIn('serve',[a.key for a in k.actions('human')])
+        # The accepted 0.5.9 ruleset cannot pass plates; the service Level 3 passes them up to 3 tiles.
+        self.assertIsNone(k.throw_range('human'))
+        service=SpatialKitchen(level_config(load_config(),3)|{'spawn_seed':0});service.chefs['human'].hand=k.chefs['human'].hand
+        self.assertEqual(service.throw_range('human'),3.0)
         self.assertFalse(k.can_add(k.chefs['human'].hand,Food('x',ingredient='bread')))
         self.assertFalse(k.can_add(Food('dirty','dirty_plate'),Food('x',ingredient='bread')))
         self.assertFalse(k.can_add(Food('clean','clean_plate'),Food('x',ingredient='lettuce')))

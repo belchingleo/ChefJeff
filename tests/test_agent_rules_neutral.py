@@ -14,6 +14,7 @@ from spatial_kitchen import SpatialKitchen
 from whitebox_server import SpatialJevClient
 import jev
 import player_api
+from levels import level_config
 
 VALUE_WORDING = re.compile(r'cooperat|teammate|\bhelp|assist|support the|you may consider|coordinating|coordinate with', re.I)
 
@@ -25,9 +26,10 @@ def rule_text(payload):
 
 class NeutralRulesTests(unittest.TestCase):
     def test_rules_and_question_have_no_collaboration_value_wording(self):
-        for level in (1, 2, 3):
+        for level in (1, 2, 3, 'legacy-level-1', 'legacy-level-2', 'legacy-level-3'):
             with self.subTest(level=level):
-                k = SpatialKitchen(load_config() | {'level': level, 'order_seed': 1, 'spawn_seed': 0})
+                k = SpatialKitchen(level_config(load_config(), level) if isinstance(level, int)
+                                   else load_config() | {'level': int(level[-1]), 'order_seed': 1, 'spawn_seed': 0})
                 payload = SpatialJevClient(k.c, key='test').payload(k.snapshot(), k.actions('jeff'))
                 self.assertIsNone(VALUE_WORDING.search(rule_text(payload)))
 
