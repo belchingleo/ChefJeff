@@ -155,6 +155,31 @@ class FixedSeedTests(unittest.TestCase):
                     self.assertTrue(any(e['kind'] == 'thrown' for e in k.events))
 
 
+class ServiceWordingTests(unittest.TestCase):
+    def test_burn_event_and_serve_hint_do_not_mention_bad_reviews(self):
+        # Local acceptance found the 0.5.9 wording ("burnt food earns a bad review") in service levels.
+        import json as _json
+        from pathlib import Path
+        english = _json.loads((Path(cc.__file__).resolve().parent / 'model-language-en-v1.json').read_text())
+        k = SpatialKitchen(cc.load_level('level-1'))
+        pot = k.stations['p1']
+        pot.food = Food('fixture', stage='cooking', chopped=k.c['chop_seconds'], heated=0, ingredient='beef')
+        pot.heating = True
+        k.advance(40)
+        burns = [e['message'] for e in k.events if e['kind'] == 'burn']
+        self.assertTrue(burns)
+        plate = k.stations['plates'].food
+        k.stations['plates'].food = None
+        plate.stage, plate.plate_id, plate.components = 'ready', 'D9', ['beef']
+        k.chefs['human'].hand = plate
+        serve = [a.label for a in k.actions('human') if a.kind == 'serve']
+        self.assertTrue(serve)
+        for text in burns + serve:
+            self.assertNotIn('差评', text)
+        catalog = _json.dumps(english, ensure_ascii=False)
+        self.assertIn('a dish burnt too long is refused', catalog)
+
+
 class RoundTests(unittest.TestCase):
     def test_orders_arrive_until_closing_and_open_orders_end_without_penalty(self):
         resolved = level(3)

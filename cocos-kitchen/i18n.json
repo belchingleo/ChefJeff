@@ -234,6 +234,7 @@
     "损耗2元，保留空锅": "¥2 cost; keep the pot",
     "损耗 2 元": "¥2 cost",
     "糊菜或无订单会被差评": "burnt food or no matching order earns a bad review",
+    "没有订单在等这道菜会扣钱，糊太久会被拒收": "serving a dish no order is waiting for costs money; a dish burnt too long is refused",
     "随后仍须清理糊菜": "burnt food must still be cleared",
     "抛出物品": "throw item",
     "糊了的菜": "burnt food",
@@ -506,6 +507,10 @@
     [
       "{0}完成 {1}，顾客好评，收入 +30 元",
       "{0} served {1}: happy customer, +¥30"
+    ],
+    [
+      "{0}糊锅！{1}s 后着火；糊太久上桌会被拒收",
+      "{0} burnt! Fire in {1}s; a dish burnt too long is refused"
     ],
     [
       "{0}糊锅！{1}s 后着火；糊菜上桌会被差评",

@@ -307,7 +307,8 @@ class Kitchen:
         if a.hand:
             if a.hand.plate_id and self.dish(a.hand):
                 for i, key in enumerate(self.serves):
-                    add("serve" if i == 0 else f"serve {key}", "拿已装盘的菜出餐（糊菜或无订单会被差评）", "serve", key)
+                    add("serve" if i == 0 else f"serve {key}", "拿已装盘的菜出餐（没有订单在等这道菜会扣钱，糊太久会被拒收）"
+                        if self.rules.continuous else "拿已装盘的菜出餐（糊菜或无订单会被差评）", "serve", key)
             if a.hand.stage not in ('extinguisher', 'clean_plate', 'dirty_plate', 'pot'):
                 add("discard", f"去垃圾桶丢弃手中食物（损耗 {loss} 元，无法捡回）", "discard", self.bins[0])
             if a.hand.stage == 'pot' and a.hand.contents:
@@ -911,7 +912,10 @@ class Kitchen:
                 if f.stage == "ready" and f.heated >= burn-1e-8:
                     f.stage = "burnt"
                     self.burns += 1
-                    self.emit(f"{s.name}糊锅！{fire-burn:g}s 后着火；糊菜上桌会被差评", kind="burn", station=key, item=f.id)
+                    if self.rules.continuous:
+                        self.emit(f"{s.name}糊锅！{fire-burn:g}s 后着火；糊太久上桌会被拒收", kind="burn", station=key, item=f.id)
+                    else:
+                        self.emit(f"{s.name}糊锅！{fire-burn:g}s 后着火；糊菜上桌会被差评", kind="burn", station=key, item=f.id)
                 if f.stage == "burnt" and f.heated >= fire-1e-8:
                     self.ignite(key)
             self._advance_fire(dt)
