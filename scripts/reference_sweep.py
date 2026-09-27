@@ -1,21 +1,31 @@
 #!/usr/bin/env python3
 """Calibrate order pacing with the deterministic reference policy.
 
-For each level and candidate (interval, per-dish countdown), run the
-recipe-following reference pair (tests/reference_policy.py) over several order
-seeds and report net income, served, expired and open-at-closing orders. The
+For each level and candidate (interval, per-dish countdown), run the scripted
+reference pairs (tests/reference_policy.py) and report net income, served,
+expired and open-at-closing orders. Each run takes the better of the two pairs
+('classic': assembler + cook; 'zoned': a runner and a maker working either side
+of a counter row and passing across it) and of the two role assignments. The
 target money suggestion is 50% of the median net income, rounded down to a
 multiple of 10 (owner decision, 2026-09-27).
+
+Levels use fixed seeds (owner decision B), so --fixed runs exactly the configured
+round; --seeds N instead samples order seeds 1..N as a robustness check.
+
+The driver makes a stuck walker yield for one second: two path-following chefs
+meeting head-on in a narrow gap would otherwise block each other forever, which
+a person steering by keyboard does not do.
 
 This is a calibration reference, not a statement about human + AI play: the
 reference pair is two scripted chefs. The 'latency' variant lets Jeff decide
 only every 3 game seconds to approximate model response time.
 
-    python scripts/reference_sweep.py --seeds 8 --out docs/architecture/reports/pacing-sweep.json
+    python scripts/reference_sweep.py --fixed --variants fast --out docs/architecture/reports/pacing-sweep-fixed.json
 """
 import argparse
 import itertools
 import json
+import math
 from multiprocessing import Pool
 from pathlib import Path
 import statistics
@@ -44,36 +54,66 @@ def candidates(level):
 
 def bundle(level, interval, countdowns, seed):
     b = cc.level_bundle(f'level-{level}', embed=True)
-    b['level']['seeds'] = {'orders': seed, 'spawn': seed % 2}
+    if seed is not None:
+        b['level']['seeds'] = {'orders': seed, 'spawn': seed % 2}
     b['order_policy']['interval_game_ms'] = interval
     b['order_policy']['patience_by_recipe'] = dict(countdowns)
     b['level']['goal']['min_money'] = 0
     return b
 
 
-def run(job):
-    level, interval, countdowns, seed, variant = job
-    import reference_policy
-    from spatial_kitchen import SpatialKitchen
-    k = SpatialKitchen(cc.freeze_bundle(bundle(level, interval, countdowns, seed)))
-    period = {'human': 10, 'jeff': VARIANTS[variant]}
-    step = 0
+def drive(k, roles, policy, period):
+    """Run one round to closing; a chef stuck in travel for 1 s (human) or 1.5 s (jeff) yields for 1 s."""
+    step, last, hold = 0, {w: (k.positions[w], 0) for w, _ in roles}, {w: -1 for w, _ in roles}
     while not k.ended:
-        for who, role in (('human', 'assembler'), ('jeff', 'cook')):
-            if step % period[who] == 0:
-                action = reference_policy.choose(k, who, role)
+        for who, role in roles:
+            job = k.chefs[who].job
+            pos, since = last[who]
+            if job and not job.working and math.dist(pos, k.positions[who]) < 1e-3:
+                if step - since >= (20 if who == 'human' else 30):
+                    k.stop(who)
+                    hold[who] = step + 20
+                    last[who] = (k.positions[who], step)
+            else:
+                last[who] = (k.positions[who], step)
+            if step % period[who] == 0 and step >= hold[who]:
+                action = policy(k, who, role)
                 if action:
                     k.start(who, action)
         k.advance(.05)
         step += 1
+
+
+def play(level, interval, countdowns, seed, variant, pair, swap):
+    import reference_policy
+    from spatial_kitchen import SpatialKitchen
+    policy, roles = {'classic': (reference_policy.choose, ('assembler', 'cook')),
+                     'zoned': (reference_policy.choose_zoned, ('maker', 'runner'))}[pair]
+    if swap:
+        roles = roles[::-1]
+    k = SpatialKitchen(cc.freeze_bundle(bundle(level, interval, countdowns, seed)))
+    drive(k, (('human', roles[0]), ('jeff', roles[1])), policy, {'human': 10, 'jeff': VARIANTS[variant]})
+    return k
+
+
+def run(job):
+    level, interval, countdowns, seed, variant = job
+    best = None
+    for pair in ('classic', 'zoned'):
+        for swap in (False, True):
+            k = play(level, interval, countdowns, seed, variant, pair, swap)
+            if best is None or k.money > best[0].money:
+                best = (k, pair, swap)
+    k, pair, swap = best
     kinds = [e['kind'] for e in k.events]
     return {'level': level, 'interval': interval, 'countdowns': countdowns, 'seed': seed, 'variant': variant,
+            'pair': pair + (' swapped' if swap else ''),
             'money': k.money, 'served': k.served, 'orders': len(k.orders),
             'expired': sum(o['status'] == 'expired' for o in k.orders),
             'open_at_close': sum(o['status'] == 'unresolved_at_close' for o in k.orders),
             'refused': kinds.count('dish_rejected'), 'wrong_dish': kinds.count('wrong_dish'),
             'burnt_accepted': sum(1 for e in k.events if e['kind'] == 'served' and e.get('adjustment')),
-            'fires': k.fires}
+            'passes': kinds.count('thrown'), 'fires': k.fires}
 
 
 def summarize(rows):
@@ -93,6 +133,7 @@ def summarize(rows):
                     'expired_median': statistics.median(r['expired'] for r in group),
                     'open_at_close_median': statistics.median(r['open_at_close'] for r in group),
                     'refused_total': sum(r['refused'] for r in group), 'fires_total': sum(r['fires'] for r in group),
+                    'pairs': sorted({r['pair'] for r in group}), 'passes_median': statistics.median(r['passes'] for r in group),
                     'target_50pct': max(0, int(median * .5) // 10 * 10)})
     return out
 
@@ -100,6 +141,7 @@ def summarize(rows):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--seeds', type=int, default=8)
+    parser.add_argument('--fixed', action='store_true', help="use each level's configured seeds (one run per candidate)")
     parser.add_argument('--levels', default='1,2,3')
     parser.add_argument('--variants', default='fast,latency')
     parser.add_argument('--only', help='JSON {level: [[interval_ms, {dish: countdown_ms}], ...]} to restrict candidates')
@@ -112,12 +154,12 @@ def main():
         pool = only[str(level)] if only else list(candidates(level))
         for interval, countdowns in pool:
             for variant in args.variants.split(','):
-                for seed in range(1, args.seeds + 1):
+                for seed in ([None] if args.fixed else range(1, args.seeds + 1)):
                     jobs.append((level, interval, countdowns, seed, variant))
     with Pool() as workers:
         rows = workers.map(run, jobs, chunksize=4)
     summary = summarize(rows)
-    Path(args.out).write_text(json.dumps({'seeds': args.seeds, 'summary': summary}, ensure_ascii=False, indent=1) + '\n')
+    Path(args.out).write_text(json.dumps({'seeds': 'fixed' if args.fixed else args.seeds, 'summary': summary}, ensure_ascii=False, indent=1) + '\n')
     for row in summary:
         print(row['level'], row['variant'], row['interval_s'], row['countdowns_s'], row['orders'], row['money_median'],
               row['served_median'], row['expired_median'], row['target_50pct'])

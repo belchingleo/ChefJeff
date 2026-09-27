@@ -6,7 +6,7 @@ One pot starts on the stove; two plates rest on counters. Each counter slot hold
 
 ## Orders
 
-Three burgers arrive at 0/30/60 game seconds, each with 180 seconds of patience. The round lasts up to 240 game seconds, about 5 minutes 20 seconds at the default 0.75× clock. Each burger earns 60. Finish three orders with at least 120 operating income and no more than two bad reviews to complete the level. Two plates require at least one wash cycle.
+A burger order arrives every 40 game seconds until closing (5 orders, the same sequence every round); each has 120 seconds to be served. The round always lasts 180 game seconds. Each burger earns 80. The goal is at least 150 net revenue at closing, with the global penalties (expired −10, unwanted dish −20, fire −5, discard −2, burnt tiers). Two plates require at least one wash cycle. Sources and the stove sit above the long counter and the boards below it, so passing food and dishes across the counter saves the walk round through the passage.
 
 Each burger needs a bun, chopped lettuce, sliced tomato and cooked chopped beef, assembled in any order on a clean plate. Bread needs no chopping, vegetables no heat, and raw beef cannot be plated. Global preparation, burning and penalty rules apply.
 
@@ -14,7 +14,7 @@ Each burger needs a bun, chopped lettuce, sliced tomato and cooked chopped beef,
 
 Either chef can fetch and throw ingredients to a partner or empty board, then fetch again once the hand is free. Occupied/reserved boards cannot be overwritten; plates and pots can be passed to a partner or the floor within 3 cells, never onto boards. The agent chooses its own delivery and preparation actions.
 
-Observations include active orders, ingredient states, held items, occupied workstations and flying ingredients. Future orders expose a count, not their full contents. Planning currently uses these observations without a precomputed ingredient-shortfall summary. Timing and order pressure remain playtesting parameters.
+Observations include active orders, ingredient states, held items, occupied workstations and flying ingredients. Future orders are not listed. Planning currently uses these observations without a precomputed ingredient-shortfall summary. Timing and order pressure remain playtesting parameters.
 
 ---
 
@@ -32,7 +32,7 @@ Observations include active orders, ingredient states, held items, occupied work
 
 ## 订单
 
-共 3 份汉堡，0 / 30 / 60 游戏秒到单，每单耐心 180 秒，总时长 240 游戏秒。默认 0.75 倍游戏时钟，未提前结束时约 5 分 20 秒现实时间。每份 60 元；目标为出餐 3 单、净收入至少 120 元、差评不超过 2 次，达成即结算。三单菜品相同，随机排序不会产生菜品差别。资源只有两只盘，完成三单必须至少回收洗净一只。
+关店前每 40 游戏秒来一张汉堡单（共 5 单，每局顺序相同），每单须在 120 秒内出餐。每局固定 180 游戏秒。每份 80 元；目标为关店时净收入至少 150 元，罚款按全局规则（超时 −10、没人等的菜 −20、着火 −5、丢弃 −2、糊菜分档）。只有两只盘，至少要回收洗净一次。食材和灶台在长柜台上方、案板在下方，隔着柜台传食材和菜能省去绕通道的路。
 
 汉堡为一份面包、切好生菜、切好番茄及切配后煎熟的牛肉，任意顺序装入干净盘。面包不用切，蔬菜不烹饪，生牛肉不能装盘。加工、糊锅、处罚和餐具循环沿用全局规则。
 
@@ -40,6 +40,6 @@ Observations include active orders, ingredient states, held items, occupied work
 
 AI 与玩家均可取料后抛给队友或空案板，再取下一份继续抛或自己加工。出手后即腾出手，不必等上一次落地；占用或已预约的案板不会被覆盖；餐盘和锅可以在 3 格内传给队友或地面，不能抛上案板。该动作链不等于自动分工；模型自己选择送料次数和后续工作。
 
-已出现订单、食材状态、手持物、工位占用、飞行中物品均提供给模型。未出现订单只给数量。暂不提供预计算的缺料量，不添加自动批量送料策略。未来评测应区分模型自行规划与系统提供需求汇总的辅助条件。
+已出现订单、食材状态、手持物、工位占用、飞行中物品均提供给模型。未出现的订单不列出。暂不提供预计算的缺料量，不添加自动批量送料策略。未来评测应区分模型自行规划与系统提供需求汇总的辅助条件。
 
 时长与订单压力将随社区试玩继续打磨。

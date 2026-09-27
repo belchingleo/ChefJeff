@@ -135,10 +135,12 @@
 | 不出现按关卡编号的特判 | `rules.py`、`kitchen.py`、`spatial_kitchen.py`、`jev.py`、`whitebox_server.py` | `test_data_driven.test_runtime_code_has_no_level_number_branches` |
 | 只改数据即可切换菜谱、设备速率/数量、节奏与协作倍率 | Resolver + `Rules` | `test_data_driven`（价格、切配时长、非线性倍率、中途加入/退出）、`test_capacity_analyzer`（负载随数据变化） |
 | 合作切菜/洗碗 6 s／4 s，两人 2 倍速；补充文档的 10 s → 5 s 可纯数据表达 | `content/equipment` 的 `shared_work` | `test_shared_work`、`test_data_driven` |
-| Agent 不收到协作价值指令 | `jev.py`、`whitebox_server.py`、`player_api.py`、`hosted/browser-agent.js`（`rules-v2`） | `test_agent_rules_neutral` |
+| Agent 不收到协作价值指令 | `jev.py`、`whitebox_server.py`、`player_api.py`、`hosted/browser-agent.js`（`rules-v3`） | `test_agent_rules_neutral`（新旧六关） |
 | 规则说明与合法动作来自同一配置 | 快照中的 `menu`、`scoring`、`timing`、`goal_status` | `test_data_driven.test_price_change_reaches_engine_and_agent_rules` |
-| 固定步长与确定性 | 服务器 50 ms tick 累加器；显式 seed 冻结 | `test_web.FixedTickTests`、`test_continuous_mode.test_one_large_step_equals_many_small_steps` |
-| 新订单模式与独立结束规则 | `rulesets/chefjeff-continuous.json`、未上架试点 `pilot-draft-mixed` | `test_continuous_mode` |
+| 固定步长与确定性 | 服务器 50 ms tick 累加器；每关固定 seed（订单 26、出生 0） | `test_web.FixedTickTests`、`test_service_mode.FixedSeedTests` |
+| 新订单模式与独立结束规则 | `rulesets/chefjeff-service.json`，三关 `content/levels/level-{1,2,3}.json` | `test_service_mode` |
+| 传菜（盘、菜、锅、灭火器 3 格；食材 7 格） | ruleset `throw.pass_range_cells`（旧 ruleset 无此字段，旧关不可传盘） | `test_throw`、`test_tableware`、`test_level_three` |
+| 目标金额 = 参考机器人收入 50% 向下取整到 10 | `scripts/reference_sweep.py --fixed`（第 2 关用隔台传菜的分区组合）；`reports/pacing-sweep-fixed.json` | `test_service_mode.test_targets_are_half_the_calibrated_reference_income` |
 | Capacity Analyzer | `capacity_analyzer.py`、`docs/architecture/reports/` | `test_capacity_analyzer` |
 | 单一事件流、Session 记录包、重放 | `session_record.py`、`schemas/session|event.schema.json` | `test_session_record` |
 
@@ -148,12 +150,12 @@
 
 | # | 状态 |
 |---|---|
-| O-1 三分钟的时钟口径 | 未决；试点草案仅用游戏毫秒 |
-| O-2 新试点的目标、间隔、耐心、停单点 | 未决；`pilot-draft-mixed` 使用提案讨论值并标注“未批准”，未上架 |
+| O-1 三分钟的时钟口径 | 已定：每关 180 游戏秒 |
+| O-2 新模式的目标、间隔、倒计时、停单点 | 已定：不停单；间隔/倒计时 L1 30 s/牛排 75 s，L2 40 s/汉堡 120 s，L3 30 s/牛排 75 s、汉堡 105 s；目标 150/150/190 |
 | O-3 锅与灶关系 | 维持现状 |
 | O-4 旧关“全单必成”无提示 | 旧关行为未改；快照新增 `goal_status` 供界面/分析使用；新 ruleset 已实现明确提示 |
 | O-5 协作 10 s 基线 | 不采用；已证明可纯数据表达 |
-| O-6 未来订单数量是否可见 | 旧关保持计数；新模式只公开“是否还会来单” |
+| O-6 未来订单数量是否可见 | 旧关保持计数；新模式不显示剩余单数，只公开“是否还会来单” |
 | O-7 暂停期间到达的模型响应 | 维持现状，记录为 stale |
-| 前端 | 预构建 Cocos 客户端未重新构建（需 Creator 3.8.8）；服务端已提供 `levels` 列表，客户端仍显示三个关卡按钮 |
+| 前端 | 预构建 Cocos 客户端未重新构建（需 Creator 3.8.8）。已对构建产物做与源码一致的小补丁（金额目标表头、结算文案、允许抛盘）；另一分支的 UI 设计系统与新版网页外壳（含关卡说明）要等重新构建后才会出现在 `build/web` |
 | 文字原型 | 非空间 `Kitchen` 现使用地图上的全部工位（原为抽象的 3 个柜台），与空间版一致 |

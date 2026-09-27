@@ -135,6 +135,25 @@ class FixedSeedTests(unittest.TestCase):
         for n in (1, 2, 3):
             self.assertEqual(cc.load_level(f'level-{n}')['level']['goal']['min_money'] % 10, 0)
 
+    def test_targets_are_half_the_calibrated_reference_income(self):
+        # Targets are 50% of the fast reference pair's net income on the fixed plan
+        # (scripts/reference_sweep.py --fixed). Level 2 needs the zoned pair that passes
+        # food and dishes across the long counter.
+        import importlib.util
+        from pathlib import Path
+        path = Path(cc.__file__).resolve().parent / 'scripts' / 'reference_sweep.py'
+        spec = importlib.util.spec_from_file_location('reference_sweep', path)
+        sweep = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(sweep)
+        for n, pair in ((1, 'classic'), (2, 'zoned'), (3, 'classic')):
+            with self.subTest(level=n):
+                policy = cc.load_level(f'level-{n}')['order_policy']
+                k = sweep.play(n, policy['interval_game_ms'], policy['patience_by_recipe'], None, 'fast', pair, False)
+                target = cc.load_level(f'level-{n}')['level']['goal']['min_money']
+                self.assertEqual(target, int(k.money * .5) // 10 * 10)
+                if pair == 'zoned':
+                    self.assertTrue(any(e['kind'] == 'thrown' for e in k.events))
+
 
 class RoundTests(unittest.TestCase):
     def test_orders_arrive_until_closing_and_open_orders_end_without_penalty(self):

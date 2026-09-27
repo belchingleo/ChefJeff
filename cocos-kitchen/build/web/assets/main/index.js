@@ -619,8 +619,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
         _proto.toggleThrow = function toggleThrow() {
           var _this$state11;
           var hand = (_this$state11 = this.state) == null ? void 0 : _this$state11.kitchen.chefs.human.holding;
-          if (!this.throwReady && (!hand || !['raw', 'chopped'].includes(hand.stage) || !!hand.plate_id)) {
-            this.set('event', '只能抛生食材或切好的原料；餐盘、带盘菜、锅和工具请放下或搬运。');
+          if (!this.throwReady && !hand) {
+            this.set('event', '手里没有可以抛出的东西。');
             return;
           }
           this.throwReady = !this.throwReady;

@@ -118,10 +118,10 @@
     "移动 · WASD / 方向键 / 鼠标": "Move · WASD / arrows / mouse",
     "操作 · 短按空格": "Interact · tap Space",
     "放下和拾取": "Put down and pick up",
-    "抛掷 · 长按空格 + 左键 / 右键 + 左键": "Throw · hold Space + left click / right then left click",
+    "抛掷与传菜 · 长按空格 + 左键 / 右键 + 左键": "Throw and pass · hold Space + left click / right click + left click",
     "餐具和锅": "Plates and pots",
     "丢弃与消防": "Discarding and fires",
-    "暂停 · Esc": "Pause · Esc",
+    "暂停与继续 · Esc": "Pause & resume · Esc",
     "界面语言": "Interface language",
     "按住空格 · 左键选落点": "Hold Space · left click a destination",
     "抛掷已准备 · 左键选落点": "Ready to throw · left click a destination",
@@ -184,10 +184,10 @@
     "按住方向键移动，松开停止。鼠标点地面或工位可走近；键盘移动会接管当前动作。": "Hold WASD or arrow keys to move; release to stop. Click the floor or a station to walk there. Keyboard movement takes over the current action.",
     "靠近后按空格，底部文字会显示将执行的动作：取料、放到案板、切菜、拿起、下锅、装盘、洗碗或出餐。正在加工时再按空格可停下，进度保留。": "Move close and tap Space. The bottom hint shows the action: fetch, put on a board, chop, pick up, cook, plate, wash or serve. Tap Space while working to stop and keep progress.",
     "身边没有可操作工位时，手中物品放在脚边，空手拾取最近的地面物品。拿干净盘靠近地上的熟锅，也能盛菜。想把物品放到地上时，先离开工位。": "Away from usable stations, tap Space to put down a held item or pick up the nearest item with empty hands. A clean plate can take cooked food from a pot on the floor. Move away from stations to put an item on the floor.",
-    "空格按住约 0.3 秒，再左键点落点；松开取消。也可右键准备，再左键抛出或右键取消。最远 7 格，遇墙落在墙前。仅生食材和未装盘的切好原料可抛。餐盘、带盘菜、锅和灭火器不能抛，可放下再拾取；忙碌或手满的队友不会接住。": "Hold Space for about 0.3 seconds, then left-click a destination; release to cancel. Or right-click to prepare, left-click to throw, and right-click again to cancel. Range: 7 tiles; walls stop the throw. Only raw or chopped, unplated ingredients can be thrown. Plates, plated food, pots and extinguishers can be put down and picked up, but not thrown. Busy teammates or those holding something cannot catch.",
+    "空格按住约 0.3 秒，再左键点落点；松开取消。也可右键准备，再左键抛出或右键取消。生食材和切好的原料最远 7 格；餐盘、装盘菜、锅和灭火器也能传，最远 3 格。瞄得更远时落在射程尽头的地上，遇墙落在墙前。原料能落上空案板，其他物品只能传给队友或落到地上。队友空手、在走路或站着时能接住；正在切菜、洗碗或手里有东西时不会被打断，东西落在他旁边，盘里的菜和锅里的东西都保留。玩家与 AI 规则相同。": "Hold Space for about 0.3 seconds, then left-click a landing spot; release to cancel. Or right-click to prepare, then left-click to throw or right-click to cancel. Raw and chopped ingredients fly up to 7 tiles; plates, plated dishes, pots and the extinguisher can be passed up to 3. Aiming farther lands at the range limit on the floor; walls stop items before them. Ingredients can land on an empty board; everything else goes to your teammate or the floor. An empty-handed teammate who is walking or standing catches it; a teammate chopping, washing or holding something is not interrupted and the item lands beside them, with the plate's food or pot's contents kept. Rules are the same for you and the AI.",
     "干净盘才可装菜。脏盘回收点取盘 → 放入水槽 → 空手洗碗 → 取净盘。没盘时可空手到锅边端锅，离灶停止加热；空锅需放回灶台。": "Only clean plates can hold food. Collect a dirty plate → put it in the sink → wash with empty hands → take the clean plate. Without a plate, use empty hands to lift the whole pot. Taking it off the stove stops heating; return empty pots to the stove.",
     "拿食材靠近垃圾桶按空格会销毁，扣 2 元；端锅则倒掉锅里的食物，保留空锅。灭火器在右上方，拿起后靠近着火灶台按空格灭火。": "Hold food near a bin and tap Space to discard it for a ¥2 penalty. If holding a pot, its food is discarded and the pot stays. Take the extinguisher at the top right, then tap Space near a burning stove.",
-    "暂停会停止锅火、订单和双方动作。从暂停菜单继续经营、重新开局、打开设置或查看本说明。重新开局会立即开始新一局，沿用当前配置与速度。更换 API、记忆和调用上限请在结算后或开局前进行。": "Pause freezes cooking, orders and both chefs. The pause menu lets you resume, restart, open Settings or read Controls. Restart immediately begins a new round with the same configuration and speed. Change API, memory and call limits before a round or after it ends.",
+    "暂停会停止锅火、订单和双方动作。再按 Esc 或点「继续经营」回到厨房；也可重新开局、打开设置或查看本说明。结束本局、暂停中重新开局都会先请你确认；重新开局沿用当前配置与速度。更换 API、记忆和调用上限请在结算后或开局前进行。": "Pause freezes cooking, orders and both chefs. Press Esc again or choose Resume to return to the kitchen; you can also restart, open Settings or read Controls. Ending a round, or restarting from pause, asks you to confirm first; a restart keeps the same configuration and speed. Change API, memory and call limits before a round or after it ends.",
     "请先从下方「设置」连接自己的 API，再开始经营。": "Connect your own API in Settings below before starting.",
     "只能抛生食材或切好的原料；餐盘、带盘菜、锅和工具请放下或搬运。": "Only raw or chopped ingredients can be thrown. Carry or put down plates, plated food, pots and tools.",
     "新版页面已就绪，厨房服务仍在保留旧对局。\n服务更新后会自动连接，请先完成更新确认。": "The new page is ready, but the service still holds the old round.\nConfirm the update; the page will reconnect automatically.",
@@ -392,7 +392,42 @@
     "目标达成": "Goal reached",
     "未达目标": "Goal not reached",
     "提前退出": "Ended early",
-    "—": "—"
+    "—": "—",
+    "ChefJeff 厨房画面": "ChefJeff kitchen view",
+    "Jeff 已达本局调用上限": "Jeff reached this round's call limit",
+    "Jeff 暂时连不上，正在重试": "Jeff can't connect; retrying",
+    "结束本局？": "End this round?",
+    "本局会立即结算，当前进度不会保留。": "The round is scored now; its progress won't be kept.",
+    "重新开局？": "Restart this round?",
+    "当前这局会被放弃，并立即开始新的一局。": "This round will be abandoned and a new one starts right away.",
+    "返回": "Back",
+    "设置分页": "Settings tabs",
+    "连接": "Connection",
+    "协作记忆": "Memory",
+    "调用上限": "Call limit",
+    "导出": "Export",
+    "费用与隐私说明": "Costs and privacy",
+    "说明分页": "Controls tabs",
+    "基础操作": "Basics",
+    "规则细节": "Rule details",
+    "关卡": "Levels",
+    "按住移动，松开停止；方向键也可以。鼠标点地面或工位会走过去。": "Hold to move, release to stop; arrow keys work too. Click the floor or a station to walk there.",
+    "双击同一方向冲刺：1.4 倍速 1 秒，之后冷却 3 秒。": "Double-tap a direction to sprint: 1.4× speed for 1 second, then a 3-second cooldown.",
+    "空格": "Space",
+    "长按空格": "Hold Space",
+    "+ 左键": "+ left click",
+    "操作面前或选中的目标：取料、切菜、下锅、装盘、洗碗、出餐。底部会提示将执行的动作。": "Use the station or item in front of you or selected: fetch, chop, cook, plate, wash or serve. The bottom line shows what will happen.",
+    "抛给队友或落点：食材最远 7 格，盘子、菜、锅和灭火器最远 3 格。": "Throw to your teammate or a spot: ingredients up to 7 tiles; plates, dishes, pots and the extinguisher up to 3.",
+    "暂停与继续。": "Pause and resume.",
+    "标记当前片段，导出本局时可以回看。": "Bookmark this moment to review it in the run export.",
+    "告诉 Jeff 你更想做哪类工作；6 表示他做错了。": "Tell Jeff which work you prefer; 6 says he made a mistake.",
+    "牛排练习厨房，180 游戏秒。取生牛肉 → 案板切好 → 下锅煎熟 → 装进干净盘 → 出餐。出餐 3 单、收入 ¥60、差评不超过 2 次即过关。熟了之后 10 秒内出锅，否则会糊，再过 8 秒着火。": "A steak practice kitchen, 180 game seconds. Fetch raw beef → chop it on a board → cook it in a pot → plate it on a clean plate → serve. Clear the level with 3 orders, ¥60 revenue and at most 2 bad reviews. Take the pot off within 10 seconds of it being cooked or it burns; 8 seconds later it catches fire.",
+    "更换并测试": "Replace and test",
+    "已保存；要更换时粘贴新的 Key": "Saved; paste a new key to replace it",
+    "手里没有可以抛出的东西。": "You are not holding anything to throw.",
+    "牛排练习厨房，180 游戏秒。取生牛肉 → 案板切好 → 下锅煎熟 → 装进干净盘 → 出餐。每 30 秒来一张牛排单，每份 ¥50；关店时净收入达到 ¥150 即达标。熟了之后 10 秒内出锅，否则会糊，再过 8 秒着火。": "A steak practice kitchen, 180 game seconds. Fetch raw beef → chop it on a board → cook it in a pot → plate it on a clean plate → serve. A steak order arrives every 30 seconds, ¥50 each; reach ¥150 net revenue by closing time. Take the pot off within 10 seconds of it being cooked or it burns; 8 seconds later it catches fire.",
+    "单间厨房由横向长柜台分为上下工作区，右侧通道相连。180 游戏秒，每 40 秒来一张汉堡单，每份 ¥80；关店时净收入达到 ¥150 即达标。1 口锅、1 个灶台、2 只盘子、2 块案板；需要回收洗盘。食材和灶台在上、案板在下，可以隔着柜台传递。": "One kitchen split into upper and lower work areas by a long counter, joined on the right. 180 game seconds; a burger order arrives every 40 seconds, ¥80 each; reach ¥150 net revenue by closing time. 1 pot, 1 stove, 2 plates, 2 boards; plates must be returned and washed. Sources and the stove are above, boards below: pass food across the counter.",
+    "两个灶台、三口锅，备用空锅在右上柜台。面包直接装盘；生菜和番茄切好，牛肉切好后煎熟。可手持盘从案板或柜台收集切好蔬菜和面包，也能给队友手中盘加料。两盘无重复配料可合并：成品留手中，柜台留空盘。牛肉须先煎熟；缺料不能出餐。180 游戏秒，每 30 秒来一单牛排或汉堡（¥50／¥80），关店时净收入达到 ¥190 即达标。": "Two stoves and three pots; the spare pot is on the top-right counter. Bread needs no prep. Chop lettuce and tomato; chop and cook beef. Held plates can collect prepared ingredients from boards/counters. Add food to a teammate's plate, or merge two non-overlapping plates; the empty source plate stays in place. Beef must be cooked; incomplete dishes cannot be served. 180 game seconds; a steak or burger order (¥50/¥80) arrives every 30 seconds; reach ¥190 net revenue by closing time."
   },
   "templates": [
     [
@@ -746,6 +781,26 @@
     [
       "{0}离开{1}的共同操作，进度保留",
       "{0} left the shared work at {1}; progress kept"
+    ],
+    [
+      "Jeff：{0}（未执行）",
+      "Jeff: {0} (skipped)"
+    ],
+    [
+      "Jeff：{0}",
+      "Jeff: {0}"
+    ],
+    [
+      "差评 -¥{0}",
+      "Bad review -¥{0}"
+    ],
+    [
+      "{0} 超时 -¥{1}",
+      "{0} expired -¥{1}"
+    ],
+    [
+      "{0} · 当前",
+      "{0} · current"
     ]
   ]
 }

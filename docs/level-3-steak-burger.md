@@ -15,9 +15,9 @@ Three pots and three clean plates are available: two pots start on stoves, the t
 
 ## Orders and movement
 
-Five orders (two steaks, three burgers) are shuffled and arrive at 30-second intervals. Steak patience is 100 seconds and burger patience 150. The round lasts up to 360 game seconds, about 8 real minutes at 0.75×. Prices are 30/60. Complete five orders with at least 140 operating income and at most two bad reviews; completion awards remaining whole game seconds separately. Orders are matched by recipe and earliest deadline; expired orders are not replaced.
+An order arrives every 30 game seconds until closing: steak, burger, burger, steak, burger, steak (the same sequence every round). Steaks have 75 seconds and burgers 105. The round always lasts 180 game seconds. Prices are 50/80. The goal is at least 190 net revenue at closing, with the global penalties. Orders are matched by recipe and earliest deadline; a dish served exactly at the deadline still counts.
 
-The seed is recorded with the round and allows reproduction of order sequence. It does not by itself replay a complete game.
+Order and spawn seeds are fixed per level version and recorded with the round; the session record's inputs replay a complete game.
 
 All levels allow sprint: double-tap a movement direction within 0.3 seconds, then hold. Sprint lasts 1 game second at 1.4× speed with 3 seconds of cooldown. AI adapters submit a sprint decision alongside the chosen action; only accepted, fresh moving actions may start it. Both chefs share movement/contact rules and paused game time freezes the effect.
 
@@ -44,9 +44,9 @@ Click-selected targets take priority for Space, with a reason when unavailable. 
 
 ## 订单与移动
 
-五单（两牛排、三汉堡）洗牌后每 30 秒出现。牛排耐心 100 秒、汉堡 150 秒，总时长 360 游戏秒，默认 0.75 倍时钟约八分钟现实时间。单价分别 30／60，完成五单、净营业收入至少 140、差评不超过两次即通关，剩余整秒奖励另算。同菜品优先匹配最早到期订单，超时不补单。
+关店前每 30 游戏秒来一单，顺序固定为：牛排、汉堡、汉堡、牛排、汉堡、牛排。牛排 75 秒、汉堡 105 秒内出餐，每局固定 180 游戏秒。单价 50／80；目标为关店时净收入至少 190 元，罚款按全局规则。同菜品优先匹配最早到期订单，恰好在截止时刻出餐仍算成功。
 
-对局记录随机种子，可复现订单顺序；单凭种子不构成完整对局回放。
+订单与出生种子按关卡版本固定并随对局记录；对局记录中的输入可完整重放一局。
 
 各关均可冲刺：0.3 秒内双击方向并按住，持续一游戏秒、速度 1.4 倍、随后冷却三秒。AI 随动作提交冲刺选择，仅新鲜、被接受且正在移动的动作可触发。双方共用移动／碰撞规则，暂停冻结冲刺时间。
 

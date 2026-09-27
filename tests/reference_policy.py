@@ -170,3 +170,170 @@ def choose(k, who, role):
             return _pick(actions, 'fetch', name)
     # Otherwise join any chopping/washing that the layout lets two chefs share.
     return _join(state, actions)
+
+
+# --- Zoned pair with passing ---------------------------------------------------
+# Calibration only (scripts/reference_sweep.py): a kitchen split by a counter row
+# (Level 2) is worked from both sides. The 'runner' stays on the ingredient-source
+# side: fetches, throws raw food onto boards, cooks, assembles near the stove and
+# passes finished dishes across. The 'maker' stays on the board side: chops, throws
+# prepared food back across, serves, returns and washes plates. The split is derived
+# from the map (midway between source and board access rows), not from a level id.
+
+def _key(actions, key):
+    return next((a for a in actions if a.key == key), None)
+
+
+def _split(k):
+    src = [k.equipment[s]['access'][1] for s in k.equipment if k.equipment[s].get('type') == 'ingredient_source']
+    boards = [k.equipment[b]['access'][1] for b in k.boards]
+    return (sum(src) / len(src) + sum(boards) / len(boards)) / 2, sum(src) / len(src) < sum(boards) / len(boards)
+
+
+def _side(k, y):
+    split, sources_low = _split(k)
+    if abs(y - split) < .5:
+        return 'both'
+    return 'runner' if (y < split) == sources_low else 'maker'
+
+
+def _station_side(k, key):
+    return _side(k, k.equipment[key]['access'][1])
+
+
+def _near(k, key, goal):
+    a, b = k.equipment[key]['access'], k.equipment[goal]['access']
+    return (abs(a[0] - b[0]) + abs(a[1] - b[1]), key)
+
+
+def _loose_all(state, ingredient):
+    return _loose(state, ingredient, ('raw', 'chopped', 'cooking', 'ready'))
+
+
+def choose_zoned(k, who, role):
+    state = k.snapshot()
+    me = state['chefs'][who]
+    if me['job_id'] is not None:
+        return None
+    actions = k.actions(who)
+    hand = me['holding']
+    dishes = _needs(state)
+    st = state['stations']
+    stove = next((key for key, s in sorted(st.items()) if s.get('stove')), None)
+    runner_counters = [key for key, s in sorted(st.items()) if s.get('counter') and _station_side(k, key) == 'runner']
+    # Assembly plate: the most advanced clean/partial plate on a runner-side counter.
+    assembly, plate = None, None
+    for key in runner_counters:
+        f = st[key].get('food')
+        if f and (f['stage'] == 'clean_plate' or (f.get('plate_id') and f['stage'] in ('ready', 'assembled'))):
+            if plate is None or len(_parts(f)) > len(_parts(plate)):
+                assembly, plate = key, f
+    want = _target_parts(dishes[0]) if dishes else set()
+    missing = want - _parts(plate) if plate else set(want)
+    fire = any(s['fire'] for s in st.values())
+
+    def throw_onto(stations, goal):
+        options = [a for a in actions if a.kind == 'throw' and a.target in stations]
+        return min(options, key=lambda a: _near(k, a.target, goal)) if options else None
+
+    def pass_floor(side, goal):
+        options = [a for a in actions if a.kind == 'throw' and a.target in k.floor_places and _side(k, k.cell(a.target)[1]) == side]
+        return min(options, key=lambda a: (abs(k.cell(a.target)[0] - k.equipment[goal]['access'][0])
+                                           + abs(k.cell(a.target)[1] - k.equipment[goal]['access'][1]), a.target)) if options else None
+
+    empty_boards = [b for b in k.boards if not st[b].get('food')]
+    if hand and hand['stage'] == 'extinguisher':
+        return _pick(actions, 'extinguish') or _pick(actions, 'put_tool')
+    if hand and hand['stage'] == 'dirty_plate':
+        return _pick(actions, 'put_sink')
+
+    if role == 'runner':
+        if hand and hand['stage'] == 'pot':
+            c = hand.get('contents')
+            if c and c['stage'] == 'ready' and assembly and 'beef' in missing:
+                return _pick(actions, 'plate_counter', assembly)
+            if c and c['stage'] == 'burnt':
+                return _pick(actions, 'empty_pot')
+            return _pick(actions, 'return_pot')
+        if hand and hand.get('plate_id') and hand.get('dish'):
+            return pass_floor('maker', 'serve') or _key(actions, 'go fridge')
+        if hand and hand['stage'] == 'clean_plate':
+            free = [c for c in runner_counters if not st[c].get('food')]
+            return _key(actions, 'put ' + min(free, key=lambda c: _near(k, c, stove))) if free else None
+        if hand and hand.get('ingredient'):
+            name, stage = hand['ingredient'], hand['stage']
+            if name == 'beef' and stage == 'chopped':
+                return _pick(actions, 'put_pot') or throw_onto(empty_boards, stove)
+            if stage == 'raw' and name != 'bread':
+                return throw_onto(empty_boards, stove)
+            if assembly and name in missing:
+                return _pick(actions, 'assemble', assembly)
+            return None
+        if hand:
+            return _pick(actions, 'drop')
+        for key in sorted(st):
+            if st[key].get('stove') and st[key]['food'] and st[key]['food']['stage'] == 'burnt':
+                return _pick(actions, 'clear', key)
+        if plate and plate.get('dish') and plate['dish'] in dishes:
+            return _key(actions, 'take ' + assembly)
+        if assembly and 'beef' in missing and st[stove]['food'] and st[stove]['food']['stage'] == 'ready':
+            return _pick(actions, 'lift_pot', stove)
+        for key in runner_counters:
+            f = st[key].get('food')
+            if f and not f.get('plate_id') and f.get('ingredient'):
+                if (f['ingredient'] == 'beef' and st[stove]['pot_id'] and not st[stove]['food']) or (
+                        f['ingredient'] != 'beef' and assembly and f['ingredient'] in missing):
+                    a = _key(actions, 'take ' + key)
+                    if a:
+                        return a
+        if not assembly and dishes:
+            sink = st['sink'].get('food')
+            if sink and sink['stage'] == 'clean_plate':
+                return _pick(actions, 'take_sink', 'sink')
+            for key, s in sorted(st.items()):
+                f = s.get('food')
+                if s.get('counter') and key not in runner_counters and f and f['stage'] == 'clean_plate':
+                    return _key(actions, 'take ' + key)
+        if dishes and _loose_all(state, 'beef') < 1:
+            return _pick(actions, 'fetch', 'fridge')
+        if assembly and 'bread' in missing:
+            return _pick(actions, 'fetch', 'bread')
+        for name in VEG:
+            if assembly and name in missing and _loose(state, name, ('raw', 'chopped')) == 0 and empty_boards:
+                return _pick(actions, 'fetch', name)
+        return None
+
+    # maker
+    if hand and hand.get('plate_id'):
+        if hand.get('dish') in dishes:
+            return _pick(actions, 'serve')
+        return _pick(actions, 'drop')
+    if hand and hand.get('ingredient'):
+        if hand['stage'] == 'raw':
+            return _pick(actions, 'put_board')
+        free = [c for c in runner_counters if not st[c].get('food')]
+        return throw_onto(free, assembly or stove)
+    if hand:
+        return _pick(actions, 'drop')
+    if fire:
+        return _pick(actions, 'take_tool')
+    for g in state['ground']:
+        f = g['food']
+        if f.get('plate_id') and f.get('dish') in dishes:
+            a = _key(actions, 'pickup ' + f['id'])
+            if a:
+                return a
+    for b in k.boards:
+        f = st[b].get('food')
+        if f and f['stage'] == 'raw':
+            a = _pick(actions, 'chop', b)
+            if a:
+                return a
+        if f and f['stage'] == 'chopped' and any(not st[c].get('food') for c in runner_counters):
+            return _pick(actions, 'take_board', b)
+    sink = st['sink'].get('food')
+    if sink and sink['stage'] == 'dirty_plate':
+        return _pick(actions, 'wash', 'sink')
+    if st['returns'].get('food') and not sink:
+        return _pick(actions, 'take_return', 'returns')
+    return None

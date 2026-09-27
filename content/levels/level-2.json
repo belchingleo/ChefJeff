@@ -87,7 +87,7 @@
   "round_limit_game_ms": 180000,
   "goal": {
     "type": "minimum_money",
-    "min_money": 100
+    "min_money": 150
   },
   "end_policy": {
     "type": "fixed_round"
@@ -100,7 +100,7 @@
     "spawn": 0
   },
   "extensions": {
-    "chefjeff.status": "provisional: the reference pair cannot yet play the long counter; recalibrate after dish passing",
+    "chefjeff.status": "calibrated: zoned reference pair (passing across the counter) earns 318 on this fixed plan (4 burgers); target = 50% rounded down to 10",
     "chefjeff.seeds": "fixed (owner decision B): every round of this level version gets the same orders and spawn sides"
   }
 }
