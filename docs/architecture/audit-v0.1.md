@@ -124,3 +124,36 @@
 | O-5 | 协作 10 s 基线 | 用户决定暂不采用；旧关 6 s/4 s |
 | O-6 | `future_orders` 数量是否对 agent/玩家可见 | 旧关保持；新模式默认不公开，待确认 |
 | O-7 | 模型响应在暂停期间到达的处理 | 现行为：`epoch` 失效，响应作废并记录；原样保留 |
+
+---
+
+## 11. 迁移结果（阶段 A–E 完成后）
+
+| 规范要求 | 实现位置 | 验证 |
+|---|---|---|
+| 旧三关按原值迁移不变 | `content/`、`rulesets/chefjeff-legacy.json`、地图 schema 2（revision 4，几何不变） | `test_config_contract`（参数与订单表对比迁移前 golden）、`test_legacy_fingerprint`（8 条完整对局轨迹逐事件一致） |
+| 不出现按关卡编号的特判 | `rules.py`、`kitchen.py`、`spatial_kitchen.py`、`jev.py`、`whitebox_server.py` | `test_data_driven.test_runtime_code_has_no_level_number_branches` |
+| 只改数据即可切换菜谱、设备速率/数量、节奏与协作倍率 | Resolver + `Rules` | `test_data_driven`（价格、切配时长、非线性倍率、中途加入/退出）、`test_capacity_analyzer`（负载随数据变化） |
+| 合作切菜/洗碗 6 s／4 s，两人 2 倍速；补充文档的 10 s → 5 s 可纯数据表达 | `content/equipment` 的 `shared_work` | `test_shared_work`、`test_data_driven` |
+| Agent 不收到协作价值指令 | `jev.py`、`whitebox_server.py`、`player_api.py`、`hosted/browser-agent.js`（`rules-v2`） | `test_agent_rules_neutral` |
+| 规则说明与合法动作来自同一配置 | 快照中的 `menu`、`scoring`、`timing`、`goal_status` | `test_data_driven.test_price_change_reaches_engine_and_agent_rules` |
+| 固定步长与确定性 | 服务器 50 ms tick 累加器；显式 seed 冻结 | `test_web.FixedTickTests`、`test_continuous_mode.test_one_large_step_equals_many_small_steps` |
+| 新订单模式与独立结束规则 | `rulesets/chefjeff-continuous.json`、未上架试点 `pilot-draft-mixed` | `test_continuous_mode` |
+| Capacity Analyzer | `capacity_analyzer.py`、`docs/architecture/reports/` | `test_capacity_analyzer` |
+| 单一事件流、Session 记录包、重放 | `session_record.py`、`schemas/session|event.schema.json` | `test_session_record` |
+
+两处有意的可见变化（已在提交说明中记录）：第 1 关订单的 `dish` 由显示名“牛排”改为菜谱 id `steak`；新订单消息使用菜谱显示名（“汉堡”）。
+
+### 仍需确认或后续处理
+
+| # | 状态 |
+|---|---|
+| O-1 三分钟的时钟口径 | 未决；试点草案仅用游戏毫秒 |
+| O-2 新试点的目标、间隔、耐心、停单点 | 未决；`pilot-draft-mixed` 使用提案讨论值并标注“未批准”，未上架 |
+| O-3 锅与灶关系 | 维持现状 |
+| O-4 旧关“全单必成”无提示 | 旧关行为未改；快照新增 `goal_status` 供界面/分析使用；新 ruleset 已实现明确提示 |
+| O-5 协作 10 s 基线 | 不采用；已证明可纯数据表达 |
+| O-6 未来订单数量是否可见 | 旧关保持计数；新模式只公开“是否还会来单” |
+| O-7 暂停期间到达的模型响应 | 维持现状，记录为 stale |
+| 前端 | 预构建 Cocos 客户端未重新构建（需 Creator 3.8.8）；服务端已提供 `levels` 列表，客户端仍显示三个关卡按钮 |
+| 文字原型 | 非空间 `Kitchen` 现使用地图上的全部工位（原为抽象的 3 个柜台），与空间版一致 |
