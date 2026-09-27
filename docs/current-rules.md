@@ -50,7 +50,7 @@ Models receive English structured observations (`en-v1`) and legal actions. UI l
 
 ## Levels
 
-Level 1 is a steak practice kitchen (180 game seconds). [Level 2](level-2-long-counter-burger.md) serves three burgers in 240 seconds; [Level 3](level-3-narrow-alley-burger.md) mixes five steak/burger orders in 360 seconds. Successful completion adds one unit of bonus per remaining whole game second, separately from the operating-income target.
+[Level 1](level-1-steak.md) is a steak practice kitchen (180 game seconds). [Level 2](level-2-burger.md) serves three burgers in 240 seconds; [Level 3](level-3-steak-burger.md) mixes five steak/burger orders in 360 seconds. Successful completion adds one unit of bonus per remaining whole game second, separately from the operating-income target.
 
 ---
 
@@ -108,4 +108,4 @@ Shift 标记本局片段，不影响玩法或模型输入；间隔五个现实�
 
 ## 关卡
 
-第一关为 180 游戏秒的牛排练习厨房；[第二关](level-2-long-counter-burger.md)在 240 秒内完成三份汉堡；[第三关](level-3-narrow-alley-burger.md)在 360 秒内完成五份牛排／汉堡订单。成功时按剩余整游戏秒发放奖励，与营业收入目标分开计算。
+[第一关](level-1-steak.md)为 180 游戏秒的牛排练习厨房；[第二关](level-2-burger.md)在 240 秒内完成三份汉堡；[第三关](level-3-steak-burger.md)在 360 秒内完成五份牛排／汉堡订单。成功时按剩余整游戏秒发放奖励，与营业收入目标分开计算。
