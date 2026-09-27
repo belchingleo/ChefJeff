@@ -1,42 +1,59 @@
 # ChefJeff · Cook Together
 
-![ChefJeff prototype gameplay — human and AI chefs sharing a kitchen](docs/images/gameplay.png)
+![ChefJeff gameplay — human and AI chefs sharing a kitchen](docs/images/gameplay.png)
 
 English · [中文](#中文说明)
 
-**A prototype for real-time cooperation between a human player and an AI chef.** You operate a pixel-art kitchen while Jeff receives structured kitchen state, rules, and available actions and chooses what to do next. Both chefs share ingredients, workstations, orders, and time, without fixed roles.
+**An open collaboration project exploring how humans and AI agents work together in real time.**
 
-The current release is **0.5.9-alpha, a local browser game** with three playable maps and player-provided model credentials. This iteration passed the project maintainer's overall playtest acceptance. It remains an early prototype: interaction, rules, and interfaces need further refinement.
+ChefJeff brings a human player and an AI chef into a shared pixel-art kitchen. Orders arrive, food cooks, dishes pile up, and both partners must coordinate as the situation changes. Jeff observes the kitchen, chooses actions, and works alongside the player without a fixed role.
 
-The repository initially stays **private**. Original project code uses [AGPL-3.0-only](LICENSE); see [third-party notices](THIRD_PARTY_NOTICES.md) for dependency and asset information. Temporary assets, development assumptions, and asset licensing still need review before a public release. A private repository is not a completed public-distribution clearance.
+We are building two things together: **a cooperative game that the community can extend**, and **an open benchmark for studying and comparing agent cooperation through complete game sessions**. The game provides a playable environment; the benchmark will connect session descriptions, interaction records, and evaluation methods contributed by the community.
 
-## What this project contributes
+## Who is ChefJeff for?
 
-ChefJeff turns cooperative cooking into an observable, extensible interactive environment. Its current engineering focus is:
+| Community | What you can explore or contribute |
+| --- | --- |
+| Human–AI interaction and collaboration researchers | How agents divide work, respond to a partner, communicate, and recover from coordination failures under time pressure |
+| Agent and model developers | Compare models, decision policies, memory, communication, and planning approaches within a shared environment |
+| Multi-agent researchers | Develop comparisons across agent teammates, team compositions, and coordination strategies, starting with human–agent play and extending toward agent–agent teams |
+| Game developers, designers, and artists | Build maps, recipes, mechanics, interfaces, and assets that create new forms of cooperation |
+| Players and community contributors | Play with different agents, report experiences, and help shape the game and future evaluation collection |
 
-- **Shared rules and state.** Human inputs and AI actions ultimately use one kitchen engine for preparation, containers, occupancy, timing, collisions, and action completion.
-- **A structured agent interface.** Models receive state, rules, and legal action candidates and return a choice. The environment validates and executes it, distinguishing selection, acceptance, and completion.
-- **Data and module boundaries for extensions.** Maps have a data format, validation, and loading path. Kitchen rules, spatial movement, decision scheduling, and rendering are separated to support future map editors, recipe editors, and new agents.
-- **A foundation for whole-session records.** Events, actions, bounded cross-round memory, and player communication provide material for describing complete cooperative sessions.
+## A benchmark built around complete cooperation
 
-These are prototype contributions, not evidence that a model has acquired cooperative ability or that a general game framework or benchmark is complete.
+The intended evaluation target is **an agent's ability to work with a partner in a changing, real-time environment**. A successful dish is one outcome; the process also matters: when to help, when to take over another task, how to respond to a request, and how to recover when the plan breaks down.
 
-### How it differs from screen-based Computer Use
+Our planned **scenario schema** describes an entire cooperative session: environment and rule configuration, participant and agent setup, observation and action interfaces, timing and communication, the interaction timeline, and outcomes. Different players, agents, maps, and team configurations can contribute sessions using that common structure.
 
-| Aspect | Current ChefJeff agent interface | Screen-based Computer Use |
-| --- | --- | --- |
-| Observation | Structured kitchen, orders, objects, and both chefs' actions | Usually screenshots or interface information |
-| Action | Environment actions such as fetching, chopping, washing, and serving | Usually mouse and keyboard interactions |
-| Execution | A shared engine validates targets, occupancy, and timing | Depends on feedback from the operated interface |
-| Focus | Cooperation in a changing shared task | Perceiving and operating an interface |
+This supports questions such as:
 
-The AI does not need to recognize pixels or press keys. Humans retain real-time keyboard and pointer input; the AI uses higher-level actions. Shared rules do **not** mean identical input granularity, information presentation, or decision latency.
+- How does the same agent cooperate with people who have different play styles?
+- How do different agents perform with comparable partner and environment conditions?
+- What changes when communication, memory, planning, or response latency changes?
+- How do human–agent and agent–agent teams coordinate under shared resource and time constraints?
+
+The community can help define comparison protocols and measures for task outcomes, coordination, adaptation, resource use, and player experience. Interface conditions, model latency, and partner setup belong in those comparisons so their effects remain visible. Fixed map layouts provide useful test conditions; **the complete session and its context form the organizing unit of the benchmark**.
+
+## What you can use today
+
+**0.5.9-alpha** provides a local browser game with three playable maps and player-supplied model connections.
+
+- Steak, burger, and mixed-menu kitchens with preparation, cooking, plating, serving, plate returns, washing, and fire handling.
+- Shared workstations, cooperative chopping, ingredient throwing, movable pots, and gentle chef collisions.
+- Direction-aware work animations, layered ingredients, and cooking/burning countdowns. Removing a pot from heat pauses heating; putting it back resumes it.
+- English/Chinese UI, pause and restart, call budgets, player preference messages, session bookmarks, and feedback export.
+- Structured agent observations and actions, event records, bounded local cross-round memory, and data-driven maps.
+
+### Structured cooperation rather than screen control
+
+ChefJeff gives the agent kitchen state, rules, and legal action candidates directly. The agent chooses actions such as fetching, chopping, washing, or serving; the kitchen engine validates and executes them. This makes coordination and decision-making accessible without first requiring visual recognition or mouse control.
+
+The human plays through keyboard and pointer input, while the agent uses higher-level actions. Both operate within the same kitchen rules. Action selection, acceptance, and completion are tracked separately so developers can inspect what actually happened.
 
 ## Quick start
 
-Requirements: **Python 3.10+ and a desktop browser**. The backend uses only Python's standard library. The distribution repository and download package include the built web client, so playing does not require Cocos Creator or the maintainer's API key.
-
-Private-repository access is required initially:
+You need **Python 3.10+ and a desktop browser**. The backend uses Python's standard library, and the repository includes a prebuilt web client.
 
 ```sh
 git clone https://github.com/belchingleo/ChefJeff.git
@@ -44,55 +61,49 @@ cd ChefJeff
 python3 scripts/launch_web.py
 ```
 
-On Windows:
+On Windows, use `py -3 scripts/launch_web.py`. You can also launch with `开始网页版.command` on macOS or `开始网页版.bat` on Windows.
 
-```powershell
-py -3 scripts/launch_web.py
+Open <http://127.0.0.1:8775/>, enter your own TypeSafe Jev, DeepSeek, or compatible Chat Completions credentials in Settings, test the connection, and start a round. Connection tests and gameplay requests use your model account and may incur charges.
+
+For a foreground process on any supported platform:
+
+```sh
+python3 cocos_server.py --port 8775
 ```
 
-Alternatively, use `开始网页版.command` on macOS or `开始网页版.bat` on Windows. Open <http://127.0.0.1:8775/>, go to Settings, enter your own TypeSafe Jev, DeepSeek, or compatible Chat Completions credentials, test the connection, and start. Connection tests and gameplay requests use your account and may incur charges. A failed or missing model connection is not replaced by a scripted teammate.
-
-If macOS blocks double-clicking a script, use the terminal command above; do not weaken system security settings. After ending a round, macOS users can run `python3 scripts/stop_web.py`. On other systems, run `python3 cocos_server.py --port 8775` in the foreground and use Ctrl+C after playing. A port conflict does not cause the launcher to terminate another program.
-
-**An online playable deployment is not available yet.** This implementation needs a Python backend in addition to the web client. GitHub Pages hosts static sites and cannot run that backend. Repository publication and online deployment are separate deliverables. A hosted version needs HTTPS, session isolation, access control, and credential/usage management; do not expose the current local server directly to the Internet.
-
-## Current gameplay
-
-- Three maps: steak, burgers, and a mixed menu, with shared cooking, plate returns, washing, carrying pots, throwing ingredients, serving, and fire handling.
-- Direction-aware chopping and workstation poses, layered food presentation, and cooking/burning countdowns. Removing a pot from heat pauses heating; returning it resumes the remaining time.
-- Cooperative chopping where two perpendicular workstation sides are accessible. Cooperative washing is implemented and tested in a fixture layout; the three shipped maps do not yet provide a shared sink layout.
-- Shared movement and gentle contact rules: edge sliding, gradual pushing, and limited sprint bumps. **Chefs actively working at a station are not displaced or interrupted by collisions.**
-- English/Chinese UI, pause/restart, model-call limits, player preference messages, in-round bookmarks, and local feedback export.
+Stop it with Ctrl+C after playing. For the macOS background launcher, use `python3 scripts/stop_web.py`.
 
 ### Controls
 
-- WASD / arrow keys to move; click the floor or a workstation to approach it. Double-tap a direction to sprint.
-- Tap Space for the nearby action shown in the bottom hint. You can actively cancel processing; chopping and washing progress is retained.
-- Hold Space for about 0.3 seconds, then left-click a target to throw an ingredient; release to cancel. Alternatively, right-click to prepare, left-click to throw, and right-click to cancel. Plates, plated dishes, pots, and tools cannot be thrown.
-- Use clean plates to serve from pots. Collect dirty plates, place them in the sink, and wash with empty hands. Pots stop heating when removed from the stove.
-- Esc pauses. Settings contain model connections, usage limits, language selection, and feedback preview/export.
+- **WASD / arrow keys:** move. Click a floor tile or workstation to approach it. Double-tap a direction to sprint.
+- **Space:** perform the nearby action shown in the bottom hint. Cancelling chopping or washing preserves progress.
+- **Throw:** hold Space briefly, then left-click a target; release to cancel. Alternatively, right-click to prepare, left-click to throw, and right-click to cancel. Only loose ingredients can be thrown.
+- **Serve and wash:** use a clean plate to collect cooked food; return dirty plates to the sink and wash with empty hands.
+- **Esc:** pause. Settings provide model connections, language selection, usage limits, and feedback export.
 
-See [current rules](docs/current-rules.md) for details (Chinese).
+See [current rules](docs/current-rules.md) for the full gameplay reference.
 
-## Architecture and agent integration
+## Build on ChefJeff
+
+The environment separates kitchen rules, spatial movement, agent decisions, and rendering. Maps have a schema, validation, and a loading path; these foundations support community-authored kitchens and future editors.
 
 | Module | Entry points | Responsibility |
 | --- | --- | --- |
-| Kitchen rules | `kitchen.py` | Items, preparation, containers, orders, cooperation, events |
+| Kitchen rules | `kitchen.py` | Ingredients, preparation, containers, orders, shared work, events |
 | Maps and space | `maps/`, `map_definition.py`, `spatial_kitchen.py`, `navigation.py` | Map validation, movement, docking, contact, throwing |
 | Decision loop | `jev.py` | Asynchronous requests, response freshness, execution, call budgets |
-| Model adapters | `whitebox_server.py`, `player_api.py` | Spatial-state prompts, TypeSafe and Chat Completions protocols |
-| Local service | `web_server.py`, `cocos_server.py` | Single-kitchen session, input and state synchronization |
-| Rendering | `cocos-kitchen/assets/scripts/` | Cocos Creator 3.8.8, TypeScript, shared geometry, pixel assets |
-| Records | `cooperation_memory.py`, `feedback.py` | Bounded cross-round records, communication, inspectable feedback |
+| Model adapters | `whitebox_server.py`, `player_api.py` | Spatial observations, TypeSafe and Chat Completions protocols |
+| Local service | `web_server.py`, `cocos_server.py` | Kitchen session, player inputs, state synchronization |
+| Rendering | `cocos-kitchen/assets/scripts/` | Cocos Creator 3.8.8, TypeScript, geometry, pixel assets |
+| Session records | `cooperation_memory.py`, `feedback.py` | Bounded history, communication, inspectable feedback |
 
-Use Settings for an existing compatible service. For a new adapter, implement the existing client contracts `payload(state, actions)` and `ask(payload)` and return results to `DecisionLoop`; do not mutate the kitchen state directly. Choices must come from the current candidate set. Stale or invalid responses are rejected. Failures are reported and retried without substituting a scripted AI.
+For a new model adapter, implement `payload(state, actions)` and `ask(payload)` and return the chosen action to `DecisionLoop`. The environment handles action validation and execution. Existing compatible services can be configured directly in Settings.
 
-See [agent integration](docs/agent-integration.md) and [map format](docs/地图数据格式.md) for implementation details (Chinese). These are internal extension points, not a stable external SDK. Jeff is the character name, TypeSafe Jev is a model service, and `jev` remains the internal actor identifier.
+Start with [agent integration](docs/agent-integration.md) and [map format](docs/地图数据格式.md). The character is named Jeff; TypeSafe Jev is one supported model service, and `jev` is the internal actor identifier.
 
-## Development and validation
+### Development
 
-The prebuilt web client is sufficient for playing. Rendering changes require **Cocos Creator 3.8.8**; backend-only changes require a server restart but no Cocos rebuild.
+Playing uses the prebuilt client. Visual changes require **Cocos Creator 3.8.8**; backend changes need only a server restart.
 
 ```sh
 python3 -m unittest discover -s tests
@@ -101,30 +112,31 @@ python3 scripts/build_cocos.py web
 python3 scripts/package_web.py
 ```
 
-Set `COCOS_CREATOR` if Creator is installed elsewhere. Geometry execution tests also require Node.js and TypeScript; missing tools cause an explicit skip. The GitHub workflow runs offline checks without paid model calls; Cocos builds are currently manual.
+Set `COCOS_CREATOR` if Creator is installed elsewhere. Geometry execution tests use Node.js and TypeScript. GitHub CI runs offline tests without paid model calls. The `scenarios/` directory contains development regression fixtures.
 
-The latest local full suite passed **334 tests**, alongside actual-browser checks and maintainer playtesting. This does not cover every device, model, or long-running session. `scenarios/fixed_entry_001` is a deterministic development regression fixture, not a benchmark standard or evidence of AI ability.
+## Privacy and model costs
 
-## Privacy and cost
+When you run ChefJeff locally, your computer runs the backend and connects to the model service you select. Your API key stays in backend memory by default; choosing “Remember this device” saves it in the local plaintext file `.player-api.json`. Local sessions do not connect to a ChefJeff-hosted game server.
 
-- **No person's API key is included in the repository.** Never put keys in code, issues, commit messages, or screenshots.
-- Keys are kept in local backend memory by default. “Remember this device” stores them in a permission-restricted plaintext `.player-api.json`; this is not an OS keychain.
-- Local credentials, connection settings, logs, memory, and private debugging material are excluded from publication. A reviewed file allowlist and content scanning are used in addition to `.gitignore`.
-- State, rules, communication, and enabled bounded history are sent to the model service you select. Raw logs stay local. Review feedback before sharing it.
-- The default budget is 200 model calls per round, including failures; it can be set to 1–2000. Connection tests are counted separately. Call limits are not monetary limits; provider billing applies.
+Your selected model service receives game state, rules, communication, and any enabled bounded history. Local journals and memory remain on your computer. Review exported feedback before sharing it, and keep keys out of issues, screenshots, and commits.
 
-See [privacy and costs](docs/privacy-and-costs.md) and [security](SECURITY.md).
+The default budget is **200 model calls per round**, adjustable from 1 to 2000. Failed requests count toward the limit; connection tests are separate. Charges follow your provider's billing. See [privacy and costs](docs/privacy-and-costs.md) and [security](SECURITY.md).
 
-## Roadmap
+## Project stage and roadmap
 
-1. Continue human playtesting and refine feedback, contact, cooperative actions, pacing, and state consistency.
-2. Complete map and recipe data contracts, then add editors. Maps are already data-driven; recipe legality and some processing conditions remain in code. A recipe editor is not implemented.
-3. Extend agent adapters, communication, and record interfaces for other developers to build on the same environment.
-4. Develop a **scenario schema for complete human–AI cooperative game sessions**: describe the environment configuration, participant conditions, interaction process, and outcomes in a consistent structure; expand the collection through different players' participation, then build the benchmark around it.
+ChefJeff is an early playable prototype. The repository is currently private while we prepare a public release; collaborators need access to clone it. The benchmark schema, evaluation protocol, and community dataset are the next major development direction.
 
-The fourth item is future research and engineering work. There is no finalized schema, dataset, or scoring protocol yet. Fixed development fixtures remain regression tests, not the unit defining the benchmark. Collecting and sharing real sessions will require separate consent, de-identification, and data-use decisions; private play logs are not published here.
+1. **Open the game to co-creation.** Refine interaction and pacing through playtesting, add shared-sink maps, and complete the asset/license review for public distribution. Cooperative washing already has a shared-work implementation and a test layout.
+2. **Make content easier to create.** Extend map data contracts, move recipe legality and processing conditions into reusable data, and build map and recipe editors.
+3. **Broaden agent participation.** Improve adapters and experiment configuration, then support agent–agent teams and comparisons across multiple models and coordination methods.
+4. **Co-create the benchmark.** Define the whole-session scenario schema, reproducible comparison protocols, and evaluation measures with researchers, developers, and players. Grow the session collection through varied human participation and agent configurations.
+5. **Bring the prototype online.** Deploy isolated kitchens over HTTPS with browser-direct model requests. The planned contribution flow uses anonymous sessions, explicit opt-in, 30-day retention, and a deletion receipt. The hosted service is in preparation; the local version's credential behavior is described above.
 
-Please report reproducible issues with the version, map, steps, and screenshots stripped of private information. See [CONTRIBUTING](CONTRIBUTING.md).
+## Join the project
+
+We welcome game improvements and benchmark design as equal parts of the project. Bring a new kitchen, an agent adapter, a cooperation question, a proposed session field, an evaluation protocol, or a playtest observation. Issues and pull requests are places to develop these together; see [CONTRIBUTING](CONTRIBUTING.md).
+
+Original project code is licensed under [AGPL-3.0-only](LICENSE). Dependency and asset terms are listed in [third-party notices](THIRD_PARTY_NOTICES.md) and [license status](LICENSE-STATUS.md).
 
 ---
 
@@ -132,98 +144,106 @@ Please report reproducible issues with the version, map, steps, and screenshots 
 
 # ChefJeff · 一起出餐
 
-**一个让人类玩家与 AI 厨师共同完成整局烹饪任务的游戏原型。** 玩家在像素厨房里实时操作，AI 厨师 Jeff 接收结构化的厨房状态、规则和当前可选动作，自行决定下一步。两位厨师共享食材、工位、订单和时间，没有预设的固定分工。
+**一个探索人类与 AI agent 如何在实时环境中共同工作的开放共创项目。**
 
-当前为 **0.5.9-alpha，本地浏览器版**：三张地图可玩，支持玩家自己的模型 API。本轮整体试玩已获得项目维护者验收；系统仍处于早期阶段，需要继续调整协作体验、规则和接口。仓库初期保持私有；原创代码的许可选择为 [AGPL-3.0-only](LICENSE)，第三方软件及素材说明见 [授权清单](THIRD_PARTY_NOTICES.md)。公开发布前仍需清理临时资源、开发依赖和素材许可，不将当前仓库当作已完成公开分发审查。
+ChefJeff 让人类玩家和 AI 厨师进入同一个像素厨房。订单不断到来，食物持续加热，脏盘逐渐堆积，双方需要随着局势变化协调行动。Jeff 观察厨房、自主选择动作，与玩家共同完成任务，没有预设的固定分工。
 
-## 项目在做什么
+我们希望共同建设两部分：**一个可由社区持续扩展的合作游戏**，以及**一个通过完整对局研究和对照 agent 协作能力的开放 benchmark**。游戏提供可参与的实时环境，benchmark 则将社区贡献的对局描述、交互记录和评估方法连接起来。
 
-ChefJeff 将合作烹饪做成一个可观察、可扩展的交互环境。工程重点包括：
+## 面向谁，能一起做什么
 
-- **共用规则与状态。** 人类输入和 AI 动作最终进入同一个厨房规则引擎，处理食材加工、容器、占用、计时、碰撞与动作完成。
-- **结构化 agent 接口。** 模型获得当前状态、规则和合法动作候选，返回动作选择；环境负责验证与执行，记录“选择、接受、完成”之间的区别。
-- **可扩展的数据与模块边界。** 地图已有数据格式、校验和加载入口；厨房规则、空间移动、决策调度和画面呈现分别维护，供后续地图编辑器、菜谱编辑器及新 agent 使用。
-- **整局协作记录基础。** 已有事件、动作、有限跨局记忆和玩家沟通记录，为后续整理完整对局提供材料。
+| 参与者 | 可以探索或贡献的方向 |
+| --- | --- |
+| 人机交互、人机协作研究者 | 研究时间压力下的分工、伙伴响应、沟通及协作失误后的恢复 |
+| Agent 与模型开发者 | 在共同环境中对照不同模型、决策策略、记忆、沟通和规划方法 |
+| 多 agent 研究者 | 从人类—agent 合作起步，拓展 agent—agent 团队，对照不同搭档组合、团队配置与协调策略 |
+| 游戏开发者、设计师与美术创作者 | 创作地图、菜谱、机制、界面和素材，带来新的合作情境 |
+| 玩家与社区贡献者 | 与不同 agent 试玩、分享体验，参与游戏和未来评估集合的建设 |
 
-这些是当前原型的实现方向与贡献，不代表已经验证了模型的合作能力，也不等于完成了通用游戏框架或 benchmark。
+## 围绕完整协作过程建设 benchmark
 
-### 与通过屏幕操作的 Computer Use 有什么不同
+我们希望评估的是 **agent 在持续变化的实时环境中与伙伴共同完成任务的能力**。出餐成绩是一种结果，合作过程同样重要：什么时候帮忙，什么时候接手其他任务，怎样回应伙伴的请求，以及计划失效后如何恢复。
 
-| 方面 | 本项目当前 agent 接口 | 基于屏幕的 Computer Use 方式 |
-| --- | --- | --- |
-| 观察 | 结构化的厨房、订单、物品和双方动作状态 | 主要从截图或界面信息理解状态 |
-| 行动 | 选择环境提供的动作，例如取料、切菜、洗碗、出餐 | 通常发送鼠标、键盘等界面操作 |
-| 执行 | 共用规则引擎校验目标、占用与时序 | 依赖界面的操作反馈 |
-| 关注点 | 人与 agent 在持续变化的共同任务中如何协作 | 感知界面与操作界面的能力 |
+计划中的 **scenario schema** 描述的是一整局合作：环境与规则配置、参与者和 agent 设置、观察与动作接口、时序与沟通、交互时间线，以及最终结果。不同玩家、agent、地图和团队组合，都可以用这套共同结构贡献对局。
 
-本项目没有要求 AI 识图或按键。人类保留键盘、点击等实时交互，AI 使用较高层的动作接口；共用规则不表示双方输入粒度、信息呈现或决策延迟完全相同。
+它将支持这样的探索：
+
+- 同一个 agent 怎样与不同操作习惯的玩家合作？
+- 在可对照的伙伴和环境条件下，不同 agent 有怎样的表现差异？
+- 沟通、记忆、规划或响应延迟变化时，合作过程如何改变？
+- 人类—agent 与 agent—agent 团队，如何在共同的资源和时间约束下协调？
+
+社区可以共同制定比较协议，以及任务结果、协调、适应、资源使用和玩家体验等方面的度量。接口条件、模型延迟与搭档配置也应进入比较记录，让这些因素的影响可被检查。固定地图可以提供测试条件；**组织 benchmark 的基本单位是完整对局及其上下文**。
+
+## 现在可以使用什么
+
+**0.5.9-alpha** 提供本地浏览器游戏、三张可玩地图，以及玩家自带的模型连接。
+
+- 牛排、汉堡和混合菜谱厨房，包含备料、烹饪、装盘、出餐、餐具回收、洗碗和消防。
+- 共享工位、合作切菜、抛接原料、搬锅和厨师之间的温和碰撞。
+- 按朝向呈现的操作动画、食材叠层及熟成／烧糊倒计时；锅离灶暂停加热，放回后续算。
+- 中文／英文界面、暂停与重开、调用上限、玩家偏好沟通、局内标记和反馈导出。
+- 结构化的 agent 观察与动作、事件记录、有限本地跨局记忆和数据化地图。
+
+### 通过结构化接口探索协作
+
+ChefJeff 直接向 agent 提供厨房状态、规则和当前合法动作候选。Agent 选择取料、切菜、洗碗、出餐等动作，由厨房引擎校验和执行。这让开发者可以直接研究协调与决策，而无需先解决识图或鼠标操作问题。
+
+人类通过键盘和鼠标实时操作，agent 使用较高层的动作接口，双方遵循同一套厨房规则。系统分别记录动作选择、接受与完成，便于检查实际发生的过程。
 
 ## 快速运行
 
-需要 **Python 3.10+ 和桌面浏览器**，后端仅使用 Python 标准库。发布仓库和下载包包含构建好的网页，试玩无需安装 Cocos Creator，也无需填写维护者的密钥。
-
-私有阶段需先获得仓库访问权限。克隆后进入项目目录：
+需要 **Python 3.10+ 和桌面浏览器**。后端使用 Python 标准库，仓库包含预构建网页。
 
 ```sh
 git clone https://github.com/belchingleo/ChefJeff.git
 cd ChefJeff
-```
-
-在克隆或解压后的项目根目录运行：
-
-```sh
 python3 scripts/launch_web.py
 ```
 
-Windows 使用：
+Windows 使用 `py -3 scripts/launch_web.py`。也可双击 `开始网页版.command`（macOS）或 `开始网页版.bat`（Windows）。
 
-```powershell
-py -3 scripts/launch_web.py
+打开 <http://127.0.0.1:8775/>，在「设置」中填写自己的 TypeSafe Jev、DeepSeek 或兼容 Chat Completions 的 API，测试连接后开局。连接测试和游戏请求使用你的模型账号，费用由该账号承担。
+
+各平台也可在前台运行：
+
+```sh
+python3 cocos_server.py --port 8775
 ```
 
-也可双击 `开始网页版.command`（macOS）或 `开始网页版.bat`（Windows）。打开 <http://127.0.0.1:8775/>，进入「设置」，填写自己的 TypeSafe Jev、DeepSeek 或兼容 Chat Completions 的 API，测试连接后开局。连接测试与游戏中的模型请求会产生由你的账号承担的费用。没有可用连接时不会用脚本冒充 AI 搭档。
-
-macOS 不允许双击脚本时使用上述终端命令，无需修改系统安全设置。结束对局后可运行 `python3 scripts/stop_web.py` 停止 macOS 后台服务；其他系统可在前台运行 `python3 cocos_server.py --port 8775`，结束游玩后按 Ctrl+C 退出。端口冲突时不会自动关闭其他程序。
-
-**在线试玩尚未部署。** 当前是浏览器前端加本地 Python 后端，GitHub Pages 只能托管静态网页，不能直接运行这个后端。源码公开与公网试玩分开交付；后续在线版需要会话隔离、HTTPS、凭据和调用额度管理。不要把当前本地服务直接暴露到公网。
-
-## 现在可以玩什么
-
-- 三张地图：牛排、汉堡、牛排与汉堡混合；共享厨房、餐具回收、洗碗、搬锅、抛接、出餐与消防。
-- 切菜方向和工位站位、食材叠层、锅的熟成/烧糊倒计时；端离灶台暂停加热，放回续算。
-- 转角有两个垂直可操作侧时可以合作切菜。合作洗碗规则已实现并用测试布局验证，当前三张地图未新增双人水槽。
-- 两位厨师共用移动和温和碰撞规则：贴边滑动、缓慢推挤、冲刺轻撞；**操作中的厨师不会被碰撞挪走或打断**。
-- 中文/英文界面、暂停与重开、模型调用次数上限、玩家偏好沟通、局内片段标记和本地反馈导出。
+游玩结束后按 Ctrl+C 停止。使用 macOS 后台启动器时，可运行 `python3 scripts/stop_web.py`。
 
 ### 基本操作
 
-- WASD / 方向键移动；点击地面或工位走近；双击同一方向键冲刺。
-- 短按空格执行就近动作，底部提示显示将做什么；正在加工时可主动取消，切配/洗碗进度保留。
-- 长按空格约 0.3 秒，再左键点目标抛原料；松开取消。也可右键准备、左键抛出、右键取消。盘子、成品、锅和工具不能抛。
-- 净盘到锅边装盘；脏盘从回收点取回，放水槽后空手洗净。锅端离灶台停止加热。
-- Esc 暂停；设置中连接模型、控制调用次数、切换界面语言、查看和导出反馈。
+- **WASD／方向键：**移动；点击地面或工位走近；双击同一方向键冲刺。
+- **空格：**执行底部提示的就近动作；主动取消切菜或洗碗时保留加工进度。
+- **抛原料：**短暂按住空格后左键点击目标，松开取消；也可右键准备、左键抛出、右键取消。仅散装原料可抛掷。
+- **出餐和洗碗：**用净盘收取熟食；将脏盘送进水槽，空手洗净。
+- **Esc：**暂停；设置中可连接模型、切换语言、控制调用次数和导出反馈。
 
-详细说明见 [当前规则](docs/current-rules.md)。
+完整玩法见 [当前规则](docs/current-rules.md)。
 
-## 技术结构与 agent 接入
+## 在 ChefJeff 上继续开发
+
+项目将厨房规则、空间移动、agent 决策和画面呈现分开维护。地图已有数据格式、校验和加载入口，为社区创作厨房及后续编辑器提供基础。
 
 | 模块 | 入口 | 职责 |
 | --- | --- | --- |
-| 厨房规则 | `kitchen.py` | 物品、加工、容器、订单、合作与事件 |
-| 地图与空间 | `maps/`、`map_definition.py`、`spatial_kitchen.py`、`navigation.py` | 地图校验、移动、站位、碰撞、抛接 |
-| 决策调度 | `jev.py` | 状态请求、异步响应、时效校验、动作执行与调用上限 |
-| 模型适配 | `whitebox_server.py`、`player_api.py` | 空间状态提示、TypeSafe 和 Chat Completions 协议 |
-| 浏览器服务 | `web_server.py`、`cocos_server.py` | 本地单厨房会话、输入与状态同步 |
-| 画面 | `cocos-kitchen/assets/scripts/` | Cocos Creator 3.8.8、TypeScript、共享几何与像素素材 |
-| 记录 | `cooperation_memory.py`、`feedback.py` | 有限跨局记录、沟通与可检查的反馈摘要 |
+| 厨房规则 | `kitchen.py` | 食材、加工、容器、订单、合作与事件 |
+| 地图与空间 | `maps/`、`map_definition.py`、`spatial_kitchen.py`、`navigation.py` | 地图校验、移动、停靠、碰撞与抛接 |
+| 决策调度 | `jev.py` | 异步请求、响应时效、动作执行与调用上限 |
+| 模型适配 | `whitebox_server.py`、`player_api.py` | 空间观察、TypeSafe 与 Chat Completions 协议 |
+| 本地服务 | `web_server.py`、`cocos_server.py` | 厨房会话、玩家输入与状态同步 |
+| 画面 | `cocos-kitchen/assets/scripts/` | Cocos Creator 3.8.8、TypeScript、几何与像素素材 |
+| 对局记录 | `cooperation_memory.py`、`feedback.py` | 有限历史、沟通与可检查的反馈 |
 
-已有兼容接口可直接在设置中接入。开发新的适配器时，实现现有 client 的 `payload(state, actions)` 与 `ask(payload)` 契约，把结果交回 `DecisionLoop`，不要直接修改厨房状态。动作必须来自当前候选集，过期或非法结果会被拒绝；请求失败会提示并重试，不会切换为脚本队友。
+接入新模型时，实现 `payload(state, actions)` 和 `ask(payload)`，将动作选择返回给 `DecisionLoop`；环境负责校验与执行。已有兼容服务可直接通过设置接入。
 
-具体契约、示例和扩展边界见 [agent 接入与架构](docs/agent-integration.md)、[地图数据格式](docs/地图数据格式.md)。内部角色标识仍为 `jev`；游戏角色名是 Jeff，TypeSafe Jev 是模型服务。
+从 [agent 接入](docs/agent-integration.md) 和 [地图数据格式](docs/地图数据格式.md) 开始了解。游戏角色名是 Jeff；TypeSafe Jev 是支持的模型服务之一，`jev` 是内部角色标识。
 
-## 开发与验证
+### 开发与验证
 
-直接试玩使用预构建网页；修改画面后需安装 **Cocos Creator 3.8.8** 重新构建。Python 规则修改不需要重建网页，但需要重启本地服务。
+试玩使用预构建网页；画面修改需要 **Cocos Creator 3.8.8** 重新构建，后端修改只需重启服务。
 
 ```sh
 python3 -m unittest discover -s tests
@@ -232,27 +252,28 @@ python3 scripts/build_cocos.py web
 python3 scripts/package_web.py
 ```
 
-Creator 安装位置不同可设置 `COCOS_CREATOR`。几何执行测试还需要 Node.js 和 TypeScript；缺少工具时会明确跳过相应执行测试。GitHub CI 配置运行离线检查，不调用付费模型。
+Creator 安装在其他位置时可设置 `COCOS_CREATOR`。几何执行测试使用 Node.js 和 TypeScript；GitHub CI 运行离线测试，不调用付费模型。`scenarios/` 目录提供开发回归用例。
 
-本轮本地完整测试 334 项通过，并做过真实浏览器检查和维护者试玩。这个结果不代表所有设备、所有模型和所有长局均已验证。`scenarios/fixed_entry_001` 是可复现的开发回归用例，不是 benchmark 标准，也不证明 AI 能力。
+## 隐私与模型费用
 
-## 隐私与费用
+本地运行时，你的电脑承担后端工作，并连接你选择的模型服务。Key 默认保存在本机后端内存中；勾选「记住设备」后，写入本地明文文件 `.player-api.json`。本地对局不连接 ChefJeff 托管的游戏服务器。
 
-- **仓库不附带任何人的 API Key。** 不要把密钥写进源码、Issue、提交信息或截图。
-- Key 默认只留在本机后端内存；勾选“记住设备”后保存到本机权限受限的明文文件 `.player-api.json`，它不是系统钥匙串。
-- `.env`、本地连接配置、对局日志、跨局记忆和私人调试资料不随项目发布。公开前按明确文件清单导出并扫描，不能只依赖 `.gitignore`。
-- 游戏状态、规则、沟通及启用后的有限历史记录会发送给你选择的模型服务；原始日志留在本地。导出反馈前仍应自己检查。
-- 默认每局最多 200 次模型调用，失败也计数；可设 1–2000 次。连接测试另计。次数上限不是金额上限，费用以服务商账单为准。
+你选择的模型服务会接收游戏状态、规则、沟通及启用后的有限历史。原始日志和协作记忆保留在本机。分享前请检查导出的反馈，避免将 Key 放入 Issue、截图或提交记录。
 
-更多说明见 [隐私与调用费用](docs/privacy-and-costs.md)、[安全说明](SECURITY.md)。
+默认每局最多 **200 次模型调用**，可设置为 1–2000 次；失败请求计入上限，连接测试另计。费用以模型服务商账单为准。详见 [隐私与调用费用](docs/privacy-and-costs.md) 和 [安全说明](SECURITY.md)。
 
-## 后续计划
+## 项目阶段与后续计划
 
-1. 继续真人试玩，完善交互反馈、碰撞、合作操作、节奏和状态一致性。
-2. 完善地图与菜谱的数据契约，再提供编辑器。地图已数据化；配方合法性和部分加工条件仍在代码里，菜谱编辑器尚未实现。
-3. 扩展 agent 适配、沟通和记录接口，让其他开发者能在同一环境中接入和比较不同协作方法。
-4. 建立覆盖**完整人类—AI 合作对局**的 **scenario schema**：以一致结构描述一局的环境配置、参与者条件、交互过程及结果，随着不同玩家参与逐步积累和扩充，再据此发展 benchmark。
+ChefJeff 目前处于可玩的早期原型阶段。仓库在公开发布准备期间保持私有，协作者获得访问权限后即可克隆。Benchmark 的 schema、评估协议和社区数据集是接下来的主要建设方向。
 
-第 4 项是后续研究与工程方向，目前尚无定稿的 schema、数据集或评分协议。已有固定开发用例继续服务于回归测试，不作为定义 benchmark 的单位。收集和分享真实对局前，需要另行确定知情同意、去标识化和数据使用范围；本仓库不发布私人对局。
+1. **共同打磨游戏。** 通过真人试玩改进交互与节奏，增加双人水槽地图，完成公开分发所需的素材与许可清理。合作洗碗已有规则实现及测试布局。
+2. **降低内容创作门槛。** 完善地图数据契约，将配方合法性和加工条件整理为可复用数据，建设地图与菜谱编辑器。
+3. **拓展 agent 参与。** 完善适配器与实验配置，进一步支持 agent—agent 团队，以及不同模型和协调方法之间的对照。
+4. **共创 benchmark。** 与研究者、开发者和玩家共同定义整局 scenario schema、可复现的比较协议和评估指标，通过不同玩家与 agent 配置逐步扩充对局集合。
+5. **提供在线试玩。** 部署 HTTPS 与独立厨房会话，由浏览器直接请求模型。计划采用匿名会话、主动贡献数据、保留 30 天并提供删除凭证的流程。托管服务正在准备中；本地版本的密钥处理方式见上文。
 
-欢迎通过 Issues 提交可复现问题或讨论接口设计，附版本、地图、操作步骤和去除私人信息的截图。贡献方式见 [CONTRIBUTING](CONTRIBUTING.md)。
+## 参与共创
+
+游戏建设和 benchmark 设计都是项目的重要组成部分。欢迎带来新厨房、agent 适配器、协作研究问题、对局字段建议、评估协议或试玩观察，通过 Issues 和 Pull Requests 一起完善。贡献方式见 [CONTRIBUTING](CONTRIBUTING.md)。
+
+原创项目代码采用 [AGPL-3.0-only](LICENSE)。依赖和素材的许可信息见 [第三方说明](THIRD_PARTY_NOTICES.md) 与 [许可状态](LICENSE-STATUS.md)。
