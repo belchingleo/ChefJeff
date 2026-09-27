@@ -1,0 +1,51 @@
+/** Pure rendering contract. Simulation positions, reach and collision stay in map data. */
+export type Axis = 'horizontal'|'vertical';
+export const GRID_ART = {tile:52, originX:276, originY:170, unit:64, counterHeight:0, wallHeight:0, frontWallHeight:0, cabinetSpriteLift:22, northFace:44, floorRepeat:4};
+export function stationView(map:any,id:string):{run_axis:Axis;device_axis:Axis} {
+    const authored=map.presentation?.station_views?.[id];
+    if(authored)return authored;
+    // Compatibility for older maps: infer the cabinet run from neighbouring surfaces,
+    // never from the chef's access side. Ambiguous isolated pieces default horizontal.
+    const p=map.equipment[id]?.cell||[0,0],occupied=new Set<string>(Object.values(map.equipment).reduce<string[]>((all:string[],e:any)=>all.concat((e.cells||[e.cell]).map((c:number[])=>c.join(','))),[]));
+    const h=Number(occupied.has(`${p[0]-1},${p[1]}`))+Number(occupied.has(`${p[0]+1},${p[1]}`));
+    const v=Number(occupied.has(`${p[0]},${p[1]-1}`))+Number(occupied.has(`${p[0]},${p[1]+1}`));
+    const axis:Axis=v>h?'vertical':'horizontal';return {run_axis:axis,device_axis:axis};
+}
+/** The long edge faces the authored service side, independent of cabinet run. */
+export function trashView(map:any,id:string):{axis:Axis;mirror:boolean}{
+    const e=map.equipment[id],dx=e.access[0]-e.cell[0],dy=e.access[1]-e.cell[1];
+    const side=e.facing==='west'||e.facing==='east'||Math.abs(dx)>Math.abs(dy);
+    return {axis:side?'vertical':'horizontal',mirror:side&&dx>0};
+}
+export function wallNeighbours(walls:Set<string>,x:number,y:number){
+    return {north:walls.has(`${x},${y-1}`),east:walls.has(`${x+1},${y}`),south:walls.has(`${x},${y+1}`),west:walls.has(`${x-1},${y}`)};
+}
+/** Cell-aligned cutaway: tabletop and wall bounds share the logical grid.
+ * Cabinet artwork has its own ground anchor offset; remove it at placement. */
+export function surfaceOffset(){return GRID_ART.counterHeight*GRID_ART.tile/GRID_ART.unit;}
+export function wallOffset(){return GRID_ART.wallHeight*GRID_ART.tile/GRID_ART.unit;}
+/** Stable painter ordering; larger southward feet/footprints cover northern objects. */
+export function depthOrder(y:number,kind:'solid'|'actor'|'item'){return y+(kind==='solid'?.5:kind==='actor'?.12:0);}
+/** Station-working chefs stand outside the cabinet footprint; the cabinet must
+ * not cover their face. North/back bodies retain ordinary grounded depth. */
+export function workingChefDepth(y:number,row:number|undefined,facing:string,working:boolean){
+    if(working&&row!==undefined&&(facing==='left'||facing==='right'))return depthOrder(row,'solid')+.015;
+    return depthOrder(y,'actor');
+}
+/** Airborne objects keep ground depth; elevation may clear a cabinet, never move behind it. */
+export function flightDepth(groundRow:number,height:number){
+    return depthOrder(groundRow,'item')+(height>=GRID_ART.tile*.22?.62:0);
+}
+/** Display order is semantic, independent of the order ingredients reached the plate. */
+export function burgerLayers(ingredients:string[]){
+    const present=new Set(ingredients);
+    return ['bun_bottom','beef','lettuce','tomato','bun_top'].filter(name=>present.has(name.startsWith('bun_')?'bread':name));
+}
+export function heatCountdown(st:any){
+    if(!st.stove||!st.food||st.fire)return null;
+    const ready=st.food.stage==='ready',cooking=['chopped','cooking'].includes(st.food.stage);
+    if(!ready&&!cooking)return null;
+    const seconds=ready?st.burn_in:st.ready_in;
+    if(!Number.isFinite(seconds))return null;
+    return {seconds:Math.max(0,Math.ceil(seconds)),ready,paused:!st.heating};
+}

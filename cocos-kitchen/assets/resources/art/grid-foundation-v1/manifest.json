@@ -1,0 +1,1213 @@
+{
+  "version": "grid-foundation-v1",
+  "baseUnit": 64,
+  "floorRepeatCells": [
+    4,
+    4
+  ],
+  "wallHeight": 54,
+  "frontWallHeight": 36,
+  "counterHeight": 22,
+  "frames": {
+    "modular/device_board_horizontal": {
+      "canvasSize": [
+        50,
+        34
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        50,
+        34
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        2,
+        2,
+        50,
+        34
+      ]
+    },
+    "modular/device_board_vertical": {
+      "canvasSize": [
+        34,
+        50
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        34,
+        50
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        70,
+        2,
+        34,
+        50
+      ]
+    },
+    "modular/device_returns_horizontal": {
+      "canvasSize": [
+        50,
+        32
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        50,
+        32
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        138,
+        2,
+        50,
+        32
+      ]
+    },
+    "modular/device_returns_vertical": {
+      "canvasSize": [
+        34,
+        50
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        34,
+        50
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        206,
+        2,
+        34,
+        50
+      ]
+    },
+    "modular/device_sink_horizontal": {
+      "canvasSize": [
+        54,
+        45
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        54,
+        45
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        274,
+        2,
+        54,
+        45
+      ]
+    },
+    "modular/device_sink_vertical": {
+      "canvasSize": [
+        45,
+        54
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        45,
+        54
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        342,
+        2,
+        45,
+        54
+      ]
+    },
+    "modular/floor_0_0": {
+      "canvasSize": [
+        64,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        64,
+        64
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        410,
+        2,
+        64,
+        64
+      ]
+    },
+    "modular/floor_1_0": {
+      "canvasSize": [
+        64,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        64,
+        64
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        478,
+        2,
+        64,
+        64
+      ]
+    },
+    "modular/floor_2_0": {
+      "canvasSize": [
+        64,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        64,
+        64
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        2,
+        70,
+        64,
+        64
+      ]
+    },
+    "modular/floor_3_0": {
+      "canvasSize": [
+        64,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        64,
+        64
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        70,
+        70,
+        64,
+        64
+      ]
+    },
+    "modular/floor_0_1": {
+      "canvasSize": [
+        64,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        64,
+        64
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        138,
+        70,
+        64,
+        64
+      ]
+    },
+    "modular/floor_1_1": {
+      "canvasSize": [
+        64,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        64,
+        64
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        206,
+        70,
+        64,
+        64
+      ]
+    },
+    "modular/floor_2_1": {
+      "canvasSize": [
+        64,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        64,
+        64
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        274,
+        70,
+        64,
+        64
+      ]
+    },
+    "modular/floor_3_1": {
+      "canvasSize": [
+        64,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        64,
+        64
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        342,
+        70,
+        64,
+        64
+      ]
+    },
+    "modular/floor_0_2": {
+      "canvasSize": [
+        64,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        64,
+        64
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        410,
+        70,
+        64,
+        64
+      ]
+    },
+    "modular/floor_1_2": {
+      "canvasSize": [
+        64,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        64,
+        64
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        478,
+        70,
+        64,
+        64
+      ]
+    },
+    "modular/floor_2_2": {
+      "canvasSize": [
+        64,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        64,
+        64
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        2,
+        138,
+        64,
+        64
+      ]
+    },
+    "modular/floor_3_2": {
+      "canvasSize": [
+        64,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        64,
+        64
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        70,
+        138,
+        64,
+        64
+      ]
+    },
+    "modular/floor_0_3": {
+      "canvasSize": [
+        64,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        64,
+        64
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        138,
+        138,
+        64,
+        64
+      ]
+    },
+    "modular/floor_1_3": {
+      "canvasSize": [
+        64,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        64,
+        64
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        206,
+        138,
+        64,
+        64
+      ]
+    },
+    "modular/floor_2_3": {
+      "canvasSize": [
+        64,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        64,
+        64
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        274,
+        138,
+        64,
+        64
+      ]
+    },
+    "modular/floor_3_3": {
+      "canvasSize": [
+        64,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        64,
+        64
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        342,
+        138,
+        64,
+        64
+      ]
+    },
+    "modular/wall_cap": {
+      "canvasSize": [
+        64,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        64,
+        64
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        410,
+        138,
+        64,
+        64
+      ]
+    },
+    "modular/wall_face": {
+      "canvasSize": [
+        64,
+        54
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        64,
+        54
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        478,
+        138,
+        64,
+        54
+      ]
+    },
+    "objects/pot": {
+      "canvasSize": [
+        32,
+        32
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        2,
+        5,
+        30,
+        27
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        2,
+        206,
+        32,
+        32
+      ]
+    },
+    "objects/clean_plate": {
+      "canvasSize": [
+        32,
+        32
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        2,
+        6,
+        30,
+        26
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        70,
+        206,
+        32,
+        32
+      ]
+    },
+    "objects/dirty_plate": {
+      "canvasSize": [
+        32,
+        32
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        2,
+        6,
+        30,
+        26
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        138,
+        206,
+        32,
+        32
+      ]
+    },
+    "objects/extinguisher": {
+      "canvasSize": [
+        32,
+        32
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        6,
+        2,
+        25,
+        30
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        206,
+        206,
+        32,
+        32
+      ]
+    },
+    "ingredients/beef/raw": {
+      "canvasSize": [
+        32,
+        32
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        2,
+        6,
+        30,
+        25
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        274,
+        206,
+        32,
+        32
+      ]
+    },
+    "ingredients/beef/processing": {
+      "canvasSize": [
+        32,
+        32
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        2,
+        6,
+        30,
+        25
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        342,
+        206,
+        32,
+        32
+      ]
+    },
+    "ingredients/beef/prepared": {
+      "canvasSize": [
+        32,
+        32
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        2,
+        6,
+        30,
+        26
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        410,
+        206,
+        32,
+        32
+      ]
+    },
+    "ingredients/beef/cooking": {
+      "canvasSize": [
+        32,
+        32
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        2,
+        6,
+        30,
+        26
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        478,
+        206,
+        32,
+        32
+      ]
+    },
+    "ingredients/beef/ready": {
+      "canvasSize": [
+        32,
+        32
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        2,
+        6,
+        30,
+        25
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        2,
+        274,
+        32,
+        32
+      ]
+    },
+    "ingredients/beef/burnt": {
+      "canvasSize": [
+        32,
+        32
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        2,
+        6,
+        30,
+        26
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        70,
+        274,
+        32,
+        32
+      ]
+    },
+    "objects/knife": {
+      "canvasSize": [
+        32,
+        32
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        2,
+        2,
+        30,
+        30
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        138,
+        274,
+        32,
+        32
+      ]
+    },
+    "dishes/steak/burnt": {
+      "canvasSize": [
+        32,
+        32
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        2,
+        5,
+        30,
+        26
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        206,
+        274,
+        32,
+        32
+      ]
+    },
+    "dishes/steak/ready": {
+      "canvasSize": [
+        32,
+        32
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        1,
+        6,
+        31,
+        26
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        274,
+        274,
+        32,
+        32
+      ]
+    },
+    "modular/top_stove": {
+      "canvasSize": [
+        44,
+        43
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        44,
+        43
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        342,
+        274,
+        44,
+        43
+      ]
+    },
+    "modular/sprint_dust_0": {
+      "canvasSize": [
+        35,
+        24
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        35,
+        24
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        410,
+        274,
+        35,
+        24
+      ]
+    },
+    "modular/sprint_dust_1": {
+      "canvasSize": [
+        33,
+        22
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        33,
+        22
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        478,
+        274,
+        33,
+        22
+      ]
+    },
+    "modular/sprint_dust_2": {
+      "canvasSize": [
+        34,
+        24
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        34,
+        24
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        2,
+        342,
+        34,
+        24
+      ]
+    },
+    "modular/sprint_dust_3": {
+      "canvasSize": [
+        36,
+        24
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        36,
+        24
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        70,
+        342,
+        36,
+        24
+      ]
+    },
+    "food/lettuce_raw": {
+      "canvasSize": [
+        48,
+        42
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        48,
+        42
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        138,
+        342,
+        48,
+        42
+      ]
+    },
+    "food/lettuce_chopped": {
+      "canvasSize": [
+        48,
+        34
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        48,
+        34
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        206,
+        342,
+        48,
+        34
+      ]
+    },
+    "food/tomato_raw": {
+      "canvasSize": [
+        48,
+        47
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        48,
+        47
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        274,
+        342,
+        48,
+        47
+      ]
+    },
+    "food/tomato_chopped": {
+      "canvasSize": [
+        48,
+        35
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        48,
+        35
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        342,
+        342,
+        48,
+        35
+      ]
+    },
+    "food/bread_raw": {
+      "canvasSize": [
+        48,
+        37
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        48,
+        37
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        410,
+        342,
+        48,
+        37
+      ]
+    },
+    "food/burger_ready": {
+      "canvasSize": [
+        52,
+        49
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        52,
+        49
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        478,
+        342,
+        52,
+        49
+      ]
+    },
+    "modular/pot_horizontal": {
+      "canvasSize": [
+        50,
+        37
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        50,
+        37
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        2,
+        410,
+        50,
+        37
+      ]
+    },
+    "modular/pot_vertical": {
+      "canvasSize": [
+        47,
+        50
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        47,
+        50
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        70,
+        410,
+        47,
+        50
+      ]
+    }
+  }
+}

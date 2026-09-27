@@ -1,0 +1,776 @@
+/* Display-only localization. No game state, API inputs or logs are rewritten. */
+(function (root) {
+  'use strict';
+  const catalog = {
+  "messages": {
+    "和AI一起经营餐馆": "Run a restaurant with AI",
+    "正在打开小厨房…": "Opening your kitchen…",
+    "横屏游玩，工位和按钮会更清楚。": "Play in landscape for a clearer kitchen and controls.",
+    "全屏看厨房": "Full screen",
+    "请手动展开浏览器窗口": "Please enlarge your browser window",
+    "完成订单": "Orders served",
+    "营业收入": "Revenue",
+    "顾客差评": "Bad reviews",
+    "准备开店": "Ready to open",
+    "暂停": "Pause",
+    "设置": "Settings",
+    "操作说明": "Controls",
+    "开始经营": "Start cooking",
+    "继续经营": "Resume",
+    "重新开局": "Restart round",
+    "准备下一局": "Next round",
+    "先连接搭档": "Connect your AI",
+    "重新连接": "Reconnect",
+    "歇一小会儿": "Taking a break",
+    "今天，配合得不错！": "Great teamwork today!",
+    "明天再接再厉": "Try again tomorrow",
+    "正在连接厨房…": "Connecting to the kitchen…",
+    "等待厨房更新": "Waiting for update",
+    "连接厨房": "Connecting",
+    "先看操作说明，准备好了就开店。": "Check the controls, then open when you are ready.",
+    "备 菜 区": "PREP AREA",
+    "烹 饪 区": "COOKING AREA",
+    "你": "You",
+    "生肉": "Raw meat",
+    "生食材": "Raw ingredient",
+    "半成品": "Chopped meat",
+    "加热中": "Cooking",
+    "熟牛排": "Cooked steak",
+    "糊菜": "Burnt food",
+    "灭火器": "Extinguisher",
+    "干净餐盘": "Clean plate",
+    "脏餐盘": "Dirty plate",
+    "已装盘牛排": "Plated steak",
+    "已装盘糊菜": "Burnt dish",
+    "空锅": "Empty pot",
+    "锅 · 未熟": "Pot · uncooked",
+    "锅 · 熟牛排": "Pot · steak",
+    "锅 · 糊菜": "Pot · burnt",
+    "冰箱": "Fridge",
+    "案板": "Board",
+    "灶台": "Stove",
+    "柜台": "Counter",
+    "空柜台": "Empty counter",
+    "垃圾桶": "Bin",
+    "出餐口": "Serve",
+    "水槽": "Sink",
+    "脏盘回收": "Plate return",
+    "脏盘待洗": "Dirty plate",
+    "洗好了": "Washed",
+    "着火了！": "Fire!",
+    "熟了！": "Ready!",
+    "手中：": "Holding: ",
+    "空手": "Empty hands",
+    "营业中": "Open",
+    "休息中": "Paused",
+    "已结算": "Finished",
+    "订单夹": "Orders",
+    "待出餐": "To serve",
+    "快超时了": "Hurry!",
+    "香煎牛排": "Steak",
+    "等待新订单": "Waiting for orders",
+    "订单已结清": "All orders cleared",
+    "空格 · ": "Space · ",
+    "中断当前动作": "Stop current task",
+    "继续当前动作": "Continue current task",
+    "暂时等待": "Wait",
+    "洗碗": "Wash dishes",
+    "返回菜单": "Back to menu",
+    "返回厨房": "Back to kitchen",
+    "连接你的 AI 搭档": "Connect your AI teammate",
+    "尚未配置": "Not configured",
+    "建议优先选择 Jev": "Jev is recommended",
+    "模型服务": "AI provider",
+    "TypeSafe · Jev（推荐）": "TypeSafe · Jev (recommended)",
+    "其他兼容 Chat Completions 的服务": "Other Chat Completions provider",
+    "接口地址（Base URL）": "Base URL",
+    "https://你的服务地址/v1": "https://your-provider.example/v1",
+    "模型名称": "Model name",
+    "服务商提供的模型 ID": "Model ID from your provider",
+    "粘贴你的 API Key": "Paste your API key",
+    "去服务商获取 Key ↗": "Get a key from your provider ↗",
+    "记住此设备（共用电脑请勿勾选）": "Remember on this device (not on shared computers)",
+    "测试并连接": "Test and connect",
+    "清除配置": "Clear credentials",
+    "跨局协作记忆 · 试验版": "Cross-round memory · experimental",
+    "下一局使用并保存跨局记忆": "Use and save memory from the next round",
+    "清空所有模型的协作记忆": "Clear memory for all models",
+    "调用上限与用量": "Call limit and usage",
+    "下一局最多调用次数（1–2000）": "Next-round call limit (1–2000)",
+    "保存下一局上限": "Save call limit",
+    "版本与问题反馈": "Version and feedback",
+    "生成并预览反馈": "Generate feedback preview",
+    "下载已预览 JSON": "Download previewed JSON",
+    "待导出的反馈内容": "Feedback to export",
+    "尚未配置 · 不使用开发者 Key": "Not configured · no developer key is used",
+    "需要新版厨房服务。": "Please update the kitchen service.",
+    "版本信息暂不可用": "Version information unavailable",
+    "已开启": "Enabled",
+    "已关闭": "Disabled",
+    "正在清除…": "Clearing…",
+    "正在测试连接，请稍候…": "Testing connection, please wait…",
+    "连接失败": "Connection failed",
+    "正在保存记忆设置…": "Saving memory settings…",
+    "记忆设置失败": "Could not save memory settings",
+    "厨房尚未连接": "Kitchen is not connected",
+    "操作失败": "Action failed",
+    "正在保存…": "Saving…",
+    "移动 · WASD / 方向键 / 鼠标": "Move · WASD / arrows / mouse",
+    "操作 · 短按空格": "Interact · tap Space",
+    "放下和拾取": "Put down and pick up",
+    "抛掷 · 长按空格 + 左键 / 右键 + 左键": "Throw · hold Space + left click / right then left click",
+    "餐具和锅": "Plates and pots",
+    "丢弃与消防": "Discarding and fires",
+    "暂停 · Esc": "Pause · Esc",
+    "界面语言": "Interface language",
+    "按住空格 · 左键选落点": "Hold Space · left click a destination",
+    "抛掷已准备 · 左键选落点": "Ready to throw · left click a destination",
+    "靠近工位或物品，再按空格": "Move near a station or item, then tap Space",
+    "去灭火器架拿灭火器": "Take the extinguisher",
+    "把灭火器放回架子": "Return the extinguisher",
+    "把脏餐盘放入水槽": "Put the dirty plate in the sink",
+    "拿已装盘的菜出餐": "Serve the plated dish",
+    "到冰箱取一份生肉": "Take raw meat from the fridge",
+    "去垃圾桶丢弃手中食物": "Discard the held food at the bin",
+    "倒掉手中锅里的食物": "Empty the food from the held pot",
+    "用手中的干净盘盛出地上锅里的菜": "Plate food from the pot on the floor",
+    "端锅走近，给队友手中的干净盘装菜": "Bring the pot to your teammate and fill their clean plate",
+    "厨房返回了无效数据": "Invalid kitchen response",
+    "无法连接厨房后端": "Cannot connect to the kitchen",
+    "厨房连接超时": "Kitchen connection timed out",
+    "，厨房会自动暂停。": ". The kitchen will pause automatically.",
+    "请先暂停，再重新开局。": "Pause before restarting the round.",
+    "先暂停，再重新开局。": "Pause before restarting the round.",
+    "本局已经开始。": "This round has already started.",
+    "当前无需继续。": "There is no paused round to resume.",
+    "当前不能操作": "You cannot interact right now",
+    "手中物品已变化，请重新按空格": "Your held item changed. Tap Space again.",
+    "请靠近工位或物品，再按空格操作": "Move near a station or item, then tap Space.",
+    "当前不能抛掷": "You cannot throw right now",
+    "抛掷坐标无效": "Invalid throw destination",
+    "手中物品已变化": "Your held item changed",
+    "没有可用落点，或此物品不能抛掷": "No landing space, or this item cannot be thrown",
+    "这是上一局的操作，请刷新页面。": "This action belongs to an old round. Refresh the page.",
+    "请求无效，请重试。": "Invalid request. Please try again.",
+    "请在开局前或结算后修改下一局调用上限。": "Change the call limit before a round or after it ends.",
+    "调用上限须为 1–2000 的整数。": "The call limit must be an integer from 1 to 2000.",
+    "请在开局前或结算后修改记忆设置，保证一局内条件一致。": "Change memory settings before a round or after it ends.",
+    "记忆设置无效。": "Invalid memory settings.",
+    "没有指定记忆操作。": "No memory action was specified.",
+    "无法保存记忆设置，请检查本地文件权限。": "Cannot save memory settings. Check local file permissions.",
+    "正在测试连接，请等测试完成后再开局。": "Wait for the connection test to finish before starting.",
+    "请先打开 API 设置，连接你自己的账号。不会使用开发者的 Key。": "Connect your own account in Settings first. No developer key will be used.",
+    "请在开局前或结算后修改连接；请完成当前对局后再修改。": "Change your connection before a round or after the current round ends.",
+    "对局已变化，请重试。": "The round changed. Please try again.",
+    "请求无效。": "Invalid request.",
+    "无法清除保存的连接，请检查文件权限。": "Cannot clear saved credentials. Check file permissions.",
+    "本局已结束，但跨局记录未能保存；请检查本地文件权限。": "The round ended, but memory could not be saved. Check file permissions.",
+    "使用你自己的 API 账号，调用费用由该账号承担。": "Use your own API account. Calls are billed to that account.",
+    "：当前厨房原型围绕 Jev 开发；其他模型也可使用，响应速度和配合方式可能不同。": ": this kitchen prototype was developed around Jev. Other models work too; response times and cooperation may differ.",
+    "建议使用响应快的模型；过慢或无效的动作不会执行。": "Choose a responsive model. Actions that arrive too late or are invalid will not run.",
+    "默认只在本次服务运行期间使用。记住后以明文保存在这台电脑的本地配置文件；Key 不进入对局日志和试玩包。": "By default, credentials last only until the local service stops. Remembering stores them in plain text on this computer. Keys are excluded from game logs and demo packages.",
+    "测试连接会发送一次小型 API 请求，可能产生少量费用。": "Testing sends one small API request and may incur a charge.",
+    "保留最近 3 局的有限事件片段，让搭档自行判断如何配合，不预设你的习惯。不同接口和模型分开保存。": "Keep limited event excerpts from the last 3 rounds. Your teammate decides how to adapt; no habits are assigned to you. Providers and models have separate memory.",
+    "记录保存在本机，旧局片段会随决策请求发送给你选择的模型服务，增加输入 token 和费用。关闭后不读、不保存；中途退出的局不保存。": "Records stay on this computer. Past excerpts are sent with decisions to your chosen model, adding input tokens and cost. When disabled, memory is neither read nor saved. Aborted rounds are not saved.",
+    "默认每局 200 次，失败请求也计入；达限后不再请求，已有动作继续，玩家仍可操作。设置仅保留到服务关闭。连接测试另计，每次可能收费。Token 仅统计成功回复提供的用量，不代表完整账单；费用以服务商为准。": "Default: 200 calls per round, including failed requests. At the limit, new requests stop; existing actions and player controls continue. This setting lasts until the service stops. Connection tests are counted separately and may cost money. Token totals include usage reported by successful replies, not the full bill. Check your provider for charges.",
+    "导出当前局摘要和最近 80 条动作事件。不会附带 Key、接口地址、模型名称文本、跨局记忆、完整请求或私人日志。文件只下载到本机，不自动上传。": "Export a round summary and the latest 80 action events. Keys, endpoint URLs, model-name text, memory, full requests and private logs are excluded. The file downloads locally and is not uploaded.",
+    "这个旧页面还不支持 API 配置，请使用新版服务。": "This page does not support API settings. Please update the service.",
+    "请在开局前或结算后更换 API；请完成当前对局后再修改。": "Change the API before a round or after it ends. Please finish this round first.",
+    "配置已清除。下次开局需要重新连接。": "Credentials cleared. Connect again before the next round.",
+    "连接成功！返回厨房即可开局，费用由你的 API 账号承担。": "Connected! Return to the kitchen to start. Your API account pays for calls.",
+    "请求超时。请检查网络后重试。": "Request timed out. Check your connection and try again.",
+    "请求超时，请重新打开设置确认结果。": "Request timed out. Reopen Settings to check the result.",
+    "请检查下方内容；点击下载后才会保存文件。": "Review the content below. The file is saved only when you click Download.",
+    "按住方向键移动，松开停止。鼠标点地面或工位可走近；键盘移动会接管当前动作。": "Hold WASD or arrow keys to move; release to stop. Click the floor or a station to walk there. Keyboard movement takes over the current action.",
+    "靠近后按空格，底部文字会显示将执行的动作：取料、放到案板、切菜、拿起、下锅、装盘、洗碗或出餐。正在加工时再按空格可停下，进度保留。": "Move close and tap Space. The bottom hint shows the action: fetch, put on a board, chop, pick up, cook, plate, wash or serve. Tap Space while working to stop and keep progress.",
+    "身边没有可操作工位时，手中物品放在脚边，空手拾取最近的地面物品。拿干净盘靠近地上的熟锅，也能盛菜。想把物品放到地上时，先离开工位。": "Away from usable stations, tap Space to put down a held item or pick up the nearest item with empty hands. A clean plate can take cooked food from a pot on the floor. Move away from stations to put an item on the floor.",
+    "空格按住约 0.3 秒，再左键点落点；松开取消。也可右键准备，再左键抛出或右键取消。最远 7 格，遇墙落在墙前。仅生食材和未装盘的切好原料可抛。餐盘、带盘菜、锅和灭火器不能抛，可放下再拾取；忙碌或手满的队友不会接住。": "Hold Space for about 0.3 seconds, then left-click a destination; release to cancel. Or right-click to prepare, left-click to throw, and right-click again to cancel. Range: 7 tiles; walls stop the throw. Only raw or chopped, unplated ingredients can be thrown. Plates, plated food, pots and extinguishers can be put down and picked up, but not thrown. Busy teammates or those holding something cannot catch.",
+    "干净盘才可装菜。脏盘回收点取盘 → 放入水槽 → 空手洗碗 → 取净盘。没盘时可空手到锅边端锅，离灶停止加热；空锅需放回灶台。": "Only clean plates can hold food. Collect a dirty plate → put it in the sink → wash with empty hands → take the clean plate. Without a plate, use empty hands to lift the whole pot. Taking it off the stove stops heating; return empty pots to the stove.",
+    "拿食材靠近垃圾桶按空格会销毁，扣 2 元；端锅则倒掉锅里的食物，保留空锅。灭火器在右上方，拿起后靠近着火灶台按空格灭火。": "Hold food near a bin and tap Space to discard it for a ¥2 penalty. If holding a pot, its food is discarded and the pot stays. Take the extinguisher at the top right, then tap Space near a burning stove.",
+    "暂停会停止锅火、订单和双方动作。从暂停菜单继续经营、重新开局、打开设置或查看本说明。重新开局会立即开始新一局，沿用当前配置与速度。更换 API、记忆和调用上限请在结算后或开局前进行。": "Pause freezes cooking, orders and both chefs. The pause menu lets you resume, restart, open Settings or read Controls. Restart immediately begins a new round with the same configuration and speed. Change API, memory and call limits before a round or after it ends.",
+    "请先从下方「设置」连接自己的 API，再开始经营。": "Connect your own API in Settings below before starting.",
+    "只能抛生食材或切好的原料；餐盘、带盘菜、锅和工具请放下或搬运。": "Only raw or chopped ingredients can be thrown. Carry or put down plates, plated food, pots and tools.",
+    "新版页面已就绪，厨房服务仍在保留旧对局。\n服务更新后会自动连接，请先完成更新确认。": "The new page is ready, but the service still holds the old round.\nConfirm the update; the page will reconnect automatically.",
+    "暂时连接不上厨房，请稍后重试。\n连接中断时，游戏会自动暂停。": "Cannot connect to the kitchen. Please try again.\nThe game pauses automatically when disconnected.",
+    "靠近 Jeff，按空格给他手中的干净盘装菜。": "Move near Jeff and tap Space to fill the clean plate he is holding.",
+    "本局 AI 调用已达上限；已有动作继续。你可继续玩或暂停，下局可调整上限。": "AI call limit reached. Existing actions continue. Keep playing or pause; adjust the limit for the next round.",
+    "锅火和订单都按下了暂停。\n准备好了，就和 Jeff 接着做菜。": "Cooking and orders are paused.\nResume cooking with Jeff when you are ready.",
+    "页面已断开，厨房自动暂停。回来后点击继续。": "Disconnected: the kitchen paused. Click Resume when you return.",
+    "厨房已暂停，你和 Jeff 的动作、锅与订单倒计时都已停下。": "Kitchen paused: both chefs, cooking and order timers are frozen.",
+    "离开页面，厨房已自动暂停。": "Kitchen paused because the page was hidden.",
+    "厨房已暂停：运行出现异常，请重新开局。": "Kitchen paused after an error. Please restart the round.",
+    "AI 搭档暂时连接不上，正在重试。你仍可以操作或先暂停。": "AI teammate disconnected; retrying. You can keep playing or pause.",
+    " · 已记住此设备": " · remembered on this device",
+    " · 已达上限": " · limit reached",
+    "案板有食材正在飞入，本次放置取消": "An ingredient is landing on the board; placement cancelled",
+    "队友已移动或物品变化，装盘取消": "Teammate moved or items changed; plating cancelled",
+    "装盘时队友或物品变化，物品保持原样": "Teammate or items changed; nothing transferred",
+    "地上锅或手中餐盘已变化，装盘取消": "The floor pot or held plate changed; plating cancelled",
+    "没有这个操作。": "Unknown action.",
+    "当前厨房不支持方向移动": "Directional movement is unavailable in this kitchen.",
+    "移动输入无效": "Invalid movement input.",
+    "仅允许本机页面访问。": "Only local pages may access this service.",
+    "页面不存在。": "Page not found.",
+    "仅允许本机页面操作。": "Only local pages may control this service.",
+    "需要 JSON 请求。": "A JSON request is required.",
+    "厨房未营业": "The kitchen is not open.",
+    "请选择页面中的游戏节奏。": "Choose a game speed shown on the page.",
+    "先开始或继续本局，再点击动作。": "Start or resume the round before choosing an action.",
+    "动作信息无效，请重试。": "Invalid action data. Please try again.",
+    "刚才的食材或工位状态变了，请按更新后的按钮操作。": "The ingredient or station changed. Use the updated action.",
+    "请求格式无效。": "Invalid request format.",
+    "没有读到可用的本地 Jev 配置，请检查 .env。厨房尚未开始计时。": "No usable local Jev configuration. Check .env. The kitchen timer has not started.",
+    "对局已变化，连接未保存。": "The round changed. The connection was not saved.",
+    "自动换手": "auto-swap",
+    "手中物品自动放到地上": "held item is put on the floor",
+    "切配进度保留；锅继续加热": "prep progress kept; pot keeps heating",
+    "可捡回、不扣钱": "recoverable, no charge",
+    "可捡回，不扣钱": "recoverable, no charge",
+    "每格一件": "one item per tile",
+    "空锅留在手中": "keep the empty pot",
+    "空锅留在原地": "empty pot stays in place",
+    "有食物时恢复加热": "resume heating if filled",
+    "离开灶台停止加热，占手持位": "stops heating off the stove; occupies your hands",
+    "占用手持位": "occupies your hands",
+    "可中断续洗": "can stop and resume",
+    "损耗 2 元，无法捡回": "¥2 cost; cannot be recovered",
+    "损耗2元，保留空锅": "¥2 cost; keep the pot",
+    "损耗 2 元": "¥2 cost",
+    "糊菜或无订单会被差评": "burnt food or no matching order earns a bad review",
+    "随后仍须清理糊菜": "burnt food must still be cleared",
+    "抛出物品": "throw item",
+    "糊了的菜": "burnt food",
+    "没有待完成订单": "no pending order",
+    "食物没熟或没切配": "food is uncooked or unprepared",
+    "未装盘": "not plated",
+    "超时": "expired",
+    "失败": "failed",
+    "任务成功": "Goal completed",
+    "任务失败": "Goal failed",
+    "净收入": "Net revenue",
+    "糊锅": "Burnt pots",
+    "着火": "Fires",
+    "差评": "Bad reviews",
+    "剩": "left ",
+    "最多": "maximum ",
+    "元": " yuan",
+    "次": " times",
+    "单": " orders",
+    "没有有效订单": "no valid order",
+    "任务未达成": "Goal not met",
+    "提前退出（未结算通关）": "Round abandoned (not completed)",
+    "成功": "completed",
+    "出餐": "Orders served",
+    "时间奖励": "Time bonus",
+    "剩余": "Remaining",
+    "整秒": "whole seconds",
+    "合计": "Total",
+    "已切配": "Chopped",
+    "未熟": "Uncooked",
+    "熟菜": "Cooked food",
+    "灭火器架": "Extinguisher rack",
+    "去垃圾桶 2丢弃手中食物": "Discard the held food at bin 2",
+    "切好": "Chopped",
+    "熟了": "Cooked",
+    "糊了": "Burnt",
+    "锅": "Pot",
+    "切菜": "Chop",
+    "继续": "Continue",
+    "已中断": "Stopped",
+    "开始": "Started",
+    "开始抛递": "Throw started",
+    "同一本地玩家与当前接口/模型的过往已结束对局。事件为按时间抽样的事实，非完整录像、非玩家偏好结论；物品编号和坐标仅属于各自旧局。": "Past completed rounds for the same local player and provider/model. Events are facts sampled over time, not a full replay or inferred preferences. Item IDs and coordinates belong only to their original rounds.",
+    "状态已变化，该动作已失效；请重新查看选项": "State changed; this action is no longer valid. Review the available choices.",
+    "回复已过期、任务已变化或游戏已暂停": "Reply expired, task changed, or game paused",
+    "当前无法执行；输入 m 查看可用动作": "Action unavailable; review the available choices.",
+    "抛递目标已变化，请重新选择": "Throw target changed; choose again",
+    "队友或锅中的物品已变化": "Teammate or pot contents changed",
+    "待组装菜品": "Partially assembled dish",
+    "第一关 · 练习": "Level 1 · Practice",
+    "第二关 · 窄巷汉堡": "Level 2 · Burger alley",
+    "汉堡": "Burger",
+    "面包": "Bread",
+    "生菜": "Lettuce",
+    "番茄": "Tomato",
+    "熟牛肉": "Cooked beef",
+    "待组装": "Assembling",
+    "缺少": "Missing",
+    "双击同一方向键冲刺": "Double-tap the same direction to sprint",
+    "冲刺": "Sprint",
+    "冷却": "Cooldown",
+    "生菜箱": "Lettuce supply",
+    "番茄箱": "Tomato supply",
+    "面包箱": "Bread supply",
+    "开始前选择第二关。两个灶台、三口锅，备用空锅在右上柜台。面包直接装盘；生菜和番茄切好，牛肉切好后煎熟。把配料加入柜台上的干净盘，可任意顺序组装；缺料不能出餐。牛排 2 单、汉堡 2 单，顺序每局随机。": "Choose Level 2 before starting. Two stoves and three pots; the spare pot is on the top-right counter. Bread needs no prep. Chop lettuce and tomato; chop and cook beef. Add ingredients to a clean plate on a counter in any order. Incomplete dishes cannot be served. Each round has 2 steaks and 2 burgers in shuffled order.",
+    "冲刺 · 双击同一方向键": "Sprint · double-tap a direction",
+    "第二关双击同一个 WASD 或方向键，然后按住移动：速度 1.4 倍，持续 1 秒，结束后冷却 3 秒。持物也能冲刺，不加速切菜或洗碗。AI 使用相同规则；没有单独开关。暂停时计时冻结。": "In Level 2, double-tap the same WASD or arrow key, then hold to move: 1.4x speed for 1 second, followed by 3 seconds cooldown. Carrying is allowed. Chopping and washing stay at normal speed. AI has the same rules; no separate toggle. Timers freeze while paused.",
+    "冲刺中": "Sprinting",
+    "冲刺冷却": "Sprint cooldown",
+    "双击方向键 · 冲刺": "Double-tap direction · Sprint",
+    "走近，把食材加入队友手中的盘（容器留在原持有者手中）": "Approach and add food to the teammate's held plate (containers stay with their holders)",
+    "暂不能出餐，还缺：": "Cannot serve yet. Missing: ",
+    "切好的生菜": "Chopped lettuce",
+    "切好的番茄": "Chopped tomato",
+    "可手持盘从案板或柜台收集切好蔬菜和面包，也能给队友手中盘加料。两盘无重复配料可合并：成品留手中，柜台留空盘。牛肉须先煎熟；缺料不能出餐。": "Collect prepared vegetables and bread from boards or counters into a held plate, or add them to a teammate's plate. Merge plates with no duplicate ingredients: the combined dish stays in hand and the empty plate stays on the counter. Cook beef first; incomplete dishes cannot be served.",
+    "开始前选择第二关。两个灶台、三口锅，备用空锅在右上柜台。面包直接装盘；生菜和番茄切好，牛肉切好后煎熟。可手持盘从案板或柜台收集切好蔬菜和面包，也能给队友手中盘加料。两盘无重复配料可合并：成品留手中，柜台留空盘。牛肉须先煎熟；缺料不能出餐。牛排 2 单、汉堡 2 单，顺序每局随机。": "Choose Level 2 before starting. Two stoves and three pots; the spare pot is on the top-right counter. Bread needs no prep. Chop lettuce and tomato; chop and cook beef. Add ingredients to a clean plate on a counter in any order. Incomplete dishes cannot be served. Each round has 2 steaks and 2 burgers in shuffled order. Held plates can collect prepared ingredients from boards/counters. Add food to a teammate's plate, or merge two non-overlapping plates; the empty source plate stays in place.",
+    "把切好的牛肉放入地上空锅（离灶不加热）": "Load chopped beef into the empty floor pot (no heating off stove)",
+    "地上锅或手中食材已变化，入锅取消": "Floor pot or held ingredient changed; loading cancelled",
+    "选中目标暂不可操作，请靠近或检查物品状态": "Selected target cannot be used now; move closer or check items",
+    "请靠近选中的出餐口": "Move closer to the selected serving hatch",
+    "地上物品已变化，请重新选择": "Ground item changed; select it again",
+    "目标无效": "Invalid target",
+    "点击工位或地上物品后，空格只操作选中目标；条件不满足时给出提示。方向移动或点击空地恢复就近操作。地上空锅可先放切好的牛肉，再按空格端锅，离灶不加热。底部文字会显示将执行的动作：": "Space acts on the selected station or ground item; unavailable actions show a hint. Direction keys or clicking empty floor restore nearby interactions. Load chopped beef into an empty floor pot, then press Space again to lift it; it heats only on a stove. The footer shows the next action: ",
+    "点击工位或地上物品后，空格只操作选中目标；条件不满足时给出提示。方向移动或点击空地恢复就近操作。地上空锅可先放切好的牛肉，再按空格端锅，离灶不加热。底部文字会显示将执行的动作：取料、放到案板、切菜、拿起、下锅、装盘、洗碗或出餐。正在加工时再按空格可停下，进度保留。": "Space acts on the selected station or ground item; unavailable actions show a hint. Direction keys or clicking empty floor restore nearby interactions. Load chopped beef into an empty floor pot, then press Space again to lift it; it heats only on a stove. The footer shows the next action: Move close and tap Space. The bottom hint shows the action: fetch, put on a board, chop, pick up, cook, plate, wash or serve. Tap Space while working to stop and keep progress.",
+    "面前没有可操作目标": "No usable target in front",
+    "点击工位或地上物品后，空格只操作选中目标；条件不满足时给出提示。方向移动或点击空地解除选择，自动锁定面前格子。地上空锅可先放切好的牛肉，再按空格端锅，离灶不加热。底部文字会显示将执行的动作：": "Space acts on the selected station or ground item; unavailable actions show a hint. Direction keys or clicking empty floor clear the selection and lock the cell in front. Load chopped beef into an empty floor pot, then press Space again to lift it; it heats only on a stove. The footer shows the next action: ",
+    "点击工位或地上物品后，空格只操作选中目标；条件不满足时给出提示。方向移动或点击空地解除选择，自动锁定面前格子。地上空锅可先放切好的牛肉，再按空格端锅，离灶不加热。底部文字会显示将执行的动作：取料、放到案板、切菜、拿起、下锅、装盘、洗碗或出餐。正在加工时再按空格可停下，进度保留。": "Space acts on the selected station or ground item; unavailable actions show a hint. Direction keys or clicking empty floor clear the selection and lock the cell in front. Load chopped beef into an empty floor pot, then press Space again to lift it; it heats only on a stove. The footer shows the next action: Move close and tap Space. The bottom hint shows the action: fetch, put on a board, chop, pick up, cook, plate, wash or serve. Tap Space while working to stop and keep progress.",
+    "与地上的锅交换（各自保留锅内食物）": "Swap with the pot on the floor (contents stay in their own pots)",
+    "结束本局": "End round",
+    "本局已结束": "Round ended",
+    "当前没有进行中的对局。": "There is no active round.",
+    "与地上的锅交换": "Swap with the pot on the floor",
+    "第二关 · 长台汉堡": "Level 2 · Counter Burgers",
+    "第三关 · 窄巷汉堡": "Level 3 · Narrow Aisle",
+    "单间厨房由横向长柜台分为上下工作区，右侧通道相连。3 份汉堡，240 游戏秒，1 口锅、1 个灶台、2 只盘子、2 块案板；需要回收洗盘。食材和装盘规则与第三关相同。": "A horizontal counter divides the kitchen into upper and lower workspaces, joined on the right. Make 3 burgers in 240 game seconds with 1 pot, 1 stove, 2 plates and 2 boards. Recycle and wash plates. Ingredients and assembly follow the same rules as level 3.",
+    "拿食材靠近垃圾桶按空格会销毁，扣 2 元；端锅则倒掉锅里的食物，保留空锅。拿起灭火器后靠近着火灶台按空格灭火。": "Hold food near a bin and tap Space to discard it for a ¥2 penalty. If holding a pot, its food is discarded and the pot stays. Take the extinguisher at the top right, then tap Space near a burning stove.",
+    "开始前选择第三关。两个灶台、三口锅，备用空锅在右上柜台。面包直接装盘；生菜和番茄切好，牛肉切好后煎熟。把配料加入柜台上的干净盘，可任意顺序组装；缺料不能出餐。牛排 2 单、汉堡 2 单，顺序每局随机。": "Choose Level 3 before starting. Two stoves and three pots; the spare pot is on the top-right counter. Bread needs no prep. Chop lettuce and tomato; chop and cook beef. Add ingredients to a clean plate on a counter in any order. Incomplete dishes cannot be served. Each round has 2 steaks and 2 burgers in shuffled order.",
+    "所有关卡双击同一个 WASD 或方向键，然后按住移动：速度 1.4 倍，持续 1 秒，结束后冷却 3 秒。持物也能冲刺，不加速切菜或洗碗。AI 使用相同规则；没有单独开关。暂停时计时冻结。": "In Level 2, double-tap the same WASD or arrow key, then hold to move: 1.4x speed for 1 second, followed by 3 seconds cooldown. Carrying is allowed. Chopping and washing stay at normal speed. AI has the same rules; no separate toggle. Timers freeze while paused.",
+    "开始前选择第三关。两个灶台、三口锅，备用空锅在右上柜台。面包直接装盘；生菜和番茄切好，牛肉切好后煎熟。可手持盘从案板或柜台收集切好蔬菜和面包，也能给队友手中盘加料。两盘无重复配料可合并：成品留手中，柜台留空盘。牛肉须先煎熟；缺料不能出餐。牛排 2 单、汉堡 2 单，顺序每局随机。": "Choose Level 3 before starting. Two stoves and three pots; the spare pot is on the top-right counter. Bread needs no prep. Chop lettuce and tomato; chop and cook beef. Add ingredients to a clean plate on a counter in any order. Incomplete dishes cannot be served. Each round has 2 steaks and 2 burgers in shuffled order. Held plates can collect prepared ingredients from boards/counters. Add food to a teammate's plate, or merge two non-overlapping plates; the empty source plate stays in place.",
+    "长 台 厨 房": "COUNTER KITCHEN",
+    "版本与对局导出": "Version and run export",
+    "导出本局": "Export Run",
+    "待导出的对局内容": "Run export preview",
+    "导出当前局摘要、全部标记和最近 80 条动作事件。标记包含游戏时间和实际时间，可对应本地日志提取前后过程。不会附带 Key、接口地址、模型名称文本、跨局记忆或完整请求。文件只下载到本机，不自动上传。": "Export the run summary, all bookmarks and the last 80 action events. Game and wall timestamps locate surrounding context in the local log. Keys, endpoint and model text, cross-round memory and full requests are excluded. Downloads stay local; nothing is uploaded.",
+    "标记片段 · Shift": "Bookmark · Shift",
+    "营业中按 Shift 标记当前时刻，不暂停、不打断动作。相邻两次标记间隔不超过 5 个实际秒时合并为一个区间，长按不重复。设置中的“导出本局”包含全部标记；标记不会发送给 AI。": "Press Shift during gameplay to bookmark without pausing or interrupting actions. Consecutive marks up to 5 real seconds apart merge into one interval; holding the key does not repeat. Export Run in Settings includes all bookmarks. Bookmarks are not sent to the AI.",
+    "只能在营业中标记片段。": "Bookmarks are available during active gameplay only.",
+    "标记未保存，请重试。": "Bookmark not saved. Please retry.",
+    "标记未确认，请检查导出记录。": "Bookmark unconfirmed. Please check the run export.",
+    "已延长标记片段": "Bookmark interval extended",
+    "已标记当前片段": "Moment bookmarked",
+    "队友沟通": "Teammate communication",
+    "我更爱备菜": "I prefer ingredient prep",
+    "我更爱烹饪": "I prefer cooking",
+    "我更爱摆盘": "I prefer plating",
+    "我更爱传菜": "I prefer carrying / serving",
+    "我更爱洗盘子": "I prefer washing dishes",
+    "你做错了": "You made a mistake",
+    "沟通 · 1–6": "Communicate · 1–6",
+    "偏好：备菜": "Preference: ingredient prep",
+    "偏好：烹饪": "Preference: cooking",
+    "偏好：摆盘": "Preference: plating",
+    "偏好：传菜": "Preference: carrying / serving",
+    "偏好：洗盘子": "Preference: washing dishes",
+    "偏好：尚未表达": "No preference expressed",
+    "点击选项或按 1–6 发送": "Click an option or press 1–6",
+    "请在对局开始后、结束前发送沟通。": "Send messages after the round starts and before it ends.",
+    "未知的沟通选项。": "Unknown communication option.",
+    "沟通冷却中，请稍后再发。": "Communication is cooling down. Please wait.",
+    "沟通未保存，请重试。": "Message not saved. Please retry.",
+    "沟通未确认，请检查导出记录。": "Message unconfirmed. Please check the run export.",
+    "已记录沟通，将随下一次 AI 请求发送。": "Message recorded for the next AI request.",
+    "沟通 · 1–6 / 点击": "Communicate · 1–6 / Click",
+    "打开左下角沟通菜单，点击即可发送，也可直接按 1–5 表达当前偏好、按 6 反馈“你做错了”。共用 5 个实际秒冷却，暂停时也可发送。最新偏好只在本局有效；AI 在下一次正常请求中收到，自行判断如何配合，不强制分工或停止动作。纠错附带当时动作信息，但不指定正确答案。": "Open the bottom-left communication menu and click to send, or press 1–5 for a preference and 6 for a correction. All share a 5-real-second cooldown; messages also work while paused. The latest preference applies only to this round. The AI receives it in its next regular request and decides how to cooperate; jobs and roles are not forced. Corrections include action context, not a prescribed solution.",
+    "导出当前局摘要、全部标记、沟通记录和最近 80 条动作事件。标记包含游戏时间和实际时间，可对应本地日志提取前后过程。不会附带 Key、接口地址、模型名称文本、跨局记忆或完整请求。文件只下载到本机，不自动上传。": "Export the run summary, all bookmarks, communication records and the last 80 action events. Game and wall timestamps locate surrounding context in the local log. Keys, endpoint and model text, cross-round memory and full requests are excluded. Downloads stay local; nothing is uploaded.",
+    "打开左下角沟通菜单，点击偏好即可发送；“你做错了”是独立的红色描边按钮。也可按 1–5 表达偏好、按 6 纠错。共用 5 个实际秒冷却，暂停时也可发送。最新偏好只在本局有效；AI 在下一次正常请求中收到，自行判断如何配合，不强制分工或停止动作。纠错附带当时动作信息，但不指定正确答案。": "Click a preference in the bottom-left menu, or the separate red-outlined correction button. Shortcuts: 1–5 for preferences, 6 for correction. All share a 5-real-second cooldown; messages also work while paused. The latest preference applies only to this round. The AI receives it in its next regular request and decides how to cooperate; jobs and roles are not forced. Corrections include action context, not a prescribed solution.",
+    "第一关 · 牛排": "Level 1 · Steak",
+    "开始前选择第二关。两个灶台、三口锅，备用空锅在右上柜台。面包直接装盘；生菜和番茄切好，牛肉切好后煎熟。把配料加入柜台上的干净盘，可任意顺序组装；缺料不能出餐。牛排 2 单、汉堡 3 单，顺序每局随机。": "Choose Level 2 before starting. Two stoves and three pots; the spare pot is on the top-right counter. Bread needs no prep. Chop lettuce and tomato; chop and cook beef. Add ingredients to a clean plate on a counter in any order. Incomplete dishes cannot be served. Each round has 2 steaks and 3 burgers in shuffled order.",
+    "开始前选择第二关。两个灶台、三口锅，备用空锅在右上柜台。面包直接装盘；生菜和番茄切好，牛肉切好后煎熟。可手持盘从案板或柜台收集切好蔬菜和面包，也能给队友手中盘加料。两盘无重复配料可合并：成品留手中，柜台留空盘。牛肉须先煎熟；缺料不能出餐。牛排 2 单、汉堡 3 单，顺序每局随机。": "Choose Level 2 before starting. Two stoves and three pots; the spare pot is on the top-right counter. Bread needs no prep. Chop lettuce and tomato; chop and cook beef. Add ingredients to a clean plate on a counter in any order. Incomplete dishes cannot be served. Each round has 2 steaks and 3 burgers in shuffled order. Held plates can collect prepared ingredients from boards/counters. Add food to a teammate's plate, or merge two non-overlapping plates; the empty source plate stays in place.",
+    "第二关 · 汉堡": "Level 2 · Burger",
+    "第三关 · 牛-堡": "Level 3 · Steak & Burger",
+    "开始前选择第三关。两个灶台、三口锅，备用空锅在右上柜台。面包直接装盘；生菜和番茄切好，牛肉切好后煎熟。把配料加入柜台上的干净盘，可任意顺序组装；缺料不能出餐。牛排 2 单、汉堡 3 单，顺序每局随机。": "Choose Level 3 before starting. Two stoves and three pots; the spare pot is on the top-right counter. Bread needs no prep. Chop lettuce and tomato; chop and cook beef. Add ingredients to a clean plate on a counter in any order. Incomplete dishes cannot be served. Each round has 2 steaks and 3 burgers in shuffled order.",
+    "开始前选择第三关。两个灶台、三口锅，备用空锅在右上柜台。面包直接装盘；生菜和番茄切好，牛肉切好后煎熟。可手持盘从案板或柜台收集切好蔬菜和面包，也能给队友手中盘加料。两盘无重复配料可合并：成品留手中，柜台留空盘。牛肉须先煎熟；缺料不能出餐。牛排 2 单、汉堡 3 单，顺序每局随机。": "Choose Level 3 before starting. Two stoves and three pots; the spare pot is on the top-right counter. Bread needs no prep. Chop lettuce and tomato; chop and cook beef. Add ingredients to a clean plate on a counter in any order. Incomplete dishes cannot be served. Each round has 2 steaks and 3 burgers in shuffled order. Held plates can collect prepared ingredients from boards/counters. Add food to a teammate's plate, or merge two non-overlapping plates; the empty source plate stays in place.",
+    "火势失控": "Fire out of control",
+    "火势失控，本局结束": "Fire out of control. Round ended.",
+    "拿食材靠近垃圾桶按空格会销毁，扣 2 元；端锅则倒掉锅里的食物，保留空锅。拿起灭火器后靠近着火工位按空格，4 秒灭火。火每 8 秒向一格相邻柜台蔓延，不跨空地或墙；同时 5 个工位着火，本局结束。": "Hold food near a bin and tap Space to discard it for a ¥2 penalty. Pots remain after emptying. Carry the extinguisher to a burning station and tap Space; extinguishing takes 4 seconds. Every 8 game seconds, fire spreads to one adjacent worktop without crossing floors or walls. Five simultaneously burning stations end the round.",
+    "牛肉柜": "Beef supply"
+  },
+  "templates": [
+    [
+      "与{0}的锅交换",
+      "Swap with the pot at {0}"
+    ],
+    [
+      "与{0}的锅交换（各自保留锅内食物）",
+      "Swap with the pot at {0} (contents stay in their own pots)"
+    ],
+    [
+      "把切好的牛肉放入{0}的空锅（离灶不加热）",
+      "Load chopped beef into the empty pot at {0} (no heating off stove)"
+    ],
+    [
+      "用手中餐盘接取{0}的食材",
+      "Collect the ingredient from {0} into the held plate"
+    ],
+    [
+      "把{0}盘中食物合入手中盘（空盘留在原位）",
+      "Merge food from the plate at {0} into the held plate (empty plate stays in place)"
+    ],
+    [
+      "{0}把食材加入{1}手中的盘",
+      "{0} added food to the plate held by {1}"
+    ],
+    [
+      "{0}：出餐 {1}/{2}；净收入 {3}/{4} 元；差评 {5}（最多 {6}）；糊锅 {7}，着火 {8}；时间奖励 {9} 元（剩余 {10} 整秒）；合计 {11} 元",
+      "{0}: orders {1}/{2}; net revenue ¥{3}/¥{4}; bad reviews {5} (max {6}); burnt {7}, fires {8}; time bonus ¥{9} ({10}s left); total ¥{11}"
+    ],
+    [
+      "你和 AI 搭档，一起照顾这间小厨房。\n本局目标：出餐 {0} 单 · 收入 ¥{1} · 差评不超过 {2} 次",
+      "Run this kitchen with your AI teammate.\nGoal: {0} orders · ¥{1} revenue · at most {2} bad reviews"
+    ],
+    [
+      "本局 {0} / {1} 次{2}；成功回复 token：输入 {3} / 输出 {4}；本次服务连接测试 {5} 次",
+      "Round: {0} / {1} calls{2}; reported tokens: {3} input / {4} output; connection tests: {5}"
+    ],
+    [
+      "任务{0}：出餐 {1}/{2}；净收入 {3}/{4} 元；差评 {5}（最多 {6}）；糊锅 {7}，着火 {8}",
+      "Goal {0}: orders {1}/{2}; net revenue ¥{3}/¥{4}; bad reviews {5} (max {6}); burnt {7}, fires {8}"
+    ],
+    [
+      "剩余 {0} 整秒 · 时间奖励 +¥{1} · 合计 ¥{2}",
+      "{0}s left · Time bonus +¥{1} · Total ¥{2}"
+    ],
+    [
+      "出餐 {0} 单 · 营业收入 ¥{1} · 差评 {2} 次",
+      "{0} orders served · Revenue ¥{1} · {2} bad reviews"
+    ],
+    [
+      "{0}到达后发现地上物品已变化或被捡走，动作取消",
+      "{0}: the floor item changed or was taken; action cancelled"
+    ],
+    [
+      "下一局最多 {0} 次，服务重启后恢复默认。",
+      "Next round: up to {0} calls. Resets to default when the service restarts."
+    ],
+    [
+      "{0}到达后发现目标已变化或被占用，动作取消",
+      "{0}: target changed or is occupied; action cancelled"
+    ],
+    [
+      "Jeff 选择：{0} | {1}s | 未执行：{2}",
+      "Jeff chose: {0} | {1}s | Not executed: {2}"
+    ],
+    [
+      "{0}到达后发现食材已不需要切配，动作取消",
+      "{0}: ingredient no longer needs chopping; action cancelled"
+    ],
+    [
+      "{0}着火！损失 5 元；必须先灭火再清锅",
+      "{0} is on fire! −¥5; extinguish it before clearing the pot"
+    ],
+    [
+      " · 本局使用 {0} 局，结算后可修改",
+      " · Using {0} rounds this round; editable after it ends"
+    ],
+    [
+      "{0}完成 {1}，顾客好评，收入 +30 元",
+      "{0} served {1}: happy customer, +¥30"
+    ],
+    [
+      "{0}糊锅！{1}s 后着火；糊菜上桌会被差评",
+      "{0} burnt! Fire in {1}s; serving burnt food earns a bad review"
+    ],
+    [
+      "{0}超时，顾客离开并差评，扣 10 元",
+      "{0} expired: customer left a bad review, −¥10"
+    ],
+    [
+      "{0} · 当前模型已保存 {1} / {2} 局{3}",
+      "{0} · Saved for this model: {1} / {2} rounds{3}"
+    ],
+    [
+      "{0}洗好了 {1}，可取走盛菜或放到空柜台",
+      "{0} washed {1}; take it to plate food or put it on a counter"
+    ],
+    [
+      "{0}把 {1} 放在{2}旁的地上，双方都可以捡",
+      "{0} put {1} on the floor by {2}; either chef can pick it up"
+    ],
+    [
+      "{0} 已回到脏盘回收点，洗净后可复用",
+      "{0} returned dirty; wash it to reuse"
+    ],
+    [
+      "{0}换手：把 {1} 留在{2}的地上，可捡回",
+      "{0} swapped items; {1} is on the floor at {2}"
+    ],
+    [
+      "{0}附近没有空位换手，物品保持原样",
+      "{0}: no space to swap items; nothing changed"
+    ],
+    [
+      "{0}的抛递落点不可用，仍拿着物品",
+      "{0}: landing space unavailable; item kept"
+    ],
+    [
+      "已连接：{0} · 玩家账号付费{1}",
+      "Connected: {0} · Your account pays{1}"
+    ],
+    [
+      "将半成品放进{0}，开始自动加热",
+      "Put chopped meat in {0} to cook"
+    ],
+    [
+      "{0}发现落点被占用，仍拿着食物",
+      "{0}: landing space occupied; food kept"
+    ],
+    [
+      "把手中锅里的菜盛到{0}的盘里",
+      "Fill the plate on {0} from your pot"
+    ],
+    [
+      "新订单 {0}：牛排，截止 {1}s",
+      "New order {0}: steak, due at {1}s"
+    ],
+    [
+      "顾客差评：{0}；扣 15 元{1}",
+      "Bad review: {0}; −¥15{1}"
+    ],
+    [
+      "{0} 落到{1}，可继续切配或取走",
+      "{0} landed on {1}; chop it or take it"
+    ],
+    [
+      "Jeff 选择：{0} | {1}s",
+      "Jeff chose: {0} | {1}s"
+    ],
+    [
+      "用手中的干净盘盛出{0}的菜",
+      "Plate food from {0}"
+    ],
+    [
+      "用手中的盘盛出{0}锅里的菜",
+      "Plate food from the pot on {0}"
+    ],
+    [
+      "{0}的 {1} 熟了！{2}s 后糊锅",
+      "{1} in {0} is ready! Burns in {2}s"
+    ],
+    [
+      "{0}抛出了 {1}，落点为 {2}",
+      "{0} threw {1} toward {2}"
+    ],
+    [
+      "{0} 落在地上，可拾取",
+      "{0} landed on the floor; pick it up"
+    ],
+    [
+      "{0}从{1}旁的地上捡起 {2}",
+      "{0} picked up {2} from the floor by {1}"
+    ],
+    [
+      "将手中食材放到{0}",
+      "Put the held ingredient on {0}"
+    ],
+    [
+      "把手中的锅放回{0}",
+      "Return the pot to {0}"
+    ],
+    [
+      "把手中物品放到{0}",
+      "Put the held item on {0}"
+    ],
+    [
+      "拿灭火器到{0}灭火",
+      "Use the extinguisher at {0}"
+    ],
+    [
+      "{0}停止手动移动",
+      "{0} stopped moving"
+    ],
+    [
+      "{0} {1}s 后糊",
+      "{0} · burns in {1}s"
+    ],
+    [
+      "清空{0}的食物",
+      "Clear food from {0}"
+    ],
+    [
+      "地面({0},{1})",
+      "floor ({0},{1})"
+    ],
+    [
+      "{0}完成动作：{1}",
+      "{0} completed: {1}"
+    ],
+    [
+      "待洗 {0}s",
+      "Wash: {0}s"
+    ],
+    [
+      "从{0}拿走 {1}",
+      "Take {1} from {0}"
+    ],
+    [
+      "端起{0}的锅",
+      "Lift the pot from {0}"
+    ],
+    [
+      "去{0}捡起 {1}",
+      "Pick up {1} at {0}"
+    ],
+    [
+      "{0}手动移动",
+      "{0} is moving"
+    ],
+    [
+      "{0}接住了 {1}",
+      "{0} caught {1}"
+    ],
+    [
+      "到{0}切 {1}",
+      "Chop {1} at {0}"
+    ],
+    [
+      "从{0}拿起{1}",
+      "Take {1} from {0}"
+    ],
+    [
+      "{0}中断：{1}",
+      "{0} stopped: {1}"
+    ],
+    [
+      "{0}开始：{1}（路程 {2}s + 操作 {3}s）",
+      "{0} started: {1} (travel {2}s + work {3}s)"
+    ],
+    [
+      "{0}开始给队友装盘",
+      "{0} started plating into the teammate's plate"
+    ],
+    [
+      "{0}把锅中菜盛入{1}手中的盘",
+      "{0} served the food from the pot into the plate held by {1}"
+    ],
+    [
+      "新订单 {0}：{1}，截止 {2}s",
+      "New order {0}: {1}, due at {2}s"
+    ],
+    [
+      "{0}完成 {1}，顾客好评，收入 +{2} 元",
+      "{0} served {1}; good review, income +{2} yuan"
+    ],
+    [
+      "取一份{0}（自动换手）",
+      "Fetch {0} (automatic hand swap)"
+    ],
+    [
+      "在{0}向盘中加入食材",
+      "Add ingredient to the plate at {0}"
+    ],
+    [
+      "冷却 {0}s",
+      "Cooldown {0}s"
+    ],
+    [
+      "{0}着火！损失 5 元；必须先灭火再使用",
+      "{0} caught fire! Lost 5 yuan; extinguish it before use."
+    ],
+    [
+      "拿灭火器到{0}灭火（4s）",
+      "Take the extinguisher to {0} and extinguish the fire (4s)."
+    ],
+    [
+      "着火工位 {0}/{1}",
+      "Burning stations {0}/{1}"
+    ],
+    [
+      "{0}s 熟",
+      "{0}s ready"
+    ],
+    [
+      "{0}s 糊",
+      "{0}s burn"
+    ]
+  ]
+}
+;
+  const escape = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const templates = catalog.templates.map(([source, target]) => {
+    const ids = [];
+    const pattern = source.split(/(\{\d+\})/).map(part => {
+      if (/^\{\d+\}$/.test(part)) { ids.push(Number(part.slice(1,-1))); return '(.*?)'; }
+      return escape(part);
+    }).join('');
+    return { source, target, ids, regex: new RegExp('^' + pattern + '$', 's') };
+  }).sort((a,b) => b.source.replace(/\{\d+\}/g,'').length-a.source.replace(/\{\d+\}/g,'').length);
+  const keys = Object.keys(catalog.messages).sort((a,b) => b.length-a.length);
+  const fragments = new RegExp(keys.map(escape).join('|'),'g');
+  let locale = 'zh';
+  try { if (root.localStorage?.getItem('chefjeff-language') === 'en') locale='en'; } catch (_) {}
+  function english(text, depth=0) {
+    if (typeof text !== 'string' || !text || depth>8) return text;
+    if (Object.prototype.hasOwnProperty.call(catalog.messages,text)) return catalog.messages[text];
+    for (const rule of templates) {
+      const match=text.match(rule.regex);
+      if (!match) continue;
+      const args={}; rule.ids.forEach((id,i) => { args[id]=match[i+1]; });
+      return rule.target.replace(/\{(\d+)\}/g,(_,id) =>
+        rule.source.startsWith('已连接：') && id==='0' ? args[id] : english(args[id],depth+1));
+    }
+    if (text.includes('\n')) return text.split('\n').map(line=>english(line,depth+1)).join('\n');
+    if (text.startsWith('空格 · ')) return 'Space · '+english(text.slice(5),depth+1);
+    return text.replace(fragments,key=>catalog.messages[key]);
+  }
+  const cache=new Map();
+  function translate(text){
+    if(locale!=='en')return text;
+    if(cache.has(text))return cache.get(text);
+    const value=english(text);if(cache.size>=512)cache.clear();cache.set(text,value);return value;
+  }
+  root.kitchenI18n = { t:translate, english, get language(){return locale;}, setLanguage };
+  if (typeof module !== 'undefined') module.exports=root.kitchenI18n;
+  const doc=root.document;
+  const sources=new WeakMap(), attributes=new WeakMap();
+  function textNode(node) {
+    if (!node.parentElement || node.parentElement.closest('script,style,textarea,[data-no-i18n]')) return;
+    let row=sources.get(node);
+    if (!row || node.nodeValue!==row.rendered) row={source:node.nodeValue,rendered:node.nodeValue};
+    row.rendered=translate(row.source);sources.set(node,row);
+    if (node.nodeValue!==row.rendered) node.nodeValue=row.rendered;
+  }
+  function element(el) {
+    if (el.nodeType!==1 || el.closest('script,style,textarea,[data-no-i18n]')) return;
+    let rows=attributes.get(el)||{};
+    for (const name of ['placeholder','aria-label','title']) {
+      if (!el.hasAttribute(name)) continue;
+      let row=rows[name],current=el.getAttribute(name);
+      if (!row || current!==row.rendered) row={source:current};
+      row.rendered=translate(row.source);rows[name]=row;
+      if (current!==row.rendered) el.setAttribute(name,row.rendered);
+    }
+    attributes.set(el,rows);
+  }
+  function walk(node) {
+    if (node.nodeType===3) {textNode(node);return;}
+    if (node.nodeType!==1 || node.matches('script,style,textarea,[data-no-i18n]')) return;
+    element(node); for (const child of node.childNodes) walk(child);
+  }
+  function chrome() {
+    doc.documentElement.lang=locale==='en'?'en':'zh-CN';
+    doc.title=locale==='en'?'ChefJeff · Cook together':'ChefJeff · 一起出餐';
+    const toggle=doc.getElementById('kitchen-language');
+    if(toggle){toggle.textContent=locale==='en'?'中文':'English';toggle.setAttribute('aria-label',locale==='en'?'切换到中文':'Switch to English');}
+  }
+  function setLanguage(next) {
+    if (!['zh','en'].includes(next)) return;
+    locale=next;try{root.localStorage?.setItem('chefjeff-language',locale);}catch(_){}
+    if(doc){walk(doc.body);chrome();root.dispatchEvent(new CustomEvent('kitchen-language-changed',{detail:locale}));}
+  }
+  if (doc) {
+    function mount() {
+      walk(doc.body);chrome();
+      const toggle=doc.getElementById('kitchen-language');
+      if(toggle)toggle.addEventListener('click',()=>setLanguage(locale==='en'?'zh':'en'));
+      // Only changed DOM nodes are translated; no frame loop or game-state mutation.
+      new MutationObserver(records=>{
+        for(const record of records){
+          if(record.type==='characterData')textNode(record.target);
+          else if(record.type==='attributes')element(record.target);
+          else for(const node of record.addedNodes)walk(node);
+        }
+      }).observe(doc.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['placeholder','aria-label','title']});
+    }
+    if(doc.readyState==='loading')doc.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
+  }
+})(typeof window !== 'undefined' ? window : globalThis);

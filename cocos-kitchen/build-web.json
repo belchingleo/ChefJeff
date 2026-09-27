@@ -1,0 +1,21 @@
+{
+  "name": "JevKitchen",
+  "platform": "web-desktop",
+  "startScene": "4e38e033-1df7-4543-a0d8-400afb808412",
+  "scenes": [
+    {
+      "url": "db://assets/scenes/Kitchen.scene",
+      "uuid": "4e38e033-1df7-4543-a0d8-400afb808412"
+    }
+  ],
+  "debug": true,
+  "outputName": "web",
+  "packages": {
+    "web-desktop": {
+      "resolution": {
+        "designWidth": 1280,
+        "designHeight": 720
+      }
+    }
+  }
+}

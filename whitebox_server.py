@@ -1,0 +1,71 @@
+#!/usr/bin/env python3
+"""Local spatial whitebox; shares rules, API protections and real Jev scheduling."""
+import argparse
+from http.server import ThreadingHTTPServer
+import threading
+import webbrowser
+from kitchen import ROOT
+from spatial_kitchen import SpatialKitchen, WALK_SPEED, THROW_RANGE, THROW_SPEED
+from web_server import GameSession, Handler
+from jev import JevClient
+
+
+class SpatialJevClient(JevClient):
+    def payload(self, state, actions):
+        payload = super().payload(state, actions)
+        # Cosmetic settings belong in the run log/UI, not repeated model tokens.
+        payload['state']['kitchen']['map'].pop('presentation',None)
+        rules = payload['state']['rules']
+        rules['ground'] = ('Any held item can be put down with drop on the current or an adjacent free floor tile. Each tile holds one item. Actions walk to the destination; placing takes timing.handling seconds. No free tile means no drop. Either chef can use pickup <item_id> to walk to and pick up an item. Taking another item automatically puts the previous item on nearby ground; without free space nothing changes. State and preparation progress are preserved, with no penalty, spoilage or heating. Only discard destroys food and costs money.')
+        rules['movement'] = ('This is a top-down grid kitchen. map specifies walls, equipment and reference access positions; position is the live coordinate. Travel follows the shortest navigable polyline by actual distance, going straight when clear and leaving body clearance around walls and equipment. Switching tasks during travel starts a new route from the current position. Stations can be used from the nearest reachable adjacent floor tile; access is only a reference, not the only usable side. Chefs can pass through each other but not walls or equipment. go only moves; drop and pickup can support temporary handoffs.')
+        rules['partner'] = ("human is your human teammate. position is the current coordinate; holding is the held item; task and target identify the current action; travel_remaining and work_remaining give remaining time. During travel, location may still name the origin station, so use position for distance. Consider the human's actions and held item when coordinating handoffs, prep, cooking or serving; future human intentions are not known facts. For example, while the human approaches a pot or plates food, you may consider throwing prepared ingredients nearby, or choose other work.")
+        rules['throw'] = (f"throw x y throws toward a floor coordinate; throw partner targets the teammate's current position, with a maximum range of {THROW_RANGE:g} tiles. throw bN or throw <counter_id> can land raw or chopped ingredients on an empty board or counter; chop only on boards, and take from either surface after landing. A corner counter marked reach=corner is accessed from its explicit diagonal access cell; use take to retrieve items there. incoming_item marks an incoming ingredient. Boards do not accept plates, pots or tools and occupied boards are not overwritten. A player's click on an occupied board follows floor-landing rules. Out-of-range throws are shortened along the same direction. An occupied or reserved floor destination redirects to the nearest free adjacent floor cell; if the adjacent cells are full, the throw is unavailable. The first wall stops a throw at an available tile before it; throws never go around walls. Only raw or chopped, unplated ingredients can be thrown. Clean plates, dirty plates, plated food, pots and extinguishers cannot be thrown; carry them or put them down and pick them up. Throwable ingredients can pass over equipment. The destination is fixed at release and does not track the teammate. On arrival, a teammate catches only if at the receiving position, empty-handed and not performing work such as taking, placing, chopping or washing. Otherwise the item lands on a reserved adjacent tile, without interrupting work. No available landing tile means no throw. projectiles lists in-flight items and landing times; they cannot be picked up in flight. At release your hands become empty; fetch can take another ingredient immediately, even while the previous item is in flight. There is no once-per-round throw limit. Each throw requires a held throwable ingredient and a legal destination; an occupied or reserved board cannot receive another item. Decide the destination and whether to throw yourself.")
+        rules['partner_plating'] = ("plate partner: approach a teammate holding a clean or compatible partially assembled plate. Add your prepared ingredient, or transfer cooked/burnt food from your held pot. In levels 2 and 3, you can also transfer all ingredients from your held plate if none duplicate the receiving plate. Food stays on the receiving plate; your pot or emptied plate stays in your hands, or your hand becomes empty after donating a loose ingredient. A teammate currently performing work cannot receive; do not interrupt them. Proximity and held items are checked again on arrival and completion; if they change, the transfer is cancelled. Neither chef can directly take an item from the other chef's hands.")
+        rules['pot_swap'] = 'swap pot <stove_or_counter_id> or swap pot ground <pot_id> exchanges your held pot with the target pot in place. Contents and cooking progress stay with each original pot. The incoming pot heats only on a stove; the outgoing pot stops heating in your hands. A chopped ingredient starts cooking when its pot reaches a stove. Empty pots do not heat; cooked or burnt food resumes its existing heat progress. A burning stove must be extinguished before exchanging pots. Both chefs have these actions.'
+        rules['off_stove_pots'] = 'load ground <pot_id> puts held chopped beef into an empty pot on the floor. load <counter_id> puts held chopped beef into an empty pot on that counter. The ingredient stays inside the pot; your hands become empty. Then pickup or take the pot and return it to a stove to heat it. Off-stove pots never heat food. Raw unchopped beef, vegetables and bread cannot be loaded into a pot. Rules are identical for both chefs and all levels.'
+        timing = rules['timing']
+        timing.pop('walk_same_area', None)
+        timing.pop('walk_cross_area', None)
+        timing['walk_cells_per_second'] = WALK_SPEED
+        timing['throw_cells_per_second'] = THROW_SPEED
+        timing['throw_windup'] = self.c.get('handling_seconds', .15)
+        if state.get('level') in (2,3):
+            rules['flow']='Fetch beef -> chop on a board -> cook on a stove. Bread is ready to assemble without chopping. Lettuce and tomato must be chopped but must not be cooked. Steak is cooked beef on a clean plate. Burger requires bread, chopped lettuce, chopped tomato and cooked beef on one clean plate, in any order. Recipes and order ingredients are explicit in state. Partially assembled plates can be carried or put down, not served or thrown.'
+            rules['assembly']='assemble <counter_id> adds your ingredient to a counter plate, or the counter ingredient to your held plate. assemble <board_id> collects a prepared ingredient directly from that board into your held plate. Beef must be cooked before plating; chopped raw beef cannot be plated. merge <counter_id> transfers all ingredients from the counter plate into your held clean/partial plate if they do not overlap; the empty clean source plate stays on the counter. No plates disappear. plate partner can also add a prepared ingredient or merge a plate into the plate held by the teammate. Each ingredient appears once. plate actions transfer cooked beef from a pot into an empty plate or a partial burger plate without beef, on a counter, in your hand, on the floor (pot), or held by your teammate. Adding vegetables or bread to plated steak turns it into a partial burger until all four ingredients are present. One counter cell holds one object. Pots and plates cannot be stacked.'
+            rules['score']=f'Serve matches the earliest-deadline pending order of the SAME dish. Steak earns 30 yuan, burger 60 yuan. Incomplete dishes cannot be served. Burnt dishes or unmatched complete dishes incur a bad review and -15 yuan. Other penalties remain unchanged. Complete {state["goals"]["target_served"]} orders, net revenue at least {state["goals"]["target_money"]} yuan and at most {state["goals"]["max_bad_reviews"]} bad reviews; success ends immediately.'
+        rules['sprint']='Both chefs may sprint at 1.4x movement speed for 1 game second, followed by 3 seconds cooldown. Holding items is allowed; working speed is unchanged. Sprint does not bypass walls. Decide independently whether to request sprint along with next_action. It triggers only if the chosen action is accepted, you are moving, and cooldown is ready. No queued sprint; expiry/cooldown use game time, not response latency. Chefs still pass through each other.'
+        payload['questions']['sprint']={'type':'choice','instructions':'Request a short sprint for this accepted movement action or continuing travel?', 'criteria':{'yes':'Request sprint if moving and available','no':'Do not request sprint'}}
+        return payload
+
+
+class WhiteboxHandler(Handler):
+    web_root = ROOT/'whitebox'
+
+
+def main():
+    parser = argparse.ArgumentParser(description='打开可走动的厨房白模')
+    parser.add_argument('--port', type=int, default=8768)
+    parser.add_argument('--open', action='store_true')
+    args = parser.parse_args()
+    game = GameSession(kitchen_factory=SpatialKitchen, client_factory=SpatialJevClient, log_prefix='whitebox')
+    try:
+        server = ThreadingHTTPServer(('127.0.0.1', args.port), WhiteboxHandler)
+    except OSError as e:
+        raise SystemExit(f'白模启动失败：{e}')
+    server.game = game
+    threading.Thread(target=game.run, daemon=True).start()
+    url = f'http://127.0.0.1:{server.server_port}'
+    print(f'厨房白模已就绪：{url}\n点击「开始做菜」才会计时和调用真实 Jev。Ctrl+C 关闭。', flush=True)
+    if args.open:
+        webbrowser.open(url)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        game.close()
+        server.server_close()
+
+
+if __name__ == '__main__':
+    main()

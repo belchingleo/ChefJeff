@@ -1,0 +1,3148 @@
+{
+  "version": "modular-v2",
+  "status": "candidate-for-runtime-review",
+  "atlas": "atlas.png",
+  "atlasSize": [
+    792,
+    792
+  ],
+  "baseUnit": 64,
+  "targetTile": 56,
+  "displayScale": 0.875,
+  "integrationMapY": 162,
+  "sampling": "nearest; no mipmaps",
+  "coordinateConvention": "PNG top-left; rect and surfaceRect=[x,y,w,h]; alpha_bbox and visibleBBox=[left,top,right,bottom], right/bottom exclusive; groundAnchor in untrimmed canvas; anchor normalized Cocos bottom-origin",
+  "aliases": {
+    "wall_n": "wall_north",
+    "wall_s": "wall_south",
+    "wall_w": "wall_west",
+    "wall_e": "wall_east",
+    "bin": "trash_cabinet"
+  },
+  "cabinetNaming": "counter_<direction> is DOOR facing direction, not wall location. North wall uses counter_south; south wall uses counter_north; west wall uses counter_east; east wall uses counter_west.",
+  "cabinetGeometry": {
+    "canvas": [
+      64,
+      96
+    ],
+    "surfaceRect": [
+      0,
+      10,
+      64,
+      64
+    ],
+    "bodyRect": [
+      0,
+      74,
+      64,
+      22
+    ],
+    "groundAnchor": [
+      32,
+      64
+    ],
+    "workSurfaceAnchor": [
+      32,
+      42
+    ],
+    "placementStep": [
+      64,
+      64
+    ]
+  },
+  "wallPlacement": {
+    "south": "counter_north",
+    "north": "counter_south",
+    "east": "counter_west",
+    "west": "counter_east"
+  },
+  "composition": "Draw combined cabinets in increasing world Y, OR draw exposed body layers first then all square surface layers. Adjacent south tile hides the north tile body; do not draw body over a neighboring surface.",
+  "frames": {
+    "counter_north": {
+      "file": "sprites/counter_north.png",
+      "canvasSize": [
+        64,
+        96
+      ],
+      "displaySize": [
+        64,
+        96
+      ],
+      "groundAnchor": [
+        32,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.33333333333333337
+      ],
+      "workSurfaceAnchor": [
+        32,
+        42
+      ],
+      "footprint": [
+        0,
+        32,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        0,
+        10,
+        64,
+        96
+      ],
+      "alpha_bbox": [
+        0,
+        10,
+        64,
+        96
+      ],
+      "layers": [
+        {
+          "source": "raw/square-surface.png",
+          "sourceCrop": [
+            164,
+            164,
+            1092,
+            1092
+          ],
+          "uniformScale": 0.06896551724137931,
+          "placement": [
+            0,
+            10
+          ],
+          "alphaThreshold": 192
+        },
+        {
+          "source": "raw/counter-south.png",
+          "sourceCrop": [
+            274,
+            825,
+            922,
+            1048
+          ],
+          "uniformScale": 0.09876543209876543,
+          "placement": [
+            0,
+            74
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "7dc4e05be17eee69e127fba510ea56197cd6fec77eb688391bda163610a3972c",
+      "status": "candidate",
+      "doorFacing": "north",
+      "recommendedWallPlacement": "south",
+      "surfaceRect": [
+        0,
+        10,
+        64,
+        64
+      ],
+      "attachEdges": [
+        "N",
+        "E",
+        "S",
+        "W"
+      ],
+      "bodyRect": [
+        0,
+        74,
+        64,
+        22
+      ],
+      "rect": [
+        2,
+        2,
+        64,
+        96
+      ]
+    },
+    "counter_body_north": {
+      "file": "sprites/counter_body_north.png",
+      "canvasSize": [
+        64,
+        96
+      ],
+      "displaySize": [
+        64,
+        96
+      ],
+      "groundAnchor": [
+        32,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.33333333333333337
+      ],
+      "workSurfaceAnchor": [
+        32,
+        42
+      ],
+      "footprint": [
+        0,
+        32,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        0,
+        74,
+        64,
+        96
+      ],
+      "alpha_bbox": [
+        0,
+        74,
+        64,
+        96
+      ],
+      "layers": [
+        {
+          "source": "raw/counter-south.png",
+          "sourceCrop": [
+            274,
+            825,
+            922,
+            1048
+          ],
+          "uniformScale": 0.09876543209876543,
+          "placement": [
+            0,
+            74
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "2010bdec1e56360b65e619983a56ad07b2c3ae59ac530475eda731b1cda6865b",
+      "status": "candidate",
+      "component": "body-only; optional split rendering",
+      "doorFacing": "north",
+      "recommendedWallPlacement": "south",
+      "surfaceRect": [
+        0,
+        10,
+        64,
+        64
+      ],
+      "attachEdges": [
+        "N",
+        "E",
+        "S",
+        "W"
+      ],
+      "bodyRect": [
+        0,
+        74,
+        64,
+        22
+      ],
+      "rect": [
+        134,
+        2,
+        64,
+        96
+      ]
+    },
+    "counter_south": {
+      "file": "sprites/counter_south.png",
+      "canvasSize": [
+        64,
+        96
+      ],
+      "displaySize": [
+        64,
+        96
+      ],
+      "groundAnchor": [
+        32,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.33333333333333337
+      ],
+      "workSurfaceAnchor": [
+        32,
+        42
+      ],
+      "footprint": [
+        0,
+        32,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        0,
+        10,
+        64,
+        96
+      ],
+      "alpha_bbox": [
+        0,
+        10,
+        64,
+        96
+      ],
+      "layers": [
+        {
+          "source": "raw/square-surface.png",
+          "sourceCrop": [
+            164,
+            164,
+            1092,
+            1092
+          ],
+          "uniformScale": 0.06896551724137931,
+          "placement": [
+            0,
+            10
+          ],
+          "alphaThreshold": 192
+        },
+        {
+          "source": "raw/counter-north.png",
+          "sourceCrop": [
+            274,
+            825,
+            922,
+            1048
+          ],
+          "uniformScale": 0.09876543209876543,
+          "placement": [
+            0,
+            74
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "ea7e2b2f5e539dcab9923de39ed41e5c3a6b0e86a0c63f5327b04bc9a7b6321c",
+      "status": "candidate",
+      "doorFacing": "south",
+      "recommendedWallPlacement": "north",
+      "surfaceRect": [
+        0,
+        10,
+        64,
+        64
+      ],
+      "attachEdges": [
+        "N",
+        "E",
+        "S",
+        "W"
+      ],
+      "bodyRect": [
+        0,
+        74,
+        64,
+        22
+      ],
+      "rect": [
+        266,
+        2,
+        64,
+        96
+      ]
+    },
+    "counter_body_south": {
+      "file": "sprites/counter_body_south.png",
+      "canvasSize": [
+        64,
+        96
+      ],
+      "displaySize": [
+        64,
+        96
+      ],
+      "groundAnchor": [
+        32,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.33333333333333337
+      ],
+      "workSurfaceAnchor": [
+        32,
+        42
+      ],
+      "footprint": [
+        0,
+        32,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        0,
+        74,
+        64,
+        96
+      ],
+      "alpha_bbox": [
+        0,
+        74,
+        64,
+        96
+      ],
+      "layers": [
+        {
+          "source": "raw/counter-north.png",
+          "sourceCrop": [
+            274,
+            825,
+            922,
+            1048
+          ],
+          "uniformScale": 0.09876543209876543,
+          "placement": [
+            0,
+            74
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "8d5830f9accf1445a3e4e0e0fca927c636bc6135ccd275f9e35c567ad0f7f3d1",
+      "status": "candidate",
+      "component": "body-only; optional split rendering",
+      "doorFacing": "south",
+      "recommendedWallPlacement": "north",
+      "surfaceRect": [
+        0,
+        10,
+        64,
+        64
+      ],
+      "attachEdges": [
+        "N",
+        "E",
+        "S",
+        "W"
+      ],
+      "bodyRect": [
+        0,
+        74,
+        64,
+        22
+      ],
+      "rect": [
+        398,
+        2,
+        64,
+        96
+      ]
+    },
+    "counter_west": {
+      "file": "sprites/counter_west.png",
+      "canvasSize": [
+        64,
+        96
+      ],
+      "displaySize": [
+        64,
+        96
+      ],
+      "groundAnchor": [
+        32,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.33333333333333337
+      ],
+      "workSurfaceAnchor": [
+        32,
+        42
+      ],
+      "footprint": [
+        0,
+        32,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        0,
+        10,
+        64,
+        96
+      ],
+      "alpha_bbox": [
+        0,
+        10,
+        64,
+        96
+      ],
+      "layers": [
+        {
+          "source": "raw/square-surface.png",
+          "sourceCrop": [
+            164,
+            164,
+            1092,
+            1092
+          ],
+          "uniformScale": 0.06896551724137931,
+          "placement": [
+            0,
+            10
+          ],
+          "alphaThreshold": 192
+        },
+        {
+          "source": "raw/counter-east.png",
+          "sourceCrop": [
+            274,
+            825,
+            922,
+            1048
+          ],
+          "uniformScale": 0.09876543209876543,
+          "placement": [
+            0,
+            74
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "1ba49e4cb771c4000fa5210f0ccecf3359f1f7e0868da5c5bf707ce161ed8182",
+      "status": "candidate",
+      "doorFacing": "west",
+      "recommendedWallPlacement": "east",
+      "surfaceRect": [
+        0,
+        10,
+        64,
+        64
+      ],
+      "attachEdges": [
+        "N",
+        "E",
+        "S",
+        "W"
+      ],
+      "bodyRect": [
+        0,
+        74,
+        64,
+        22
+      ],
+      "rect": [
+        530,
+        2,
+        64,
+        96
+      ]
+    },
+    "counter_body_west": {
+      "file": "sprites/counter_body_west.png",
+      "canvasSize": [
+        64,
+        96
+      ],
+      "displaySize": [
+        64,
+        96
+      ],
+      "groundAnchor": [
+        32,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.33333333333333337
+      ],
+      "workSurfaceAnchor": [
+        32,
+        42
+      ],
+      "footprint": [
+        0,
+        32,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        0,
+        74,
+        64,
+        96
+      ],
+      "alpha_bbox": [
+        0,
+        74,
+        64,
+        96
+      ],
+      "layers": [
+        {
+          "source": "raw/counter-east.png",
+          "sourceCrop": [
+            274,
+            825,
+            922,
+            1048
+          ],
+          "uniformScale": 0.09876543209876543,
+          "placement": [
+            0,
+            74
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "5cd5be71af6044519f020b81e842ca08da3886e428dd3311d5578757c3a1bb80",
+      "status": "candidate",
+      "component": "body-only; optional split rendering",
+      "doorFacing": "west",
+      "recommendedWallPlacement": "east",
+      "surfaceRect": [
+        0,
+        10,
+        64,
+        64
+      ],
+      "attachEdges": [
+        "N",
+        "E",
+        "S",
+        "W"
+      ],
+      "bodyRect": [
+        0,
+        74,
+        64,
+        22
+      ],
+      "rect": [
+        662,
+        2,
+        64,
+        96
+      ]
+    },
+    "counter_east": {
+      "file": "sprites/counter_east.png",
+      "canvasSize": [
+        64,
+        96
+      ],
+      "displaySize": [
+        64,
+        96
+      ],
+      "groundAnchor": [
+        32,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.33333333333333337
+      ],
+      "workSurfaceAnchor": [
+        32,
+        42
+      ],
+      "footprint": [
+        0,
+        32,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        0,
+        10,
+        64,
+        96
+      ],
+      "alpha_bbox": [
+        0,
+        10,
+        64,
+        96
+      ],
+      "layers": [
+        {
+          "source": "raw/square-surface.png",
+          "sourceCrop": [
+            164,
+            164,
+            1092,
+            1092
+          ],
+          "uniformScale": 0.06896551724137931,
+          "placement": [
+            0,
+            10
+          ],
+          "alphaThreshold": 192
+        },
+        {
+          "source": "raw/counter-west.png",
+          "sourceCrop": [
+            274,
+            825,
+            922,
+            1048
+          ],
+          "uniformScale": 0.09876543209876543,
+          "placement": [
+            0,
+            74
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "d6b949fb216213f684d1a0621d44aaad5cab06836bcac9533c4112d7a3c85089",
+      "status": "candidate",
+      "doorFacing": "east",
+      "recommendedWallPlacement": "west",
+      "surfaceRect": [
+        0,
+        10,
+        64,
+        64
+      ],
+      "attachEdges": [
+        "N",
+        "E",
+        "S",
+        "W"
+      ],
+      "bodyRect": [
+        0,
+        74,
+        64,
+        22
+      ],
+      "rect": [
+        2,
+        134,
+        64,
+        96
+      ]
+    },
+    "counter_body_east": {
+      "file": "sprites/counter_body_east.png",
+      "canvasSize": [
+        64,
+        96
+      ],
+      "displaySize": [
+        64,
+        96
+      ],
+      "groundAnchor": [
+        32,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.33333333333333337
+      ],
+      "workSurfaceAnchor": [
+        32,
+        42
+      ],
+      "footprint": [
+        0,
+        32,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        0,
+        74,
+        64,
+        96
+      ],
+      "alpha_bbox": [
+        0,
+        74,
+        64,
+        96
+      ],
+      "layers": [
+        {
+          "source": "raw/counter-west.png",
+          "sourceCrop": [
+            274,
+            825,
+            922,
+            1048
+          ],
+          "uniformScale": 0.09876543209876543,
+          "placement": [
+            0,
+            74
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "aa8b36bed8f3dd9657ae04fb973e606d297c33b183def0ecdec0bdbc80c11ff5",
+      "status": "candidate",
+      "component": "body-only; optional split rendering",
+      "doorFacing": "east",
+      "recommendedWallPlacement": "west",
+      "surfaceRect": [
+        0,
+        10,
+        64,
+        64
+      ],
+      "attachEdges": [
+        "N",
+        "E",
+        "S",
+        "W"
+      ],
+      "bodyRect": [
+        0,
+        74,
+        64,
+        22
+      ],
+      "rect": [
+        134,
+        134,
+        64,
+        96
+      ]
+    },
+    "counter_surface": {
+      "file": "sprites/counter_surface.png",
+      "canvasSize": [
+        64,
+        96
+      ],
+      "displaySize": [
+        64,
+        96
+      ],
+      "groundAnchor": [
+        32,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.33333333333333337
+      ],
+      "workSurfaceAnchor": [
+        32,
+        42
+      ],
+      "footprint": [
+        0,
+        32,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        0,
+        10,
+        64,
+        74
+      ],
+      "alpha_bbox": [
+        0,
+        10,
+        64,
+        74
+      ],
+      "layers": [
+        {
+          "source": "raw/square-surface.png",
+          "sourceCrop": [
+            164,
+            164,
+            1092,
+            1092
+          ],
+          "uniformScale": 0.06896551724137931,
+          "placement": [
+            0,
+            10
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "3ed86acf2e6017afa231cc756f896eb7de3adf2072b0a1189ef3094e31500159",
+      "status": "candidate",
+      "surfaceRect": [
+        0,
+        10,
+        64,
+        64
+      ],
+      "component": "surface-only; optional split rendering",
+      "rect": [
+        266,
+        134,
+        64,
+        96
+      ]
+    },
+    "trash_cabinet": {
+      "file": "sprites/trash_cabinet.png",
+      "canvasSize": [
+        64,
+        96
+      ],
+      "displaySize": [
+        64,
+        96
+      ],
+      "groundAnchor": [
+        32,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.33333333333333337
+      ],
+      "workSurfaceAnchor": [
+        32,
+        42
+      ],
+      "footprint": [
+        0,
+        32,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        0,
+        10,
+        64,
+        96
+      ],
+      "alpha_bbox": [
+        0,
+        10,
+        64,
+        96
+      ],
+      "layers": [
+        {
+          "source": "raw/square-surface.png",
+          "sourceCrop": [
+            164,
+            164,
+            1092,
+            1092
+          ],
+          "uniformScale": 0.06896551724137931,
+          "placement": [
+            0,
+            10
+          ],
+          "alphaThreshold": 192
+        },
+        {
+          "source": "raw/trash-cabinet.png",
+          "sourceCrop": [
+            396,
+            322,
+            802,
+            480
+          ],
+          "uniformScale": 0.08374384236453201,
+          "placement": [
+            15,
+            35
+          ],
+          "alphaThreshold": 192
+        },
+        {
+          "source": "raw/trash-cabinet.png",
+          "sourceCrop": [
+            274,
+            825,
+            922,
+            1048
+          ],
+          "uniformScale": 0.09876543209876543,
+          "placement": [
+            0,
+            74
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "7c50a78c5405bf5f7b27f083eb319aa3fb031abb2fbd6db096b7d93f684a78db",
+      "status": "candidate",
+      "surfaceRect": [
+        0,
+        10,
+        64,
+        64
+      ],
+      "bodyRect": [
+        0,
+        74,
+        64,
+        22
+      ],
+      "doorFacing": "south",
+      "recommendedWallPlacement": "north",
+      "attachEdges": [
+        "N",
+        "E",
+        "S",
+        "W"
+      ],
+      "note": "Same cell, surface and height as standard cabinet; inset refuse flap. No standalone bin.",
+      "rect": [
+        398,
+        134,
+        64,
+        96
+      ]
+    },
+    "trash_surface": {
+      "file": "sprites/trash_surface.png",
+      "canvasSize": [
+        64,
+        96
+      ],
+      "displaySize": [
+        64,
+        96
+      ],
+      "groundAnchor": [
+        32,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.33333333333333337
+      ],
+      "workSurfaceAnchor": [
+        32,
+        42
+      ],
+      "footprint": [
+        0,
+        32,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        0,
+        10,
+        64,
+        74
+      ],
+      "alpha_bbox": [
+        0,
+        10,
+        64,
+        74
+      ],
+      "layers": [
+        {
+          "source": "raw/square-surface.png",
+          "sourceCrop": [
+            164,
+            164,
+            1092,
+            1092
+          ],
+          "uniformScale": 0.06896551724137931,
+          "placement": [
+            0,
+            10
+          ],
+          "alphaThreshold": 192
+        },
+        {
+          "source": "raw/trash-cabinet.png",
+          "sourceCrop": [
+            396,
+            322,
+            802,
+            480
+          ],
+          "uniformScale": 0.08374384236453201,
+          "placement": [
+            15,
+            35
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "03a7bd32964f934dbefba80695cdde49a2d5e1981b692b01681386eb89a3fb79",
+      "status": "candidate",
+      "surfaceRect": [
+        0,
+        10,
+        64,
+        64
+      ],
+      "component": "surface-only; use matching body only at exposed edge",
+      "rect": [
+        530,
+        134,
+        64,
+        96
+      ]
+    },
+    "counter_corner_ne": {
+      "file": "sprites/counter_corner_ne.png",
+      "canvasSize": [
+        64,
+        96
+      ],
+      "displaySize": [
+        64,
+        96
+      ],
+      "groundAnchor": [
+        32,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.33333333333333337
+      ],
+      "workSurfaceAnchor": [
+        32,
+        42
+      ],
+      "footprint": [
+        0,
+        32,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        0,
+        10,
+        64,
+        96
+      ],
+      "alpha_bbox": [
+        0,
+        10,
+        64,
+        96
+      ],
+      "layers": [
+        {
+          "source": "raw/square-surface.png",
+          "sourceCrop": [
+            164,
+            164,
+            1092,
+            1092
+          ],
+          "uniformScale": 0.06896551724137931,
+          "placement": [
+            0,
+            10
+          ],
+          "alphaThreshold": 192
+        },
+        {
+          "source": "raw/counter-south.png",
+          "sourceCrop": [
+            274,
+            825,
+            922,
+            1048
+          ],
+          "uniformScale": 0.09876543209876543,
+          "placement": [
+            0,
+            74
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "7dc4e05be17eee69e127fba510ea56197cd6fec77eb688391bda163610a3972c",
+      "status": "candidate",
+      "surfaceRect": [
+        0,
+        10,
+        64,
+        64
+      ],
+      "bodyRect": [
+        0,
+        74,
+        64,
+        22
+      ],
+      "doorFacing": null,
+      "attachEdges": [
+        "N",
+        "E"
+      ],
+      "note": "Single square blind corner module. Corner keys deliberately share pixels; attachEdges identifies the turn. Use standard neighbors at 64px steps.",
+      "rect": [
+        662,
+        134,
+        64,
+        96
+      ]
+    },
+    "counter_corner_nw": {
+      "file": "sprites/counter_corner_nw.png",
+      "canvasSize": [
+        64,
+        96
+      ],
+      "displaySize": [
+        64,
+        96
+      ],
+      "groundAnchor": [
+        32,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.33333333333333337
+      ],
+      "workSurfaceAnchor": [
+        32,
+        42
+      ],
+      "footprint": [
+        0,
+        32,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        0,
+        10,
+        64,
+        96
+      ],
+      "alpha_bbox": [
+        0,
+        10,
+        64,
+        96
+      ],
+      "layers": [
+        {
+          "source": "raw/square-surface.png",
+          "sourceCrop": [
+            164,
+            164,
+            1092,
+            1092
+          ],
+          "uniformScale": 0.06896551724137931,
+          "placement": [
+            0,
+            10
+          ],
+          "alphaThreshold": 192
+        },
+        {
+          "source": "raw/counter-south.png",
+          "sourceCrop": [
+            274,
+            825,
+            922,
+            1048
+          ],
+          "uniformScale": 0.09876543209876543,
+          "placement": [
+            0,
+            74
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "7dc4e05be17eee69e127fba510ea56197cd6fec77eb688391bda163610a3972c",
+      "status": "candidate",
+      "surfaceRect": [
+        0,
+        10,
+        64,
+        64
+      ],
+      "bodyRect": [
+        0,
+        74,
+        64,
+        22
+      ],
+      "doorFacing": null,
+      "attachEdges": [
+        "N",
+        "W"
+      ],
+      "note": "Single square blind corner module. Corner keys deliberately share pixels; attachEdges identifies the turn. Use standard neighbors at 64px steps.",
+      "rect": [
+        2,
+        266,
+        64,
+        96
+      ]
+    },
+    "counter_corner_se": {
+      "file": "sprites/counter_corner_se.png",
+      "canvasSize": [
+        64,
+        96
+      ],
+      "displaySize": [
+        64,
+        96
+      ],
+      "groundAnchor": [
+        32,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.33333333333333337
+      ],
+      "workSurfaceAnchor": [
+        32,
+        42
+      ],
+      "footprint": [
+        0,
+        32,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        0,
+        10,
+        64,
+        96
+      ],
+      "alpha_bbox": [
+        0,
+        10,
+        64,
+        96
+      ],
+      "layers": [
+        {
+          "source": "raw/square-surface.png",
+          "sourceCrop": [
+            164,
+            164,
+            1092,
+            1092
+          ],
+          "uniformScale": 0.06896551724137931,
+          "placement": [
+            0,
+            10
+          ],
+          "alphaThreshold": 192
+        },
+        {
+          "source": "raw/counter-south.png",
+          "sourceCrop": [
+            274,
+            825,
+            922,
+            1048
+          ],
+          "uniformScale": 0.09876543209876543,
+          "placement": [
+            0,
+            74
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "7dc4e05be17eee69e127fba510ea56197cd6fec77eb688391bda163610a3972c",
+      "status": "candidate",
+      "surfaceRect": [
+        0,
+        10,
+        64,
+        64
+      ],
+      "bodyRect": [
+        0,
+        74,
+        64,
+        22
+      ],
+      "doorFacing": null,
+      "attachEdges": [
+        "S",
+        "E"
+      ],
+      "note": "Single square blind corner module. Corner keys deliberately share pixels; attachEdges identifies the turn. Use standard neighbors at 64px steps.",
+      "rect": [
+        134,
+        266,
+        64,
+        96
+      ]
+    },
+    "counter_corner_sw": {
+      "file": "sprites/counter_corner_sw.png",
+      "canvasSize": [
+        64,
+        96
+      ],
+      "displaySize": [
+        64,
+        96
+      ],
+      "groundAnchor": [
+        32,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.33333333333333337
+      ],
+      "workSurfaceAnchor": [
+        32,
+        42
+      ],
+      "footprint": [
+        0,
+        32,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        0,
+        10,
+        64,
+        96
+      ],
+      "alpha_bbox": [
+        0,
+        10,
+        64,
+        96
+      ],
+      "layers": [
+        {
+          "source": "raw/square-surface.png",
+          "sourceCrop": [
+            164,
+            164,
+            1092,
+            1092
+          ],
+          "uniformScale": 0.06896551724137931,
+          "placement": [
+            0,
+            10
+          ],
+          "alphaThreshold": 192
+        },
+        {
+          "source": "raw/counter-south.png",
+          "sourceCrop": [
+            274,
+            825,
+            922,
+            1048
+          ],
+          "uniformScale": 0.09876543209876543,
+          "placement": [
+            0,
+            74
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "7dc4e05be17eee69e127fba510ea56197cd6fec77eb688391bda163610a3972c",
+      "status": "candidate",
+      "surfaceRect": [
+        0,
+        10,
+        64,
+        64
+      ],
+      "bodyRect": [
+        0,
+        74,
+        64,
+        22
+      ],
+      "doorFacing": null,
+      "attachEdges": [
+        "S",
+        "W"
+      ],
+      "note": "Single square blind corner module. Corner keys deliberately share pixels; attachEdges identifies the turn. Use standard neighbors at 64px steps.",
+      "rect": [
+        266,
+        266,
+        64,
+        96
+      ]
+    },
+    "serving_window": {
+      "file": "sprites/serving_window.png",
+      "canvasSize": [
+        64,
+        128
+      ],
+      "displaySize": [
+        64,
+        128
+      ],
+      "groundAnchor": [
+        32,
+        96
+      ],
+      "anchor": [
+        0.5,
+        0.25
+      ],
+      "workSurfaceAnchor": [
+        32,
+        74
+      ],
+      "footprint": [
+        0,
+        64,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        0,
+        28,
+        64,
+        91
+      ],
+      "alpha_bbox": [
+        0,
+        28,
+        64,
+        91
+      ],
+      "layers": [
+        {
+          "source": "raw/serving-window.png",
+          "sourceCrop": [
+            88,
+            99,
+            1167,
+            1162
+          ],
+          "uniformScale": 0.05931417979610751,
+          "placement": [
+            0,
+            28
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "72912e0461b09677b09b65893bd129ee944eadc7388a5cb5d0d56dafb7859c7e",
+      "status": "candidate",
+      "note": "Bright cream interior and empty serving tray; no black opening or cabinet base. Work anchor is tray center.",
+      "rect": [
+        398,
+        266,
+        64,
+        128
+      ]
+    },
+    "wall_north": {
+      "file": "sprites/wall_north.png",
+      "canvasSize": [
+        64,
+        128
+      ],
+      "displaySize": [
+        64,
+        128
+      ],
+      "groundAnchor": [
+        32,
+        96
+      ],
+      "anchor": [
+        0.5,
+        0.25
+      ],
+      "workSurfaceAnchor": null,
+      "footprint": [
+        0,
+        64,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        0,
+        48,
+        64,
+        128
+      ],
+      "alpha_bbox": [
+        0,
+        48,
+        64,
+        128
+      ],
+      "layers": [
+        {
+          "source": "raw/reference-walls.png",
+          "sourceCrop": [
+            205,
+            80,
+            397,
+            152
+          ],
+          "uniformScale": 0.3333333333333333,
+          "placement": [
+            0,
+            48
+          ],
+          "alphaThreshold": 192
+        },
+        {
+          "source": "raw/north-wall.png",
+          "sourceCrop": [
+            220,
+            336,
+            860,
+            896
+          ],
+          "uniformScale": 0.1,
+          "placement": [
+            0,
+            72
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "9ed68a6cecaf41081d6cdb1d650a3fd55b76e91b73a645d852053715e17274c3",
+      "status": "candidate",
+      "capRect": [
+        0,
+        48,
+        64,
+        24
+      ],
+      "verticalFaceRect": [
+        0,
+        72,
+        64,
+        56
+      ],
+      "visualOverhangNorth": 16,
+      "note": "Confirmed integration geometry: timber y48..72 and cream vertical face y72..128. Visible bbox[0,48,64,128]. Rises 16px above collision footprint; integration uses TILE56, MAPY162.",
+      "rect": [
+        530,
+        266,
+        64,
+        128
+      ]
+    },
+    "wall_south": {
+      "file": "sprites/wall_south.png",
+      "canvasSize": [
+        64,
+        128
+      ],
+      "displaySize": [
+        64,
+        128
+      ],
+      "groundAnchor": [
+        32,
+        96
+      ],
+      "anchor": [
+        0.5,
+        0.25
+      ],
+      "workSurfaceAnchor": null,
+      "footprint": [
+        0,
+        64,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        0,
+        64,
+        64,
+        96
+      ],
+      "alpha_bbox": [
+        0,
+        64,
+        64,
+        96
+      ],
+      "layers": [
+        {
+          "source": "raw/reference-walls.png",
+          "sourceCrop": [
+            205,
+            80,
+            397,
+            176
+          ],
+          "uniformScale": 0.3333333333333333,
+          "placement": [
+            0,
+            64
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "936b740da06d79a11144b8097856f2d08862ddf2968ca7b863abb7845b333761",
+      "status": "candidate",
+      "note": "Dark timber cap only; no gray or cream stripe.",
+      "rect": [
+        662,
+        266,
+        64,
+        128
+      ]
+    },
+    "wall_west": {
+      "file": "sprites/wall_west.png",
+      "canvasSize": [
+        64,
+        128
+      ],
+      "displaySize": [
+        64,
+        128
+      ],
+      "groundAnchor": [
+        32,
+        96
+      ],
+      "anchor": [
+        0.5,
+        0.25
+      ],
+      "workSurfaceAnchor": null,
+      "footprint": [
+        0,
+        64,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        24,
+        64,
+        64,
+        128
+      ],
+      "alpha_bbox": [
+        24,
+        64,
+        64,
+        128
+      ],
+      "layers": [
+        {
+          "source": "raw/reference-walls.png",
+          "sourceCrop": [
+            322,
+            480,
+            402,
+            608
+          ],
+          "uniformScale": 0.5,
+          "placement": [
+            24,
+            64
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "7d4bbfad866d0e4c64abcf7c29c7edea5ef9b9a2b9924b77b197f6a8bfc26ea4",
+      "status": "candidate",
+      "note": "Reuses accepted pure timber section; no gray or cream stripe.",
+      "rect": [
+        2,
+        398,
+        64,
+        128
+      ]
+    },
+    "wall_east": {
+      "file": "sprites/wall_east.png",
+      "canvasSize": [
+        64,
+        128
+      ],
+      "displaySize": [
+        64,
+        128
+      ],
+      "groundAnchor": [
+        32,
+        96
+      ],
+      "anchor": [
+        0.5,
+        0.25
+      ],
+      "workSurfaceAnchor": null,
+      "footprint": [
+        0,
+        64,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        0,
+        64,
+        40,
+        128
+      ],
+      "alpha_bbox": [
+        0,
+        64,
+        40,
+        128
+      ],
+      "layers": [
+        {
+          "source": "raw/reference-walls.png",
+          "sourceCrop": [
+            1136,
+            480,
+            1216,
+            608
+          ],
+          "uniformScale": 0.5,
+          "placement": [
+            0,
+            64
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "1f554af99d8b26012406e06ce8d5d9fa360685a1d72cb8941850f7c791961676",
+      "status": "candidate",
+      "note": "Reuses accepted pure timber section; no gray or cream stripe.",
+      "rect": [
+        134,
+        398,
+        64,
+        128
+      ]
+    },
+    "wall_partition": {
+      "file": "sprites/wall_partition.png",
+      "canvasSize": [
+        64,
+        128
+      ],
+      "displaySize": [
+        64,
+        128
+      ],
+      "groundAnchor": [
+        32,
+        96
+      ],
+      "anchor": [
+        0.5,
+        0.25
+      ],
+      "workSurfaceAnchor": null,
+      "footprint": [
+        0,
+        64,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        12,
+        64,
+        52,
+        128
+      ],
+      "alpha_bbox": [
+        12,
+        64,
+        52,
+        128
+      ],
+      "layers": [
+        {
+          "source": "raw/reference-walls.png",
+          "sourceCrop": [
+            322,
+            480,
+            402,
+            608
+          ],
+          "uniformScale": 0.5,
+          "placement": [
+            12,
+            64
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "20a92a168261c9472769ba7bbe1738ab12ece6e0c715efb1edd0f901c89a32df",
+      "status": "candidate",
+      "note": "Reuses accepted pure timber section; no gray or cream stripe.",
+      "rect": [
+        266,
+        398,
+        64,
+        128
+      ]
+    },
+    "wall_partition_end": {
+      "file": "sprites/wall_partition_end.png",
+      "canvasSize": [
+        64,
+        128
+      ],
+      "displaySize": [
+        64,
+        128
+      ],
+      "groundAnchor": [
+        32,
+        96
+      ],
+      "anchor": [
+        0.5,
+        0.25
+      ],
+      "workSurfaceAnchor": null,
+      "footprint": [
+        0,
+        64,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        12,
+        64,
+        52,
+        128
+      ],
+      "alpha_bbox": [
+        12,
+        64,
+        52,
+        128
+      ],
+      "layers": [
+        {
+          "source": "raw/reference-walls.png",
+          "sourceCrop": [
+            322,
+            810,
+            402,
+            938
+          ],
+          "uniformScale": 0.5,
+          "placement": [
+            12,
+            64
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "4ae9037d271dc434b81872991fa0595260ccc251296afe1f98ab93b83ae823b9",
+      "status": "candidate",
+      "note": "Reuses accepted pure timber section; no gray or cream stripe.",
+      "rect": [
+        398,
+        398,
+        64,
+        128
+      ]
+    },
+    "wall_corner": {
+      "file": "sprites/wall_corner.png",
+      "canvasSize": [
+        64,
+        128
+      ],
+      "displaySize": [
+        64,
+        128
+      ],
+      "groundAnchor": [
+        32,
+        96
+      ],
+      "anchor": [
+        0.5,
+        0.25
+      ],
+      "workSurfaceAnchor": null,
+      "footprint": [
+        0,
+        64,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        0,
+        64,
+        64,
+        128
+      ],
+      "alpha_bbox": [
+        0,
+        64,
+        64,
+        128
+      ],
+      "layers": [
+        {
+          "source": "raw/reference-wall-corner.png",
+          "sourceCrop": [
+            0,
+            0,
+            64,
+            128
+          ],
+          "uniformScale": 1,
+          "placement": [
+            0,
+            0
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "88fb15448179a9e04c29d82f3ed5ac380931acc64e84620f1ac4834d4c2aaf25",
+      "status": "candidate",
+      "note": "Reused dark timber corner within blocked cell.",
+      "rect": [
+        530,
+        398,
+        64,
+        128
+      ]
+    },
+    "source_beef": {
+      "file": "sprites/source_beef.png",
+      "canvasSize": [
+        64,
+        96
+      ],
+      "displaySize": [
+        64,
+        96
+      ],
+      "groundAnchor": [
+        32,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.33333333333333337
+      ],
+      "workSurfaceAnchor": [
+        32,
+        42
+      ],
+      "footprint": [
+        0,
+        32,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        12,
+        28,
+        52,
+        55
+      ],
+      "alpha_bbox": [
+        12,
+        28,
+        52,
+        55
+      ],
+      "layers": [
+        {
+          "source": "raw/reference-beef.png",
+          "sourceCrop": [
+            2,
+            6,
+            30,
+            25
+          ],
+          "uniformScale": 1.4285714285714286,
+          "placement": [
+            12,
+            28
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "405b1ff810474d7f9fbe67ca97d3d78329f796e0df6051a17c25b695090928be",
+      "status": "candidate",
+      "note": "Transparent ingredient icon only. No plaque, white backing or border. Reuses accepted food artwork.",
+      "rect": [
+        662,
+        398,
+        64,
+        96
+      ]
+    },
+    "source_lettuce": {
+      "file": "sprites/source_lettuce.png",
+      "canvasSize": [
+        64,
+        96
+      ],
+      "displaySize": [
+        64,
+        96
+      ],
+      "groundAnchor": [
+        32,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.33333333333333337
+      ],
+      "workSurfaceAnchor": [
+        32,
+        42
+      ],
+      "footprint": [
+        0,
+        32,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        12,
+        24,
+        52,
+        59
+      ],
+      "alpha_bbox": [
+        12,
+        24,
+        52,
+        59
+      ],
+      "layers": [
+        {
+          "source": "raw/reference-lettuce.png",
+          "sourceCrop": [
+            8,
+            11,
+            56,
+            53
+          ],
+          "uniformScale": 0.8333333333333334,
+          "placement": [
+            12,
+            24
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "1f3b71651282af78949428340d60df962dde6a3314b54a03c8b120498be7b4b4",
+      "status": "candidate",
+      "note": "Transparent ingredient icon only. No plaque, white backing or border. Reuses accepted food artwork.",
+      "rect": [
+        2,
+        530,
+        64,
+        96
+      ]
+    },
+    "source_tomato": {
+      "file": "sprites/source_tomato.png",
+      "canvasSize": [
+        64,
+        96
+      ],
+      "displaySize": [
+        64,
+        96
+      ],
+      "groundAnchor": [
+        32,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.33333333333333337
+      ],
+      "workSurfaceAnchor": [
+        32,
+        42
+      ],
+      "footprint": [
+        0,
+        32,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        12,
+        22,
+        52,
+        61
+      ],
+      "alpha_bbox": [
+        12,
+        22,
+        52,
+        61
+      ],
+      "layers": [
+        {
+          "source": "raw/reference-tomato.png",
+          "sourceCrop": [
+            8,
+            8,
+            56,
+            55
+          ],
+          "uniformScale": 0.8333333333333334,
+          "placement": [
+            12,
+            22
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "78ba4c00067e3e4fa2ea3a5f3f1e6f047c7b9bc97c9db934955c963a39648daa",
+      "status": "candidate",
+      "note": "Transparent ingredient icon only. No plaque, white backing or border. Reuses accepted food artwork.",
+      "rect": [
+        134,
+        530,
+        64,
+        96
+      ]
+    },
+    "source_bread": {
+      "file": "sprites/source_bread.png",
+      "canvasSize": [
+        64,
+        96
+      ],
+      "displaySize": [
+        64,
+        96
+      ],
+      "groundAnchor": [
+        32,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.33333333333333337
+      ],
+      "workSurfaceAnchor": [
+        32,
+        42
+      ],
+      "footprint": [
+        0,
+        32,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        12,
+        26,
+        52,
+        57
+      ],
+      "alpha_bbox": [
+        12,
+        26,
+        52,
+        57
+      ],
+      "layers": [
+        {
+          "source": "raw/reference-bread.png",
+          "sourceCrop": [
+            8,
+            13,
+            56,
+            50
+          ],
+          "uniformScale": 0.8333333333333334,
+          "placement": [
+            12,
+            26
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "2db8bbbdddddd4bfb63d9e1f5557d99dd98c995c49b00b5fd4f8abfcd1e415e2",
+      "status": "candidate",
+      "note": "Transparent ingredient icon only. No plaque, white backing or border. Reuses accepted food artwork.",
+      "rect": [
+        266,
+        530,
+        64,
+        96
+      ]
+    },
+    "decoration_plant": {
+      "file": "sprites/decoration_plant.png",
+      "canvasSize": [
+        64,
+        96
+      ],
+      "displaySize": [
+        64,
+        96
+      ],
+      "groundAnchor": [
+        32,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.33333333333333337
+      ],
+      "workSurfaceAnchor": null,
+      "footprint": [
+        0,
+        32,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        16,
+        28,
+        48,
+        62
+      ],
+      "alpha_bbox": [
+        16,
+        28,
+        48,
+        62
+      ],
+      "layers": [
+        {
+          "source": "raw/plant.png",
+          "sourceCrop": [
+            495,
+            236,
+            1033,
+            812
+          ],
+          "uniformScale": 0.05947955390334572,
+          "placement": [
+            16,
+            28
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "48a0dc9ffd65c07174c5825d035fc4c68e460aae213983e305f5d955a7eb30b5",
+      "status": "candidate",
+      "note": "Independent potted herb; no wall baked in.",
+      "rect": [
+        398,
+        530,
+        64,
+        96
+      ]
+    },
+    "decoration_painting": {
+      "file": "sprites/decoration_painting.png",
+      "canvasSize": [
+        64,
+        128
+      ],
+      "displaySize": [
+        64,
+        128
+      ],
+      "groundAnchor": [
+        32,
+        96
+      ],
+      "anchor": [
+        0.5,
+        0.25
+      ],
+      "workSurfaceAnchor": null,
+      "footprint": [
+        0,
+        64,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        8,
+        38,
+        56,
+        66
+      ],
+      "alpha_bbox": [
+        8,
+        38,
+        56,
+        66
+      ],
+      "layers": [
+        {
+          "source": "raw/painting.png",
+          "sourceCrop": [
+            404,
+            296,
+            1132,
+            717
+          ],
+          "uniformScale": 0.06593406593406594,
+          "placement": [
+            8,
+            38
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "0bd7e69238434f6eb1318b09c93b5468d38909456961ca1cf6a7a57ee6a901e3",
+      "status": "candidate",
+      "note": "Independent wall decoration; position with mounting anchor, no added collision.",
+      "rect": [
+        530,
+        530,
+        64,
+        128
+      ]
+    },
+    "decoration_notice": {
+      "file": "sprites/decoration_notice.png",
+      "canvasSize": [
+        64,
+        128
+      ],
+      "displaySize": [
+        64,
+        128
+      ],
+      "groundAnchor": [
+        32,
+        96
+      ],
+      "anchor": [
+        0.5,
+        0.25
+      ],
+      "workSurfaceAnchor": null,
+      "footprint": [
+        0,
+        64,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        8,
+        38,
+        56,
+        66
+      ],
+      "alpha_bbox": [
+        8,
+        38,
+        56,
+        66
+      ],
+      "layers": [
+        {
+          "source": "raw/notice-board.png",
+          "sourceCrop": [
+            413,
+            303,
+            1124,
+            711
+          ],
+          "uniformScale": 0.06751054852320675,
+          "placement": [
+            8,
+            38
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "e3cac81dbc2a82590a748e54a8923f24eec49102e09ea9d64f2eb74949a540b4",
+      "status": "candidate",
+      "note": "Independent wall decoration; position with mounting anchor, no added collision.",
+      "rect": [
+        662,
+        530,
+        64,
+        128
+      ]
+    },
+    "decoration_flowerbox": {
+      "file": "sprites/decoration_flowerbox.png",
+      "canvasSize": [
+        64,
+        96
+      ],
+      "displaySize": [
+        64,
+        96
+      ],
+      "groundAnchor": [
+        32,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.33333333333333337
+      ],
+      "workSurfaceAnchor": null,
+      "footprint": [
+        0,
+        32,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        4,
+        28,
+        60,
+        64
+      ],
+      "alpha_bbox": [
+        4,
+        28,
+        60,
+        64
+      ],
+      "layers": [
+        {
+          "source": "raw/reference-decor.png",
+          "sourceCrop": [
+            579,
+            662,
+            953,
+            903
+          ],
+          "uniformScale": 0.1497326203208556,
+          "placement": [
+            4,
+            28
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "5e2ecbac0d92628ababdcf71c1ee7248f4e6abf7c967ee5999c7035dbb739ebd",
+      "status": "candidate",
+      "note": "Reuses existing independent flowerbox.",
+      "rect": [
+        2,
+        662,
+        64,
+        96
+      ]
+    },
+    "decoration_rail": {
+      "file": "sprites/decoration_rail.png",
+      "canvasSize": [
+        128,
+        128
+      ],
+      "displaySize": [
+        128,
+        128
+      ],
+      "groundAnchor": [
+        64,
+        96
+      ],
+      "anchor": [
+        0.5,
+        0.25
+      ],
+      "workSurfaceAnchor": null,
+      "footprint": [
+        0,
+        64,
+        128,
+        64
+      ],
+      "visibleBBox": [
+        16,
+        24,
+        112,
+        89
+      ],
+      "alpha_bbox": [
+        16,
+        24,
+        112,
+        89
+      ],
+      "layers": [
+        {
+          "source": "raw/reference-decor.png",
+          "sourceCrop": [
+            97,
+            683,
+            452,
+            923
+          ],
+          "uniformScale": 0.2704225352112676,
+          "placement": [
+            16,
+            24
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "a3e9115286f17235b5a18019e36144ddee7ed02df728bb772facac1c7e54368d",
+      "status": "candidate",
+      "note": "Reuses existing independent utensil rail; double-width decoration.",
+      "rect": [
+        134,
+        662,
+        128,
+        128
+      ]
+    },
+    "wall_n": {
+      "file": "sprites/wall_north.png",
+      "canvasSize": [
+        64,
+        128
+      ],
+      "displaySize": [
+        64,
+        128
+      ],
+      "groundAnchor": [
+        32,
+        96
+      ],
+      "anchor": [
+        0.5,
+        0.25
+      ],
+      "workSurfaceAnchor": null,
+      "footprint": [
+        0,
+        64,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        0,
+        48,
+        64,
+        128
+      ],
+      "alpha_bbox": [
+        0,
+        48,
+        64,
+        128
+      ],
+      "layers": [
+        {
+          "source": "raw/reference-walls.png",
+          "sourceCrop": [
+            205,
+            80,
+            397,
+            152
+          ],
+          "uniformScale": 0.3333333333333333,
+          "placement": [
+            0,
+            48
+          ],
+          "alphaThreshold": 192
+        },
+        {
+          "source": "raw/north-wall.png",
+          "sourceCrop": [
+            220,
+            336,
+            860,
+            896
+          ],
+          "uniformScale": 0.1,
+          "placement": [
+            0,
+            72
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "9ed68a6cecaf41081d6cdb1d650a3fd55b76e91b73a645d852053715e17274c3",
+      "status": "candidate",
+      "capRect": [
+        0,
+        48,
+        64,
+        24
+      ],
+      "verticalFaceRect": [
+        0,
+        72,
+        64,
+        56
+      ],
+      "visualOverhangNorth": 16,
+      "note": "Confirmed integration geometry: timber y48..72 and cream vertical face y72..128. Visible bbox[0,48,64,128]. Rises 16px above collision footprint; integration uses TILE56, MAPY162.",
+      "rect": [
+        530,
+        266,
+        64,
+        128
+      ]
+    },
+    "wall_s": {
+      "file": "sprites/wall_south.png",
+      "canvasSize": [
+        64,
+        128
+      ],
+      "displaySize": [
+        64,
+        128
+      ],
+      "groundAnchor": [
+        32,
+        96
+      ],
+      "anchor": [
+        0.5,
+        0.25
+      ],
+      "workSurfaceAnchor": null,
+      "footprint": [
+        0,
+        64,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        0,
+        64,
+        64,
+        96
+      ],
+      "alpha_bbox": [
+        0,
+        64,
+        64,
+        96
+      ],
+      "layers": [
+        {
+          "source": "raw/reference-walls.png",
+          "sourceCrop": [
+            205,
+            80,
+            397,
+            176
+          ],
+          "uniformScale": 0.3333333333333333,
+          "placement": [
+            0,
+            64
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "936b740da06d79a11144b8097856f2d08862ddf2968ca7b863abb7845b333761",
+      "status": "candidate",
+      "note": "Dark timber cap only; no gray or cream stripe.",
+      "rect": [
+        662,
+        266,
+        64,
+        128
+      ]
+    },
+    "wall_w": {
+      "file": "sprites/wall_west.png",
+      "canvasSize": [
+        64,
+        128
+      ],
+      "displaySize": [
+        64,
+        128
+      ],
+      "groundAnchor": [
+        32,
+        96
+      ],
+      "anchor": [
+        0.5,
+        0.25
+      ],
+      "workSurfaceAnchor": null,
+      "footprint": [
+        0,
+        64,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        24,
+        64,
+        64,
+        128
+      ],
+      "alpha_bbox": [
+        24,
+        64,
+        64,
+        128
+      ],
+      "layers": [
+        {
+          "source": "raw/reference-walls.png",
+          "sourceCrop": [
+            322,
+            480,
+            402,
+            608
+          ],
+          "uniformScale": 0.5,
+          "placement": [
+            24,
+            64
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "7d4bbfad866d0e4c64abcf7c29c7edea5ef9b9a2b9924b77b197f6a8bfc26ea4",
+      "status": "candidate",
+      "note": "Reuses accepted pure timber section; no gray or cream stripe.",
+      "rect": [
+        2,
+        398,
+        64,
+        128
+      ]
+    },
+    "wall_e": {
+      "file": "sprites/wall_east.png",
+      "canvasSize": [
+        64,
+        128
+      ],
+      "displaySize": [
+        64,
+        128
+      ],
+      "groundAnchor": [
+        32,
+        96
+      ],
+      "anchor": [
+        0.5,
+        0.25
+      ],
+      "workSurfaceAnchor": null,
+      "footprint": [
+        0,
+        64,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        0,
+        64,
+        40,
+        128
+      ],
+      "alpha_bbox": [
+        0,
+        64,
+        40,
+        128
+      ],
+      "layers": [
+        {
+          "source": "raw/reference-walls.png",
+          "sourceCrop": [
+            1136,
+            480,
+            1216,
+            608
+          ],
+          "uniformScale": 0.5,
+          "placement": [
+            0,
+            64
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "1f554af99d8b26012406e06ce8d5d9fa360685a1d72cb8941850f7c791961676",
+      "status": "candidate",
+      "note": "Reuses accepted pure timber section; no gray or cream stripe.",
+      "rect": [
+        134,
+        398,
+        64,
+        128
+      ]
+    },
+    "bin": {
+      "file": "sprites/trash_cabinet.png",
+      "canvasSize": [
+        64,
+        96
+      ],
+      "displaySize": [
+        64,
+        96
+      ],
+      "groundAnchor": [
+        32,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.33333333333333337
+      ],
+      "workSurfaceAnchor": [
+        32,
+        42
+      ],
+      "footprint": [
+        0,
+        32,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        0,
+        10,
+        64,
+        96
+      ],
+      "alpha_bbox": [
+        0,
+        10,
+        64,
+        96
+      ],
+      "layers": [
+        {
+          "source": "raw/square-surface.png",
+          "sourceCrop": [
+            164,
+            164,
+            1092,
+            1092
+          ],
+          "uniformScale": 0.06896551724137931,
+          "placement": [
+            0,
+            10
+          ],
+          "alphaThreshold": 192
+        },
+        {
+          "source": "raw/trash-cabinet.png",
+          "sourceCrop": [
+            396,
+            322,
+            802,
+            480
+          ],
+          "uniformScale": 0.08374384236453201,
+          "placement": [
+            15,
+            35
+          ],
+          "alphaThreshold": 192
+        },
+        {
+          "source": "raw/trash-cabinet.png",
+          "sourceCrop": [
+            274,
+            825,
+            922,
+            1048
+          ],
+          "uniformScale": 0.09876543209876543,
+          "placement": [
+            0,
+            74
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "7c50a78c5405bf5f7b27f083eb319aa3fb031abb2fbd6db096b7d93f684a78db",
+      "status": "candidate",
+      "surfaceRect": [
+        0,
+        10,
+        64,
+        64
+      ],
+      "bodyRect": [
+        0,
+        74,
+        64,
+        22
+      ],
+      "doorFacing": "south",
+      "recommendedWallPlacement": "north",
+      "attachEdges": [
+        "N",
+        "E",
+        "S",
+        "W"
+      ],
+      "note": "Same cell, surface and height as standard cabinet; inset refuse flap. No standalone bin.",
+      "rect": [
+        398,
+        134,
+        64,
+        96
+      ]
+    },
+    "decoration_window": {
+      "file": "sprites/decoration_painting.png",
+      "canvasSize": [
+        64,
+        128
+      ],
+      "displaySize": [
+        64,
+        128
+      ],
+      "groundAnchor": [
+        32,
+        96
+      ],
+      "anchor": [
+        0.5,
+        0.25
+      ],
+      "workSurfaceAnchor": null,
+      "footprint": [
+        0,
+        64,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        8,
+        38,
+        56,
+        66
+      ],
+      "alpha_bbox": [
+        8,
+        38,
+        56,
+        66
+      ],
+      "layers": [
+        {
+          "source": "raw/painting.png",
+          "sourceCrop": [
+            404,
+            296,
+            1132,
+            717
+          ],
+          "uniformScale": 0.06593406593406594,
+          "placement": [
+            8,
+            38
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "0bd7e69238434f6eb1318b09c93b5468d38909456961ca1cf6a7a57ee6a901e3",
+      "status": "candidate",
+      "note": "Independent wall decoration; position with mounting anchor, no added collision.",
+      "rect": [
+        530,
+        530,
+        64,
+        128
+      ]
+    },
+    "decoration_menu": {
+      "file": "sprites/decoration_notice.png",
+      "canvasSize": [
+        64,
+        128
+      ],
+      "displaySize": [
+        64,
+        128
+      ],
+      "groundAnchor": [
+        32,
+        96
+      ],
+      "anchor": [
+        0.5,
+        0.25
+      ],
+      "workSurfaceAnchor": null,
+      "footprint": [
+        0,
+        64,
+        64,
+        64
+      ],
+      "visibleBBox": [
+        8,
+        38,
+        56,
+        66
+      ],
+      "alpha_bbox": [
+        8,
+        38,
+        56,
+        66
+      ],
+      "layers": [
+        {
+          "source": "raw/notice-board.png",
+          "sourceCrop": [
+            413,
+            303,
+            1124,
+            711
+          ],
+          "uniformScale": 0.06751054852320675,
+          "placement": [
+            8,
+            38
+          ],
+          "alphaThreshold": 192
+        }
+      ],
+      "sha256": "e3cac81dbc2a82590a748e54a8923f24eec49102e09ea9d64f2eb74949a540b4",
+      "status": "candidate",
+      "note": "Independent wall decoration; position with mounting anchor, no added collision.",
+      "rect": [
+        662,
+        530,
+        64,
+        128
+      ]
+    }
+  }
+}

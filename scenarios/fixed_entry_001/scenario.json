@@ -1,0 +1,85 @@
+{
+  "id": "fixed-entry-001",
+  "version": 1,
+  "title": "无干净盘，熟锅距烧糊 3 秒",
+  "config": {
+    "boards": 3,
+    "pots": 1,
+    "round_seconds": 40,
+    "order_count": 1,
+    "order_interval": 24,
+    "order_patience": 35,
+    "target_served": 1,
+    "target_money": 30,
+    "time_bonus_per_second": 1,
+    "max_bad_reviews": 2,
+    "chop_seconds": 6,
+    "cook_seconds": 12,
+    "burn_after_ready": 10,
+    "fire_after_burn": 8,
+    "same_area_walk": 1,
+    "cross_area_walk": 3,
+    "ai_min_interval": 2,
+    "ai_max_calls": 200,
+    "ai_refresh_seconds": 4,
+    "ai_timeout_seconds": 8,
+    "ai_max_response_age": 6,
+    "model": "jev-latest",
+    "handling_seconds": 0.15,
+    "plate_count": 2,
+    "dining_seconds": 8,
+    "wash_seconds": 4,
+    "level": 1,
+    "spawn_seed": 1
+  },
+  "initial": {
+    "clock": 0,
+    "target_food": {
+      "id": "F1",
+      "station": "p1",
+      "stage": "ready",
+      "chopped": 6,
+      "heated": 19
+    },
+    "plates": [
+      {
+        "id": "D1",
+        "station": "sink",
+        "stage": "dirty_plate"
+      },
+      {
+        "id": "D2",
+        "station": "returns",
+        "stage": "dirty_plate"
+      }
+    ],
+    "prep_food": {
+      "id": "F2",
+      "station": "b1",
+      "stage": "raw"
+    },
+    "positions": {
+      "human": [
+        4,
+        2
+      ],
+      "jev": [
+        9,
+        2
+      ]
+    }
+  },
+  "human_policy": {
+    "entry_action": "chop b1",
+    "after_completion": "wait",
+    "future_policy_visible_to_ai": false
+  },
+  "success": {
+    "target_food": "F1",
+    "order": "O1",
+    "deadline": 35,
+    "must_be_unburnt": true
+  },
+  "provenance": "Authored fixed entry using current local engine; not a restored historical session.",
+  "model_status": "No model call; handwritten reference trajectories only."
+}

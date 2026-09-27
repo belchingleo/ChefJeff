@@ -1,0 +1,300 @@
+{
+    "importBase": "import",
+    "nativeBase": "native",
+    "name": "resources",
+    "deps": [],
+    "uuids": [
+        "0261e0a3-f666-4b42-bf62-519c75ef6100",
+        "0261e0a3-f666-4b42-bf62-519c75ef6100@6c48a",
+        "0261e0a3-f666-4b42-bf62-519c75ef6100@f9941",
+        "02d8fe24-8ffa-46dc-b588-62233b09fd74",
+        "0a4f4c95f",
+        "24043175-f30d-498f-a6d0-b91cd73161cb",
+        "38a34180-cc48-42b5-8d95-05e1e767fdd2",
+        "45e22722-135d-4181-8fe6-1fcba9bf3171",
+        "45e22722-135d-4181-8fe6-1fcba9bf3171@6c48a",
+        "45e22722-135d-4181-8fe6-1fcba9bf3171@f9941",
+        "4e79aece-4009-45f1-a303-4c2ce1f87619",
+        "4e79aece-4009-45f1-a303-4c2ce1f87619@6c48a",
+        "4e79aece-4009-45f1-a303-4c2ce1f87619@f9941",
+        "64e1682b-15ef-48ee-86cf-6865a2400b89",
+        "64e1682b-15ef-48ee-86cf-6865a2400b89@6c48a",
+        "64e1682b-15ef-48ee-86cf-6865a2400b89@f9941",
+        "66b50b8a-9b53-4779-a787-346f5910d554",
+        "7bdd0fb3-bbb9-470b-8a61-1ba4bac72b6c",
+        "7bdd0fb3-bbb9-470b-8a61-1ba4bac72b6c@6c48a",
+        "7bdd0fb3-bbb9-470b-8a61-1ba4bac72b6c@f9941",
+        "827b0320-74f6-4d83-8b42-6c135c12dc0b",
+        "827b0320-74f6-4d83-8b42-6c135c12dc0b@6c48a",
+        "827b0320-74f6-4d83-8b42-6c135c12dc0b@f9941",
+        "84cc9c1b-690a-435f-a86b-9fdcd303d27b",
+        "9fdb1167-f4f3-4eec-bbbe-ad25bcbbb33c",
+        "9fdb1167-f4f3-4eec-bbbe-ad25bcbbb33c@6c48a",
+        "9fdb1167-f4f3-4eec-bbbe-ad25bcbbb33c@f9941",
+        "a15bbd89-6385-4e64-88f0-07384c6141da",
+        "a15bbd89-6385-4e64-88f0-07384c6141da@6c48a",
+        "a15bbd89-6385-4e64-88f0-07384c6141da@f9941",
+        "a16c7680-1379-4fa1-8779-3260cbe360f5",
+        "a16c7680-1379-4fa1-8779-3260cbe360f5@6c48a",
+        "a16c7680-1379-4fa1-8779-3260cbe360f5@f9941",
+        "ac7b48fd-69cb-4420-b65f-f60a66fd1e71",
+        "ac7b48fd-69cb-4420-b65f-f60a66fd1e71@6c48a",
+        "ac7b48fd-69cb-4420-b65f-f60a66fd1e71@f9941",
+        "acac8afa-e9f7-4364-9812-4dd90d4a67ac",
+        "acac8afa-e9f7-4364-9812-4dd90d4a67ac@6c48a",
+        "acac8afa-e9f7-4364-9812-4dd90d4a67ac@f9941",
+        "add9db2f-57f9-486f-8bfb-e50e773cda88",
+        "b0bd84d1-be7c-48fa-af65-6db2a39dfc0b",
+        "db926cec-7e53-49c6-988a-b4889d7a68bf",
+        "ebdd6f7c-dbb5-4282-831d-a69af8cc7b07",
+        "f7974685-4085-4425-90ff-0c03ddc565a0",
+        "fa8ad96a-db36-42f6-a10c-bec432262e0a"
+    ],
+    "paths": {
+        "827b0320-74f6-4d83-8b42-6c135c12dc0b": [
+            "art/action-feedback-v1/atlas",
+            "cc.ImageAsset",
+            1
+        ],
+        "827b0320-74f6-4d83-8b42-6c135c12dc0b@6c48a": [
+            "art/action-feedback-v1/atlas/texture",
+            "cc.Texture2D",
+            1
+        ],
+        "827b0320-74f6-4d83-8b42-6c135c12dc0b@f9941": [
+            "art/action-feedback-v1/atlas/spriteFrame",
+            "cc.SpriteFrame",
+            1
+        ],
+        "f7974685-4085-4425-90ff-0c03ddc565a0": [
+            "art/action-feedback-v1/manifest",
+            "cc.JsonAsset",
+            1
+        ],
+        "a15bbd89-6385-4e64-88f0-07384c6141da": [
+            "art/burger-food/atlas",
+            "cc.ImageAsset",
+            1
+        ],
+        "a15bbd89-6385-4e64-88f0-07384c6141da@6c48a": [
+            "art/burger-food/atlas/texture",
+            "cc.Texture2D",
+            1
+        ],
+        "a15bbd89-6385-4e64-88f0-07384c6141da@f9941": [
+            "art/burger-food/atlas/spriteFrame",
+            "cc.SpriteFrame",
+            1
+        ],
+        "66b50b8a-9b53-4779-a787-346f5910d554": [
+            "art/burger-food/manifest",
+            "cc.JsonAsset",
+            1
+        ],
+        "7bdd0fb3-bbb9-470b-8a61-1ba4bac72b6c": [
+            "art/grid-foundation-v1/atlas",
+            "cc.ImageAsset",
+            1
+        ],
+        "7bdd0fb3-bbb9-470b-8a61-1ba4bac72b6c@6c48a": [
+            "art/grid-foundation-v1/atlas/texture",
+            "cc.Texture2D",
+            1
+        ],
+        "7bdd0fb3-bbb9-470b-8a61-1ba4bac72b6c@f9941": [
+            "art/grid-foundation-v1/atlas/spriteFrame",
+            "cc.SpriteFrame",
+            1
+        ],
+        "38a34180-cc48-42b5-8d95-05e1e767fdd2": [
+            "art/grid-foundation-v1/manifest",
+            "cc.JsonAsset",
+            1
+        ],
+        "ac7b48fd-69cb-4420-b65f-f60a66fd1e71": [
+            "art/kitchen-modules-v2/atlas",
+            "cc.ImageAsset",
+            1
+        ],
+        "ac7b48fd-69cb-4420-b65f-f60a66fd1e71@6c48a": [
+            "art/kitchen-modules-v2/atlas/texture",
+            "cc.Texture2D",
+            1
+        ],
+        "ac7b48fd-69cb-4420-b65f-f60a66fd1e71@f9941": [
+            "art/kitchen-modules-v2/atlas/spriteFrame",
+            "cc.SpriteFrame",
+            1
+        ],
+        "b0bd84d1-be7c-48fa-af65-6db2a39dfc0b": [
+            "art/kitchen-modules-v2/manifest",
+            "cc.JsonAsset",
+            1
+        ],
+        "acac8afa-e9f7-4364-9812-4dd90d4a67ac": [
+            "art/knife-v1/atlas",
+            "cc.ImageAsset",
+            1
+        ],
+        "acac8afa-e9f7-4364-9812-4dd90d4a67ac@6c48a": [
+            "art/knife-v1/atlas/texture",
+            "cc.Texture2D",
+            1
+        ],
+        "acac8afa-e9f7-4364-9812-4dd90d4a67ac@f9941": [
+            "art/knife-v1/atlas/spriteFrame",
+            "cc.SpriteFrame",
+            1
+        ],
+        "add9db2f-57f9-486f-8bfb-e50e773cda88": [
+            "art/knife-v1/manifest",
+            "cc.JsonAsset",
+            1
+        ],
+        "a16c7680-1379-4fa1-8779-3260cbe360f5": [
+            "art/level1/atlas",
+            "cc.ImageAsset",
+            1
+        ],
+        "a16c7680-1379-4fa1-8779-3260cbe360f5@6c48a": [
+            "art/level1/atlas/texture",
+            "cc.Texture2D",
+            1
+        ],
+        "a16c7680-1379-4fa1-8779-3260cbe360f5@f9941": [
+            "art/level1/atlas/spriteFrame",
+            "cc.SpriteFrame",
+            1
+        ],
+        "fa8ad96a-db36-42f6-a10c-bec432262e0a": [
+            "art/level1/manifest",
+            "cc.JsonAsset",
+            1
+        ],
+        "4e79aece-4009-45f1-a303-4c2ce1f87619": [
+            "art/level1-modular/atlas",
+            "cc.ImageAsset",
+            1
+        ],
+        "4e79aece-4009-45f1-a303-4c2ce1f87619@6c48a": [
+            "art/level1-modular/atlas/texture",
+            "cc.Texture2D",
+            1
+        ],
+        "4e79aece-4009-45f1-a303-4c2ce1f87619@f9941": [
+            "art/level1-modular/atlas/spriteFrame",
+            "cc.SpriteFrame",
+            1
+        ],
+        "24043175-f30d-498f-a6d0-b91cd73161cb": [
+            "art/level1-modular/manifest",
+            "cc.JsonAsset",
+            1
+        ],
+        "9fdb1167-f4f3-4eec-bbbe-ad25bcbbb33c": [
+            "art/prep-pose-v2/atlas",
+            "cc.ImageAsset",
+            1
+        ],
+        "9fdb1167-f4f3-4eec-bbbe-ad25bcbbb33c@6c48a": [
+            "art/prep-pose-v2/atlas/texture",
+            "cc.Texture2D",
+            1
+        ],
+        "9fdb1167-f4f3-4eec-bbbe-ad25bcbbb33c@f9941": [
+            "art/prep-pose-v2/atlas/spriteFrame",
+            "cc.SpriteFrame",
+            1
+        ],
+        "02d8fe24-8ffa-46dc-b588-62233b09fd74": [
+            "art/prep-pose-v2/manifest",
+            "cc.JsonAsset",
+            1
+        ],
+        "0261e0a3-f666-4b42-bf62-519c75ef6100": [
+            "art/prep-pose-v3/atlas",
+            "cc.ImageAsset",
+            1
+        ],
+        "0261e0a3-f666-4b42-bf62-519c75ef6100@6c48a": [
+            "art/prep-pose-v3/atlas/texture",
+            "cc.Texture2D",
+            1
+        ],
+        "0261e0a3-f666-4b42-bf62-519c75ef6100@f9941": [
+            "art/prep-pose-v3/atlas/spriteFrame",
+            "cc.SpriteFrame",
+            1
+        ],
+        "84cc9c1b-690a-435f-a86b-9fdcd303d27b": [
+            "art/prep-pose-v3/manifest",
+            "cc.JsonAsset",
+            1
+        ],
+        "45e22722-135d-4181-8fe6-1fcba9bf3171": [
+            "art/serving-side-v1/atlas",
+            "cc.ImageAsset",
+            1
+        ],
+        "45e22722-135d-4181-8fe6-1fcba9bf3171@6c48a": [
+            "art/serving-side-v1/atlas/texture",
+            "cc.Texture2D",
+            1
+        ],
+        "45e22722-135d-4181-8fe6-1fcba9bf3171@f9941": [
+            "art/serving-side-v1/atlas/spriteFrame",
+            "cc.SpriteFrame",
+            1
+        ],
+        "ebdd6f7c-dbb5-4282-831d-a69af8cc7b07": [
+            "art/serving-side-v1/manifest",
+            "cc.JsonAsset",
+            1
+        ],
+        "64e1682b-15ef-48ee-86cf-6865a2400b89": [
+            "art/trash-directions-v1/atlas",
+            "cc.ImageAsset",
+            1
+        ],
+        "64e1682b-15ef-48ee-86cf-6865a2400b89@6c48a": [
+            "art/trash-directions-v1/atlas/texture",
+            "cc.Texture2D",
+            1
+        ],
+        "64e1682b-15ef-48ee-86cf-6865a2400b89@f9941": [
+            "art/trash-directions-v1/atlas/spriteFrame",
+            "cc.SpriteFrame",
+            1
+        ],
+        "db926cec-7e53-49c6-988a-b4889d7a68bf": [
+            "art/trash-directions-v1/manifest",
+            "cc.JsonAsset",
+            1
+        ]
+    },
+    "scenes": {},
+    "packs": {
+        "0a4f4c95f": [
+            "4e79aece-4009-45f1-a303-4c2ce1f87619@6c48a",
+            "7bdd0fb3-bbb9-470b-8a61-1ba4bac72b6c@6c48a",
+            "9fdb1167-f4f3-4eec-bbbe-ad25bcbbb33c@6c48a",
+            "45e22722-135d-4181-8fe6-1fcba9bf3171@6c48a",
+            "64e1682b-15ef-48ee-86cf-6865a2400b89@6c48a",
+            "0261e0a3-f666-4b42-bf62-519c75ef6100@6c48a",
+            "827b0320-74f6-4d83-8b42-6c135c12dc0b@6c48a",
+            "a15bbd89-6385-4e64-88f0-07384c6141da@6c48a",
+            "a16c7680-1379-4fa1-8779-3260cbe360f5@6c48a",
+            "ac7b48fd-69cb-4420-b65f-f60a66fd1e71@6c48a",
+            "acac8afa-e9f7-4364-9812-4dd90d4a67ac@6c48a"
+        ]
+    },
+    "versions": {
+        "import": [],
+        "native": []
+    },
+    "redirect": [],
+    "debug": true,
+    "extensionMap": {},
+    "hasPreloadScript": true,
+    "dependencyRelationships": {}
+}

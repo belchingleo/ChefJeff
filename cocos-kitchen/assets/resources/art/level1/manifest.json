@@ -1,0 +1,2552 @@
+{
+  "version": "level1-v1",
+  "scope": [
+    1
+  ],
+  "frames": {
+    "characters/player/down/walk_0": {
+      "rect": [
+        2,
+        2,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/down/walk_1": {
+      "rect": [
+        74,
+        2,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/down/walk_2": {
+      "rect": [
+        146,
+        2,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/down/walk_3": {
+      "rect": [
+        218,
+        2,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/down/walk_4": {
+      "rect": [
+        290,
+        2,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/down/walk_5": {
+      "rect": [
+        362,
+        2,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/down/walk_6": {
+      "rect": [
+        434,
+        2,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/down/walk_7": {
+      "rect": [
+        506,
+        2,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/down/idle_0": {
+      "rect": [
+        578,
+        2,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/up/walk_0": {
+      "rect": [
+        650,
+        2,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/up/walk_1": {
+      "rect": [
+        722,
+        2,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/up/walk_2": {
+      "rect": [
+        794,
+        2,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/up/walk_3": {
+      "rect": [
+        866,
+        2,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/up/walk_4": {
+      "rect": [
+        938,
+        2,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/up/walk_5": {
+      "rect": [
+        2,
+        70,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/up/walk_6": {
+      "rect": [
+        74,
+        70,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/up/walk_7": {
+      "rect": [
+        146,
+        70,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/up/idle_0": {
+      "rect": [
+        218,
+        70,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/left/walk_0": {
+      "rect": [
+        290,
+        70,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/left/walk_1": {
+      "rect": [
+        362,
+        70,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/left/walk_2": {
+      "rect": [
+        434,
+        70,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/left/walk_3": {
+      "rect": [
+        506,
+        70,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/left/walk_4": {
+      "rect": [
+        578,
+        70,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/left/walk_5": {
+      "rect": [
+        650,
+        70,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/left/walk_6": {
+      "rect": [
+        722,
+        70,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/left/walk_7": {
+      "rect": [
+        794,
+        70,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/left/idle_0": {
+      "rect": [
+        866,
+        70,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/right/walk_0": {
+      "rect": [
+        938,
+        70,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/right/walk_1": {
+      "rect": [
+        2,
+        138,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/right/walk_2": {
+      "rect": [
+        74,
+        138,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/right/walk_3": {
+      "rect": [
+        146,
+        138,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/right/walk_4": {
+      "rect": [
+        218,
+        138,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/right/walk_5": {
+      "rect": [
+        290,
+        138,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/right/walk_6": {
+      "rect": [
+        362,
+        138,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/right/walk_7": {
+      "rect": [
+        434,
+        138,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/player/right/idle_0": {
+      "rect": [
+        506,
+        138,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/down/walk_0": {
+      "rect": [
+        578,
+        138,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/down/walk_1": {
+      "rect": [
+        650,
+        138,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/down/walk_2": {
+      "rect": [
+        722,
+        138,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/down/walk_3": {
+      "rect": [
+        794,
+        138,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/down/walk_4": {
+      "rect": [
+        866,
+        138,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/down/walk_5": {
+      "rect": [
+        938,
+        138,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/down/walk_6": {
+      "rect": [
+        2,
+        206,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/down/walk_7": {
+      "rect": [
+        74,
+        206,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/down/idle_0": {
+      "rect": [
+        146,
+        206,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/up/walk_0": {
+      "rect": [
+        218,
+        206,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/up/walk_1": {
+      "rect": [
+        290,
+        206,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/up/walk_2": {
+      "rect": [
+        362,
+        206,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/up/walk_3": {
+      "rect": [
+        434,
+        206,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/up/walk_4": {
+      "rect": [
+        506,
+        206,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/up/walk_5": {
+      "rect": [
+        578,
+        206,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/up/walk_6": {
+      "rect": [
+        650,
+        206,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/up/walk_7": {
+      "rect": [
+        722,
+        206,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/up/idle_0": {
+      "rect": [
+        794,
+        206,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/left/walk_0": {
+      "rect": [
+        866,
+        206,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/left/walk_1": {
+      "rect": [
+        938,
+        206,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/left/walk_2": {
+      "rect": [
+        2,
+        274,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/left/walk_3": {
+      "rect": [
+        74,
+        274,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/left/walk_4": {
+      "rect": [
+        146,
+        274,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/left/walk_5": {
+      "rect": [
+        218,
+        274,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/left/walk_6": {
+      "rect": [
+        290,
+        274,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/left/walk_7": {
+      "rect": [
+        362,
+        274,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/left/idle_0": {
+      "rect": [
+        434,
+        274,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/right/walk_0": {
+      "rect": [
+        506,
+        274,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/right/walk_1": {
+      "rect": [
+        578,
+        274,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/right/walk_2": {
+      "rect": [
+        650,
+        274,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/right/walk_3": {
+      "rect": [
+        722,
+        274,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/right/walk_4": {
+      "rect": [
+        794,
+        274,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/right/walk_5": {
+      "rect": [
+        866,
+        274,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/right/walk_6": {
+      "rect": [
+        938,
+        274,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/right/walk_7": {
+      "rect": [
+        2,
+        342,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "characters/jeff/right/idle_0": {
+      "rect": [
+        74,
+        342,
+        48,
+        64
+      ],
+      "anchor": [
+        0.5,
+        0.0625
+      ],
+      "canvasSize": [
+        48,
+        64
+      ]
+    },
+    "environment/floor_wood": {
+      "rect": [
+        146,
+        342,
+        48,
+        48
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        48,
+        48
+      ]
+    },
+    "environment/floor_cream": {
+      "rect": [
+        218,
+        342,
+        48,
+        48
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        48,
+        48
+      ]
+    },
+    "environment/floor_bluegray": {
+      "rect": [
+        290,
+        342,
+        48,
+        48
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        48,
+        48
+      ]
+    },
+    "environment/wall": {
+      "rect": [
+        362,
+        342,
+        48,
+        48
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        48,
+        48
+      ]
+    },
+    "environment/wall_end_left": {
+      "rect": [
+        434,
+        342,
+        48,
+        48
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        48,
+        48
+      ]
+    },
+    "environment/wall_end_right": {
+      "rect": [
+        506,
+        342,
+        48,
+        48
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        48,
+        48
+      ]
+    },
+    "environment/wall_inner_corner": {
+      "rect": [
+        578,
+        342,
+        48,
+        48
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        48,
+        48
+      ]
+    },
+    "environment/wall_outer_corner": {
+      "rect": [
+        650,
+        342,
+        48,
+        48
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        48,
+        48
+      ]
+    },
+    "environment/counter": {
+      "rect": [
+        722,
+        342,
+        48,
+        48
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        48,
+        48
+      ]
+    },
+    "environment/counter_front": {
+      "rect": [
+        794,
+        342,
+        48,
+        48
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        48,
+        48
+      ]
+    },
+    "environment/counter_top": {
+      "rect": [
+        866,
+        342,
+        48,
+        48
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        48,
+        48
+      ]
+    },
+    "environment/counter_end_left": {
+      "rect": [
+        938,
+        342,
+        48,
+        48
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        48,
+        48
+      ]
+    },
+    "environment/counter_end_right": {
+      "rect": [
+        2,
+        410,
+        48,
+        48
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        48,
+        48
+      ]
+    },
+    "environment/counter_inner_corner": {
+      "rect": [
+        74,
+        410,
+        48,
+        48
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        48,
+        48
+      ]
+    },
+    "environment/counter_outer_corner": {
+      "rect": [
+        146,
+        410,
+        48,
+        48
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        48,
+        48
+      ]
+    },
+    "environment/door_edge_left": {
+      "rect": [
+        218,
+        410,
+        48,
+        48
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        48,
+        48
+      ]
+    },
+    "environment/door_edge_right": {
+      "rect": [
+        290,
+        410,
+        48,
+        48
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        48,
+        48
+      ]
+    },
+    "workstations/board": {
+      "rect": [
+        362,
+        410,
+        48,
+        48
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        48,
+        48
+      ]
+    },
+    "workstations/stove": {
+      "rect": [
+        434,
+        410,
+        48,
+        48
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        48,
+        48
+      ]
+    },
+    "workstations/sink": {
+      "rect": [
+        506,
+        410,
+        48,
+        48
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        48,
+        48
+      ]
+    },
+    "workstations/serve": {
+      "rect": [
+        578,
+        410,
+        48,
+        48
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        48,
+        48
+      ]
+    },
+    "workstations/returns": {
+      "rect": [
+        650,
+        410,
+        48,
+        48
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        48,
+        48
+      ]
+    },
+    "workstations/fridge": {
+      "rect": [
+        722,
+        410,
+        48,
+        48
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        48,
+        48
+      ]
+    },
+    "workstations/bin": {
+      "rect": [
+        794,
+        410,
+        48,
+        48
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        48,
+        48
+      ]
+    },
+    "workstations/extinguisher_rack": {
+      "rect": [
+        866,
+        410,
+        48,
+        48
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        48,
+        48
+      ]
+    },
+    "objects/pot": {
+      "rect": [
+        938,
+        410,
+        32,
+        32
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        32,
+        32
+      ]
+    },
+    "objects/clean_plate": {
+      "rect": [
+        2,
+        478,
+        32,
+        32
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        32,
+        32
+      ]
+    },
+    "objects/dirty_plate": {
+      "rect": [
+        74,
+        478,
+        32,
+        32
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        32,
+        32
+      ]
+    },
+    "objects/extinguisher": {
+      "rect": [
+        146,
+        478,
+        32,
+        32
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        32,
+        32
+      ]
+    },
+    "ingredients/beef/raw": {
+      "rect": [
+        218,
+        478,
+        32,
+        32
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        32,
+        32
+      ]
+    },
+    "ingredients/beef/processing": {
+      "rect": [
+        290,
+        478,
+        32,
+        32
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        32,
+        32
+      ]
+    },
+    "ingredients/beef/prepared": {
+      "rect": [
+        362,
+        478,
+        32,
+        32
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        32,
+        32
+      ]
+    },
+    "ingredients/beef/cooking": {
+      "rect": [
+        434,
+        478,
+        32,
+        32
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        32,
+        32
+      ]
+    },
+    "ingredients/beef/ready": {
+      "rect": [
+        506,
+        478,
+        32,
+        32
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        32,
+        32
+      ]
+    },
+    "ingredients/beef/burnt": {
+      "rect": [
+        578,
+        478,
+        32,
+        32
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        32,
+        32
+      ]
+    },
+    "objects/knife": {
+      "rect": [
+        650,
+        478,
+        32,
+        32
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        32,
+        32
+      ]
+    },
+    "dishes/steak/burnt": {
+      "rect": [
+        722,
+        478,
+        32,
+        32
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        32,
+        32
+      ]
+    },
+    "dishes/steak/ready": {
+      "rect": [
+        794,
+        478,
+        32,
+        32
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "canvasSize": [
+        32,
+        32
+      ]
+    },
+    "vfx/stove_flame_0": {
+      "rect": [
+        866,
+        478,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/stove_flame_1": {
+      "rect": [
+        938,
+        478,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/stove_flame_2": {
+      "rect": [
+        2,
+        546,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/stove_flame_3": {
+      "rect": [
+        74,
+        546,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/stove_flame_4": {
+      "rect": [
+        146,
+        546,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/stove_flame_5": {
+      "rect": [
+        218,
+        546,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/stove_flame_6": {
+      "rect": [
+        290,
+        546,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/steam_0": {
+      "rect": [
+        362,
+        546,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/steam_1": {
+      "rect": [
+        434,
+        546,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/steam_2": {
+      "rect": [
+        506,
+        546,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/steam_3": {
+      "rect": [
+        578,
+        546,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/steam_4": {
+      "rect": [
+        650,
+        546,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/steam_5": {
+      "rect": [
+        722,
+        546,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/steam_6": {
+      "rect": [
+        794,
+        546,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/smoke_0": {
+      "rect": [
+        866,
+        546,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/smoke_1": {
+      "rect": [
+        938,
+        546,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/smoke_2": {
+      "rect": [
+        2,
+        614,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/smoke_3": {
+      "rect": [
+        74,
+        614,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/smoke_4": {
+      "rect": [
+        146,
+        614,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/smoke_5": {
+      "rect": [
+        218,
+        614,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/smoke_6": {
+      "rect": [
+        290,
+        614,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/fire_0": {
+      "rect": [
+        362,
+        614,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/fire_1": {
+      "rect": [
+        434,
+        614,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/fire_2": {
+      "rect": [
+        506,
+        614,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/fire_3": {
+      "rect": [
+        578,
+        614,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/fire_4": {
+      "rect": [
+        650,
+        614,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/fire_5": {
+      "rect": [
+        722,
+        614,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/fire_6": {
+      "rect": [
+        794,
+        614,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/splash_0": {
+      "rect": [
+        866,
+        614,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/splash_1": {
+      "rect": [
+        938,
+        614,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/splash_2": {
+      "rect": [
+        2,
+        682,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/splash_3": {
+      "rect": [
+        74,
+        682,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/splash_4": {
+      "rect": [
+        146,
+        682,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/splash_5": {
+      "rect": [
+        218,
+        682,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/splash_6": {
+      "rect": [
+        290,
+        682,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/pickup_0": {
+      "rect": [
+        362,
+        682,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/pickup_1": {
+      "rect": [
+        434,
+        682,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/pickup_2": {
+      "rect": [
+        506,
+        682,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/pickup_3": {
+      "rect": [
+        578,
+        682,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/pickup_4": {
+      "rect": [
+        650,
+        682,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/pickup_5": {
+      "rect": [
+        722,
+        682,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/pickup_6": {
+      "rect": [
+        794,
+        682,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/landing_0": {
+      "rect": [
+        866,
+        682,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/landing_1": {
+      "rect": [
+        938,
+        682,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/landing_2": {
+      "rect": [
+        2,
+        750,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/landing_3": {
+      "rect": [
+        74,
+        750,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/landing_4": {
+      "rect": [
+        146,
+        750,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/landing_5": {
+      "rect": [
+        218,
+        750,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    },
+    "vfx/landing_6": {
+      "rect": [
+        290,
+        750,
+        32,
+        40
+      ],
+      "anchor": [
+        0.5,
+        0.1
+      ],
+      "canvasSize": [
+        32,
+        40
+      ]
+    }
+  }
+}

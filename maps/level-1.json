@@ -1,0 +1,621 @@
+{
+  "schema_version": 1,
+  "id": "level-1",
+  "revision": 3,
+  "size": [
+    14,
+    9
+  ],
+  "walls": [
+    [
+      0,
+      0
+    ],
+    [
+      0,
+      1
+    ],
+    [
+      0,
+      2
+    ],
+    [
+      0,
+      3
+    ],
+    [
+      0,
+      4
+    ],
+    [
+      0,
+      5
+    ],
+    [
+      0,
+      6
+    ],
+    [
+      0,
+      7
+    ],
+    [
+      0,
+      8
+    ],
+    [
+      1,
+      0
+    ],
+    [
+      1,
+      8
+    ],
+    [
+      2,
+      0
+    ],
+    [
+      2,
+      8
+    ],
+    [
+      3,
+      0
+    ],
+    [
+      3,
+      8
+    ],
+    [
+      4,
+      0
+    ],
+    [
+      4,
+      8
+    ],
+    [
+      5,
+      0
+    ],
+    [
+      5,
+      8
+    ],
+    [
+      6,
+      0
+    ],
+    [
+      6,
+      8
+    ],
+    [
+      7,
+      0
+    ],
+    [
+      7,
+      1
+    ],
+    [
+      7,
+      2
+    ],
+    [
+      7,
+      3
+    ],
+    [
+      7,
+      8
+    ],
+    [
+      8,
+      0
+    ],
+    [
+      8,
+      8
+    ],
+    [
+      9,
+      0
+    ],
+    [
+      9,
+      8
+    ],
+    [
+      10,
+      0
+    ],
+    [
+      10,
+      8
+    ],
+    [
+      11,
+      0
+    ],
+    [
+      11,
+      8
+    ],
+    [
+      12,
+      0
+    ],
+    [
+      12,
+      8
+    ],
+    [
+      13,
+      0
+    ],
+    [
+      13,
+      1
+    ],
+    [
+      13,
+      2
+    ],
+    [
+      13,
+      3
+    ],
+    [
+      13,
+      4
+    ],
+    [
+      13,
+      5
+    ],
+    [
+      13,
+      6
+    ],
+    [
+      13,
+      7
+    ],
+    [
+      13,
+      8
+    ]
+  ],
+  "equipment": [
+    {
+      "id": "fridge",
+      "cell": [
+        2,
+        1
+      ],
+      "access": [
+        2,
+        2
+      ],
+      "facing": "south"
+    },
+    {
+      "id": "b1",
+      "cell": [
+        4,
+        3
+      ],
+      "access": [
+        4,
+        2
+      ],
+      "facing": "north"
+    },
+    {
+      "id": "b2",
+      "cell": [
+        4,
+        4
+      ],
+      "access": [
+        3,
+        4
+      ],
+      "facing": "west"
+    },
+    {
+      "id": "b3",
+      "cell": [
+        4,
+        5
+      ],
+      "access": [
+        4,
+        6
+      ],
+      "facing": "south"
+    },
+    {
+      "id": "bin",
+      "cell": [
+        12,
+        6
+      ],
+      "access": [
+        11,
+        6
+      ],
+      "facing": "west"
+    },
+    {
+      "id": "p1",
+      "cell": [
+        9,
+        1
+      ],
+      "access": [
+        9,
+        2
+      ],
+      "facing": "south"
+    },
+    {
+      "id": "serve",
+      "cell": [
+        12,
+        5
+      ],
+      "access": [
+        11,
+        5
+      ],
+      "facing": "west",
+      "cells": [
+        [
+          12,
+          5
+        ]
+      ]
+    },
+    {
+      "id": "extinguisher",
+      "cell": [
+        12,
+        2
+      ],
+      "access": [
+        11,
+        2
+      ],
+      "facing": "west"
+    },
+    {
+      "id": "plates",
+      "cell": [
+        10,
+        1
+      ],
+      "access": [
+        10,
+        2
+      ],
+      "facing": "south"
+    },
+    {
+      "id": "counter2",
+      "cell": [
+        11,
+        1
+      ],
+      "access": [
+        11,
+        2
+      ],
+      "facing": "south"
+    },
+    {
+      "id": "counter3",
+      "cell": [
+        5,
+        7
+      ],
+      "access": [
+        5,
+        6
+      ],
+      "facing": "north"
+    },
+    {
+      "id": "returns",
+      "cell": [
+        10,
+        7
+      ],
+      "access": [
+        10,
+        6
+      ],
+      "facing": "north"
+    },
+    {
+      "id": "sink",
+      "cell": [
+        8,
+        1
+      ],
+      "access": [
+        8,
+        2
+      ],
+      "facing": "south"
+    },
+    {
+      "id": "counter4",
+      "cell": [
+        12,
+        3
+      ],
+      "access": [
+        11,
+        3
+      ],
+      "facing": "west"
+    },
+    {
+      "id": "counter7",
+      "cell": [
+        6,
+        7
+      ],
+      "access": [
+        6,
+        6
+      ],
+      "facing": "north"
+    },
+    {
+      "id": "counter8",
+      "cell": [
+        7,
+        7
+      ],
+      "access": [
+        7,
+        6
+      ],
+      "facing": "north"
+    },
+    {
+      "id": "counter9",
+      "cell": [
+        8,
+        7
+      ],
+      "access": [
+        8,
+        6
+      ],
+      "facing": "north"
+    },
+    {
+      "id": "counter10",
+      "cell": [
+        9,
+        7
+      ],
+      "access": [
+        9,
+        6
+      ],
+      "facing": "north"
+    },
+    {
+      "id": "counter12",
+      "cell": [
+        11,
+        7
+      ],
+      "access": [
+        11,
+        6
+      ],
+      "facing": "north"
+    },
+    {
+      "id": "counter_corner1",
+      "cell": [
+        12,
+        1
+      ],
+      "access": [
+        11,
+        2
+      ],
+      "facing": "south",
+      "reach": "corner"
+    },
+    {
+      "id": "counter_corner2",
+      "cell": [
+        12,
+        7
+      ],
+      "access": [
+        11,
+        6
+      ],
+      "facing": "north",
+      "reach": "corner"
+    },
+    {
+      "id": "counter5",
+      "cell": [
+        12,
+        4
+      ],
+      "access": [
+        11,
+        4
+      ],
+      "facing": "west"
+    }
+  ],
+  "presentation": {
+    "theme": "courtyard",
+    "wall_style": "warm-timber",
+    "cabinet_style": "blue-enamel",
+    "corner_caps": [],
+    "decorations": [
+      {
+        "asset": "decoration_window",
+        "anchor": "north_wall",
+        "cell": [
+          2,
+          0
+        ],
+        "scale": 0.48
+      },
+      {
+        "asset": "decoration_menu",
+        "anchor": "north_wall",
+        "cell": [
+          5,
+          0
+        ],
+        "scale": 0.48
+      },
+      {
+        "asset": "decoration_rail",
+        "anchor": "north_wall",
+        "cell": [
+          10,
+          0
+        ],
+        "scale": 0.42
+      }
+    ],
+    "exterior": {
+      "margin_cells": 1.1,
+      "plants": [
+        [
+          -0.8,
+          2
+        ],
+        [
+          -0.8,
+          6
+        ],
+        [
+          13.8,
+          2
+        ],
+        [
+          13.8,
+          7.5
+        ]
+      ],
+      "lights": [
+        [
+          -0.8,
+          0.7
+        ],
+        [
+          13.8,
+          0.7
+        ]
+      ]
+    },
+    "station_views": {
+      "fridge": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "b1": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      },
+      "b2": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      },
+      "b3": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      },
+      "bin": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      },
+      "p1": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "serve": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      },
+      "extinguisher": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      },
+      "plates": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter2": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter3": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "returns": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "sink": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter4": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      },
+      "counter7": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter8": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter9": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter10": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter12": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter_corner1": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter_corner2": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter5": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      }
+    }
+  }
+}

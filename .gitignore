@@ -1,0 +1,22 @@
+# Local credentials and private runtime records
+.env
+.env.*
+.local.json
+.player-api*
+.player-memory*
+logs/
+__pycache__/
+*.pyc
+*.log
+*.jsonl
+.DS_Store
+.tools/
+dist/
+# Generated Cocos working files; reviewed web runtime is intentionally included
+cocos-kitchen/library/
+cocos-kitchen/temp/
+cocos-kitchen/local/
+cocos-kitchen/profiles/
+cocos-kitchen/build/web-feedback/
+*.keystore
+*.jks

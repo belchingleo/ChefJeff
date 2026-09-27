@@ -1,0 +1,932 @@
+{
+  "schema_version": 1,
+  "id": "level-2",
+  "revision": 3,
+  "size": [
+    14,
+    9
+  ],
+  "walls": [
+    [
+      0,
+      0
+    ],
+    [
+      0,
+      1
+    ],
+    [
+      0,
+      2
+    ],
+    [
+      0,
+      3
+    ],
+    [
+      0,
+      4
+    ],
+    [
+      0,
+      5
+    ],
+    [
+      0,
+      6
+    ],
+    [
+      0,
+      7
+    ],
+    [
+      0,
+      8
+    ],
+    [
+      1,
+      0
+    ],
+    [
+      1,
+      8
+    ],
+    [
+      2,
+      0
+    ],
+    [
+      2,
+      8
+    ],
+    [
+      3,
+      0
+    ],
+    [
+      3,
+      8
+    ],
+    [
+      4,
+      0
+    ],
+    [
+      4,
+      8
+    ],
+    [
+      5,
+      0
+    ],
+    [
+      5,
+      8
+    ],
+    [
+      6,
+      0
+    ],
+    [
+      6,
+      8
+    ],
+    [
+      7,
+      0
+    ],
+    [
+      7,
+      8
+    ],
+    [
+      8,
+      0
+    ],
+    [
+      8,
+      8
+    ],
+    [
+      9,
+      0
+    ],
+    [
+      9,
+      8
+    ],
+    [
+      10,
+      0
+    ],
+    [
+      10,
+      8
+    ],
+    [
+      11,
+      0
+    ],
+    [
+      11,
+      8
+    ],
+    [
+      12,
+      0
+    ],
+    [
+      12,
+      8
+    ],
+    [
+      13,
+      0
+    ],
+    [
+      13,
+      1
+    ],
+    [
+      13,
+      2
+    ],
+    [
+      13,
+      3
+    ],
+    [
+      13,
+      4
+    ],
+    [
+      13,
+      5
+    ],
+    [
+      13,
+      6
+    ],
+    [
+      13,
+      7
+    ],
+    [
+      13,
+      8
+    ]
+  ],
+  "equipment": [
+    {
+      "id": "fridge",
+      "cell": [
+        3,
+        1
+      ],
+      "access": [
+        3,
+        2
+      ],
+      "facing": "south"
+    },
+    {
+      "id": "lettuce",
+      "cell": [
+        4,
+        1
+      ],
+      "access": [
+        4,
+        2
+      ],
+      "facing": "south"
+    },
+    {
+      "id": "tomato",
+      "cell": [
+        5,
+        1
+      ],
+      "access": [
+        5,
+        2
+      ],
+      "facing": "south"
+    },
+    {
+      "id": "bread",
+      "cell": [
+        6,
+        1
+      ],
+      "access": [
+        6,
+        2
+      ],
+      "facing": "south"
+    },
+    {
+      "id": "p1",
+      "cell": [
+        9,
+        1
+      ],
+      "access": [
+        9,
+        2
+      ],
+      "facing": "south"
+    },
+    {
+      "id": "sink",
+      "cell": [
+        12,
+        3
+      ],
+      "access": [
+        11,
+        3
+      ],
+      "facing": "west"
+    },
+    {
+      "id": "b1",
+      "cell": [
+        4,
+        7
+      ],
+      "access": [
+        4,
+        6
+      ],
+      "facing": "north"
+    },
+    {
+      "id": "b2",
+      "cell": [
+        6,
+        7
+      ],
+      "access": [
+        6,
+        6
+      ],
+      "facing": "north"
+    },
+    {
+      "id": "extinguisher",
+      "cell": [
+        8,
+        4
+      ],
+      "access": [
+        8,
+        5
+      ],
+      "facing": "south"
+    },
+    {
+      "id": "returns",
+      "cell": [
+        1,
+        5
+      ],
+      "access": [
+        2,
+        5
+      ],
+      "facing": "east"
+    },
+    {
+      "id": "serve",
+      "cell": [
+        1,
+        6
+      ],
+      "access": [
+        2,
+        6
+      ],
+      "facing": "east",
+      "cells": [
+        [
+          1,
+          6
+        ]
+      ]
+    },
+    {
+      "id": "bin",
+      "cell": [
+        12,
+        6
+      ],
+      "access": [
+        11,
+        6
+      ],
+      "facing": "west"
+    },
+    {
+      "id": "plates",
+      "cell": [
+        10,
+        7
+      ],
+      "access": [
+        10,
+        6
+      ],
+      "facing": "north"
+    },
+    {
+      "id": "counter2",
+      "cell": [
+        11,
+        7
+      ],
+      "access": [
+        11,
+        6
+      ],
+      "facing": "north"
+    },
+    {
+      "id": "counter3",
+      "cell": [
+        3,
+        4
+      ],
+      "access": [
+        3,
+        5
+      ],
+      "facing": "south"
+    },
+    {
+      "id": "counter5",
+      "cell": [
+        1,
+        2
+      ],
+      "access": [
+        2,
+        2
+      ],
+      "facing": "east"
+    },
+    {
+      "id": "counter6",
+      "cell": [
+        1,
+        3
+      ],
+      "access": [
+        2,
+        3
+      ],
+      "facing": "east"
+    },
+    {
+      "id": "counter9",
+      "cell": [
+        2,
+        1
+      ],
+      "access": [
+        2,
+        2
+      ],
+      "facing": "south"
+    },
+    {
+      "id": "counter10",
+      "cell": [
+        2,
+        4
+      ],
+      "access": [
+        2,
+        5
+      ],
+      "facing": "south"
+    },
+    {
+      "id": "counter12",
+      "cell": [
+        3,
+        7
+      ],
+      "access": [
+        3,
+        6
+      ],
+      "facing": "north"
+    },
+    {
+      "id": "counter13",
+      "cell": [
+        4,
+        4
+      ],
+      "access": [
+        4,
+        5
+      ],
+      "facing": "south"
+    },
+    {
+      "id": "counter14",
+      "cell": [
+        5,
+        4
+      ],
+      "access": [
+        5,
+        5
+      ],
+      "facing": "south"
+    },
+    {
+      "id": "counter15",
+      "cell": [
+        5,
+        7
+      ],
+      "access": [
+        5,
+        6
+      ],
+      "facing": "north"
+    },
+    {
+      "id": "counter16",
+      "cell": [
+        6,
+        4
+      ],
+      "access": [
+        6,
+        5
+      ],
+      "facing": "south"
+    },
+    {
+      "id": "counter17",
+      "cell": [
+        7,
+        1
+      ],
+      "access": [
+        7,
+        2
+      ],
+      "facing": "south"
+    },
+    {
+      "id": "counter18",
+      "cell": [
+        7,
+        4
+      ],
+      "access": [
+        7,
+        5
+      ],
+      "facing": "south"
+    },
+    {
+      "id": "counter19",
+      "cell": [
+        7,
+        7
+      ],
+      "access": [
+        7,
+        6
+      ],
+      "facing": "north"
+    },
+    {
+      "id": "counter20",
+      "cell": [
+        8,
+        1
+      ],
+      "access": [
+        8,
+        2
+      ],
+      "facing": "south"
+    },
+    {
+      "id": "counter21",
+      "cell": [
+        8,
+        7
+      ],
+      "access": [
+        8,
+        6
+      ],
+      "facing": "north"
+    },
+    {
+      "id": "counter22",
+      "cell": [
+        9,
+        4
+      ],
+      "access": [
+        10,
+        4
+      ],
+      "facing": "east"
+    },
+    {
+      "id": "counter23",
+      "cell": [
+        9,
+        7
+      ],
+      "access": [
+        9,
+        6
+      ],
+      "facing": "north"
+    },
+    {
+      "id": "counter24",
+      "cell": [
+        10,
+        1
+      ],
+      "access": [
+        10,
+        2
+      ],
+      "facing": "south"
+    },
+    {
+      "id": "counter25",
+      "cell": [
+        11,
+        1
+      ],
+      "access": [
+        11,
+        2
+      ],
+      "facing": "south"
+    },
+    {
+      "id": "counter27",
+      "cell": [
+        12,
+        2
+      ],
+      "access": [
+        11,
+        2
+      ],
+      "facing": "west"
+    },
+    {
+      "id": "counter28",
+      "cell": [
+        12,
+        4
+      ],
+      "access": [
+        11,
+        4
+      ],
+      "facing": "west"
+    },
+    {
+      "id": "counter29",
+      "cell": [
+        12,
+        5
+      ],
+      "access": [
+        11,
+        5
+      ],
+      "facing": "west"
+    },
+    {
+      "id": "counter_corner1",
+      "cell": [
+        1,
+        1
+      ],
+      "access": [
+        2,
+        2
+      ],
+      "facing": "south",
+      "reach": "corner"
+    },
+    {
+      "id": "counter_corner2",
+      "cell": [
+        1,
+        4
+      ],
+      "access": [
+        2,
+        3
+      ],
+      "facing": "north",
+      "reach": "corner"
+    },
+    {
+      "id": "counter_corner3",
+      "cell": [
+        1,
+        7
+      ],
+      "access": [
+        2,
+        6
+      ],
+      "facing": "north",
+      "reach": "corner"
+    },
+    {
+      "id": "counter_corner4",
+      "cell": [
+        12,
+        1
+      ],
+      "access": [
+        11,
+        2
+      ],
+      "facing": "south",
+      "reach": "corner"
+    },
+    {
+      "id": "counter_corner5",
+      "cell": [
+        12,
+        7
+      ],
+      "access": [
+        11,
+        6
+      ],
+      "facing": "north",
+      "reach": "corner"
+    },
+    {
+      "id": "counter11",
+      "cell": [
+        2,
+        7
+      ],
+      "access": [
+        2,
+        6
+      ],
+      "facing": "north"
+    }
+  ],
+  "presentation": {
+    "theme": "street",
+    "wall_style": "warm-timber",
+    "cabinet_style": "blue-enamel",
+    "corner_caps": [],
+    "decorations": [
+      {
+        "asset": "decoration_window",
+        "anchor": "north_wall",
+        "cell": [
+          2,
+          0
+        ],
+        "scale": 0.48
+      },
+      {
+        "asset": "decoration_menu",
+        "anchor": "north_wall",
+        "cell": [
+          5,
+          0
+        ],
+        "scale": 0.48
+      },
+      {
+        "asset": "decoration_rail",
+        "anchor": "north_wall",
+        "cell": [
+          10,
+          0
+        ],
+        "scale": 0.42
+      }
+    ],
+    "exterior": {
+      "margin_cells": 1.1,
+      "plants": [
+        [
+          -0.8,
+          2
+        ],
+        [
+          -0.8,
+          7.5
+        ],
+        [
+          13.8,
+          2
+        ],
+        [
+          13.8,
+          6
+        ]
+      ],
+      "lights": [
+        [
+          -0.8,
+          0.7
+        ],
+        [
+          13.8,
+          0.7
+        ]
+      ]
+    },
+    "station_views": {
+      "fridge": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "lettuce": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "tomato": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "bread": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "p1": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "sink": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      },
+      "b1": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "b2": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "extinguisher": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "returns": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      },
+      "serve": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      },
+      "bin": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      },
+      "plates": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter2": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter3": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter5": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      },
+      "counter6": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      },
+      "counter9": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter10": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter12": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter13": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter14": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter15": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter16": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter17": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter18": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter19": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter20": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter21": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter22": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter23": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter24": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter25": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter27": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      },
+      "counter28": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      },
+      "counter29": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      },
+      "counter_corner1": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter_corner2": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      },
+      "counter_corner3": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter_corner4": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter_corner5": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter11": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      }
+    }
+  }
+}
