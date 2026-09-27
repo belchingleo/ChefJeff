@@ -9,7 +9,7 @@ class PartnerStateTests(unittest.TestCase):
         k=SpatialKitchen(load_config());client=SpatialJevClient(k.c,key='test-only')
         k.chefs['human'].hand=Food('player-meat','chopped',6,0)
         k.command('human','put p1');k.advance(min(.1,k.chefs['human'].job.travel/2))
-        p=client.payload(k.snapshot(),k.actions('jev'))['state']
+        p=client.payload(k.snapshot(),k.actions('jeff'))['state']
         h=p['kitchen']['chefs']['human']
         self.assertEqual(h['holding']['id'],'player-meat')
         self.assertEqual(h['target'],'p1');self.assertIn('Put chopped meat',h['task'])
@@ -17,6 +17,6 @@ class PartnerStateTests(unittest.TestCase):
         self.assertNotEqual(h['position'],[2.,2.])
         self.assertIn('position',p['rules']['partner'])
         before=h['position'];k.command('human','go b2');k.advance(min(.1,k.chefs['human'].job.travel/2))
-        changed=client.payload(k.snapshot(),k.actions('jev'))['state']['kitchen']['chefs']['human']
+        changed=client.payload(k.snapshot(),k.actions('jeff'))['state']['kitchen']['chefs']['human']
         self.assertNotEqual(changed['position'],before);self.assertEqual(changed['target'],'b2')
         self.assertEqual(changed['holding']['id'],'player-meat')

@@ -20,7 +20,7 @@ class HandlingTests(unittest.TestCase):
         k.assert_invariants()
 
     def test_fast_fetch_put_take_drop_pickup_and_serve_for_both_chefs(self):
-        for who in ('human','jev'):
+        for who in ('human','jeff'):
             k=self.make()
             for key in ('fetch','put b1','chop b1','take b1','drop','pickup F1','put p1'):
                 ok,msg=k.command(who,key);self.assertTrue(ok,msg)
@@ -49,8 +49,8 @@ class HandlingTests(unittest.TestCase):
         self.assertIs(k.ground['meat'].food,old)
         self.assertEqual(old.heated,3)
         self.assertEqual(k.money,0)
-        self.do(k,'jev','pickup meat')
-        self.assertIs(k.chefs['jev'].hand,old)
+        self.do(k,'jeff','pickup meat')
+        self.assertIs(k.chefs['jeff'].hand,old)
         self.do(k,'human','put extinguisher')
         self.assertEqual(k.stations['extinguisher'].food.id,'E1')
 
@@ -106,13 +106,13 @@ class HandlingTests(unittest.TestCase):
         k=self.make();pot=k.stations['p1'];pot.food=Food('burnt','burnt',6,30);pot.fire=True
         self.assertFalse(k.command('human','extinguish p1')[0])
         self.do(k,'human','take extinguisher')
-        self.assertFalse(k.command('jev','take extinguisher')[0])
+        self.assertFalse(k.command('jeff','take extinguisher')[0])
         self.assertFalse(k.command('human','discard')[0])
         self.assertFalse(k.command('human','serve')[0])
-        self.do(k,'human','drop');self.do(k,'jev','pickup E1')
-        self.do(k,'jev','extinguish p1')
-        self.assertFalse(pot.fire);self.assertEqual(k.chefs['jev'].hand.id,'E1')
-        self.do(k,'jev','fetch')
+        self.do(k,'human','drop');self.do(k,'jeff','pickup E1')
+        self.do(k,'jeff','extinguish p1')
+        self.assertFalse(pot.fire);self.assertEqual(k.chefs['jeff'].hand.id,'E1')
+        self.do(k,'jeff','fetch')
         self.assertEqual(k.ground['E1'].food.stage,'extinguisher')
 
     def test_two_chefs_swapping_for_same_tool_cannot_duplicate(self):
@@ -125,11 +125,11 @@ class HandlingTests(unittest.TestCase):
         self.assertEqual(len(k.ground),1)
 
     def test_jev_has_drop_discard_auto_swap_and_tool_rules(self):
-        k=self.make();k.chefs['jev'].hand=Food('meat')
-        actions=k.actions('jev');keys={a.key for a in actions}
+        k=self.make();k.chefs['jeff'].hand=Food('meat')
+        actions=k.actions('jeff');keys={a.key for a in actions}
         self.assertTrue({'drop','discard','take extinguisher','fetch'}<=keys)
         payload=SpatialJevClient(k.c,key='test-only').payload(k.snapshot(),actions)
         self.assertEqual(payload['state']['rules']['timing']['handling'],.15)
         self.assertIn('automatically',payload['state']['rules']['ground'])
-        self.do(k,'jev','discard');self.assertEqual(k.money,-2)
-        self.assertIsNone(k.chefs['jev'].hand)
+        self.do(k,'jeff','discard');self.assertEqual(k.money,-2)
+        self.assertIsNone(k.chefs['jeff'].hand)

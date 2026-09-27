@@ -148,7 +148,7 @@ def show_menu(k, console):
 def check_live(c):
     client = JevClient(c)
     k = Kitchen(c)
-    actions = k.actions("jev")
+    actions = k.actions("jeff")
     payload = client.payload(k.snapshot(), actions)
     journal = Journal("connection-check")
     try:
@@ -221,7 +221,7 @@ def play(args):
                     console.write(describe(k))
                 elif command in ("m", "help", "?", "菜单", ""):
                     menu = show_menu(k, console)
-                elif command in ("j", "jev"):
+                elif command in ("j", "jeff"):
                     console.write(f"Jev：{'请求中' if ai.inflight else '待下次判断'}；最近选择 {ai.last_choice}；实际模型 {ai.actual_model}；成功 {ai.successes}/{ai.calls}；用量 {ai.tokens}")
                 elif paused:
                     console.write("当前已暂停；输入 resume 后执行动作。")

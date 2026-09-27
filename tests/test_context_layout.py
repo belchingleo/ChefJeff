@@ -14,7 +14,7 @@ class LayoutInteractionTests(unittest.TestCase):
     def stand(self,k,key):
         k.positions['human']=EQUIPMENT[key]['access'];k.chefs['human'].location=key
     def test_operating_faces_station_from_each_side_and_persists(self):
-        for who in ('human','jev'):
+        for who in ('human','jeff'):
             for cell,expected in (((3,3),'right'),((5,3),'left'),((4,2),'down')):
                 k=self.make();k.positions[who]=cell;k.stations['b1'].food=Food('raw')
                 self.assertTrue(k.command(who,'chop b1')[0]);k.advance(k.chefs[who].job.travel+.1)

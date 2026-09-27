@@ -10,7 +10,7 @@ type ChefMotion = {body:Node; leftLeg:Node; rightLeg:Node; leftArm:Node; rightAr
 type PotEffects = {steam:Node; smoke:Node; fire:Node; ready:Node};
 // Warm timber, enamel and order slips. Shapes use a shared 2–4 px pixel grid.
 const COLORS = { ink:'#382f29', muted:'#786b59', bg:'#e7d7b8', paper:'#fff5dc', line:'#c2a67d',
-    human:'#4c7661', jev:'#567fa4', hot:'#b64032', counter:'#8baab7', counterEdge:'#587582', counterLight:'#c6d9de', wall:'#ae8055', wood:'#795539', light:'#f6e8ca' };
+    human:'#4c7661', jeff:'#567fa4', hot:'#b64032', counter:'#8baab7', counterEdge:'#587582', counterLight:'#c6d9de', wall:'#ae8055', wood:'#795539', light:'#f6e8ca' };
 type ButtonView = {node:Node;label:Label;callback:()=>void;enabled:boolean;width:number;height:number;tone:string;hover:boolean};
 const STAGES: Record<string,string> = {raw:'生肉',chopped:'半成品',cooking:'加热中',ready:'熟牛排',burnt:'糊菜',extinguisher:'灭火器',clean_plate:'干净餐盘',dirty_plate:'脏餐盘',plated_ready:'已装盘牛排',plated_burnt:'已装盘糊菜',pot:'空锅',pot_cooking:'锅 · 未熟',pot_chopped:'锅 · 未熟',pot_ready:'锅 · 熟牛排',pot_burnt:'锅 · 糊菜'};
 const FOOD_COLORS: Record<string,string> = {raw:'#d68f8c',chopped:'#dcaa86',cooking:'#b58359',ready:'#846144',burnt:'#3e3733',extinguisher:'#c65138'};
@@ -67,8 +67,8 @@ export class KitchenClient extends Component {
     private cabinetFires:Record<string,Node>={};
     private foodStages: Record<string,string>={};
     private readyUntil: Record<string,number>={};
-    private jevThinking: Node|null=null;
-    private jevError: Node|null=null;
+    private jeffThinking: Node|null=null;
+    private jeffError: Node|null=null;
     private ground: Record<string,Node>={};
     private groundStages: Record<string,string>={};
     private flights: Record<string,Node>={};
@@ -136,7 +136,7 @@ export class KitchenClient extends Component {
         this.text('coverTitle','ChefJeff',316,257,648,64,46,this.cover).isBold=true;
         this.labels.coverTitle.horizontalAlign=Label.HorizontalAlign.CENTER;
         this.chef(this.cover,'welcome-human',550,332,'human',1.25);
-        this.chef(this.cover,'welcome-jev',730,332,'jev',1.25);
+        this.chef(this.cover,'welcome-jeff',730,332,'jeff',1.25);
         this.icon(this.cover,'welcome-food',640,332,'ready',1.05);
         this.text('coverText','正在连接厨房…',330,404,620,78,19,this.cover).horizontalAlign=Label.HorizontalAlign.CENTER;
         this.button('main','开始经营',379,520,158,48,()=>{
@@ -461,6 +461,8 @@ export class KitchenClient extends Component {
         knife.active=false;return n;
     }
     private async request(path:string,body?:object):Promise<any>{
+        const hosted=typeof window!=='undefined'?(window as any).chefjeffHostedRequest:null;
+        if(hosted)return hosted(path,body);
         return new Promise((resolve,reject)=>{
             const xhr=new XMLHttpRequest();xhr.open(body?'POST':'GET',this.endpoint+path,true);xhr.timeout=5000;
             xhr.onload=()=>{try{const data=JSON.parse(xhr.responseText);xhr.status===200?resolve(data):reject(new Error(data.error||'操作失败'));}catch(e){reject(new Error('厨房返回了无效数据'));}};
@@ -492,7 +494,7 @@ export class KitchenClient extends Component {
                 this.devices={};this.people={};this.motions={};this.potEffects={};this.cabinetFires={};this.ground={};this.flights={};this.groundStages={};this.mounted=false;
             }
             if(next.game_id!==this.state?.game_id||!this.connected){this.selection={kind:'none',id:''};this.menuSignature='';this.foodStages={};this.readyUntil={};this.activeClock=0;
-                if(this.mounted)for(const who of ['human','jev'])this.locate(this.people[who],next.kitchen.chefs[who].position);}
+                if(this.mounted)for(const who of ['human','jeff'])this.locate(this.people[who],next.kitchen.chefs[who].position);}
             if(next.phase!=='running'||next.game_id!==this.state?.game_id)this.clearInput();
             if(next.game_id!==this.state?.game_id)this.moveSeq=Date.now()*1000;
             this.state=next;this.connected=true;this.received=this.clock;
@@ -500,7 +502,7 @@ export class KitchenClient extends Component {
             if(game.frameRate!==frameRate)game.frameRate=frameRate;
             if(!sys.isNative)window.dispatchEvent(new CustomEvent('kitchen-state',{detail:{game_id:next.game_id,phase:next.phase,connection:next.connection,memory:next.memory,limits:next.limits,release:next.release,communication:next.communication}}));
             if(!this.mounted)this.mountMap();this.render();
-        }catch(e){game.frameRate=15;this.clearInput();this.connected=false;if(this.jevThinking)this.jevThinking.active=false;this.set('event',String((e as Error).message)+'，厨房会自动暂停。');this.cover.active=true;this.set('coverTitle','连接厨房');this.set('coverText','暂时连接不上厨房，请稍后重试。\n连接中断时，游戏会自动暂停。');this.writeLabel(this.buttons.main.label,'重新连接');this.buttons.reset.node.active=false;this.labels['welcome-tip'].node.active=true;
+        }catch(e){game.frameRate=15;this.clearInput();this.connected=false;if(this.jeffThinking)this.jeffThinking.active=false;this.set('event',String((e as Error).message)+'，厨房会自动暂停。');this.cover.active=true;this.set('coverTitle','连接厨房');this.set('coverText','暂时连接不上厨房，请稍后重试。\n连接中断时，游戏会自动暂停。');this.writeLabel(this.buttons.main.label,'重新连接');this.buttons.reset.node.active=false;this.labels['welcome-tip'].node.active=true;
         }finally{this.polling=false;}
     };
     private async bookmark(){
@@ -683,14 +685,14 @@ export class KitchenClient extends Component {
             }
             overlay.setSiblingIndex(n.children.length-1);
         }
-        for(const who of ['human','jev']){
+        for(const who of ['human','jeff']){
             const n=this.chef(this.world!,who,0,0,who,this.useModularArt?.8:.65);
             const dust=this.child(n,'sprint-dust',55,28,-18,-24);dust.addComponent(Graphics);dust.active=false;dust.setSiblingIndex(0);
             this.locate(n,this.state!.kitchen.chefs[who].position);
             this.registerDepth(n,()=>{const c=this.state!.kitchen.chefs[who],e=this.state!.kitchen.map.equipment[c.target];return workingChefDepth((360-MAPY-n.position.y)/TILE-.5,e?.cell[1],c.facing,!!c.working&&!!e);});
             n.on(Node.EventType.TOUCH_END,()=>{
                 const p=this.state?.kitchen.chefs[who].position;if(this.mapTarget(p[0],p[1]))return;
-                if(who==='jev'){this.set('event','靠近 Jeff，按空格给他手中的干净盘装菜。');}
+                if(who==='jeff'){this.set('event','靠近 Jeff，按空格给他手中的干净盘装菜。');}
             });
             const ln=new Node('name');ln.layer=Layers.Enum.UI_2D;n.addChild(ln);ln.setPosition(0,this.useModularArt?-12:-39);ln.addComponent(UITransform).setContentSize(155,25);
             const l=ln.addComponent(Label);l.fontSize=16;l.lineHeight=19;l.isBold=true;l.color=color(COLORS[who]);this.labels['person-'+who]=l;
@@ -702,12 +704,12 @@ export class KitchenClient extends Component {
             this.motions[who]={body,leftLeg:body.getChildByName('left-leg')!,rightLeg:body.getChildByName('right-leg')!,
                 leftArm:body.getChildByName('left-arm')!,rightArm:body.getChildByName('right-arm')!,knife:body.getChildByName('right-arm')!.getChildByName('knife')!,facing:'down',step:0};
         }
-        const marker=(name:string,fill:string)=>{const n=this.child(this.people.jev,name,30,18,0,65),g=n.addComponent(Graphics);
+        const marker=(name:string,fill:string)=>{const n=this.child(this.people.jeff,name,30,18,0,65),g=n.addComponent(Graphics);
             g.fillColor=color(COLORS.paper);g.circle(0,0,8);g.fill();for(const x of [-5,0,5])this.rect(g,x-1,-1,2,3,fill);return n;};
-        this.jevThinking=marker('jev-thinking','#567fa4');
-        const error=this.child(this.people.jev,'jev-api-error',24,23,0,66),eg=error.addComponent(Graphics);
-        this.rect(eg,-9,-9,18,18,COLORS.hot);this.rect(eg,-2,-6,4,8,COLORS.paper);this.rect(eg,-2,4,4,3,COLORS.paper);this.jevError=error;
-        this.jevThinking.active=false;this.jevError.active=false;
+        this.jeffThinking=marker('jeff-thinking','#567fa4');
+        const error=this.child(this.people.jeff,'jeff-api-error',24,23,0,66),eg=error.addComponent(Graphics);
+        this.rect(eg,-9,-9,18,18,COLORS.hot);this.rect(eg,-2,-6,4,8,COLORS.paper);this.rect(eg,-2,4,4,3,COLORS.paper);this.jeffError=error;
+        this.jeffThinking.active=false;this.jeffError.active=false;
         this.mapNodes=this.node.children.filter(n=>!previous.has(n));this.mountedLayout=map.layout_version;
         this.sortWorld();this.refreshArtCharacters();
         this.drawIcon(this.cover.getChildByName('welcome-food')!.getComponent(Graphics)!,'plated_ready');
@@ -717,21 +719,21 @@ export class KitchenClient extends Component {
     private characterArt(body:Node,who:string,facing:string,walking=false,working=false){
         const kind=who==='human'?'player':'jeff',chef=this.state?.kitchen.chefs[who];
         const station=this.state?.kitchen.map.equipment[chef?.target];
-        const inWorld=!!body.parent&&['human','jev'].includes(body.parent.name);
+        const inWorld=!!body.parent&&['human','jeff'].includes(body.parent.name);
         const chopping=!!working&&inWorld&&chef?.action_kind==='chop'&&!!station;
         const sampleFrame=this.prepSample?Number(new URLSearchParams(location.search).get('prepFrame')??-1):-1;
-        const knifePilot=this.knifeSample&&chopping&&who==='jev'&&facing==='down'&&this.state!.kitchen.level===2&&chef.target==='b1';
+        const knifePilot=this.knifeSample&&chopping&&who==='jeff'&&facing==='down'&&this.state!.kitchen.level===2&&chef.target==='b1';
         const pairedPilot=chopping&&this.art.has('knife/reference');
         const phase=knifePilot||pairedPilot?1:Number.isInteger(sampleFrame)&&sampleFrame>=0&&sampleFrame<4?sampleFrame:Math.floor(this.activeClock*8)%4;
         const actionKey=`characters/${kind}/${facing}/chop_${phase}`;
         const hasAction=chopping&&this.art.has(actionKey);
-        const pilot=hasAction&&who==='jev'&&facing==='down'&&this.prepSampleBoard(chef.target)&&this.art.has('prep/jeff/down/contact-body');
+        const pilot=hasAction&&who==='jeff'&&facing==='down'&&this.prepSampleBoard(chef.target)&&this.art.has('prep/jeff/down/contact-body');
         const frame=walking?`walk_${Math.floor(this.activeClock*12)%8}`:'idle_0';
         // All poses share the actor's floor anchor and depth. An upper-body slice
         // is not a tool: painting it above the station puts the chef on the board.
         const key=pilot?'prep/jeff/down/contact-body':hasAction?actionKey:`characters/${kind}/${facing}/${frame}`;
         const shown=this.useArt&&this.art.show(body,key,68,88,0,inWorld&&this.useModularArt?0:-29);
-        if(who==='jev'&&inWorld)this.knifeOnlySample(knifePilot,actionKey);
+        if(who==='jeff'&&inWorld)this.knifeOnlySample(knifePilot,actionKey);
         const prep=this.prepPoses[who];
         if(inWorld&&prep){
             prep.active=!!pilot;
@@ -864,7 +866,7 @@ export class KitchenClient extends Component {
             const fx=this.child(this.world!,'cut-impact-probe',52,52);fx.addComponent(Graphics);this.cutProbe=fx;
             this.registerDepth(fx,()=>depthOrder(this.state!.kitchen.map.equipment.b1.cell[1],'solid')+.03);
         }
-        const actor=this.people.jev,root=this.knifeProbe!;
+        const actor=this.people.jeff,root=this.knifeProbe!;
         root.active=length>1||handleLength>1;root.setScale(actor.scale);
         // Pivot remains at the original grip; neither the actor nor the board moves.
         root.setPosition(actor.position.x-5*actor.scale.x,actor.position.y+21*actor.scale.y);
@@ -888,7 +890,7 @@ export class KitchenClient extends Component {
         }
     }
     private refreshArtCharacters(){
-        for(const who of ['human','jev']){
+        for(const who of ['human','jeff']){
             if(this.useArt)this.characterArt(this.motions[who].body,who,this.state!.kitchen.chefs[who].facing||'down');
             const welcome=this.cover.getChildByName('welcome-'+who)?.getChildByName('body');
             if(welcome)this.characterArt(welcome,who,'down');
@@ -1004,15 +1006,15 @@ export class KitchenClient extends Component {
             this.writeLabel(this.ground[id].getChildByName('id')!.getComponent(Label)!,this.itemName(item.food));
             this.locate(this.ground[id],item.position);
         }
-        for(const who of ['human','jev']){
+        for(const who of ['human','jeff']){
             const c=k.chefs[who];
             this.set('person-'+who,(who==='human'?'你':'Jeff')+(c.sprint?.active_remaining>0?' »':''));
             const held=this.motions[who].body.getChildByName('held')!;held.active=!!c.holding;
             if(c.holding)this.drawIcon(held.getComponent(Graphics)!,this.itemStage(c.holding));
         }
         const apiConfigured=!!s.connection?.configured&&s.phase!=='ready'&&s.phase!=='ended';
-        if(this.jevThinking)this.jevThinking.active=this.connected&&apiConfigured&&!!s.ai.thinking&&!s.ai.error;
-        if(this.jevError)this.jevError.active=apiConfigured&&!!s.ai.error;
+        if(this.jeffThinking)this.jeffThinking.active=this.connected&&apiConfigured&&!!s.ai.thinking&&!s.ai.error;
+        if(this.jeffError)this.jeffError.active=apiConfigured&&!!s.ai.error;
         const flightIds=new Set((k.projectiles||[]).map((p:any)=>p.id));
         for(const [id,n]of Object.entries(this.flights))if(!flightIds.has(id)){n.destroy();delete this.flights[id];delete this.flightOrder[id];}
         for(const p of k.projectiles||[])if(!this.flights[p.id])this.flights[p.id]=this.foodNode(p.id,this.itemStage(p),undefined,true);
@@ -1051,7 +1053,7 @@ export class KitchenClient extends Component {
         this.updateSpaceGesture();
         const animate=running&&!this.qaNoMotion;
         if(animate)this.activeClock+=dt;
-        for(const who of ['human','jev']){
+        for(const who of ['human','jeff']){
             const c=k.chefs[who],p=c.position,n=this.people[who],motion=this.motions[who];
             const dust=n.getChildByName('sprint-dust')!;
             dust.active=!!animate&&c.sprint?.active_remaining>0&&(c.manual_moving||c.travel_remaining>0);
@@ -1127,7 +1129,7 @@ export class KitchenClient extends Component {
                 if(e.fire.active)e.fire.setScale(.55+Math.sin(this.activeClock*12)*.035,.55+Math.sin(this.activeClock*12+1)*.06,1);
                 if(e.ready.active)e.ready.setScale(.85+Math.sin(this.activeClock*12)*.12,.85+Math.sin(this.activeClock*12)*.12,1);
             }
-            if(this.jevThinking?.active)this.jevThinking.setScale(.92+Math.sin(this.activeClock*5)*.08,.92+Math.sin(this.activeClock*5)*.08,1);
+            if(this.jeffThinking?.active)this.jeffThinking.setScale(.92+Math.sin(this.activeClock*5)*.08,.92+Math.sin(this.activeClock*5)*.08,1);
         }
         const sink=this.devices.sink?.node.getChildByName('washing');
         if(sink){const washing=Object.values(k.chefs).some((c:any)=>c.action_kind==='wash'&&c.working);sink.active=washing;

@@ -31,18 +31,18 @@ class RulesTest(unittest.TestCase):
         self.assertIsNone(k.stations['b1'].food)
         self.assertIsNone(k.chefs['human'].hand)
         k.advance(k.c['cook_seconds'])
-        self.do(k, 'jev', 'take plates')
-        self.do(k, 'jev', 'plate p1')
-        self.do(k, 'jev', 'serve')
+        self.do(k, 'jeff', 'take plates')
+        self.do(k, 'jeff', 'plate p1')
+        self.do(k, 'jeff', 'serve')
         self.assertEqual(k.served, 1)
         self.assertEqual(k.money, 30)
         self.assertEqual(k.orders[0]['status'], 'served')
 
     def test_both_chefs_have_same_abilities(self):
         k = self.make()
-        self.assertEqual({a.key for a in k.actions('human') if a.kind!='go'}, {a.key for a in k.actions('jev') if a.kind!='go'})
+        self.assertEqual({a.key for a in k.actions('human') if a.kind!='go'}, {a.key for a in k.actions('jeff') if a.kind!='go'})
         for command in ('fetch','put b1','chop b1','take b1','put p1'):
-            self.do(k,'jev',command)
+            self.do(k,'jeff',command)
         k.advance(k.c['cook_seconds'])
         self.do(k,'human','take plates')
         self.do(k,'human','plate p1')
@@ -57,7 +57,7 @@ class RulesTest(unittest.TestCase):
         k.advance(2)
         k.command('human','stop')
         self.assertAlmostEqual(k.stations['b1'].food.chopped,2)
-        self.do(k,'jev','chop b1')
+        self.do(k,'jeff','chop b1')
         self.assertEqual(k.stations['b1'].food.stage,'chopped')
 
     def test_board_and_pot_capacity(self):
@@ -81,9 +81,9 @@ class RulesTest(unittest.TestCase):
     def test_two_chefs_cannot_duplicate_one_item(self):
         k=self.make()
         k.stations['b1'].food=Food('only','chopped',6)
-        k.chefs['human'].location=k.chefs['jev'].location='b1'
+        k.chefs['human'].location=k.chefs['jeff'].location='b1'
         self.assertTrue(k.command('human','take b1')[0])
-        self.assertTrue(k.command('jev','take b1')[0])
+        self.assertTrue(k.command('jeff','take b1')[0])
         k.advance(1)
         self.assertEqual(sum(bool(a.hand) for a in k.chefs.values()),1)
         k.assert_invariants()
@@ -91,26 +91,26 @@ class RulesTest(unittest.TestCase):
     def test_station_is_not_reserved_while_walking(self):
         k=self.make()
         k.stations['b1'].food=Food('only','chopped',6)
-        k.command('jev','take b1')
+        k.command('jeff','take b1')
         self.assertIsNone(k.stations['b1'].lock)
         self.do(k,'human','take b1')
         k.advance(5)
         self.assertIsNotNone(k.chefs['human'].hand)
-        self.assertIsNone(k.chefs['jev'].hand)
+        self.assertIsNone(k.chefs['jeff'].hand)
         k.assert_invariants()
 
     def test_walking_to_a_station_does_not_depend_on_its_contents(self):
         k=self.make()
-        self.assertTrue(k.command('jev','go b1')[0])
+        self.assertTrue(k.command('jeff','go b1')[0])
         k.stations['b1'].food=Food('arrived-later')
         k.advance(3)
-        self.assertEqual(k.chefs['jev'].location,'b1')
+        self.assertEqual(k.chefs['jeff'].location,'b1')
         self.assertTrue(any(e.get('kind')=='action_done' for e in k.events))
 
     def test_cooking_continues_while_chef_leaves(self):
         k=self.make()
         s=self.pot(k)
-        self.do(k,'jev','go fridge')
+        self.do(k,'jeff','go fridge')
         self.assertGreater(s.food.heated,0)
         k.advance(35)
         self.assertTrue(s.fire)
@@ -121,51 +121,51 @@ class RulesTest(unittest.TestCase):
         s=self.pot(k)
         k.advance(31)
         self.assertFalse(k.command('human','take p1')[0])
-        self.do(k,'jev','take extinguisher')
-        self.do(k,'jev','extinguish p1')
+        self.do(k,'jeff','take extinguisher')
+        self.do(k,'jeff','extinguish p1')
         k.advance(5)
         self.assertFalse(s.fire)
         self.assertFalse(s.heating)
-        self.do(k,'jev','clear p1')
+        self.do(k,'jeff','clear p1')
         self.assertIsNone(s.food)
-        self.do(k,'jev','put extinguisher')
-        k.chefs['jev'].hand=Food('fresh','chopped',6)
-        self.do(k,'jev','put p1')
+        self.do(k,'jeff','put extinguisher')
+        k.chefs['jeff'].hand=Food('fresh','chopped',6)
+        self.do(k,'jeff','put p1')
         self.assertTrue(s.heating)
         self.assertEqual(s.food.id,'fresh')
 
     def test_burnt_food_bad_review_and_penalty(self):
         k=self.make()
         self.pot(k,22,'burnt')
-        self.do(k,'jev','take plates')
-        self.do(k,'jev','plate p1')
-        self.do(k,'jev','serve')
+        self.do(k,'jeff','take plates')
+        self.do(k,'jeff','plate p1')
+        self.do(k,'jeff','serve')
         self.assertEqual((k.served,k.bad_reviews,k.money),(0,1,-15))
         self.assertEqual(k.orders[0]['status'],'rejected')
 
     def test_food_can_burn_during_pickup(self):
         k=self.make()
-        k.chefs['jev'].hand=k.stations['plates'].food;k.stations['plates'].food=None
+        k.chefs['jeff'].hand=k.stations['plates'].food;k.stations['plates'].food=None
         self.pot(k,22-k.c['handling_seconds']/2,'ready')
-        self.do(k,'jev','plate p1')
-        self.assertEqual(k.chefs['jev'].hand.stage,'burnt')
+        self.do(k,'jeff','plate p1')
+        self.assertEqual(k.chefs['jeff'].hand.stage,'burnt')
 
     def test_fire_interrupts_removal(self):
         k=self.make()
-        k.chefs['jev'].hand=k.stations['plates'].food;k.stations['plates'].food=None
+        k.chefs['jeff'].hand=k.stations['plates'].food;k.stations['plates'].food=None
         s=self.pot(k,30-k.c['handling_seconds']/2,'burnt')
-        self.do(k,'jev','plate p1')
+        self.do(k,'jeff','plate p1')
         self.assertTrue(s.fire)
-        self.assertEqual(k.chefs['jev'].hand.stage,'clean_plate')
+        self.assertEqual(k.chefs['jeff'].hand.stage,'clean_plate')
         self.assertIsNotNone(s.food)
 
     def test_taken_food_does_not_keep_burning(self):
         k=self.make()
-        k.chefs['jev'].hand=k.stations['plates'].food;k.stations['plates'].food=None
+        k.chefs['jeff'].hand=k.stations['plates'].food;k.stations['plates'].food=None
         self.pot(k,13,'ready')
-        self.do(k,'jev','plate p1')
+        self.do(k,'jeff','plate p1')
         k.advance(35)
-        self.assertEqual(k.chefs['jev'].hand.stage,'ready')
+        self.assertEqual(k.chefs['jeff'].hand.stage,'ready')
         self.assertEqual(k.burns,0)
 
     def test_expired_order_penalty_only_once(self):
@@ -195,7 +195,7 @@ class RulesTest(unittest.TestCase):
         k=self.make()
         rng=random.Random(42)
         for i in range(1600):
-            who=rng.choice(['human','jev'])
+            who=rng.choice(['human','jeff'])
             actions=k.actions(who)
             if actions and rng.random()<.2:
                 k.start(who,rng.choice(actions))
@@ -212,25 +212,25 @@ class RulesTest(unittest.TestCase):
                 self.assertIsNone(k.chefs['human'].hand)
                 self.assertIs(k.ground['held'].food,food)
                 k.advance(35)
-                self.do(k,'jev','pickup held')
-                self.assertIs(k.chefs['jev'].hand,food)
+                self.do(k,'jeff','pickup held')
+                self.assertIs(k.chefs['jeff'].hand,food)
                 self.assertEqual((food.stage,food.chopped,food.heated),(stage,2.5,13))
                 self.assertEqual((k.money,k.burns,k.fires),(0,0,0))
                 self.assertFalse(k.ground)
-                self.do(k,'jev','drop')
-                self.do(k,'jev','pickup held')
-                self.assertIs(k.chefs['jev'].hand,food)
+                self.do(k,'jeff','drop')
+                self.do(k,'jeff','pickup held')
+                self.assertIs(k.chefs['jeff'].hand,food)
 
     def test_ground_transfer_does_not_need_a_free_workstation(self):
         k=self.make()
         k.stations['b1'].food=Food('onboard')
         k.stations['b2'].food=Food('onboard2')
-        k.chefs['human'].location=k.chefs['jev'].location='b1'
+        k.chefs['human'].location=k.chefs['jeff'].location='b1'
         k.chefs['human'].hand=Food('held')
-        k.command('jev','chop b1')
+        k.command('jeff','chop b1')
         k.advance(.1)
         self.do(k,'human','drop')
-        self.assertEqual(k.stations['b1'].lock,'jev')
+        self.assertEqual(k.stations['b1'].lock,'jeff')
         self.do(k,'human','pickup held')
         self.assertEqual(k.chefs['human'].hand.id,'held')
 
@@ -238,9 +238,9 @@ class RulesTest(unittest.TestCase):
         k=self.make()
         k.chefs['human'].hand=Food('only')
         self.do(k,'human','drop')
-        k.chefs['jev'].location=k.chefs['human'].location
+        k.chefs['jeff'].location=k.chefs['human'].location
         k.command('human','pickup only')
-        k.command('jev','pickup only')
+        k.command('jeff','pickup only')
         k.advance(1)
         self.assertEqual(sum(bool(a.hand) for a in k.chefs.values()),1)
         self.assertFalse(k.ground)
@@ -255,11 +255,11 @@ class RulesTest(unittest.TestCase):
         self.assertEqual(k.ground['only'].lock,'human')
         k.command('human','stop')
         self.assertIsNone(k.ground['only'].lock)
-        k.command('jev','pickup only')
+        k.command('jeff','pickup only')
         self.do(k,'human','pickup only')
         k.advance(5)
-        self.assertIsNone(k.chefs['jev'].hand)
-        self.assertIsNone(k.chefs['jev'].job)
+        self.assertIsNone(k.chefs['jeff'].hand)
+        self.assertIsNone(k.chefs['jeff'].job)
         k.assert_invariants()
 
     def test_ground_ready_food_can_be_served_by_partner(self):
@@ -267,8 +267,8 @@ class RulesTest(unittest.TestCase):
         k.chefs['human'].hand=Food('ready','ready',6,12,plate_id=k.stations['plates'].food.id)
         k.stations['plates'].food=None
         self.do(k,'human','drop')
-        self.do(k,'jev','pickup ready')
-        self.do(k,'jev','serve')
+        self.do(k,'jeff','pickup ready')
+        self.do(k,'jeff','serve')
         self.assertEqual((k.served,k.money),(1,30))
 
     def test_ground_menu_ids_remain_stable_and_stale_drop_rejected(self):

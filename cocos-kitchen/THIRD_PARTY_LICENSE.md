@@ -22,3 +22,9 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+## 中文说明
+
+以上保留 Cocos 随附的英文 MIT 许可原文与版权声明，英文原文为适用条款。该许可允许在保留版权及许可声明的条件下使用、复制、修改、合并、发布、分发、再许可和销售软件；软件按原样提供，不作担保，作者及版权人不承担原文所述责任。此处为中文阅读摘要，不替代或修改英文法律条款。

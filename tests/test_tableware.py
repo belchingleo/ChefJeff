@@ -50,14 +50,14 @@ class TablewareTests(unittest.TestCase):
             k = self.make(spatial)
             k.advance(20)  # Three real pending orders; fixtures omit the cooking time.
             first = self.serve(k, 'first')
-            self.serve(k, 'second', 'jev')
+            self.serve(k, 'second', 'jeff')
             self.assertFalse(k.stations['plates'].food)
             self.ready(k, 'third')
             self.assertNotIn('plate', [a.key for a in k.actions('human')])
             self.assertFalse(k.command('human', 'serve')[0])
             k.advance(8)
             for action in ('take returns', 'put sink', 'wash', 'take sink', 'put plates'):
-                self.do(k, 'jev', action)
+                self.do(k, 'jeff', action)
             self.plate(k)
             self.assertEqual(k.chefs['human'].hand.plate_id, first)
             self.do(k, 'human', 'serve')
@@ -100,15 +100,15 @@ class TablewareTests(unittest.TestCase):
         k = self.make()
         plate = self.dirty_in_sink(k)
         self.assertTrue(k.command('human', 'wash')[0]); k.advance(1.5)
-        self.assertFalse(k.command('jev', 'wash')[0])
+        self.assertFalse(k.command('jeff', 'wash')[0])
         self.do(k, 'human', 'stop')
         self.assertAlmostEqual(k.stations['sink'].food.washed, 1.5)
-        self.assertTrue(k.command('jev', 'wash')[0])
-        self.assertAlmostEqual(k.chefs['jev'].job.work, 2.5)
-        k.advance(k.chefs['jev'].job.travel+2.5)
+        self.assertTrue(k.command('jeff', 'wash')[0])
+        self.assertAlmostEqual(k.chefs['jeff'].job.work, 2.5)
+        k.advance(k.chefs['jeff'].job.travel+2.5)
         self.assertEqual(k.stations['sink'].food.stage, 'clean_plate')
-        self.do(k, 'jev', 'take sink')
-        self.assertEqual(k.chefs['jev'].hand.id, plate)
+        self.do(k, 'jeff', 'take sink')
+        self.assertEqual(k.chefs['jeff'].hand.id, plate)
 
     def test_full_hand_swap_preserves_plated_food_and_empty_plate(self):
         k = self.make(True)
@@ -116,21 +116,21 @@ class TablewareTests(unittest.TestCase):
         self.do(k, 'human', 'take counter2')
         self.assertEqual(k.chefs['human'].hand.stage, 'clean_plate')
         self.assertEqual(k.ground['meal'].food.plate_id, 'D1')
-        self.do(k, 'jev', 'pickup meal')
-        self.assertEqual(k.chefs['jev'].hand.plate_id, 'D1')
+        self.do(k, 'jeff', 'pickup meal')
+        self.assertEqual(k.chefs['jeff'].hand.plate_id, 'D1')
         k.assert_invariants()
 
     def test_plates_cannot_throw_but_can_drop_and_pickup_for_both_chefs(self):
         from spatial_kitchen import EQUIPMENT
         from kitchen import Action
-        for who in ('human','jev'):
+        for who in ('human','jeff'):
             for stage in ('clean_plate','dirty_plate','ready','burnt'):
                 k=self.make(True)
                 if stage in ('ready','burnt'):
                     self.ready(k);self.plate(k);k.chefs['human'].hand.stage=stage
                 else:
                     self.do(k,'human','take plates');k.chefs['human'].hand.stage=stage
-                if who=='jev':k.chefs['jev'].hand,k.chefs['human'].hand=k.chefs['human'].hand,None
+                if who=='jeff':k.chefs['jeff'].hand,k.chefs['human'].hand=k.chefs['human'].hand,None
                 item=k.chefs[who].hand;k.positions[who]=(3.,4.)
                 self.assertFalse(any(a.kind=='throw' for a in k.actions(who)))
                 self.assertFalse(k.snapshot()['chefs'][who]['can_throw'])
@@ -168,8 +168,8 @@ class TablewareTests(unittest.TestCase):
 
     def test_two_chefs_race_for_same_plate_only_one_wins(self):
         k = self.make()
-        k.chefs['human'].location = k.chefs['jev'].location = 'plates'
-        for who in ('human', 'jev'):
+        k.chefs['human'].location = k.chefs['jeff'].location = 'plates'
+        for who in ('human', 'jeff'):
             self.assertTrue(k.command(who, 'take plates')[0])
         k.advance(.2)
         self.assertEqual(sum(c.hand is not None for c in k.chefs.values()), 1)
@@ -181,7 +181,7 @@ class TablewareTests(unittest.TestCase):
         self.ready(k)
         self.do(k, 'human', 'take plates')
         action = next(a for a in k.actions('human') if a.key == 'plate p1')
-        self.do(k, 'jev', 'take pot p1')
+        self.do(k, 'jeff', 'take pot p1')
         self.assertFalse(k.start('human', action)[0])
         self.assertEqual(k.chefs['human'].hand.stage, 'clean_plate')
         k.assert_invariants()
@@ -211,14 +211,14 @@ class TablewareTests(unittest.TestCase):
 
     def test_ai_receives_rules_locations_progress_and_legal_actions(self):
         k = self.make(); self.dirty_in_sink(k)
-        payload = JevClient(k.c, key='offline-test-only').payload(k.snapshot(), k.actions('jev'))
+        payload = JevClient(k.c, key='offline-test-only').payload(k.snapshot(), k.actions('jeff'))
         self.assertIn('wash', payload['questions']['next_action']['criteria'])
         self.assertIn('tableware', payload['state']['rules'])
         self.assertEqual(payload['state']['kitchen']['stations']['sink']['food']['wash_remaining'], 4)
         self.assertEqual(payload['state']['kitchen']['tableware']['total'], 2)
 
     def test_dirty_plates_rejected_for_all_plating_routes(self):
-        for who in ('human', 'jev'):
+        for who in ('human', 'jeff'):
             for route in ('stove', 'counter_pot', 'counter_plate', 'partner'):
                 with self.subTest(who=who, route=route):
                     k = self.make(spatial=True)
@@ -239,7 +239,7 @@ class TablewareTests(unittest.TestCase):
                         else:
                             k.chefs[who].hand = pot
                             if route == 'partner':
-                                other = 'jev' if who == 'human' else 'human'
+                                other = 'jeff' if who == 'human' else 'human'
                                 k.chefs[other].hand = plate
                             else:
                                 k.stations['plates'].food = plate
@@ -250,7 +250,7 @@ class TablewareTests(unittest.TestCase):
                     k.assert_invariants()
 
     def test_no_bare_food_removal_for_either_chef_or_any_pot_stage(self):
-        for who in ('human', 'jev'):
+        for who in ('human', 'jeff'):
             for stage in ('cooking', 'ready', 'burnt'):
                 k = self.make()
                 k.stations['p1'].food = Food('hot', stage, 6, 12)
@@ -280,7 +280,7 @@ class TablewareTests(unittest.TestCase):
         self.assertEqual(k.stations['counter2'].food.plate_id, 'D2')
         self.assertIsNone(k.chefs['human'].hand.contents)
         self.do(k, 'human', 'put pot p1')
-        self.do(k, 'jev', 'take counter2'); self.do(k, 'jev', 'serve')
+        self.do(k, 'jeff', 'take counter2'); self.do(k, 'jeff', 'serve')
         self.assertEqual(k.served, 1)
         self.assertEqual(k.stations['p1'].pot_id, 'P1')
 
@@ -301,19 +301,19 @@ class TablewareTests(unittest.TestCase):
         k = self.make()
         self.ready(k)
         self.do(k, 'human', 'take pot p1'); self.do(k, 'human', 'put counter3')
-        self.do(k, 'jev', 'take counter2'); self.do(k, 'jev', 'plate counter3')
-        self.assertEqual(k.chefs['jev'].hand.plate_id, 'D2')
+        self.do(k, 'jeff', 'take counter2'); self.do(k, 'jeff', 'plate counter3')
+        self.assertEqual(k.chefs['jeff'].hand.plate_id, 'D2')
         self.assertEqual(k.stations['counter3'].food.id, 'P1')
         self.assertIsNone(k.stations['counter3'].food.contents)
-        self.do(k, 'jev', 'serve')
+        self.do(k, 'jeff', 'serve')
 
     def test_two_plates_race_for_counter_pot_cannot_duplicate_food(self):
         k = self.make()
         self.ready(k); self.do(k, 'human', 'take pot p1'); self.do(k, 'human', 'put counter3')
-        self.do(k, 'human', 'take plates'); self.do(k, 'jev', 'take counter2')
+        self.do(k, 'human', 'take plates'); self.do(k, 'jeff', 'take counter2')
         # Both depart with a valid view of the same pot; its identity stays P1
         # when the first chef removes its contents.
-        for who in ('human', 'jev'):
+        for who in ('human', 'jeff'):
             self.assertTrue(k.command(who, 'plate counter3')[0])
         k.advance(5); k.assert_invariants()
         self.assertEqual(sum(bool(c.hand.plate_id) for c in k.chefs.values()), 1)
@@ -326,15 +326,15 @@ class TablewareTests(unittest.TestCase):
         self.assertEqual(k.chefs['human'].hand.id, 'P1')
         self.assertIsNone(k.chefs['human'].hand.contents)
         self.assertFalse(k.command('human', 'discard')[0])
-        self.do(k, 'human', 'drop'); self.do(k, 'jev', 'pickup P1')
-        self.do(k, 'jev', 'put pot p1')
+        self.do(k, 'human', 'drop'); self.do(k, 'jeff', 'pickup P1')
+        self.do(k, 'jeff', 'put pot p1')
         self.assertEqual(k.money, -2)
 
     def test_random_interleaved_tableware_actions_preserve_all_plates(self):
         k = self.make(); self.dirty_in_sink(k)
         rng = random.Random(791)
         for _ in range(500):
-            who = rng.choice(['human', 'jev'])
+            who = rng.choice(['human', 'jeff'])
             actions = k.actions(who)
             if actions and rng.random() < .3:
                 k.start(who, rng.choice(actions))

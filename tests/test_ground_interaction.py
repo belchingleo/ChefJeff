@@ -17,12 +17,12 @@ class GroundInteractionTests(unittest.TestCase):
         stove.pot_id=None
         k.ground[pot.id]=GroundItem(pot,tile_key((9,4)) if isinstance(k,SpatialKitchen) else 'p1')
         k.chefs[who].hand=k.stations['plates'].food;k.stations['plates'].food=None
-        if isinstance(k,SpatialKitchen):k.positions.update(human=(8.,4.),jev=(10.,4.))
+        if isinstance(k,SpatialKitchen):k.positions.update(human=(8.,4.),jeff=(10.,4.))
         return pot
 
     def test_plate_ground_preserves_plate_and_empty_pot_both_chefs(self):
         for spatial in (False,True):
-            for who in ('human','jev'):
+            for who in ('human','jeff'):
                 for stage in ('ready','burnt'):
                     k=self.make(spatial);pot=self.setup_pot(k,who,stage)
                     plate=k.chefs[who].hand.id;location=k.ground[pot.id].location
@@ -44,26 +44,26 @@ class GroundInteractionTests(unittest.TestCase):
 
     def test_two_chefs_cannot_serve_same_ground_pot_twice(self):
         k=self.make();pot=self.setup_pot(k)
-        k.chefs['jev'].hand=k.stations['counter2'].food;k.stations['counter2'].food=None
-        for who in ('human','jev'):self.assertTrue(k.command(who,f'plate ground {pot.id}')[0])
+        k.chefs['jeff'].hand=k.stations['counter2'].food;k.stations['counter2'].food=None
+        for who in ('human','jeff'):self.assertTrue(k.command(who,f'plate ground {pot.id}')[0])
         k.advance(2)
         self.assertEqual(sum(bool(c.hand and c.hand.plate_id) for c in k.chefs.values()),1)
         k.assert_invariants()
 
     def test_pot_moved_while_walking_cancels_plating(self):
-        k=self.make();pot=self.setup_pot(k);k.positions['human']=(2.,2.);k.positions['jev']=(9.,4.)
+        k=self.make();pot=self.setup_pot(k);k.positions['human']=(2.,2.);k.positions['jeff']=(9.,4.)
         self.assertTrue(k.command('human',f'plate ground {pot.id}')[0])
-        self.assertTrue(k.command('jev',f'pickup {pot.id}')[0]);k.advance(8)
+        self.assertTrue(k.command('jeff',f'pickup {pot.id}')[0]);k.advance(8)
         self.assertEqual(k.chefs['human'].hand.stage,'clean_plate')
-        self.assertIs(k.chefs['jev'].hand,pot);self.assertEqual(pot.contents.id,'meal');k.assert_invariants()
+        self.assertIs(k.chefs['jeff'].hand,pot);self.assertEqual(pot.contents.id,'meal');k.assert_invariants()
 
     def test_stop_releases_ground_pot_for_pickup(self):
         k=self.make();pot=self.setup_pot(k);k.positions['human']=(9.,4.)
         k.command('human',f'plate ground {pot.id}');k.advance(.05)
         self.assertEqual(k.ground[pot.id].lock,'human')
-        self.assertFalse(k.command('jev',f'pickup {pot.id}')[0])
+        self.assertFalse(k.command('jeff',f'pickup {pot.id}')[0])
         k.stop('human')
-        self.assertTrue(k.command('jev',f'pickup {pot.id}')[0]);k.advance(1);k.assert_invariants()
+        self.assertTrue(k.command('jeff',f'pickup {pot.id}')[0]);k.advance(1);k.assert_invariants()
 
     def test_stale_plate_action_rejects_replacement_contents(self):
         k=self.make();pot=self.setup_pot(k)
@@ -74,18 +74,18 @@ class GroundInteractionTests(unittest.TestCase):
     def test_arrival_does_not_chop_food_another_chef_finished(self):
         k=self.make(False);k.stations['b1'].food=Food('meat')
         k.chefs['human'].location='b1'
-        k.command('human','chop b1');k.command('jev','chop b1')
-        k.chefs['jev'].job.travel=8
+        k.command('human','chop b1');k.command('jeff','chop b1')
+        k.chefs['jeff'].job.travel=8
         k.advance(16)
         done=[e for e in k.events if e['kind']=='action_done' and e.get('action')=='chop b1']
         self.assertEqual(len(done),1)
         self.assertEqual(k.stations['b1'].food.chopped,k.c['chop_seconds']);k.assert_invariants()
 
     def test_chopped_food_on_board_is_storage_not_choppable(self):
-        k=self.make();k.chefs['jev'].hand=Food('cut','chopped',6)
-        self.assertTrue(k.command('jev','put b1')[0]);k.advance(10)
-        self.assertNotIn('chop b1',[a.key for a in k.actions('jev')])
-        self.assertIn('take b1',[a.key for a in k.actions('jev')]);k.assert_invariants()
+        k=self.make();k.chefs['jeff'].hand=Food('cut','chopped',6)
+        self.assertTrue(k.command('jeff','put b1')[0]);k.advance(10)
+        self.assertNotIn('chop b1',[a.key for a in k.actions('jeff')])
+        self.assertIn('take b1',[a.key for a in k.actions('jeff')]);k.assert_invariants()
 
     def test_quick_pickup_nearest_reachable_only_and_full_hand_drop(self):
         k=self.make();k.positions['human']=(5.,4.)

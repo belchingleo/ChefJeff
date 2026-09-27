@@ -77,6 +77,12 @@ class CooperationMemory:
                                     or not isinstance(event.get('t'), (int,float))
                                     or not math.isfinite(event['t'])):
                                 raise ValueError()
+                # Normalize historical actor fields in memory; provider/model names stay intact.
+                for rounds in value['scopes'].values():
+                    for record in rounds:
+                        for event in record['events']:
+                            if event.get('actor') == 'jev':
+                                event['actor'] = 'jeff'
                 self.data = value
             except (OSError, ValueError, TypeError, AttributeError):
                 self.data['enabled'] = False

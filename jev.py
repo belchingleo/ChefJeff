@@ -47,7 +47,7 @@ class JevClient:
             "state": {
                 "kitchen": state,
                 "rules": {
-                    "role": 'You control chef jev and cooperate with chef human. Both chefs can perform the same actions; neither has a fixed role. Choose one next action for your own chef.',
+                    "role": 'You control chef jeff and cooperate with chef human. Both chefs can perform the same actions; neither has a fixed role. Choose one next action for your own chef.',
                     "objective": f"Meet all three goals within the time limit: orders served, net operating revenue, and maximum bad reviews. The round ends immediately when all goals are met; remaining orders need not be completed. Each whole second left on success awards {self.c.get('time_bonus_per_second', 1):g} additional yuan, excluded from the operating revenue goal. Choose how to cooperate based on the other chef's position and actions.",
                     "flow": 'fetch takes raw meat -> put bN places it on an empty board -> chop bN prepares it -> take bN picks up the chopped ingredient -> put pN puts it in the pot -> cooking runs automatically. take <counter_id> takes a clean plate -> plate pN transfers cooked food into the held plate -> serve delivers it. Alternatively, take pot pN lifts the whole pot off the stove; plate <counter_id> transfers its food onto a clean plate on that counter, leaving the plated food there and the empty pot in your hands. Return the pot with put pot pN, then collect the plated food. With a clean plate, plate ground <item_id> serves food from a pot on the floor; the empty pot remains there. Food cannot be removed from a pot with bare hands. Actions automatically walk to the target and then work; go only moves.',
                     "plate_reuse": 'Dirty plates cannot hold food or substitute for clean plates. If no clean plate is available, dirty plates must be washed before plating and serving can continue. Waiting alone does not clean plates. Decide when to wash and how to divide work based on the situation.',
@@ -66,7 +66,7 @@ class JevClient:
             },
             "questions": {"next_action": {
                 "type": "choice",
-                "instructions": "Given the whole kitchen situation, which action should chef jev take now to cooperate with human toward the shared goals? Consider both chefs' current actions, occupied equipment, order deadlines, and burning/fire risks. Choose one action now; an ongoing task may be continued or interrupted.",
+                "instructions": "Given the whole kitchen situation, which action should chef jeff take now to cooperate with human toward the shared goals? Consider both chefs' current actions, occupied equipment, order deadlines, and burning/fire risks. Choose one action now; an ongoing task may be continued or interrupted.",
                 "criteria": {a.key: a.label for a in actions}
             }}
         })
@@ -163,13 +163,13 @@ class DecisionLoop:
                 for key in self.tokens:
                     self.tokens[key] += result["usage"].get(key, 0)
                 decision = context["actions"][result["choice"]]
-                chef = self.k.chefs["jev"]
+                chef = self.k.chefs["jeff"]
                 current_job = chef.job.id if chef.job else None
                 fresh = (not self.closed and enabled and not self.k.ended and context["epoch"] == self.epoch
                          and now-context["sent"] <= self.k.c["ai_max_response_age"]
                          and context["job_id"] == current_job)
-                applied, message = self.k.start("jev", decision) if fresh else (False, "回复已过期、任务已变化或游戏已暂停")
-                sprint_applied=bool(applied and result.get('sprint') is True and hasattr(self.k,'sprint') and self.k.sprint('jev'))
+                applied, message = self.k.start("jeff", decision) if fresh else (False, "回复已过期、任务已变化或游戏已暂停")
+                sprint_applied=bool(applied and result.get('sprint') is True and hasattr(self.k,'sprint') and self.k.sprint('jeff'))
                 if not fresh:self.stale_count += 1
                 elif not applied:self.rejected_count += 1
                 self.log("ai_response", {"request_id": context["id"], **result, "applied": applied, "execution": message, "sprint_applied":sprint_applied,
@@ -199,7 +199,7 @@ class DecisionLoop:
         urgent = urgency != self.last_urgency
         if not (changed or urgent or age >= self.k.c["ai_refresh_seconds"]):
             return
-        actions = self.k.actions("jev")
+        actions = self.k.actions("jeff")
         state = self.k.snapshot()
         causes = [e["message"] for e in self.k.events[self.event_cursor:]]
         if urgent:
@@ -208,7 +208,7 @@ class DecisionLoop:
             causes = ["定期全局状态刷新"]
         self.event_cursor = len(self.k.events)
         self.calls += 1
-        chef = self.k.chefs["jev"]
+        chef = self.k.chefs["jeff"]
         context = {"id": self.calls, "sent": now, "epoch": self.epoch,
                    "job_id": chef.job.id if chef.job else None,
                    "actions": {a.key: a for a in actions}}

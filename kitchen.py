@@ -7,7 +7,7 @@ import random
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-NAMES = {"human": "你", "jev": "Jeff"}
+NAMES = {"human": "你", "jeff": "Jeff"}
 STATES = {"raw": "生肉", "chopped": "切好", "cooking": "加热中", "ready": "熟了", "burnt": "糊了", "extinguisher": "灭火器", "clean_plate": "干净餐盘", "dirty_plate": "脏餐盘", "pot": "锅", "assembled": "待组装菜品"}
 
 
@@ -136,7 +136,7 @@ class Kitchen:
             self.stations[key] = Station(f"案板 {key[1:]}", "处理区")
         for key in self.pots:
             self.stations[key] = Station(f"灶台 {key[1:]}", "烹饪区", pot_id=f'P{key[1:]}')
-        self.chefs = {"human": Chef("fridge"), "jev": Chef(self.pots[0])}
+        self.chefs = {"human": Chef("fridge"), "jeff": Chef(self.pots[0])}
         self.orders = [{"id": f"O{i+1}", "dish": "牛排", "arrival": i*self.c["order_interval"],
                         "deadline": i*self.c["order_interval"]+self.c["order_patience"],
                         "status": "future"} for i in range(self.c["order_count"])]

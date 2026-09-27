@@ -23,15 +23,15 @@ class ModelLanguageTests(unittest.TestCase):
         walk(data);self.assertEqual(missing,[])
     def test_all_current_actions_states_and_rules_are_english_without_mutation(self):
         for stage in ('raw','chopped','clean_plate','dirty_plate','pot','extinguisher','ready'):
-            k=SpatialKitchen(load_config());k.chefs['jev'].hand=Food('held',stage,plate_id='D1' if stage=='ready' else None)
+            k=SpatialKitchen(load_config());k.chefs['jeff'].hand=Food('held',stage,plate_id='D1' if stage=='ready' else None)
             k.stations['b1'].food=Food('prep','raw');k.stations['p1'].food=Food('cooked','ready',6,12)
-            state=k.snapshot();before=copy.deepcopy(state);actions=k.actions('jev')
+            state=k.snapshot();before=copy.deepcopy(state);actions=k.actions('jeff')
             payload=SpatialJevClient(k.c,key='test').payload(state,actions)
             self.assert_english(payload);self.assertEqual(state,before)
             self.assertEqual(list(payload['questions']['next_action']['criteria']),[a.key for a in actions])
             self.assertEqual(payload['state']['rules']['timing']['handling'],.15)
     def test_logged_request_translates_memory_and_history_but_preserves_records(self):
-        k=SpatialKitchen(load_config());k.emit('Jeff洗好了 D1，可取走盛菜或放到空柜台',kind='washed',actor='jev')
+        k=SpatialKitchen(load_config());k.emit('Jeff洗好了 D1，可取走盛菜或放到空柜台',kind='washed',actor='jeff')
         memory={'enabled':True,'episodes':[{'events':[{'message':'你完成动作：切菜','action':'chop b1','target':[4,3]}]}]}
         original=copy.deepcopy(memory);rows=[]
         ai=DecisionLoop(k,SpatialJevClient(k.c,key='test'),lambda kind,data:rows.append((kind,data)),lambda text:None)

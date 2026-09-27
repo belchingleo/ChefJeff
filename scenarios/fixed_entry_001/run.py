@@ -68,24 +68,24 @@ def run_reference(name, actions, decision_delay=0.0):
     for command in actions:
         if decision_delay:
             k.advance(decision_delay)
-        candidates = {a.key: a.label for a in k.actions("jev")}
+        candidates = {a.key: a.label for a in k.actions("jeff")}
         assert command in candidates, (name, command, k.time, list(candidates))
         before = k.snapshot()
-        hand = k.chefs["jev"].hand
+        hand = k.chefs["jeff"].hand
         delivering_target = command == "serve" and hand and hand.id == "F1" and hand.stage == "ready"
         decision = {"kind": "reference_decision", "controller": "handwritten_offline",
                     "game_time": round(k.time, 6), "action": command,
                     "candidate_actions": candidates, "state_before": before}
-        ok, reason = k.command("jev", command)
+        ok, reason = k.command("jeff", command)
         assert ok, (name, command, reason)
         decision.update(accepted=ok, execution=reason)
-        while k.chefs["jev"].job and not k.ended:
+        while k.chefs["jeff"].job and not k.ended:
             k.advance(.05)
             k.assert_invariants()
         if first_off_heat is None and not k.stations["p1"].heating:
             first_off_heat = round(k.time, 6)
         new_events = k.events[cursor:]
-        if delivering_target and any(e.get("kind") == "served" and e.get("actor") == "jev" for e in new_events):
+        if delivering_target and any(e.get("kind") == "served" and e.get("actor") == "jeff" for e in new_events):
             served_target = True
         cursor = len(k.events)
         decision["completed_at"] = round(k.time, 6)
@@ -120,7 +120,7 @@ def export():
     # Explicit dummy key bypasses credential discovery. Only build the payload;
     # never call ask(), DecisionLoop, or a live GameSession.
     client = SpatialJevClient(k.c, key="offline-unused-placeholder")
-    payload = client.payload(k.snapshot(), k.actions("jev"))
+    payload = client.payload(k.snapshot(), k.actions("jeff"))
     payload["state"]["input_language"] = INPUT_LANGUAGE_VERSION
     payload["state"]["recent_events"] = []
     payload["state"]["recent_decisions"] = []

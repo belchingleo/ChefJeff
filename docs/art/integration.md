@@ -1,79 +1,51 @@
-# 三关美术接入与验收
+# Art integration guide
 
-日期：2026-09-26；源码版本：0.5.9-alpha。
+ChefJeff uses a fixed pixel-art camera with directional chefs, modular cabinets/walls, ingredient layers and action effects. Cocos loads local atlases from `cocos-kitchen/assets/resources/art/`; `LevelOneArt.ts` handles resources and `KitchenClient.ts` composes the scene.
 
-## 0.5.9 网格映射与设备方向重构
+## Geometry and layering
 
-旧版页面能够加载不表示用户认可视觉质量；下方 0.5.8 及更早记录为历史。本轮按用户逐项复核重新统一映射。
+`KitchenGeometry.ts` centralizes world-to-screen projection and surface anchors. Map `presentation.station_views` separates the cabinet run axis and device asset axis from the chef's operation side. Align boards, plates, ingredients, selection outlines and effects to the same visible work surface.
 
-- `KitchenGeometry.ts` 集中保存投影参数；地图 `presentation.station_views` 将柜台排列和设备长轴与操作朝向分开。
-- 基准 64 像素方格，显示 52 像素。墙顶完整占格，墙高 54；前墙剖切高 36；柜面高 22。等高相邻墙不画内部白面；剖切高度差采用木纹，避免白色断口。
-- 柜体、工位及物品、厨师和地面物品进入统一场景层，按地面深度绘制。手持物面朝北时置于人物后；点击台面使用投影后的边界。
-- 两套新方向设备图：案板/回收架/水槽横纵独立重绘；锅柄左右/前后独立重绘。其余角色、木材、装饰、食材、特效复用。来源与等比装配脚本保存在 `art-candidates/grid-foundation-v1/`。
-- 出餐口沿用一格柜体与相同木台面，用深灰蓝双箭头，按台面高度裁出带边框的墙孔。不加载第二套柜体，不再显示订单夹、盘子或绿色箭头。
-- 图集补齐实际 alpha 边界；取消板面单独挤压和物品重复缩小。地板原图覆盖四格见方，逐格取对应片段，逻辑格子未变。
-- 食材、刀具和手臂显示跟随板面中心；蒸汽、火焰、洗碗和冲刺反馈校准。静态标签仍隐藏。
-- 订单卡片改为统一完整边框、完整耐心条底槽，横杆覆盖五卡总宽；整页 HUD 改版仍未进行。
+Keep logical footprints and access points in map data. Scale assets proportionally using alpha bounds; avoid stretching a cabinet or moving a character to compensate for a misplaced tool. Cabinets, chefs and ground objects share depth ordering. Directional hand/tool layers must agree with whether the chef stands in front of, behind or beside the counter.
 
-验证：完整离线测试 298 项通过；新增 TypeScript 真实执行几何契约、纯 Python 素材契约；TypeScript 和最终网页构建与离线页面检查结果写入 `checks/0.5.9-acceptance.md`。独立离线测试不发送模型请求。完整长局真人协作、用户视觉认可与性能压测仍不包含在此轮验证中。
+## Characters and cooking
 
-## 0.5.8 单格侧向出餐口和墙边
+The human chef has brown hair, a white shirt and blue overalls. Jeff is a compact tracked robot with a chef hat and red scarf. Preserve each character's height and proportions across directions. Chopping uses directional poses, a separate knife and light impact feedback; standing position follows the workstation's reachable side. Downstrokes may naturally pass behind a back-facing body while raised swings stay readable.
 
-`art/serving-side-v1` 覆盖出餐口和侧墙拼接。三关实际占格保持 1×1；右墙使用 west（厨师在左、外送向右），左墙使用 east（厨师在右、外送向左）。两幅素材分别在相同固定相机下生成，透明边裁切后等比缩到 64 像素宽，再放入标准 64×96 画布。订单夹与箭头是固定标识，不再绘入餐盘或托盘，不拉伸长条资源。生成来源和打包脚本见 `art-candidates/serving-side-v1/`。
+Prepared tomatoes use slices and lettuce uses leaves, shared between preparation and plated layers. Burger layers have a fixed order independent of ingredient-addition order. Missing ingredients remain hidden. Art does not decide recipe legality.
 
-侧墙与南墙只使用深木构件，米色保留在北墙垂直面；隔墙格下铺同一室内地板，避免透明边缘露出外围草地。出餐口对应外墙仅视觉开口，通行阻挡仍保持原规则。
+Devices use horizontal/vertical assets as appropriate. The bin opening's long edge faces the reachable operation side; wall-facing details follow that side. Serving windows retain their map footprint. Fire, smoke, washing and sprint effects follow game state and pause with gameplay.
 
-293 项完整离线测试、TypeScript 和网页构建通过；三张静态拼接图已更新。浏览器查看固定入口准备页正常，截图为 `checks/0.5.8-ready-browser.png`；独立离线营业测试页首次被拦截，在用户打开 Cocos 后重试恢复。已检查三关实际渲染、左右侧出餐口的单格尺寸/方向、墙边无白绿条，以及第二关出餐口点击选中反馈，截图为 `checks/0.5.8-level1-browser.png` 至 `level3-browser.png`。出餐动作由对应离线测试验证，未在本次页面检查重复完整出餐流程。未调用真实模型，未做长局性能测试。
+## Asset changes and verification
 
-## 0.5.7 单格模块与数据化地图
+Add atlas rectangles, frame data and needed metadata together. Rectangles use the PNG top-left origin; set `SpriteFrame.originalSize` consistently. Keep runtime atlases free of private paths or generation history. Graphics fallbacks preserve readability if a resource fails.
 
-新增 `art/kitchen-modules-v2/`，主体图像由独立 Images 素材任务生成，主任务负责接入与检查。柜体台面统一 64×64、画布 64×96、地面锚点 (32,64)、工作面 (32,42)；按柜门朝向命名，南侧使用无外露把手的北向版本。柜体按世界 Y 排列覆盖，地板先绘制，避免下一行地板抹掉柜身。垃圾为同规格柜体；出餐窗口改亮色内壁与托盘。
+Build with Cocos Creator 3.8.8, run affected asset/geometry tests, then inspect actual browser views for all affected directions and maps. Check visible proportions, work-surface alignment, click targets, held items and action frames. Static contact sheets help asset review but do not replace browser interaction checks. Asset provenance and rights are reviewed before public distribution; see [third-party notices](../../THIRD_PARTY_NOTICES.md).
 
-北墙可见范围 y48–128，其中深木顶 y48–72、米色墙面 y72–128。装饰使用实际 alpha 包围盒等比缩放并居中，放在台面上方的可见墙面，不再居中整张透明画布。去掉地图静态标签与食材底牌，角色增加小面积像素接触阴影。
+---
 
-地图布局、柜体朝向、装饰和外围环境改读 JSON。庭院/街边/露台是轻量环境差异，非新增游戏机制。完整候选和生成来源保存在 `art-candidates/modular-v2/`；运行只加载 atlas/manifest，别名用于兼容旧渲染键。
+## 中文说明
 
-静态检查图：`checks/level1-static-modular-v2.png`、`level2-static-modular-v2.png`、`level3-static-modular-v2.png`。这些是依据实际素材和地图数据离线拼接的示意，**不是 Cocos 页面截图**，不含动态角色/操作验证。288 项离线测试、TypeScript、网页构建和发布包通过；固定入口已更新至 0.5.7-alpha，准备页、指纹一致。浏览器连接不可用，页面验收待补。
+# 美术接入指南
 
-## 0.5.6 第二、三关统一美术
+ChefJeff 使用固定像素视角、方向化角色、模块柜墙、配料叠层和动作特效。Cocos 从 `cocos-kitchen/assets/resources/art/` 读取本地图集，`LevelOneArt.ts` 管理资源，`KitchenClient.ts` 组合场景。
 
-三关共用模块化墙体、木台面与蓝色柜门、地板、墙饰、外围铺地、角色和特效。第二关出餐窗口贴左墙，第三关贴右墙；横向案板与第一关纵向案板共用工作面锚点与透视。保持两关原有通道、碰撞、设备、菜谱、时间、订单与交互规则。
+## 几何与层级
 
-新增 `art/burger-food/` 六帧：生菜和番茄的原料/切好状态、面包、无芝士汉堡。食材柜用对应图标；已装盘汉堡、未完成组装和订单图标复用这些素材与原餐盘。候选来源、生成提示与切片记录见 `art-candidates/burger-food-v1/`。纹理缺失时保留原绘制回退，不改变模型输入。
+`KitchenGeometry.ts` 集中世界到屏幕投影和台面锚点。地图 `presentation.station_views` 将柜体排列轴、设备资源轴与角色操作侧分开。案板、盘子、食材、选框和特效共用可见操作面位置。
 
-0.5.6 验证：TypeScript、网页构建、11 项发布相关测试和 3 项语言测试通过；离线页面检查第二/三关切换、通道显示、左右出餐窗口、食材柜、切菜、完整汉堡和部分组装盘，未使用真实模型。关卡规则未修改，未重复上一版完整行为测试。续接时内置浏览器不可用，最后一次食材柜标签间距微调尚未再次截图，现有两关截图为该微调前的主体画面。
+逻辑占格与访问位置保留在地图数据中，按 alpha 边界等比缩放素材，不靠拉伸柜体或挪人物弥补工具错位。柜体、厨师和地面物品共用深度排序。手和工具的方向层级需对应角色位于柜台前、后或侧面的位置。
 
-## 0.5.5 模块化更新
+## 角色与烹饪
 
-新增 40 帧模块图集：连续柜体、工位顶面、深木色墙顶、米黄色内墙面、浅木地板、右侧出餐窗口、墙饰、外围铺地与花灯。食材来源统一柜体加肉图标；垃圾桶直接落地。模块按 64 像素素材单元缩放到 58 像素游戏格，台面锚点统一，保持原碰撞与通行布局。三块案板组成连续岛台；食材居中，切菜工具按朝向旋转，角色工作时视觉靠近台面。
+人类厨师为棕发、白衬衫、蓝背带裤；Jeff 为短臂履带机器人、厨师帽和红领巾。不同朝向保留身高与比例。切菜使用方向姿态、独立刀具与轻微切击反馈，站位遵循工位可达侧。背向角色下刀时刀被身体自然遮挡可以接受，举刀时需可辨认。
 
-运行增量资源位于 `cocos-kitchen/assets/resources/art/level1-modular/`，原角色物品图集继续复用；完整生成来源、切片与检查存放 `art-candidates/level1-modular-kit-v1/`。不采用尚待验收的额外转角拼接。火势与冲刺逻辑适用于全部关卡，第一关使用新像素效果；与下方旧版纯美术范围不同。
+切好番茄使用片状、生菜使用叶片，切配与盘中叠层共用形态。汉堡按固定顺序显示，与放料先后无关，缺料层隐藏；美术不判断菜谱合法性。
 
-本轮验证：272 项完整离线测试、TypeScript 检查及网页构建通过。离线浏览器已检查第一关切菜、连续台面、墙顶与出餐窗口，着火柜台、烟雾、扬尘和火势失控结算，以及第二关旧样式兼容与切回第一关。未调用真实模型；未开展长局性能验收。
+设备使用对应横／纵资源。垃圾桶开口长边面向可接触操作侧，靠墙细节随之定向；出餐口保留地图占格。火、烟、洗碗和冲刺特效跟随状态，并随游戏暂停。
 
-后续案板校正：三板连续岛按实际台面长度均分工作中心，避开顶部收边与底部柜门；案板纵深按 0.66 比例显示，食材、工作靠近、选中框、进度条和标签共用中心位置。仅改变显示坐标，不改变操作格或厨房规则。
+## 素材修改与验证
 
-下方记录为 0.5.4 首轮接入历史。
+图集矩形、帧数据和必要元数据一起更新，矩形使用 PNG 左上原点，保持 `SpriteFrame.originalSize` 一致。运行图集不含私人路径或生成历史，缺图时以 Graphics 回退保持可读。
 
-## 本轮交付
-
-独立任务「ChefJeff 美术资源生成与交付」收到用户完整提示词及八张参考图，实际调用 Images 两次补齐工位、物件与牛肉状态；角色四向步行动画、环境和特效沿用参考图，经裁切、透明度和锚点整理，交付 159 帧。主任务检查后修复了邻格残片、Cocos 图集尺寸及坐标问题，再接入第一关。
-
-- 玩家保留棕色短发、白上衣、蓝背带裤；Jeff 为厨师机器人、红领巾和履带。
-- 第一关替换地板、墙面、连续木台面、工位、餐具、锅、牛肉阶段和装盘牛排。
-- 步行按方向切帧；切菜使用方向角色与独立刀具；锅内食物、蒸汽、烟火、水花跟随实际游戏状态。
-- 第二、三关仍使用原有角色和地图素材；不改变厨房规则、动作候选、模型输入、订单、碰撞和寻路。
-- 运行资源位于 `cocos-kitchen/assets/resources/art/level1/`，只包含图集和必要帧数据。完整来源、生成提示词及联系表留在 `art-candidates/level1-v1/` 与本目录，不随运行包携带本机绝对路径。
-
-## 验证
-
-- 159 帧校验通过：图集矩形、透明边缘、内容一致性、锚点及动画序列。8 组重复为刻意共用的 idle / walk_0。
-- TypeScript 检查、Cocos 网页构建通过；266 项完整离线测试通过。
-- 在独立离线测试服务中，以 1280×800 页面检查第一关准备页、角色朝向、切菜、锅内牛肉及蒸汽；检查第一关→第二关→第三关→第一关的素材恢复。
-- 页面测试使用无网络决策桩，不调用真实模型；不能将此次视觉验收视为真实模型协作或长局性能结论。
-
-## 保留的边界
-
-切菜、持物、洗碗暂以四向角色加工具、物品和特效表达，尚无每类动作的独立完整姿势序列。idle 复用步行首帧，部分姿态稍有迈步感。墙角和门框额外候选未启用自动拼接；装饰与含奶酪汉堡参考未接入。第二、三关的蔬菜、面包和汉堡美术留待下一批。
-
-图集 `rect` 按 PNG 左上原点读取，并明确设置 `SpriteFrame.originalSize`。保留旧 Graphics 作为加载失败时的可读回退；图片只影响显示，不进入模型状态。
+用 Cocos Creator 3.8.8 构建，运行相关素材／几何测试，再检查受影响地图和朝向的实际浏览器画面，包括比例、台面对位、点击目标、持物和动作帧。静态联系表辅助审图，不替代实机交互检查。公开分发前审阅素材来源及权利，见[第三方说明](../../THIRD_PARTY_NOTICES.md)。

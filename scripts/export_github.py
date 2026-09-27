@@ -12,7 +12,7 @@ from scripts.package_web import package
 from scripts.audit_release import markers
 from release_info import ROOT
 
-EXTRAS = ('.github/workflows/offline-tests.yml','scripts/export_github.py',
+EXTRAS = ('tests/hosted_browser_test.cjs','.github/workflows/offline-tests.yml','scripts/export_github.py',
           'scripts/preview_map_art.py','docs/agent-integration.md',
           'scenarios/fixed_entry_001/run.py','scenarios/fixed_entry_001/scenario.json',
           'scenarios/fixed_entry_001/README.md')
@@ -27,6 +27,9 @@ __pycache__/
 *.pyc
 *.log
 *.jsonl
+*.sqlite3
+*.sqlite3-*
+hosted-data/
 .DS_Store
 .tools/
 dist/

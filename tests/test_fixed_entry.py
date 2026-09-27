@@ -47,7 +47,7 @@ class FixedEntryTests(unittest.TestCase):
                 self.assertGreater(actor['work_remaining'],0)
 
     def test_wash_first_is_legal_but_misses_the_thermal_deadline(self):
-        self.assertIn('wash', [a.key for a in build_scene().actions('jev')])
+        self.assertIn('wash', [a.key for a in build_scene().actions('jeff')])
         result, _ = run_reference('failure_control',
                                   ['wash', 'take sink', 'plate p1', 'serve'])
         self.assertFalse(result['success'])

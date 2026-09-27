@@ -53,7 +53,9 @@ The human plays through keyboard and pointer input, while the agent uses higher-
 
 ## Quick start
 
-You need **Python 3.10+ and a desktop browser**. The backend uses Python's standard library, and the repository includes a prebuilt web client.
+**The online demo is not open yet. You can run the full prototype locally using the steps below.**
+
+You need **Python 3.10+ and a desktop/laptop browser with a keyboard and mouse**. The backend uses Python's standard library, and the repository includes a prebuilt web client.
 
 ```sh
 git clone https://github.com/belchingleo/ChefJeff.git
@@ -72,6 +74,10 @@ python3 cocos_server.py --port 8775
 ```
 
 Stop it with Ctrl+C after playing. For the macOS background launcher, use `python3 scripts/stop_web.py`.
+
+### Supported devices
+
+The current release supports **desktop and laptop browsers with a keyboard and mouse**. Phones and touch-only play are not supported. iPads with an external keyboard and mouse are a future compatibility target: iPadOS supports these accessories, but ChefJeff still needs real-device checks for simultaneous keys, pointer buttons, focus, and rendering. They are not included in current supported devices. See [device support](docs/device-support.md).
 
 ### Controls
 
@@ -99,7 +105,7 @@ The environment separates kitchen rules, spatial movement, agent decisions, and 
 
 For a new model adapter, implement `payload(state, actions)` and `ask(payload)` and return the chosen action to `DecisionLoop`. The environment handles action validation and execution. Existing compatible services can be configured directly in Settings.
 
-Start with [agent integration](docs/agent-integration.md) and [map format](docs/地图数据格式.md). The character is named Jeff; TypeSafe Jev is one supported model service, and `jev` is the internal actor identifier.
+Start with [agent integration](docs/agent-integration.md) and [map format](docs/地图数据格式.md). The character is named Jeff; TypeSafe Jev is one supported model service, and `jeff` is the internal actor identifier.
 
 ### Development
 
@@ -131,6 +137,14 @@ ChefJeff is an early playable prototype. The repository is currently private whi
 3. **Broaden agent participation.** Improve adapters and experiment configuration, then support agent–agent teams and comparisons across multiple models and coordination methods.
 4. **Co-create the benchmark.** Define the whole-session scenario schema, reproducible comparison protocols, and evaluation measures with researchers, developers, and players. Grow the session collection through varied human participation and agent configurations.
 5. **Bring the prototype online.** Deploy isolated kitchens over HTTPS with browser-direct model requests. The planned contribution flow uses anonymous sessions, explicit opt-in, 30-day retention, and a deletion receipt. The hosted service is in preparation; the local version's credential behavior is described above.
+
+6. **Reach more devices.** Validate iPad with keyboard and mouse, then explore touch controls and other terminals.
+
+## Inspiration and thanks
+
+[Overcooked](https://www.ghosttowngames.com/overcooked/) is a remarkable work for exploring cooperation and coordination. ChefJeff's creator is a devoted Overcooked player on Nintendo Switch, and this project is a tribute to the shared challenges and delight of cooking together.
+
+Overcooked inspired ChefJeff from the beginning. Its overall gameplay and some early kitchen-layout ideas informed our initial designs. This acknowledgement concerns gameplay and map-design inspiration, rather than a reference to its specific software implementation. ChefJeff develops those ideas into a community-built environment for real-time human–AI cooperation and agent comparison.
 
 ## Join the project
 
@@ -193,7 +207,9 @@ ChefJeff 直接向 agent 提供厨房状态、规则和当前合法动作候选�
 
 ## 快速运行
 
-需要 **Python 3.10+ 和桌面浏览器**。后端使用 Python 标准库，仓库包含预构建网页。
+**在线试玩暂未开放，当前可按以下步骤在本地运行完整原型。**
+
+需要 **Python 3.10+，以及配备键盘和鼠标的电脑浏览器**。后端使用 Python 标准库，仓库包含预构建网页。
 
 ```sh
 git clone https://github.com/belchingleo/ChefJeff.git
@@ -212,6 +228,10 @@ python3 cocos_server.py --port 8775
 ```
 
 游玩结束后按 Ctrl+C 停止。使用 macOS 后台启动器时，可运行 `python3 scripts/stop_web.py`。
+
+### 支持的设备
+
+当前版本支持 **配备键盘和鼠标的台式机／笔记本浏览器**。暂不支持手机或纯触屏操作。外接键鼠的 iPad 是后续兼容目标：iPadOS 支持这些外设，但 ChefJeff 仍需真机检查组合按键、鼠标按钮、焦点和渲染，当前不列入支持设备。详见[设备支持](docs/device-support.md)。
 
 ### 基本操作
 
@@ -239,7 +259,7 @@ python3 cocos_server.py --port 8775
 
 接入新模型时，实现 `payload(state, actions)` 和 `ask(payload)`，将动作选择返回给 `DecisionLoop`；环境负责校验与执行。已有兼容服务可直接通过设置接入。
 
-从 [agent 接入](docs/agent-integration.md) 和 [地图数据格式](docs/地图数据格式.md) 开始了解。游戏角色名是 Jeff；TypeSafe Jev 是支持的模型服务之一，`jev` 是内部角色标识。
+从 [agent 接入](docs/agent-integration.md) 和 [地图数据格式](docs/地图数据格式.md) 开始了解。游戏角色名是 Jeff；TypeSafe Jev 是支持的模型服务之一，`jeff` 是内部角色标识。
 
 ### 开发与验证
 
@@ -271,6 +291,14 @@ ChefJeff 目前处于可玩的早期原型阶段。仓库在公开发布准备�
 3. **拓展 agent 参与。** 完善适配器与实验配置，进一步支持 agent—agent 团队，以及不同模型和协调方法之间的对照。
 4. **共创 benchmark。** 与研究者、开发者和玩家共同定义整局 scenario schema、可复现的比较协议和评估指标，通过不同玩家与 agent 配置逐步扩充对局集合。
 5. **提供在线试玩。** 部署 HTTPS 与独立厨房会话，由浏览器直接请求模型。计划采用匿名会话、主动贡献数据、保留 30 天并提供删除凭证的流程。托管服务正在准备中；本地版本的密钥处理方式见上文。
+
+6. **拓展终端支持。** 验证 iPad 外接键鼠的兼容性，再探索触屏交互和其他终端。
+
+## 启发与鸣谢
+
+[Overcooked（分手厨房）](https://www.ghosttowngames.com/overcooked/) 是一部在探索协作与配合方面非常伟大的作品。ChefJeff 的创作者也是该游戏忠实的 Nintendo Switch 玩家，希望借此项目向共同做菜带来的挑战与欢乐致敬。
+
+ChefJeff 从项目初期就受到了 Overcooked 的启发，整体玩法与部分早期厨房地图设计有所参考。这里所指的是玩法与地图设计层面的启发，而非其具体软件实现。ChefJeff 在此基础上，探索由社区共同建设的实时人机协作与 agent 能力对照环境。
 
 ## 参与共创
 

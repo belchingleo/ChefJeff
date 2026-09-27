@@ -11,7 +11,8 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from release_info import ROOT, RUNTIME_FILES, release_info
 from scripts.audit_release import markers
 
-PUBLIC_FILES = ('docs/images/gameplay.png','README.md','LICENSE','LICENSE-STATUS.md','THIRD_PARTY_NOTICES.md','SECURITY.md','CONTRIBUTING.md',
+PUBLIC_FILES = ('hosted_server.py','hosted_records.py','hosted/browser-agent.js','hosted/contribution.html',
+                'deploy/chefjeff.service','deploy/nginx-http.conf','deploy/nginx-https.conf','deploy/install_backend.py','docs/hosted-deployment.md','docs/device-support.md','docs/UI设计.md','docs/API接入与同类项目.md','docs/images/gameplay.png','README.md','LICENSE','LICENSE-STATUS.md','THIRD_PARTY_NOTICES.md','SECURITY.md','CONTRIBUTING.md',
                 '开始网页版.command','开始网页版.bat','停止网页版.command',
                 'docs/地图数据格式.md','docs/current-rules.md','docs/当前交互清单.md','docs/第二关-窄巷汉堡.md','docs/第二关-长台汉堡.md','docs/第三关-窄巷汉堡.md','docs/status.md','docs/privacy-and-costs.md','docs/agent-integration.md',
                 'cocos-kitchen/THIRD_PARTY_LICENSE.md','docs/art/integration.md',

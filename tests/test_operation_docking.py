@@ -11,7 +11,7 @@ class OperationDockingTests(unittest.TestCase):
         return k
 
     def test_both_chefs_walk_to_safe_endpoint_before_chopping(self):
-        for who in ('human','jev'):
+        for who in ('human','jeff'):
             with self.subTest(who=who):
                 k=self.make();k.positions[who]=(4,6)
                 k.stations['b1'].food=Food('test','raw',ingredient='beef')
@@ -67,7 +67,7 @@ class OperationDockingTests(unittest.TestCase):
                     self.assertFalse(k.nav.clear_walk_line(endpoint,(x,y)))
 
     def test_back_facing_feet_remain_below_visible_cabinet_front(self):
-        for who in ('human','jev'):
+        for who in ('human','jeff'):
             k=SpatialKitchen(load_config()|{'level':1,'spawn_seed':0})
             k.positions[who]=(4,6)
             k.stations['b3'].food=Food('test-back','raw')
@@ -83,14 +83,14 @@ class OperationDockingTests(unittest.TestCase):
 
     def test_corner_side_worker_stays_left_and_clear_of_north_worker(self):
         k=SpatialKitchen(load_config()|{'level':1,'spawn_seed':0})
-        k.positions.update(human=(4,2),jev=(3,3))
+        k.positions.update(human=(4,2),jeff=(3,3))
         k.stations['b1'].food=Food('corner')
-        for who in ('human','jev'):self.assertTrue(k.command(who,'chop b1')[0])
+        for who in ('human','jeff'):self.assertTrue(k.command(who,'chop b1')[0])
         k.advance(.3)
-        self.assertEqual(k.facing['jev'],'right')
-        self.assertEqual(k.positions['jev'],(3.3,3.3))
-        self.assertLess(k.positions['jev'][0],3.5)
-        self.assertGreater(k.positions['jev'][1]-k.positions['human'][1],.8)
+        self.assertEqual(k.facing['jeff'],'right')
+        self.assertEqual(k.positions['jeff'],(3.3,3.3))
+        self.assertLess(k.positions['jeff'][0],3.5)
+        self.assertGreater(k.positions['jeff'][1]-k.positions['human'][1],.8)
         self.assertTrue(all(a.job and a.job.working for a in k.chefs.values()))
 
     def test_all_station_types_share_side_docking_and_floor_boundaries(self):
@@ -111,7 +111,7 @@ class OperationDockingTests(unittest.TestCase):
     def test_level_two_sink_uses_same_side_anchor_as_board(self):
         k=self.make()
         self.assertEqual(k.operation_point('sink',(11,3)),(11.3,3.3))
-        k.positions.update(human=(11,3),jev=(3,2))
+        k.positions.update(human=(11,3),jeff=(3,2))
         k.stations['sink'].food=k.stations['plates'].food;k.stations['plates'].food=None
         k.stations['sink'].food.stage='dirty_plate'
         self.assertTrue(k.command('human','wash')[0]);k.advance(.2)

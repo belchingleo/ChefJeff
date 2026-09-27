@@ -9,6 +9,9 @@ __pycache__/
 *.pyc
 *.log
 *.jsonl
+*.sqlite3
+*.sqlite3-*
+hosted-data/
 .DS_Store
 .tools/
 dist/

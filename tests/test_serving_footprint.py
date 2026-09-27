@@ -32,7 +32,7 @@ class ServingFootprintTests(unittest.TestCase):
                 self.assertEqual(serve['facing'], facing)
                 self.assertTrue(all(cell in kitchen.nav.blocked for cell in cells))
                 self.assertEqual(kitchen.snapshot()['map']['equipment']['serve']['cell'], serve['cell'])
-                for route in (kitchen.path('human', 'serve'), kitchen.path('jev', 'serve')):
+                for route in (kitchen.path('human', 'serve'), kitchen.path('jeff', 'serve')):
                     self.assertTrue(route)
                     self.assertTrue(all(kitchen.nav.clear_walk_line(a, b)
                                         for a, b in zip(route, route[1:])))
@@ -46,7 +46,7 @@ class ServingFootprintTests(unittest.TestCase):
         self.assertTrue(all(sides.values()))
         for serve_cell, cells in sides.items():
             for side in cells:
-                for who in ('human', 'jev'):
+                for who in ('human', 'jeff'):
                     with self.subTest(level=level, serve_cell=serve_cell, side=side, who=who):
                         kitchen = self.make(level)
                         kitchen.positions[who] = side

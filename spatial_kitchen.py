@@ -185,7 +185,7 @@ class SpatialKitchen(Kitchen):
                     for center in ((6,2.5),(6,5.5))]
         rng = random.Random(self.c.get('spawn_seed'))
         rng.shuffle(spawns)
-        self.positions = dict(zip(('human','jev'),spawns))
+        self.positions = dict(zip(('human','jeff'),spawns))
         for who in self.chefs:self.chefs[who].location=tile_key(self.positions[who])
         self.facing = {who: 'down' for who in self.chefs}
         self.routes = {}
@@ -238,7 +238,7 @@ class SpatialKitchen(Kitchen):
             before=self.positions[who];goal=points[0];distance=math.dist(before,goal)
             # Floor interactions use the same nearby reach as keyboard actions;
             # their approach must not push the recipient off the target.
-            if len(points)==1 and job.action.kind not in ('go','chop','wash','drop') and distance<=.5 and self.nav.clear_walk_line(before,goal) and (job.action.kind in ('pickup','plate_ground','plate_partner') or math.dist(goal,self.positions['jev' if who=='human' else 'human'])<CHEF_SEPARATION):
+            if len(points)==1 and job.action.kind not in ('go','chop','wash','drop') and distance<=.5 and self.nav.clear_walk_line(before,goal) and (job.action.kind in ('pickup','plate_ground','plate_partner') or math.dist(goal,self.positions['jeff' if who=='human' else 'human'])<CHEF_SEPARATION):
                 points.clear();break
             if distance<1e-8:points.pop(0);continue
             step=min(budget,distance)
@@ -309,7 +309,7 @@ class SpatialKitchen(Kitchen):
         self.chefs[other].location=tile_key(self.anchor(other))
 
     def _move_with_chef_contact(self,who,end,boosted=False):
-        start=self.positions[who];other_id='jev' if who=='human' else 'human'
+        start=self.positions[who];other_id='jeff' if who=='human' else 'human'
         other=self.positions[other_id];distance=math.dist(start,end)
         if distance<1e-9:return
         direction=tuple((end[i]-start[i])/distance for i in (0,1))
@@ -508,7 +508,7 @@ class SpatialKitchen(Kitchen):
                     and math.dist(start,cell) <= THROW_RANGE+1e-8
                     and self.clear_throw_line(start,cell))
         cell = tuple(math.floor(v+.5) for v in end)
-        other = 'jev' if who == 'human' else 'human'
+        other = 'jeff' if who == 'human' else 'human'
         # A missed/busy catch lands beside the chef, never on top of their work.
         if math.dist(end,self.positions[other]) <= .75:
             candidates = sorted(self.nav.neighbors(self.anchor(other)),key=lambda p:(math.dist(p,end),p))
@@ -551,7 +551,7 @@ class SpatialKitchen(Kitchen):
                       'throw',floor,(hand.id, floor, aim[0], aim[1]))
 
     def handoff_target(self, who):
-        other = 'jev' if who == 'human' else 'human'
+        other = 'jeff' if who == 'human' else 'human'
         landing = self.throw_landing(who,self.positions[other])
         return landing[0] if landing else None
 
@@ -568,7 +568,7 @@ class SpatialKitchen(Kitchen):
                   kind='manual_move',actor=who,direction=vector)
 
     def partner_signature(self, who):
-        other = 'jev' if who == 'human' else 'human'
+        other = 'jeff' if who == 'human' else 'human'
         donor, plate = self.chefs[who].hand, self.chefs[other].hand
         def item_signature(item):
             if not item:return None
@@ -577,7 +577,7 @@ class SpatialKitchen(Kitchen):
         return (repr(item_signature(donor)),repr(item_signature(plate)))
 
     def can_plate_partner(self, who, nearby=False):
-        other = 'jev' if who == 'human' else 'human'
+        other = 'jeff' if who == 'human' else 'human'
         donor, plate = self.chefs[who].hand, self.chefs[other].hand
         ingredient=donor.contents if donor and donor.stage=='pot' else donor
         compatible=self.can_add(plate,ingredient) or (self.c.get('level') in (2,3) and self.can_merge_plates(plate,donor))
@@ -608,7 +608,7 @@ class SpatialKitchen(Kitchen):
             actions.append(Action('drop', f'把手中物品放到{self.place(location).name}（可捡回、不扣钱）',
                                   'drop', location, (chef.hand.id, location)))
         if self.can_throw(who) and not (chef.job and chef.job.action.kind == 'throw'):
-            other = 'jev' if who == 'human' else 'human'
+            other = 'jeff' if who == 'human' else 'human'
             action = self.throw_action(who,self.positions[other],'throw partner')
             if action: actions.append(action)
             for board in self.boards + self.counters:
@@ -621,7 +621,7 @@ class SpatialKitchen(Kitchen):
                     action = self.throw_action(who,cell)
                     if action: actions.append(action)
         if self.can_plate_partner(who):
-            other = 'jev' if who == 'human' else 'human'
+            other = 'jeff' if who == 'human' else 'human'
             actions.append(Action('plate partner','走近，把食材加入队友手中的盘（容器留在原持有者手中）',
                                   'plate_partner',tile_key(self.anchor(other)),self.partner_signature(who)))
         # Ground clicks are player movement intents. Jev can choose station positions or any food.
@@ -647,7 +647,7 @@ class SpatialKitchen(Kitchen):
         front=(x+dx,y+dy)
         station=next((key for key,e in self.equipment.items() if front in e.get('cells',[e['cell']])),None)
         if station:return station
-        other='jev' if who=='human' else 'human'
+        other='jeff' if who=='human' else 'human'
         if self.anchor(other)==front and self.can_plate_partner(who,True):return 'partner'
         # A pot at the chef's feet remains accessible when the forward tile is empty.
         for cell in (front,(x,y)):
@@ -657,7 +657,7 @@ class SpatialKitchen(Kitchen):
 
     def interaction_cell(self,who,target):
         if target in self.equipment:return min(self.equipment[target].get('cells',[self.equipment[target]['cell']]),key=lambda c:math.dist(c,self.positions[who]))
-        if target=='partner':return self.anchor('jev' if who=='human' else 'human')
+        if target=='partner':return self.anchor('jeff' if who=='human' else 'human')
         if target and target.startswith('item:'):
             item=self.ground.get(target[5:]);return self.cell(item.location) if item else None
         return self.cell(target) if target else None
@@ -690,7 +690,7 @@ class SpatialKitchen(Kitchen):
                         and incoming.food.stage in ('raw','chopped') and not incoming.food.plate_id):continue
             if a.kind=='plate_partner':
                 if not self.can_plate_partner(who,True):continue
-                distance=math.dist(self.positions[who],self.positions['jev' if who=='human' else 'human'])
+                distance=math.dist(self.positions[who],self.positions['jeff' if who=='human' else 'human'])
             else:
                 origin=self.interaction_cell(who,a.target)
                 distance=math.dist(self.positions[who],origin)
@@ -797,7 +797,7 @@ class SpatialKitchen(Kitchen):
         if not self._begin_work_checked(who,job):return False
         action = job.action
         if action.kind == 'plate_partner':
-            target = self.positions['jev' if who=='human' else 'human']
+            target = self.positions['jeff' if who=='human' else 'human']
         elif action.kind == 'throw':
             target = action.expected[2:4]
         elif action.target in self.equipment:
@@ -852,7 +852,7 @@ class SpatialKitchen(Kitchen):
             if not self.can_plate_partner(who,True) or job.action.expected != self.partner_signature(who):
                 self.emit('装盘时队友或物品变化，物品保持原样',kind='arrival_conflict',actor=who)
                 self.stop(who); return
-            other = 'jev' if who == 'human' else 'human'
+            other = 'jeff' if who == 'human' else 'human'
             pot, plate = self.chefs[who].hand, self.chefs[other].hand
             if self.can_merge_plates(plate,pot):
                 self.chefs[other].hand,self.chefs[who].hand=self.merge_plates(plate,pot)
@@ -872,7 +872,7 @@ class SpatialKitchen(Kitchen):
             self.projectiles[food.id] = {'food': food, 'target': job.action.target,
                 'from': self.positions[who], 'to': tuple(job.action.expected[2:4]), 'started': self.time,
                 'lands_at': self.time+duration, 'actor': who, 'catch_at': tuple(job.action.expected[2:4])}
-            receiver = self.chefs['jev' if who == 'human' else 'human']
+            receiver = self.chefs['jeff' if who == 'human' else 'human']
             if receiver.hand or (receiver.job and receiver.job.action.kind != 'go'):
                 # Busy chefs cannot catch: show the reserved landing point too,
                 # rather than drawing both ingredients through their hands.
@@ -915,7 +915,7 @@ class SpatialKitchen(Kitchen):
                               item=key,actor=p['actor'],target=p['target'])
                     del self.projectiles[key]
                     continue
-                other = 'jev' if p['actor'] == 'human' else 'human'
+                other = 'jeff' if p['actor'] == 'human' else 'human'
                 chef = self.chefs[other]
                 can_catch = (not chef.hand and (not chef.job or chef.job.action.kind == 'go')
                              and math.dist(self.positions[other],p.get('catch_at',p['to'])) <= .75

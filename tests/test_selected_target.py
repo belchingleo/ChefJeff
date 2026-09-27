@@ -29,7 +29,7 @@ class SelectedTargetTests(unittest.TestCase):
         return p
     def test_load_ground_then_pickup_both_chefs_both_levels(self):
         for level in (1,3):
-            for who in ('human','jev'):
+            for who in ('human','jeff'):
                 k=self.make(level);p=self.setup_floor_pot(k,who)
                 a=k.quick_interaction(who,preferred='item:P1');self.assertEqual(a.kind,'load_ground')
                 self.finish(k,who,a);self.assertIsNone(k.chefs[who].hand);self.assertEqual(p.contents.id,'meat')
@@ -45,7 +45,7 @@ class SelectedTargetTests(unittest.TestCase):
             self.assertIsNone(k.quick_interaction('human',preferred='item:P1'));self.assertIsNotNone(k.chefs['human'].hand)
         k=self.make();p=self.setup_floor_pot(k,'human');a=next(a for a in k.actions('human') if a.key=='load ground P1')
         k.start('human',a);k.advance(.05)
-        k.chefs['jev'].hand=Food('meat2','chopped');self.assertNotIn('load ground P1',[a.key for a in k.actions('jev')])
+        k.chefs['jeff'].hand=Food('meat2','chopped');self.assertNotIn('load ground P1',[a.key for a in k.actions('jeff')])
         k.advance(.3);self.assertEqual(p.contents.id,'meat');k.assert_invariants()
     def test_stale_floor_action_rejected(self):
         k=self.make();p=self.setup_floor_pot(k,'human');a=next(a for a in k.actions('human') if a.key=='load ground P1')
@@ -132,7 +132,7 @@ class SelectedTargetTests(unittest.TestCase):
                 self.assertEqual(k.ground['old'].food.stage,'chopped');self.assertEqual(k.money,0)
 
     def test_new_actions_in_english_model_payload(self):
-        k=self.make();self.setup_floor_pot(k,'jev');payload=SpatialJevClient(k.c,key="offline-test-only").payload(k.snapshot(),k.actions('jev'))
+        k=self.make();self.setup_floor_pot(k,'jeff');payload=SpatialJevClient(k.c,key="offline-test-only").payload(k.snapshot(),k.actions('jeff'))
         self.assertIn('load ground P1',payload['questions']['next_action']['criteria'])
         self.assertFalse(re.search('[\u3400-\u9fff]',json.dumps(payload,ensure_ascii=False)))
 

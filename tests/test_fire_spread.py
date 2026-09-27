@@ -28,7 +28,7 @@ class FireSpreadTests(unittest.TestCase):
         self.assertEqual(k.fire_neighbors('sink'),[])
 
     def test_counter_fire_blocks_use_and_both_chefs_can_extinguish(self):
-        for who in ['human','jev']:
+        for who in ['human','jeff']:
             k=self.make();target=k.counters[0];k.ignite(target)
             tool=k.stations['extinguisher'].food;k.stations['extinguisher'].food=None;k.chefs[who].hand=tool
             options=k.actions(who)
@@ -44,7 +44,7 @@ class FireSpreadTests(unittest.TestCase):
         for key in k.counters[:5]:k.ignite(key)
         k.advance(.05)
         self.assertTrue(k.ended);self.assertFalse(k.won());self.assertEqual(k.failure_reason,'fire_spread')
-        self.assertEqual(k.time_bonus,0);self.assertEqual(k.actions('jev'),[])
+        self.assertEqual(k.time_bonus,0);self.assertEqual(k.actions('jeff'),[])
         self.assertEqual(k.snapshot()['fire_safety']['burning_count'],5)
 
     def test_new_fire_cancels_chopping_and_blocks_throw(self):
@@ -58,7 +58,7 @@ class FireSpreadTests(unittest.TestCase):
 
     def test_fire_rule_and_state_reach_model_in_english(self):
         k=self.make();k.ignite('p1')
-        payload=JevClient(k.c,key='offline-test').payload(k.snapshot(),k.actions('jev'))
+        payload=JevClient(k.c,key='offline-test').payload(k.snapshot(),k.actions('jeff'))
         import json,re
         text=json.dumps(payload,ensure_ascii=False)
         self.assertNotRegex(text,r'[\u3400-\u9fff]')

@@ -21,6 +21,18 @@ class CooperationMemoryTests(unittest.TestCase):
         self.setting = {'provider':'jev','base_url':'https://api.typesafe.ai/v1',
                         'model':'jev-latest','api_key':'test-secret-not-memory','remember':False}
 
+    def test_legacy_actor_is_normalized_without_changing_provider_or_disk(self):
+        scope=scope_for(self.setting)
+        original={'version':1,'enabled':True,'scopes':{scope:[{
+            'round_id':'old','model':'jev-latest','duration':1,'outcome':{},
+            'events':[{'t':1,'kind':'action_done','actor':'jev','action':'wash'}]}]}}
+        self.path.write_text(json.dumps(original))
+        memory=CooperationMemory(self.path)
+        episode=memory.context(scope)['episodes'][0]
+        self.assertEqual(episode['events'][0]['actor'],'jeff')
+        self.assertEqual(episode['model'],'jev-latest')
+        self.assertEqual(json.loads(self.path.read_text()),original)
+
     def game(self):
         client = SpatialJevClient(load_config(), key=self.setting['api_key'])
         client.ask = Mock(return_value={'choice':'wait','confidence':.2,'probabilities':{},
@@ -110,7 +122,7 @@ class CooperationMemoryTests(unittest.TestCase):
     def test_retention_and_sampling_are_bounded_deterministic(self):
         store=CooperationMemory(self.path);k=SpatialKitchen(load_config())
         for i in range(100):
-            k.events.append({'t':i,'kind':'action_done','actor':'human' if i%2 else 'jev',
+            k.events.append({'t':i,'kind':'action_done','actor':'human' if i%2 else 'jeff',
                              'action':'chop b1','message':'完成切菜'})
         samples,count=sample_events(k.events)
         self.assertEqual(len(samples),18);self.assertEqual(count,100)
@@ -137,7 +149,7 @@ class CooperationMemoryTests(unittest.TestCase):
     def test_compatible_adapter_forwards_same_memory_without_extra_call(self):
         setting={**self.setting,'provider':'compatible','base_url':'https://example.com/v1'}
         c=CompatibleClient(load_config(),setting);k=SpatialKitchen(load_config())
-        payload=c.payload(k.snapshot(),k.actions('jev'))
+        payload=c.payload(k.snapshot(),k.actions('jeff'))
         payload['state']['cooperation_memory']={'enabled':True,'episodes':[{'duration':10}]}
         response=Mock();response.__enter__=Mock(return_value=response);response.__exit__=Mock()
         response.read.return_value=json.dumps({'choices':[{'message':{'content':'{"choice":"wait","sprint":false}'}}]}).encode()

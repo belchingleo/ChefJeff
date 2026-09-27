@@ -26,7 +26,7 @@ class PotSwapTests(unittest.TestCase):
         return spare
 
     def test_loaded_pot_starts_cooking_then_ready_burnt_fire(self):
-        for who in ('human','jev'):
+        for who in ('human','jeff'):
             for place in ('ground','counter'):
                 k=self.make();pot=k.stations['counter4'].food
                 k.chefs[who].hand=Food('beef','chopped',chopped=6)
@@ -48,7 +48,7 @@ class PotSwapTests(unittest.TestCase):
                 k.assert_invariants()
 
     def test_stove_swaps_preserve_contents_and_heat_only_on_stove(self):
-        for who in ('human','jev'):
+        for who in ('human','jeff'):
             k=self.make();spare=self.held_spare(k,who);spare.contents=Food('in','chopped',chopped=6)
             s=k.stations['p1'];s.food=Food('out','ready',heated=12);s.heating=True
             k.positions[who]=(9,2)
@@ -61,7 +61,7 @@ class PotSwapTests(unittest.TestCase):
             self.assertGreater(s.food.heated,0);self.assertEqual(k.money,0)
 
     def test_counter_and_ground_exchange_in_place(self):
-        for who in ('human','jev'):
+        for who in ('human','jeff'):
             for place in ('counter','ground'):
                 k=self.make();spare=self.held_spare(k,who);spare.contents=Food('in','chopped',heated=3)
                 s=k.stations['p1'];other=Food(s.pot_id,'pot',contents=Food('out','ready',heated=12));s.pot_id=None
@@ -89,15 +89,15 @@ class PotSwapTests(unittest.TestCase):
         k.ground[other.id]=GroundItem(other,tile_key((9,4)));k.positions['human']=(9,4)
         a=next(a for a in k.actions('human') if a.key=='swap pot ground P1')
         self.assertTrue(k.start('human',a)[0]);k.advance(.05)
-        self.assertNotIn('pickup P1',[a.key for a in k.actions('jev')])
+        self.assertNotIn('pickup P1',[a.key for a in k.actions('jeff')])
         # A changed contained item invalidates completion without exchanging pots.
         other.contents=Food('changed','chopped');k.advance(.2)
         self.assertIs(k.chefs['human'].hand,spare);self.assertIs(k.ground['P1'].food,other)
         self.assertIsNone(k.ground['P1'].lock);k.assert_invariants()
 
     def test_model_receives_swap_options_and_english_rules(self):
-        k=self.make();self.held_spare(k,'jev')
-        payload=SpatialJevClient(k.c,key='test').payload(k.snapshot(),k.actions('jev'))
+        k=self.make();self.held_spare(k,'jeff')
+        payload=SpatialJevClient(k.c,key='test').payload(k.snapshot(),k.actions('jeff'))
         self.assertIn('swap pot p1',payload['questions']['next_action']['criteria'])
         self.assertFalse(re.search('[\u3400-\u9fff]',json.dumps(payload,ensure_ascii=False)))
 

@@ -235,7 +235,7 @@ class GameSession:
         now=time.monotonic()
         if self.last_player_message_at is not None and now-self.last_player_message_at < 5:
             return 429, {'error':'沟通冷却中，请稍后再发。','communication':self.communication_state()}
-        chef=self.k.chefs['jev'];job=chef.job
+        chef=self.k.chefs['jeff'];job=chef.job
         message={'id':'M'+str(len(self.player_messages)+1),'round_id':self.game_id,
                  'kind':'correction' if code=='mistake' else 'preference',
                  'code':code,'text':PLAYER_MESSAGES[code],

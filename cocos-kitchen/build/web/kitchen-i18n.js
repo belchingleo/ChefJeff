@@ -383,7 +383,12 @@
     "火势失控": "Fire out of control",
     "火势失控，本局结束": "Fire out of control. Round ended.",
     "拿食材靠近垃圾桶按空格会销毁，扣 2 元；端锅则倒掉锅里的食物，保留空锅。拿起灭火器后靠近着火工位按空格，4 秒灭火。火每 8 秒向一格相邻柜台蔓延，不跨空地或墙；同时 5 个工位着火，本局结束。": "Hold food near a bin and tap Space to discard it for a ¥2 penalty. Pots remain after emptying. Carry the extinguisher to a burning station and tap Space; extinguishing takes 4 seconds. Every 8 game seconds, fire spreads to one adjacent worktop without crossing floors or walls. Five simultaneously burning stations end the round.",
-    "牛肉柜": "Beef supply"
+    "牛肉柜": "Beef supply",
+    "默认每局 200 次，失败请求也计入；达限后不再请求，已有动作继续，玩家仍可操作。设置仅保留到当前页面会话结束。连接测试另计，每次可能收费。Token 仅统计成功回复提供的用量，不代表完整账单；费用以服务商为准。": "Default: 200 calls per round, including failed requests. At the limit, new requests stop; existing actions and player controls continue. This setting lasts until the current page session ends. Connection tests are counted separately and may cost money. Token totals include usage reported by successful replies, not the full bill. Check your provider for charges.",
+    "导出当前局摘要、全部标记和最近 80 条动作事件。标记包含游戏时间和实际时间，在线版没有可追溯的服务器对局日志。不会附带 Key、接口地址、模型名称文本、跨局记忆或完整请求。文件只下载到本机，不自动上传。": "Export the run summary, all bookmarks and the last 80 action events. Bookmarks include game and wall times; the hosted version has no persistent server journal. Keys, endpoint and model text, cross-round memory and full requests are excluded. Downloads stay local; nothing is uploaded.",
+    "导出当前局摘要、全部标记、沟通记录和最近 80 条动作事件。标记包含游戏时间和实际时间，在线版没有可追溯的服务器对局日志。不会附带 Key、接口地址、模型名称文本、跨局记忆或完整请求。文件只下载到本机，不自动上传。": "Export the run summary, all bookmarks, communication records and the last 80 action events. Bookmarks include game and wall times; the hosted version has no persistent server journal. Keys, endpoint and model text, cross-round memory and full requests are excluded. Downloads stay local; nothing is uploaded.",
+    "浏览器直连模型": "Browser-direct model connection",
+    "：在线版由浏览器直连模型；服务商必须允许跨域访问。跨域失败不会改由服务器代发 Key。": ": The hosted version calls your model directly from the browser. Your provider must allow CORS; a CORS failure never forwards your key through our server."
   },
   "templates": [
     [
@@ -681,6 +686,10 @@
     [
       "{0}s 糊",
       "{0}s burn"
+    ],
+    [
+      "本局 {0} / {1} 次{2}；成功回复 token：输入 {3} / 输出 {4}；本页面连接测试 {5} 次",
+      "Round: {0} / {1} calls{2}; reported tokens: {3} input / {4} output; connection tests: {5}"
     ]
   ]
 }

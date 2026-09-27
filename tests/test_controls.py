@@ -20,14 +20,14 @@ class ControlsTests(unittest.TestCase):
     def test_free_aim_exact_range_and_wall(self):
         k=self.make();k.positions['human']=(3.,4.);k.chefs['human'].hand=Food('test')
         self.throw(k,'human',(6,4));self.assertEqual(k.ground['test'].location,'floor_6_4')
-        k=self.make();k.positions['human']=(2.,4.);k.positions['jev']=(11.,6.);k.chefs['human'].hand=Food('test')
+        k=self.make();k.positions['human']=(2.,4.);k.positions['jeff']=(11.,6.);k.chefs['human'].hand=Food('test')
         self.throw(k,'human',(40,4));self.assertEqual(k.ground['test'].location,'floor_9_4')
         k=self.make();k.positions['human']=(5.,1.);k.chefs['human'].hand=Food('test')
         self.throw(k,'human',(10,1));self.assertEqual(k.ground['test'].location,'floor_6_1')
 
     def test_throw_raw_or_chopped_onto_board_both_chefs(self):
         from spatial_kitchen import EQUIPMENT
-        for who in ('human','jev'):
+        for who in ('human','jeff'):
             for stage in ('raw','chopped'):
                 k=self.make();k.positions[who]=(3.,4.)
                 food=Food('ingredient',stage,2 if stage=='raw' else 6)
@@ -41,16 +41,16 @@ class ControlsTests(unittest.TestCase):
 
     def test_board_throw_reserves_slot_against_other_throw_or_put(self):
         from spatial_kitchen import EQUIPMENT
-        k=self.make();k.positions.update(human=(3.,4.),jev=(3.,3.))
-        k.chefs['human'].hand=Food('flying');k.chefs['jev'].hand=Food('held')
-        stale=k.throw_action('jev',EQUIPMENT['b1']['cell'])
+        k=self.make();k.positions.update(human=(3.,4.),jeff=(3.,3.))
+        k.chefs['human'].hand=Food('flying');k.chefs['jeff'].hand=Food('held')
+        stale=k.throw_action('jeff',EQUIPMENT['b1']['cell'])
         k.start('human',k.throw_action('human',EQUIPMENT['b1']['cell']));k.advance(.16)
         self.assertEqual(k.snapshot()['stations']['b1']['incoming_item'],'flying')
-        self.assertNotIn('put b1',[a.key for a in k.actions('jev')])
-        self.assertFalse(k.start('jev',stale)[0])
+        self.assertNotIn('put b1',[a.key for a in k.actions('jeff')])
+        self.assertFalse(k.start('jeff',stale)[0])
         k.advance(1)
         self.assertEqual(k.stations['b1'].food.id,'flying')
-        self.assertEqual(k.chefs['jev'].hand.id,'held');k.assert_invariants()
+        self.assertEqual(k.chefs['jeff'].hand.id,'held');k.assert_invariants()
 
     def test_occupied_board_throw_falls_to_ground(self):
         from spatial_kitchen import EQUIPMENT
@@ -83,35 +83,35 @@ class ControlsTests(unittest.TestCase):
 
     def test_idle_catch_and_full_hand_fall_beside(self):
         for busy_hand in (False,True):
-            k=self.make();k.positions.update(human=(8.,4.),jev=(10.,4.));k.chefs['human'].hand=Food('test')
-            if busy_hand:k.chefs['jev'].hand=Food('held')
+            k=self.make();k.positions.update(human=(8.,4.),jeff=(10.,4.));k.chefs['human'].hand=Food('test')
+            if busy_hand:k.chefs['jeff'].hand=Food('held')
             self.throw(k,'human',(10,4))
             if busy_hand:
-                self.assertEqual(k.chefs['jev'].hand.id,'held')
+                self.assertEqual(k.chefs['jeff'].hand.id,'held')
                 self.assertIn(k.cell(k.ground['test'].location),neighbors((10,4)))
-            else:self.assertEqual(k.chefs['jev'].hand.id,'test');self.assertNotIn('test',k.ground)
+            else:self.assertEqual(k.chefs['jeff'].hand.id,'test');self.assertNotIn('test',k.ground)
 
     def test_chopping_and_washing_do_not_catch_or_interrupt(self):
         for task in ('chop b1','wash'):
             k=self.make();k.chefs['human'].hand=Food('test')
             if task=='wash':
                 plate=k.stations['plates'].food;k.stations['plates'].food=None;plate.stage='dirty_plate'
-                k.stations['sink'].food=plate;k.positions.update(jev=(8.,2.),human=(9.,2.));k.chefs['jev'].location='sink'
+                k.stations['sink'].food=plate;k.positions.update(jeff=(8.,2.),human=(9.,2.));k.chefs['jeff'].location='sink'
             else:
-                k.stations['b1'].food=Food('cut');k.positions.update(jev=(3.,3.),human=(5.,4.));k.chefs['jev'].location='b1'
-            k.command('jev',task);k.advance(.05);job=k.chefs['jev'].job
-            self.throw(k,'human',k.positions['jev'])
-            self.assertIsNone(k.chefs['jev'].hand);self.assertIs(k.chefs['jev'].job,job)
-            self.assertIn('test',k.ground);self.assertNotEqual(k.cell(k.ground['test'].location),k.anchor('jev'))
+                k.stations['b1'].food=Food('cut');k.positions.update(jeff=(3.,3.),human=(5.,4.));k.chefs['jeff'].location='b1'
+            k.command('jeff',task);k.advance(.05);job=k.chefs['jeff'].job
+            self.throw(k,'human',k.positions['jeff'])
+            self.assertIsNone(k.chefs['jeff'].hand);self.assertIs(k.chefs['jeff'].job,job)
+            self.assertIn('test',k.ground);self.assertNotEqual(k.cell(k.ground['test'].location),k.anchor('jeff'))
 
     def test_receiver_moves_or_changes_hands_during_flight(self):
-        k=self.make();k.positions.update(human=(5.,4.),jev=(10.,4.));k.chefs['human'].hand=Food('test')
+        k=self.make();k.positions.update(human=(5.,4.),jeff=(10.,4.));k.chefs['human'].hand=Food('test')
         k.start('human',k.throw_action('human',(10,4)));k.advance(.15)
-        k.positions['jev']=(10,6);k.advance(1)
-        self.assertIsNone(k.chefs['jev'].hand);self.assertIn('test',k.ground);k.assert_invariants()
+        k.positions['jeff']=(10,6);k.advance(1)
+        self.assertIsNone(k.chefs['jeff'].hand);self.assertIn('test',k.ground);k.assert_invariants()
 
     def test_no_free_neighbor_retains_throwable(self):
-        k=self.make();k.positions.update(human=(8.,4.),jev=(10.,4.));k.chefs['human'].hand=Food('test')
+        k=self.make();k.positions.update(human=(8.,4.),jeff=(10.,4.));k.chefs['human'].hand=Food('test')
         for i,c in enumerate(neighbors((10,4))):k.ground[str(i)]=GroundItem(Food(str(i)),tile_key(c))
         self.assertIsNone(k.throw_action('human',(10,4)));self.assertEqual(k.chefs['human'].hand.id,'test')
 
@@ -130,14 +130,14 @@ class ControlsTests(unittest.TestCase):
         k.command('human','go b1');self.assertFalse(any(k.manual['human']));self.assertIsNotNone(k.chefs['human'].job)
 
     def setup_partner(self,who='human'):
-        k=self.make();other='jev' if who=='human' else 'human'
+        k=self.make();other='jeff' if who=='human' else 'human'
         st=k.stations['p1'];k.chefs[who].hand=Food(st.pot_id,'pot',contents=Food('meal','ready',6,12));st.pot_id=None
         k.chefs[other].hand=k.stations['plates'].food;k.stations['plates'].food=None
         k.positions.update({who:(8.,4.),other:(10.,4.)})
         return k,other
 
     def test_partner_plating_both_directions_keeps_containers(self):
-        for who in ('human','jev'):
+        for who in ('human','jeff'):
             k,other=self.setup_partner(who);plate=k.chefs[other].hand.id
             self.assertTrue(k.command(who,'plate partner')[0]);k.advance(2)
             self.assertEqual(k.chefs[other].hand.plate_id,plate)

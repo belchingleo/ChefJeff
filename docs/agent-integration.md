@@ -1,42 +1,85 @@
-# Agent 接入与扩展边界
+# Agent integration
 
-ChefJeff 当前面向本机单厨房运行。Cocos 是画面和输入端，Python 保存权威游戏状态；模型选择动作，规则引擎判断动作是否仍然合法。
+Cocos provides rendering and player input; Python maintains authoritative kitchen state. The agent selects an action, and the engine validates and executes it.
 
-## 决策链路
+## Decision flow
 
-`SpatialKitchen.snapshot()` 和 `actions('jev')` → client `payload(state, actions)` → 异步 `ask(payload)` → `DecisionLoop` 校验 → `kitchen.start()` → 移动/加工 → 完成事件。
+`SpatialKitchen.snapshot()` and `actions('jeff')` → client `payload(state, actions)` → asynchronous `ask(payload)` → `DecisionLoop` validation → `kitchen.start()` → movement/work → completion event.
 
-“返回动作”不等于“已经完成”：候选动作在请求后可能过期，操作可能被玩家主动中断，目标物品也可能发生变化。记录中需要区分请求、选择、接受和 `action_done`。
+Use actor IDs `human` and `jeff`. TypeSafe's provider ID `jev`, model IDs and `jev.py` adapter name remain unchanged. Old local memory actor fields are normalized when read; model identities and historical files remain intact.
 
-## 接现有兼容服务
+Track requests, selections, accepted actions and `action_done` separately. A legal choice can become stale while the request is in flight.
 
-在游戏设置中选择兼容 Chat Completions 服务，填写自己的公网 HTTPS Base URL、模型名和 Key。`CompatibleClient` 将结构化厨房状态、规则和动作候选放入消息。响应内容必须是 JSON，例如：
+## Compatible services
+
+Choose a compatible Chat Completions service in Settings and supply your own HTTPS base URL, model and key. `CompatibleClient` sends structured state, rules and candidates. Return JSON such as:
 
 ```json
 {"choice": "wash", "sprint": false}
 ```
 
-`choice` 必须来自当次 `questions.next_action.criteria`。只有候选里存在 `wash` 才能选择它；`sprint` 在请求包含对应问题时必须为布尔值。不能让模型根据示例固定返回洗碗。
+`choice` must occur in the current `questions.next_action.criteria`; choose `wash` only when offered. `sprint` is a boolean when requested.
 
-## 增加新适配器
+## New adapters
 
-参考 `player_api.py` 的 `CompatibleClient` 与 `whitebox_server.py` 的 `SpatialJevClient`：
+Follow `CompatibleClient` in `player_api.py` and `SpatialJevClient` in `whitebox_server.py`:
 
-- `payload(state, actions)` 构造请求，不改变规则状态。
-- `ask(payload)` 返回字典，至少提供所选 `choice`；沿用现有 `sprint`、`model`、`usage`、`latency` 等字段契约。
-- 在 `create_client(config, setting)` 增加明确分支，并同步设置校验及界面选项。
-- 用离线替身检查非法选择、过期响应、超时、额度和恢复；不要在 CI 中配置真实 Key。
+- `payload(state, actions)` constructs input without modifying the game.
+- `ask(payload)` returns a dictionary with `choice`, following existing `sprint`, `model`, `usage` and `latency` conventions.
+- Add an explicit branch in `create_client(config, setting)`, with settings validation and UI choices.
+- Use offline test doubles for invalid choices, stale replies, timeouts, budgets and recovery. Keep real keys out of CI.
 
-当前 client 接口是内部 Python 扩展点，不是已经版本化的外部 SDK。TypeSafe 的供应商协议与兼容 Chat Completions 协议分别适配。
+Hosted play uses `BrowserRelay` plus `hosted/browser-agent.js`; add browser-provider support there separately. The relay only accepts a validated choice, sprint flag and numeric usage, and never receives provider credentials.
 
-## 共用规则与不同输入
+## Shared rules and extension points
 
-人类使用移动键和就近动作，AI 选择高层动作并走向目标。双方共用物品约束、加工时间、碰撞和工位入口，但输入粒度与决策时延不同。操作中的厨师固定站位；普通接触或冲刺不打断加工。锅只在灶上加热，与厨师是否持续站在旁边无关。
+Human input is continuous movement plus nearby actions; agent input is higher-level action selection. Both share movement speed, contact, access sides, preparation times and item constraints. Working chefs cannot be pushed away; pots heat only while on a stove.
 
-## 数据化的真实范围
+Maps are validated by `map_definition.py`. Recipe legality and some processing conditions remain in Python; the roadmap moves them into validated data before introducing map and recipe editors. Visual ingredient layers are independent from legality.
 
-地图 JSON 由 `map_definition.py` 校验，设备位置、操作侧与表现方向分开定义。地图编辑器尚未交付。菜谱、合法配料与加工条件仍有代码内规则；后续先迁移成可校验数据，再做菜谱编辑器。视觉配料叠层不承担配方合法性判断。
+Future benchmark work will define a complete-session scenario schema, partner/configuration conditions and comparison methods with the community. Record input language and build identity alongside results; receipt of a message or memory is observable, while understanding or causal adaptation requires an appropriate comparison.
 
-## 后续整局 scenario schema
+---
 
-未来 schema 将描述完整对局的环境、参与者条件、动作与事件时间线、沟通和结果，并支持不同玩家与 AI 的真实合作记录逐步扩充。具体字段、隐私处理和评分协议尚待设计。固定离线回归用例不作为 benchmark 标准；收到记忆或沟通内容，也不等于模型理解了它或因此改变行为。
+## 中文说明
+
+# Agent 接入
+
+Cocos 提供画面与玩家输入，Python 维护权威厨房状态。Agent 选择动作，由引擎校验并执行。
+
+## 决策链路
+
+`SpatialKitchen.snapshot()` 与 `actions('jeff')` → client `payload(state, actions)` → 异步 `ask(payload)` → `DecisionLoop` 校验 → `kitchen.start()` → 移动／加工 → 完成事件。
+
+角色 ID 使用 `human` 和 `jeff`。TypeSafe 的 provider ID `jev`、模型名及 `jev.py` 适配器名称保留。旧本地记忆读取时转换角色字段，模型身份与历史文件保持原样。
+
+分别记录请求、选择、动作接受和 `action_done`；请求在途时，原本合法的选择也可能过期。
+
+## 兼容服务
+
+在设置中选择兼容 Chat Completions 服务，填写自己的 HTTPS Base URL、模型与 Key。`CompatibleClient` 发送结构化状态、规则与候选动作，返回 JSON，例如：
+
+```json
+{"choice": "wash", "sprint": false}
+```
+
+`choice` 必须位于当前 `questions.next_action.criteria`；只有提供 `wash` 候选时才能选择它。请求包含冲刺问题时，`sprint` 为布尔值。
+
+## 新增适配器
+
+参考 `player_api.py` 中的 `CompatibleClient` 和 `whitebox_server.py` 中的 `SpatialJevClient`：
+
+- `payload(state, actions)` 构造输入，不改变游戏。
+- `ask(payload)` 返回含 `choice` 的字典，遵循现有 `sprint`、`model`、`usage`、`latency` 字段约定。
+- 在 `create_client(config, setting)` 增加明确分支，同步设置校验与界面选项。
+- 用离线替身覆盖非法选择、过期回复、超时、额度和恢复，CI 不使用真实密钥。
+
+托管版使用 `BrowserRelay` 与 `hosted/browser-agent.js`，需要另外接入浏览器供应商适配。中继仅接收校验后的动作、冲刺值和数值用量，不接收供应商凭据。
+
+## 共用规则与扩展点
+
+人类持续移动并执行就近动作，agent 选择较高层动作。双方共用移动速度、碰撞、操作侧、加工时间与物品约束。工作中的厨师不会被推离；锅仅在灶台上加热。
+
+地图由 `map_definition.py` 校验。菜谱合法性与部分加工条件仍在 Python 中，路线图是先转为可校验数据，再接地图与菜谱编辑器。视觉配料叠层独立于合法性判断。
+
+未来与社区共同定义完整对局 scenario schema、搭档／配置条件及对照方法。结果需记录输入语言和构建标识；消息或记忆送达可以直接观察，理解与因果适应需要相应对照。

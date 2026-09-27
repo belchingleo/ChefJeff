@@ -30,13 +30,13 @@ class BudgetTests(unittest.TestCase):
         self.assertFalse(ai.q.empty());ai.poll()
     def test_last_allowed_response_executes_and_no_extra_request(self):
         k,ai,c,rows=self.make();ai.poll();self.finish_response(ai)
-        self.assertIsNotNone(k.chefs['jev'].job)
+        self.assertIsNotNone(k.chefs['jeff'].job)
         k.advance(6)
         with patch('jev.time.monotonic',return_value=time.monotonic()+100):
             for _ in range(3):ai.poll()
         self.assertEqual(ai.calls,1);self.assertEqual(c.calls,1)
         self.assertEqual(sum(kind=='call_limit' for kind,_ in rows),1)
-        self.assertIsNotNone(k.chefs['jev'].hand)
+        self.assertIsNotNone(k.chefs['jeff'].hand)
     def test_failed_calls_count_against_limit(self):
         k,ai,c,rows=self.make(error=True);ai.poll();self.finish_response(ai)
         with patch('jev.time.monotonic',return_value=time.monotonic()+100):ai.poll()
@@ -71,11 +71,11 @@ class BudgetTests(unittest.TestCase):
         self.assertIsNone(g.ai);self.assertEqual(g.connection_checks,0)
     def test_feedback_bounded_and_same_request_deduplicated(self):
         g=self.session()
-        for _ in range(100):g.k.emit('ignored',kind='action_done',actor='jev',action='fetch')
+        for _ in range(100):g.k.emit('ignored',kind='action_done',actor='jeff',action='fetch')
         body={'game_id':g.game_id,'request_id':'preview'}
         first=g.command('/api/feedback',body)
         self.assertEqual(len(first[1]['report']['recent_events']),80)
-        g.k.emit('ignored',kind='action_done',actor='jev',action='wash')
+        g.k.emit('ignored',kind='action_done',actor='jeff',action='wash')
         self.assertEqual(g.command('/api/feedback',body),first)
 
 

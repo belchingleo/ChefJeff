@@ -7,7 +7,7 @@ from spatial_kitchen import SpatialKitchen,CHEF_SEPARATION,WALK_SPEED
 class GentleCollisionTests(unittest.TestCase):
     def make(self):
         k=SpatialKitchen(load_config()|{'level':1,'spawn_seed':0,'round_seconds':500})
-        k.positions.update(human=(9.,4.),jev=(11.,6.))
+        k.positions.update(human=(9.,4.),jeff=(11.,6.))
         return k
 
     def item(self,k,key='loose',stage='raw',cell='floor_10_4'):
@@ -16,8 +16,8 @@ class GentleCollisionTests(unittest.TestCase):
         return k.ground[key]
 
     def test_forward_input_slides_and_gently_pushes_without_changing_input(self):
-        for who in ('human','jev'):
-            k=self.make();other='jev' if who=='human' else 'human'
+        for who in ('human','jeff'):
+            k=self.make();other='jeff' if who=='human' else 'human'
             k.positions.update({who:(9.,4.),other:(10.,4.)});k.set_manual(who,1,0)
             for _ in range(30):
                 k.advance(.05)
@@ -28,29 +28,29 @@ class GentleCollisionTests(unittest.TestCase):
             self.assertLess(k.positions[other][0],10.3)
 
     def test_sprint_bumps_once_per_dash_and_keeps_carried_food(self):
-        k=self.make();k.positions.update(human=(9.6,4.),jev=(10.,4.))
-        k.chefs['jev'].hand=Food('held');k.set_manual('human',1,0);k.sprint('human')
-        k.advance(.05);self.assertAlmostEqual(k.positions['jev'][0],10.25)
+        k=self.make();k.positions.update(human=(9.6,4.),jeff=(10.,4.))
+        k.chefs['jeff'].hand=Food('held');k.set_manual('human',1,0);k.sprint('human')
+        k.advance(.05);self.assertAlmostEqual(k.positions['jeff'][0],10.25)
         # Repeated contact within the same sprint cannot add more displacement.
         for _ in range(3):
             k.positions['human']=(9.85,4.);k.advance(.05)
-        self.assertAlmostEqual(k.positions['jev'][0],10.25)
-        self.assertEqual(k.chefs['jev'].hand.id,'held')
+        self.assertAlmostEqual(k.positions['jeff'][0],10.25)
+        self.assertEqual(k.chefs['jeff'].hand.id,'held')
 
     def test_bump_is_clipped_by_wall(self):
-        k=self.make();k.positions.update(human=(10.8,4.),jev=(11.2,4.))
+        k=self.make();k.positions.update(human=(10.8,4.),jeff=(11.2,4.))
         k.set_manual('human',1,0);k.sprint('human');k.advance(.05)
-        self.assertLessEqual(k.positions['jev'][0],11.3+1e-8)
-        self.assertTrue(k.nav.walkable_point(k.positions['jev']))
+        self.assertLessEqual(k.positions['jeff'][0],11.3+1e-8)
+        self.assertTrue(k.nav.walkable_point(k.positions['jeff']))
 
     def test_manual_contact_slides_without_crossing(self):
-        k=self.make();k.positions.update(human=(9.6,4.),jev=(10.,4.));k.set_manual('human',1,1)
+        k=self.make();k.positions.update(human=(9.6,4.),jeff=(10.,4.));k.set_manual('human',1,1)
         for _ in range(10):
             k.advance(.05);self.assertGreaterEqual(math.dist(*k.positions.values()),CHEF_SEPARATION-1e-8)
         self.assertGreater(k.positions['human'][1],4.5)
 
     def test_automatic_route_uses_contact_without_replanning(self):
-        k=self.make();k.positions['jev']=(10.,4.);k.command('human','go floor_11_4')
+        k=self.make();k.positions['jeff']=(10.,4.);k.command('human','go floor_11_4')
         self.assertEqual(k.routes['human']['points'],[(9.,4.),(11,4)])
         for _ in range(100):
             k.advance(.05);self.assertGreaterEqual(math.dist(*k.positions.values()),CHEF_SEPARATION-1e-8)
@@ -58,13 +58,13 @@ class GentleCollisionTests(unittest.TestCase):
         self.assertIsNone(k.chefs['human'].job);self.assertEqual(k.positions['human'],(11,4))
 
     def test_head_on_routes_do_not_pass_through_each_other(self):
-        k=self.make();k.positions['jev']=(11.,4.)
+        k=self.make();k.positions['jeff']=(11.,4.)
         self.assertTrue(k.command('human','go floor_11_4')[0])
         # Exercise the same route executor directly; the AI menu lists stations, not floor clicks.
         action=Action('go floor_9_4','walk','go','floor_9_4')
-        points=k.path('jev',action.target);length=sum(math.dist(a,b) for a,b in zip(points,points[1:]))
-        k.chefs['jev'].job=Job(99,action,length/WALK_SPEED,0)
-        k.routes['jev']={'job_id':99,'points':points,'length':length}
+        points=k.path('jeff',action.target);length=sum(math.dist(a,b) for a,b in zip(points,points[1:]))
+        k.chefs['jeff'].job=Job(99,action,length/WALK_SPEED,0)
+        k.routes['jeff']={'job_id':99,'points':points,'length':length}
         for _ in range(120):
             k.advance(.05);self.assertGreaterEqual(math.dist(*k.positions.values()),CHEF_SEPARATION-1e-8)
         self.assertTrue(all(c.job is None for c in k.chefs.values()))
@@ -106,7 +106,7 @@ class GentleCollisionTests(unittest.TestCase):
         k.positions['human']=(10.5,4);k.set_manual('human',1,0);k.sprint('human');k.advance(.3)
         self.assertLessEqual(k.ground_position(item)[0],11.3+1e-8)
         self.assertTrue(k.nav.walkable_point(k.ground_position(item)))
-        k=self.make();item=self.item(k);item.lock='jev'
+        k=self.make();item=self.item(k);item.lock='jeff'
         k.set_manual('human',1,0);k.sprint('human');k.advance(.5)
         self.assertEqual(k.ground_position(item),(10,4))
 
@@ -131,18 +131,18 @@ class GentleCollisionTests(unittest.TestCase):
         k=self.make()
         walls={(x,y) for x in range(14) for y in range(9) if not (1<=x<=12 and y==4)}
         k.nav=Navigation(14,9,walls,{});k.floor=k.nav.floor
-        k.positions.update(human=(8.,4.),jev=(10.,4.))
-        k.set_manual('human',1,0);k.set_manual('jev',-1,0)
+        k.positions.update(human=(8.,4.),jeff=(10.,4.))
+        k.set_manual('human',1,0);k.set_manual('jeff',-1,0)
         for _ in range(20):
             k.advance(.05)
             self.assertGreaterEqual(math.dist(*k.positions.values()),CHEF_SEPARATION-1e-8)
             self.assertTrue(all(k.nav.walkable_point(p) for p in k.positions.values()))
-        self.assertGreater(k.positions['human'][0],k.positions['jev'][0])
+        self.assertGreater(k.positions['human'][0],k.positions['jeff'][0])
 
     def test_shared_movement_speed_is_one_and_a_half_for_both_chefs(self):
         self.assertEqual(WALK_SPEED,4.5)
-        for who in ('human','jev'):
-            k=self.make();other='jev' if who=='human' else 'human'
+        for who in ('human','jeff'):
+            k=self.make();other='jeff' if who=='human' else 'human'
             k.positions.update({who:(8.,4.),other:(11.,6.)})
             k.set_manual(who,1,0);k.advance(.2)
             self.assertAlmostEqual(k.positions[who][0],8.9)
@@ -150,10 +150,10 @@ class GentleCollisionTests(unittest.TestCase):
 
     def test_contact_cannot_displace_or_interrupt_active_chop_or_wash(self):
         for kind in ('chop','wash'):
-            for worker in ('human','jev'):
+            for worker in ('human','jeff'):
                 for boosted in (False,True):
                     with self.subTest(kind=kind,worker=worker,boosted=boosted):
-                        k=self.make();mover='jev' if worker=='human' else 'human'
+                        k=self.make();mover='jeff' if worker=='human' else 'human'
                         target='b1' if kind=='chop' else 'sink'
                         if kind=='chop':
                             k.stations[target].food=Food('contact-chop')
@@ -188,7 +188,7 @@ class GentleCollisionTests(unittest.TestCase):
 
     def test_contact_does_not_pause_stove_heating(self):
         k=self.make();pot=k.stations['p1'];pot.food=Food('heating','cooking');pot.heating=True
-        k.positions.update(human=(9.6,4.),jev=(10.,4.))
+        k.positions.update(human=(9.6,4.),jeff=(10.,4.))
         k.set_manual('human',1,0);k.sprint('human');k.advance(.2)
         self.assertAlmostEqual(pot.food.heated,.2)
         self.assertTrue(pot.heating);k.assert_invariants()

@@ -1,11 +1,23 @@
-# 开发状态
+# Project status
 
-当前为 0.5.9-alpha，本地浏览器版。2026-09-27 本轮整体试玩通过维护者验收；最后一次完整离线测试为 334 项。真实浏览器已检查三关画面和相关操作，但尚未覆盖所有模型、设备和长局情况。
+ChefJeff 0.5.9-alpha is a playable human–AI cooperative cooking prototype. Local play runs the Cocos browser client and Python game engine on a keyboard-and-mouse computer.
 
-已实现：三关、共用厨房规则、连续移动、方向化工位站位、转角合作切菜与合作洗碗规则、温和碰撞、冲刺、操作中防推挤、盘锅回收与加热续算、模型适配、沟通和有限记忆。当前地图没有双人水槽；该规则由测试布局验证。
+Implemented: three maps; shared kitchen rules; continuous movement and sprint; direction-aware workstation docking; cooperative chopping and washing; gentle sliding, pushing and sprint contact; protection from pushes while working; plate return and washing; movable pots with preserved heat progress; model adapters; preset communication; bounded local memory; and data-driven maps. Existing maps do not yet offer a shared sink; the shared-washing rule has a dedicated test layout.
 
-地图数据格式与校验已具备；地图编辑器尚未完成。配方合法性和部分加工条件仍在代码中，菜谱数据化及编辑器待做。现有 client 是内部适配接口，尚非稳定外部 SDK。
+The hosted runtime adds independent browser sessions, browser-direct model calls and optional anonymous contributions retained for 30 days with deletion receipts. Public access is pending deployment validation and domain filing; use the local quick start in the [README](../README.md) meanwhile.
 
-下一阶段：继续多人真实试玩和规则打磨；完善数据契约与编辑器；建立完整人类—AI 合作对局的 scenario schema，再随不同玩家参与积累和扩充 benchmark。固定入口场景只作开发回归，既非 benchmark 标准，也不能证明模型合作能力。
+Next: community playtesting and pacing; asset/license review; recipe data contracts and map/recipe editors; broader agent and team configurations; iPad and other device compatibility; and a community-defined whole-session scenario schema and evaluation protocol. The game and benchmark are both open co-creation goals. Fixed-entry fixtures support development regression.
 
-在线试玩尚未部署；当前服务只有本机单厨房边界。公网服务需要另做 HTTPS、会话隔离、访问控制及凭据/额度管理。具体启动、隐私和扩展入口以根目录 README 为准。
+---
+
+## 中文说明
+
+# 项目状态
+
+ChefJeff 0.5.9-alpha 是可游玩的人类—AI 合作做菜原型。本地版在配备键鼠的电脑上运行 Cocos 浏览器客户端和 Python 游戏引擎。
+
+已实现：三张地图、共用厨房规则、连续移动与冲刺、按方向停靠工位、合作切菜与洗碗、温和滑动／推挤／冲刺碰撞、工作中防推挤、餐盘回收清洗、保留加热进度的搬锅、模型适配、预设沟通、有限本地记忆及数据化地图。现有地图尚未提供共用水槽布局；合作洗碗规则有专门测试布局。
+
+托管运行时增加独立浏览器会话、浏览器直连模型，以及附删除凭证、保留 30 天的自愿匿名数据贡献。公开访问等待部署验证与域名备案，当前可按 [README](../README.md) 在本地启动。
+
+后续：社区试玩与节奏打磨、素材许可审查、菜谱数据契约及地图／菜谱编辑器、更多 agent 与团队组合、iPad 和其他终端兼容，以及社区共同定义的完整对局 scenario schema 与评估协议。游戏和 benchmark 都是开放共创目标，固定入口用例用于开发回归。

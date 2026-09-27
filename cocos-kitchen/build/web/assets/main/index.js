@@ -51,7 +51,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
         paper: '#fff5dc',
         line: '#c2a67d',
         human: '#4c7661',
-        jev: '#567fa4',
+        jeff: '#567fa4',
         hot: '#b64032',
         counter: '#8baab7',
         counterEdge: '#587582',
@@ -151,8 +151,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           _this.cabinetFires = {};
           _this.foodStages = {};
           _this.readyUntil = {};
-          _this.jevThinking = null;
-          _this.jevError = null;
+          _this.jeffThinking = null;
+          _this.jeffError = null;
           _this.ground = {};
           _this.groundStages = {};
           _this.flights = {};
@@ -352,7 +352,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                     _this.foodStages = {};
                     _this.readyUntil = {};
                     _this.activeClock = 0;
-                    if (_this.mounted) for (_i3 = 0, _arr3 = ['human', 'jev']; _i3 < _arr3.length; _i3++) {
+                    if (_this.mounted) for (_i3 = 0, _arr3 = ['human', 'jeff']; _i3 < _arr3.length; _i3++) {
                       who = _arr3[_i3];
                       _this.locate(_this.people[who], next.kitchen.chefs[who].position);
                     }
@@ -385,7 +385,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                   game.frameRate = 15;
                   _this.clearInput();
                   _this.connected = false;
-                  if (_this.jevThinking) _this.jevThinking.active = false;
+                  if (_this.jeffThinking) _this.jeffThinking.active = false;
                   _this.set('event', String(_context.t0.message) + '，厨房会自动暂停。');
                   _this.cover.active = true;
                   _this.set('coverTitle', '连接厨房');
@@ -489,7 +489,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           this.text('coverTitle', 'ChefJeff', 316, 257, 648, 64, 46, this.cover).isBold = true;
           this.labels.coverTitle.horizontalAlign = Label.HorizontalAlign.CENTER;
           this.chef(this.cover, 'welcome-human', 550, 332, 'human', 1.25);
-          this.chef(this.cover, 'welcome-jev', 730, 332, 'jev', 1.25);
+          this.chef(this.cover, 'welcome-jeff', 730, 332, 'jeff', 1.25);
           this.icon(this.cover, 'welcome-food', 640, 332, 'ready', 1.05);
           this.text('coverText', '正在连接厨房…', 330, 404, 620, 78, 19, this.cover).horizontalAlign = Label.HorizontalAlign.CENTER;
           this.button('main', '开始经营', 379, 520, 158, 48, function () {
@@ -1278,9 +1278,17 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
         _proto.request = /*#__PURE__*/function () {
           var _request = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee4(path, body) {
             var _this7 = this;
+            var hosted;
             return _regeneratorRuntime().wrap(function _callee4$(_context4) {
               while (1) switch (_context4.prev = _context4.next) {
                 case 0:
+                  hosted = typeof window !== 'undefined' ? window.chefjeffHostedRequest : null;
+                  if (!hosted) {
+                    _context4.next = 3;
+                    break;
+                  }
+                  return _context4.abrupt("return", hosted(path, body));
+                case 3:
                   return _context4.abrupt("return", new Promise(function (resolve, reject) {
                     var xhr = new XMLHttpRequest();
                     xhr.open(body ? 'POST' : 'GET', _this7.endpoint + path, true);
@@ -1302,7 +1310,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                     if (body) xhr.setRequestHeader('Content-Type', 'application/json');
                     xhr.send(body ? JSON.stringify(body) : null);
                   }));
-                case 1:
+                case 4:
                 case "end":
                   return _context4.stop();
               }
@@ -1800,7 +1808,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               var _this9$state;
               var p = (_this9$state = _this9.state) == null ? void 0 : _this9$state.kitchen.chefs[who].position;
               if (_this9.mapTarget(p[0], p[1])) return;
-              if (who === 'jev') {
+              if (who === 'jeff') {
                 _this9.set('event', '靠近 Jeff，按空格给他手中的干净盘装菜。');
               }
             });
@@ -1842,11 +1850,11 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               step: 0
             };
           };
-          for (var _i13 = 0, _arr10 = ['human', 'jev']; _i13 < _arr10.length; _i13++) {
+          for (var _i13 = 0, _arr10 = ['human', 'jeff']; _i13 < _arr10.length; _i13++) {
             _loop5();
           }
           var marker = function marker(name, fill) {
-            var n = _this9.child(_this9.people.jev, name, 30, 18, 0, 65),
+            var n = _this9.child(_this9.people.jeff, name, 30, 18, 0, 65),
               g = n.addComponent(Graphics);
             g.fillColor = color(COLORS.paper);
             g.circle(0, 0, 8);
@@ -1857,15 +1865,15 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             }
             return n;
           };
-          this.jevThinking = marker('jev-thinking', '#567fa4');
-          var error = this.child(this.people.jev, 'jev-api-error', 24, 23, 0, 66),
+          this.jeffThinking = marker('jeff-thinking', '#567fa4');
+          var error = this.child(this.people.jeff, 'jeff-api-error', 24, 23, 0, 66),
             eg = error.addComponent(Graphics);
           this.rect(eg, -9, -9, 18, 18, COLORS.hot);
           this.rect(eg, -2, -6, 4, 8, COLORS.paper);
           this.rect(eg, -2, 4, 4, 3, COLORS.paper);
-          this.jevError = error;
-          this.jevThinking.active = false;
-          this.jevError.active = false;
+          this.jeffError = error;
+          this.jeffThinking.active = false;
+          this.jeffError.active = false;
           this.mapNodes = this.node.children.filter(function (n) {
             return !previous.has(n);
           });
@@ -1891,21 +1899,21 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           var kind = who === 'human' ? 'player' : 'jeff',
             chef = (_this$state17 = this.state) == null ? void 0 : _this$state17.kitchen.chefs[who];
           var station = (_this$state18 = this.state) == null ? void 0 : _this$state18.kitchen.map.equipment[chef == null ? void 0 : chef.target];
-          var inWorld = !!body.parent && ['human', 'jev'].includes(body.parent.name);
+          var inWorld = !!body.parent && ['human', 'jeff'].includes(body.parent.name);
           var chopping = !!working && inWorld && (chef == null ? void 0 : chef.action_kind) === 'chop' && !!station;
           var sampleFrame = this.prepSample ? Number((_URLSearchParams$get = new URLSearchParams(location.search).get('prepFrame')) != null ? _URLSearchParams$get : -1) : -1;
-          var knifePilot = this.knifeSample && chopping && who === 'jev' && facing === 'down' && this.state.kitchen.level === 2 && chef.target === 'b1';
+          var knifePilot = this.knifeSample && chopping && who === 'jeff' && facing === 'down' && this.state.kitchen.level === 2 && chef.target === 'b1';
           var pairedPilot = chopping && this.art.has('knife/reference');
           var phase = knifePilot || pairedPilot ? 1 : Number.isInteger(sampleFrame) && sampleFrame >= 0 && sampleFrame < 4 ? sampleFrame : Math.floor(this.activeClock * 8) % 4;
           var actionKey = "characters/" + kind + "/" + facing + "/chop_" + phase;
           var hasAction = chopping && this.art.has(actionKey);
-          var pilot = hasAction && who === 'jev' && facing === 'down' && this.prepSampleBoard(chef.target) && this.art.has('prep/jeff/down/contact-body');
+          var pilot = hasAction && who === 'jeff' && facing === 'down' && this.prepSampleBoard(chef.target) && this.art.has('prep/jeff/down/contact-body');
           var frame = walking ? "walk_" + Math.floor(this.activeClock * 12) % 8 : 'idle_0';
           // All poses share the actor's floor anchor and depth. An upper-body slice
           // is not a tool: painting it above the station puts the chef on the board.
           var key = pilot ? 'prep/jeff/down/contact-body' : hasAction ? actionKey : "characters/" + kind + "/" + facing + "/" + frame;
           var shown = this.useArt && this.art.show(body, key, 68, 88, 0, inWorld && this.useModularArt ? 0 : -29);
-          if (who === 'jev' && inWorld) this.knifeOnlySample(knifePilot, actionKey);
+          if (who === 'jeff' && inWorld) this.knifeOnlySample(knifePilot, actionKey);
           var prep = this.prepPoses[who];
           if (inWorld && prep) {
             prep.active = !!pilot;
@@ -2159,7 +2167,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               return depthOrder(_this11.state.kitchen.map.equipment.b1.cell[1], 'solid') + .03;
             });
           }
-          var actor = this.people.jev,
+          var actor = this.people.jeff,
             root = this.knifeProbe;
           root.active = length > 1 || handleLength > 1;
           root.setScale(actor.scale);
@@ -2202,7 +2210,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }
         };
         _proto.refreshArtCharacters = function refreshArtCharacters() {
-          for (var _i20 = 0, _arr17 = ['human', 'jev']; _i20 < _arr17.length; _i20++) {
+          for (var _i20 = 0, _arr17 = ['human', 'jeff']; _i20 < _arr17.length; _i20++) {
             var _this$cover$getChildB;
             var who = _arr17[_i20];
             if (this.useArt) this.characterArt(this.motions[who].body, who, this.state.kitchen.chefs[who].facing || 'down');
@@ -2444,7 +2452,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           for (var _iterator7 = _createForOfIteratorHelperLoose(k.ground), _step7; !(_step7 = _iterator7()).done;) {
             _loop8();
           }
-          for (var _i23 = 0, _arr18 = ['human', 'jev']; _i23 < _arr18.length; _i23++) {
+          for (var _i23 = 0, _arr18 = ['human', 'jeff']; _i23 < _arr18.length; _i23++) {
             var _c$sprint;
             var who = _arr18[_i23];
             var c = k.chefs[who];
@@ -2454,8 +2462,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             if (c.holding) this.drawIcon(_held.getComponent(Graphics), this.itemStage(c.holding));
           }
           var apiConfigured = !!((_s$connection = s.connection) != null && _s$connection.configured) && s.phase !== 'ready' && s.phase !== 'ended';
-          if (this.jevThinking) this.jevThinking.active = this.connected && apiConfigured && !!s.ai.thinking && !s.ai.error;
-          if (this.jevError) this.jevError.active = apiConfigured && !!s.ai.error;
+          if (this.jeffThinking) this.jeffThinking.active = this.connected && apiConfigured && !!s.ai.thinking && !s.ai.error;
+          if (this.jeffError) this.jeffError.active = apiConfigured && !!s.ai.error;
           var flightIds = new Set((k.projectiles || []).map(function (p) {
             return p.id;
           }));
@@ -2553,7 +2561,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           this.updateSpaceGesture();
           var animate = running && !this.qaNoMotion;
           if (animate) this.activeClock += dt;
-          for (var _i29 = 0, _arr23 = ['human', 'jev']; _i29 < _arr23.length; _i29++) {
+          for (var _i29 = 0, _arr23 = ['human', 'jeff']; _i29 < _arr23.length; _i29++) {
             var _c$sprint2;
             var who = _arr23[_i29];
             var c = k.chefs[who],
@@ -2632,7 +2640,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             }
           }
           if (animate) {
-            var _this$jevThinking;
+            var _this$jeffThinking;
             for (var _i31 = 0, _Object$entries5 = Object.entries(this.potEffects); _i31 < _Object$entries5.length; _i31++) {
               var _Object$entries5$_i = _Object$entries5[_i31],
                 id = _Object$entries5$_i[0],
@@ -2652,7 +2660,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               if (e.fire.active) e.fire.setScale(.55 + Math.sin(this.activeClock * 12) * .035, .55 + Math.sin(this.activeClock * 12 + 1) * .06, 1);
               if (e.ready.active) e.ready.setScale(.85 + Math.sin(this.activeClock * 12) * .12, .85 + Math.sin(this.activeClock * 12) * .12, 1);
             }
-            if ((_this$jevThinking = this.jevThinking) != null && _this$jevThinking.active) this.jevThinking.setScale(.92 + Math.sin(this.activeClock * 5) * .08, .92 + Math.sin(this.activeClock * 5) * .08, 1);
+            if ((_this$jeffThinking = this.jeffThinking) != null && _this$jeffThinking.active) this.jeffThinking.setScale(.92 + Math.sin(this.activeClock * 5) * .08, .92 + Math.sin(this.activeClock * 5) * .08, 1);
           }
           var sink = (_this$devices$sink = this.devices.sink) == null ? void 0 : _this$devices$sink.node.getChildByName('washing');
           if (sink) {

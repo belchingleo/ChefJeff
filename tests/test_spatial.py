@@ -80,8 +80,8 @@ class SpatialTests(unittest.TestCase):
         item=next(iter(k.ground.values()))
         self.assertEqual(k.cell(item.location),point)
         self.assertNotEqual(k.cell(item.location),(2,2))
-        self.do(k,'jev','pickup F1')
-        self.assertEqual(k.chefs['jev'].hand.id,'F1')
+        self.do(k,'jeff','pickup F1')
+        self.assertEqual(k.chefs['jeff'].hand.id,'F1')
         self.assertFalse(k.ground)
 
     def test_two_drops_cannot_overwrite_the_same_floor_cell(self):
@@ -89,11 +89,11 @@ class SpatialTests(unittest.TestCase):
         for who in k.chefs:
             k.positions[who]=(3,4)
             k.chefs[who].hand=Food(who)
-        self.assertTrue(k.command('human','drop')[0]);self.assertTrue(k.command('jev','drop')[0])
+        self.assertTrue(k.command('human','drop')[0]);self.assertTrue(k.command('jeff','drop')[0])
         k.advance(1.1)
         self.assertEqual(len(k.ground),1)
         self.assertEqual(sum(a.hand is not None for a in k.chefs.values()),1)
-        self.do(k,'jev','drop')
+        self.do(k,'jeff','drop')
         self.assertEqual(len(k.ground),2)
         self.assertEqual(len({item.location for item in k.ground.values()}),2)
         k.assert_invariants()
@@ -112,9 +112,9 @@ class SpatialTests(unittest.TestCase):
     def test_full_chain_ground_handoff_and_serving(self):
         k=self.make()
         for key in ('fetch','put b1','chop b1','take b1','drop'):self.do(k,'human',key)
-        for key in ('pickup F1','put p1'):self.do(k,'jev',key)
+        for key in ('pickup F1','put p1'):self.do(k,'jeff',key)
         k.advance(12)
-        for key in ('take plates','plate p1','drop'):self.do(k,'jev',key)
+        for key in ('take plates','plate p1','drop'):self.do(k,'jeff',key)
         for key in ('pickup F1','serve'):self.do(k,'human',key)
         self.assertEqual((k.served,k.money),(1,30))
         self.assertFalse(k.ground)
@@ -129,12 +129,12 @@ class SpatialTests(unittest.TestCase):
 
     def test_snapshot_and_real_client_payload_describe_spatial_rules(self):
         k=self.make();self.do(k,'human','fetch');self.do(k,'human','drop')
-        payload=SpatialJevClient(k.c,key='test-only').payload(k.snapshot(),k.actions('jev'))
+        payload=SpatialJevClient(k.c,key='test-only').payload(k.snapshot(),k.actions('jeff'))
         self.assertIn('pickup F1',payload['questions']['next_action']['criteria'])
-        self.assertIn('position',payload['state']['kitchen']['chefs']['jev'])
+        self.assertIn('position',payload['state']['kitchen']['chefs']['jeff'])
         self.assertEqual(payload['state']['kitchen']['ground'][0]['position'],(2,2))
         self.assertNotIn('walk_cross_area',payload['state']['rules']['timing'])
-        self.assertFalse(any(a.kind=='go' and a.target.startswith('floor_') for a in k.actions('jev')))
+        self.assertFalse(any(a.kind=='go' and a.target.startswith('floor_') for a in k.actions('jeff')))
 
     def test_web_reset_keeps_spatial_engine_and_new_round_position(self):
         g=GameSession(kitchen_factory=SpatialKitchen,client_factory=Client,journal_factory=FakeJournal)
@@ -143,12 +143,12 @@ class SpatialTests(unittest.TestCase):
         code,_=g.command('/api/reset',{'game_id':g.game_id,'request_id':'reset'})
         self.assertEqual(code,200);self.assertIsInstance(g.k,SpatialKitchen)
         self.assertIn(g.public_state()['kitchen']['chefs']['human']['position'],([3,4],[10,4]))
-        self.assertNotEqual(g.k.positions['human'],g.k.positions['jev'])
+        self.assertNotEqual(g.k.positions['human'],g.k.positions['jeff'])
 
     def test_fixed_seed_random_transfers_and_interruptions(self):
         k=self.make();rng=random.Random(18)
         for _ in range(2200):
-            who=rng.choice(['human','jev'])
+            who=rng.choice(['human','jeff'])
             actions=k.actions(who)
             if rng.random()<.22 and actions:k.start(who,rng.choice(actions))
             k.advance(.1);k.assert_invariants()

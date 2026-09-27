@@ -47,7 +47,7 @@ class CounterLevelTests(unittest.TestCase):
             k=self.make(level);k.positions['human']=(2,2);k.set_manual('human',1,0)
             self.assertTrue(k.sprint('human'));k.advance(.1)
             self.assertAlmostEqual(k.positions['human'][0],2+WALK_SPEED*1.4*.1)
-            payload=SpatialJevClient(k.c,key='offline').payload(k.snapshot(),k.actions('jev'))
+            payload=SpatialJevClient(k.c,key='offline').payload(k.snapshot(),k.actions('jeff'))
             self.assertIn('sprint',payload['questions'])
             self.assertIn('Off-stove pots never heat food',payload['state']['rules']['off_stove_pots'])
             self.assertFalse(re.search(r'[\u3400-\u9fff]',json.dumps(payload,ensure_ascii=False)))

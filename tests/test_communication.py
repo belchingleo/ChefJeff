@@ -33,7 +33,7 @@ class CommunicationTests(unittest.TestCase):
         self.assertEqual(self.g.player_messages[-1]['kind'],'correction')
     def test_message_is_non_interrupting_and_records_context(self):
         self.cmd('start');g=self.g
-        g.k.start('jev',next(a for a in g.k.actions('jev') if a.key=='fetch'))
+        g.k.start('jeff',next(a for a in g.k.actions('jeff') if a.key=='fetch'))
         before=deepcopy(g.k.snapshot());events=deepcopy(g.k.events);epoch=g.ai.epoch
         with patch.object(g.ai,'poll') as poll,patch.object(g.ai,'invalidate') as invalidate:
             self.assertEqual(self.send('mistake',100)[0],200)

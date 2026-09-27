@@ -79,17 +79,17 @@ class SchedulerTest(unittest.TestCase):
         self.ready(ai)
         ai.invalidate()
         ai.poll(enabled=False)
-        self.assertIsNone(k.chefs['jev'].job)
+        self.assertIsNone(k.chefs['jeff'].job)
         self.assertFalse([d for kind,d in records if kind=='ai_response'][-1]['applied'])
 
     def test_old_response_cannot_interrupt_a_new_job(self):
         k,client,ai,records=self.make('fetch')
         ai.poll()
         self.ready(ai)
-        k.command('jev','go b1')
-        job=k.chefs['jev'].job.id
+        k.command('jeff','go b1')
+        job=k.chefs['jeff'].job.id
         ai.poll()
-        self.assertEqual(k.chefs['jev'].job.id,job)
+        self.assertEqual(k.chefs['jeff'].job.id,job)
         self.assertFalse([d for kind,d in records if kind=='ai_response'][-1]['applied'])
 
     def test_expired_response_rejected(self):
@@ -99,26 +99,26 @@ class SchedulerTest(unittest.TestCase):
         self.ready(ai)
         with patch('jev.time.monotonic',return_value=107):
             ai.poll(enabled=False)
-        self.assertIsNone(k.chefs['jev'].job)
+        self.assertIsNone(k.chefs['jeff'].job)
 
     def test_api_failure_does_not_use_fallback_policy(self):
         k,client,ai,records=self.make(error=True)
         ai.poll()
         self.ready(ai)
         ai.poll()
-        self.assertIsNone(k.chefs['jev'].job)
+        self.assertIsNone(k.chefs['jeff'].job)
         self.assertEqual(ai.failures,1)
         self.assertGreater(ai.next_allowed,time.monotonic())
         self.assertTrue(any(kind=='ai_error' for kind,d in records))
 
     def test_busy_chef_can_choose_to_continue_or_change(self):
         k,client,ai,records=self.make('continue')
-        k.command('jev','fetch')
-        job=k.chefs['jev'].job.id
+        k.command('jeff','fetch')
+        job=k.chefs['jeff'].job.id
         ai.poll()
         self.ready(ai)
         ai.poll()
-        self.assertEqual(k.chefs['jev'].job.id,job)
+        self.assertEqual(k.chefs['jeff'].job.id,job)
         options=[d for kind,d in records if kind=='ai_request'][0]['payload']['questions']['next_action']['criteria']
         self.assertIn('continue',options)
         self.assertIn('stop',options)
@@ -130,7 +130,7 @@ class SchedulerTest(unittest.TestCase):
         self.ready(ai)
         with patch('jev.time.monotonic',return_value=100.1):ai.poll()
         k.advance(4)
-        for i in range(25):k.emit('实际结果 '+str(i),kind='arrival_conflict',actor='jev')
+        for i in range(25):k.emit('实际结果 '+str(i),kind='arrival_conflict',actor='jeff')
         with patch('jev.time.monotonic',return_value=102):ai.poll()
         self.ready(ai)
         payload=[d for kind,d in records if kind=='ai_request'][-1]['payload']
@@ -139,7 +139,7 @@ class SchedulerTest(unittest.TestCase):
         self.assertEqual(len(payload['state']['recent_events']),20)
         self.assertEqual(payload['state']['recent_events'][-1]['message'],'实际结果 24')
         self.assertIn('go b1',payload['questions']['next_action']['criteria'])
-        self.assertEqual(set(payload['questions']['next_action']['criteria']),{a.key for a in k.actions('jev')})
+        self.assertEqual(set(payload['questions']['next_action']['criteria']),{a.key for a in k.actions('jeff')})
 
     def test_menu_ids_never_shift(self):
         k,client,ai,records=self.make()
@@ -158,9 +158,9 @@ class SchedulerTest(unittest.TestCase):
         payload=[d for kind,d in records if kind=='ai_request'][0]['payload']
         self.assertIn('pickup food',payload['questions']['next_action']['criteria'])
         self.assertIn('food',str(payload['state']))
-        self.assertEqual(k.chefs['jev'].job.action.key,'pickup food')
+        self.assertEqual(k.chefs['jeff'].job.action.key,'pickup food')
         k.advance(4)
-        self.assertEqual(k.chefs['jev'].hand.id,'food')
+        self.assertEqual(k.chefs['jeff'].hand.id,'food')
 
 
 if __name__=='__main__':

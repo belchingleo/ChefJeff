@@ -17,7 +17,7 @@ class CompletionTests(unittest.TestCase):
 
     def test_either_chef_ends_at_third_delivery_in_both_kitchens(self):
         for kind in (Kitchen,SpatialKitchen):
-            for who in ('human','jev'):
+            for who in ('human','jeff'):
                 with self.subTest(kitchen=kind.__name__,chef=who):
                     k=self.near_win(kind,who);k.advance(20)
                     self.assertTrue(k.ended);self.assertTrue(k.won())
@@ -36,11 +36,11 @@ class CompletionTests(unittest.TestCase):
         k=self.near_win()
         k.orders[2]['deadline']=50.15
         k.orders[3].update(status='pending',deadline=50.15)
-        k.chefs['jev'].location='bin';k.chefs['jev'].hand=Food('other')
-        self.assertTrue(k.command('jev','discard')[0])
+        k.chefs['jeff'].location='bin';k.chefs['jeff'].hand=Food('other')
+        self.assertTrue(k.command('jeff','discard')[0])
         k.advance(1)
         self.assertEqual((k.money,k.bad_reviews),(90,0))
-        self.assertIsNotNone(k.chefs['jev'].hand)
+        self.assertIsNotNone(k.chefs['jeff'].hand)
         self.assertEqual(k.orders[3]['status'],'pending')
 
     def test_bonus_does_not_make_up_missing_income_or_excess_bad_reviews(self):

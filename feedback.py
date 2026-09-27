@@ -14,7 +14,7 @@ def feedback_report(session):
     for e in k.events:
         if e.get('kind') not in EVENTS:continue
         row={'t':e['t'],'kind':e['kind']}
-        if e.get('actor') in ('human','jev'):row['actor']=e['actor']
+        if e.get('actor') in ('human','jeff'):row['actor']=e['actor']
         # Action IDs come from the game, not arbitrary notes or provider text.
         action=e.get('action','')
         if re.fullmatch(r'(?:fetch|wash|serve|drop|discard|stop|continue|wait|(?:go|put|take|plate|chop|pickup|throw|clear|extinguish) [a-zA-Z0-9_ .-]{1,60})',action):

@@ -70,8 +70,8 @@ class LevelThreeTests(unittest.TestCase):
     def test_plate_partial_burger_from_floor_pot_and_partner(self):
         k=self.kitchen();self.take_plate(k)
         k.chefs['human'].hand=k.merge_plate(k.chefs['human'].hand,Food('bun',ingredient='bread'))
-        self.do(k,'take pot p1','jev');pot=k.chefs['jev'].hand;pot.contents=Food('meat','ready',heated=12)
-        self.do(k,'drop','jev');self.do(k,'plate ground P1')
+        self.do(k,'take pot p1','jeff');pot=k.chefs['jeff'].hand;pot.contents=Food('meat','ready',heated=12)
+        self.do(k,'drop','jeff');self.do(k,'plate ground P1')
         self.assertEqual(set(k.chefs['human'].hand.components),{'beef','bread'});self.assertIsNone(k.ground['P1'].food.contents)
         k.assert_invariants()
     def test_stale_assembly_does_not_overwrite_plate(self):
@@ -93,7 +93,7 @@ class LevelThreeTests(unittest.TestCase):
         k.set_manual('human',0,0);k.stations['b1'].food=Food('chop','raw');self.do(k,'chop b1')
         self.assertEqual(k.stations['b1'].food.chopped,6)
     def test_path_sprint_matches_manual_and_stops_at_wall(self):
-        k=self.kitchen();k.positions['jev']=(2,4)
+        k=self.kitchen();k.positions['jeff']=(2,4)
         from kitchen import Action
         a=Action('go floor_6_4','go','go','floor_6_4')
         # Player floor paths and AI station paths share the same travel integration.
@@ -103,7 +103,7 @@ class LevelThreeTests(unittest.TestCase):
         k.positions['human']=(2,2);k.advance(3);k.set_manual('human',-1,0);self.assertTrue(k.sprint('human'));k.advance(1)
         self.assertTrue(k.nav.walkable_point(k.positions['human']));self.assertGreater(k.positions['human'][0],1.6)
     def test_english_state_and_sprint_question(self):
-        k=self.kitchen();p=SpatialJevClient(k.c,key='offline').payload(k.snapshot(),k.actions('jev'))
+        k=self.kitchen();p=SpatialJevClient(k.c,key='offline').payload(k.snapshot(),k.actions('jeff'))
         self.assertIn('sprint',p['questions']);self.assertIn('3 seconds',p['state']['rules']['sprint'])
         self.assertFalse(re.search(r'[\u3400-\u9fff]',json.dumps(p,ensure_ascii=False)))
     def test_level_switch_and_rejected_paused_switch(self):
@@ -125,17 +125,17 @@ class LevelThreeTests(unittest.TestCase):
         for stale in (False,True):
             k=self.kitchen();records=[]
             ai=DecisionLoop(k,SpatialJevClient(k.c,key='offline'),lambda t,d:records.append((t,d)),lambda _:None)
-            action=next(a for a in k.actions('jev') if a.key=='go fridge')
+            action=next(a for a in k.actions('jeff') if a.key=='go fridge')
             context={'id':1,'sent':time.monotonic()-(20 if stale else 0),'epoch':ai.epoch,'job_id':None,'actions':{action.key:action}}
             ai.q.put((context,{'choice':action.key,'sprint':True,'model':'offline','usage':{},'latency':.1},None));ai.inflight=True
             with patch('jev.threading.Thread'):ai.poll()
             response=next(d for t,d in records if t=='ai_response')
             self.assertEqual(response['sprint_applied'],not stale)
-            self.assertEqual(k.sprint_until['jev']>0,not stale)
+            self.assertEqual(k.sprint_until['jeff']>0,not stale)
     def test_both_provider_adapters_parse_sprint_without_extra_request(self):
         import io
         from player_api import CompatibleClient
-        k=self.kitchen();client=SpatialJevClient(k.c,key='offline');payload=client.payload(k.snapshot(),k.actions('jev'))
+        k=self.kitchen();client=SpatialJevClient(k.c,key='offline');payload=client.payload(k.snapshot(),k.actions('jeff'))
         reply={'model':'offline','answers':{'next_action':{'type':'choice','choice':'wait'},'sprint':{'type':'choice','choice':'yes'}}}
         with patch('jev.urllib.request.urlopen',return_value=io.BytesIO(json.dumps(reply).encode())) as request:
             self.assertTrue(client.ask(payload)['sprint']);self.assertEqual(request.call_count,1)
@@ -151,7 +151,7 @@ class LevelThreeTests(unittest.TestCase):
     def test_new_ingredient_partial_plate_and_event_descriptions_are_english(self):
         for ingredient in ('bread','lettuce','tomato'):
             for stage in ('raw','chopped'):
-                k=self.kitchen();k.chefs['jev'].hand=Food('held',stage,ingredient=ingredient)
+                k=self.kitchen();k.chefs['jeff'].hand=Food('held',stage,ingredient=ingredient)
                 k.stations['plates'].food=k.merge_plate(k.stations['plates'].food,Food('bun',ingredient='bread'))
-                p=SpatialJevClient(k.c,key='offline').payload(k.snapshot(),k.actions('jev'))
+                p=SpatialJevClient(k.c,key='offline').payload(k.snapshot(),k.actions('jeff'))
                 self.assertFalse(re.search(r'[\u3400-\u9fff]',json.dumps(p,ensure_ascii=False)),ingredient)

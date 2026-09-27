@@ -1,0 +1,28 @@
+[Unit]
+Description=ChefJeff isolated hosted kitchens
+After=network.target
+
+[Service]
+Type=simple
+User=chefjeff
+Group=chefjeff
+WorkingDirectory=/opt/chefjeff/current
+ExecStart=/usr/bin/python3 /opt/chefjeff/current/hosted_server.py --port 8780 --origin https://chefjeff.belchingleo.online --max-sessions 8 --data-dir /var/lib/chefjeff
+Environment=PYTHONDONTWRITEBYTECODE=1
+Restart=on-failure
+RestartSec=3
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/chefjeff
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryMax=1200M
+TasksMax=128
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

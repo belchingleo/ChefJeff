@@ -52,6 +52,14 @@ assert.equal(i.t('Kitchen timeout'),'Kitchen timeout');
                     for key,value in zip(node.keys,node.values):
                         if isinstance(key,ast.Constant) and key.value=='error' and isinstance(value,ast.Constant) and isinstance(value.value,str):corpus.append(value.value)
         self.run_js("const missing=corpus.filter(x=>/[\\u3400-\\u9fff]/.test(i.t(x)));assert.deepEqual(missing,[]);",corpus)
+    def test_hosted_connection_and_usage_copy_is_fully_translated(self):
+        corpus=['浏览器直连模型',
+            '：在线版由浏览器直连模型；服务商必须允许跨域访问。跨域失败不会改由服务器代发 Key。',
+            '本局 0 / 200 次；成功回复 token：输入 0 / 输出 0；本页面连接测试 0 次']
+        catalog=json.loads((ROOT/'cocos-kitchen/i18n.json').read_text())
+        corpus += [s for s in catalog['messages'] if '仅保留到当前页面会话结束' in s or '在线版没有可追溯的服务器对局日志' in s]
+        self.run_js("const missing=corpus.filter(x=>/[\\u3400-\\u9fff]/.test(i.t(x)));assert.deepEqual(missing,[]);",corpus)
+
     def test_live_station_action_and_event_labels(self):
         k=SpatialKitchen(load_config());corpus=[s.name for s in k.stations.values()]
         for stage in ('raw','chopped','clean_plate','dirty_plate','extinguisher'):
