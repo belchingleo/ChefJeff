@@ -63,7 +63,7 @@ cd ChefJeff
 python3 scripts/launch_web.py
 ```
 
-On Windows, use `py -3 scripts/launch_web.py`. You can also launch with `开始网页版.command` on macOS or `开始网页版.bat` on Windows.
+On Windows, use `py -3 scripts/launch_web.py`. You can also launch with `start-web.command` on macOS or `start-web.bat` on Windows.
 
 Open <http://127.0.0.1:8775/>, enter your own TypeSafe Jev, DeepSeek, or compatible Chat Completions credentials in Settings, test the connection, and start a round. Connection tests and gameplay requests use your model account and may incur charges.
 
@@ -105,7 +105,7 @@ The environment separates kitchen rules, spatial movement, agent decisions, and 
 
 For a new model adapter, implement `payload(state, actions)` and `ask(payload)` and return the chosen action to `DecisionLoop`. The environment handles action validation and execution. Existing compatible services can be configured directly in Settings.
 
-Start with [agent integration](docs/agent-integration.md) and [map format](docs/地图数据格式.md). The character is named Jeff; TypeSafe Jev is one supported model service, and `jeff` is the internal actor identifier.
+Start with [agent integration](docs/agent-integration.md) and [map format](docs/map-format.md). The character is named Jeff; TypeSafe Jev is one supported model service, and `jeff` is the internal actor identifier.
 
 ### Development
 
@@ -217,7 +217,7 @@ cd ChefJeff
 python3 scripts/launch_web.py
 ```
 
-Windows 使用 `py -3 scripts/launch_web.py`。也可双击 `开始网页版.command`（macOS）或 `开始网页版.bat`（Windows）。
+Windows 使用 `py -3 scripts/launch_web.py`。也可双击 `start-web.command`（macOS）或 `start-web.bat`（Windows）。
 
 打开 <http://127.0.0.1:8775/>，在「设置」中填写自己的 TypeSafe Jev、DeepSeek 或兼容 Chat Completions 的 API，测试连接后开局。连接测试和游戏请求使用你的模型账号，费用由该账号承担。
 
@@ -259,7 +259,7 @@ python3 cocos_server.py --port 8775
 
 接入新模型时，实现 `payload(state, actions)` 和 `ask(payload)`，将动作选择返回给 `DecisionLoop`；环境负责校验与执行。已有兼容服务可直接通过设置接入。
 
-从 [agent 接入](docs/agent-integration.md) 和 [地图数据格式](docs/地图数据格式.md) 开始了解。游戏角色名是 Jeff；TypeSafe Jev 是支持的模型服务之一，`jeff` 是内部角色标识。
+从 [agent 接入](docs/agent-integration.md) 和 [地图数据格式](docs/map-format.md) 开始了解。游戏角色名是 Jeff；TypeSafe Jev 是支持的模型服务之一，`jeff` 是内部角色标识。
 
 ### 开发与验证
 

@@ -12,9 +12,9 @@ from release_info import ROOT, RUNTIME_FILES, release_info
 from scripts.audit_release import markers
 
 PUBLIC_FILES = ('hosted_server.py','hosted_records.py','hosted/browser-agent.js','hosted/contribution.html',
-                'deploy/chefjeff.service','deploy/nginx-http.conf','deploy/nginx-https.conf','deploy/install_backend.py','docs/hosted-deployment.md','docs/device-support.md','docs/UI设计.md','docs/API接入与同类项目.md','docs/images/gameplay.png','README.md','LICENSE','LICENSE-STATUS.md','THIRD_PARTY_NOTICES.md','SECURITY.md','CONTRIBUTING.md',
-                '开始网页版.command','开始网页版.bat','停止网页版.command',
-                'docs/地图数据格式.md','docs/current-rules.md','docs/当前交互清单.md','docs/第二关-窄巷汉堡.md','docs/第二关-长台汉堡.md','docs/第三关-窄巷汉堡.md','docs/status.md','docs/privacy-and-costs.md','docs/agent-integration.md',
+                'deploy/chefjeff.service','deploy/nginx-http.conf','deploy/nginx-https.conf','deploy/install_backend.py','docs/hosted-deployment.md','docs/device-support.md','docs/ui-design.md','docs/api-integration.md','docs/images/gameplay.png','README.md','LICENSE','LICENSE-STATUS.md','THIRD_PARTY_NOTICES.md','SECURITY.md','CONTRIBUTING.md',
+                'start-web.command','start-web.bat','stop-web.command',
+                'docs/map-format.md','docs/current-rules.md','docs/interaction-guide.md','docs/level-2-narrow-alley-burger.md','docs/level-2-long-counter-burger.md','docs/level-3-narrow-alley-burger.md','docs/status.md','docs/privacy-and-costs.md','docs/agent-integration.md',
                 'cocos-kitchen/THIRD_PARTY_LICENSE.md','docs/art/integration.md',
                 'scripts/build_cocos.py','scripts/package_web.py','scripts/audit_release.py',
                 'cocos-kitchen/web-shell.html','cocos-kitchen/i18n.js','cocos-kitchen/i18n.json','cocos-kitchen/favicon.ico','cocos-kitchen/fonts/chefjeff-pixel.woff2','cocos-kitchen/fonts/OFL.txt','scripts/subset_pixel_font.py','cocos-kitchen/package.json','cocos-kitchen/build-web.json',

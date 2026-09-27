@@ -93,7 +93,7 @@ class PackageTests(unittest.TestCase):
         with zipfile.ZipFile(output) as z:
             self.assertIn('chefjeff-web-demo/cooperation_memory.py',z.namelist())
             self.assertNotIn(b'PRIVATE_SENTINEL',b''.join(z.read(n) for n in z.namelist()))
-            self.assertTrue(z.getinfo('chefjeff-web-demo/开始网页版.command').external_attr>>16 & 0o111)
+            self.assertTrue(z.getinfo('chefjeff-web-demo/start-web.command').external_attr>>16 & 0o111)
         self.assertEqual(manifest['release'],release_info(root))
     def test_missing_runtime_fails_without_replacing_old_zip(self):
         root=self.fixture();out,_=package(root);old=out.read_bytes();(root/'cooperation_memory.py').unlink()

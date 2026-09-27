@@ -18,7 +18,7 @@ def main():
                             capture_output=True, text=True)
     pids = set(result.stdout.split())
     if not pids:
-        print('厨房已经停止。下次双击“开始网页版”即可。')
+        print('厨房已经停止。下次双击“start-web”即可。')
         return 0
     if len(pids) != 1:
         raise RuntimeError('发现多个监听进程，未停止任何程序。')
