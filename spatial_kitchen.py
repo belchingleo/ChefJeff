@@ -13,6 +13,11 @@ THROW_SPEED = 12.0
 WALK_SPEED = 4.5  # Both chefs: 1.5x the original 3 cells per game second
 CHEF_SEPARATION = .4  # two small foot circles, not the full tall sprite
 NUDGE_LIMIT = .25
+# Reference values of movement.stall_replan in the service ruleset: a routed chef whose
+# remaining route has not shortened by STALL_PROGRESS for STALL_SECONDS re-plans from
+# where contact left it, around the other chef. Live kitchens read the ruleset.
+STALL_SECONDS = .3
+STALL_PROGRESS = .05
 from navigation import contact_fraction
 from map_definition import load_map, geometry
 # Legacy level-one inspection helpers retain the import-time reference layout.
@@ -179,6 +184,7 @@ class SpatialKitchen(Kitchen):
         for who in self.chefs:self.chefs[who].location=tile_key(self.positions[who])
         self.facing = {who: 'down' for who in self.chefs}
         self.routes = {}
+        self.route_progress = {}
         self.configure_operation_points()
         self.drop_locks = {}
         self.projectiles = {}
@@ -248,11 +254,39 @@ class SpatialKitchen(Kitchen):
             spent+=step;budget-=step
             if math.dist(self.positions[who],goal)<1e-8:points.pop(0)
             if math.dist(self.positions[who],end)>1e-8:break
-        # Retain the original static-map waypoints. Contact does not plan a detour.
+        # Keep the static-map waypoints while the route is making progress.
         route['points']=[self.positions[who]]+points
         route['length']=sum(math.dist(a,b) for a,b in zip(route['points'],route['points'][1:]))
+        if points and self.rules.stall_after is not None:self._check_route_stall(who,job,route)
         job.travel=route['length']/walk
         return seconds if points else min(seconds,spent/speed)
+
+    def _check_route_stall(self,who,job,route):
+        """Same rule for every chef: a stalled route is re-planned, never abandoned.
+
+        Contact can leave a chef where its remaining waypoints are blocked by a
+        counter, or two routed chefs can press into each other with no slide
+        free on either side. Progress is judged on remaining length (not raw
+        position) so sliding back and forth cannot hide a stall.
+        """
+        progress=self.route_progress.get(who)
+        if not progress or progress['job_id']!=job.id or route['length']<progress['best']-self.rules.stall_progress:
+            self.route_progress[who]={'job_id':job.id,'best':route['length'],'since':self.time}
+            return
+        if self.time-progress['since']<self.rules.stall_after-1e-8:return
+        start,goal=self.positions[who],route['points'][-1]
+        other=self.positions['jeff' if who=='human' else 'human']
+        try:points=self.nav.shortest_path_around(start,goal,other,self.rules.chef_separation)
+        except ValueError:
+            # The other chef closes every way round (or stands on the goal):
+            # still drop waypoints that contact has made unreachable.
+            try:points=self.nav.shortest_path(start,goal)
+            except ValueError:points=route['points']
+        changed=points!=route['points']
+        route['points']=points
+        route['length']=sum(math.dist(a,b) for a,b in zip(points,points[1:]))
+        self.route_progress[who]={'job_id':job.id,'best':route['length'],'since':self.time}
+        if changed:self.emit(f'{NAMES[who]}受阻，重新规划路线',kind='route_replanned',actor=who)
 
     def ground_position(self,item):
         cell=self.cell(item.location)

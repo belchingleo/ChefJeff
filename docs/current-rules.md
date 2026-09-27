@@ -19,7 +19,7 @@ The Cocos browser game uses the shared rules in `kitchen.py`, `spatial_kitchen.p
 
 The default game clock runs at 0.75× real time. API latency and request limits use real time. Walk diagonals do not increase speed. Sprint accelerates movement, not preparation.
 
-Hold WASD/arrows to move; release to stop. Click floor to approach a point, or a station/item to select it and approach its operation side. Keyboard input takes over from click movement. Automatic movement uses the same chef-contact response as manual movement: slide around a partner when there is space, gently push under sustained pressure, and apply a bounded sprint nudge of at most a quarter cell. Walls and cabinets block movement. Chefs chopping or washing cannot be pushed away. Ground food does not block walking or repel other food; sprint can nudge loose ingredients by at most a quarter cell.
+Hold WASD/arrows to move; release to stop. Click floor to approach a point, or a station/item to select it and approach its operation side. Keyboard input takes over from click movement. Automatic movement uses the same chef-contact response as manual movement: slide around a partner when there is space, gently push under sustained pressure, and apply a bounded sprint nudge of at most a quarter cell. A click or AI route that makes no progress for 0.3 s re-plans from where contact left it, around the other chef (the same rule for both chefs), so two walkers cannot lock each other up. Walls and cabinets block movement. Chefs chopping or washing cannot be pushed away. Ground food does not block walking or repel other food; sprint can nudge loose ingredients by at most a quarter cell.
 
 ## Actions and throwing
 
@@ -78,7 +78,7 @@ Cocos 浏览器版共用 `kitchen.py`、`spatial_kitchen.py`、地图 JSON 和�
 
 默认游戏时钟为现实时间的 0.75 倍，API 延迟及请求限制按现实时间计算。斜走不加速，冲刺仅加速移动。
 
-按住 WASD／方向键移动，松开停止。点击地面走近坐标，点击工位／物品选中并走向操作侧；键盘可以接管点击移动。自动与手动移动共用厨师接触处理：有空间时沿搭档边缘滑过，持续前进时温和推挤，冲刺产生最多四分之一格的有限位移。墙与柜体不可穿过，正在切菜或洗碗的厨师不可被推离。地面食物不挡走路，食物之间不相互弹开；冲刺可将散落原料推移最多四分之一格。
+按住 WASD／方向键移动，松开停止。点击地面走近坐标，点击工位／物品选中并走向操作侧；键盘可以接管点击移动。自动与手动移动共用厨师接触处理：有空间时沿搭档边缘滑过，持续前进时温和推挤，冲刺产生最多四分之一格的有限位移。点击或 AI 路线若 0.3 秒无进展，会从当前位置绕开对方重新规划（双方同一规则），两位自动行走的厨师不会互相卡死。墙与柜体不可穿过，正在切菜或洗碗的厨师不可被推离。地面食物不挡走路，食物之间不相互弹开；冲刺可将散落原料推移最多四分之一格。
 
 ## 操作与抛掷
 

@@ -123,6 +123,23 @@
           "type": "number",
           "minimum": 0,
           "maximum": 1
+        },
+        "stall_replan": {
+          "description": "Optional: a routed chef whose remaining route has not shortened by min_progress_cells within after_game_ms re-plans around the other chef. Absent: routes keep their static waypoints (accepted 0.5.9 behaviour).",
+          "type": "object",
+          "required": [
+            "after_game_ms",
+            "min_progress_cells"
+          ],
+          "properties": {
+            "after_game_ms": {
+              "$ref": "common.schema.json#/$defs/positive_game_ms"
+            },
+            "min_progress_cells": {
+              "$ref": "common.schema.json#/$defs/positive_number"
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false

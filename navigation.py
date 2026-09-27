@@ -104,19 +104,66 @@ class Navigation:
                 if self.clear_walk_line(points[i],corner):
                     length = math.dist(points[i],corner)
                     edges[i].append((j,length));edges[j].append((i,length))
-        distances, previous, queue = {source:0.}, {}, [(0.,source)]
-        while queue:
-            distance, i = heapq.heappop(queue)
-            if distance > distances[i]+EPSILON:
-                continue
-            if i == target:
-                route = [points[i]]
-                while i != source:
-                    i = previous[i];route.append(points[i])
-                return list(reversed(route))
-            for j, length in edges[i]:
-                candidate = distance+length
-                if candidate < distances.get(j,math.inf)-EPSILON:
-                    distances[j] = candidate;previous[j] = i
-                    heapq.heappush(queue,(candidate,j))
-        raise ValueError('目标不可达')
+        return _dijkstra(points,edges,source,target)
+
+    def shortest_path_around(self, start, end, center, radius):
+        """Shortest route that also keeps clear of one disc (the other chef).
+
+        Used only to recover a stalled route. The disc is not static geometry,
+        so this is planned on demand and never cached.
+        """
+        start,end,center=tuple(start),tuple(end),tuple(center)
+        if not self.walkable_point(start) or not self.walkable_point(end):
+            raise ValueError('目标不在可行走地面')
+        if math.dist(end,center) < radius-EPSILON:
+            raise ValueError('目标被占用')
+        def outside(a,b):
+            # Directional: a start already touching the disc may still leave it.
+            return contact_fraction(a,b,center,radius) >= 1.-EPSILON
+        if start == end:
+            return [start]
+        if self.clear_walk_line(start,end) and outside(start,end):
+            return [start,end]
+        corners, static_edges = self.graph
+        # Vertices of the octagon circumscribing the disc: its sides lie outside
+        # the disc, so these give the visibility graph its way around the chef.
+        ring = radius/math.cos(math.pi/8)*(1+1e-6)
+        extra = [p for p in ((center[0]+ring*math.cos(math.pi/8+i*math.pi/4),
+                              center[1]+ring*math.sin(math.pi/8+i*math.pi/4)) for i in range(8))
+                 if self.walkable_point(p)]
+        usable = [math.dist(c,center) >= radius-EPSILON for c in corners]
+        points = corners+extra+[start,end]
+        edges = [[(j,length) for j,length in e if usable[i] and usable[j] and outside(corners[i],corners[j])]
+                 for i,e in enumerate(static_edges)]+[[] for _ in range(len(extra)+2)]
+        source, target = len(points)-2, len(points)-1
+        for i in range(len(corners),len(points)):
+            for j in range(i):
+                if j < len(corners) and not usable[j]:
+                    continue
+                if (i,j) == (target,source):
+                    continue  # already tested as a straight line above
+                # Only the start may touch the disc, and it is always points[i].
+                a, b = points[i], points[j]
+                if self.clear_walk_line(a,b) and outside(a,b):
+                    length = math.dist(a,b)
+                    edges[i].append((j,length));edges[j].append((i,length))
+        return _dijkstra(points,edges,source,target)
+
+
+def _dijkstra(points, edges, source, target):
+    distances, previous, queue = {source:0.}, {}, [(0.,source)]
+    while queue:
+        distance, i = heapq.heappop(queue)
+        if distance > distances[i]+EPSILON:
+            continue
+        if i == target:
+            route = [points[i]]
+            while i != source:
+                i = previous[i];route.append(points[i])
+            return list(reversed(route))
+        for j, length in edges[i]:
+            candidate = distance+length
+            if candidate < distances.get(j,math.inf)-EPSILON:
+                distances[j] = candidate;previous[j] = i
+                heapq.heappush(queue,(candidate,j))
+    raise ValueError('目标不可达')

@@ -190,6 +190,10 @@ class Rules:
         self.chef_separation = move['chef_separation_cells']
         self.sprint_push = move['sprint_push_cells']
         self.sprint_food_nudge = move['sprint_food_nudge_cells']
+        # Optional: re-plan a stalled route around the other chef. Absent = static waypoints.
+        stall = move.get('stall_replan')
+        self.stall_after = s(stall['after_game_ms']) if stall else None
+        self.stall_progress = stall['min_progress_cells'] if stall else None
         # Extra speed fraction while sprinting (1.4x -> 0.4), rounded to the authored precision.
         self.sprint_boost = round(self.sprint_multiplier - 1, 12)
         self.throw_enabled = throw['enabled']

@@ -12,10 +12,6 @@ multiple of 10 (owner decision, 2026-09-27).
 Levels use fixed seeds (owner decision B), so --fixed runs exactly the configured
 round; --seeds N instead samples order seeds 1..N as a robustness check.
 
-The driver makes a stuck walker yield for one second: two path-following chefs
-meeting head-on in a narrow gap would otherwise block each other forever, which
-a person steering by keyboard does not do.
-
 This is a calibration reference, not a statement about human + AI play: the
 reference pair is two scripted chefs. The 'latency' variant lets Jeff decide
 only every 3 game seconds to approximate model response time.
@@ -25,7 +21,6 @@ only every 3 game seconds to approximate model response time.
 import argparse
 import itertools
 import json
-import math
 from multiprocessing import Pool
 from pathlib import Path
 import statistics
@@ -63,20 +58,11 @@ def bundle(level, interval, countdowns, seed):
 
 
 def drive(k, roles, policy, period):
-    """Run one round to closing; a chef stuck in travel for 1 s (human) or 1.5 s (jeff) yields for 1 s."""
-    step, last, hold = 0, {w: (k.positions[w], 0) for w, _ in roles}, {w: -1 for w, _ in roles}
+    """Run one round to closing. Stalled routes are the engine's job (movement.stall_replan)."""
+    step = 0
     while not k.ended:
         for who, role in roles:
-            job = k.chefs[who].job
-            pos, since = last[who]
-            if job and not job.working and math.dist(pos, k.positions[who]) < 1e-3:
-                if step - since >= (20 if who == 'human' else 30):
-                    k.stop(who)
-                    hold[who] = step + 20
-                    last[who] = (k.positions[who], step)
-            else:
-                last[who] = (k.positions[who], step)
-            if step % period[who] == 0 and step >= hold[who]:
+            if step % period[who] == 0:
                 action = policy(k, who, role)
                 if action:
                     k.start(who, action)
