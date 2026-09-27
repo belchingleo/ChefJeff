@@ -6,18 +6,18 @@
   "name": "第1关订单",
   "mode": "fixed_interval_seeded",
   "first_spawn_game_ms": 0,
-  "interval_game_ms": 25000,
+  "interval_game_ms": 30000,
   "menu": [
     {
       "recipe_ref": "steak",
       "weight": 1
     }
   ],
-  "patience_default_game_ms": 90000,
+  "patience_default_game_ms": 75000,
   "patience_by_recipe": {
-    "steak": 90000
+    "steak": 75000
   },
   "extensions": {
-    "chefjeff.status": "provisional interval and countdowns pending the reference sweep"
+    "chefjeff.status": "calibrated: reference pair earns 300 on this fixed plan (slower-Jeff variant 200); target = 50%"
   }
 }

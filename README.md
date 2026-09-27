@@ -65,7 +65,7 @@ python3 scripts/launch_web.py
 
 On Windows, use `py -3 scripts/launch_web.py`. You can also launch with `开始网页版.command` on macOS or `开始网页版.bat` on Windows.
 
-Open <http://127.0.0.1:8775/>, enter your own TypeSafe Jev, DeepSeek, or compatible Chat Completions credentials in Settings, test the connection, and start a round. Connection tests and gameplay requests use your model account and may incur charges.
+Open <http://127.0.0.1:8775/>, enter your own TypeSafe Jev, DeepSeek, or compatible Chat Completions credentials in Settings, test the connection, and start a round. Connection tests and gameplay requests use your model account and may incur charges. ChefJeff is a real-time game and is designed for fast, low-latency models (for example TypeSafe Jev or DeepSeek's fast models); a slow model keeps its chef idle while the kitchen keeps running.
 
 For a foreground process on any supported platform:
 
@@ -219,7 +219,7 @@ python3 scripts/launch_web.py
 
 Windows 使用 `py -3 scripts/launch_web.py`。也可双击 `开始网页版.command`（macOS）或 `开始网页版.bat`（Windows）。
 
-打开 <http://127.0.0.1:8775/>，在「设置」中填写自己的 TypeSafe Jev、DeepSeek 或兼容 Chat Completions 的 API，测试连接后开局。连接测试和游戏请求使用你的模型账号，费用由该账号承担。
+打开 <http://127.0.0.1:8775/>，在「设置」中填写自己的 TypeSafe Jev、DeepSeek 或兼容 Chat Completions 的 API，测试连接后开局。连接测试和游戏请求使用你的模型账号，费用由该账号承担。ChefJeff 是实时游戏，面向低延迟的快模型设计（例如 TypeSafe Jev 或 DeepSeek 的快速模型）；模型太慢时，厨房照常运转，Jeff 却会一直等待。
 
 各平台也可在前台运行：
 

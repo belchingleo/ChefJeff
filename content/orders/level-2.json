@@ -6,18 +6,18 @@
   "name": "第2关订单",
   "mode": "fixed_interval_seeded",
   "first_spawn_game_ms": 0,
-  "interval_game_ms": 25000,
+  "interval_game_ms": 40000,
   "menu": [
     {
       "recipe_ref": "burger",
       "weight": 1
     }
   ],
-  "patience_default_game_ms": 90000,
+  "patience_default_game_ms": 120000,
   "patience_by_recipe": {
-    "burger": 110000
+    "burger": 120000
   },
   "extensions": {
-    "chefjeff.status": "provisional interval and countdowns pending the reference sweep"
+    "chefjeff.status": "provisional: the reference pair cannot yet play the long counter; recalibrate after dish passing"
   }
 }

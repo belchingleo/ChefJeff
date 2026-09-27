@@ -1,6 +1,6 @@
 {
   "analyzer_version": "capacity-analyzer-0.1",
-  "input_config_hash": "sha256:4f6194eb914eb07b33ba923b556769ccf2bae5f8da4e5958f4af19cba0846e35",
+  "input_config_hash": "sha256:61f065a249d832fee12f6f2dd7ecf8b74a8a04b6a8a09c99bcaf60a621877d3e",
   "input_status": "frozen",
   "level_id": "level-3",
   "schema_valid": true,
@@ -241,24 +241,24 @@
     "plate": 4100
   },
   "resource_loads": {
-    "chef": 0.365,
-    "board": 0.16,
-    "stove_with_pot": 0.24,
-    "sink": 0.16,
-    "plate": 0.164
+    "chef": 0.3042,
+    "board": 0.1333,
+    "stove_with_pot": 0.2,
+    "sink": 0.1333,
+    "plate": 0.1367
   },
   "I_resource_lb_game_ms": 9125,
   "binding_resource": "chef",
   "plan": {
-    "orders": 8,
+    "orders": 6,
     "goal": {
       "type": "minimum_money",
-      "target_money": 100,
-      "revenue_ceiling": 520,
-      "orders_too_late_to_cook_from_scratch": 1
+      "target_money": 190,
+      "revenue_ceiling": 420,
+      "orders_too_late_to_cook_from_scratch": 0
     },
     "round_limit_game_ms": 180000,
-    "configured_interval_game_ms": 25000,
+    "configured_interval_game_ms": 30000,
     "order_algorithm": "fixed_interval_seeded/weighted-cumulative-v1"
   },
   "suggested_interval_game_ms": null,

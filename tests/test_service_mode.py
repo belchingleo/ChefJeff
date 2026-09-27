@@ -70,7 +70,7 @@ class ServeTests(unittest.TestCase):
 
     def test_dish_goes_to_the_next_waiting_order_when_the_first_expired(self):
         k = self.kitchen(2)
-        k.advance(25.)
+        k.advance(k.rules.resolved['order_policy']['interval_game_ms'] / 1000)  # second order arrives
         first, second = [o for o in k.orders if o['status'] == 'pending'][:2]
         first['deadline'] = k.time + .02;k.advance(.05)
         self.assertEqual(first['status'], 'expired');self.assertEqual(k.money, -10)
@@ -120,6 +120,20 @@ class ServeTests(unittest.TestCase):
         k = self.kitchen(1);o = self.first(k)
         k.advance(o['deadline'] - k.time + .1)
         self.assertEqual(o['status'], 'expired');self.assertEqual(k.money, -10);self.assertEqual(k.bad_reviews, 0)
+
+
+class FixedSeedTests(unittest.TestCase):
+    def test_listed_levels_use_fixed_seeds_so_every_round_is_identical(self):
+        for n in (1, 2, 3):
+            a, b = cc.load_level(f'level-{n}'), cc.load_level(f'level-{n}')
+            self.assertEqual(a['seeds']['source'], 'configured')
+            self.assertEqual(a['config_hash'], b['config_hash'])
+        orders = [o['recipe_ref'] for o in cc.load_level('level-3')['order_plan']['orders']]
+        self.assertEqual(orders, ['steak', 'burger', 'burger', 'steak', 'burger', 'steak'])
+
+    def test_targets_are_whole_tens(self):
+        for n in (1, 2, 3):
+            self.assertEqual(cc.load_level(f'level-{n}')['level']['goal']['min_money'] % 10, 0)
 
 
 class RoundTests(unittest.TestCase):

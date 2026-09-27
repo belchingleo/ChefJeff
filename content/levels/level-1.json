@@ -87,7 +87,7 @@
   "round_limit_game_ms": 180000,
   "goal": {
     "type": "minimum_money",
-    "min_money": 100
+    "min_money": 150
   },
   "end_policy": {
     "type": "fixed_round"
@@ -96,10 +96,11 @@
     "time_bonus_per_second": 0
   },
   "seeds": {
-    "orders": null,
-    "spawn": null
+    "orders": 26,
+    "spawn": 0
   },
   "extensions": {
-    "chefjeff.status": "provisional target money pending the reference sweep"
+    "chefjeff.status": "calibrated: reference pair earns 300 on this fixed plan (slower-Jeff variant 200); target = 50%",
+    "chefjeff.seeds": "fixed (owner decision B): every round of this level version gets the same orders and spawn sides"
   }
 }

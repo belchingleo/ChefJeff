@@ -96,10 +96,11 @@
     "time_bonus_per_second": 0
   },
   "seeds": {
-    "orders": null,
-    "spawn": null
+    "orders": 26,
+    "spawn": 0
   },
   "extensions": {
-    "chefjeff.status": "provisional target money pending the reference sweep"
+    "chefjeff.status": "provisional: the reference pair cannot yet play the long counter; recalibrate after dish passing",
+    "chefjeff.seeds": "fixed (owner decision B): every round of this level version gets the same orders and spawn sides"
   }
 }
