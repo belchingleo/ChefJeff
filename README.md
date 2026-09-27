@@ -4,7 +4,7 @@
 
 English · [中文](#中文说明)
 
-**An open collaboration project exploring how humans and AI agents work together in real time.**
+**An open-source collaboration project exploring how humans and AI agents work together in real time.**
 
 ChefJeff brings a human player and an AI chef into a shared pixel-art kitchen. Orders arrive, food cooks, dishes pile up, and both partners must coordinate as the situation changes. Jeff observes the kitchen, chooses actions, and works alongside the player without a fixed role.
 
@@ -158,11 +158,11 @@ Original project code is licensed under [AGPL-3.0-only](LICENSE). Dependency and
 
 # ChefJeff · 一起出餐
 
-**一个探索人类与 AI agent 如何在实时环境中共同工作的开放共创项目。**
+**一个探索人类与 AI agent 如何在实时环境中共同工作的开源项目。**
 
-ChefJeff 让人类玩家和 AI 厨师进入同一个像素厨房。订单不断到来，食物持续加热，脏盘逐渐堆积，双方需要随着局势变化协调行动。Jeff 观察厨房、自主选择动作，与玩家共同完成任务，没有预设的固定分工。
+ChefJeff 让人类玩家和 AI 厨师进入同一个厨房。订单不断到来，食物持续加热，脏盘逐渐堆积，双方需要随着局势变化协调行动。Jeff 观察厨房、自主选择动作，与玩家共同完成任务，没有预设的固定分工。
 
-我们希望共同建设两部分：**一个可由社区持续扩展的合作游戏**，以及**一个通过完整对局研究和对照 agent 协作能力的开放 benchmark**。游戏提供可参与的实时环境，benchmark 则将社区贡献的对局描述、交互记录和评估方法连接起来。
+我们希望共同建设两部分：**一个可由社区持续扩展的协作游戏**，以及**一个通过完整对局研究和对照 agent 协作能力的开放 benchmark**。游戏提供可参与的实时环境，benchmark 则将通过社区贡献的对局描述、交互记录和评估方法不断探索并建立。
 
 ## 面向谁，能一起做什么
 
@@ -296,9 +296,9 @@ ChefJeff 目前处于可玩的早期原型阶段。仓库在公开发布准备�
 
 ## 启发与鸣谢
 
-[Overcooked（分手厨房）](https://www.ghosttowngames.com/overcooked/) 是一部在探索协作与配合方面非常伟大的作品。ChefJeff 的创作者也是该游戏忠实的 Nintendo Switch 玩家，希望借此项目向共同做菜带来的挑战与欢乐致敬。
+[Overcooked（分手厨房）](https://www.ghosttowngames.com/overcooked/) 是一部在探索协作与多方配合方面的伟大作品。ChefJeff 的创作者是该游戏忠实的 Nintendo Switch 玩家，希望借此项目向共同做菜带来的挑战与欢乐致敬。
 
-ChefJeff 从项目初期就受到了 Overcooked 的启发，整体玩法与部分早期厨房地图设计有所参考。这里所指的是玩法与地图设计层面的启发，而非其具体软件实现。ChefJeff 在此基础上，探索由社区共同建设的实时人机协作与 agent 能力对照环境。
+ChefJeff 从项目初期就受到了 Overcooked 的启发，整体玩法与早期厨房地图设计对该游戏都有所参考。这里所指的是玩法与地图设计层面的启发，而非其具体软件实现。ChefJeff 在此基础上，探索由社区共同建设的实时人机协作与 agent 能力对照环境。
 
 ## 参与共创
 
