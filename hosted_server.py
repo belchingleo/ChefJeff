@@ -103,6 +103,7 @@ class HostedSession(GameSession):
                          kitchen_factory=SpatialKitchen, log_prefix='hosted')
         self.c['ai_max_response_age'] = 15
         self.base_config['ai_max_response_age'] = 15
+        self.deployment_mode = 'hosted'
 
     def tick(self, now=None):
         with self.lock:

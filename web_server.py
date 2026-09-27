@@ -19,6 +19,7 @@ import webbrowser
 from kitchen import Kitchen, ROOT, load_config
 from jev import JevClient, DecisionLoop
 from play import Journal
+from session_record import SessionLog, write_bundle
 from levels import available_levels
 
 
@@ -65,6 +66,10 @@ class GameSession:
         self.last_player_message_at = None
         self.bookmarks = []
         self.last_bookmark_at = None
+        # Local play keeps a Session bundle beside the journal; other sinks keep records in memory only.
+        self.session_log = None
+        self.bundle_root = ROOT / 'logs' / 'sessions' if journal_factory is Journal else None
+        self.deployment_mode = 'local'
 
     def note(self, message):
         self.notes.append({'t': round(self.k.time, 2), 'message': message})
@@ -91,6 +96,11 @@ class GameSession:
                                 'bookmarks': deepcopy(self.bookmarks),
                                 'player_messages': deepcopy(self.player_messages)})
             self.journal.close()
+            if self.bundle_root is not None:
+                try:
+                    write_bundle(self.journal, self.bundle_root / self.game_id)
+                except OSError as exc:
+                    self.note(f'对局记录包未能保存（{type(exc).__name__}）')
             self.journal = None
 
     def _advance_ticks(self, elapsed, now):
@@ -340,8 +350,10 @@ class GameSession:
             except (RuntimeError, OSError, ValueError):
                 return 503, {'error': '没有读到可用的本地 Jev 配置，请检查 .env。厨房尚未开始计时。'}
             self.speed = speed
-            self.journal = self.journal_factory(self.log_prefix+'-'+self.game_id[:8])
-            self.journal('start', {'config':self.c, 'speed':self.speed, 'state':self.k.snapshot()})
+            self.journal = SessionLog(self, self.journal_factory(self.log_prefix+'-'+self.game_id[:8]),
+                                      keep_payloads=self.bundle_root is not None, deployment_mode=self.deployment_mode)
+            self.session_log = self.journal
+            self.journal('start', {'config':self.c, 'config_hash':self.k.config_hash, 'speed':self.speed, 'state':self.k.snapshot()})
             self.ai = DecisionLoop(self.k, client, self.journal, self.note)
             self.phase = 'running'
             self.last_tick = self.last_seen = time.monotonic()
@@ -367,11 +379,7 @@ class GameSession:
             if self.phase=='ended':return 200,{'ok':True}
             if self.phase not in ('running','paused'):
                 return 409,{'error':'当前没有进行中的对局。'}
-            for who in self.k.chefs:
-                if hasattr(self.k,'set_manual'):self.k.set_manual(who,0,0)
-                self.k.stop(who)
-            self.k.aborted=True
-            self.k._end()
+            self.k.abort()
             self.phase='ended'
             self._finish(aborted=True)
             return 200,{'ok':True}

@@ -198,8 +198,10 @@ class DecisionLoop:
                 sprint_applied=bool(applied and result.get('sprint') is True and hasattr(self.k,'sprint') and self.k.sprint('jeff'))
                 if not fresh:self.stale_count += 1
                 elif not applied:self.rejected_count += 1
+                chef_job = self.k.chefs["jeff"].job
                 self.log("ai_response", {"request_id": context["id"], **result, "applied": applied, "execution": message, "sprint_applied":sprint_applied,
-                                         "current_state": self.k.snapshot()})
+                                         "fresh": fresh, "action_id": chef_job.id if applied and chef_job and decision.kind not in ("continue", "wait") else None,
+                                         "accepted_engine_seq": self.k.event_seq, "current_state": self.k.snapshot()})
                 self.last_choice = result["choice"] + ("" if applied else "（未执行）")
                 self.recent_decisions.append({"t": round(self.k.time, 2), "choice": result["choice"],
                                               "accepted": applied, "result": message, "sprint_applied":sprint_applied})
@@ -278,7 +280,7 @@ class DecisionLoop:
         payload = english_data(payload)
         payload['state']['input_language'] = INPUT_LANGUAGE_VERSION
         payload['state']['rules_version'] = AGENT_RULES_VERSION
-        self.log("ai_request", {"request_id": self.calls, "triggers": causes, "payload": payload})
+        self.log("ai_request", {"request_id": self.calls, "triggers": causes, "observed_state_seq": self.k.event_seq, "payload": payload})
         self.last_request = now
         self.last_revision = self.k.revision
         self.last_urgency = urgency

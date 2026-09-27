@@ -3,7 +3,7 @@ from functools import lru_cache
 import heapq
 import math
 import random
-from kitchen import Kitchen, Action, Station, NAMES, TAKE_KINDS, Job, GroundItem, STATES
+from kitchen import Kitchen, Action, Station, NAMES, TAKE_KINDS, Job, GroundItem, STATES, engine_input
 
 WIDTH, HEIGHT = 14, 9
 THROW_RANGE = 7.0
@@ -208,6 +208,7 @@ class SpatialKitchen(Kitchen):
     def speed_factor(self, who):
         return self.rules.sprint_multiplier if self.time < self.sprint_until[who]-1e-8 else 1.
 
+    @engine_input
     def sprint(self, who):
         if self.ended or self.time < self.sprint_ready_at[who]-1e-8:
             return False
@@ -559,6 +560,7 @@ class SpatialKitchen(Kitchen):
         landing = self.throw_landing(who,self.positions[other])
         return landing[0] if landing else None
 
+    @engine_input
     def set_manual(self, who, dx, dy):
         length = math.hypot(dx,dy)
         vector = (dx/max(1.,length),dy/max(1.,length))
@@ -724,6 +726,7 @@ class SpatialKitchen(Kitchen):
         missing=self.rules.missing(self.parts(hand))
         return '暂不能出餐，还缺：'+'、'.join(self.rules.component_labels[x] for x in missing)
 
+    @engine_input
     def stop(self, who):
         self.manual[who] = (0.,0.)
         had_job = bool(self.chefs[who].job)
@@ -733,6 +736,7 @@ class SpatialKitchen(Kitchen):
         self.routes.pop(who, None)
         self.drop_locks = {key: owner for key, owner in self.drop_locks.items() if owner != who}
 
+    @engine_input
     def start(self, who, action):
         if action.kind == 'throw':
             hand = self.chefs[who].hand
@@ -742,7 +746,7 @@ class SpatialKitchen(Kitchen):
             self.stop(who)
             self.job_serial += 1
             self.chefs[who].job = Job(self.job_serial,action,0,self.c.get('handling_seconds',.15))
-            self.emit(f'{NAMES[who]}开始：{action.label}',kind='action_start',actor=who,action=action.key)
+            self.emit(f'{NAMES[who]}开始：{action.label}',kind='action_start',actor=who,action=action.key,action_id=self.job_serial)
             return True, '开始抛递'
         if action.kind == 'plate_partner':
             if not self.can_plate_partner(who) or action.expected != self.partner_signature(who) or self.ended:
@@ -750,7 +754,7 @@ class SpatialKitchen(Kitchen):
             self.stop(who)
             self.job_serial += 1
             self.chefs[who].job = Job(self.job_serial,action,self.travel_time(self.chefs[who],action.target),self.c.get('handling_seconds',.15))
-            self.emit(f'{NAMES[who]}开始给队友装盘',kind='action_start',actor=who,action=action.key)
+            self.emit(f'{NAMES[who]}开始给队友装盘',kind='action_start',actor=who,action=action.key,action_id=self.job_serial)
             ok, message = True, '开始'
         else:
             ok, message = super().start(who, action)
@@ -790,7 +794,7 @@ class SpatialKitchen(Kitchen):
         incoming = job.action.expected[1] if job.action.kind == 'pickup' else None
         cell = self.swap_cell(who, job.action.target, incoming)
         if cell is None:
-            self.emit(f'{NAMES[who]}附近没有空位换手，物品保持原样', kind='arrival_conflict', actor=who)
+            self.emit(f'{NAMES[who]}附近没有空位换手，物品保持原样', kind='arrival_conflict', actor=who, action_id=job.id)
             return False
         key = tile_key(cell)
         self.swap_slots[job.id] = key
@@ -816,21 +820,21 @@ class SpatialKitchen(Kitchen):
         if job.action.kind in ('chop','wash'):
             access=self.shared_access(who,job.action.target)
             if access is not None and not any(math.dist(self.positions[who],self.operation_point(job.action.target,p))<.05 for p in access):
-                self.emit('共同操作的位置已被占用，本次操作取消',kind='arrival_conflict',actor=who)
+                self.emit('共同操作的位置已被占用，本次操作取消',kind='arrival_conflict',actor=who,action_id=job.id)
                 self.stop(who);return False
         if job.action.kind in ('put_board','put_counter') and self.board_reserved(job.action.target):
-            self.emit('工位有食材正在飞入，本次放置取消',kind='arrival_conflict',actor=who)
+            self.emit('工位有食材正在飞入，本次放置取消',kind='arrival_conflict',actor=who,action_id=job.id)
             self.stop(who); return False
         if job.action.kind == 'plate_partner':
             if not self.can_plate_partner(who,True) or job.action.expected != self.partner_signature(who):
-                self.emit('队友已移动或物品变化，装盘取消',kind='arrival_conflict',actor=who)
+                self.emit('队友已移动或物品变化，装盘取消',kind='arrival_conflict',actor=who,action_id=job.id)
                 self.stop(who); return False
             job.working = True
             return True
         if job.action.kind == 'throw':
             hand = self.chefs[who].hand
             if not hand or hand.id != job.action.expected[0] or not self.can_throw_to(who,job.action.target):
-                self.emit(f'{NAMES[who]}的抛递落点不可用，仍拿着物品',kind='arrival_conflict',actor=who)
+                self.emit(f'{NAMES[who]}的抛递落点不可用，仍拿着物品',kind='arrival_conflict',actor=who,action_id=job.id)
                 self.stop(who)
                 return False
             self.drop_locks[job.action.target] = who
@@ -840,7 +844,7 @@ class SpatialKitchen(Kitchen):
             target = job.action.target
             occupied = self.cell(target) in self.occupied_floor(who)
             if occupied or self.drop_locks.get(target) not in (None, who):
-                self.emit(f'{NAMES[who]}发现落点被占用，仍拿着食物', kind='arrival_conflict', actor=who)
+                self.emit(f'{NAMES[who]}发现落点被占用，仍拿着食物', kind='arrival_conflict', actor=who, action_id=job.id)
                 self.chefs[who].job = None
                 self.routes.pop(who, None)
                 return False
@@ -854,7 +858,7 @@ class SpatialKitchen(Kitchen):
     def _finish(self, who, job):
         if job.action.kind == 'plate_partner':
             if not self.can_plate_partner(who,True) or job.action.expected != self.partner_signature(who):
-                self.emit('装盘时队友或物品变化，物品保持原样',kind='arrival_conflict',actor=who)
+                self.emit('装盘时队友或物品变化，物品保持原样',kind='arrival_conflict',actor=who,action_id=job.id)
                 self.stop(who); return
             other = 'jeff' if who == 'human' else 'human'
             pot, plate = self.chefs[who].hand, self.chefs[other].hand
@@ -866,7 +870,8 @@ class SpatialKitchen(Kitchen):
                 if pot.stage=='pot':pot.contents=None
                 else:self.chefs[who].hand=None
             self.chefs[who].job = None
-            self.emit(f'{NAMES[who]}把食材加入{NAMES[other]}手中的盘',kind='action_done',actor=who,action='plate partner')
+            self.emit(f'{NAMES[who]}把食材加入{NAMES[other]}手中的盘',kind='action_done',actor=who,action='plate partner',
+                      action_id=job.id,receiver=other)
         elif job.action.kind == 'throw':
             chef = self.chefs[who]
             food = chef.hand
@@ -875,7 +880,7 @@ class SpatialKitchen(Kitchen):
             duration = max(self.rules.min_flight, math.dist(self.positions[who],job.action.expected[2:4])/self.rules.throw_speed)
             self.projectiles[food.id] = {'food': food, 'target': job.action.target,
                 'from': self.positions[who], 'to': tuple(job.action.expected[2:4]), 'started': self.time,
-                'lands_at': self.time+duration, 'actor': who, 'catch_at': tuple(job.action.expected[2:4])}
+                'lands_at': self.time+duration, 'actor': who, 'catch_at': tuple(job.action.expected[2:4]), 'handoff_id': job.id}
             receiver = self.chefs['jeff' if who == 'human' else 'human']
             if receiver.hand or (receiver.job and receiver.job.action.kind != 'go'):
                 # Busy chefs cannot catch: show the reserved landing point too,
@@ -883,9 +888,9 @@ class SpatialKitchen(Kitchen):
                 self.projectiles[food.id]['to'] = tuple(target)
             chef.hand = None
             chef.job = None
-            self.emit(f'{NAMES[who]}抛出了 {food.id}，落点为 {target}',kind='thrown',actor=who,item=food.id,
+            self.emit(f'{NAMES[who]}抛出了 {food.id}，落点为 {target}',kind='thrown',actor=who,item=food.id,action_id=job.id,handoff_id=job.id,
                       stage=food.stage,source=self.positions[who],target=target,aim=tuple(job.action.expected[2:4]))
-            self.emit(f'{NAMES[who]}完成动作：抛出物品',kind='action_done',actor=who,action=job.action.key)
+            self.emit(f'{NAMES[who]}完成动作：抛出物品',kind='action_done',actor=who,action=job.action.key,action_id=job.id)
         else:
             super()._finish(who, job)
         self.routes.pop(who, None)
@@ -916,7 +921,7 @@ class SpatialKitchen(Kitchen):
                     board = self.stations[p['target']]
                     assert board.food is None, '已预留的台面被覆盖'
                     board.food = p['food']
-                    self.emit(f'{key} 落到{board.name}，可取走',kind='landed',
+                    self.emit(f'{key} 落到{board.name}，可取走',kind='landed',handoff_id=p['handoff_id'],outcome='landed_station',
                               item=key,actor=p['actor'],target=p['target'])
                     del self.projectiles[key]
                     continue
@@ -927,10 +932,10 @@ class SpatialKitchen(Kitchen):
                              and self.clear_throw_line(p['from'],self.positions[other]))
                 if can_catch:
                     chef.hand = p['food']
-                    self.emit(f'{NAMES[other]}接住了 {key}',kind='caught',item=key,actor=other)
+                    self.emit(f'{NAMES[other]}接住了 {key}',kind='caught',item=key,actor=other,handoff_id=p['handoff_id'],outcome='caught',thrower=p['actor'])
                 else:
                     self.ground[key] = GroundItem(p['food'],p['target'])
-                    self.emit(f'{key} 落在地上，可拾取',kind='landed',item=key,actor=p['actor'])
+                    self.emit(f'{key} 落在地上，可拾取',kind='landed',item=key,actor=p['actor'],handoff_id=p['handoff_id'],outcome='landed_floor')
                 del self.projectiles[key]
 
     def fire_neighbors(self, key):

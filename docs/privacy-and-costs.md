@@ -12,7 +12,7 @@ Your own Python backend sends the key to the selected HTTPS model endpoint. The 
 
 Model inputs include kitchen state, rules, legal actions, recent events and choices. Enabled cross-round memory adds up to three completed rounds for the same endpoint/model, each with at most 18 sampled factual events. Memory lives in `.player-memory.json`; disabling stops reads and additions, and Clear removes saved episodes.
 
-Local `logs/` journals can contain full state and model output. Feedback export uses an allowlist of build/session identifiers, timing, outcomes, call/usage totals, event counts, bookmarks, preset messages and recent action events. It omits credentials, service endpoints, memory and raw model payloads. Preview it before downloading or sharing.
+Local `logs/` journals can contain full state and model output. Each local round also writes a session record bundle under `logs/sessions/<session-id>/` (frozen configuration, event stream, engine inputs and the exact model requests); it is derived from the same stream as the journal, contains no credentials, and stays on your computer. Feedback export uses an allowlist of build/session identifiers, timing, outcomes, call/usage totals, event counts, bookmarks, preset messages and recent action events. It omits credentials, service endpoints, memory and raw model payloads. Preview it before downloading or sharing.
 
 ## Hosted pilot
 
@@ -40,7 +40,7 @@ Contributions exclude keys, account identity, email, IP addresses, model endpoin
 
 模型输入包括厨房状态、规则、合法动作、近期事件及选择。开启跨局记忆后，会加入同接口／模型最近三场结束对局，每场最多 18 条抽样事实事件。记忆位于 `.player-memory.json`；关闭后不读取或新增，清空会删除已保存回合。
 
-本地 `logs/` 可包含完整状态与模型输出。反馈导出按允许清单包含构建／对局标识、时间、结果、调用与用量统计、事件计数、标记、预设沟通及近期动作事件，不含凭据、服务端点、记忆和原始模型载荷。下载或分享前请先预览。
+本地 `logs/` 可包含完整状态与模型输出。每局还会在 `logs/sessions/<会话 id>/` 生成对局记录包（冻结配置、事件流、引擎输入与实际发送的模型请求），与日志同源派生，不含凭据，只保存在本机。反馈导出按允许清单包含构建／对局标识、时间、结果、调用与用量统计、事件计数、标记、预设沟通及近期动作事件，不含凭据、服务端点、记忆和原始模型载荷。下载或分享前请先预览。
 
 ## 托管试玩
 

@@ -660,6 +660,14 @@
     [
       "{0}：出餐 {1}/{2}（最低）；超时 {3}；关店未完 {4}；净收入 {5} 元；差评 {6}；糊锅 {7}，着火 {8}",
       "{0}: served {1}/{2} (minimum); expired {3}; open at closing {4}; net revenue {5} yuan; bad reviews {6}; burnt {7}, fires {8}"
+    ],
+    [
+      "{0}加入{1}的共同操作（{2}人）",
+      "{0} joined the shared work at {1} ({2} chefs)"
+    ],
+    [
+      "{0}离开{1}的共同操作，进度保留",
+      "{0} left the shared work at {1}; progress kept"
     ]
   ]
 }

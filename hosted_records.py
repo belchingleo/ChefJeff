@@ -18,7 +18,11 @@ def pilot_record(session):
     """All values originate from the engine or finite communication choices, never request/provider text."""
     k = session.k
     events = []
-    for e in k.events:
+    log = getattr(session, 'session_log', None)
+    # Derived from the session's single event stream when one exists.
+    source = ([{'t': r['game_time_ms']/1000, 'kind': r['type'], 'actor': r.get('actor_id'), **r['payload']}
+               for r in log.engine_events()] if log and log.session.k is k else k.events)
+    for e in source:
         if e.get('kind') not in EVENTS: continue
         row = {'t':e['t'], 'kind':e['kind']}
         if e.get('actor') in ('human','jeff'): row['actor'] = e['actor']

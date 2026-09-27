@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "event.schema.json",
+  "title": "Session event envelope (one line of events.jsonl)",
+  "description": "One stream per session. game_time_ms is engine time; elapsed_wall_ms is the server's monotonic clock since the session log started. Clocks from different machines are never subtracted.",
+  "type": "object",
+  "required": ["seq", "type", "source", "game_time_ms", "elapsed_wall_ms", "clock_id", "payload"],
+  "properties": {
+    "seq": {"type": "integer", "minimum": 1},
+    "type": {"type": "string", "pattern": "^[a-z][a-z0-9_]{0,63}$"},
+    "source": {"enum": ["engine", "session"]},
+    "game_time_ms": {"$ref": "common.schema.json#/$defs/game_ms"},
+    "elapsed_wall_ms": {"type": "integer", "minimum": 0},
+    "clock_id": {"enum": ["server_monotonic", "client_reported"]},
+    "engine_seq": {"type": ["integer", "null"], "minimum": 1},
+    "actor_id": {"enum": ["human", "jeff"]},
+    "action_id": {"type": "integer", "minimum": 1},
+    "request_id": {"type": "integer", "minimum": 1},
+    "order_id": {"type": "string"},
+    "payload": {"type": "object"}
+  },
+  "additionalProperties": false
+}
