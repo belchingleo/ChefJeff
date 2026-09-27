@@ -1,5 +1,7 @@
 # ChefJeff · Cook Together
 
+![ChefJeff prototype gameplay — human and AI chefs sharing a kitchen](docs/images/gameplay.png)
+
 English · [中文](#中文说明)
 
 **A prototype for real-time cooperation between a human player and an AI chef.** You operate a pixel-art kitchen while Jeff receives structured kitchen state, rules, and available actions and chooses what to do next. Both chefs share ingredients, workstations, orders, and time, without fixed roles.
