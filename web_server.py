@@ -291,10 +291,11 @@ class GameSession:
         if path == '/api/level':
             if self.phase not in ('ready','ended') or not hasattr(self.k,'nav'):
                 return 409,{'error':'Choose a level before starting or after the round ends.'}
+            from levels import level_config, level_id
             level=body.get('level')
-            if type(level) is not int or level not in (1,2,3):return 400,{'error':'Unknown level.'}
+            try:level_id(level)
+            except ValueError:return 400,{'error':'Unknown level.'}
             self._finish(aborted=self.phase!='ended')
-            from levels import level_config
             self.c=level_config({**self.base_config, **{key:self.c[key] for key in ('ai_max_calls','ai_max_response_age','model')}},level)
             return self._command('/api/reset',{})
         if path == '/api/restart':
@@ -356,7 +357,7 @@ class GameSession:
             if self.phase == 'running':
                 return 409, {'error': '先暂停，再重新开局。'}
             self._finish(aborted=self.phase != 'ended')
-            if self.c.get('level') in (2,3):self.c.pop('order_seed',None)
+            # Unconfigured seeds are drawn again when the new round is frozen.
             self.k = self.kitchen_factory(self.c)
             self.c = self.k.c
             self.move_seq = -1

@@ -419,8 +419,8 @@
       "{0} burnt! Fire in {1}s; serving burnt food earns a bad review"
     ],
     [
-      "{0}超时，顾客离开并差评，扣 10 元",
-      "{0} expired: customer left a bad review, −¥10"
+      "{0}超时，顾客离开并差评，扣 {1} 元",
+      "{0} expired: customer left a bad review, −¥{1}"
     ],
     [
       "{0} · 当前模型已保存 {1} / {2} 局{3}",
@@ -475,8 +475,8 @@
       "New order {0}: steak, due at {1}s"
     ],
     [
-      "顾客差评：{0}；扣 15 元{1}",
-      "Bad review: {0}; −¥15{1}"
+      "顾客差评：{0}；扣 {2} 元{1}",
+      "Bad review: {0}; −¥{2}{1}"
     ],
     [
       "{0} 落到{1}，可继续切配或取走",
@@ -627,8 +627,8 @@
       "Add ingredient to the plate at {0}"
     ],
     [
-      "{0}着火！损失 5 元；必须先灭火再使用",
-      "{0} caught fire! Lost 5 yuan; extinguish it before use."
+      "{0}着火！损失 {1} 元；必须先灭火再使用",
+      "{0} caught fire! Lost {1} yuan; extinguish it before use."
     ],
     [
       "拿灭火器到{0}灭火（4s）",

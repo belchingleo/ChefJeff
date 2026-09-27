@@ -30,7 +30,8 @@
     "dining_seconds": 8,
     "wash_seconds": 4,
     "level": 1,
-    "spawn_seed": 1
+    "spawn_seed": 1,
+    "order_seed": 0
   },
   "initial": {
     "clock": 0,

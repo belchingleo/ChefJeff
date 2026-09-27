@@ -1,9 +1,7 @@
-from copy import deepcopy
 import unittest
-from unittest.mock import patch
 
+import config_contract as cc
 from kitchen import Food, load_config
-from map_definition import load_map
 from spatial_kitchen import SpatialKitchen
 
 
@@ -41,14 +39,14 @@ class ServingFootprintTests(unittest.TestCase):
         level_two = self.make(2)
         self.assertEqual(level_two.equipment['returns']['cell'], (1, 5))
 
-    def _assert_serve_from_each_side(self, kitchen, level):
+    def _assert_serve_from_each_side(self, kitchen, level, factory=None):
         sides = self.serving_sides(kitchen)
         self.assertTrue(all(sides.values()))
         for serve_cell, cells in sides.items():
             for side in cells:
                 for who in ('human', 'jeff'):
                     with self.subTest(level=level, serve_cell=serve_cell, side=side, who=who):
-                        kitchen = self.make(level)
+                        kitchen = factory() if factory else self.make(level)
                         kitchen.positions[who] = side
                         route = kitchen.path(who, 'serve')
                         self.assertEqual(route[-1], kitchen.operation_point('serve',side))
@@ -79,21 +77,27 @@ class ServingFootprintTests(unittest.TestCase):
     def test_synthetic_two_cell_serve_uses_removed_counter_footprint(self):
         # Work from a copy: counter5 supplies the extra cell and must be removed
         # before that cell becomes part of the serving station footprint.
-        document = deepcopy(load_map(1))
+        bundle = cc.level_bundle('level-1', embed=True)
+        document = bundle['map']
         serve = next(e for e in document['equipment'] if e['id'] == 'serve')
         placeholder = next(e for e in document['equipment'] if e['id'] == 'counter5')
         document['equipment'].remove(placeholder)
+        document['presentation']['station_views'].pop('counter5')
         serve['cells'] = [placeholder['cell'], serve['cell']]
+        bundle['level']['round_limit_game_ms'] = 500000
+        bundle['level']['seeds'] = {'orders': 0, 'spawn': 0}
+        bundle['order_policy']['patience_default_game_ms'] = 450000
 
-        with patch('spatial_kitchen.load_map', return_value=document):
-            kitchen = self.make(1)
+        resolved = cc.freeze_bundle(bundle)
+        if True:
+            kitchen = SpatialKitchen(resolved)
             serve_geometry = kitchen.equipment['serve']
             self.assertEqual(len(serve_geometry['cells']), 2)
             self.assertIn(serve_geometry['cell'], serve_geometry['cells'])
             self.assertTrue(all(cell in kitchen.nav.blocked for cell in serve_geometry['cells']))
             self.assertEqual(kitchen.snapshot()['map']['equipment']['serve']['cells'],
                              serve_geometry['cells'])
-            self._assert_serve_from_each_side(kitchen, 1)
+            self._assert_serve_from_each_side(kitchen, 1, lambda: SpatialKitchen(resolved))
 
 
 if __name__ == '__main__':

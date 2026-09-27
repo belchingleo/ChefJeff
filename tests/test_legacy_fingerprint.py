@@ -10,7 +10,7 @@ class LegacyFingerprintTests(unittest.TestCase):
     maxDiff = 4000
 
     def test_golden_files_cover_every_scenario(self):
-        self.assertEqual({p.stem for p in GOLDEN.glob('*.json')}, set(SCENARIOS))
+        self.assertEqual({p.stem for p in GOLDEN.glob('level*.json')}, set(SCENARIOS))
 
     def test_scenarios_match_golden_traces(self):
         for name in SCENARIOS:

@@ -8,10 +8,9 @@ from pathlib import Path
 
 import config_contract as cc
 import schema_check
-from kitchen import Kitchen, load_config
-from levels import level_config
-
 ROOT = Path(cc.__file__).resolve().parent
+# Accepted parameters and order lists, captured from the pre-migration engine.
+LEGACY = json.loads((Path(__file__).resolve().parent / 'golden' / 'legacy-parameters.json').read_text())
 GAME_KEYS = ('boards', 'pots', 'pot_count', 'plate_count', 'round_seconds', 'order_count', 'order_interval',
              'order_patience', 'target_served', 'target_money', 'max_bad_reviews', 'time_bonus_per_second',
              'chop_seconds', 'cook_seconds', 'burn_after_ready', 'fire_after_burn', 'same_area_walk',
@@ -79,30 +78,28 @@ class SchemaFileTests(unittest.TestCase):
 
 class LegacyEquivalenceTests(unittest.TestCase):
     def test_resolved_levels_equal_accepted_level_parameters(self):
-        base = load_config()
         for n in (1, 2, 3):
             for seeds in ((11, 0), (7, 1), (2 ** 31 - 1, 5)):
                 with self.subTest(level=n, seeds=seeds):
                     resolved = cc.load_level(f'level-{n}', seeds={'orders': seeds[0], 'spawn': seeds[1]})
                     flat = cc.legacy_flat_config(resolved)
-                    accepted = level_config(base | {'order_seed': seeds[0], 'spawn_seed': seeds[1]}, n)
+                    accepted = dict(LEGACY['level_config'][f'{n}:{seeds[0]}:{seeds[1]}'])
                     accepted.setdefault('pot_count', accepted['pots'])
                     self.assertEqual({k: flat[k] for k in GAME_KEYS}, {k: accepted[k] for k in GAME_KEYS})
                     self.assertEqual(flat['level'], n)
 
-    def test_order_plan_matches_engine_orders(self):
-        base = load_config()
+    def test_order_plan_matches_accepted_engine_orders(self):
         for n in (1, 2, 3):
             for seed in range(6):
                 with self.subTest(level=n, seed=seed):
                     resolved = cc.load_level(f'level-{n}', seeds={'orders': seed, 'spawn': 0})
-                    k = Kitchen(level_config(base | {'order_seed': seed}, n))
                     dish = lambda d: {'牛排': 'steak'}.get(d, d)
                     self.assertEqual([(o['recipe_ref'], o['arrival_game_ms'], o['deadline_game_ms'])
                                       for o in resolved['order_plan']['orders']],
-                                     [(dish(o['dish']), round(o['arrival'] * 1000), round(o['deadline'] * 1000)) for o in k.orders])
+                                     [(dish(d), round(a * 1000), round(dl * 1000)) for d, a, dl in LEGACY['orders'][f'{n}:{seed}']])
 
     def test_map_instances_keep_engine_station_order_names_and_areas(self):
+        from kitchen import load_config
         from spatial_kitchen import SpatialKitchen
         areas = {'处理区': 'prep', '烹饪区': 'cook'}
         for n in (1, 2, 3):
@@ -240,3 +237,12 @@ class OrderPlanTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class ReleaseListTests(unittest.TestCase):
+    def test_runtime_files_include_every_contract_and_content_document(self):
+        from release_info import RUNTIME_FILES
+        needed = {p.relative_to(ROOT).as_posix() for folder in ('schemas', 'content', 'rulesets')
+                  for p in (ROOT / folder).rglob('*.json')}
+        needed |= {'rules.py', 'config_contract.py', 'schema_check.py'}
+        self.assertLessEqual(needed, set(RUNTIME_FILES))

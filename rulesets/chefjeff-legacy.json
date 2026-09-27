@@ -6,15 +6,62 @@
   "name": "Accepted rules 0.5.9",
   "engine_semantics": "legacy-2026-09",
   "tick_game_ms": 50,
-  "supported_equipment_types": ["ingredient_source", "board", "stove", "counter", "serving_window", "bin", "sink", "plate_return", "tool_rack"],
-  "operations": {"handling_game_ms": 150, "extinguish_game_ms": 4000, "clear_game_ms": 2000},
-  "movement": {"walk_cells_per_game_s": 4.5, "sprint_multiplier": 1.4, "sprint_duration_game_ms": 1000,
-               "sprint_cooldown_game_ms": 3000, "chef_separation_cells": 0.4, "sprint_push_cells": 0.25},
-  "throw": {"enabled": true, "range_cells": 7, "speed_cells_per_game_s": 12, "min_flight_game_ms": 200, "catch_radius_cells": 0.75},
-  "tableware": {"dining_game_ms": 8000, "return_capacity": 1},
-  "fire": {"spread_interval_game_ms": 8000, "loss_threshold": 5},
-  "penalties": {"wrong_or_burnt_dish": -15, "expired_order": -10, "new_fire": -5, "discard": -2},
-  "abstract_travel": {"same_area_game_ms": 1000, "cross_area_game_ms": 3000},
-  "limits": {"max_actors": 2, "max_equipment": 256, "max_orders": 500, "max_round_game_ms": 3600000,
-             "max_document_bytes": 1048576, "max_inventory": 64}
+  "supported_equipment_types": [
+    "ingredient_source",
+    "board",
+    "stove",
+    "counter",
+    "serving_window",
+    "bin",
+    "sink",
+    "plate_return",
+    "tool_rack"
+  ],
+  "operations": {
+    "handling_game_ms": 150,
+    "extinguish_game_ms": 4000,
+    "clear_game_ms": 2000
+  },
+  "movement": {
+    "walk_cells_per_game_s": 4.5,
+    "sprint_multiplier": 1.4,
+    "sprint_duration_game_ms": 1000,
+    "sprint_cooldown_game_ms": 3000,
+    "chef_separation_cells": 0.4,
+    "sprint_push_cells": 0.25,
+    "sprint_food_nudge_cells": 0.25
+  },
+  "throw": {
+    "enabled": true,
+    "range_cells": 7,
+    "speed_cells_per_game_s": 12,
+    "min_flight_game_ms": 200,
+    "catch_radius_cells": 0.75
+  },
+  "tableware": {
+    "dining_game_ms": 8000,
+    "return_capacity": 1
+  },
+  "fire": {
+    "spread_interval_game_ms": 8000,
+    "loss_threshold": 5
+  },
+  "penalties": {
+    "wrong_or_burnt_dish": -15,
+    "expired_order": -10,
+    "new_fire": -5,
+    "discard": -2
+  },
+  "abstract_travel": {
+    "same_area_game_ms": 1000,
+    "cross_area_game_ms": 3000
+  },
+  "limits": {
+    "max_actors": 2,
+    "max_equipment": 256,
+    "max_orders": 500,
+    "max_round_game_ms": 3600000,
+    "max_document_bytes": 1048576,
+    "max_inventory": 64
+  }
 }

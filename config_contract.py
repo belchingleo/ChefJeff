@@ -47,6 +47,11 @@ ORDER_ALGORITHMS = {'legacy_finite': 'legacy_finite/python-random-shuffle-v1',
 SEED_LIMIT = 2 ** 31
 
 
+def seconds(ms):
+    """Game milliseconds to seconds, keeping whole seconds integral (as authored)."""
+    return ms // 1000 if ms % 1000 == 0 else ms / 1000
+
+
 def canonical(value):
     return json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=False, allow_nan=False)
 
@@ -475,9 +480,24 @@ def verify_frozen(resolved):
     return out
 
 
-def level_bundle(level_id, registry=None):
+def freeze_bundle(bundle, registry=None, rng=None):
+    """Resolve and freeze a bundle (embedded documents win over the registry); raise on ERROR."""
+    draft, diagnostics = resolve_config(bundle, registry)
+    if draft is None:
+        raise ValueError(json.dumps(errors(diagnostics), ensure_ascii=False))
+    return freeze_config(draft, rng)[0]
+
+
+def level_bundle(level_id, registry=None, embed=False):
+    """Bundle for an authored level; ``embed`` copies every referenced document into it for editing."""
     registry = registry or Registry()
-    return {'schema_version': 1, 'level': registry.level(level_id)}
+    level = registry.level(level_id)
+    bundle = {'schema_version': 1, 'level': level}
+    if embed:
+        for kind, field in REF_FIELDS.items():
+            document = registry.get(kind, level[field])
+            bundle[kind] = upgrade_map(document) if kind == 'map' else document
+    return bundle
 
 
 def load_level(level_id, registry=None, seeds=None, rng=None):
@@ -486,10 +506,7 @@ def load_level(level_id, registry=None, seeds=None, rng=None):
     bundle = level_bundle(level_id, registry)
     if seeds:
         bundle['level']['seeds'].update({k: v for k, v in seeds.items() if v is not None})
-    draft, diagnostics = resolve_config(bundle, registry)
-    if draft is None:
-        raise ValueError(json.dumps(errors(diagnostics), ensure_ascii=False))
-    return freeze_config(draft, rng)[0]
+    return freeze_bundle(bundle, registry, rng)
 
 
 def legacy_flat_config(resolved):
@@ -502,7 +519,7 @@ def legacy_flat_config(resolved):
     cook = transform['cook_beef']
     goal = level['goal']
     inventory = level['initial_inventory']
-    s = lambda ms: ms / 1000
+    s = seconds
     return {
         'level': level.get('menu_order'),
         'boards': sum(st['type'] == 'board' for st in stations),

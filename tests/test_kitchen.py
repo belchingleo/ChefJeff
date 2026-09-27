@@ -169,12 +169,12 @@ class RulesTest(unittest.TestCase):
         self.assertEqual(k.burns,0)
 
     def test_expired_order_penalty_only_once(self):
-        k=self.make(order_count=2,order_interval=100,order_patience=10)
+        k=self.make(order_count=2,order_interval=100,order_patience=10,target_served=2)
         k.advance(30)
         self.assertEqual((k.money,k.bad_reviews),(-10,1))
 
     def test_delivery_at_exact_deadline_is_accepted(self):
-        k=self.make(order_count=1,order_patience=load_config()['handling_seconds'])
+        k=self.make(order_count=1,order_patience=load_config()['handling_seconds'],target_served=1)
         a=k.chefs['human']
         a.location='serve'
         a.hand=Food('ready','ready',6,12,plate_id=k.stations['plates'].food.id)

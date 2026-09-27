@@ -206,5 +206,5 @@ def save_map(document, path):
 
 def geometry(document):
     return ({e['id']:{k:tuple(e[k]) if k in ('cell','access') else tuple(tuple(v) for v in e[k]) if k=='cells' else e[k]
-                        for k in ('cell','access','facing','reach','cells') if k in e} for e in document['equipment']},
+                        for k in ('cell','access','facing','reach','cells','type') if k in e} for e in document['equipment']},
             {tuple(p) for p in document['walls']})
