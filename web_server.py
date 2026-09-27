@@ -19,6 +19,7 @@ import webbrowser
 from kitchen import Kitchen, ROOT, load_config
 from jev import JevClient, DecisionLoop
 from play import Journal
+from levels import available_levels
 
 
 PLAYER_MESSAGES = {
@@ -192,6 +193,7 @@ class GameSession:
                     'result': self.k.result() if self.phase == 'ended' else None,
                     'aborted': self.k.aborted,
                     'won': self.k.won() and not self.k.aborted if self.phase == 'ended' else False,
+                    'levels': available_levels(),
                     'rules': {key:self.c[key] for key in ('chop_seconds', 'cook_seconds', 'burn_after_ready',
                               'fire_after_burn', 'order_patience', 'round_seconds', 'order_count')}}
 

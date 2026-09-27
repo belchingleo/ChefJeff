@@ -9,9 +9,9 @@ from test_web import Client, FakeJournal
 
 
 class SpatialTests(unittest.TestCase):
-    def make(self):
+    def make(self,**overrides):
         config=load_config()
-        config.update(spawn_seed=0,round_seconds=500,order_patience=450)
+        config.update(spawn_seed=0,round_seconds=500,order_patience=450,**overrides)
         return SpatialKitchen(config)
 
     def do(self,k,who,key):
@@ -120,7 +120,8 @@ class SpatialTests(unittest.TestCase):
         self.assertFalse(k.ground)
 
     def test_fire_and_extinguish_still_work_with_spatial_walking(self):
-        k=self.make();k.c['fire_spread_seconds']=1000;pot=k.stations['p1'];pot.food=Food('hot','cooking',6,0);pot.heating=True
+        # Configuration is frozen at round start: set the spread interval up front.
+        k=self.make(fire_spread_seconds=1000);self.assertEqual(k.rules.fire_spread,1000);pot=k.stations['p1'];pot.food=Food('hot','cooking',6,0);pot.heating=True
         k.advance(31)
         self.assertTrue(pot.fire)
         self.do(k,'human','take extinguisher');self.do(k,'human','extinguish p1');self.do(k,'human','clear p1')
