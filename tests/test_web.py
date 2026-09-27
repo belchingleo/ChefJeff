@@ -24,8 +24,8 @@ class Client:
 
 
 class WebSessionTests(unittest.TestCase):
-    def make(self):
-        g=GameSession(client_factory=Client,journal_factory=FakeJournal)
+    def make(self,config=None):
+        g=GameSession(config=config,client_factory=Client,journal_factory=FakeJournal)
         self.addCleanup(g.close)
         return g
     def command(self,g,path,**extra):
@@ -148,7 +148,8 @@ class WebSessionTests(unittest.TestCase):
         self.assertTrue(journal.closed)
         self.assertTrue(g.ai.closed)
     def test_goal_completion_settles_immediately_and_stops_ai(self):
-        g=self.make();self.start(g,1)
+        # Accepted legacy rules (flat config): winning ends the round at once with a time bonus.
+        g=self.make(load_config());self.start(g,1)
         g.k.advance(50);g.k.served=2;g.k.money=60
         for order in g.k.orders[:2]:order['status']='served'
         g.k.chefs['human'].location='serve'

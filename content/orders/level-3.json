@@ -1,4 +1,28 @@
-{"schema_version": 1, "kind": "order_policy", "id": "level-3", "version": 1, "name": "第三关订单",
- "mode": "legacy_finite", "first_spawn_game_ms": 0, "interval_game_ms": 30000,
- "sequence": [{"recipe_ref": "steak", "count": 2}, {"recipe_ref": "burger", "count": 3}], "shuffle": true,
- "patience_default_game_ms": 100000, "patience_by_recipe": {"steak": 100000, "burger": 150000}}
+{
+  "schema_version": 1,
+  "kind": "order_policy",
+  "id": "level-3",
+  "version": 2,
+  "name": "第3关订单",
+  "mode": "fixed_interval_seeded",
+  "first_spawn_game_ms": 0,
+  "interval_game_ms": 25000,
+  "menu": [
+    {
+      "recipe_ref": "steak",
+      "weight": 1
+    },
+    {
+      "recipe_ref": "burger",
+      "weight": 1
+    }
+  ],
+  "patience_default_game_ms": 90000,
+  "patience_by_recipe": {
+    "steak": 90000,
+    "burger": 110000
+  },
+  "extensions": {
+    "chefjeff.status": "provisional interval and countdowns pending the reference sweep"
+  }
+}

@@ -1,16 +1,15 @@
 {
   "schema_version": 1,
   "kind": "level",
-  "id": "level-3",
-  "version": 2,
-  "name": "第三关 · 牛-堡",
-  "menu_order": 3,
+  "id": "legacy-level-1",
+  "version": 1,
+  "name": "旧版第1关（历史规则）",
   "ruleset_ref": {
-    "id": "chefjeff-service",
+    "id": "chefjeff-legacy",
     "version": 1
   },
   "map_ref": {
-    "id": "level-3",
+    "id": "level-1",
     "version": 4
   },
   "equipment_catalog_ref": {
@@ -18,12 +17,12 @@
     "version": 1
   },
   "recipe_catalog_ref": {
-    "id": "chefjeff-service",
+    "id": "chefjeff-core",
     "version": 1
   },
   "order_policy_ref": {
-    "id": "level-3",
-    "version": 2
+    "id": "legacy-level-1",
+    "version": 1
   },
   "actors": [
     {
@@ -71,25 +70,9 @@
       "at": "counter2"
     },
     {
-      "object": "plate",
-      "id": "D3",
-      "state": "clean",
-      "at": "counter3"
-    },
-    {
       "object": "pot",
       "id": "P1",
       "at": "p1"
-    },
-    {
-      "object": "pot",
-      "id": "P2",
-      "at": "p2"
-    },
-    {
-      "object": "pot",
-      "id": "P3",
-      "at": "counter4"
     }
   ],
   "clock": {
@@ -102,20 +85,22 @@
   },
   "round_limit_game_ms": 180000,
   "goal": {
-    "type": "minimum_money",
-    "min_money": 100
+    "type": "legacy_all_gates",
+    "min_served": 3,
+    "min_money": 60,
+    "max_bad_reviews": 2
   },
   "end_policy": {
-    "type": "fixed_round"
+    "type": "legacy_immediate"
   },
   "scoring": {
-    "time_bonus_per_second": 0
+    "time_bonus_per_second": 1
   },
   "seeds": {
     "orders": null,
     "spawn": null
   },
   "extensions": {
-    "chefjeff.status": "provisional target money pending the reference sweep"
+    "chefjeff.status": "accepted 0.5.9 rules; unlisted; kept for replaying historical sessions and regression fingerprints"
   }
 }

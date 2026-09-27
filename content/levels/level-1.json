@@ -2,11 +2,11 @@
   "schema_version": 1,
   "kind": "level",
   "id": "level-1",
-  "version": 1,
+  "version": 2,
   "name": "第一关 · 牛排",
   "menu_order": 1,
   "ruleset_ref": {
-    "id": "chefjeff-legacy",
+    "id": "chefjeff-service",
     "version": 1
   },
   "map_ref": {
@@ -18,12 +18,12 @@
     "version": 1
   },
   "recipe_catalog_ref": {
-    "id": "chefjeff-core",
+    "id": "chefjeff-service",
     "version": 1
   },
   "order_policy_ref": {
     "id": "level-1",
-    "version": 1
+    "version": 2
   },
   "actors": [
     {
@@ -86,19 +86,20 @@
   },
   "round_limit_game_ms": 180000,
   "goal": {
-    "type": "legacy_all_gates",
-    "min_served": 3,
-    "min_money": 60,
-    "max_bad_reviews": 2
+    "type": "minimum_money",
+    "min_money": 100
   },
   "end_policy": {
-    "type": "legacy_immediate"
+    "type": "fixed_round"
   },
   "scoring": {
-    "time_bonus_per_second": 1
+    "time_bonus_per_second": 0
   },
   "seeds": {
     "orders": null,
     "spawn": null
+  },
+  "extensions": {
+    "chefjeff.status": "provisional target money pending the reference sweep"
   }
 }

@@ -10,7 +10,7 @@ sys.path.insert(0, str(ROOT))
 import capacity_analyzer  # noqa: E402
 import config_contract  # noqa: E402
 
-SAMPLES = ('level-1', 'level-2', 'level-3', 'pilot-draft-mixed')
+SAMPLES = ('level-1', 'level-2', 'level-3')
 
 
 def main():

@@ -290,28 +290,52 @@ def analyze_capacity(resolved, profile=None):
 
     # ④ This round's plan: arrivals, deadlines, goal.
     goal = frozen['level']['goal']
-    target = goal['min_served'] if goal['type'] == 'legacy_all_gates' else goal['min_deliveries']
     D = r.round_limit
     tight = []
     for order in plan:
         bound = dishes.get(order['recipe_ref'], {}).get('first_dish_lower_bound_game_ms')
-        if bound is not None and order['deadline_game_ms'] - order['arrival_game_ms'] < bound:
+        clipped = order['deadline_game_ms'] < order['arrival_game_ms'] + order['patience_game_ms']
+        if bound is not None and not clipped and order['deadline_game_ms'] - order['arrival_game_ms'] < bound:
             tight.append(order['order_id'])
     if tight:
         diagnostics.append(cc.diag('PATIENCE_BELOW_PROCESSING', 'WARNING', '/order_plan',
                                    'these orders cannot be produced from scratch within their window; food prepared ahead can still serve them', tight))
-    cheapest = sorted((demand['chef'].get(o['recipe_ref'], math.inf) for o in plan))[:target]
-    need = sum(cheapest)
-    if target and len(cheapest) == target and need > chefs * D:
-        diagnostics.append(cc.diag('GOAL_EXCEEDS_CAPACITY', 'ERROR', '/level/goal',
-                                   'even the least demanding orders for the goal need more chef time than the round provides',
-                                   {'chef_time_needed_game_ms': _ms(need), 'chef_time_available_game_ms': _ms(chefs * D)}))
-    arrivals = sorted(o['arrival_game_ms'] for o in plan)
     min_bound = min((d['first_dish_lower_bound_game_ms'] for d in dishes.values() if d.get('first_dish_lower_bound_game_ms')), default=None)
-    if target and len(arrivals) >= target and min_bound is not None and arrivals[target - 1] + min_bound > _ms(D):
-        diagnostics.append(cc.diag('LATE_GOAL_ORDERS', 'WARNING', '/order_plan',
-                                   'the goal needs orders that arrive too late to cook from scratch before closing; only prepared-ahead food can serve them',
-                                   {'goal_order_arrival_game_ms': arrivals[target - 1], 'shortest_dish_bound_game_ms': min_bound}))
+    goal_summary = {'type': goal['type']}
+    if goal['type'] == 'minimum_money':
+        target = goal['min_money']
+        ceiling = sum(r.prices[o['recipe_ref']] for o in plan)
+        # Cheapest chef time per yuan first: a lower bound on the chef time the target needs.
+        ranked = sorted(plan, key=lambda o: demand['chef'].get(o['recipe_ref'], math.inf) / r.prices[o['recipe_ref']])
+        earned, need = 0, 0.
+        for order in ranked:
+            if earned >= target:
+                break
+            earned += r.prices[order['recipe_ref']]
+            need += demand['chef'].get(order['recipe_ref'], math.inf)
+        goal_summary.update(target_money=target, revenue_ceiling=ceiling,
+                            orders_too_late_to_cook_from_scratch=sum(o['arrival_game_ms'] + (min_bound or 0) > _ms(D) for o in plan))
+        if target > ceiling:
+            diagnostics.append(cc.diag('GOAL_EXCEEDS_REVENUE', 'ERROR', '/level/goal', 'the target exceeds the revenue of every order in this plan',
+                                       {'target_money': target, 'revenue_ceiling': ceiling}))
+        elif need > chefs * D:
+            diagnostics.append(cc.diag('GOAL_EXCEEDS_CAPACITY', 'ERROR', '/level/goal',
+                                       'even the most time-efficient orders for the target need more chef time than the round provides',
+                                       {'chef_time_needed_game_ms': _ms(need), 'chef_time_available_game_ms': _ms(chefs * D)}))
+    else:
+        target = goal['min_served']
+        goal_summary.update(goal_deliveries=target)
+        cheapest = sorted((demand['chef'].get(o['recipe_ref'], math.inf) for o in plan))[:target]
+        need = sum(cheapest)
+        if target and len(cheapest) == target and need > chefs * D:
+            diagnostics.append(cc.diag('GOAL_EXCEEDS_CAPACITY', 'ERROR', '/level/goal',
+                                       'even the least demanding orders for the goal need more chef time than the round provides',
+                                       {'chef_time_needed_game_ms': _ms(need), 'chef_time_available_game_ms': _ms(chefs * D)}))
+        arrivals = sorted(o['arrival_game_ms'] for o in plan)
+        if target and len(arrivals) >= target and min_bound is not None and arrivals[target - 1] + min_bound > _ms(D):
+            diagnostics.append(cc.diag('LATE_GOAL_ORDERS', 'WARNING', '/order_plan',
+                                       'the goal needs orders that arrive too late to cook from scratch before closing; only prepared-ahead food can serve them',
+                                       {'goal_order_arrival_game_ms': arrivals[target - 1], 'shortest_dish_bound_game_ms': min_bound}))
 
     status = 'partial'
     report = {
@@ -332,7 +356,7 @@ def analyze_capacity(resolved, profile=None):
         'resource_lower_bounds_game_ms': {g: _ms(v) for g, v in lb_by_group.items()},
         'resource_loads': {g: None if v is None else round(v, 4) for g, v in loads.items()},
         'I_resource_lb_game_ms': _ms(I_lb), 'binding_resource': binding,
-        'plan': {'orders': len(plan), 'goal_deliveries': target, 'round_limit_game_ms': _ms(D),
+        'plan': {'orders': len(plan), 'goal': goal_summary, 'round_limit_game_ms': _ms(D),
                  'configured_interval_game_ms': _ms(interval), 'order_algorithm': frozen['order_plan']['algorithm']},
         'suggested_interval_game_ms': None,
         'suggestion_reason': 'no calibration reference (measured or reference-schedule runs) exists; I_resource_lb is a necessary lower bound, not a safe interval',

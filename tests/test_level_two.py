@@ -53,10 +53,11 @@ class CounterLevelTests(unittest.TestCase):
             self.assertFalse(re.search(r'[\u3400-\u9fff]',json.dumps(payload,ensure_ascii=False)))
     def test_three_level_switch_does_not_leak_resources(self):
         g=GameSession(kitchen_factory=SpatialKitchen)
-        for level,pots,plates,orders in ((3,3,3,5),(2,1,2,3),(1,1,2,8)):
+        for level,pots,plates in ((3,3,3),(2,1,2),(1,1,2)):
             self.assertEqual(g._command('/api/level',{'level':level})[0],200)
             self.assertEqual((g.k.pot_count,g.k.plate_count),(pots,plates))
-            if level!=1:self.assertEqual(len(g.k.orders),orders)
+            self.assertEqual(g.k.resolved['level']['id'],f'level-{level}')
+            self.assertEqual(len(g.k.orders),len(g.k.resolved['order_plan']['orders']))
             g.k.assert_invariants()
     def test_practice_left_wall_clear_and_single_bin(self):
         k=self.make(1)

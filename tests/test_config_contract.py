@@ -18,7 +18,7 @@ GAME_KEYS = ('boards', 'pots', 'pot_count', 'plate_count', 'round_seconds', 'ord
              'fire_loss_threshold', 'order_seed', 'spawn_seed')
 
 
-def variant(level_id='level-1', **changes):
+def variant(level_id='legacy-level-1', **changes):
     """In-memory copy of an authored level's documents with edits applied."""
     registry = cc.Registry()
     level = copy.deepcopy(registry.level(level_id))
@@ -81,18 +81,18 @@ class LegacyEquivalenceTests(unittest.TestCase):
         for n in (1, 2, 3):
             for seeds in ((11, 0), (7, 1), (2 ** 31 - 1, 5)):
                 with self.subTest(level=n, seeds=seeds):
-                    resolved = cc.load_level(f'level-{n}', seeds={'orders': seeds[0], 'spawn': seeds[1]})
+                    resolved = cc.load_level(f'legacy-level-{n}', seeds={'orders': seeds[0], 'spawn': seeds[1]})
                     flat = cc.legacy_flat_config(resolved)
                     accepted = dict(LEGACY['level_config'][f'{n}:{seeds[0]}:{seeds[1]}'])
                     accepted.setdefault('pot_count', accepted['pots'])
                     self.assertEqual({k: flat[k] for k in GAME_KEYS}, {k: accepted[k] for k in GAME_KEYS})
-                    self.assertEqual(flat['level'], n)
+                    self.assertIsNone(flat['level'])  # unlisted: kept for replay and regression only
 
     def test_order_plan_matches_accepted_engine_orders(self):
         for n in (1, 2, 3):
             for seed in range(6):
                 with self.subTest(level=n, seed=seed):
-                    resolved = cc.load_level(f'level-{n}', seeds={'orders': seed, 'spawn': 0})
+                    resolved = cc.load_level(f'legacy-level-{n}', seeds={'orders': seed, 'spawn': 0})
                     dish = lambda d: {'牛排': 'steak'}.get(d, d)
                     self.assertEqual([(o['recipe_ref'], o['arrival_game_ms'], o['deadline_game_ms'])
                                       for o in resolved['order_plan']['orders']],
@@ -104,7 +104,7 @@ class LegacyEquivalenceTests(unittest.TestCase):
         areas = {'处理区': 'prep', '烹饪区': 'cook'}
         for n in (1, 2, 3):
             with self.subTest(level=n):
-                resolved = cc.load_level(f'level-{n}', seeds={'orders': 1, 'spawn': 0})
+                resolved = cc.load_level(f'legacy-level-{n}', seeds={'orders': 1, 'spawn': 0})
                 k = SpatialKitchen(load_config() | {'level': n, 'order_seed': 1, 'spawn_seed': 0})
                 self.assertEqual([(s['id'], s['name'], s['area']) for s in resolved['stations']],
                                  [(key, s.name, areas[s.area]) for key, s in k.stations.items()])
@@ -112,24 +112,24 @@ class LegacyEquivalenceTests(unittest.TestCase):
 
 class FreezeTests(unittest.TestCase):
     def test_same_inputs_same_hash_and_integrity(self):
-        a = cc.load_level('level-2', seeds={'orders': 3, 'spawn': 4})
-        b = cc.load_level('level-2', seeds={'orders': 3, 'spawn': 4})
+        a = cc.load_level('legacy-level-2', seeds={'orders': 3, 'spawn': 4})
+        b = cc.load_level('legacy-level-2', seeds={'orders': 3, 'spawn': 4})
         self.assertEqual(a['config_hash'], b['config_hash'])
         self.assertEqual(a['seeds']['source'], 'configured')
         self.assertEqual(cc.verify_frozen(a), [])
         tampered = copy.deepcopy(a)
         tampered['level']['round_limit_game_ms'] += 1
         self.assertIn('CONFIG_HASH_MISMATCH', {d['code'] for d in cc.verify_frozen(tampered)})
-        self.assertNotEqual(a['config_hash'], cc.load_level('level-2', seeds={'orders': 5, 'spawn': 4})['config_hash'])
+        self.assertNotEqual(a['config_hash'], cc.load_level('legacy-level-2', seeds={'orders': 5, 'spawn': 4})['config_hash'])
 
     def test_missing_seeds_are_drawn_and_recorded(self):
-        frozen = cc.load_level('level-1', rng=random.Random(9))
+        frozen = cc.load_level('legacy-level-1', rng=random.Random(9))
         self.assertEqual(frozen['seeds']['source'], 'drawn_at_freeze')
         self.assertIsInstance(frozen['seeds']['orders'], int)
         self.assertEqual(frozen['sources']['map'], {'id': 'level-1', 'version': 4, 'sha256': frozen['sources']['map']['sha256']})
 
     def test_freeze_does_not_change_the_draft(self):
-        draft, _ = cc.resolve_config(cc.level_bundle('level-3'))
+        draft, _ = cc.resolve_config(cc.level_bundle('legacy-level-3'))
         before = copy.deepcopy(draft)
         cc.freeze_config(draft, random.Random(1))
         self.assertEqual(draft, before)
@@ -140,7 +140,7 @@ class FreezeTests(unittest.TestCase):
 class DiagnosticTests(unittest.TestCase):
     def test_shipped_levels_have_no_diagnostics(self):
         for n in (1, 2, 3):
-            draft, diagnostics = cc.resolve_config(cc.level_bundle(f'level-{n}'))
+            draft, diagnostics = cc.resolve_config(cc.level_bundle(f'legacy-level-{n}'))
             self.assertIsNotNone(draft)
             self.assertEqual(diagnostics, [])
 
@@ -151,7 +151,7 @@ class DiagnosticTests(unittest.TestCase):
             self.assertLessEqual({'code', 'severity', 'field_path', 'message'}, set(d))
 
     def test_reference_errors(self):
-        bundle = cc.level_bundle('level-1')
+        bundle = cc.level_bundle('legacy-level-1')
         bundle['level']['map_ref'] = {'id': 'level-1', 'version': 99}
         self.assertEqual(codes(bundle)[1], {'REF_VERSION_MISMATCH'})
         bundle['level']['map_ref'] = {'id': 'no-such-map', 'version': 1}
@@ -206,7 +206,7 @@ class DiagnosticTests(unittest.TestCase):
         self.assertIn('ORDER_MODE_FIELD', codes(variant(order_policy=lambda o: o.pop('sequence')))[1])
 
     def test_legacy_ruleset_rejects_new_outcome_semantics(self):
-        edit = lambda d: (d.update(goal={'type': 'minimum_deliveries', 'min_deliveries': 3}), d.update(end_policy={'type': 'fixed_round'}))
+        edit = lambda d: (d.update(goal={'type': 'minimum_money', 'min_money': 100}), d.update(end_policy={'type': 'fixed_round'}))
         self.assertIn('RULESET_MISMATCH', codes(variant(level=edit))[1])
 
 

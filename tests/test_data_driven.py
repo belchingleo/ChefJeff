@@ -19,7 +19,7 @@ ENGINE_FILES = ('kitchen.py', 'spatial_kitchen.py', 'rules.py', 'jev.py', 'white
 
 
 def level1(chop_ms=None, multiplier=None, price=None):
-    bundle = cc.level_bundle('level-1', embed=True)
+    bundle = cc.level_bundle('legacy-level-1', embed=True)
     bundle['level']['seeds'] = {'orders': 0, 'spawn': 0}
     bundle['level']['round_limit_game_ms'] = 500000
     bundle['order_policy']['patience_default_game_ms'] = 450000
@@ -90,7 +90,7 @@ class SharedWorkDataTests(unittest.TestCase):
         k.assert_invariants()
 
     def test_shared_rule_must_define_every_allowed_worker_count(self):
-        bundle = cc.level_bundle('level-1', embed=True)
+        bundle = cc.level_bundle('legacy-level-1', embed=True)
         bundle['equipment_catalog']['types']['board']['shared_work']['chop']['rate_multiplier'] = {'1': 1.0}
         _, diagnostics = cc.resolve_config(bundle)
         self.assertIn('SHARED_WORK_RATE_MISSING', {d['code'] for d in diagnostics})

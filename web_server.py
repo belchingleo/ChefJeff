@@ -35,7 +35,11 @@ PLAYER_MESSAGES = {
 
 class GameSession:
     def __init__(self, config=None, client_factory=JevClient, journal_factory=Journal, kitchen_factory=Kitchen, log_prefix='web'):
-        self.c = dict(config or load_config())
+        if config is None:
+            # Players get the listed levels; an explicit flat config is the historical format (legacy levels).
+            from levels import level_config
+            config = level_config(load_config(), 1)
+        self.c = dict(config)
         self.base_config = dict(self.c)
         self.client_factory = client_factory
         self.journal_factory = journal_factory

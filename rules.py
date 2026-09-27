@@ -49,6 +49,8 @@ def _apply_flat_overrides(docs, overrides):
         elif key == 'order_patience':
             policy['patience_default_game_ms'] = _ms(value)
         elif key in ('target_served', 'target_money', 'max_bad_reviews'):
+            if level['goal']['type'] != 'legacy_all_gates' and key != 'target_money':
+                raise ValueError(f'{key} does not apply to a {level["goal"]["type"]} goal')
             level['goal'][{'target_served': 'min_served', 'target_money': 'min_money',
                            'max_bad_reviews': 'max_bad_reviews'}[key]] = value
         elif key == 'time_bonus_per_second':
@@ -118,6 +120,8 @@ def runtime_config(config=None, rng=None):
     Flat game keys override the level only when they differ from both the
     level's own value and ``config.json``'s legacy value, so a base config
     merged into a level does not overwrite that level's authored parameters.
+    A flat config without ``level_id`` is the historical format and selects the
+    accepted legacy level (``legacy-level-N``); servers select listed levels by id.
     """
     if config is not None and config.get('kind') == 'resolved_configuration':
         if config.get('status') != 'frozen':
@@ -128,7 +132,7 @@ def runtime_config(config=None, rng=None):
         flat['level_id'] = resolved['level']['id']
         return resolved, flat
     source = dict(LEGACY_BASE if config is None else config)
-    level_id = source.get('level_id') or f"level-{source.get('level', 1)}"
+    level_id = source.get('level_id') or f"legacy-level-{source.get('level', 1)}"
     registry = cc.Registry()
     base = cc.legacy_flat_config({**_frozen_from_flat(level_id, '{}'), 'seeds': {'orders': None, 'spawn': None}})
     overrides = {}
@@ -174,6 +178,8 @@ class Rules:
         self.fire_spread = s(ruleset['fire']['spread_interval_game_ms'])
         self.fire_loss = ruleset['fire']['loss_threshold']
         self.penalty = dict(ruleset['penalties'])
+        self.burnt_service = [dict(t) for t in ruleset.get('burnt_service', [])]
+        self.max_visible_orders = ruleset['limits']['max_visible_orders']
         self.same_area = s(ruleset['abstract_travel']['same_area_game_ms'])
         self.cross_area = s(ruleset['abstract_travel']['cross_area_game_ms'])
         move, throw = ruleset['movement'], ruleset['throw']
@@ -264,6 +270,24 @@ class Rules:
         ready = cc.seconds(t['work_game_ms'])
         burn = ready + cc.seconds(t['overcook']['after_done_game_ms'])
         return ready, burn, burn + cc.seconds(t['overcook']['fire_after_overcook_game_ms'])
+
+    def overcook(self, food, parts):
+        """Seconds the worst heated component was past burning when it left the heat.
+
+        Food burnt by a fire (before its own burn point) counts as burnt beyond every tier.
+        """
+        heated = [item for item in parts if item in self.heat]
+        if food.stage != 'burnt' or not heated:
+            return 0.
+        burn = min(self.heat_thresholds(item)[1] for item in heated)
+        return food.heated - burn if food.heated >= burn - 1e-8 else float('inf')
+
+    def burnt_tier(self, overcook):
+        for tier in self.burnt_service:
+            limit = tier['max_overcook_game_ms']
+            if limit is None or overcook <= limit / 1000 + 1e-8:
+                return tier
+        return None
 
     def platable(self, item, stage):
         return item in self.items and stage in self.items[item]['platable_states']

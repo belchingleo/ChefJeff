@@ -1,6 +1,6 @@
 {
   "analyzer_version": "capacity-analyzer-0.1",
-  "input_config_hash": "sha256:6a2ee719eab9afc1e32983cd2ec4cd4c1ade1b5cb2d54e3eb7a6825a82c0c932",
+  "input_config_hash": "sha256:4f6194eb914eb07b33ba923b556769ccf2bae5f8da4e5958f4af19cba0846e35",
   "input_status": "frozen",
   "level_id": "level-3",
   "schema_valid": true,
@@ -82,7 +82,7 @@
   "dishes": {
     "steak": {
       "name": "牛排",
-      "price": 30,
+      "price": 50,
       "components": [
         {
           "item": "beef",
@@ -117,7 +117,7 @@
     },
     "burger": {
       "name": "汉堡",
-      "price": 60,
+      "price": 80,
       "components": [
         {
           "item": "bread",
@@ -188,8 +188,8 @@
     }
   },
   "mix": {
-    "burger": 0.6,
-    "steak": 0.4
+    "steak": 0.5,
+    "burger": 0.5
   },
   "resources": {
     "chef": {
@@ -234,27 +234,32 @@
     }
   },
   "resource_lower_bounds_game_ms": {
-    "chef": 9800,
-    "board": 4400,
+    "chef": 9125,
+    "board": 4000,
     "stove_with_pot": 6000,
     "sink": 4000,
     "plate": 4100
   },
   "resource_loads": {
-    "chef": 0.3267,
-    "board": 0.1467,
-    "stove_with_pot": 0.2,
-    "sink": 0.1333,
-    "plate": 0.1367
+    "chef": 0.365,
+    "board": 0.16,
+    "stove_with_pot": 0.24,
+    "sink": 0.16,
+    "plate": 0.164
   },
-  "I_resource_lb_game_ms": 9800,
+  "I_resource_lb_game_ms": 9125,
   "binding_resource": "chef",
   "plan": {
-    "orders": 5,
-    "goal_deliveries": 5,
-    "round_limit_game_ms": 360000,
-    "configured_interval_game_ms": 30000,
-    "order_algorithm": "legacy_finite/python-random-shuffle-v1"
+    "orders": 8,
+    "goal": {
+      "type": "minimum_money",
+      "target_money": 100,
+      "revenue_ceiling": 520,
+      "orders_too_late_to_cook_from_scratch": 1
+    },
+    "round_limit_game_ms": 180000,
+    "configured_interval_game_ms": 25000,
+    "order_algorithm": "fixed_interval_seeded/weighted-cumulative-v1"
   },
   "suggested_interval_game_ms": null,
   "suggestion_reason": "no calibration reference (measured or reference-schedule runs) exists; I_resource_lb is a necessary lower bound, not a safe interval",

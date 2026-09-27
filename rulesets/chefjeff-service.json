@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "kind": "ruleset",
-  "id": "chefjeff-continuous",
+  "id": "chefjeff-service",
   "version": 1,
-  "name": "Continuous service draft",
+  "name": "Continuous service rules",
   "engine_semantics": "continuous-2026-09",
   "tick_game_ms": 50,
   "supported_equipment_types": [
@@ -47,7 +47,7 @@
     "loss_threshold": 5
   },
   "penalties": {
-    "wrong_or_burnt_dish": -15,
+    "wrong_dish": -20,
     "expired_order": -10,
     "new_fire": -5,
     "discard": -2
@@ -62,6 +62,19 @@
     "max_orders": 500,
     "max_round_game_ms": 3600000,
     "max_document_bytes": 1048576,
-    "max_inventory": 64
-  }
+    "max_inventory": 64,
+    "max_visible_orders": 5
+  },
+  "burnt_service": [
+    {
+      "max_overcook_game_ms": 5000,
+      "outcome": "accepted",
+      "adjustment": -10
+    },
+    {
+      "max_overcook_game_ms": null,
+      "outcome": "rejected",
+      "adjustment": 0
+    }
+  ]
 }

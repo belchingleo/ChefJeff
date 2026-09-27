@@ -8,7 +8,7 @@ import capacity_analyzer as ca
 import config_contract as cc
 
 REPORTS = Path(ca.__file__).resolve().parent / 'docs' / 'architecture' / 'reports'
-SAMPLES = ('level-1', 'level-2', 'level-3', 'pilot-draft-mixed')
+SAMPLES = ('level-1', 'level-2', 'level-3')
 
 
 def frozen(level_id='level-1', seeds=(1, 0), **edits):
@@ -99,20 +99,20 @@ class BoundTests(unittest.TestCase):
 
 class DiagnosticBoundaryTests(unittest.TestCase):
     def test_average_overload_is_only_a_warning(self):
-        report = ca.analyze_capacity(frozen('level-3', order_policy=lambda o: o.update(interval_game_ms=3000)))
+        report = ca.analyze_capacity(frozen('legacy-level-3', order_policy=lambda o: o.update(interval_game_ms=3000)))
         self.assertIn('AVERAGE_OVERLOAD', codes(report, 'WARNING'))
         self.assertEqual(codes(report, 'ERROR'), set())
         self.assertTrue(report['structurally_valid'])
 
     def test_provably_insufficient_chef_time_is_an_error(self):
-        edit_level = lambda d: (d.update(round_limit_game_ms=60000), d['goal'].update(min_deliveries=20))
-        edit_orders = lambda o: o.update(interval_game_ms=1000, stop_spawn_game_ms=59000)
-        report = ca.analyze_capacity(frozen('pilot-draft-mixed', level=edit_level, order_policy=edit_orders))
+        edit_level = lambda d: (d.update(round_limit_game_ms=60000), d['goal'].update(min_money=3000))
+        edit_orders = lambda o: (o.update(interval_game_ms=1000), o['patience_by_recipe'].update(burger=4000))
+        report = ca.analyze_capacity(frozen('level-2', level=edit_level, order_policy=edit_orders))
         self.assertIn('GOAL_EXCEEDS_CAPACITY', codes(report, 'ERROR'))
         self.assertFalse(report['structurally_valid'])
 
     def test_tight_windows_warn_without_rejecting(self):
-        report = ca.analyze_capacity(frozen('level-1', order_policy=lambda o: o.update(patience_default_game_ms=12000)))
+        report = ca.analyze_capacity(frozen('level-1', order_policy=lambda o: o['patience_by_recipe'].update(steak=12000)))
         self.assertIn('PATIENCE_BELOW_PROCESSING', codes(report, 'WARNING'))
         self.assertEqual(codes(report, 'ERROR'), set())
 

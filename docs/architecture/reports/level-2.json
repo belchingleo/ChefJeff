@@ -1,6 +1,6 @@
 {
   "analyzer_version": "capacity-analyzer-0.1",
-  "input_config_hash": "sha256:0bbb30dd4781a368617ce5c25a6390571e3cb2530964c87958e7cb1d30546696",
+  "input_config_hash": "sha256:9f595198845cca1c30b4c31ba2d894d98e999c7148bf8ae6e1c71a2a4a1d7e6e",
   "input_status": "frozen",
   "level_id": "level-2",
   "schema_valid": true,
@@ -82,7 +82,7 @@
   "dishes": {
     "burger": {
       "name": "汉堡",
-      "price": 60,
+      "price": 80,
       "components": [
         {
           "item": "bread",
@@ -200,20 +200,25 @@
     "plate": 6150
   },
   "resource_loads": {
-    "chef": 0.4167,
-    "board": 0.3,
-    "stove_with_pot": 0.4,
-    "sink": 0.1333,
-    "plate": 0.205
+    "chef": 0.5,
+    "board": 0.36,
+    "stove_with_pot": 0.48,
+    "sink": 0.16,
+    "plate": 0.246
   },
   "I_resource_lb_game_ms": 12500,
   "binding_resource": "chef",
   "plan": {
-    "orders": 3,
-    "goal_deliveries": 3,
-    "round_limit_game_ms": 240000,
-    "configured_interval_game_ms": 30000,
-    "order_algorithm": "legacy_finite/python-random-shuffle-v1"
+    "orders": 8,
+    "goal": {
+      "type": "minimum_money",
+      "target_money": 100,
+      "revenue_ceiling": 640,
+      "orders_too_late_to_cook_from_scratch": 1
+    },
+    "round_limit_game_ms": 180000,
+    "configured_interval_game_ms": 25000,
+    "order_algorithm": "fixed_interval_seeded/weighted-cumulative-v1"
   },
   "suggested_interval_game_ms": null,
   "suggestion_reason": "no calibration reference (measured or reference-schedule runs) exists; I_resource_lb is a necessary lower bound, not a safe interval",

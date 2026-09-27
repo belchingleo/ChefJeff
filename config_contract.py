@@ -183,7 +183,7 @@ def _order_count(policy, round_limit):
         return sum(entry['count'] for entry in policy['sequence'])
     if mode == 'fixed_table':
         return len(policy['arrivals'])
-    t0, stop, interval = policy['first_spawn_game_ms'], policy['stop_spawn_game_ms'], policy['interval_game_ms']
+    t0, stop, interval = policy['first_spawn_game_ms'], policy.get('stop_spawn_game_ms', round_limit), policy['interval_game_ms']
     return max(0, math.ceil((stop - t0) / interval))
 
 
@@ -345,7 +345,7 @@ def resolve_config(bundle, registry=None):
     if D > limits['max_round_game_ms']:
         out.append(diag('LIMIT_ROUND', 'ERROR', '/level/round_limit_game_ms', f'exceeds {limits["max_round_game_ms"]}'))
     required = {'legacy_finite': ('interval_game_ms', 'sequence'),
-                'fixed_interval_seeded': ('interval_game_ms', 'stop_spawn_game_ms', 'menu'),
+                'fixed_interval_seeded': ('interval_game_ms', 'menu'),
                 'fixed_table': ('arrivals',)}[policy['mode']]
     missing = [f for f in required if f not in policy]
     for f in missing:
@@ -361,6 +361,9 @@ def resolve_config(bundle, registry=None):
             policy['shuffle'] = False
             applied.append('/order_policy/shuffle=false')
         if policy['mode'] == 'fixed_interval_seeded':
+            if 'stop_spawn_game_ms' not in policy:
+                policy['stop_spawn_game_ms'] = D
+                applied.append('/order_policy/stop_spawn_game_ms=round_limit_game_ms')
             t0, C = policy['first_spawn_game_ms'], policy['stop_spawn_game_ms']
             if not 0 <= t0 < C <= D:
                 out.append(diag('ORDER_TIMING', 'ERROR', '/order_policy', 'requires 0 <= first_spawn < stop_spawn <= round_limit',
@@ -375,10 +378,27 @@ def resolve_config(bundle, registry=None):
         if count > limits['max_orders']:
             out.append(diag('LIMIT_ORDERS', 'ERROR', '/order_policy', f'{count} orders exceeds {limits["max_orders"]}'))
         goal = level['goal']
-        target = goal['min_served'] if goal['type'] == 'legacy_all_gates' else goal['min_deliveries']
-        if target > count:
-            out.append(diag('GOAL_EXCEEDS_ORDERS', 'ERROR', '/level/goal', f'goal needs {target} deliveries; the plan offers {count}',
-                            {'orders_offered': count, 'goal': target}))
+        if goal['type'] == 'legacy_all_gates' and goal['min_served'] > count:
+            out.append(diag('GOAL_EXCEEDS_ORDERS', 'ERROR', '/level/goal', f'goal needs {goal["min_served"]} deliveries; the plan offers {count}',
+                            {'orders_offered': count, 'goal': goal['min_served']}))
+        if goal['type'] == 'minimum_money':
+            prices = [recipes['recipes'][r]['price'] for r in ordered if r in recipes['recipes']]
+            ceiling = count * max(prices, default=0)
+            if goal['min_money'] > ceiling:
+                out.append(diag('GOAL_EXCEEDS_REVENUE', 'ERROR', '/level/goal',
+                                f'target {goal["min_money"]} exceeds the most the plan can earn ({count} orders x {max(prices, default=0)})',
+                                {'orders_offered': count, 'revenue_ceiling': ceiling}))
+        # Every waiting order must fit on the order rail at once: floor(p / I) + 1 tickets overlap.
+        interval = policy.get('interval_game_ms')
+        longest = max((policy['patience_by_recipe'].get(r, policy['patience_default_game_ms']) for r in ordered),
+                      default=policy['patience_default_game_ms'])
+        if interval:
+            overlap = min(count, longest // interval + 1)
+            if overlap > limits['max_visible_orders']:
+                out.append(diag('ORDER_BACKLOG_EXCEEDS_DISPLAY', 'ERROR', '/order_policy',
+                                f'up to {overlap} orders can wait at once but only {limits["max_visible_orders"]} tickets can be shown; '
+                                'shorten the countdown or lengthen the interval',
+                                {'longest_countdown_game_ms': longest, 'interval_game_ms': interval}))
         for recipe_id, patience in [(None, policy['patience_default_game_ms'])] + list(policy['patience_by_recipe'].items()):
             if patience < 10000:
                 out.append(diag('PATIENCE_SHORT', 'WARNING', '/order_policy', f'patience {patience} ms is very short', recipe_id))
@@ -403,8 +423,17 @@ def resolve_config(bundle, registry=None):
     goal_type, end_type = level['goal']['type'], level['end_policy']['type']
     if semantics == 'legacy-2026-09' and (goal_type, end_type, policy['mode']) != ('legacy_all_gates', 'legacy_immediate', 'legacy_finite'):
         out.append(diag('RULESET_MISMATCH', 'ERROR', '/level', 'legacy semantics support only legacy_all_gates + legacy_immediate + legacy_finite'))
-    if semantics != 'legacy-2026-09' and (goal_type, end_type) != ('minimum_deliveries', 'fixed_round'):
-        out.append(diag('RULESET_MISMATCH', 'ERROR', '/level', 'continuous semantics require minimum_deliveries + fixed_round'))
+    if semantics != 'legacy-2026-09' and (goal_type, end_type) != ('minimum_money', 'fixed_round'):
+        out.append(diag('RULESET_MISMATCH', 'ERROR', '/level', 'continuous semantics require minimum_money + fixed_round'))
+    penalty_keys = {'wrong_or_burnt_dish'} if semantics == 'legacy-2026-09' else {'wrong_dish'}
+    for key in penalty_keys - set(ruleset['penalties']):
+        out.append(diag('RULESET_PENALTY_MISSING', 'ERROR', '/ruleset/penalties', f'{semantics} needs penalties.{key}'))
+    if semantics != 'legacy-2026-09':
+        tiers = ruleset.get('burnt_service')
+        bounds = [t['max_overcook_game_ms'] for t in tiers] if tiers else []
+        if not tiers or bounds[-1] is not None or any(b is None for b in bounds[:-1]) or bounds[:-1] != sorted(bounds[:-1]):
+            out.append(diag('RULESET_BURNT_TIERS', 'ERROR', '/ruleset/burnt_service',
+                            'continuous semantics need ascending burnt_service tiers ending with max_overcook_game_ms null'))
 
     if errors(out):
         return None, out
@@ -436,7 +465,7 @@ def order_plan(policy, seed, round_limit_game_ms, recipe_ids):
         menu = sorted(policy['menu'], key=lambda e: e['recipe_ref'])
         total = sum(e['weight'] for e in menu)
         arrival = policy['first_spawn_game_ms']
-        while arrival < policy['stop_spawn_game_ms']:
+        while arrival < policy.get('stop_spawn_game_ms', round_limit_game_ms):
             pick, acc = rng.random() * total, 0.
             recipe = menu[-1]['recipe_ref']
             for e in menu:
@@ -541,8 +570,8 @@ def legacy_flat_config(resolved):
         'order_count': _order_count(policy, level['round_limit_game_ms']),
         'order_interval': s(policy['interval_game_ms']),
         'order_patience': s(policy['patience_default_game_ms']),
-        'target_served': goal['min_served'] if legacy_goal else goal['min_deliveries'],
-        'target_money': goal['min_money'] if legacy_goal else None,
+        'target_served': goal['min_served'] if legacy_goal else None,
+        'target_money': goal['min_money'],
         'max_bad_reviews': goal['max_bad_reviews'] if legacy_goal else None,
         'time_bonus_per_second': level['scoring']['time_bonus_per_second'],
         'chop_seconds': s(chop['work_game_ms']) / rate('board', 'chop') if chop else None,

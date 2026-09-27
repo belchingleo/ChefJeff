@@ -1,6 +1,6 @@
 {
   "analyzer_version": "capacity-analyzer-0.1",
-  "input_config_hash": "sha256:81c2ef62d82fa150b05d96659a63ebdd71b4af24cbaf1e688f812947ec034440",
+  "input_config_hash": "sha256:5cad805e2f1746b5cdcff683a0cdc29b4d16c330a95d83d80aed967a7b9bdd45",
   "input_status": "frozen",
   "level_id": "level-1",
   "schema_valid": true,
@@ -85,7 +85,7 @@
   "dishes": {
     "steak": {
       "name": "牛排",
-      "price": 30,
+      "price": 50,
       "components": [
         {
           "item": "beef",
@@ -167,20 +167,25 @@
     "plate": 6150
   },
   "resource_loads": {
-    "chef": 0.2396,
-    "board": 0.05,
-    "stove_with_pot": 0.5,
-    "sink": 0.1667,
-    "plate": 0.2563
+    "chef": 0.23,
+    "board": 0.048,
+    "stove_with_pot": 0.48,
+    "sink": 0.16,
+    "plate": 0.246
   },
   "I_resource_lb_game_ms": 12000,
   "binding_resource": "stove_with_pot",
   "plan": {
-    "orders": 5,
-    "goal_deliveries": 3,
+    "orders": 8,
+    "goal": {
+      "type": "minimum_money",
+      "target_money": 100,
+      "revenue_ceiling": 400,
+      "orders_too_late_to_cook_from_scratch": 1
+    },
     "round_limit_game_ms": 180000,
-    "configured_interval_game_ms": 24000,
-    "order_algorithm": "legacy_finite/python-random-shuffle-v1"
+    "configured_interval_game_ms": 25000,
+    "order_algorithm": "fixed_interval_seeded/weighted-cumulative-v1"
   },
   "suggested_interval_game_ms": null,
   "suggestion_reason": "no calibration reference (measured or reference-schedule runs) exists; I_resource_lb is a necessary lower bound, not a safe interval",

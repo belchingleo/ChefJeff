@@ -50,7 +50,7 @@ class CooperationMemoryTests(unittest.TestCase):
     def finish(self,g):
         g.k.emit('你完成动作：切菜',kind='action_done',actor='human',action='chop b1')
         g.k.emit('你抛出了食材',kind='thrown',actor='human',item='F1',target=(8,4))
-        g.k.served=3;g.k.money=90;g.k.advance(.01)
+        g.k.advance(g.k.rules.round_limit-g.k.time+1)  # rounds end at closing time
         self.assertTrue(g.k.ended)
         g.phase='ended';g._finish()
 

@@ -770,7 +770,9 @@ class Kitchen:
             pending = [o for o in self.orders if o["status"] == "pending" and o["dish"]==self.dish(a.hand)]
             o = min(pending, key=lambda x: x["deadline"]) if pending else None
             good = a.hand.stage == "ready" and o and self.time <= o["deadline"]+1e-8
-            if good:
+            if self.rules.continuous:
+                self._serve_continuous(who, job, a.hand, o)
+            elif good:
                 o["status"] = "served"
                 self.served += 1
                 price=self.rules.prices[o['dish']]
@@ -802,6 +804,33 @@ class Kitchen:
             if s.lock==partner:s.lock=None
             getattr(self,'routes',{}).pop(partner,None)
             self.emit(f'{NAMES[partner]}共同完成：{other_job.action.label}',kind='action_done',actor=partner,action=other_job.action.key,action_id=other_job.id)
+
+    def _serve_continuous(self, who, job, food, order):
+        """Continuous service: match the waiting order of this dish with the earliest deadline.
+
+        Serving at the deadline itself still counts. A dish burnt past the last
+        accepted tier is refused and the order keeps waiting.
+        """
+        dish = self.dish(food)
+        if order is None:
+            penalty = self.rules.penalty['wrong_dish']
+            self.money += penalty
+            self.emit(f"没有等待{self.recipe_name(dish)}的订单；扣 {-penalty} 元", kind='wrong_dish', actor=who,
+                      action_id=job.id, dish=dish)
+            return
+        overcook = self.rules.overcook(food, self.parts(food))
+        tier = self.rules.burnt_tier(overcook) if food.stage == 'burnt' else None
+        if tier and tier['outcome'] == 'rejected':
+            self.emit(f"{order['id']}的顾客拒收糊菜，订单继续等待", kind='dish_rejected', actor=who, action_id=job.id,
+                      order_id=order['id'], dish=dish, overcook_game_ms=None if overcook == float('inf') else round(overcook*1000))
+            return
+        price, adjustment = self.rules.prices[order['dish']], tier['adjustment'] if tier else 0
+        order['status'] = 'served'
+        self.served += 1
+        self.money += price+adjustment
+        note = f"（菜品糊了，扣 {-adjustment} 元）" if adjustment else ''
+        self.emit(f"{NAMES[who]}完成 {order['id']}，收入 +{price+adjustment} 元{note}", kind='served', actor=who, dish=order['dish'],
+                  order_id=order['id'], action_id=job.id, price=price, adjustment=adjustment)
 
     def _return_plates(self):
         tray = self.stations[self.returns]
@@ -941,8 +970,11 @@ class Kitchen:
                     o["status"] = "expired"
                     penalty = self.rules.penalty['expired_order']
                     self.money += penalty
-                    self.bad_reviews += 1
-                    self.emit(f"{o['id']}超时，顾客离开并差评，扣 {-penalty} 元", kind="expired", order_id=o['id'])
+                    if self.rules.continuous:
+                        self.emit(f"{o['id']}超时，顾客离开，扣 {-penalty} 元", kind="expired", order_id=o['id'])
+                    else:
+                        self.bad_reviews += 1
+                        self.emit(f"{o['id']}超时，顾客离开并差评，扣 {-penalty} 元", kind="expired", order_id=o['id'])
             self._goal_notices()
             if self.time >= self.rules.round_limit-1e-8 or (self.ends_on_win() and all(o["status"] not in ("future", "pending") for o in self.orders)):
                 self._end()
@@ -986,43 +1018,48 @@ class Kitchen:
                 'walk_same_area': r.same_area, 'walk_cross_area': r.cross_area}
 
     def goal_status(self):
-        """Deliveries target and an upper bound on what can still be delivered.
+        """Progress towards the goal as the players may see it.
 
-        The bound counts delivered, still-pending and not-yet-arrived orders; it is
-        a necessary condition only and says nothing about scheduling feasibility.
+        Legacy rounds also report an upper bound on deliveries (a necessary
+        condition). Continuous rounds report only the target and current money:
+        an upper bound would reveal the hidden future orders.
         """
         goal = self.rules.goal
-        target = goal['min_served'] if goal['type'] == 'legacy_all_gates' else goal['min_deliveries']
+        if goal['type'] == 'minimum_money':
+            return {'type': goal['type'], 'target_money': goal['min_money'], 'money': self.money,
+                    'met_now': self.money >= goal['min_money'], 'judged_at': 'closing'}
+        target = goal['min_served']
         possible = self.served + sum(o['status'] in ('pending', 'future') for o in self.orders)
         return {'type': goal['type'], 'target_deliveries': target, 'delivered': self.served,
                 'deliveries_met': self.served >= target, 'max_possible_deliveries': possible,
                 'deliveries_reachable': possible >= target}
 
+    def revenue_ceiling(self):
+        """Money now plus every waiting or future order at full price (engine-only knowledge)."""
+        return self.money + sum(self.rules.prices[o['dish']] for o in self.orders if o['status'] in ('pending', 'future'))
+
     def _goal_notices(self):
-        if not self.rules.continuous:
+        if not self.rules.continuous or getattr(self, '_goal_unreachable_noted', False):
             return
-        status = self.goal_status()
-        if status['deliveries_met'] and not getattr(self, '_goal_reached_noted', False):
-            self._goal_reached_noted = True
-            self.emit(f"已达成最低目标：出餐 {status['delivered']}/{status['target_deliveries']}；继续营业至关店", kind='goal_reached')
-        if not status['deliveries_reachable'] and not getattr(self, '_goal_unreachable_noted', False):
+        if self.revenue_ceiling() < self.rules.goal['min_money']:
+            # The bound only falls: serving converts it into money, expiries and penalties remove it.
             self._goal_unreachable_noted = True
-            self.emit(f"已无法达成最低目标：最多还能出餐 {status['max_possible_deliveries']}/{status['target_deliveries']}；本局继续至关店",
-                      kind='goal_unreachable', evidence=status)
+            self.emit(f"已无法达成目标金额 {self.rules.goal['min_money']} 元；本局继续至关店", kind='goal_unreachable')
 
     def won(self):
         if self.failure_reason:
             return False
-        if self.rules.goal['type'] == 'minimum_deliveries':
-            return self.served >= self.rules.goal['min_deliveries']
+        if self.rules.goal['type'] == 'minimum_money':
+            return self.money >= self.rules.goal['min_money']
         return self.served >= self.c["target_served"] and self.money >= self.c["target_money"] and self.bad_reviews <= self.c["max_bad_reviews"]
 
     def result(self):
-        if self.rules.goal['type'] == 'minimum_deliveries':
+        if self.rules.goal['type'] == 'minimum_money':
             label = '火势失控' if self.failure_reason == 'fire_spread' else ("提前退出" if self.aborted else ("目标达成" if self.won() else "未达目标"))
             count = lambda status: sum(o['status'] == status for o in self.orders)
-            return (f"{label}：出餐 {self.served}/{self.rules.goal['min_deliveries']}（最低）；超时 {count('expired')}；"
-                    f"关店未完 {count('unresolved_at_close')}；净收入 {self.money} 元；差评 {self.bad_reviews}；糊锅 {self.burns}，着火 {self.fires}")
+            refused = sum(e.get('kind') == 'dish_rejected' for e in self.events)
+            return (f"{label}：净收入 {self.money}/{self.rules.goal['min_money']} 元；完成 {self.served} 单；超时 {count('expired')}；"
+                    f"拒收 {refused}；关店未完成 {count('unresolved_at_close')}；糊锅 {self.burns}，着火 {self.fires}")
         label = '火势失控' if self.failure_reason == 'fire_spread' else ("提前退出（未结算通关）" if self.aborted else ("任务成功" if self.won() else "任务未达成"))
         return f"{label}：出餐 {self.served}/{self.c['target_served']}；净收入 {self.money}/{self.c['target_money']} 元；差评 {self.bad_reviews}（最多 {self.c['max_bad_reviews']}）；糊锅 {self.burns}，着火 {self.fires}；时间奖励 {self.time_bonus:g} 元（剩余 {self.reward_seconds} 整秒）；合计 {self.money+self.time_bonus:g} 元"
 
@@ -1090,7 +1127,8 @@ class Kitchen:
                           'components': [{'item': c['item'], 'state': c['state']} for c in self.rules.recipes[r]['components']]}
                          for r in self.rules.menu],
                 'assembly': self.rules.multi_component,
-                'scoring': {'penalties': dict(self.rules.penalty), 'time_bonus_per_second': self.rules.time_bonus_per_second},
+                'scoring': {'penalties': dict(self.rules.penalty), 'time_bonus_per_second': self.rules.time_bonus_per_second,
+                            'burnt_service': [dict(t) for t in self.rules.burnt_service]},
                 'round_limit': self.rules.round_limit,
                 'timing': self.timing(),
                 "money": self.money, "served": self.served, "bad_reviews": self.bad_reviews,

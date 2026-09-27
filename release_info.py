@@ -8,16 +8,12 @@ RUNTIME_FILES = ('hosted_server.py', 'hosted_records.py', 'hosted/browser-agent.
                  'cocos_server.py', 'player_api.py', 'cooperation_memory.py', 'play.py',
                  'whitebox_server.py', 'feedback.py', 'release_info.py', 'config.json',
                  'scripts/launch_web.py', 'scripts/stop_web.py',
-                 'rules.py', 'config_contract.py', 'schema_check.py', 'session_record.py',
-                 'rulesets/chefjeff-legacy.json', 'rulesets/chefjeff-continuous.json',
-                 'content/orders/pilot-draft-mixed.json', 'content/levels/pilot-draft-mixed.json', 'content/equipment/chefjeff-core.json',
-                 'content/recipes/chefjeff-core.json', 'content/orders/level-1.json',
-                 'content/orders/level-2.json', 'content/orders/level-3.json',
-                 'content/levels/level-1.json', 'content/levels/level-2.json', 'content/levels/level-3.json',
-                 'schemas/common.schema.json', 'schemas/configuration.schema.json', 'schemas/equipment.schema.json',
-                 'schemas/level.schema.json', 'schemas/map.schema.json', 'schemas/order.schema.json',
-                 'schemas/recipe.schema.json', 'schemas/resolved.schema.json', 'schemas/ruleset.schema.json',
-                 'schemas/event.schema.json', 'schemas/session.schema.json')
+                 'rules.py', 'config_contract.py', 'schema_check.py', 'session_record.py')
+
+
+# Contracts and authored content ship with the runtime; listed from disk so new documents are never missed.
+RUNTIME_FILES += tuple(sorted(p.relative_to(ROOT).as_posix() for folder in ('schemas', 'content', 'rulesets')
+                              for p in (ROOT / folder).rglob('*.json')))
 
 
 def release_info(root=ROOT):

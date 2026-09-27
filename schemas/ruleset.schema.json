@@ -192,7 +192,6 @@
     "penalties": {
       "type": "object",
       "required": [
-        "wrong_or_burnt_dish",
         "expired_order",
         "new_fire",
         "discard"
@@ -209,9 +208,13 @@
         },
         "discard": {
           "$ref": "common.schema.json#/$defs/money"
+        },
+        "wrong_dish": {
+          "$ref": "common.schema.json#/$defs/money"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Legacy semantics use wrong_or_burnt_dish; continuous semantics use wrong_dish plus burnt_service tiers."
     },
     "abstract_travel": {
       "description": "Travel time of the non-spatial text prototype only.",
@@ -239,7 +242,8 @@
         "max_orders",
         "max_round_game_ms",
         "max_document_bytes",
-        "max_inventory"
+        "max_inventory",
+        "max_visible_orders"
       ],
       "properties": {
         "max_actors": {
@@ -263,12 +267,49 @@
         "max_inventory": {
           "type": "integer",
           "minimum": 1
+        },
+        "max_visible_orders": {
+          "description": "Order tickets the interface can show at once; plans must never exceed it.",
+          "type": "integer",
+          "minimum": 1
         }
       },
       "additionalProperties": false
     },
     "extensions": {
       "$ref": "common.schema.json#/$defs/extensions"
+    },
+    "burnt_service": {
+      "description": "Continuous semantics: how a matched order treats a dish with burnt components, by how long the worst component was burnt when it left the heat. Tiers in ascending order; the last has max_overcook_game_ms null.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "max_overcook_game_ms",
+          "outcome",
+          "adjustment"
+        ],
+        "properties": {
+          "max_overcook_game_ms": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "outcome": {
+            "enum": [
+              "accepted",
+              "rejected"
+            ]
+          },
+          "adjustment": {
+            "$ref": "common.schema.json#/$defs/money"
+          }
+        },
+        "additionalProperties": false
+      }
     }
   },
   "additionalProperties": false

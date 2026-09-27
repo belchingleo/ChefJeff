@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "kind": "order_policy",
+  "id": "legacy-level-3",
+  "version": 1,
+  "name": "第三关订单",
+  "mode": "legacy_finite",
+  "first_spawn_game_ms": 0,
+  "interval_game_ms": 30000,
+  "sequence": [
+    {
+      "recipe_ref": "steak",
+      "count": 2
+    },
+    {
+      "recipe_ref": "burger",
+      "count": 3
+    }
+  ],
+  "shuffle": true,
+  "patience_default_game_ms": 100000,
+  "patience_by_recipe": {
+    "steak": 100000,
+    "burger": 150000
+  }
+}
