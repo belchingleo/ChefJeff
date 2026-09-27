@@ -19,13 +19,14 @@ def available_levels():
     return [dict(entry) for entry in _listed()]
 
 
-def level_id(level):
-    """Accept a legacy level number or a level id; return the level id."""
-    if type(level) is int:
-        level = f'level-{level}'
-    if not isinstance(level, str) or level not in {entry['id'] for entry in available_levels()}:
+def level_id(selection):
+    """Accept a legacy level number or a level id; return the listed level id."""
+    if type(selection) is int:
+        selection = f'level-{selection}'
+    listed = {entry['id'] for entry in available_levels()}
+    if not isinstance(selection, str) or selection not in listed:
         raise ValueError('Unknown level')
-    return level
+    return selection
 
 
 def level_config(base, level):

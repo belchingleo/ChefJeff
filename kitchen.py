@@ -879,6 +879,18 @@ class Kitchen:
                 self.time_bonus = round(self.reward_seconds*self.rules.time_bonus_per_second, 2)
             self.emit(self.result(), kind="round_end")
 
+    def timing(self):
+        """Rule durations in game seconds for this round (work at rate 1, one worker)."""
+        r = self.rules
+        heat = next(iter(r.heat), None)
+        ready, burn, fire = r.heat_thresholds(heat) if heat else (None, None, None)
+        chop = next(iter(r.chop), None)
+        return {'wash': r.wash_work, 'dining': r.dining, 'chop': r.chop_work(chop) if chop else None,
+                'cook': ready, 'ready_to_burn': None if heat is None else burn-ready,
+                'burn_to_fire': None if heat is None else fire-burn, 'handling': r.handling,
+                'extinguish': r.extinguish, 'clear': r.clear,
+                'walk_same_area': r.same_area, 'walk_cross_area': r.cross_area}
+
     def goal_status(self):
         """Deliveries target and an upper bound on what can still be delivered.
 
@@ -979,6 +991,14 @@ class Kitchen:
                 "future_orders": (int(any(o["status"] == "future" for o in self.orders)) if self.rules.continuous
                                   else sum(o["status"] == "future" for o in self.orders)),
                 'goal_status': self.goal_status(), 'end_policy': self.rules.end_policy,
+                # Rules visible to both chefs, from the same frozen configuration the engine runs.
+                'menu': [{'id': r, 'name': self.rules.recipe_names[r], 'price': self.rules.prices[r],
+                          'components': [{'item': c['item'], 'state': c['state']} for c in self.rules.recipes[r]['components']]}
+                         for r in self.rules.menu],
+                'assembly': self.rules.multi_component,
+                'scoring': {'penalties': dict(self.rules.penalty), 'time_bonus_per_second': self.rules.time_bonus_per_second},
+                'round_limit': self.rules.round_limit,
+                'timing': self.timing(),
                 "money": self.money, "served": self.served, "bad_reviews": self.bad_reviews,
                 'fire_safety': {'burning_count': sum(s.fire for s in self.stations.values()),
                                 'loss_threshold': self.rules.fire_loss,

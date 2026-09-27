@@ -39,31 +39,54 @@ def load_key():
     raise RuntimeError("未找到 TYPESAFE_API_KEY。请在本地 .env 中配置，不要把密钥发到聊天。")
 
 
+def objective_text(state):
+    """Objective and end rules, generated from the round's goal and end policy."""
+    goal, bonus = state['goal_status'], state['scoring']['time_bonus_per_second']
+    if goal['type'] == 'minimum_deliveries':
+        return (f"Serve at least {goal['target_deliveries']} orders before the kitchen closes at {state['round_limit']:g} game seconds. "
+                "Reaching the minimum does not end the round; it always runs until closing, and further deliveries still count. "
+                "Orders still open at closing are recorded as unresolved. goal_status reports delivered orders and an upper bound on what can still be delivered.")
+    return ("Meet all three goals within the time limit: orders served, net operating revenue, and maximum bad reviews. "
+            "The round ends immediately when all goals are met; remaining orders need not be completed. "
+            f"Each whole second left on success awards {bonus:g} additional yuan, excluded from the operating revenue goal.")
+
+
+def score_text(state):
+    """Scoring rules from the recipe prices and ruleset penalties of this round."""
+    p = state['scoring']['penalties']
+    prices = ', '.join(f"{r['id']} {r['price']} yuan" for r in state['menu'])
+    return (f"Serving a complete plated dish automatically matches the pending order of the same dish with the earliest deadline and earns its price ({prices}). "
+            f"Unplated or incomplete food cannot be served. Plated burnt food or serving without a matching order causes a bad review and a {-p['wrong_or_burnt_dish']}-yuan penalty; any matched order fails. "
+            f"Expired order: bad review and {p['expired_order']} yuan. Fire: {p['new_fire']} yuan. Discarding food or clearing a pot: {p['discard']} yuan.")
+
+
 class JevClient:
     def __init__(self, config, key=None):
         self.key = key or load_key()
         self.c = config
 
     def payload(self, state, actions):
+        discard = -state['scoring']['penalties']['discard']
+        t = state['timing']
+        fire = state['fire_safety']
         return english_data({
             "model": self.c["model"],
             "state": {
                 "kitchen": state,
                 "rules": {
                     "role": 'You control chef jeff. Chef human is controlled by a person in the same kitchen. Both chefs can perform the same actions; neither has a fixed role. Choose one next action for your own chef.',
-                    "objective": f"Meet all three goals within the time limit: orders served, net operating revenue, and maximum bad reviews. The round ends immediately when all goals are met; remaining orders need not be completed. Each whole second left on success awards {self.c.get('time_bonus_per_second', 1):g} additional yuan, excluded from the operating revenue goal.",
+                    "objective": objective_text(state),
                     "flow": 'fetch takes raw meat -> put bN places it on an empty board -> chop bN prepares it -> take bN picks up the chopped ingredient -> put pN puts it in the pot -> cooking runs automatically. take <counter_id> takes a clean plate -> plate pN transfers cooked food into the held plate -> serve delivers it. Alternatively, take pot pN lifts the whole pot off the stove; plate <counter_id> transfers its food onto a clean plate on that counter, leaving the plated food there and the empty pot in your hands. Return the pot with put pot pN, then collect the plated food. With a clean plate, plate ground <item_id> serves food from a pot on the floor; the empty pot remains there. Food cannot be removed from a pot with bare hands. Actions automatically walk to the target and then work; go only moves.',
                     "plate_reuse": 'Dirty plates cannot hold food or substitute for clean plates. If no clean plate is available, dirty plates must be washed before plating and serving can continue. Waiting alone does not clean plates. Decide when to wash and how to divide work based on the situation.',
-                    "tableware": 'Tableware is limited and distributed across counters. Each counter holds one item: a plate, a pot, or an ingredient. There is no stacking rack. tableware.counters lists counter IDs; stations, ground, and chefs show actual locations. clean_plate means clean; dirty_plate means dirty; food is plated only when plate_id is nonempty. Use take/put at counters. Removing cooked food requires a container: hold a clean plate and use plate pN at a stove, hold a filled pot and use plate <counter_id> at a clean plate on a counter, or hold a clean plate and use plate <counter_id> at a filled pot on a counter. take pot pN lifts the pot and contents together. A pot occupies your hands and cannot be thrown. Off the stove heating stops; returning it resumes heating. contents is the food inside. An empty stove cannot accept ingredients until its pot is returned. Recycling: take returns collects a dirty plate; put sink puts it in an empty sink; wash with empty hands; take sink collects the clean plate for plating or storage. Washing can be interrupted and resumed by either chef with progress preserved. Diners return plates after the dining time. The return station holds one plate; further returns queue. Clean plates, dirty plates and plated food cannot be thrown, but can be put down and picked up. Plates and pots cannot be destroyed. Discarding plated food leaves a dirty plate; emptying a pot leaves an empty pot, costing 2 yuan. Decide when to wash, carry plates or lift pots; roles are not fixed.',
+                    "tableware": f'Tableware is limited and distributed across counters. Each counter holds one item: a plate, a pot, or an ingredient. There is no stacking rack. tableware.counters lists counter IDs; stations, ground, and chefs show actual locations. clean_plate means clean; dirty_plate means dirty; food is plated only when plate_id is nonempty. Use take/put at counters. Removing cooked food requires a container: hold a clean plate and use plate pN at a stove, hold a filled pot and use plate <counter_id> at a clean plate on a counter, or hold a clean plate and use plate <counter_id> at a filled pot on a counter. take pot pN lifts the pot and contents together. A pot occupies your hands and cannot be thrown. Off the stove heating stops; returning it resumes heating. contents is the food inside. An empty stove cannot accept ingredients until its pot is returned. Recycling: take returns collects a dirty plate; put sink puts it in an empty sink; wash with empty hands; take sink collects the clean plate for plating or storage. Washing can be interrupted and resumed by either chef with progress preserved. Diners return plates after the dining time. The return station holds one plate; further returns queue. Clean plates, dirty plates and plated food cannot be thrown, but can be put down and picked up. Plates and pots cannot be destroyed. Discarding plated food leaves a dirty plate; emptying a pot leaves an empty pot, costing {discard} yuan. Decide when to wash, carry plates or lift pots; roles are not fixed.',
                     "resources": 'Each chef holds one item. Fetching, taking or picking up a new item automatically places the previously held item on nearby ground when the action completes. It can be recovered without a penalty. If no nearby space is available, the swap fails and neither item changes. This also applies to extinguishers. Each pot and board holds one food item. Chopping requires empty hands; chopped food still occupies the board. Cooking is automatic; no chef needs to stay at the stove. There is no transfer window.',
                     "ground": 'Held items can be put down beside the current station using drop, taking timing.handling seconds, without a penalty or spoilage. ground lists all floor items and locations. Either chef can walk there and use pickup <item_id>; handling time is added to travel. Items retain their state and preparation progress; food on the floor is not heated. Cooked food must remain in a pot or on a plate. Dropping is different from discard at a bin: dropped items remain usable. Decide when to put down or pick up items.',
-                    "timing": {"wash": self.c.get("wash_seconds", 4), "dining": self.c.get("dining_seconds", 8), "chop": self.c["chop_seconds"], "cook": self.c["cook_seconds"],
-                               "ready_to_burn": self.c["burn_after_ready"], "burn_to_fire": self.c["fire_after_burn"],
-                               "walk_same_area": self.c["same_area_walk"], "walk_cross_area": self.c["cross_area_walk"],
-                               "handling": self.c.get("handling_seconds", .15), "take_put_fetch": self.c.get("handling_seconds", .15), "serve": self.c.get("handling_seconds", .15), "extinguish": 4, "clear": 2},
+                    "timing": {**{k: t[k] for k in ("wash", "dining", "chop", "cook", "ready_to_burn", "burn_to_fire",
+                                                     "walk_same_area", "walk_cross_area", "handling", "extinguish", "clear")},
+                               "take_put_fetch": t["handling"], "serve": t["handling"]},
                     "interrupt": 'continue keeps the current task; another action interrupts it. Chopping progress is preserved. Cooking in a pot does not stop when a chef switches tasks. Decide whether to continue or interrupt.',
-                    "fire": 'Burnt food cannot be restored. Removing the whole pot stops heating. A burning stove cannot be used for taking or placing items. First take extinguisher from its rack, or pickup E1 from the floor; extinguish takes 4 seconds, then clear the burnt food to reuse the pot. The extinguisher occupies your hands; a previously held item is automatically put on the floor. Return it with put extinguisher or drop it. There is one extinguisher, usable by either chef; it cannot be discarded or served. Extinguishing stops heating. Every 8 game seconds, each burning stove, board or counter can ignite one orthogonally adjacent combustible workstation; fire never jumps across a floor gap or wall. Burning workstations cannot be used until extinguished. Five simultaneously burning workstations immediately lose the round. Extinguish any burning workstation with the same extinguisher. An extinguished workstation can reignite from an adjacent fire; removing food does not remove a cabinet fire. Check kitchen.fire_safety and each station fire_neighbors and fire_spread_in. The extinguisher is a movable object.',
-                    "score": 'Serving plated cooked food automatically matches the valid order with the earliest deadline and earns 30 yuan. Unplated food cannot be served. Plated burnt food or serving without a valid order causes a bad review and a 15-yuan penalty; any matched order fails. Expired order: bad review and -10 yuan. Fire: -5 yuan. Discarding food or clearing a pot: -2 yuan.',
+                    "fire": f'Burnt food cannot be restored. Removing the whole pot stops heating. A burning stove cannot be used for taking or placing items. First take extinguisher from its rack, or pickup E1 from the floor; extinguish takes {t["extinguish"]:g} seconds, then clear the burnt food to reuse the pot. The extinguisher occupies your hands; a previously held item is automatically put on the floor. Return it with put extinguisher or drop it. There is one extinguisher, usable by either chef; it cannot be discarded or served. Extinguishing stops heating. Every {fire["spread_seconds"]:g} game seconds, each burning stove, board or counter can ignite one orthogonally adjacent combustible workstation; fire never jumps across a floor gap or wall. Burning workstations cannot be used until extinguished. {fire["loss_threshold"]} simultaneously burning workstations immediately lose the round. Extinguish any burning workstation with the same extinguisher. An extinguished workstation can reignite from an adjacent fire; removing food does not remove a cabinet fire. Check kitchen.fire_safety and each station fire_neighbors and fire_spread_in. The extinguisher is a movable object.',
+                    "score": score_text(state),
                     "visibility": 'Both chefs see the same kitchen state. All available actions are in criteria; legal does not mean useful. Waiting and continuing are allowed. The program does not choose your strategy.'
                 }
             },
@@ -139,8 +162,8 @@ class DecisionLoop:
         def band(t):
             return sum(t <= x for x in (15, 8, 3, 0))
         return tuple((o["id"], band(o["deadline"]-k.time)) for o in k.orders if o["status"] == "pending") + tuple(
-            (key, band(k.c["cook_seconds"]+k.c["burn_after_ready"]-s.food.heated),
-             band(k.c["cook_seconds"]+k.c["burn_after_ready"]+k.c["fire_after_burn"]-s.food.heated))
+            (key, band(k.rules.heat_thresholds(s.food.ingredient)[1]-s.food.heated),
+             band(k.rules.heat_thresholds(s.food.ingredient)[2]-s.food.heated))
             for key, s in k.stations.items() if key in k.pots and s.food)
 
     def poll(self, enabled=True):

@@ -228,6 +228,15 @@ def resolve_config(bundle, registry=None):
             out.append(diag('UNSUPPORTED_EQUIPMENT_TYPE', 'ERROR', f'/equipment_catalog/types/{type_id}',
                             f'the {ruleset["id"]} ruleset has no engine semantics for {type_id!r}'))
 
+    for type_id, kind in catalog['types'].items():
+        for capability, rule in kind.get('shared_work', {}).items():
+            path = f'/equipment_catalog/types/{type_id}/shared_work/{capability}'
+            missing = [str(n) for n in range(1, rule['max_workers'] + 1) if str(n) not in rule['rate_multiplier']]
+            if missing:
+                out.append(diag('SHARED_WORK_RATE_MISSING', 'ERROR', path, f'rate_multiplier needs entries for {missing}'))
+            if capability not in kind['capabilities']:
+                out.append(diag('SHARED_WORK_CAPABILITY', 'ERROR', path, f'{type_id} has no {capability!r} capability'))
+
     # Map instances against the catalog and recipe items.
     stations, sources, capabilities, counts = [], {}, set(), {}
     if len(game_map['equipment']) > limits['max_equipment']:

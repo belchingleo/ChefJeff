@@ -109,6 +109,7 @@ Contains the full text of every referenced document, `sources` (id, version, sha
 | `MAP_INVALID` | ERROR | geometry rules (boundary, footprints, access, connectivity) |
 | `MAP_UNKNOWN_EQUIPMENT_TYPE`, `MAP_UNKNOWN_PARAM`, `MAP_MISSING_PARAM`, `MAP_UNKNOWN_ITEM` | ERROR | instance does not match the catalog/recipes |
 | `UNSUPPORTED_EQUIPMENT_TYPE`, `UNSUPPORTED_EQUIPMENT_COUNT` | ERROR | catalog/map needs semantics this engine lacks |
+| `SHARED_WORK_RATE_MISSING`, `SHARED_WORK_CAPABILITY` | ERROR | a shared-work rule lacks a rate for some allowed worker count, or names a capability the type does not have |
 | `RECIPE_UNKNOWN_ITEM`, `RECIPE_STATE_INVALID` | ERROR | inconsistent recipe catalog |
 | `NO_PRODUCTION_CHAIN` | ERROR | an ordered dish's component has no source or no equipment for a needed transform |
 | `ORDER_UNKNOWN_RECIPE`, `ORDER_MODE_FIELD`, `ORDER_TIMING` | ERROR | invalid demand definition |
