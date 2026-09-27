@@ -14,7 +14,8 @@ The Cocos browser game uses the shared rules in `kitchen.py`, `spatial_kitchen.p
 | Wash / customer plate return | 4 / 8 seconds |
 | Extinguish / clear pot | 4 / 2 seconds |
 | Discard food | −2; retain its plate or pot |
-| Wrong order / expired order / new fire | −15 / −10 / −5 |
+| Dish no shown order is waiting for / expired order / new fire | −20 / −10 / −5 |
+| Dish burnt ≤ 5 s / > 5 s when it left the heat | price −10 / refused, no money, order keeps waiting |
 
 The default game clock runs at 0.75× real time. API latency and request limits use real time. Walk diagonals do not increase speed. Sprint accelerates movement, not preparation.
 
@@ -36,7 +37,7 @@ A pot heats only on a stove. Carrying it or placing it on a counter/floor pauses
 
 Cooked beef moves with a pot or plate, never as a bare-handed loose item. Clean or compatible partial plates can collect prepared ingredients from boards/counters and cooked beef from pots. Prepared ingredients, cooked pot contents and compatible plated components may be added to a partner's plate without stealing their item or interrupting work. Merging two plates transfers food, leaving the source plate empty. Duplicate ingredients and dirty plates are rejected.
 
-Steak requires plated cooked beef. A burger requires one bun, chopped lettuce, sliced tomato and cooked beef, assembled in any order. Visual layer order is fixed regardless of assembly order; missing layers remain hidden. Partial burgers can be carried and placed but not served; hints identify missing ingredients. Burnt or incorrect dishes incur penalties. Service matches the earliest-expiring valid order for that recipe. Customer plates return after a delay; move dirty plates to a sink, wash with empty hands, and collect clean plates.
+Steak requires plated cooked beef. A burger requires one bun, chopped lettuce, sliced tomato and cooked beef, assembled in any order. Visual layer order is fixed regardless of assembly order; missing layers remain hidden. Partial burgers can be carried and placed but not served; hints identify missing ingredients. A served dish goes to the waiting order of that dish with the earliest deadline; serving exactly at the deadline counts. Steak pays 50 and a burger 80. If any component was burnt, what counts is how long it had been burnt when it left the heat: up to 5 seconds, the order is completed at the price −10; longer (or burnt by a fire), the customer refuses it, pays nothing and keeps waiting. Serving a dish that no shown order is waiting for costs 20. There are no bad reviews. Customer plates return after a delay; move dirty plates to a sink, wash with empty hands, and collect clean plates.
 
 Take the extinguisher to a burning station, then dispose of burnt contents. Fire spreads every 8 game seconds to one adjacent flammable station, never across floor/walls. Five simultaneously burning stations end the round. A bin removes food while preserving its container.
 
@@ -46,11 +47,11 @@ Esc or Ⅱ pauses; ▶ resumes; ■ ends early without a success bonus. Settings
 
 Shift bookmarks the current round without affecting play or model input. Presses within 5 real seconds merge into an interval. Number keys 1–5 send a fixed cooperation preference; 6 reports a perceived mistake. Messages share a 5-second cooldown and are delivered with the next normal request, without forcing a task interruption. The latest preference lasts for the round. Feedback includes bookmarks and preset messages.
 
-Models receive English structured observations (`en-v1`), factual rules (`rules-v2`) and legal actions. The rules describe what the kitchen allows; they do not instruct the agent to cooperate with or help the human. UI language does not change model input. Requests distinguish selection, acceptance and completion; stale replies are rejected, and failures remain visible. The default budget is 200 requests/round (configurable 1–2000); failures count and in-flight requests can still complete. At the limit, current actions continue and the player may pause. See [agent integration](agent-integration.md) and [privacy/costs](privacy-and-costs.md).
+Models receive English structured observations (`en-v1`), factual rules (`rules-v3`) and legal actions. The rules describe what the kitchen allows; they do not instruct the agent to cooperate with or help the human. UI language does not change model input. Requests distinguish selection, acceptance and completion; stale replies are rejected, and failures remain visible. The default budget is 200 requests/round (configurable 1–2000); failures count and in-flight requests can still complete. At the limit, current actions continue and the player may pause. See [agent integration](agent-integration.md) and [privacy/costs](privacy-and-costs.md).
 
 ## Levels
 
-Level 1 is a steak practice kitchen (180 game seconds). [Level 2](第二关-长台汉堡.md) serves three burgers in 240 seconds; [Level 3](第三关-窄巷汉堡.md) mixes five steak/burger orders in 360 seconds. Successful completion adds one unit of bonus per remaining whole game second, separately from the operating-income target.
+Every level lasts 180 game seconds (about 4 minutes at the default 0.75 clock). Level 1 serves steak, [Level 2](第二关-长台汉堡.md) burgers and [Level 3](第三关-窄巷汉堡.md) both. Orders arrive one at a time at a fixed interval until closing; several can wait at once (at most five tickets). Each dish has its own countdown; an expired order costs 10 and disappears. The goal is a net revenue target at closing: the round always runs to the end, penalties after reaching the target count, and orders still open at closing carry no penalty. There is no remaining-time bonus. The accepted 0.5.9 rules remain available only for replaying old sessions.
 
 ---
 
@@ -72,7 +73,8 @@ Cocos 浏览器版共用 `kitchen.py`、`spatial_kitchen.py`、地图 JSON 和�
 | 洗碗／顾客归还盘子 | 4／8 秒 |
 | 灭火／清锅 | 4／2 秒 |
 | 丢弃食物 | −2，保留盘或锅 |
-| 错餐／订单超时／新起火 | −15／−10／−5 |
+| 端了没有订单在等的菜／订单超时／新起火 | −20／−10／−5 |
+| 离火时糊 ≤5 秒／>5 秒 | 菜价 −10／拒收，无收入，订单继续等待 |
 
 默认游戏时钟为现实时间的 0.75 倍，API 延迟及请求限制按现实时间计算。斜走不加速，冲刺仅加速移动。
 
@@ -94,7 +96,7 @@ Cocos 浏览器版共用 `kitchen.py`、`spatial_kitchen.py`、地图 JSON 和�
 
 熟牛肉随锅或盘移动，不可裸手散拿。净盘或兼容半成品盘可从案板／柜台收配料，从锅收熟牛肉。准备好的配料、锅中熟食或兼容盘中食物可加入队友手持盘，不夺取物品、不打断工作。两盘合并只转移食物，源盘留空。重复配料和脏盘会被拒绝。
 
-牛排需要装盘熟牛肉；汉堡需要各一份面包、切好生菜、番茄片和熟牛肉，添加顺序不限。显示层级固定，未添加层不显示。缺料汉堡可搬动暂放、不可出餐，提示会说明缺料。糊菜或错餐受罚；同菜品匹配最早到期的有效订单。顾客用完餐后延迟归还盘子，脏盘送水槽、空手清洗后取净盘。
+牛排需要装盘熟牛肉；汉堡需要各一份面包、切好生菜、番茄片和熟牛肉，添加顺序不限。显示层级固定，未添加层不显示。缺料汉堡可搬动暂放、不可出餐，提示会说明缺料。出餐交给同菜品中截止最早的等待订单，恰好在截止时刻送达也算成功。牛排 50 元、汉堡 80 元。菜中任一原料糊了时，按它离火时已糊的时长计：5 秒以内订单完成、收入为菜价 −10；超过 5 秒（或被火烧糊）顾客拒收、不付钱，订单继续等待。端出当前没有订单在等的菜扣 20。没有差评。顾客用完餐后延迟归还盘子，脏盘送水槽、空手清洗后取净盘。
 
 拿灭火器扑灭着火工位，再处理糊食物。每 8 游戏秒向一个相邻可燃工位蔓延，不跨地面或墙；同时五处起火结束本局。垃圾桶只销毁食物，保留容器。
 
@@ -104,8 +106,8 @@ Esc 或 Ⅱ 暂停，▶ 继续，■ 提前结束且无成功奖励。设置及
 
 Shift 标记本局片段，不影响玩法或模型输入；间隔五个现实秒内的按键合并为区间。数字 1–5 发送固定协作偏好，6 表示玩家认为出错；共用五秒冷却，下一次正常请求送达，不强行打断任务。最新偏好持续本局，反馈包含标记与预设消息。
 
-模型收到英文结构化观察（`en-v1`）、事实规则（`rules-v2`）与合法动作；规则只说明厨房允许什么，不要求 agent 协作或帮助玩家。界面语言不改变模型输入。请求区分选择、接受与完成，拒绝过期回复并显示失败。默认每局 200 次（可设 1–2000），失败计数，在途请求仍可完成。达到上限后已有动作继续，玩家可暂停。详见 [agent 接入](agent-integration.md)与[隐私／费用](privacy-and-costs.md)。
+模型收到英文结构化观察（`en-v1`）、事实规则（`rules-v3`）与合法动作；规则只说明厨房允许什么，不要求 agent 协作或帮助玩家。界面语言不改变模型输入。请求区分选择、接受与完成，拒绝过期回复并显示失败。默认每局 200 次（可设 1–2000），失败计数，在途请求仍可完成。达到上限后已有动作继续，玩家可暂停。详见 [agent 接入](agent-integration.md)与[隐私／费用](privacy-and-costs.md)。
 
 ## 关卡
 
-第一关为 180 游戏秒的牛排练习厨房；[第二关](第二关-长台汉堡.md)在 240 秒内完成三份汉堡；[第三关](第三关-窄巷汉堡.md)在 360 秒内完成五份牛排／汉堡订单。成功时按剩余整游戏秒发放奖励，与营业收入目标分开计算。
+每关 180 游戏秒（默认 0.75 时钟约 4 分钟）。第一关做牛排，[第二关](第二关-长台汉堡.md)做汉堡，[第三关](第三关-窄巷汉堡.md)两者都有。订单按固定间隔逐张到来直至关店，可同时等待多张（最多 5 张）。每道菜有各自的倒计时，超时扣 10 元并消失。目标是关店时的净收入：本局总是打满全场，达标后的罚款照样计入，关店时未完成的订单不罚款。剩余时间不折算奖励。0.5.9 旧规则仅用于重放历史对局。

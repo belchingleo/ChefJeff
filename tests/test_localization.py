@@ -67,3 +67,16 @@ assert.equal(i.t('Kitchen timeout'),'Kitchen timeout');
             corpus.extend(a.label.split('（')[0] for a in k.actions('human') if a.kind not in ('throw','go'))
         corpus += [k.result(),'Jeff洗好了 D1，可取走盛菜或放到空柜台','灶台 1的 F1 熟了！8s 后糊锅','顾客差评：糊菜；扣 15 元，O1失败']
         self.run_js("const missing=corpus.filter(x=>/[\\u3400-\\u9fff]/.test(i.t(x)));assert.deepEqual(missing,[]);",corpus)
+
+    def test_service_rules_copy_is_fully_translated(self):
+        import config_contract as cc
+        bundle = cc.level_bundle('level-3', embed=True);bundle['level']['seeds'] = {'orders': 1, 'spawn': 0}
+        k = SpatialKitchen(cc.freeze_bundle(bundle));k.advance(200.)
+        target = k.rules.goal['min_money']
+        corpus = [k.result(), '你和 AI 搭档，一起照顾这间小厨房。\n本局目标：关店时净收入达到 ¥%d' % target,
+                  '出餐 3 单 · 净收入 ¥120 / ¥%d' % target, '你完成 O2，收入 +40 元（菜品糊了，扣 10 元）', 'Jeff完成 O1，收入 +80 元',
+                  '没有等待汉堡的订单；扣 20 元', 'O3的顾客拒收糊菜，订单继续等待', 'O4超时，顾客离开，扣 10 元',
+                  '已无法达成目标金额 %d 元；本局继续至关店' % target, 'O8在关店时仍未完成', 'Jeff加入案板 1的共同操作（2人）',
+                  '你离开案板 1的共同操作，进度保留']
+        corpus += [e['message'] for e in k.events]
+        self.run_js("const missing=corpus.filter(x=>/[\\u3400-\\u9fff]/.test(i.t(x)));assert.deepEqual(missing,[]);",corpus)

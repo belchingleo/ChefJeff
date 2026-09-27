@@ -385,7 +385,11 @@
     "导出当前局摘要、全部标记和最近 80 条动作事件。标记包含游戏时间和实际时间，在线版没有可追溯的服务器对局日志。不会附带 Key、接口地址、模型名称文本、跨局记忆或完整请求。文件只下载到本机，不自动上传。": "Export the run summary, all bookmarks and the last 80 action events. Bookmarks include game and wall times; the hosted version has no persistent server journal. Keys, endpoint and model text, cross-round memory and full requests are excluded. Downloads stay local; nothing is uploaded.",
     "导出当前局摘要、全部标记、沟通记录和最近 80 条动作事件。标记包含游戏时间和实际时间，在线版没有可追溯的服务器对局日志。不会附带 Key、接口地址、模型名称文本、跨局记忆或完整请求。文件只下载到本机，不自动上传。": "Export the run summary, all bookmarks, communication records and the last 80 action events. Bookmarks include game and wall times; the hosted version has no persistent server journal. Keys, endpoint and model text, cross-round memory and full requests are excluded. Downloads stay local; nothing is uploaded.",
     "浏览器直连模型": "Browser-direct model connection",
-    "：在线版由浏览器直连模型；服务商必须允许跨域访问。跨域失败不会改由服务器代发 Key。": ": The hosted version calls your model directly from the browser. Your provider must allow CORS; a CORS failure never forwards your key through our server."
+    "：在线版由浏览器直连模型；服务商必须允许跨域访问。跨域失败不会改由服务器代发 Key。": ": The hosted version calls your model directly from the browser. Your provider must allow CORS; a CORS failure never forwards your key through our server.",
+    "目标达成": "Goal reached",
+    "未达目标": "Goal not reached",
+    "提前退出": "Ended early",
+    "—": "—"
   },
   "templates": [
     [
@@ -687,6 +691,58 @@
     [
       "本局 {0} / {1} 次{2}；成功回复 token：输入 {3} / 输出 {4}；本页面连接测试 {5} 次",
       "Round: {0} / {1} calls{2}; reported tokens: {3} input / {4} output; connection tests: {5}"
+    ],
+    [
+      "你和 AI 搭档，一起照顾这间小厨房。\n本局目标：关店时净收入达到 ¥{0}",
+      "Run this kitchen with your AI teammate.\nGoal: net revenue of ¥{0} at closing time"
+    ],
+    [
+      "出餐 {0} 单 · 净收入 ¥{1} / ¥{2}",
+      "{0} orders served · net revenue ¥{1} / ¥{2}"
+    ],
+    [
+      "¥ {0} / {1}",
+      "¥ {0} / {1}"
+    ],
+    [
+      "{0}：净收入 {1}/{2} 元；完成 {3} 单；超时 {4}；拒收 {5}；关店未完成 {6}；糊锅 {7}，着火 {8}",
+      "{0}: net revenue ¥{1}/¥{2}; {3} orders completed; expired {4}; refused {5}; open at closing {6}; burnt {7}, fires {8}"
+    ],
+    [
+      "{0}完成 {1}，收入 +{2} 元{3}",
+      "{0} completed {1}: +¥{2}{3}"
+    ],
+    [
+      "（菜品糊了，扣 {0} 元）",
+      " (burnt dish, −¥{0})"
+    ],
+    [
+      "没有等待{0}的订单；扣 {1} 元",
+      "No order is waiting for {0}: −¥{1}"
+    ],
+    [
+      "{0}的顾客拒收糊菜，订单继续等待",
+      "The customer of {0} refused a burnt dish; the order keeps waiting"
+    ],
+    [
+      "{0}超时，顾客离开，扣 {1} 元",
+      "{0} expired: the customer left, −¥{1}"
+    ],
+    [
+      "已无法达成目标金额 {0} 元；本局继续至关店",
+      "The ¥{0} target can no longer be reached; the round continues until closing"
+    ],
+    [
+      "{0}在关店时仍未完成",
+      "{0} was still open at closing time"
+    ],
+    [
+      "{0}加入{1}的共同操作（{2}人）",
+      "{0} joined the shared work at {1} ({2} chefs)"
+    ],
+    [
+      "{0}离开{1}的共同操作，进度保留",
+      "{0} left the shared work at {1}; progress kept"
     ]
   ]
 }

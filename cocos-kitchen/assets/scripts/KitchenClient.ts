@@ -906,8 +906,10 @@ export class KitchenClient extends Component {
     }
     private drawOrders(){
         const s=this.state!,k=s.kitchen,orders=k.orders.filter((o:any)=>o.status==='pending');
-        this.set('served',`${k.served} / ${k.goals.target_served}`);this.set('money',`¥ ${k.money}`);this.set('reviews',`${k.bad_reviews} / ${k.goals.max_bad_reviews}`);
-        this.labels.reviews.color=color(k.bad_reviews>k.goals.max_bad_reviews?COLORS.hot:COLORS.ink);
+        // Service levels have a money target and no bad-review limit.
+        const service=k.goals.max_bad_reviews==null;
+        this.set('served',service?`${k.served}`:`${k.served} / ${k.goals.target_served}`);this.set('money',service?`¥ ${k.money} / ${k.goals.target_money}`:`¥ ${k.money}`);this.set('reviews',service?'—':`${k.bad_reviews} / ${k.goals.max_bad_reviews}`);
+        this.labels.reviews.color=color(!service&&k.bad_reviews>k.goals.max_bad_reviews?COLORS.hot:COLORS.ink);
         for(let i=0;i<5;i++){
             const o=orders[i],n=this.tickets[i],g=n.getComponent(Graphics)||n.addComponent(Graphics),urgent=o&&o.remaining<=15;g.clear();
             this.rect(g,-78,-34,156,67,COLORS.paper);
@@ -1043,7 +1045,8 @@ export class KitchenClient extends Component {
         if(this.overlayPhase!==s.phase){this.overlayPhase=s.phase;const old=this.focusId;this.focusId='';this.styleButton(old);}
         this.set('coverTitle',s.phase==='ready'?'ChefJeff':s.phase==='paused'?'歇一小会儿':k.failure_reason==='fire_spread'?'火势失控':s.aborted?'本局已结束':s.won?'今天，配合得不错！':'明天再接再厉');
         const settlement=k.settlement;
-        this.set('coverText',s.phase==='ready'?`你和 AI 搭档，一起照顾这间小厨房。\n本局目标：出餐 ${k.goals.target_served} 单 · 收入 ¥${k.goals.target_money} · 差评不超过 ${k.goals.max_bad_reviews} 次`:s.phase==='paused'?'锅火和订单都按下了暂停。\n准备好了，就和 Jeff 接着做菜。':`出餐 ${k.served} 单 · 营业收入 ¥${k.money} · 差评 ${k.bad_reviews} 次`+(settlement?`\n剩余 ${settlement.remaining_seconds} 整秒 · 时间奖励 +¥${settlement.time_bonus} · 合计 ¥${settlement.total_income}`:''));
+        const service=k.goals.max_bad_reviews==null;
+        this.set('coverText',s.phase==='ready'?(service?`你和 AI 搭档，一起照顾这间小厨房。\n本局目标：关店时净收入达到 ¥${k.goals.target_money}`:`你和 AI 搭档，一起照顾这间小厨房。\n本局目标：出餐 ${k.goals.target_served} 单 · 收入 ¥${k.goals.target_money} · 差评不超过 ${k.goals.max_bad_reviews} 次`):s.phase==='paused'?'锅火和订单都按下了暂停。\n准备好了，就和 Jeff 接着做菜。':service?`出餐 ${k.served} 单 · 净收入 ¥${k.money} / ¥${k.goals.target_money}`:`出餐 ${k.served} 单 · 营业收入 ¥${k.money} · 差评 ${k.bad_reviews} 次`+(settlement?`\n剩余 ${settlement.remaining_seconds} 整秒 · 时间奖励 +¥${settlement.time_bonus} · 合计 ¥${settlement.total_income}`:''));
         this.cover.setSiblingIndex(this.node.children.length-1);
         for(const id of ['pause','resume','end'])this.buttons[id].node.setSiblingIndex(this.node.children.length-1);
     }

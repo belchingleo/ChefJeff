@@ -1,0 +1,127 @@
+#!/usr/bin/env python3
+"""Calibrate order pacing with the deterministic reference policy.
+
+For each level and candidate (interval, per-dish countdown), run the
+recipe-following reference pair (tests/reference_policy.py) over several order
+seeds and report net income, served, expired and open-at-closing orders. The
+target money suggestion is 50% of the median net income, rounded down to a
+multiple of 10 (owner decision, 2026-09-27).
+
+This is a calibration reference, not a statement about human + AI play: the
+reference pair is two scripted chefs. The 'latency' variant lets Jeff decide
+only every 3 game seconds to approximate model response time.
+
+    python scripts/reference_sweep.py --seeds 8 --out docs/architecture/reports/pacing-sweep.json
+"""
+import argparse
+import itertools
+import json
+from multiprocessing import Pool
+from pathlib import Path
+import statistics
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / 'tests'))
+
+import config_contract as cc  # noqa: E402
+
+INTERVALS = (20000, 25000, 30000, 35000, 40000, 45000)
+COUNTDOWNS = {'steak': (60000, 75000, 90000), 'burger': (75000, 90000, 105000, 120000, 135000)}
+MENUS = {1: ('steak',), 2: ('burger',), 3: ('steak', 'burger')}
+VARIANTS = {'fast': 10, 'latency': 60}  # jeff decision period in 0.05 s ticks (0.5 s / 3 s)
+
+
+def candidates(level):
+    for interval in INTERVALS:
+        for combo in itertools.product(*(COUNTDOWNS[d] for d in MENUS[level])):
+            countdowns = dict(zip(MENUS[level], combo))
+            # At most 5 tickets can wait at once: floor(p / I) + 1 <= 5.
+            if all(p // interval + 1 <= 5 for p in countdowns.values()):
+                yield interval, countdowns
+
+
+def bundle(level, interval, countdowns, seed):
+    b = cc.level_bundle(f'level-{level}', embed=True)
+    b['level']['seeds'] = {'orders': seed, 'spawn': seed % 2}
+    b['order_policy']['interval_game_ms'] = interval
+    b['order_policy']['patience_by_recipe'] = dict(countdowns)
+    b['level']['goal']['min_money'] = 0
+    return b
+
+
+def run(job):
+    level, interval, countdowns, seed, variant = job
+    import reference_policy
+    from spatial_kitchen import SpatialKitchen
+    k = SpatialKitchen(cc.freeze_bundle(bundle(level, interval, countdowns, seed)))
+    period = {'human': 10, 'jeff': VARIANTS[variant]}
+    step = 0
+    while not k.ended:
+        for who, role in (('human', 'assembler'), ('jeff', 'cook')):
+            if step % period[who] == 0:
+                action = reference_policy.choose(k, who, role)
+                if action:
+                    k.start(who, action)
+        k.advance(.05)
+        step += 1
+    kinds = [e['kind'] for e in k.events]
+    return {'level': level, 'interval': interval, 'countdowns': countdowns, 'seed': seed, 'variant': variant,
+            'money': k.money, 'served': k.served, 'orders': len(k.orders),
+            'expired': sum(o['status'] == 'expired' for o in k.orders),
+            'open_at_close': sum(o['status'] == 'unresolved_at_close' for o in k.orders),
+            'refused': kinds.count('dish_rejected'), 'wrong_dish': kinds.count('wrong_dish'),
+            'burnt_accepted': sum(1 for e in k.events if e['kind'] == 'served' and e.get('adjustment')),
+            'fires': k.fires}
+
+
+def summarize(rows):
+    groups = {}
+    for row in rows:
+        key = (row['level'], row['variant'], row['interval'], json.dumps(row['countdowns'], sort_keys=True))
+        groups.setdefault(key, []).append(row)
+    out = []
+    for (level, variant, interval, countdowns), group in sorted(groups.items()):
+        money = sorted(r['money'] for r in group)
+        median = statistics.median(money)
+        out.append({'level': level, 'variant': variant, 'interval_s': interval / 1000,
+                    'countdowns_s': {k: v / 1000 for k, v in json.loads(countdowns).items()},
+                    'orders': group[0]['orders'], 'runs': len(group),
+                    'money_median': median, 'money_min': money[0], 'money_max': money[-1],
+                    'served_median': statistics.median(r['served'] for r in group),
+                    'expired_median': statistics.median(r['expired'] for r in group),
+                    'open_at_close_median': statistics.median(r['open_at_close'] for r in group),
+                    'refused_total': sum(r['refused'] for r in group), 'fires_total': sum(r['fires'] for r in group),
+                    'target_50pct': max(0, int(median * .5) // 10 * 10)})
+    return out
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--seeds', type=int, default=8)
+    parser.add_argument('--levels', default='1,2,3')
+    parser.add_argument('--variants', default='fast,latency')
+    parser.add_argument('--only', help='JSON {level: [[interval_ms, {dish: countdown_ms}], ...]} to restrict candidates')
+    parser.add_argument('--out', default=str(ROOT / 'docs' / 'architecture' / 'reports' / 'pacing-sweep.json'))
+    args = parser.parse_args()
+    levels = [int(x) for x in args.levels.split(',')]
+    only = json.loads(args.only) if args.only else None
+    jobs = []
+    for level in levels:
+        pool = only[str(level)] if only else list(candidates(level))
+        for interval, countdowns in pool:
+            for variant in args.variants.split(','):
+                for seed in range(1, args.seeds + 1):
+                    jobs.append((level, interval, countdowns, seed, variant))
+    with Pool() as workers:
+        rows = workers.map(run, jobs, chunksize=4)
+    summary = summarize(rows)
+    Path(args.out).write_text(json.dumps({'seeds': args.seeds, 'summary': summary}, ensure_ascii=False, indent=1) + '\n')
+    for row in summary:
+        print(row['level'], row['variant'], row['interval_s'], row['countdowns_s'], row['orders'], row['money_median'],
+              row['served_median'], row['expired_median'], row['target_50pct'])
+
+
+if __name__ == '__main__':
+    main()

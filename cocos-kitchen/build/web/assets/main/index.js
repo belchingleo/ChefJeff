@@ -2251,10 +2251,12 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             orders = k.orders.filter(function (o) {
               return o.status === 'pending';
             });
-          this.set('served', k.served + " / " + k.goals.target_served);
-          this.set('money', "\xA5 " + k.money);
-          this.set('reviews', k.bad_reviews + " / " + k.goals.max_bad_reviews);
-          this.labels.reviews.color = color(k.bad_reviews > k.goals.max_bad_reviews ? COLORS.hot : COLORS.ink);
+          // Service levels have a money target and no bad-review limit.
+          var service = k.goals.max_bad_reviews == null;
+          this.set('served', service ? "" + k.served : k.served + " / " + k.goals.target_served);
+          this.set('money', service ? "\xA5 " + k.money + " / " + k.goals.target_money : "\xA5 " + k.money);
+          this.set('reviews', service ? "\u2014" : k.bad_reviews + " / " + k.goals.max_bad_reviews);
+          this.labels.reviews.color = color(!service && k.bad_reviews > k.goals.max_bad_reviews ? COLORS.hot : COLORS.ink);
           var _loop7 = function _loop7() {
             var o = orders[i],
               n = _this13.tickets[i],
@@ -2545,7 +2547,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }
           this.set('coverTitle', s.phase === 'ready' ? 'ChefJeff' : s.phase === 'paused' ? '歇一小会儿' : k.failure_reason === 'fire_spread' ? '火势失控' : s.aborted ? '本局已结束' : s.won ? '今天，配合得不错！' : '明天再接再厉');
           var settlement = k.settlement;
-          this.set('coverText', s.phase === 'ready' ? "\u4F60\u548C AI \u642D\u6863\uFF0C\u4E00\u8D77\u7167\u987E\u8FD9\u95F4\u5C0F\u53A8\u623F\u3002\n\u672C\u5C40\u76EE\u6807\uFF1A\u51FA\u9910 " + k.goals.target_served + " \u5355 \xB7 \u6536\u5165 \xA5" + k.goals.target_money + " \xB7 \u5DEE\u8BC4\u4E0D\u8D85\u8FC7 " + k.goals.max_bad_reviews + " \u6B21" : s.phase === 'paused' ? '锅火和订单都按下了暂停。\n准备好了，就和 Jeff 接着做菜。' : "\u51FA\u9910 " + k.served + " \u5355 \xB7 \u8425\u4E1A\u6536\u5165 \xA5" + k.money + " \xB7 \u5DEE\u8BC4 " + k.bad_reviews + " \u6B21" + (settlement ? "\n\u5269\u4F59 " + settlement.remaining_seconds + " \u6574\u79D2 \xB7 \u65F6\u95F4\u5956\u52B1 +\xA5" + settlement.time_bonus + " \xB7 \u5408\u8BA1 \xA5" + settlement.total_income : ''));
+          var serviceCover = k.goals.max_bad_reviews == null;
+          this.set('coverText', s.phase === 'ready' ? serviceCover ? "你和 AI 搭档，一起照顾这间小厨房。\n本局目标：关店时净收入达到 \xA5" + k.goals.target_money : "\u4F60\u548C AI \u642D\u6863\uFF0C\u4E00\u8D77\u7167\u987E\u8FD9\u95F4\u5C0F\u53A8\u623F\u3002\n\u672C\u5C40\u76EE\u6807\uFF1A\u51FA\u9910 " + k.goals.target_served + " \u5355 \xB7 \u6536\u5165 \xA5" + k.goals.target_money + " \xB7 \u5DEE\u8BC4\u4E0D\u8D85\u8FC7 " + k.goals.max_bad_reviews + " \u6B21" : s.phase === 'paused' ? '锅火和订单都按下了暂停。\n准备好了，就和 Jeff 接着做菜。' : serviceCover ? "出餐 " + k.served + " 单 · 净收入 \xA5" + k.money + " / \xA5" + k.goals.target_money : "\u51FA\u9910 " + k.served + " \u5355 \xB7 \u8425\u4E1A\u6536\u5165 \xA5" + k.money + " \xB7 \u5DEE\u8BC4 " + k.bad_reviews + " \u6B21" + (settlement ? "\n\u5269\u4F59 " + settlement.remaining_seconds + " \u6574\u79D2 \xB7 \u65F6\u95F4\u5956\u52B1 +\xA5" + settlement.time_bonus + " \xB7 \u5408\u8BA1 \xA5" + settlement.total_income : ''));
           this.cover.setSiblingIndex(this.node.children.length - 1);
           for (var _i28 = 0, _arr22 = ['pause', 'resume', 'end']; _i28 < _arr22.length; _i28++) {
             var _id6 = _arr22[_i28];

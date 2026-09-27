@@ -27,7 +27,7 @@ Selects semantics the engine already implements; it cannot add mechanics.
 
 | Field | Meaning | Legacy value |
 |---|---|---|
-| `engine_semantics` | `legacy-2026-09` (accepted outcome rules) or `continuous-2026-09` (fixed round, minimum deliveries) | legacy |
+| `engine_semantics` | `legacy-2026-09` (accepted 0.5.9 outcome rules, `chefjeff-legacy`) or `continuous-2026-09` (service rules of the listed levels, `chefjeff-service`) | |
 | `tick_game_ms` | fixed simulation step | 50 |
 | `supported_equipment_types` | types with engine semantics | 9 types |
 | `operations.handling_game_ms` / `extinguish_game_ms` / `clear_game_ms` | take/put/plate/serve; extinguish; clear pot | 150 / 4000 / 2000 |
@@ -35,9 +35,10 @@ Selects semantics the engine already implements; it cannot add mechanics.
 | `throw.*` | enabled; range 7 cells; 12 cells/s; minimum flight 200 ms; catch radius 0.75 | |
 | `tableware.dining_game_ms` / `return_capacity` | customer plate return delay; return station capacity | 8000 / 1 |
 | `fire.spread_interval_game_ms` / `loss_threshold` | spread cadence; simultaneous fires that end the round | 8000 / 5 |
-| `penalties.*` | wrong or burnt dish, expired order, new fire, discard | −15 / −10 / −5 / −2 |
+| `penalties.*` | legacy: wrong or burnt dish −15; service: wrong dish (no shown order waits for it) −20. Both: expired order −10, new fire −5, discard/clear −2 | |
+| `burnt_service[]` | service only: tiers by how long the worst component was burnt when it left the heat, `{max_overcook_game_ms, outcome, adjustment}`; ascending, last `null` | ≤ 5000 accepted −10; longer refused (order keeps waiting) |
 | `abstract_travel.*` | travel of the non-spatial text prototype only | 1000 / 3000 |
-| `limits.*` | technical safety limits measured on this engine, not difficulty | 2 actors, 256 instances, 500 orders, 1 h, 1 MiB, 64 objects |
+| `limits.*` | technical safety limits measured on this engine, not difficulty; `max_visible_orders` is the order rail's ticket count | 2 actors, 256 instances, 500 orders, 1 h, 1 MiB, 64 objects, 5 tickets |
 
 ### Equipment catalog (`content/equipment/<id>.json`)
 
@@ -67,7 +68,7 @@ Each recipe's step DAG is derived from its components and the shared transforms,
 | Mode | Fields | Plan |
 |---|---|---|
 | `legacy_finite` | `sequence[{recipe_ref, count}]`, `shuffle`, `first_spawn_game_ms`, `interval_game_ms` | bag in listed order, optionally shuffled once with `random.Random(order_seed)`; `a_i = t0 + i·I`; deadline `a_i + patience` (not clipped — accepted behaviour) |
-| `fixed_interval_seeded` | `menu[{recipe_ref, weight}]`, `first_spawn_game_ms` (t0), `interval_game_ms` (I), `stop_spawn_game_ms` (C) | `a_i = t0 + i·I` for `a_i < C`; recipe by cumulative weights in stable `recipe_ref` order with a dedicated RNG; deadline `min(a_i + patience, D)` |
+| `fixed_interval_seeded` | `menu[{recipe_ref, weight}]`, `first_spawn_game_ms` (t0), `interval_game_ms` (I), optional `stop_spawn_game_ms` (C, default = D: orders arrive until closing) | `a_i = t0 + i·I` for `a_i < C`; recipe by cumulative weights in stable `recipe_ref` order with a dedicated RNG; deadline `min(a_i + patience, D)` |
 | `fixed_table` | `arrivals[{recipe_ref, arrival_game_ms, patience_game_ms?}]` | stable sort by arrival; deadline clipped to D |
 
 Common: `patience_default_game_ms`, `patience_by_recipe`. The algorithm name is stored with the plan. There is no order total for the seeded mode: a finite round yields finite orders. Required: `0 ≤ t0 < C ≤ D`, `I > 0`, patience > 0.
@@ -82,7 +83,7 @@ Common: `patience_default_game_ms`, `patience_by_recipe`. The algorithm name is 
 | `initial_inventory[]` | `{object: plate|pot|extinguisher, id, state?, at}`; IDs `D1..Dn`, `P1..Pn`, exactly one `E1`; one object per slot |
 | `clock` | default and allowed game-per-real-time speeds (legacy 0.75; options 0.5 / 0.75 / 1) |
 | `round_limit_game_ms` | D |
-| `goal` | `legacy_all_gates {min_served, min_money, max_bad_reviews}` or `minimum_deliveries {min_deliveries}` |
+| `goal` | `legacy_all_gates {min_served, min_money, max_bad_reviews}` or `minimum_money {min_money}` (net revenue at closing) |
 | `end_policy` | `legacy_immediate` (win or all orders resolved ends the round) or `fixed_round` (settle at D) |
 | `scoring.time_bonus_per_second` | legacy remaining-time bonus |
 | `seeds.orders` / `seeds.spawn` | fixed integers, or `null` to draw at freeze time (recorded) |
@@ -92,6 +93,7 @@ Common: `patience_default_game_ms`, `patience_by_recipe`. The algorithm name is 
 | Path | Default |
 |---|---|
 | `order_policy.first_spawn_game_ms` | 0 |
+| `order_policy.stop_spawn_game_ms` (seeded) | the round limit |
 | `order_policy.patience_by_recipe` | `{}` |
 | `order_policy.shuffle` (legacy) | `false` |
 | `level.initial_inventory[i].state` (plates) | `clean` |
@@ -113,7 +115,9 @@ Contains the full text of every referenced document, `sources` (id, version, sha
 | `RECIPE_UNKNOWN_ITEM`, `RECIPE_STATE_INVALID` | ERROR | inconsistent recipe catalog |
 | `NO_PRODUCTION_CHAIN` | ERROR | an ordered dish's component has no source or no equipment for a needed transform |
 | `ORDER_UNKNOWN_RECIPE`, `ORDER_MODE_FIELD`, `ORDER_TIMING` | ERROR | invalid demand definition |
-| `GOAL_EXCEEDS_ORDERS` | ERROR | the goal needs more deliveries than the plan offers |
+| `GOAL_EXCEEDS_ORDERS`, `GOAL_EXCEEDS_REVENUE` | ERROR | the goal needs more deliveries, or more money, than the plan can offer |
+| `ORDER_BACKLOG_EXCEEDS_DISPLAY` | ERROR | `floor(longest countdown / interval) + 1` tickets could wait at once, more than `max_visible_orders` |
+| `RULESET_PENALTY_MISSING`, `RULESET_BURNT_TIERS` | ERROR | a ruleset lacks the penalties or burnt tiers its semantics need |
 | `INVENTORY_*` | ERROR | unknown/incompatible/duplicate placements, ID sequences, extinguisher count, no plates |
 | `ACTORS_UNSUPPORTED`, `CLOCK_DEFAULT`, `SPAWN_NO_FLOOR`, `RULESET_MISMATCH` | ERROR | participants, clock, spawns, or outcome semantics not supported by the chosen ruleset |
 | `LIMIT_*` | ERROR | technical limits exceeded |
