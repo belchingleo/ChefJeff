@@ -13,6 +13,9 @@ from kitchen import ROOT
 from model_language import english_data, INPUT_LANGUAGE_VERSION
 
 ENDPOINT = "https://api.typesafe.ai/v1/systemone"
+# Bump whenever model-visible rule wording changes, so sessions stay comparable.
+# v2: factual rules only; no instructions to cooperate with or help the human.
+AGENT_RULES_VERSION = "rules-v2"
 
 
 def load_key():
@@ -47,8 +50,8 @@ class JevClient:
             "state": {
                 "kitchen": state,
                 "rules": {
-                    "role": 'You control chef jeff and cooperate with chef human. Both chefs can perform the same actions; neither has a fixed role. Choose one next action for your own chef.',
-                    "objective": f"Meet all three goals within the time limit: orders served, net operating revenue, and maximum bad reviews. The round ends immediately when all goals are met; remaining orders need not be completed. Each whole second left on success awards {self.c.get('time_bonus_per_second', 1):g} additional yuan, excluded from the operating revenue goal. Choose how to cooperate based on the other chef's position and actions.",
+                    "role": 'You control chef jeff. Chef human is controlled by a person in the same kitchen. Both chefs can perform the same actions; neither has a fixed role. Choose one next action for your own chef.',
+                    "objective": f"Meet all three goals within the time limit: orders served, net operating revenue, and maximum bad reviews. The round ends immediately when all goals are met; remaining orders need not be completed. Each whole second left on success awards {self.c.get('time_bonus_per_second', 1):g} additional yuan, excluded from the operating revenue goal.",
                     "flow": 'fetch takes raw meat -> put bN places it on an empty board -> chop bN prepares it -> take bN picks up the chopped ingredient -> put pN puts it in the pot -> cooking runs automatically. take <counter_id> takes a clean plate -> plate pN transfers cooked food into the held plate -> serve delivers it. Alternatively, take pot pN lifts the whole pot off the stove; plate <counter_id> transfers its food onto a clean plate on that counter, leaving the plated food there and the empty pot in your hands. Return the pot with put pot pN, then collect the plated food. With a clean plate, plate ground <item_id> serves food from a pot on the floor; the empty pot remains there. Food cannot be removed from a pot with bare hands. Actions automatically walk to the target and then work; go only moves.',
                     "plate_reuse": 'Dirty plates cannot hold food or substitute for clean plates. If no clean plate is available, dirty plates must be washed before plating and serving can continue. Waiting alone does not clean plates. Decide when to wash and how to divide work based on the situation.',
                     "tableware": 'Tableware is limited and distributed across counters. Each counter holds one item: a plate, a pot, or an ingredient. There is no stacking rack. tableware.counters lists counter IDs; stations, ground, and chefs show actual locations. clean_plate means clean; dirty_plate means dirty; food is plated only when plate_id is nonempty. Use take/put at counters. Removing cooked food requires a container: hold a clean plate and use plate pN at a stove, hold a filled pot and use plate <counter_id> at a clean plate on a counter, or hold a clean plate and use plate <counter_id> at a filled pot on a counter. take pot pN lifts the pot and contents together. A pot occupies your hands and cannot be thrown. Off the stove heating stops; returning it resumes heating. contents is the food inside. An empty stove cannot accept ingredients until its pot is returned. Recycling: take returns collects a dirty plate; put sink puts it in an empty sink; wash with empty hands; take sink collects the clean plate for plating or storage. Washing can be interrupted and resumed by either chef with progress preserved. Diners return plates after the dining time. The return station holds one plate; further returns queue. Clean plates, dirty plates and plated food cannot be thrown, but can be put down and picked up. Plates and pots cannot be destroyed. Discarding plated food leaves a dirty plate; emptying a pot leaves an empty pot, costing 2 yuan. Decide when to wash, carry plates or lift pots; roles are not fixed.',
@@ -66,7 +69,7 @@ class JevClient:
             },
             "questions": {"next_action": {
                 "type": "choice",
-                "instructions": "Given the whole kitchen situation, which action should chef jeff take now to cooperate with human toward the shared goals? Consider both chefs' current actions, occupied equipment, order deadlines, and burning/fire risks. Choose one action now; an ongoing task may be continued or interrupted.",
+                "instructions": "Given the whole kitchen situation, which action should chef jeff take now? The goals and score are shared by both chefs. The state includes both chefs' current actions, occupied equipment, order deadlines, and burning/fire risks. Choose one action now; an ongoing task may be continued or interrupted.",
                 "criteria": {a.key: a.label for a in actions}
             }}
         })
@@ -224,7 +227,7 @@ class DecisionLoop:
             payload['state']['player_communication']={
                 'current_preference':deepcopy(preference), 'recent_messages':deepcopy(included)}
             payload['state']['rules']['player_communication']=(
-                'These are explicit messages from your human teammate in this round. The latest preference replaces earlier preferences. '
+                'These are explicit messages from the human chef in this round. The latest preference replaces earlier preferences. '
                 'A preference expresses what the human would like to do, not a fixed role, promise, or compulsory assignment for either chef. '
                 'Decide how to coordinate using the current orders, risks and both chefs. A correction is the human opinion that something '
                 'was wrong; its context identifies what was happening when sent, not proof of a rule violation or an exact explanation. '
@@ -238,19 +241,20 @@ class DecisionLoop:
                     message['first_request_id']=self.calls
 
         if hasattr(self, 'cooperation_memory'):
-            payload['state']['cooperation_memory'] = self.cooperation_memory
+            payload['state']['past_episodes'] = self.cooperation_memory
             payload['state']['rules']['past_episodes'] = (
-                'cooperation_memory contains limited factual records of past rounds, not the current state, fixed preferences, or instructions. '
-                'Decide whether those records reveal cooperation patterns and whether they still apply. The player may change their behavior; '
+                'past_episodes contains limited factual records of past rounds, not the current state, fixed preferences, or instructions. '
+                'Decide whether those records are relevant and whether they still apply. The player may change their behavior; '
                 'you are not required to follow or repeat past strategies.')
         payload['state']['rules']['continuity'] = (
             'recent_decisions lists recent choices and whether they were accepted; accepted does not mean completed. '
             'recent_events records actual actions and outcomes. Use them to check for repeatedly picking up and putting down the same item, '
             'swapping between ingredients, or fetching without free space. Swapping changes locations, not preparation progress; '
-            'fetching more raw meat does not advance prepared ingredients. Consider the next preparation step or a handoff for existing food. '
+            'fetching more raw meat does not advance prepared ingredients. Existing food keeps its preparation state until someone acts on it. '
             'If the situation is unchanged, assess what repeating an action would accomplish. You may continue, wait, or choose another action; the choice is yours.')
         payload = english_data(payload)
         payload['state']['input_language'] = INPUT_LANGUAGE_VERSION
+        payload['state']['rules_version'] = AGENT_RULES_VERSION
         self.log("ai_request", {"request_id": self.calls, "triggers": causes, "payload": payload})
         self.last_request = now
         self.last_revision = self.k.revision

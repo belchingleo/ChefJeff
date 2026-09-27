@@ -51,7 +51,7 @@
       body = {...payload, model: config.model}; endpoint = config.base_url + '/systemone';
     } else {
       body = {model:config.model, max_tokens:128, messages:[
-        {role:'system', content:'Control chef jeff in this cooperative kitchen. Choose exactly one legal action key from questions.next_action.criteria. Return only JSON with choice and a boolean sprint. Use the supplied state and rules; do not invent actions.'},
+        {role:'system', content:'Control chef jeff in this shared kitchen. Choose exactly one legal action key from questions.next_action.criteria. Return only JSON with choice and a boolean sprint. Use the supplied state and rules; do not invent actions.'},
         {role:'user', content:JSON.stringify({state:payload.state, questions:payload.questions})},
       ]};
       if (config.provider === 'deepseek') {body.response_format = {type:'json_object'};body.thinking = {type:'disabled'};}
