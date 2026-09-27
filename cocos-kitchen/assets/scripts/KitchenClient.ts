@@ -1,5 +1,5 @@
 import { _decorator, Component, Node, UITransform, Graphics, Color, Label, Layers,
-    view, ResolutionPolicy, sys, game, Game, profiler, Mask } from 'cc';
+    view, ResolutionPolicy, sys, game, Game, profiler, Mask, Vec2 } from 'cc';
 import { LevelOneArt } from './LevelOneArt';
 import { GRID_ART, stationView, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, workingChefDepth, flightDepth, burgerLayers, heatCountdown } from './KitchenGeometry';
 const { ccclass } = _decorator;
@@ -746,9 +746,10 @@ export class KitchenClient extends Component {
                 const p=this.state?.kitchen.chefs[who].position;if(this.mapTarget(p[0],p[1]))return;
                 if(who==='jeff'){this.set('event','靠近 Jeff，按空格给他手中的干净盘装菜。');}
             });
-            const ln=new Node('name');ln.layer=Layers.Enum.UI_2D;n.addChild(ln);ln.setPosition(0,this.useModularArt?-12:-39);ln.addComponent(UITransform).setContentSize(155,25);
-            const l=ln.addComponent(Label);l.fontSize=16;l.lineHeight=19;l.isBold=true;l.color=color(who==='human'?COLORS.humanText:COLORS.jeffText);this.labels['person-'+who]=l;
-            l.enableOutline=true;l.outlineColor=color(COLORS.paper);l.outlineWidth=3; // readable on any floor or counter
+            // Name tag: a solid pixel plate in the identity colour, sized to the text in drawNameTag.
+            const ln=this.child(n,'name',155,25,0,this.useModularArt?-12:-39);this.child(ln,'tag',40,18).addComponent(Graphics);
+            const l=this.child(ln,'text',40,18).addComponent(Label);l.fontSize=13;l.lineHeight=17;l.isBold=true;l.color=color(COLORS.paper);
+            l.overflow=Label.Overflow.NONE;this.labels['person-'+who]=l;
             const body=n.getChildByName('body')!,held=this.child(body,'held',25,25,22,0);held.setScale(.9,.9,1);held.addComponent(Graphics);this.people[who]=n;
             if(this.prepSample){
                 const pose=this.child(this.world!,'prep-pose-'+who,68,88);pose.active=false;this.prepPoses[who]=pose;
@@ -985,7 +986,7 @@ export class KitchenClient extends Component {
     private pop(p:number[],text:string,fill:string){
         const n=this.make('result-pop',p[0],p[1],220,28),l=n.addComponent(Label);
         this.writeLabel(l,text);l.fontSize=20;l.lineHeight=24;l.isBold=true;l.horizontalAlign=Label.HorizontalAlign.CENTER;
-        l.enableOutline=true;l.outlineColor=color(COLORS.paper);l.outlineWidth=3;l.color=color(fill);
+        l.enableShadow=true;l.shadowColor=color(COLORS.ink);l.shadowOffset=new Vec2(2,-2);l.shadowBlur=0;l.color=color(fill); // hard pixel shadow
         this.pops.push({node:n,label:l,born:this.clock,y:n.position.y,fill:color(fill)});
     }
     private drawOrders(){
@@ -1008,6 +1009,14 @@ export class KitchenClient extends Component {
             this.set('order-name-'+i,o?(o.dish==='burger'?'汉堡':'香煎牛排'):i===0?(k.future_orders?'等待新订单':'订单已结清'):'');
             this.set('order-time-'+i,o?`${Math.max(0,Math.ceil(o.remaining))}s`:'');this.labels['order-time-'+i].color=color(urgent?COLORS.hot:COLORS.muted);
         }
+    }
+    private tagText:Record<string,string>={};
+    private drawNameTag(who:string){
+        const l=this.labels['person-'+who];if(this.tagText[who]===l.string)return;this.tagText[who]=l.string;
+        l.updateRenderData(true);const w=Math.ceil(l.node.getComponent(UITransform)!.width)+10,h=18;
+        const g=l.node.parent!.getChildByName('tag')!.getComponent(Graphics)!;g.clear();
+        // 1px ink border with a 2px hard ink shadow below, like the game's buttons.
+        this.rect(g,-w/2-1,-h/2-3,w+2,h+4,COLORS.ink);this.rect(g,-w/2,-h/2,w,h,who==='human'?COLORS.human:COLORS.jeffText);
     }
     private locate(n:Node,p:number[],height=0){n.setPosition(MAPX+(p[0]+.5)*TILE-640,360-MAPY-(p[1]+.5)*TILE+height);}
     private render(){
@@ -1090,7 +1099,7 @@ export class KitchenClient extends Component {
         }
         for(const who of ['human','jeff']){
             const c=k.chefs[who];
-            this.set('person-'+who,(who==='human'?'你':'Jeff')+(c.sprint?.active_remaining>0?' »':''));
+            this.set('person-'+who,(who==='human'?'你':'Jeff')+(c.sprint?.active_remaining>0?' »':''));this.drawNameTag(who);
             const held=this.motions[who].body.getChildByName('held')!;held.active=!!c.holding;
             if(c.holding)this.drawIcon(held.getComponent(Graphics)!,this.itemStage(c.holding));
         }
@@ -1161,7 +1170,7 @@ export class KitchenClient extends Component {
             const age=(this.clock-p.born)/1.4;if(age>=1||!p.node.isValid){p.node.destroy();return false;}
             if(!this.reduceMotion)p.node.setPosition(p.node.position.x,p.y+34*(1-(1-age)*(1-age)));
             const a=Math.round(255*(age<.6?1:1-(age-.6)/.4));
-            p.label.color=new Color(p.fill.r,p.fill.g,p.fill.b,a);p.label.outlineColor=new Color(255,245,220,a);return true;
+            p.label.color=new Color(p.fill.r,p.fill.g,p.fill.b,a);p.label.shadowColor=new Color(56,47,41,a);return true;
         });
         for(const [id,f] of Object.entries(this.flashes)){
             const left=f.until-this.clock,n=this.labels[id].node;
