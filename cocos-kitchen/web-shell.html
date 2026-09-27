@@ -8,7 +8,7 @@ h1.header,p.footer{display:none}
 #kitchen-bookmark-toast{position:fixed;right:20px;bottom:24px;padding:8px 14px;background:#382f29e6;color:#fff5dc;font-size:14px;pointer-events:none;z-index:25;border-radius:4px}
 #kitchen-display-hint{display:none;position:fixed;top:max(24px,env(safe-area-inset-top));left:20px;right:20px;text-align:center;color:#e7d7b8;font-size:14px;line-height:1.8;z-index:10}
 #kitchen-fullscreen{display:block;margin:12px auto 0;padding:9px 24px;border:2px solid #b59a70;background:#fff5dc;color:#382f29;font:inherit;cursor:pointer;box-shadow:0 3px #795539}
-#kitchen-fullscreen:focus-visible{outline:3px solid #e4a43b;outline-offset:4px}
+#kitchen-fullscreen:focus-visible{outline:3px solid #382f29;outline-offset:4px}
 @media(max-aspect-ratio:1/1){#kitchen-display-hint{display:block}}
 :fullscreen #kitchen-display-hint{display:none}
 </style>
@@ -38,7 +38,7 @@ expandKitchen.addEventListener('click',async()=>{try{await document.documentElem
 #kitchen-api-dialog button{padding:10px 14px;border:1px solid #795539;background:#f6e8ca;color:#382f29;font:600 15px system-ui;cursor:pointer}
 #kitchen-api-dialog button.primary{background:#4c7661;color:#fff5dc;flex:1}
 #kitchen-api-dialog button:disabled{opacity:.5;cursor:default}
-#kitchen-api-dialog :focus-visible{outline:3px solid #bb8130;outline-offset:2px}
+#kitchen-api-dialog :focus-visible{outline:3px solid #382f29;outline-offset:3px}
 #kitchen-api-dialog a{color:#365f4a}
 #api-message{min-height:24px;white-space:pre-wrap}
 #api-message.error{color:#b64032}
@@ -188,7 +188,7 @@ expandKitchen.addEventListener('click',async()=>{try{await document.documentElem
 #kitchen-help-dialog::backdrop{background:#251e18b8}
 #kitchen-help-dialog h2{margin:0 0 16px}#kitchen-help-dialog dt{font-weight:700;margin-top:12px}#kitchen-help-dialog dd{margin:0;color:#786b59}
 #kitchen-help-dialog button{padding:12px 20px;border:1px solid #795539;background:#f6e8ca;color:#382f29;font:600 15px system-ui;cursor:pointer}
-#kitchen-help-dialog button:focus-visible{outline:3px solid #bb8130;outline-offset:2px}
+#kitchen-help-dialog button:focus-visible{outline:3px solid #382f29;outline-offset:3px}
 </style>
 <dialog id="kitchen-help-dialog" aria-labelledby="help-title">
 <h2 id="help-title">操作说明</h2>
@@ -204,7 +204,7 @@ expandKitchen.addEventListener('click',async()=>{try{await document.documentElem
 <dt>丢弃与消防</dt><dd>拿食材靠近垃圾桶按空格会销毁，扣 2 元；端锅则倒掉锅里的食物，保留空锅。拿起灭火器后靠近着火工位按空格，4 秒灭火。火每 8 秒向一格相邻柜台蔓延，不跨空地或墙；同时 5 个工位着火，本局结束。</dd>
 <dt>沟通 · 1–6 / 点击</dt><dd>打开左下角沟通菜单，点击偏好即可发送；“你做错了”是独立的红色描边按钮。也可按 1–5 表达偏好、按 6 纠错。共用 5 个实际秒冷却，暂停时也可发送。最新偏好只在本局有效；AI 在下一次正常请求中收到，自行判断如何配合，不强制分工或停止动作。纠错附带当时动作信息，但不指定正确答案。</dd>
 <dt>标记片段 · Shift</dt><dd>营业中按 Shift 标记当前时刻，不暂停、不打断动作。相邻两次标记间隔不超过 5 个实际秒时合并为一个区间，长按不重复。设置中的“导出本局”包含全部标记；标记不会发送给 AI。</dd>
-<dt>暂停 · Esc</dt><dd>暂停会停止锅火、订单和双方动作。从暂停菜单继续经营、重新开局、打开设置或查看本说明。重新开局会立即开始新一局，沿用当前配置与速度。更换 API、记忆和调用上限请在结算后或开局前进行。</dd>
+<dt>暂停与继续 · Esc</dt><dd>暂停会停止锅火、订单和双方动作。再按 Esc 或点「继续经营」回到厨房；也可重新开局、打开设置或查看本说明。结束本局、暂停中重新开局都会先请你确认；重新开局沿用当前配置与速度。更换 API、记忆和调用上限请在结算后或开局前进行。</dd>
 </dl>
 <button id="help-close" type="button">返回菜单</button>
 </dialog>
@@ -215,7 +215,7 @@ expandKitchen.addEventListener('click',async()=>{try{await document.documentElem
 #kitchen-communication{position:fixed;left:12px;bottom:24px;z-index:15;width:180px;color:#382f29;font:13px/1.4 system-ui,sans-serif}
 #kitchen-communication button{font:inherit;cursor:pointer;border:1px solid #795539;background:#fff5dc;color:#382f29;padding:7px 10px;text-align:left;width:100%}
 #kitchen-communication button:disabled{opacity:.55;cursor:default}
-#kitchen-communication button:focus-visible{outline:2px solid #4c7661;outline-offset:1px}
+#kitchen-communication button:focus-visible{outline:3px solid #382f29;outline-offset:2px}
 #communication-options{background:#fff5dc;padding:6px;box-shadow:0 2px 5px #382f2955;margin-bottom:5px}
 #communication-options button{margin:2px 0}
 #kitchen-communication #communication-correction{margin-top:14px;border:2px solid #a54333;background:#fff0e7;color:#873426;font-weight:700}
@@ -270,8 +270,9 @@ expandKitchen.addEventListener('click',async()=>{try{await document.documentElem
   }catch(error){if(state?.game_id===round)notice(error.message||'沟通未确认，请检查导出记录。')}
   finally{clearTimeout(timer);busy=false;render()}
  }
- toggle.onclick=()=>{panel.hidden=!panel.hidden;toggle.setAttribute('aria-expanded',String(!panel.hidden))};
- for(const button of buttons)button.onclick=()=>send(button.dataset.code);
+ // Mouse clicks return focus to the game so Space/Tab keep working; keyboard use keeps focus.
+ toggle.onclick=e=>{panel.hidden=!panel.hidden;toggle.setAttribute('aria-expanded',String(!panel.hidden));if(e.detail)toggle.blur()};
+ for(const button of buttons)button.onclick=e=>{send(button.dataset.code);if(e.detail)button.blur()};
  window.addEventListener('kitchen-state',event=>{state=event.detail;until=performance.now()+(state.communication?.cooldown_remaining||0)*1000;render()});
  window.addEventListener('keydown',event=>{
   if(event.isComposing||event.repeat||event.ctrlKey||event.altKey||event.metaKey||event.shiftKey||document.querySelector('dialog[open]'))return;
@@ -279,5 +280,43 @@ expandKitchen.addEventListener('click',async()=>{try{await document.documentElem
   if(state?.communication?.allowed&&/^[1-6]$/.test(event.key)){event.preventDefault();event.stopImmediatePropagation();send(codes[Number(event.key)-1])}
  },true);
  setInterval(()=>{if(!dock.hidden)render()},200);
+})();
+</script>
+<style>
+#kitchen-confirm-dialog{box-sizing:border-box;width:min(420px,calc(100vw - 28px));padding:26px 28px;border:3px solid #795539;box-shadow:7px 7px #382f29;background:#fff5dc;color:#382f29;font:15px/1.6 system-ui,sans-serif}
+#kitchen-confirm-dialog::backdrop{background:#251e18b8}
+#kitchen-confirm-dialog h2{margin:0 0 8px;font-size:22px}#kitchen-confirm-dialog p{margin:0 0 20px}
+#kitchen-confirm-dialog .actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+#kitchen-confirm-dialog button{padding:10px 18px;border:1px solid #795539;background:#f6e8ca;color:#382f29;font:600 15px system-ui;cursor:pointer}
+#kitchen-confirm-dialog button.danger{background:#b64032;border-color:#8e3025;color:#fff5dc}
+#kitchen-confirm-dialog button:focus-visible{outline:3px solid #382f29;outline-offset:3px}
+#kitchen-live{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}#kitchen-live span{display:block}
+</style>
+<dialog id="kitchen-confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-text">
+ <h2 id="confirm-title">结束本局？</h2>
+ <p id="confirm-text">本局会立即结算，当前进度不会保留。</p>
+ <div class="actions"><button id="confirm-cancel" type="button">继续经营</button><button id="confirm-ok" class="danger" type="button">结束本局</button></div>
+</dialog>
+<div id="kitchen-live" role="status" aria-live="polite"></div>
+<script>
+(()=>{
+ // Confirms ending or abandoning a live round. The safe choice is first and focused.
+ const dialog=document.getElementById('kitchen-confirm-dialog'),el=id=>document.getElementById(id);let pending=null;
+ const copy={end:['结束本局？','本局会立即结算，当前进度不会保留。','结束本局'],restart:['重新开局？','当前这局会被放弃，并立即开始新的一局。','重新开局']};
+ window.addEventListener('kitchen-confirm',e=>{
+  pending=e.detail;const [title,text,ok]=copy[pending.kind];
+  el('confirm-title').textContent=title;el('confirm-text').textContent=text;el('confirm-ok').textContent=ok;
+  el('confirm-cancel').textContent=pending.resume?'继续经营':'返回';
+  dialog.returnValue='';if(!dialog.open)dialog.showModal();el('confirm-cancel').focus();
+ });
+ el('confirm-ok').onclick=()=>dialog.close('ok');el('confirm-cancel').onclick=()=>dialog.close('cancel');
+ dialog.addEventListener('close',()=>{if(!pending)return;const detail={...pending,ok:dialog.returnValue==='ok'};pending=null;
+  window.dispatchEvent(new CustomEvent('kitchen-confirmed',{detail}))});
+ // Game results for screen readers, batched so bursts read as one polite update.
+ const live=el('kitchen-live');let queue=[],timer=0;
+ window.addEventListener('kitchen-announce',e=>{
+  queue.push(...String(e.detail.message).split('\n').filter(Boolean));clearTimeout(timer);
+  timer=setTimeout(()=>{live.replaceChildren(...queue.slice(-4).map(m=>{const s=document.createElement('span');s.textContent=m;return s}));queue=[]},600);
+ });
 })();
 </script>

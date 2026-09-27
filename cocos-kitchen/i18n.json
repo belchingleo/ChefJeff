@@ -118,7 +118,7 @@
     "抛掷 · 长按空格 + 左键 / 右键 + 左键": "Throw · hold Space + left click / right then left click",
     "餐具和锅": "Plates and pots",
     "丢弃与消防": "Discarding and fires",
-    "暂停 · Esc": "Pause · Esc",
+    "暂停与继续 · Esc": "Pause & resume · Esc",
     "界面语言": "Interface language",
     "按住空格 · 左键选落点": "Hold Space · left click a destination",
     "抛掷已准备 · 左键选落点": "Ready to throw · left click a destination",
@@ -184,7 +184,7 @@
     "空格按住约 0.3 秒，再左键点落点；松开取消。也可右键准备，再左键抛出或右键取消。最远 7 格，遇墙落在墙前。仅生食材和未装盘的切好原料可抛。餐盘、带盘菜、锅和灭火器不能抛，可放下再拾取；忙碌或手满的队友不会接住。": "Hold Space for about 0.3 seconds, then left-click a destination; release to cancel. Or right-click to prepare, left-click to throw, and right-click again to cancel. Range: 7 tiles; walls stop the throw. Only raw or chopped, unplated ingredients can be thrown. Plates, plated food, pots and extinguishers can be put down and picked up, but not thrown. Busy teammates or those holding something cannot catch.",
     "干净盘才可装菜。脏盘回收点取盘 → 放入水槽 → 空手洗碗 → 取净盘。没盘时可空手到锅边端锅，离灶停止加热；空锅需放回灶台。": "Only clean plates can hold food. Collect a dirty plate → put it in the sink → wash with empty hands → take the clean plate. Without a plate, use empty hands to lift the whole pot. Taking it off the stove stops heating; return empty pots to the stove.",
     "拿食材靠近垃圾桶按空格会销毁，扣 2 元；端锅则倒掉锅里的食物，保留空锅。灭火器在右上方，拿起后靠近着火灶台按空格灭火。": "Hold food near a bin and tap Space to discard it for a ¥2 penalty. If holding a pot, its food is discarded and the pot stays. Take the extinguisher at the top right, then tap Space near a burning stove.",
-    "暂停会停止锅火、订单和双方动作。从暂停菜单继续经营、重新开局、打开设置或查看本说明。重新开局会立即开始新一局，沿用当前配置与速度。更换 API、记忆和调用上限请在结算后或开局前进行。": "Pause freezes cooking, orders and both chefs. The pause menu lets you resume, restart, open Settings or read Controls. Restart immediately begins a new round with the same configuration and speed. Change API, memory and call limits before a round or after it ends.",
+    "暂停会停止锅火、订单和双方动作。再按 Esc 或点「继续经营」回到厨房；也可重新开局、打开设置或查看本说明。结束本局、暂停中重新开局都会先请你确认；重新开局沿用当前配置与速度。更换 API、记忆和调用上限请在结算后或开局前进行。": "Pause freezes cooking, orders and both chefs. Press Esc again or choose Resume to return to the kitchen; you can also restart, open Settings or read Controls. Ending a round, or restarting from pause, asks you to confirm first; a restart keeps the same configuration and speed. Change API, memory and call limits before a round or after it ends.",
     "请先从下方「设置」连接自己的 API，再开始经营。": "Connect your own API in Settings below before starting.",
     "只能抛生食材或切好的原料；餐盘、带盘菜、锅和工具请放下或搬运。": "Only raw or chopped ingredients can be thrown. Carry or put down plates, plated food, pots and tools.",
     "新版页面已就绪，厨房服务仍在保留旧对局。\n服务更新后会自动连接，请先完成更新确认。": "The new page is ready, but the service still holds the old round.\nConfirm the update; the page will reconnect automatically.",
@@ -385,7 +385,15 @@
     "导出当前局摘要、全部标记和最近 80 条动作事件。标记包含游戏时间和实际时间，在线版没有可追溯的服务器对局日志。不会附带 Key、接口地址、模型名称文本、跨局记忆或完整请求。文件只下载到本机，不自动上传。": "Export the run summary, all bookmarks and the last 80 action events. Bookmarks include game and wall times; the hosted version has no persistent server journal. Keys, endpoint and model text, cross-round memory and full requests are excluded. Downloads stay local; nothing is uploaded.",
     "导出当前局摘要、全部标记、沟通记录和最近 80 条动作事件。标记包含游戏时间和实际时间，在线版没有可追溯的服务器对局日志。不会附带 Key、接口地址、模型名称文本、跨局记忆或完整请求。文件只下载到本机，不自动上传。": "Export the run summary, all bookmarks, communication records and the last 80 action events. Bookmarks include game and wall times; the hosted version has no persistent server journal. Keys, endpoint and model text, cross-round memory and full requests are excluded. Downloads stay local; nothing is uploaded.",
     "浏览器直连模型": "Browser-direct model connection",
-    "：在线版由浏览器直连模型；服务商必须允许跨域访问。跨域失败不会改由服务器代发 Key。": ": The hosted version calls your model directly from the browser. Your provider must allow CORS; a CORS failure never forwards your key through our server."
+    "：在线版由浏览器直连模型；服务商必须允许跨域访问。跨域失败不会改由服务器代发 Key。": ": The hosted version calls your model directly from the browser. Your provider must allow CORS; a CORS failure never forwards your key through our server.",
+    "ChefJeff 厨房画面": "ChefJeff kitchen view",
+    "Jeff 已达本局调用上限": "Jeff reached this round's call limit",
+    "Jeff 暂时连不上，正在重试": "Jeff can't connect; retrying",
+    "结束本局？": "End this round?",
+    "本局会立即结算，当前进度不会保留。": "The round is scored now; its progress won't be kept.",
+    "重新开局？": "Restart this round?",
+    "当前这局会被放弃，并立即开始新的一局。": "This round will be abandoned and a new one starts right away.",
+    "返回": "Back"
   },
   "templates": [
     [
@@ -687,6 +695,22 @@
     [
       "本局 {0} / {1} 次{2}；成功回复 token：输入 {3} / 输出 {4}；本页面连接测试 {5} 次",
       "Round: {0} / {1} calls{2}; reported tokens: {3} input / {4} output; connection tests: {5}"
+    ],
+    [
+      "Jeff：{0}（未执行）",
+      "Jeff: {0} (skipped)"
+    ],
+    [
+      "Jeff：{0}",
+      "Jeff: {0}"
+    ],
+    [
+      "差评 −¥{0}",
+      "Bad review −¥{0}"
+    ],
+    [
+      "{0} 超时 −¥{1}",
+      "{0} expired −¥{1}"
     ]
   ]
 }
