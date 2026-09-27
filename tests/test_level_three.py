@@ -63,7 +63,7 @@ class LevelThreeTests(unittest.TestCase):
         self.assertEqual(k.orders[0]['status'],'pending');self.assertEqual(k.orders[1]['status'],'served');self.assertEqual(k.money,60)
     def test_incomplete_duplicate_and_dirty_plate_are_rejected(self):
         k=self.kitchen();self.do(k,'fetch bread');self.do(k,'assemble plates');self.do(k,'take plates')
-        self.assertNotIn('serve',[a.key for a in k.actions('human')]);self.assertFalse(k.can_throw('human'))
+        self.assertNotIn('serve',[a.key for a in k.actions('human')]);self.assertEqual(k.throw_range('human'),3.0)
         self.assertFalse(k.can_add(k.chefs['human'].hand,Food('x',ingredient='bread')))
         self.assertFalse(k.can_add(Food('dirty','dirty_plate'),Food('x',ingredient='bread')))
         self.assertFalse(k.can_add(Food('clean','clean_plate'),Food('x',ingredient='lettuce')))

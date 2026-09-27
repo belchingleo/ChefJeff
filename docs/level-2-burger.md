@@ -12,7 +12,7 @@ Each burger needs a bun, chopped lettuce, sliced tomato and cooked chopped beef,
 
 ## Delivery and observations
 
-Either chef can fetch and throw ingredients to a partner or empty board, then fetch again once the hand is free. Occupied/reserved boards cannot be overwritten; plates and pots cannot be thrown. The agent chooses its own delivery and preparation actions.
+Either chef can fetch and throw ingredients to a partner or empty board, then fetch again once the hand is free. Occupied/reserved boards cannot be overwritten; plates and pots can be passed to a partner or the floor within 3 cells, never onto boards. The agent chooses its own delivery and preparation actions.
 
 Observations include active orders, ingredient states, held items, occupied workstations and flying ingredients. Future orders expose a count, not their full contents. Planning currently uses these observations without a precomputed ingredient-shortfall summary. Timing and order pressure remain playtesting parameters.
 
@@ -38,7 +38,7 @@ Observations include active orders, ingredient states, held items, occupied work
 
 ## 连续送料与模型边界
 
-AI 与玩家均可取料后抛给队友或空案板，再取下一份继续抛或自己加工。出手后即腾出手，不必等上一次落地；占用或已预约的案板不会被覆盖，餐盘和锅不能抛。该动作链不等于自动分工；模型自己选择送料次数和后续工作。
+AI 与玩家均可取料后抛给队友或空案板，再取下一份继续抛或自己加工。出手后即腾出手，不必等上一次落地；占用或已预约的案板不会被覆盖；餐盘和锅可以在 3 格内传给队友或地面，不能抛上案板。该动作链不等于自动分工；模型自己选择送料次数和后续工作。
 
 已出现订单、食材状态、手持物、工位占用、飞行中物品均提供给模型。未出现订单只给数量。暂不提供预计算的缺料量，不添加自动批量送料策略。未来评测应区分模型自行规划与系统提供需求汇总的辅助条件。
 

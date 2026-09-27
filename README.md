@@ -83,7 +83,7 @@ The current release supports **desktop and laptop browsers with a keyboard and m
 
 - **WASD / arrow keys:** move. Click a floor tile or workstation to approach it. Double-tap a direction to sprint.
 - **Space:** perform the nearby action shown in the bottom hint. Cancelling chopping or washing preserves progress.
-- **Throw:** hold Space briefly, then left-click a target; release to cancel. Alternatively, right-click to prepare, left-click to throw, and right-click to cancel. Only loose ingredients can be thrown.
+- **Throw:** hold Space briefly, then left-click a target; release to cancel. Alternatively, right-click to prepare, left-click to throw, and right-click to cancel. Ingredients fly up to 7 cells; plates, dishes, pots and the extinguisher can be passed up to 3.
 - **Serve and wash:** use a clean plate to collect cooked food; return dirty plates to the sink and wash with empty hands.
 - **Esc:** pause. Settings provide model connections, language selection, usage limits, and feedback export.
 
@@ -194,7 +194,7 @@ ChefJeff 让人类玩家和 AI 厨师进入同一个厨房。订单不断到来�
 **0.5.9-alpha** 提供本地浏览器游戏、三张可玩地图，以及玩家自带的模型连接。
 
 - 牛排、汉堡和混合菜谱厨房，包含备料、烹饪、装盘、出餐、餐具回收、洗碗和消防。
-- 共享工位、合作切菜、抛接原料、搬锅和厨师之间的温和碰撞。
+- 共享工位、合作切菜、抛接原料、传菜、搬锅和厨师之间的温和碰撞。
 - 按朝向呈现的操作动画、食材叠层及熟成／烧糊倒计时；锅离灶暂停加热，放回后续算。
 - 中文／英文界面、暂停与重开、调用上限、玩家偏好沟通、局内标记和反馈导出。
 - 结构化的 agent 观察与动作、事件记录、有限本地跨局记忆和数据化地图。
@@ -237,7 +237,7 @@ python3 cocos_server.py --port 8775
 
 - **WASD／方向键：**移动；点击地面或工位走近；双击同一方向键冲刺。
 - **空格：**执行底部提示的就近动作；主动取消切菜或洗碗时保留加工进度。
-- **抛原料：**短暂按住空格后左键点击目标，松开取消；也可右键准备、左键抛出、右键取消。仅散装原料可抛掷。
+- **抛原料：**短暂按住空格后左键点击目标，松开取消；也可右键准备、左键抛出、右键取消。原料最远 7 格；盘子、菜、锅和灭火器可以传，最远 3 格。
 - **出餐和洗碗：**用净盘收取熟食；将脏盘送进水槽，空手洗净。
 - **Esc：**暂停；设置中可连接模型、切换语言、控制调用次数和导出反馈。
 

@@ -8,7 +8,7 @@ Use a desktop/laptop browser with a keyboard and mouse. Full timing and item rul
 | Click floor / workstation / ground item | Approach; station or item becomes the explicit action target |
 | Double-tap direction | Sprint, with the shared cooldown |
 | Tap Space | Nearby/selected action; cancel current chop/wash while retaining progress |
-| Hold Space + left click | Prepare and throw loose raw/chopped food; releasing cancels |
+| Hold Space + left click | Throw or pass the held item (ingredients up to 7 cells; plates, dishes, pots and the extinguisher up to 3); releasing cancels |
 | Right click, then left click | Alternative throw preparation and target selection; right click cancels |
 | Esc / Ⅱ / ▶ / ■ | Esc pauses and resumes / pause / resume / end early (asks to confirm; restarting from pause also confirms) |
 | Shift | Bookmark a moment; nearby marks merge into intervals |
@@ -35,7 +35,7 @@ Hosted Settings additionally offer explicit contribution after the round, a data
 | 点击地面／工位／地面物品 | 走近，工位或物品成为明确操作目标 |
 | 双击方向键 | 冲刺，遵循共用冷却 |
 | 短按空格 | 操作附近／选中目标；取消切菜／洗碗但保留进度 |
-| 按住空格并左键 | 准备并抛出散放生／切好原料，松开取消 |
+| 按住空格并左键 | 抛出或传递手中物品（原料最远 7 格；盘、菜、锅和灭火器最远 3 格），松开取消 |
 | 右键后左键 | 另一种抛掷准备与选落点方式，右键取消 |
 | Esc／Ⅱ／▶／■ | Esc 暂停与继续／暂停／继续／提前结束（需确认；暂停中重新开局也需确认） |
 | Shift | 标记时刻，相近标记合并为区间 |

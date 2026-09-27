@@ -285,7 +285,8 @@ export class KitchenClient extends Component {
             this.spaceHold=true;if(!this.throwReady)this.toggleThrow();
         }
     }
-    private toggleThrow(){const hand=this.state?.kitchen.chefs.human.holding;if(!this.throwReady&&(!hand||!['raw','chopped'].includes(hand.stage)||!!hand.plate_id)){this.set('event','只能抛生食材或切好的原料；餐盘、带盘菜、锅和工具请放下或搬运。');return;}this.throwReady=!this.throwReady;this.updateThrowCue();}
+    // Anything held can be thrown or passed; the server applies each item's range (ingredients 7, tableware and tools 3).
+    private toggleThrow(){const hand=this.state?.kitchen.chefs.human.holding;if(!this.throwReady&&!hand){this.set('event','手里没有可以抛出的东西。');return;}this.throwReady=!this.throwReady;this.updateThrowCue();}
     private updateThrowCue(){this.set('interaction',this.throwReady?(this.spaceHold?'按住空格 · 左键选落点':'抛掷已准备 · 左键选落点'):'');if(!sys.isNative){const canvas=document.querySelector('canvas') as HTMLCanvasElement|null;if(canvas)canvas.style.cursor=this.throwReady?'crosshair':'';}}
     private async sendMove(dx:number,dy:number,sprint=false){if(!this.state||this.state.phase!=='running'||!this.connected)return;const seq=++this.moveSeq;this.lastMoveAt=this.clock;try{await this.request('/api/move',{game_id:this.state.game_id,dx,dy,seq,sprint});}catch(e){this.set('event',(e as Error).message);}}
     private refreshMovement(sprint=false){

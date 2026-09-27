@@ -178,15 +178,15 @@ class ControlsTests(unittest.TestCase):
         self.assertFalse(any(g.k.manual['human']))
         self.assertEqual(self.cmd(g,'move',dx=1,dy=0,seq=15)[0],409)
 
-    def test_api_rejects_plate_throw_without_losing_plate(self):
-        g=self.session();k=g.k
-        plate=k.stations['plates'].food;k.stations['plates'].food=None
-        k.chefs['human'].hand=plate;k.positions['human']=(3.,4.)
+    def test_api_passes_plates_within_short_range(self):
         for stage in ('clean_plate','dirty_plate'):
-            plate.stage=stage
-            self.assertEqual(self.cmd(g,'throw',target=[6,4],expected_item=plate.id)[0],409)
-            self.assertIs(k.chefs['human'].hand,plate);self.assertFalse(k.projectiles)
-        k.assert_invariants()
+            g=self.session();k=g.k
+            plate=k.stations['plates'].food;k.stations['plates'].food=None;plate.stage=stage
+            k.chefs['human'].hand=plate;k.positions['human']=(3.,4.)
+            self.assertEqual(self.cmd(g,'throw',target=[9,4],expected_item=plate.id)[0],200)
+            k.advance(1);self.assertIs(k.ground[plate.id].food,plate)
+            self.assertLessEqual(math.dist((3.,4.),k.cell(k.ground[plate.id].location)),3.0+1e-8)
+            k.assert_invariants()
 
     def test_api_rejects_invalid_input_and_old_item(self):
         g=self.session()

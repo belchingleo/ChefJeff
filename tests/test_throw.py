@@ -1,6 +1,7 @@
 import unittest
 from kitchen import Food, GroundItem, load_config
-from spatial_kitchen import SpatialKitchen, tile_key, neighbors, THROW_RANGE
+import math
+from spatial_kitchen import SpatialKitchen, tile_key, neighbors, THROW_RANGE, PASS_RANGE
 from whitebox_server import SpatialJevClient
 
 
@@ -43,15 +44,43 @@ class ThrowTests(unittest.TestCase):
         self.assertEqual(k.ground['pass'].location,landing)
         self.assertNotEqual(k.positions['human'],k.cell(landing));k.assert_invariants()
 
-    def test_both_roles_can_throw_raw_and_chopped_food_but_not_tool(self):
+    def test_both_roles_can_throw_raw_and_chopped_food(self):
         for who in ('human','jeff'):
             for stage in ('raw','chopped'):
                 k=self.make(stage);k.chefs[who].hand,k.chefs['jeff'].hand=k.chefs['jeff'].hand,k.chefs[who].hand
+                self.assertEqual(k.throw_range(who),THROW_RANGE)
                 self.assertTrue(k.command(who,'throw partner')[0]);k.advance(1)
                 other='jeff' if who=='human' else 'human'
                 self.assertEqual(k.chefs[other].hand.stage,stage);k.assert_invariants()
-        k=self.make();k.chefs['jeff'].hand=k.stations['extinguisher'].food;k.stations['extinguisher'].food=None
-        self.assertFalse(k.command('jeff','throw partner')[0]);k.assert_invariants()
+
+    def test_pass_to_a_chopping_teammate_lands_beside_without_interrupting(self):
+        for who in ('human','jeff'):
+            other='jeff' if who=='human' else 'human'
+            k=SpatialKitchen(load_config()|{'spawn_seed':0})
+            plate=k.stations['plates'].food;k.stations['plates'].food=None;plate.stage='clean_plate'
+            k.positions.update({other:(3.,4.),who:(3.,6.)});k.chefs[other].location='b2';k.chefs[who].hand=plate
+            k.stations['b2'].food=Food('meat');self.assertTrue(k.command(other,'chop b2')[0]);k.advance(.5)
+            job=k.chefs[other].job;self.assertTrue(job.working)
+            self.assertTrue(k.command(who,'throw partner')[0]);k.advance(1)
+            # The chopper keeps chopping; the plate lands intact beside them.
+            self.assertIs(k.chefs[other].job,job);self.assertIsNone(k.chefs[other].hand)
+            self.assertIs(k.ground[plate.id].food,plate);self.assertEqual(plate.stage,'clean_plate');k.assert_invariants()
+
+    def test_extinguisher_passes_within_short_range_for_both_chefs(self):
+        for who in ('human','jeff'):
+            other='jeff' if who=='human' else 'human'
+            # About 5.4 tiles apart: the pass falls short, on the floor at the 3-tile limit.
+            k=self.make();tool=k.stations['extinguisher'].food;k.stations['extinguisher'].food=None
+            k.chefs['jeff'].hand=None;k.chefs[who].hand=tool;start=k.positions[who]
+            self.assertEqual(k.throw_range(who),PASS_RANGE)
+            self.assertTrue(k.command(who,'throw partner')[0]);k.advance(1)
+            self.assertIsNone(k.chefs[other].hand);self.assertIs(k.ground[tool.id].food,tool)
+            self.assertLessEqual(math.dist(start,k.cell(k.ground[tool.id].location)),PASS_RANGE+1e-8);k.assert_invariants()
+            # Within range an idle, empty-handed teammate catches it.
+            k=self.make();tool=k.stations['extinguisher'].food;k.stations['extinguisher'].food=None
+            k.positions.update(jeff=(5.,5.),human=(7.,5.));k.chefs['jeff'].hand=None;k.chefs[who].hand=tool
+            self.assertTrue(k.command(who,'throw partner')[0]);k.advance(1)
+            self.assertIs(k.chefs[other].hand,tool);k.assert_invariants()
 
     def test_occupied_landing_uses_neighbor_and_full_area_disables_throw(self):
         k=self.make();origin=k.anchor('human')

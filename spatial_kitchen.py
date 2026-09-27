@@ -7,6 +7,8 @@ from kitchen import Kitchen, Action, Station, NAMES, TAKE_KINDS, Job, GroundItem
 
 WIDTH, HEIGHT = 14, 9
 THROW_RANGE = 7.0
+# Plates, plated food, pots and the extinguisher are heavier: they can be passed, but only at close range.
+PASS_RANGE = 3.0
 THROW_SPEED = 12.0
 WALK_SPEED = 4.5  # Both chefs: 1.5x the original 3 cells per game second
 CHEF_SEPARATION = .4  # two small foot circles, not the full tall sprite
@@ -456,8 +458,12 @@ class SpatialKitchen(Kitchen):
         return True
 
     def can_throw(self, who):
+        # Any held item can be thrown or passed; throw_range decides how far it flies.
+        return bool(self.chefs[who].hand)
+
+    def throw_range(self, who):
         hand = self.chefs[who].hand
-        return bool(hand and hand.stage in ('raw','chopped') and not hand.plate_id)
+        return THROW_RANGE if hand and hand.stage in ('raw','chopped') and not hand.plate_id else PASS_RANGE
 
     def can_throw_to(self, who, target):
         if not self.can_throw(who):return False
@@ -474,7 +480,7 @@ class SpatialKitchen(Kitchen):
             return False
         cell = self.cell(target)
         return (cell not in self.occupied_floor(who)
-                and math.dist(self.positions[who], cell) <= THROW_RANGE + 1e-8
+                and math.dist(self.positions[who], cell) <= self.throw_range(who) + 1e-8
                 and self.clear_throw_line(self.positions[who], cell))
 
     def board_reserved(self, target, who=None):
@@ -484,9 +490,10 @@ class SpatialKitchen(Kitchen):
     def throw_landing(self, who, target):
         """Clip a requested ray at range/first wall; reserve a real free floor tile."""
         start = self.positions[who]
+        reach = self.throw_range(who)
         delta = (target[0]-start[0], target[1]-start[1])
         distance = math.hypot(*delta)
-        scale = min(1., THROW_RANGE/distance) if distance else 1.
+        scale = min(1., reach/distance) if distance else 1.
         end = (start[0]+delta[0]*scale, start[1]+delta[1]*scale)
         limit = 1.
         for x, y in self.walls:
@@ -505,7 +512,7 @@ class SpatialKitchen(Kitchen):
         occupied = self.occupied_floor(who)
         def available(cell):
             return (cell in self.floor and cell not in occupied
-                    and math.dist(start,cell) <= THROW_RANGE+1e-8
+                    and math.dist(start,cell) <= reach+1e-8
                     and self.clear_throw_line(start,cell))
         cell = tuple(math.floor(v+.5) for v in end)
         other = 'jeff' if who == 'human' else 'human'
@@ -940,8 +947,9 @@ class SpatialKitchen(Kitchen):
         state = super().snapshot()
         for board in self.boards + self.counters:
             state['stations'][board]['incoming_item'] = next((key for key,p in self.projectiles.items() if p['target']==board),None)
-        state['projectiles'] = [{'id': key, 'stage': p['food'].stage, 'ingredient':p['food'].ingredient, 'plate_id': p['food'].plate_id, 'from': p['from'], 'to': p['to'], 'landing_cell': self.equipment[p['target']]['cell'] if p['target'] in self.equipment else self.cell(p['target']), 'started': p['started'], 'lands_at': p['lands_at']} for key,p in self.projectiles.items()]
-        state['map'] = {'throw_range': THROW_RANGE, 'throw_speed': THROW_SPEED, 'width': self.width, 'height': self.height, 'walls': sorted(self.walls),
+        state['projectiles'] = [{'id': key, 'stage': p['food'].stage, 'ingredient':p['food'].ingredient, 'plate_id': p['food'].plate_id,
+            'components': list(p['food'].components), 'contents': {'stage': p['food'].contents.stage} if p['food'].contents else None, 'from': p['from'], 'to': p['to'], 'landing_cell': self.equipment[p['target']]['cell'] if p['target'] in self.equipment else self.cell(p['target']), 'started': p['started'], 'lands_at': p['lands_at']} for key,p in self.projectiles.items()]
+        state['map'] = {'throw_range': THROW_RANGE, 'pass_range': PASS_RANGE, 'throw_speed': THROW_SPEED, 'width': self.width, 'height': self.height, 'walls': sorted(self.walls),
                         'equipment': self.equipment, 'walk_speed': WALK_SPEED,
                         'presentation': self.map_document['presentation'],
                         'layout_version': self.map_document['id']+'-'+str(self.map_document['revision']), 'spawn_rule': 'One chef near the center of each working area; assigned sides are randomized',
@@ -950,6 +958,7 @@ class SpatialKitchen(Kitchen):
                         'collision':{'chef_separation':CHEF_SEPARATION,'sprint_food_limit':NUDGE_LIMIT,'food_blocks_walking':False,'food_repulsion':False}}
         for who, data in state['chefs'].items():
             data['can_throw'] = self.can_throw(who)
+            data['throw_range'] = self.throw_range(who) if self.can_throw(who) else None
             data['sprint']={'available':self.time>=self.sprint_ready_at[who], 'active_remaining':round(max(0,self.sprint_until[who]-self.time),3), 'cooldown_remaining':round(max(0,self.sprint_ready_at[who]-self.time),3),'multiplier':1.4,'duration':1.,'cooldown_after':3.}
             data['handoff_target'] = self.handoff_target(who) if self.can_throw(who) else None
             data['manual_moving'] = any(self.manual[who]) and not self.ended
