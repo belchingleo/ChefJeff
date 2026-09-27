@@ -463,6 +463,10 @@
       "{0}: landing space occupied; food kept"
     ],
     [
+      "{0}受阻，重新规划路线",
+      "{0}: path blocked; route re-planned"
+    ],
+    [
       "洗碗（剩 {0}s；可中断续洗）",
       "Wash dishes ({0}s left; can stop and resume)"
     ],

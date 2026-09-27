@@ -517,6 +517,10 @@
       "{0}: landing space occupied; food kept"
     ],
     [
+      "{0}受阻，重新规划路线",
+      "{0}: path blocked; route re-planned"
+    ],
+    [
       "把手中锅里的菜盛到{0}的盘里",
       "Fill the plate on {0} from your pot"
     ],
