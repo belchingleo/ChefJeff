@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "equipment.schema.json",
+  "title": "Equipment catalog: what each equipment type can do",
+  "type": "object",
+  "required": ["schema_version", "kind", "id", "version", "types"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "kind": {"const": "equipment_catalog"},
+    "id": {"$ref": "common.schema.json#/$defs/content_id"},
+    "version": {"$ref": "common.schema.json#/$defs/version"},
+    "name": {"$ref": "common.schema.json#/$defs/display_name"},
+    "types": {
+      "type": "object", "minProperties": 1,
+      "propertyNames": {"$ref": "common.schema.json#/$defs/ident"},
+      "additionalProperties": {"$ref": "#/$defs/equipment_type"}
+    },
+    "extensions": {"$ref": "common.schema.json#/$defs/extensions"}
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "capability": {"enum": ["dispense", "chop", "heat", "store", "assemble", "serve", "discard", "wash", "return_plates", "store_tool"]},
+    "shared_work": {
+      "description": "Optional concurrent work. Effective rate = work_rate * rate_multiplier[active workers]. Geometry decides whether a second operation side exists.",
+      "type": "object",
+      "required": ["max_workers", "rate_multiplier"],
+      "properties": {
+        "max_workers": {"type": "integer", "minimum": 1, "maximum": 2},
+        "rate_multiplier": {
+          "type": "object", "minProperties": 1,
+          "propertyNames": {"enum": ["1", "2"]},
+          "additionalProperties": {"$ref": "common.schema.json#/$defs/positive_number"}
+        }
+      },
+      "additionalProperties": false
+    },
+    "equipment_type": {
+      "type": "object",
+      "required": ["name", "capabilities", "slots", "worker_requirement", "combustible"],
+      "properties": {
+        "name": {"$ref": "common.schema.json#/$defs/display_name"},
+        "capabilities": {"type": "array", "items": {"$ref": "#/$defs/capability"}},
+        "slots": {"type": "integer", "minimum": 0, "maximum": 1},
+        "worker_requirement": {"enum": ["none", "attended", "unattended"]},
+        "work_rates": {
+          "type": "object",
+          "propertyNames": {"$ref": "#/$defs/capability"},
+          "additionalProperties": {"$ref": "common.schema.json#/$defs/positive_number"}
+        },
+        "shared_work": {
+          "type": "object",
+          "propertyNames": {"$ref": "#/$defs/capability"},
+          "additionalProperties": {"$ref": "#/$defs/shared_work"}
+        },
+        "holds_container": {"$ref": "common.schema.json#/$defs/ident"},
+        "params": {
+          "type": "object",
+          "propertyNames": {"$ref": "common.schema.json#/$defs/ident"},
+          "additionalProperties": {"enum": ["item_ref"]}
+        },
+        "combustible": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    }
+  }
+}

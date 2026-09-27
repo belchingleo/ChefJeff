@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "common.schema.json",
+  "title": "ChefJeff shared definitions",
+  "$defs": {
+    "ident": {"type": "string", "pattern": "^[a-z][a-z0-9_]{0,63}$"},
+    "content_id": {"type": "string", "pattern": "^[a-z][a-z0-9_-]{0,63}$"},
+    "station_id": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_-]{0,63}$"},
+    "version": {"type": "integer", "minimum": 1},
+    "ref": {
+      "type": "object",
+      "required": ["id", "version"],
+      "properties": {"id": {"$ref": "#/$defs/content_id"}, "version": {"$ref": "#/$defs/version"}},
+      "additionalProperties": false
+    },
+    "game_ms": {"type": "integer", "minimum": 0},
+    "positive_game_ms": {"type": "integer", "minimum": 1},
+    "positive_number": {"type": "number", "exclusiveMinimum": 0},
+    "display_name": {"type": "string", "minLength": 1, "maxLength": 40},
+    "money": {"type": "integer", "minimum": -100000, "maximum": 100000},
+    "extensions": {
+      "type": "object",
+      "propertyNames": {"type": "string", "pattern": "^[a-z][a-z0-9_-]*\\.[a-z0-9_.-]+$"}
+    }
+  }
+}

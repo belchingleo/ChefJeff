@@ -26,7 +26,7 @@ class LevelThreeTests(unittest.TestCase):
         for who in k.chefs:
             for station in k.stations:self.assertTrue(k.path(who,station))
         k.assert_invariants();old.assert_invariants()
-        self.assertEqual(len(old.pots),1);self.assertEqual(old.snapshot()['map']['layout_version'],'level-1-3')
+        self.assertEqual(len(old.pots),1);self.assertEqual(old.snapshot()['map']['layout_version'],'level-1-4')
     def test_seeded_orders_counts_deadlines(self):
         k=self.kitchen();other=self.kitchen()
         self.assertEqual(k.orders,other.orders)

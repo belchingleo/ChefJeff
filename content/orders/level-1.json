@@ -1,0 +1,4 @@
+{"schema_version": 1, "kind": "order_policy", "id": "level-1", "version": 1, "name": "第一关订单",
+ "mode": "legacy_finite", "first_spawn_game_ms": 0, "interval_game_ms": 24000,
+ "sequence": [{"recipe_ref": "steak", "count": 5}], "shuffle": false,
+ "patience_default_game_ms": 90000, "patience_by_recipe": {}}

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "configuration.schema.json",
+  "title": "Configuration bundle: the five content kinds plus ruleset",
+  "description": "Documents may live in separate files; the level references exact versions and does not copy equipment behaviour or recipe steps.",
+  "type": "object",
+  "required": ["schema_version", "level"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "level": {"$ref": "level.schema.json"},
+    "ruleset": {"$ref": "ruleset.schema.json"},
+    "map": {"$ref": "map.schema.json"},
+    "equipment_catalog": {"$ref": "equipment.schema.json"},
+    "recipe_catalog": {"$ref": "recipe.schema.json"},
+    "order_policy": {"$ref": "order.schema.json"}
+  },
+  "additionalProperties": false
+}

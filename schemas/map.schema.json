@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "map.schema.json",
+  "title": "Map document, schema 2 (geometry and equipment instances)",
+  "description": "Structural contract. Geometric rules (closed boundary, connected floor, access adjacency, footprints) are checked by map_definition.validate_map; equipment types are checked against the level's equipment catalog by the resolver. See docs/地图数据格式.md.",
+  "type": "object",
+  "required": ["schema_version", "id", "revision", "size", "areas", "walls", "equipment"],
+  "properties": {
+    "schema_version": {"const": 2},
+    "id": {"$ref": "common.schema.json#/$defs/content_id"},
+    "revision": {"$ref": "common.schema.json#/$defs/version"},
+    "size": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "integer", "minimum": 5, "maximum": 64}},
+    "areas": {
+      "type": "object", "minProperties": 1,
+      "propertyNames": {"$ref": "common.schema.json#/$defs/ident"},
+      "additionalProperties": {
+        "type": "object", "required": ["name"],
+        "properties": {"name": {"$ref": "common.schema.json#/$defs/display_name"}},
+        "additionalProperties": false
+      }
+    },
+    "floor_areas": {
+      "type": "object", "required": ["axis", "split", "below", "at_or_above"],
+      "properties": {"axis": {"enum": ["x", "y"]}, "split": {"type": "integer"},
+                     "below": {"$ref": "common.schema.json#/$defs/ident"},
+                     "at_or_above": {"$ref": "common.schema.json#/$defs/ident"}},
+      "additionalProperties": false
+    },
+    "walls": {"type": "array", "items": {"$ref": "#/$defs/cell"}},
+    "equipment": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "required": ["id", "type", "name", "area", "cell", "access", "facing"],
+        "properties": {
+          "id": {"$ref": "common.schema.json#/$defs/station_id"},
+          "type": {"$ref": "common.schema.json#/$defs/ident"},
+          "name": {"$ref": "common.schema.json#/$defs/display_name"},
+          "area": {"$ref": "common.schema.json#/$defs/ident"},
+          "params": {"type": "object", "propertyNames": {"$ref": "common.schema.json#/$defs/ident"},
+                     "additionalProperties": {"type": ["string", "integer"]}},
+          "cell": {"$ref": "#/$defs/cell"},
+          "cells": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/cell"}},
+          "access": {"$ref": "#/$defs/cell"},
+          "facing": {"enum": ["north", "south", "east", "west"]},
+          "reach": {"const": "corner"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "presentation": {"type": "object"}
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "cell": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"type": "integer", "minimum": 0}}
+  }
+}

@@ -2,11 +2,18 @@
 
 The editor boundary is validate_map -> save_map -> load_map. No executable code
 or arbitrary asset paths are accepted in a map document.
+
+Schema 2 adds explicit equipment instance semantics (``type``, ``name``,
+``area``, ``params``) and named areas. Whether a ``type`` exists in the
+equipment catalog is checked by the configuration resolver, not here. Schema 1
+documents remain valid and are upgraded with the documented legacy inference
+in ``upgrade_map``.
 """
 import copy
 import json
 import os
 from pathlib import Path
+import re
 import tempfile
 
 MAP_ROOT = Path(__file__).resolve().parent / 'maps'
@@ -14,9 +21,78 @@ DECOR_ASSETS = {'decoration_window', 'decoration_menu', 'decoration_rail',
                 'decoration_flowerbox', 'decoration_lamp', 'decoration_plant'}
 
 
-def validate_map(document):
+IDENT = re.compile(r'^[a-z][a-z0-9_]{0,63}$')
+STATION_ID = re.compile(r'^[A-Za-z][A-Za-z0-9_-]{0,63}$')
+LEGACY_SOURCES = {'fridge': 'beef', 'lettuce': 'lettuce', 'tomato': 'tomato', 'bread': 'bread'}
+
+
+def legacy_equipment_type(station_id):
+    """Schema-1 maps encoded equipment semantics in station IDs."""
+    if station_id in LEGACY_SOURCES:
+        return 'ingredient_source'
+    for pattern, kind in ((r'b\d+', 'board'), (r'p\d+', 'stove'), (r'plates|counter.*', 'counter'),
+                          (r'serve', 'serving_window'), (r'bin.*', 'bin'), (r'sink', 'sink'),
+                          (r'returns', 'plate_return'), (r'extinguisher', 'tool_rack')):
+        if re.fullmatch(pattern, station_id):
+            return kind
+    return None
+
+
+def _validate_semantics(d, ids):
+    """Schema-2 instance fields; catalog membership is checked by the resolver."""
+    areas = d.get('areas')
+    if not isinstance(areas, dict) or not areas:
+        raise ValueError('Map needs named areas')
+    for key, area in areas.items():
+        if not IDENT.match(key) or not isinstance(area, dict) or set(area) != {'name'} \
+                or not isinstance(area['name'], str) or not 0 < len(area['name']) <= 40:
+            raise ValueError('Invalid map area')
+    floor = d.get('floor_areas')
+    if floor is not None:
+        if (not isinstance(floor, dict) or set(floor) != {'axis', 'split', 'below', 'at_or_above'}
+                or floor['axis'] not in ('x', 'y') or type(floor['split']) is not int
+                or floor['below'] not in areas or floor['at_or_above'] not in areas):
+            raise ValueError('Invalid floor areas')
+    for station in d['equipment']:
+        allowed = {'id', 'type', 'name', 'area', 'params', 'cell', 'cells', 'access', 'facing', 'reach'}
+        if set(station) - allowed:
+            raise ValueError('Unknown station field')
+        if not isinstance(station.get('type'), str) or not IDENT.match(station['type']):
+            raise ValueError('Invalid station type')
+        if not isinstance(station.get('name'), str) or not 0 < len(station['name']) <= 40:
+            raise ValueError('Invalid station name')
+        if station.get('area') not in areas:
+            raise ValueError('Unknown station area')
+        params = station.get('params', {})
+        if not isinstance(params, dict) or any(not IDENT.match(k) or not isinstance(v, (str, int)) or isinstance(v, bool)
+                                               for k, v in params.items()):
+            raise ValueError('Invalid station params')
+
+
+def upgrade_map(document):
+    """Return a schema-2 view of a schema-1 map without changing its geometry."""
     d = copy.deepcopy(document)
     if d.get('schema_version') != 1:
+        return d
+    d['schema_version'] = 2
+    d.setdefault('areas', {'prep': {'name': '处理区'}, 'cook': {'name': '烹饪区'}})
+    width = d['size'][0]
+    d.setdefault('floor_areas', {'axis': 'x', 'split': width // 2, 'below': 'prep', 'at_or_above': 'cook'})
+    for station in d['equipment']:
+        kind = legacy_equipment_type(station['id'])
+        if kind is None:
+            raise ValueError('Schema-1 station ID has no legacy equipment type')
+        station.setdefault('type', kind)
+        station.setdefault('name', station['id'])
+        station.setdefault('area', 'prep' if station['cell'][0] < width // 2 else 'cook')
+        if kind == 'ingredient_source':
+            station.setdefault('params', {'item': LEGACY_SOURCES[station['id']]})
+    return d
+
+
+def validate_map(document):
+    d = copy.deepcopy(document)
+    if d.get('schema_version') not in (1, 2):
         raise ValueError('Unsupported map schema')
     size = d.get('size')
     if not isinstance(size, list) or len(size) != 2 or any(type(n) is not int or not 5 <= n <= 64 for n in size):
@@ -35,7 +111,7 @@ def validate_map(document):
     occupied, ids = set(walls), set()
     for station in d['equipment']:
         key = station['id']
-        if not isinstance(key,str) or not key or key in ids:
+        if not isinstance(key,str) or not STATION_ID.match(key) or key in ids:
             raise ValueError('Duplicate or invalid station id')
         ids.add(key)
         p = cell(station['cell'])
@@ -58,7 +134,8 @@ def validate_map(document):
     for station in d['equipment']:
         p, access = cell(station['cell']), cell(station['access'])
         corner = station.get('reach') == 'corner'
-        valid_corner = (station['id'].startswith('counter') and abs(p[0]-access[0]) == abs(p[1]-access[1]) == 1
+        counter = station.get('type') == 'counter' if d['schema_version'] == 2 else station['id'].startswith('counter')
+        valid_corner = (counter and abs(p[0]-access[0]) == abs(p[1]-access[1]) == 1
                         and (p[0],access[1]) in surfaces and (access[0],p[1]) in surfaces
                         and not any(q in floor for q in ((p[0]+1,p[1]),(p[0]-1,p[1]),(p[0],p[1]+1),(p[0],p[1]-1))))
         if access not in floor or (not valid_corner if corner else not any(sum(abs(a-b) for a,b in zip(v,access)) == 1 for v in station.get('cells',[p]))):
@@ -95,13 +172,21 @@ def validate_map(document):
         p = cell(decor['cell'])
         if p[1] != 0 or p not in walls or not .1 <= decor.get('scale',0) <= .6:
             raise ValueError('Decoration must fit the north wall')
+    if d['schema_version'] == 2:
+        _validate_semantics(d, ids)
     return d
 
 
 def load_map(level):
-    if type(level) is not int or level not in (1,2,3):
+    """Load an authored map by legacy level number or by map id (``level-1``)."""
+    if type(level) is int and level in (1,2,3):
+        level = f'level-{level}'
+    if not isinstance(level, str) or not STATION_ID.match(level) or not (MAP_ROOT / f'{level}.json').is_file():
         raise ValueError('Unknown authored map')
-    return validate_map(json.loads((MAP_ROOT / f'level-{level}.json').read_text()))
+    document = validate_map(json.loads((MAP_ROOT / f'{level}.json').read_text()))
+    if document['id'] != level:
+        raise ValueError('Map id does not match its file name')
+    return upgrade_map(document)
 
 
 def save_map(document, path):
