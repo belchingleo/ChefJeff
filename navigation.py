@@ -10,12 +10,14 @@ def contact_fraction(start,end,center,radius):
     dx,dy=end[0]-start[0],end[1]-start[1]
     ox,oy=start[0]-center[0],start[1]-center[1]
     a=dx*dx+dy*dy
-    if a<EPSILON:return 1.
+    # a and disc scale with the squared step: absolute tolerances would wave
+    # short steps (<~8e-5) straight into the circle.
+    if a<EPSILON*EPSILON:return 1.
     b=ox*dx+oy*dy;c=ox*ox+oy*oy-radius*radius
     if c<-EPSILON:return 1. if b>=-EPSILON else 0.
     if b>=0:return 1.
     disc=b*b-a*c
-    if disc<=EPSILON:return 1.
+    if disc<=EPSILON*a:return 1.
     return max(0.,min(1.,(-b-math.sqrt(disc))/a))
 
 class Navigation:
