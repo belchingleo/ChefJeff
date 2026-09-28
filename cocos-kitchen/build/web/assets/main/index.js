@@ -1296,7 +1296,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           var _this5 = this;
           for (var _iterator4 = _createForOfIteratorHelperLoose(node.children), _step4; !(_step4 = _iterator4()).done;) {
             var _child = _step4.value;
-            if (_child.name === 'assembly-parts' || _child.name === 'supply-symbol' || _child.name === 'pot-contents') _child.active = false;
+            if (_child.name === 'assembly-parts' || _child.name === 'supply-symbol' || _child.name === 'pot-contents' || _child.name === 'burnt-cue') _child.active = false;
           }
           if (this.useModularArt) {
             if (type === 'bin') {
@@ -1359,10 +1359,11 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               item.setPosition(0, -3 + i * 4);
               item.setSiblingIndex(parts.children.length - 1);
               _this5.art.centered(item, 'feedback/' + name, 34, 22);
-              // No separate charred sprite: darken the beef layer; reused nodes reset to white.
+              // No separate charred sprite: char the beef layer; reused nodes reset to white.
               var sprite = (_item$getChildByName = item.getChildByName('reviewed-art')) == null ? void 0 : _item$getChildByName.getComponent(Sprite);
-              if (sprite) sprite.color = name === 'beef' && burnt ? new Color(78, 64, 58, 255) : Color.WHITE;
+              if (sprite) sprite.color = name === 'beef' && burnt ? new Color(44, 36, 34, 255) : Color.WHITE;
             });
+            if (burnt) this.burntCue(node);
             return true;
           }
           var keys = {
@@ -1406,7 +1407,19 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           var key = keys[type];
           if (!key) return false;
           var size = key.startsWith('workstations/') ? 49 : key.startsWith('ingredients/') ? 29 : TILE * .76;
-          return this.art.centered(node, key, size, size);
+          if (!this.art.centered(node, key, size, size)) return false;
+          if (type === 'plated_burnt') this.burntCue(node);
+          return true;
+        }
+        /** Smoke over a burnt dish, wherever it is: upper layers can hide the charred patty. */;
+        _proto.burntCue = function burntCue(node) {
+          var _cue$getChildByName;
+          var cue = node.getChildByName('burnt-cue');
+          if (!cue) cue = this.child(node, 'burnt-cue', 26, 32, 14, 20);
+          cue.active = this.art.show(cue, 'vfx/smoke_3', 26, 32);
+          cue.setSiblingIndex(node.children.length - 1);
+          var sprite = (_cue$getChildByName = cue.getChildByName('reviewed-art')) == null ? void 0 : _cue$getChildByName.getComponent(Sprite);
+          if (sprite) sprite.color = new Color(120, 112, 106, 255);
         };
         _proto.drawPot = function drawPot(node) {
           var _node$parent, _node$parent2, _node$parent$parent, _this$state17;
@@ -1427,11 +1440,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           return "\u51C0\u6536\u5165 \xA5" + k.money + "\uFF08\u76EE\u6807 \xA5" + target + "\uFF09" + (won ? '' : "\uFF0C\u8FD8\u5DEE \xA5" + Math.max(0, target - k.money) + " \u5143") + ("\n\u5B8C\u6210 " + k.served + " \u5355 \xB7 \u8D85\u65F6 " + count('expired') + " \u5355 \xB7 \u5173\u5E97\u65F6\u672A\u5B8C\u6210 " + count('unresolved_at_close') + " \u5355") + '\n本局已结束，点“准备下一局”再来一局。';
         };
         _proto.itemName = function itemName(f) {
-          var _f$components;
           if (!f) return '空手';
-          if (f.plate_id && (_f$components = f.components) != null && _f$components.length && f.components.some(function (x) {
-            return x !== 'beef';
-          })) return f.stage === 'burnt' ? '糊菜' : f.dish === 'burger' ? '汉堡' : '待组装 · ' + f.components.map(function (x) {
+          if (this.platedAssembly(f)) return f.stage === 'burnt' ? '糊菜' : f.dish === 'burger' ? '汉堡' : '待组装 · ' + f.components.map(function (x) {
             return {
               bread: '面包',
               lettuce: '生菜',
@@ -1445,15 +1455,26 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             tomato: '番茄'
           }[f.ingredient] + (f.stage === 'chopped' ? ' · 切好' : '');
           return STAGES[this.itemStage(f)] || f.meaning || f.stage;
+        }
+        /** A plate drawn as layers: any plate but a lone beef where the menu serves beef alone (steak). */;
+        _proto.platedAssembly = function platedAssembly(f) {
+          var _f$components, _this$state18;
+          if (!(f != null && f.plate_id) || !((_f$components = f.components) != null && _f$components.length)) return false;
+          if (f.components.some(function (x) {
+            return x !== 'beef';
+          })) return true;
+          var menu = (_this$state18 = this.state) == null ? void 0 : _this$state18.kitchen.menu;
+          return !!menu && !menu.some(function (d) {
+            var _d$components;
+            return ((_d$components = d.components) == null ? void 0 : _d$components.length) === 1 && d.components[0].item === 'beef';
+          });
         };
         _proto.itemStage = function itemStage(f) {
-          var _f$components2, _this$state18;
+          var _this$state19;
           // Burnt burgers keep their layers (burnt dishes can be served); only the beef is drawn charred.
-          if (f != null && f.plate_id && (_f$components2 = f.components) != null && _f$components2.some(function (x) {
-            return x !== 'beef';
-          })) return 'assembly:' + f.components.join(',') + (f.stage === 'burnt' ? ',burnt' : '');
+          if (this.platedAssembly(f)) return 'assembly:' + f.components.join(',') + (f.stage === 'burnt' ? ',burnt' : '');
           if (['bread', 'lettuce', 'tomato'].includes(f == null ? void 0 : f.ingredient) && !(f != null && f.plate_id)) return f.ingredient + '_' + f.stage;
-          if (this.useArt && (f == null ? void 0 : f.stage) === 'raw' && (f == null ? void 0 : f.ingredient) === 'beef' && f.chop_remaining < (((_this$state18 = this.state) == null || (_this$state18 = _this$state18.rules) == null ? void 0 : _this$state18.chop_seconds) || 6)) return 'processing';
+          if (this.useArt && (f == null ? void 0 : f.stage) === 'raw' && (f == null ? void 0 : f.ingredient) === 'beef' && f.chop_remaining < (((_this$state19 = this.state) == null || (_this$state19 = _this$state19.rules) == null ? void 0 : _this$state19.chop_seconds) || 6)) return 'processing';
           return (f == null ? void 0 : f.stage) === 'pot' ? f.contents ? 'pot_' + f.contents.stage : 'pot' : f != null && f.plate_id ? 'plated_' + f.stage : f == null ? void 0 : f.stage;
         };
         _proto.chef = function chef(parent, name, x, y, who, scale) {
@@ -1672,8 +1693,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           return post;
         }();
         _proto.act = function act(key) {
-          var _this$state19;
-          var a = (_this$state19 = this.state) == null ? void 0 : _this$state19.actions.find(function (a) {
+          var _this$state20;
+          var a = (_this$state20 = this.state) == null ? void 0 : _this$state20.actions.find(function (a) {
             return a.key === key;
           });
           if (a) this.post('/api/action', {
@@ -2128,7 +2149,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           this.mounted = true;
         };
         _proto.characterArt = function characterArt(body, who, facing, walking, working) {
-          var _this$state20, _this$state21, _URLSearchParams$get;
+          var _this$state21, _this$state22, _URLSearchParams$get;
           if (walking === void 0) {
             walking = false;
           }
@@ -2136,8 +2157,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             working = false;
           }
           var kind = who === 'human' ? 'player' : 'jeff',
-            chef = (_this$state20 = this.state) == null ? void 0 : _this$state20.kitchen.chefs[who];
-          var station = (_this$state21 = this.state) == null ? void 0 : _this$state21.kitchen.map.equipment[chef == null ? void 0 : chef.target];
+            chef = (_this$state21 = this.state) == null ? void 0 : _this$state21.kitchen.chefs[who];
+          var station = (_this$state22 = this.state) == null ? void 0 : _this$state22.kitchen.map.equipment[chef == null ? void 0 : chef.target];
           var inWorld = !!body.parent && ['human', 'jeff'].includes(body.parent.name);
           var chopping = !!working && inWorld && (chef == null ? void 0 : chef.action_kind) === 'chop' && !!station;
           var sampleFrame = this.prepSample ? Number((_URLSearchParams$get = new URLSearchParams(location.search).get('prepFrame')) != null ? _URLSearchParams$get : -1) : -1;
@@ -3205,9 +3226,11 @@ System.register("chunks:///_virtual/KitchenGeometry.ts", ['cc'], function (expor
       function wallOffset() {
         return GRID_ART.wallHeight * GRID_ART.tile / GRID_ART.unit;
       }
-      /** Stable painter ordering; larger southward feet/footprints cover northern objects. */
+      /** Stable painter ordering; larger southward feet/footprints cover northern objects.
+       * A solid sorts by its north edge: feet at or behind that edge stay behind it, while
+       * feet further south in its row can only stand beside it and draw in front. */
       function depthOrder(y, kind) {
-        return y + (kind === 'solid' ? .5 : kind === 'actor' ? .12 : 0);
+        return y + (kind === 'solid' ? -.495 : kind === 'actor' ? 0 : -.12);
       }
       /** Station-working chefs stand outside the cabinet footprint; the cabinet must
        * not cover their face. North/back bodies retain ordinary grounded depth. */

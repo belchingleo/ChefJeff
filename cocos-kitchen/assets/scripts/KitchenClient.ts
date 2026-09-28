@@ -456,7 +456,7 @@ export class KitchenClient extends Component {
         }
     }
     private artIcon(node:Node,type:string):boolean {
-        for(const child of node.children)if(child.name==='assembly-parts'||child.name==='supply-symbol'||child.name==='pot-contents')child.active=false;
+        for(const child of node.children)if(child.name==='assembly-parts'||child.name==='supply-symbol'||child.name==='pot-contents'||child.name==='burnt-cue')child.active=false;
         if(this.useModularArt){
             if(type==='bin'){this.art.hide(node);return true;}
             const tops:Record<string,string>={board:'top_board',sink:'top_sink',stove:'top_stove',returns:'top_returns',serve:'serving_window',bin:'bin'};
@@ -493,10 +493,11 @@ export class KitchenClient extends Component {
                 const item=parts!.getChildByName(name)||this.child(parts!,name,36,24);
                 item.active=true;item.setPosition(0,-3+i*4);item.setSiblingIndex(parts!.children.length-1);
                 this.art.centered(item,'feedback/'+name,34,22);
-                // No separate charred sprite: darken the beef layer; reused nodes reset to white.
+                // No separate charred sprite: char the beef layer; reused nodes reset to white.
                 const sprite=item.getChildByName('reviewed-art')?.getComponent(Sprite);
-                if(sprite)sprite.color=name==='beef'&&burnt?new Color(78,64,58,255):Color.WHITE;
+                if(sprite)sprite.color=name==='beef'&&burnt?new Color(44,36,34,255):Color.WHITE;
             });
+            if(burnt)this.burntCue(node);
             return true;
         }
         const keys:Record<string,string>={board:'workstations/board',stove:'workstations/stove',
@@ -519,7 +520,16 @@ export class KitchenClient extends Component {
         if(type==='pot')return this.drawPot(node);
         const key=keys[type];if(!key)return false;
         const size=key.startsWith('workstations/')?49:key.startsWith('ingredients/')?29:TILE*.76;
-        return this.art.centered(node,key,size,size);
+        if(!this.art.centered(node,key,size,size))return false;
+        if(type==='plated_burnt')this.burntCue(node);
+        return true;
+    }
+    /** Smoke over a burnt dish, wherever it is: upper layers can hide the charred patty. */
+    private burntCue(node:Node){
+        let cue=node.getChildByName('burnt-cue');
+        if(!cue)cue=this.child(node,'burnt-cue',26,32,14,20);
+        cue.active=this.art.show(cue,'vfx/smoke_3',26,32);cue.setSiblingIndex(node.children.length-1);
+        const sprite=cue.getChildByName('reviewed-art')?.getComponent(Sprite);if(sprite)sprite.color=new Color(120,112,106,255);
     }
     private drawPot(node:Node){
         const station=node.parent?.name.startsWith('station-')?node.parent.name.slice(8):'';
@@ -537,13 +547,20 @@ export class KitchenClient extends Component {
     }
     private itemName(f:any){
         if(!f)return '空手';
-        if(f.plate_id&&f.components?.length&&f.components.some((x:string)=>x!=='beef'))return f.stage==='burnt'?'糊菜':f.dish==='burger'?'汉堡':'待组装 · '+f.components.map((x:string)=>({bread:'面包',lettuce:'生菜',tomato:'番茄',beef:'熟牛肉'}[x])).join('+');
+        if(this.platedAssembly(f))return f.stage==='burnt'?'糊菜':f.dish==='burger'?'汉堡':'待组装 · '+f.components.map((x:string)=>({bread:'面包',lettuce:'生菜',tomato:'番茄',beef:'熟牛肉'}[x])).join('+');
         if(['bread','lettuce','tomato'].includes(f.ingredient))return ({bread:'面包',lettuce:'生菜',tomato:'番茄'}[f.ingredient])+(f.stage==='chopped'?' · 切好':'');
         return STAGES[this.itemStage(f)]||f.meaning||f.stage;
     }
+    /** A plate drawn as layers: any plate but a lone beef where the menu serves beef alone (steak). */
+    private platedAssembly(f:any){
+        if(!f?.plate_id||!f.components?.length)return false;
+        if(f.components.some((x:string)=>x!=='beef'))return true;
+        const menu=this.state?.kitchen.menu;
+        return !!menu&&!menu.some((d:any)=>d.components?.length===1&&d.components[0].item==='beef');
+    }
     private itemStage(f:any){
         // Burnt burgers keep their layers (burnt dishes can be served); only the beef is drawn charred.
-        if(f?.plate_id&&f.components?.some((x:string)=>x!=='beef'))return 'assembly:'+f.components.join(',')+(f.stage==='burnt'?',burnt':'');
+        if(this.platedAssembly(f))return 'assembly:'+f.components.join(',')+(f.stage==='burnt'?',burnt':'');
         if(['bread','lettuce','tomato'].includes(f?.ingredient)&&!f?.plate_id)return f.ingredient+'_'+f.stage;
         if(this.useArt&&f?.stage==='raw'&&f?.ingredient==='beef'&&f.chop_remaining<(this.state?.rules?.chop_seconds||6))return 'processing';
         return f?.stage==='pot'?(f.contents?'pot_'+f.contents.stage:'pot'):f?.plate_id?'plated_'+f.stage:f?.stage;}
