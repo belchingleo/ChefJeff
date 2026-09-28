@@ -234,8 +234,9 @@ export class KitchenClient extends Component {
             return;
         }
         if(this.state?.phase==='running'&&this.connected){
-            // Overcooked layout, browser-safe keys: Space = pick up / put down, E = chop, wash,
-            // extinguish or throw ahead (Overcooked's Ctrl), Q = dash (Overcooked's Alt).
+            // Overcooked layout, browser-safe keys: Space = whatever the faced target needs (pick up,
+            // put down, and chop/wash too), E = chop, wash, extinguish or throw ahead (Overcooked's
+            // Ctrl), Q = dash (Overcooked's Alt). Held direction keys survive both.
             if(e.code==='Space'||e.code==='KeyE'){
                 e.preventDefault();
                 if(!e.repeat&&!e.ctrlKey&&!e.altKey&&!e.metaKey){
@@ -644,7 +645,7 @@ export class KitchenClient extends Component {
         }catch(_){notice('标记未确认，请检查导出记录。');}
     }
     private async post(path:string,extra:object={}){
-        if(path==='/api/action'||path==='/api/select'||path==='/api/interact'||path==='/api/pause'||path==='/api/end'||path==='/api/reset'||path==='/api/restart')this.clearInput();
+        if(path==='/api/action'||path==='/api/select'||path==='/api/pause'||path==='/api/end'||path==='/api/reset'||path==='/api/restart')this.clearInput();
         if((this.pending&&path!=='/api/pause')||!this.state)return;
         // After closing (or while paused) gameplay input is not sent: the server would only refuse it.
         if(['/api/action','/api/select','/api/interact'].includes(path)&&this.state.phase!=='running')return;
@@ -742,7 +743,7 @@ export class KitchenClient extends Component {
                 r(-26,-26,52,52,'#c7bea0');r(-25,-24,49,49,(x+y)%2?(x<7?'#e1d4ad':'#cbd3b6'):(x<7?'#eee3c1':'#dce0c7'));
                 r(-23,22,45,2,'#f1e7cc');
                 if(cells.has(`${x},${y}`)){r(-26,-26,52,52,COLORS.counter);if(!cells.has(`${x},${y-1}`))r(-26,22,52,4,COLORS.counterLight);if(!cells.has(`${x},${y+1}`))r(-26,-26,52,4,COLORS.counterEdge);}
-                if(!cells.has(`${x},${y}`))n.on(Node.EventType.TOUCH_END,()=>{if(!this.mapTarget(x,y)){this.cancelManualMovement();this.post('/api/select',{target:`floor_${x}_${y}`});}});
+                if(!cells.has(`${x},${y}`))n.on(Node.EventType.TOUCH_END,()=>{this.mapTarget(x,y);});
             }
             if(this.useModularArt){
                 n.setScale(1,1,1);
@@ -1207,8 +1208,8 @@ export class KitchenClient extends Component {
         if(!this.throwReady){
             const short=(a:Action)=>a.label.split('（')[0],parts:string[]=[];
             if(s.interaction)parts.push('空格 · '+short(s.interaction));
-            if(s.use_interaction)parts.push('E · '+(s.use_interaction.kind==='throw'?'向前抛出':short(s.use_interaction)));
-            this.set('interaction',parts.length?parts.join('　'):(s.interaction_hint||'面向工位或物品，按空格拿放，按 E 切菜'));
+            if(s.use_interaction&&s.use_interaction.key!==s.interaction?.key)parts.push('E · '+(s.use_interaction.kind==='throw'?'向前抛出':short(s.use_interaction)));
+            this.set('interaction',parts.length?parts.join('　'):(s.interaction_hint||'面向工位或物品按空格'));
         }
         // Game results keep the event line; Jeff's decisions and errors use their own status.
         const results=s.events.filter(e=>!this.isAiNote(e));

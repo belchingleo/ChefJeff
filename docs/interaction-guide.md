@@ -5,10 +5,10 @@ Use a desktop/laptop browser with a keyboard and mouse. Full timing and item rul
 | Input / interaction | Behavior |
 | --- | --- |
 | WASD / arrows | Hold to move; overrides click movement |
-| Click floor / workstation / ground item | Walk there and face it; nothing stays selected |
+| Click workstation / ground item | Walk there and face it; nothing stays selected. Clicking empty floor only aims throws |
 | Q / double-tap direction | Dash, with the shared cooldown |
-| Space | Pick up / put down what the chef faces (fetch, take, put, cook, plate, lift a pot, serve, bin); stops chopping/washing, keeping progress |
-| E | Use the faced station (chop, wash, extinguish); holding an item with nothing to use, throw it forward (to the partner when ahead in range) |
+| Space | Whatever the faced target needs (fetch, take, put, cook, plate, lift a pot, chop, wash, serve, bin); with nothing usable ahead, the nearest thing beside. Stops chopping/washing, keeping progress |
+| E | Chop, wash or extinguish; holding an item with nothing to use, throw it forward (to the partner when ahead in range) |
 | Right click, then left click | Aimed throw to a chosen spot (ingredients, plates, dishes, pots and the extinguisher up to 4 cells); right click cancels |
 | Esc / Ⅱ / ▶ / ■ | Esc pauses and resumes / pause / resume / end early (asks to confirm; restarting from pause also confirms) |
 | Shift | Bookmark a moment; nearby marks merge into intervals |
@@ -32,10 +32,10 @@ Hosted Settings additionally offer explicit contribution after the round, a data
 | 输入／交互 | 行为 |
 | --- | --- |
 | WASD／方向键 | 按住移动，接管点击移动 |
-| 点击地面／工位／地面物品 | 走过去并面向它，不保留选择 |
+| 点击工位／地面物品 | 走过去并面向它，不保留选择；点空地只用于瞄准抛出 |
 | Q／双击方向键 | 冲刺，遵循共用冷却 |
-| 空格 | 拿放面前的东西（取料、拿起、放下、下锅、装盘、端锅、出餐、丢弃）；停下切菜／洗碗，进度保留 |
-| E | 使用面前的工位（切菜、洗碗、灭火）；手里有东西而无可用工位时向前抛出（队友在前方射程内则抛给他） |
+| 空格 | 对面前的目标做需要的事（取料、拿起、放下、下锅、装盘、端锅、切菜、洗碗、出餐、丢弃）；面前没有可用的就用身边最近的。停下切菜／洗碗，进度保留 |
+| E | 切菜、洗碗、灭火；手里有东西而无可用工位时向前抛出（队友在前方射程内则抛给他） |
 | 右键后左键 | 瞄准落点抛出（原料、盘、菜、锅和灭火器都最远 4 格），右键取消 |
 | Esc／Ⅱ／▶／■ | Esc 暂停与继续／暂停／继续／提前结束（需确认；暂停中重新开局也需确认） |
 | Shift | 标记时刻，相近标记合并为区间 |

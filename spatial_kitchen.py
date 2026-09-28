@@ -711,8 +711,10 @@ class SpatialKitchen(Kitchen):
         """What the chef faces, nearest first (Overcooked-style, no remembered selection).
 
         The station on the facing tile (or an authored corner station on the faced
-        side of this tile), then a loose item on the facing tile, one at the feet,
-        the partner standing there, and finally the facing floor tile itself.
+        side of this tile), then a loose item on the facing tile, one at the feet and
+        the partner standing there. With no station ahead, the stations and items
+        beside the chef (never behind) follow, nearest first; the facing floor tile
+        comes last. Returns (candidates, whether a station is directly ahead).
         """
         x,y=self.anchor(who)
         dx,dy=FACING_STEPS[self.facing[who]]
@@ -721,30 +723,39 @@ class SpatialKitchen(Kitchen):
         out+=[key for key,e in sorted(self.equipment.items())
               if e.get('reach')=='corner' and tuple(e['access'])==(x,y)
               and (e['cell'][0]-x)*dx+(e['cell'][1]-y)*dy>0 and key not in out]
+        ahead=bool(out)
         for cell in (front,(x,y)):
             out+=['item:'+key for key,item in self.ground.items() if self.cell(item.location)==cell][:1]
         other='jeff' if who=='human' else 'human'
         if self.anchor(other)==front:out.append('partner')
+        if not ahead:
+            beside=lambda c:max(abs(c[0]-x),abs(c[1]-y))==1 and (c[0]-x)*dx+(c[1]-y)*dy>=0
+            near=[(min(math.dist(self.positions[who],c) for c in e.get('cells',[e['cell']])),key)
+                  for key,e in self.equipment.items() if any(beside(tuple(c)) for c in e.get('cells',[e['cell']]))]
+            near+=[(math.dist(self.positions[who],self.cell(item.location)),'item:'+key)
+                   for key,item in self.ground.items() if beside(self.cell(item.location))]
+            out+=[key for _,key in sorted(near) if key not in out]
         out.append(tile_key(front))
-        return out
+        return out,ahead
 
     def facing_interaction(self,who,mode='hands',actions=None):
-        """(target, action) for Space ('hands': take, put, plate, serve...) or E ('use': chop, wash, extinguish).
+        """(target, action) for Space ('hands') or E ('use').
 
-        A candidate with nothing to do falls through to the next; facing a station
-        never drops the held item on the floor instead.
+        Space does whatever the target needs: take, put, plate, serve, and also
+        chop, wash or extinguish. E only chops, washes or extinguishes. A candidate
+        with nothing to do falls through to the next; facing a station never
+        drops the held item on the floor instead.
         """
         actions=self.actions(who) if actions is None else actions
         chef=self.chefs[who]
         if chef.job and chef.job.working:
             return None,(next((a for a in actions if a.kind=='stop'),None) if mode=='hands' else None)
         kinds=USE_KINDS if mode=='use' else None
-        candidates=self.facing_candidates(who)
-        stations=[c for c in candidates if c in self.equipment]
-        if mode=='use':candidates=stations
+        candidates,ahead=self.facing_candidates(who)
+        if mode=='use':candidates=[c for c in candidates if c in self.equipment]
         for target in candidates:
-            if target.startswith('floor_') and stations:break
-            action=self.quick_interaction(who,actions,preferred=target,kinds=kinds,exclude=None if mode=='use' else USE_KINDS)
+            if target.startswith('floor_') and ahead:break
+            action=self.quick_interaction(who,actions,preferred=target,kinds=kinds)
             if action:return target,action
         return (candidates[0] if candidates else None),None
 

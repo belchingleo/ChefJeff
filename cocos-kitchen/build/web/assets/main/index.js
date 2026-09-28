@@ -258,8 +258,9 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               return;
             }
             if (((_this$state4 = _this.state) == null ? void 0 : _this$state4.phase) === 'running' && _this.connected) {
-              // Overcooked layout, browser-safe keys: Space = pick up / put down, E = chop, wash,
-              // extinguish or throw ahead (Overcooked's Ctrl), Q = dash (Overcooked's Alt).
+              // Overcooked layout, browser-safe keys: Space = whatever the faced target needs (pick up,
+              // put down, and chop/wash too), E = chop, wash, extinguish or throw ahead (Overcooked's
+              // Ctrl), Q = dash (Overcooked's Alt). Held direction keys survive both.
               if (e.code === 'Space' || e.code === 'KeyE') {
                 e.preventDefault();
                 if (!e.repeat && !e.ctrlKey && !e.altKey && !e.metaKey) {
@@ -1636,7 +1637,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                   if (extra === void 0) {
                     extra = {};
                   }
-                  if (path === '/api/action' || path === '/api/select' || path === '/api/interact' || path === '/api/pause' || path === '/api/end' || path === '/api/reset' || path === '/api/restart') this.clearInput();
+                  if (path === '/api/action' || path === '/api/select' || path === '/api/pause' || path === '/api/end' || path === '/api/reset' || path === '/api/restart') this.clearInput();
                   if (!(this.pending && path !== '/api/pause' || !this.state)) {
                     _context7.next = 4;
                     break;
@@ -1842,12 +1843,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                   if (!cells.has(_x12 + "," + (_y + 1))) r(-26, -26, 52, 4, COLORS.counterEdge);
                 }
                 if (!cells.has(_x12 + "," + _y)) n.on(Node.EventType.TOUCH_END, function () {
-                  if (!_this9.mapTarget(_x12, _y)) {
-                    _this9.cancelManualMovement();
-                    _this9.post('/api/select', {
-                      target: "floor_" + _x12 + "_" + _y
-                    });
-                  }
+                  _this9.mapTarget(_x12, _y);
                 });
               }
               if (_this9.useModularArt) {
@@ -2857,13 +2853,14 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             }[x];
           }).join('+'));
           if (!this.throwReady) {
+            var _s$interaction2;
             var _short = function _short(a) {
                 return a.label.split('（')[0];
               },
               parts = [];
             if (s.interaction) parts.push('空格 · ' + _short(s.interaction));
-            if (s.use_interaction) parts.push('E · ' + (s.use_interaction.kind === 'throw' ? '向前抛出' : _short(s.use_interaction)));
-            this.set('interaction', parts.length ? parts.join('　') : s.interaction_hint || '面向工位或物品，按空格拿放，按 E 切菜');
+            if (s.use_interaction && s.use_interaction.key !== ((_s$interaction2 = s.interaction) == null ? void 0 : _s$interaction2.key)) parts.push('E · ' + (s.use_interaction.kind === 'throw' ? '向前抛出' : _short(s.use_interaction)));
+            this.set('interaction', parts.length ? parts.join('　') : s.interaction_hint || '面向工位或物品按空格');
           }
           // Game results keep the event line; Jeff's decisions and errors use their own status.
           var results = s.events.filter(function (e) {

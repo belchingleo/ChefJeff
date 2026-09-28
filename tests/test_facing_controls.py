@@ -15,12 +15,26 @@ def kitchen():
 
 
 class FacingControlTests(unittest.TestCase):
-    def test_space_takes_from_a_board_and_e_chops(self):
+    def test_space_and_e_both_chop_and_wash(self):
         k = kitchen()
         k.positions['human'] = (4., 6.); k.facing['human'] = 'down'
         k.stations['b1'].food = Food('L', 'raw', ingredient='lettuce')
-        self.assertEqual(k.facing_interaction('human', 'hands')[1].kind, 'take_board')
+        self.assertEqual(k.facing_interaction('human', 'hands')[1].kind, 'chop')
         self.assertEqual(k.facing_interaction('human', 'use')[1].kind, 'chop')
+        k.positions['human'] = (11., 3.); k.facing['human'] = 'right'
+        k.stations['sink'].food = Food('D1', 'dirty_plate')
+        self.assertEqual(k.facing_interaction('human', 'hands')[1].kind, 'wash')
+
+    def test_a_station_beside_is_used_when_nothing_is_ahead(self):
+        k = kitchen()
+        # Floor ahead; the empty counter 17 beside has nothing to do, the bread box diagonally ahead does.
+        k.positions['human'] = (7., 2.); k.facing['human'] = 'left'
+        self.assertEqual(k.facing_interaction('human', 'hands')[1].key, 'fetch bread')
+        # Never behind the chef.
+        k.facing['human'] = 'right'
+        self.assertIsNone(k.facing_interaction('human', 'hands')[1])
+        k.positions['human'] = (6., 2.); k.facing['human'] = 'down'
+        self.assertNotEqual(k.facing_interaction('human', 'hands')[0], 'bread')
 
     def test_facing_a_busy_station_never_drops_the_held_item(self):
         k = kitchen()
