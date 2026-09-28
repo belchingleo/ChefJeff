@@ -709,7 +709,8 @@ class SpatialKitchen(Kitchen):
         if target=='partner':return self.anchor('jeff' if who=='human' else 'human')
         if target and target.startswith('item:'):
             item=self.ground.get(target[5:]);return self.cell(item.location) if item else None
-        return self.cell(target) if target else None
+        # Facing a bare wall (e.g. Level 1's divider) yields a non-floor tile: nothing to highlight.
+        return self.cell(target) if target in self.floor_places else None
 
     def quick_interaction(self, who, actions=None, preferred=None):
         """One local, legal action. This is a player control, not an AI policy."""

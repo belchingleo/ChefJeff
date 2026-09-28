@@ -101,3 +101,26 @@ class LayoutInteractionTests(unittest.TestCase):
         a=k.quick_interaction('human');self.assertTrue(a is None or a.target!='sink')
 
 if __name__=='__main__':unittest.main()
+
+
+class FacingWallTests(unittest.TestCase):
+    def test_facing_a_bare_wall_never_breaks_the_state(self):
+        # Level 1's divider (x=7, y=1..3): facing it used to raise on every /api/state.
+        from levels import level_config
+        from web_server import GameSession
+        from spatial_kitchen import SpatialKitchen as SK
+        for level in (1, 2, 3):
+            with self.subTest(level=level):
+                g = GameSession(level_config(load_config(), level), kitchen_factory=SK)
+                k = g.k
+                for cell in sorted(k.floor):
+                    for facing in ('up', 'down', 'left', 'right'):
+                        k.positions['human'], k.facing['human'] = cell, facing
+                        state = g.public_state()
+                self.assertIn('kitchen', state)
+                if level == 1:
+                    k.positions['human'], k.facing['human'] = (8, 3), 'left'
+                    state = g.public_state()
+                    self.assertEqual(state['interaction_focus'], 'floor_7_3')
+                    self.assertIsNone(state['interaction_cell'])
+                    self.assertEqual(state['interaction_hint'], '面前没有可操作目标')
