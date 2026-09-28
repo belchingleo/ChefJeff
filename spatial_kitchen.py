@@ -147,18 +147,18 @@ def _board_contacts(equipment,walls):
     return tuple(sorted(contacts))
 
 
-def map_navigation(level):
+def map_navigation(level,front_clearance=None):
     document=load_map(level)
     equipment,walls=geometry(document)
     return _map_navigation(tuple(document['size']),tuple(sorted(walls)),
                            tuple(sorted((key+':'+str(i),tuple(c)) for key,e in equipment.items() for i,c in enumerate(e.get('cells',[e['cell']])))),
-                           _board_contacts(equipment,walls))
+                           _board_contacts(equipment,walls),front_clearance)
 
 
-@lru_cache(maxsize=6)
-def _map_navigation(size,walls,cells,contact_edges=()):
+@lru_cache(maxsize=12)
+def _map_navigation(size,walls,cells,contact_edges=(),front_clearance=None):
     from navigation import Navigation
-    return Navigation(*size,walls,{key:{'cell':cell} for key,cell in cells},contact_edges)
+    return Navigation(*size,walls,{key:{'cell':cell} for key,cell in cells},contact_edges,front_clearance)
 
 class SpatialKitchen(Kitchen):
     def __init__(self, config=None, rng=None):
@@ -168,7 +168,7 @@ class SpatialKitchen(Kitchen):
         self.equipment,self.walls=geometry(self.map_document)
         self.nav=_map_navigation(tuple(self.map_document['size']),tuple(sorted(self.walls)),
                                  tuple(sorted((key+':'+str(i),tuple(c)) for key,e in self.equipment.items() for i,c in enumerate(e.get('cells',[e['cell']])))),
-                                 _board_contacts(self.equipment,self.walls))
+                                 _board_contacts(self.equipment,self.walls),self.rules.cabinet_front_clearance)
         self.floor=self.nav.floor
         self.sprint_until={who:0. for who in self.chefs}
         self.sprint_ready_at={who:0. for who in self.chefs}

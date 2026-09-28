@@ -24,8 +24,10 @@ export function wallNeighbours(walls:Set<string>,x:number,y:number){
  * Cabinet artwork has its own ground anchor offset; remove it at placement. */
 export function surfaceOffset(){return GRID_ART.counterHeight*GRID_ART.tile/GRID_ART.unit;}
 export function wallOffset(){return GRID_ART.wallHeight*GRID_ART.tile/GRID_ART.unit;}
-/** Stable painter ordering; larger southward feet/footprints cover northern objects. */
-export function depthOrder(y:number,kind:'solid'|'actor'|'item'){return y+(kind==='solid'?.5:kind==='actor'?.12:0);}
+/** Stable painter ordering; larger southward feet/footprints cover northern objects.
+ * A solid sorts by its north edge: feet at or behind that edge stay behind it, while
+ * feet further south in its row can only stand beside it and draw in front. */
+export function depthOrder(y:number,kind:'solid'|'actor'|'item'){return y+(kind==='solid'?-.495:kind==='actor'?0:-.12);}
 /** Station-working chefs stand outside the cabinet footprint; the cabinet must
  * not cover their face. North/back bodies retain ordinary grounded depth. */
 export function workingChefDepth(y:number,row:number|undefined,facing:string,working:boolean){

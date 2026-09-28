@@ -130,10 +130,19 @@ assert.strictEqual(geometry.surfaceOffset(), 0, 'work surfaces stay on their log
 assert.strictEqual(geometry.wallOffset(), 0, 'wall tops stay on their logical cell centers');
 assert(geometry.GRID_ART.northFace > 0 && geometry.GRID_ART.northFace < geometry.GRID_ART.unit,
        'the inset north face must remain inside its wall cell');
-assert(geometry.depthOrder(5, 'solid') > geometry.depthOrder(5, 'actor'),
-       'solid in the same row sorts after the actor');
+// Feet inside a solid's row can only be beside it (walk boxes), so the body draws in front;
+// feet at or north of its top edge stay behind it, including the zero-clearance board stand.
+for (const y of [4.7, 5, 5.3]) {
+  assert(geometry.depthOrder(y, 'actor') > geometry.depthOrder(5, 'solid'), `actor beside a cabinet at ${y} draws in front`);
+  assert(geometry.depthOrder(y, 'item') > geometry.depthOrder(5, 'solid'), `ground item beside a cabinet at ${y} draws in front`);
+}
+for (const y of [4.3, 4.49, 4.5])
+  assert(geometry.depthOrder(y, 'actor') < geometry.depthOrder(5, 'solid'), `actor north of a cabinet at ${y} stays behind it`);
 assert(geometry.depthOrder(6, 'actor') > geometry.depthOrder(5, 'solid'),
        'actor on the next row sorts after the previous row solid');
+assert(geometry.depthOrder(5.3, 'actor') < geometry.depthOrder(6, 'solid'),
+       'a cabinet on the next row covers the actor behind it');
+assert(geometry.depthOrder(5, 'actor') > geometry.depthOrder(5.1, 'item'), 'an actor covers food at its feet');
 
 // Cabinet work surfaces align exactly to one logical cell after sprite lift.
 const tile = geometry.GRID_ART.tile, unit = geometry.GRID_ART.unit;

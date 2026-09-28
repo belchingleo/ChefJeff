@@ -31,7 +31,7 @@ Selects semantics the engine already implements; it cannot add mechanics.
 | `tick_game_ms` | fixed simulation step | 50 |
 | `supported_equipment_types` | types with engine semantics | 9 types |
 | `operations.handling_game_ms` / `extinguish_game_ms` / `clear_game_ms` | take/put/plate/serve; extinguish; clear pot | 150 / 4000 / 2000 |
-| `movement.*` | walk 4.5 cells/s; sprint 1.4× for 1000 ms, 3000 ms cooldown; chef separation 0.4; sprint push ≤ 0.25 cells | |
+| `movement.*` | walk 4.5 cells/s; sprint 1.4× for 1000 ms, 3000 ms cooldown; chef separation 0.4; sprint push ≤ 0.25 cells. Service: `stall_replan`, and `cabinet_front_clearance_cells` 0.45 (feet stay this far south of a workstation cell, clear of its front panel; walls and the other sides keep 0.2). Legacy has neither | |
 | `throw.*` | enabled; range 7 cells; 12 cells/s; minimum flight 200 ms; catch radius 0.75. Service: `range_cells` 4 and `pass_range_cells` 4 (plates, dishes, pots, extinguisher); legacy has no `pass_range_cells` | |
 | `tableware.dining_game_ms` / `return_capacity` | customer plate return delay; return station capacity | 8000 / 1 |
 | `fire.spread_interval_game_ms` / `loss_threshold` | spread cadence; simultaneous fires that end the round | 8000 / 5 |

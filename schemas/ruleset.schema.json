@@ -124,6 +124,12 @@
           "minimum": 0,
           "maximum": 1
         },
+        "cabinet_front_clearance_cells": {
+          "description": "Optional: a chef's feet stay this far south of a workstation cell, clear of the cabinet's front panel. Absent: the ordinary 0.2-cell walk clearance (accepted 0.5.9 behaviour).",
+          "type": "number",
+          "minimum": 0.2,
+          "maximum": 0.5
+        },
         "stall_replan": {
           "description": "Optional: a routed chef whose remaining route has not shortened by min_progress_cells within after_game_ms re-plans around the other chef. Absent: routes keep their static waypoints (accepted 0.5.9 behaviour).",
           "type": "object",

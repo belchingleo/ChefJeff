@@ -21,16 +21,22 @@ def contact_fraction(start,end,center,radius):
     return max(0.,min(1.,(-b-math.sqrt(disc))/a))
 
 class Navigation:
-    def __init__(self, width, height, walls, equipment, contact_edges=()):
+    def __init__(self, width, height, walls, equipment, contact_edges=(), front_clearance=None):
         self.width,self.height=width,height
-        self.blocked=set(walls)|{tuple(c) for e in equipment.values() for c in e.get('cells',[e['cell']])}
+        cabinets={tuple(c) for e in equipment.values() for c in e.get('cells',[e['cell']])}
+        self.blocked=set(walls)|cabinets
         self.floor={(x,y) for x in range(width) for y in range(height)}-self.blocked
         self.contact_edges=dict(contact_edges)
         # Remove only approved board-face clearance; countertops remain solid.
+        # A cabinet's front panel reaches below its cell, so an optional front
+        # clearance keeps feet south of it (walls keep the ordinary clearance).
+        def south(cell):
+            if front_clearance is not None and cell in cabinets:return front_clearance
+            return 0 if 'up' in self.contact_edges.get(cell,()) else WALK_CLEARANCE
         self.walk_boxes=tuple((x-.5-(0 if 'right' in self.contact_edges.get((x,y),()) else WALK_CLEARANCE),
                                y-.5-(0 if 'down' in self.contact_edges.get((x,y),()) else WALK_CLEARANCE),
                                x+.5+(0 if 'left' in self.contact_edges.get((x,y),()) else WALK_CLEARANCE),
-                               y+.5+(0 if 'up' in self.contact_edges.get((x,y),()) else WALK_CLEARANCE))
+                               y+.5+south((x,y)))
                               for x,y in sorted(self.blocked))
         self.graph=self.navigation_graph()
         self._cached_shortest_path=lru_cache(maxsize=1024)(self._cached_shortest_path)
