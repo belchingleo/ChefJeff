@@ -1,5 +1,5 @@
 System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabelHelpers.js', 'cc', './LevelOneArt.ts', './KitchenGeometry.ts'], function (exports) {
-  var _inheritsLoose, _createForOfIteratorHelperLoose, _createClass, _extends, _asyncToGenerator, _regeneratorRuntime, cclegacy, _decorator, sys, profiler, view, ResolutionPolicy, director, Camera, Color, UITransform, Label, Node, Graphics, game, Game, Layers, Sprite, Mask, Vec2, Component, LevelOneArt, predictWalk, footWalkable, burgerLayers, stationView, wallNeighbours, GRID_ART, surfaceOffset, trashView, depthOrder, heatCountdown, flightDepth, workingChefDepth;
+  var _inheritsLoose, _createForOfIteratorHelperLoose, _createClass, _extends, _asyncToGenerator, _regeneratorRuntime, cclegacy, _decorator, sys, profiler, view, ResolutionPolicy, director, Camera, Color, UITransform, Label, Node, Graphics, game, Game, Layers, Sprite, Vec2, Mask, Component, LevelOneArt, predictWalk, footWalkable, burgerLayers, stationView, wallNeighbours, GRID_ART, surfaceOffset, trashView, depthOrder, heatCountdown, flightDepth, workingChefDepth;
   return {
     setters: [function (module) {
       _inheritsLoose = module.inheritsLoose;
@@ -26,8 +26,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
       Game = module.Game;
       Layers = module.Layers;
       Sprite = module.Sprite;
-      Mask = module.Mask;
       Vec2 = module.Vec2;
+      Mask = module.Mask;
       Component = module.Component;
     }, function (module) {
       LevelOneArt = module.LevelOneArt;
@@ -151,9 +151,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           _this.knifeSample = !sys.isNative && new URLSearchParams(location.search).get('knifeSample') === '1';
           _this.knifeProbe = null;
           _this.cutProbe = null;
-          _this.pairedKnives = {};
-          _this.pairedFacing = {};
-          _this.pairedImpacts = {};
+          _this.chopImpacts = {};
           _this.received = 0;
           _this.labels = {};
           _this.buttons = {};
@@ -1990,8 +1988,9 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           var chopping = !!working && inWorld && (chef == null ? void 0 : chef.action_kind) === 'chop' && !!station;
           var sampleFrame = this.prepSample ? Number((_URLSearchParams$get = new URLSearchParams(location.search).get('prepFrame')) != null ? _URLSearchParams$get : -1) : -1;
           var knifePilot = this.knifeSample && chopping && who === 'jeff' && facing === 'down' && this.state.kitchen.level === 2 && chef.target === 'b1';
-          var pairedPilot = chopping && this.art.has('knife/reference');
-          var phase = knifePilot || pairedPilot ? 1 : Number.isInteger(sampleFrame) && sampleFrame >= 0 && sampleFrame < 4 ? sampleFrame : Math.floor(this.activeClock * 8) % 4;
+          // Raise, swing, strike, recover: the chop frames move arms and knife together.
+          var beat = ((this.activeClock / .4 + (who === 'human' ? 0 : .27)) % 1 + 1) % 1;
+          var phase = knifePilot ? 1 : Number.isInteger(sampleFrame) && sampleFrame >= 0 && sampleFrame < 4 ? sampleFrame : beat < .3 ? 0 : beat < .45 ? 1 : beat < .75 ? 2 : 3;
           var actionKey = "characters/" + kind + "/" + facing + "/chop_" + phase;
           var hasAction = chopping && this.art.has(actionKey);
           var pilot = hasAction && who === 'jeff' && facing === 'down' && this.prepSampleBoard(chef.target) && this.art.has('prep/jeff/down/contact-body');
@@ -2017,7 +2016,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             var child = _step7.value;
             if (!['held', 'reviewed-art'].includes(child.name)) child.active = !shown;
           }
-          if (inWorld) this.pairedKnifeSample(body, who, pairedPilot, actionKey, facing);
+          if (inWorld) this.chopImpact(who, hasAction && phase === 2 && beat < .62, (beat - .45) / .17);
           if (shown) {
             body.setScale(1, 1, 1);
             body.angle = 0;
@@ -2041,161 +2040,29 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             body.getChildByName('right-arm').getChildByName('knife').active = false;
           }
           return shown;
-        };
-        _proto.pairedKnifeSample = function pairedKnifeSample(body, who, active, key, facing) {
-          var _root,
-            _this10 = this,
-            _impact;
-          var previous = this.pairedKnives[who];
-          if (previous != null && previous.isValid) previous.active = active;
-          var oldImpact = this.pairedImpacts[who];
-          if (oldImpact != null && oldImpact.isValid) oldImpact.active = false;
-          if (!active) return;
-          var player = who === 'human',
-            side = facing === 'right' || facing === 'left',
-            back = facing === 'up';
-          if (this.pairedFacing[who] !== facing) {
-            for (var _i18 = 0, _arr14 = ['knife-body-mask', 'knife-cloth-repair']; _i18 < _arr14.length; _i18++) {
-              var name = _arr14[_i18];
-              var _n = body.getChildByName(name);
-              if (_n) {
-                _n.removeFromParent();
-                _n.destroy();
-              }
-            }
-            var n = this.pairedKnives[who];
-            if (n != null && n.isValid) {
-              this.depthEntries = this.depthEntries.filter(function (e) {
-                return e.node !== n;
-              });
-              n.destroy();
-            }
-            delete this.pairedKnives[who];
-            this.pairedFacing[who] = facing;
-          }
-          var mirror = function mirror(points) {
-            return points.map(function (_ref2) {
-              var x = _ref2[0],
-                y = _ref2[1];
-              return [facing === 'left' ? 68 - x : x, y];
-            });
-          };
-          var blade = back ? [] : side ? mirror(player ? [[50, 50], [66, 40], [68, 40], [68, 51], [56, 62], [50, 59]] : [[49, 61], [63, 51], [67, 51], [67, 61], [53, 70], [49, 69]]) : player ? [[28, 61], [31, 61], [41, 74], [33, 74], [28, 68]] : [[30, 61], [34, 63], [45, 73], [36, 74], [30, 69]];
-          var grip = mirror([back ? player ? [50, 60] : [52, 60] : side ? player ? [52, 56] : [51, 65] : player ? [26, 62] : [28, 62]])[0];
-          var hand = back ? [] : side ? mirror(player ? [[45, 53], [51, 52], [54, 55], [53, 61], [48, 64], [45, 61]] : [[46, 61], [51, 61], [54, 64], [52, 69], [47, 69], [45, 66]]) : player ? [[20, 58], [25, 58], [28, 61], [26, 66], [21, 66], [18, 63]] : [[23, 59], [28, 59], [30, 61], [29, 65], [24, 65], [22, 62]];
-          var mask = body.getChildByName('knife-body-mask');
-          if (!mask) {
-            mask = this.child(body, 'knife-body-mask', 68, 88);
-            if (blade.length) {
-              var m = mask.addComponent(Mask);
-              m.type = Mask.Type.GRAPHICS_STENCIL;
-              m.inverted = true;
-              var _g = mask.getComponent(Graphics);
-              _g.clear();
-              blade.forEach(function (_ref3, i) {
-                var x = _ref3[0],
-                  y = _ref3[1];
-                return i ? _g.lineTo(x - 34, 82 - y) : _g.moveTo(x - 34, 82 - y);
-              });
-              _g.close();
-              _g.fill();
-            }
-            var cloth = this.child(body, 'knife-cloth-repair', 68, 88),
-              cg = cloth.addComponent(Graphics);
-            if (!side && !back) {
-              cg.fillColor = color(player ? '#254c79' : '#e5e0d6');
-              blade.forEach(function (_ref4, i) {
-                var x = _ref4[0],
-                  y = _ref4[1];
-                return i ? cg.lineTo(x - 34, 82 - y) : cg.moveTo(x - 34, 82 - y);
-              });
-              cg.close();
-              cg.fill();
-            }
-            cloth.setSiblingIndex(mask.getSiblingIndex());
-            this.art.show(mask, key, 68, 88);
-          }
-          mask.active = true;
-          body.getChildByName('knife-cloth-repair').active = true;
-          this.art.hide(body);
-          var root = this.pairedKnives[who];
-          if (!((_root = root) != null && _root.isValid)) {
-            root = this.child(this.world, 'reference-knife-' + who, 68, 88);
-            this.pairedKnives[who] = root;
-            var _knife = this.child(root, 'knife', 24, 52);
-            this.art.show(_knife, 'knife/reference', 24, 52);
-            _knife.setPosition(grip[0] - 34, 82 - grip[1]);
-            if (facing === 'left') _knife.setScale(-1, 1, 1);
-            if (hand.length) {
-              var fingers = this.child(root, 'fingers', 68, 88);
-              fingers.addComponent(Mask).type = Mask.Type.GRAPHICS_STENCIL;
-              var _g2 = fingers.getComponent(Graphics);
-              _g2.clear();
-              hand.forEach(function (_ref5, i) {
-                var x = _ref5[0],
-                  y = _ref5[1];
-                return i ? _g2.lineTo(x - 34, 82 - y) : _g2.moveTo(x - 34, 82 - y);
-              });
-              _g2.close();
-              _g2.fill();
-              this.art.show(fingers, key, 68, 88);
-            }
-            this.registerDepth(root, function () {
-              var _kitchen$map$equipmen, _kitchen$map$equipmen2;
-              var c = _this10.state.kitchen.chefs[who];
-              return depthOrder((_kitchen$map$equipmen = (_kitchen$map$equipmen2 = _this10.state.kitchen.map.equipment[c.target]) == null ? void 0 : _kitchen$map$equipmen2.cell[1]) != null ? _kitchen$map$equipmen : c.position[1], 'solid') + .02;
-            });
-          }
-          root.active = true;
-          var actor = this.people[who];
-          root.setPosition(actor.position);
-          root.setScale(actor.scale);
-          var params = new URLSearchParams(sys.isNative ? '' : location.search),
-            knife = root.getChildByName('knife');
-          if (params.get('knifeMotion') === 'off') {
-            knife.angle = 0;
-            return;
-          }
-          // Wrist-pivot swing: no actor, hand, cabinet or food translation, no blade stretching.
-          var clock = params.has('knifeTime') ? Number(params.get('knifeTime')) || 0 : this.activeClock;
-          var t = ((clock / .32 + (player ? 0 : .27)) % 1 + 1) % 1;
-          var angle;
-          if (t < .36) {
-            var q = t / .36;
-            angle = -42 - 108 * (q * q * (3 - 2 * q));
-          } // lift
-          else if (t < .52) {
-            var _q = (t - .36) / .16;
-            angle = -150 + 132 * _q * _q;
-          } // quick downstroke
-          else if (t < .60) {
-            var _q2 = (t - .52) / .08;
-            angle = -18 - 12 * Math.sin(_q2 * Math.PI);
-          } // recoil
-          else {
-            var _q3 = (t - .60) / .40;
-            angle = -18 - 24 * _q3;
-          } // recover
-          knife.angle = side ? (facing === 'left' ? -1 : 1) * (40 - (angle + 18) * .55) : back ? 180 + (angle + 18) * .65 : angle;
-          var impact = this.pairedImpacts[who];
+        }
+        /** A short spark on the board while the knife lands (strike frame only). */;
+        _proto.chopImpact = function chopImpact(who, active, p) {
+          var _impact,
+            _this10 = this;
+          var impact = this.chopImpacts[who];
           if (!((_impact = impact) != null && _impact.isValid)) {
+            if (!active) return;
             impact = this.child(this.world, 'knife-impact-' + who, 52, 52);
             impact.addComponent(Graphics);
-            this.pairedImpacts[who] = impact;
+            this.chopImpacts[who] = impact;
             this.registerDepth(impact, function () {
-              var _kitchen$map$equipmen3, _kitchen$map$equipmen4;
+              var _kitchen$map$equipmen, _kitchen$map$equipmen2;
               var c = _this10.state.kitchen.chefs[who];
-              return depthOrder((_kitchen$map$equipmen3 = (_kitchen$map$equipmen4 = _this10.state.kitchen.map.equipment[c.target]) == null ? void 0 : _kitchen$map$equipmen4.cell[1]) != null ? _kitchen$map$equipmen3 : c.position[1], 'solid') + .04;
+              return depthOrder((_kitchen$map$equipmen = (_kitchen$map$equipmen2 = _this10.state.kitchen.map.equipment[c.target]) == null ? void 0 : _kitchen$map$equipmen2.cell[1]) != null ? _kitchen$map$equipmen : c.position[1], 'solid') + .04;
             });
           }
-          // Impact appears only during the strike, disappears before the next lift.
-          impact.active = t >= .50 && t < .64;
+          impact.active = active;
           var g = impact.getComponent(Graphics);
           g.clear();
-          if (!impact.active) return;
+          if (!active) return;
           var target = this.state.kitchen.chefs[who].target;
           this.locate(impact, this.state.kitchen.map.equipment[target].cell);
-          var p = (t - .50) / .14;
           g.strokeColor = new Color(255, 246, 220, Math.round(255 * (1 - p)));
           g.lineWidth = 2;
           g.moveTo(-9 + 5 * p, -5);
@@ -2205,10 +2072,10 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           g.moveTo(-4, 8);
           g.lineTo(4, -7);
           g.stroke();
-          for (var _i19 = 0, _arr15 = [[-1, 1], [1, 1], [-1, -1], [1, -1]]; _i19 < _arr15.length; _i19++) {
-            var _arr15$_i = _arr15[_i19],
-              dx = _arr15$_i[0],
-              dy = _arr15$_i[1];
+          for (var _i18 = 0, _arr14 = [[-1, 1], [1, 1], [-1, -1], [1, -1]]; _i18 < _arr14.length; _i18++) {
+            var _arr14$_i = _arr14[_i18],
+              dx = _arr14$_i[0],
+              dy = _arr14$_i[1];
             var r = 6 + 7 * p;
             this.rect(g, dx * r, dy * r * .6, 2, 2, p < .6 ? '#fff1c9' : '#ddb471');
           }
@@ -2222,19 +2089,19 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           var length = Math.max(1, Math.min(4, Number(params.get('knifeScale') || 2.5) || 2.5));
           var handleLength = Math.max(1, Math.min(3, Number(params.get('knifeHandle') || 2) || 2));
           if (!this.knifeProbe) {
-            var _root2 = this.child(this.world, 'knife-only-probe', 68, 88);
+            var _root = this.child(this.world, 'knife-only-probe', 68, 88);
             // Separate length axes keep both thicknesses unchanged. Existing pixels only.
             var part = function part(name, pivot, points) {
-              var stretch = _this11.child(_root2, name, 68, 88);
+              var stretch = _this11.child(_root, name, 68, 88);
               stretch.angle = -40;
               var stencil = _this11.child(stretch, name + '-mask', 68, 88);
               stencil.angle = 40;
               stencil.addComponent(Mask).type = Mask.Type.GRAPHICS_STENCIL;
               var g = stencil.getComponent(Graphics);
               g.clear();
-              points.forEach(function (_ref6, i) {
-                var x = _ref6[0],
-                  y = _ref6[1];
+              points.forEach(function (_ref2, i) {
+                var x = _ref2[0],
+                  y = _ref2[1];
                 return i ? g.lineTo(x - pivot[0], pivot[1] - y) : g.moveTo(x - pivot[0], pivot[1] - y);
               });
               g.close();
@@ -2243,8 +2110,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             };
             part('handle', [29, 61], [[29, 61], [31, 61], [34, 64], [31, 66], [29, 64]]);
             part('length', [31, 63], [[31, 63], [34, 64], [44, 72], [37, 73], [31, 69]]);
-            this.knifeProbe = _root2;
-            this.registerDepth(_root2, function () {
+            this.knifeProbe = _root;
+            this.registerDepth(_root, function () {
               return depthOrder(_this11.state.kitchen.map.equipment.b1.cell[1], 'solid') + .02;
             });
             var _fx = this.child(this.world, 'cut-impact-probe', 52, 52);
@@ -2286,10 +2153,10 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           g.stroke();
           g.strokeColor = color('#f4cf81');
           g.lineWidth = 1;
-          for (var _i20 = 0, _arr16 = [[-1, 1], [1, 1], [-1, -1], [1, -1]]; _i20 < _arr16.length; _i20++) {
-            var _arr16$_i = _arr16[_i20],
-              _dx = _arr16$_i[0],
-              _dy = _arr16$_i[1];
+          for (var _i19 = 0, _arr15 = [[-1, 1], [1, 1], [-1, -1], [1, -1]]; _i19 < _arr15.length; _i19++) {
+            var _arr15$_i = _arr15[_i19],
+              _dx = _arr15$_i[0],
+              _dy = _arr15$_i[1];
             var r = 5 + 7 * p;
             g.moveTo(_dx * r, _dy * r * .65);
             g.lineTo(_dx * (r + 2), _dy * (r + 2) * .65);
@@ -2297,9 +2164,9 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }
         };
         _proto.refreshArtCharacters = function refreshArtCharacters() {
-          for (var _i21 = 0, _arr17 = ['human', 'jeff']; _i21 < _arr17.length; _i21++) {
+          for (var _i20 = 0, _arr16 = ['human', 'jeff']; _i20 < _arr16.length; _i20++) {
             var _this$cover$getChildB;
-            var who = _arr17[_i21];
+            var who = _arr16[_i20];
             if (this.useArt) this.characterArt(this.motions[who].body, who, this.state.kitchen.chefs[who].facing || 'down');
             var welcome = (_this$cover$getChildB = this.cover.getChildByName('welcome-' + who)) == null ? void 0 : _this$cover$getChildB.getChildByName('body');
             if (welcome) this.characterArt(welcome, who, 'down');
@@ -2420,8 +2287,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           this.set('served', service ? "" + k.served : k.served + " / " + k.goals.target_served);
           this.set('money', service ? "\xA5 " + k.money + " / " + k.goals.target_money : "\xA5 " + k.money);
           this.set('reviews', service ? '—' : k.bad_reviews + " / " + k.goals.max_bad_reviews);
-          for (var _i22 = 0, _arr18 = ['served', 'money', 'reviews']; _i22 < _arr18.length; _i22++) {
-            var id = _arr18[_i22];
+          for (var _i21 = 0, _arr17 = ['served', 'money', 'reviews']; _i21 < _arr17.length; _i21++) {
+            var id = _arr17[_i21];
             this.labels[id].color = color(this.statColor(id));
           }
           var _loop7 = function _loop7() {
@@ -2507,9 +2374,9 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           this.set('fire-status', (_k$fire_safety = k.fire_safety) != null && _k$fire_safety.burning_count ? "\u7740\u706B\u5DE5\u4F4D " + k.fire_safety.burning_count + "/" + k.fire_safety.loss_threshold : '');
           this.labels.clock.color = color(remaining <= 30 ? COLORS.hot : COLORS.muted);
           this.drawOrders();
-          for (var _i23 = 0, _Object$entries2 = Object.entries(this.devices); _i23 < _Object$entries2.length; _i23++) {
+          for (var _i22 = 0, _Object$entries2 = Object.entries(this.devices); _i22 < _Object$entries2.length; _i22++) {
             var _st$food, _s$interaction, _s$use_interaction, _st$food2, _st$food3, _s$rules2, _s$rules3;
-            var _Object$entries2$_i = _Object$entries2[_i23],
+            var _Object$entries2$_i = _Object$entries2[_i22],
               id = _Object$entries2$_i[0],
               dev = _Object$entries2$_i[1];
             var st = k.stations[id],
@@ -2597,8 +2464,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           var ids = new Set(k.ground.map(function (g) {
             return g.food.id;
           }));
-          for (var _i24 = 0, _Object$entries3 = Object.entries(this.ground); _i24 < _Object$entries3.length; _i24++) {
-            var _Object$entries3$_i = _Object$entries3[_i24],
+          for (var _i23 = 0, _Object$entries3 = Object.entries(this.ground); _i23 < _Object$entries3.length; _i23++) {
+            var _Object$entries3$_i = _Object$entries3[_i23],
               _id2 = _Object$entries3$_i[0],
               n = _Object$entries3$_i[1];
             if (!ids.has(_id2)) {
@@ -2623,9 +2490,9 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             this.writeLabel(this.ground[_id6].getChildByName('id').getComponent(Label), this.itemName(item.food));
             this.locate(this.ground[_id6], item.position);
           }
-          for (var _i25 = 0, _arr19 = ['human', 'jeff']; _i25 < _arr19.length; _i25++) {
+          for (var _i24 = 0, _arr18 = ['human', 'jeff']; _i24 < _arr18.length; _i24++) {
             var _c$sprint2;
-            var who = _arr19[_i25];
+            var who = _arr18[_i24];
             var c = k.chefs[who];
             this.set('person-' + who, (who === 'human' ? '你' : 'Jeff') + (((_c$sprint2 = c.sprint) == null ? void 0 : _c$sprint2.active_remaining) > 0 ? ' »' : ''));
             this.drawNameTag(who);
@@ -2642,12 +2509,12 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           var flightIds = new Set((k.projectiles || []).map(function (p) {
             return p.id;
           }));
-          for (var _i26 = 0, _Object$entries4 = Object.entries(this.flights); _i26 < _Object$entries4.length; _i26++) {
-            var _Object$entries4$_i = _Object$entries4[_i26],
+          for (var _i25 = 0, _Object$entries4 = Object.entries(this.flights); _i25 < _Object$entries4.length; _i25++) {
+            var _Object$entries4$_i = _Object$entries4[_i25],
               _id3 = _Object$entries4$_i[0],
-              _n2 = _Object$entries4$_i[1];
+              _n = _Object$entries4$_i[1];
             if (!flightIds.has(_id3)) {
-              _n2.destroy();
+              _n.destroy();
               delete this.flights[_id3];
               delete this.flightOrder[_id3];
             }
@@ -2659,8 +2526,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           this.enable('pause', active);
           this.enable('resume', s.phase === 'paused' && !this.pending && this.connected);
           this.enable('end', ['running', 'paused'].includes(s.phase) && !this.pending && this.connected);
-          for (var _i27 = 0, _arr20 = ['pause', 'resume', 'end']; _i27 < _arr20.length; _i27++) {
-            var _id4 = _arr20[_i27];
+          for (var _i26 = 0, _arr19 = ['pause', 'resume', 'end']; _i26 < _arr19.length; _i26++) {
+            var _id4 = _arr19[_i26];
             this.buttons[_id4].node.active = true;
           }
           var held = k.chefs.human.holding;
@@ -2690,17 +2557,17 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           this.set('event', results.length ? results[results.length - 1].message : '');
           this.set('ai-status', this.aiStatus(s));
           this.labels['ai-status'].color = color(s.ai.error || (_s$limits = s.limits) != null && _s$limits.reached && s.phase === 'running' ? COLORS.alert : COLORS.muted);
-          for (var _i28 = 0, _arr21 = [1, 2, 3]; _i28 < _arr21.length; _i28++) {
-            var _n3 = _arr21[_i28];
-            var b = this.buttons['level' + _n3],
-              sel = k.level === _n3;
+          for (var _i27 = 0, _arr20 = [1, 2, 3]; _i27 < _arr20.length; _i27++) {
+            var _n2 = _arr20[_i27];
+            var b = this.buttons['level' + _n2],
+              sel = k.level === _n2;
             b.node.active = s.phase === 'ready' || s.phase === 'ended';
-            this.writeLabel(b.label, LEVEL_NAMES[_n3] + (sel ? ' · 当前' : ''));
+            this.writeLabel(b.label, LEVEL_NAMES[_n2] + (sel ? ' · 当前' : ''));
             if (b.selected !== sel) {
               b.selected = sel;
-              this.styleButton('level' + _n3);
+              this.styleButton('level' + _n2);
             }
-            this.enable('level' + _n3, !this.pending && !sel);
+            this.enable('level' + _n2, !this.pending && !sel);
           }
           var lang = ((_kitchenI18n2 = window.kitchenI18n) == null ? void 0 : _kitchenI18n2.language) === 'en' ? '中文' : 'English';
           if (this.buttons.language.label.string !== lang) this.buttons.language.label.string = lang;
@@ -2729,8 +2596,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           if (s.ai.error && s.ai.error !== this.lastAiError) this.announce(s.ai.error);
           this.lastAiError = s.ai.error;
           this.cover.setSiblingIndex(this.node.children.length - 1);
-          for (var _i29 = 0, _arr22 = ['pause', 'resume', 'end']; _i29 < _arr22.length; _i29++) {
-            var _id5 = _arr22[_i29];
+          for (var _i28 = 0, _arr21 = ['pause', 'resume', 'end']; _i28 < _arr21.length; _i28++) {
+            var _id5 = _arr21[_i28];
             this.buttons[_id5].node.setSiblingIndex(this.node.children.length - 1);
           }
         };
@@ -2759,8 +2626,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             resume: '继续经营',
             end: '结束本局'
           };
-          for (var _i30 = 0, _TAB_ORDER2 = TAB_ORDER; _i30 < _TAB_ORDER2.length; _i30++) {
-            var id = _TAB_ORDER2[_i30];
+          for (var _i29 = 0, _TAB_ORDER2 = TAB_ORDER; _i29 < _TAB_ORDER2.length; _i29++) {
+            var id = _TAB_ORDER2[_i29];
             var b = this.buttons[id],
               proxy = this.controlAccess.querySelector("[data-control=\"" + id + "\"]");
             if (!proxy) continue;
@@ -2793,8 +2660,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             p.label.shadowColor = new Color(43, 26, 18, a);
             return true;
           });
-          for (var _i31 = 0, _Object$entries5 = Object.entries(this.flashes); _i31 < _Object$entries5.length; _i31++) {
-            var _Object$entries5$_i = _Object$entries5[_i31],
+          for (var _i30 = 0, _Object$entries5 = Object.entries(this.flashes); _i30 < _Object$entries5.length; _i30++) {
+            var _Object$entries5$_i = _Object$entries5[_i30],
               id = _Object$entries5$_i[0],
               f = _Object$entries5$_i[1];
             var left = f.until - this.clock,
@@ -2811,14 +2678,14 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           var running = this.connected && !this.hidden && this.state.phase === 'running';
           var animate = running && !this.qaNoMotion;
           if (animate) this.activeClock += dt;
-          for (var _i32 = 0, _arr23 = ['human', 'jeff']; _i32 < _arr23.length; _i32++) {
+          for (var _i31 = 0, _arr22 = ['human', 'jeff']; _i31 < _arr22.length; _i31++) {
             var _c$sprint3;
-            var who = _arr23[_i32];
+            var who = _arr22[_i31];
             var c = k.chefs[who],
               p = c.position,
-              _n4 = this.people[who],
+              _n3 = this.people[who],
               motion = this.motions[who];
-            var dust = _n4.getChildByName('sprint-dust');
+            var dust = _n3.getChildByName('sprint-dust');
             dust.active = !!animate && ((_c$sprint3 = c.sprint) == null ? void 0 : _c$sprint3.active_remaining) > 0 && (c.manual_moving || c.travel_remaining > 0);
             if (dust.active) {
               var frame = Math.floor(this.activeClock * 10) % 7,
@@ -2830,17 +2697,17 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               }
             }
             if (running && p) {
-              var predicted = who === 'human' ? this.predictHuman(k, c, dt, _n4) : null,
+              var predicted = who === 'human' ? this.predictHuman(k, c, dt, _n3) : null,
                 at = predicted || p;
               var x = MAPX + (at[0] + .5) * TILE - 640,
                 y = 360 - MAPY - (at[1] + .5) * TILE,
                 t = predicted ? 1 : Math.min(1, dt * 16);
-              var oldX = _n4.position.x,
-                oldY = _n4.position.y;
-              _n4.setPosition(oldX + (x - oldX) * t, oldY + (y - oldY) * t);
-              var dx = _n4.position.x - oldX,
-                dy = _n4.position.y - oldY,
-                moved = Math.hypot(dx, dy) > .08 && (!!predicted || (c.travel_remaining || 0) > 0 || Math.hypot(x - _n4.position.x, y - _n4.position.y) > 1);
+              var oldX = _n3.position.x,
+                oldY = _n3.position.y;
+              _n3.setPosition(oldX + (x - oldX) * t, oldY + (y - oldY) * t);
+              var dx = _n3.position.x - oldX,
+                dy = _n3.position.y - oldY,
+                moved = Math.hypot(dx, dy) > .08 && (!!predicted || (c.travel_remaining || 0) > 0 || Math.hypot(x - _n3.position.x, y - _n3.position.y) > 1);
               if (moved) {
                 if ((c.manual_moving || predicted) && who === 'human' && (this.manualDirection.x !== 0 || this.manualDirection.y !== 0)) {
                   if (Math.abs(this.manualDirection.x) >= Math.abs(this.manualDirection.y)) motion.facing = this.manualDirection.x < 0 ? 'left' : 'right';else motion.facing = this.manualDirection.y < 0 ? 'up' : 'down';
@@ -2883,28 +2750,28 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               }
             }
           }
-          for (var _i33 = 0, _Object$values = Object.values(this.cabinetFires); _i33 < _Object$values.length; _i33++) {
-            var flame = _Object$values[_i33];
+          for (var _i32 = 0, _Object$values = Object.values(this.cabinetFires); _i32 < _Object$values.length; _i32++) {
+            var flame = _Object$values[_i32];
             if (flame.active) {
-              var _g3 = flame.getComponent(Graphics);
-              if (this.useArt && this.art.show(flame, "vfx/fire_" + Math.floor(this.activeClock * 8) % 7, 58, 72)) _g3.clear();else this.drawIcon(_g3, 'fire');
+              var _g = flame.getComponent(Graphics);
+              if (this.useArt && this.art.show(flame, "vfx/fire_" + Math.floor(this.activeClock * 8) % 7, 58, 72)) _g.clear();else this.drawIcon(_g, 'fire');
               var smoke = flame.getChildByName('smoke');
               if (this.useArt) this.art.show(smoke, "vfx/smoke_" + Math.floor(this.activeClock * 6) % 7, 42, 42);
             }
           }
           if (animate) {
             var _this$jeffThinking;
-            for (var _i34 = 0, _Object$entries6 = Object.entries(this.potEffects); _i34 < _Object$entries6.length; _i34++) {
-              var _Object$entries6$_i = _Object$entries6[_i34],
+            for (var _i33 = 0, _Object$entries6 = Object.entries(this.potEffects); _i33 < _Object$entries6.length; _i33++) {
+              var _Object$entries6$_i = _Object$entries6[_i33],
                 _id7 = _Object$entries6$_i[0],
                 e = _Object$entries6$_i[1];
               if (this.useArt) {
                 var _frame = Math.floor(this.activeClock * 8) % 7;
-                for (var _i35 = 0, _arr24 = [[e.steam, 'steam'], [e.smoke, 'smoke'], [e.fire, 'fire']]; _i35 < _arr24.length; _i35++) {
+                for (var _i34 = 0, _arr23 = [[e.steam, 'steam'], [e.smoke, 'smoke'], [e.fire, 'fire']]; _i34 < _arr23.length; _i34++) {
                   var _node$getComponent;
-                  var _arr24$_i = _arr24[_i35],
-                    node = _arr24$_i[0],
-                    key = _arr24$_i[1];
+                  var _arr23$_i = _arr23[_i34],
+                    node = _arr23$_i[0],
+                    key = _arr23$_i[1];
                   if (node.active && this.art.show(node, "vfx/" + key + "_" + _frame, key === 'fire' ? 75 : 42, key === 'fire' ? 75 : 42)) (_node$getComponent = node.getComponent(Graphics)) == null || _node$getComponent.clear();
                 }
               }

@@ -59,9 +59,7 @@ export class KitchenClient extends Component {
     private knifeSample=!sys.isNative&&new URLSearchParams(location.search).get('knifeSample')==='1';
     private knifeProbe:Node|null=null;
     private cutProbe:Node|null=null;
-    private pairedKnives:Record<string,Node>={};
-    private pairedFacing:Record<string,string>={};
-    private pairedImpacts:Record<string,Node>={};
+    private chopImpacts:Record<string,Node>={};
     private received=0;
     private labels: Record<string,Label>={};
     private buttons: Record<string,ButtonView>={};
@@ -827,8 +825,9 @@ export class KitchenClient extends Component {
         const chopping=!!working&&inWorld&&chef?.action_kind==='chop'&&!!station;
         const sampleFrame=this.prepSample?Number(new URLSearchParams(location.search).get('prepFrame')??-1):-1;
         const knifePilot=this.knifeSample&&chopping&&who==='jeff'&&facing==='down'&&this.state!.kitchen.level===2&&chef.target==='b1';
-        const pairedPilot=chopping&&this.art.has('knife/reference');
-        const phase=knifePilot||pairedPilot?1:Number.isInteger(sampleFrame)&&sampleFrame>=0&&sampleFrame<4?sampleFrame:Math.floor(this.activeClock*8)%4;
+        // Raise, swing, strike, recover: the chop frames move arms and knife together.
+        const beat=((this.activeClock/.4+(who==='human'?0:.27))%1+1)%1;
+        const phase=knifePilot?1:Number.isInteger(sampleFrame)&&sampleFrame>=0&&sampleFrame<4?sampleFrame:beat<.3?0:beat<.45?1:beat<.75?2:3;
         const actionKey=`characters/${kind}/${facing}/chop_${phase}`;
         const hasAction=chopping&&this.art.has(actionKey);
         const pilot=hasAction&&who==='jeff'&&facing==='down'&&this.prepSampleBoard(chef.target)&&this.art.has('prep/jeff/down/contact-body');
@@ -849,7 +848,7 @@ export class KitchenClient extends Component {
         }
         body.getComponent(Graphics)!.enabled=!shown;
         for(const child of body.children)if(!['held','reviewed-art'].includes(child.name))child.active=!shown;
-        if(inWorld)this.pairedKnifeSample(body,who,pairedPilot,actionKey,facing);
+        if(inWorld)this.chopImpact(who,hasAction&&phase===2&&beat<.62,(beat-.45)/.17);
         if(shown){
             body.setScale(1,1,1);body.angle=0;body.setPosition(0,0);
             if(inWorld&&this.useModularArt){
@@ -865,79 +864,18 @@ export class KitchenClient extends Component {
         }
         return shown;
     }
-    private pairedKnifeSample(body:Node,who:string,active:boolean,key:string,facing:string){
-        const previous=this.pairedKnives[who];
-        if(previous?.isValid)previous.active=active;
-        const oldImpact=this.pairedImpacts[who];if(oldImpact?.isValid)oldImpact.active=false;
-        if(!active)return;
-        const player=who==='human',side=facing==='right'||facing==='left',back=facing==='up';
-        if(this.pairedFacing[who]!==facing){
-            for(const name of ['knife-body-mask','knife-cloth-repair']){
-                const n=body.getChildByName(name);if(n){n.removeFromParent();n.destroy();}
-            }
-            const n=this.pairedKnives[who];if(n?.isValid){this.depthEntries=this.depthEntries.filter(e=>e.node!==n);n.destroy();}
-            delete this.pairedKnives[who];this.pairedFacing[who]=facing;
-        }
-        const mirror=(points:number[][])=>points.map(([x,y])=>[facing==='left'?68-x:x,y]);
-        const blade=back?[]:side?mirror(player?
-            [[50,50],[66,40],[68,40],[68,51],[56,62],[50,59]]:
-            [[49,61],[63,51],[67,51],[67,61],[53,70],[49,69]]):
-            player?[[28,61],[31,61],[41,74],[33,74],[28,68]]:[[30,61],[34,63],[45,73],[36,74],[30,69]];
-        const grip=mirror([back?(player?[50,60]:[52,60]):side?(player?[52,56]:[51,65]):player?[26,62]:[28,62]])[0];
-        const hand=back?[]:side?mirror(player?[[45,53],[51,52],[54,55],[53,61],[48,64],[45,61]]:
-            [[46,61],[51,61],[54,64],[52,69],[47,69],[45,66]]):
-            player?[[20,58],[25,58],[28,61],[26,66],[21,66],[18,63]]:[[23,59],[28,59],[30,61],[29,65],[24,65],[22,62]];
-        let mask=body.getChildByName('knife-body-mask');
-        if(!mask){
-            mask=this.child(body,'knife-body-mask',68,88);
-            if(blade.length){
-                const m=mask.addComponent(Mask);m.type=Mask.Type.GRAPHICS_STENCIL;m.inverted=true;
-                const g=mask.getComponent(Graphics)!;g.clear();
-                blade.forEach(([x,y],i)=>i?g.lineTo(x-34,82-y):g.moveTo(x-34,82-y));g.close();g.fill();
-            }
-            const cloth=this.child(body,'knife-cloth-repair',68,88),cg=cloth.addComponent(Graphics);
-            if(!side&&!back){
-                cg.fillColor=color(player?'#254c79':'#e5e0d6');
-                blade.forEach(([x,y],i)=>i?cg.lineTo(x-34,82-y):cg.moveTo(x-34,82-y));cg.close();cg.fill();
-            }
-            cloth.setSiblingIndex(mask.getSiblingIndex());this.art.show(mask,key,68,88);
-        }
-        mask.active=true;body.getChildByName('knife-cloth-repair')!.active=true;this.art.hide(body);
-        let root=this.pairedKnives[who];
-        if(!root?.isValid){
-            root=this.child(this.world!,'reference-knife-'+who,68,88);this.pairedKnives[who]=root;
-            const knife=this.child(root,'knife',24,52);this.art.show(knife,'knife/reference',24,52);
-            knife.setPosition(grip[0]-34,82-grip[1]);if(facing==='left')knife.setScale(-1,1,1);
-            if(hand.length){
-                const fingers=this.child(root,'fingers',68,88);fingers.addComponent(Mask).type=Mask.Type.GRAPHICS_STENCIL;
-                const g=fingers.getComponent(Graphics)!;g.clear();
-                hand.forEach(([x,y],i)=>i?g.lineTo(x-34,82-y):g.moveTo(x-34,82-y));g.close();g.fill();this.art.show(fingers,key,68,88);
-            }
-            this.registerDepth(root,()=>{const c=this.state!.kitchen.chefs[who];return depthOrder(this.state!.kitchen.map.equipment[c.target]?.cell[1]??c.position[1],'solid')+.02;});
-        }
-        root.active=true;const actor=this.people[who];root.setPosition(actor.position);root.setScale(actor.scale);
-        const params=new URLSearchParams(sys.isNative?'':location.search),knife=root.getChildByName('knife')!;
-        if(params.get('knifeMotion')==='off'){knife.angle=0;return;}
-        // Wrist-pivot swing: no actor, hand, cabinet or food translation, no blade stretching.
-        const clock=params.has('knifeTime')?Number(params.get('knifeTime'))||0:this.activeClock;
-        const t=((clock/(.32)+(player?0:.27))%1+1)%1;
-        let angle:number;
-        if(t<.36){const q=t/.36;angle=-42-108*(q*q*(3-2*q));} // lift
-        else if(t<.52){const q=(t-.36)/.16;angle=-150+132*q*q;} // quick downstroke
-        else if(t<.60){const q=(t-.52)/.08;angle=-18-12*Math.sin(q*Math.PI);} // recoil
-        else {const q=(t-.60)/.40;angle=-18-24*q;} // recover
-        knife.angle=side?(facing==='left'?-1:1)*(40-(angle+18)*.55):back?180+(angle+18)*.65:angle;
-        let impact=this.pairedImpacts[who];
+    /** A short spark on the board while the knife lands (strike frame only). */
+    private chopImpact(who:string,active:boolean,p:number){
+        let impact=this.chopImpacts[who];
         if(!impact?.isValid){
-            impact=this.child(this.world!,'knife-impact-'+who,52,52);impact.addComponent(Graphics);this.pairedImpacts[who]=impact;
+            if(!active)return;
+            impact=this.child(this.world!,'knife-impact-'+who,52,52);impact.addComponent(Graphics);this.chopImpacts[who]=impact;
             this.registerDepth(impact,()=>{const c=this.state!.kitchen.chefs[who];return depthOrder(this.state!.kitchen.map.equipment[c.target]?.cell[1]??c.position[1],'solid')+.04;});
         }
-        // Impact appears only during the strike, disappears before the next lift.
-        impact.active=t>=.50&&t<.64;
-        const g=impact.getComponent(Graphics)!;g.clear();if(!impact.active)return;
+        impact.active=active;
+        const g=impact.getComponent(Graphics)!;g.clear();if(!active)return;
         const target=this.state!.kitchen.chefs[who].target;
         this.locate(impact,this.state!.kitchen.map.equipment[target].cell);
-        const p=(t-.50)/.14;
         g.strokeColor=new Color(255,246,220,Math.round(255*(1-p)));g.lineWidth=2;
         g.moveTo(-9+5*p,-5);g.lineTo(7+5*p,7);g.stroke();
         g.lineWidth=1;g.moveTo(-4,8);g.lineTo(4,-7);g.stroke();
