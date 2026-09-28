@@ -69,6 +69,20 @@ class GentleCollisionTests(unittest.TestCase):
             k.advance(.05);self.assertGreaterEqual(math.dist(*k.positions.values()),CHEF_SEPARATION-1e-8)
         self.assertTrue(all(c.job is None for c in k.chefs.values()))
 
+    def test_short_route_step_back_to_waypoint_cannot_enter_partner(self):
+        # Randomized-sweep case: Jeff was nudged ~8e-5 off his final waypoint;
+        # the tiny return step used to skip the swept contact check entirely.
+        k=self.make();k.positions.update(human=(10.818973941620296,3.3566117023452207),
+                                          jeff=(11.00006974030746,2.999954557982943))
+        self.assertGreaterEqual(math.dist(*k.positions.values()),CHEF_SEPARATION)
+        action=Action('go floor_11_3','walk','go','floor_11_3')
+        points=k.path('jeff',action.target);length=sum(math.dist(a,b) for a,b in zip(points,points[1:]))
+        self.assertLess(length,1e-4)
+        k.chefs['jeff'].job=Job(99,action,length/WALK_SPEED,0)
+        k.routes['jeff']={'job_id':99,'points':points,'length':length}
+        for _ in range(5):
+            k.advance(.05);self.assertGreaterEqual(math.dist(*k.positions.values()),CHEF_SEPARATION-1e-8)
+
     def test_normal_walk_crosses_food_without_moving_it(self):
         k=self.make();item=self.item(k);k.set_manual('human',1,0);k.advance(.5)
         self.assertGreater(k.positions['human'][0],10)
