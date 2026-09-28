@@ -365,6 +365,9 @@ class Kitchen:
                                   "pickup", item.location, (a.hand.id if a.hand else None, item_id, item.location)))
                 if self.can_load_ground(who,item_id):
                     out.append(Action('load ground '+item_id,f'把切好的{self.food_label(a.hand)}放入地上空锅（离灶不加热）','load_ground',item.location,self.ground_plate_signature(who,item_id)))
+                if self.can_assemble_ground(who,item_id):
+                    out.append(Action('assemble ground '+item_id,f'在{self.place(item.location).name}向盘中加入食材','assemble_ground',
+                                      item.location,self.ground_assembly_signature(who,item_id)))
                 if self.can_plate_ground(who, item_id):
                     out.append(Action(f'plate ground {item_id}', '用手中的干净盘盛出地上锅里的菜（空锅留在原地）',
                                       'plate_ground', item.location, self.ground_plate_signature(who, item_id)))
@@ -506,6 +509,18 @@ class Kitchen:
         item=self.ground.get(item_id)
         return bool(item and item.lock in (None,who) and self.can_load_pot(self.chefs[who].hand,item.food))
 
+    def can_assemble_ground(self,who,item_id):
+        """Counter-style assembly with a floor plate or floor ingredient (ruleset opt-in)."""
+        hand,item=self.chefs[who].hand,self.ground.get(item_id)
+        return bool(self.rules.ground_assembly and self.rules.multi_component and hand and item and item.lock in (None,who)
+                    and (self.can_add(item.food,hand) or self.can_add(hand,item.food)))
+
+    def ground_assembly_signature(self,who,item_id):
+        hand,item=self.chefs[who].hand,self.ground.get(item_id)
+        contents=lambda food:','.join(sorted(self.parts(food))) if food else None
+        return (hand.id if hand else None,item_id,item.location if item else None,
+                contents(hand),contents(item.food if item else None))
+
     def can_plate_ground(self, who, item_id):
         hand, item = self.chefs[who].hand, self.ground.get(item_id)
         return bool(hand and item and self.can_add(hand,item.food.contents) and item.lock in (None, who)
@@ -593,7 +608,7 @@ class Kitchen:
         s = self.place(job.action.target)
         a.location = job.action.target
         # Recheck at arrival; another chef can use a station while we walk there.
-        if job.action.kind in ('drop', 'pickup', 'plate_ground', 'load_ground','swap_ground_pot'):
+        if job.action.kind in ('drop', 'pickup', 'plate_ground', 'load_ground','swap_ground_pot','assemble_ground'):
             if job.action.kind == 'drop':
                 valid = a.hand is not None and (a.hand.id, a.location) == job.action.expected
             elif job.action.kind=='swap_ground_pot':
@@ -601,6 +616,10 @@ class Kitchen:
                 valid=bool(item and item.lock in (None,who) and self.can_swap_pots(a.hand,item.food)
                            and self.ground_swap_signature(who,item.food.id)==job.action.expected)
                 if valid:item.lock=who
+            elif job.action.kind=='assemble_ground':
+                item_id=job.action.expected[1]
+                valid=self.can_assemble_ground(who,item_id) and self.ground_assembly_signature(who,item_id)==job.action.expected
+                if valid:self.ground[item_id].lock=who
             elif job.action.kind in ('plate_ground','load_ground'):
                 item_id = job.action.expected[1]
                 valid = ((self.can_plate_ground(who,item_id) if job.action.kind=='plate_ground' else self.can_load_ground(who,item_id))
@@ -713,6 +732,18 @@ class Kitchen:
             a.hand=self.merge_plate(a.hand,s.food);s.food=None;s.heating=False
         elif k == 'load_counter':
             s.food.contents,a.hand=a.hand,None
+        elif k == 'assemble_ground':
+            item_id=job.action.expected[1]
+            if not self.can_assemble_ground(who,item_id) or self.ground_assembly_signature(who,item_id)!=job.action.expected:
+                self.emit('地上物品或手中物品已变化，加入盘中取消',kind='arrival_conflict',actor=who,action_id=job.id)
+                self.stop(who);return
+            item=self.ground.pop(item_id)
+            if self.can_add(item.food,a.hand):
+                # The plate stays on its floor cell; a clean plate takes the ingredient's id.
+                plate=self.merge_plate(item.food,a.hand);a.hand=None
+                self.ground[plate.id]=GroundItem(plate,item.location)
+            else:
+                a.hand=self.merge_plate(a.hand,item.food)
         elif k == 'load_ground':
             item_id=job.action.expected[1]
             if not self.can_load_ground(who,item_id) or self.ground_plate_signature(who,item_id)!=job.action.expected:
@@ -1131,6 +1162,8 @@ class Kitchen:
                           'components': [{'item': c['item'], 'state': c['state']} for c in self.rules.recipes[r]['components']]}
                          for r in self.rules.menu],
                 'assembly': self.rules.multi_component,
+                # Only present when the ruleset enables it, so legacy snapshots keep their shape.
+                **({'ground_assembly': True} if self.rules.ground_assembly and self.rules.multi_component else {}),
                 'scoring': {'penalties': dict(self.rules.penalty), 'time_bonus_per_second': self.rules.time_bonus_per_second,
                             'burnt_service': [dict(t) for t in self.rules.burnt_service]},
                 'round_limit': self.rules.round_limit,
@@ -1154,7 +1187,7 @@ class Kitchen:
             assert item_id == item.food.id and self.place(item.location)
             if item.lock:
                 j = self.chefs[item.lock].job
-                assert j and j.working and j.action.kind in ('pickup', 'plate_ground', 'load_ground','swap_ground_pot') and j.action.expected[1] == item_id
+                assert j and j.working and j.action.kind in ('pickup', 'plate_ground', 'load_ground','swap_ground_pot','assemble_ground') and j.action.expected[1] == item_id
         for key, s in self.stations.items():
             if key in self.counters:
                 pass  # Each counter has exactly one physical item slot.

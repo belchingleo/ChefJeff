@@ -31,6 +31,7 @@ Selects semantics the engine already implements; it cannot add mechanics.
 | `tick_game_ms` | fixed simulation step | 50 |
 | `supported_equipment_types` | types with engine semantics | 9 types |
 | `operations.handling_game_ms` / `extinguish_game_ms` / `clear_game_ms` | take/put/plate/serve; extinguish; clear pot | 150 / 4000 / 2000 |
+| `operations.ground_assembly` | optional; multi-component menus may assemble with a plate or ingredient on the floor as on a counter (`assemble ground <item_id>`). Service: `true` | absent (floor items only swap) |
 | `movement.*` | walk 4.5 cells/s; sprint 1.4× for 1000 ms, 3000 ms cooldown; chef separation 0.4; sprint push ≤ 0.25 cells | |
 | `throw.*` | enabled; range 7 cells; 12 cells/s; minimum flight 200 ms; catch radius 0.75. Service: `range_cells` 4 and `pass_range_cells` 4 (plates, dishes, pots, extinguisher); legacy has no `pass_range_cells` | |
 | `tableware.dining_game_ms` / `return_capacity` | customer plate return delay; return station capacity | 8000 / 1 |

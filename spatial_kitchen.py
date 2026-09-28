@@ -741,7 +741,7 @@ class SpatialKitchen(Kitchen):
         actions = self.actions(who) if actions is None else actions
         if chef.job and chef.job.working:
             return next((a for a in actions if a.kind=='stop'),None)
-        priority = {'swap_pot':0,'swap_ground_pot':0,'load_ground':0,'load_counter':0,'plate_ground':0,'plate_pot':0,'plate_counter':0,'plate_from_counter':0,
+        priority = {'swap_pot':0,'swap_ground_pot':0,'load_ground':0,'assemble_ground':0,'load_counter':0,'plate_ground':0,'plate_pot':0,'plate_counter':0,'plate_from_counter':0,
                     'plate_partner':0,'extinguish':0,'put_board':1,'put_pot':1,'return_pot':1,
                     'put_counter':1,'put_sink':1,'put_tool':1,'serve':1,'wash':1,'chop':1,
                     'pickup':2,'take_board':3,'take_plate':3,'take_counter':3,'take_return':3,
@@ -751,7 +751,7 @@ class SpatialKitchen(Kitchen):
             if a.kind not in priority:continue
             if preferred:
                 if preferred.startswith('item:'):
-                    if a.kind not in ('pickup','plate_ground','load_ground','swap_ground_pot') or a.expected[1]!=preferred[5:]:continue
+                    if a.kind not in ('pickup','plate_ground','load_ground','swap_ground_pot','assemble_ground') or a.expected[1]!=preferred[5:]:continue
                 elif preferred=='partner':
                     if a.kind!='plate_partner':continue
                 elif a.target!=preferred:continue
