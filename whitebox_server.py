@@ -14,7 +14,8 @@ class SpatialJevClient(JevClient):
     def payload(self, state, actions):
         payload = super().payload(state, actions)
         # Cosmetic settings belong in the run log/UI, not repeated model tokens.
-        payload['state']['kitchen']['map'].pop('presentation',None)
+        for key in ('presentation','walk_boxes','walk_clearance','chef_separation'):
+            payload['state']['kitchen']['map'].pop(key,None)
         rules = payload['state']['rules']
         rules['ground'] = ('Any held item can be put down with drop on the current or an adjacent free floor tile. Each tile holds one item. Actions walk to the destination; placing takes timing.handling seconds. No free tile means no drop. Either chef can use pickup <item_id> to walk to and pick up an item. Taking another item automatically puts the previous item on nearby ground; without free space nothing changes. State and preparation progress are preserved, with no penalty, spoilage or heating. Only discard destroys food and costs money.')
         rules['movement'] = ('This is a top-down grid kitchen. map specifies walls, equipment and reference access positions; position is the live coordinate. Travel follows the shortest navigable polyline by actual distance, going straight when clear and leaving body clearance around walls and equipment. Switching tasks during travel starts a new route from the current position. Stations can be used from the nearest reachable adjacent floor tile; access is only a reference, not the only usable side. Chefs can pass through each other but not walls or equipment. go only moves; drop and pickup can support temporary handoffs.')

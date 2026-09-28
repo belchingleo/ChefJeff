@@ -36,6 +36,26 @@ export function workingChefDepth(y:number,row:number|undefined,facing:string,wor
 export function flightDepth(groundRow:number,height:number){
     return depthOrder(groundRow,'item')+(height>=GRID_ART.tile*.22?.62:0);
 }
+/** Mirrors the server's foot test (navigation.walkable_point) using the map's walk boxes. */
+export function footWalkable(map:any,x:number,y:number){
+    const c=map.walk_clearance??.2,e=1e-9;
+    if(!(x>=.5+c-e&&x<=map.width-1.5-c+e&&y>=.5+c-e&&y<=map.height-1.5-c+e))return false;
+    return !(map.walk_boxes||[]).some((b:number[])=>b[0]+e<x&&x<b[2]-e&&b[1]+e<y&&y<b[3]-e);
+}
+/** Local prediction of a held-key walk: straight when clear, otherwise each axis slides
+ * up to the blocking edge, as the server does. Never steps deeper into the teammate. */
+export function predictWalk(map:any,from:number[],dx:number,dy:number,other?:number[]){
+    const n=Math.max(1,Math.ceil(Math.hypot(dx,dy)/.02)),sep=map.chef_separation??.4,sx=dx/n,sy=dy/n;
+    const ok=(x:number,y:number,px:number,py:number)=>footWalkable(map,x,y)&&(!other
+        ||Math.hypot(x-other[0],y-other[1])>=Math.min(sep,Math.hypot(px-other[0],py-other[1])));
+    let x=from[0],y=from[1];
+    for(let i=0;i<n;i++){
+        if(ok(x+sx,y+sy,x,y)){x+=sx;y+=sy;continue;}
+        if(sx&&ok(x+sx,y,x,y))x+=sx;
+        if(sy&&ok(x,y+sy,x,y))y+=sy;
+    }
+    return [x,y];
+}
 /** Display order is semantic, independent of the order ingredients reached the plate. */
 export function burgerLayers(ingredients:string[]){
     const present=new Set(ingredients);

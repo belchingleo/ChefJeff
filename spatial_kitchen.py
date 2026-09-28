@@ -927,10 +927,12 @@ class SpatialKitchen(Kitchen):
             if self.nav.clear_walk_line(start,end):
                 self._move_with_chef_contact(who,end,boosted>0)
             else:
+                # Slide along the blocking edge; each axis walks up to the wall, not a step short of it.
                 for axis in (0,1):
+                    if not vector[axis]:continue
                     start = self.positions[who]
                     candidate = list(start);candidate[axis] += vector[axis]*WALK_SPEED*move_seconds
-                    if self.nav.clear_walk_line(start,candidate):self._move_with_chef_contact(who,tuple(candidate),boosted>0)
+                    self._move_with_chef_contact(who,tuple(candidate),boosted>0)
             if boosted>0:self._nudge_food(who,move_start,self.positions[who])
             self.chefs[who].location = tile_key(self.anchor(who))
         for key, p in list(self.projectiles.items()):
@@ -973,6 +975,8 @@ class SpatialKitchen(Kitchen):
             'onto': p['target'] if p['target'] in self.equipment else None, 'from': p['from'], 'to': p['to'], 'landing_cell': self.equipment[p['target']]['cell'] if p['target'] in self.equipment else self.cell(p['target']), 'started': p['started'], 'lands_at': p['lands_at']} for key,p in self.projectiles.items()]
         state['map'] = {'throw_range': THROW_RANGE, 'pass_range': PASS_RANGE, 'throw_speed': THROW_SPEED, 'width': self.width, 'height': self.height, 'walls': sorted(self.walls),
                         'equipment': self.equipment, 'walk_speed': WALK_SPEED,
+                        # Exact foot-blocking boxes, so the client can predict held-key movement.
+                        'walk_boxes': [list(b) for b in self.nav.walk_boxes], 'walk_clearance': WALK_CLEARANCE, 'chef_separation': CHEF_SEPARATION,
                         'presentation': self.map_document['presentation'],
                         'layout_version': self.map_document['id']+'-'+str(self.map_document['revision']), 'spawn_rule': 'One chef near the center of each working area; assigned sides are randomized',
                         'movement_rule': '工位可从相邻可达空地就近操作。墙和设备不能穿过；厨师接触时贴边滑动并缓慢推挤，冲刺可轻撞对方至多四分之一格。人类和 AI 共用接触规则，不自动重新规划绕人路线。普通走路可穿过地面食物。',
