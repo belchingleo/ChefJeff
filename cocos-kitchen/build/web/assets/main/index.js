@@ -1311,7 +1311,11 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               serve: 'serving_window',
               bin: 'bin'
             };
-            if (type === 'extinguisher_rack') return this.art.show(node, 'objects/extinguisher', 32, 40, 0, 18);
+            // The rack is a plain counter top; its extinguisher is drawn as the station's item while present.
+            if (type === 'extinguisher_rack') {
+              this.art.hide(node);
+              return true;
+            }
             if (type === 'serve') {
               var _this$state16;
               var facing = (_this$state16 = this.state) == null || (_this$state16 = _this$state16.kitchen.map.equipment.serve) == null ? void 0 : _this$state16.facing;
@@ -1801,7 +1805,6 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             this.art.centered(n, 'modular/source_' + (id === 'fridge' ? 'beef' : id), TILE * .6, TILE * .6);
             return;
           }
-          if (id === 'extinguisher') this.art.centered(n, 'objects/extinguisher', TILE * .5, TILE * .68);
         };
         _proto.mountMap = function mountMap() {
           var _this9 = this;
@@ -2088,6 +2091,17 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             held.setScale(.9, .9, 1);
             held.addComponent(Graphics);
             _this9.people[who] = n;
+            // What the chef carries, above the head: readable from behind, where the hand is hidden.
+            var bubble = _this9.child(n, 'held-bubble', 40, 38, 0, _this9.useModularArt ? 104 : 78),
+              bg = bubble.addComponent(Graphics);
+            _this9.rect(bg, -17, -13, 34, 30, COLORS.ink);
+            _this9.rect(bg, -16, -10, 32, 26, COLORS.paper);
+            _this9.rect(bg, -4, -17, 8, 5, COLORS.ink);
+            _this9.rect(bg, -2, -15, 4, 4, COLORS.paper);
+            var icon = _this9.child(bubble, 'icon', 42, 42, 0, 3);
+            icon.setScale(.62, .62, 1);
+            icon.addComponent(Graphics);
+            bubble.active = false;
             if (_this9.prepSample) {
               var pose = _this9.child(_this9.world, 'prep-pose-' + who, 68, 88);
               pose.active = false;
@@ -2819,6 +2833,9 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             var _held = this.motions[who].body.getChildByName('held');
             _held.active = !!c.holding;
             if (c.holding) this.drawIcon(_held.getComponent(Graphics), this.itemStage(c.holding));
+            var bubble = this.people[who].getChildByName('held-bubble');
+            bubble.active = !!c.holding;
+            if (c.holding) this.drawIcon(bubble.getChildByName('icon').getComponent(Graphics), this.itemStage(c.holding));
           }
           var apiConfigured = !!((_s$connection = s.connection) != null && _s$connection.configured) && s.phase !== 'ready' && s.phase !== 'ended';
           if (this.jeffThinking) this.jeffThinking.active = this.connected && apiConfigured && !!s.ai.thinking && !s.ai.error;

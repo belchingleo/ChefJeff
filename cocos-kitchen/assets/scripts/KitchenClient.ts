@@ -460,7 +460,8 @@ export class KitchenClient extends Component {
         if(this.useModularArt){
             if(type==='bin'){this.art.hide(node);return true;}
             const tops:Record<string,string>={board:'top_board',sink:'top_sink',stove:'top_stove',returns:'top_returns',serve:'serving_window',bin:'bin'};
-            if(type==='extinguisher_rack')return this.art.show(node,'objects/extinguisher',32,40,0,18);
+            // The rack is a plain counter top; its extinguisher is drawn as the station's item while present.
+            if(type==='extinguisher_rack'){this.art.hide(node);return true;}
             if(type==='serve'){
                 const facing=this.state?.kitchen.map.equipment.serve?.facing;
                 return this.art.tile(node,facing==='east'?'serving_east':'serving_west',TILE);
@@ -725,7 +726,6 @@ export class KitchenClient extends Component {
         if(['fridge','bread','lettuce','tomato'].includes(id)){
             this.art.centered(n,'modular/source_'+(id==='fridge'?'beef':id),TILE*.6,TILE*.6);return;
         }
-        if(id==='extinguisher')this.art.centered(n,'objects/extinguisher',TILE*.5,TILE*.68);
     }
     private mountMap(){
         const previous=new Set(this.node.children);
@@ -833,6 +833,10 @@ export class KitchenClient extends Component {
             const l=this.pixel(this.child(ln,'text',40,18).addComponent(Label),12);delete this.tagText[who]; // new nodes after a layout change need their plate drawn
             l.overflow=Label.Overflow.NONE;this.labels['person-'+who]=l;
             const body=n.getChildByName('body')!,held=this.child(body,'held',25,25,22,0);held.setScale(.9,.9,1);held.addComponent(Graphics);this.people[who]=n;
+            // What the chef carries, above the head: readable from behind, where the hand is hidden.
+            const bubble=this.child(n,'held-bubble',40,38,0,this.useModularArt?104:78),bg=bubble.addComponent(Graphics);
+            this.rect(bg,-17,-13,34,30,COLORS.ink);this.rect(bg,-16,-10,32,26,COLORS.paper);this.rect(bg,-4,-17,8,5,COLORS.ink);this.rect(bg,-2,-15,4,4,COLORS.paper);
+            const icon=this.child(bubble,'icon',42,42,0,3);icon.setScale(.62,.62,1);icon.addComponent(Graphics);bubble.active=false;
             if(this.prepSample){
                 const pose=this.child(this.world!,'prep-pose-'+who,68,88);pose.active=false;this.prepPoses[who]=pose;
                 this.registerDepth(pose,()=>{const c=this.state!.kitchen.chefs[who],e=this.state!.kitchen.map.equipment[c.target];return depthOrder(e?.cell[1]??c.position[1],'solid')+.02;});
@@ -1194,6 +1198,8 @@ export class KitchenClient extends Component {
             this.set('person-'+who,(who==='human'?'你':'Jeff')+(c.sprint?.active_remaining>0?' »':''));this.drawNameTag(who);
             const held=this.motions[who].body.getChildByName('held')!;held.active=!!c.holding;
             if(c.holding)this.drawIcon(held.getComponent(Graphics)!,this.itemStage(c.holding));
+            const bubble=this.people[who].getChildByName('held-bubble')!;bubble.active=!!c.holding;
+            if(c.holding)this.drawIcon(bubble.getChildByName('icon')!.getComponent(Graphics)!,this.itemStage(c.holding));
         }
         const apiConfigured=!!s.connection?.configured&&s.phase!=='ready'&&s.phase!=='ended';
         if(this.jeffThinking)this.jeffThinking.active=this.connected&&apiConfigured&&!!s.ai.thinking&&!s.ai.error;
