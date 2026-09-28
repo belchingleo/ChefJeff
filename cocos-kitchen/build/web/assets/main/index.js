@@ -1,5 +1,5 @@
 System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabelHelpers.js', 'cc', './LevelOneArt.ts', './KitchenGeometry.ts'], function (exports) {
-  var _inheritsLoose, _createForOfIteratorHelperLoose, _createClass, _asyncToGenerator, _regeneratorRuntime, _extends, cclegacy, _decorator, sys, profiler, view, ResolutionPolicy, UITransform, Color, Label, Node, Graphics, game, Game, Layers, Mask, Component, LevelOneArt, burgerLayers, stationView, wallNeighbours, GRID_ART, surfaceOffset, trashView, depthOrder, heatCountdown, flightDepth, workingChefDepth;
+  var _inheritsLoose, _createForOfIteratorHelperLoose, _createClass, _asyncToGenerator, _regeneratorRuntime, _extends, cclegacy, _decorator, sys, profiler, view, ResolutionPolicy, director, Camera, Color, UITransform, Label, Node, Graphics, game, Game, Layers, Sprite, Mask, Vec2, Component, LevelOneArt, predictWalk, footWalkable, burgerLayers, stationView, wallNeighbours, GRID_ART, surfaceOffset, trashView, depthOrder, heatCountdown, flightDepth, workingChefDepth;
   return {
     setters: [function (module) {
       _inheritsLoose = module.inheritsLoose;
@@ -15,19 +15,25 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
       profiler = module.profiler;
       view = module.view;
       ResolutionPolicy = module.ResolutionPolicy;
-      UITransform = module.UITransform;
+      director = module.director;
+      Camera = module.Camera;
       Color = module.Color;
+      UITransform = module.UITransform;
       Label = module.Label;
       Node = module.Node;
       Graphics = module.Graphics;
       game = module.game;
       Game = module.Game;
       Layers = module.Layers;
+      Sprite = module.Sprite;
       Mask = module.Mask;
+      Vec2 = module.Vec2;
       Component = module.Component;
     }, function (module) {
       LevelOneArt = module.LevelOneArt;
     }, function (module) {
+      predictWalk = module.predictWalk;
+      footWalkable = module.footWalkable;
       burgerLayers = module.burgerLayers;
       stationView = module.stationView;
       wallNeighbours = module.wallNeighbours;
@@ -43,23 +49,39 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
       var _dec, _class;
       cclegacy._RF.push({}, "7dafalzrH9GT4bSNEmN6gVT", "KitchenClient", undefined);
       var ccclass = _decorator.ccclass;
-      // Warm timber, enamel and order slips. Shapes use a shared 2–4 px pixel grid.
+      // Tokens from the "ChefJeff 厨房 UI" design system: every colour is sampled from the art
+      // (denim overalls, copper-eared Jeff, honey floorboards, walnut walls, steel stoves).
       var COLORS = {
-        ink: '#382f29',
-        muted: '#786b59',
-        bg: '#e7d7b8',
-        paper: '#fff5dc',
-        line: '#c2a67d',
-        human: '#4c7661',
-        jeff: '#567fa4',
-        hot: '#b64032',
+        ink: '#2b1a12',
+        muted: '#6e4e38',
+        bg: '#f0d9b5',
+        paper: '#fdf3e1',
+        honeyTint: '#fbe3b8',
+        walnut: '#6b3418',
+        honey: '#e8983a',
+        steel: '#3d5566',
+        human: '#2a5a9e',
+        humanHover: '#224a82',
+        jeff: '#a8520e',
+        herb: '#3c7a2a',
+        hot: '#b8321e',
+        hotHover: '#9c2a19',
+        // alert: danger text on the surface ground (tomato itself is 4.35:1 there).
+        alert: '#9c2a19',
+        frame: '#4a2616',
+        // Fallback programmer art only.
+        wood: '#6b3418',
+        wall: '#ae8055',
         counter: '#8baab7',
         counterEdge: '#587582',
-        counterLight: '#c6d9de',
-        wall: '#ae8055',
-        wood: '#795539',
-        light: '#f6e8ca'
+        counterLight: '#c6d9de'
       };
+      // Pixel face for titles, buttons, tags and HUD numbers (loaded by the web shell); body text stays system.
+      var PIXEL = 'ChefJeffPixel, sans-serif';
+      // Result events reach the player; AI decision notes have their own status line.
+      var RESULT_ANNOUNCE = new Set(['order', 'served', 'bad_service', 'expired', 'ready', 'burn', 'fire', 'fire_spread', 'fire_loss']);
+      var TAB_ORDER = ['language', 'level1', 'level2', 'level3', 'main', 'reset', 'cover-connection', 'help', 'resume', 'pause', 'end'];
+      var LEVEL_NAMES = ['', '第一关 · 牛排', '第二关 · 汉堡', '第三关 · 牛-堡'];
       var STAGES = {
         raw: '生肉',
         chopped: '半成品',
@@ -116,6 +138,10 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             x: 0,
             y: 0
           };
+          // Held-key walking is predicted locally so the chef answers on the same frame, then eased onto server state.
+          _this.predicted = null;
+          _this.releasedAt = null;
+          _this.stateSentAt = 0;
           _this.throwReady = false;
           _this.spacePressedAt = null;
           _this.spaceHold = false;
@@ -139,6 +165,12 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           _this.labels = {};
           _this.buttons = {};
           _this.controlAccess = null;
+          _this.reduceMotion = !sys.isNative && !!(window.matchMedia != null && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+          _this.eventsGame = '';
+          _this.seenEvents = new Set();
+          _this.lastAiError = null;
+          _this.pops = [];
+          _this.flashes = {};
           _this.tickets = [];
           _this.orderArt = [];
           _this.focusId = "";
@@ -198,26 +230,36 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             }
           };
           _this.onKey = function (e) {
-            var _document$activeEleme, _document$activeEleme2, _this$state2, _this$state3;
+            var _document$activeEleme, _document$activeEleme2, _this$state3, _this$state4;
+            // The communication dock keeps native Tab/Enter/Space; Esc hands the keyboard back.
+            var dock = !sys.isNative ? (_document$activeEleme = document.activeElement) == null ? void 0 : _document$activeEleme.closest('#kitchen-communication') : null;
             if (e.key === 'Escape') {
-              var _this$state;
+              var _this$state, _this$state2;
+              if (dock) {
+                document.activeElement.blur();
+                return;
+              }
+              if (e.repeat || !sys.isNative && document.querySelector('dialog[open]')) return;
               if (((_this$state = _this.state) == null ? void 0 : _this$state.phase) === 'running') {
                 e.preventDefault();
                 _this.clearInput();
                 _this.post('/api/pause');
+              } else if (((_this$state2 = _this.state) == null ? void 0 : _this$state2.phase) === 'paused' && _this.connected) {
+                e.preventDefault();
+                _this.post('/api/resume');
               }
               return;
             }
             if (e.isComposing || e.keyCode === 229) return;
-            if (!sys.isNative && (document.querySelector('dialog[open]') || (_document$activeEleme = document.activeElement) != null && _document$activeEleme.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"]'))) return;
-            if (!sys.isNative && (e.key === 'Enter' || e.code === 'Space') && (_document$activeEleme2 = document.activeElement) != null && _document$activeEleme2.closest('#kitchen-communication button')) return;
-            if (e.key === 'Shift' && ((_this$state2 = _this.state) == null ? void 0 : _this$state2.phase) === 'running') {
+            if (!sys.isNative && (document.querySelector('dialog[open]') || (_document$activeEleme2 = document.activeElement) != null && _document$activeEleme2.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"]'))) return;
+            if (dock && (e.key === 'Enter' || e.code === 'Space' || e.key === 'Tab')) return;
+            if (e.key === 'Shift' && ((_this$state3 = _this.state) == null ? void 0 : _this$state3.phase) === 'running') {
               e.preventDefault();
               e.stopImmediatePropagation();
               if (!e.repeat && !e.ctrlKey && !e.altKey && !e.metaKey) _this.bookmark();
               return;
             }
-            if (((_this$state3 = _this.state) == null ? void 0 : _this$state3.phase) === 'running' && _this.connected) {
+            if (((_this$state4 = _this.state) == null ? void 0 : _this$state4.phase) === 'running' && _this.connected) {
               if (e.code === 'Space') {
                 e.preventDefault();
                 if (!e.repeat && _this.spacePressedAt === null) {
@@ -244,15 +286,12 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             }
             if (e.key === 'Tab') {
               e.preventDefault();
-              var ids = Object.keys(_this.buttons).filter(function (id) {
-                return _this.buttons[id].enabled && _this.buttons[id].node.activeInHierarchy && (!_this.cover.active || ['main', 'reset', 'cover-connection', 'help', 'level1', 'level2', 'level3', 'pause', 'resume', 'end'].includes(id));
+              var ids = TAB_ORDER.filter(function (id) {
+                return _this.buttons[id].enabled && _this.buttons[id].node.activeInHierarchy;
               });
               if (!ids.length) return;
-              var at = ids.indexOf(_this.focusId),
-                old = _this.focusId;
-              _this.focusId = ids[(at + (e.shiftKey ? -1 : 1) + ids.length) % ids.length];
-              _this.styleButton(old);
-              _this.styleButton(_this.focusId);
+              var at = ids.indexOf(_this.focusId);
+              _this.setFocus(ids[(at + (e.shiftKey ? -1 : 1) + ids.length) % ids.length]);
             } else if (e.key === 'Enter' && _this.focusId) {
               var b = _this.buttons[_this.focusId];
               if (b != null && b.enabled && b.node.activeInHierarchy) {
@@ -261,16 +300,21 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               }
             }
           };
+          _this.onConfirmed = function (e) {
+            var _this$state5;
+            var d = e.detail;
+            if (d.ok) _this.post(d.kind === 'end' ? '/api/end' : '/api/restart');else if (d.resume && ((_this$state5 = _this.state) == null ? void 0 : _this$state5.phase) === 'paused') _this.post('/api/resume');
+          };
           _this.onKeyUp = function (e) {
             if (e.code === 'Space' && _this.spacePressedAt !== null) {
-              var _this$state4, _this$state$kitchen$c;
+              var _this$state6, _this$state$kitchen$c;
               e.preventDefault();
               var held = _this.spaceHold || _this.clock - _this.spacePressedAt >= .3;
               _this.spacePressedAt = null;
               _this.spaceHold = false;
               _this.throwReady = false;
               _this.updateThrowCue();
-              if (!held && ((_this$state4 = _this.state) == null ? void 0 : _this$state4.phase) === 'running' && _this.connected && !_this.hidden) _this.post('/api/interact', {
+              if (!held && ((_this$state6 = _this.state) == null ? void 0 : _this$state6.phase) === 'running' && _this.connected && !_this.hidden) _this.post('/api/interact', {
                 expected_item: ((_this$state$kitchen$c = _this.state.kitchen.chefs.human.holding) == null ? void 0 : _this$state$kitchen$c.id) || null
               });
               return;
@@ -289,14 +333,14 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             _this.render();
           };
           _this.scheduledPoll = function () {
-            var _this$state5;
-            var interval = ((_this$state5 = _this.state) == null ? void 0 : _this$state5.phase) === 'running' ? .2 : 1;
+            var _this$state7;
+            var interval = ((_this$state7 = _this.state) == null ? void 0 : _this$state7.phase) === 'running' ? .2 : 1;
             if (_this.clock - _this.lastScheduledPoll < interval - .01) return;
             _this.lastScheduledPoll = _this.clock;
             _this.poll();
           };
           _this.poll = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee() {
-            var _next$kitchen, _next$release, _this$state6, _this$state7, _this$state8, next, _i, _arr, id, _i2, _arr2, n, _i3, _arr3, who, frameRate;
+            var _next$kitchen, _next$release, _this$state8, _this$state9, _this$state10, sent, next, _i, _arr, id, _i2, _arr2, n, _i3, _arr3, who, frameRate;
             return _regeneratorRuntime().wrap(function _callee$(_context) {
               while (1) switch (_context.prev = _context.next) {
                 case 0:
@@ -308,12 +352,13 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                 case 2:
                   _this.polling = true;
                   _context.prev = 3;
-                  _context.next = 6;
+                  sent = _this.clock;
+                  _context.next = 7;
                   return _this.request('/api/state');
-                case 6:
+                case 7:
                   next = _context.sent;
                   if (!(!/^level-[123]-[1-9][0-9]*$/.test(((_next$kitchen = next.kitchen) == null || (_next$kitchen = _next$kitchen.map) == null ? void 0 : _next$kitchen.layout_version) || '') || ((_next$release = next.release) == null ? void 0 : _next$release.version) !== '0.5.9-alpha')) {
-                    _context.next = 15;
+                    _context.next = 17;
                     break;
                   }
                   _this.connected = false;
@@ -325,8 +370,9 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                     id = _arr[_i];
                     _this.enable(id, false);
                   }
+                  _this.hideLoading();
                   return _context.abrupt("return");
-                case 15:
+                case 17:
                   _this.enable('cover-connection', true);
                   if (_this.mounted && _this.mountedLayout !== next.kitchen.map.layout_version) {
                     for (_i2 = 0, _arr2 = [].concat(_this.mapNodes, Object.values(_this.ground), Object.values(_this.flights)); _i2 < _arr2.length; _i2++) {
@@ -343,7 +389,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                     _this.groundStages = {};
                     _this.mounted = false;
                   }
-                  if (next.game_id !== ((_this$state6 = _this.state) == null ? void 0 : _this$state6.game_id) || !_this.connected) {
+                  if (next.game_id !== ((_this$state8 = _this.state) == null ? void 0 : _this$state8.game_id) || !_this.connected) {
                     _this.selection = {
                       kind: 'none',
                       id: ''
@@ -357,11 +403,12 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                       _this.locate(_this.people[who], next.kitchen.chefs[who].position);
                     }
                   }
-                  if (next.phase !== 'running' || next.game_id !== ((_this$state7 = _this.state) == null ? void 0 : _this$state7.game_id)) _this.clearInput();
-                  if (next.game_id !== ((_this$state8 = _this.state) == null ? void 0 : _this$state8.game_id)) _this.moveSeq = Date.now() * 1000;
+                  if (next.phase !== 'running' || next.game_id !== ((_this$state9 = _this.state) == null ? void 0 : _this$state9.game_id)) _this.clearInput();
+                  if (next.game_id !== ((_this$state10 = _this.state) == null ? void 0 : _this$state10.game_id)) _this.moveSeq = Date.now() * 1000;
                   _this.state = next;
                   _this.connected = true;
                   _this.received = _this.clock;
+                  _this.stateSentAt = sent;
                   frameRate = next.phase === 'running' ? 60 : 15;
                   if (game.frameRate !== frameRate) game.frameRate = frameRate;
                   if (!sys.isNative) window.dispatchEvent(new CustomEvent('kitchen-state', {
@@ -376,12 +423,15 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                     }
                   }));
                   if (!_this.mounted) _this.mountMap();
+                  _this.processEvents();
                   _this.render();
-                  _context.next = 43;
+                  _this.hideLoading();
+                  _context.next = 49;
                   break;
-                case 30:
-                  _context.prev = 30;
+                case 35:
+                  _context.prev = 35;
                   _context.t0 = _context["catch"](3);
+                  _this.hideLoading();
                   game.frameRate = 15;
                   _this.clearInput();
                   _this.connected = false;
@@ -393,16 +443,17 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                   _this.writeLabel(_this.buttons.main.label, '重新连接');
                   _this.buttons.reset.node.active = false;
                   _this.labels['welcome-tip'].node.active = true;
-                case 43:
-                  _context.prev = 43;
+                case 49:
+                  _context.prev = 49;
                   _this.polling = false;
-                  return _context.finish(43);
-                case 46:
+                  return _context.finish(49);
+                case 52:
                 case "end":
                   return _context.stop();
               }
-            }, _callee, null, [[3, 30, 43, 46]]);
+            }, _callee, null, [[3, 35, 49, 52]]);
           }));
+          _this.tagText = {};
           return _this;
         }
         var _proto = KitchenClient.prototype;
@@ -424,16 +475,21 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           });
         };
         _proto.start = function start() {
-          var _document$getElementB,
-            _this2 = this;
-          if (!sys.isNative) (_document$getElementB = document.getElementById('kitchen-loading')) == null || _document$getElementB.remove();
+          var _this2 = this,
+            _fonts;
           if (!sys.isNative && new URLSearchParams(location.search).has('qaPerf')) profiler.showStats();else profiler.hideStats();
           view.setDesignResolutionSize(1280, 720, ResolutionPolicy.SHOW_ALL);
+          // Letterbox bands match the page's wall-plank frame instead of the engine's default grey.
+          for (var _iterator2 = _createForOfIteratorHelperLoose(((_director$getScene = director.getScene()) == null ? void 0 : _director$getScene.getComponentsInChildren(Camera)) || []), _step2; !(_step2 = _iterator2()).done;) {
+            var _director$getScene;
+            var cam = _step2.value;
+            cam.clearColor = color(COLORS.frame);
+          }
           this.node.getComponent(UITransform).setContentSize(1280, 720);
           this.box(this.node, 'background', 640, 360, 1280, 720, COLORS.bg);
           this.box(this.node, 'header', 640, 35, 1280, 70, COLORS.paper);
           this.icon(this.node, 'brand-icon', 45, 35, 'pot', 1.1);
-          this.text('brand', 'ChefJeff', 80, 30, 170, 36, 27).isBold = true;
+          this.pixel(this.text('brand', 'ChefJeff', 80, 30, 170, 36, 24), 24);
           this.text('edition', '和AI一起经营餐馆', 81, 53, 290, 20, 11).color = color(COLORS.muted);
           for (var _i4 = 0, _arr4 = [[0, 'served', '完成订单'], [1, 'money', '营业收入'], [2, 'reviews', '顾客差评']]; _i4 < _arr4.length; _i4++) {
             var _arr4$_i = _arr4[_i4],
@@ -442,51 +498,53 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               title = _arr4$_i[2];
             var x = 690 + i * 130;
             this.text(id + '-title', title, x, 19, 120, 20, 12).color = color(COLORS.muted);
-            this.text(id, '—', x, 46, 120, 32, 24).isBold = true;
+            this.pixel(this.text(id, '—', x, 46, 120, 32, 24), 24);
           }
-          this.text('clock', '准备开店', 470, 34, 220, 28, 20).fontFamily = 'monospace';
-          this.box(this.node, 'order-rail', 640, 81, 812, 8, COLORS.wood);
+          this.pixel(this.text('clock', '准备开店', 470, 34, 220, 28, 24), 24).color = color(COLORS.muted);
+          this.box(this.node, 'order-rail', 640, 81, 812, 8, COLORS.walnut);
           for (var _i5 = 0; _i5 < 5; _i5++) {
             var _x = 234 + _i5 * 164,
               n = this.make('ticket-' + _i5, _x + 78, 112, 156, 67);
             this.tickets.push(n);
-            this.text('order-id-' + _i5, '', _x + 12, 96, 145, 18, 12);
-            this.text('order-name-' + _i5, '', _x + 12, 111, 87, 21, 16).isBold = true;
-            this.text('order-time-' + _i5, '', _x + 103, 111, 45, 22, 14).fontFamily = 'monospace';
+            this.pixel(this.text('order-id-' + _i5, '', _x + 12, 96, 100, 16, 12), 12);
+            this.pixel(this.text('order-name-' + _i5, '', _x + 12, 117, 132, 26, 24), 24);
+            this.pixel(this.text('order-time-' + _i5, '', _x + 104, 96, 40, 16, 12), 12).horizontalAlign = Label.HorizontalAlign.RIGHT;
           }
           // Map geometry has a shared projection; the exterior remains plain.
           this.text('sprint-status', '', 1070, 63, 190, 16, 11).horizontalAlign = Label.HorizontalAlign.RIGHT;
-          this.text('fire-status', '', 1060, 112, 205, 25, 14).color = color(COLORS.hot);
-          this.button('pause', 'Ⅱ', 1110, 34, 44, 36, function () {
+          this.text('fire-status', '', 1060, 112, 205, 25, 14).color = color(COLORS.alert);
+          // End sits apart from pause/resume; both destructive actions ask first.
+          this.button('pause', 'Ⅱ', 1100, 34, 44, 36, function () {
             return _this2.post('/api/pause');
           });
-          this.button('resume', '▶', 1162, 34, 44, 36, function () {
+          this.button('resume', '▶', 1152, 34, 44, 36, function () {
             return _this2.post('/api/resume');
           }, this.node, 'primary');
-          this.button('end', '■', 1214, 34, 44, 36, function () {
-            return _this2.post('/api/end');
+          this.button('end', '■', 1226, 34, 44, 36, function () {
+            return _this2.confirm('end');
           }, this.node, 'danger');
           for (var _i6 = 0, _arr5 = ['pause', 'resume', 'end']; _i6 < _arr5.length; _i6++) {
             var _id = _arr5[_i6];
-            this.buttons[_id].label.fontSize = 22;
+            this.pixel(this.buttons[_id].label, 24);
           }
-          this.text('hand', '', 234, 691, 235, 22, 14).color = color(COLORS.muted);
+          this.text('hand', '', 234, 691, 235, 22, 14).color = color(COLORS.ink);
           this.text('interaction', '', 470, 691, 575, 22, 14).color = color(COLORS.ink);
-          this.text('event', '', 234, 709, 812, 18, 12).color = color(COLORS.muted);
+          this.text('event', '', 234, 709, 500, 18, 13).color = color(COLORS.ink);
+          this.text('ai-status', '', 744, 709, 302, 18, 13).horizontalAlign = Label.HorizontalAlign.RIGHT;
           this.cover = this.make('cover', 640, 360, 1280, 720);
           this.cover.on(Node.EventType.TOUCH_END, function (e) {
             e.propagationStopped = true;
           });
           var shade = this.cover.addComponent(Graphics);
-          shade.fillColor = new Color(40, 32, 25, 160);
+          shade.fillColor = new Color(43, 26, 18, 170);
           shade.rect(-640, -360, 1280, 720);
           shade.fill();
           // A cafe awning frames the start/pause board; the kitchen stays visible behind it.
           this.box(this.cover, 'welcome-shadow', 646, 367, 736, 464, COLORS.ink);
           this.box(this.cover, 'welcome-board', 640, 358, 736, 464, COLORS.paper);
-          for (var _i7 = 0; _i7 < 16; _i7++) this.box(this.cover, 'awning', 295 + _i7 * 46, 145, 46, 38, _i7 % 2 ? COLORS.light : COLORS.human);
+          for (var _i7 = 0; _i7 < 16; _i7++) this.box(this.cover, 'awning', 295 + _i7 * 46, 145, 46, 38, _i7 % 2 ? COLORS.paper : COLORS.human);
           this.text('welcome-kicker', '和AI一起经营餐馆', 340, 193, 600, 25, 13, this.cover).horizontalAlign = Label.HorizontalAlign.CENTER;
-          this.text('coverTitle', 'ChefJeff', 316, 257, 648, 64, 46, this.cover).isBold = true;
+          this.pixel(this.text('coverTitle', 'ChefJeff', 316, 244, 648, 56, 48, this.cover), 48);
           this.labels.coverTitle.horizontalAlign = Label.HorizontalAlign.CENTER;
           this.chef(this.cover, 'welcome-human', 550, 332, 'human', 1.25);
           this.chef(this.cover, 'welcome-jeff', 730, 332, 'jeff', 1.25);
@@ -508,7 +566,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             } : {});
           }, this.cover, 'primary');
           this.button('reset', '重新开局', 553, 520, 158, 48, function () {
-            return _this2.post('/api/restart');
+            return _this2.confirm('restart');
           }, this.cover);
           this.buttons.reset.node.active = false;
           this.button('cover-connection', '设置', 727, 520, 158, 48, function () {
@@ -517,28 +575,31 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           this.button('help', '操作说明', 901, 520, 158, 48, function () {
             return _this2.openHelp();
           }, this.cover);
-          this.button('level1', '第一关 · 牛排', 414, 464, 210, 28, function () {
-            return _this2.post('/api/level', {
-              level: 1
-            });
-          }, this.cover);
-          this.button('level2', '第二关 · 汉堡', 640, 464, 210, 28, function () {
-            return _this2.post('/api/level', {
-              level: 2
-            });
-          }, this.cover);
-          this.button('level3', '第三关 · 牛-堡', 866, 464, 210, 28, function () {
-            return _this2.post('/api/level', {
-              level: 3
-            });
-          }, this.cover);
+          var _loop = function _loop() {
+            var n = _arr6[_i8];
+            _this2.pixel(_this2.button('level' + n, LEVEL_NAMES[n], 188 + n * 226, 464, 210, 30, function () {
+              return _this2.post('/api/level', {
+                level: n
+              });
+            }, _this2.cover).getComponentInChildren(Label), 12);
+          };
+          for (var _i8 = 0, _arr6 = [1, 2, 3]; _i8 < _arr6.length; _i8++) {
+            _loop();
+          }
+          // Language sits on the board where people look first, not only inside Settings.
+          this.pixel(this.button('language', 'English', 944, 196, 88, 30, function () {
+            var i18n = window.kitchenI18n;
+            i18n == null || i18n.setLanguage(i18n.language === 'en' ? 'zh' : 'en');
+          }, this.cover).getComponentInChildren(Label), 12);
+          if (sys.isNative) this.buttons.language.node.active = false;
           this.text('welcome-tip', '先看操作说明，准备好了就开店。', 333, 577, 614, 19, 11, this.cover).horizontalAlign = Label.HorizontalAlign.CENTER;
           if (!sys.isNative) {
-            // Screen-reader proxies; the visible controls remain icon-only.
+            // Screen-reader proxies for every canvas button. Canvas focus moves DOM
+            // focus to the matching proxy so assistive technology follows it.
             this.controlAccess = document.createElement('div');
             this.controlAccess.style.cssText = 'position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);';
-            var _loop = function _loop() {
-              var id = _arr6[_i8];
+            var _loop2 = function _loop2() {
+              var id = _TAB_ORDER[_i9];
               var b = document.createElement('button');
               b.dataset.control = id;
               b.tabIndex = -1;
@@ -547,15 +608,19 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               };
               _this2.controlAccess.appendChild(b);
             };
-            for (var _i8 = 0, _arr6 = ['pause', 'resume', 'end']; _i8 < _arr6.length; _i8++) {
-              _loop();
+            for (var _i9 = 0, _TAB_ORDER = TAB_ORDER; _i9 < _TAB_ORDER.length; _i9++) {
+              _loop2();
             }
             document.body.appendChild(this.controlAccess);
+            var canvas = document.getElementById('GameCanvas');
+            canvas == null || canvas.setAttribute('role', 'img');
+            canvas == null || canvas.setAttribute('aria-label', 'ChefJeff 厨房画面');
           }
           game.on(Game.EVENT_HIDE, this.onHide, this);
           game.on(Game.EVENT_SHOW, this.onShow, this);
           if (!sys.isNative) {
             window.addEventListener('kitchen-language-changed', this.onLanguage);
+            window.addEventListener('kitchen-confirmed', this.onConfirmed);
             window.addEventListener('keydown', this.onKey, true);
             window.addEventListener('keyup', this.onKeyUp, true);
             window.addEventListener('mousedown', this.onMouseDown, true);
@@ -568,9 +633,31 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           game.frameRate = 15;
           this.art.load().then(function () {
             _this2.artLoaded = true;
+            _this2.loadingStep('正在连接厨房…');
             if (_this2.isValid) _this2.poll();
           });
+          if (!sys.isNative) (_fonts = document.fonts) == null || _fonts.load('24px ChefJeffPixel').then(function () {
+            // Labels drawn before the pixel face arrived keep the fallback until re-rendered.
+            for (var _iterator3 = _createForOfIteratorHelperLoose(_this2.node.getComponentsInChildren(Label)), _step3; !(_step3 = _iterator3()).done;) {
+              var l = _step3.value;
+              l.updateRenderData(true);
+            }
+            _this2.tagText = {};
+            if (_this2.state && _this2.mounted) _this2.render();
+          })["catch"](function () {});
           this.schedule(this.scheduledPoll, .2);
+        }
+        // The page's loading screen stays up until the kitchen first answers (or fails), so the
+        // cover never flashes placeholder art or a second "connecting" state.
+        ;
+
+        _proto.loadingStep = function loadingStep(text) {
+          var el = !sys.isNative && document.querySelector('#kitchen-loading span');
+          if (el) el.textContent = text;
+        };
+        _proto.hideLoading = function hideLoading() {
+          var _document$getElementB;
+          if (!sys.isNative) (_document$getElementB = document.getElementById('kitchen-loading')) == null || _document$getElementB.remove();
         };
         _proto.onDestroy = function onDestroy() {
           var _this$controlAccess;
@@ -580,6 +667,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           game.off(Game.EVENT_SHOW, this.onShow, this);
           if (!sys.isNative) {
             window.removeEventListener('kitchen-language-changed', this.onLanguage);
+            window.removeEventListener('kitchen-confirmed', this.onConfirmed);
             window.removeEventListener('keydown', this.onKey, true);
             window.removeEventListener('keyup', this.onKeyUp, true);
             window.removeEventListener('mousedown', this.onMouseDown, true);
@@ -590,10 +678,10 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }
         };
         _proto.onHide = function onHide() {
-          var _this$state9;
+          var _this$state11;
           this.hidden = true;
           this.clearInput();
-          if (((_this$state9 = this.state) == null ? void 0 : _this$state9.phase) === 'running') this.post('/api/pause', {
+          if (((_this$state11 = this.state) == null ? void 0 : _this$state11.phase) === 'running') this.post('/api/pause', {
             reason: 'hidden'
           });
         };
@@ -609,16 +697,82 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           this.clearInput();
           if (!sys.isNative) window.dispatchEvent(new Event('kitchen-open-connection'));
         };
+        _proto.setFocus = function setFocus(id) {
+          var _this$controlAccess2, _this$controlAccess3;
+          var old = this.focusId;
+          this.focusId = id;
+          this.styleButton(old);
+          this.styleButton(id);
+          var proxy = (_this$controlAccess2 = this.controlAccess) == null ? void 0 : _this$controlAccess2.querySelector("[data-control=\"" + id + "\"]");
+          if (proxy && !proxy.hidden) proxy.focus({
+            preventScroll: true
+          });else if ((_this$controlAccess3 = this.controlAccess) != null && _this$controlAccess3.contains(document.activeElement)) document.activeElement.blur();
+        }
+        // Ending or abandoning a live round asks first; the round is paused meanwhile.
+        ;
+
+        _proto.confirm = /*#__PURE__*/
+        function () {
+          var _confirm = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee2(kind) {
+            var _this$state12;
+            var phase, resume;
+            return _regeneratorRuntime().wrap(function _callee2$(_context2) {
+              while (1) switch (_context2.prev = _context2.next) {
+                case 0:
+                  phase = (_this$state12 = this.state) == null ? void 0 : _this$state12.phase;
+                  if (!(sys.isNative || kind === 'restart' && phase !== 'paused')) {
+                    _context2.next = 4;
+                    break;
+                  }
+                  this.post(kind === 'end' ? '/api/end' : '/api/restart');
+                  return _context2.abrupt("return");
+                case 4:
+                  this.clearInput();
+                  resume = phase === 'running';
+                  if (!resume) {
+                    _context2.next = 9;
+                    break;
+                  }
+                  _context2.next = 9;
+                  return this.post('/api/pause');
+                case 9:
+                  window.dispatchEvent(new CustomEvent('kitchen-confirm', {
+                    detail: {
+                      kind: kind,
+                      resume: resume
+                    }
+                  }));
+                case 10:
+                case "end":
+                  return _context2.stop();
+              }
+            }, _callee2, this);
+          }));
+          function confirm(_x2) {
+            return _confirm.apply(this, arguments);
+          }
+          return confirm;
+        }();
+        _proto.announce = function announce(message) {
+          if (!sys.isNative && message) window.dispatchEvent(new CustomEvent('kitchen-announce', {
+            detail: {
+              message: message
+            }
+          }));
+        };
         _proto.updateSpaceGesture = function updateSpaceGesture() {
-          var _this$state10;
-          if (this.connected && !this.hidden && ((_this$state10 = this.state) == null ? void 0 : _this$state10.phase) === 'running' && this.spacePressedAt !== null && !this.spaceHold && this.clock - this.spacePressedAt >= .3) {
+          var _this$state13;
+          if (this.connected && !this.hidden && ((_this$state13 = this.state) == null ? void 0 : _this$state13.phase) === 'running' && this.spacePressedAt !== null && !this.spaceHold && this.clock - this.spacePressedAt >= .3) {
             this.spaceHold = true;
             if (!this.throwReady) this.toggleThrow();
           }
-        };
+        }
+        // Anything held can be thrown or passed; the server applies each item's range (currently 4 tiles for all).
+        ;
+
         _proto.toggleThrow = function toggleThrow() {
-          var _this$state11;
-          var hand = (_this$state11 = this.state) == null ? void 0 : _this$state11.kitchen.chefs.human.holding;
+          var _this$state14;
+          var hand = (_this$state14 = this.state) == null ? void 0 : _this$state14.kitchen.chefs.human.holding;
           if (!this.throwReady && !hand) {
             this.set('event', '手里没有可以抛出的东西。');
             return;
@@ -634,24 +788,24 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }
         };
         _proto.sendMove = /*#__PURE__*/function () {
-          var _sendMove = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee2(dx, dy, sprint) {
+          var _sendMove = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee3(dx, dy, sprint) {
             var seq;
-            return _regeneratorRuntime().wrap(function _callee2$(_context2) {
-              while (1) switch (_context2.prev = _context2.next) {
+            return _regeneratorRuntime().wrap(function _callee3$(_context3) {
+              while (1) switch (_context3.prev = _context3.next) {
                 case 0:
                   if (sprint === void 0) {
                     sprint = false;
                   }
                   if (!(!this.state || this.state.phase !== 'running' || !this.connected)) {
-                    _context2.next = 3;
+                    _context3.next = 3;
                     break;
                   }
-                  return _context2.abrupt("return");
+                  return _context3.abrupt("return");
                 case 3:
                   seq = ++this.moveSeq;
                   this.lastMoveAt = this.clock;
-                  _context2.prev = 5;
-                  _context2.next = 8;
+                  _context3.prev = 5;
+                  _context3.next = 8;
                   return this.request('/api/move', {
                     game_id: this.state.game_id,
                     dx: dx,
@@ -660,19 +814,19 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                     sprint: sprint
                   });
                 case 8:
-                  _context2.next = 13;
+                  _context3.next = 13;
                   break;
                 case 10:
-                  _context2.prev = 10;
-                  _context2.t0 = _context2["catch"](5);
-                  this.set('event', _context2.t0.message);
+                  _context3.prev = 10;
+                  _context3.t0 = _context3["catch"](5);
+                  this.set('event', _context3.t0.message);
                 case 13:
                 case "end":
-                  return _context2.stop();
+                  return _context3.stop();
               }
-            }, _callee2, this, [[5, 10]]);
+            }, _callee3, this, [[5, 10]]);
           }));
-          function sendMove(_x2, _x3, _x4) {
+          function sendMove(_x3, _x4, _x5) {
             return _sendMove.apply(this, arguments);
           }
           return sendMove;
@@ -692,6 +846,40 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             y: dy
           };
           this.sendMove(dx, dy, sprint);
+        };
+        _proto.predictHuman = function predictHuman(k, c, dt, n) {
+          var _c$sprint, _k$chefs$jeff;
+          var d = this.manualDirection;
+          if (!c.position) {
+            this.predicted = this.releasedAt = null;
+            return null;
+          }
+          if (d.x === 0 && d.y === 0) {
+            // Released: stay put until a state requested after the stop arrives, then ease onto it (no stale pull-back).
+            if (this.predicted && this.releasedAt === null) this.releasedAt = this.clock;
+            if (this.predicted && this.stateSentAt <= this.releasedAt && this.clock - this.releasedAt < .6) return this.predicted;
+            this.predicted = this.releasedAt = null;
+            return null;
+          }
+          this.releasedAt = null;
+          var rate = (k.map.walk_speed || 4.5) * (((_c$sprint = c.sprint) == null ? void 0 : _c$sprint.active_remaining) > 0 ? 1.4 : 1) * this.state.speed,
+            other = (_k$chefs$jeff = k.chefs.jeff) == null ? void 0 : _k$chefs$jeff.position;
+          var from = this.predicted || [(n.position.x + 640 - MAPX) / TILE - .5, (360 - MAPY - n.position.y) / TILE - .5];
+          var next = predictWalk(k.map, from, d.x * rate * dt, d.y * rate * dt, other);
+          // Until the server reports this same direction it has not received the key yet: trust the prediction.
+          // Afterwards ease toward its position carried forward to now; snap only on a large disagreement (e.g. a push).
+          var heading = c.move_direction || [0, 0],
+            synced = !!c.manual_moving && Math.abs(heading[0] - d.x) < 1e-6 && Math.abs(heading[1] - d.y) < 1e-6;
+          var age = synced ? Math.min(.3, Math.max(0, this.clock - this.received)) : 0,
+            server = predictWalk(k.map, c.position, d.x * rate * age, d.y * rate * age, other);
+          var ex = server[0] - next[0],
+            ey = server[1] - next[1],
+            pull = Math.min(1, dt * 4);
+          if (Math.hypot(ex, ey) > 1.2) next = server;else if (synced) {
+            var eased = [next[0] + ex * pull, next[1] + ey * pull];
+            if (footWalkable(k.map, eased[0], eased[1])) next = eased;
+          }
+          return this.predicted = next;
         };
         _proto.clearInput = function clearInput() {
           this.lastDirectionTap = {
@@ -721,8 +909,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }
         };
         _proto.onRightClick = function onRightClick() {
-          var _this$state12;
-          if (((_this$state12 = this.state) == null ? void 0 : _this$state12.phase) === 'running' && this.connected) this.toggleThrow();
+          var _this$state15;
+          if (((_this$state15 = this.state) == null ? void 0 : _this$state15.phase) === 'running' && this.connected) this.toggleThrow();
         };
         _proto.mapTarget = function mapTarget(x, y) {
           if (this.throwReady) {
@@ -732,29 +920,29 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           return false;
         };
         _proto.throwTo = /*#__PURE__*/function () {
-          var _throwTo = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee3(target) {
+          var _throwTo = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee4(target) {
             var held, gameId;
-            return _regeneratorRuntime().wrap(function _callee3$(_context3) {
-              while (1) switch (_context3.prev = _context3.next) {
+            return _regeneratorRuntime().wrap(function _callee4$(_context4) {
+              while (1) switch (_context4.prev = _context4.next) {
                 case 0:
                   if (this.state) {
-                    _context3.next = 2;
+                    _context4.next = 2;
                     break;
                   }
-                  return _context3.abrupt("return");
+                  return _context4.abrupt("return");
                 case 2:
                   held = this.state.kitchen.chefs.human.holding, gameId = this.state.game_id;
                   this.throwReady = false;
                   this.updateThrowCue();
                   this.cancelManualMovement();
                   if (held) {
-                    _context3.next = 8;
+                    _context4.next = 8;
                     break;
                   }
-                  return _context3.abrupt("return");
+                  return _context4.abrupt("return");
                 case 8:
-                  _context3.prev = 8;
-                  _context3.next = 11;
+                  _context4.prev = 8;
+                  _context4.next = 11;
                   return this.request('/api/throw', {
                     game_id: gameId,
                     target: target,
@@ -762,23 +950,23 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                     request_id: Date.now().toString(36) + '-' + Math.random().toString(36).slice(2)
                   });
                 case 11:
-                  _context3.next = 16;
+                  _context4.next = 16;
                   break;
                 case 13:
-                  _context3.prev = 13;
-                  _context3.t0 = _context3["catch"](8);
-                  this.set('event', _context3.t0.message);
+                  _context4.prev = 13;
+                  _context4.t0 = _context4["catch"](8);
+                  this.set('event', _context4.t0.message);
                 case 16:
-                  _context3.prev = 16;
+                  _context4.prev = 16;
                   this.poll();
-                  return _context3.finish(16);
+                  return _context4.finish(16);
                 case 19:
                 case "end":
-                  return _context3.stop();
+                  return _context4.stop();
               }
-            }, _callee3, this, [[8, 13, 16, 19]]);
+            }, _callee4, this, [[8, 13, 16, 19]]);
           }));
-          function throwTo(_x5) {
+          function throwTo(_x6) {
             return _throwTo.apply(this, arguments);
           }
           return throwTo;
@@ -812,6 +1000,26 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           g.fillColor = color(fill);
           g.rect(x, y, w, h);
           g.fill();
+        };
+        _proto.pixel = function pixel(l, size) {
+          l.fontFamily = PIXEL;
+          l.fontSize = size;
+          l.lineHeight = size + 4;
+          l.isBold = false;
+          return l;
+        }
+        // Selected target: ink edge for contrast on any floor or counter, green for the player.
+        ;
+
+        _proto.focusFrame = function focusFrame(g, x, y, w, h) {
+          g.lineWidth = 2;
+          g.strokeColor = color(COLORS.ink);
+          g.rect(x + 1, y + 1, w - 2, h - 2);
+          g.stroke();
+          g.lineWidth = 3;
+          g.strokeColor = color(COLORS.human);
+          g.rect(x + 3.5, y + 3.5, w - 7, h - 7);
+          g.stroke();
         };
         _proto.paintBox = function paintBox(n, w, h, fill) {
           var g = n.getComponent(Graphics) || n.addComponent(Graphics);
@@ -860,9 +1068,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           labelNode.addComponent(UITransform).setContentSize(w - 22, h - 6);
           var l = labelNode.addComponent(Label);
           this.writeLabel(l, title);
-          l.fontSize = 17;
-          l.lineHeight = 22;
-          l.isBold = true;
+          this.pixel(l, 24);
           l.overflow = Label.Overflow.SHRINK;
           l.verticalAlign = Label.VerticalAlign.CENTER;
           this.buttons[id] = {
@@ -899,13 +1105,31 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
         _proto.styleButton = function styleButton(id) {
           var b = this.buttons[id];
           if (!b) return;
-          var fill = !b.enabled ? '#d9cbb1' : b.tone === 'primary' ? b.hover ? '#3d6551' : COLORS.human : b.hover ? '#ffe4a5' : COLORS.paper;
-          var g = this.paintBox(b.node, b.width, b.height, fill);
-          g.strokeColor = color(this.focusId === id ? '#e4a43b' : b.tone === 'primary' ? COLORS.human : COLORS.line);
-          g.lineWidth = this.focusId === id ? 4 : 2;
-          g.rect(-b.width / 2 + 1, -b.height / 2 + 1, b.width - 2, b.height - 2);
+          // Pressable: 2px ink border over a 3px ink shadow. Selected sits pressed-in on honey;
+          // disabled goes flat on the surface so the two never look alike.
+          var sel = !!b.selected,
+            flat = sel || !b.enabled,
+            dy = sel ? -3 : 0,
+            w = b.width,
+            h = b.height;
+          var fill = sel ? COLORS.honey : !b.enabled ? COLORS.bg : b.tone === 'primary' ? b.hover ? COLORS.humanHover : COLORS.human : b.tone === 'danger' ? b.hover ? COLORS.hotHover : COLORS.hot : b.hover ? COLORS.honeyTint : COLORS.paper;
+          var g = b.node.getComponent(Graphics) || b.node.addComponent(Graphics);
+          g.clear();
+          if (!flat) this.rect(g, -w / 2, -h / 2 - 3, w, h, COLORS.ink);
+          this.rect(g, -w / 2, -h / 2 + dy, w, h, fill);
+          g.strokeColor = color(flat && !sel ? COLORS.muted : COLORS.ink);
+          g.lineWidth = 2;
+          g.rect(-w / 2 + 1, -h / 2 + 1 + dy, w - 2, h - 2);
           g.stroke();
-          b.label.color = color(!b.enabled ? '#82755f' : b.tone === 'primary' ? COLORS.paper : b.tone === 'danger' ? COLORS.hot : COLORS.ink);
+          // Keyboard focus: an ink ring outside the button (and its shadow) with a gap.
+          if (this.focusId === id) {
+            g.strokeColor = color(COLORS.ink);
+            g.lineWidth = 3;
+            g.rect(-w / 2 - 5, -h / 2 - 8, w + 10, h + 13);
+            g.stroke();
+          }
+          b.label.node.setPosition(0, dy);
+          b.label.color = color(sel ? COLORS.ink : !b.enabled ? COLORS.muted : b.tone === 'primary' || b.tone === 'danger' ? COLORS.paper : COLORS.ink);
         };
         _proto.enable = function enable(id, enabled) {
           var b = this.buttons[id];
@@ -968,14 +1192,16 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             this.drawIcon(g, 'clean_plate');
             var parts = type.slice(9).split(',');
             var y = -8;
-            for (var _i9 = 0, _arr7 = ['bread', 'beef', 'lettuce', 'tomato']; _i9 < _arr7.length; _i9++) {
-              var name = _arr7[_i9];
+            for (var _i10 = 0, _arr7 = ['bread', 'beef', 'lettuce', 'tomato']; _i10 < _arr7.length; _i10++) {
+              var name = _arr7[_i10];
               if (parts.includes(name)) {
-                r(-13, y, 26, 5, name === 'bread' ? '#d1a362' : name === 'beef' ? '#846144' : name === 'lettuce' ? '#639650' : '#c45643');
+                r(-13, y, 26, 5, name === 'bread' ? '#d1a362' : name === 'beef' ? parts.includes('burnt') ? FOOD_COLORS.burnt : '#846144' : name === 'lettuce' ? '#639650' : '#c45643');
                 y += 5;
               }
             }
-            if (parts.length === 4) r(-12, y, 24, 4, '#d1a362');
+            if (['bread', 'beef', 'lettuce', 'tomato'].every(function (name) {
+              return parts.includes(name);
+            })) r(-12, y, 24, 4, '#d1a362');
           } else if (type === 'counter') {
             r(-24, -19, 48, 36, COLORS.wood);
             r(-20, -14, 40, 26, '#b48b5e');
@@ -1068,8 +1294,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
         };
         _proto.artIcon = function artIcon(node, type) {
           var _this5 = this;
-          for (var _iterator2 = _createForOfIteratorHelperLoose(node.children), _step2; !(_step2 = _iterator2()).done;) {
-            var _child = _step2.value;
+          for (var _iterator4 = _createForOfIteratorHelperLoose(node.children), _step4; !(_step4 = _iterator4()).done;) {
+            var _child = _step4.value;
             if (_child.name === 'assembly-parts' || _child.name === 'supply-symbol' || _child.name === 'pot-contents') _child.active = false;
           }
           if (this.useModularArt) {
@@ -1087,8 +1313,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             };
             if (type === 'extinguisher_rack') return this.art.show(node, 'objects/extinguisher', 32, 40, 0, 18);
             if (type === 'serve') {
-              var _this$state13;
-              var facing = (_this$state13 = this.state) == null || (_this$state13 = _this$state13.kitchen.map.equipment.serve) == null ? void 0 : _this$state13.facing;
+              var _this$state16;
+              var facing = (_this$state16 = this.state) == null || (_this$state16 = _this$state16.kitchen.map.equipment.serve) == null ? void 0 : _this$state16.facing;
               return this.art.tile(node, facing === 'east' ? 'serving_east' : 'serving_west', TILE);
             }
             if (tops[type] && this.art.tile(node, tops[type], TILE)) return true;
@@ -1119,17 +1345,23 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             var parts = node.getChildByName('assembly-parts');
             if (!parts) parts = this.child(node, 'assembly-parts', 44, 44);
             parts.active = true;
-            for (var _iterator3 = _createForOfIteratorHelperLoose(parts.children), _step3; !(_step3 = _iterator3()).done;) {
-              var child = _step3.value;
+            for (var _iterator5 = _createForOfIteratorHelperLoose(parts.children), _step5; !(_step5 = _iterator5()).done;) {
+              var child = _step5.value;
               child.active = false;
             }
-            var layers = burgerLayers(type.slice(9).split(','));
+            var ingredients = type.slice(9).split(','),
+              burnt = ingredients.includes('burnt');
+            var layers = burgerLayers(ingredients);
             layers.forEach(function (name, i) {
+              var _item$getChildByName;
               var item = parts.getChildByName(name) || _this5.child(parts, name, 36, 24);
               item.active = true;
               item.setPosition(0, -3 + i * 4);
               item.setSiblingIndex(parts.children.length - 1);
               _this5.art.centered(item, 'feedback/' + name, 34, 22);
+              // No separate charred sprite: darken the beef layer; reused nodes reset to white.
+              var sprite = (_item$getChildByName = item.getChildByName('reviewed-art')) == null ? void 0 : _item$getChildByName.getComponent(Sprite);
+              if (sprite) sprite.color = name === 'beef' && burnt ? new Color(78, 64, 58, 255) : Color.WHITE;
             });
             return true;
           }
@@ -1177,12 +1409,22 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           return this.art.centered(node, key, size, size);
         };
         _proto.drawPot = function drawPot(node) {
-          var _node$parent, _node$parent2, _node$parent$parent, _this$state14;
+          var _node$parent, _node$parent2, _node$parent$parent, _this$state17;
           var station = (_node$parent = node.parent) != null && _node$parent.name.startsWith('station-') ? node.parent.name.slice(8) : '';
           var holder = ((_node$parent2 = node.parent) == null ? void 0 : _node$parent2.name) === 'body' ? (_node$parent$parent = node.parent.parent) == null ? void 0 : _node$parent$parent.name : '';
-          var facing = holder ? (_this$state14 = this.state) == null || (_this$state14 = _this$state14.kitchen.chefs[holder]) == null ? void 0 : _this$state14.facing : '';
+          var facing = holder ? (_this$state17 = this.state) == null || (_this$state17 = _this$state17.kitchen.chefs[holder]) == null ? void 0 : _this$state17.facing : '';
           var axis = station ? stationView(this.state.kitchen.map, station).device_axis : facing === 'up' || facing === 'down' ? 'vertical' : 'horizontal';
           return this.art.centered(node, this.art.has('modular/pot_' + axis) ? 'modular/pot_' + axis : 'objects/pot', TILE * (axis === 'vertical' ? .62 : .76), TILE * .76);
+        };
+        _proto.closingSummary = function closingSummary(k, won) {
+          var count = function count(status) {
+              return k.orders.filter(function (o) {
+                return o.status === status;
+              }).length;
+            },
+            target = k.goals.target_money;
+          // Each line ends in fixed text so its translation template cannot swallow the next line.
+          return "\u51C0\u6536\u5165 \xA5" + k.money + "\uFF08\u76EE\u6807 \xA5" + target + "\uFF09" + (won ? '' : "\uFF0C\u8FD8\u5DEE \xA5" + Math.max(0, target - k.money) + " \u5143") + ("\n\u5B8C\u6210 " + k.served + " \u5355 \xB7 \u8D85\u65F6 " + count('expired') + " \u5355 \xB7 \u5173\u5E97\u65F6\u672A\u5B8C\u6210 " + count('unresolved_at_close') + " \u5355") + '\n本局已结束，点“准备下一局”再来一局。';
         };
         _proto.itemName = function itemName(f) {
           var _f$components;
@@ -1205,12 +1447,13 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           return STAGES[this.itemStage(f)] || f.meaning || f.stage;
         };
         _proto.itemStage = function itemStage(f) {
-          var _f$components2, _this$state15;
+          var _f$components2, _this$state18;
+          // Burnt burgers keep their layers (burnt dishes can be served); only the beef is drawn charred.
           if (f != null && f.plate_id && (_f$components2 = f.components) != null && _f$components2.some(function (x) {
             return x !== 'beef';
-          }) && f.stage !== 'burnt') return 'assembly:' + f.components.join(',');
+          })) return 'assembly:' + f.components.join(',') + (f.stage === 'burnt' ? ',burnt' : '');
           if (['bread', 'lettuce', 'tomato'].includes(f == null ? void 0 : f.ingredient) && !(f != null && f.plate_id)) return f.ingredient + '_' + f.stage;
-          if (this.useArt && (f == null ? void 0 : f.stage) === 'raw' && (f == null ? void 0 : f.ingredient) === 'beef' && f.chop_remaining < (((_this$state15 = this.state) == null || (_this$state15 = _this$state15.rules) == null ? void 0 : _this$state15.chop_seconds) || 6)) return 'processing';
+          if (this.useArt && (f == null ? void 0 : f.stage) === 'raw' && (f == null ? void 0 : f.ingredient) === 'beef' && f.chop_remaining < (((_this$state18 = this.state) == null || (_this$state18 = _this$state18.rules) == null ? void 0 : _this$state18.chop_seconds) || 6)) return 'processing';
           return (f == null ? void 0 : f.stage) === 'pot' ? f.contents ? 'pot_' + f.contents.stage : 'pot' : f != null && f.plate_id ? 'plated_' + f.stage : f == null ? void 0 : f.stage;
         };
         _proto.chef = function chef(parent, name, x, y, who, scale) {
@@ -1276,20 +1519,20 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           return n;
         };
         _proto.request = /*#__PURE__*/function () {
-          var _request = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee4(path, body) {
+          var _request = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee5(path, body) {
             var _this7 = this;
             var hosted;
-            return _regeneratorRuntime().wrap(function _callee4$(_context4) {
-              while (1) switch (_context4.prev = _context4.next) {
+            return _regeneratorRuntime().wrap(function _callee5$(_context5) {
+              while (1) switch (_context5.prev = _context5.next) {
                 case 0:
                   hosted = typeof window !== 'undefined' ? window.chefjeffHostedRequest : null;
                   if (!hosted) {
-                    _context4.next = 3;
+                    _context5.next = 3;
                     break;
                   }
-                  return _context4.abrupt("return", hosted(path, body));
+                  return _context5.abrupt("return", hosted(path, body));
                 case 3:
-                  return _context4.abrupt("return", new Promise(function (resolve, reject) {
+                  return _context5.abrupt("return", new Promise(function (resolve, reject) {
                     var xhr = new XMLHttpRequest();
                     xhr.open(body ? 'POST' : 'GET', _this7.endpoint + path, true);
                     xhr.timeout = 5000;
@@ -1312,27 +1555,27 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                   }));
                 case 4:
                 case "end":
-                  return _context4.stop();
+                  return _context5.stop();
               }
-            }, _callee4);
+            }, _callee5);
           }));
-          function request(_x6, _x7) {
+          function request(_x7, _x8) {
             return _request.apply(this, arguments);
           }
           return request;
         }();
         _proto.bookmark = /*#__PURE__*/function () {
-          var _bookmark = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee5() {
+          var _bookmark = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee6() {
             var _this8 = this;
             var round, notice, data;
-            return _regeneratorRuntime().wrap(function _callee5$(_context5) {
-              while (1) switch (_context5.prev = _context5.next) {
+            return _regeneratorRuntime().wrap(function _callee6$(_context6) {
+              while (1) switch (_context6.prev = _context6.next) {
                 case 0:
                   if (!(!this.state || this.hidden)) {
-                    _context5.next = 2;
+                    _context6.next = 2;
                     break;
                   }
-                  return _context5.abrupt("return");
+                  return _context6.abrupt("return");
                 case 2:
                   round = this.state.game_id;
                   notice = function notice(message) {
@@ -1344,32 +1587,32 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                     }));
                   };
                   if (this.connected) {
-                    _context5.next = 7;
+                    _context6.next = 7;
                     break;
                   }
                   notice('标记未保存，请重试。');
-                  return _context5.abrupt("return");
+                  return _context6.abrupt("return");
                 case 7:
-                  _context5.prev = 7;
-                  _context5.next = 10;
+                  _context6.prev = 7;
+                  _context6.next = 10;
                   return this.request('/api/bookmark', {
                     game_id: round,
                     request_id: Date.now().toString(36) + '-' + Math.random().toString(36).slice(2)
                   });
                 case 10:
-                  data = _context5.sent;
+                  data = _context6.sent;
                   notice(data.merged ? '已延长标记片段' : '已标记当前片段');
-                  _context5.next = 17;
+                  _context6.next = 17;
                   break;
                 case 14:
-                  _context5.prev = 14;
-                  _context5.t0 = _context5["catch"](7);
+                  _context6.prev = 14;
+                  _context6.t0 = _context6["catch"](7);
                   notice('标记未确认，请检查导出记录。');
                 case 17:
                 case "end":
-                  return _context5.stop();
+                  return _context6.stop();
               }
-            }, _callee5, this, [[7, 14]]);
+            }, _callee6, this, [[7, 14]]);
           }));
           function bookmark() {
             return _bookmark.apply(this, arguments);
@@ -1377,54 +1620,60 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           return bookmark;
         }();
         _proto.post = /*#__PURE__*/function () {
-          var _post = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee6(path, extra) {
-            return _regeneratorRuntime().wrap(function _callee6$(_context6) {
-              while (1) switch (_context6.prev = _context6.next) {
+          var _post = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee7(path, extra) {
+            return _regeneratorRuntime().wrap(function _callee7$(_context7) {
+              while (1) switch (_context7.prev = _context7.next) {
                 case 0:
                   if (extra === void 0) {
                     extra = {};
                   }
                   if (path === '/api/action' || path === '/api/select' || path === '/api/interact' || path === '/api/pause' || path === '/api/end' || path === '/api/reset' || path === '/api/restart') this.clearInput();
                   if (!(this.pending && path !== '/api/pause' || !this.state)) {
-                    _context6.next = 4;
+                    _context7.next = 4;
                     break;
                   }
-                  return _context6.abrupt("return");
+                  return _context7.abrupt("return");
                 case 4:
+                  if (!(['/api/action', '/api/select', '/api/interact'].includes(path) && this.state.phase !== 'running')) {
+                    _context7.next = 6;
+                    break;
+                  }
+                  return _context7.abrupt("return");
+                case 6:
                   this.pending = true;
                   this.render();
-                  _context6.prev = 6;
-                  _context6.next = 9;
+                  _context7.prev = 8;
+                  _context7.next = 11;
                   return this.request(path, _extends({
                     game_id: this.state.game_id,
                     request_id: Date.now().toString(36) + '-' + Math.random().toString(36).slice(2)
                   }, extra));
-                case 9:
-                  _context6.next = 14;
-                  break;
                 case 11:
-                  _context6.prev = 11;
-                  _context6.t0 = _context6["catch"](6);
-                  this.set('event', _context6.t0.message);
-                case 14:
-                  _context6.prev = 14;
+                  _context7.next = 16;
+                  break;
+                case 13:
+                  _context7.prev = 13;
+                  _context7.t0 = _context7["catch"](8);
+                  this.set('event', _context7.t0.message);
+                case 16:
+                  _context7.prev = 16;
                   this.pending = false;
                   this.poll();
-                  return _context6.finish(14);
-                case 18:
+                  return _context7.finish(16);
+                case 20:
                 case "end":
-                  return _context6.stop();
+                  return _context7.stop();
               }
-            }, _callee6, this, [[6, 11, 14, 18]]);
+            }, _callee7, this, [[8, 13, 16, 20]]);
           }));
-          function post(_x8, _x9) {
+          function post(_x9, _x10) {
             return _post.apply(this, arguments);
           }
           return post;
         }();
         _proto.act = function act(key) {
-          var _this$state16;
-          var a = (_this$state16 = this.state) == null ? void 0 : _this$state16.actions.find(function (a) {
+          var _this$state19;
+          var a = (_this$state19 = this.state) == null ? void 0 : _this$state19.actions.find(function (a) {
             return a.key === key;
           });
           if (a) this.post('/api/action', {
@@ -1435,9 +1684,9 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
         _proto.modularWallDecor = function modularWallDecor(wallNode, x, y, hasSouth) {
           if (y !== 0 || hasSouth) return;
           var faceH = GRID_ART.northFace * TILE / GRID_ART.unit;
-          for (var _iterator4 = _createForOfIteratorHelperLoose(((_kitchen$map$presenta = this.state.kitchen.map.presentation) == null ? void 0 : _kitchen$map$presenta.decorations) || []), _step4; !(_step4 = _iterator4()).done;) {
+          for (var _iterator6 = _createForOfIteratorHelperLoose(((_kitchen$map$presenta = this.state.kitchen.map.presentation) == null ? void 0 : _kitchen$map$presenta.decorations) || []), _step6; !(_step6 = _iterator6()).done;) {
             var _kitchen$map$presenta;
-            var decor = _step4.value;
+            var decor = _step6.value;
             if (decor.cell[0] !== x) continue;
             var n = this.child(wallNode, 'wall-decor-' + decor.asset, TILE, TILE, 0, -TILE / 2 + faceH / 2);
             this.art.centered(n, 'modular/' + decor.asset, TILE * .65, faceH * .64);
@@ -1486,8 +1735,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           var g = n.getComponent(Graphics);
           g.clear();
           this.art.hide(n);
-          for (var _i10 = 0, _arr8 = ['supply-symbol', 'assembly-parts', 'pot-contents']; _i10 < _arr8.length; _i10++) {
-            var name = _arr8[_i10];
+          for (var _i11 = 0, _arr8 = ['supply-symbol', 'assembly-parts', 'pot-contents']; _i11 < _arr8.length; _i11++) {
+            var name = _arr8[_i11];
             var child = n.getChildByName(name);
             if (child) child.active = false;
           }
@@ -1505,8 +1754,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             var east = this.state.kitchen.map.equipment[id].facing === 'west',
               d = east ? 1 : -1;
             g.fillColor = color('#344756');
-            for (var _i11 = 0, _arr9 = [-10, 5]; _i11 < _arr9.length; _i11++) {
-              var x = _arr9[_i11];
+            for (var _i12 = 0, _arr9 = [-10, 5]; _i12 < _arr9.length; _i12++) {
+              var x = _arr9[_i12];
               g.moveTo(d * (x - 5), -12);
               g.lineTo(d * (x + 6), 0);
               g.lineTo(d * (x - 5), 12);
@@ -1559,10 +1808,10 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }
           this.depthEntries = [];
           this.world = this.child(this.node, 'kitchen-world', 1280, 720);
-          var _loop2 = function _loop2(_y) {
-            var _loop6 = function _loop6(_x11) {
-              var wall = walls.has(_x11 + "," + _y),
-                n = _this9.make('tile', MAPX + (_x11 + .5) * TILE, MAPY + (_y + .5) * TILE, TILE, TILE, _this9.world);
+          var _loop3 = function _loop3(_y) {
+            var _loop7 = function _loop7(_x12) {
+              var wall = walls.has(_x12 + "," + _y),
+                n = _this9.make('tile', MAPX + (_x12 + .5) * TILE, MAPY + (_y + .5) * TILE, TILE, TILE, _this9.world);
               n.setScale(TILE / 52, TILE / 52, 1);
               var g = n.addComponent(Graphics),
                 r = function r(a, b, w, h, c) {
@@ -1577,18 +1826,18 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                 r(-26, -24, 52, 7, '#634a37');
               } else {
                 r(-26, -26, 52, 52, '#c7bea0');
-                r(-25, -24, 49, 49, (_x11 + _y) % 2 ? _x11 < 7 ? '#e1d4ad' : '#cbd3b6' : _x11 < 7 ? '#eee3c1' : '#dce0c7');
+                r(-25, -24, 49, 49, (_x12 + _y) % 2 ? _x12 < 7 ? '#e1d4ad' : '#cbd3b6' : _x12 < 7 ? '#eee3c1' : '#dce0c7');
                 r(-23, 22, 45, 2, '#f1e7cc');
-                if (cells.has(_x11 + "," + _y)) {
+                if (cells.has(_x12 + "," + _y)) {
                   r(-26, -26, 52, 52, COLORS.counter);
-                  if (!cells.has(_x11 + "," + (_y - 1))) r(-26, 22, 52, 4, COLORS.counterLight);
-                  if (!cells.has(_x11 + "," + (_y + 1))) r(-26, -26, 52, 4, COLORS.counterEdge);
+                  if (!cells.has(_x12 + "," + (_y - 1))) r(-26, 22, 52, 4, COLORS.counterLight);
+                  if (!cells.has(_x12 + "," + (_y + 1))) r(-26, -26, 52, 4, COLORS.counterEdge);
                 }
-                if (!cells.has(_x11 + "," + _y)) n.on(Node.EventType.TOUCH_END, function () {
-                  if (!_this9.mapTarget(_x11, _y)) {
+                if (!cells.has(_x12 + "," + _y)) n.on(Node.EventType.TOUCH_END, function () {
+                  if (!_this9.mapTarget(_x12, _y)) {
                     _this9.cancelManualMovement();
                     _this9.post('/api/select', {
-                      target: "floor_" + _x11 + "_" + _y
+                      target: "floor_" + _x12 + "_" + _y
                     });
                   }
                 });
@@ -1597,13 +1846,13 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                 n.setScale(1, 1, 1);
                 g.clear();
                 if (wall) {
-                  _this9.drawWall(n, _x11, _y, map, walls);
+                  _this9.drawWall(n, _x12, _y, map, walls);
                   _this9.registerDepth(n, function () {
                     return depthOrder(_y, 'solid');
                   });
                 }
               } else if (_this9.useArt) {
-                var key = wall ? _y === 0 ? 'environment/wall' : 'environment/counter' : cells.has(_x11 + "," + _y) ? 'environment/counter' : 'environment/floor_cream';
+                var key = wall ? _y === 0 ? 'environment/wall' : 'environment/counter' : cells.has(_x12 + "," + _y) ? 'environment/counter' : 'environment/floor_cream';
                 if (_this9.art.show(n, key, 52, 52)) {
                   g.clear();
                   if (wall && _y !== 0) {
@@ -1621,28 +1870,24 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               });
               if (wall && _this9.useModularArt) n.getComponent(UITransform).setAnchorPoint(.5, .5 - (_y === map.height - 1 ? GRID_ART.frontWallHeight / 64 : GRID_ART.wallHeight / 64));
               if (wall) n.on(Node.EventType.TOUCH_END, function () {
-                if (!_this9.mapTarget(_x11, _y)) _this9.cancelManualMovement();
+                if (!_this9.mapTarget(_x12, _y)) _this9.cancelManualMovement();
               });
             };
-            for (var _x11 = 0; _x11 < map.width; _x11++) {
-              _loop6(_x11);
+            for (var _x12 = 0; _x12 < map.width; _x12++) {
+              _loop7(_x12);
             }
           };
           for (var _y = 0; _y < map.height; _y++) {
-            _loop2(_y);
+            _loop3(_y);
           }
           this.focusMarker = this.child(this.node, 'focus-cell', TILE, TILE);
-          var fg = this.focusMarker.addComponent(Graphics);
-          fg.strokeColor = color(COLORS.human);
-          fg.lineWidth = 3;
-          fg.rect(-TILE / 2 + 3, -TILE / 2 + 3, TILE - 6, TILE - 6);
-          fg.stroke();
+          this.focusFrame(this.focusMarker.addComponent(Graphics), -TILE / 2 + 1, -TILE / 2 + 1, TILE - 2, TILE - 2);
           // Signs sit on the wall, leaving all walkable tiles visible.
 
           this.text('prep-sign', this.useModularArt ? '' : this.state.kitchen.level === 2 ? '长 台 厨 房' : '备 菜 区', MAPX + TILE, MAPY + 25, 295, 24, 14).horizontalAlign = Label.HorizontalAlign.CENTER;
           this.text('cook-sign', this.useModularArt ? '' : this.state.kitchen.level === 2 ? '' : '烹 饪 区', MAPX + 8 * TILE, MAPY + 25, 225, 24, 14).horizontalAlign = Label.HorizontalAlign.CENTER;
-          var _loop3 = function _loop3() {
-            var _Object$entries$_i = _Object$entries[_i12],
+          var _loop4 = function _loop4() {
+            var _Object$entries$_i = _Object$entries[_i13],
               id = _Object$entries$_i[0],
               entry = _Object$entries$_i[1];
             var e = entry,
@@ -1700,8 +1945,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               _this9.rect(bg, 12, -2, 5, 5, '#eaf7f5');
               bubbles.active = false;
             }
-            var _loop4 = function _loop4() {
-              var cell = _step5.value;
+            var _loop5 = function _loop5() {
+              var cell = _step7.value;
               var hit = _this9.make('station-extension-' + id, MAPX + (cell[0] + .5) * TILE, MAPY + (cell[1] + .5) * TILE, TILE, TILE);
               hit.on(Node.EventType.TOUCH_END, function () {
                 if (_this9.mapTarget(cell[0], cell[1])) return;
@@ -1716,10 +1961,10 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                 _this9.render();
               });
             };
-            for (var _iterator5 = _createForOfIteratorHelperLoose((e.cells || []).filter(function (c) {
+            for (var _iterator7 = _createForOfIteratorHelperLoose((e.cells || []).filter(function (c) {
                 return c[0] !== e.cell[0] || c[1] !== e.cell[1];
-              })), _step5; !(_step5 = _iterator5()).done;) {
-              _loop4();
+              })), _step7; !(_step7 = _iterator7()).done;) {
+              _loop5();
             }
             if (_this9.useModularArt) n.getComponent(UITransform).setAnchorPoint(.5, .5 - _this9.workSurfaceY(id) / TILE);
             n.on(Node.EventType.TOUCH_END, function () {
@@ -1760,18 +2005,16 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               _this9.rect(_bg, -3, 1, 10, 8, '#504a45');
               _this9.rect(_bg, 5, 8, 8, 7, '#746b62');
               var fire = _this9.child(n, 'fire-flame', 32, 34, 0, 39),
-                _fg = fire.addComponent(Graphics);
-              _this9.drawIcon(_fg, 'fire');
+                fg = fire.addComponent(Graphics);
+              _this9.drawIcon(fg, 'fire');
               fire.setScale(.55, .55, 1);
               var ready = _this9.child(n, 'ready-pop', 76, 24, 0, 38),
                 rg = ready.addComponent(Graphics);
-              _this9.rect(rg, -35, -11, 70, 22, '#e4a43b');
+              _this9.rect(rg, -35, -11, 70, 22, COLORS.honey);
               _this9.rect(rg, -32, -8, 64, 16, COLORS.paper);
               var cue = _this9.child(ready, 'cue', 70, 22).addComponent(Label);
               _this9.writeLabel(cue, '熟了！');
-              cue.fontSize = 14;
-              cue.lineHeight = 18;
-              cue.isBold = true;
+              _this9.pixel(cue, 12);
               cue.color = color(COLORS.ink);
               cue.horizontalAlign = Label.HorizontalAlign.CENTER;
               cue.verticalAlign = Label.VerticalAlign.CENTER;
@@ -1788,11 +2031,11 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             }
             overlay.setSiblingIndex(n.children.length - 1);
           };
-          for (var _i12 = 0, _Object$entries = Object.entries(map.equipment); _i12 < _Object$entries.length; _i12++) {
-            _loop3();
+          for (var _i13 = 0, _Object$entries = Object.entries(map.equipment); _i13 < _Object$entries.length; _i13++) {
+            _loop4();
           }
-          var _loop5 = function _loop5() {
-            var who = _arr10[_i13];
+          var _loop6 = function _loop6() {
+            var who = _arr10[_i14];
             var n = _this9.chef(_this9.world, who, 0, 0, who, _this9.useModularArt ? .8 : .65);
             var dust = _this9.child(n, 'sprint-dust', 55, 28, -18, -24);
             dust.addComponent(Graphics);
@@ -1812,16 +2055,12 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                 _this9.set('event', '靠近 Jeff，按空格给他手中的干净盘装菜。');
               }
             });
-            var ln = new Node('name');
-            ln.layer = Layers.Enum.UI_2D;
-            n.addChild(ln);
-            ln.setPosition(0, _this9.useModularArt ? -12 : -39);
-            ln.addComponent(UITransform).setContentSize(155, 25);
-            var l = ln.addComponent(Label);
-            l.fontSize = 16;
-            l.lineHeight = 19;
-            l.isBold = true;
-            l.color = color(COLORS[who]);
+            // Name tag: a solid pixel plate in the identity colour, sized to the text in drawNameTag.
+            var ln = _this9.child(n, 'name', 155, 25, 0, _this9.useModularArt ? -12 : -39);
+            _this9.child(ln, 'tag', 40, 18).addComponent(Graphics);
+            var l = _this9.pixel(_this9.child(ln, 'text', 40, 18).addComponent(Label), 12);
+            delete _this9.tagText[who]; // new nodes after a layout change need their plate drawn
+            l.overflow = Label.Overflow.NONE;
             _this9.labels['person-' + who] = l;
             var body = n.getChildByName('body'),
               held = _this9.child(body, 'held', 25, 25, 22, 0);
@@ -1850,8 +2089,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               step: 0
             };
           };
-          for (var _i13 = 0, _arr10 = ['human', 'jeff']; _i13 < _arr10.length; _i13++) {
-            _loop5();
+          for (var _i14 = 0, _arr10 = ['human', 'jeff']; _i14 < _arr10.length; _i14++) {
+            _loop6();
           }
           var marker = function marker(name, fill) {
             var n = _this9.child(_this9.people.jeff, name, 30, 18, 0, 65),
@@ -1859,13 +2098,13 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             g.fillColor = color(COLORS.paper);
             g.circle(0, 0, 8);
             g.fill();
-            for (var _i14 = 0, _arr11 = [-5, 0, 5]; _i14 < _arr11.length; _i14++) {
-              var _x10 = _arr11[_i14];
-              _this9.rect(g, _x10 - 1, -1, 2, 3, fill);
+            for (var _i15 = 0, _arr11 = [-5, 0, 5]; _i15 < _arr11.length; _i15++) {
+              var _x11 = _arr11[_i15];
+              _this9.rect(g, _x11 - 1, -1, 2, 3, fill);
             }
             return n;
           };
-          this.jeffThinking = marker('jeff-thinking', '#567fa4');
+          this.jeffThinking = marker('jeff-thinking', COLORS.jeff);
           var error = this.child(this.people.jeff, 'jeff-api-error', 24, 23, 0, 66),
             eg = error.addComponent(Graphics);
           this.rect(eg, -9, -9, 18, 18, COLORS.hot);
@@ -1882,14 +2121,14 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           this.refreshArtCharacters();
           this.drawIcon(this.cover.getChildByName('welcome-food').getComponent(Graphics), 'plated_ready');
           this.cover.setSiblingIndex(this.node.children.length - 1);
-          for (var _i15 = 0, _arr12 = ['pause', 'resume', 'end']; _i15 < _arr12.length; _i15++) {
-            var id = _arr12[_i15];
+          for (var _i16 = 0, _arr12 = ['pause', 'resume', 'end']; _i16 < _arr12.length; _i16++) {
+            var id = _arr12[_i16];
             this.buttons[id].node.setSiblingIndex(this.node.children.length - 1);
           }
           this.mounted = true;
         };
         _proto.characterArt = function characterArt(body, who, facing, walking, working) {
-          var _this$state17, _this$state18, _URLSearchParams$get;
+          var _this$state20, _this$state21, _URLSearchParams$get;
           if (walking === void 0) {
             walking = false;
           }
@@ -1897,8 +2136,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             working = false;
           }
           var kind = who === 'human' ? 'player' : 'jeff',
-            chef = (_this$state17 = this.state) == null ? void 0 : _this$state17.kitchen.chefs[who];
-          var station = (_this$state18 = this.state) == null ? void 0 : _this$state18.kitchen.map.equipment[chef == null ? void 0 : chef.target];
+            chef = (_this$state20 = this.state) == null ? void 0 : _this$state20.kitchen.chefs[who];
+          var station = (_this$state21 = this.state) == null ? void 0 : _this$state21.kitchen.map.equipment[chef == null ? void 0 : chef.target];
           var inWorld = !!body.parent && ['human', 'jeff'].includes(body.parent.name);
           var chopping = !!working && inWorld && (chef == null ? void 0 : chef.action_kind) === 'chop' && !!station;
           var sampleFrame = this.prepSample ? Number((_URLSearchParams$get = new URLSearchParams(location.search).get('prepFrame')) != null ? _URLSearchParams$get : -1) : -1;
@@ -1926,8 +2165,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             }
           }
           body.getComponent(Graphics).enabled = !shown;
-          for (var _iterator6 = _createForOfIteratorHelperLoose(body.children), _step6; !(_step6 = _iterator6()).done;) {
-            var child = _step6.value;
+          for (var _iterator8 = _createForOfIteratorHelperLoose(body.children), _step8; !(_step8 = _iterator8()).done;) {
+            var child = _step8.value;
             if (!['held', 'reviewed-art'].includes(child.name)) child.active = !shown;
           }
           if (inWorld) this.pairedKnifeSample(body, who, pairedPilot, actionKey, facing);
@@ -1947,8 +2186,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             }
           } else {
             this.art.hide(body);
-            for (var _i16 = 0, _arr13 = ['profile', 'back']; _i16 < _arr13.length; _i16++) {
-              var name = _arr13[_i16];
+            for (var _i17 = 0, _arr13 = ['profile', 'back']; _i17 < _arr13.length; _i17++) {
+              var name = _arr13[_i17];
               body.getChildByName(name).active = false;
             }
             body.getChildByName('right-arm').getChildByName('knife').active = false;
@@ -1968,8 +2207,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             side = facing === 'right' || facing === 'left',
             back = facing === 'up';
           if (this.pairedFacing[who] !== facing) {
-            for (var _i17 = 0, _arr14 = ['knife-body-mask', 'knife-cloth-repair']; _i17 < _arr14.length; _i17++) {
-              var name = _arr14[_i17];
+            for (var _i18 = 0, _arr14 = ['knife-body-mask', 'knife-cloth-repair']; _i18 < _arr14.length; _i18++) {
+              var name = _arr14[_i18];
               var _n = body.getChildByName(name);
               if (_n) {
                 _n.removeFromParent();
@@ -2118,8 +2357,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           g.moveTo(-4, 8);
           g.lineTo(4, -7);
           g.stroke();
-          for (var _i18 = 0, _arr15 = [[-1, 1], [1, 1], [-1, -1], [1, -1]]; _i18 < _arr15.length; _i18++) {
-            var _arr15$_i = _arr15[_i18],
+          for (var _i19 = 0, _arr15 = [[-1, 1], [1, 1], [-1, -1], [1, -1]]; _i19 < _arr15.length; _i19++) {
+            var _arr15$_i = _arr15[_i19],
               dx = _arr15$_i[0],
               dy = _arr15$_i[1];
             var r = 6 + 7 * p;
@@ -2199,8 +2438,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           g.stroke();
           g.strokeColor = color('#f4cf81');
           g.lineWidth = 1;
-          for (var _i19 = 0, _arr16 = [[-1, 1], [1, 1], [-1, -1], [1, -1]]; _i19 < _arr16.length; _i19++) {
-            var _arr16$_i = _arr16[_i19],
+          for (var _i20 = 0, _arr16 = [[-1, 1], [1, 1], [-1, -1], [1, -1]]; _i20 < _arr16.length; _i20++) {
+            var _arr16$_i = _arr16[_i20],
               _dx = _arr16$_i[0],
               _dy = _arr16$_i[1];
             var r = 5 + 7 * p;
@@ -2210,9 +2449,9 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }
         };
         _proto.refreshArtCharacters = function refreshArtCharacters() {
-          for (var _i20 = 0, _arr17 = ['human', 'jeff']; _i20 < _arr17.length; _i20++) {
+          for (var _i21 = 0, _arr17 = ['human', 'jeff']; _i21 < _arr17.length; _i21++) {
             var _this$cover$getChildB;
-            var who = _arr17[_i20];
+            var who = _arr17[_i21];
             if (this.useArt) this.characterArt(this.motions[who].body, who, this.state.kitchen.chefs[who].facing || 'down');
             var welcome = (_this$cover$getChildB = this.cover.getChildByName('welcome-' + who)) == null ? void 0 : _this$cover$getChildB.getChildByName('body');
             if (welcome) this.characterArt(welcome, who, 'down');
@@ -2244,6 +2483,84 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           if (click) n.on(Node.EventType.TOUCH_END, click);
           return n;
         };
+        _proto.statColor = function statColor(id) {
+          var f = this.flashes[id],
+            k = this.state.kitchen;
+          if (f && f.until > this.clock) return f.fill;
+          return id === 'reviews' && k.goals.max_bad_reviews != null && k.bad_reviews > k.goals.max_bad_reviews ? COLORS.hot : COLORS.ink;
+        }
+        // New result events: a short pop where it happened, a header pulse, and a
+        // screen-reader announcement. Events already present when a round loads stay quiet.
+        ;
+
+        _proto.processEvents = function processEvents() {
+          var s = this.state,
+            fresh = s.game_id !== this.eventsGame;
+          if (fresh) {
+            this.eventsGame = s.game_id;
+            this.seenEvents.clear();
+          }
+          for (var _iterator9 = _createForOfIteratorHelperLoose(s.events), _step9; !(_step9 = _iterator9()).done;) {
+            var e = _step9.value;
+            var key = e.t + '|' + e.message;
+            if (this.seenEvents.has(key)) continue;
+            this.seenEvents.add(key);
+            if (!fresh) this.feedback(e);
+          }
+          if (this.seenEvents.size > 300) this.seenEvents = new Set(s.events.map(function (e) {
+            return e.t + '|' + e.message;
+          }));
+        };
+        _proto.feedback = function feedback(e) {
+          var _exec, _k$map$equipment$serv;
+          var k = this.state.kitchen,
+            amount = ((_exec = /(\d+) 元/.exec(e.message)) == null ? void 0 : _exec[1]) || '',
+            serve = (_k$map$equipment$serv = k.map.equipment.serve) == null ? void 0 : _k$map$equipment$serv.cell;
+          var at = function at(cell) {
+            return cell ? [MAPX + (cell[0] + .5) * TILE, MAPY + (cell[1] - .1) * TILE] : [640, 150];
+          };
+          if (e.kind === 'served') {
+            this.pop(at(serve), '+¥' + amount, COLORS.herb);
+            this.flash(['served', 'money'], COLORS.herb);
+          } else if (e.kind === 'bad_service') {
+            this.pop(at(serve), "\u5DEE\u8BC4 -\xA5" + amount, COLORS.alert);
+            this.flash(['reviews', 'money'], COLORS.alert);
+          } else if (e.kind === 'expired') {
+            var _exec2;
+            this.pop([312, 180], (((_exec2 = /^(\S+?)超时/.exec(e.message)) == null ? void 0 : _exec2[1]) || '') + " \u8D85\u65F6 -\xA5" + amount, COLORS.alert);
+            this.flash(['reviews', 'money'], COLORS.alert);
+          } else if (e.kind === 'fire' || e.kind === 'fire_spread') this.flash(['money'], COLORS.alert);
+          if (e.kind && RESULT_ANNOUNCE.has(e.kind)) this.announce(e.message);
+        };
+        _proto.flash = function flash(ids, fill) {
+          for (var _iterator10 = _createForOfIteratorHelperLoose(ids), _step10; !(_step10 = _iterator10()).done;) {
+            var id = _step10.value;
+            this.flashes[id] = {
+              until: this.clock + 1.2,
+              fill: fill
+            };
+            this.labels[id].color = color(fill);
+          }
+        };
+        _proto.pop = function pop(p, text, fill) {
+          var n = this.make('result-pop', p[0], p[1], 220, 28),
+            l = n.addComponent(Label);
+          this.writeLabel(l, text);
+          this.pixel(l, 24);
+          l.horizontalAlign = Label.HorizontalAlign.CENTER;
+          l.enableShadow = true;
+          l.shadowColor = color(COLORS.ink);
+          l.shadowOffset = new Vec2(2, -2);
+          l.shadowBlur = 0;
+          l.color = color(fill); // hard pixel shadow
+          this.pops.push({
+            node: n,
+            label: l,
+            born: this.clock,
+            y: n.position.y,
+            fill: color(fill)
+          });
+        };
         _proto.drawOrders = function drawOrders() {
           var _this13 = this;
           var s = this.state,
@@ -2255,24 +2572,30 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           var service = k.goals.max_bad_reviews == null;
           this.set('served', service ? "" + k.served : k.served + " / " + k.goals.target_served);
           this.set('money', service ? "\xA5 " + k.money + " / " + k.goals.target_money : "\xA5 " + k.money);
-          this.set('reviews', service ? "\u2014" : k.bad_reviews + " / " + k.goals.max_bad_reviews);
-          this.labels.reviews.color = color(!service && k.bad_reviews > k.goals.max_bad_reviews ? COLORS.hot : COLORS.ink);
-          var _loop7 = function _loop7() {
+          this.set('reviews', service ? '—' : k.bad_reviews + " / " + k.goals.max_bad_reviews);
+          for (var _i22 = 0, _arr18 = ['served', 'money', 'reviews']; _i22 < _arr18.length; _i22++) {
+            var id = _arr18[_i22];
+            this.labels[id].color = color(this.statColor(id));
+          }
+          var _loop8 = function _loop8() {
             var o = orders[i],
               n = _this13.tickets[i],
               g = n.getComponent(Graphics) || n.addComponent(Graphics),
               urgent = o && o.remaining <= 15;
             g.clear();
-            _this13.rect(g, -78, -34, 156, 67, COLORS.paper);
-            g.strokeColor = color(COLORS.line);
-            g.lineWidth = 1;
-            g.rect(-77.5, -33.5, 155, 66);
-            g.stroke();
-            _this13.rect(g, -10, 26, 20, 8, COLORS.wood);
-            _this13.rect(g, -66, -26, 132, 4, '#d6c5a2');
-            if (o) {
-              var _s$rules;
-              _this13.rect(g, -66, -26, 132 * Math.max(0, Math.min(1, o.remaining / (o.patience || ((_s$rules = s.rules) == null ? void 0 : _s$rules.order_patience) || 90))), 4, urgent ? COLORS.hot : COLORS.human);
+            // Paper slip clipped to the walnut rail; empty clips stay bare instead of drawing blank slips.
+            _this13.rect(g, -10, 26, 20, 6, COLORS.walnut);
+            if (o || i === 0) {
+              _this13.rect(g, -78, -36, 156, 62, COLORS.walnut);
+              _this13.rect(g, -77, -34, 154, 59, COLORS.paper);
+              if (o) {
+                var _s$rules;
+                // Patience: herb while comfortable, honey past half, tomato when urgent (the label also says so).
+                var left = Math.max(0, Math.min(1, o.remaining / (o.patience || ((_s$rules = s.rules) == null ? void 0 : _s$rules.order_patience) || 90)));
+                _this13.rect(g, -67, -30, 134, 7, COLORS.ink);
+                _this13.rect(g, -66, -29, 132, 5, COLORS.bg);
+                _this13.rect(g, -66, -29, 132 * left, 5, urgent ? COLORS.hot : left > .5 ? COLORS.herb : COLORS.honey);
+              }
             }
             var signature = o ? JSON.stringify(o.ingredients || ['beef']) : '';
             if (_this13.orderArt[i] !== signature) {
@@ -2280,23 +2603,39 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               var prev = n.getChildByName('ingredients');
               if (prev) prev.destroy();
               if (o) {
-                var row = _this13.child(n, 'ingredients', 150, 16, 0, -16);
+                var row = _this13.child(n, 'ingredients', 150, 16, 0, -5);
                 var ingredients = o.ingredients || ['beef'];
                 ingredients.forEach(function (name, j) {
-                  var item = _this13.child(row, 'ingredient-' + j, 30, 14, -51 + j * 34, 0);
+                  var item = _this13.child(row, 'ingredient-' + j, 30, 14, 66 - (ingredients.length - 1 - j) * 15, 0);
                   item.setScale(_this13.useArt ? .5 : .32, _this13.useArt ? .5 : .32, 1);
                   _this13.drawIcon(item.addComponent(Graphics), name === 'beef' ? 'ready' : name + '_raw');
                 });
               }
             }
-            _this13.set('order-id-' + i, o ? o.id + "  /  " + (urgent ? '快超时了' : '待出餐') : i === 0 ? '订单夹' : '');
+            _this13.set('order-id-' + i, o ? o.id + " \xB7 " + (urgent ? '快超时了' : '待出餐') : i === 0 ? '订单夹' : '');
+            _this13.labels['order-id-' + i].color = color(urgent ? COLORS.hot : COLORS.muted);
             _this13.set('order-name-' + i, o ? o.dish === 'burger' ? '汉堡' : '香煎牛排' : i === 0 ? k.future_orders ? '等待新订单' : '订单已结清' : '');
             _this13.set('order-time-' + i, o ? Math.max(0, Math.ceil(o.remaining)) + "s" : '');
             _this13.labels['order-time-' + i].color = color(urgent ? COLORS.hot : COLORS.muted);
           };
           for (var i = 0; i < 5; i++) {
-            _loop7();
+            _loop8();
           }
+        };
+        _proto.drawNameTag = function drawNameTag(who) {
+          var l = this.labels['person-' + who];
+          if (this.tagText[who] === l.string) return;
+          this.tagText[who] = l.string;
+          l.updateRenderData(true);
+          var w = Math.ceil(l.node.getComponent(UITransform).width) + 10,
+            h = 18;
+          var g = l.node.parent.getChildByName('tag').getComponent(Graphics);
+          g.clear();
+          // 1px ink border with a 2px hard ink shadow below, like the game's buttons.
+          // You: denim plate, paper text. Jeff: paper plate (his white body), copper text.
+          this.rect(g, -w / 2 - 1, -h / 2 - 3, w + 2, h + 4, COLORS.ink);
+          this.rect(g, -w / 2, -h / 2, w, h, who === 'human' ? COLORS.human : COLORS.paper);
+          l.color = color(who === 'human' ? COLORS.paper : COLORS.jeff);
         };
         _proto.locate = function locate(n, p, height) {
           if (height === void 0) {
@@ -2307,8 +2646,9 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
         _proto.render = function render() {
           var _k$fire_safety,
             _s$connection,
+            _this14 = this,
             _s$limits,
-            _this14 = this;
+            _kitchenI18n2;
           if (!this.state || !this.mounted) return;
           var s = this.state,
             k = s.kitchen,
@@ -2320,9 +2660,9 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           this.set('fire-status', (_k$fire_safety = k.fire_safety) != null && _k$fire_safety.burning_count ? "\u7740\u706B\u5DE5\u4F4D " + k.fire_safety.burning_count + "/" + k.fire_safety.loss_threshold : '');
           this.labels.clock.color = color(remaining <= 30 ? COLORS.hot : COLORS.muted);
           this.drawOrders();
-          for (var _i21 = 0, _Object$entries2 = Object.entries(this.devices); _i21 < _Object$entries2.length; _i21++) {
+          for (var _i23 = 0, _Object$entries2 = Object.entries(this.devices); _i23 < _Object$entries2.length; _i23++) {
             var _st$food, _st$food2, _st$food3, _s$rules2, _s$rules3;
-            var _Object$entries2$_i = _Object$entries2[_i21],
+            var _Object$entries2$_i = _Object$entries2[_i23],
               id = _Object$entries2$_i[0],
               dev = _Object$entries2$_i[1];
             var st = k.stations[id],
@@ -2338,10 +2678,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               this.rect(g, -26, -26, 52, 52, '#f1b589');
             }
             if (s.interaction_focus === id) {
-              g.strokeColor = color(COLORS.human);
-              g.lineWidth = 3;
-              if (this.useModularArt) g.rect(-TILE / 2 + 2, this.workSurfaceY(id) - TILE / 2 + 2, TILE - 4, TILE - 4);else g.rect(-26, -26, 52, 52);
-              g.stroke();
+              if (this.useModularArt) this.focusFrame(g, -TILE / 2, this.workSurfaceY(id) - TILE / 2, TILE, TILE);else this.focusFrame(g, -27, -27, 54, 54);
             }
             this.writeLabel(dev.label, st.fire ? '着火了！' : st.food ? this.itemName(st.food) + (st.food.stage === 'cooking' ? " " + Math.ceil(st.ready_in) + "s" : st.food.stage === 'ready' && st.heating && st.burn_in !== undefined ? " " + Math.ceil(st.burn_in) + "s \u540E\u7CCA" : '') : id === 'fridge' && this.useModularArt ? '牛肉柜' : st.name);
             var countdown = heatCountdown(st);
@@ -2350,9 +2687,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               timer = this.child(dev.node, 'heat-countdown', 48, 15, 0, this.workSurfaceY(id) + TILE / 2 - 5);
               timer.addComponent(Graphics);
               var text = this.child(timer, 'time', 48, 15).addComponent(Label);
-              text.fontSize = 10;
-              text.lineHeight = 13;
-              text.isBold = true;
+              this.pixel(text, 12);
               text.overflow = Label.Overflow.SHRINK;
             }
             if (timer) {
@@ -2361,7 +2696,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                 timer.setSiblingIndex(dev.node.children.length - 1);
                 var tg = timer.getComponent(Graphics);
                 tg.clear();
-                this.rect(tg, -24, -7.5, 48, 15, countdown.paused ? COLORS.muted : countdown.ready ? COLORS.hot : COLORS.human);
+                this.rect(tg, -24, -7.5, 48, 15, countdown.paused ? COLORS.steel : countdown.ready ? COLORS.hot : COLORS.walnut);
                 var label = timer.getChildByName('time').getComponent(Label);
                 label.color = color(COLORS.paper);
                 this.writeLabel(label, "" + (countdown.paused ? 'Ⅱ ' : '') + countdown.seconds + "s " + (countdown.ready ? '糊' : '熟'));
@@ -2401,8 +2736,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             if (st.food && st.stove) progress = Math.min(1, st.food.heat_elapsed / (((_s$rules3 = s.rules) == null ? void 0 : _s$rules3.cook_seconds) || 12));
             if (progress >= 0) {
               var py = this.useModularArt ? this.workSurfaceY(id) - TILE / 2 + 3 : -18;
-              this.rect(g, -22, py, 44, 4, COLORS.line);
-              this.rect(g, -22, py, 44 * progress, 4, st.fire ? COLORS.hot : COLORS.human);
+              this.rect(g, -23, py - 1, 46, 6, COLORS.ink);
+              this.rect(g, -22, py, 44 * progress, 4, st.fire ? COLORS.hot : COLORS.paper);
             }
             var effects = this.potEffects[id];
             if (effects) {
@@ -2415,8 +2750,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           var ids = new Set(k.ground.map(function (g) {
             return g.food.id;
           }));
-          for (var _i22 = 0, _Object$entries3 = Object.entries(this.ground); _i22 < _Object$entries3.length; _i22++) {
-            var _Object$entries3$_i = _Object$entries3[_i22],
+          for (var _i24 = 0, _Object$entries3 = Object.entries(this.ground); _i24 < _Object$entries3.length; _i24++) {
+            var _Object$entries3$_i = _Object$entries3[_i24],
               _id2 = _Object$entries3$_i[0],
               n = _Object$entries3$_i[1];
             if (!ids.has(_id2)) {
@@ -2425,8 +2760,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               delete this.groundStages[_id2];
             }
           }
-          var _loop8 = function _loop8() {
-            var item = _step7.value;
+          var _loop9 = function _loop9() {
+            var item = _step11.value;
             var id = item.food.id,
               stage = _this14.itemStage(item.food);
             if (!_this14.ground[id]) {
@@ -2451,14 +2786,15 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             _this14.writeLabel(_this14.ground[id].getChildByName('id').getComponent(Label), _this14.itemName(item.food));
             _this14.locate(_this14.ground[id], item.position);
           };
-          for (var _iterator7 = _createForOfIteratorHelperLoose(k.ground), _step7; !(_step7 = _iterator7()).done;) {
-            _loop8();
+          for (var _iterator11 = _createForOfIteratorHelperLoose(k.ground), _step11; !(_step11 = _iterator11()).done;) {
+            _loop9();
           }
-          for (var _i23 = 0, _arr18 = ['human', 'jeff']; _i23 < _arr18.length; _i23++) {
-            var _c$sprint;
-            var who = _arr18[_i23];
+          for (var _i25 = 0, _arr19 = ['human', 'jeff']; _i25 < _arr19.length; _i25++) {
+            var _c$sprint2;
+            var who = _arr19[_i25];
             var c = k.chefs[who];
-            this.set('person-' + who, (who === 'human' ? '你' : 'Jeff') + (((_c$sprint = c.sprint) == null ? void 0 : _c$sprint.active_remaining) > 0 ? ' »' : ''));
+            this.set('person-' + who, (who === 'human' ? '你' : 'Jeff') + (((_c$sprint2 = c.sprint) == null ? void 0 : _c$sprint2.active_remaining) > 0 ? ' »' : ''));
+            this.drawNameTag(who);
             var _held = this.motions[who].body.getChildByName('held');
             _held.active = !!c.holding;
             if (c.holding) this.drawIcon(_held.getComponent(Graphics), this.itemStage(c.holding));
@@ -2469,8 +2805,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           var flightIds = new Set((k.projectiles || []).map(function (p) {
             return p.id;
           }));
-          for (var _i24 = 0, _Object$entries4 = Object.entries(this.flights); _i24 < _Object$entries4.length; _i24++) {
-            var _Object$entries4$_i = _Object$entries4[_i24],
+          for (var _i26 = 0, _Object$entries4 = Object.entries(this.flights); _i26 < _Object$entries4.length; _i26++) {
+            var _Object$entries4$_i = _Object$entries4[_i26],
               _id3 = _Object$entries4$_i[0],
               _n2 = _Object$entries4$_i[1];
             if (!flightIds.has(_id3)) {
@@ -2479,27 +2815,16 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               delete this.flightOrder[_id3];
             }
           }
-          for (var _iterator8 = _createForOfIteratorHelperLoose(k.projectiles || []), _step8; !(_step8 = _iterator8()).done;) {
-            var p = _step8.value;
+          for (var _iterator12 = _createForOfIteratorHelperLoose(k.projectiles || []), _step12; !(_step12 = _iterator12()).done;) {
+            var p = _step12.value;
             if (!this.flights[p.id]) this.flights[p.id] = this.foodNode(p.id, this.itemStage(p), undefined, true);
           }
           this.enable('pause', active);
           this.enable('resume', s.phase === 'paused' && !this.pending && this.connected);
           this.enable('end', ['running', 'paused'].includes(s.phase) && !this.pending && this.connected);
-          for (var _i25 = 0, _arr19 = ['pause', 'resume', 'end']; _i25 < _arr19.length; _i25++) {
-            var _this$controlAccess2;
-            var _id4 = _arr19[_i25];
+          for (var _i27 = 0, _arr20 = ['pause', 'resume', 'end']; _i27 < _arr20.length; _i27++) {
+            var _id4 = _arr20[_i27];
             this.buttons[_id4].node.active = true;
-            var proxy = (_this$controlAccess2 = this.controlAccess) == null ? void 0 : _this$controlAccess2.querySelector("[data-control=\"" + _id4 + "\"]");
-            if (proxy) {
-              var _kitchenI18n2;
-              proxy.disabled = !this.buttons[_id4].enabled;
-              proxy.setAttribute('aria-label', ((_kitchenI18n2 = window.kitchenI18n) == null ? void 0 : _kitchenI18n2.t({
-                pause: '暂停',
-                resume: '继续经营',
-                end: '结束本局'
-              }[_id4])) || _id4);
-            }
           }
           if (this.focusMarker) {
             var cell = s.interaction_cell;
@@ -2519,60 +2844,144 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             }[x];
           }).join('+'));
           if (!this.throwReady) this.set('interaction', s.interaction ? '空格 · ' + s.interaction.label.split('（')[0] : s.interaction_hint || '靠近工位或物品，再按空格');
-          if ((_s$limits = s.limits) != null && _s$limits.reached && s.phase === 'running') this.set('event', '本局 AI 调用已达上限；已有动作继续。你可继续玩或暂停，下局可调整上限。');else if (s.ai.error) this.set('event', s.ai.error);else if (s.events.length) this.set('event', s.events[s.events.length - 1].message);
-          for (var _i26 = 0, _arr20 = [1, 2, 3]; _i26 < _arr20.length; _i26++) {
-            var _n3 = _arr20[_i26];
-            this.buttons['level' + _n3].node.active = s.phase === 'ready' || s.phase === 'ended';
-            this.enable('level' + _n3, !this.pending && k.level !== _n3);
+          // Game results keep the event line; Jeff's decisions and errors use their own status.
+          var results = s.events.filter(function (e) {
+            return !_this14.isAiNote(e);
+          });
+          this.set('event', results.length ? results[results.length - 1].message : '');
+          this.set('ai-status', this.aiStatus(s));
+          this.labels['ai-status'].color = color(s.ai.error || (_s$limits = s.limits) != null && _s$limits.reached && s.phase === 'running' ? COLORS.alert : COLORS.muted);
+          for (var _i28 = 0, _arr21 = [1, 2, 3]; _i28 < _arr21.length; _i28++) {
+            var _n3 = _arr21[_i28];
+            var b = this.buttons['level' + _n3],
+              sel = k.level === _n3;
+            b.node.active = s.phase === 'ready' || s.phase === 'ended';
+            this.writeLabel(b.label, LEVEL_NAMES[_n3] + (sel ? ' · 当前' : ''));
+            if (b.selected !== sel) {
+              b.selected = sel;
+              this.styleButton('level' + _n3);
+            }
+            this.enable('level' + _n3, !this.pending && !sel);
           }
+          var lang = ((_kitchenI18n2 = window.kitchenI18n) == null ? void 0 : _kitchenI18n2.language) === 'en' ? '中文' : 'English';
+          if (this.buttons.language.label.string !== lang) this.buttons.language.label.string = lang;
           this.cover.active = s.phase !== 'running';
           this.buttons.reset.node.active = true;
           this.enable('main', !this.pending);
-          this.buttons.main.node.active = s.phase !== 'paused';
-          for (var _i27 = 0, _arr21 = [['reset', s.phase === 'paused' ? 466 : 553], ['cover-connection', s.phase === 'paused' ? 640 : 727], ['help', s.phase === 'paused' ? 814 : 901]]; _i27 < _arr21.length; _i27++) {
-            var _arr21$_i = _arr21[_i27],
-              _id5 = _arr21$_i[0],
-              x = _arr21$_i[1];
-            this.buttons[_id5].node.setPosition(x - 640, 360 - 520);
-          }
+          this.buttons.main.node.active = true;
           this.enable('reset', !this.pending && s.phase !== 'ready');
           this.writeLabel(this.buttons.main.label, s.phase === 'ready' ? '开始经营' : s.phase === 'paused' ? '继续经营' : '准备下一局');
           if (s.phase === 'ready' && s.connection && !s.connection.configured) this.writeLabel(this.buttons.main.label, '先连接搭档');
-          this.labels['welcome-tip'].node.active = s.phase !== 'paused';
-          if (this.overlayPhase !== s.phase) {
-            this.overlayPhase = s.phase;
-            var old = this.focusId;
-            this.focusId = '';
-            this.styleButton(old);
-          }
-          this.set('coverTitle', s.phase === 'ready' ? 'ChefJeff' : s.phase === 'paused' ? '歇一小会儿' : k.failure_reason === 'fire_spread' ? '火势失控' : s.aborted ? '本局已结束' : s.won ? '今天，配合得不错！' : '明天再接再厉');
+          this.labels['welcome-tip'].node.active = s.phase === 'ready';
           var settlement = k.settlement;
-          var serviceCover = k.goals.max_bad_reviews == null;
-          this.set('coverText', s.phase === 'ready' ? serviceCover ? "你和 AI 搭档，一起照顾这间小厨房。\n本局目标：关店时净收入达到 \xA5" + k.goals.target_money : "\u4F60\u548C AI \u642D\u6863\uFF0C\u4E00\u8D77\u7167\u987E\u8FD9\u95F4\u5C0F\u53A8\u623F\u3002\n\u672C\u5C40\u76EE\u6807\uFF1A\u51FA\u9910 " + k.goals.target_served + " \u5355 \xB7 \u6536\u5165 \xA5" + k.goals.target_money + " \xB7 \u5DEE\u8BC4\u4E0D\u8D85\u8FC7 " + k.goals.max_bad_reviews + " \u6B21" : s.phase === 'paused' ? '锅火和订单都按下了暂停。\n准备好了，就和 Jeff 接着做菜。' : serviceCover ? "出餐 " + k.served + " 单 · 净收入 \xA5" + k.money + " / \xA5" + k.goals.target_money : "\u51FA\u9910 " + k.served + " \u5355 \xB7 \u8425\u4E1A\u6536\u5165 \xA5" + k.money + " \xB7 \u5DEE\u8BC4 " + k.bad_reviews + " \u6B21" + (settlement ? "\n\u5269\u4F59 " + settlement.remaining_seconds + " \u6574\u79D2 \xB7 \u65F6\u95F4\u5956\u52B1 +\xA5" + settlement.time_bonus + " \xB7 \u5408\u8BA1 \xA5" + settlement.total_income : ''));
+          var service = k.goals.max_bad_reviews == null;
+          // Service levels close at 180 s: say so plainly, whatever the outcome.
+          var closed = service && s.phase === 'ended' && !s.aborted && k.failure_reason !== 'fire_spread';
+          this.set('coverTitle', s.phase === 'ready' ? 'ChefJeff' : s.phase === 'paused' ? '歇一小会儿' : k.failure_reason === 'fire_spread' ? '火势失控' : s.aborted ? '本局已结束' : closed ? s.won ? '关店结算 · 达成目标' : '关店结算 · 未达目标' : s.won ? '今天，配合得不错！' : '明天再接再厉');
+          this.set('coverText', s.phase === 'ready' ? service ? "\u4F60\u548C AI \u642D\u6863\uFF0C\u4E00\u8D77\u7167\u987E\u8FD9\u95F4\u5C0F\u53A8\u623F\u3002\n\u672C\u5C40\u76EE\u6807\uFF1A\u5173\u5E97\u65F6\u51C0\u6536\u5165\u8FBE\u5230 \xA5" + k.goals.target_money : "\u4F60\u548C AI \u642D\u6863\uFF0C\u4E00\u8D77\u7167\u987E\u8FD9\u95F4\u5C0F\u53A8\u623F\u3002\n\u672C\u5C40\u76EE\u6807\uFF1A\u51FA\u9910 " + k.goals.target_served + " \u5355 \xB7 \u6536\u5165 \xA5" + k.goals.target_money + " \xB7 \u5DEE\u8BC4\u4E0D\u8D85\u8FC7 " + k.goals.max_bad_reviews + " \u6B21" : s.phase === 'paused' ? '锅火和订单都按下了暂停。\n准备好了，就和 Jeff 接着做菜。' : service ? closed ? this.closingSummary(k, !!s.won) : "\u51FA\u9910 " + k.served + " \u5355 \xB7 \u51C0\u6536\u5165 \xA5" + k.money + " / \xA5" + k.goals.target_money : "\u51FA\u9910 " + k.served + " \u5355 \xB7 \u8425\u4E1A\u6536\u5165 \xA5" + k.money + " \xB7 \u5DEE\u8BC4 " + k.bad_reviews + " \u6B21" + (settlement ? "\n\u5269\u4F59 " + settlement.remaining_seconds + " \u6574\u79D2 \xB7 \u65F6\u95F4\u5956\u52B1 +\xA5" + settlement.time_bonus + " \xB7 \u5408\u8BA1 \xA5" + settlement.total_income : ''));
+          this.syncAccess();
+          if (this.overlayPhase !== s.phase) {
+            // Pause defaults to "Resume" so Enter, Space or Esc all return to the kitchen.
+            var first = !this.overlayPhase;
+            this.overlayPhase = s.phase;
+            this.setFocus(s.phase === 'paused' ? 'main' : '');
+            if (!first && s.phase !== 'running') this.announce(this.labelSources.get(this.labels.coverTitle) + '\n' + this.labelSources.get(this.labels.coverText));
+          }
+          if (s.ai.error && s.ai.error !== this.lastAiError) this.announce(s.ai.error);
+          this.lastAiError = s.ai.error;
           this.cover.setSiblingIndex(this.node.children.length - 1);
-          for (var _i28 = 0, _arr22 = ['pause', 'resume', 'end']; _i28 < _arr22.length; _i28++) {
-            var _id6 = _arr22[_i28];
-            this.buttons[_id6].node.setSiblingIndex(this.node.children.length - 1);
+          for (var _i29 = 0, _arr22 = ['pause', 'resume', 'end']; _i29 < _arr22.length; _i29++) {
+            var _id5 = _arr22[_i29];
+            this.buttons[_id5].node.setSiblingIndex(this.node.children.length - 1);
+          }
+        };
+        _proto.isAiNote = function isAiNote(e) {
+          return !e.kind && /^(Jeff |本局 AI)/.test(e.message);
+        };
+        _proto.aiStatus = function aiStatus(s) {
+          var _s$limits2,
+            _this15 = this;
+          if ((_s$limits2 = s.limits) != null && _s$limits2.reached && s.phase === 'running') return 'Jeff 已达本局调用上限';
+          if (s.ai.error) return 'Jeff 暂时连不上，正在重试';
+          var note = [].concat(s.events).reverse().find(function (e) {
+            return _this15.isAiNote(e);
+          });
+          var m = note && /^Jeff \u9009\u62E9\uFF1A([\s\S]*?) \| [\d.]+s(?: \| \u672A\u6267\u884C\uFF1A([\s\S]*))?$/.exec(note.message);
+          if (m) return m[2] ? "Jeff\uFF1A" + m[1] + "\uFF08\u672A\u6267\u884C\uFF09" : "Jeff\uFF1A" + m[1]; // full reason stays in the event log/export
+          return note != null && note.message.startsWith('Jeff 请求失败') ? 'Jeff 暂时连不上，正在重试' : '';
+        }
+        // Keeps the screen-reader proxies in step with the visible canvas buttons.
+        ;
+
+        _proto.syncAccess = function syncAccess() {
+          if (!this.controlAccess) return;
+          var icons = {
+            pause: '暂停',
+            resume: '继续经营',
+            end: '结束本局'
+          };
+          for (var _i30 = 0, _TAB_ORDER2 = TAB_ORDER; _i30 < _TAB_ORDER2.length; _i30++) {
+            var id = _TAB_ORDER2[_i30];
+            var b = this.buttons[id],
+              proxy = this.controlAccess.querySelector("[data-control=\"" + id + "\"]");
+            if (!proxy) continue;
+            var text = id === 'language' ? b.label.string : icons[id] || this.labelSources.get(b.label) || id;
+            if (id === 'language') proxy.setAttribute('data-no-i18n', '');
+            if (proxy.dataset.source !== text) {
+              proxy.dataset.source = text;
+              proxy.textContent = text;
+            }
+            proxy.disabled = !b.enabled;
+            proxy.hidden = !b.node.activeInHierarchy;
           }
         };
         _proto.update = function update(dt) {
-          var _this$devices$sink;
+          var _this16 = this,
+            _this$devices$sink;
           this.clock += dt;
           if (!this.state || !this.mounted) return;
           var k = this.state.kitchen;
+          // Result pops rise and fade over 1.4s (no rise with reduced motion); header numbers pulse.
+          this.pops = this.pops.filter(function (p) {
+            var age = (_this16.clock - p.born) / 1.4;
+            if (age >= 1 || !p.node.isValid) {
+              p.node.destroy();
+              return false;
+            }
+            if (!_this16.reduceMotion) p.node.setPosition(p.node.position.x, p.y + 34 * (1 - (1 - age) * (1 - age)));
+            var a = Math.round(255 * (age < .6 ? 1 : 1 - (age - .6) / .4));
+            p.label.color = new Color(p.fill.r, p.fill.g, p.fill.b, a);
+            p.label.shadowColor = new Color(43, 26, 18, a);
+            return true;
+          });
+          for (var _i31 = 0, _Object$entries5 = Object.entries(this.flashes); _i31 < _Object$entries5.length; _i31++) {
+            var _Object$entries5$_i = _Object$entries5[_i31],
+              id = _Object$entries5$_i[0],
+              f = _Object$entries5$_i[1];
+            var left = f.until - this.clock,
+              n = this.labels[id].node;
+            if (left <= 0) {
+              delete this.flashes[id];
+              n.setScale(1, 1, 1);
+              this.labels[id].color = color(this.statColor(id));
+              continue;
+            }
+            var s = this.reduceMotion ? 1 : 1 + .18 * Math.max(0, left - .9) / .3;
+            n.setScale(s, s, 1);
+          }
           var running = this.connected && !this.hidden && this.state.phase === 'running';
           this.updateSpaceGesture();
           var animate = running && !this.qaNoMotion;
           if (animate) this.activeClock += dt;
-          for (var _i29 = 0, _arr23 = ['human', 'jeff']; _i29 < _arr23.length; _i29++) {
-            var _c$sprint2;
-            var who = _arr23[_i29];
+          for (var _i32 = 0, _arr23 = ['human', 'jeff']; _i32 < _arr23.length; _i32++) {
+            var _c$sprint3;
+            var who = _arr23[_i32];
             var c = k.chefs[who],
               p = c.position,
-              n = this.people[who],
+              _n4 = this.people[who],
               motion = this.motions[who];
-            var dust = n.getChildByName('sprint-dust');
-            dust.active = !!animate && ((_c$sprint2 = c.sprint) == null ? void 0 : _c$sprint2.active_remaining) > 0 && (c.manual_moving || c.travel_remaining > 0);
+            var dust = _n4.getChildByName('sprint-dust');
+            dust.active = !!animate && ((_c$sprint3 = c.sprint) == null ? void 0 : _c$sprint3.active_remaining) > 0 && (c.manual_moving || c.travel_remaining > 0);
             if (dust.active) {
               var frame = Math.floor(this.activeClock * 10) % 7,
                 g = dust.getComponent(Graphics);
@@ -2583,24 +2992,27 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               }
             }
             if (running && p) {
-              var x = MAPX + (p[0] + .5) * TILE - 640,
-                y = 360 - MAPY - (p[1] + .5) * TILE,
-                t = Math.min(1, dt * 16);
-              var oldX = n.position.x,
-                oldY = n.position.y;
-              n.setPosition(oldX + (x - oldX) * t, oldY + (y - oldY) * t);
-              var dx = n.position.x - oldX,
-                dy = n.position.y - oldY,
-                moved = Math.hypot(dx, dy) > .08 && ((c.travel_remaining || 0) > 0 || Math.hypot(x - n.position.x, y - n.position.y) > 1);
+              var predicted = who === 'human' ? this.predictHuman(k, c, dt, _n4) : null,
+                at = predicted || p;
+              var x = MAPX + (at[0] + .5) * TILE - 640,
+                y = 360 - MAPY - (at[1] + .5) * TILE,
+                t = predicted ? 1 : Math.min(1, dt * 16);
+              var oldX = _n4.position.x,
+                oldY = _n4.position.y;
+              _n4.setPosition(oldX + (x - oldX) * t, oldY + (y - oldY) * t);
+              var dx = _n4.position.x - oldX,
+                dy = _n4.position.y - oldY,
+                moved = Math.hypot(dx, dy) > .08 && (!!predicted || (c.travel_remaining || 0) > 0 || Math.hypot(x - _n4.position.x, y - _n4.position.y) > 1);
               if (moved) {
-                if (c.manual_moving && who === 'human' && (this.manualDirection.x !== 0 || this.manualDirection.y !== 0)) {
+                if ((c.manual_moving || predicted) && who === 'human' && (this.manualDirection.x !== 0 || this.manualDirection.y !== 0)) {
                   if (Math.abs(this.manualDirection.x) >= Math.abs(this.manualDirection.y)) motion.facing = this.manualDirection.x < 0 ? 'left' : 'right';else motion.facing = this.manualDirection.y < 0 ? 'up' : 'down';
                 } else if (Math.abs(dx) >= Math.abs(dy)) motion.facing = dx < 0 ? 'left' : 'right';else motion.facing = dy > 0 ? 'up' : 'down';
               }
               // Authoritative orientation survives short actions between polls.
               if (!moved && c.facing) motion.facing = c.facing;
               if (c.working && c.facing) motion.facing = c.facing;
-              var walkIntent = !!c.manual_moving || !c.working && (c.travel_remaining || 0) > 0;
+              var held = who === 'human' && (this.manualDirection.x !== 0 || this.manualDirection.y !== 0);
+              var walkIntent = (predicted ? held : !!c.manual_moving) || !c.working && (c.travel_remaining || 0) > 0;
               if (this.characterArt(motion.body, who, motion.facing, animate && walkIntent, !!c.working)) continue;
               motion.body.angle = 0;
               var side = motion.facing === 'left' || motion.facing === 'right';
@@ -2633,8 +3045,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               }
             }
           }
-          for (var _i30 = 0, _Object$values = Object.values(this.cabinetFires); _i30 < _Object$values.length; _i30++) {
-            var flame = _Object$values[_i30];
+          for (var _i33 = 0, _Object$values = Object.values(this.cabinetFires); _i33 < _Object$values.length; _i33++) {
+            var flame = _Object$values[_i33];
             if (flame.active) {
               var _g3 = flame.getComponent(Graphics);
               if (this.useArt && this.art.show(flame, "vfx/fire_" + Math.floor(this.activeClock * 8) % 7, 58, 72)) _g3.clear();else this.drawIcon(_g3, 'fire');
@@ -2644,22 +3056,22 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }
           if (animate) {
             var _this$jeffThinking;
-            for (var _i31 = 0, _Object$entries5 = Object.entries(this.potEffects); _i31 < _Object$entries5.length; _i31++) {
-              var _Object$entries5$_i = _Object$entries5[_i31],
-                id = _Object$entries5$_i[0],
-                e = _Object$entries5$_i[1];
+            for (var _i34 = 0, _Object$entries6 = Object.entries(this.potEffects); _i34 < _Object$entries6.length; _i34++) {
+              var _Object$entries6$_i = _Object$entries6[_i34],
+                _id6 = _Object$entries6$_i[0],
+                e = _Object$entries6$_i[1];
               if (this.useArt) {
                 var _frame = Math.floor(this.activeClock * 8) % 7;
-                for (var _i32 = 0, _arr24 = [[e.steam, 'steam'], [e.smoke, 'smoke'], [e.fire, 'fire']]; _i32 < _arr24.length; _i32++) {
+                for (var _i35 = 0, _arr24 = [[e.steam, 'steam'], [e.smoke, 'smoke'], [e.fire, 'fire']]; _i35 < _arr24.length; _i35++) {
                   var _node$getComponent;
-                  var _arr24$_i = _arr24[_i32],
+                  var _arr24$_i = _arr24[_i35],
                     node = _arr24$_i[0],
                     key = _arr24$_i[1];
                   if (node.active && this.art.show(node, "vfx/" + key + "_" + _frame, key === 'fire' ? 75 : 42, key === 'fire' ? 75 : 42)) (_node$getComponent = node.getComponent(Graphics)) == null || _node$getComponent.clear();
                 }
               }
-              if (e.steam.active) e.steam.setPosition(-11 + Math.sin(this.activeClock * 3 + id.length) * 3, 38 + Math.sin(this.activeClock * 4 + id.length) * 3);
-              if (e.smoke.active) e.smoke.setPosition(13 + Math.sin(this.activeClock * 2.4 + id.length) * 2, 38 + Math.sin(this.activeClock * 3 + id.length) * 2);
+              if (e.steam.active) e.steam.setPosition(-11 + Math.sin(this.activeClock * 3 + _id6.length) * 3, 38 + Math.sin(this.activeClock * 4 + _id6.length) * 3);
+              if (e.smoke.active) e.smoke.setPosition(13 + Math.sin(this.activeClock * 2.4 + _id6.length) * 2, 38 + Math.sin(this.activeClock * 3 + _id6.length) * 2);
               if (e.fire.active) e.fire.setScale(.55 + Math.sin(this.activeClock * 12) * .035, .55 + Math.sin(this.activeClock * 12 + 1) * .06, 1);
               if (e.ready.active) e.ready.setScale(.85 + Math.sin(this.activeClock * 12) * .12, .85 + Math.sin(this.activeClock * 12) * .12, 1);
             }
@@ -2680,13 +3092,16 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }
           if (running && (this.manualDirection.x !== 0 || this.manualDirection.y !== 0) && this.clock - this.lastMoveAt >= .15) this.sendMove(this.manualDirection.x, this.manualDirection.y);
           var time = k.time + (this.state.phase === 'running' && this.connected ? (this.clock - this.received) * this.state.speed : 0);
-          for (var _iterator9 = _createForOfIteratorHelperLoose(k.projectiles || []), _step9; !(_step9 = _iterator9()).done;) {
-            var _p = _step9.value;
+          for (var _iterator13 = _createForOfIteratorHelperLoose(k.projectiles || []), _step13; !(_step13 = _iterator13()).done;) {
+            var _p = _step13.value;
             var _t = Math.max(0, Math.min(1, (time - _p.started) / (_p.lands_at - _p.started))),
-              height = Math.sin(_t * Math.PI) * 35;
+              arc = Math.sin(_t * Math.PI) * 35;
             var point = [_p.from[0] + (_p.to[0] - _p.from[0]) * _t, _p.from[1] + (_p.to[1] - _p.from[1]) * _t];
+            // A board/counter landing ends on its work surface, drawn over the cabinet like a resting item.
+            var onto = _p.onto && k.map.equipment[_p.onto] ? _p.onto : null,
+              height = arc + (onto ? _t * this.workSurfaceY(onto) : 0);
             this.locate(this.flights[_p.id], point, height);
-            this.flightOrder[_p.id] = flightDepth(point[1], height);
+            this.flightOrder[_p.id] = onto && _t >= .5 ? Math.max(flightDepth(point[1], height), depthOrder(k.map.equipment[onto].cell[1], 'solid') + .02) : flightDepth(point[1], height);
           }
           this.sortWorld();
         };
@@ -2719,7 +3134,9 @@ System.register("chunks:///_virtual/KitchenGeometry.ts", ['cc'], function (expor
         burgerLayers: burgerLayers,
         depthOrder: depthOrder,
         flightDepth: flightDepth,
+        footWalkable: footWalkable,
         heatCountdown: heatCountdown,
+        predictWalk: predictWalk,
         stationView: stationView,
         surfaceOffset: surfaceOffset,
         trashView: trashView,
@@ -2801,6 +3218,40 @@ System.register("chunks:///_virtual/KitchenGeometry.ts", ['cc'], function (expor
       /** Airborne objects keep ground depth; elevation may clear a cabinet, never move behind it. */
       function flightDepth(groundRow, height) {
         return depthOrder(groundRow, 'item') + (height >= GRID_ART.tile * .22 ? .62 : 0);
+      }
+      /** Mirrors the server's foot test (navigation.walkable_point) using the map's walk boxes. */
+      function footWalkable(map, x, y) {
+        var _map$walk_clearance;
+        var c = (_map$walk_clearance = map.walk_clearance) != null ? _map$walk_clearance : .2,
+          e = 1e-9;
+        if (!(x >= .5 + c - e && x <= map.width - 1.5 - c + e && y >= .5 + c - e && y <= map.height - 1.5 - c + e)) return false;
+        return !(map.walk_boxes || []).some(function (b) {
+          return b[0] + e < x && x < b[2] - e && b[1] + e < y && y < b[3] - e;
+        });
+      }
+      /** Local prediction of a held-key walk: straight when clear, otherwise each axis slides
+       * up to the blocking edge, as the server does. Never steps deeper into the teammate. */
+      function predictWalk(map, from, dx, dy, other) {
+        var _map$chef_separation;
+        var n = Math.max(1, Math.ceil(Math.hypot(dx, dy) / .02)),
+          sep = (_map$chef_separation = map.chef_separation) != null ? _map$chef_separation : .4,
+          sx = dx / n,
+          sy = dy / n;
+        var ok = function ok(x, y, px, py) {
+          return footWalkable(map, x, y) && (!other || Math.hypot(x - other[0], y - other[1]) >= Math.min(sep, Math.hypot(px - other[0], py - other[1])));
+        };
+        var x = from[0],
+          y = from[1];
+        for (var i = 0; i < n; i++) {
+          if (ok(x + sx, y + sy, x, y)) {
+            x += sx;
+            y += sy;
+            continue;
+          }
+          if (sx && ok(x + sx, y, x, y)) x += sx;
+          if (sy && ok(x, y + sy, x, y)) y += sy;
+        }
+        return [x, y];
       }
       /** Display order is semantic, independent of the order ingredients reached the plate. */
       function burgerLayers(ingredients) {
