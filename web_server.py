@@ -158,8 +158,7 @@ class GameSession:
             self.last_seen = time.monotonic()
             state = self.k.snapshot()
             actions = self.k.actions('human')
-            focus=self.k.interaction_target('human',self.interaction_focus) if hasattr(self.k,'interaction_target') else None
-            interaction = self.k.quick_interaction('human',actions,preferred=focus) if hasattr(self.k,'quick_interaction') else None
+            focus, interaction, cell, hint = self._interaction_view(actions)
             for who, chef in self.k.chefs.items():
                 j = chef.job
                 total = self.totals.setdefault(j.id, j.travel+j.work) if j else 0
@@ -172,8 +171,8 @@ class GameSession:
                     'communication': self.communication_state(),
                     'interaction': asdict(interaction) if interaction else None,
                     'interaction_focus': focus,
-                    'interaction_cell': self.k.interaction_cell('human',focus) if hasattr(self.k,'interaction_cell') else None,
-                    'interaction_hint': self.k.interaction_hint('human',focus) if hasattr(self.k,'interaction_hint') and not interaction else None,
+                    'interaction_cell': cell,
+                    'interaction_hint': hint,
                     'kitchen': state, 'actions': [asdict(a) for a in actions],
                     'boards': self.k.boards, 'pots': self.k.pots, 'events': events,
                     'ai': {'connected': bool(self.ai and self.ai.successes),
@@ -185,6 +184,27 @@ class GameSession:
                     'won': self.k.won() and not self.k.aborted if self.phase == 'ended' else False,
                     'rules': {key:self.c[key] for key in ('chop_seconds', 'cook_seconds', 'burn_after_ready',
                               'fire_after_burn', 'order_patience', 'round_seconds', 'order_count')}}
+
+    def _interaction_view(self, actions):
+        # Space-key focus is a position-dependent convenience: if it fails, the page still
+        # gets the kitchen state (instead of an empty response that reads as a disconnect).
+        k = self.k
+        try:
+            focus = k.interaction_target('human',self.interaction_focus) if hasattr(k,'interaction_target') else None
+            interaction = k.quick_interaction('human',actions,preferred=focus) if hasattr(k,'quick_interaction') else None
+            cell = k.interaction_cell('human',focus) if hasattr(k,'interaction_cell') else None
+            hint = k.interaction_hint('human',focus) if hasattr(k,'interaction_hint') and not interaction else None
+            return focus, interaction, cell, hint
+        except Exception as exc:
+            if self.journal and not getattr(self, '_interaction_error_logged', False):
+                self._interaction_error_logged = True
+                try:
+                    self.journal('engine_error', {'t': k.time, 'where': 'interaction_view', 'error': f'{type(exc).__name__}: {exc}',
+                                                  'position': k.positions.get('human'), 'facing': getattr(k,'facing',{}).get('human'),
+                                                  'trace': traceback.format_exc(limit=8)})
+                except Exception:
+                    pass
+            return None, None, None, None
 
     def command(self, path, body):
         with self.lock:

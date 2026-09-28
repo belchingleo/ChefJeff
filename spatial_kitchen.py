@@ -688,6 +688,8 @@ class SpatialKitchen(Kitchen):
         if target=='partner':return self.anchor('jeff' if who=='human' else 'human')
         if target and target.startswith('item:'):
             item=self.ground.get(target[5:]);return self.cell(item.location) if item else None
+        # Facing a wall or the map edge yields a non-floor key: there is no cell to highlight.
+        if target and target.startswith('floor_') and target not in self.floor_places:return None
         return self.cell(target) if target else None
 
     def quick_interaction(self, who, actions=None, preferred=None):

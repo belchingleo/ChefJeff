@@ -178,6 +178,33 @@ class ControlsTests(unittest.TestCase):
         self.assertFalse(any(g.k.manual['human']))
         self.assertEqual(self.cmd(g,'move',dx=1,dy=0,seq=15)[0],409)
 
+    def test_space_focus_is_safe_everywhere_including_against_walls(self):
+        # Walking into a bare wall used to make /api/state throw (empty response, read as a disconnect).
+        for level in (1,2,3):
+            base=SpatialKitchen({**load_config(),'level':level,'spawn_seed':0})
+            # Every floor cell touching a wall, cabinet or the map edge, pressed toward each side.
+            edge=[(x,y) for x,y in sorted(base.nav.floor) if any(n not in base.nav.floor for n in ((x+1,y),(x-1,y),(x,y+1),(x,y-1)))]
+            spots=[(x+dx,y+dy) for x,y in edge for dx,dy in ((0,0),(-.3,0),(.3,0),(0,-.3),(0,.3)) if base.nav.walkable_point((x+dx,y+dy))]
+            # Empty hands: the focus path is the same with a full hand, and far cheaper to sweep.
+            k=SpatialKitchen({**load_config(),'level':level,'spawn_seed':0})
+            for spot in spots:
+                if math.dist(spot,k.positions['jeff'])<.5:continue
+                k.positions['human']=spot;actions=k.actions('human')
+                for facing in ('up','down','left','right'):
+                    k.facing['human']=facing
+                    with self.subTest(level=level,spot=spot,facing=facing):
+                        focus=k.interaction_target('human')
+                        interaction=k.quick_interaction('human',actions,preferred=focus)
+                        k.interaction_cell('human',focus)
+                        if not interaction:k.interaction_hint('human',focus)
+
+    def test_state_survives_a_failing_focus_helper(self):
+        g=self.session();journal=g.journal
+        with patch.object(g.k,'interaction_cell',side_effect=ValueError('boom')):
+            state=g.public_state()
+        self.assertIsNone(state['interaction_cell']);self.assertIn('kitchen',state)
+        self.assertIn('engine_error',[kind for kind,_ in journal.rows])
+
     def test_loop_survives_a_failed_tick_and_the_next_round_runs(self):
         g=self.session();journal=g.journal;real=g.tick;calls=[]
         def tick():
