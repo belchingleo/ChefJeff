@@ -72,6 +72,23 @@ class FacingControlTests(unittest.TestCase):
         self.assertIsNone(k.forward_throw('human'))
 
 
+class ForwardThrowHttpTests(unittest.TestCase):
+    def test_e_throws_through_the_web_session(self):
+        g = GameSession(config=level_config(load_config(), 2), kitchen_factory=SpatialKitchen,
+                        client_factory=Client, journal_factory=FakeJournal)
+        self.addCleanup(g.close)
+        self.assertEqual(g.command('/api/start', {'game_id': g.game_id, 'request_id': 's', 'speed': .75})[0], 200)
+        k = g.k
+        k.positions['human'] = (3., 5.); k.facing['human'] = 'right'
+        k.chefs['human'].hand = Food('T', 'raw', ingredient='tomato')
+        k.positions['jeff'] = (10., 2.)
+        status, body = g.command('/api/interact', {'game_id': g.game_id, 'request_id': 'e', 'expected_item': 'T', 'mode': 'use'})
+        self.assertEqual(status, 200, body)
+        for _ in range(20):k.advance(.05)
+        self.assertIsNone(k.chefs['human'].hand)
+        self.assertTrue(any(item.food.id == 'T' for item in k.ground.values()))
+
+
 class ShortActionMoveTests(unittest.TestCase):
     def test_a_move_during_a_short_take_starts_after_it(self):
         g = GameSession(config=level_config(load_config(), 2), kitchen_factory=SpatialKitchen,

@@ -507,7 +507,15 @@ class GameSession:
             # else throw the held item straight ahead. Both act on what the chef faces.
             mode = 'use' if body.get('mode') == 'use' else 'hands'
             focus, action = self.k.facing_interaction('human',mode)
-            if not action and mode == 'use':action = self.k.forward_throw('human')
+            if not action and mode == 'use':
+                throw = self.k.forward_throw('human')
+                if throw:
+                    # Not one of the listed per-tile throws: start it directly, as /api/throw does.
+                    ok,message = self.k.start('human',throw)
+                    self.journal('human_input',{'t':self.k.time,'source':'browser','action':throw.key,
+                                              'landing':throw.target,'applied':ok,'message':message})
+                    self._events()
+                    return (200,{'ok':True}) if ok else (409,{'error':message})
             if not action:
                 message=(self.k.interaction_hint('human',focus) if mode=='hands' else None) or ('面前没有可以切、洗或灭火的东西' if mode=='use' else '面前没有可操作目标')
                 self.journal('human_input',{'t':self.k.time,'source':'browser','action':'use' if mode=='use' else 'interact','applied':False,'message':message})
