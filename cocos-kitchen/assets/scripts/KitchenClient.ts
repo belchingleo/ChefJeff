@@ -1,5 +1,5 @@
 import { _decorator, Component, Node, UITransform, Graphics, Color, Label, Layers,
-    view, ResolutionPolicy, sys, game, Game, profiler, Mask, Vec2, Camera, director } from 'cc';
+    view, ResolutionPolicy, sys, game, Game, profiler, Mask, Vec2, Camera, director, Sprite } from 'cc';
 import { LevelOneArt } from './LevelOneArt';
 import { GRID_ART, stationView, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, workingChefDepth, flightDepth, burgerLayers, heatCountdown } from './KitchenGeometry';
 const { ccclass } = _decorator;
@@ -394,9 +394,9 @@ export class KitchenClient extends Component {
             this.drawIcon(g,'clean_plate');
             const parts=type.slice(9).split(',');let y=-8;
             for(const name of ['bread','beef','lettuce','tomato'])if(parts.includes(name)){
-                r(-13,y,26,5,name==='bread'?'#d1a362':name==='beef'?'#846144':name==='lettuce'?'#639650':'#c45643');y+=5;
+                r(-13,y,26,5,name==='bread'?'#d1a362':name==='beef'?(parts.includes('burnt')?FOOD_COLORS.burnt:'#846144'):name==='lettuce'?'#639650':'#c45643');y+=5;
             }
-            if(parts.length===4)r(-12,y,24,4,'#d1a362');
+            if(['bread','beef','lettuce','tomato'].every(name=>parts.includes(name)))r(-12,y,24,4,'#d1a362');
         }else if(type==='counter'){
             r(-24,-19,48,36,COLORS.wood);r(-20,-14,40,26,'#b48b5e');r(-24,12,48,8,'#dfbd88');r(-2,-10,3,20,COLORS.wood);
         }else if(type.startsWith('plated_')){
@@ -461,11 +461,15 @@ export class KitchenClient extends Component {
             let parts=node.getChildByName('assembly-parts');
             if(!parts)parts=this.child(node,'assembly-parts',44,44);
             parts.active=true;for(const child of parts.children)child.active=false;
-            const layers=burgerLayers(type.slice(9).split(','));
+            const ingredients=type.slice(9).split(','),burnt=ingredients.includes('burnt');
+            const layers=burgerLayers(ingredients);
             layers.forEach((name,i)=>{
                 const item=parts!.getChildByName(name)||this.child(parts!,name,36,24);
                 item.active=true;item.setPosition(0,-3+i*4);item.setSiblingIndex(parts!.children.length-1);
                 this.art.centered(item,'feedback/'+name,34,22);
+                // No separate charred sprite: darken the beef layer; reused nodes reset to white.
+                const sprite=item.getChildByName('reviewed-art')?.getComponent(Sprite);
+                if(sprite)sprite.color=name==='beef'&&burnt?new Color(78,64,58,255):Color.WHITE;
             });
             return true;
         }
@@ -505,7 +509,8 @@ export class KitchenClient extends Component {
         return STAGES[this.itemStage(f)]||f.meaning||f.stage;
     }
     private itemStage(f:any){
-        if(f?.plate_id&&f.components?.some((x:string)=>x!=='beef')&&f.stage!=='burnt')return 'assembly:'+f.components.join(',');
+        // Burnt burgers keep their layers (burnt dishes can be served); only the beef is drawn charred.
+        if(f?.plate_id&&f.components?.some((x:string)=>x!=='beef'))return 'assembly:'+f.components.join(',')+(f.stage==='burnt'?',burnt':'');
         if(['bread','lettuce','tomato'].includes(f?.ingredient)&&!f?.plate_id)return f.ingredient+'_'+f.stage;
         if(this.useArt&&f?.stage==='raw'&&f?.ingredient==='beef'&&f.chop_remaining<(this.state?.rules?.chop_seconds||6))return 'processing';
         return f?.stage==='pot'?(f.contents?'pot_'+f.contents.stage:'pot'):f?.plate_id?'plated_'+f.stage:f?.stage;}
