@@ -32,7 +32,7 @@ Selects semantics the engine already implements; it cannot add mechanics.
 | `supported_equipment_types` | types with engine semantics | 9 types |
 | `operations.handling_game_ms` / `extinguish_game_ms` / `clear_game_ms` | take/put/plate/serve; extinguish; clear pot | 150 / 4000 / 2000 |
 | `movement.*` | walk 4.5 cells/s; sprint 1.4× for 1000 ms, 3000 ms cooldown; chef separation 0.4; sprint push ≤ 0.25 cells | |
-| `throw.*` | enabled; range 7 cells; 12 cells/s; minimum flight 200 ms; catch radius 0.75 | |
+| `throw.*` | enabled; range 7 cells; 12 cells/s; minimum flight 200 ms; catch radius 0.75. Service: `range_cells` 4 and `pass_range_cells` 4 (plates, dishes, pots, extinguisher); legacy has no `pass_range_cells` | |
 | `tableware.dining_game_ms` / `return_capacity` | customer plate return delay; return station capacity | 8000 / 1 |
 | `fire.spread_interval_game_ms` / `loss_threshold` | spread cadence; simultaneous fires that end the round | 8000 / 5 |
 | `penalties.*` | legacy: wrong or burnt dish −15; service: wrong dish (no shown order waits for it) −20. Both: expired order −10, new fire −5, discard/clear −2 | |

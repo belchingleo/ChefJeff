@@ -139,7 +139,7 @@
 | 规则说明与合法动作来自同一配置 | 快照中的 `menu`、`scoring`、`timing`、`goal_status` | `test_data_driven.test_price_change_reaches_engine_and_agent_rules` |
 | 固定步长与确定性 | 服务器 50 ms tick 累加器；每关固定 seed（订单 26、出生 0） | `test_web.FixedTickTests`、`test_service_mode.FixedSeedTests` |
 | 新订单模式与独立结束规则 | `rulesets/chefjeff-service.json`，三关 `content/levels/level-{1,2,3}.json` | `test_service_mode` |
-| 传菜（盘、菜、锅、灭火器 3 格；食材 7 格） | ruleset `throw.pass_range_cells`（旧 ruleset 无此字段，旧关不可传盘） | `test_throw`、`test_tableware`、`test_level_three` |
+| 传菜与抛食材射程均为 4 格（盘、菜、锅、灭火器用 `throw.pass_range_cells`，散装食材用 `throw.range_cells`；旧 ruleset 保持食材 7 格且无传盘字段，旧关不可传盘） | ruleset `throw.range_cells`／`throw.pass_range_cells` | `test_throw`、`test_tableware`、`test_level_three` |
 | 寻路受阻重新规划（0.3 s 内剩余路程未缩短 0.05 格即绕开另一名厨师重算） | ruleset `movement.stall_replan`（旧 ruleset 无此字段，旧关重放与指纹不变） | `test_route_stall` |
 | 目标金额 = 参考机器人收入 50% 向下取整到 10 | `scripts/reference_sweep.py --fixed`（第 2 关用隔台传菜的分区组合）；`reports/pacing-sweep-fixed.json` | `test_service_mode.test_targets_are_half_the_calibrated_reference_income` |
 | Capacity Analyzer | `capacity_analyzer.py`、`docs/architecture/reports/` | `test_capacity_analyzer` |
