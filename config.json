@@ -20,6 +20,7 @@
   "ai_refresh_seconds": 4,
   "ai_timeout_seconds": 8,
   "ai_max_response_age": 6,
+  "ai_empty_counters_per_area": 2,
   "model": "jev-latest",
   "handling_seconds": 0.15,
   "plate_count": 2,

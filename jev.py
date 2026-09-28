@@ -16,7 +16,7 @@ ENDPOINT = "https://api.typesafe.ai/v1/systemone"
 # Bump whenever model-visible rule wording changes, so sessions stay comparable.
 # v2: factual rules only; no instructions to cooperate with or help the human.
 # v3: continuous service rules (money goal, burnt tiers, no bad reviews) where the level uses them.
-AGENT_RULES_VERSION = "rules-v3"
+AGENT_RULES_VERSION = "rules-v4"
 
 
 def load_key():
@@ -56,7 +56,7 @@ def objective_text(state):
 def score_text(state):
     """Scoring rules from the recipe prices and ruleset penalties of this round."""
     p = state['scoring']['penalties']
-    prices = ', '.join(f"{r['id']} {r['price']} yuan" for r in state['menu'])
+    prices = ', '.join(f"{r['id']} {r['price']} yuan" for r in state.get('dishes', state['menu']))
     if 'wrong_dish' in p:
         tiers = []
         for tier in state['scoring']['burnt_service']:
@@ -65,7 +65,8 @@ def score_text(state):
             tiers.append(f"{span}: accepted at the price {tier['adjustment']:+d} yuan" if tier['outcome'] == 'accepted'
                          else f"{span}: refused with no payment; the dish is lost and the order keeps waiting")
         return (f"Serving a complete plated dish goes to the waiting order of the same dish with the earliest deadline and earns its price ({prices}); "
-                "serving exactly at the deadline still counts. Unplated or incomplete food cannot be served. "
+                "serving exactly at the deadline still counts. A plate can be served when its components are exactly those of one dish in kitchen.dishes; "
+                "orders show which dishes customers are waiting for. Unplated food, or a plate that matches no dish, cannot be served. "
                 "If any component was burnt, what counts is how long it had been burnt when it left the heat: " + '; '.join(tiers) + ". "
                 f"Serving a dish that no shown order is waiting for: {p['wrong_dish']} yuan. Expired order: {p['expired_order']} yuan. "
                 f"Fire: {p['new_fire']} yuan per burning workstation. Discarding food or clearing a pot: {p['discard']} yuan. There are no bad reviews.")
@@ -261,7 +262,9 @@ class DecisionLoop:
                    "actions": {a.key: a for a in actions}}
         payload = self.client.payload(state, actions)
         # HTTP choices are stateless: return actual outcomes, not just today's snapshot.
-        payload['state']['recent_events'] = self.k.events[-20:]
+        # Walking starts/stops are already in each chef's position and move_direction; as events
+        # they only push outcomes out of the window. The run log keeps them.
+        payload['state']['recent_events'] = [e for e in self.k.events if e.get('kind') != 'manual_move'][-20:]
         payload['state']['recent_decisions'] = list(self.recent_decisions)
         messages=getattr(self,'player_messages',[])
         if messages:

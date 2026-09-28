@@ -223,6 +223,10 @@ class Rules:
         self.all_parts = frozenset().union(*self.recipe_parts.values())
         # Assembly actions exist when this level serves a dish with several components.
         self.multi_component = any(len(self.recipe_parts[r]) > 1 for r in self.menu)
+        # Every catalog dish that the ingredients of this menu can form is servable (the serving
+        # window matches any recipe); orders ask only for menu dishes.
+        menu_parts = frozenset().union(*(self.recipe_parts[r] for r in self.menu)) if self.menu else frozenset()
+        self.servable = [r for r in self.recipes if self.recipe_parts[r] <= menu_parts]
         self.chop = {t['item']: t for t in recipes['transforms'] if t['operation'] == 'chop'}
         self.heat = {t['item']: t for t in recipes['transforms'] if t['operation'] == 'heat'}
         self.wash_work = s(recipes['containers']['plate']['wash_work_game_ms'])
