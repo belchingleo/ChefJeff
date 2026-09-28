@@ -31,7 +31,10 @@
     "chef_separation_cells": 0.4,
     "sprint_push_cells": 0.25,
     "sprint_food_nudge_cells": 0.25,
-    "cabinet_front_clearance_cells": 0.45,
+    "cabinet_clearance_cells": {
+      "front": 0.45,
+      "side": 0.35
+    },
     "stall_replan": {
       "after_game_ms": 300,
       "min_progress_cells": 0.05

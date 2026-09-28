@@ -149,18 +149,18 @@ def _board_contacts(equipment,walls):
     return tuple(sorted(contacts))
 
 
-def map_navigation(level,front_clearance=None):
+def map_navigation(level,cabinet_clearance=None):
     document=load_map(level)
     equipment,walls=geometry(document)
     return _map_navigation(tuple(document['size']),tuple(sorted(walls)),
                            tuple(sorted((key+':'+str(i),tuple(c)) for key,e in equipment.items() for i,c in enumerate(e.get('cells',[e['cell']])))),
-                           _board_contacts(equipment,walls),front_clearance)
+                           _board_contacts(equipment,walls),cabinet_clearance)
 
 
 @lru_cache(maxsize=12)
-def _map_navigation(size,walls,cells,contact_edges=(),front_clearance=None):
+def _map_navigation(size,walls,cells,contact_edges=(),cabinet_clearance=None):
     from navigation import Navigation
-    return Navigation(*size,walls,{key:{'cell':cell} for key,cell in cells},contact_edges,front_clearance)
+    return Navigation(*size,walls,{key:{'cell':cell} for key,cell in cells},contact_edges,cabinet_clearance)
 
 class SpatialKitchen(Kitchen):
     def __init__(self, config=None, rng=None):
@@ -170,7 +170,7 @@ class SpatialKitchen(Kitchen):
         self.equipment,self.walls=geometry(self.map_document)
         self.nav=_map_navigation(tuple(self.map_document['size']),tuple(sorted(self.walls)),
                                  tuple(sorted((key+':'+str(i),tuple(c)) for key,e in self.equipment.items() for i,c in enumerate(e.get('cells',[e['cell']])))),
-                                 _board_contacts(self.equipment,self.walls),self.rules.cabinet_front_clearance)
+                                 _board_contacts(self.equipment,self.walls),self.rules.cabinet_clearance)
         self.floor=self.nav.floor
         self.sprint_until={who:0. for who in self.chefs}
         self.sprint_ready_at={who:0. for who in self.chefs}
@@ -208,6 +208,8 @@ class SpatialKitchen(Kitchen):
         # permit the reviewed closer north approach; other solids retain their
         # existing physical clearance. Neither actor artwork nor table is moved.
         self.operation_insets={}
+        # With one body size, side operators stand exactly at the side walk limit.
+        side=.30 if self.rules.cabinet_clearance is None else .5-self.rules.cabinet_clearance[1]
         for key,e in self.equipment.items():
             if e.get('reach')=='corner':continue
             faces={}
@@ -216,7 +218,7 @@ class SpatialKitchen(Kitchen):
                 if (x+dx,y+dy) not in self.floor:continue
                 # 'up' is negative: the chef steps back from the cabinet so the tall
                 # back-view sprite reads as standing in front of it, not on it.
-                faces[face]=UP_STANDOFF if face=='up' else .30 if face in ('left','right') else (.49 if face in self.nav.contact_edges.get(e['cell'],()) else .30)
+                faces[face]=UP_STANDOFF if face=='up' else side if face in ('left','right') else (.49 if face in self.nav.contact_edges.get(e['cell'],()) else .30)
             self.operation_insets[key]=faces
 
     def speed_factor(self, who):

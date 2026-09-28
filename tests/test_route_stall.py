@@ -44,7 +44,17 @@ class RouteStallTests(unittest.TestCase):
                 self.assertTrue(all(c.job is None for c in k.chefs.values()),k.positions)
                 self.assertEqual(k.positions[down],k.operation_point('counter23',(9,6)))
                 self.assertEqual(k.positions[up],k.operation_point('p1',(9,2)))
-                self.assertTrue(any(e.get('kind')=='route_replanned' for e in k.events))
+
+    def test_crossing_routes_that_stall_replan_and_both_arrive(self):
+        # With the service body clearance the x=10..11 gap above no longer stalls;
+        # these crossing routes still do, and must recover by re-planning.
+        k=self.make((9,6),(10,4))
+        self.route(k,'human','counter5');self.route(k,'jeff','returns')
+        self.walk(k,6)
+        self.assertTrue(all(c.job is None for c in k.chefs.values()),k.positions)
+        self.assertEqual(k.positions['human'],k.operation_point('counter5',(2,2)))
+        self.assertEqual(k.positions['jeff'],k.operation_point('returns',(2,5)))
+        self.assertTrue(any(e.get('kind')=='route_replanned' for e in k.events))
 
     def test_route_pushed_off_its_corner_waypoint_recovers(self):
         # Contact pushed the walker back past the counter corner it had already

@@ -141,7 +141,7 @@
 | 新订单模式与独立结束规则 | `rulesets/chefjeff-service.json`，三关 `content/levels/level-{1,2,3}.json` | `test_service_mode` |
 | 传菜与抛食材射程均为 4 格（盘、菜、锅、灭火器用 `throw.pass_range_cells`，散装食材用 `throw.range_cells`；旧 ruleset 保持食材 7 格且无传盘字段，旧关不可传盘） | ruleset `throw.range_cells`／`throw.pass_range_cells` | `test_throw`、`test_tableware`、`test_level_three` |
 | 寻路受阻重新规划（0.3 s 内剩余路程未缩短 0.05 格即绕开另一名厨师重算） | ruleset `movement.stall_replan`（旧 ruleset 无此字段，旧关重放与指纹不变） | `test_route_stall` |
-| 柜体正面留空：脚点距工位格南缘 0.45 格，站不到柜门面板上（墙和其他三面仍为 0.2 格；两位厨师、寻路、键盘移动和客户端预测共用同一组走动框） | ruleset `movement.cabinet_front_clearance_cells`（旧 ruleset 无此字段，旧关重放与指纹不变） | `test_cabinet_front` |
+| 统一身体尺寸：脚点距工位格南缘 0.45 格（站不到柜门面板上），距东西两侧 0.35 格（按角色图实测的半宽，案板侧面不再例外）；站位点由同一组数值推出，北侧和墙仍为 0.2 格；两位厨师、寻路、键盘移动和客户端预测共用同一组走动框 | ruleset `movement.cabinet_clearance_cells`（旧 ruleset 无此字段，旧关重放与指纹不变） | `test_cabinet_front` |
 | 目标金额 = 参考机器人收入 50% 向下取整到 10 | `scripts/reference_sweep.py --fixed`（第 2 关用隔台传菜的分区组合）；`reports/pacing-sweep-fixed.json` | `test_service_mode.test_targets_are_half_the_calibrated_reference_income` |
 | Capacity Analyzer | `capacity_analyzer.py`、`docs/architecture/reports/` | `test_capacity_analyzer` |
 | 单一事件流、Session 记录包、重放 | `session_record.py`、`schemas/session|event.schema.json` | `test_session_record` |

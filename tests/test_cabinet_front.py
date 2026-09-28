@@ -21,7 +21,8 @@ class CabinetFrontClearanceTests(unittest.TestCase):
         self.assertAlmostEqual(wall[3], .5+WALK_CLEARANCE)
         # The published walk boxes carry the same edge, so the client prediction agrees.
         boxes = k.snapshot()['map']['walk_boxes']
-        self.assertIn([4.3, 3.3, 5.7, 4.5+front], boxes)
+        side = k.rules.cabinet_clearance[1]
+        self.assertIn([5-.5-side, 3.3, 5+.5+side, 4.5+front], [[round(v, 9) for v in b] for b in boxes])
 
     def test_both_chefs_walking_north_stop_below_the_panel(self):
         for who in ('human', 'jeff'):
@@ -34,6 +35,17 @@ class CabinetFrontClearanceTests(unittest.TestCase):
                 k.advance(1)
                 self.assertAlmostEqual(k.positions[who][1], 4.5+k.rules.cabinet_front_clearance, places=4)
                 k.assert_invariants()
+
+    def test_board_sides_keep_the_body_width_too(self):
+        # Level 1's board column used to let feet touch its sides (half the body on the board).
+        k = self.make('level-1')
+        side = k.rules.cabinet_clearance[1]
+        k.positions['jeff'] = (10., 4.)
+        k.positions['human'] = (2., 4.)
+        k.set_manual('human', 1, 0)
+        k.advance(1)
+        self.assertAlmostEqual(k.positions['human'][0], 3.5 - side, places=4)
+        self.assertAlmostEqual(k.operation_point('b2', (3, 4))[0], 3.5 - side)
 
     def test_every_operation_point_remains_reachable(self):
         for level in ('level-1', 'level-2', 'level-3'):

@@ -128,11 +128,15 @@
           "minimum": 0,
           "maximum": 1
         },
-        "cabinet_front_clearance_cells": {
-          "description": "Optional: a chef's feet stay this far south of a workstation cell, clear of the cabinet's front panel. Absent: the ordinary 0.2-cell walk clearance (accepted 0.5.9 behaviour).",
-          "type": "number",
-          "minimum": 0.2,
-          "maximum": 0.5
+        "cabinet_clearance_cells": {
+          "description": "Optional: one chef body size against workstations. Feet stay `front` cells south of a workstation cell (clear of the cabinet's front panel) and `side` cells from its east/west edges (the chef's half width, measured from the art); stand points follow. Absent: the ordinary 0.2-cell walk clearance with board contact faces (accepted 0.5.9 behaviour).",
+          "type": "object",
+          "required": ["front", "side"],
+          "properties": {
+            "front": {"type": "number", "minimum": 0.2, "maximum": 0.5},
+            "side": {"type": "number", "minimum": 0.2, "maximum": 0.45}
+          },
+          "additionalProperties": false
         },
         "stall_replan": {
           "description": "Optional: a routed chef whose remaining route has not shortened by min_progress_cells within after_game_ms re-plans around the other chef. Absent: routes keep their static waypoints (accepted 0.5.9 behaviour).",

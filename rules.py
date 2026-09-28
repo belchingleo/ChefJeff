@@ -192,9 +192,12 @@ class Rules:
         self.chef_separation = move['chef_separation_cells']
         self.sprint_push = move['sprint_push_cells']
         self.sprint_food_nudge = move['sprint_food_nudge_cells']
-        # Optional: feet keep this distance south of a cabinet cell, clear of its front panel.
-        # Absent = the ordinary 0.2-cell walk clearance (accepted 0.5.9 behaviour).
-        self.cabinet_front_clearance = move.get('cabinet_front_clearance_cells')
+        # Optional one body size against workstations: feet stay `front` south of a cabinet
+        # (clear of its front panel) and `side` from its east/west edges. Absent = the
+        # ordinary 0.2-cell walk clearance with board contact faces (accepted 0.5.9 behaviour).
+        body = move.get('cabinet_clearance_cells')
+        self.cabinet_clearance = (body['front'], body['side']) if body else None
+        self.cabinet_front_clearance = body['front'] if body else None
         # Optional: re-plan a stalled route around the other chef. Absent = static waypoints.
         stall = move.get('stall_replan')
         self.stall_after = s(stall['after_game_ms']) if stall else None

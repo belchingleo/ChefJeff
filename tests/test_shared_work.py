@@ -70,7 +70,7 @@ class SharedWorkTests(unittest.TestCase):
 
     def test_future_sink_with_corner_supports_shared_wash(self):
         k=self.make();k.equipment['sink']={'cell':(5,4),'access':(5,3)}
-        k.nav=Navigation(k.width,k.height,k.walls,k.equipment,tuple(k.nav.contact_edges.items()),k.rules.cabinet_front_clearance)
+        k.nav=Navigation(k.width,k.height,k.walls,k.equipment,tuple(k.nav.contact_edges.items()),k.rules.cabinet_clearance)
         k.floor=k.nav.floor
         k.floor_places={tile_key(cell):Station(f'地面({cell[0]},{cell[1]})','处理区') for cell in k.floor}
         k.stations['sink'].food=k.stations['plates'].food;k.stations['plates'].food=None
