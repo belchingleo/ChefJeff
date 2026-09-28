@@ -79,6 +79,10 @@
         },
         "clear_game_ms": {
           "$ref": "common.schema.json#/$defs/positive_game_ms"
+        },
+        "ground_assembly": {
+          "type": "boolean",
+          "description": "Multi-component menus: a chef may add a held ingredient to a plate on the floor, or a floor ingredient to the held plate, like assembling on a counter. Absent: floor items can only be picked up (swapped)."
         }
       },
       "additionalProperties": false

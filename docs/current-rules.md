@@ -35,7 +35,7 @@ A pot heats only on a stove. Carrying it or placing it on a counter/floor pauses
 
 ## Assembly and service
 
-Cooked beef moves with a pot or plate, never as a bare-handed loose item. Clean or compatible partial plates can collect prepared ingredients from boards/counters and cooked beef from pots. Prepared ingredients, cooked pot contents and compatible plated components may be added to a partner's plate without stealing their item or interrupting work. Merging two plates transfers food, leaving the source plate empty. Duplicate ingredients and dirty plates are rejected.
+Cooked beef moves with a pot or plate, never as a bare-handed loose item. Clean or compatible partial plates can collect prepared ingredients from boards/counters and cooked beef from pots. On levels with burgers the same works on the floor: add a held ingredient to a plate lying on the floor (the plate stays on its tile), or a floor ingredient to the held plate; picking up still swaps instead. Prepared ingredients, cooked pot contents and compatible plated components may be added to a partner's plate without stealing their item or interrupting work. Merging two plates transfers food, leaving the source plate empty. Duplicate ingredients and dirty plates are rejected.
 
 Steak requires plated cooked beef. A burger requires one bun, chopped lettuce, sliced tomato and cooked beef, assembled in any order. Visual layer order is fixed regardless of assembly order; missing layers remain hidden. Partial burgers can be carried and placed but not served; hints identify missing ingredients. A served dish goes to the waiting order of that dish with the earliest deadline; serving exactly at the deadline counts. Steak pays 50 and a burger 80. If any component was burnt, what counts is how long it had been burnt when it left the heat: up to 5 seconds, the order is completed at the price −10; longer (or burnt by a fire), the customer refuses it, pays nothing and keeps waiting. Serving a dish that no shown order is waiting for costs 20. There are no bad reviews. Customer plates return after a delay; move dirty plates to a sink, wash with empty hands, and collect clean plates.
 
@@ -94,7 +94,7 @@ Cocos 浏览器版共用 `kitchen.py`、`spatial_kitchen.py`、地图 JSON 和�
 
 ## 组装与出餐
 
-熟牛肉随锅或盘移动，不可裸手散拿。净盘或兼容半成品盘可从案板／柜台收配料，从锅收熟牛肉。准备好的配料、锅中熟食或兼容盘中食物可加入队友手持盘，不夺取物品、不打断工作。两盘合并只转移食物，源盘留空。重复配料和脏盘会被拒绝。
+熟牛肉随锅或盘移动，不可裸手散拿。净盘或兼容半成品盘可从案板／柜台收配料，从锅收熟牛肉。有汉堡的关卡在地面上也一样：手里的配料可以加进地上的盘（盘留在原格），地上的配料也可以加进手中的盘；“捡起”仍是换手。准备好的配料、锅中熟食或兼容盘中食物可加入队友手持盘，不夺取物品、不打断工作。两盘合并只转移食物，源盘留空。重复配料和脏盘会被拒绝。
 
 牛排需要装盘熟牛肉；汉堡需要各一份面包、切好生菜、番茄片和熟牛肉，添加顺序不限。显示层级固定，未添加层不显示。缺料汉堡可搬动暂放、不可出餐，提示会说明缺料。出餐交给同菜品中截止最早的等待订单，恰好在截止时刻送达也算成功。牛排 50 元、汉堡 80 元。菜中任一原料糊了时，按它离火时已糊的时长计：5 秒以内订单完成、收入为菜价 −10；超过 5 秒（或被火烧糊）顾客拒收、不付钱，订单继续等待。端出当前没有订单在等的菜扣 20。没有差评。顾客用完餐后延迟归还盘子，脏盘送水槽、空手清洗后取净盘。
 

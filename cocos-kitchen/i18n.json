@@ -316,6 +316,7 @@
     "可手持盘从案板或柜台收集切好蔬菜和面包，也能给队友手中盘加料。两盘无重复配料可合并：成品留手中，柜台留空盘。牛肉须先煎熟；缺料不能出餐。": "Collect prepared vegetables and bread from boards or counters into a held plate, or add them to a teammate's plate. Merge plates with no duplicate ingredients: the combined dish stays in hand and the empty plate stays on the counter. Cook beef first; incomplete dishes cannot be served.",
     "开始前选择第二关。两个灶台、三口锅，备用空锅在右上柜台。面包直接装盘；生菜和番茄切好，牛肉切好后煎熟。可手持盘从案板或柜台收集切好蔬菜和面包，也能给队友手中盘加料。两盘无重复配料可合并：成品留手中，柜台留空盘。牛肉须先煎熟；缺料不能出餐。牛排 2 单、汉堡 2 单，顺序每局随机。": "Choose Level 2 before starting. Two stoves and three pots; the spare pot is on the top-right counter. Bread needs no prep. Chop lettuce and tomato; chop and cook beef. Add ingredients to a clean plate on a counter in any order. Incomplete dishes cannot be served. Each round has 2 steaks and 2 burgers in shuffled order. Held plates can collect prepared ingredients from boards/counters. Add food to a teammate's plate, or merge two non-overlapping plates; the empty source plate stays in place.",
     "把切好的牛肉放入地上空锅（离灶不加热）": "Load chopped beef into the empty floor pot (no heating off stove)",
+    "地上物品或手中物品已变化，加入盘中取消": "Floor item or held item changed; adding to the plate was cancelled",
     "地上锅或手中食材已变化，入锅取消": "Floor pot or held ingredient changed; loading cancelled",
     "选中目标暂不可操作，请靠近或检查物品状态": "Selected target cannot be used now; move closer or check items",
     "请靠近选中的出餐口": "Move closer to the selected serving hatch",
