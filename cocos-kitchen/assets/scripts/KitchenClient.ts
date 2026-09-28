@@ -528,6 +528,13 @@ export class KitchenClient extends Component {
         const axis=station?stationView(this.state!.kitchen.map,station).device_axis:(facing==='up'||facing==='down'?'vertical':'horizontal');
         return this.art.centered(node,this.art.has('modular/pot_'+axis)?'modular/pot_'+axis:'objects/pot',TILE*(axis==='vertical'?.62:.76),TILE*.76);
     }
+    private closingSummary(k:any,won:boolean){
+        const count=(status:string)=>k.orders.filter((o:any)=>o.status===status).length,target=k.goals.target_money;
+        // Each line ends in fixed text so its translation template cannot swallow the next line.
+        return `净收入 ¥${k.money}（目标 ¥${target}）`+(won?'':`，还差 ¥${Math.max(0,target-k.money)} 元`)
+            +`\n完成 ${k.served} 单 · 超时 ${count('expired')} 单 · 关店时未完成 ${count('unresolved_at_close')} 单`
+            +'\n本局已结束，点“准备下一局”再来一局。';
+    }
     private itemName(f:any){
         if(!f)return '空手';
         if(f.plate_id&&f.components?.length&&f.components.some((x:string)=>x!=='beef'))return f.stage==='burnt'?'糊菜':f.dish==='burger'?'汉堡':'待组装 · '+f.components.map((x:string)=>({bread:'面包',lettuce:'生菜',tomato:'番茄',beef:'熟牛肉'}[x])).join('+');
@@ -627,7 +634,10 @@ export class KitchenClient extends Component {
     }
     private async post(path:string,extra:object={}){
         if(path==='/api/action'||path==='/api/select'||path==='/api/interact'||path==='/api/pause'||path==='/api/end'||path==='/api/reset'||path==='/api/restart')this.clearInput();
-        if((this.pending&&path!=='/api/pause')||!this.state)return;this.pending=true;this.render();
+        if((this.pending&&path!=='/api/pause')||!this.state)return;
+        // After closing (or while paused) gameplay input is not sent: the server would only refuse it.
+        if(['/api/action','/api/select','/api/interact'].includes(path)&&this.state.phase!=='running')return;
+        this.pending=true;this.render();
         try{await this.request(path,{game_id:this.state.game_id,request_id:Date.now().toString(36)+'-'+Math.random().toString(36).slice(2),...extra});}
         catch(e){this.set('event',(e as Error).message);}
         finally{this.pending=false;this.poll();}
@@ -1199,10 +1209,12 @@ export class KitchenClient extends Component {
         this.writeLabel(this.buttons.main.label,s.phase==='ready'?'开始经营':s.phase==='paused'?'继续经营':'准备下一局');
         if(s.phase==='ready'&&s.connection&&!s.connection.configured)this.writeLabel(this.buttons.main.label,'先连接搭档');
         this.labels['welcome-tip'].node.active=s.phase==='ready';
-        this.set('coverTitle',s.phase==='ready'?'ChefJeff':s.phase==='paused'?'歇一小会儿':k.failure_reason==='fire_spread'?'火势失控':s.aborted?'本局已结束':s.won?'今天，配合得不错！':'明天再接再厉');
         const settlement=k.settlement;
         const service=k.goals.max_bad_reviews==null;
-        this.set('coverText',s.phase==='ready'?(service?`你和 AI 搭档，一起照顾这间小厨房。\n本局目标：关店时净收入达到 ¥${k.goals.target_money}`:`你和 AI 搭档，一起照顾这间小厨房。\n本局目标：出餐 ${k.goals.target_served} 单 · 收入 ¥${k.goals.target_money} · 差评不超过 ${k.goals.max_bad_reviews} 次`):s.phase==='paused'?'锅火和订单都按下了暂停。\n准备好了，就和 Jeff 接着做菜。':service?`出餐 ${k.served} 单 · 净收入 ¥${k.money} / ¥${k.goals.target_money}`:`出餐 ${k.served} 单 · 营业收入 ¥${k.money} · 差评 ${k.bad_reviews} 次`+(settlement?`\n剩余 ${settlement.remaining_seconds} 整秒 · 时间奖励 +¥${settlement.time_bonus} · 合计 ¥${settlement.total_income}`:''));
+        // Service levels close at 180 s: say so plainly, whatever the outcome.
+        const closed=service&&s.phase==='ended'&&!s.aborted&&k.failure_reason!=='fire_spread';
+        this.set('coverTitle',s.phase==='ready'?'ChefJeff':s.phase==='paused'?'歇一小会儿':k.failure_reason==='fire_spread'?'火势失控':s.aborted?'本局已结束':closed?(s.won?'关店结算 · 达成目标':'关店结算 · 未达目标'):s.won?'今天，配合得不错！':'明天再接再厉');
+        this.set('coverText',s.phase==='ready'?(service?`你和 AI 搭档，一起照顾这间小厨房。\n本局目标：关店时净收入达到 ¥${k.goals.target_money}`:`你和 AI 搭档，一起照顾这间小厨房。\n本局目标：出餐 ${k.goals.target_served} 单 · 收入 ¥${k.goals.target_money} · 差评不超过 ${k.goals.max_bad_reviews} 次`):s.phase==='paused'?'锅火和订单都按下了暂停。\n准备好了，就和 Jeff 接着做菜。':service?(closed?this.closingSummary(k,!!s.won):`出餐 ${k.served} 单 · 净收入 ¥${k.money} / ¥${k.goals.target_money}`):`出餐 ${k.served} 单 · 营业收入 ¥${k.money} · 差评 ${k.bad_reviews} 次`+(settlement?`\n剩余 ${settlement.remaining_seconds} 整秒 · 时间奖励 +¥${settlement.time_bonus} · 合计 ¥${settlement.total_income}`:''));
         this.syncAccess();
         if(this.overlayPhase!==s.phase){
             // Pause defaults to "Resume" so Enter, Space or Esc all return to the kitchen.

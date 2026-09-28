@@ -19,6 +19,9 @@
     "继续经营": "Resume",
     "重新开局": "Restart round",
     "准备下一局": "Next round",
+    "关店结算 · 达成目标": "Closing time · Target reached",
+    "关店结算 · 未达目标": "Closing time · Target missed",
+    "本局已结束，点“准备下一局”再来一局。": "The round is over. Choose “Next round” to play again.",
     "先连接搭档": "Connect your AI",
     "重新连接": "Reconnect",
     "歇一小会儿": "Taking a break",
@@ -511,6 +514,18 @@
     [
       "{0}完成 {1}，顾客好评，收入 +30 元",
       "{0} served {1}: happy customer, +¥30"
+    ],
+    [
+      "净收入 ¥{0}（目标 ¥{1}），还差 ¥{2} 元",
+      "Net revenue ¥{0} (target ¥{1}), ¥{2} short"
+    ],
+    [
+      "净收入 ¥{0}（目标 ¥{1}）",
+      "Net revenue ¥{0} (target ¥{1})"
+    ],
+    [
+      "完成 {0} 单 · 超时 {1} 单 · 关店时未完成 {2} 单",
+      "{0} orders served · {1} expired · {2} open at closing"
     ],
     [
       "盘里已经有{0}了",
