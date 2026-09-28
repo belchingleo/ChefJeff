@@ -67,7 +67,7 @@ class GameSession:
         self.ticks = 0
         self.move_seq = -1
         self.move_until = 0.
-        self.interaction_focus = None
+        self.pending_move = None
         self.player_messages = []
         self.last_player_message_at = None
         self.bookmarks = []
@@ -121,6 +121,10 @@ class GameSession:
         self.game_backlog = max(0., self.game_backlog-steps*tick)
         moving = hasattr(self.k,'manual') and any(self.k.manual['human'])
         for i in range(steps):
+            if self.pending_move and not self._hands_busy():
+                self._apply_move(*self.pending_move)
+                self.pending_move = None
+                moving = any(self.k.manual['human'])
             # Wall time at which this tick starts; a click-move ends at move_until.
             start = now-(self.game_backlog+(steps-i)*tick)/self.speed
             if moving and start >= self.move_until-1e-9:
@@ -146,6 +150,7 @@ class GameSession:
                 if now-self.last_seen > 8:
                     if hasattr(self.k,'set_manual'): self.k.set_manual('human',0,0)
                     self.phase = 'paused'
+                    self.pending_move = None
                     self.ai.invalidate()
                     self.note('页面已断开，厨房自动暂停。回来后点击继续。')
                 else:
@@ -193,7 +198,7 @@ class GameSession:
             self.last_seen = time.monotonic()
             state = self.k.snapshot()
             actions = self.k.actions('human')
-            focus, interaction, cell, hint = self._interaction_view(actions)
+            focus, interaction, cell, hint, use = self._interaction_view(actions)
             for who, chef in self.k.chefs.items():
                 j = chef.job
                 total = self.totals.setdefault(j.id, j.travel+j.work) if j else 0
@@ -205,6 +210,7 @@ class GameSession:
             return {'game_id': self.game_id, 'phase': self.phase, 'speed': self.speed,
                     'communication': self.communication_state(),
                     'interaction': asdict(interaction) if interaction else None,
+                    'use_interaction': asdict(use) if use else None,
                     'interaction_focus': focus,
                     'interaction_cell': cell,
                     'interaction_hint': hint,
@@ -226,11 +232,12 @@ class GameSession:
         # gets the kitchen state (instead of an empty response that reads as a disconnect).
         k = self.k
         try:
-            focus = k.interaction_target('human',self.interaction_focus) if hasattr(k,'interaction_target') else None
-            interaction = k.quick_interaction('human',actions,preferred=focus) if hasattr(k,'quick_interaction') else None
-            cell = k.interaction_cell('human',focus) if hasattr(k,'interaction_cell') else None
-            hint = k.interaction_hint('human',focus) if hasattr(k,'interaction_hint') and not interaction else None
-            return focus, interaction, cell, hint
+            if not hasattr(k,'facing_interaction'):return None, None, None, None, None
+            focus, interaction = k.facing_interaction('human','hands',actions)
+            use = k.facing_interaction('human','use',actions)[1] or k.forward_throw('human')
+            cell = k.interaction_cell('human',focus)
+            hint = k.interaction_hint('human',focus) if not interaction else None
+            return focus, interaction, cell, hint, use
         except Exception as exc:
             if self.journal and not getattr(self, '_interaction_error_logged', False):
                 self._interaction_error_logged = True
@@ -240,7 +247,7 @@ class GameSession:
                                                   'trace': traceback.format_exc(limit=8)})
                 except Exception:
                     pass
-            return None, None, None, None
+            return None, None, None, None, None
 
     def command(self, path, body):
         with self.lock:
@@ -272,18 +279,40 @@ class GameSession:
         if self.phase != 'running':
             self.k.set_manual('human',0,0)
             return (409, {'error':'厨房未营业'}) if dx or dy else (200,{'ok':True})
-        if dx or dy:self.interaction_focus=None
+        self.move_until = time.monotonic()+.5
+        if self._hands_busy():
+            # A take/put/throw already under the hands finishes first (about 0.15 s);
+            # the held direction starts right after it instead of cancelling it.
+            sprint=body.get('sprint') is True or bool(self.pending_move and self.pending_move[2])
+            self.pending_move = (dx,dy,sprint) if dx or dy else None
+            if self.journal:
+                self.journal('human_input',{'t':self.k.time,'source':'keyboard','direction':[dx,dy],
+                                          'seq':seq,'applied':False,'deferred':bool(dx or dy)})
+            return 200, {'ok':True,'deferred':bool(dx or dy)}
+        self.pending_move = None
+        self._apply_move(dx,dy,body.get('sprint') is True,seq)
+        self._events()
+        return 200, {'ok':True}
+
+    def _hands_busy(self):
+        """A short hand action (take, put, plate, serve, throw...) within Space's reach is under way.
+
+        Space acts within 1.5 cells, so the step to the stand point is part of it.
+        """
+        job=self.k.chefs['human'].job
+        return bool(job and job.action.kind not in ('go','stop','chop','wash','extinguish')
+                    and job.travel<=1.5/self.k.rules.walk_speed+1e-9
+                    and job.work<=self.k.c.get('handling_seconds',.15)+1e-9)
+
+    def _apply_move(self, dx, dy, sprint=False, seq=None):
         before = self.k.manual['human']
         self.k.set_manual('human',dx,dy)
-        sprint_applied=self.k.sprint('human') if body.get('sprint') is True else False
-        if body.get('sprint') is True and self.journal:
+        sprint_applied=self.k.sprint('human') if sprint else False
+        if sprint and self.journal:
             self.journal('human_input',{'t':self.k.time,'source':'keyboard','sprint':True,'applied':sprint_applied,'seq':seq})
-        self.move_until = time.monotonic()+.5
         if before != self.k.manual['human'] and self.journal:
             self.journal('human_input',{'t':self.k.time,'source':'keyboard','direction':[dx,dy],
                                       'seq':seq,'applied':True})
-        self._events()
-        return 200, {'ok':True}
 
     def communication_state(self):
         preference=next((m for m in reversed(self.player_messages) if m['kind']=='preference'),None)
@@ -397,6 +426,7 @@ class GameSession:
             if self.phase == 'running':
                 self.phase = 'paused'
                 if hasattr(self.k,'set_manual'): self.k.set_manual('human',0,0)
+                self.pending_move = None
                 self.ai.invalidate()
                 reason = '离开页面，厨房已自动暂停。' if body.get('reason') == 'hidden' else '厨房已暂停，你和 Jeff 的动作、锅与订单倒计时都已停下。'
                 self.note(reason)
@@ -431,7 +461,7 @@ class GameSession:
             self.c = self.k.c
             self.move_seq = -1
             self.move_until = 0.
-            self.interaction_focus=None
+            self.pending_move=None
             self.player_messages=[]
             self.last_player_message_at=None
             self.bookmarks=[]
@@ -454,18 +484,18 @@ class GameSession:
             if target.startswith('item:'):
                 item=self.k.ground.get(target[5:])
                 if not item:return 409,{'error':'地上物品已变化，请重新选择'}
-                destination=item.location;focus=target
+                destination=item.location
             elif target in self.k.equipment:
-                destination=target;focus=target
+                destination=target
             else:
-                destination=target;focus=None
+                destination=target
                 if not any(a.kind=='go' and a.target==target for a in actions) and target!=self.k.chefs['human'].location:
                     return 400,{'error':'目标无效'}
+            # Clicking walks there and faces it; Space then acts on what the chef faces.
             action=next((a for a in actions if a.kind=='go' and a.target==destination),None)
             if action:
                 result=self._command('/api/action',{'action':action.key,'expected':list(action.expected)})
                 if result[0]!=200:return result
-            self.interaction_focus=focus
             return 200,{'ok':True}
         if path == '/api/interact':
             if self.phase != 'running' or not hasattr(self.k, 'quick_interaction'):
@@ -473,11 +503,14 @@ class GameSession:
             hand = self.k.chefs['human'].hand
             if (hand.id if hand else None) != body.get('expected_item'):
                 return 409, {'error': '手中物品已变化，请重新按空格'}
-            focus=self.k.interaction_target('human',self.interaction_focus)
-            action = self.k.quick_interaction('human',preferred=focus)
+            # Space = hands (take, put, plate, serve); E = use (chop, wash, extinguish),
+            # else throw the held item straight ahead. Both act on what the chef faces.
+            mode = 'use' if body.get('mode') == 'use' else 'hands'
+            focus, action = self.k.facing_interaction('human',mode)
+            if not action and mode == 'use':action = self.k.forward_throw('human')
             if not action:
-                message=self.k.interaction_hint('human',focus) or '请靠近工位或物品，再按空格操作'
-                self.journal('human_input',{'t':self.k.time,'source':'browser','action':'interact','applied':False,'message':message})
+                message=(self.k.interaction_hint('human',focus) if mode=='hands' else None) or ('面前没有可以切、洗或灭火的东西' if mode=='use' else '面前没有可操作目标')
+                self.journal('human_input',{'t':self.k.time,'source':'browser','action':'use' if mode=='use' else 'interact','applied':False,'message':message})
                 return 409, {'error': message}
             return self._command('/api/action', {'action': action.key, 'expected': list(action.expected)})
         if path == '/api/throw':
@@ -508,8 +541,6 @@ class GameSession:
             if not action:
                 return 409, {'error': '刚才的食材或工位状态变了，请按更新后的按钮操作。'}
             ok, message = self.k.start('human', action)
-            if ok and action.kind=='go' and hasattr(self.k,'equipment'):
-                self.interaction_focus=action.target if action.target in self.k.equipment else next(('item:'+key for key,item in self.k.ground.items() if item.location==action.target),None)
             self.journal('human_input', {'t':self.k.time, 'source':'browser', 'action':action.key, 'applied':ok, 'message':message})
             if self.k.chefs['human'].job:
                 j=self.k.chefs['human'].job

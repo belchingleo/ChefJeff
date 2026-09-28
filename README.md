@@ -81,10 +81,13 @@ The current release supports **desktop and laptop browsers with a keyboard and m
 
 ### Controls
 
-- **WASD / arrow keys:** move. Click a floor tile or workstation to approach it. Double-tap a direction to sprint.
-- **Space:** perform the nearby action shown in the bottom hint. Cancelling chopping or washing preserves progress.
-- **Throw:** hold Space briefly, then left-click a target; release to cancel. Alternatively, right-click to prepare, left-click to throw, and right-click to cancel. Ingredients, plates, dishes, pots and the extinguisher all fly up to 4 cells.
-- **Serve and wash:** use a clean plate to collect cooked food; return dirty plates to the sink and wash with empty hands.
+Controls follow Overcooked, on what your chef faces:
+
+- **WASD / arrow keys:** move. Click a floor tile or workstation to walk there and face it. **Q** (or double-tapping a direction) dashes.
+- **Space:** pick up or put down: fetch, take, put, cook, plate, lift a pot, serve. Stopping chopping or washing preserves progress.
+- **E:** chop, wash or extinguish; holding an item with nothing to use, throw it forward (up to 4 cells, to Jeff when he is ahead).
+- **Aimed throw:** right-click to prepare, left-click a spot, right-click to cancel.
+- **Serve and wash:** use a clean plate to collect cooked food; return dirty plates to the sink and press E with empty hands to wash.
 - **Esc:** pause. Settings provide model connections, language selection, usage limits, and feedback export.
 
 See [current rules](docs/current-rules.md) for the full gameplay reference.
@@ -235,10 +238,13 @@ python3 cocos_server.py --port 8775
 
 ### 基本操作
 
-- **WASD／方向键：**移动；点击地面或工位走近；双击同一方向键冲刺。
-- **空格：**执行底部提示的就近动作；主动取消切菜或洗碗时保留加工进度。
-- **抛原料：**短暂按住空格后左键点击目标，松开取消；也可右键准备、左键抛出、右键取消。原料、盘子、菜、锅和灭火器都可以抛，最远 4 格。
-- **出餐和洗碗：**用净盘收取熟食；将脏盘送进水槽，空手洗净。
+操作方式参照《胡闹厨房》，只对角色面前的东西起作用：
+
+- **WASD／方向键：**移动；点击地面或工位会走过去并面向它；按 **Q**（或双击同一方向键）冲刺。
+- **空格：**拿起或放下：取料、拿起、放下、下锅、装盘、端锅、出餐；停下切菜或洗碗时保留进度。
+- **E：**切菜、洗碗、灭火；手里有东西而面前没有可用工位时向前抛出（最远 4 格，Jeff 在前方时抛给他）。
+- **瞄准抛出：**右键准备、左键点落点、右键取消。
+- **出餐和洗碗：**用净盘收取熟食；将脏盘送进水槽，空手按 E 洗净。
 - **Esc：**暂停；设置中可连接模型、切换语言、控制调用次数和导出反馈。
 
 完整玩法见 [当前规则](docs/current-rules.md)。

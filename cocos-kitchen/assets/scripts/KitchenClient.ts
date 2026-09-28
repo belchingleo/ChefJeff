@@ -4,7 +4,7 @@ import { LevelOneArt } from './LevelOneArt';
 import { GRID_ART, stationView, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, workingChefDepth, flightDepth, predictWalk, footWalkable, burgerLayers, heatCountdown } from './KitchenGeometry';
 const { ccclass } = _decorator;
 type Action = { key: string; label: string; kind: string; target: string; expected: unknown[] };
-type KitchenState = { game_id: string; phase: string; speed: number; kitchen: any; actions: Action[]; limits?:any; release?:any; interaction?:Action; interaction_hint?:string; interaction_focus?:string; interaction_cell?:number[];
+type KitchenState = { game_id: string; phase: string; speed: number; kitchen: any; actions: Action[]; limits?:any; release?:any; interaction?:Action; use_interaction?:Action; interaction_hint?:string; interaction_focus?:string; interaction_cell?:number[];
     events: {t:number; message:string; kind?:string}[]; ai: {thinking:boolean; error:string|null}; won:boolean; aborted?:boolean; rules?:Record<string,number>; connection?:any; memory?:any; communication?:any };
 type ChefMotion = {body:Node; leftLeg:Node; rightLeg:Node; leftArm:Node; rightArm:Node; knife:Node; facing:string; step:number};
 type PotEffects = {steam:Node; smoke:Node; fire:Node; ready:Node};
@@ -51,8 +51,7 @@ export class KitchenClient extends Component {
     private releasedAt:number|null=null;
     private stateSentAt=0;
     private throwReady=false;
-    private spacePressedAt:number|null=null;
-    private spaceHold=false;
+    private handsBusyUntil=-1;
     private qaNoMotion=!sys.isNative&&new URLSearchParams(location.search).get('qaMotion')==='off';
     // Isolated visual pilot; not enabled at the fixed gameplay entry.
     private prepSample=!sys.isNative&&new URLSearchParams(location.search).get('prepSample')==='1';
@@ -65,7 +64,6 @@ export class KitchenClient extends Component {
     private pairedFacing:Record<string,string>={};
     private pairedImpacts:Record<string,Node>={};
     private received=0;
-    private focusMarker:Node|null=null;
     private selection={kind:'none',id:''};
     private labels: Record<string,Label>={};
     private buttons: Record<string,ButtonView>={};
@@ -236,9 +234,19 @@ export class KitchenClient extends Component {
             return;
         }
         if(this.state?.phase==='running'&&this.connected){
-            if(e.code==='Space'){
+            // Overcooked layout, browser-safe keys: Space = pick up / put down, E = chop, wash,
+            // extinguish or throw ahead (Overcooked's Ctrl), Q = dash (Overcooked's Alt).
+            if(e.code==='Space'||e.code==='KeyE'){
                 e.preventDefault();
-                if(!e.repeat&&this.spacePressedAt===null){this.spacePressedAt=this.clock;this.spaceHold=false;this.throwReady=false;this.updateThrowCue();}
+                if(!e.repeat&&!e.ctrlKey&&!e.altKey&&!e.metaKey){
+                    const use=e.code==='KeyE';if(!use)this.handsBusyUntil=this.clock+.35;
+                    this.post('/api/interact',{expected_item:this.state.kitchen.chefs.human.holding?.id||null,...(use?{mode:'use'}:{})});
+                }
+                return;
+            }
+            if(e.code==='KeyQ'){
+                e.preventDefault();
+                if(!e.repeat&&(this.manualDirection.x!==0||this.manualDirection.y!==0))this.sendMove(this.manualDirection.x,this.manualDirection.y,true);
                 return;
             }
             const key=e.key.toLowerCase();if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(key)){e.preventDefault();
@@ -274,24 +282,11 @@ export class KitchenClient extends Component {
     };
     private announce(message:string){if(!sys.isNative&&message)window.dispatchEvent(new CustomEvent('kitchen-announce',{detail:{message}}));}
     private onKeyUp=(e:KeyboardEvent)=>{
-        if(e.code==='Space'&&this.spacePressedAt!==null){
-            e.preventDefault();const held=this.spaceHold||this.clock-this.spacePressedAt>=.3;
-            this.spacePressedAt=null;this.spaceHold=false;this.throwReady=false;this.updateThrowCue();
-            if(!held&&this.state?.phase==='running'&&this.connected&&!this.hidden)
-                this.post('/api/interact',{expected_item:this.state.kitchen.chefs.human.holding?.id||null});
-            return;
-        }
         const key=e.key.toLowerCase();if(this.heldKeys.delete(key))this.refreshMovement();
     };
-    private updateSpaceGesture(){
-        if(this.connected&&!this.hidden&&this.state?.phase==='running'&&this.spacePressedAt!==null
-                &&!this.spaceHold&&this.clock-this.spacePressedAt>=.3){
-            this.spaceHold=true;if(!this.throwReady)this.toggleThrow();
-        }
-    }
     // Anything held can be thrown or passed; the server applies each item's range (currently 4 tiles for all).
     private toggleThrow(){const hand=this.state?.kitchen.chefs.human.holding;if(!this.throwReady&&!hand){this.set('event','手里没有可以抛出的东西。');return;}this.throwReady=!this.throwReady;this.updateThrowCue();}
-    private updateThrowCue(){this.set('interaction',this.throwReady?(this.spaceHold?'按住空格 · 左键选落点':'抛掷已准备 · 左键选落点'):'');if(!sys.isNative){const canvas=document.querySelector('canvas') as HTMLCanvasElement|null;if(canvas)canvas.style.cursor=this.throwReady?'crosshair':'';}}
+    private updateThrowCue(){this.set('interaction',this.throwReady?'抛掷已准备 · 左键选落点':'');if(!sys.isNative){const canvas=document.querySelector('canvas') as HTMLCanvasElement|null;if(canvas)canvas.style.cursor=this.throwReady?'crosshair':'';}}
     private async sendMove(dx:number,dy:number,sprint=false){if(!this.state||this.state.phase!=='running'||!this.connected)return;const seq=++this.moveSeq;this.lastMoveAt=this.clock;try{await this.request('/api/move',{game_id:this.state.game_id,dx,dy,seq,sprint});}catch(e){this.set('event',(e as Error).message);}}
     private refreshMovement(sprint=false){
         const x=(this.heldKeys.has('d')||this.heldKeys.has('arrowright')?1:0)-(this.heldKeys.has('a')||this.heldKeys.has('arrowleft')?1:0);
@@ -302,6 +297,7 @@ export class KitchenClient extends Component {
     private predictHuman(k:any,c:any,dt:number,n:Node){
         const d=this.manualDirection;
         if(!c.position){this.predicted=this.releasedAt=null;return null;}
+        if(this.clock<this.handsBusyUntil){this.predicted=this.releasedAt=null;return null;}
         if(d.x===0&&d.y===0){
             // Released: stay put until a state requested after the stop arrives, then ease onto it (no stale pull-back).
             if(this.predicted&&this.releasedAt===null)this.releasedAt=this.clock;
@@ -321,7 +317,7 @@ export class KitchenClient extends Component {
         else if(synced){const eased=[next[0]+ex*pull,next[1]+ey*pull];if(footWalkable(k.map,eased[0],eased[1]))next=eased;}
         return this.predicted=next;
     }
-    private clearInput(){this.lastDirectionTap={key:"",time:-10};this.heldKeys.clear();this.spacePressedAt=null;this.spaceHold=false;const wasMoving=this.manualDirection.x!==0||this.manualDirection.y!==0;this.manualDirection={x:0,y:0};this.throwReady=false;this.updateThrowCue();if(wasMoving)this.sendMove(0,0);}
+    private clearInput(){this.lastDirectionTap={key:"",time:-10};this.heldKeys.clear();const wasMoving=this.manualDirection.x!==0||this.manualDirection.y!==0;this.manualDirection={x:0,y:0};this.throwReady=false;this.updateThrowCue();if(wasMoving)this.sendMove(0,0);}
     private cancelManualMovement(){this.heldKeys.clear();if(this.manualDirection.x!==0||this.manualDirection.y!==0){this.manualDirection={x:0,y:0};this.sendMove(0,0);}}
     private onRightClick(){if(this.state?.phase==='running'&&this.connected)this.toggleThrow();}
     private mapTarget(x:number,y:number){if(this.throwReady){this.throwTo([x,y]);return true;}return false;}
@@ -340,11 +336,8 @@ export class KitchenClient extends Component {
     }
     private rect(g:Graphics,x:number,y:number,w:number,h:number,fill:string){g.fillColor=color(fill);g.rect(x,y,w,h);g.fill();}
     private pixel(l:Label,size:number){l.fontFamily=PIXEL;l.fontSize=size;l.lineHeight=size+4;l.isBold=false;return l;}
-    // Selected target: ink edge for contrast on any floor or counter, green for the player.
-    private focusFrame(g:Graphics,x:number,y:number,w:number,h:number){
-        g.lineWidth=2;g.strokeColor=color(COLORS.ink);g.rect(x+1,y+1,w-2,h-2);g.stroke();
-        g.lineWidth=3;g.strokeColor=color(COLORS.human);g.rect(x+3.5,y+3.5,w-7,h-7);g.stroke();
-    }
+    // What Space or E would act on: a faint lift of that surface (Overcooked-style), no frame.
+    private facedGlow(g:Graphics,x:number,y:number,w:number,h:number){g.fillColor=new Color(255,250,236,70);g.rect(x,y,w,h);g.fill();}
     private paintBox(n:Node,w:number,h:number,fill:string){
         const g=n.getComponent(Graphics)||n.addComponent(Graphics);g.clear();
         this.rect(g,-w/2,-h/2-3,w,h,COLORS.wood);this.rect(g,-w/2,-h/2,w,h,fill);return g;
@@ -766,8 +759,6 @@ export class KitchenClient extends Component {
             if(wall&&this.useModularArt)n.getComponent(UITransform)!.setAnchorPoint(.5,.5-(y===map.height-1?GRID_ART.frontWallHeight/64:GRID_ART.wallHeight/64));
             if(wall)n.on(Node.EventType.TOUCH_END,()=>{if(!this.mapTarget(x,y))this.cancelManualMovement();});
         }
-        this.focusMarker=this.child(this.node,'focus-cell',TILE,TILE);
-        this.focusFrame(this.focusMarker.addComponent(Graphics),-TILE/2+1,-TILE/2+1,TILE-2,TILE-2);
         // Signs sit on the wall, leaving all walkable tiles visible.
 
         this.text('prep-sign',this.useModularArt?'':this.state!.kitchen.level===2?'长 台 厨 房':'备 菜 区',MAPX+TILE,MAPY+25,295,24,14).horizontalAlign=Label.HorizontalAlign.CENTER;
@@ -1130,9 +1121,9 @@ export class KitchenClient extends Component {
             if(st.food?.stage==='ready'&&prior===`${st.food.id}:cooking`)this.readyUntil[id]=this.activeClock+1.1;
             this.foodStages[id]=foodKey;
             if(st.fire&&!this.useArt){this.rect(g,-26,-26,52,52,'#f1b589');}
-            if(s.interaction_focus===id){
-                if(this.useModularArt)this.focusFrame(g,-TILE/2,this.workSurfaceY(id)-TILE/2,TILE,TILE);
-                else this.focusFrame(g,-27,-27,54,54);
+            if(s.interaction?.target===id||s.use_interaction?.target===id){
+                if(this.useModularArt)this.facedGlow(g,-TILE/2,this.workSurfaceY(id)-TILE/2,TILE,TILE);
+                else this.facedGlow(g,-27,-27,54,54);
             }
             this.writeLabel(dev.label,st.fire?'着火了！':st.food?(this.itemName(st.food)+(st.food.stage==='cooking'?` ${Math.ceil(st.ready_in)}s`:st.food.stage==='ready'&&st.heating&&st.burn_in!==undefined?` ${Math.ceil(st.burn_in)}s 后糊`:'')):id==='fridge'&&this.useModularArt?'牛肉柜':st.name);
             const countdown=heatCountdown(st);
@@ -1211,10 +1202,14 @@ export class KitchenClient extends Component {
         this.enable('resume',s.phase==='paused'&&!this.pending&&this.connected);
         this.enable('end',['running','paused'].includes(s.phase)&&!this.pending&&this.connected);
         for(const id of ['pause','resume','end'])this.buttons[id].node.active=true;
-        if(this.focusMarker){const cell=s.interaction_cell;this.focusMarker.active=!!cell&&!k.map.equipment[s.interaction_focus||'']&&cell[0]>=0&&cell[1]>=0&&cell[0]<k.map.width&&cell[1]<k.map.height&&!k.map.walls.some((p:number[])=>p[0]===cell[0]&&p[1]===cell[1]);if(this.focusMarker.active)this.locate(this.focusMarker,cell!);}
         const held=k.chefs.human.holding;this.set('hand','手中：'+(held?this.itemName(held):'空手'));
         if(held?.stage==='assembled')this.set('hand','缺少：'+held.missing.map((x:string)=>({beef:'熟牛肉',bread:'面包',lettuce:'生菜',tomato:'番茄'}[x])).join('+'));
-        if(!this.throwReady)this.set('interaction',s.interaction?'空格 · '+s.interaction.label.split('（')[0]:(s.interaction_hint||'靠近工位或物品，再按空格'));
+        if(!this.throwReady){
+            const short=(a:Action)=>a.label.split('（')[0],parts:string[]=[];
+            if(s.interaction)parts.push('空格 · '+short(s.interaction));
+            if(s.use_interaction)parts.push('E · '+(s.use_interaction.kind==='throw'?'向前抛出':short(s.use_interaction)));
+            this.set('interaction',parts.length?parts.join('　'):(s.interaction_hint||'面向工位或物品，按空格拿放，按 E 切菜'));
+        }
         // Game results keep the event line; Jeff's decisions and errors use their own status.
         const results=s.events.filter(e=>!this.isAiNote(e));
         this.set('event',results.length?results[results.length-1].message:'');
@@ -1285,7 +1280,6 @@ export class KitchenClient extends Component {
             const s=this.reduceMotion?1:1+.18*Math.max(0,left-.9)/.3;n.setScale(s,s,1);
         }
         const running=this.connected&&!this.hidden&&this.state.phase==='running';
-        this.updateSpaceGesture();
         const animate=running&&!this.qaNoMotion;
         if(animate)this.activeClock+=dt;
         for(const who of ['human','jeff']){

@@ -4,6 +4,8 @@ import heapq
 import math
 import random
 from kitchen import Kitchen, Action, Station, NAMES, TAKE_KINDS, Job, GroundItem, STATES, engine_input
+FACING_STEPS = {'up':(0,-1),'down':(0,1),'left':(-1,0),'right':(1,0)}
+USE_KINDS = ('chop','wash','extinguish')  # E; Space takes, puts, plates and serves
 
 WIDTH, HEIGHT = 14, 9
 THROW_RANGE = 4.0
@@ -705,26 +707,52 @@ class SpatialKitchen(Kitchen):
                         actions.append(action)
         return actions
 
-    def interaction_target(self,who,preferred=None):
-        """Explicit click wins; empty hands can retrieve an item at their feet."""
-        if preferred:return preferred
+    def facing_candidates(self,who):
+        """What the chef faces, nearest first (Overcooked-style, no remembered selection).
+
+        The station on the facing tile (or an authored corner station on the faced
+        side of this tile), then a loose item on the facing tile, one at the feet,
+        the partner standing there, and finally the facing floor tile itself.
+        """
         x,y=self.anchor(who)
-        if self.chefs[who].hand is None:
-            pickable={a.expected[1] for a in self.actions(who) if a.kind=='pickup'}
-            item=next((key for key,item in self.ground.items()
-                       if self.cell(item.location)==(x,y) and key in pickable),None)
-            if item:return 'item:'+item
-        dx,dy={'up':(0,-1),'down':(0,1),'left':(-1,0),'right':(1,0)}[self.facing[who]]
+        dx,dy=FACING_STEPS[self.facing[who]]
         front=(x+dx,y+dy)
-        station=next((key for key,e in self.equipment.items() if front in e.get('cells',[e['cell']])),None)
-        if station:return station
-        other='jeff' if who=='human' else 'human'
-        if self.anchor(other)==front and self.can_plate_partner(who,True):return 'partner'
-        # A pot at the chef's feet remains accessible when the forward tile is empty.
+        out=[key for key,e in self.equipment.items() if front in e.get('cells',[e['cell']])][:1]
+        out+=[key for key,e in sorted(self.equipment.items())
+              if e.get('reach')=='corner' and tuple(e['access'])==(x,y)
+              and (e['cell'][0]-x)*dx+(e['cell'][1]-y)*dy>0 and key not in out]
         for cell in (front,(x,y)):
-            item=next((key for key,item in self.ground.items() if self.cell(item.location)==cell),None)
-            if item:return 'item:'+item
-        return tile_key(front)
+            out+=['item:'+key for key,item in self.ground.items() if self.cell(item.location)==cell][:1]
+        other='jeff' if who=='human' else 'human'
+        if self.anchor(other)==front:out.append('partner')
+        out.append(tile_key(front))
+        return out
+
+    def facing_interaction(self,who,mode='hands',actions=None):
+        """(target, action) for Space ('hands': take, put, plate, serve...) or E ('use': chop, wash, extinguish).
+
+        A candidate with nothing to do falls through to the next; facing a station
+        never drops the held item on the floor instead.
+        """
+        actions=self.actions(who) if actions is None else actions
+        chef=self.chefs[who]
+        if chef.job and chef.job.working:
+            return None,(next((a for a in actions if a.kind=='stop'),None) if mode=='hands' else None)
+        kinds=USE_KINDS if mode=='use' else None
+        candidates=self.facing_candidates(who)
+        stations=[c for c in candidates if c in self.equipment]
+        if mode=='use':candidates=stations
+        for target in candidates:
+            if target.startswith('floor_') and stations:break
+            action=self.quick_interaction(who,actions,preferred=target,kinds=kinds,exclude=None if mode=='use' else USE_KINDS)
+            if action:return target,action
+        return (candidates[0] if candidates else None),None
+
+    def interaction_target(self,who,preferred=None):
+        """Explicit target wins; otherwise what the chef faces (see facing_interaction)."""
+        if preferred:return preferred
+        target,_=self.facing_interaction(who)
+        return target
 
     def interaction_cell(self,who,target):
         if target in self.equipment:return min(self.equipment[target].get('cells',[self.equipment[target]['cell']]),key=lambda c:math.dist(c,self.positions[who]))
@@ -735,12 +763,12 @@ class SpatialKitchen(Kitchen):
         if target and target.startswith('floor_') and target not in self.floor_places:return None
         return self.cell(target) if target else None
 
-    def quick_interaction(self, who, actions=None, preferred=None):
+    def quick_interaction(self, who, actions=None, preferred=None, kinds=None, exclude=None):
         """One local, legal action. This is a player control, not an AI policy."""
         chef = self.chefs[who]
         actions = self.actions(who) if actions is None else actions
         if chef.job and chef.job.working:
-            return next((a for a in actions if a.kind=='stop'),None)
+            return None if kinds else next((a for a in actions if a.kind=='stop'),None)
         priority = {'swap_pot':0,'swap_ground_pot':0,'load_ground':0,'assemble_ground':0,'load_counter':0,'plate_ground':0,'plate_pot':0,'plate_counter':0,'plate_from_counter':0,
                     'plate_partner':0,'extinguish':0,'put_board':1,'put_pot':1,'return_pot':1,
                     'put_counter':1,'put_sink':1,'put_tool':1,'serve':1,'wash':1,'chop':1,
@@ -749,6 +777,7 @@ class SpatialKitchen(Kitchen):
         nearby=[]
         for a in actions:
             if a.kind not in priority:continue
+            if (kinds and a.kind not in kinds) or (exclude and a.kind in exclude):continue
             if preferred:
                 if preferred.startswith('item:'):
                     if a.kind not in ('pickup','plate_ground','load_ground','swap_ground_pot','assemble_ground') or a.expected[1]!=preferred[5:]:continue
@@ -777,8 +806,22 @@ class SpatialKitchen(Kitchen):
             distance=math.dist(self.positions[who],self.interaction_cell(who,'serve'))
             if closest is None or distance<=closest[0]+1e-5:return None
         if closest:return closest[3]
-        if preferred and not preferred.startswith('floor_'):return None
+        if kinds or (preferred and not preferred.startswith('floor_')):return None
         return next((a for a in actions if a.kind=='drop'),None) if chef.hand else None
+
+    def forward_throw(self, who):
+        """E with a held item and nothing to use: throw straight ahead (Overcooked-style).
+
+        Aims at the partner when they stand roughly ahead within reach, otherwise at
+        full reach along the facing; walls and range clip it as for any throw.
+        """
+        if not self.chefs[who].hand or not self.can_throw(who):return None
+        dx,dy=FACING_STEPS[self.facing[who]]
+        (x,y),reach=self.positions[who],self.throw_range(who)
+        other=self.positions['jeff' if who=='human' else 'human']
+        ahead=(other[0]-x)*dx+(other[1]-y)*dy;side=abs((other[0]-x)*dy-(other[1]-y)*dx)
+        aim=other if 0<ahead<=reach and side<=self.rules.catch_radius else (x+dx*reach,y+dy*reach)
+        return self.throw_action(who,aim,key='throw forward')
 
     def interaction_hint(self, who, preferred=None):
         if preferred and preferred.startswith('floor_'):return '面前没有可操作目标'

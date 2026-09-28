@@ -19,13 +19,13 @@ The Cocos browser game uses the shared rules in `kitchen.py`, `spatial_kitchen.p
 
 The default game clock runs at 0.75× real time. API latency and request limits use real time. Walk diagonals do not increase speed. Sprint accelerates movement, not preparation.
 
-Hold WASD/arrows to move; release to stop. Click floor to approach a point, or a station/item to select it and approach its operation side. Keyboard input takes over from click movement. Automatic movement uses the same chef-contact response as manual movement: slide around a partner when there is space, gently push under sustained pressure, and apply a bounded sprint nudge of at most a quarter cell. A click or AI route that makes no progress for 0.3 s re-plans from where contact left it, around the other chef (the same rule for both chefs), so two walkers cannot lock each other up. Walls and cabinets block movement; feet stop short of a cabinet's front panel. Chefs chopping or washing cannot be pushed away. Ground food does not block walking or repel other food; sprint can nudge loose ingredients by at most a quarter cell.
+Hold WASD/arrows to move; release to stop. Click floor to approach a point, or a station/item to walk to its operation side and face it; nothing stays selected. Keyboard input takes over from click movement. Q while moving, or double-tapping a direction, dashes. Automatic movement uses the same chef-contact response as manual movement: slide around a partner when there is space, gently push under sustained pressure, and apply a bounded sprint nudge of at most a quarter cell. A click or AI route that makes no progress for 0.3 s re-plans from where contact left it, around the other chef (the same rule for both chefs), so two walkers cannot lock each other up. Walls and cabinets block movement; feet stop short of a cabinet's front panel. Chefs chopping or washing cannot be pushed away. Ground food does not block walking or repel other food; sprint can nudge loose ingredients by at most a quarter cell.
 
 ## Actions and throwing
 
-Tap Space for the selected target, or the nearby facing target when none is explicitly selected. An unavailable selected target shows a reason instead of switching to a bin. Empty hands can pick up eligible food at the chef's feet; carried items favor the facing station. With no usable station, drop or pick up nearby. Pickups can swap with raw/chopped ground ingredients; the old item stays on legal floor. Each logical floor tile or counter slot holds one resting item; small visual overlaps do not trigger automatic plating.
+Controls follow Overcooked: Space and E act on what the chef faces. Space picks up and puts down (fetch, take, put, cook, plate, lift a pot, serve, bin); E uses the station (chop, wash, extinguish) and, holding an item with nothing to use, throws it forward — to the partner if they stand ahead within range. Facing a station, only that station is used, with a reason when nothing is possible; the held item is never dropped instead. Facing open floor, Space takes the item in front, then the one at the feet, otherwise puts the held item down. Authored corner counters are used by facing their side. A direction pressed during a quick pick-up or put-down starts after it (about 0.15 s); walking still stops chopping and washing, keeping progress. Pickups can swap with raw/chopped ground ingredients; the old item stays on legal floor. Each logical floor tile or counter slot holds one resting item; small visual overlaps do not trigger automatic plating.
 
-Hold Space for about 0.3 seconds and left-click to throw; release cancels. Alternatively right-click to prepare/cancel, then left-click the target. Loose raw/chopped ingredients, plates, plated dishes, pots and the extinguisher all fly up to 4 cells. Everything travels at 12 cells/game-second. Walls truncate the route; equipment can be crossed. Empty boards accept ingredients only. A throw aimed beyond the range lands on the floor at the limit. An empty-handed partner who is walking or standing can catch; a partner chopping, washing or holding something is not interrupted and the item lands beside them. Dropped plates keep their food and dropped pots their contents; both can be picked up again. The rules are identical for the player and the AI.
+To choose a landing spot instead, right-click to prepare/cancel, then left-click the target. Loose raw/chopped ingredients, plates, plated dishes, pots and the extinguisher all fly up to 4 cells. Everything travels at 12 cells/game-second. Walls truncate the route; equipment can be crossed. Empty boards accept ingredients only. A throw aimed beyond the range lands on the floor at the limit. An empty-handed partner who is walking or standing can catch; a partner chopping, washing or holding something is not interrupted and the item lands beside them. Dropped plates keep their food and dropped pots their contents; both can be picked up again. The rules are identical for the player and the AI.
 
 ## Work and shared stations
 
@@ -78,13 +78,13 @@ Cocos 浏览器版共用 `kitchen.py`、`spatial_kitchen.py`、地图 JSON 和�
 
 默认游戏时钟为现实时间的 0.75 倍，API 延迟及请求限制按现实时间计算。斜走不加速，冲刺仅加速移动。
 
-按住 WASD／方向键移动，松开停止。点击地面走近坐标，点击工位／物品选中并走向操作侧；键盘可以接管点击移动。自动与手动移动共用厨师接触处理：有空间时沿搭档边缘滑过，持续前进时温和推挤，冲刺产生最多四分之一格的有限位移。点击或 AI 路线若 0.3 秒无进展，会从当前位置绕开对方重新规划（双方同一规则），两位自动行走的厨师不会互相卡死。墙与柜体不可穿过，脚步停在柜门面板之外，正在切菜或洗碗的厨师不可被推离。地面食物不挡走路，食物之间不相互弹开；冲刺可将散落原料推移最多四分之一格。
+按住 WASD／方向键移动，松开停止。点击地面走近坐标，点击工位／物品走到操作侧并面向它，不保留选择；键盘可以接管点击移动。移动时按 Q 或双击方向键冲刺。自动与手动移动共用厨师接触处理：有空间时沿搭档边缘滑过，持续前进时温和推挤，冲刺产生最多四分之一格的有限位移。点击或 AI 路线若 0.3 秒无进展，会从当前位置绕开对方重新规划（双方同一规则），两位自动行走的厨师不会互相卡死。墙与柜体不可穿过，脚步停在柜门面板之外，正在切菜或洗碗的厨师不可被推离。地面食物不挡走路，食物之间不相互弹开；冲刺可将散落原料推移最多四分之一格。
 
 ## 操作与抛掷
 
-短按空格操作选中目标，未明确选择时操作附近朝向目标。选中目标不可用会说明原因，不转向垃圾桶。空手可捡脚下符合条件的物品，持物时优先面前工位；无可用工位时就近放下或拾取。可与地面生／切好原料换手，旧物品留在合法地面。每个逻辑地面格或柜台槽容纳一件静置物品；小范围视觉重叠不会自动装盘。
+操作方式参照《胡闹厨房》：空格和 E 只对角色面前的东西起作用。空格负责拿放（取料、拿起、放下、下锅、装盘、端锅、出餐、丢弃）；E 负责使用工位（切菜、洗碗、灭火），手里有东西而面前没有可用工位时向前抛出，队友在前方射程内时抛给他。面前是工位时只操作这个工位，做不了会说明原因，不会改成把东西放到地上；面前是空地时，空格先拿面前地上的，再拿脚下的，否则把手里的放下。角落柜台面向它所在的一侧即可操作。拿、放这类短动作（约 0.15 秒）进行中按方向键，会在动作完成后再走；走开仍会中断切菜和洗碗，进度保留。可与地面生／切好原料换手，旧物品留在合法地面。每个逻辑地面格或柜台槽容纳一件静置物品；小范围视觉重叠不会自动装盘。
 
-按住空格约 0.3 秒后左键抛出，松开取消；也可右键准备／取消、左键选择落点。散放的生／切好原料、餐盘、装盘菜、锅和灭火器都可以抛，最远 4 格。速度均为 12 格／游戏秒。墙截断路线，可越过设备，空案板只接收原料。瞄得超过射程时，东西落在射程尽头的地上。空手且在走路或站着的队友可接住；正在切菜、洗碗或手里有东西时不打断，东西落在他旁边。掉在地上的盘子保留菜、锅保留内容，都能再捡起。玩家与 AI 规则相同。
+想选落点时，右键准备／取消，再左键选择落点。散放的生／切好原料、餐盘、装盘菜、锅和灭火器都可以抛，最远 4 格。速度均为 12 格／游戏秒。墙截断路线，可越过设备，空案板只接收原料。瞄得超过射程时，东西落在射程尽头的地上。空手且在走路或站着的队友可接住；正在切菜、洗碗或手里有东西时不打断，东西落在他旁边。掉在地上的盘子保留菜、锅保留内容，都能再捡起。玩家与 AI 规则相同。
 
 ## 加工与合作工位
 

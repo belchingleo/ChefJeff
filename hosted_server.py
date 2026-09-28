@@ -187,7 +187,7 @@ FIELDS = {
     '/api/level': {'level'}, '/api/limits': {'max_calls'}, '/api/export-run': set(),
     '/api/feedback': set(), '/api/bookmark': set(), '/api/communicate': {'code'},
     '/api/move': {'dx', 'dy', 'seq', 'sprint'}, '/api/select': {'target'},
-    '/api/interact': {'expected_item'}, '/api/throw': {'target', 'expected_item'},
+    '/api/interact': {'expected_item', 'mode'}, '/api/throw': {'target', 'expected_item'},
     '/api/action': {'action', 'expected'},
     '/api/model/result': {'id', 'choice', 'sprint', 'usage', 'failed'},
 }
