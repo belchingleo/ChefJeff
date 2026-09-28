@@ -142,7 +142,6 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           _this.predicted = null;
           _this.releasedAt = null;
           _this.stateSentAt = 0;
-          _this.throwReady = false;
           _this.handsBusyUntil = -1;
           _this.qaNoMotion = !sys.isNative && new URLSearchParams(location.search).get('qaMotion') === 'off';
           // Isolated visual pilot; not enabled at the fixed gameplay entry.
@@ -156,10 +155,6 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           _this.pairedFacing = {};
           _this.pairedImpacts = {};
           _this.received = 0;
-          _this.selection = {
-            kind: 'none',
-            id: ''
-          };
           _this.labels = {};
           _this.buttons = {};
           _this.controlAccess = null;
@@ -195,10 +190,6 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           _this.depthEntries = [];
           _this.mapNodes = [];
           _this.mountedLayout = "";
-          _this.lastDirectionTap = {
-            key: "",
-            time: -10
-          };
           // Native debug builds use USB forwarding: adb reverse tcp:8769 tcp:8769.
           // Production releases replace this with the operator's HTTPS game backend, never a Jev API key.
           _this.endpoint = sys.isNative ? 'http://127.0.0.1:8769' : '';
@@ -217,7 +208,6 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             if (e.button === 2 && (_e$target2 = e.target) != null && _e$target2.closest('canvas')) {
               e.preventDefault();
               e.stopImmediatePropagation();
-              _this.onRightClick();
             }
           };
           _this.onMouseUp = function (e) {
@@ -283,14 +273,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               var key = e.key.toLowerCase();
               if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) {
                 e.preventDefault();
-                var fresh = !e.repeat && !_this.heldKeys.has(key);
-                var dash = fresh && _this.lastDirectionTap.key === key && _this.clock - _this.lastDirectionTap.time <= .3;
-                if (fresh) _this.lastDirectionTap = {
-                  key: key,
-                  time: dash ? -10 : _this.clock
-                };
                 _this.heldKeys.add(key);
-                _this.refreshMovement(dash);
+                _this.refreshMovement();
                 return;
               }
             }
@@ -387,10 +371,6 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                     _this.mounted = false;
                   }
                   if (next.game_id !== ((_this$state7 = _this.state) == null ? void 0 : _this$state7.game_id) || !_this.connected) {
-                    _this.selection = {
-                      kind: 'none',
-                      id: ''
-                    };
                     _this.menuSignature = '';
                     _this.foodStages = {};
                     _this.readyUntil = {};
@@ -758,24 +738,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }));
         };
         // Anything held can be thrown or passed; the server applies each item's range (currently 4 tiles for all).
-        _proto.toggleThrow = function toggleThrow() {
-          var _this$state12;
-          var hand = (_this$state12 = this.state) == null ? void 0 : _this$state12.kitchen.chefs.human.holding;
-          if (!this.throwReady && !hand) {
-            this.set('event', '手里没有可以抛出的东西。');
-            return;
-          }
-          this.throwReady = !this.throwReady;
-          this.updateThrowCue();
-        };
-        _proto.updateThrowCue = function updateThrowCue() {
-          this.set('interaction', this.throwReady ? '抛掷已准备 · 左键选落点' : '');
-          if (!sys.isNative) {
-            var canvas = document.querySelector('canvas');
-            if (canvas) canvas.style.cursor = this.throwReady ? 'crosshair' : '';
-          }
-        };
-        _proto.sendMove = /*#__PURE__*/function () {
+        _proto.sendMove = /*#__PURE__*/
+        function () {
           var _sendMove = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee3(dx, dy, sprint) {
             var seq;
             return _regeneratorRuntime().wrap(function _callee3$(_context3) {
@@ -819,21 +783,18 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }
           return sendMove;
         }();
-        _proto.refreshMovement = function refreshMovement(sprint) {
-          if (sprint === void 0) {
-            sprint = false;
-          }
+        _proto.refreshMovement = function refreshMovement() {
           var x = (this.heldKeys.has('d') || this.heldKeys.has('arrowright') ? 1 : 0) - (this.heldKeys.has('a') || this.heldKeys.has('arrowleft') ? 1 : 0);
           var y = (this.heldKeys.has('s') || this.heldKeys.has('arrowdown') ? 1 : 0) - (this.heldKeys.has('w') || this.heldKeys.has('arrowup') ? 1 : 0),
             mag = Math.hypot(x, y);
           var dx = mag ? x / mag : 0,
             dy = mag ? y / mag : 0;
-          if (!sprint && dx === this.manualDirection.x && dy === this.manualDirection.y) return;
+          if (dx === this.manualDirection.x && dy === this.manualDirection.y) return;
           this.manualDirection = {
             x: dx,
             y: dy
           };
-          this.sendMove(dx, dy, sprint);
+          this.sendMove(dx, dy);
         };
         _proto.predictHuman = function predictHuman(k, c, dt, n) {
           var _c$sprint, _k$chefs$jeff;
@@ -874,93 +835,14 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           return this.predicted = next;
         };
         _proto.clearInput = function clearInput() {
-          this.lastDirectionTap = {
-            key: "",
-            time: -10
-          };
           this.heldKeys.clear();
           var wasMoving = this.manualDirection.x !== 0 || this.manualDirection.y !== 0;
           this.manualDirection = {
             x: 0,
             y: 0
           };
-          this.throwReady = false;
-          this.updateThrowCue();
           if (wasMoving) this.sendMove(0, 0);
         };
-        _proto.cancelManualMovement = function cancelManualMovement() {
-          this.heldKeys.clear();
-          if (this.manualDirection.x !== 0 || this.manualDirection.y !== 0) {
-            this.manualDirection = {
-              x: 0,
-              y: 0
-            };
-            this.sendMove(0, 0);
-          }
-        };
-        _proto.onRightClick = function onRightClick() {
-          var _this$state13;
-          if (((_this$state13 = this.state) == null ? void 0 : _this$state13.phase) === 'running' && this.connected) this.toggleThrow();
-        };
-        _proto.mapTarget = function mapTarget(x, y) {
-          if (this.throwReady) {
-            this.throwTo([x, y]);
-            return true;
-          }
-          return false;
-        };
-        _proto.throwTo = /*#__PURE__*/function () {
-          var _throwTo = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee4(target) {
-            var held, gameId;
-            return _regeneratorRuntime().wrap(function _callee4$(_context4) {
-              while (1) switch (_context4.prev = _context4.next) {
-                case 0:
-                  if (this.state) {
-                    _context4.next = 2;
-                    break;
-                  }
-                  return _context4.abrupt("return");
-                case 2:
-                  held = this.state.kitchen.chefs.human.holding, gameId = this.state.game_id;
-                  this.throwReady = false;
-                  this.updateThrowCue();
-                  this.cancelManualMovement();
-                  if (held) {
-                    _context4.next = 8;
-                    break;
-                  }
-                  return _context4.abrupt("return");
-                case 8:
-                  _context4.prev = 8;
-                  _context4.next = 11;
-                  return this.request('/api/throw', {
-                    game_id: gameId,
-                    target: target,
-                    expected_item: held.id,
-                    request_id: Date.now().toString(36) + '-' + Math.random().toString(36).slice(2)
-                  });
-                case 11:
-                  _context4.next = 16;
-                  break;
-                case 13:
-                  _context4.prev = 13;
-                  _context4.t0 = _context4["catch"](8);
-                  this.set('event', _context4.t0.message);
-                case 16:
-                  _context4.prev = 16;
-                  this.poll();
-                  return _context4.finish(16);
-                case 19:
-                case "end":
-                  return _context4.stop();
-              }
-            }, _callee4, this, [[8, 13, 16, 19]]);
-          }));
-          function throwTo(_x6) {
-            return _throwTo.apply(this, arguments);
-          }
-          return throwTo;
-        }();
         _proto.make = function make(name, x, y, w, h, parent) {
           if (parent === void 0) {
             parent = this.node;
@@ -1302,8 +1184,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               return true;
             }
             if (type === 'serve') {
-              var _this$state14;
-              var facing = (_this$state14 = this.state) == null || (_this$state14 = _this$state14.kitchen.map.equipment.serve) == null ? void 0 : _this$state14.facing;
+              var _this$state12;
+              var facing = (_this$state12 = this.state) == null || (_this$state12 = _this$state12.kitchen.map.equipment.serve) == null ? void 0 : _this$state12.facing;
               return this.art.tile(node, facing === 'east' ? 'serving_east' : 'serving_west', TILE);
             }
             if (tops[type] && this.art.tile(node, tops[type], TILE)) return true;
@@ -1411,10 +1293,10 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           if (sprite) sprite.color = new Color(120, 112, 106, 255);
         };
         _proto.drawPot = function drawPot(node) {
-          var _node$parent, _node$parent2, _node$parent$parent, _this$state15;
+          var _node$parent, _node$parent2, _node$parent$parent, _this$state13;
           var station = (_node$parent = node.parent) != null && _node$parent.name.startsWith('station-') ? node.parent.name.slice(8) : '';
           var holder = ((_node$parent2 = node.parent) == null ? void 0 : _node$parent2.name) === 'body' ? (_node$parent$parent = node.parent.parent) == null ? void 0 : _node$parent$parent.name : '';
-          var facing = holder ? (_this$state15 = this.state) == null || (_this$state15 = _this$state15.kitchen.chefs[holder]) == null ? void 0 : _this$state15.facing : '';
+          var facing = holder ? (_this$state13 = this.state) == null || (_this$state13 = _this$state13.kitchen.chefs[holder]) == null ? void 0 : _this$state13.facing : '';
           var axis = station ? stationView(this.state.kitchen.map, station).device_axis : facing === 'up' || facing === 'down' ? 'vertical' : 'horizontal';
           return this.art.centered(node, this.art.has('modular/pot_' + axis) ? 'modular/pot_' + axis : 'objects/pot', TILE * (axis === 'vertical' ? .62 : .76), TILE * .76);
         };
@@ -1447,23 +1329,23 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
         }
         /** A plate drawn as layers: any plate but a lone beef where the menu serves beef alone (steak). */;
         _proto.platedAssembly = function platedAssembly(f) {
-          var _f$components, _this$state16;
+          var _f$components, _this$state14;
           if (!(f != null && f.plate_id) || !((_f$components = f.components) != null && _f$components.length)) return false;
           if (f.components.some(function (x) {
             return x !== 'beef';
           })) return true;
-          var menu = (_this$state16 = this.state) == null ? void 0 : _this$state16.kitchen.menu;
+          var menu = (_this$state14 = this.state) == null ? void 0 : _this$state14.kitchen.menu;
           return !!menu && !menu.some(function (d) {
             var _d$components;
             return ((_d$components = d.components) == null ? void 0 : _d$components.length) === 1 && d.components[0].item === 'beef';
           });
         };
         _proto.itemStage = function itemStage(f) {
-          var _this$state17;
+          var _this$state15;
           // Burnt burgers keep their layers (burnt dishes can be served); only the beef is drawn charred.
           if (this.platedAssembly(f)) return 'assembly:' + f.components.join(',') + (f.stage === 'burnt' ? ',burnt' : '');
           if (['bread', 'lettuce', 'tomato'].includes(f == null ? void 0 : f.ingredient) && !(f != null && f.plate_id)) return f.ingredient + '_' + f.stage;
-          if (this.useArt && (f == null ? void 0 : f.stage) === 'raw' && (f == null ? void 0 : f.ingredient) === 'beef' && f.chop_remaining < (((_this$state17 = this.state) == null || (_this$state17 = _this$state17.rules) == null ? void 0 : _this$state17.chop_seconds) || 6)) return 'processing';
+          if (this.useArt && (f == null ? void 0 : f.stage) === 'raw' && (f == null ? void 0 : f.ingredient) === 'beef' && f.chop_remaining < (((_this$state15 = this.state) == null || (_this$state15 = _this$state15.rules) == null ? void 0 : _this$state15.chop_seconds) || 6)) return 'processing';
           return (f == null ? void 0 : f.stage) === 'pot' ? f.contents ? 'pot_' + f.contents.stage : 'pot' : f != null && f.plate_id ? 'plated_' + f.stage : f == null ? void 0 : f.stage;
         };
         _proto.chef = function chef(parent, name, x, y, who, scale) {
@@ -1529,20 +1411,20 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           return n;
         };
         _proto.request = /*#__PURE__*/function () {
-          var _request = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee5(path, body) {
+          var _request = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee4(path, body) {
             var _this7 = this;
             var hosted;
-            return _regeneratorRuntime().wrap(function _callee5$(_context5) {
-              while (1) switch (_context5.prev = _context5.next) {
+            return _regeneratorRuntime().wrap(function _callee4$(_context4) {
+              while (1) switch (_context4.prev = _context4.next) {
                 case 0:
                   hosted = typeof window !== 'undefined' ? window.chefjeffHostedRequest : null;
                   if (!hosted) {
-                    _context5.next = 3;
+                    _context4.next = 3;
                     break;
                   }
-                  return _context5.abrupt("return", hosted(path, body));
+                  return _context4.abrupt("return", hosted(path, body));
                 case 3:
-                  return _context5.abrupt("return", new Promise(function (resolve, reject) {
+                  return _context4.abrupt("return", new Promise(function (resolve, reject) {
                     var xhr = new XMLHttpRequest();
                     xhr.open(body ? 'POST' : 'GET', _this7.endpoint + path, true);
                     xhr.timeout = 5000;
@@ -1565,27 +1447,27 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                   }));
                 case 4:
                 case "end":
-                  return _context5.stop();
+                  return _context4.stop();
               }
-            }, _callee5);
+            }, _callee4);
           }));
-          function request(_x7, _x8) {
+          function request(_x6, _x7) {
             return _request.apply(this, arguments);
           }
           return request;
         }();
         _proto.bookmark = /*#__PURE__*/function () {
-          var _bookmark = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee6() {
+          var _bookmark = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee5() {
             var _this8 = this;
             var round, notice, data;
-            return _regeneratorRuntime().wrap(function _callee6$(_context6) {
-              while (1) switch (_context6.prev = _context6.next) {
+            return _regeneratorRuntime().wrap(function _callee5$(_context5) {
+              while (1) switch (_context5.prev = _context5.next) {
                 case 0:
                   if (!(!this.state || this.hidden)) {
-                    _context6.next = 2;
+                    _context5.next = 2;
                     break;
                   }
-                  return _context6.abrupt("return");
+                  return _context5.abrupt("return");
                 case 2:
                   round = this.state.game_id;
                   notice = function notice(message) {
@@ -1597,32 +1479,32 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                     }));
                   };
                   if (this.connected) {
-                    _context6.next = 7;
+                    _context5.next = 7;
                     break;
                   }
                   notice('标记未保存，请重试。');
-                  return _context6.abrupt("return");
+                  return _context5.abrupt("return");
                 case 7:
-                  _context6.prev = 7;
-                  _context6.next = 10;
+                  _context5.prev = 7;
+                  _context5.next = 10;
                   return this.request('/api/bookmark', {
                     game_id: round,
                     request_id: Date.now().toString(36) + '-' + Math.random().toString(36).slice(2)
                   });
                 case 10:
-                  data = _context6.sent;
+                  data = _context5.sent;
                   notice(data.merged ? '已延长标记片段' : '已标记当前片段');
-                  _context6.next = 17;
+                  _context5.next = 17;
                   break;
                 case 14:
-                  _context6.prev = 14;
-                  _context6.t0 = _context6["catch"](7);
+                  _context5.prev = 14;
+                  _context5.t0 = _context5["catch"](7);
                   notice('标记未确认，请检查导出记录。');
                 case 17:
                 case "end":
-                  return _context6.stop();
+                  return _context5.stop();
               }
-            }, _callee6, this, [[7, 14]]);
+            }, _callee5, this, [[7, 14]]);
           }));
           function bookmark() {
             return _bookmark.apply(this, arguments);
@@ -1630,60 +1512,60 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           return bookmark;
         }();
         _proto.post = /*#__PURE__*/function () {
-          var _post = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee7(path, extra) {
-            return _regeneratorRuntime().wrap(function _callee7$(_context7) {
-              while (1) switch (_context7.prev = _context7.next) {
+          var _post = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee6(path, extra) {
+            return _regeneratorRuntime().wrap(function _callee6$(_context6) {
+              while (1) switch (_context6.prev = _context6.next) {
                 case 0:
                   if (extra === void 0) {
                     extra = {};
                   }
-                  if (path === '/api/action' || path === '/api/select' || path === '/api/pause' || path === '/api/end' || path === '/api/reset' || path === '/api/restart') this.clearInput();
+                  if (path === '/api/action' || path === '/api/pause' || path === '/api/end' || path === '/api/reset' || path === '/api/restart') this.clearInput();
                   if (!(this.pending && path !== '/api/pause' || !this.state)) {
-                    _context7.next = 4;
+                    _context6.next = 4;
                     break;
                   }
-                  return _context7.abrupt("return");
+                  return _context6.abrupt("return");
                 case 4:
-                  if (!(['/api/action', '/api/select', '/api/interact'].includes(path) && this.state.phase !== 'running')) {
-                    _context7.next = 6;
+                  if (!(['/api/action', '/api/interact'].includes(path) && this.state.phase !== 'running')) {
+                    _context6.next = 6;
                     break;
                   }
-                  return _context7.abrupt("return");
+                  return _context6.abrupt("return");
                 case 6:
                   this.pending = true;
                   this.render();
-                  _context7.prev = 8;
-                  _context7.next = 11;
+                  _context6.prev = 8;
+                  _context6.next = 11;
                   return this.request(path, _extends({
                     game_id: this.state.game_id,
                     request_id: Date.now().toString(36) + '-' + Math.random().toString(36).slice(2)
                   }, extra));
                 case 11:
-                  _context7.next = 16;
+                  _context6.next = 16;
                   break;
                 case 13:
-                  _context7.prev = 13;
-                  _context7.t0 = _context7["catch"](8);
-                  this.set('event', _context7.t0.message);
+                  _context6.prev = 13;
+                  _context6.t0 = _context6["catch"](8);
+                  this.set('event', _context6.t0.message);
                 case 16:
-                  _context7.prev = 16;
+                  _context6.prev = 16;
                   this.pending = false;
                   this.poll();
-                  return _context7.finish(16);
+                  return _context6.finish(16);
                 case 20:
                 case "end":
-                  return _context7.stop();
+                  return _context6.stop();
               }
-            }, _callee7, this, [[8, 13, 16, 20]]);
+            }, _callee6, this, [[8, 13, 16, 20]]);
           }));
-          function post(_x9, _x10) {
+          function post(_x8, _x9) {
             return _post.apply(this, arguments);
           }
           return post;
         }();
         _proto.act = function act(key) {
-          var _this$state18;
-          var a = (_this$state18 = this.state) == null ? void 0 : _this$state18.actions.find(function (a) {
+          var _this$state16;
+          var a = (_this$state16 = this.state) == null ? void 0 : _this$state16.actions.find(function (a) {
             return a.key === key;
           });
           if (a) this.post('/api/action', {
@@ -1818,9 +1700,9 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           this.depthEntries = [];
           this.world = this.child(this.node, 'kitchen-world', 1280, 720);
           var _loop3 = function _loop3(_y) {
-            var _loop7 = function _loop7(_x12) {
-              var wall = walls.has(_x12 + "," + _y),
-                n = _this9.make('tile', MAPX + (_x12 + .5) * TILE, MAPY + (_y + .5) * TILE, TILE, TILE, _this9.world);
+            var _loop6 = function _loop6() {
+              var wall = walls.has(_x11 + "," + _y),
+                n = _this9.make('tile', MAPX + (_x11 + .5) * TILE, MAPY + (_y + .5) * TILE, TILE, TILE, _this9.world);
               n.setScale(TILE / 52, TILE / 52, 1);
               var g = n.addComponent(Graphics),
                 r = function r(a, b, w, h, c) {
@@ -1835,28 +1717,25 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                 r(-26, -24, 52, 7, '#634a37');
               } else {
                 r(-26, -26, 52, 52, '#c7bea0');
-                r(-25, -24, 49, 49, (_x12 + _y) % 2 ? _x12 < 7 ? '#e1d4ad' : '#cbd3b6' : _x12 < 7 ? '#eee3c1' : '#dce0c7');
+                r(-25, -24, 49, 49, (_x11 + _y) % 2 ? _x11 < 7 ? '#e1d4ad' : '#cbd3b6' : _x11 < 7 ? '#eee3c1' : '#dce0c7');
                 r(-23, 22, 45, 2, '#f1e7cc');
-                if (cells.has(_x12 + "," + _y)) {
+                if (cells.has(_x11 + "," + _y)) {
                   r(-26, -26, 52, 52, COLORS.counter);
-                  if (!cells.has(_x12 + "," + (_y - 1))) r(-26, 22, 52, 4, COLORS.counterLight);
-                  if (!cells.has(_x12 + "," + (_y + 1))) r(-26, -26, 52, 4, COLORS.counterEdge);
+                  if (!cells.has(_x11 + "," + (_y - 1))) r(-26, 22, 52, 4, COLORS.counterLight);
+                  if (!cells.has(_x11 + "," + (_y + 1))) r(-26, -26, 52, 4, COLORS.counterEdge);
                 }
-                if (!cells.has(_x12 + "," + _y)) n.on(Node.EventType.TOUCH_END, function () {
-                  _this9.mapTarget(_x12, _y);
-                });
               }
               if (_this9.useModularArt) {
                 n.setScale(1, 1, 1);
                 g.clear();
                 if (wall) {
-                  _this9.drawWall(n, _x12, _y, map, walls);
+                  _this9.drawWall(n, _x11, _y, map, walls);
                   _this9.registerDepth(n, function () {
                     return depthOrder(_y, 'solid');
                   });
                 }
               } else if (_this9.useArt) {
-                var key = wall ? _y === 0 ? 'environment/wall' : 'environment/counter' : cells.has(_x12 + "," + _y) ? 'environment/counter' : 'environment/floor_cream';
+                var key = wall ? _y === 0 ? 'environment/wall' : 'environment/counter' : cells.has(_x11 + "," + _y) ? 'environment/counter' : 'environment/floor_cream';
                 if (_this9.art.show(n, key, 52, 52)) {
                   g.clear();
                   if (wall && _y !== 0) {
@@ -1873,12 +1752,9 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                 return -1000;
               });
               if (wall && _this9.useModularArt) n.getComponent(UITransform).setAnchorPoint(.5, .5 - (_y === map.height - 1 ? GRID_ART.frontWallHeight / 64 : GRID_ART.wallHeight / 64));
-              if (wall) n.on(Node.EventType.TOUCH_END, function () {
-                if (!_this9.mapTarget(_x12, _y)) _this9.cancelManualMovement();
-              });
             };
-            for (var _x12 = 0; _x12 < map.width; _x12++) {
-              _loop7(_x12);
+            for (var _x11 = 0; _x11 < map.width; _x11++) {
+              _loop6();
             }
           };
           for (var _y = 0; _y < map.height; _y++) {
@@ -1947,40 +1823,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               _this9.rect(bg, 12, -2, 5, 5, '#eaf7f5');
               bubbles.active = false;
             }
-            var _loop5 = function _loop5() {
-              var cell = _step7.value;
-              var hit = _this9.make('station-extension-' + id, MAPX + (cell[0] + .5) * TILE, MAPY + (cell[1] + .5) * TILE, TILE, TILE);
-              hit.on(Node.EventType.TOUCH_END, function () {
-                if (_this9.mapTarget(cell[0], cell[1])) return;
-                _this9.cancelManualMovement();
-                _this9.selection = {
-                  kind: 'station',
-                  id: id
-                };
-                _this9.post('/api/select', {
-                  target: id
-                });
-                _this9.render();
-              });
-            };
-            for (var _iterator7 = _createForOfIteratorHelperLoose((e.cells || []).filter(function (c) {
-                return c[0] !== e.cell[0] || c[1] !== e.cell[1];
-              })), _step7; !(_step7 = _iterator7()).done;) {
-              _loop5();
-            }
             if (_this9.useModularArt) n.getComponent(UITransform).setAnchorPoint(.5, .5 - _this9.workSurfaceY(id) / TILE);
-            n.on(Node.EventType.TOUCH_END, function () {
-              if (_this9.mapTarget(e.cell[0], e.cell[1])) return;
-              _this9.cancelManualMovement();
-              _this9.selection = {
-                kind: 'station',
-                id: id
-              };
-              _this9.post('/api/select', {
-                target: id
-              });
-              _this9.render();
-            });
             _this9.devices[id] = {
               node: n,
               graphics: g,
@@ -2036,7 +1879,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           for (var _i13 = 0, _Object$entries = Object.entries(map.equipment); _i13 < _Object$entries.length; _i13++) {
             _loop4();
           }
-          var _loop6 = function _loop6() {
+          var _loop5 = function _loop5() {
             var who = _arr10[_i14];
             var n = _this9.chef(_this9.world, who, 0, 0, who, _this9.useModularArt ? .8 : .65);
             var dust = _this9.child(n, 'sprint-dust', 55, 28, -18, -24);
@@ -2048,14 +1891,6 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               var c = _this9.state.kitchen.chefs[who],
                 e = _this9.state.kitchen.map.equipment[c.target];
               return workingChefDepth((360 - MAPY - n.position.y) / TILE - .5, e == null ? void 0 : e.cell[1], c.facing, !!c.working && !!e);
-            });
-            n.on(Node.EventType.TOUCH_END, function () {
-              var _this9$state;
-              var p = (_this9$state = _this9.state) == null ? void 0 : _this9$state.kitchen.chefs[who].position;
-              if (_this9.mapTarget(p[0], p[1])) return;
-              if (who === 'jeff') {
-                _this9.set('event', '靠近 Jeff，按空格给他手中的干净盘装菜。');
-              }
             });
             // Name tag: a solid pixel plate in the identity colour, sized to the text in drawNameTag.
             var ln = _this9.child(n, 'name', 155, 25, 0, _this9.useModularArt ? -12 : -39);
@@ -2103,7 +1938,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             };
           };
           for (var _i14 = 0, _arr10 = ['human', 'jeff']; _i14 < _arr10.length; _i14++) {
-            _loop6();
+            _loop5();
           }
           var marker = function marker(name, fill) {
             var n = _this9.child(_this9.people.jeff, name, 30, 18, 0, 65),
@@ -2112,8 +1947,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             g.circle(0, 0, 8);
             g.fill();
             for (var _i15 = 0, _arr11 = [-5, 0, 5]; _i15 < _arr11.length; _i15++) {
-              var _x11 = _arr11[_i15];
-              _this9.rect(g, _x11 - 1, -1, 2, 3, fill);
+              var _x10 = _arr11[_i15];
+              _this9.rect(g, _x10 - 1, -1, 2, 3, fill);
             }
             return n;
           };
@@ -2141,7 +1976,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           this.mounted = true;
         };
         _proto.characterArt = function characterArt(body, who, facing, walking, working) {
-          var _this$state19, _this$state20, _URLSearchParams$get;
+          var _this$state17, _this$state18, _URLSearchParams$get;
           if (walking === void 0) {
             walking = false;
           }
@@ -2149,8 +1984,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             working = false;
           }
           var kind = who === 'human' ? 'player' : 'jeff',
-            chef = (_this$state19 = this.state) == null ? void 0 : _this$state19.kitchen.chefs[who];
-          var station = (_this$state20 = this.state) == null ? void 0 : _this$state20.kitchen.map.equipment[chef == null ? void 0 : chef.target];
+            chef = (_this$state17 = this.state) == null ? void 0 : _this$state17.kitchen.chefs[who];
+          var station = (_this$state18 = this.state) == null ? void 0 : _this$state18.kitchen.map.equipment[chef == null ? void 0 : chef.target];
           var inWorld = !!body.parent && ['human', 'jeff'].includes(body.parent.name);
           var chopping = !!working && inWorld && (chef == null ? void 0 : chef.action_kind) === 'chop' && !!station;
           var sampleFrame = this.prepSample ? Number((_URLSearchParams$get = new URLSearchParams(location.search).get('prepFrame')) != null ? _URLSearchParams$get : -1) : -1;
@@ -2178,8 +2013,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             }
           }
           body.getComponent(Graphics).enabled = !shown;
-          for (var _iterator8 = _createForOfIteratorHelperLoose(body.children), _step8; !(_step8 = _iterator8()).done;) {
-            var child = _step8.value;
+          for (var _iterator7 = _createForOfIteratorHelperLoose(body.children), _step7; !(_step7 = _iterator7()).done;) {
+            var child = _step7.value;
             if (!['held', 'reviewed-art'].includes(child.name)) child.active = !shown;
           }
           if (inWorld) this.pairedKnifeSample(body, who, pairedPilot, actionKey, facing);
@@ -2470,7 +2305,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             if (welcome) this.characterArt(welcome, who, 'down');
           }
         };
-        _proto.foodNode = function foodNode(id, stage, click, airborne) {
+        _proto.foodNode = function foodNode(id, stage, airborne) {
           var _this12 = this;
           if (airborne === void 0) {
             airborne = false;
@@ -2493,7 +2328,6 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           l.lineHeight = 16;
           l.color = color(COLORS.ink);
           child.active = !this.useModularArt;
-          if (click) n.on(Node.EventType.TOUCH_END, click);
           return n;
         };
         _proto.statColor = function statColor(id) {
@@ -2513,8 +2347,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             this.eventsGame = s.game_id;
             this.seenEvents.clear();
           }
-          for (var _iterator9 = _createForOfIteratorHelperLoose(s.events), _step9; !(_step9 = _iterator9()).done;) {
-            var e = _step9.value;
+          for (var _iterator8 = _createForOfIteratorHelperLoose(s.events), _step8; !(_step8 = _iterator8()).done;) {
+            var e = _step8.value;
             var key = e.t + '|' + e.message;
             if (this.seenEvents.has(key)) continue;
             this.seenEvents.add(key);
@@ -2546,8 +2380,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           if (e.kind && RESULT_ANNOUNCE.has(e.kind)) this.announce(e.message);
         };
         _proto.flash = function flash(ids, fill) {
-          for (var _iterator10 = _createForOfIteratorHelperLoose(ids), _step10; !(_step10 = _iterator10()).done;) {
-            var id = _step10.value;
+          for (var _iterator9 = _createForOfIteratorHelperLoose(ids), _step9; !(_step9 = _iterator9()).done;) {
+            var id = _step9.value;
             this.flashes[id] = {
               until: this.clock + 1.2,
               fill: fill
@@ -2590,7 +2424,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             var id = _arr18[_i22];
             this.labels[id].color = color(this.statColor(id));
           }
-          var _loop8 = function _loop8() {
+          var _loop7 = function _loop7() {
             var o = orders[i],
               n = _this13.tickets[i],
               g = n.getComponent(Graphics) || n.addComponent(Graphics),
@@ -2632,7 +2466,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             _this13.labels['order-time-' + i].color = color(urgent ? COLORS.hot : COLORS.muted);
           };
           for (var i = 0; i < 5; i++) {
-            _loop8();
+            _loop7();
           }
         };
         _proto.drawNameTag = function drawNameTag(who) {
@@ -2773,34 +2607,21 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               delete this.groundStages[_id2];
             }
           }
-          var _loop9 = function _loop9() {
-            var item = _step11.value;
-            var id = item.food.id,
-              stage = _this14.itemStage(item.food);
-            if (!_this14.ground[id]) {
-              _this14.ground[id] = _this14.foodNode(id, stage, function () {
-                if (_this14.mapTarget(item.position[0], item.position[1])) return;
-                _this14.cancelManualMovement();
-                _this14.selection = {
-                  kind: 'food',
-                  id: id
-                };
-                _this14.post('/api/select', {
-                  target: 'item:' + id
-                });
-              });
-              _this14.groundStages[id] = stage;
+          for (var _iterator10 = _createForOfIteratorHelperLoose(k.ground), _step10; !(_step10 = _iterator10()).done;) {
+            var item = _step10.value;
+            var _id6 = item.food.id,
+              stage = this.itemStage(item.food);
+            if (!this.ground[_id6]) {
+              this.ground[_id6] = this.foodNode(_id6, stage);
+              this.groundStages[_id6] = stage;
             }
-            if (_this14.groundStages[id] !== stage) {
-              _this14.drawIcon(_this14.ground[id].getComponent(Graphics), stage);
-              _this14.groundStages[id] = stage;
-              _this14.writeLabel(_this14.ground[id].getChildByName('id').getComponent(Label), STAGES[stage] || id);
+            if (this.groundStages[_id6] !== stage) {
+              this.drawIcon(this.ground[_id6].getComponent(Graphics), stage);
+              this.groundStages[_id6] = stage;
+              this.writeLabel(this.ground[_id6].getChildByName('id').getComponent(Label), STAGES[stage] || _id6);
             }
-            _this14.writeLabel(_this14.ground[id].getChildByName('id').getComponent(Label), _this14.itemName(item.food));
-            _this14.locate(_this14.ground[id], item.position);
-          };
-          for (var _iterator11 = _createForOfIteratorHelperLoose(k.ground), _step11; !(_step11 = _iterator11()).done;) {
-            _loop9();
+            this.writeLabel(this.ground[_id6].getChildByName('id').getComponent(Label), this.itemName(item.food));
+            this.locate(this.ground[_id6], item.position);
           }
           for (var _i25 = 0, _arr19 = ['human', 'jeff']; _i25 < _arr19.length; _i25++) {
             var _c$sprint2;
@@ -2831,9 +2652,9 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               delete this.flightOrder[_id3];
             }
           }
-          for (var _iterator12 = _createForOfIteratorHelperLoose(k.projectiles || []), _step12; !(_step12 = _iterator12()).done;) {
-            var p = _step12.value;
-            if (!this.flights[p.id]) this.flights[p.id] = this.foodNode(p.id, this.itemStage(p), undefined, true);
+          for (var _iterator11 = _createForOfIteratorHelperLoose(k.projectiles || []), _step11; !(_step11 = _iterator11()).done;) {
+            var p = _step11.value;
+            if (!this.flights[p.id]) this.flights[p.id] = this.foodNode(p.id, this.itemStage(p), true);
           }
           this.enable('pause', active);
           this.enable('resume', s.phase === 'paused' && !this.pending && this.connected);
@@ -2852,7 +2673,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               tomato: '番茄'
             }[x];
           }).join('+'));
-          if (!this.throwReady) {
+          {
             var _s$interaction2;
             var _short = function _short(a) {
                 return a.label.split('（')[0];
@@ -3075,7 +2896,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             var _this$jeffThinking;
             for (var _i34 = 0, _Object$entries6 = Object.entries(this.potEffects); _i34 < _Object$entries6.length; _i34++) {
               var _Object$entries6$_i = _Object$entries6[_i34],
-                _id6 = _Object$entries6$_i[0],
+                _id7 = _Object$entries6$_i[0],
                 e = _Object$entries6$_i[1];
               if (this.useArt) {
                 var _frame = Math.floor(this.activeClock * 8) % 7;
@@ -3087,8 +2908,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                   if (node.active && this.art.show(node, "vfx/" + key + "_" + _frame, key === 'fire' ? 75 : 42, key === 'fire' ? 75 : 42)) (_node$getComponent = node.getComponent(Graphics)) == null || _node$getComponent.clear();
                 }
               }
-              if (e.steam.active) e.steam.setPosition(-11 + Math.sin(this.activeClock * 3 + _id6.length) * 3, 38 + Math.sin(this.activeClock * 4 + _id6.length) * 3);
-              if (e.smoke.active) e.smoke.setPosition(13 + Math.sin(this.activeClock * 2.4 + _id6.length) * 2, 38 + Math.sin(this.activeClock * 3 + _id6.length) * 2);
+              if (e.steam.active) e.steam.setPosition(-11 + Math.sin(this.activeClock * 3 + _id7.length) * 3, 38 + Math.sin(this.activeClock * 4 + _id7.length) * 3);
+              if (e.smoke.active) e.smoke.setPosition(13 + Math.sin(this.activeClock * 2.4 + _id7.length) * 2, 38 + Math.sin(this.activeClock * 3 + _id7.length) * 2);
               if (e.fire.active) e.fire.setScale(.55 + Math.sin(this.activeClock * 12) * .035, .55 + Math.sin(this.activeClock * 12 + 1) * .06, 1);
               if (e.ready.active) e.ready.setScale(.85 + Math.sin(this.activeClock * 12) * .12, .85 + Math.sin(this.activeClock * 12) * .12, 1);
             }
@@ -3109,8 +2930,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }
           if (running && (this.manualDirection.x !== 0 || this.manualDirection.y !== 0) && this.clock - this.lastMoveAt >= .15) this.sendMove(this.manualDirection.x, this.manualDirection.y);
           var time = k.time + (this.state.phase === 'running' && this.connected ? (this.clock - this.received) * this.state.speed : 0);
-          for (var _iterator13 = _createForOfIteratorHelperLoose(k.projectiles || []), _step13; !(_step13 = _iterator13()).done;) {
-            var _p = _step13.value;
+          for (var _iterator12 = _createForOfIteratorHelperLoose(k.projectiles || []), _step12; !(_step12 = _iterator12()).done;) {
+            var _p = _step12.value;
             var _t = Math.max(0, Math.min(1, (time - _p.started) / (_p.lands_at - _p.started))),
               arc = Math.sin(_t * Math.PI) * 35;
             var point = [_p.from[0] + (_p.to[0] - _p.from[0]) * _t, _p.from[1] + (_p.to[1] - _p.from[1]) * _t];

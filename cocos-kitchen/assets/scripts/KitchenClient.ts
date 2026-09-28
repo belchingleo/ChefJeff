@@ -50,7 +50,6 @@ export class KitchenClient extends Component {
     private predicted:number[]|null=null;
     private releasedAt:number|null=null;
     private stateSentAt=0;
-    private throwReady=false;
     private handsBusyUntil=-1;
     private qaNoMotion=!sys.isNative&&new URLSearchParams(location.search).get('qaMotion')==='off';
     // Isolated visual pilot; not enabled at the fixed gameplay entry.
@@ -64,7 +63,6 @@ export class KitchenClient extends Component {
     private pairedFacing:Record<string,string>={};
     private pairedImpacts:Record<string,Node>={};
     private received=0;
-    private selection={kind:'none',id:''};
     private labels: Record<string,Label>={};
     private buttons: Record<string,ButtonView>={};
     private controlAccess:HTMLDivElement|null=null;
@@ -106,7 +104,6 @@ export class KitchenClient extends Component {
     }
     private mapNodes:Node[]=[];
     private mountedLayout="";
-    private lastDirectionTap={key:"",time:-10};
     // Native debug builds use USB forwarding: adb reverse tcp:8769 tcp:8769.
     // Production releases replace this with the operator's HTTPS game backend, never a Jev API key.
     private endpoint=sys.isNative?'http://127.0.0.1:8769':'';
@@ -211,7 +208,7 @@ export class KitchenClient extends Component {
     private onBlur=()=>this.clearInput();
     private onVisibility=()=>{if(document.hidden)this.clearInput();};
     private onContextMenu=(e:MouseEvent)=>{if((e.target as HTMLElement)?.closest('canvas'))e.preventDefault();};
-    private onMouseDown=(e:MouseEvent)=>{if(e.button===2&&(e.target as HTMLElement)?.closest('canvas')){e.preventDefault();e.stopImmediatePropagation();this.onRightClick();}};
+    private onMouseDown=(e:MouseEvent)=>{if(e.button===2&&(e.target as HTMLElement)?.closest('canvas')){e.preventDefault();e.stopImmediatePropagation();}};
     private onMouseUp=(e:MouseEvent)=>{if(e.button===2&&(e.target as HTMLElement)?.closest('canvas')){e.preventDefault();e.stopImmediatePropagation();}};
     private openHelp(){this.clearInput();if(!sys.isNative)window.dispatchEvent(new Event('kitchen-open-help'));}
     private openConnection(){this.clearInput();if(!sys.isNative)window.dispatchEvent(new Event('kitchen-open-connection'));}
@@ -251,10 +248,7 @@ export class KitchenClient extends Component {
                 return;
             }
             const key=e.key.toLowerCase();if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(key)){e.preventDefault();
-                const fresh=!e.repeat&&!this.heldKeys.has(key);
-                const dash=fresh&&this.lastDirectionTap.key===key&&this.clock-this.lastDirectionTap.time<=.3;
-                if(fresh)this.lastDirectionTap={key,time:dash?-10:this.clock};
-                this.heldKeys.add(key);this.refreshMovement(dash);return;}
+                this.heldKeys.add(key);this.refreshMovement();return;}
         }
         if(e.key==='Tab'){
             e.preventDefault();const ids=TAB_ORDER.filter(id=>this.buttons[id].enabled&&this.buttons[id].node.activeInHierarchy);
@@ -286,14 +280,12 @@ export class KitchenClient extends Component {
         const key=e.key.toLowerCase();if(this.heldKeys.delete(key))this.refreshMovement();
     };
     // Anything held can be thrown or passed; the server applies each item's range (currently 4 tiles for all).
-    private toggleThrow(){const hand=this.state?.kitchen.chefs.human.holding;if(!this.throwReady&&!hand){this.set('event','手里没有可以抛出的东西。');return;}this.throwReady=!this.throwReady;this.updateThrowCue();}
-    private updateThrowCue(){this.set('interaction',this.throwReady?'抛掷已准备 · 左键选落点':'');if(!sys.isNative){const canvas=document.querySelector('canvas') as HTMLCanvasElement|null;if(canvas)canvas.style.cursor=this.throwReady?'crosshair':'';}}
     private async sendMove(dx:number,dy:number,sprint=false){if(!this.state||this.state.phase!=='running'||!this.connected)return;const seq=++this.moveSeq;this.lastMoveAt=this.clock;try{await this.request('/api/move',{game_id:this.state.game_id,dx,dy,seq,sprint});}catch(e){this.set('event',(e as Error).message);}}
-    private refreshMovement(sprint=false){
+    private refreshMovement(){
         const x=(this.heldKeys.has('d')||this.heldKeys.has('arrowright')?1:0)-(this.heldKeys.has('a')||this.heldKeys.has('arrowleft')?1:0);
         const y=(this.heldKeys.has('s')||this.heldKeys.has('arrowdown')?1:0)-(this.heldKeys.has('w')||this.heldKeys.has('arrowup')?1:0),mag=Math.hypot(x,y);
-        const dx=mag?x/mag:0,dy=mag?y/mag:0;if(!sprint&&dx===this.manualDirection.x&&dy===this.manualDirection.y)return;
-        this.manualDirection={x:dx,y:dy};this.sendMove(dx,dy,sprint);
+        const dx=mag?x/mag:0,dy=mag?y/mag:0;if(dx===this.manualDirection.x&&dy===this.manualDirection.y)return;
+        this.manualDirection={x:dx,y:dy};this.sendMove(dx,dy);
     }
     private predictHuman(k:any,c:any,dt:number,n:Node){
         const d=this.manualDirection;
@@ -318,16 +310,7 @@ export class KitchenClient extends Component {
         else if(synced){const eased=[next[0]+ex*pull,next[1]+ey*pull];if(footWalkable(k.map,eased[0],eased[1]))next=eased;}
         return this.predicted=next;
     }
-    private clearInput(){this.lastDirectionTap={key:"",time:-10};this.heldKeys.clear();const wasMoving=this.manualDirection.x!==0||this.manualDirection.y!==0;this.manualDirection={x:0,y:0};this.throwReady=false;this.updateThrowCue();if(wasMoving)this.sendMove(0,0);}
-    private cancelManualMovement(){this.heldKeys.clear();if(this.manualDirection.x!==0||this.manualDirection.y!==0){this.manualDirection={x:0,y:0};this.sendMove(0,0);}}
-    private onRightClick(){if(this.state?.phase==='running'&&this.connected)this.toggleThrow();}
-    private mapTarget(x:number,y:number){if(this.throwReady){this.throwTo([x,y]);return true;}return false;}
-    private async throwTo(target:number[]){
-        if(!this.state)return;const held=this.state.kitchen.chefs.human.holding,gameId=this.state.game_id;
-        this.throwReady=false;this.updateThrowCue();this.cancelManualMovement();if(!held)return;
-        try{await this.request('/api/throw',{game_id:gameId,target,expected_item:held.id,request_id:Date.now().toString(36)+'-'+Math.random().toString(36).slice(2)});}
-        catch(e){this.set('event',(e as Error).message);}finally{this.poll();}
-    }
+    private clearInput(){this.heldKeys.clear();const wasMoving=this.manualDirection.x!==0||this.manualDirection.y!==0;this.manualDirection={x:0,y:0};if(wasMoving)this.sendMove(0,0);}
     private make(name:string,x:number,y:number,w:number,h:number,parent=this.node){
         const n=new Node(name);n.layer=Layers.Enum.UI_2D;parent.addChild(n);
         n.addComponent(UITransform).setContentSize(w,h);n.setPosition(x-640,360-y);return n;
@@ -619,7 +602,7 @@ export class KitchenClient extends Component {
                 for(const n of [...this.mapNodes,...Object.values(this.ground),...Object.values(this.flights)])n.destroy();
                 this.devices={};this.people={};this.motions={};this.potEffects={};this.cabinetFires={};this.ground={};this.flights={};this.groundStages={};this.mounted=false;
             }
-            if(next.game_id!==this.state?.game_id||!this.connected){this.selection={kind:'none',id:''};this.menuSignature='';this.foodStages={};this.readyUntil={};this.activeClock=0;
+            if(next.game_id!==this.state?.game_id||!this.connected){this.menuSignature='';this.foodStages={};this.readyUntil={};this.activeClock=0;
                 if(this.mounted)for(const who of ['human','jeff'])this.locate(this.people[who],next.kitchen.chefs[who].position);}
             if(next.phase!=='running'||next.game_id!==this.state?.game_id)this.clearInput();
             if(next.game_id!==this.state?.game_id)this.moveSeq=Date.now()*1000;
@@ -645,10 +628,10 @@ export class KitchenClient extends Component {
         }catch(_){notice('标记未确认，请检查导出记录。');}
     }
     private async post(path:string,extra:object={}){
-        if(path==='/api/action'||path==='/api/select'||path==='/api/pause'||path==='/api/end'||path==='/api/reset'||path==='/api/restart')this.clearInput();
+        if(path==='/api/action'||path==='/api/pause'||path==='/api/end'||path==='/api/reset'||path==='/api/restart')this.clearInput();
         if((this.pending&&path!=='/api/pause')||!this.state)return;
         // After closing (or while paused) gameplay input is not sent: the server would only refuse it.
-        if(['/api/action','/api/select','/api/interact'].includes(path)&&this.state.phase!=='running')return;
+        if(['/api/action','/api/interact'].includes(path)&&this.state.phase!=='running')return;
         this.pending=true;this.render();
         try{await this.request(path,{game_id:this.state.game_id,request_id:Date.now().toString(36)+'-'+Math.random().toString(36).slice(2),...extra});}
         catch(e){this.set('event',(e as Error).message);}
@@ -743,7 +726,6 @@ export class KitchenClient extends Component {
                 r(-26,-26,52,52,'#c7bea0');r(-25,-24,49,49,(x+y)%2?(x<7?'#e1d4ad':'#cbd3b6'):(x<7?'#eee3c1':'#dce0c7'));
                 r(-23,22,45,2,'#f1e7cc');
                 if(cells.has(`${x},${y}`)){r(-26,-26,52,52,COLORS.counter);if(!cells.has(`${x},${y-1}`))r(-26,22,52,4,COLORS.counterLight);if(!cells.has(`${x},${y+1}`))r(-26,-26,52,4,COLORS.counterEdge);}
-                if(!cells.has(`${x},${y}`))n.on(Node.EventType.TOUCH_END,()=>{this.mapTarget(x,y);});
             }
             if(this.useModularArt){
                 n.setScale(1,1,1);
@@ -758,7 +740,6 @@ export class KitchenClient extends Component {
             }
             if(!wall)this.registerDepth(n,()=>-1000);
             if(wall&&this.useModularArt)n.getComponent(UITransform)!.setAnchorPoint(.5,.5-(y===map.height-1?GRID_ART.frontWallHeight/64:GRID_ART.wallHeight/64));
-            if(wall)n.on(Node.EventType.TOUCH_END,()=>{if(!this.mapTarget(x,y))this.cancelManualMovement();});
         }
         // Signs sit on the wall, leaving all walkable tiles visible.
 
@@ -786,12 +767,7 @@ export class KitchenClient extends Component {
                 const bubbles=new Node('washing');bubbles.layer=Layers.Enum.UI_2D;n.addChild(bubbles);
                 const bg=bubbles.addComponent(Graphics);this.rect(bg,-16,0,6,6,'#eaf7f5');this.rect(bg,0,7,7,7,'#eaf7f5');this.rect(bg,12,-2,5,5,'#eaf7f5');bubbles.active=false;
             }
-            for(const cell of (e.cells||[]).filter((c:number[])=>c[0]!==e.cell[0]||c[1]!==e.cell[1])){
-                const hit=this.make('station-extension-'+id,MAPX+(cell[0]+.5)*TILE,MAPY+(cell[1]+.5)*TILE,TILE,TILE);
-                hit.on(Node.EventType.TOUCH_END,()=>{if(this.mapTarget(cell[0],cell[1]))return;this.cancelManualMovement();this.selection={kind:'station',id};this.post('/api/select',{target:id});this.render();});
-            }
             if(this.useModularArt)n.getComponent(UITransform)!.setAnchorPoint(.5,.5-this.workSurfaceY(id)/TILE);
-            n.on(Node.EventType.TOUCH_END,()=>{if(this.mapTarget(e.cell[0],e.cell[1]))return;this.cancelManualMovement();this.selection={kind:'station',id};this.post('/api/select',{target:id});this.render();});
             this.devices[id]={node:n,graphics:g,label:l};
             if(!this.state!.kitchen.stations[id].stove){
                 const flame=this.child(n,'cabinet-fire',58,64,0,18);flame.addComponent(Graphics);flame.active=false;this.cabinetFires[id]=flame;
@@ -816,10 +792,6 @@ export class KitchenClient extends Component {
             const dust=this.child(n,'sprint-dust',55,28,-18,-24);dust.addComponent(Graphics);dust.active=false;dust.setSiblingIndex(0);
             this.locate(n,this.state!.kitchen.chefs[who].position);
             this.registerDepth(n,()=>{const c=this.state!.kitchen.chefs[who],e=this.state!.kitchen.map.equipment[c.target];return workingChefDepth((360-MAPY-n.position.y)/TILE-.5,e?.cell[1],c.facing,!!c.working&&!!e);});
-            n.on(Node.EventType.TOUCH_END,()=>{
-                const p=this.state?.kitchen.chefs[who].position;if(this.mapTarget(p[0],p[1]))return;
-                if(who==='jeff'){this.set('event','靠近 Jeff，按空格给他手中的干净盘装菜。');}
-            });
             // Name tag: a solid pixel plate in the identity colour, sized to the text in drawNameTag.
             const ln=this.child(n,'name',155,25,0,this.useModularArt?-12:-39);this.child(ln,'tag',40,18).addComponent(Graphics);
             const l=this.pixel(this.child(ln,'text',40,18).addComponent(Label),12);delete this.tagText[who]; // new nodes after a layout change need their plate drawn
@@ -1028,13 +1000,13 @@ export class KitchenClient extends Component {
             if(welcome)this.characterArt(welcome,who,'down');
         }
     }
-    private foodNode(id:string,stage:string,click?:()=>void,airborne=false){
+    private foodNode(id:string,stage:string,airborne=false){
         const n=this.make('food-'+id,0,0,44,40,this.world||this.node);n.setScale(.9,.9,1);
         this.registerDepth(n,()=>airborne?(this.flightOrder[id]??0):depthOrder((360-MAPY-n.position.y)/TILE-.5,'item')); this.drawIcon(n.addComponent(Graphics),stage);
         const child=new Node('id');child.layer=Layers.Enum.UI_2D;n.addChild(child);child.addComponent(UITransform).setContentSize(64,19);child.setPosition(0,-23);
         const l=child.addComponent(Label);this.writeLabel(l,STAGES[stage]||id);l.fontSize=13;l.lineHeight=16;l.color=color(COLORS.ink);
         child.active=!this.useModularArt;
-        if(click)n.on(Node.EventType.TOUCH_END,click);return n;
+        return n;
     }
     private statColor(id:string){
         const f=this.flashes[id],k=this.state!.kitchen;if(f&&f.until>this.clock)return f.fill;
@@ -1180,7 +1152,7 @@ export class KitchenClient extends Component {
         for(const [id,n] of Object.entries(this.ground))if(!ids.has(id)){n.destroy();delete this.ground[id];delete this.groundStages[id];}
         for(const item of k.ground){
             const id=item.food.id,stage=this.itemStage(item.food);
-            if(!this.ground[id]){this.ground[id]=this.foodNode(id,stage,()=>{if(this.mapTarget(item.position[0],item.position[1]))return;this.cancelManualMovement();this.selection={kind:'food',id};this.post('/api/select',{target:'item:'+id});});this.groundStages[id]=stage;}
+            if(!this.ground[id]){this.ground[id]=this.foodNode(id,stage);this.groundStages[id]=stage;}
             if(this.groundStages[id]!==stage){this.drawIcon(this.ground[id].getComponent(Graphics)!,stage);this.groundStages[id]=stage;this.writeLabel(this.ground[id].getChildByName('id')!.getComponent(Label)!,STAGES[stage]||id);}
             this.writeLabel(this.ground[id].getChildByName('id')!.getComponent(Label)!,this.itemName(item.food));
             this.locate(this.ground[id],item.position);
@@ -1198,14 +1170,14 @@ export class KitchenClient extends Component {
         if(this.jeffError)this.jeffError.active=apiConfigured&&!!s.ai.error;
         const flightIds=new Set((k.projectiles||[]).map((p:any)=>p.id));
         for(const [id,n]of Object.entries(this.flights))if(!flightIds.has(id)){n.destroy();delete this.flights[id];delete this.flightOrder[id];}
-        for(const p of k.projectiles||[])if(!this.flights[p.id])this.flights[p.id]=this.foodNode(p.id,this.itemStage(p),undefined,true);
+        for(const p of k.projectiles||[])if(!this.flights[p.id])this.flights[p.id]=this.foodNode(p.id,this.itemStage(p),true);
         this.enable('pause',active);
         this.enable('resume',s.phase==='paused'&&!this.pending&&this.connected);
         this.enable('end',['running','paused'].includes(s.phase)&&!this.pending&&this.connected);
         for(const id of ['pause','resume','end'])this.buttons[id].node.active=true;
         const held=k.chefs.human.holding;this.set('hand','手中：'+(held?this.itemName(held):'空手'));
         if(held?.stage==='assembled')this.set('hand','缺少：'+held.missing.map((x:string)=>({beef:'熟牛肉',bread:'面包',lettuce:'生菜',tomato:'番茄'}[x])).join('+'));
-        if(!this.throwReady){
+        {
             const short=(a:Action)=>a.label.split('（')[0],parts:string[]=[];
             if(s.interaction)parts.push('空格 · '+short(s.interaction));
             if(s.use_interaction&&s.use_interaction.key!==s.interaction?.key)parts.push('E · '+(s.use_interaction.kind==='throw'?'向前抛出':short(s.use_interaction)));
