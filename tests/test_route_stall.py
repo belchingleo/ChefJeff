@@ -91,6 +91,21 @@ class RouteStallTests(unittest.TestCase):
         self.assertLess(math.dist(k.positions['human'],(9,2)),1.)
         self.assertLessEqual(sum(e.get('kind')=='route_replanned' for e in k.events),1)
 
+    def test_listing_actions_checks_the_chef_view_once(self):
+        # The page polls state several times a second while the chef walks. Routing
+        # one new position to every station must not re-check its view per station:
+        # that held the session lock for ~0.25 s and made the game clock jump.
+        k=self.make((3.3,5.2),(11,2));nav=k.nav;calls=[0];check=nav.clear_walk_line
+        stations=[key for key,e in k.equipment.items() if e.get('reach')!='corner']
+        for key in stations:k.path('human',key)  # stand points' views, cached for the session
+        def counted(a,b):calls[0]+=1;return check(a,b)
+        nav.clear_walk_line=counted
+        k.positions['human']=(3.4,5.3)
+        for key in stations:k.path('human',key)
+        corners,_=nav.graph
+        # One view check of the new position plus direct lines, not one view per station.
+        self.assertLess(calls[0],2*len(corners)+4*len(stations),calls[0])
+
     def test_detour_planner_keeps_clear_of_the_other_chef(self):
         k=self.make((6,5),(6,2));nav=k.nav
         other=(10.,4.8)

@@ -42,6 +42,7 @@ class Navigation:
                               for x,y in sorted(self.blocked))
         self.graph=self.navigation_graph()
         self._cached_shortest_path=lru_cache(maxsize=1024)(self._cached_shortest_path)
+        self._visible_corners=lru_cache(maxsize=256)(self._visible_corners)
     def neighbors(self, cell):
         x, y = cell
         return [(x+dx, y+dy) for dx, dy in ((1, 0), (0, 1), (-1, 0), (0, -1))
@@ -61,7 +62,12 @@ class Navigation:
         """Segments may touch expanded boundaries, but never enter an obstacle."""
         if not self.walkable_point(start) or not self.walkable_point(end):
             return False
+        x0, x1 = min(start[0],end[0]), max(start[0],end[0])
+        y0, y1 = min(start[1],end[1]), max(start[1],end[1])
         for left, top, right, bottom in self.walk_boxes:
+            # A box whose shrunken interior lies beside the segment's bounds cannot be entered.
+            if left+EPSILON >= x1 or right-EPSILON <= x0 or top+EPSILON >= y1 or bottom-EPSILON <= y0:
+                continue
             low, high = 0., 1.
             for axis, lower, upper in ((0,left,right),(1,top,bottom)):
                 delta = end[axis]-start[axis]
@@ -110,11 +116,19 @@ class Navigation:
         edges = [list(e) for e in static_edges]+[[],[]]
         source, target = len(corners), len(corners)+1
         for i in (source,target):
-            for j, corner in enumerate(corners):
-                if self.clear_walk_line(points[i],corner):
-                    length = math.dist(points[i],corner)
-                    edges[i].append((j,length));edges[j].append((i,length))
+            for j, length in self._visible_corners(points[i]):
+                edges[i].append((j,length));edges[j].append((i,length))
         return _dijkstra(points,edges,source,target)
+
+    def _visible_corners(self, point):
+        """Graph corners in straight view of a point, in corner order.
+
+        One chef position is routed to every station when its actions are listed;
+        caching per point (not per start/end pair) checks its view once.
+        """
+        corners, _ = self.graph
+        return [(j, math.dist(point,corner)) for j, corner in enumerate(corners)
+                if self.clear_walk_line(point,corner)]
 
     def shortest_path_around(self, start, end, center, radius):
         """Shortest route that also keeps clear of one disc (the other chef).
