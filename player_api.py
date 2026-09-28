@@ -12,7 +12,7 @@ from kitchen import ROOT
 from web_server import GameSession
 from whitebox_server import SpatialJevClient
 from model_language import english_data
-from cooperation_memory import CooperationMemory, scope_for, episode, ROUNDS
+from cooperation_memory import CooperationMemory, round_scope, episode, ROUNDS
 from release_info import release_info
 from feedback import feedback_report
 
@@ -134,7 +134,7 @@ class PlayerGameSession(GameSession):
                 'usage':dict(ai.tokens) if ai else {'input_tokens':0,'output_tokens':0},
                 'usage_scope':'successful_responses_only'}
     def memory_state(self):
-        scope=scope_for(self.setting or {})
+        scope=round_scope(self.setting or {},self.k)
         rounds=self.memory.data['scopes'].get(scope,[])
         return {'enabled':self.memory.data['enabled'],'saved_rounds':len(rounds),'limit':ROUNDS,
                 'editable':self.phase in ('ready','ended') and not self.connecting,
@@ -143,7 +143,7 @@ class PlayerGameSession(GameSession):
     def _finish(self,aborted=False):
         if self.journal and not aborted and self.k.ended and self.round_memory and self.round_memory['enabled']:
             try:
-                self.memory.remember(scope_for(self.setting or {}),
+                self.memory.remember(round_scope(self.setting or {},self.k),
                                      episode(self.k,self.game_id,getattr(self.ai,'actual_model',None)))
             except OSError:
                 self.memory.error='本局已结束，但跨局记录未能保存；请检查本地文件权限。'
@@ -179,7 +179,7 @@ class PlayerGameSession(GameSession):
             return 428,{'error':'请先打开 API 设置，连接你自己的账号。不会使用开发者的 Key。'}
         result=super()._command(path,body)
         if path=='/api/start' and result[0]==200:
-            self.round_memory=self.memory.context(scope_for(self.setting))
+            self.round_memory=self.memory.context(round_scope(self.setting,self.k))
             self.ai.cooperation_memory=self.round_memory
             self.journal('memory_context',self.round_memory)
             self.journal('release',self.release)

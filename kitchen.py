@@ -1162,6 +1162,10 @@ class Kitchen:
                           'components': [{'item': c['item'], 'state': c['state']} for c in self.rules.recipes[r]['components']]}
                          for r in self.rules.menu],
                 'assembly': self.rules.multi_component,
+                # Service rules name every servable dish, including ones no order asks for.
+                **({'dishes': [{'id': r, 'name': self.rules.recipe_names[r], 'price': self.rules.prices[r],
+                                'components': [{'item': c['item'], 'state': c['state']} for c in self.rules.recipes[r]['components']]}
+                               for r in self.rules.servable]} if self.rules.continuous else {}),
                 # Only present when the ruleset enables it, so legacy snapshots keep their shape.
                 **({'ground_assembly': True} if self.rules.ground_assembly and self.rules.multi_component else {}),
                 'scoring': {'penalties': dict(self.rules.penalty), 'time_bonus_per_second': self.rules.time_bonus_per_second,

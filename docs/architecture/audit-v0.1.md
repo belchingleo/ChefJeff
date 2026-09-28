@@ -135,7 +135,7 @@
 | 不出现按关卡编号的特判 | `rules.py`、`kitchen.py`、`spatial_kitchen.py`、`jev.py`、`whitebox_server.py` | `test_data_driven.test_runtime_code_has_no_level_number_branches` |
 | 只改数据即可切换菜谱、设备速率/数量、节奏与协作倍率 | Resolver + `Rules` | `test_data_driven`（价格、切配时长、非线性倍率、中途加入/退出）、`test_capacity_analyzer`（负载随数据变化） |
 | 合作切菜/洗碗 6 s／4 s，两人 2 倍速；补充文档的 10 s → 5 s 可纯数据表达 | `content/equipment` 的 `shared_work` | `test_shared_work`、`test_data_driven` |
-| Agent 不收到协作价值指令 | `jev.py`、`whitebox_server.py`、`player_api.py`、`hosted/browser-agent.js`（`rules-v3`） | `test_agent_rules_neutral`（新旧六关） |
+| Agent 不收到协作价值指令 | `jev.py`、`whitebox_server.py`、`player_api.py`、`hosted/browser-agent.js`（`rules-v4`） | `test_agent_rules_neutral`（新旧六关） |
 | 规则说明与合法动作来自同一配置 | 快照中的 `menu`、`scoring`、`timing`、`goal_status` | `test_data_driven.test_price_change_reaches_engine_and_agent_rules` |
 | 固定步长与确定性 | 服务器 50 ms tick 累加器；每关固定 seed（订单 26、出生 0） | `test_web.FixedTickTests`、`test_service_mode.FixedSeedTests` |
 | 新订单模式与独立结束规则 | `rulesets/chefjeff-service.json`，三关 `content/levels/level-{1,2,3}.json` | `test_service_mode` |

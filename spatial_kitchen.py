@@ -1036,7 +1036,8 @@ class SpatialKitchen(Kitchen):
                         'layout_version': self.map_document['id']+'-'+str(self.map_document['revision']), 'spawn_rule': 'One chef near the center of each working area; assigned sides are randomized',
                         'movement_rule': '工位可从相邻可达空地就近操作。墙和设备不能穿过；厨师接触时贴边滑动并缓慢推挤，冲刺可轻撞对方至多四分之一格。人类和 AI 共用接触规则，不自动重新规划绕人路线。普通走路可穿过地面食物。',
                         'ground_rule': f'放下优先选脚下或相邻空格。冲刺每次最多推动散落食材{r.sprint_food_nudge:g}格，允许食物重叠；盘子锅具不被推动，不自动装盘，不弹飞或损坏。地面不能切配或加热。',
-                        'collision':{'chef_separation':r.chef_separation,'sprint_food_limit':r.sprint_food_nudge,'food_blocks_walking':False,'food_repulsion':False}}
+                        'collision':{'chef_separation':r.chef_separation,'sprint_food_limit':r.sprint_food_nudge,'food_blocks_walking':False,'food_repulsion':False,
+                                      'sprint_push':r.sprint_push,'stall_replan_after':r.stall_after}}
         for who, data in state['chefs'].items():
             data['can_throw'] = self.can_throw(who)
             data['throw_range'] = self.throw_range(who) if self.can_throw(who) else None
