@@ -8,7 +8,7 @@ from whitebox_server import SpatialJevClient
 class ThrowTests(unittest.TestCase):
     def make(self, stage='chopped'):
         k=SpatialKitchen(load_config() | {'spawn_seed':0})
-        k.positions.update(jeff=(5.,5.),human=(10.,3.))
+        k.positions.update(jeff=(5.,5.),human=(8.,4.))
         k.chefs['jeff'].location='b2';k.chefs['human'].location='p1'
         k.chefs['jeff'].hand=Food('pass',stage,6,3)
         return k
@@ -22,17 +22,17 @@ class ThrowTests(unittest.TestCase):
         self.assertEqual(k.positions['jeff'],(5.,5.));self.assertEqual(k.chefs['jeff'].location,'b2')
         self.assertNotIn('pickup pass',[a.key for a in k.actions('human')])
         k.assert_invariants();k.advance(1)
-        self.assertIs(k.ground['pass'].food,food);self.assertIn(k.cell(k.ground['pass'].location),neighbors((10,3)))
+        self.assertIs(k.ground['pass'].food,food);self.assertIn(k.cell(k.ground['pass'].location),neighbors((8,4)))
         k.command('human','pickup pass');j=k.chefs['human'].job;k.advance(j.travel+j.work+.01)
         self.assertIs(k.chefs['human'].hand,food);self.assertEqual(food.heated,3);k.assert_invariants()
 
     def test_range_and_wall_block_flight_but_equipment_can_be_cleared(self):
         k=self.make()
-        self.assertTrue(k.clear_throw_line((5,5),(10,3)))
+        self.assertTrue(k.clear_throw_line((5,5),(8,4)))
         self.assertFalse(k.clear_throw_line((6,2),(8,2)))
         self.assertTrue(k.clear_throw_line((3,3),(5,3))) # board can be thrown over
-        self.assertTrue(k.can_throw_to('jeff',tile_key((11,5))))
-        self.assertFalse(k.can_throw_to('jeff',tile_key((12,4))))
+        self.assertTrue(k.can_throw_to('jeff',tile_key((9,5))))  # exactly the 4-tile limit
+        self.assertFalse(k.can_throw_to('jeff',tile_key((9,6))))
         k.positions.update(jeff=(6,1),human=(8,1))
         self.assertEqual(k.handoff_target('jeff'),'floor_6_1')
         self.assertTrue(k.command('jeff','throw partner')[0]);k.advance(1)
@@ -69,8 +69,9 @@ class ThrowTests(unittest.TestCase):
     def test_extinguisher_passes_within_short_range_for_both_chefs(self):
         for who in ('human','jeff'):
             other='jeff' if who=='human' else 'human'
-            # About 5.4 tiles apart: the pass falls short, on the floor at the 3-tile limit.
+            # About 5.4 tiles apart: the pass falls short, on the floor at the 4-tile limit.
             k=self.make();tool=k.stations['extinguisher'].food;k.stations['extinguisher'].food=None
+            k.positions.update(jeff=(5.,5.),human=(10.,3.))
             k.chefs['jeff'].hand=None;k.chefs[who].hand=tool;start=k.positions[who]
             self.assertEqual(k.throw_range(who),PASS_RANGE)
             self.assertTrue(k.command(who,'throw partner')[0]);k.advance(1)
@@ -81,6 +82,21 @@ class ThrowTests(unittest.TestCase):
             k.positions.update(jeff=(5.,5.),human=(7.,5.));k.chefs['jeff'].hand=None;k.chefs[who].hand=tool
             self.assertTrue(k.command(who,'throw partner')[0]);k.advance(1)
             self.assertIs(k.chefs[other].hand,tool);k.assert_invariants()
+
+    def test_invariants_hold_while_tools_and_tableware_fly(self):
+        # A passed extinguisher, plate or pot is in no hand and on no station mid-flight.
+        for source in ('extinguisher','plates','pot'):
+            k=self.make();k.chefs['jeff'].hand=None
+            if source=='pot':
+                st=k.stations[next(s for s in k.pots if k.stations[s].pot_id)]
+                item=Food(st.pot_id,'pot',contents=st.food);st.pot_id,st.food,st.heating=None,None,False
+            else:
+                item=k.stations[source].food;k.stations[source].food=None
+            k.chefs['jeff'].hand=item
+            self.assertTrue(k.command('jeff','throw partner')[0])
+            for _ in range(12):
+                k.advance(.05);k.assert_invariants()
+            self.assertFalse(k.projectiles);self.assertIs(k.chefs['human'].hand,item)
 
     def test_occupied_landing_uses_neighbor_and_full_area_disables_throw(self):
         k=self.make();origin=k.anchor('human')

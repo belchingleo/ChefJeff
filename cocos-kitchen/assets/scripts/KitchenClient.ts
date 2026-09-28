@@ -1304,9 +1304,12 @@ export class KitchenClient extends Component {
         if(running&&(this.manualDirection.x!==0||this.manualDirection.y!==0)&&this.clock-this.lastMoveAt>=.15)this.sendMove(this.manualDirection.x,this.manualDirection.y);
         const time=k.time+(this.state.phase==='running'&&this.connected?(this.clock-this.received)*this.state.speed:0);
         for(const p of k.projectiles||[]){
-            const t=Math.max(0,Math.min(1,(time-p.started)/(p.lands_at-p.started))),height=Math.sin(t*Math.PI)*35;
+            const t=Math.max(0,Math.min(1,(time-p.started)/(p.lands_at-p.started))),arc=Math.sin(t*Math.PI)*35;
             const point=[p.from[0]+(p.to[0]-p.from[0])*t,p.from[1]+(p.to[1]-p.from[1])*t];
-            this.locate(this.flights[p.id],point,height);this.flightOrder[p.id]=flightDepth(point[1],height);
+            // A board/counter landing ends on its work surface, drawn over the cabinet like a resting item.
+            const onto=p.onto&&k.map.equipment[p.onto]?p.onto:null,height=arc+(onto?t*this.workSurfaceY(onto):0);
+            this.locate(this.flights[p.id],point,height);
+            this.flightOrder[p.id]=onto&&t>=.5?Math.max(flightDepth(point[1],height),depthOrder(k.map.equipment[onto].cell[1],'solid')+.02):flightDepth(point[1],height);
         }
         this.sortWorld();
     }

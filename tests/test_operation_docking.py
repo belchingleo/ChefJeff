@@ -1,7 +1,7 @@
 import unittest
 
 from kitchen import Food, load_config
-from spatial_kitchen import SpatialKitchen, WALK_SPEED
+from spatial_kitchen import SpatialKitchen, WALK_SPEED, UP_STANDOFF
 
 
 class OperationDockingTests(unittest.TestCase):
@@ -75,10 +75,12 @@ class OperationDockingTests(unittest.TestCase):
             k.advance(k.chefs[who].job.travel+.01)
             self.assertTrue(k.chefs[who].job.working)
             self.assertEqual(k.facing[who],'up')
-            self.assertEqual(k.positions[who],(4,6))
-            # Cabinet fascia is 22 art px; shoes must stay below it on the floor.
+            # South-side operators stand back from the cabinet (UP_STANDOFF) so the
+            # back view reads as in front of it, not on top of it.
+            self.assertEqual(k.positions[who],(4,6-UP_STANDOFF))
+            # Cabinet fascia is 22 art px; shoes stay well below it on the floor.
             gap=(k.positions[who][1]-5.5)*52
-            self.assertGreaterEqual(gap,22*52/64+8)
+            self.assertGreaterEqual(gap,22*52/64+8-UP_STANDOFF*52)
             self.assertFalse(k.nav.clear_walk_line(k.positions[who],(4,5)))
 
     def test_corner_side_worker_stays_left_and_clear_of_north_worker(self):
@@ -106,7 +108,10 @@ class OperationDockingTests(unittest.TestCase):
                     if access[1]==y:
                         self.assertAlmostEqual(abs(p[0]-x),.7)
                         self.assertGreaterEqual(p[1],y)
-                    if access==(x,y+1):self.assertEqual(p,access)
+                    if access==(x,y+1):
+                        # Stand back from a south-side cabinet as far as the floor allows, never closer.
+                        self.assertEqual(p[0],access[0]);self.assertGreaterEqual(p[1],access[1])
+                        self.assertLessEqual(p[1],access[1]-UP_STANDOFF+1e-9)
 
     def test_level_two_sink_uses_same_side_anchor_as_board(self):
         k=self.make()

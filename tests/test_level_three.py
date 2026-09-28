@@ -4,7 +4,7 @@ import re
 import unittest
 from unittest.mock import patch
 from kitchen import Food,GroundItem,load_config
-from spatial_kitchen import SpatialKitchen,tile_key,WALK_SPEED
+from spatial_kitchen import SpatialKitchen,tile_key,WALK_SPEED,PASS_RANGE
 from whitebox_server import SpatialJevClient
 from web_server import GameSession
 from jev import DecisionLoop
@@ -61,9 +61,20 @@ class LevelThreeTests(unittest.TestCase):
         k.orders[1].update(dish='burger',status='pending',deadline=k.time+80)
         self.do(k,'serve')
         self.assertEqual(k.orders[0]['status'],'pending');self.assertEqual(k.orders[1]['status'],'served');self.assertEqual(k.money,60)
+    def test_walking_to_a_board_a_teammate_is_chopping_settles_without_turning(self):
+        k=self.kitchen(0);k.stations['b1'].food=Food('beef','raw',2)
+        k.positions['jeff']=spot=k.path('jeff','b1')[-1];k.chefs['jeff'].location='b1'
+        self.assertTrue(k.command('jeff','chop b1')[0]);k.advance(.3)
+        self.assertTrue(k.command('human','go b1')[0]);faces=[]
+        for _ in range(600):
+            k.advance(1/60);faces.append(k.facing['human'])
+        # Blocked by the chopper, the walker stops beside the board instead of sliding and re-facing every frame.
+        self.assertLessEqual(sum(a!=b for a,b in zip(faces,faces[1:])),2);self.assertIsNone(k.chefs['human'].job)
+        self.assertEqual(k.positions['jeff'],spot);k.assert_invariants()
+
     def test_incomplete_duplicate_and_dirty_plate_are_rejected(self):
         k=self.kitchen();self.do(k,'fetch bread');self.do(k,'assemble plates');self.do(k,'take plates')
-        self.assertNotIn('serve',[a.key for a in k.actions('human')]);self.assertEqual(k.throw_range('human'),3.0)
+        self.assertNotIn('serve',[a.key for a in k.actions('human')]);self.assertEqual(k.throw_range('human'),PASS_RANGE)
         self.assertFalse(k.can_add(k.chefs['human'].hand,Food('x',ingredient='bread')))
         self.assertFalse(k.can_add(Food('dirty','dirty_plate'),Food('x',ingredient='bread')))
         self.assertFalse(k.can_add(Food('clean','clean_plate'),Food('x',ingredient='lettuce')))

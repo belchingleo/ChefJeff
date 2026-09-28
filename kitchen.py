@@ -936,9 +936,10 @@ class Kitchen:
                 assert key in self.pots + self.boards + self.counters
             if key in self.pots and not s.pot_id:
                 assert s.food is None and not s.heating
-        assert sum(f.stage == 'extinguisher' for f in foods) == 1, '灭火器丢失或重复'
         all_items = foods + [d['plate'] for d in self.dining]
         all_items += [p['food'] for p in getattr(self, 'projectiles', {}).values()]
+        # In flight counts too: a passed extinguisher is neither in a hand nor on the rack.
+        assert sum(f.stage == 'extinguisher' for f in all_items) == 1, '灭火器丢失或重复'
         all_items += [f.contents for f in all_items if f.stage == 'pot' and f.contents]
         assert len({f.id for f in all_items}) == len(all_items), '容器内外物品重复'
         pots = [s.pot_id for s in self.stations.values() if s.pot_id] + [f.id for f in all_items if f.stage == 'pot']

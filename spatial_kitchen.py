@@ -6,12 +6,13 @@ import random
 from kitchen import Kitchen, Action, Station, NAMES, TAKE_KINDS, Job, GroundItem, STATES
 
 WIDTH, HEIGHT = 14, 9
-THROW_RANGE = 7.0
-# Plates, plated food, pots and the extinguisher are heavier: they can be passed, but only at close range.
-PASS_RANGE = 3.0
+THROW_RANGE = 4.0
+# Plates, plated food, pots and the extinguisher; currently the same reach as ingredients.
+PASS_RANGE = 4.0
 THROW_SPEED = 12.0
 WALK_SPEED = 4.5  # Both chefs: 1.5x the original 3 cells per game second
 CHEF_SEPARATION = .4  # two small foot circles, not the full tall sprite
+UP_STANDOFF = -.22  # tiles a south-side operator stands back from the cabinet
 NUDGE_LIMIT = .25
 from navigation import contact_fraction
 from map_definition import load_map, geometry
@@ -210,7 +211,9 @@ class SpatialKitchen(Kitchen):
             x,y=e['cell']
             for face,dx,dy in [('down',0,-1),('up',0,1),('right',-1,0),('left',1,0)]:
                 if (x+dx,y+dy) not in self.floor:continue
-                faces[face]=0. if face=='up' else .30 if face in ('left','right') else (.49 if face in self.nav.contact_edges.get(e['cell'],()) else .30)
+                # 'up' is negative: the chef steps back from the cabinet so the tall
+                # back-view sprite reads as standing in front of it, not on it.
+                faces[face]=UP_STANDOFF if face=='up' else .30 if face in ('left','right') else (.49 if face in self.nav.contact_edges.get(e['cell'],()) else .30)
             self.operation_insets[key]=faces
 
     def speed_factor(self, who):
@@ -245,8 +248,16 @@ class SpatialKitchen(Kitchen):
             if distance<1e-8:points.pop(0);continue
             step=min(budget,distance)
             end=tuple(before[i]+(goal[i]-before[i])*step/distance for i in (0,1))
-            self._face_vector(who,goal[0]-before[0],goal[1]-before[1])
+            other_pos=self.positions['jeff' if who=='human' else 'human']
+            if len(points)==1 and distance<=1. and math.dist(goal,other_pos)<CHEF_SEPARATION:
+                # The teammate stands on this spot and working chefs are not pushed:
+                # stop beside them instead of sliding back and forth every frame.
+                self._face_vector(who,goal[0]-before[0],goal[1]-before[1])
+                points.clear();break
             self._move_with_chef_contact(who,end,fast>0)
+            moved=math.dist(before,self.positions[who])
+            # Facing follows real progress, not a sideways contact slide.
+            if moved>step*.5:self._face_vector(who,goal[0]-before[0],goal[1]-before[1])
             if fast>0:self._nudge_food(who,before,self.positions[who])
             spent+=step;budget-=step
             if math.dist(self.positions[who],goal)<1e-8:points.pop(0)
@@ -365,6 +376,10 @@ class SpatialKitchen(Kitchen):
             access=[station['access']] if station.get('reach')=='corner' else sorted({n for c in station.get('cells',[station['cell']]) for n in self.nav.neighbors(c)})
             shared=self.shared_access(who,target)
             if shared is not None and shared:access=shared
+            other='jeff' if who=='human' else 'human'
+            taken=[self.positions[other]]+([self.routes[other]['points'][-1]] if self.routes.get(other) else [])
+            free=[cell for cell in access if all(math.dist(self.operation_point(target,cell),p)>=CHEF_SEPARATION for p in taken)]
+            if free:access=free
             routes = [self.nav.shortest_path(self.positions[who],self.operation_point(target,cell)) for cell in access]
             if not routes:raise ValueError('工位没有可操作的一侧')
             return min(routes,key=lambda route:sum(math.dist(a,b) for a,b in zip(route,route[1:])))
@@ -408,6 +423,12 @@ class SpatialKitchen(Kitchen):
         facing={(0,1):'down',(0,-1):'up',(1,0):'right',(-1,0):'left'}[(dx,dy)]
         inset=self.operation_insets.get(target,{}).get(facing,0.)
         if not inset:return access
+        if inset<0:
+            # Step back only as far as the floor behind allows (narrow aisles keep the reference point).
+            for scale in (1.,.6,.3):
+                point=(access[0]+dx*inset*scale,access[1]+dy*inset*scale)
+                if self.nav.clear_walk_line(access,point):return point
+            return access
         # Side poses have their wrist above the foot anchor. Place the feet
         # toward the front of the side edge, so the wrist faces the board center.
         side_drop=.30 if facing in ('left','right') else 0.
@@ -948,7 +969,8 @@ class SpatialKitchen(Kitchen):
         for board in self.boards + self.counters:
             state['stations'][board]['incoming_item'] = next((key for key,p in self.projectiles.items() if p['target']==board),None)
         state['projectiles'] = [{'id': key, 'stage': p['food'].stage, 'ingredient':p['food'].ingredient, 'plate_id': p['food'].plate_id,
-            'components': list(p['food'].components), 'contents': {'stage': p['food'].contents.stage} if p['food'].contents else None, 'from': p['from'], 'to': p['to'], 'landing_cell': self.equipment[p['target']]['cell'] if p['target'] in self.equipment else self.cell(p['target']), 'started': p['started'], 'lands_at': p['lands_at']} for key,p in self.projectiles.items()]
+            'components': list(p['food'].components), 'contents': {'stage': p['food'].contents.stage} if p['food'].contents else None,
+            'onto': p['target'] if p['target'] in self.equipment else None, 'from': p['from'], 'to': p['to'], 'landing_cell': self.equipment[p['target']]['cell'] if p['target'] in self.equipment else self.cell(p['target']), 'started': p['started'], 'lands_at': p['lands_at']} for key,p in self.projectiles.items()]
         state['map'] = {'throw_range': THROW_RANGE, 'pass_range': PASS_RANGE, 'throw_speed': THROW_SPEED, 'width': self.width, 'height': self.height, 'walls': sorted(self.walls),
                         'equipment': self.equipment, 'walk_speed': WALK_SPEED,
                         'presentation': self.map_document['presentation'],

@@ -11,6 +11,7 @@ import json
 import math
 import mimetypes
 import threading
+import traceback
 import time
 from urllib.parse import urlparse
 import uuid
@@ -45,6 +46,7 @@ class GameSession:
         self.c = self.k.c
         self.game_id = uuid.uuid4().hex
         self.phase = 'ready'
+        self.faulted = False
         self.speed = .75
         self.ai = None
         self.journal = None
@@ -92,6 +94,8 @@ class GameSession:
 
     def tick(self, now=None):
         with self.lock:
+            if self.faulted:
+                return  # A round whose state check failed stays frozen until reset.
             now = time.monotonic() if now is None else now
             elapsed = max(0, now-self.last_tick)
             self.last_tick = now
@@ -128,14 +132,21 @@ class GameSession:
         while not self.stop_event.wait(.05):
             try:
                 self.tick()
-            except Exception:
-                # Never silently let the kitchen run when its state loop fails.
+            except Exception as exc:
+                # Never let a broken round keep running, but keep the loop alive:
+                # the faulted round freezes and the next round ticks normally.
                 with self.lock:
                     self.phase = 'paused'
+                    self.faulted = True
                     if self.ai:
                         self.ai.invalidate()
                     self.note('厨房已暂停：运行出现异常，请重新开局。')
-                raise
+                    try:
+                        if self.journal:
+                            self.journal('engine_error', {'t': self.k.time, 'error': f'{type(exc).__name__}: {exc}',
+                                                          'trace': traceback.format_exc(limit=8)})
+                    except Exception:
+                        pass
 
     def close(self):
         self.stop_event.set()
@@ -333,6 +344,8 @@ class GameSession:
                 self.journal('pause', {'t':self.k.time, 'reason':body.get('reason','manual')})
             return 200, {'ok': True}
         if path == '/api/resume':
+            if self.faulted:
+                return 409, {'error': '本局运行出现异常，请重新开局。'}
             if self.phase != 'paused':
                 return 409, {'error': '当前无需继续。'}
             self.phase = 'running'
@@ -368,6 +381,7 @@ class GameSession:
             self.last_bookmark_at=None
             self.game_id = uuid.uuid4().hex
             self.phase = 'ready'
+            self.faulted = False
             self.ai = None
             self.cursor = 0
             self.notes = []

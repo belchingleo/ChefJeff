@@ -151,7 +151,4 @@ class SpatialTests(unittest.TestCase):
             who=rng.choice(['human','jeff'])
             actions=k.actions(who)
             if rng.random()<.22 and actions:k.start(who,rng.choice(actions))
-            k.advance(.1);k.assert_invariants()
-            for position in k.positions.values():
-                self.assertGreaterEqual(position[0],1);self.assertLessEqual(position[0],12)
-                self.assertGreaterEqual(position[1],1);self.assertLessEqual(position[1],7)
+            k.advance(.1);k.assert_invariants()  # includes walkable feet for both chefs
