@@ -510,6 +510,10 @@
       "{0} served {1}: happy customer, +¥30"
     ],
     [
+      "盘里已经有{0}了",
+      "The plate already has {0}"
+    ],
+    [
       "{0}糊锅！{1}s 后着火；糊太久上桌会被拒收",
       "{0} burnt! Fire in {1}s; a dish burnt too long is refused"
     ],

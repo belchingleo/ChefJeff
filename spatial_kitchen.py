@@ -782,6 +782,12 @@ class SpatialKitchen(Kitchen):
 
     def interaction_hint(self, who, preferred=None):
         if preferred and preferred.startswith('floor_'):return '面前没有可操作目标'
+        if preferred in self.stations:
+            # Name the ingredient a plate already holds, instead of the generic hint.
+            plate,held=self.stations[preferred].food,self.chefs[who].hand
+            if (plate and plate.plate_id and held and not held.plate_id and held.ingredient
+                    and held.ingredient in self.parts(plate)):
+                return f'盘里已经有{self.rules.component_labels.get(held.ingredient,held.ingredient)}了'
         if preferred and preferred!='serve':return '选中目标暂不可操作，请靠近或检查物品状态'
         hand=self.chefs[who].hand
         if not hand or not hand.plate_id or self.dish(hand):return '选中目标暂不可操作，请靠近或检查物品状态' if preferred else None

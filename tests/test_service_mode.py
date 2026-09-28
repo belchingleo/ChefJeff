@@ -180,6 +180,18 @@ class ServiceWordingTests(unittest.TestCase):
         self.assertIn('a dish burnt too long is refused', catalog)
 
 
+    def test_hint_names_an_ingredient_the_plate_already_has(self):
+        # Local play: adding lettuce to a finished burger only said "cannot be used now".
+        k = SpatialKitchen(cc.load_level('level-2'))
+        k.positions['human'], k.facing['human'] = (7., 5.), 'up'
+        k.chefs['human'].hand = Food('x', 'chopped', 6, ingredient='lettuce')
+        plate = Food('F6', 'burnt', plate_id='D1', ingredient='dish')
+        plate.components = ('beef', 'bread', 'lettuce', 'tomato')
+        k.stations['counter18'].food = plate
+        self.assertIsNone(k.quick_interaction('human', preferred='counter18'))
+        self.assertEqual(k.interaction_hint('human', 'counter18'), '盘里已经有切好的生菜了')
+
+
 class RoundTests(unittest.TestCase):
     def test_orders_arrive_until_closing_and_open_orders_end_without_penalty(self):
         resolved = level(3)
