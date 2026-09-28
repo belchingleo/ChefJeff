@@ -265,7 +265,8 @@ def choose_zoned(k, who, role):
             if name == 'beef' and stage == 'chopped':
                 return _pick(actions, 'put_pot') or throw_onto(empty_boards, stove)
             if stage == 'raw' and name != 'bread':
-                return throw_onto(empty_boards, stove)
+                # Onto a free board when in range, else onto the floor across the counter by the boards.
+                return throw_onto(empty_boards, stove) or (pass_floor('maker', k.boards[0]) if empty_boards else None)
             if assembly and name in missing:
                 return _pick(actions, 'assemble', assembly)
             return None
@@ -278,6 +279,15 @@ def choose_zoned(k, who, role):
             return _key(actions, 'take ' + assembly)
         if assembly and 'beef' in missing and st[stove]['food'] and st[stove]['food']['stage'] == 'ready':
             return _pick(actions, 'lift_pot', stove)
+        for g in state['ground']:
+            f = g['food']
+            if (f.get('ingredient') and not f.get('plate_id') and f['stage'] == 'chopped'
+                    and _side(k, k.cell(g['location'])[1]) == 'runner'
+                    and ((f['ingredient'] == 'beef' and st[stove]['pot_id'] and not st[stove]['food'])
+                         or (f['ingredient'] != 'beef' and assembly and f['ingredient'] in missing))):
+                a = _key(actions, 'pickup ' + f['id'])
+                if a:
+                    return a
         for key in runner_counters:
             f = st[key].get('food')
             if f and not f.get('plate_id') and f.get('ingredient'):
@@ -312,7 +322,7 @@ def choose_zoned(k, who, role):
         if hand['stage'] == 'raw':
             return _pick(actions, 'put_board')
         free = [c for c in runner_counters if not st[c].get('food')]
-        return throw_onto(free, assembly or stove)
+        return throw_onto(free, assembly or stove) or pass_floor('runner', stove)
     if hand:
         return _pick(actions, 'drop')
     if fire:
@@ -320,6 +330,13 @@ def choose_zoned(k, who, role):
     for g in state['ground']:
         f = g['food']
         if f.get('plate_id') and f.get('dish') in dishes:
+            a = _key(actions, 'pickup ' + f['id'])
+            if a:
+                return a
+    for g in state['ground']:
+        f = g['food']
+        if (f.get('ingredient') and not f.get('plate_id') and f['stage'] == 'raw' and empty_boards
+                and _side(k, k.cell(g['location'])[1]) == 'maker'):
             a = _key(actions, 'pickup ' + f['id'])
             if a:
                 return a

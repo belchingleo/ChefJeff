@@ -4,7 +4,7 @@ import time
 import unittest
 from unittest.mock import patch
 from kitchen import Food, GroundItem, load_config
-from spatial_kitchen import SpatialKitchen, WALK_SPEED, FLOOR, tile_key, neighbors, walkable_point
+from spatial_kitchen import SpatialKitchen, WALK_SPEED, FLOOR, tile_key, neighbors, walkable_point, PASS_RANGE
 from web_server import GameSession
 from test_web import Client, FakeJournal
 
@@ -17,12 +17,17 @@ class ControlsTests(unittest.TestCase):
         a=k.throw_action(who,target);self.assertIsNotNone(a)
         self.assertTrue(k.start(who,a)[0]);k.advance(1);k.assert_invariants()
 
+    def service(self):
+        # The current levels' ruleset: throws reach 4 tiles (the accepted 0.5.9 fixtures keep 7).
+        from levels import level_config
+        return SpatialKitchen(level_config(load_config(),1)|{'spawn_seed':0})
+
     def test_free_aim_exact_range_and_wall(self):
-        k=self.make();k.positions['human']=(3.,4.);k.chefs['human'].hand=Food('test')
+        k=self.service();k.positions['human']=(3.,4.);k.chefs['human'].hand=Food('test')
         self.throw(k,'human',(6,4));self.assertEqual(k.ground['test'].location,'floor_6_4')
-        k=self.make();k.positions['human']=(2.,4.);k.positions['jeff']=(11.,6.);k.chefs['human'].hand=Food('test')
-        self.throw(k,'human',(40,4));self.assertEqual(k.ground['test'].location,'floor_9_4')
-        k=self.make();k.positions['human']=(5.,1.);k.chefs['human'].hand=Food('test')
+        k=self.service();k.positions['human']=(2.,4.);k.positions['jeff']=(11.,6.);k.chefs['human'].hand=Food('test')
+        self.throw(k,'human',(40,4));self.assertEqual(k.ground['test'].location,'floor_6_4')
+        k=self.service();k.positions['human']=(5.,1.);k.chefs['human'].hand=Food('test')
         self.throw(k,'human',(10,1));self.assertEqual(k.ground['test'].location,'floor_6_1')
 
     def test_throw_raw_or_chopped_onto_board_both_chefs(self):
@@ -179,6 +184,48 @@ class ControlsTests(unittest.TestCase):
         self.assertFalse(any(g.k.manual['human']))
         self.assertEqual(self.cmd(g,'move',dx=1,dy=0,seq=15)[0],409)
 
+    def test_space_focus_is_safe_everywhere_including_against_walls(self):
+        # Walking into a bare wall used to make /api/state throw (empty response, read as a disconnect).
+        for level in (1,2,3):
+            base=SpatialKitchen({**load_config(),'level':level,'spawn_seed':0})
+            # Every floor cell touching a wall, cabinet or the map edge, pressed toward each side.
+            edge=[(x,y) for x,y in sorted(base.nav.floor) if any(n not in base.nav.floor for n in ((x+1,y),(x-1,y),(x,y+1),(x,y-1)))]
+            spots=[(x+dx,y+dy) for x,y in edge for dx,dy in ((0,0),(-.3,0),(.3,0),(0,-.3),(0,.3)) if base.nav.walkable_point((x+dx,y+dy))]
+            # Empty hands: the focus path is the same with a full hand, and far cheaper to sweep.
+            k=SpatialKitchen({**load_config(),'level':level,'spawn_seed':0})
+            for spot in spots:
+                if math.dist(spot,k.positions['jeff'])<.5:continue
+                k.positions['human']=spot;actions=k.actions('human')
+                for facing in ('up','down','left','right'):
+                    k.facing['human']=facing
+                    with self.subTest(level=level,spot=spot,facing=facing):
+                        focus=k.interaction_target('human')
+                        interaction=k.quick_interaction('human',actions,preferred=focus)
+                        k.interaction_cell('human',focus)
+                        if not interaction:k.interaction_hint('human',focus)
+
+    def test_state_survives_a_failing_focus_helper(self):
+        g=self.session();journal=g.journal
+        with patch.object(g.k,'interaction_cell',side_effect=ValueError('boom')):
+            state=g.public_state()
+        self.assertIsNone(state['interaction_cell']);self.assertIn('kitchen',state)
+        self.assertIn('engine_error',[kind for kind,_ in journal.rows])
+
+    def test_loop_survives_a_failed_tick_and_the_next_round_runs(self):
+        g=self.session();journal=g.journal;real=g.tick;calls=[]
+        def tick():
+            calls.append(1)
+            if len(calls)==1:raise AssertionError('state check failed')
+            g.stop_event.set();return real()
+        with patch.object(g,'tick',side_effect=tick):g.run()  # returns instead of re-raising
+        self.assertTrue(g.faulted);self.assertEqual(g.phase,'paused');self.assertEqual(len(calls),2)
+        self.assertIn('engine_error',[kind for kind,_ in journal.rows])
+        self.assertEqual(self.cmd(g,'resume')[0],409)
+        before=g.k.time;g.tick(g.last_tick+1);self.assertEqual(g.k.time,before)  # frozen
+        self.assertEqual(self.cmd(g,'restart')[0],200);self.assertFalse(g.faulted);self.assertEqual(g.phase,'running')
+        with patch.object(g.ai,'poll'):g.tick(g.last_tick+1)
+        self.assertGreater(g.k.time,0)
+
     def test_api_passes_plates_within_short_range(self):
         for stage in ('clean_plate','dirty_plate'):
             g=self.session();k=g.k
@@ -186,7 +233,7 @@ class ControlsTests(unittest.TestCase):
             k.chefs['human'].hand=plate;k.positions['human']=(3.,4.)
             self.assertEqual(self.cmd(g,'throw',target=[9,4],expected_item=plate.id)[0],200)
             k.advance(1);self.assertIs(k.ground[plate.id].food,plate)
-            self.assertLessEqual(math.dist((3.,4.),k.cell(k.ground[plate.id].location)),3.0+1e-8)
+            self.assertLessEqual(math.dist((3.,4.),k.cell(k.ground[plate.id].location)),PASS_RANGE+1e-8)
             k.assert_invariants()
 
     def test_api_rejects_invalid_input_and_old_item(self):

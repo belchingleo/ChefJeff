@@ -1,4 +1,5 @@
 import json
+import math
 import os
 from pathlib import Path
 import shlex
@@ -16,6 +17,27 @@ COCOS_TSC_CANDIDATES = (
     Path('/Applications/CocosCreator.app/Contents/Resources/resources/3d/engine/node_modules/typescript/bin/tsc'),
     Path('/Applications/CocosCreator.app/Contents/Resources/app.asar.unpacked/node_modules/typescript/bin/tsc'),
 )
+
+
+def server_walks():
+    """Server manual-movement steps for eight held directions, away from the teammate."""
+    from kitchen import load_config
+    from spatial_kitchen import SpatialKitchen, WALK_SPEED
+    walks = []
+    for level in (1, 2, 3):
+        steps = []
+        for vx, vy in ((1,0),(-1,0),(0,1),(0,-1),(1,1),(-1,1),(1,-1),(-1,-1)):
+            k = SpatialKitchen({**load_config(), 'level': level, 'spawn_seed': 0})
+            k.set_manual('human', vx, vy)
+            vector = k.manual['human']
+            for _ in range(80):
+                before = k.positions['human']
+                k.advance(.05)
+                after = k.positions['human']
+                if min(math.dist(p, k.positions['jeff']) for p in (before, after)) > 1:
+                    steps.append([before, [vector[0]*WALK_SPEED*.05, vector[1]*WALK_SPEED*.05], after])
+        walks.append({'level': level, 'map': k.snapshot()['map'], 'steps': steps})
+    return walks
 
 
 class KitchenGeometryExecutionTests(unittest.TestCase):
@@ -147,6 +169,20 @@ const flyingDepth = geometry.flightDepth(4, tile*.5);
 assert(flyingDepth > groundDepth, 'flight elevation must advance the object in painter order');
 assert(flyingDepth > geometry.depthOrder(4, 'solid'), 'a raised object must not fall behind its cabinet');
 
+// Held-key prediction lands where the server's manual step does, including wall slides.
+const walks = JSON.parse(fs.readFileSync(process.argv[4], 'utf8'));
+for (const {level, map, steps} of walks) {
+  let exact = 0;
+  for (const [before, delta, after] of steps) {
+    const got = geometry.predictWalk(map, before, delta[0], delta[1]), error = Math.hypot(got[0]-after[0], got[1]-after[1]);
+    // The server rounds a board corner a tick later than the finer prediction; the client eases that gap out.
+    assert(error < .1, `level ${level}: predicted ${got} from ${before} but the server reached ${after}`);
+    assert(geometry.footWalkable(map, got[0], got[1]));
+    if (error < .01) exact++;
+  }
+  assert(exact >= steps.length*.97, `level ${level}: only ${exact}/${steps.length} steps match the server`);
+}
+
 '''
 
         with tempfile.TemporaryDirectory(prefix='kitchen-geometry-') as temp_dir:
@@ -160,8 +196,10 @@ assert(flyingDepth > geometry.depthOrder(4, 'solid'), 'a raised object must not 
                              f'Cocos TypeScript compile failed:\n{compile_result.stdout}\n{compile_result.stderr}')
             runner_path = Path(temp_dir) / 'geometry_contract_test.cjs'
             runner_path.write_text(runner)
+            walks_path = Path(temp_dir) / 'server_walks.json'
+            walks_path.write_text(json.dumps(server_walks()))
             result = subprocess.run(
-                [node, str(runner_path), str(ROOT), str(out_dir)],
+                [node, str(runner_path), str(ROOT), str(out_dir), str(walks_path)],
                 cwd=ROOT, capture_output=True, text=True, check=False,
             )
             self.assertEqual(result.returncode, 0,

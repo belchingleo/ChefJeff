@@ -71,13 +71,14 @@ class RouteStallTests(unittest.TestCase):
         self.assertFalse(any(e.get('kind')=='route_replanned' for e in k.events))
 
     def test_stall_is_rechecked_without_event_spam_when_goal_is_occupied(self):
-        # An idle chef standing on the goal is not a routed deadlock: the walker
-        # keeps its route and waits, without a re-plan event every check.
+        # An idle chef standing on the goal is not a routed deadlock. Arrival blocked
+        # by the other chef stops the walker beside them (no back-and-forth sliding),
+        # without a re-plan event every check.
         # Pressed against the counter, the idle chef cannot be nudged aside.
         k=self.make((6,2),(9.1,1.7));self.route(k,'human','floor_9_2')
         for _ in range(round(10*STALL_SECONDS/.05)):k.advance(.05)
-        self.assertIsNotNone(k.chefs['human'].job)
-        self.assertEqual(k.routes['human']['points'][-1],(9,2))
+        self.assertIsNone(k.chefs['human'].job)
+        self.assertLess(math.dist(k.positions['human'],(9,2)),1.)
         self.assertLessEqual(sum(e.get('kind')=='route_replanned' for e in k.events),1)
 
     def test_detour_planner_keeps_clear_of_the_other_chef(self):

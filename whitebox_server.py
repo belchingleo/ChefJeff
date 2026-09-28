@@ -17,7 +17,8 @@ class SpatialJevClient(JevClient):
     def payload(self, state, actions):
         payload = super().payload(state, actions)
         # Cosmetic settings belong in the run log/UI, not repeated model tokens.
-        payload['state']['kitchen']['map'].pop('presentation',None)
+        for key in ('presentation','walk_boxes','walk_clearance','chef_separation'):
+            payload['state']['kitchen']['map'].pop(key,None)
         rules = payload['state']['rules']
         geometry = state['map']
         sprint = state['chefs']['jeff']['sprint']

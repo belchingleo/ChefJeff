@@ -37,8 +37,8 @@
   },
   "throw": {
     "enabled": true,
-    "range_cells": 7,
-    "pass_range_cells": 3,
+    "range_cells": 4,
+    "pass_range_cells": 4,
     "speed_cells_per_game_s": 12,
     "min_flight_game_ms": 200,
     "catch_radius_cells": 0.75

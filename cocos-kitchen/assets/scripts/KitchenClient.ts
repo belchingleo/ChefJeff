@@ -1,7 +1,7 @@
 import { _decorator, Component, Node, UITransform, Graphics, Color, Label, Layers,
     view, ResolutionPolicy, sys, game, Game, profiler, Mask, Vec2, Camera, director, Sprite } from 'cc';
 import { LevelOneArt } from './LevelOneArt';
-import { GRID_ART, stationView, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, workingChefDepth, flightDepth, burgerLayers, heatCountdown } from './KitchenGeometry';
+import { GRID_ART, stationView, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, workingChefDepth, flightDepth, predictWalk, footWalkable, burgerLayers, heatCountdown } from './KitchenGeometry';
 const { ccclass } = _decorator;
 type Action = { key: string; label: string; kind: string; target: string; expected: unknown[] };
 type KitchenState = { game_id: string; phase: string; speed: number; kitchen: any; actions: Action[]; limits?:any; release?:any; interaction?:Action; interaction_hint?:string; interaction_focus?:string; interaction_cell?:number[];
@@ -46,6 +46,10 @@ export class KitchenClient extends Component {
     private moveSeq=Date.now()*1000;
     private lastMoveAt=0;
     private manualDirection={x:0,y:0};
+    // Held-key walking is predicted locally so the chef answers on the same frame, then eased onto server state.
+    private predicted:number[]|null=null;
+    private releasedAt:number|null=null;
+    private stateSentAt=0;
     private throwReady=false;
     private spacePressedAt:number|null=null;
     private spaceHold=false;
@@ -285,7 +289,7 @@ export class KitchenClient extends Component {
             this.spaceHold=true;if(!this.throwReady)this.toggleThrow();
         }
     }
-    // Anything held can be thrown or passed; the server applies each item's range (ingredients 7, tableware and tools 3).
+    // Anything held can be thrown or passed; the server applies each item's range (currently 4 tiles for all).
     private toggleThrow(){const hand=this.state?.kitchen.chefs.human.holding;if(!this.throwReady&&!hand){this.set('event','手里没有可以抛出的东西。');return;}this.throwReady=!this.throwReady;this.updateThrowCue();}
     private updateThrowCue(){this.set('interaction',this.throwReady?(this.spaceHold?'按住空格 · 左键选落点':'抛掷已准备 · 左键选落点'):'');if(!sys.isNative){const canvas=document.querySelector('canvas') as HTMLCanvasElement|null;if(canvas)canvas.style.cursor=this.throwReady?'crosshair':'';}}
     private async sendMove(dx:number,dy:number,sprint=false){if(!this.state||this.state.phase!=='running'||!this.connected)return;const seq=++this.moveSeq;this.lastMoveAt=this.clock;try{await this.request('/api/move',{game_id:this.state.game_id,dx,dy,seq,sprint});}catch(e){this.set('event',(e as Error).message);}}
@@ -294,6 +298,28 @@ export class KitchenClient extends Component {
         const y=(this.heldKeys.has('s')||this.heldKeys.has('arrowdown')?1:0)-(this.heldKeys.has('w')||this.heldKeys.has('arrowup')?1:0),mag=Math.hypot(x,y);
         const dx=mag?x/mag:0,dy=mag?y/mag:0;if(!sprint&&dx===this.manualDirection.x&&dy===this.manualDirection.y)return;
         this.manualDirection={x:dx,y:dy};this.sendMove(dx,dy,sprint);
+    }
+    private predictHuman(k:any,c:any,dt:number,n:Node){
+        const d=this.manualDirection;
+        if(!c.position){this.predicted=this.releasedAt=null;return null;}
+        if(d.x===0&&d.y===0){
+            // Released: stay put until a state requested after the stop arrives, then ease onto it (no stale pull-back).
+            if(this.predicted&&this.releasedAt===null)this.releasedAt=this.clock;
+            if(this.predicted&&this.stateSentAt<=this.releasedAt!&&this.clock-this.releasedAt!<.6)return this.predicted;
+            this.predicted=this.releasedAt=null;return null;
+        }
+        this.releasedAt=null;
+        const rate=(k.map.walk_speed||4.5)*(c.sprint?.active_remaining>0?1.4:1)*this.state!.speed,other=k.chefs.jeff?.position;
+        const from=this.predicted||[(n.position.x+640-MAPX)/TILE-.5,(360-MAPY-n.position.y)/TILE-.5];
+        let next=predictWalk(k.map,from,d.x*rate*dt,d.y*rate*dt,other);
+        // Until the server reports this same direction it has not received the key yet: trust the prediction.
+        // Afterwards ease toward its position carried forward to now; snap only on a large disagreement (e.g. a push).
+        const heading=c.move_direction||[0,0],synced=!!c.manual_moving&&Math.abs(heading[0]-d.x)<1e-6&&Math.abs(heading[1]-d.y)<1e-6;
+        const age=synced?Math.min(.3,Math.max(0,this.clock-this.received)):0,server=predictWalk(k.map,c.position,d.x*rate*age,d.y*rate*age,other);
+        const ex=server[0]-next[0],ey=server[1]-next[1],pull=Math.min(1,dt*4);
+        if(Math.hypot(ex,ey)>1.2)next=server;
+        else if(synced){const eased=[next[0]+ex*pull,next[1]+ey*pull];if(footWalkable(k.map,eased[0],eased[1]))next=eased;}
+        return this.predicted=next;
     }
     private clearInput(){this.lastDirectionTap={key:"",time:-10};this.heldKeys.clear();this.spacePressedAt=null;this.spaceHold=false;const wasMoving=this.manualDirection.x!==0||this.manualDirection.y!==0;this.manualDirection={x:0,y:0};this.throwReady=false;this.updateThrowCue();if(wasMoving)this.sendMove(0,0);}
     private cancelManualMovement(){this.heldKeys.clear();if(this.manualDirection.x!==0||this.manualDirection.y!==0){this.manualDirection={x:0,y:0};this.sendMove(0,0);}}
@@ -559,7 +585,7 @@ export class KitchenClient extends Component {
     private poll=async()=>{
         if(this.polling||this.hidden||!this.artLoaded)return;this.polling=true;
         try{
-            const next:KitchenState=await this.request('/api/state');
+            const sent=this.clock,next:KitchenState=await this.request('/api/state');
             // A live old round may keep its backend until the player approves
             // restarting it. Do not pair new Space controls with old rules.
             if(!/^level-[123]-[1-9][0-9]*$/.test(next.kitchen?.map?.layout_version||'')||next.release?.version!=='0.5.9-alpha'){
@@ -578,7 +604,7 @@ export class KitchenClient extends Component {
                 if(this.mounted)for(const who of ['human','jeff'])this.locate(this.people[who],next.kitchen.chefs[who].position);}
             if(next.phase!=='running'||next.game_id!==this.state?.game_id)this.clearInput();
             if(next.game_id!==this.state?.game_id)this.moveSeq=Date.now()*1000;
-            this.state=next;this.connected=true;this.received=this.clock;
+            this.state=next;this.connected=true;this.received=this.clock;this.stateSentAt=sent;
             const frameRate=next.phase==='running'?60:15;
             if(game.frameRate!==frameRate)game.frameRate=frameRate;
             if(!sys.isNative)window.dispatchEvent(new CustomEvent('kitchen-state',{detail:{game_id:next.game_id,phase:next.phase,connection:next.connection,memory:next.memory,limits:next.limits,release:next.release,communication:next.communication}}));
@@ -1239,12 +1265,13 @@ export class KitchenClient extends Component {
                 else {g.clear();for(let i=0;i<3;i++)this.rect(g,-20+i*13,-3+(frame+i)%3*3,7,5,'#d8bf93');}
             }
             if(running&&p){
-                const x=MAPX+(p[0]+.5)*TILE-640,y=360-MAPY-(p[1]+.5)*TILE,t=Math.min(1,dt*16);
+                const predicted=who==='human'?this.predictHuman(k,c,dt,n):null,at=predicted||p;
+                const x=MAPX+(at[0]+.5)*TILE-640,y=360-MAPY-(at[1]+.5)*TILE,t=predicted?1:Math.min(1,dt*16);
                 const oldX=n.position.x,oldY=n.position.y;
                 n.setPosition(oldX+(x-oldX)*t,oldY+(y-oldY)*t);
-                const dx=n.position.x-oldX,dy=n.position.y-oldY,moved=Math.hypot(dx,dy)>.08&&((c.travel_remaining||0)>0||Math.hypot(x-n.position.x,y-n.position.y)>1);
+                const dx=n.position.x-oldX,dy=n.position.y-oldY,moved=Math.hypot(dx,dy)>.08&&(!!predicted||(c.travel_remaining||0)>0||Math.hypot(x-n.position.x,y-n.position.y)>1);
                 if(moved){
-                if(c.manual_moving&&who==='human'&&(this.manualDirection.x!==0||this.manualDirection.y!==0)){
+                if((c.manual_moving||predicted)&&who==='human'&&(this.manualDirection.x!==0||this.manualDirection.y!==0)){
                     if(Math.abs(this.manualDirection.x)>=Math.abs(this.manualDirection.y))motion.facing=this.manualDirection.x<0?'left':'right';
                     else motion.facing=this.manualDirection.y<0?'up':'down';
                 }else if(Math.abs(dx)>=Math.abs(dy))motion.facing=dx<0?'left':'right';
@@ -1253,7 +1280,8 @@ export class KitchenClient extends Component {
                 // Authoritative orientation survives short actions between polls.
                 if(!moved&&c.facing)motion.facing=c.facing;
                 if(c.working&&c.facing)motion.facing=c.facing;
-                const walkIntent=!!c.manual_moving||(!c.working&&(c.travel_remaining||0)>0);
+                const held=who==='human'&&(this.manualDirection.x!==0||this.manualDirection.y!==0);
+                const walkIntent=(predicted?held:!!c.manual_moving)||(!c.working&&(c.travel_remaining||0)>0);
                 if(this.characterArt(motion.body,who,motion.facing,animate&&walkIntent,!!c.working))continue;
                 motion.body.angle=0;
                 const side=motion.facing==='left'||motion.facing==='right';
@@ -1312,9 +1340,12 @@ export class KitchenClient extends Component {
         if(running&&(this.manualDirection.x!==0||this.manualDirection.y!==0)&&this.clock-this.lastMoveAt>=.15)this.sendMove(this.manualDirection.x,this.manualDirection.y);
         const time=k.time+(this.state.phase==='running'&&this.connected?(this.clock-this.received)*this.state.speed:0);
         for(const p of k.projectiles||[]){
-            const t=Math.max(0,Math.min(1,(time-p.started)/(p.lands_at-p.started))),height=Math.sin(t*Math.PI)*35;
+            const t=Math.max(0,Math.min(1,(time-p.started)/(p.lands_at-p.started))),arc=Math.sin(t*Math.PI)*35;
             const point=[p.from[0]+(p.to[0]-p.from[0])*t,p.from[1]+(p.to[1]-p.from[1])*t];
-            this.locate(this.flights[p.id],point,height);this.flightOrder[p.id]=flightDepth(point[1],height);
+            // A board/counter landing ends on its work surface, drawn over the cabinet like a resting item.
+            const onto=p.onto&&k.map.equipment[p.onto]?p.onto:null,height=arc+(onto?t*this.workSurfaceY(onto):0);
+            this.locate(this.flights[p.id],point,height);
+            this.flightOrder[p.id]=onto&&t>=.5?Math.max(flightDepth(point[1],height),depthOrder(k.map.equipment[onto].cell[1],'solid')+.02):flightDepth(point[1],height);
         }
         this.sortWorld();
     }

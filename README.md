@@ -83,7 +83,7 @@ The current release supports **desktop and laptop browsers with a keyboard and m
 
 - **WASD / arrow keys:** move. Click a floor tile or workstation to approach it. Double-tap a direction to sprint.
 - **Space:** perform the nearby action shown in the bottom hint. Cancelling chopping or washing preserves progress.
-- **Throw:** hold Space briefly, then left-click a target; release to cancel. Alternatively, right-click to prepare, left-click to throw, and right-click to cancel. Ingredients fly up to 7 cells; plates, dishes, pots and the extinguisher can be passed up to 3.
+- **Throw:** hold Space briefly, then left-click a target; release to cancel. Alternatively, right-click to prepare, left-click to throw, and right-click to cancel. Ingredients, plates, dishes, pots and the extinguisher all fly up to 4 cells.
 - **Serve and wash:** use a clean plate to collect cooked food; return dirty plates to the sink and wash with empty hands.
 - **Esc:** pause. Settings provide model connections, language selection, usage limits, and feedback export.
 
@@ -237,7 +237,7 @@ python3 cocos_server.py --port 8775
 
 - **WASD／方向键：**移动；点击地面或工位走近；双击同一方向键冲刺。
 - **空格：**执行底部提示的就近动作；主动取消切菜或洗碗时保留加工进度。
-- **抛原料：**短暂按住空格后左键点击目标，松开取消；也可右键准备、左键抛出、右键取消。原料最远 7 格；盘子、菜、锅和灭火器可以传，最远 3 格。
+- **抛原料：**短暂按住空格后左键点击目标，松开取消；也可右键准备、左键抛出、右键取消。原料、盘子、菜、锅和灭火器都可以抛，最远 4 格。
 - **出餐和洗碗：**用净盘收取熟食；将脏盘送进水槽，空手洗净。
 - **Esc：**暂停；设置中可连接模型、切换语言、控制调用次数和导出反馈。
 

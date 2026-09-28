@@ -11,6 +11,7 @@ import json
 import math
 import mimetypes
 import threading
+import traceback
 import time
 from urllib.parse import urlparse
 import uuid
@@ -51,6 +52,7 @@ class GameSession:
         self.c = self.k.c
         self.game_id = uuid.uuid4().hex
         self.phase = 'ready'
+        self.faulted = False
         self.speed = .75
         self.ai = None
         self.journal = None
@@ -133,6 +135,8 @@ class GameSession:
 
     def tick(self, now=None):
         with self.lock:
+            if self.faulted:
+                return  # A round whose state check failed stays frozen until reset.
             now = time.monotonic() if now is None else now
             elapsed = max(0, now-self.last_tick)
             self.last_tick = now
@@ -163,14 +167,21 @@ class GameSession:
         while not self.stop_event.wait(.05):
             try:
                 self.tick()
-            except Exception:
-                # Never silently let the kitchen run when its state loop fails.
+            except Exception as exc:
+                # Never let a broken round keep running, but keep the loop alive:
+                # the faulted round freezes and the next round ticks normally.
                 with self.lock:
                     self.phase = 'paused'
+                    self.faulted = True
                     if self.ai:
                         self.ai.invalidate()
                     self.note('厨房已暂停：运行出现异常，请重新开局。')
-                raise
+                    try:
+                        if self.journal:
+                            self.journal('engine_error', {'t': self.k.time, 'error': f'{type(exc).__name__}: {exc}',
+                                                          'trace': traceback.format_exc(limit=8)})
+                    except Exception:
+                        pass
 
     def close(self):
         self.stop_event.set()
@@ -182,8 +193,7 @@ class GameSession:
             self.last_seen = time.monotonic()
             state = self.k.snapshot()
             actions = self.k.actions('human')
-            focus=self.k.interaction_target('human',self.interaction_focus) if hasattr(self.k,'interaction_target') else None
-            interaction = self.k.quick_interaction('human',actions,preferred=focus) if hasattr(self.k,'quick_interaction') else None
+            focus, interaction, cell, hint = self._interaction_view(actions)
             for who, chef in self.k.chefs.items():
                 j = chef.job
                 total = self.totals.setdefault(j.id, j.travel+j.work) if j else 0
@@ -196,8 +206,8 @@ class GameSession:
                     'communication': self.communication_state(),
                     'interaction': asdict(interaction) if interaction else None,
                     'interaction_focus': focus,
-                    'interaction_cell': self.k.interaction_cell('human',focus) if hasattr(self.k,'interaction_cell') else None,
-                    'interaction_hint': self.k.interaction_hint('human',focus) if hasattr(self.k,'interaction_hint') and not interaction else None,
+                    'interaction_cell': cell,
+                    'interaction_hint': hint,
                     'kitchen': state, 'actions': [asdict(a) for a in actions],
                     'boards': self.k.boards, 'pots': self.k.pots, 'events': events,
                     'ai': {'connected': bool(self.ai and self.ai.successes),
@@ -210,6 +220,27 @@ class GameSession:
                     'levels': available_levels(),
                     'rules': {key:self.c[key] for key in ('chop_seconds', 'cook_seconds', 'burn_after_ready',
                               'fire_after_burn', 'order_patience', 'round_seconds', 'order_count')}}
+
+    def _interaction_view(self, actions):
+        # Space-key focus is a position-dependent convenience: if it fails, the page still
+        # gets the kitchen state (instead of an empty response that reads as a disconnect).
+        k = self.k
+        try:
+            focus = k.interaction_target('human',self.interaction_focus) if hasattr(k,'interaction_target') else None
+            interaction = k.quick_interaction('human',actions,preferred=focus) if hasattr(k,'quick_interaction') else None
+            cell = k.interaction_cell('human',focus) if hasattr(k,'interaction_cell') else None
+            hint = k.interaction_hint('human',focus) if hasattr(k,'interaction_hint') and not interaction else None
+            return focus, interaction, cell, hint
+        except Exception as exc:
+            if self.journal and not getattr(self, '_interaction_error_logged', False):
+                self._interaction_error_logged = True
+                try:
+                    self.journal('engine_error', {'t': k.time, 'where': 'interaction_view', 'error': f'{type(exc).__name__}: {exc}',
+                                                  'position': k.positions.get('human'), 'facing': getattr(k,'facing',{}).get('human'),
+                                                  'trace': traceback.format_exc(limit=8)})
+                except Exception:
+                    pass
+            return None, None, None, None
 
     def command(self, path, body):
         with self.lock:
@@ -372,6 +403,8 @@ class GameSession:
                 self.journal('pause', {'t':self.k.time, 'reason':body.get('reason','manual')})
             return 200, {'ok': True}
         if path == '/api/resume':
+            if self.faulted:
+                return 409, {'error': '本局运行出现异常，请重新开局。'}
             if self.phase != 'paused':
                 return 409, {'error': '当前无需继续。'}
             self.phase = 'running'
@@ -405,6 +438,7 @@ class GameSession:
             self.last_bookmark_at=None
             self.game_id = uuid.uuid4().hex
             self.phase = 'ready'
+            self.faulted = False
             self.ai = None
             self.cursor = 0
             self.notes = []

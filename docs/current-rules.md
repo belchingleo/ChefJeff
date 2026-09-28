@@ -25,7 +25,7 @@ Hold WASD/arrows to move; release to stop. Click floor to approach a point, or a
 
 Tap Space for the selected target, or the nearby facing target when none is explicitly selected. An unavailable selected target shows a reason instead of switching to a bin. Empty hands can pick up eligible food at the chef's feet; carried items favor the facing station. With no usable station, drop or pick up nearby. Pickups can swap with raw/chopped ground ingredients; the old item stays on legal floor. Each logical floor tile or counter slot holds one resting item; small visual overlaps do not trigger automatic plating.
 
-Hold Space for about 0.3 seconds and left-click to throw; release cancels. Alternatively right-click to prepare/cancel, then left-click the target. Loose raw/chopped ingredients fly up to 7 cells; plates, plated dishes, pots and the extinguisher can be passed up to 3 cells. Everything travels at 12 cells/game-second. Walls truncate the route; equipment can be crossed. Empty boards accept ingredients only. A throw aimed beyond the range lands on the floor at the limit. An empty-handed partner who is walking or standing can catch; a partner chopping, washing or holding something is not interrupted and the item lands beside them. Dropped plates keep their food and dropped pots their contents; both can be picked up again. The rules are identical for the player and the AI.
+Hold Space for about 0.3 seconds and left-click to throw; release cancels. Alternatively right-click to prepare/cancel, then left-click the target. Loose raw/chopped ingredients, plates, plated dishes, pots and the extinguisher all fly up to 4 cells. Everything travels at 12 cells/game-second. Walls truncate the route; equipment can be crossed. Empty boards accept ingredients only. A throw aimed beyond the range lands on the floor at the limit. An empty-handed partner who is walking or standing can catch; a partner chopping, washing or holding something is not interrupted and the item lands beside them. Dropped plates keep their food and dropped pots their contents; both can be picked up again. The rules are identical for the player and the AI.
 
 ## Work and shared stations
 
@@ -84,7 +84,7 @@ Cocos 浏览器版共用 `kitchen.py`、`spatial_kitchen.py`、地图 JSON 和�
 
 短按空格操作选中目标，未明确选择时操作附近朝向目标。选中目标不可用会说明原因，不转向垃圾桶。空手可捡脚下符合条件的物品，持物时优先面前工位；无可用工位时就近放下或拾取。可与地面生／切好原料换手，旧物品留在合法地面。每个逻辑地面格或柜台槽容纳一件静置物品；小范围视觉重叠不会自动装盘。
 
-按住空格约 0.3 秒后左键抛出，松开取消；也可右键准备／取消、左键选择落点。散放的生／切好原料最远 7 格；餐盘、装盘菜、锅和灭火器可以传，最远 3 格。速度均为 12 格／游戏秒。墙截断路线，可越过设备，空案板只接收原料。瞄得超过射程时，东西落在射程尽头的地上。空手且在走路或站着的队友可接住；正在切菜、洗碗或手里有东西时不打断，东西落在他旁边。掉在地上的盘子保留菜、锅保留内容，都能再捡起。玩家与 AI 规则相同。
+按住空格约 0.3 秒后左键抛出，松开取消；也可右键准备／取消、左键选择落点。散放的生／切好原料、餐盘、装盘菜、锅和灭火器都可以抛，最远 4 格。速度均为 12 格／游戏秒。墙截断路线，可越过设备，空案板只接收原料。瞄得超过射程时，东西落在射程尽头的地上。空手且在走路或站着的队友可接住；正在切菜、洗碗或手里有东西时不打断，东西落在他旁边。掉在地上的盘子保留菜、锅保留内容，都能再捡起。玩家与 AI 规则相同。
 
 ## 加工与合作工位
 
