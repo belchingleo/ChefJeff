@@ -44,16 +44,18 @@ class Provenance:
     actions: dict = field(default_factory=dict)      # action id -> {actor, kind, key, t, seq}
     serves: list = field(default_factory=list)       # {action_id, item, plate, outcome, t}
     penalties: dict = field(default_factory=dict)    # action id -> reason
+    ingredients: dict = field(default_factory=dict)  # item id -> recipe item it is (beef, bread, ...)
     steps: int = 0
 
-    @staticmethod
-    def locate(k):
+    def locate(self, k):
         """Where every item is: id -> (place, state)."""
         out = {}
 
         def add(food, place):
             if food is None:
                 return
+            if food.stage not in ('pot', 'clean_plate', 'dirty_plate', 'extinguisher') and not food.plate_id:
+                self.ingredients.setdefault(food.id, food.ingredient)
             out[food.id] = (place, (food.stage, tuple(food.components or ()),
                                     food.contents.id if food.contents else None))
             if food.contents is not None:
@@ -111,6 +113,7 @@ class Provenance:
         if job.action.kind == 'serve' and held is not None:
             outcome = next((PENALTY_EVENTS[e['kind']] for e in k.events[first_event:] if e.get('kind') in PENALTY_EVENTS), 'served')
             self.serves.append({'action_id': job.id, 'item': held.id, 'plate': held.plate_id, 'outcome': outcome,
+                                'dish': k.dish(held),
                                 't': round(k.time, 3), 'actor': who})
         elif grown:
             for dish in grown:
