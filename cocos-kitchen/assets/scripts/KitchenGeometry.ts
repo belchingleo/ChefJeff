@@ -44,8 +44,21 @@ export function footWalkable(map:any,x:number,y:number){
     if(!(x>=.5+c-e&&x<=map.width-1.5-c+e&&y>=.5+c-e&&y<=map.height-1.5-c+e))return false;
     return !(map.walk_boxes||[]).some((b:number[])=>b[0]+e<x&&x<b[2]-e&&b[1]+e<y&&y<b[3]-e);
 }
+/** Sideways shift (signed cells, on the other axis) that lets a blocked single-direction
+ * step continue: the server's corner_offset, within map.corner_slide. */
+export function cornerOffset(map:any,x:number,y:number,dx:number,dy:number){
+    const limit=map.corner_slide;
+    if(!limit||(dx&&dy)||(!dx&&!dy))return 0;
+    const horizontal=!!dx,step=Math.sign(dx||dy)*.05;
+    for(let n=1;n<=Math.round(limit/.01);n++)for(const sign of [-1,1]){
+        const o=sign*n*.01,px=horizontal?x:x+o,py=horizontal?y+o:y;
+        if(footWalkable(map,px,py)&&footWalkable(map,horizontal?px+step:px,horizontal?py:py+step))return o;
+    }
+    return 0;
+}
 /** Local prediction of a held-key walk: straight when clear, otherwise each axis slides
- * up to the blocking edge, as the server does. Never steps deeper into the teammate. */
+ * up to the blocking edge, as the server does; a fully blocked single-direction step
+ * slides sideways out of a shallow notch (map.corner_slide). Never steps deeper into the teammate. */
 export function predictWalk(map:any,from:number[],dx:number,dy:number,other?:number[]){
     const n=Math.max(1,Math.ceil(Math.hypot(dx,dy)/.02)),sep=map.chef_separation??.4,sx=dx/n,sy=dy/n;
     const ok=(x:number,y:number,px:number,py:number)=>footWalkable(map,x,y)&&(!other
@@ -53,8 +66,14 @@ export function predictWalk(map:any,from:number[],dx:number,dy:number,other?:num
     let x=from[0],y=from[1];
     for(let i=0;i<n;i++){
         if(ok(x+sx,y+sy,x,y)){x+=sx;y+=sy;continue;}
+        const bx=x,by=y;
         if(sx&&ok(x+sx,y,x,y))x+=sx;
         if(sy&&ok(x,y+sy,x,y))y+=sy;
+        if(x===bx&&y===by){
+            const o=cornerOffset(map,x,y,sx,sy),d=Math.min(Math.abs(o),Math.hypot(sx,sy))*Math.sign(o);
+            if(o&&sx&&ok(x,y+d,x,y))y+=d;
+            else if(o&&sy&&ok(x+d,y,x,y))x+=d;
+        }
     }
     return [x,y];
 }

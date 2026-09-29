@@ -19,7 +19,7 @@ The Cocos browser game uses the shared rules in `kitchen.py`, `spatial_kitchen.p
 
 The default game clock runs at 0.75× real time. API latency and request limits use real time. Walk diagonals do not increase speed. Sprint accelerates movement, not preparation.
 
-Hold WASD/arrows to move; release to stop. The kitchen is keyboard-only, as in Overcooked; only menus and the communication dock take mouse clicks. Q while moving dashes. Automatic movement uses the same chef-contact response as manual movement: slide around a partner when there is space, gently push under sustained pressure, and apply a bounded sprint nudge of at most a quarter cell. An AI route that makes no progress for 0.3 s re-plans from where contact left it, around the other chef (the same rule for both chefs), so two walkers cannot lock each other up. Walls and cabinets block movement; feet stop short of a cabinet's front panel. Chefs chopping or washing cannot be pushed away. Either chef can also walk straight into the other on purpose ("go partner", the AI's counterpart of walking into Jeff): the walk ends on contact, which pushes, and a dash then gives the same bounded nudge. Ground food does not block walking or repel other food; sprint can nudge loose ingredients by at most a quarter cell.
+Hold WASD/arrows to move; release to stop. The kitchen is keyboard-only, as in Overcooked; only menus and the communication dock take mouse clicks. Q while moving dashes. Automatic movement uses the same chef-contact response as manual movement: slide around a partner when there is space, gently push under sustained pressure, and apply a bounded sprint nudge of at most a quarter cell. An AI route that makes no progress for 0.3 s re-plans from where contact left it, around the other chef (the same rule for both chefs), so two walkers cannot lock each other up. Walls and cabinets block movement; feet stop short of a cabinet's front panel. A held direction key that is fully blocked by an edge you could clear by stepping at most 0.3 cells sideways slides you out first, for example out of the spot in front of a board set between counters. Chefs chopping or washing cannot be pushed away. Either chef can also walk straight into the other on purpose ("go partner", the AI's counterpart of walking into Jeff): the walk ends on contact, which pushes, and a dash then gives the same bounded nudge. Ground food does not block walking or repel other food; sprint can nudge loose ingredients by at most a quarter cell.
 
 ## Actions and throwing
 
@@ -78,7 +78,7 @@ Cocos 浏览器版共用 `kitchen.py`、`spatial_kitchen.py`、地图 JSON 和�
 
 默认游戏时钟为现实时间的 0.75 倍，API 延迟及请求限制按现实时间计算。斜走不加速，冲刺仅加速移动。
 
-按住 WASD／方向键移动，松开停止。厨房只用键盘操作（同《胡闹厨房》），只有菜单和沟通面板可以用鼠标点。移动时按 Q 冲刺。自动与手动移动共用厨师接触处理：有空间时沿搭档边缘滑过，持续前进时温和推挤，冲刺产生最多四分之一格的有限位移。AI 路线若 0.3 秒无进展，会从当前位置绕开对方重新规划（双方同一规则），两位自动行走的厨师不会互相卡死。墙与柜体不可穿过，脚步停在柜门面板之外，正在切菜或洗碗的厨师不可被推离。双方也都可以有意走向并撞上对方（“走到对方厨师当前的位置”，即 AI 版的“走过去撞 Jeff”）：接触即结束行走并产生推挤，冲刺时同样有上述有限位移。地面食物不挡走路，食物之间不相互弹开；冲刺可将散落原料推移最多四分之一格。
+按住 WASD／方向键移动，松开停止。厨房只用键盘操作（同《胡闹厨房》），只有菜单和沟通面板可以用鼠标点。移动时按 Q 冲刺。自动与手动移动共用厨师接触处理：有空间时沿搭档边缘滑过，持续前进时温和推挤，冲刺产生最多四分之一格的有限位移。AI 路线若 0.3 秒无进展，会从当前位置绕开对方重新规划（双方同一规则），两位自动行走的厨师不会互相卡死。墙与柜体不可穿过，脚步停在柜门面板之外；按住方向键被挡住时，如果往侧边挪不超过 0.3 格就能绕开（比如夹在柜台之间的案板正前方），会先自动滑出再继续走；正在切菜或洗碗的厨师不可被推离。双方也都可以有意走向并撞上对方（“走到对方厨师当前的位置”，即 AI 版的“走过去撞 Jeff”）：接触即结束行走并产生推挤，冲刺时同样有上述有限位移。地面食物不挡走路，食物之间不相互弹开；冲刺可将散落原料推移最多四分之一格。
 
 ## 操作与抛掷
 

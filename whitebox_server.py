@@ -58,7 +58,7 @@ class SpatialJevClient(JevClient):
             kitchen['scoring'].pop('time_bonus_per_second', None)
         # Cosmetic settings belong in the run log/UI, not repeated model tokens.
         # movement_rule/ground_rule/spawn_rule restate the rules paragraphs below.
-        for key in ('presentation','walk_boxes','walk_clearance','chef_separation','movement_rule','ground_rule','spawn_rule'):
+        for key in ('presentation','walk_boxes','walk_clearance','chef_separation','movement_rule','ground_rule','spawn_rule','corner_slide'):
             payload['state']['kitchen']['map'].pop(key,None)
         rules = payload['state']['rules']
         geometry = state['map']
