@@ -1,0 +1,292 @@
+{
+ "ladder": [
+  {
+   "level": 1,
+   "rung": "solo",
+   "policy": "solo",
+   "money": 300,
+   "served": 6,
+   "expired": 0,
+   "contribution_rate": 0.849,
+   "harmful": {},
+   "wasted": {
+    "loop": 0,
+    "unused": 13,
+    "support": 1
+   },
+   "dishes_with_both_chefs": 0,
+   "cross_chef_handoffs": 0,
+   "chefs": {
+    "human": {
+     "actions": 93,
+     "contributing": 79,
+     "share_of_contributing": 1.0
+    },
+    "jeff": {
+     "actions": 0,
+     "contributing": 0,
+     "share_of_contributing": 0.0
+    }
+   },
+   "target": 150,
+   "reaches_target": true
+  },
+  {
+   "level": 1,
+   "rung": "solo+random",
+   "policy": "solo+random",
+   "money": 20,
+   "served": 1,
+   "expired": 3,
+   "contribution_rate": 0.134,
+   "harmful": {},
+   "wasted": {
+    "loop": 19,
+    "unused": 15,
+    "support": 24
+   },
+   "dishes_with_both_chefs": 0,
+   "cross_chef_handoffs": 0,
+   "chefs": {
+    "human": {
+     "actions": 15,
+     "contributing": 9,
+     "share_of_contributing": 1.0
+    },
+    "jeff": {
+     "actions": 52,
+     "contributing": 0,
+     "share_of_contributing": 0.0
+    }
+   },
+   "target": 150,
+   "reaches_target": false
+  },
+  {
+   "level": 1,
+   "rung": "pair",
+   "policy": "classic",
+   "money": 300,
+   "served": 6,
+   "expired": 0,
+   "contribution_rate": 0.85,
+   "harmful": {},
+   "wasted": {
+    "loop": 0,
+    "unused": 14,
+    "support": 1
+   },
+   "dishes_with_both_chefs": 6,
+   "cross_chef_handoffs": 22,
+   "chefs": {
+    "human": {
+     "actions": 47,
+     "contributing": 38,
+     "share_of_contributing": 0.447
+    },
+    "jeff": {
+     "actions": 53,
+     "contributing": 47,
+     "share_of_contributing": 0.553
+    }
+   },
+   "target": 150,
+   "reaches_target": true
+  },
+  {
+   "level": 2,
+   "rung": "solo",
+   "policy": "solo",
+   "money": 146,
+   "served": 2,
+   "expired": 1,
+   "contribution_rate": 0.611,
+   "harmful": {
+    "clear": 1,
+    "empty_pot": 1
+   },
+   "wasted": {
+    "loop": 0,
+    "unused": 24,
+    "support": 2
+   },
+   "dishes_with_both_chefs": 0,
+   "cross_chef_handoffs": 0,
+   "chefs": {
+    "human": {
+     "actions": 72,
+     "contributing": 44,
+     "share_of_contributing": 1.0
+    },
+    "jeff": {
+     "actions": 0,
+     "contributing": 0,
+     "share_of_contributing": 0.0
+    }
+   },
+   "target": 150,
+   "reaches_target": false
+  },
+  {
+   "level": 2,
+   "rung": "solo+random",
+   "policy": "solo+random",
+   "money": -26,
+   "served": 0,
+   "expired": 2,
+   "contribution_rate": 0.0,
+   "harmful": {
+    "clear": 3
+   },
+   "wasted": {
+    "loop": 11,
+    "unused": 50,
+    "support": 8
+   },
+   "dishes_with_both_chefs": 0,
+   "cross_chef_handoffs": 0,
+   "chefs": {
+    "human": {
+     "actions": 39,
+     "contributing": 0,
+     "share_of_contributing": null
+    },
+    "jeff": {
+     "actions": 33,
+     "contributing": 0,
+     "share_of_contributing": null
+    }
+   },
+   "target": 150,
+   "reaches_target": false
+  },
+  {
+   "level": 2,
+   "rung": "pair",
+   "policy": "zoned",
+   "money": 318,
+   "served": 4,
+   "expired": 0,
+   "contribution_rate": 0.876,
+   "harmful": {
+    "clear": 1
+   },
+   "wasted": {
+    "loop": 0,
+    "unused": 20,
+    "support": 1
+   },
+   "dishes_with_both_chefs": 4,
+   "cross_chef_handoffs": 30,
+   "chefs": {
+    "human": {
+     "actions": 83,
+     "contributing": 73,
+     "share_of_contributing": 0.468
+    },
+    "jeff": {
+     "actions": 95,
+     "contributing": 83,
+     "share_of_contributing": 0.532
+    }
+   },
+   "target": 150,
+   "reaches_target": true
+  },
+  {
+   "level": 3,
+   "rung": "solo",
+   "policy": "solo",
+   "money": 103,
+   "served": 2,
+   "expired": 2,
+   "contribution_rate": 0.463,
+   "harmful": {
+    "clear": 1
+   },
+   "wasted": {
+    "loop": 0,
+    "unused": 30,
+    "support": 5
+   },
+   "dishes_with_both_chefs": 0,
+   "cross_chef_handoffs": 0,
+   "chefs": {
+    "human": {
+     "actions": 67,
+     "contributing": 31,
+     "share_of_contributing": 1.0
+    },
+    "jeff": {
+     "actions": 0,
+     "contributing": 0,
+     "share_of_contributing": 0.0
+    }
+   },
+   "target": 190,
+   "reaches_target": false
+  },
+  {
+   "level": 3,
+   "rung": "solo+random",
+   "policy": "solo+random",
+   "money": -40,
+   "served": 0,
+   "expired": 4,
+   "contribution_rate": 0.0,
+   "harmful": {},
+   "wasted": {
+    "loop": 0,
+    "unused": 14,
+    "support": 5
+   },
+   "dishes_with_both_chefs": 0,
+   "cross_chef_handoffs": 0,
+   "chefs": {
+    "human": {
+     "actions": 13,
+     "contributing": 0,
+     "share_of_contributing": null
+    },
+    "jeff": {
+     "actions": 6,
+     "contributing": 0,
+     "share_of_contributing": null
+    }
+   },
+   "target": 190,
+   "reaches_target": false
+  },
+  {
+   "level": 3,
+   "rung": "pair",
+   "policy": "classic",
+   "money": 390,
+   "served": 6,
+   "expired": 0,
+   "contribution_rate": 0.957,
+   "harmful": {},
+   "wasted": {
+    "loop": 0,
+    "unused": 4,
+    "support": 1
+   },
+   "dishes_with_both_chefs": 6,
+   "cross_chef_handoffs": 11,
+   "chefs": {
+    "human": {
+     "actions": 65,
+     "contributing": 63,
+     "share_of_contributing": 0.573
+    },
+    "jeff": {
+     "actions": 50,
+     "contributing": 47,
+     "share_of_contributing": 0.427
+    }
+   },
+   "target": 190,
+   "reaches_target": true
+  }
+ ]
+}

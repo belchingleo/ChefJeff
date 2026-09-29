@@ -17,6 +17,20 @@ reference pair is two scripted chefs. The 'latency' variant lets Jeff decide
 only every 3 game seconds to approximate model response time.
 
     python scripts/reference_sweep.py --fixed --variants fast --out docs/architecture/reports/pacing-sweep-fixed.json
+
+--ladder runs each level's configured round with a baseline ladder (owner decision
+2026-09-28) and the collaboration analysis of every rung:
+
+- solo: one scripted chef (tests/reference_policy.choose_solo), the other idle;
+- solo + random: the same chef with a partner choosing uniformly among its legal
+  actions (seeded);
+- pair: the best scripted reference pair (the calibration above).
+
+A model-controlled Jeff is the fourth rung; it needs a paid model and is measured
+from real rounds (collaboration_analyzer.py on a session bundle). The level design
+constraint "one chef cannot reach the target" is checked against the solo rung.
+
+    python scripts/reference_sweep.py --ladder --out docs/architecture/reports/baseline-ladder.json
 """
 import argparse
 import itertools
@@ -82,6 +96,59 @@ def play(level, interval, countdowns, seed, variant, pair, swap):
     return k
 
 
+def random_partner(seed):
+    import random
+    rng = random.Random(seed)
+
+    def choose(k, who, role):
+        if k.chefs[who].job is not None:
+            return None
+        actions = [a for a in k.actions(who) if a.kind != 'stop']
+        return rng.choice(actions) if actions else None
+    return choose
+
+
+def rung(level, name, seed=0):
+    """One ladder rung on the level's configured (frozen) round."""
+    import reference_policy
+    from spatial_kitchen import SpatialKitchen
+    from collaboration_analyzer import analyze_collaboration
+    policy = cc.load_level(f'level-{level}')['order_policy']
+    if name == 'pair':
+        best = max(((pair, swap) for pair in ('classic', 'zoned') for swap in (False, True)),
+                   key=lambda ps: play(level, policy['interval_game_ms'], policy['patience_by_recipe'], None, 'fast', *ps).money)
+        k = play(level, policy['interval_game_ms'], policy['patience_by_recipe'], None, 'fast', *best)
+        label = best[0] + (' swapped' if best[1] else '')
+    else:
+        k = SpatialKitchen(cc.load_level(f'level-{level}'))
+        partner = random_partner(seed)
+
+        def choose(k, who, role):
+            return reference_policy.choose_solo(k, who) if role == 'solo' else partner(k, who, role)
+        roles = (('human', 'solo'),) + ((('jeff', 'random'),) if name == 'solo+random' else ())
+        drive(k, roles, choose, {'human': 10, 'jeff': 10})
+        label = name
+    report = analyze_collaboration(k)
+    return {'level': level, 'rung': name, 'policy': label, 'money': k.money, 'served': k.served,
+            'expired': sum(o['status'] == 'expired' for o in k.orders),
+            'contribution_rate': report['contribution_rate'], 'harmful': report['harmful']['by_reason'],
+            'wasted': report['wasted']['by_label'], 'dishes_with_both_chefs': report['dishes_with_both_chefs'],
+            'cross_chef_handoffs': report['cross_chef_handoffs'],
+            'chefs': {w: {x: c[x] for x in ('actions', 'contributing', 'share_of_contributing')} for w, c in report['chefs'].items()}}
+
+
+def ladder(levels):
+    rows = []
+    for level in levels:
+        target = cc.load_level(f'level-{level}')['level']['goal']['min_money']
+        for name in ('solo', 'solo+random', 'pair'):
+            row = rung(level, name)
+            row['target'] = target
+            row['reaches_target'] = row['money'] >= target
+            rows.append(row)
+    return rows
+
+
 def run(job):
     level, interval, countdowns, seed, variant = job
     best = None
@@ -131,8 +198,15 @@ def main():
     parser.add_argument('--levels', default='1,2,3')
     parser.add_argument('--variants', default='fast,latency')
     parser.add_argument('--only', help='JSON {level: [[interval_ms, {dish: countdown_ms}], ...]} to restrict candidates')
+    parser.add_argument('--ladder', action='store_true', help="baseline ladder on each level's configured round")
     parser.add_argument('--out', default=str(ROOT / 'docs' / 'architecture' / 'reports' / 'pacing-sweep.json'))
     args = parser.parse_args()
+    if args.ladder:
+        rows = ladder([int(x) for x in args.levels.split(',')])
+        Path(args.out).write_text(json.dumps({'ladder': rows}, ensure_ascii=False, indent=1) + '\n')
+        for row in rows:
+            print(row['level'], row['rung'], row['money'], '/', row['target'], row['served'], row['contribution_rate'], row['harmful'], row['wasted'])
+        return
     levels = [int(x) for x in args.levels.split(',')]
     only = json.loads(args.only) if args.only else None
     jobs = []

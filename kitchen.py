@@ -11,6 +11,7 @@ import json
 import math
 from pathlib import Path
 
+from provenance import Provenance
 from rules import Rules, runtime_config
 
 ROOT = Path(__file__).resolve().parent
@@ -168,6 +169,8 @@ class Kitchen:
         self.shared_overlap = {}
         self.revision = 0
         self.serial = 0
+        # Read-only record of which completed actions touched which items (provenance.py).
+        self.provenance = Provenance()
         self.job_serial = 0
         self.money = 0
         self.time_bonus = 0
@@ -986,7 +989,7 @@ class Kitchen:
                     for participant in self.work_participants(job.action.target,job.action.kind):
                         self.chefs[participant].job.work=job.work
                 if job.work <= 1e-8:
-                    self._finish(who, job)
+                    self.provenance.around_finish(self, who, job, lambda: self._finish(who, job))
                     # Settle at the winning delivery, before another action or
                     # unneeded order can change an already completed mission.
                     if self.ends_on_win() and self.won():

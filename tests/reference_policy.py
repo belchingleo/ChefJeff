@@ -354,3 +354,29 @@ def choose_zoned(k, who, role):
     if st['returns'].get('food') and not sink:
         return _pick(actions, 'take_return', 'returns')
     return None
+
+
+# --- One chef alone --------------------------------------------------------------
+# Calibration only (scripts/reference_sweep.py): the "single chef" baseline. One chef
+# takes both roles: beef work that cannot wait (fire, burnt pot, ready beef for the
+# plate, chopping and loading beef) first, then fetching beef when none is in the
+# pipeline, then the assembler's work. It is a scripted lower bound on what one chef
+# can earn, not a claim about the best solo play.
+_URGENT_COOK = ('take_tool', 'clear', 'lift_pot', 'take_board', 'chop', 'put_pot', 'return_pot', 'plate_counter', 'empty_pot')
+
+
+def choose_solo(k, who, role=None):
+    state = k.snapshot()
+    me = state['chefs'][who]
+    if me['job_id'] is not None:
+        return None
+    hand = me['holding']
+    if hand:
+        cookish = hand['stage'] in ('pot', 'extinguisher') or (hand.get('ingredient') == 'beef' and not hand.get('plate_id'))
+        return choose(k, who, 'cook' if cookish else 'assembler')
+    cook = choose(k, who, 'cook')
+    if cook and cook.kind in _URGENT_COOK:
+        return cook
+    if cook and cook.kind == 'fetch':
+        return cook
+    return choose(k, who, 'assembler') or cook
