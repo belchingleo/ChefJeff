@@ -850,7 +850,10 @@ export class KitchenClient extends Component {
         for(const child of body.children)if(!['held','reviewed-art'].includes(child.name))child.active=!shown;
         if(inWorld)this.chopImpact(who,hasAction&&phase===2&&beat<.62,(beat-.45)/.17);
         if(shown){
-            body.setScale(1,1,1);body.angle=0;body.setPosition(0,0);
+            // Working at a station in front (facing down), the chef stands behind a waist-high
+            // counter: sink the body so the counter hides the legs and the hands meet its edge.
+            const behind=inWorld&&this.useModularArt&&!!working&&facing==='down'&&!!station;
+            body.setScale(1,1,1);body.angle=0;body.setPosition(0,behind?-10:0);
             if(inWorld&&this.useModularArt){
                 body.parent!.getChildByName('contact-shadow')?.setPosition(0,0);
                 body.parent!.getChildByName('name')?.setPosition(0,-12);

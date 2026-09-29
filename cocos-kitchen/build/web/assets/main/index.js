@@ -2018,9 +2018,12 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }
           if (inWorld) this.chopImpact(who, hasAction && phase === 2 && beat < .62, (beat - .45) / .17);
           if (shown) {
+            // Working at a station in front (facing down), the chef stands behind a waist-high
+            // counter: sink the body so the counter hides the legs and the hands meet its edge.
+            var behind = inWorld && this.useModularArt && !!working && facing === 'down' && !!station;
             body.setScale(1, 1, 1);
             body.angle = 0;
-            body.setPosition(0, 0);
+            body.setPosition(0, behind ? -10 : 0);
             if (inWorld && this.useModularArt) {
               var _getChildByName, _getChildByName2;
               (_getChildByName = body.parent.getChildByName('contact-shadow')) == null || _getChildByName.setPosition(0, 0);
