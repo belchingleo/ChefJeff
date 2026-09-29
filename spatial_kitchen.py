@@ -353,6 +353,30 @@ class SpatialKitchen(Kitchen):
             else:high=mid
         return tuple(start[i]+(end[i]-start[i])*low for i in (0,1))
 
+    def corner_offset(self,start,vector):
+        """Smallest sideways shift (signed, cells) that lets a blocked single-direction step continue."""
+        axis=0 if vector[0] and not vector[1] else 1 if vector[1] and not vector[0] else None
+        if axis is None:return None
+        side=1-axis;probe=.05
+        for n in range(1,int(round(self.rules.corner_slide/.01))+1):
+            for sign in (-1.,1.):
+                shifted=list(start);shifted[side]+=sign*n*.01
+                ahead=list(shifted);ahead[axis]+=vector[axis]*probe
+                if self.nav.clear_walk_line(start,tuple(shifted)) and self.nav.clear_walk_line(tuple(shifted),tuple(ahead)):
+                    return sign*n*.01,side
+        return None
+
+    def _corner_slide(self,who,vector,budget,boosted):
+        # Keyboard walking out of a shallow notch (e.g. a board face set between counters):
+        # slide sideways by at most the ruleset's corner_slide_cells, then keep walking.
+        found=self.corner_offset(self.positions[who],vector)
+        if not found:return 0.
+        offset,side=found
+        before=self.positions[who]
+        target=list(before);target[side]+=math.copysign(min(abs(offset),budget),offset)
+        self._move_with_chef_contact(who,tuple(target),boosted)
+        return math.dist(before,self.positions[who])
+
     def _push_chef(self,other,delta):
         # Active interactions are anchored: contact must not displace the chef,
         # interrupt shared progress or invalidate station/ground reservations.
@@ -1054,6 +1078,14 @@ class SpatialKitchen(Kitchen):
                     start = self.positions[who]
                     candidate = list(start);candidate[axis] += vector[axis]*walk*move_seconds
                     self._move_with_chef_contact(who,tuple(candidate),boosted>0)
+            remaining=walk*move_seconds*math.hypot(*vector)-math.dist(move_start,self.positions[who])
+            if self.rules.corner_slide and remaining>1e-9:
+                # The rest of this step's distance slides out of the notch and walks on, as the client predicts.
+                slid=self._corner_slide(who,vector,remaining,boosted>0)
+                left=remaining-slid
+                if slid>1e-9 and left>1e-9:
+                    here=self.positions[who];ahead=tuple(here[i]+vector[i]*left for i in (0,1))
+                    if self.nav.clear_walk_line(here,ahead):self._move_with_chef_contact(who,ahead,boosted>0)
             if boosted>0:self._nudge_food(who,move_start,self.positions[who])
             self.chefs[who].location = tile_key(self.anchor(who))
         for key, p in list(self.projectiles.items()):
@@ -1099,6 +1131,7 @@ class SpatialKitchen(Kitchen):
                         'equipment': self.equipment, 'walk_speed': r.walk_speed,
                         # Exact foot-blocking boxes, so the client can predict held-key movement.
                         'walk_boxes': [list(b) for b in self.nav.walk_boxes], 'walk_clearance': WALK_CLEARANCE, 'chef_separation': r.chef_separation,
+                        **({'corner_slide': r.corner_slide} if r.corner_slide else {}),
                         'presentation': self.map_document['presentation'],
                         'layout_version': self.map_document['id']+'-'+str(self.map_document['revision']), 'spawn_rule': 'One chef near the center of each working area; assigned sides are randomized',
                         'movement_rule': '工位可从相邻可达空地就近操作。墙和设备不能穿过；厨师接触时贴边滑动并缓慢推挤，冲刺可轻撞对方至多四分之一格。人类和 AI 共用接触规则，不自动重新规划绕人路线。普通走路可穿过地面食物。',

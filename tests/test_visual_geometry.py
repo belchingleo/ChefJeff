@@ -37,6 +37,27 @@ def server_walks():
                 if min(math.dist(p, k.positions['jeff']) for p in (before, after)) > 1:
                     steps.append([before, [vector[0]*WALK_SPEED*.05, vector[1]*WALK_SPEED*.05], after])
         walks.append({'level': level, 'map': k.snapshot()['map'], 'steps': steps})
+    # Service rules add corner sliding: include the notch in front of a board set between
+    # counters (level 2, board 2), where a sideways key first slides the chef out. Single
+    # directions only: sliding applies to one held direction.
+    import config_contract as cc
+    for level_id, starts in (('level-1', [None]), ('level-2', [None, (6.15, 6.5), (6.0, 6.49)]), ('level-3', [None])):
+        steps = []
+        for start in starts:
+            for vx, vy in ((1,0),(-1,0),(0,1),(0,-1)):
+                k = SpatialKitchen(cc.load_level(level_id))
+                k.positions['jeff'] = (k.nav.width - 2, 1.5) if start else k.positions['jeff']
+                if start:
+                    k.positions['human'] = start
+                k.set_manual('human', vx, vy)
+                vector = k.manual['human']
+                for _ in range(40):
+                    before = k.positions['human']
+                    k.advance(.05)
+                    after = k.positions['human']
+                    if min(math.dist(p, k.positions['jeff']) for p in (before, after)) > 1:
+                        steps.append([before, [vector[0]*WALK_SPEED*.05, vector[1]*WALK_SPEED*.05], after])
+        walks.append({'level': level_id, 'map': k.snapshot()['map'], 'steps': steps})
     return walks
 
 

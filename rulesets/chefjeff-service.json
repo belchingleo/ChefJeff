@@ -39,7 +39,8 @@
       "after_game_ms": 300,
       "min_progress_cells": 0.05
     },
-    "approach_partner": true
+    "approach_partner": true,
+    "corner_slide_cells": 0.3
   },
   "throw": {
     "enabled": true,

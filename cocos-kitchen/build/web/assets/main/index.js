@@ -2856,6 +2856,7 @@ System.register("chunks:///_virtual/KitchenGeometry.ts", ['cc'], function (expor
     execute: function () {
       exports({
         burgerLayers: burgerLayers,
+        cornerOffset: cornerOffset,
         depthOrder: depthOrder,
         flightDepth: flightDepth,
         footWalkable: footWalkable,
@@ -2955,8 +2956,25 @@ System.register("chunks:///_virtual/KitchenGeometry.ts", ['cc'], function (expor
           return b[0] + e < x && x < b[2] - e && b[1] + e < y && y < b[3] - e;
         });
       }
+      /** Sideways shift (signed cells, on the other axis) that lets a blocked single-direction
+       * step continue: the server's corner_offset, within map.corner_slide. */
+      function cornerOffset(map, x, y, dx, dy) {
+        var limit = map.corner_slide;
+        if (!limit || dx && dy || !dx && !dy) return 0;
+        var horizontal = !!dx,
+          step = Math.sign(dx || dy) * .05;
+        for (var n = 1; n <= Math.round(limit / .01); n++) for (var _i = 0, _arr = [-1, 1]; _i < _arr.length; _i++) {
+          var sign = _arr[_i];
+          var o = sign * n * .01,
+            px = horizontal ? x : x + o,
+            py = horizontal ? y + o : y;
+          if (footWalkable(map, px, py) && footWalkable(map, horizontal ? px + step : px, horizontal ? py : py + step)) return o;
+        }
+        return 0;
+      }
       /** Local prediction of a held-key walk: straight when clear, otherwise each axis slides
-       * up to the blocking edge, as the server does. Never steps deeper into the teammate. */
+       * up to the blocking edge, as the server does; a fully blocked single-direction step
+       * slides sideways out of a shallow notch (map.corner_slide). Never steps deeper into the teammate. */
       function predictWalk(map, from, dx, dy, other) {
         var _map$chef_separation;
         var n = Math.max(1, Math.ceil(Math.hypot(dx, dy) / .02)),
@@ -2974,8 +2992,15 @@ System.register("chunks:///_virtual/KitchenGeometry.ts", ['cc'], function (expor
             y += sy;
             continue;
           }
+          var bx = x,
+            by = y;
           if (sx && ok(x + sx, y, x, y)) x += sx;
           if (sy && ok(x, y + sy, x, y)) y += sy;
+          if (x === bx && y === by) {
+            var o = cornerOffset(map, x, y, sx, sy),
+              d = Math.min(Math.abs(o), Math.hypot(sx, sy)) * Math.sign(o);
+            if (o && sx && ok(x, y + d, x, y)) y += d;else if (o && sy && ok(x + d, y, x, y)) x += d;
+          }
         }
         return [x, y];
       }

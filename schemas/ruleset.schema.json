@@ -155,6 +155,12 @@
           },
           "additionalProperties": false
         },
+        "corner_slide_cells": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 0.5,
+          "description": "Keyboard walking: when a single-direction step is fully blocked and moving sideways by at most this many cells would clear it (for example out of the notch in front of a board set between counters), the chef slides sideways first. Absent: no slide."
+        },
         "approach_partner": {
           "type": "boolean",
           "description": "Offer \"go partner\": walk to the other chef until contact, which pushes it (a sprint adds one bounded shove). Absent: no such action."

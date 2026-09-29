@@ -204,6 +204,8 @@ class Rules:
         self.stall_progress = stall['min_progress_cells'] if stall else None
         # Optional: "go partner" walks into the other chef until contact (pushing it). Absent = no such action.
         self.approach_partner = move.get('approach_partner', False)
+        # Optional: a held key blocked by an edge this close sideways slides the chef around it. Absent = no slide.
+        self.corner_slide = move.get('corner_slide_cells')
         # Extra speed fraction while sprinting (1.4x -> 0.4), rounded to the authored precision.
         self.sprint_boost = round(self.sprint_multiplier - 1, 12)
         self.throw_enabled = throw['enabled']
