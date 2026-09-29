@@ -80,7 +80,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
       var PIXEL = 'ChefJeffPixel, sans-serif';
       // Result events reach the player; AI decision notes have their own status line.
       var RESULT_ANNOUNCE = new Set(['order', 'served', 'bad_service', 'expired', 'ready', 'burn', 'fire', 'fire_spread', 'fire_loss']);
-      var TAB_ORDER = ['language', 'level1', 'level2', 'level3', 'main', 'reset', 'cover-connection', 'help', 'resume', 'pause', 'end'];
+      var TAB_ORDER = ['language', 'level1', 'level2', 'level3', 'main', 'reset', 'cover-connection', 'help', 'record', 'resume', 'pause', 'end'];
       var LEVEL_NAMES = ['', '第一关 · 牛排', '第二关 · 汉堡', '第三关 · 牛-堡'];
       var STAGES = {
         raw: '生肉',
@@ -167,6 +167,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           _this.focusId = "";
           _this.meters = {};
           _this.overlayPhase = "";
+          _this.recordShown = "";
           _this.devices = {};
           _this.people = {};
           _this.motions = {};
@@ -401,7 +402,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                   _this.processEvents();
                   _this.render();
                   _this.hideLoading();
-                  _context.next = 49;
+                  _context.next = 50;
                   break;
                 case 35:
                   _context.prev = 35;
@@ -417,16 +418,17 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                   _this.set('coverText', '暂时连接不上厨房，请稍后重试。\n连接中断时，游戏会自动暂停。');
                   _this.writeLabel(_this.buttons.main.label, '重新连接');
                   _this.buttons.reset.node.active = false;
+                  _this.buttons.record.node.active = false;
                   _this.labels['welcome-tip'].node.active = true;
-                case 49:
-                  _context.prev = 49;
+                case 50:
+                  _context.prev = 50;
                   _this.polling = false;
-                  return _context.finish(49);
-                case 52:
+                  return _context.finish(50);
+                case 53:
                 case "end":
                   return _context.stop();
               }
-            }, _callee, null, [[3, 35, 49, 52]]);
+            }, _callee, null, [[3, 35, 50, 53]]);
           }));
           _this.tagText = {};
           return _this;
@@ -568,6 +570,11 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }, this.cover).getComponentInChildren(Label), 12);
           if (sys.isNative) this.buttons.language.node.active = false;
           this.text('welcome-tip', '先看操作说明，准备好了就开店。', 333, 577, 614, 19, 11, this.cover).horizontalAlign = Label.HorizontalAlign.CENTER;
+          // The round record shares the tip's row: the tip shows before a round, the record after it.
+          this.button('record', '本局记录', 561, 566, 158, 36, function () {
+            return _this2.openRecord();
+          }, this.cover);
+          this.buttons.record.node.active = false;
           if (!sys.isNative) {
             // Screen-reader proxies for every canvas button. Canvas focus moves DOM
             // focus to the matching proxy so assistive technology follows it.
@@ -664,6 +671,12 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           this.hidden = false;
           this.poll();
         };
+        _proto.openRecord = function openRecord() {
+          var _this$state11;
+          if (!sys.isNative && (_this$state11 = this.state) != null && _this$state11.round_summary) window.dispatchEvent(new CustomEvent('kitchen-open-record', {
+            detail: this.state.round_summary
+          }));
+        };
         _proto.openHelp = function openHelp() {
           this.clearInput();
           if (!sys.isNative) window.dispatchEvent(new Event('kitchen-open-help'));
@@ -689,12 +702,12 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
         _proto.confirm = /*#__PURE__*/
         function () {
           var _confirm = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee2(kind) {
-            var _this$state11;
+            var _this$state12;
             var phase, resume;
             return _regeneratorRuntime().wrap(function _callee2$(_context2) {
               while (1) switch (_context2.prev = _context2.next) {
                 case 0:
-                  phase = (_this$state11 = this.state) == null ? void 0 : _this$state11.phase;
+                  phase = (_this$state12 = this.state) == null ? void 0 : _this$state12.phase;
                   if (!(sys.isNative || kind === 'restart' && phase !== 'paused')) {
                     _context2.next = 4;
                     break;
@@ -1182,8 +1195,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               return true;
             }
             if (type === 'serve') {
-              var _this$state12;
-              var facing = (_this$state12 = this.state) == null || (_this$state12 = _this$state12.kitchen.map.equipment.serve) == null ? void 0 : _this$state12.facing;
+              var _this$state13;
+              var facing = (_this$state13 = this.state) == null || (_this$state13 = _this$state13.kitchen.map.equipment.serve) == null ? void 0 : _this$state13.facing;
               return this.art.tile(node, facing === 'east' ? 'serving_east' : 'serving_west', TILE);
             }
             if (tops[type] && this.art.tile(node, tops[type], TILE)) return true;
@@ -1291,10 +1304,10 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           if (sprite) sprite.color = new Color(120, 112, 106, 255);
         };
         _proto.drawPot = function drawPot(node) {
-          var _node$parent, _node$parent2, _node$parent$parent, _this$state13;
+          var _node$parent, _node$parent2, _node$parent$parent, _this$state14;
           var station = (_node$parent = node.parent) != null && _node$parent.name.startsWith('station-') ? node.parent.name.slice(8) : '';
           var holder = ((_node$parent2 = node.parent) == null ? void 0 : _node$parent2.name) === 'body' ? (_node$parent$parent = node.parent.parent) == null ? void 0 : _node$parent$parent.name : '';
-          var facing = holder ? (_this$state13 = this.state) == null || (_this$state13 = _this$state13.kitchen.chefs[holder]) == null ? void 0 : _this$state13.facing : '';
+          var facing = holder ? (_this$state14 = this.state) == null || (_this$state14 = _this$state14.kitchen.chefs[holder]) == null ? void 0 : _this$state14.facing : '';
           var axis = station ? stationView(this.state.kitchen.map, station).device_axis : facing === 'up' || facing === 'down' ? 'vertical' : 'horizontal';
           return this.art.centered(node, this.art.has('modular/pot_' + axis) ? 'modular/pot_' + axis : 'objects/pot', TILE * (axis === 'vertical' ? .62 : .76), TILE * .76);
         };
@@ -1327,23 +1340,23 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
         }
         /** A plate drawn as layers: any plate but a lone beef where the menu serves beef alone (steak). */;
         _proto.platedAssembly = function platedAssembly(f) {
-          var _f$components, _this$state14;
+          var _f$components, _this$state15;
           if (!(f != null && f.plate_id) || !((_f$components = f.components) != null && _f$components.length)) return false;
           if (f.components.some(function (x) {
             return x !== 'beef';
           })) return true;
-          var menu = (_this$state14 = this.state) == null ? void 0 : _this$state14.kitchen.menu;
+          var menu = (_this$state15 = this.state) == null ? void 0 : _this$state15.kitchen.menu;
           return !!menu && !menu.some(function (d) {
             var _d$components;
             return ((_d$components = d.components) == null ? void 0 : _d$components.length) === 1 && d.components[0].item === 'beef';
           });
         };
         _proto.itemStage = function itemStage(f) {
-          var _this$state15;
+          var _this$state16;
           // Burnt burgers keep their layers (burnt dishes can be served); only the beef is drawn charred.
           if (this.platedAssembly(f)) return 'assembly:' + f.components.join(',') + (f.stage === 'burnt' ? ',burnt' : '');
           if (['bread', 'lettuce', 'tomato'].includes(f == null ? void 0 : f.ingredient) && !(f != null && f.plate_id)) return f.ingredient + '_' + f.stage;
-          if (this.useArt && (f == null ? void 0 : f.stage) === 'raw' && (f == null ? void 0 : f.ingredient) === 'beef' && f.chop_remaining < (((_this$state15 = this.state) == null || (_this$state15 = _this$state15.rules) == null ? void 0 : _this$state15.chop_seconds) || 6)) return 'processing';
+          if (this.useArt && (f == null ? void 0 : f.stage) === 'raw' && (f == null ? void 0 : f.ingredient) === 'beef' && f.chop_remaining < (((_this$state16 = this.state) == null || (_this$state16 = _this$state16.rules) == null ? void 0 : _this$state16.chop_seconds) || 6)) return 'processing';
           return (f == null ? void 0 : f.stage) === 'pot' ? f.contents ? 'pot_' + f.contents.stage : 'pot' : f != null && f.plate_id ? 'plated_' + f.stage : f == null ? void 0 : f.stage;
         };
         _proto.chef = function chef(parent, name, x, y, who, scale) {
@@ -1562,8 +1575,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           return post;
         }();
         _proto.act = function act(key) {
-          var _this$state16;
-          var a = (_this$state16 = this.state) == null ? void 0 : _this$state16.actions.find(function (a) {
+          var _this$state17;
+          var a = (_this$state17 = this.state) == null ? void 0 : _this$state17.actions.find(function (a) {
             return a.key === key;
           });
           if (a) this.post('/api/action', {
@@ -1974,7 +1987,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           this.mounted = true;
         };
         _proto.characterArt = function characterArt(body, who, facing, walking, working) {
-          var _this$state17, _this$state18, _URLSearchParams$get;
+          var _this$state18, _this$state19, _URLSearchParams$get;
           if (walking === void 0) {
             walking = false;
           }
@@ -1982,8 +1995,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             working = false;
           }
           var kind = who === 'human' ? 'player' : 'jeff',
-            chef = (_this$state17 = this.state) == null ? void 0 : _this$state17.kitchen.chefs[who];
-          var station = (_this$state18 = this.state) == null ? void 0 : _this$state18.kitchen.map.equipment[chef == null ? void 0 : chef.target];
+            chef = (_this$state18 = this.state) == null ? void 0 : _this$state18.kitchen.chefs[who];
+          var station = (_this$state19 = this.state) == null ? void 0 : _this$state19.kitchen.map.equipment[chef == null ? void 0 : chef.target];
           var inWorld = !!body.parent && ['human', 'jeff'].includes(body.parent.name);
           var chopping = !!working && inWorld && (chef == null ? void 0 : chef.action_kind) === 'chop' && !!station;
           var sampleFrame = this.prepSample ? Number((_URLSearchParams$get = new URLSearchParams(location.search).get('prepFrame')) != null ? _URLSearchParams$get : -1) : -1;
@@ -2579,6 +2592,12 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           this.writeLabel(this.buttons.main.label, s.phase === 'ready' ? '开始经营' : s.phase === 'paused' ? '继续经营' : '准备下一局');
           if (s.phase === 'ready' && s.connection && !s.connection.configured) this.writeLabel(this.buttons.main.label, '先连接搭档');
           this.labels['welcome-tip'].node.active = s.phase === 'ready';
+          this.buttons.record.node.active = s.phase === 'ended' && !!s.round_summary;
+          // Shown once per round, as soon as its record exists; the button reopens it.
+          if (s.phase === 'ended' && s.round_summary && this.recordShown !== s.game_id) {
+            this.recordShown = s.game_id;
+            this.openRecord();
+          }
           var settlement = k.settlement;
           var service = k.goals.max_bad_reviews == null;
           // Service levels close at 180 s: say so plainly, whatever the outcome.

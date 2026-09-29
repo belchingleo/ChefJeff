@@ -431,7 +431,30 @@
     "移动 · WASD / 方向键": "Move · WASD / arrow keys",
     "抛掷与传菜 · E": "Throw and pass · E",
     "按住方向键移动，松开停止；走开会停下切菜和洗碗，进度保留。厨房里不用鼠标，左下角沟通菜单可以点。": "Hold WASD or arrow keys to move; release to stop. Walking away stops chopping and washing; progress is kept. The kitchen needs no mouse; the communication menu can be clicked.",
-    "按 E 向面前抛出；队友在前方射程内时抛给他。生食材、切好的原料、餐盘、装盘菜、锅和灭火器都能抛，最远 4 格。抛到射程尽头的地上，遇墙落在墙前。队友空手、在走路或站着时能接住；正在切菜、洗碗或手里有东西时不会被打断，东西落在他旁边，盘里的菜和锅里的东西都保留。玩家与 AI 规则相同。": "Press E to throw forward; a teammate ahead within range gets it. Raw and chopped ingredients, plates, plated dishes, pots and the extinguisher all fly up to 4 tiles. Items land at the range limit on the floor; walls stop them before the wall. An empty-handed teammate who is walking or standing catches it; one who is chopping, washing or holding something is not interrupted and the item lands beside them, keeping plated food and pot contents. The player and the AI follow the same rules."
+    "按 E 向面前抛出；队友在前方射程内时抛给他。生食材、切好的原料、餐盘、装盘菜、锅和灭火器都能抛，最远 4 格。抛到射程尽头的地上，遇墙落在墙前。队友空手、在走路或站着时能接住；正在切菜、洗碗或手里有东西时不会被打断，东西落在他旁边，盘里的菜和锅里的东西都保留。玩家与 AI 规则相同。": "Press E to throw forward; a teammate ahead within range gets it. Raw and chopped ingredients, plates, plated dishes, pots and the extinguisher all fly up to 4 tiles. Items land at the range limit on the floor; walls stop them before the wall. An empty-handed teammate who is walking or standing catches it; one who is chopping, washing or holding something is not interrupted and the item lands beside them, keeping plated food and pot contents. The player and the AI follow the same rules.",
+    "本局记录": "Round record",
+    "工作": "Work",
+    "取食材": "Fetch ingredients",
+    "下锅加热": "Put on to cook",
+    "装盘与组装": "Plating and assembly",
+    "刷碗": "Dishwashing",
+    "收脏盘": "Collect dirty plates",
+    "抛接传递": "Throws and catches",
+    "灭火": "Put out fires",
+    "丢弃与清锅": "Discard and clear",
+    "已出餐": "Served",
+    "送错": "Wrong dish",
+    "拒收": "Refused",
+    "抛出": "Thrown",
+    "接住": "Caught",
+    "丢弃食物": "Food discarded",
+    "清理糊锅": "Burnt pot cleared",
+    "倒掉锅里食物": "Pot emptied",
+    "对出餐的贡献": "Share of served work",
+    "返回结算": "Back to results",
+    "按完成的动作计数；两人一起切的菜各记一次。": "Counts completed actions; food chopped together counts once for each chef.",
+    "牛肉": "Beef",
+    "牛排": "Steak"
   },
   "templates": [
     [
@@ -829,6 +852,18 @@
     [
       "{0} · 当前",
       "{0} · current"
+    ],
+    [
+      "熟 {0}",
+      "cooked {0}"
+    ],
+    [
+      "糊 {0}",
+      "burnt {0}"
+    ],
+    [
+      "合切 {0}",
+      "shared {0}"
     ]
   ]
 }

@@ -351,6 +351,68 @@ function kitchenTabs(dialog){
  document.getElementById('help-close').onclick=document.getElementById('help-x').onclick=()=>help.close();})();
 </script>
 <style>
+/* End-of-round record: generated from the round's summary (round_summary.py), never per level. */
+#kitchen-record-dialog{width:min(560px,calc(100vw - 28px))}
+#record-result{margin:0 0 12px;color:var(--ink);font:15px/24px var(--pixel)}
+#record-table{width:100%;border-collapse:collapse;font:15px/22px var(--body);color:var(--ink)}
+#record-table th,#record-table td{padding:6px 8px;border-bottom:1px solid var(--surface);text-align:right;vertical-align:top}
+#record-table th:first-child,#record-table td:first-child{text-align:left}
+#record-table thead th{font:12px/16px var(--pixel);color:var(--muted);border-bottom:2px solid var(--walnut)}
+#record-table tr.category th{font:15px/22px var(--pixel);font-weight:400}
+#record-table tr.category td{font-weight:600}
+#record-table tr.detail th{padding-left:24px;font-weight:400;color:var(--muted)}
+#record-table tr.share th,#record-table tr.share td{border-top:2px solid var(--walnut);border-bottom:0;font-weight:600}
+#record-table .note{display:block;font-size:12px;line-height:16px;color:var(--muted);font-weight:400;white-space:nowrap}
+</style>
+<dialog id="kitchen-record-dialog" class="panel" aria-labelledby="record-title">
+ <div class="dlg-head"><h2 id="record-title">本局记录</h2><button id="record-x" class="btn close" type="button" aria-label="返回结算">×</button></div>
+ <div class="dlg-body">
+  <p id="record-result"></p>
+  <table id="record-table">
+   <thead><tr><th scope="col">工作</th><th scope="col">你</th><th scope="col">Jeff</th></tr></thead>
+   <tbody></tbody>
+  </table>
+  <p>按完成的动作计数；两人一起切的菜各记一次。</p>
+ </div>
+ <div class="dlg-foot"><button id="record-close" class="btn primary" type="button">返回结算</button></div>
+</dialog>
+<script>
+(()=>{const dialog=document.getElementById('kitchen-record-dialog'),body=dialog.querySelector('tbody');
+ // Engine work categories (shared by every level); details and names come from the round itself.
+ const CATEGORY={fetch:'取食材',chop:'切菜',heat:'下锅加热',assemble:'装盘与组装',serve:'出餐',wash:'刷碗',
+  collect_plates:'收脏盘',pass:'抛接传递',extinguish:'灭火',discard:'丢弃与清锅'};
+ const DETAIL={served:'已出餐',wrong_dish:'送错',refused:'拒收',bad_service:'差评',thrown:'抛出',caught:'接住',
+  discard:'丢弃食物',clear:'清理糊锅',empty_pot:'倒掉锅里食物'};
+ const NOTE={cooked:'熟',burnt:'糊',shared:'合切'};
+ const CHEFS=['human','jeff'];
+ function add(parent,tag,text,cls){const n=document.createElement(tag);if(text!=null)n.textContent=text;if(cls)n.className=cls;parent.appendChild(n);return n;}
+ function line(kind,label,counts,detail){
+  const tr=add(body,'tr',null,kind),th=add(tr,'th',null);th.scope='row';
+  for(const part of label)add(th,'span',part);
+  for(const who of CHEFS){const td=add(tr,'td',String(counts[who]??0));
+   for(const key of Object.keys(NOTE))if(detail&&detail[key]&&detail[key][who])add(td,'span',`${NOTE[key]} ${detail[key][who]}`,'note');}
+ }
+ function render(s){
+  const r=s.result||{};
+  document.getElementById('record-result').textContent=r.target_money!=null
+   ?`出餐 ${r.served} 单 · 净收入 ¥${r.money} / ¥${r.target_money}`:`出餐 ${r.served} 单`;
+  body.textContent='';
+  for(const row of s.rows||[]){
+   line('category',[CATEGORY[row.category]||row.category],row.counts);
+   for(const d of row.details||[]){
+    const label=d.outcome?[DETAIL[d.outcome]||d.outcome,' · ',d.name||d.dish]:[d.name||DETAIL[d.id]||d.id];
+    // Details with neither a name nor a known label would only repeat their category.
+    if(d.name||d.outcome||DETAIL[d.id]||Object.keys(NOTE).some(k=>d[k]))line('detail',label,d.counts,d);
+   }
+  }
+  const share=s.contribution_share||{};
+  if(CHEFS.some(w=>share[w]!=null))line('share',['对出餐的贡献'],Object.fromEntries(CHEFS.map(w=>[w,share[w]==null?'–':`${Math.round(share[w]*100)}%`])));
+ }
+ window.addEventListener('kitchen-open-record',e=>{render(e.detail||{});if(!dialog.open)dialog.showModal();});
+ window.addEventListener('kitchen-state',e=>{if(e.detail?.phase!=='ended'&&dialog.open)dialog.close();});
+ document.getElementById('record-close').onclick=document.getElementById('record-x').onclick=()=>dialog.close();})();
+</script>
+<style>
 /* Communication dock: pinned to the game's lower-left corner in design pixels, scaled with it. */
 #kitchen-communication{position:fixed;left:calc(var(--gx) + 12px * var(--gs));bottom:calc(var(--gy) + 20px * var(--gs));transform:scale(var(--gs));transform-origin:left bottom;z-index:15;
  width:200px;box-sizing:border-box;padding:6px;display:grid;gap:4px;background:var(--paper);color:var(--ink);border:2px solid var(--walnut);box-shadow:4px 4px 0 var(--ink);font:12px/16px var(--pixel)}
