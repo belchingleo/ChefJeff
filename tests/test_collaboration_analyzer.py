@@ -107,8 +107,8 @@ class LoopAndHarmTests(unittest.TestCase):
 
 class SingleChefTests(unittest.TestCase):
     def test_one_chef_cannot_reach_the_target(self):
-        # Owner decision 2026-09-28: a level must need both chefs. Level 1 is pending
-        # (one scripted chef serves every order there); see HANDOFF / the ladder report.
+        # Owner decisions: a level must need both chefs (2026-09-28); level 1 is the
+        # practice tutorial and is exempt (2026-09-29): one chef can serve every order there.
         for level in (2, 3):
             with self.subTest(level=level):
                 row = rs.rung(level, 'solo')
