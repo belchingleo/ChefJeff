@@ -202,6 +202,8 @@ class Rules:
         stall = move.get('stall_replan')
         self.stall_after = s(stall['after_game_ms']) if stall else None
         self.stall_progress = stall['min_progress_cells'] if stall else None
+        # Optional: "go partner" walks into the other chef until contact (pushing it). Absent = no such action.
+        self.approach_partner = move.get('approach_partner', False)
         # Extra speed fraction while sprinting (1.4x -> 0.4), rounded to the authored precision.
         self.sprint_boost = round(self.sprint_multiplier - 1, 12)
         self.throw_enabled = throw['enabled']

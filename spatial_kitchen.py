@@ -247,7 +247,10 @@ class SpatialKitchen(Kitchen):
         speed=walk*(1.+self.rules.sprint_boost*fast/seconds) if seconds else walk
         budget=seconds*speed;spent=0.
         points=list(route['points'][1:])
+        approach=job.action.key=='go partner'
         while points and budget>1e-9:
+            if approach and len(points)==1:
+                points[0]=self.positions['jeff' if who=='human' else 'human']
             before=self.positions[who];goal=points[0];distance=math.dist(before,goal)
             # Floor interactions use the same nearby reach as keyboard actions;
             # their approach must not push the recipient off the target.
@@ -257,7 +260,7 @@ class SpatialKitchen(Kitchen):
             step=min(budget,distance)
             end=tuple(before[i]+(goal[i]-before[i])*step/distance for i in (0,1))
             other_pos=self.positions['jeff' if who=='human' else 'human']
-            if len(points)==1 and distance<=1. and math.dist(goal,other_pos)<CHEF_SEPARATION:
+            if not approach and len(points)==1 and distance<=1. and math.dist(goal,other_pos)<CHEF_SEPARATION:
                 # The teammate stands on this spot and working chefs are not pushed:
                 # stop beside them instead of sliding back and forth every frame.
                 self._face_vector(who,goal[0]-before[0],goal[1]-before[1])
@@ -268,6 +271,10 @@ class SpatialKitchen(Kitchen):
             if moved>step*.5:self._face_vector(who,goal[0]-before[0],goal[1]-before[1])
             if fast>0:self._nudge_food(who,before,self.positions[who])
             spent+=step;budget-=step
+            if approach and math.dist(self.positions[who],self.positions['jeff' if who=='human' else 'human'])<=self.rules.chef_separation+.05:
+                # Contact made (and pushed): the approach is complete.
+                self._face_vector(who,goal[0]-before[0],goal[1]-before[1])
+                points.clear();break
             if math.dist(self.positions[who],goal)<1e-8:points.pop(0)
             if math.dist(self.positions[who],end)>1e-8:break
         # Keep the static-map waypoints while the route is making progress.
@@ -699,6 +706,10 @@ class SpatialKitchen(Kitchen):
             other = 'jeff' if who == 'human' else 'human'
             actions.append(Action('plate partner','走近，把食材加入队友手中的盘（容器留在原持有者手中）',
                                   'plate_partner',tile_key(self.anchor(other)),self.partner_signature(who)))
+        # Both chefs can walk into the other on purpose; contact then pushes (sprint: one bounded shove).
+        other = 'jeff' if who == 'human' else 'human'
+        if self.rules.approach_partner and math.dist(self.positions[who], self.positions[other]) > self.rules.chef_separation + .05:
+            actions.append(Action('go partner', '走到对方厨师当前的位置（接触时会推挤）', 'go', tile_key(self.anchor(other))))
         # Ground clicks are player movement intents. Jev can choose station positions or any food.
         if who == 'human':
             for cell in sorted(self.floor):

@@ -35,7 +35,7 @@ def model_candidates(state, actions, per_area):
     spare = {key for keys in empty.values() for key in keys} - offered
     acted = {a.target for a in actions if a.kind not in ('go', 'throw')}
     return [a for a in actions
-            if not (a.kind == 'go' and a.target in acted)
+            if not (a.kind == 'go' and a.target in acted and a.key != 'go partner')
             and not (a.kind in ('go', 'put_counter') and a.target in spare)]
 
 

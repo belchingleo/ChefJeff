@@ -38,7 +38,8 @@
     "stall_replan": {
       "after_game_ms": 300,
       "min_progress_cells": 0.05
-    }
+    },
+    "approach_partner": true
   },
   "throw": {
     "enabled": true,

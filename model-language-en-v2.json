@@ -335,7 +335,8 @@
     "工位可从相邻可达空地就近操作。墙和设备不能穿过；厨师接触时贴边滑动并缓慢推挤，冲刺可轻撞对方至多四分之一格。人类和 AI 共用接触规则，不自动重新规划绕人路线。普通走路可穿过地面食物。": "Stations can be operated from adjacent reachable floor. Walls and equipment block movement. Chefs slide along contact and gently push; each sprint can bump another chef by up to a quarter tile. Humans and AI share the same contact rules, without planning a new route around chefs. Ordinary walking passes through floor food.",
     "目标达成": "Goal reached",
     "未达目标": "Goal not reached",
-    "提前退出": "Ended early"
+    "提前退出": "Ended early",
+    "走到对方厨师当前的位置（接触时会推挤）": "Walk to the other chef's current position (contact pushes)"
   },
   "templates": [
     [

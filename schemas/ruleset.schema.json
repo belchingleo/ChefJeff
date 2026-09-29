@@ -154,6 +154,10 @@
             }
           },
           "additionalProperties": false
+        },
+        "approach_partner": {
+          "type": "boolean",
+          "description": "Offer \"go partner\": walk to the other chef until contact, which pushes it (a sprint adds one bounded shove). Absent: no such action."
         }
       },
       "additionalProperties": false
