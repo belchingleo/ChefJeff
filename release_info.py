@@ -8,7 +8,7 @@ RUNTIME_FILES = ('hosted_server.py', 'hosted_records.py', 'hosted/browser-agent.
                  'cocos_server.py', 'player_api.py', 'cooperation_memory.py', 'play.py',
                  'whitebox_server.py', 'feedback.py', 'release_info.py', 'config.json',
                  'scripts/launch_web.py', 'scripts/stop_web.py',
-                 'rules.py', 'config_contract.py', 'schema_check.py', 'session_record.py', 'provenance.py')
+                 'rules.py', 'config_contract.py', 'schema_check.py', 'session_record.py', 'provenance.py', 'collaboration_analyzer.py', 'round_summary.py')
 
 
 # Contracts and authored content ship with the runtime; listed from disk so new documents are never missed.

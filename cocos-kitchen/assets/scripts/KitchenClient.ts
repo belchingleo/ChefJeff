@@ -5,7 +5,7 @@ import { GRID_ART, stationView, trashView, wallNeighbours, surfaceOffset, wallOf
 const { ccclass } = _decorator;
 type Action = { key: string; label: string; kind: string; target: string; expected: unknown[] };
 type KitchenState = { game_id: string; phase: string; speed: number; kitchen: any; actions: Action[]; limits?:any; release?:any; interaction?:Action; use_interaction?:Action; interaction_hint?:string; interaction_focus?:string; interaction_cell?:number[];
-    events: {t:number; message:string; kind?:string}[]; ai: {thinking:boolean; error:string|null}; won:boolean; aborted?:boolean; rules?:Record<string,number>; connection?:any; memory?:any; communication?:any };
+    events: {t:number; message:string; kind?:string}[]; ai: {thinking:boolean; error:string|null}; won:boolean; aborted?:boolean; round_summary?:any; rules?:Record<string,number>; connection?:any; memory?:any; communication?:any };
 type ChefMotion = {body:Node; leftLeg:Node; rightLeg:Node; leftArm:Node; rightArm:Node; knife:Node; facing:string; step:number};
 type PotEffects = {steam:Node; smoke:Node; fire:Node; ready:Node};
 // Tokens from the "ChefJeff 厨房 UI" design system: every colour is sampled from the art
@@ -20,7 +20,7 @@ const COLORS = { ink:'#2b1a12', muted:'#6e4e38', bg:'#f0d9b5', paper:'#fdf3e1', 
 const PIXEL='ChefJeffPixel, sans-serif';
 // Result events reach the player; AI decision notes have their own status line.
 const RESULT_ANNOUNCE=new Set(['order','served','bad_service','expired','ready','burn','fire','fire_spread','fire_loss']);
-const TAB_ORDER=['language','level1','level2','level3','main','reset','cover-connection','help','resume','pause','end'];
+const TAB_ORDER=['language','level1','level2','level3','main','reset','cover-connection','help','record','resume','pause','end'];
 const LEVEL_NAMES=['','第一关 · 牛排','第二关 · 汉堡','第三关 · 牛-堡'];
 type ButtonView = {node:Node;label:Label;callback:()=>void;enabled:boolean;width:number;height:number;tone:string;hover:boolean;selected?:boolean};
 const STAGES: Record<string,string> = {raw:'生肉',chopped:'半成品',cooking:'加热中',ready:'熟牛排',burnt:'糊菜',extinguisher:'灭火器',clean_plate:'干净餐盘',dirty_plate:'脏餐盘',plated_ready:'已装盘牛排',plated_burnt:'已装盘糊菜',pot:'空锅',pot_cooking:'锅 · 未熟',pot_chopped:'锅 · 未熟',pot_ready:'锅 · 熟牛排',pot_burnt:'锅 · 糊菜'};
@@ -75,6 +75,7 @@ export class KitchenClient extends Component {
     private focusId="";
     private meters:Record<string,Node>={};
     private overlayPhase="";
+    private recordShown="";
     private devices: Record<string,{node:Node;graphics:Graphics;label:Label}>={};
     private people: Record<string,Node>={};
     private motions: Record<string,ChefMotion>={};
@@ -171,6 +172,9 @@ export class KitchenClient extends Component {
         this.pixel(this.button('language','English',944,196,88,30,()=>{const i18n=(window as any).kitchenI18n;i18n?.setLanguage(i18n.language==='en'?'zh':'en');},this.cover).getComponentInChildren(Label)!,12);
         if(sys.isNative)this.buttons.language.node.active=false;
         this.text('welcome-tip','先看操作说明，准备好了就开店。',333,577,614,19,11,this.cover).horizontalAlign=Label.HorizontalAlign.CENTER;
+        // The round record shares the tip's row: the tip shows before a round, the record after it.
+        this.button('record','本局记录',561,566,158,36,()=>this.openRecord(),this.cover);
+        this.buttons.record.node.active=false;
         if(!sys.isNative){
             // Screen-reader proxies for every canvas button. Canvas focus moves DOM
             // focus to the matching proxy so assistive technology follows it.
@@ -208,6 +212,7 @@ export class KitchenClient extends Component {
     private onContextMenu=(e:MouseEvent)=>{if((e.target as HTMLElement)?.closest('canvas'))e.preventDefault();};
     private onMouseDown=(e:MouseEvent)=>{if(e.button===2&&(e.target as HTMLElement)?.closest('canvas')){e.preventDefault();e.stopImmediatePropagation();}};
     private onMouseUp=(e:MouseEvent)=>{if(e.button===2&&(e.target as HTMLElement)?.closest('canvas')){e.preventDefault();e.stopImmediatePropagation();}};
+    private openRecord(){if(!sys.isNative&&this.state?.round_summary)window.dispatchEvent(new CustomEvent('kitchen-open-record',{detail:this.state.round_summary}));}
     private openHelp(){this.clearInput();if(!sys.isNative)window.dispatchEvent(new Event('kitchen-open-help'));}
     private openConnection(){this.clearInput();if(!sys.isNative)window.dispatchEvent(new Event('kitchen-open-connection'));}
     private onKey=(e:KeyboardEvent)=>{
@@ -609,7 +614,7 @@ export class KitchenClient extends Component {
             if(game.frameRate!==frameRate)game.frameRate=frameRate;
             if(!sys.isNative)window.dispatchEvent(new CustomEvent('kitchen-state',{detail:{game_id:next.game_id,phase:next.phase,connection:next.connection,memory:next.memory,limits:next.limits,release:next.release,communication:next.communication}}));
             if(!this.mounted)this.mountMap();this.processEvents();this.render();this.hideLoading();
-        }catch(e){this.hideLoading();game.frameRate=15;this.clearInput();this.connected=false;if(this.jeffThinking)this.jeffThinking.active=false;this.set('event',String((e as Error).message)+'，厨房会自动暂停。');this.cover.active=true;this.set('coverTitle','连接厨房');this.set('coverText','暂时连接不上厨房，请稍后重试。\n连接中断时，游戏会自动暂停。');this.writeLabel(this.buttons.main.label,'重新连接');this.buttons.reset.node.active=false;this.labels['welcome-tip'].node.active=true;
+        }catch(e){this.hideLoading();game.frameRate=15;this.clearInput();this.connected=false;if(this.jeffThinking)this.jeffThinking.active=false;this.set('event',String((e as Error).message)+'，厨房会自动暂停。');this.cover.active=true;this.set('coverTitle','连接厨房');this.set('coverText','暂时连接不上厨房，请稍后重试。\n连接中断时，游戏会自动暂停。');this.writeLabel(this.buttons.main.label,'重新连接');this.buttons.reset.node.active=false;this.buttons.record.node.active=false;this.labels['welcome-tip'].node.active=true;
         }finally{this.polling=false;}
     };
     private async bookmark(){
@@ -1141,6 +1146,9 @@ export class KitchenClient extends Component {
         this.writeLabel(this.buttons.main.label,s.phase==='ready'?'开始经营':s.phase==='paused'?'继续经营':'准备下一局');
         if(s.phase==='ready'&&s.connection&&!s.connection.configured)this.writeLabel(this.buttons.main.label,'先连接搭档');
         this.labels['welcome-tip'].node.active=s.phase==='ready';
+        this.buttons.record.node.active=s.phase==='ended'&&!!s.round_summary;
+        // Shown once per round, as soon as its record exists; the button reopens it.
+        if(s.phase==='ended'&&s.round_summary&&this.recordShown!==s.game_id){this.recordShown=s.game_id;this.openRecord();}
         const settlement=k.settlement;
         const service=k.goals.max_bad_reviews==null;
         // Service levels close at 180 s: say so plainly, whatever the outcome.

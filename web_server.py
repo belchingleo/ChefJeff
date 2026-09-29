@@ -20,6 +20,7 @@ import webbrowser
 from kitchen import Kitchen, ROOT, load_config
 from jev import JevClient, DecisionLoop
 from play import Journal
+from round_summary import round_summary
 from session_record import SessionLog, write_bundle
 from levels import available_levels
 
@@ -89,6 +90,14 @@ class GameSession:
                 self.journal('event', event)
         self.cursor = len(self.k.events)
 
+    def round_record(self):
+        """Who did which work this round (round_summary.py); computed once when the round has ended."""
+        if self.phase != 'ended' and not self.k.ended:
+            return None
+        if getattr(self, '_round_record', (None,))[0] != self.game_id:
+            self._round_record = (self.game_id, round_summary(self.k))
+        return self._round_record[1]
+
     def _finish(self, aborted=False):
         if self.ai:
             self.ai.closed = True
@@ -100,7 +109,8 @@ class GameSession:
                                 'aborted': aborted, 'ai_calls': self.ai.calls,
                                 'ai_successes': self.ai.successes, 'usage': self.ai.tokens,
                                 'bookmarks': deepcopy(self.bookmarks),
-                                'player_messages': deepcopy(self.player_messages)})
+                                'player_messages': deepcopy(self.player_messages),
+                                'round_summary': self.round_record()})
             self.journal.close()
             if self.bundle_root is not None:
                 try:
@@ -223,6 +233,7 @@ class GameSession:
                     'result': self.k.result() if self.phase == 'ended' else None,
                     'aborted': self.k.aborted,
                     'won': self.k.won() and not self.k.aborted if self.phase == 'ended' else False,
+                    'round_summary': self.round_record() if self.phase == 'ended' else None,
                     'levels': available_levels(),
                     'rules': {key:self.c[key] for key in ('chop_seconds', 'cook_seconds', 'burn_after_ready',
                               'fire_after_burn', 'order_patience', 'round_seconds', 'order_count')}}
