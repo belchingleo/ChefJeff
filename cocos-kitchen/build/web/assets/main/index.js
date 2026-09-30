@@ -1,5 +1,435 @@
-System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabelHelpers.js', 'cc', './LevelOneArt.ts', './KitchenGeometry.ts'], function (exports) {
-  var _inheritsLoose, _createForOfIteratorHelperLoose, _createClass, _extends, _asyncToGenerator, _regeneratorRuntime, cclegacy, _decorator, sys, profiler, view, ResolutionPolicy, director, Camera, Color, UITransform, Label, Node, Graphics, game, Game, Layers, Sprite, Vec2, Mask, Component, LevelOneArt, predictWalk, footWalkable, burgerLayers, stationView, wallNeighbours, GRID_ART, surfaceOffset, trashView, depthOrder, heatCountdown, flightDepth, workingChefDepth;
+System.register("chunks:///_virtual/KitchenAudio.ts", ['./rollupPluginModLoBabelHelpers.js', 'cc'], function (exports) {
+  var _createForOfIteratorHelperLoose, _asyncToGenerator, _regeneratorRuntime, cclegacy, sys, resources, JsonAsset, AudioClip, Node, AudioSource;
+  return {
+    setters: [function (module) {
+      _createForOfIteratorHelperLoose = module.createForOfIteratorHelperLoose;
+      _asyncToGenerator = module.asyncToGenerator;
+      _regeneratorRuntime = module.regeneratorRuntime;
+    }, function (module) {
+      cclegacy = module.cclegacy;
+      sys = module.sys;
+      resources = module.resources;
+      JsonAsset = module.JsonAsset;
+      AudioClip = module.AudioClip;
+      Node = module.Node;
+      AudioSource = module.AudioSource;
+    }],
+    execute: function () {
+      cclegacy._RF.push({}, "ea8e3UwSytAOr39Sj8gvBv3", "KitchenAudio", undefined);
+      var STORAGE = 'chefjeff-audio';
+      var LOOPS = [
+      // name, clip, fade in (s), fade out (s), start at a random offset
+      ['ambience', 'amb_kitchen', 1.5, .6, false], ['sizzle', 'sizzle_loop', .15, .4, true], ['fire', 'fire_loop', .2, .5, true], ['wash_solo', 'wash_solo', .08, .1, true], ['wash_duo', 'wash_duo', .2, .2, true]];
+      var EVENT_SOUNDS = {
+        order: 'order_new',
+        ready: 'food_ready',
+        burn: 'burnt_warn',
+        fire: 'fire_ignite',
+        fire_spread: 'fire_spread',
+        served: 'serve_ok',
+        bad_service: 'serve_bad',
+        expired: 'order_expired',
+        thrown: 'throw',
+        caught: 'catch',
+        dropped: 'land',
+        plate_returned: 'plate_return'
+      };
+      var board = function board(id) {
+        return !!id && id.startsWith('b') && !id.startsWith('bin');
+      };
+      var cooking = function cooking(stage) {
+        return !!stage && /^(pot_)?(cooking|chopped|ready|burnt)$/.test(stage);
+      };
+
+      /** Presentation only: reads kitchen snapshots and plays sounds; never alters observations or rules. */
+      var KitchenAudio = exports('KitchenAudio', /*#__PURE__*/function () {
+        function KitchenAudio() {
+          var _this = this;
+          this.index = null;
+          this.clips = {};
+          this.sfx = null;
+          this.channels = {};
+          this.music = [];
+          this.musicClip = '';
+          this.last = null;
+          this.seen = new Set();
+          this.urgent = new Set();
+          this.recent = {};
+          this.lastChop = '';
+          this.endedGame = '';
+          this.menuAfter = 0;
+          this.clock = 0;
+          this.warned = false;
+          this.volume = {
+            music: .8,
+            sfx: .8
+          };
+          this.ready = false;
+          /** Cocos resumes its suspended Web Audio context only on a canvas click, but the kitchen is played
+           *  from the keyboard. Resume the same context on any key or pointer gesture; Cocos then starts the
+           *  queued sounds itself. If engine internals change, this quietly falls back to the canvas click. */
+          this.unlock = function () {
+            return _this.safely(function () {
+              // Any source that already holds a clip has a player wired to the engine's shared context.
+              for (var _i = 0, _arr = [].concat(_this.music.map(function (ch) {
+                  return ch.src;
+                }), Object.values(_this.channels).map(function (ch) {
+                  return ch.src;
+                })); _i < _arr.length; _i++) {
+                var _player;
+                var src = _arr[_i];
+                var context = src == null || (_player = src._player) == null || (_player = _player._player) == null || (_player = _player._gainNode) == null ? void 0 : _player.context;
+                if (!context) continue;
+                if (context.state !== 'running') context.resume()["catch"](function () {});
+                return;
+              }
+            });
+          };
+          this.onSettings = function (e) {
+            return _this.safely(function () {
+              Object.assign(_this.volume, e.detail || {});
+            });
+          };
+        }
+        var _proto = KitchenAudio.prototype;
+        _proto.load = /*#__PURE__*/function () {
+          var _load = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee(parent) {
+            var _yield$Promise$all, index, clips, _iterator, _step, c, source, _i2, _LOOPS, _LOOPS$_i, name, clip, fadeIn, fadeOut, randomStart;
+            return _regeneratorRuntime().wrap(function _callee$(_context) {
+              while (1) switch (_context.prev = _context.next) {
+                case 0:
+                  _context.prev = 0;
+                  _context.next = 3;
+                  return Promise.all([new Promise(function (ok, no) {
+                    return resources.load('audio/index', JsonAsset, function (e, a) {
+                      return e ? no(e) : ok(a);
+                    });
+                  }), new Promise(function (ok, no) {
+                    return resources.loadDir('audio', AudioClip, function (e, a) {
+                      return e ? no(e) : ok(a);
+                    });
+                  })]);
+                case 3:
+                  _yield$Promise$all = _context.sent;
+                  index = _yield$Promise$all[0];
+                  clips = _yield$Promise$all[1];
+                  this.index = index.json;
+                  for (_iterator = _createForOfIteratorHelperLoose(clips); !(_step = _iterator()).done;) {
+                    c = _step.value;
+                    this.clips[c.name] = c;
+                  }
+                  source = function source(name) {
+                    var n = new Node('audio-' + name);
+                    parent.addChild(n);
+                    var s = n.addComponent(AudioSource);
+                    s.playOnAwake = false;
+                    return s;
+                  };
+                  this.sfx = source('sfx');
+                  for (_i2 = 0, _LOOPS = LOOPS; _i2 < _LOOPS.length; _i2++) {
+                    _LOOPS$_i = _LOOPS[_i2], name = _LOOPS$_i[0], clip = _LOOPS$_i[1], fadeIn = _LOOPS$_i[2], fadeOut = _LOOPS$_i[3], randomStart = _LOOPS$_i[4];
+                    this.channels[name] = {
+                      src: source(name),
+                      clip: clip,
+                      level: 0,
+                      target: 0,
+                      fadeIn: fadeIn,
+                      fadeOut: fadeOut,
+                      randomStart: randomStart
+                    };
+                  }
+                  // Two music players so the service/rush switch can crossfade.
+                  this.music = [0, 1].map(function (i) {
+                    return {
+                      src: source('music-' + i),
+                      clip: '',
+                      level: 0,
+                      target: 0,
+                      fadeIn: 1.2,
+                      fadeOut: .8,
+                      randomStart: false
+                    };
+                  });
+                  if (!sys.isNative) {
+                    try {
+                      Object.assign(this.volume, JSON.parse(localStorage.getItem(STORAGE) || '{}'));
+                    } catch (_) {}
+                    window.addEventListener('kitchen-audio-settings', this.onSettings);
+                    window.addEventListener('keydown', this.unlock, true);
+                    window.addEventListener('pointerdown', this.unlock, true);
+                  }
+                  this.ready = true;
+                  _context.next = 19;
+                  break;
+                case 16:
+                  _context.prev = 16;
+                  _context.t0 = _context["catch"](0);
+                  console.warn('ChefJeff audio unavailable; the kitchen stays silent.', _context.t0);
+                case 19:
+                case "end":
+                  return _context.stop();
+              }
+            }, _callee, this, [[0, 16]]);
+          }));
+          function load(_x) {
+            return _load.apply(this, arguments);
+          }
+          return load;
+        }() /** Sound must never break play: an audio error is reported once and that sound is skipped. */;
+        _proto.safely = function safely(run) {
+          try {
+            run();
+          } catch (error) {
+            if (!this.warned) {
+              this.warned = true;
+              console.warn('ChefJeff audio error; the kitchen carries on without this sound.', error);
+            }
+          }
+        };
+        _proto.destroy = function destroy() {
+          if (sys.isNative) return;
+          window.removeEventListener('kitchen-audio-settings', this.onSettings);
+          window.removeEventListener('keydown', this.unlock, true);
+          window.removeEventListener('pointerdown', this.unlock, true);
+        };
+        _proto.gain = function gain(name) {
+          var _ref, _this$index$sounds$na, _this$index, _this$index2;
+          return (_ref = (_this$index$sounds$na = (_this$index = this.index) == null || (_this$index = _this$index.sounds[name]) == null ? void 0 : _this$index.gain) != null ? _this$index$sounds$na : (_this$index2 = this.index) == null || (_this$index2 = _this$index2.wash[name]) == null ? void 0 : _this$index2.gain) != null ? _ref : .8;
+        };
+        _proto.play = function play(name, scale, minGap) {
+          var _this2 = this;
+          if (scale === void 0) {
+            scale = 1;
+          }
+          if (minGap === void 0) {
+            minGap = .06;
+          }
+          this.safely(function () {
+            return _this2.playNow(name, scale, minGap);
+          });
+        };
+        _proto.playNow = function playNow(name, scale, minGap) {
+          var _this$recent$name;
+          var clip = this.clips[name];
+          if (!this.ready || !clip || !this.sfx || this.volume.sfx <= 0) return;
+          if (this.clock - ((_this$recent$name = this.recent[name]) != null ? _this$recent$name : -1) < minGap) return;
+          this.recent[name] = this.clock;
+          this.sfx.playOneShot(clip, Math.min(1, this.gain(name) * this.volume.sfx * scale));
+        }
+        /** One knife strike, fired by the chop animation at the moment the blade meets the board. */;
+        _proto.chop = function chop() {
+          var _this3 = this;
+          this.safely(function () {
+            return _this3.chopNow();
+          });
+        };
+        _proto.chopNow = function chopNow() {
+          var _this$index3;
+          var pool = ((_this$index3 = this.index) == null ? void 0 : _this$index3.chop) || [];
+          if (!pool.length) return;
+          var name = pool[Math.floor(Math.random() * pool.length)];
+          if (name === this.lastChop && pool.length > 1) name = pool[(pool.indexOf(name) + 1) % pool.length];
+          this.lastChop = name;
+          this.playNow(name, .8 + Math.random() * .2, 0);
+        };
+        _proto.onState = function onState(s) {
+          var _this4 = this;
+          this.safely(function () {
+            return _this4.applyState(s);
+          });
+        };
+        _proto.applyState = function applyState(s) {
+          var _this5 = this;
+          if (!this.ready) return;
+          var prev = this.last;
+          this.last = s;
+          var k = s.kitchen,
+            fresh = !prev || prev.game_id !== s.game_id;
+          if (fresh) {
+            this.seen = new Set((s.events || []).map(function (e) {
+              return e.t + '|' + e.message;
+            }));
+            this.urgent.clear();
+          }
+          this.phaseMusic(prev, s, fresh);
+          var running = s.phase === 'running';
+          if (!fresh && running) {
+            var events = (s.events || []).filter(function (e) {
+              return !_this5.seen.has(e.t + '|' + e.message);
+            });
+            for (var _iterator2 = _createForOfIteratorHelperLoose(events), _step2; !(_step2 = _iterator2()).done;) {
+              var e = _step2.value;
+              this.seen.add(e.t + '|' + e.message);
+              if (e.kind === 'landed') this.play(/落到/.test(e.message) ? 'place_board' : 'land');else if (EVENT_SOUNDS[e.kind]) this.play(EVENT_SOUNDS[e.kind]);
+            }
+            if (this.seen.size > 80) this.seen = new Set([].concat(this.seen).slice(-40));
+            var skip = new Set(events.filter(function (e) {
+              return ['thrown', 'dropped', 'interrupted', 'served', 'bad_service'].includes(e.kind);
+            }).map(function (e) {
+              return e.actor;
+            }));
+            for (var _i3 = 0, _Object$keys = Object.keys(k.chefs); _i3 < _Object$keys.length; _i3++) {
+              var who = _Object$keys[_i3];
+              if (!skip.has(who)) this.chefChange(prev.kitchen.chefs[who], k.chefs[who]);
+            }
+            this.stationChanges(prev.kitchen, k);
+            for (var _iterator3 = _createForOfIteratorHelperLoose(k.orders || []), _step3; !(_step3 = _iterator3()).done;) {
+              var o = _step3.value;
+              if (o.status === 'pending' && o.remaining <= 10 && o.remaining > 0 && !this.urgent.has(o.id)) {
+                this.urgent.add(o.id);
+                this.play('order_urgent');
+              }
+            }
+          }
+          var stations = Object.values(k.stations || {});
+          var washers = Object.values(k.chefs).filter(function (c) {
+            return c.action_kind === 'wash' && c.working;
+          }).length;
+          this.channels.ambience.target = running || s.phase === 'ready' ? 1 : 0;
+          this.channels.sizzle.target = running && stations.some(function (st) {
+            var _st$food;
+            return st.stove && st.heating && !st.fire && cooking((_st$food = st.food) == null ? void 0 : _st$food.stage);
+          }) ? 1 : 0;
+          this.channels.fire.target = running && stations.some(function (st) {
+            return st.fire;
+          }) ? 1 : 0;
+          this.channels.wash_solo.target = running && washers === 1 ? 1 : 0;
+          this.channels.wash_duo.target = running && washers >= 2 ? 1 : 0;
+        };
+        _proto.chefChange = function chefChange(a, b) {
+          var before = a.holding,
+            after = b.holding,
+            kind = a.action_kind || b.action_kind,
+            target = a.target || b.target;
+          var sameItem = before && after && before.id === after.id;
+          if (sameItem && before.stage !== after.stage) {
+            if (kind === 'assemble') this.play('assemble');else if (kind === 'empty_pot' || kind === 'discard') this.play('discard');else if (/^plate|merge/.test(kind || '')) this.play('plate_place');
+            return;
+          }
+          if (after && !sameItem) {
+            this.play(kind === 'fetch' && target === 'fridge' ? 'fridge_grab' : 'pickup');
+            return;
+          }
+          if (before && !after) {
+            var _this$last;
+            if (['discard', 'empty_pot', 'clear'].includes(kind)) this.play('discard');else if (target === 'serve' || (_this$last = this.last) != null && (_this$last = _this$last.kitchen) != null && (_this$last = _this$last.stations) != null && (_this$last = _this$last[target]) != null && _this$last.stove) return; // serving/pan sounds come from events/stations
+            else if (board(target)) this.play('place_board');else this.play(/plate/.test(before.stage) ? 'plate_place' : 'place_board');
+            return;
+          }
+          // Finished an assembly or plating job without a hand change (e.g. building on the counter).
+          if (a.job_id && a.job_id !== b.job_id && a.working && (a.action_kind === 'assemble' || /^plate|merge/.test(a.action_kind || ''))) this.play(a.action_kind === 'assemble' ? 'assemble' : 'plate_place');
+        };
+        _proto.stationChanges = function stationChanges(a, b) {
+          var held = new Set(Object.values(b.chefs).map(function (c) {
+            var _c$holding;
+            return (_c$holding = c.holding) == null ? void 0 : _c$holding.id;
+          }).filter(Boolean));
+          for (var _i4 = 0, _Object$entries = Object.entries(b.stations || {}); _i4 < _Object$entries.length; _i4++) {
+            var _a$stations, _n$food, _p$food;
+            var _Object$entries$_i = _Object$entries[_i4],
+              key = _Object$entries$_i[0],
+              n = _Object$entries$_i[1];
+            var p = (_a$stations = a.stations) == null ? void 0 : _a$stations[key];
+            if (!p) continue;
+            if (p.fire && !n.fire) this.play('extinguisher');
+            if (n.stove && cooking((_n$food = n.food) == null ? void 0 : _n$food.stage) && /cooking|chopped/.test(n.food.stage) && !cooking((_p$food = p.food) == null ? void 0 : _p$food.stage)) this.play('pan_sizzle_start');
+            // Burnt food cleared out of a pot without anyone carrying it away: it was dumped.
+            if (p.food && /burnt/.test(p.food.stage) && !n.food && !held.has(p.food.id)) this.play('discard');
+          }
+        };
+        _proto.phaseMusic = function phaseMusic(prev, s, fresh) {
+          var was = prev == null ? void 0 : prev.phase,
+            now = s.phase;
+          if (!fresh && was === 'running' && now === 'paused') this.play('ui_pause');
+          if (!fresh && was === 'paused' && now === 'running') this.play('ui_resume');
+          if (now === 'ended' && !fresh && was !== 'ended' && this.endedGame !== s.game_id) {
+            this.endedGame = s.game_id;
+            this.setMusic('');
+            this.play(s.won ? 'jingle_win' : 'jingle_lose', 1, 0);
+            this.menuAfter = this.clock + (s.won ? 3.5 : 2.3);
+            return;
+          }
+          if (now === 'ended') {
+            if (this.menuAfter && this.clock < this.menuAfter) return;
+            this.setMusic('bgm_menu');
+            return;
+          }
+          if (now === 'running') this.setMusic(s.kitchen.round_remaining <= 30 ? 'bgm_rush' : 'bgm_service');else if (now === 'paused') this.setMusic('');else this.setMusic('bgm_menu');
+        };
+        _proto.setMusic = function setMusic(name) {
+          if (name === this.musicClip) return;
+          this.musicClip = name;
+          for (var _iterator4 = _createForOfIteratorHelperLoose(this.music), _step4; !(_step4 = _iterator4()).done;) {
+            var ch = _step4.value;
+            if (ch.clip !== name) ch.target = 0;
+          }
+          if (!name) return;
+          // Pausing keeps the position, so resuming the same piece continues where it stopped.
+          var same = this.music.find(function (ch) {
+            return ch.clip === name;
+          });
+          if (same) {
+            same.target = 1;
+            return;
+          }
+          var free = this.music[0].level <= this.music[1].level ? this.music[0] : this.music[1];
+          free.src.stop();
+          free.clip = name;
+          free.src.clip = this.clips[name] || null;
+          free.level = 0;
+          free.target = 1;
+        };
+        _proto.update = function update(dt) {
+          var _this6 = this;
+          this.safely(function () {
+            return _this6.tick(dt);
+          });
+        };
+        _proto.tick = function tick(dt) {
+          this.clock += dt;
+          if (!this.ready) return;
+          if (this.menuAfter && this.clock >= this.menuAfter) {
+            var _this$last2;
+            this.menuAfter = 0;
+            if (((_this$last2 = this.last) == null ? void 0 : _this$last2.phase) === 'ended') this.setMusic('bgm_menu');
+          }
+          for (var _i5 = 0, _Object$values = Object.values(this.channels); _i5 < _Object$values.length; _i5++) {
+            var ch = _Object$values[_i5];
+            this.step(ch, dt, this.volume.sfx, true);
+          }
+          for (var _iterator5 = _createForOfIteratorHelperLoose(this.music), _step5; !(_step5 = _iterator5()).done;) {
+            var _ch = _step5.value;
+            this.step(_ch, dt, this.volume.music, false);
+          }
+        };
+        _proto.step = function step(ch, dt, master, sfx) {
+          var rate = ch.target > ch.level ? 1 / ch.fadeIn : 1 / ch.fadeOut;
+          ch.level = ch.target > ch.level ? Math.min(ch.target, ch.level + dt * rate) : Math.max(ch.target, ch.level - dt * rate);
+          var clip = this.clips[ch.clip];
+          if (!clip) return;
+          var src = ch.src;
+          if (ch.level > 0 && master > 0) {
+            if (src.clip !== clip) src.clip = clip;
+            src.loop = true;
+            if (!src.playing) {
+              src.play();
+              if (ch.randomStart && sfx) src.currentTime = Math.random() * Math.max(0, clip.getDuration() - .2);
+            }
+            src.volume = ch.level * this.gain(ch.clip) * master;
+          } else if (src.playing) {
+            // Loops pause at silence; texture loops restart elsewhere next time, music resumes in place.
+            if (sfx && ch.randomStart) src.stop();else src.pause();
+          }
+        };
+        return KitchenAudio;
+      }());
+      cclegacy._RF.pop();
+    }
+  };
+});
+
+System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabelHelpers.js', 'cc', './LevelOneArt.ts', './KitchenAudio.ts', './KitchenGeometry.ts'], function (exports) {
+  var _inheritsLoose, _createForOfIteratorHelperLoose, _createClass, _extends, _asyncToGenerator, _regeneratorRuntime, cclegacy, _decorator, sys, profiler, view, ResolutionPolicy, director, Camera, Color, UITransform, Label, Node, Graphics, game, Game, Layers, Sprite, Vec2, Mask, Component, LevelOneArt, KitchenAudio, predictWalk, footWalkable, burgerLayers, stationView, wallNeighbours, GRID_ART, surfaceOffset, trashView, depthOrder, heatCountdown, flightDepth, workingChefDepth;
   return {
     setters: [function (module) {
       _inheritsLoose = module.inheritsLoose;
@@ -31,6 +461,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
       Component = module.Component;
     }, function (module) {
       LevelOneArt = module.LevelOneArt;
+    }, function (module) {
+      KitchenAudio = module.KitchenAudio;
     }, function (module) {
       predictWalk = module.predictWalk;
       footWalkable = module.footWalkable;
@@ -124,6 +556,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           _this.state = null;
           _this.art = new LevelOneArt();
           _this.artLoaded = false;
+          _this.audio = new KitchenAudio();
+          _this.knifePhase = {};
           _this.pending = false;
           _this.polling = false;
           _this.lastScheduledPoll = -Infinity;
@@ -291,6 +725,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               var b = _this.buttons[_this.focusId];
               if (b != null && b.enabled && b.node.activeInHierarchy) {
                 e.preventDefault();
+                _this.audio.play('ui_click');
                 b.callback();
               }
             }
@@ -404,10 +839,11 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                   _this.processEvents();
                   _this.render();
                   _this.hideLoading();
-                  _context.next = 50;
+                  _this.audio.onState(next);
+                  _context.next = 51;
                   break;
-                case 35:
-                  _context.prev = 35;
+                case 36:
+                  _context.prev = 36;
                   _context.t0 = _context["catch"](3);
                   _this.hideLoading();
                   game.frameRate = 15;
@@ -422,15 +858,15 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                   _this.buttons.reset.node.active = false;
                   _this.buttons.record.node.active = false;
                   _this.labels['welcome-tip'].node.active = true;
-                case 50:
-                  _context.prev = 50;
+                case 51:
+                  _context.prev = 51;
                   _this.polling = false;
-                  return _context.finish(50);
-                case 53:
+                  return _context.finish(51);
+                case 54:
                 case "end":
                   return _context.stop();
               }
-            }, _callee, null, [[3, 35, 50, 53]]);
+            }, _callee, null, [[3, 36, 51, 54]]);
           }));
           _this.tagText = {};
           return _this;
@@ -615,6 +1051,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }
           // Idle screens need neither gameplay frame rate nor five snapshots a second.
           game.frameRate = 15;
+          this.audio.load(this.node);
           this.art.load().then(function () {
             _this2.artLoaded = true;
             _this2.loadingStep('正在连接厨房…');
@@ -645,6 +1082,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
         };
         _proto.onDestroy = function onDestroy() {
           var _this$controlAccess;
+          this.audio.destroy();
           (_this$controlAccess = this.controlAccess) == null || _this$controlAccess.remove();
           this.clearInput();
           game.off(Game.EVENT_HIDE, this.onHide, this);
@@ -1017,7 +1455,10 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           });
           n.on(Node.EventType.TOUCH_END, function () {
             var b = _this3.buttons[id];
-            if (b != null && b.enabled) b.callback();
+            if (b != null && b.enabled) {
+              _this3.audio.play('ui_click');
+              b.callback();
+            } else if (b) _this3.audio.play('ui_blocked');
           });
           return n;
         };
@@ -1593,22 +2034,23 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                     request_id: Date.now().toString(36) + '-' + Math.random().toString(36).slice(2)
                   }, extra));
                 case 11:
-                  _context6.next = 16;
+                  _context6.next = 17;
                   break;
                 case 13:
                   _context6.prev = 13;
                   _context6.t0 = _context6["catch"](8);
+                  this.audio.play('ui_blocked');
                   this.set('event', _context6.t0.message);
-                case 16:
-                  _context6.prev = 16;
+                case 17:
+                  _context6.prev = 17;
                   this.pending = false;
                   this.poll();
-                  return _context6.finish(16);
-                case 20:
+                  return _context6.finish(17);
+                case 21:
                 case "end":
                   return _context6.stop();
               }
-            }, _callee6, this, [[8, 13, 16, 20]]);
+            }, _callee6, this, [[8, 13, 17, 21]]);
           }));
           function post(_x8, _x9) {
             return _post.apply(this, arguments);
@@ -2071,6 +2513,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             if (!['held', 'reviewed-art'].includes(child.name)) child.active = !shown;
           }
           if (inWorld) this.chopImpact(who, hasAction && phase === 2 && beat < .62, (beat - .45) / .17);
+          if (inWorld && chopping) this.knifeStrike(who, beat, .45);
           if (shown) {
             // Working at a station in front (facing down), the chef stands behind a waist-high
             // counter: sink the body so the counter hides the legs and the hands meet its edge.
@@ -2097,6 +2540,12 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             body.getChildByName('right-arm').getChildByName('knife').active = false;
           }
           return shown;
+        }
+        /** Sound one knife strike when the swing phase passes the board-contact point. */;
+        _proto.knifeStrike = function knifeStrike(who, t, contact) {
+          var before = this.knifePhase[who];
+          this.knifePhase[who] = t;
+          if (before !== undefined && t >= contact && (before < contact || before > t)) this.audio.chop();
         }
         /** A short spark on the board while the knife lands (strike frame only). */;
         _proto.chopImpact = function chopImpact(who, active, p) {
@@ -2708,6 +3157,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           var _this16 = this,
             _this$devices$sink;
           this.clock += dt;
+          this.audio.update(dt);
           if (!this.state || !this.mounted) return;
           var k = this.state.kitchen;
           // Result pops rise and fade over 1.4s (no rise with reduced motion); header numbers pulse.
@@ -2800,6 +3250,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                 motion.rightLeg.setPosition(7, walking ? -24 + Math.max(0, -swing) * 3 : -24);
                 motion.leftArm.angle = walking ? -swing * 15 : 0;
                 motion.rightArm.angle = chopping ? Math.sin(motion.step * 1.8) * 48 : walking ? swing * 15 : 0;
+                if (chopping) this.knifeStrike(who, (motion.step * 1.8 / (2 * Math.PI) + .75) % 1, .5);
                 motion.body.setPosition(0, walking ? Math.abs(swing) * 1.2 : 0);
                 motion.body.setScale(facingScale, 1, 1);
               } else {
@@ -3467,9 +3918,9 @@ System.register("chunks:///_virtual/LevelOneArt.ts", ['./rollupPluginModLoBabelH
   };
 });
 
-System.register("chunks:///_virtual/main", ['./KitchenClient.ts', './KitchenGeometry.ts', './LevelOneArt.ts'], function () {
+System.register("chunks:///_virtual/main", ['./KitchenAudio.ts', './KitchenClient.ts', './KitchenGeometry.ts', './LevelOneArt.ts'], function () {
   return {
-    setters: [null, null, null],
+    setters: [null, null, null, null],
     execute: function () {}
   };
 });
