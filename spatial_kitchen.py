@@ -210,6 +210,9 @@ class SpatialKitchen(Kitchen):
         self.operation_insets={}
         # With one body size, side operators stand exactly at the side walk limit.
         side=.30 if self.rules.cabinet_clearance is None else .5-self.rules.cabinet_clearance[1]
+        # operate_at_walk_limit: every face works from where walking toward it stops,
+        # so a chef never steps back or aside when an action starts.
+        up=.5-self.rules.cabinet_clearance[0] if self.at_walk_limit else UP_STANDOFF
         for key,e in self.equipment.items():
             if e.get('reach')=='corner':continue
             faces={}
@@ -218,7 +221,7 @@ class SpatialKitchen(Kitchen):
                 if (x+dx,y+dy) not in self.floor:continue
                 # 'up' is negative: the chef steps back from the cabinet so the tall
                 # back-view sprite reads as standing in front of it, not on it.
-                faces[face]=UP_STANDOFF if face=='up' else side if face in ('left','right') else (.49 if face in self.nav.contact_edges.get(e['cell'],()) else .30)
+                faces[face]=up if face=='up' else side if face in ('left','right') else (.49 if face in self.nav.contact_edges.get(e['cell'],()) else .30)
             self.operation_insets[key]=faces
 
     def speed_factor(self, who):
@@ -438,9 +441,27 @@ class SpatialKitchen(Kitchen):
         p = self.positions[who]
         return min(self.floor, key=lambda c: (math.dist(c, p), c[1], c[0]))
 
+    @property
+    def at_walk_limit(self):
+        return bool(self.rules.operate_at_walk_limit and self.rules.cabinet_clearance)
+
+    def at_station_face(self, who, target):
+        """Already standing where walking toward one of the station's faces stops."""
+        station=self.equipment.get(target)
+        if not station or station.get('reach')=='corner':return False
+        here=self.positions[who];anchor=self.anchor(who)
+        for cell in station.get('cells',[station['cell']]):
+            if abs(cell[0]-anchor[0])+abs(cell[1]-anchor[1])!=1:continue
+            axis=0 if cell[0]!=anchor[0] else 1
+            spot=self.operation_point(target,anchor)
+            if abs(here[axis]-spot[axis])<=.02 and abs(here[1-axis]-cell[1-axis])<=.5:return True
+        return False
+
     def path(self, who, target):
         if target in self.equipment:
             station=self.equipment[target]
+            if self.at_walk_limit and self.at_station_face(who,target):
+                return [self.positions[who]]
             access=[station['access']] if station.get('reach')=='corner' else sorted({n for c in station.get('cells',[station['cell']]) for n in self.nav.neighbors(c)})
             shared=self.shared_access(who,target)
             if shared is not None and shared:access=shared
@@ -507,6 +528,8 @@ class SpatialKitchen(Kitchen):
             return access
         # Side poses have their wrist above the foot anchor. Place the feet
         # toward the front of the side edge, so the wrist faces the board center.
+        # A chef already beside the station works in place (at_station_face), so this only
+        # sets where a route from elsewhere arrives.
         side_drop=.30 if facing in ('left','right') else 0.
         point=(access[0]+dx*inset,access[1]+dy*inset+side_drop)
         if side_drop and not self.nav.clear_walk_line(access,point):

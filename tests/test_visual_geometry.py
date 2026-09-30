@@ -202,6 +202,23 @@ const flyingDepth = geometry.flightDepth(4, tile*.5);
 assert(flyingDepth > groundDepth, 'flight elevation must advance the object in painter order');
 assert(flyingDepth > geometry.depthOrder(4, 'solid'), 'a raised object must not fall behind its cabinet');
 
+// Behind a counter the body sinks by position alone: full at every north stand point and
+// walk limit (up to 0.2 cells from the top edge), none on open floor, and no step anywhere.
+{
+  const map = {equipment: {c: {cell: [5, 4]}}};
+  assert.strictEqual(geometry.behindCounter(map, [5, 3.5]), 1);
+  assert.strictEqual(geometry.behindCounter(map, [5, 3.3]), 1);
+  assert.strictEqual(geometry.behindCounter(map, [5, 3.0]), 0);
+  assert.strictEqual(geometry.behindCounter(map, [7, 3.4]), 0);
+  assert.strictEqual(geometry.behindCounter(map, [5, 4.95]), 0, 'south of the counter: no sink');
+  let last = null;
+  for (let i = 0; i <= 400; i++) {
+    const x = 3 + i*.01, y = 3.0 + i*.00125, v = geometry.behindCounter(map, [x, y]);
+    if (last !== null) assert(Math.abs(v-last) < .06, `sink jumps at ${x},${y}`);
+    last = v;
+  }
+}
+
 // Held-key prediction lands where the server's manual step does, including wall slides.
 const walks = JSON.parse(fs.readFileSync(process.argv[4], 'utf8'));
 for (const {level, map, steps} of walks) {

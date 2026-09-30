@@ -2,7 +2,7 @@ import { _decorator, Component, Node, UITransform, Graphics, Color, Label, Layer
     view, ResolutionPolicy, sys, game, Game, profiler, Mask, Vec2, Camera, director, Sprite } from 'cc';
 import { LevelOneArt } from './LevelOneArt';
 import { KitchenAudio } from './KitchenAudio';
-import { GRID_ART, stationView, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, workingChefDepth, flightDepth, predictWalk, footWalkable, burgerLayers, heatCountdown } from './KitchenGeometry';
+import { GRID_ART, stationView, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, workingChefDepth, flightDepth, predictWalk, footWalkable, burgerLayers, heatCountdown, behindCounter } from './KitchenGeometry';
 const { ccclass } = _decorator;
 type Action = { key: string; label: string; kind: string; target: string; expected: unknown[] };
 type KitchenState = { game_id: string; phase: string; speed: number; kitchen: any; actions: Action[]; limits?:any; release?:any; interaction?:Action; use_interaction?:Action; interaction_hint?:string; interaction_focus?:string; interaction_cell?:number[];
@@ -876,10 +876,10 @@ export class KitchenClient extends Component {
         if(inWorld)this.chopImpact(who,hasAction&&phase===2&&beat<.62,(beat-.45)/.17);
         if(inWorld&&chopping)this.knifeStrike(who,beat,.45);
         if(shown){
-            // Working at a station in front (facing down), the chef stands behind a waist-high
-            // counter: sink the body so the counter hides the legs and the hands meet its edge.
-            const behind=inWorld&&this.useModularArt&&!!working&&facing==='down'&&!!station;
-            body.setScale(1,1,1);body.angle=0;body.setPosition(0,behind?-10:0);
+            // Behind a waist-high counter the body sinks so the counter hides the legs; by
+            // position only (never by action), so walking up and starting work look the same.
+            const sink=inWorld&&this.useModularArt?behindCounter(this.state!.kitchen.map,this.mapPoint(body.parent!)):0;
+            body.setScale(1,1,1);body.angle=0;body.setPosition(0,-10*sink);
             if(inWorld&&this.useModularArt){
                 body.parent!.getChildByName('contact-shadow')?.setPosition(0,0);
                 body.parent!.getChildByName('name')?.setPosition(0,-12);
@@ -1050,6 +1050,8 @@ export class KitchenClient extends Component {
         this.rect(g,-w/2-1,-h/2-3,w+2,h+4,COLORS.ink);this.rect(g,-w/2,-h/2,w,h,who==='human'?COLORS.human:COLORS.paper);
         l.color=color(who==='human'?COLORS.paper:COLORS.jeff);
     }
+    /** Map cell coordinates of a world node (inverse of locate). */
+    private mapPoint(n:Node){return [(n.position.x+640-MAPX)/TILE-.5,(360-MAPY-n.position.y)/TILE-.5];}
     private locate(n:Node,p:number[],height=0){n.setPosition(MAPX+(p[0]+.5)*TILE-640,360-MAPY-(p[1]+.5)*TILE+height);}
     private render(){
         if(!this.state||!this.mounted)return;const s=this.state,k=s.kitchen,active=s.phase==='running'&&!this.pending&&this.connected;

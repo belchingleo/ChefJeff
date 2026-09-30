@@ -142,6 +142,21 @@ export function predictWalk(map:any,from:number[],dx:number,dy:number,other?:num
     while(left>1e-12){const d=Math.min(tick,left);p=walkTick(map,p,v,d,other);left-=d;}
     return p;
 }
+/** 0..1: how far a foot at (x, y) stands right behind a cabinet whose top edge is south of
+ * it. Full within 0.2 cells of the edge (every north stand point and walk limit), fading out
+ * by 0.45 away or 0.35 past the cabinet's side, so walking along a counter never jumps. */
+export function behindCounter(map:any,p:number[]){
+    let best=0;
+    for(const e of Object.values(map.equipment||{}) as any[]){
+        for(const c of (e.cells||[e.cell]) as number[][]){
+            const d=(c[1]-.5)-p[1];
+            if(d<-.02||d>.45)continue;
+            const along=d<=.2+1e-9?1:(.45-d)/.25,side=Math.max(0,Math.abs(p[0]-c[0])-.5);
+            best=Math.max(best,along*Math.max(0,1-side/.35));
+        }
+    }
+    return best;
+}
 /** Display order is semantic, independent of the order ingredients reached the plate. */
 export function burgerLayers(ingredients:string[]){
     const present=new Set(ingredients);

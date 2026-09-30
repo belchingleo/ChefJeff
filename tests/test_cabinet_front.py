@@ -1,7 +1,7 @@
 """Feet stay south of a cabinet's front panel, for both chefs and every kind of movement."""
 import unittest
 
-from kitchen import load_config
+from kitchen import Food, load_config
 from levels import level_config
 from spatial_kitchen import SpatialKitchen, WALK_CLEARANCE
 
@@ -56,12 +56,49 @@ class CabinetFrontClearanceTests(unittest.TestCase):
                     self.assertTrue(k.nav.walkable_point(point))
                     k.nav.shortest_path(tuple(map(float, k.positions['human'])), point)
 
+    def test_stand_points_are_where_walking_toward_the_face_stops(self):
+        # South faces used to stand 0.27 cells back and step away when work began.
+        for level in ('level-1', 'level-2', 'level-3'):
+            k = self.make(level)
+            self.assertTrue(k.at_walk_limit)
+            for key, e in k.equipment.items():
+                if e.get('reach') == 'corner':continue
+                for n in k.nav.neighbors(tuple(e['cell'])):
+                    with self.subTest(level=level, station=key, access=n):
+                        dx, dy = e['cell'][0]-n[0], e['cell'][1]-n[1]
+                        start = (float(n[0]), float(n[1]))
+                        stop = k._wall_limited(start, (start[0]+dx, start[1]+dy))
+                        spot = k.operation_point(key, n)
+                        axis = 0 if dx else 1
+                        self.assertLessEqual(abs(spot[axis]-stop[axis]), .011)
+
+    def test_a_chef_already_at_a_face_works_in_place(self):
+        for who in ('human', 'jeff'):
+            with self.subTest(who=who):
+                k = self.make('level-2')
+                other = 'jeff' if who == 'human' else 'human'
+                k.positions[other] = (10., 5.)
+                # South of counter 14, walked up to it slightly off centre, facing it.
+                k.positions[who] = (5.3, 4.5+k.rules.cabinet_front_clearance)
+                k.facing[who] = 'up'
+                k.stations['counter14'].food = Food('T', 'raw', ingredient='tomato')
+                self.assertTrue(k.at_station_face(who, 'counter14'))
+                action = k.facing_interaction(who)[1]
+                self.assertEqual(action.kind, 'take_counter')
+                before = k.positions[who]
+                self.assertTrue(k.start(who, action)[0])
+                self.assertEqual(k.chefs[who].job.travel, 0)
+                k.advance(.5)
+                self.assertEqual(k.positions[who], before)
+                self.assertEqual(k.chefs[who].hand.id, 'T')
+
     def test_legacy_rules_keep_the_accepted_clearance(self):
         config = {key: value for key, value in load_config().items() if key != 'level_id'}
         k = SpatialKitchen(config | {'level': 2, 'spawn_seed': 0, 'order_seed': 1})
         self.assertEqual(k.resolved['level']['id'], 'legacy-level-2')
         self.assertIsNone(k.rules.cabinet_front_clearance)
         self.assertTrue(k.nav.walkable_point((5, 4.5+WALK_CLEARANCE)))
+        self.assertFalse(k.at_walk_limit)
 
 
 if __name__ == '__main__':

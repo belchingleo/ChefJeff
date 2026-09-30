@@ -35,6 +35,7 @@
       "front": 0.45,
       "side": 0.35
     },
+    "operate_at_walk_limit": true,
     "stall_replan": {
       "after_game_ms": 300,
       "min_progress_cells": 0.05

@@ -198,6 +198,9 @@ class Rules:
         body = move.get('cabinet_clearance_cells')
         self.cabinet_clearance = (body['front'], body['side']) if body else None
         self.cabinet_front_clearance = body['front'] if body else None
+        # Optional: stations are worked from where walking toward them stops, in place
+        # when already there. Absent = fixed stand-offs (accepted 0.5.9 behaviour).
+        self.operate_at_walk_limit = bool(move.get('operate_at_walk_limit', False))
         # Optional: re-plan a stalled route around the other chef. Absent = static waypoints.
         stall = move.get('stall_replan')
         self.stall_after = s(stall['after_game_ms']) if stall else None

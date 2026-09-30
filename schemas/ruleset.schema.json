@@ -138,6 +138,10 @@
           },
           "additionalProperties": false
         },
+        "operate_at_walk_limit": {
+          "description": "Optional: each station face is worked from where walking toward it stops (the cabinet_clearance limit; no south step-back), and in place when the chef already stands at that face. Absent: fixed stand-off points (accepted 0.5.9 behaviour).",
+          "type": "boolean"
+        },
         "stall_replan": {
           "description": "Optional: a routed chef whose remaining route has not shortened by min_progress_cells within after_game_ms re-plans around the other chef. Absent: routes keep their static waypoints (accepted 0.5.9 behaviour).",
           "type": "object",
