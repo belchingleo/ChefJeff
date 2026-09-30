@@ -58,13 +58,13 @@ Each level's configured round is played three ways. The fourth rung, a model-con
 | solo + random | the same chef, with a partner choosing uniformly among its legal actions (seeded) |
 | pair | the best scripted reference pair (the calibration pair) |
 
-Results for 2026-09-28 (`reports/baseline-ladder.json`):
+Results for 2026-09-30, after stations are worked from the walk limit (`reports/baseline-ladder.json`):
 
 | Level | Target | Solo | Solo + random | Pair | Pair contribution rate |
 |---|---|---|---|---|---|
 | 1 | 150 | **300** | 20 | 300 | 0.85 |
 | 2 | 150 | 146 | −26 | 318 | 0.88 |
-| 3 | 190 | 103 | −40 | 390 | 0.96 |
+| 3 | 190 | 103 | 93 | 390 | 0.96 |
 
 How to read this:
 

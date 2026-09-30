@@ -38,23 +38,23 @@
    "money": 20,
    "served": 1,
    "expired": 3,
-   "contribution_rate": 0.134,
+   "contribution_rate": 0.123,
    "harmful": {},
    "wasted": {
-    "loop": 19,
-    "unused": 15,
-    "support": 24
+    "loop": 26,
+    "unused": 22,
+    "support": 16
    },
    "dishes_with_both_chefs": 0,
    "cross_chef_handoffs": 0,
    "chefs": {
     "human": {
-     "actions": 15,
+     "actions": 16,
      "contributing": 9,
      "share_of_contributing": 1.0
     },
     "jeff": {
-     "actions": 52,
+     "actions": 57,
      "contributing": 0,
      "share_of_contributing": 0.0
     }
@@ -139,20 +139,20 @@
     "clear": 3
    },
    "wasted": {
-    "loop": 11,
-    "unused": 50,
+    "loop": 14,
+    "unused": 46,
     "support": 8
    },
    "dishes_with_both_chefs": 0,
    "cross_chef_handoffs": 0,
    "chefs": {
     "human": {
-     "actions": 39,
+     "actions": 37,
      "contributing": 0,
      "share_of_contributing": null
     },
     "jeff": {
-     "actions": 33,
+     "actions": 34,
      "contributing": 0,
      "share_of_contributing": null
     }
@@ -230,28 +230,30 @@
    "level": 3,
    "rung": "solo+random",
    "policy": "solo+random",
-   "money": -40,
-   "served": 0,
-   "expired": 4,
-   "contribution_rate": 0.0,
-   "harmful": {},
-   "wasted": {
-    "loop": 0,
-    "unused": 14,
-    "support": 5
+   "money": 93,
+   "served": 2,
+   "expired": 2,
+   "contribution_rate": 0.413,
+   "harmful": {
+    "clear": 1
    },
-   "dishes_with_both_chefs": 0,
-   "cross_chef_handoffs": 0,
+   "wasted": {
+    "loop": 2,
+    "unused": 25,
+    "support": 16
+   },
+   "dishes_with_both_chefs": 1,
+   "cross_chef_handoffs": 1,
    "chefs": {
     "human": {
-     "actions": 13,
-     "contributing": 0,
-     "share_of_contributing": null
+     "actions": 51,
+     "contributing": 29,
+     "share_of_contributing": 0.935
     },
     "jeff": {
-     "actions": 6,
-     "contributing": 0,
-     "share_of_contributing": null
+     "actions": 24,
+     "contributing": 2,
+     "share_of_contributing": 0.065
     }
    },
    "target": 190,

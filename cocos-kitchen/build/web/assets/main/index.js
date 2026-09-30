@@ -429,7 +429,7 @@ System.register("chunks:///_virtual/KitchenAudio.ts", ['./rollupPluginModLoBabel
 });
 
 System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabelHelpers.js', 'cc', './LevelOneArt.ts', './KitchenAudio.ts', './KitchenGeometry.ts'], function (exports) {
-  var _inheritsLoose, _createForOfIteratorHelperLoose, _createClass, _extends, _asyncToGenerator, _regeneratorRuntime, cclegacy, _decorator, sys, profiler, view, ResolutionPolicy, director, Camera, Color, UITransform, Label, Node, Graphics, game, Game, Layers, Sprite, Vec2, Mask, Component, LevelOneArt, KitchenAudio, predictWalk, footWalkable, burgerLayers, stationView, wallNeighbours, GRID_ART, surfaceOffset, trashView, depthOrder, heatCountdown, flightDepth, workingChefDepth;
+  var _inheritsLoose, _createForOfIteratorHelperLoose, _createClass, _extends, _asyncToGenerator, _regeneratorRuntime, cclegacy, _decorator, sys, profiler, view, ResolutionPolicy, director, Camera, Color, UITransform, Label, Node, Graphics, game, Game, Layers, Sprite, Vec2, Mask, Component, LevelOneArt, KitchenAudio, predictWalk, footWalkable, burgerLayers, stationView, wallNeighbours, GRID_ART, surfaceOffset, trashView, behindCounter, depthOrder, heatCountdown, flightDepth, workingChefDepth;
   return {
     setters: [function (module) {
       _inheritsLoose = module.inheritsLoose;
@@ -472,6 +472,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
       GRID_ART = module.GRID_ART;
       surfaceOffset = module.surfaceOffset;
       trashView = module.trashView;
+      behindCounter = module.behindCounter;
       depthOrder = module.depthOrder;
       heatCountdown = module.heatCountdown;
       flightDepth = module.flightDepth;
@@ -2515,12 +2516,12 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           if (inWorld) this.chopImpact(who, hasAction && phase === 2 && beat < .62, (beat - .45) / .17);
           if (inWorld && chopping) this.knifeStrike(who, beat, .45);
           if (shown) {
-            // Working at a station in front (facing down), the chef stands behind a waist-high
-            // counter: sink the body so the counter hides the legs and the hands meet its edge.
-            var behind = inWorld && this.useModularArt && !!working && facing === 'down' && !!station;
+            // Behind a waist-high counter the body sinks so the counter hides the legs; by
+            // position only (never by action), so walking up and starting work look the same.
+            var sink = inWorld && this.useModularArt ? behindCounter(this.state.kitchen.map, this.mapPoint(body.parent)) : 0;
             body.setScale(1, 1, 1);
             body.angle = 0;
-            body.setPosition(0, behind ? -10 : 0);
+            body.setPosition(0, -10 * sink);
             if (inWorld && this.useModularArt) {
               var _getChildByName, _getChildByName2;
               (_getChildByName = body.parent.getChildByName('contact-shadow')) == null || _getChildByName.setPosition(0, 0);
@@ -2856,6 +2857,10 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           this.rect(g, -w / 2 - 1, -h / 2 - 3, w + 2, h + 4, COLORS.ink);
           this.rect(g, -w / 2, -h / 2, w, h, who === 'human' ? COLORS.human : COLORS.paper);
           l.color = color(who === 'human' ? COLORS.paper : COLORS.jeff);
+        }
+        /** Map cell coordinates of a world node (inverse of locate). */;
+        _proto.mapPoint = function mapPoint(n) {
+          return [(n.position.x + 640 - MAPX) / TILE - .5, (360 - MAPY - n.position.y) / TILE - .5];
         };
         _proto.locate = function locate(n, p, height) {
           if (height === void 0) {
@@ -3350,6 +3355,7 @@ System.register("chunks:///_virtual/KitchenGeometry.ts", ['cc'], function (expor
     }],
     execute: function () {
       exports({
+        behindCounter: behindCounter,
         burgerLayers: burgerLayers,
         clearWalkLine: clearWalkLine,
         cornerOffset: cornerOffset,
@@ -3600,6 +3606,24 @@ System.register("chunks:///_virtual/KitchenGeometry.ts", ['cc'], function (expor
           left -= d;
         }
         return p;
+      }
+      /** 0..1: how far a foot at (x, y) stands right behind a cabinet whose top edge is south of
+       * it. Full within 0.2 cells of the edge (every north stand point and walk limit), fading out
+       * by 0.45 away or 0.35 past the cabinet's side, so walking along a counter never jumps. */
+      function behindCounter(map, p) {
+        var best = 0;
+        for (var _i5 = 0, _arr5 = Object.values(map.equipment || {}); _i5 < _arr5.length; _i5++) {
+          var e = _arr5[_i5];
+          for (var _i6 = 0, _arr6 = e.cells || [e.cell]; _i6 < _arr6.length; _i6++) {
+            var c = _arr6[_i6];
+            var d = c[1] - .5 - p[1];
+            if (d < -.02 || d > .45) continue;
+            var along = d <= .2 + 1e-9 ? 1 : (.45 - d) / .25,
+              side = Math.max(0, Math.abs(p[0] - c[0]) - .5);
+            best = Math.max(best, along * Math.max(0, 1 - side / .35));
+          }
+        }
+        return best;
       }
       /** Display order is semantic, independent of the order ingredients reached the plate. */
       function burgerLayers(ingredients) {
