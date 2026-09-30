@@ -35,6 +35,19 @@ class AudioAssetTests(unittest.TestCase):
         self.assertTrue(used, 'the pattern no longer finds sound names in KitchenAudio.ts')
         self.assertEqual(sorted(used - self.names()), [])
 
+    def test_audio_errors_cannot_break_play(self):
+        # KitchenClient calls these from poll(), update() and button handlers; an audio exception there
+        # would read as a lost connection (auto-pause), skip a frame, or swallow a click.
+        source = CLIENT.read_text()
+        public = re.findall(r'^    (?!private\b)(\w+)\([^)]*\)\{(.*)$', source, re.M)
+        names = {name for name, _ in public}
+        self.assertTrue({'play', 'chop', 'onState', 'update'} <= names, names)
+        unguarded = [name for name, body in public
+                     if name not in ('load', 'destroy') and not body.startswith('this.safely(')]
+        self.assertEqual(unguarded, [], 'every public KitchenAudio entry point must run inside safely()')
+        # load() is async and guards itself: a failed download leaves the kitchen silent, not broken.
+        self.assertRegex(source.split('async load(')[1].split('\n    }\n')[0], r'catch\(error\)\{console\.warn')
+
     def test_manifest_picks_match_the_export(self):
         manifest = json.loads(MANIFEST.read_text())
         unpicked = [s['id'] for s in manifest['sounds'] if not s.get('fixed') and 'pick' not in s]

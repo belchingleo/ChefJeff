@@ -35,6 +35,7 @@ export class KitchenAudio {
     private endedGame='';
     private menuAfter=0;
     private clock=0;
+    private warned=false;
     volume={music:.8,sfx:.8};
     ready=false;
 
@@ -61,6 +62,11 @@ export class KitchenAudio {
             this.ready=true;
         }catch(error){console.warn('ChefJeff audio unavailable; the kitchen stays silent.',error);}
     }
+    /** Sound must never break play: an audio error is reported once and that sound is skipped. */
+    private safely(run:()=>void){
+        try{run();}
+        catch(error){if(!this.warned){this.warned=true;console.warn('ChefJeff audio error; the kitchen carries on without this sound.',error);}}
+    }
     destroy(){
         if(sys.isNative)return;
         window.removeEventListener('kitchen-audio-settings',this.onSettings);
@@ -70,7 +76,7 @@ export class KitchenAudio {
     /** Cocos resumes its suspended Web Audio context only on a canvas click, but the kitchen is played
      *  from the keyboard. Resume the same context on any key or pointer gesture; Cocos then starts the
      *  queued sounds itself. If engine internals change, this quietly falls back to the canvas click. */
-    private unlock=()=>{
+    private unlock=()=>this.safely(()=>{
         // Any source that already holds a clip has a player wired to the engine's shared context.
         for(const src of [...this.music.map(ch=>ch.src),...Object.values(this.channels).map(ch=>ch.src)]){
             const context:AudioContext|undefined=(src as any)?._player?._player?._gainNode?.context;
@@ -78,25 +84,28 @@ export class KitchenAudio {
             if(context.state!=='running')context.resume().catch(()=>{});
             return;
         }
-    };
-    private onSettings=(e:Event)=>{Object.assign(this.volume,(e as CustomEvent).detail||{});};
+    });
+    private onSettings=(e:Event)=>this.safely(()=>{Object.assign(this.volume,(e as CustomEvent).detail||{});});
     private gain(name:string){return this.index?.sounds[name]?.gain??this.index?.wash[name]?.gain??.8;}
 
-    play(name:string,scale=1,minGap=.06){
+    play(name:string,scale=1,minGap=.06){this.safely(()=>this.playNow(name,scale,minGap));}
+    private playNow(name:string,scale:number,minGap:number){
         const clip=this.clips[name];if(!this.ready||!clip||!this.sfx||this.volume.sfx<=0)return;
         if(this.clock-(this.recent[name]??-1)<minGap)return;
         this.recent[name]=this.clock;
         this.sfx.playOneShot(clip,Math.min(1,this.gain(name)*this.volume.sfx*scale));
     }
     /** One knife strike, fired by the chop animation at the moment the blade meets the board. */
-    chop(){
+    chop(){this.safely(()=>this.chopNow());}
+    private chopNow(){
         const pool=this.index?.chop||[];if(!pool.length)return;
         let name=pool[Math.floor(Math.random()*pool.length)];
         if(name===this.lastChop&&pool.length>1)name=pool[(pool.indexOf(name)+1)%pool.length];
-        this.lastChop=name;this.play(name,.8+Math.random()*.2,0);
+        this.lastChop=name;this.playNow(name,.8+Math.random()*.2,0);
     }
 
-    onState(s:any){
+    onState(s:any){this.safely(()=>this.applyState(s));}
+    private applyState(s:any){
         if(!this.ready)return;
         const prev=this.last;this.last=s;
         const k=s.kitchen,fresh=!prev||prev.game_id!==s.game_id;
@@ -183,7 +192,8 @@ export class KitchenAudio {
         free.src.stop();free.clip=name;free.src.clip=this.clips[name]||null;free.level=0;free.target=1;
     }
 
-    update(dt:number){
+    update(dt:number){this.safely(()=>this.tick(dt));}
+    private tick(dt:number){
         this.clock+=dt;if(!this.ready)return;
         if(this.menuAfter&&this.clock>=this.menuAfter){this.menuAfter=0;if(this.last?.phase==='ended')this.setMusic('bgm_menu');}
         for(const ch of Object.values(this.channels))this.step(ch,dt,this.volume.sfx,true);
