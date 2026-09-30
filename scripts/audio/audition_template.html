@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>音效试听</title>
+<style>
+:root { --bg:#f6f3ec; --card:#fffdf8; --ink:#2b2622; --muted:#7a6f64; --line:#e3dccf; --accent:#c8553d; --ok:#3f7d4e; }
+@media (prefers-color-scheme: dark) { :root { --bg:#1d1a17; --card:#27231f; --ink:#f0e9df; --muted:#a89c8e; --line:#3a342e; --accent:#e0775d; --ok:#79b98a; } }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 -apple-system, "PingFang SC", "Noto Sans SC", sans-serif; }
+main { max-width:980px; margin:0 auto; padding:24px 16px 120px; }
+h1 { font-size:24px; margin:0 0 4px; }
+.lead { color:var(--muted); margin:0 0 24px; }
+h2 { font-size:17px; margin:36px 0 12px; padding-bottom:6px; border-bottom:2px solid var(--line); }
+summary { cursor:pointer; } summary h2 { display:inline-block; border:0; }
+h3.group { font-size:15px; color:var(--muted); margin:22px 0 8px; }
+.sound { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin:10px 0; }
+.sound.done { border-color:var(--ok); }
+header { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+h3 { font-size:16px; margin:0; }
+code { color:var(--muted); font-size:12px; }
+em { font-style:normal; font-size:12px; color:var(--accent); border:1px solid var(--accent); border-radius:4px; padding:0 5px; }
+.prompt { color:var(--muted); font-size:12.5px; margin:4px 0 10px; }
+.cands { display:grid; grid-template-columns:repeat(auto-fill, minmax(210px, 1fr)); gap:8px; }
+.cand { display:flex; flex-direction:column; gap:4px; border:1px solid var(--line); border-radius:8px; padding:8px; cursor:pointer; }
+.cand:has(input:checked) { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+.cand span { display:flex; align-items:center; gap:6px; font-size:13px; }
+.cand small { color:var(--muted); }
+.cand input { accent-color:var(--accent); margin:0 4px 0 0; }
+.cand.none { justify-content:center; }
+.cand.ref { border-style:dashed; opacity:.85; }
+audio { width:100%; height:32px; }
+.note { width:100%; margin-top:8px; padding:6px 8px; border:1px solid var(--line); border-radius:6px; background:transparent; color:var(--ink); font:inherit; font-size:13px; }
+.bar { position:fixed; left:0; right:0; bottom:0; background:var(--card); border-top:1px solid var(--line); padding:10px 16px; }
+.bar div { max-width:980px; margin:0 auto; display:flex; align-items:center; gap:12px; }
+.bar button { background:var(--accent); color:#fff; border:0; border-radius:8px; padding:8px 16px; font:inherit; cursor:pointer; }
+#progress { color:var(--muted); flex:1; }
+</style>
+</head>
+<body>
+<main>
+<h1>音效试听</h1>
+<p class="lead">每个声音选一个最满意的候选；都不满意就选“重做”，可以在备注里写想要的方向。选择会自动保存在这个浏览器里，最后点底部按钮复制结果发给 Claude。</p>
+<!--SOUNDS-->
+</main>
+<div class="bar"><div><span id="progress"></span><button id="copy">复制选择结果</button></div></div>
+<script>
+const KEY = 'audition-audio-v1-round4';
+const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } };
+const save = s => { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {} };
+const state = load();
+const sections = [...document.querySelectorAll('.sound[data-id]')];
+const choosing = sections.filter(sec => !sec.dataset.picked);
+function refresh() {
+  let n = 0;
+  for (const sec of choosing) { const done = !!state[sec.dataset.id]; sec.classList.toggle('done', done); n += done; }
+  document.getElementById('progress').textContent = `需要重选：已选 ${n} / ${choosing.length}`;
+}
+for (const sec of sections) {
+  const id = sec.dataset.id;
+  for (const r of sec.querySelectorAll('input[type=radio]')) {
+    if (state[id] === r.value) r.checked = true;
+    r.addEventListener('change', () => { state[id] = r.value; save(state); refresh(); });
+  }
+  const note = sec.querySelector('.note');
+  note.value = state[id + ':note'] || '';
+  note.addEventListener('input', () => { state[id + ':note'] = note.value; save(state); });
+}
+// Only one clip plays at a time.
+document.addEventListener('play', e => { for (const a of document.querySelectorAll('audio')) if (a !== e.target) a.pause(); }, true);
+document.getElementById('copy').addEventListener('click', async () => {
+  const lines = sections.map(sec => {
+    const id = sec.dataset.id, note = state[id + ':note'];
+    const pick = sec.dataset.picked ? `${sec.dataset.picked}（保留）` : state[id] || '未选';
+    return `${id}: ${pick}${note ? '（' + note + '）' : ''}`;
+  });
+  const text = lines.join('\n');
+  try { await navigator.clipboard.writeText(text); document.getElementById('copy').textContent = '已复制'; }
+  catch (e) { prompt('复制下面的内容：', text); }
+  setTimeout(() => document.getElementById('copy').textContent = '复制选择结果', 1500);
+});
+refresh();
+</script>
+</body>
+</html>

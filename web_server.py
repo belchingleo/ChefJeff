@@ -213,7 +213,7 @@ class GameSession:
                 j = chef.job
                 total = self.totals.setdefault(j.id, j.travel+j.work) if j else 0
                 state['chefs'][who]['progress'] = max(0, min(1, 1-(j.travel+j.work)/total)) if total else 0
-            events = [{'t': e['t'], 'message': e['message'], 'kind': e.get('kind')} for e in self.k.events
+            events = [{'t': e['t'], 'message': e['message'], 'kind': e.get('kind'), 'actor': e.get('actor')} for e in self.k.events
                       if e.get('kind') not in ('action_start', 'action_done')]
             events += self.notes
             events = sorted(events, key=lambda e:e['t'])[-10:]

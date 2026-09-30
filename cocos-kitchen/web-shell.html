@@ -81,7 +81,7 @@ function kitchenTabs(dialog){
 <style>
 #kitchen-api-dialog{width:min(560px,calc(100vw - 28px))}
 #kitchen-api-dialog label:not(.remember){display:block;font-weight:600;margin:13px 0 4px;color:var(--ink)}
-#kitchen-api-dialog input:not([type=checkbox]),#kitchen-api-dialog select{box-sizing:border-box;width:100%;padding:10px;border:2px solid var(--ink);border-radius:0;background:var(--paper);color:var(--ink);font:inherit}
+#kitchen-api-dialog input:not([type=checkbox]):not([type=range]),#kitchen-api-dialog select{box-sizing:border-box;width:100%;padding:10px;border:2px solid var(--ink);border-radius:0;background:var(--paper);color:var(--ink);font:inherit}
 #kitchen-api-dialog input:focus-visible,#kitchen-api-dialog select:focus-visible,#kitchen-api-dialog input[type=checkbox]:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
 #kitchen-api-dialog input[type=checkbox]{accent-color:var(--denim);width:18px;height:18px}
 #kitchen-api-dialog .remember{display:flex;align-items:center;gap:8px;margin:16px 0;font-size:14px;color:var(--ink)}
@@ -92,11 +92,18 @@ function kitchenTabs(dialog){
 #api-identity{font-weight:600;color:var(--denim)!important}
 #kitchen-api-dialog [hidden]{display:none!important}
 #kitchen-api-dialog [role=tabpanel]{border:0;margin:0;padding:0}
+#kitchen-api-dialog .audio-grid{display:grid;grid-template-columns:max-content 1fr 3em;align-items:center;gap:14px 16px;margin:14px 0}
+#kitchen-api-dialog .audio-row{display:contents}
+#kitchen-api-dialog .audio-row label{margin:0}
+#kitchen-api-dialog .audio-row input{width:100%;margin:0;accent-color:var(--denim)}
+#kitchen-api-dialog .audio-row input:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+#kitchen-api-dialog .audio-row output{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
 </style>
 <dialog id="kitchen-api-dialog" class="panel" aria-labelledby="settings-title">
  <div class="dlg-head"><h2 id="settings-title">设置</h2><span class="sr-label">界面语言</span><button id="kitchen-language" class="btn" type="button" data-no-i18n>English</button><button id="api-close" class="btn close" type="button" aria-label="返回厨房">×</button></div>
  <div class="tabs" role="tablist" aria-label="设置分页">
   <button class="tab" id="tab-connection" type="button" role="tab" aria-controls="panel-connection" autofocus>连接</button>
+  <button class="tab" id="tab-audio" type="button" role="tab" aria-controls="audio-panel">声音</button>
   <button class="tab" id="tab-memory" type="button" role="tab" aria-controls="memory-panel">协作记忆</button>
   <button class="tab" id="tab-limits" type="button" role="tab" aria-controls="limits-panel">调用上限</button>
   <button class="tab" id="tab-export" type="button" role="tab" aria-controls="export-panel">导出</button>
@@ -119,6 +126,14 @@ function kitchenTabs(dialog){
    <p id="api-message" role="status" aria-live="polite">测试连接会发送一次小型 API 请求，可能产生少量费用。</p>
    <div class="actions"><button id="api-connect" class="btn primary" type="submit">测试并连接</button><button id="api-clear" class="btn" type="button">清除配置</button></div>
   </form>
+ </section>
+ <section aria-labelledby="audio-title" id="audio-panel" role="tabpanel">
+  <h3 id="audio-title">声音</h3>
+  <div class="audio-grid">
+  <div class="audio-row"><label for="audio-music">音乐</label><input id="audio-music" type="range" min="0" max="100" step="5"><output id="audio-music-value" for="audio-music" data-no-i18n></output></div>
+  <div class="audio-row"><label for="audio-sfx">音效</label><input id="audio-sfx" type="range" min="0" max="100" step="5"><output id="audio-sfx-value" for="audio-sfx" data-no-i18n></output></div>
+  </div>
+  <p>拉到 0 即静音。设置只保存在这台设备的浏览器里。</p>
  </section>
  <section aria-labelledby="memory-title" id="memory-panel" role="tabpanel">
   <h3 id="memory-title">跨局协作记忆 · 试验版</h3>
@@ -299,6 +314,20 @@ function kitchenTabs(dialog){
  <div class="dlg-foot"><button id="help-close" class="btn" type="button">返回菜单</button></div>
 </dialog>
 <script>
+(()=>{
+ // Music and effects volume; the Cocos client reads the same key at start and listens for changes.
+ const key='chefjeff-audio',volume={music:.8,sfx:.8};
+ try{Object.assign(volume,JSON.parse(localStorage.getItem(key)||'{}'))}catch{}
+ for(const id of ['music','sfx']){
+  const input=document.getElementById('audio-'+id),out=document.getElementById('audio-'+id+'-value');
+  input.value=Math.round(volume[id]*100);out.textContent=input.value+'%';
+  input.addEventListener('input',()=>{
+   volume[id]=input.value/100;out.textContent=input.value+'%';
+   try{localStorage.setItem(key,JSON.stringify(volume))}catch{}
+   window.dispatchEvent(new CustomEvent('kitchen-audio-settings',{detail:{...volume}}));
+  });
+ }
+})();
 (()=>{const help=document.getElementById('kitchen-help-dialog'),showTab=kitchenTabs(help);
  window.addEventListener('kitchen-open-help',()=>{showTab(document.getElementById('tab-keys'));if(!help.open)help.showModal()});
  document.getElementById('help-close').onclick=document.getElementById('help-x').onclick=()=>help.close();})();
