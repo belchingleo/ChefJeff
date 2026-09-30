@@ -140,6 +140,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           };
           // Held-key walking is predicted locally so the chef answers on the same frame, then eased onto server state.
           _this.predicted = null;
+          /** Held-key walk in whole server ticks: position at the last tick, the next one, and the progress between. */
+          _this.walkPlan = null;
           _this.releasedAt = null;
           _this.stateSentAt = 0;
           _this.handsBusyUntil = -1;
@@ -826,22 +828,61 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             return null;
           }
           this.releasedAt = null;
-          var rate = (k.map.walk_speed || 4.5) * (((_c$sprint = c.sprint) == null ? void 0 : _c$sprint.active_remaining) > 0 ? 1.4 : 1) * this.state.speed,
+          var walk = (k.map.walk_speed || 4.5) * (((_c$sprint = c.sprint) == null ? void 0 : _c$sprint.active_remaining) > 0 ? 1.4 : 1),
+            rate = walk * this.state.speed,
             other = (_k$chefs$jeff = k.chefs.jeff) == null ? void 0 : _k$chefs$jeff.position;
-          var from = this.predicted || [(n.position.x + 640 - MAPX) / TILE - .5, (360 - MAPY - n.position.y) / TILE - .5];
-          var next = predictWalk(k.map, from, d.x * rate * dt, d.y * rate * dt, other);
+          // The server moves the chef in 50 ms game ticks (tick_game_ms); stepping the same distances from
+          // the same rules keeps diagonal slides along counters on its path. Drawn between ticks.
+          var tick = walk * .05,
+            step = function step(p) {
+              return predictWalk(k.map, p, d.x * tick, d.y * tick, other, tick);
+            };
+          var plan = this.walkPlan;
+          if (!this.predicted || !plan || plan.dx !== d.x || plan.dy !== d.y) {
+            var from = this.predicted || [(n.position.x + 640 - MAPX) / TILE - .5, (360 - MAPY - n.position.y) / TILE - .5];
+            plan = this.walkPlan = {
+              dx: d.x,
+              dy: d.y,
+              at: from,
+              next: step(from),
+              frac: 0
+            };
+          }
+          plan.frac += dt * this.state.speed / .05;
+          while (plan.frac >= 1) {
+            plan.frac -= 1;
+            plan.at = plan.next;
+            plan.next = step(plan.at);
+          }
+          var next = [plan.at[0] + (plan.next[0] - plan.at[0]) * plan.frac, plan.at[1] + (plan.next[1] - plan.at[1]) * plan.frac];
           // Until the server reports this same direction it has not received the key yet: trust the prediction.
           // Afterwards ease toward its position carried forward to now; snap only on a large disagreement (e.g. a push).
           var heading = c.move_direction || [0, 0],
             synced = !!c.manual_moving && Math.abs(heading[0] - d.x) < 1e-6 && Math.abs(heading[1] - d.y) < 1e-6;
           var age = synced ? Math.min(.3, Math.max(0, this.clock - this.received)) : 0,
-            server = predictWalk(k.map, c.position, d.x * rate * age, d.y * rate * age, other);
+            server = predictWalk(k.map, c.position, d.x * rate * age, d.y * rate * age, other, tick);
           var ex = server[0] - next[0],
             ey = server[1] - next[1],
             pull = Math.min(1, dt * 4);
-          if (Math.hypot(ex, ey) > 1.2) next = server;else if (synced) {
-            var eased = [next[0] + ex * pull, next[1] + ey * pull];
-            if (footWalkable(k.map, eased[0], eased[1])) next = eased;
+          if (Math.hypot(ex, ey) > 1.2) {
+            next = server;
+            this.walkPlan = {
+              dx: d.x,
+              dy: d.y,
+              at: server,
+              next: step(server),
+              frac: 0
+            };
+          } else if (synced) {
+            // Ease toward the server by shifting the whole tick plan, keeping its tick phase.
+            var sx = ex * pull,
+              sy = ey * pull,
+              eased = [next[0] + sx, next[1] + sy];
+            if (footWalkable(k.map, eased[0], eased[1])) {
+              next = eased;
+              plan.at = [plan.at[0] + sx, plan.at[1] + sy];
+              plan.next = step(plan.at);
+            }
           }
           return this.predicted = next;
         };
@@ -2859,6 +2900,7 @@ System.register("chunks:///_virtual/KitchenGeometry.ts", ['cc'], function (expor
     execute: function () {
       exports({
         burgerLayers: burgerLayers,
+        clearWalkLine: clearWalkLine,
         cornerOffset: cornerOffset,
         depthOrder: depthOrder,
         flightDepth: flightDepth,
@@ -2959,53 +3001,154 @@ System.register("chunks:///_virtual/KitchenGeometry.ts", ['cc'], function (expor
           return b[0] + e < x && x < b[2] - e && b[1] + e < y && y < b[3] - e;
         });
       }
-      /** Sideways shift (signed cells, on the other axis) that lets a blocked single-direction
-       * step continue: the server's corner_offset, within map.corner_slide. */
-      function cornerOffset(map, x, y, dx, dy) {
-        var limit = map.corner_slide;
-        if (!limit || dx && dy || !dx && !dy) return 0;
-        var horizontal = !!dx,
-          step = Math.sign(dx || dy) * .05;
-        for (var n = 1; n <= Math.round(limit / .01); n++) for (var _i = 0, _arr = [-1, 1]; _i < _arr.length; _i++) {
-          var sign = _arr[_i];
-          var o = sign * n * .01,
-            px = horizontal ? x : x + o,
-            py = horizontal ? y + o : y;
-          if (footWalkable(map, px, py) && footWalkable(map, horizontal ? px + step : px, horizontal ? py : py + step)) return o;
+      var EPS = 1e-9;
+      /** Mirrors navigation.clear_walk_line: a segment may touch walk boxes, never enter one. */
+      function clearWalkLine(map, a, b) {
+        if (!footWalkable(map, a[0], a[1]) || !footWalkable(map, b[0], b[1])) return false;
+        var x0 = Math.min(a[0], b[0]),
+          x1 = Math.max(a[0], b[0]),
+          y0 = Math.min(a[1], b[1]),
+          y1 = Math.max(a[1], b[1]);
+        for (var _i = 0, _arr = map.walk_boxes || []; _i < _arr.length; _i++) {
+          var _arr$_i = _arr[_i],
+            left = _arr$_i[0],
+            top = _arr$_i[1],
+            right = _arr$_i[2],
+            bottom = _arr$_i[3];
+          if (left + EPS >= x1 || right - EPS <= x0 || top + EPS >= y1 || bottom - EPS <= y0) continue;
+          var low = 0,
+            high = 1;
+          for (var _i2 = 0, _arr2 = [[0, left, right], [1, top, bottom]]; _i2 < _arr2.length; _i2++) {
+            var _arr2$_i = _arr2[_i2],
+              axis = _arr2$_i[0],
+              lower = _arr2$_i[1],
+              upper = _arr2$_i[2];
+            var d = b[axis] - a[axis],
+              lo = lower + EPS,
+              hi = upper - EPS;
+            if (Math.abs(d) < EPS) {
+              if (!(lo < a[axis] && a[axis] < hi)) {
+                low = 1;
+                high = 0;
+                break;
+              }
+            } else {
+              var p = (lo - a[axis]) / d,
+                q = (hi - a[axis]) / d;
+              low = Math.max(low, Math.min(p, q));
+              high = Math.min(high, Math.max(p, q));
+            }
+          }
+          if (low <= high) return false;
         }
-        return 0;
+        return true;
       }
-      /** Local prediction of a held-key walk: straight when clear, otherwise each axis slides
-       * up to the blocking edge, as the server does; a fully blocked single-direction step
-       * slides sideways out of a shallow notch (map.corner_slide). Never steps deeper into the teammate. */
-      function predictWalk(map, from, dx, dy, other) {
+      /** Mirrors SpatialKitchen._wall_limited: as far along the segment as the walk boxes allow. */
+      function wallLimited(map, a, b) {
+        if (clearWalkLine(map, a, b)) return b;
+        var low = 0,
+          high = 1;
+        for (var i = 0; i < 16; i++) {
+          var mid = (low + high) / 2;
+          if (clearWalkLine(map, a, [a[0] + (b[0] - a[0]) * mid, a[1] + (b[1] - a[1]) * mid])) low = mid;else high = mid;
+        }
+        return [a[0] + (b[0] - a[0]) * low, a[1] + (b[1] - a[1]) * low];
+      }
+      /** Mirrors navigation.contact_fraction: how far a step goes before touching a chef's disc. */
+      function contactFraction(a, b, c, r) {
+        var dx = b[0] - a[0],
+          dy = b[1] - a[1],
+          ox = a[0] - c[0],
+          oy = a[1] - c[1],
+          aa = dx * dx + dy * dy;
+        if (aa < EPS * EPS) return 1;
+        var bb = ox * dx + oy * dy,
+          cc = ox * ox + oy * oy - r * r;
+        if (cc < -EPS) return bb >= -EPS ? 1 : 0;
+        if (bb >= 0) return 1;
+        var disc = bb * bb - aa * cc;
+        if (disc <= EPS * aa) return 1;
+        return Math.max(0, Math.min(1, (-bb - Math.sqrt(disc)) / aa));
+      }
+      /** Sideways shift (signed cells) and its axis that lets a blocked single-direction step
+       * continue: the server's corner_offset, within map.corner_slide. */
+      function cornerOffset(map, p, v) {
+        var limit = map.corner_slide;
+        var axis = v[0] && !v[1] ? 0 : v[1] && !v[0] ? 1 : -1;
+        if (!limit || axis < 0) return null;
+        var side = 1 - axis;
+        for (var n = 1; n <= Math.round(limit / .01); n++) for (var _i3 = 0, _arr3 = [-1, 1]; _i3 < _arr3.length; _i3++) {
+          var sign = _arr3[_i3];
+          var shifted = [p[0], p[1]];
+          shifted[side] += sign * n * .01;
+          var ahead = [shifted[0], shifted[1]];
+          ahead[axis] += v[axis] * .05;
+          if (clearWalkLine(map, p, shifted) && clearWalkLine(map, shifted, ahead)) return [sign * n * .01, side];
+        }
+        return null;
+      }
+      /** One server tick of a held-key walk (SpatialKitchen._after_step): straight when the whole
+       * line is clear, otherwise each axis in turn up to the blocking edge, then any distance left
+       * slides out of a shallow notch. The teammate is a disc the step stops at (the server may also
+       * slide or push; the eased server position corrects that). */
+      function walkTick(map, from, v, distance, other) {
         var _map$chef_separation;
-        var n = Math.max(1, Math.ceil(Math.hypot(dx, dy) / .02)),
-          sep = (_map$chef_separation = map.chef_separation) != null ? _map$chef_separation : .4,
-          sx = dx / n,
-          sy = dy / n;
-        var ok = function ok(x, y, px, py) {
-          return footWalkable(map, x, y) && (!other || Math.hypot(x - other[0], y - other[1]) >= Math.min(sep, Math.hypot(px - other[0], py - other[1])));
-        };
-        var x = from[0],
-          y = from[1];
-        for (var i = 0; i < n; i++) {
-          if (ok(x + sx, y + sy, x, y)) {
-            x += sx;
-            y += sy;
-            continue;
+        var sep = (_map$chef_separation = map.chef_separation) != null ? _map$chef_separation : .4;
+        var move = function move(a, b) {
+          if (other && Math.hypot(b[0] - a[0], b[1] - a[1]) > EPS) {
+            var f = contactFraction(a, b, other, sep);
+            if (f < 1 - 1e-8) b = [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
           }
-          var bx = x,
-            by = y;
-          if (sx && ok(x + sx, y, x, y)) x += sx;
-          if (sy && ok(x, y + sy, x, y)) y += sy;
-          if (x === bx && y === by) {
-            var o = cornerOffset(map, x, y, sx, sy),
-              d = Math.min(Math.abs(o), Math.hypot(sx, sy)) * Math.sign(o);
-            if (o && sx && ok(x, y + d, x, y)) y += d;else if (o && sy && ok(x + d, y, x, y)) x += d;
+          return wallLimited(map, a, b);
+        };
+        var p = from;
+        var end = [from[0] + v[0] * distance, from[1] + v[1] * distance];
+        if (clearWalkLine(map, p, end)) p = move(p, end);else for (var _i4 = 0, _arr4 = [0, 1]; _i4 < _arr4.length; _i4++) {
+          var axis = _arr4[_i4];
+          if (!v[axis]) continue;
+          var c = [p[0], p[1]];
+          c[axis] += v[axis] * distance;
+          p = move(p, c);
+        }
+        var remaining = distance * Math.hypot(v[0], v[1]) - Math.hypot(p[0] - from[0], p[1] - from[1]);
+        if (map.corner_slide && remaining > 1e-9) {
+          var found = cornerOffset(map, p, v);
+          if (found) {
+            var offset = found[0],
+              side = found[1],
+              before = p,
+              target = [p[0], p[1]];
+            target[side] += Math.sign(offset) * Math.min(Math.abs(offset), remaining);
+            p = move(p, target);
+            var slid = Math.hypot(p[0] - before[0], p[1] - before[1]),
+              left = remaining - slid;
+            if (slid > 1e-9 && left > 1e-9) {
+              var ahead = [p[0] + v[0] * left, p[1] + v[1] * left];
+              if (clearWalkLine(map, p, ahead)) p = move(p, ahead);
+            }
           }
         }
-        return [x, y];
+        return p;
+      }
+      /** Local prediction of a held-key walk (dx, dy in cells), computed in the server's own steps:
+       * `tick` is the distance one 50 ms game tick covers at the current speed. Same geometry, same
+       * step size, so diagonal slides along counters land where the server's do. */
+      function predictWalk(map, from, dx, dy, other, tick) {
+        if (tick === void 0) {
+          var _map$walk_speed;
+          tick = ((_map$walk_speed = map.walk_speed) != null ? _map$walk_speed : 4.5) * .05;
+        }
+        var total = Math.hypot(dx, dy);
+        if (total < 1e-12) return [from[0], from[1]];
+        var v = [dx / total, dy / total];
+        var p = [from[0], from[1]],
+          left = total;
+        while (left > 1e-12) {
+          var d = Math.min(tick, left);
+          p = walkTick(map, p, v, d, other);
+          left -= d;
+        }
+        return p;
       }
       /** Display order is semantic, independent of the order ingredients reached the plate. */
       function burgerLayers(ingredients) {

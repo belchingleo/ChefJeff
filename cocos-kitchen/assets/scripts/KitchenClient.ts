@@ -48,6 +48,8 @@ export class KitchenClient extends Component {
     private manualDirection={x:0,y:0};
     // Held-key walking is predicted locally so the chef answers on the same frame, then eased onto server state.
     private predicted:number[]|null=null;
+    /** Held-key walk in whole server ticks: position at the last tick, the next one, and the progress between. */
+    private walkPlan:{dx:number,dy:number,at:number[],next:number[],frac:number}|null=null;
     private releasedAt:number|null=null;
     private stateSentAt=0;
     private handsBusyUntil=-1;
@@ -301,16 +303,29 @@ export class KitchenClient extends Component {
             this.predicted=this.releasedAt=null;return null;
         }
         this.releasedAt=null;
-        const rate=(k.map.walk_speed||4.5)*(c.sprint?.active_remaining>0?1.4:1)*this.state!.speed,other=k.chefs.jeff?.position;
-        const from=this.predicted||[(n.position.x+640-MAPX)/TILE-.5,(360-MAPY-n.position.y)/TILE-.5];
-        let next=predictWalk(k.map,from,d.x*rate*dt,d.y*rate*dt,other);
+        const walk=(k.map.walk_speed||4.5)*(c.sprint?.active_remaining>0?1.4:1),rate=walk*this.state!.speed,other=k.chefs.jeff?.position;
+        // The server moves the chef in 50 ms game ticks (tick_game_ms); stepping the same distances from
+        // the same rules keeps diagonal slides along counters on its path. Drawn between ticks.
+        const tick=walk*.05,step=(p:number[])=>predictWalk(k.map,p,d.x*tick,d.y*tick,other,tick);
+        let plan=this.walkPlan;
+        if(!this.predicted||!plan||plan.dx!==d.x||plan.dy!==d.y){
+            const from=this.predicted||[(n.position.x+640-MAPX)/TILE-.5,(360-MAPY-n.position.y)/TILE-.5];
+            plan=this.walkPlan={dx:d.x,dy:d.y,at:from,next:step(from),frac:0};
+        }
+        plan.frac+=dt*this.state!.speed/.05;
+        while(plan.frac>=1){plan.frac-=1;plan.at=plan.next;plan.next=step(plan.at);}
+        let next=[plan.at[0]+(plan.next[0]-plan.at[0])*plan.frac,plan.at[1]+(plan.next[1]-plan.at[1])*plan.frac];
         // Until the server reports this same direction it has not received the key yet: trust the prediction.
         // Afterwards ease toward its position carried forward to now; snap only on a large disagreement (e.g. a push).
         const heading=c.move_direction||[0,0],synced=!!c.manual_moving&&Math.abs(heading[0]-d.x)<1e-6&&Math.abs(heading[1]-d.y)<1e-6;
-        const age=synced?Math.min(.3,Math.max(0,this.clock-this.received)):0,server=predictWalk(k.map,c.position,d.x*rate*age,d.y*rate*age,other);
+        const age=synced?Math.min(.3,Math.max(0,this.clock-this.received)):0,server=predictWalk(k.map,c.position,d.x*rate*age,d.y*rate*age,other,tick);
         const ex=server[0]-next[0],ey=server[1]-next[1],pull=Math.min(1,dt*4);
-        if(Math.hypot(ex,ey)>1.2)next=server;
-        else if(synced){const eased=[next[0]+ex*pull,next[1]+ey*pull];if(footWalkable(k.map,eased[0],eased[1]))next=eased;}
+        if(Math.hypot(ex,ey)>1.2){next=server;this.walkPlan={dx:d.x,dy:d.y,at:server,next:step(server),frac:0};}
+        else if(synced){
+            // Ease toward the server by shifting the whole tick plan, keeping its tick phase.
+            const sx=ex*pull,sy=ey*pull,eased=[next[0]+sx,next[1]+sy];
+            if(footWalkable(k.map,eased[0],eased[1])){next=eased;plan.at=[plan.at[0]+sx,plan.at[1]+sy];plan.next=step(plan.at);}
+        }
         return this.predicted=next;
     }
     private clearInput(){this.heldKeys.clear();const wasMoving=this.manualDirection.x!==0||this.manualDirection.y!==0;this.manualDirection={x:0,y:0};if(wasMoving)this.sendMove(0,0);}

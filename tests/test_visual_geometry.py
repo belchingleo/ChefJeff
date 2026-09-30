@@ -37,17 +37,20 @@ def server_walks():
                 if min(math.dist(p, k.positions['jeff']) for p in (before, after)) > 1:
                     steps.append([before, [vector[0]*WALK_SPEED*.05, vector[1]*WALK_SPEED*.05], after])
         walks.append({'level': level, 'map': k.snapshot()['map'], 'steps': steps})
-    # Service rules add corner sliding: include the notch in front of a board set between
-    # counters (level 2, board 2), where a sideways key first slides the chef out. Single
-    # directions only: sliding applies to one held direction.
+    # Service rules add corner sliding and the body clearance: include the notch in front of
+    # a board set between counters (level 2, board 2), and diagonal walks started against
+    # counters, where each tick slides along a cabinet edge or around its corner.
     import config_contract as cc
-    for level_id, starts in (('level-1', [None]), ('level-2', [None, (6.15, 6.5), (6.0, 6.49)]), ('level-3', [None])):
+    for level_id, starts in (('level-1', [None, (3.15, 3.0), (2.0, 5.95)]),
+                             ('level-2', [None, (6.15, 6.5), (6.0, 6.49), (2.0, 3.3), (5.0, 4.95), (9.0, 2.95)]),
+                             ('level-3', [None, (5.0, 4.95)])):
         steps = []
         for start in starts:
-            for vx, vy in ((1,0),(-1,0),(0,1),(0,-1)):
+            for vx, vy in ((1,0),(-1,0),(0,1),(0,-1),(1,1),(-1,1),(1,-1),(-1,-1)):
                 k = SpatialKitchen(cc.load_level(level_id))
                 k.positions['jeff'] = (k.nav.width - 2, 1.5) if start else k.positions['jeff']
                 if start:
+                    assert k.nav.walkable_point(start), (level_id, start)
                     k.positions['human'] = start
                 k.set_manual('human', vx, vy)
                 vector = k.manual['human']
@@ -202,15 +205,12 @@ assert(flyingDepth > geometry.depthOrder(4, 'solid'), 'a raised object must not 
 // Held-key prediction lands where the server's manual step does, including wall slides.
 const walks = JSON.parse(fs.readFileSync(process.argv[4], 'utf8'));
 for (const {level, map, steps} of walks) {
-  let exact = 0;
   for (const [before, delta, after] of steps) {
     const got = geometry.predictWalk(map, before, delta[0], delta[1]), error = Math.hypot(got[0]-after[0], got[1]-after[1]);
-    // The server rounds a board corner a tick later than the finer prediction; the client eases that gap out.
-    assert(error < .1, `level ${level}: predicted ${got} from ${before} but the server reached ${after}`);
+    // Same geometry and the same tick-sized step: the prediction lands where the server does.
+    assert(error < 1e-6, `level ${level}: predicted ${got} from ${before} but the server reached ${after}`);
     assert(geometry.footWalkable(map, got[0], got[1]));
-    if (error < .01) exact++;
   }
-  assert(exact >= steps.length*.97, `level ${level}: only ${exact}/${steps.length} steps match the server`);
 }
 
 '''
