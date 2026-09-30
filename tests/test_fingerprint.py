@@ -1,4 +1,4 @@
-"""Accepted legacy levels must behave identically through the data-driven migration."""
+"""The listed service levels must keep their recorded behaviour; update goldens only for reviewed rule changes."""
 import json
 import unittest
 from pathlib import Path
@@ -6,7 +6,7 @@ from pathlib import Path
 from fingerprint import GOLDEN, SCENARIOS, run
 
 
-class LegacyFingerprintTests(unittest.TestCase):
+class FingerprintTests(unittest.TestCase):
     maxDiff = 4000
 
     def test_golden_files_cover_every_scenario(self):

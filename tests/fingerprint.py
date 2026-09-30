@@ -1,10 +1,11 @@
-"""Deterministic behaviour fingerprints of the accepted legacy levels.
+"""Deterministic behaviour fingerprints of the listed service levels.
 
-The data-driven migration must not change accepted gameplay. Each scenario
-drives both chefs with a seeded, rule-agnostic policy through the public
-``command``/``advance`` interface and records engine events plus a compact
-state projection. ``python tests/fingerprint.py --update`` rewrites the golden
-files; do that only for an intentional, reviewed rule change.
+Refactors must not change gameplay. Each scenario plays a level's frozen,
+fixed-seed round and drives both chefs with a seeded, rule-agnostic policy
+through the public ``start``/``advance`` interface, recording engine events plus
+a compact state projection. ``python tests/fingerprint.py --update`` rewrites
+the golden files; do that only for an intentional, reviewed rule change and say
+why in the commit message.
 """
 from __future__ import annotations
 import hashlib
@@ -16,7 +17,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from kitchen import load_config  # noqa: E402
+import config_contract as cc  # noqa: E402
 from spatial_kitchen import SpatialKitchen  # noqa: E402
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import reference_policy  # noqa: E402
@@ -29,22 +30,23 @@ DECIDE_EVERY = 10   # policy decision every 0.5 game seconds
 # action kinds and is only used to reach deep game states reproducibly.
 PRIORITY = ['serve', 'extinguish', 'plate_pot', 'plate_counter', 'plate_from_counter', 'plate_ground',
             'plate_partner', 'assemble', 'merge_plates', 'put_pot', 'return_pot', 'load_counter',
-            'load_ground', 'chop', 'wash', 'put_board', 'put_sink', 'take_board', 'take_return',
+            'load_ground', 'assemble_ground', 'chop', 'wash', 'put_board', 'put_sink', 'take_board', 'take_return',
             'take_sink', 'take_plate', 'fetch', 'take_counter', 'pickup', 'lift_pot', 'swap_pot',
             'throw', 'put_counter', 'clear', 'take_tool', 'put_tool', 'discard', 'empty_pot', 'drop']
 
 SCENARIOS = {
-    # name: (level, order_seed, spawn_seed, policy seed, policy, game seconds)
-    # reference: recipe-following cook + assembler; serves, washes, shares chopping.
-    'level1-reference': (1, 7, 0, 0, 'reference', 180),
-    'level2-reference': (2, 7, 1, 0, 'reference', 240),
-    'level2-reference-expiry': (2, 7, 0, 0, 'reference', 240),  # an order expires; round continues
-    'level3-reference': (3, 7, 0, 0, 'reference', 360),
-    # greedy/random: fires, throws, drops, swaps, conflicts and penalties.
-    'level1-greedy': (1, 11, 0, 1, 'greedy', 180),
-    'level1-random': (1, 11, 1, 2, 'random', 120),
-    'level2-greedy': (2, 5, 0, 3, 'greedy', 240),
-    'level3-random': (3, 7, 1, 6, 'random', 120),
+    # name: (level id, policy seed, policy); each plays the level's whole fixed round (180 s).
+    # reference: recipe-following cook + assembler; serves, washes, shares chopping, expiries.
+    'level1-reference': ('level-1', 0, 'reference'),
+    'level2-reference': ('level-2', 0, 'reference'),
+    'level3-reference': ('level-3', 0, 'reference'),
+    # greedy/random: fires, throws, passes, drops, swaps, floor assembly, conflicts and penalties.
+    'level1-greedy': ('level-1', 1, 'greedy'),
+    'level1-random': ('level-1', 2, 'random'),
+    'level2-greedy': ('level-2', 3, 'greedy'),
+    'level2-random': ('level-2', 4, 'random'),
+    'level3-greedy': ('level-3', 5, 'greedy'),
+    'level3-random': ('level-3', 6, 'random'),
 }
 ROLES = {'human': 'assembler', 'jeff': 'cook'}
 
@@ -80,7 +82,7 @@ def food(f):
 
 def projection(k):
     return {
-        't': round(k.time, 3), 'money': k.money, 'served': k.served, 'bad': k.bad_reviews,
+        't': round(k.time, 3), 'money': k.money, 'served': k.served,
         'ended': k.ended, 'failure': k.failure_reason,
         'chefs': {w: [[round(v, 3) for v in k.positions[w]], food(c.hand),
                       c.job.action.key if c.job else None, bool(c.job and c.job.working)]
@@ -93,12 +95,12 @@ def projection(k):
 
 
 def run(name):
-    level, order_seed, spawn_seed, seed, policy, seconds = SCENARIOS[name]
-    k = SpatialKitchen(load_config() | {'level': level, 'order_seed': order_seed, 'spawn_seed': spawn_seed})
+    level, seed, policy = SCENARIOS[name]
+    k = SpatialKitchen(cc.load_level(level))
     rng = random.Random(seed)
     decisions, checkpoints = [], []
     step = 0
-    while not k.ended and k.time < seconds - 1e-9:
+    while not k.ended:
         if step % DECIDE_EVERY == 0:
             for who in ('human', 'jeff'):
                 action = choose(k, who, rng, policy)
