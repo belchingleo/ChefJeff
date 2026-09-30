@@ -391,6 +391,7 @@ function kitchenTabs(dialog){
 #record-table tr.category td{font-weight:600}
 #record-table tr.detail th{padding-left:24px;font-weight:400;color:var(--muted)}
 #record-table tr.share th,#record-table tr.share td{border-top:2px solid var(--walnut);border-bottom:0;font-weight:600}
+#record-table tr.share2 th,#record-table tr.share2 td{border-bottom:0;font-weight:600}
 #record-table .note{display:block;font-size:12px;line-height:16px;color:var(--muted);font-weight:400;white-space:nowrap}
 </style>
 <dialog id="kitchen-record-dialog" class="panel" aria-labelledby="record-title">
@@ -401,7 +402,9 @@ function kitchenTabs(dialog){
    <thead><tr><th scope="col">工作</th><th scope="col">你</th><th scope="col">Jeff</th></tr></thead>
    <tbody></tbody>
   </table>
+  <p id="record-waiting" hidden></p>
   <p>按完成的动作计数；两人一起切的菜各记一次。</p>
+  <p>投入时间：每个对出餐有用的动作从开始到完成的时长。关键路径：决定每道菜何时能出的那条步骤链。</p>
  </div>
  <div class="dlg-foot"><button id="record-close" class="btn primary" type="button">返回结算</button></div>
 </dialog>
@@ -416,10 +419,11 @@ function kitchenTabs(dialog){
  const CHEFS=['human','jeff'];
  function add(parent,tag,text,cls){const n=document.createElement(tag);if(text!=null)n.textContent=text;if(cls)n.className=cls;parent.appendChild(n);return n;}
  function line(kind,label,counts,detail){
-  const tr=add(body,'tr',null,kind),th=add(tr,'th',null);th.scope='row';
+  const tr=add(body,'tr',null,kind),th=add(tr,'th',null);th.scope='row';tr.dataset.kind=kind;
   for(const part of label)add(th,'span',part);
   for(const who of CHEFS){const td=add(tr,'td',String(counts[who]??0));
    for(const key of Object.keys(NOTE))if(detail&&detail[key]&&detail[key][who])add(td,'span',`${NOTE[key]} ${detail[key][who]}`,'note');}
+  return tr;
  }
  function render(s){
   const r=s.result||{};
@@ -434,8 +438,17 @@ function kitchenTabs(dialog){
     if(d.name||d.outcome||DETAIL[d.id]||Object.keys(NOTE).some(k=>d[k]))line('detail',label,d.counts,d);
    }
   }
-  const share=s.contribution_share||{};
-  if(CHEFS.some(w=>share[w]!=null))line('share',['对出餐的贡献'],Object.fromEntries(CHEFS.map(w=>[w,share[w]==null?'–':`${Math.round(share[w]*100)}%`])));
+  // Contribution by time (owner decision 2026-09-30): effort, then time on the critical paths.
+  const c=s.contribution||{},pct=v=>v==null?'–':`${Math.round(v*100)}%`;
+  const timeRow=(kind,label,block)=>{
+   if(!block||!CHEFS.some(w=>block.share?.[w]!=null))return;
+   const tds=line(kind,[label],Object.fromEntries(CHEFS.map(w=>[w,pct(block.share[w])]))).querySelectorAll('td');
+   CHEFS.forEach((w,i)=>add(tds[i],'span',`用时 ${Math.round(block.seconds?.[w]||0)} 秒`,'note'));
+  };
+  timeRow('share','对出餐投入的时间',c.effort);
+  timeRow('share2','关键路径上的时间',c.critical_path);
+  const waiting=document.getElementById('record-waiting'),w=c.critical_path?.waiting_seconds;
+  waiting.hidden=!w;if(w)waiting.textContent=`关键路径上另有 ${Math.round(w)} 秒在等待（如锅在自己煮、等另一个人）。`;
  }
  window.addEventListener('kitchen-open-record',e=>{render(e.detail||{});if(!dialog.open)dialog.showModal();});
  window.addEventListener('kitchen-state',e=>{if(e.detail?.phase!=='ended'&&dialog.open)dialog.close();});

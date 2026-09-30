@@ -59,6 +59,42 @@ class ProvenanceTests(unittest.TestCase):
         self.assertTrue(set(returns) <= contributing)
         self.assertEqual(r['wasted']['by_label']['loop'], 0)
 
+    def test_effort_time_matches_the_event_stream(self):
+        # Independent path: action_start / action_done times straight from the engine events.
+        for k in (self.l1, self.l2):
+            r = analyze_collaboration(k)
+            starts = {e['action_id']: e['t'] for e in k.events if e.get('kind') == 'action_start'}
+            ends = {e['action_id']: (e['t'], e['actor']) for e in k.events if e.get('kind') == 'action_done' and e.get('action_id')}
+            contributing = set()
+            for serve in k.provenance.serves:
+                if serve['outcome'] == 'served':
+                    chain = []
+                    _lineage(k.provenance, serve['item'], len(k.provenance.history[serve['item']]), chain)
+                    contributing |= {a for _, t in chain for a in t.action_ids} | {serve['action_id']}
+            kinds = {aid: a['kind'] for aid, a in k.provenance.actions.items()}
+            expected = {'human': 0., 'jeff': 0.}
+            for aid in contributing:
+                if kinds[aid] not in ('go', 'wait', 'stop', 'continue') and aid not in k.provenance.penalties:
+                    expected[ends[aid][1]] += ends[aid][0] - starts[aid]
+            for who in expected:
+                self.assertAlmostEqual(r['effort_seconds'][who], expected[who], places=2)
+            self.assertAlmostEqual(sum(v for v in r['effort_share'].values()), 1, places=2)
+
+    def test_critical_path_time_adds_up_to_the_dish_time(self):
+        for k in (self.l1, self.l2):
+            r = analyze_collaboration(k)
+            starts = {e['action_id']: e['t'] for e in k.events if e.get('kind') == 'action_start'}
+            for dish in r['dishes']:
+                path = dish['critical_path']
+                total = sum(path['seconds'].values()) + path['waiting_seconds']
+                self.assertGreater(path['steps'], 2)
+                # The path starts with some action's start and ends at the serve; nothing is double counted.
+                self.assertLessEqual(total, dish['t'] + 1e-6)
+                self.assertTrue(any(abs(dish['t'] - total - s) < 1e-6 for s in starts.values()), dish)
+            self.assertAlmostEqual(sum(r['critical_path']['seconds'].values()) + r['critical_path']['waiting_seconds'],
+                                   sum(sum(d['critical_path']['seconds'].values()) + d['critical_path']['waiting_seconds'] for d in r['dishes']),
+                                   places=3)
+
     def test_replay_rebuilds_the_same_analysis(self):
         k = self.l2
         again = replay(SpatialKitchen, k.resolved, k.inputs)

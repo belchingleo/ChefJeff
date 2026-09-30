@@ -116,9 +116,16 @@ def round_summary(k):
                    'reached_target': bool(k.won())},
         'chefs': list(CHEFS),
         'rows': rows,
-        'contribution_share': {who: analysis['chefs'][who]['share_of_contributing'] for who in CHEFS},
-        # Data interface only; the settlement page does not show these (owner decision 2026-09-29).
+        # Owner decision 2026-09-30: contribution by time, not by action count. Effort = game seconds of
+        # each chef's contributing actions; critical path = each chef's time on the chains that decided
+        # when each dish could be served (waiting between steps belongs to nobody).
+        'contribution': {
+            'effort': {'seconds': analysis['effort_seconds'], 'share': analysis['effort_share']},
+            'critical_path': analysis['critical_path'],
+        },
+        # Data interface only; the settlement page does not show these (owner decisions 2026-09-29/30).
         'not_displayed': {
+            'action_share': {who: analysis['chefs'][who]['share_of_contributing'] for who in CHEFS},
             'wasted': {who: analysis['chefs'][who]['wasted'] for who in CHEFS},
             'harmful': {who: {reason: sum(1 for a in analysis['harmful']['actions'] if a['actor'] == who and a['reason'] == reason)
                               for reason in analysis['harmful']['by_reason']} for who in CHEFS},

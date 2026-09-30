@@ -87,6 +87,55 @@ def _lineage(p, item, upto, out, depth=0):
             _lineage(p, m.parent, m.upto, out, depth + 1)
 
 
+def _spans(k):
+    """Game-time start and end of every completed action (start from its action_start event)."""
+    starts = {e['action_id']: e['t'] for e in k.events if e.get('kind') == 'action_start' and e.get('action_id')}
+    return {aid: (starts.get(aid, a['t']), a['t']) for aid, a in k.provenance.actions.items()}
+
+
+def _critical_path(p, chain, serve, spans):
+    """Walk back from the serve: each step's predecessor is the latest-finishing earlier touch of an item it touched.
+
+    Returns [(seconds, actors)] per step (overlap with the previous step removed) and the waiting time
+    between steps (unattended cooking, waiting for the other chef).
+    """
+    by_item, steps = {}, {}
+    for item, touch in chain:
+        by_item.setdefault(item, []).append(touch)
+        steps.setdefault(touch.seq, {'items': set(), 'ids': set(), 'actors': set()})
+        steps[touch.seq]['items'].add(item)
+        steps[touch.seq]['ids'] |= set(touch.action_ids)
+        steps[touch.seq]['actors'] |= set(touch.actors)
+    for touches in by_item.values():
+        touches.sort(key=lambda t: t.seq)
+    end = lambda seq: max(spans[a][1] for a in steps[seq]['ids'])
+    begin = lambda seq: min(spans[a][0] for a in steps[seq]['ids'])
+    current = p.actions[serve['action_id']]['seq']
+    if current not in steps:
+        return [], 0.
+    path = [current]
+    while True:
+        preds = set()
+        for item in steps[current]['items']:
+            earlier = [t.seq for t in by_item[item] if t.seq < current]
+            if earlier:
+                preds.add(max(earlier))
+        if not preds:
+            break
+        current = max(preds, key=lambda seq: (end(seq), seq))
+        path.append(current)
+    path.reverse()
+    out, waiting, previous_end = [], 0., None
+    for seq in path:
+        start, finish = begin(seq), end(seq)
+        if previous_end is not None:
+            waiting += max(0., start - previous_end)
+            start = max(start, previous_end)
+        out.append((max(0., finish - start), sorted(steps[seq]['actors'])))
+        previous_end = finish if previous_end is None else max(previous_end, finish)
+    return out, waiting
+
+
 def analyze_collaboration(k):
     p = k.provenance
     actions = {aid: a for aid, a in p.actions.items() if a['kind'] not in NON_ACTIONS}
@@ -98,6 +147,9 @@ def analyze_collaboration(k):
                 touches_by_action.setdefault(aid, []).append((item, i in cancelled))
     dishes = []
     contributing = set()
+    spans = _spans(k)
+    critical = {'human': 0., 'jeff': 0.}
+    critical_waiting = 0.
     for serve in p.serves:
         if serve['outcome'] != 'served':
             continue
@@ -113,8 +165,19 @@ def analyze_collaboration(k):
             ordered = sorted(item_touches, key=lambda t: t.seq)
             handoffs += sum(1 for a, b in zip(ordered, ordered[1:]) if set(a.actors) != set(b.actors))
         chefs = sorted({actor for _, t in chain for actor in t.actors} | {serve['actor']})
+        steps, waiting = _critical_path(p, chain, serve, spans)
+        path = {'human': 0., 'jeff': 0.}
+        for seconds, actors in steps:
+            for actor in actors:
+                if actor in path:
+                    path[actor] += seconds / len(actors)
+        for who in critical:
+            critical[who] += path[who]
+        critical_waiting += waiting
         dishes.append({'item': serve['item'], 'plate': serve['plate'], 't': serve['t'], 'served_by': serve['actor'],
-                       'contributing_actions': len(ids & set(actions)), 'chefs': chefs, 'cross_chef_handoffs': handoffs})
+                       'contributing_actions': len(ids & set(actions)), 'chefs': chefs, 'cross_chef_handoffs': handoffs,
+                       'critical_path': {'steps': len(steps), 'seconds': {w: round(s, 3) for w, s in path.items()},
+                                         'waiting_seconds': round(waiting, 3)}})
     harmful = {aid: reason for aid, reason in p.penalties.items() if aid in actions}
     contributing = (contributing & set(actions)) - set(harmful)
     wasted = {}
@@ -131,6 +194,15 @@ def analyze_collaboration(k):
 
     def share(ids, who=None):
         return sorted(aid for aid in ids if who is None or actions[aid]['actor'] == who)
+
+    effort = {'human': 0., 'jeff': 0.}
+    for aid in contributing:
+        if actions[aid]['actor'] in effort:
+            effort[actions[aid]['actor']] += spans[aid][1] - spans[aid][0]
+
+    def shares(seconds):
+        total = sum(seconds.values())
+        return {w: round(s / total, 3) if total else None for w, s in seconds.items()}
 
     chefs = {}
     for who in ('human', 'jeff'):
@@ -156,6 +228,12 @@ def analyze_collaboration(k):
         'chefs': chefs,
         'dishes': dishes,
         'dishes_with_both_chefs': sum(1 for d in dishes if len(d['chefs']) == 2),
+        # Time-weighted views (owner decision 2026-09-30): the game seconds each chef spent on
+        # contributing actions, and each chef's time on the dishes' critical paths.
+        'effort_seconds': {w: round(s, 3) for w, s in effort.items()},
+        'effort_share': shares(effort),
+        'critical_path': {'seconds': {w: round(s, 3) for w, s in critical.items()}, 'share': shares(critical),
+                          'waiting_seconds': round(critical_waiting, 3)},
         'cross_chef_handoffs': sum(d['cross_chef_handoffs'] for d in dishes),
         'round_penalties': {'expired_orders': kinds.count('expired'), 'fires': getattr(k, 'fires', 0)},
         'money': k.money,

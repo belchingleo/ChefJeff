@@ -455,7 +455,10 @@
     "返回结算": "Back to results",
     "按完成的动作计数；两人一起切的菜各记一次。": "Counts completed actions; food chopped together counts once for each chef.",
     "牛肉": "Beef",
-    "牛排": "Steak"
+    "牛排": "Steak",
+    "对出餐投入的时间": "Time spent on served dishes",
+    "关键路径上的时间": "Time on the critical path",
+    "投入时间：每个对出餐有用的动作从开始到完成的时长。关键路径：决定每道菜何时能出的那条步骤链。": "Time spent: how long each action that went into a served dish took. Critical path: the chain of steps that decided when each dish could be served."
   },
   "templates": [
     [
@@ -873,6 +876,14 @@
     [
       "把{0}的{1}加进手中的盘",
       "Add the {1} from {0} to the held plate"
+    ],
+    [
+      "用时 {0} 秒",
+      "{0} s"
+    ],
+    [
+      "关键路径上另有 {0} 秒在等待（如锅在自己煮、等另一个人）。",
+      "The critical paths also include {0} s of waiting (food cooking on its own, or waiting for the other chef)."
     ]
   ]
 }
