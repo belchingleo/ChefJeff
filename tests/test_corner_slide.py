@@ -32,9 +32,6 @@ class CornerSlideTests(unittest.TestCase):
         for x, y in (right, left):
             self.assertAlmostEqual(y, NOTCH[1] - .2, places=2)
 
-    def test_legacy_rules_do_not_slide(self):
-        self.assertLess(walk('legacy-level-2', NOTCH, (1, 0))[0], 6.4)
-
     def test_no_slide_into_a_solid_row(self):
         # Walking down into the counter row: no sideways shift within the limit gets past it.
         before = (7.0, 6.3)

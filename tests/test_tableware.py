@@ -12,7 +12,7 @@ from levels import level_config
 class TablewareTests(unittest.TestCase):
     def make(self, spatial=False, **overrides):
         config = load_config()
-        config.update(round_seconds=500, order_patience=400, order_interval=10)
+        config.update(round_seconds=500, order_patience=400, order_interval=100)
         config.update(overrides)
         return (SpatialKitchen if spatial else Kitchen)(config)
 
@@ -52,8 +52,8 @@ class TablewareTests(unittest.TestCase):
 
     def test_three_meals_require_recycled_plate_both_kitchens(self):
         for spatial in (False, True):
-            k = self.make(spatial)
-            k.advance(20)  # Three real pending orders; fixtures omit the cooking time.
+            k = self.make(spatial, order_interval=20, order_patience=80)
+            k.advance(41)  # Three real pending orders; fixtures omit the cooking time.
             first = self.serve(k, 'first')
             self.serve(k, 'second', 'jeff')
             self.assertFalse(k.stations['plates'].food)
@@ -66,8 +66,8 @@ class TablewareTests(unittest.TestCase):
             self.plate(k)
             self.assertEqual(k.chefs['human'].hand.plate_id, first)
             self.do(k, 'human', 'serve')
-            self.assertTrue(k.won()); self.assertTrue(k.ended)
             self.assertEqual(k.served, 3)
+            self.assertEqual(k.money, 3 * k.rules.prices['steak'])
 
     def test_complete_cooking_chain_with_clean_plate_at_pot(self):
         k = self.make(True)
@@ -81,7 +81,7 @@ class TablewareTests(unittest.TestCase):
         self.assertFalse(k.stations['p1'].food)
         self.assertFalse(k.ground)
         self.do(k, 'human', 'serve')
-        self.assertEqual(k.money, 30)
+        self.assertEqual(k.money, k.rules.prices['steak'])
 
     def test_customer_queue_does_not_overwrite_full_return_tray(self):
         k = self.make()
@@ -170,7 +170,10 @@ class TablewareTests(unittest.TestCase):
     def test_bad_service_returns_plate_without_making_food_good(self):
         k = self.make()
         plate = self.serve(k, 'burnt', stage='burnt')
-        self.assertEqual((k.money, k.bad_reviews), (-15, 1))
+        # Service rules: a dish burnt too long is refused, earns nothing and the order keeps waiting.
+        self.assertEqual(k.money, 0)
+        self.assertIn('dish_rejected', [e.get('kind') for e in k.events])
+        self.assertEqual(k.orders[0]['status'], 'pending')
         k.advance(8)
         self.assertEqual(k.stations['returns'].food.id, plate)
         k.assert_invariants()
@@ -200,7 +203,7 @@ class TablewareTests(unittest.TestCase):
             failures = 0
             def invalidate(self): pass
             def poll(self, enabled): pass
-        config = load_config(); config.update(order_patience=400, round_seconds=500)
+        config = load_config(); config.update(order_patience=400, order_interval=100, round_seconds=500)
         g = GameSession(config=config, client_factory=lambda c:None, journal_factory=lambda *a:None)
         self.dirty_in_sink(g.k)
         g.k.command('human', 'wash'); g.k.advance(1)

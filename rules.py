@@ -2,9 +2,9 @@
 
 The kitchen engine reads every duration, rate, recipe and penalty from here, so
 new content changes data rather than engine branches. ``runtime_config`` also
-accepts the historical flat config (``config.json`` plus overrides) and turns
-it into an explicit, frozen configuration whose ``overrides`` record every
-changed value.
+accepts a flat config (``config.json`` settings, a ``level_id`` and optional
+parameter overrides) and turns it into an explicit, frozen configuration whose
+``overrides`` record every changed value.
 """
 from __future__ import annotations
 import copy
@@ -16,14 +16,15 @@ from pathlib import Path
 import config_contract as cc
 
 ROOT = Path(__file__).resolve().parent
-LEGACY_BASE = json.loads((ROOT / 'config.json').read_text())
+# Agent and session settings (ai_*, model); game parameters come from the level documents.
+SETTINGS = json.loads((ROOT / 'config.json').read_text())
 # Flat keys that describe the game; all other flat keys (ai_*, model, ...) are agent/session settings.
 GAME_KEYS = {'level', 'boards', 'pots', 'pot_count', 'plate_count', 'round_seconds', 'order_count', 'order_interval',
-             'order_patience', 'target_served', 'target_money', 'max_bad_reviews', 'time_bonus_per_second',
+             'order_patience', 'target_money',
              'chop_seconds', 'cook_seconds', 'burn_after_ready', 'fire_after_burn', 'same_area_walk', 'cross_area_walk',
              'handling_seconds', 'dining_seconds', 'wash_seconds', 'fire_spread_seconds', 'fire_loss_threshold',
              'order_seed', 'spawn_seed', 'level_id'}
-DERIVED_KEYS = {'boards', 'pots'}  # counted from the map; kept in the flat view for compatibility
+DERIVED_KEYS = {'boards', 'pots', 'order_count'}  # counted from the map and order plan; read-only in the flat view
 PLATE_COUNTERS = ('plates', 'counter2', 'counter3')
 
 
@@ -40,21 +41,14 @@ def _apply_flat_overrides(docs, overrides):
     for key, value in overrides.items():
         if key == 'round_seconds':
             level['round_limit_game_ms'] = _ms(value)
-        elif key == 'order_count':
-            if len(policy.get('sequence', [])) != 1:
-                raise ValueError('order_count can only override a single-recipe legacy sequence')
-            policy['sequence'][0]['count'] = int(value)
         elif key == 'order_interval':
             policy['interval_game_ms'] = _ms(value)
         elif key == 'order_patience':
+            # One patience for every recipe.
             policy['patience_default_game_ms'] = _ms(value)
-        elif key in ('target_served', 'target_money', 'max_bad_reviews'):
-            if level['goal']['type'] != 'legacy_all_gates' and key != 'target_money':
-                raise ValueError(f'{key} does not apply to a {level["goal"]["type"]} goal')
-            level['goal'][{'target_served': 'min_served', 'target_money': 'min_money',
-                           'max_bad_reviews': 'max_bad_reviews'}[key]] = value
-        elif key == 'time_bonus_per_second':
-            level['scoring']['time_bonus_per_second'] = value
+            policy['patience_by_recipe'] = {}
+        elif key == 'target_money':
+            level['goal']['min_money'] = value
         elif key == 'chop_seconds':
             for t in recipes['transforms']:
                 if t['operation'] == 'chop':
@@ -115,26 +109,24 @@ def _frozen_from_flat(level_id, overrides_json):
 
 
 def runtime_config(config=None, rng=None):
-    """Return (resolved, flat) for a resolved configuration or a historical flat config.
+    """Return (resolved, flat) for a resolved configuration or a flat config.
 
-    Flat game keys override the level only when they differ from both the
-    level's own value and ``config.json``'s legacy value, so a base config
-    merged into a level does not overwrite that level's authored parameters.
-    A flat config without ``level_id`` is the historical format and selects the
-    accepted legacy level (``legacy-level-N``); servers select listed levels by id.
+    Flat game keys override the level only when they differ from the level's own
+    value. A flat config without ``level_id`` selects ``level-<level>`` (level 1
+    by default).
     """
     if config is not None and config.get('kind') == 'resolved_configuration':
         if config.get('status') != 'frozen':
             raise ValueError('the engine runs only frozen configurations')
         resolved = config
-        flat = dict(LEGACY_BASE)
-        flat.update(cc.legacy_flat_config(resolved))
+        flat = dict(SETTINGS)
+        flat.update(cc.flat_config(resolved))
         flat['level_id'] = resolved['level']['id']
         return resolved, flat
-    source = dict(LEGACY_BASE if config is None else config)
-    level_id = source.get('level_id') or f"legacy-level-{source.get('level', 1)}"
+    source = dict(SETTINGS if config is None else config)
+    level_id = source.get("level_id") or f"level-{source.get('level', 1)}"
     registry = cc.Registry()
-    base = cc.legacy_flat_config({**_frozen_from_flat(level_id, '{}'), 'seeds': {'orders': None, 'spawn': None}})
+    base = cc.flat_config({**_frozen_from_flat(level_id, '{}'), 'seeds': {'orders': None, 'spawn': None}})
     overrides = {}
     for key, value in source.items():
         if key not in GAME_KEYS or key in DERIVED_KEYS | {'level', 'level_id'}:
@@ -143,14 +135,14 @@ def runtime_config(config=None, rng=None):
             if value is not None:
                 overrides[key] = value
             continue
-        if value != base.get(key) and value != LEGACY_BASE.get(key):
+        if value != base.get(key):
             overrides[key] = value
     draft = _frozen_from_flat(level_id, json.dumps(overrides, sort_keys=True))
     resolved, _ = cc.freeze_config(draft, rng)
     flat = {k: v for k, v in source.items() if k not in GAME_KEYS}
-    for key, value in LEGACY_BASE.items():
+    for key, value in SETTINGS.items():
         flat.setdefault(key, value)
-    flat.update(cc.legacy_flat_config(resolved))
+    flat.update(cc.flat_config(resolved))
     flat['level_id'] = level_id
     # Seeds stay out of the flat view unless configured, so a reset draws new ones.
     for key, name in (('order_seed', 'orders'), ('spawn_seed', 'spawn')):
@@ -167,7 +159,6 @@ class Rules:
         ruleset, recipes = resolved['ruleset'], resolved['recipe_catalog']
         self.types = resolved['equipment_catalog']['types']
         self.semantics = ruleset['engine_semantics']
-        self.continuous = self.semantics == 'continuous-2026-09'
         self.tick = ruleset['tick_game_ms'] / 1000
         s = cc.seconds
         self.handling = s(ruleset['operations']['handling_game_ms'])
@@ -194,12 +185,12 @@ class Rules:
         self.sprint_food_nudge = move['sprint_food_nudge_cells']
         # Optional one body size against workstations: feet stay `front` south of a cabinet
         # (clear of its front panel) and `side` from its east/west edges. Absent = the
-        # ordinary 0.2-cell walk clearance with board contact faces (accepted 0.5.9 behaviour).
+        # ordinary 0.2-cell walk clearance with board contact faces.
         body = move.get('cabinet_clearance_cells')
         self.cabinet_clearance = (body['front'], body['side']) if body else None
         self.cabinet_front_clearance = body['front'] if body else None
         # Optional: stations are worked from where walking toward them stops, in place
-        # when already there. Absent = fixed stand-offs (accepted 0.5.9 behaviour).
+        # when already there. Absent = fixed stand-offs.
         self.operate_at_walk_limit = bool(move.get('operate_at_walk_limit', False))
         # Optional: re-plan a stalled route around the other chef. Absent = static waypoints.
         stall = move.get('stall_replan')
@@ -247,7 +238,6 @@ class Rules:
         self.round_limit = s(level['round_limit_game_ms'])
         self.goal = level['goal']
         self.end_policy = level['end_policy']['type']
-        self.time_bonus_per_second = level['scoring']['time_bonus_per_second']
         self.inventory = level['initial_inventory']
         self.plate_count = sum(e['object'] == 'plate' for e in self.inventory)
         self.pot_count = sum(e['object'] == 'pot' for e in self.inventory)

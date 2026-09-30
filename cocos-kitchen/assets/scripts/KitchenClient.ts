@@ -20,7 +20,7 @@ const COLORS = { ink:'#2b1a12', muted:'#6e4e38', bg:'#f0d9b5', paper:'#fdf3e1', 
 // Pixel face for titles, buttons, tags and HUD numbers (loaded by the web shell); body text stays system.
 const PIXEL='ChefJeffPixel, sans-serif';
 // Result events reach the player; AI decision notes have their own status line.
-const RESULT_ANNOUNCE=new Set(['order','served','bad_service','expired','ready','burn','fire','fire_spread','fire_loss']);
+const RESULT_ANNOUNCE=new Set(['order','served','expired','ready','burn','fire','fire_spread','fire_loss']);
 const TAB_ORDER=['language','level1','level2','level3','main','reset','cover-connection','help','record','resume','pause','end'];
 const LEVEL_NAMES=['','第一关 · 牛排','第二关 · 汉堡','第三关 · 牛-堡'];
 type ButtonView = {node:Node;label:Label;callback:()=>void;enabled:boolean;width:number;height:number;tone:string;hover:boolean;selected?:boolean};
@@ -123,7 +123,7 @@ export class KitchenClient extends Component {
         this.icon(this.node,'brand-icon',45,35,'pot',1.1);
         this.pixel(this.text('brand','ChefJeff',80,30,170,36,24),24);
         this.text('edition','和AI一起经营餐馆',81,53,290,20,11).color=color(COLORS.muted);
-        for(const [i,id,title] of [[0,'served','完成订单'],[1,'money','营业收入'],[2,'reviews','顾客差评']] as [number,string,string][]){
+        for(const [i,id,title] of [[0,'served','完成订单'],[1,'money','营业收入']] as [number,string,string][]){
             const x=690+i*130;
             this.text(id+'-title',title,x,19,120,20,12).color=color(COLORS.muted);
             this.pixel(this.text(id,'—',x,46,120,32,24),24);
@@ -612,7 +612,7 @@ export class KitchenClient extends Component {
             const sent=this.clock,next:KitchenState=await this.request('/api/state');
             // A live old round may keep its backend until the player approves
             // restarting it. Do not pair new Space controls with old rules.
-            if(!/^level-[123]-[1-9][0-9]*$/.test(next.kitchen?.map?.layout_version||'')||next.release?.version!=='0.5.9-alpha'){
+            if(!/^level-[123]-[1-9][0-9]*$/.test(next.kitchen?.map?.layout_version||'')||next.release?.version!=='0.6.0-alpha'){
                 this.connected=false;this.clearInput();this.cover.active=true;
                 this.set('coverTitle','等待厨房更新');
                 this.set('coverText','新版页面已就绪，厨房服务仍在保留旧对局。\n服务更新后会自动连接，请先完成更新确认。');
@@ -981,8 +981,8 @@ export class KitchenClient extends Component {
         return n;
     }
     private statColor(id:string){
-        const f=this.flashes[id],k=this.state!.kitchen;if(f&&f.until>this.clock)return f.fill;
-        return id==='reviews'&&k.goals.max_bad_reviews!=null&&k.bad_reviews>k.goals.max_bad_reviews?COLORS.hot:COLORS.ink;
+        const f=this.flashes[id];if(f&&f.until>this.clock)return f.fill;
+        return COLORS.ink;
     }
     // New result events: a short pop where it happened, a header pulse, and a
     // screen-reader announcement. Events already present when a round loads stay quiet.
@@ -999,8 +999,7 @@ export class KitchenClient extends Component {
         const k=this.state!.kitchen,amount=/(\d+) 元/.exec(e.message)?.[1]||'',serve=k.map.equipment.serve?.cell;
         const at=(cell:number[]|undefined)=>cell?[MAPX+(cell[0]+.5)*TILE,MAPY+(cell[1]-.1)*TILE]:[640,150];
         if(e.kind==='served'){this.pop(at(serve),'+¥'+amount,COLORS.herb);this.flash(['served','money'],COLORS.herb);}
-        else if(e.kind==='bad_service'){this.pop(at(serve),`差评 -¥${amount}`,COLORS.alert);this.flash(['reviews','money'],COLORS.alert);}
-        else if(e.kind==='expired'){this.pop([312,180],`${/^(\S+?)超时/.exec(e.message)?.[1]||''} 超时 -¥${amount}`,COLORS.alert);this.flash(['reviews','money'],COLORS.alert);}
+        else if(e.kind==='expired'){this.pop([312,180],`${/^(\S+?)超时/.exec(e.message)?.[1]||''} 超时 -¥${amount}`,COLORS.alert);this.flash(['money'],COLORS.alert);}
         else if(e.kind==='fire'||e.kind==='fire_spread')this.flash(['money'],COLORS.alert);
         if(e.kind&&RESULT_ANNOUNCE.has(e.kind))this.announce(e.message);
     }
@@ -1013,10 +1012,9 @@ export class KitchenClient extends Component {
     }
     private drawOrders(){
         const s=this.state!,k=s.kitchen,orders=k.orders.filter((o:any)=>o.status==='pending');
-        // Service levels have a money target and no bad-review limit.
-        const service=k.goals.max_bad_reviews==null;
-        this.set('served',service?`${k.served}`:`${k.served} / ${k.goals.target_served}`);this.set('money',service?`¥ ${k.money} / ${k.goals.target_money}`:`¥ ${k.money}`);this.set('reviews',service?'—':`${k.bad_reviews} / ${k.goals.max_bad_reviews}`);
-        for(const id of ['served','money','reviews'])this.labels[id].color=color(this.statColor(id));
+        // The goal is net revenue at closing.
+        this.set('served',`${k.served}`);this.set('money',`¥ ${k.money} / ${k.goals.target_money}`);
+        for(const id of ['served','money'])this.labels[id].color=color(this.statColor(id));
         for(let i=0;i<5;i++){
             const o=orders[i],n=this.tickets[i],g=n.getComponent(Graphics)||n.addComponent(Graphics),urgent=o&&o.remaining<=15;g.clear();
             // Paper slip clipped to the walnut rail; empty clips stay bare instead of drawing blank slips.
@@ -1055,7 +1053,7 @@ export class KitchenClient extends Component {
     private locate(n:Node,p:number[],height=0){n.setPosition(MAPX+(p[0]+.5)*TILE-640,360-MAPY-(p[1]+.5)*TILE+height);}
     private render(){
         if(!this.state||!this.mounted)return;const s=this.state,k=s.kitchen,active=s.phase==='running'&&!this.pending&&this.connected;
-        const remaining=s.phase==='ended'&&k.settlement?k.settlement.remaining_seconds:Math.max(0,Math.ceil(k.round_remaining));
+        const remaining=Math.max(0,Math.ceil(k.round_remaining));
         this.set('clock',`${String(Math.floor(remaining/60)).padStart(2,'0')}:${String(remaining%60).padStart(2,'0')}  ${s.phase==='running'?'营业中':s.phase==='ended'?'已结算':'休息中'}`);
         const sprint=k.chefs.human.sprint;this.set('sprint-status',!sprint?'':sprint.active_remaining>0?'冲刺中':sprint.cooldown_remaining>0?'冲刺冷却 '+Math.ceil(sprint.cooldown_remaining)+'s':'双击方向键 · 冲刺');
         this.set('fire-status',k.fire_safety?.burning_count?`着火工位 ${k.fire_safety.burning_count}/${k.fire_safety.loss_threshold}`:'');
@@ -1177,12 +1175,10 @@ export class KitchenClient extends Component {
         this.buttons.record.node.active=s.phase==='ended'&&!!s.round_summary;
         // Shown once per round, as soon as its record exists; the button reopens it.
         if(s.phase==='ended'&&s.round_summary&&this.recordShown!==s.game_id){this.recordShown=s.game_id;this.openRecord();}
-        const settlement=k.settlement;
-        const service=k.goals.max_bad_reviews==null;
-        // Service levels close at 180 s: say so plainly, whatever the outcome.
-        const closed=service&&s.phase==='ended'&&!s.aborted&&k.failure_reason!=='fire_spread';
+        // Rounds close at the time limit: say so plainly, whatever the outcome.
+        const closed=s.phase==='ended'&&!s.aborted&&k.failure_reason!=='fire_spread';
         this.set('coverTitle',s.phase==='ready'?'ChefJeff':s.phase==='paused'?'歇一小会儿':k.failure_reason==='fire_spread'?'火势失控':s.aborted?'本局已结束':closed?(s.won?'关店结算 · 达成目标':'关店结算 · 未达目标'):s.won?'今天，配合得不错！':'明天再接再厉');
-        this.set('coverText',s.phase==='ready'?(service?`你和 AI 搭档，一起照顾这间小厨房。\n本局目标：关店时净收入达到 ¥${k.goals.target_money}`:`你和 AI 搭档，一起照顾这间小厨房。\n本局目标：出餐 ${k.goals.target_served} 单 · 收入 ¥${k.goals.target_money} · 差评不超过 ${k.goals.max_bad_reviews} 次`):s.phase==='paused'?'锅火和订单都按下了暂停。\n准备好了，就和 Jeff 接着做菜。':service?(closed?this.closingSummary(k,!!s.won):`出餐 ${k.served} 单 · 净收入 ¥${k.money} / ¥${k.goals.target_money}`):`出餐 ${k.served} 单 · 营业收入 ¥${k.money} · 差评 ${k.bad_reviews} 次`+(settlement?`\n剩余 ${settlement.remaining_seconds} 整秒 · 时间奖励 +¥${settlement.time_bonus} · 合计 ¥${settlement.total_income}`:''));
+        this.set('coverText',s.phase==='ready'?`你和 AI 搭档，一起照顾这间小厨房。\n本局目标：关店时净收入达到 ¥${k.goals.target_money}`:s.phase==='paused'?'锅火和订单都按下了暂停。\n准备好了，就和 Jeff 接着做菜。':closed?this.closingSummary(k,!!s.won):`出餐 ${k.served} 单 · 净收入 ¥${k.money} / ¥${k.goals.target_money}`);
         this.syncAccess();
         if(this.overlayPhase!==s.phase){
             // Pause defaults to "Resume" so Enter, Space or Esc all return to the kitchen.

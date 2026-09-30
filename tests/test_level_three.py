@@ -2,7 +2,6 @@ import json
 import math
 import re
 import unittest
-from levels import level_config
 from unittest.mock import patch
 from kitchen import Food,GroundItem,load_config
 from spatial_kitchen import SpatialKitchen,tile_key,WALK_SPEED,PASS_RANGE
@@ -31,12 +30,12 @@ class LevelThreeTests(unittest.TestCase):
     def test_seeded_orders_counts_deadlines(self):
         k=self.kitchen();other=self.kitchen()
         self.assertEqual(k.orders,other.orders)
-        self.assertEqual(len(k.orders),5);self.assertEqual(k.c['target_served'],5);self.assertEqual(k.c['target_money'],140)
-        self.assertEqual(k.c['round_seconds'],360)
+        self.assertEqual(len(k.orders),6);self.assertEqual(k.c['target_money'],190)
+        self.assertEqual(k.c['round_seconds'],180)
         self.assertEqual([o['dish'] for o in k.orders].count('burger'),3)
-        self.assertEqual([o['dish'] for o in k.orders].count('steak'),2)
+        self.assertEqual([o['dish'] for o in k.orders].count('steak'),3)
         self.assertGreater(len({tuple(o['dish'] for o in self.kitchen(seed).orders) for seed in range(10)}),1)
-        self.assertLessEqual(max(o['deadline'] for o in k.orders),360)
+        self.assertLessEqual(max(o['deadline'] for o in k.orders),180)
     def test_bread_needs_no_chop_and_vegetables_cannot_cook(self):
         k=self.kitchen();self.do(k,'fetch bread');self.do(k,'put b1')
         self.assertNotIn('chop b1',[a.key for a in k.actions('human')])
@@ -57,11 +56,11 @@ class LevelThreeTests(unittest.TestCase):
         self.do(k,'plate p1')
         held=k.chefs['human'].hand;self.assertEqual(k.dish(held),'burger');self.assertEqual(held.stage,'ready')
         # Earliest order is steak; serving a burger must leave it untouched.
-        for o in k.orders:o['status']='future';o['arrival']=350;o['deadline']=360
+        for o in k.orders:o['status']='future';o['arrival']=170;o['deadline']=180
         k.orders[0].update(dish='steak',status='pending',deadline=k.time+60)
         k.orders[1].update(dish='burger',status='pending',deadline=k.time+80)
         self.do(k,'serve')
-        self.assertEqual(k.orders[0]['status'],'pending');self.assertEqual(k.orders[1]['status'],'served');self.assertEqual(k.money,60)
+        self.assertEqual(k.orders[0]['status'],'pending');self.assertEqual(k.orders[1]['status'],'served');self.assertEqual(k.money,k.rules.prices['burger'])
     def test_walking_to_a_board_a_teammate_is_chopping_settles_without_turning(self):
         k=self.kitchen(0);k.stations['b1'].food=Food('beef','raw',2)
         k.positions['jeff']=spot=k.path('jeff','b1')[-1];k.chefs['jeff'].location='b1'
@@ -76,10 +75,8 @@ class LevelThreeTests(unittest.TestCase):
     def test_incomplete_duplicate_and_dirty_plate_are_rejected(self):
         k=self.kitchen();self.do(k,'fetch bread');self.do(k,'assemble plates');self.do(k,'take plates')
         self.assertNotIn('serve',[a.key for a in k.actions('human')])
-        # The accepted 0.5.9 ruleset cannot pass plates; the service Level 3 passes them up to 4 tiles.
-        self.assertIsNone(k.throw_range('human'))
-        service=SpatialKitchen(level_config(load_config(),3)|{'spawn_seed':0});service.chefs['human'].hand=k.chefs['human'].hand
-        self.assertEqual(service.throw_range('human'),PASS_RANGE)
+        # Plates can be passed, up to the shorter pass range.
+        self.assertEqual(k.throw_range('human'),PASS_RANGE)
         self.assertFalse(k.can_add(k.chefs['human'].hand,Food('x',ingredient='bread')))
         self.assertFalse(k.can_add(Food('dirty','dirty_plate'),Food('x',ingredient='bread')))
         self.assertFalse(k.can_add(Food('clean','clean_plate'),Food('x',ingredient='lettuce')))

@@ -65,7 +65,7 @@ assert.equal(i.t('Kitchen timeout'),'Kitchen timeout');
         for stage in ('raw','chopped','clean_plate','dirty_plate','extinguisher'):
             k.chefs['human'].hand=Food('test',stage)
             corpus.extend(a.label.split('（')[0] for a in k.actions('human') if a.kind not in ('throw','go'))
-        corpus += [k.result(),'Jeff洗好了 D1，可取走盛菜或放到空柜台','灶台 1的 F1 熟了！8s 后糊锅','顾客差评：糊菜；扣 15 元，O1失败']
+        corpus += [k.result(),'Jeff洗好了 D1，可取走盛菜或放到空柜台','灶台 1的 F1 熟了！8s 后糊锅','没有等待牛排的订单；扣 20 元']
         self.run_js("const missing=corpus.filter(x=>/[\\u3400-\\u9fff]/.test(i.t(x)));assert.deepEqual(missing,[]);",corpus)
 
     def test_service_rules_copy_is_fully_translated(self):

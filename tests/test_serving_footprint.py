@@ -8,7 +8,7 @@ from spatial_kitchen import SpatialKitchen
 class ServingFootprintTests(unittest.TestCase):
     def make(self, level):
         config = load_config()
-        config.update(level=level, spawn_seed=0, round_seconds=500, order_patience=450)
+        config.update(level=level, spawn_seed=0, round_seconds=500, order_patience=450, order_interval=100)
         return SpatialKitchen(config)
 
     def serving_sides(self, kitchen):
@@ -77,7 +77,7 @@ class ServingFootprintTests(unittest.TestCase):
     def test_synthetic_two_cell_serve_uses_removed_counter_footprint(self):
         # Work from a copy: counter5 supplies the extra cell and must be removed
         # before that cell becomes part of the serving station footprint.
-        bundle = cc.level_bundle('legacy-level-1', embed=True)
+        bundle = cc.level_bundle('level-1', embed=True)
         document = bundle['map']
         serve = next(e for e in document['equipment'] if e['id'] == 'serve')
         placeholder = next(e for e in document['equipment'] if e['id'] == 'counter5')

@@ -1,4 +1,4 @@
-"""Assembly labels say which way the ingredient moves (service rules)."""
+"""Assembly labels say which way the ingredient moves."""
 import unittest
 
 import config_contract as cc
@@ -45,14 +45,6 @@ class AssembleLabelTests(unittest.TestCase):
         a = next(a for a in k.actions('human') if a.key == 'assemble ' + key)
         self.assertEqual(a.label, f'把手中的生菜放进{name}的盘里')
         self.assertEqual([c for c in english_text(a.label) if ord(c) > 127], [])
-
-    def test_legacy_wording_is_kept(self):
-        k, plate = kitchen('legacy-level-2')
-        key = next(c for c in k.counters if not k.stations[c].food)
-        k.stations[key].food = plate
-        k.chefs['human'].hand = Food('F91', 'chopped', ingredient='lettuce')
-        a = next(a for a in k.actions('human') if a.key == 'assemble ' + key)
-        self.assertEqual(a.label, f'在{k.stations[key].name}向盘中加入食材')
 
 
 if __name__ == '__main__':

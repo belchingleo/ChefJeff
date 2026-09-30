@@ -92,14 +92,6 @@ class CabinetFrontClearanceTests(unittest.TestCase):
                 self.assertEqual(k.positions[who], before)
                 self.assertEqual(k.chefs[who].hand.id, 'T')
 
-    def test_legacy_rules_keep_the_accepted_clearance(self):
-        config = {key: value for key, value in load_config().items() if key != 'level_id'}
-        k = SpatialKitchen(config | {'level': 2, 'spawn_seed': 0, 'order_seed': 1})
-        self.assertEqual(k.resolved['level']['id'], 'legacy-level-2')
-        self.assertIsNone(k.rules.cabinet_front_clearance)
-        self.assertTrue(k.nav.walkable_point((5, 4.5+WALK_CLEARANCE)))
-        self.assertFalse(k.at_walk_limit)
-
 
 if __name__ == '__main__':
     unittest.main()

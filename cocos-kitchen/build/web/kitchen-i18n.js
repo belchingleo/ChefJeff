@@ -10,7 +10,6 @@
     "请手动展开浏览器窗口": "Please enlarge your browser window",
     "完成订单": "Orders served",
     "营业收入": "Revenue",
-    "顾客差评": "Bad reviews",
     "准备开店": "Ready to open",
     "暂停": "Pause",
     "设置": "Settings",
@@ -234,7 +233,6 @@
     "损耗 2 元，无法捡回": "¥2 cost; cannot be recovered",
     "损耗2元，保留空锅": "¥2 cost; keep the pot",
     "损耗 2 元": "¥2 cost",
-    "糊菜或无订单会被差评": "burnt food or no matching order earns a bad review",
     "没有订单在等这道菜会扣钱，糊太久会被拒收": "serving a dish no order is waiting for costs money; a dish burnt too long is refused",
     "随后仍须清理糊菜": "burnt food must still be cleared",
     "抛出物品": "throw item",
@@ -244,25 +242,19 @@
     "未装盘": "not plated",
     "超时": "expired",
     "失败": "failed",
-    "任务成功": "Goal completed",
     "任务失败": "Goal failed",
     "净收入": "Net revenue",
     "糊锅": "Burnt pots",
     "着火": "Fires",
-    "差评": "Bad reviews",
     "剩": "left ",
     "最多": "maximum ",
     "元": " yuan",
     "次": " times",
     "单": " orders",
     "没有有效订单": "no valid order",
-    "任务未达成": "Goal not met",
-    "提前退出（未结算通关）": "Round abandoned (not completed)",
     "成功": "completed",
     "出餐": "Orders served",
-    "时间奖励": "Time bonus",
     "剩余": "Remaining",
-    "整秒": "whole seconds",
     "合计": "Total",
     "已切配": "Chopped",
     "未熟": "Uncooked",
@@ -411,7 +403,6 @@
     "暂停与继续。": "Pause and resume.",
     "标记当前片段，导出本局时可以回看。": "Bookmark this moment to review it in the run export.",
     "告诉 Jeff 你更想做哪类工作；6 表示他做错了。": "Tell Jeff which work you prefer; 6 says he made a mistake.",
-    "牛排练习厨房，180 游戏秒。取生牛肉 → 案板切好 → 下锅煎熟 → 装进干净盘 → 出餐。出餐 3 单、收入 ¥60、差评不超过 2 次即过关。熟了之后 10 秒内出锅，否则会糊，再过 8 秒着火。": "A steak practice kitchen, 180 game seconds. Fetch raw beef → chop it on a board → cook it in a pot → plate it on a clean plate → serve. Clear the level with 3 orders, ¥60 revenue and at most 2 bad reviews. Take the pot off within 10 seconds of it being cooked or it burns; 8 seconds later it catches fire.",
     "更换并测试": "Replace and test",
     "已保存；要更换时粘贴新的 Key": "Saved; paste a new key to replace it",
     "手里没有可以抛出的东西。": "You are not holding anything to throw.",
@@ -489,28 +480,8 @@
       "{0} added food to the plate held by {1}"
     ],
     [
-      "{0}：出餐 {1}/{2}；净收入 {3}/{4} 元；差评 {5}（最多 {6}）；糊锅 {7}，着火 {8}；时间奖励 {9} 元（剩余 {10} 整秒）；合计 {11} 元",
-      "{0}: orders {1}/{2}; net revenue ¥{3}/¥{4}; bad reviews {5} (max {6}); burnt {7}, fires {8}; time bonus ¥{9} ({10}s left); total ¥{11}"
-    ],
-    [
-      "你和 AI 搭档，一起照顾这间小厨房。\n本局目标：出餐 {0} 单 · 收入 ¥{1} · 差评不超过 {2} 次",
-      "Run this kitchen with your AI teammate.\nGoal: {0} orders · ¥{1} revenue · at most {2} bad reviews"
-    ],
-    [
       "本局 {0} / {1} 次{2}；成功回复 token：输入 {3} / 输出 {4}；本次服务连接测试 {5} 次",
       "Round: {0} / {1} calls{2}; reported tokens: {3} input / {4} output; connection tests: {5}"
-    ],
-    [
-      "任务{0}：出餐 {1}/{2}；净收入 {3}/{4} 元；差评 {5}（最多 {6}）；糊锅 {7}，着火 {8}",
-      "Goal {0}: orders {1}/{2}; net revenue ¥{3}/¥{4}; bad reviews {5} (max {6}); burnt {7}, fires {8}"
-    ],
-    [
-      "剩余 {0} 整秒 · 时间奖励 +¥{1} · 合计 ¥{2}",
-      "{0}s left · Time bonus +¥{1} · Total ¥{2}"
-    ],
-    [
-      "出餐 {0} 单 · 营业收入 ¥{1} · 差评 {2} 次",
-      "{0} orders served · Revenue ¥{1} · {2} bad reviews"
     ],
     [
       "{0}到达后发现地上物品已变化或被捡走，动作取消",
@@ -541,10 +512,6 @@
       " · Using {0} rounds this round; editable after it ends"
     ],
     [
-      "{0}完成 {1}，顾客好评，收入 +30 元",
-      "{0} served {1}: happy customer, +¥30"
-    ],
-    [
       "净收入 ¥{0}（目标 ¥{1}），还差 ¥{2} 元",
       "Net revenue ¥{0} (target ¥{1}), ¥{2} short"
     ],
@@ -563,14 +530,6 @@
     [
       "{0}糊锅！{1}s 后着火；糊太久上桌会被拒收",
       "{0} burnt! Fire in {1}s; a dish burnt too long is refused"
-    ],
-    [
-      "{0}糊锅！{1}s 后着火；糊菜上桌会被差评",
-      "{0} burnt! Fire in {1}s; serving burnt food earns a bad review"
-    ],
-    [
-      "{0}超时，顾客离开并差评，扣 10 元",
-      "{0} expired: customer left a bad review, -¥10"
     ],
     [
       "{0} · 当前模型已保存 {1} / {2} 局{3}",
@@ -623,10 +582,6 @@
     [
       "新订单 {0}：牛排，截止 {1}s",
       "New order {0}: steak, due at {1}s"
-    ],
-    [
-      "顾客差评：{0}；扣 15 元{1}",
-      "Bad review: {0}; -¥15{1}"
     ],
     [
       "{0} 落到{1}，可继续切配或取走",
@@ -749,10 +704,6 @@
       "New order {0}: {1}, due at {2}s"
     ],
     [
-      "{0}完成 {1}，顾客好评，收入 +{2} 元",
-      "{0} served {1}; good review, income +{2} yuan"
-    ],
-    [
       "取一份{0}（自动换手）",
       "Fetch {0} (automatic hand swap)"
     ],
@@ -847,10 +798,6 @@
     [
       "Jeff：{0}",
       "Jeff: {0}"
-    ],
-    [
-      "差评 -¥{0}",
-      "Bad review -¥{0}"
     ],
     [
       "{0} 超时 -¥{1}",

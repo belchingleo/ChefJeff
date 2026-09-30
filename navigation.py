@@ -27,11 +27,11 @@ class Navigation:
         self.blocked=set(walls)|cabinets
         self.floor={(x,y) for x in range(width) for y in range(height)}-self.blocked
         self.contact_edges=dict(contact_edges)
-        # Legacy: remove only approved board-face clearance; countertops remain solid.
+        # Without cabinet_clearance: remove only approved board-face clearance; countertops remain solid.
         # With cabinet_clearance (front, side), every workstation keeps one body
         # size instead: feet stay `front` south of it, clear of its front panel,
         # and `side` from its east/west edges, the chef's half width. The north
-        # (back) edge keeps the legacy rule, where the cabinet hides the legs.
+        # (back) edge keeps the board-face rule, where the cabinet hides the legs.
         # Walls keep the ordinary clearance.
         def edge(cell,face):
             if cabinet_clearance and cell in cabinets and face!='down':

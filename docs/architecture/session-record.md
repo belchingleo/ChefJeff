@@ -52,7 +52,7 @@ Replay reproduces engine-level results, not a model's internal reasoning or pixe
 | Identity and configuration | `session_id`, `schema_version`, `deployment_mode`, `runtime_versions` (release, Python, engine class, engine semantics, rules and input-language versions), `resolved_config` (file + hash), `config_hash`, `level_id`, `initial_state_seq` |
 | Participants and interfaces | `actors[]` with controller type and observation/action/communication interface; `agent_config`: provider, model, actual model, adapter, request policy, prompt versions, memory hash. Values the adapter does not expose are `null` with a reason. Never credentials. |
 | Time and completeness | `started_at`, `ended_at`, `clock`, `recording_meta` (scope, sampling, dropped, truncated, clock sources, whether model payloads were collected, replay level), `artifacts` (path, sha256, record count) |
-| Outcome and consent | `outcome` (engine result, end reason, goal status, served/expired/unresolved, money, bad reviews, raw score), `contribution_meta` |
+| Outcome and consent | `outcome` (engine result, end reason, goal status, served/expired/unresolved, money, raw score), `contribution_meta` |
 | Derived facts | `derived` (`derived-v1`): action counts by actor, shared-work joins/leaves/overlap, handoff counts and outcomes, model call counts and latency range |
 
 Privacy follows [privacy and costs](../privacy-and-costs.md): keys, authorization headers and deletion secrets are never recorded; hosted sessions store nothing unless the player contributes.

@@ -1,6 +1,6 @@
 # Project status
 
-ChefJeff 0.5.9-alpha is a playable human–AI cooperative cooking prototype. Local play runs the Cocos browser client and Python game engine on a keyboard-and-mouse computer.
+ChefJeff 0.6.0-alpha is a playable human–AI cooperative cooking prototype. Local play runs the Cocos browser client and Python game engine on a keyboard-and-mouse computer.
 
 Implemented: three maps; shared kitchen rules; continuous movement and sprint; direction-aware workstation docking; cooperative chopping and washing; gentle sliding, pushing and sprint contact; protection from pushes while working; plate return and washing; movable pots with preserved heat progress; model adapters; preset communication; bounded local memory; and data-driven maps. Existing maps do not yet offer a shared sink; the shared-washing rule has a dedicated test layout.
 
@@ -14,7 +14,7 @@ Next: community playtesting and pacing; asset/license review; recipe data contra
 
 # 项目状态
 
-ChefJeff 0.5.9-alpha 是可游玩的人类—AI 合作做菜原型。本地版在配备键鼠的电脑上运行 Cocos 浏览器客户端和 Python 游戏引擎。
+ChefJeff 0.6.0-alpha 是可游玩的人类—AI 合作做菜原型。本地版在配备键鼠的电脑上运行 Cocos 浏览器客户端和 Python 游戏引擎。
 
 已实现：三张地图、共用厨房规则、连续移动与冲刺、按方向停靠工位、合作切菜与洗碗、温和滑动／推挤／冲刺碰撞、工作中防推挤、餐盘回收清洗、保留加热进度的搬锅、模型适配、预设沟通、有限本地记忆及数据化地图。现有地图尚未提供共用水槽布局；合作洗碗规则有专门测试布局。
 

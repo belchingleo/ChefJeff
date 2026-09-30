@@ -21,7 +21,6 @@
     "round_limit_game_ms",
     "goal",
     "end_policy",
-    "scoring",
     "seeds"
   ],
   "properties": {
@@ -191,51 +190,21 @@
       "$ref": "common.schema.json#/$defs/positive_game_ms"
     },
     "goal": {
-      "oneOf": [
-        {
-          "type": "object",
-          "required": [
-            "type",
-            "min_served",
-            "min_money",
-            "max_bad_reviews"
-          ],
-          "properties": {
-            "type": {
-              "const": "legacy_all_gates"
-            },
-            "min_served": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "min_money": {
-              "$ref": "common.schema.json#/$defs/money"
-            },
-            "max_bad_reviews": {
-              "type": "integer",
-              "minimum": 0
-            }
-          },
-          "additionalProperties": false
+      "type": "object",
+      "required": [
+        "type",
+        "min_money"
+      ],
+      "properties": {
+        "type": {
+          "const": "minimum_money"
         },
-        {
-          "type": "object",
-          "required": [
-            "type",
-            "min_money"
-          ],
-          "properties": {
-            "type": {
-              "const": "minimum_money"
-            },
-            "min_money": {
-              "type": "integer",
-              "minimum": 0
-            }
-          },
-          "additionalProperties": false
+        "min_money": {
+          "type": "integer",
+          "minimum": 0
         }
-      ]
+      },
+      "additionalProperties": false
     },
     "end_policy": {
       "type": "object",
@@ -244,23 +213,7 @@
       ],
       "properties": {
         "type": {
-          "enum": [
-            "legacy_immediate",
-            "fixed_round"
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "scoring": {
-      "type": "object",
-      "required": [
-        "time_bonus_per_second"
-      ],
-      "properties": {
-        "time_bonus_per_second": {
-          "type": "number",
-          "minimum": 0
+          "const": "fixed_round"
         }
       },
       "additionalProperties": false

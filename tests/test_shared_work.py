@@ -7,7 +7,7 @@ class SharedWorkTests(unittest.TestCase):
     def make(self):
         k=SpatialKitchen(load_config()|{'level':1,'spawn_seed':0,'round_seconds':500})
         k.stations['b1'].food=Food('shared-food')
-        k.positions.update(human=(4,2.49),jeff=(3.3,3.3))
+        k.positions.update(human=(4,2.49),jeff=(3.15,3.3))
         return k
 
     def start_pair(self,k,kind='chop',target='b1'):
@@ -46,12 +46,12 @@ class SharedWorkTests(unittest.TestCase):
         a=k.routes['human']['points'][-1];b=k.routes['jeff']['points'][-1]
         self.assertNotEqual(a,b)
         self.assertEqual(a,(4,2.49))
-        self.assertIn(b,[(3.3,3.3),(4.7,3.3)])
+        self.assertIn(b,[(3.15,3.3),(4.85,3.3)])
         k.advance(1);k.assert_invariants()
 
     def test_middle_board_without_corner_cannot_share(self):
         k=self.make();k.stations['b2'].food=Food('middle')
-        k.positions.update(human=(3.3,4.3),jeff=(5,4))
+        k.positions.update(human=(3.15,4.3),jeff=(5,4))
         k.command('human','chop b2');k.advance(.01)
         self.assertNotIn('chop b2',[a.key for a in k.actions('jeff')])
         self.assertFalse(k.command('jeff','chop b2')[0])

@@ -18,6 +18,7 @@
     "tableware",
     "fire",
     "penalties",
+    "burnt_service",
     "abstract_travel",
     "limits"
   ],
@@ -39,7 +40,6 @@
     },
     "engine_semantics": {
       "enum": [
-        "legacy-2026-09",
         "continuous-2026-09"
       ]
     },
@@ -129,7 +129,7 @@
           "maximum": 1
         },
         "cabinet_clearance_cells": {
-          "description": "Optional: one chef body size against workstations. Feet stay `front` cells south of a workstation cell (clear of the cabinet's front panel) and `side` cells from its east/west edges (the chef's half width, measured from the art); stand points follow. Absent: the ordinary 0.2-cell walk clearance with board contact faces (accepted 0.5.9 behaviour).",
+          "description": "Optional: one chef body size against workstations. Feet stay `front` cells south of a workstation cell (clear of the cabinet's front panel) and `side` cells from its east/west edges (the chef's half width, measured from the art); stand points follow. Absent: the ordinary 0.2-cell walk clearance with board contact faces.",
           "type": "object",
           "required": ["front", "side"],
           "properties": {
@@ -139,11 +139,11 @@
           "additionalProperties": false
         },
         "operate_at_walk_limit": {
-          "description": "Optional: each station face is worked from where walking toward it stops (the cabinet_clearance limit; no south step-back), and in place when the chef already stands at that face. Absent: fixed stand-off points (accepted 0.5.9 behaviour).",
+          "description": "Optional: each station face is worked from where walking toward it stops (the cabinet_clearance limit; no south step-back), and in place when the chef already stands at that face. Absent: fixed stand-off points.",
           "type": "boolean"
         },
         "stall_replan": {
-          "description": "Optional: a routed chef whose remaining route has not shortened by min_progress_cells within after_game_ms re-plans around the other chef. Absent: routes keep their static waypoints (accepted 0.5.9 behaviour).",
+          "description": "Optional: a routed chef whose remaining route has not shortened by min_progress_cells within after_game_ms re-plans around the other chef. Absent: routes keep their static waypoints.",
           "type": "object",
           "required": [
             "after_game_ms",
@@ -243,12 +243,10 @@
       "required": [
         "expired_order",
         "new_fire",
-        "discard"
+        "discard",
+        "wrong_dish"
       ],
       "properties": {
-        "wrong_or_burnt_dish": {
-          "$ref": "common.schema.json#/$defs/money"
-        },
         "expired_order": {
           "$ref": "common.schema.json#/$defs/money"
         },
@@ -263,7 +261,7 @@
         }
       },
       "additionalProperties": false,
-      "description": "Legacy semantics use wrong_or_burnt_dish; continuous semantics use wrong_dish plus burnt_service tiers."
+      "description": "Money changes; a burnt dish that an order accepts is priced by the burnt_service tiers."
     },
     "abstract_travel": {
       "description": "Travel time of the non-spatial text prototype only.",
@@ -329,7 +327,7 @@
       "$ref": "common.schema.json#/$defs/extensions"
     },
     "burnt_service": {
-      "description": "Continuous semantics: how a matched order treats a dish with burnt components, by how long the worst component was burnt when it left the heat. Tiers in ascending order; the last has max_overcook_game_ms null.",
+      "description": "How a matched order treats a dish with burnt components, by how long the worst component was burnt when it left the heat. Tiers in ascending order; the last has max_overcook_game_ms null.",
       "type": "array",
       "minItems": 1,
       "items": {

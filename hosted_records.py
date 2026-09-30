@@ -33,7 +33,7 @@ def pilot_record(session):
         'purpose':'Improve the cooperative game and develop whole-session evaluation methods; no public raw-data release.',
         'release':session.release, 'level':k.c.get('level',1), 'speed':session.speed,
         'duration':round(k.time,3), 'aborted':bool(k.aborted),
-        'result':{'served':k.served,'money':k.money,'bad_reviews':k.bad_reviews,'won':k.won()},
+        'result':{'served':k.served,'money':k.money,'won':k.won()},
         'events':events,
         'communication':[{'t':m['game_time'],'code':m['code']} for m in session.player_messages],
         'positions':list(session.positions),

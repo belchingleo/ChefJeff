@@ -1,7 +1,7 @@
 import unittest
 
 from kitchen import Food, load_config
-from spatial_kitchen import SpatialKitchen, WALK_SPEED, UP_STANDOFF
+from spatial_kitchen import SpatialKitchen, WALK_SPEED
 
 
 class OperationDockingTests(unittest.TestCase):
@@ -75,12 +75,9 @@ class OperationDockingTests(unittest.TestCase):
             k.advance(k.chefs[who].job.travel+.01)
             self.assertTrue(k.chefs[who].job.working)
             self.assertEqual(k.facing[who],'up')
-            # South-side operators stand back from the cabinet (UP_STANDOFF) so the
-            # back view reads as in front of it, not on top of it.
-            self.assertEqual(k.positions[who],(4,6-UP_STANDOFF))
-            # Cabinet fascia is 22 art px; shoes stay well below it on the floor.
-            gap=(k.positions[who][1]-5.5)*52
-            self.assertGreaterEqual(gap,22*52/64+8-UP_STANDOFF*52)
+            # South-side operators stand where walking north stops: feet below the front panel.
+            self.assertEqual(k.positions[who][0],4)
+            self.assertAlmostEqual(k.positions[who][1],5.5+k.rules.cabinet_front_clearance)
             self.assertFalse(k.nav.clear_walk_line(k.positions[who],(4,5)))
 
     def test_corner_side_worker_stays_left_and_clear_of_north_worker(self):
@@ -90,7 +87,7 @@ class OperationDockingTests(unittest.TestCase):
         for who in ('human','jeff'):self.assertTrue(k.command(who,'chop b1')[0])
         k.advance(.3)
         self.assertEqual(k.facing['jeff'],'right')
-        self.assertEqual(k.positions['jeff'],(3.3,3.3))
+        self.assertEqual(k.positions['jeff'],(3.15,3.3))
         self.assertLess(k.positions['jeff'][0],3.5)
         self.assertGreater(k.positions['jeff'][1]-k.positions['human'][1],.8)
         self.assertTrue(all(a.job and a.job.working for a in k.chefs.values()))
@@ -105,21 +102,21 @@ class OperationDockingTests(unittest.TestCase):
                     p=k.operation_point(key,access)
                     self.assertTrue(k.nav.walkable_point(p),(level,key,access,p))
                     self.assertFalse(k.nav.clear_walk_line(p,(x,y)))
+                    front,side=k.rules.cabinet_clearance
                     if access[1]==y:
-                        self.assertAlmostEqual(abs(p[0]-x),.7)
+                        self.assertAlmostEqual(abs(p[0]-x),.5+side)
                         self.assertGreaterEqual(p[1],y)
                     if access==(x,y+1):
-                        # Stand back from a south-side cabinet as far as the floor allows, never closer.
-                        self.assertEqual(p[0],access[0]);self.assertGreaterEqual(p[1],access[1])
-                        self.assertLessEqual(p[1],access[1]-UP_STANDOFF+1e-9)
+                        # South of a cabinet the feet stop below its front panel.
+                        self.assertEqual(p[0],access[0]);self.assertAlmostEqual(p[1],y+.5+front)
 
     def test_level_two_sink_uses_same_side_anchor_as_board(self):
         k=self.make()
-        self.assertEqual(k.operation_point('sink',(11,3)),(11.3,3.3))
+        self.assertEqual(k.operation_point('sink',(11,3)),(11.15,3.3))
         k.positions.update(human=(11,3),jeff=(3,2))
         k.stations['sink'].food=k.stations['plates'].food;k.stations['plates'].food=None
         k.stations['sink'].food.stage='dirty_plate'
         self.assertTrue(k.command('human','wash')[0]);k.advance(.2)
-        self.assertEqual(k.positions['human'],(11.3,3.3))
+        self.assertEqual(k.positions['human'],(11.15,3.3))
         self.assertEqual(k.facing['human'],'right')
         self.assertTrue(k.chefs['human'].job.working)

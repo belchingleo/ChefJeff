@@ -26,7 +26,7 @@ It also records three kinds of links:
 - **Containers:** food entering a pot records the pot as its container, cut at that moment.
 - **Serves:** the dish served, its plate and the outcome (served, wrong dish or refused).
 
-Events, snapshots and engine behaviour are unchanged. Legacy fingerprints still match, and a replayed session rebuilds the same provenance.
+Events, snapshots and engine behaviour are unchanged. Behaviour fingerprints still match, and a replayed session rebuilds the same provenance.
 
 ## Definitions (owner decisions 2026-09-28)
 

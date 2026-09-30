@@ -24,7 +24,7 @@ STALL_SECONDS = .3
 STALL_PROGRESS = .05
 from navigation import contact_fraction
 from map_definition import load_map, geometry
-# Legacy level-one inspection helpers retain the import-time reference layout.
+# Level-one inspection helpers use the import-time reference layout.
 # Live instances below always load their own document and geometry-keyed nav.
 EQUIPMENT, WALLS = geometry(load_map(1))
 BLOCKED = WALLS | {tuple(c) for v in EQUIPMENT.values() for c in v.get('cells',[v['cell']])}

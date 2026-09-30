@@ -42,37 +42,29 @@ def load_key():
 
 def objective_text(state):
     """Objective and end rules, generated from the round's goal and end policy."""
-    goal, bonus = state['goal_status'], state['scoring']['time_bonus_per_second']
-    if goal['type'] == 'minimum_money':
-        return (f"Reach a net revenue of at least {goal['target_money']} yuan at closing time, {state['round_limit']:g} game seconds. "
-                "The round always runs until closing and only the net revenue at closing counts: penalties after reaching the target "
-                "can take you below it again. Orders keep arriving until closing; orders still waiting at closing carry no penalty. "
-                "There is no bonus for remaining time.")
-    return ("Meet all three goals within the time limit: orders served, net operating revenue, and maximum bad reviews. "
-            "The round ends immediately when all goals are met; remaining orders need not be completed. "
-            f"Each whole second left on success awards {bonus:g} additional yuan, excluded from the operating revenue goal.")
+    goal = state['goal_status']
+    return (f"Reach a net revenue of at least {goal['target_money']} yuan at closing time, {state['round_limit']:g} game seconds. "
+            "The round always runs until closing and only the net revenue at closing counts: penalties after reaching the target "
+            "can take you below it again. Orders keep arriving until closing; orders still waiting at closing carry no penalty. "
+            "There is no bonus for remaining time.")
 
 
 def score_text(state):
     """Scoring rules from the recipe prices and ruleset penalties of this round."""
     p = state['scoring']['penalties']
     prices = ', '.join(f"{r['id']} {r['price']} yuan" for r in state.get('dishes', state['menu']))
-    if 'wrong_dish' in p:
-        tiers = []
-        for tier in state['scoring']['burnt_service']:
-            limit = tier['max_overcook_game_ms']
-            span = f"burnt for up to {limit / 1000:g} s" if limit is not None else "burnt for longer"
-            tiers.append(f"{span}: accepted at the price {tier['adjustment']:+d} yuan" if tier['outcome'] == 'accepted'
-                         else f"{span}: refused with no payment; the dish is lost and the order keeps waiting")
-        return (f"Serving a complete plated dish goes to the waiting order of the same dish with the earliest deadline and earns its price ({prices}); "
-                "serving exactly at the deadline still counts. A plate can be served when its components are exactly those of one dish in kitchen.dishes; "
-                "orders show which dishes customers are waiting for. Unplated food, or a plate that matches no dish, cannot be served. "
-                "If any component was burnt, what counts is how long it had been burnt when it left the heat: " + '; '.join(tiers) + ". "
-                f"Serving a dish that no shown order is waiting for: {p['wrong_dish']} yuan. Expired order: {p['expired_order']} yuan. "
-                f"Fire: {p['new_fire']} yuan per burning workstation. Discarding food or clearing a pot: {p['discard']} yuan. There are no bad reviews.")
-    return (f"Serving a complete plated dish automatically matches the pending order of the same dish with the earliest deadline and earns its price ({prices}). "
-            f"Unplated or incomplete food cannot be served. Plated burnt food or serving without a matching order causes a bad review and a {-p['wrong_or_burnt_dish']}-yuan penalty; any matched order fails. "
-            f"Expired order: bad review and {p['expired_order']} yuan. Fire: {p['new_fire']} yuan. Discarding food or clearing a pot: {p['discard']} yuan.")
+    tiers = []
+    for tier in state['scoring']['burnt_service']:
+        limit = tier['max_overcook_game_ms']
+        span = f"burnt for up to {limit / 1000:g} s" if limit is not None else "burnt for longer"
+        tiers.append(f"{span}: accepted at the price {tier['adjustment']:+d} yuan" if tier['outcome'] == 'accepted'
+                     else f"{span}: refused with no payment; the dish is lost and the order keeps waiting")
+    return (f"Serving a complete plated dish goes to the waiting order of the same dish with the earliest deadline and earns its price ({prices}); "
+            "serving exactly at the deadline still counts. A plate can be served when its components are exactly those of one dish in kitchen.dishes; "
+            "orders show which dishes customers are waiting for. Unplated food, or a plate that matches no dish, cannot be served. "
+            "If any component was burnt, what counts is how long it had been burnt when it left the heat: " + '; '.join(tiers) + ". "
+            f"Serving a dish that no shown order is waiting for: {p['wrong_dish']} yuan. Expired order: {p['expired_order']} yuan. "
+            f"Fire: {p['new_fire']} yuan per burning workstation. Discarding food or clearing a pot: {p['discard']} yuan. There are no bad reviews.")
 
 
 class JevClient:

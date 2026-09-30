@@ -512,7 +512,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
       // Pixel face for titles, buttons, tags and HUD numbers (loaded by the web shell); body text stays system.
       var PIXEL = 'ChefJeffPixel, sans-serif';
       // Result events reach the player; AI decision notes have their own status line.
-      var RESULT_ANNOUNCE = new Set(['order', 'served', 'bad_service', 'expired', 'ready', 'burn', 'fire', 'fire_spread', 'fire_loss']);
+      var RESULT_ANNOUNCE = new Set(['order', 'served', 'expired', 'ready', 'burn', 'fire', 'fire_spread', 'fire_loss']);
       var TAB_ORDER = ['language', 'level1', 'level2', 'level3', 'main', 'reset', 'cover-connection', 'help', 'record', 'resume', 'pause', 'end'];
       var LEVEL_NAMES = ['', '第一关 · 牛排', '第二关 · 汉堡', '第三关 · 牛-堡'];
       var STAGES = {
@@ -775,7 +775,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                   return _this.request('/api/state');
                 case 7:
                   next = _context.sent;
-                  if (!(!/^level-[123]-[1-9][0-9]*$/.test(((_next$kitchen = next.kitchen) == null || (_next$kitchen = _next$kitchen.map) == null ? void 0 : _next$kitchen.layout_version) || '') || ((_next$release = next.release) == null ? void 0 : _next$release.version) !== '0.5.9-alpha')) {
+                  if (!(!/^level-[123]-[1-9][0-9]*$/.test(((_next$kitchen = next.kitchen) == null || (_next$kitchen = _next$kitchen.map) == null ? void 0 : _next$kitchen.layout_version) || '') || ((_next$release = next.release) == null ? void 0 : _next$release.version) !== '0.6.0-alpha')) {
                     _context.next = 17;
                     break;
                   }
@@ -907,7 +907,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           this.icon(this.node, 'brand-icon', 45, 35, 'pot', 1.1);
           this.pixel(this.text('brand', 'ChefJeff', 80, 30, 170, 36, 24), 24);
           this.text('edition', '和AI一起经营餐馆', 81, 53, 290, 20, 11).color = color(COLORS.muted);
-          for (var _i4 = 0, _arr4 = [[0, 'served', '完成订单'], [1, 'money', '营业收入'], [2, 'reviews', '顾客差评']]; _i4 < _arr4.length; _i4++) {
+          for (var _i4 = 0, _arr4 = [[0, 'served', '完成订单'], [1, 'money', '营业收入']]; _i4 < _arr4.length; _i4++) {
             var _arr4$_i = _arr4[_i4],
               i = _arr4$_i[0],
               id = _arr4$_i[1],
@@ -2705,10 +2705,9 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           return n;
         };
         _proto.statColor = function statColor(id) {
-          var f = this.flashes[id],
-            k = this.state.kitchen;
+          var f = this.flashes[id];
           if (f && f.until > this.clock) return f.fill;
-          return id === 'reviews' && k.goals.max_bad_reviews != null && k.bad_reviews > k.goals.max_bad_reviews ? COLORS.hot : COLORS.ink;
+          return COLORS.ink;
         }
         // New result events: a short pop where it happened, a header pulse, and a
         // screen-reader announcement. Events already present when a round loads stay quiet.
@@ -2743,13 +2742,10 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           if (e.kind === 'served') {
             this.pop(at(serve), '+¥' + amount, COLORS.herb);
             this.flash(['served', 'money'], COLORS.herb);
-          } else if (e.kind === 'bad_service') {
-            this.pop(at(serve), "\u5DEE\u8BC4 -\xA5" + amount, COLORS.alert);
-            this.flash(['reviews', 'money'], COLORS.alert);
           } else if (e.kind === 'expired') {
             var _exec2;
             this.pop([312, 180], (((_exec2 = /^(\S+?)超时/.exec(e.message)) == null ? void 0 : _exec2[1]) || '') + " \u8D85\u65F6 -\xA5" + amount, COLORS.alert);
-            this.flash(['reviews', 'money'], COLORS.alert);
+            this.flash(['money'], COLORS.alert);
           } else if (e.kind === 'fire' || e.kind === 'fire_spread') this.flash(['money'], COLORS.alert);
           if (e.kind && RESULT_ANNOUNCE.has(e.kind)) this.announce(e.message);
         };
@@ -2789,12 +2785,10 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             orders = k.orders.filter(function (o) {
               return o.status === 'pending';
             });
-          // Service levels have a money target and no bad-review limit.
-          var service = k.goals.max_bad_reviews == null;
-          this.set('served', service ? "" + k.served : k.served + " / " + k.goals.target_served);
-          this.set('money', service ? "\xA5 " + k.money + " / " + k.goals.target_money : "\xA5 " + k.money);
-          this.set('reviews', service ? '—' : k.bad_reviews + " / " + k.goals.max_bad_reviews);
-          for (var _i21 = 0, _arr17 = ['served', 'money', 'reviews']; _i21 < _arr17.length; _i21++) {
+          // The goal is net revenue at closing.
+          this.set('served', "" + k.served);
+          this.set('money', "\xA5 " + k.money + " / " + k.goals.target_money);
+          for (var _i21 = 0, _arr17 = ['served', 'money']; _i21 < _arr17.length; _i21++) {
             var id = _arr17[_i21];
             this.labels[id].color = color(this.statColor(id));
           }
@@ -2878,7 +2872,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           var s = this.state,
             k = s.kitchen,
             active = s.phase === 'running' && !this.pending && this.connected;
-          var remaining = s.phase === 'ended' && k.settlement ? k.settlement.remaining_seconds : Math.max(0, Math.ceil(k.round_remaining));
+          var remaining = Math.max(0, Math.ceil(k.round_remaining));
           this.set('clock', String(Math.floor(remaining / 60)).padStart(2, '0') + ":" + String(remaining % 60).padStart(2, '0') + "  " + (s.phase === 'running' ? '营业中' : s.phase === 'ended' ? '已结算' : '休息中'));
           var sprint = k.chefs.human.sprint;
           this.set('sprint-status', !sprint ? '' : sprint.active_remaining > 0 ? '冲刺中' : sprint.cooldown_remaining > 0 ? '冲刺冷却 ' + Math.ceil(sprint.cooldown_remaining) + 's' : '双击方向键 · 冲刺');
@@ -3096,12 +3090,10 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             this.recordShown = s.game_id;
             this.openRecord();
           }
-          var settlement = k.settlement;
-          var service = k.goals.max_bad_reviews == null;
-          // Service levels close at 180 s: say so plainly, whatever the outcome.
-          var closed = service && s.phase === 'ended' && !s.aborted && k.failure_reason !== 'fire_spread';
+          // Rounds close at the time limit: say so plainly, whatever the outcome.
+          var closed = s.phase === 'ended' && !s.aborted && k.failure_reason !== 'fire_spread';
           this.set('coverTitle', s.phase === 'ready' ? 'ChefJeff' : s.phase === 'paused' ? '歇一小会儿' : k.failure_reason === 'fire_spread' ? '火势失控' : s.aborted ? '本局已结束' : closed ? s.won ? '关店结算 · 达成目标' : '关店结算 · 未达目标' : s.won ? '今天，配合得不错！' : '明天再接再厉');
-          this.set('coverText', s.phase === 'ready' ? service ? "\u4F60\u548C AI \u642D\u6863\uFF0C\u4E00\u8D77\u7167\u987E\u8FD9\u95F4\u5C0F\u53A8\u623F\u3002\n\u672C\u5C40\u76EE\u6807\uFF1A\u5173\u5E97\u65F6\u51C0\u6536\u5165\u8FBE\u5230 \xA5" + k.goals.target_money : "\u4F60\u548C AI \u642D\u6863\uFF0C\u4E00\u8D77\u7167\u987E\u8FD9\u95F4\u5C0F\u53A8\u623F\u3002\n\u672C\u5C40\u76EE\u6807\uFF1A\u51FA\u9910 " + k.goals.target_served + " \u5355 \xB7 \u6536\u5165 \xA5" + k.goals.target_money + " \xB7 \u5DEE\u8BC4\u4E0D\u8D85\u8FC7 " + k.goals.max_bad_reviews + " \u6B21" : s.phase === 'paused' ? '锅火和订单都按下了暂停。\n准备好了，就和 Jeff 接着做菜。' : service ? closed ? this.closingSummary(k, !!s.won) : "\u51FA\u9910 " + k.served + " \u5355 \xB7 \u51C0\u6536\u5165 \xA5" + k.money + " / \xA5" + k.goals.target_money : "\u51FA\u9910 " + k.served + " \u5355 \xB7 \u8425\u4E1A\u6536\u5165 \xA5" + k.money + " \xB7 \u5DEE\u8BC4 " + k.bad_reviews + " \u6B21" + (settlement ? "\n\u5269\u4F59 " + settlement.remaining_seconds + " \u6574\u79D2 \xB7 \u65F6\u95F4\u5956\u52B1 +\xA5" + settlement.time_bonus + " \xB7 \u5408\u8BA1 \xA5" + settlement.total_income : ''));
+          this.set('coverText', s.phase === 'ready' ? "\u4F60\u548C AI \u642D\u6863\uFF0C\u4E00\u8D77\u7167\u987E\u8FD9\u95F4\u5C0F\u53A8\u623F\u3002\n\u672C\u5C40\u76EE\u6807\uFF1A\u5173\u5E97\u65F6\u51C0\u6536\u5165\u8FBE\u5230 \xA5" + k.goals.target_money : s.phase === 'paused' ? '锅火和订单都按下了暂停。\n准备好了，就和 Jeff 接着做菜。' : closed ? this.closingSummary(k, !!s.won) : "\u51FA\u9910 " + k.served + " \u5355 \xB7 \u51C0\u6536\u5165 \xA5" + k.money + " / \xA5" + k.goals.target_money);
           this.syncAccess();
           if (this.overlayPhase !== s.phase) {
             // Pause defaults to "Resume" so Enter, Space or Esc all return to the kitchen.

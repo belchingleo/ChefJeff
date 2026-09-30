@@ -11,13 +11,11 @@ from levels import level_config
 from spatial_kitchen import SpatialKitchen
 from whitebox_server import SpatialJevClient, model_candidates
 
-LEVELS = (1, 2, 3, 'legacy-level-1', 'legacy-level-2', 'legacy-level-3')
+LEVELS = (1, 2, 3)
 
 
 def kitchen(level):
-    if isinstance(level, int):
-        return SpatialKitchen(level_config(load_config(), level))
-    return SpatialKitchen(load_config() | {'level': int(level[-1]), 'order_seed': 1, 'spawn_seed': 0})
+    return SpatialKitchen(level_config(load_config(), level))
 
 
 def request(k, memory=None):
@@ -88,7 +86,7 @@ class AgentInputTests(unittest.TestCase):
                 payload = SpatialJevClient(k.c, key='test').payload(state, actions)
                 self.assertEqual(set(payload['questions']['next_action']['criteria']), keys)
 
-    def test_service_rounds_omit_legacy_fields_and_name_every_servable_dish(self):
+    def test_rounds_have_a_money_goal_and_name_every_servable_dish(self):
         k = kitchen(2)
         payload = SpatialJevClient(k.c, key='test').payload(k.snapshot(), k.actions('jeff'))
         state = payload['state']['kitchen']
@@ -101,9 +99,6 @@ class AgentInputTests(unittest.TestCase):
         self.assertIn('steak 50 yuan', rules['score'])
         self.assertNotIn('incomplete food cannot be served', rules['score'])
         self.assertNotIn('pass through each other', json.dumps(rules))
-        legacy = SpatialJevClient(kitchen('legacy-level-2').c, key='test')
-        lk = kitchen('legacy-level-2')
-        self.assertIn('bad_reviews', legacy.payload(lk.snapshot(), lk.actions('jeff'))['state']['kitchen'])
 
     def test_memory_is_kept_per_level_and_rule_set(self):
         setting = {'provider': 'jev', 'base_url': 'https://example.test/v1', 'model': 'm'}

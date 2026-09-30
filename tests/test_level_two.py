@@ -17,9 +17,9 @@ class CounterLevelTests(unittest.TestCase):
     def test_new_map_resources_orders_and_every_workstation_reachable(self):
         k=self.make()
         self.assertEqual((len(k.pots),k.pot_count,k.plate_count,len(k.boards)),(1,1,2,2))
-        self.assertEqual([o['dish'] for o in k.orders],['burger']*3)
-        self.assertEqual(k.c['round_seconds'],240)
-        self.assertTrue(all(o['deadline']<=240 for o in k.orders))
+        self.assertEqual([o['dish'] for o in k.orders],['burger']*5)
+        self.assertEqual(k.c['round_seconds'],180)
+        self.assertTrue(all(o['deadline']<=180 for o in k.orders))
         self.assertEqual(k.floor & {(x,4) for x in range(14)},{(10,4),(11,4)})
         self.assertEqual({p[1] for p in k.positions.values()},{2,5})
         for who in k.chefs:

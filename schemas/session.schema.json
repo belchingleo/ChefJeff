@@ -80,13 +80,13 @@
       }
     },
     "outcome": {
-      "type": "object", "required": ["engine_result", "end_reason", "goal_status", "served", "expired", "unresolved_at_close", "money", "bad_reviews", "raw_score"],
+      "type": "object", "required": ["engine_result", "end_reason", "goal_status", "served", "expired", "unresolved_at_close", "money", "raw_score"],
       "properties": {
         "engine_result": {"type": "string"},
-        "end_reason": {"enum": ["aborted", "fire_loss", "round_limit", "goal_reached", "all_orders_resolved", "in_progress"]},
+        "end_reason": {"enum": ["aborted", "fire_loss", "round_limit", "ended", "in_progress"]},
         "goal_status": {"type": "object"}, "served": {"type": "integer"}, "expired": {"type": "integer"},
-        "unresolved_at_close": {"type": "integer"}, "money": {"type": "number"}, "bad_reviews": {"type": "integer"},
-        "time_bonus": {"type": "number"}, "raw_score": {"type": "number"}
+        "unresolved_at_close": {"type": "integer"}, "money": {"type": "number"},
+        "raw_score": {"type": "number"}
       },
       "additionalProperties": false
     },

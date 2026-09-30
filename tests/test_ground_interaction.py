@@ -8,7 +8,7 @@ from test_web import Client, FakeJournal
 
 class GroundInteractionTests(unittest.TestCase):
     def make(self, spatial=True):
-        config=load_config();config.update(round_seconds=500,order_patience=450)
+        config=load_config();config.update(round_seconds=500,order_patience=450,order_interval=100)
         return (SpatialKitchen if spatial else Kitchen)(config)
 
     def setup_pot(self,k,who='human',stage='ready'):

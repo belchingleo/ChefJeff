@@ -92,9 +92,6 @@
   "end_policy": {
     "type": "fixed_round"
   },
-  "scoring": {
-    "time_bonus_per_second": 0
-  },
   "seeds": {
     "orders": 26,
     "spawn": 0

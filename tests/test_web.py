@@ -76,18 +76,18 @@ class WebSessionTests(unittest.TestCase):
             self.assertEqual(g.phase,'ended');self.assertTrue(g.k.aborted);self.assertTrue(g.k.ended)
             self.assertTrue(ai.closed);self.assertTrue(log.closed)
             self.assertTrue(all(c.job is None for c in g.k.chefs.values()))
-            self.assertEqual(g.k.time_bonus,0);self.assertFalse(g.public_state()['won'])
+            self.assertFalse(g.public_state()['won'])
             g.tick(g.last_tick+5);self.assertEqual(g.k.time,t)
             self.assertEqual(self.command(g,'resume')[0],409)
             self.assertEqual(self.command(g,'end')[0],200)
             ends=[v for key,v in log.rows if key=='end'];self.assertEqual(len(ends),1);self.assertTrue(ends[0]['aborted'])
             self.assertEqual(self.command(g,'reset')[0],200);self.assertFalse(g.k.aborted)
 
-    def test_end_rejects_ready_and_never_awards_completion_bonus(self):
+    def test_end_rejects_ready_and_an_early_end_never_reaches_the_goal(self):
         g=self.make();self.assertEqual(self.command(g,'end')[0],409)
-        self.start(g);g.k.served=g.c['target_served'];g.k.money=g.c['target_money']
+        self.start(g);g.k.money=g.c['target_money']
         self.assertEqual(self.command(g,'end')[0],200)
-        self.assertFalse(g.public_state()['won']);self.assertEqual(g.k.time_bonus,0)
+        self.assertFalse(g.public_state()['won'])
 
     def test_reset_invalidates_old_clicks(self):
         g=self.make();self.start(g)
@@ -147,26 +147,6 @@ class WebSessionTests(unittest.TestCase):
         self.assertEqual(g.phase,'ended')
         self.assertTrue(journal.closed)
         self.assertTrue(g.ai.closed)
-    def test_goal_completion_settles_immediately_and_stops_ai(self):
-        # Accepted legacy rules (flat config): winning ends the round at once with a time bonus.
-        g=self.make(load_config());self.start(g,1)
-        g.k.advance(50);g.k.served=2;g.k.money=60
-        for order in g.k.orders[:2]:order['status']='served'
-        g.k.chefs['human'].location='serve'
-        g.k.chefs['human'].hand=Food('last','ready',6,12,plate_id=g.k.stations['plates'].food.id)
-        g.k.stations['plates'].food=None
-        self.assertEqual(self.act(g,'serve')[0],200)
-        journal=g.journal
-        with patch.object(g.ai,'poll') as poll:
-            g.tick(g.last_tick+1)
-            poll.assert_not_called()
-        state=g.public_state()
-        self.assertEqual(state['phase'],'ended');self.assertTrue(state['won'])
-        self.assertEqual(state['kitchen']['settlement']['time_bonus'],129)
-        self.assertTrue(g.ai.closed);self.assertTrue(journal.closed)
-        self.assertEqual(self.command(g,'resume')[0],409)
-        self.assertEqual(self.command(g,'reset')[0],200)
-        self.assertIsNone(g.public_state()['kitchen']['settlement'])
     def test_public_state_does_not_include_credentials(self):
         g=self.make();self.start(g)
         public=json.dumps(g.public_state())

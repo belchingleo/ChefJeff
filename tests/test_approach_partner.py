@@ -28,9 +28,7 @@ class ApproachPartnerTests(unittest.TestCase):
                         self.assertLessEqual(math.dist(start, k.positions[other]), k.rules.sprint_push + .1)
                         k.assert_invariants()
 
-    def test_legacy_rules_have_no_approach_and_the_model_always_sees_it(self):
-        legacy = SpatialKitchen(cc.load_level('legacy-level-1'))
-        self.assertNotIn('go partner', {a.key for a in legacy.actions('jeff')})
+    def test_the_model_always_sees_the_approach(self):
         k = SpatialKitchen(cc.load_level('level-3'))
         listed = {a.key for a in model_candidates(k.snapshot(), k.actions('jeff'), 2)}
         self.assertIn('go partner', listed)

@@ -84,14 +84,12 @@ class GroundAssemblyTests(unittest.TestCase):
         self.assertEqual(k.chefs['human'].hand.id, 'leaf')
         k.assert_invariants()
 
-    def test_single_dish_menu_and_legacy_rules_have_no_ground_assembly(self):
-        for level in ('level-1', 'legacy-level-2'):
-            k = self.kitchen(level)
-            plate = k.merge_plate(self.plate(k), Food('bun', ingredient='bread')) if level != 'level-1' else self.plate(k)
-            self.place(k, 'human', plate)
-            k.chefs['human'].hand = Food('leaf', 'chopped', ingredient='lettuce') if level != 'level-1' else Food('beef', 'ready')
-            self.assertNotIn('assemble_ground', {a.kind for a in k.actions('human')})
-            self.assertNotIn('ground_assembly', k.snapshot())
+    def test_single_dish_menu_has_no_ground_assembly(self):
+        k = self.kitchen('level-1')
+        self.place(k, 'human', self.plate(k))
+        k.chefs['human'].hand = Food('beef', 'ready')
+        self.assertNotIn('assemble_ground', {a.kind for a in k.actions('human')})
+        self.assertNotIn('ground_assembly', k.snapshot())
 
 
 if __name__ == '__main__':

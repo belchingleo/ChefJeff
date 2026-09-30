@@ -6,7 +6,7 @@ from kitchen import Kitchen, Food, load_config
 class RulesTest(unittest.TestCase):
     def make(self, **updates):
         c = load_config()
-        c.update(round_seconds=500, order_count=5, order_patience=300)
+        c.update(round_seconds=500, order_patience=300, order_interval=100)
         c.update(updates)
         return Kitchen(c)
 
@@ -35,7 +35,7 @@ class RulesTest(unittest.TestCase):
         self.do(k, 'jeff', 'plate p1')
         self.do(k, 'jeff', 'serve')
         self.assertEqual(k.served, 1)
-        self.assertEqual(k.money, 30)
+        self.assertEqual(k.money, k.rules.prices['steak'])
         self.assertEqual(k.orders[0]['status'], 'served')
 
     def test_both_chefs_have_same_abilities(self):
@@ -134,15 +134,6 @@ class RulesTest(unittest.TestCase):
         self.assertTrue(s.heating)
         self.assertEqual(s.food.id,'fresh')
 
-    def test_burnt_food_bad_review_and_penalty(self):
-        k=self.make()
-        self.pot(k,22,'burnt')
-        self.do(k,'jeff','take plates')
-        self.do(k,'jeff','plate p1')
-        self.do(k,'jeff','serve')
-        self.assertEqual((k.served,k.bad_reviews,k.money),(0,1,-15))
-        self.assertEqual(k.orders[0]['status'],'rejected')
-
     def test_food_can_burn_during_pickup(self):
         k=self.make()
         k.chefs['jeff'].hand=k.stations['plates'].food;k.stations['plates'].food=None
@@ -169,19 +160,19 @@ class RulesTest(unittest.TestCase):
         self.assertEqual(k.burns,0)
 
     def test_expired_order_penalty_only_once(self):
-        k=self.make(order_count=2,order_interval=100,order_patience=10,target_served=2)
+        k=self.make(order_interval=100,order_patience=10)
         k.advance(30)
-        self.assertEqual((k.money,k.bad_reviews),(-10,1))
+        self.assertEqual(k.money,k.rules.penalty['expired_order'])
+        self.assertEqual(k.orders[0]['status'],'expired')
 
     def test_delivery_at_exact_deadline_is_accepted(self):
-        k=self.make(order_count=1,order_patience=load_config()['handling_seconds'],target_served=1)
+        k=self.make(order_patience=self.make().rules.handling)
         a=k.chefs['human']
         a.location='serve'
         a.hand=Food('ready','ready',6,12,plate_id=k.stations['plates'].food.id)
         k.stations['plates'].food=None
         self.do(k,'human','serve')
         self.assertEqual(k.served,1)
-        self.assertEqual(k.bad_reviews,0)
 
     def test_raw_dish_is_not_success(self):
         k=self.make()
@@ -189,7 +180,6 @@ class RulesTest(unittest.TestCase):
         self.assertFalse(k.command('human','serve')[0])
         self.assertFalse(k.command('human','plate')[0])
         self.assertEqual(k.money,0)
-        self.assertEqual(k.bad_reviews,0)
 
     def test_fixed_seed_random_interleaving_preserves_items_and_locks(self):
         k=self.make()
@@ -269,7 +259,7 @@ class RulesTest(unittest.TestCase):
         self.do(k,'human','drop')
         self.do(k,'jeff','pickup ready')
         self.do(k,'jeff','serve')
-        self.assertEqual((k.served,k.money),(1,30))
+        self.assertEqual((k.served,k.money),(1,k.rules.prices['steak']))
 
     def test_ground_menu_ids_remain_stable_and_stale_drop_rejected(self):
         k=self.make()

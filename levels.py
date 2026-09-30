@@ -20,7 +20,7 @@ def available_levels():
 
 
 def level_id(selection):
-    """Accept a legacy level number or a level id; return the listed level id."""
+    """Accept a level number or a level id; return the listed level id."""
     if type(selection) is int:
         selection = f'level-{selection}'
     listed = {entry['id'] for entry in available_levels()}

@@ -7,7 +7,7 @@ from model_language import english_data
 
 class FireSpreadTests(unittest.TestCase):
     def make(self):
-        c=load_config();c.update(level=2,spawn_seed=0,round_seconds=500,order_patience=450)
+        c=load_config();c.update(level=2,spawn_seed=0,round_seconds=500,order_patience=450,order_interval=100)
         return SpatialKitchen(c)
 
     def test_adjacent_counter_spreads_after_eight_game_seconds(self):
@@ -39,12 +39,12 @@ class FireSpreadTests(unittest.TestCase):
             self.assertFalse(k.stations[target].fire);self.assertEqual(k.stations[target].fire_elapsed,0)
             k.assert_invariants()
 
-    def test_fifth_active_fire_ends_without_success_bonus(self):
+    def test_fifth_active_fire_ends_the_round_as_failed(self):
         k=self.make()
         for key in k.counters[:5]:k.ignite(key)
         k.advance(.05)
         self.assertTrue(k.ended);self.assertFalse(k.won());self.assertEqual(k.failure_reason,'fire_spread')
-        self.assertEqual(k.time_bonus,0);self.assertEqual(k.actions('jeff'),[])
+        self.assertEqual(k.actions('jeff'),[])
         self.assertEqual(k.snapshot()['fire_safety']['burning_count'],5)
 
     def test_new_fire_cancels_chopping_and_blocks_throw(self):

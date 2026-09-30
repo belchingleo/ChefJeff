@@ -132,9 +132,9 @@ class BundleTests(unittest.TestCase):
 class CollaborationFactTests(unittest.TestCase):
     def kitchen(self):
         k = SpatialKitchen(load_config() | {'level': 1, 'order_seed': 1, 'spawn_seed': 0, 'round_seconds': 500,
-                                            'order_patience': 450})
+                                            'order_patience': 450, 'order_interval': 100})
         k.stations['b1'].food = Food('shared-food')
-        k.positions.update(human=(4, 2.49), jeff=(3.3, 3.3))
+        k.positions.update(human=(4, 2.49), jeff=(3.15,3.3))
         return k
 
     def test_shared_work_join_leave_and_overlap(self):

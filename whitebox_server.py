@@ -49,13 +49,6 @@ class SpatialJevClient(JevClient):
         payload['state']['rules']['visibility'] += (
             ' go X is listed only when no other listed action already walks to X. Empty counters differ only in place, '
             f'so for each area the {per_area} nearest empty counters are listed for go and put.')
-        kitchen = payload['state']['kitchen']
-        if state.get('end_policy') == 'fixed_round':
-            # Service rounds have no bad reviews, delivery gate or time bonus; omit the legacy fields.
-            for key in ('bad_reviews', 'settlement'):
-                kitchen.pop(key, None)
-            kitchen['goals'] = {'target_money': state['goals']['target_money']}
-            kitchen['scoring'].pop('time_bonus_per_second', None)
         # Cosmetic settings belong in the run log/UI, not repeated model tokens.
         # movement_rule/ground_rule/spawn_rule restate the rules paragraphs below.
         for key in ('presentation','walk_boxes','walk_clearance','chef_separation','movement_rule','ground_rule','spawn_rule','corner_slide'):

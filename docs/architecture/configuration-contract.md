@@ -25,19 +25,26 @@ verify_frozen(resolved)          -> diagnostics[]            schema + hash integ
 
 Selects semantics the engine already implements; it cannot add mechanics.
 
-| Field | Meaning | Legacy value |
+Optional fields switch a behaviour on; when absent, the simpler behaviour named in the row applies. The values column shows the shipped `chefjeff-service` ruleset.
+
+| Field | Meaning | `chefjeff-service` |
 |---|---|---|
-| `engine_semantics` | `legacy-2026-09` (accepted 0.5.9 outcome rules, `chefjeff-legacy`) or `continuous-2026-09` (service rules of the listed levels, `chefjeff-service`) | |
+| `engine_semantics` | outcome rules the engine implements: `continuous-2026-09` (net revenue judged at closing, burnt-dish tiers, no bad reviews) | `continuous-2026-09` |
 | `tick_game_ms` | fixed simulation step | 50 |
 | `supported_equipment_types` | types with engine semantics | 9 types |
 | `operations.handling_game_ms` / `extinguish_game_ms` / `clear_game_ms` | take/put/plate/serve; extinguish; clear pot | 150 / 4000 / 2000 |
-| `operations.ground_assembly` | optional; multi-component menus may assemble with a plate or ingredient on the floor as on a counter (`assemble ground <item_id>`). Service: `true` | absent (floor items only swap) |
-| `movement.*` | walk 4.5 cells/s; sprint 1.4× for 1000 ms, 3000 ms cooldown; chef separation 0.4; sprint push ≤ 0.25 cells. Service: `stall_replan`, and `cabinet_clearance_cells` `{front: 0.45, side: 0.35}`: one chef body size against workstations (feet stay 0.45 south of a cell, clear of its front panel, and 0.35 from its east/west edges, the measured half width of the chef art; stand points follow; the north side and walls keep 0.2). `corner_slide_cells` (service `0.3`): a fully blocked single-direction key walk first slides sideways by at most this much when that clears the edge; `approach_partner` (service `true`): offer "go partner", a walk into the other chef that ends on contact (contact pushes; a sprint adds one bounded shove). Legacy has none of these | |
-| `throw.*` | enabled; range 7 cells; 12 cells/s; minimum flight 200 ms; catch radius 0.75. Service: `range_cells` 4 and `pass_range_cells` 4 (plates, dishes, pots, extinguisher); legacy has no `pass_range_cells` | |
+| `operations.ground_assembly` | optional; multi-component menus may assemble with a plate or ingredient on the floor as on a counter (`assemble ground <item_id>`); absent: floor items only swap | `true` |
+| `movement.*` | walk cells/s; sprint multiplier, duration and cooldown; chef separation; sprint push and food nudge | 4.5; 1.4× for 1000 ms, 3000 ms cooldown; 0.4; 0.25 / 0.25 |
+| `movement.cabinet_clearance_cells` | optional one chef body size against workstations: feet stay `front` south of a cell, clear of its front panel, and `side` from its east/west edges (the measured half width of the chef art); stand points follow; the north side and walls keep 0.2. Absent: 0.2 everywhere, with board contact faces | `{front: 0.45, side: 0.35}` |
+| `movement.operate_at_walk_limit` | optional; each face is worked from where walking toward it stops, in place when already there. Absent: fixed stand-offs | `true` |
+| `movement.stall_replan` | optional; re-plan a stalled route around the other chef | after 300 ms below 0.05 cells |
+| `movement.corner_slide_cells` | optional; a fully blocked single-direction key walk first slides sideways by at most this much when that clears the edge | 0.3 |
+| `movement.approach_partner` | optional; offer "go partner", a walk into the other chef that ends on contact (contact pushes; a sprint adds one bounded shove) | `true` |
+| `throw.*` | enabled; `range_cells` for throwable ingredients; optional `pass_range_cells` for plates, dishes, pots and the extinguisher (absent: not passable); speed; minimum flight; catch radius | on; 4; 4; 12 cells/s; 200 ms; 0.75 |
 | `tableware.dining_game_ms` / `return_capacity` | customer plate return delay; return station capacity | 8000 / 1 |
 | `fire.spread_interval_game_ms` / `loss_threshold` | spread cadence; simultaneous fires that end the round | 8000 / 5 |
-| `penalties.*` | legacy: wrong or burnt dish −15; service: wrong dish (no shown order waits for it) −20. Both: expired order −10, new fire −5, discard/clear −2 | |
-| `burnt_service[]` | service only: tiers by how long the worst component was burnt when it left the heat, `{max_overcook_game_ms, outcome, adjustment}`; ascending, last `null` | ≤ 5000 accepted −10; longer refused (order keeps waiting) |
+| `penalties.*` | wrong dish (no shown order waits for it), expired order, new fire, discard/clear | −20, −10, −5, −2 |
+| `burnt_service[]` | tiers by how long the worst component was burnt when it left the heat, `{max_overcook_game_ms, outcome, adjustment}`; ascending, last `null` | ≤ 5000 accepted −10; longer refused (order keeps waiting) |
 | `abstract_travel.*` | travel of the non-spatial text prototype only | 1000 / 3000 |
 | `limits.*` | technical safety limits measured on this engine, not difficulty; `max_visible_orders` is the order rail's ticket count | 2 actors, 256 instances, 500 orders, 1 h, 1 MiB, 64 objects, 5 tickets |
 
@@ -45,7 +52,7 @@ Selects semantics the engine already implements; it cannot add mechanics.
 
 `types.<type_id>`: `name`, `capabilities` (`dispense`, `chop`, `heat`, `store`, `assemble`, `serve`, `discard`, `wash`, `return_plates`, `store_tool`), `slots`, `worker_requirement` (`attended` needs a chef working; `unattended` progresses alone; `none`), `work_rates` per capability, optional `shared_work`, `holds_container`, typed `params`, `combustible`.
 
-**Shared work** (collaboration supplement §3.1): `shared_work.<capability> = {max_workers, rate_multiplier}`. The effective rate with *n* active workers is `work_rate × rate_multiplier[n]`, so `duration(n) = work_game_ms / (work_rate × rate_multiplier[n])`. A second worker joining mid-way speeds up the remaining work immediately; leaving restores the single rate; progress is kept. Whether a *second operation side* exists is decided by map geometry, never by a level flag. Legacy boards and sinks: `{max_workers: 2, rate_multiplier: {"1": 1.0, "2": 2.0}}` — chopping 6 s alone / 3 s together, washing 4 s / 2 s. The analyzer may use these fields; agents are never told to cooperate.
+**Shared work** (collaboration supplement §3.1): `shared_work.<capability> = {max_workers, rate_multiplier}`. The effective rate with *n* active workers is `work_rate × rate_multiplier[n]`, so `duration(n) = work_game_ms / (work_rate × rate_multiplier[n])`. A second worker joining mid-way speeds up the remaining work immediately; leaving restores the single rate; progress is kept. Whether a *second operation side* exists is decided by map geometry, never by a level flag. Shipped boards and sinks: `{max_workers: 2, rate_multiplier: {"1": 1.0, "2": 2.0}}` — chopping 6 s alone / 3 s together, washing 4 s / 2 s. The analyzer may use these fields; agents are never told to cooperate.
 
 The resolver rejects catalog types the ruleset does not support (`UNSUPPORTED_EQUIPMENT_TYPE`); e.g. a microwave is not silently treated as a stove.
 
@@ -58,7 +65,7 @@ Geometry fields are unchanged (see `docs/map-format.md`). Schema 2 adds `areas` 
 | Field | Meaning |
 |---|---|
 | `items.<item>` | `name`, `states`, `initial_state`, `platable_states` (may go on a plate), `throwable_states` |
-| `containers.plate.wash_work_game_ms` | washing work (legacy 4000); divided by the sink's wash rate |
+| `containers.plate.wash_work_game_ms` | washing work (shipped 4000); divided by the sink's wash rate |
 | `transforms[]` | defined **once per item** and shared by all recipes: `operation` (`chop`/`heat`), `from` → `to`, `work_game_ms`, optional `container: pot` and `overcook {state, after_done_game_ms, fire_after_overcook_game_ms}` |
 | `recipes.<id>` | `name`, `container: plate`, `components[{item, state}]` (order-free), `price` |
 
@@ -68,7 +75,6 @@ Each recipe's step DAG is derived from its components and the shared transforms,
 
 | Mode | Fields | Plan |
 |---|---|---|
-| `legacy_finite` | `sequence[{recipe_ref, count}]`, `shuffle`, `first_spawn_game_ms`, `interval_game_ms` | bag in listed order, optionally shuffled once with `random.Random(order_seed)`; `a_i = t0 + i·I`; deadline `a_i + patience` (not clipped — accepted behaviour) |
 | `fixed_interval_seeded` | `menu[{recipe_ref, weight}]`, `first_spawn_game_ms` (t0), `interval_game_ms` (I), optional `stop_spawn_game_ms` (C, default = D: orders arrive until closing) | `a_i = t0 + i·I` for `a_i < C`; recipe by cumulative weights in stable `recipe_ref` order with a dedicated RNG; deadline `min(a_i + patience, D)` |
 | `fixed_table` | `arrivals[{recipe_ref, arrival_game_ms, patience_game_ms?}]` | stable sort by arrival; deadline clipped to D |
 
@@ -82,11 +88,10 @@ Common: `patience_default_game_ms`, `patience_by_recipe`. The algorithm name is 
 | `actors[]` | `human` and `jeff` with `controller_type`; model/provider settings and keys are bound at round start, never stored here |
 | `spawns` | `nearest_floor_to_center_shuffled`: nearest floor cell to each center on its side of `partition`, then shuffled with the spawn seed |
 | `initial_inventory[]` | `{object: plate|pot|extinguisher, id, state?, at}`; IDs `D1..Dn`, `P1..Pn`, exactly one `E1`; one object per slot |
-| `clock` | default and allowed game-per-real-time speeds (legacy 0.75; options 0.5 / 0.75 / 1) |
+| `clock` | default and allowed game-per-real-time speeds (shipped 0.75; options 0.5 / 0.75 / 1) |
 | `round_limit_game_ms` | D |
-| `goal` | `legacy_all_gates {min_served, min_money, max_bad_reviews}` or `minimum_money {min_money}` (net revenue at closing) |
-| `end_policy` | `legacy_immediate` (win or all orders resolved ends the round) or `fixed_round` (settle at D) |
-| `scoring.time_bonus_per_second` | legacy remaining-time bonus |
+| `goal` | `minimum_money {min_money}`: net revenue at closing |
+| `end_policy` | `fixed_round`: the round always runs to D and settles there |
 | `seeds.orders` / `seeds.spawn` | fixed integers, or `null` to draw at freeze time (recorded) |
 
 ## Defaults filled by the resolver
@@ -96,7 +101,6 @@ Common: `patience_default_game_ms`, `patience_by_recipe`. The algorithm name is 
 | `order_policy.first_spawn_game_ms` | 0 |
 | `order_policy.stop_spawn_game_ms` (seeded) | the round limit |
 | `order_policy.patience_by_recipe` | `{}` |
-| `order_policy.shuffle` (legacy) | `false` |
 | `level.initial_inventory[i].state` (plates) | `clean` |
 
 ## Resolved configuration (frozen)
@@ -116,11 +120,11 @@ Contains the full text of every referenced document, `sources` (id, version, sha
 | `RECIPE_UNKNOWN_ITEM`, `RECIPE_STATE_INVALID` | ERROR | inconsistent recipe catalog |
 | `NO_PRODUCTION_CHAIN` | ERROR | an ordered dish's component has no source or no equipment for a needed transform |
 | `ORDER_UNKNOWN_RECIPE`, `ORDER_MODE_FIELD`, `ORDER_TIMING` | ERROR | invalid demand definition |
-| `GOAL_EXCEEDS_ORDERS`, `GOAL_EXCEEDS_REVENUE` | ERROR | the goal needs more deliveries, or more money, than the plan can offer |
+| `GOAL_EXCEEDS_REVENUE` | ERROR | the goal needs more money than the plan can offer at full price |
 | `ORDER_BACKLOG_EXCEEDS_DISPLAY` | ERROR | `floor(longest countdown / interval) + 1` tickets could wait at once, more than `max_visible_orders` |
-| `RULESET_PENALTY_MISSING`, `RULESET_BURNT_TIERS` | ERROR | a ruleset lacks the penalties or burnt tiers its semantics need |
+| `RULESET_BURNT_TIERS` | ERROR | burnt tiers do not ascend or do not end with an open tier |
 | `INVENTORY_*` | ERROR | unknown/incompatible/duplicate placements, ID sequences, extinguisher count, no plates |
-| `ACTORS_UNSUPPORTED`, `CLOCK_DEFAULT`, `SPAWN_NO_FLOOR`, `RULESET_MISMATCH` | ERROR | participants, clock, spawns, or outcome semantics not supported by the chosen ruleset |
+| `ACTORS_UNSUPPORTED`, `CLOCK_DEFAULT`, `SPAWN_NO_FLOOR` | ERROR | participants, clock or spawns not supported |
 | `LIMIT_*` | ERROR | technical limits exceeded |
 | `PATIENCE_SHORT` | WARNING | patience under 10 s |
 

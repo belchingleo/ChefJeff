@@ -29,7 +29,6 @@
     },
     "mode": {
       "enum": [
-        "legacy_finite",
         "fixed_interval_seeded",
         "fixed_table"
       ]
@@ -55,31 +54,6 @@
       "additionalProperties": {
         "$ref": "common.schema.json#/$defs/positive_game_ms"
       }
-    },
-    "sequence": {
-      "description": "legacy_finite: recipe bag in listed order; optionally shuffled once with the order seed.",
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "object",
-        "required": [
-          "recipe_ref",
-          "count"
-        ],
-        "properties": {
-          "recipe_ref": {
-            "$ref": "common.schema.json#/$defs/ident"
-          },
-          "count": {
-            "type": "integer",
-            "minimum": 1
-          }
-        },
-        "additionalProperties": false
-      }
-    },
-    "shuffle": {
-      "type": "boolean"
     },
     "menu": {
       "description": "fixed_interval_seeded: positive weights, sampled in stable recipe_ref order.",

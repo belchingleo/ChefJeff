@@ -11,7 +11,7 @@ from test_web import Client, FakeJournal
 class SpatialTests(unittest.TestCase):
     def make(self,**overrides):
         config=load_config()
-        config.update(spawn_seed=0,round_seconds=500,order_patience=450,**overrides)
+        config.update(spawn_seed=0,round_seconds=500,order_patience=450,order_interval=100,**overrides)
         return SpatialKitchen(config)
 
     def do(self,k,who,key):
@@ -69,7 +69,8 @@ class SpatialTests(unittest.TestCase):
         self.assertEqual(k.positions['human'],position)
         self.assertAlmostEqual(k.routes['human']['length']/WALK_SPEED,k.chefs['human'].job.travel)
         j=k.chefs['human'].job;k.advance(j.travel+j.work)
-        self.assertEqual(k.positions['human'],k.operation_point('bin',EQUIPMENT['bin']['access']))
+        for got,want in zip(k.positions['human'],k.operation_point('bin',EQUIPMENT['bin']['access'])):
+            self.assertAlmostEqual(got,want,places=6)
         k.assert_invariants()
 
     def test_drop_during_walk_uses_current_position_and_can_be_picked_up(self):
@@ -116,7 +117,7 @@ class SpatialTests(unittest.TestCase):
         k.advance(12)
         for key in ('take plates','plate p1','drop'):self.do(k,'jeff',key)
         for key in ('pickup F1','serve'):self.do(k,'human',key)
-        self.assertEqual((k.served,k.money),(1,30))
+        self.assertEqual((k.served,k.money),(1,k.rules.prices['steak']))
         self.assertFalse(k.ground)
 
     def test_fire_and_extinguish_still_work_with_spatial_walking(self):
@@ -135,7 +136,8 @@ class SpatialTests(unittest.TestCase):
         self.assertIn('position',payload['state']['kitchen']['chefs']['jeff'])
         self.assertEqual(payload['state']['kitchen']['ground'][0]['position'],(2,2))
         self.assertNotIn('walk_cross_area',payload['state']['rules']['timing'])
-        self.assertFalse(any(a.kind=='go' and a.target.startswith('floor_') for a in k.actions('jeff')))
+        # No free floor destinations; only the partner approach walks to a floor tile.
+        self.assertEqual([a.key for a in k.actions('jeff') if a.kind=='go' and a.target.startswith('floor_')],['go partner'])
 
     def test_web_reset_keeps_spatial_engine_and_new_round_position(self):
         g=GameSession(kitchen_factory=SpatialKitchen,client_factory=Client,journal_factory=FakeJournal)

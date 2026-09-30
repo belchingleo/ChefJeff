@@ -51,7 +51,7 @@ Models receive English structured observations (`en-v3`, plain ASCII; the chefs 
 
 ## Levels
 
-Every level lasts 180 game seconds (about 4 minutes at the default 0.75 clock). [Level 1](level-1-steak.md) serves steak, [Level 2](level-2-burger.md) burgers and [Level 3](level-3-steak-burger.md) both. Orders arrive one at a time at a fixed interval until closing; several can wait at once (at most five tickets). Each dish has its own countdown; an expired order costs 10 and disappears. The goal is a net revenue target at closing: the round always runs to the end, penalties after reaching the target count, and orders still open at closing carry no penalty. There is no remaining-time bonus. Targets: Level 1 ¥150, Level 2 ¥150, Level 3 ¥190 — half of what the scripted reference pair earns on the same fixed round, rounded down to ¥10. Orders and spawn sides are fixed per level version, so every round of a level is the same. The accepted 0.5.9 rules remain available only for replaying old sessions.
+Every level lasts 180 game seconds (about 4 minutes at the default 0.75 clock). [Level 1](level-1-steak.md) serves steak, [Level 2](level-2-burger.md) burgers and [Level 3](level-3-steak-burger.md) both. Orders arrive one at a time at a fixed interval until closing; several can wait at once (at most five tickets). Each dish has its own countdown; an expired order costs 10 and disappears. The goal is a net revenue target at closing: the round always runs to the end, penalties after reaching the target count, and orders still open at closing carry no penalty. There is no remaining-time bonus. Targets: Level 1 ¥150, Level 2 ¥150, Level 3 ¥190 — half of what the scripted reference pair earns on the same fixed round, rounded down to ¥10. Orders and spawn sides are fixed per level version, so every round of a level is the same.
 
 ---
 
@@ -110,4 +110,4 @@ Shift 标记本局片段，不影响玩法或模型输入；间隔五个现实�
 
 ## 关卡
 
-每关 180 游戏秒（默认 0.75 时钟约 4 分钟）。[第一关](level-1-steak.md)做牛排，[第二关](level-2-burger.md)做汉堡，[第三关](level-3-steak-burger.md)两者都有。订单按固定间隔逐张到来直至关店，可同时等待多张（最多 5 张）。每道菜有各自的倒计时，超时扣 10 元并消失。目标是关店时的净收入：本局总是打满全场，达标后的罚款照样计入，关店时未完成的订单不罚款。剩余时间不折算奖励。目标金额：第一关 ¥150、第二关 ¥150、第三关 ¥190，取脚本参考组合在同一固定局面收入的一半并向下取整到 10 元。订单与出生位置按关卡版本固定，同一关每局相同。0.5.9 旧规则仅用于重放历史对局。
+每关 180 游戏秒（默认 0.75 时钟约 4 分钟）。[第一关](level-1-steak.md)做牛排，[第二关](level-2-burger.md)做汉堡，[第三关](level-3-steak-burger.md)两者都有。订单按固定间隔逐张到来直至关店，可同时等待多张（最多 5 张）。每道菜有各自的倒计时，超时扣 10 元并消失。目标是关店时的净收入：本局总是打满全场，达标后的罚款照样计入，关店时未完成的订单不罚款。剩余时间不折算奖励。目标金额：第一关 ¥150、第二关 ¥150、第三关 ¥190，取脚本参考组合在同一固定局面收入的一半并向下取整到 10 元。订单与出生位置按关卡版本固定，同一关每局相同。

@@ -61,7 +61,6 @@ class ServeTests(unittest.TestCase):
         k = self.kitchen(3);o = self.first(k);self.plate(k, o['dish'])
         self.serve(k)
         self.assertEqual(o['status'], 'served');self.assertEqual(k.money, k.rules.prices[o['dish']])
-        self.assertEqual(k.bad_reviews, 0)
 
     def test_serving_at_the_deadline_counts_in_full(self):
         k = self.kitchen(2);o = self.first(k);self.plate(k, 'burger')
@@ -116,10 +115,10 @@ class ServeTests(unittest.TestCase):
         self.plate(k, 'burger');self.serve(k)
         self.assertEqual(k.money, -20)
 
-    def test_expiry_costs_ten_without_bad_reviews(self):
+    def test_expiry_costs_ten(self):
         k = self.kitchen(1);o = self.first(k)
         k.advance(o['deadline'] - k.time + .1)
-        self.assertEqual(o['status'], 'expired');self.assertEqual(k.money, -10);self.assertEqual(k.bad_reviews, 0)
+        self.assertEqual(o['status'], 'expired');self.assertEqual(k.money, -10)
 
 
 class FixedSeedTests(unittest.TestCase):
@@ -157,7 +156,7 @@ class FixedSeedTests(unittest.TestCase):
 
 class ServiceWordingTests(unittest.TestCase):
     def test_burn_event_and_serve_hint_do_not_mention_bad_reviews(self):
-        # Local acceptance found the 0.5.9 wording ("burnt food earns a bad review") in service levels.
+        # There are no bad reviews; no player- or model-facing text may mention them.
         import json as _json
         from pathlib import Path
         english = _json.loads((Path(cc.__file__).resolve().parent / 'model-language-en-v3.json').read_text())
@@ -217,7 +216,6 @@ class RoundTests(unittest.TestCase):
         k.money = 40
         k.advance(200.)
         self.assertTrue(k.ended);self.assertFalse(k.won());self.assertIn('未达目标', k.result())
-        self.assertEqual(k.time_bonus, 0)
 
     def test_unreachable_target_is_announced_once(self):
         k = Kitchen(level(1, level=lambda d: d['goal'].update(min_money=300)))

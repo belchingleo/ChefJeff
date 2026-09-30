@@ -172,7 +172,7 @@ class SessionLog:
         status = k.goal_status()
         end_reason = ('aborted' if k.aborted else 'fire_loss' if k.failure_reason == 'fire_spread'
                       else 'round_limit' if k.time >= k.rules.round_limit - 1e-8
-                      else 'goal_reached' if k.won() and k.ends_on_win() else 'all_orders_resolved' if k.ended else 'in_progress')
+                      else 'ended' if k.ended else 'in_progress')
         return {
             'schema_version': SCHEMA_VERSION,
             'session_id': s.game_id,
@@ -211,8 +211,7 @@ class SessionLog:
             'outcome': {'engine_result': k.result(), 'end_reason': end_reason, 'goal_status': status,
                         'served': k.served, 'expired': sum(o['status'] == 'expired' for o in k.orders),
                         'unresolved_at_close': sum(o['status'] == 'unresolved_at_close' for o in k.orders),
-                        'money': k.money, 'bad_reviews': k.bad_reviews, 'time_bonus': k.time_bonus,
-                        'raw_score': round(k.money + k.time_bonus, 2)},
+                        'money': k.money, 'raw_score': k.money},
             'contribution_meta': getattr(s, 'contribution_meta', {'status': 'not_contributed'}),
             'derived': {
                 'definitions_version': DERIVED_VERSION,

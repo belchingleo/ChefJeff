@@ -5,7 +5,7 @@ from spatial_kitchen import SpatialKitchen, EQUIPMENT, FLOOR, neighbors, tile_ke
 
 class LayoutInteractionTests(unittest.TestCase):
     def make(self,seed=0):
-        return SpatialKitchen(load_config() | {'spawn_seed':seed,'round_seconds':500,'order_patience':450})
+        return SpatialKitchen(load_config() | {'spawn_seed':seed,'round_seconds':500,'order_patience':450,'order_interval':100})
     def press(self,k):
         a=k.quick_interaction('human');self.assertIsNotNone(a)
         self.assertTrue(k.start('human',a)[0]);j=k.chefs['human'].job
@@ -54,7 +54,7 @@ class LayoutInteractionTests(unittest.TestCase):
         k=self.make()
         for cell in neighbors(EQUIPMENT['b1']['cell']):
             k.positions['human']=cell
-            endpoint={(4,2):(4,2.49),(3,3):(3.3,3.3),(5,3):(4.7,3.3)}[cell]
+            endpoint={(4,2):(4,2.49),(3,3):(3.15,3.3),(5,3):(4.85,3.3)}[cell]
             expected=[cell,endpoint]
             self.assertEqual(k.path('human','b1'),expected)
     def test_swap_drops_at_actual_service_side(self):
@@ -92,7 +92,10 @@ class LayoutInteractionTests(unittest.TestCase):
             k=self.make();self.stand(k,key);k.chefs['human'].hand=Food('meat')
             self.assertEqual(self.press(k),'discard');self.assertEqual(k.money,-2)
             st=k.stations['p1'];k.chefs['human'].hand=Food(st.pot_id,'pot',contents=Food('burnt','burnt'));st.pot_id=None
-            self.assertEqual(self.press(k),'empty_pot');self.assertIsNone(k.chefs['human'].hand.contents)
+            # Space acts on the faced bin, not on the counter that is slightly nearer.
+            target,a=k.facing_interaction('human');self.assertEqual((target,a.kind),(key,'empty_pot'))
+            self.assertTrue(k.start('human',a)[0]);j=k.chefs['human'].job;k.advance(j.travel+j.work+.001)
+            self.assertIsNone(k.chefs['human'].hand.contents)
     def test_space_drop_pickup_in_open_aisle_and_no_wall_interaction(self):
         k=self.make();k.positions['human']=(6.,4.);k.chefs['human'].hand=Food('meat')
         self.assertEqual(self.press(k),'drop');self.assertEqual(self.press(k),'pickup')

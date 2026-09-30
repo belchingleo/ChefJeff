@@ -99,7 +99,7 @@ class BoundTests(unittest.TestCase):
 
 class DiagnosticBoundaryTests(unittest.TestCase):
     def test_average_overload_is_only_a_warning(self):
-        report = ca.analyze_capacity(frozen('legacy-level-3', order_policy=lambda o: o.update(interval_game_ms=3000)))
+        report = ca.analyze_capacity(frozen('level-3', order_policy=lambda o: o.update(interval_game_ms=3000, patience_default_game_ms=10000, patience_by_recipe={})))
         self.assertIn('AVERAGE_OVERLOAD', codes(report, 'WARNING'))
         self.assertEqual(codes(report, 'ERROR'), set())
         self.assertTrue(report['structurally_valid'])

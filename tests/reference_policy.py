@@ -21,8 +21,7 @@ def _pick(actions, kind, target=None, key=None):
 def _needs(state):
     """Earliest pending dish and the components still missing on the assembly plate."""
     pending = sorted((o for o in state['orders'] if o['status'] == 'pending'), key=lambda o: (o['deadline'], o['id']))
-    # Legacy level 1 labels its steak orders with the display name.
-    return [{'牛排': 'steak'}.get(o['dish'], o['dish']) for o in pending]
+    return [o['dish'] for o in pending]
 
 
 def _assembly(state):

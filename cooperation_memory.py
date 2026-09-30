@@ -21,7 +21,7 @@ def scope_for(setting):
 def round_scope(setting, kitchen):
     """Memory scope for one model on one level under one rule semantics.
 
-    Records from other levels or from the legacy rules never reach this round's prompt.
+    Records from other levels or from other rule semantics never reach this round's prompt.
     """
     identity = [scope_for(setting), kitchen.c.get('level_id'), kitchen.rules.semantics]
     return hashlib.sha256(json.dumps(identity).encode()).hexdigest()
@@ -49,13 +49,8 @@ def sample_events(events):
 
 def episode(kitchen, game_id, model):
     events, count = sample_events(kitchen.events)
-    if kitchen.rules.continuous:
-        # Service rules: a money target at closing; no bad reviews.
-        outcome = {'served': kitchen.served, 'money': kitchen.money,
-                   'target_money': kitchen.c['target_money'], 'reached_target': kitchen.won()}
-    else:
-        outcome = {'served': kitchen.served, 'money': kitchen.money,
-                   'bad_reviews': kitchen.bad_reviews, 'won': kitchen.won()}
+    outcome = {'served': kitchen.served, 'money': kitchen.money,
+               'target_money': kitchen.c['target_money'], 'reached_target': kitchen.won()}
     return {'round_id': game_id, 'model': model, 'duration': round(kitchen.time, 2),
             'level_id': kitchen.c.get('level_id'), 'outcome': outcome,
             'layout': kitchen.snapshot().get('map',{}).get('layout_version','practice-kitchen-v1'),

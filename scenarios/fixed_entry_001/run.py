@@ -98,7 +98,7 @@ def run_reference(name, actions, decision_delay=0.0):
     summary = {"name": name, "controller": "handwritten_offline_not_model",
                "fixed_delay_per_decision": decision_delay, "ended": k.ended,
                "time": round(k.time, 6), "served": k.served, "money": k.money,
-               "burns": k.burns, "fires": k.fires, "bad_reviews": k.bad_reviews,
+               "burns": k.burns, "fires": k.fires,
                "first_off_heat_observed_at": first_off_heat,
                "target_F1_served_unburnt": bool(served_target),
                "success": bool(served_target and k.won() and k.time <= 35 and k.burns == 0),

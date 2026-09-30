@@ -10,7 +10,7 @@ from test_web import Client, FakeJournal
 
 class ControlsTests(unittest.TestCase):
     def make(self):
-        c=load_config();c.update(spawn_seed=0,round_seconds=500,order_patience=450)
+        c=load_config();c.update(spawn_seed=0,round_seconds=500,order_patience=450,order_interval=100)
         return SpatialKitchen(c)
 
     def throw(self,k,who,target):
@@ -18,7 +18,7 @@ class ControlsTests(unittest.TestCase):
         self.assertTrue(k.start(who,a)[0]);k.advance(1);k.assert_invariants()
 
     def service(self):
-        # The current levels' ruleset: throws reach 4 tiles (the accepted 0.5.9 fixtures keep 7).
+        # The levels' ruleset: throws reach 4 tiles.
         from levels import level_config
         return SpatialKitchen(level_config(load_config(),1)|{'spawn_seed':0})
 

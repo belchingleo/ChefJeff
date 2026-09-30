@@ -37,10 +37,15 @@ class GentleCollisionTests(unittest.TestCase):
         self.assertAlmostEqual(k.positions['jeff'][0],10.25)
         self.assertEqual(k.chefs['jeff'].hand.id,'held')
 
+    @staticmethod
+    def east_limit(k):
+        # Walk limit in front of the east cabinet on row 4, from the ruleset's body size.
+        return 11.5-k.rules.cabinet_clearance[1]
+
     def test_bump_is_clipped_by_wall(self):
-        k=self.make();k.positions.update(human=(10.8,4.),jeff=(11.2,4.))
+        k=self.make();limit=self.east_limit(k);k.positions.update(human=(limit-.5,4.),jeff=(limit-.1,4.))
         k.set_manual('human',1,0);k.sprint('human');k.advance(.05)
-        self.assertLessEqual(k.positions['jeff'][0],11.3+1e-8)
+        self.assertLessEqual(k.positions['jeff'][0],limit+1e-8)
         self.assertTrue(k.nav.walkable_point(k.positions['jeff']))
 
     def test_manual_contact_slides_without_crossing(self):
@@ -116,9 +121,9 @@ class GentleCollisionTests(unittest.TestCase):
         b.location=a.location;b.offset=a.offset;k.assert_invariants()
 
     def test_wall_limits_nudge_and_locked_items_stay_put(self):
-        k=self.make();item=self.item(k,cell='floor_11_4');item.offset=(.25,0.)
+        k=self.make();limit=self.east_limit(k);item=self.item(k,cell='floor_11_4');item.offset=(limit-11.1,0.)
         k.positions['human']=(10.5,4);k.set_manual('human',1,0);k.sprint('human');k.advance(.3)
-        self.assertLessEqual(k.ground_position(item)[0],11.3+1e-8)
+        self.assertLessEqual(k.ground_position(item)[0],limit+1e-8)
         self.assertTrue(k.nav.walkable_point(k.ground_position(item)))
         k=self.make();item=self.item(k);item.lock='jeff'
         k.set_manual('human',1,0);k.sprint('human');k.advance(.5)
