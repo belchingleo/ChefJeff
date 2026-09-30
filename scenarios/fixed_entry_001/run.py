@@ -138,7 +138,7 @@ def export():
         summaries.append({key: value for key, value in summary.items() if key not in ("events", "final_state")})
     write("results.json", summaries)
     sources = ["kitchen.py", "spatial_kitchen.py", "navigation.py", "levels.py", "jev.py",
-               "whitebox_server.py", "model_language.py", "model-language-en-v2.json",
+               "whitebox_server.py", "model_language.py", "model-language-en-v3.json",
                "scenarios/fixed_entry_001/scenario.json", "scenarios/fixed_entry_001/run.py"]
     write("manifest.json", {"scenario": "fixed-entry-001", "model_calls": 0,
                            "integration": "standalone engine factory; not a game-menu entry",

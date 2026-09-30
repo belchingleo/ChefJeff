@@ -4,8 +4,8 @@ import json
 from pathlib import Path
 import re
 
-INPUT_LANGUAGE_VERSION = 'en-v2'
-_CATALOG = json.loads((Path(__file__).parent/'model-language-en-v2.json').read_text())
+INPUT_LANGUAGE_VERSION = 'en-v3'
+_CATALOG = json.loads((Path(__file__).parent/'model-language-en-v3.json').read_text())
 _MESSAGES = _CATALOG['messages']
 # Chefs are named by their state keys (human, jeff) so "you" in the rules only ever means the model's own chef.
 _ACTORS = _CATALOG['actors']

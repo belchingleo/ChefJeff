@@ -868,6 +868,14 @@
     [
       "合切 {0}",
       "shared {0}"
+    ],
+    [
+      "把手中的{0}放进{1}的盘里",
+      "Put the held {0} onto the plate at {1}"
+    ],
+    [
+      "把{0}的{1}加进手中的盘",
+      "Add the {1} from {0} to the held plate"
     ]
   ]
 }

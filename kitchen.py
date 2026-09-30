@@ -233,6 +233,17 @@ class Kitchen:
     def food_label(self, food):
         return self.rules.item_names.get(food.ingredient, food.ingredient)
 
+    def assemble_label(self, place_name, placed, held):
+        """Say which way the ingredient moves: onto the plate that is there, or onto the held plate.
+
+        Service rules only; the accepted 0.5.9 wording stays for legacy replays.
+        """
+        if not self.rules.continuous:
+            return f'在{place_name}向盘中加入食材'
+        if self.can_add(placed, held):
+            return f'把手中的{self.food_label(held)}放进{place_name}的盘里'
+        return f'把{place_name}的{self.food_label(placed)}加进手中的盘'
+
     def recipe_name(self, dish):
         return self.rules.recipe_names.get(dish, dish)
 
@@ -327,7 +338,7 @@ class Kitchen:
                     add('swap pot '+key,'与'+s.name+'的锅交换（各自保留锅内食物）','swap_pot',key)
                 if self.rules.multi_component and a.hand:
                     if self.can_add(s.food,a.hand) or self.can_add(a.hand,s.food):
-                        add('assemble '+key,'在'+s.name+'向盘中加入食材','assemble',key)
+                        add('assemble '+key,self.assemble_label(s.name,s.food,a.hand),'assemble',key)
                 if self.rules.multi_component and self.can_merge_plates(a.hand,s.food):
                     add('merge '+key,'把'+s.name+'盘中食物合入手中盘（空盘留在原位）','merge_plates',key)
                 if self.can_load_pot(a.hand,s.food):
@@ -369,7 +380,7 @@ class Kitchen:
                 if self.can_load_ground(who,item_id):
                     out.append(Action('load ground '+item_id,f'把切好的{self.food_label(a.hand)}放入地上空锅（离灶不加热）','load_ground',item.location,self.ground_plate_signature(who,item_id)))
                 if self.can_assemble_ground(who,item_id):
-                    out.append(Action('assemble ground '+item_id,f'在{self.place(item.location).name}向盘中加入食材','assemble_ground',
+                    out.append(Action('assemble ground '+item_id,self.assemble_label(self.place(item.location).name,item.food,a.hand),'assemble_ground',
                                       item.location,self.ground_assembly_signature(who,item_id)))
                 if self.can_plate_ground(who, item_id):
                     out.append(Action(f'plate ground {item_id}', '用手中的干净盘盛出地上锅里的菜（空锅留在原地）',

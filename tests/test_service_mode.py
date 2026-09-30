@@ -160,7 +160,7 @@ class ServiceWordingTests(unittest.TestCase):
         # Local acceptance found the 0.5.9 wording ("burnt food earns a bad review") in service levels.
         import json as _json
         from pathlib import Path
-        english = _json.loads((Path(cc.__file__).resolve().parent / 'model-language-en-v2.json').read_text())
+        english = _json.loads((Path(cc.__file__).resolve().parent / 'model-language-en-v3.json').read_text())
         k = SpatialKitchen(cc.load_level('level-1'))
         pot = k.stations['p1']
         pot.food = Food('fixture', stage='cooking', chopped=k.c['chop_seconds'], heated=0, ingredient='beef')

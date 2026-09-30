@@ -694,6 +694,14 @@
     [
       "{0}：净收入 {1}/{2} 元；完成 {3} 单；超时 {4}；拒收 {5}；关店未完成 {6}；糊锅 {7}，着火 {8}",
       "{0}: net revenue {1}/{2} yuan; {3} orders completed; expired {4}; refused {5}; open at closing {6}; burnt {7}, fires {8}"
+    ],
+    [
+      "把手中的{0}放进{1}的盘里",
+      "Put the held {0} onto the plate at {1}"
+    ],
+    [
+      "把{0}的{1}加进手中的盘",
+      "Add the {1} from {0} to the held plate"
     ]
   ],
   "actors": {
