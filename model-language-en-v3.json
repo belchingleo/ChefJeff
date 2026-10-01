@@ -162,7 +162,7 @@
     "无法清除保存的连接，请检查文件权限。": "Cannot clear saved credentials. Check file permissions.",
     "本局已结束，但跨局记录未能保存；请检查本地文件权限。": "The round ended, but memory could not be saved. Check file permissions.",
     "使用你自己的 API 账号，调用费用由该账号承担。": "Use your own API account. Calls are billed to that account.",
-    "：当前厨房原型围绕 Jev 开发；其他模型也可使用，响应速度和配合方式可能不同。": ": this kitchen prototype was developed around Jev. Other models work too; response times and cooperation may differ.",
+    "：这间厨房是围绕 Jev 开发的；其他模型也可使用，响应速度和配合方式可能不同。": ": this kitchen was developed around Jev. Other models work too; response times and cooperation may differ.",
     "建议使用响应快的模型；过慢或无效的动作不会执行。": "Choose a responsive model. Actions that arrive too late or are invalid will not run.",
     "默认只在本次服务运行期间使用。记住后以明文保存在这台电脑的本地配置文件；Key 不进入对局日志和试玩包。": "By default, credentials last only until the local service stops. Remembering stores them in plain text on this computer. Keys are excluded from game logs and demo packages.",
     "测试连接会发送一次小型 API 请求，可能产生少量费用。": "Testing sends one small API request and may incur a charge.",

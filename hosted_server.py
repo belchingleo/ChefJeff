@@ -239,7 +239,7 @@ class Sessions:
 SHELL_REPLACEMENTS = (
     ('默认只在本次服务运行期间使用。记住后以明文保存在这台电脑的本地配置文件；Key 不进入对局日志和试玩包。',
         '<span data-no-i18n>Online privacy: Key stays in page memory and is sent only to your model provider. Refresh clears it unless you choose Remember (browser localStorage, not encrypted). Game actions/state pass through our server; ordinary sessions create no disk journal. Optional contributions are described below.<br>在线版：Key 默认只在页面内存中，仅发送给所选模型服务，刷新即清除；主动记住才以明文保存在浏览器 localStorage。游戏动作与状态经过我们的服务器，普通会话不写磁盘对局日志。自愿贡献数据另见下方说明。</span>'),
-    ('当前厨房原型围绕 Jev 开发；其他模型也可使用，响应速度和配合方式可能不同。',
+    ('这间厨房是围绕 Jev 开发的；其他模型也可使用，响应速度和配合方式可能不同。',
         '在线版由浏览器直连模型；服务商必须允许跨域访问。跨域失败不会改由服务器代发 Key。'),
     ('建议优先选择 Jev', '浏览器直连模型'),
     ('仅保留到服务关闭', '仅保留到当前页面会话结束'),
