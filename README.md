@@ -37,7 +37,7 @@ The community can help define comparison protocols and measures for task outcome
 
 ## What you can use today
 
-**0.6.0-alpha** provides a local browser game with three playable maps and player-supplied model connections.
+**0.6.0-beta.1** provides a local browser game with three playable maps and player-supplied model connections.
 
 - Steak, burger, and mixed-menu kitchens with preparation, cooking, plating, serving, plate returns, washing, and fire handling.
 - Shared workstations, cooperative chopping, ingredient throwing, movable pots, and gentle chef collisions.
@@ -193,7 +193,7 @@ ChefJeff 让人类玩家和 AI 厨师进入同一个厨房。订单不断到来�
 
 ## 现在可以使用什么
 
-**0.6.0-alpha** 提供本地浏览器游戏、三张可玩地图，以及玩家自带的模型连接。
+**0.6.0-beta.1** 提供本地浏览器游戏、三张可玩地图，以及玩家自带的模型连接。
 
 - 牛排、汉堡和混合菜谱厨房，包含备料、烹饪、装盘、出餐、餐具回收、洗碗和消防。
 - 共享工位、合作切菜、抛接原料、传菜、搬锅和厨师之间的温和碰撞。

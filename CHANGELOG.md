@@ -4,7 +4,7 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 
 [中文](#更新记录)
 
-## 0.6.0-alpha — 2026-10-01
+## 0.6.0-beta.1 — 2026-10-01 · first public test release
 
 The game now runs on a data-driven core: five data models (map, recipes, orders, equipment, level) describe every level, and the engine has no per-level code.
 
@@ -44,7 +44,7 @@ First private release: a local browser game with three playable maps and player-
 
 ## 更新记录
 
-## 0.6.0-alpha — 2026-10-01
+## 0.6.0-beta.1 — 2026-10-01 · 首次公开测试版
 
 游戏改为运行在数据驱动内核上：每一关都由五个数据模型（地图、菜谱、订单、设备、关卡）描述，引擎里没有针对某一关的代码。
 

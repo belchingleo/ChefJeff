@@ -775,7 +775,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                   return _this.request('/api/state');
                 case 7:
                   next = _context.sent;
-                  if (!(!/^level-[123]-[1-9][0-9]*$/.test(((_next$kitchen = next.kitchen) == null || (_next$kitchen = _next$kitchen.map) == null ? void 0 : _next$kitchen.layout_version) || '') || ((_next$release = next.release) == null ? void 0 : _next$release.version) !== '0.6.0-alpha')) {
+                  if (!(!/^level-[123]-[1-9][0-9]*$/.test(((_next$kitchen = next.kitchen) == null || (_next$kitchen = _next$kitchen.map) == null ? void 0 : _next$kitchen.layout_version) || '') || ((_next$release = next.release) == null ? void 0 : _next$release.version) !== '0.6.0-beta.1')) {
                     _context.next = 17;
                     break;
                   }

@@ -612,7 +612,7 @@ export class KitchenClient extends Component {
             const sent=this.clock,next:KitchenState=await this.request('/api/state');
             // A live old round may keep its backend until the player approves
             // restarting it. Do not pair new Space controls with old rules.
-            if(!/^level-[123]-[1-9][0-9]*$/.test(next.kitchen?.map?.layout_version||'')||next.release?.version!=='0.6.0-alpha'){
+            if(!/^level-[123]-[1-9][0-9]*$/.test(next.kitchen?.map?.layout_version||'')||next.release?.version!=='0.6.0-beta.1'){
                 this.connected=false;this.clearInput();this.cover.active=true;
                 this.set('coverTitle','等待厨房更新');
                 this.set('coverText','新版页面已就绪，厨房服务仍在保留旧对局。\n服务更新后会自动连接，请先完成更新确认。');
