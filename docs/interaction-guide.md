@@ -8,7 +8,7 @@ Use a desktop/laptop browser with a keyboard and mouse. Full timing and item rul
 | Q | Dash while moving, with the shared cooldown |
 | Space | Whatever the faced target needs (fetch, take, put, cook, plate, lift a pot, chop, wash, serve, bin); with nothing usable ahead, the nearest thing beside. Stops chopping/washing, keeping progress |
 | E | Chop, wash or extinguish; holding an item with nothing to use, throw it forward (to the partner when ahead in range) |
-| Esc / Ⅱ / ▶ / ■ | Esc pauses and resumes / pause / resume / end early (asks to confirm; restarting from pause also confirms) |
+| Esc or P / Ⅱ / ▶ / ■ | Esc or P pauses and resumes (P for keyboards without Esc, such as iPad) / pause / resume / end early (asks to confirm; restarting from pause also confirms) |
 | Shift | Bookmark a moment; nearby marks merge into intervals |
 | 1–5 / 6 | Cooperation preference / perceived mistake, with a shared cooldown; the dock (open by default) also takes clicks |
 | Settings | Provider connection, language, next-round call limit, local memory, feedback |
@@ -33,7 +33,7 @@ Hosted Settings additionally offer explicit contribution after the round, a data
 | Q | 移动时冲刺，遵循共用冷却 |
 | 空格 | 对面前的目标做需要的事（取料、拿起、放下、下锅、装盘、端锅、切菜、洗碗、出餐、丢弃）；面前没有可用的就用身边最近的。停下切菜／洗碗，进度保留 |
 | E | 切菜、洗碗、灭火；手里有东西而无可用工位时向前抛出（队友在前方射程内则抛给他） |
-| Esc／Ⅱ／▶／■ | Esc 暂停与继续／暂停／继续／提前结束（需确认；暂停中重新开局也需确认） |
+| Esc 或 P／Ⅱ／▶／■ | Esc 或 P 暂停与继续（P 用于没有 Esc 键的键盘，如 iPad）／暂停／继续／提前结束（需确认；暂停中重新开局也需确认） |
 | Shift | 标记时刻，相近标记合并为区间 |
 | 1–5／6 | 协作偏好／玩家认为出错，共用冷却；沟通面板默认展开，也可以用鼠标点 |
 | 设置 | 接口连接、语言、下一局调用上限、本地记忆、反馈 |

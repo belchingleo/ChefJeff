@@ -221,18 +221,27 @@ export class KitchenClient extends Component {
     private openRecord(){if(!sys.isNative&&this.state?.round_summary)window.dispatchEvent(new CustomEvent('kitchen-open-record',{detail:this.state.round_summary}));}
     private openHelp(){this.clearInput();if(!sys.isNative)window.dispatchEvent(new Event('kitchen-open-help'));}
     private openConnection(){this.clearInput();if(!sys.isNative)window.dispatchEvent(new Event('kitchen-open-connection'));}
+    private togglePause(e:KeyboardEvent){
+        if(this.state?.phase==='running'){e.preventDefault();this.clearInput();this.post('/api/pause');}
+        else if(this.state?.phase==='paused'&&this.connected){e.preventDefault();this.post('/api/resume');}
+    }
     private onKey=(e:KeyboardEvent)=>{
         // The communication dock keeps native Tab/Enter/Space; Esc hands the keyboard back.
         const dock=!sys.isNative?(document.activeElement as HTMLElement)?.closest('#kitchen-communication') as HTMLElement|null:null;
         if(e.key==='Escape'){
             if(dock){(document.activeElement as HTMLElement).blur();return;}
             if(e.repeat||(!sys.isNative&&document.querySelector('dialog[open]')))return;
-            if(this.state?.phase==='running'){e.preventDefault();this.clearInput();this.post('/api/pause');}
-            else if(this.state?.phase==='paused'&&this.connected){e.preventDefault();this.post('/api/resume');}
+            this.togglePause(e);
             return;
         }
         if(e.isComposing||e.keyCode===229)return;
         if(!sys.isNative&&(document.querySelector('dialog[open]')||(document.activeElement as HTMLElement)?.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"]')))return;
+        // P pauses and resumes like Esc, for keyboards without an Esc key (iPad Magic Keyboard).
+        // Typing fields and open dialogs are excluded above.
+        if(e.code==='KeyP'&&!e.ctrlKey&&!e.altKey&&!e.metaKey){
+            if(!e.repeat)this.togglePause(e);else e.preventDefault();
+            return;
+        }
         if(dock&&(e.key==='Enter'||e.code==='Space'||e.key==='Tab'))return;
         if(e.key==='Shift'&&this.state?.phase==='running'){
             e.preventDefault();e.stopImmediatePropagation();
