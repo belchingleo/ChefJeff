@@ -178,6 +178,15 @@ class DiagnosticTests(unittest.TestCase):
         self.assertIn('ORDER_UNKNOWN_RECIPE', codes(variant(order_policy=lambda o: o['menu'][0].update(recipe_ref='pizza')))[1])
         self.assertIn('ORDER_MODE_FIELD', codes(variant(order_policy=lambda o: o.pop('menu')))[1])
 
+    def test_a_dish_has_at_most_the_ruleset_ingredient_limit(self):
+        def fifth(r):
+            r['items']['onion'] = {'name': 'Onion', 'states': ['raw'], 'initial_state': 'raw',
+                                   'platable_states': ['raw'], 'throwable_states': ['raw']}
+            r['recipes']['burger']['components'].append({'item': 'onion', 'state': 'raw', 'label': 'onion'})
+        self.assertIn('RECIPE_TOO_MANY_COMPONENTS', codes(variant(recipe_catalog=fifth))[1])
+        raised = lambda r: r['limits'].update(max_recipe_components=5)
+        self.assertNotIn('RECIPE_TOO_MANY_COMPONENTS', codes(variant(recipe_catalog=fifth, ruleset=raised))[1])
+
     def test_burnt_service_tiers_must_ascend_and_end_open(self):
         closed = lambda r: r['burnt_service'][-1].update(max_overcook_game_ms=9000)
         self.assertIn('RULESET_BURNT_TIERS', codes(variant(ruleset=closed))[1])

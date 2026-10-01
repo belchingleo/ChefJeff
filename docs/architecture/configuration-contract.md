@@ -46,7 +46,7 @@ Optional fields switch a behaviour on; when absent, the simpler behaviour named 
 | `penalties.*` | wrong dish (no shown order waits for it), expired order, new fire, discard/clear | −20, −10, −5, −2 |
 | `burnt_service[]` | tiers by how long the worst component was burnt when it left the heat, `{max_overcook_game_ms, outcome, adjustment}`; ascending, last `null` | ≤ 5000 accepted −10; longer refused (order keeps waiting) |
 | `abstract_travel.*` | travel of the non-spatial text prototype only | 1000 / 3000 |
-| `limits.*` | technical safety limits measured on this engine, not difficulty; `max_visible_orders` is the order rail's ticket count | 2 actors, 256 instances, 500 orders, 1 h, 1 MiB, 64 objects, 5 tickets |
+| `limits.*` | technical safety limits measured on this engine, not difficulty; `max_visible_orders` is the order rail's ticket count; `max_recipe_components` is a design limit on distinct ingredients per dish | 2 actors, 256 instances, 500 orders, 1 h, 1 MiB, 64 objects, 5 tickets, 4 ingredients |
 
 ### Equipment catalog (`content/equipment/<id>.json`)
 
@@ -118,6 +118,7 @@ Contains the full text of every referenced document, `sources` (id, version, sha
 | `UNSUPPORTED_EQUIPMENT_TYPE`, `UNSUPPORTED_EQUIPMENT_COUNT` | ERROR | catalog/map needs semantics this engine lacks |
 | `SHARED_WORK_RATE_MISSING`, `SHARED_WORK_CAPABILITY` | ERROR | a shared-work rule lacks a rate for some allowed worker count, or names a capability the type does not have |
 | `RECIPE_UNKNOWN_ITEM`, `RECIPE_STATE_INVALID` | ERROR | inconsistent recipe catalog |
+| `RECIPE_TOO_MANY_COMPONENTS` | ERROR | a dish has more distinct ingredients than `limits.max_recipe_components` |
 | `NO_PRODUCTION_CHAIN` | ERROR | an ordered dish's component has no source or no equipment for a needed transform |
 | `ORDER_UNKNOWN_RECIPE`, `ORDER_MODE_FIELD`, `ORDER_TIMING` | ERROR | invalid demand definition |
 | `GOAL_EXCEEDS_REVENUE` | ERROR | the goal needs more money than the plan can offer at full price |

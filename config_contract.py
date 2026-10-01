@@ -277,6 +277,12 @@ def resolve_config(bundle, registry=None):
     for key, item in recipes['items'].items():
         if item['initial_state'] not in item['states']:
             out.append(diag('RECIPE_STATE_INVALID', 'ERROR', f'/recipe_catalog/items/{key}/initial_state', 'initial state is not listed'))
+    for key, recipe in recipes['recipes'].items():
+        parts = len({c['item'] for c in recipe['components']})
+        if parts > limits['max_recipe_components']:
+            out.append(diag('RECIPE_TOO_MANY_COMPONENTS', 'ERROR', f'/recipe_catalog/recipes/{key}/components',
+                            f'{key} has {parts} ingredients; the ruleset allows at most {limits["max_recipe_components"]}',
+                            {'ingredients': parts, 'limit': limits['max_recipe_components']}))
 
     # Initial inventory: engine conservation rules need contiguous IDs and one extinguisher.
     inventory = level['initial_inventory']

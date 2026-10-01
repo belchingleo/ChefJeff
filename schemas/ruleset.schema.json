@@ -290,7 +290,8 @@
         "max_round_game_ms",
         "max_document_bytes",
         "max_inventory",
-        "max_visible_orders"
+        "max_visible_orders",
+        "max_recipe_components"
       ],
       "properties": {
         "max_actors": {
@@ -317,6 +318,11 @@
         },
         "max_visible_orders": {
           "description": "Order tickets the interface can show at once; plans must never exceed it.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_recipe_components": {
+          "description": "Design limit: the most distinct ingredients one dish may have.",
           "type": "integer",
           "minimum": 1
         }

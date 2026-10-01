@@ -76,7 +76,8 @@
     "max_round_game_ms": 3600000,
     "max_document_bytes": 1048576,
     "max_inventory": 64,
-    "max_visible_orders": 5
+    "max_visible_orders": 5,
+    "max_recipe_components": 4
   },
   "burnt_service": [
     {
