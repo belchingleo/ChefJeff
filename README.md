@@ -87,7 +87,7 @@ Controls follow Overcooked, on what your chef faces:
 - **Space:** whatever the target needs: fetch, take, put, cook, plate, lift a pot, chop, wash, serve. With nothing usable ahead, the nearest thing beside you. Stopping chopping or washing preserves progress.
 - **E:** chop, wash or extinguish; holding an item with nothing to use, throw it forward (up to 4 cells, to Jeff when he is ahead).
 - **Serve and wash:** use a clean plate to collect cooked food; return dirty plates to the sink and press Space with empty hands to wash.
-- **Esc:** pause. Settings provide model connections, language selection, usage limits, and feedback export.
+- **Esc or P:** pause (P for keyboards without Esc, such as iPad). Settings provide model connections, language selection, usage limits, and feedback export.
 
 See [current rules](docs/current-rules.md) for the full gameplay reference.
 
@@ -243,7 +243,7 @@ python3 cocos_server.py --port 8775
 - **空格：**做目标需要的事：取料、拿起、放下、下锅、装盘、端锅、切菜、洗碗、出餐；面前没有可用的就用身边最近的；停下切菜或洗碗时保留进度。
 - **E：**切菜、洗碗、灭火；手里有东西而面前没有可用工位时向前抛出（最远 4 格，Jeff 在前方时抛给他）。
 - **出餐和洗碗：**用净盘收取熟食；将脏盘送进水槽，空手按空格洗净。
-- **Esc：**暂停；设置中可连接模型、切换语言、控制调用次数和导出反馈。
+- **Esc 或 P：**暂停（P 用于没有 Esc 键的键盘，如 iPad）；设置中可连接模型、切换语言、控制调用次数和导出反馈。
 
 完整玩法见 [当前规则](docs/current-rules.md)。
 
