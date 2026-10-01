@@ -293,7 +293,6 @@
     "第二关双击同一个 WASD 或方向键，然后按住移动：速度 1.4 倍，持续 1 秒，结束后冷却 3 秒。持物也能冲刺，不加速切菜或洗碗。AI 使用相同规则；没有单独开关。暂停时计时冻结。": "In Level 2, double-tap the same WASD or arrow key, then hold to move: 1.4x speed for 1 second, followed by 3 seconds cooldown. Carrying is allowed. Chopping and washing stay at normal speed. AI has the same rules; no separate toggle. Timers freeze while paused.",
     "冲刺中": "Sprinting",
     "冲刺冷却": "Sprint cooldown",
-    "双击方向键 · 冲刺": "Double-tap direction · Sprint",
     "走近，把食材加入队友手中的盘（容器留在原持有者手中）": "Approach and add food to the teammate's held plate (containers stay with their holders)",
     "暂不能出餐，还缺：": "Cannot serve yet. Missing: ",
     "切好的生菜": "Chopped lettuce",

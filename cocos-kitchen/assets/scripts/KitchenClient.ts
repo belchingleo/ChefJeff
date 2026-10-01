@@ -1105,7 +1105,7 @@ export class KitchenClient extends Component {
         if(!this.state||!this.mounted)return;const s=this.state,k=s.kitchen,active=s.phase==='running'&&!this.pending&&this.connected;
         const remaining=Math.max(0,Math.ceil(k.round_remaining));
         this.set('clock',`${String(Math.floor(remaining/60)).padStart(2,'0')}:${String(remaining%60).padStart(2,'0')}  ${s.phase==='running'?'营业中':s.phase==='ended'?'已结算':'休息中'}`);
-        const sprint=k.chefs.human.sprint;this.set('sprint-status',!sprint?'':sprint.active_remaining>0?'冲刺中':sprint.cooldown_remaining>0?'冲刺冷却 '+Math.ceil(sprint.cooldown_remaining)+'s':'双击方向键 · 冲刺');
+        const sprint=k.chefs.human.sprint;this.set('sprint-status',!sprint?'':sprint.active_remaining>0?'冲刺中':sprint.cooldown_remaining>0?'冲刺冷却 '+Math.ceil(sprint.cooldown_remaining)+'s':'冲刺 · Q');
         this.set('fire-status',k.fire_safety?.burning_count?`着火工位 ${k.fire_safety.burning_count}/${k.fire_safety.loss_threshold}`:'');
         this.labels.clock.color=color(remaining<=30?COLORS.hot:COLORS.muted);this.drawOrders();
         for(const [id,dev] of Object.entries(this.devices)){
