@@ -328,9 +328,65 @@
     "目标达成": "Goal reached",
     "未达目标": "Goal not reached",
     "提前退出": "Ended early",
-    "走到对方厨师当前的位置（接触时会推挤）": "Walk to the other chef's current position (contact pushes)"
+    "走到对方厨师当前的位置（接触时会推挤）": "Walk to the other chef's current position (contact pushes)",
+    "平底锅": "frying pan",
+    "汤锅": "soup pot",
+    "锅具": "cookware",
+    "空平底锅": "Empty frying pan",
+    "空汤锅": "Empty soup pot",
+    "各自保留里面的食物": "contents stay where they are",
+    "离灶不加热": "no heating off the stove",
+    "切配进度保留；锅具继续加热": "prep progress kept; cookware keeps heating",
+    "牛肉": "beef",
+    "黄瓜": "Cucumber",
+    "洋葱": "Onion",
+    "奶酪": "Cheese",
+    "葱": "Scallion",
+    "鸡肉": "Chicken",
+    "鱼": "Fish",
+    "薄饼": "Flatbread",
+    "面条": "Noodles",
+    "生鸡肉": "Raw chicken",
+    "切好的鸡肉": "Chopped chicken",
+    "煎制中": "Frying",
+    "熟鸡肉": "Cooked chicken",
+    "糊鸡肉": "Burnt chicken",
+    "生鱼": "Raw fish",
+    "切好的鱼": "Chopped fish",
+    "熟鱼": "Cooked fish",
+    "糊鱼": "Burnt fish",
+    "生面条": "Raw noodles",
+    "煮制中": "Boiling",
+    "熟面条": "Cooked noodles",
+    "煮干了": "Boiled dry",
+    "切好的葱": "Chopped scallion",
+    "切好的黄瓜": "Chopped cucumber",
+    "切好的洋葱": "Chopped onion",
+    "切好的奶酪": "Sliced cheese",
+    "牛肉拌面": "Beef noodles",
+    "鸡肉拌面": "Chicken noodles",
+    "沙拉": "Salad",
+    "芝士汉堡": "Cheeseburger",
+    "鸡肉卷": "Chicken wrap",
+    "煎鱼排": "Fried fish"
   },
   "templates": [
+    [
+      "端起{0}的{1}（{2}）",
+      "Lift the {1} from {0} ({2})"
+    ],
+    [
+      "把{0}放入{1}的空{2}（{3}）",
+      "Load {0} into the empty {2} at {1} ({3})"
+    ],
+    [
+      "把{0}放入地上空{1}（{2}）",
+      "Load {0} into the empty {1} on the floor ({2})"
+    ],
+    [
+      "把手中的{0}放回{1}（{2}）",
+      "Return the {0} to {1} ({2})"
+    ],
     [
       "与{0}的锅交换（各自保留锅内食物）",
       "Swap with the pot at {0} (contents stay in their own pots)"
@@ -654,6 +710,74 @@
     [
       "把{0}的{1}加进手中的盘",
       "Add the {1} from {0} to the held plate"
+    ],
+    [
+      "与地上的{0}交换",
+      "Swap with the {0} on the floor"
+    ],
+    [
+      "与{0}的{1}交换",
+      "Swap with the {1} at {0}"
+    ],
+    [
+      "倒掉手中{0}里的食物",
+      "Empty the food from the held {0}"
+    ],
+    [
+      "损耗{0}元，保留空{1}",
+      "¥{0} cost; keep the empty {1}"
+    ],
+    [
+      "将{0}放进{1}的{2}，开始自动加热",
+      "Put {0} into the {2} on {1}; it starts heating"
+    ],
+    [
+      "把{0}放入地上空{1}",
+      "Load {0} into the empty {1} on the floor"
+    ],
+    [
+      "把{0}放入{1}的空{2}",
+      "Load {0} into the empty {2} at {1}"
+    ],
+    [
+      "把手中{0}里的菜盛到{1}的盘里",
+      "Fill the plate on {1} from your {0}"
+    ],
+    [
+      "空{0}留在手中",
+      "keep the empty {0}"
+    ],
+    [
+      "用手中的干净盘盛出地上{0}里的菜",
+      "Plate food from the {0} on the floor"
+    ],
+    [
+      "用手中的盘盛出{0}的{1}里的菜",
+      "Plate food from the {1} on {0}"
+    ],
+    [
+      "空{0}留在原地",
+      "the empty {0} stays in place"
+    ],
+    [
+      "把手中的{0}放回{1}",
+      "Return the {0} to {1}"
+    ],
+    [
+      "端起{0}的{1}",
+      "Lift the {1} from {0}"
+    ],
+    [
+      "平底锅 · {0}",
+      "Frying pan · {0}"
+    ],
+    [
+      "汤锅 · {0}",
+      "Soup pot · {0}"
+    ],
+    [
+      "切好的{0}",
+      "chopped {0}"
     ]
   ],
   "actors": {

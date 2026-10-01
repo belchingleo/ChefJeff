@@ -80,7 +80,7 @@ def _apply_flat_overrides(docs, overrides):
             level['initial_inventory'] = kept + [{'object': 'plate', 'id': f'D{i + 1}', 'state': 'clean', 'at': PLATE_COUNTERS[i]}
                                                  for i in range(n)]
         elif key == 'pot_count':
-            if int(value) != sum(e['object'] == 'pot' for e in level['initial_inventory']):
+            if int(value) != sum(e['object'] in cc.VESSELS for e in level['initial_inventory']):
                 raise ValueError('pot_count is defined by the level inventory')
         elif key in ('order_seed', 'spawn_seed'):
             level['seeds']['orders' if key == 'order_seed' else 'spawn'] = None if value is None else int(value)
@@ -240,7 +240,10 @@ class Rules:
         self.end_policy = level['end_policy']['type']
         self.inventory = level['initial_inventory']
         self.plate_count = sum(e['object'] == 'plate' for e in self.inventory)
-        self.pot_count = sum(e['object'] == 'pot' for e in self.inventory)
+        # Cooking vessels by ID: 'pot' boils, 'pan' fries; a heat step names the vessel it needs.
+        self.vessels = {e['id']: e['object'] for e in self.inventory if e['object'] in cc.VESSELS}
+        self.vessel_names = {kind: recipes['containers'][kind]['name'] for kind in cc.VESSELS if kind in recipes['containers']}
+        self.pot_count = len(self.vessels)
 
     # Equipment -----------------------------------------------------------
     def of_type(self, kind):
@@ -276,10 +279,10 @@ class Rules:
         t = self.chop.get(food.ingredient)
         return bool(t and food.stage == t['from'] and not food.plate_id)
 
-    def potable(self, food):
-        """Held food that may enter an empty pot (the heat transform's input)."""
+    def potable(self, food, vessel=None):
+        """Held food that may enter an empty vessel of this kind (the heat transform's input)."""
         t = self.heat.get(food.ingredient)
-        return bool(t and food.stage == t['from'] and not food.plate_id)
+        return bool(t and food.stage == t['from'] and not food.plate_id and (vessel is None or t.get('container', 'pot') == vessel))
 
     def heat_thresholds(self, item):
         t = self.heat[item]

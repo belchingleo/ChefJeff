@@ -2,7 +2,7 @@
   "schema_version": 1,
   "kind": "level",
   "id": "level-2",
-  "version": 2,
+  "version": 3,
   "name": "第二关 · 汉堡",
   "menu_order": 2,
   "ruleset_ref": {
@@ -19,7 +19,7 @@
   },
   "recipe_catalog_ref": {
     "id": "chefjeff-service",
-    "version": 1
+    "version": 2
   },
   "order_policy_ref": {
     "id": "level-2",
@@ -71,7 +71,7 @@
       "at": "counter2"
     },
     {
-      "object": "pot",
+      "object": "pan",
       "id": "P1",
       "at": "p1"
     }

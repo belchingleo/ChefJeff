@@ -2,7 +2,7 @@
   "schema_version": 1,
   "kind": "level",
   "id": "level-3",
-  "version": 2,
+  "version": 3,
   "name": "第三关 · 牛-堡",
   "menu_order": 3,
   "ruleset_ref": {
@@ -19,7 +19,7 @@
   },
   "recipe_catalog_ref": {
     "id": "chefjeff-service",
-    "version": 1
+    "version": 2
   },
   "order_policy_ref": {
     "id": "level-3",
@@ -77,17 +77,17 @@
       "at": "counter3"
     },
     {
-      "object": "pot",
+      "object": "pan",
       "id": "P1",
       "at": "p1"
     },
     {
-      "object": "pot",
+      "object": "pan",
       "id": "P2",
       "at": "p2"
     },
     {
-      "object": "pot",
+      "object": "pan",
       "id": "P3",
       "at": "counter4"
     }

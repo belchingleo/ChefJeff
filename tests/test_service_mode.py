@@ -53,7 +53,8 @@ class ServeTests(unittest.TestCase):
             resolved = level(n)
             self.assertEqual(resolved['level']['round_limit_game_ms'], 180000)
             self.assertEqual([e['recipe_ref'] for e in resolved['order_policy']['menu']], menus[n])
-            self.assertEqual({r: v['price'] for r, v in resolved['recipe_catalog']['recipes'].items()}, {'steak': 50, 'burger': 80})
+            prices = {r: v['price'] for r, v in resolved['recipe_catalog']['recipes'].items()}
+            self.assertEqual({r: prices[r] for r in ('steak', 'burger')}, {'steak': 50, 'burger': 80})
             self.assertEqual(resolved['level']['goal']['type'], 'minimum_money')
             self.assertEqual(set(resolved['order_policy']['patience_by_recipe']), set(menus[n]))
 

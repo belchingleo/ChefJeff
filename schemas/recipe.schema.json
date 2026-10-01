@@ -74,6 +74,18 @@
             }
           },
           "additionalProperties": false
+        },
+        "pan": {
+          "type": "object",
+          "required": [
+            "name"
+          ],
+          "properties": {
+            "name": {
+              "$ref": "common.schema.json#/$defs/display_name"
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false
@@ -196,7 +208,11 @@
           "$ref": "common.schema.json#/$defs/positive_game_ms"
         },
         "container": {
-          "const": "pot"
+          "description": "Vessel the heat step happens in: pot (boil) or pan (fry).",
+          "enum": [
+            "pot",
+            "pan"
+          ]
         },
         "overcook": {
           "type": "object",

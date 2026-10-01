@@ -146,6 +146,7 @@
             "enum": [
               "plate",
               "pot",
+              "pan",
               "extinguisher"
             ]
           },

@@ -39,7 +39,8 @@ REF_FIELDS = {'ruleset': 'ruleset_ref', 'map': 'map_ref', 'equipment_catalog': '
               'recipe_catalog': 'recipe_catalog_ref', 'order_policy': 'order_policy_ref'}
 # Operations whose capability must exist on some equipment instance.
 OPERATION_CAPABILITY = {'chop': 'chop', 'heat': 'heat'}
-INVENTORY_HOSTS = {'plate': ('counter', 'sink', 'plate_return'), 'pot': ('stove', 'counter'),
+VESSELS = ('pot', 'pan')  # cooking vessels: pot boils, pan fries; they share the P1..Pn ID sequence
+INVENTORY_HOSTS = {'plate': ('counter', 'sink', 'plate_return'), 'pot': ('stove', 'counter'), 'pan': ('stove', 'counter'),
                    'extinguisher': ('tool_rack',)}
 ORDER_ALGORITHMS = {'fixed_interval_seeded': 'fixed_interval_seeded/weighted-cumulative-v1',
                     'fixed_table': 'fixed_table/stable-sort-v1'}
@@ -152,7 +153,7 @@ def _fetch(bundle, registry, kind, ref, prefix, out):
     return document
 
 
-def _producible(recipe_catalog, map_types, item, state, have_pot):
+def _producible(recipe_catalog, map_types, item, state, vessels):
     """Whether a component can be produced from a map source through transforms."""
     items = recipe_catalog['items']
     if item not in items or 'ingredient_source' not in map_types.get('__sources__', {}).get(item, ()):
@@ -167,7 +168,7 @@ def _producible(recipe_catalog, map_types, item, state, have_pot):
             capability = OPERATION_CAPABILITY[t['operation']]
             if capability not in map_types['__capabilities__']:
                 continue
-            if t.get('container') == 'pot' and not have_pot:
+            if t.get('container') and t['container'] not in vessels:
                 continue
             reachable.add(t['to'])
             frontier.append(t['to'])
@@ -307,14 +308,14 @@ def resolve_config(bundle, registry=None):
         if entry['object'] == 'plate' and 'state' not in entry:
             entry['state'] = 'clean'
             applied.append(f'/level/initial_inventory/{i}/state=clean')
-    for obj, prefix in (('plate', 'D'), ('pot', 'P'), ('extinguisher', 'E')):
-        found = sorted(e['id'] for e in inventory if e['object'] == obj)
-        if found != [f'{prefix}{n}' for n in range(1, len(found) + 1)] or any(not e['id'].startswith(prefix) for e in inventory if e['object'] == obj):
-            out.append(diag('INVENTORY_ID_SEQUENCE', 'ERROR', '/level/initial_inventory', f'{obj} IDs must be {prefix}1..{prefix}n', found))
+    for objs, prefix in ((('plate',), 'D'), (VESSELS, 'P'), (('extinguisher',), 'E')):
+        found = sorted((e['id'] for e in inventory if e['object'] in objs), key=lambda i: (len(i), i))
+        if found != [f'{prefix}{n}' for n in range(1, len(found) + 1)]:
+            out.append(diag('INVENTORY_ID_SEQUENCE', 'ERROR', '/level/initial_inventory', f'{"/".join(objs)} IDs must be {prefix}1..{prefix}n', found))
     if sum(e['object'] == 'extinguisher' for e in inventory) != 1:
         out.append(diag('INVENTORY_EXTINGUISHER', 'ERROR', '/level/initial_inventory', 'exactly one extinguisher is supported'))
     plates = sum(e['object'] == 'plate' for e in inventory)
-    pots = sum(e['object'] == 'pot' for e in inventory)
+    vessels = {e['object'] for e in inventory if e['object'] in VESSELS}
     if plates == 0:
         out.append(diag('INVENTORY_NO_PLATES', 'ERROR', '/level/initial_inventory', 'recipes are served on plates; no plate exists'))
 
@@ -330,7 +331,7 @@ def resolve_config(bundle, registry=None):
             out.append(diag('ORDER_UNKNOWN_RECIPE', 'ERROR', '/order_policy', f'{recipe_id!r} is not in the recipe catalog'))
             continue
         for j, component in enumerate(recipe['components']):
-            ok, why = _producible(recipes, map_types, component['item'], component['state'], pots > 0)
+            ok, why = _producible(recipes, map_types, component['item'], component['state'], vessels)
             if not ok:
                 out.append(diag('NO_PRODUCTION_CHAIN', 'ERROR', f'/recipe_catalog/recipes/{recipe_id}/components/{j}',
                                 f'{recipe_id} needs {component["item"]} {component["state"]}: {why}',
@@ -533,7 +534,7 @@ def flat_config(resolved):
         'level': level.get('menu_order'),
         'boards': sum(st['type'] == 'board' for st in stations),
         'pots': sum(st['type'] == 'stove' for st in stations),
-        'pot_count': sum(e['object'] == 'pot' for e in inventory),
+        'pot_count': sum(e['object'] in VESSELS for e in inventory),
         'plate_count': sum(e['object'] == 'plate' for e in inventory),
         'round_seconds': s(level['round_limit_game_ms']),
         'order_count': _order_count(policy, level['round_limit_game_ms']),
