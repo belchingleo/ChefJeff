@@ -38,6 +38,8 @@ export class LevelOneArt {
             await this.loadAtlas('art/action-feedback-v1');
             await this.loadAtlas('art/knife-v1');
             await this.loadAtlas('art/trash-directions-v1');
+            try {await this.loadAtlas('art/ingredient-pack-v1');}
+            catch(error){console.warn('Ingredient pack art unavailable; new ingredients keep their fallback icons.',error);}
             if(typeof location!=='undefined'&&new URLSearchParams(location.search).get('prepSample')==='1')
                 await this.loadAtlas('art/prep-pose-v3');
             this.ready=true;
