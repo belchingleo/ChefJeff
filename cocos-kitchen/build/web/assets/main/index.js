@@ -654,36 +654,34 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             }
           };
           _this.onKey = function (e) {
-            var _document$activeEleme, _document$activeEleme2, _this$state3, _this$state4;
+            var _document$activeEleme, _document$activeEleme2, _this$state, _this$state2;
             // The communication dock keeps native Tab/Enter/Space; Esc hands the keyboard back.
             var dock = !sys.isNative ? (_document$activeEleme = document.activeElement) == null ? void 0 : _document$activeEleme.closest('#kitchen-communication') : null;
             if (e.key === 'Escape') {
-              var _this$state, _this$state2;
               if (dock) {
                 document.activeElement.blur();
                 return;
               }
               if (e.repeat || !sys.isNative && document.querySelector('dialog[open]')) return;
-              if (((_this$state = _this.state) == null ? void 0 : _this$state.phase) === 'running') {
-                e.preventDefault();
-                _this.clearInput();
-                _this.post('/api/pause');
-              } else if (((_this$state2 = _this.state) == null ? void 0 : _this$state2.phase) === 'paused' && _this.connected) {
-                e.preventDefault();
-                _this.post('/api/resume');
-              }
+              _this.togglePause(e);
               return;
             }
             if (e.isComposing || e.keyCode === 229) return;
             if (!sys.isNative && (document.querySelector('dialog[open]') || (_document$activeEleme2 = document.activeElement) != null && _document$activeEleme2.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"]'))) return;
+            // P pauses and resumes like Esc, for keyboards without an Esc key (iPad Magic Keyboard).
+            // Typing fields and open dialogs are excluded above.
+            if (e.code === 'KeyP' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+              if (!e.repeat) _this.togglePause(e);else e.preventDefault();
+              return;
+            }
             if (dock && (e.key === 'Enter' || e.code === 'Space' || e.key === 'Tab')) return;
-            if (e.key === 'Shift' && ((_this$state3 = _this.state) == null ? void 0 : _this$state3.phase) === 'running') {
+            if (e.key === 'Shift' && ((_this$state = _this.state) == null ? void 0 : _this$state.phase) === 'running') {
               e.preventDefault();
               e.stopImmediatePropagation();
               if (!e.repeat && !e.ctrlKey && !e.altKey && !e.metaKey) _this.bookmark();
               return;
             }
-            if (((_this$state4 = _this.state) == null ? void 0 : _this$state4.phase) === 'running' && _this.connected) {
+            if (((_this$state2 = _this.state) == null ? void 0 : _this$state2.phase) === 'running' && _this.connected) {
               // Overcooked layout, browser-safe keys: Space = whatever the faced target needs (pick up,
               // put down, and chop/wash too), E = chop, wash, extinguish or throw ahead (Overcooked's
               // Ctrl), Q = dash (Overcooked's Alt). Held direction keys survive both.
@@ -732,9 +730,9 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             }
           };
           _this.onConfirmed = function (e) {
-            var _this$state5;
+            var _this$state3;
             var d = e.detail;
-            if (d.ok) _this.post(d.kind === 'end' ? '/api/end' : '/api/restart');else if (d.resume && ((_this$state5 = _this.state) == null ? void 0 : _this$state5.phase) === 'paused') _this.post('/api/resume');
+            if (d.ok) _this.post(d.kind === 'end' ? '/api/end' : '/api/restart');else if (d.resume && ((_this$state3 = _this.state) == null ? void 0 : _this$state3.phase) === 'paused') _this.post('/api/resume');
           };
           _this.onKeyUp = function (e) {
             var key = e.key.toLowerCase();
@@ -751,14 +749,14 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             _this.render();
           };
           _this.scheduledPoll = function () {
-            var _this$state6;
-            var interval = ((_this$state6 = _this.state) == null ? void 0 : _this$state6.phase) === 'running' ? .2 : 1;
+            var _this$state4;
+            var interval = ((_this$state4 = _this.state) == null ? void 0 : _this$state4.phase) === 'running' ? .2 : 1;
             if (_this.clock - _this.lastScheduledPoll < interval - .01) return;
             _this.lastScheduledPoll = _this.clock;
             _this.poll();
           };
           _this.poll = /*#__PURE__*/_asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee() {
-            var _next$kitchen, _next$release, _this$state7, _this$state8, _this$state9, sent, next, _i, _arr, id, _i2, _arr2, n, _i3, _arr3, who, frameRate;
+            var _next$kitchen, _next$release, _this$state5, _this$state6, _this$state7, sent, next, _i, _arr, id, _i2, _arr2, n, _i3, _arr3, who, frameRate;
             return _regeneratorRuntime().wrap(function _callee$(_context) {
               while (1) switch (_context.prev = _context.next) {
                 case 0:
@@ -807,7 +805,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                     _this.groundStages = {};
                     _this.mounted = false;
                   }
-                  if (next.game_id !== ((_this$state7 = _this.state) == null ? void 0 : _this$state7.game_id) || !_this.connected) {
+                  if (next.game_id !== ((_this$state5 = _this.state) == null ? void 0 : _this$state5.game_id) || !_this.connected) {
                     _this.menuSignature = '';
                     _this.foodStages = {};
                     _this.readyUntil = {};
@@ -817,8 +815,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                       _this.locate(_this.people[who], next.kitchen.chefs[who].position);
                     }
                   }
-                  if (next.phase !== 'running' || next.game_id !== ((_this$state8 = _this.state) == null ? void 0 : _this$state8.game_id)) _this.clearInput();
-                  if (next.game_id !== ((_this$state9 = _this.state) == null ? void 0 : _this$state9.game_id)) _this.moveSeq = Date.now() * 1000;
+                  if (next.phase !== 'running' || next.game_id !== ((_this$state6 = _this.state) == null ? void 0 : _this$state6.game_id)) _this.clearInput();
+                  if (next.game_id !== ((_this$state7 = _this.state) == null ? void 0 : _this$state7.game_id)) _this.moveSeq = Date.now() * 1000;
                   _this.state = next;
                   _this.connected = true;
                   _this.received = _this.clock;
@@ -1101,10 +1099,10 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }
         };
         _proto.onHide = function onHide() {
-          var _this$state10;
+          var _this$state8;
           this.hidden = true;
           this.clearInput();
-          if (((_this$state10 = this.state) == null ? void 0 : _this$state10.phase) === 'running') this.post('/api/pause', {
+          if (((_this$state8 = this.state) == null ? void 0 : _this$state8.phase) === 'running') this.post('/api/pause', {
             reason: 'hidden'
           });
         };
@@ -1113,8 +1111,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           this.poll();
         };
         _proto.openRecord = function openRecord() {
-          var _this$state11;
-          if (!sys.isNative && (_this$state11 = this.state) != null && _this$state11.round_summary) window.dispatchEvent(new CustomEvent('kitchen-open-record', {
+          var _this$state9;
+          if (!sys.isNative && (_this$state9 = this.state) != null && _this$state9.round_summary) window.dispatchEvent(new CustomEvent('kitchen-open-record', {
             detail: this.state.round_summary
           }));
         };
@@ -1125,6 +1123,17 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
         _proto.openConnection = function openConnection() {
           this.clearInput();
           if (!sys.isNative) window.dispatchEvent(new Event('kitchen-open-connection'));
+        };
+        _proto.togglePause = function togglePause(e) {
+          var _this$state10, _this$state11;
+          if (((_this$state10 = this.state) == null ? void 0 : _this$state10.phase) === 'running') {
+            e.preventDefault();
+            this.clearInput();
+            this.post('/api/pause');
+          } else if (((_this$state11 = this.state) == null ? void 0 : _this$state11.phase) === 'paused' && this.connected) {
+            e.preventDefault();
+            this.post('/api/resume');
+          }
         };
         _proto.setFocus = function setFocus(id) {
           var _this$controlAccess2, _this$controlAccess3;
