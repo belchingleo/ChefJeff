@@ -1151,7 +1151,9 @@ class SpatialKitchen(Kitchen):
             'onto': p['target'] if p['target'] in self.equipment else None, 'from': p['from'], 'to': p['to'], 'landing_cell': self.equipment[p['target']]['cell'] if p['target'] in self.equipment else self.cell(p['target']), 'started': p['started'], 'lands_at': p['lands_at']} for key,p in self.projectiles.items()]
         r = self.rules
         state['map'] = {'throw_range': r.throw_range, 'pass_range': r.pass_range, 'throw_speed': r.throw_speed, 'width': self.width, 'height': self.height, 'walls': sorted(self.walls),
-                        'equipment': self.equipment, 'walk_speed': r.walk_speed,
+                        # Ingredient sources name their item, so the client can pick the source symbol.
+                        'equipment': {key: {**e, **({'item': r.sources[key]} if key in r.sources else {})} for key, e in self.equipment.items()},
+                        'walk_speed': r.walk_speed,
                         # Exact foot-blocking boxes, so the client can predict held-key movement.
                         'walk_boxes': [list(b) for b in self.nav.walk_boxes], 'walk_clearance': WALK_CLEARANCE, 'chef_separation': r.chef_separation,
                         **({'corner_slide': r.corner_slide} if r.corner_slide else {}),

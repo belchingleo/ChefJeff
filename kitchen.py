@@ -1106,14 +1106,13 @@ class Kitchen:
                 "future_orders": int(any(o["status"] == "future" for o in self.orders)),
                 'goal_status': self.goal_status(), 'end_policy': self.rules.end_policy,
                 # Rules visible to both chefs, from the same frozen configuration the engine runs.
-                'menu': [{'id': r, 'name': self.rules.recipe_names[r], 'price': self.rules.prices[r],
-                          'components': [{'item': c['item'], 'state': c['state']} for c in self.rules.recipes[r]['components']]}
-                         for r in self.rules.menu],
+                'menu': [self._dish_view(r) for r in self.rules.menu],
                 'assembly': self.rules.multi_component,
                 # Every servable dish, including ones no order asks for.
-                'dishes': [{'id': r, 'name': self.rules.recipe_names[r], 'price': self.rules.prices[r],
-                            'components': [{'item': c['item'], 'state': c['state']} for c in self.rules.recipes[r]['components']]}
-                           for r in self.rules.servable],
+                'dishes': [self._dish_view(r) for r in self.rules.servable],
+                # Display data for the client: names, states and fallback colours of this level's items.
+                'items': {key: {field: item[field] for field in ('name', 'states', 'state_names', 'platable_states', 'color') if field in item}
+                          for key, item in self.rules.items.items()},
                 # Only present when the ruleset enables it.
                 **({'ground_assembly': True} if self.rules.ground_assembly and self.rules.multi_component else {}),
                 'scoring': {'penalties': dict(self.rules.penalty),
@@ -1126,6 +1125,14 @@ class Kitchen:
                                 'spread_seconds': self.rules.fire_spread},
                 'failure_reason': self.failure_reason,
                 "goals": {"target_money": self.rules.goal['min_money']}}
+
+    def _dish_view(self, recipe):
+        r = self.rules.recipes[recipe]
+        view = {'id': recipe, 'name': self.rules.recipe_names[recipe], 'price': self.rules.prices[recipe],
+                'components': [{'item': c['item'], 'state': c['state']} for c in r['components']]}
+        if 'plating' in r:
+            view['plating'] = [dict(layer) for layer in r['plating']]
+        return view
 
     def assert_invariants(self):
         foods = ([s.food for s in self.stations.values() if s.food]

@@ -29,7 +29,8 @@
       "throwable_states": [
         "raw",
         "chopped"
-      ]
+      ],
+      "color": "#846144"
     },
     "lettuce": {
       "name": "生菜",
@@ -44,7 +45,8 @@
       "throwable_states": [
         "raw",
         "chopped"
-      ]
+      ],
+      "color": "#639650"
     },
     "tomato": {
       "name": "番茄",
@@ -59,7 +61,8 @@
       "throwable_states": [
         "raw",
         "chopped"
-      ]
+      ],
+      "color": "#c45643"
     },
     "bread": {
       "name": "面包",
@@ -74,7 +77,8 @@
       "throwable_states": [
         "raw",
         "chopped"
-      ]
+      ],
+      "color": "#d1a362"
     }
   },
   "containers": {
@@ -163,6 +167,28 @@
           "item": "beef",
           "state": "ready",
           "label": "熟牛肉"
+        }
+      ],
+      "plating": [
+        {
+          "layer": "bun_bottom",
+          "item": "bread"
+        },
+        {
+          "layer": "beef",
+          "item": "beef"
+        },
+        {
+          "layer": "lettuce",
+          "item": "lettuce"
+        },
+        {
+          "layer": "tomato",
+          "item": "tomato"
+        },
+        {
+          "layer": "bun_top",
+          "item": "bread"
         }
       ]
     }

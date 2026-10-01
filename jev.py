@@ -40,6 +40,18 @@ def load_key():
     raise RuntimeError("未找到 TYPESAFE_API_KEY。请在本地 .env 中配置，不要把密钥发到聊天。")
 
 
+def model_kitchen(state):
+    """The kitchen state as the model sees it: display-only fields for the client are left out."""
+    kitchen = {k: v for k, v in state.items() if k != 'items'}
+    for key in ('menu', 'dishes'):
+        if key in kitchen:
+            kitchen[key] = [{k: v for k, v in dish.items() if k != 'plating'} for dish in kitchen[key]]
+    if 'map' in kitchen and 'equipment' in kitchen['map']:
+        kitchen['map'] = {**kitchen['map'], 'equipment': {key: {k: v for k, v in e.items() if k != 'item'}
+                                                           for key, e in kitchen['map']['equipment'].items()}}
+    return kitchen
+
+
 def objective_text(state):
     """Objective and end rules, generated from the round's goal and end policy."""
     goal = state['goal_status']
@@ -84,7 +96,7 @@ class JevClient:
         return english_data({
             "model": self.c["model"],
             "state": {
-                "kitchen": state,
+                "kitchen": model_kitchen(state),
                 "rules": {
                     "role": 'You control chef jeff. Chef human is controlled by a person in the same kitchen. Both chefs can perform the same actions; neither has a fixed role. Choose one next action for your own chef.',
                     "objective": objective_text(state),

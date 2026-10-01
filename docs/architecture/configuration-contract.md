@@ -64,10 +64,10 @@ Geometry fields are unchanged (see `docs/map-format.md`). Schema 2 adds `areas` 
 
 | Field | Meaning |
 |---|---|
-| `items.<item>` | `name`, `states`, `initial_state`, `platable_states` (may go on a plate), `throwable_states` |
+| `items.<item>` | `name`, `states`, `initial_state`, `platable_states` (may go on a plate), `throwable_states`; optional `state_names`, and `color` (display-only fallback swatch) |
 | `containers.plate.wash_work_game_ms` | washing work (shipped 4000); divided by the sink's wash rate |
 | `transforms[]` | defined **once per item** and shared by all recipes: `operation` (`chop`/`heat`), `from` → `to`, `work_game_ms`, optional `container: pot` and `overcook {state, after_done_game_ms, fire_after_overcook_game_ms}` |
-| `recipes.<id>` | `name`, `container: plate`, `components[{item, state}]` (order-free), `price` |
+| `recipes.<id>` | `name`, `container: plate`, `components[{item, state}]` (order-free, at most `limits.max_recipe_components` distinct items), `price`; optional display-only `plating[{layer, item}]`, bottom to top |
 
 Each recipe's step DAG is derived from its components and the shared transforms, so chopping beef has one duration however many recipes use it. Customer patience is not a recipe field.
 

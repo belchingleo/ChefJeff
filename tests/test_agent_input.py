@@ -100,6 +100,18 @@ class AgentInputTests(unittest.TestCase):
         self.assertNotIn('incomplete food cannot be served', rules['score'])
         self.assertNotIn('pass through each other', json.dumps(rules))
 
+    def test_client_display_fields_stay_out_of_the_model_input(self):
+        k = kitchen(2)
+        state = k.snapshot()
+        self.assertEqual(state['items']['beef']['color'], '#846144')
+        self.assertEqual([p['layer'] for p in next(d for d in state['dishes'] if d['id'] == 'burger')['plating']],
+                         ['bun_bottom', 'beef', 'lettuce', 'tomato', 'bun_top'])
+        self.assertTrue(any(e.get('item') == 'beef' for e in state['map']['equipment'].values()))
+        model = SpatialJevClient(k.c, key='test').payload(state, k.actions('jeff'))['state']['kitchen']
+        self.assertNotIn('items', model)
+        self.assertFalse(any('plating' in d for d in model['menu'] + model['dishes']))
+        self.assertFalse(any('item' in e for e in model['map']['equipment'].values()))
+
     def test_memory_is_kept_per_level_and_rule_set(self):
         setting = {'provider': 'jev', 'base_url': 'https://example.test/v1', 'model': 'm'}
         scopes = {round_scope(setting, kitchen(level)) for level in LEVELS}
