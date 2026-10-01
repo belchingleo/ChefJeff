@@ -2,7 +2,7 @@ import { _decorator, Component, Node, UITransform, Graphics, Color, Label, Layer
     view, ResolutionPolicy, sys, game, Game, profiler, Mask, Vec2, Camera, director, Sprite } from 'cc';
 import { LevelOneArt } from './LevelOneArt';
 import { KitchenAudio } from './KitchenAudio';
-import { GRID_ART, stationView, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, workingChefDepth, flightDepth, predictWalk, footWalkable, burgerLayers, heatCountdown, behindCounter } from './KitchenGeometry';
+import { GRID_ART, stationView, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, workingChefDepth, flightDepth, predictWalk, footWalkable, plateLayers, heatCountdown, behindCounter } from './KitchenGeometry';
 const { ccclass } = _decorator;
 type Action = { key: string; label: string; kind: string; target: string; expected: unknown[] };
 type KitchenState = { game_id: string; phase: string; speed: number; kitchen: any; actions: Action[]; limits?:any; release?:any; interaction?:Action; use_interaction?:Action; interaction_hint?:string; interaction_focus?:string; interaction_cell?:number[];
@@ -13,7 +13,7 @@ type PotEffects = {steam:Node; smoke:Node; fire:Node; ready:Node};
 // (denim overalls, copper-eared Jeff, honey floorboards, walnut walls, steel stoves).
 const COLORS = { ink:'#2b1a12', muted:'#6e4e38', bg:'#f0d9b5', paper:'#fdf3e1', honeyTint:'#fbe3b8', walnut:'#6b3418', honey:'#e8983a', steel:'#3d5566',
     human:'#2a5a9e', humanHover:'#224a82', jeff:'#a8520e', herb:'#3c7a2a', hot:'#b8321e', hotHover:'#9c2a19',
-    // alert: danger text on the surface ground (tomato itself is 4.35:1 there).
+    // alert: danger text on the surface ground (the hot red itself is 4.35:1 there).
     alert:'#9c2a19', frame:'#4a2616',
     // Fallback programmer art only.
     wood:'#6b3418', wall:'#ae8055', counter:'#8baab7', counterEdge:'#587582', counterLight:'#c6d9de' };
@@ -22,9 +22,10 @@ const PIXEL='ChefJeffPixel, sans-serif';
 // Result events reach the player; AI decision notes have their own status line.
 const RESULT_ANNOUNCE=new Set(['order','served','expired','ready','burn','fire','fire_spread','fire_loss']);
 const TAB_ORDER=['language','level1','level2','level3','main','reset','cover-connection','help','record','resume','pause','end'];
-const LEVEL_NAMES=['','第一关 · 牛排','第二关 · 汉堡','第三关 · 牛-堡'];
 type ButtonView = {node:Node;label:Label;callback:()=>void;enabled:boolean;width:number;height:number;tone:string;hover:boolean;selected?:boolean};
-const STAGES: Record<string,string> = {raw:'生肉',chopped:'半成品',cooking:'加热中',ready:'熟牛排',burnt:'糊菜',extinguisher:'灭火器',clean_plate:'干净餐盘',dirty_plate:'脏餐盘',plated_ready:'已装盘牛排',plated_burnt:'已装盘糊菜',pot:'空锅',pot_cooking:'锅 · 未熟',pot_chopped:'锅 · 未熟',pot_ready:'锅 · 熟牛排',pot_burnt:'锅 · 糊菜'};
+// Labels for things that are not recipe items; item and dish names come from the server's catalog.
+const STAGES: Record<string,string> = {extinguisher:'灭火器',clean_plate:'干净餐盘',dirty_plate:'脏餐盘',pot:'空锅'};
+// Fallback tints by stage: uncooked and cooking states of items that cook, and anything burnt.
 const FOOD_COLORS: Record<string,string> = {raw:'#d68f8c',chopped:'#dcaa86',cooking:'#b58359',ready:'#846144',burnt:'#3e3733',extinguisher:'#c65138'};
 const TILE=GRID_ART.tile, MAPX=GRID_ART.originX, MAPY=GRID_ART.originY;
 const color=(hex:string)=>new Color().fromHEX(hex);
@@ -172,7 +173,7 @@ export class KitchenClient extends Component {
         this.buttons.reset.node.active=false;
         this.button('cover-connection','设置',727,520,158,48,()=>this.openConnection(),this.cover);
         this.button('help','操作说明',901,520,158,48,()=>this.openHelp(),this.cover);
-        for(const n of [1,2,3])this.pixel(this.button('level'+n,LEVEL_NAMES[n],188+n*226,464,210,30,()=>this.post('/api/level',{level:n}),this.cover).getComponentInChildren(Label)!,12);
+        for(const n of [1,2,3])this.pixel(this.button('level'+n,'',188+n*226,464,210,30,()=>this.post('/api/level',{level:n}),this.cover).getComponentInChildren(Label)!,12);
         // Language sits on the board where people look first, not only inside Settings.
         this.pixel(this.button('language','English',944,196,88,30,()=>{const i18n=(window as any).kitchenI18n;i18n?.setLanguage(i18n.language==='en'?'zh':'en');},this.cover).getComponentInChildren(Label)!,12);
         if(sys.isNative)this.buttons.language.node.active=false;
@@ -411,32 +412,34 @@ export class KitchenClient extends Component {
         if(this.useArt&&this.artIcon(g.node,type))return;
         this.art.hide(g.node);
         const r=(x:number,y:number,w:number,h:number,c:string)=>this.rect(g,x,y,w,h,c);
-        if(type.startsWith('pot_')){
-            this.drawIcon(g,'pot');r(-10,-4,20,13,FOOD_COLORS[type.slice(4)]||'#b58359');
+        if(type.startsWith('pot:')){
+            const [,item,stage]=type.split(':');this.drawIcon(g,'pot');r(-10,-4,20,13,this.itemColor(item,stage));
         }else if(type==='stove'){
             r(-23,-19,46,35,COLORS.wood);r(-20,-15,40,28,'#a3aaa0');r(-12,-6,24,16,COLORS.ink);r(-8,-3,16,10,'#6e746b');
         }else if(type==='continuous_counter'){
             // Continuous worktop is painted once in the map layer.
-        }else if(/^(lettuce|tomato|bread)_/.test(type)){
-            const kind=type.split('_')[0],chopped=type.endsWith('chopped');
-            const c=kind==='lettuce'?'#639650':kind==='tomato'?'#c45643':'#d1a362';
-            r(-18,-12,36,24,c);r(-12,12,24,5,c);
-            if(kind==='tomato')r(-4,14,8,5,'#639650');
-            if(chopped){r(-2,-12,3,27,COLORS.paper);r(-18,-1,36,3,COLORS.paper);}
-            if(kind==='bread'){r(-13,9,3,3,COLORS.paper);r(5,5,3,3,COLORS.paper);}
+        }else if(type.startsWith('source:')){
+            this.drawIcon(g,'item:'+type.slice(7)+':raw');
+        }else if(type.startsWith('item:')){
+            const [,item,stage]=type.split(':'),c=this.itemColor(item,stage);
+            if(this.cooks(item)){
+                // Items that cook: a cut on a paper card, tinted by doneness.
+                r(-19,-13,38,26,COLORS.paper);r(-14,-10,28,20,COLORS.ink);r(-13,-6,26,15,c);r(-9,9,18,3,c);r(-6,-2,4,4,'#efd3ae');r(3,3,6,3,'#efd3ae');
+            }else{
+                r(-18,-12,36,24,c);r(-12,12,24,5,c);
+                if(stage==='chopped'){r(-2,-12,3,27,COLORS.paper);r(-18,-1,36,3,COLORS.paper);}
+            }
         }else if(type.startsWith('assembly:')){
             this.drawIcon(g,'clean_plate');
-            const parts=type.slice(9).split(',');let y=-8;
-            for(const name of ['bread','beef','lettuce','tomato'])if(parts.includes(name)){
-                r(-13,y,26,5,name==='bread'?'#d1a362':name==='beef'?(parts.includes('burnt')?FOOD_COLORS.burnt:'#846144'):name==='lettuce'?'#639650':'#c45643');y+=5;
-            }
-            if(['bread','beef','lettuce','tomato'].every(name=>parts.includes(name)))r(-12,y,24,4,'#d1a362');
+            const parts=type.slice(9).split(','),burnt=parts.includes('burnt');let y=-8;
+            for(const layer of this.plateLayers(parts.filter(x=>x!=='burnt'))){r(-13,y,26,5,this.itemColor(layer.item,burnt&&this.burns(layer.item)?'burnt':'ready'));y+=5;}
         }else if(type==='counter'){
             r(-24,-19,48,36,COLORS.wood);r(-20,-14,40,26,'#b48b5e');r(-24,12,48,8,'#dfbd88');r(-2,-10,3,20,COLORS.wood);
-        }else if(type.startsWith('plated_')){
+        }else if(type.startsWith('dish:')){
+            const [,dish,stage]=type.split(':'),item=this.dishById(dish)?.components?.[0]?.item;
             r(-23,-17,46,7,'#829fac');r(-21,-14,42,30,COLORS.paper);
             r(-17,-11,34,24,'#c4dce0');r(-15,-9,30,20,COLORS.paper);
-            const c=type==='plated_ready'?'#846144':'#3e3733';r(-12,-5,24,15,c);r(-7,3,4,3,'#d6af74');
+            r(-12,-5,24,15,this.itemColor(item,stage));r(-7,3,4,3,'#d6af74');
         }else if(type==='clean_plate'||type==='dirty_plate'||type==='plates'||type==='returns'){
             r(-22,-15,44,28,'#8ca7ac');r(-19,-12,38,24,COLORS.paper);r(-14,-8,28,16,'#dbe7df');
             if(type==='dirty_plate'||type==='returns'){r(-11,-5,12,5,'#917451');r(5,2,6,4,'#917451');}
@@ -446,8 +449,6 @@ export class KitchenClient extends Component {
             r(8,13,5,14,COLORS.ink);r(-4,23,16,5,COLORS.ink);r(-5,14,5,10,'#b9d6dc');
         }else if(type==='pot'){
             r(-18,-13,36,27,COLORS.ink);r(-14,-10,28,21,'#747e75');r(-21,7,42,5,COLORS.ink);r(-24,1,7,7,COLORS.ink);r(17,1,7,7,COLORS.ink);r(-9,15,18,4,'#aab7a4');r(-3,19,6,4,COLORS.ink);
-        }else if(type==='fridge'){
-            r(-18,-24,36,48,COLORS.ink);r(-15,-20,30,41,'#a4c1b5');r(-13,6,26,13,'#cee0c8');r(-13,-17,26,20,'#cee0c8');r(6,10,3,6,COLORS.ink);r(6,-5,3,8,COLORS.ink);
         }else if(type==='board'){
             r(-21,-15,42,30,COLORS.wood);r(-18,-11,36,23,'#dcb16b');r(-13,-6,20,2,'#bd8849');r(-3,2,17,7,'#e8e7dc');r(-13,3,10,5,COLORS.ink);
         }else if(type==='serve'){
@@ -460,9 +461,28 @@ export class KitchenClient extends Component {
             r(-12,-18,24,27,'#c94d30');r(-6,9,12,14,'#c94d30');r(-17,-10,8,17,'#c94d30');r(9,-10,8,14,'#c94d30');r(-8,-15,16,19,'#efae3e');r(-3,-13,6,12,'#ffe29a');
         }else{
             const c=FOOD_COLORS[type]||FOOD_COLORS.raw;
-            r(-19,-13,38,26,COLORS.paper);r(-14,-10,28,20,COLORS.ink);r(-13,-6,26,15,c);r(-9,9,18,3,c);r(-6,-2,4,4,type==='raw'?'#efd3ae':'#d6af74');r(3,3,6,3,type==='raw'?'#efd3ae':'#d6af74');
+            r(-19,-13,38,26,COLORS.paper);r(-14,-10,28,20,COLORS.ink);r(-13,-6,26,15,c);r(-9,9,18,3,c);r(-6,-2,4,4,'#d6af74');r(3,3,6,3,'#d6af74');
         }
     }
+    // Recipe data from the server snapshot: names, colours, cooking states and plating order.
+    private itemDef(item:string|undefined):any{return item?this.state?.kitchen.items?.[item]:undefined;}
+    private itemLabel(item:string){return this.itemDef(item)?.name||item;}
+    private cooks(item:string|undefined){return !!this.itemDef(item)?.states?.includes('cooking');}
+    private burns(item:string|undefined){return !!this.itemDef(item)?.states?.includes('burnt');}
+    /** Fallback swatch: burnt is charred; items that cook are tinted by doneness until ready; else the item's colour. */
+    private itemColor(item:string|undefined,stage:string){
+        if(stage==='burnt')return FOOD_COLORS.burnt;
+        if(this.cooks(item)&&stage!=='ready')return FOOD_COLORS[stage]||FOOD_COLORS.raw;
+        return this.itemDef(item)?.color||FOOD_COLORS[stage]||FOOD_COLORS.ready;
+    }
+    private dishById(id:string|undefined):any{return id?(this.state?.kitchen.dishes||this.state?.kitchen.menu||[]).find((d:any)=>d.id===id):undefined;}
+    /** The menu dish a plate is heading for: one whose components include every item on it. */
+    private targetDish(components:string[]):any{
+        return (this.state?.kitchen.menu||[]).find((d:any)=>components.every(x=>d.components?.some((c:any)=>c.item===x)));
+    }
+    private plateLayers(components:string[]){return plateLayers(this.targetDish(components)?.plating,components);}
+    /** The item an ingredient source hands out (equipment data; the station id is the last resort). */
+    private sourceItem(id:string){const e=this.state?.kitchen.map.equipment[id];return e?.item||e?.params?.item||id;}
     private artIcon(node:Node,type:string):boolean {
         for(const child of node.children)if(child.name==='assembly-parts'||child.name==='supply-symbol'||child.name==='pot-contents'||child.name==='burnt-cue')child.active=false;
         if(this.useModularArt){
@@ -475,54 +495,66 @@ export class KitchenClient extends Component {
                 return this.art.tile(node,facing==='east'?'serving_east':'serving_west',TILE);
             }
             if(tops[type]&&this.art.tile(node,tops[type],TILE))return true;
-            if(type==='fridge'||type.startsWith('source_')){
+            if(type.startsWith('source:')){
                 this.art.hide(node);
                 let symbol=node.getChildByName('supply-symbol');
                 if(!symbol){symbol=this.child(node,'supply-symbol',40,32,0,22*TILE/64);symbol.addComponent(Graphics);}
                 symbol.active=true;const g=symbol.getComponent(Graphics)!;g.clear();
-                const sourceKey='modular/source_'+(type==='fridge'?'beef':type.slice(7));
+                const sourceKey='modular/source_'+type.slice(7);
                 if(!this.art.centered(symbol,sourceKey,28,28)){
                     const fallback=symbol.getChildByName('fallback')||this.child(symbol,'fallback',28,28);
-                    const fg=fallback.getComponent(Graphics)||fallback.addComponent(Graphics);fallback.setScale(.6,.6,1);this.drawIcon(fg,type.slice(7)+'_raw');
+                    const fg=fallback.getComponent(Graphics)||fallback.addComponent(Graphics);fallback.setScale(.6,.6,1);this.drawIcon(fg,'item:'+type.slice(7)+':raw');
                 }
                 return true;
             }
         }
-        if(['lettuce_chopped','tomato_chopped'].includes(type)&&this.art.has('feedback/'+type.split('_')[0]))
-            return this.art.centered(node,'feedback/'+type.split('_')[0],30,30);
-        if(/^(lettuce|tomato|bread)_/.test(type)&&this.art.has('food/'+type))return this.art.centered(node,'food/'+type,30,30);
-        if(type.startsWith('assembly:')&&this.art.has('food/burger_ready')){
+        if(type.startsWith('item:')){
+            const [,item,stage]=type.split(':');
+            // A chopped item that is plated chopped shows its plating layer; then food/, then ingredients/ art.
+            if(stage==='chopped'&&this.itemDef(item)?.platable_states?.includes('chopped')&&this.art.has('feedback/'+item))
+                return this.art.centered(node,'feedback/'+item,30,30);
+            if(this.art.has(`food/${item}_${stage}`))return this.art.centered(node,`food/${item}_${stage}`,30,30);
+            for(const key of [`ingredients/${item}/${stage}`,`ingredients/${item}/${stage==='chopped'?'prepared':stage}`])
+                if(this.art.has(key))return this.art.centered(node,key,29,29);
+            return false;
+        }
+        if(type.startsWith('dish:')){
+            const [,dish,stage]=type.split(':');
+            if(!this.art.has(`dishes/${dish}/${stage}`)||!this.art.centered(node,`dishes/${dish}/${stage}`,TILE*.76,TILE*.76))return false;
+            if(stage==='burnt')this.burntCue(node);
+            return true;
+        }
+        const assembly=type.startsWith('assembly:')?type.slice(9).split(','):null;
+        if(assembly&&this.plateLayers(assembly.filter(x=>x!=='burnt')).every(l=>this.art.has('feedback/'+l.layer))){
             this.art.centered(node,'objects/clean_plate',TILE*.76,TILE*.76);
             let parts=node.getChildByName('assembly-parts');
             if(!parts)parts=this.child(node,'assembly-parts',44,44);
             parts.active=true;for(const child of parts.children)child.active=false;
-            const ingredients=type.slice(9).split(','),burnt=ingredients.includes('burnt');
-            const layers=burgerLayers(ingredients);
-            layers.forEach((name,i)=>{
-                const item=parts!.getChildByName(name)||this.child(parts!,name,36,24);
+            const burnt=assembly.includes('burnt');
+            this.plateLayers(assembly.filter(x=>x!=='burnt')).forEach((layer,i)=>{
+                const item=parts!.getChildByName(layer.layer)||this.child(parts!,layer.layer,36,24);
                 item.active=true;item.setPosition(0,-3+i*4);item.setSiblingIndex(parts!.children.length-1);
-                this.art.centered(item,'feedback/'+name,34,22);
-                // No separate charred sprite: char the beef layer; reused nodes reset to white.
+                this.art.centered(item,'feedback/'+layer.layer,34,22);
+                // No separate charred sprite: char the layers whose item can burn; reused nodes reset to white.
                 const sprite=item.getChildByName('reviewed-art')?.getComponent(Sprite);
-                if(sprite)sprite.color=name==='beef'&&burnt?new Color(44,36,34,255):Color.WHITE;
+                if(sprite)sprite.color=burnt&&this.burns(layer.item)?new Color(44,36,34,255):Color.WHITE;
             });
             if(burnt)this.burntCue(node);
             return true;
         }
         const keys:Record<string,string>={board:'workstations/board',stove:'workstations/stove',
             sink:'workstations/sink',serve:'workstations/serve',returns:'workstations/returns',
-            fridge:'workstations/fridge',bin:'workstations/bin',extinguisher_rack:'workstations/extinguisher_rack',extinguisher:'objects/extinguisher',
+            bin:'workstations/bin',extinguisher_rack:'workstations/extinguisher_rack',extinguisher:'objects/extinguisher',
             pot:'objects/pot',clean_plate:'objects/clean_plate',dirty_plate:'objects/dirty_plate',
-            raw:'ingredients/beef/raw',processing:'ingredients/beef/processing',chopped:'ingredients/beef/prepared',
-            cooking:'ingredients/beef/cooking',ready:'ingredients/beef/ready',burnt:'ingredients/beef/burnt',
-            plated_ready:'dishes/steak/ready',plated_burnt:'dishes/steak/burnt',fire:'vfx/fire_0'};
+            fire:'vfx/fire_0'};
         if(type==='continuous_counter'){this.art.hide(node);return true;}
-        if(type.startsWith('pot_')){
+        if(type.startsWith('pot:')){
             if(!this.drawPot(node))return false;
+            const [,item,stage]=type.split(':');
             let contents=node.getChildByName('pot-contents');
             if(!contents)contents=this.child(node,'pot-contents',22,22,0,4);
             contents.active=true;
-            this.art.centered(contents,'ingredients/beef/'+(type.slice(4)==='chopped'?'prepared':type.slice(4)),20,20);
+            this.art.centered(contents,`ingredients/${item}/${stage==='chopped'?'prepared':stage}`,20,20);
             return true;
         }
         const contents=node.getChildByName('pot-contents');if(contents)contents.active=false;
@@ -530,10 +562,9 @@ export class KitchenClient extends Component {
         const key=keys[type];if(!key)return false;
         const size=key.startsWith('workstations/')?49:key.startsWith('ingredients/')?29:TILE*.76;
         if(!this.art.centered(node,key,size,size))return false;
-        if(type==='plated_burnt')this.burntCue(node);
         return true;
     }
-    /** Smoke over a burnt dish, wherever it is: upper layers can hide the charred patty. */
+    /** Smoke over a burnt dish, wherever it is: upper layers can hide the charred layer. */
     private burntCue(node:Node){
         let cue=node.getChildByName('burnt-cue');
         if(!cue)cue=this.child(node,'burnt-cue',26,32,14,20);
@@ -556,23 +587,31 @@ export class KitchenClient extends Component {
     }
     private itemName(f:any){
         if(!f)return '空手';
-        if(this.platedAssembly(f))return f.stage==='burnt'?'糊菜':f.dish==='burger'?'汉堡':'待组装 · '+f.components.map((x:string)=>({bread:'面包',lettuce:'生菜',tomato:'番茄',beef:'熟牛肉'}[x])).join('+');
-        if(['bread','lettuce','tomato'].includes(f.ingredient))return ({bread:'面包',lettuce:'生菜',tomato:'番茄'}[f.ingredient])+(f.stage==='chopped'?' · 切好':'');
-        return STAGES[this.itemStage(f)]||f.meaning||f.stage;
+        if(f.plate_id){
+            if(f.stage==='burnt')return '糊菜';
+            const dish=this.dishById(f.dish)||this.wholeDish(f);
+            return dish?dish.name:'待组装 · '+this.plateItems(f).map((x:string)=>this.itemLabel(x)).join('+');
+        }
+        return f.meaning||STAGES[f.stage]||f.stage;
     }
-    /** A plate drawn as layers: any plate but a lone beef where the menu serves beef alone (steak). */
-    private platedAssembly(f:any){
-        if(!f?.plate_id||!f.components?.length)return false;
-        if(f.components.some((x:string)=>x!=='beef'))return true;
-        const menu=this.state?.kitchen.menu;
-        return !!menu&&!menu.some((d:any)=>d.components?.length===1&&d.components[0].item==='beef');
+    private plateItems(f:any):string[]{return f.components?.length?f.components:f.ingredient?[f.ingredient]:[];}
+    /** A menu dish drawn as one plated sprite: no plating layers, and exactly the plate's items. */
+    private wholeDish(f:any):any{
+        const items=Array.from(new Set(this.plateItems(f))).sort().join();
+        return (this.state?.kitchen.menu||[]).find((d:any)=>!d.plating&&Array.from(new Set((d.components||[]).map((c:any)=>c.item))).sort().join()===items);
     }
     private itemStage(f:any){
-        // Burnt burgers keep their layers (burnt dishes can be served); only the beef is drawn charred.
-        if(this.platedAssembly(f))return 'assembly:'+f.components.join(',')+(f.stage==='burnt'?',burnt':'');
-        if(['bread','lettuce','tomato'].includes(f?.ingredient)&&!f?.plate_id)return f.ingredient+'_'+f.stage;
-        if(this.useArt&&f?.stage==='raw'&&f?.ingredient==='beef'&&f.chop_remaining<(this.state?.rules?.chop_seconds||6))return 'processing';
-        return f?.stage==='pot'?(f.contents?'pot_'+f.contents.stage:'pot'):f?.plate_id?'plated_'+f.stage:f?.stage;}
+        if(f?.stage==='pot')return f.contents?.ingredient?`pot:${f.contents.ingredient}:${f.contents.stage}`:'pot';
+        if(f?.plate_id&&this.plateItems(f).length){
+            const whole=this.wholeDish(f);if(whole)return `dish:${whole.id}:${f.stage}`;
+            // Burnt plates keep their layers (burnt dishes can be served); items that burn are drawn charred.
+            return 'assembly:'+this.plateItems(f).join(',')+(f.stage==='burnt'?',burnt':'');
+        }
+        if(f?.ingredient){
+            const chopping=this.useArt&&f.stage==='raw'&&f.chop_remaining<(this.state?.rules?.chop_seconds||6)&&this.art.has(`ingredients/${f.ingredient}/processing`);
+            return `item:${f.ingredient}:${chopping?'processing':f.stage}`;
+        }
+        return f?.stage;}
     private chef(parent:Node,name:string,x:number,y:number,who:string,scale=1){
         const n=this.make(name,x,y,40,64,parent);n.setScale(scale,scale,1);
         const shadow=this.child(n,'contact-shadow',40,10,0,-29),sg=shadow.addComponent(Graphics);
@@ -732,8 +771,8 @@ export class KitchenClient extends Component {
         const kind=/^b[0-9]+$/.test(id)?'board':id==='returns'?'returns':id==='sink'?'sink':'';
         if(kind){this.art.centered(n,'modular/device_'+kind+'_'+axis,TILE*.84,this.prepSampleBoard(id)?28:TILE*.84);return;}
         if(st.stove){this.art.centered(n,'modular/top_stove',TILE*.82,TILE*.82);return;}
-        if(['fridge','bread','lettuce','tomato'].includes(id)){
-            this.art.centered(n,'modular/source_'+(id==='fridge'?'beef':id),TILE*.6,TILE*.6);return;
+        if(this.state!.kitchen.map.equipment[id]?.type==='ingredient_source'){
+            this.art.centered(n,'modular/source_'+this.sourceItem(id),TILE*.6,TILE*.6);return;
         }
     }
     private mountMap(){
@@ -784,7 +823,7 @@ export class KitchenClient extends Component {
             this.registerDepth(n,()=>depthOrder(e.cell[1],'solid')+.01);
             const art=new Node('equipment');art.layer=Layers.Enum.UI_2D;n.addChild(art);art.addComponent(UITransform).setContentSize(44,44);art.setPosition(0,6);
             if(this.useModularArt)art.setPosition(0,0);
-            this.drawIcon(art.addComponent(Graphics),this.state!.kitchen.stations[id].counter?'continuous_counter':this.state!.kitchen.stations[id].stove?'pot':id.startsWith('bin')?'bin':/^b[0-9]/.test(id)?'board':['lettuce','tomato','bread'].includes(id)?(this.useModularArt?'source_'+id:id+'_raw'):this.useArt&&id==='extinguisher'?'extinguisher_rack':id);
+            this.drawIcon(art.addComponent(Graphics),this.state!.kitchen.stations[id].counter?'continuous_counter':this.state!.kitchen.stations[id].stove?'pot':id.startsWith('bin')?'bin':/^b[0-9]/.test(id)?'board':e.type==='ingredient_source'?'source:'+this.sourceItem(id):this.useArt&&id==='extinguisher'?'extinguisher_rack':id);
             if(this.useModularArt)this.equipmentArt(art,id);
             if(this.useModularArt){const scorch=this.child(n,'scorch',TILE,TILE);this.art.tile(scorch,'scorch',TILE);scorch.active=false;}
             const ln=new Node('label');ln.layer=Layers.Enum.UI_2D;n.addChild(ln);ln.setPosition(0,-19);ln.addComponent(UITransform).setContentSize(56,18);
@@ -985,7 +1024,7 @@ export class KitchenClient extends Component {
         const n=this.make('food-'+id,0,0,44,40,this.world||this.node);n.setScale(.9,.9,1);
         this.registerDepth(n,()=>airborne?(this.flightOrder[id]??0):depthOrder((360-MAPY-n.position.y)/TILE-.5,'item')); this.drawIcon(n.addComponent(Graphics),stage);
         const child=new Node('id');child.layer=Layers.Enum.UI_2D;n.addChild(child);child.addComponent(UITransform).setContentSize(64,19);child.setPosition(0,-23);
-        const l=child.addComponent(Label);this.writeLabel(l,STAGES[stage]||id);l.fontSize=13;l.lineHeight=16;l.color=color(COLORS.ink);
+        const l=child.addComponent(Label);this.writeLabel(l,id);l.fontSize=13;l.lineHeight=16;l.color=color(COLORS.ink);
         child.active=!this.useModularArt;
         return n;
     }
@@ -1031,19 +1070,21 @@ export class KitchenClient extends Component {
             if(o||i===0){
                 this.rect(g,-78,-36,156,62,COLORS.walnut);this.rect(g,-77,-34,154,59,COLORS.paper);
                 if(o){
-                    // Patience: herb while comfortable, honey past half, tomato when urgent (the label also says so).
+                    // Patience: herb while comfortable, honey past half, hot red when urgent (the label also says so).
                     const left=Math.max(0,Math.min(1,o.remaining/(o.patience||s.rules?.order_patience||90)));
                     this.rect(g,-67,-30,134,7,COLORS.ink);this.rect(g,-66,-29,132,5,COLORS.bg);
                     this.rect(g,-66,-29,132*left,5,urgent?COLORS.hot:left>.5?COLORS.herb:COLORS.honey);
                 }
             }
-            const signature=o?JSON.stringify(o.ingredients||['beef']):'';
+            const signature=o?JSON.stringify(o.ingredients||[]):'';
             if(this.orderArt[i]!==signature){this.orderArt[i]=signature;
             const prev=n.getChildByName('ingredients');if(prev)prev.destroy();
-            if(o){const row=this.child(n,'ingredients',150,16,0,-5);const ingredients=o.ingredients||['beef'];
-                ingredients.forEach((name:string,j:number)=>{const item=this.child(row,'ingredient-'+j,30,14,66-(ingredients.length-1-j)*15,0);item.setScale(this.useArt?.5:.32,this.useArt?.5:.32,1);this.drawIcon(item.addComponent(Graphics),name==='beef'?'ready':name+'_raw');});}}
+            if(o){const row=this.child(n,'ingredients',150,16,0,-5);const ingredients:string[]=o.ingredients||[];
+                // Each item as the dish needs it, but whole: a chopped item reads better uncut at this size.
+                const need=(name:string)=>{const st=this.dishById(o.dish)?.components?.find((c:any)=>c.item===name)?.state;return st&&st!=='chopped'?st:'raw';};
+                ingredients.forEach((name:string,j:number)=>{const item=this.child(row,'ingredient-'+j,30,14,66-(ingredients.length-1-j)*15,0);item.setScale(this.useArt?.5:.32,this.useArt?.5:.32,1);this.drawIcon(item.addComponent(Graphics),`item:${name}:${need(name)}`);});}}
             this.set('order-id-'+i,o?`${o.id} · ${urgent?'快超时了':'待出餐'}`:i===0?'订单夹':'');this.labels['order-id-'+i].color=color(urgent?COLORS.hot:COLORS.muted);
-            this.set('order-name-'+i,o?(o.dish==='burger'?'汉堡':'香煎牛排'):i===0?(k.future_orders?'等待新订单':'订单已结清'):'');
+            this.set('order-name-'+i,o?(this.dishById(o.dish)?.name||o.dish):i===0?(k.future_orders?'等待新订单':'订单已结清'):'');
             this.set('order-time-'+i,o?`${Math.max(0,Math.ceil(o.remaining))}s`:'');this.labels['order-time-'+i].color=color(urgent?COLORS.hot:COLORS.muted);
         }
     }
@@ -1079,7 +1120,7 @@ export class KitchenClient extends Component {
                 if(this.useModularArt)this.facedGlow(g,-TILE/2,this.workSurfaceY(id)-TILE/2,TILE,TILE);
                 else this.facedGlow(g,-27,-27,54,54);
             }
-            this.writeLabel(dev.label,st.fire?'着火了！':st.food?(this.itemName(st.food)+(st.food.stage==='cooking'?` ${Math.ceil(st.ready_in)}s`:st.food.stage==='ready'&&st.heating&&st.burn_in!==undefined?` ${Math.ceil(st.burn_in)}s 后糊`:'')):id==='fridge'&&this.useModularArt?'牛肉柜':st.name);
+            this.writeLabel(dev.label,st.fire?'着火了！':st.food?(this.itemName(st.food)+(st.food.stage==='cooking'?` ${Math.ceil(st.ready_in)}s`:st.food.stage==='ready'&&st.heating&&st.burn_in!==undefined?` ${Math.ceil(st.burn_in)}s 后糊`:'')):this.state!.kitchen.map.equipment[id]?.type==='ingredient_source'&&this.useModularArt?this.itemLabel(this.sourceItem(id)):st.name);
             const countdown=heatCountdown(st);
             let timer=dev.node.getChildByName('heat-countdown');
             if(countdown&&!timer){
@@ -1134,7 +1175,7 @@ export class KitchenClient extends Component {
         for(const item of k.ground){
             const id=item.food.id,stage=this.itemStage(item.food);
             if(!this.ground[id]){this.ground[id]=this.foodNode(id,stage);this.groundStages[id]=stage;}
-            if(this.groundStages[id]!==stage){this.drawIcon(this.ground[id].getComponent(Graphics)!,stage);this.groundStages[id]=stage;this.writeLabel(this.ground[id].getChildByName('id')!.getComponent(Label)!,STAGES[stage]||id);}
+            if(this.groundStages[id]!==stage){this.drawIcon(this.ground[id].getComponent(Graphics)!,stage);this.groundStages[id]=stage;}
             this.writeLabel(this.ground[id].getChildByName('id')!.getComponent(Label)!,this.itemName(item.food));
             this.locate(this.ground[id],item.position);
         }
@@ -1157,7 +1198,7 @@ export class KitchenClient extends Component {
         this.enable('end',['running','paused'].includes(s.phase)&&!this.pending&&this.connected);
         for(const id of ['pause','resume','end'])this.buttons[id].node.active=true;
         const held=k.chefs.human.holding;this.set('hand','手中：'+(held?this.itemName(held):'空手'));
-        if(held?.stage==='assembled')this.set('hand','缺少：'+held.missing.map((x:string)=>({beef:'熟牛肉',bread:'面包',lettuce:'生菜',tomato:'番茄'}[x])).join('+'));
+        if(held?.stage==='assembled')this.set('hand','缺少：'+held.missing.map((x:string)=>this.itemLabel(x)).join('+'));
         {
             const short=(a:Action)=>a.label.split('（')[0],parts:string[]=[];
             if(s.interaction)parts.push('空格 · '+short(s.interaction));
@@ -1171,7 +1212,7 @@ export class KitchenClient extends Component {
         this.labels['ai-status'].color=color(s.ai.error||(s.limits?.reached&&s.phase==='running')?COLORS.alert:COLORS.muted);
         for(const n of [1,2,3]){
             const b=this.buttons['level'+n],sel=k.level===n;b.node.active=s.phase==='ready'||s.phase==='ended';
-            this.writeLabel(b.label,LEVEL_NAMES[n]+(sel?' · 当前':''));
+            this.writeLabel(b.label,(s.levels?.find((l:any)=>l.menu_order===n)?.name||'')+(sel?' · 当前':''));
             if(b.selected!==sel){b.selected=sel;this.styleButton('level'+n);}this.enable('level'+n,!this.pending&&!sel);
         }
         const lang=(window as any).kitchenI18n?.language==='en'?'中文':'English';if(this.buttons.language.label.string!==lang)this.buttons.language.label.string=lang;

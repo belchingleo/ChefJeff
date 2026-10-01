@@ -157,10 +157,13 @@ export function behindCounter(map:any,p:number[]){
     }
     return best;
 }
-/** Display order is semantic, independent of the order ingredients reached the plate. */
-export function burgerLayers(ingredients:string[]){
-    const present=new Set(ingredients);
-    return ['bun_bottom','beef','lettuce','tomato','bun_top'].filter(name=>present.has(name.startsWith('bun_')?'bread':name));
+/** A plate's layers from bottom to top: the dish's plating (server recipe data), keeping the layers
+ * whose item is on the plate, independent of the order items reached it. Without a plating the
+ * components are stacked as they are. */
+export function plateLayers(plating:{layer:string;item:string}[]|undefined,components:string[]){
+    const present=new Set(components);
+    if(plating?.length)return plating.filter(layer=>present.has(layer.item));
+    return Array.from(present).map(item=>({layer:item,item}));
 }
 export function heatCountdown(st:any){
     if(!st.stove||!st.food||st.fire)return null;

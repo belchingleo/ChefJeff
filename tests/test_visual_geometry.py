@@ -185,10 +185,15 @@ const surface = [
 assert.deepStrictEqual(surface, [-tile/2, -tile/2, tile/2, tile/2],
        'surfaceRect, groundAnchor, and sprite lift must fill exactly one grid cell');
 
-const burger = geometry.burgerLayers(['tomato', 'bread', 'lettuce', 'beef']);
-assert.deepStrictEqual(burger, geometry.burgerLayers(['beef', 'lettuce', 'bread', 'tomato']));
-assert.deepStrictEqual(geometry.burgerLayers(['bread', 'tomato']), ['bun_bottom', 'tomato', 'bun_top'],
+// Plating order is recipe data: arrival order never changes the stack, missing items are not drawn,
+// and a dish without plating stacks its components as they are.
+const plating = [{layer:'base_low', item:'a'}, {layer:'b', item:'b'}, {layer:'c', item:'c'}, {layer:'base_high', item:'a'}];
+const names = layers => layers.map(l => l.layer);
+assert.deepStrictEqual(names(geometry.plateLayers(plating, ['c', 'a', 'b'])), ['base_low', 'b', 'c', 'base_high']);
+assert.deepStrictEqual(names(geometry.plateLayers(plating, ['b', 'c', 'a'])), names(geometry.plateLayers(plating, ['c', 'a', 'b'])));
+assert.deepStrictEqual(names(geometry.plateLayers(plating, ['a', 'c'])), ['base_low', 'c', 'base_high'],
        'missing ingredients must not be drawn');
+assert.deepStrictEqual(names(geometry.plateLayers(undefined, ['x', 'y', 'x'])), ['x', 'y']);
 
 const cooking = geometry.heatCountdown({stove:true, heating:true, food:{stage:'cooking'}, ready_in:2.2});
 assert.deepStrictEqual(cooking, {seconds:3, ready:false, paused:false});
