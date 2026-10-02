@@ -1829,11 +1829,12 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             var _type$split6 = type.split(':'),
               kind = _type$split6[1],
               _item3 = _type$split6[2],
-              _stage4 = _type$split6[3];
-            if (!this.drawVessel(node, kind)) return false;
+              _stage4 = _type$split6[3],
+              drawn = this.drawVessel(node, kind, 1, _item3, _stage4);
+            if (!drawn) return false;
             var _contents = node.getChildByName('vessel-contents');
             if (!_contents) _contents = this.child(node, 'vessel-contents', 22, 22, 0, 4);
-            var _art = _item3 ? this.itemArt(_item3, _stage4, false) : null;
+            var _art = _item3 && drawn === 'empty' ? this.itemArt(_item3, _stage4, false) : null;
             _contents.active = !!_art && this.art.centered(_contents, _art.key, 20, 20);
             return true;
           }
@@ -1876,8 +1877,12 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }
           return null;
         }
-        /** A vessel of the given kind (server data), turned along its station or the holder's facing. */;
-        _proto.drawVessel = function drawVessel(node, kind, scale) {
+        /** A vessel of the given kind (server data), turned along its station or the holder's facing. */
+        /** A vessel of the given kind (server data), turned along its station or the holder's facing.
+         * A frame drawn with the contents in it (<vessel frame>/<item>/<stage>) is used when it exists:
+         * returns 'filled' then, so the caller does not draw the contents again; 'empty' for the
+         * vessel alone; '' when there is no art. */;
+        _proto.drawVessel = function drawVessel(node, kind, scale, item, stage) {
           var _node$parent,
             _node$parent2,
             _node$parent$parent,
@@ -1893,8 +1898,11 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           var stem = [kind, VESSEL_ART_FALLBACK].find(function (stem) {
             return !!stem && _this6.art.has("modular/" + stem + "_" + axis);
           });
-          var key = stem ? "modular/" + stem + "_" + axis : this.art.has('objects/' + kind) ? 'objects/' + kind : 'objects/' + VESSEL_ART_FALLBACK;
-          return this.art.centered(node, key, TILE * (axis === 'vertical' ? .62 : .76) * scale, TILE * .76 * scale);
+          var base = stem ? "modular/" + stem + "_" + axis : this.art.has('objects/' + kind) ? 'objects/' + kind : 'objects/' + VESSEL_ART_FALLBACK;
+          var filled = item ? base + "/" + item + "/" + stage : '';
+          var key = filled && this.art.has(filled) ? filled : base;
+          if (!this.art.centered(node, key, TILE * (axis === 'vertical' ? .62 : .76) * scale, TILE * .76 * scale)) return '';
+          return key === filled ? 'filled' : 'empty';
         };
         _proto.closingSummary = function closingSummary(k, won) {
           var count = function count(status) {
@@ -3050,13 +3058,15 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             if (st.stove) {
               if (this.useModularArt) this.equipmentArt(dev.node.getChildByName('equipment'), id);else this.drawIcon(dev.node.getChildByName('equipment').getComponent(Graphics), this.useArt ? 'stove' : st.vessel ? 'vessel:' + st.vessel : 'stove');
               if (this.useArt) {
+                var _st$food4, _st$food5;
                 var vessel = dev.node.getChildByName('stove-vessel');
                 if (!vessel) {
                   vessel = this.child(dev.node, 'stove-vessel', 34, 34, 0, this.useModularArt ? this.workSurfaceY(id) : 10);
                   vessel.setSiblingIndex(dev.node.getChildByName('equipment').getSiblingIndex() + 1);
                 }
                 vessel.active = !!(st.vessel || st.pot_id);
-                if (vessel.active) this.drawVessel(vessel, st.vessel || '', .96);
+                // A filled vessel frame already shows what is cooking: the separate food icon stays hidden.
+                if (vessel.active && this.drawVessel(vessel, st.vessel || '', .96, (_st$food4 = st.food) == null ? void 0 : _st$food4.ingredient, (_st$food5 = st.food) == null ? void 0 : _st$food5.stage) === 'filled' && !st.fire) food.active = false;
                 food.setPosition(0, this.useModularArt ? this.workSurfaceY(id) + 3 : 13);
                 food.setScale(.58, .58, 1);
               }
