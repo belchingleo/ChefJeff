@@ -156,7 +156,7 @@ class DiagnosticTests(unittest.TestCase):
         catalog = lambda c: c['types'].update(microwave={'name': '微波炉', 'capabilities': ['heat'], 'slots': 1,
                                                          'worker_requirement': 'unattended', 'combustible': True})
         self.assertIn('UNSUPPORTED_EQUIPMENT_TYPE', codes(variant(equipment_catalog=catalog))[1])
-        self.assertIn('MAP_UNKNOWN_ITEM', codes(variant(map=lambda m: m['equipment'][0]['params'].update(item='fish')))[1])
+        self.assertIn('MAP_UNKNOWN_ITEM', codes(variant(map=lambda m: m['equipment'][0]['params'].update(item='dragonfruit')))[1])
 
     def test_goal_that_exceeds_the_revenue_ceiling_is_an_error(self):
         _, found = codes(variant(level=lambda d: d['goal'].update(min_money=10 ** 6)))

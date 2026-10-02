@@ -2,7 +2,7 @@ import { _decorator, Component, Node, UITransform, Graphics, Color, Label, Layer
     view, ResolutionPolicy, sys, game, Game, profiler, Mask, Vec2, Camera, director, Sprite } from 'cc';
 import { LevelOneArt } from './LevelOneArt';
 import { KitchenAudio } from './KitchenAudio';
-import { GRID_ART, stationView, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, workingChefDepth, flightDepth, predictWalk, footWalkable, plateLayers, heatCountdown, behindCounter } from './KitchenGeometry';
+import { levelButtonLayout, GRID_ART, stationView, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, workingChefDepth, flightDepth, predictWalk, footWalkable, plateLayers, heatCountdown, behindCounter } from './KitchenGeometry';
 const { ccclass } = _decorator;
 type Action = { key: string; label: string; kind: string; target: string; expected: unknown[] };
 type KitchenState = { game_id: string; phase: string; speed: number; kitchen: any; actions: Action[]; limits?:any; release?:any; interaction?:Action; use_interaction?:Action; interaction_hint?:string; interaction_focus?:string; interaction_cell?:number[];
@@ -21,11 +21,14 @@ const COLORS = { ink:'#2b1a12', muted:'#6e4e38', bg:'#f0d9b5', paper:'#fdf3e1', 
 const PIXEL='ChefJeffPixel, sans-serif';
 // Result events reach the player; AI decision notes have their own status line.
 const RESULT_ANNOUNCE=new Set(['order','served','expired','ready','burn','fire','fire_spread','fire_loss']);
-const TAB_ORDER=['language','level1','level2','level3','main','reset','cover-connection','help','record','resume','pause','end'];
+// Keyboard order; the level buttons (one per listed level, from the server) follow the language button.
+const TAB_ORDER=['language','main','reset','cover-connection','help','record','resume','pause','end'];
 type ButtonView = {node:Node;label:Label;callback:()=>void;enabled:boolean;width:number;height:number;tone:string;hover:boolean;selected?:boolean};
 // Labels for things that are not recipe items; item and dish names come from the server's catalog.
-const STAGES: Record<string,string> = {extinguisher:'灭火器',clean_plate:'干净餐盘',dirty_plate:'脏餐盘',pot:'空锅'};
-// Fallback tints by stage: uncooked and cooking states of items that cook, and anything burnt.
+const STAGES: Record<string,string> = {extinguisher:'灭火器',clean_plate:'干净餐盘',dirty_plate:'脏餐盘'};
+// Art stem for a vessel kind that has no art of its own yet (the soup pot's frames).
+const VESSEL_ART_FALLBACK='pot';
+// Fallback tints by stage, for items without a colour; burnt is charred for every item.
 const FOOD_COLORS: Record<string,string> = {raw:'#d68f8c',chopped:'#dcaa86',cooking:'#b58359',ready:'#846144',burnt:'#3e3733',extinguisher:'#c65138'};
 const TILE=GRID_ART.tile, MAPX=GRID_ART.originX, MAPY=GRID_ART.originY;
 // Knife frames per facing: front view toward the viewer, top view up-screen, side view (mirrored for left).
@@ -126,7 +129,7 @@ export class KitchenClient extends Component {
         this.node.getComponent(UITransform)!.setContentSize(1280,720);
         this.box(this.node,'background',640,360,1280,720,COLORS.bg);
         this.box(this.node,'header',640,35,1280,70,COLORS.paper);
-        this.icon(this.node,'brand-icon',45,35,'pot',1.1);
+        this.icon(this.node,'brand-icon',45,35,'vessel',1.1);
         this.pixel(this.text('brand','ChefJeff',80,30,170,36,24),24);
         this.text('edition','和AI一起经营餐馆',81,53,290,20,11).color=color(COLORS.muted);
         for(const [i,id,title] of [[0,'served','完成订单'],[1,'money','营业收入']] as [number,string,string][]){
@@ -178,7 +181,6 @@ export class KitchenClient extends Component {
         this.buttons.reset.node.active=false;
         this.button('cover-connection','设置',727,520,158,48,()=>this.openConnection(),this.cover);
         this.button('help','操作说明',901,520,158,48,()=>this.openHelp(),this.cover);
-        for(const n of [1,2,3])this.pixel(this.button('level'+n,'',188+n*226,464,210,30,()=>this.post('/api/level',{level:n}),this.cover).getComponentInChildren(Label)!,12);
         // Language sits on the board where people look first, not only inside Settings.
         this.pixel(this.button('language','English',944,196,88,30,()=>{const i18n=(window as any).kitchenI18n;i18n?.setLanguage(i18n.language==='en'?'zh':'en');},this.cover).getComponentInChildren(Label)!,12);
         if(sys.isNative)this.buttons.language.node.active=false;
@@ -191,11 +193,7 @@ export class KitchenClient extends Component {
             // focus to the matching proxy so assistive technology follows it.
             this.controlAccess=document.createElement('div');
             this.controlAccess.style.cssText='position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);';
-            for(const id of TAB_ORDER){
-                const b=document.createElement('button');b.dataset.control=id;b.tabIndex=-1;
-                b.onclick=()=>{if(this.buttons[id].enabled)this.buttons[id].callback();};
-                this.controlAccess.appendChild(b);
-            }
+            for(const id of TAB_ORDER)this.controlAccess.appendChild(this.proxyButton(id));
             document.body.appendChild(this.controlAccess);
             const canvas=document.getElementById('GameCanvas');
             canvas?.setAttribute('role','img');canvas?.setAttribute('aria-label','ChefJeff 厨房画面');
@@ -275,7 +273,7 @@ export class KitchenClient extends Component {
                 this.heldKeys.add(key);this.refreshMovement();return;}
         }
         if(e.key==='Tab'){
-            e.preventDefault();const ids=TAB_ORDER.filter(id=>this.buttons[id].enabled&&this.buttons[id].node.activeInHierarchy);
+            e.preventDefault();const ids=this.tabOrder().filter(id=>this.buttons[id]?.enabled&&this.buttons[id].node.activeInHierarchy);
             if(!ids.length)return;const at=ids.indexOf(this.focusId);
             this.setFocus(ids[(at+(e.shiftKey?-1:1)+ids.length)%ids.length]);
         }else if(e.key==='Enter'&&this.focusId){const b=this.buttons[this.focusId];if(b?.enabled&&b.node.activeInHierarchy){e.preventDefault();this.audio.play('ui_click');b.callback();}}
@@ -395,6 +393,29 @@ export class KitchenClient extends Component {
         b.label.node.setPosition(0,dy);
         b.label.color=color(sel?COLORS.ink:!b.enabled?COLORS.muted:b.tone==='primary'||b.tone==='danger'?COLORS.paper:COLORS.ink);
     }
+    private proxyButton(id:string){
+        const b=document.createElement('button');b.dataset.control=id;b.tabIndex=-1;
+        b.onclick=()=>{if(this.buttons[id]?.enabled)this.buttons[id].callback();};
+        return b;
+    }
+    private levelIds:string[]=[];
+    private tabOrder(){return [TAB_ORDER[0],...this.levelIds.map(id=>'level:'+id),...TAB_ORDER.slice(1)];}
+    /** One button per level the server lists (menu order), laid out to fit the cover; rebuilt when the list changes. */
+    private syncLevelButtons(levels:any[]){
+        const sorted=[...levels].sort((a,b)=>(a.menu_order??0)-(b.menu_order??0)),ids=sorted.map(l=>l.id);
+        if(ids.join()===this.levelIds.join())return;
+        for(const id of this.levelIds){
+            this.buttons['level:'+id]?.node.destroy();delete this.buttons['level:'+id];
+            this.controlAccess?.querySelector(`[data-control="level:${id}"]`)?.remove();
+        }
+        this.levelIds=ids;
+        const slots=levelButtonLayout(ids.length),anchor=this.controlAccess?.querySelector('[data-control="main"]');
+        ids.forEach((id,i)=>{
+            const r=slots[i];
+            this.pixel(this.button('level:'+id,'',r.x,r.y,r.w,r.h,()=>this.post('/api/level',{level:id}),this.cover).getComponentInChildren(Label)!,12);
+            if(this.controlAccess)this.controlAccess.insertBefore(this.proxyButton('level:'+id),anchor||null);
+        });
+    }
     private enable(id:string,enabled:boolean){const b=this.buttons[id];if(!b)return;if(b.enabled!==enabled){b.enabled=enabled;this.styleButton(id);}}
     private labelSources=new WeakMap<Label,string>();
     private writeLabel(label:Label,value:string){
@@ -417,8 +438,8 @@ export class KitchenClient extends Component {
         if(this.useArt&&this.artIcon(g.node,type))return;
         this.art.hide(g.node);
         const r=(x:number,y:number,w:number,h:number,c:string)=>this.rect(g,x,y,w,h,c);
-        if(type.startsWith('pot:')){
-            const [,item,stage]=type.split(':');this.drawIcon(g,'pot');r(-10,-4,20,13,this.itemColor(item,stage));
+        if(type.startsWith('vessel:')){
+            const [,,item,stage]=type.split(':');this.drawIcon(g,'vessel');if(item)r(-10,-4,20,13,this.itemColor(item,stage));
         }else if(type==='stove'){
             r(-23,-19,46,35,COLORS.wood);r(-20,-15,40,28,'#a3aaa0');r(-12,-6,24,16,COLORS.ink);r(-8,-3,16,10,'#6e746b');
         }else if(type==='continuous_counter'){
@@ -428,7 +449,7 @@ export class KitchenClient extends Component {
         }else if(type.startsWith('item:')){
             const [,item,stage]=type.split(':'),c=this.itemColor(item,stage);
             if(this.cooks(item)){
-                // Items that cook: a cut on a paper card, tinted by doneness.
+                // Items that cook: a piece on a paper card; ingredients that don't: a plain shape.
                 r(-19,-13,38,26,COLORS.paper);r(-14,-10,28,20,COLORS.ink);r(-13,-6,26,15,c);r(-9,9,18,3,c);r(-6,-2,4,4,'#efd3ae');r(3,3,6,3,'#efd3ae');
             }else{
                 r(-18,-12,36,24,c);r(-12,12,24,5,c);
@@ -452,7 +473,7 @@ export class KitchenClient extends Component {
         }else if(type==='sink'){
             r(-23,-18,46,36,'#718f95');r(-19,-13,38,26,'#bbd6d6');r(-15,-8,30,16,'#729ca8');
             r(8,13,5,14,COLORS.ink);r(-4,23,16,5,COLORS.ink);r(-5,14,5,10,'#b9d6dc');
-        }else if(type==='pot'){
+        }else if(type==='vessel'){
             r(-18,-13,36,27,COLORS.ink);r(-14,-10,28,21,'#747e75');r(-21,7,42,5,COLORS.ink);r(-24,1,7,7,COLORS.ink);r(17,1,7,7,COLORS.ink);r(-9,15,18,4,'#aab7a4');r(-3,19,6,4,COLORS.ink);
         }else if(type==='board'){
             r(-21,-15,42,30,COLORS.wood);r(-18,-11,36,23,'#dcb16b');r(-13,-6,20,2,'#bd8849');r(-3,2,17,7,'#e8e7dc');r(-13,3,10,5,COLORS.ink);
@@ -474,10 +495,9 @@ export class KitchenClient extends Component {
     private itemLabel(item:string){return this.itemDef(item)?.name||item;}
     private cooks(item:string|undefined){return !!this.itemDef(item)?.states?.includes('cooking');}
     private burns(item:string|undefined){return !!this.itemDef(item)?.states?.includes('burnt');}
-    /** Fallback swatch: burnt is charred; items that cook are tinted by doneness until ready; else the item's colour. */
+    /** Fallback swatch (no art): burnt is charred, every other stage is the item's own colour. */
     private itemColor(item:string|undefined,stage:string){
         if(stage==='burnt')return FOOD_COLORS.burnt;
-        if(this.cooks(item)&&stage!=='ready')return FOOD_COLORS[stage]||FOOD_COLORS.raw;
         return this.itemDef(item)?.color||FOOD_COLORS[stage]||FOOD_COLORS.ready;
     }
     private dishById(id:string|undefined):any{return id?(this.state?.kitchen.dishes||this.state?.kitchen.menu||[]).find((d:any)=>d.id===id):undefined;}
@@ -489,7 +509,7 @@ export class KitchenClient extends Component {
     /** The item an ingredient source hands out (equipment data; the station id is the last resort). */
     private sourceItem(id:string){const e=this.state?.kitchen.map.equipment[id];return e?.item||e?.params?.item||id;}
     private artIcon(node:Node,type:string):boolean {
-        for(const child of node.children)if(child.name==='assembly-parts'||child.name==='supply-symbol'||child.name==='pot-contents'||child.name==='burnt-cue')child.active=false;
+        for(const child of node.children)if(child.name==='assembly-parts'||child.name==='supply-symbol'||child.name==='vessel-contents'||child.name==='burnt-cue')child.active=false;
         if(this.useModularArt){
             if(type==='bin'){this.art.hide(node);return true;}
             const tops:Record<string,string>={board:'top_board',sink:'top_sink',stove:'top_stove',returns:'top_returns',serve:'serving_window',bin:'bin'};
@@ -514,14 +534,8 @@ export class KitchenClient extends Component {
             }
         }
         if(type.startsWith('item:')){
-            const [,item,stage]=type.split(':');
-            // A chopped item that is plated chopped shows its plating layer; then food/, then ingredients/ art.
-            if(stage==='chopped'&&this.itemDef(item)?.platable_states?.includes('chopped')&&this.art.has('feedback/'+item))
-                return this.art.centered(node,'feedback/'+item,30,30);
-            if(this.art.has(`food/${item}_${stage}`))return this.art.centered(node,`food/${item}_${stage}`,30,30);
-            for(const key of [`ingredients/${item}/${stage}`,`ingredients/${item}/${stage==='chopped'?'prepared':stage}`])
-                if(this.art.has(key))return this.art.centered(node,key,29,29);
-            return false;
+            const [,item,stage]=type.split(':'),art=this.itemArt(item,stage,true);
+            return !!art&&this.art.centered(node,art.key,art.size,art.size);
         }
         if(type.startsWith('dish:')){
             const [,dish,stage]=type.split(':');
@@ -550,20 +564,19 @@ export class KitchenClient extends Component {
         const keys:Record<string,string>={board:'workstations/board',stove:'workstations/stove',
             sink:'workstations/sink',serve:'workstations/serve',returns:'workstations/returns',
             bin:'workstations/bin',extinguisher_rack:'workstations/extinguisher_rack',extinguisher:'objects/extinguisher',
-            pot:'objects/pot',clean_plate:'objects/clean_plate',dirty_plate:'objects/dirty_plate',
+            clean_plate:'objects/clean_plate',dirty_plate:'objects/dirty_plate',
             fire:'vfx/fire_0'};
         if(type==='continuous_counter'){this.art.hide(node);return true;}
-        if(type.startsWith('pot:')){
-            if(!this.drawPot(node))return false;
-            const [,item,stage]=type.split(':');
-            let contents=node.getChildByName('pot-contents');
-            if(!contents)contents=this.child(node,'pot-contents',22,22,0,4);
-            contents.active=true;
-            this.art.centered(contents,`ingredients/${item}/${stage==='chopped'?'prepared':stage}`,20,20);
+        if(type.startsWith('vessel:')){
+            const [,kind,item,stage]=type.split(':'),drawn=this.drawVessel(node,kind,1,item,stage);
+            if(!drawn)return false;
+            let contents=node.getChildByName('vessel-contents');
+            if(!contents)contents=this.child(node,'vessel-contents',22,22,0,4);
+            const art=item&&drawn==='empty'?this.itemArt(item,stage,false):null;
+            contents.active=!!art&&this.art.centered(contents,art.key,20,20);
             return true;
         }
-        const contents=node.getChildByName('pot-contents');if(contents)contents.active=false;
-        if(type==='pot')return this.drawPot(node);
+        const contents=node.getChildByName('vessel-contents');if(contents)contents.active=false;
         const key=keys[type];if(!key)return false;
         const size=key.startsWith('workstations/')?49:key.startsWith('ingredients/')?29:TILE*.76;
         if(!this.art.centered(node,key,size,size))return false;
@@ -576,12 +589,31 @@ export class KitchenClient extends Component {
         cue.active=this.art.show(cue,'vfx/smoke_3',26,32);cue.setSiblingIndex(node.children.length-1);
         const sprite=cue.getChildByName('reviewed-art')?.getComponent(Sprite);if(sprite)sprite.color=new Color(120,112,106,255);
     }
-    private drawPot(node:Node){
+    /** Art for one item state: a chopped item that is plated chopped shows its plating layer
+     * (when allowed), then food/<item>_<stage>, then ingredients/<item>/<stage> (chopped: prepared). */
+    private itemArt(item:string,stage:string,layer:boolean):{key:string;size:number}|null{
+        if(layer&&stage==='chopped'&&this.itemDef(item)?.platable_states?.includes('chopped')&&this.art.has('feedback/'+item))return {key:'feedback/'+item,size:30};
+        if(this.art.has(`food/${item}_${stage}`))return {key:`food/${item}_${stage}`,size:30};
+        for(const key of [`ingredients/${item}/${stage}`,`ingredients/${item}/${stage==='chopped'?'prepared':stage}`])
+            if(this.art.has(key))return {key,size:29};
+        return null;
+    }
+    /** A vessel of the given kind (server data), turned along its station or the holder's facing. */
+    /** A vessel of the given kind (server data), turned along its station or the holder's facing.
+     * A frame drawn with the contents in it (<vessel frame>/<item>/<stage>) is used when it exists:
+     * returns 'filled' then, so the caller does not draw the contents again; 'empty' for the
+     * vessel alone; '' when there is no art. */
+    private drawVessel(node:Node,kind:string,scale=1,item?:string,stage?:string):''|'empty'|'filled'{
         const station=node.parent?.name.startsWith('station-')?node.parent.name.slice(8):'';
         const holder=node.parent?.name==='body'?node.parent.parent?.name:'';
         const facing=holder?this.state?.kitchen.chefs[holder]?.facing:'';
         const axis=station?stationView(this.state!.kitchen.map,station).device_axis:(facing==='up'||facing==='down'?'vertical':'horizontal');
-        return this.art.centered(node,this.art.has('modular/pot_'+axis)?'modular/pot_'+axis:'objects/pot',TILE*(axis==='vertical'?.62:.76),TILE*.76);
+        const stem=[kind,VESSEL_ART_FALLBACK].find(stem=>!!stem&&this.art.has(`modular/${stem}_${axis}`));
+        const base=stem?`modular/${stem}_${axis}`:this.art.has('objects/'+kind)?'objects/'+kind:'objects/'+VESSEL_ART_FALLBACK;
+        const filled=item?`${base}/${item}/${stage}`:'';
+        const key=filled&&this.art.has(filled)?filled:base;
+        if(!this.art.centered(node,key,TILE*(axis==='vertical'?.62:.76)*scale,TILE*.76*scale))return '';
+        return key===filled?'filled':'empty';
     }
     private closingSummary(k:any,won:boolean){
         const count=(status:string)=>k.orders.filter((o:any)=>o.status===status).length,target=k.goals.target_money;
@@ -600,13 +632,18 @@ export class KitchenClient extends Component {
         return f.meaning||STAGES[f.stage]||f.stage;
     }
     private plateItems(f:any):string[]{return f.components?.length?f.components:f.ingredient?[f.ingredient]:[];}
-    /** A menu dish drawn as one plated sprite: no plating layers, and exactly the plate's items. */
+    /** A dish drawn as one plated sprite: exactly the plate's items and no plating layers. */
     private wholeDish(f:any):any{
         const items=Array.from(new Set(this.plateItems(f))).sort().join();
-        return (this.state?.kitchen.menu||[]).find((d:any)=>!d.plating&&Array.from(new Set((d.components||[]).map((c:any)=>c.item))).sort().join()===items);
+        const same=(d:any)=>Array.from(new Set((d.components||[]).map((c:any)=>c.item))).sort().join()===items;
+        // The menu decides first; a servable dish that is off this level's menu still gets its plate art.
+        const dish=(this.state?.kitchen.menu||[]).find(same)||(this.state?.kitchen.dishes||[]).find(same);
+        return dish&&!dish.plating?dish:undefined;
     }
     private itemStage(f:any){
-        if(f?.stage==='pot')return f.contents?.ingredient?`pot:${f.contents.ingredient}:${f.contents.stage}`:'pot';
+        // Vessels (any kind) carry their contents; the kind comes from the server.
+        // Only real vessels: in-flight items always carry a contents field, null unless they are one.
+        if(f&&(f.vessel||f.contents))return `vessel:${f.vessel||''}`+(f.contents?.ingredient?`:${f.contents.ingredient}:${f.contents.stage}`:'');
         if(f?.plate_id&&this.plateItems(f).length){
             const whole=this.wholeDish(f);if(whole)return `dish:${whole.id}:${f.stage}`;
             // Burnt plates keep their layers (burnt dishes can be served); items that burn are drawn charred.
@@ -665,7 +702,7 @@ export class KitchenClient extends Component {
             const sent=this.clock,next:KitchenState=await this.request('/api/state');
             // A live old round may keep its backend until the player approves
             // restarting it. Do not pair new Space controls with old rules.
-            if(!/^level-[123]-[1-9][0-9]*$/.test(next.kitchen?.map?.layout_version||'')||next.release?.version!=='0.6.0-beta.1'){
+            if(!/^level-[1-9][0-9]*-[1-9][0-9]*$/.test(next.kitchen?.map?.layout_version||'')||next.release?.version!=='0.6.0-beta.1'){
                 this.connected=false;this.clearInput();this.cover.active=true;
                 this.set('coverTitle','等待厨房更新');
                 this.set('coverText','新版页面已就绪，厨房服务仍在保留旧对局。\n服务更新后会自动连接，请先完成更新确认。');
@@ -757,7 +794,7 @@ export class KitchenClient extends Component {
         const st=this.state!.kitchen.stations[id],axis=stationView(this.state!.kitchen.map,id).device_axis;
         const g=n.getComponent(Graphics)!;g.clear();
         this.art.hide(n);
-        for(const name of ['supply-symbol','assembly-parts','pot-contents']){const child=n.getChildByName(name);if(child)child.active=false;}
+        for(const name of ['supply-symbol','assembly-parts','vessel-contents']){const child=n.getChildByName(name);if(child)child.active=false;}
         n.setPosition(0,this.workSurfaceY(id));
         if(this.prepSampleBoard(id))n.setPosition(0,this.workSurfaceY(id)+11);
         if(id.startsWith('bin')){
@@ -828,7 +865,7 @@ export class KitchenClient extends Component {
             this.registerDepth(n,()=>depthOrder(e.cell[1],'solid')+.01);
             const art=new Node('equipment');art.layer=Layers.Enum.UI_2D;n.addChild(art);art.addComponent(UITransform).setContentSize(44,44);art.setPosition(0,6);
             if(this.useModularArt)art.setPosition(0,0);
-            this.drawIcon(art.addComponent(Graphics),this.state!.kitchen.stations[id].counter?'continuous_counter':this.state!.kitchen.stations[id].stove?'pot':id.startsWith('bin')?'bin':/^b[0-9]/.test(id)?'board':e.type==='ingredient_source'?'source:'+this.sourceItem(id):this.useArt&&id==='extinguisher'?'extinguisher_rack':id);
+            this.drawIcon(art.addComponent(Graphics),this.state!.kitchen.stations[id].counter?'continuous_counter':this.state!.kitchen.stations[id].stove?'vessel':id.startsWith('bin')?'bin':/^b[0-9]/.test(id)?'board':e.type==='ingredient_source'?'source:'+this.sourceItem(id):this.useArt&&id==='extinguisher'?'extinguisher_rack':id);
             if(this.useModularArt)this.equipmentArt(art,id);
             if(this.useModularArt){const scorch=this.child(n,'scorch',TILE,TILE);this.art.tile(scorch,'scorch',TILE);scorch.active=false;}
             const ln=new Node('label');ln.layer=Layers.Enum.UI_2D;n.addChild(ln);ln.setPosition(0,-19);ln.addComponent(UITransform).setContentSize(56,18);
@@ -1198,11 +1235,13 @@ export class KitchenClient extends Component {
             if(st.counter&&!st.fire)this.writeLabel(dev.label,st.food?this.itemName(st.food):(s.interaction_focus!==id?'':'空柜台'));
             if(st.stove){
                 if(this.useModularArt)this.equipmentArt(dev.node.getChildByName('equipment')!,id);
-                else this.drawIcon(dev.node.getChildByName('equipment')!.getComponent(Graphics)!,this.useArt?'stove':st.pot_id?'pot':'stove');
+                else this.drawIcon(dev.node.getChildByName('equipment')!.getComponent(Graphics)!,this.useArt?'stove':st.vessel?'vessel:'+st.vessel:'stove');
                 if(this.useArt){
-                    let pot=dev.node.getChildByName('stove-pot');
-                    if(!pot){pot=this.child(dev.node,'stove-pot',34,34,0,this.useModularArt?this.workSurfaceY(id):10);pot.setSiblingIndex(dev.node.getChildByName('equipment')!.getSiblingIndex()+1);}
-                    pot.active=!!st.pot_id;if(pot.active){const axis=stationView(k.map,id).device_axis;this.art.centered(pot,this.art.has('modular/pot_'+axis)?'modular/pot_'+axis:'objects/pot',TILE*(axis==='vertical'?.6:.73),TILE*.73);}
+                    let vessel=dev.node.getChildByName('stove-vessel');
+                    if(!vessel){vessel=this.child(dev.node,'stove-vessel',34,34,0,this.useModularArt?this.workSurfaceY(id):10);vessel.setSiblingIndex(dev.node.getChildByName('equipment')!.getSiblingIndex()+1);}
+                    vessel.active=!!(st.vessel||st.pot_id);
+                    // A filled vessel frame already shows what is cooking: the separate food icon stays hidden.
+                    if(vessel.active&&this.drawVessel(vessel,st.vessel||'',.96,st.food?.ingredient,st.food?.stage)==='filled'&&!st.fire)food.active=false;
                     food.setPosition(0,this.useModularArt?this.workSurfaceY(id)+3:13);food.setScale(.58,.58,1);
                 }
             }
@@ -1263,10 +1302,11 @@ export class KitchenClient extends Component {
         this.set('event',results.length?results[results.length-1].message:'');
         this.set('ai-status',this.aiStatus(s));
         this.labels['ai-status'].color=color(s.ai.error||(s.limits?.reached&&s.phase==='running')?COLORS.alert:COLORS.muted);
-        for(const n of [1,2,3]){
-            const b=this.buttons['level'+n],sel=k.level===n;b.node.active=s.phase==='ready'||s.phase==='ended';
-            this.writeLabel(b.label,(s.levels?.find((l:any)=>l.menu_order===n)?.name||'')+(sel?' · 当前':''));
-            if(b.selected!==sel){b.selected=sel;this.styleButton('level'+n);}this.enable('level'+n,!this.pending&&!sel);
+        this.syncLevelButtons(s.levels||[]);
+        for(const level of s.levels||[]){
+            const id='level:'+level.id,b=this.buttons[id],sel=k.level_id===level.id;b.node.active=s.phase==='ready'||s.phase==='ended';
+            this.writeLabel(b.label,level.name+(sel?' · 当前':''));
+            if(b.selected!==sel){b.selected=sel;this.styleButton(id);}this.enable(id,!this.pending&&!sel);
         }
         const lang=(window as any).kitchenI18n?.language==='en'?'中文':'English';if(this.buttons.language.label.string!==lang)this.buttons.language.label.string=lang;
         this.cover.active=s.phase!=='running';this.buttons.reset.node.active=true;
@@ -1306,7 +1346,7 @@ export class KitchenClient extends Component {
     private syncAccess(){
         if(!this.controlAccess)return;
         const icons:Record<string,string>={pause:'暂停',resume:'继续经营',end:'结束本局'};
-        for(const id of TAB_ORDER){
+        for(const id of this.tabOrder()){
             const b=this.buttons[id],proxy=this.controlAccess.querySelector(`[data-control="${id}"]`) as HTMLButtonElement|null;if(!proxy)continue;
             const text=id==='language'?b.label.string:icons[id]||this.labelSources.get(b.label)||id;
             if(id==='language')proxy.setAttribute('data-no-i18n','');

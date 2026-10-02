@@ -214,9 +214,9 @@ class Kitchen:
     def _place_inventory(self):
         for entry in self.rules.inventory:
             station = self.stations[entry['at']]
-            if entry['object'] == 'pot' and self.rules.station_types[entry['at']] == 'stove':
+            if entry['id'] in self.rules.vessels and self.rules.station_types[entry['at']] == 'stove':
                 station.pot_id = entry['id']
-            elif entry['object'] == 'pot':
+            elif entry['id'] in self.rules.vessels:
                 station.food = Food(entry['id'], 'pot')
             elif entry['object'] == 'plate':
                 station.food = Food(entry['id'], 'clean_plate' if entry.get('state', 'clean') == 'clean' else 'dirty_plate')
@@ -300,7 +300,7 @@ class Kitchen:
             out.append(Action(key, label, kind, target, () if kind == "go" else self.signature(who, target)))
         if a.job:
             out.append(Action("continue", "继续当前动作", "continue", expected=(a.job.id,)))
-            out.append(Action("stop", "中断当前动作（切配进度保留；锅继续加热）", "stop", expected=(a.job.id,)))
+            out.append(Action("stop", "中断当前动作（切配进度保留；锅具继续加热）", "stop", expected=(a.job.id,)))
         else:
             add("wait", "暂时等待", "wait")
         loss = -self.rules.penalty['discard']
@@ -317,7 +317,8 @@ class Kitchen:
             if a.hand.stage not in ('extinguisher', 'clean_plate', 'dirty_plate', 'pot'):
                 add("discard", f"去垃圾桶丢弃手中食物（损耗 {loss} 元，无法捡回）", "discard", self.bins[0])
             if a.hand.stage == 'pot' and a.hand.contents:
-                add('discard', f'倒掉手中锅里的食物（损耗{loss}元，保留空锅）', 'empty_pot', self.bins[0])
+                v = self.vessel_name(a.hand.id)
+                add('discard', f'倒掉手中{v}里的食物（损耗{loss}元，保留空{v}）', 'empty_pot', self.bins[0])
             out.append(Action("drop", f"将手中物品放到{self.place(a.location).name}旁的地上（可捡回，不扣钱）",
                               "drop", a.location, (a.hand.id, a.location)))
         for key in self.counters:
@@ -326,20 +327,21 @@ class Kitchen:
                 continue
             if s.food:
                 if self.can_swap_pots(a.hand,s.food):
-                    add('swap pot '+key,'与'+s.name+'的锅交换（各自保留锅内食物）','swap_pot',key)
+                    add('swap pot '+key,f'与{s.name}的{self.vessel_name(s.food.id)}交换（各自保留里面的食物）','swap_pot',key)
                 if self.rules.multi_component and a.hand:
                     if self.can_add(s.food,a.hand) or self.can_add(a.hand,s.food):
                         add('assemble '+key,self.assemble_label(s.name,s.food,a.hand),'assemble',key)
                 if self.rules.multi_component and self.can_merge_plates(a.hand,s.food):
                     add('merge '+key,'把'+s.name+'盘中食物合入手中盘（空盘留在原位）','merge_plates',key)
                 if self.can_load_pot(a.hand,s.food):
-                    add('load '+key,f'把切好的{self.food_label(a.hand)}放入'+s.name+'的空锅（离灶不加热）','load_counter',key)
+                    add('load '+key,f'把{self.load_label(a.hand)}放入{s.name}的空{self.vessel_name(s.food.id)}（离灶不加热）','load_counter',key)
                 kind = 'take_plate' if s.food.stage == 'clean_plate' else 'take_counter'
                 add(f'take {key}', f'从{s.name}拿起{self.food_name(s.food)}（自动换手）', kind, key)
                 if a.hand and a.hand.stage == 'pot' and self.can_add(s.food,a.hand.contents):
-                    add(f'plate {key}', f'把手中锅里的菜盛到{s.name}的盘里（空锅留在手中）', 'plate_counter', key)
+                    v = self.vessel_name(a.hand.id)
+                    add(f'plate {key}', f'把手中{v}里的菜盛到{s.name}的盘里（空{v}留在手中）', 'plate_counter', key)
                 if s.food.stage == 'pot' and a.hand and self.can_add(a.hand,s.food.contents):
-                    add(f'plate {key}', f'用手中的盘盛出{s.name}锅里的菜', 'plate_from_counter', key)
+                    add(f'plate {key}', f'用手中的盘盛出{s.name}的{self.vessel_name(s.food.id)}里的菜', 'plate_from_counter', key)
             elif a.hand:
                 add(f'put {key}', f'把手中物品放到{s.name}（每格一件）', 'put_counter', key)
         for key, kind in ((self.returns, 'take_return'), (self.sink, 'take_sink')):
@@ -364,17 +366,18 @@ class Kitchen:
         for item_id, item in self.ground.items():
             if item.lock in (None, who):
                 if self.can_swap_pots(a.hand,item.food):
-                    out.append(Action('swap pot ground '+item_id,'与地上的锅交换（各自保留锅内食物）','swap_ground_pot',item.location,self.ground_swap_signature(who,item_id)))
+                    out.append(Action('swap pot ground '+item_id,f'与地上的{self.vessel_name(item_id)}交换（各自保留里面的食物）','swap_ground_pot',item.location,self.ground_swap_signature(who,item_id)))
                 out.append(Action(f"pickup {item_id}",
                                   f"去{self.place(item.location).name}捡起 {item_id}（{self.food_name(item.food)}；自动换手）",
                                   "pickup", item.location, (a.hand.id if a.hand else None, item_id, item.location)))
                 if self.can_load_ground(who,item_id):
-                    out.append(Action('load ground '+item_id,f'把切好的{self.food_label(a.hand)}放入地上空锅（离灶不加热）','load_ground',item.location,self.ground_plate_signature(who,item_id)))
+                    out.append(Action('load ground '+item_id,f'把{self.load_label(a.hand)}放入地上空{self.vessel_name(item_id)}（离灶不加热）','load_ground',item.location,self.ground_plate_signature(who,item_id)))
                 if self.can_assemble_ground(who,item_id):
                     out.append(Action('assemble ground '+item_id,self.assemble_label(self.place(item.location).name,item.food,a.hand),'assemble_ground',
                                       item.location,self.ground_assembly_signature(who,item_id)))
                 if self.can_plate_ground(who, item_id):
-                    out.append(Action(f'plate ground {item_id}', '用手中的干净盘盛出地上锅里的菜（空锅留在原地）',
+                    v = self.vessel_name(item_id)
+                    out.append(Action(f'plate ground {item_id}', f'用手中的干净盘盛出地上{v}里的菜（空{v}留在原地）',
                                       'plate_ground', item.location, self.ground_plate_signature(who, item_id)))
         for key in self.boards:
             s = self.stations[key]
@@ -400,13 +403,14 @@ class Kitchen:
                 continue
             if not s.pot_id:
                 if a.hand and a.hand.stage == 'pot':
-                    add(f'put pot {key}', f'把手中的锅放回{s.name}（有食物时恢复加热）', 'return_pot', key)
+                    add(f'put pot {key}', f'把手中的{self.vessel_name(a.hand.id)}放回{s.name}（有食物时恢复加热）', 'return_pot', key)
                 continue
-            add(f'take pot {key}', f'端起{s.name}的锅（离开灶台停止加热，占手持位）', 'lift_pot', key)
+            v = self.vessel_name(s.pot_id)
+            add(f'take pot {key}', f'端起{s.name}的{v}（离开灶台停止加热，占手持位）', 'lift_pot', key)
             if a.hand and a.hand.stage=='pot':
-                add('swap pot '+key,'与'+s.name+'的锅交换（各自保留锅内食物）','swap_pot',key)
-            if not s.food and a.hand and self.rules.potable(a.hand):
-                add(f"put {key}", f"将半成品放进{s.name}，开始自动加热", "put_pot", key)
+                add('swap pot '+key,f'与{s.name}的{v}交换（各自保留里面的食物）','swap_pot',key)
+            if not s.food and a.hand and self.rules.potable(a.hand, self.rules.vessels.get(s.pot_id)):
+                add(f"put {key}", f"将{self.load_label(a.hand)}放进{s.name}的{v}，开始自动加热", "put_pot", key)
             if s.food:
                 if a.hand and self.can_add(a.hand,s.food):
                     add(f'plate {key}', f'用手中的干净盘盛出{s.name}的菜', 'plate_pot', key)
@@ -426,6 +430,14 @@ class Kitchen:
             if s.fire and s.lock in (None, who) and a.hand and a.hand.stage == 'extinguisher':
                 add(f'extinguish {key}', f'拿灭火器到{s.name}灭火（{self.rules.extinguish:g}s）', 'extinguish', key)
         return out
+
+    def vessel_name(self, vessel_id):
+        """Display name of a cooking vessel (汤锅 boils, 平底锅 fries), from the recipe catalog."""
+        return self.rules.vessel_names.get(self.rules.vessels.get(vessel_id), '锅')
+
+    def load_label(self, food):
+        """Name of held food going into a vessel, with its preparation."""
+        return ('切好的' if food.stage == 'chopped' else '') + self.food_label(food)
 
     def food_name(self, food):
         item = self.rules.items.get(food.ingredient)
@@ -500,15 +512,15 @@ class Kitchen:
         hand=self.chefs[who].hand
         return self.ground_plate_signature(who,item_id)+(hand.contents.id if hand and hand.contents else None,)
 
-    @staticmethod
-    def heat_stove(station):
+    def heat_stove(self, station):
         station.heating=station.food is not None
-        if station.food and station.food.stage=='chopped':
+        t=self.rules.heat.get(station.food.ingredient) if station.food else None
+        if t and station.food.stage==t['from']:
             station.food.stage='cooking'
 
     def can_load_pot(self,hand,pot):
-        return bool(hand and self.rules.potable(hand)
-                    and pot and pot.stage=='pot' and pot.contents is None)
+        return bool(hand and pot and pot.stage=='pot' and pot.contents is None
+                    and self.rules.potable(hand, self.rules.vessels.get(pot.id)))
 
     def can_load_ground(self,who,item_id):
         item=self.ground.get(item_id)
@@ -1054,7 +1066,8 @@ class Kitchen:
             if f.stage == 'extinguisher':
                 return {'id': f.id, 'stage': f.stage, 'meaning': STATES[f.stage], 'tool': True}
             if f.stage == 'pot':
-                return {'id': f.id, 'stage': 'pot', 'meaning': '空锅' if not f.contents else '锅 · '+STATES[f.contents.stage],
+                v = self.vessel_name(f.id)
+                return {'id': f.id, 'stage': 'pot', 'vessel': self.rules.vessels.get(f.id), 'meaning': '空'+v if not f.contents else v+' · '+self.state_label(f.contents.ingredient, f.contents.stage),
                         'contents': food(f.contents)}
             if f.stage in ('clean_plate', 'dirty_plate'):
                 return {'id': f.id, 'stage': f.stage, 'meaning': STATES[f.stage],
@@ -1083,6 +1096,8 @@ class Kitchen:
             record['fire_neighbors'] = self.fire_neighbors(key)
             record['workers']=self.work_participants(key,'chop')+self.work_participants(key,'wash')
             record['scorched'] = s.scorched
+            if s.pot_id:
+                record['vessel'] = self.rules.vessels.get(s.pot_id)
             if key in self.pots and s.food:
                 h = s.food.heated
                 ready, burn, fire = self.rules.heat_thresholds(s.food.ingredient)
@@ -1110,6 +1125,11 @@ class Kitchen:
                 'assembly': self.rules.multi_component,
                 # Every servable dish, including ones no order asks for.
                 'dishes': [self._dish_view(r) for r in self.rules.servable],
+                # Cooking vessels in this level: kind -> name and the ingredients it cooks (and from which state).
+                'vessels': {kind: {'name': self.rules.vessel_names.get(kind, kind),
+                                   'cooks': [{'item': item, 'from': t['from']} for item, t in sorted(self.rules.heat.items())
+                                             if t.get('container', 'pot') == kind and item in set(self.rules.sources.values())]}
+                            for kind in sorted(set(self.rules.vessels.values()))},
                 # Display data for the client: names, states and fallback colours of this level's items.
                 'items': {key: {field: item[field] for field in ('name', 'states', 'state_names', 'platable_states', 'color') if field in item}
                           for key, item in self.rules.items.items()},

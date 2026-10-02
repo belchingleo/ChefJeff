@@ -1,0 +1,2804 @@
+{
+ "version": "ingredient-pack-v1",
+ "items": [
+  "cucumber",
+  "onion",
+  "cheese",
+  "chicken",
+  "fish",
+  "flatbread",
+  "scallion",
+  "noodles"
+ ],
+ "heated": [
+  "chicken",
+  "fish"
+ ],
+ "boiled": [
+  "noodles"
+ ],
+ "vessels": {
+  "pan": {
+   "items": [
+    "beef",
+    "chicken",
+    "fish"
+   ],
+   "stages": [
+    "chopped",
+    "cooking",
+    "ready",
+    "burnt"
+   ]
+  },
+  "pot": {
+   "items": [
+    "noodles"
+   ],
+   "stages": [
+    "raw",
+    "cooking",
+    "ready",
+    "burnt"
+   ]
+  }
+ },
+ "notes": "Current food style. Load without a prefix after burger-food and grid-foundation-v1; keys follow food/<item>_<state>, modular/source_<item>, feedback/<item>, ingredients/<item>/<stage>, dishes/<dish>/<state>; vessels: objects/pan, modular/pan_<axis>, and <vessel frame>/<item>/<stage> with the food cooking inside (contentAnchor = centre of the inside, canvas px).",
+ "frames": {
+  "food/cucumber_raw": {
+   "rect": [
+    2,
+    2,
+    64,
+    64
+   ],
+   "canvasSize": [
+    64,
+    64
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    3,
+    12,
+    60,
+    54
+   ]
+  },
+  "modular/source_cucumber": {
+   "rect": [
+    70,
+    2,
+    64,
+    96
+   ],
+   "canvasSize": [
+    64,
+    96
+   ],
+   "anchor": [
+    0.5,
+    0.3333333333333333
+   ],
+   "alpha_bbox": [
+    12,
+    27,
+    52,
+    56
+   ]
+  },
+  "food/cucumber_chopped": {
+   "rect": [
+    138,
+    2,
+    64,
+    64
+   ],
+   "canvasSize": [
+    64,
+    64
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    6,
+    20,
+    56,
+    56
+   ]
+  },
+  "feedback/cucumber": {
+   "rect": [
+    206,
+    2,
+    48,
+    14
+   ],
+   "canvasSize": [
+    48,
+    14
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    0,
+    0,
+    48,
+    14
+   ]
+  },
+  "food/onion_raw": {
+   "rect": [
+    258,
+    2,
+    64,
+    64
+   ],
+   "canvasSize": [
+    64,
+    64
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    12,
+    7,
+    52,
+    60
+   ]
+  },
+  "modular/source_onion": {
+   "rect": [
+    326,
+    2,
+    64,
+    96
+   ],
+   "canvasSize": [
+    64,
+    96
+   ],
+   "anchor": [
+    0.5,
+    0.3333333333333333
+   ],
+   "alpha_bbox": [
+    18,
+    23,
+    46,
+    60
+   ]
+  },
+  "food/onion_chopped": {
+   "rect": [
+    394,
+    2,
+    64,
+    64
+   ],
+   "canvasSize": [
+    64,
+    64
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    10,
+    20,
+    50,
+    54
+   ]
+  },
+  "feedback/onion": {
+   "rect": [
+    462,
+    2,
+    44,
+    15
+   ],
+   "canvasSize": [
+    44,
+    15
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    0,
+    0,
+    44,
+    15
+   ]
+  },
+  "food/cheese_raw": {
+   "rect": [
+    2,
+    102,
+    64,
+    64
+   ],
+   "canvasSize": [
+    64,
+    64
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    7,
+    15,
+    57,
+    52
+   ]
+  },
+  "modular/source_cheese": {
+   "rect": [
+    70,
+    102,
+    64,
+    96
+   ],
+   "canvasSize": [
+    64,
+    96
+   ],
+   "anchor": [
+    0.5,
+    0.3333333333333333
+   ],
+   "alpha_bbox": [
+    12,
+    27,
+    52,
+    56
+   ]
+  },
+  "food/cheese_chopped": {
+   "rect": [
+    138,
+    102,
+    64,
+    64
+   ],
+   "canvasSize": [
+    64,
+    64
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    11,
+    19,
+    53,
+    52
+   ]
+  },
+  "feedback/cheese": {
+   "rect": [
+    206,
+    102,
+    47,
+    25
+   ],
+   "canvasSize": [
+    47,
+    25
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    0,
+    0,
+    47,
+    25
+   ]
+  },
+  "food/chicken_raw": {
+   "rect": [
+    257,
+    102,
+    64,
+    64
+   ],
+   "canvasSize": [
+    64,
+    64
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    9,
+    19,
+    54,
+    51
+   ]
+  },
+  "modular/source_chicken": {
+   "rect": [
+    325,
+    102,
+    64,
+    96
+   ],
+   "canvasSize": [
+    64,
+    96
+   ],
+   "anchor": [
+    0.5,
+    0.3333333333333333
+   ],
+   "alpha_bbox": [
+    12,
+    27,
+    52,
+    55
+   ]
+  },
+  "food/chicken_chopped": {
+   "rect": [
+    393,
+    102,
+    64,
+    64
+   ],
+   "canvasSize": [
+    64,
+    64
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    8,
+    20,
+    54,
+    61
+   ]
+  },
+  "feedback/chicken": {
+   "rect": [
+    461,
+    102,
+    46,
+    25
+   ],
+   "canvasSize": [
+    46,
+    25
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    0,
+    0,
+    46,
+    25
+   ]
+  },
+  "food/fish_raw": {
+   "rect": [
+    2,
+    202,
+    64,
+    64
+   ],
+   "canvasSize": [
+    64,
+    64
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    6,
+    15,
+    58,
+    46
+   ]
+  },
+  "modular/source_fish": {
+   "rect": [
+    70,
+    202,
+    64,
+    96
+   ],
+   "canvasSize": [
+    64,
+    96
+   ],
+   "anchor": [
+    0.5,
+    0.3333333333333333
+   ],
+   "alpha_bbox": [
+    12,
+    30,
+    52,
+    54
+   ]
+  },
+  "food/fish_chopped": {
+   "rect": [
+    138,
+    202,
+    64,
+    64
+   ],
+   "canvasSize": [
+    64,
+    64
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    7,
+    20,
+    54,
+    60
+   ]
+  },
+  "feedback/fish": {
+   "rect": [
+    206,
+    202,
+    46,
+    25
+   ],
+   "canvasSize": [
+    46,
+    25
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    0,
+    0,
+    46,
+    25
+   ]
+  },
+  "food/flatbread_raw": {
+   "rect": [
+    256,
+    202,
+    64,
+    64
+   ],
+   "canvasSize": [
+    64,
+    64
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    7,
+    17,
+    57,
+    49
+   ]
+  },
+  "modular/source_flatbread": {
+   "rect": [
+    324,
+    202,
+    64,
+    96
+   ],
+   "canvasSize": [
+    64,
+    96
+   ],
+   "anchor": [
+    0.5,
+    0.3333333333333333
+   ],
+   "alpha_bbox": [
+    12,
+    28,
+    52,
+    55
+   ]
+  },
+  "feedback/flatbread": {
+   "rect": [
+    392,
+    202,
+    48,
+    28
+   ],
+   "canvasSize": [
+    48,
+    28
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    0,
+    0,
+    48,
+    28
+   ]
+  },
+  "food/scallion_raw": {
+   "rect": [
+    444,
+    202,
+    64,
+    64
+   ],
+   "canvasSize": [
+    64,
+    64
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    6,
+    7,
+    57,
+    58
+   ]
+  },
+  "modular/source_scallion": {
+   "rect": [
+    2,
+    302,
+    64,
+    96
+   ],
+   "canvasSize": [
+    64,
+    96
+   ],
+   "anchor": [
+    0.5,
+    0.3333333333333333
+   ],
+   "alpha_bbox": [
+    13,
+    23,
+    51,
+    60
+   ]
+  },
+  "food/scallion_chopped": {
+   "rect": [
+    70,
+    302,
+    64,
+    64
+   ],
+   "canvasSize": [
+    64,
+    64
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    7,
+    22,
+    55,
+    53
+   ]
+  },
+  "feedback/scallion": {
+   "rect": [
+    138,
+    302,
+    38,
+    26
+   ],
+   "canvasSize": [
+    38,
+    26
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    0,
+    0,
+    38,
+    26
+   ]
+  },
+  "food/chicken_ready": {
+   "rect": [
+    180,
+    302,
+    64,
+    64
+   ],
+   "canvasSize": [
+    64,
+    64
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    8,
+    20,
+    54,
+    61
+   ]
+  },
+  "food/chicken_burnt": {
+   "rect": [
+    248,
+    302,
+    64,
+    64
+   ],
+   "canvasSize": [
+    64,
+    64
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    8,
+    20,
+    54,
+    61
+   ]
+  },
+  "ingredients/chicken/raw": {
+   "rect": [
+    316,
+    302,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    2,
+    9,
+    29,
+    27
+   ]
+  },
+  "ingredients/chicken/processing": {
+   "rect": [
+    352,
+    302,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    2,
+    9,
+    29,
+    27
+   ]
+  },
+  "ingredients/chicken/prepared": {
+   "rect": [
+    388,
+    302,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    4,
+    7,
+    32,
+    31
+   ]
+  },
+  "ingredients/chicken/cooking": {
+   "rect": [
+    424,
+    302,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    4,
+    7,
+    32,
+    31
+   ]
+  },
+  "ingredients/chicken/ready": {
+   "rect": [
+    460,
+    302,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    4,
+    7,
+    32,
+    31
+   ]
+  },
+  "ingredients/chicken/burnt": {
+   "rect": [
+    2,
+    402,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    4,
+    7,
+    32,
+    31
+   ]
+  },
+  "dishes/chicken/ready": {
+   "rect": [
+    38,
+    402,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    0,
+    7,
+    32,
+    29
+   ]
+  },
+  "dishes/chicken/burnt": {
+   "rect": [
+    74,
+    402,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    0,
+    7,
+    32,
+    29
+   ]
+  },
+  "food/fish_ready": {
+   "rect": [
+    110,
+    402,
+    64,
+    64
+   ],
+   "canvasSize": [
+    64,
+    64
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    7,
+    20,
+    54,
+    60
+   ]
+  },
+  "food/fish_burnt": {
+   "rect": [
+    178,
+    402,
+    64,
+    64
+   ],
+   "canvasSize": [
+    64,
+    64
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    7,
+    20,
+    54,
+    60
+   ]
+  },
+  "ingredients/fish/raw": {
+   "rect": [
+    246,
+    402,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    1,
+    7,
+    31,
+    25
+   ]
+  },
+  "ingredients/fish/processing": {
+   "rect": [
+    282,
+    402,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    1,
+    7,
+    31,
+    25
+   ]
+  },
+  "ingredients/fish/prepared": {
+   "rect": [
+    318,
+    402,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    2,
+    6,
+    32,
+    31
+   ]
+  },
+  "ingredients/fish/cooking": {
+   "rect": [
+    354,
+    402,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    2,
+    6,
+    32,
+    31
+   ]
+  },
+  "ingredients/fish/ready": {
+   "rect": [
+    390,
+    402,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    2,
+    6,
+    32,
+    31
+   ]
+  },
+  "ingredients/fish/burnt": {
+   "rect": [
+    426,
+    402,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    2,
+    6,
+    32,
+    31
+   ]
+  },
+  "dishes/fish/ready": {
+   "rect": [
+    462,
+    402,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    0,
+    7,
+    32,
+    29
+   ]
+  },
+  "dishes/fish/burnt": {
+   "rect": [
+    2,
+    470,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    0,
+    7,
+    32,
+    29
+   ]
+  },
+  "food/noodles_raw": {
+   "rect": [
+    38,
+    470,
+    64,
+    64
+   ],
+   "canvasSize": [
+    64,
+    64
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    5,
+    9,
+    60,
+    55
+   ]
+  },
+  "modular/source_noodles": {
+   "rect": [
+    106,
+    470,
+    64,
+    96
+   ],
+   "canvasSize": [
+    64,
+    96
+   ],
+   "anchor": [
+    0.5,
+    0.3333333333333333
+   ],
+   "alpha_bbox": [
+    12,
+    25,
+    52,
+    59
+   ]
+  },
+  "food/noodles_ready": {
+   "rect": [
+    174,
+    470,
+    64,
+    64
+   ],
+   "canvasSize": [
+    64,
+    64
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    10,
+    21,
+    55,
+    48
+   ]
+  },
+  "food/noodles_burnt": {
+   "rect": [
+    242,
+    470,
+    64,
+    64
+   ],
+   "canvasSize": [
+    64,
+    64
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    9,
+    24,
+    54,
+    50
+   ]
+  },
+  "feedback/noodles": {
+   "rect": [
+    310,
+    470,
+    48,
+    22
+   ],
+   "canvasSize": [
+    48,
+    22
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    0,
+    0,
+    48,
+    22
+   ]
+  },
+  "ingredients/noodles/raw": {
+   "rect": [
+    362,
+    470,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    2,
+    4,
+    30,
+    28
+   ]
+  },
+  "ingredients/noodles/cooking": {
+   "rect": [
+    398,
+    470,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    2,
+    6,
+    30,
+    27
+   ]
+  },
+  "ingredients/noodles/ready": {
+   "rect": [
+    434,
+    470,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    2,
+    6,
+    30,
+    27
+   ]
+  },
+  "ingredients/noodles/burnt": {
+   "rect": [
+    470,
+    470,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    2,
+    6,
+    30,
+    27
+   ]
+  },
+  "objects/pan": {
+   "rect": [
+    2,
+    570,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    1,
+    6,
+    32,
+    27
+   ],
+   "contentAnchor": [
+    13.0,
+    15.4
+   ],
+   "vessel": "pan"
+  },
+  "objects/pan/beef/chopped": {
+   "rect": [
+    38,
+    570,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    1,
+    6,
+    32,
+    27
+   ],
+   "contentAnchor": [
+    13.0,
+    15.4
+   ],
+   "vessel": "pan"
+  },
+  "objects/pan/beef/cooking": {
+   "rect": [
+    74,
+    570,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    1,
+    6,
+    32,
+    27
+   ],
+   "contentAnchor": [
+    13.0,
+    15.4
+   ],
+   "vessel": "pan"
+  },
+  "objects/pan/beef/ready": {
+   "rect": [
+    110,
+    570,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    1,
+    6,
+    32,
+    27
+   ],
+   "contentAnchor": [
+    13.0,
+    15.4
+   ],
+   "vessel": "pan"
+  },
+  "objects/pan/beef/burnt": {
+   "rect": [
+    146,
+    570,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    1,
+    6,
+    32,
+    27
+   ],
+   "contentAnchor": [
+    13.0,
+    15.4
+   ],
+   "vessel": "pan"
+  },
+  "objects/pan/chicken/chopped": {
+   "rect": [
+    182,
+    570,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    1,
+    6,
+    32,
+    27
+   ],
+   "contentAnchor": [
+    13.0,
+    15.4
+   ],
+   "vessel": "pan"
+  },
+  "objects/pan/chicken/cooking": {
+   "rect": [
+    218,
+    570,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    1,
+    6,
+    32,
+    27
+   ],
+   "contentAnchor": [
+    13.0,
+    15.4
+   ],
+   "vessel": "pan"
+  },
+  "objects/pan/chicken/ready": {
+   "rect": [
+    254,
+    570,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    1,
+    6,
+    32,
+    27
+   ],
+   "contentAnchor": [
+    13.0,
+    15.4
+   ],
+   "vessel": "pan"
+  },
+  "objects/pan/chicken/burnt": {
+   "rect": [
+    290,
+    570,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    1,
+    6,
+    32,
+    27
+   ],
+   "contentAnchor": [
+    13.0,
+    15.4
+   ],
+   "vessel": "pan"
+  },
+  "objects/pan/fish/chopped": {
+   "rect": [
+    326,
+    570,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    1,
+    6,
+    32,
+    27
+   ],
+   "contentAnchor": [
+    13.0,
+    15.4
+   ],
+   "vessel": "pan"
+  },
+  "objects/pan/fish/cooking": {
+   "rect": [
+    362,
+    570,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    1,
+    6,
+    32,
+    27
+   ],
+   "contentAnchor": [
+    13.0,
+    15.4
+   ],
+   "vessel": "pan"
+  },
+  "objects/pan/fish/ready": {
+   "rect": [
+    398,
+    570,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    1,
+    6,
+    32,
+    27
+   ],
+   "contentAnchor": [
+    13.0,
+    15.4
+   ],
+   "vessel": "pan"
+  },
+  "objects/pan/fish/burnt": {
+   "rect": [
+    434,
+    570,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    1,
+    6,
+    32,
+    27
+   ],
+   "contentAnchor": [
+    13.0,
+    15.4
+   ],
+   "vessel": "pan"
+  },
+  "modular/pan_horizontal": {
+   "rect": [
+    2,
+    606,
+    50,
+    37
+   ],
+   "canvasSize": [
+    50,
+    37
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    1,
+    4,
+    50,
+    33
+   ],
+   "contentAnchor": [
+    19.5,
+    16.9
+   ],
+   "vessel": "pan"
+  },
+  "modular/pan_horizontal/beef/chopped": {
+   "rect": [
+    56,
+    606,
+    50,
+    37
+   ],
+   "canvasSize": [
+    50,
+    37
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    1,
+    4,
+    50,
+    33
+   ],
+   "contentAnchor": [
+    19.5,
+    16.9
+   ],
+   "vessel": "pan"
+  },
+  "modular/pan_horizontal/beef/cooking": {
+   "rect": [
+    110,
+    606,
+    50,
+    37
+   ],
+   "canvasSize": [
+    50,
+    37
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    1,
+    4,
+    50,
+    33
+   ],
+   "contentAnchor": [
+    19.5,
+    16.9
+   ],
+   "vessel": "pan"
+  },
+  "modular/pan_horizontal/beef/ready": {
+   "rect": [
+    164,
+    606,
+    50,
+    37
+   ],
+   "canvasSize": [
+    50,
+    37
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    1,
+    4,
+    50,
+    33
+   ],
+   "contentAnchor": [
+    19.5,
+    16.9
+   ],
+   "vessel": "pan"
+  },
+  "modular/pan_horizontal/beef/burnt": {
+   "rect": [
+    218,
+    606,
+    50,
+    37
+   ],
+   "canvasSize": [
+    50,
+    37
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    1,
+    4,
+    50,
+    33
+   ],
+   "contentAnchor": [
+    19.5,
+    16.9
+   ],
+   "vessel": "pan"
+  },
+  "modular/pan_horizontal/chicken/chopped": {
+   "rect": [
+    272,
+    606,
+    50,
+    37
+   ],
+   "canvasSize": [
+    50,
+    37
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    1,
+    4,
+    50,
+    33
+   ],
+   "contentAnchor": [
+    19.5,
+    16.9
+   ],
+   "vessel": "pan"
+  },
+  "modular/pan_horizontal/chicken/cooking": {
+   "rect": [
+    326,
+    606,
+    50,
+    37
+   ],
+   "canvasSize": [
+    50,
+    37
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    1,
+    4,
+    50,
+    33
+   ],
+   "contentAnchor": [
+    19.5,
+    16.9
+   ],
+   "vessel": "pan"
+  },
+  "modular/pan_horizontal/chicken/ready": {
+   "rect": [
+    380,
+    606,
+    50,
+    37
+   ],
+   "canvasSize": [
+    50,
+    37
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    1,
+    4,
+    50,
+    33
+   ],
+   "contentAnchor": [
+    19.5,
+    16.9
+   ],
+   "vessel": "pan"
+  },
+  "modular/pan_horizontal/chicken/burnt": {
+   "rect": [
+    434,
+    606,
+    50,
+    37
+   ],
+   "canvasSize": [
+    50,
+    37
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    1,
+    4,
+    50,
+    33
+   ],
+   "contentAnchor": [
+    19.5,
+    16.9
+   ],
+   "vessel": "pan"
+  },
+  "modular/pan_horizontal/fish/chopped": {
+   "rect": [
+    2,
+    647,
+    50,
+    37
+   ],
+   "canvasSize": [
+    50,
+    37
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    1,
+    4,
+    50,
+    33
+   ],
+   "contentAnchor": [
+    19.5,
+    16.9
+   ],
+   "vessel": "pan"
+  },
+  "modular/pan_horizontal/fish/cooking": {
+   "rect": [
+    56,
+    647,
+    50,
+    37
+   ],
+   "canvasSize": [
+    50,
+    37
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    1,
+    4,
+    50,
+    33
+   ],
+   "contentAnchor": [
+    19.5,
+    16.9
+   ],
+   "vessel": "pan"
+  },
+  "modular/pan_horizontal/fish/ready": {
+   "rect": [
+    110,
+    647,
+    50,
+    37
+   ],
+   "canvasSize": [
+    50,
+    37
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    1,
+    4,
+    50,
+    33
+   ],
+   "contentAnchor": [
+    19.5,
+    16.9
+   ],
+   "vessel": "pan"
+  },
+  "modular/pan_horizontal/fish/burnt": {
+   "rect": [
+    164,
+    647,
+    50,
+    37
+   ],
+   "canvasSize": [
+    50,
+    37
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    1,
+    4,
+    50,
+    33
+   ],
+   "contentAnchor": [
+    19.5,
+    16.9
+   ],
+   "vessel": "pan"
+  },
+  "modular/pan_vertical": {
+   "rect": [
+    218,
+    647,
+    47,
+    50
+   ],
+   "canvasSize": [
+    47,
+    50
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    2,
+    2,
+    45,
+    50
+   ],
+   "contentAnchor": [
+    23.5,
+    16.9
+   ],
+   "vessel": "pan"
+  },
+  "modular/pan_vertical/beef/chopped": {
+   "rect": [
+    269,
+    647,
+    47,
+    50
+   ],
+   "canvasSize": [
+    47,
+    50
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    2,
+    2,
+    45,
+    50
+   ],
+   "contentAnchor": [
+    23.5,
+    16.9
+   ],
+   "vessel": "pan"
+  },
+  "modular/pan_vertical/beef/cooking": {
+   "rect": [
+    320,
+    647,
+    47,
+    50
+   ],
+   "canvasSize": [
+    47,
+    50
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    2,
+    2,
+    45,
+    50
+   ],
+   "contentAnchor": [
+    23.5,
+    16.9
+   ],
+   "vessel": "pan"
+  },
+  "modular/pan_vertical/beef/ready": {
+   "rect": [
+    371,
+    647,
+    47,
+    50
+   ],
+   "canvasSize": [
+    47,
+    50
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    2,
+    2,
+    45,
+    50
+   ],
+   "contentAnchor": [
+    23.5,
+    16.9
+   ],
+   "vessel": "pan"
+  },
+  "modular/pan_vertical/beef/burnt": {
+   "rect": [
+    422,
+    647,
+    47,
+    50
+   ],
+   "canvasSize": [
+    47,
+    50
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    2,
+    2,
+    45,
+    50
+   ],
+   "contentAnchor": [
+    23.5,
+    16.9
+   ],
+   "vessel": "pan"
+  },
+  "modular/pan_vertical/chicken/chopped": {
+   "rect": [
+    2,
+    701,
+    47,
+    50
+   ],
+   "canvasSize": [
+    47,
+    50
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    2,
+    2,
+    45,
+    50
+   ],
+   "contentAnchor": [
+    23.5,
+    16.9
+   ],
+   "vessel": "pan"
+  },
+  "modular/pan_vertical/chicken/cooking": {
+   "rect": [
+    53,
+    701,
+    47,
+    50
+   ],
+   "canvasSize": [
+    47,
+    50
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    2,
+    2,
+    45,
+    50
+   ],
+   "contentAnchor": [
+    23.5,
+    16.9
+   ],
+   "vessel": "pan"
+  },
+  "modular/pan_vertical/chicken/ready": {
+   "rect": [
+    104,
+    701,
+    47,
+    50
+   ],
+   "canvasSize": [
+    47,
+    50
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    2,
+    2,
+    45,
+    50
+   ],
+   "contentAnchor": [
+    23.5,
+    16.9
+   ],
+   "vessel": "pan"
+  },
+  "modular/pan_vertical/chicken/burnt": {
+   "rect": [
+    155,
+    701,
+    47,
+    50
+   ],
+   "canvasSize": [
+    47,
+    50
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    2,
+    2,
+    45,
+    50
+   ],
+   "contentAnchor": [
+    23.5,
+    16.9
+   ],
+   "vessel": "pan"
+  },
+  "modular/pan_vertical/fish/chopped": {
+   "rect": [
+    206,
+    701,
+    47,
+    50
+   ],
+   "canvasSize": [
+    47,
+    50
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    2,
+    2,
+    45,
+    50
+   ],
+   "contentAnchor": [
+    23.5,
+    16.9
+   ],
+   "vessel": "pan"
+  },
+  "modular/pan_vertical/fish/cooking": {
+   "rect": [
+    257,
+    701,
+    47,
+    50
+   ],
+   "canvasSize": [
+    47,
+    50
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    2,
+    2,
+    45,
+    50
+   ],
+   "contentAnchor": [
+    23.5,
+    16.9
+   ],
+   "vessel": "pan"
+  },
+  "modular/pan_vertical/fish/ready": {
+   "rect": [
+    308,
+    701,
+    47,
+    50
+   ],
+   "canvasSize": [
+    47,
+    50
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    2,
+    2,
+    45,
+    50
+   ],
+   "contentAnchor": [
+    23.5,
+    16.9
+   ],
+   "vessel": "pan"
+  },
+  "modular/pan_vertical/fish/burnt": {
+   "rect": [
+    359,
+    701,
+    47,
+    50
+   ],
+   "canvasSize": [
+    47,
+    50
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    2,
+    2,
+    45,
+    50
+   ],
+   "contentAnchor": [
+    23.5,
+    16.9
+   ],
+   "vessel": "pan"
+  },
+  "objects/pot/noodles/raw": {
+   "rect": [
+    410,
+    701,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    2,
+    5,
+    30,
+    27
+   ],
+   "contentAnchor": [
+    16.5,
+    11.6
+   ],
+   "vessel": "pot",
+   "base": "grid-foundation-v1/objects/pot"
+  },
+  "objects/pot/noodles/cooking": {
+   "rect": [
+    446,
+    701,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    2,
+    5,
+    30,
+    27
+   ],
+   "contentAnchor": [
+    16.5,
+    11.6
+   ],
+   "vessel": "pot",
+   "base": "grid-foundation-v1/objects/pot"
+  },
+  "objects/pot/noodles/ready": {
+   "rect": [
+    2,
+    755,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    2,
+    5,
+    30,
+    27
+   ],
+   "contentAnchor": [
+    16.5,
+    11.6
+   ],
+   "vessel": "pot",
+   "base": "grid-foundation-v1/objects/pot"
+  },
+  "objects/pot/noodles/burnt": {
+   "rect": [
+    38,
+    755,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    2,
+    5,
+    30,
+    27
+   ],
+   "contentAnchor": [
+    16.5,
+    11.6
+   ],
+   "vessel": "pot",
+   "base": "grid-foundation-v1/objects/pot"
+  },
+  "modular/pot_horizontal/noodles/raw": {
+   "rect": [
+    74,
+    755,
+    50,
+    37
+   ],
+   "canvasSize": [
+    50,
+    37
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    0,
+    0,
+    50,
+    37
+   ],
+   "contentAnchor": [
+    24.5,
+    12.6
+   ],
+   "vessel": "pot",
+   "base": "grid-foundation-v1/modular/pot_horizontal"
+  },
+  "modular/pot_horizontal/noodles/cooking": {
+   "rect": [
+    128,
+    755,
+    50,
+    37
+   ],
+   "canvasSize": [
+    50,
+    37
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    0,
+    0,
+    50,
+    37
+   ],
+   "contentAnchor": [
+    24.5,
+    12.6
+   ],
+   "vessel": "pot",
+   "base": "grid-foundation-v1/modular/pot_horizontal"
+  },
+  "modular/pot_horizontal/noodles/ready": {
+   "rect": [
+    182,
+    755,
+    50,
+    37
+   ],
+   "canvasSize": [
+    50,
+    37
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    0,
+    0,
+    50,
+    37
+   ],
+   "contentAnchor": [
+    24.5,
+    12.6
+   ],
+   "vessel": "pot",
+   "base": "grid-foundation-v1/modular/pot_horizontal"
+  },
+  "modular/pot_horizontal/noodles/burnt": {
+   "rect": [
+    236,
+    755,
+    50,
+    37
+   ],
+   "canvasSize": [
+    50,
+    37
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    0,
+    0,
+    50,
+    37
+   ],
+   "contentAnchor": [
+    24.5,
+    12.6
+   ],
+   "vessel": "pot",
+   "base": "grid-foundation-v1/modular/pot_horizontal"
+  },
+  "modular/pot_vertical/noodles/raw": {
+   "rect": [
+    290,
+    755,
+    47,
+    50
+   ],
+   "canvasSize": [
+    47,
+    50
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    0,
+    0,
+    47,
+    50
+   ],
+   "contentAnchor": [
+    23.0,
+    20.0
+   ],
+   "vessel": "pot",
+   "base": "grid-foundation-v1/modular/pot_vertical"
+  },
+  "modular/pot_vertical/noodles/cooking": {
+   "rect": [
+    341,
+    755,
+    47,
+    50
+   ],
+   "canvasSize": [
+    47,
+    50
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    0,
+    0,
+    47,
+    50
+   ],
+   "contentAnchor": [
+    23.0,
+    20.0
+   ],
+   "vessel": "pot",
+   "base": "grid-foundation-v1/modular/pot_vertical"
+  },
+  "modular/pot_vertical/noodles/ready": {
+   "rect": [
+    392,
+    755,
+    47,
+    50
+   ],
+   "canvasSize": [
+    47,
+    50
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    0,
+    0,
+    47,
+    50
+   ],
+   "contentAnchor": [
+    23.0,
+    20.0
+   ],
+   "vessel": "pot",
+   "base": "grid-foundation-v1/modular/pot_vertical"
+  },
+  "modular/pot_vertical/noodles/burnt": {
+   "rect": [
+    443,
+    755,
+    47,
+    50
+   ],
+   "canvasSize": [
+    47,
+    50
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    0,
+    0,
+    47,
+    50
+   ],
+   "contentAnchor": [
+    23.0,
+    20.0
+   ],
+   "vessel": "pot",
+   "base": "grid-foundation-v1/modular/pot_vertical"
+  },
+  "dishes/beef_noodles/ready": {
+   "rect": [
+    2,
+    809,
+    48,
+    48
+   ],
+   "canvasSize": [
+    48,
+    48
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    1,
+    12,
+    47,
+    43
+   ]
+  },
+  "dishes/beef_noodles/burnt": {
+   "rect": [
+    54,
+    809,
+    48,
+    48
+   ],
+   "canvasSize": [
+    48,
+    48
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    1,
+    12,
+    47,
+    43
+   ]
+  },
+  "dishes/chicken_noodles/ready": {
+   "rect": [
+    106,
+    809,
+    48,
+    48
+   ],
+   "canvasSize": [
+    48,
+    48
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    1,
+    12,
+    47,
+    43
+   ]
+  },
+  "dishes/chicken_noodles/burnt": {
+   "rect": [
+    158,
+    809,
+    48,
+    48
+   ],
+   "canvasSize": [
+    48,
+    48
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    1,
+    12,
+    47,
+    43
+   ]
+  },
+  "dishes/fish_steak/ready": {
+   "rect": [
+    462,
+    402,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    0,
+    7,
+    32,
+    29
+   ],
+   "alias": "dishes/fish/ready"
+  },
+  "dishes/fish_steak/burnt": {
+   "rect": [
+    2,
+    470,
+    32,
+    32
+   ],
+   "canvasSize": [
+    32,
+    32
+   ],
+   "anchor": [
+    0.5,
+    0.5
+   ],
+   "alpha_bbox": [
+    0,
+    7,
+    32,
+    29
+   ],
+   "alias": "dishes/fish/burnt"
+  }
+ }
+}

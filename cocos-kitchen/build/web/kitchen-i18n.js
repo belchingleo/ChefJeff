@@ -448,9 +448,68 @@
     "牛排": "Steak",
     "对出餐投入的时间": "Time spent on served dishes",
     "关键路径上的时间": "Time on the critical path",
-    "投入时间：每个对出餐有用的动作从开始到完成的时长。关键路径：决定每道菜何时能出的那条步骤链。": "Time spent: how long each action that went into a served dish took. Critical path: the chain of steps that decided when each dish could be served."
+    "投入时间：每个对出餐有用的动作从开始到完成的时长。关键路径：决定每道菜何时能出的那条步骤链。": "Time spent: how long each action that went into a served dish took. Critical path: the chain of steps that decided when each dish could be served.",
+    "平底锅": "Frying pan",
+    "汤锅": "Soup pot",
+    "锅具": "Cookware",
+    "空平底锅": "Empty frying pan",
+    "空汤锅": "Empty soup pot",
+    "各自保留里面的食物": "contents stay where they are",
+    "离灶不加热": "no heating off the stove",
+    "切配进度保留；锅具继续加热": "prep progress kept; cookware keeps heating",
+    "黄瓜": "Cucumber",
+    "洋葱": "Onion",
+    "奶酪": "Cheese",
+    "葱": "Scallion",
+    "鸡肉": "Chicken",
+    "鱼": "Fish",
+    "薄饼": "Flatbread",
+    "面条": "Noodles",
+    "生鸡肉": "Raw chicken",
+    "切好的鸡肉": "Chopped chicken",
+    "煎制中": "Frying",
+    "熟鸡肉": "Cooked chicken",
+    "糊鸡肉": "Burnt chicken",
+    "生鱼": "Raw fish",
+    "切好的鱼": "Chopped fish",
+    "熟鱼": "Cooked fish",
+    "糊鱼": "Burnt fish",
+    "生面条": "Raw noodles",
+    "煮制中": "Boiling",
+    "熟面条": "Cooked noodles",
+    "煮干了": "Boiled dry",
+    "切好的葱": "Chopped scallion",
+    "切好的黄瓜": "Chopped cucumber",
+    "切好的洋葱": "Chopped onion",
+    "切好的奶酪": "Sliced cheese",
+    "牛肉拌面": "Beef noodles",
+    "鸡肉拌面": "Chicken noodles",
+    "沙拉": "Salad",
+    "芝士汉堡": "Cheeseburger",
+    "鸡肉卷": "Chicken wrap",
+    "煎鱼排": "Fried fish",
+    "葱箱": "Scallion supply",
+    "面条箱": "Noodle supply",
+    "鸡肉箱": "Chicken supply",
+    "第四关 · 拌面（试玩）": "Level 4 · Mixed noodles (trial)"
   },
   "templates": [
+    [
+      "端起{0}的{1}（{2}）",
+      "Lift the {1} from {0} ({2})"
+    ],
+    [
+      "把{0}放入{1}的空{2}（{3}）",
+      "Load {0} into the empty {2} at {1} ({3})"
+    ],
+    [
+      "把{0}放入地上空{1}（{2}）",
+      "Load {0} into the empty {1} on the floor ({2})"
+    ],
+    [
+      "把手中的{0}放回{1}（{2}）",
+      "Return the {0} to {1} ({2})"
+    ],
     [
       "与{0}的锅交换",
       "Swap with the pot at {0}"
@@ -830,6 +889,74 @@
     [
       "关键路径上另有 {0} 秒在等待（如锅在自己煮、等另一个人）。",
       "The critical paths also include {0} s of waiting (food cooking on its own, or waiting for the other chef)."
+    ],
+    [
+      "与地上的{0}交换",
+      "Swap with the {0} on the floor"
+    ],
+    [
+      "与{0}的{1}交换",
+      "Swap with the {1} at {0}"
+    ],
+    [
+      "倒掉手中{0}里的食物",
+      "Empty the food from the held {0}"
+    ],
+    [
+      "损耗{0}元，保留空{1}",
+      "¥{0} cost; keep the empty {1}"
+    ],
+    [
+      "将{0}放进{1}的{2}，开始自动加热",
+      "Put {0} into the {2} on {1}; it starts heating"
+    ],
+    [
+      "把{0}放入地上空{1}",
+      "Load {0} into the empty {1} on the floor"
+    ],
+    [
+      "把{0}放入{1}的空{2}",
+      "Load {0} into the empty {2} at {1}"
+    ],
+    [
+      "把手中{0}里的菜盛到{1}的盘里",
+      "Fill the plate on {1} from your {0}"
+    ],
+    [
+      "空{0}留在手中",
+      "keep the empty {0}"
+    ],
+    [
+      "用手中的干净盘盛出地上{0}里的菜",
+      "Plate food from the {0} on the floor"
+    ],
+    [
+      "用手中的盘盛出{0}的{1}里的菜",
+      "Plate food from the {1} on {0}"
+    ],
+    [
+      "空{0}留在原地",
+      "the empty {0} stays in place"
+    ],
+    [
+      "把手中的{0}放回{1}",
+      "Return the {0} to {1}"
+    ],
+    [
+      "端起{0}的{1}",
+      "Lift the {1} from {0}"
+    ],
+    [
+      "平底锅 · {0}",
+      "Frying pan · {0}"
+    ],
+    [
+      "汤锅 · {0}",
+      "Soup pot · {0}"
+    ],
+    [
+      "切好的{0}",
+      "chopped {0}"
     ]
   ]
 }

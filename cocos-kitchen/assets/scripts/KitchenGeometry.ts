@@ -173,3 +173,21 @@ export function heatCountdown(st:any){
     if(!Number.isFinite(seconds))return null;
     return {seconds:Math.max(0,Math.ceil(seconds)),ready,paused:!st.heating};
 }
+
+/** Level buttons on the cover, for any number of listed levels: one row of up to three, else two
+ * balanced rows, inside the band between the cover text and the main buttons (design px, y down;
+ * the band stops 10 px above them, room for a pressed-in selected button).
+ * Widths fill the band so long names ("… · 当前") keep the 12 px pixel font. */
+export function levelButtonLayout(count:number,band={left:309,right:971,top:432,bottom:486},gap=16){
+    if(count<=0)return [] as {x:number;y:number;w:number;h:number}[];
+    const rows=count<=3?1:2,perRow=Math.ceil(count/rows),h=rows===1?30:24;
+    const rowGap=rows===1?0:(band.bottom-band.top-rows*h)/(rows-1);
+    const out:{x:number;y:number;w:number;h:number}[]=[];
+    for(let i=0;i<count;i++){
+        const row=Math.floor(i/perRow),inRow=Math.min(perRow,count-row*perRow),col=i-row*perRow;
+        const w=(band.right-band.left-gap*(perRow-1))/perRow,span=inRow*w+gap*(inRow-1),left=(band.left+band.right)/2-span/2;
+        const y=rows===1?464:band.top+h/2+row*(h+rowGap);
+        out.push({x:left+col*(w+gap)+w/2,y,w,h});
+    }
+    return out;
+}

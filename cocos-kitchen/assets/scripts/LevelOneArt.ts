@@ -44,6 +44,8 @@ export class LevelOneArt {
             try {await this.loadAtlas('art/knife-arc-v1');}
             catch(error){console.warn('Knife arc art unavailable; chefs keep the painted knife.',error);}
             await this.loadAtlas('art/trash-directions-v1');
+            try {await this.loadAtlas('art/ingredient-pack-v1');}
+            catch(error){console.warn('Ingredient pack art unavailable; new ingredients keep their fallback icons.',error);}
             if(typeof location!=='undefined'&&new URLSearchParams(location.search).get('prepSample')==='1')
                 await this.loadAtlas('art/prep-pose-v3');
             this.ready=true;
