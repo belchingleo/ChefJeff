@@ -5,17 +5,17 @@ Use a desktop/laptop browser with a keyboard and mouse. Full timing and item rul
 | Input / interaction | Behavior |
 | --- | --- |
 | WASD / arrows | Hold to move; the kitchen is keyboard-only, as in Overcooked |
-| Q | Dash while moving, with the shared cooldown |
-| Space | Whatever the faced target needs (fetch, take, put, cook, plate, lift a pan or pot, chop, wash, serve, bin); with nothing usable ahead, the nearest thing beside. Stops chopping/washing, keeping progress |
-| E | Chop, wash or extinguish; holding an item with nothing to use, throw it forward (to the partner when ahead in range) |
+| Shift | Dash while moving, with the shared cooldown |
+| Space | Whatever the faced target needs (fetch, take, put, cook, plate, lift a pan or pot, chop, wash, extinguish, serve, bin); with nothing usable ahead, the nearest thing beside. Stops chopping/washing, keeping progress |
+| Hold Space | Holding an item and facing open floor: aim a throw with the direction keys, release to throw (to the partner when that way in range) |
 | Esc or P / Ⅱ / ▶ / ■ | Esc or P pauses and resumes (P for keyboards without Esc, such as iPad) / pause / resume / end early (asks to confirm; restarting from pause also confirms) |
-| Shift | Bookmark a moment; nearby marks merge into intervals |
+| Enter | Bookmark a moment; nearby marks merge into intervals |
 | 1–5 / 6 | Cooperation preference / perceived mistake, with a shared cooldown; the dock (open by default) also takes clicks |
 | Settings | Provider connection, language, next-round call limit, local memory, feedback |
 
 The cooking loop is fetch → board → chop → pan → heat → plate → serve → dirty return → sink → clean plate. Bread skips chopping; vegetables skip heating. Partial burgers accept missing ingredients in any order, with fixed visual layers. Pans, pots and plates retain identity through swaps/merges. Shared chopping/washing requires available operation sides; active workers resist contact pushes.
 
-Space and E act on what the chef faces (Overcooked-style); that station glows faintly and the bottom line names both actions. Facing a station never falls back to dropping the held item; an impossible action shows a reason. Ground interactions include pickup, swapping loose ingredients, filling/serving/swapping pans and pots; direct loose-vegetable-to-plate and plate-to-plate merging on the ground are future additions.
+Space acts on what the chef faces (Overcooked-style); that station glows faintly and the bottom line names the action, and "hold Space · aim and throw" where a throw is possible. Facing a station never falls back to dropping the held item; an impossible action shows a reason. Ground interactions include pickup, swapping loose ingredients, filling/serving/swapping pans and pots; direct loose-vegetable-to-plate and plate-to-plate merging on the ground are future additions.
 
 Hosted Settings additionally offer explicit contribution after the round, a data preview and deletion receipt. Hosted sessions do not use local disk memory. See [privacy](privacy-and-costs.md).
 
@@ -30,11 +30,11 @@ Hosted Settings additionally offer explicit contribution after the round, a data
 | 输入／交互 | 行为 |
 | --- | --- |
 | WASD／方向键 | 按住移动；厨房只用键盘操作，同《胡闹厨房》 |
-| Q | 移动时冲刺，遵循共用冷却 |
-| 空格 | 对面前的目标做需要的事（取料、拿起、放下、下锅、装盘、端锅、切菜、洗碗、出餐、丢弃）；面前没有可用的就用身边最近的。停下切菜／洗碗，进度保留 |
-| E | 切菜、洗碗、灭火；手里有东西而无可用工位时向前抛出（队友在前方射程内则抛给他） |
+| Shift | 移动时冲刺，遵循共用冷却 |
+| 空格 | 对面前的目标做需要的事（取料、拿起、放下、下锅、装盘、端锅、切菜、洗碗、灭火、出餐、丢弃）；面前没有可用的就用身边最近的。停下切菜／洗碗，进度保留 |
+| 按住空格 | 手里有东西、面前是空地时瞄准投掷：方向键改方向，松开扔出（队友在这个方向的射程内则扔给他） |
 | Esc 或 P／Ⅱ／▶／■ | Esc 或 P 暂停与继续（P 用于没有 Esc 键的键盘，如 iPad）／暂停／继续／提前结束（需确认；暂停中重新开局也需确认） |
-| Shift | 标记时刻，相近标记合并为区间 |
+| Enter | 标记时刻，相近标记合并为区间 |
 | 1–5／6 | 协作偏好／玩家认为出错，共用冷却；沟通面板默认展开，也可以用鼠标点 |
 | 设置 | 接口连接、语言、下一局调用上限、本地记忆、反馈 |
 

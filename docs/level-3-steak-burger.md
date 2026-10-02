@@ -19,7 +19,7 @@ An order arrives every 30 game seconds until closing: steak, burger, burger, ste
 
 Order and spawn seeds are fixed per level version and recorded with the round; the session record's inputs replay a complete game.
 
-All levels allow sprint: press Q while moving. Sprint lasts 1 game second at 1.4× speed with 3 seconds of cooldown. AI adapters submit a sprint decision alongside the chosen action; only accepted, fresh moving actions may start it. Both chefs share movement/contact rules and paused game time freezes the effect.
+All levels allow sprint: press Shift while moving. Sprint lasts 1 game second at 1.4× speed with 3 seconds of cooldown. AI adapters submit a sprint decision alongside the chosen action; only accepted, fresh moving actions may start it. Both chefs share movement/contact rules and paused game time freezes the effect.
 
 Click-selected targets take priority for Space, with a reason when unavailable. Directional movement or clicking open floor returns to nearby targeting. Empty off-stove pans accept chopped beef; pick up and return the pan to heat it.
 
@@ -48,6 +48,6 @@ Click-selected targets take priority for Space, with a reason when unavailable. 
 
 订单与出生种子按关卡版本固定并随对局记录；对局记录中的输入可完整重放一局。
 
-各关均可冲刺：移动时按 Q，持续一游戏秒、速度 1.4 倍、随后冷却三秒。AI 随动作提交冲刺选择，仅新鲜、被接受且正在移动的动作可触发。双方共用移动／碰撞规则，暂停冻结冲刺时间。
+各关均可冲刺：移动时按 Shift，持续一游戏秒、速度 1.4 倍、随后冷却三秒。AI 随动作提交冲刺选择，仅新鲜、被接受且正在移动的动作可触发。双方共用移动／碰撞规则，暂停冻结冲刺时间。
 
 空格优先点击选定目标，不可用时说明原因；方向移动或点击空地恢复就近目标。离灶的空平底锅能装切好牛肉，拿起后放回灶台开始加热。

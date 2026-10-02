@@ -89,6 +89,43 @@ class ForwardThrowHttpTests(unittest.TestCase):
         self.assertTrue(any(item.food.id == 'T' for item in k.ground.values()))
 
 
+class AimedThrowTests(unittest.TestCase):
+    """Hold Space to aim: the throw follows the aimed direction, not the facing."""
+    def test_an_aimed_throw_follows_its_direction_or_reaches_the_partner_that_way(self):
+        k = kitchen()
+        k.positions['human'] = (3., 5.); k.facing['human'] = 'right'
+        k.chefs['human'].hand = Food('T', 'raw', ingredient='tomato')
+        k.positions['jeff'] = (10., 2.)
+        action = k.aimed_throw('human', (1, -1))
+        x, y = action.expected[2:4]
+        self.assertGreater(x, 3.)
+        self.assertLess(y, 5.)
+        self.assertAlmostEqual(x - 3., 5. - y, places=6)  # along the diagonal, clipped by walls or range
+        k.positions['jeff'] = (3., 7.)
+        action = k.aimed_throw('human', (0, 1))
+        self.assertLessEqual(math.dist(action.expected[2:4], k.positions['jeff']), k.rules.catch_radius)
+        self.assertIsNone(k.aimed_throw('human', (0, 0)))
+
+    def test_the_web_session_throws_along_a_direction(self):
+        g = GameSession(config=level_config(load_config(), 2), kitchen_factory=SpatialKitchen,
+                        client_factory=Client, journal_factory=FakeJournal)
+        self.addCleanup(g.close)
+        self.assertEqual(g.command('/api/start', {'game_id': g.game_id, 'request_id': 's', 'speed': .75})[0], 200)
+        k = g.k
+        k.positions['human'] = (3., 5.); k.facing['human'] = 'right'
+        k.chefs['human'].hand = Food('T', 'raw', ingredient='tomato')
+        k.positions['jeff'] = (10., 2.)
+        bad = g.command('/api/throw', {'game_id': g.game_id, 'request_id': 'b', 'expected_item': 'T', 'direction': [0, 0]})
+        self.assertEqual(bad[0], 400)
+        status, body = g.command('/api/throw', {'game_id': g.game_id, 'request_id': 'a', 'expected_item': 'T', 'direction': [0, 1]})
+        self.assertEqual(status, 200, body)
+        for _ in range(20):k.advance(.05)
+        self.assertIsNone(k.chefs['human'].hand)
+        landed = next(item.location for item in k.ground.values() if item.food.id == 'T')
+        self.assertEqual(int(landed.split('_')[1]), 3)  # straight down from x = 3, not to the right
+        self.assertGreater(int(landed.split('_')[2]), 5)
+
+
 class ShortActionMoveTests(unittest.TestCase):
     def test_a_move_during_a_short_take_starts_after_it(self):
         g = GameSession(config=level_config(load_config(), 2), kitchen_factory=SpatialKitchen,

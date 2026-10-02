@@ -56,11 +56,11 @@ The controls work much as in Overcooked:
 
 | Key | Action |
 | --- | --- |
-| WASD or arrow keys | Move; press **Q** while moving to dash |
-| Space | Do whatever the thing in front of you needs: fetch, pick up, put down, put in the pan, plate, serve; it can also chop and wash |
-| E | Processing only: chop, wash, put out a fire. If there is nothing to process in front of you and you are holding something, throw it forward |
+| WASD or arrow keys | Move; press **Shift** while moving to dash |
+| Space | Do whatever the thing in front of you needs: fetch, pick up, put down, put in the pan, plate, serve; it can also chop, wash and put out fires |
+| Hold Space | Holding something and facing open floor: aim a throw. Your chef stops and an arrow appears; turn it with the direction keys and release to throw, up to 4 tiles |
 | 1–6 | Tell Jeff what kind of work you want to do, or point out a mistake |
-| Shift | Bookmark the current moment without pausing or interrupting anything; bookmarks are included in the run export |
+| Enter | Bookmark the current moment without pausing or interrupting anything; bookmarks are included in the run export |
 | Esc or P | Pause (use P on iPad keyboards without an Esc key). Settings let you connect a model, switch language, adjust volume and export the run |
 
 After each round, a round record pops up. It shows how many times you and Jeff each fetched ingredients, chopped, cooked, served and washed plates, and each chef's contribution, delay and idle time (see [records and analysis](#records-and-analysis)).

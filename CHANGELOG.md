@@ -15,7 +15,7 @@ The game now runs on a data-driven core: five data models (map, recipes, orders,
 - Level 1 is the practice level; Levels 2 and 3 are calibrated against a reference pair.
 
 ### Kitchen and controls
-- Overcooked-style keyboard controls: Space and E act on what the chef faces; Q dashes.
+- Overcooked-style keyboard controls with browser-safe keys: Space acts on what the chef faces (hold it to aim a throw), Shift dashes, Enter bookmarks.
 - Beef fries in a frying pan; the engine also supports a soup pot for noodles, and each stove holds one vessel.
 - Chefs can pass plates, dishes, pans and the extinguisher up to 4 tiles; ingredients are thrown up to 4 tiles.
 - Assemble with a plate or ingredient lying on the floor, as on a counter.
@@ -58,7 +58,7 @@ First private release: a local browser game with three playable maps and player-
 - 第一关是练习关；第二、三关按参考双人组校准。
 
 ### 厨房与操作
-- 胡闹厨房式键盘操作：空格和 E 对面前的东西操作，Q 冲刺。
+- 胡闹厨房式键盘操作，按键避开浏览器冲突：空格对面前的东西操作（按住可瞄准投掷），Shift 冲刺，Enter 标记。
 - 牛肉用平底锅煎；引擎也支持煮面条的汤锅，一个灶台同时只放一口锅。
 - 盘子、菜、平底锅和灭火器可在 4 格内传递；食材可在 4 格内抛出。
 - 盘子或食材放在地上时，也能像在柜台上一样组装。

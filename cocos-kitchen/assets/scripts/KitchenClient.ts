@@ -34,6 +34,8 @@ const TILE=GRID_ART.tile, MAPX=GRID_ART.originX, MAPY=GRID_ART.originY;
 // Knife frames per facing: front view toward the viewer, top view up-screen, side view (mirrored for left).
 const KNIFE_VIEW:Record<string,[string,boolean]>={down:['knife/v1/front_',false],up:['knife/v1/top_',false],right:['knife/v1/side_',false],left:['knife/v1/side_',true]};
 const color=(hex:string)=>new Color().fromHEX(hex);
+const AIM_HOLD=.3;
+const FACING_DIR:Record<string,[number,number]>={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
 
 @ccclass('KitchenClient')
 export class KitchenClient extends Component {
@@ -55,6 +57,11 @@ export class KitchenClient extends Component {
     private moveSeq=Date.now()*1000;
     private lastMoveAt=0;
     private manualDirection={x:0,y:0};
+    // Hold Space to aim a throw (Overcooked-style): after AIM_HOLD seconds the chef stops, an arrow
+    // shows the direction, direction keys turn it, and releasing Space throws along it.
+    private spaceDownAt:number|null=null;
+    private aiming:{x:number,y:number}|null=null;
+    private aimArrow:Node|null=null;
     // Held-key walking is predicted locally so the chef answers on the same frame, then eased onto server state.
     private predicted:number[]|null=null;
     /** Held-key walk in whole server ticks: position at the last tick, the next one, and the progress between. */
@@ -247,30 +254,34 @@ export class KitchenClient extends Component {
             return;
         }
         if(dock&&(e.key==='Enter'||e.code==='Space'||e.key==='Tab'))return;
-        if(e.key==='Shift'&&this.state?.phase==='running'){
+        // Enter bookmarks the moment, unless a focused on-screen control should be pressed.
+        if(e.key==='Enter'&&this.state?.phase==='running'&&!(this.focusId&&this.buttons[this.focusId]?.enabled&&this.buttons[this.focusId].node.activeInHierarchy)){
             e.preventDefault();e.stopImmediatePropagation();
             if(!e.repeat&&!e.ctrlKey&&!e.altKey&&!e.metaKey)this.bookmark();
             return;
         }
         if(this.state?.phase==='running'&&this.connected){
-            // Overcooked layout, browser-safe keys: Space = whatever the faced target needs (pick up,
-            // put down, and chop/wash too), E = chop, wash, extinguish or throw ahead (Overcooked's
-            // Ctrl), Q = dash (Overcooked's Alt). Held direction keys survive both.
-            if(e.code==='Space'||e.code==='KeyE'){
+            // Keys that keep the WASD fingers in place: Space (thumb) = whatever the faced target needs,
+            // including chop, wash and extinguish; hold Space to aim a throw; Shift (little finger) =
+            // dash (Overcooked's Alt, which browsers reserve).
+            if(e.key==='Shift'){
+                e.preventDefault();
+                if(!e.repeat&&!this.aiming&&(this.manualDirection.x!==0||this.manualDirection.y!==0))this.sendMove(this.manualDirection.x,this.manualDirection.y,true);
+                return;
+            }
+            if(e.code==='Space'){
                 e.preventDefault();
                 if(!e.repeat&&!e.ctrlKey&&!e.altKey&&!e.metaKey){
-                    const use=e.code==='KeyE';if(!use)this.handsBusyUntil=this.clock+.35;
-                    this.post('/api/interact',{expected_item:this.state.kitchen.chefs.human.holding?.id||null,...(use?{mode:'use'}:{})});
+                    const s=this.state,held=s.kitchen.chefs.human.holding;
+                    // Facing open floor with something in hand, Space either puts it down (tap) or
+                    // aims a throw (hold): decide on release or after AIM_HOLD. Everything else acts now.
+                    if(held&&(!s.interaction||s.interaction.kind==='drop'))this.spaceDownAt=this.clock;
+                    else{this.handsBusyUntil=this.clock+.35;this.post('/api/interact',{expected_item:held?.id||null});}
                 }
                 return;
             }
-            if(e.code==='KeyQ'){
-                e.preventDefault();
-                if(!e.repeat&&(this.manualDirection.x!==0||this.manualDirection.y!==0))this.sendMove(this.manualDirection.x,this.manualDirection.y,true);
-                return;
-            }
             const key=e.key.toLowerCase();if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(key)){e.preventDefault();
-                this.heldKeys.add(key);this.refreshMovement();return;}
+                this.heldKeys.add(key);if(this.aiming)this.steerAim();else this.refreshMovement();return;}
         }
         if(e.key==='Tab'){
             e.preventDefault();const ids=this.tabOrder().filter(id=>this.buttons[id]?.enabled&&this.buttons[id].node.activeInHierarchy);
@@ -299,8 +310,47 @@ export class KitchenClient extends Component {
     };
     private announce(message:string){if(!sys.isNative&&message)window.dispatchEvent(new CustomEvent('kitchen-announce',{detail:{message}}));}
     private onKeyUp=(e:KeyboardEvent)=>{
-        const key=e.key.toLowerCase();if(this.heldKeys.delete(key))this.refreshMovement();
+        if(e.code==='Space'){
+            if(this.aiming){
+                const d=this.aiming,held=this.state?.kitchen.chefs.human.holding;this.endAim();
+                if(held&&this.state?.phase==='running')this.post('/api/throw',{expected_item:held.id,direction:[d.x,d.y]});
+                this.refreshMovement();
+            }else if(this.spaceDownAt!==null){
+                this.spaceDownAt=null;this.handsBusyUntil=this.clock+.35;
+                this.post('/api/interact',{expected_item:this.state?.kitchen.chefs.human.holding?.id||null});
+            }
+            return;
+        }
+        const key=e.key.toLowerCase();if(this.heldKeys.delete(key)){if(this.aiming)this.steerAim();else this.refreshMovement();}
     };
+    private keyDirection(){
+        const x=(this.heldKeys.has('d')||this.heldKeys.has('arrowright')?1:0)-(this.heldKeys.has('a')||this.heldKeys.has('arrowleft')?1:0);
+        const y=(this.heldKeys.has('s')||this.heldKeys.has('arrowdown')?1:0)-(this.heldKeys.has('w')||this.heldKeys.has('arrowup')?1:0),mag=Math.hypot(x,y);
+        return mag?{x:x/mag,y:y/mag}:null;
+    }
+    /** Space held long enough: stop, and aim along the held direction (or the facing). */
+    private startAim(){
+        this.spaceDownAt=null;
+        const c=this.state?.kitchen.chefs.human,f=FACING_DIR[c?.facing]||[0,1];
+        this.aiming=this.keyDirection()||{x:f[0],y:f[1]};
+        if(this.manualDirection.x!==0||this.manualDirection.y!==0){this.manualDirection={x:0,y:0};this.sendMove(0,0);}
+        this.drawAim();
+    }
+    private steerAim(){const d=this.keyDirection();if(d&&this.aiming){this.aiming=d;this.drawAim();}}
+    private endAim(){this.aiming=null;this.spaceDownAt=null;if(this.aimArrow?.isValid)this.aimArrow.active=false;}
+    private drawAim(){
+        const chef=this.people['human'];if(!this.aiming||!this.world||!chef)return;
+        if(!this.aimArrow?.isValid){this.aimArrow=this.child(this.world,'aim-arrow',10,10);this.aimArrow.addComponent(Graphics);}
+        const a=this.aimArrow,k=this.state!.kitchen,reach=(k.map.pass_range||k.map.throw_range||4)*TILE;
+        a.active=true;a.setSiblingIndex(this.world.children.length-1);a.setPosition(chef.position.x,chef.position.y+18);
+        const g=a.getComponent(Graphics)!;g.clear();
+        const ex=this.aiming.x*reach,ey=-this.aiming.y*reach,px=-ey/reach*7,py=ex/reach*7,bx=ex-this.aiming.x*14,by=ey+this.aiming.y*14;
+        for(const [w,c] of [[6,COLORS.ink],[3,COLORS.paper]] as [number,string][]){
+            g.lineWidth=w;g.strokeColor=color(c);g.moveTo(this.aiming.x*20,-this.aiming.y*20);g.lineTo(bx,by);g.stroke();
+        }
+        g.fillColor=color(COLORS.paper);g.strokeColor=color(COLORS.ink);g.lineWidth=2;
+        g.moveTo(ex,ey);g.lineTo(bx+px,by+py);g.lineTo(bx-px,by-py);g.close();g.fill();g.stroke();
+    }
     // Anything held can be thrown or passed; the server applies each item's range (currently 4 tiles for all).
     private async sendMove(dx:number,dy:number,sprint=false){if(!this.state||this.state.phase!=='running'||!this.connected)return;const seq=++this.moveSeq;this.lastMoveAt=this.clock;try{await this.request('/api/move',{game_id:this.state.game_id,dx,dy,seq,sprint});}catch(e){this.set('event',(e as Error).message);}}
     private refreshMovement(){
@@ -345,7 +395,7 @@ export class KitchenClient extends Component {
         }
         return this.predicted=next;
     }
-    private clearInput(){this.heldKeys.clear();const wasMoving=this.manualDirection.x!==0||this.manualDirection.y!==0;this.manualDirection={x:0,y:0};if(wasMoving)this.sendMove(0,0);}
+    private clearInput(){this.endAim();this.heldKeys.clear();const wasMoving=this.manualDirection.x!==0||this.manualDirection.y!==0;this.manualDirection={x:0,y:0};if(wasMoving)this.sendMove(0,0);}
     private make(name:string,x:number,y:number,w:number,h:number,parent=this.node){
         const n=new Node(name);n.layer=Layers.Enum.UI_2D;parent.addChild(n);
         n.addComponent(UITransform).setContentSize(w,h);n.setPosition(x-640,360-y);return n;
@@ -1198,7 +1248,7 @@ export class KitchenClient extends Component {
         if(!this.state||!this.mounted)return;const s=this.state,k=s.kitchen,active=s.phase==='running'&&!this.pending&&this.connected;
         const remaining=Math.max(0,Math.ceil(k.round_remaining));
         this.set('clock',`${String(Math.floor(remaining/60)).padStart(2,'0')}:${String(remaining%60).padStart(2,'0')}  ${s.phase==='running'?'营业中':s.phase==='ended'?'已结算':'休息中'}`);
-        const sprint=k.chefs.human.sprint;this.set('sprint-status',!sprint?'':sprint.active_remaining>0?'冲刺中':sprint.cooldown_remaining>0?'冲刺冷却 '+Math.ceil(sprint.cooldown_remaining)+'s':'冲刺 · Q');
+        const sprint=k.chefs.human.sprint;this.set('sprint-status',!sprint?'':sprint.active_remaining>0?'冲刺中':sprint.cooldown_remaining>0?'冲刺冷却 '+Math.ceil(sprint.cooldown_remaining)+'s':'冲刺 · Shift');
         this.set('fire-status',k.fire_safety?.burning_count?`着火工位 ${k.fire_safety.burning_count}/${k.fire_safety.loss_threshold}`:'');
         this.labels.clock.color=color(remaining<=30?COLORS.hot:COLORS.muted);this.drawOrders();
         for(const [id,dev] of Object.entries(this.devices)){
@@ -1297,8 +1347,8 @@ export class KitchenClient extends Component {
         {
             const short=(a:Action)=>a.label.split('（')[0],parts:string[]=[];
             if(s.interaction)parts.push('空格 · '+short(s.interaction));
-            if(s.use_interaction&&s.use_interaction.key!==s.interaction?.key)parts.push('E · '+(s.use_interaction.kind==='throw'?'向前抛出':short(s.use_interaction)));
-            this.set('interaction',parts.length?parts.join('　'):(s.interaction_hint||'面向工位或物品按空格'));
+            if(held&&(!s.interaction||s.interaction.kind==='drop'))parts.push('长按空格 · 瞄准投掷');
+            this.set('interaction',this.aiming?'松开空格投掷 · 方向键改方向':parts.length?parts.join('　'):(s.interaction_hint||'面向工位或物品按空格'));
         }
         // Game results keep the event line; Jeff's decisions and errors use their own status.
         const results=s.events.filter(e=>!this.isAiNote(e));
@@ -1359,6 +1409,9 @@ export class KitchenClient extends Component {
     }
     update(dt:number){
         this.clock+=dt;this.audio.update(dt);if(!this.state||!this.mounted)return;const k=this.state.kitchen;
+        if(this.spaceDownAt!==null&&this.clock-this.spaceDownAt>=AIM_HOLD)this.startAim();
+        if(this.aiming&&this.state.phase!=='running')this.endAim();
+        if(this.aiming)this.drawAim();
         // Result pops rise and fade over 1.4s (no rise with reduced motion); header numbers pulse.
         this.pops=this.pops.filter(p=>{
             const age=(this.clock-p.born)/1.4;if(age>=1||!p.node.isValid){p.node.destroy();return false;}

@@ -535,14 +535,17 @@ class GameSession:
         if path == '/api/throw':
             if self.phase != 'running' or not hasattr(self.k,'throw_action'):
                 return 409, {'error':'当前不能抛掷'}
-            target = body.get('target')
+            # Either a landing point, or a direction to aim along (hold Space, steer, release).
+            aimed = 'direction' in body
+            target = body.get('direction') if aimed else body.get('target')
             if (not isinstance(target,list) or len(target)!=2
-                    or any(isinstance(v,bool) or not isinstance(v,(int,float)) or not math.isfinite(v) or abs(v)>10000 for v in target)):
+                    or any(isinstance(v,bool) or not isinstance(v,(int,float)) or not math.isfinite(v) or abs(v)>10000 for v in target)
+                    or (aimed and not any(target))):
                 return 400, {'error':'抛掷坐标无效'}
             hand = self.k.chefs['human'].hand
             if not hand or hand.id != body.get('expected_item'):
                 return 409, {'error':'手中物品已变化'}
-            action = self.k.throw_action('human',target)
+            action = self.k.aimed_throw('human',target) if aimed and hasattr(self.k,'aimed_throw') else self.k.throw_action('human',target)
             if not action:
                 return 409, {'error':'没有可用落点，或此物品不能抛掷'}
             ok,message = self.k.start('human',action)

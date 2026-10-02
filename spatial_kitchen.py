@@ -881,18 +881,24 @@ class SpatialKitchen(Kitchen):
         return next((a for a in actions if a.kind=='drop'),None) if chef.hand else None
 
     def forward_throw(self, who):
-        """E with a held item and nothing to use: throw straight ahead (Overcooked-style).
+        """Throw the held item straight ahead along the facing (see aimed_throw)."""
+        return self.aimed_throw(who,FACING_STEPS[self.facing[who]],key='throw forward')
 
-        Aims at the partner when they stand roughly ahead within reach, otherwise at
-        full reach along the facing; walls and range clip it as for any throw.
+    def aimed_throw(self, who, direction, key='throw aimed'):
+        """Throw the held item along ``direction`` (Overcooked-style: hold to aim, release).
+
+        Aims at the partner when they stand roughly in that direction within reach, otherwise
+        at full reach; walls and range clip it as for any throw.
         """
         if not self.chefs[who].hand or not self.can_throw(who):return None
-        dx,dy=FACING_STEPS[self.facing[who]]
+        length=math.hypot(*direction)
+        if not length:return None
+        dx,dy=direction[0]/length,direction[1]/length
         (x,y),reach=self.positions[who],self.throw_range(who)
         other=self.positions['jeff' if who=='human' else 'human']
         ahead=(other[0]-x)*dx+(other[1]-y)*dy;side=abs((other[0]-x)*dy-(other[1]-y)*dx)
         aim=other if 0<ahead<=reach and side<=self.rules.catch_radius else (x+dx*reach,y+dy*reach)
-        return self.throw_action(who,aim,key='throw forward')
+        return self.throw_action(who,aim,key=key)
 
     def interaction_hint(self, who, preferred=None):
         if preferred and preferred.startswith('floor_'):return '面前没有可操作目标'
