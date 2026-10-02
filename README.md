@@ -2,16 +2,16 @@
 
 English · [中文](README.zh-CN.md)
 
-What can't be computed? We seem to have been asking this since the first computers: what is it that a computer cannot do?
-My first answer was cooking. Does a computer know how to cook? Today we can start with an easier question: can an AI cook?
+What can't be computed? We seem to have been asking this ever since computers appeared: what can a computer not do?
+My first answer was cooking. Does a computer know how to cook? Now we can ask: can an AI cook?
 
-ChefJeff is a real-time cooking game in which a person and an AI cook together. It is also an extensible environment for human–AI collaboration experiments. We put a person and an AI in the same kitchen to test cooperation rather than competition. Our aim is a visual, hands-on environment for understanding a world where people and AI live and work together, and an open human–AI collaboration benchmark that keeps improving with the open-source community. If you research human–computer interaction, human factors or human–machine communication, you are welcome to use the environment in your own studies.
+ChefJeff is a real-time cooking game in which a person and an AI cook together, and an extensible environment for human–AI collaboration experiments. Putting a person and an AI in one kitchen, it tests cooperation rather than competition. We want to offer a visual environment for understanding a world that people and AI share, and to grow an open human–AI collaboration benchmark together with the open-source community. Researchers in human–computer interaction, human factors and human–machine communication are welcome to use it in their own studies.
 
 ![Gameplay](docs/images/gameplay.png)
 
-Where to start: [run it locally](#run-it-locally) · [connect your own model](#jeff-and-model-integration) · [change the configuration](#five-data-models) · [the environment and benchmark](#a-humanai-collaboration-environment-and-benchmark)
+Where to start: [run it locally](#run-it-locally) · [connect your own model](#jeff-and-model-integration) · [change the configuration](#five-data-models) · [the environment and benchmark](#building-a-humanai-collaboration-environment-and-benchmark)
 
-> Current version: **0.6.0-beta.1**, the first public test release. You need to configure your own model API, and interfaces and analysis rules may still change. We suggest starting with Jev models: the results are only so-so, but they are cheap. Reports on how other models do are welcome.
+> Current version: **0.6.0-beta.1**, the first public test release. You need your own model API, and interfaces and analysis rules may still change. We suggest starting with Jev models: they don't play especially well, but they are cheap. Results from other models are welcome.
 
 ---
 
@@ -27,7 +27,7 @@ python3 scripts/launch_web.py
 
 On Windows, use `py -3 scripts/launch_web.py`. You can also double-click `start-web.command` (macOS) or `start-web.bat` (Windows).
 
-Then open <http://127.0.0.1:8775/> in your browser, enter your own model API under Settings, and start a round once the connection test succeeds. ChefJeff supports the TypeSafe Jev interface and Chat Completions-compatible interfaces. If you use another model, check for yourself that it returns actions in the required format and responds quickly enough.
+Then open <http://127.0.0.1:8775/> in your browser, enter your model API details under Settings, and start a round once the connection test succeeds. ChefJeff supports the TypeSafe Jev interface and Chat Completions-compatible interfaces. If you use another model, check for yourself that it returns actions in the required format and responds quickly enough.
 
 > **About costs**: the connection test and every round use your own model account, and that account pays for the calls. By default a round makes at most 200 calls (adjustable from 1 to 2000). This limits the number of calls, not the amount of money. This is a real-time game and the kitchen never stops, so if the model is too slow, Jeff spends most of the round standing still, thinking.
 
@@ -41,7 +41,7 @@ ChefJeff plays much like Overcooked: two chefs cook together. The difference is 
 
 You control one chef with the keyboard: walk, fetch ingredients, chop, cook, plate, serve and wash plates. Jeff is the other chef, driven by a large language model, and every few seconds he decides what to do next. You share one kitchen and the same physical rules (walking speed, throwing distance, collisions), but you see the kitchen and act in it in different ways; see [Jeff and model integration](#jeff-and-model-integration).
 
-A round lasts 180 seconds. Orders arrive at regular intervals, each with its own countdown, and an order that runs out costs money. Reaching the target does not end the round early: the kitchen stays open until closing time, and the level is cleared if net revenue at closing meets the target. So once you've reached it, you and Jeff can keep going for more.
+A round lasts 180 seconds. Orders arrive at regular intervals, each with its own countdown, and an order that expires costs you money. Reaching the target does not end the round early: the kitchen stays open until closing time, and the level is cleared if net revenue at closing meets the target. So once you've reached it, you and Jeff can keep going for more.
 
 | Level | Menu | What's special | Target |
 | --- | --- | --- | --- |
@@ -49,9 +49,8 @@ A round lasts 180 seconds. Orders arrive at regular intervals, each with its own
 | Level 2 · Burger | Burger ¥80 | A long counter splits the kitchen in two, so a lot has to be passed across it | ¥150 |
 | Level 3 · Steak and burger | Steak, burger | Two stoves and three frying pans; both dishes at once | ¥190 |
 
-How the two of you can work together:
-chop, cook, plate and serve. Along the way Jeff may pass dishes to you, or chop, pass and wash up alongside you. He may also bump you aside to handle something himself, and of course you can do the same to him.
-If you're not happy with the model, press 1–6 to tell Jeff what kind of work you want to do, or to point out that he just made a mistake.
+Working together, you chop, cook, plate and serve between you. Along the way Jeff may pass you dishes, or chop, pass and wash up alongside you. He may also bump you aside to handle something himself, and you can do the same to him.
+If the model isn't doing what you want, press 1–6 to tell Jeff what kind of work you'd like to do, or that he just made a mistake.
 
 The controls work much as in Overcooked:
 
@@ -61,7 +60,8 @@ The controls work much as in Overcooked:
 | Space | Do whatever the thing in front of you needs: fetch, pick up, put down, put in the pan, plate, serve; it can also chop and wash |
 | E | Processing only: chop, wash, put out a fire. If there is nothing to process in front of you and you are holding something, throw it forward |
 | 1–6 | Tell Jeff what kind of work you want to do, or point out a mistake |
-| Esc or P | Pause (use P on iPad keyboards without an Esc key). Settings let you connect a model, switch language, adjust volume and export the round |
+| Shift | Bookmark the current moment without pausing or interrupting anything; bookmarks are included in the run export |
+| Esc or P | Pause (use P on iPad keyboards without an Esc key). Settings let you connect a model, switch language, adjust volume and export the run |
 
 After each round, a round record pops up. It shows how many times you and Jeff each fetched ingredients, chopped, cooked, served and washed plates, and how much time each of you spent on getting dishes out.
 
@@ -70,8 +70,6 @@ The game has Chinese and English interfaces, with 8-bit style music and sound ef
 ---
 
 ## Technical foundations
-
-The earliest version was a small playable prototype with its rules written in code. Version 0.6.0 rebuilt it as an experimental environment that is data-driven and can record and replay rounds.
 
 ### Five data models
 
@@ -101,14 +99,14 @@ Current kitchen state (orders, workstations, items on the floor, what each chef 
 - **Different observation and control.** You press keys in real time and move step by step. Jeff picks whole steps such as "fetch", "chop" or "serve", and the engine walks him there and carries them out.
 - **The default rule descriptions state only facts.** Everything sent to Jeff is in English, and the two chefs are always called `human` and `jeff`. The rules say what can be done and what will happen. They don't assign roles or suggest how to cooperate.
 - **Two other inputs are run conditions.** The messages you send with 1–6, and summaries of earlier rounds from rolling cross-round memory (on by default; it can be turned off or cleared in Settings), are also sent to Jeff. When rounds are analysed, these are recorded separately from the rule descriptions.
-- **Every decision is logged:** what was chosen, whether it was accepted, and whether it was completed are recorded separately, so you can check afterwards what really happened.
+- **Every decision is logged.** What was chosen, whether it was accepted and whether it was completed are recorded separately, so you can check afterwards what actually happened.
 
 To connect your own model, implement two methods, `payload(state, actions)` and `ask(payload)`. See [agent integration](docs/agent-integration.md).
 
 ### Records and analysis
 
 1. **Round records and replay**: when a round starts, its configuration is frozen and hashed; from then on every step is stored as one event stream, together with the player's inputs. `python3 collaboration_analyzer.py logs/sessions/<round id>` replays the round without calling any model and checks the replay against the original record. Replays are only guaranteed to match within the same version; a round recorded by an older version may replay differently. See [session records](docs/architecture/session-record.md).
-2. **Item history and collaboration analysis**: the engine records whose hands every ingredient, plate and pan has passed through. Using the rules as currently defined, tracing back from every dish that was served gives each action's relation to serving, how much time each chef spent on serving dishes, and each chef's share of the "critical path" that set the serving pace. These results can be recomputed exactly, but whether they reflect good cooperation still needs human interpretation. For example, ingredients prepared early but left unused because the orders changed don't mean the preparation was pointless at the time. The idea draws on the CCE metric from AgentWorld (arXiv 2609.31590); see [collaboration analysis](docs/architecture/collaboration-analyzer.md).
+2. **Item history and collaboration analysis**: the engine records whose hands every ingredient, plate and pan has passed through. Using the rules as currently defined, tracing back from each served dish shows how every action contributed to it, how much time each chef spent on served dishes, and each chef's share of the "critical path" that set the serving pace. These results can be recomputed exactly, but whether they reflect good cooperation still needs human interpretation. For example, ingredients prepared early but left unused because the orders changed don't mean the preparation was pointless at the time. The idea draws on the CCE metric from AgentWorld (arXiv 2609.31590); see [collaboration analysis](docs/architecture/collaboration-analyzer.md).
 
 ### Code layout
 
@@ -144,9 +142,9 @@ The export shows a preview first. If you'd like to contribute a round to researc
 
 ---
 
-## A human–AI collaboration environment and benchmark
+## Building a human–AI collaboration environment and benchmark
 
-We want to use this game to answer one question: **when things move fast and time is short, how do people and AI work together?**
+With this game we want to answer one question: **when things move fast and time is short, how do people and AI work together?**
 
 - **We care about the process.** The number of orders served is the result. What we want to know is who took on which task and when, how each responded to the other, and how they recovered when a plan fell apart.
 - **We don't arrange the cooperation for Jeff.** The default rule descriptions assign no roles and offer no cooperation strategy. Whether and how cooperation happens is exactly what we want to observe.
@@ -154,20 +152,20 @@ We want to use this game to answer one question: **when things move fast and tim
 
 ### Why a benchmark like this is needed
 
-Most agent evaluations today test whether an agent can finish a task on its own: write code, look something up, operate a web page. But we are, and will remain for a long time, in a period of people and agents working together. This is especially true for embodied AI, where fully autonomous agents are not yet a reality: AI and people share one environment, act at the same time, and sometimes bear the consequences together. So in human–AI collaboration it matters not only whether the AI knows what to do and how, but even more whether it responds in time, understands what its human partner is doing, and knows when to step back, when to step in and when to cover a gap.
+Most agent evaluations today test whether an agent can finish a task on its own: write code, look something up, operate a web page. Yet we are, and will long remain, in an era of people and agents working together. This is especially true in embodied settings, where fully autonomous agents are not yet a reality: AI and people share an environment, act at the same time, and may bear the consequences together. In human–AI collaboration, then, what matters is not only whether the AI knows what to do and how, but whether it responds in time, understands what its human partner is doing, and knows when to step back, when to step in and when to cover for them.
 
 Overcooked-AI (Carroll et al., 2019) used an Overcooked-style environment to study how people coordinate with reinforcement-learning agents. ChefJeff targets large-language-model agents: the rules are described in text, actions are whole decisions such as "chop" or "serve", and the model decides in real time, under real latency. In this setting:
 
-1. **Speed is part of the ability.** The kitchen doesn't wait for the model to finish thinking. The same decision made a few seconds late leads to a different outcome, so decision quality, response time and call cost all land on the same bill.
-2. **You can see where failure happens.** The history of every ingredient, whether each decision was accepted and completed, and each chef's share of the critical path are all recorded. When an agent does poorly, you can ask: can it not plan, can it not read its partner, or did the interface never give it a chance to plan?
+1. **Speed is part of the ability.** The kitchen doesn't wait for the model to finish thinking. The same decision made a few seconds late leads to a different outcome, so decision quality, response time and call cost all end up on the same bill.
+2. **You can see where failure happens.** The history of every ingredient, whether each decision was accepted and completed, and each chef's share of the critical path are all recorded. When an agent does poorly, you can ask: is it unable to plan, unable to read its partner, or did the interface never give it a chance to plan?
 3. **Reproducible and comparable.** Configuration hashes, fixed seeds, offline replay and the baseline ladder put rounds from different models and different players on the same scale.
-4. **Run conditions can be controlled one at a time.** How much of the partner's state is visible, whether the two can communicate, whether there is cross-round memory: each can be switched as a separate variable to see how it changes the cooperation.
+4. **Run conditions can be controlled one at a time.** How much of the partner's state is visible, whether the two can communicate, whether there is cross-round memory: each can be switched on or off as a separate variable to see how it changes the cooperation.
 5. **People are observed too.** How does an agent compare with a human partner? Would people rather direct the AI, or work with it?
 6. **Cheap to extend.** A new scenario is a handful of JSON files, the backend uses only the Python standard library, and the community can keep adding scenarios and rounds.
 
 ### What the benchmark is made of
 
-The unit is a single map, one scenario:
+Each scenario is a single map:
 
 - **Scenario**: one frozen five-model configuration, with its configuration hash, random seeds and the reference scores from the baseline ladder. The baseline ladder runs scripted chefs in three setups: one chef alone, one chef plus a partner who wanders at random, and two scripted chefs working together. The target revenue is half of what the scripted pair earns, and the solo script must fall short of it (Level 1, the practice level, is exempt). This only shows that the scripts can't reach the target alone; the real difficulty still has to be checked with people and other agents.
 - **Participants and interface conditions**: people, models or scripted chefs, and how much each can observe and communicate.
