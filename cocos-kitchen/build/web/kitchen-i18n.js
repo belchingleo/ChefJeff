@@ -487,7 +487,10 @@
     "沙拉": "Salad",
     "芝士汉堡": "Cheeseburger",
     "鸡肉卷": "Chicken wrap",
-    "煎鱼排": "Fried fish"
+    "煎鱼排": "Fried fish",
+    "葱箱": "Scallion supply",
+    "面条箱": "Noodle supply",
+    "鸡肉箱": "Chicken supply"
   },
   "templates": [
     [
