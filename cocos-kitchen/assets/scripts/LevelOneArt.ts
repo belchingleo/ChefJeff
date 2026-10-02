@@ -1,6 +1,6 @@
 import { JsonAsset, Layers, Node, Rect, Size, resources, Sprite, SpriteFrame, Texture2D, UITransform } from 'cc';
 
-type Frame = { rect:number[]; anchor?:number[]; canvasSize?:number[]; groundAnchor?:number[]; workSurfaceAnchor?:number[]; alpha_bbox?:number[] };
+type Frame = { rect:number[]; anchor?:number[]; canvasSize?:number[]; groundAnchor?:number[]; workSurfaceAnchor?:number[]; alpha_bbox?:number[]; [field:string]:unknown };
 type Manifest = { frames:Record<string,Frame> };
 
 /** Reviewed, local sprites only. Rendering never changes kitchen observations or rules. */
@@ -36,7 +36,13 @@ export class LevelOneArt {
             catch(error){console.warn('Burger food art unavailable; retaining readable ingredient icons.',error);}
             await this.loadAtlas('art/grid-foundation-v1');
             await this.loadAtlas('art/action-feedback-v1');
+            // Both chefs: every pose (walk, idle, chop) composited from one master body per view, all 68x88.
+            try {await this.loadAtlas('art/chefs-v2');}
+            catch(error){console.warn('Chef master-body art unavailable.',error);}
             await this.loadAtlas('art/knife-v1');
+            // The chop knife as its own layer (art standard v1 knife frames only; item art is unchanged).
+            try {await this.loadAtlas('art/knife-arc-v1');}
+            catch(error){console.warn('Knife arc art unavailable; chefs keep the painted knife.',error);}
             await this.loadAtlas('art/trash-directions-v1');
             if(typeof location!=='undefined'&&new URLSearchParams(location.search).get('prepSample')==='1')
                 await this.loadAtlas('art/prep-pose-v3');
@@ -44,6 +50,8 @@ export class LevelOneArt {
         } catch(error) { console.warn('ChefJeff level 1 art unavailable; retaining readable fallback.',error); }
     }
     has(key:string){return !!this.frames[key];}
+    /** Manifest entry of a frame (grip, pivot, edge points), or undefined. */
+    meta(key:string):any{return this.definitions[key];}
     /** Natural pixel proportions, one 64 px art unit per gameplay cell. */
     tile(parent:Node,key:string,cellSize:number,x=0,y=0):boolean {
         const name='modular/'+key,definition=this.definitions[name];

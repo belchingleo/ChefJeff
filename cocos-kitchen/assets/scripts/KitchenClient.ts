@@ -28,6 +28,8 @@ const STAGES: Record<string,string> = {extinguisher:'灭火器',clean_plate:'干
 // Fallback tints by stage: uncooked and cooking states of items that cook, and anything burnt.
 const FOOD_COLORS: Record<string,string> = {raw:'#d68f8c',chopped:'#dcaa86',cooking:'#b58359',ready:'#846144',burnt:'#3e3733',extinguisher:'#c65138'};
 const TILE=GRID_ART.tile, MAPX=GRID_ART.originX, MAPY=GRID_ART.originY;
+// Knife frames per facing: front view toward the viewer, top view up-screen, side view (mirrored for left).
+const KNIFE_VIEW:Record<string,[string,boolean]>={down:['knife/v1/front_',false],up:['knife/v1/top_',false],right:['knife/v1/side_',false],left:['knife/v1/side_',true]};
 const color=(hex:string)=>new Color().fromHEX(hex);
 
 @ccclass('KitchenClient')
@@ -66,6 +68,9 @@ export class KitchenClient extends Component {
     private knifeProbe:Node|null=null;
     private cutProbe:Node|null=null;
     private chopImpacts:Record<string,Node>={};
+    private knives:Record<string,Node>={};
+    private knifeHands:Record<string,Node>={};
+    private knifeEdges:Record<string,number[]|null>={};
     private received=0;
     private labels: Record<string,Label>={};
     private buttons: Record<string,ButtonView>={};
@@ -859,7 +864,7 @@ export class KitchenClient extends Component {
             overlay.setSiblingIndex(n.children.length-1);
         }
         for(const who of ['human','jeff']){
-            const n=this.chef(this.world!,who,0,0,who,this.useModularArt?.8:.65);
+            const n=this.chef(this.world!,who,0,0,who,this.useModularArt?TILE/64:.65);  // chefs-v2 frames: 64 art px per tile, like the counters
             const dust=this.child(n,'sprint-dust',55,28,-18,-24);dust.addComponent(Graphics);dust.active=false;dust.setSiblingIndex(0);
             this.locate(n,this.state!.kitchen.chefs[who].position);
             this.registerDepth(n,()=>{const c=this.state!.kitchen.chefs[who],e=this.state!.kitchen.map.equipment[c.target];return workingChefDepth((360-MAPY-n.position.y)/TILE-.5,e?.cell[1],c.facing,!!c.working&&!!e);});
@@ -901,7 +906,10 @@ export class KitchenClient extends Component {
         // Raise, swing, strike, recover: the chop frames move arms and knife together.
         const beat=((this.activeClock/.4+(who==='human'?0:.27))%1+1)%1;
         const phase=knifePilot?1:Number.isInteger(sampleFrame)&&sampleFrame>=0&&sampleFrame<4?sampleFrame:beat<.3?0:beat<.45?1:beat<.75?2:3;
-        const actionKey=`characters/${kind}/${facing}/chop_${phase}`;
+        const paintedKey=`characters/${kind}/${facing}/chop_${phase}`,knifeless='knifeless/'+paintedKey;
+        // With the knife layer, the body comes from the knife-free poses; the painted knife is a fallback.
+        const layered=chopping&&this.art.has(knifeless)&&this.art.has(KNIFE_VIEW[facing][0]+'0');
+        const actionKey=layered?knifeless:paintedKey;
         const hasAction=chopping&&this.art.has(actionKey);
         const pilot=hasAction&&who==='jeff'&&facing==='down'&&this.prepSampleBoard(chef.target)&&this.art.has('prep/jeff/down/contact-body');
         const frame=walking?`walk_${Math.floor(this.activeClock*12)%8}`:'idle_0';
@@ -921,7 +929,6 @@ export class KitchenClient extends Component {
         }
         body.getComponent(Graphics)!.enabled=!shown;
         for(const child of body.children)if(!['held','reviewed-art'].includes(child.name))child.active=!shown;
-        if(inWorld)this.chopImpact(who,hasAction&&phase===2&&beat<.62,(beat-.45)/.17);
         if(inWorld&&chopping)this.knifeStrike(who,beat,.45);
         if(shown){
             // Behind a waist-high counter the body sinks so the counter hides the legs; by
@@ -939,7 +946,52 @@ export class KitchenClient extends Component {
             for(const name of ['profile','back'])body.getChildByName(name)!.active=false;
             body.getChildByName('right-arm')!.getChildByName('knife')!.active=false;
         }
+        // After the sink offset, so the knife stays in the hand.
+        if(inWorld)this.chopKnife(who,layered&&hasAction&&!!shown?actionKey:'',facing,phase);
+        if(inWorld)this.chopImpact(who,hasAction&&phase===2&&beat<.62,(beat-.45)/.17);
         return shown;
+    }
+    /** The knife (art standard v1) as its own layer, pivoting on the pose's grip. It is drawn just
+     * above the food on the board, so the blade lands on board and food in every facing, and stays
+     * behind a chef who faces up at the board. A pose's fist overlay (<pose>_hand) goes on top of
+     * the knife so the hand closes around the handle. Poses name their knife frame (older poses map
+     * lift, half, strike (held), half to the view's frames 2, 1, 0, 1), and the knife is turned to
+     * the pose's grip_angle, so the blade sweeps a real arc in every view. */
+    private chopKnife(who:string,poseKey:string,facing:string,phase:number){
+        let knife=this.knives[who],hand=this.knifeHands[who];
+        const pose=poseKey?this.art.meta(poseKey):null;
+        this.knifeEdges[who]=null;
+        if(!pose?.grip||pose.knife_hidden){if(knife?.isValid)knife.active=false;if(hand?.isValid)hand.active=false;return;}
+        const depth=(lift:number)=>()=>{const c=this.state!.kitchen.chefs[who],e=this.state!.kitchen.map.equipment[c.target];return depthOrder(e?.cell[1]??c.position[1],'item')+lift;};
+        if(!knife?.isValid){knife=this.child(this.world!,'chop-knife-'+who,64,64);this.knives[who]=knife;this.registerDepth(knife,depth(.01));}
+        if(!hand?.isValid){hand=this.child(this.world!,'chop-hand-'+who,68,88);this.knifeHands[who]=hand;this.registerDepth(hand,depth(.011));}
+        const [view,mirror]=KNIFE_VIEW[facing],key=pose.knife||view+[2,1,0,1][phase],frame=this.art.meta(key);
+        if(!frame?.pivot){knife.active=false;hand.active=false;return;}
+        knife.active=true;
+        // Pose canvas px (top-left origin) -> the 68x88 box the body is drawn in, above its foot anchor.
+        const [cw,ch]=pose.canvasSize||[68,88],footY=(pose.anchor||[.5,.068])[1]*88,handKey=poseKey+'_hand',overlay=this.art.has(handKey);
+        // With a fist overlay, grip is the fist centre. Older poses give where the painted blade
+        // began, and the hand closes about 3 px behind it.
+        const a=(pose.grip_angle||0)*Math.PI/180,g=overlay?pose.grip:[pose.grip[0]-3*Math.cos(a),pose.grip[1]+3*Math.sin(a)];
+        const actor=this.people[who],body=actor.getChildByName('body')!,sx=actor.scale.x,sy=actor.scale.y;
+        const bodyX=actor.position.x+sx*body.position.x,bodyY=actor.position.y+sy*body.position.y;
+        knife.setPosition(bodyX+sx*(g[0]*68/cw-34),bodyY+sy*(88-footY-g[1]*88/ch));
+        // Turn the knife about the grip so the blade points along the pose's grip_angle (degrees
+        // counter-clockwise from +x). Arc frames are drawn at their screen angle (pose.screen_angle_deg)
+        // and need no turn, which keeps their pixels crisp. A side knife pointing left is mirrored
+        // rather than turned past 90 degrees, keeping its edge underneath.
+        const built=frame.pose?.screen_angle_deg??Math.atan2(frame.pivot[1]-frame.tip[1],frame.tip[0]-frame.pivot[0])*180/Math.PI;
+        const want=typeof pose.grip_angle==='number'?pose.grip_angle:null,side=key.includes('/side_');
+        const flip=side&&(want===null?mirror:Math.cos(want*Math.PI/180)<0);
+        const turn=want===null?0:((want-(flip?180-built:built))%360+540)%360-180;
+        knife.setScale(flip?-sx:sx,sy,1);
+        knife.angle=Math.abs(turn)<.5?0:turn;
+        // Where the edge meets the board, in world units: the strike spark sits there.
+        const edge=frame.edge||frame.tip,ex=(edge[0]-frame.pivot[0])*(flip?-sx:sx),ey=(frame.pivot[1]-edge[1])*sy,r=knife.angle*Math.PI/180;
+        this.knifeEdges[who]=[knife.position.x+ex*Math.cos(r)-ey*Math.sin(r),knife.position.y+ex*Math.sin(r)+ey*Math.cos(r)];
+        this.art.show(knife,key,64,64,32-frame.pivot[0],frame.pivot[1]-32);
+        hand.active=overlay;
+        if(overlay){hand.setPosition(bodyX,bodyY);hand.setScale(sx,sy,1);this.art.show(hand,handKey,68,88);}
     }
     /** Sound one knife strike when the swing phase passes the board-contact point. */
     private knifeStrike(who:string,t:number,contact:number){
@@ -957,7 +1009,8 @@ export class KitchenClient extends Component {
         impact.active=active;
         const g=impact.getComponent(Graphics)!;g.clear();if(!active)return;
         const target=this.state!.kitchen.chefs[who].target;
-        this.locate(impact,this.state!.kitchen.map.equipment[target].cell);
+        const edge=this.knifeEdges[who];
+        if(edge)impact.setPosition(edge[0],edge[1]);else this.locate(impact,this.state!.kitchen.map.equipment[target].cell);
         g.strokeColor=new Color(255,246,220,Math.round(255*(1-p)));g.lineWidth=2;
         g.moveTo(-9+5*p,-5);g.lineTo(7+5*p,7);g.stroke();
         g.lineWidth=1;g.moveTo(-4,8);g.lineTo(4,-7);g.stroke();
@@ -1280,6 +1333,8 @@ export class KitchenClient extends Component {
         if(animate)this.activeClock+=dt;
         for(const who of ['human','jeff']){
             const c=k.chefs[who],p=c.position,n=this.people[who],motion=this.motions[who];
+            // A chef who isn't chopping never shows a knife, even on frames that skip characterArt.
+            if(!(c.working&&c.action_kind==='chop'))for(const layer of [this.knives[who],this.knifeHands[who]])if(layer?.isValid)layer.active=false;
             const dust=n.getChildByName('sprint-dust')!;
             dust.active=!!animate&&c.sprint?.active_remaining>0&&(c.manual_moving||c.travel_remaining>0);
             if(dust.active){

@@ -8,9 +8,12 @@
         "0261e0a3-f666-4b42-bf62-519c75ef6100",
         "0261e0a3-f666-4b42-bf62-519c75ef6100@6c48a",
         "0261e0a3-f666-4b42-bf62-519c75ef6100@f9941",
+        "02af4efa-6fe5-4940-a0b0-fbab924248d4",
         "02d8fe24-8ffa-46dc-b588-62233b09fd74",
         "04164686-3f66-44b4-b850-9ee80ad8e18c",
-        "0a4f4c95f",
+        "0973594dd",
+        "0a4ca68b-5c4a-4105-b018-dbcf612b1b6c",
+        "0a4ca68b-5c4a-4105-b018-dbcf612b1b6c@6c48a",
         "0c9ee0fa-3969-4088-b4b5-dc0738496ee6",
         "0d58ee0d-2aca-45a2-8e59-2022619a65ef",
         "0eb1945e-9f51-42d8-aa8f-c8003415e5e8",
@@ -76,6 +79,8 @@
         "a16c7680-1379-4fa1-8779-3260cbe360f5",
         "a16c7680-1379-4fa1-8779-3260cbe360f5@6c48a",
         "a16c7680-1379-4fa1-8779-3260cbe360f5@f9941",
+        "a19c341f-c978-4af2-9d87-90cb223cb57e",
+        "a19c341f-c978-4af2-9d87-90cb223cb57e@6c48a",
         "a4baa4ff-fcee-42f8-b965-d1560443a003",
         "ab8e5d62-09f1-45e5-ac11-1711fc3f7ad7",
         "ac7b48fd-69cb-4420-b65f-f60a66fd1e71",
@@ -89,6 +94,7 @@
         "b81a9c2c-13ff-4918-99f2-1eb337ec5f0f",
         "bcb60f3f-bb90-4b51-ac89-6d6da2dca815",
         "c7c4f34c-1069-481f-8a47-f7c2c7f8f9b5",
+        "d373dedc-82ff-48b7-bc55-3979da272416",
         "db926cec-7e53-49c6-988a-b4889d7a68bf",
         "ddb2dae8-0c96-4fe9-8ea6-6962b77ef35a",
         "df4d380a-30bc-4433-8e2d-630570505849",
@@ -403,6 +409,21 @@
             "cc.JsonAsset",
             1
         ],
+        "0a4ca68b-5c4a-4105-b018-dbcf612b1b6c": [
+            "art/chefs-v2/atlas",
+            "cc.ImageAsset",
+            1
+        ],
+        "0a4ca68b-5c4a-4105-b018-dbcf612b1b6c@6c48a": [
+            "art/chefs-v2/atlas/texture",
+            "cc.Texture2D",
+            1
+        ],
+        "02af4efa-6fe5-4940-a0b0-fbab924248d4": [
+            "art/chefs-v2/manifest",
+            "cc.JsonAsset",
+            1
+        ],
         "7bdd0fb3-bbb9-470b-8a61-1ba4bac72b6c": [
             "art/grid-foundation-v1/atlas",
             "cc.ImageAsset",
@@ -440,6 +461,21 @@
         ],
         "b0bd84d1-be7c-48fa-af65-6db2a39dfc0b": [
             "art/kitchen-modules-v2/manifest",
+            "cc.JsonAsset",
+            1
+        ],
+        "a19c341f-c978-4af2-9d87-90cb223cb57e": [
+            "art/knife-arc-v1/atlas",
+            "cc.ImageAsset",
+            1
+        ],
+        "a19c341f-c978-4af2-9d87-90cb223cb57e@6c48a": [
+            "art/knife-arc-v1/atlas/texture",
+            "cc.Texture2D",
+            1
+        ],
+        "d373dedc-82ff-48b7-bc55-3979da272416": [
+            "art/knife-arc-v1/manifest",
             "cc.JsonAsset",
             1
         ],
@@ -586,7 +622,8 @@
     },
     "scenes": {},
     "packs": {
-        "0a4f4c95f": [
+        "0973594dd": [
+            "0a4ca68b-5c4a-4105-b018-dbcf612b1b6c@6c48a",
             "4e79aece-4009-45f1-a303-4c2ce1f87619@6c48a",
             "7bdd0fb3-bbb9-470b-8a61-1ba4bac72b6c@6c48a",
             "9fdb1167-f4f3-4eec-bbbe-ad25bcbbb33c@6c48a",
@@ -596,6 +633,7 @@
             "827b0320-74f6-4d83-8b42-6c135c12dc0b@6c48a",
             "a15bbd89-6385-4e64-88f0-07384c6141da@6c48a",
             "a16c7680-1379-4fa1-8779-3260cbe360f5@6c48a",
+            "a19c341f-c978-4af2-9d87-90cb223cb57e@6c48a",
             "ac7b48fd-69cb-4420-b65f-f60a66fd1e71@6c48a",
             "acac8afa-e9f7-4364-9812-4dd90d4a67ac@6c48a"
         ]

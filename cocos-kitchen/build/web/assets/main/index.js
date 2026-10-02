@@ -533,6 +533,13 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
       var TILE = GRID_ART.tile,
         MAPX = GRID_ART.originX,
         MAPY = GRID_ART.originY;
+      // Knife frames per facing: front view toward the viewer, top view up-screen, side view (mirrored for left).
+      var KNIFE_VIEW = {
+        down: ['knife/v1/front_', false],
+        up: ['knife/v1/top_', false],
+        right: ['knife/v1/side_', false],
+        left: ['knife/v1/side_', true]
+      };
       var color = function color(hex) {
         return new Color().fromHEX(hex);
       };
@@ -579,6 +586,9 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           _this.knifeProbe = null;
           _this.cutProbe = null;
           _this.chopImpacts = {};
+          _this.knives = {};
+          _this.knifeHands = {};
+          _this.knifeEdges = {};
           _this.received = 0;
           _this.labels = {};
           _this.buttons = {};
@@ -2458,7 +2468,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }
           var _loop5 = function _loop5() {
             var who = _arr10[_i14];
-            var n = _this10.chef(_this10.world, who, 0, 0, who, _this10.useModularArt ? .8 : .65);
+            var n = _this10.chef(_this10.world, who, 0, 0, who, _this10.useModularArt ? TILE / 64 : .65); // chefs-v2 frames: 64 art px per tile, like the counters
             var dust = _this10.child(n, 'sprint-dust', 55, 28, -18, -24);
             dust.addComponent(Graphics);
             dust.active = false;
@@ -2570,7 +2580,11 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           // Raise, swing, strike, recover: the chop frames move arms and knife together.
           var beat = ((this.activeClock / .4 + (who === 'human' ? 0 : .27)) % 1 + 1) % 1;
           var phase = knifePilot ? 1 : Number.isInteger(sampleFrame) && sampleFrame >= 0 && sampleFrame < 4 ? sampleFrame : beat < .3 ? 0 : beat < .45 ? 1 : beat < .75 ? 2 : 3;
-          var actionKey = "characters/" + kind + "/" + facing + "/chop_" + phase;
+          var paintedKey = "characters/" + kind + "/" + facing + "/chop_" + phase,
+            knifeless = 'knifeless/' + paintedKey;
+          // With the knife layer, the body comes from the knife-free poses; the painted knife is a fallback.
+          var layered = chopping && this.art.has(knifeless) && this.art.has(KNIFE_VIEW[facing][0] + '0');
+          var actionKey = layered ? knifeless : paintedKey;
           var hasAction = chopping && this.art.has(actionKey);
           var pilot = hasAction && who === 'jeff' && facing === 'down' && this.prepSampleBoard(chef.target) && this.art.has('prep/jeff/down/contact-body');
           var frame = walking ? "walk_" + Math.floor(this.activeClock * 12) % 8 : 'idle_0';
@@ -2595,7 +2609,6 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             var child = _step8.value;
             if (!['held', 'reviewed-art'].includes(child.name)) child.active = !shown;
           }
-          if (inWorld) this.chopImpact(who, hasAction && phase === 2 && beat < .62, (beat - .45) / .17);
           if (inWorld && chopping) this.knifeStrike(who, beat, .45);
           if (shown) {
             // Behind a waist-high counter the body sinks so the counter hides the legs; by
@@ -2622,7 +2635,104 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             }
             body.getChildByName('right-arm').getChildByName('knife').active = false;
           }
+          // After the sink offset, so the knife stays in the hand.
+          if (inWorld) this.chopKnife(who, layered && hasAction && !!shown ? actionKey : '', facing, phase);
+          if (inWorld) this.chopImpact(who, hasAction && phase === 2 && beat < .62, (beat - .45) / .17);
           return shown;
+        }
+        /** The knife (art standard v1) as its own layer, pivoting on the pose's grip. It is drawn just
+         * above the food on the board, so the blade lands on board and food in every facing, and stays
+         * behind a chef who faces up at the board. A pose's fist overlay (<pose>_hand) goes on top of
+         * the knife so the hand closes around the handle. Poses name their knife frame (older poses map
+         * lift, half, strike (held), half to the view's frames 2, 1, 0, 1), and the knife is turned to
+         * the pose's grip_angle, so the blade sweeps a real arc in every view. */;
+        _proto.chopKnife = function chopKnife(who, poseKey, facing, phase) {
+          var _this11 = this,
+            _knife2,
+            _hand2,
+            _frame$pose$screen_an,
+            _frame$pose;
+          var knife = this.knives[who],
+            hand = this.knifeHands[who];
+          var pose = poseKey ? this.art.meta(poseKey) : null;
+          this.knifeEdges[who] = null;
+          if (!(pose != null && pose.grip) || pose.knife_hidden) {
+            var _knife, _hand;
+            if ((_knife = knife) != null && _knife.isValid) knife.active = false;
+            if ((_hand = hand) != null && _hand.isValid) hand.active = false;
+            return;
+          }
+          var depth = function depth(lift) {
+            return function () {
+              var _e$cell$2;
+              var c = _this11.state.kitchen.chefs[who],
+                e = _this11.state.kitchen.map.equipment[c.target];
+              return depthOrder((_e$cell$2 = e == null ? void 0 : e.cell[1]) != null ? _e$cell$2 : c.position[1], 'item') + lift;
+            };
+          };
+          if (!((_knife2 = knife) != null && _knife2.isValid)) {
+            knife = this.child(this.world, 'chop-knife-' + who, 64, 64);
+            this.knives[who] = knife;
+            this.registerDepth(knife, depth(.01));
+          }
+          if (!((_hand2 = hand) != null && _hand2.isValid)) {
+            hand = this.child(this.world, 'chop-hand-' + who, 68, 88);
+            this.knifeHands[who] = hand;
+            this.registerDepth(hand, depth(.011));
+          }
+          var _KNIFE_VIEW$facing = KNIFE_VIEW[facing],
+            view = _KNIFE_VIEW$facing[0],
+            mirror = _KNIFE_VIEW$facing[1],
+            key = pose.knife || view + [2, 1, 0, 1][phase],
+            frame = this.art.meta(key);
+          if (!(frame != null && frame.pivot)) {
+            knife.active = false;
+            hand.active = false;
+            return;
+          }
+          knife.active = true;
+          // Pose canvas px (top-left origin) -> the 68x88 box the body is drawn in, above its foot anchor.
+          var _ref2 = pose.canvasSize || [68, 88],
+            cw = _ref2[0],
+            ch = _ref2[1],
+            footY = (pose.anchor || [.5, .068])[1] * 88,
+            handKey = poseKey + '_hand',
+            overlay = this.art.has(handKey);
+          // With a fist overlay, grip is the fist centre. Older poses give where the painted blade
+          // began, and the hand closes about 3 px behind it.
+          var a = (pose.grip_angle || 0) * Math.PI / 180,
+            g = overlay ? pose.grip : [pose.grip[0] - 3 * Math.cos(a), pose.grip[1] + 3 * Math.sin(a)];
+          var actor = this.people[who],
+            body = actor.getChildByName('body'),
+            sx = actor.scale.x,
+            sy = actor.scale.y;
+          var bodyX = actor.position.x + sx * body.position.x,
+            bodyY = actor.position.y + sy * body.position.y;
+          knife.setPosition(bodyX + sx * (g[0] * 68 / cw - 34), bodyY + sy * (88 - footY - g[1] * 88 / ch));
+          // Turn the knife about the grip so the blade points along the pose's grip_angle (degrees
+          // counter-clockwise from +x). Arc frames are drawn at their screen angle (pose.screen_angle_deg)
+          // and need no turn, which keeps their pixels crisp. A side knife pointing left is mirrored
+          // rather than turned past 90 degrees, keeping its edge underneath.
+          var built = (_frame$pose$screen_an = (_frame$pose = frame.pose) == null ? void 0 : _frame$pose.screen_angle_deg) != null ? _frame$pose$screen_an : Math.atan2(frame.pivot[1] - frame.tip[1], frame.tip[0] - frame.pivot[0]) * 180 / Math.PI;
+          var want = typeof pose.grip_angle === 'number' ? pose.grip_angle : null,
+            side = key.includes('/side_');
+          var flip = side && (want === null ? mirror : Math.cos(want * Math.PI / 180) < 0);
+          var turn = want === null ? 0 : ((want - (flip ? 180 - built : built)) % 360 + 540) % 360 - 180;
+          knife.setScale(flip ? -sx : sx, sy, 1);
+          knife.angle = Math.abs(turn) < .5 ? 0 : turn;
+          // Where the edge meets the board, in world units: the strike spark sits there.
+          var edge = frame.edge || frame.tip,
+            ex = (edge[0] - frame.pivot[0]) * (flip ? -sx : sx),
+            ey = (frame.pivot[1] - edge[1]) * sy,
+            r = knife.angle * Math.PI / 180;
+          this.knifeEdges[who] = [knife.position.x + ex * Math.cos(r) - ey * Math.sin(r), knife.position.y + ex * Math.sin(r) + ey * Math.cos(r)];
+          this.art.show(knife, key, 64, 64, 32 - frame.pivot[0], frame.pivot[1] - 32);
+          hand.active = overlay;
+          if (overlay) {
+            hand.setPosition(bodyX, bodyY);
+            hand.setScale(sx, sy, 1);
+            this.art.show(hand, handKey, 68, 88);
+          }
         }
         /** Sound one knife strike when the swing phase passes the board-contact point. */;
         _proto.knifeStrike = function knifeStrike(who, t, contact) {
@@ -2633,7 +2743,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
         /** A short spark on the board while the knife lands (strike frame only). */;
         _proto.chopImpact = function chopImpact(who, active, p) {
           var _impact,
-            _this11 = this;
+            _this12 = this;
           var impact = this.chopImpacts[who];
           if (!((_impact = impact) != null && _impact.isValid)) {
             if (!active) return;
@@ -2642,8 +2752,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             this.chopImpacts[who] = impact;
             this.registerDepth(impact, function () {
               var _kitchen$map$equipmen2, _kitchen$map$equipmen3;
-              var c = _this11.state.kitchen.chefs[who];
-              return depthOrder((_kitchen$map$equipmen2 = (_kitchen$map$equipmen3 = _this11.state.kitchen.map.equipment[c.target]) == null ? void 0 : _kitchen$map$equipmen3.cell[1]) != null ? _kitchen$map$equipmen2 : c.position[1], 'solid') + .04;
+              var c = _this12.state.kitchen.chefs[who];
+              return depthOrder((_kitchen$map$equipmen2 = (_kitchen$map$equipmen3 = _this12.state.kitchen.map.equipment[c.target]) == null ? void 0 : _kitchen$map$equipmen3.cell[1]) != null ? _kitchen$map$equipmen2 : c.position[1], 'solid') + .04;
             });
           }
           impact.active = active;
@@ -2651,7 +2761,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           g.clear();
           if (!active) return;
           var target = this.state.kitchen.chefs[who].target;
-          this.locate(impact, this.state.kitchen.map.equipment[target].cell);
+          var edge = this.knifeEdges[who];
+          if (edge) impact.setPosition(edge[0], edge[1]);else this.locate(impact, this.state.kitchen.map.equipment[target].cell);
           g.strokeColor = new Color(255, 246, 220, Math.round(255 * (1 - p)));
           g.lineWidth = 2;
           g.moveTo(-9 + 5 * p, -5);
@@ -2670,7 +2781,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }
         };
         _proto.knifeOnlySample = function knifeOnlySample(active, key) {
-          var _this12 = this;
+          var _this13 = this;
           if (this.knifeProbe) this.knifeProbe.active = active;
           if (this.cutProbe) this.cutProbe.active = active;
           if (!active) return;
@@ -2681,33 +2792,33 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             var _root = this.child(this.world, 'knife-only-probe', 68, 88);
             // Separate length axes keep both thicknesses unchanged. Existing pixels only.
             var part = function part(name, pivot, points) {
-              var stretch = _this12.child(_root, name, 68, 88);
+              var stretch = _this13.child(_root, name, 68, 88);
               stretch.angle = -40;
-              var stencil = _this12.child(stretch, name + '-mask', 68, 88);
+              var stencil = _this13.child(stretch, name + '-mask', 68, 88);
               stencil.angle = 40;
               stencil.addComponent(Mask).type = Mask.Type.GRAPHICS_STENCIL;
               var g = stencil.getComponent(Graphics);
               g.clear();
-              points.forEach(function (_ref2, i) {
-                var x = _ref2[0],
-                  y = _ref2[1];
+              points.forEach(function (_ref3, i) {
+                var x = _ref3[0],
+                  y = _ref3[1];
                 return i ? g.lineTo(x - pivot[0], pivot[1] - y) : g.moveTo(x - pivot[0], pivot[1] - y);
               });
               g.close();
               g.fill();
-              _this12.art.show(stencil, key, 68, 88, 34 - pivot[0], pivot[1] - 82);
+              _this13.art.show(stencil, key, 68, 88, 34 - pivot[0], pivot[1] - 82);
             };
             part('handle', [29, 61], [[29, 61], [31, 61], [34, 64], [31, 66], [29, 64]]);
             part('length', [31, 63], [[31, 63], [34, 64], [44, 72], [37, 73], [31, 69]]);
             this.knifeProbe = _root;
             this.registerDepth(_root, function () {
-              return depthOrder(_this12.state.kitchen.map.equipment.b1.cell[1], 'solid') + .02;
+              return depthOrder(_this13.state.kitchen.map.equipment.b1.cell[1], 'solid') + .02;
             });
             var _fx = this.child(this.world, 'cut-impact-probe', 52, 52);
             _fx.addComponent(Graphics);
             this.cutProbe = _fx;
             this.registerDepth(_fx, function () {
-              return depthOrder(_this12.state.kitchen.map.equipment.b1.cell[1], 'solid') + .03;
+              return depthOrder(_this13.state.kitchen.map.equipment.b1.cell[1], 'solid') + .03;
             });
           }
           var actor = this.people.jeff,
@@ -2762,15 +2873,15 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }
         };
         _proto.foodNode = function foodNode(id, stage, airborne) {
-          var _this13 = this;
+          var _this14 = this;
           if (airborne === void 0) {
             airborne = false;
           }
           var n = this.make('food-' + id, 0, 0, 44, 40, this.world || this.node);
           n.setScale(.9, .9, 1);
           this.registerDepth(n, function () {
-            var _this13$flightOrder$i;
-            return airborne ? (_this13$flightOrder$i = _this13.flightOrder[id]) != null ? _this13$flightOrder$i : 0 : depthOrder((360 - MAPY - n.position.y) / TILE - .5, 'item');
+            var _this14$flightOrder$i;
+            return airborne ? (_this14$flightOrder$i = _this14.flightOrder[id]) != null ? _this14$flightOrder$i : 0 : depthOrder((360 - MAPY - n.position.y) / TILE - .5, 'item');
           });
           this.drawIcon(n.addComponent(Graphics), stage);
           var child = new Node('id');
@@ -2861,7 +2972,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           });
         };
         _proto.drawOrders = function drawOrders() {
-          var _this14 = this;
+          var _this15 = this;
           var s = this.state,
             k = s.kitchen,
             orders = k.orders.filter(function (o) {
@@ -2875,54 +2986,54 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             this.labels[id].color = color(this.statColor(id));
           }
           var _loop7 = function _loop7() {
-            var _this14$dishById2;
+            var _this15$dishById2;
             var o = orders[i],
-              n = _this14.tickets[i],
+              n = _this15.tickets[i],
               g = n.getComponent(Graphics) || n.addComponent(Graphics),
               urgent = o && o.remaining <= 15;
             g.clear();
             // Paper slip clipped to the walnut rail; empty clips stay bare instead of drawing blank slips.
-            _this14.rect(g, -10, 26, 20, 6, COLORS.walnut);
+            _this15.rect(g, -10, 26, 20, 6, COLORS.walnut);
             if (o || i === 0) {
-              _this14.rect(g, -78, -36, 156, 62, COLORS.walnut);
-              _this14.rect(g, -77, -34, 154, 59, COLORS.paper);
+              _this15.rect(g, -78, -36, 156, 62, COLORS.walnut);
+              _this15.rect(g, -77, -34, 154, 59, COLORS.paper);
               if (o) {
                 var _s$rules;
                 // Patience: herb while comfortable, honey past half, hot red when urgent (the label also says so).
                 var left = Math.max(0, Math.min(1, o.remaining / (o.patience || ((_s$rules = s.rules) == null ? void 0 : _s$rules.order_patience) || 90)));
-                _this14.rect(g, -67, -30, 134, 7, COLORS.ink);
-                _this14.rect(g, -66, -29, 132, 5, COLORS.bg);
-                _this14.rect(g, -66, -29, 132 * left, 5, urgent ? COLORS.hot : left > .5 ? COLORS.herb : COLORS.honey);
+                _this15.rect(g, -67, -30, 134, 7, COLORS.ink);
+                _this15.rect(g, -66, -29, 132, 5, COLORS.bg);
+                _this15.rect(g, -66, -29, 132 * left, 5, urgent ? COLORS.hot : left > .5 ? COLORS.herb : COLORS.honey);
               }
             }
             var signature = o ? JSON.stringify(o.ingredients || []) : '';
-            if (_this14.orderArt[i] !== signature) {
-              _this14.orderArt[i] = signature;
+            if (_this15.orderArt[i] !== signature) {
+              _this15.orderArt[i] = signature;
               var prev = n.getChildByName('ingredients');
               if (prev) prev.destroy();
               if (o) {
-                var row = _this14.child(n, 'ingredients', 150, 16, 0, -5);
+                var row = _this15.child(n, 'ingredients', 150, 16, 0, -5);
                 var ingredients = o.ingredients || [];
                 // Each item as the dish needs it, but whole: a chopped item reads better uncut at this size.
                 var need = function need(name) {
-                  var _this14$dishById;
-                  var st = (_this14$dishById = _this14.dishById(o.dish)) == null || (_this14$dishById = _this14$dishById.components) == null || (_this14$dishById = _this14$dishById.find(function (c) {
+                  var _this15$dishById;
+                  var st = (_this15$dishById = _this15.dishById(o.dish)) == null || (_this15$dishById = _this15$dishById.components) == null || (_this15$dishById = _this15$dishById.find(function (c) {
                     return c.item === name;
-                  })) == null ? void 0 : _this14$dishById.state;
+                  })) == null ? void 0 : _this15$dishById.state;
                   return st && st !== 'chopped' ? st : 'raw';
                 };
                 ingredients.forEach(function (name, j) {
-                  var item = _this14.child(row, 'ingredient-' + j, 30, 14, 66 - (ingredients.length - 1 - j) * 15, 0);
-                  item.setScale(_this14.useArt ? .5 : .32, _this14.useArt ? .5 : .32, 1);
-                  _this14.drawIcon(item.addComponent(Graphics), "item:" + name + ":" + need(name));
+                  var item = _this15.child(row, 'ingredient-' + j, 30, 14, 66 - (ingredients.length - 1 - j) * 15, 0);
+                  item.setScale(_this15.useArt ? .5 : .32, _this15.useArt ? .5 : .32, 1);
+                  _this15.drawIcon(item.addComponent(Graphics), "item:" + name + ":" + need(name));
                 });
               }
             }
-            _this14.set('order-id-' + i, o ? o.id + " \xB7 " + (urgent ? '快超时了' : '待出餐') : i === 0 ? '订单夹' : '');
-            _this14.labels['order-id-' + i].color = color(urgent ? COLORS.hot : COLORS.muted);
-            _this14.set('order-name-' + i, o ? ((_this14$dishById2 = _this14.dishById(o.dish)) == null ? void 0 : _this14$dishById2.name) || o.dish : i === 0 ? k.future_orders ? '等待新订单' : '订单已结清' : '');
-            _this14.set('order-time-' + i, o ? Math.max(0, Math.ceil(o.remaining)) + "s" : '');
-            _this14.labels['order-time-' + i].color = color(urgent ? COLORS.hot : COLORS.muted);
+            _this15.set('order-id-' + i, o ? o.id + " \xB7 " + (urgent ? '快超时了' : '待出餐') : i === 0 ? '订单夹' : '');
+            _this15.labels['order-id-' + i].color = color(urgent ? COLORS.hot : COLORS.muted);
+            _this15.set('order-name-' + i, o ? ((_this15$dishById2 = _this15.dishById(o.dish)) == null ? void 0 : _this15$dishById2.name) || o.dish : i === 0 ? k.future_orders ? '等待新订单' : '订单已结清' : '');
+            _this15.set('order-time-' + i, o ? Math.max(0, Math.ceil(o.remaining)) + "s" : '');
+            _this15.labels['order-time-' + i].color = color(urgent ? COLORS.hot : COLORS.muted);
           };
           for (var i = 0; i < 5; i++) {
             _loop7();
@@ -2956,7 +3067,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
         _proto.render = function render() {
           var _k$fire_safety,
             _s$connection,
-            _this15 = this,
+            _this16 = this,
             _s$limits,
             _kitchenI18n2;
           if (!this.state || !this.mounted) return;
@@ -3128,7 +3239,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           var held = k.chefs.human.holding;
           this.set('hand', '手中：' + (held ? this.itemName(held) : '空手'));
           if ((held == null ? void 0 : held.stage) === 'assembled') this.set('hand', '缺少：' + held.missing.map(function (x) {
-            return _this15.itemLabel(x);
+            return _this16.itemLabel(x);
           }).join('+'));
           {
             var _s$interaction2;
@@ -3142,7 +3253,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }
           // Game results keep the event line; Jeff's decisions and errors use their own status.
           var results = s.events.filter(function (e) {
-            return !_this15.isAiNote(e);
+            return !_this16.isAiNote(e);
           });
           this.set('event', results.length ? results[results.length - 1].message : '');
           this.set('ai-status', this.aiStatus(s));
@@ -3150,17 +3261,17 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           var _loop8 = function _loop8() {
             var _s$levels;
             var n = _arr20[_i27];
-            var b = _this15.buttons['level' + n],
+            var b = _this16.buttons['level' + n],
               sel = k.level === n;
             b.node.active = s.phase === 'ready' || s.phase === 'ended';
-            _this15.writeLabel(b.label, (((_s$levels = s.levels) == null || (_s$levels = _s$levels.find(function (l) {
+            _this16.writeLabel(b.label, (((_s$levels = s.levels) == null || (_s$levels = _s$levels.find(function (l) {
               return l.menu_order === n;
             })) == null ? void 0 : _s$levels.name) || '') + (sel ? ' · 当前' : ''));
             if (b.selected !== sel) {
               b.selected = sel;
-              _this15.styleButton('level' + n);
+              _this16.styleButton('level' + n);
             }
-            _this15.enable('level' + n, !_this15.pending && !sel);
+            _this16.enable('level' + n, !_this16.pending && !sel);
           };
           for (var _i27 = 0, _arr20 = [1, 2, 3]; _i27 < _arr20.length; _i27++) {
             _loop8();
@@ -3206,11 +3317,11 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
         };
         _proto.aiStatus = function aiStatus(s) {
           var _s$limits2,
-            _this16 = this;
+            _this17 = this;
           if ((_s$limits2 = s.limits) != null && _s$limits2.reached && s.phase === 'running') return 'Jeff 已达本局调用上限';
           if (s.ai.error) return 'Jeff 暂时连不上，正在重试';
           var note = [].concat(s.events).reverse().find(function (e) {
-            return _this16.isAiNote(e);
+            return _this17.isAiNote(e);
           });
           var m = note && /^Jeff \u9009\u62E9\uFF1A([\s\S]*?) \| [\d.]+s(?: \| \u672A\u6267\u884C\uFF1A([\s\S]*))?$/.exec(note.message);
           if (m) return m[2] ? "Jeff\uFF1A" + m[1] + "\uFF08\u672A\u6267\u884C\uFF09" : "Jeff\uFF1A" + m[1]; // full reason stays in the event log/export
@@ -3242,7 +3353,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }
         };
         _proto.update = function update(dt) {
-          var _this17 = this,
+          var _this18 = this,
             _this$devices$sink;
           this.clock += dt;
           this.audio.update(dt);
@@ -3250,12 +3361,12 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           var k = this.state.kitchen;
           // Result pops rise and fade over 1.4s (no rise with reduced motion); header numbers pulse.
           this.pops = this.pops.filter(function (p) {
-            var age = (_this17.clock - p.born) / 1.4;
+            var age = (_this18.clock - p.born) / 1.4;
             if (age >= 1 || !p.node.isValid) {
               p.node.destroy();
               return false;
             }
-            if (!_this17.reduceMotion) p.node.setPosition(p.node.position.x, p.y + 34 * (1 - (1 - age) * (1 - age)));
+            if (!_this18.reduceMotion) p.node.setPosition(p.node.position.x, p.y + 34 * (1 - (1 - age) * (1 - age)));
             var a = Math.round(255 * (age < .6 ? 1 : 1 - (age - .6) / .4));
             p.label.color = new Color(p.fill.r, p.fill.g, p.fill.b, a);
             p.label.shadowColor = new Color(43, 26, 18, a);
@@ -3286,6 +3397,11 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               p = c.position,
               _n2 = this.people[who],
               motion = this.motions[who];
+            // A chef who isn't chopping never shows a knife, even on frames that skip characterArt.
+            if (!(c.working && c.action_kind === 'chop')) for (var _i32 = 0, _arr23 = [this.knives[who], this.knifeHands[who]]; _i32 < _arr23.length; _i32++) {
+              var layer = _arr23[_i32];
+              if (layer != null && layer.isValid) layer.active = false;
+            }
             var dust = _n2.getChildByName('sprint-dust');
             dust.active = !!animate && ((_c$sprint3 = c.sprint) == null ? void 0 : _c$sprint3.active_remaining) > 0 && (c.manual_moving || c.travel_remaining > 0);
             if (dust.active) {
@@ -3352,8 +3468,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               }
             }
           }
-          for (var _i32 = 0, _Object$values = Object.values(this.cabinetFires); _i32 < _Object$values.length; _i32++) {
-            var flame = _Object$values[_i32];
+          for (var _i33 = 0, _Object$values = Object.values(this.cabinetFires); _i33 < _Object$values.length; _i33++) {
+            var flame = _Object$values[_i33];
             if (flame.active) {
               var _g = flame.getComponent(Graphics);
               if (this.useArt && this.art.show(flame, "vfx/fire_" + Math.floor(this.activeClock * 8) % 7, 58, 72)) _g.clear();else this.drawIcon(_g, 'fire');
@@ -3363,17 +3479,17 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }
           if (animate) {
             var _this$jeffThinking;
-            for (var _i33 = 0, _Object$entries6 = Object.entries(this.potEffects); _i33 < _Object$entries6.length; _i33++) {
-              var _Object$entries6$_i = _Object$entries6[_i33],
+            for (var _i34 = 0, _Object$entries6 = Object.entries(this.potEffects); _i34 < _Object$entries6.length; _i34++) {
+              var _Object$entries6$_i = _Object$entries6[_i34],
                 _id7 = _Object$entries6$_i[0],
                 e = _Object$entries6$_i[1];
               if (this.useArt) {
                 var _frame = Math.floor(this.activeClock * 8) % 7;
-                for (var _i34 = 0, _arr23 = [[e.steam, 'steam'], [e.smoke, 'smoke'], [e.fire, 'fire']]; _i34 < _arr23.length; _i34++) {
+                for (var _i35 = 0, _arr24 = [[e.steam, 'steam'], [e.smoke, 'smoke'], [e.fire, 'fire']]; _i35 < _arr24.length; _i35++) {
                   var _node$getComponent;
-                  var _arr23$_i = _arr23[_i34],
-                    node = _arr23$_i[0],
-                    key = _arr23$_i[1];
+                  var _arr24$_i = _arr24[_i35],
+                    node = _arr24$_i[0],
+                    key = _arr24$_i[1];
                   if (node.active && this.art.show(node, "vfx/" + key + "_" + _frame, key === 'fire' ? 75 : 42, key === 'fire' ? 75 : 42)) (_node$getComponent = node.getComponent(Graphics)) == null || _node$getComponent.clear();
                 }
               }
@@ -3891,31 +4007,53 @@ System.register("chunks:///_virtual/LevelOneArt.ts", ['./rollupPluginModLoBabelH
                   _context2.next = 40;
                   return this.loadAtlas('art/action-feedback-v1');
                 case 40:
-                  _context2.next = 42;
-                  return this.loadAtlas('art/knife-v1');
-                case 42:
-                  _context2.next = 44;
-                  return this.loadAtlas('art/trash-directions-v1');
-                case 44:
-                  if (!(typeof location !== 'undefined' && new URLSearchParams(location.search).get('prepSample') === '1')) {
-                    _context2.next = 47;
-                    break;
-                  }
-                  _context2.next = 47;
-                  return this.loadAtlas('art/prep-pose-v3');
-                case 47:
-                  this.ready = true;
-                  _context2.next = 53;
+                  _context2.prev = 40;
+                  _context2.next = 43;
+                  return this.loadAtlas('art/chefs-v2');
+                case 43:
+                  _context2.next = 48;
                   break;
+                case 45:
+                  _context2.prev = 45;
+                  _context2.t4 = _context2["catch"](40);
+                  console.warn('Chef master-body art unavailable.', _context2.t4);
+                case 48:
+                  _context2.next = 50;
+                  return this.loadAtlas('art/knife-v1');
                 case 50:
                   _context2.prev = 50;
-                  _context2.t4 = _context2["catch"](0);
-                  console.warn('ChefJeff level 1 art unavailable; retaining readable fallback.', _context2.t4);
+                  _context2.next = 53;
+                  return this.loadAtlas('art/knife-arc-v1');
                 case 53:
+                  _context2.next = 58;
+                  break;
+                case 55:
+                  _context2.prev = 55;
+                  _context2.t5 = _context2["catch"](50);
+                  console.warn('Knife arc art unavailable; chefs keep the painted knife.', _context2.t5);
+                case 58:
+                  _context2.next = 60;
+                  return this.loadAtlas('art/trash-directions-v1');
+                case 60:
+                  if (!(typeof location !== 'undefined' && new URLSearchParams(location.search).get('prepSample') === '1')) {
+                    _context2.next = 63;
+                    break;
+                  }
+                  _context2.next = 63;
+                  return this.loadAtlas('art/prep-pose-v3');
+                case 63:
+                  this.ready = true;
+                  _context2.next = 69;
+                  break;
+                case 66:
+                  _context2.prev = 66;
+                  _context2.t6 = _context2["catch"](0);
+                  console.warn('ChefJeff level 1 art unavailable; retaining readable fallback.', _context2.t6);
+                case 69:
                 case "end":
                   return _context2.stop();
               }
-            }, _callee2, this, [[0, 50], [3, 9], [12, 17], [20, 25], [28, 33]]);
+            }, _callee2, this, [[0, 66], [3, 9], [12, 17], [20, 25], [28, 33], [40, 45], [50, 55]]);
           }));
           function load() {
             return _load.apply(this, arguments);
@@ -3924,6 +4062,10 @@ System.register("chunks:///_virtual/LevelOneArt.ts", ['./rollupPluginModLoBabelH
         }();
         _proto.has = function has(key) {
           return !!this.frames[key];
+        }
+        /** Manifest entry of a frame (grip, pivot, edge points), or undefined. */;
+        _proto.meta = function meta(key) {
+          return this.definitions[key];
         }
         /** Natural pixel proportions, one 64 px art unit per gameplay cell. */;
         _proto.tile = function tile(parent, key, cellSize, x, y) {
