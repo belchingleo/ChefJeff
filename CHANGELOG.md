@@ -16,7 +16,8 @@ The game now runs on a data-driven core: five data models (map, recipes, orders,
 
 ### Kitchen and controls
 - Overcooked-style keyboard controls: Space and E act on what the chef faces; Q dashes.
-- Chefs can pass plates, dishes, pots and the extinguisher up to 4 tiles; ingredients are thrown up to 4 tiles.
+- Beef fries in a frying pan; the engine also supports a soup pot for noodles, and each stove holds one vessel.
+- Chefs can pass plates, dishes, pans and the extinguisher up to 4 tiles; ingredients are thrown up to 4 tiles.
 - Assemble with a plate or ingredient lying on the floor, as on a counter.
 - One chef body size against every workstation: chefs stay off cabinet fronts and work from where walking stops.
 - Walking slides around shallow notches; stalled routes re-plan around the other chef; "go partner" walks into the other chef on purpose.
@@ -28,12 +29,14 @@ The game now runs on a data-driven core: five data models (map, recipes, orders,
 ### Records and analysis
 - Every round is recorded as one event stream and a replayable session bundle.
 - End-of-round record of who did which work, shown after closing.
-- Item provenance, collaboration analysis, and contribution measured by time (effort and critical path).
+- Item provenance, collaboration analysis, and contribution measured by time spent. The analyzer also reports each dish's critical path, where cooked food counts from when it is ready; the round record does not show it.
 - Capacity Analyzer and a calibration ladder (solo, solo with random partner, pair).
 - Behaviour fingerprints of the three levels guard against unintended rule changes.
 
 ### Presentation
 - Kitchen UI design system, pixel font, music and sound effects.
+- Both chefs are drawn from one master body per view, so they keep their size while chopping; the knife is its own layer.
+- Eight more ingredients (cucumber, onion, cheese, scallion, chicken, fish, flatbread, noodles) and six recipes with pixel art, ready for new levels.
 - Burnt dishes are recognisable wherever they are.
 
 ## 0.5.9-alpha — 2026-09-27
@@ -56,7 +59,8 @@ First private release: a local browser game with three playable maps and player-
 
 ### 厨房与操作
 - 胡闹厨房式键盘操作：空格和 E 对面前的东西操作，Q 冲刺。
-- 盘子、菜、锅和灭火器可在 4 格内传递；食材可在 4 格内抛出。
+- 牛肉用平底锅煎；引擎也支持煮面条的汤锅，一个灶台同时只放一口锅。
+- 盘子、菜、平底锅和灭火器可在 4 格内传递；食材可在 4 格内抛出。
 - 盘子或食材放在地上时，也能像在柜台上一样组装。
 - 厨师对所有工位使用同一身体尺寸：不再踩进柜台正面，走到哪里停下就在哪里操作。
 - 行走时能滑过浅凹口；卡住的路线会绕开对方重新规划；“走向搭档”可以主动走到对方身边。
@@ -68,12 +72,14 @@ First private release: a local browser game with three playable maps and player-
 ### 记录与分析
 - 每局记录为一条事件流，并生成可回放的对局包。
 - 关店后显示本局记录：谁做了哪些活。
-- 物品来历追踪、协作分析，以及按时间计算的贡献（投入时间与关键路径）。
+- 物品来历追踪、协作分析，以及按投入时间计算的贡献。分析工具还会给出每道菜的关键路径（煎、煮的东西按熟的那一刻算），本局记录不显示。
 - 容量分析器，以及校准阶梯（单人、单人加随机搭档、双人）。
 - 三关的行为指纹，防止规则被无意改动。
 
 ### 画面与声音
 - 厨房界面设计规范、像素字体、音乐与音效。
+- 两名厨师的每个视角都从同一个身体母版画出，切菜时不再变大；刀单独一层。
+- 新增八种食材（黄瓜、洋葱、芝士、葱、鸡肉、鱼、饼、面条）和六道菜谱及像素图，可用于新关卡。
 - 糊了的菜在任何位置都能认出来。
 
 ## 0.5.9-alpha — 2026-09-27

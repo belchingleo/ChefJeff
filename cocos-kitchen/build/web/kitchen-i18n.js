@@ -445,8 +445,6 @@
     "牛肉": "Beef",
     "牛排": "Steak",
     "对出餐投入的时间": "Time spent on served dishes",
-    "关键路径上的时间": "Time on the critical path",
-    "投入时间：每个对出餐有用的动作从开始到完成的时长。关键路径：决定每道菜何时能出的那条步骤链。": "Time spent: how long each action that went into a served dish took. Critical path: the chain of steps that decided when each dish could be served.",
     "平底锅": "Frying pan",
     "汤锅": "Soup pot",
     "锅具": "Cookware",
@@ -491,7 +489,8 @@
     "鸡肉箱": "Chicken supply",
     "第四关 · 拌面（试玩）": "Level 4 · Mixed noodles (trial)",
     "单间厨房由横向长柜台分为上下工作区，右侧通道相连。180 游戏秒，每 40 秒来一张汉堡单，每份 ¥80；关店时净收入达到 ¥150 即达标。1 口平底锅、1 个灶台、2 只盘子、2 块案板；需要回收洗盘。食材和灶台在上、案板在下，可以隔着柜台传递。": "One kitchen split into upper and lower work areas by a long counter, joined on the right. 180 game seconds; a burger order arrives every 40 seconds, ¥80 each; reach ¥150 net revenue by closing time. 1 frying pan, 1 stove, 2 plates, 2 boards; plates must be returned and washed. Sources and the stove are above, boards below: pass food across the counter.",
-    "两个灶台、三口平底锅，备用的空平底锅在右上柜台。面包直接装盘；生菜和番茄切好，牛肉切好后煎熟。可手持盘从案板或柜台收集切好蔬菜和面包，也能给队友手中盘加料。两盘无重复配料可合并：成品留手中，柜台留空盘。牛肉须先煎熟；缺料不能出餐。180 游戏秒，每 30 秒来一单牛排或汉堡（¥50／¥80），关店时净收入达到 ¥190 即达标。": "Two stoves and three frying pans; the spare pan is on the top-right counter. Bread needs no prep. Chop lettuce and tomato; chop and cook beef. Held plates can collect prepared ingredients from boards/counters. Add food to a teammate's plate, or merge two non-overlapping plates; the empty source plate stays in place. Beef must be cooked; incomplete dishes cannot be served. 180 game seconds; a steak or burger order (¥50/¥80) arrives every 30 seconds; reach ¥190 net revenue by closing time."
+    "两个灶台、三口平底锅，备用的空平底锅在右上柜台。面包直接装盘；生菜和番茄切好，牛肉切好后煎熟。可手持盘从案板或柜台收集切好蔬菜和面包，也能给队友手中盘加料。两盘无重复配料可合并：成品留手中，柜台留空盘。牛肉须先煎熟；缺料不能出餐。180 游戏秒，每 30 秒来一单牛排或汉堡（¥50／¥80），关店时净收入达到 ¥190 即达标。": "Two stoves and three frying pans; the spare pan is on the top-right counter. Bread needs no prep. Chop lettuce and tomato; chop and cook beef. Held plates can collect prepared ingredients from boards/counters. Add food to a teammate's plate, or merge two non-overlapping plates; the empty source plate stays in place. Beef must be cooked; incomplete dishes cannot be served. 180 game seconds; a steak or burger order (¥50/¥80) arrives every 30 seconds; reach ¥190 net revenue by closing time.",
+    "投入时间：每个对出餐有用的动作从开始到完成的时长。": "Time spent: how long each action that went into a served dish took."
   },
   "templates": [
     [
@@ -885,10 +884,6 @@
     [
       "用时 {0} 秒",
       "{0} s"
-    ],
-    [
-      "关键路径上另有 {0} 秒在等待（如锅在自己煮、等另一个人）。",
-      "The critical paths also include {0} s of waiting (food cooking on its own, or waiting for the other chef)."
     ],
     [
       "与地上的{0}交换",
