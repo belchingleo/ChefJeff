@@ -2,7 +2,7 @@ import { _decorator, Component, Node, UITransform, Graphics, Color, Label, Layer
     view, ResolutionPolicy, sys, game, Game, profiler, Mask, Vec2, Camera, director, Sprite } from 'cc';
 import { LevelOneArt } from './LevelOneArt';
 import { KitchenAudio } from './KitchenAudio';
-import { GRID_ART, stationView, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, workingChefDepth, flightDepth, predictWalk, footWalkable, plateLayers, heatCountdown, behindCounter } from './KitchenGeometry';
+import { levelButtonLayout, GRID_ART, stationView, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, workingChefDepth, flightDepth, predictWalk, footWalkable, plateLayers, heatCountdown, behindCounter } from './KitchenGeometry';
 const { ccclass } = _decorator;
 type Action = { key: string; label: string; kind: string; target: string; expected: unknown[] };
 type KitchenState = { game_id: string; phase: string; speed: number; kitchen: any; actions: Action[]; limits?:any; release?:any; interaction?:Action; use_interaction?:Action; interaction_hint?:string; interaction_focus?:string; interaction_cell?:number[];
@@ -21,7 +21,8 @@ const COLORS = { ink:'#2b1a12', muted:'#6e4e38', bg:'#f0d9b5', paper:'#fdf3e1', 
 const PIXEL='ChefJeffPixel, sans-serif';
 // Result events reach the player; AI decision notes have their own status line.
 const RESULT_ANNOUNCE=new Set(['order','served','expired','ready','burn','fire','fire_spread','fire_loss']);
-const TAB_ORDER=['language','level1','level2','level3','main','reset','cover-connection','help','record','resume','pause','end'];
+// Keyboard order; the level buttons (one per listed level, from the server) follow the language button.
+const TAB_ORDER=['language','main','reset','cover-connection','help','record','resume','pause','end'];
 type ButtonView = {node:Node;label:Label;callback:()=>void;enabled:boolean;width:number;height:number;tone:string;hover:boolean;selected?:boolean};
 // Labels for things that are not recipe items; item and dish names come from the server's catalog.
 const STAGES: Record<string,string> = {extinguisher:'灭火器',clean_plate:'干净餐盘',dirty_plate:'脏餐盘'};
@@ -175,7 +176,6 @@ export class KitchenClient extends Component {
         this.buttons.reset.node.active=false;
         this.button('cover-connection','设置',727,520,158,48,()=>this.openConnection(),this.cover);
         this.button('help','操作说明',901,520,158,48,()=>this.openHelp(),this.cover);
-        for(const n of [1,2,3])this.pixel(this.button('level'+n,'',188+n*226,464,210,30,()=>this.post('/api/level',{level:n}),this.cover).getComponentInChildren(Label)!,12);
         // Language sits on the board where people look first, not only inside Settings.
         this.pixel(this.button('language','English',944,196,88,30,()=>{const i18n=(window as any).kitchenI18n;i18n?.setLanguage(i18n.language==='en'?'zh':'en');},this.cover).getComponentInChildren(Label)!,12);
         if(sys.isNative)this.buttons.language.node.active=false;
@@ -188,11 +188,7 @@ export class KitchenClient extends Component {
             // focus to the matching proxy so assistive technology follows it.
             this.controlAccess=document.createElement('div');
             this.controlAccess.style.cssText='position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);';
-            for(const id of TAB_ORDER){
-                const b=document.createElement('button');b.dataset.control=id;b.tabIndex=-1;
-                b.onclick=()=>{if(this.buttons[id].enabled)this.buttons[id].callback();};
-                this.controlAccess.appendChild(b);
-            }
+            for(const id of TAB_ORDER)this.controlAccess.appendChild(this.proxyButton(id));
             document.body.appendChild(this.controlAccess);
             const canvas=document.getElementById('GameCanvas');
             canvas?.setAttribute('role','img');canvas?.setAttribute('aria-label','ChefJeff 厨房画面');
@@ -272,7 +268,7 @@ export class KitchenClient extends Component {
                 this.heldKeys.add(key);this.refreshMovement();return;}
         }
         if(e.key==='Tab'){
-            e.preventDefault();const ids=TAB_ORDER.filter(id=>this.buttons[id].enabled&&this.buttons[id].node.activeInHierarchy);
+            e.preventDefault();const ids=this.tabOrder().filter(id=>this.buttons[id]?.enabled&&this.buttons[id].node.activeInHierarchy);
             if(!ids.length)return;const at=ids.indexOf(this.focusId);
             this.setFocus(ids[(at+(e.shiftKey?-1:1)+ids.length)%ids.length]);
         }else if(e.key==='Enter'&&this.focusId){const b=this.buttons[this.focusId];if(b?.enabled&&b.node.activeInHierarchy){e.preventDefault();this.audio.play('ui_click');b.callback();}}
@@ -391,6 +387,29 @@ export class KitchenClient extends Component {
         if(this.focusId===id){g.strokeColor=color(COLORS.ink);g.lineWidth=3;g.rect(-w/2-5,-h/2-8,w+10,h+13);g.stroke();}
         b.label.node.setPosition(0,dy);
         b.label.color=color(sel?COLORS.ink:!b.enabled?COLORS.muted:b.tone==='primary'||b.tone==='danger'?COLORS.paper:COLORS.ink);
+    }
+    private proxyButton(id:string){
+        const b=document.createElement('button');b.dataset.control=id;b.tabIndex=-1;
+        b.onclick=()=>{if(this.buttons[id]?.enabled)this.buttons[id].callback();};
+        return b;
+    }
+    private levelIds:string[]=[];
+    private tabOrder(){return [TAB_ORDER[0],...this.levelIds.map(id=>'level:'+id),...TAB_ORDER.slice(1)];}
+    /** One button per level the server lists (menu order), laid out to fit the cover; rebuilt when the list changes. */
+    private syncLevelButtons(levels:any[]){
+        const sorted=[...levels].sort((a,b)=>(a.menu_order??0)-(b.menu_order??0)),ids=sorted.map(l=>l.id);
+        if(ids.join()===this.levelIds.join())return;
+        for(const id of this.levelIds){
+            this.buttons['level:'+id]?.node.destroy();delete this.buttons['level:'+id];
+            this.controlAccess?.querySelector(`[data-control="level:${id}"]`)?.remove();
+        }
+        this.levelIds=ids;
+        const slots=levelButtonLayout(ids.length),anchor=this.controlAccess?.querySelector('[data-control="main"]');
+        ids.forEach((id,i)=>{
+            const r=slots[i];
+            this.pixel(this.button('level:'+id,'',r.x,r.y,r.w,r.h,()=>this.post('/api/level',{level:id}),this.cover).getComponentInChildren(Label)!,12);
+            if(this.controlAccess)this.controlAccess.insertBefore(this.proxyButton('level:'+id),anchor||null);
+        });
     }
     private enable(id:string,enabled:boolean){const b=this.buttons[id];if(!b)return;if(b.enabled!==enabled){b.enabled=enabled;this.styleButton(id);}}
     private labelSources=new WeakMap<Label,string>();
@@ -1227,10 +1246,11 @@ export class KitchenClient extends Component {
         this.set('event',results.length?results[results.length-1].message:'');
         this.set('ai-status',this.aiStatus(s));
         this.labels['ai-status'].color=color(s.ai.error||(s.limits?.reached&&s.phase==='running')?COLORS.alert:COLORS.muted);
-        for(const n of [1,2,3]){
-            const b=this.buttons['level'+n],sel=k.level===n;b.node.active=s.phase==='ready'||s.phase==='ended';
-            this.writeLabel(b.label,(s.levels?.find((l:any)=>l.menu_order===n)?.name||'')+(sel?' · 当前':''));
-            if(b.selected!==sel){b.selected=sel;this.styleButton('level'+n);}this.enable('level'+n,!this.pending&&!sel);
+        this.syncLevelButtons(s.levels||[]);
+        for(const level of s.levels||[]){
+            const id='level:'+level.id,b=this.buttons[id],sel=k.level_id===level.id;b.node.active=s.phase==='ready'||s.phase==='ended';
+            this.writeLabel(b.label,level.name+(sel?' · 当前':''));
+            if(b.selected!==sel){b.selected=sel;this.styleButton(id);}this.enable(id,!this.pending&&!sel);
         }
         const lang=(window as any).kitchenI18n?.language==='en'?'中文':'English';if(this.buttons.language.label.string!==lang)this.buttons.language.label.string=lang;
         this.cover.active=s.phase!=='running';this.buttons.reset.node.active=true;
@@ -1270,7 +1290,7 @@ export class KitchenClient extends Component {
     private syncAccess(){
         if(!this.controlAccess)return;
         const icons:Record<string,string>={pause:'暂停',resume:'继续经营',end:'结束本局'};
-        for(const id of TAB_ORDER){
+        for(const id of this.tabOrder()){
             const b=this.buttons[id],proxy=this.controlAccess.querySelector(`[data-control="${id}"]`) as HTMLButtonElement|null;if(!proxy)continue;
             const text=id==='language'?b.label.string:icons[id]||this.labelSources.get(b.label)||id;
             if(id==='language')proxy.setAttribute('data-no-i18n','');

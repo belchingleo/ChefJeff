@@ -39,5 +39,20 @@ class ClientCatalogTests(unittest.TestCase):
                 self.assertIsNone(re.search(pattern, code), f'{script.name} names {word!r}')
 
 
+    def test_the_client_lists_levels_from_the_server(self):
+        """Level buttons come from state.levels: no level id, name or fixed level count in code."""
+        words = set()
+        for path in (ROOT / 'content' / 'levels').glob('*.json'):
+            level = json.loads(path.read_text())
+            words |= {level['id'], level['name']}
+        self.assertTrue({'level-1', 'level-4'} <= words)
+        for script in SCRIPTS:
+            code = re.sub(r'/\*.*?\*/|//[^\n]*', '', script.read_text(), flags=re.S)
+            for word in words:
+                self.assertNotIn(word, code, f'{script.name} names {word!r}')
+            for pattern in (r"'level[0-9]+'", r"'level'\s*\+", r"\[\s*1\s*,\s*2\s*,\s*3\s*\]"):
+                self.assertIsNone(re.search(pattern, code), f'{script.name} hard-codes the levels ({pattern})')
+
+
 if __name__ == '__main__':
     unittest.main()

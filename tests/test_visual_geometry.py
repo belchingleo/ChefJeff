@@ -195,6 +195,25 @@ assert.deepStrictEqual(names(geometry.plateLayers(plating, ['a', 'c'])), ['base_
        'missing ingredients must not be drawn');
 assert.deepStrictEqual(names(geometry.plateLayers(undefined, ['x', 'y', 'x'])), ['x', 'y']);
 
+// Level buttons: any listed count from 1 to 6 fits the cover band, without overlap, wide enough
+// for a long pixel-font name such as "第四关 · 拌面（试玩） · 当前".
+for (let n = 1; n <= 6; n++) {
+  const slots = geometry.levelButtonLayout(n);
+  assert.strictEqual(slots.length, n);
+  for (const r of slots) {
+    assert(r.x - r.w/2 >= 309 - 1e-9 && r.x + r.w/2 <= 971 + 1e-9, `n ${n}: x`);
+    // Below the cover text (two lines end near 425) and 10 px clear of the main buttons (top 496).
+    assert(r.y - r.h/2 >= 430 && r.y + r.h/2 <= 486 + 1e-9, `n ${n}: y ${r.y}`);
+    assert(r.w >= 200, `n ${n}: width ${r.w}`);
+  }
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+    const a = slots[i], b = slots[j];
+    const apart = Math.abs(a.x - b.x) >= (a.w + b.w)/2 || Math.abs(a.y - b.y) >= (a.h + b.h)/2;
+    assert(apart, `n ${n}: buttons ${i} and ${j} overlap`);
+  }
+}
+assert.deepStrictEqual(geometry.levelButtonLayout(0), []);
+
 const cooking = geometry.heatCountdown({stove:true, heating:true, food:{stage:'cooking'}, ready_in:2.2});
 assert.deepStrictEqual(cooking, {seconds:3, ready:false, paused:false});
 const cooked = geometry.heatCountdown({stove:true, heating:true, food:{stage:'ready'}, burn_in:1.1});
