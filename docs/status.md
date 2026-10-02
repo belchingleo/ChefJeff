@@ -2,7 +2,7 @@
 
 ChefJeff 0.6.0-beta.1 is a playable human–AI cooperative cooking game on a data-driven core. Local play runs the Cocos browser client and Python game engine on a keyboard-and-mouse computer.
 
-Implemented: three maps; shared kitchen rules; continuous movement and sprint; direction-aware workstation docking; cooperative chopping and washing; gentle sliding, pushing and sprint contact; protection from pushes while working; plate return and washing; movable pots with preserved heat progress; model adapters; preset communication; bounded local memory; and data-driven maps. Existing maps do not yet offer a shared sink; the shared-washing rule has a dedicated test layout.
+Implemented: three maps; shared kitchen rules; continuous movement and sprint; direction-aware workstation docking; cooperative chopping and washing; gentle sliding, pushing and sprint contact; protection from pushes while working; plate return and washing; movable pans and pots with preserved heat progress, one vessel per stove; model adapters; preset communication; bounded local memory; and data-driven maps. Existing maps do not yet offer a shared sink; the shared-washing rule has a dedicated test layout.
 
 The hosted runtime adds independent browser sessions, browser-direct model calls and optional anonymous contributions retained for 30 days with deletion receipts. Public access is pending deployment validation and domain filing; use the local quick start in the [README](../README.md) meanwhile.
 

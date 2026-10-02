@@ -2,7 +2,7 @@
 
 A 14×9 kitchen with a horizontal counter dividing upper and lower work areas, joined by a two-cell passage on the right. Ingredient sources and one stove are above; two boards and two plates below. The right wall holds a sink and bin; serving/dirty returns are at the lower left, with an extinguisher on the middle counter. Chefs spawn near each area's center with randomized assignments.
 
-One pot starts on the stove; two plates rest on counters. Each counter slot holds one item. Off-stove pots do not heat. Shared pickup, throwing, catching, plating, merging, carrying, washing, collision and sprint rules apply. A pot swap needs another pot; this level supplies only one.
+One frying pan starts on the stove; two plates rest on counters. Each counter slot holds one item. Off-stove pans do not heat. Shared pickup, throwing, catching, plating, merging, carrying, washing, collision and sprint rules apply. A pan swap needs another pan; this level supplies only one.
 
 ## Orders
 
@@ -12,7 +12,7 @@ Each burger needs a bun, chopped lettuce, sliced tomato and cooked chopped beef,
 
 ## Delivery and observations
 
-Either chef can fetch and throw ingredients to a partner or empty board, then fetch again once the hand is free. Occupied/reserved boards cannot be overwritten; plates and pots can be passed to a partner or the floor within 4 cells, never onto boards. The agent chooses its own delivery and preparation actions.
+Either chef can fetch and throw ingredients to a partner or empty board, then fetch again once the hand is free. Occupied/reserved boards cannot be overwritten; plates and pans can be passed to a partner or the floor within 4 cells, never onto boards. The agent chooses its own delivery and preparation actions.
 
 Observations include active orders, ingredient states, held items, occupied workstations and flying ingredients. Future orders are not listed. Planning currently uses these observations without a precomputed ingredient-shortfall summary. Timing and order pressure remain playtesting parameters.
 
@@ -28,7 +28,7 @@ Observations include active orders, ingredient states, held items, occupied work
 
 14×9 单间厨房，连续外围柜台和从左侧伸出的横向长柜台形成上下工作区，右侧两格通道连接。上边四处食材来源和一台灶台；下边两块案板和两只餐盘；右墙水槽、垃圾桶；左下出餐口、脏盘回收；中间柜台有灭火器。所有设备有可达操作面。两名厨师分别在上下工作区中央附近出生，身份随机分配。
 
-只有一口锅，开局在唯一灶台上；两只餐盘分别放在柜台。柜台视觉连续，每格仍只容纳一个物品。锅离灶不加热。双方共用全部取放、抛食材、接物、装盘、合盘、端锅、换锅、洗碗和冲刺规则；本关只有一口锅，因此不会凭空出现换锅目标。
+只有一口平底锅，开局在唯一灶台上；两只餐盘分别放在柜台。柜台视觉连续，每格仍只容纳一个物品。平底锅离灶不加热。双方共用全部取放、抛食材、接物、装盘、合盘、端锅、换锅、洗碗和冲刺规则；本关只有一口平底锅，因此不会凭空出现换锅目标。
 
 ## 订单
 
@@ -38,7 +38,7 @@ Observations include active orders, ingredient states, held items, occupied work
 
 ## 连续送料与模型边界
 
-AI 与玩家均可取料后抛给队友或空案板，再取下一份继续抛或自己加工。出手后即腾出手，不必等上一次落地；占用或已预约的案板不会被覆盖；餐盘和锅可以在 4 格内传给队友或地面，不能抛上案板。该动作链不等于自动分工；模型自己选择送料次数和后续工作。
+AI 与玩家均可取料后抛给队友或空案板，再取下一份继续抛或自己加工。出手后即腾出手，不必等上一次落地；占用或已预约的案板不会被覆盖；餐盘和平底锅可以在 4 格内传给队友或地面，不能抛上案板。该动作链不等于自动分工；模型自己选择送料次数和后续工作。
 
 已出现订单、食材状态、手持物、工位占用、飞行中物品均提供给模型。未出现的订单不列出。暂不提供预计算的缺料量，不添加自动批量送料策略。未来评测应区分模型自行规划与系统提供需求汇总的辅助条件。
 

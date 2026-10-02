@@ -6,16 +6,16 @@ Use a desktop/laptop browser with a keyboard and mouse. Full timing and item rul
 | --- | --- |
 | WASD / arrows | Hold to move; the kitchen is keyboard-only, as in Overcooked |
 | Q | Dash while moving, with the shared cooldown |
-| Space | Whatever the faced target needs (fetch, take, put, cook, plate, lift a pot, chop, wash, serve, bin); with nothing usable ahead, the nearest thing beside. Stops chopping/washing, keeping progress |
+| Space | Whatever the faced target needs (fetch, take, put, cook, plate, lift a pan or pot, chop, wash, serve, bin); with nothing usable ahead, the nearest thing beside. Stops chopping/washing, keeping progress |
 | E | Chop, wash or extinguish; holding an item with nothing to use, throw it forward (to the partner when ahead in range) |
 | Esc or P / Ⅱ / ▶ / ■ | Esc or P pauses and resumes (P for keyboards without Esc, such as iPad) / pause / resume / end early (asks to confirm; restarting from pause also confirms) |
 | Shift | Bookmark a moment; nearby marks merge into intervals |
 | 1–5 / 6 | Cooperation preference / perceived mistake, with a shared cooldown; the dock (open by default) also takes clicks |
 | Settings | Provider connection, language, next-round call limit, local memory, feedback |
 
-The cooking loop is fetch → board → chop → pot → heat → plate → serve → dirty return → sink → clean plate. Bread skips chopping; vegetables skip heating. Partial burgers accept missing ingredients in any order, with fixed visual layers. Pots and plates retain identity through swaps/merges. Shared chopping/washing requires available operation sides; active workers resist contact pushes.
+The cooking loop is fetch → board → chop → pan → heat → plate → serve → dirty return → sink → clean plate. Bread skips chopping; vegetables skip heating. Partial burgers accept missing ingredients in any order, with fixed visual layers. Pans, pots and plates retain identity through swaps/merges. Shared chopping/washing requires available operation sides; active workers resist contact pushes.
 
-Space and E act on what the chef faces (Overcooked-style); that station glows faintly and the bottom line names both actions. Facing a station never falls back to dropping the held item; an impossible action shows a reason. Ground interactions include pickup, swapping loose ingredients, filling/serving/swapping pots; direct loose-vegetable-to-plate and plate-to-plate merging on the ground are future additions.
+Space and E act on what the chef faces (Overcooked-style); that station glows faintly and the bottom line names both actions. Facing a station never falls back to dropping the held item; an impossible action shows a reason. Ground interactions include pickup, swapping loose ingredients, filling/serving/swapping pans and pots; direct loose-vegetable-to-plate and plate-to-plate merging on the ground are future additions.
 
 Hosted Settings additionally offer explicit contribution after the round, a data preview and deletion receipt. Hosted sessions do not use local disk memory. See [privacy](privacy-and-costs.md).
 

@@ -12,8 +12,8 @@ The Cocos browser game uses the shared rules in `kitchen.py`, `spatial_kitchen.p
 | Chop / cook | 6 / 12 seconds |
 | Cooked → burnt → fire | 10 / 8 seconds while heating |
 | Wash / customer plate return | 4 / 8 seconds |
-| Extinguish / clear pot | 4 / 2 seconds |
-| Discard food | −2; retain its plate or pot |
+| Extinguish / clear a pan or pot | 4 / 2 seconds |
+| Discard food | −2; retain its plate, pan or pot |
 | Dish no shown order is waiting for / expired order / new fire | −20 / −10 / −5 |
 | Dish burnt ≤ 5 s / > 5 s when it left the heat | price −10 / refused, no money, order keeps waiting |
 
@@ -23,19 +23,19 @@ Hold WASD/arrows to move; release to stop. The kitchen is keyboard-only, as in O
 
 ## Actions and throwing
 
-Controls follow Overcooked: Space and E act on what the chef faces; with no station ahead, the nearest station or item beside the chef (never behind) is used. Space does what the target needs (fetch, take, put, cook, plate, lift a pot, chop, wash, extinguish, serve, bin); E only chops, washes or extinguishes and, holding an item with nothing to use, throws it forward — to the partner if they stand ahead within range. Facing a station, only that station is used, with a reason when nothing is possible; the held item is never dropped instead. Facing open floor, Space takes the item in front, then the one at the feet, then the nearest thing beside, otherwise puts the held item down. Authored corner counters are used by facing their side. A direction pressed during a quick pick-up or put-down starts after it (about 0.15 s); walking still stops chopping and washing, keeping progress. Pickups can swap with raw/chopped ground ingredients; the old item stays on legal floor. Each logical floor tile or counter slot holds one resting item; small visual overlaps do not trigger automatic plating.
+Controls follow Overcooked: Space and E act on what the chef faces; with no station ahead, the nearest station or item beside the chef (never behind) is used. Space does what the target needs (fetch, take, put, cook, plate, lift a pan or pot, chop, wash, extinguish, serve, bin); E only chops, washes or extinguishes and, holding an item with nothing to use, throws it forward — to the partner if they stand ahead within range. Facing a station, only that station is used, with a reason when nothing is possible; the held item is never dropped instead. Facing open floor, Space takes the item in front, then the one at the feet, then the nearest thing beside, otherwise puts the held item down. Authored corner counters are used by facing their side. A direction pressed during a quick pick-up or put-down starts after it (about 0.15 s); walking still stops chopping and washing, keeping progress. Pickups can swap with raw/chopped ground ingredients; the old item stays on legal floor. Each logical floor tile or counter slot holds one resting item; small visual overlaps do not trigger automatic plating.
 
-Loose raw/chopped ingredients, plates, plated dishes, pots and the extinguisher all fly up to 4 cells. Everything travels at 12 cells/game-second. Walls truncate the route; equipment can be crossed. A throw lands on the floor at the range limit. An empty-handed partner who is walking or standing can catch; a partner chopping, washing or holding something is not interrupted and the item lands beside them. Dropped plates keep their food and dropped pots their contents; both can be picked up again. The rules are identical for the player and the AI.
+Loose raw/chopped ingredients, plates, plated dishes, pans, pots and the extinguisher all fly up to 4 cells. Everything travels at 12 cells/game-second. Walls truncate the route; equipment can be crossed. A throw lands on the floor at the range limit. An empty-handed partner who is walking or standing can catch; a partner chopping, washing or holding something is not interrupted and the item lands beside them. Dropped plates keep their food and dropped pans and pots their contents; both can be picked up again. The rules are identical for the player and the AI.
 
 ## Work and shared stations
 
 Put raw ingredients on a board, chop with empty hands, then collect them. Bread is used directly. Chopping and washing preserve progress when voluntarily interrupted. Multiple chefs may cooperate where separate reachable operation sides exist, sharing progress; the current maps have no shared-sink layout. Each chef approaches a valid side without changing walls or footprints. Contact cannot interrupt active chopping/washing, but a fire can make the workstation unusable.
 
-A pot heats only on a stove. Carrying it or placing it on a counter/floor pauses heat progress; returning resumes it, including the countdown to burning. Chopped beef may be put into an empty pot off the stove. Raw beef must be chopped first; vegetables and bread do not go in pots. Pot swaps retain each pot's contents and progress. Burning pots must be extinguished before moving/clearing.
+Each ingredient cooks in one kind of vessel, set by the recipe data: beef fries in a frying pan, noodles boil in a soup pot (left too long, the water boils dry, then they burn and catch fire). A stove holds one vessel at a time. The three current levels use frying pans only. A pan or pot heats only on a stove. Carrying it or placing it on a counter/floor pauses heat progress; returning resumes it, including the countdown to burning. Chopped beef may be put into an empty pan off the stove. Raw beef must be chopped first; vegetables and bread do not go in pans. Swaps retain each vessel's contents and progress. Burning pans and pots must be extinguished before moving/clearing.
 
 ## Assembly and service
 
-Cooked beef moves with a pot or plate, never as a bare-handed loose item. Clean or compatible partial plates can collect prepared ingredients from boards/counters and cooked beef from pots. On levels with burgers the same works on the floor: add a held ingredient to a plate lying on the floor (the plate stays on its tile), or a floor ingredient to the held plate; picking up still swaps instead. Prepared ingredients, cooked pot contents and compatible plated components may be added to a partner's plate without stealing their item or interrupting work. Merging two plates transfers food, leaving the source plate empty. Duplicate ingredients and dirty plates are rejected.
+Cooked beef moves with a pan or plate, never as a bare-handed loose item. Clean or compatible partial plates can collect prepared ingredients from boards/counters and cooked beef from pans. On levels with burgers the same works on the floor: add a held ingredient to a plate lying on the floor (the plate stays on its tile), or a floor ingredient to the held plate; picking up still swaps instead. Prepared ingredients, cooked pan contents and compatible plated components may be added to a partner's plate without stealing their item or interrupting work. Merging two plates transfers food, leaving the source plate empty. Duplicate ingredients and dirty plates are rejected.
 
 Steak requires plated cooked beef. A burger requires one bun, chopped lettuce, sliced tomato and cooked beef, assembled in any order. Visual layer order is fixed regardless of assembly order; missing layers remain hidden. Partial burgers can be carried and placed but not served; hints identify missing ingredients. A served dish goes to the waiting order of that dish with the earliest deadline; serving exactly at the deadline counts. Steak pays 50 and a burger 80. If any component was burnt, what counts is how long it had been burnt when it left the heat: up to 5 seconds, the order is completed at the price −10; longer (or burnt by a fire), the customer refuses it, pays nothing and keeps waiting. Serving a dish that no shown order is waiting for costs 20. There are no bad reviews. Customer plates return after a delay; move dirty plates to a sink, wash with empty hands, and collect clean plates.
 
@@ -90,7 +90,7 @@ Cocos 浏览器版共用 `kitchen.py`、`spatial_kitchen.py`、地图 JSON 和�
 
 把生原料放在案板，空手切配后取走；面包直接使用。主动中断切菜或洗碗保留进度。有分别可达的操作侧时，多位厨师可共用工位推进加工；当前地图没有双人水槽。厨师走向合法操作侧，不改变墙和占格。碰撞不打断切菜／洗碗，着火会使工位不可用。
 
-锅仅在灶台上加热，端走或放在柜台／地面时暂停，放回后继续，包括烧糊倒计时。离灶空锅可先装切好牛肉；生牛肉须先切，蔬菜和面包不入锅。交换锅保留各自内容与进度，着火锅须先灭火再搬动／清理。
+每种食材只进一种锅，由菜谱数据决定：牛肉用平底锅煎，面条用汤锅煮（煮太久水烧干会糊，再久会着火）。一个灶台同时只放一口锅。目前三关只用平底锅。锅仅在灶台上加热，端走或放在柜台／地面时暂停，放回后继续，包括烧糊倒计时。离灶空锅可先装切好牛肉；生牛肉须先切，蔬菜和面包不入锅。交换锅保留各自内容与进度，着火锅须先灭火再搬动／清理。
 
 ## 组装与出餐
 

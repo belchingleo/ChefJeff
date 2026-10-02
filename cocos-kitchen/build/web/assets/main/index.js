@@ -2624,7 +2624,11 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           this.mountedLayout = map.layout_version;
           this.sortWorld();
           this.refreshArtCharacters();
-          this.drawIcon(this.cover.getChildByName('welcome-food').getComponent(Graphics), 'plated_ready');
+          // The cover shows a soup pot between the two chefs, like the loading card.
+          var coverIcon = this.cover.getChildByName('welcome-food'),
+            coverG = coverIcon.getComponent(Graphics);
+          coverG.clear();
+          if (!(this.useArt && this.art.centered(coverIcon, 'objects/' + VESSEL_ART_FALLBACK, 40, 40))) this.drawIcon(coverG, 'vessel');
           this.cover.setSiblingIndex(this.node.children.length - 1);
           for (var _i15 = 0, _arr11 = ['pause', 'resume', 'end']; _i15 < _arr11.length; _i15++) {
             var id = _arr11[_i15];
