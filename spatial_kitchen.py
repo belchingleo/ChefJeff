@@ -1147,7 +1147,10 @@ class SpatialKitchen(Kitchen):
         for board in self.boards + self.counters:
             state['stations'][board]['incoming_item'] = next((key for key,p in self.projectiles.items() if p['target']==board),None)
         state['projectiles'] = [{'id': key, 'stage': p['food'].stage, 'ingredient':p['food'].ingredient, 'plate_id': p['food'].plate_id,
-            'components': list(p['food'].components), 'contents': {'stage': p['food'].contents.stage} if p['food'].contents else None,
+            'components': list(p['food'].components),
+            'contents': {'stage': p['food'].contents.stage, 'ingredient': p['food'].contents.ingredient} if p['food'].contents else None,
+            # A passed vessel names its kind, so nothing else in flight is drawn as one.
+            **({'vessel': self.rules.vessels.get(key)} if p['food'].stage == 'pot' else {}),
             'onto': p['target'] if p['target'] in self.equipment else None, 'from': p['from'], 'to': p['to'], 'landing_cell': self.equipment[p['target']]['cell'] if p['target'] in self.equipment else self.cell(p['target']), 'started': p['started'], 'lands_at': p['lands_at']} for key,p in self.projectiles.items()]
         r = self.rules
         state['map'] = {'throw_range': r.throw_range, 'pass_range': r.pass_range, 'throw_speed': r.throw_speed, 'width': self.width, 'height': self.height, 'walls': sorted(self.walls),

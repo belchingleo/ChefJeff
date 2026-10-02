@@ -79,6 +79,17 @@ class VesselTests(unittest.TestCase):
         k.advance(2)
         self.assertEqual((k.served, k.money), (1, 70))
 
+    def test_only_a_passed_vessel_is_marked_as_one_in_flight(self):
+        k = self.k
+        base = {'target': 'counter4', 'from': (2, 2), 'to': (3, 3), 'started': 0, 'lands_at': 1}
+        k.projectiles['F95'] = dict(base, food=Food('F95', ingredient='bread'))
+        k.projectiles['P3'] = dict(base, food=Food('P3', 'pot', contents=Food('F96', 'ready', ingredient='beef')))
+        flying = {p['id']: p for p in k.snapshot()['projectiles']}
+        self.assertNotIn('vessel', flying['F95'])
+        self.assertIsNone(flying['F95']['contents'])
+        self.assertEqual(flying['P3']['vessel'], 'pan')
+        self.assertEqual(flying['P3']['contents'], {'stage': 'ready', 'ingredient': 'beef'})
+
     def test_model_input_for_a_noodle_kitchen_is_plain_english(self):
         import json, re
         from whitebox_server import SpatialJevClient

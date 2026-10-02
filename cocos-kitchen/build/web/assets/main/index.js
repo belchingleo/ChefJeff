@@ -1943,7 +1943,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
         _proto.itemStage = function itemStage(f) {
           var _f$contents;
           // Vessels (any kind) carry their contents; the kind comes from the server.
-          if (f && (f.vessel || 'contents' in f)) return "vessel:" + (f.vessel || '') + ((_f$contents = f.contents) != null && _f$contents.ingredient ? ":" + f.contents.ingredient + ":" + f.contents.stage : '');
+          // Only real vessels: in-flight items always carry a contents field, null unless they are one.
+          if (f && (f.vessel || f.contents)) return "vessel:" + (f.vessel || '') + ((_f$contents = f.contents) != null && _f$contents.ingredient ? ":" + f.contents.ingredient + ":" + f.contents.stage : '');
           if (f != null && f.plate_id && this.plateItems(f).length) {
             var whole = this.wholeDish(f);
             if (whole) return "dish:" + whole.id + ":" + f.stage;

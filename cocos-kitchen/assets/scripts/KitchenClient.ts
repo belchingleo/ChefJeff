@@ -615,7 +615,8 @@ export class KitchenClient extends Component {
     }
     private itemStage(f:any){
         // Vessels (any kind) carry their contents; the kind comes from the server.
-        if(f&&(f.vessel||'contents' in f))return `vessel:${f.vessel||''}`+(f.contents?.ingredient?`:${f.contents.ingredient}:${f.contents.stage}`:'');
+        // Only real vessels: in-flight items always carry a contents field, null unless they are one.
+        if(f&&(f.vessel||f.contents))return `vessel:${f.vessel||''}`+(f.contents?.ingredient?`:${f.contents.ingredient}:${f.contents.stage}`:'');
         if(f?.plate_id&&this.plateItems(f).length){
             const whole=this.wholeDish(f);if(whole)return `dish:${whole.id}:${f.stage}`;
             // Burnt plates keep their layers (burnt dishes can be served); items that burn are drawn charred.
