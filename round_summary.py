@@ -116,7 +116,7 @@ def round_summary(k):
                    'reached_target': bool(k.won())},
         'chefs': list(CHEFS),
         'rows': rows,
-        # Owner decision 2026-10-02: contribution by standard effort (configured work + shortest
+        # Owner decision 2026-10-02: contribution by standard time (configured work + shortest
         # needed walk on the served dishes), the seconds each chef delayed the dishes beyond the
         # ideal, and idle seconds (loops, unused work, waiting); shown for community feedback.
         'contribution': {

@@ -166,13 +166,13 @@ def _walk_seconds(k, a, b):
 
 
 def _dish_metrics(k, p, serve, chain, spans, ready, order_t, useful):
-    """Standard effort of each chef on one dish, and how much later than ideal it went out.
+    """Standard time of each chef on one dish, and how much later than ideal it went out.
 
-    Standard effort of a step: its work from the configuration (chopping or washing work,
+    Standard time of a step: its work from the configuration (chopping or washing work,
     otherwise the handling time) plus the shortest walk its carried items needed from where
     their previous step finished. First touches count no walk. Cooking is nobody's work.
 
-    Ideal: the same steps at standard effort, each starting as soon as its inputs are there and
+    Ideal: the same steps at standard time, each starting as soon as its inputs are there and
     its chef has finished their earlier useful work; a first touch can start at the order. The
     delay (actual minus ideal serve time) is split over the chefs by their Shapley value: each
     chef's average saving when the chefs are made ideal one at a time, in every order; a chef
@@ -320,7 +320,7 @@ def analyze_collaboration(k):
         else:
             wasted[aid] = 'unused'
 
-    # Contribution by standard effort, delay and idle time (owner decision 2026-10-02; shown in the
+    # Contribution by standard time, delay and idle time (owner decision 2026-10-02; shown in the
     # round record for community feedback).
     orders = {e['order_id']: e['t'] for e in k.events if e.get('kind') == 'order' and e.get('order_id')}
     served_order = {e['action_id']: e.get('order_id') for e in k.events if e.get('kind') == 'served' and e.get('action_id')}
@@ -392,7 +392,7 @@ def analyze_collaboration(k):
         'effort_share': shares(effort),
         'critical_path': {'seconds': {w: round(s, 3) for w, s in critical.items()}, 'share': shares(critical),
                           'waiting_seconds': round(critical_waiting, 3), 'cooking_seconds': round(critical_cooking, 3)},
-        # Contribution: each chef's standard effort (configured work + shortest needed walk) on the
+        # Contribution: each chef's standard time (configured work + shortest needed walk) on the
         # served dishes. Delay: seconds each chef added to the dishes' serve times beyond the ideal.
         # Idle: seconds on actions that reached no served dish (loops, unused work) or waiting.
         'contribution': {'seconds': {w: round(s, 3) for w, s in standard.items()}, 'share': shares(standard)},

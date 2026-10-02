@@ -29,7 +29,7 @@ The game now runs on a data-driven core: five data models (map, recipes, orders,
 ### Records and analysis
 - Every round is recorded as one event stream and a replayable session bundle.
 - End-of-round record of who did which work, shown after closing.
-- Item provenance and collaboration analysis. The round record shows three experimental measures: contribution by standard effort (configured work plus the shortest walk needed), delay beyond the ideal split between the chefs, and idle time. The analyzer also reports each dish's critical path.
+- Item provenance and collaboration analysis. The round record shows three experimental measures: contribution by standard time (configured work plus the shortest walk needed), delay beyond the ideal split between the chefs, and idle time. The analyzer also reports each dish's critical path.
 - Capacity Analyzer and a calibration ladder (solo, solo with random partner, pair).
 - Behaviour fingerprints of the three levels guard against unintended rule changes.
 
@@ -72,7 +72,7 @@ First private release: a local browser game with three playable maps and player-
 ### 记录与分析
 - 每局记录为一条事件流，并生成可回放的对局包。
 - 关店后显示本局记录：谁做了哪些活。
-- 物品来历追踪与协作分析。本局记录显示三项试验性指标：按标准功夫计算的贡献（配置里的操作时间加必要的最短走路）、超出理想的拖延（在两人之间分摊）和空转时间。分析工具还会给出每道菜的关键路径。
+- 物品来历追踪与协作分析。本局记录显示三项试验性指标：按标准时间计算的贡献（配置里的操作时间加必要的最短走路）、超出理想的拖延（在两人之间分摊）和空转时间。分析工具还会给出每道菜的关键路径。
 - 容量分析器，以及校准阶梯（单人、单人加随机搭档、双人）。
 - 三关的行为指纹，防止规则被无意改动。
 
