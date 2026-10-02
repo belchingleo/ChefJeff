@@ -27,6 +27,9 @@ def ui_text():
     parts = [*catalog['messages'].keys(), *catalog['messages'].values()]
     parts += [text for pair in catalog['templates'] for text in pair]
     parts += [(ROOT / path).read_text() for path in SOURCES]
+    # Names shown from content data (levels, items, dishes, vessels, stations) need glyphs too.
+    for folder in ('content', 'maps'):
+        parts += [path.read_text() for path in sorted((ROOT / folder).rglob('*.json'))]
     # Printable ASCII, currency, arrows and the HUD's control glyphs are always kept.
     parts.append(''.join(chr(c) for c in range(0x20, 0x7f)) + '¥·–—…»←→↑↓ⅡⅠ▶■！？：；，。、（）「」“”')
     return ''.join(parts)
