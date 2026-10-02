@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "kind": "order_policy",
+  "id": "level-4",
+  "version": 1,
+  "name": "第4关订单",
+  "mode": "fixed_interval_seeded",
+  "first_spawn_game_ms": 0,
+  "interval_game_ms": 40000,
+  "menu": [
+    {
+      "recipe_ref": "beef_noodles",
+      "weight": 1
+    },
+    {
+      "recipe_ref": "chicken_noodles",
+      "weight": 1
+    }
+  ],
+  "patience_default_game_ms": 105000,
+  "patience_by_recipe": {
+    "beef_noodles": 120000,
+    "chicken_noodles": 120000
+  },
+  "extensions": {
+    "chefjeff.status": "trial level for the pan and soup pot; not calibrated"
+  }
+}

@@ -47,9 +47,9 @@ class ServeTests(unittest.TestCase):
         return next(o for o in k.orders if o['status'] == 'pending')
 
     def test_levels_and_prices(self):
-        self.assertEqual([e['id'] for e in available_levels()], ['level-1', 'level-2', 'level-3'])
-        menus = {1: ['steak'], 2: ['burger'], 3: ['steak', 'burger']}
-        for n in (1, 2, 3):
+        self.assertEqual([e['id'] for e in available_levels()], ['level-1', 'level-2', 'level-3', 'level-4'])
+        menus = {1: ['steak'], 2: ['burger'], 3: ['steak', 'burger'], 4: ['beef_noodles', 'chicken_noodles']}
+        for n in (1, 2, 3, 4):
             resolved = level(n)
             self.assertEqual(resolved['level']['round_limit_game_ms'], 180000)
             self.assertEqual([e['recipe_ref'] for e in resolved['order_policy']['menu']], menus[n])

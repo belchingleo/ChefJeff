@@ -1067,7 +1067,7 @@ class Kitchen:
                 return {'id': f.id, 'stage': f.stage, 'meaning': STATES[f.stage], 'tool': True}
             if f.stage == 'pot':
                 v = self.vessel_name(f.id)
-                return {'id': f.id, 'stage': 'pot', 'vessel': self.rules.vessels.get(f.id), 'meaning': '空'+v if not f.contents else v+' · '+STATES[f.contents.stage],
+                return {'id': f.id, 'stage': 'pot', 'vessel': self.rules.vessels.get(f.id), 'meaning': '空'+v if not f.contents else v+' · '+self.state_label(f.contents.ingredient, f.contents.stage),
                         'contents': food(f.contents)}
             if f.stage in ('clean_plate', 'dirty_plate'):
                 return {'id': f.id, 'stage': f.stage, 'meaning': STATES[f.stage],

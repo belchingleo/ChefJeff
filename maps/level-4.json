@@ -1,0 +1,1073 @@
+{
+  "schema_version": 2,
+  "id": "level-4",
+  "revision": 1,
+  "size": [
+    14,
+    9
+  ],
+  "areas": {
+    "prep": {
+      "name": "处理区"
+    },
+    "cook": {
+      "name": "烹饪区"
+    }
+  },
+  "floor_areas": {
+    "axis": "x",
+    "split": 7,
+    "below": "prep",
+    "at_or_above": "cook"
+  },
+  "walls": [
+    [
+      0,
+      0
+    ],
+    [
+      0,
+      1
+    ],
+    [
+      0,
+      2
+    ],
+    [
+      0,
+      3
+    ],
+    [
+      0,
+      4
+    ],
+    [
+      0,
+      5
+    ],
+    [
+      0,
+      6
+    ],
+    [
+      0,
+      7
+    ],
+    [
+      0,
+      8
+    ],
+    [
+      1,
+      0
+    ],
+    [
+      1,
+      8
+    ],
+    [
+      2,
+      0
+    ],
+    [
+      2,
+      8
+    ],
+    [
+      3,
+      0
+    ],
+    [
+      3,
+      8
+    ],
+    [
+      4,
+      0
+    ],
+    [
+      4,
+      8
+    ],
+    [
+      5,
+      0
+    ],
+    [
+      5,
+      8
+    ],
+    [
+      6,
+      0
+    ],
+    [
+      6,
+      8
+    ],
+    [
+      7,
+      0
+    ],
+    [
+      7,
+      1
+    ],
+    [
+      7,
+      2
+    ],
+    [
+      7,
+      3
+    ],
+    [
+      7,
+      5
+    ],
+    [
+      7,
+      6
+    ],
+    [
+      7,
+      7
+    ],
+    [
+      7,
+      8
+    ],
+    [
+      8,
+      0
+    ],
+    [
+      8,
+      8
+    ],
+    [
+      9,
+      0
+    ],
+    [
+      9,
+      8
+    ],
+    [
+      10,
+      0
+    ],
+    [
+      10,
+      8
+    ],
+    [
+      11,
+      0
+    ],
+    [
+      11,
+      8
+    ],
+    [
+      12,
+      0
+    ],
+    [
+      12,
+      8
+    ],
+    [
+      13,
+      0
+    ],
+    [
+      13,
+      1
+    ],
+    [
+      13,
+      2
+    ],
+    [
+      13,
+      3
+    ],
+    [
+      13,
+      4
+    ],
+    [
+      13,
+      5
+    ],
+    [
+      13,
+      6
+    ],
+    [
+      13,
+      7
+    ],
+    [
+      13,
+      8
+    ]
+  ],
+  "equipment": [
+    {
+      "id": "fridge",
+      "type": "ingredient_source",
+      "name": "牛肉箱",
+      "area": "prep",
+      "params": {
+        "item": "beef"
+      },
+      "cell": [
+        1,
+        2
+      ],
+      "access": [
+        2,
+        2
+      ],
+      "facing": "east"
+    },
+    {
+      "id": "serve",
+      "type": "serving_window",
+      "name": "出餐口",
+      "area": "cook",
+      "cell": [
+        12,
+        4
+      ],
+      "cells": [
+        [
+          12,
+          4
+        ]
+      ],
+      "access": [
+        11,
+        4
+      ],
+      "facing": "west"
+    },
+    {
+      "id": "bin",
+      "type": "bin",
+      "name": "垃圾桶",
+      "area": "prep",
+      "cell": [
+        1,
+        6
+      ],
+      "access": [
+        2,
+        6
+      ],
+      "facing": "east"
+    },
+    {
+      "id": "extinguisher",
+      "type": "tool_rack",
+      "name": "灭火器架",
+      "area": "cook",
+      "cell": [
+        12,
+        2
+      ],
+      "access": [
+        11,
+        2
+      ],
+      "facing": "west"
+    },
+    {
+      "id": "returns",
+      "type": "plate_return",
+      "name": "脏盘回收",
+      "area": "cook",
+      "cell": [
+        12,
+        5
+      ],
+      "access": [
+        11,
+        5
+      ],
+      "facing": "west"
+    },
+    {
+      "id": "sink",
+      "type": "sink",
+      "name": "水槽",
+      "area": "prep",
+      "cell": [
+        3,
+        1
+      ],
+      "access": [
+        3,
+        2
+      ],
+      "facing": "south"
+    },
+    {
+      "id": "plates",
+      "type": "counter",
+      "name": "柜台 1",
+      "area": "cook",
+      "cell": [
+        9,
+        7
+      ],
+      "access": [
+        9,
+        6
+      ],
+      "facing": "north"
+    },
+    {
+      "id": "counter2",
+      "type": "counter",
+      "name": "柜台 2",
+      "area": "cook",
+      "cell": [
+        10,
+        7
+      ],
+      "access": [
+        10,
+        6
+      ],
+      "facing": "north"
+    },
+    {
+      "id": "counter3",
+      "type": "counter",
+      "name": "柜台 3",
+      "area": "prep",
+      "cell": [
+        11,
+        7
+      ],
+      "access": [
+        11,
+        6
+      ],
+      "facing": "north"
+    },
+    {
+      "id": "b1",
+      "type": "board",
+      "name": "案板 1",
+      "area": "prep",
+      "cell": [
+        2,
+        7
+      ],
+      "access": [
+        2,
+        6
+      ],
+      "facing": "north"
+    },
+    {
+      "id": "b2",
+      "type": "board",
+      "name": "案板 2",
+      "area": "prep",
+      "cell": [
+        3,
+        7
+      ],
+      "access": [
+        3,
+        6
+      ],
+      "facing": "north"
+    },
+    {
+      "id": "b3",
+      "type": "board",
+      "name": "案板 3",
+      "area": "prep",
+      "cell": [
+        4,
+        7
+      ],
+      "access": [
+        4,
+        6
+      ],
+      "facing": "north"
+    },
+    {
+      "id": "p1",
+      "type": "stove",
+      "name": "灶台 1",
+      "area": "cook",
+      "cell": [
+        9,
+        1
+      ],
+      "access": [
+        9,
+        2
+      ],
+      "facing": "south"
+    },
+    {
+      "id": "p2",
+      "type": "stove",
+      "name": "灶台 2",
+      "area": "cook",
+      "cell": [
+        10,
+        1
+      ],
+      "access": [
+        10,
+        2
+      ],
+      "facing": "south"
+    },
+    {
+      "id": "lettuce",
+      "type": "ingredient_source",
+      "name": "葱箱",
+      "area": "prep",
+      "params": {
+        "item": "scallion"
+      },
+      "cell": [
+        1,
+        3
+      ],
+      "access": [
+        2,
+        3
+      ],
+      "facing": "east"
+    },
+    {
+      "id": "tomato",
+      "type": "ingredient_source",
+      "name": "面条箱",
+      "area": "prep",
+      "params": {
+        "item": "noodles"
+      },
+      "cell": [
+        1,
+        4
+      ],
+      "access": [
+        2,
+        4
+      ],
+      "facing": "east"
+    },
+    {
+      "id": "bread",
+      "type": "ingredient_source",
+      "name": "鸡肉箱",
+      "area": "prep",
+      "params": {
+        "item": "chicken"
+      },
+      "cell": [
+        1,
+        5
+      ],
+      "access": [
+        2,
+        5
+      ],
+      "facing": "east"
+    },
+    {
+      "id": "bin2",
+      "type": "bin",
+      "name": "垃圾桶 2",
+      "area": "cook",
+      "cell": [
+        12,
+        6
+      ],
+      "access": [
+        11,
+        6
+      ],
+      "facing": "west"
+    },
+    {
+      "id": "counter4",
+      "type": "counter",
+      "name": "柜台 4",
+      "area": "cook",
+      "cell": [
+        11,
+        1
+      ],
+      "access": [
+        11,
+        2
+      ],
+      "facing": "south"
+    },
+    {
+      "id": "counter7",
+      "type": "counter",
+      "name": "柜台 7",
+      "area": "prep",
+      "cell": [
+        2,
+        1
+      ],
+      "access": [
+        2,
+        2
+      ],
+      "facing": "south"
+    },
+    {
+      "id": "counter8",
+      "type": "counter",
+      "name": "柜台 8",
+      "area": "prep",
+      "cell": [
+        4,
+        1
+      ],
+      "access": [
+        4,
+        2
+      ],
+      "facing": "south"
+    },
+    {
+      "id": "counter9",
+      "type": "counter",
+      "name": "柜台 9",
+      "area": "prep",
+      "cell": [
+        5,
+        1
+      ],
+      "access": [
+        5,
+        2
+      ],
+      "facing": "south"
+    },
+    {
+      "id": "counter10",
+      "type": "counter",
+      "name": "柜台 10",
+      "area": "prep",
+      "cell": [
+        5,
+        7
+      ],
+      "access": [
+        5,
+        6
+      ],
+      "facing": "north"
+    },
+    {
+      "id": "counter12",
+      "type": "counter",
+      "name": "柜台 12",
+      "area": "prep",
+      "cell": [
+        6,
+        2
+      ],
+      "access": [
+        5,
+        2
+      ],
+      "facing": "west"
+    },
+    {
+      "id": "counter13",
+      "type": "counter",
+      "name": "柜台 13",
+      "area": "prep",
+      "cell": [
+        6,
+        3
+      ],
+      "access": [
+        5,
+        3
+      ],
+      "facing": "west"
+    },
+    {
+      "id": "counter14",
+      "type": "counter",
+      "name": "柜台 14",
+      "area": "prep",
+      "cell": [
+        6,
+        5
+      ],
+      "access": [
+        5,
+        5
+      ],
+      "facing": "west"
+    },
+    {
+      "id": "counter15",
+      "type": "counter",
+      "name": "柜台 15",
+      "area": "prep",
+      "cell": [
+        6,
+        6
+      ],
+      "access": [
+        5,
+        6
+      ],
+      "facing": "west"
+    },
+    {
+      "id": "counter18",
+      "type": "counter",
+      "name": "柜台 18",
+      "area": "cook",
+      "cell": [
+        8,
+        2
+      ],
+      "access": [
+        9,
+        2
+      ],
+      "facing": "east"
+    },
+    {
+      "id": "counter19",
+      "type": "counter",
+      "name": "柜台 19",
+      "area": "cook",
+      "cell": [
+        8,
+        3
+      ],
+      "access": [
+        9,
+        3
+      ],
+      "facing": "east"
+    },
+    {
+      "id": "counter20",
+      "type": "counter",
+      "name": "柜台 20",
+      "area": "cook",
+      "cell": [
+        8,
+        5
+      ],
+      "access": [
+        9,
+        5
+      ],
+      "facing": "east"
+    },
+    {
+      "id": "counter21",
+      "type": "counter",
+      "name": "柜台 21",
+      "area": "cook",
+      "cell": [
+        8,
+        6
+      ],
+      "access": [
+        9,
+        6
+      ],
+      "facing": "east"
+    },
+    {
+      "id": "counter_corner1",
+      "type": "counter",
+      "name": "柜台 _corner1",
+      "area": "prep",
+      "cell": [
+        1,
+        1
+      ],
+      "access": [
+        2,
+        2
+      ],
+      "facing": "south",
+      "reach": "corner"
+    },
+    {
+      "id": "counter_corner2",
+      "type": "counter",
+      "name": "柜台 _corner2",
+      "area": "prep",
+      "cell": [
+        1,
+        7
+      ],
+      "access": [
+        2,
+        6
+      ],
+      "facing": "north",
+      "reach": "corner"
+    },
+    {
+      "id": "counter_corner3",
+      "type": "counter",
+      "name": "柜台 _corner3",
+      "area": "prep",
+      "cell": [
+        6,
+        1
+      ],
+      "access": [
+        5,
+        2
+      ],
+      "facing": "south",
+      "reach": "corner"
+    },
+    {
+      "id": "counter_corner4",
+      "type": "counter",
+      "name": "柜台 _corner4",
+      "area": "prep",
+      "cell": [
+        6,
+        7
+      ],
+      "access": [
+        5,
+        6
+      ],
+      "facing": "north",
+      "reach": "corner"
+    },
+    {
+      "id": "counter_corner5",
+      "type": "counter",
+      "name": "柜台 _corner5",
+      "area": "cook",
+      "cell": [
+        8,
+        1
+      ],
+      "access": [
+        9,
+        2
+      ],
+      "facing": "south",
+      "reach": "corner"
+    },
+    {
+      "id": "counter_corner6",
+      "type": "counter",
+      "name": "柜台 _corner6",
+      "area": "cook",
+      "cell": [
+        8,
+        7
+      ],
+      "access": [
+        9,
+        6
+      ],
+      "facing": "north",
+      "reach": "corner"
+    },
+    {
+      "id": "counter_corner7",
+      "type": "counter",
+      "name": "柜台 _corner7",
+      "area": "cook",
+      "cell": [
+        12,
+        1
+      ],
+      "access": [
+        11,
+        2
+      ],
+      "facing": "south",
+      "reach": "corner"
+    },
+    {
+      "id": "counter_corner8",
+      "type": "counter",
+      "name": "柜台 _corner8",
+      "area": "cook",
+      "cell": [
+        12,
+        7
+      ],
+      "access": [
+        11,
+        6
+      ],
+      "facing": "north",
+      "reach": "corner"
+    },
+    {
+      "id": "counter24",
+      "type": "counter",
+      "name": "柜台 24",
+      "area": "cook",
+      "cell": [
+        12,
+        3
+      ],
+      "access": [
+        11,
+        3
+      ],
+      "facing": "west"
+    }
+  ],
+  "presentation": {
+    "theme": "terrace",
+    "wall_style": "warm-timber",
+    "cabinet_style": "blue-enamel",
+    "corner_caps": [],
+    "decorations": [
+      {
+        "asset": "decoration_window",
+        "anchor": "north_wall",
+        "cell": [
+          2,
+          0
+        ],
+        "scale": 0.48
+      },
+      {
+        "asset": "decoration_menu",
+        "anchor": "north_wall",
+        "cell": [
+          5,
+          0
+        ],
+        "scale": 0.48
+      },
+      {
+        "asset": "decoration_rail",
+        "anchor": "north_wall",
+        "cell": [
+          10,
+          0
+        ],
+        "scale": 0.42
+      }
+    ],
+    "exterior": {
+      "margin_cells": 1.1,
+      "plants": [
+        [
+          -0.8,
+          2
+        ],
+        [
+          -0.8,
+          6
+        ],
+        [
+          13.8,
+          2
+        ],
+        [
+          13.8,
+          6
+        ]
+      ],
+      "lights": [
+        [
+          -0.8,
+          0.7
+        ],
+        [
+          13.8,
+          0.7
+        ]
+      ]
+    },
+    "station_views": {
+      "fridge": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      },
+      "lettuce": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      },
+      "tomato": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      },
+      "bread": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      },
+      "sink": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "b1": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "b2": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "b3": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "bin": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      },
+      "p1": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "p2": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "extinguisher": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      },
+      "serve": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      },
+      "returns": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      },
+      "bin2": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      },
+      "plates": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter2": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter3": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter4": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter7": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter8": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter9": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter10": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter12": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      },
+      "counter13": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      },
+      "counter14": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      },
+      "counter15": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      },
+      "counter18": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      },
+      "counter19": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      },
+      "counter20": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      },
+      "counter21": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      },
+      "counter_corner1": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter_corner2": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter_corner3": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter_corner4": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter_corner5": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter_corner6": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter_corner7": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter_corner8": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter24": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
+      }
+    }
+  }
+}
