@@ -7,6 +7,11 @@ PACK = ROOT / 'cocos-kitchen/assets/resources/art/ingredient-pack-v1'
 ITEMS = ['cucumber', 'onion', 'cheese', 'chicken', 'fish', 'flatbread', 'scallion']
 CHOPPED = ['cucumber', 'onion', 'cheese', 'chicken', 'fish', 'scallion']
 HEATED = ['chicken', 'fish']
+PAN_ITEMS = ['beef', 'chicken', 'fish']
+PAN_STAGES = ['chopped', 'cooking', 'ready', 'burnt']
+NOODLE_STAGES = ['raw', 'cooking', 'ready', 'burnt']
+PANS = {'objects/pan': (32, 32), 'modular/pan_horizontal': (50, 37), 'modular/pan_vertical': (47, 50)}
+POTS = {'objects/pot': (32, 32), 'modular/pot_horizontal': (50, 37), 'modular/pot_vertical': (47, 50)}
 
 
 class IngredientPackTest(unittest.TestCase):
@@ -25,7 +30,26 @@ class IngredientPackTest(unittest.TestCase):
         for item in HEATED:
             expected += [f'food/{item}_ready', f'food/{item}_burnt', f'dishes/{item}/ready', f'dishes/{item}/burnt']
             expected += [f'ingredients/{item}/{stage}' for stage in ('raw', 'processing', 'prepared', 'cooking', 'ready', 'burnt')]
+        expected += ['food/noodles_raw', 'food/noodles_ready', 'food/noodles_burnt', 'modular/source_noodles', 'feedback/noodles']
+        expected += [f'ingredients/noodles/{stage}' for stage in NOODLE_STAGES]
+        expected += [f'dishes/{dish}/{state}' for dish in ('beef_noodles', 'chicken_noodles', 'fish_steak') for state in ('ready', 'burnt')]
+        for pan in PANS:
+            expected += [pan] + [f'{pan}/{item}/{stage}' for item in PAN_ITEMS for stage in PAN_STAGES]
+        expected += [f'{pot}/noodles/{stage}' for pot in POTS for stage in NOODLE_STAGES]
         self.assertEqual(sorted(expected), sorted(self.frames))
+
+    def test_vessel_frames_match_the_soup_pot_canvases(self):
+        for key, f in self.frames.items():
+            vessel = key.split('/')[0] + '/' + key.split('/')[1]
+            if vessel in PANS or vessel in POTS:
+                self.assertEqual(tuple(f['canvasSize']), {**PANS, **POTS}[vessel], key)
+                self.assertEqual(f['vessel'], 'pan' if vessel in PANS else 'pot', key)
+                x, y = f['contentAnchor']
+                self.assertTrue(0 < x < f['canvasSize'][0] and 0 < y < f['canvasSize'][1], key)
+
+    def test_fish_steak_dish_shares_the_fried_fish_art(self):
+        for state in ('ready', 'burnt'):
+            self.assertEqual(self.frames[f'dishes/fish_steak/{state}']['rect'], self.frames[f'dishes/fish/{state}']['rect'])
 
     def test_frame_sizes_match_the_existing_conventions(self):
         for key, f in self.frames.items():
@@ -36,7 +60,9 @@ class IngredientPackTest(unittest.TestCase):
                 self.assertEqual((w, h), (64, 96), key)
                 x0, y0, x1, y1 = f['alpha_bbox']
                 self.assertTrue(x0 >= 12 and x1 <= 52 and y0 >= 20 and y1 <= 62, key)
+            elif key.startswith('dishes/') and 'noodles' in key: self.assertEqual((w, h), (48, 48), key)
             elif key.startswith(('ingredients/', 'dishes/')): self.assertEqual((w, h), (32, 32), key)
+            elif key.startswith(('objects/', 'modular/pan', 'modular/pot')): continue
             else: self.assertTrue(w <= 48 and h <= 32, key)
 
     def test_atlas_rects_fit_and_alpha_is_hard(self):

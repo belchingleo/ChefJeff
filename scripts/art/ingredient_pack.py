@@ -1,4 +1,5 @@
-"""Ingredient pack v1: cucumber, onion, cheese, chicken, fish, flatbread, scallion in the current food style.
+"""Ingredient pack v1: cucumber, onion, cheese, chicken, fish, flatbread, scallion and noodles in the current food style,
+plus the frying pan and the vessels with food cooking in them (scripts/art/pan_noodles.py).
 
 The current food art (burger-food, kitchen-modules-v2 source icons, action-feedback layers, beef stages) is
 painterly pixel art: soft dome shading lit from the top left, a warm highlight, about a thousand colours per
@@ -765,6 +766,9 @@ def frames():
         for st in ('ready', 'burnt'):
             dish = [plate()] + cubes(st, item, [(12, 15, 8, 20), (20.5, 14.5, 7.5, -15), (16, 19.5, 8, 5)], k + 70)
             F[f'dishes/{item}/{st}'] = (render(dish, (32, 32), design_centre=(16, 16)), [0.5, 0.5])
+    F = {k: (a, anchor, {}) for k, (a, anchor) in F.items()}
+    import pan_noodles                                     # noodles, the frying pan, vessels with contents
+    F.update(pan_noodles.frames(F))
     return F
 
 
@@ -780,17 +784,20 @@ def add_cuts(a):
 
 
 def pack(F):
-    keys = list(F); cell = 2; x = y = cell; row = 0; W = 512; placed = {}
-    for k in keys:
-        a = F[k][0]; h, w = a.shape[:2]
+    """Shelf packing with 2 px gutters; identical images (aliases) share one rect."""
+    cell = 2; x = y = cell; row = 0; W = 512; placed = {}; seen = {}
+    for k, (a, *_) in F.items():
+        digest = a.tobytes() + bytes(str(a.shape), 'ascii')
+        if digest in seen: placed[k] = seen[digest]; continue
+        h, w = a.shape[:2]
         if x + w + cell > W: x = cell; y += row + cell * 2; row = 0
-        placed[k] = (x, y); x += w + cell * 2; row = max(row, h)
+        placed[k] = seen[digest] = (x, y); x += w + cell * 2; row = max(row, h)
     H = y + row + cell; H = int(2 ** math.ceil(math.log2(H)))
     atlas = np.zeros((H, W, 4), np.uint8); man = {}
-    for k in keys:
-        a, anchor = F[k]; (x, y) = placed[k]; h, w = a.shape[:2]
+    for k, (a, anchor, extra) in F.items():
+        (x, y) = placed[k]; h, w = a.shape[:2]
         atlas[y:y + h, x:x + w] = a
-        man[k] = {'rect': [x, y, w, h], 'canvasSize': [w, h], 'anchor': anchor, 'alpha_bbox': bbox(a)}
+        man[k] = {'rect': [x, y, w, h], 'canvasSize': [w, h], 'anchor': anchor, 'alpha_bbox': bbox(a), **extra}
     return atlas, man
 
 
@@ -811,12 +818,17 @@ def write_meta(path, kind):
 
 
 def main():
+    import pan_noodles
     F = frames(); atlas, man = pack(F)
     OUT.mkdir(parents=True, exist_ok=True)
     Image.fromarray(atlas, 'RGBA').save(OUT / 'atlas.png', optimize=True)
-    manifest = {'version': 'ingredient-pack-v1', 'items': ITEMS, 'heated': HEATED,
+    manifest = {'version': 'ingredient-pack-v1', 'items': ITEMS + ['noodles'], 'heated': HEATED, 'boiled': ['noodles'],
+                'vessels': {'pan': {'items': list(pan_noodles.PAN_ITEMS), 'stages': list(pan_noodles.PAN_STAGES)},
+                            'pot': {'items': ['noodles'], 'stages': list(pan_noodles.NOODLE_STAGES)}},
                 'notes': 'Current food style. Load without a prefix after burger-food and grid-foundation-v1; keys follow '
-                         'food/<item>_<state>, modular/source_<item>, feedback/<item>, ingredients/<item>/<stage>, dishes/<item>/<state>.',
+                         'food/<item>_<state>, modular/source_<item>, feedback/<item>, ingredients/<item>/<stage>, dishes/<dish>/<state>; '
+                         'vessels: objects/pan, modular/pan_<axis>, and <vessel frame>/<item>/<stage> with the food cooking inside '
+                         '(contentAnchor = centre of the inside, canvas px).',
                 'frames': man}
     (OUT / 'manifest.json').write_text(json.dumps(manifest, indent=1) + '\n')
     write_meta(OUT / 'atlas.png.meta', 'image'); write_meta(OUT / 'manifest.json.meta', 'json')
