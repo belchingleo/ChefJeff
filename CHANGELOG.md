@@ -23,7 +23,7 @@ The game now runs on a data-driven core: five data models (map, recipes, orders,
 - Walking slides around shallow notches; stalled routes re-plan around the other chef; "go partner" walks into the other chef on purpose.
 
 ### Jeff (the AI teammate)
-- Plain English input with clear chef names and fewer duplicate choices.
+- Clear chef names (`human`, `jeff`) and fewer duplicate choices in Jeff's input; a plate's missing parts name the state they need.
 - Jeff's rules are generated from the same frozen configuration as the engine, with no collaboration-value wording.
 
 ### Records and analysis
@@ -66,7 +66,7 @@ First private release: a local browser game with three playable maps and player-
 - 行走时能滑过浅凹口；卡住的路线会绕开对方重新规划；“走向搭档”可以主动走到对方身边。
 
 ### Jeff（AI 队友）
-- 使用清晰的英文输入，厨师称呼明确，重复选项更少。
+- Jeff 的输入里厨师称呼明确（`human`、`jeff`），重复选项更少；盘子缺的部件写明所需状态。
 - Jeff 看到的规则和引擎来自同一份冻结配置，不含任何“应该合作”的价值措辞。
 
 ### 记录与分析
