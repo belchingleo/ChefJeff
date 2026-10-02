@@ -93,9 +93,9 @@ class RoundSummaryTests(unittest.TestCase):
         s = round_summary(self.rounds[1])
         self.assertIsNone(row(s, 'pass'))
         self.assertTrue(all(any(r['counts'].values()) or r['details'] for r in s['rows']))
-        self.assertEqual(set(s['not_displayed']), {'wasted', 'harmful', 'action_share', 'critical_path'})
-        self.assertEqual(set(s['contribution']), {'effort'})
-        for block in (s['contribution']['effort'], s['not_displayed']['critical_path']):
+        self.assertEqual(set(s['not_displayed']), {'wasted', 'harmful', 'action_share', 'critical_path', 'effort'})
+        self.assertEqual(set(s['contribution']), {'standard', 'delay_seconds', 'idle_seconds'})
+        for block in (s['contribution']['standard'], s['not_displayed']['effort'], s['not_displayed']['critical_path']):
             self.assertAlmostEqual(sum(block['share'].values()), 1, places=2)
         self.assertIn('action_share', s['not_displayed'])
         json.dumps(s)

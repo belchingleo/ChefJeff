@@ -116,6 +116,20 @@ class ProvenanceTests(unittest.TestCase):
         self.assertEqual([actors for _, actors in steps], [['jeff']] * 3)
         self.assertEqual(cooking, 0)
 
+    def test_contribution_delay_and_idle_add_up(self):
+        for k in (self.l1, self.l2):
+            r = analyze_collaboration(k)
+            self.assertAlmostEqual(sum(r['contribution']['share'].values()), 1, places=2)
+            for dish in r['dishes']:
+                self.assertAlmostEqual(sum(dish['contribution'].values()), 1, places=2)
+                # The Shapley parts add up to the dish's delay; nothing is negative overall.
+                self.assertAlmostEqual(sum(dish['delay']['by'].values()), dish['delay']['seconds'], places=1)
+                self.assertGreaterEqual(dish['delay']['seconds'], 0)
+            self.assertAlmostEqual(sum(r['delay_seconds'].values()),
+                                   sum(d['delay']['seconds'] for d in r['dishes']), places=1)
+            self.assertTrue(all(v >= 0 for v in r['idle_seconds'].values()))
+            self.assertGreater(sum(r['contribution']['seconds'].values()), 0)
+
     def test_replay_rebuilds_the_same_analysis(self):
         k = self.l2
         again = replay(SpatialKitchen, k.resolved, k.inputs)

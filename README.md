@@ -63,7 +63,7 @@ The controls work much as in Overcooked:
 | Shift | Bookmark the current moment without pausing or interrupting anything; bookmarks are included in the run export |
 | Esc or P | Pause (use P on iPad keyboards without an Esc key). Settings let you connect a model, switch language, adjust volume and export the run |
 
-After each round, a round record pops up. It shows how many times you and Jeff each fetched ingredients, chopped, cooked, served and washed plates, and how much time each of you spent on getting dishes out.
+After each round, a round record pops up. It shows how many times you and Jeff each fetched ingredients, chopped, cooked, served and washed plates, and each chef's contribution, delay and idle time (see [records and analysis](#records-and-analysis)).
 
 The game has Chinese and English interfaces, with 8-bit style music and sound effects. A keyboard is required for now; phones and touch-only devices are not supported yet. See [device support](docs/device-support.md) and the [current rules](docs/current-rules.md).
 
@@ -106,7 +106,12 @@ To connect your own model, implement two methods, `payload(state, actions)` and 
 ### Records and analysis
 
 1. **Round records and replay**: when a round starts, its configuration is frozen and hashed; from then on every step is stored as one event stream, together with the player's inputs. `python3 collaboration_analyzer.py logs/sessions/<round id>` replays the round without calling any model and checks the replay against the original record. Replays are only guaranteed to match within the same version; a round recorded by an older version may replay differently. See [session records](docs/architecture/session-record.md).
-2. **Item history and collaboration analysis**: the engine records whose hands every ingredient, plate and pan has passed through. Using the rules as currently defined, tracing back from each served dish shows how every action contributed to it and how much time each chef spent on served dishes. These results can be recomputed exactly, but whether they reflect good cooperation still needs human interpretation. For example, ingredients prepared early but left unused because the orders changed don't mean the preparation was pointless at the time. The idea draws on the CCE metric from AgentWorld (arXiv 2609.31590); see [collaboration analysis](docs/architecture/collaboration-analyzer.md).
+2. **Item history and collaboration analysis**: the engine records whose hands every ingredient, plate and pan has passed through. Using the rules as currently defined, tracing back from each served dish shows how every action contributed to it. On top of this, the round record reports three measures; they are experimental, and feedback on whether they look right is welcome:
+   - **Contribution**: each chef's share of the standard effort of the served dishes. Standard effort = the configured work of each step (6 s to chop, 0.15 s to pick up or put down, and so on) + the shortest walk needed to carry things. Cooking counts for no one, and neither do dawdling or detours.
+   - **Delay**: how many seconds later than ideal each dish went out. Ideal means the same steps at standard effort, each started as soon as its inputs are there (without taking a chef away from other useful work). The delay is split by how much each chef would have saved by working ideally (Shapley values), so shared slowness is divided.
+   - **Idle**: time on actions that were never used (such as swapping items back and forth) and waiting. The player's own walking cannot be told apart, so the player's idle time is a lower bound.
+
+   These results can be recomputed exactly, but whether they reflect good cooperation still needs human interpretation. For example, ingredients prepared early but left unused because the orders changed don't mean the preparation was pointless at the time. The idea draws on the CCE metric from AgentWorld (arXiv 2609.31590); see [collaboration analysis](docs/architecture/collaboration-analyzer.md).
 
 ### Code layout
 
@@ -170,7 +175,7 @@ Each scenario is a single map:
 - **Scenario**: one frozen five-model configuration, with its configuration hash, random seeds and the reference scores from the baseline ladder. The baseline ladder runs scripted chefs in three setups: one chef alone, one chef plus a partner who wanders at random, and two scripted chefs working together. The target revenue is half of what the scripted pair earns, and the solo script must fall short of it (Level 1, the practice level, is exempt). This only shows that the scripts can't reach the target alone; the real difficulty still has to be checked with people and other agents.
 - **Participants and interface conditions**: people, models or scripted chefs, and how much each can observe and communicate.
 - **Records**: replayable event streams and item histories.
-- **Metrics**: outcomes (net revenue, level cleared) and process (division of labour, time spent, how many decisions were accepted and completed, response time), reported separately.
+- **Metrics**: outcomes (net revenue, level cleared) and process (division of labour, contribution, delay, idle time, how many decisions were accepted and completed, response time), reported separately.
 - **Round collection**: rounds contributed by the community, with different players, models, maps and team setups.
 
 ### Creative workshop (planned; the parts already in place are listed below)

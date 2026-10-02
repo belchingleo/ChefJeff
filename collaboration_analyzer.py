@@ -25,12 +25,14 @@ Expired orders and fires are outcomes of time, not of one action; they are
 reported as round penalties.
 """
 from __future__ import annotations
+import itertools
 import json
+import math
 import sys
 
 from provenance import NON_ACTIONS
 
-ANALYZER_VERSION = 'collaboration-analyzer-0.2'
+ANALYZER_VERSION = 'collaboration-analyzer-0.3'
 
 
 def _effective(touches):
@@ -151,6 +153,109 @@ def _critical_path(p, chain, serve, spans, ready=None):
     return out, waiting + cooking, cooking
 
 
+def _walk_seconds(k, a, b):
+    """Shortest walk between two finish points of a spatial kitchen; 0 elsewhere."""
+    nav = getattr(k, 'nav', None)
+    if a is None or b is None or nav is None:
+        return 0.
+    try:
+        points = nav.shortest_path(a, b)
+    except Exception:
+        points = [a, b]
+    return sum(math.dist(x, y) for x, y in zip(points, points[1:])) / k.rules.walk_speed
+
+
+def _dish_metrics(k, p, serve, chain, spans, ready, order_t, useful):
+    """Standard effort of each chef on one dish, and how much later than ideal it went out.
+
+    Standard effort of a step: its work from the configuration (chopping or washing work,
+    otherwise the handling time) plus the shortest walk its carried items needed from where
+    their previous step finished. First touches count no walk. Cooking is nobody's work.
+
+    Ideal: the same steps at standard effort, each starting as soon as its inputs are there and
+    its chef has finished their earlier useful work; a first touch can start at the order. The
+    delay (actual minus ideal serve time) is split over the chefs by their Shapley value: each
+    chef's average saving when the chefs are made ideal one at a time, in every order; a chef
+    left as they were keeps the lag they really had after their inputs arrived.
+    """
+    handling = k.c.get('handling_seconds', .15)
+    steps, by_item = {}, {}
+    for item, t in chain:
+        s = steps.setdefault(t.seq, {'items': set(), 'ids': set(), 'actors': set(), 'kind': t.kind})
+        s['items'].add(item)
+        s['ids'] |= set(t.action_ids)
+        s['actors'] |= set(t.actors)
+        by_item.setdefault(item, []).append(t.seq)
+    last = p.actions[serve['action_id']]['seq']
+    if last not in steps:
+        return None
+    begin = {q: min(spans[a][0] for a in s['ids']) for q, s in steps.items()}
+    end = {q: max(spans[a][1] for a in s['ids']) for q, s in steps.items()}
+    at = {q: next((p.actions[a].get('at') for a in sorted(s['ids']) if p.actions[a].get('at')), None) for q, s in steps.items()}
+
+    def inputs(q):
+        """(previous step, its actual arrival, cooking seconds) for each item the step touched."""
+        out = []
+        for item in steps[q]['items']:
+            earlier = [x for x in by_item[item] if x < q]
+            if earlier:
+                pred = max(earlier)
+                r = ready.get(item)
+                cook = r - end[pred] if r is not None and end[pred] < r <= end[q] else 0.
+                out.append((pred, end[pred] + cook, cook))
+        return out
+
+    def work(q):
+        kind = steps[q]['kind']
+        if kind == 'chop':
+            foods = [p.ingredients[i] for i in steps[q]['items'] if p.ingredients.get(i)]
+            return max([k.rules.chop_work(f) for f in foods] or [handling])
+        if kind == 'wash':
+            return k.rules.wash_work
+        return handling
+
+    standard = {q: work(q) + max((_walk_seconds(k, at[pr], at[q]) for pr, _, _ in inputs(q)), default=0.) for q in steps}
+    effort = {}
+    for q, s in steps.items():
+        for who in s['actors']:
+            effort[who] = effort.get(who, 0.) + standard[q] / len(s['actors'])
+
+    def free_at(who, before):
+        return max((e for _, e in useful.get(who, ()) if e <= before + 1e-9), default=0.)
+
+    def finish(fast):
+        done = {}
+        for q in sorted(steps):
+            ins = inputs(q)
+            arrive = max((done[pr] + cook for pr, _, cook in ins), default=None)
+            if steps[q]['actors'] <= fast:
+                if arrive is None:
+                    start = begin[q] if order_t is None else min(begin[q], order_t)
+                    start = max([start] + [free_at(w, begin[q]) for w in steps[q]['actors']])
+                else:
+                    start = arrive
+                done[q] = start + standard[q]
+            else:
+                real = max((a for _, a, _ in ins), default=None)
+                start = arrive + max(0., begin[q] - real) if arrive is not None else begin[q]
+                done[q] = start + (end[q] - begin[q])
+        return done[last]
+
+    actual = end[last]
+    chefs = sorted(set().union(*(s['actors'] for s in steps.values())))
+    delay = max(0., actual - finish(set(chefs)))
+    by = {w: 0. for w in chefs}
+    orders = list(itertools.permutations(chefs))
+    for order in orders:
+        fast, before = set(), actual
+        for w in order:
+            fast.add(w)
+            now = finish(set(fast))
+            by[w] += (before - now) / len(orders)
+            before = now
+    return {'effort': effort, 'delay': delay, 'delay_by': by}
+
+
 def analyze_collaboration(k):
     p = k.provenance
     actions = {aid: a for aid, a in p.actions.items() if a['kind'] not in NON_ACTIONS}
@@ -166,6 +271,7 @@ def analyze_collaboration(k):
     critical = {'human': 0., 'jeff': 0.}
     critical_waiting = 0.
     critical_cooking = 0.
+    chains = []
     ready = {}
     for e in k.events:
         if e.get('kind') == 'ready' and e.get('item'):
@@ -175,6 +281,7 @@ def analyze_collaboration(k):
             continue
         chain = []
         _lineage(p, serve['item'], len(p.history.get(serve['item'], [])), chain)
+        chains.append((serve, chain))
         ids = {aid for _, t in chain for aid in t.action_ids} | {serve['action_id']}
         contributing |= ids
         by_item = {}
@@ -212,6 +319,36 @@ def analyze_collaboration(k):
             wasted[aid] = 'loop'
         else:
             wasted[aid] = 'unused'
+
+    # Contribution by standard effort, delay and idle time (owner decision 2026-10-02; shown in the
+    # round record for community feedback).
+    orders = {e['order_id']: e['t'] for e in k.events if e.get('kind') == 'order' and e.get('order_id')}
+    served_order = {e['action_id']: e.get('order_id') for e in k.events if e.get('kind') == 'served' and e.get('action_id')}
+    useful = {}
+    for aid in contributing:
+        if aid in spans:
+            useful.setdefault(actions[aid]['actor'], []).append(spans[aid])
+    standard = {'human': 0., 'jeff': 0.}
+    delay = {'human': 0., 'jeff': 0.}
+    for dish, (serve, chain) in zip(dishes, chains):
+        m = _dish_metrics(k, p, serve, chain, spans, ready, orders.get(served_order.get(serve['action_id'])), useful)
+        if m is None:
+            continue
+        for w, v in m['effort'].items():
+            if w in standard:
+                standard[w] += v
+        for w, v in m['delay_by'].items():
+            if w in delay:
+                delay[w] += v
+        total = sum(m['effort'].values())
+        dish['contribution'] = {w: round(v / total, 3) if total else None for w, v in sorted(m['effort'].items())}
+        dish['delay'] = {'seconds': round(m['delay'], 2), 'by': {w: round(v, 2) for w, v in sorted(m['delay_by'].items())}}
+    idle = {'human': 0., 'jeff': 0.}
+    for aid, a in p.actions.items():
+        if a['actor'] not in idle or aid not in spans:
+            continue
+        if a['kind'] == 'wait' or wasted.get(aid) in ('loop', 'unused'):
+            idle[a['actor']] += spans[aid][1] - spans[aid][0]
 
     def share(ids, who=None):
         return sorted(aid for aid in ids if who is None or actions[aid]['actor'] == who)
@@ -255,6 +392,12 @@ def analyze_collaboration(k):
         'effort_share': shares(effort),
         'critical_path': {'seconds': {w: round(s, 3) for w, s in critical.items()}, 'share': shares(critical),
                           'waiting_seconds': round(critical_waiting, 3), 'cooking_seconds': round(critical_cooking, 3)},
+        # Contribution: each chef's standard effort (configured work + shortest needed walk) on the
+        # served dishes. Delay: seconds each chef added to the dishes' serve times beyond the ideal.
+        # Idle: seconds on actions that reached no served dish (loops, unused work) or waiting.
+        'contribution': {'seconds': {w: round(s, 3) for w, s in standard.items()}, 'share': shares(standard)},
+        'delay_seconds': {w: round(s, 2) for w, s in delay.items()},
+        'idle_seconds': {w: round(s, 2) for w, s in idle.items()},
         'cross_chef_handoffs': sum(d['cross_chef_handoffs'] for d in dishes),
         'round_penalties': {'expired_orders': kinds.count('expired'), 'fires': getattr(k, 'fires', 0)},
         'money': k.money,

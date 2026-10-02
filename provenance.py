@@ -88,9 +88,14 @@ class Provenance:
         ids = tuple(e['action_id'] for e in done)
         actors = tuple(e['actor'] for e in done)
         # Every completion in one step shares the job's kind (a shared chop completes both chefs).
+        # Where each chef stood when the step finished (spatial kitchens): the analyzer measures the
+        # shortest walk a carried item needed between two steps from these points.
+        positions = getattr(k, 'positions', None) or {}
         for e in done:
+            at = positions.get(e['actor'])
             self.actions[e['action_id']] = {'actor': e['actor'], 'kind': job.action.kind, 'key': e.get('action'),
-                                            't': e['t'], 'seq': self.steps}
+                                            't': e['t'], 'seq': self.steps,
+                                            'at': (round(at[0], 3), round(at[1], 3)) if at else None}
         for e in k.events[first_event:]:
             reason = PENALTY_EVENTS.get(e.get('kind'))
             if reason and e.get('action_id'):

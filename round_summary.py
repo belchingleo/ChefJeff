@@ -116,16 +116,21 @@ def round_summary(k):
                    'reached_target': bool(k.won())},
         'chefs': list(CHEFS),
         'rows': rows,
-        # Owner decision 2026-09-30: contribution by time, not by action count. Effort = game seconds of
-        # each chef's contributing actions.
+        # Owner decision 2026-10-02: contribution by standard effort (configured work + shortest
+        # needed walk on the served dishes), the seconds each chef delayed the dishes beyond the
+        # ideal, and idle seconds (loops, unused work, waiting); shown for community feedback.
         'contribution': {
-            'effort': {'seconds': analysis['effort_seconds'], 'share': analysis['effort_share']},
+            'standard': analysis['contribution'],
+            'delay_seconds': analysis['delay_seconds'],
+            'idle_seconds': analysis['idle_seconds'],
         },
         # Data interface only; the settlement page does not show these (owner decisions 2026-09-29/30).
-        # The critical path (each chef's time on the chains that decided when each dish could be served)
-        # left the page on 2026-10-02: it shows where a dish last waited, not who contributed.
+        # The critical path left the page on 2026-10-02: it shows where a dish last waited, not who
+        # contributed. Effort (actual action seconds) left it the same day: Jeff's actions include
+        # his walk and the player's do not.
         'not_displayed': {
             'critical_path': analysis['critical_path'],
+            'effort': {'seconds': analysis['effort_seconds'], 'share': analysis['effort_share']},
             'action_share': {who: analysis['chefs'][who]['share_of_contributing'] for who in CHEFS},
             'wasted': {who: analysis['chefs'][who]['wasted'] for who in CHEFS},
             'harmful': {who: {reason: sum(1 for a in analysis['harmful']['actions'] if a['actor'] == who and a['reason'] == reason)

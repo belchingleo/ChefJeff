@@ -444,7 +444,6 @@
     "按完成的动作计数；两人一起切的菜各记一次。": "Counts completed actions; food chopped together counts once for each chef.",
     "牛肉": "Beef",
     "牛排": "Steak",
-    "对出餐投入的时间": "Time spent on served dishes",
     "平底锅": "Frying pan",
     "汤锅": "Soup pot",
     "锅具": "Cookware",
@@ -490,9 +489,18 @@
     "第四关 · 拌面（试玩）": "Level 4 · Mixed noodles (trial)",
     "单间厨房由横向长柜台分为上下工作区，右侧通道相连。180 游戏秒，每 40 秒来一张汉堡单，每份 ¥80；关店时净收入达到 ¥150 即达标。1 口平底锅、1 个灶台、2 只盘子、2 块案板；需要回收洗盘。食材和灶台在上、案板在下，可以隔着柜台传递。": "One kitchen split into upper and lower work areas by a long counter, joined on the right. 180 game seconds; a burger order arrives every 40 seconds, ¥80 each; reach ¥150 net revenue by closing time. 1 frying pan, 1 stove, 2 plates, 2 boards; plates must be returned and washed. Sources and the stove are above, boards below: pass food across the counter.",
     "两个灶台、三口平底锅，备用的空平底锅在右上柜台。面包直接装盘；生菜和番茄切好，牛肉切好后煎熟。可手持盘从案板或柜台收集切好蔬菜和面包，也能给队友手中盘加料。两盘无重复配料可合并：成品留手中，柜台留空盘。牛肉须先煎熟；缺料不能出餐。180 游戏秒，每 30 秒来一单牛排或汉堡（¥50／¥80），关店时净收入达到 ¥190 即达标。": "Two stoves and three frying pans; the spare pan is on the top-right counter. Bread needs no prep. Chop lettuce and tomato; chop and cook beef. Held plates can collect prepared ingredients from boards/counters. Add food to a teammate's plate, or merge two non-overlapping plates; the empty source plate stays in place. Beef must be cooked; incomplete dishes cannot be served. 180 game seconds; a steak or burger order (¥50/¥80) arrives every 30 seconds; reach ¥190 net revenue by closing time.",
-    "投入时间：每个对出餐有用的动作从开始到完成的时长。": "Time spent: how long each action that went into a served dish took."
+    "贡献（标准功夫）": "Contribution (standard effort)",
+    "拖延出餐": "Delayed serving",
+    "空转": "Idle",
+    "贡献：出了餐的菜里，每人做的步骤按标准功夫计算的占比（配置里的切菜、拿放等操作时间，加搬运所需的最短走路；煎、煮不算给任何人）。": "Contribution: each chef's share of the standard effort of the served dishes (the configured chopping, handling and other work, plus the shortest walk needed to carry things; cooking counts for no one).",
+    "拖延：每道菜比理想做法晚出的秒数，按两人各自做到理想能省多少来分摊。空转：做了但没用上的动作（比如来回换手）和等待的时间；你自己走动看不出是否空转，所以你的空转只是下限。": "Delayed serving: how many seconds later than ideal each dish went out, split by how much each chef would have saved by working ideally. Idle: time on actions that were never used (such as swapping items back and forth) and waiting; your own walking cannot be told apart, so your idle time is a lower bound.",
+    "这三项的算法还在试验，欢迎在 GitHub Issue 里告诉我们是否合理。": "These three measures are experimental; tell us in a GitHub issue whether they look right."
   },
   "templates": [
+    [
+      "标准功夫 {0} 秒",
+      "{0} s of standard effort"
+    ],
     [
       "端起{0}的{1}（{2}）",
       "Lift the {1} from {0} ({2})"
@@ -882,10 +890,6 @@
       "Add the {1} from {0} to the held plate"
     ],
     [
-      "用时 {0} 秒",
-      "{0} s"
-    ],
-    [
       "与地上的{0}交换",
       "Swap with the {0} on the floor"
     ],
@@ -952,6 +956,10 @@
     [
       "切好的{0}",
       "chopped {0}"
+    ],
+    [
+      "{0} 秒",
+      "{0} s"
     ]
   ]
 }

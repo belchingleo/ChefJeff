@@ -391,6 +391,7 @@ function kitchenTabs(dialog){
 #record-table tr.category td{font-weight:600}
 #record-table tr.detail th{padding-left:24px;font-weight:400;color:var(--muted)}
 #record-table tr.share th,#record-table tr.share td{border-top:2px solid var(--walnut);border-bottom:0;font-weight:600}
+#record-table tr.share2 th,#record-table tr.share2 td{border-bottom:0;font-weight:600}
 #record-table .note{display:block;font-size:12px;line-height:16px;color:var(--muted);font-weight:400;white-space:nowrap}
 </style>
 <dialog id="kitchen-record-dialog" class="panel" aria-labelledby="record-title">
@@ -402,7 +403,9 @@ function kitchenTabs(dialog){
    <tbody></tbody>
   </table>
   <p>按完成的动作计数；两人一起切的菜各记一次。</p>
-  <p>投入时间：每个对出餐有用的动作从开始到完成的时长。</p>
+  <p>贡献：出了餐的菜里，每人做的步骤按标准功夫计算的占比（配置里的切菜、拿放等操作时间，加搬运所需的最短走路；煎、煮不算给任何人）。</p>
+  <p>拖延：每道菜比理想做法晚出的秒数，按两人各自做到理想能省多少来分摊。空转：做了但没用上的动作（比如来回换手）和等待的时间；你自己走动看不出是否空转，所以你的空转只是下限。</p>
+  <p>这三项的算法还在试验，欢迎在 GitHub Issue 里告诉我们是否合理。</p>
  </div>
  <div class="dlg-foot"><button id="record-close" class="btn primary" type="button">返回结算</button></div>
 </dialog>
@@ -436,15 +439,21 @@ function kitchenTabs(dialog){
     if(d.name||d.outcome||DETAIL[d.id]||Object.keys(NOTE).some(k=>d[k]))line('detail',label,d.counts,d);
    }
   }
-  // Contribution by time (owner decision 2026-09-30). The critical-path share was dropped from this
-  // page on 2026-10-02: it shows where a dish last waited, not who contributed.
+  // Contribution by standard effort, delay and idle time (owner decision 2026-10-02, shown for
+  // community feedback). The critical path and actual-time effort stay in the data only.
   const c=s.contribution||{},pct=v=>v==null?'–':`${Math.round(v*100)}%`;
   const timeRow=(kind,label,block)=>{
    if(!block||!CHEFS.some(w=>block.share?.[w]!=null))return;
    const tds=line(kind,[label],Object.fromEntries(CHEFS.map(w=>[w,pct(block.share[w])]))).querySelectorAll('td');
-   CHEFS.forEach((w,i)=>add(tds[i],'span',`用时 ${Math.round(block.seconds?.[w]||0)} 秒`,'note'));
+   CHEFS.forEach((w,i)=>add(tds[i],'span',`标准功夫 ${Math.round(block.seconds?.[w]||0)} 秒`,'note'));
   };
-  timeRow('share','对出餐投入的时间',c.effort);
+  timeRow('share','贡献（标准功夫）',c.standard);
+  const secondsRow=(label,seconds)=>{
+   if(!seconds||!CHEFS.some(w=>seconds[w]!=null))return;
+   line('share2',[label],Object.fromEntries(CHEFS.map(w=>[w,`${Math.round(seconds[w]||0)} 秒`])));
+  };
+  secondsRow('拖延出餐',c.delay_seconds);
+  secondsRow('空转',c.idle_seconds);
  }
  window.addEventListener('kitchen-open-record',e=>{render(e.detail||{});if(!dialog.open)dialog.showModal();});
  window.addEventListener('kitchen-state',e=>{if(e.detail?.phase!=='ended'&&dialog.open)dialog.close();});

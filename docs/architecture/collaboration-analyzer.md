@@ -1,4 +1,4 @@
-# Collaboration Analyzer v0.1
+# Collaboration Analyzer v0.3
 
 `collaboration_analyzer.py` answers one question about a finished round: **which completed actions actually made the dishes that were accepted, and who did them.** It is a deterministic counterpart of Causal Collaboration Effectiveness (CCE) from AgentWorld (arXiv 2609.31590). AgentWorld asks an LLM judge whether one action enabled another. This engine knows every item, so contribution is traced through item provenance and no model is involved.
 
@@ -47,6 +47,16 @@ The report contains:
 - per chef: actions, contributing actions, contribution rate, share of all contributing actions, harmful and wasted counts;
 - for each accepted dish: who contributed and how many cross-chef handoffs it needed;
 - harmful actions with their reasons.
+
+## Contribution, delay and idle time (owner decision 2026-10-02, experimental)
+
+The round record shows three measures per chef. They are experimental and open for community feedback.
+
+- **Contribution**: each chef's share of the *standard effort* of the accepted dishes. A step's standard effort is its configured work (chopping or washing work, otherwise the handling time) plus the shortest walk its carried items needed from where their previous step finished (`provenance` records where each step finished; first touches count no walk). Cooking is nobody's work. Actual action time is not used because Jeff's actions include his walk and the player's keyboard walking is not an action.
+- **Delay**: per accepted dish, its actual serve time minus an ideal serve time. The ideal runs the same steps at standard effort, each starting as soon as its inputs are there and its chef has finished their earlier useful work; a first touch may start at the order. Cooked food arrives when it is ready. The delay is split over the chefs by Shapley value: each chef's average saving when the chefs are made ideal one at a time, in every order. A chef who is left as they were keeps the lag they actually had after their inputs arrived.
+- **Idle**: seconds on actions labelled `loop` or `unused`, plus waiting. The player's own walking is not an action, so the player's idle time is a lower bound.
+
+The **critical path** of each dish (the chain of last-arriving inputs, with cooked food arriving when it is ready) stays in the report but is not shown: it tells where a dish last waited, not who contributed.
 
 ## Baseline ladder (`scripts/reference_sweep.py --ladder`)
 
