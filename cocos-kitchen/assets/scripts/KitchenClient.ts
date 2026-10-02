@@ -544,11 +544,11 @@ export class KitchenClient extends Component {
             fire:'vfx/fire_0'};
         if(type==='continuous_counter'){this.art.hide(node);return true;}
         if(type.startsWith('vessel:')){
-            const [,kind,item,stage]=type.split(':');
-            if(!this.drawVessel(node,kind))return false;
+            const [,kind,item,stage]=type.split(':'),drawn=this.drawVessel(node,kind,1,item,stage);
+            if(!drawn)return false;
             let contents=node.getChildByName('vessel-contents');
             if(!contents)contents=this.child(node,'vessel-contents',22,22,0,4);
-            const art=item?this.itemArt(item,stage,false):null;
+            const art=item&&drawn==='empty'?this.itemArt(item,stage,false):null;
             contents.active=!!art&&this.art.centered(contents,art.key,20,20);
             return true;
         }
@@ -575,14 +575,21 @@ export class KitchenClient extends Component {
         return null;
     }
     /** A vessel of the given kind (server data), turned along its station or the holder's facing. */
-    private drawVessel(node:Node,kind:string,scale=1){
+    /** A vessel of the given kind (server data), turned along its station or the holder's facing.
+     * A frame drawn with the contents in it (<vessel frame>/<item>/<stage>) is used when it exists:
+     * returns 'filled' then, so the caller does not draw the contents again; 'empty' for the
+     * vessel alone; '' when there is no art. */
+    private drawVessel(node:Node,kind:string,scale=1,item?:string,stage?:string):''|'empty'|'filled'{
         const station=node.parent?.name.startsWith('station-')?node.parent.name.slice(8):'';
         const holder=node.parent?.name==='body'?node.parent.parent?.name:'';
         const facing=holder?this.state?.kitchen.chefs[holder]?.facing:'';
         const axis=station?stationView(this.state!.kitchen.map,station).device_axis:(facing==='up'||facing==='down'?'vertical':'horizontal');
         const stem=[kind,VESSEL_ART_FALLBACK].find(stem=>!!stem&&this.art.has(`modular/${stem}_${axis}`));
-        const key=stem?`modular/${stem}_${axis}`:this.art.has('objects/'+kind)?'objects/'+kind:'objects/'+VESSEL_ART_FALLBACK;
-        return this.art.centered(node,key,TILE*(axis==='vertical'?.62:.76)*scale,TILE*.76*scale);
+        const base=stem?`modular/${stem}_${axis}`:this.art.has('objects/'+kind)?'objects/'+kind:'objects/'+VESSEL_ART_FALLBACK;
+        const filled=item?`${base}/${item}/${stage}`:'';
+        const key=filled&&this.art.has(filled)?filled:base;
+        if(!this.art.centered(node,key,TILE*(axis==='vertical'?.62:.76)*scale,TILE*.76*scale))return '';
+        return key===filled?'filled':'empty';
     }
     private closingSummary(k:any,won:boolean){
         const count=(status:string)=>k.orders.filter((o:any)=>o.status===status).length,target=k.goals.target_money;
@@ -1156,7 +1163,9 @@ export class KitchenClient extends Component {
                 if(this.useArt){
                     let vessel=dev.node.getChildByName('stove-vessel');
                     if(!vessel){vessel=this.child(dev.node,'stove-vessel',34,34,0,this.useModularArt?this.workSurfaceY(id):10);vessel.setSiblingIndex(dev.node.getChildByName('equipment')!.getSiblingIndex()+1);}
-                    vessel.active=!!(st.vessel||st.pot_id);if(vessel.active)this.drawVessel(vessel,st.vessel||'',.96);
+                    vessel.active=!!(st.vessel||st.pot_id);
+                    // A filled vessel frame already shows what is cooking: the separate food icon stays hidden.
+                    if(vessel.active&&this.drawVessel(vessel,st.vessel||'',.96,st.food?.ingredient,st.food?.stage)==='filled'&&!st.fire)food.active=false;
                     food.setPosition(0,this.useModularArt?this.workSurfaceY(id)+3:13);food.setScale(.58,.58,1);
                 }
             }
