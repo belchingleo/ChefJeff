@@ -2992,7 +2992,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           var remaining = Math.max(0, Math.ceil(k.round_remaining));
           this.set('clock', String(Math.floor(remaining / 60)).padStart(2, '0') + ":" + String(remaining % 60).padStart(2, '0') + "  " + (s.phase === 'running' ? '营业中' : s.phase === 'ended' ? '已结算' : '休息中'));
           var sprint = k.chefs.human.sprint;
-          this.set('sprint-status', !sprint ? '' : sprint.active_remaining > 0 ? '冲刺中' : sprint.cooldown_remaining > 0 ? '冲刺冷却 ' + Math.ceil(sprint.cooldown_remaining) + 's' : '双击方向键 · 冲刺');
+          this.set('sprint-status', !sprint ? '' : sprint.active_remaining > 0 ? '冲刺中' : sprint.cooldown_remaining > 0 ? '冲刺冷却 ' + Math.ceil(sprint.cooldown_remaining) + 's' : '冲刺 · Q');
           this.set('fire-status', (_k$fire_safety = k.fire_safety) != null && _k$fire_safety.burning_count ? "\u7740\u706B\u5DE5\u4F4D " + k.fire_safety.burning_count + "/" + k.fire_safety.loss_threshold : '');
           this.labels.clock.color = color(remaining <= 30 ? COLORS.hot : COLORS.muted);
           this.drawOrders();
