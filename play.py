@@ -103,11 +103,11 @@ class Console:
 
 
 def describe(k):
-    lines = [f"\n厨房 {k.time:.1f}s / {k.c['round_seconds']}s  |  出餐 {k.served}  收入 {k.money} 元  差评 {k.bad_reviews}"]
-    order_names = {"pending":"待出餐", "served":"已完成", "rejected":"差评退单", "expired":"已超时"}
+    lines = [f"\n厨房 {k.time:.1f}s / {k.c['round_seconds']}s  |  出餐 {k.served}  收入 {k.money} 元"]
+    order_names = {"pending":"待出餐", "served":"已完成", "expired":"已超时", "unresolved_at_close":"关店未完成"}
     for o in k.orders:
         if o["status"] != "future":
-            lines.append(f"  {o['id']} 牛排：{order_names[o['status']]}" + (f"，剩 {max(0,o['deadline']-k.time):.1f}s" if o['status']=='pending' else ""))
+            lines.append(f"  {o['id']} {k.recipe_name(o['dish'])}：{order_names[o['status']]}" + (f"，剩 {max(0,o['deadline']-k.time):.1f}s" if o['status']=='pending' else ""))
     for who, a in k.chefs.items():
         j = a.job
         hand = f"{a.hand.id} {STATES[a.hand.stage]}" if a.hand else "空手"
@@ -167,9 +167,10 @@ def play(args):
         check_live(c)
         return
     client = JevClient(c)  # Fail before starting a clock if credentials are missing.
+    c = Kitchen(c).c  # Game parameters come from the level documents.
     print("\n人 × Jev 文字厨房\n")
     print(f"两个区域 · {c['boards']} 块案板 · {c['pots']} 口锅 · 一个出餐口。双方可做全部动作。")
-    print(f"目标：{c['round_seconds']} 秒内成功出餐至少 {c['target_served']} 单，净收入至少 {c['target_money']} 元，差评不超过 {c['max_bad_reviews']} 次。")
+    print(f"目标：营业 {c['round_seconds']} 秒，关店时净收入至少 {c['target_money']} 元。")
     print(f"切配 {c['chop_seconds']}s；下锅自动加热 {c['cook_seconds']}s 做熟，再过 {c['burn_after_ready']}s 糊锅，再过 {c['fire_after_burn']}s 着火。")
     print("放案板→切配→拿半成品→下锅→取熟菜→出餐。锅不需要人守着，离开也继续加热。")
     print("所有操作自动包含走到目标的时间。选择新的动作会中断原动作。")

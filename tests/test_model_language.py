@@ -28,7 +28,7 @@ class ModelLanguageTests(unittest.TestCase):
             state=k.snapshot();before=copy.deepcopy(state);actions=k.actions('jeff')
             payload=SpatialJevClient(k.c,key='test').payload(state,actions)
             self.assert_english(payload);self.assertEqual(state,before)
-            self.assertEqual(list(payload['questions']['next_action']['criteria']),[a.key for a in actions])
+            self.assertLessEqual(set(payload['questions']['next_action']['criteria']),{a.key for a in actions})
             self.assertEqual(payload['state']['rules']['timing']['handling'],.15)
     def test_logged_request_translates_memory_and_history_but_preserves_records(self):
         k=SpatialKitchen(load_config());k.emit('Jeff洗好了 D1，可取走盛菜或放到空柜台',kind='washed',actor='jeff')

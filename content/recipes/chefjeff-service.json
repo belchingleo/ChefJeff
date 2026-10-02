@@ -1,0 +1,580 @@
+{
+  "schema_version": 1,
+  "kind": "recipe_catalog",
+  "id": "chefjeff-service",
+  "version": 2,
+  "name": "ChefJeff service menu",
+  "items": {
+    "beef": {
+      "name": "牛肉",
+      "states": [
+        "raw",
+        "chopped",
+        "cooking",
+        "ready",
+        "burnt"
+      ],
+      "initial_state": "raw",
+      "state_names": {
+        "raw": "生肉",
+        "chopped": "切好",
+        "cooking": "加热中",
+        "ready": "熟了",
+        "burnt": "糊了"
+      },
+      "platable_states": [
+        "ready",
+        "burnt"
+      ],
+      "throwable_states": [
+        "raw",
+        "chopped"
+      ],
+      "color": "#846144"
+    },
+    "lettuce": {
+      "name": "生菜",
+      "states": [
+        "raw",
+        "chopped"
+      ],
+      "initial_state": "raw",
+      "platable_states": [
+        "chopped"
+      ],
+      "throwable_states": [
+        "raw",
+        "chopped"
+      ],
+      "color": "#639650"
+    },
+    "tomato": {
+      "name": "番茄",
+      "states": [
+        "raw",
+        "chopped"
+      ],
+      "initial_state": "raw",
+      "platable_states": [
+        "chopped"
+      ],
+      "throwable_states": [
+        "raw",
+        "chopped"
+      ],
+      "color": "#c45643"
+    },
+    "bread": {
+      "name": "面包",
+      "states": [
+        "raw"
+      ],
+      "initial_state": "raw",
+      "platable_states": [
+        "raw",
+        "chopped"
+      ],
+      "throwable_states": [
+        "raw",
+        "chopped"
+      ],
+      "color": "#d1a362"
+    },
+    "cucumber": {
+      "name": "黄瓜",
+      "states": [
+        "raw",
+        "chopped"
+      ],
+      "initial_state": "raw",
+      "platable_states": [
+        "chopped"
+      ],
+      "throwable_states": [
+        "raw",
+        "chopped"
+      ],
+      "color": "#4f8a3c"
+    },
+    "onion": {
+      "name": "洋葱",
+      "states": [
+        "raw",
+        "chopped"
+      ],
+      "initial_state": "raw",
+      "platable_states": [
+        "chopped"
+      ],
+      "throwable_states": [
+        "raw",
+        "chopped"
+      ],
+      "color": "#c9a0c4"
+    },
+    "cheese": {
+      "name": "奶酪",
+      "states": [
+        "raw",
+        "chopped"
+      ],
+      "initial_state": "raw",
+      "platable_states": [
+        "chopped"
+      ],
+      "throwable_states": [
+        "raw",
+        "chopped"
+      ],
+      "color": "#e8c24a"
+    },
+    "scallion": {
+      "name": "葱",
+      "states": [
+        "raw",
+        "chopped"
+      ],
+      "initial_state": "raw",
+      "platable_states": [
+        "chopped"
+      ],
+      "throwable_states": [
+        "raw",
+        "chopped"
+      ],
+      "color": "#5fae4a"
+    },
+    "chicken": {
+      "name": "鸡肉",
+      "states": [
+        "raw",
+        "chopped",
+        "cooking",
+        "ready",
+        "burnt"
+      ],
+      "initial_state": "raw",
+      "state_names": {
+        "raw": "生鸡肉",
+        "chopped": "切好的鸡肉",
+        "cooking": "煎制中",
+        "ready": "熟鸡肉",
+        "burnt": "糊鸡肉"
+      },
+      "platable_states": [
+        "ready",
+        "burnt"
+      ],
+      "throwable_states": [
+        "raw",
+        "chopped"
+      ],
+      "color": "#e3b48a"
+    },
+    "fish": {
+      "name": "鱼",
+      "states": [
+        "raw",
+        "chopped",
+        "cooking",
+        "ready",
+        "burnt"
+      ],
+      "initial_state": "raw",
+      "state_names": {
+        "raw": "生鱼",
+        "chopped": "切好的鱼",
+        "cooking": "煎制中",
+        "ready": "熟鱼",
+        "burnt": "糊鱼"
+      },
+      "platable_states": [
+        "ready",
+        "burnt"
+      ],
+      "throwable_states": [
+        "raw",
+        "chopped"
+      ],
+      "color": "#9fb7c8"
+    },
+    "flatbread": {
+      "name": "薄饼",
+      "states": [
+        "raw"
+      ],
+      "initial_state": "raw",
+      "platable_states": [
+        "raw"
+      ],
+      "throwable_states": [
+        "raw"
+      ],
+      "color": "#e2c48c"
+    },
+    "noodles": {
+      "name": "面条",
+      "states": [
+        "raw",
+        "cooking",
+        "ready",
+        "burnt"
+      ],
+      "initial_state": "raw",
+      "state_names": {
+        "raw": "生面条",
+        "cooking": "煮制中",
+        "ready": "熟面条",
+        "burnt": "煮干了"
+      },
+      "platable_states": [
+        "ready",
+        "burnt"
+      ],
+      "throwable_states": [
+        "raw"
+      ],
+      "color": "#f0d98c"
+    }
+  },
+  "containers": {
+    "plate": {
+      "name": "餐盘",
+      "wash_work_game_ms": 4000
+    },
+    "pot": {
+      "name": "汤锅"
+    },
+    "pan": {
+      "name": "平底锅"
+    }
+  },
+  "transforms": [
+    {
+      "id": "chop_beef",
+      "operation": "chop",
+      "item": "beef",
+      "from": "raw",
+      "to": "chopped",
+      "work_game_ms": 6000
+    },
+    {
+      "id": "chop_lettuce",
+      "operation": "chop",
+      "item": "lettuce",
+      "from": "raw",
+      "to": "chopped",
+      "work_game_ms": 6000
+    },
+    {
+      "id": "chop_tomato",
+      "operation": "chop",
+      "item": "tomato",
+      "from": "raw",
+      "to": "chopped",
+      "work_game_ms": 6000
+    },
+    {
+      "id": "cook_beef",
+      "operation": "heat",
+      "item": "beef",
+      "container": "pan",
+      "from": "chopped",
+      "to": "ready",
+      "work_game_ms": 12000,
+      "overcook": {
+        "state": "burnt",
+        "after_done_game_ms": 10000,
+        "fire_after_overcook_game_ms": 8000
+      }
+    },
+    {
+      "id": "chop_cucumber",
+      "operation": "chop",
+      "item": "cucumber",
+      "from": "raw",
+      "to": "chopped",
+      "work_game_ms": 6000
+    },
+    {
+      "id": "chop_onion",
+      "operation": "chop",
+      "item": "onion",
+      "from": "raw",
+      "to": "chopped",
+      "work_game_ms": 6000
+    },
+    {
+      "id": "chop_cheese",
+      "operation": "chop",
+      "item": "cheese",
+      "from": "raw",
+      "to": "chopped",
+      "work_game_ms": 6000
+    },
+    {
+      "id": "chop_scallion",
+      "operation": "chop",
+      "item": "scallion",
+      "from": "raw",
+      "to": "chopped",
+      "work_game_ms": 6000
+    },
+    {
+      "id": "chop_chicken",
+      "operation": "chop",
+      "item": "chicken",
+      "from": "raw",
+      "to": "chopped",
+      "work_game_ms": 6000
+    },
+    {
+      "id": "chop_fish",
+      "operation": "chop",
+      "item": "fish",
+      "from": "raw",
+      "to": "chopped",
+      "work_game_ms": 6000
+    },
+    {
+      "id": "cook_chicken",
+      "operation": "heat",
+      "item": "chicken",
+      "container": "pan",
+      "from": "chopped",
+      "to": "ready",
+      "work_game_ms": 12000,
+      "overcook": {
+        "state": "burnt",
+        "after_done_game_ms": 10000,
+        "fire_after_overcook_game_ms": 8000
+      }
+    },
+    {
+      "id": "cook_fish",
+      "operation": "heat",
+      "item": "fish",
+      "container": "pan",
+      "from": "chopped",
+      "to": "ready",
+      "work_game_ms": 12000,
+      "overcook": {
+        "state": "burnt",
+        "after_done_game_ms": 10000,
+        "fire_after_overcook_game_ms": 8000
+      }
+    },
+    {
+      "id": "boil_noodles",
+      "operation": "heat",
+      "item": "noodles",
+      "container": "pot",
+      "from": "raw",
+      "to": "ready",
+      "work_game_ms": 12000,
+      "overcook": {
+        "state": "burnt",
+        "after_done_game_ms": 10000,
+        "fire_after_overcook_game_ms": 8000
+      }
+    }
+  ],
+  "recipes": {
+    "steak": {
+      "name": "牛排",
+      "container": "plate",
+      "price": 50,
+      "components": [
+        {
+          "item": "beef",
+          "state": "ready",
+          "label": "熟牛肉"
+        }
+      ]
+    },
+    "burger": {
+      "name": "汉堡",
+      "container": "plate",
+      "price": 80,
+      "components": [
+        {
+          "item": "bread",
+          "state": "raw",
+          "label": "面包"
+        },
+        {
+          "item": "lettuce",
+          "state": "chopped",
+          "label": "切好的生菜"
+        },
+        {
+          "item": "tomato",
+          "state": "chopped",
+          "label": "切好的番茄"
+        },
+        {
+          "item": "beef",
+          "state": "ready",
+          "label": "熟牛肉"
+        }
+      ],
+      "plating": [
+        {
+          "layer": "bun_bottom",
+          "item": "bread"
+        },
+        {
+          "layer": "beef",
+          "item": "beef"
+        },
+        {
+          "layer": "lettuce",
+          "item": "lettuce"
+        },
+        {
+          "layer": "tomato",
+          "item": "tomato"
+        },
+        {
+          "layer": "bun_top",
+          "item": "bread"
+        }
+      ]
+    },
+    "beef_noodles": {
+      "name": "牛肉拌面",
+      "container": "plate",
+      "price": 70,
+      "components": [
+        {
+          "item": "noodles",
+          "state": "ready",
+          "label": "熟面条"
+        },
+        {
+          "item": "beef",
+          "state": "ready",
+          "label": "熟牛肉"
+        },
+        {
+          "item": "scallion",
+          "state": "chopped",
+          "label": "切好的葱"
+        }
+      ]
+    },
+    "chicken_noodles": {
+      "name": "鸡肉拌面",
+      "container": "plate",
+      "price": 70,
+      "components": [
+        {
+          "item": "noodles",
+          "state": "ready",
+          "label": "熟面条"
+        },
+        {
+          "item": "chicken",
+          "state": "ready",
+          "label": "熟鸡肉"
+        },
+        {
+          "item": "scallion",
+          "state": "chopped",
+          "label": "切好的葱"
+        }
+      ]
+    },
+    "salad": {
+      "name": "沙拉",
+      "container": "plate",
+      "price": 50,
+      "components": [
+        {
+          "item": "lettuce",
+          "state": "chopped",
+          "label": "切好的生菜"
+        },
+        {
+          "item": "tomato",
+          "state": "chopped",
+          "label": "切好的番茄"
+        },
+        {
+          "item": "cucumber",
+          "state": "chopped",
+          "label": "切好的黄瓜"
+        }
+      ]
+    },
+    "cheeseburger": {
+      "name": "芝士汉堡",
+      "container": "plate",
+      "price": 85,
+      "components": [
+        {
+          "item": "bread",
+          "state": "raw",
+          "label": "面包"
+        },
+        {
+          "item": "beef",
+          "state": "ready",
+          "label": "熟牛肉"
+        },
+        {
+          "item": "cheese",
+          "state": "chopped",
+          "label": "切好的奶酪"
+        },
+        {
+          "item": "lettuce",
+          "state": "chopped",
+          "label": "切好的生菜"
+        }
+      ]
+    },
+    "chicken_wrap": {
+      "name": "鸡肉卷",
+      "container": "plate",
+      "price": 80,
+      "components": [
+        {
+          "item": "flatbread",
+          "state": "raw",
+          "label": "薄饼"
+        },
+        {
+          "item": "chicken",
+          "state": "ready",
+          "label": "熟鸡肉"
+        },
+        {
+          "item": "lettuce",
+          "state": "chopped",
+          "label": "切好的生菜"
+        },
+        {
+          "item": "onion",
+          "state": "chopped",
+          "label": "切好的洋葱"
+        }
+      ]
+    },
+    "fish_steak": {
+      "name": "煎鱼排",
+      "container": "plate",
+      "price": 50,
+      "components": [
+        {
+          "item": "fish",
+          "state": "ready",
+          "label": "熟鱼"
+        }
+      ]
+    }
+  },
+  "extensions": {
+    "chefjeff.status_new_items": "timings and prices of the 2026-10-01 ingredient pack are placeholders copied from beef; calibrate with a level that uses them"
+  }
+}

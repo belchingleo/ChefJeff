@@ -25,7 +25,7 @@ def feedback_report(session):
             'round_id':session.game_id,'speed':session.speed,'game_seconds':round(k.time,3),
             'provider':(session.setting or {}).get('provider','unconfigured'),
             # No user-provided model/base URL, path, notes, memory or payload.
-            'summary':{'served':k.served,'money':k.money,'bad_reviews':k.bad_reviews,
+            'summary':{'served':k.served,'money':k.money,
                        'won':k.won() if k.ended else None},
             'api':{'calls':ai.calls if ai else 0,'successful_responses':ai.successes if ai else 0,
                    'request_or_parse_errors':ai.error_count if ai else 0,

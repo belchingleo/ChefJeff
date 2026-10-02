@@ -18,6 +18,15 @@ def scope_for(setting):
     return hashlib.sha256(json.dumps(identity).encode()).hexdigest()
 
 
+def round_scope(setting, kitchen):
+    """Memory scope for one model on one level under one rule semantics.
+
+    Records from other levels or from other rule semantics never reach this round's prompt.
+    """
+    identity = [scope_for(setting), kitchen.c.get('level_id'), kitchen.rules.semantics]
+    return hashlib.sha256(json.dumps(identity).encode()).hexdigest()
+
+
 def sample_events(events):
     records = []
     for e in events:
@@ -40,9 +49,10 @@ def sample_events(events):
 
 def episode(kitchen, game_id, model):
     events, count = sample_events(kitchen.events)
+    outcome = {'served': kitchen.served, 'money': kitchen.money,
+               'target_money': kitchen.c['target_money'], 'reached_target': kitchen.won()}
     return {'round_id': game_id, 'model': model, 'duration': round(kitchen.time, 2),
-            'outcome': {'served': kitchen.served, 'money': kitchen.money,
-                        'bad_reviews': kitchen.bad_reviews, 'won': kitchen.won()},
+            'level_id': kitchen.c.get('level_id'), 'outcome': outcome,
             'layout': kitchen.snapshot().get('map',{}).get('layout_version','practice-kitchen-v1'),
             'events': events, 'eligible_event_count': count,
             'sampled': count > len(events)}
@@ -114,7 +124,7 @@ class CooperationMemory:
         records = [r for r in records if r['round_id'] != record['round_id']]
         data['scopes'][scope] = (records + [record])[-ROUNDS:]
         # Bound disk growth when many provider/model configurations are tried.
-        while len(data['scopes']) > 8:
+        while len(data['scopes']) > 24:
             del data['scopes'][next(iter(data['scopes']))]
         self.save(data)
 

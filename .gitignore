@@ -21,5 +21,8 @@ cocos-kitchen/temp/
 cocos-kitchen/local/
 cocos-kitchen/profiles/
 cocos-kitchen/build/web-feedback/
+# Editor-service settings Creator writes on build (splash form link, version stamp); not runtime
+cocos-kitchen/settings/v2/packages/information.json
+cocos-kitchen/settings/v2/packages/program.json
 *.keystore
 *.jks

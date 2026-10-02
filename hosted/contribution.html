@@ -1,17 +1,35 @@
-<section aria-labelledby="contribution-title" style="border-top:1px solid #bba17a;margin-top:24px;padding-top:16px" data-no-i18n>
+<style>
+.contrib{border-top:1px solid var(--walnut,#6b3418);margin-top:24px;padding-top:16px}
+.contrib-lists{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:12px 0}
+.contrib-lists div{padding:10px 12px;border:1px solid var(--ink,#2b1a12);background:var(--surface,#f0d9b5)}
+.contrib-lists h4{margin:0 0 6px;font:12px/16px var(--pixel,system-ui);font-weight:400;color:var(--ink,#2b1a12)}
+.contrib-lists ul{margin:0;padding:0;list-style:none;font-size:13px;line-height:20px;color:var(--ink,#2b1a12)}
+.contrib-lists li::before{display:inline-block;width:1.2em;font-weight:700}
+.contrib-saved li::before{content:"+";color:var(--herb,#3c7a2a)}
+.contrib-never li::before{content:"×";color:var(--tomato,#b8321e)}
+.contrib textarea{width:100%;box-sizing:border-box;border:2px solid var(--ink,#2b1a12);font:12px monospace}
+.contrib .actions{align-items:center}
+</style>
+<section aria-labelledby="contribution-title" class="contrib" data-no-i18n>
  <h3 id="contribution-title">Contribute this session · 贡献本局数据</h3>
- <p>Optional, after a round ends. Share map/version, game events, 1-second chef positions, preset communication choices and results to improve the game and develop cooperation evaluation methods. Stored privately for 30 days, then deleted. No API key, IP address, account identity, provider URL, model request or raw response is included in this record. Raw contributions are not published.</p>
- <p>自愿参与，结束对局后提交。保存地图与版本、游戏事件、每秒角色位置、预设沟通选项和结算结果，用于改进游戏及设计协作评估方法；私有保存 30 天后删除。记录不含 Key、IP、账号身份、模型接口地址、完整模型请求或回复，不公开原始贡献数据。</p>
- <p>Without contribution, game data stays in server memory and expires after 10 minutes of inactivity. Network traffic still passes through the hosting provider. 不贡献时仅维持内存会话，闲置 10 分钟后清除；网络通信仍经过云服务商。</p>
- <button id="contribution-preview" type="button">Preview data · 预览数据</button>
- <textarea id="contribution-data" readonly hidden rows="8" aria-label="Contribution preview" style="width:100%;box-sizing:border-box"></textarea>
+ <p>Optional, after a round ends: helps improve the game and develop cooperation evaluation methods. Stored privately for 30 days, then deleted.<br>自愿参与，结束对局后提交；用于改进游戏及设计协作评估方法，私有保存 30 天后删除。</p>
+ <div class="contrib-lists">
+  <div class="contrib-saved"><h4>Saved · 会保存</h4><ul>
+   <li>Map and version · 地图与版本</li><li>Game events · 游戏事件</li><li>Chef positions each second · 每秒角色位置</li>
+   <li>Preset communication choices · 预设沟通选项</li><li>Results · 结算结果</li></ul></div>
+  <div class="contrib-never"><h4>Never saved · 不会保存</h4><ul>
+   <li>API key · Key</li><li>IP address · IP</li><li>Account identity · 账号身份</li>
+   <li>Provider URL · 模型接口地址</li><li>Model requests and raw replies · 完整模型请求与回复</li></ul></div>
+ </div>
+ <p><small>Raw contributions are not published. Without contribution, game data stays in server memory and expires after 10 minutes of inactivity; network traffic still passes through the hosting provider. 不公开原始贡献数据；不贡献时仅维持内存会话，闲置 10 分钟后清除；网络通信仍经过云服务商。</small></p>
+ <button id="contribution-preview" class="btn" type="button">Preview data · 预览数据</button>
+ <textarea id="contribution-data" readonly hidden rows="8" aria-label="Contribution preview"></textarea>
  <label class="remember"><input id="contribution-consent" type="checkbox">I agree to this use and 30-day retention · 我同意上述用途与 30 天保存期限</label>
- <button id="contribution-save" type="button" disabled>Contribute finished round · 贡献已结束的本局</button>
+ <div class="actions"><button id="contribution-save" class="btn primary" type="button" disabled>Contribute finished round · 贡献已结束的本局</button><button id="contribution-download" class="btn" type="button" hidden>Download deletion receipt · 下载删除凭证</button></div>
  <p id="contribution-status" role="status"></p>
- <button id="contribution-download" type="button" hidden>Download deletion receipt · 下载删除凭证</button>
- <details><summary>Delete a contribution · 删除已贡献数据</summary>
+ <details class="fine"><summary>Delete a contribution · 删除已贡献数据</summary>
   <p>Paste your deletion receipt below. Keep it private; anyone with it can delete that record. 粘贴删除凭证；持有该凭证即可删除对应数据，请妥善保管。</p>
-  <textarea id="contribution-receipt" rows="3" aria-label="Deletion receipt" style="width:100%;box-sizing:border-box"></textarea>
-  <button id="contribution-delete" type="button">Delete contributed record · 删除该记录</button>
+  <textarea id="contribution-receipt" rows="3" aria-label="Deletion receipt"></textarea>
+  <div class="actions"><button id="contribution-delete" class="btn danger" type="button">Delete contributed record · 删除该记录</button></div>
  </details>
 </section>

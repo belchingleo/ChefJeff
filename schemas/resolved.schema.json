@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "resolved.schema.json",
+  "title": "Frozen resolved configuration: the exact conditions a round ran under",
+  "type": "object",
+  "required": ["schema_version", "kind", "status", "level", "sources", "ruleset", "map", "equipment_catalog", "recipe_catalog",
+               "order_policy", "stations", "applied_defaults", "overrides", "seeds", "order_plan", "config_hash"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "kind": {"const": "resolved_configuration"},
+    "status": {"const": "frozen"},
+    "level": {"$ref": "level.schema.json"},
+    "sources": {
+      "type": "object",
+      "propertyNames": {"enum": ["level", "ruleset", "map", "equipment_catalog", "recipe_catalog", "order_policy"]},
+      "additionalProperties": {
+        "type": "object", "required": ["id", "version", "sha256"],
+        "properties": {"id": {"type": "string"}, "version": {"$ref": "common.schema.json#/$defs/version"},
+                       "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}},
+        "additionalProperties": false
+      }
+    },
+    "ruleset": {"$ref": "ruleset.schema.json"},
+    "map": {"$ref": "map.schema.json"},
+    "equipment_catalog": {"$ref": "equipment.schema.json"},
+    "recipe_catalog": {"$ref": "recipe.schema.json"},
+    "order_policy": {"$ref": "order.schema.json"},
+    "stations": {
+      "description": "Equipment instances in engine order with their catalog type resolved.",
+      "type": "array",
+      "items": {
+        "type": "object", "required": ["id", "type", "name", "area"],
+        "properties": {"id": {"type": "string"}, "type": {"type": "string"}, "name": {"type": "string"},
+                       "area": {"type": "string"}, "params": {"type": "object"}},
+        "additionalProperties": false
+      }
+    },
+    "applied_defaults": {"type": "array", "items": {"type": "string"}},
+    "overrides": {"type": "object"},
+    "seeds": {
+      "type": "object", "required": ["orders", "spawn", "source"],
+      "properties": {"orders": {"type": "integer", "minimum": 0}, "spawn": {"type": "integer", "minimum": 0},
+                     "source": {"enum": ["configured", "drawn_at_freeze", "mixed"]}},
+      "additionalProperties": false
+    },
+    "order_plan": {
+      "type": "object", "required": ["algorithm", "orders"],
+      "properties": {
+        "algorithm": {"type": "string"},
+        "orders": {
+          "type": "array",
+          "items": {
+            "type": "object", "required": ["order_id", "recipe_ref", "arrival_game_ms", "deadline_game_ms", "patience_game_ms"],
+            "properties": {"order_id": {"type": "string"}, "recipe_ref": {"type": "string"},
+                           "arrival_game_ms": {"$ref": "common.schema.json#/$defs/game_ms"},
+                           "deadline_game_ms": {"$ref": "common.schema.json#/$defs/game_ms"},
+                           "patience_game_ms": {"$ref": "common.schema.json#/$defs/positive_game_ms"}},
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "config_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  },
+  "additionalProperties": false
+}

@@ -12,7 +12,7 @@ class PartnerStateTests(unittest.TestCase):
         p=client.payload(k.snapshot(),k.actions('jeff'))['state']
         h=p['kitchen']['chefs']['human']
         self.assertEqual(h['holding']['id'],'player-meat')
-        self.assertEqual(h['target'],'p1');self.assertIn('Put chopped meat',h['task'])
+        self.assertEqual(h['target'],'p1');self.assertIn('Put chopped beef into the frying pan',h['task'])
         self.assertGreater(h['travel_remaining'],0);self.assertGreater(h['work_remaining'],0)
         self.assertNotEqual(h['position'],[2.,2.])
         self.assertIn('position',p['rules']['partner'])

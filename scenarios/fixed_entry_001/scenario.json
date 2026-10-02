@@ -6,13 +6,9 @@
     "boards": 3,
     "pots": 1,
     "round_seconds": 40,
-    "order_count": 1,
     "order_interval": 24,
     "order_patience": 35,
-    "target_served": 1,
     "target_money": 30,
-    "time_bonus_per_second": 1,
-    "max_bad_reviews": 2,
     "chop_seconds": 6,
     "cook_seconds": 12,
     "burn_after_ready": 10,
@@ -30,7 +26,8 @@
     "dining_seconds": 8,
     "wash_seconds": 4,
     "level": 1,
-    "spawn_seed": 1
+    "spawn_seed": 1,
+    "order_seed": 0
   },
   "initial": {
     "clock": 0,

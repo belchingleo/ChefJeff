@@ -1,0 +1,369 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ruleset.schema.json",
+  "title": "Ruleset: engine-supported execution semantics",
+  "description": "Selects rules the engine already implements. It cannot add new mechanics.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "kind",
+    "id",
+    "version",
+    "engine_semantics",
+    "tick_game_ms",
+    "supported_equipment_types",
+    "operations",
+    "movement",
+    "throw",
+    "tableware",
+    "fire",
+    "penalties",
+    "burnt_service",
+    "abstract_travel",
+    "limits"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "kind": {
+      "const": "ruleset"
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/content_id"
+    },
+    "version": {
+      "$ref": "common.schema.json#/$defs/version"
+    },
+    "name": {
+      "$ref": "common.schema.json#/$defs/display_name"
+    },
+    "engine_semantics": {
+      "enum": [
+        "continuous-2026-09"
+      ]
+    },
+    "tick_game_ms": {
+      "const": 50
+    },
+    "supported_equipment_types": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "enum": [
+          "ingredient_source",
+          "board",
+          "stove",
+          "counter",
+          "serving_window",
+          "bin",
+          "sink",
+          "plate_return",
+          "tool_rack"
+        ]
+      }
+    },
+    "operations": {
+      "type": "object",
+      "required": [
+        "handling_game_ms",
+        "extinguish_game_ms",
+        "clear_game_ms"
+      ],
+      "properties": {
+        "handling_game_ms": {
+          "$ref": "common.schema.json#/$defs/positive_game_ms"
+        },
+        "extinguish_game_ms": {
+          "$ref": "common.schema.json#/$defs/positive_game_ms"
+        },
+        "clear_game_ms": {
+          "$ref": "common.schema.json#/$defs/positive_game_ms"
+        },
+        "ground_assembly": {
+          "type": "boolean",
+          "description": "Multi-component menus: a chef may add a held ingredient to a plate on the floor, or a floor ingredient to the held plate, like assembling on a counter. Absent: floor items can only be picked up (swapped)."
+        }
+      },
+      "additionalProperties": false
+    },
+    "movement": {
+      "type": "object",
+      "required": [
+        "walk_cells_per_game_s",
+        "sprint_multiplier",
+        "sprint_duration_game_ms",
+        "sprint_cooldown_game_ms",
+        "chef_separation_cells",
+        "sprint_push_cells",
+        "sprint_food_nudge_cells"
+      ],
+      "properties": {
+        "walk_cells_per_game_s": {
+          "$ref": "common.schema.json#/$defs/positive_number"
+        },
+        "sprint_multiplier": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 3
+        },
+        "sprint_duration_game_ms": {
+          "$ref": "common.schema.json#/$defs/positive_game_ms"
+        },
+        "sprint_cooldown_game_ms": {
+          "$ref": "common.schema.json#/$defs/game_ms"
+        },
+        "chef_separation_cells": {
+          "$ref": "common.schema.json#/$defs/positive_number"
+        },
+        "sprint_push_cells": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "One-time push applied to the other chef by a sprint impulse."
+        },
+        "sprint_food_nudge_cells": {
+          "description": "Maximum distance a sprint moves each loose ground ingredient.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "cabinet_clearance_cells": {
+          "description": "Optional: one chef body size against workstations. Feet stay `front` cells south of a workstation cell (clear of the cabinet's front panel) and `side` cells from its east/west edges (the chef's half width, measured from the art); stand points follow. Absent: the ordinary 0.2-cell walk clearance with board contact faces.",
+          "type": "object",
+          "required": ["front", "side"],
+          "properties": {
+            "front": {"type": "number", "minimum": 0.2, "maximum": 0.5},
+            "side": {"type": "number", "minimum": 0.2, "maximum": 0.45}
+          },
+          "additionalProperties": false
+        },
+        "operate_at_walk_limit": {
+          "description": "Optional: each station face is worked from where walking toward it stops (the cabinet_clearance limit; no south step-back), and in place when the chef already stands at that face. Absent: fixed stand-off points.",
+          "type": "boolean"
+        },
+        "stall_replan": {
+          "description": "Optional: a routed chef whose remaining route has not shortened by min_progress_cells within after_game_ms re-plans around the other chef. Absent: routes keep their static waypoints.",
+          "type": "object",
+          "required": [
+            "after_game_ms",
+            "min_progress_cells"
+          ],
+          "properties": {
+            "after_game_ms": {
+              "$ref": "common.schema.json#/$defs/positive_game_ms"
+            },
+            "min_progress_cells": {
+              "$ref": "common.schema.json#/$defs/positive_number"
+            }
+          },
+          "additionalProperties": false
+        },
+        "corner_slide_cells": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 0.5,
+          "description": "Keyboard walking: when a single-direction step is fully blocked and moving sideways by at most this many cells would clear it (for example out of the notch in front of a board set between counters), the chef slides sideways first. Absent: no slide."
+        },
+        "approach_partner": {
+          "type": "boolean",
+          "description": "Offer \"go partner\": walk to the other chef until contact, which pushes it (a sprint adds one bounded shove). Absent: no such action."
+        }
+      },
+      "additionalProperties": false
+    },
+    "throw": {
+      "type": "object",
+      "required": [
+        "enabled",
+        "range_cells",
+        "speed_cells_per_game_s",
+        "min_flight_game_ms",
+        "catch_radius_cells"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "range_cells": {
+          "$ref": "common.schema.json#/$defs/positive_number"
+        },
+        "speed_cells_per_game_s": {
+          "$ref": "common.schema.json#/$defs/positive_number"
+        },
+        "min_flight_game_ms": {
+          "$ref": "common.schema.json#/$defs/positive_game_ms"
+        },
+        "catch_radius_cells": {
+          "$ref": "common.schema.json#/$defs/positive_number"
+        },
+        "pass_range_cells": {
+          "$ref": "common.schema.json#/$defs/positive_number",
+          "description": "Range for passing held items that are not throwable ingredients (plates, plated food, pots, the extinguisher) to the floor or a chef. Absent: only throwable ingredients fly."
+        }
+      },
+      "additionalProperties": false
+    },
+    "tableware": {
+      "type": "object",
+      "required": [
+        "dining_game_ms",
+        "return_capacity"
+      ],
+      "properties": {
+        "dining_game_ms": {
+          "$ref": "common.schema.json#/$defs/positive_game_ms"
+        },
+        "return_capacity": {
+          "const": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "fire": {
+      "type": "object",
+      "required": [
+        "spread_interval_game_ms",
+        "loss_threshold"
+      ],
+      "properties": {
+        "spread_interval_game_ms": {
+          "$ref": "common.schema.json#/$defs/positive_game_ms"
+        },
+        "loss_threshold": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        }
+      },
+      "additionalProperties": false
+    },
+    "penalties": {
+      "type": "object",
+      "required": [
+        "expired_order",
+        "new_fire",
+        "discard",
+        "wrong_dish"
+      ],
+      "properties": {
+        "expired_order": {
+          "$ref": "common.schema.json#/$defs/money"
+        },
+        "new_fire": {
+          "$ref": "common.schema.json#/$defs/money"
+        },
+        "discard": {
+          "$ref": "common.schema.json#/$defs/money"
+        },
+        "wrong_dish": {
+          "$ref": "common.schema.json#/$defs/money"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Money changes; a burnt dish that an order accepts is priced by the burnt_service tiers."
+    },
+    "abstract_travel": {
+      "description": "Travel time of the non-spatial text prototype only.",
+      "type": "object",
+      "required": [
+        "same_area_game_ms",
+        "cross_area_game_ms"
+      ],
+      "properties": {
+        "same_area_game_ms": {
+          "$ref": "common.schema.json#/$defs/positive_game_ms"
+        },
+        "cross_area_game_ms": {
+          "$ref": "common.schema.json#/$defs/positive_game_ms"
+        }
+      },
+      "additionalProperties": false
+    },
+    "limits": {
+      "description": "Technical safety limits, measured on the current engine; not game difficulty.",
+      "type": "object",
+      "required": [
+        "max_actors",
+        "max_equipment",
+        "max_orders",
+        "max_round_game_ms",
+        "max_document_bytes",
+        "max_inventory",
+        "max_visible_orders",
+        "max_recipe_components"
+      ],
+      "properties": {
+        "max_actors": {
+          "const": 2
+        },
+        "max_equipment": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_orders": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_round_game_ms": {
+          "$ref": "common.schema.json#/$defs/positive_game_ms"
+        },
+        "max_document_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_inventory": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_visible_orders": {
+          "description": "Order tickets the interface can show at once; plans must never exceed it.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_recipe_components": {
+          "description": "Design limit: the most distinct ingredients one dish may have.",
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "extensions": {
+      "$ref": "common.schema.json#/$defs/extensions"
+    },
+    "burnt_service": {
+      "description": "How a matched order treats a dish with burnt components, by how long the worst component was burnt when it left the heat. Tiers in ascending order; the last has max_overcook_game_ms null.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "max_overcook_game_ms",
+          "outcome",
+          "adjustment"
+        ],
+        "properties": {
+          "max_overcook_game_ms": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "outcome": {
+            "enum": [
+              "accepted",
+              "rejected"
+            ]
+          },
+          "adjustment": {
+            "$ref": "common.schema.json#/$defs/money"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

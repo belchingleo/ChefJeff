@@ -9,9 +9,9 @@ from test_web import Client, FakeJournal
 
 
 class SpatialTests(unittest.TestCase):
-    def make(self):
+    def make(self,**overrides):
         config=load_config()
-        config.update(spawn_seed=0,round_seconds=500,order_patience=450)
+        config.update(spawn_seed=0,round_seconds=500,order_patience=450,order_interval=100,**overrides)
         return SpatialKitchen(config)
 
     def do(self,k,who,key):
@@ -69,7 +69,8 @@ class SpatialTests(unittest.TestCase):
         self.assertEqual(k.positions['human'],position)
         self.assertAlmostEqual(k.routes['human']['length']/WALK_SPEED,k.chefs['human'].job.travel)
         j=k.chefs['human'].job;k.advance(j.travel+j.work)
-        self.assertEqual(k.positions['human'],k.operation_point('bin',EQUIPMENT['bin']['access']))
+        for got,want in zip(k.positions['human'],k.operation_point('bin',EQUIPMENT['bin']['access'])):
+            self.assertAlmostEqual(got,want,places=6)
         k.assert_invariants()
 
     def test_drop_during_walk_uses_current_position_and_can_be_picked_up(self):
@@ -116,11 +117,12 @@ class SpatialTests(unittest.TestCase):
         k.advance(12)
         for key in ('take plates','plate p1','drop'):self.do(k,'jeff',key)
         for key in ('pickup F1','serve'):self.do(k,'human',key)
-        self.assertEqual((k.served,k.money),(1,30))
+        self.assertEqual((k.served,k.money),(1,k.rules.prices['steak']))
         self.assertFalse(k.ground)
 
     def test_fire_and_extinguish_still_work_with_spatial_walking(self):
-        k=self.make();k.c['fire_spread_seconds']=1000;pot=k.stations['p1'];pot.food=Food('hot','cooking',6,0);pot.heating=True
+        # Configuration is frozen at round start: set the spread interval up front.
+        k=self.make(fire_spread_seconds=1000);self.assertEqual(k.rules.fire_spread,1000);pot=k.stations['p1'];pot.food=Food('hot','cooking',6,0);pot.heating=True
         k.advance(31)
         self.assertTrue(pot.fire)
         self.do(k,'human','take extinguisher');self.do(k,'human','extinguish p1');self.do(k,'human','clear p1')
@@ -134,7 +136,8 @@ class SpatialTests(unittest.TestCase):
         self.assertIn('position',payload['state']['kitchen']['chefs']['jeff'])
         self.assertEqual(payload['state']['kitchen']['ground'][0]['position'],(2,2))
         self.assertNotIn('walk_cross_area',payload['state']['rules']['timing'])
-        self.assertFalse(any(a.kind=='go' and a.target.startswith('floor_') for a in k.actions('jeff')))
+        # No free floor destinations; only the partner approach walks to a floor tile.
+        self.assertEqual([a.key for a in k.actions('jeff') if a.kind=='go' and a.target.startswith('floor_')],['go partner'])
 
     def test_web_reset_keeps_spatial_engine_and_new_round_position(self):
         g=GameSession(kitchen_factory=SpatialKitchen,client_factory=Client,journal_factory=FakeJournal)
@@ -151,7 +154,4 @@ class SpatialTests(unittest.TestCase):
             who=rng.choice(['human','jeff'])
             actions=k.actions(who)
             if rng.random()<.22 and actions:k.start(who,rng.choice(actions))
-            k.advance(.1);k.assert_invariants()
-            for position in k.positions.values():
-                self.assertGreaterEqual(position[0],1);self.assertLessEqual(position[0],12)
-                self.assertGreaterEqual(position[1],1);self.assertLessEqual(position[1],7)
+            k.advance(.1);k.assert_invariants()  # includes walkable feet for both chefs

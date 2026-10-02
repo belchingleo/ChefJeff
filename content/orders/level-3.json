@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "kind": "order_policy",
+  "id": "level-3",
+  "version": 2,
+  "name": "第3关订单",
+  "mode": "fixed_interval_seeded",
+  "first_spawn_game_ms": 0,
+  "interval_game_ms": 30000,
+  "menu": [
+    {
+      "recipe_ref": "steak",
+      "weight": 1
+    },
+    {
+      "recipe_ref": "burger",
+      "weight": 1
+    }
+  ],
+  "patience_default_game_ms": 105000,
+  "patience_by_recipe": {
+    "steak": 75000,
+    "burger": 105000
+  },
+  "extensions": {
+    "chefjeff.status": "calibrated: reference pair earns 390 on this fixed plan (slower-Jeff variant 260); target = 50% rounded down to 10"
+  }
+}

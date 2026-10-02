@@ -32,11 +32,11 @@ class RepeatDeliveryTests(unittest.TestCase):
         k.advance(65)
         self.finish(k,'jeff','fetch')
         state=SpatialJevClient(k.c,key='offline').payload(k.snapshot(),k.actions('jeff'))['state']['kitchen']
-        self.assertEqual(len([o for o in state['orders'] if o['status']=='pending']),3)
+        self.assertEqual(len([o for o in state['orders'] if o['status']=='pending']),2)
         self.assertTrue(all(o['ingredients']==['bread','lettuce','tomato','beef'] for o in state['orders']))
         self.assertIsNotNone(state['chefs']['jeff']['holding'])
         self.assertIn('b1',state['stations']);self.assertIn('b2',state['stations'])
         fresh=SpatialKitchen(load_config()|{'level':3,'order_seed':42})
         state=fresh.snapshot()
-        self.assertEqual(len(state['orders']),1);self.assertEqual(state['future_orders'],4)
+        self.assertEqual(len(state['orders']),1);self.assertEqual(state['future_orders'],1)  # whether, not how many
         self.assertFalse(any(o['status']=='future' for o in state['orders']))

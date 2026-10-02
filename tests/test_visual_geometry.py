@@ -1,4 +1,5 @@
 import json
+import math
 import os
 from pathlib import Path
 import shlex
@@ -16,6 +17,51 @@ COCOS_TSC_CANDIDATES = (
     Path('/Applications/CocosCreator.app/Contents/Resources/resources/3d/engine/node_modules/typescript/bin/tsc'),
     Path('/Applications/CocosCreator.app/Contents/Resources/app.asar.unpacked/node_modules/typescript/bin/tsc'),
 )
+
+
+def server_walks():
+    """Server manual-movement steps for eight held directions, away from the teammate."""
+    from kitchen import load_config
+    from spatial_kitchen import SpatialKitchen, WALK_SPEED
+    walks = []
+    for level in (1, 2, 3):
+        steps = []
+        for vx, vy in ((1,0),(-1,0),(0,1),(0,-1),(1,1),(-1,1),(1,-1),(-1,-1)):
+            k = SpatialKitchen({**load_config(), 'level': level, 'spawn_seed': 0})
+            k.set_manual('human', vx, vy)
+            vector = k.manual['human']
+            for _ in range(80):
+                before = k.positions['human']
+                k.advance(.05)
+                after = k.positions['human']
+                if min(math.dist(p, k.positions['jeff']) for p in (before, after)) > 1:
+                    steps.append([before, [vector[0]*WALK_SPEED*.05, vector[1]*WALK_SPEED*.05], after])
+        walks.append({'level': level, 'map': k.snapshot()['map'], 'steps': steps})
+    # Service rules add corner sliding and the body clearance: include the notch in front of
+    # a board set between counters (level 2, board 2), and diagonal walks started against
+    # counters, where each tick slides along a cabinet edge or around its corner.
+    import config_contract as cc
+    for level_id, starts in (('level-1', [None, (3.15, 3.0), (2.0, 5.95)]),
+                             ('level-2', [None, (6.15, 6.5), (6.0, 6.49), (2.0, 3.3), (5.0, 4.95), (9.0, 2.95)]),
+                             ('level-3', [None, (5.0, 4.95)])):
+        steps = []
+        for start in starts:
+            for vx, vy in ((1,0),(-1,0),(0,1),(0,-1),(1,1),(-1,1),(1,-1),(-1,-1)):
+                k = SpatialKitchen(cc.load_level(level_id))
+                k.positions['jeff'] = (k.nav.width - 2, 1.5) if start else k.positions['jeff']
+                if start:
+                    assert k.nav.walkable_point(start), (level_id, start)
+                    k.positions['human'] = start
+                k.set_manual('human', vx, vy)
+                vector = k.manual['human']
+                for _ in range(40):
+                    before = k.positions['human']
+                    k.advance(.05)
+                    after = k.positions['human']
+                    if min(math.dist(p, k.positions['jeff']) for p in (before, after)) > 1:
+                        steps.append([before, [vector[0]*WALK_SPEED*.05, vector[1]*WALK_SPEED*.05], after])
+        walks.append({'level': level_id, 'map': k.snapshot()['map'], 'steps': steps})
+    return walks
 
 
 class KitchenGeometryExecutionTests(unittest.TestCase):
@@ -108,10 +154,19 @@ assert.strictEqual(geometry.surfaceOffset(), 0, 'work surfaces stay on their log
 assert.strictEqual(geometry.wallOffset(), 0, 'wall tops stay on their logical cell centers');
 assert(geometry.GRID_ART.northFace > 0 && geometry.GRID_ART.northFace < geometry.GRID_ART.unit,
        'the inset north face must remain inside its wall cell');
-assert(geometry.depthOrder(5, 'solid') > geometry.depthOrder(5, 'actor'),
-       'solid in the same row sorts after the actor');
+// Feet inside a solid's row can only be beside it (walk boxes), so the body draws in front;
+// feet at or north of its top edge stay behind it, including the zero-clearance board stand.
+for (const y of [4.7, 5, 5.3]) {
+  assert(geometry.depthOrder(y, 'actor') > geometry.depthOrder(5, 'solid'), `actor beside a cabinet at ${y} draws in front`);
+  assert(geometry.depthOrder(y, 'item') > geometry.depthOrder(5, 'solid'), `ground item beside a cabinet at ${y} draws in front`);
+}
+for (const y of [4.3, 4.49, 4.5])
+  assert(geometry.depthOrder(y, 'actor') < geometry.depthOrder(5, 'solid'), `actor north of a cabinet at ${y} stays behind it`);
 assert(geometry.depthOrder(6, 'actor') > geometry.depthOrder(5, 'solid'),
        'actor on the next row sorts after the previous row solid');
+assert(geometry.depthOrder(5.3, 'actor') < geometry.depthOrder(6, 'solid'),
+       'a cabinet on the next row covers the actor behind it');
+assert(geometry.depthOrder(5, 'actor') > geometry.depthOrder(5.1, 'item'), 'an actor covers food at its feet');
 
 // Cabinet work surfaces align exactly to one logical cell after sprite lift.
 const tile = geometry.GRID_ART.tile, unit = geometry.GRID_ART.unit;
@@ -130,10 +185,34 @@ const surface = [
 assert.deepStrictEqual(surface, [-tile/2, -tile/2, tile/2, tile/2],
        'surfaceRect, groundAnchor, and sprite lift must fill exactly one grid cell');
 
-const burger = geometry.burgerLayers(['tomato', 'bread', 'lettuce', 'beef']);
-assert.deepStrictEqual(burger, geometry.burgerLayers(['beef', 'lettuce', 'bread', 'tomato']));
-assert.deepStrictEqual(geometry.burgerLayers(['bread', 'tomato']), ['bun_bottom', 'tomato', 'bun_top'],
+// Plating order is recipe data: arrival order never changes the stack, missing items are not drawn,
+// and a dish without plating stacks its components as they are.
+const plating = [{layer:'base_low', item:'a'}, {layer:'b', item:'b'}, {layer:'c', item:'c'}, {layer:'base_high', item:'a'}];
+const names = layers => layers.map(l => l.layer);
+assert.deepStrictEqual(names(geometry.plateLayers(plating, ['c', 'a', 'b'])), ['base_low', 'b', 'c', 'base_high']);
+assert.deepStrictEqual(names(geometry.plateLayers(plating, ['b', 'c', 'a'])), names(geometry.plateLayers(plating, ['c', 'a', 'b'])));
+assert.deepStrictEqual(names(geometry.plateLayers(plating, ['a', 'c'])), ['base_low', 'c', 'base_high'],
        'missing ingredients must not be drawn');
+assert.deepStrictEqual(names(geometry.plateLayers(undefined, ['x', 'y', 'x'])), ['x', 'y']);
+
+// Level buttons: any listed count from 1 to 6 fits the cover band, without overlap, wide enough
+// for a long pixel-font name such as "第四关 · 拌面（试玩） · 当前".
+for (let n = 1; n <= 6; n++) {
+  const slots = geometry.levelButtonLayout(n);
+  assert.strictEqual(slots.length, n);
+  for (const r of slots) {
+    assert(r.x - r.w/2 >= 309 - 1e-9 && r.x + r.w/2 <= 971 + 1e-9, `n ${n}: x`);
+    // Below the cover text (two lines end near 425) and 10 px clear of the main buttons (top 496).
+    assert(r.y - r.h/2 >= 430 && r.y + r.h/2 <= 486 + 1e-9, `n ${n}: y ${r.y}`);
+    assert(r.w >= 200, `n ${n}: width ${r.w}`);
+  }
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+    const a = slots[i], b = slots[j];
+    const apart = Math.abs(a.x - b.x) >= (a.w + b.w)/2 || Math.abs(a.y - b.y) >= (a.h + b.h)/2;
+    assert(apart, `n ${n}: buttons ${i} and ${j} overlap`);
+  }
+}
+assert.deepStrictEqual(geometry.levelButtonLayout(0), []);
 
 const cooking = geometry.heatCountdown({stove:true, heating:true, food:{stage:'cooking'}, ready_in:2.2});
 assert.deepStrictEqual(cooking, {seconds:3, ready:false, paused:false});
@@ -146,6 +225,34 @@ const groundDepth = geometry.depthOrder(4, 'item');
 const flyingDepth = geometry.flightDepth(4, tile*.5);
 assert(flyingDepth > groundDepth, 'flight elevation must advance the object in painter order');
 assert(flyingDepth > geometry.depthOrder(4, 'solid'), 'a raised object must not fall behind its cabinet');
+
+// Behind a counter the body sinks by position alone: full at every north stand point and
+// walk limit (up to 0.2 cells from the top edge), none on open floor, and no step anywhere.
+{
+  const map = {equipment: {c: {cell: [5, 4]}}};
+  assert.strictEqual(geometry.behindCounter(map, [5, 3.5]), 1);
+  assert.strictEqual(geometry.behindCounter(map, [5, 3.3]), 1);
+  assert.strictEqual(geometry.behindCounter(map, [5, 3.0]), 0);
+  assert.strictEqual(geometry.behindCounter(map, [7, 3.4]), 0);
+  assert.strictEqual(geometry.behindCounter(map, [5, 4.95]), 0, 'south of the counter: no sink');
+  let last = null;
+  for (let i = 0; i <= 400; i++) {
+    const x = 3 + i*.01, y = 3.0 + i*.00125, v = geometry.behindCounter(map, [x, y]);
+    if (last !== null) assert(Math.abs(v-last) < .06, `sink jumps at ${x},${y}`);
+    last = v;
+  }
+}
+
+// Held-key prediction lands where the server's manual step does, including wall slides.
+const walks = JSON.parse(fs.readFileSync(process.argv[4], 'utf8'));
+for (const {level, map, steps} of walks) {
+  for (const [before, delta, after] of steps) {
+    const got = geometry.predictWalk(map, before, delta[0], delta[1]), error = Math.hypot(got[0]-after[0], got[1]-after[1]);
+    // Same geometry and the same tick-sized step: the prediction lands where the server does.
+    assert(error < 1e-6, `level ${level}: predicted ${got} from ${before} but the server reached ${after}`);
+    assert(geometry.footWalkable(map, got[0], got[1]));
+  }
+}
 
 '''
 
@@ -160,8 +267,10 @@ assert(flyingDepth > geometry.depthOrder(4, 'solid'), 'a raised object must not 
                              f'Cocos TypeScript compile failed:\n{compile_result.stdout}\n{compile_result.stderr}')
             runner_path = Path(temp_dir) / 'geometry_contract_test.cjs'
             runner_path.write_text(runner)
+            walks_path = Path(temp_dir) / 'server_walks.json'
+            walks_path.write_text(json.dumps(server_walks()))
             result = subprocess.run(
-                [node, str(runner_path), str(ROOT), str(out_dir)],
+                [node, str(runner_path), str(ROOT), str(out_dir), str(walks_path)],
                 cwd=ROOT, capture_output=True, text=True, check=False,
             )
             self.assertEqual(result.returncode, 0,

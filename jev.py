@@ -13,6 +13,12 @@ from kitchen import ROOT
 from model_language import english_data, INPUT_LANGUAGE_VERSION
 
 ENDPOINT = "https://api.typesafe.ai/v1/systemone"
+# Bump whenever model-visible rule wording changes, so sessions stay comparable.
+# v2: factual rules only; no instructions to cooperate with or help the human.
+# v3: continuous service rules (money goal, burnt tiers, no bad reviews) where the level uses them.
+# v4: plain English input with clear chef names and fewer duplicate choices.
+# v5: a plate's missing components name the state they are needed in ("tomato (chopped)").
+AGENT_RULES_VERSION = "rules-v5"
 
 
 def load_key():
@@ -36,37 +42,115 @@ def load_key():
     raise RuntimeError("未找到 TYPESAFE_API_KEY。请在本地 .env 中配置，不要把密钥发到聊天。")
 
 
+# How a recipe component's required state reads in model input: "tomato (chopped)".
+STATE_WORDS = {'raw': 'as fetched', 'chopped': 'chopped', 'ready': 'cooked'}
+
+
+def _required_states(state):
+    """Ingredient -> the state the menu's dishes need it in, when every dish agrees."""
+    seen = {}
+    for dish in state.get('dishes', state.get('menu', [])):
+        for c in dish.get('components', []):
+            seen.setdefault(c['item'], set()).add(c.get('state'))
+    return {item: states.pop() for item, states in seen.items() if len(states) == 1 and None not in states}
+
+
+def _with_required_states(value, required):
+    """Name the needed state next to each missing component of a partly assembled plate.
+
+    The client reads ``missing`` as ingredient ids; the model gets "tomato (chopped)", so the
+    plate it looks at says what still has to happen to each ingredient, as the recipe does."""
+    if isinstance(value, list):
+        return [_with_required_states(v, required) for v in value]
+    if not isinstance(value, dict):
+        return value
+    out = {k: _with_required_states(v, required) for k, v in value.items()}
+    if isinstance(value.get('missing'), list) and value.get('plate_id'):
+        out['missing'] = [f"{m} ({STATE_WORDS.get(required[m], required[m])})" if m in required else m
+                          for m in value['missing']]
+    return out
+
+
+def model_kitchen(state):
+    """The kitchen state as the model sees it: display-only fields for the client are left out."""
+    kitchen = {k: v for k, v in state.items() if k != 'items'}
+    for key in ('menu', 'dishes'):
+        if key in kitchen:
+            kitchen[key] = [{k: v for k, v in dish.items() if k != 'plating'} for dish in kitchen[key]]
+    if 'map' in kitchen and 'equipment' in kitchen['map']:
+        kitchen['map'] = {**kitchen['map'], 'equipment': {key: {k: v for k, v in e.items() if k != 'item'}
+                                                           for key, e in kitchen['map']['equipment'].items()}}
+    return _with_required_states(kitchen, _required_states(state))
+
+
+def objective_text(state):
+    """Objective and end rules, generated from the round's goal and end policy."""
+    goal = state['goal_status']
+    return (f"Reach a net revenue of at least {goal['target_money']} yuan at closing time, {state['round_limit']:g} game seconds. "
+            "The round always runs until closing and only the net revenue at closing counts: penalties after reaching the target "
+            "can take you below it again. Orders keep arriving until closing; orders still waiting at closing carry no penalty. "
+            "There is no bonus for remaining time.")
+
+
+def score_text(state):
+    """Scoring rules from the recipe prices and ruleset penalties of this round."""
+    p = state['scoring']['penalties']
+    prices = ', '.join(f"{r['id']} {r['price']} yuan" for r in state.get('dishes', state['menu']))
+    tiers = []
+    for tier in state['scoring']['burnt_service']:
+        limit = tier['max_overcook_game_ms']
+        span = f"burnt for up to {limit / 1000:g} s" if limit is not None else "burnt for longer"
+        tiers.append(f"{span}: accepted at the price {tier['adjustment']:+d} yuan" if tier['outcome'] == 'accepted'
+                     else f"{span}: refused with no payment; the dish is lost and the order keeps waiting")
+    return (f"Serving a complete plated dish goes to the waiting order of the same dish with the earliest deadline and earns its price ({prices}); "
+            "serving exactly at the deadline still counts. A plate can be served when its components are exactly those of one dish in kitchen.dishes; "
+            "orders show which dishes customers are waiting for. Unplated food, or a plate that matches no dish, cannot be served. "
+            "If any component was burnt, what counts is how long it had been burnt when it left the heat: " + '; '.join(tiers) + ". "
+            f"Serving a dish that no shown order is waiting for: {p['wrong_dish']} yuan. Expired order: {p['expired_order']} yuan. "
+            f"Fire: {p['new_fire']} yuan per burning workstation. Discarding food or clearing a pot: {p['discard']} yuan. There are no bad reviews.")
+
+
 class JevClient:
     def __init__(self, config, key=None):
         self.key = key or load_key()
         self.c = config
 
     def payload(self, state, actions):
+        discard = -state['scoring']['penalties']['discard']
+        pass_range = state.get('map', {}).get('pass_range')
+        pot_pass = (f"like plates it can be passed to the other chef or the floor within {pass_range:g} tiles" if pass_range
+                    else "it cannot be thrown")
+        plate_pass = (f"can be passed to the other chef or the floor within {pass_range:g} tiles (never onto boards or counters); "
+                      "a dropped plate keeps its food" if pass_range else "cannot be thrown")
+        t = state['timing']
+        fire = state['fire_safety']
         return english_data({
             "model": self.c["model"],
             "state": {
-                "kitchen": state,
+                "kitchen": model_kitchen(state),
                 "rules": {
-                    "role": 'You control chef jeff and cooperate with chef human. Both chefs can perform the same actions; neither has a fixed role. Choose one next action for your own chef.',
-                    "objective": f"Meet all three goals within the time limit: orders served, net operating revenue, and maximum bad reviews. The round ends immediately when all goals are met; remaining orders need not be completed. Each whole second left on success awards {self.c.get('time_bonus_per_second', 1):g} additional yuan, excluded from the operating revenue goal. Choose how to cooperate based on the other chef's position and actions.",
+                    "role": 'You control chef jeff. Chef human is controlled by a person in the same kitchen. Both chefs can perform the same actions; neither has a fixed role. Choose one next action for your own chef.',
+                    "objective": objective_text(state),
                     "flow": 'fetch takes raw meat -> put bN places it on an empty board -> chop bN prepares it -> take bN picks up the chopped ingredient -> put pN puts it in the pot -> cooking runs automatically. take <counter_id> takes a clean plate -> plate pN transfers cooked food into the held plate -> serve delivers it. Alternatively, take pot pN lifts the whole pot off the stove; plate <counter_id> transfers its food onto a clean plate on that counter, leaving the plated food there and the empty pot in your hands. Return the pot with put pot pN, then collect the plated food. With a clean plate, plate ground <item_id> serves food from a pot on the floor; the empty pot remains there. Food cannot be removed from a pot with bare hands. Actions automatically walk to the target and then work; go only moves.',
+                    "vessels": ('In action keys and these rules, pot means any cooking vessel on a stove or held. kitchen.vessels lists each kind of '
+                                'vessel in this level, its name and the ingredients it cooks; each stove, held item or floor item that is a vessel '
+                                'shows its kind as vessel. An ingredient can be put only into the kind of vessel that cooks it.'),
                     "plate_reuse": 'Dirty plates cannot hold food or substitute for clean plates. If no clean plate is available, dirty plates must be washed before plating and serving can continue. Waiting alone does not clean plates. Decide when to wash and how to divide work based on the situation.',
-                    "tableware": 'Tableware is limited and distributed across counters. Each counter holds one item: a plate, a pot, or an ingredient. There is no stacking rack. tableware.counters lists counter IDs; stations, ground, and chefs show actual locations. clean_plate means clean; dirty_plate means dirty; food is plated only when plate_id is nonempty. Use take/put at counters. Removing cooked food requires a container: hold a clean plate and use plate pN at a stove, hold a filled pot and use plate <counter_id> at a clean plate on a counter, or hold a clean plate and use plate <counter_id> at a filled pot on a counter. take pot pN lifts the pot and contents together. A pot occupies your hands and cannot be thrown. Off the stove heating stops; returning it resumes heating. contents is the food inside. An empty stove cannot accept ingredients until its pot is returned. Recycling: take returns collects a dirty plate; put sink puts it in an empty sink; wash with empty hands; take sink collects the clean plate for plating or storage. Washing can be interrupted and resumed by either chef with progress preserved. Diners return plates after the dining time. The return station holds one plate; further returns queue. Clean plates, dirty plates and plated food cannot be thrown, but can be put down and picked up. Plates and pots cannot be destroyed. Discarding plated food leaves a dirty plate; emptying a pot leaves an empty pot, costing 2 yuan. Decide when to wash, carry plates or lift pots; roles are not fixed.',
+                    "tableware": f'Tableware is limited and distributed across counters. Each counter holds one item: a plate, a pot, or an ingredient. There is no stacking rack. tableware.counters lists counter IDs; stations, ground, and chefs show actual locations. clean_plate means clean; dirty_plate means dirty; food is plated only when plate_id is nonempty. Use take/put at counters. Removing cooked food requires a container: hold a clean plate and use plate pN at a stove, hold a filled pot and use plate <counter_id> at a clean plate on a counter, or hold a clean plate and use plate <counter_id> at a filled pot on a counter. take pot pN lifts the pot and contents together. A pot occupies your hands; {pot_pass}. Off the stove heating stops; returning it resumes heating. contents is the food inside. An empty stove cannot accept ingredients until its pot is returned. Recycling: take returns collects a dirty plate; put sink puts it in an empty sink; wash with empty hands; take sink collects the clean plate for plating or storage. Washing can be interrupted and resumed by either chef with progress preserved. Diners return plates after the dining time. The return station holds one plate; further returns queue. Clean plates, dirty plates and plated food {plate_pass}. They can also be put down and picked up. Plates and pots cannot be destroyed. Discarding plated food leaves a dirty plate; emptying a pot leaves an empty pot, costing {discard} yuan. Decide when to wash, carry plates or lift pots; roles are not fixed.',
                     "resources": 'Each chef holds one item. Fetching, taking or picking up a new item automatically places the previously held item on nearby ground when the action completes. It can be recovered without a penalty. If no nearby space is available, the swap fails and neither item changes. This also applies to extinguishers. Each pot and board holds one food item. Chopping requires empty hands; chopped food still occupies the board. Cooking is automatic; no chef needs to stay at the stove. There is no transfer window.',
                     "ground": 'Held items can be put down beside the current station using drop, taking timing.handling seconds, without a penalty or spoilage. ground lists all floor items and locations. Either chef can walk there and use pickup <item_id>; handling time is added to travel. Items retain their state and preparation progress; food on the floor is not heated. Cooked food must remain in a pot or on a plate. Dropping is different from discard at a bin: dropped items remain usable. Decide when to put down or pick up items.',
-                    "timing": {"wash": self.c.get("wash_seconds", 4), "dining": self.c.get("dining_seconds", 8), "chop": self.c["chop_seconds"], "cook": self.c["cook_seconds"],
-                               "ready_to_burn": self.c["burn_after_ready"], "burn_to_fire": self.c["fire_after_burn"],
-                               "walk_same_area": self.c["same_area_walk"], "walk_cross_area": self.c["cross_area_walk"],
-                               "handling": self.c.get("handling_seconds", .15), "take_put_fetch": self.c.get("handling_seconds", .15), "serve": self.c.get("handling_seconds", .15), "extinguish": 4, "clear": 2},
+                    "timing": {**{k: t[k] for k in ("wash", "dining", "chop", "cook", "ready_to_burn", "burn_to_fire",
+                                                     "walk_same_area", "walk_cross_area", "handling", "extinguish", "clear")},
+                               "take_put_fetch": t["handling"], "serve": t["handling"]},
                     "interrupt": 'continue keeps the current task; another action interrupts it. Chopping progress is preserved. Cooking in a pot does not stop when a chef switches tasks. Decide whether to continue or interrupt.',
-                    "fire": 'Burnt food cannot be restored. Removing the whole pot stops heating. A burning stove cannot be used for taking or placing items. First take extinguisher from its rack, or pickup E1 from the floor; extinguish takes 4 seconds, then clear the burnt food to reuse the pot. The extinguisher occupies your hands; a previously held item is automatically put on the floor. Return it with put extinguisher or drop it. There is one extinguisher, usable by either chef; it cannot be discarded or served. Extinguishing stops heating. Every 8 game seconds, each burning stove, board or counter can ignite one orthogonally adjacent combustible workstation; fire never jumps across a floor gap or wall. Burning workstations cannot be used until extinguished. Five simultaneously burning workstations immediately lose the round. Extinguish any burning workstation with the same extinguisher. An extinguished workstation can reignite from an adjacent fire; removing food does not remove a cabinet fire. Check kitchen.fire_safety and each station fire_neighbors and fire_spread_in. The extinguisher is a movable object.',
-                    "score": 'Serving plated cooked food automatically matches the valid order with the earliest deadline and earns 30 yuan. Unplated food cannot be served. Plated burnt food or serving without a valid order causes a bad review and a 15-yuan penalty; any matched order fails. Expired order: bad review and -10 yuan. Fire: -5 yuan. Discarding food or clearing a pot: -2 yuan.',
+                    "fire": f'Burnt food cannot be restored. Removing the whole pot stops heating. A burning stove cannot be used for taking or placing items. First take extinguisher from its rack, or pickup E1 from the floor; extinguish takes {t["extinguish"]:g} seconds, then clear the burnt food to reuse the pot. The extinguisher occupies your hands; a previously held item is automatically put on the floor. Return it with put extinguisher or drop it. There is one extinguisher, usable by either chef; it cannot be discarded or served. Extinguishing stops heating. Every {fire["spread_seconds"]:g} game seconds, each burning stove, board or counter can ignite one orthogonally adjacent combustible workstation; fire never jumps across a floor gap or wall. Burning workstations cannot be used until extinguished. {fire["loss_threshold"]} simultaneously burning workstations immediately lose the round. Extinguish any burning workstation with the same extinguisher. An extinguished workstation can reignite from an adjacent fire; removing food does not remove a cabinet fire. Check kitchen.fire_safety and each station fire_neighbors and fire_spread_in. The extinguisher is a movable object.',
+                    "score": score_text(state),
                     "visibility": 'Both chefs see the same kitchen state. All available actions are in criteria; legal does not mean useful. Waiting and continuing are allowed. The program does not choose your strategy.'
                 }
             },
             "questions": {"next_action": {
                 "type": "choice",
-                "instructions": "Given the whole kitchen situation, which action should chef jeff take now to cooperate with human toward the shared goals? Consider both chefs' current actions, occupied equipment, order deadlines, and burning/fire risks. Choose one action now; an ongoing task may be continued or interrupted.",
+                "instructions": "Given the whole kitchen situation, which action should chef jeff take now? The goals and score are shared by both chefs. The state includes both chefs' current actions, occupied equipment, order deadlines, and burning/fire risks. Choose one action now; an ongoing task may be continued or interrupted.",
                 "criteria": {a.key: a.label for a in actions}
             }}
         })
@@ -136,8 +220,8 @@ class DecisionLoop:
         def band(t):
             return sum(t <= x for x in (15, 8, 3, 0))
         return tuple((o["id"], band(o["deadline"]-k.time)) for o in k.orders if o["status"] == "pending") + tuple(
-            (key, band(k.c["cook_seconds"]+k.c["burn_after_ready"]-s.food.heated),
-             band(k.c["cook_seconds"]+k.c["burn_after_ready"]+k.c["fire_after_burn"]-s.food.heated))
+            (key, band(k.rules.heat_thresholds(s.food.ingredient)[1]-s.food.heated),
+             band(k.rules.heat_thresholds(s.food.ingredient)[2]-s.food.heated))
             for key, s in k.stations.items() if key in k.pots and s.food)
 
     def poll(self, enabled=True):
@@ -172,8 +256,10 @@ class DecisionLoop:
                 sprint_applied=bool(applied and result.get('sprint') is True and hasattr(self.k,'sprint') and self.k.sprint('jeff'))
                 if not fresh:self.stale_count += 1
                 elif not applied:self.rejected_count += 1
+                chef_job = self.k.chefs["jeff"].job
                 self.log("ai_response", {"request_id": context["id"], **result, "applied": applied, "execution": message, "sprint_applied":sprint_applied,
-                                         "current_state": self.k.snapshot()})
+                                         "fresh": fresh, "action_id": chef_job.id if applied and chef_job and decision.kind not in ("continue", "wait") else None,
+                                         "accepted_engine_seq": self.k.event_seq, "current_state": self.k.snapshot()})
                 self.last_choice = result["choice"] + ("" if applied else "（未执行）")
                 self.recent_decisions.append({"t": round(self.k.time, 2), "choice": result["choice"],
                                               "accepted": applied, "result": message, "sprint_applied":sprint_applied})
@@ -214,7 +300,9 @@ class DecisionLoop:
                    "actions": {a.key: a for a in actions}}
         payload = self.client.payload(state, actions)
         # HTTP choices are stateless: return actual outcomes, not just today's snapshot.
-        payload['state']['recent_events'] = self.k.events[-20:]
+        # Walking starts/stops are already in each chef's position and move_direction; as events
+        # they only push outcomes out of the window. The run log keeps them.
+        payload['state']['recent_events'] = [e for e in self.k.events if e.get('kind') != 'manual_move'][-20:]
         payload['state']['recent_decisions'] = list(self.recent_decisions)
         messages=getattr(self,'player_messages',[])
         if messages:
@@ -224,7 +312,7 @@ class DecisionLoop:
             payload['state']['player_communication']={
                 'current_preference':deepcopy(preference), 'recent_messages':deepcopy(included)}
             payload['state']['rules']['player_communication']=(
-                'These are explicit messages from your human teammate in this round. The latest preference replaces earlier preferences. '
+                'These are explicit messages from the human chef in this round. The latest preference replaces earlier preferences. '
                 'A preference expresses what the human would like to do, not a fixed role, promise, or compulsory assignment for either chef. '
                 'Decide how to coordinate using the current orders, risks and both chefs. A correction is the human opinion that something '
                 'was wrong; its context identifies what was happening when sent, not proof of a rule violation or an exact explanation. '
@@ -238,20 +326,21 @@ class DecisionLoop:
                     message['first_request_id']=self.calls
 
         if hasattr(self, 'cooperation_memory'):
-            payload['state']['cooperation_memory'] = self.cooperation_memory
+            payload['state']['past_episodes'] = self.cooperation_memory
             payload['state']['rules']['past_episodes'] = (
-                'cooperation_memory contains limited factual records of past rounds, not the current state, fixed preferences, or instructions. '
-                'Decide whether those records reveal cooperation patterns and whether they still apply. The player may change their behavior; '
+                'past_episodes contains limited factual records of past rounds, not the current state, fixed preferences, or instructions. '
+                'Decide whether those records are relevant and whether they still apply. The player may change their behavior; '
                 'you are not required to follow or repeat past strategies.')
         payload['state']['rules']['continuity'] = (
             'recent_decisions lists recent choices and whether they were accepted; accepted does not mean completed. '
             'recent_events records actual actions and outcomes. Use them to check for repeatedly picking up and putting down the same item, '
             'swapping between ingredients, or fetching without free space. Swapping changes locations, not preparation progress; '
-            'fetching more raw meat does not advance prepared ingredients. Consider the next preparation step or a handoff for existing food. '
+            'fetching more raw meat does not advance prepared ingredients. Existing food keeps its preparation state until someone acts on it. '
             'If the situation is unchanged, assess what repeating an action would accomplish. You may continue, wait, or choose another action; the choice is yours.')
         payload = english_data(payload)
         payload['state']['input_language'] = INPUT_LANGUAGE_VERSION
-        self.log("ai_request", {"request_id": self.calls, "triggers": causes, "payload": payload})
+        payload['state']['rules_version'] = AGENT_RULES_VERSION
+        self.log("ai_request", {"request_id": self.calls, "triggers": causes, "observed_state_seq": self.k.event_seq, "payload": payload})
         self.last_request = now
         self.last_revision = self.k.revision
         self.last_urgency = urgency

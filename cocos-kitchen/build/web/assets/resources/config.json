@@ -4,30 +4,74 @@
     "name": "resources",
     "deps": [],
     "uuids": [
+        "0081a0b6-a033-40ea-8787-5e4295c34e66",
+        "00e70d1b-4a8d-4b8b-948f-ea3654751351",
+        "00e70d1b-4a8d-4b8b-948f-ea3654751351@6c48a",
         "0261e0a3-f666-4b42-bf62-519c75ef6100",
         "0261e0a3-f666-4b42-bf62-519c75ef6100@6c48a",
         "0261e0a3-f666-4b42-bf62-519c75ef6100@f9941",
+        "02af4efa-6fe5-4940-a0b0-fbab924248d4",
         "02d8fe24-8ffa-46dc-b588-62233b09fd74",
-        "0a4f4c95f",
+        "04164686-3f66-44b4-b850-9ee80ad8e18c",
+        "0a4ca68b-5c4a-4105-b018-dbcf612b1b6c",
+        "0a4ca68b-5c4a-4105-b018-dbcf612b1b6c@6c48a",
+        "0c9ee0fa-3969-4088-b4b5-dc0738496ee6",
+        "0d58ee0d-2aca-45a2-8e59-2022619a65ef",
+        "0eb1945e-9f51-42d8-aa8f-c8003415e5e8",
+        "0f72de567",
+        "0fafcbba-7444-480e-b9da-d788a6c1cfbc",
+        "17051e90-b4ec-4375-a37b-9d4e3941d74c",
+        "1776641c-415a-45c5-a23a-70cf316ea76f",
+        "22cc813f-f415-44b7-b44e-e735591bd760",
+        "23a8e1c0-dbaf-46b6-b17b-57f41d00e6a4",
         "24043175-f30d-498f-a6d0-b91cd73161cb",
+        "2c87f941-26f7-479f-9435-715c221f5303",
+        "385a86d4-89e6-4f77-93c3-136b156648f6",
         "38a34180-cc48-42b5-8d95-05e1e767fdd2",
+        "41ff6b27-ac9a-4d9a-92b3-a5ae0fabf932",
+        "44c063a4-77d8-432d-8c49-f0937e6de5dc",
         "45e22722-135d-4181-8fe6-1fcba9bf3171",
         "45e22722-135d-4181-8fe6-1fcba9bf3171@6c48a",
         "45e22722-135d-4181-8fe6-1fcba9bf3171@f9941",
+        "49b3fe6c-2146-4f0b-9c9a-e771c0f4bcb4",
+        "49cd62fa-c460-4382-a5aa-7337dc66971e",
+        "4da5eefb-0039-487a-b3c3-dcf9bfa03592",
         "4e79aece-4009-45f1-a303-4c2ce1f87619",
         "4e79aece-4009-45f1-a303-4c2ce1f87619@6c48a",
         "4e79aece-4009-45f1-a303-4c2ce1f87619@f9941",
+        "4f6b2dbc-39a1-471b-8e08-30fb939537b5",
+        "54e65169-6ef0-4189-a6f0-343d5c497459",
+        "5500d9c8-3a27-416d-8d5e-bcea49868448",
+        "5fad9a0d-4297-492e-adc4-fd41ebdb16d6",
+        "60b9db6e-1c2e-447b-8ff6-9c5178e58300",
+        "61b8b5e1-f00a-40cd-b24a-267f89070dfe",
+        "63c554cc-f8a7-4298-9773-a8e7db555f05",
+        "64a1c88e-c20f-40c6-95bf-7690d7bb7a80",
         "64e1682b-15ef-48ee-86cf-6865a2400b89",
         "64e1682b-15ef-48ee-86cf-6865a2400b89@6c48a",
         "64e1682b-15ef-48ee-86cf-6865a2400b89@f9941",
         "66b50b8a-9b53-4779-a787-346f5910d554",
+        "66cd6884-a403-46d4-b3ac-37ef5a5608eb",
+        "68f05fc8-c416-48ca-b4e8-258494987670",
+        "75fd2711-8108-4d4e-8d0e-2f6d5b0e048f",
         "7bdd0fb3-bbb9-470b-8a61-1ba4bac72b6c",
         "7bdd0fb3-bbb9-470b-8a61-1ba4bac72b6c@6c48a",
         "7bdd0fb3-bbb9-470b-8a61-1ba4bac72b6c@f9941",
         "827b0320-74f6-4d83-8b42-6c135c12dc0b",
         "827b0320-74f6-4d83-8b42-6c135c12dc0b@6c48a",
         "827b0320-74f6-4d83-8b42-6c135c12dc0b@f9941",
+        "846d5953-da5d-4d57-aaf5-109532ea86ad",
         "84cc9c1b-690a-435f-a86b-9fdcd303d27b",
+        "86d72fb5-b1d5-4512-9714-c5b7314fcba9",
+        "8c04aa6e-6886-4b4b-96a0-ba30cc2a9e72",
+        "8d90cd31-d7bc-4ae9-92cd-ce576bd0e638",
+        "915e6a3c-452e-4733-bc51-a12400eb8176",
+        "92459319-ea60-4e19-8b4c-487f58fa75cd",
+        "9533b4c0-bb98-413d-9662-d4f2f8089fbc",
+        "986a5610-1f41-4687-8266-38f2f22c06d3",
+        "98e50f8b-ef87-4972-a9a5-453f861edb12",
+        "9da08129-4d51-4804-8a64-c74e2590a204",
+        "9f56e9c0-b5b0-4b0b-a6c8-12b1b5a57672",
         "9fdb1167-f4f3-4eec-bbbe-ad25bcbbb33c",
         "9fdb1167-f4f3-4eec-bbbe-ad25bcbbb33c@6c48a",
         "9fdb1167-f4f3-4eec-bbbe-ad25bcbbb33c@f9941",
@@ -37,6 +81,10 @@
         "a16c7680-1379-4fa1-8779-3260cbe360f5",
         "a16c7680-1379-4fa1-8779-3260cbe360f5@6c48a",
         "a16c7680-1379-4fa1-8779-3260cbe360f5@f9941",
+        "a19c341f-c978-4af2-9d87-90cb223cb57e",
+        "a19c341f-c978-4af2-9d87-90cb223cb57e@6c48a",
+        "a4baa4ff-fcee-42f8-b965-d1560443a003",
+        "ab8e5d62-09f1-45e5-ac11-1711fc3f7ad7",
         "ac7b48fd-69cb-4420-b65f-f60a66fd1e71",
         "ac7b48fd-69cb-4420-b65f-f60a66fd1e71@6c48a",
         "ac7b48fd-69cb-4420-b65f-f60a66fd1e71@f9941",
@@ -45,12 +93,285 @@
         "acac8afa-e9f7-4364-9812-4dd90d4a67ac@f9941",
         "add9db2f-57f9-486f-8bfb-e50e773cda88",
         "b0bd84d1-be7c-48fa-af65-6db2a39dfc0b",
+        "b81a9c2c-13ff-4918-99f2-1eb337ec5f0f",
+        "bcb60f3f-bb90-4b51-ac89-6d6da2dca815",
+        "c752b9db-6736-4b09-8934-583886831fa1",
+        "c7c4f34c-1069-481f-8a47-f7c2c7f8f9b5",
+        "d373dedc-82ff-48b7-bc55-3979da272416",
         "db926cec-7e53-49c6-988a-b4889d7a68bf",
+        "ddb2dae8-0c96-4fe9-8ea6-6962b77ef35a",
+        "df4d380a-30bc-4433-8e2d-630570505849",
+        "e855a6b3-98e8-4d5f-aa56-e2273eedacb6",
         "ebdd6f7c-dbb5-4282-831d-a69af8cc7b07",
+        "ee603ed8-c8ba-4ac8-8700-80d5f00cee59",
+        "f3f2fee3-2a82-44cb-a4da-f1730de41698",
+        "f5c9d4f6-729e-4119-93bf-59a4e88a2d80",
         "f7974685-4085-4425-90ff-0c03ddc565a0",
-        "fa8ad96a-db36-42f6-a10c-bec432262e0a"
+        "f8c926d7-9969-44ed-b2c7-0e9f33fa07a1",
+        "fa8ad96a-db36-42f6-a10c-bec432262e0a",
+        "fd159def-d9f3-44a4-81f6-bf93148cfade"
     ],
     "paths": {
+        "17051e90-b4ec-4375-a37b-9d4e3941d74c": [
+            "audio/amb_kitchen",
+            "cc.AudioClip",
+            1
+        ],
+        "98e50f8b-ef87-4972-a9a5-453f861edb12": [
+            "audio/assemble",
+            "cc.AudioClip",
+            1
+        ],
+        "66cd6884-a403-46d4-b3ac-37ef5a5608eb": [
+            "audio/bgm_menu",
+            "cc.AudioClip",
+            1
+        ],
+        "0eb1945e-9f51-42d8-aa8f-c8003415e5e8": [
+            "audio/bgm_rush",
+            "cc.AudioClip",
+            1
+        ],
+        "0c9ee0fa-3969-4088-b4b5-dc0738496ee6": [
+            "audio/bgm_service",
+            "cc.AudioClip",
+            1
+        ],
+        "c7c4f34c-1069-481f-8a47-f7c2c7f8f9b5": [
+            "audio/burnt_warn",
+            "cc.AudioClip",
+            1
+        ],
+        "915e6a3c-452e-4733-bc51-a12400eb8176": [
+            "audio/catch",
+            "cc.AudioClip",
+            1
+        ],
+        "9533b4c0-bb98-413d-9662-d4f2f8089fbc": [
+            "audio/chop_00",
+            "cc.AudioClip",
+            1
+        ],
+        "9f56e9c0-b5b0-4b0b-a6c8-12b1b5a57672": [
+            "audio/chop_01",
+            "cc.AudioClip",
+            1
+        ],
+        "0081a0b6-a033-40ea-8787-5e4295c34e66": [
+            "audio/chop_02",
+            "cc.AudioClip",
+            1
+        ],
+        "4da5eefb-0039-487a-b3c3-dcf9bfa03592": [
+            "audio/chop_03",
+            "cc.AudioClip",
+            1
+        ],
+        "23a8e1c0-dbaf-46b6-b17b-57f41d00e6a4": [
+            "audio/chop_04",
+            "cc.AudioClip",
+            1
+        ],
+        "8c04aa6e-6886-4b4b-96a0-ba30cc2a9e72": [
+            "audio/chop_05",
+            "cc.AudioClip",
+            1
+        ],
+        "64a1c88e-c20f-40c6-95bf-7690d7bb7a80": [
+            "audio/chop_06",
+            "cc.AudioClip",
+            1
+        ],
+        "986a5610-1f41-4687-8266-38f2f22c06d3": [
+            "audio/chop_07",
+            "cc.AudioClip",
+            1
+        ],
+        "5500d9c8-3a27-416d-8d5e-bcea49868448": [
+            "audio/chop_08",
+            "cc.AudioClip",
+            1
+        ],
+        "60b9db6e-1c2e-447b-8ff6-9c5178e58300": [
+            "audio/chop_09",
+            "cc.AudioClip",
+            1
+        ],
+        "68f05fc8-c416-48ca-b4e8-258494987670": [
+            "audio/chop_10",
+            "cc.AudioClip",
+            1
+        ],
+        "5fad9a0d-4297-492e-adc4-fd41ebdb16d6": [
+            "audio/chop_11",
+            "cc.AudioClip",
+            1
+        ],
+        "49cd62fa-c460-4382-a5aa-7337dc66971e": [
+            "audio/chop_12",
+            "cc.AudioClip",
+            1
+        ],
+        "22cc813f-f415-44b7-b44e-e735591bd760": [
+            "audio/chop_13",
+            "cc.AudioClip",
+            1
+        ],
+        "ab8e5d62-09f1-45e5-ac11-1711fc3f7ad7": [
+            "audio/chop_14",
+            "cc.AudioClip",
+            1
+        ],
+        "63c554cc-f8a7-4298-9773-a8e7db555f05": [
+            "audio/chop_15",
+            "cc.AudioClip",
+            1
+        ],
+        "41ff6b27-ac9a-4d9a-92b3-a5ae0fabf932": [
+            "audio/discard",
+            "cc.AudioClip",
+            1
+        ],
+        "b81a9c2c-13ff-4918-99f2-1eb337ec5f0f": [
+            "audio/extinguisher",
+            "cc.AudioClip",
+            1
+        ],
+        "61b8b5e1-f00a-40cd-b24a-267f89070dfe": [
+            "audio/fire_ignite",
+            "cc.AudioClip",
+            1
+        ],
+        "385a86d4-89e6-4f77-93c3-136b156648f6": [
+            "audio/fire_loop",
+            "cc.AudioClip",
+            1
+        ],
+        "e855a6b3-98e8-4d5f-aa56-e2273eedacb6": [
+            "audio/fire_spread",
+            "cc.AudioClip",
+            1
+        ],
+        "ddb2dae8-0c96-4fe9-8ea6-6962b77ef35a": [
+            "audio/food_ready",
+            "cc.AudioClip",
+            1
+        ],
+        "bcb60f3f-bb90-4b51-ac89-6d6da2dca815": [
+            "audio/fridge_grab",
+            "cc.AudioClip",
+            1
+        ],
+        "f8c926d7-9969-44ed-b2c7-0e9f33fa07a1": [
+            "audio/index",
+            "cc.JsonAsset",
+            1
+        ],
+        "846d5953-da5d-4d57-aaf5-109532ea86ad": [
+            "audio/jingle_lose",
+            "cc.AudioClip",
+            1
+        ],
+        "fd159def-d9f3-44a4-81f6-bf93148cfade": [
+            "audio/jingle_win",
+            "cc.AudioClip",
+            1
+        ],
+        "8d90cd31-d7bc-4ae9-92cd-ce576bd0e638": [
+            "audio/land",
+            "cc.AudioClip",
+            1
+        ],
+        "ee603ed8-c8ba-4ac8-8700-80d5f00cee59": [
+            "audio/order_expired",
+            "cc.AudioClip",
+            1
+        ],
+        "f5c9d4f6-729e-4119-93bf-59a4e88a2d80": [
+            "audio/order_new",
+            "cc.AudioClip",
+            1
+        ],
+        "1776641c-415a-45c5-a23a-70cf316ea76f": [
+            "audio/order_urgent",
+            "cc.AudioClip",
+            1
+        ],
+        "92459319-ea60-4e19-8b4c-487f58fa75cd": [
+            "audio/pan_sizzle_start",
+            "cc.AudioClip",
+            1
+        ],
+        "75fd2711-8108-4d4e-8d0e-2f6d5b0e048f": [
+            "audio/pickup",
+            "cc.AudioClip",
+            1
+        ],
+        "f3f2fee3-2a82-44cb-a4da-f1730de41698": [
+            "audio/place_board",
+            "cc.AudioClip",
+            1
+        ],
+        "0fafcbba-7444-480e-b9da-d788a6c1cfbc": [
+            "audio/plate_place",
+            "cc.AudioClip",
+            1
+        ],
+        "a4baa4ff-fcee-42f8-b965-d1560443a003": [
+            "audio/plate_return",
+            "cc.AudioClip",
+            1
+        ],
+        "4f6b2dbc-39a1-471b-8e08-30fb939537b5": [
+            "audio/serve_bad",
+            "cc.AudioClip",
+            1
+        ],
+        "54e65169-6ef0-4189-a6f0-343d5c497459": [
+            "audio/serve_ok",
+            "cc.AudioClip",
+            1
+        ],
+        "df4d380a-30bc-4433-8e2d-630570505849": [
+            "audio/sizzle_loop",
+            "cc.AudioClip",
+            1
+        ],
+        "86d72fb5-b1d5-4512-9714-c5b7314fcba9": [
+            "audio/throw",
+            "cc.AudioClip",
+            1
+        ],
+        "44c063a4-77d8-432d-8c49-f0937e6de5dc": [
+            "audio/ui_blocked",
+            "cc.AudioClip",
+            1
+        ],
+        "49b3fe6c-2146-4f0b-9c9a-e771c0f4bcb4": [
+            "audio/ui_click",
+            "cc.AudioClip",
+            1
+        ],
+        "0d58ee0d-2aca-45a2-8e59-2022619a65ef": [
+            "audio/ui_pause",
+            "cc.AudioClip",
+            1
+        ],
+        "9da08129-4d51-4804-8a64-c74e2590a204": [
+            "audio/ui_resume",
+            "cc.AudioClip",
+            1
+        ],
+        "2c87f941-26f7-479f-9435-715c221f5303": [
+            "audio/wash_duo",
+            "cc.AudioClip",
+            1
+        ],
+        "04164686-3f66-44b4-b850-9ee80ad8e18c": [
+            "audio/wash_solo",
+            "cc.AudioClip",
+            1
+        ],
         "827b0320-74f6-4d83-8b42-6c135c12dc0b": [
             "art/action-feedback-v1/atlas",
             "cc.ImageAsset",
@@ -91,6 +412,21 @@
             "cc.JsonAsset",
             1
         ],
+        "0a4ca68b-5c4a-4105-b018-dbcf612b1b6c": [
+            "art/chefs-v2/atlas",
+            "cc.ImageAsset",
+            1
+        ],
+        "0a4ca68b-5c4a-4105-b018-dbcf612b1b6c@6c48a": [
+            "art/chefs-v2/atlas/texture",
+            "cc.Texture2D",
+            1
+        ],
+        "02af4efa-6fe5-4940-a0b0-fbab924248d4": [
+            "art/chefs-v2/manifest",
+            "cc.JsonAsset",
+            1
+        ],
         "7bdd0fb3-bbb9-470b-8a61-1ba4bac72b6c": [
             "art/grid-foundation-v1/atlas",
             "cc.ImageAsset",
@@ -111,6 +447,21 @@
             "cc.JsonAsset",
             1
         ],
+        "00e70d1b-4a8d-4b8b-948f-ea3654751351": [
+            "art/ingredient-pack-v1/atlas",
+            "cc.ImageAsset",
+            1
+        ],
+        "00e70d1b-4a8d-4b8b-948f-ea3654751351@6c48a": [
+            "art/ingredient-pack-v1/atlas/texture",
+            "cc.Texture2D",
+            1
+        ],
+        "c752b9db-6736-4b09-8934-583886831fa1": [
+            "art/ingredient-pack-v1/manifest",
+            "cc.JsonAsset",
+            1
+        ],
         "ac7b48fd-69cb-4420-b65f-f60a66fd1e71": [
             "art/kitchen-modules-v2/atlas",
             "cc.ImageAsset",
@@ -128,6 +479,21 @@
         ],
         "b0bd84d1-be7c-48fa-af65-6db2a39dfc0b": [
             "art/kitchen-modules-v2/manifest",
+            "cc.JsonAsset",
+            1
+        ],
+        "a19c341f-c978-4af2-9d87-90cb223cb57e": [
+            "art/knife-arc-v1/atlas",
+            "cc.ImageAsset",
+            1
+        ],
+        "a19c341f-c978-4af2-9d87-90cb223cb57e@6c48a": [
+            "art/knife-arc-v1/atlas/texture",
+            "cc.Texture2D",
+            1
+        ],
+        "d373dedc-82ff-48b7-bc55-3979da272416": [
+            "art/knife-arc-v1/manifest",
             "cc.JsonAsset",
             1
         ],
@@ -274,7 +640,9 @@
     },
     "scenes": {},
     "packs": {
-        "0a4f4c95f": [
+        "0f72de567": [
+            "0a4ca68b-5c4a-4105-b018-dbcf612b1b6c@6c48a",
+            "00e70d1b-4a8d-4b8b-948f-ea3654751351@6c48a",
             "4e79aece-4009-45f1-a303-4c2ce1f87619@6c48a",
             "7bdd0fb3-bbb9-470b-8a61-1ba4bac72b6c@6c48a",
             "9fdb1167-f4f3-4eec-bbbe-ad25bcbbb33c@6c48a",
@@ -284,6 +652,7 @@
             "827b0320-74f6-4d83-8b42-6c135c12dc0b@6c48a",
             "a15bbd89-6385-4e64-88f0-07384c6141da@6c48a",
             "a16c7680-1379-4fa1-8779-3260cbe360f5@6c48a",
+            "a19c341f-c978-4af2-9d87-90cb223cb57e@6c48a",
             "ac7b48fd-69cb-4420-b65f-f60a66fd1e71@6c48a",
             "acac8afa-e9f7-4364-9812-4dd90d4a67ac@6c48a"
         ]

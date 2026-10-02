@@ -33,7 +33,7 @@ Hosted play uses `BrowserRelay` plus `hosted/browser-agent.js`; add browser-prov
 
 ## Shared rules and extension points
 
-Human input is continuous movement plus nearby actions; agent input is higher-level action selection. Both share movement speed, contact, access sides, preparation times and item constraints. Working chefs cannot be pushed away; pots heat only while on a stove.
+Human input is continuous movement plus nearby actions; agent input is higher-level action selection. Both share movement speed, contact, access sides, preparation times and item constraints. Working chefs cannot be pushed away; pans and pots heat only while on a stove.
 
 Maps are validated by `map_definition.py`. Recipe legality and some processing conditions remain in Python; the roadmap moves them into validated data before introducing map and recipe editors. Visual ingredient layers are independent from legality.
 

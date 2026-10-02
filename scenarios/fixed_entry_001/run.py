@@ -98,7 +98,7 @@ def run_reference(name, actions, decision_delay=0.0):
     summary = {"name": name, "controller": "handwritten_offline_not_model",
                "fixed_delay_per_decision": decision_delay, "ended": k.ended,
                "time": round(k.time, 6), "served": k.served, "money": k.money,
-               "burns": k.burns, "fires": k.fires, "bad_reviews": k.bad_reviews,
+               "burns": k.burns, "fires": k.fires,
                "first_off_heat_observed_at": first_off_heat,
                "target_F1_served_unburnt": bool(served_target),
                "success": bool(served_target and k.won() and k.time <= 35 and k.burns == 0),
@@ -138,7 +138,7 @@ def export():
         summaries.append({key: value for key, value in summary.items() if key not in ("events", "final_state")})
     write("results.json", summaries)
     sources = ["kitchen.py", "spatial_kitchen.py", "navigation.py", "levels.py", "jev.py",
-               "whitebox_server.py", "model_language.py", "model-language-en-v1.json",
+               "whitebox_server.py", "model_language.py", "model-language-en-v3.json",
                "scenarios/fixed_entry_001/scenario.json", "scenarios/fixed_entry_001/run.py"]
     write("manifest.json", {"scenario": "fixed-entry-001", "model_calls": 0,
                            "integration": "standalone engine factory; not a game-menu entry",

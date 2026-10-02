@@ -11,6 +11,7 @@ import json
 import math
 import mimetypes
 import threading
+import traceback
 import time
 from urllib.parse import urlparse
 import uuid
@@ -19,6 +20,9 @@ import webbrowser
 from kitchen import Kitchen, ROOT, load_config
 from jev import JevClient, DecisionLoop
 from play import Journal
+from round_summary import round_summary
+from session_record import SessionLog, write_bundle
+from levels import available_levels
 
 
 PLAYER_MESSAGES = {
@@ -33,7 +37,11 @@ PLAYER_MESSAGES = {
 
 class GameSession:
     def __init__(self, config=None, client_factory=JevClient, journal_factory=Journal, kitchen_factory=Kitchen, log_prefix='web'):
-        self.c = dict(config or load_config())
+        if config is None:
+            # Players start on the first listed level.
+            from levels import level_config
+            config = level_config(load_config(), 1)
+        self.c = dict(config)
         self.base_config = dict(self.c)
         self.client_factory = client_factory
         self.journal_factory = journal_factory
@@ -45,6 +53,7 @@ class GameSession:
         self.c = self.k.c
         self.game_id = uuid.uuid4().hex
         self.phase = 'ready'
+        self.faulted = False
         self.speed = .75
         self.ai = None
         self.journal = None
@@ -55,13 +64,19 @@ class GameSession:
         self.receipts = OrderedDict()
         self.last_tick = time.monotonic()
         self.last_seen = self.last_tick
+        self.game_backlog = 0.
+        self.ticks = 0
         self.move_seq = -1
         self.move_until = 0.
-        self.interaction_focus = None
+        self.pending_move = None
         self.player_messages = []
         self.last_player_message_at = None
         self.bookmarks = []
         self.last_bookmark_at = None
+        # Local play keeps a Session bundle beside the journal; other sinks keep records in memory only.
+        self.session_log = None
+        self.bundle_root = ROOT / 'logs' / 'sessions' if journal_factory is Journal else None
+        self.deployment_mode = 'local'
 
     def note(self, message):
         self.notes.append({'t': round(self.k.time, 2), 'message': message})
@@ -75,6 +90,14 @@ class GameSession:
                 self.journal('event', event)
         self.cursor = len(self.k.events)
 
+    def round_record(self):
+        """Who did which work this round (round_summary.py); computed once when the round has ended."""
+        if self.phase != 'ended' and not self.k.ended:
+            return None
+        if getattr(self, '_round_record', (None,))[0] != self.game_id:
+            self._round_record = (self.game_id, round_summary(self.k))
+        return self._round_record[1]
+
     def _finish(self, aborted=False):
         if self.ai:
             self.ai.closed = True
@@ -86,12 +109,48 @@ class GameSession:
                                 'aborted': aborted, 'ai_calls': self.ai.calls,
                                 'ai_successes': self.ai.successes, 'usage': self.ai.tokens,
                                 'bookmarks': deepcopy(self.bookmarks),
-                                'player_messages': deepcopy(self.player_messages)})
+                                'player_messages': deepcopy(self.player_messages),
+                                'round_summary': self.round_record()})
             self.journal.close()
+            if self.bundle_root is not None:
+                try:
+                    write_bundle(self.journal, self.bundle_root / self.game_id)
+                except OSError as exc:
+                    self.note(f'对局记录包未能保存（{type(exc).__name__}）')
             self.journal = None
+
+    def _advance_ticks(self, elapsed, now):
+        """Advance whole fixed game ticks; the fractional remainder carries over.
+
+        Wall-clock polling decides only how many ticks run, never their size, so
+        the same inputs at the same tick produce the same rule results.
+        """
+        tick = self.k.rules.tick
+        self.game_backlog += elapsed*self.speed
+        steps = int(self.game_backlog/tick+1e-9)
+        self.game_backlog = max(0., self.game_backlog-steps*tick)
+        moving = hasattr(self.k,'manual') and any(self.k.manual['human'])
+        for i in range(steps):
+            if self.pending_move and not self._hands_busy():
+                self._apply_move(*self.pending_move)
+                self.pending_move = None
+                moving = any(self.k.manual['human'])
+            # Wall time at which this tick starts; a click-move ends at move_until.
+            start = now-(self.game_backlog+(steps-i)*tick)/self.speed
+            if moving and start >= self.move_until-1e-9:
+                self.k.set_manual('human',0,0)
+                moving = False
+            self.k.advance(tick)
+            self.ticks += 1
+            if self.k.ended:
+                break
+        if moving and now >= self.move_until:
+            self.k.set_manual('human',0,0)
 
     def tick(self, now=None):
         with self.lock:
+            if self.faulted:
+                return  # A round whose state check failed stays frozen until reset.
             now = time.monotonic() if now is None else now
             elapsed = max(0, now-self.last_tick)
             self.last_tick = now
@@ -101,16 +160,11 @@ class GameSession:
                 if now-self.last_seen > 8:
                     if hasattr(self.k,'set_manual'): self.k.set_manual('human',0,0)
                     self.phase = 'paused'
+                    self.pending_move = None
                     self.ai.invalidate()
                     self.note('页面已断开，厨房自动暂停。回来后点击继续。')
                 else:
-                    if hasattr(self.k,'manual') and any(self.k.manual['human']):
-                        active = max(0.,min(elapsed,self.move_until-(now-elapsed)))
-                        self.k.advance(active*self.speed)
-                        if now >= self.move_until: self.k.set_manual('human',0,0)
-                        self.k.advance((elapsed-active)*self.speed)
-                    else:
-                        self.k.advance(elapsed*self.speed)
+                    self._advance_ticks(elapsed, now)
                     if self.k.ended:
                         self.phase = 'ended'
                         self._finish()
@@ -128,14 +182,21 @@ class GameSession:
         while not self.stop_event.wait(.05):
             try:
                 self.tick()
-            except Exception:
-                # Never silently let the kitchen run when its state loop fails.
+            except Exception as exc:
+                # Never let a broken round keep running, but keep the loop alive:
+                # the faulted round freezes and the next round ticks normally.
                 with self.lock:
                     self.phase = 'paused'
+                    self.faulted = True
                     if self.ai:
                         self.ai.invalidate()
                     self.note('厨房已暂停：运行出现异常，请重新开局。')
-                raise
+                    try:
+                        if self.journal:
+                            self.journal('engine_error', {'t': self.k.time, 'error': f'{type(exc).__name__}: {exc}',
+                                                          'trace': traceback.format_exc(limit=8)})
+                    except Exception:
+                        pass
 
     def close(self):
         self.stop_event.set()
@@ -147,22 +208,22 @@ class GameSession:
             self.last_seen = time.monotonic()
             state = self.k.snapshot()
             actions = self.k.actions('human')
-            focus=self.k.interaction_target('human',self.interaction_focus) if hasattr(self.k,'interaction_target') else None
-            interaction = self.k.quick_interaction('human',actions,preferred=focus) if hasattr(self.k,'quick_interaction') else None
+            focus, interaction, cell, hint, use = self._interaction_view(actions)
             for who, chef in self.k.chefs.items():
                 j = chef.job
                 total = self.totals.setdefault(j.id, j.travel+j.work) if j else 0
                 state['chefs'][who]['progress'] = max(0, min(1, 1-(j.travel+j.work)/total)) if total else 0
-            events = [{'t': e['t'], 'message': e['message'], 'kind': e.get('kind')} for e in self.k.events
+            events = [{'t': e['t'], 'message': e['message'], 'kind': e.get('kind'), 'actor': e.get('actor')} for e in self.k.events
                       if e.get('kind') not in ('action_start', 'action_done')]
             events += self.notes
             events = sorted(events, key=lambda e:e['t'])[-10:]
             return {'game_id': self.game_id, 'phase': self.phase, 'speed': self.speed,
                     'communication': self.communication_state(),
                     'interaction': asdict(interaction) if interaction else None,
+                    'use_interaction': asdict(use) if use else None,
                     'interaction_focus': focus,
-                    'interaction_cell': self.k.interaction_cell('human',focus) if hasattr(self.k,'interaction_cell') else None,
-                    'interaction_hint': self.k.interaction_hint('human',focus) if hasattr(self.k,'interaction_hint') and not interaction else None,
+                    'interaction_cell': cell,
+                    'interaction_hint': hint,
                     'kitchen': state, 'actions': [asdict(a) for a in actions],
                     'boards': self.k.boards, 'pots': self.k.pots, 'events': events,
                     'ai': {'connected': bool(self.ai and self.ai.successes),
@@ -172,8 +233,32 @@ class GameSession:
                     'result': self.k.result() if self.phase == 'ended' else None,
                     'aborted': self.k.aborted,
                     'won': self.k.won() and not self.k.aborted if self.phase == 'ended' else False,
+                    'round_summary': self.round_record() if self.phase == 'ended' else None,
+                    'levels': available_levels(),
                     'rules': {key:self.c[key] for key in ('chop_seconds', 'cook_seconds', 'burn_after_ready',
                               'fire_after_burn', 'order_patience', 'round_seconds', 'order_count')}}
+
+    def _interaction_view(self, actions):
+        # Space-key focus is a position-dependent convenience: if it fails, the page still
+        # gets the kitchen state (instead of an empty response that reads as a disconnect).
+        k = self.k
+        try:
+            if not hasattr(k,'facing_interaction'):return None, None, None, None, None
+            focus, interaction = k.facing_interaction('human','hands',actions)
+            use = k.facing_interaction('human','use',actions)[1] or k.forward_throw('human')
+            cell = k.interaction_cell('human',focus)
+            hint = k.interaction_hint('human',focus) if not interaction else None
+            return focus, interaction, cell, hint, use
+        except Exception as exc:
+            if self.journal and not getattr(self, '_interaction_error_logged', False):
+                self._interaction_error_logged = True
+                try:
+                    self.journal('engine_error', {'t': k.time, 'where': 'interaction_view', 'error': f'{type(exc).__name__}: {exc}',
+                                                  'position': k.positions.get('human'), 'facing': getattr(k,'facing',{}).get('human'),
+                                                  'trace': traceback.format_exc(limit=8)})
+                except Exception:
+                    pass
+            return None, None, None, None, None
 
     def command(self, path, body):
         with self.lock:
@@ -205,18 +290,40 @@ class GameSession:
         if self.phase != 'running':
             self.k.set_manual('human',0,0)
             return (409, {'error':'厨房未营业'}) if dx or dy else (200,{'ok':True})
-        if dx or dy:self.interaction_focus=None
+        self.move_until = time.monotonic()+.5
+        if self._hands_busy():
+            # A take/put/throw already under the hands finishes first (about 0.15 s);
+            # the held direction starts right after it instead of cancelling it.
+            sprint=body.get('sprint') is True or bool(self.pending_move and self.pending_move[2])
+            self.pending_move = (dx,dy,sprint) if dx or dy else None
+            if self.journal:
+                self.journal('human_input',{'t':self.k.time,'source':'keyboard','direction':[dx,dy],
+                                          'seq':seq,'applied':False,'deferred':bool(dx or dy)})
+            return 200, {'ok':True,'deferred':bool(dx or dy)}
+        self.pending_move = None
+        self._apply_move(dx,dy,body.get('sprint') is True,seq)
+        self._events()
+        return 200, {'ok':True}
+
+    def _hands_busy(self):
+        """A short hand action (take, put, plate, serve, throw...) within Space's reach is under way.
+
+        Space acts within 1.5 cells, so the step to the stand point is part of it.
+        """
+        job=self.k.chefs['human'].job
+        return bool(job and job.action.kind not in ('go','stop','chop','wash','extinguish')
+                    and job.travel<=1.5/self.k.rules.walk_speed+1e-9
+                    and job.work<=self.k.c.get('handling_seconds',.15)+1e-9)
+
+    def _apply_move(self, dx, dy, sprint=False, seq=None):
         before = self.k.manual['human']
         self.k.set_manual('human',dx,dy)
-        sprint_applied=self.k.sprint('human') if body.get('sprint') is True else False
-        if body.get('sprint') is True and self.journal:
+        sprint_applied=self.k.sprint('human') if sprint else False
+        if sprint and self.journal:
             self.journal('human_input',{'t':self.k.time,'source':'keyboard','sprint':True,'applied':sprint_applied,'seq':seq})
-        self.move_until = time.monotonic()+.5
         if before != self.k.manual['human'] and self.journal:
             self.journal('human_input',{'t':self.k.time,'source':'keyboard','direction':[dx,dy],
                                       'seq':seq,'applied':True})
-        self._events()
-        return 200, {'ok':True}
 
     def communication_state(self):
         preference=next((m for m in reversed(self.player_messages) if m['kind']=='preference'),None)
@@ -291,10 +398,11 @@ class GameSession:
         if path == '/api/level':
             if self.phase not in ('ready','ended') or not hasattr(self.k,'nav'):
                 return 409,{'error':'Choose a level before starting or after the round ends.'}
+            from levels import level_config, level_id
             level=body.get('level')
-            if type(level) is not int or level not in (1,2,3):return 400,{'error':'Unknown level.'}
+            try:level_id(level)
+            except ValueError:return 400,{'error':'Unknown level.'}
             self._finish(aborted=self.phase!='ended')
-            from levels import level_config
             self.c=level_config({**self.base_config, **{key:self.c[key] for key in ('ai_max_calls','ai_max_response_age','model')}},level)
             return self._command('/api/reset',{})
         if path == '/api/restart':
@@ -317,8 +425,10 @@ class GameSession:
             except (RuntimeError, OSError, ValueError):
                 return 503, {'error': '没有读到可用的本地 Jev 配置，请检查 .env。厨房尚未开始计时。'}
             self.speed = speed
-            self.journal = self.journal_factory(self.log_prefix+'-'+self.game_id[:8])
-            self.journal('start', {'config':self.c, 'speed':self.speed, 'state':self.k.snapshot()})
+            self.journal = SessionLog(self, self.journal_factory(self.log_prefix+'-'+self.game_id[:8]),
+                                      keep_payloads=self.bundle_root is not None, deployment_mode=self.deployment_mode)
+            self.session_log = self.journal
+            self.journal('start', {'config':self.c, 'config_hash':self.k.config_hash, 'speed':self.speed, 'state':self.k.snapshot()})
             self.ai = DecisionLoop(self.k, client, self.journal, self.note)
             self.phase = 'running'
             self.last_tick = self.last_seen = time.monotonic()
@@ -327,12 +437,15 @@ class GameSession:
             if self.phase == 'running':
                 self.phase = 'paused'
                 if hasattr(self.k,'set_manual'): self.k.set_manual('human',0,0)
+                self.pending_move = None
                 self.ai.invalidate()
                 reason = '离开页面，厨房已自动暂停。' if body.get('reason') == 'hidden' else '厨房已暂停，你和 Jeff 的动作、锅与订单倒计时都已停下。'
                 self.note(reason)
                 self.journal('pause', {'t':self.k.time, 'reason':body.get('reason','manual')})
             return 200, {'ok': True}
         if path == '/api/resume':
+            if self.faulted:
+                return 409, {'error': '本局运行出现异常，请重新开局。'}
             if self.phase != 'paused':
                 return 409, {'error': '当前无需继续。'}
             self.phase = 'running'
@@ -344,11 +457,7 @@ class GameSession:
             if self.phase=='ended':return 200,{'ok':True}
             if self.phase not in ('running','paused'):
                 return 409,{'error':'当前没有进行中的对局。'}
-            for who in self.k.chefs:
-                if hasattr(self.k,'set_manual'):self.k.set_manual(who,0,0)
-                self.k.stop(who)
-            self.k.aborted=True
-            self.k._end()
+            self.k.abort()
             self.phase='ended'
             self._finish(aborted=True)
             return 200,{'ok':True}
@@ -356,18 +465,21 @@ class GameSession:
             if self.phase == 'running':
                 return 409, {'error': '先暂停，再重新开局。'}
             self._finish(aborted=self.phase != 'ended')
-            if self.c.get('level') in (2,3):self.c.pop('order_seed',None)
+            # Unconfigured seeds are drawn again when the new round is frozen.
             self.k = self.kitchen_factory(self.c)
+            self.game_backlog = 0.
+            self.ticks = 0
             self.c = self.k.c
             self.move_seq = -1
             self.move_until = 0.
-            self.interaction_focus=None
+            self.pending_move=None
             self.player_messages=[]
             self.last_player_message_at=None
             self.bookmarks=[]
             self.last_bookmark_at=None
             self.game_id = uuid.uuid4().hex
             self.phase = 'ready'
+            self.faulted = False
             self.ai = None
             self.cursor = 0
             self.notes = []
@@ -383,18 +495,18 @@ class GameSession:
             if target.startswith('item:'):
                 item=self.k.ground.get(target[5:])
                 if not item:return 409,{'error':'地上物品已变化，请重新选择'}
-                destination=item.location;focus=target
+                destination=item.location
             elif target in self.k.equipment:
-                destination=target;focus=target
+                destination=target
             else:
-                destination=target;focus=None
+                destination=target
                 if not any(a.kind=='go' and a.target==target for a in actions) and target!=self.k.chefs['human'].location:
                     return 400,{'error':'目标无效'}
+            # Clicking walks there and faces it; Space then acts on what the chef faces.
             action=next((a for a in actions if a.kind=='go' and a.target==destination),None)
             if action:
                 result=self._command('/api/action',{'action':action.key,'expected':list(action.expected)})
                 if result[0]!=200:return result
-            self.interaction_focus=focus
             return 200,{'ok':True}
         if path == '/api/interact':
             if self.phase != 'running' or not hasattr(self.k, 'quick_interaction'):
@@ -402,24 +514,38 @@ class GameSession:
             hand = self.k.chefs['human'].hand
             if (hand.id if hand else None) != body.get('expected_item'):
                 return 409, {'error': '手中物品已变化，请重新按空格'}
-            focus=self.k.interaction_target('human',self.interaction_focus)
-            action = self.k.quick_interaction('human',preferred=focus)
+            # Space = hands (take, put, plate, serve); E = use (chop, wash, extinguish),
+            # else throw the held item straight ahead. Both act on what the chef faces.
+            mode = 'use' if body.get('mode') == 'use' else 'hands'
+            focus, action = self.k.facing_interaction('human',mode)
+            if not action and mode == 'use':
+                throw = self.k.forward_throw('human')
+                if throw:
+                    # Not one of the listed per-tile throws: start it directly, as /api/throw does.
+                    ok,message = self.k.start('human',throw)
+                    self.journal('human_input',{'t':self.k.time,'source':'browser','action':throw.key,
+                                              'landing':throw.target,'applied':ok,'message':message})
+                    self._events()
+                    return (200,{'ok':True}) if ok else (409,{'error':message})
             if not action:
-                message=self.k.interaction_hint('human',focus) or '请靠近工位或物品，再按空格操作'
-                self.journal('human_input',{'t':self.k.time,'source':'browser','action':'interact','applied':False,'message':message})
+                message=(self.k.interaction_hint('human',focus) if mode=='hands' else None) or ('面前没有可以切、洗或灭火的东西' if mode=='use' else '面前没有可操作目标')
+                self.journal('human_input',{'t':self.k.time,'source':'browser','action':'use' if mode=='use' else 'interact','applied':False,'message':message})
                 return 409, {'error': message}
             return self._command('/api/action', {'action': action.key, 'expected': list(action.expected)})
         if path == '/api/throw':
             if self.phase != 'running' or not hasattr(self.k,'throw_action'):
                 return 409, {'error':'当前不能抛掷'}
-            target = body.get('target')
+            # Either a landing point, or a direction to aim along (hold Space, steer, release).
+            aimed = 'direction' in body
+            target = body.get('direction') if aimed else body.get('target')
             if (not isinstance(target,list) or len(target)!=2
-                    or any(isinstance(v,bool) or not isinstance(v,(int,float)) or not math.isfinite(v) or abs(v)>10000 for v in target)):
+                    or any(isinstance(v,bool) or not isinstance(v,(int,float)) or not math.isfinite(v) or abs(v)>10000 for v in target)
+                    or (aimed and not any(target))):
                 return 400, {'error':'抛掷坐标无效'}
             hand = self.k.chefs['human'].hand
             if not hand or hand.id != body.get('expected_item'):
                 return 409, {'error':'手中物品已变化'}
-            action = self.k.throw_action('human',target)
+            action = self.k.aimed_throw('human',target) if aimed and hasattr(self.k,'aimed_throw') else self.k.throw_action('human',target)
             if not action:
                 return 409, {'error':'没有可用落点，或此物品不能抛掷'}
             ok,message = self.k.start('human',action)
@@ -437,8 +563,6 @@ class GameSession:
             if not action:
                 return 409, {'error': '刚才的食材或工位状态变了，请按更新后的按钮操作。'}
             ok, message = self.k.start('human', action)
-            if ok and action.kind=='go' and hasattr(self.k,'equipment'):
-                self.interaction_focus=action.target if action.target in self.k.equipment else next(('item:'+key for key,item in self.k.ground.items() if item.location==action.target),None)
             self.journal('human_input', {'t':self.k.time, 'source':'browser', 'action':action.key, 'applied':ok, 'message':message})
             if self.k.chefs['human'].job:
                 j=self.k.chefs['human'].job

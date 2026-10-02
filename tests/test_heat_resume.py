@@ -8,7 +8,7 @@ from spatial_kitchen import SpatialKitchen
 class HeatResumeTests(unittest.TestCase):
     def make(self):
         config = load_config()
-        config.update(round_seconds=500, order_patience=400, order_interval=1000)
+        config.update(round_seconds=500, order_patience=400, order_interval=1000, target_money=0)
         config['level'] = 3
         return SpatialKitchen(config)
 

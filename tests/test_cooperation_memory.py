@@ -50,7 +50,7 @@ class CooperationMemoryTests(unittest.TestCase):
     def finish(self,g):
         g.k.emit('你完成动作：切菜',kind='action_done',actor='human',action='chop b1')
         g.k.emit('你抛出了食材',kind='thrown',actor='human',item='F1',target=(8,4))
-        g.k.served=3;g.k.money=90;g.k.advance(.01)
+        g.k.advance(g.k.rules.round_limit-g.k.time+1)  # rounds end at closing time
         self.assertTrue(g.k.ended)
         g.phase='ended';g._finish()
 
@@ -74,9 +74,9 @@ class CooperationMemoryTests(unittest.TestCase):
             g.ai.poll()
         payload=next(data['payload'] for kind,data in g.journal.rows if kind=='ai_request')
         from model_language import english_data
-        self.assertEqual(payload['state']['cooperation_memory'],english_data(g.round_memory))
+        self.assertEqual(payload['state']['past_episodes'],english_data(g.round_memory))
         self.assertEqual(g.round_memory['episodes'][0]['events'][0]['message'],'你完成动作：切菜')
-        self.assertEqual(payload['state']['cooperation_memory']['episodes'][0]['events'][1]['target'],[8,4])
+        self.assertEqual(payload['state']['past_episodes']['episodes'][0]['events'][1]['target'],[8,4])
         self.assertNotIn(self.setting['api_key'],json.dumps(payload))
 
     def test_disabled_neither_reads_nor_saves_current_round(self):
@@ -150,12 +150,12 @@ class CooperationMemoryTests(unittest.TestCase):
         setting={**self.setting,'provider':'compatible','base_url':'https://example.com/v1'}
         c=CompatibleClient(load_config(),setting);k=SpatialKitchen(load_config())
         payload=c.payload(k.snapshot(),k.actions('jeff'))
-        payload['state']['cooperation_memory']={'enabled':True,'episodes':[{'duration':10}]}
+        payload['state']['past_episodes']={'enabled':True,'episodes':[{'duration':10}]}
         response=Mock();response.__enter__=Mock(return_value=response);response.__exit__=Mock()
         response.read.return_value=json.dumps({'choices':[{'message':{'content':'{"choice":"wait","sprint":false}'}}]}).encode()
         opener=Mock();opener.open.return_value=response
         with patch('player_api.urllib.request.build_opener',return_value=opener):c.ask(payload)
         body=json.loads(opener.open.call_args.args[0].data)
         sent=json.loads(body['messages'][1]['content'])
-        self.assertEqual(sent['state']['cooperation_memory'],payload['state']['cooperation_memory'])
+        self.assertEqual(sent['state']['past_episodes'],payload['state']['past_episodes'])
         self.assertEqual(opener.open.call_count,1)

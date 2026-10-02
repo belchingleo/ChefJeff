@@ -17,9 +17,9 @@ class CounterLevelTests(unittest.TestCase):
     def test_new_map_resources_orders_and_every_workstation_reachable(self):
         k=self.make()
         self.assertEqual((len(k.pots),k.pot_count,k.plate_count,len(k.boards)),(1,1,2,2))
-        self.assertEqual([o['dish'] for o in k.orders],['burger']*3)
-        self.assertEqual(k.c['round_seconds'],240)
-        self.assertTrue(all(o['deadline']<=240 for o in k.orders))
+        self.assertEqual([o['dish'] for o in k.orders],['burger']*5)
+        self.assertEqual(k.c['round_seconds'],180)
+        self.assertTrue(all(o['deadline']<=180 for o in k.orders))
         self.assertEqual(k.floor & {(x,4) for x in range(14)},{(10,4),(11,4)})
         self.assertEqual({p[1] for p in k.positions.values()},{2,5})
         for who in k.chefs:
@@ -53,10 +53,11 @@ class CounterLevelTests(unittest.TestCase):
             self.assertFalse(re.search(r'[\u3400-\u9fff]',json.dumps(payload,ensure_ascii=False)))
     def test_three_level_switch_does_not_leak_resources(self):
         g=GameSession(kitchen_factory=SpatialKitchen)
-        for level,pots,plates,orders in ((3,3,3,5),(2,1,2,3),(1,1,2,8)):
+        for level,pots,plates in ((3,3,3),(2,1,2),(1,1,2)):
             self.assertEqual(g._command('/api/level',{'level':level})[0],200)
             self.assertEqual((g.k.pot_count,g.k.plate_count),(pots,plates))
-            if level!=1:self.assertEqual(len(g.k.orders),orders)
+            self.assertEqual(g.k.resolved['level']['id'],f'level-{level}')
+            self.assertEqual(len(g.k.orders),len(g.k.resolved['order_plan']['orders']))
             g.k.assert_invariants()
     def test_practice_left_wall_clear_and_single_bin(self):
         k=self.make(1)

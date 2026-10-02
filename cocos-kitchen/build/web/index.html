@@ -5,11 +5,11 @@
 
     <title>ChefJeff · 一起出餐</title>
 
-    <meta name="viewport" content="width=device-width,user-scalable=no,initial-scale=1,minimum-scale=1,maximum-scale=1,minimal-ui=true"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="apple-mobile-web-app-capable" content="yes"/>
     <meta name="mobile-web-app-capable" content="yes"/>
     <meta name="full-screen" content="yes"/>
-    <meta name="screen-orientation" content="portrait"/>
+    <meta name="screen-orientation" content="landscape"/>
     <meta name="x5-fullscreen" content="true"/>
     <meta name="360-fullscreen" content="true"/>
 
@@ -47,22 +47,67 @@
 </script>
   <script src="kitchen-i18n.js"></script>
 <style>
-html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#4c4031;color:#fff5dc;font-family:system-ui,sans-serif}
+/* Tokens from the "ChefJeff 厨房 UI" design system; KitchenClient.ts COLORS uses the same values. */
+:root{--ink:#2b1a12;--muted:#6e4e38;--surface:#f0d9b5;--paper:#fdf3e1;--honey-tint:#fbe3b8;--walnut:#6b3418;--frame:#4a2616;--frame-line:#3f2112;
+ --honey:#e8983a;--steel:#3d5566;--denim:#2a5a9e;--denim-hover:#224a82;--jeff:#a8520e;--herb:#3c7a2a;--tomato:#b8321e;--tomato-hover:#9c2a19;
+ --pixel:ChefJeffPixel,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;--body:system-ui,"PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;
+ --gx:0px;--gy:0px;--gs:1}
+@font-face{font-family:ChefJeffPixel;src:url(fonts/chefjeff-pixel.woff2) format("woff2");font-display:swap}
+html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;color:var(--paper);font-family:var(--body);
+ background:var(--frame) repeating-linear-gradient(0deg,transparent 0 22px,var(--frame-line) 22px 24px)}
 h1.header,p.footer{display:none}
+[hidden]{display:none!important}
 #GameDiv{width:100vw!important;height:100vh!important;margin:0!important;border:0!important;border-radius:0!important;box-shadow:none}
-#kitchen-loading{position:fixed;inset:0;display:grid;place-content:center;gap:24px;background:#e7d7b8;color:#382f29;text-align:center;z-index:20;font-size:17px}
-#kitchen-loading b{font-size:32px;letter-spacing:6px}
-#kitchen-bookmark-toast{position:fixed;right:20px;bottom:24px;padding:8px 14px;background:#382f29e6;color:#fff5dc;font-size:14px;pointer-events:none;z-index:25;border-radius:4px}
-#kitchen-display-hint{display:none;position:fixed;top:max(24px,env(safe-area-inset-top));left:20px;right:20px;text-align:center;color:#e7d7b8;font-size:14px;line-height:1.8;z-index:10}
-#kitchen-fullscreen{display:block;margin:12px auto 0;padding:9px 24px;border:2px solid #b59a70;background:#fff5dc;color:#382f29;font:inherit;cursor:pointer;box-shadow:0 3px #795539}
-#kitchen-fullscreen:focus-visible{outline:3px solid #e4a43b;outline-offset:4px}
+/* Shared pieces: square, ink-bordered, hard shadows. */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:32px;padding:8px 12px 9px;box-sizing:border-box;font:12px/12px var(--pixel);color:var(--ink);background:var(--paper);
+ border:2px solid var(--ink);border-radius:0;box-shadow:0 3px 0 var(--ink);cursor:pointer;transition:transform .06s ease-out,box-shadow .06s ease-out}
+.btn:hover{background:var(--honey-tint)}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.btn.primary{background:var(--denim);color:var(--paper)}.btn.primary:hover{background:var(--denim-hover)}
+.btn.danger{background:var(--tomato);color:var(--paper)}.btn.danger:hover{background:var(--tomato-hover)}
+.btn:disabled{background:var(--surface);color:var(--muted);border-color:var(--muted);box-shadow:none;transform:none;cursor:default}
+.btn:focus-visible,.tab:focus-visible,.dock button:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+.key{display:inline-grid;place-items:center;box-sizing:border-box;min-width:32px;height:32px;padding:0 8px;background:var(--paper);color:var(--ink);border:2px solid var(--ink);box-shadow:0 3px 0 var(--ink);font:12px/12px var(--pixel)}
+.key.sm{min-width:20px;height:20px;padding:0 4px;border-width:1px;box-shadow:0 2px 0 var(--ink)}
+.key.wide{min-width:96px}
+.slip{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;background:var(--paper);color:var(--ink);border:1px solid var(--ink);box-shadow:0 2px 0 var(--ink);font:12px/16px var(--pixel)}
+.panel{box-sizing:border-box;background:var(--paper);color:var(--ink);border:3px solid var(--walnut);box-shadow:6px 6px 0 var(--ink);font:15px/24px var(--body);text-align:left}
+dialog.panel{padding:0;max-height:92vh;overflow:auto}
+dialog.panel::backdrop{background:#2b1a12b8}
+.dlg-head{position:sticky;top:0;z-index:1;display:flex;align-items:center;gap:12px;padding:20px 24px 12px;background:var(--paper);border-bottom:1px solid var(--walnut)}
+.dlg-head h2{margin:0;flex:1;font:24px/28px var(--pixel);font-weight:400}
+.dlg-body{padding:16px 24px 24px}
+.dlg-body h3{margin:0 0 4px;font:24px/28px var(--pixel);font-weight:400}
+.dlg-body p{margin:4px 0 12px;color:var(--muted)}
+.close{min-width:36px;padding:0 8px;font-size:24px;line-height:24px}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;padding:0 24px 12px;background:var(--paper);border-bottom:1px solid var(--walnut)}
+.tab{padding:6px 10px;font:12px/16px var(--pixel);color:var(--ink);background:transparent;border:2px solid transparent;cursor:pointer}
+.tab:hover{background:var(--honey-tint)}
+.tab[aria-selected="true"]{background:var(--honey);border-color:var(--ink)}
+.actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
+details.fine{margin:12px 0;color:var(--muted);font-size:13px;line-height:20px}
+details.fine summary{cursor:pointer;color:var(--ink);font-weight:600}
+@media (prefers-reduced-motion:reduce){.btn{transition:none}}
+/* One loading screen until the kitchen first answers (KitchenClient removes it). */
+#kitchen-loading{position:fixed;inset:0;display:grid;place-items:center;z-index:20;background:var(--frame) repeating-linear-gradient(0deg,transparent 0 22px,var(--frame-line) 22px 24px)}
+#kitchen-loading .panel{display:grid;justify-items:center;gap:12px;padding:28px 40px}
+#kitchen-loading b{font:36px/40px var(--pixel);font-weight:400}
+#kitchen-loading span{font-size:15px;color:var(--muted)}
+/* Floating layers follow the letterboxed game (layout script sets --gx/--gy/--gs). */
+#kitchen-bookmark-toast{position:fixed;left:calc(var(--gx) + 640px * var(--gs));bottom:calc(var(--gy) + 70px * var(--gs));transform:translateX(-50%) scale(var(--gs));transform-origin:bottom center;pointer-events:none;z-index:25}
+#kitchen-display-hint{display:none;position:fixed;top:max(24px,env(safe-area-inset-top));left:20px;right:20px;text-align:center;color:var(--paper);font-size:15px;line-height:1.8;z-index:10}
+#kitchen-fullscreen{margin:12px auto 0}
 @media(max-aspect-ratio:1/1){#kitchen-display-hint{display:block}}
 :fullscreen #kitchen-display-hint{display:none}
 </style>
-<div id="kitchen-loading" role="status"><b>ChefJeff</b><span>正在打开小厨房…</span></div>
-<div id="kitchen-bookmark-toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
-<aside id="kitchen-display-hint">横屏游玩，工位和按钮会更清楚。<button id="kitchen-fullscreen" type="button">全屏看厨房</button></aside>
+<div id="kitchen-loading" role="status"><div class="panel"><svg width="48" height="40" viewBox="0 0 12 10" aria-hidden="true" shape-rendering="crispEdges"><rect x="5" y="0" width="2" height="1" fill="#2b1a12"/><rect x="2" y="1" width="8" height="1" fill="#2b1a12"/><rect x="0" y="3" width="12" height="1" fill="#2b1a12"/><rect x="1" y="3" width="10" height="6" fill="#2b1a12"/><rect x="2" y="4" width="8" height="4" fill="#3d5566"/><rect x="3" y="4" width="6" height="1" fill="#e8983a"/><rect x="2" y="9" width="8" height="1" fill="#2b1a12"/></svg><b>ChefJeff</b><span>正在打开小厨房…</span></div></div>
+<div id="kitchen-bookmark-toast" class="slip" role="status" aria-live="polite" aria-atomic="true" hidden></div>
+<aside id="kitchen-display-hint">横屏游玩，工位和按钮会更清楚。<br><button id="kitchen-fullscreen" class="btn" type="button">全屏看厨房</button></aside>
 <script>
+// The game letterboxes 1280×720 into the window; HTML layers scale and sit with it.
+(()=>{const root=document.documentElement.style;
+ const layout=()=>{const w=innerWidth,h=innerHeight,s=Math.min(w/1280,h/720);root.setProperty('--gs',String(s));root.setProperty('--gx',(w-1280*s)/2+'px');root.setProperty('--gy',(h-720*s)/2+'px')};
+ addEventListener('resize',layout);layout();})();
 let bookmarkToastTimer;
 window.addEventListener('kitchen-bookmark-notice',event=>{
  const toast=document.getElementById('kitchen-bookmark-toast');
@@ -72,72 +117,101 @@ window.addEventListener('kitchen-bookmark-notice',event=>{
 const expandKitchen=document.getElementById('kitchen-fullscreen');
 if(!document.documentElement.requestFullscreen)expandKitchen.hidden=true;
 expandKitchen.addEventListener('click',async()=>{try{await document.documentElement.requestFullscreen()}catch{expandKitchen.textContent='请手动展开浏览器窗口'}});
+// Tabs inside a dialog: arrow keys move between tabs; a panel hidden in the source (hosted mode) stays hidden with its tab.
+function kitchenTabs(dialog){
+ const tabs=[...dialog.querySelectorAll('.tab')].filter(t=>{const p=document.getElementById(t.getAttribute('aria-controls'));if(p.hasAttribute('hidden')){t.hidden=true;return false}return true});
+ const show=tab=>{for(const t of tabs){const on=t===tab;t.setAttribute('aria-selected',String(on));t.tabIndex=on?0:-1;document.getElementById(t.getAttribute('aria-controls')).hidden=!on}};
+ tabs.forEach((t,i)=>{t.onclick=()=>show(t);t.onkeydown=e=>{const d=e.key==='ArrowRight'?1:e.key==='ArrowLeft'?-1:0;if(!d)return;e.preventDefault();const n=tabs[(i+d+tabs.length)%tabs.length];show(n);n.focus()}});
+ show(tabs[0]);return show;
+}
 </script>
 <style>
-#kitchen-api-dialog{box-sizing:border-box;width:min(540px,calc(100vw - 28px));max-height:92vh;overflow:auto;padding:28px;border:3px solid #795539;box-shadow:7px 7px #382f29;background:#fff5dc;color:#382f29;text-align:left;font:15px/1.6 system-ui,sans-serif;z-index:30}
-#kitchen-api-dialog::backdrop{background:#251e18b8}
-#kitchen-api-dialog h2{margin:0 0 6px;font-size:25px}
-#kitchen-api-dialog p{margin:4px 0 14px;color:#786b59}
-#kitchen-api-dialog label:not(.remember){display:block;font-weight:600;margin:13px 0 4px}
-#kitchen-api-dialog input:not([type=checkbox]),#kitchen-api-dialog select{box-sizing:border-box;width:100%;padding:10px;border:1px solid #bba17a;border-radius:0;background:#fffaf0;color:#382f29;font:inherit}
-#kitchen-api-dialog .remember{display:flex;align-items:center;gap:7px;margin:17px 0;font-size:14px}
-#kitchen-api-dialog .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
-#kitchen-api-dialog button{padding:10px 14px;border:1px solid #795539;background:#f6e8ca;color:#382f29;font:600 15px system-ui;cursor:pointer}
-#kitchen-api-dialog button.primary{background:#4c7661;color:#fff5dc;flex:1}
-#kitchen-api-dialog button:disabled{opacity:.5;cursor:default}
-#kitchen-api-dialog :focus-visible{outline:3px solid #bb8130;outline-offset:2px}
-#kitchen-api-dialog a{color:#365f4a}
-#api-message{min-height:24px;white-space:pre-wrap}
-#api-message.error{color:#b64032}
-#api-identity{font-weight:600;color:#4c7661!important}
+#kitchen-api-dialog{width:min(560px,calc(100vw - 28px))}
+#kitchen-api-dialog label:not(.remember){display:block;font-weight:600;margin:13px 0 4px;color:var(--ink)}
+#kitchen-api-dialog input:not([type=checkbox]):not([type=range]),#kitchen-api-dialog select{box-sizing:border-box;width:100%;padding:10px;border:2px solid var(--ink);border-radius:0;background:var(--paper);color:var(--ink);font:inherit}
+#kitchen-api-dialog input:focus-visible,#kitchen-api-dialog select:focus-visible,#kitchen-api-dialog input[type=checkbox]:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+#kitchen-api-dialog input[type=checkbox]{accent-color:var(--denim);width:18px;height:18px}
+#kitchen-api-dialog .remember{display:flex;align-items:center;gap:8px;margin:16px 0;font-size:14px;color:var(--ink)}
+#kitchen-api-dialog a{color:var(--denim)}
+#kitchen-api-dialog .primary{flex:1}
+#api-message{min-height:24px;white-space:pre-wrap;color:var(--ink)!important}
+#api-message.error{color:var(--tomato)!important}
+#api-identity{font-weight:600;color:var(--denim)!important}
 #kitchen-api-dialog [hidden]{display:none!important}
+#kitchen-api-dialog [role=tabpanel]{border:0;margin:0;padding:0}
+#kitchen-api-dialog .audio-grid{display:grid;grid-template-columns:max-content 1fr 3em;align-items:center;gap:14px 16px;margin:14px 0}
+#kitchen-api-dialog .audio-row{display:contents}
+#kitchen-api-dialog .audio-row label{margin:0}
+#kitchen-api-dialog .audio-row input{width:100%;margin:0;accent-color:var(--denim)}
+#kitchen-api-dialog .audio-row input:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+#kitchen-api-dialog .audio-row output{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
 </style>
-<dialog id="kitchen-api-dialog" aria-labelledby="api-title">
- <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:16px"><span>界面语言</span><button id="kitchen-language" type="button" data-no-i18n>English</button></div>
- <h2 id="api-title">连接你的 AI 搭档</h2>
- <p>使用你自己的 API 账号，调用费用由该账号承担。</p>
- <p><strong>建议优先选择 Jev</strong>：当前厨房原型围绕 Jev 开发；其他模型也可使用，响应速度和配合方式可能不同。</p>
- <p id="api-identity">尚未配置</p>
- <form id="api-form">
-  <label for="api-provider">模型服务</label>
-  <select id="api-provider"><option value="jev">TypeSafe · Jev（推荐）</option><option value="deepseek">DeepSeek</option><option value="compatible">其他兼容 Chat Completions 的服务</option></select>
-  <div id="api-url-row" hidden><label for="api-url">接口地址（Base URL）</label><input id="api-url" type="url" placeholder="https://你的服务地址/v1" autocomplete="off"></div>
-  <div id="api-model-row" hidden><label for="api-model">模型名称</label><input id="api-model" placeholder="服务商提供的模型 ID" autocomplete="off"><p><small>建议使用响应快的模型；过慢或无效的动作不会执行。</small></p></div>
-  <label for="api-key">API Key</label><input id="api-key" type="password" placeholder="粘贴你的 API Key" autocomplete="off" spellcheck="false" required>
-  <p><a id="api-get-key" href="https://console.typesafe.ai/login" target="_blank" rel="noopener noreferrer">去服务商获取 Key ↗</a></p>
-  <label class="remember"><input id="api-remember" type="checkbox">记住此设备（共用电脑请勿勾选）</label>
-  <p><small>默认只在本次服务运行期间使用。记住后以明文保存在这台电脑的本地配置文件；Key 不进入对局日志和试玩包。</small></p>
-  <p id="api-message" role="status" aria-live="polite">测试连接会发送一次小型 API 请求，可能产生少量费用。</p>
-  <div class="actions"><button id="api-connect" class="primary" type="submit">测试并连接</button><button id="api-clear" type="button">清除配置</button><button id="api-close" type="button">返回厨房</button></div>
- </form>
- <section aria-labelledby="memory-title" style="border-top:1px solid #bba17a;margin-top:24px;padding-top:16px">
-  <h3 id="memory-title" style="margin:0">跨局协作记忆 · 试验版</h3>
+<dialog id="kitchen-api-dialog" class="panel" aria-labelledby="settings-title">
+ <div class="dlg-head"><h2 id="settings-title">设置</h2><span class="sr-label">界面语言</span><button id="kitchen-language" class="btn" type="button" data-no-i18n>English</button><button id="api-close" class="btn close" type="button" aria-label="返回厨房">×</button></div>
+ <div class="tabs" role="tablist" aria-label="设置分页">
+  <button class="tab" id="tab-connection" type="button" role="tab" aria-controls="panel-connection" autofocus>连接</button>
+  <button class="tab" id="tab-audio" type="button" role="tab" aria-controls="audio-panel">声音</button>
+  <button class="tab" id="tab-memory" type="button" role="tab" aria-controls="memory-panel">协作记忆</button>
+  <button class="tab" id="tab-limits" type="button" role="tab" aria-controls="limits-panel">调用上限</button>
+  <button class="tab" id="tab-export" type="button" role="tab" aria-controls="export-panel">导出</button>
+ </div>
+ <div class="dlg-body">
+ <section id="panel-connection" role="tabpanel" aria-labelledby="api-title">
+  <h3 id="api-title">连接你的 AI 搭档</h3>
+  <p>使用你自己的 API 账号，调用费用由该账号承担。</p>
+  <p><strong>建议优先选择 Jev</strong>：这间厨房是围绕 Jev 开发的；其他模型也可使用，响应速度和配合方式可能不同。</p>
+  <p id="api-identity">尚未配置</p>
+  <form id="api-form">
+   <label for="api-provider">模型服务</label>
+   <select id="api-provider"><option value="jev">TypeSafe · Jev（推荐）</option><option value="deepseek">DeepSeek</option><option value="compatible">其他兼容 Chat Completions 的服务</option></select>
+   <div id="api-url-row" hidden><label for="api-url">接口地址（Base URL）</label><input id="api-url" type="url" placeholder="https://你的服务地址/v1" autocomplete="off"></div>
+   <div id="api-model-row" hidden><label for="api-model">模型名称</label><input id="api-model" placeholder="服务商提供的模型 ID" autocomplete="off"><p><small>建议使用响应快的模型；过慢或无效的动作不会执行。</small></p></div>
+   <label for="api-key">API Key</label><input id="api-key" type="password" placeholder="粘贴你的 API Key" autocomplete="off" spellcheck="false" required>
+   <p><a id="api-get-key" href="https://console.typesafe.ai/login" target="_blank" rel="noopener noreferrer">去服务商获取 Key ↗</a></p>
+   <label class="remember"><input id="api-remember" type="checkbox">记住此设备（共用电脑请勿勾选）</label>
+   <details class="fine"><summary>费用与隐私说明</summary><p><small>默认只在本次服务运行期间使用。记住后以明文保存在这台电脑的本地配置文件；Key 不进入对局日志和试玩包。</small></p></details>
+   <p id="api-message" role="status" aria-live="polite">测试连接会发送一次小型 API 请求，可能产生少量费用。</p>
+   <div class="actions"><button id="api-connect" class="btn primary" type="submit">测试并连接</button><button id="api-clear" class="btn" type="button">清除配置</button></div>
+  </form>
+ </section>
+ <section aria-labelledby="audio-title" id="audio-panel" role="tabpanel">
+  <h3 id="audio-title">声音</h3>
+  <div class="audio-grid">
+  <div class="audio-row"><label for="audio-music">音乐</label><input id="audio-music" type="range" min="0" max="100" step="5"><output id="audio-music-value" for="audio-music" data-no-i18n></output></div>
+  <div class="audio-row"><label for="audio-sfx">音效</label><input id="audio-sfx" type="range" min="0" max="100" step="5"><output id="audio-sfx-value" for="audio-sfx" data-no-i18n></output></div>
+  </div>
+  <p>拉到 0 即静音。设置只保存在这台设备的浏览器里。</p>
+ </section>
+ <section aria-labelledby="memory-title" id="memory-panel" role="tabpanel">
+  <h3 id="memory-title">跨局协作记忆 · 试验版</h3>
   <p>保留最近 3 局的有限事件片段，让搭档自行判断如何配合，不预设你的习惯。不同接口和模型分开保存。</p>
   <label class="remember"><input id="memory-enabled" type="checkbox">下一局使用并保存跨局记忆</label>
   <p id="memory-status" role="status" aria-live="polite"></p>
-  <p><small>记录保存在本机，旧局片段会随决策请求发送给你选择的模型服务，增加输入 token 和费用。关闭后不读、不保存；中途退出的局不保存。</small></p>
-  <div class="actions"><button id="memory-clear" type="button">清空所有模型的协作记忆</button></div>
+  <details class="fine"><summary>费用与隐私说明</summary><p><small>记录保存在本机，旧局片段会随决策请求发送给你选择的模型服务，增加输入 token 和费用。关闭后不读、不保存；中途退出的局不保存。</small></p></details>
+  <div class="actions"><button id="memory-clear" class="btn" type="button">清空所有模型的协作记忆</button></div>
  </section>
- <section style="border-top:1px solid #bba17a;margin-top:24px;padding-top:16px" aria-labelledby="limits-title">
+ <section aria-labelledby="limits-title" id="limits-panel" role="tabpanel">
   <h3 id="limits-title">调用上限与用量</h3>
   <label for="call-limit">下一局最多调用次数（1–2000）</label>
   <input id="call-limit" type="number" min="1" max="2000" step="1" value="200">
-  <div class="actions"><button id="limit-save" type="button">保存下一局上限</button></div>
+  <div class="actions"><button id="limit-save" class="btn" type="button">保存下一局上限</button></div>
   <p id="limit-status" role="status" aria-live="polite"></p>
-  <p><small>默认每局 200 次，失败请求也计入；达限后不再请求，已有动作继续，玩家仍可操作。设置仅保留到服务关闭。连接测试另计，每次可能收费。Token 仅统计成功回复提供的用量，不代表完整账单；费用以服务商为准。</small></p>
+  <details class="fine"><summary>费用与隐私说明</summary><p><small>默认每局 200 次，失败请求也计入；达限后不再请求，已有动作继续，玩家仍可操作。设置仅保留到服务关闭。连接测试另计，每次可能收费。Token 仅统计成功回复提供的用量，不代表完整账单；费用以服务商为准。</small></p></details>
  </section>
- <section style="border-top:1px solid #bba17a;margin-top:24px;padding-top:16px" aria-labelledby="feedback-title">
+ <section aria-labelledby="feedback-title" id="export-panel" role="tabpanel">
   <h3 id="feedback-title">版本与对局导出</h3>
   <p id="release-identity"></p>
   <p>导出当前局摘要、全部标记、沟通记录和最近 80 条动作事件。标记包含游戏时间和实际时间，可对应本地日志提取前后过程。不会附带 Key、接口地址、模型名称文本、跨局记忆或完整请求。文件只下载到本机，不自动上传。</p>
-  <div class="actions"><button id="feedback-preview" type="button">导出本局</button><button id="feedback-download" type="button" disabled>下载已预览 JSON</button></div>
+  <div class="actions"><button id="feedback-preview" class="btn" type="button">导出本局</button><button id="feedback-download" class="btn" type="button" disabled>下载已预览 JSON</button></div>
   <p id="feedback-status" role="status" aria-live="polite"></p>
-  <textarea id="feedback-content" readonly hidden rows="12" aria-label="待导出的对局内容" style="box-sizing:border-box;width:100%;font:12px monospace"></textarea>
+  <textarea id="feedback-content" readonly hidden rows="12" aria-label="待导出的对局内容" style="box-sizing:border-box;width:100%;font:12px monospace;border:2px solid var(--ink)"></textarea>
+  <!-- hosted-contribution -->
  </section>
+ </div>
 </dialog>
 <script>
 (()=>{
- const el=id=>document.getElementById(id),dialog=el('kitchen-api-dialog');
+ const el=id=>document.getElementById(id),dialog=el('kitchen-api-dialog'),showTab=kitchenTabs(dialog);
  let state=null,busy=false,memoryBusy=false,memoryMessage='',limitBusy=false,limitMessage='',feedbackText='';
  const message=(text,error=false)=>{el('api-message').textContent=text;el('api-message').className=error?'error':''};
  const fields=()=>{
@@ -148,6 +222,9 @@ expandKitchen.addEventListener('click',async()=>{try{await document.documentElem
  const status=()=>{
   const c=state?.connection,allowed=!!c&&c.editable&&!busy;
   el('api-identity').textContent=c?.configured?`已连接：${c.model} · 玩家账号付费${c.remembered?' · 已记住此设备':''}`:'尚未配置 · 不使用开发者 Key';
+  // A saved key is never shown back; say so instead of presenting an empty, required field.
+  el('api-key').placeholder=c?.configured?'已保存；要更换时粘贴新的 Key':'粘贴你的 API Key';
+  el('api-connect').textContent=c?.configured?'更换并测试':'测试并连接';
   el('api-connect').disabled=!allowed;el('api-clear').disabled=!allowed||!c?.configured;
   for(const id of ['api-provider','api-url','api-model','api-key','api-remember'])el(id).disabled=!allowed;
   const l=state?.limits;
@@ -166,7 +243,7 @@ expandKitchen.addEventListener('click',async()=>{try{await document.documentElem
   if(c?.configured){el('api-provider').value=c.provider;el('api-url').value=c.base_url;el('api-model').value=c.model;el('api-remember').checked=c.remembered}
   el('api-key').value='';el('call-limit').value=state?.limits?.next_max_calls||200;fields();status();
   message(!c?'这个旧页面还不支持 API 配置，请使用新版服务。':c.editable?'测试连接会发送一次小型 API 请求，可能产生少量费用。':'请在开局前或结算后更换 API；请完成当前对局后再修改。');
-  if(!dialog.open)dialog.showModal();
+  showTab(el('tab-connection'));if(!dialog.open)dialog.showModal();
  });
  el('api-provider').addEventListener('change',()=>{el('api-model').value=el('api-provider').value==='deepseek'?'deepseek-flash':'';el('api-key').value='';fields()});
  el('api-close').onclick=()=>{el('api-key').value='';dialog.close()};
@@ -227,80 +304,215 @@ expandKitchen.addEventListener('click',async()=>{try{await document.documentElem
   if(!feedbackText)return;const url=URL.createObjectURL(new Blob([feedbackText],{type:'application/json'}));
   const a=document.createElement('a');a.href=url;a.download='chefjeff-run-'+JSON.parse(feedbackText).round_id+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
  };
-
 })();
 </script>
 <style>
-#kitchen-help-dialog{box-sizing:border-box;width:min(620px,calc(100vw - 28px));max-height:90vh;overflow:auto;padding:28px;border:3px solid #795539;box-shadow:7px 7px #382f29;background:#fff5dc;color:#382f29;font:15px/1.7 system-ui,sans-serif}
-#kitchen-help-dialog::backdrop{background:#251e18b8}
-#kitchen-help-dialog h2{margin:0 0 16px}#kitchen-help-dialog dt{font-weight:700;margin-top:12px}#kitchen-help-dialog dd{margin:0;color:#786b59}
-#kitchen-help-dialog button{padding:12px 20px;border:1px solid #795539;background:#f6e8ca;color:#382f29;font:600 15px system-ui;cursor:pointer}
-#kitchen-help-dialog button:focus-visible{outline:3px solid #bb8130;outline-offset:2px}
+#kitchen-help-dialog{width:min(680px,calc(100vw - 28px))}
+#kitchen-help-dialog [hidden]{display:none!important}
+.keymap{display:grid;grid-template-columns:minmax(150px,auto) 1fr;gap:14px 20px;align-items:center;margin:4px 0 8px;color:var(--ink)}
+.keymap .keys{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font:12px/16px var(--pixel);color:var(--muted)}
+#kitchen-help-dialog dl{margin:0}
+#kitchen-help-dialog dt{margin-top:14px;font:12px/16px var(--pixel);color:var(--ink)}
+#kitchen-help-dialog dt:first-child{margin-top:0}
+#kitchen-help-dialog dd{margin:4px 0 0;color:var(--muted)}
+.dlg-foot{display:flex;justify-content:flex-end;padding:0 24px 24px}
 </style>
-<dialog id="kitchen-help-dialog" aria-labelledby="help-title">
-<h2 id="help-title">操作说明</h2>
-<dl>
-<dt>第二关 · 汉堡</dt><dd>单间厨房由横向长柜台分为上下工作区，右侧通道相连。3 份汉堡，240 游戏秒，1 口锅、1 个灶台、2 只盘子、2 块案板；需要回收洗盘。食材和装盘规则与第三关相同。</dd>
-<dt>第三关 · 牛-堡</dt><dd>开始前选择第三关。两个灶台、三口锅，备用空锅在右上柜台。面包直接装盘；生菜和番茄切好，牛肉切好后煎熟。可手持盘从案板或柜台收集切好蔬菜和面包，也能给队友手中盘加料。两盘无重复配料可合并：成品留手中，柜台留空盘。牛肉须先煎熟；缺料不能出餐。牛排 2 单、汉堡 3 单，顺序每局随机。</dd>
-  <dt>冲刺 · 双击同一方向键</dt><dd>所有关卡双击同一个 WASD 或方向键，然后按住移动：速度 1.4 倍，持续 1 秒，结束后冷却 3 秒。持物也能冲刺，不加速切菜或洗碗。AI 使用相同规则；没有单独开关。暂停时计时冻结。</dd>
-  <dt>移动 · WASD / 方向键 / 鼠标</dt><dd>按住方向键移动，松开停止。鼠标点地面或工位可走近；键盘移动会接管当前动作。</dd>
-<dt>操作 · 短按空格</dt><dd>点击工位或地上物品后，空格只操作选中目标；条件不满足时给出提示。方向移动或点击空地解除选择，自动锁定面前格子。地上空锅可先放切好的牛肉，再按空格端锅，离灶不加热。底部文字会显示将执行的动作：取料、放到案板、切菜、拿起、下锅、装盘、洗碗或出餐。正在加工时再按空格可停下，进度保留。</dd>
-<dt>放下和拾取</dt><dd>身边没有可操作工位时，手中物品放在脚边，空手拾取最近的地面物品。拿干净盘靠近地上的熟锅，也能盛菜。想把物品放到地上时，先离开工位。</dd>
-<dt>抛掷 · 长按空格 + 左键 / 右键 + 左键</dt><dd>空格按住约 0.3 秒，再左键点落点；松开取消。也可右键准备，再左键抛出或右键取消。最远 7 格，遇墙落在墙前。仅生食材和未装盘的切好原料可抛。餐盘、带盘菜、锅和灭火器不能抛，可放下再拾取；忙碌或手满的队友不会接住。</dd>
-<dt>餐具和锅</dt><dd>干净盘才可装菜。脏盘回收点取盘 → 放入水槽 → 空手洗碗 → 取净盘。没盘时可空手到锅边端锅，离灶停止加热；空锅需放回灶台。</dd>
-<dt>丢弃与消防</dt><dd>拿食材靠近垃圾桶按空格会销毁，扣 2 元；端锅则倒掉锅里的食物，保留空锅。拿起灭火器后靠近着火工位按空格，4 秒灭火。火每 8 秒向一格相邻柜台蔓延，不跨空地或墙；同时 5 个工位着火，本局结束。</dd>
-<dt>沟通 · 1–6 / 点击</dt><dd>打开左下角沟通菜单，点击偏好即可发送；“你做错了”是独立的红色描边按钮。也可按 1–5 表达偏好、按 6 纠错。共用 5 个实际秒冷却，暂停时也可发送。最新偏好只在本局有效；AI 在下一次正常请求中收到，自行判断如何配合，不强制分工或停止动作。纠错附带当时动作信息，但不指定正确答案。</dd>
-<dt>标记片段 · Shift</dt><dd>营业中按 Shift 标记当前时刻，不暂停、不打断动作。相邻两次标记间隔不超过 5 个实际秒时合并为一个区间，长按不重复。设置中的“导出本局”包含全部标记；标记不会发送给 AI。</dd>
-<dt>暂停 · Esc</dt><dd>暂停会停止锅火、订单和双方动作。从暂停菜单继续经营、重新开局、打开设置或查看本说明。重新开局会立即开始新一局，沿用当前配置与速度。更换 API、记忆和调用上限请在结算后或开局前进行。</dd>
-</dl>
-<button id="help-close" type="button">返回菜单</button>
+<dialog id="kitchen-help-dialog" class="panel" aria-labelledby="help-title">
+ <div class="dlg-head"><h2 id="help-title">操作说明</h2><button id="help-x" class="btn close" type="button" aria-label="返回菜单">×</button></div>
+ <div class="tabs" role="tablist" aria-label="说明分页">
+  <button class="tab" id="tab-keys" type="button" role="tab" aria-controls="help-keys" autofocus>基础操作</button>
+  <button class="tab" id="tab-rules" type="button" role="tab" aria-controls="help-rules">规则细节</button>
+  <button class="tab" id="tab-levels" type="button" role="tab" aria-controls="help-levels">关卡</button>
+ </div>
+ <div class="dlg-body">
+ <section id="help-keys" role="tabpanel" aria-labelledby="tab-keys">
+  <div class="keymap">
+   <span class="keys"><span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span></span><span>按住移动，松开停止；方向键也可以。只用键盘操作厨房。</span>
+   <span class="keys"><span class="key wide">Shift</span></span><span>冲刺：移动时按 Shift。1.4 倍速 1 秒，之后冷却 3 秒。</span>
+   <span class="keys"><span class="key wide">空格</span></span><span>对面前的东西做需要的事：取料、放下、下锅、装盘、切菜、洗碗、灭火、出餐。面前没有可用的，就用身边最近的。底部会提示将执行的动作。</span>
+   <span class="keys"><span class="key wide">按住空格</span></span><span>投掷：手里有东西、面前是空地时按住空格，角色停下并出现箭头，方向键改方向，松开扔出，最远 4 格；队友在这个方向上就扔给他。</span>
+   <span class="keys"><span class="key">Esc</span><span class="key">P</span></span><span>暂停与继续。</span>
+   <span class="keys"><span class="key wide">Enter</span></span><span>标记当前片段，导出本局时可以回看。</span>
+   <span class="keys"><span class="key">1</span>–<span class="key">5</span><span class="key">6</span></span><span>告诉 Jeff 你更想做哪类工作；6 表示他做错了。</span>
+  </div>
+ </section>
+ <section id="help-rules" role="tabpanel" aria-labelledby="tab-rules">
+  <dl>
+  <dt>冲刺 · Shift</dt><dd>移动时按 Shift：速度 1.4 倍，持续 1 秒，结束后冷却 3 秒。持物也能冲刺，不加速切菜或洗碗。AI 使用相同规则；没有单独开关。暂停时计时冻结。</dd>
+  <dt>移动 · WASD / 方向键</dt><dd>按住方向键移动，松开停止；走开会停下切菜和洗碗，进度保留。厨房里不用鼠标，左下角沟通菜单可以点。</dd>
+  <dt>操作 · 空格</dt><dd>空格对角色面前的东西起作用；面前没有可用的，就用身边最近的（不含身后）。要操作的工位会稍稍变明显。空格做面前需要的事：取料、放下、拿起、下锅、装盘、端锅、切菜、洗碗、灭火、出餐、丢进垃圾桶；手里有东西、面前是空地时，短按放下，按住瞄准投掷。条件不满足时底部给出提示。拿、放这类短动作按下后立刻按方向键，动作会先做完再走。正在切菜或洗碗时走开或按空格会停下，进度保留。地上空锅可先放切好的牛肉，再按空格端锅，离灶不加热。</dd>
+  <dt>放下和拾取</dt><dd>面前是工位时，空格只对这个工位操作，不会把东西放到地上。面前是空地时，空格先拿面前地上的东西，再拿脚下的，然后是身边最近的工位或物品，最后把手里的东西放在面前。拿干净盘面向地上的熟锅，也能盛菜。</dd>
+  <dt>抛掷与传菜 · 按住空格</dt><dd>手里有东西、面前是空地时按住空格约 0.3 秒，角色停下并出现方向箭头；按方向键改方向（8 个方向），松开扔出；队友在这个方向的射程内时扔给他。生食材、切好的原料、餐盘、装盘菜、锅和灭火器都能抛，最远 4 格。抛到射程尽头的地上，遇墙落在墙前。队友空手、在走路或站着时能接住；正在切菜、洗碗或手里有东西时不会被打断，东西落在他旁边，盘里的菜和锅里的东西都保留。玩家与 AI 规则相同。</dd>
+  <dt>餐具和锅</dt><dd>干净盘才可装菜。脏盘回收点取盘 → 放入水槽 → 空手按空格洗碗 → 取净盘。没盘时可空手到锅边端锅，离灶停止加热；空锅需放回灶台。</dd>
+  <dt>丢弃与消防</dt><dd>拿食材靠近垃圾桶按空格会销毁，扣 2 元；端锅则倒掉锅里的食物，保留空锅。拿起灭火器后面向着火工位按空格，4 秒灭火。火每 8 秒向一格相邻柜台蔓延，不跨空地或墙；同时 5 个工位着火，本局结束。</dd>
+  <dt>沟通 · 1–6 / 点击</dt><dd>打开左下角沟通菜单，点击偏好即可发送；“你做错了”是独立的红色描边按钮。也可按 1–5 表达偏好、按 6 纠错。共用 5 个实际秒冷却，暂停时也可发送。最新偏好只在本局有效；AI 在下一次正常请求中收到，自行判断如何配合，不强制分工或停止动作。纠错附带当时动作信息，但不指定正确答案。</dd>
+  <dt>标记片段 · Enter</dt><dd>营业中按 Enter 标记当前时刻，不暂停、不打断动作。相邻两次标记间隔不超过 5 个实际秒时合并为一个区间，长按不重复。设置中的“导出本局”包含全部标记；标记不会发送给 AI。</dd>
+  <dt>暂停与继续 · Esc / P</dt><dd>暂停会停止锅火、订单和双方动作。再按 Esc 或 P（键盘没有 Esc 键时用，如 iPad）或点「继续经营」回到厨房；也可重新开局、打开设置或查看本说明。结束本局、暂停中重新开局都会先请你确认；重新开局沿用当前配置与速度。更换 API、记忆和调用上限请在结算后或开局前进行。</dd>
+  </dl>
+ </section>
+ <section id="help-levels" role="tabpanel" aria-labelledby="tab-levels">
+  <dl>
+  <dt>第一关 · 牛排</dt><dd>牛排练习厨房，180 游戏秒。取生牛肉 → 案板切好 → 下锅煎熟 → 装进干净盘 → 出餐。每 30 秒来一张牛排单，每份 ¥50；关店时净收入达到 ¥150 即达标。熟了之后 10 秒内出锅，否则会糊，再过 8 秒着火。</dd>
+  <dt>第二关 · 汉堡</dt><dd>单间厨房由横向长柜台分为上下工作区，右侧通道相连。180 游戏秒，每 40 秒来一张汉堡单，每份 ¥80；关店时净收入达到 ¥150 即达标。1 口平底锅、1 个灶台、2 只盘子、2 块案板；需要回收洗盘。食材和灶台在上、案板在下，可以隔着柜台传递。</dd>
+  <dt>第三关 · 牛-堡</dt><dd>两个灶台、三口平底锅，备用的空平底锅在右上柜台。面包直接装盘；生菜和番茄切好，牛肉切好后煎熟。可手持盘从案板或柜台收集切好蔬菜和面包，也能给队友手中盘加料。两盘无重复配料可合并：成品留手中，柜台留空盘。牛肉须先煎熟；缺料不能出餐。180 游戏秒，每 30 秒来一单牛排或汉堡（¥50／¥80），关店时净收入达到 ¥190 即达标。</dd>
+  </dl>
+ </section>
+ </div>
+ <div class="dlg-foot"><button id="help-close" class="btn" type="button">返回菜单</button></div>
 </dialog>
 <script>
-(()=>{const help=document.getElementById('kitchen-help-dialog');window.addEventListener('kitchen-open-help',()=>{if(!help.open)help.showModal()});document.getElementById('help-close').onclick=()=>help.close();})();
+(()=>{
+ // Music and effects volume; the Cocos client reads the same key at start and listens for changes.
+ const key='chefjeff-audio',volume={music:.8,sfx:.8};
+ try{Object.assign(volume,JSON.parse(localStorage.getItem(key)||'{}'))}catch{}
+ for(const id of ['music','sfx']){
+  const input=document.getElementById('audio-'+id),out=document.getElementById('audio-'+id+'-value');
+  input.value=Math.round(volume[id]*100);out.textContent=input.value+'%';
+  input.addEventListener('input',()=>{
+   volume[id]=input.value/100;out.textContent=input.value+'%';
+   try{localStorage.setItem(key,JSON.stringify(volume))}catch{}
+   window.dispatchEvent(new CustomEvent('kitchen-audio-settings',{detail:{...volume}}));
+  });
+ }
+})();
+(()=>{const help=document.getElementById('kitchen-help-dialog'),showTab=kitchenTabs(help);
+ window.addEventListener('kitchen-open-help',()=>{showTab(document.getElementById('tab-keys'));if(!help.open)help.showModal()});
+ document.getElementById('help-close').onclick=document.getElementById('help-x').onclick=()=>help.close();})();
 </script>
 <style>
-#kitchen-communication{position:fixed;left:12px;bottom:24px;z-index:15;width:180px;color:#382f29;font:13px/1.4 system-ui,sans-serif}
-#kitchen-communication button{font:inherit;cursor:pointer;border:1px solid #795539;background:#fff5dc;color:#382f29;padding:7px 10px;text-align:left;width:100%}
-#kitchen-communication button:disabled{opacity:.55;cursor:default}
-#kitchen-communication button:focus-visible{outline:2px solid #4c7661;outline-offset:1px}
-#communication-options{background:#fff5dc;padding:6px;box-shadow:0 2px 5px #382f2955;margin-bottom:5px}
-#communication-options button{margin:2px 0}
-#kitchen-communication #communication-correction{margin-top:14px;border:2px solid #a54333;background:#fff0e7;color:#873426;font-weight:700}
-#communication-options button[aria-pressed=true]{background:#4c7661;color:#fff5dc}
-#communication-current,#communication-cooldown{display:block;background:#fff5dcee;padding:3px 6px;font-size:12px}
+/* End-of-round record: generated from the round's summary (round_summary.py), never per level. */
+#kitchen-record-dialog{width:min(560px,calc(100vw - 28px))}
+#record-result{margin:0 0 12px;color:var(--ink);font:15px/24px var(--pixel)}
+#record-table{width:100%;border-collapse:collapse;font:15px/22px var(--body);color:var(--ink)}
+#record-table th,#record-table td{padding:6px 8px;border-bottom:1px solid var(--surface);text-align:right;vertical-align:top}
+#record-table th:first-child,#record-table td:first-child{text-align:left}
+#record-table thead th{font:12px/16px var(--pixel);color:var(--muted);border-bottom:2px solid var(--walnut)}
+#record-table tr.category th{font:15px/22px var(--pixel);font-weight:400}
+#record-table tr.category td{font-weight:600}
+#record-table tr.detail th{padding-left:24px;font-weight:400;color:var(--muted)}
+#record-table tr.share th,#record-table tr.share td{border-top:2px solid var(--walnut);border-bottom:0;font-weight:600}
+#record-table tr.share2 th,#record-table tr.share2 td{border-bottom:0;font-weight:600}
+#record-table .note{display:block;font-size:12px;line-height:16px;color:var(--muted);font-weight:400;white-space:nowrap}
+</style>
+<dialog id="kitchen-record-dialog" class="panel" aria-labelledby="record-title">
+ <div class="dlg-head"><h2 id="record-title">本局记录</h2><button id="record-x" class="btn close" type="button" aria-label="返回结算">×</button></div>
+ <div class="dlg-body">
+  <p id="record-result"></p>
+  <table id="record-table">
+   <thead><tr><th scope="col">工作</th><th scope="col">你</th><th scope="col">Jeff</th></tr></thead>
+   <tbody></tbody>
+  </table>
+  <p>按完成的动作计数；两人一起切的菜各记一次。</p>
+  <p>贡献：出了餐的菜里，每人做的步骤按标准时间计算的占比（配置里的切菜、拿放等操作时间，加搬运所需的最短走路；煎、煮不算给任何人）。</p>
+  <p>拖延：每道菜比理想做法晚出的秒数，按两人各自做到理想能省多少来分摊。空转：做了但没用上的动作（比如来回换手）和等待的时间；你自己走动看不出是否空转，所以你的空转只是下限。</p>
+  <p>这三项的算法还在试验，欢迎在 GitHub Issue 里告诉我们是否合理。</p>
+ </div>
+ <div class="dlg-foot"><button id="record-close" class="btn primary" type="button">返回结算</button></div>
+</dialog>
+<script>
+(()=>{const dialog=document.getElementById('kitchen-record-dialog'),body=dialog.querySelector('tbody');
+ // Engine work categories (shared by every level); details and names come from the round itself.
+ const CATEGORY={fetch:'取食材',chop:'切菜',heat:'下锅加热',assemble:'装盘与组装',serve:'出餐',wash:'刷碗',
+  collect_plates:'收脏盘',pass:'抛接传递',extinguish:'灭火',discard:'丢弃与清锅'};
+ const DETAIL={served:'已出餐',wrong_dish:'送错',refused:'拒收',thrown:'抛出',caught:'接住',
+  discard:'丢弃食物',clear:'清理糊锅',empty_pot:'倒掉锅里食物'};
+ const NOTE={cooked:'熟',burnt:'糊',shared:'合切'};
+ const CHEFS=['human','jeff'];
+ function add(parent,tag,text,cls){const n=document.createElement(tag);if(text!=null)n.textContent=text;if(cls)n.className=cls;parent.appendChild(n);return n;}
+ function line(kind,label,counts,detail){
+  const tr=add(body,'tr',null,kind),th=add(tr,'th',null);th.scope='row';tr.dataset.kind=kind;
+  for(const part of label)add(th,'span',part);
+  for(const who of CHEFS){const td=add(tr,'td',String(counts[who]??0));
+   for(const key of Object.keys(NOTE))if(detail&&detail[key]&&detail[key][who])add(td,'span',`${NOTE[key]} ${detail[key][who]}`,'note');}
+  return tr;
+ }
+ function render(s){
+  const r=s.result||{};
+  document.getElementById('record-result').textContent=r.target_money!=null
+   ?`出餐 ${r.served} 单 · 净收入 ¥${r.money} / ¥${r.target_money}`:`出餐 ${r.served} 单`;
+  body.textContent='';
+  for(const row of s.rows||[]){
+   line('category',[CATEGORY[row.category]||row.category],row.counts);
+   for(const d of row.details||[]){
+    const label=d.outcome?[DETAIL[d.outcome]||d.outcome,' · ',d.name||d.dish]:[d.name||DETAIL[d.id]||d.id];
+    // Details with neither a name nor a known label would only repeat their category.
+    if(d.name||d.outcome||DETAIL[d.id]||Object.keys(NOTE).some(k=>d[k]))line('detail',label,d.counts,d);
+   }
+  }
+  // Contribution by standard time, delay and idle time (owner decision 2026-10-02, shown for
+  // community feedback). The critical path and actual-time effort stay in the data only.
+  const c=s.contribution||{},pct=v=>v==null?'–':`${Math.round(v*100)}%`;
+  const timeRow=(kind,label,block)=>{
+   if(!block||!CHEFS.some(w=>block.share?.[w]!=null))return;
+   const tds=line(kind,[label],Object.fromEntries(CHEFS.map(w=>[w,pct(block.share[w])]))).querySelectorAll('td');
+   CHEFS.forEach((w,i)=>add(tds[i],'span',`标准时间 ${Math.round(block.seconds?.[w]||0)} 秒`,'note'));
+  };
+  timeRow('share','贡献（标准时间）',c.standard);
+  const secondsRow=(label,seconds)=>{
+   if(!seconds||!CHEFS.some(w=>seconds[w]!=null))return;
+   line('share2',[label],Object.fromEntries(CHEFS.map(w=>[w,`${Math.round(seconds[w]||0)} 秒`])));
+  };
+  secondsRow('拖延出餐',c.delay_seconds);
+  secondsRow('空转',c.idle_seconds);
+ }
+ window.addEventListener('kitchen-open-record',e=>{render(e.detail||{});if(!dialog.open)dialog.showModal();});
+ window.addEventListener('kitchen-state',e=>{if(e.detail?.phase!=='ended'&&dialog.open)dialog.close();});
+ document.getElementById('record-close').onclick=document.getElementById('record-x').onclick=()=>dialog.close();})();
+</script>
+<style>
+/* Communication dock: pinned to the game's lower-left corner in design pixels, scaled with it. */
+#kitchen-communication{position:fixed;left:calc(var(--gx) + 12px * var(--gs));bottom:calc(var(--gy) + 20px * var(--gs));transform:scale(var(--gs));transform-origin:left bottom;z-index:15;
+ width:200px;box-sizing:border-box;padding:6px;display:grid;gap:4px;background:var(--paper);color:var(--ink);border:2px solid var(--walnut);box-shadow:4px 4px 0 var(--ink);font:12px/16px var(--pixel)}
+#kitchen-communication button{display:flex;align-items:center;gap:8px;width:100%;box-sizing:border-box;padding:5px 6px;font:inherit;color:var(--ink);background:transparent;border:0;text-align:left;cursor:pointer}
+#kitchen-communication button:hover{background:var(--honey-tint)}
+#kitchen-communication button:disabled{color:var(--muted);cursor:default;background:transparent}
+#communication-options{display:grid;gap:2px;padding-bottom:4px;border-bottom:1px solid var(--walnut)}
+#communication-options button[aria-pressed=true]{background:var(--denim);color:var(--paper)}
+#communication-toggle{justify-content:space-between;color:var(--walnut)!important}
+#communication-current,#communication-cooldown{display:block;padding:0 6px;color:var(--muted)}
+#communication-meter{height:4px;margin:2px 6px 0;background:var(--surface);border:1px solid var(--ink)}
+#communication-meter span{display:block;height:100%;width:0;background:var(--steel)}
+#kitchen-communication #communication-correction{margin-top:4px;border:2px solid var(--tomato);color:var(--tomato)}
+#communication-slip{margin:2px 0 0;justify-self:start}
 </style>
 <aside id="kitchen-communication" aria-label="队友沟通" hidden>
- <div id="communication-options" hidden>
-  <button type="button" data-code="prep" aria-pressed="false">1 · 我更爱备菜</button>
-  <button type="button" data-code="cook" aria-pressed="false">2 · 我更爱烹饪</button>
-  <button type="button" data-code="plate" aria-pressed="false">3 · 我更爱摆盘</button>
-  <button type="button" data-code="deliver" aria-pressed="false">4 · 我更爱传菜</button>
-  <button type="button" data-code="wash" aria-pressed="false">5 · 我更爱洗盘子</button>
+ <div id="communication-options">
+  <button type="button" data-code="prep" aria-pressed="false"><span class="key sm">1</span>我更爱备菜</button>
+  <button type="button" data-code="cook" aria-pressed="false"><span class="key sm">2</span>我更爱烹饪</button>
+  <button type="button" data-code="plate" aria-pressed="false"><span class="key sm">3</span>我更爱摆盘</button>
+  <button type="button" data-code="deliver" aria-pressed="false"><span class="key sm">4</span>我更爱传菜</button>
+  <button type="button" data-code="wash" aria-pressed="false"><span class="key sm">5</span>我更爱洗盘子</button>
  </div>
- <button id="communication-toggle" type="button" aria-expanded="false" aria-controls="communication-options">沟通 · 1–6</button>
+ <button id="communication-toggle" type="button" aria-expanded="true" aria-controls="communication-options">沟通 · 1–6<span aria-hidden="true">▼</span></button>
  <span id="communication-current"></span><span id="communication-cooldown"></span>
- <button id="communication-correction" type="button" data-code="mistake">! 6 · 你做错了</button>
+ <div id="communication-meter" aria-hidden="true"><span></span></div>
+ <p id="communication-slip" class="slip" role="status" aria-live="polite" hidden></p>
+ <button id="communication-correction" type="button" data-code="mistake"><span class="key sm">6</span>你做错了</button>
 </aside>
 <script>
 (()=>{
  const dock=document.getElementById('kitchen-communication'),panel=document.getElementById('communication-options'),toggle=document.getElementById('communication-toggle');
  const buttons=[...dock.querySelectorAll('button[data-code]')],codes=buttons.map(b=>b.dataset.code);
  const labels={prep:'偏好：备菜',cook:'偏好：烹饪',plate:'偏好：摆盘',deliver:'偏好：传菜',wash:'偏好：洗盘子'};
- let state=null,busy=false,until=0;
+ const meter=document.querySelector('#communication-meter span'),slip=document.getElementById('communication-slip');
+ let state=null,busy=false,until=0,slipTimer=0;const COOLDOWN=5000;
  function render(){
   const allowed=!!state?.communication?.allowed;
+  // Opens expanded; stays as the player last left it (the whole dock hides between rounds).
   dock.hidden=!allowed;
-  if(!allowed){panel.hidden=true;toggle.setAttribute('aria-expanded','false')}
   const cooling=performance.now()<until;
   for(const button of buttons){button.disabled=!allowed||busy||cooling;if(button.dataset.code!=='mistake')button.setAttribute('aria-pressed',String(state?.communication?.preference===button.dataset.code))}
   const current=document.getElementById('communication-current');
   const text=labels[state?.communication?.preference]||'偏好：尚未表达';
   if(current.dataset.source!==text){current.dataset.source=text;current.textContent=text}
   const cooldown=document.getElementById('communication-cooldown');
-  const message=cooling?'冷却 '+Math.ceil((until-performance.now())/1000)+'s':'点击选项或按 1–6 发送';
+  const left=Math.max(0,until-performance.now());
+  const message=cooling?'冷却 '+Math.ceil(left/1000)+'s':'点击选项或按 1–6 发送';
   if(cooldown.dataset.source!==message){cooldown.dataset.source=message;cooldown.textContent=message}
+  meter.style.width=(cooling?Math.min(100,left/COOLDOWN*100):0)+'%';
  }
- function notice(message){window.dispatchEvent(new CustomEvent('kitchen-bookmark-notice',{detail:{message}}))}
+ // Confirmation shows in the dock itself, next to what was pressed.
+ function notice(message){slip.textContent=message;slip.hidden=false;clearTimeout(slipTimer);slipTimer=setTimeout(()=>{slip.hidden=true},2000)}
  async function send(code){
   if(!state?.communication?.allowed||busy)return;
   if(performance.now()<until){notice('沟通冷却中，请稍后再发。');return}
@@ -317,8 +529,9 @@ expandKitchen.addEventListener('click',async()=>{try{await document.documentElem
   }catch(error){if(state?.game_id===round)notice(error.message||'沟通未确认，请检查导出记录。')}
   finally{clearTimeout(timer);busy=false;render()}
  }
- toggle.onclick=()=>{panel.hidden=!panel.hidden;toggle.setAttribute('aria-expanded',String(!panel.hidden))};
- for(const button of buttons)button.onclick=()=>send(button.dataset.code);
+ // Mouse clicks return focus to the game so Space/Tab keep working; keyboard use keeps focus.
+ toggle.onclick=e=>{panel.hidden=!panel.hidden;toggle.setAttribute('aria-expanded',String(!panel.hidden));toggle.lastElementChild.textContent=panel.hidden?'▲':'▼';if(e.detail)toggle.blur()};
+ for(const button of buttons)button.onclick=e=>{send(button.dataset.code);if(e.detail)button.blur()};
  window.addEventListener('kitchen-state',event=>{state=event.detail;until=performance.now()+(state.communication?.cooldown_remaining||0)*1000;render()});
  window.addEventListener('keydown',event=>{
   if(event.isComposing||event.repeat||event.ctrlKey||event.altKey||event.metaKey||event.shiftKey||document.querySelector('dialog[open]'))return;
@@ -326,6 +539,45 @@ expandKitchen.addEventListener('click',async()=>{try{await document.documentElem
   if(state?.communication?.allowed&&/^[1-6]$/.test(event.key)){event.preventDefault();event.stopImmediatePropagation();send(codes[Number(event.key)-1])}
  },true);
  setInterval(()=>{if(!dock.hidden)render()},200);
+})();
+</script>
+<style>
+#kitchen-confirm-dialog{width:min(420px,calc(100vw - 28px))}
+#kitchen-confirm-dialog .dlg-body{padding:24px}
+#kitchen-confirm-dialog h2{margin:0 0 8px;font:24px/28px var(--pixel);font-weight:400}
+#kitchen-confirm-dialog p{margin:0;color:var(--ink)}
+#kitchen-confirm-dialog .actions{justify-content:flex-end;margin-top:24px}
+#kitchen-live{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}#kitchen-live span{display:block}
+.sr-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+</style>
+<dialog id="kitchen-confirm-dialog" class="panel" aria-labelledby="confirm-title" aria-describedby="confirm-text">
+ <div class="dlg-body">
+ <h2 id="confirm-title">结束本局？</h2>
+ <p id="confirm-text">本局会立即结算，当前进度不会保留。</p>
+ <div class="actions"><button id="confirm-cancel" class="btn" type="button">继续经营</button><button id="confirm-ok" class="btn danger" type="button">结束本局</button></div>
+ </div>
+</dialog>
+<div id="kitchen-live" role="status" aria-live="polite"></div>
+<script>
+(()=>{
+ // Confirms ending or abandoning a live round. The safe choice is first and focused.
+ const dialog=document.getElementById('kitchen-confirm-dialog'),el=id=>document.getElementById(id);let pending=null;
+ const copy={end:['结束本局？','本局会立即结算，当前进度不会保留。','结束本局'],restart:['重新开局？','当前这局会被放弃，并立即开始新的一局。','重新开局']};
+ window.addEventListener('kitchen-confirm',e=>{
+  pending=e.detail;const [title,text,ok]=copy[pending.kind];
+  el('confirm-title').textContent=title;el('confirm-text').textContent=text;el('confirm-ok').textContent=ok;
+  el('confirm-cancel').textContent=pending.resume?'继续经营':'返回';
+  dialog.returnValue='';if(!dialog.open)dialog.showModal();el('confirm-cancel').focus();
+ });
+ el('confirm-ok').onclick=()=>dialog.close('ok');el('confirm-cancel').onclick=()=>dialog.close('cancel');
+ dialog.addEventListener('close',()=>{if(!pending)return;const detail={...pending,ok:dialog.returnValue==='ok'};pending=null;
+  window.dispatchEvent(new CustomEvent('kitchen-confirmed',{detail}))});
+ // Game results for screen readers, batched so bursts read as one polite update.
+ const live=el('kitchen-live');let queue=[],timer=0;
+ window.addEventListener('kitchen-announce',e=>{
+  queue.push(...String(e.detail.message).split('\n').filter(Boolean));clearTimeout(timer);
+  timer=setTimeout(()=>{live.replaceChildren(...queue.slice(-4).map(m=>{const s=document.createElement('span');s.textContent=m;return s}));queue=[]},600);
+ });
 })();
 </script>
 </body>

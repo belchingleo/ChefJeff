@@ -1,0 +1,308 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "recipe.schema.json",
+  "title": "Recipe catalog: items, states, shared transforms and dishes",
+  "description": "Transforms are defined once per item and shared by every recipe; each recipe's step DAG is derived from its components.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "kind",
+    "id",
+    "version",
+    "items",
+    "containers",
+    "transforms",
+    "recipes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "kind": {
+      "const": "recipe_catalog"
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/content_id"
+    },
+    "version": {
+      "$ref": "common.schema.json#/$defs/version"
+    },
+    "name": {
+      "$ref": "common.schema.json#/$defs/display_name"
+    },
+    "items": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "$ref": "common.schema.json#/$defs/ident"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/item"
+      }
+    },
+    "containers": {
+      "type": "object",
+      "required": [
+        "plate",
+        "pot"
+      ],
+      "properties": {
+        "plate": {
+          "type": "object",
+          "required": [
+            "name",
+            "wash_work_game_ms"
+          ],
+          "properties": {
+            "name": {
+              "$ref": "common.schema.json#/$defs/display_name"
+            },
+            "wash_work_game_ms": {
+              "$ref": "common.schema.json#/$defs/positive_game_ms"
+            }
+          },
+          "additionalProperties": false
+        },
+        "pot": {
+          "type": "object",
+          "required": [
+            "name"
+          ],
+          "properties": {
+            "name": {
+              "$ref": "common.schema.json#/$defs/display_name"
+            }
+          },
+          "additionalProperties": false
+        },
+        "pan": {
+          "type": "object",
+          "required": [
+            "name"
+          ],
+          "properties": {
+            "name": {
+              "$ref": "common.schema.json#/$defs/display_name"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "transforms": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/transform"
+      }
+    },
+    "recipes": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "$ref": "common.schema.json#/$defs/ident"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/recipe"
+      }
+    },
+    "extensions": {
+      "$ref": "common.schema.json#/$defs/extensions"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "state": {
+      "enum": [
+        "raw",
+        "chopped",
+        "cooking",
+        "ready",
+        "burnt"
+      ]
+    },
+    "item": {
+      "type": "object",
+      "required": [
+        "name",
+        "states",
+        "initial_state",
+        "platable_states",
+        "throwable_states"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "common.schema.json#/$defs/display_name"
+        },
+        "states": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/state"
+          }
+        },
+        "initial_state": {
+          "$ref": "#/$defs/state"
+        },
+        "platable_states": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/state"
+          }
+        },
+        "throwable_states": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/state"
+          }
+        },
+        "state_names": {
+          "description": "Optional display name per state; otherwise the item name is used.",
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/state"
+          },
+          "additionalProperties": {
+            "$ref": "common.schema.json#/$defs/display_name"
+          }
+        },
+        "color": {
+          "description": "Display only: fallback swatch when no art exists, #rrggbb.",
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "transform": {
+      "type": "object",
+      "required": [
+        "id",
+        "operation",
+        "item",
+        "from",
+        "to",
+        "work_game_ms"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/ident"
+        },
+        "operation": {
+          "enum": [
+            "chop",
+            "heat"
+          ]
+        },
+        "item": {
+          "$ref": "common.schema.json#/$defs/ident"
+        },
+        "from": {
+          "$ref": "#/$defs/state"
+        },
+        "to": {
+          "$ref": "#/$defs/state"
+        },
+        "work_game_ms": {
+          "$ref": "common.schema.json#/$defs/positive_game_ms"
+        },
+        "container": {
+          "description": "Vessel the heat step happens in: pot (boil) or pan (fry).",
+          "enum": [
+            "pot",
+            "pan"
+          ]
+        },
+        "overcook": {
+          "type": "object",
+          "required": [
+            "state",
+            "after_done_game_ms",
+            "fire_after_overcook_game_ms"
+          ],
+          "properties": {
+            "state": {
+              "const": "burnt"
+            },
+            "after_done_game_ms": {
+              "$ref": "common.schema.json#/$defs/positive_game_ms"
+            },
+            "fire_after_overcook_game_ms": {
+              "$ref": "common.schema.json#/$defs/positive_game_ms"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "recipe": {
+      "type": "object",
+      "required": [
+        "name",
+        "container",
+        "components",
+        "price"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "common.schema.json#/$defs/display_name"
+        },
+        "container": {
+          "const": "plate"
+        },
+        "components": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "required": [
+              "item",
+              "state",
+              "label"
+            ],
+            "properties": {
+              "item": {
+                "$ref": "common.schema.json#/$defs/ident"
+              },
+              "state": {
+                "$ref": "#/$defs/state"
+              },
+              "label": {
+                "$ref": "common.schema.json#/$defs/display_name"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "price": {
+          "$ref": "common.schema.json#/$defs/money"
+        },
+        "plating": {
+          "description": "Display only: drawn layers from bottom to top. Dishes without it are drawn as one plated sprite.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "layer",
+              "item"
+            ],
+            "properties": {
+              "layer": {
+                "$ref": "common.schema.json#/$defs/ident"
+              },
+              "item": {
+                "$ref": "common.schema.json#/$defs/ident"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,888 @@
+{
+  "_doc": "Every generated sound. kind: chip = 8-bit (UI/orders/serve/results), real = recorded-style SFX, music = 8-bit loop, ambience = real loop. takes: prompt + seeds (+ optional seconds) per listening round; 'pick' is the approved candidate (a seed, 'synth_*' for code-synthesised chiptune, or 'reuse' for another approved sound). The model fills the requested duration, so max_seconds caps one-shots and single keeps only the first event; cut_first_gap_after drops a stray trailing note. Fixed entries were settled in listening rounds.",
+  "sounds": [
+    {
+      "id": "bgm_menu",
+      "kind": "music",
+      "loop": true,
+      "seconds": 32,
+      "zh": "开门前音乐",
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "gentle 8-bit chiptune music loop, NES style, relaxed cozy cafe morning, soft square wave melody, warm triangle bass, light noise percussion, 90 BPM, no vocals",
+          "seeds": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        {
+          "name": "v2",
+          "prompt": "smooth flowing 8-bit chiptune music loop, NES style, relaxed cozy cafe morning, legato sustained square wave melody, soft pulse wave chords, gentle triangle bass, light soft percussion, 90 BPM, no vocals",
+          "seeds": [
+            5,
+            6,
+            7,
+            8
+          ]
+        }
+      ],
+      "pick": 5
+    },
+    {
+      "id": "bgm_service",
+      "kind": "music",
+      "loop": true,
+      "seconds": 64,
+      "zh": "营业中音乐",
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "upbeat 8-bit chiptune music loop, NES style, busy cheerful cooking game, catchy square wave melody, bouncy triangle bass, noise channel drums, 120 BPM, no vocals",
+          "seeds": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        {
+          "name": "v2",
+          "prompt": "happy bright upbeat 8-bit chiptune music loop, NES style, joyful playful cooking game, major key, cheerful bouncy square wave melody, lively triangle bass, fun noise drums, 125 BPM, no vocals",
+          "seeds": [
+            5,
+            6,
+            7,
+            8
+          ]
+        }
+      ],
+      "pick": 3
+    },
+    {
+      "id": "bgm_rush",
+      "kind": "music",
+      "loop": true,
+      "seconds": 32,
+      "zh": "最后冲刺音乐",
+      "pick": 2,
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "fast intense 8-bit chiptune music loop, NES style, urgent final countdown, rapid square wave arpeggios, driving triangle bass, energetic noise drums, 150 BPM, no vocals",
+          "seeds": [
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "id": "amb_kitchen",
+      "kind": "ambience",
+      "loop": true,
+      "seconds": 30,
+      "zh": "厨房底噪",
+      "pick": 3,
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "quiet restaurant kitchen room tone, steady extractor hood hum, distant soft dish clatter, no music, no voices",
+          "seeds": [
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "id": "jingle_win",
+      "kind": "chip",
+      "seconds": 4,
+      "zh": "过关乐句",
+      "pick": 1,
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "short 8-bit victory jingle, NES style fanfare, rising square wave arpeggio ending on a bright major chord",
+          "seeds": [
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "id": "jingle_lose",
+      "kind": "chip",
+      "seconds": 4,
+      "zh": "失败乐句",
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "short 8-bit game over jingle, NES style, comedic descending wah wah wah, square wave, gentle not harsh",
+          "seeds": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        {
+          "name": "v2",
+          "prompt": "short smooth 8-bit game over jingle, NES style, gentle descending legato melody, soft square wave, comedic but warm, not harsh",
+          "seeds": [
+            5,
+            6,
+            7,
+            8
+          ]
+        }
+      ],
+      "cut_first_gap_after": 1.0,
+      "pick": 8
+    },
+    {
+      "id": "ui_click",
+      "kind": "chip",
+      "seconds": 1,
+      "zh": "按钮点击",
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "8-bit UI menu select blip, single very short square wave click, NES style",
+          "seeds": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        {
+          "name": "v2",
+          "prompt": "soft 8-bit menu cursor sound, one short warm mid-pitched square wave beep, NES style, gentle",
+          "seeds": [
+            5,
+            6,
+            7,
+            8
+          ]
+        }
+      ],
+      "pick": 1
+    },
+    {
+      "id": "ui_blocked",
+      "kind": "chip",
+      "seconds": 1,
+      "zh": "操作不可用",
+      "pick": 4,
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "8-bit error sound, short low square wave buzz, NES style invalid menu choice",
+          "seeds": [
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ui_pause",
+      "kind": "chip",
+      "seconds": 1,
+      "zh": "暂停",
+      "pick": 1,
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "8-bit pause sound, two quick descending square wave notes, NES style",
+          "seeds": [
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ui_resume",
+      "kind": "chip",
+      "seconds": 1,
+      "zh": "继续",
+      "pick": 3,
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "8-bit resume sound, two quick ascending square wave notes, NES style",
+          "seeds": [
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "id": "order_new",
+      "kind": "chip",
+      "seconds": 1.5,
+      "zh": "新订单",
+      "max_seconds": 0.9,
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "8-bit notification chime, bright two-note bell ding, NES style new order alert",
+          "seeds": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        {
+          "name": "v2",
+          "prompt": "8-bit doorbell chime, friendly clean two-note ding-dong, soft square wave, NES style new customer",
+          "seeds": [
+            5,
+            6,
+            7,
+            8
+          ]
+        },
+        {
+          "name": "v3",
+          "prompt": "retro 8-bit video game item appear sound, NES style, square wave chiptune blip",
+          "seeds": [
+            9,
+            10,
+            11,
+            12
+          ],
+          "seconds": 1
+        }
+      ],
+      "synth": true,
+      "pick": "synth_b"
+    },
+    {
+      "id": "order_urgent",
+      "kind": "chip",
+      "seconds": 2,
+      "zh": "订单快超时",
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "8-bit warning beeps, rapid ticking alarm, NES style hurry up",
+          "seeds": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        {
+          "name": "v2",
+          "prompt": "gentle 8-bit countdown ticking beeps, mid-low pitch, soft square wave, NES style hurry up, not piercing",
+          "seeds": [
+            5,
+            6,
+            7,
+            8
+          ]
+        }
+      ],
+      "pick": 7
+    },
+    {
+      "id": "order_expired",
+      "kind": "chip",
+      "seconds": 1.5,
+      "zh": "订单过期",
+      "max_seconds": 0.9,
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "8-bit failure sound, short descending square wave buzz, NES style missed chance",
+          "seeds": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        {
+          "name": "v2",
+          "prompt": "8-bit sad descending two-note tone, soft square wave, NES style, gentle disappointment",
+          "seeds": [
+            5,
+            6,
+            7,
+            8
+          ]
+        },
+        {
+          "name": "v3",
+          "prompt": "retro 8-bit video game lose sound, NES style, square wave chiptune blip",
+          "seeds": [
+            9,
+            10,
+            11,
+            12
+          ],
+          "seconds": 1
+        }
+      ],
+      "synth": true,
+      "pick": "synth_b"
+    },
+    {
+      "id": "serve_ok",
+      "kind": "chip",
+      "seconds": 2,
+      "zh": "出餐成功",
+      "pick": 1,
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "8-bit cash register coin sound, cheerful ka-ching with coin blips, NES style success",
+          "seeds": [
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "id": "serve_bad",
+      "kind": "chip",
+      "seconds": 1.5,
+      "zh": "差评",
+      "max_seconds": 0.7,
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "8-bit wrong answer buzzer, low dissonant square wave, NES style disappointment",
+          "seeds": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        {
+          "name": "v2",
+          "prompt": "8-bit short uh-oh sound, two low descending notes, soft square wave, NES style, gentle",
+          "seeds": [
+            5,
+            6,
+            7,
+            8
+          ]
+        },
+        {
+          "name": "v3",
+          "prompt": "retro 8-bit video game wrong answer sound, NES style, square wave chiptune blip",
+          "seeds": [
+            9,
+            10,
+            11,
+            12
+          ],
+          "seconds": 1
+        }
+      ],
+      "synth": true,
+      "show_synth": [
+        "synth_c",
+        "synth_d",
+        "synth_e"
+      ],
+      "compare": [
+        "order_expired",
+        "ui_blocked"
+      ],
+      "pick": "synth_e"
+    },
+    {
+      "id": "fridge_grab",
+      "kind": "real",
+      "seconds": 2,
+      "zh": "开冰箱取料",
+      "max_seconds": 1.6,
+      "pick": 1,
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "refrigerator door opening with a suction pop, grabbing a wrapped package of meat, door closing, kitchen, close mic, dry",
+          "seeds": [
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "id": "place_board",
+      "kind": "real",
+      "seconds": 1,
+      "zh": "食材放案板",
+      "max_seconds": 0.4,
+      "single": true,
+      "pick": 1,
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "placing a piece of raw meat onto a wooden cutting board, soft wet slap, close mic, dry",
+          "seeds": [
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pickup",
+      "kind": "real",
+      "seconds": 1,
+      "zh": "拿起物品",
+      "max_seconds": 0.5,
+      "single": true,
+      "pick": 1,
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "quickly picking up a food item from a kitchen counter, soft short cloth whoosh, close mic, dry",
+          "seeds": [
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "id": "discard",
+      "kind": "real",
+      "seconds": 1.5,
+      "zh": "丢进垃圾桶（也用于清锅（倒掉））",
+      "max_seconds": 0.7,
+      "single": true,
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "food dropped into a kitchen trash bin, soft thud, plastic bin lid clap, close mic, dry",
+          "seeds": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        {
+          "name": "v2",
+          "prompt": "dumping leftover food from a pan into a trash can, soft thud and rustle of scraps, plastic bin, close mic, dry, no music",
+          "seeds": [
+            5,
+            6,
+            7,
+            8
+          ]
+        },
+        {
+          "name": "v3",
+          "prompt": "garbage falling into a trash can, close mic, dry",
+          "seeds": [
+            9,
+            10,
+            11,
+            12
+          ],
+          "seconds": 1
+        }
+      ],
+      "reuse": {
+        "id": "land",
+        "seed": 2
+      },
+      "pick": 9
+    },
+    {
+      "id": "pan_sizzle_start",
+      "kind": "real",
+      "seconds": 2,
+      "zh": "下锅",
+      "pick": 1,
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "raw steak placed into a hot oiled pan, sudden loud sizzle burst, close mic",
+          "seeds": [
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sizzle_loop",
+      "kind": "real",
+      "loop": true,
+      "seconds": 8,
+      "zh": "煎肉持续",
+      "pick": 1,
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "steak sizzling in a hot cast iron pan, steady oil crackle, close up, no voices",
+          "seeds": [
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "id": "food_ready",
+      "kind": "real",
+      "seconds": 2,
+      "zh": "熟了",
+      "max_seconds": 1.0,
+      "pick": 1,
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "mechanical kitchen timer bell ding, single clear ring, close mic, dry",
+          "seeds": [
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "id": "burnt_warn",
+      "kind": "real",
+      "seconds": 3,
+      "zh": "开始糊",
+      "pick": 1,
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "food burning in a pan, harsh crackling and hissing smoke, close mic",
+          "seeds": [
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fire_ignite",
+      "kind": "real",
+      "seconds": 2,
+      "zh": "起火",
+      "pick": 2,
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "grease fire igniting in a pan, sudden flame whoosh, close",
+          "seeds": [
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fire_loop",
+      "kind": "real",
+      "loop": true,
+      "seconds": 8,
+      "zh": "持续燃烧",
+      "pick": 1,
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "steady kitchen grease fire burning in a pan, crackling flames, low roar, close",
+          "seeds": [
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fire_spread",
+      "kind": "real",
+      "seconds": 2.5,
+      "zh": "火势蔓延",
+      "max_seconds": 2.0,
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "fire flaring up and spreading, big flame burst whoosh and roar",
+          "seeds": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        {
+          "name": "v2",
+          "prompt": "big whoosh as flames flare up and spread across a kitchen stove, roaring crackling fire burst, no music",
+          "seeds": [
+            5,
+            6,
+            7,
+            8
+          ]
+        }
+      ],
+      "pick": 1
+    },
+    {
+      "id": "extinguisher",
+      "kind": "real",
+      "seconds": 3,
+      "zh": "灭火器",
+      "pick": 4,
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "fire extinguisher spraying, pressurized hiss burst, close",
+          "seeds": [
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "id": "assemble",
+      "kind": "real",
+      "seconds": 1.5,
+      "zh": "组装汉堡",
+      "max_seconds": 0.8,
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "assembling a burger, placing bun, lettuce and patty onto a plate, soft squishy stack, close mic, dry",
+          "seeds": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        {
+          "name": "v2",
+          "prompt": "stacking a burger by hand, soft bun placed on a patty and lettuce, gentle squish, close mic, dry, no music",
+          "seeds": [
+            5,
+            6,
+            7,
+            8
+          ]
+        },
+        {
+          "name": "v3",
+          "prompt": "soft squishy food sound, close mic, dry",
+          "seeds": [
+            9,
+            10,
+            11,
+            12
+          ],
+          "seconds": 1
+        }
+      ],
+      "reuse": {
+        "id": "place_board",
+        "seed": 1
+      },
+      "pick": "reuse"
+    },
+    {
+      "id": "plate_place",
+      "kind": "real",
+      "seconds": 1,
+      "zh": "放盘子",
+      "max_seconds": 0.5,
+      "single": true,
+      "pick": 1,
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "setting a ceramic plate down on a kitchen counter, light clink, close mic, dry",
+          "seeds": [
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "id": "plate_return",
+      "kind": "real",
+      "seconds": 2,
+      "zh": "脏盘子送回",
+      "pick": 4,
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "a small stack of dirty ceramic plates set down on a counter, dishes clattering, close mic, dry",
+          "seeds": [
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "id": "throw",
+      "kind": "real",
+      "seconds": 1,
+      "zh": "扔出",
+      "max_seconds": 0.4,
+      "single": true,
+      "pick": 2,
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "quick throwing whoosh, small object swooshing through the air, close",
+          "seeds": [
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "id": "catch",
+      "kind": "real",
+      "seconds": 1,
+      "zh": "接住",
+      "max_seconds": 0.4,
+      "single": true,
+      "pick": 1,
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "catching a soft object with both hands, soft palm slap, close mic, dry",
+          "seeds": [
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "id": "land",
+      "kind": "real",
+      "seconds": 1,
+      "zh": "掉在地上",
+      "max_seconds": 0.6,
+      "single": true,
+      "pick": 2,
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "soft food item dropping onto a tiled kitchen floor, wet thud, close mic, dry",
+          "seeds": [
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chop_hits",
+      "kind": "real",
+      "fixed": true,
+      "seconds": 4,
+      "zh": "切菜（逐刀，已定稿）",
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "kitchen knife rhythmically chopping vegetables on a wooden cutting board, close mic, dry",
+          "seeds": [
+            7,
+            101,
+            202,
+            303,
+            404
+          ]
+        }
+      ]
+    },
+    {
+      "id": "wash_loop",
+      "kind": "real",
+      "fixed": true,
+      "loop": true,
+      "seconds": 8,
+      "zh": "洗碗（25 单人，5 叠加双人，已定稿）",
+      "takes": [
+        {
+          "name": "v1",
+          "prompt": "kitchen sink tap running water, washing a ceramic plate with a sponge, close, steady, no music",
+          "seeds": [
+            25,
+            5
+          ]
+        }
+      ]
+    }
+  ],
+  "dropped": {
+    "washed": "洗碗本身已表达完成，不再加",
+    "sprint": "冲刺不加音效",
+    "pot_clear": "与倒垃圾重合，清锅复用 discard"
+  }
+}

@@ -6,14 +6,19 @@ from kitchen import Kitchen, Food, load_config
 from spatial_kitchen import SpatialKitchen, EQUIPMENT
 from jev import JevClient
 from web_server import GameSession
+from levels import level_config
 
 
 class TablewareTests(unittest.TestCase):
     def make(self, spatial=False, **overrides):
         config = load_config()
-        config.update(round_seconds=500, order_patience=400, order_interval=10)
+        config.update(round_seconds=500, order_patience=400, order_interval=100)
         config.update(overrides)
         return (SpatialKitchen if spatial else Kitchen)(config)
+
+    def make_service(self, level=1):
+        # Passing plates, dishes and pots is a service-ruleset feature (throw.pass_range_cells).
+        return SpatialKitchen(level_config(load_config(), level) | {'spawn_seed': 0})
 
     def do(self, k, who, command):
         ok, reason = k.command(who, command)
@@ -47,8 +52,8 @@ class TablewareTests(unittest.TestCase):
 
     def test_three_meals_require_recycled_plate_both_kitchens(self):
         for spatial in (False, True):
-            k = self.make(spatial)
-            k.advance(20)  # Three real pending orders; fixtures omit the cooking time.
+            k = self.make(spatial, order_interval=20, order_patience=80)
+            k.advance(41)  # Three real pending orders; fixtures omit the cooking time.
             first = self.serve(k, 'first')
             self.serve(k, 'second', 'jeff')
             self.assertFalse(k.stations['plates'].food)
@@ -61,8 +66,8 @@ class TablewareTests(unittest.TestCase):
             self.plate(k)
             self.assertEqual(k.chefs['human'].hand.plate_id, first)
             self.do(k, 'human', 'serve')
-            self.assertTrue(k.won()); self.assertTrue(k.ended)
             self.assertEqual(k.served, 3)
+            self.assertEqual(k.money, 3 * k.rules.prices['steak'])
 
     def test_complete_cooking_chain_with_clean_plate_at_pot(self):
         k = self.make(True)
@@ -76,7 +81,7 @@ class TablewareTests(unittest.TestCase):
         self.assertFalse(k.stations['p1'].food)
         self.assertFalse(k.ground)
         self.do(k, 'human', 'serve')
-        self.assertEqual(k.money, 30)
+        self.assertEqual(k.money, k.rules.prices['steak'])
 
     def test_customer_queue_does_not_overwrite_full_return_tray(self):
         k = self.make()
@@ -120,26 +125,30 @@ class TablewareTests(unittest.TestCase):
         self.assertEqual(k.chefs['jeff'].hand.plate_id, 'D1')
         k.assert_invariants()
 
-    def test_plates_cannot_throw_but_can_drop_and_pickup_for_both_chefs(self):
-        from spatial_kitchen import EQUIPMENT
+    def test_plates_pass_at_short_range_and_can_drop_and_pickup_for_both_chefs(self):
+        import math
+        from spatial_kitchen import EQUIPMENT, PASS_RANGE
         from kitchen import Action
         for who in ('human','jeff'):
             for stage in ('clean_plate','dirty_plate','ready','burnt'):
-                k=self.make(True)
+                k=self.make_service()
                 if stage in ('ready','burnt'):
                     self.ready(k);self.plate(k);k.chefs['human'].hand.stage=stage
                 else:
                     self.do(k,'human','take plates');k.chefs['human'].hand.stage=stage
                 if who=='jeff':k.chefs['jeff'].hand,k.chefs['human'].hand=k.chefs['human'].hand,None
-                item=k.chefs[who].hand;k.positions[who]=(3.,4.)
-                self.assertFalse(any(a.kind=='throw' for a in k.actions(who)))
-                self.assertFalse(k.snapshot()['chefs'][who]['can_throw'])
-                self.assertIsNone(k.snapshot()['chefs'][who]['handoff_target'])
-                for target in ((6,4),EQUIPMENT['b1']['cell']):
-                    self.assertIsNone(k.throw_action(who,target))
-                forged=Action('throw','throw','throw','floor_6_4',(item.id,'floor_6_4',6,4))
-                self.assertFalse(k.start(who,forged)[0])
-                self.assertIs(k.chefs[who].hand,item)
+                item=k.chefs[who].hand;k.positions[who]=(3.,4.);before=(item.stage,item.plate_id,item.components)
+                snap=k.snapshot()['chefs'][who]
+                self.assertTrue(snap['can_throw']);self.assertEqual(snap['throw_range'],PASS_RANGE)
+                # Plates never land on boards or counters: that throw is refused, the plate stays in hand.
+                forged=Action('throw','throw','throw','b1',(item.id,'b1',*EQUIPMENT['b1']['cell']))
+                self.assertFalse(k.start(who,forged)[0]);self.assertIs(k.chefs[who].hand,item)
+                # A long aim falls on the floor at the pass range, intact and pickable.
+                self.assertTrue(k.start(who,k.throw_action(who,(12,4)))[0]);k.advance(1)
+                self.assertIsNone(k.chefs[who].hand);self.assertFalse(k.projectiles)
+                self.assertIs(k.ground[item.id].food,item);self.assertEqual((item.stage,item.plate_id,item.components),before)
+                self.assertLessEqual(math.dist((3.,4.),k.cell(k.ground[item.id].location)),PASS_RANGE+1e-8)
+                self.do(k,who,'pickup '+item.id);self.assertIs(k.chefs[who].hand,item)
                 self.do(k,who,'drop');self.assertIs(k.ground[item.id].food,item)
                 self.do(k,who,'pickup '+item.id)
                 self.assertIs(k.chefs[who].hand,item);self.assertFalse(k.projectiles)
@@ -161,7 +170,10 @@ class TablewareTests(unittest.TestCase):
     def test_bad_service_returns_plate_without_making_food_good(self):
         k = self.make()
         plate = self.serve(k, 'burnt', stage='burnt')
-        self.assertEqual((k.money, k.bad_reviews), (-15, 1))
+        # Service rules: a dish burnt too long is refused, earns nothing and the order keeps waiting.
+        self.assertEqual(k.money, 0)
+        self.assertIn('dish_rejected', [e.get('kind') for e in k.events])
+        self.assertEqual(k.orders[0]['status'], 'pending')
         k.advance(8)
         self.assertEqual(k.stations['returns'].food.id, plate)
         k.assert_invariants()
@@ -191,7 +203,7 @@ class TablewareTests(unittest.TestCase):
             failures = 0
             def invalidate(self): pass
             def poll(self, enabled): pass
-        config = load_config(); config.update(order_patience=400, round_seconds=500)
+        config = load_config(); config.update(order_patience=400, order_interval=100, round_seconds=500)
         g = GameSession(config=config, client_factory=lambda c:None, journal_factory=lambda *a:None)
         self.dirty_in_sink(g.k)
         g.k.command('human', 'wash'); g.k.advance(1)
@@ -292,7 +304,6 @@ class TablewareTests(unittest.TestCase):
         heated = k.chefs['human'].hand.contents.heated
         k.advance(5)
         self.assertEqual(k.chefs['human'].hand.contents.heated, heated)
-        self.assertFalse(k.command('human', 'throw partner')[0])
         self.do(k, 'human', 'put pot p1')
         k.advance(1)
         self.assertAlmostEqual(k.stations['p1'].food.heated, heated+1, places=4)

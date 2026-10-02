@@ -26,7 +26,9 @@
         rule.source.startsWith('已连接：') && id==='0' ? args[id] : english(args[id],depth+1));
     }
     if (text.includes('\n')) return text.split('\n').map(line=>english(line,depth+1)).join('\n');
+    if (text.includes('　')) return text.split('　').map(part=>english(part,depth+1)).join('　');
     if (text.startsWith('空格 · ')) return 'Space · '+english(text.slice(5),depth+1);
+    if (text.startsWith('E · ')) return 'E · '+english(text.slice(4),depth+1);
     return text.replace(fragments,key=>catalog.messages[key]);
   }
   const cache=new Map();

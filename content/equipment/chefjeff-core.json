@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "kind": "equipment_catalog",
+  "id": "chefjeff-core",
+  "version": 1,
+  "name": "ChefJeff core equipment",
+  "types": {
+    "ingredient_source": {"name": "食材箱", "capabilities": ["dispense"], "slots": 0, "worker_requirement": "none",
+                          "params": {"item": "item_ref"}, "combustible": false},
+    "board": {"name": "案板", "capabilities": ["chop"], "slots": 1, "worker_requirement": "attended",
+              "work_rates": {"chop": 1.0},
+              "shared_work": {"chop": {"max_workers": 2, "rate_multiplier": {"1": 1.0, "2": 2.0}}},
+              "combustible": true},
+    "stove": {"name": "灶台", "capabilities": ["heat"], "slots": 1, "worker_requirement": "unattended",
+              "work_rates": {"heat": 1.0}, "holds_container": "pot", "combustible": true},
+    "counter": {"name": "柜台", "capabilities": ["store", "assemble"], "slots": 1, "worker_requirement": "none", "combustible": true},
+    "serving_window": {"name": "出餐口", "capabilities": ["serve"], "slots": 0, "worker_requirement": "none", "combustible": false},
+    "bin": {"name": "垃圾桶", "capabilities": ["discard"], "slots": 0, "worker_requirement": "none", "combustible": false},
+    "sink": {"name": "水槽", "capabilities": ["wash"], "slots": 1, "worker_requirement": "attended",
+             "work_rates": {"wash": 1.0},
+             "shared_work": {"wash": {"max_workers": 2, "rate_multiplier": {"1": 1.0, "2": 2.0}}},
+             "combustible": false},
+    "plate_return": {"name": "脏盘回收", "capabilities": ["return_plates"], "slots": 1, "worker_requirement": "none", "combustible": false},
+    "tool_rack": {"name": "灭火器架", "capabilities": ["store_tool"], "slots": 1, "worker_requirement": "none", "combustible": false}
+  }
+}

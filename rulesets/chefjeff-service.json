@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "kind": "ruleset",
+  "id": "chefjeff-service",
+  "version": 1,
+  "name": "Continuous service rules",
+  "engine_semantics": "continuous-2026-09",
+  "tick_game_ms": 50,
+  "supported_equipment_types": [
+    "ingredient_source",
+    "board",
+    "stove",
+    "counter",
+    "serving_window",
+    "bin",
+    "sink",
+    "plate_return",
+    "tool_rack"
+  ],
+  "operations": {
+    "handling_game_ms": 150,
+    "extinguish_game_ms": 4000,
+    "clear_game_ms": 2000,
+    "ground_assembly": true
+  },
+  "movement": {
+    "walk_cells_per_game_s": 4.5,
+    "sprint_multiplier": 1.4,
+    "sprint_duration_game_ms": 1000,
+    "sprint_cooldown_game_ms": 3000,
+    "chef_separation_cells": 0.4,
+    "sprint_push_cells": 0.25,
+    "sprint_food_nudge_cells": 0.25,
+    "cabinet_clearance_cells": {
+      "front": 0.45,
+      "side": 0.35
+    },
+    "operate_at_walk_limit": true,
+    "stall_replan": {
+      "after_game_ms": 300,
+      "min_progress_cells": 0.05
+    },
+    "approach_partner": true,
+    "corner_slide_cells": 0.3
+  },
+  "throw": {
+    "enabled": true,
+    "range_cells": 4,
+    "pass_range_cells": 4,
+    "speed_cells_per_game_s": 12,
+    "min_flight_game_ms": 200,
+    "catch_radius_cells": 0.75
+  },
+  "tableware": {
+    "dining_game_ms": 8000,
+    "return_capacity": 1
+  },
+  "fire": {
+    "spread_interval_game_ms": 8000,
+    "loss_threshold": 5
+  },
+  "penalties": {
+    "wrong_dish": -20,
+    "expired_order": -10,
+    "new_fire": -5,
+    "discard": -2
+  },
+  "abstract_travel": {
+    "same_area_game_ms": 1000,
+    "cross_area_game_ms": 3000
+  },
+  "limits": {
+    "max_actors": 2,
+    "max_equipment": 256,
+    "max_orders": 500,
+    "max_round_game_ms": 3600000,
+    "max_document_bytes": 1048576,
+    "max_inventory": 64,
+    "max_visible_orders": 5,
+    "max_recipe_components": 4
+  },
+  "burnt_service": [
+    {
+      "max_overcook_game_ms": 5000,
+      "outcome": "accepted",
+      "adjustment": -10
+    },
+    {
+      "max_overcook_game_ms": null,
+      "outcome": "rejected",
+      "adjustment": 0
+    }
+  ]
+}

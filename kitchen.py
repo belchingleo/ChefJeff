@@ -1,10 +1,18 @@
-"""Deterministic kitchen rules. No AI policy lives in this module."""
+"""Deterministic kitchen rules. No AI policy lives in this module.
+
+Every station, recipe, duration, rate and penalty comes from one frozen
+resolved configuration (see ``config_contract`` and ``rules``); the engine has
+no per-level branches.
+"""
 from __future__ import annotations
 from dataclasses import dataclass
+import functools
 import json
 import math
-import random
 from pathlib import Path
+
+from provenance import Provenance
+from rules import Rules, runtime_config
 
 ROOT = Path(__file__).resolve().parent
 NAMES = {"human": "你", "jeff": "Jeff"}
@@ -16,12 +24,12 @@ def load_config(path=None):
     for key, value in c.items():
         if key != "model" and (not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0):
             raise ValueError(f"配置 {key} 必须是正数")
-    for key in ("boards", "pots", "order_count", "target_served", "max_bad_reviews", "plate_count", "ai_max_calls"):
+    for key in ("boards", "pots", "plate_count", "ai_max_calls"):
         if key not in c:
             continue
         if int(c[key]) != c[key]:
             raise ValueError(f"配置 {key} 必须是整数")
-    if c["boards"] > 8 or c["pots"] > 8:
+    if c.get("boards", 0) > 8 or c.get("pots", 0) > 8:
         raise ValueError("文字原型最多支持 8 块案板和 8 口锅")
     if c.get('ai_max_calls',200)>2000:
         raise ValueError('ai_max_calls 不能超过 2000')
@@ -88,21 +96,84 @@ class GroundItem:
     offset: tuple = (0.,0.)
 
 
+def engine_input(method):
+    """Record an outermost external call so the engine can be replayed from its inputs."""
+    @functools.wraps(method)
+    def wrapper(self, *args):
+        outer = self._api_depth == 0
+        started = self.time
+        self._api_depth += 1
+        try:
+            result = method(self, *args)
+        finally:
+            self._api_depth -= 1
+        if outer:
+            record = {'n': len(self.inputs), 'call': method.__name__, 'game_time_ms': round(started*1000)}
+            if method.__name__ == 'advance':
+                record['seconds'] = args[0]
+            elif args:
+                record['actor'] = args[0]
+            if method.__name__ == 'start':
+                action = args[1]
+                record['action'] = {'key': action.key, 'label': action.label, 'kind': action.kind,
+                                    'target': action.target, 'expected': action.expected}
+                record['accepted'] = bool(result[0])
+            elif method.__name__ == 'set_manual':
+                record['vector'] = [args[1], args[2]]
+            elif method.__name__ == 'sprint':
+                record['accepted'] = bool(result)
+            self.inputs.append(record)
+        return result
+    return wrapper
+
+
+def _tupled(value):
+    return tuple(_tupled(v) for v in value) if isinstance(value, list) else value
+
+
+def replay(factory, resolved, inputs):
+    """Rebuild a kitchen from a frozen configuration and its recorded engine inputs."""
+    k = factory(resolved)
+    for record in inputs:
+        call = record['call']
+        if call == 'advance':
+            k.advance(record['seconds'])
+        elif call == 'start':
+            a = record['action']
+            k.start(record['actor'], Action(a['key'], a['label'], a['kind'], a['target'], _tupled(a['expected'])))
+        elif call == 'stop':
+            k.stop(record['actor'])
+        elif call == 'set_manual':
+            k.set_manual(record['actor'], *record['vector'])
+        elif call == 'sprint':
+            k.sprint(record['actor'])
+        elif call == 'abort':
+            k.abort()
+        else:
+            raise ValueError(f'unknown engine input {call!r}')
+    return k
+
+
 TAKE_KINDS = {"fetch", "take_board", "take_tool", "pickup", "take_plate", "take_return", "take_sink", "take_counter", "lift_pot"}
 
 
 class Kitchen:
-    def __init__(self, config=None):
-        self.c = config or load_config()
+    def __init__(self, config=None, rng=None):
+        self.resolved, self.c = runtime_config(config, rng)
+        self.rules = r = Rules(self.resolved)
+        self.config_hash = self.resolved['config_hash']
         self.time = 0.0
+        self.event_seq = 0
+        self.inputs = []
+        self._api_depth = 0
+        self.shared_overlap = {}
         self.revision = 0
         self.serial = 0
+        # Read-only record of which completed actions touched which items (provenance.py).
+        self.provenance = Provenance()
         self.job_serial = 0
         self.money = 0
-        self.time_bonus = 0
-        self.reward_seconds = 0
         self.served = 0
-        self.bad_reviews = 0
         self.fires = 0
         self.burns = 0
         self.ended = False
@@ -112,63 +183,79 @@ class Kitchen:
         self.ground = {}
         self.pickup_numbers = {}
         self.swap_slots = {}
-        self.plate_count = int(self.c.get('plate_count', 2))
-        self.wash_seconds = self.c.get('wash_seconds', 4)
-        self.dining_seconds = self.c.get('dining_seconds', 8)
-        if not 1 <= self.plate_count <= 3:
-            raise ValueError('当前练习关提供三个单格柜台，餐盘数量需为1至3')
-        self.counters = ['plates', 'counter2', 'counter3']
+        self.plate_count = r.plate_count
+        self.pot_count = r.pot_count
+        # Work units at rate 1; kept as attributes for existing observers.
+        self.wash_seconds = r.wash_work
+        self.dining_seconds = r.dining
         self.dining = []
-        self.stations = {"fridge": Station("冰箱", "处理区"),
-                         "serve": Station("出餐口", "烹饪区"),
-                         "bin": Station("垃圾桶", "处理区"),
-                         "extinguisher": Station("灭火器架", "烹饪区", Food('E1', 'extinguisher'))}
-        self.stations.update({
-            'returns': Station('脏盘回收', '烹饪区'),
-            'sink': Station('水槽', '处理区'),
-        })
-        for i, key in enumerate(self.counters, 1):
-            self.stations[key] = Station(f'柜台 {i}', '处理区' if key == 'counter3' else '烹饪区',
-                                         Food(f'D{i}', 'clean_plate') if i <= self.plate_count else None)
-        self.boards = [f"b{i+1}" for i in range(self.c["boards"])]
-        self.pots = [f"p{i+1}" for i in range(self.c["pots"])]
-        for key in self.boards:
-            self.stations[key] = Station(f"案板 {key[1:]}", "处理区")
-        for key in self.pots:
-            self.stations[key] = Station(f"灶台 {key[1:]}", "烹饪区", pot_id=f'P{key[1:]}')
-        self.chefs = {"human": Chef("fridge"), "jeff": Chef(self.pots[0])}
-        self.orders = [{"id": f"O{i+1}", "dish": "牛排", "arrival": i*self.c["order_interval"],
-                        "deadline": i*self.c["order_interval"]+self.c["order_patience"],
-                        "status": "future"} for i in range(self.c["order_count"])]
-        self.pot_count=int(self.c.get('pot_count',len(self.pots)))
-        self.ingredients={'fridge':'beef'}
-        if self.c.get('level') in (2,3):
-            self.ingredients.update(lettuce='lettuce',tomato='tomato',bread='bread')
-            for key in ('lettuce','tomato','bread'):self.stations[key]=Station({'lettuce':'生菜箱','tomato':'番茄箱','bread':'面包箱'}[key],'处理区')
-            menu=['burger']*3 if self.c['level']==2 else ['steak']*2+['burger']*3
-            random.Random(self.c['order_seed']).shuffle(menu)
-            self.orders=[{'id':f'O{i+1}','dish':dish,'arrival':i*self.c['order_interval'],
-                         'patience':self.c['order_patience'] if self.c['level']==2 else (100 if dish=='steak' else 150),
-                         'deadline':i*self.c['order_interval']+(self.c['order_patience'] if self.c['level']==2 else (100 if dish=='steak' else 150)),
-                         'status':'future','ingredients':['beef'] if dish=='steak' else ['bread','lettuce','tomato','beef']}
-                         for i,dish in enumerate(menu)]
+        areas = self.resolved['map']['areas']
+        self.stations, self.counters, self.boards, self.pots = {}, [], [], []
+        groups = {'counter': self.counters, 'board': self.boards, 'stove': self.pots}
+        for st in self.resolved['stations']:
+            self.stations[st['id']] = Station(st['name'], areas[st['area']]['name'])
+            groups.get(st['type'], []).append(st['id'])
+        self.ingredients = dict(r.sources)
+        self.serves = r.of_type('serving_window')
+        self.bins = r.of_type('bin')
+        self.rack = r.of_type('tool_rack')[0]
+        self.returns = r.of_type('plate_return')[0]
+        self.sink = r.of_type('sink')[0]
+        self._place_inventory()
+        self.chefs = {"human": Chef(next(iter(self.ingredients))), "jeff": Chef(self.pots[0])}
+        sec = lambda ms: ms // 1000 if ms % 1000 == 0 else ms / 1000
+        parts = {k: [c['item'] for c in v['components']] for k, v in r.recipes.items()}
+        self.orders = [{'id': o['order_id'], 'dish': o['recipe_ref'], 'arrival': sec(o['arrival_game_ms']),
+                        'patience': sec(o['patience_game_ms']), 'deadline': sec(o['deadline_game_ms']),
+                        'status': 'future', 'ingredients': list(parts[o['recipe_ref']])}
+                       for o in self.resolved['order_plan']['orders']]
         self._arrivals()
+
+    def _place_inventory(self):
+        for entry in self.rules.inventory:
+            station = self.stations[entry['at']]
+            if entry['id'] in self.rules.vessels and self.rules.station_types[entry['at']] == 'stove':
+                station.pot_id = entry['id']
+            elif entry['id'] in self.rules.vessels:
+                station.food = Food(entry['id'], 'pot')
+            elif entry['object'] == 'plate':
+                station.food = Food(entry['id'], 'clean_plate' if entry.get('state', 'clean') == 'clean' else 'dirty_plate')
+            else:
+                station.food = Food(entry['id'], 'extinguisher')
+
+    def state_label(self, item, stage):
+        definition = self.rules.items[item]
+        return definition.get('state_names', {}).get(stage, definition['name'])
+
+    def food_label(self, food):
+        return self.rules.item_names.get(food.ingredient, food.ingredient)
+
+    def assemble_label(self, place_name, placed, held):
+        """Say which way the ingredient moves: onto the plate that is there, or onto the held plate."""
+        if self.can_add(placed, held):
+            return f'把手中的{self.food_label(held)}放进{place_name}的盘里'
+        return f'把{place_name}的{self.food_label(placed)}加进手中的盘'
+
+    def recipe_name(self, dish):
+        return self.rules.recipe_names.get(dish, dish)
 
     def emit(self, message, **extra):
         self.revision += 1
-        self.events.append({"t": round(self.time, 3), "message": message, **extra})
+        self.event_seq += 1
+        self.events.append({"t": round(self.time, 3), "message": message, **extra,
+                            "seq": self.event_seq, "game_time_ms": round(self.time*1000)})
 
     def _arrivals(self):
         for o in self.orders:
             if o["status"] == "future" and o["arrival"] <= self.time + 1e-8:
                 o["status"] = "pending"
-                self.emit(f"新订单 {o['id']}：{o['dish']}，截止 {o['deadline']:.0f}s", kind="order")
+                self.emit(f"新订单 {o['id']}：{self.recipe_name(o['dish'])}，截止 {o['deadline']:.0f}s", kind="order", order_id=o['id'])
 
     def travel_time(self, chef, target):
         if chef.location == target:
             return 0
         same = self.stations[chef.location].area == self.stations[target].area
-        return self.c["same_area_walk"] if same else self.c["cross_area_walk"]
+        return self.rules.same_area if same else self.rules.cross_area
 
     def place(self, key):
         return self.stations[key]
@@ -213,19 +300,25 @@ class Kitchen:
             out.append(Action(key, label, kind, target, () if kind == "go" else self.signature(who, target)))
         if a.job:
             out.append(Action("continue", "继续当前动作", "continue", expected=(a.job.id,)))
-            out.append(Action("stop", "中断当前动作（切配进度保留；锅继续加热）", "stop", expected=(a.job.id,)))
+            out.append(Action("stop", "中断当前动作（切配进度保留；锅具继续加热）", "stop", expected=(a.job.id,)))
         else:
             add("wait", "暂时等待", "wait")
-        add("fetch", "到冰箱取一份生肉（手中物品自动放到地上）", "fetch", "fridge")
-        for source,ingredient in self.ingredients.items():
-            if source!='fridge':add('fetch '+source,'取一份'+{'lettuce':'生菜','tomato':'番茄','bread':'面包'}[ingredient]+'（自动换手）','fetch',source)
+        loss = -self.rules.penalty['discard']
+        for i, (source, ingredient) in enumerate(self.ingredients.items()):
+            name = self.state_label(ingredient, self.rules.items[ingredient]['initial_state'])
+            if i == 0:
+                add("fetch", f"到{self.stations[source].name}取一份{name}（手中物品自动放到地上）", "fetch", source)
+            else:
+                add('fetch '+source, '取一份'+name+'（自动换手）', 'fetch', source)
         if a.hand:
             if a.hand.plate_id and self.dish(a.hand):
-                add("serve", "拿已装盘的菜出餐（糊菜或无订单会被差评）", "serve", "serve")
+                for i, key in enumerate(self.serves):
+                    add("serve" if i == 0 else f"serve {key}", "拿已装盘的菜出餐（没有订单在等这道菜会扣钱，糊太久会被拒收）", "serve", key)
             if a.hand.stage not in ('extinguisher', 'clean_plate', 'dirty_plate', 'pot'):
-                add("discard", "去垃圾桶丢弃手中食物（损耗 2 元，无法捡回）", "discard", "bin")
+                add("discard", f"去垃圾桶丢弃手中食物（损耗 {loss} 元，无法捡回）", "discard", self.bins[0])
             if a.hand.stage == 'pot' and a.hand.contents:
-                add('discard', '倒掉手中锅里的食物（损耗2元，保留空锅）', 'empty_pot', 'bin')
+                v = self.vessel_name(a.hand.id)
+                add('discard', f'倒掉手中{v}里的食物（损耗{loss}元，保留空{v}）', 'empty_pot', self.bins[0])
             out.append(Action("drop", f"将手中物品放到{self.place(a.location).name}旁的地上（可捡回，不扣钱）",
                               "drop", a.location, (a.hand.id, a.location)))
         for key in self.counters:
@@ -234,66 +327,71 @@ class Kitchen:
                 continue
             if s.food:
                 if self.can_swap_pots(a.hand,s.food):
-                    add('swap pot '+key,'与'+s.name+'的锅交换（各自保留锅内食物）','swap_pot',key)
-                if self.c.get('level') in (2,3) and a.hand:
+                    add('swap pot '+key,f'与{s.name}的{self.vessel_name(s.food.id)}交换（各自保留里面的食物）','swap_pot',key)
+                if self.rules.multi_component and a.hand:
                     if self.can_add(s.food,a.hand) or self.can_add(a.hand,s.food):
-                        add('assemble '+key,'在'+s.name+'向盘中加入食材','assemble',key)
-                if self.c.get('level') in (2,3) and self.can_merge_plates(a.hand,s.food):
+                        add('assemble '+key,self.assemble_label(s.name,s.food,a.hand),'assemble',key)
+                if self.rules.multi_component and self.can_merge_plates(a.hand,s.food):
                     add('merge '+key,'把'+s.name+'盘中食物合入手中盘（空盘留在原位）','merge_plates',key)
                 if self.can_load_pot(a.hand,s.food):
-                    add('load '+key,'把切好的牛肉放入'+s.name+'的空锅（离灶不加热）','load_counter',key)
+                    add('load '+key,f'把{self.load_label(a.hand)}放入{s.name}的空{self.vessel_name(s.food.id)}（离灶不加热）','load_counter',key)
                 kind = 'take_plate' if s.food.stage == 'clean_plate' else 'take_counter'
                 add(f'take {key}', f'从{s.name}拿起{self.food_name(s.food)}（自动换手）', kind, key)
                 if a.hand and a.hand.stage == 'pot' and self.can_add(s.food,a.hand.contents):
-                    add(f'plate {key}', f'把手中锅里的菜盛到{s.name}的盘里（空锅留在手中）', 'plate_counter', key)
+                    v = self.vessel_name(a.hand.id)
+                    add(f'plate {key}', f'把手中{v}里的菜盛到{s.name}的盘里（空{v}留在手中）', 'plate_counter', key)
                 if s.food.stage == 'pot' and a.hand and self.can_add(a.hand,s.food.contents):
-                    add(f'plate {key}', f'用手中的盘盛出{s.name}锅里的菜', 'plate_from_counter', key)
+                    add(f'plate {key}', f'用手中的盘盛出{s.name}的{self.vessel_name(s.food.id)}里的菜', 'plate_from_counter', key)
             elif a.hand:
                 add(f'put {key}', f'把手中物品放到{s.name}（每格一件）', 'put_counter', key)
-        for key, kind in (('returns', 'take_return'), ('sink', 'take_sink')):
+        for key, kind in ((self.returns, 'take_return'), (self.sink, 'take_sink')):
             s = self.stations[key]
             if s.lock not in (None, who):
-                if key=='sink' and not a.hand and s.food and s.food.stage=='dirty_plate' and self.can_share_work(who,'wash',key):
+                if key==self.sink and not a.hand and s.food and s.food.stage=='dirty_plate' and self.can_share_work(who,'wash',key):
                     add('wash','一起洗碗（共享进度）','wash',key)
                 continue
             if s.food:
                 add(f'take {key}', f'从{s.name}拿起{self.food_name(s.food)}（自动换手）', kind, key)
-            if key == 'sink':
+            if key == self.sink:
                 if not s.food and a.hand and a.hand.stage == 'dirty_plate':
-                    add('put sink', '把脏餐盘放入水槽', 'put_sink', key)
+                    add(f'put {key}', f'把脏餐盘放入{s.name}', 'put_sink', key)
                 if s.food and s.food.stage == 'dirty_plate' and not a.hand:
                     add('wash', f'洗碗（剩 {max(0, self.wash_seconds-s.food.washed):.1f}s；可中断续洗）', 'wash', key)
-        rack = self.stations['extinguisher']
+        rack = self.stations[self.rack]
         if rack.lock in (None, who):
             if rack.food:
-                add('take extinguisher', '去灭火器架拿灭火器（占用手持位）', 'take_tool', 'extinguisher')
+                add(f'take {self.rack}', f'去{rack.name}拿灭火器（占用手持位）', 'take_tool', self.rack)
             elif a.hand and a.hand.stage == 'extinguisher' and not rack.food:
-                add('put extinguisher', '把灭火器放回架子', 'put_tool', 'extinguisher')
+                add(f'put {self.rack}', '把灭火器放回架子', 'put_tool', self.rack)
         for item_id, item in self.ground.items():
             if item.lock in (None, who):
                 if self.can_swap_pots(a.hand,item.food):
-                    out.append(Action('swap pot ground '+item_id,'与地上的锅交换（各自保留锅内食物）','swap_ground_pot',item.location,self.ground_swap_signature(who,item_id)))
+                    out.append(Action('swap pot ground '+item_id,f'与地上的{self.vessel_name(item_id)}交换（各自保留里面的食物）','swap_ground_pot',item.location,self.ground_swap_signature(who,item_id)))
                 out.append(Action(f"pickup {item_id}",
                                   f"去{self.place(item.location).name}捡起 {item_id}（{self.food_name(item.food)}；自动换手）",
                                   "pickup", item.location, (a.hand.id if a.hand else None, item_id, item.location)))
                 if self.can_load_ground(who,item_id):
-                    out.append(Action('load ground '+item_id,'把切好的牛肉放入地上空锅（离灶不加热）','load_ground',item.location,self.ground_plate_signature(who,item_id)))
+                    out.append(Action('load ground '+item_id,f'把{self.load_label(a.hand)}放入地上空{self.vessel_name(item_id)}（离灶不加热）','load_ground',item.location,self.ground_plate_signature(who,item_id)))
+                if self.can_assemble_ground(who,item_id):
+                    out.append(Action('assemble ground '+item_id,self.assemble_label(self.place(item.location).name,item.food,a.hand),'assemble_ground',
+                                      item.location,self.ground_assembly_signature(who,item_id)))
                 if self.can_plate_ground(who, item_id):
-                    out.append(Action(f'plate ground {item_id}', '用手中的干净盘盛出地上锅里的菜（空锅留在原地）',
+                    v = self.vessel_name(item_id)
+                    out.append(Action(f'plate ground {item_id}', f'用手中的干净盘盛出地上{v}里的菜（空{v}留在原地）',
                                       'plate_ground', item.location, self.ground_plate_signature(who, item_id)))
         for key in self.boards:
             s = self.stations[key]
             if s.lock not in (None, who):
-                if not a.hand and s.food and s.food.stage=='raw' and s.food.ingredient!='bread' and self.can_share_work(who,'chop',key):
+                if not a.hand and s.food and self.rules.choppable(s.food) and self.can_share_work(who,'chop',key):
                     add(f'chop {key}',f'一起切配 {s.food.id}（共享进度）','chop',key)
                 continue
             if not s.food and a.hand and a.hand.stage in ("raw", "chopped"):
                 add(f"put {key}", f"将手中食材放到{s.name}", "put_board", key)
             if s.food:
-                if self.c.get('level') in (2,3) and self.can_add(a.hand,s.food):
+                if self.rules.multi_component and self.can_add(a.hand,s.food):
                     add('assemble '+key,'用手中餐盘接取'+s.name+'的食材','assemble',key)
-                if s.food.stage == "raw" and s.food.ingredient != "bread" and not a.hand:
-                    add(f"chop {key}", f"到{s.name}切 {s.food.id}（剩 {max(0,self.c['chop_seconds']-s.food.chopped):.1f}s）", "chop", key)
+                if self.rules.choppable(s.food) and not a.hand:
+                    add(f"chop {key}", f"到{s.name}切 {s.food.id}（剩 {max(0,self.rules.chop_work(s.food.ingredient)-s.food.chopped):.1f}s）", "chop", key)
                 add(f"take {key}", f"从{s.name}拿走 {s.food.id}（{self.food_name(s.food)}）", "take_board", key)
         for key in self.pots:
             s = self.stations[key]
@@ -301,21 +399,22 @@ class Kitchen:
                 continue
             if s.fire:
                 if a.hand and a.hand.stage == 'extinguisher':
-                    add(f"extinguish {key}", f"拿灭火器到{s.name}灭火（4s；随后仍须清理糊菜）", "extinguish", key)
+                    add(f"extinguish {key}", f"拿灭火器到{s.name}灭火（{self.rules.extinguish:g}s；随后仍须清理糊菜）", "extinguish", key)
                 continue
             if not s.pot_id:
                 if a.hand and a.hand.stage == 'pot':
-                    add(f'put pot {key}', f'把手中的锅放回{s.name}（有食物时恢复加热）', 'return_pot', key)
+                    add(f'put pot {key}', f'把手中的{self.vessel_name(a.hand.id)}放回{s.name}（有食物时恢复加热）', 'return_pot', key)
                 continue
-            add(f'take pot {key}', f'端起{s.name}的锅（离开灶台停止加热，占手持位）', 'lift_pot', key)
+            v = self.vessel_name(s.pot_id)
+            add(f'take pot {key}', f'端起{s.name}的{v}（离开灶台停止加热，占手持位）', 'lift_pot', key)
             if a.hand and a.hand.stage=='pot':
-                add('swap pot '+key,'与'+s.name+'的锅交换（各自保留锅内食物）','swap_pot',key)
-            if not s.food and a.hand and a.hand.stage == "chopped" and a.hand.ingredient == "beef" and not a.hand.plate_id:
-                add(f"put {key}", f"将半成品放进{s.name}，开始自动加热", "put_pot", key)
+                add('swap pot '+key,f'与{s.name}的{v}交换（各自保留里面的食物）','swap_pot',key)
+            if not s.food and a.hand and self.rules.potable(a.hand, self.rules.vessels.get(s.pot_id)):
+                add(f"put {key}", f"将{self.load_label(a.hand)}放进{s.name}的{v}，开始自动加热", "put_pot", key)
             if s.food:
                 if a.hand and self.can_add(a.hand,s.food):
                     add(f'plate {key}', f'用手中的干净盘盛出{s.name}的菜', 'plate_pot', key)
-                add(f"clear {key}", f"清空{s.name}的食物（损耗 2 元）", "clear", key)
+                add(f"clear {key}", f"清空{s.name}的食物（损耗 {loss} 元）", "clear", key)
         for target, s in self.stations.items():
             if target != a.location:
                 add(f"go {target}", f"走到{s.name}（{s.area}）", "go", target)
@@ -329,45 +428,55 @@ class Kitchen:
         for key in self.boards + self.counters:
             s = self.stations[key]
             if s.fire and s.lock in (None, who) and a.hand and a.hand.stage == 'extinguisher':
-                add(f'extinguish {key}', f'拿灭火器到{s.name}灭火（4s）', 'extinguish', key)
+                add(f'extinguish {key}', f'拿灭火器到{s.name}灭火（{self.rules.extinguish:g}s）', 'extinguish', key)
         return out
 
-    @staticmethod
-    def food_name(food):
-        if food.ingredient in ('bread','lettuce','tomato') and not food.plate_id:
-            return {'bread':'面包','lettuce':'生菜','tomato':'番茄'}[food.ingredient]+(' · 切好' if food.stage=='chopped' else '')
-        if food.components and set(food.components)!={'beef'}:
-            return '糊菜' if food.stage=='burnt' else ('汉堡' if Kitchen.dish(food)=='burger' else '待组装菜品')
+    def vessel_name(self, vessel_id):
+        """Display name of a cooking vessel (汤锅 boils, 平底锅 fries), from the recipe catalog."""
+        return self.rules.vessel_names.get(self.rules.vessels.get(vessel_id), '锅')
+
+    def load_label(self, food):
+        """Name of held food going into a vessel, with its preparation."""
+        return ('切好的' if food.stage == 'chopped' else '') + self.food_label(food)
+
+    def food_name(self, food):
+        item = self.rules.items.get(food.ingredient)
+        if item and not food.plate_id and 'state_names' not in item:
+            return item['name']+(' · 切好' if food.stage=='chopped' else '')
+        parts = set(food.components)
+        if parts and not (len(parts) == 1 and 'state_names' in self.rules.items.get(next(iter(parts)), {})):
+            dish = self.dish(food)
+            return '糊菜' if food.stage=='burnt' else (self.recipe_name(dish) if dish else '待组装菜品')
+        if item and not food.plate_id and food.stage in item['states']:
+            return self.state_label(food.ingredient, food.stage)
         return STATES[food.stage]
 
     @staticmethod
-    def dish(food):
-        if not food or not food.plate_id:return None
-        parts=set(food.components or ('beef',))
-        if parts=={'beef'}:return 'steak'
-        if parts=={'bread','lettuce','tomato','beef'}:return 'burger'
-        return None
+    def parts(food):
+        """Components on a plate; a plated item without a component list is that single item."""
+        return set(food.components or ((food.ingredient,) if food.plate_id else ()))
 
-    @staticmethod
-    def can_add(plate,ingredient):
+    def dish(self, food):
+        if not food or not food.plate_id:return None
+        return self.rules.dish(food.components or (food.ingredient,))
+
+    def can_add(self,plate,ingredient):
         if not plate or not ingredient or ingredient.plate_id:return False
         if plate.stage!='clean_plate' and not plate.plate_id:return False
-        parts=set(plate.components or (('beef',) if plate.plate_id else ()))
         name=ingredient.ingredient
-        valid=(name=='beef' and ingredient.stage in ('ready','burnt') or
-               name in ('lettuce','tomato') and ingredient.stage=='chopped' or name=='bread' and ingredient.stage in ('raw','chopped'))
-        return valid and name not in parts
+        return self.rules.platable(name,ingredient.stage) and name not in self.parts(plate)
 
-    @staticmethod
-    def merge_plate(plate,ingredient):
-        assert Kitchen.can_add(plate,ingredient)
-        parts=set(plate.components or (('beef',) if plate.plate_id else ()))|{ingredient.ingredient}
-        stage='burnt' if 'burnt' in (plate.stage,ingredient.stage) else ('ready' if parts in ({'beef'},{'beef','bread','lettuce','tomato'}) else 'assembled')
+    def _dish_stage(self, parts, *stages):
+        return 'burnt' if 'burnt' in stages else ('ready' if self.rules.dish(parts) else 'assembled')
+
+    def merge_plate(self,plate,ingredient):
+        assert self.can_add(plate,ingredient)
+        parts=self.parts(plate)|{ingredient.ingredient}
+        stage=self._dish_stage(parts,plate.stage,ingredient.stage)
         return Food(ingredient.id if not plate.plate_id else plate.id,stage,chopped=max(plate.chopped,ingredient.chopped),heated=max(plate.heated,ingredient.heated),plate_id=plate.plate_id or plate.id,
                     ingredient='dish',components=tuple(sorted(parts)))
 
-    @staticmethod
-    def can_merge_plates(destination, source):
+    def can_merge_plates(self, destination, source):
         if not source or not source.plate_id or source.stage not in ('ready','burnt','assembled'):
             return False
         if not destination or destination.stage not in ('clean_plate','ready','burnt','assembled'):
@@ -375,16 +484,15 @@ class Kitchen:
         if destination.stage!='clean_plate' and not destination.plate_id:return False
         dest_id=destination.plate_id or destination.id
         if dest_id==source.plate_id:return False
-        parts=set(destination.components or (('beef',) if destination.plate_id else ()))
-        incoming=set(source.components or ('beef',))
-        return not parts.intersection(incoming) and parts|incoming <= {'beef','bread','lettuce','tomato'}
+        parts=self.parts(destination)
+        incoming=self.parts(source)
+        return not parts.intersection(incoming) and parts|incoming <= self.rules.all_parts
 
-    @staticmethod
-    def merge_plates(destination, source):
+    def merge_plates(self, destination, source):
         """Return combined destination and the original, clean source plate."""
-        assert Kitchen.can_merge_plates(destination,source)
-        parts=set(destination.components or (('beef',) if destination.plate_id else ()))|set(source.components or ('beef',))
-        stage='burnt' if 'burnt' in (destination.stage,source.stage) else ('ready' if parts in ({'beef'},{'beef','bread','lettuce','tomato'}) else 'assembled')
+        assert self.can_merge_plates(destination,source)
+        parts=self.parts(destination)|self.parts(source)
+        stage=self._dish_stage(parts,destination.stage,source.stage)
         combined=Food(destination.id,stage,chopped=max(destination.chopped,source.chopped),
                       heated=max(destination.heated,source.heated),plate_id=destination.plate_id or destination.id,
                       ingredient='dish',components=tuple(sorted(parts)))
@@ -404,20 +512,31 @@ class Kitchen:
         hand=self.chefs[who].hand
         return self.ground_plate_signature(who,item_id)+(hand.contents.id if hand and hand.contents else None,)
 
-    @staticmethod
-    def heat_stove(station):
+    def heat_stove(self, station):
         station.heating=station.food is not None
-        if station.food and station.food.stage=='chopped':
+        t=self.rules.heat.get(station.food.ingredient) if station.food else None
+        if t and station.food.stage==t['from']:
             station.food.stage='cooking'
 
-    @staticmethod
-    def can_load_pot(hand,pot):
-        return bool(hand and hand.stage=='chopped' and hand.ingredient=='beef' and not hand.plate_id
-                    and pot and pot.stage=='pot' and pot.contents is None)
+    def can_load_pot(self,hand,pot):
+        return bool(hand and pot and pot.stage=='pot' and pot.contents is None
+                    and self.rules.potable(hand, self.rules.vessels.get(pot.id)))
 
     def can_load_ground(self,who,item_id):
         item=self.ground.get(item_id)
         return bool(item and item.lock in (None,who) and self.can_load_pot(self.chefs[who].hand,item.food))
+
+    def can_assemble_ground(self,who,item_id):
+        """Counter-style assembly with a floor plate or floor ingredient (ruleset opt-in)."""
+        hand,item=self.chefs[who].hand,self.ground.get(item_id)
+        return bool(self.rules.ground_assembly and self.rules.multi_component and hand and item and item.lock in (None,who)
+                    and (self.can_add(item.food,hand) or self.can_add(hand,item.food)))
+
+    def ground_assembly_signature(self,who,item_id):
+        hand,item=self.chefs[who].hand,self.ground.get(item_id)
+        contents=lambda food:','.join(sorted(self.parts(food))) if food else None
+        return (hand.id if hand else None,item_id,item.location if item else None,
+                contents(hand),contents(item.food if item else None))
 
     def can_plate_ground(self, who, item_id):
         hand, item = self.chefs[who].hand, self.ground.get(item_id)
@@ -425,11 +544,18 @@ class Kitchen:
                     and item.food.stage == 'pot' and item.food.contents
                     and item.food.contents.stage in ('ready', 'burnt') and not item.food.contents.plate_id)
 
+    @engine_input
     def stop(self, who):
         a = self.chefs[who]
         if a.job:
             self.swap_slots.pop(a.job.id, None)
-            self.emit(f"{NAMES[who]}中断：{a.job.action.label}", kind="interrupted", actor=who)
+            self.emit(f"{NAMES[who]}中断：{a.job.action.label}", kind="interrupted", actor=who, action_id=a.job.id)
+            job = a.job
+            if job.working and job.action.kind in ('chop', 'wash'):
+                remaining = [p for p in self.work_participants(job.action.target, job.action.kind) if p != who]
+                if remaining:
+                    self.emit(f"{NAMES[who]}离开{self.place(job.action.target).name}的共同操作，进度保留", kind='shared_work_leave',
+                              actor=who, action_id=job.id, station=job.action.target, workers=len(remaining))
             for s in self.stations.values():
                 if s.lock == who:
                     s.lock = next((other for other,b in self.chefs.items() if other!=who and b.job and b.job.working
@@ -439,6 +565,7 @@ class Kitchen:
                     item.lock = None
             a.job = None
 
+    @engine_input
     def start(self, who, action):
         current = next((x for x in self.actions(who) if x.key == action.key and x.expected == action.expected), None)
         if not current:
@@ -452,12 +579,12 @@ class Kitchen:
             return True, "已中断"
         a = self.chefs[who]
         s = self.place(action.target)
-        work = {"chop": self.c["chop_seconds"]-(s.food.chopped if s.food else 0),
+        work = {"chop": (self.rules.chop_work(s.food.ingredient)-s.food.chopped) if s.food else 0,
                 "wash": self.wash_seconds-(s.food.washed if s.food else 0),
-                "extinguish": 4, "clear": 2, "go": 0}.get(action.kind, self.c.get('handling_seconds', .15))
+                "extinguish": self.rules.extinguish, "clear": self.rules.clear, "go": 0}.get(action.kind, self.rules.handling)
         self.job_serial += 1
         a.job = Job(self.job_serial, action, self.travel_time(a, action.target), work)
-        self.emit(f"{NAMES[who]}开始：{action.label}（路程 {a.job.travel:.0f}s + 操作 {work:.1f}s）", kind="action_start", actor=who, action=action.key)
+        self.emit(f"{NAMES[who]}开始：{action.label}（路程 {a.job.travel:.0f}s + 操作 {work:.1f}s）", kind="action_start", actor=who, action=action.key, action_id=a.job.id)
         return True, "开始"
 
     def command(self, who, key):
@@ -473,8 +600,8 @@ class Kitchen:
             keys.extend([f"put {key}", f"extinguish {key}", f"clear {key}"])
         keys.extend(f"go {key}" for key in self.stations)
         keys.append('drop')
-        keys.extend(['take extinguisher', 'put extinguisher'])
-        keys.extend(['take returns', 'put sink', 'wash', 'take sink'])
+        keys.extend([f'take {self.rack}', f'put {self.rack}'])
+        keys.extend([f'take {self.returns}', f'put {self.sink}', 'wash', f'take {self.sink}'])
         for key in self.counters:
             keys.extend([f'take {key}', f'put {key}', f'plate {key}'])
         keys.extend(f'extinguish {key}' for key in self.boards + self.counters)
@@ -498,7 +625,7 @@ class Kitchen:
         s = self.place(job.action.target)
         a.location = job.action.target
         # Recheck at arrival; another chef can use a station while we walk there.
-        if job.action.kind in ('drop', 'pickup', 'plate_ground', 'load_ground','swap_ground_pot'):
+        if job.action.kind in ('drop', 'pickup', 'plate_ground', 'load_ground','swap_ground_pot','assemble_ground'):
             if job.action.kind == 'drop':
                 valid = a.hand is not None and (a.hand.id, a.location) == job.action.expected
             elif job.action.kind=='swap_ground_pot':
@@ -506,6 +633,10 @@ class Kitchen:
                 valid=bool(item and item.lock in (None,who) and self.can_swap_pots(a.hand,item.food)
                            and self.ground_swap_signature(who,item.food.id)==job.action.expected)
                 if valid:item.lock=who
+            elif job.action.kind=='assemble_ground':
+                item_id=job.action.expected[1]
+                valid=self.can_assemble_ground(who,item_id) and self.ground_assembly_signature(who,item_id)==job.action.expected
+                if valid:self.ground[item_id].lock=who
             elif job.action.kind in ('plate_ground','load_ground'):
                 item_id = job.action.expected[1]
                 valid = ((self.can_plate_ground(who,item_id) if job.action.kind=='plate_ground' else self.can_load_ground(who,item_id))
@@ -519,7 +650,7 @@ class Kitchen:
                 if valid:
                     item.lock = who
             if not valid:
-                self.emit(f"{NAMES[who]}到达后发现地上物品已变化或被捡走，动作取消", kind='arrival_conflict', actor=who)
+                self.emit(f"{NAMES[who]}到达后发现地上物品已变化或被捡走，动作取消", kind='arrival_conflict', actor=who, action_id=job.id)
                 a.job = None
                 return False
             if not self._reserve_hand_swap(who, job):
@@ -527,19 +658,19 @@ class Kitchen:
                 return False
             job.working = True
             return True
-        if job.action.kind == 'chop' and (a.hand or not s.food or s.food.stage != 'raw' or s.food.ingredient=='bread'):
-            self.emit(f'{NAMES[who]}到达后发现食材已不需要切配，动作取消', kind='arrival_conflict', actor=who)
+        if job.action.kind == 'chop' and (a.hand or not s.food or not self.rules.choppable(s.food)):
+            self.emit(f'{NAMES[who]}到达后发现食材已不需要切配，动作取消', kind='arrival_conflict', actor=who, action_id=job.id)
             self.stop(who)
             return False
         if job.action.kind == 'chop':
-            job.work = max(0, self.c['chop_seconds']-s.food.chopped)
+            job.work = max(0, self.rules.chop_work(s.food.ingredient)-s.food.chopped)
         if job.action.kind=='wash':
             if a.hand or not s.food or s.food.stage!='dirty_plate':
                 self.stop(who);return False
             job.work=max(0,self.wash_seconds-s.food.washed)
         sharing=s.lock not in (None,who) and self.can_share_work(who,job.action.kind,job.action.target)
         if job.action.kind != "go" and (self.signature(who, job.action.target) != job.action.expected or (s.lock not in (None, who) and not sharing)):
-            self.emit(f"{NAMES[who]}到达后发现目标已变化或被占用，动作取消", kind="arrival_conflict", actor=who)
+            self.emit(f"{NAMES[who]}到达后发现目标已变化或被占用，动作取消", kind="arrival_conflict", actor=who, action_id=job.id)
             a.job = None
             return False
         if not self._reserve_hand_swap(who, job):
@@ -548,6 +679,11 @@ class Kitchen:
         if job.action.kind != "go" and not sharing:
             s.lock = who
         job.working = True
+        if job.action.kind in ('chop', 'wash'):
+            workers = self.work_participants(job.action.target, job.action.kind)
+            if len(workers) >= 2:
+                self.emit(f"{NAMES[who]}加入{s.name}的共同操作（{len(workers)}人）", kind='shared_work_join', actor=who,
+                          action_id=job.id, station=job.action.target, workers=len(workers))
         return True
 
     def _finish(self, who, job):
@@ -597,7 +733,7 @@ class Kitchen:
             self.ground[incoming.id]=GroundItem(incoming,item.location)
         elif k == 'empty_pot':
             a.hand.contents = None
-            self.money -= 2
+            self.money += self.rules.penalty['discard']
         elif k == 'assemble':
             if self.can_add(s.food,a.hand):
                 s.food=self.merge_plate(s.food,a.hand);a.hand=None
@@ -613,10 +749,22 @@ class Kitchen:
             a.hand=self.merge_plate(a.hand,s.food);s.food=None;s.heating=False
         elif k == 'load_counter':
             s.food.contents,a.hand=a.hand,None
+        elif k == 'assemble_ground':
+            item_id=job.action.expected[1]
+            if not self.can_assemble_ground(who,item_id) or self.ground_assembly_signature(who,item_id)!=job.action.expected:
+                self.emit('地上物品或手中物品已变化，加入盘中取消',kind='arrival_conflict',actor=who,action_id=job.id)
+                self.stop(who);return
+            item=self.ground.pop(item_id)
+            if self.can_add(item.food,a.hand):
+                # The plate stays on its floor cell; a clean plate takes the ingredient's id.
+                plate=self.merge_plate(item.food,a.hand);a.hand=None
+                self.ground[plate.id]=GroundItem(plate,item.location)
+            else:
+                a.hand=self.merge_plate(a.hand,item.food)
         elif k == 'load_ground':
             item_id=job.action.expected[1]
             if not self.can_load_ground(who,item_id) or self.ground_plate_signature(who,item_id)!=job.action.expected:
-                self.emit('地上锅或手中食材已变化，入锅取消',kind='arrival_conflict',actor=who)
+                self.emit('地上锅或手中食材已变化，入锅取消',kind='arrival_conflict',actor=who,action_id=job.id)
                 self.stop(who);return
             item=self.ground[item_id]
             item.food.contents,a.hand=a.hand,None
@@ -625,7 +773,7 @@ class Kitchen:
             item_id = job.action.expected[1]
             if (not self.can_plate_ground(who, item_id)
                     or self.ground_plate_signature(who, item_id) != job.action.expected):
-                self.emit('地上锅或手中餐盘已变化，装盘取消', kind='arrival_conflict', actor=who)
+                self.emit('地上锅或手中餐盘已变化，装盘取消', kind='arrival_conflict', actor=who, action_id=job.id)
                 self.stop(who)
                 return
             item = self.ground[item_id]
@@ -653,8 +801,8 @@ class Kitchen:
             s.food.stage = "cooking"
             s.heating = True
         elif k == "chop":
-            s.food.chopped = self.c["chop_seconds"]
-            s.food.stage = "chopped"
+            s.food.chopped = self.rules.chop_work(s.food.ingredient)
+            s.food.stage = self.rules.chop[s.food.ingredient]['to']
         elif k == "extinguish":
             s.fire = False
             s.fire_elapsed = 0
@@ -662,28 +810,14 @@ class Kitchen:
         elif k == "clear":
             s.food = None
             s.heating = False
-            self.money -= 2
+            self.money += self.rules.penalty['discard']
         elif k == "discard":
             a.hand = Food(a.hand.plate_id, 'dirty_plate') if a.hand.plate_id else None
-            self.money -= 2
+            self.money += self.rules.penalty['discard']
         elif k == "serve":
             self.dining.append({'plate': Food(a.hand.plate_id, 'dirty_plate'), 'returns_at': self.time+self.dining_seconds})
-            pending = [o for o in self.orders if o["status"] == "pending" and (self.c.get("level") not in (2,3) or o["dish"]==self.dish(a.hand))]
-            o = min(pending, key=lambda x: x["deadline"]) if pending else None
-            good = a.hand.stage == "ready" and o and self.time <= o["deadline"]+1e-8
-            if good:
-                o["status"] = "served"
-                self.served += 1
-                price=60 if o['dish']=='burger' else 30
-                self.money += price
-                self.emit(f"{NAMES[who]}完成 {o['id']}，顾客好评，收入 +{price} 元", kind="served", actor=who,dish=o['dish'])
-            else:
-                if o:
-                    o["status"] = "rejected"
-                self.bad_reviews += 1
-                self.money -= 15
-                reason = STATES[a.hand.stage] if a.hand.stage != "ready" else "没有有效订单"
-                self.emit(f"顾客差评：{reason}；扣 15 元" + (f"，{o['id']}失败" if o else ""), kind="bad_service", actor=who)
+            pending = [o for o in self.orders if o["status"] == "pending" and o["dish"]==self.dish(a.hand)]
+            self._serve(who, job, a.hand, min(pending, key=lambda x: x["deadline"]) if pending else None)
             a.hand = None
         location = self.swap_slots.pop(job.id, None)
         if displaced:
@@ -694,16 +828,43 @@ class Kitchen:
         if s.lock == who:
             s.lock = None
         a.job = None
-        self.emit(f"{NAMES[who]}完成动作：{job.action.label}", kind="action_done", actor=who, action=job.action.key)
+        self.emit(f"{NAMES[who]}完成动作：{job.action.label}", kind="action_done", actor=who, action=job.action.key, action_id=job.id)
         for partner in partners:
             other=self.chefs[partner];other_job=other.job
             other.job=None
             if s.lock==partner:s.lock=None
             getattr(self,'routes',{}).pop(partner,None)
-            self.emit(f'{NAMES[partner]}共同完成：{other_job.action.label}',kind='action_done',actor=partner,action=other_job.action.key)
+            self.emit(f'{NAMES[partner]}共同完成：{other_job.action.label}',kind='action_done',actor=partner,action=other_job.action.key,action_id=other_job.id)
+
+    def _serve(self, who, job, food, order):
+        """Match the waiting order of this dish with the earliest deadline.
+
+        Serving at the deadline itself still counts. A dish burnt past the last
+        accepted tier is refused and the order keeps waiting.
+        """
+        dish = self.dish(food)
+        if order is None:
+            penalty = self.rules.penalty['wrong_dish']
+            self.money += penalty
+            self.emit(f"没有等待{self.recipe_name(dish)}的订单；扣 {-penalty} 元", kind='wrong_dish', actor=who,
+                      action_id=job.id, dish=dish)
+            return
+        overcook = self.rules.overcook(food, self.parts(food))
+        tier = self.rules.burnt_tier(overcook) if food.stage == 'burnt' else None
+        if tier and tier['outcome'] == 'rejected':
+            self.emit(f"{order['id']}的顾客拒收糊菜，订单继续等待", kind='dish_rejected', actor=who, action_id=job.id,
+                      order_id=order['id'], dish=dish, overcook_game_ms=None if overcook == float('inf') else round(overcook*1000))
+            return
+        price, adjustment = self.rules.prices[order['dish']], tier['adjustment'] if tier else 0
+        order['status'] = 'served'
+        self.served += 1
+        self.money += price+adjustment
+        note = f"（菜品糊了，扣 {-adjustment} 元）" if adjustment else ''
+        self.emit(f"{NAMES[who]}完成 {order['id']}，收入 +{price+adjustment} 元{note}", kind='served', actor=who, dish=order['dish'],
+                  order_id=order['id'], action_id=job.id, price=price, adjustment=adjustment)
 
     def _return_plates(self):
-        tray = self.stations['returns']
+        tray = self.stations[self.returns]
         if not tray.food and not tray.lock:
             ready = next((entry for entry in self.dining if entry['returns_at'] <= self.time+1e-8), None)
             if ready:
@@ -725,14 +886,15 @@ class Kitchen:
             s.food.stage = 'burnt'
             self.burns += 1
         self.fires += 1
-        self.money -= 5
+        penalty = self.rules.penalty['new_fire']
+        self.money += penalty
         for who,a in list(self.chefs.items()):
             if a.job and a.job.working and a.job.action.target==key:self.stop(who)
-        self.emit(f'{s.name}着火！损失 5 元；必须先灭火再使用',
+        self.emit(f'{s.name}着火！损失 {-penalty} 元；必须先灭火再使用',
                   kind='fire_spread' if source else 'fire', station=key, source=source)
 
     def _advance_fire(self, dt):
-        interval = self.c.get('fire_spread_seconds', 8)
+        interval = self.rules.fire_spread
         burning = [key for key,s in self.stations.items() if s.fire]
         for key in burning:
             s = self.stations[key]
@@ -743,22 +905,20 @@ class Kitchen:
             target = next((n for n in self.fire_neighbors(key) if not self.stations[n].fire), None)
             if target:
                 self.ignite(target, source=key)
-        if sum(s.fire for s in self.stations.values()) >= self.c.get('fire_loss_threshold', 5):
+        if sum(s.fire for s in self.stations.values()) >= self.rules.fire_loss:
             self.failure_reason = 'fire_spread'
             for who in self.chefs:
                 self.stop(who)
             self.emit('火势失控，本局结束', kind='fire_loss')
             self._end()
 
+    @engine_input
     def advance(self, seconds):
         if seconds < 0 or not math.isfinite(seconds):
             raise ValueError("时间增量无效")
         # Small deterministic substeps preserve thermal transitions and action order.
         while seconds > 1e-9 and not self.ended:
-            if self.won():
-                self._end()
-                break
-            dt = min(seconds, .05, self.c["round_seconds"]-self.time)
+            dt = min(seconds, .05, self.rules.round_limit-self.time)
             if dt <= 1e-9:
                 self._end()
                 break
@@ -771,22 +931,25 @@ class Kitchen:
                 if not s.food or s.fire or not s.heating:
                     continue
                 f = s.food
-                f.heated += dt
-                ready = self.c["cook_seconds"]
-                burn = ready + self.c["burn_after_ready"]
-                fire = burn + self.c["fire_after_burn"]
+                f.heated += dt*self.rules.work_rate(key,'heat')
+                ready, burn, fire = self.rules.heat_thresholds(f.ingredient)
                 if f.stage == "cooking" and f.heated >= ready-1e-8:
                     f.stage = "ready"
-                    self.emit(f"{s.name}的 {f.id} 熟了！{self.c['burn_after_ready']}s 后糊锅", kind="ready")
+                    self.emit(f"{s.name}的 {f.id} 熟了！{burn-ready:g}s 后糊锅", kind="ready", station=key, item=f.id)
                 if f.stage == "ready" and f.heated >= burn-1e-8:
                     f.stage = "burnt"
                     self.burns += 1
-                    self.emit(f"{s.name}糊锅！{self.c['fire_after_burn']}s 后着火；糊菜上桌会被差评", kind="burn")
+                    self.emit(f"{s.name}糊锅！{fire-burn:g}s 后着火；糊太久上桌会被拒收", kind="burn", station=key, item=f.id)
                 if f.stage == "burnt" and f.heated >= fire-1e-8:
                     self.ignite(key)
             self._advance_fire(dt)
             if self.ended:
                 break
+            for target in {a.job.action.target for a in self.chefs.values()
+                           if a.job and a.job.working and a.job.action.kind in ('chop', 'wash')}:
+                kind = next(a.job.action.kind for a in self.chefs.values() if a.job and a.job.action.target == target)
+                if len(self.work_participants(target, kind)) >= 2:
+                    self.shared_overlap[target] = self.shared_overlap.get(target, 0.) + dt
             for who, a in self.chefs.items():
                 job = a.job
                 if not job:
@@ -799,10 +962,14 @@ class Kitchen:
                         continue
                     if not self._begin_work(who, job):
                         continue
+                rate = 1
                 if job.action.kind in ('chop','wash'):
                     food=self.stations[job.action.target].food
-                    job.work=max(0,(self.c['chop_seconds']-food.chopped) if job.action.kind=='chop' else (self.wash_seconds-food.washed))
-                used = min(job.work, remaining)
+                    job.work=max(0,(self.rules.chop_work(food.ingredient)-food.chopped) if job.action.kind=='chop' else (self.wash_seconds-food.washed))
+                    # Shared work: each active chef contributes work_rate * multiplier[n] / n.
+                    workers=len(self.work_participants(job.action.target,job.action.kind))
+                    rate=self.rules.progress_rate(job.action.target,job.action.kind,max(1,workers))
+                used = min(job.work, remaining*rate)
                 job.work -= used
                 if job.action.kind == "chop":
                     self.stations[job.action.target].food.chopped += used
@@ -812,39 +979,85 @@ class Kitchen:
                     for participant in self.work_participants(job.action.target,job.action.kind):
                         self.chefs[participant].job.work=job.work
                 if job.work <= 1e-8:
-                    self._finish(who, job)
-                    # Settle at the winning delivery, before another action or
-                    # unneeded order can change an already completed mission.
-                    if self.won():
-                        self._end()
-                        break
-            if self.ended:
-                break
+                    self.provenance.around_finish(self, who, job, lambda: self._finish(who, job))
             self._after_step(dt)
             # Complete an on-time delivery before expiring the same deadline.
+            closing = self.time >= self.rules.round_limit-1e-8
             for o in self.orders:
+                # Closing takes priority over a deadline at the same moment.
+                if closing and o["deadline"] >= self.rules.round_limit-1e-8:
+                    continue
                 if o["status"] == "pending" and self.time >= o["deadline"]-1e-8:
                     o["status"] = "expired"
-                    self.money -= 10
-                    self.bad_reviews += 1
-                    self.emit(f"{o['id']}超时，顾客离开并差评，扣 10 元", kind="expired")
-            if self.time >= self.c["round_seconds"]-1e-8 or all(o["status"] not in ("future", "pending") for o in self.orders):
+                    penalty = self.rules.penalty['expired_order']
+                    self.money += penalty
+                    self.emit(f"{o['id']}超时，顾客离开，扣 {-penalty} 元", kind="expired", order_id=o['id'])
+            self._goal_notices()
+            if closing:
                 self._end()
+
+    @engine_input
+    def abort(self):
+        """End the round early at the session's request (never counts as reaching the goal)."""
+        for who in self.chefs:
+            if hasattr(self, 'set_manual'):
+                self.set_manual(who, 0, 0)
+            self.stop(who)
+        self.aborted = True
+        self._end()
 
     def _end(self):
         if not self.ended:
             self.ended = True
-            self.reward_seconds = math.floor(max(0, self.c['round_seconds']-self.time)+1e-8)
-            if self.won() and not self.aborted:
-                self.time_bonus = round(self.reward_seconds*self.c.get('time_bonus_per_second', 1), 2)
+            for o in self.orders:
+                if o['status'] == 'pending':
+                    o['status'] = 'unresolved_at_close'
+                    self.emit(f"{o['id']}在关店时仍未完成", kind='unresolved_at_close', order_id=o['id'])
             self.emit(self.result(), kind="round_end")
 
+    def timing(self):
+        """Rule durations in game seconds for this round (work at rate 1, one worker)."""
+        r = self.rules
+        heat = next(iter(r.heat), None)
+        ready, burn, fire = r.heat_thresholds(heat) if heat else (None, None, None)
+        chop = next(iter(r.chop), None)
+        return {'wash': r.wash_work, 'dining': r.dining, 'chop': r.chop_work(chop) if chop else None,
+                'cook': ready, 'ready_to_burn': None if heat is None else burn-ready,
+                'burn_to_fire': None if heat is None else fire-burn, 'handling': r.handling,
+                'extinguish': r.extinguish, 'clear': r.clear,
+                'walk_same_area': r.same_area, 'walk_cross_area': r.cross_area}
+
+    def goal_status(self):
+        """Progress towards the goal as the players may see it.
+
+        Only the target and current money: an upper bound would reveal the
+        hidden future orders.
+        """
+        goal = self.rules.goal
+        return {'type': goal['type'], 'target_money': goal['min_money'], 'money': self.money,
+                'met_now': self.money >= goal['min_money'], 'judged_at': 'closing'}
+
+    def revenue_ceiling(self):
+        """Money now plus every waiting or future order at full price (engine-only knowledge)."""
+        return self.money + sum(self.rules.prices[o['dish']] for o in self.orders if o['status'] in ('pending', 'future'))
+
+    def _goal_notices(self):
+        if getattr(self, '_goal_unreachable_noted', False):
+            return
+        if self.revenue_ceiling() < self.rules.goal['min_money']:
+            # The bound only falls: serving converts it into money, expiries and penalties remove it.
+            self._goal_unreachable_noted = True
+            self.emit(f"已无法达成目标金额 {self.rules.goal['min_money']} 元；本局继续至关店", kind='goal_unreachable')
+
     def won(self):
-        return not self.failure_reason and self.served >= self.c["target_served"] and self.money >= self.c["target_money"] and self.bad_reviews <= self.c["max_bad_reviews"]
+        return not self.failure_reason and self.money >= self.rules.goal['min_money']
 
     def result(self):
-        label = '火势失控' if self.failure_reason == 'fire_spread' else ("提前退出（未结算通关）" if self.aborted else ("任务成功" if self.won() else "任务未达成"))
-        return f"{label}：出餐 {self.served}/{self.c['target_served']}；净收入 {self.money}/{self.c['target_money']} 元；差评 {self.bad_reviews}（最多 {self.c['max_bad_reviews']}）；糊锅 {self.burns}，着火 {self.fires}；时间奖励 {self.time_bonus:g} 元（剩余 {self.reward_seconds} 整秒）；合计 {self.money+self.time_bonus:g} 元"
+        label = '火势失控' if self.failure_reason == 'fire_spread' else ("提前退出" if self.aborted else ("目标达成" if self.won() else "未达目标"))
+        count = lambda status: sum(o['status'] == status for o in self.orders)
+        refused = sum(e.get('kind') == 'dish_rejected' for e in self.events)
+        return (f"{label}：净收入 {self.money}/{self.rules.goal['min_money']} 元；完成 {self.served} 单；超时 {count('expired')}；"
+                f"拒收 {refused}；关店未完成 {count('unresolved_at_close')}；糊锅 {self.burns}，着火 {self.fires}")
 
     def snapshot(self):
         def food(f):
@@ -853,7 +1066,8 @@ class Kitchen:
             if f.stage == 'extinguisher':
                 return {'id': f.id, 'stage': f.stage, 'meaning': STATES[f.stage], 'tool': True}
             if f.stage == 'pot':
-                return {'id': f.id, 'stage': 'pot', 'meaning': '空锅' if not f.contents else '锅 · '+STATES[f.contents.stage],
+                v = self.vessel_name(f.id)
+                return {'id': f.id, 'stage': 'pot', 'vessel': self.rules.vessels.get(f.id), 'meaning': '空'+v if not f.contents else v+' · '+self.state_label(f.contents.ingredient, f.contents.stage),
                         'contents': food(f.contents)}
             if f.stage in ('clean_plate', 'dirty_plate'):
                 return {'id': f.id, 'stage': f.stage, 'meaning': STATES[f.stage],
@@ -861,8 +1075,8 @@ class Kitchen:
             return {"id": f.id, "stage": f.stage, "meaning": self.food_name(f),
                     'plate_id': f.plate_id,
                     "ingredient": f.ingredient, "components": list(f.components), "dish": self.dish(f),
-                    "missing": sorted({'bread','lettuce','tomato','beef'}-set(f.components)) if f.plate_id and self.c.get('level') in (2,3) else [],
-                    "chop_remaining": 0 if f.ingredient=='bread' else round(max(0, self.c["chop_seconds"]-f.chopped), 2),
+                    "missing": self.rules.missing(self.parts(f)) if f.plate_id and self.rules.multi_component else [],
+                    "chop_remaining": round(max(0, self.rules.chop_work(f.ingredient)-f.chopped), 2),
                     "heat_elapsed": round(f.heated, 2)}
         chefs = {}
         for who, a in self.chefs.items():
@@ -876,20 +1090,25 @@ class Kitchen:
         stations = {}
         for key, s in self.stations.items():
             record = {"name": s.name, "area": s.area, "food": food(s.food), "used_by": s.lock, "fire": s.fire, "heating": s.heating,
-                      'pot_id': s.pot_id, 'counter': key in self.counters, 'stove': key in self.pots}
-            record['fire_spread_in'] = round(max(0,self.c.get('fire_spread_seconds',8)-s.fire_elapsed),2) if s.fire else None
+                      'pot_id': s.pot_id, 'counter': key in self.counters, 'stove': key in self.pots,
+                      'type': self.rules.station_types[key]}
+            record['fire_spread_in'] = round(max(0,self.rules.fire_spread-s.fire_elapsed),2) if s.fire else None
             record['fire_neighbors'] = self.fire_neighbors(key)
             record['workers']=self.work_participants(key,'chop')+self.work_participants(key,'wash')
             record['scorched'] = s.scorched
+            if s.pot_id:
+                record['vessel'] = self.rules.vessels.get(s.pot_id)
             if key in self.pots and s.food:
                 h = s.food.heated
-                record.update({"ready_in": round(max(0,self.c["cook_seconds"]-h),2),
-                               "burn_in": round(max(0,self.c["cook_seconds"]+self.c["burn_after_ready"]-h),2),
-                               "fire_in": round(max(0,self.c["cook_seconds"]+self.c["burn_after_ready"]+self.c["fire_after_burn"]-h),2)})
+                ready, burn, fire = self.rules.heat_thresholds(s.food.ingredient)
+                record.update({"ready_in": round(max(0,ready-h),2),
+                               "burn_in": round(max(0,burn-h),2),
+                               "fire_in": round(max(0,fire-h),2)})
             stations[key] = record
-        return {"level": self.c.get("level",1), "order_seed":self.c.get("order_seed"), "time": round(self.time,2), "round_remaining": round(self.c["round_seconds"]-self.time,2),
+        return {"level": self.c.get("level"), "level_id": self.resolved['level']['id'], "config_hash": self.config_hash,
+                "order_seed": self.resolved['seeds']['orders'], "time": round(self.time,2), "round_remaining": round(self.rules.round_limit-self.time,2),
                 'tableware': {'total': self.plate_count, 'wash_seconds': self.wash_seconds,
-                    'dining_seconds': self.dining_seconds, 'return_capacity': 1,
+                    'dining_seconds': self.dining_seconds, 'return_capacity': self.rules.return_capacity,
                     'counters': self.counters,
                     'customers': [{'plate_id': d['plate'].id, 'returns_in': round(max(0, d['returns_at']-self.time), 2),
                                    'waiting_for_space': d['returns_at'] <= self.time} for d in self.dining]},
@@ -898,16 +1117,42 @@ class Kitchen:
                             "area": self.place(item.location).area, "food": food(item.food),
                             "used_by": item.lock} for item in self.ground.values()],
                 "orders": [{**o, "remaining": round(o["deadline"]-self.time,2)} for o in self.orders if o["status"] != "future"],
-                "future_orders": sum(o["status"] == "future" for o in self.orders),
-                "money": self.money, "served": self.served, "bad_reviews": self.bad_reviews,
+                # Reveal only whether more orders will come, not how many.
+                "future_orders": int(any(o["status"] == "future" for o in self.orders)),
+                'goal_status': self.goal_status(), 'end_policy': self.rules.end_policy,
+                # Rules visible to both chefs, from the same frozen configuration the engine runs.
+                'menu': [self._dish_view(r) for r in self.rules.menu],
+                'assembly': self.rules.multi_component,
+                # Every servable dish, including ones no order asks for.
+                'dishes': [self._dish_view(r) for r in self.rules.servable],
+                # Cooking vessels in this level: kind -> name and the ingredients it cooks (and from which state).
+                'vessels': {kind: {'name': self.rules.vessel_names.get(kind, kind),
+                                   'cooks': [{'item': item, 'from': t['from']} for item, t in sorted(self.rules.heat.items())
+                                             if t.get('container', 'pot') == kind and item in set(self.rules.sources.values())]}
+                            for kind in sorted(set(self.rules.vessels.values()))},
+                # Display data for the client: names, states and fallback colours of this level's items.
+                'items': {key: {field: item[field] for field in ('name', 'states', 'state_names', 'platable_states', 'color') if field in item}
+                          for key, item in self.rules.items.items()},
+                # Only present when the ruleset enables it.
+                **({'ground_assembly': True} if self.rules.ground_assembly and self.rules.multi_component else {}),
+                'scoring': {'penalties': dict(self.rules.penalty),
+                            'burnt_service': [dict(t) for t in self.rules.burnt_service]},
+                'round_limit': self.rules.round_limit,
+                'timing': self.timing(),
+                "money": self.money, "served": self.served,
                 'fire_safety': {'burning_count': sum(s.fire for s in self.stations.values()),
-                                'loss_threshold': self.c.get('fire_loss_threshold',5),
-                                'spread_seconds': self.c.get('fire_spread_seconds',8)},
+                                'loss_threshold': self.rules.fire_loss,
+                                'spread_seconds': self.rules.fire_spread},
                 'failure_reason': self.failure_reason,
-                "settlement": {"remaining_seconds": self.reward_seconds,
-                               "time_bonus": self.time_bonus,
-                               "total_income": round(self.money+self.time_bonus, 2)} if self.ended else None,
-                "goals": {k:self.c[k] for k in ("target_served","target_money","max_bad_reviews")}}
+                "goals": {"target_money": self.rules.goal['min_money']}}
+
+    def _dish_view(self, recipe):
+        r = self.rules.recipes[recipe]
+        view = {'id': recipe, 'name': self.rules.recipe_names[recipe], 'price': self.rules.prices[recipe],
+                'components': [{'item': c['item'], 'state': c['state']} for c in r['components']]}
+        if 'plating' in r:
+            view['plating'] = [dict(layer) for layer in r['plating']]
+        return view
 
     def assert_invariants(self):
         foods = ([s.food for s in self.stations.values() if s.food]
@@ -918,14 +1163,14 @@ class Kitchen:
             assert item_id == item.food.id and self.place(item.location)
             if item.lock:
                 j = self.chefs[item.lock].job
-                assert j and j.working and j.action.kind in ('pickup', 'plate_ground', 'load_ground','swap_ground_pot') and j.action.expected[1] == item_id
+                assert j and j.working and j.action.kind in ('pickup', 'plate_ground', 'load_ground','swap_ground_pot','assemble_ground') and j.action.expected[1] == item_id
         for key, s in self.stations.items():
             if key in self.counters:
                 pass  # Each counter has exactly one physical item slot.
-            elif key == 'extinguisher':
+            elif key == self.rack:
                 assert s.food is None or s.food.stage == 'extinguisher'
-            elif key in ('returns', 'sink'):
-                allowed = ('dirty_plate',) if key == 'returns' else ('clean_plate', 'dirty_plate')
+            elif key in (self.returns, self.sink):
+                allowed = ('dirty_plate',) if key == self.returns else ('clean_plate', 'dirty_plate')
                 assert s.food is None or s.food.stage in allowed
             elif key not in self.boards + self.pots:
                 assert s.food is None, "禁止将食材存入出餐口或虚构窗口"
@@ -933,12 +1178,13 @@ class Kitchen:
                 j = self.chefs[s.lock].job
                 assert j and j.working and j.action.target == key
             if s.fire:
-                assert key in self.pots + self.boards + self.counters
+                assert self.rules.combustible(key)
             if key in self.pots and not s.pot_id:
                 assert s.food is None and not s.heating
-        assert sum(f.stage == 'extinguisher' for f in foods) == 1, '灭火器丢失或重复'
         all_items = foods + [d['plate'] for d in self.dining]
         all_items += [p['food'] for p in getattr(self, 'projectiles', {}).values()]
+        # In flight counts too: a passed extinguisher is neither in a hand nor on the rack.
+        assert sum(f.stage == 'extinguisher' for f in all_items) == 1, '灭火器丢失或重复'
         all_items += [f.contents for f in all_items if f.stage == 'pot' and f.contents]
         assert len({f.id for f in all_items}) == len(all_items), '容器内外物品重复'
         pots = [s.pot_id for s in self.stations.values() if s.pot_id] + [f.id for f in all_items if f.stage == 'pot']

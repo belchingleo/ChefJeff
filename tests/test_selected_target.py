@@ -56,14 +56,15 @@ class SelectedTargetTests(unittest.TestCase):
             k=self.make(level);p=self.setup_floor_pot(k,'human');del k.ground[p.id];key=next(c for c in k.counters if not k.stations[c].food);k.stations[key].food=p
             a=next(a for a in k.actions('human') if a.key=='load '+key);self.finish(k,'human',a)
             self.assertEqual(p.contents.id,'meat');self.assertIsNone(k.chefs['human'].hand);k.advance(5);self.assertEqual(p.contents.heated,0)
-    def test_http_focus_same_target_hint_and_manual_release(self):
+    def test_http_click_walks_there_and_space_uses_the_facing(self):
         g=GameSession(config={**load_config(),'level':3},kitchen_factory=SpatialKitchen,client_factory=Client,journal_factory=FakeJournal);self.addCleanup(g.close)
         def cmd(path,**kw):return g.command('/api/'+path,{'game_id':g.game_id,'request_id':str(time.monotonic_ns()),**kw})
-        cmd('start');g.k.positions['human']=(2,6);g.k.chefs['human'].location='b1';g.k.chefs['human'].hand=Food('meat')
-        self.assertEqual(cmd('select',target='b1')[0],200)
+        cmd('start');g.k.positions['human']=(2,6);g.k.facing['human']='right';g.k.chefs['human'].hand=Food('meat')
+        self.assertEqual(cmd('select',target='b1')[0],200);g.k.advance(.5)
         state=g.public_state();self.assertEqual(state['interaction_focus'],'b1');self.assertEqual(state['interaction']['key'],'put b1')
         self.assertEqual(cmd('interact',expected_item='meat')[0],200);g.k.advance(.5);self.assertEqual(g.k.stations['b1'].food.id,'meat')
-        cmd('move',dx=1,dy=0,seq=1);self.assertIsNone(g.interaction_focus)
+        # Nothing is remembered: turning away changes what Space acts on.
+        g.k.facing['human']='left';self.assertEqual(g.public_state()['interaction_focus'],'bin')
         self.assertEqual(cmd('select',target='item:missing')[0],409)
     def test_ground_focus_at_feet_survives_two_space_presses(self):
         g=GameSession(config={**load_config(),'level':3},kitchen_factory=SpatialKitchen,client_factory=Client,journal_factory=FakeJournal);self.addCleanup(g.close)
@@ -75,7 +76,7 @@ class SelectedTargetTests(unittest.TestCase):
         self.assertEqual(g.k.chefs['human'].hand.id,'P1');g.k.assert_invariants()
     def test_facing_locks_front_and_explicit_selection_overrides(self):
         k=self.make();k.positions['human']=(2,6);k.chefs['human'].hand=Food('meat')
-        for facing,target,kind in [('down','b1','put_board'),('left','bin','discard'),('right','floor_3_6','drop')]:
+        for facing,target,kind in [('down','b1','put_board'),('left','bin','discard'),('right','b1','put_board')]:
             k.facing['human']=facing
             focus=k.interaction_target('human');self.assertEqual(focus,target)
             self.assertEqual(k.quick_interaction('human',preferred=focus).kind,kind)
@@ -88,16 +89,17 @@ class SelectedTargetTests(unittest.TestCase):
         del k.ground['P1'];self.assertIsNone(k.quick_interaction('human',preferred='item:P1'))
         self.assertIsNone(k.interaction_cell('human','item:P1'))
 
-    def test_empty_hands_pick_feet_before_front_item_or_station(self):
+    def test_front_before_feet_and_an_idle_station_falls_through(self):
         for level in (1,3):
             k=self.make(level);k.positions['human']=(2,6);k.chefs['human'].hand=None
             k.ground['feet']=GroundItem(Food('feet'),tile_key((2,6)))
             k.ground['front']=GroundItem(Food('front'),tile_key((3,6)))
-            for facing in ('up','down','left','right'):
-                k.facing['human']=facing
-                focus=k.interaction_target('human');self.assertEqual(focus,'item:feet')
-                self.assertEqual(k.quick_interaction('human',preferred=focus).key,'pickup feet')
-            self.finish(k,'human',k.quick_interaction('human',preferred=focus))
+            k.facing['human']='right'
+            self.assertEqual(k.facing_interaction('human')[1].key,'pickup front')
+            # Facing an empty board with empty hands: nothing to do there, so the feet item.
+            k.facing['human']='down';self.assertIsNone(k.stations['b1'].food)
+            focus,a=k.facing_interaction('human');self.assertEqual((focus,a.key),('item:feet','pickup feet'))
+            self.finish(k,'human',a)
             self.assertEqual(k.chefs['human'].hand.id,'feet');self.assertIn('front',k.ground)
 
     def test_feet_do_not_override_explicit_target_or_full_hands(self):

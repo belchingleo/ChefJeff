@@ -35,7 +35,7 @@ class FixedEntryTests(unittest.TestCase):
                                                 'take sink', plate, 'serve'])
             self.assertTrue(result['success'])
             self.assertTrue(result['target_F1_served_unburnt'])
-            self.assertEqual(result['money'], 30)
+            self.assertEqual(result['money'], build_scene().rules.prices['steak'])
             self.assertEqual(result['burns'], 0)
             # Faster travel may deliver before the human's six-second chop ends.
             completed=[e['action'] for e in result['human_events'] if e['kind']=='action_done']
@@ -52,7 +52,7 @@ class FixedEntryTests(unittest.TestCase):
                                   ['wash', 'take sink', 'plate p1', 'serve'])
         self.assertFalse(result['success'])
         self.assertEqual(result['burns'], 1)
-        self.assertEqual(result['served'], 0)
+        self.assertFalse(result['target_F1_served_unburnt'])
 
     def test_one_second_per_decision_still_leaves_a_feasible_reference(self):
         result, _ = run_reference('delayed', ['take pot p1', 'put counter2',

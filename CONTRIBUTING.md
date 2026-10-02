@@ -5,6 +5,7 @@ Help build the cooperative game and its whole-session benchmark together. Contri
 1. Use repository Issues to describe a concrete problem or proposal. Include the trigger, expected behavior, and a sanitized reproduction.
 2. Keep changes focused. Explain behavior changes and model-prompt changes separately, with relevant validation.
 3. Run `python3 -m unittest discover -s tests` with Python 3.10+, and `node tests/hosted_browser_test.cjs` for browser credential flow. Offline tests require no real API key. Run `python3 scripts/audit_release.py` before sharing a build.
+   Changes to game behaviour are checked against the behaviour fingerprints in `tests/golden/`: fixed scripted rounds per level whose event sequences must not change by accident. If a change is intended, explain it and regenerate them with `python3 tests/fingerprint.py --update`.
 4. Frontend changes use Cocos Creator 3.8.8 and `python3 scripts/build_cocos.py web`. Check affected browser views and interactions; omit Creator caches and personal settings from commits.
 5. Keep real model calls out of external PR checks and offline CI. Agree on a protocol and budget before collecting live comparisons. Model failures remain visible instead of being replaced with a scripted teammate.
 6. Run `git diff --check`. Exclude credentials, local configuration, raw logs, memory, contribution databases, and machine paths. Review feedback before sharing.
@@ -25,6 +26,7 @@ Original code is [AGPL-3.0-only](LICENSE). Contribute only code and assets you h
 1. 通过仓库 Issues 描述具体问题或提案，提供触发条件、预期行为和不含秘密的复现方式。
 2. 保持改动聚焦，分别说明玩法变化与模型提示变化，并提供相关验证。
 3. Python 3.10+ 运行 `python3 -m unittest discover -s tests`；浏览器凭据流程运行 `node tests/hosted_browser_test.cjs`。离线测试不需要真实 Key。分享构建前运行 `python3 scripts/audit_release.py`。
+   玩法行为的改动会与 `tests/golden/` 里的行为指纹比对：每一关用固定脚本跑出的事件序列，不应意外改变。确属有意的改动，请说明原因，并用 `python3 tests/fingerprint.py --update` 重新生成。
 4. 前端使用 Cocos Creator 3.8.8，通过 `python3 scripts/build_cocos.py web` 构建并检查受影响页面和交互，不提交 Creator 缓存或私人设置。
 5. 外部 PR 检查与离线 CI 不调用真实模型。实时对照需先确定协议与预算；模型失败明确显示，不以脚本队友替代。
 6. 提交前运行 `git diff --check`，排除凭据、本地配置、原始日志、记忆、贡献数据库及本机路径；分享反馈前先检查内容。

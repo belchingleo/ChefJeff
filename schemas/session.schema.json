@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "session.schema.json",
+  "title": "Session record (session.json): the conditions and facts of one real round",
+  "description": "Facts and conditions only. No cooperation, attention or quality score; derived holds versioned factual counts.",
+  "type": "object",
+  "required": ["schema_version", "session_id", "deployment_mode", "runtime_versions", "resolved_config", "config_hash",
+               "level_id", "actors", "agent_config", "started_at", "ended_at", "clock", "recording_meta", "artifacts",
+               "outcome", "contribution_meta", "derived"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "session_id": {"type": "string", "pattern": "^[0-9a-f]{32}$"},
+    "deployment_mode": {"enum": ["local", "hosted", "offline"]},
+    "runtime_versions": {
+      "type": "object", "required": ["release", "python", "engine", "engine_semantics", "rules_version", "input_language"],
+      "properties": {"release": {"type": ["string", "null"]}, "python": {"type": "string"}, "engine": {"enum": ["Kitchen", "SpatialKitchen"]},
+                     "engine_semantics": {"type": "string"}, "rules_version": {"type": "string"}, "input_language": {"type": "string"}},
+      "additionalProperties": false
+    },
+    "resolved_config": {
+      "type": "object", "required": ["path", "config_hash"],
+      "properties": {"path": {"const": "resolved-config.json"}, "config_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}},
+      "additionalProperties": false
+    },
+    "config_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "level_id": {"type": "string"},
+    "initial_state_seq": {"type": ["integer", "null"], "minimum": 1},
+    "actors": {
+      "type": "array", "minItems": 2, "maxItems": 2,
+      "items": {
+        "type": "object", "required": ["actor_id", "controller_type", "interface"],
+        "properties": {"actor_id": {"enum": ["human", "jeff"]}, "controller_type": {"enum": ["human", "agent", "scripted", "none"]},
+                       "interface": {"type": "object"}},
+        "additionalProperties": false
+      }
+    },
+    "agent_config": {
+      "description": "Provider/model/adapter/request policy/prompt and memory references. Never credentials; unknown values are null with a reason.",
+      "type": "object",
+      "required": ["provider", "model", "adapter", "request_policy", "prompt", "memory"],
+      "properties": {
+        "provider": {"type": ["string", "null"]}, "model": {"type": ["string", "null"]}, "actual_model": {"type": ["string", "null"]},
+        "adapter": {"type": ["string", "null"]}, "sampling": {"type": "null"}, "sampling_reason": {"type": "string"},
+        "reasoning": {"type": "null"}, "reasoning_reason": {"type": "string"},
+        "request_policy": {"type": "object"}, "prompt": {"type": "object"}, "memory": {"type": "object"}
+      },
+      "additionalProperties": false
+    },
+    "started_at": {"type": "string"},
+    "ended_at": {"type": ["string", "null"]},
+    "clock": {
+      "type": "object", "required": ["tick_game_ms", "game_per_wall", "round_limit_game_ms"],
+      "properties": {"tick_game_ms": {"type": "integer", "minimum": 1}, "game_per_wall": {"type": ["number", "null"]},
+                     "round_limit_game_ms": {"type": "integer", "minimum": 1}},
+      "additionalProperties": false
+    },
+    "recording_meta": {
+      "type": "object", "required": ["scope", "sampling", "dropped", "truncated", "clock_sources", "replay"],
+      "properties": {
+        "scope": {"type": "array", "items": {"type": "string"}}, "sampling": {"type": "string"},
+        "dropped": {"type": "integer", "minimum": 0}, "truncated": {"type": "boolean"},
+        "clock_sources": {"type": "object"}, "model_payloads": {"type": ["string", "null"]},
+        "model_payloads_reason": {"type": ["string", "null"]},
+        "replay": {
+          "type": "object", "required": ["level"],
+          "properties": {"level": {"enum": ["engine_events_verified", "replay_partial"]}, "reason": {"type": "string"},
+                         "events": {"type": "integer"}, "inputs": {"type": "integer"}, "first_divergent_event_index": {"type": "integer"}},
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "artifacts": {
+      "type": "array", "minItems": 3,
+      "items": {
+        "type": "object", "required": ["path", "sha256", "records"],
+        "properties": {"path": {"type": "string"}, "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+                       "records": {"type": ["integer", "null"], "minimum": 0}},
+        "additionalProperties": false
+      }
+    },
+    "outcome": {
+      "type": "object", "required": ["engine_result", "end_reason", "goal_status", "served", "expired", "unresolved_at_close", "money", "raw_score"],
+      "properties": {
+        "engine_result": {"type": "string"},
+        "end_reason": {"enum": ["aborted", "fire_loss", "round_limit", "ended", "in_progress"]},
+        "goal_status": {"type": "object"}, "served": {"type": "integer"}, "expired": {"type": "integer"},
+        "unresolved_at_close": {"type": "integer"}, "money": {"type": "number"},
+        "raw_score": {"type": "number"}
+      },
+      "additionalProperties": false
+    },
+    "contribution_meta": {"type": "object", "required": ["status"], "properties": {"status": {"type": "string"}}},
+    "derived": {
+      "type": "object", "required": ["definitions_version"],
+      "properties": {"definitions_version": {"const": "derived-v1"}},
+      "propertyNames": {"pattern": "^(?!.*(score|quality|cooperation_rating)).*$"}
+    }
+  },
+  "additionalProperties": false
+}

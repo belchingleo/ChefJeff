@@ -1,0 +1,2889 @@
+{
+ "seeds": "fixed",
+ "summary": [
+  {
+   "level": 1,
+   "variant": "fast",
+   "interval_s": 20.0,
+   "countdowns_s": {
+    "steak": 60.0
+   },
+   "orders": 9,
+   "runs": 1,
+   "money_median": 350,
+   "money_min": 350,
+   "money_max": 350,
+   "served_median": 7,
+   "expired_median": 0,
+   "open_at_close_median": 2,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 170
+  },
+  {
+   "level": 1,
+   "variant": "fast",
+   "interval_s": 20.0,
+   "countdowns_s": {
+    "steak": 75.0
+   },
+   "orders": 9,
+   "runs": 1,
+   "money_median": 350,
+   "money_min": 350,
+   "money_max": 350,
+   "served_median": 7,
+   "expired_median": 0,
+   "open_at_close_median": 2,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 170
+  },
+  {
+   "level": 1,
+   "variant": "fast",
+   "interval_s": 20.0,
+   "countdowns_s": {
+    "steak": 90.0
+   },
+   "orders": 9,
+   "runs": 1,
+   "money_median": 350,
+   "money_min": 350,
+   "money_max": 350,
+   "served_median": 7,
+   "expired_median": 0,
+   "open_at_close_median": 2,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 170
+  },
+  {
+   "level": 1,
+   "variant": "fast",
+   "interval_s": 25.0,
+   "countdowns_s": {
+    "steak": 60.0
+   },
+   "orders": 8,
+   "runs": 1,
+   "money_median": 350,
+   "money_min": 350,
+   "money_max": 350,
+   "served_median": 7,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 170
+  },
+  {
+   "level": 1,
+   "variant": "fast",
+   "interval_s": 25.0,
+   "countdowns_s": {
+    "steak": 75.0
+   },
+   "orders": 8,
+   "runs": 1,
+   "money_median": 350,
+   "money_min": 350,
+   "money_max": 350,
+   "served_median": 7,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 170
+  },
+  {
+   "level": 1,
+   "variant": "fast",
+   "interval_s": 25.0,
+   "countdowns_s": {
+    "steak": 90.0
+   },
+   "orders": 8,
+   "runs": 1,
+   "money_median": 350,
+   "money_min": 350,
+   "money_max": 350,
+   "served_median": 7,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 170
+  },
+  {
+   "level": 1,
+   "variant": "fast",
+   "interval_s": 30.0,
+   "countdowns_s": {
+    "steak": 60.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 300,
+   "money_min": 300,
+   "money_max": 300,
+   "served_median": 6,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 150
+  },
+  {
+   "level": 1,
+   "variant": "fast",
+   "interval_s": 30.0,
+   "countdowns_s": {
+    "steak": 75.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 300,
+   "money_min": 300,
+   "money_max": 300,
+   "served_median": 6,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 150
+  },
+  {
+   "level": 1,
+   "variant": "fast",
+   "interval_s": 30.0,
+   "countdowns_s": {
+    "steak": 90.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 300,
+   "money_min": 300,
+   "money_max": 300,
+   "served_median": 6,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 150
+  },
+  {
+   "level": 1,
+   "variant": "fast",
+   "interval_s": 35.0,
+   "countdowns_s": {
+    "steak": 60.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 298,
+   "money_min": 298,
+   "money_max": 298,
+   "served_median": 6,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 140
+  },
+  {
+   "level": 1,
+   "variant": "fast",
+   "interval_s": 35.0,
+   "countdowns_s": {
+    "steak": 75.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 298,
+   "money_min": 298,
+   "money_max": 298,
+   "served_median": 6,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 140
+  },
+  {
+   "level": 1,
+   "variant": "fast",
+   "interval_s": 35.0,
+   "countdowns_s": {
+    "steak": 90.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 298,
+   "money_min": 298,
+   "money_max": 298,
+   "served_median": 6,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 140
+  },
+  {
+   "level": 1,
+   "variant": "fast",
+   "interval_s": 40.0,
+   "countdowns_s": {
+    "steak": 60.0
+   },
+   "orders": 5,
+   "runs": 1,
+   "money_median": 200,
+   "money_min": 200,
+   "money_max": 200,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned"
+   ],
+   "passes_median": 14,
+   "target_50pct": 100
+  },
+  {
+   "level": 1,
+   "variant": "fast",
+   "interval_s": 40.0,
+   "countdowns_s": {
+    "steak": 75.0
+   },
+   "orders": 5,
+   "runs": 1,
+   "money_median": 200,
+   "money_min": 200,
+   "money_max": 200,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned"
+   ],
+   "passes_median": 14,
+   "target_50pct": 100
+  },
+  {
+   "level": 1,
+   "variant": "fast",
+   "interval_s": 40.0,
+   "countdowns_s": {
+    "steak": 90.0
+   },
+   "orders": 5,
+   "runs": 1,
+   "money_median": 200,
+   "money_min": 200,
+   "money_max": 200,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned"
+   ],
+   "passes_median": 14,
+   "target_50pct": 100
+  },
+  {
+   "level": 1,
+   "variant": "fast",
+   "interval_s": 45.0,
+   "countdowns_s": {
+    "steak": 60.0
+   },
+   "orders": 4,
+   "runs": 1,
+   "money_median": 200,
+   "money_min": 200,
+   "money_max": 200,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned"
+   ],
+   "passes_median": 12,
+   "target_50pct": 100
+  },
+  {
+   "level": 1,
+   "variant": "fast",
+   "interval_s": 45.0,
+   "countdowns_s": {
+    "steak": 75.0
+   },
+   "orders": 4,
+   "runs": 1,
+   "money_median": 200,
+   "money_min": 200,
+   "money_max": 200,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned"
+   ],
+   "passes_median": 12,
+   "target_50pct": 100
+  },
+  {
+   "level": 1,
+   "variant": "fast",
+   "interval_s": 45.0,
+   "countdowns_s": {
+    "steak": 90.0
+   },
+   "orders": 4,
+   "runs": 1,
+   "money_median": 200,
+   "money_min": 200,
+   "money_max": 200,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned"
+   ],
+   "passes_median": 12,
+   "target_50pct": 100
+  },
+  {
+   "level": 2,
+   "variant": "fast",
+   "interval_s": 20.0,
+   "countdowns_s": {
+    "burger": 75.0
+   },
+   "orders": 9,
+   "runs": 1,
+   "money_median": 298,
+   "money_min": 298,
+   "money_max": 298,
+   "served_median": 4,
+   "expired_median": 2,
+   "open_at_close_median": 3,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 140
+  },
+  {
+   "level": 2,
+   "variant": "fast",
+   "interval_s": 20.0,
+   "countdowns_s": {
+    "burger": 90.0
+   },
+   "orders": 9,
+   "runs": 1,
+   "money_median": 308,
+   "money_min": 308,
+   "money_max": 308,
+   "served_median": 4,
+   "expired_median": 1,
+   "open_at_close_median": 4,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned"
+   ],
+   "passes_median": 31,
+   "target_50pct": 150
+  },
+  {
+   "level": 2,
+   "variant": "fast",
+   "interval_s": 25.0,
+   "countdowns_s": {
+    "burger": 105.0
+   },
+   "orders": 8,
+   "runs": 1,
+   "money_median": 318,
+   "money_min": 318,
+   "money_max": 318,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 4,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 150
+  },
+  {
+   "level": 2,
+   "variant": "fast",
+   "interval_s": 25.0,
+   "countdowns_s": {
+    "burger": 120.0
+   },
+   "orders": 8,
+   "runs": 1,
+   "money_median": 318,
+   "money_min": 318,
+   "money_max": 318,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 4,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 150
+  },
+  {
+   "level": 2,
+   "variant": "fast",
+   "interval_s": 25.0,
+   "countdowns_s": {
+    "burger": 75.0
+   },
+   "orders": 8,
+   "runs": 1,
+   "money_median": 308,
+   "money_min": 308,
+   "money_max": 308,
+   "served_median": 4,
+   "expired_median": 1,
+   "open_at_close_median": 3,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 150
+  },
+  {
+   "level": 2,
+   "variant": "fast",
+   "interval_s": 25.0,
+   "countdowns_s": {
+    "burger": 90.0
+   },
+   "orders": 8,
+   "runs": 1,
+   "money_median": 308,
+   "money_min": 308,
+   "money_max": 308,
+   "served_median": 4,
+   "expired_median": 1,
+   "open_at_close_median": 3,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 150
+  },
+  {
+   "level": 2,
+   "variant": "fast",
+   "interval_s": 30.0,
+   "countdowns_s": {
+    "burger": 105.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 318,
+   "money_min": 318,
+   "money_max": 318,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 2,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 150
+  },
+  {
+   "level": 2,
+   "variant": "fast",
+   "interval_s": 30.0,
+   "countdowns_s": {
+    "burger": 120.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 318,
+   "money_min": 318,
+   "money_max": 318,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 2,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 150
+  },
+  {
+   "level": 2,
+   "variant": "fast",
+   "interval_s": 30.0,
+   "countdowns_s": {
+    "burger": 135.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 318,
+   "money_min": 318,
+   "money_max": 318,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 2,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 150
+  },
+  {
+   "level": 2,
+   "variant": "fast",
+   "interval_s": 30.0,
+   "countdowns_s": {
+    "burger": 75.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 308,
+   "money_min": 308,
+   "money_max": 308,
+   "served_median": 4,
+   "expired_median": 1,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 150
+  },
+  {
+   "level": 2,
+   "variant": "fast",
+   "interval_s": 30.0,
+   "countdowns_s": {
+    "burger": 90.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 318,
+   "money_min": 318,
+   "money_max": 318,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 2,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 150
+  },
+  {
+   "level": 2,
+   "variant": "fast",
+   "interval_s": 35.0,
+   "countdowns_s": {
+    "burger": 105.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 318,
+   "money_min": 318,
+   "money_max": 318,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 2,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 150
+  },
+  {
+   "level": 2,
+   "variant": "fast",
+   "interval_s": 35.0,
+   "countdowns_s": {
+    "burger": 120.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 318,
+   "money_min": 318,
+   "money_max": 318,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 2,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 150
+  },
+  {
+   "level": 2,
+   "variant": "fast",
+   "interval_s": 35.0,
+   "countdowns_s": {
+    "burger": 135.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 318,
+   "money_min": 318,
+   "money_max": 318,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 2,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 150
+  },
+  {
+   "level": 2,
+   "variant": "fast",
+   "interval_s": 35.0,
+   "countdowns_s": {
+    "burger": 75.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 318,
+   "money_min": 318,
+   "money_max": 318,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 2,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 150
+  },
+  {
+   "level": 2,
+   "variant": "fast",
+   "interval_s": 35.0,
+   "countdowns_s": {
+    "burger": 90.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 318,
+   "money_min": 318,
+   "money_max": 318,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 2,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 150
+  },
+  {
+   "level": 2,
+   "variant": "fast",
+   "interval_s": 40.0,
+   "countdowns_s": {
+    "burger": 105.0
+   },
+   "orders": 5,
+   "runs": 1,
+   "money_median": 318,
+   "money_min": 318,
+   "money_max": 318,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 150
+  },
+  {
+   "level": 2,
+   "variant": "fast",
+   "interval_s": 40.0,
+   "countdowns_s": {
+    "burger": 120.0
+   },
+   "orders": 5,
+   "runs": 1,
+   "money_median": 318,
+   "money_min": 318,
+   "money_max": 318,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 150
+  },
+  {
+   "level": 2,
+   "variant": "fast",
+   "interval_s": 40.0,
+   "countdowns_s": {
+    "burger": 135.0
+   },
+   "orders": 5,
+   "runs": 1,
+   "money_median": 318,
+   "money_min": 318,
+   "money_max": 318,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 150
+  },
+  {
+   "level": 2,
+   "variant": "fast",
+   "interval_s": 40.0,
+   "countdowns_s": {
+    "burger": 75.0
+   },
+   "orders": 5,
+   "runs": 1,
+   "money_median": 318,
+   "money_min": 318,
+   "money_max": 318,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 150
+  },
+  {
+   "level": 2,
+   "variant": "fast",
+   "interval_s": 40.0,
+   "countdowns_s": {
+    "burger": 90.0
+   },
+   "orders": 5,
+   "runs": 1,
+   "money_median": 318,
+   "money_min": 318,
+   "money_max": 318,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 150
+  },
+  {
+   "level": 2,
+   "variant": "fast",
+   "interval_s": 45.0,
+   "countdowns_s": {
+    "burger": 105.0
+   },
+   "orders": 4,
+   "runs": 1,
+   "money_median": 320,
+   "money_min": 320,
+   "money_max": 320,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned"
+   ],
+   "passes_median": 30,
+   "target_50pct": 160
+  },
+  {
+   "level": 2,
+   "variant": "fast",
+   "interval_s": 45.0,
+   "countdowns_s": {
+    "burger": 120.0
+   },
+   "orders": 4,
+   "runs": 1,
+   "money_median": 320,
+   "money_min": 320,
+   "money_max": 320,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned"
+   ],
+   "passes_median": 30,
+   "target_50pct": 160
+  },
+  {
+   "level": 2,
+   "variant": "fast",
+   "interval_s": 45.0,
+   "countdowns_s": {
+    "burger": 135.0
+   },
+   "orders": 4,
+   "runs": 1,
+   "money_median": 320,
+   "money_min": 320,
+   "money_max": 320,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned"
+   ],
+   "passes_median": 30,
+   "target_50pct": 160
+  },
+  {
+   "level": 2,
+   "variant": "fast",
+   "interval_s": 45.0,
+   "countdowns_s": {
+    "burger": 75.0
+   },
+   "orders": 4,
+   "runs": 1,
+   "money_median": 320,
+   "money_min": 320,
+   "money_max": 320,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned"
+   ],
+   "passes_median": 30,
+   "target_50pct": 160
+  },
+  {
+   "level": 2,
+   "variant": "fast",
+   "interval_s": 45.0,
+   "countdowns_s": {
+    "burger": 90.0
+   },
+   "orders": 4,
+   "runs": 1,
+   "money_median": 320,
+   "money_min": 320,
+   "money_max": 320,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned"
+   ],
+   "passes_median": 30,
+   "target_50pct": 160
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 20.0,
+   "countdowns_s": {
+    "burger": 75.0,
+    "steak": 60.0
+   },
+   "orders": 9,
+   "runs": 1,
+   "money_median": 270,
+   "money_min": 270,
+   "money_max": 270,
+   "served_median": 4,
+   "expired_median": 2,
+   "open_at_close_median": 3,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned swapped"
+   ],
+   "passes_median": 26,
+   "target_50pct": 130
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 20.0,
+   "countdowns_s": {
+    "burger": 75.0,
+    "steak": 75.0
+   },
+   "orders": 9,
+   "runs": 1,
+   "money_median": 240,
+   "money_min": 240,
+   "money_max": 240,
+   "served_median": 4,
+   "expired_median": 2,
+   "open_at_close_median": 3,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic swapped"
+   ],
+   "passes_median": 0,
+   "target_50pct": 120
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 20.0,
+   "countdowns_s": {
+    "burger": 75.0,
+    "steak": 90.0
+   },
+   "orders": 9,
+   "runs": 1,
+   "money_median": 250,
+   "money_min": 250,
+   "money_max": 250,
+   "served_median": 4,
+   "expired_median": 1,
+   "open_at_close_median": 4,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic swapped"
+   ],
+   "passes_median": 0,
+   "target_50pct": 120
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 20.0,
+   "countdowns_s": {
+    "burger": 90.0,
+    "steak": 60.0
+   },
+   "orders": 9,
+   "runs": 1,
+   "money_median": 300,
+   "money_min": 300,
+   "money_max": 300,
+   "served_median": 5,
+   "expired_median": 1,
+   "open_at_close_median": 3,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 150
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 20.0,
+   "countdowns_s": {
+    "burger": 90.0,
+    "steak": 75.0
+   },
+   "orders": 9,
+   "runs": 1,
+   "money_median": 380,
+   "money_min": 380,
+   "money_max": 380,
+   "served_median": 6,
+   "expired_median": 1,
+   "open_at_close_median": 2,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 190
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 20.0,
+   "countdowns_s": {
+    "burger": 90.0,
+    "steak": 90.0
+   },
+   "orders": 9,
+   "runs": 1,
+   "money_median": 390,
+   "money_min": 390,
+   "money_max": 390,
+   "served_median": 6,
+   "expired_median": 0,
+   "open_at_close_median": 3,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 190
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 25.0,
+   "countdowns_s": {
+    "burger": 105.0,
+    "steak": 60.0
+   },
+   "orders": 8,
+   "runs": 1,
+   "money_median": 238,
+   "money_min": 238,
+   "money_max": 238,
+   "served_median": 4,
+   "expired_median": 2,
+   "open_at_close_median": 2,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned"
+   ],
+   "passes_median": 23,
+   "target_50pct": 110
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 25.0,
+   "countdowns_s": {
+    "burger": 105.0,
+    "steak": 75.0
+   },
+   "orders": 8,
+   "runs": 1,
+   "money_median": 186,
+   "money_min": 186,
+   "money_max": 186,
+   "served_median": 3,
+   "expired_median": 2,
+   "open_at_close_median": 3,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 90
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 25.0,
+   "countdowns_s": {
+    "burger": 105.0,
+    "steak": 90.0
+   },
+   "orders": 8,
+   "runs": 1,
+   "money_median": 390,
+   "money_min": 390,
+   "money_max": 390,
+   "served_median": 6,
+   "expired_median": 0,
+   "open_at_close_median": 2,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 190
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 25.0,
+   "countdowns_s": {
+    "burger": 120.0,
+    "steak": 60.0
+   },
+   "orders": 8,
+   "runs": 1,
+   "money_median": 248,
+   "money_min": 248,
+   "money_max": 248,
+   "served_median": 4,
+   "expired_median": 1,
+   "open_at_close_median": 3,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned"
+   ],
+   "passes_median": 23,
+   "target_50pct": 120
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 25.0,
+   "countdowns_s": {
+    "burger": 120.0,
+    "steak": 75.0
+   },
+   "orders": 8,
+   "runs": 1,
+   "money_median": 196,
+   "money_min": 196,
+   "money_max": 196,
+   "served_median": 3,
+   "expired_median": 1,
+   "open_at_close_median": 4,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic swapped"
+   ],
+   "passes_median": 0,
+   "target_50pct": 90
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 25.0,
+   "countdowns_s": {
+    "burger": 120.0,
+    "steak": 90.0
+   },
+   "orders": 8,
+   "runs": 1,
+   "money_median": 110,
+   "money_min": 110,
+   "money_max": 110,
+   "served_median": 2,
+   "expired_median": 2,
+   "open_at_close_median": 4,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned swapped"
+   ],
+   "passes_median": 14,
+   "target_50pct": 50
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 25.0,
+   "countdowns_s": {
+    "burger": 75.0,
+    "steak": 60.0
+   },
+   "orders": 8,
+   "runs": 1,
+   "money_median": 390,
+   "money_min": 390,
+   "money_max": 390,
+   "served_median": 6,
+   "expired_median": 0,
+   "open_at_close_median": 2,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 190
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 25.0,
+   "countdowns_s": {
+    "burger": 75.0,
+    "steak": 75.0
+   },
+   "orders": 8,
+   "runs": 1,
+   "money_median": 390,
+   "money_min": 390,
+   "money_max": 390,
+   "served_median": 6,
+   "expired_median": 0,
+   "open_at_close_median": 2,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 190
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 25.0,
+   "countdowns_s": {
+    "burger": 75.0,
+    "steak": 90.0
+   },
+   "orders": 8,
+   "runs": 1,
+   "money_median": 390,
+   "money_min": 390,
+   "money_max": 390,
+   "served_median": 6,
+   "expired_median": 0,
+   "open_at_close_median": 2,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 190
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 25.0,
+   "countdowns_s": {
+    "burger": 90.0,
+    "steak": 60.0
+   },
+   "orders": 8,
+   "runs": 1,
+   "money_median": 238,
+   "money_min": 238,
+   "money_max": 238,
+   "served_median": 4,
+   "expired_median": 2,
+   "open_at_close_median": 2,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned"
+   ],
+   "passes_median": 23,
+   "target_50pct": 110
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 25.0,
+   "countdowns_s": {
+    "burger": 90.0,
+    "steak": 75.0
+   },
+   "orders": 8,
+   "runs": 1,
+   "money_median": 390,
+   "money_min": 390,
+   "money_max": 390,
+   "served_median": 6,
+   "expired_median": 0,
+   "open_at_close_median": 2,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 190
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 25.0,
+   "countdowns_s": {
+    "burger": 90.0,
+    "steak": 90.0
+   },
+   "orders": 8,
+   "runs": 1,
+   "money_median": 390,
+   "money_min": 390,
+   "money_max": 390,
+   "served_median": 6,
+   "expired_median": 0,
+   "open_at_close_median": 2,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 190
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 30.0,
+   "countdowns_s": {
+    "burger": 105.0,
+    "steak": 60.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 238,
+   "money_min": 238,
+   "money_max": 238,
+   "served_median": 4,
+   "expired_median": 2,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned"
+   ],
+   "passes_median": 23,
+   "target_50pct": 110
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 30.0,
+   "countdowns_s": {
+    "burger": 105.0,
+    "steak": 75.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 390,
+   "money_min": 390,
+   "money_max": 390,
+   "served_median": 6,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 190
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 30.0,
+   "countdowns_s": {
+    "burger": 105.0,
+    "steak": 90.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 390,
+   "money_min": 390,
+   "money_max": 390,
+   "served_median": 6,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 190
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 30.0,
+   "countdowns_s": {
+    "burger": 120.0,
+    "steak": 60.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 248,
+   "money_min": 248,
+   "money_max": 248,
+   "served_median": 4,
+   "expired_median": 1,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned"
+   ],
+   "passes_median": 23,
+   "target_50pct": 120
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 30.0,
+   "countdowns_s": {
+    "burger": 120.0,
+    "steak": 75.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 196,
+   "money_min": 196,
+   "money_max": 196,
+   "served_median": 3,
+   "expired_median": 1,
+   "open_at_close_median": 2,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 90
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 30.0,
+   "countdowns_s": {
+    "burger": 120.0,
+    "steak": 90.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 390,
+   "money_min": 390,
+   "money_max": 390,
+   "served_median": 6,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 190
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 30.0,
+   "countdowns_s": {
+    "burger": 135.0,
+    "steak": 60.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 248,
+   "money_min": 248,
+   "money_max": 248,
+   "served_median": 4,
+   "expired_median": 1,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned"
+   ],
+   "passes_median": 23,
+   "target_50pct": 120
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 30.0,
+   "countdowns_s": {
+    "burger": 135.0,
+    "steak": 75.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 196,
+   "money_min": 196,
+   "money_max": 196,
+   "served_median": 3,
+   "expired_median": 1,
+   "open_at_close_median": 2,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 90
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 30.0,
+   "countdowns_s": {
+    "burger": 135.0,
+    "steak": 90.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 390,
+   "money_min": 390,
+   "money_max": 390,
+   "served_median": 6,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 190
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 30.0,
+   "countdowns_s": {
+    "burger": 75.0,
+    "steak": 60.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 390,
+   "money_min": 390,
+   "money_max": 390,
+   "served_median": 6,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 190
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 30.0,
+   "countdowns_s": {
+    "burger": 75.0,
+    "steak": 75.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 390,
+   "money_min": 390,
+   "money_max": 390,
+   "served_median": 6,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 190
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 30.0,
+   "countdowns_s": {
+    "burger": 75.0,
+    "steak": 90.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 390,
+   "money_min": 390,
+   "money_max": 390,
+   "served_median": 6,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 190
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 30.0,
+   "countdowns_s": {
+    "burger": 90.0,
+    "steak": 60.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 390,
+   "money_min": 390,
+   "money_max": 390,
+   "served_median": 6,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 190
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 30.0,
+   "countdowns_s": {
+    "burger": 90.0,
+    "steak": 75.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 390,
+   "money_min": 390,
+   "money_max": 390,
+   "served_median": 6,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 190
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 30.0,
+   "countdowns_s": {
+    "burger": 90.0,
+    "steak": 90.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 390,
+   "money_min": 390,
+   "money_max": 390,
+   "served_median": 6,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 190
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 35.0,
+   "countdowns_s": {
+    "burger": 105.0,
+    "steak": 60.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 340,
+   "money_min": 340,
+   "money_max": 340,
+   "served_median": 5,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 170
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 35.0,
+   "countdowns_s": {
+    "burger": 105.0,
+    "steak": 75.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 340,
+   "money_min": 340,
+   "money_max": 340,
+   "served_median": 5,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 170
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 35.0,
+   "countdowns_s": {
+    "burger": 105.0,
+    "steak": 90.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 340,
+   "money_min": 340,
+   "money_max": 340,
+   "served_median": 5,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 170
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 35.0,
+   "countdowns_s": {
+    "burger": 120.0,
+    "steak": 60.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 340,
+   "money_min": 340,
+   "money_max": 340,
+   "served_median": 5,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 170
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 35.0,
+   "countdowns_s": {
+    "burger": 120.0,
+    "steak": 75.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 340,
+   "money_min": 340,
+   "money_max": 340,
+   "served_median": 5,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 170
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 35.0,
+   "countdowns_s": {
+    "burger": 120.0,
+    "steak": 90.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 340,
+   "money_min": 340,
+   "money_max": 340,
+   "served_median": 5,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 170
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 35.0,
+   "countdowns_s": {
+    "burger": 135.0,
+    "steak": 60.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 340,
+   "money_min": 340,
+   "money_max": 340,
+   "served_median": 5,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 170
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 35.0,
+   "countdowns_s": {
+    "burger": 135.0,
+    "steak": 75.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 340,
+   "money_min": 340,
+   "money_max": 340,
+   "served_median": 5,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 170
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 35.0,
+   "countdowns_s": {
+    "burger": 135.0,
+    "steak": 90.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 340,
+   "money_min": 340,
+   "money_max": 340,
+   "served_median": 5,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 170
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 35.0,
+   "countdowns_s": {
+    "burger": 75.0,
+    "steak": 60.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 340,
+   "money_min": 340,
+   "money_max": 340,
+   "served_median": 5,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 170
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 35.0,
+   "countdowns_s": {
+    "burger": 75.0,
+    "steak": 75.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 340,
+   "money_min": 340,
+   "money_max": 340,
+   "served_median": 5,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 170
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 35.0,
+   "countdowns_s": {
+    "burger": 75.0,
+    "steak": 90.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 340,
+   "money_min": 340,
+   "money_max": 340,
+   "served_median": 5,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 170
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 35.0,
+   "countdowns_s": {
+    "burger": 90.0,
+    "steak": 60.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 340,
+   "money_min": 340,
+   "money_max": 340,
+   "served_median": 5,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 170
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 35.0,
+   "countdowns_s": {
+    "burger": 90.0,
+    "steak": 75.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 340,
+   "money_min": 340,
+   "money_max": 340,
+   "served_median": 5,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 170
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 35.0,
+   "countdowns_s": {
+    "burger": 90.0,
+    "steak": 90.0
+   },
+   "orders": 6,
+   "runs": 1,
+   "money_median": 340,
+   "money_min": 340,
+   "money_max": 340,
+   "served_median": 5,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 170
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 40.0,
+   "countdowns_s": {
+    "burger": 105.0,
+    "steak": 60.0
+   },
+   "orders": 5,
+   "runs": 1,
+   "money_median": 260,
+   "money_min": 260,
+   "money_max": 260,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned"
+   ],
+   "passes_median": 24,
+   "target_50pct": 130
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 40.0,
+   "countdowns_s": {
+    "burger": 105.0,
+    "steak": 75.0
+   },
+   "orders": 5,
+   "runs": 1,
+   "money_median": 260,
+   "money_min": 260,
+   "money_max": 260,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned"
+   ],
+   "passes_median": 24,
+   "target_50pct": 130
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 40.0,
+   "countdowns_s": {
+    "burger": 105.0,
+    "steak": 90.0
+   },
+   "orders": 5,
+   "runs": 1,
+   "money_median": 260,
+   "money_min": 260,
+   "money_max": 260,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned"
+   ],
+   "passes_median": 24,
+   "target_50pct": 130
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 40.0,
+   "countdowns_s": {
+    "burger": 120.0,
+    "steak": 60.0
+   },
+   "orders": 5,
+   "runs": 1,
+   "money_median": 260,
+   "money_min": 260,
+   "money_max": 260,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned"
+   ],
+   "passes_median": 24,
+   "target_50pct": 130
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 40.0,
+   "countdowns_s": {
+    "burger": 120.0,
+    "steak": 75.0
+   },
+   "orders": 5,
+   "runs": 1,
+   "money_median": 260,
+   "money_min": 260,
+   "money_max": 260,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned"
+   ],
+   "passes_median": 24,
+   "target_50pct": 130
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 40.0,
+   "countdowns_s": {
+    "burger": 120.0,
+    "steak": 90.0
+   },
+   "orders": 5,
+   "runs": 1,
+   "money_median": 260,
+   "money_min": 260,
+   "money_max": 260,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned"
+   ],
+   "passes_median": 24,
+   "target_50pct": 130
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 40.0,
+   "countdowns_s": {
+    "burger": 135.0,
+    "steak": 60.0
+   },
+   "orders": 5,
+   "runs": 1,
+   "money_median": 260,
+   "money_min": 260,
+   "money_max": 260,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned"
+   ],
+   "passes_median": 24,
+   "target_50pct": 130
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 40.0,
+   "countdowns_s": {
+    "burger": 135.0,
+    "steak": 75.0
+   },
+   "orders": 5,
+   "runs": 1,
+   "money_median": 260,
+   "money_min": 260,
+   "money_max": 260,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned"
+   ],
+   "passes_median": 24,
+   "target_50pct": 130
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 40.0,
+   "countdowns_s": {
+    "burger": 135.0,
+    "steak": 90.0
+   },
+   "orders": 5,
+   "runs": 1,
+   "money_median": 260,
+   "money_min": 260,
+   "money_max": 260,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned"
+   ],
+   "passes_median": 24,
+   "target_50pct": 130
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 40.0,
+   "countdowns_s": {
+    "burger": 75.0,
+    "steak": 60.0
+   },
+   "orders": 5,
+   "runs": 1,
+   "money_median": 260,
+   "money_min": 260,
+   "money_max": 260,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned"
+   ],
+   "passes_median": 24,
+   "target_50pct": 130
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 40.0,
+   "countdowns_s": {
+    "burger": 75.0,
+    "steak": 75.0
+   },
+   "orders": 5,
+   "runs": 1,
+   "money_median": 260,
+   "money_min": 260,
+   "money_max": 260,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned"
+   ],
+   "passes_median": 24,
+   "target_50pct": 130
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 40.0,
+   "countdowns_s": {
+    "burger": 75.0,
+    "steak": 90.0
+   },
+   "orders": 5,
+   "runs": 1,
+   "money_median": 260,
+   "money_min": 260,
+   "money_max": 260,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned"
+   ],
+   "passes_median": 24,
+   "target_50pct": 130
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 40.0,
+   "countdowns_s": {
+    "burger": 90.0,
+    "steak": 60.0
+   },
+   "orders": 5,
+   "runs": 1,
+   "money_median": 260,
+   "money_min": 260,
+   "money_max": 260,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned"
+   ],
+   "passes_median": 24,
+   "target_50pct": 130
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 40.0,
+   "countdowns_s": {
+    "burger": 90.0,
+    "steak": 75.0
+   },
+   "orders": 5,
+   "runs": 1,
+   "money_median": 260,
+   "money_min": 260,
+   "money_max": 260,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned"
+   ],
+   "passes_median": 24,
+   "target_50pct": 130
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 40.0,
+   "countdowns_s": {
+    "burger": 90.0,
+    "steak": 90.0
+   },
+   "orders": 5,
+   "runs": 1,
+   "money_median": 260,
+   "money_min": 260,
+   "money_max": 260,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 1,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "zoned"
+   ],
+   "passes_median": 24,
+   "target_50pct": 130
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 45.0,
+   "countdowns_s": {
+    "burger": 105.0,
+    "steak": 60.0
+   },
+   "orders": 4,
+   "runs": 1,
+   "money_median": 260,
+   "money_min": 260,
+   "money_max": 260,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 130
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 45.0,
+   "countdowns_s": {
+    "burger": 105.0,
+    "steak": 75.0
+   },
+   "orders": 4,
+   "runs": 1,
+   "money_median": 260,
+   "money_min": 260,
+   "money_max": 260,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 130
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 45.0,
+   "countdowns_s": {
+    "burger": 105.0,
+    "steak": 90.0
+   },
+   "orders": 4,
+   "runs": 1,
+   "money_median": 260,
+   "money_min": 260,
+   "money_max": 260,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 130
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 45.0,
+   "countdowns_s": {
+    "burger": 120.0,
+    "steak": 60.0
+   },
+   "orders": 4,
+   "runs": 1,
+   "money_median": 260,
+   "money_min": 260,
+   "money_max": 260,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 130
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 45.0,
+   "countdowns_s": {
+    "burger": 120.0,
+    "steak": 75.0
+   },
+   "orders": 4,
+   "runs": 1,
+   "money_median": 260,
+   "money_min": 260,
+   "money_max": 260,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 130
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 45.0,
+   "countdowns_s": {
+    "burger": 120.0,
+    "steak": 90.0
+   },
+   "orders": 4,
+   "runs": 1,
+   "money_median": 260,
+   "money_min": 260,
+   "money_max": 260,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 130
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 45.0,
+   "countdowns_s": {
+    "burger": 135.0,
+    "steak": 60.0
+   },
+   "orders": 4,
+   "runs": 1,
+   "money_median": 260,
+   "money_min": 260,
+   "money_max": 260,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 130
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 45.0,
+   "countdowns_s": {
+    "burger": 135.0,
+    "steak": 75.0
+   },
+   "orders": 4,
+   "runs": 1,
+   "money_median": 260,
+   "money_min": 260,
+   "money_max": 260,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 130
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 45.0,
+   "countdowns_s": {
+    "burger": 135.0,
+    "steak": 90.0
+   },
+   "orders": 4,
+   "runs": 1,
+   "money_median": 260,
+   "money_min": 260,
+   "money_max": 260,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 130
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 45.0,
+   "countdowns_s": {
+    "burger": 75.0,
+    "steak": 60.0
+   },
+   "orders": 4,
+   "runs": 1,
+   "money_median": 260,
+   "money_min": 260,
+   "money_max": 260,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 130
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 45.0,
+   "countdowns_s": {
+    "burger": 75.0,
+    "steak": 75.0
+   },
+   "orders": 4,
+   "runs": 1,
+   "money_median": 260,
+   "money_min": 260,
+   "money_max": 260,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 130
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 45.0,
+   "countdowns_s": {
+    "burger": 75.0,
+    "steak": 90.0
+   },
+   "orders": 4,
+   "runs": 1,
+   "money_median": 260,
+   "money_min": 260,
+   "money_max": 260,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 130
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 45.0,
+   "countdowns_s": {
+    "burger": 90.0,
+    "steak": 60.0
+   },
+   "orders": 4,
+   "runs": 1,
+   "money_median": 260,
+   "money_min": 260,
+   "money_max": 260,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 130
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 45.0,
+   "countdowns_s": {
+    "burger": 90.0,
+    "steak": 75.0
+   },
+   "orders": 4,
+   "runs": 1,
+   "money_median": 260,
+   "money_min": 260,
+   "money_max": 260,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 130
+  },
+  {
+   "level": 3,
+   "variant": "fast",
+   "interval_s": 45.0,
+   "countdowns_s": {
+    "burger": 90.0,
+    "steak": 90.0
+   },
+   "orders": 4,
+   "runs": 1,
+   "money_median": 260,
+   "money_min": 260,
+   "money_max": 260,
+   "served_median": 4,
+   "expired_median": 0,
+   "open_at_close_median": 0,
+   "refused_total": 0,
+   "fires_total": 0,
+   "pairs": [
+    "classic"
+   ],
+   "passes_median": 0,
+   "target_50pct": 130
+  }
+ ]
+}

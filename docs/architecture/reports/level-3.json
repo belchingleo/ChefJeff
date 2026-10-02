@@ -1,0 +1,267 @@
+{
+  "analyzer_version": "capacity-analyzer-0.1",
+  "input_config_hash": "sha256:f56e98293a08d84d51b4fa30604142024f9cada0ced877a2c9841a8e2853513c",
+  "input_status": "frozen",
+  "level_id": "level-3",
+  "schema_valid": true,
+  "structurally_valid": true,
+  "analysis_status": "partial",
+  "profile": {
+    "shared_work": true
+  },
+  "assumptions": [
+    "Lower bounds exclude walking, throwing and handoff transport (optimistic).",
+    "Chefs are interchangeable; each attended step needs one chef for its whole duration; heating is unattended.",
+    "Shared work shortens a step only on stations whose map geometry offers a second, perpendicular operation side.",
+    "Every served dish returns one dirty plate that must be washed before reuse.",
+    "Model response latency, pausing and human reaction time are excluded.",
+    "Spawn sides are assigned by the spawn seed; walking references are reported for every assignment.",
+    "Averages are necessary conditions: bursts can be absorbed by patience and backlog, and prepared-ahead food is allowed."
+  ],
+  "coverage": {
+    "production_chain": "full",
+    "shared_work": "partial: geometry of second sides and rate multipliers; worker coordination not modelled",
+    "transport": "reference only: single-chef walking routes on the real navigation graph; not a bound",
+    "throw_and_handoff": "not modelled",
+    "plate_cycle": "partial: dining + washing occupancy per dish; return-station queueing not modelled",
+    "fire_and_burning": "not modelled",
+    "scheduling": "not solved: no optimal two-chef schedule"
+  },
+  "spawns": {
+    "rule": "nearest_floor_to_center_shuffled",
+    "candidates": [
+      [
+        3,
+        4
+      ],
+      [
+        10,
+        4
+      ]
+    ],
+    "assignments": [
+      {
+        "human": [
+          3,
+          4
+        ],
+        "jeff": [
+          10,
+          4
+        ]
+      },
+      {
+        "human": [
+          10,
+          4
+        ],
+        "jeff": [
+          3,
+          4
+        ]
+      }
+    ],
+    "configured": {
+      "human": [
+        3,
+        4
+      ],
+      "jeff": [
+        10,
+        4
+      ]
+    }
+  },
+  "geometry": {
+    "unreachable_stations": [],
+    "shared_work_capable": {
+      "board": [],
+      "sink": []
+    }
+  },
+  "dishes": {
+    "steak": {
+      "name": "牛排",
+      "price": 50,
+      "components": [
+        {
+          "item": "beef",
+          "state": "ready",
+          "steps": [
+            "fetch",
+            "put_board",
+            "chop",
+            "take_board",
+            "put_pot",
+            "heat",
+            "plate"
+          ],
+          "duration_game_ms": 18750,
+          "chef_time_game_ms": 6750
+        }
+      ],
+      "critical_path_game_ms": 18900,
+      "chef_time_game_ms": 7050,
+      "first_dish_lower_bound_game_ms": 18900,
+      "first_dish_lower_bound_basis": "max(critical path, chef time / chefs); transport excluded",
+      "single_chef_walking_reference_game_ms": {
+        "assignment_0:human": 24181,
+        "assignment_0:jeff": 25623,
+        "assignment_1:human": 25623,
+        "assignment_1:jeff": 24181
+      },
+      "walking_reference_range_game_ms": [
+        24181,
+        25623
+      ]
+    },
+    "burger": {
+      "name": "汉堡",
+      "price": 80,
+      "components": [
+        {
+          "item": "bread",
+          "state": "raw",
+          "steps": [
+            "fetch",
+            "plate"
+          ],
+          "duration_game_ms": 300,
+          "chef_time_game_ms": 300
+        },
+        {
+          "item": "lettuce",
+          "state": "chopped",
+          "steps": [
+            "fetch",
+            "put_board",
+            "chop",
+            "take_board",
+            "plate"
+          ],
+          "duration_game_ms": 6600,
+          "chef_time_game_ms": 6600
+        },
+        {
+          "item": "tomato",
+          "state": "chopped",
+          "steps": [
+            "fetch",
+            "put_board",
+            "chop",
+            "take_board",
+            "plate"
+          ],
+          "duration_game_ms": 6600,
+          "chef_time_game_ms": 6600
+        },
+        {
+          "item": "beef",
+          "state": "ready",
+          "steps": [
+            "fetch",
+            "put_board",
+            "chop",
+            "take_board",
+            "put_pot",
+            "heat",
+            "plate"
+          ],
+          "duration_game_ms": 18750,
+          "chef_time_game_ms": 6750
+        }
+      ],
+      "critical_path_game_ms": 18900,
+      "chef_time_game_ms": 20550,
+      "first_dish_lower_bound_game_ms": 18900,
+      "first_dish_lower_bound_basis": "max(critical path, chef time / chefs); transport excluded",
+      "single_chef_walking_reference_game_ms": {
+        "assignment_0:human": 40672,
+        "assignment_0:jeff": 42133,
+        "assignment_1:human": 42133,
+        "assignment_1:jeff": 40672
+      },
+      "walking_reference_range_game_ms": [
+        40672,
+        42133
+      ]
+    }
+  },
+  "mix": {
+    "steak": 0.5,
+    "burger": 0.5
+  },
+  "resources": {
+    "chef": {
+      "capacity": 2,
+      "unit": "chefs",
+      "demand_per_dish_game_ms": {
+        "steak": 11500,
+        "burger": 25000
+      }
+    },
+    "board": {
+      "capacity": 3.0,
+      "unit": "work-seconds per second",
+      "demand_per_dish_game_ms": {
+        "steak": 6000,
+        "burger": 18000
+      }
+    },
+    "stove_with_pot": {
+      "capacity": 2,
+      "unit": "stoves holding a pot",
+      "demand_per_dish_game_ms": {
+        "steak": 12000,
+        "burger": 12000
+      }
+    },
+    "sink": {
+      "capacity": 1.0,
+      "unit": "work-seconds per second",
+      "demand_per_dish_game_ms": {
+        "steak": 4000,
+        "burger": 4000
+      }
+    },
+    "plate": {
+      "capacity": 3,
+      "unit": "plates",
+      "demand_per_dish_game_ms": {
+        "steak": 12300,
+        "burger": 12300
+      }
+    }
+  },
+  "resource_lower_bounds_game_ms": {
+    "chef": 9125,
+    "board": 4000,
+    "stove_with_pot": 6000,
+    "sink": 4000,
+    "plate": 4100
+  },
+  "resource_loads": {
+    "chef": 0.3042,
+    "board": 0.1333,
+    "stove_with_pot": 0.2,
+    "sink": 0.1333,
+    "plate": 0.1367
+  },
+  "I_resource_lb_game_ms": 9125,
+  "binding_resource": "chef",
+  "plan": {
+    "orders": 6,
+    "goal": {
+      "type": "minimum_money",
+      "target_money": 190,
+      "revenue_ceiling": 420,
+      "orders_too_late_to_cook_from_scratch": 0
+    },
+    "round_limit_game_ms": 180000,
+    "configured_interval_game_ms": 30000,
+    "order_algorithm": "fixed_interval_seeded/weighted-cumulative-v1"
+  },
+  "suggested_interval_game_ms": null,
+  "suggestion_reason": "no calibration reference (measured or reference-schedule runs) exists; I_resource_lb is a necessary lower bound, not a safe interval",
+  "diagnostics": []
+}

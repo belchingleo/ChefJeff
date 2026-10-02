@@ -1,11 +1,25 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "id": "level-3",
-  "revision": 3,
+  "revision": 4,
   "size": [
     14,
     9
   ],
+  "areas": {
+    "prep": {
+      "name": "处理区"
+    },
+    "cook": {
+      "name": "烹饪区"
+    }
+  },
+  "floor_areas": {
+    "axis": "x",
+    "split": 7,
+    "below": "prep",
+    "at_or_above": "cook"
+  },
   "walls": [
     [
       0,
@@ -203,6 +217,12 @@
   "equipment": [
     {
       "id": "fridge",
+      "type": "ingredient_source",
+      "name": "冰箱",
+      "area": "prep",
+      "params": {
+        "item": "beef"
+      },
       "cell": [
         1,
         2
@@ -212,159 +232,63 @@
         2
       ],
       "facing": "east"
-    },
-    {
-      "id": "lettuce",
-      "cell": [
-        1,
-        3
-      ],
-      "access": [
-        2,
-        3
-      ],
-      "facing": "east"
-    },
-    {
-      "id": "tomato",
-      "cell": [
-        1,
-        4
-      ],
-      "access": [
-        2,
-        4
-      ],
-      "facing": "east"
-    },
-    {
-      "id": "bread",
-      "cell": [
-        1,
-        5
-      ],
-      "access": [
-        2,
-        5
-      ],
-      "facing": "east"
-    },
-    {
-      "id": "sink",
-      "cell": [
-        3,
-        1
-      ],
-      "access": [
-        3,
-        2
-      ],
-      "facing": "south"
-    },
-    {
-      "id": "b1",
-      "cell": [
-        2,
-        7
-      ],
-      "access": [
-        2,
-        6
-      ],
-      "facing": "north"
-    },
-    {
-      "id": "b2",
-      "cell": [
-        3,
-        7
-      ],
-      "access": [
-        3,
-        6
-      ],
-      "facing": "north"
-    },
-    {
-      "id": "b3",
-      "cell": [
-        4,
-        7
-      ],
-      "access": [
-        4,
-        6
-      ],
-      "facing": "north"
-    },
-    {
-      "id": "bin",
-      "cell": [
-        1,
-        6
-      ],
-      "access": [
-        2,
-        6
-      ],
-      "facing": "east"
-    },
-    {
-      "id": "p1",
-      "cell": [
-        9,
-        1
-      ],
-      "access": [
-        9,
-        2
-      ],
-      "facing": "south"
-    },
-    {
-      "id": "p2",
-      "cell": [
-        10,
-        1
-      ],
-      "access": [
-        10,
-        2
-      ],
-      "facing": "south"
-    },
-    {
-      "id": "extinguisher",
-      "cell": [
-        12,
-        2
-      ],
-      "access": [
-        11,
-        2
-      ],
-      "facing": "west"
     },
     {
       "id": "serve",
+      "type": "serving_window",
+      "name": "出餐口",
+      "area": "cook",
       "cell": [
         12,
         4
       ],
-      "access": [
-        11,
-        4
-      ],
-      "facing": "west",
       "cells": [
         [
           12,
           4
         ]
-      ]
+      ],
+      "access": [
+        11,
+        4
+      ],
+      "facing": "west"
+    },
+    {
+      "id": "bin",
+      "type": "bin",
+      "name": "垃圾桶",
+      "area": "prep",
+      "cell": [
+        1,
+        6
+      ],
+      "access": [
+        2,
+        6
+      ],
+      "facing": "east"
+    },
+    {
+      "id": "extinguisher",
+      "type": "tool_rack",
+      "name": "灭火器架",
+      "area": "cook",
+      "cell": [
+        12,
+        2
+      ],
+      "access": [
+        11,
+        2
+      ],
+      "facing": "west"
     },
     {
       "id": "returns",
+      "type": "plate_return",
+      "name": "脏盘回收",
+      "area": "cook",
       "cell": [
         12,
         5
@@ -376,19 +300,25 @@
       "facing": "west"
     },
     {
-      "id": "bin2",
+      "id": "sink",
+      "type": "sink",
+      "name": "水槽",
+      "area": "prep",
       "cell": [
-        12,
-        6
+        3,
+        1
       ],
       "access": [
-        11,
-        6
+        3,
+        2
       ],
-      "facing": "west"
+      "facing": "south"
     },
     {
       "id": "plates",
+      "type": "counter",
+      "name": "柜台 1",
+      "area": "cook",
       "cell": [
         9,
         7
@@ -401,6 +331,9 @@
     },
     {
       "id": "counter2",
+      "type": "counter",
+      "name": "柜台 2",
+      "area": "cook",
       "cell": [
         10,
         7
@@ -413,6 +346,9 @@
     },
     {
       "id": "counter3",
+      "type": "counter",
+      "name": "柜台 3",
+      "area": "prep",
       "cell": [
         11,
         7
@@ -424,7 +360,154 @@
       "facing": "north"
     },
     {
+      "id": "b1",
+      "type": "board",
+      "name": "案板 1",
+      "area": "prep",
+      "cell": [
+        2,
+        7
+      ],
+      "access": [
+        2,
+        6
+      ],
+      "facing": "north"
+    },
+    {
+      "id": "b2",
+      "type": "board",
+      "name": "案板 2",
+      "area": "prep",
+      "cell": [
+        3,
+        7
+      ],
+      "access": [
+        3,
+        6
+      ],
+      "facing": "north"
+    },
+    {
+      "id": "b3",
+      "type": "board",
+      "name": "案板 3",
+      "area": "prep",
+      "cell": [
+        4,
+        7
+      ],
+      "access": [
+        4,
+        6
+      ],
+      "facing": "north"
+    },
+    {
+      "id": "p1",
+      "type": "stove",
+      "name": "灶台 1",
+      "area": "cook",
+      "cell": [
+        9,
+        1
+      ],
+      "access": [
+        9,
+        2
+      ],
+      "facing": "south"
+    },
+    {
+      "id": "p2",
+      "type": "stove",
+      "name": "灶台 2",
+      "area": "cook",
+      "cell": [
+        10,
+        1
+      ],
+      "access": [
+        10,
+        2
+      ],
+      "facing": "south"
+    },
+    {
+      "id": "lettuce",
+      "type": "ingredient_source",
+      "name": "生菜箱",
+      "area": "prep",
+      "params": {
+        "item": "lettuce"
+      },
+      "cell": [
+        1,
+        3
+      ],
+      "access": [
+        2,
+        3
+      ],
+      "facing": "east"
+    },
+    {
+      "id": "tomato",
+      "type": "ingredient_source",
+      "name": "番茄箱",
+      "area": "prep",
+      "params": {
+        "item": "tomato"
+      },
+      "cell": [
+        1,
+        4
+      ],
+      "access": [
+        2,
+        4
+      ],
+      "facing": "east"
+    },
+    {
+      "id": "bread",
+      "type": "ingredient_source",
+      "name": "面包箱",
+      "area": "prep",
+      "params": {
+        "item": "bread"
+      },
+      "cell": [
+        1,
+        5
+      ],
+      "access": [
+        2,
+        5
+      ],
+      "facing": "east"
+    },
+    {
+      "id": "bin2",
+      "type": "bin",
+      "name": "垃圾桶 2",
+      "area": "cook",
+      "cell": [
+        12,
+        6
+      ],
+      "access": [
+        11,
+        6
+      ],
+      "facing": "west"
+    },
+    {
       "id": "counter4",
+      "type": "counter",
+      "name": "柜台 4",
+      "area": "cook",
       "cell": [
         11,
         1
@@ -437,6 +520,9 @@
     },
     {
       "id": "counter7",
+      "type": "counter",
+      "name": "柜台 7",
+      "area": "prep",
       "cell": [
         2,
         1
@@ -449,6 +535,9 @@
     },
     {
       "id": "counter8",
+      "type": "counter",
+      "name": "柜台 8",
+      "area": "prep",
       "cell": [
         4,
         1
@@ -461,6 +550,9 @@
     },
     {
       "id": "counter9",
+      "type": "counter",
+      "name": "柜台 9",
+      "area": "prep",
       "cell": [
         5,
         1
@@ -473,6 +565,9 @@
     },
     {
       "id": "counter10",
+      "type": "counter",
+      "name": "柜台 10",
+      "area": "prep",
       "cell": [
         5,
         7
@@ -485,6 +580,9 @@
     },
     {
       "id": "counter12",
+      "type": "counter",
+      "name": "柜台 12",
+      "area": "prep",
       "cell": [
         6,
         2
@@ -497,6 +595,9 @@
     },
     {
       "id": "counter13",
+      "type": "counter",
+      "name": "柜台 13",
+      "area": "prep",
       "cell": [
         6,
         3
@@ -509,6 +610,9 @@
     },
     {
       "id": "counter14",
+      "type": "counter",
+      "name": "柜台 14",
+      "area": "prep",
       "cell": [
         6,
         5
@@ -521,6 +625,9 @@
     },
     {
       "id": "counter15",
+      "type": "counter",
+      "name": "柜台 15",
+      "area": "prep",
       "cell": [
         6,
         6
@@ -533,6 +640,9 @@
     },
     {
       "id": "counter18",
+      "type": "counter",
+      "name": "柜台 18",
+      "area": "cook",
       "cell": [
         8,
         2
@@ -545,6 +655,9 @@
     },
     {
       "id": "counter19",
+      "type": "counter",
+      "name": "柜台 19",
+      "area": "cook",
       "cell": [
         8,
         3
@@ -557,6 +670,9 @@
     },
     {
       "id": "counter20",
+      "type": "counter",
+      "name": "柜台 20",
+      "area": "cook",
       "cell": [
         8,
         5
@@ -569,6 +685,9 @@
     },
     {
       "id": "counter21",
+      "type": "counter",
+      "name": "柜台 21",
+      "area": "cook",
       "cell": [
         8,
         6
@@ -581,6 +700,9 @@
     },
     {
       "id": "counter_corner1",
+      "type": "counter",
+      "name": "柜台 _corner1",
+      "area": "prep",
       "cell": [
         1,
         1
@@ -594,6 +716,9 @@
     },
     {
       "id": "counter_corner2",
+      "type": "counter",
+      "name": "柜台 _corner2",
+      "area": "prep",
       "cell": [
         1,
         7
@@ -607,6 +732,9 @@
     },
     {
       "id": "counter_corner3",
+      "type": "counter",
+      "name": "柜台 _corner3",
+      "area": "prep",
       "cell": [
         6,
         1
@@ -620,6 +748,9 @@
     },
     {
       "id": "counter_corner4",
+      "type": "counter",
+      "name": "柜台 _corner4",
+      "area": "prep",
       "cell": [
         6,
         7
@@ -633,6 +764,9 @@
     },
     {
       "id": "counter_corner5",
+      "type": "counter",
+      "name": "柜台 _corner5",
+      "area": "cook",
       "cell": [
         8,
         1
@@ -646,6 +780,9 @@
     },
     {
       "id": "counter_corner6",
+      "type": "counter",
+      "name": "柜台 _corner6",
+      "area": "cook",
       "cell": [
         8,
         7
@@ -659,6 +796,9 @@
     },
     {
       "id": "counter_corner7",
+      "type": "counter",
+      "name": "柜台 _corner7",
+      "area": "cook",
       "cell": [
         12,
         1
@@ -672,6 +812,9 @@
     },
     {
       "id": "counter_corner8",
+      "type": "counter",
+      "name": "柜台 _corner8",
+      "area": "cook",
       "cell": [
         12,
         7
@@ -685,6 +828,9 @@
     },
     {
       "id": "counter24",
+      "type": "counter",
+      "name": "柜台 24",
+      "area": "cook",
       "cell": [
         12,
         3
