@@ -608,10 +608,13 @@ export class KitchenClient extends Component {
         return f.meaning||STAGES[f.stage]||f.stage;
     }
     private plateItems(f:any):string[]{return f.components?.length?f.components:f.ingredient?[f.ingredient]:[];}
-    /** A menu dish drawn as one plated sprite: no plating layers, and exactly the plate's items. */
+    /** A dish drawn as one plated sprite: exactly the plate's items and no plating layers. */
     private wholeDish(f:any):any{
         const items=Array.from(new Set(this.plateItems(f))).sort().join();
-        return (this.state?.kitchen.menu||[]).find((d:any)=>!d.plating&&Array.from(new Set((d.components||[]).map((c:any)=>c.item))).sort().join()===items);
+        const same=(d:any)=>Array.from(new Set((d.components||[]).map((c:any)=>c.item))).sort().join()===items;
+        // The menu decides first; a servable dish that is off this level's menu still gets its plate art.
+        const dish=(this.state?.kitchen.menu||[]).find(same)||(this.state?.kitchen.dishes||[]).find(same);
+        return dish&&!dish.plating?dish:undefined;
     }
     private itemStage(f:any){
         // Vessels (any kind) carry their contents; the kind comes from the server.
