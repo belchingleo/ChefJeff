@@ -16,7 +16,9 @@ ENDPOINT = "https://api.typesafe.ai/v1/systemone"
 # Bump whenever model-visible rule wording changes, so sessions stay comparable.
 # v2: factual rules only; no instructions to cooperate with or help the human.
 # v3: continuous service rules (money goal, burnt tiers, no bad reviews) where the level uses them.
-AGENT_RULES_VERSION = "rules-v4"
+# v4: plain English input with clear chef names and fewer duplicate choices.
+# v5: a plate's missing components name the state they are needed in ("tomato (chopped)").
+AGENT_RULES_VERSION = "rules-v5"
 
 
 def load_key():
@@ -40,6 +42,35 @@ def load_key():
     raise RuntimeError("未找到 TYPESAFE_API_KEY。请在本地 .env 中配置，不要把密钥发到聊天。")
 
 
+# How a recipe component's required state reads in model input: "tomato (chopped)".
+STATE_WORDS = {'raw': 'as fetched', 'chopped': 'chopped', 'ready': 'cooked'}
+
+
+def _required_states(state):
+    """Ingredient -> the state the menu's dishes need it in, when every dish agrees."""
+    seen = {}
+    for dish in state.get('dishes', state.get('menu', [])):
+        for c in dish.get('components', []):
+            seen.setdefault(c['item'], set()).add(c.get('state'))
+    return {item: states.pop() for item, states in seen.items() if len(states) == 1 and None not in states}
+
+
+def _with_required_states(value, required):
+    """Name the needed state next to each missing component of a partly assembled plate.
+
+    The client reads ``missing`` as ingredient ids; the model gets "tomato (chopped)", so the
+    plate it looks at says what still has to happen to each ingredient, as the recipe does."""
+    if isinstance(value, list):
+        return [_with_required_states(v, required) for v in value]
+    if not isinstance(value, dict):
+        return value
+    out = {k: _with_required_states(v, required) for k, v in value.items()}
+    if isinstance(value.get('missing'), list) and value.get('plate_id'):
+        out['missing'] = [f"{m} ({STATE_WORDS.get(required[m], required[m])})" if m in required else m
+                          for m in value['missing']]
+    return out
+
+
 def model_kitchen(state):
     """The kitchen state as the model sees it: display-only fields for the client are left out."""
     kitchen = {k: v for k, v in state.items() if k != 'items'}
@@ -49,7 +80,7 @@ def model_kitchen(state):
     if 'map' in kitchen and 'equipment' in kitchen['map']:
         kitchen['map'] = {**kitchen['map'], 'equipment': {key: {k: v for k, v in e.items() if k != 'item'}
                                                            for key, e in kitchen['map']['equipment'].items()}}
-    return kitchen
+    return _with_required_states(kitchen, _required_states(state))
 
 
 def objective_text(state):

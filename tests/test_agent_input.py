@@ -29,6 +29,19 @@ def request(k, memory=None):
 
 
 class AgentInputTests(unittest.TestCase):
+
+    def test_a_partly_assembled_plate_says_which_state_each_missing_part_needs(self):
+        """The model reads "tomato (chopped)" on the plate; the client keeps plain ingredient ids."""
+        import config_contract as cc
+        import jev
+        from kitchen import Food
+        from spatial_kitchen import SpatialKitchen
+        k = SpatialKitchen(cc.freeze_bundle(cc.level_bundle('level-3', embed=True)))
+        k.chefs['jeff'].hand = Food('F90', 'assembled', ingredient='dish', plate_id='D9', components=('bread',))
+        state = k.snapshot()
+        self.assertEqual(state['chefs']['jeff']['holding']['missing'], ['beef', 'lettuce', 'tomato'])
+        self.assertEqual(jev.model_kitchen(state)['chefs']['jeff']['holding']['missing'],
+                         ['beef (cooked)', 'lettuce (chopped)', 'tomato (chopped)'])
     def test_payload_is_ascii_english_for_every_level(self):
         memory = {'enabled': True, 'version': 1, 'episodes': [{'events': [
             {'message': '你完成动作：去地面(2,5)捡起 D1（干净餐盘；自动换手）', 'actor': 'human'}]}],

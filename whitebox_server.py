@@ -8,10 +8,9 @@ import webbrowser
 from kitchen import ROOT
 from spatial_kitchen import SpatialKitchen
 from web_server import GameSession, Handler
-from jev import JevClient
+from jev import JevClient, STATE_WORDS
 
 
-STATE_WORDS = {'raw': 'as fetched', 'chopped': 'chopped', 'ready': 'cooked'}
 
 
 def model_candidates(state, actions, per_area):
