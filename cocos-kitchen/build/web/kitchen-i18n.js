@@ -370,7 +370,6 @@
     "开始前选择第三关。两个灶台、三口锅，备用空锅在右上柜台。面包直接装盘；生菜和番茄切好，牛肉切好后煎熟。可手持盘从案板或柜台收集切好蔬菜和面包，也能给队友手中盘加料。两盘无重复配料可合并：成品留手中，柜台留空盘。牛肉须先煎熟；缺料不能出餐。牛排 2 单、汉堡 3 单，顺序每局随机。": "Choose Level 3 before starting. Two stoves and three pots; the spare pot is on the top-right counter. Bread needs no prep. Chop lettuce and tomato; chop and cook beef. Add ingredients to a clean plate on a counter in any order. Incomplete dishes cannot be served. Each round has 2 steaks and 3 burgers in shuffled order. Held plates can collect prepared ingredients from boards/counters. Add food to a teammate's plate, or merge two non-overlapping plates; the empty source plate stays in place.",
     "火势失控": "Fire out of control",
     "火势失控，本局结束": "Fire out of control. Round ended.",
-    "牛肉柜": "Beef supply",
     "默认每局 200 次，失败请求也计入；达限后不再请求，已有动作继续，玩家仍可操作。设置仅保留到当前页面会话结束。连接测试另计，每次可能收费。Token 仅统计成功回复提供的用量，不代表完整账单；费用以服务商为准。": "Default: 200 calls per round, including failed requests. At the limit, new requests stop; existing actions and player controls continue. This setting lasts until the current page session ends. Connection tests are counted separately and may cost money. Token totals include usage reported by successful replies, not the full bill. Check your provider for charges.",
     "导出当前局摘要、全部标记和最近 80 条动作事件。标记包含游戏时间和实际时间，在线版没有可追溯的服务器对局日志。不会附带 Key、接口地址、模型名称文本、跨局记忆或完整请求。文件只下载到本机，不自动上传。": "Export the run summary, all bookmarks and the last 80 action events. Bookmarks include game and wall times; the hosted version has no persistent server journal. Keys, endpoint and model text, cross-round memory and full requests are excluded. Downloads stay local; nothing is uploaded.",
     "导出当前局摘要、全部标记、沟通记录和最近 80 条动作事件。标记包含游戏时间和实际时间，在线版没有可追溯的服务器对局日志。不会附带 Key、接口地址、模型名称文本、跨局记忆或完整请求。文件只下载到本机，不自动上传。": "Export the run summary, all bookmarks, communication records and the last 80 action events. Bookmarks include game and wall times; the hosted version has no persistent server journal. Keys, endpoint and model text, cross-round memory and full requests are excluded. Downloads stay local; nothing is uploaded.",
@@ -452,9 +451,64 @@
     "牛排": "Steak",
     "对出餐投入的时间": "Time spent on served dishes",
     "关键路径上的时间": "Time on the critical path",
-    "投入时间：每个对出餐有用的动作从开始到完成的时长。关键路径：决定每道菜何时能出的那条步骤链。": "Time spent: how long each action that went into a served dish took. Critical path: the chain of steps that decided when each dish could be served."
+    "投入时间：每个对出餐有用的动作从开始到完成的时长。关键路径：决定每道菜何时能出的那条步骤链。": "Time spent: how long each action that went into a served dish took. Critical path: the chain of steps that decided when each dish could be served.",
+    "平底锅": "Frying pan",
+    "汤锅": "Soup pot",
+    "锅具": "Cookware",
+    "空平底锅": "Empty frying pan",
+    "空汤锅": "Empty soup pot",
+    "各自保留里面的食物": "contents stay where they are",
+    "离灶不加热": "no heating off the stove",
+    "切配进度保留；锅具继续加热": "prep progress kept; cookware keeps heating",
+    "黄瓜": "Cucumber",
+    "洋葱": "Onion",
+    "奶酪": "Cheese",
+    "葱": "Scallion",
+    "鸡肉": "Chicken",
+    "鱼": "Fish",
+    "薄饼": "Flatbread",
+    "面条": "Noodles",
+    "生鸡肉": "Raw chicken",
+    "切好的鸡肉": "Chopped chicken",
+    "煎制中": "Frying",
+    "熟鸡肉": "Cooked chicken",
+    "糊鸡肉": "Burnt chicken",
+    "生鱼": "Raw fish",
+    "切好的鱼": "Chopped fish",
+    "熟鱼": "Cooked fish",
+    "糊鱼": "Burnt fish",
+    "生面条": "Raw noodles",
+    "煮制中": "Boiling",
+    "熟面条": "Cooked noodles",
+    "煮干了": "Boiled dry",
+    "切好的葱": "Chopped scallion",
+    "切好的黄瓜": "Chopped cucumber",
+    "切好的洋葱": "Chopped onion",
+    "切好的奶酪": "Sliced cheese",
+    "牛肉拌面": "Beef noodles",
+    "鸡肉拌面": "Chicken noodles",
+    "沙拉": "Salad",
+    "芝士汉堡": "Cheeseburger",
+    "鸡肉卷": "Chicken wrap",
+    "煎鱼排": "Fried fish"
   },
   "templates": [
+    [
+      "端起{0}的{1}（{2}）",
+      "Lift the {1} from {0} ({2})"
+    ],
+    [
+      "把{0}放入{1}的空{2}（{3}）",
+      "Load {0} into the empty {2} at {1} ({3})"
+    ],
+    [
+      "把{0}放入地上空{1}（{2}）",
+      "Load {0} into the empty {1} on the floor ({2})"
+    ],
+    [
+      "把手中的{0}放回{1}（{2}）",
+      "Return the {0} to {1} ({2})"
+    ],
     [
       "与{0}的锅交换",
       "Swap with the pot at {0}"
@@ -834,6 +888,74 @@
     [
       "关键路径上另有 {0} 秒在等待（如锅在自己煮、等另一个人）。",
       "The critical paths also include {0} s of waiting (food cooking on its own, or waiting for the other chef)."
+    ],
+    [
+      "与地上的{0}交换",
+      "Swap with the {0} on the floor"
+    ],
+    [
+      "与{0}的{1}交换",
+      "Swap with the {1} at {0}"
+    ],
+    [
+      "倒掉手中{0}里的食物",
+      "Empty the food from the held {0}"
+    ],
+    [
+      "损耗{0}元，保留空{1}",
+      "¥{0} cost; keep the empty {1}"
+    ],
+    [
+      "将{0}放进{1}的{2}，开始自动加热",
+      "Put {0} into the {2} on {1}; it starts heating"
+    ],
+    [
+      "把{0}放入地上空{1}",
+      "Load {0} into the empty {1} on the floor"
+    ],
+    [
+      "把{0}放入{1}的空{2}",
+      "Load {0} into the empty {2} at {1}"
+    ],
+    [
+      "把手中{0}里的菜盛到{1}的盘里",
+      "Fill the plate on {1} from your {0}"
+    ],
+    [
+      "空{0}留在手中",
+      "keep the empty {0}"
+    ],
+    [
+      "用手中的干净盘盛出地上{0}里的菜",
+      "Plate food from the {0} on the floor"
+    ],
+    [
+      "用手中的盘盛出{0}的{1}里的菜",
+      "Plate food from the {1} on {0}"
+    ],
+    [
+      "空{0}留在原地",
+      "the empty {0} stays in place"
+    ],
+    [
+      "把手中的{0}放回{1}",
+      "Return the {0} to {1}"
+    ],
+    [
+      "端起{0}的{1}",
+      "Lift the {1} from {0}"
+    ],
+    [
+      "平底锅 · {0}",
+      "Frying pan · {0}"
+    ],
+    [
+      "汤锅 · {0}",
+      "Soup pot · {0}"
+    ],
+    [
+      "切好的{0}",
+      "chopped {0}"
     ]
   ]
 }

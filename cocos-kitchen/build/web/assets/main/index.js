@@ -429,7 +429,7 @@ System.register("chunks:///_virtual/KitchenAudio.ts", ['./rollupPluginModLoBabel
 });
 
 System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabelHelpers.js', 'cc', './LevelOneArt.ts', './KitchenAudio.ts', './KitchenGeometry.ts'], function (exports) {
-  var _inheritsLoose, _createForOfIteratorHelperLoose, _createClass, _extends, _asyncToGenerator, _regeneratorRuntime, cclegacy, _decorator, sys, profiler, view, ResolutionPolicy, director, Camera, Color, UITransform, Label, Node, Graphics, game, Game, Layers, Sprite, Vec2, Mask, Component, LevelOneArt, KitchenAudio, predictWalk, footWalkable, burgerLayers, stationView, wallNeighbours, GRID_ART, surfaceOffset, trashView, behindCounter, depthOrder, heatCountdown, flightDepth, workingChefDepth;
+  var _inheritsLoose, _createForOfIteratorHelperLoose, _createClass, _extends, _asyncToGenerator, _regeneratorRuntime, cclegacy, _decorator, sys, profiler, view, ResolutionPolicy, director, Camera, Color, UITransform, Label, Node, Graphics, game, Game, Layers, Sprite, Vec2, Mask, Component, LevelOneArt, KitchenAudio, predictWalk, footWalkable, plateLayers, stationView, wallNeighbours, GRID_ART, surfaceOffset, trashView, behindCounter, depthOrder, heatCountdown, flightDepth, workingChefDepth;
   return {
     setters: [function (module) {
       _inheritsLoose = module.inheritsLoose;
@@ -466,7 +466,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
     }, function (module) {
       predictWalk = module.predictWalk;
       footWalkable = module.footWalkable;
-      burgerLayers = module.burgerLayers;
+      plateLayers = module.plateLayers;
       stationView = module.stationView;
       wallNeighbours = module.wallNeighbours;
       GRID_ART = module.GRID_ART;
@@ -499,7 +499,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
         herb: '#3c7a2a',
         hot: '#b8321e',
         hotHover: '#9c2a19',
-        // alert: danger text on the surface ground (tomato itself is 4.35:1 there).
+        // alert: danger text on the surface ground (the hot red itself is 4.35:1 there).
         alert: '#9c2a19',
         frame: '#4a2616',
         // Fallback programmer art only.
@@ -514,24 +514,14 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
       // Result events reach the player; AI decision notes have their own status line.
       var RESULT_ANNOUNCE = new Set(['order', 'served', 'expired', 'ready', 'burn', 'fire', 'fire_spread', 'fire_loss']);
       var TAB_ORDER = ['language', 'level1', 'level2', 'level3', 'main', 'reset', 'cover-connection', 'help', 'record', 'resume', 'pause', 'end'];
-      var LEVEL_NAMES = ['', '第一关 · 牛排', '第二关 · 汉堡', '第三关 · 牛-堡'];
+      // Labels for things that are not recipe items; item and dish names come from the server's catalog.
       var STAGES = {
-        raw: '生肉',
-        chopped: '半成品',
-        cooking: '加热中',
-        ready: '熟牛排',
-        burnt: '糊菜',
         extinguisher: '灭火器',
         clean_plate: '干净餐盘',
         dirty_plate: '脏餐盘',
-        plated_ready: '已装盘牛排',
-        plated_burnt: '已装盘糊菜',
-        pot: '空锅',
-        pot_cooking: '锅 · 未熟',
-        pot_chopped: '锅 · 未熟',
-        pot_ready: '锅 · 熟牛排',
-        pot_burnt: '锅 · 糊菜'
+        pot: '空锅'
       };
+      // Fallback tints by stage: uncooked and cooking states of items that cook, and anything burnt.
       var FOOD_COLORS = {
         raw: '#d68f8c',
         chopped: '#dcaa86',
@@ -991,7 +981,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }, this.cover);
           var _loop = function _loop() {
             var n = _arr6[_i8];
-            _this2.pixel(_this2.button('level' + n, LEVEL_NAMES[n], 188 + n * 226, 464, 210, 30, function () {
+            _this2.pixel(_this2.button('level' + n, '', 188 + n * 226, 464, 210, 30, function () {
               return _this2.post('/api/level', {
                 level: n
               });
@@ -1535,55 +1525,68 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           var r = function r(x, y, w, h, c) {
             return _this4.rect(g, x, y, w, h, c);
           };
-          if (type.startsWith('pot_')) {
+          if (type.startsWith('pot:')) {
+            var _type$split = type.split(':'),
+              item = _type$split[1],
+              stage = _type$split[2];
             this.drawIcon(g, 'pot');
-            r(-10, -4, 20, 13, FOOD_COLORS[type.slice(4)] || '#b58359');
+            r(-10, -4, 20, 13, this.itemColor(item, stage));
           } else if (type === 'stove') {
             r(-23, -19, 46, 35, COLORS.wood);
             r(-20, -15, 40, 28, '#a3aaa0');
             r(-12, -6, 24, 16, COLORS.ink);
             r(-8, -3, 16, 10, '#6e746b');
-          } else if (type === 'continuous_counter') ;else if (/^(lettuce|tomato|bread)_/.test(type)) {
-            var kind = type.split('_')[0],
-              chopped = type.endsWith('chopped');
-            var c = kind === 'lettuce' ? '#639650' : kind === 'tomato' ? '#c45643' : '#d1a362';
-            r(-18, -12, 36, 24, c);
-            r(-12, 12, 24, 5, c);
-            if (kind === 'tomato') r(-4, 14, 8, 5, '#639650');
-            if (chopped) {
-              r(-2, -12, 3, 27, COLORS.paper);
-              r(-18, -1, 36, 3, COLORS.paper);
-            }
-            if (kind === 'bread') {
-              r(-13, 9, 3, 3, COLORS.paper);
-              r(5, 5, 3, 3, COLORS.paper);
+          } else if (type === 'continuous_counter') ;else if (type.startsWith('source:')) {
+            this.drawIcon(g, 'item:' + type.slice(7) + ':raw');
+          } else if (type.startsWith('item:')) {
+            var _type$split2 = type.split(':'),
+              _item = _type$split2[1],
+              _stage = _type$split2[2],
+              c = this.itemColor(_item, _stage);
+            if (this.cooks(_item)) {
+              // Items that cook: a cut on a paper card, tinted by doneness.
+              r(-19, -13, 38, 26, COLORS.paper);
+              r(-14, -10, 28, 20, COLORS.ink);
+              r(-13, -6, 26, 15, c);
+              r(-9, 9, 18, 3, c);
+              r(-6, -2, 4, 4, '#efd3ae');
+              r(3, 3, 6, 3, '#efd3ae');
+            } else {
+              r(-18, -12, 36, 24, c);
+              r(-12, 12, 24, 5, c);
+              if (_stage === 'chopped') {
+                r(-2, -12, 3, 27, COLORS.paper);
+                r(-18, -1, 36, 3, COLORS.paper);
+              }
             }
           } else if (type.startsWith('assembly:')) {
             this.drawIcon(g, 'clean_plate');
-            var parts = type.slice(9).split(',');
+            var parts = type.slice(9).split(','),
+              burnt = parts.includes('burnt');
             var y = -8;
-            for (var _i10 = 0, _arr7 = ['bread', 'beef', 'lettuce', 'tomato']; _i10 < _arr7.length; _i10++) {
-              var name = _arr7[_i10];
-              if (parts.includes(name)) {
-                r(-13, y, 26, 5, name === 'bread' ? '#d1a362' : name === 'beef' ? parts.includes('burnt') ? FOOD_COLORS.burnt : '#846144' : name === 'lettuce' ? '#639650' : '#c45643');
-                y += 5;
-              }
+            for (var _iterator4 = _createForOfIteratorHelperLoose(this.plateLayers(parts.filter(function (x) {
+                return x !== 'burnt';
+              }))), _step4; !(_step4 = _iterator4()).done;) {
+              var layer = _step4.value;
+              r(-13, y, 26, 5, this.itemColor(layer.item, burnt && this.burns(layer.item) ? 'burnt' : 'ready'));
+              y += 5;
             }
-            if (['bread', 'beef', 'lettuce', 'tomato'].every(function (name) {
-              return parts.includes(name);
-            })) r(-12, y, 24, 4, '#d1a362');
           } else if (type === 'counter') {
             r(-24, -19, 48, 36, COLORS.wood);
             r(-20, -14, 40, 26, '#b48b5e');
             r(-24, 12, 48, 8, '#dfbd88');
             r(-2, -10, 3, 20, COLORS.wood);
-          } else if (type.startsWith('plated_')) {
+          } else if (type.startsWith('dish:')) {
+            var _this$dishById;
+            var _type$split3 = type.split(':'),
+              dish = _type$split3[1],
+              _stage2 = _type$split3[2],
+              _item2 = (_this$dishById = this.dishById(dish)) == null || (_this$dishById = _this$dishById.components) == null || (_this$dishById = _this$dishById[0]) == null ? void 0 : _this$dishById.item;
             r(-23, -17, 46, 7, '#829fac');
             r(-21, -14, 42, 30, COLORS.paper);
             r(-17, -11, 34, 24, '#c4dce0');
             r(-15, -9, 30, 20, COLORS.paper);
-            var _c = type === 'plated_ready' ? '#846144' : '#3e3733';
-            r(-12, -5, 24, 15, _c);
+            r(-12, -5, 24, 15, this.itemColor(_item2, _stage2));
             r(-7, 3, 4, 3, '#d6af74');
           } else if (type === 'clean_plate' || type === 'dirty_plate' || type === 'plates' || type === 'returns') {
             r(-22, -15, 44, 28, '#8ca7ac');
@@ -1612,13 +1615,6 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             r(17, 1, 7, 7, COLORS.ink);
             r(-9, 15, 18, 4, '#aab7a4');
             r(-3, 19, 6, 4, COLORS.ink);
-          } else if (type === 'fridge') {
-            r(-18, -24, 36, 48, COLORS.ink);
-            r(-15, -20, 30, 41, '#a4c1b5');
-            r(-13, 6, 26, 13, '#cee0c8');
-            r(-13, -17, 26, 20, '#cee0c8');
-            r(6, 10, 3, 6, COLORS.ink);
-            r(6, -5, 3, 8, COLORS.ink);
           } else if (type === 'board') {
             r(-21, -15, 42, 30, COLORS.wood);
             r(-18, -11, 36, 23, '#dcb16b');
@@ -1653,19 +1649,73 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             r(-8, -15, 16, 19, '#efae3e');
             r(-3, -13, 6, 12, '#ffe29a');
           } else {
-            var _c2 = FOOD_COLORS[type] || FOOD_COLORS.raw;
+            var _c = FOOD_COLORS[type] || FOOD_COLORS.raw;
             r(-19, -13, 38, 26, COLORS.paper);
             r(-14, -10, 28, 20, COLORS.ink);
-            r(-13, -6, 26, 15, _c2);
-            r(-9, 9, 18, 3, _c2);
-            r(-6, -2, 4, 4, type === 'raw' ? '#efd3ae' : '#d6af74');
-            r(3, 3, 6, 3, type === 'raw' ? '#efd3ae' : '#d6af74');
+            r(-13, -6, 26, 15, _c);
+            r(-9, 9, 18, 3, _c);
+            r(-6, -2, 4, 4, '#d6af74');
+            r(3, 3, 6, 3, '#d6af74');
           }
+        }
+        // Recipe data from the server snapshot: names, colours, cooking states and plating order.
+        ;
+
+        _proto.itemDef = function itemDef(item) {
+          var _this$state13;
+          return item ? (_this$state13 = this.state) == null || (_this$state13 = _this$state13.kitchen.items) == null ? void 0 : _this$state13[item] : undefined;
+        };
+        _proto.itemLabel = function itemLabel(item) {
+          var _this$itemDef;
+          return ((_this$itemDef = this.itemDef(item)) == null ? void 0 : _this$itemDef.name) || item;
+        };
+        _proto.cooks = function cooks(item) {
+          var _this$itemDef2;
+          return !!((_this$itemDef2 = this.itemDef(item)) != null && (_this$itemDef2 = _this$itemDef2.states) != null && _this$itemDef2.includes('cooking'));
+        };
+        _proto.burns = function burns(item) {
+          var _this$itemDef3;
+          return !!((_this$itemDef3 = this.itemDef(item)) != null && (_this$itemDef3 = _this$itemDef3.states) != null && _this$itemDef3.includes('burnt'));
+        }
+        /** Fallback swatch: burnt is charred; items that cook are tinted by doneness until ready; else the item's colour. */;
+        _proto.itemColor = function itemColor(item, stage) {
+          var _this$itemDef4;
+          if (stage === 'burnt') return FOOD_COLORS.burnt;
+          if (this.cooks(item) && stage !== 'ready') return FOOD_COLORS[stage] || FOOD_COLORS.raw;
+          return ((_this$itemDef4 = this.itemDef(item)) == null ? void 0 : _this$itemDef4.color) || FOOD_COLORS[stage] || FOOD_COLORS.ready;
+        };
+        _proto.dishById = function dishById(id) {
+          var _this$state14, _this$state15;
+          return id ? (((_this$state14 = this.state) == null ? void 0 : _this$state14.kitchen.dishes) || ((_this$state15 = this.state) == null ? void 0 : _this$state15.kitchen.menu) || []).find(function (d) {
+            return d.id === id;
+          }) : undefined;
+        }
+        /** The menu dish a plate is heading for: one whose components include every item on it. */;
+        _proto.targetDish = function targetDish(components) {
+          var _this$state16;
+          return (((_this$state16 = this.state) == null ? void 0 : _this$state16.kitchen.menu) || []).find(function (d) {
+            return components.every(function (x) {
+              var _d$components;
+              return (_d$components = d.components) == null ? void 0 : _d$components.some(function (c) {
+                return c.item === x;
+              });
+            });
+          });
+        };
+        _proto.plateLayers = function plateLayers$1(components) {
+          var _this$targetDish;
+          return plateLayers((_this$targetDish = this.targetDish(components)) == null ? void 0 : _this$targetDish.plating, components);
+        }
+        /** The item an ingredient source hands out (equipment data; the station id is the last resort). */;
+        _proto.sourceItem = function sourceItem(id) {
+          var _this$state17, _e$params;
+          var e = (_this$state17 = this.state) == null ? void 0 : _this$state17.kitchen.map.equipment[id];
+          return (e == null ? void 0 : e.item) || (e == null || (_e$params = e.params) == null ? void 0 : _e$params.item) || id;
         };
         _proto.artIcon = function artIcon(node, type) {
           var _this5 = this;
-          for (var _iterator4 = _createForOfIteratorHelperLoose(node.children), _step4; !(_step4 = _iterator4()).done;) {
-            var _child = _step4.value;
+          for (var _iterator5 = _createForOfIteratorHelperLoose(node.children), _step5; !(_step5 = _iterator5()).done;) {
+            var _child = _step5.value;
             if (_child.name === 'assembly-parts' || _child.name === 'supply-symbol' || _child.name === 'pot-contents' || _child.name === 'burnt-cue') _child.active = false;
           }
           if (this.useModularArt) {
@@ -1687,12 +1737,12 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               return true;
             }
             if (type === 'serve') {
-              var _this$state13;
-              var facing = (_this$state13 = this.state) == null || (_this$state13 = _this$state13.kitchen.map.equipment.serve) == null ? void 0 : _this$state13.facing;
+              var _this$state18;
+              var facing = (_this$state18 = this.state) == null || (_this$state18 = _this$state18.kitchen.map.equipment.serve) == null ? void 0 : _this$state18.facing;
               return this.art.tile(node, facing === 'east' ? 'serving_east' : 'serving_west', TILE);
             }
             if (tops[type] && this.art.tile(node, tops[type], TILE)) return true;
-            if (type === 'fridge' || type.startsWith('source_')) {
+            if (type.startsWith('source:')) {
               this.art.hide(node);
               var symbol = node.getChildByName('supply-symbol');
               if (!symbol) {
@@ -1702,40 +1752,65 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               symbol.active = true;
               var g = symbol.getComponent(Graphics);
               g.clear();
-              var sourceKey = 'modular/source_' + (type === 'fridge' ? 'beef' : type.slice(7));
+              var sourceKey = 'modular/source_' + type.slice(7);
               if (!this.art.centered(symbol, sourceKey, 28, 28)) {
                 var fallback = symbol.getChildByName('fallback') || this.child(symbol, 'fallback', 28, 28);
                 var fg = fallback.getComponent(Graphics) || fallback.addComponent(Graphics);
                 fallback.setScale(.6, .6, 1);
-                this.drawIcon(fg, type.slice(7) + '_raw');
+                this.drawIcon(fg, 'item:' + type.slice(7) + ':raw');
               }
               return true;
             }
           }
-          if (['lettuce_chopped', 'tomato_chopped'].includes(type) && this.art.has('feedback/' + type.split('_')[0])) return this.art.centered(node, 'feedback/' + type.split('_')[0], 30, 30);
-          if (/^(lettuce|tomato|bread)_/.test(type) && this.art.has('food/' + type)) return this.art.centered(node, 'food/' + type, 30, 30);
-          if (type.startsWith('assembly:') && this.art.has('food/burger_ready')) {
+          if (type.startsWith('item:')) {
+            var _this$itemDef5;
+            var _type$split4 = type.split(':'),
+              item = _type$split4[1],
+              stage = _type$split4[2];
+            // A chopped item that is plated chopped shows its plating layer; then food/, then ingredients/ art.
+            if (stage === 'chopped' && (_this$itemDef5 = this.itemDef(item)) != null && (_this$itemDef5 = _this$itemDef5.platable_states) != null && _this$itemDef5.includes('chopped') && this.art.has('feedback/' + item)) return this.art.centered(node, 'feedback/' + item, 30, 30);
+            if (this.art.has("food/" + item + "_" + stage)) return this.art.centered(node, "food/" + item + "_" + stage, 30, 30);
+            for (var _i10 = 0, _arr7 = ["ingredients/" + item + "/" + stage, "ingredients/" + item + "/" + (stage === 'chopped' ? 'prepared' : stage)]; _i10 < _arr7.length; _i10++) {
+              var _key2 = _arr7[_i10];
+              if (this.art.has(_key2)) return this.art.centered(node, _key2, 29, 29);
+            }
+            return false;
+          }
+          if (type.startsWith('dish:')) {
+            var _type$split5 = type.split(':'),
+              dish = _type$split5[1],
+              _stage3 = _type$split5[2];
+            if (!this.art.has("dishes/" + dish + "/" + _stage3) || !this.art.centered(node, "dishes/" + dish + "/" + _stage3, TILE * .76, TILE * .76)) return false;
+            if (_stage3 === 'burnt') this.burntCue(node);
+            return true;
+          }
+          var assembly = type.startsWith('assembly:') ? type.slice(9).split(',') : null;
+          if (assembly && this.plateLayers(assembly.filter(function (x) {
+            return x !== 'burnt';
+          })).every(function (l) {
+            return _this5.art.has('feedback/' + l.layer);
+          })) {
             this.art.centered(node, 'objects/clean_plate', TILE * .76, TILE * .76);
             var parts = node.getChildByName('assembly-parts');
             if (!parts) parts = this.child(node, 'assembly-parts', 44, 44);
             parts.active = true;
-            for (var _iterator5 = _createForOfIteratorHelperLoose(parts.children), _step5; !(_step5 = _iterator5()).done;) {
-              var child = _step5.value;
+            for (var _iterator6 = _createForOfIteratorHelperLoose(parts.children), _step6; !(_step6 = _iterator6()).done;) {
+              var child = _step6.value;
               child.active = false;
             }
-            var ingredients = type.slice(9).split(','),
-              burnt = ingredients.includes('burnt');
-            var layers = burgerLayers(ingredients);
-            layers.forEach(function (name, i) {
+            var burnt = assembly.includes('burnt');
+            this.plateLayers(assembly.filter(function (x) {
+              return x !== 'burnt';
+            })).forEach(function (layer, i) {
               var _item$getChildByName;
-              var item = parts.getChildByName(name) || _this5.child(parts, name, 36, 24);
+              var item = parts.getChildByName(layer.layer) || _this5.child(parts, layer.layer, 36, 24);
               item.active = true;
               item.setPosition(0, -3 + i * 4);
               item.setSiblingIndex(parts.children.length - 1);
-              _this5.art.centered(item, 'feedback/' + name, 34, 22);
-              // No separate charred sprite: char the beef layer; reused nodes reset to white.
+              _this5.art.centered(item, 'feedback/' + layer.layer, 34, 22);
+              // No separate charred sprite: char the layers whose item can burn; reused nodes reset to white.
               var sprite = (_item$getChildByName = item.getChildByName('reviewed-art')) == null ? void 0 : _item$getChildByName.getComponent(Sprite);
-              if (sprite) sprite.color = name === 'beef' && burnt ? new Color(44, 36, 34, 255) : Color.WHITE;
+              if (sprite) sprite.color = burnt && _this5.burns(layer.item) ? new Color(44, 36, 34, 255) : Color.WHITE;
             });
             if (burnt) this.burntCue(node);
             return true;
@@ -1746,33 +1821,27 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             sink: 'workstations/sink',
             serve: 'workstations/serve',
             returns: 'workstations/returns',
-            fridge: 'workstations/fridge',
             bin: 'workstations/bin',
             extinguisher_rack: 'workstations/extinguisher_rack',
             extinguisher: 'objects/extinguisher',
             pot: 'objects/pot',
             clean_plate: 'objects/clean_plate',
             dirty_plate: 'objects/dirty_plate',
-            raw: 'ingredients/beef/raw',
-            processing: 'ingredients/beef/processing',
-            chopped: 'ingredients/beef/prepared',
-            cooking: 'ingredients/beef/cooking',
-            ready: 'ingredients/beef/ready',
-            burnt: 'ingredients/beef/burnt',
-            plated_ready: 'dishes/steak/ready',
-            plated_burnt: 'dishes/steak/burnt',
             fire: 'vfx/fire_0'
           };
           if (type === 'continuous_counter') {
             this.art.hide(node);
             return true;
           }
-          if (type.startsWith('pot_')) {
+          if (type.startsWith('pot:')) {
             if (!this.drawPot(node)) return false;
+            var _type$split6 = type.split(':'),
+              _item3 = _type$split6[1],
+              _stage4 = _type$split6[2];
             var _contents = node.getChildByName('pot-contents');
             if (!_contents) _contents = this.child(node, 'pot-contents', 22, 22, 0, 4);
             _contents.active = true;
-            this.art.centered(_contents, 'ingredients/beef/' + (type.slice(4) === 'chopped' ? 'prepared' : type.slice(4)), 20, 20);
+            this.art.centered(_contents, "ingredients/" + _item3 + "/" + (_stage4 === 'chopped' ? 'prepared' : _stage4), 20, 20);
             return true;
           }
           var contents = node.getChildByName('pot-contents');
@@ -1782,10 +1851,9 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           if (!key) return false;
           var size = key.startsWith('workstations/') ? 49 : key.startsWith('ingredients/') ? 29 : TILE * .76;
           if (!this.art.centered(node, key, size, size)) return false;
-          if (type === 'plated_burnt') this.burntCue(node);
           return true;
         }
-        /** Smoke over a burnt dish, wherever it is: upper layers can hide the charred patty. */;
+        /** Smoke over a burnt dish, wherever it is: upper layers can hide the charred layer. */;
         _proto.burntCue = function burntCue(node) {
           var _cue$getChildByName;
           var cue = node.getChildByName('burnt-cue');
@@ -1796,10 +1864,10 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           if (sprite) sprite.color = new Color(120, 112, 106, 255);
         };
         _proto.drawPot = function drawPot(node) {
-          var _node$parent, _node$parent2, _node$parent$parent, _this$state14;
+          var _node$parent, _node$parent2, _node$parent$parent, _this$state19;
           var station = (_node$parent = node.parent) != null && _node$parent.name.startsWith('station-') ? node.parent.name.slice(8) : '';
           var holder = ((_node$parent2 = node.parent) == null ? void 0 : _node$parent2.name) === 'body' ? (_node$parent$parent = node.parent.parent) == null ? void 0 : _node$parent$parent.name : '';
-          var facing = holder ? (_this$state14 = this.state) == null || (_this$state14 = _this$state14.kitchen.chefs[holder]) == null ? void 0 : _this$state14.facing : '';
+          var facing = holder ? (_this$state19 = this.state) == null || (_this$state19 = _this$state19.kitchen.chefs[holder]) == null ? void 0 : _this$state19.facing : '';
           var axis = station ? stationView(this.state.kitchen.map, station).device_axis : facing === 'up' || facing === 'down' ? 'vertical' : 'horizontal';
           return this.art.centered(node, this.art.has('modular/pot_' + axis) ? 'modular/pot_' + axis : 'objects/pot', TILE * (axis === 'vertical' ? .62 : .76), TILE * .76);
         };
@@ -1814,45 +1882,49 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           return "\u51C0\u6536\u5165 \xA5" + k.money + "\uFF08\u76EE\u6807 \xA5" + target + "\uFF09" + (won ? '' : "\uFF0C\u8FD8\u5DEE \xA5" + Math.max(0, target - k.money) + " \u5143") + ("\n\u5B8C\u6210 " + k.served + " \u5355 \xB7 \u8D85\u65F6 " + count('expired') + " \u5355 \xB7 \u5173\u5E97\u65F6\u672A\u5B8C\u6210 " + count('unresolved_at_close') + " \u5355") + '\n本局已结束，点“准备下一局”再来一局。';
         };
         _proto.itemName = function itemName(f) {
+          var _this6 = this;
           if (!f) return '空手';
-          if (this.platedAssembly(f)) return f.stage === 'burnt' ? '糊菜' : f.dish === 'burger' ? '汉堡' : '待组装 · ' + f.components.map(function (x) {
-            return {
-              bread: '面包',
-              lettuce: '生菜',
-              tomato: '番茄',
-              beef: '熟牛肉'
-            }[x];
-          }).join('+');
-          if (['bread', 'lettuce', 'tomato'].includes(f.ingredient)) return {
-            bread: '面包',
-            lettuce: '生菜',
-            tomato: '番茄'
-          }[f.ingredient] + (f.stage === 'chopped' ? ' · 切好' : '');
-          return STAGES[this.itemStage(f)] || f.meaning || f.stage;
+          if (f.plate_id) {
+            if (f.stage === 'burnt') return '糊菜';
+            var dish = this.dishById(f.dish) || this.wholeDish(f);
+            return dish ? dish.name : '待组装 · ' + this.plateItems(f).map(function (x) {
+              return _this6.itemLabel(x);
+            }).join('+');
+          }
+          return f.meaning || STAGES[f.stage] || f.stage;
+        };
+        _proto.plateItems = function plateItems(f) {
+          var _f$components;
+          return (_f$components = f.components) != null && _f$components.length ? f.components : f.ingredient ? [f.ingredient] : [];
         }
-        /** A plate drawn as layers: any plate but a lone beef where the menu serves beef alone (steak). */;
-        _proto.platedAssembly = function platedAssembly(f) {
-          var _f$components, _this$state15;
-          if (!(f != null && f.plate_id) || !((_f$components = f.components) != null && _f$components.length)) return false;
-          if (f.components.some(function (x) {
-            return x !== 'beef';
-          })) return true;
-          var menu = (_this$state15 = this.state) == null ? void 0 : _this$state15.kitchen.menu;
-          return !!menu && !menu.some(function (d) {
-            var _d$components;
-            return ((_d$components = d.components) == null ? void 0 : _d$components.length) === 1 && d.components[0].item === 'beef';
+        /** A menu dish drawn as one plated sprite: no plating layers, and exactly the plate's items. */;
+        _proto.wholeDish = function wholeDish(f) {
+          var _this$state20;
+          var items = Array.from(new Set(this.plateItems(f))).sort().join();
+          return (((_this$state20 = this.state) == null ? void 0 : _this$state20.kitchen.menu) || []).find(function (d) {
+            return !d.plating && Array.from(new Set((d.components || []).map(function (c) {
+              return c.item;
+            }))).sort().join() === items;
           });
         };
         _proto.itemStage = function itemStage(f) {
-          var _this$state16;
-          // Burnt burgers keep their layers (burnt dishes can be served); only the beef is drawn charred.
-          if (this.platedAssembly(f)) return 'assembly:' + f.components.join(',') + (f.stage === 'burnt' ? ',burnt' : '');
-          if (['bread', 'lettuce', 'tomato'].includes(f == null ? void 0 : f.ingredient) && !(f != null && f.plate_id)) return f.ingredient + '_' + f.stage;
-          if (this.useArt && (f == null ? void 0 : f.stage) === 'raw' && (f == null ? void 0 : f.ingredient) === 'beef' && f.chop_remaining < (((_this$state16 = this.state) == null || (_this$state16 = _this$state16.rules) == null ? void 0 : _this$state16.chop_seconds) || 6)) return 'processing';
-          return (f == null ? void 0 : f.stage) === 'pot' ? f.contents ? 'pot_' + f.contents.stage : 'pot' : f != null && f.plate_id ? 'plated_' + f.stage : f == null ? void 0 : f.stage;
+          var _f$contents;
+          if ((f == null ? void 0 : f.stage) === 'pot') return (_f$contents = f.contents) != null && _f$contents.ingredient ? "pot:" + f.contents.ingredient + ":" + f.contents.stage : 'pot';
+          if (f != null && f.plate_id && this.plateItems(f).length) {
+            var whole = this.wholeDish(f);
+            if (whole) return "dish:" + whole.id + ":" + f.stage;
+            // Burnt plates keep their layers (burnt dishes can be served); items that burn are drawn charred.
+            return 'assembly:' + this.plateItems(f).join(',') + (f.stage === 'burnt' ? ',burnt' : '');
+          }
+          if (f != null && f.ingredient) {
+            var _this$state21;
+            var chopping = this.useArt && f.stage === 'raw' && f.chop_remaining < (((_this$state21 = this.state) == null || (_this$state21 = _this$state21.rules) == null ? void 0 : _this$state21.chop_seconds) || 6) && this.art.has("ingredients/" + f.ingredient + "/processing");
+            return "item:" + f.ingredient + ":" + (chopping ? 'processing' : f.stage);
+          }
+          return f == null ? void 0 : f.stage;
         };
         _proto.chef = function chef(parent, name, x, y, who, scale) {
-          var _this6 = this;
+          var _this7 = this;
           if (scale === void 0) {
             scale = 1;
           }
@@ -1869,7 +1941,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           var body = this.child(n, 'body', 40, 64),
             g = body.addComponent(Graphics);
           var r = function r(x, y, w, h, c) {
-            return _this6.rect(g, x, y, w, h, c);
+            return _this7.rect(g, x, y, w, h, c);
           };
           // Pixel-art body stays upright as a single directional sprite; limbs are
           // separate nodes so footsteps and chopping never move the chef's position.
@@ -1897,9 +1969,9 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           this.rect(backG, -10, -10, 20, 18, COLORS[who]);
           back.active = false;
           var limb = function limb(id, w, h, x, y, fill) {
-            var node = _this6.child(body, id, w, h, x, y),
+            var node = _this7.child(body, id, w, h, x, y),
               lg = node.addComponent(Graphics);
-            _this6.rect(lg, -w / 2, -h / 2, w, h, fill);
+            _this7.rect(lg, -w / 2, -h / 2, w, h, fill);
             return node;
           };
           var leftLeg = limb('left-leg', 8, 15, -7, -24, COLORS.ink),
@@ -1915,7 +1987,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
         };
         _proto.request = /*#__PURE__*/function () {
           var _request = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee4(path, body) {
-            var _this7 = this;
+            var _this8 = this;
             var hosted;
             return _regeneratorRuntime().wrap(function _callee4$(_context4) {
               while (1) switch (_context4.prev = _context4.next) {
@@ -1929,7 +2001,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                 case 3:
                   return _context4.abrupt("return", new Promise(function (resolve, reject) {
                     var xhr = new XMLHttpRequest();
-                    xhr.open(body ? 'POST' : 'GET', _this7.endpoint + path, true);
+                    xhr.open(body ? 'POST' : 'GET', _this8.endpoint + path, true);
                     xhr.timeout = 5000;
                     xhr.onload = function () {
                       try {
@@ -1961,7 +2033,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
         }();
         _proto.bookmark = /*#__PURE__*/function () {
           var _bookmark = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee5() {
-            var _this8 = this;
+            var _this9 = this;
             var round, notice, data;
             return _regeneratorRuntime().wrap(function _callee5$(_context5) {
               while (1) switch (_context5.prev = _context5.next) {
@@ -1974,8 +2046,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                 case 2:
                   round = this.state.game_id;
                   notice = function notice(message) {
-                    var _this8$state;
-                    if (!sys.isNative && ((_this8$state = _this8.state) == null ? void 0 : _this8$state.game_id) === round) window.dispatchEvent(new CustomEvent('kitchen-bookmark-notice', {
+                    var _this9$state;
+                    if (!sys.isNative && ((_this9$state = _this9.state) == null ? void 0 : _this9$state.game_id) === round) window.dispatchEvent(new CustomEvent('kitchen-bookmark-notice', {
                       detail: {
                         message: message
                       }
@@ -2068,8 +2140,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           return post;
         }();
         _proto.act = function act(key) {
-          var _this$state17;
-          var a = (_this$state17 = this.state) == null ? void 0 : _this$state17.actions.find(function (a) {
+          var _this$state22;
+          var a = (_this$state22 = this.state) == null ? void 0 : _this$state22.actions.find(function (a) {
             return a.key === key;
           });
           if (a) this.post('/api/action', {
@@ -2080,9 +2152,9 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
         _proto.modularWallDecor = function modularWallDecor(wallNode, x, y, hasSouth) {
           if (y !== 0 || hasSouth) return;
           var faceH = GRID_ART.northFace * TILE / GRID_ART.unit;
-          for (var _iterator6 = _createForOfIteratorHelperLoose(((_kitchen$map$presenta = this.state.kitchen.map.presentation) == null ? void 0 : _kitchen$map$presenta.decorations) || []), _step6; !(_step6 = _iterator6()).done;) {
+          for (var _iterator7 = _createForOfIteratorHelperLoose(((_kitchen$map$presenta = this.state.kitchen.map.presentation) == null ? void 0 : _kitchen$map$presenta.decorations) || []), _step7; !(_step7 = _iterator7()).done;) {
             var _kitchen$map$presenta;
-            var decor = _step6.value;
+            var decor = _step7.value;
             if (decor.cell[0] !== x) continue;
             var n = this.child(wallNode, 'wall-decor-' + decor.asset, TILE, TILE, 0, -TILE / 2 + faceH / 2);
             this.art.centered(n, 'modular/' + decor.asset, TILE * .65, faceH * .64);
@@ -2126,6 +2198,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           return this.prepSampleBoard(id) ? GRID_ART.cabinetSpriteLift * TILE / GRID_ART.unit : surfaceOffset();
         };
         _proto.equipmentArt = function equipmentArt(n, id) {
+          var _kitchen$map$equipmen;
           var st = this.state.kitchen.stations[id],
             axis = stationView(this.state.kitchen.map, id).device_axis;
           var g = n.getComponent(Graphics);
@@ -2172,13 +2245,13 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             this.art.centered(n, 'modular/top_stove', TILE * .82, TILE * .82);
             return;
           }
-          if (['fridge', 'bread', 'lettuce', 'tomato'].includes(id)) {
-            this.art.centered(n, 'modular/source_' + (id === 'fridge' ? 'beef' : id), TILE * .6, TILE * .6);
+          if (((_kitchen$map$equipmen = this.state.kitchen.map.equipment[id]) == null ? void 0 : _kitchen$map$equipmen.type) === 'ingredient_source') {
+            this.art.centered(n, 'modular/source_' + this.sourceItem(id), TILE * .6, TILE * .6);
             return;
           }
         };
         _proto.mountMap = function mountMap() {
-          var _this9 = this;
+          var _this10 = this;
           var previous = new Set(this.node.children);
           var map = this.state.kitchen.map,
             walls = new Set(map.walls.map(function (p) {
@@ -2206,11 +2279,11 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           var _loop3 = function _loop3(_y) {
             var _loop6 = function _loop6() {
               var wall = walls.has(_x11 + "," + _y),
-                n = _this9.make('tile', MAPX + (_x11 + .5) * TILE, MAPY + (_y + .5) * TILE, TILE, TILE, _this9.world);
+                n = _this10.make('tile', MAPX + (_x11 + .5) * TILE, MAPY + (_y + .5) * TILE, TILE, TILE, _this10.world);
               n.setScale(TILE / 52, TILE / 52, 1);
               var g = n.addComponent(Graphics),
                 r = function r(a, b, w, h, c) {
-                  return _this9.rect(g, a, b, w, h, c);
+                  return _this10.rect(g, a, b, w, h, c);
                 };
               if (wall) {
                 r(-26, -26, 52, 52, COLORS.wood);
@@ -2229,21 +2302,21 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                   if (!cells.has(_x11 + "," + (_y + 1))) r(-26, -26, 52, 4, COLORS.counterEdge);
                 }
               }
-              if (_this9.useModularArt) {
+              if (_this10.useModularArt) {
                 n.setScale(1, 1, 1);
                 g.clear();
                 if (wall) {
-                  _this9.drawWall(n, _x11, _y, map, walls);
-                  _this9.registerDepth(n, function () {
+                  _this10.drawWall(n, _x11, _y, map, walls);
+                  _this10.registerDepth(n, function () {
                     return depthOrder(_y, 'solid');
                   });
                 }
-              } else if (_this9.useArt) {
+              } else if (_this10.useArt) {
                 var key = wall ? _y === 0 ? 'environment/wall' : 'environment/counter' : cells.has(_x11 + "," + _y) ? 'environment/counter' : 'environment/floor_cream';
-                if (_this9.art.show(n, key, 52, 52)) {
+                if (_this10.art.show(n, key, 52, 52)) {
                   g.clear();
                   if (wall && _y !== 0) {
-                    var edge = _this9.child(n, 'wall-border', 52, 52),
+                    var edge = _this10.child(n, 'wall-border', 52, 52),
                       _eg = edge.addComponent(Graphics);
                     _eg.strokeColor = color(COLORS.wood);
                     _eg.lineWidth = 3;
@@ -2252,10 +2325,10 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                   }
                 }
               }
-              if (!wall) _this9.registerDepth(n, function () {
+              if (!wall) _this10.registerDepth(n, function () {
                 return -1000;
               });
-              if (wall && _this9.useModularArt) n.getComponent(UITransform).setAnchorPoint(.5, .5 - (_y === map.height - 1 ? GRID_ART.frontWallHeight / 64 : GRID_ART.wallHeight / 64));
+              if (wall && _this10.useModularArt) n.getComponent(UITransform).setAnchorPoint(.5, .5 - (_y === map.height - 1 ? GRID_ART.frontWallHeight / 64 : GRID_ART.wallHeight / 64));
             };
             for (var _x11 = 0; _x11 < map.width; _x11++) {
               _loop6();
@@ -2273,11 +2346,11 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               id = _Object$entries$_i[0],
               entry = _Object$entries$_i[1];
             var e = entry,
-              n = _this9.make('station-' + id, MAPX + (e.cell[0] + .5) * TILE, MAPY + (e.cell[1] + .5) * TILE, TILE, TILE, _this9.world);
-            var overlay = _this9.child(n, 'surface-feedback', TILE, TILE),
+              n = _this10.make('station-' + id, MAPX + (e.cell[0] + .5) * TILE, MAPY + (e.cell[1] + .5) * TILE, TILE, TILE, _this10.world);
+            var overlay = _this10.child(n, 'surface-feedback', TILE, TILE),
               g = overlay.addComponent(Graphics);
-            if (_this9.useModularArt) _this9.cabinetArt(n, id);
-            _this9.registerDepth(n, function () {
+            if (_this10.useModularArt) _this10.cabinetArt(n, id);
+            _this10.registerDepth(n, function () {
               return depthOrder(e.cell[1], 'solid') + .01;
             });
             var art = new Node('equipment');
@@ -2285,12 +2358,12 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             n.addChild(art);
             art.addComponent(UITransform).setContentSize(44, 44);
             art.setPosition(0, 6);
-            if (_this9.useModularArt) art.setPosition(0, 0);
-            _this9.drawIcon(art.addComponent(Graphics), _this9.state.kitchen.stations[id].counter ? 'continuous_counter' : _this9.state.kitchen.stations[id].stove ? 'pot' : id.startsWith('bin') ? 'bin' : /^b[0-9]/.test(id) ? 'board' : ['lettuce', 'tomato', 'bread'].includes(id) ? _this9.useModularArt ? 'source_' + id : id + '_raw' : _this9.useArt && id === 'extinguisher' ? 'extinguisher_rack' : id);
-            if (_this9.useModularArt) _this9.equipmentArt(art, id);
-            if (_this9.useModularArt) {
-              var scorch = _this9.child(n, 'scorch', TILE, TILE);
-              _this9.art.tile(scorch, 'scorch', TILE);
+            if (_this10.useModularArt) art.setPosition(0, 0);
+            _this10.drawIcon(art.addComponent(Graphics), _this10.state.kitchen.stations[id].counter ? 'continuous_counter' : _this10.state.kitchen.stations[id].stove ? 'pot' : id.startsWith('bin') ? 'bin' : /^b[0-9]/.test(id) ? 'board' : e.type === 'ingredient_source' ? 'source:' + _this10.sourceItem(id) : _this10.useArt && id === 'extinguisher' ? 'extinguisher_rack' : id);
+            if (_this10.useModularArt) _this10.equipmentArt(art, id);
+            if (_this10.useModularArt) {
+              var scorch = _this10.child(n, 'scorch', TILE, TILE);
+              _this10.art.tile(scorch, 'scorch', TILE);
               scorch.active = false;
             }
             var ln = new Node('label');
@@ -2309,11 +2382,11 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             n.addChild(status);
             status.addComponent(UITransform).setContentSize(30, 30);
             status.setPosition(11, 7);
-            status.setScale(_this9.useModularArt ? 1 : .6, _this9.useModularArt ? 1 : .6, 1);
+            status.setScale(_this10.useModularArt ? 1 : .6, _this10.useModularArt ? 1 : .6, 1);
             status.addComponent(Graphics);
-            if (_this9.useModularArt) {
-              status.setPosition(0, _this9.workSurfaceY(id) + (_this9.prepSampleBoard(id) ? 18 : 0));
-              if (_this9.prepSampleBoard(id)) status.setScale(.5, .5, 1);
+            if (_this10.useModularArt) {
+              status.setPosition(0, _this10.workSurfaceY(id) + (_this10.prepSampleBoard(id) ? 18 : 0));
+              if (_this10.prepSampleBoard(id)) status.setScale(.5, .5, 1);
               ln.active = false; // Workstations are identified by equipment, not map captions.
             }
 
@@ -2322,48 +2395,48 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               bubbles.layer = Layers.Enum.UI_2D;
               n.addChild(bubbles);
               var bg = bubbles.addComponent(Graphics);
-              _this9.rect(bg, -16, 0, 6, 6, '#eaf7f5');
-              _this9.rect(bg, 0, 7, 7, 7, '#eaf7f5');
-              _this9.rect(bg, 12, -2, 5, 5, '#eaf7f5');
+              _this10.rect(bg, -16, 0, 6, 6, '#eaf7f5');
+              _this10.rect(bg, 0, 7, 7, 7, '#eaf7f5');
+              _this10.rect(bg, 12, -2, 5, 5, '#eaf7f5');
               bubbles.active = false;
             }
-            if (_this9.useModularArt) n.getComponent(UITransform).setAnchorPoint(.5, .5 - _this9.workSurfaceY(id) / TILE);
-            _this9.devices[id] = {
+            if (_this10.useModularArt) n.getComponent(UITransform).setAnchorPoint(.5, .5 - _this10.workSurfaceY(id) / TILE);
+            _this10.devices[id] = {
               node: n,
               graphics: g,
               label: l
             };
-            if (!_this9.state.kitchen.stations[id].stove) {
-              var flame = _this9.child(n, 'cabinet-fire', 58, 64, 0, 18);
+            if (!_this10.state.kitchen.stations[id].stove) {
+              var flame = _this10.child(n, 'cabinet-fire', 58, 64, 0, 18);
               flame.addComponent(Graphics);
               flame.active = false;
-              _this9.cabinetFires[id] = flame;
-              var smoke = _this9.child(flame, 'smoke', 36, 44, 8, 36);
+              _this10.cabinetFires[id] = flame;
+              var smoke = _this10.child(flame, 'smoke', 36, 44, 8, 36);
               smoke.addComponent(Graphics);
             }
-            if (_this9.state.kitchen.stations[id].stove) {
-              var steam = _this9.child(n, 'cooking-steam', 32, 40, -11, 38),
+            if (_this10.state.kitchen.stations[id].stove) {
+              var steam = _this10.child(n, 'cooking-steam', 32, 40, -11, 38),
                 sg = steam.addComponent(Graphics);
-              _this9.rect(sg, -2, -17, 4, 8, '#f6e8ca');
-              _this9.rect(sg, -9, -7, 4, 8, '#f6e8ca');
-              _this9.rect(sg, 7, 2, 4, 8, '#f6e8ca');
-              _this9.rect(sg, -2, 13, 4, 8, '#f6e8ca');
-              var _smoke = _this9.child(n, 'burnt-smoke', 36, 30, 13, 38),
+              _this10.rect(sg, -2, -17, 4, 8, '#f6e8ca');
+              _this10.rect(sg, -9, -7, 4, 8, '#f6e8ca');
+              _this10.rect(sg, 7, 2, 4, 8, '#f6e8ca');
+              _this10.rect(sg, -2, 13, 4, 8, '#f6e8ca');
+              var _smoke = _this10.child(n, 'burnt-smoke', 36, 30, 13, 38),
                 _bg = _smoke.addComponent(Graphics);
-              _this9.rect(_bg, -12, -6, 9, 8, '#665e57');
-              _this9.rect(_bg, -3, 1, 10, 8, '#504a45');
-              _this9.rect(_bg, 5, 8, 8, 7, '#746b62');
-              var fire = _this9.child(n, 'fire-flame', 32, 34, 0, 39),
+              _this10.rect(_bg, -12, -6, 9, 8, '#665e57');
+              _this10.rect(_bg, -3, 1, 10, 8, '#504a45');
+              _this10.rect(_bg, 5, 8, 8, 7, '#746b62');
+              var fire = _this10.child(n, 'fire-flame', 32, 34, 0, 39),
                 fg = fire.addComponent(Graphics);
-              _this9.drawIcon(fg, 'fire');
+              _this10.drawIcon(fg, 'fire');
               fire.setScale(.55, .55, 1);
-              var ready = _this9.child(n, 'ready-pop', 76, 24, 0, 38),
+              var ready = _this10.child(n, 'ready-pop', 76, 24, 0, 38),
                 rg = ready.addComponent(Graphics);
-              _this9.rect(rg, -35, -11, 70, 22, COLORS.honey);
-              _this9.rect(rg, -32, -8, 64, 16, COLORS.paper);
-              var cue = _this9.child(ready, 'cue', 70, 22).addComponent(Label);
-              _this9.writeLabel(cue, '熟了！');
-              _this9.pixel(cue, 12);
+              _this10.rect(rg, -35, -11, 70, 22, COLORS.honey);
+              _this10.rect(rg, -32, -8, 64, 16, COLORS.paper);
+              var cue = _this10.child(ready, 'cue', 70, 22).addComponent(Label);
+              _this10.writeLabel(cue, '熟了！');
+              _this10.pixel(cue, 12);
               cue.color = color(COLORS.ink);
               cue.horizontalAlign = Label.HorizontalAlign.CENTER;
               cue.verticalAlign = Label.VerticalAlign.CENTER;
@@ -2371,7 +2444,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               _smoke.active = false;
               fire.active = false;
               ready.active = false;
-              _this9.potEffects[id] = {
+              _this10.potEffects[id] = {
                 steam: steam,
                 smoke: _smoke,
                 fire: fire,
@@ -2385,52 +2458,52 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }
           var _loop5 = function _loop5() {
             var who = _arr10[_i14];
-            var n = _this9.chef(_this9.world, who, 0, 0, who, _this9.useModularArt ? .8 : .65);
-            var dust = _this9.child(n, 'sprint-dust', 55, 28, -18, -24);
+            var n = _this10.chef(_this10.world, who, 0, 0, who, _this10.useModularArt ? .8 : .65);
+            var dust = _this10.child(n, 'sprint-dust', 55, 28, -18, -24);
             dust.addComponent(Graphics);
             dust.active = false;
             dust.setSiblingIndex(0);
-            _this9.locate(n, _this9.state.kitchen.chefs[who].position);
-            _this9.registerDepth(n, function () {
-              var c = _this9.state.kitchen.chefs[who],
-                e = _this9.state.kitchen.map.equipment[c.target];
+            _this10.locate(n, _this10.state.kitchen.chefs[who].position);
+            _this10.registerDepth(n, function () {
+              var c = _this10.state.kitchen.chefs[who],
+                e = _this10.state.kitchen.map.equipment[c.target];
               return workingChefDepth((360 - MAPY - n.position.y) / TILE - .5, e == null ? void 0 : e.cell[1], c.facing, !!c.working && !!e);
             });
             // Name tag: a solid pixel plate in the identity colour, sized to the text in drawNameTag.
-            var ln = _this9.child(n, 'name', 155, 25, 0, _this9.useModularArt ? -12 : -39);
-            _this9.child(ln, 'tag', 40, 18).addComponent(Graphics);
-            var l = _this9.pixel(_this9.child(ln, 'text', 40, 18).addComponent(Label), 12);
-            delete _this9.tagText[who]; // new nodes after a layout change need their plate drawn
+            var ln = _this10.child(n, 'name', 155, 25, 0, _this10.useModularArt ? -12 : -39);
+            _this10.child(ln, 'tag', 40, 18).addComponent(Graphics);
+            var l = _this10.pixel(_this10.child(ln, 'text', 40, 18).addComponent(Label), 12);
+            delete _this10.tagText[who]; // new nodes after a layout change need their plate drawn
             l.overflow = Label.Overflow.NONE;
-            _this9.labels['person-' + who] = l;
+            _this10.labels['person-' + who] = l;
             var body = n.getChildByName('body'),
-              held = _this9.child(body, 'held', 25, 25, 22, 0);
+              held = _this10.child(body, 'held', 25, 25, 22, 0);
             held.setScale(.9, .9, 1);
             held.addComponent(Graphics);
-            _this9.people[who] = n;
+            _this10.people[who] = n;
             // What the chef carries, above the head: readable from behind, where the hand is hidden.
-            var bubble = _this9.child(n, 'held-bubble', 40, 38, 0, _this9.useModularArt ? 104 : 78),
+            var bubble = _this10.child(n, 'held-bubble', 40, 38, 0, _this10.useModularArt ? 104 : 78),
               bg = bubble.addComponent(Graphics);
-            _this9.rect(bg, -17, -13, 34, 30, COLORS.ink);
-            _this9.rect(bg, -16, -10, 32, 26, COLORS.paper);
-            _this9.rect(bg, -4, -17, 8, 5, COLORS.ink);
-            _this9.rect(bg, -2, -15, 4, 4, COLORS.paper);
-            var icon = _this9.child(bubble, 'icon', 42, 42, 0, 3);
+            _this10.rect(bg, -17, -13, 34, 30, COLORS.ink);
+            _this10.rect(bg, -16, -10, 32, 26, COLORS.paper);
+            _this10.rect(bg, -4, -17, 8, 5, COLORS.ink);
+            _this10.rect(bg, -2, -15, 4, 4, COLORS.paper);
+            var icon = _this10.child(bubble, 'icon', 42, 42, 0, 3);
             icon.setScale(.62, .62, 1);
             icon.addComponent(Graphics);
             bubble.active = false;
-            if (_this9.prepSample) {
-              var pose = _this9.child(_this9.world, 'prep-pose-' + who, 68, 88);
+            if (_this10.prepSample) {
+              var pose = _this10.child(_this10.world, 'prep-pose-' + who, 68, 88);
               pose.active = false;
-              _this9.prepPoses[who] = pose;
-              _this9.registerDepth(pose, function () {
+              _this10.prepPoses[who] = pose;
+              _this10.registerDepth(pose, function () {
                 var _e$cell$;
-                var c = _this9.state.kitchen.chefs[who],
-                  e = _this9.state.kitchen.map.equipment[c.target];
+                var c = _this10.state.kitchen.chefs[who],
+                  e = _this10.state.kitchen.map.equipment[c.target];
                 return depthOrder((_e$cell$ = e == null ? void 0 : e.cell[1]) != null ? _e$cell$ : c.position[1], 'solid') + .02;
               });
             }
-            _this9.motions[who] = {
+            _this10.motions[who] = {
               body: body,
               leftLeg: body.getChildByName('left-leg'),
               rightLeg: body.getChildByName('right-leg'),
@@ -2445,14 +2518,14 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             _loop5();
           }
           var marker = function marker(name, fill) {
-            var n = _this9.child(_this9.people.jeff, name, 30, 18, 0, 65),
+            var n = _this10.child(_this10.people.jeff, name, 30, 18, 0, 65),
               g = n.addComponent(Graphics);
             g.fillColor = color(COLORS.paper);
             g.circle(0, 0, 8);
             g.fill();
             for (var _i15 = 0, _arr11 = [-5, 0, 5]; _i15 < _arr11.length; _i15++) {
               var _x10 = _arr11[_i15];
-              _this9.rect(g, _x10 - 1, -1, 2, 3, fill);
+              _this10.rect(g, _x10 - 1, -1, 2, 3, fill);
             }
             return n;
           };
@@ -2480,7 +2553,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           this.mounted = true;
         };
         _proto.characterArt = function characterArt(body, who, facing, walking, working) {
-          var _this$state18, _this$state19, _URLSearchParams$get;
+          var _this$state23, _this$state24, _URLSearchParams$get;
           if (walking === void 0) {
             walking = false;
           }
@@ -2488,8 +2561,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             working = false;
           }
           var kind = who === 'human' ? 'player' : 'jeff',
-            chef = (_this$state18 = this.state) == null ? void 0 : _this$state18.kitchen.chefs[who];
-          var station = (_this$state19 = this.state) == null ? void 0 : _this$state19.kitchen.map.equipment[chef == null ? void 0 : chef.target];
+            chef = (_this$state23 = this.state) == null ? void 0 : _this$state23.kitchen.chefs[who];
+          var station = (_this$state24 = this.state) == null ? void 0 : _this$state24.kitchen.map.equipment[chef == null ? void 0 : chef.target];
           var inWorld = !!body.parent && ['human', 'jeff'].includes(body.parent.name);
           var chopping = !!working && inWorld && (chef == null ? void 0 : chef.action_kind) === 'chop' && !!station;
           var sampleFrame = this.prepSample ? Number((_URLSearchParams$get = new URLSearchParams(location.search).get('prepFrame')) != null ? _URLSearchParams$get : -1) : -1;
@@ -2518,8 +2591,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             }
           }
           body.getComponent(Graphics).enabled = !shown;
-          for (var _iterator7 = _createForOfIteratorHelperLoose(body.children), _step7; !(_step7 = _iterator7()).done;) {
-            var child = _step7.value;
+          for (var _iterator8 = _createForOfIteratorHelperLoose(body.children), _step8; !(_step8 = _iterator8()).done;) {
+            var child = _step8.value;
             if (!['held', 'reviewed-art'].includes(child.name)) child.active = !shown;
           }
           if (inWorld) this.chopImpact(who, hasAction && phase === 2 && beat < .62, (beat - .45) / .17);
@@ -2560,7 +2633,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
         /** A short spark on the board while the knife lands (strike frame only). */;
         _proto.chopImpact = function chopImpact(who, active, p) {
           var _impact,
-            _this10 = this;
+            _this11 = this;
           var impact = this.chopImpacts[who];
           if (!((_impact = impact) != null && _impact.isValid)) {
             if (!active) return;
@@ -2568,9 +2641,9 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             impact.addComponent(Graphics);
             this.chopImpacts[who] = impact;
             this.registerDepth(impact, function () {
-              var _kitchen$map$equipmen, _kitchen$map$equipmen2;
-              var c = _this10.state.kitchen.chefs[who];
-              return depthOrder((_kitchen$map$equipmen = (_kitchen$map$equipmen2 = _this10.state.kitchen.map.equipment[c.target]) == null ? void 0 : _kitchen$map$equipmen2.cell[1]) != null ? _kitchen$map$equipmen : c.position[1], 'solid') + .04;
+              var _kitchen$map$equipmen2, _kitchen$map$equipmen3;
+              var c = _this11.state.kitchen.chefs[who];
+              return depthOrder((_kitchen$map$equipmen2 = (_kitchen$map$equipmen3 = _this11.state.kitchen.map.equipment[c.target]) == null ? void 0 : _kitchen$map$equipmen3.cell[1]) != null ? _kitchen$map$equipmen2 : c.position[1], 'solid') + .04;
             });
           }
           impact.active = active;
@@ -2597,7 +2670,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }
         };
         _proto.knifeOnlySample = function knifeOnlySample(active, key) {
-          var _this11 = this;
+          var _this12 = this;
           if (this.knifeProbe) this.knifeProbe.active = active;
           if (this.cutProbe) this.cutProbe.active = active;
           if (!active) return;
@@ -2608,9 +2681,9 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             var _root = this.child(this.world, 'knife-only-probe', 68, 88);
             // Separate length axes keep both thicknesses unchanged. Existing pixels only.
             var part = function part(name, pivot, points) {
-              var stretch = _this11.child(_root, name, 68, 88);
+              var stretch = _this12.child(_root, name, 68, 88);
               stretch.angle = -40;
-              var stencil = _this11.child(stretch, name + '-mask', 68, 88);
+              var stencil = _this12.child(stretch, name + '-mask', 68, 88);
               stencil.angle = 40;
               stencil.addComponent(Mask).type = Mask.Type.GRAPHICS_STENCIL;
               var g = stencil.getComponent(Graphics);
@@ -2622,19 +2695,19 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               });
               g.close();
               g.fill();
-              _this11.art.show(stencil, key, 68, 88, 34 - pivot[0], pivot[1] - 82);
+              _this12.art.show(stencil, key, 68, 88, 34 - pivot[0], pivot[1] - 82);
             };
             part('handle', [29, 61], [[29, 61], [31, 61], [34, 64], [31, 66], [29, 64]]);
             part('length', [31, 63], [[31, 63], [34, 64], [44, 72], [37, 73], [31, 69]]);
             this.knifeProbe = _root;
             this.registerDepth(_root, function () {
-              return depthOrder(_this11.state.kitchen.map.equipment.b1.cell[1], 'solid') + .02;
+              return depthOrder(_this12.state.kitchen.map.equipment.b1.cell[1], 'solid') + .02;
             });
             var _fx = this.child(this.world, 'cut-impact-probe', 52, 52);
             _fx.addComponent(Graphics);
             this.cutProbe = _fx;
             this.registerDepth(_fx, function () {
-              return depthOrder(_this11.state.kitchen.map.equipment.b1.cell[1], 'solid') + .03;
+              return depthOrder(_this12.state.kitchen.map.equipment.b1.cell[1], 'solid') + .03;
             });
           }
           var actor = this.people.jeff,
@@ -2689,15 +2762,15 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }
         };
         _proto.foodNode = function foodNode(id, stage, airborne) {
-          var _this12 = this;
+          var _this13 = this;
           if (airborne === void 0) {
             airborne = false;
           }
           var n = this.make('food-' + id, 0, 0, 44, 40, this.world || this.node);
           n.setScale(.9, .9, 1);
           this.registerDepth(n, function () {
-            var _this12$flightOrder$i;
-            return airborne ? (_this12$flightOrder$i = _this12.flightOrder[id]) != null ? _this12$flightOrder$i : 0 : depthOrder((360 - MAPY - n.position.y) / TILE - .5, 'item');
+            var _this13$flightOrder$i;
+            return airborne ? (_this13$flightOrder$i = _this13.flightOrder[id]) != null ? _this13$flightOrder$i : 0 : depthOrder((360 - MAPY - n.position.y) / TILE - .5, 'item');
           });
           this.drawIcon(n.addComponent(Graphics), stage);
           var child = new Node('id');
@@ -2706,7 +2779,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           child.addComponent(UITransform).setContentSize(64, 19);
           child.setPosition(0, -23);
           var l = child.addComponent(Label);
-          this.writeLabel(l, STAGES[stage] || id);
+          this.writeLabel(l, id);
           l.fontSize = 13;
           l.lineHeight = 16;
           l.color = color(COLORS.ink);
@@ -2729,8 +2802,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             this.eventsGame = s.game_id;
             this.seenEvents.clear();
           }
-          for (var _iterator8 = _createForOfIteratorHelperLoose(s.events), _step8; !(_step8 = _iterator8()).done;) {
-            var e = _step8.value;
+          for (var _iterator9 = _createForOfIteratorHelperLoose(s.events), _step9; !(_step9 = _iterator9()).done;) {
+            var e = _step9.value;
             var key = e.t + '|' + e.message;
             if (this.seenEvents.has(key)) continue;
             this.seenEvents.add(key);
@@ -2759,8 +2832,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           if (e.kind && RESULT_ANNOUNCE.has(e.kind)) this.announce(e.message);
         };
         _proto.flash = function flash(ids, fill) {
-          for (var _iterator9 = _createForOfIteratorHelperLoose(ids), _step9; !(_step9 = _iterator9()).done;) {
-            var id = _step9.value;
+          for (var _iterator10 = _createForOfIteratorHelperLoose(ids), _step10; !(_step10 = _iterator10()).done;) {
+            var id = _step10.value;
             this.flashes[id] = {
               until: this.clock + 1.2,
               fill: fill
@@ -2788,7 +2861,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           });
         };
         _proto.drawOrders = function drawOrders() {
-          var _this13 = this;
+          var _this14 = this;
           var s = this.state,
             k = s.kitchen,
             orders = k.orders.filter(function (o) {
@@ -2802,45 +2875,54 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             this.labels[id].color = color(this.statColor(id));
           }
           var _loop7 = function _loop7() {
+            var _this14$dishById2;
             var o = orders[i],
-              n = _this13.tickets[i],
+              n = _this14.tickets[i],
               g = n.getComponent(Graphics) || n.addComponent(Graphics),
               urgent = o && o.remaining <= 15;
             g.clear();
             // Paper slip clipped to the walnut rail; empty clips stay bare instead of drawing blank slips.
-            _this13.rect(g, -10, 26, 20, 6, COLORS.walnut);
+            _this14.rect(g, -10, 26, 20, 6, COLORS.walnut);
             if (o || i === 0) {
-              _this13.rect(g, -78, -36, 156, 62, COLORS.walnut);
-              _this13.rect(g, -77, -34, 154, 59, COLORS.paper);
+              _this14.rect(g, -78, -36, 156, 62, COLORS.walnut);
+              _this14.rect(g, -77, -34, 154, 59, COLORS.paper);
               if (o) {
                 var _s$rules;
-                // Patience: herb while comfortable, honey past half, tomato when urgent (the label also says so).
+                // Patience: herb while comfortable, honey past half, hot red when urgent (the label also says so).
                 var left = Math.max(0, Math.min(1, o.remaining / (o.patience || ((_s$rules = s.rules) == null ? void 0 : _s$rules.order_patience) || 90)));
-                _this13.rect(g, -67, -30, 134, 7, COLORS.ink);
-                _this13.rect(g, -66, -29, 132, 5, COLORS.bg);
-                _this13.rect(g, -66, -29, 132 * left, 5, urgent ? COLORS.hot : left > .5 ? COLORS.herb : COLORS.honey);
+                _this14.rect(g, -67, -30, 134, 7, COLORS.ink);
+                _this14.rect(g, -66, -29, 132, 5, COLORS.bg);
+                _this14.rect(g, -66, -29, 132 * left, 5, urgent ? COLORS.hot : left > .5 ? COLORS.herb : COLORS.honey);
               }
             }
-            var signature = o ? JSON.stringify(o.ingredients || ['beef']) : '';
-            if (_this13.orderArt[i] !== signature) {
-              _this13.orderArt[i] = signature;
+            var signature = o ? JSON.stringify(o.ingredients || []) : '';
+            if (_this14.orderArt[i] !== signature) {
+              _this14.orderArt[i] = signature;
               var prev = n.getChildByName('ingredients');
               if (prev) prev.destroy();
               if (o) {
-                var row = _this13.child(n, 'ingredients', 150, 16, 0, -5);
-                var ingredients = o.ingredients || ['beef'];
+                var row = _this14.child(n, 'ingredients', 150, 16, 0, -5);
+                var ingredients = o.ingredients || [];
+                // Each item as the dish needs it, but whole: a chopped item reads better uncut at this size.
+                var need = function need(name) {
+                  var _this14$dishById;
+                  var st = (_this14$dishById = _this14.dishById(o.dish)) == null || (_this14$dishById = _this14$dishById.components) == null || (_this14$dishById = _this14$dishById.find(function (c) {
+                    return c.item === name;
+                  })) == null ? void 0 : _this14$dishById.state;
+                  return st && st !== 'chopped' ? st : 'raw';
+                };
                 ingredients.forEach(function (name, j) {
-                  var item = _this13.child(row, 'ingredient-' + j, 30, 14, 66 - (ingredients.length - 1 - j) * 15, 0);
-                  item.setScale(_this13.useArt ? .5 : .32, _this13.useArt ? .5 : .32, 1);
-                  _this13.drawIcon(item.addComponent(Graphics), name === 'beef' ? 'ready' : name + '_raw');
+                  var item = _this14.child(row, 'ingredient-' + j, 30, 14, 66 - (ingredients.length - 1 - j) * 15, 0);
+                  item.setScale(_this14.useArt ? .5 : .32, _this14.useArt ? .5 : .32, 1);
+                  _this14.drawIcon(item.addComponent(Graphics), "item:" + name + ":" + need(name));
                 });
               }
             }
-            _this13.set('order-id-' + i, o ? o.id + " \xB7 " + (urgent ? '快超时了' : '待出餐') : i === 0 ? '订单夹' : '');
-            _this13.labels['order-id-' + i].color = color(urgent ? COLORS.hot : COLORS.muted);
-            _this13.set('order-name-' + i, o ? o.dish === 'burger' ? '汉堡' : '香煎牛排' : i === 0 ? k.future_orders ? '等待新订单' : '订单已结清' : '');
-            _this13.set('order-time-' + i, o ? Math.max(0, Math.ceil(o.remaining)) + "s" : '');
-            _this13.labels['order-time-' + i].color = color(urgent ? COLORS.hot : COLORS.muted);
+            _this14.set('order-id-' + i, o ? o.id + " \xB7 " + (urgent ? '快超时了' : '待出餐') : i === 0 ? '订单夹' : '');
+            _this14.labels['order-id-' + i].color = color(urgent ? COLORS.hot : COLORS.muted);
+            _this14.set('order-name-' + i, o ? ((_this14$dishById2 = _this14.dishById(o.dish)) == null ? void 0 : _this14$dishById2.name) || o.dish : i === 0 ? k.future_orders ? '等待新订单' : '订单已结清' : '');
+            _this14.set('order-time-' + i, o ? Math.max(0, Math.ceil(o.remaining)) + "s" : '');
+            _this14.labels['order-time-' + i].color = color(urgent ? COLORS.hot : COLORS.muted);
           };
           for (var i = 0; i < 5; i++) {
             _loop7();
@@ -2874,7 +2956,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
         _proto.render = function render() {
           var _k$fire_safety,
             _s$connection,
-            _this14 = this,
+            _this15 = this,
             _s$limits,
             _kitchenI18n2;
           if (!this.state || !this.mounted) return;
@@ -2889,7 +2971,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           this.labels.clock.color = color(remaining <= 30 ? COLORS.hot : COLORS.muted);
           this.drawOrders();
           for (var _i22 = 0, _Object$entries2 = Object.entries(this.devices); _i22 < _Object$entries2.length; _i22++) {
-            var _st$food, _s$interaction, _s$use_interaction, _st$food2, _st$food3, _s$rules2, _s$rules3;
+            var _st$food, _s$interaction, _s$use_interaction, _kitchen$map$equipmen4, _st$food2, _st$food3, _s$rules2, _s$rules3;
             var _Object$entries2$_i = _Object$entries2[_i22],
               id = _Object$entries2$_i[0],
               dev = _Object$entries2$_i[1];
@@ -2908,7 +2990,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             if (((_s$interaction = s.interaction) == null ? void 0 : _s$interaction.target) === id || ((_s$use_interaction = s.use_interaction) == null ? void 0 : _s$use_interaction.target) === id) {
               if (this.useModularArt) this.facedGlow(g, -TILE / 2, this.workSurfaceY(id) - TILE / 2, TILE, TILE);else this.facedGlow(g, -27, -27, 54, 54);
             }
-            this.writeLabel(dev.label, st.fire ? '着火了！' : st.food ? this.itemName(st.food) + (st.food.stage === 'cooking' ? " " + Math.ceil(st.ready_in) + "s" : st.food.stage === 'ready' && st.heating && st.burn_in !== undefined ? " " + Math.ceil(st.burn_in) + "s \u540E\u7CCA" : '') : id === 'fridge' && this.useModularArt ? '牛肉柜' : st.name);
+            this.writeLabel(dev.label, st.fire ? '着火了！' : st.food ? this.itemName(st.food) + (st.food.stage === 'cooking' ? " " + Math.ceil(st.ready_in) + "s" : st.food.stage === 'ready' && st.heating && st.burn_in !== undefined ? " " + Math.ceil(st.burn_in) + "s \u540E\u7CCA" : '') : ((_kitchen$map$equipmen4 = this.state.kitchen.map.equipment[id]) == null ? void 0 : _kitchen$map$equipmen4.type) === 'ingredient_source' && this.useModularArt ? this.itemLabel(this.sourceItem(id)) : st.name);
             var countdown = heatCountdown(st);
             var timer = dev.node.getChildByName('heat-countdown');
             if (countdown && !timer) {
@@ -2988,8 +3070,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               delete this.groundStages[_id2];
             }
           }
-          for (var _iterator10 = _createForOfIteratorHelperLoose(k.ground), _step10; !(_step10 = _iterator10()).done;) {
-            var item = _step10.value;
+          for (var _iterator11 = _createForOfIteratorHelperLoose(k.ground), _step11; !(_step11 = _iterator11()).done;) {
+            var item = _step11.value;
             var _id6 = item.food.id,
               stage = this.itemStage(item.food);
             if (!this.ground[_id6]) {
@@ -2999,7 +3081,6 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             if (this.groundStages[_id6] !== stage) {
               this.drawIcon(this.ground[_id6].getComponent(Graphics), stage);
               this.groundStages[_id6] = stage;
-              this.writeLabel(this.ground[_id6].getChildByName('id').getComponent(Label), STAGES[stage] || _id6);
             }
             this.writeLabel(this.ground[_id6].getChildByName('id').getComponent(Label), this.itemName(item.food));
             this.locate(this.ground[_id6], item.position);
@@ -3033,8 +3114,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               delete this.flightOrder[_id3];
             }
           }
-          for (var _iterator11 = _createForOfIteratorHelperLoose(k.projectiles || []), _step11; !(_step11 = _iterator11()).done;) {
-            var p = _step11.value;
+          for (var _iterator12 = _createForOfIteratorHelperLoose(k.projectiles || []), _step12; !(_step12 = _iterator12()).done;) {
+            var p = _step12.value;
             if (!this.flights[p.id]) this.flights[p.id] = this.foodNode(p.id, this.itemStage(p), true);
           }
           this.enable('pause', active);
@@ -3047,12 +3128,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           var held = k.chefs.human.holding;
           this.set('hand', '手中：' + (held ? this.itemName(held) : '空手'));
           if ((held == null ? void 0 : held.stage) === 'assembled') this.set('hand', '缺少：' + held.missing.map(function (x) {
-            return {
-              beef: '熟牛肉',
-              bread: '面包',
-              lettuce: '生菜',
-              tomato: '番茄'
-            }[x];
+            return _this15.itemLabel(x);
           }).join('+'));
           {
             var _s$interaction2;
@@ -3066,22 +3142,28 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }
           // Game results keep the event line; Jeff's decisions and errors use their own status.
           var results = s.events.filter(function (e) {
-            return !_this14.isAiNote(e);
+            return !_this15.isAiNote(e);
           });
           this.set('event', results.length ? results[results.length - 1].message : '');
           this.set('ai-status', this.aiStatus(s));
           this.labels['ai-status'].color = color(s.ai.error || (_s$limits = s.limits) != null && _s$limits.reached && s.phase === 'running' ? COLORS.alert : COLORS.muted);
-          for (var _i27 = 0, _arr20 = [1, 2, 3]; _i27 < _arr20.length; _i27++) {
-            var _n2 = _arr20[_i27];
-            var b = this.buttons['level' + _n2],
-              sel = k.level === _n2;
+          var _loop8 = function _loop8() {
+            var _s$levels;
+            var n = _arr20[_i27];
+            var b = _this15.buttons['level' + n],
+              sel = k.level === n;
             b.node.active = s.phase === 'ready' || s.phase === 'ended';
-            this.writeLabel(b.label, LEVEL_NAMES[_n2] + (sel ? ' · 当前' : ''));
+            _this15.writeLabel(b.label, (((_s$levels = s.levels) == null || (_s$levels = _s$levels.find(function (l) {
+              return l.menu_order === n;
+            })) == null ? void 0 : _s$levels.name) || '') + (sel ? ' · 当前' : ''));
             if (b.selected !== sel) {
               b.selected = sel;
-              this.styleButton('level' + _n2);
+              _this15.styleButton('level' + n);
             }
-            this.enable('level' + _n2, !this.pending && !sel);
+            _this15.enable('level' + n, !_this15.pending && !sel);
+          };
+          for (var _i27 = 0, _arr20 = [1, 2, 3]; _i27 < _arr20.length; _i27++) {
+            _loop8();
           }
           var lang = ((_kitchenI18n2 = window.kitchenI18n) == null ? void 0 : _kitchenI18n2.language) === 'en' ? '中文' : 'English';
           if (this.buttons.language.label.string !== lang) this.buttons.language.label.string = lang;
@@ -3124,11 +3206,11 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
         };
         _proto.aiStatus = function aiStatus(s) {
           var _s$limits2,
-            _this15 = this;
+            _this16 = this;
           if ((_s$limits2 = s.limits) != null && _s$limits2.reached && s.phase === 'running') return 'Jeff 已达本局调用上限';
           if (s.ai.error) return 'Jeff 暂时连不上，正在重试';
           var note = [].concat(s.events).reverse().find(function (e) {
-            return _this15.isAiNote(e);
+            return _this16.isAiNote(e);
           });
           var m = note && /^Jeff \u9009\u62E9\uFF1A([\s\S]*?) \| [\d.]+s(?: \| \u672A\u6267\u884C\uFF1A([\s\S]*))?$/.exec(note.message);
           if (m) return m[2] ? "Jeff\uFF1A" + m[1] + "\uFF08\u672A\u6267\u884C\uFF09" : "Jeff\uFF1A" + m[1]; // full reason stays in the event log/export
@@ -3160,7 +3242,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }
         };
         _proto.update = function update(dt) {
-          var _this16 = this,
+          var _this17 = this,
             _this$devices$sink;
           this.clock += dt;
           this.audio.update(dt);
@@ -3168,12 +3250,12 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           var k = this.state.kitchen;
           // Result pops rise and fade over 1.4s (no rise with reduced motion); header numbers pulse.
           this.pops = this.pops.filter(function (p) {
-            var age = (_this16.clock - p.born) / 1.4;
+            var age = (_this17.clock - p.born) / 1.4;
             if (age >= 1 || !p.node.isValid) {
               p.node.destroy();
               return false;
             }
-            if (!_this16.reduceMotion) p.node.setPosition(p.node.position.x, p.y + 34 * (1 - (1 - age) * (1 - age)));
+            if (!_this17.reduceMotion) p.node.setPosition(p.node.position.x, p.y + 34 * (1 - (1 - age) * (1 - age)));
             var a = Math.round(255 * (age < .6 ? 1 : 1 - (age - .6) / .4));
             p.label.color = new Color(p.fill.r, p.fill.g, p.fill.b, a);
             p.label.shadowColor = new Color(43, 26, 18, a);
@@ -3202,9 +3284,9 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             var who = _arr22[_i31];
             var c = k.chefs[who],
               p = c.position,
-              _n3 = this.people[who],
+              _n2 = this.people[who],
               motion = this.motions[who];
-            var dust = _n3.getChildByName('sprint-dust');
+            var dust = _n2.getChildByName('sprint-dust');
             dust.active = !!animate && ((_c$sprint3 = c.sprint) == null ? void 0 : _c$sprint3.active_remaining) > 0 && (c.manual_moving || c.travel_remaining > 0);
             if (dust.active) {
               var frame = Math.floor(this.activeClock * 10) % 7,
@@ -3216,17 +3298,17 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               }
             }
             if (running && p) {
-              var predicted = who === 'human' ? this.predictHuman(k, c, dt, _n3) : null,
+              var predicted = who === 'human' ? this.predictHuman(k, c, dt, _n2) : null,
                 at = predicted || p;
               var x = MAPX + (at[0] + .5) * TILE - 640,
                 y = 360 - MAPY - (at[1] + .5) * TILE,
                 t = predicted ? 1 : Math.min(1, dt * 16);
-              var oldX = _n3.position.x,
-                oldY = _n3.position.y;
-              _n3.setPosition(oldX + (x - oldX) * t, oldY + (y - oldY) * t);
-              var dx = _n3.position.x - oldX,
-                dy = _n3.position.y - oldY,
-                moved = Math.hypot(dx, dy) > .08 && (!!predicted || (c.travel_remaining || 0) > 0 || Math.hypot(x - _n3.position.x, y - _n3.position.y) > 1);
+              var oldX = _n2.position.x,
+                oldY = _n2.position.y;
+              _n2.setPosition(oldX + (x - oldX) * t, oldY + (y - oldY) * t);
+              var dx = _n2.position.x - oldX,
+                dy = _n2.position.y - oldY,
+                moved = Math.hypot(dx, dy) > .08 && (!!predicted || (c.travel_remaining || 0) > 0 || Math.hypot(x - _n2.position.x, y - _n2.position.y) > 1);
               if (moved) {
                 if ((c.manual_moving || predicted) && who === 'human' && (this.manualDirection.x !== 0 || this.manualDirection.y !== 0)) {
                   if (Math.abs(this.manualDirection.x) >= Math.abs(this.manualDirection.y)) motion.facing = this.manualDirection.x < 0 ? 'left' : 'right';else motion.facing = this.manualDirection.y < 0 ? 'up' : 'down';
@@ -3317,8 +3399,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }
           if (running && (this.manualDirection.x !== 0 || this.manualDirection.y !== 0) && this.clock - this.lastMoveAt >= .15) this.sendMove(this.manualDirection.x, this.manualDirection.y);
           var time = k.time + (this.state.phase === 'running' && this.connected ? (this.clock - this.received) * this.state.speed : 0);
-          for (var _iterator12 = _createForOfIteratorHelperLoose(k.projectiles || []), _step12; !(_step12 = _iterator12()).done;) {
-            var _p = _step12.value;
+          for (var _iterator13 = _createForOfIteratorHelperLoose(k.projectiles || []), _step13; !(_step13 = _iterator13()).done;) {
+            var _p = _step13.value;
             var _t = Math.max(0, Math.min(1, (time - _p.started) / (_p.lands_at - _p.started))),
               arc = Math.sin(_t * Math.PI) * 35;
             var point = [_p.from[0] + (_p.to[0] - _p.from[0]) * _t, _p.from[1] + (_p.to[1] - _p.from[1]) * _t];
@@ -3357,13 +3439,13 @@ System.register("chunks:///_virtual/KitchenGeometry.ts", ['cc'], function (expor
     execute: function () {
       exports({
         behindCounter: behindCounter,
-        burgerLayers: burgerLayers,
         clearWalkLine: clearWalkLine,
         cornerOffset: cornerOffset,
         depthOrder: depthOrder,
         flightDepth: flightDepth,
         footWalkable: footWalkable,
         heatCountdown: heatCountdown,
+        plateLayers: plateLayers,
         predictWalk: predictWalk,
         stationView: stationView,
         surfaceOffset: surfaceOffset,
@@ -3626,11 +3708,19 @@ System.register("chunks:///_virtual/KitchenGeometry.ts", ['cc'], function (expor
         }
         return best;
       }
-      /** Display order is semantic, independent of the order ingredients reached the plate. */
-      function burgerLayers(ingredients) {
-        var present = new Set(ingredients);
-        return ['bun_bottom', 'beef', 'lettuce', 'tomato', 'bun_top'].filter(function (name) {
-          return present.has(name.startsWith('bun_') ? 'bread' : name);
+      /** A plate's layers from bottom to top: the dish's plating (server recipe data), keeping the layers
+       * whose item is on the plate, independent of the order items reached it. Without a plating the
+       * components are stacked as they are. */
+      function plateLayers(plating, components) {
+        var present = new Set(components);
+        if (plating != null && plating.length) return plating.filter(function (layer) {
+          return present.has(layer.item);
+        });
+        return Array.from(present).map(function (item) {
+          return {
+            layer: item,
+            item: item
+          };
         });
       }
       function heatCountdown(st) {
@@ -3807,25 +3897,36 @@ System.register("chunks:///_virtual/LevelOneArt.ts", ['./rollupPluginModLoBabelH
                   _context2.next = 44;
                   return this.loadAtlas('art/trash-directions-v1');
                 case 44:
+                  _context2.prev = 44;
+                  _context2.next = 47;
+                  return this.loadAtlas('art/ingredient-pack-v1');
+                case 47:
+                  _context2.next = 52;
+                  break;
+                case 49:
+                  _context2.prev = 49;
+                  _context2.t4 = _context2["catch"](44);
+                  console.warn('Ingredient pack art unavailable; new ingredients keep their fallback icons.', _context2.t4);
+                case 52:
                   if (!(typeof location !== 'undefined' && new URLSearchParams(location.search).get('prepSample') === '1')) {
-                    _context2.next = 47;
+                    _context2.next = 55;
                     break;
                   }
-                  _context2.next = 47;
+                  _context2.next = 55;
                   return this.loadAtlas('art/prep-pose-v3');
-                case 47:
+                case 55:
                   this.ready = true;
-                  _context2.next = 53;
+                  _context2.next = 61;
                   break;
-                case 50:
-                  _context2.prev = 50;
-                  _context2.t4 = _context2["catch"](0);
-                  console.warn('ChefJeff level 1 art unavailable; retaining readable fallback.', _context2.t4);
-                case 53:
+                case 58:
+                  _context2.prev = 58;
+                  _context2.t5 = _context2["catch"](0);
+                  console.warn('ChefJeff level 1 art unavailable; retaining readable fallback.', _context2.t5);
+                case 61:
                 case "end":
                   return _context2.stop();
               }
-            }, _callee2, this, [[0, 50], [3, 9], [12, 17], [20, 25], [28, 33]]);
+            }, _callee2, this, [[0, 58], [3, 9], [12, 17], [20, 25], [28, 33], [44, 49]]);
           }));
           function load() {
             return _load.apply(this, arguments);

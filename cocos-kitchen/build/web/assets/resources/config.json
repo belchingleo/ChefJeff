@@ -5,13 +5,15 @@
     "deps": [],
     "uuids": [
         "0081a0b6-a033-40ea-8787-5e4295c34e66",
+        "00e70d1b-4a8d-4b8b-948f-ea3654751351",
+        "00e70d1b-4a8d-4b8b-948f-ea3654751351@6c48a",
         "0261e0a3-f666-4b42-bf62-519c75ef6100",
         "0261e0a3-f666-4b42-bf62-519c75ef6100@6c48a",
         "0261e0a3-f666-4b42-bf62-519c75ef6100@f9941",
         "02d8fe24-8ffa-46dc-b588-62233b09fd74",
         "04164686-3f66-44b4-b850-9ee80ad8e18c",
-        "0a4f4c95f",
         "0c9ee0fa-3969-4088-b4b5-dc0738496ee6",
+        "0cd6648a2",
         "0d58ee0d-2aca-45a2-8e59-2022619a65ef",
         "0eb1945e-9f51-42d8-aa8f-c8003415e5e8",
         "0fafcbba-7444-480e-b9da-d788a6c1cfbc",
@@ -88,6 +90,7 @@
         "b0bd84d1-be7c-48fa-af65-6db2a39dfc0b",
         "b81a9c2c-13ff-4918-99f2-1eb337ec5f0f",
         "bcb60f3f-bb90-4b51-ac89-6d6da2dca815",
+        "c752b9db-6736-4b09-8934-583886831fa1",
         "c7c4f34c-1069-481f-8a47-f7c2c7f8f9b5",
         "db926cec-7e53-49c6-988a-b4889d7a68bf",
         "ddb2dae8-0c96-4fe9-8ea6-6962b77ef35a",
@@ -423,6 +426,21 @@
             "cc.JsonAsset",
             1
         ],
+        "00e70d1b-4a8d-4b8b-948f-ea3654751351": [
+            "art/ingredient-pack-v1/atlas",
+            "cc.ImageAsset",
+            1
+        ],
+        "00e70d1b-4a8d-4b8b-948f-ea3654751351@6c48a": [
+            "art/ingredient-pack-v1/atlas/texture",
+            "cc.Texture2D",
+            1
+        ],
+        "c752b9db-6736-4b09-8934-583886831fa1": [
+            "art/ingredient-pack-v1/manifest",
+            "cc.JsonAsset",
+            1
+        ],
         "ac7b48fd-69cb-4420-b65f-f60a66fd1e71": [
             "art/kitchen-modules-v2/atlas",
             "cc.ImageAsset",
@@ -586,7 +604,8 @@
     },
     "scenes": {},
     "packs": {
-        "0a4f4c95f": [
+        "0cd6648a2": [
+            "00e70d1b-4a8d-4b8b-948f-ea3654751351@6c48a",
             "4e79aece-4009-45f1-a303-4c2ce1f87619@6c48a",
             "7bdd0fb3-bbb9-470b-8a61-1ba4bac72b6c@6c48a",
             "9fdb1167-f4f3-4eec-bbbe-ad25bcbbb33c@6c48a",
