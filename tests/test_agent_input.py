@@ -11,7 +11,7 @@ from levels import level_config
 from spatial_kitchen import SpatialKitchen
 from whitebox_server import SpatialJevClient, model_candidates
 
-LEVELS = (1, 2, 3)
+LEVELS = (1, 2, 3, 4)
 
 
 def kitchen(level):
