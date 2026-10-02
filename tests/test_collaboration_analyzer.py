@@ -95,6 +95,27 @@ class ProvenanceTests(unittest.TestCase):
                                    sum(sum(d['critical_path']['seconds'].values()) + d['critical_path']['waiting_seconds'] for d in r['dishes']),
                                    places=3)
 
+    def test_food_that_cooks_arrives_on_the_path_when_it_is_ready(self):
+        """The beef went into the pan before the plate was fetched but was ready only after it:
+        the beef, not the plate, decided when the dish could be plated."""
+        from collections import namedtuple
+        from types import SimpleNamespace
+        from collaboration_analyzer import _critical_path
+        T = namedtuple('T', 'seq action_ids actors')
+        fetch, put, take, plate, serve = (T(1, (1,), ('human',)), T(2, (2,), ('human',)), T(3, (3,), ('jeff',)),
+                                          T(4, (4,), ('jeff',)), T(5, (5,), ('jeff',)))
+        chain = [('F1', fetch), ('F1', put), ('D1', take), ('D1', plate), ('F1', plate), ('F1', serve)]
+        spans = {1: (0, 1), 2: (1, 2), 3: (10, 11), 4: (20, 21), 5: (22, 23)}
+        p = SimpleNamespace(actions={5: {'seq': 5}})
+        steps, waiting, cooking = _critical_path(p, chain, {'action_id': 5}, spans, {'F1': 18})
+        self.assertEqual([actors for _, actors in steps], [['human'], ['human'], ['jeff'], ['jeff']])
+        self.assertAlmostEqual(cooking, 16)  # in the pan from 2 to 18
+        self.assertAlmostEqual(sum(sec for sec, _ in steps) + waiting, 23)
+        # Without ready times the plate looks like the last input, as before the fix.
+        steps, _, cooking = _critical_path(p, chain, {'action_id': 5}, spans)
+        self.assertEqual([actors for _, actors in steps], [['jeff']] * 3)
+        self.assertEqual(cooking, 0)
+
     def test_replay_rebuilds_the_same_analysis(self):
         k = self.l2
         again = replay(SpatialKitchen, k.resolved, k.inputs)
