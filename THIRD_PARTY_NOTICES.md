@@ -9,7 +9,7 @@
 | Python | Python 3.10+ standard library | Runtime not bundled; no third-party Python packages required to run (regenerating the font subset uses fontTools) |
 | Model services | TypeSafe, DeepSeek or the player's compatible endpoint | No model weights; provider accounts, availability, terms and charges apply |
 
-Overcooked inspired the overall gameplay and some early map designs. See the [README acknowledgement](README.md#inspiration-and-thanks). This is design inspiration, not affiliation or an implementation attribution.
+Overcooked inspired the overall gameplay and some early map designs. See the [README acknowledgement](README.md#privacy-costs-and-licences). This is design inspiration, not affiliation or an implementation attribution.
 
 The root AGPL license covers original project code. It does not replace third-party terms or grant rights to provider services, player logs or research records. Asset and reference-image rights are reviewed separately as part of the public-release roadmap.
 
@@ -28,6 +28,6 @@ The root AGPL license covers original project code. It does not replace third-pa
 | Python | Python 3.10+ 标准库 | 不捆绑运行时，运行无需第三方 Python 包（重新生成字体子集需要 fontTools） |
 | 模型服务 | TypeSafe、DeepSeek 或玩家自选兼容端点 | 不含模型权重；账号、可用性、条款和费用由供应商决定 |
 
-整体玩法与部分早期地图设计受 Overcooked 启发，见 [README 鸣谢](README.md#启发与鸣谢)。这是设计启发说明，不代表双方有关联或实现归属。
+整体玩法与部分早期地图设计受 Overcooked 启发，见 [README 鸣谢](README.zh-CN.md#隐私费用与许可)。这是设计启发说明，不代表双方有关联或实现归属。
 
 根目录 AGPL 适用于原创代码，不替代第三方条款，也不授予模型服务、玩家日志或研究记录的使用权。素材与参考图权利按公开发布路线图单独审查。
