@@ -1347,7 +1347,7 @@ export class KitchenClient extends Component {
         {
             const short=(a:Action)=>a.label.split('（')[0],parts:string[]=[];
             if(s.interaction)parts.push('空格 · '+short(s.interaction));
-            if(held&&(!s.interaction||s.interaction.kind==='drop'))parts.push('长按空格 · 瞄准投掷');
+            if(held&&(!s.interaction||s.interaction.kind==='drop')&&!k.stations[s.interaction_focus||''])parts.push('长按空格 · 瞄准投掷');
             this.set('interaction',this.aiming?'松开空格投掷 · 方向键改方向':parts.length?parts.join('　'):(s.interaction_hint||'面向工位或物品按空格'));
         }
         // Game results keep the event line; Jeff's decisions and errors use their own status.

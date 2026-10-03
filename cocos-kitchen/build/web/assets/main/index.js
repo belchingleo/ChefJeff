@@ -3445,7 +3445,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               },
               parts = [];
             if (s.interaction) parts.push('空格 · ' + _short(s.interaction));
-            if (held && (!s.interaction || s.interaction.kind === 'drop')) parts.push('长按空格 · 瞄准投掷');
+            if (held && (!s.interaction || s.interaction.kind === 'drop') && !k.stations[s.interaction_focus || '']) parts.push('长按空格 · 瞄准投掷');
             this.set('interaction', this.aiming ? '松开空格投掷 · 方向键改方向' : parts.length ? parts.join('　') : s.interaction_hint || '面向工位或物品按空格');
           }
           // Game results keep the event line; Jeff's decisions and errors use their own status.
