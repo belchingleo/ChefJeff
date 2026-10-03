@@ -125,6 +125,21 @@ class HostedHTTPTests(unittest.TestCase):
         self.assertEqual(status,200);self.assertIn(b'/hosted-agent.js',raw)
         self.assertEqual(self.request('/hosted-agent.js')[0],200)
 
+    def test_shipped_audio_is_served_with_audio_mime_type(self):
+        files = list((self.server.web_root / 'assets/resources/native').rglob('*.mp3'))
+        self.assertTrue(files, 'The web build must include its game audio.')
+        for file in files:
+            with self.subTest(asset=file.name):
+                c = http.client.HTTPConnection('127.0.0.1', self.port, timeout=3)
+                try:
+                    c.request('GET', '/' + file.relative_to(self.server.web_root).as_posix())
+                    response = c.getresponse()
+                    self.assertEqual(response.status, 200)
+                    self.assertEqual(response.getheader('Content-Type'), 'audio/mpeg')
+                    self.assertEqual(response.read(), file.read_bytes())
+                finally:
+                    c.close()
+
     def test_aimed_throw_crosses_hosted_http_and_keeps_direction_validation(self):
         _, raw = self.request('/api/session', {})
         token = json.loads(raw)['session']

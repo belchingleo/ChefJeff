@@ -310,7 +310,7 @@ class HostedHandler(Handler):
         if file == root: file = root / 'index.html'
         if path == '/hosted-agent.js': file = ROOT / 'hosted' / 'browser-agent.js'
         elif not file.is_relative_to(root): return self.reply(404, {'error': 'Not found.'})
-        if not file.is_file() or file.suffix not in ('.html','.js','.json','.css','.png','.jpg','.webp','.ico','.woff','.woff2','.ttf','.wasm','.bin','.cconb'):
+        if not file.is_file() or file.suffix not in ('.html','.js','.json','.css','.png','.jpg','.webp','.ico','.woff','.woff2','.ttf','.mp3','.wasm','.bin','.cconb'):
             return self.reply(404, {'error': 'Not found.'})
         data = file.read_bytes()
         if file.name == 'index.html': data = hosted_html(data)
