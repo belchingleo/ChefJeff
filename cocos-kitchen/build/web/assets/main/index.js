@@ -713,7 +713,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                     held = s.kitchen.chefs.human.holding;
                   // Facing open floor with something in hand, Space either puts it down (tap) or
                   // aims a throw (hold): decide on release or after AIM_HOLD. Everything else acts now.
-                  if (held && (!s.interaction || s.interaction.kind === 'drop')) _this.spaceDownAt = _this.clock;else {
+                  if (held && (!s.interaction || s.interaction.kind === 'drop') && !s.kitchen.stations[s.interaction_focus || '']) _this.spaceDownAt = _this.clock;else {
                     _this.handsBusyUntil = _this.clock + .35;
                     _this.post('/api/interact', {
                       expected_item: (held == null ? void 0 : held.id) || null
@@ -874,7 +874,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                       memory: next.memory,
                       limits: next.limits,
                       release: next.release,
-                      communication: next.communication
+                      communication: next.communication,
+                      hosted: next.hosted
                     }
                   }));
                   if (!_this.mounted) _this.mountMap();

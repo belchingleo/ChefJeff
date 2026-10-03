@@ -6,7 +6,7 @@ import { levelButtonLayout, GRID_ART, stationView, trashView, wallNeighbours, su
 const { ccclass } = _decorator;
 type Action = { key: string; label: string; kind: string; target: string; expected: unknown[] };
 type KitchenState = { game_id: string; phase: string; speed: number; kitchen: any; actions: Action[]; limits?:any; release?:any; interaction?:Action; use_interaction?:Action; interaction_hint?:string; interaction_focus?:string; interaction_cell?:number[];
-    events: {t:number; message:string; kind?:string}[]; ai: {thinking:boolean; error:string|null}; won:boolean; aborted?:boolean; round_summary?:any; rules?:Record<string,number>; connection?:any; memory?:any; communication?:any };
+    events: {t:number; message:string; kind?:string}[]; ai: {thinking:boolean; error:string|null}; won:boolean; aborted?:boolean; round_summary?:any; rules?:Record<string,number>; connection?:any; memory?:any; communication?:any; hosted?:any };
 type ChefMotion = {body:Node; leftLeg:Node; rightLeg:Node; leftArm:Node; rightArm:Node; knife:Node; facing:string; step:number};
 type PotEffects = {steam:Node; smoke:Node; fire:Node; ready:Node};
 // Tokens from the "ChefJeff 厨房 UI" design system: every colour is sampled from the art
@@ -275,7 +275,7 @@ export class KitchenClient extends Component {
                     const s=this.state,held=s.kitchen.chefs.human.holding;
                     // Facing open floor with something in hand, Space either puts it down (tap) or
                     // aims a throw (hold): decide on release or after AIM_HOLD. Everything else acts now.
-                    if(held&&(!s.interaction||s.interaction.kind==='drop'))this.spaceDownAt=this.clock;
+                    if(held&&(!s.interaction||s.interaction.kind==='drop')&&!s.kitchen.stations[s.interaction_focus||''])this.spaceDownAt=this.clock;
                     else{this.handsBusyUntil=this.clock+.35;this.post('/api/interact',{expected_item:held?.id||null});}
                 }
                 return;
@@ -771,7 +771,7 @@ export class KitchenClient extends Component {
             this.state=next;this.connected=true;this.received=this.clock;this.stateSentAt=sent;
             const frameRate=next.phase==='running'?60:15;
             if(game.frameRate!==frameRate)game.frameRate=frameRate;
-            if(!sys.isNative)window.dispatchEvent(new CustomEvent('kitchen-state',{detail:{game_id:next.game_id,phase:next.phase,connection:next.connection,memory:next.memory,limits:next.limits,release:next.release,communication:next.communication}}));
+            if(!sys.isNative)window.dispatchEvent(new CustomEvent('kitchen-state',{detail:{game_id:next.game_id,phase:next.phase,connection:next.connection,memory:next.memory,limits:next.limits,release:next.release,communication:next.communication,hosted:next.hosted}}));
             if(!this.mounted)this.mountMap();this.processEvents();this.render();this.hideLoading();
             this.audio.onState(next);
         }catch(e){this.hideLoading();game.frameRate=15;this.clearInput();this.connected=false;if(this.jeffThinking)this.jeffThinking.active=false;this.set('event',String((e as Error).message)+'，厨房会自动暂停。');this.cover.active=true;this.set('coverTitle','连接厨房');this.set('coverText','暂时连接不上厨房，请稍后重试。\n连接中断时，游戏会自动暂停。');this.writeLabel(this.buttons.main.label,'重新连接');this.buttons.reset.node.active=false;this.buttons.record.node.active=false;this.labels['welcome-tip'].node.active=true;

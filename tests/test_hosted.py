@@ -6,7 +6,7 @@ from unittest.mock import patch
 from pathlib import Path
 import http.client
 from hosted_server import HostedSession, BrowserRelay, Sessions, make_server, hosted_html, SHELL_REPLACEMENTS, CONTRIBUTION_SLOT
-from kitchen import load_config
+from kitchen import Food, load_config
 
 
 class HostedTests(unittest.TestCase):
@@ -124,6 +124,38 @@ class HostedHTTPTests(unittest.TestCase):
         status,raw=self.request('/')
         self.assertEqual(status,200);self.assertIn(b'/hosted-agent.js',raw)
         self.assertEqual(self.request('/hosted-agent.js')[0],200)
+
+    def test_aimed_throw_crosses_hosted_http_and_keeps_direction_validation(self):
+        _, raw = self.request('/api/session', {})
+        token = json.loads(raw)['session']
+        game = self.server.sessions.get(token)
+        try:
+            with game.lock:
+                game._command('/api/browser-ready', {'connected':True})
+                game._command('/api/start', {})
+                game.k.positions['human'] = (3., 5.)
+                game.k.positions['jeff'] = (10., 2.)
+                game.k.chefs['human'].hand = Food('aimed-food', 'raw', ingredient='tomato')
+                # Freeze automatic ticks while exercising the HTTP boundary.
+                game.stop_event.set()
+            base = {'game_id':game.game_id, 'expected_item':'aimed-food'}
+            for i, direction in enumerate(([0,0], [True,1], [0], [0,10001])):
+                status, _ = self.request('/api/throw', {**base, 'request_id':f'invalid-aim-{i}',
+                                                       'direction':direction}, token)
+                self.assertEqual(status, 400)
+                self.assertEqual(game.k.chefs['human'].hand.id, 'aimed-food')
+            status, raw = self.request('/api/throw', {**base, 'request_id':'valid-aim',
+                                                     'direction':[0,1]}, token)
+            self.assertEqual(status, 200, raw)
+            with game.lock:
+                game.k.advance(1)
+                self.assertIsNone(game.k.chefs['human'].hand)
+                item = game.k.ground['aimed-food']
+                self.assertEqual(game.k.cell(item.location)[0], 3)
+                self.assertGreater(game.k.cell(item.location)[1], 5)
+                game.k.assert_invariants()
+        finally:
+            game.close()
 
 
 if __name__=='__main__':unittest.main()
