@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+import re
 import tempfile
 import time
 import unittest
@@ -99,6 +100,26 @@ class PackageTests(unittest.TestCase):
         root=self.fixture();out,_=package(root);old=out.read_bytes();(root/'cooperation_memory.py').unlink()
         with self.assertRaises(ValueError):package(root)
         self.assertEqual(old,out.read_bytes())
+
+    def test_real_package_keeps_client_dependencies_and_audio_for_creator_rebuild(self):
+        root = Path(__file__).resolve().parents[1]
+        scripts = root / 'cocos-kitchen/assets/scripts'
+        client = scripts / 'KitchenClient.ts'
+        dependencies = re.findall(r"from ['\"]\./([^'\"]+)['\"]", client.read_text())
+        source_files = [client, *(scripts / (name + '.ts') for name in dependencies)]
+        source_files += [file.with_suffix('.ts.meta') for file in source_files]
+        audio = root / 'cocos-kitchen/assets/resources/audio'
+        index = json.loads((audio / 'index.json').read_text())
+        names = set(index['sounds']) | set(index['wash']) | set(index['chop'])
+        source_files += [audio / (name + suffix) for name in names for suffix in ('.mp3', '.mp3.meta')]
+        with tempfile.TemporaryDirectory() as tmp:
+            output, _ = package(root, Path(tmp) / 'demo.zip')
+            with zipfile.ZipFile(output) as archive:
+                for file in source_files:
+                    name = 'chefjeff-web-demo/' + file.relative_to(root).as_posix()
+                    with self.subTest(source=name):
+                        self.assertIn(name, archive.namelist())
+                        self.assertEqual(archive.read(name), file.read_bytes())
     def test_symlink_and_local_paths_rejected(self):
         root=self.fixture();p=root/'cocos-kitchen/build/web/link.js';p.symlink_to(root/'config.json')
         with self.assertRaises(ValueError):package(root)
