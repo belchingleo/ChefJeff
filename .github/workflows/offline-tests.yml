@@ -19,5 +19,6 @@ jobs:
         with:
           node-version: 22
       - run: node tests/hosted_browser_test.cjs
+      - run: node tests/mobile_controls_test.cjs
       - run: python -m unittest discover -s tests
       - run: python scripts/audit_release.py

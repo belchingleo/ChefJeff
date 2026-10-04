@@ -33,13 +33,15 @@ Then open <http://127.0.0.1:8775/> in your browser, enter your model API details
 
 Tested so far: macOS 15.6, Python 3.12, a Chromium-based browser, with TypeSafe Jev (jev-latest) and DeepSeek V4.1-Flash as models. Other systems and models have not been checked one by one yet; reports are welcome.
 
+**Phone trial (experimental):** open an accessible hosted game or a separately configured computer on your network in a WebGL-capable browser, then turn the phone to landscape. The phone is a browser client; Python still runs on the computer or server. Your phone's `localhost` does not point to your computer. The desktop launcher alone does not make the service reachable from other devices; see [hosted deployment](docs/hosted-deployment.md) and [device support](docs/device-support.md).
+
 ---
 
 ## How the game works
 
 ChefJeff plays much like Overcooked: two chefs cook together. The difference is that the other chef is controlled by an AI.
 
-You control one chef with the keyboard: walk, fetch ingredients, chop, cook, plate, serve and wash plates. Jeff is the other chef, driven by a large language model, and every few seconds he decides what to do next. You share one kitchen and the same physical rules (walking speed, throwing distance, collisions), but you see the kitchen and act in it in different ways; see [Jeff and model integration](#jeff-and-model-integration).
+You control one chef with the keyboard or the experimental landscape touch controls: walk, fetch ingredients, chop, cook, plate, serve and wash plates. Jeff is the other chef, driven by a large language model, and every few seconds he decides what to do next. You share one kitchen and the same physical rules (walking speed, throwing distance, collisions), but you see the kitchen and act in it in different ways; see [Jeff and model integration](#jeff-and-model-integration).
 
 A round lasts 180 seconds. Orders arrive at regular intervals, each with its own countdown, and an order that expires costs you money. Reaching the target does not end the round early: the kitchen stays open until closing time, and the level is cleared if net revenue at closing meets the target. So once you've reached it, you and Jeff can keep going for more.
 
@@ -65,7 +67,9 @@ The controls work much as in Overcooked:
 
 After each round, a round record pops up. It shows how many times you and Jeff each fetched ingredients, chopped, cooked, served and washed plates, and each chef's contribution, delay and idle time (see [records and analysis](#records-and-analysis)).
 
-The game has Chinese and English interfaces, with 8-bit style music and sound effects. A keyboard is required for now; phones and touch-only devices are not supported yet. See [device support](docs/device-support.md) and the [current rules](docs/current-rules.md).
+The game has Chinese and English interfaces, with 8-bit style music and sound effects. Desktop keyboard controls remain available. On phones and small touch viewports, experimental landscape touch controls use a left joystick and right Action/Dash buttons: release the joystick to stop, tap Action to interact, or hold it for about 0.3 s with an item to aim. While aiming, the joystick changes direction; release Action to throw, or drag into the cancel area before releasing. Dash uses the same 1.4× speed, 1-second duration and 3-second cooldown as the keyboard. Communication, bookmarks, pause and settings also have touch buttons.
+
+With the touch layout active, turning the device to portrait, hiding the page or losing the connection clears held input and pauses a running round. Return to landscape and choose Resume; the game does not resume itself. Browsers cannot always force landscape orientation. Touch support is experimental: desktop browser emulation does not establish compatibility with iPhone Safari or Android Chrome, which still need real-device validation. See [device support](docs/device-support.md), [interaction guide](docs/interaction-guide.md) and the [current rules](docs/current-rules.md).
 
 ---
 
@@ -126,6 +130,8 @@ To connect your own model, implement two methods, `payload(state, actions)` and 
 
 ```sh
 python3 -m unittest discover -s tests     # offline tests (no paid model calls)
+node tests/hosted_browser_test.cjs        # browser transport and shared input actions (Node.js 22+)
+node tests/mobile_controls_test.cjs       # touch gestures, interruptions and mobile UI
 python3 scripts/audit_release.py          # pre-release check (keys, private files)
 python3 scripts/build_cocos.py web        # rebuild the web client, only needed after changing client code (needs Cocos Creator 3.8.8)
 ```

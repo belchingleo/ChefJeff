@@ -33,10 +33,12 @@ if result.returncode==36 and args.platform=='web':
     shell=(ROOT/'cocos-kitchen/web-shell.html').read_text()
     catalog=(ROOT/'cocos-kitchen/i18n.json').read_text()
     (page.parent/'kitchen-i18n.js').write_text((ROOT/'cocos-kitchen/i18n.js').read_text().replace('__KITCHEN_CATALOG__',catalog))
+    shutil.copyfile(ROOT/'cocos-kitchen/touch-controls.js',page.parent/'touch-controls.js')
     content=content.replace('<title>Cocos Creator | JevKitchen</title>','<title>ChefJeff · 一起出餐</title>')
     # Creator's template targets portrait phones and blocks zoom; this is a landscape game
     # whose text must stay zoomable (WCAG 1.4.4).
-    content=content.replace('width=device-width,user-scalable=no,initial-scale=1,minimum-scale=1,maximum-scale=1,minimal-ui=true','width=device-width,initial-scale=1')
+    content=content.replace('width=device-width,user-scalable=no,initial-scale=1,minimum-scale=1,maximum-scale=1,minimal-ui=true','width=device-width,initial-scale=1,viewport-fit=cover')
+    content=content.replace('content="width=device-width,initial-scale=1"','content="width=device-width,initial-scale=1,viewport-fit=cover"')
     content=content.replace('<meta name="screen-orientation" content="portrait"/>','<meta name="screen-orientation" content="landscape"/>')
     # Pixel pot icon and the subset pixel face (SIL OFL 1.1) ship beside the page.
     shutil.copyfile(ROOT/'cocos-kitchen/favicon.ico',page.parent/'favicon.ico')

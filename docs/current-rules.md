@@ -19,11 +19,13 @@ The Cocos browser game uses the shared rules in `kitchen.py`, `spatial_kitchen.p
 
 The default game clock runs at 0.75× real time. API latency and request limits use real time. Walk diagonals do not increase speed. Sprint accelerates movement, not preparation.
 
-Hold WASD/arrows to move; release to stop. The kitchen is keyboard-only, as in Overcooked; only menus and the communication dock take mouse clicks. Shift while moving dashes. Automatic movement uses the same chef-contact response as manual movement: slide around a partner when there is space, gently push under sustained pressure, and apply a bounded sprint nudge of at most a quarter cell. An AI route that makes no progress for 0.3 s re-plans from where contact left it, around the other chef (the same rule for both chefs), so two walkers cannot lock each other up. Walls and cabinets block movement; feet stop short of a cabinet's front panel. A held direction key that is fully blocked by an edge you could clear by stepping at most 0.3 cells sideways slides you out first, for example out of the spot in front of a board set between counters. Chefs chopping or washing cannot be pushed away. Either chef can also walk straight into the other on purpose ("go partner", the AI's counterpart of walking into Jeff): the walk ends on contact, which pushes, and a dash then gives the same bounded nudge. Ground food does not block walking or repel other food; sprint can nudge loose ingredients by at most a quarter cell.
+Hold WASD/arrows to move; release to stop. Experimental landscape touch controls also provide a left joystick: push to move, release to stop. Shift or the touch Dash button while moving triggers the same sprint; touch input does not change speed, duration or cooldown. Automatic movement uses the same chef-contact response as manual movement: slide around a partner when there is space, gently push under sustained pressure, and apply a bounded sprint nudge of at most a quarter cell. An AI route that makes no progress for 0.3 s re-plans from where contact left it, around the other chef (the same rule for both chefs), so two walkers cannot lock each other up. Walls and cabinets block movement; feet stop short of a cabinet's front panel. A held direction key that is fully blocked by an edge you could clear by stepping at most 0.3 cells sideways slides you out first, for example out of the spot in front of a board set between counters. Chefs chopping or washing cannot be pushed away. Either chef can also walk straight into the other on purpose ("go partner", the AI's counterpart of walking into Jeff): the walk ends on contact, which pushes, and a dash then gives the same bounded nudge. Ground food does not block walking or repel other food; sprint can nudge loose ingredients by at most a quarter cell.
 
 ## Actions and throwing
 
 Controls follow Overcooked, with browser-safe keys: Space acts on what the chef faces; with no station ahead, the nearest station or item beside the chef (never behind) is used. Space does what the target needs (fetch, take, put, cook, plate, lift a pan or pot, chop, wash, extinguish, serve, bin). With a throwable item in hand, releasing a short press executes that interaction; empty-handed actions start on press. Holding Space for about 0.3 s aims a throw, whether facing a station or open floor: the chef stops, an arrow shows the direction, the direction keys turn it (8 directions), and releasing throws — to the partner if they stand that way within range. Facing a station, a short press uses only that station, with a reason when nothing is possible; the held item is never dropped instead. Facing open floor, a short press takes the item in front, then the one at the feet, then the nearest thing beside, otherwise puts the held item down. Authored corner counters are used by facing their side. A direction pressed during a quick pick-up or put-down starts after it (about 0.15 s); for a held item, that action starts when the short Space press is released. Walking still stops chopping and washing, keeping progress. Pickups can swap with raw/chopped ground ingredients; the old item stays on legal floor. Each logical floor tile or counter slot holds one resting item; small visual overlaps do not trigger automatic plating.
+
+The touch Action button follows the same timing: empty-handed actions start on press; holding a throwable item, a short press acts on release and a hold of about 0.3 s aims. The left joystick changes the aim direction; release Action to throw, or drag into the cancel area and release to cancel. After aiming, release the joystick before moving again. The button does not add an interaction or change throwing rules.
 
 Loose raw/chopped ingredients, plates, plated dishes, pans, pots and the extinguisher all fly up to 4 cells. Everything travels at 12 cells/game-second. Walls truncate the route; equipment can be crossed. A throw lands on the floor at the range limit. An empty-handed partner who is walking or standing can catch; a partner chopping, washing or holding something is not interrupted and the item lands beside them. Dropped plates keep their food and dropped pans and pots their contents; both can be picked up again. The rules are identical for the player and the AI.
 
@@ -43,9 +45,9 @@ Take the extinguisher to a burning station, then dispose of burnt contents. Fire
 
 ## Session controls, communication and models
 
-Esc, P or Ⅱ pauses (Esc or P also resumes); ▶ resumes; ■ ends early without a success bonus. Settings and input fields suppress game shortcuts. Hidden/disconnected pages pause. The local page reconnects to its existing kitchen after refresh; the hosted pilot creates a new per-page kitchen. Restart from pause/results; select a level from ready/results.
+Esc, P or Ⅱ pauses (Esc or P also resumes); ▶ resumes; ■ ends early without a success bonus. Settings and input fields suppress game shortcuts. Hidden/disconnected pages pause. With the small-screen touch layout active, devices must be in landscape to start or resume; turning to portrait clears input, cancels pending actions/throws and pauses a running round. Returning to landscape does not resume automatically. Browsers need not support orientation lock. The local page reconnects to its existing kitchen after refresh; the hosted pilot creates a new per-page kitchen. Restart from pause/results; select a level from ready/results.
 
-Enter bookmarks the current round without affecting play or model input. Presses within 5 real seconds merge into an interval. Number keys 1–5 send a fixed cooperation preference; 6 reports a perceived mistake. Messages share a 5-second cooldown and are delivered with the next normal request, without forcing a task interruption. The latest preference lasts for the round. Feedback includes bookmarks and preset messages.
+Enter or the touch Bookmark button bookmarks the current round without affecting play or model input. Presses within 5 real seconds merge into an interval. Number keys 1–5 send a fixed cooperation preference; 6 reports a perceived mistake. The touch Communication button opens the same preset messages, collapsed by default. Messages share a 5-second cooldown and are delivered with the next normal request, without forcing a task interruption. The latest preference lasts for the round. Feedback includes bookmarks and preset messages.
 
 Models receive English structured observations (`en-v3`, plain ASCII; the chefs are named `human` and `jeff`), factual rules (`rules-v4`) and legal actions. The rules describe what the kitchen allows; they do not instruct the agent to cooperate with or help the human. UI language does not change model input. Requests distinguish selection, acceptance and completion; stale replies are rejected, and failures remain visible. The default budget is 200 requests/round (configurable 1–2000); failures count and in-flight requests can still complete. At the limit, current actions continue and the player may pause. See [agent integration](agent-integration.md) and [privacy/costs](privacy-and-costs.md).
 
@@ -78,11 +80,13 @@ Cocos 浏览器版共用 `kitchen.py`、`spatial_kitchen.py`、地图 JSON 和�
 
 默认游戏时钟为现实时间的 0.75 倍，API 延迟及请求限制按现实时间计算。斜走不加速，冲刺仅加速移动。
 
-按住 WASD／方向键移动，松开停止。厨房只用键盘操作（同《胡闹厨房》），只有菜单和沟通面板可以用鼠标点。移动时按 Shift 冲刺。自动与手动移动共用厨师接触处理：有空间时沿搭档边缘滑过，持续前进时温和推挤，冲刺产生最多四分之一格的有限位移。AI 路线若 0.3 秒无进展，会从当前位置绕开对方重新规划（双方同一规则），两位自动行走的厨师不会互相卡死。墙与柜体不可穿过，脚步停在柜门面板之外；按住方向键被挡住时，如果往侧边挪不超过 0.3 格就能绕开（比如夹在柜台之间的案板正前方），会先自动滑出再继续走；正在切菜或洗碗的厨师不可被推离。双方也都可以有意走向并撞上对方（“走到对方厨师当前的位置”，即 AI 版的“走过去撞 Jeff”）：接触即结束行走并产生推挤，冲刺时同样有上述有限位移。地面食物不挡走路，食物之间不相互弹开；冲刺可将散落原料推移最多四分之一格。
+按住 WASD／方向键移动，松开停止；试验版横屏触控也可推动左摇杆移动、松手停止。移动时按 Shift 或触屏「冲刺」按钮，均沿用相同冲刺速度、时长和冷却。自动与手动移动共用厨师接触处理：有空间时沿搭档边缘滑过，持续前进时温和推挤，冲刺产生最多四分之一格的有限位移。AI 路线若 0.3 秒无进展，会从当前位置绕开对方重新规划（双方同一规则），两位自动行走的厨师不会互相卡死。墙与柜体不可穿过，脚步停在柜门面板之外；按住方向键被挡住时，如果往侧边挪不超过 0.3 格就能绕开（比如夹在柜台之间的案板正前方），会先自动滑出再继续走；正在切菜或洗碗的厨师不可被推离。双方也都可以有意走向并撞上对方（“走到对方厨师当前的位置”，即 AI 版的“走过去撞 Jeff”）：接触即结束行走并产生推挤，冲刺时同样有上述有限位移。地面食物不挡走路，食物之间不相互弹开；冲刺可将散落原料推移最多四分之一格。
 
 ## 操作与抛掷
 
 操作方式参照《胡闹厨房》，按键改为浏览器里不冲突的键：空格对角色面前的东西起作用；面前没有工位时，用身边最近的工位或物品（不含身后）。空格做目标需要的事（取料、拿起、放下、下锅、装盘、端锅、切菜、洗碗、灭火、出餐、丢弃）。手持可投掷物品时，短按松开后执行目标交互；空手时按下立即操作。面前是工位或空地都能按住空格约 0.3 秒进入瞄准：角色停下，箭头显示方向，方向键改方向（8 个方向），松开扔出，队友在这个方向的射程内时扔给他。面前是工位时，短按只操作这个工位，做不了会说明原因，不会改成把东西放到地上；面前是空地时，短按先拿面前地上的，再拿脚下的，然后是身边最近的，否则把手里的放下。角落柜台面向它所在的一侧即可操作。拿、放这类短动作（约 0.15 秒）进行中按方向键，会在动作完成后再走；持物时，这个动作从短按空格松开后开始。走开仍会中断切菜和洗碗，进度保留。可与地面生／切好原料换手，旧物品留在合法地面。每个逻辑地面格或柜台槽容纳一件静置物品；小范围视觉重叠不会自动装盘。
+
+触屏「操作」按钮沿用相同时序：空手按下立即交互，手持可投掷物品时短按松开执行交互、长按约 0.3 秒瞄准。左摇杆调整瞄准方向，松开操作按钮投掷，拖入取消区后松开则取消。瞄准结束后先放开摇杆再恢复移动。按钮不新增交互，也不改变投掷规则。
 
 散放的生／切好原料、餐盘、装盘菜、锅和灭火器都可以抛，最远 4 格。速度均为 12 格／游戏秒。墙截断路线，可越过设备，东西落在射程尽头的地上。空手且在走路或站着的队友可接住；正在切菜、洗碗或手里有东西时不打断，东西落在他旁边。掉在地上的盘子保留菜、锅保留内容，都能再捡起。玩家与 AI 规则相同。
 
@@ -102,9 +106,9 @@ Cocos 浏览器版共用 `kitchen.py`、`spatial_kitchen.py`、地图 JSON 和�
 
 ## 对局、沟通与模型
 
-Esc、P 或 Ⅱ 暂停（Esc 或 P 也可继续），▶ 继续，■ 提前结束且无成功奖励。设置及输入框禁用游戏快捷键，页面隐藏／失联会暂停。本地版刷新后连接原厨房，托管版刷新产生新的页面会话。暂停／结算时重开，准备／结算时选关。
+Esc、P 或 Ⅱ 暂停（Esc 或 P 也可继续），▶ 继续，■ 提前结束且无成功奖励。设置及输入框禁用游戏快捷键，页面隐藏／失联会暂停。小尺寸触屏布局启用时，需横屏才能开局或继续；转竖屏会清理输入、取消待执行交互／投掷并暂停正在运行的对局，恢复横屏后不自动继续，网页不要求浏览器支持横屏锁定。本地版刷新后连接原厨房，托管版刷新产生新的页面会话。暂停／结算时重开，准备／结算时选关。
 
-Enter 标记本局片段，不影响玩法或模型输入；间隔五个现实秒内的按键合并为区间。数字 1–5 发送固定协作偏好，6 表示玩家认为出错；共用五秒冷却，下一次正常请求送达，不强行打断任务。最新偏好持续本局，反馈包含标记与预设消息。
+Enter 或触屏「标记」按钮标记本局片段，不影响玩法或模型输入；间隔五个现实秒内的按键合并为区间。数字 1–5 发送固定协作偏好，6 表示玩家认为出错；触屏「沟通」入口展开相同预设消息，默认折叠；共用五秒冷却，下一次正常请求送达，不强行打断任务。最新偏好持续本局，反馈包含标记与预设消息。
 
 模型收到英文结构化观察（`en-v3`，纯 ASCII；两位厨师分别称为 `human` 和 `jeff`）、事实规则（`rules-v4`）与合法动作；规则只说明厨房允许什么，不要求 agent 协作或帮助玩家。界面语言不改变模型输入。请求区分选择、接受与完成，拒绝过期回复并显示失败。默认每局 200 次（可设 1–2000），失败计数，在途请求仍可完成。达到上限后已有动作继续，玩家可暂停。详见 [agent 接入](agent-integration.md)与[隐私／费用](privacy-and-costs.md)。
 

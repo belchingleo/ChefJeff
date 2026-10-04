@@ -5,7 +5,7 @@
 
     <title>ChefJeff · 一起出餐</title>
 
-    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
     <meta name="apple-mobile-web-app-capable" content="yes"/>
     <meta name="mobile-web-app-capable" content="yes"/>
     <meta name="full-screen" content="yes"/>
@@ -327,7 +327,7 @@ function kitchenTabs(dialog){
  <div class="dlg-body">
  <section id="help-keys" role="tabpanel" aria-labelledby="tab-keys">
   <div class="keymap">
-   <span class="keys"><span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span></span><span>按住移动，松开停止；方向键也可以。只用键盘操作厨房。</span>
+   <span class="keys"><span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span></span><span>按住移动，松开停止；方向键也可以。电脑使用键盘，手机使用屏幕摇杆和按钮。</span>
    <span class="keys"><span class="key wide">Shift</span></span><span>冲刺：移动时按 Shift。1.4 倍速 1 秒，之后冷却 3 秒。</span>
    <span class="keys"><span class="key wide">空格</span></span><span>对面前的东西做需要的事：取料、放下、下锅、装盘、切菜、洗碗、灭火、出餐。面前没有可用的，就用身边最近的。手持可投掷物品时，短按松开后操作；空手时按下立即操作。底部会提示将执行的动作。</span>
    <span class="keys"><span class="key wide">按住空格</span></span><span>投掷：手持可投掷物品时，面前是工位或空地都能按住空格约 0.3 秒瞄准，角色停下并出现箭头，方向键改方向，松开扔出，最远 4 格；队友在这个方向上就扔给他。</span>
@@ -379,6 +379,7 @@ function kitchenTabs(dialog){
  window.addEventListener('kitchen-open-help',()=>{showTab(document.getElementById('tab-keys'));if(!help.open)help.showModal()});
  document.getElementById('help-close').onclick=document.getElementById('help-x').onclick=()=>help.close();})();
 </script>
+<script src="touch-controls.js"></script>
 <style>
 /* End-of-round record: generated from the round's summary (round_summary.py), never per level. */
 #kitchen-record-dialog{width:min(560px,calc(100vw - 28px))}
