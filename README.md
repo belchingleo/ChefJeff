@@ -57,8 +57,8 @@ The controls work much as in Overcooked:
 | Key | Action |
 | --- | --- |
 | WASD or arrow keys | Move; press **Shift** while moving to dash |
-| Space | Do whatever the thing in front of you needs: fetch, pick up, put down, put in the pan, plate, serve; it can also chop, wash and put out fires |
-| Hold Space | Holding something and facing open floor: aim a throw. Your chef stops and an arrow appears; turn it with the direction keys and release to throw, up to 4 tiles |
+| Space | Do whatever the thing in front of you needs: fetch, pick up, put down, put in the pan, plate, serve; it can also chop, wash and put out fires. With a throwable item in hand, a tap acts when released; empty-handed actions start on press |
+| Hold Space | Holding a throwable item, hold for about 0.3 s to aim, whether facing a station or open floor. Your chef stops and an arrow appears; turn it with the direction keys and release to throw, up to 4 tiles |
 | 1–6 | Tell Jeff what kind of work you want to do, or point out a mistake |
 | Enter | Bookmark the current moment without pausing or interrupting anything; bookmarks are included in the run export |
 | Esc or P | Pause (use P on iPad keyboards without an Esc key). Settings let you connect a model, switch language, adjust volume and export the run |

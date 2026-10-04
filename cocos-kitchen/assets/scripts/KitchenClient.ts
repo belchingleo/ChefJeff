@@ -60,6 +60,7 @@ export class KitchenClient extends Component {
     // Hold Space to aim a throw (Overcooked-style): after AIM_HOLD seconds the chef stops, an arrow
     // shows the direction, direction keys turn it, and releasing Space throws along it.
     private spaceDownAt:number|null=null;
+    private spaceItemId:string|null=null;
     private aiming:{x:number,y:number}|null=null;
     private aimArrow:Node|null=null;
     // Held-key walking is predicted locally so the chef answers on the same frame, then eased onto server state.
@@ -273,9 +274,9 @@ export class KitchenClient extends Component {
                 e.preventDefault();
                 if(!e.repeat&&!e.ctrlKey&&!e.altKey&&!e.metaKey){
                     const s=this.state,held=s.kitchen.chefs.human.holding;
-                    // Facing open floor with something in hand, Space either puts it down (tap) or
-                    // aims a throw (hold): decide on release or after AIM_HOLD. Everything else acts now.
-                    if(held&&(!s.interaction||s.interaction.kind==='drop')&&!s.kitchen.stations[s.interaction_focus||''])this.spaceDownAt=this.clock;
+                    // With a throwable item, defer interaction until release so a hold can aim
+                    // even at a workstation without first placing, serving or discarding it.
+                    if(held&&s.kitchen.chefs.human.can_throw!==false){this.spaceDownAt=this.clock;this.spaceItemId=held.id;}
                     else{this.handsBusyUntil=this.clock+.35;this.post('/api/interact',{expected_item:held?.id||null});}
                 }
                 return;
@@ -311,12 +312,16 @@ export class KitchenClient extends Component {
     private announce(message:string){if(!sys.isNative&&message)window.dispatchEvent(new CustomEvent('kitchen-announce',{detail:{message}}));}
     private onKeyUp=(e:KeyboardEvent)=>{
         if(e.code==='Space'){
+            const held=this.state?.kitchen.chefs.human.holding;
+            if(this.spaceItemId!==null&&(!this.connected||this.state?.phase!=='running'||held?.id!==this.spaceItemId)){
+                this.endAim();this.refreshMovement();return;
+            }
             if(this.aiming){
                 const d=this.aiming,held=this.state?.kitchen.chefs.human.holding;this.endAim();
                 if(held&&this.state?.phase==='running')this.post('/api/throw',{expected_item:held.id,direction:[d.x,d.y]});
                 this.refreshMovement();
             }else if(this.spaceDownAt!==null){
-                this.spaceDownAt=null;this.handsBusyUntil=this.clock+.35;
+                this.spaceDownAt=null;this.spaceItemId=null;this.handsBusyUntil=this.clock+.35;
                 this.post('/api/interact',{expected_item:this.state?.kitchen.chefs.human.holding?.id||null});
             }
             return;
@@ -330,6 +335,8 @@ export class KitchenClient extends Component {
     }
     /** Space held long enough: stop, and aim along the held direction (or the facing). */
     private startAim(){
+        const human=this.state?.kitchen.chefs.human;
+        if(!this.connected||this.state?.phase!=='running'||!human?.holding||human.holding.id!==this.spaceItemId||human.can_throw===false){this.endAim();return;}
         this.spaceDownAt=null;
         const c=this.state?.kitchen.chefs.human,f=FACING_DIR[c?.facing]||[0,1];
         this.aiming=this.keyDirection()||{x:f[0],y:f[1]};
@@ -337,7 +344,7 @@ export class KitchenClient extends Component {
         this.drawAim();
     }
     private steerAim(){const d=this.keyDirection();if(d&&this.aiming){this.aiming=d;this.drawAim();}}
-    private endAim(){this.aiming=null;this.spaceDownAt=null;if(this.aimArrow?.isValid)this.aimArrow.active=false;}
+    private endAim(){this.aiming=null;this.spaceDownAt=null;this.spaceItemId=null;if(this.aimArrow?.isValid)this.aimArrow.active=false;}
     private drawAim(){
         const chef=this.people['human'];if(!this.aiming||!this.world||!chef)return;
         if(!this.aimArrow?.isValid){this.aimArrow=this.child(this.world,'aim-arrow',10,10);this.aimArrow.addComponent(Graphics);}
@@ -1347,7 +1354,8 @@ export class KitchenClient extends Component {
         {
             const short=(a:Action)=>a.label.split('（')[0],parts:string[]=[];
             if(s.interaction)parts.push('空格 · '+short(s.interaction));
-            if(held&&(!s.interaction||s.interaction.kind==='drop')&&!k.stations[s.interaction_focus||''])parts.push('长按空格 · 瞄准投掷');
+            else if(s.interaction_hint)parts.push(s.interaction_hint);
+            if(held&&k.chefs.human.can_throw!==false)parts.push('长按空格 · 瞄准投掷');
             this.set('interaction',this.aiming?'松开空格投掷 · 方向键改方向':parts.length?parts.join('　'):(s.interaction_hint||'面向工位或物品按空格'));
         }
         // Game results keep the event line; Jeff's decisions and errors use their own status.

@@ -583,6 +583,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           // Hold Space to aim a throw (Overcooked-style): after AIM_HOLD seconds the chef stops, an arrow
           // shows the direction, direction keys turn it, and releasing Space throws along it.
           _this.spaceDownAt = null;
+          _this.spaceItemId = null;
           _this.aiming = null;
           _this.aimArrow = null;
           // Held-key walking is predicted locally so the chef answers on the same frame, then eased onto server state.
@@ -711,9 +712,12 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                 if (!e.repeat && !e.ctrlKey && !e.altKey && !e.metaKey) {
                   var s = _this.state,
                     held = s.kitchen.chefs.human.holding;
-                  // Facing open floor with something in hand, Space either puts it down (tap) or
-                  // aims a throw (hold): decide on release or after AIM_HOLD. Everything else acts now.
-                  if (held && (!s.interaction || s.interaction.kind === 'drop') && !s.kitchen.stations[s.interaction_focus || '']) _this.spaceDownAt = _this.clock;else {
+                  // With a throwable item, defer interaction until release so a hold can aim
+                  // even at a workstation without first placing, serving or discarding it.
+                  if (held && s.kitchen.chefs.human.can_throw !== false) {
+                    _this.spaceDownAt = _this.clock;
+                    _this.spaceItemId = held.id;
+                  } else {
                     _this.handsBusyUntil = _this.clock + .35;
                     _this.post('/api/interact', {
                       expected_item: (held == null ? void 0 : held.id) || null
@@ -755,6 +759,12 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           };
           _this.onKeyUp = function (e) {
             if (e.code === 'Space') {
+              var currentHeld = _this.state && _this.state.kitchen.chefs.human.holding;
+              if (_this.spaceItemId !== null && (!_this.connected || !_this.state || _this.state.phase !== 'running' || !currentHeld || currentHeld.id !== _this.spaceItemId)) {
+                _this.endAim();
+                _this.refreshMovement();
+                return;
+              }
               if (_this.aiming) {
                 var _this$state4, _this$state5;
                 var d = _this.aiming,
@@ -768,6 +778,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               } else if (_this.spaceDownAt !== null) {
                 var _this$state6;
                 _this.spaceDownAt = null;
+                _this.spaceItemId = null;
                 _this.handsBusyUntil = _this.clock + .35;
                 _this.post('/api/interact', {
                   expected_item: ((_this$state6 = _this.state) == null || (_this$state6 = _this$state6.kitchen.chefs.human.holding) == null ? void 0 : _this$state6.id) || null
@@ -1233,6 +1244,11 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
         }
         /** Space held long enough: stop, and aim along the held direction (or the facing). */;
         _proto.startAim = function startAim() {
+          var human = this.state && this.state.kitchen.chefs.human;
+          if (!this.connected || !this.state || this.state.phase !== 'running' || !human || !human.holding || human.holding.id !== this.spaceItemId || human.can_throw === false) {
+            this.endAim();
+            return;
+          }
           var _this$state16;
           this.spaceDownAt = null;
           var c = (_this$state16 = this.state) == null ? void 0 : _this$state16.kitchen.chefs.human,
@@ -1261,6 +1277,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           var _this$aimArrow;
           this.aiming = null;
           this.spaceDownAt = null;
+          this.spaceItemId = null;
           if ((_this$aimArrow = this.aimArrow) != null && _this$aimArrow.isValid) this.aimArrow.active = false;
         };
         _proto.drawAim = function drawAim() {
@@ -3445,7 +3462,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               },
               parts = [];
             if (s.interaction) parts.push('空格 · ' + _short(s.interaction));
-            if (held && (!s.interaction || s.interaction.kind === 'drop') && !k.stations[s.interaction_focus || '']) parts.push('长按空格 · 瞄准投掷');
+            else if (s.interaction_hint) parts.push(s.interaction_hint);
+            if (held && k.chefs.human.can_throw !== false) parts.push('长按空格 · 瞄准投掷');
             this.set('interaction', this.aiming ? '松开空格投掷 · 方向键改方向' : parts.length ? parts.join('　') : s.interaction_hint || '面向工位或物品按空格');
           }
           // Game results keep the event line; Jeff's decisions and errors use their own status.

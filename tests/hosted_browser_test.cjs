@@ -87,17 +87,48 @@ async function checkClientInteractions(fromSource){
  gameState.phase='ended';gameState.hosted.contribution_enabled=false;await client.poll();
  assert.equal(h.elements['contribution-save'].disabled,true,'disabled storage must keep contribution disabled');
 
- const posts=[];client.post=(path,body)=>{posts.push({path,body});};client.clock=5;client.state.phase='running';
- const press=()=>client.onKey({key:' ',code:'Space',preventDefault:()=>{}});
- press();assert.equal(client.spaceDownAt,null,'a blocked station must not start aim');
- assert.equal(posts.length,1);assert.equal(posts[0].path,'/api/interact');
- assert.equal(posts[0].body.expected_item,'held'); // backend returns the station-specific reason
- client.state.interaction_focus='floor_5_6';posts.length=0;
- press();assert.equal(client.spaceDownAt,5,'open floor may start aim');assert.equal(posts.length,0);
- client.spaceDownAt=null;client.state.interaction={kind:'drop'};
- press();assert.equal(client.spaceDownAt,5,'a tap/hold drop target may start aim');
- client.spaceDownAt=null;client.state.interaction_focus='counter14';client.state.interaction={kind:'put_counter'};
- press();assert.equal(client.spaceDownAt,null,'legal workstation actions remain immediate');
+ const posts=[];client.post=(path,body)=>{posts.push({path,body});};client.state.phase='running';
+ const human=client.state.kitchen.chefs.human;
+ const press=(extra={})=>client.onKey({key:' ',code:'Space',preventDefault:()=>{},...extra});
+ const release=()=>client.onKeyUp({key:' ',code:'Space'});
+ const reset=()=>{client.clearInput();posts.length=0;client.clock=5;human.holding={id:'held'};human.can_throw=true;human.facing='up';};
+ // A hold must not first consume the item through a legal station action. A tap
+ // still sends interact once, including blocked targets whose reason comes from the server.
+ for(const [focus,kind] of [['counter14',null],['counter14','put_counter'],['serve','serve'],
+   ['bin','discard'],['burning_stove','stop'],['floor_5_6',null],['floor_5_6','drop'],['floor_5_6','swap']]){
+  reset();client.state.interaction_focus=focus;client.state.interaction=kind?{kind}:null;
+  press();assert.equal(client.spaceDownAt,5);assert.equal(posts.length,0,`keydown must defer ${kind||'blocked'} interaction`);
+  client.clock+=.1;press({repeat:true});assert.equal(client.spaceDownAt,5,'repeat must not restart the hold');
+  release();release();assert.equal(posts.length,1);assert.equal(posts[0].path,'/api/interact');
+  assert.equal(posts[0].body.expected_item,'held');
+
+  reset();press();client.clock+=.31;client.startAim();
+  assert.deepEqual({...client.aiming},{x:0,y:-1},`holding Space can aim at ${focus}`);
+  client.onKey({key:'d',code:'KeyD',preventDefault:()=>{}});
+  client.onKeyUp({key:'d',code:'KeyD'});press({repeat:true});
+  assert.equal(posts.length,0,'aiming must not interact with the workstation');
+  release();release();assert.equal(posts.length,1);assert.equal(posts[0].path,'/api/throw');
+  assert.equal(posts[0].body.expected_item,'held');assert.deepEqual([...posts[0].body.direction],[1,0]);
+ }
+ // Empty hands and rulesets that prohibit throwing keep their immediate interaction.
+ for(const hand of [null,{id:'held'}]){
+  reset();human.holding=hand;human.can_throw=false;
+  press();release();assert.equal(client.spaceDownAt,null);assert.equal(posts.length,1);
+  assert.equal(posts[0].path,'/api/interact');assert.equal(posts[0].body.expected_item,hand?.id||null);
+ }
+ // Never interact with or throw a replacement item acquired while Space was held.
+ for(const alreadyAiming of [false,true]){
+  reset();press();if(alreadyAiming)client.startAim();human.holding={id:'replacement'};
+  release();assert.equal(posts.length,0);assert.equal(client.aiming,null);
+ }
+ reset();press();human.holding=null;client.startAim();release();
+ assert.equal(posts.length,0);assert.equal(client.aiming,null);
+ reset();press();client.connected=false;release();client.connected=true;
+ assert.equal(posts.length,0,'disconnect cancels the pending action');
+ reset();press();client.onKey({key:'Escape',preventDefault:()=>{}});release();
+ assert.equal(posts.length,1);assert.equal(posts[0].path,'/api/pause','pausing cancels the pending action');
+ reset();press();client.startAim();client.onBlur();release();
+ assert.equal(posts.length,0,'losing focus cancels aiming');
 }
 const cfg={provider:'deepseek',model:'test-model',api_key:key,remember:false};
 (async()=>{
@@ -117,5 +148,5 @@ const cfg={provider:'deepseek',model:'test-model',api_key:key,remember:false};
  if(require('node:module').stripTypeScriptTypes)await checkClientInteractions(true);
  else console.log('TypeScript source execution requires Node 22.13+; included runtime checked.');
  console.log('Browser transport: memory/remember/clear, reload, CORS failure, origin guard and no-key-to-server checks passed.');
- console.log('Client interactions: blocked station/open-floor Space and hosted contribution state passed.');
+ console.log('Client interactions: workstation/floor tap and hold, item changes, cancellation and hosted contribution state passed.');
 })().catch(e=>{console.error(e);process.exitCode=1;});
