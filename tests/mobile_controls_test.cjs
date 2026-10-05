@@ -132,16 +132,15 @@ function check(path){
  assert(h.calls.some(c=>c[0]==='move'&&(c[1]!==0||c[2]!==0)),'zone press drags the stick');
  h.fire('touch-joystick','pointerup',{pointerId:4});
  assert.equal(joy.dataset.floating,'false','released stick returns to its corner');assert.equal(joy.style.left,'');
- // Hold-to-aim: the charge ring fills while an item is held; the needle shows any aim angle; haptics tick.
+ // Plain buttons: one word whatever the context (the toolbar names the action); "投掷" while aiming; haptics tick.
+ assert.equal(h.elements.get('touch-action').textContent,'操作','no contextual text on the button');
+ assert.equal(h.elements.get('touch-aim'),undefined,'no direction needle in the stick');
  h.clear();h.fire('touch-action','pointerdown',{pointerId:5});
- assert.equal(h.elements.get('touch-action').dataset.charging,'true','holding an item charges the aim ring');
  h.publish({aiming:{x:Math.cos(1),y:Math.sin(1)}});
- assert.equal(joy.dataset.aiming,'true');
- assert.equal(h.elements.get('touch-aim').style.transform,'rotate(57.3deg)','needle follows the exact angle, not eight steps');
+ assert.equal(joy.dataset.aiming,'true');assert.equal(h.elements.get('touch-action').textContent,'投掷');
  assert(h.calls.some(c=>c[0]==='vibrate'),'aim start ticks');
  h.clear();h.fire('touch-action','pointerup',{pointerId:5});
  assert(h.calls.some(c=>c[0]==='release')&&h.calls.some(c=>c[0]==='vibrate'),'release throws with a tick');
- assert.equal(h.elements.get('touch-action').dataset.charging,'false');
  h.publish({aiming:false});
  // The hand/hint line sits in the toolbar, not over the kitchen.
  assert.equal(h.elements.get('touch-hint').parentElement.className.includes('touch-toolbar'),true,'hint lives in the toolbar');

@@ -514,6 +514,7 @@
     "移动": "Move",
     "拖到这里取消": "Drag here to cancel",
     "松开投掷": "Release to throw",
+    "投掷": "Throw",
     "长按投掷": "Hold to throw",
     "松开操作": "Release to interact",
     "标记": "Bookmark",

@@ -45,33 +45,26 @@
       .touch-toolbar .touch-hint #touch-status{flex:0 1 auto;min-width:0;max-height:none;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}
       #touch-zone{position:absolute;left:0;bottom:0;width:42%;height:58%;pointer-events:auto;touch-action:none;background:transparent}
       #touch-joystick{z-index:1}#touch-joystick[data-floating=true]{bottom:auto;transition:none}
-      #touch-aim{position:absolute;left:50%;top:50%;width:46%;height:4px;margin-top:-2px;transform-origin:0 50%;background:#2a5a9ecc;border-radius:2px;pointer-events:none;opacity:0}
-      #touch-aim::after{content:'';position:absolute;right:-6px;top:-4px;border-left:8px solid #2a5a9ecc;border-top:6px solid transparent;border-bottom:6px solid transparent}
-      #touch-joystick[data-aiming=true] #touch-aim{opacity:1}
       .touch-buttons{flex-direction:column;align-items:center;gap:14px}
       #touch-action{position:relative;overflow:visible}
-      #touch-action::after{content:'';position:absolute;inset:-6px;border-radius:50%;pointer-events:none;opacity:0;background:conic-gradient(#2a5a9ecc var(--charge,0%),transparent 0);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px))}
-      #touch-action[data-charging=true]::after{opacity:1;animation:touch-charge .3s linear forwards}
-      @property --charge{syntax:'<percentage>';inherits:false;initial-value:0%}
-      @keyframes touch-charge{from{--charge:0%}to{--charge:100%}}
       .touch-order.urgent{animation:touch-urgent 1s steps(2,jump-none) infinite}
       @keyframes touch-urgent{50%{background:#f6d9c8}}
-      @media(prefers-reduced-motion:reduce){.touch-order.urgent{animation:none}#touch-action[data-charging=true]::after{animation:none;--charge:100%}}
+      @media(prefers-reduced-motion:reduce){.touch-order.urgent{animation:none}}
       .touch-menu button,.touch-menu-actions button,body.kitchen-touch-mode dialog.panel button{min-height:44px}
       @media(max-width:700px){.touch-toolbar .touch-hint{font-size:11px;gap:5px}.touch-buttons{gap:10px}}
-      /* Translucent mobile-game controls: a dark see-through fill with a white outline (readable on light and
-         dark ground), no solid fill or hard shadow; white icons and labels. Press darkens; aiming tints denim. */
-      #touch-joystick{width:124px;height:124px;border:2px solid #ffffffbf;background:radial-gradient(circle,#2b1a121f 0 60%,#2b1a1238 100%);box-shadow:0 0 0 1px #2b1a1240,inset 0 0 0 1px #2b1a1226}
-      #touch-joystick::before,#touch-joystick::after{opacity:0}
-      #touch-stick{width:54px;height:54px;margin:-27px;border:2px solid #ffffffe6;background:#2b1a1252;box-shadow:0 0 0 1px #2b1a1259;font-size:0;color:transparent;text-shadow:none}
-      #touch-joystick[data-aiming=true] #touch-stick{background:#2a5a9e66;border-color:#e6f1ffe6}
+      /* Plain translucent controls, as in most mobile games: a stick ring with a knob, round buttons with a
+         one-word label. Dark see-through fill under a white outline reads on light and dark ground. */
+      #touch-joystick{width:124px;height:124px;border:2px solid #ffffffbf;background:#2b1a1229;box-shadow:0 0 0 1px #2b1a1240}
+      #touch-joystick::before,#touch-joystick::after{display:none}
+      #touch-stick{width:54px;height:54px;margin:-27px;border:2px solid #ffffffe6;background:#2b1a1252;box-shadow:none;font-size:0;color:transparent;text-shadow:none}
+      #touch-joystick[data-aiming=true] #touch-stick{background:#2a5a9e80}
       #touch-joystick[aria-disabled=true]{opacity:.45}
-      .touch-round{border:2px solid #ffffffd9;box-shadow:0 0 0 1px #2b1a1259;color:#fff;text-shadow:0 0 2px #2b1a12,0 1px 2px #2b1a12;font-size:11px;font-weight:750;line-height:1.1;justify-items:center;background-repeat:no-repeat;transition:background-color .06s,transform .06s}
-      #touch-action{width:80px;height:80px;padding:44px 7px 0;align-content:start;overflow:hidden;line-height:12px;font-size:10px;word-break:keep-all;overflow-wrap:anywhere;background-color:#2b1a1247;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ffffff' fill-opacity='.92' stroke='%232b1a12' stroke-opacity='.75' stroke-width='1.3' stroke-linejoin='round' d='M7 11V5.5a1.5 1.5 0 0 1 3 0V10V3.8a1.5 1.5 0 0 1 3 0V10V4.8a1.5 1.5 0 0 1 3 0V11V7.5a1.5 1.5 0 0 1 3 0V15c0 3.5-2.6 6-6 6h-1.2c-2.2 0-3.6-.9-4.9-2.6L3.7 14a1.5 1.5 0 0 1 2.3-1.9L7 13.2Z'/%3E%3C/svg%3E");background-size:30px 30px;background-repeat:no-repeat;background-position:center 13px}
-      #touch-action[data-pressed=true]{background-color:#2b1a1270;transform:scale(.95)}
-      #touch-action[data-aiming=true]{background-color:#2a5a9e59;border-color:#e6f1ffe6;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ffffff' fill-opacity='.92' stroke='%232b1a12' stroke-opacity='.75' stroke-width='1.3' stroke-linejoin='round' d='M4 13h10v4l7-5-7-5v4H4Z'/%3E%3C/svg%3E")}
-      #touch-dash{width:58px;height:58px;padding:0 4px 7px;align-content:end;font-size:10px;background-color:#2b1a1240;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%232b1a12' stroke-opacity='.55' stroke-width='4.2' stroke-linecap='square' d='M5 6l6 6-6 6M12 6l6 6-6 6'/%3E%3Cpath fill='none' stroke='%23ffffff' stroke-width='2.4' stroke-linecap='square' d='M5 6l6 6-6 6M12 6l6 6-6 6'/%3E%3C/svg%3E");background-size:24px 24px;background-repeat:no-repeat;background-position:center 9px}
-      #touch-dash:active:not(:disabled){background-color:#2b1a1270;transform:scale(.95)}
+      .touch-round{border:2px solid #ffffffd9;box-shadow:0 0 0 1px #2b1a1259;color:#fff;text-shadow:0 1px 2px #2b1a12;font-weight:750;place-items:center;background-image:none;transition:background-color .06s,transform .06s}
+      #touch-action{width:80px;height:80px;padding:0;font-size:16px;background-color:#2b1a1247}
+      #touch-action[data-pressed=true]{background-color:#2b1a1275;transform:scale(.95)}
+      #touch-action[data-aiming=true]{background-color:#2a5a9e80}
+      #touch-dash{width:58px;height:58px;padding:0;font-size:13px;background-color:#2b1a1240}
+      #touch-dash:active:not(:disabled){background-color:#2b1a1275;transform:scale(.95)}
       .touch-round:disabled{opacity:.45;color:#fff}
       #touch-dash[data-cooling=true]{opacity:1}
     `;
@@ -84,7 +77,7 @@
       <header class="touch-toolbar"><strong id="touch-clock" class="touch-clock"></strong><span id="touch-money" class="touch-money"></span><span id="touch-served"></span><div id="touch-hint" class="touch-hint touch-spacer"><span id="touch-hand"></span><span id="touch-status" role="status" aria-live="polite"></span></div><button id="touch-pause" class="btn" type="button"></button><button id="touch-communication" class="btn" type="button" aria-expanded="false" aria-controls="kitchen-communication"></button><button id="touch-bookmark" class="btn" type="button"></button><button id="touch-menu-toggle" class="btn" type="button" aria-expanded="false" aria-controls="touch-menu"></button></header>
       <div id="touch-orders" class="touch-orders" role="region" aria-label="订单" tabindex="0"></div>
       <div id="touch-zone" aria-hidden="true"></div>
-      <div id="touch-joystick" role="group" aria-label="移动" aria-disabled="true"><div id="touch-aim" aria-hidden="true"></div><div id="touch-stick"></div></div>
+      <div id="touch-joystick" role="group" aria-label="移动" aria-disabled="true"><div id="touch-stick"></div></div>
       <div class="touch-buttons"><button id="touch-dash" class="touch-round" type="button"></button><button id="touch-action" class="touch-round" type="button"></button></div>
       <div id="touch-cancel" hidden></div>
       <div id="touch-ai"></div>
@@ -122,7 +115,7 @@
       joyPointer = actionPointer = null;
       uncapture(joystick, joy); uncapture(action, press);
       stick.style.transform = 'translate(0px,0px)';
-      action.dataset.pressed = 'false'; action.dataset.charging = 'false';
+      action.dataset.pressed = 'false';
       if (joystick.dataset.floating === 'true') { joystick.dataset.floating = 'false'; joystick.style.left = joystick.style.top = ''; }
       cancelSelected = false; el('touch-cancel').dataset.selected = 'false';
       if (joy !== null) controls?.move(0, 0);
@@ -203,12 +196,10 @@
       dash.style.setProperty('--cooldown', Math.max(0, Math.min(100, (sprint.cooldown_remaining || 0) / 3 * 100)) + '%');
       text('touch-dash', cooling ? Math.ceil(sprint.cooldown_remaining) + 's' : '冲刺');
       el('touch-cancel').hidden = !playing || actionPointer === null || !(state.holding && state.canThrow);
-      text('touch-action', aiming ? '松开投掷' : state.interaction || '操作');
+      // One word, like other mobile games; the toolbar line names the exact action.
+      text('touch-action', aiming ? '投掷' : '操作');
       text('touch-stick', aiming ? '瞄准' : '移动');
-      // The needle shows the exact aim angle (360 degrees), the same direction the throw uses.
       joystick.dataset.aiming = String(aiming); action.dataset.aiming = String(aiming);
-      if (aiming && Number.isFinite(state.aiming.x) && Number.isFinite(state.aiming.y))
-        el('touch-aim').style.transform = 'rotate(' + (Math.atan2(state.aiming.y, state.aiming.x) * 180 / Math.PI).toFixed(1) + 'deg)';
       if (aiming && !wasAiming) buzz(12);
       wasAiming = aiming;
       text('touch-hand', state.handLabel || '');
@@ -349,8 +340,6 @@
     action.addEventListener('pointerdown', event => {
       if (event.button > 0 || actionPointer !== null || action.disabled || !canPlay()) return;
       event.preventDefault(); actionPointer = event.pointerId; action.dataset.pressed = 'true'; capture(action, actionPointer);
-      // Holding an item: the ring fills over the same 0.3 s after which the chef starts aiming.
-      action.dataset.charging = String(!!(state.holding && state.canThrow));
       cancelSelected = false; controls.press(); render();
     });
     action.addEventListener('pointermove', event => {
@@ -361,11 +350,11 @@
     });
     action.addEventListener('pointerup', event => {
       if (event.pointerId !== actionPointer) return;
-      event.preventDefault(); const id = actionPointer; actionPointer = null; uncapture(action, id); action.dataset.pressed = 'false'; action.dataset.charging = 'false';
+      event.preventDefault(); const id = actionPointer; actionPointer = null; uncapture(action, id); action.dataset.pressed = 'false';
       if (cancelSelected || !canPlay()) controls?.cancel(); else { if (state.aiming) buzz(20); controls?.release(); }
       cancelSelected = false; render();
     });
-    const cancelAction = event => { if (event.pointerId !== actionPointer) return; event.preventDefault(); const id = actionPointer; actionPointer = null; uncapture(action, id); action.dataset.pressed = 'false'; action.dataset.charging = 'false'; cancelSelected = false; controls?.cancel(); render(); };
+    const cancelAction = event => { if (event.pointerId !== actionPointer) return; event.preventDefault(); const id = actionPointer; actionPointer = null; uncapture(action, id); action.dataset.pressed = 'false'; cancelSelected = false; controls?.cancel(); render(); };
     action.addEventListener('pointercancel', cancelAction); action.addEventListener('lostpointercapture', cancelAction);
     dash.addEventListener('pointerdown', event => { if (event.button > 0 || dash.disabled || !canPlay()) return; event.preventDefault(); controls?.dash(); });
     for (const area of [joystick, action, dash]) area.addEventListener('contextmenu', event => event.preventDefault());
