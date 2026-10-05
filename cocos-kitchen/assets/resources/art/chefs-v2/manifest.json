@@ -52,7 +52,7 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
         12,
@@ -115,7 +115,7 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
         12,
@@ -178,7 +178,7 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
         12,
@@ -241,7 +241,7 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
         12,
@@ -304,7 +304,7 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
         12,
@@ -367,7 +367,7 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
         12,
@@ -430,7 +430,7 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
         12,
@@ -493,7 +493,7 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
         12,
@@ -556,7 +556,7 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
         12,
@@ -619,14 +619,14 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
         20,
-        48
+        50
       ],
       "grip_display": [
         20,
-        48
+        50
       ],
       "shoulder": [
         21,
@@ -701,14 +701,14 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
         20,
-        48
+        50
       ],
       "grip_display": [
         20,
-        48
+        50
       ],
       "shoulder": [
         21,
@@ -784,14 +784,14 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
         20,
-        48
+        50
       ],
       "grip_display": [
         20,
-        48
+        50
       ],
       "shoulder": [
         21,
@@ -867,14 +867,14 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
         20,
-        48
+        50
       ],
       "grip_display": [
         20,
-        48
+        50
       ],
       "shoulder": [
         21,
@@ -949,14 +949,14 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
         20,
-        48
+        50
       ],
       "grip_display": [
         20,
-        48
+        50
       ],
       "shoulder": [
         21,
@@ -1032,14 +1032,14 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        30,
-        63
+        28,
+        62
       ],
       "grip_display": [
-        30,
-        63
+        28,
+        62
       ],
       "shoulder": [
         21,
@@ -1111,14 +1111,14 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        30,
-        63
+        28,
+        62
       ],
       "grip_display": [
-        30,
-        63
+        28,
+        62
       ],
       "shoulder": [
         21,
@@ -1191,14 +1191,14 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        30,
-        63
+        28,
+        62
       ],
       "grip_display": [
-        30,
-        63
+        28,
+        62
       ],
       "shoulder": [
         21,
@@ -1271,14 +1271,14 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        30,
-        63
+        28,
+        62
       ],
       "grip_display": [
-        30,
-        63
+        28,
+        62
       ],
       "shoulder": [
         21,
@@ -1350,14 +1350,14 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        30,
-        63
+        28,
+        62
       ],
       "grip_display": [
-        30,
-        63
+        28,
+        62
       ],
       "shoulder": [
         21,
@@ -1430,14 +1430,14 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
         24,
-        67
+        66
       ],
       "grip_display": [
         24,
-        67
+        66
       ],
       "shoulder": [
         21,
@@ -1509,14 +1509,14 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
         24,
-        67
+        66
       ],
       "grip_display": [
         24,
-        67
+        66
       ],
       "shoulder": [
         21,
@@ -1589,14 +1589,14 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
         24,
-        67
+        66
       ],
       "grip_display": [
         24,
-        67
+        66
       ],
       "shoulder": [
         21,
@@ -1669,14 +1669,14 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
         24,
-        67
+        66
       ],
       "grip_display": [
         24,
-        67
+        66
       ],
       "shoulder": [
         21,
@@ -1748,14 +1748,14 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
         24,
-        67
+        66
       ],
       "grip_display": [
         24,
-        67
+        66
       ],
       "shoulder": [
         21,
@@ -1828,13 +1828,13 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        12,
+        13,
         55
       ],
       "grip_display": [
-        12,
+        13,
         55
       ],
       "shoulder": [
@@ -1850,7 +1850,7 @@
       ],
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        7,
+        8,
         12,
         55,
         83
@@ -1910,13 +1910,13 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        12,
+        13,
         55
       ],
       "grip_display": [
-        12,
+        13,
         55
       ],
       "shoulder": [
@@ -1932,7 +1932,7 @@
       ],
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        7,
+        8,
         12,
         55,
         83
@@ -1993,13 +1993,13 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        12,
+        13,
         55
       ],
       "grip_display": [
-        12,
+        13,
         55
       ],
       "shoulder": [
@@ -2015,7 +2015,7 @@
       ],
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        7,
+        8,
         12,
         55,
         83
@@ -2076,13 +2076,13 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        12,
+        13,
         55
       ],
       "grip_display": [
-        12,
+        13,
         55
       ],
       "shoulder": [
@@ -2098,7 +2098,7 @@
       ],
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        7,
+        8,
         12,
         55,
         83
@@ -2158,13 +2158,13 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        12,
+        13,
         55
       ],
       "grip_display": [
-        12,
+        13,
         55
       ],
       "shoulder": [
@@ -2180,7 +2180,7 @@
       ],
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        7,
+        8,
         12,
         55,
         83
@@ -2241,12 +2241,12 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        13,
+        14,
         11,
-        59,
+        58,
         83
       ],
       "rect": [
@@ -2304,7 +2304,7 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
         15,
@@ -2367,7 +2367,7 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
         15,
@@ -2430,12 +2430,12 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        13,
+        14,
         11,
-        59,
+        58,
         83
       ],
       "rect": [
@@ -2493,12 +2493,12 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        13,
+        14,
         11,
-        59,
+        58,
         83
       ],
       "rect": [
@@ -2556,12 +2556,12 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        12,
+        13,
         11,
-        60,
+        59,
         83
       ],
       "rect": [
@@ -2619,12 +2619,12 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        12,
+        13,
         11,
-        60,
+        59,
         83
       ],
       "rect": [
@@ -2682,12 +2682,12 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        13,
+        14,
         11,
-        59,
+        58,
         83
       ],
       "rect": [
@@ -2745,12 +2745,12 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        13,
+        14,
         11,
-        59,
+        58,
         83
       ],
       "rect": [
@@ -2808,14 +2808,14 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
         52,
-        48
+        50
       ],
       "grip_display": [
         52,
-        48
+        50
       ],
       "shoulder": [
         51,
@@ -2830,7 +2830,7 @@
       ],
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        13,
+        14,
         11,
         57,
         83
@@ -2890,14 +2890,14 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
         52,
-        48
+        50
       ],
       "grip_display": [
         52,
-        48
+        50
       ],
       "shoulder": [
         51,
@@ -2912,7 +2912,7 @@
       ],
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        13,
+        14,
         11,
         57,
         83
@@ -2973,14 +2973,14 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
         52,
-        48
+        50
       ],
       "grip_display": [
         52,
-        48
+        50
       ],
       "shoulder": [
         51,
@@ -2995,7 +2995,7 @@
       ],
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        13,
+        14,
         11,
         57,
         83
@@ -3056,14 +3056,14 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
         52,
-        48
+        50
       ],
       "grip_display": [
         52,
-        48
+        50
       ],
       "shoulder": [
         51,
@@ -3078,7 +3078,7 @@
       ],
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        13,
+        14,
         11,
         57,
         83
@@ -3138,14 +3138,14 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
         52,
-        48
+        50
       ],
       "grip_display": [
         52,
-        48
+        50
       ],
       "shoulder": [
         51,
@@ -3160,7 +3160,7 @@
       ],
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        13,
+        14,
         11,
         57,
         83
@@ -3221,11 +3221,11 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "knife_hidden": true,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        13,
+        14,
         11,
         56,
         83
@@ -3285,11 +3285,11 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "knife_hidden": true,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        13,
+        14,
         11,
         56,
         83
@@ -3350,11 +3350,11 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "knife_hidden": true,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        13,
+        14,
         11,
         56,
         83
@@ -3415,11 +3415,11 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "knife_hidden": true,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        13,
+        14,
         11,
         56,
         83
@@ -3479,11 +3479,11 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "knife_hidden": true,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        13,
+        14,
         11,
         56,
         83
@@ -3543,11 +3543,11 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "knife_hidden": true,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        13,
+        14,
         11,
         56,
         83
@@ -3608,11 +3608,11 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "knife_hidden": true,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        13,
+        14,
         11,
         56,
         83
@@ -3673,11 +3673,11 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "knife_hidden": true,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        13,
+        14,
         11,
         56,
         83
@@ -3737,13 +3737,13 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        60,
+        59,
         55
       ],
       "grip_display": [
-        60,
+        59,
         55
       ],
       "shoulder": [
@@ -3759,9 +3759,9 @@
       ],
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        13,
+        14,
         11,
-        65,
+        64,
         83
       ],
       "rect": [
@@ -3819,13 +3819,13 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        60,
+        59,
         55
       ],
       "grip_display": [
-        60,
+        59,
         55
       ],
       "shoulder": [
@@ -3841,9 +3841,9 @@
       ],
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        13,
+        14,
         11,
-        65,
+        64,
         83
       ],
       "part": "upper",
@@ -3902,13 +3902,13 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        60,
+        59,
         55
       ],
       "grip_display": [
-        60,
+        59,
         55
       ],
       "shoulder": [
@@ -3924,9 +3924,9 @@
       ],
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        13,
+        14,
         11,
-        65,
+        64,
         83
       ],
       "part": "lower",
@@ -3985,13 +3985,13 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        60,
+        59,
         55
       ],
       "grip_display": [
-        60,
+        59,
         55
       ],
       "shoulder": [
@@ -4007,9 +4007,9 @@
       ],
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        13,
+        14,
         11,
-        65,
+        64,
         83
       ],
       "rect": [
@@ -4067,13 +4067,13 @@
           58
         ]
       },
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        60,
+        59,
         55
       ],
       "grip_display": [
-        60,
+        59,
         55
       ],
       "shoulder": [
@@ -4089,9 +4089,9 @@
       ],
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        13,
+        14,
         11,
-        65,
+        64,
         83
       ],
       "overlay": "fist over the knife handle",
@@ -4140,7 +4140,7 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
         13,
@@ -4193,7 +4193,7 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
         13,
@@ -4246,7 +4246,7 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
         13,
@@ -4299,7 +4299,7 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
         13,
@@ -4352,7 +4352,7 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
         13,
@@ -4405,7 +4405,7 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
         13,
@@ -4458,7 +4458,7 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
         13,
@@ -4511,7 +4511,7 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
         13,
@@ -4564,7 +4564,7 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
         13,
@@ -4617,14 +4617,14 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
         50,
-        49
+        50
       ],
       "grip_display": [
         50,
-        49
+        50
       ],
       "shoulder": [
         47,
@@ -4689,14 +4689,14 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
         50,
-        49
+        50
       ],
       "grip_display": [
         50,
-        49
+        50
       ],
       "shoulder": [
         47,
@@ -4762,14 +4762,14 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
         50,
-        49
+        50
       ],
       "grip_display": [
         50,
-        49
+        50
       ],
       "shoulder": [
         47,
@@ -4835,14 +4835,14 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
         50,
-        49
+        50
       ],
       "grip_display": [
         50,
-        49
+        50
       ],
       "shoulder": [
         47,
@@ -4907,14 +4907,14 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
         50,
-        49
+        50
       ],
       "grip_display": [
         50,
-        49
+        50
       ],
       "shoulder": [
         47,
@@ -4980,13 +4980,13 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        57,
+        55,
         57
       ],
       "grip_display": [
-        57,
+        55,
         57
       ],
       "shoulder": [
@@ -5004,7 +5004,7 @@
       "alpha_bbox": [
         13,
         10,
-        62,
+        60,
         83
       ],
       "rect": [
@@ -5052,13 +5052,13 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        57,
+        55,
         57
       ],
       "grip_display": [
-        57,
+        55,
         57
       ],
       "shoulder": [
@@ -5076,7 +5076,7 @@
       "alpha_bbox": [
         13,
         10,
-        62,
+        60,
         83
       ],
       "part": "upper",
@@ -5125,13 +5125,13 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        57,
+        55,
         57
       ],
       "grip_display": [
-        57,
+        55,
         57
       ],
       "shoulder": [
@@ -5149,7 +5149,7 @@
       "alpha_bbox": [
         13,
         10,
-        62,
+        60,
         83
       ],
       "part": "lower",
@@ -5198,13 +5198,13 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        57,
+        55,
         57
       ],
       "grip_display": [
-        57,
+        55,
         57
       ],
       "shoulder": [
@@ -5222,7 +5222,7 @@
       "alpha_bbox": [
         13,
         10,
-        62,
+        60,
         83
       ],
       "rect": [
@@ -5270,13 +5270,13 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        57,
+        55,
         57
       ],
       "grip_display": [
-        57,
+        55,
         57
       ],
       "shoulder": [
@@ -5294,7 +5294,7 @@
       "alpha_bbox": [
         13,
         10,
-        62,
+        60,
         83
       ],
       "overlay": "fist over the knife handle",
@@ -5343,13 +5343,13 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        57,
+        55,
         59
       ],
       "grip_display": [
-        57,
+        55,
         59
       ],
       "shoulder": [
@@ -5367,7 +5367,7 @@
       "alpha_bbox": [
         13,
         10,
-        62,
+        60,
         83
       ],
       "rect": [
@@ -5415,13 +5415,13 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        57,
+        55,
         59
       ],
       "grip_display": [
-        57,
+        55,
         59
       ],
       "shoulder": [
@@ -5439,7 +5439,7 @@
       "alpha_bbox": [
         13,
         10,
-        62,
+        60,
         83
       ],
       "part": "upper",
@@ -5488,13 +5488,13 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        57,
+        55,
         59
       ],
       "grip_display": [
-        57,
+        55,
         59
       ],
       "shoulder": [
@@ -5512,7 +5512,7 @@
       "alpha_bbox": [
         13,
         10,
-        62,
+        60,
         83
       ],
       "part": "lower",
@@ -5561,13 +5561,13 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        57,
+        55,
         59
       ],
       "grip_display": [
-        57,
+        55,
         59
       ],
       "shoulder": [
@@ -5585,7 +5585,7 @@
       "alpha_bbox": [
         13,
         10,
-        62,
+        60,
         83
       ],
       "rect": [
@@ -5633,13 +5633,13 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        57,
+        55,
         59
       ],
       "grip_display": [
-        57,
+        55,
         59
       ],
       "shoulder": [
@@ -5657,7 +5657,7 @@
       "alpha_bbox": [
         13,
         10,
-        62,
+        60,
         83
       ],
       "overlay": "fist over the knife handle",
@@ -5706,14 +5706,14 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        55,
-        52
+        53,
+        53
       ],
       "grip_display": [
-        55,
-        52
+        53,
+        53
       ],
       "shoulder": [
         47,
@@ -5730,7 +5730,7 @@
       "alpha_bbox": [
         13,
         10,
-        60,
+        58,
         83
       ],
       "rect": [
@@ -5778,14 +5778,14 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        55,
-        52
+        53,
+        53
       ],
       "grip_display": [
-        55,
-        52
+        53,
+        53
       ],
       "shoulder": [
         47,
@@ -5802,7 +5802,7 @@
       "alpha_bbox": [
         13,
         10,
-        60,
+        58,
         83
       ],
       "part": "upper",
@@ -5851,14 +5851,14 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        55,
-        52
+        53,
+        53
       ],
       "grip_display": [
-        55,
-        52
+        53,
+        53
       ],
       "shoulder": [
         47,
@@ -5875,7 +5875,7 @@
       "alpha_bbox": [
         13,
         10,
-        60,
+        58,
         83
       ],
       "part": "lower",
@@ -5924,14 +5924,14 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        55,
-        52
+        53,
+        53
       ],
       "grip_display": [
-        55,
-        52
+        53,
+        53
       ],
       "shoulder": [
         47,
@@ -5948,7 +5948,7 @@
       "alpha_bbox": [
         13,
         10,
-        60,
+        58,
         83
       ],
       "rect": [
@@ -5996,14 +5996,14 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        55,
-        52
+        53,
+        53
       ],
       "grip_display": [
-        55,
-        52
+        53,
+        53
       ],
       "shoulder": [
         47,
@@ -6020,7 +6020,7 @@
       "alpha_bbox": [
         13,
         10,
-        60,
+        58,
         83
       ],
       "overlay": "fist over the knife handle",
@@ -6069,7 +6069,7 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
         12,
@@ -6122,7 +6122,7 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
         12,
@@ -6175,7 +6175,7 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
         12,
@@ -6228,7 +6228,7 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
         12,
@@ -6281,7 +6281,7 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
         12,
@@ -6334,7 +6334,7 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
         12,
@@ -6387,7 +6387,7 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
         12,
@@ -6440,7 +6440,7 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
         12,
@@ -6493,7 +6493,7 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
         12,
@@ -6546,14 +6546,14 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
         17,
-        49
+        50
       ],
       "grip_display": [
         17,
-        49
+        50
       ],
       "shoulder": [
         20,
@@ -6618,14 +6618,14 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
         17,
-        49
+        50
       ],
       "grip_display": [
         17,
-        49
+        50
       ],
       "shoulder": [
         20,
@@ -6691,14 +6691,14 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
         17,
-        49
+        50
       ],
       "grip_display": [
         17,
-        49
+        50
       ],
       "shoulder": [
         20,
@@ -6764,14 +6764,14 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
         17,
-        49
+        50
       ],
       "grip_display": [
         17,
-        49
+        50
       ],
       "shoulder": [
         20,
@@ -6836,14 +6836,14 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
         17,
-        49
+        50
       ],
       "grip_display": [
         17,
-        49
+        50
       ],
       "shoulder": [
         20,
@@ -6909,13 +6909,13 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        10,
+        12,
         57
       ],
       "grip_display": [
-        10,
+        12,
         57
       ],
       "shoulder": [
@@ -6931,7 +6931,7 @@
       ],
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        6,
+        8,
         10,
         55,
         83
@@ -6981,13 +6981,13 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        10,
+        12,
         57
       ],
       "grip_display": [
-        10,
+        12,
         57
       ],
       "shoulder": [
@@ -7003,7 +7003,7 @@
       ],
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        6,
+        8,
         10,
         55,
         83
@@ -7054,13 +7054,13 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        10,
+        12,
         57
       ],
       "grip_display": [
-        10,
+        12,
         57
       ],
       "shoulder": [
@@ -7076,7 +7076,7 @@
       ],
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        6,
+        8,
         10,
         55,
         83
@@ -7127,13 +7127,13 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        10,
+        12,
         57
       ],
       "grip_display": [
-        10,
+        12,
         57
       ],
       "shoulder": [
@@ -7149,7 +7149,7 @@
       ],
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        6,
+        8,
         10,
         55,
         83
@@ -7199,13 +7199,13 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        10,
+        12,
         57
       ],
       "grip_display": [
-        10,
+        12,
         57
       ],
       "shoulder": [
@@ -7221,7 +7221,7 @@
       ],
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        6,
+        8,
         10,
         55,
         83
@@ -7272,13 +7272,13 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        10,
+        12,
         59
       ],
       "grip_display": [
-        10,
+        12,
         59
       ],
       "shoulder": [
@@ -7294,7 +7294,7 @@
       ],
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        6,
+        8,
         10,
         55,
         83
@@ -7344,13 +7344,13 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        10,
+        12,
         59
       ],
       "grip_display": [
-        10,
+        12,
         59
       ],
       "shoulder": [
@@ -7366,7 +7366,7 @@
       ],
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        6,
+        8,
         10,
         55,
         83
@@ -7417,13 +7417,13 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        10,
+        12,
         59
       ],
       "grip_display": [
-        10,
+        12,
         59
       ],
       "shoulder": [
@@ -7439,7 +7439,7 @@
       ],
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        6,
+        8,
         10,
         55,
         83
@@ -7490,13 +7490,13 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        10,
+        12,
         59
       ],
       "grip_display": [
-        10,
+        12,
         59
       ],
       "shoulder": [
@@ -7512,7 +7512,7 @@
       ],
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        6,
+        8,
         10,
         55,
         83
@@ -7562,13 +7562,13 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        10,
+        12,
         59
       ],
       "grip_display": [
-        10,
+        12,
         59
       ],
       "shoulder": [
@@ -7584,7 +7584,7 @@
       ],
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        6,
+        8,
         10,
         55,
         83
@@ -7635,14 +7635,14 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        12,
-        52
+        14,
+        53
       ],
       "grip_display": [
-        12,
-        52
+        14,
+        53
       ],
       "shoulder": [
         20,
@@ -7657,7 +7657,7 @@
       ],
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        8,
+        10,
         10,
         55,
         83
@@ -7707,14 +7707,14 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        12,
-        52
+        14,
+        53
       ],
       "grip_display": [
-        12,
-        52
+        14,
+        53
       ],
       "shoulder": [
         20,
@@ -7729,7 +7729,7 @@
       ],
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        8,
+        10,
         10,
         55,
         83
@@ -7780,14 +7780,14 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        12,
-        52
+        14,
+        53
       ],
       "grip_display": [
-        12,
-        52
+        14,
+        53
       ],
       "shoulder": [
         20,
@@ -7802,7 +7802,7 @@
       ],
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        8,
+        10,
         10,
         55,
         83
@@ -7853,14 +7853,14 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        12,
-        52
+        14,
+        53
       ],
       "grip_display": [
-        12,
-        52
+        14,
+        53
       ],
       "shoulder": [
         20,
@@ -7875,7 +7875,7 @@
       ],
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        8,
+        10,
         10,
         55,
         83
@@ -7925,14 +7925,14 @@
         11,
         11
       ],
-      "armLength": 10.0,
+      "armLength": 8.0,
       "grip": [
-        12,
-        52
+        14,
+        53
       ],
       "grip_display": [
-        12,
-        52
+        14,
+        53
       ],
       "shoulder": [
         20,
@@ -7947,7 +7947,7 @@
       ],
       "source": "chef_master: master body + pose layer, 64 px per tile",
       "alpha_bbox": [
-        8,
+        10,
         10,
         55,
         83
