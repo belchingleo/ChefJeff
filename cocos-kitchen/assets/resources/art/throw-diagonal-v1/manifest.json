@@ -1,0 +1,775 @@
+{
+ "version": "throw-diagonal-v1",
+ "px_per_tile": 64,
+ "notes": "Diagonal throw bodies, keys throw/<chef>/<diagonal>/<windup|release> (+ _hand fist overlay). Canvas and feet anchor match chefs-v2; grip = fist centre in canvas px; arm_deg = arm angle, CCW from +x.",
+ "frames": {
+  "throw/jeff/down_left/release": {
+   "canvasSize": [
+    68,
+    88
+   ],
+   "anchor": [
+    0.5,
+    0.056818181818181816
+   ],
+   "anchorPx": [
+    34,
+    83
+   ],
+   "view": "down_left",
+   "grip": [
+    17,
+    64
+   ],
+   "grip_display": [
+    17,
+    64
+   ],
+   "arm_deg": 225,
+   "alpha_bbox": [
+    12,
+    12,
+    56,
+    83
+   ],
+   "source": "painted diagonal throw body, 64 px per tile",
+   "rect": [
+    2,
+    2,
+    68,
+    88
+   ]
+  },
+  "throw/jeff/down_left/release_hand": {
+   "canvasSize": [
+    68,
+    88
+   ],
+   "anchor": [
+    0.5,
+    0.056818181818181816
+   ],
+   "alpha_bbox": [
+    13,
+    59,
+    23,
+    69
+   ],
+   "rect": [
+    72,
+    2,
+    68,
+    88
+   ]
+  },
+  "throw/jeff/down_left/windup": {
+   "canvasSize": [
+    68,
+    88
+   ],
+   "anchor": [
+    0.5,
+    0.056818181818181816
+   ],
+   "anchorPx": [
+    34,
+    83
+   ],
+   "view": "down_left",
+   "grip": [
+    31,
+    59
+   ],
+   "grip_display": [
+    31,
+    59
+   ],
+   "arm_deg": -5,
+   "alpha_bbox": [
+    12,
+    12,
+    56,
+    83
+   ],
+   "source": "painted diagonal throw body, 64 px per tile",
+   "rect": [
+    142,
+    2,
+    68,
+    88
+   ]
+  },
+  "throw/jeff/down_left/windup_hand": {
+   "canvasSize": [
+    68,
+    88
+   ],
+   "anchor": [
+    0.5,
+    0.056818181818181816
+   ],
+   "alpha_bbox": [
+    27,
+    54,
+    37,
+    64
+   ],
+   "rect": [
+    212,
+    2,
+    68,
+    88
+   ]
+  },
+  "throw/jeff/down_right/release": {
+   "canvasSize": [
+    68,
+    88
+   ],
+   "anchor": [
+    0.5,
+    0.056818181818181816
+   ],
+   "anchorPx": [
+    34,
+    83
+   ],
+   "view": "down_right",
+   "grip": [
+    50,
+    64
+   ],
+   "grip_display": [
+    50,
+    64
+   ],
+   "arm_deg": -45,
+   "alpha_bbox": [
+    12,
+    12,
+    56,
+    83
+   ],
+   "source": "painted diagonal throw body, 64 px per tile",
+   "rect": [
+    282,
+    2,
+    68,
+    88
+   ]
+  },
+  "throw/jeff/down_right/release_hand": {
+   "canvasSize": [
+    68,
+    88
+   ],
+   "anchor": [
+    0.5,
+    0.056818181818181816
+   ],
+   "alpha_bbox": [
+    45,
+    59,
+    55,
+    69
+   ],
+   "rect": [
+    352,
+    2,
+    68,
+    88
+   ]
+  },
+  "throw/jeff/down_right/windup": {
+   "canvasSize": [
+    68,
+    88
+   ],
+   "anchor": [
+    0.5,
+    0.056818181818181816
+   ],
+   "anchorPx": [
+    34,
+    83
+   ],
+   "view": "down_right",
+   "grip": [
+    36,
+    59
+   ],
+   "grip_display": [
+    36,
+    59
+   ],
+   "arm_deg": 185,
+   "alpha_bbox": [
+    12,
+    12,
+    56,
+    83
+   ],
+   "source": "painted diagonal throw body, 64 px per tile",
+   "rect": [
+    422,
+    2,
+    68,
+    88
+   ]
+  },
+  "throw/jeff/down_right/windup_hand": {
+   "canvasSize": [
+    68,
+    88
+   ],
+   "anchor": [
+    0.5,
+    0.056818181818181816
+   ],
+   "alpha_bbox": [
+    31,
+    54,
+    41,
+    64
+   ],
+   "rect": [
+    2,
+    92,
+    68,
+    88
+   ]
+  },
+  "throw/jeff/up_left/release": {
+   "canvasSize": [
+    68,
+    88
+   ],
+   "anchor": [
+    0.5,
+    0.056818181818181816
+   ],
+   "anchorPx": [
+    34,
+    83
+   ],
+   "view": "up_left",
+   "grip": [
+    12,
+    53
+   ],
+   "grip_display": [
+    12,
+    53
+   ],
+   "arm_deg": 140,
+   "alpha_bbox": [
+    8,
+    11,
+    54,
+    83
+   ],
+   "source": "painted diagonal throw body, 64 px per tile",
+   "rect": [
+    72,
+    92,
+    68,
+    88
+   ]
+  },
+  "throw/jeff/up_left/windup": {
+   "canvasSize": [
+    68,
+    88
+   ],
+   "anchor": [
+    0.5,
+    0.056818181818181816
+   ],
+   "anchorPx": [
+    34,
+    83
+   ],
+   "view": "up_left",
+   "grip": [
+    17,
+    50
+   ],
+   "grip_display": [
+    17,
+    50
+   ],
+   "arm_deg": 100,
+   "alpha_bbox": [
+    12,
+    11,
+    54,
+    83
+   ],
+   "source": "painted diagonal throw body, 64 px per tile",
+   "rect": [
+    142,
+    92,
+    68,
+    88
+   ]
+  },
+  "throw/jeff/up_right/release": {
+   "canvasSize": [
+    68,
+    88
+   ],
+   "anchor": [
+    0.5,
+    0.056818181818181816
+   ],
+   "anchorPx": [
+    34,
+    83
+   ],
+   "view": "up_right",
+   "grip": [
+    55,
+    53
+   ],
+   "grip_display": [
+    55,
+    53
+   ],
+   "arm_deg": 40,
+   "alpha_bbox": [
+    14,
+    11,
+    60,
+    83
+   ],
+   "source": "painted diagonal throw body, 64 px per tile",
+   "rect": [
+    212,
+    92,
+    68,
+    88
+   ]
+  },
+  "throw/jeff/up_right/windup": {
+   "canvasSize": [
+    68,
+    88
+   ],
+   "anchor": [
+    0.5,
+    0.056818181818181816
+   ],
+   "anchorPx": [
+    34,
+    83
+   ],
+   "view": "up_right",
+   "grip": [
+    50,
+    50
+   ],
+   "grip_display": [
+    50,
+    50
+   ],
+   "arm_deg": 80,
+   "alpha_bbox": [
+    14,
+    11,
+    56,
+    83
+   ],
+   "source": "painted diagonal throw body, 64 px per tile",
+   "rect": [
+    282,
+    92,
+    68,
+    88
+   ]
+  },
+  "throw/player/down_left/release": {
+   "canvasSize": [
+    68,
+    88
+   ],
+   "anchor": [
+    0.5,
+    0.056818181818181816
+   ],
+   "anchorPx": [
+    34,
+    83
+   ],
+   "view": "down_left",
+   "grip": [
+    12,
+    61
+   ],
+   "grip_display": [
+    12,
+    61
+   ],
+   "arm_deg": 215,
+   "alpha_bbox": [
+    8,
+    11,
+    55,
+    83
+   ],
+   "source": "painted diagonal throw body, 64 px per tile",
+   "rect": [
+    352,
+    92,
+    68,
+    88
+   ]
+  },
+  "throw/player/down_left/release_hand": {
+   "canvasSize": [
+    68,
+    88
+   ],
+   "anchor": [
+    0.5,
+    0.056818181818181816
+   ],
+   "alpha_bbox": [
+    8,
+    56,
+    17,
+    66
+   ],
+   "rect": [
+    422,
+    92,
+    68,
+    88
+   ]
+  },
+  "throw/player/down_left/windup": {
+   "canvasSize": [
+    68,
+    88
+   ],
+   "anchor": [
+    0.5,
+    0.056818181818181816
+   ],
+   "anchorPx": [
+    34,
+    83
+   ],
+   "view": "down_left",
+   "grip": [
+    37,
+    54
+   ],
+   "grip_display": [
+    37,
+    54
+   ],
+   "arm_deg": -5,
+   "alpha_bbox": [
+    15,
+    11,
+    55,
+    83
+   ],
+   "source": "painted diagonal throw body, 64 px per tile",
+   "rect": [
+    2,
+    182,
+    68,
+    88
+   ]
+  },
+  "throw/player/down_left/windup_hand": {
+   "canvasSize": [
+    68,
+    88
+   ],
+   "anchor": [
+    0.5,
+    0.056818181818181816
+   ],
+   "alpha_bbox": [
+    33,
+    49,
+    43,
+    59
+   ],
+   "rect": [
+    72,
+    182,
+    68,
+    88
+   ]
+  },
+  "throw/player/down_right/release": {
+   "canvasSize": [
+    68,
+    88
+   ],
+   "anchor": [
+    0.5,
+    0.056818181818181816
+   ],
+   "anchorPx": [
+    34,
+    83
+   ],
+   "view": "down_right",
+   "grip": [
+    55,
+    61
+   ],
+   "grip_display": [
+    55,
+    61
+   ],
+   "arm_deg": -35,
+   "alpha_bbox": [
+    13,
+    11,
+    60,
+    83
+   ],
+   "source": "painted diagonal throw body, 64 px per tile",
+   "rect": [
+    142,
+    182,
+    68,
+    88
+   ]
+  },
+  "throw/player/down_right/release_hand": {
+   "canvasSize": [
+    68,
+    88
+   ],
+   "anchor": [
+    0.5,
+    0.056818181818181816
+   ],
+   "alpha_bbox": [
+    51,
+    56,
+    60,
+    66
+   ],
+   "rect": [
+    212,
+    182,
+    68,
+    88
+   ]
+  },
+  "throw/player/down_right/windup": {
+   "canvasSize": [
+    68,
+    88
+   ],
+   "anchor": [
+    0.5,
+    0.056818181818181816
+   ],
+   "anchorPx": [
+    34,
+    83
+   ],
+   "view": "down_right",
+   "grip": [
+    30,
+    54
+   ],
+   "grip_display": [
+    30,
+    54
+   ],
+   "arm_deg": 185,
+   "alpha_bbox": [
+    13,
+    11,
+    53,
+    83
+   ],
+   "source": "painted diagonal throw body, 64 px per tile",
+   "rect": [
+    282,
+    182,
+    68,
+    88
+   ]
+  },
+  "throw/player/down_right/windup_hand": {
+   "canvasSize": [
+    68,
+    88
+   ],
+   "anchor": [
+    0.5,
+    0.056818181818181816
+   ],
+   "alpha_bbox": [
+    25,
+    49,
+    35,
+    59
+   ],
+   "rect": [
+    352,
+    182,
+    68,
+    88
+   ]
+  },
+  "throw/player/up_left/release": {
+   "canvasSize": [
+    68,
+    88
+   ],
+   "anchor": [
+    0.5,
+    0.056818181818181816
+   ],
+   "anchorPx": [
+    34,
+    83
+   ],
+   "view": "up_left",
+   "grip": [
+    12,
+    44
+   ],
+   "grip_display": [
+    12,
+    44
+   ],
+   "arm_deg": 140,
+   "alpha_bbox": [
+    8,
+    11,
+    55,
+    83
+   ],
+   "source": "painted diagonal throw body, 64 px per tile",
+   "rect": [
+    422,
+    182,
+    68,
+    88
+   ]
+  },
+  "throw/player/up_left/windup": {
+   "canvasSize": [
+    68,
+    88
+   ],
+   "anchor": [
+    0.5,
+    0.056818181818181816
+   ],
+   "anchorPx": [
+    34,
+    83
+   ],
+   "view": "up_left",
+   "grip": [
+    24,
+    39
+   ],
+   "grip_display": [
+    24,
+    39
+   ],
+   "arm_deg": 85,
+   "alpha_bbox": [
+    15,
+    11,
+    55,
+    83
+   ],
+   "source": "painted diagonal throw body, 64 px per tile",
+   "rect": [
+    2,
+    272,
+    68,
+    88
+   ]
+  },
+  "throw/player/up_right/release": {
+   "canvasSize": [
+    68,
+    88
+   ],
+   "anchor": [
+    0.5,
+    0.056818181818181816
+   ],
+   "anchorPx": [
+    34,
+    83
+   ],
+   "view": "up_right",
+   "grip": [
+    55,
+    44
+   ],
+   "grip_display": [
+    55,
+    44
+   ],
+   "arm_deg": 40,
+   "alpha_bbox": [
+    13,
+    11,
+    60,
+    83
+   ],
+   "source": "painted diagonal throw body, 64 px per tile",
+   "rect": [
+    72,
+    272,
+    68,
+    88
+   ]
+  },
+  "throw/player/up_right/windup": {
+   "canvasSize": [
+    68,
+    88
+   ],
+   "anchor": [
+    0.5,
+    0.056818181818181816
+   ],
+   "anchorPx": [
+    34,
+    83
+   ],
+   "view": "up_right",
+   "grip": [
+    43,
+    39
+   ],
+   "grip_display": [
+    43,
+    39
+   ],
+   "arm_deg": 95,
+   "alpha_bbox": [
+    13,
+    11,
+    53,
+    83
+   ],
+   "source": "painted diagonal throw body, 64 px per tile",
+   "rect": [
+    142,
+    272,
+    68,
+    88
+   ]
+  }
+ }
+}

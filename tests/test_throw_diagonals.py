@@ -2,6 +2,7 @@
 import importlib.util
 import json
 from pathlib import Path
+import sys
 import tempfile
 import unittest
 
@@ -10,6 +11,11 @@ try:
     from PIL import Image
 except ImportError:  # the packer is an art tool; CI without Pillow skips it
     Image = None
+try:
+    import numpy
+except ImportError:
+    numpy = None
+PACK = ROOT / 'cocos-kitchen/assets/resources/art/throw-diagonal-v1'
 
 
 def packer():
@@ -68,6 +74,35 @@ class ThrowDiagonalPackTests(unittest.TestCase):
             message = str(caught.exception)
             self.assertIn('missing jeff_up_left_windup.png', message)
             self.assertIn('player_up_right_release.png: feet end at y=70', message)
+
+
+class CommittedPackTests(unittest.TestCase):
+    def test_pack_has_every_frame_with_a_grip_and_down_diagonal_fist_overlays(self):
+        frames = json.loads((PACK / 'manifest.json').read_text())['frames']
+        for chef in ('player', 'jeff'):
+            for diagonal in ('down_right', 'down_left', 'up_left', 'up_right'):
+                for phase in ('windup', 'release'):
+                    key = f'throw/{chef}/{diagonal}/{phase}'
+                    self.assertEqual(len(frames[key]['grip']), 2, key)
+                    self.assertEqual(frames[key]['canvasSize'], [68, 88])
+                    self.assertEqual(key + '_hand' in frames, diagonal.startswith('down'), key)
+                    mirror = key.replace('left', 'RIGHT').replace('right', 'left').replace('RIGHT', 'right')
+                    self.assertEqual(frames[key]['grip'], [67 - frames[mirror]['grip'][0], frames[mirror]['grip'][1]])
+
+    @unittest.skipIf(Image is None or numpy is None, 'Pillow and numpy needed to redraw')
+    def test_pack_is_what_the_generator_draws_from_the_masters(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            spec = importlib.util.spec_from_file_location('gen', ROOT / 'scripts/art/throw_diagonal_bodies.py')
+            sys.path.insert(0, str(ROOT / 'scripts/art'))
+            try:
+                gen = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(gen)
+                manifest = gen.td.write(gen.td.load(gen.save(Path(tmp) / 'frames')), Path(tmp) / 'out')
+            finally:
+                sys.path.remove(str(ROOT / 'scripts/art'))
+            committed = json.loads((PACK / 'manifest.json').read_text())['frames']
+            self.assertEqual(manifest, committed)
+            self.assertEqual(Image.open(Path(tmp) / 'out/atlas.png').tobytes(), Image.open(PACK / 'atlas.png').tobytes())
 
 
 if __name__ == '__main__':

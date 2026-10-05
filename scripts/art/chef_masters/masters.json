@@ -1,0 +1,258 @@
+{
+ "player": {
+  "colours": {
+   "ink": [
+    0,
+    0,
+    0
+   ],
+   "cream": [
+    227,
+    214,
+    212
+   ],
+   "cream_shade": [
+    190,
+    177,
+    178
+   ],
+   "orange": [
+    240,
+    126,
+    73
+   ],
+   "skin": [
+    251,
+    176,
+    124
+   ],
+   "skin_shade": [
+    178,
+    98,
+    53
+   ],
+   "white": [
+    251,
+    250,
+    249
+   ],
+   "white_shade": [
+    190,
+    177,
+    178
+   ],
+   "rubber": [
+    52,
+    50,
+    58
+   ],
+   "rubber_hi": [
+    96,
+    94,
+    104
+   ],
+   "steel": [
+    150,
+    156,
+    170
+   ],
+   "steel_dark": [
+    92,
+    98,
+    114
+   ],
+   "mitten": [
+    138,
+    140,
+    150
+   ],
+   "mitten_dark": [
+    88,
+    90,
+    100
+   ]
+  },
+  "down": {
+   "torso": [
+    23,
+    45
+   ],
+   "torso_rows": [
+    50,
+    66
+   ],
+   "shoulders": {
+    "left": [
+     22,
+     53
+    ],
+    "right": [
+     46,
+     53
+    ]
+   },
+   "shoulder_y": null
+  },
+  "up": {
+   "torso": [
+    23,
+    45
+   ],
+   "torso_rows": [
+    50,
+    66
+   ],
+   "shoulders": {
+    "left": [
+     22,
+     53
+    ],
+    "right": [
+     46,
+     53
+    ]
+   },
+   "shoulder_y": null
+  },
+  "right": {
+   "torso": [
+    15,
+    43
+   ],
+   "torso_rows": [
+    50,
+    64
+   ],
+   "shoulders": {},
+   "shoulder_y": 51
+  }
+ },
+ "jeff": {
+  "colours": {
+   "ink": [
+    0,
+    0,
+    0
+   ],
+   "cream": [
+    254,
+    241,
+    226
+   ],
+   "cream_shade": [
+    225,
+    196,
+    174
+   ],
+   "orange": [
+    253,
+    159,
+    12
+   ],
+   "skin": [
+    196,
+    121,
+    61
+   ],
+   "skin_shade": [
+    196,
+    121,
+    61
+   ],
+   "white": [
+    250,
+    242,
+    240
+   ],
+   "white_shade": [
+    172,
+    157,
+    162
+   ],
+   "rubber": [
+    52,
+    50,
+    58
+   ],
+   "rubber_hi": [
+    96,
+    94,
+    104
+   ],
+   "steel": [
+    150,
+    156,
+    170
+   ],
+   "steel_dark": [
+    92,
+    98,
+    114
+   ],
+   "mitten": [
+    138,
+    140,
+    150
+   ],
+   "mitten_dark": [
+    88,
+    90,
+    100
+   ]
+  },
+  "down": {
+   "torso": [
+    22,
+    45
+   ],
+   "torso_rows": [
+    55,
+    66
+   ],
+   "shoulders": {
+    "left": [
+     21,
+     58
+    ],
+    "right": [
+     46,
+     58
+    ]
+   },
+   "shoulder_y": null
+  },
+  "up": {
+   "torso": [
+    22,
+    50
+   ],
+   "torso_rows": [
+    55,
+    66
+   ],
+   "shoulders": {
+    "left": [
+     21,
+     58
+    ],
+    "right": [
+     51,
+     58
+    ]
+   },
+   "shoulder_y": null
+  },
+  "right": {
+   "torso": [
+    16,
+    51
+   ],
+   "torso_rows": [
+    55,
+    66
+   ],
+   "shoulders": {},
+   "shoulder_y": 58
+  }
+ }
+}

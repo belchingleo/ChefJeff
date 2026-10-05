@@ -1,6 +1,8 @@
 # Diagonal throw bodies — art brief
 
-While a chef aims or releases a throw, the body turns to the aim. The four straight views already exist (front, back, left, right: the knifeless chop poses in `chefs-v2`). This brief covers the four diagonals. Until they are delivered, diagonal throws use the nearest straight view with the arm raised or lowered.
+While a chef aims or releases a throw, the body turns to the aim. The four straight views already exist (front, back, left, right: the knifeless chop poses in `chefs-v2`). This brief covers the four diagonals.
+
+**v1 (delivered):** `scripts/art/throw_diagonal_bodies.py` draws all 16 frames from the chefs-v2 master layers in `scripts/art/chef_masters` (3/4-turned bodies, arms drawn the chefs-v2 way) and packs them. The left diagonals are plain mirrors of the right ones, like the chefs-v2 left views; relighting every left view from the top left is a later task.
 
 ## Frames (16)
 
@@ -9,7 +11,7 @@ While a chef aims or releases a throw, the body turns to the aim. The four strai
 | Player (brown hair, white shirt, blue overalls) | wind-up, release | wind-up, release | wind-up, release | wind-up, release |
 | Jeff (tracked robot, chef hat, red scarf) | wind-up, release | wind-up, release | wind-up, release | wind-up, release |
 
-"Down" faces the viewer (three-quarter front), "up" faces away (three-quarter back). Down-left and up-left may mirror their right-hand frames only if the lighting is repainted from the top left; do not deliver a plain flip.
+"Down" faces the viewer (three-quarter front), "up" faces away (three-quarter back). Down-left and up-left should mirror their right-hand frames with the lighting repainted from the top left (v1 ships plain mirrors, matching the chefs-v2 left views, until all left views are relit together).
 
 - **Wind-up**: the throwing hand raised behind or beside the head, item about to leave. Matches `chop_0` of the straight views.
 - **Release**: the arm extended toward the aim, slightly forward. Matches `chop_1` (straight) of the side views.
@@ -36,7 +38,9 @@ Reference sheets of the existing straight poses with the feet line and centre ma
 
 # 斜向投掷身体 · 美术需求
 
-厨师瞄准或投出时，身体会转向瞄准方向。四个正方向（正面、背面、左、右）已有：即 `chefs-v2` 里无刀的切菜姿势。本需求补四个斜向。交付前，斜向投掷暂用最近的正方向身体，配合手臂上扬或下压。
+厨师瞄准或投出时，身体会转向瞄准方向。四个正方向（正面、背面、左、右）已有：即 `chefs-v2` 里无刀的切菜姿势。本需求补四个斜向。
+
+**v1（已交付）：**`scripts/art/throw_diagonal_bodies.py` 以 `scripts/art/chef_masters` 中的 chefs-v2 母版图层绘制全部 16 帧（四分之三转身的身体，手臂按 chefs-v2 的画法），并打包。左向直接镜像右向，与 chefs-v2 的左向视图一致；按左上方光源重画所有左向视图的明暗留作后续任务。
 
 ## 帧（16 张）
 
@@ -45,7 +49,7 @@ Reference sheets of the existing straight poses with the feet line and centre ma
 | 玩家（棕发、白衬衫、蓝背带裤） | 蓄力、出手 | 蓄力、出手 | 蓄力、出手 | 蓄力、出手 |
 | Jeff（履带机器人、厨师帽、红领巾） | 蓄力、出手 | 蓄力、出手 | 蓄力、出手 | 蓄力、出手 |
 
-“下”为面向镜头的四分之三正面，“上”为背向镜头的四分之三背面。左向可以参考右向镜像起稿，但需按左上方光源重画明暗，不要直接翻转交付。
+“下”为面向镜头的四分之三正面，“上”为背向镜头的四分之三背面。左向应由右向镜像并按左上方光源重画明暗（v1 暂为直接镜像，与 chefs-v2 的左向视图一致，之后与所有左向视图一并重画）。
 
 - **蓄力**：投掷手举到头后或头侧，物品即将出手；对应正方向的 `chop_0`。
 - **出手**：手臂伸向瞄准方向、略向前；对应侧身的 `chop_1`（平伸）。
