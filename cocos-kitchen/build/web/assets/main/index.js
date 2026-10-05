@@ -580,8 +580,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             x: 0,
             y: 0
           };
-          // Hold Space to aim a throw (Overcooked-style): after AIM_HOLD seconds the chef stops, an arrow
-          // shows the direction, direction keys turn it, and releasing Space throws along it.
+          // Hold Space to aim a throw (Overcooked-style): after AIM_HOLD seconds the chef stops, a translucent arc
+          // guides the direction and maximum range; direction keys turn it, and releasing Space throws along it.
           _this.touchDirection = {
             x: 0,
             y: 0
@@ -1529,49 +1529,55 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           if (this.aimArrow?.isValid) this.aimArrow.active = false;
         };
         _proto.drawAim = function drawAim() {
-          var _this$aimArrow2;
-          var chef = this.people['human'];
+          const chef = this.people['human'];
           if (!this.aiming || !this.world || !chef) return;
-          if (!((_this$aimArrow2 = this.aimArrow) != null && _this$aimArrow2.isValid)) {
+          if (!this.aimArrow?.isValid) {
             this.aimArrow = this.child(this.world, 'aim-arrow', 10, 10);
             this.aimArrow.addComponent(Graphics);
           }
-          var a = this.aimArrow,
+          const a = this.aimArrow,
             k = this.state.kitchen,
             reach = (k.map.pass_range || k.map.throw_range || 4) * TILE;
           a.active = true;
           a.setSiblingIndex(this.world.children.length - 1);
           a.setPosition(chef.position.x, chef.position.y + 18);
-          var g = a.getComponent(Graphics);
+          const g = a.getComponent(Graphics);
           g.clear();
-          var ex = this.aiming.x * reach,
+          const ex = this.aiming.x * reach,
             ey = -this.aiming.y * reach,
-            px = -ey / reach * 7,
-            py = ex / reach * 7,
-            bx = ex - this.aiming.x * 14,
-            by = ey + this.aiming.y * 14;
-          for (var _i9 = 0, _arr6 = [[6, COLORS.ink], [3, COLORS.paper]]; _i9 < _arr6.length; _i9++) {
-            var _arr6$_i = _arr6[_i9],
-              w = _arr6$_i[0],
-              c = _arr6$_i[1];
-            g.lineWidth = w;
-            g.strokeColor = color(c);
-            g.moveTo(this.aiming.x * 20, -this.aiming.y * 20);
-            g.lineTo(bx, by);
-            g.stroke();
+            left = [],
+            right = [];
+          // The ground path is still straight. Only the item's height bends the
+          // screen projection; the hand starts 18px above the ground endpoint.
+          for (let i = 0; i <= 32; i++) {
+            const t = i / 32,
+              x = ex * t,
+              y = ey * t + 35 * Math.sin(Math.PI * t) - 18 * t;
+            const tx = ex,
+              ty = ey + 35 * Math.PI * Math.cos(Math.PI * t) - 18,
+              length = Math.hypot(tx, ty) || 1;
+            const nx = -ty / length * 5,
+              ny = tx / length * 5;
+            left.push([x + nx, y + ny]);
+            right.push([x - nx, y - ny]);
           }
-          g.fillColor = color(COLORS.paper);
-          g.strokeColor = color(COLORS.ink);
-          g.lineWidth = 2;
-          g.moveTo(ex, ey);
-          g.lineTo(bx + px, by + py);
-          g.lineTo(bx - px, by - py);
+          g.fillColor = new Color(59, 146, 180, 72);
+          g.strokeColor = new Color(42, 90, 158, 120);
+          g.lineWidth = 1;
+          g.moveTo(left[0][0], left[0][1]);
+          for (let i = 1; i < left.length; i++) g.lineTo(left[i][0], left[i][1]);
+          for (let i = right.length - 1; i >= 0; i--) g.lineTo(right[i][0], right[i][1]);
           g.close();
           g.fill();
           g.stroke();
-        }
-        // Anything held can be thrown or passed; the server applies each item's range (currently 4 tiles for all).
-        ;
+          // A maximum-range guide, not a prediction of collision or catching.
+          g.fillColor = new Color(59, 146, 180, 36);
+          g.strokeColor = new Color(42, 90, 158, 145);
+          g.lineWidth = 1.5;
+          g.ellipse(ex, ey - 18, 13, 7);
+          g.fill();
+          g.stroke();
+        };
 
         _proto.sendMove = /*#__PURE__*/
         function () {

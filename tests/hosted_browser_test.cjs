@@ -31,8 +31,33 @@ function harness(saved=null, fail=false, gameState={game_id:'round',phase:'ready
 // Execute the real key handler and state poll with rendering stubbed out. Check both
 // TypeScript source and the included web runtime so a stale build cannot hide a fix.
 function clientHarness(h, fromSource){
- const cc={Component:function(){},Camera:class{},UITransform:class{},sys:{isNative:true},game:{frameRate:15},
+ class UITransform {setContentSize(width,height){this.width=width;this.height=height;}}
+ class Color {
+  constructor(r=255,g=255,b=255,a=255){Object.assign(this,{r,g,b,a});}
+  fromHEX(hex){const value=Number.parseInt(hex.replace('#',''),16);Object.assign(this,{r:value>>>16,g:(value>>>8)&255,b:value&255});return this;}
+ }
+ class Graphics {
+  constructor(){this.clear();}
+  clear(){this.path=[];this.paints=[];}
+  moveTo(x,y){this.path=[{kind:'move',values:[x,y]}];}
+  lineTo(x,y){this.path.push({kind:'line',values:[x,y]});}
+  close(){this.path.push({kind:'close',values:[]});}
+  ellipse(x,y,rx,ry){this.path=[{kind:'ellipse',values:[x,y,rx,ry]}];}
+  paint(kind,color){this.paints.push({kind,color:{...color},path:this.path.map(part=>({...part,values:[...part.values]}))});}
+  fill(){this.paint('fill',this.fillColor);}
+  stroke(){this.paint('stroke',this.strokeColor);}
+ }
+ class Node {
+  constructor(name){this.name=name;this.children=[];this.components=new Map();this.position={x:0,y:0,z:0};this.active=this.isValid=true;}
+  addChild(child){child.parent=this;this.children.push(child);}
+  addComponent(type){const component=new type();this.components.set(type,component);return component;}
+  getComponent(type){return this.components.get(type)||null;}
+  setPosition(x,y,z=0){this.position={x,y,z};}
+  setSiblingIndex(index){const siblings=this.parent.children;siblings.splice(siblings.indexOf(this),1);siblings.splice(index,0,this);}
+ }
+ const cc={Component:function(){},Camera:class{},UITransform,Color,Graphics,Node,Layers:{Enum:{UI_2D:1}},sys:{isNative:true},game:{frameRate:15},
    _decorator:{ccclass:()=>cls=>cls},cclegacy:{_RF:{push:()=>{},pop:()=>{}}}};
+ h.cc=cc;
  const art={LevelOneArt:class{}},audio={KitchenAudio:class{onState(){}}};
  const geometry={GRID_ART:{tile:48,originX:0,originY:0}};
  const context=vm.createContext({...cc,...art,...audio,...geometry,window:h.w,document:h.document,
@@ -316,6 +341,61 @@ function checkClientOrderBridge(fromSource){
  client.state.kitchen.orders[0].remaining=-2;assert.equal(h.w.kitchenControls.getState().orders[0].patienceRemainingFraction,0);
  client.state.kitchen.orders[0].remaining=150;assert.equal(h.w.kitchenControls.getState().orders[0].patienceRemainingFraction,1);
 }
+
+function checkClientAimRender(fromSource){
+ const h=harness(),client=clientHarness(h,fromSource),{Node,Graphics}=h.cc,requests=[];
+ const world=new Node('kitchen-world'),chef=new Node('human'),foreground=new Node('foreground');
+ chef.setPosition(103,-57);world.addChild(chef);world.addChild(foreground);
+ client.world=world;client.people.human=chef;client.clock=5;
+ client.state={game_id:'aim-round',phase:'running',speed:1,limits:{},
+  kitchen:{map:{layout_version:'level-2-1',pass_range:4},orders:[],
+   chefs:{human:{holding:{id:'held'},can_throw:true,facing:'right',sprint:{available:true}}}},ai:{thinking:false,error:null}};
+ client.post=(path,body)=>requests.push({path,body});client.request=async(path,body)=>{requests.push({path,body});return {ok:true};};
+ client.installControls();const controls=h.w.kitchenControls,fetchCount=h.calls.length;
+ controls.press();client.clock+=.31;client.startAim();
+ const aim=client.aimArrow;assert(aim?.active,'holding an item shows the throw guide');
+ const near=(actual,expected,message)=>assert(Math.abs(actual-expected)<1e-7,message);
+ const checkDirection=(dx,dy,range)=>{
+  const length=Math.hypot(dx,dy),ux=dx/length,uy=dy/length;
+  controls.move(dx,dy);
+  const paints=aim.getComponent(Graphics).paints;
+  assert(paints.length>0,'the aim guide paints visible geometry');
+  for(const paint of paints){
+   assert(paint.color.a>0&&paint.color.a<255,'the trajectory and landing guide are semitransparent');
+   assert(paint.path.flatMap(part=>part.values).every(Number.isFinite),'all projected coordinates stay finite, including vertical aiming');
+  }
+  const ribbon=paints.find(paint=>paint.kind==='fill'&&paint.path.some(part=>part.kind==='close'));
+  assert(ribbon,'the trajectory is a filled, closed band');
+  const vertices=ribbon.path.filter(part=>part.kind==='move'||part.kind==='line').map(part=>part.values);
+  const area=Math.abs(vertices.reduce((sum,[x,y],i)=>{const [nx,ny]=vertices[(i+1)%vertices.length];return sum+x*ny-y*nx;},0))/2;
+  assert(area>range*48*2,'the trajectory has visible width instead of collapsing to a line');
+  const landing=paints.find(paint=>paint.kind==='fill'&&paint.path.some(part=>part.kind==='ellipse'));
+  assert(landing,'the maximum-range ground endpoint remains visible');
+  const [x,y,rx,ry]=landing.path.find(part=>part.kind==='ellipse').values;
+  assert(rx>0&&ry>0);
+  near(aim.position.x+x,chef.position.x+ux*range*48,'horizontal ground range matches the existing throw range');
+  near(aim.position.y+y,chef.position.y-uy*range*48,'vertical ground range is measured from the chef, not the raised hand');
+  assert.equal(world.children.at(-1),aim,'the guide remains above foreground kitchen sprites');
+  assert.equal(client.aimArrow,aim,'steering reuses the existing guide');
+  return vertices;
+ };
+ for(const direction of [[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1],[0,-1],[1,-1]])checkDirection(...direction,4);
+ for(const angle of [.137,.81,1.423,2.19,3.84,4.73,5.91])checkDirection(Math.cos(angle),Math.sin(angle),4);
+ const horizontal=checkDirection(1,0,4),heights=horizontal.map(([,y])=>y);
+ assert(Math.max(...heights)-Math.min(...heights)>20,'a horizontal throw projects a raised arc rather than a straight arrow');
+ client.state.kitchen.map={pass_range:3.5,throw_range:7};checkDirection(.41,-.83,3.5);
+ client.state.kitchen.map={throw_range:2.25};checkDirection(-.37,.91,2.25);
+ client.state.kitchen.map={};checkDirection(.2,-.9,4);
+ assert.equal(requests.length,0,'drawing and steering the arc adds no movement, throw or preview requests');
+ assert.equal(h.calls.length,fetchCount,'rendering the guide does not fetch extra resources');
+ controls.cancel();assert.equal(aim.active,false,'cancelling hides both the arc and its ground endpoint');
+ controls.release();assert.equal(requests.length,0,'releasing a cancelled guide cannot throw');
+ controls.press();client.clock+=.31;client.startAim();assert.equal(aim.active,true,'a later hold can show the same guide again');
+ controls.release();assert.equal(aim.active,false,'a completed throw hides the entire guide');
+ assert.equal(requests.length,1);assert.equal(requests[0].path,'/api/throw');
+ assert.deepEqual([...requests[0].body.direction],[1,0],'the visual change preserves the existing release-to-throw direction');
+ assert.equal(requests[0].body.expected_item,'held');
+}
 const cfg={provider:'deepseek',model:'test-model',api_key:key,remember:false};
 (async()=>{
  let h=harness();await h.w.fetch('/api/state');
@@ -333,10 +413,12 @@ const cfg={provider:'deepseek',model:'test-model',api_key:key,remember:false};
  await checkClientInteractions(false);
  await checkClientTouchBridge(false);
  checkClientOrderBridge(false);
- if(require('node:module').stripTypeScriptTypes){await checkClientInteractions(true);await checkClientTouchBridge(true);checkClientOrderBridge(true);}
+ checkClientAimRender(false);
+ if(require('node:module').stripTypeScriptTypes){await checkClientInteractions(true);await checkClientTouchBridge(true);checkClientOrderBridge(true);checkClientAimRender(true);}
  else console.log('TypeScript source execution requires Node 22.13+; included runtime checked.');
  console.log('Browser transport: memory/remember/clear, reload, CORS failure, origin guard and no-key-to-server checks passed.');
  console.log('Client interactions: workstation/floor tap and hold, item changes, cancellation and hosted contribution state passed.');
  console.log('Client touch bridge: normalized movement, station tap/throw hold, neutral reset, cancellation, sprint and keyboard compatibility passed.');
  console.log('Client order bridge: all recipe ingredients, snapshot order/duplicates, reviewed sprites, unknown fallback and patience passed.');
+ console.log('Client aim rendering: translucent arc, finite eight-way/analog geometry, unchanged range, cancellation and request-free steering passed.');
 })().catch(e=>{console.error(e);process.exitCode=1;});
