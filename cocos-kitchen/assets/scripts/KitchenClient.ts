@@ -291,13 +291,26 @@ export class KitchenClient extends Component {
             canDash:this.canInput()&&!this.aiming&&!!c?.sprint?.available&&(this.manualDirection.x!==0||this.manualDirection.y!==0),
             holding:c?.holding||null,interaction:s?.interaction?.label.split('（')[0]||'',interactionHint:s?.interaction_hint||'',
             aiming:this.aiming?{...this.aiming}:null,sprint:c?.sprint||{},event:text('event'),
-            orders:(k?.orders||[]).filter((o:any)=>o.status==='pending').map((o:any)=>({...o,dishName:this.dishById(o.dish)?.name||o.dish})),
+            orders:(k?.orders||[]).filter((o:any)=>o.status==='pending').map((o:any)=>this.touchOrder(o)),
             money:k?.money||0,served:k?.served||0,timeLabel:text('clock'),handLabel:text('hand'),aiStatus:text('ai-status'),
             coverTitle:text('coverTitle'),coverText:text('coverText'),mainLabel:this.buttons.main?this.labelSources.get(this.buttons.main.label)||'':'',
             mainEnabled:!!this.buttons.main?.enabled&&!this.pending,
             communicationEnabled:!!s?.communication?.allowed,endEnabled:['running','paused'].includes(s?.phase||'')&&this.connected&&!this.pending,
             recordEnabled:!!s?.round_summary&&s?.phase==='ended',levels:(s?.levels||[]).map((l:any)=>({id:l.id,name:l.name,selected:l.id===k?.level_id})),
             levelEnabled:this.connected&&!this.pending&&['ready','ended'].includes(s?.phase||'')};
+    }
+    private touchOrder(order:any){
+        const dish=this.dishById(order.dish),ingredients:string[]=order.ingredients||dish?.components?.map((c:any)=>c.item)||[];
+        const patienceTotal=order.patience||this.state?.rules?.order_patience||90;
+        const recipeKey=[`dishes/${order.dish}/ready`,`food/${order.dish}_ready`].find(key=>this.art.has(key));
+        return {...order,dishName:dish?.name||order.dish,patienceTotal,
+            patienceRemainingFraction:Math.max(0,Math.min(1,(order.remaining||0)/patienceTotal)),
+            recipeIcon:recipeKey?this.art.spriteInfo(recipeKey):null,
+            ingredientDetails:ingredients.map(id=>{
+                const required=dish?.components?.find((c:any)=>c.item===id)?.state,state=required&&required!=='chopped'?required:'raw';
+                const art=this.itemArt(id,state,true);
+                return {id,name:this.itemLabel(id),state,icon:art?this.art.spriteInfo(art.key):null};
+            })};
     }
     private publishControls(){
         if(sys.isNative||!this.controls)return;

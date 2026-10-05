@@ -1241,10 +1241,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             } : null,
             sprint: c?.sprint || {},
             event: text('event'),
-            orders: (k?.orders || []).filter(o => o.status === 'pending').map(o => ({
-              ...o,
-              dishName: this.dishById(o.dish)?.name || o.dish
-            })),
+            orders: (k?.orders || []).filter(o => o.status === 'pending').map(o => this.touchOrder(o)),
             money: k?.money || 0,
             served: k?.served || 0,
             timeLabel: text('clock'),
@@ -1263,6 +1260,30 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               selected: l.id === k?.level_id
             })),
             levelEnabled: this.connected && !this.pending && ['ready', 'ended'].includes(s?.phase || '')
+          };
+        };
+        _proto.touchOrder = function touchOrder(order) {
+          const dish = this.dishById(order.dish),
+            ingredients = order.ingredients || dish?.components?.map(c => c.item) || [];
+          const patienceTotal = order.patience || this.state?.rules?.order_patience || 90;
+          const recipeKey = [`dishes/${order.dish}/ready`, `food/${order.dish}_ready`].find(key => this.art.has(key));
+          return {
+            ...order,
+            dishName: dish?.name || order.dish,
+            patienceTotal,
+            patienceRemainingFraction: Math.max(0, Math.min(1, (order.remaining || 0) / patienceTotal)),
+            recipeIcon: recipeKey ? this.art.spriteInfo(recipeKey) : null,
+            ingredientDetails: ingredients.map(id => {
+              const required = dish?.components?.find(c => c.item === id)?.state,
+                state = required && required !== 'chopped' ? required : 'raw';
+              const art = this.itemArt(id, state, true);
+              return {
+                id,
+                name: this.itemLabel(id),
+                state,
+                icon: art ? this.art.spriteInfo(art.key) : null
+              };
+            })
           };
         };
         _proto.publishControls = function publishControls() {
@@ -4561,8 +4582,27 @@ System.register("chunks:///_virtual/LevelOneArt.ts", ['./rollupPluginModLoBabelH
         /** Manifest entry of a frame (grip, pivot, edge points), or undefined. */;
         _proto.meta = function meta(key) {
           return this.definitions[key];
-        }
-        /** Natural pixel proportions, one 64 px art unit per gameplay cell. */;
+        };
+        /** Let the browser HUD crop the same loaded atlas used by the kitchen. */
+        _proto.spriteInfo = function spriteInfo(key) {
+          const frame = this.frames[key],
+            definition = this.definitions[key],
+            texture = frame?.texture,
+            url = texture?.image?.nativeUrl;
+          if (!definition || !texture || !url) return null;
+          const [x, y, width, height] = definition.rect;
+          return {
+            url,
+            x,
+            y,
+            width,
+            height,
+            atlasWidth: texture.width,
+            atlasHeight: texture.height,
+            alphaBBox: definition.alpha_bbox || [0, 0, width, height]
+          };
+        };
+        /** Natural pixel proportions, one 64 px art unit per gameplay cell. */
         _proto.tile = function tile(parent, key, cellSize, x, y) {
           if (x === void 0) {
             x = 0;

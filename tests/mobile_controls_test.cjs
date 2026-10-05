@@ -16,11 +16,11 @@ function harness(path,{width=844,height=390,touch=true,language='zh'}={}){
   }
  }
  class Element extends Target{
-  constructor(tag='div'){super();this.tagName=tag.toUpperCase();this.children=[];this.attributes={};this.style={setProperty(name,value){this[name]=value;}};this.hidden=false;this.disabled=false;this.open=false;this.textContent='';this.dataset={};this.captured=new Set();this.classSet=new Set();this.classList={add:(...v)=>v.forEach(x=>this.classSet.add(x)),remove:(...v)=>v.forEach(x=>this.classSet.delete(x)),contains:v=>this.classSet.has(v),toggle:(v,force)=>{const on=force??!this.classSet.has(v);on?this.classSet.add(v):this.classSet.delete(v);return on;}};}
+  constructor(tag='div'){super();this.tagName=tag.toUpperCase();this.children=[];this.attributes={};this.style={setProperty(name,value){this[name]=value;}};this.hidden=false;this.disabled=false;this.open=false;this.textContent='';this.dataset={};this.scrollTop=0;this.replaceCount=0;this.captured=new Set();this.classSet=new Set();this.classList={add:(...v)=>v.forEach(x=>this.classSet.add(x)),remove:(...v)=>v.forEach(x=>this.classSet.delete(x)),contains:v=>this.classSet.has(v),toggle:(v,force)=>{const on=force??!this.classSet.has(v);on?this.classSet.add(v):this.classSet.delete(v);return on;}};}
   set id(value){this._id=value;elements.set(value,this);}get id(){return this._id||'';}
   set className(value){this.classSet=new Set(value.split(/\s+/).filter(Boolean));}get className(){return [...this.classSet].join(' ');}
   set innerHTML(value){
-   this.children=[];const stack=[this];
+   this.children=[];this.scrollTop=0;const stack=[this];
    for(const match of value.matchAll(/<\/?([\w-]+)([^>]*)>/g)){
     const [whole,tag,attrs]=match;if(whole.startsWith('</')){if(stack.length>1)stack.pop();continue;}
     const child=new Element(tag);
@@ -29,10 +29,11 @@ function harness(path,{width=844,height=390,touch=true,language='zh'}={}){
     if(!whole.endsWith('/>')&&!['input','br','hr','img','meta','link'].includes(tag))stack.push(child);
    }
   }
-  appendChild(child){child.parentElement=this;this.children.push(child);return child;}
+  appendChild(child){child.remove();child.parentElement=this;this.children.push(child);return child;}
   append(...children){children.forEach(c=>this.appendChild(c));}
-  replaceChildren(...children){this.children=[];this.append(...children);}
-  remove(){if(this.parentElement)this.parentElement.children=this.parentElement.children.filter(c=>c!==this);}
+  insertBefore(child,before){if(!before)return this.appendChild(child);child.remove();child.parentElement=this;this.children.splice(this.children.indexOf(before),0,child);return child;}
+  replaceChildren(...children){for(const child of this.children)child.parentElement=null;this.children=[];this.scrollTop=0;this.replaceCount++;this.append(...children);}
+  remove(){if(this.parentElement)this.parentElement.children=this.parentElement.children.filter(c=>c!==this);this.parentElement=null;}
   setAttribute(name,value){this.attributes[name]=String(value);if(name==='id')this.id=String(value);if(name==='class')this.className=String(value);if(name==='hidden')this.hidden=true;if(name==='open')this.open=true;if(name.startsWith('data-'))this.dataset[name.slice(5).replace(/-([a-z])/g,(_,c)=>c.toUpperCase())]=String(value);}
   getAttribute(name){return this.attributes[name]??null;}
   hasAttribute(name){return name in this.attributes;}
@@ -167,4 +168,68 @@ function check(path){
  console.log(`${path}: multi-touch movement/action/dash, deadzone, cancellation, orientation, background and input gates passed.`);
 }
 
-for(const path of ['cocos-kitchen/touch-controls.js','cocos-kitchen/build/web/touch-controls.js'])check(path);
+function checkOrderCards(path){
+ const h=harness(path),deck=h.elements.get('touch-orders');
+ const sprite={url:'/art/reviewed-atlas.png',x:64,y:128,width:64,height:64,atlasWidth:512,atlasHeight:512,alphaBBox:[8,12,56,58]};
+ const ingredient=(id,name,state='raw',icon=sprite)=>({id,name,state,icon});
+ const orders=[
+  {id:'O1',dish:'steak',dishName:'牛排',ingredients:['beef'],remaining:70.2,patienceTotal:100,patienceRemainingFraction:.702,
+   ingredientDetails:[ingredient('beef','牛肉','ready')]},
+  {id:'O2',dish:'burger',dishName:'汉堡',ingredients:['bread','lettuce','tomato','beef'],remaining:15,patienceTotal:100,patienceRemainingFraction:.15,
+   ingredientDetails:[ingredient('bread','面包'),ingredient('lettuce','生菜'),ingredient('tomato','番茄'),ingredient('beef','牛肉','ready')]},
+  {id:'O3',dish:'unknown',dishName:'Workshop dish',ingredients:['mystery_herb'],remaining:0,patienceTotal:60,patienceRemainingFraction:0,
+   ingredientDetails:[ingredient('mystery_herb','Mystery herb','raw',null)]}
+ ];
+ h.publish({orders});
+ assert.equal(deck.getAttribute('role'),'region');assert.equal(deck.getAttribute('tabindex'),'0','the vertical order list is keyboard-focusable');
+ const cards=deck.querySelectorAll('.touch-order');
+ assert.deepEqual(cards.map(card=>card.dataset.orderId),['O1','O2','O3'],'one vertical card per pending order');
+ assert.equal(cards[0].querySelector('.touch-order-name').textContent,'牛排');
+ assert.match(cards[0].querySelector('.touch-order-time').textContent,/71/,'remaining seconds round up for display');
+ assert.equal(cards[0].querySelector('.touch-order-patience').getAttribute('role'),'progressbar');
+ assert.equal(Number(cards[0].querySelector('.touch-order-patience').getAttribute('aria-valuenow')),70);
+ assert(!cards[0].classList.contains('urgent'));assert(cards[1].classList.contains('urgent'),'15 seconds is urgent');assert(cards[2].classList.contains('urgent'),'zero seconds is urgent');
+ assert.equal(cards[0].querySelector('.touch-order-fill').style.backgroundColor,'var(--herb)','more than half the patience is green');
+ assert.equal(cards[1].querySelector('.touch-order-fill').style.backgroundColor,'var(--tomato)','urgent patience is red');
+ assert.equal(Number(cards[2].querySelector('.touch-order-patience').getAttribute('aria-valuenow')),0);
+ const slots=cards[1].querySelectorAll('.touch-order-ingredient');
+ assert.deepEqual(slots.map(slot=>slot.dataset.ingredientId),['bread','lettuce','tomato','beef'],'burger ingredient slots keep recipe order');
+ const beefIcon=cards[0].querySelector('.touch-ingredient-icon');
+ assert.equal(beefIcon.getAttribute('role'),'img');assert.equal(beefIcon.getAttribute('aria-label'),'牛肉');
+ assert.equal(beefIcon.title||beefIcon.getAttribute('title'),'牛肉');
+ assert.match(beefIcon.style.backgroundImage,/reviewed-atlas\.png/,'ingredient icons use the reviewed atlas');
+ assert(beefIcon.style.backgroundSize&&beefIcon.style.backgroundPosition,'ingredient atlas is cropped rather than displayed whole');
+ assert.equal(cards[2].querySelector('.touch-ingredient-fallback').textContent,'Mystery herb','a custom ingredient without art retains readable text');
+ const initialReplaceCount=deck.replaceCount;deck.scrollTop=35;
+ const timed=orders.map(order=>({...order}));timed[0].remaining=69.2;timed[0].patienceRemainingFraction=.692;
+ h.publish({orders:timed});
+ assert.equal(deck.querySelectorAll('.touch-order')[0],cards[0],'a timer update preserves the card node');
+ assert.equal(cards[0].querySelector('.touch-ingredient-icon'),beefIcon,'a timer update preserves ingredient artwork');
+ assert.equal(deck.replaceCount,initialReplaceCount,'a timer update must not rebuild the vertical list');
+ assert.equal(deck.scrollTop,35,'timer updates preserve the player’s scroll position');
+ assert.match(cards[0].querySelector('.touch-order-time').textContent,/70/);
+ assert.equal(Number(cards[0].querySelector('.touch-order-patience').getAttribute('aria-valuenow')),69);
+ h.publish({orders:[{...timed[0],remaining:50,patienceRemainingFraction:.5},...timed.slice(1)]});
+ assert.equal(cards[0].querySelector('.touch-order-fill').style.backgroundColor,'var(--honey)','half the patience is amber before the urgent window');
+ assert.equal(deck.scrollTop,35,'patience color changes retain the current scroll');h.publish({orders:timed});
+ h.w.kitchenI18n.setLanguage('en');h.w.dispatchEvent(new h.Event('kitchen-language-changed'));
+ assert.equal(deck.querySelectorAll('.touch-order')[0],cards[0],'language changes preserve the order card');
+ assert.equal(cards[0].querySelector('.touch-order-name').textContent,'Steak');
+ const translatedIcon=cards[0].querySelector('.touch-ingredient-icon');
+ assert.equal(translatedIcon.getAttribute('aria-label'),'Beef');assert.equal(translatedIcon.title||translatedIcon.getAttribute('title'),'Beef');
+ assert.equal(cards[2].querySelector('.touch-ingredient-fallback').textContent,'Mystery herb');
+ h.w.kitchenI18n.setLanguage('zh');h.w.dispatchEvent(new h.Event('kitchen-language-changed'));
+ assert.equal(cards[0].querySelector('.touch-ingredient-icon').getAttribute('aria-label'),'牛肉');assert.equal(cards[0].querySelector('.touch-order-name').textContent,'牛排');
+ h.publish({orders:[timed[1],timed[0]]});
+ assert.deepEqual(deck.querySelectorAll('.touch-order').map(card=>card.dataset.orderId),['O2','O1'],'changed order sequence reuses and reorders live cards');
+ assert.equal(deck.querySelectorAll('.touch-order')[1],cards[0]);
+ assert.equal(deck.scrollTop,35,'same-round order reordering retains the scroll position');
+ h.publish({game_id:'next-round',orders:[timed[1],timed[0]]});
+ assert.equal(deck.scrollTop,0,'a new round starts at the first order, even when its order IDs are reused');
+ h.publish({orders:[]});assert.equal(deck.querySelectorAll('.touch-order').length,0,'finished orders leave the list');
+ console.log(`${path}: recipe ingredient sprites/fallbacks, vertical card identity/scroll, localization and patience passed.`);
+}
+
+const entries=['cocos-kitchen/touch-controls.js','cocos-kitchen/build/web/touch-controls.js'];
+assert.equal(fs.readFileSync(entries[0],'utf8'),fs.readFileSync(entries[1],'utf8'),'source and shipped touch controls stay identical');
+for(const path of entries){check(path);checkOrderCards(path);}

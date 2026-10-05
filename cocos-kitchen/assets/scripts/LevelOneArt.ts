@@ -54,6 +54,13 @@ export class LevelOneArt {
     has(key:string){return !!this.frames[key];}
     /** Manifest entry of a frame (grip, pivot, edge points), or undefined. */
     meta(key:string):any{return this.definitions[key];}
+    /** Let the browser HUD crop the same loaded atlas used by the kitchen. */
+    spriteInfo(key:string){
+        const frame=this.frames[key],definition=this.definitions[key],texture=frame?.texture,url=texture?.image?.nativeUrl;
+        if(!definition||!texture||!url)return null;
+        const [x,y,width,height]=definition.rect;
+        return {url,x,y,width,height,atlasWidth:texture.width,atlasHeight:texture.height,alphaBBox:definition.alpha_bbox||[0,0,width,height]};
+    }
     /** Natural pixel proportions, one 64 px art unit per gameplay cell. */
     tile(parent:Node,key:string,cellSize:number,x=0,y=0):boolean {
         const name='modular/'+key,definition=this.definitions[name];

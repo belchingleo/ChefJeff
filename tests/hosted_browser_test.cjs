@@ -250,6 +250,57 @@ async function checkClientTouchBridge(fromSource){
  assert.equal(camera.active,true);assert.equal(audio.active,true);assert.equal(world.active,true);
  assert.equal(controls.getState().connected,false);assert.equal(lastControlsState.connected,false,'disconnect reaches phone HTML controls');
 }
+
+function checkClientOrderBridge(fromSource){
+ const h=harness(),client=clientHarness(h,fromSource);
+ const catalog=JSON.parse(fs.readFileSync('content/recipes/chefjeff-service.json','utf8'));
+ client.state={game_id:'orders-round',phase:'running',rules:{order_patience:120},
+  kitchen:{map:{layout_version:'level-2-1'},items:catalog.items,
+   dishes:Object.entries(catalog.recipes).map(([id,recipe])=>({id,...recipe})),
+   chefs:{human:{holding:null,sprint:{available:true}}},orders:[]}};
+ const frames=new Map();
+ for(const [i,key] of ['food/beef_ready','food/bread_raw','food/lettuce_raw','food/tomato_raw',
+   'ingredients/noodles/ready','ingredients/scallion/raw','ingredients/cucumber/raw',
+   'ingredients/onion/raw','ingredients/cheese/raw','ingredients/chicken/ready',
+   'ingredients/fish/ready','ingredients/flatbread/raw','dishes/steak/ready','food/burger_ready'].entries())
+  frames.set(key,{url:'/art/'+key+'.png',x:i*8,y:16,width:64,height:64,atlasWidth:1024,atlasHeight:512,alphaBBox:[8,10,55,60]});
+ const requested=[];client.art.has=key=>frames.has(key);client.art.spriteInfo=key=>{requested.push(key);return frames.get(key)||null;};
+ const expected={
+  steak:[['beef','ready','food/beef_ready']],
+  burger:[['bread','raw','food/bread_raw'],['lettuce','raw','food/lettuce_raw'],['tomato','raw','food/tomato_raw'],['beef','ready','food/beef_ready']],
+  beef_noodles:[['noodles','ready','ingredients/noodles/ready'],['beef','ready','food/beef_ready'],['scallion','raw','ingredients/scallion/raw']],
+  chicken_noodles:[['noodles','ready','ingredients/noodles/ready'],['chicken','ready','ingredients/chicken/ready'],['scallion','raw','ingredients/scallion/raw']],
+  salad:[['lettuce','raw','food/lettuce_raw'],['tomato','raw','food/tomato_raw'],['cucumber','raw','ingredients/cucumber/raw']],
+  cheeseburger:[['bread','raw','food/bread_raw'],['beef','ready','food/beef_ready'],['cheese','raw','ingredients/cheese/raw'],['lettuce','raw','food/lettuce_raw']],
+  chicken_wrap:[['flatbread','raw','ingredients/flatbread/raw'],['chicken','ready','ingredients/chicken/ready'],['lettuce','raw','food/lettuce_raw'],['onion','raw','ingredients/onion/raw']],
+  fish_steak:[['fish','ready','ingredients/fish/ready']]
+ };
+ client.state.kitchen.orders=Object.keys(expected).map((dish,i)=>({id:'O'+i,dish,status:'pending',remaining:i===0?70:15,
+  ...(i===0?{ingredients:['beef'],patience:75}:{})}));
+ client.state.kitchen.orders.push({id:'duplicate',dish:'missing-recipe',status:'pending',remaining:0,patience:40,ingredients:['unlisted','beef','unlisted']},
+  {id:'expired',dish:'burger',status:'expired',remaining:0},{id:'served',dish:'steak',status:'served',remaining:0});
+ client.installControls();const orders=h.w.kitchenControls.getState().orders;
+ assert.equal(orders.length,9,'all pending orders are available to the vertical list');
+ for(const order of orders.slice(0,8)){
+  const recipe=expected[order.dish];
+  assert.equal(order.dishName,catalog.recipes[order.dish].name);
+  assert.deepEqual([...order.ingredientDetails].map(item=>[item.id,item.state]),recipe.map(([id,state])=>[id,state]),`ingredients for ${order.dish}`);
+  for(let i=0;i<recipe.length;i++){
+   const [id,,key]=recipe[i],detail=order.ingredientDetails[i];
+   assert.equal(detail.name,catalog.items[id].name);assert.deepEqual({...detail.icon},frames.get(key),`sprite for ${order.dish}/${id}`);
+  }
+ }
+ assert.equal(orders[0].patienceTotal,75);assert(Math.abs(orders[0].patienceRemainingFraction-70/75)<1e-8);
+ assert.equal(orders[1].patienceTotal,120,'missing per-order patience uses the current rules');
+ assert.equal(orders[1].patienceRemainingFraction,15/120);
+ assert.deepEqual([...orders[8].ingredientDetails].map(item=>[item.id,item.name,item.state]),
+  [['unlisted','unlisted','raw'],['beef','牛肉','raw'],['unlisted','unlisted','raw']],'snapshot ingredient order and duplicates survive unknown recipes');
+ assert.equal(orders[8].ingredientDetails[0].icon,null,'unknown ingredient retains a text fallback');
+ assert.equal(orders[8].patienceRemainingFraction,0);
+ assert(requested.includes('dishes/steak/ready')&&requested.includes('food/burger_ready'),'recipe sprites use the current reviewed atlas choices');
+ client.state.kitchen.orders[0].remaining=-2;assert.equal(h.w.kitchenControls.getState().orders[0].patienceRemainingFraction,0);
+ client.state.kitchen.orders[0].remaining=150;assert.equal(h.w.kitchenControls.getState().orders[0].patienceRemainingFraction,1);
+}
 const cfg={provider:'deepseek',model:'test-model',api_key:key,remember:false};
 (async()=>{
  let h=harness();await h.w.fetch('/api/state');
@@ -266,9 +317,11 @@ const cfg={provider:'deepseek',model:'test-model',api_key:key,remember:false};
  h=harness();let d=await (await h.w.fetch('/api/state')).json();assert.equal(d.connection.configured,false);
  await checkClientInteractions(false);
  await checkClientTouchBridge(false);
- if(require('node:module').stripTypeScriptTypes){await checkClientInteractions(true);await checkClientTouchBridge(true);}
+ checkClientOrderBridge(false);
+ if(require('node:module').stripTypeScriptTypes){await checkClientInteractions(true);await checkClientTouchBridge(true);checkClientOrderBridge(true);}
  else console.log('TypeScript source execution requires Node 22.13+; included runtime checked.');
  console.log('Browser transport: memory/remember/clear, reload, CORS failure, origin guard and no-key-to-server checks passed.');
  console.log('Client interactions: workstation/floor tap and hold, item changes, cancellation and hosted contribution state passed.');
  console.log('Client touch bridge: normalized movement, station tap/throw hold, neutral reset, cancellation, sprint and keyboard compatibility passed.');
+ console.log('Client order bridge: all recipe ingredients, snapshot order/duplicates, reviewed sprites, unknown fallback and patience passed.');
 })().catch(e=>{console.error(e);process.exitCode=1;});
