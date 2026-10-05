@@ -21,9 +21,9 @@
       #touch-stick{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px;border:2px solid var(--ink);border-radius:50%;box-sizing:border-box;background:transparent;box-shadow:0 0 0 1px #fdf3e1b3;color:var(--ink);text-shadow:0 0 3px var(--paper),0 0 3px var(--paper);pointer-events:none;display:grid;place-items:center;font-size:11px;font-weight:650}#touch-joystick:active #touch-stick{background:#e8983a26}
       #touch-joystick[aria-disabled=true]{opacity:.4}.touch-buttons{position:absolute;right:max(10px,env(safe-area-inset-right));bottom:calc(max(8px,env(safe-area-inset-bottom)) + 12px);display:flex;align-items:flex-end;gap:14px;pointer-events:none}
       .touch-round{display:grid;place-items:center;flex:none;border:2px solid #2b1a12cc;border-radius:50%;box-shadow:0 0 0 1px #fdf3e1b3;color:var(--ink);text-shadow:0 0 3px var(--paper),0 0 3px var(--paper);pointer-events:auto;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;font-size:15px;font-weight:750;padding:6px;box-sizing:border-box;line-height:1.2}
-      #touch-action{width:72px;height:72px;background:transparent}#touch-action[data-pressed=true]{background:#2a5a9e26}
-      #touch-dash{position:relative;width:54px;height:54px;font-size:12px;background:transparent}#touch-dash:active:not(:disabled){background:#3c7a2a26}
-      .touch-round:disabled{color:var(--muted);background:transparent!important;opacity:.6}#touch-dash[data-cooling=true]{opacity:1}#touch-dash[data-cooling=true]::before{content:'';position:absolute;inset:-8px;border-radius:50%;background:conic-gradient(var(--honey) var(--cooldown,0%),var(--walnut) 0);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 0);mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 0);pointer-events:none}
+      #touch-action{width:72px;height:72px;background:transparent}
+      #touch-dash{position:relative;width:54px;height:54px;font-size:12px;background:transparent}
+      .touch-round:disabled{color:var(--muted);opacity:.6}#touch-dash[data-cooling=true]{opacity:1}#touch-dash[data-cooling=true]::before{content:'';position:absolute;inset:-8px;border-radius:50%;background:conic-gradient(var(--honey) var(--cooldown,0%),var(--walnut) 0);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 0);mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 0);pointer-events:none}
       #touch-cancel{position:absolute;right:calc(max(10px,env(safe-area-inset-right)) + 7px);bottom:calc(max(8px,env(safe-area-inset-bottom)) + 102px);width:146px;min-height:48px;display:grid;place-items:center;box-sizing:border-box;border:2px dashed var(--tomato);background:#fdf3e126;color:var(--tomato);text-shadow:0 0 3px var(--paper),0 0 3px var(--paper);font-size:13px;pointer-events:none}#touch-cancel[data-selected=true]{border-style:solid;background:#b8321e26}
       .touch-hint{position:absolute;left:146px;right:174px;bottom:max(9px,env(safe-area-inset-bottom));text-align:center;pointer-events:none;color:var(--paper);background:#2b1a1266;text-shadow:0 1px 2px var(--ink);padding:4px 8px;border:1px solid #6b341866;font-size:12px;line-height:1.4;border-radius:2px;max-height:50px;overflow:hidden;box-sizing:border-box}
       #touch-ai{position:absolute;right:max(10px,env(safe-area-inset-right));top:calc(max(4px,env(safe-area-inset-top)) + 40px);max-width:200px;max-height:32px;box-sizing:border-box;padding:3px 6px;border:1px solid #6b341866;background:#2b1a1266;text-shadow:0 1px 2px var(--ink);overflow:hidden;font-size:11px;line-height:12px;color:var(--paper);text-align:left;pointer-events:none;overflow-wrap:anywhere}
@@ -52,7 +52,6 @@
       #touch-action{position:relative;overflow:visible}
       #touch-action::after{content:'';position:absolute;inset:-6px;border-radius:50%;pointer-events:none;opacity:0;background:conic-gradient(#2a5a9ecc var(--charge,0%),transparent 0);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px))}
       #touch-action[data-charging=true]::after{opacity:1;animation:touch-charge .3s linear forwards}
-      #touch-action[data-pressed=true]{transform:scale(.94)}
       @property --charge{syntax:'<percentage>';inherits:false;initial-value:0%}
       @keyframes touch-charge{from{--charge:0%}to{--charge:100%}}
       .touch-order.urgent{animation:touch-urgent 1s steps(2,jump-none) infinite}
@@ -60,6 +59,21 @@
       @media(prefers-reduced-motion:reduce){.touch-order.urgent{animation:none}#touch-action[data-charging=true]::after{animation:none;--charge:100%}}
       .touch-menu button,.touch-menu-actions button,body.kitchen-touch-mode dialog.panel button{min-height:44px}
       @media(max-width:700px){.touch-toolbar .touch-hint{font-size:11px;gap:5px}.touch-buttons{gap:10px}}
+      /* Translucent mobile-game controls: see-through rings with a light outline, no solid fill or hard
+         shadow; white icons and labels with a dark edge read on any floor. Press brightens; aiming tints blue. */
+      #touch-joystick{width:124px;height:124px;border:2px solid #ffffffa6;background:radial-gradient(circle,#ffffff14 0 60%,#ffffff26 100%);box-shadow:0 0 0 1px #2b1a1240,inset 0 0 0 1px #2b1a1226}
+      #touch-joystick::before,#touch-joystick::after{opacity:0}
+      #touch-stick{width:54px;height:54px;margin:-27px;border:2px solid #ffffffd9;background:#ffffff47;box-shadow:0 0 0 1px #2b1a1259;font-size:0;color:transparent;text-shadow:none}
+      #touch-joystick[data-aiming=true] #touch-stick{background:#5b9be066;border-color:#e6f1ffe6}
+      #touch-joystick[aria-disabled=true]{opacity:.45}
+      .touch-round{border:2px solid #ffffffb3;box-shadow:0 0 0 1px #2b1a1259;color:#fff;text-shadow:0 0 2px #2b1a12,0 1px 2px #2b1a12;font-size:11px;font-weight:750;line-height:1.1;justify-items:center;background-repeat:no-repeat;transition:background-color .06s,transform .06s}
+      #touch-action{width:80px;height:80px;padding:44px 7px 0;align-content:start;overflow:hidden;line-height:12px;font-size:10px;word-break:keep-all;overflow-wrap:anywhere;background-color:#ffffff24;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ffffff' fill-opacity='.92' stroke='%232b1a12' stroke-opacity='.75' stroke-width='1.3' stroke-linejoin='round' d='M7 11V5.5a1.5 1.5 0 0 1 3 0V10V3.8a1.5 1.5 0 0 1 3 0V10V4.8a1.5 1.5 0 0 1 3 0V11V7.5a1.5 1.5 0 0 1 3 0V15c0 3.5-2.6 6-6 6h-1.2c-2.2 0-3.6-.9-4.9-2.6L3.7 14a1.5 1.5 0 0 1 2.3-1.9L7 13.2Z'/%3E%3C/svg%3E");background-size:30px 30px;background-repeat:no-repeat;background-position:center 13px}
+      #touch-action[data-pressed=true]{background-color:#ffffff4d;transform:scale(.95)}
+      #touch-action[data-aiming=true]{background-color:#5b9be059;border-color:#e6f1ffe6;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ffffff' fill-opacity='.92' stroke='%232b1a12' stroke-opacity='.75' stroke-width='1.3' stroke-linejoin='round' d='M4 13h10v4l7-5-7-5v4H4Z'/%3E%3C/svg%3E")}
+      #touch-dash{width:58px;height:58px;padding:0 4px 7px;align-content:end;font-size:10px;background-color:#ffffff1f;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%232b1a12' stroke-opacity='.55' stroke-width='4.2' stroke-linecap='square' d='M5 6l6 6-6 6M12 6l6 6-6 6'/%3E%3Cpath fill='none' stroke='%23ffffff' stroke-width='2.4' stroke-linecap='square' d='M5 6l6 6-6 6M12 6l6 6-6 6'/%3E%3C/svg%3E");background-size:24px 24px;background-repeat:no-repeat;background-position:center 9px}
+      #touch-dash:active:not(:disabled){background-color:#ffffff4d;transform:scale(.95)}
+      .touch-round:disabled{opacity:.45;color:#fff}
+      #touch-dash[data-cooling=true]{opacity:1}
     `;
     document.head.appendChild(style);
     const ui = document.createElement('div');
@@ -140,7 +154,8 @@
       // safe-area padding for notches and the home indicator.
       const safe = window.getComputedStyle(ui);
       const left = (parseFloat(safe.paddingLeft) || 0) + 130;
-      const right = (parseFloat(safe.paddingRight) || 0) + 10;
+      // Equal side margins keep the kitchen centred (orders rail left, buttons right).
+      const right = (parseFloat(safe.paddingRight) || 0) + 130;
       const top = (parseFloat(safe.paddingTop) || 0) + 40;
       const bottom = (parseFloat(safe.paddingBottom) || 0) + 6;
       const detail = { active, landscape, width: w, height: h,
@@ -191,7 +206,7 @@
       text('touch-action', aiming ? '松开投掷' : state.interaction || '操作');
       text('touch-stick', aiming ? '瞄准' : '移动');
       // The needle shows the exact aim angle (360 degrees), the same direction the throw uses.
-      joystick.dataset.aiming = String(aiming);
+      joystick.dataset.aiming = String(aiming); action.dataset.aiming = String(aiming);
       if (aiming && Number.isFinite(state.aiming.x) && Number.isFinite(state.aiming.y))
         el('touch-aim').style.transform = 'rotate(' + (Math.atan2(state.aiming.y, state.aiming.x) * 180 / Math.PI).toFixed(1) + 'deg)';
       if (aiming && !wasAiming) buzz(12);
