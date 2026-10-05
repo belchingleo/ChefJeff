@@ -493,8 +493,8 @@ export class KitchenClient extends Component {
         for(let i=right.length-1;i>=0;i--)g.lineTo(right[i][0],right[i][1]);
         g.close();g.fill();g.stroke();
         if(toMate){
-            // Aimed at Jeff: ring his feet (green), the throw goes to him while he stays there.
-            g.fillColor=new Color(99,150,80,60);g.strokeColor=new Color(60,122,42,220);g.lineWidth=2.5;
+            // Aimed at Jeff: ring his feet in the player's denim (the UI's navy), the throw goes to him.
+            g.fillColor=new Color(42,90,158,56);g.strokeColor=color(COLORS.human);g.lineWidth=2.5;
             g.ellipse(ex,ey-18,22,11);g.fill();g.stroke();
         }else{
             // A maximum-range guide, not a prediction of collision or catching.
