@@ -4,6 +4,9 @@ Drawn with the ingredient pack's tools (scripts/art/ingredient_pack.py), which c
 everything into one atlas. Keys:
 
   objects/pan, modular/pan_horizontal, modular/pan_vertical    empty pan, same canvases as the soup pot frames
+  modular/pan_west, modular/pan_north                          handle pointing west / north (behind the pan);
+                                                               with horizontal (east) and vertical (south) the
+                                                               handle can always point at the chef
   objects/pan/<item>/<stage>, modular/pan_<axis>/<item>/<stage>
                                                                the pan with food frying in it, baked in, for
                                                                beef, chicken, fish at chopped/cooking/ready/burnt
@@ -45,7 +48,13 @@ PANS = {
     'objects/pan': ((32, 32), (13.0, 15.0, 11.0, 7.4, 3.0), ((23.0, 16.6), (31.2, 13.0), 1.7, 1.4)),
     'modular/pan_horizontal': ((50, 37), (19.5, 16.5, 17.5, 11.5, 4.0), ((35.5, 18.5), (49.2, 14.8), 2.5, 2.0)),
     'modular/pan_vertical': ((47, 50), (23.5, 16.5, 20.0, 13.0, 4.5), ((23.5, 33.0), (23.5, 49.0), 2.9, 2.6)),
+    # The handle points at the chef (the station's operation side): horizontal = east, vertical =
+    # south; these two add west and north. Same light (back left), so no mirrored highlights.
+    'modular/pan_west': ((50, 37), (30.5, 16.5, 17.5, 11.5, 4.0), ((14.5, 18.5), (0.8, 14.8), 2.5, 2.0)),
+    'modular/pan_north': ((47, 50), (23.5, 33.5, 20.0, 13.0, 4.5), ((23.5, 22.0), (23.5, 1.0), 2.9, 2.6)),
 }
+# Frames whose handle lies behind the pan (it points away from the viewer).
+HANDLE_BEHIND = {'modular/pan_north'}
 # inside of the existing soup pot frames (grid-foundation-v1), measured: centre, radii
 POTS = {'objects/pot': (16.5, 11.6, 9.4, 4.4), 'modular/pot_horizontal': (24.5, 12.6, 14.2, 9.2),
         'modular/pot_vertical': (23.0, 20.0, 20.2, 12.2)}
@@ -53,7 +62,7 @@ POTS = {'objects/pot': (16.5, 11.6, 9.4, 4.4), 'modular/pot_horizontal': (24.5, 
 
 # ---------------------------------------------------------------- frying pan
 
-def pan_pieces(body, handle):
+def pan_pieces(body, handle, behind=False):
     cx, cy, rx, ry, wall = body
     (a, b, r0, r1) = handle
     ins = inside(body)
@@ -92,7 +101,9 @@ def pan_pieces(body, handle):
         rv = (u * u + v * v) < 0.12
         col[rv] = ramp('steel', 1.0)[rv]
         return col, m
-    return [disc_piece(cx, cy, rx, ry, wall, top, side, 0, ink=PAN_INK), Piece(grip, PAN_INK), Piece(bracket, PAN_INK)]
+    pan = disc_piece(cx, cy, rx, ry, wall, top, side, 0, ink=PAN_INK)
+    # Back to front: a handle pointing away is drawn first, so the pan body overlaps its root.
+    return [Piece(grip, PAN_INK), Piece(bracket, PAN_INK), pan] if behind else [pan, Piece(grip, PAN_INK), Piece(bracket, PAN_INK)]
 
 
 def inside(body):
@@ -177,7 +188,7 @@ def pan_frames():
     for key, (size, body, handle) in PANS.items():
         W, H = size
         ins = inside(body)
-        empty = render(pan_pieces(body, handle), size, 1.0, (W / 2, H / 2), (W / 2, H / 2))
+        empty = render(pan_pieces(body, handle, key in HANDLE_BEHIND), size, 1.0, (W / 2, H / 2), (W / 2, H / 2))
         anchor = [round(ins[0], 1), round(ins[1], 1)]
         F[key] = (empty, [0.5, 0.5], {'contentAnchor': anchor, 'vessel': 'pan'})
         clip = ellipse_mask(size, ins, -0.2)

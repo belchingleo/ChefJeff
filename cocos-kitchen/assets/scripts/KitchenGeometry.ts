@@ -210,3 +210,12 @@ export function throwItemPoint(grip:number[],armDeg:number,out=4):[number,number
     const a=armDeg*Math.PI/180;
     return [grip[0]+Math.cos(a)*out,grip[1]-Math.sin(a)*out];
 }
+/** Which way a pan's handle points on a station: toward the operation side, where the chef stands.
+ * Uses the station's facing, else the access cell relative to the station cell. */
+export function panHandleSide(station:any):string{
+    if(!station)return 'east';
+    if(['north','south','east','west'].includes(station.facing))return station.facing;
+    const cell=station.cell||[0,0],access=station.access||cell,dx=access[0]-cell[0],dy=access[1]-cell[1];
+    if(Math.abs(dx)>=Math.abs(dy)&&dx!==0)return dx>0?'east':'west';
+    return dy<0?'north':'south';
+}

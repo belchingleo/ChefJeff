@@ -16,7 +16,7 @@ Throws reuse the painted chop arms (knifeless frames): frame 0 raised is the win
 
 Prepared tomatoes use slices and lettuce uses leaves, shared between preparation and plated layers. Burger layers have a fixed order independent of ingredient-addition order. Missing ingredients remain hidden. Art does not decide recipe legality.
 
-Devices use horizontal/vertical assets as appropriate. The bin opening's long edge faces the reachable operation side; wall-facing details follow that side. Serving windows retain their map footprint. Fire, smoke, washing and sprint effects follow game state and pause with gameplay.
+A frying pan's handle points at the chef: on a stove or counter toward the station's operation side (`facing`), in hand back toward the holder; `modular/pan_vertical` (south), `pan_horizontal` (east), `pan_west` and `pan_north` (handle behind the pan) share one light. Devices use horizontal/vertical assets as appropriate. The bin opening's long edge faces the reachable operation side; wall-facing details follow that side. Serving windows retain their map footprint. Fire, smoke, washing and sprint effects follow game state and pause with gameplay.
 
 ## Asset changes and verification
 
@@ -46,7 +46,7 @@ ChefJeff 使用固定像素视角、方向化角色、模块柜墙、配料叠�
 
 切好番茄使用片状、生菜使用叶片，切配与盘中叠层共用形态。汉堡按固定顺序显示，与放料先后无关，缺料层隐藏；美术不判断菜谱合法性。
 
-设备使用对应横／纵资源。垃圾桶开口长边面向可接触操作侧，靠墙细节随之定向；出餐口保留地图占格。火、烟、洗碗和冲刺特效跟随状态，并随游戏暂停。
+平底锅手柄朝向厨师：在灶台或柜台上朝工位操作侧（`facing`），拿在手里时朝向持锅者；`modular/pan_vertical`（朝下）、`pan_horizontal`（朝右）、`pan_west`、`pan_north`（手柄在锅后）光照一致。设备使用对应横／纵资源。垃圾桶开口长边面向可接触操作侧，靠墙细节随之定向；出餐口保留地图占格。火、烟、洗碗和冲刺特效跟随状态，并随游戏暂停。
 
 ## 素材修改与验证
 

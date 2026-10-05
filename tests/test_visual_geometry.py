@@ -262,6 +262,16 @@ for(let deg=0;deg<360;deg+=1){
 assert.strictEqual(switches,4,'four body views, each a single sector');
 const p=geometry.throwItemPoint([10,20],90,4);assert(Math.abs(p[0]-10)<1e-9&&Math.abs(p[1]-16)<1e-9,'item sits beyond the fist along the arm');
 
+// Pan handles point at the chef: the station's facing (its operation side), else from the access cell.
+for(const level of [1,2,3]){
+  const map=JSON.parse(fs.readFileSync(path.join(root,`maps/level-${level}.json`),'utf8'));
+  for(const e of map.equipment.filter(e=>e.type==='stove'||e.type==='counter'))assert.strictEqual(geometry.panHandleSide(e),e.facing,`${level} ${e.id}`);
+}
+assert.strictEqual(geometry.panHandleSide({cell:[4,4],access:[3,4]}),'west');assert.strictEqual(geometry.panHandleSide({cell:[4,4],access:[4,3]}),'north');
+const pack=JSON.parse(fs.readFileSync(path.join(root,'cocos-kitchen/assets/resources/art/ingredient-pack-v1/manifest.json'),'utf8')).frames;
+for(const stem of ['pan_vertical','pan_horizontal','pan_west','pan_north'])for(const item of ['beef','chicken','fish'])for(const stage of ['chopped','cooking','ready','burnt'])
+  assert(pack[`modular/${stem}`]&&pack[`modular/${stem}/${item}/${stage}`],`pan art for every handle side: ${stem} ${item} ${stage}`);
+
 // Held-key prediction lands where the server's manual step does, including wall slides.
 const walks = JSON.parse(fs.readFileSync(process.argv[4], 'utf8'));
 for (const {level, map, steps} of walks) {

@@ -2,7 +2,7 @@ import { _decorator, Component, Node, UITransform, Graphics, Color, Label, Layer
     view, ResolutionPolicy, sys, game, Game, profiler, Mask, Vec2, Camera, director, Sprite } from 'cc';
 import { LevelOneArt } from './LevelOneArt';
 import { KitchenAudio } from './KitchenAudio';
-import { levelButtonLayout, GRID_ART, stationView, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, workingChefDepth, flightDepth, predictWalk, footWalkable, plateLayers, heatCountdown, behindCounter, throwPose, throwItemPoint } from './KitchenGeometry';
+import { levelButtonLayout, GRID_ART, stationView, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, workingChefDepth, flightDepth, predictWalk, footWalkable, plateLayers, heatCountdown, behindCounter, throwPose, throwItemPoint, panHandleSide } from './KitchenGeometry';
 const { ccclass } = _decorator;
 type Action = { key: string; label: string; kind: string; target: string; expected: unknown[] };
 type KitchenState = { game_id: string; phase: string; speed: number; kitchen: any; actions: Action[]; levels?:any[]; limits?:any; release?:any; interaction?:Action; use_interaction?:Action; interaction_hint?:string; interaction_focus?:string; interaction_cell?:number[];
@@ -828,11 +828,17 @@ export class KitchenClient extends Component {
         const holder=node.parent?.name==='body'?node.parent.parent?.name:'';
         const facing=holder?this.state?.kitchen.chefs[holder]?.facing:'';
         const axis=station?stationView(this.state!.kitchen.map,station).device_axis:(facing==='up'||facing==='down'?'vertical':'horizontal');
+        // A pan's handle points at the chef: on a station, toward its operation side; in hand, back
+        // toward the holder. vertical = handle south, horizontal = east, plus pan_west / pan_north.
+        const handle=station?panHandleSide(this.state!.kitchen.map.equipment[station]):holder?({down:'north',up:'south',left:'east',right:'west'} as Record<string,string>)[facing]||'east':'';
+        const handleKey=handle?`modular/${kind}_${({south:'vertical',east:'horizontal',west:'west',north:'north'} as Record<string,string>)[handle]}`:'';
+        const turned=!!handleKey&&this.art.has(handleKey);
         const stem=[kind,VESSEL_ART_FALLBACK].find(stem=>!!stem&&this.art.has(`modular/${stem}_${axis}`));
-        const base=stem?`modular/${stem}_${axis}`:this.art.has('objects/'+kind)?'objects/'+kind:'objects/'+VESSEL_ART_FALLBACK;
+        const base=turned?handleKey:stem?`modular/${stem}_${axis}`:this.art.has('objects/'+kind)?'objects/'+kind:'objects/'+VESSEL_ART_FALLBACK;
+        const upright=turned?handle==='north'||handle==='south':axis==='vertical';
         const filled=item?`${base}/${item}/${stage}`:'';
         const key=filled&&this.art.has(filled)?filled:base;
-        if(!this.art.centered(node,key,TILE*(axis==='vertical'?.62:.76)*scale,TILE*.76*scale))return '';
+        if(!this.art.centered(node,key,TILE*(upright?.62:.76)*scale,TILE*.76*scale))return '';
         return key===filled?'filled':'empty';
     }
     private closingSummary(k:any,won:boolean){
@@ -1217,9 +1223,9 @@ export class KitchenClient extends Component {
             const held=body.getChildByName('held');
             let hand=body.getChildByName('held-hand');
             if(held&&throwMeta?.grip){
-                // The item sits in the painted hand: canvas px -> body coords (feet anchor at y=83).
+                // The item sits in the painted hand at the usual carry size: canvas px -> body coords (feet anchor at y=83).
                 const [px,py]=throwItemPoint(throwMeta.grip,throwMeta.arm_deg||0),lift=inWorld&&this.useModularArt?0:-29;
-                held.setPosition(px-34,83-py+lift);held.setScale(.66,.66,1);
+                held.setPosition(px-34,83-py+lift);held.setScale(.9,.9,1);
                 held.setSiblingIndex(facing==='up'?0:body.children.length-1);
                 // The fist closes over the item (the pose's own hand overlay), except behind the back.
                 const handKey=throwKey+'_hand';
