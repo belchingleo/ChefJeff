@@ -44,6 +44,9 @@ export class LevelOneArt {
             try {await this.loadAtlas('art/knife-arc-v1');}
             catch(error){console.warn('Knife arc art unavailable; chefs keep the painted knife.',error);}
             await this.loadAtlas('art/trash-directions-v1');
+            // Painted diagonal throw bodies, when the artist's pack is present (scripts/art/throw_diagonals.py).
+            try {await this.loadAtlas('art/throw-diagonal-v1');}
+            catch(_){/* not delivered yet: throws use the four-view bodies */}
             try {await this.loadAtlas('art/ingredient-pack-v1');}
             catch(error){console.warn('Ingredient pack art unavailable; new ingredients keep their fallback icons.',error);}
             if(typeof location!=='undefined'&&new URLSearchParams(location.search).get('prepSample')==='1')

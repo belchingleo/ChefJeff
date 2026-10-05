@@ -67,6 +67,13 @@
       #touch-dash:active:not(:disabled){background-color:#2b1a1275;transform:scale(.95)}
       .touch-round:disabled{opacity:.45;color:#fff}
       #touch-dash[data-cooling=true]{opacity:1}
+      /* Diagonal pair: Action in the corner, Dash up-left of it at 45 degrees; Cancel appears straight
+         above Action while aiming, in the same round translucent style, red while the finger is on it. */
+      .touch-buttons{width:80px;height:80px;display:block}
+      #touch-action{position:absolute;right:0;bottom:0}
+      #touch-dash{position:absolute;right:67px;bottom:67px}
+      #touch-cancel{right:calc(max(10px,env(safe-area-inset-right)) + 14px);bottom:calc(max(8px,env(safe-area-inset-bottom)) + 12px + 106px);width:52px;height:52px;min-height:0;border:2px solid #ffffffd9;border-radius:50%;background:#2b1a1247;box-shadow:0 0 0 1px #2b1a1259;color:#fff;text-shadow:0 1px 2px #2b1a12;font-size:12px;font-weight:750}
+      #touch-cancel[data-selected=true]{border-style:solid;border-color:#fff;background:#b8321ecc;transform:scale(1.12)}
     `;
     document.head.appendChild(style);
     const ui = document.createElement('div');
@@ -204,7 +211,7 @@
       wasAiming = aiming;
       text('touch-hand', state.handLabel || '');
       text('touch-ai', state.aiStatus || '');
-      text('touch-status', cancelSelected ? '拖到这里取消' : aiming ? '松开投掷' : eventNotice || state.interactionHint || (state.holding && state.canThrow ? '长按投掷' : ''));
+      text('touch-status', cancelSelected ? '松手取消' : aiming ? '松开投掷' : eventNotice || state.interactionHint || (state.holding && state.canThrow ? '长按投掷' : ''));
       text('touch-clock', state.timeLabel || '厨房连接中…');
       text('touch-money', state.money == null ? '' : '¥' + state.money);
       text('touch-served', state.served == null ? '' : t('已出餐') + ' ' + state.served);
@@ -300,7 +307,7 @@
     function language() {
       for (const [id, source] of Object.entries({ 'touch-pause': '暂停', 'touch-communication': '沟通', 'touch-bookmark': '标记',
         'touch-menu-toggle': '菜单', 'touch-settings': '设置', 'touch-help': '操作说明', 'touch-end': '结束本局', 'touch-record': '本局记录',
-        'touch-fullscreen': '全屏', 'touch-menu-close': '返回厨房', 'touch-cancel': '拖到这里取消', 'touch-rotate-title': '请将手机横过来',
+        'touch-fullscreen': '全屏', 'touch-menu-close': '返回厨房', 'touch-cancel': '取消', 'touch-rotate-title': '请将手机横过来',
         'touch-rotate-copy': '横屏后点“继续经营”，厨房不会自动恢复。',
         'touch-instructions': '手持物品时长按操作瞄准，松开投掷；拖到取消区可取消。' })) text(id, source);
       el('touch-language').textContent = window.kitchenI18n?.language === 'en' ? '中文' : 'English';

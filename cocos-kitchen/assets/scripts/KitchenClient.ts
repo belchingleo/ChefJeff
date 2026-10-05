@@ -2,7 +2,7 @@ import { _decorator, Component, Node, UITransform, Graphics, Color, Label, Layer
     view, ResolutionPolicy, sys, game, Game, profiler, Mask, Vec2, Camera, director, Sprite } from 'cc';
 import { LevelOneArt } from './LevelOneArt';
 import { KitchenAudio } from './KitchenAudio';
-import { levelButtonLayout, GRID_ART, stationView, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, workingChefDepth, flightDepth, predictWalk, footWalkable, plateLayers, heatCountdown, behindCounter, throwPose, throwItemPoint, panHandleSide } from './KitchenGeometry';
+import { levelButtonLayout, GRID_ART, stationView, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, workingChefDepth, flightDepth, predictWalk, footWalkable, plateLayers, heatCountdown, behindCounter, throwPose, throwDiagonal, throwItemPoint, panHandleSide } from './KitchenGeometry';
 const { ccclass } = _decorator;
 type Action = { key: string; label: string; kind: string; target: string; expected: unknown[] };
 type KitchenState = { game_id: string; phase: string; speed: number; kitchen: any; actions: Action[]; levels?:any[]; limits?:any; release?:any; interaction?:Action; use_interaction?:Action; interaction_hint?:string; interaction_focus?:string; interaction_cell?:number[];
@@ -1166,10 +1166,10 @@ export class KitchenClient extends Component {
         this.cover.setSiblingIndex(this.node.children.length-1);
         for(const id of ['pause','resume','end'])this.buttons[id].node.setSiblingIndex(this.node.children.length-1);this.mounted=true;this.applyTouchLayout();
     }
-    private throwPoseFor(who:string):{view:string;frame:number}|null{
+    private throwPoseFor(who:string):{view:string;frame:number;dx:number;dy:number;phase:'windup'|'release'}|null{
         const release=this.throwReleases[who];
-        if(release&&this.clock<release.until)return throwPose(release.dx,release.dy,'release');
-        if(who==='human'&&this.aiming)return throwPose(this.aiming.x,this.aiming.y,'windup');
+        if(release&&this.clock<release.until)return {...throwPose(release.dx,release.dy,'release'),dx:release.dx,dy:release.dy,phase:'release'};
+        if(who==='human'&&this.aiming)return {...throwPose(this.aiming.x,this.aiming.y,'windup'),dx:this.aiming.x,dy:this.aiming.y,phase:'windup'};
         return null;
     }
     private characterArt(body:Node,who:string,facing:string,walking=false,working=false){
@@ -1179,9 +1179,16 @@ export class KitchenClient extends Component {
         const chopping=!!working&&inWorld&&chef?.action_kind==='chop'&&!!station;
         // Aiming / just thrown: turn the body to the throw and use the painted arm (any aim angle).
         const throwing=inWorld&&!chopping?this.throwPoseFor(who):null;
-        const throwKey=throwing?`knifeless/characters/${kind}/${throwing.view}/chop_${throwing.frame}`:'';
+        // Painted diagonal bodies (art/throw-diagonal-v1) take the four diagonal sectors when present;
+        // otherwise the four-view body leans the chop arm (throwPose).
+        const diagonal=throwing?throwDiagonal(throwing.dx,throwing.dy):'';
+        const diagonalKey=diagonal?`throw/${kind}/${diagonal}/${throwing!.phase}`:'';
+        const useDiagonal=!!diagonalKey&&this.art.has(diagonalKey)&&!!this.art.meta(diagonalKey)?.grip;
+        const throwKey=useDiagonal?diagonalKey:throwing?`knifeless/characters/${kind}/${throwing.view}/chop_${throwing.frame}`:'';
         const throwMeta=throwKey&&this.art.has(throwKey)?this.art.meta(throwKey):null;
         if(throwMeta?.grip)facing=throwing!.view;
+        // Held item behind the body when the chef faces away (back view, or an upward diagonal).
+        const itemBehind=useDiagonal?diagonal.startsWith('up'):facing==='up';
         const sampleFrame=this.prepSample?Number(new URLSearchParams(location.search).get('prepFrame')??-1):-1;
         const knifePilot=this.knifeSample&&chopping&&who==='jeff'&&facing==='down'&&this.state!.kitchen.level===2&&chef.target==='b1';
         // Raise, swing, strike, recover: the chop frames move arms and knife together.
@@ -1226,10 +1233,10 @@ export class KitchenClient extends Component {
                 // The item sits in the painted hand at the usual carry size: canvas px -> body coords (feet anchor at y=83).
                 const [px,py]=throwItemPoint(throwMeta.grip,throwMeta.arm_deg||0),lift=inWorld&&this.useModularArt?0:-29;
                 held.setPosition(px-34,83-py+lift);held.setScale(.9,.9,1);
-                held.setSiblingIndex(facing==='up'?0:body.children.length-1);
+                held.setSiblingIndex(itemBehind?0:body.children.length-1);
                 // The fist closes over the item (the pose's own hand overlay), except behind the back.
                 const handKey=throwKey+'_hand';
-                if(facing!=='up'&&held.active&&this.art.has(handKey)){
+                if(!itemBehind&&held.active&&this.art.has(handKey)){
                     if(!hand){hand=this.child(body,'held-hand',68,88);}
                     hand.active=true;this.art.show(hand,handKey,68,88,0,lift);hand.setSiblingIndex(body.children.length-1);
                 }else if(hand)hand.active=false;

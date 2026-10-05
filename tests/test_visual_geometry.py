@@ -262,6 +262,11 @@ for(let deg=0;deg<360;deg+=1){
 assert.strictEqual(switches,4,'four body views, each a single sector');
 const p=geometry.throwItemPoint([10,20],90,4);assert(Math.abs(p[0]-10)<1e-9&&Math.abs(p[1]-16)<1e-9,'item sits beyond the fist along the arm');
 
+// Diagonal throw bodies take 45-degree sectors centred on the diagonals (map y down).
+for(const [deg,name] of [[45,'down_right'],[135,'down_left'],[225,'up_left'],[315,'up_right'],[60,'down_right'],[0,''],[90,''],[22.4,''],[22.6,'down_right'],[-30,'up_right']])
+  assert.strictEqual(geometry.throwDiagonal(...at(deg)),name,`diagonal at ${deg}`);
+assert.strictEqual(geometry.throwDiagonal(0,0),'');
+
 // Pan handles point at the chef: the station's facing (its operation side), else from the access cell.
 for(const level of [1,2,3]){
   const map=JSON.parse(fs.readFileSync(path.join(root,`maps/level-${level}.json`),'utf8'));

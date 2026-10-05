@@ -36,8 +36,8 @@ When the small-screen touch layout is active, the device must be in landscape to
 | Left joystick | Press anywhere in the lower-left area: the stick appears under your thumb. Push to move in any direction (360°), release to stop; diagonals do not increase speed. While aiming, it turns the throw (any angle) instead of moving |
 | Action, empty hands | Interact on press, including fetching, chopping, washing and stopping ongoing work |
 | Action, holding an item | Short press interacts on release. Hold about 0.3 s to stop and aim (the button reads Throw), including in front of a station; release to throw. When the other chef stands roughly on the aim line within reach, the trajectory bends to them and they are ringed in denim blue |
-| Cancel area while aiming | Drag the Action finger into the cancel area and release to cancel, without throwing or interacting |
-| Dash | Above Action. Tap while moving for 1.4× speed for 1 game second, then 3-game-second cooldown. Disabled while standing still or aiming |
+| Cancel while aiming | A round Cancel button appears above Action; slide the Action finger onto it (it turns red) and release to cancel, without throwing or interacting |
+| Dash | Up and to the left of Action, on a diagonal arc. Tap while moving for 1.4× speed for 1 game second, then 3-game-second cooldown. Disabled while standing still or aiming |
 | Communication / Bookmark | Expand the collapsed message panel for preset messages; bookmark uses the same timing and export rules as Enter |
 | Pause / Menu | Pause and reach Settings, controls, round records and end-round controls without a keyboard |
 
@@ -91,8 +91,8 @@ Hosted Settings additionally offer explicit contribution after the round, a data
 | 左摇杆 | 在左下区域任意位置按下，摇杆出现在拇指下方。可朝任意方向（360°）移动，松手停止；斜走不加速。瞄准时改为调整投掷方向（任意角度），不移动角色 |
 | 空手按「操作」 | 按下立即交互，包括取料、切菜、洗碗和中断当前工作 |
 | 持物按「操作」 | 短按松开后交互；长按约 0.3 秒停下并瞄准（按钮显示「投掷」），站在工位前也一样，松开投掷。另一位厨师大致站在瞄准线上且在射程内时，抛物线会弯向他，并用牛仔蓝圈标出 |
-| 瞄准时拖到取消区 | 操作按钮的手指拖入取消区后松开，取消本次瞄准，不投掷也不交互 |
-| 冲刺 | 位于「操作」上方。移动时点击，以 1.4 倍速度持续 1 游戏秒，然后冷却 3 游戏秒。静止／瞄准时禁用 |
+| 瞄准时取消 | 操作键上方出现圆形「取消」键；按住操作的手指滑到上面（变红）后松开，取消本次瞄准，不投掷也不交互 |
+| 冲刺 | 位于「操作」左上方，斜向弧形排列。移动时点击，以 1.4 倍速度持续 1 游戏秒，然后冷却 3 游戏秒。静止／瞄准时禁用 |
 | 沟通／标记 | 打开默认折叠的沟通面板发送预设消息；标记与 Enter 使用相同时间与导出规则 |
 | 暂停／菜单 | 不用键盘也能暂停、进入设置和操作说明、查看本局记录或结束本局 |
 

@@ -219,3 +219,12 @@ export function panHandleSide(station:any):string{
     if(Math.abs(dx)>=Math.abs(dy)&&dx!==0)return dx>0?'east':'west';
     return dy<0?'north':'south';
 }
+/** The diagonal a throw aims along, when within 22.5 degrees of one: 'down_right', 'down_left',
+ * 'up_left' or 'up_right' (map y points down); '' otherwise. Selects painted diagonal throw bodies. */
+export function throwDiagonal(dx:number,dy:number):string{
+    if(!dx&&!dy)return '';
+    const t=((Math.atan2(dy,dx)*180/Math.PI)%360+360)%360;
+    const names=['down_right','down_left','up_left','up_right'];
+    for(let i=0;i<4;i++){const centre=45+90*i,off=Math.abs(((t-centre)%360+540)%360-180);if(off<22.5)return names[i];}
+    return '';
+}

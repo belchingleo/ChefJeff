@@ -12,7 +12,7 @@ Keep logical footprints and access points in map data. Scale assets proportional
 
 The human chef has brown hair, a white shirt and blue overalls. Jeff is a compact tracked robot with a chef hat and red scarf. Preserve each character's height and proportions across directions. Chopping uses directional poses, a separate knife and light impact feedback; standing position follows the workstation's reachable side. Downstrokes may naturally pass behind a back-facing body while raised swings stay readable.
 
-Throws reuse the painted chop arms (knifeless frames): frame 0 raised is the wind-up, 1 straight, 2 forward-down and 3 forward-up are the release. `KitchenGeometry.throwPose` picks the body view and arm for any aim angle; side views take 120° so diagonals lean the arm instead of turning to the front or back. The held item sits in the pose's painted hand (`grip`, a few pixels along `arm_deg`), behind the body for back views, with the pose's fist overlay on top. No angle is rotated freely, so pixels stay crisp.
+Throws reuse the painted chop arms (knifeless frames): frame 0 raised is the wind-up, 1 straight, 2 forward-down and 3 forward-up are the release. `KitchenGeometry.throwPose` picks the body view and arm for any aim angle; side views take 120° so diagonals lean the arm instead of turning to the front or back. The held item sits in the pose's painted hand (`grip`, a few pixels along `arm_deg`), behind the body for back views, with the pose's fist overlay on top. No angle is rotated freely, so pixels stay crisp. When the optional pack `art/throw-diagonal-v1` is present (`throw/<player|jeff>/<diagonal>/<windup|release>`, see [the brief](throw-diagonal-spec.md)), aims within 22.5° of a diagonal use those painted bodies instead, with the item behind the body for the up diagonals.
 
 Prepared tomatoes use slices and lettuce uses leaves, shared between preparation and plated layers. Burger layers have a fixed order independent of ingredient-addition order. Missing ingredients remain hidden. Art does not decide recipe legality.
 
@@ -42,7 +42,7 @@ ChefJeff 使用固定像素视角、方向化角色、模块柜墙、配料叠�
 
 人类厨师为棕发、白衬衫、蓝背带裤；Jeff 为短臂履带机器人、厨师帽和红领巾。不同朝向保留身高与比例。切菜使用方向姿态、独立刀具与轻微切击反馈，站位遵循工位可达侧。背向角色下刀时刀被身体自然遮挡可以接受，举刀时需可辨认。
 
-投掷沿用已绘制的切菜手臂（无刀帧）：第 0 帧举起为蓄力，1 平伸、2 前下、3 前上为出手。`KitchenGeometry.throwPose` 按任意瞄准角度选择身体朝向和手臂；侧身占 120°，斜向用手臂俯仰表现，不转成正面或背面。手中物品放在该姿势画好的手部位置（`grip` 沿 `arm_deg` 外移几像素），背面时在身体后方，手指叠层盖在物品上。不做任意角度旋转，像素保持清晰。
+投掷沿用已绘制的切菜手臂（无刀帧）：第 0 帧举起为蓄力，1 平伸、2 前下、3 前上为出手。`KitchenGeometry.throwPose` 按任意瞄准角度选择身体朝向和手臂；侧身占 120°，斜向用手臂俯仰表现，不转成正面或背面。手中物品放在该姿势画好的手部位置（`grip` 沿 `arm_deg` 外移几像素），背面时在身体后方，手指叠层盖在物品上。不做任意角度旋转，像素保持清晰。若存在可选美术包 `art/throw-diagonal-v1`（`throw/<player|jeff>/<斜向>/<windup|release>`，见[美术需求](throw-diagonal-spec.md)），瞄准方向在斜向 ±22.5° 内时改用这些斜向身体，朝上的斜向物品在身体后方。
 
 切好番茄使用片状、生菜使用叶片，切配与盘中叠层共用形态。汉堡按固定顺序显示，与放料先后无关，缺料层隐藏；美术不判断菜谱合法性。
 
