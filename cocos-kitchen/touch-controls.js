@@ -71,8 +71,9 @@
          above Action while aiming, in the same round translucent style, red while the finger is on it. */
       .touch-buttons{width:80px;height:80px;display:block}
       #touch-action{position:absolute;right:0;bottom:0}
-      #touch-dash{position:absolute;right:67px;bottom:67px}
-      #touch-cancel{right:calc(max(10px,env(safe-area-inset-right)) + 14px);bottom:calc(max(8px,env(safe-area-inset-bottom)) + 12px + 106px);width:52px;height:52px;min-height:0;border:2px solid #ffffffd9;border-radius:50%;background:#2b1a1247;box-shadow:0 0 0 1px #2b1a1259;color:#fff;text-shadow:0 1px 2px #2b1a12;font-size:12px;font-weight:750}
+      /* Arc around Action (centre 40,40 from the corner, radius 82): Dash at 165deg, Cancel at 100deg. */
+      #touch-dash{position:absolute;right:89px;bottom:32px}
+      #touch-cancel{right:calc(max(10px,env(safe-area-inset-right)) + 28px);bottom:calc(max(8px,env(safe-area-inset-bottom)) + 12px + 95px);width:52px;height:52px;min-height:0;border:2px solid #ffffffd9;border-radius:50%;background:#2b1a1247;box-shadow:0 0 0 1px #2b1a1259;color:#fff;text-shadow:0 1px 2px #2b1a12;font-size:12px;font-weight:750}
       #touch-cancel[data-selected=true]{border-style:solid;border-color:#fff;background:#b8321ecc;transform:scale(1.12)}
     `;
     document.head.appendChild(style);
