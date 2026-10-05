@@ -36,6 +36,30 @@
       body.kitchen-touch-mode dialog.panel{max-height:calc(var(--touch-vh,100dvh) - 12px);max-width:calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right) - 20px);font-size:15px;touch-action:pan-y;overscroll-behavior:contain}body.kitchen-touch-mode .dlg-head{padding:10px 14px;gap:8px}body.kitchen-touch-mode .dlg-head h2{font-size:20px;line-height:24px}body.kitchen-touch-mode .dlg-body{padding:12px 14px}body.kitchen-touch-mode .tabs{padding:0 14px 8px;gap:4px}body.kitchen-touch-mode .dlg-foot{padding:0 14px 14px}body.kitchen-touch-mode .sr-label{display:none}body.kitchen-touch-mode input,body.kitchen-touch-mode textarea,body.kitchen-touch-mode select{font-size:16px!important;-webkit-user-select:text;user-select:text;-webkit-touch-callout:default;touch-action:auto}
       body.kitchen-touch-mode #kitchen-bookmark-toast{left:50%;bottom:154px;transform:translateX(-50%);max-width:calc(100vw - 32px);font:13px/18px var(--body)}
       @media(max-width:700px){.touch-toolbar{gap:4px;padding:0 4px}.touch-toolbar button{padding:3px 6px}.touch-clock{font-size:14px}.touch-money{font-size:12px}#touch-served{display:none}#touch-joystick{width:112px;height:112px}.touch-orders{bottom:calc(max(8px,env(safe-area-inset-bottom)) + 124px)}.touch-buttons{gap:10px}.touch-hint{left:132px;right:160px;font-size:11px}.touch-menu{padding:10px 12px}.touch-menu h2{font-size:20px}.touch-menu button{min-height:36px;font-size:13px}}
+      /* Phone layout refinements: the hand/hint line lives in the toolbar so nothing covers the
+         kitchen's bottom row; the stick floats to the thumb; the aim needle turns through 360 degrees. */
+      #kitchen-touch-ui,#kitchen-touch-ui *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+      .touch-toolbar{height:34px}
+      .touch-toolbar .touch-hint{position:static;flex:1;min-width:0;display:flex;align-items:baseline;justify-content:center;gap:8px;padding:2px 8px;margin:0 6px;background:transparent;color:var(--ink);text-shadow:none;font-size:12px;line-height:15px;overflow:hidden;white-space:nowrap}
+      .touch-toolbar .touch-hint #touch-hand{flex:none;max-width:45%;overflow:hidden;text-overflow:ellipsis}
+      .touch-toolbar .touch-hint #touch-status{flex:0 1 auto;min-width:0;max-height:none;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}
+      #touch-zone{position:absolute;left:0;bottom:0;width:42%;height:58%;pointer-events:auto;touch-action:none;background:transparent}
+      #touch-joystick{z-index:1}#touch-joystick[data-floating=true]{bottom:auto;transition:none}
+      #touch-aim{position:absolute;left:50%;top:50%;width:46%;height:4px;margin-top:-2px;transform-origin:0 50%;background:#2a5a9ecc;border-radius:2px;pointer-events:none;opacity:0}
+      #touch-aim::after{content:'';position:absolute;right:-6px;top:-4px;border-left:8px solid #2a5a9ecc;border-top:6px solid transparent;border-bottom:6px solid transparent}
+      #touch-joystick[data-aiming=true] #touch-aim{opacity:1}
+      .touch-buttons{flex-direction:column;align-items:center;gap:14px}
+      #touch-action{position:relative;overflow:visible}
+      #touch-action::after{content:'';position:absolute;inset:-6px;border-radius:50%;pointer-events:none;opacity:0;background:conic-gradient(#2a5a9ecc var(--charge,0%),transparent 0);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px))}
+      #touch-action[data-charging=true]::after{opacity:1;animation:touch-charge .3s linear forwards}
+      #touch-action[data-pressed=true]{transform:scale(.94)}
+      @property --charge{syntax:'<percentage>';inherits:false;initial-value:0%}
+      @keyframes touch-charge{from{--charge:0%}to{--charge:100%}}
+      .touch-order.urgent{animation:touch-urgent 1s steps(2,jump-none) infinite}
+      @keyframes touch-urgent{50%{background:#f6d9c8}}
+      @media(prefers-reduced-motion:reduce){.touch-order.urgent{animation:none}#touch-action[data-charging=true]::after{animation:none;--charge:100%}}
+      .touch-menu button,.touch-menu-actions button,body.kitchen-touch-mode dialog.panel button{min-height:44px}
+      @media(max-width:700px){.touch-toolbar .touch-hint{font-size:11px;gap:5px}.touch-buttons{gap:10px}}
     `;
     document.head.appendChild(style);
     const ui = document.createElement('div');
@@ -43,12 +67,12 @@
     ui.hidden = true;
     ui.setAttribute('data-no-i18n', '');
     ui.innerHTML = `
-      <header class="touch-toolbar"><strong id="touch-clock" class="touch-clock"></strong><span id="touch-money" class="touch-money"></span><span id="touch-served"></span><span class="touch-spacer"></span><button id="touch-pause" class="btn" type="button"></button><button id="touch-communication" class="btn" type="button" aria-expanded="false" aria-controls="kitchen-communication"></button><button id="touch-bookmark" class="btn" type="button"></button><button id="touch-menu-toggle" class="btn" type="button" aria-expanded="false" aria-controls="touch-menu"></button></header>
+      <header class="touch-toolbar"><strong id="touch-clock" class="touch-clock"></strong><span id="touch-money" class="touch-money"></span><span id="touch-served"></span><div id="touch-hint" class="touch-hint touch-spacer"><span id="touch-hand"></span><span id="touch-status" role="status" aria-live="polite"></span></div><button id="touch-pause" class="btn" type="button"></button><button id="touch-communication" class="btn" type="button" aria-expanded="false" aria-controls="kitchen-communication"></button><button id="touch-bookmark" class="btn" type="button"></button><button id="touch-menu-toggle" class="btn" type="button" aria-expanded="false" aria-controls="touch-menu"></button></header>
       <div id="touch-orders" class="touch-orders" role="region" aria-label="订单" tabindex="0"></div>
-      <div id="touch-joystick" role="group" aria-label="移动" aria-disabled="true"><div id="touch-stick"></div></div>
+      <div id="touch-zone" aria-hidden="true"></div>
+      <div id="touch-joystick" role="group" aria-label="移动" aria-disabled="true"><div id="touch-aim" aria-hidden="true"></div><div id="touch-stick"></div></div>
       <div class="touch-buttons"><button id="touch-dash" class="touch-round" type="button"></button><button id="touch-action" class="touch-round" type="button"></button></div>
       <div id="touch-cancel" hidden></div>
-      <div id="touch-hint" class="touch-hint"><span id="touch-hand"></span><span id="touch-status" role="status" aria-live="polite"></span></div>
       <div id="touch-ai"></div>
       <section id="touch-menu" class="touch-menu" aria-labelledby="touch-menu-title" hidden><h2 id="touch-menu-title">ChefJeff</h2><p id="touch-menu-copy"></p><div id="touch-levels" class="touch-levels"></div><div class="touch-menu-actions"><button id="touch-main" class="btn primary" type="button"></button><button id="touch-settings" class="btn" type="button"></button><button id="touch-help" class="btn" type="button"></button></div><div class="touch-menu-secondary"><button id="touch-end" class="btn danger" type="button"></button><button id="touch-record" class="btn" type="button"></button><button id="touch-language" class="btn" type="button" data-no-i18n></button><button id="touch-fullscreen" class="btn" type="button"></button><button id="touch-menu-close" class="btn" type="button"></button></div><p id="touch-instructions"></p></section>
     `;
@@ -70,7 +94,9 @@
     let cancelSelected = false, ordersSignature = '', levelsSignature = '', previousGame = '', modeSignature = '';
     const orderNodes = new Map();
     let lastEvent = '', eventNotice = '', eventTimer;
-    let pausePending = false;
+    let pausePending = false, wasAiming = false;
+    // Short haptic ticks where the browser supports them (Android Chrome); iOS Safari ignores this.
+    const buzz = ms => { try { navigator.vibrate?.(ms); } catch (_) {} };
     const editor = () => document.activeElement?.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"]');
     const modal = () => !!document.querySelector('dialog[open]');
     const stopped = () => !active || !landscape || document.hidden || modal() || !!editor() || menuOpen || communicationOpen;
@@ -82,7 +108,8 @@
       joyPointer = actionPointer = null;
       uncapture(joystick, joy); uncapture(action, press);
       stick.style.transform = 'translate(0px,0px)';
-      action.dataset.pressed = 'false';
+      action.dataset.pressed = 'false'; action.dataset.charging = 'false';
+      if (joystick.dataset.floating === 'true') { joystick.dataset.floating = 'false'; joystick.style.left = joystick.style.top = ''; }
       cancelSelected = false; el('touch-cancel').dataset.selected = 'false';
       if (joy !== null) controls?.move(0, 0);
       if (press !== null) controls?.cancel();
@@ -114,8 +141,8 @@
       const safe = window.getComputedStyle(ui);
       const left = (parseFloat(safe.paddingLeft) || 0) + 130;
       const right = (parseFloat(safe.paddingRight) || 0) + 10;
-      const top = (parseFloat(safe.paddingTop) || 0) + 46;
-      const bottom = (parseFloat(safe.paddingBottom) || 0) + 32;
+      const top = (parseFloat(safe.paddingTop) || 0) + 40;
+      const bottom = (parseFloat(safe.paddingBottom) || 0) + 6;
       const detail = { active, landscape, width: w, height: h,
         boardRect: { left, top, width: Math.max(100, w - left - right), height: Math.max(100, h - top - bottom) } };
       const signature = JSON.stringify(detail);
@@ -151,6 +178,7 @@
       joystick.setAttribute('aria-disabled', String(!playing));
       action.hidden = dash.hidden = joystick.hidden;
       el('touch-hint').hidden = joystick.hidden;
+      el('touch-zone').hidden = joystick.hidden;
       el('touch-ai').hidden = joystick.hidden;
       action.disabled = !playing || !(state.canInteract || state.canThrow);
       const sprint = state.sprint || {};
@@ -162,6 +190,12 @@
       el('touch-cancel').hidden = !playing || actionPointer === null || !(state.holding && state.canThrow);
       text('touch-action', aiming ? '松开投掷' : state.interaction || '操作');
       text('touch-stick', aiming ? '瞄准' : '移动');
+      // The needle shows the exact aim angle (360 degrees), the same direction the throw uses.
+      joystick.dataset.aiming = String(aiming);
+      if (aiming && Number.isFinite(state.aiming.x) && Number.isFinite(state.aiming.y))
+        el('touch-aim').style.transform = 'rotate(' + (Math.atan2(state.aiming.y, state.aiming.x) * 180 / Math.PI).toFixed(1) + 'deg)';
+      if (aiming && !wasAiming) buzz(12);
+      wasAiming = aiming;
       text('touch-hand', state.handLabel || '');
       text('touch-ai', state.aiStatus || '');
       text('touch-status', cancelSelected ? '拖到这里取消' : aiming ? '松开投掷' : eventNotice || state.interactionHint || (state.holding && state.canThrow ? '长按投掷' : ''));
@@ -282,11 +316,26 @@
       event.preventDefault(); joyPointer = event.pointerId; capture(joystick, joyPointer); joyMove(event);
     });
     joystick.addEventListener('pointermove', event => { if (event.pointerId !== joyPointer) return; event.preventDefault(); if (canPlay()) joyMove(event); else clearPointers(); });
-    const joyEnd = event => { if (event.pointerId !== joyPointer) return; event.preventDefault(); const id = joyPointer; joyPointer = null; uncapture(joystick, id); stick.style.transform = 'translate(0px,0px)'; controls?.move(0, 0); };
+    // The stick returns to its corner when released; while held it stays where the thumb landed.
+    const homeStick = () => { if (joystick.dataset.floating !== 'true') return; joystick.dataset.floating = 'false'; joystick.style.left = joystick.style.top = ''; };
+    const joyEnd = event => { if (event.pointerId !== joyPointer) return; event.preventDefault(); const id = joyPointer; joyPointer = null; uncapture(joystick, id); stick.style.transform = 'translate(0px,0px)'; homeStick(); controls?.move(0, 0); };
+    // Floating stick: a press anywhere in the lower-left zone puts the stick's centre under the thumb.
+    el('touch-zone').addEventListener('pointerdown', event => {
+      if (event.button > 0 || joyPointer !== null || !canPlay()) return;
+      event.preventDefault();
+      const size = joystick.getBoundingClientRect().width || 120, ui = el('kitchen-touch-ui').getBoundingClientRect();
+      const x = Math.max(size / 2, Math.min(event.clientX - (ui.left || 0), (ui.width || innerWidth) - size / 2));
+      const y = Math.max(size / 2 + 44, Math.min(event.clientY - (ui.top || 0), (ui.height || innerHeight) - size / 2));
+      joystick.dataset.floating = 'true'; joystick.style.left = (x - size / 2) + 'px'; joystick.style.top = (y - size / 2) + 'px';
+      joyPointer = event.pointerId; capture(joystick, joyPointer); joyMove(event);
+    });
+    el('touch-zone').addEventListener('contextmenu', event => event.preventDefault());
     joystick.addEventListener('pointerup', joyEnd); joystick.addEventListener('pointercancel', joyEnd); joystick.addEventListener('lostpointercapture', joyEnd);
     action.addEventListener('pointerdown', event => {
       if (event.button > 0 || actionPointer !== null || action.disabled || !canPlay()) return;
       event.preventDefault(); actionPointer = event.pointerId; action.dataset.pressed = 'true'; capture(action, actionPointer);
+      // Holding an item: the ring fills over the same 0.3 s after which the chef starts aiming.
+      action.dataset.charging = String(!!(state.holding && state.canThrow));
       cancelSelected = false; controls.press(); render();
     });
     action.addEventListener('pointermove', event => {
@@ -297,11 +346,11 @@
     });
     action.addEventListener('pointerup', event => {
       if (event.pointerId !== actionPointer) return;
-      event.preventDefault(); const id = actionPointer; actionPointer = null; uncapture(action, id); action.dataset.pressed = 'false';
-      if (cancelSelected || !canPlay()) controls?.cancel(); else controls?.release();
+      event.preventDefault(); const id = actionPointer; actionPointer = null; uncapture(action, id); action.dataset.pressed = 'false'; action.dataset.charging = 'false';
+      if (cancelSelected || !canPlay()) controls?.cancel(); else { if (state.aiming) buzz(20); controls?.release(); }
       cancelSelected = false; render();
     });
-    const cancelAction = event => { if (event.pointerId !== actionPointer) return; event.preventDefault(); const id = actionPointer; actionPointer = null; uncapture(action, id); action.dataset.pressed = 'false'; cancelSelected = false; controls?.cancel(); render(); };
+    const cancelAction = event => { if (event.pointerId !== actionPointer) return; event.preventDefault(); const id = actionPointer; actionPointer = null; uncapture(action, id); action.dataset.pressed = 'false'; action.dataset.charging = 'false'; cancelSelected = false; controls?.cancel(); render(); };
     action.addEventListener('pointercancel', cancelAction); action.addEventListener('lostpointercapture', cancelAction);
     dash.addEventListener('pointerdown', event => { if (event.button > 0 || dash.disabled || !canPlay()) return; event.preventDefault(); controls?.dash(); });
     for (const area of [joystick, action, dash]) area.addEventListener('contextmenu', event => event.preventDefault());

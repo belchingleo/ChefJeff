@@ -55,7 +55,7 @@ function harness(path,{width=844,height=390,touch=true,language='zh'}={}){
  document.documentElement=new Element('html');document.head=new Element('head');document.body=new Element('body');
  document.documentElement.append(document.head,document.body);document.createElement=tag=>new Element(tag);
  document.getElementById=id=>elements.get(id)||null;document.querySelector=selector=>document.documentElement.querySelector(selector);document.querySelectorAll=selector=>document.documentElement.querySelectorAll(selector);
- const w=new Target();w.innerWidth=width;w.innerHeight=height;w.navigator={maxTouchPoints:touch?5:0};w.performance={now:()=>0};
+ const w=new Target();w.innerWidth=width;w.innerHeight=height;w.navigator={maxTouchPoints:touch?5:0,vibrate:ms=>{calls.push(['vibrate',ms]);return true;}};w.performance={now:()=>0};
  w.getComputedStyle=()=>({paddingLeft:'0px',paddingRight:'0px',paddingTop:'0px',paddingBottom:'0px'});
  w.matchMedia=query=>{const m=new Target();m.matches=query.includes('coarse')&&touch;m.media=query;m.addListener=fn=>m.addEventListener('change',fn);m.removeListener=fn=>m.removeEventListener('change',fn);media.push(m);return m;};
  const locale={module:{exports:{}},globalThis:{localStorage:{getItem:()=>language}}};
@@ -122,6 +122,29 @@ function check(path){
  h.fire('touch-action','pointermove',{pointerId:2,clientX:450,clientY:225});h.fire('touch-action','pointerup',{pointerId:2,clientX:450,clientY:225});
  assert(callNames().includes('cancel'),'cancel affordance cancels aiming');assert(!callNames().includes('release'),'cancelled aim does not throw');
  h.publish({aiming:false});
+
+ // Floating stick: a press in the lower-left zone moves the stick under the thumb, drags like the stick,
+ // and the stick goes home on release.
+ const joy=h.elements.get('touch-joystick');
+ h.clear();h.fire('touch-zone','pointerdown',{pointerId:4,clientX:300,clientY:300});
+ assert.equal(joy.dataset.floating,'true','the stick floats to the thumb');assert.ok(joy.style.left&&joy.style.top,'stick placed under the press');
+ h.fire('touch-joystick','pointermove',{pointerId:4,clientX:130,clientY:230});
+ assert(h.calls.some(c=>c[0]==='move'&&(c[1]!==0||c[2]!==0)),'zone press drags the stick');
+ h.fire('touch-joystick','pointerup',{pointerId:4});
+ assert.equal(joy.dataset.floating,'false','released stick returns to its corner');assert.equal(joy.style.left,'');
+ // Hold-to-aim: the charge ring fills while an item is held; the needle shows any aim angle; haptics tick.
+ h.clear();h.fire('touch-action','pointerdown',{pointerId:5});
+ assert.equal(h.elements.get('touch-action').dataset.charging,'true','holding an item charges the aim ring');
+ h.publish({aiming:{x:Math.cos(1),y:Math.sin(1)}});
+ assert.equal(joy.dataset.aiming,'true');
+ assert.equal(h.elements.get('touch-aim').style.transform,'rotate(57.3deg)','needle follows the exact angle, not eight steps');
+ assert(h.calls.some(c=>c[0]==='vibrate'),'aim start ticks');
+ h.clear();h.fire('touch-action','pointerup',{pointerId:5});
+ assert(h.calls.some(c=>c[0]==='release')&&h.calls.some(c=>c[0]==='vibrate'),'release throws with a tick');
+ assert.equal(h.elements.get('touch-action').dataset.charging,'false');
+ h.publish({aiming:false});
+ // The hand/hint line sits in the toolbar, not over the kitchen.
+ assert.equal(h.elements.get('touch-hint').parentElement.className.includes('touch-toolbar'),true,'hint lives in the toolbar');
 
  h.fire('touch-joystick','pointerdown',{clientX:130});h.fire('touch-action','pointerdown',{pointerId:2});h.clear();h.resize(390,844);
  assert(callNames().includes('cancel'),'portrait clears pending input');assert(pauseRequested(),'rotation requests pause through the action bridge');

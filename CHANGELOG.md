@@ -4,6 +4,13 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 
 [中文](#更新记录)
 
+## Unreleased
+
+### Kitchen and controls
+- Throw poses: while aiming, the chef turns to the aim direction (any angle) and winds up; after a throw both chefs show a short release toward the target. The poses reuse the painted chop arms, and the held item follows the hand.
+- Phone layout: the hand and hint line moves into the top toolbar so nothing covers the kitchen, which grows about 10%; the joystick floats to the thumb; aiming shows a 360° needle and a hold ring; Dash sits above Action; urgent orders blink; menu buttons are at least 44 px tall; supported Android browsers vibrate briefly on aim and throw.
+- The aim trajectory bends to the other chef when the throw will target them, and rings them in green.
+
 ## 0.6.0-beta.1 — 2026-10-01 · first public test release
 
 The game now runs on a data-driven core: five data models (map, recipes, orders, equipment, level) describe every level, and the engine has no per-level code.
@@ -46,6 +53,13 @@ First private release: a local browser game with three playable maps and player-
 ---
 
 ## 更新记录
+
+### 未发布
+
+- 投掷动作：瞄准时人物转向瞄准方向（任意角度）并做出蓄力姿势；投出后两位厨师都会朝目标短暂显示出手姿势。姿势沿用已绘制的切菜手臂，手中物品跟随手部。
+- 手机界面：手中物品和提示移到顶部工具栏，不再遮挡厨房，厨房画面约放大 10%；摇杆出现在拇指按下处；瞄准时显示 360° 指针和蓄力圈；冲刺键移到操作键上方；快超时的订单闪烁；菜单按钮至少 44 像素高；支持的安卓浏览器在瞄准和投出时轻微震动。
+- 投掷会瞄准另一位厨师时，抛物线弯向他并用绿圈标出。
+
 
 ## 0.6.0-beta.1 — 2026-10-01 · 首次公开测试版
 

@@ -33,15 +33,15 @@ When the small-screen touch layout is active, the device must be in landscape to
 
 | Touch input | Behavior |
 | --- | --- |
-| Left joystick | Push to move, release to stop; diagonals do not increase speed. While aiming, changes the throw direction instead of moving |
+| Left joystick | Press anywhere in the lower-left area: the stick appears under your thumb. Push to move in any direction (360°), release to stop; diagonals do not increase speed. While aiming, a needle shows the exact throw direction instead of moving |
 | Action, empty hands | Interact on press, including fetching, chopping, washing and stopping ongoing work |
-| Action, holding an item | Short press interacts on release. Hold about 0.3 s to stop and aim, including in front of a station; release to throw |
+| Action, holding an item | Short press interacts on release. Hold about 0.3 s (a ring fills around the button) to stop and aim, including in front of a station; release to throw. When the other chef stands roughly on the aim line within reach, the trajectory bends to them and they are ringed in green |
 | Cancel area while aiming | Drag the Action finger into the cancel area and release to cancel, without throwing or interacting |
-| Dash | Tap while moving for 1.4× speed for 1 game second, then 3-game-second cooldown. Disabled while standing still or aiming |
+| Dash | Above Action. Tap while moving for 1.4× speed for 1 game second, then 3-game-second cooldown. Disabled while standing still or aiming |
 | Communication / Bookmark | Expand the collapsed message panel for preset messages; bookmark uses the same timing and export rules as Enter |
 | Pause / Menu | Pause and reach Settings, controls, round records and end-round controls without a keyboard |
 
-Movement and Action/Dash accept separate fingers. After aiming, let go of the joystick before pushing it again to move. Touch cancellation clears held input and cancels pending actions/throws. Turning to portrait, switching away or disconnecting also pauses a running round. After returning to landscape, resume manually. Settings fields retain normal text entry and paste. A phone still needs an accessible backend on a computer/server; its own `localhost` is not that server.
+The hand and hint line sits in the top toolbar, so nothing covers the kitchen. Supported Android browsers give a short vibration when aiming starts and when the throw leaves the hand. Movement and Action/Dash accept separate fingers. After aiming, let go of the joystick before pushing it again to move. Touch cancellation clears held input and cancels pending actions/throws. Turning to portrait, switching away or disconnecting also pauses a running round. After returning to landscape, resume manually. Settings fields retain normal text entry and paste. A phone still needs an accessible backend on a computer/server; its own `localhost` is not that server.
 
 The cooking loop is fetch → board → chop → pan → heat → plate → serve → dirty return → sink → clean plate. Bread skips chopping; vegetables skip heating. Partial burgers accept missing ingredients in any order, with fixed visual layers. Pans, pots and plates retain identity through swaps/merges. Shared chopping/washing requires available operation sides; active workers resist contact pushes.
 
@@ -88,15 +88,15 @@ Hosted Settings additionally offer explicit contribution after the round, a data
 
 | 触控输入 | 行为 |
 | --- | --- |
-| 左摇杆 | 推动移动、松手停止；斜走不加速。瞄准时改投掷方向，不移动角色 |
+| 左摇杆 | 在左下区域任意位置按下，摇杆出现在拇指下方。可朝任意方向（360°）移动，松手停止；斜走不加速。瞄准时显示指针标出精确投掷方向，不移动角色 |
 | 空手按「操作」 | 按下立即交互，包括取料、切菜、洗碗和中断当前工作 |
-| 持物按「操作」 | 短按松开后交互；长按约 0.3 秒停下并瞄准，站在工位前也一样，松开投掷 |
+| 持物按「操作」 | 短按松开后交互；长按约 0.3 秒（按钮外圈蓄满）停下并瞄准，站在工位前也一样，松开投掷。另一位厨师大致站在瞄准线上且在射程内时，抛物线会弯向他，并用绿圈标出 |
 | 瞄准时拖到取消区 | 操作按钮的手指拖入取消区后松开，取消本次瞄准，不投掷也不交互 |
-| 冲刺 | 移动时点击，以 1.4 倍速度持续 1 游戏秒，然后冷却 3 游戏秒。静止／瞄准时禁用 |
+| 冲刺 | 位于「操作」上方。移动时点击，以 1.4 倍速度持续 1 游戏秒，然后冷却 3 游戏秒。静止／瞄准时禁用 |
 | 沟通／标记 | 打开默认折叠的沟通面板发送预设消息；标记与 Enter 使用相同时间与导出规则 |
 | 暂停／菜单 | 不用键盘也能暂停、进入设置和操作说明、查看本局记录或结束本局 |
 
-移动与操作／冲刺可双指同时使用。瞄准结束后，先放开摇杆再推动，才恢复移动。触摸取消会清理持续输入、取消待执行交互／投掷；转竖屏、切后台或断线还会暂停正在进行的对局。恢复横屏后手动继续。设置输入框保留正常输入和粘贴。手机仍需访问电脑／服务器上的后端，手机里的 `localhost` 不是那台服务器。
+手中物品和提示显示在顶部工具栏，不遮挡厨房。支持的安卓浏览器在开始瞄准和投出时会轻微震动。移动与操作／冲刺可双指同时使用。瞄准结束后，先放开摇杆再推动，才恢复移动。触摸取消会清理持续输入、取消待执行交互／投掷；转竖屏、切后台或断线还会暂停正在进行的对局。恢复横屏后手动继续。设置输入框保留正常输入和粘贴。手机仍需访问电脑／服务器上的后端，手机里的 `localhost` 不是那台服务器。
 
 做菜循环为取料→案板→切配→装锅→加热→装盘→出餐→脏盘回收→水槽→净盘。面包不切，蔬菜不加热。半成品汉堡按任意顺序补齐配料，显示层级固定。锅盘交换／合并仍保留各自身份。合作切菜／洗碗要求有可用操作侧，工作中的角色不被碰撞推离。
 
