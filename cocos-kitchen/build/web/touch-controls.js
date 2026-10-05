@@ -63,9 +63,10 @@
       #touch-action{width:80px;height:80px;padding:0;font-size:16px;background-color:#2b1a1247}
       #touch-action[data-pressed=true]{background-color:#2b1a1275;transform:scale(.95)}
       #touch-action[data-aiming=true]{background-color:#2a5a9e80}
-      #touch-dash{width:58px;height:58px;padding:0;font-size:13px;background-color:#2b1a1240}
+      #touch-dash{width:58px;height:58px;padding:0;font-size:14px;background-color:#2b1a1240}
       #touch-dash:active:not(:disabled){background-color:#2b1a1275;transform:scale(.95)}
-      .touch-round:disabled{opacity:.45;color:#fff}
+            /* Unavailable keeps the label legible on any ground: lighter fill and outline, not a faded button. */
+      #touch-action:disabled,#touch-dash:disabled{opacity:1;color:#ffffffd9;border-color:#ffffff8c;background-color:#2b1a1230;text-shadow:0 1px 2px #2b1a12,0 0 4px #2b1a12}
       #touch-dash[data-cooling=true]{opacity:1}
       /* Diagonal pair: Action in the corner, Dash up-left of it at 45 degrees; Cancel appears straight
          above Action while aiming, in the same round translucent style, red while the finger is on it. */
@@ -73,7 +74,9 @@
       #touch-action{position:absolute;right:0;bottom:0}
       /* Arc around Action (centre 40,40 from the corner, radius 82): Dash at 165deg, Cancel at 100deg. */
       #touch-dash{position:absolute;right:89px;bottom:32px}
-      #touch-cancel{right:calc(max(10px,env(safe-area-inset-right)) + 28px);bottom:calc(max(8px,env(safe-area-inset-bottom)) + 12px + 95px);width:52px;height:52px;min-height:0;border:2px solid #ffffffd9;border-radius:50%;background:#2b1a1247;box-shadow:0 0 0 1px #2b1a1259;color:#fff;text-shadow:0 1px 2px #2b1a12;font-size:12px;font-weight:750}
+      #touch-cancel{right:calc(max(10px,env(safe-area-inset-right)) + 28px);bottom:calc(max(8px,env(safe-area-inset-bottom)) + 12px + 95px);width:52px;height:52px;min-height:0;border:2px solid #ffffffd9;border-radius:50%;background:#2b1a1247;box-shadow:0 0 0 1px #2b1a1259;color:#fff;text-shadow:0 1px 2px #2b1a12;font-size:14px;font-weight:750}
+      /* Narrow phones: slightly smaller arc (Action 72, Dash 52, Cancel 48, radius 74) so it clears the kitchen. */
+      @media(max-width:700px){.touch-buttons{width:72px;height:72px}#touch-action{width:72px;height:72px}#touch-dash{width:52px;height:52px;right:81px;bottom:29px}#touch-cancel{width:48px;height:48px;right:calc(max(10px,env(safe-area-inset-right)) + 25px);bottom:calc(max(8px,env(safe-area-inset-bottom)) + 12px + 87px)}}
       #touch-cancel[data-selected=true]{border-style:solid;border-color:#fff;background:#b8321ecc;transform:scale(1.12)}
     `;
     document.head.appendChild(style);
@@ -154,9 +157,11 @@
       // Keep the narrow vertical order rail and a short bottom hint clear; the browser resolves
       // safe-area padding for notches and the home indicator.
       const safe = window.getComputedStyle(ui);
-      const left = (parseFloat(safe.paddingLeft) || 0) + 130;
-      // Equal side margins keep the kitchen centred (orders rail left, buttons right).
-      const right = (parseFloat(safe.paddingRight) || 0) + 130;
+      // Equal side margins keep the kitchen centred (orders rail left, buttons right); the margin clears
+      // the button arc's left edge (Dash) plus 8px, which is narrower on phones under 700px.
+      const side = w <= 700 ? 152 : 166;
+      const left = (parseFloat(safe.paddingLeft) || 0) + side;
+      const right = (parseFloat(safe.paddingRight) || 0) + side;
       const top = (parseFloat(safe.paddingTop) || 0) + 40;
       const bottom = (parseFloat(safe.paddingBottom) || 0) + 6;
       const detail = { active, landscape, width: w, height: h,
