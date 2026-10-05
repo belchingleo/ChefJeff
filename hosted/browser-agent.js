@@ -173,22 +173,71 @@
     finally {setTimeout(poll, 200);}
   }
   setTimeout(poll, 200);
-  let receipt = null;
+  // Contributions: per round after explicit consent, or automatically once the player turns that on.
+  const CONSENT = 'pilot-session-2026-09-v1', AUTO_KEY = 'chefjeff.contribution-auto.v1',
+    RECEIPTS_KEY = 'chefjeff.contribution-receipts.v1';
+  const el = id => document.getElementById(id);
+  const stored = (name, fallback) => {try {return JSON.parse(localStorage.getItem(name) || 'null') ?? fallback;} catch (_) {return fallback;}};
+  const keep = (name, value) => {try {value == null ? localStorage.removeItem(name) : localStorage.setItem(name, JSON.stringify(value));} catch (_) {}};
+  const autoOn = () => stored(AUTO_KEY, null)?.consent_version === CONSENT;
+  let receipts = (Array.isArray(stored(RECEIPTS_KEY, [])) ? stored(RECEIPTS_KEY, []) : []).filter(r => Date.parse(r.expires_at) > Date.now());
+  let autoRound = '', uploadedRound = '', shown = null; // shown: the last state the page drew
+  const status = text => {const node = el('contribution-status');if (node) node.textContent = text;};
+  async function command(path, extra={}) {
+    const r = await serverFetch(path, {method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({game_id:state?.game_id,request_id:crypto.randomUUID(),...extra})});
+    const d = await r.json();if (!r.ok) throw new Error(d.error || 'Request failed.');return d;
+  }
+  function showReceipts() {
+    const box = el('contribution-receipt'), download = el('contribution-download');
+    if (box) box.value = receipts.length ? JSON.stringify(receipts.length === 1 ? receipts[0] : receipts, null, 2) : '';
+    if (download) download.hidden = !receipts.length;
+  }
+  function keepReceipt(receipt) {
+    receipts = [...receipts.filter(r => r.id !== receipt.id), receipt].slice(-100);
+    keep(RECEIPTS_KEY, receipts);showReceipts();
+  }
+  // Shown on the result card (never during play) while automatic upload is on.
+  function badge(s) {
+    const node = el('contribution-badge');if (!node) return;
+    const text = !autoOn() || !s?.hosted?.contribution_enabled || s.phase === 'running' ? '' :
+      uploadedRound === s.game_id ? 'This round was uploaded automatically · 本局已自动上传（保存 30 天）' :
+      'Automatic upload on · 自动上传已开启';
+    node.textContent = text;node.hidden = !text;
+  }
+  async function contribute(mode) {
+    const d = await command('/api/contribution/save', {consent:true, consent_version:CONSENT, consent_mode:mode});
+    keepReceipt(d.receipt);uploadedRound = (shown || state)?.game_id || '';
+    return d.receipt;
+  }
   window.addEventListener('kitchen-state', e => {
-    const button = document.getElementById('contribution-save');
-    if (button) button.disabled = !(e.detail.phase === 'ended' && e.detail.hosted?.contribution_enabled &&
-      document.getElementById('contribution-consent').checked);
+    const s = e.detail, button = el('contribution-save');shown = s;
+    if (button) button.disabled = !(s.phase === 'ended' && s.hosted?.contribution_enabled && el('contribution-consent')?.checked);
+    if (autoOn() && s.hosted?.contribution_enabled && s.phase === 'ended' && autoRound !== s.game_id) {
+      autoRound = s.game_id;
+      contribute('standing').then(() => {status('Uploaded automatically for 30 days. 已自动上传，保存 30 天。');badge(shown);})
+        .catch(error => status('Automatic upload failed: ' + error.message + ' · 自动上传失败'));
+    }
+    badge(s);
   });
   window.addEventListener('DOMContentLoaded', () => {
-    const el = id => document.getElementById(id);
-    const status = text => {el('contribution-status').textContent = text;};
-    async function command(path, extra={}) {
-      const r = await serverFetch(path, {method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({game_id:state?.game_id,request_id:crypto.randomUUID(),...extra})});
-      const d = await r.json();if (!r.ok) throw new Error(d.error || 'Request failed.');return d;
-    }
+    showReceipts();
+    if (el('contribution-auto')) el('contribution-auto').checked = autoOn();
     el('contribution-consent').onchange = () => {
       el('contribution-save').disabled = !(state?.phase === 'ended' && state?.hosted?.contribution_enabled && el('contribution-consent').checked);
+    };
+    if (el('contribution-auto')) el('contribution-auto').onchange = () => {
+      const box = el('contribution-auto');
+      if (box.checked && !el('contribution-consent').checked && !autoOn()) {
+        box.checked = false;status('Tick the agreement first. 请先勾选同意上方条款。');return;
+      }
+      // Rounds that end from now on; the round on screen can still be contributed with the button.
+      const now = shown || state;
+      if (box.checked) {autoRound = now?.phase === 'ended' ? now.game_id : '';keep(AUTO_KEY, {consent_version:CONSENT, since:new Date().toISOString()});}
+      else keep(AUTO_KEY, null);
+      status(box.checked ? 'Automatic upload on: every round that ends from now on is saved for 30 days. 已开启：此后每局结束自动上传，保存 30 天。'
+        : 'Automatic upload off. 已关闭自动上传。');
+      badge(now);
     };
     el('contribution-preview').onclick = async () => {
       try {const d = await command('/api/contribution/preview');el('contribution-data').value = JSON.stringify(d.record,null,2);el('contribution-data').hidden = false;}
@@ -198,26 +247,28 @@
       el('contribution-save').disabled = true;
       try {
         if (!el('contribution-consent').checked) return;
-        const d = await command('/api/contribution/save',{consent:true,consent_version:'pilot-session-2026-09-v1'});
-        receipt = d.receipt;
-        el('contribution-receipt').value = JSON.stringify(receipt,null,2);
-        el('contribution-download').hidden = false;
+        await contribute('round');
         el('contribution-consent').checked = false;
-        status('Saved for 30 days. Download your deletion receipt before leaving. 已保存，请离开前下载删除凭证。');
+        status('Saved for 30 days. Download your deletion receipt before leaving. 已保存，请离开前下载删除凭证。');badge(state);
       } catch(e) {status(e.message);}
     };
     el('contribution-download').onclick = () => {
-      if (!receipt) return;
-      const url = URL.createObjectURL(new Blob([JSON.stringify(receipt,null,2)],{type:'application/json'}));
-      const a = document.createElement('a');a.href=url;a.download='chefjeff-deletion-receipt.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+      if (!receipts.length) return;
+      const url = URL.createObjectURL(new Blob([JSON.stringify(receipts.length === 1 ? receipts[0] : receipts,null,2)],{type:'application/json'}));
+      const a = document.createElement('a');a.href=url;a.download='chefjeff-deletion-receipts.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
     };
     el('contribution-delete').onclick = async () => {
       try {
-        const rcp = JSON.parse(el('contribution-receipt').value);
-        const r = await serverFetch('/api/contribution/delete',{method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({id:rcp.id,deletion_token:rcp.deletion_token})});
-        if (!r.ok) throw new Error('Receipt invalid, record already deleted, or expired. 凭证无效，或记录已删除／过期。');
-        status('Contribution deleted. 已删除贡献数据。');el('contribution-receipt').value='';receipt=null;
+        const parsed = JSON.parse(el('contribution-receipt').value), list = Array.isArray(parsed) ? parsed : [parsed];
+        let failed = 0;
+        for (const rcp of list) {
+          const r = await serverFetch('/api/contribution/delete',{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({id:rcp.id,deletion_token:rcp.deletion_token})});
+          if (r.ok) receipts = receipts.filter(x => x.id !== rcp.id);else failed++;
+        }
+        keep(RECEIPTS_KEY, receipts);showReceipts();
+        if (failed) throw new Error(failed + ' receipt(s) invalid, already deleted, or expired. ' + failed + ' 份凭证无效，或记录已删除／过期。');
+        status('Contribution deleted. 已删除贡献数据。');
       } catch (e) {status(e.message);}
     };
     const select = document.getElementById('api-provider');

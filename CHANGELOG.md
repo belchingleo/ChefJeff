@@ -15,6 +15,7 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - Throwing chefs turn their whole body toward diagonal aims when the optional painted pack `art/throw-diagonal-v1` is present (brief: `docs/art/throw-diagonal-spec.md`, importer: `scripts/art/throw_diagonals.py`); without it, throws keep the four-view bodies.
 - One press from results to the next round: the result card stays on the kitchen (the round record no longer pops up over it) with one main button, Next level after a win and Try again otherwise; Space, Enter, A/Start or the phone button start it after a short 3·2·1 at the same pace. Presses in the card's first second are ignored so mashing from the last order does not skip it.
 - Settings has its own Data export page. It exports the whole play session: every round since the game started (online: since the page opened), each with its level, result, work record, bookmarks, messages, usage and every allowlisted action event, instead of only the current round's last 80 events.
+- Online version: after agreeing to the contribution terms, players can turn on automatic upload so every round that ends afterwards is contributed (30-day retention, as before) until they turn it off. The record notes the consent mode, the result card shows when it is on, and deletion receipts stay in the browser so uploads can be deleted later.
 
 ## 0.6.0-beta.1 — 2026-10-01 · first public test release
 
@@ -69,6 +70,7 @@ First private release: a local browser game with three playable maps and player-
 - 若提供可选美术包 `art/throw-diagonal-v1`，斜向投掷时厨师整个身体转向瞄准方向（需求见 `docs/art/throw-diagonal-spec.md`，导入脚本 `scripts/art/throw_diagonals.py`）；未提供时沿用四向身体。
 - 结算后一键进入下一局：结算卡片留在厨房画面上（本局记录不再弹窗遮挡），只有一个主按钮，达成目标为「下一关」，否则为「再来一次」；空格、Enter、手柄 A/Start 或手机按钮都可触发，短暂 3·2·1 后按原节奏开局。卡片出现后的第一秒内忽略按键，避免最后一单连按时误跳过。
 - 设置中新增单独的「数据导出」页，导出本次游玩的全部数据：本机版从启动游戏起、在线版从打开页面起的每一局，各含关卡、结果、贡献记录、标记、沟通、调用用量和全部允许清单内的动作事件，不再只有当前局最近 80 条事件。
+- 在线版：同意贡献条款后可开启「以后每局结束自动上传」，此后每局结束自动贡献（仍保存 30 天），随时可关闭。记录注明同意方式，开启时结算卡片有提示，删除凭证保存在浏览器中，之后仍可删除。
 
 
 ## 0.6.0-beta.1 — 2026-10-01 · 首次公开测试版

@@ -25,11 +25,12 @@
  <button id="contribution-preview" class="btn" type="button">Preview data · 预览数据</button>
  <textarea id="contribution-data" readonly hidden rows="8" aria-label="Contribution preview"></textarea>
  <label class="remember"><input id="contribution-consent" type="checkbox">I agree to this use and 30-day retention · 我同意上述用途与 30 天保存期限</label>
- <div class="actions"><button id="contribution-save" class="btn primary" type="button" disabled>Contribute finished round · 贡献已结束的本局</button><button id="contribution-download" class="btn" type="button" hidden>Download deletion receipt · 下载删除凭证</button></div>
+ <label class="remember"><input id="contribution-auto" type="checkbox">From now on, upload every finished round automatically in this browser (needs the agreement above; turn off any time) · 以后每局结束自动上传（仅限本浏览器，需先同意上方条款，可随时关闭）</label>
+ <div class="actions"><button id="contribution-save" class="btn primary" type="button" disabled>Contribute finished round · 贡献已结束的本局</button><button id="contribution-download" class="btn" type="button" hidden>Download deletion receipts · 下载删除凭证</button></div>
  <p id="contribution-status" role="status"></p>
  <details class="fine"><summary>Delete a contribution · 删除已贡献数据</summary>
-  <p>Paste your deletion receipt below. Keep it private; anyone with it can delete that record. 粘贴删除凭证；持有该凭证即可删除对应数据，请妥善保管。</p>
+  <p>Paste your deletion receipt below. Keep it private; anyone with it can delete that record. Receipts for rounds contributed in this browser are kept here and fill in automatically. 粘贴删除凭证；持有该凭证即可删除对应数据，请妥善保管。在本浏览器贡献的各局凭证会保存在本浏览器并自动填入。</p>
   <textarea id="contribution-receipt" rows="3" aria-label="Deletion receipt"></textarea>
-  <div class="actions"><button id="contribution-delete" class="btn danger" type="button">Delete contributed record · 删除该记录</button></div>
+  <div class="actions"><button id="contribution-delete" class="btn danger" type="button">Delete contributed records · 删除这些记录</button></div>
  </details>
 </section>

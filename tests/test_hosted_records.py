@@ -32,6 +32,17 @@ class ContributionTests(unittest.TestCase):
                 self.assertTrue(store.delete(r['id'],r['deletion_token']))
                 self.assertFalse(store.delete(r['id'],r['deletion_token']))
             finally:s.close()
+    def test_standing_consent_is_recorded_and_other_modes_rejected(self):
+        with tempfile.TemporaryDirectory() as d:
+            store=ContributionStore(d);s=HostedSession();s.store=store
+            try:
+                s._command('/api/browser-ready',{'connected':True});s._command('/api/start',{});s.tick();s._command('/api/end',{})
+                body={'consent':True,'consent_version':CONSENT_VERSION}
+                self.assertEqual(s._command('/api/contribution/save',{**body,'consent_mode':'always'})[0],400)
+                self.assertEqual(s._command('/api/contribution/save',{**body,'consent_mode':'standing'})[0],200)
+                with store.connect() as db:
+                    self.assertEqual(json.loads(db.execute('select record from records').fetchone()[0])['consent_mode'],'standing')
+            finally:s.close()
     def test_expiry_capacity_and_private_permissions(self):
         with tempfile.TemporaryDirectory() as d:
             store=ContributionStore(d,limit=1)

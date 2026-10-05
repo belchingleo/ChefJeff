@@ -47,7 +47,7 @@ The cooking loop is fetch → board → chop → pan → heat → plate → serv
 
 Space acts on what the chef faces (Overcooked-style); that station glows faintly and the bottom line names the action, and "hold Space · aim and throw" where a throw is possible. With a throwable item in hand, releasing a short press starts the target interaction; holding instead aims a throw, including in front of a station. An unavailable station interaction shows a reason and never drops the held item on the floor. Throws can cross equipment; walls and available landing places still constrain them. Once a quick pick-up or put-down starts, a direction pressed during it takes effect after it finishes. Ground interactions include pickup, swapping loose ingredients, filling/serving/swapping pans and pots; direct loose-vegetable-to-plate and plate-to-plate merging on the ground are future additions.
 
-Hosted Settings additionally offer explicit contribution after the round, a data preview and deletion receipt. Hosted sessions do not use local disk memory. See [privacy](privacy-and-costs.md).
+Hosted Settings additionally offer explicit contribution after the round (or, after agreeing, automatic upload of every later round until turned off), a data preview and deletion receipts. Hosted sessions do not use local disk memory. See [privacy](privacy-and-costs.md).
 
 ---
 
@@ -102,4 +102,4 @@ Hosted Settings additionally offer explicit contribution after the round, a data
 
 目标、高亮和提示指向同一对象。手持可投掷物品时，短按松开才执行目标交互，长按则瞄准投掷，站在工位前也一样。工位短按无效时会说明原因，不会把手里物品丢到地上，也不触发无关相邻操作。投掷可越过设备，仍受墙和可用落点约束。拿、放这类短动作开始后再按方向键，动作先完成再移动。地面支持拾取、散放原料换手、装锅／盛锅／换锅；地面散放蔬菜直接装盘和地面两盘合并留待后续。
 
-托管设置另提供结束后的自愿数据贡献、预览和删除凭证，不使用本地磁盘记忆。详见[隐私说明](privacy-and-costs.md)。
+托管设置另提供结束后的自愿数据贡献（同意后也可开启以后每局自动上传，随时关闭）、预览和删除凭证，不使用本地磁盘记忆。详见[隐私说明](privacy-and-costs.md)。

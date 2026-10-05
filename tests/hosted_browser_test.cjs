@@ -6,7 +6,7 @@ function harness(saved=null, fail=false, gameState={game_id:'round',phase:'ready
  const calls=[],data=new Map(saved?[['chefjeff.browser-key.v1',JSON.stringify(saved)]]:[]),timers=[];
  const listeners={},elements={};
  for(const id of ['contribution-save','contribution-consent','contribution-preview','contribution-data',
-   'contribution-download','contribution-delete','contribution-status','contribution-receipt'])elements[id]={disabled:true,checked:false};
+   'contribution-download','contribution-delete','contribution-status','contribution-receipt','contribution-auto','contribution-badge'])elements[id]={disabled:true,checked:false};
  const document={getElementById:id=>elements[id]||null,querySelector:()=>null,activeElement:null};
  const native=async(url,init={})=>{
   calls.push({url:String(url),init});
@@ -17,6 +17,7 @@ function harness(saved=null, fail=false, gameState={game_id:'round',phase:'ready
   }
   if(u.pathname==='/api/session')return new Response(JSON.stringify({session:'test-session'}),{status:201});
   if(u.pathname==='/api/state')return new Response(JSON.stringify(gameState));
+  if(u.pathname==='/api/contribution/save')return new Response(JSON.stringify({receipt:{id:'r-'+calls.length,deletion_token:'t',expires_at:'2999-01-01T00:00:00+00:00'}}));
   return new Response('{"ok":true}');
  };
  const w={fetch:native,addEventListener:(name,fn)=>{listeners[name]=fn;},
@@ -291,6 +292,34 @@ async function checkClientTouchBridge(fromSource){
  assert.equal(controls.getState().connected,false);assert.equal(lastControlsState.connected,false,'disconnect reaches phone HTML controls');
 }
 
+async function checkAutoContribution(){
+ const flush=()=>new Promise(r=>setImmediate(r));
+ const saves=h=>h.calls.filter(c=>c.url==='/api/contribution/save').map(c=>JSON.parse(c.init.body));
+ const ended={game_id:'one',phase:'ended',hosted:{contribution_enabled:true}};
+ let h=harness();h.listeners.DOMContentLoaded();
+ h.listeners['kitchen-state']({detail:ended});await flush();
+ assert.equal(saves(h).length,0,'nothing uploads without the standing opt-in');
+ h.elements['contribution-auto'].checked=true;h.elements['contribution-auto'].onchange();
+ assert.equal(h.elements['contribution-auto'].checked,false,'automatic upload needs the agreement first');
+ assert(!h.data.has('chefjeff.contribution-auto.v1'));
+ h.elements['contribution-consent'].checked=true;h.elements['contribution-auto'].checked=true;h.elements['contribution-auto'].onchange();
+ assert(h.data.has('chefjeff.contribution-auto.v1'));
+ h.listeners['kitchen-state']({detail:ended});await flush();
+ assert.equal(saves(h).length,0,'the round already on screen is not uploaded by turning automatic upload on');
+ h.listeners['kitchen-state']({detail:{...ended,game_id:'two',phase:'running'}});await flush();
+ assert.equal(h.elements['contribution-badge'].hidden,true,'no badge during play');
+ for(let i=0;i<3;i++){h.listeners['kitchen-state']({detail:{...ended,game_id:'two'}});await flush();}
+ assert.deepEqual(saves(h).map(b=>b.consent_mode),['standing'],'each finished round uploads once, marked standing');
+ assert.equal(saves(h)[0].consent_version,'pilot-session-2026-09-v1');
+ assert.equal(JSON.parse(h.data.get('chefjeff.contribution-receipts.v1')).length,1,'its deletion receipt stays in this browser');
+ assert.equal(h.elements['contribution-badge'].hidden,false);
+ h.elements['contribution-auto'].checked=false;h.elements['contribution-auto'].onchange();
+ h.listeners['kitchen-state']({detail:{...ended,game_id:'three'}});await flush();
+ assert.equal(saves(h).length,1,'turning it off stops uploads');
+ h.listeners['kitchen-state']({detail:{...ended,game_id:'four',hosted:{contribution_enabled:false}}});await flush();
+ assert.equal(saves(h).length,1);
+}
+
 function checkClientOrderBridge(fromSource){
  const h=harness(),client=clientHarness(h,fromSource);
  const catalog=JSON.parse(fs.readFileSync('content/recipes/chefjeff-service.json','utf8'));
@@ -414,11 +443,13 @@ const cfg={provider:'deepseek',model:'test-model',api_key:key,remember:false};
  await checkClientTouchBridge(false);
  checkClientOrderBridge(false);
  checkClientAimRender(false);
+ await checkAutoContribution();
  if(require('node:module').stripTypeScriptTypes){await checkClientInteractions(true);await checkClientTouchBridge(true);checkClientOrderBridge(true);checkClientAimRender(true);}
  else console.log('TypeScript source execution requires Node 22.13+; included runtime checked.');
  console.log('Browser transport: memory/remember/clear, reload, CORS failure, origin guard and no-key-to-server checks passed.');
  console.log('Client interactions: workstation/floor tap and hold, item changes, cancellation and hosted contribution state passed.');
  console.log('Client touch bridge: normalized movement, station tap/throw hold, neutral reset, cancellation, sprint and keyboard compatibility passed.');
  console.log('Client order bridge: all recipe ingredients, snapshot order/duplicates, reviewed sprites, unknown fallback and patience passed.');
+ console.log('Hosted automatic contribution: opt-in after agreement, once per finished round, receipts kept, badge and turn-off passed.');
  console.log('Client aim rendering: translucent arc, finite eight-way/analog geometry, unchanged range, cancellation and request-free steering passed.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

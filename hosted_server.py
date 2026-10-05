@@ -146,8 +146,11 @@ class HostedSession(GameSession):
             if not self.store: return 503, {'error':'Contributions are not enabled.'}
             if body.get('consent') is not True or body.get('consent_version') != CONSENT_VERSION:
                 return 400, {'error':'Explicit consent is required.'}
+            # round: agreed for this round; standing: the player turned on automatic upload after agreeing.
+            mode = body.get('consent_mode', 'round')
+            if mode not in ('round', 'standing'): return 400, {'error':'Explicit consent is required.'}
             if self.receipt_round != self.game_id:
-                self.receipt = self.store.save(pilot_record(self))
+                self.receipt = self.store.save({**pilot_record(self), 'consent_mode':mode})
                 self.receipt_round = self.game_id
             return 200, {'receipt':self.receipt}
         if path == '/api/browser-ready':
@@ -181,7 +184,7 @@ class HostedSession(GameSession):
 # Only game fields cross the same-origin boundary. Never echo invalid bodies.
 FIELDS = {
     '/api/contribution/preview': set(),
-    '/api/contribution/save': {'consent', 'consent_version'},
+    '/api/contribution/save': {'consent', 'consent_version', 'consent_mode'},
     '/api/browser-ready': {'connected'}, '/api/start': {'speed'}, '/api/pause': {'reason'},
     '/api/resume': set(), '/api/end': set(), '/api/reset': set(), '/api/restart': set(),
     '/api/level': {'level'}, '/api/next': {'level'}, '/api/limits': {'max_calls'}, '/api/export-run': set(),
@@ -249,6 +252,9 @@ SHELL_REPLACEMENTS = (
     ('<section aria-labelledby="memory-title"', '<section hidden aria-labelledby="memory-title"'),
 )
 CONTRIBUTION_SLOT = '<!-- hosted-contribution -->'
+CONTRIBUTION_BADGE = ('<p id="contribution-badge" role="status" data-no-i18n hidden style="position:fixed;left:50%;bottom:8px;'
+                      'transform:translateX(-50%);z-index:60;margin:0;padding:3px 10px;border-radius:10px;background:#2b1a12cc;'
+                      'color:#fff;font:12px/16px system-ui,sans-serif;pointer-events:none"></p>')
 
 
 def hosted_html(raw):
@@ -257,6 +263,8 @@ def hosted_html(raw):
     for old, new in SHELL_REPLACEMENTS:
         page = page.replace(old, new)
     panel = (ROOT / 'hosted' / 'contribution.html').read_text()
+    # Outside the dialogs, so the result card can show that automatic upload is on.
+    page = page.replace('</body>', CONTRIBUTION_BADGE + '</body>', 1)
     # Newer shells mark a slot in the Export tab; older builds append to the settings dialog.
     page = page.replace(CONTRIBUTION_SLOT, panel, 1) if CONTRIBUTION_SLOT in page else page.replace('</dialog>', panel + '</dialog>', 1)
     return page.encode('utf-8')
