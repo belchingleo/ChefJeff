@@ -191,3 +191,22 @@ export function levelButtonLayout(count:number,band={left:309,right:971,top:432,
     }
     return out;
 }
+/** Throw pose for an aim direction in map coordinates (x right, y down), any angle.
+ * The knifeless chop frames already paint the throwing arm: frame 0 raised (wind-up),
+ * 1 straight forward, 2 forward-down, 3 forward-up. Side views take 120-degree sectors
+ * so diagonals lean the arm up or down instead of turning to the back or front. */
+export function throwPose(dx:number,dy:number,phase:'windup'|'release'):{view:string;frame:number}{
+    const t=((Math.atan2(dy,dx)*180/Math.PI)%360+360)%360;
+    const view=t<=60||t>=300?'right':t<120?'down':t<=240?'left':'up';
+    if(phase==='windup')return {view,frame:0};
+    if(view==='down')return {view,frame:1};
+    if(view==='up')return {view,frame:3};
+    const r=((t-(view==='right'?0:180))%360+540)%360-180;
+    if(Math.abs(r)<=20)return {view,frame:1};
+    return {view,frame:(view==='right'?r>0:r<0)?2:3};
+}
+/** Held item centre in a pose's canvas pixels: just beyond the fist, along the arm. */
+export function throwItemPoint(grip:number[],armDeg:number,out=4):[number,number]{
+    const a=armDeg*Math.PI/180;
+    return [grip[0]+Math.cos(a)*out,grip[1]-Math.sin(a)*out];
+}

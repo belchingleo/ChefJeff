@@ -1165,6 +1165,8 @@ class SpatialKitchen(Kitchen):
                         'walk_speed': r.walk_speed,
                         # Exact foot-blocking boxes, so the client can predict held-key movement.
                         'walk_boxes': [list(b) for b in self.nav.walk_boxes], 'walk_clearance': WALK_CLEARANCE, 'chef_separation': r.chef_separation,
+                        # An aimed throw targets the teammate within this distance of the aim line (aimed_throw).
+                        'catch_radius': r.catch_radius,
                         **({'corner_slide': r.corner_slide} if r.corner_slide else {}),
                         'presentation': self.map_document['presentation'],
                         'layout_version': self.map_document['id']+'-'+str(self.map_document['revision']), 'spawn_rule': 'One chef near the center of each working area; assigned sides are randomized',

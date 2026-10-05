@@ -243,6 +243,25 @@ assert(flyingDepth > geometry.depthOrder(4, 'solid'), 'a raised object must not 
   }
 }
 
+// Throw poses: any aim angle maps to a painted knifeless chop frame with a grip, for both chefs.
+const chefs=JSON.parse(fs.readFileSync(path.join(root,'cocos-kitchen/assets/resources/art/chefs-v2/manifest.json'),'utf8')).frames;
+const at=deg=>[Math.cos(deg*Math.PI/180),Math.sin(deg*Math.PI/180)];
+for(const [deg,view,frame] of [[0,'right',1],[45,'right',2],[90,'down',1],[135,'left',2],[180,'left',1],[225,'left',3],[270,'up',3],[315,'right',3]])
+  assert.deepStrictEqual(geometry.throwPose(...at(deg),'release'),{view,frame},`release at ${deg}`);
+let previous=null,switches=0;
+for(let deg=0;deg<360;deg+=1){
+  for(const phase of ['windup','release']){
+    const pose=geometry.throwPose(...at(deg),phase);
+    for(const kind of ['player','jeff']){
+      const meta=chefs[`knifeless/characters/${kind}/${pose.view}/chop_${pose.frame}`];
+      assert(meta&&meta.grip&&!meta.knife_hidden,`${kind} ${phase} ${deg}: needs a painted arm with a grip`);
+    }
+  }
+  const view=geometry.throwPose(...at(deg),'windup').view;if(previous!==null&&view!==previous)switches++;previous=view;
+}
+assert.strictEqual(switches,4,'four body views, each a single sector');
+const p=geometry.throwItemPoint([10,20],90,4);assert(Math.abs(p[0]-10)<1e-9&&Math.abs(p[1]-16)<1e-9,'item sits beyond the fist along the arm');
+
 // Held-key prediction lands where the server's manual step does, including wall slides.
 const walks = JSON.parse(fs.readFileSync(process.argv[4], 'utf8'));
 for (const {level, map, steps} of walks) {
