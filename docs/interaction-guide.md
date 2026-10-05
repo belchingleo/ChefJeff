@@ -1,6 +1,6 @@
 # Interaction guide
 
-Use a desktop/laptop browser with a keyboard and mouse, or try the experimental landscape touch controls. Phone and small touch viewport compatibility still needs real-device validation; see [device support](device-support.md). Full timing and item rules are in [gameplay rules](current-rules.md).
+Use a desktop/laptop browser with a keyboard and mouse, or try the experimental desktop controller or landscape touch controls. Phone and small touch viewport compatibility still needs real-device validation; see [device support](device-support.md). Full timing and item rules are in [gameplay rules](current-rules.md).
 
 | Input / interaction | Behavior |
 | --- | --- |
@@ -12,6 +12,20 @@ Use a desktop/laptop browser with a keyboard and mouse, or try the experimental 
 | Enter | Bookmark a moment; nearby marks merge into intervals |
 | 1–5 / 6 | Cooperation preference / perceived mistake, with a shared cooldown; the dock (open by default) also takes clicks |
 | Settings | Provider connection, language, next-round call limit, local memory, feedback |
+
+## Experimental desktop controller
+
+Requires a browser Gamepad API on `localhost` or HTTPS, initially targeting Chrome. Press a controller button if the browser has not discovered it. Only one active `standard`-mapped controller is used; the phone touch layout suppresses controller takeover. Real-controller testing is still pending.
+
+| Standard controller input | Behavior |
+| --- | --- |
+| Left stick / D-pad | Move; center/release to stop. While aiming, changes the throw direction. The stick allows continuous directions; keyboard/D-pad directions use the eight discrete directions |
+| A / × | Empty-handed actions start on press. Holding an item, a short press interacts on release; hold about 0.3 s to aim and release to throw, including in front of a station |
+| X / □ | Dash while moving, using the existing speed, duration and cooldown |
+| B / ○ | Cancel the current controller aim without throwing |
+| Start / Options | Ready: start, or open Settings if no model is connected. Running: pause. Paused: resume. Results: no automatic restart |
+
+Keep the keyboard/mouse for model setup, communication and menus; complete controller menu navigation is not included. Focus loss, backgrounding, disconnects, input fields, dialogs, keyboard/mouse takeover and new rounds clear controller input and cancel pending actions. Center the stick and release buttons before taking control again. An active-controller disconnect pauses the round; initial connection or an unused controller does not interrupt keyboard play. Paused rounds require explicit resume.
 
 ## Experimental touch controls
 
@@ -41,7 +55,7 @@ Hosted Settings additionally offer explicit contribution after the round, a data
 
 # 交互指南
 
-使用配备键鼠的电脑浏览器，或尝试试验版横屏触控；手机及小尺寸触屏视口兼容性仍需真机验证，见[设备支持](device-support.md)。完整时间与物品约束见[玩法规则](current-rules.md)。
+使用配备键鼠的电脑浏览器，或尝试试验版桌面手柄／横屏触控；手机及小尺寸触屏视口兼容性仍需真机验证，见[设备支持](device-support.md)。完整时间与物品约束见[玩法规则](current-rules.md)。
 
 | 输入／交互 | 行为 |
 | --- | --- |
@@ -53,6 +67,20 @@ Hosted Settings additionally offer explicit contribution after the round, a data
 | Enter | 标记时刻，相近标记合并为区间 |
 | 1–5／6 | 协作偏好／玩家认为出错，共用冷却；沟通面板默认展开，也可以用鼠标点 |
 | 设置 | 接口连接、语言、下一局调用上限、本地记忆、反馈 |
+
+## 试验版桌面手柄
+
+要求浏览器在 `localhost` 或 HTTPS 页面提供 Gamepad API，首轮以 Chrome 为目标；未发现设备时可先按手柄按钮。只使用一个采用 `standard` 映射的活动手柄，手机触控布局启用时不接管。真实手柄验证仍待完成。
+
+| 标准手柄输入 | 行为 |
+| --- | --- |
+| 左摇杆／十字键 | 移动，归中／松开停止；瞄准时调整投掷方向。摇杆支持连续方向，键盘／十字键使用八个离散方向 |
+| A／× | 空手按下立即操作；持物时短按松开交互，长按约 0.3 秒瞄准、松开投掷，工位前也能投掷 |
+| X／□ | 移动时冲刺，沿用当前速度、时长和冷却 |
+| B／○ | 取消当前手柄瞄准，不投掷 |
+| Start／Options | 准备时开局，未连接模型则打开设置；经营中暂停，暂停时继续；结算后不自动重开 |
+
+模型设置、沟通和菜单仍用键鼠，本轮不包含完整手柄菜单导航。失焦、切后台、断连、输入框、对话框、键鼠接管及新局都会清理手柄输入并取消待执行动作，先让摇杆归中、按键放开后再接管。活动手柄断连会暂停，初次连接或尚未用于游戏的手柄不会打断键盘操作；暂停后需要明确继续，不自动恢复。
 
 ## 试验版触控
 

@@ -34,6 +34,7 @@ if result.returncode==36 and args.platform=='web':
     catalog=(ROOT/'cocos-kitchen/i18n.json').read_text()
     (page.parent/'kitchen-i18n.js').write_text((ROOT/'cocos-kitchen/i18n.js').read_text().replace('__KITCHEN_CATALOG__',catalog))
     shutil.copyfile(ROOT/'cocos-kitchen/touch-controls.js',page.parent/'touch-controls.js')
+    shutil.copyfile(ROOT/'cocos-kitchen/gamepad-controls.js',page.parent/'gamepad-controls.js')
     content=content.replace('<title>Cocos Creator | JevKitchen</title>','<title>ChefJeff · 一起出餐</title>')
     # Creator's template targets portrait phones and blocks zoom; this is a landscape game
     # whose text must stay zoomable (WCAG 1.4.4).

@@ -140,6 +140,26 @@ class PackageTests(unittest.TestCase):
                     with self.subTest(source=name):
                         self.assertIn(name, archive.namelist())
                         self.assertEqual(archive.read(name), file.read_bytes())
+
+    def test_real_package_keeps_gamepad_controls_and_matching_web_entries(self):
+        root = Path(__file__).resolve().parents[1]
+        source = root / 'cocos-kitchen/gamepad-controls.js'
+        shipped = root / 'cocos-kitchen/build/web/gamepad-controls.js'
+        self.assertEqual(source.read_bytes(), shipped.read_bytes(),
+                         'rebuilding and using the shipped app must keep identical gamepad controls')
+        entries = [root / 'cocos-kitchen/web-shell.html',
+                   root / 'cocos-kitchen/build/web/index.html']
+        for entry in entries:
+            with self.subTest(entry=entry):
+                self.assertRegex(entry.read_text(), r'<script[^>]+src=["\'][^"\']*gamepad-controls\.js["\']')
+        with tempfile.TemporaryDirectory() as tmp:
+            output, _ = package(root, Path(tmp) / 'demo.zip')
+            with zipfile.ZipFile(output) as archive:
+                for file in [source, shipped, *entries]:
+                    name = 'chefjeff-web-demo/' + file.relative_to(root).as_posix()
+                    with self.subTest(source=name):
+                        self.assertIn(name, archive.namelist())
+                        self.assertEqual(archive.read(name), file.read_bytes())
     def test_symlink_and_local_paths_rejected(self):
         root=self.fixture();p=root/'cocos-kitchen/build/web/link.js';p.symlink_to(root/'config.json')
         with self.assertRaises(ValueError):package(root)

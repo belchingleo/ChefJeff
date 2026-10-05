@@ -6,7 +6,8 @@
 | Phone or small touch viewport | Experimental landscape touch controls; real-device validation pending |
 | Large touch-only tablet | Touch controls do not enable automatically at large viewports; compatibility unverified |
 | iPad with external keyboard and mouse | Existing keyboard input is available; iPad compatibility remains unverified |
-| Controller or other terminal | Roadmap |
+| Desktop controller with standard Gamepad mapping | Experimental; requires browser Gamepad API, real-controller validation pending |
+| Nonstandard controller mapping or other terminal | Not mapped; future work |
 
 ## Landscape touch trial
 
@@ -30,6 +31,14 @@ Desktop orders remain in the top horizontal rail. In the touch layout, orders us
 
 Use Safari or Chrome directly for the first trial. In-app browsers have not been validated. Record the device, operating system and browser versions with bug reports.
 
+## Experimental desktop controller
+
+Use a WebGL-capable desktop browser with the Gamepad API on `localhost` or HTTPS; Chrome is the initial browser target. The browser may not expose a connected controller until you press a button. Only one active controller reporting the browser's `standard` mapping is used; nonstandard mappings are not guessed. This does not change the desktop layout or take over input while the phone touch layout is active.
+
+The left stick or D-pad moves; A/× interacts (with an item, a tap acts on release and a hold of about 0.3 seconds aims, then releases to throw). X/□ dashes, B/○ cancels a controller aim without throwing, and Start/Options starts a ready round or opens Settings if no model is connected, pauses a running round, or resumes a paused one. It does not restart a completed round. Model setup, communication and menu navigation still need the keyboard/mouse; this trial does not provide complete controller menu navigation. See [interaction guide](interaction-guide.md).
+
+Losing focus, hiding the page, disconnecting, focusing an input field, opening a dialog, keyboard/mouse takeover or starting a new round clears held controller input and cancels pending actions. Center the stick and release buttons before taking control again; paused rounds never resume automatically. Disconnecting the active controller pauses play, while first connection or a controller not used for the game does not interrupt keyboard play. Real-controller compatibility remains unverified; scripted Gamepad/browser checks cannot establish hardware compatibility.
+
 ## Keyboard devices
 
 The desktop controls are unchanged: held WASD/arrows move, Space interacts (hold it to aim a throw), Shift dashes, Enter bookmarks, 1–6 sends messages and Esc or P pauses. P is available for keyboards without Esc, such as the iPad Magic Keyboard; menus also take pointer input.
@@ -48,7 +57,8 @@ Apple documents [mouse support on iPad](https://support.apple.com/en-ie/guide/ip
 | 手机或小尺寸触屏视口 | 试验版横屏触控，尚待真机验证 |
 | 大尺寸纯触屏平板 | 大视口不会自动启用触控，兼容性尚未验证 |
 | 外接键鼠的 iPad | 可使用现有键盘输入，iPad 兼容性尚未验证 |
-| 手柄或其他终端 | 后续开发目标 |
+| 标准 Gamepad 映射的桌面手柄 | 试验支持，需浏览器 Gamepad API，真实手柄验证尚待完成 |
+| 非标准映射手柄或其他终端 | 暂不映射，后续开发目标 |
 
 ## 横屏触控试玩
 
@@ -71,6 +81,14 @@ Apple documents [mouse support on iPad](https://support.apple.com/en-ie/guide/ip
 - API 设置、粘贴和软键盘、模型服务商 CORS、声音解锁、记录、导出及自愿贡献数据。
 
 首次试玩建议直接用 Safari 或 Chrome；应用内置浏览器尚未验证。反馈问题时请附设备、系统和浏览器版本。
+
+## 试验版桌面手柄
+
+使用支持 WebGL 和 Gamepad API 的桌面浏览器，网页需要在 `localhost` 或 HTTPS 上打开，首轮以 Chrome 为目标。浏览器可能需要先按一下手柄按钮才会发现设备。只接管一个采用浏览器 `standard` 映射的活动手柄，不猜测非标准映射。桌面布局不变，手机触控布局启用时手柄不抢占输入。
+
+左摇杆或十字键移动；A/× 操作（持物时短按松开执行交互，长按约 0.3 秒瞄准，松开投掷）；X/□ 冲刺；B/○ 取消当前手柄瞄准，不投掷；Start/Options 在准备阶段开局（未连接模型时打开设置）、经营中暂停、暂停时继续，结算后不自动重开。模型设置、沟通及菜单导航仍需键鼠，本轮不提供完整手柄菜单导航。见[交互指南](interaction-guide.md)。
+
+失焦、切后台、手柄断连、聚焦输入框、打开对话框、键鼠接管或新一局开始后，都会清理持续手柄输入并取消待执行动作。摇杆先归中、按键先放开，才能重新接管；暂停的对局不会自动继续。活动手柄断连会暂停，而初次连接或尚未用于游戏的手柄不会打断键盘操作。真实手柄兼容性尚未验证，脚本注入的 Gamepad／浏览器检查不能证明硬件兼容。
 
 ## 键盘设备
 

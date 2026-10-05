@@ -41,7 +41,7 @@ Tested so far: macOS 15.6, Python 3.12, a Chromium-based browser, with TypeSafe 
 
 ChefJeff plays much like Overcooked: two chefs cook together. The difference is that the other chef is controlled by an AI.
 
-You control one chef with the keyboard or the experimental landscape touch controls: walk, fetch ingredients, chop, cook, plate, serve and wash plates. Jeff is the other chef, driven by a large language model, and every few seconds he decides what to do next. You share one kitchen and the same physical rules (walking speed, throwing distance, collisions), but you see the kitchen and act in it in different ways; see [Jeff and model integration](#jeff-and-model-integration).
+You control one chef with the keyboard, experimental desktop controller support or experimental landscape touch controls: walk, fetch ingredients, chop, cook, plate, serve and wash plates. Jeff is the other chef, driven by a large language model, and every few seconds he decides what to do next. You share one kitchen and the same physical rules (walking speed, throwing distance, collisions), but you see the kitchen and act in it in different ways; see [Jeff and model integration](#jeff-and-model-integration).
 
 A round lasts 180 seconds. Orders arrive at regular intervals, each with its own countdown, and an order that expires costs you money. Reaching the target does not end the round early: the kitchen stays open until closing time, and the level is cleared if net revenue at closing meets the target. So once you've reached it, you and Jeff can keep going for more.
 
@@ -64,6 +64,8 @@ The controls work much as in Overcooked:
 | 1–6 | Tell Jeff what kind of work you want to do, or point out a mistake |
 | Enter | Bookmark the current moment without pausing or interrupting anything; bookmarks are included in the run export |
 | Esc or P | Pause (use P on iPad keyboards without an Esc key). Settings let you connect a model, switch language, adjust volume and export the run |
+
+**Desktop controller trial:** Chrome on `localhost` or HTTPS with the Gamepad API can use one `standard`-mapped controller. Press a button if it has not been discovered. Left stick/D-pad moves; A/× taps to interact or holds about 0.3 s with an item to aim and releases to throw; X/□ dashes; B/○ cancels the controller aim; Start/Options starts a ready round (or opens model Settings), pauses or resumes, and does not restart after results. Settings, communication and menus still use keyboard/mouse. Interruptions clear controller input; center the stick and release buttons before taking control again, with manual resume after a pause. Real-controller compatibility is unverified; see [device support](docs/device-support.md) and [interaction guide](docs/interaction-guide.md).
 
 After each round, a round record pops up. It shows how many times you and Jeff each fetched ingredients, chopped, cooked, served and washed plates, and each chef's contribution, delay and idle time (see [records and analysis](#records-and-analysis)).
 

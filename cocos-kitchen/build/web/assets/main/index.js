@@ -667,9 +667,13 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             var _e$target;
             if ((_e$target = e.target) != null && _e$target.closest('canvas')) e.preventDefault();
           };
-          _this.onMouseDown = function (e) {
-            var _e$target2;
-            if (e.button === 2 && (_e$target2 = e.target) != null && _e$target2.closest('canvas')) {
+          _this.onMouseDown = e => {
+            if (!sys.isNative && e.isTrusted) window.dispatchEvent(new CustomEvent('kitchen-manual-input', {
+              detail: {
+                source: 'mouse'
+              }
+            }));
+            if (e.button === 2 && e.target?.closest('canvas')) {
               e.preventDefault();
               e.stopImmediatePropagation();
             }
@@ -693,6 +697,12 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             _this.publishControls();
           };
           _this.onKey = e => {
+            // Give a held controller back to the keyboard before applying this key.
+            if (!sys.isNative && e.isTrusted) window.dispatchEvent(new CustomEvent('kitchen-manual-input', {
+              detail: {
+                source: 'keyboard'
+              }
+            }));
             // The communication dock keeps native Tab/Enter/Space; Esc hands the keyboard back.
             const dock = !sys.isNative ? document.activeElement?.closest('#kitchen-communication') : null;
             if (e.key === 'Escape') {
@@ -1201,7 +1211,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           if (this.pending) return;
           if (this.touchLayout?.active && !this.touchLayout.landscape) return;
           if (!sys.isNative && document.querySelector('dialog[open]')) return;
-          if (this.touchLayout?.active && id === 'main' && this.state?.phase === 'ready' && this.state.connection && !this.state.connection.configured) {
+          if (id === 'main' && this.state?.phase === 'ready' && this.state.connection && !this.state.connection.configured) {
             this.openConnection();
             return;
           }
@@ -1230,6 +1240,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             phase: s?.phase || 'loading',
             connected: this.connected,
             pending: this.pending,
+            canInput: this.canInput(),
             canInteract: !!s?.interaction,
             canThrow: !!c?.holding && c.can_throw !== false,
             canDash: this.canInput() && !this.aiming && !!c?.sprint?.available && (this.manualDirection.x !== 0 || this.manualDirection.y !== 0),

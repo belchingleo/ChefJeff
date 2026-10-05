@@ -288,6 +288,8 @@ function kitchenTabs(dialog){
    <span class="keys"><span class="key wide">Enter</span></span><span>标记当前片段，导出本局时可以回看。</span>
    <span class="keys"><span class="key">1</span>–<span class="key">5</span><span class="key">6</span></span><span>告诉 Jeff 你更想做哪类工作；6 表示他做错了。</span>
   </div>
+  <p>手柄：左摇杆或十字键移动，A/× 操作（持物长按瞄准、松手投掷），X/□ 冲刺，B/○ 取消瞄准；Start/Options 开始或暂停、继续。</p>
+  <p class="fine">首次连接后先按一下手柄按键，再放开按键并将左摇杆回中。设置和沟通菜单仍使用键盘和鼠标；只支持浏览器识别为标准布局的手柄。</p>
  </section>
  <section id="help-rules" role="tabpanel" aria-labelledby="tab-rules">
   <dl>
@@ -333,6 +335,7 @@ function kitchenTabs(dialog){
  document.getElementById('help-close').onclick=document.getElementById('help-x').onclick=()=>help.close();})();
 </script>
 <script src="touch-controls.js"></script>
+<script src="gamepad-controls.js"></script>
 <style>
 /* End-of-round record: generated from the round's summary (round_summary.py), never per level. */
 #kitchen-record-dialog{width:min(560px,calc(100vw - 28px))}

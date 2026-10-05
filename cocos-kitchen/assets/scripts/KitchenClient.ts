@@ -238,7 +238,10 @@ export class KitchenClient extends Component {
     private onBlur=()=>this.clearInput();
     private onVisibility=()=>{if(document.hidden)this.clearInput();};
     private onContextMenu=(e:MouseEvent)=>{if((e.target as HTMLElement)?.closest('canvas'))e.preventDefault();};
-    private onMouseDown=(e:MouseEvent)=>{if(e.button===2&&(e.target as HTMLElement)?.closest('canvas')){e.preventDefault();e.stopImmediatePropagation();}};
+    private onMouseDown=(e:MouseEvent)=>{
+        if(!sys.isNative&&e.isTrusted)window.dispatchEvent(new CustomEvent('kitchen-manual-input',{detail:{source:'mouse'}}));
+        if(e.button===2&&(e.target as HTMLElement)?.closest('canvas')){e.preventDefault();e.stopImmediatePropagation();}
+    };
     private onMouseUp=(e:MouseEvent)=>{if(e.button===2&&(e.target as HTMLElement)?.closest('canvas')){e.preventDefault();e.stopImmediatePropagation();}};
     private openRecord(){if(!sys.isNative&&this.state?.round_summary)window.dispatchEvent(new CustomEvent('kitchen-open-record',{detail:this.state.round_summary}));}
     private openHelp(){this.clearInput();if(this.touchLayout?.active)this.blockTouch(true);if(!sys.isNative)window.dispatchEvent(new Event('kitchen-open-help'));}
@@ -266,7 +269,7 @@ export class KitchenClient extends Component {
         if(this.pending)return;
         if(this.touchLayout?.active&&!this.touchLayout.landscape)return;
         if(!sys.isNative&&document.querySelector('dialog[open]'))return;
-        if(this.touchLayout?.active&&id==='main'&&this.state?.phase==='ready'&&this.state.connection&&!this.state.connection.configured){this.openConnection();return;}
+        if(id==='main'&&this.state?.phase==='ready'&&this.state.connection&&!this.state.connection.configured){this.openConnection();return;}
         const b=this.buttons[id];if(b?.enabled&&!this.pending)b.callback();
     }
     private canInput(){return !!this.state&&this.connected&&!this.hidden&&!this.touchBlocked&&this.state.phase==='running'&&(sys.isNative||!document.querySelector('dialog[open]'));}
@@ -286,7 +289,7 @@ export class KitchenClient extends Component {
     private controlsState(){
         const s=this.state,k=s?.kitchen,c=k?.chefs?.human;
         const text=(id:string)=>this.labels[id]?this.labelSources.get(this.labels[id])||'':'';
-        return {game_id:s?.game_id,phase:s?.phase||'loading',connected:this.connected,pending:this.pending,
+        return {game_id:s?.game_id,phase:s?.phase||'loading',connected:this.connected,pending:this.pending,canInput:this.canInput(),
             canInteract:!!s?.interaction,canThrow:!!c?.holding&&c.can_throw!==false,
             canDash:this.canInput()&&!this.aiming&&!!c?.sprint?.available&&(this.manualDirection.x!==0||this.manualDirection.y!==0),
             holding:c?.holding||null,interaction:s?.interaction?.label.split('（')[0]||'',interactionHint:s?.interaction_hint||'',
@@ -364,6 +367,8 @@ export class KitchenClient extends Component {
         else if(this.state?.phase==='paused'&&this.connected){e.preventDefault();this.post('/api/resume');}
     }
     private onKey=(e:KeyboardEvent)=>{
+        // Give a held controller back to the keyboard before applying this key.
+        if(!sys.isNative&&e.isTrusted)window.dispatchEvent(new CustomEvent('kitchen-manual-input',{detail:{source:'keyboard'}}));
         // The communication dock keeps native Tab/Enter/Space; Esc hands the keyboard back.
         const dock=!sys.isNative?(document.activeElement as HTMLElement)?.closest('#kitchen-communication') as HTMLElement|null:null;
         if(e.key==='Escape'){

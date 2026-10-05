@@ -149,6 +149,8 @@ async function checkClientTouchBridge(fromSource){
   assert.equal(typeof controls[method],'function',`bridge method ${method}`);
  assert.equal(controls.getState().game_id,'touch-round');assert.equal(controls.getState().phase,'running');
  assert.equal(controls.getState().canThrow,true);
+ assert.equal(controls.getState().canInput,true,'controller polling uses the same game input gate');
+ client.hidden=true;assert.equal(controls.getState().canInput,false);client.hidden=false;
  const human=client.state.kitchen.chefs.human;
  const flush=()=>client.flushTouchMove();
  const clear=()=>{client.clearInput();posts.length=0;moves.length=0;client.clock+=1;human.holding={id:'held'};human.can_throw=true;human.sprint={available:true,cooldown_remaining:0,active_remaining:0};};
@@ -207,19 +209,32 @@ async function checkClientTouchBridge(fromSource){
  posts.length=0;moves.length=0;controls.move(1,0);flush();controls.press();controls.release();controls.dash();
  assert.equal(posts.length,0,'blocked gameplay sends no actions');assert(!moves.some(m=>m.dx||m.dy),'blocked gameplay sends no movement');
  controls.block(false);assert.equal(posts.length,0,'unblocking never resumes a round automatically');
+ assert.equal(controls.getState().canInput,true);
  clear();client.onKey({key:'w',code:'KeyW',preventDefault:()=>{}});assert.equal(client.manualDirection.y,-1,'desktop keyboard walking remains available');
  client.onKeyUp({key:'w',code:'KeyW'});assert.equal(client.manualDirection.y,0);
- // Phone players can connect from the primary button; feedback on the hidden
- // desktop canvas would otherwise make this first-use button appear inert.
+ // Controller cancellation must happen before the new keyboard key is applied.
+ const manual=[];
+ h.w.addEventListener('kitchen-manual-input',event=>{manual.push(event.detail.source);controls.cancel();});
+ clear();controls.move(1,0);flush();
+ client.onKey({key:'w',code:'KeyW',isTrusted:true,preventDefault:()=>{}});
+ assert.equal(manual.at(-1),'keyboard');assert(client.heldKeys.has('w'));
+ assert.deepEqual({...client.manualDirection},{x:0,y:-1},'handing back from the gamepad must preserve the fresh keyboard input');
+ client.onKeyUp({key:'w',code:'KeyW'});
+ clear();controls.press();client.clock+=.31;client.startAim();assert(client.aiming);
+ client.onMouseDown({button:0,isTrusted:true,target:{closest:()=>null}});
+ controls.release();assert.equal(manual.at(-1),'mouse');assert.equal(client.aiming,null);
+ assert.equal(posts.length,0,'mouse takeover cancels a controller hold without releasing a throw');
+ // Both touch and controller players reach settings from their Start action.
  let settingsOpened=0,mainCalled=0;
  client.openConnection=()=>{settingsOpened++;};client.buttons.main={enabled:true,callback:()=>{mainCalled++;}};
  client.state.phase='ready';client.state.connection={configured:false};client.touchLayout={active:true,landscape:true};
  controls.main();assert.equal(settingsOpened,1,'unconfigured phone main opens connection settings');assert.equal(mainCalled,0);
  client.state.connection.configured=true;controls.main();assert.equal(mainCalled,1,'configured phone main runs the existing start action');assert.equal(settingsOpened,1);
  client.touchLayout={active:false,landscape:true};client.state.connection.configured=false;controls.main();
- assert.equal(mainCalled,2,'desktop main preserves its existing callback');assert.equal(settingsOpened,1);
- client.touchLayout={active:true,landscape:false};controls.main();assert.equal(settingsOpened,1,'portrait cannot activate the primary button');
- client.touchLayout.landscape=true;client.pending=true;controls.main();assert.equal(settingsOpened,1,'a pending action cannot reopen settings');
+ assert.equal(mainCalled,1);assert.equal(settingsOpened,2,'unconfigured controller Start reaches connection settings on desktop');
+ client.state.connection.configured=true;controls.main();assert.equal(mainCalled,2,'configured controller Start runs the existing callback');
+ client.touchLayout={active:true,landscape:false};controls.main();assert.equal(settingsOpened,2,'portrait cannot activate the primary button');
+ client.touchLayout.landscape=true;client.pending=true;controls.main();assert.equal(settingsOpened,2,'a pending action cannot reopen settings');
  // The scene's Camera is a child of Canvas too. Hiding phone HUD siblings must
  // leave that camera running, otherwise the canvas freezes without an error.
  const node=(name,active=true)=>({name,active,isValid:true,children:[],position:{x:0,y:0},
