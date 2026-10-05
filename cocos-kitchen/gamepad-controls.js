@@ -103,9 +103,11 @@
       previousButtons = input;
       const running = state.phase === 'running' && state.canInput !== false;
       if (edges.start && (running || !state.pending)) {
-        const method = running ? 'pause' : state.phase === 'paused' ? 'resume' : state.phase === 'ready' && state.mainEnabled ? 'main' : null;
+        const method = running ? 'pause' : state.phase === 'paused' ? 'resume' : ['ready', 'ended'].includes(state.phase) && state.mainEnabled ? 'main' : null;
         if (method) { interrupt(); owned = true; controls[method](); showHint(); requestAnimationFrame(frame); return; }
       }
+      // A on the result card presses its main button (next level); the page ignores it for the card's first second.
+      if (!running && edges.a && state.phase === 'ended' && state.mainEnabled && !state.pending) { owned = true; controls.main(); }
       if (!running) { showHint(); requestAnimationFrame(frame); return; }
       if (edges.b && owned && (actionDown || state.aiming)) {
         interrupt(); requestAnimationFrame(frame); return;

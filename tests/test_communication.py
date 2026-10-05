@@ -64,7 +64,7 @@ class CommunicationTests(unittest.TestCase):
         self.assertEqual(len(self.g.player_messages),1);self.assertEqual(self.g.phase,'paused')
         self.assertEqual(self.cmd('communicate',code='wash',game_id='stale')[0],409)
         log=self.g.journal;self.cmd('end');self.assertEqual(self.send('wash',1000)[0],409)
-        report=self.cmd('export-run')[1]['report'];self.assertEqual(report['player_messages'],self.g.player_messages)
+        report=self.cmd('export-run')[1]['report'];self.assertEqual(report['rounds'][-1]['player_messages'],self.g.player_messages)
         self.assertNotIn('secret-test',json.dumps(report))
         self.assertEqual(next(d for kind,d in log.rows if kind=='end')['player_messages'],self.g.player_messages)
         self.cmd('reset');self.assertEqual(self.g.player_messages,[]);self.assertIsNone(self.g.last_player_message_at)

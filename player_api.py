@@ -14,7 +14,7 @@ from whitebox_server import SpatialJevClient
 from model_language import english_data
 from cooperation_memory import CooperationMemory, round_scope, episode, ROUNDS
 from release_info import release_info
-from feedback import feedback_report
+from feedback import play_export
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -160,7 +160,7 @@ class PlayerGameSession(GameSession):
             # Finished round usage remains tied to its original limit.
             return 200,{'ok':True,'next_max_calls':limit}
         if path in ('/api/feedback','/api/export-run'):
-            return 200,{'ok':True,'report':feedback_report(self)}
+            return 200,{'ok':True,'report':play_export(self)}
         if path=='/api/memory':
             if not self.memory_state()['editable']:
                 return 409,{'error':'请在开局前或结算后修改记忆设置，保证一局内条件一致。'}
@@ -173,9 +173,9 @@ class PlayerGameSession(GameSession):
             try:self.memory.configure(enabled,clear)
             except OSError:return 500,{'error':'无法保存记忆设置，请检查本地文件权限。'}
             return 200,{'ok':True,'memory':self.memory_state()}
-        if path in ('/api/start','/api/restart') and self.connecting:
+        if path in ('/api/start','/api/restart','/api/next') and self.connecting:
             return 409,{'error':'正在测试连接，请等测试完成后再开局。'}
-        if path in ('/api/start','/api/restart') and not self.setting:
+        if path in ('/api/start','/api/restart','/api/next') and not self.setting:
             return 428,{'error':'请先打开 API 设置，连接你自己的账号。不会使用开发者的 Key。'}
         result=super()._command(path,body)
         if path=='/api/start' and result[0]==200:

@@ -23,6 +23,7 @@ from play import Journal
 from round_summary import round_summary
 from session_record import SessionLog, write_bundle
 from levels import available_levels
+from feedback import HISTORY_LIMIT, round_export
 
 
 PLAYER_MESSAGES = {
@@ -73,6 +74,10 @@ class GameSession:
         self.last_player_message_at = None
         self.bookmarks = []
         self.last_bookmark_at = None
+        # Every round of this play session, for the data export (feedback.play_export).
+        self.history = []
+        self.session_started_at = datetime.now().astimezone().isoformat(timespec='seconds')
+        self.round_started_at = None
         # Local play keeps a Session bundle beside the journal; other sinks keep records in memory only.
         self.session_log = None
         self.bundle_root = ROOT / 'logs' / 'sessions' if journal_factory is Journal else None
@@ -112,6 +117,7 @@ class GameSession:
                                 'player_messages': deepcopy(self.player_messages),
                                 'round_summary': self.round_record()})
             self.journal.close()
+            self.history = (self.history+[round_export(self, 'aborted' if aborted else 'finished')])[-HISTORY_LIMIT:]
             if self.bundle_root is not None:
                 try:
                     write_bundle(self.journal, self.bundle_root / self.game_id)
@@ -405,6 +411,14 @@ class GameSession:
             self._finish(aborted=self.phase!='ended')
             self.c=level_config({**self.base_config, **{key:self.c[key] for key in ('ai_max_calls','ai_max_response_age','model')}},level)
             return self._command('/api/reset',{})
+        if path == '/api/next':
+            # One step from the result screen into the next round: choose its level and start at the same speed.
+            if self.phase != 'ended':
+                return 409, {'error': '本局结束后才能进入下一关。'}
+            speed = self.speed
+            result = self._command('/api/level', {'level': body.get('level')})
+            if result[0] != 200:return result
+            return self._command('/api/start', {'speed': speed})
         if path == '/api/restart':
             if self.phase not in ('paused','ended'):
                 return 409, {'error': '请先暂停，再重新开局。'}
@@ -425,6 +439,7 @@ class GameSession:
             except (RuntimeError, OSError, ValueError):
                 return 503, {'error': '没有读到可用的本地 Jev 配置，请检查 .env。厨房尚未开始计时。'}
             self.speed = speed
+            self.round_started_at = datetime.now().astimezone().isoformat(timespec='seconds')
             self.journal = SessionLog(self, self.journal_factory(self.log_prefix+'-'+self.game_id[:8]),
                                       keep_payloads=self.bundle_root is not None, deployment_mode=self.deployment_mode)
             self.session_log = self.journal

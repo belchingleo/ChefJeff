@@ -23,7 +23,7 @@ Requires a browser Gamepad API on `localhost` or HTTPS, initially targeting Chro
 | A / × | Empty-handed actions start on press. Holding an item, a short press interacts on release; hold about 0.3 s to aim and release to throw, including in front of a station |
 | X / □ | Dash while moving, using the existing speed, duration and cooldown |
 | B / ○ | Cancel the current controller aim without throwing |
-| Start / Options | Ready: start, or open Settings if no model is connected. Running: pause. Paused: resume. Results: no automatic restart |
+| Start / Options | Ready: start, or open Settings if no model is connected. Running: pause. Paused: resume. Result card: next round (A works too) |
 
 Keep the keyboard/mouse for model setup, communication and menus; complete controller menu navigation is not included. Focus loss, backgrounding, disconnects, input fields, dialogs, keyboard/mouse takeover and new rounds clear controller input and cancel pending actions. Center the stick and release buttons before taking control again. An active-controller disconnect pauses the round; initial connection or an unused controller does not interrupt keyboard play. Paused rounds require explicit resume.
 
@@ -78,7 +78,7 @@ Hosted Settings additionally offer explicit contribution after the round, a data
 | A／× | 空手按下立即操作；持物时短按松开交互，长按约 0.3 秒瞄准、松开投掷，工位前也能投掷 |
 | X／□ | 移动时冲刺，沿用当前速度、时长和冷却 |
 | B／○ | 取消当前手柄瞄准，不投掷 |
-| Start／Options | 准备时开局，未连接模型则打开设置；经营中暂停，暂停时继续；结算后不自动重开 |
+| Start／Options | 准备时开局，未连接模型则打开设置；经营中暂停，暂停时继续；结算卡片上进入下一局（A 键同样可以） |
 
 模型设置、沟通和菜单仍用键鼠，本轮不包含完整手柄菜单导航。失焦、切后台、断连、输入框、对话框、键鼠接管及新局都会清理手柄输入并取消待执行动作，先让摇杆归中、按键放开后再接管。活动手柄断连会暂停，初次连接或尚未用于游戏的手柄不会打断键盘操作；暂停后需要明确继续，不自动恢复。
 

@@ -68,14 +68,14 @@ class BudgetTests(unittest.TestCase):
         g.k.emit('PRIVATE_SENTINEL',kind='invented',secret='PRIVATE_SENTINEL')
         status,data=self.cmd(g,'feedback');self.assertEqual(status,200)
         self.assertNotIn('PRIVATE_SENTINEL',json.dumps(data));self.assertNotIn('private.example',json.dumps(data))
-        self.assertEqual(data['report']['recent_events'][-1]['action'],'fetch')
+        self.assertEqual(data['report']['rounds'][-1]['events'][-1]['action'],'fetch')
         self.assertIsNone(g.ai);self.assertEqual(g.connection_checks,0)
-    def test_feedback_bounded_and_same_request_deduplicated(self):
+    def test_feedback_keeps_every_event_and_same_request_deduplicated(self):
         g=self.session()
         for _ in range(100):g.k.emit('ignored',kind='action_done',actor='jeff',action='fetch')
         body={'game_id':g.game_id,'request_id':'preview'}
         first=g.command('/api/feedback',body)
-        self.assertEqual(len(first[1]['report']['recent_events']),80)
+        self.assertEqual(sum(e['kind']=='action_done' for e in first[1]['report']['rounds'][-1]['events']),100)
         g.k.emit('ignored',kind='action_done',actor='jeff',action='wash')
         self.assertEqual(g.command('/api/feedback',body),first)
 

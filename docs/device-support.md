@@ -35,7 +35,7 @@ Use Safari or Chrome directly for the first trial. In-app browsers have not been
 
 Use a WebGL-capable desktop browser with the Gamepad API on `localhost` or HTTPS; Chrome is the initial browser target. The browser may not expose a connected controller until you press a button. Only one active controller reporting the browser's `standard` mapping is used; nonstandard mappings are not guessed. This does not change the desktop layout or take over input while the phone touch layout is active.
 
-The left stick or D-pad moves; A/× interacts (with an item, a tap acts on release and a hold of about 0.3 seconds aims, then releases to throw). X/□ dashes, B/○ cancels a controller aim without throwing, and Start/Options starts a ready round or opens Settings if no model is connected, pauses a running round, or resumes a paused one. It does not restart a completed round. Model setup, communication and menu navigation still need the keyboard/mouse; this trial does not provide complete controller menu navigation. See [interaction guide](interaction-guide.md).
+The left stick or D-pad moves; A/× interacts (with an item, a tap acts on release and a hold of about 0.3 seconds aims, then releases to throw). X/□ dashes, B/○ cancels a controller aim without throwing, and Start/Options starts a ready round or opens Settings if no model is connected, pauses a running round, or resumes a paused one. On the result card Start or A goes on to the next round (ignored for the card's first second). Model setup, communication and menu navigation still need the keyboard/mouse; this trial does not provide complete controller menu navigation. See [interaction guide](interaction-guide.md).
 
 Losing focus, hiding the page, disconnecting, focusing an input field, opening a dialog, keyboard/mouse takeover or starting a new round clears held controller input and cancels pending actions. Center the stick and release buttons before taking control again; paused rounds never resume automatically. Disconnecting the active controller pauses play, while first connection or a controller not used for the game does not interrupt keyboard play. Real-controller compatibility remains unverified; scripted Gamepad/browser checks cannot establish hardware compatibility.
 
@@ -86,7 +86,7 @@ Apple documents [mouse support on iPad](https://support.apple.com/en-ie/guide/ip
 
 使用支持 WebGL 和 Gamepad API 的桌面浏览器，网页需要在 `localhost` 或 HTTPS 上打开，首轮以 Chrome 为目标。浏览器可能需要先按一下手柄按钮才会发现设备。只接管一个采用浏览器 `standard` 映射的活动手柄，不猜测非标准映射。桌面布局不变，手机触控布局启用时手柄不抢占输入。
 
-左摇杆或十字键移动；A/× 操作（持物时短按松开执行交互，长按约 0.3 秒瞄准，松开投掷）；X/□ 冲刺；B/○ 取消当前手柄瞄准，不投掷；Start/Options 在准备阶段开局（未连接模型时打开设置）、经营中暂停、暂停时继续，结算后不自动重开。模型设置、沟通及菜单导航仍需键鼠，本轮不提供完整手柄菜单导航。见[交互指南](interaction-guide.md)。
+左摇杆或十字键移动；A/× 操作（持物时短按松开执行交互，长按约 0.3 秒瞄准，松开投掷）；X/□ 冲刺；B/○ 取消当前手柄瞄准，不投掷；Start/Options 在准备阶段开局（未连接模型时打开设置）、经营中暂停、暂停时继续；结算卡片上按 Start 或 A 进入下一局（卡片出现后的第一秒内忽略）。模型设置、沟通及菜单导航仍需键鼠，本轮不提供完整手柄菜单导航。见[交互指南](interaction-guide.md)。
 
 失焦、切后台、手柄断连、聚焦输入框、打开对话框、键鼠接管或新一局开始后，都会清理持续手柄输入并取消待执行动作。摇杆先归中、按键先放开，才能重新接管；暂停的对局不会自动继续。活动手柄断连会暂停，而初次连接或尚未用于游戏的手柄不会打断键盘操作。真实手柄兼容性尚未验证，脚本注入的 Gamepad／浏览器检查不能证明硬件兼容。
 

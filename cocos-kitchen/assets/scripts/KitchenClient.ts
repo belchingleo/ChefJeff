@@ -108,7 +108,8 @@ export class KitchenClient extends Component {
     private focusId="";
     private meters:Record<string,Node>={};
     private overlayPhase="";
-    private recordShown="";
+    private countdown=0;
+    private endedSeen={round:'',at:0};
     private devices: Record<string,{node:Node;graphics:Graphics;label:Label}>={};
     private people: Record<string,Node>={};
     private motions: Record<string,ChefMotion>={};
@@ -194,6 +195,7 @@ export class KitchenClient extends Component {
             if(!this.connected){this.poll();return;}
             const phase=this.state?.phase;
             if(phase==='ready'&&this.state?.connection&&!this.state.connection.configured){this.set('coverText','请先从下方「设置」连接自己的 API，再开始经营。');return;}
+            if(phase==='ended'){this.startNext();return;}
             this.post(phase==='ready'?'/api/start':phase==='paused'?'/api/resume':'/api/reset',phase==='ready'?{speed:.75}:{});
         },this.cover,'primary');
         this.button('reset','重新开局',553,520,158,48,()=>this.confirm('restart'),this.cover);
@@ -388,6 +390,12 @@ export class KitchenClient extends Component {
             return;
         }
         if(dock&&(e.key==='Enter'||e.code==='Space'||e.key==='Tab'))return;
+        // On the result screen Space presses the focused main button (next level), like Enter.
+        if(e.code==='Space'&&this.state?.phase==='ended'&&this.focusId==='main'){
+            e.preventDefault();const b=this.buttons.main;
+            if(!e.repeat&&b?.enabled&&b.node.activeInHierarchy){this.audio.play('ui_click');b.callback();}
+            return;
+        }
         // Enter bookmarks the moment, unless a focused on-screen control should be pressed.
         if(e.key==='Enter'&&this.state?.phase==='running'&&!(this.focusId&&this.buttons[this.focusId]?.enabled&&this.buttons[this.focusId].node.activeInHierarchy)){
             e.preventDefault();e.stopImmediatePropagation();
@@ -841,12 +849,34 @@ export class KitchenClient extends Component {
         if(!this.art.centered(node,key,TILE*(upright?.62:.76)*scale,TILE*.76*scale))return '';
         return key===filled?'filled':'empty';
     }
-    private closingSummary(k:any,won:boolean){
+    private closingSummary(k:any,won:boolean,summary?:any){
+        const share=summary?.contribution?.standard?.share;
         const count=(status:string)=>k.orders.filter((o:any)=>o.status===status).length,target=k.goals.target_money;
         // Each line ends in fixed text so its translation template cannot swallow the next line.
         return `净收入 ¥${k.money}（目标 ¥${target}）`+(won?'':`，还差 ¥${Math.max(0,target-k.money)} 元`)
             +`\n完成 ${k.served} 单 · 超时 ${count('expired')} 单 · 关店时未完成 ${count('unresolved_at_close')} 单`
-            +'\n本局已结束，点“准备下一局”再来一局。';
+            +(share?.human!=null&&share?.jeff!=null?`\n贡献：你 ${Math.round(share.human*100)}% · Jeff ${Math.round(share.jeff*100)}%`:'');
+    }
+    // The result screen's one button: the next level after a win, the same level otherwise.
+    private nextRound(s:KitchenState):{id:string;label:string}{
+        const levels=[...(s.levels||[])].sort((a:any,b:any)=>(a.menu_order??0)-(b.menu_order??0));
+        const here=levels.findIndex((l:any)=>l.id===s.kitchen?.level_id),next=levels[here+1];
+        if(!(s as any).won||here<0)return {id:s.kitchen?.level_id,label:'再来一次'};
+        return next?{id:next.id,label:`下一关 · ${next.name}`}:{id:levels[here].id,label:'再玩一遍'};
+    }
+    // A short 3·2·1 on the result card, then one request chooses the level and starts at the same pace.
+    private startNext(){
+        if(this.countdown||!this.state||this.pending)return;
+        // Ignore presses in the card's first second: Space/A may still be mashed from the last order.
+        if(this.endedSeen.round!==this.state.game_id||Date.now()-this.endedSeen.at<1000)return;
+        const {id}=this.nextRound(this.state),round=this.state.game_id;
+        const step=(n:number)=>{
+            if(this.state?.game_id!==round||this.state?.phase!=='ended'){this.countdown=0;return;}
+            if(n===0){this.countdown=0;this.post('/api/next',{level:id});return;}
+            this.countdown=n;this.set('coverTitle',String(n));this.set('coverText','');
+            this.scheduleOnce(()=>step(n-1),.3);
+        };
+        step(3);
     }
     private itemName(f:any){
         if(!f)return '空手';
@@ -967,7 +997,7 @@ export class KitchenClient extends Component {
         }catch(_){notice('标记未确认，请检查导出记录。');}
     }
     private async post(path:string,extra:object={}){
-        if(path==='/api/action'||path==='/api/pause'||path==='/api/end'||path==='/api/reset'||path==='/api/restart')this.clearInput();
+        if(path==='/api/action'||path==='/api/pause'||path==='/api/end'||path==='/api/reset'||path==='/api/restart'||path==='/api/next')this.clearInput();
         if((this.pending&&path!=='/api/pause')||!this.state)return;
         // After closing (or while paused) gameplay input is not sent: the server would only refuse it.
         if(['/api/action','/api/interact'].includes(path)&&this.state.phase!=='running')return;
@@ -1584,20 +1614,22 @@ export class KitchenClient extends Component {
         this.cover.active=s.phase!=='running';this.buttons.reset.node.active=true;
         this.enable('main',!this.pending);this.buttons.main.node.active=true;
         this.enable('reset',!this.pending&&s.phase!=='ready');
-        this.writeLabel(this.buttons.main.label,s.phase==='ready'?'开始经营':s.phase==='paused'?'继续经营':'准备下一局');
+        this.writeLabel(this.buttons.main.label,s.phase==='ready'?'开始经营':s.phase==='paused'?'继续经营':s.phase==='ended'?this.nextRound(s).label:'准备下一局');
         if(s.phase==='ready'&&s.connection&&!s.connection.configured)this.writeLabel(this.buttons.main.label,'先连接搭档');
         this.labels['welcome-tip'].node.active=s.phase==='ready';
         this.buttons.record.node.active=s.phase==='ended'&&!!s.round_summary;
-        // Shown once per round, as soon as its record exists; the button reopens it.
-        if(s.phase==='ended'&&s.round_summary&&this.recordShown!==s.game_id){this.recordShown=s.game_id;this.openRecord();}
+        // The record stays one tap away (本局记录) instead of covering the result card.
+        if(s.phase==='ended'&&this.endedSeen.round!==s.game_id)this.endedSeen={round:s.game_id,at:Date.now()};
         // Rounds close at the time limit: say so plainly, whatever the outcome.
         const closed=s.phase==='ended'&&!s.aborted&&k.failure_reason!=='fire_spread';
+        if(!this.countdown){ // the 3·2·1 owns the card until the next round starts
         this.set('coverTitle',s.phase==='ready'?'ChefJeff':s.phase==='paused'?'歇一小会儿':k.failure_reason==='fire_spread'?'火势失控':s.aborted?'本局已结束':closed?(s.won?'关店结算 · 达成目标':'关店结算 · 未达目标'):s.won?'今天，配合得不错！':'明天再接再厉');
-        this.set('coverText',s.phase==='ready'?`你和 AI 搭档，一起照顾这间小厨房。\n本局目标：关店时净收入达到 ¥${k.goals.target_money}`:s.phase==='paused'?'锅火和订单都按下了暂停。\n准备好了，就和 Jeff 接着做菜。':closed?this.closingSummary(k,!!s.won):`出餐 ${k.served} 单 · 净收入 ¥${k.money} / ¥${k.goals.target_money}`);
+        this.set('coverText',s.phase==='ready'?`你和 AI 搭档，一起照顾这间小厨房。\n本局目标：关店时净收入达到 ¥${k.goals.target_money}`:s.phase==='paused'?'锅火和订单都按下了暂停。\n准备好了，就和 Jeff 接着做菜。':closed?this.closingSummary(k,!!s.won,s.round_summary):`出餐 ${k.served} 单 · 净收入 ¥${k.money} / ¥${k.goals.target_money}`);
+        }
         this.syncAccess();
         if(this.overlayPhase!==s.phase){
-            // Pause defaults to "Resume" so Enter, Space or Esc all return to the kitchen.
-            const first=!this.overlayPhase;this.overlayPhase=s.phase;this.setFocus(s.phase==='paused'?'main':'');
+            // Pause defaults to "Resume" and the result card to the next round, so Enter or Space continues.
+            const first=!this.overlayPhase;this.overlayPhase=s.phase;this.setFocus(s.phase==='paused'||s.phase==='ended'?'main':'');
             if(!first&&s.phase!=='running')this.announce(this.labelSources.get(this.labels.coverTitle)+'\n'+this.labelSources.get(this.labels.coverText));
         }
         if(s.ai.error&&s.ai.error!==this.lastAiError)this.announce(s.ai.error);

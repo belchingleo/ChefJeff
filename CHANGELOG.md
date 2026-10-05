@@ -13,6 +13,8 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - Frying pans turn so the handle points at the chef: on a stove or counter toward its operation side, in hand back toward the holder (new west/north pan frames in the same light). Food keeps the same size in a throw pose as when carried.
 - Phone controls are plain, as in most mobile games: a translucent stick ring with a knob, and round translucent Action and Dash buttons with a one-word label (Action reads Throw while aiming); the knob and Action turn denim blue while aiming. The kitchen is centred horizontally. While aiming, a round Cancel button appears above Action on the same arc; slide onto it (it turns red, "Release to cancel") and let go to cancel the throw. Button labels are at least 14 px and stay readable when a button is unavailable; on phones narrower than 700 px the arc is slightly smaller and the kitchen keeps clear of it.
 - Throwing chefs turn their whole body toward diagonal aims when the optional painted pack `art/throw-diagonal-v1` is present (brief: `docs/art/throw-diagonal-spec.md`, importer: `scripts/art/throw_diagonals.py`); without it, throws keep the four-view bodies.
+- One press from results to the next round: the result card stays on the kitchen (the round record no longer pops up over it) with one main button, Next level after a win and Try again otherwise; Space, Enter, A/Start or the phone button start it after a short 3·2·1 at the same pace. Presses in the card's first second are ignored so mashing from the last order does not skip it.
+- Settings has its own Data export page. It exports the whole play session: every round since the game started (online: since the page opened), each with its level, result, work record, bookmarks, messages, usage and every allowlisted action event, instead of only the current round's last 80 events.
 
 ## 0.6.0-beta.1 — 2026-10-01 · first public test release
 
@@ -65,6 +67,8 @@ First private release: a local browser game with three playable maps and player-
 - 平底锅统一让手柄朝向厨师：在灶台或柜台上朝工位的操作侧，拿在手里时朝向持锅者（新增朝左、朝上两个方向的锅，光照一致）。投掷姿势中的食物与平时手持大小一致。
 - 手机按键按常见手游简化：半透明摇杆圈加摇杆头，半透明圆形「操作」「冲刺」键只显示一个词（瞄准时操作键显示「投掷」），瞄准时摇杆头和操作键变为海军蓝。厨房画面水平居中。瞄准时操作键上方（同一弧线上）出现圆形「取消」键，手指滑到上面（变红并提示「松手取消」）后松开即取消投掷。按键文字至少 14 像素，按键不可用时文字仍清晰可读；宽度小于 700 像素的手机上弧形按键略小，厨房画面不被遮挡。
 - 若提供可选美术包 `art/throw-diagonal-v1`，斜向投掷时厨师整个身体转向瞄准方向（需求见 `docs/art/throw-diagonal-spec.md`，导入脚本 `scripts/art/throw_diagonals.py`）；未提供时沿用四向身体。
+- 结算后一键进入下一局：结算卡片留在厨房画面上（本局记录不再弹窗遮挡），只有一个主按钮，达成目标为「下一关」，否则为「再来一次」；空格、Enter、手柄 A/Start 或手机按钮都可触发，短暂 3·2·1 后按原节奏开局。卡片出现后的第一秒内忽略按键，避免最后一单连按时误跳过。
+- 设置中新增单独的「数据导出」页，导出本次游玩的全部数据：本机版从启动游戏起、在线版从打开页面起的每一局，各含关卡、结果、贡献记录、标记、沟通、调用用量和全部允许清单内的动作事件，不再只有当前局最近 80 条事件。
 
 
 ## 0.6.0-beta.1 — 2026-10-01 · 首次公开测试版

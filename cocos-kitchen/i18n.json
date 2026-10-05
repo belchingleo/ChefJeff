@@ -529,7 +529,17 @@
     "手机试玩": "Phone trial",
     "按住移动，松开停止；方向键也可以。电脑使用键盘，手机使用屏幕摇杆和按钮。": "Hold to move and release to stop; arrow keys also work. Use a keyboard on a computer, or the on-screen joystick and buttons on a phone.",
     "沟通": "Talk",
-    "瞄准": "Aim"
+    "瞄准": "Aim",
+    "数据导出": "Data export",
+    "导出本次游玩的全部数据：从启动游戏起玩过的每一局，各含关卡、结果、贡献记录、全部标记、沟通记录和全部动作事件。标记包含游戏时间和实际时间，可对应本地日志提取前后过程。不会附带 Key、接口地址、模型名称文本、跨局记忆或完整请求。文件只下载到本机，不自动上传。": "Export all data from this play session: every round since the game started, each with its level, result, work record, all bookmarks, messages and every action event. Bookmarks include game time and wall-clock time, so you can find the surrounding moments in the local log. Keys, endpoints, model name text, cross-round memory and full requests are never included. The file downloads only to this device and is never uploaded automatically.",
+    "导出本次游玩的全部数据：从打开本页面起玩过的每一局，各含关卡、结果、贡献记录、全部标记、沟通记录和全部动作事件。标记包含游戏时间和实际时间，在线版没有可追溯的服务器对局日志。不会附带 Key、接口地址、模型名称文本、跨局记忆或完整请求。文件只下载到本机，不自动上传。": "Export all data from this play session: every round since this page opened, each with its level, result, work record, all bookmarks, messages and every action event. Bookmarks include game time and wall-clock time; the online version keeps no server run log to trace. Keys, endpoints, model name text, cross-round memory and full requests are never included. The file downloads only to this device and is never uploaded automatically.",
+    "导出本次游玩": "Export This Play Session",
+    "待导出的游玩数据": "Play data to export",
+    "标记当前片段，数据导出时可以回看。": "Bookmark this moment to review it in the data export.",
+    "营业中按 Enter 标记当前时刻，不暂停、不打断动作。相邻两次标记间隔不超过 5 个实际秒时合并为一个区间，长按不重复。设置中的“数据导出”包含全部标记；标记不会发送给 AI。": "Press Enter during gameplay to bookmark without pausing or interrupting actions. Consecutive marks up to 5 real seconds apart merge into one interval; holding the key does not repeat. Data export in Settings includes all bookmarks. Bookmarks are not sent to the AI.",
+    "本局结束后才能进入下一关。": "Finish this round before moving on.",
+    "再来一次": "Try Again",
+    "再玩一遍": "Play Again"
   },
   "templates": [
     [
@@ -995,6 +1005,14 @@
     [
       "{0} 秒",
       "{0} s"
+    ],
+    [
+      "下一关 · {0}",
+      "Next level · {0}"
+    ],
+    [
+      "贡献：你 {0}% · Jeff {1}%",
+      "Contribution: you {0}% · Jeff {1}%"
     ]
   ]
 }

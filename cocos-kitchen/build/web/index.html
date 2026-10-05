@@ -153,7 +153,7 @@ function kitchenTabs(dialog){
   <button class="tab" id="tab-audio" type="button" role="tab" aria-controls="audio-panel">声音</button>
   <button class="tab" id="tab-memory" type="button" role="tab" aria-controls="memory-panel">协作记忆</button>
   <button class="tab" id="tab-limits" type="button" role="tab" aria-controls="limits-panel">调用上限</button>
-  <button class="tab" id="tab-export" type="button" role="tab" aria-controls="export-panel">导出</button>
+  <button class="tab" id="tab-export" type="button" role="tab" aria-controls="export-panel">数据导出</button>
  </div>
  <div class="dlg-body">
  <section id="panel-connection" role="tabpanel" aria-labelledby="api-title">
@@ -199,12 +199,12 @@ function kitchenTabs(dialog){
   <details class="fine"><summary>费用与隐私说明</summary><p><small>默认每局 200 次，失败请求也计入；达限后不再请求，已有动作继续，玩家仍可操作。设置仅保留到服务关闭。连接测试另计，每次可能收费。Token 仅统计成功回复提供的用量，不代表完整账单；费用以服务商为准。</small></p></details>
  </section>
  <section aria-labelledby="feedback-title" id="export-panel" role="tabpanel">
-  <h3 id="feedback-title">版本与对局导出</h3>
+  <h3 id="feedback-title">数据导出</h3>
   <p id="release-identity"></p>
-  <p>导出当前局摘要、全部标记、沟通记录和最近 80 条动作事件。标记包含游戏时间和实际时间，可对应本地日志提取前后过程。不会附带 Key、接口地址、模型名称文本、跨局记忆或完整请求。文件只下载到本机，不自动上传。</p>
-  <div class="actions"><button id="feedback-preview" class="btn" type="button">导出本局</button><button id="feedback-download" class="btn" type="button" disabled>下载已预览 JSON</button></div>
+  <p>导出本次游玩的全部数据：从启动游戏起玩过的每一局，各含关卡、结果、贡献记录、全部标记、沟通记录和全部动作事件。标记包含游戏时间和实际时间，可对应本地日志提取前后过程。不会附带 Key、接口地址、模型名称文本、跨局记忆或完整请求。文件只下载到本机，不自动上传。</p>
+  <div class="actions"><button id="feedback-preview" class="btn" type="button">导出本次游玩</button><button id="feedback-download" class="btn" type="button" disabled>下载已预览 JSON</button></div>
   <p id="feedback-status" role="status" aria-live="polite"></p>
-  <textarea id="feedback-content" readonly hidden rows="12" aria-label="待导出的对局内容" style="box-sizing:border-box;width:100%;font:12px monospace;border:2px solid var(--ink)"></textarea>
+  <textarea id="feedback-content" readonly hidden rows="12" aria-label="待导出的游玩数据" style="box-sizing:border-box;width:100%;font:12px monospace;border:2px solid var(--ink)"></textarea>
   <!-- hosted-contribution -->
  </section>
  </div>
@@ -302,7 +302,7 @@ function kitchenTabs(dialog){
  };
  el('feedback-download').onclick=()=>{
   if(!feedbackText)return;const url=URL.createObjectURL(new Blob([feedbackText],{type:'application/json'}));
-  const a=document.createElement('a');a.href=url;a.download='chefjeff-run-'+JSON.parse(feedbackText).round_id+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  const a=document.createElement('a');a.href=url;const r=JSON.parse(feedbackText);a.download='chefjeff-play-'+String(r.session_started_at||r.exported_at||'').replace(/[^0-9]/g,'').slice(0,14)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
  };
 })();
 </script>
@@ -332,7 +332,7 @@ function kitchenTabs(dialog){
    <span class="keys"><span class="key wide">空格</span></span><span>对面前的东西做需要的事：取料、放下、下锅、装盘、切菜、洗碗、灭火、出餐。面前没有可用的，就用身边最近的。手持可投掷物品时，短按松开后操作；空手时按下立即操作。底部会提示将执行的动作。</span>
    <span class="keys"><span class="key wide">按住空格</span></span><span>投掷：手持可投掷物品时，面前是工位或空地都能按住空格约 0.3 秒瞄准，角色停下，半透明弧形带显示方向与射程参考；方向键改方向，松开扔出，最远 4 格；队友在这个方向上就扔给他。终点仅表示最大射程，实际落点和接取由引擎判定。</span>
    <span class="keys"><span class="key">Esc</span><span class="key">P</span></span><span>暂停与继续。</span>
-   <span class="keys"><span class="key wide">Enter</span></span><span>标记当前片段，导出本局时可以回看。</span>
+   <span class="keys"><span class="key wide">Enter</span></span><span>标记当前片段，数据导出时可以回看。</span>
    <span class="keys"><span class="key">1</span>–<span class="key">5</span><span class="key">6</span></span><span>告诉 Jeff 你更想做哪类工作；6 表示他做错了。</span>
   </div>
   <p>手柄：左摇杆或十字键移动，A/× 操作（持物长按瞄准、松手投掷），X/□ 冲刺，B/○ 取消瞄准；Start/Options 开始或暂停、继续。</p>
@@ -348,7 +348,7 @@ function kitchenTabs(dialog){
   <dt>餐具和锅</dt><dd>干净盘才可装菜。脏盘回收点取盘 → 放入水槽 → 空手按空格洗碗 → 取净盘。没盘时可空手到锅边端锅，离灶停止加热；空锅需放回灶台。</dd>
   <dt>丢弃与消防</dt><dd>拿食材靠近垃圾桶按空格会销毁，扣 2 元；端锅则倒掉锅里的食物，保留空锅。拿起灭火器后面向着火工位按空格，4 秒灭火。火每 8 秒向一格相邻柜台蔓延，不跨空地或墙；同时 5 个工位着火，本局结束。</dd>
   <dt>沟通 · 1–6 / 点击</dt><dd>打开左下角沟通菜单，点击偏好即可发送；“你做错了”是独立的红色描边按钮。也可按 1–5 表达偏好、按 6 纠错。共用 5 个实际秒冷却，暂停时也可发送。最新偏好只在本局有效；AI 在下一次正常请求中收到，自行判断如何配合，不强制分工或停止动作。纠错附带当时动作信息，但不指定正确答案。</dd>
-  <dt>标记片段 · Enter</dt><dd>营业中按 Enter 标记当前时刻，不暂停、不打断动作。相邻两次标记间隔不超过 5 个实际秒时合并为一个区间，长按不重复。设置中的“导出本局”包含全部标记；标记不会发送给 AI。</dd>
+  <dt>标记片段 · Enter</dt><dd>营业中按 Enter 标记当前时刻，不暂停、不打断动作。相邻两次标记间隔不超过 5 个实际秒时合并为一个区间，长按不重复。设置中的“数据导出”包含全部标记；标记不会发送给 AI。</dd>
   <dt>暂停与继续 · Esc / P</dt><dd>暂停会停止锅火、订单和双方动作。再按 Esc 或 P（键盘没有 Esc 键时用，如 iPad）或点「继续经营」回到厨房；也可重新开局、打开设置或查看本说明。结束本局、暂停中重新开局都会先请你确认；重新开局沿用当前配置与速度。更换 API、记忆和调用上限请在结算后或开局前进行。</dd>
   </dl>
  </section>
