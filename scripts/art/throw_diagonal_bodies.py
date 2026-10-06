@@ -225,9 +225,10 @@ def frame_right(chef, view, phase):
 
 
 def frame_left(right):
-    """The mirror of a right diagonal, grip and arm angle mirrored with it."""
+    """The mirror of a right diagonal, grip and arm angle mirrored with it. The grip is a point in canvas
+    coordinates (the centre line is x = 34), so it mirrors to W - x; pixel columns mirror to W - 1 - x."""
     img, fist, g = right
-    return mirror(img), (None if fist is None else mirror(fist)), {'grip': [W - 1 - g['grip'][0], g['grip'][1]],
+    return mirror(img), (None if fist is None else mirror(fist)), {'grip': [W - g['grip'][0], g['grip'][1]],
                                                                   'arm_deg': 180 - g['arm_deg']}
 
 

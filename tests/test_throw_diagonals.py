@@ -87,7 +87,7 @@ class CommittedPackTests(unittest.TestCase):
                     self.assertEqual(frames[key]['canvasSize'], [68, 88])
                     self.assertEqual(key + '_hand' in frames, diagonal.startswith('down'), key)
                     mirror = key.replace('left', 'RIGHT').replace('right', 'left').replace('RIGHT', 'right')
-                    self.assertEqual(frames[key]['grip'], [67 - frames[mirror]['grip'][0], frames[mirror]['grip'][1]])
+                    self.assertEqual(frames[key]['grip'], [68 - frames[mirror]['grip'][0], frames[mirror]['grip'][1]])
 
     @unittest.skipIf(Image is None or numpy is None, 'Pillow and numpy needed to redraw')
     def test_pack_is_what_the_generator_draws_from_the_masters(self):
