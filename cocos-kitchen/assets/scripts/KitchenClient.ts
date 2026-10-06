@@ -585,7 +585,13 @@ export class KitchenClient extends Component {
     private rect(g:Graphics,x:number,y:number,w:number,h:number,fill:string){g.fillColor=color(fill);g.rect(x,y,w,h);g.fill();}
     private pixel(l:Label,size:number){l.fontFamily=PIXEL;l.fontSize=size;l.lineHeight=size+4;l.isBold=false;return l;}
     // What Space or E would act on: a faint lift of that surface (Overcooked-style), no frame.
-    private facedGlow(g:Graphics,x:number,y:number,w:number,h:number){g.fillColor=new Color(255,250,236,70);g.rect(x,y,w,h);g.fill();}
+    /** The station Space/E acts on (the one under the chef's front point): a light fill and a 2px denim
+     * frame when there is something to do there, an ink frame alone when it is targeted but idle. */
+    private facedGlow(g:Graphics,x:number,y:number,w:number,h:number,actionable=true){
+        if(actionable){g.fillColor=new Color(255,250,236,70);g.rect(x,y,w,h);g.fill();}
+        const c=color(actionable?COLORS.human:COLORS.ink);if(!actionable)c.a=150;
+        g.strokeColor=c;g.lineWidth=2;g.rect(x+1,y+1,w-2,h-2);g.stroke();
+    }
     private paintBox(n:Node,w:number,h:number,fill:string){
         const g=n.getComponent(Graphics)||n.addComponent(Graphics);g.clear();
         this.rect(g,-w/2,-h/2-3,w,h,COLORS.wood);this.rect(g,-w/2,-h/2,w,h,fill);return g;
@@ -1512,9 +1518,10 @@ export class KitchenClient extends Component {
             if(st.food?.stage==='ready'&&prior===`${st.food.id}:cooking`)this.readyUntil[id]=this.activeClock+1.1;
             this.foodStages[id]=foodKey;
             if(st.fire&&!this.useArt){this.rect(g,-26,-26,52,52,'#f1b589');}
-            if(s.interaction?.target===id||s.use_interaction?.target===id){
-                if(this.useModularArt)this.facedGlow(g,-TILE/2,this.workSurfaceY(id)-TILE/2,TILE,TILE);
-                else this.facedGlow(g,-27,-27,54,54);
+            const actionable=s.interaction?.target===id||s.use_interaction?.target===id;
+            if(actionable||s.interaction_focus===id){
+                if(this.useModularArt)this.facedGlow(g,-TILE/2,this.workSurfaceY(id)-TILE/2,TILE,TILE,actionable);
+                else this.facedGlow(g,-27,-27,54,54,actionable);
             }
             this.writeLabel(dev.label,st.fire?'着火了！':st.food?(this.itemName(st.food)+(st.food.stage==='cooking'?` ${Math.ceil(st.ready_in)}s`:st.food.stage==='ready'&&st.heating&&st.burn_in!==undefined?` ${Math.ceil(st.burn_in)}s 后糊`:'')):this.state!.kitchen.map.equipment[id]?.type==='ingredient_source'&&this.useModularArt?this.itemLabel(this.sourceItem(id)):st.name);
             const countdown=heatCountdown(st);
