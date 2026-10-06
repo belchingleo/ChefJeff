@@ -180,7 +180,7 @@ Overcooked-AI (Carroll et al., 2019) used an Overcooked-style environment to stu
 
 Each scenario is a single map:
 
-- **Scenario**: one frozen five-model configuration, with its configuration hash, random seeds and the reference scores from the baseline ladder. The baseline ladder runs scripted chefs in three setups: one chef alone, one chef plus a partner who wanders at random, and two scripted chefs working together. The target revenue is half of what the scripted pair earns, and the solo script must fall short of it (Level 1, the practice level, is exempt). This only shows that the scripts can't reach the target alone; the real difficulty still has to be checked with people and other agents.
+- **Scenario**: one frozen five-model configuration, with its configuration hash, random seeds and the reference scores from the baseline ladder. The baseline ladder runs scripted chefs in three setups: one chef alone, one chef plus a partner who wanders at random, and two scripted chefs working together. The target revenue is half of what the scripted pair earns, and the solo script must fall short of it, except on Level 1 (the practice level) and Level 3, which one chef can finish for now; two are faster. This only shows that the scripts can't reach the target alone; the real difficulty still has to be checked with people and other agents.
 - **Participants and interface conditions**: people, models or scripted chefs, and how much each can observe and communicate.
 - **Records**: replayable event streams and item histories.
 - **Metrics**: outcomes (net revenue, level cleared) and process (division of labour, contribution, delay, idle time, how many decisions were accepted and completed, response time), reported separately.
