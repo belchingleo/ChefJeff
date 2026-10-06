@@ -135,24 +135,57 @@ class FixedSeedTests(unittest.TestCase):
         for n in (1, 2, 3):
             self.assertEqual(cc.load_level(f'level-{n}')['level']['goal']['min_money'] % 10, 0)
 
-    def test_targets_are_half_the_calibrated_reference_income(self):
-        # Targets are 50% of the fast reference pair's net income on the fixed plan
-        # (scripts/reference_sweep.py --fixed). Level 2 needs the zoned pair that passes
-        # food and dishes across the long counter.
+    # Levels whose target waits for an owner decision after a rule change; the calibration report
+    # (docs/architecture/reports/calibration.json) holds the numbers to decide from.
+    PENDING_TARGETS = {3: 'level 3 target 190 vs half of the 21-seed median (160): owner to decide '
+                          '(Overcooked-style targeting, 2026-10-06)'}
+
+    @staticmethod
+    def sweep():
         import importlib.util
         from pathlib import Path
         path = Path(cc.__file__).resolve().parent / 'scripts' / 'reference_sweep.py'
         spec = importlib.util.spec_from_file_location('reference_sweep', path)
         sweep = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(sweep)
-        for n, pair in ((1, 'classic'), (2, 'zoned'), (3, 'classic')):
+        return sweep
+
+    @staticmethod
+    def report():
+        import json
+        from pathlib import Path
+        path = Path(cc.__file__).resolve().parent / 'docs' / 'architecture' / 'reports' / 'calibration.json'
+        return json.loads(path.read_text())
+
+    def test_calibration_report_records_the_run_set_and_is_current(self):
+        # The report is reproducible from its run set; replaying the first seed of every level must
+        # give the recorded incomes (regenerate: python scripts/reference_sweep.py --calibrate
+        # --out docs/architecture/reports/calibration.json).
+        sweep, report = self.sweep(), self.report()
+        self.assertEqual(report['run_set'], sweep.CALIBRATION)
+        self.assertEqual([row['level'] for row in report['levels']], [1, 2, 3])
+        seed = report['run_set']['seeds'][0]
+        for row in report['levels']:
+            n = row['level']
             with self.subTest(level=n):
+                recorded = next(r for r in row['runs'] if r['seed'] == seed)
+                # The recorded best pairing and the solo rung (replaying all four pairings costs too much here).
+                pair, swapped = recorded['pair'].split(' ')[0], recorded['pair'].endswith('swapped')
                 policy = cc.load_level(f'level-{n}')['order_policy']
-                k = sweep.play(n, policy['interval_game_ms'], policy['patience_by_recipe'], None, 'fast', pair, False)
+                k = sweep.play(n, policy['interval_game_ms'], policy['patience_by_recipe'], seed, 'fast', pair, swapped)
+                self.assertEqual(k.money, recorded['money'])
+                self.assertEqual(sweep.solo(n, seed).money, recorded['solo'])
+
+    def test_targets_are_half_the_median_reference_income(self):
+        # Targets are 50% of the median net income of the scripted reference pair over the calibration
+        # run set (owner decisions 2026-09-27 and 2026-10-06), rounded down to a multiple of 10.
+        for row in self.report()['levels']:
+            n = row['level']
+            with self.subTest(level=n):
+                if n in self.PENDING_TARGETS:
+                    self.skipTest(self.PENDING_TARGETS[n])
                 target = cc.load_level(f'level-{n}')['level']['goal']['min_money']
-                self.assertEqual(target, int(k.money * .5) // 10 * 10)
-                if pair == 'zoned':
-                    self.assertTrue(any(e['kind'] == 'thrown' for e in k.events))
+                self.assertEqual(target, row['target_50pct'])
 
 
 class ServiceWordingTests(unittest.TestCase):

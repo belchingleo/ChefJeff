@@ -50,6 +50,13 @@ INTERVALS = (20000, 25000, 30000, 35000, 40000, 45000)
 COUNTDOWNS = {'steak': (60000, 75000, 90000), 'burger': (75000, 90000, 105000, 120000, 135000)}
 MENUS = {1: ('steak',), 2: ('burger',), 3: ('steak', 'burger')}
 VARIANTS = {'fast': 10, 'latency': 60}  # jeff decision period in 0.05 s ticks (0.5 s / 3 s)
+# The calibration run set, versioned so a report can be reproduced: each level's configured order
+# pacing, played on every listed order seed (spawn = seed % 2) by each reference pairing; a run is one
+# seed and keeps the better pairing (pair x role assignment). Reference income = the median run.
+# 21 seeds: level 3's median only settles from about 16 seeds (with fewer it sits on the 340/338 edge
+# where half of it flips between 170 and 160); levels 1 and 2 earn the same on every seed.
+CALIBRATION = {'version': 'calibration-v1', 'variant': 'fast', 'seeds': list(range(1, 22)),
+               'pairs': ['classic', 'zoned'], 'swap': [False, True]}
 
 
 def candidates(level):
@@ -94,6 +101,54 @@ def play(level, interval, countdowns, seed, variant, pair, swap):
     k = SpatialKitchen(cc.freeze_bundle(bundle(level, interval, countdowns, seed)))
     drive(k, (('human', roles[0]), ('jeff', roles[1])), policy, {'human': 10, 'jeff': VARIANTS[variant]})
     return k
+
+
+def solo(level, seed):
+    """The solo rung on one calibration seed: one scripted chef, the other idle."""
+    import reference_policy
+    from spatial_kitchen import SpatialKitchen
+    policy = cc.load_level(f'level-{level}')['order_policy']
+    k = SpatialKitchen(cc.freeze_bundle(bundle(level, policy['interval_game_ms'], policy['patience_by_recipe'], seed)))
+    drive(k, (('human', 'solo'),), lambda k, who, role: reference_policy.choose_solo(k, who), {'human': 10, 'jeff': 10})
+    return k
+
+
+def calibration_run(job):
+    """One calibration seed of one level: every pairing's income and the solo rung's."""
+    level, seed = job
+    policy = cc.load_level(f'level-{level}')['order_policy']
+    pairings = {}
+    for pair in CALIBRATION['pairs']:
+        for swap in CALIBRATION['swap']:
+            k = play(level, policy['interval_game_ms'], policy['patience_by_recipe'], seed, CALIBRATION['variant'], pair, swap)
+            pairings[pair + (' swapped' if swap else '')] = k.money
+    best = max(pairings, key=lambda name: (pairings[name], name))
+    return {'level': level, 'seed': seed, 'pairings': pairings, 'pair': best, 'money': pairings[best],
+            'solo': solo(level, seed).money}
+
+
+def calibrate(levels, seeds=None, workers=None):
+    """Reference income per level: the median over the calibration run set (see CALIBRATION)."""
+    seeds = CALIBRATION['seeds'] if seeds is None else seeds
+    jobs = [(level, seed) for level in levels for seed in seeds]
+    if workers == 1:
+        rows = [calibration_run(job) for job in jobs]
+    else:
+        with Pool(workers) as pool:
+            rows = pool.map(calibration_run, jobs)
+    out = []
+    for level in levels:
+        runs = [r for r in rows if r['level'] == level]
+        money = sorted(r['money'] for r in runs)
+        solo_money = sorted(r['solo'] for r in runs)
+        median = statistics.median(money)
+        target = cc.load_level(f'level-{level}')['level']['goal']['min_money']
+        out.append({'level': level, 'runs': runs, 'pair_min': money[0], 'pair_median': median, 'pair_max': money[-1],
+                    'target_50pct': max(0, int(median * .5) // 10 * 10), 'current_target': target,
+                    'runs_reaching_current_target': sum(m >= target for m in money),
+                    'solo_min': solo_money[0], 'solo_median': statistics.median(solo_money), 'solo_max': solo_money[-1],
+                    'solo_runs_reaching_current_target': sum(m >= target for m in solo_money)})
+    return {'run_set': dict(CALIBRATION, seeds=list(seeds)), 'levels': out}
 
 
 def random_partner(seed):
@@ -199,8 +254,17 @@ def main():
     parser.add_argument('--variants', default='fast,latency')
     parser.add_argument('--only', help='JSON {level: [[interval_ms, {dish: countdown_ms}], ...]} to restrict candidates')
     parser.add_argument('--ladder', action='store_true', help="baseline ladder on each level's configured round")
+    parser.add_argument('--calibrate', action='store_true', help='reference income per level over the calibration run set')
+    parser.add_argument('--workers', type=int, help='worker processes (default: one per CPU)')
     parser.add_argument('--out', default=str(ROOT / 'docs' / 'architecture' / 'reports' / 'pacing-sweep.json'))
     args = parser.parse_args()
+    if args.calibrate:
+        report = calibrate([int(x) for x in args.levels.split(',')], workers=args.workers)
+        Path(args.out).write_text(json.dumps(report, ensure_ascii=False, indent=1) + '\n')
+        for row in report['levels']:
+            print(row['level'], 'pair', row['pair_min'], row['pair_median'], row['pair_max'], 'target', row['target_50pct'],
+                  '/', row['current_target'], 'solo median', row['solo_median'])
+        return
     if args.ladder:
         rows = ladder([int(x) for x in args.levels.split(',')])
         Path(args.out).write_text(json.dumps({'ladder': rows}, ensure_ascii=False, indent=1) + '\n')
