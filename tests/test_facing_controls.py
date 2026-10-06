@@ -126,27 +126,6 @@ class AimedThrowTests(unittest.TestCase):
         self.assertGreater(int(landed.split('_')[2]), 5)
 
 
-class RefusalReasonTests(unittest.TestCase):
-    """When Space does nothing at a station, the hint names the missing step."""
-    def test_the_hint_says_why_a_station_refuses_the_held_item(self):
-        import config_contract as cc
-        k = SpatialKitchen(cc.load_level('level-3'))
-        cases = [
-            ('p1', Food('F1', 'raw', ingredient='beef'), '牛肉要先在案板上切好，才能下锅'),
-            ('p1', Food('F2', 'raw', ingredient='bread'), '面包不用加热，直接装盘'),
-            ('b1', Food('F3', 'raw', ingredient='bread'), '面包不用切'),
-            ('b1', Food('F4', 'chopped', ingredient='tomato'), '番茄已经切好了'),
-            ('sink', Food('D1', 'clean_plate'), '水槽只用来洗脏盘'),
-        ]
-        for target, held, reason in cases:
-            k.chefs['human'].hand = held
-            self.assertEqual(k.refusal_reason('human', target), reason, target)
-            self.assertEqual(k.interaction_hint('human', target), reason)
-        # A valid hand-off has no refusal.
-        k.chefs['human'].hand = Food('F5', 'chopped', ingredient='beef')
-        self.assertIsNone(k.refusal_reason('human', 'p1'))
-
-
 class ShortActionMoveTests(unittest.TestCase):
     def test_a_move_during_a_short_take_starts_after_it(self):
         g = GameSession(config=level_config(load_config(), 2), kitchen_factory=SpatialKitchen,

@@ -900,47 +900,6 @@ class SpatialKitchen(Kitchen):
         aim=other if 0<ahead<=reach and side<=self.rules.catch_radius else (x+dx*reach,y+dy*reach)
         return self.throw_action(who,aim,key=key)
 
-    def refusal_reason(self, who, target):
-        """Why Space does nothing at a station, in the player's words; None when no rule explains it.
-
-        Read only: the same checks the actions use (chop and heat transforms, vessel kinds, one item
-        per slot), so the hint names the missing step instead of "check the item".
-        """
-        kind,st=self.rules.station_types.get(target),self.stations.get(target)
-        if not kind or st is None:return None
-        held=self.chefs[who].hand
-        if st.fire:return '着火了，先拿灭火器来灭火'
-        loose=held is not None and not held.plate_id and held.ingredient in self.rules.items
-        label=self.rules.items[held.ingredient]['name'] if loose else ''
-        chop=self.rules.chop.get(held.ingredient) if loose else None
-        heat=self.rules.heat.get(held.ingredient) if loose else None
-        if kind=='stove':
-            if held is not None and held.stage=='dirty_plate':return '脏盘要先洗干净才能盛菜'
-            if not st.pot_id:return '灶台上没有锅，先把锅放回来' if not (held and held.stage=='pot') else None
-            vessel=self.vessel_name(st.pot_id)
-            if loose:
-                if not heat:return f'{label}不用加热，切好直接装盘' if chop else f'{label}不用加热，直接装盘'
-                if held.stage!=heat['from']:
-                    if chop and held.stage==chop['from']:return f'{label}要先在案板上切好，才能下锅'
-                    return None
-                if heat.get('container','pot')!=self.rules.vessels.get(st.pot_id):
-                    return f'{label}要用{self.rules.vessel_names.get(heat.get("container","pot"),"另一种锅")}，这是{vessel}'
-                if st.food:return f'{vessel}里已经有东西了，先盛出来'
-            if held is None and st.food and st.food.stage=='cooking':return '还没熟，等一会儿'
-            if held is None and st.food:return '要拿干净盘子来盛'
-            return None
-        if kind=='board':
-            if held is None:return None
-            if held.plate_id or held.stage in ('clean_plate','dirty_plate','pot','extinguisher'):return '案板只放要切的食材'
-            if st.food:return '案板上已经有东西了'
-            if loose and not chop:return f'{label}不用切'
-            if loose and held.stage!=chop['from']:return f'{label}已经切好了'
-            return None
-        if kind=='sink' and held is not None and held.stage!='dirty_plate':return '水槽只用来洗脏盘'
-        if kind=='counter' and held is not None and st.food and not (st.food.plate_id or held.plate_id):
-            return '这格柜台已经放了东西，每格只能放一件'
-        return None
-
     def interaction_hint(self, who, preferred=None):
         if preferred and preferred.startswith('floor_'):return '面前没有可操作目标'
         if preferred in self.stations:
@@ -949,8 +908,6 @@ class SpatialKitchen(Kitchen):
             if (plate and plate.plate_id and held and not held.plate_id and held.ingredient
                     and held.ingredient in self.parts(plate)):
                 return f'盘里已经有{self.rules.component_labels.get(held.ingredient,held.ingredient)}了'
-            reason=self.refusal_reason(who,preferred)
-            if reason:return reason
         if preferred and preferred!='serve':return '选中目标暂不可操作，请靠近或检查物品状态'
         hand=self.chefs[who].hand
         if not hand or not hand.plate_id or self.dish(hand):return '选中目标暂不可操作，请靠近或检查物品状态' if preferred else None
