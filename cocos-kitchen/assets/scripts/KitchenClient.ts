@@ -35,6 +35,7 @@ const TILE=GRID_ART.tile, MAPX=GRID_ART.originX, MAPY=GRID_ART.originY;
 const KNIFE_VIEW:Record<string,[string,boolean]>={down:['knife/v1/front_',false],up:['knife/v1/top_',false],right:['knife/v1/side_',false],left:['knife/v1/side_',true]};
 const color=(hex:string)=>new Color().fromHEX(hex);
 const AIM_HOLD=.3;
+const FLOOR_ITEM_DEPTH=-1000;
 const FACING_DIR:Record<string,[number,number]>={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
 
 @ccclass('KitchenClient')
@@ -1217,7 +1218,11 @@ export class KitchenClient extends Component {
         // A straight left/right wind-up keeps the carry pose, turned to the aim: the chop lift frame
         // raises the fist in front of the face, so the item would cover it or the fist sit on it.
         const sideWindup=!useDiagonal&&!!throwing&&throwing.phase==='windup'&&(throwing.view==='left'||throwing.view==='right');
-        const throwKey=useDiagonal?diagonalKey:throwing&&!sideWindup?`knifeless/characters/${kind}/${throwing.view}/chop_${throwing.frame}`:'';
+        // A straight-down wind-up uses the painted down-diagonal wind-up (arm cocked across the chest),
+        // so all three downward aims match; the chop lift would put the fist and item over the face.
+        const downKey=!useDiagonal&&throwing?.phase==='windup'&&throwing.view==='down'?`throw/${kind}/${throwing.dx<0?'down_left':'down_right'}/windup`:'';
+        const useDown=!!downKey&&this.art.has(downKey)&&!!this.art.meta(downKey)?.grip;
+        const throwKey=useDiagonal?diagonalKey:useDown?downKey:throwing&&!sideWindup?`knifeless/characters/${kind}/${throwing.view}/chop_${throwing.frame}`:'';
         const throwMeta=throwKey&&this.art.has(throwKey)?this.art.meta(throwKey):null;
         if(throwMeta?.grip||sideWindup)facing=throwing!.view;
         // Held item behind the body when the chef faces away (back view, or an upward diagonal).
@@ -1411,7 +1416,9 @@ export class KitchenClient extends Component {
     }
     private foodNode(id:string,stage:string,airborne=false){
         const n=this.make('food-'+id,0,0,44,40,this.world||this.node);n.setScale(.9,.9,1);
-        this.registerDepth(n,()=>airborne?(this.flightOrder[id]??0):depthOrder((360-MAPY-n.position.y)/TILE-.5,'item')); this.drawIcon(n.addComponent(Graphics),stage);
+        // Food and tools lying on the floor stay under every chef and cabinet (above the floor tiles, -2000);
+        // in flight they keep the flight order above the ground.
+        this.registerDepth(n,()=>airborne?(this.flightOrder[id]??0):FLOOR_ITEM_DEPTH+depthOrder((360-MAPY-n.position.y)/TILE-.5,'item')); this.drawIcon(n.addComponent(Graphics),stage);
         const child=new Node('id');child.layer=Layers.Enum.UI_2D;n.addChild(child);child.addComponent(UITransform).setContentSize(64,19);child.setPosition(0,-23);
         const l=child.addComponent(Label);this.writeLabel(l,id);l.fontSize=13;l.lineHeight=16;l.color=color(COLORS.ink);
         child.active=!this.useModularArt;
