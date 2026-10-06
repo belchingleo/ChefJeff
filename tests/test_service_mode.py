@@ -135,10 +135,9 @@ class FixedSeedTests(unittest.TestCase):
         for n in (1, 2, 3):
             self.assertEqual(cc.load_level(f'level-{n}')['level']['goal']['min_money'] % 10, 0)
 
-    # Levels whose target waits for an owner decision after a rule change; the calibration report
-    # (docs/architecture/reports/calibration.json) holds the numbers to decide from.
-    PENDING_TARGETS = {3: 'level 3 target 190 vs half of the 21-seed median (160): owner to decide '
-                          '(Overcooked-style targeting, 2026-10-06)'}
+    # Targets the owner set apart from the calibration (level: target): level 3 stays at 190, above
+    # half of its 21-seed median (160), owner decision 2026-10-06.
+    OWNER_TARGETS = {3: 190}
 
     @staticmethod
     def sweep():
@@ -182,10 +181,12 @@ class FixedSeedTests(unittest.TestCase):
         for row in self.report()['levels']:
             n = row['level']
             with self.subTest(level=n):
-                if n in self.PENDING_TARGETS:
-                    self.skipTest(self.PENDING_TARGETS[n])
                 target = cc.load_level(f'level-{n}')['level']['goal']['min_money']
-                self.assertEqual(target, row['target_50pct'])
+                if n in self.OWNER_TARGETS:
+                    self.assertEqual(target, self.OWNER_TARGETS[n])
+                    self.assertGreaterEqual(target, row['target_50pct'])
+                else:
+                    self.assertEqual(target, row['target_50pct'])
 
 
 class ServiceWordingTests(unittest.TestCase):

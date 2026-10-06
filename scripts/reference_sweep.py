@@ -12,6 +12,14 @@ multiple of 10 (owner decision, 2026-09-27).
 Levels use fixed seeds (owner decision B), so --fixed runs exactly the configured
 round; --seeds N instead samples order seeds 1..N as a robustness check.
 
+--calibrate gives the reference income that level targets are set from (owner decision
+2026-10-06): the median over the versioned run set CALIBRATION (each level's configured
+pacing, order seeds 1-21, best pairing per seed), with the solo rung on the same seeds.
+The target is half of that median, rounded down to a multiple of 10; level 3 is kept
+above it at 190 by owner decision (2026-10-06).
+
+    python scripts/reference_sweep.py --calibrate --workers 4 --out docs/architecture/reports/calibration.json
+
 This is a calibration reference, not a statement about human + AI play: the
 reference pair is two scripted chefs. The 'latency' variant lets Jeff decide
 only every 3 game seconds to approximate model response time.

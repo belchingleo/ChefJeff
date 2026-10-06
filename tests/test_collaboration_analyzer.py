@@ -178,8 +178,8 @@ class LoopAndHarmTests(unittest.TestCase):
 
 
 # Levels whose solo check waits for an owner decision on the target (see the calibration report).
-PENDING_SOLO = {3: 'level 3 solo median over 21 seeds (198) is above the target 190; '
-                   'it falls short only on the configured seed: owner to decide with the target (2026-10-06)'}
+PENDING_SOLO = {3: 'level 3 solo median over 21 seeds (198) is above its target 190 (kept by the owner, '
+                   '2026-10-06); one chef falls short only on the configured round: owner to decide'}
 
 
 class SingleChefTests(unittest.TestCase):
