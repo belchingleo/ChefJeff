@@ -1214,9 +1214,12 @@ export class KitchenClient extends Component {
         const diagonal=throwing?throwDiagonal(throwing.dx,throwing.dy):'';
         const diagonalKey=diagonal?`throw/${kind}/${diagonal}/${throwing!.phase}`:'';
         const useDiagonal=!!diagonalKey&&this.art.has(diagonalKey)&&!!this.art.meta(diagonalKey)?.grip;
-        const throwKey=useDiagonal?diagonalKey:throwing?`knifeless/characters/${kind}/${throwing.view}/chop_${throwing.frame}`:'';
+        // A straight left/right wind-up keeps the carry pose, turned to the aim: the chop lift frame
+        // raises the fist in front of the face, so the item would cover it or the fist sit on it.
+        const sideWindup=!useDiagonal&&!!throwing&&throwing.phase==='windup'&&(throwing.view==='left'||throwing.view==='right');
+        const throwKey=useDiagonal?diagonalKey:throwing&&!sideWindup?`knifeless/characters/${kind}/${throwing.view}/chop_${throwing.frame}`:'';
         const throwMeta=throwKey&&this.art.has(throwKey)?this.art.meta(throwKey):null;
-        if(throwMeta?.grip)facing=throwing!.view;
+        if(throwMeta?.grip||sideWindup)facing=throwing!.view;
         // Held item behind the body when the chef faces away (back view, or an upward diagonal).
         const itemBehind=useDiagonal?diagonal.startsWith('up'):facing==='up';
         const sampleFrame=this.prepSample?Number(new URLSearchParams(location.search).get('prepFrame')??-1):-1;
