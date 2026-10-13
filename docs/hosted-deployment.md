@@ -32,6 +32,8 @@ The supplied Nginx templates limit traffic, compress state responses and disable
 
 ## Operational checks
 
+With Nginx installed, run `python3 -m unittest tests.test_hosted_proxy`. The real-proxy checks cover public-page navigation from other sites, header forwarding and credential stripping, and rejection of cross-site game API requests. If Nginx is outside PATH, set `CHEFJEFF_NGINX_BIN` to its executable path.
+
 1. Check `/healthz` with the configured Host and confirm the Python listener is loopback-only.
 2. Use two browser pages to verify independent kitchens and connection settings.
 3. Inspect outgoing browser traffic with a dummy key: it must appear only in the selected provider's Authorization header, never a same-origin request.
@@ -77,6 +79,8 @@ python3 -m unittest tests.test_hosted tests.test_hosted_records
 Nginx 模板限流、压缩响应并关闭访问／请求日志。获得公开发布授权后，从 Ubuntu 官方仓库安装 Nginx／Certbot，初期 HTTP 除 ACME 验证外仅返回 503。运营者接受证书订户条款后申请证书，再安装 HTTPS 配置，校验 Nginx 并测试续期。网页仅开放 80／443，不公开 Python 端口；证书留在服务器。
 
 ## 验证
+
+安装 Nginx 后，运行 `python3 -m unittest tests.test_hosted_proxy`，通过真实代理验证外部链接打开首页、请求头转发、凭据移除，以及跨站游戏 API 请求被拒绝。Nginx 不在 PATH 时，可通过 `CHEFJEFF_NGINX_BIN` 指定可执行文件路径。
 
 1. 使用配置的 Host 检查 `/healthz`，确认 Python 仅监听回环地址。
 2. 用两个浏览器页面确认厨房和连接设置隔离。
