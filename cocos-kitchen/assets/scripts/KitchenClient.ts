@@ -5,7 +5,7 @@ import { KitchenAudio } from './KitchenAudio';
 import { levelButtonLayout, GRID_ART, stationView, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, workingChefDepth, flightDepth, predictWalk, footWalkable, plateLayers, heatCountdown, behindCounter } from './KitchenGeometry';
 const { ccclass } = _decorator;
 type Action = { key: string; label: string; kind: string; target: string; expected: unknown[] };
-type KitchenState = { game_id: string; phase: string; speed: number; kitchen: any; actions: Action[]; levels?:any[]; limits?:any; release?:any; interaction?:Action; use_interaction?:Action; interaction_hint?:string; interaction_focus?:string; interaction_cell?:number[];
+type KitchenState = { game_id: string; phase: string; speed: number; kitchen: any; actions: Action[]; levels?:any[]; limits?:any; capacity?:any; release?:any; interaction?:Action; use_interaction?:Action; interaction_hint?:string; interaction_focus?:string; interaction_cell?:number[];
     events: {t:number; message:string; kind?:string}[]; ai: {thinking:boolean; error:string|null}; won:boolean; aborted?:boolean; round_summary?:any; rules?:Record<string,number>; connection?:any; memory?:any; communication?:any; hosted?:any };
 type ChefMotion = {body:Node; leftLeg:Node; rightLeg:Node; leftArm:Node; rightArm:Node; knife:Node; facing:string; step:number};
 type PotEffects = {steam:Node; smoke:Node; fire:Node; ready:Node};
@@ -1565,6 +1565,15 @@ export class KitchenClient extends Component {
         if(!this.countdown){ // the 3·2·1 owns the card until the next round starts
         this.set('coverTitle',s.phase==='ready'?'ChefJeff':s.phase==='paused'?'歇一小会儿':k.failure_reason==='fire_spread'?'火势失控':s.aborted?'本局已结束':closed?(s.won?'关店结算 · 达成目标':'关店结算 · 未达目标'):s.won?'今天，配合得不错！':'明天再接再厉');
         this.set('coverText',s.phase==='ready'?`你和 AI 搭档，一起照顾这间小厨房。\n本局目标：关店时净收入达到 ¥${k.goals.target_money}`:s.phase==='paused'?'锅火和订单都按下了暂停。\n准备好了，就和 Jeff 接着做菜。':closed?this.closingSummary(k,!!s.won,s.round_summary):`出餐 ${k.served} 单 · 净收入 ¥${k.money} / ¥${k.goals.target_money}`);
+        }
+        if(s.capacity?.can_start===false&&s.phase!=='running'){
+            this.enable('resume',false);
+            const configuring=s.phase==='ready'&&s.connection&&!s.connection.configured;
+            if(!configuring){this.enable('main',false);this.writeLabel(this.buttons.main.label,'等待空位');}
+            if(!this.countdown){
+                if(s.phase==='ready')this.set('coverTitle','厨房暂时已满');
+                this.set('coverText',(this.labelSources.get(this.labels.coverText)||'')+'\n厨房名额暂时已满。空位释放后按钮会恢复，请再点击继续。');
+            }
         }
         this.syncAccess();
         if(this.overlayPhase!==s.phase){

@@ -10,7 +10,11 @@ node tests/hosted_browser_test.cjs
 python3 -m unittest tests.test_hosted tests.test_hosted_records
 ```
 
-`--data-dir` enables explicit contributions. Omit it to disable persistent contributions. A refresh creates a new kitchen. On page exit, the browser sends an authenticated game-session close request containing no model credentials, except when retained in the back/forward cache. If that best-effort request is lost, inactive sessions still expire after 10 minutes. Capacity defaults to eight kitchens, with a busy response when full. A full/unavailable server is retried no more than once every 15 seconds. The public reverse proxy limits new sessions and API traffic.
+`--data-dir` enables explicit contributions. Omit it to disable persistent contributions. A refresh creates an independent page session. On page exit, the browser sends an authenticated close request containing no model credentials, except when retained in the back/forward cache. Inactive page sessions expire after 10 minutes. `--max-sessions` now limits active kitchens (default 8, configurable 1–16), while `--max-waiting` adds a bounded page-session allowance (default 32, configurable 0–32). Browsing and model setup do not reserve active slots. A pause holds its slot for 60 seconds and a result for 30 seconds; polling does not extend either lease. Expiry releases the slot while retaining the page's game state, so resume/next-round may have to wait. A disconnected running game still pauses after 8 seconds.
+
+When active slots are full, the browser can configure its model and displays a waiting button. State polling restores that button when a spot opens; the player must press it to start/resume. There is no automatic paid model call or promised FIFO order. If the bounded page-session pool itself is full/unavailable, creation retries at most every 15 seconds.
+
+The backend uses a 128-connection accept queue and at most 32 request threads. Each validated session has a 40-request/second token bucket with a 40-request burst; pause/end/close remain available when its budget is exhausted. Nginx retains a coarse 500-request/second/IP bound plus a separate 15-creation/minute/IP quota with burst 10, accommodating several players behind one network. Anonymous receipt deletion retains its former 30-request/second/IP budget. Unknown tokens cannot create backend request-budget entries. Build identity is calculated once per server release. Public build scripts, images, fonts and audio are served directly by Nginx with revalidation, MIME types and compression; HTML and the hosted agent remain on their existing Python paths. Static errors remain uncached. Idle ticks stop manual movement only when needed, rather than accumulating no-op engine inputs.
 
 ## Credentials and records
 
@@ -35,6 +39,12 @@ The supplied Nginx templates limit traffic, compress state responses and disable
 On this pilot's shared VPN server, run `bash deploy/finalize_hetzner.sh` as root after HTTPS works. It adds a drop-in to the enabled `personal-vpn-firewall.service`, using the existing `inet personal_vpn_filter input` chain to allow TCP 80/443 after startup and reload. The reviewed VPN loader and its hash arguments remain intact. It also installs a certificate-specific Nginx reload hook, enables the Certbot timer, and tests renewal with the hook. This helper requires that exact firewall service/table and does not reboot the server; boot persistence has to be confirmed during a later maintenance reboot.
 
 ## Operational checks
+
+`/ops/capacity` is accessible on the loopback backend and blocked by the public Nginx route. It reports held slots, page sessions, aggregate rejections, recent response P95/P99, Python CPU/RSS/threads and Linux service cgroup memory where available. No session token, game ID, IP or model payload is included. These are backend metrics, not browser/network latency or total host CPU.
+
+After an approved release is installed, run `python3 /opt/chefjeff/current/deploy/set_kitchen_capacity.py 8` in the server's root SSH terminal to explicitly replace the old two-kitchen command. Existing memory/data/VPN settings remain in place. The helper restarts ChefJeff (ending current rounds), checks the effective limit and restores its previous drop-in if verification fails. A normal release update intentionally preserves existing capacity overrides.
+
+Start with 8 active kitchens and validate on the actual shared server for 30–60 minutes before trying 12 or 16. Include normal VPN load, simultaneous cold loads, same-network players, continuous rounds/contributions and idle lease expiry. Suggested gates: sustained total host CPU below 65%, at least 200 MiB available host RAM, service cgroup peak below 384 MiB, backend P95 below 100 ms/P99 below 200 ms, and no unexplained 5xx, timeouts, OOM or continuing memory growth. Cloud single-core tests are supporting evidence, not a Hetzner capacity guarantee.
 
 With Nginx installed, run `python3 -m unittest tests.test_hosted_proxy`. The real-proxy checks cover public-page navigation from other sites, header forwarding and credential stripping, and rejection of cross-site game API requests. If Nginx is outside PATH, set `CHEFJEFF_NGINX_BIN` to its executable path.
 
@@ -62,7 +72,11 @@ node tests/hosted_browser_test.cjs
 python3 -m unittest tests.test_hosted tests.test_hosted_records
 ```
 
-`--data-dir` 启用自愿数据贡献，省略则禁用持久化贡献。刷新新建厨房，闲置十分钟会话过期。默认最多八个厨房，满时提示忙碌；公开反向代理限制新会话与 API 流量。
+`--data-dir` 启用自愿数据贡献，省略则禁用持久化贡献。刷新创建独立页面会话，闲置十分钟过期。`--max-sessions` 现在限制活跃厨房（默认 8，可配置 1–16），`--max-waiting` 提供额外的有限页面会话额度（默认 32，可配置 0–32）。浏览和填写／连接模型不占经营名额。暂停保留名额 60 秒，结算保留 30 秒，轮询不会延长保留；超时释放名额并保留页面状态，继续或下一局可能需要等待。断开页面的经营中对局仍在 8 秒后自动暂停。
+
+经营名额已满时，仍可配置模型，开局／继续按钮显示等待；状态轮询发现空位后恢复按钮，须玩家再次点击，不自动开局或调用付费模型，也不承诺按等待顺序排队。页面会话池本身已满或服务不可用时，最多每 15 秒重试创建一次。
+
+后端采用 128 个连接的等待队列，最多 32 个请求线程；按有效会话限制每秒 40 请求，突发额度 40，额度耗尽仍可暂停／结束／关闭厨房。Nginx 保留每 IP 每秒 500 请求的总量限制，以及每 IP 每分钟 15 次建房、突发 10 次的独立限制，容纳同一网络多人；无需活跃会话的删除凭证接口保留原每 IP 每秒 30 请求限制。无效 token 不创建后端限流记录。发布身份仅在服务启动时计算一次。审核过的网页脚本、图片、字体和音频由 Nginx 直接提供，保留 MIME、压缩和更新检查；HTML 与托管代理脚本仍走原 Python 路径，静态错误不缓存。空闲时仅在确有移动输入时记录停止，避免长期积累无效引擎输入。
 
 ## 凭据与记录
 
@@ -84,7 +98,7 @@ python3 -m unittest tests.test_hosted tests.test_hosted_records
 
 Nginx 模板限流、压缩响应并关闭访问／请求日志。获得公开发布授权后，从 Ubuntu 官方仓库安装 Nginx／Certbot，初期 HTTP 除 ACME 验证外仅返回 503。运营者接受证书订户条款后申请证书，再安装 HTTPS 配置，校验 Nginx 并测试续期。网页仅开放 80／443，不公开 Python 端口；证书留在服务器。
 
-JavaScript 压缩同时覆盖 `text/javascript` 与 `application/javascript`，以兼容 Ubuntu/Python 的实际 MIME 类型。主要引擎脚本由约 5.7 MB 压至 0.95 MB。静态资源使用内容 ETag 和 `public, max-age=0, must-revalidate`：每次使用前检查更新，内容未变则返回 304；HTML、API、健康检查和错误响应仍为 `no-store`，不长期缓存无版本号的脚本。
+JavaScript 压缩同时覆盖 `text/javascript` 与 `application/javascript`，以兼容 Ubuntu/Python 的实际 MIME 类型。主要引擎脚本由约 5.7 MB 压至 0.95 MB。静态资源通过 ETag 和 `public, max-age=0, must-revalidate` 检查更新，内容未变则返回 304；Nginx 使用文件元数据 ETag，Python 托管代理脚本使用内容 ETag。HTML、API、健康检查和错误响应仍为 `no-store`，不长期缓存无版本号的脚本。
 
 美术图集并发下载，全部完成后按原有顺序安装，保留后加载图集覆盖旧图集的规则。网页音频在第一次键盘／指针交互后按需下载正在使用的曲目及音效，不再在首屏下载整个音效目录；过晚到达的动作音效不补播，下载失败不会阻塞游戏。原生端保持整目录加载。真实用户首屏耗时仍受设备、网络和德国服务器到访客的往返延迟影响。
 
@@ -95,6 +109,12 @@ JavaScript 压缩同时覆盖 `text/javascript` 与 `application/javascript`，�
 在当前共用 VPN 的试玩服务器上，HTTPS 可用后以 root 执行 `bash deploy/finalize_hetzner.sh`。它为已启用的 `personal-vpn-firewall.service` 添加补充配置，在服务启动及重新加载后，通过现有 `inet personal_vpn_filter input` 链放行 TCP 80／443；原 VPN 加载脚本及其校验参数保持原样。脚本还安装仅针对试玩证书的 Nginx 重载钩子，启用 Certbot 定时器，并模拟续期及钩子执行。此脚本要求上述指定服务及规则链存在，不会重启服务器；实际开机持久化需在之后的维护重启时确认。
 
 ## 验证
+
+`/ops/capacity` 仅从回环后端读取，公开 Nginx 入口拒绝访问。指标包含保留名额、页面会话数、拒绝数、近期响应 P95／P99、Python CPU／内存／线程和可用时的 Linux 服务 cgroup 内存；不包含会话 token、游戏 ID、IP 或模型正文。这些是后端指标，不是浏览器／网络延迟或整机 CPU。
+
+获得合并及部署授权、安装新版后，在服务器 root SSH 终端执行 `python3 /opt/chefjeff/current/deploy/set_kitchen_capacity.py 8`，显式替换原来的两个厨房命令。内存／数据／VPN 设置保留；脚本重启厨房（结束现有对局），校验实际容量，失败则恢复原补充配置。普通版本更新会保留现有容量覆盖配置。
+
+首档 8 个活跃厨房，在真实共用服务器测试 30–60 分钟后再试 12 或 16；覆盖正常 VPN 流量、同时冷启动、同一网络多人、连续游玩／贡献，以及空闲名额释放。建议门槛：整机 CPU 持续低于 65%、可用内存至少 200 MiB、服务 cgroup 峰值低于 384 MiB、后端 P95 低于 100 毫秒／P99 低于 200 毫秒；没有无法解释的 5xx、超时、OOM 或持续内存增长。云端单核测试提供参考，不能作为 Hetzner 容量保证。
 
 安装 Nginx 后，运行 `python3 -m unittest tests.test_hosted_proxy`，通过真实代理验证外部链接打开首页、请求头转发、凭据移除，以及跨站游戏 API 请求被拒绝。Nginx 不在 PATH 时，可通过 `CHEFJEFF_NGINX_BIN` 指定可执行文件路径。
 

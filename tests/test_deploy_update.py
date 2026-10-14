@@ -6,6 +6,7 @@ import unittest
 from unittest.mock import patch
 
 from deploy import update_hetzner as update
+from deploy import set_kitchen_capacity as capacity
 
 
 class UpdateTests(unittest.TestCase):
@@ -50,3 +51,28 @@ class UpdateTests(unittest.TestCase):
         self.assertTrue(old.is_dir())
         self.assertEqual(site.read_text(), 'new proxy')
         self.assertEqual(run.call_args_list[-1].args, ('systemctl', 'reload', 'nginx'))
+
+
+class CapacityUpdateTests(unittest.TestCase):
+    unit = '/usr/bin/python3 /opt/chefjeff/current/hosted_server.py --port 8780 --origin https://chefjeff.belchingleo.online --max-sessions 2 --data-dir /var/lib/chefjeff'
+
+    def test_verified_change_preserves_other_unit_settings(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td);old=root/'hetzner.conf';old.write_text('MemoryMax=512M\n')
+            dropin=root/'zz-chefjeff-capacity.conf'
+            states=[{'capacity':{'limit':2,'session_limit':34}},{'capacity':{'limit':8,'session_limit':40}}]
+            with patch.object(capacity,'read_metrics',side_effect=states),patch.object(capacity,'run') as run,patch.object(capacity.subprocess,'check_output',return_value=self.unit):
+                capacity.apply(8,dropin)
+            self.assertEqual(old.read_text(),'MemoryMax=512M\n')
+            self.assertIn('--max-sessions 8 --max-waiting 32',dropin.read_text())
+            self.assertEqual(run.call_args_list[-1].args,('systemctl','restart','chefjeff.service'))
+
+    def test_failed_change_restores_exact_previous_override(self):
+        with tempfile.TemporaryDirectory() as td:
+            dropin=Path(td)/'capacity.conf';dropin.write_bytes(b'old reviewed command\n')
+            states=[{'capacity':{'limit':2,'session_limit':34}}]
+            states.extend([OSError('not ready')]*30)
+            with patch.object(capacity,'read_metrics',side_effect=states),patch.object(capacity,'run') as run,patch.object(capacity.subprocess,'check_output',return_value=self.unit),patch.object(capacity.time,'sleep'):
+                with self.assertRaisesRegex(RuntimeError,'does not match'):capacity.apply(8,dropin)
+            self.assertEqual(dropin.read_bytes(),b'old reviewed command\n')
+            self.assertEqual(sum(c.args==('systemctl','restart','chefjeff.service') for c in run.call_args_list),2)

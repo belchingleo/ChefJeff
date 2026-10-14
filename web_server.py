@@ -154,7 +154,9 @@ class GameSession:
             now = time.monotonic() if now is None else now
             elapsed = max(0, now-self.last_tick)
             self.last_tick = now
-            if self.phase != 'running' and hasattr(self.k,'set_manual'):
+            # A no-op set_manual is still recorded as an engine input. Idle
+            # page sessions must not grow an input log on every timer wakeup.
+            if self.phase != 'running' and hasattr(self.k,'set_manual') and any(self.k.manual['human']):
                 self.k.set_manual('human',0,0)
             if self.phase == 'running':
                 if now-self.last_seen > 8:
