@@ -5,6 +5,8 @@
   "messages": {
     "和AI一起经营餐馆": "Run a restaurant with AI",
     "正在打开小厨房…": "Opening your kitchen…",
+    "网络不稳定，正在重连…": "Unsteady connection, reconnecting…",
+    "打开快慢取决于你的网络，第一次要下载约 2 MB，之后再打开会快很多。": "Loading time depends on your network: the first visit downloads about 2 MB, later visits are much faster.",
     "横屏游玩，工位和按钮会更清楚。": "Play in landscape for a clearer kitchen and controls.",
     "全屏看厨房": "Full screen",
     "请手动展开浏览器窗口": "Please enlarge your browser window",

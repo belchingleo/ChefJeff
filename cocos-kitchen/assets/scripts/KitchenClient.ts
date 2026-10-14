@@ -20,6 +20,8 @@ const COLORS = { ink:'#2b1a12', muted:'#6e4e38', bg:'#f0d9b5', paper:'#fdf3e1', 
 // Pixel face for titles, buttons, tags and HUD numbers (loaded by the web shell); body text stays system.
 const PIXEL='ChefJeffPixel, sans-serif';
 // Result events reach the player; AI decision notes have their own status line.
+// Seconds without any state before the page calls it a disconnect (below the server's 8 s auto-pause).
+const NETWORK_GRACE_SECONDS=6;
 const RESULT_ANNOUNCE=new Set(['order','served','expired','ready','burn','fire','fire_spread','fire_loss']);
 // Keyboard order; the level buttons (one per listed level, from the server) follow the language button.
 const TAB_ORDER=['language','main','reset','cover-connection','help','record','resume','pause','end'];
@@ -95,6 +97,8 @@ export class KitchenClient extends Component {
     private knifeHands:Record<string,Node>={};
     private knifeEdges:Record<string,number[]|null>={};
     private received=0;
+    // Clock of the last state that arrived. One slow or failed poll on an unsteady network is not a disconnect.
+    private lastStateAt=0;
     private labels: Record<string,Label>={};
     private buttons: Record<string,ButtonView>={};
     private controlAccess:HTMLDivElement|null=null;
@@ -981,13 +985,17 @@ export class KitchenClient extends Component {
                 if(this.mounted)for(const who of ['human','jeff'])this.locate(this.people[who],next.kitchen.chefs[who].position);}
             if(next.phase!=='running'||next.game_id!==this.state?.game_id||(this.spaceItemId!==null&&(next.kitchen.chefs.human.holding?.id!==this.spaceItemId||next.kitchen.chefs.human.can_throw===false)))this.clearInput();
             if(next.game_id!==this.state?.game_id)this.moveSeq=Date.now()*1000;
-            this.state=next;this.connected=true;this.received=this.clock;this.stateSentAt=sent;
+            this.state=next;this.connected=true;this.received=this.lastStateAt=this.clock;this.stateSentAt=sent;
             const frameRate=next.phase==='running'?(this.touchLayout?.active?30:60):15;
             if(game.frameRate!==frameRate)game.frameRate=frameRate;
             if(!sys.isNative)window.dispatchEvent(new CustomEvent('kitchen-state',{detail:{game_id:next.game_id,phase:next.phase,connection:next.connection,memory:next.memory,limits:next.limits,release:next.release,communication:next.communication,hosted:next.hosted}}));
             if(!this.mounted)this.mountMap();this.processEvents();this.render();this.hideLoading();
             this.audio.onState(next);
-        }catch(e){this.hideLoading();game.frameRate=15;this.clearInput();this.connected=false;if(this.jeffThinking)this.jeffThinking.active=false;this.set('event',String((e as Error).message)+'，厨房会自动暂停。');this.cover.active=true;this.set('coverTitle','连接厨房');this.set('coverText','暂时连接不上厨房，请稍后重试。\n连接中断时，游戏会自动暂停。');this.writeLabel(this.buttons.main.label,'重新连接');this.buttons.reset.node.active=false;this.buttons.record.node.active=false;this.labels['welcome-tip'].node.active=true;
+        }catch(e){
+            // Keep the picture and held keys through brief gaps; the next state that arrives replaces this note.
+            // The server still pauses a running round after 8 s without any request.
+            if(this.connected&&this.clock-this.lastStateAt<NETWORK_GRACE_SECONDS){this.set('event','网络不稳定，正在重连…');return;}
+            this.hideLoading();game.frameRate=15;this.clearInput();this.connected=false;if(this.jeffThinking)this.jeffThinking.active=false;this.set('event',String((e as Error).message)+'，厨房会自动暂停。');this.cover.active=true;this.set('coverTitle','连接厨房');this.set('coverText','暂时连接不上厨房，请稍后重试。\n连接中断时，游戏会自动暂停。');this.writeLabel(this.buttons.main.label,'重新连接');this.buttons.reset.node.active=false;this.buttons.record.node.active=false;this.labels['welcome-tip'].node.active=true;
         }finally{this.polling=false;this.applyTouchLayout();this.publishControls();}
     };
     private async bookmark(){
