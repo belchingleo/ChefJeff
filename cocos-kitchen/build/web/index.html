@@ -43,7 +43,7 @@
 <script src="src/import-map.e67d1.json" type="systemjs-importmap" charset="utf-8"> </script>
 
 <script>
-    System.import('./index.17765.js').catch(function(err) { console.error(err); })
+    System.import('./index.9158f.js').catch(function(err) { console.error(err); })
 </script>
   <script src="kitchen-i18n.js"></script>
 <style>
@@ -93,6 +93,9 @@ details.fine summary{cursor:pointer;color:var(--ink);font-weight:600}
 #kitchen-loading .panel{display:grid;justify-items:center;gap:12px;padding:28px 40px}
 #kitchen-loading b{font:36px/40px var(--pixel);font-weight:400}
 #kitchen-loading span{font-size:15px;color:var(--muted)}
+/* Shown only when opening takes a while: no script, so it works before the engine loads. */
+#kitchen-loading small{max-width:300px;font-size:13px;line-height:1.6;color:var(--muted);text-align:center;opacity:0;animation:kitchen-loading-note 0s 4s forwards}
+@keyframes kitchen-loading-note{to{opacity:1}}
 /* Floating layers follow the letterboxed game (layout script sets --gx/--gy/--gs). */
 #kitchen-bookmark-toast{position:fixed;left:calc(var(--gx) + 640px * var(--gs));bottom:calc(var(--gy) + 70px * var(--gs));transform:translateX(-50%) scale(var(--gs));transform-origin:bottom center;pointer-events:none;z-index:25}
 #kitchen-display-hint{display:none;position:fixed;top:max(24px,env(safe-area-inset-top));left:20px;right:20px;text-align:center;color:var(--paper);font-size:15px;line-height:1.8;z-index:10}
@@ -100,7 +103,7 @@ details.fine summary{cursor:pointer;color:var(--ink);font-weight:600}
 @media(max-aspect-ratio:1/1){#kitchen-display-hint{display:block}}
 :fullscreen #kitchen-display-hint{display:none}
 </style>
-<div id="kitchen-loading" role="status"><div class="panel"><svg width="48" height="40" viewBox="0 0 12 10" aria-hidden="true" shape-rendering="crispEdges"><rect x="5" y="0" width="2" height="1" fill="#2b1a12"/><rect x="2" y="1" width="8" height="1" fill="#2b1a12"/><rect x="0" y="3" width="12" height="1" fill="#2b1a12"/><rect x="1" y="3" width="10" height="6" fill="#2b1a12"/><rect x="2" y="4" width="8" height="4" fill="#3d5566"/><rect x="3" y="4" width="6" height="1" fill="#e8983a"/><rect x="2" y="9" width="8" height="1" fill="#2b1a12"/></svg><b>ChefJeff</b><span>正在打开小厨房…</span></div></div>
+<div id="kitchen-loading" role="status"><div class="panel"><svg width="48" height="40" viewBox="0 0 12 10" aria-hidden="true" shape-rendering="crispEdges"><rect x="5" y="0" width="2" height="1" fill="#2b1a12"/><rect x="2" y="1" width="8" height="1" fill="#2b1a12"/><rect x="0" y="3" width="12" height="1" fill="#2b1a12"/><rect x="1" y="3" width="10" height="6" fill="#2b1a12"/><rect x="2" y="4" width="8" height="4" fill="#3d5566"/><rect x="3" y="4" width="6" height="1" fill="#e8983a"/><rect x="2" y="9" width="8" height="1" fill="#2b1a12"/></svg><b>ChefJeff</b><span>正在打开小厨房…</span><small>打开快慢取决于你的网络，第一次要下载约 2 MB，之后再打开会快很多。</small></div></div>
 <div id="kitchen-bookmark-toast" class="slip" role="status" aria-live="polite" aria-atomic="true" hidden></div>
 <aside id="kitchen-display-hint">横屏游玩，工位和按钮会更清楚。<br><button id="kitchen-fullscreen" class="btn" type="button">全屏看厨房</button></aside>
 <script>
