@@ -27,11 +27,14 @@ copies={}
 for kind,html in [('local',raw),('hosted',hosted_html(raw))]:
     parser=Copy();parser.feed(html.decode());copies[kind]=parser.copy
 copies['errors']=[]
-for node in ast.walk(ast.parse(Path('hosted_server.py').read_text())):
-    if isinstance(node,ast.Dict):
-        for key,value in zip(node.keys,node.values):
-            if isinstance(key,ast.Constant) and key.value=='error' and isinstance(value,ast.Constant) and isinstance(value.value,str):
-                copies['errors'].append(value.value)
+for file in ('hosted_server.py','hosted_jev.py'):
+    for node in ast.walk(ast.parse(Path(file).read_text())):
+        if isinstance(node,ast.Dict):
+            for key,value in zip(node.keys,node.values):
+                if isinstance(key,ast.Constant) and key.value=='error' and isinstance(value,ast.Constant) and isinstance(value.value,str):
+                    copies['errors'].append(value.value)
+        if isinstance(node,ast.Call) and isinstance(node.func,ast.Name) and node.func.id=='ForwardError' and len(node.args)>1 and isinstance(node.args[1],ast.Constant):
+            copies['errors'].append(node.args[1].value)
 copies['browser']=re.findall(r"throw new Error\('([^']+)'\)",Path('hosted/browser-agent.js').read_text())
 print(json.dumps(copies,ensure_ascii=False))
 `],{encoding:'utf8'});
@@ -48,4 +51,5 @@ locale.setLanguage('zh');
 for(const strings of Object.values(copies))for(const source of strings)assert.equal(locale.t(source),source);
 assert(!fs.readFileSync('hosted/contribution.html','utf8').includes('class="contrib" data-no-i18n'));
 assert.equal(locale.english('模型接口返回 HTTP 401，请检查账号和模型。'),'Model API returned HTTP 401. Check your account and model.');
+assert.equal(locale.english('Jev 接口返回 HTTP 401，请检查账号和模型。'),'Jev API returned HTTP 401. Check your account and model.');
 console.log('Settings localization: local and hosted copy, privacy, contribution, attributes and error messages switch completely between Chinese and English.');

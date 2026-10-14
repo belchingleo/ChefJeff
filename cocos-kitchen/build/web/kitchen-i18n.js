@@ -625,7 +625,31 @@
     "厨房名额暂时已满。空位释放后按钮会恢复，请再点击继续。": "All kitchen slots are in use. The button will become available when a spot opens; press it to continue.",
     "厨房名额暂时已满，空位释放后请再试。": "All kitchen slots are in use. Try again when a spot opens.",
     "操作过于频繁，请稍后重试。": "Too many requests. Please try again shortly.",
-    "厨房请求较多，请稍后重试。": "The kitchen server is busy. Please try again shortly."
+    "厨房请求较多，请稍后重试。": "The kitchen server is busy. Please try again shortly.",
+    "同意通过试玩服务器调用 Jev": "I agree to call Jev through the demo server",
+    "勾选后，Key 和模型请求会经 HTTPS 通过试玩服务器发送给 Jev，不写入服务器配置、日志或对局记录。未勾选则由浏览器直连，需 Jev 允许本网站跨域访问。": "When selected, your key and model requests pass through the demo server over HTTPS to Jev. They are not written to server configuration, logs or game records. Otherwise, your browser calls Jev directly, which requires Jev to allow this website through CORS.",
+    "当前连接：已同意服务器转发 Jev": "Current connection: consented Jev server forwarding",
+    "当前连接：浏览器直连模型": "Current connection: browser-direct model calls",
+    "在线模型连接": "Online model connection",
+    "：默认由浏览器直连模型，需供应商允许跨域访问。Jev 可明确勾选下方服务器转发；跨域失败不会自动改为转发。": ": Models are called directly from your browser by default and require provider CORS support. You can explicitly select Jev server forwarding below; a CORS failure never switches modes automatically.",
+    "在线版：Key 默认在页面内存中，刷新即清除；主动记住会将 Key 和所选转发方式以明文保存在浏览器 localStorage。浏览器直连时 Key 只发给模型服务；明确勾选 Jev 转发后，Key 和模型请求经试玩服务器发送给 Jev，仅用于处理请求，不写入服务器配置、日志或对局记录。游戏状态经过我们的服务器，自愿贡献数据另见下方说明。": "Online privacy: keys stay in page memory by default and refresh clears them. Remember stores the key and selected transport unencrypted in browser localStorage. Direct mode sends the key only to your provider; explicitly selecting Jev forwarding sends your key and model requests through the demo server to Jev for request processing only, without writing them to server configuration, logs or game records. Game state passes through our server; optional contributions are described below.",
+    "服务器转发仅适用于 Jev。": "Server forwarding is available only for Jev.",
+    "Jev 转发连接失败。": "Jev forwarding failed.",
+    "暂时无法连接试玩服务器，请检查网络后重试。": "Could not connect to the demo server. Check your network and try again.",
+    "Jev 返回了无效动作，未执行任何操作。": "Jev returned an invalid action; no action was executed.",
+    "Jev 回复过大。": "Jev response is too large.",
+    "试玩服务器无法连接 Jev，请稍后重试。": "The demo server could not reach Jev. Please try again shortly.",
+    "请先同意通过试玩服务器调用 Jev。": "Please first agree to call Jev through the demo server.",
+    "Jev 请求无效。": "Invalid Jev request.",
+    "此厨房的 Jev 请求仍在处理中。": "This kitchen still has a Jev request in progress.",
+    "当前不能请求 Jev。": "Jev cannot be called in the current game state.",
+    "连接测试过于频繁，请稍后重试。": "Connection tests are too frequent. Please try again shortly.",
+    "Jev 决策请求已过期。": "The Jev decision request has expired.",
+    "Jev 转发请求较多，请稍后重试。": "Jev forwarding is busy. Please try again shortly.",
+    "浏览器无法直连 Jev。请检查网络，或明确勾选服务器转发后重试；Key 尚未经过试玩服务器。": "Your browser could not call Jev directly. Check your network, or explicitly select server forwarding and try again; your key has not passed through the demo server.",
+    "勾选后，Key 和模型请求会经 HTTPS 通过试玩服务器发送给 Jev，不写入服务器配置、日志或对局记录。未勾选则由浏览器直连，需 Jev 允许本网站跨域访问。更改选项后须测试并连接才生效，清除配置会停止后续模型请求。": "When selected, your key and model requests pass through the demo server over HTTPS to Jev. They are not written to server configuration, logs or game records. Otherwise, your browser calls Jev directly, which requires Jev to allow this website through CORS. Changes take effect after Test and connect; Clear stops future model requests.",
+    "浏览器无法直连 Jev。请检查网络，或明确勾选服务器转发后重试；本次直连请求未通过试玩服务器转发 Key。": "Your browser could not call Jev directly. Check your network, or explicitly select server forwarding and try again; this direct request did not forward your key through the demo server.",
+    "浏览器无法访问模型服务，请检查网络和跨域支持；本次直连请求未通过试玩服务器转发 Key。": "Browser could not reach this provider. Check network/CORS support; this direct request did not forward your key through the demo server."
   },
   "templates": [
     [
@@ -1111,9 +1135,14 @@
     [
       "贡献：你 {0}% · Jeff {1}%",
       "Contribution: you {0}% · Jeff {1}%"
+    ],
+    [
+      "Jev 接口返回 HTTP {0}，请检查账号和模型。",
+      "Jev API returned HTTP {0}. Check your account and model."
     ]
   ]
-};
+}
+;
   const escape = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const templates = catalog.templates.map(([source, target]) => {
     const ids = [];

@@ -16,7 +16,9 @@ Local `logs/` journals can contain full state and model output. Each local round
 
 ## Hosted pilot
 
-The browser sends model requests directly to the provider; API keys do not pass through the ChefJeff game backend. Keys live in page memory by default and disappear on refresh. Explicit Remember uses browser localStorage in plaintext; Clear removes it. Providers must support browser CORS. A CORS failure does not switch to a server proxy.
+Browser-direct mode sends model requests and keys only to the provider and requires provider CORS. A CORS failure never switches transport automatically. For Jev, players can explicitly select **I agree to call Jev through the demo server**. In this mode their key and model request pass over HTTPS through the ChefJeff server to the fixed TypeSafe Jev endpoint. The server uses the key only while processing that request and does not write it or model payloads to configuration, logs, game records or contribution storage. Already-issued calls may still be billed after cancellation or a page exit.
+
+Keys live in page memory by default and disappear on refresh. Explicit Remember stores the key **and chosen transport** in browser localStorage in plaintext; Clear removes them. A remembered Jev relay choice remains in effect on that device until cleared or changed. Browser-direct remains the default for new/older saved configurations and for other providers. The game server never supplies a developer key.
 
 Gameplay actions and state are processed on the server. Anonymous sessions remain in memory and expire after 10 minutes of inactivity. No disk gameplay journal or cross-round memory is created. After a round, the player can preview and explicitly contribute allowlisted event/position/result data for game improvement and cooperation evaluation research. Contributions are private, retained for 30 days, and can be deleted using the supplied receipt.
 
@@ -44,7 +46,9 @@ Contributions exclude keys, account identity, email, IP addresses, model endpoin
 
 ## 托管试玩
 
-浏览器直接向供应商请求模型，API Key 不经过 ChefJeff 游戏后端。默认仅保存在页面内存，刷新后消失；主动记住后以明文进入浏览器 localStorage，清除会删除它。供应商必须支持浏览器 CORS；失败时不转为服务器代理。
+浏览器直连模式只将模型请求和 Key 发给供应商，要求其支持 CORS；失败不会自动切换转发。Jev 玩家可明确勾选**同意通过试玩服务器调用 Jev**。此模式下，Key 和模型请求经 HTTPS 通过 ChefJeff 服务器发往固定的 TypeSafe Jev 接口。服务器仅在处理该请求时使用 Key，不将其或模型载荷写入配置、日志、对局记录或贡献存储。取消请求或关闭页面时，已经发出的调用仍可能计费。
+
+Key 默认保存在页面内存，刷新后消失；主动记住会将 **Key 和所选转发方式**以明文保存至浏览器 localStorage，清除会删除它们。被记住的 Jev 转发选项在该设备上持续有效，直到清除或更换。新配置／旧的已记住配置默认浏览器直连，其他供应商也保持直连；游戏服务器不提供开发者 Key。
 
 游戏动作与状态由服务器处理。匿名会话在内存中维持，闲置十分钟后过期，不创建磁盘对局日志或跨局记忆。对局结束后，玩家可以预览并主动贡献允许清单中的事件、位置和结果数据，用于游戏改进与协作评估研究。贡献数据私有保存 30 天，也可用提供的凭证提前删除。
 

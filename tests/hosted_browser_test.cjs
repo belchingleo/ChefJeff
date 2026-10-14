@@ -13,6 +13,7 @@ function harness(saved=null, fail=false, gameState={game_id:'round',phase:'ready
   const u=new URL(url,'https://kitchen.example');
   if(u.origin!=='https://kitchen.example'){
    if(fail)throw new TypeError('blocked');
+   if(u.hostname==='api.typesafe.ai')return new Response(JSON.stringify({answers:{next_action:{type:'choice',choice:'wait'}},usage:{input_tokens:3,output_tokens:4}}));
    return new Response(JSON.stringify({choices:[{message:{content:'{"choice":"wait","sprint":false}'}}],usage:{prompt_tokens:3,completion_tokens:4}}));
   }
   if(u.pathname==='/api/session'){
@@ -20,6 +21,7 @@ function harness(saved=null, fail=false, gameState={game_id:'round',phase:'ready
    return new Response(JSON.stringify(status===201?{session:'test-session'}:{error:'Kitchens full.'}),{status});
   }
   if(u.pathname==='/api/state')return new Response(JSON.stringify(gameState));
+  if(u.pathname==='/api/model/jev')return new Response(JSON.stringify({answer:{choice:'wait',sprint:false,usage:{input_tokens:3,output_tokens:4}}}));
   return new Response('{"ok":true}');
  };
  const w={fetch:native,addEventListener:(name,fn)=>{listeners[name]=fn;},dispatchEvent:e=>{listeners[e.type]?.(e);}};
@@ -436,6 +438,7 @@ function settingsHarness(){
  checkResultContinuation(true);checkResultContinuation(false);
  let h=harness();await h.w.fetch('/api/state');
  let r=await h.w.fetch('/api/connection',{method:'POST',body:JSON.stringify(cfg)});assert.equal(r.status,200);
+ let d;
  assert.equal(h.data.size,0);
  assert(h.calls.some(c=>c.url.startsWith('https://api.deepseek.com')));
  for(const c of h.calls.filter(c=>!c.url.startsWith('https://api.deepseek.com'))){assert(!JSON.stringify(c).includes(key));assert(!c.url.includes('/api/connection'));}
@@ -444,8 +447,29 @@ function settingsHarness(){
  await h.w.fetch('/api/connection',{body:JSON.stringify({...cfg,remember:false})});assert.equal(h.data.size,0);
  h=harness(null,true);r=await h.w.fetch('/api/connection',{body:JSON.stringify(cfg)});assert.equal(r.status,400);assert.equal(h.data.size,0);
  assert(!h.calls.some(c=>c.url==='/api/browser-ready'));assert(!h.calls.some(c=>c.url==='/api/connection'));
+ // Jev direct mode never falls back after CORS failure; only the explicit
+ // choice sends a key to the fixed same-origin route, never a payload/URL.
+ const jev={provider:'jev',api_key:key,game_id:'round'};
+ h=harness(null,true);r=await h.w.fetch('/api/connection',{body:JSON.stringify(jev)});
+ assert.equal(r.status,400);assert(!h.calls.some(c=>c.url==='/api/model/jev'));
+ h=harness(null,true);r=await h.w.fetch('/api/connection',{body:JSON.stringify({...jev,jev_relay:true})});
+ assert.equal(r.status,200);assert.equal(h.data.size,0);
+ const relayCall=h.calls.find(c=>c.url==='/api/model/jev'),relayBody=JSON.parse(relayCall.init.body);
+ assert.equal(relayBody.api_key,key);assert.equal(relayBody.consent,true);
+ assert.equal(relayBody.consent_version,'jev-relay-2026-10-v1');assert.equal(relayBody.game_id,'round');
+ assert.equal(relayBody.test,true);assert(!('payload' in relayBody));assert(!('base_url' in relayBody));
+ assert.equal(relayCall.init.credentials,'omit');assert.equal(relayCall.init.redirect,'error');
+ assert(!h.calls.some(c=>c.url.startsWith('https://api.typesafe.ai')));
+ for(const c of h.calls.filter(c=>c.url!=='/api/model/jev'))assert(!JSON.stringify(c).includes(key));
+ d=await (await h.w.fetch('/api/state')).json();assert.equal(d.connection.jev_relay,true);assert(!JSON.stringify(d).includes(key));
+ h=harness();r=await h.w.fetch('/api/connection',{body:JSON.stringify({...cfg,jev_relay:true})});
+ assert.equal(r.status,400);assert(!h.calls.some(c=>c.url==='/api/model/jev'));
+ h=harness();await h.w.fetch('/api/connection',{body:JSON.stringify({...jev,jev_relay:true,remember:true})});
+ const remembered=JSON.parse(h.data.get('chefjeff.browser-key.v1'));assert.equal(remembered.jev_relay,true);
+ h=harness(remembered);d=await (await h.w.fetch('/api/state')).json();assert.equal(d.connection.jev_relay,true);
+ assert(!h.calls.some(c=>JSON.stringify(c).includes(key)),'loading remembered settings alone makes no model call');
  h=harness();r=await h.w.fetch('/api/connection',{body:JSON.stringify({...cfg,provider:'compatible',base_url:'https://kitchen.example'})});assert.equal(r.status,400);
- h=harness();let d=await (await h.w.fetch('/api/state')).json();assert.equal(d.connection.configured,false);
+ h=harness();d=await (await h.w.fetch('/api/state')).json();assert.equal(d.connection.configured,false);
  h=harness(null,false,undefined,[503,201]);
  r=await h.w.fetch('/api/state');assert.equal(r.status,503);assert((await r.json()).error.includes('厨房'));
  for(let i=0;i<5;i++)await h.w.fetch('/api/state');

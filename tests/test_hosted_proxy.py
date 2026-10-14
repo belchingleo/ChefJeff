@@ -11,8 +11,10 @@ import tempfile
 import threading
 import time
 import unittest
+from unittest.mock import patch
 
 from hosted_server import HostedHandler, make_server
+from hosted_jev import CONSENT_VERSION
 
 
 NGINX = os.environ.get('CHEFJEFF_NGINX_BIN') or shutil.which('nginx')
@@ -125,6 +127,26 @@ class HostedProxyTests(unittest.TestCase):
         self.assertEqual(forwarded.get('Host'), DOMAIN)
         self.assertNotIn('Authorization', forwarded)
         self.assertNotIn('Cookie', forwarded)
+
+    def test_consented_jev_body_streams_without_proxy_temporary_files(self):
+        status,raw=self.request('/api/session',{},headers={'Origin':ORIGIN})
+        self.assertEqual(status,201)
+        token=json.loads(raw)['session'];game=self.backend.sessions.get(token)
+        key='unit-test-'+('x'*2038)
+        body={'game_id':game.game_id,'request_id':'test-jev','api_key':key,
+              'test':True,'consent':True,'consent_version':CONSENT_VERSION}
+        try:
+            with patch.object(self.backend.jev_forwarder,'send',return_value={'choice':'wait','sprint':False,'usage':{}}) as send:
+                status,raw=self.request('/api/model/jev',body,headers={'Origin':ORIGIN,'X-ChefJeff-Session':token,
+                    'Authorization':'must-be-stripped','Cookie':'must-be-stripped'})
+                self.assertEqual(status,200)
+                self.assertNotIn(key,raw.decode())
+                self.assertEqual(send.call_args.args[0],key)
+            self.assertNotIn('Authorization',self.observed[-1]);self.assertNotIn('Cookie',self.observed[-1])
+            for folder in ('body','proxy'):
+                root=Path(self.temp.name)/folder
+                self.assertFalse(any(p.is_file() for p in root.rglob('*')))
+        finally:self.request('/api/session/close',{},headers={'Origin':ORIGIN,'X-ChefJeff-Session':token})
 
     def test_public_route_keeps_explicit_origin_validation(self):
         self.assertEqual(self.request('/', headers={'Origin': 'https://bad.example'})[0], 403)

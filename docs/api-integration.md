@@ -4,7 +4,7 @@ Choose a provider in Settings, enter your own credentials, test the connection a
 
 The actor is Jeff (`jeff`) regardless of the selected model. Provider and model names retain their original spelling. A failed real-model request is reported and retried under the existing budget policy, without a scripted replacement.
 
-Local play uses the user's Python backend; hosted play uses browser-direct model requests and requires provider CORS. Default and remembered credential storage differ between these modes; see [privacy and costs](privacy-and-costs.md). Adapter contracts, valid choices and extension steps are in [agent integration](agent-integration.md).
+Local play uses the user's Python backend. Hosted play defaults to browser-direct model requests and requires provider CORS; Jev also offers an explicitly consented server-forwarding option when direct access is rejected. Other providers retain browser-direct transport. No failure switches modes automatically. Default and remembered credential storage differ between these modes; see [privacy and costs](privacy-and-costs.md). Adapter contracts, valid choices and extension steps are in [agent integration](agent-integration.md).
 
 ChefJeff's community direction is real-time cooperation: shared equipment, material handoffs, task coordination and recovery from partner mistakes. The [README](../README.md) describes the open game and whole-session benchmark vision, including its Overcooked inspiration. Future comparisons should record partner, model, interface, language and latency conditions as well as outcomes.
 
@@ -18,6 +18,6 @@ ChefJeff's community direction is real-time cooperation: shared equipment, mater
 
 无论使用哪种模型，角色均为 Jeff（`jeff`）；供应商和模型名保持原名。真实请求失败会明确提示，并按既有额度规则重试，不用脚本替代。
 
-本地版由玩家自己的 Python 后端请求模型，托管版浏览器直连并要求供应商支持 CORS。两种模式默认／记住凭据的方式见[隐私与费用](privacy-and-costs.md)，适配契约、合法选择及扩展步骤见 [agent 接入](agent-integration.md)。
+本地版由玩家自己的 Python 后端请求模型。托管版默认浏览器直连，要求供应商支持 CORS；Jev 在直连被拒时，还可由玩家明确同意后选择服务器转发。其他供应商保持浏览器直连，失败不会自动切换。各模式默认／记住凭据的方式见[隐私与费用](privacy-and-costs.md)，适配契约、合法选择及扩展步骤见 [agent 接入](agent-integration.md)。
 
 ChefJeff 的社区方向是实时协作，包括共用设备、交接物品、协调任务及从伙伴失误恢复。[README](../README.md) 说明游戏与完整对局 benchmark 的共创愿景及 Overcooked 的启发。未来比较需同时记录搭档、模型、接口、语言、延迟条件与结果。
