@@ -369,7 +369,7 @@ System.register("chunks:///_virtual/KitchenAudio.ts", ["cc"], function (exports_
 });
 
 System.register("chunks:///_virtual/KitchenClient.ts", ["cc", "./LevelOneArt.ts", "./KitchenAudio.ts", "./KitchenGeometry.ts"], function (exports_1, context_1) {
-    // source-sha256: f67fc691c40eb570f4b95b421360f2fb7cd481b2167d55e97350da1fb055aec5
+    // source-sha256: 787f6ed960bc732be9a47aa209d4d4833011f5d0987ea642d5bd82859ae8fd93
     "use strict";
     var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
         var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -2744,7 +2744,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ["cc", "./LevelOneArt.ts"
                 mapPoint(n) { return [(n.position.x + 640 - MAPX) / TILE - .5, (360 - MAPY - n.position.y) / TILE - .5]; }
                 locate(n, p, height = 0) { n.setPosition(MAPX + (p[0] + .5) * TILE - 640, 360 - MAPY - (p[1] + .5) * TILE + height); }
                 render() {
-                    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q;
+                    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r;
                     if (!this.state || !this.mounted)
                         return;
                     const s = this.state, k = s.kitchen, active = s.phase === 'running' && !this.pending && this.connected;
@@ -2956,6 +2956,19 @@ System.register("chunks:///_virtual/KitchenClient.ts", ["cc", "./LevelOneArt.ts"
                     if (!this.countdown) { // the 3·2·1 owns the card until the next round starts
                         this.set('coverTitle', s.phase === 'ready' ? 'ChefJeff' : s.phase === 'paused' ? '歇一小会儿' : k.failure_reason === 'fire_spread' ? '火势失控' : s.aborted ? '本局已结束' : closed ? (s.won ? '关店结算 · 达成目标' : '关店结算 · 未达目标') : s.won ? '今天，配合得不错！' : '明天再接再厉');
                         this.set('coverText', s.phase === 'ready' ? `你和 AI 搭档，一起照顾这间小厨房。\n本局目标：关店时净收入达到 ¥${k.goals.target_money}` : s.phase === 'paused' ? '锅火和订单都按下了暂停。\n准备好了，就和 Jeff 接着做菜。' : closed ? this.closingSummary(k, !!s.won, s.round_summary) : `出餐 ${k.served} 单 · 净收入 ¥${k.money} / ¥${k.goals.target_money}`);
+                    }
+                    if (((_r = s.capacity) === null || _r === void 0 ? void 0 : _r.can_start) === false && s.phase !== 'running') {
+                        this.enable('resume', false);
+                        const configuring = s.phase === 'ready' && s.connection && !s.connection.configured;
+                        if (!configuring) {
+                            this.enable('main', false);
+                            this.writeLabel(this.buttons.main.label, '等待空位');
+                        }
+                        if (!this.countdown) {
+                            if (s.phase === 'ready')
+                                this.set('coverTitle', '厨房暂时已满');
+                            this.set('coverText', (this.labelSources.get(this.labels.coverText) || '') + '\n厨房名额暂时已满。空位释放后按钮会恢复，请再点击继续。');
+                        }
                     }
                     this.syncAccess();
                     if (this.overlayPhase !== s.phase) {

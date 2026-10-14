@@ -616,7 +616,13 @@
     "松手取消": "Release to cancel",
     "投掷": "Throw",
     "持有": "Holding",
-    "取消": "Cancel"
+    "取消": "Cancel",
+    "等待空位": "Waiting for a spot",
+    "厨房暂时已满": "The kitchen slots are full",
+    "厨房名额暂时已满。空位释放后按钮会恢复，请再点击继续。": "All kitchen slots are in use. The button will become available when a spot opens; press it to continue.",
+    "厨房名额暂时已满，空位释放后请再试。": "All kitchen slots are in use. Try again when a spot opens.",
+    "操作过于频繁，请稍后重试。": "Too many requests. Please try again shortly.",
+    "厨房请求较多，请稍后重试。": "The kitchen server is busy. Please try again shortly."
   },
   "templates": [
     [

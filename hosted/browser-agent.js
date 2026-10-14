@@ -199,7 +199,7 @@
 
   async function poll() {
     try {
-      if (!setting || !state || state.phase !== 'running') return;
+      if (document.hidden || !setting || !state || state.phase !== 'running') return;
       const r = await serverFetch('/api/model/request');
       if (!r.ok) return;
       const {request} = await r.json();
