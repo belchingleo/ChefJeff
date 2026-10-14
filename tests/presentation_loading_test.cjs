@@ -1,6 +1,8 @@
 // Test the actual shipped modules: atlas order, missing assets and lazy audio.
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),crypto=require('node:crypto');
 const bundle=fs.readFileSync('cocos-kitchen/build/web/assets/main/index.js','utf8');
+const clientHash=crypto.createHash('sha256').update(fs.readFileSync('cocos-kitchen/assets/scripts/KitchenClient.ts')).digest('hex');
+assert(bundle.includes('source-sha256: '+clientHash),'KitchenClient source/build mismatch');
 const helpers={};
 vm.runInNewContext(fs.readFileSync('cocos-kitchen/build/web/src/chunks/bundle.js','utf8'),{
  System:{register(id,deps,factory){

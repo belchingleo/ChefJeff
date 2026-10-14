@@ -173,9 +173,9 @@ class PlayerGameSession(GameSession):
             try:self.memory.configure(enabled,clear)
             except OSError:return 500,{'error':'无法保存记忆设置，请检查本地文件权限。'}
             return 200,{'ok':True,'memory':self.memory_state()}
-        if path in ('/api/start','/api/restart') and self.connecting:
+        if path in ('/api/start','/api/restart','/api/next') and self.connecting:
             return 409,{'error':'正在测试连接，请等测试完成后再开局。'}
-        if path in ('/api/start','/api/restart') and not self.setting:
+        if path in ('/api/start','/api/restart','/api/next') and not self.setting:
             return 428,{'error':'请先打开 API 设置，连接你自己的账号。不会使用开发者的 Key。'}
         result=super()._command(path,body)
         if path=='/api/start' and result[0]==200:

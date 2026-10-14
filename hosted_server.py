@@ -147,8 +147,11 @@ class HostedSession(GameSession):
             if not self.store: return 503, {'error':'未开启数据贡献。'}
             if body.get('consent') is not True or body.get('consent_version') != CONSENT_VERSION:
                 return 400, {'error':'请先明确同意数据用途和保存期限。'}
+            mode = body.get('consent_mode', 'round')
+            if mode not in ('round', 'standing'):
+                return 400, {'error':'请先明确同意数据用途和保存期限。'}
             if self.receipt_round != self.game_id:
-                self.receipt = self.store.save(pilot_record(self))
+                self.receipt = self.store.save({**pilot_record(self), 'consent_mode':mode})
                 self.receipt_round = self.game_id
             return 200, {'receipt':self.receipt}
         if path == '/api/browser-ready':
@@ -156,7 +159,7 @@ class HostedSession(GameSession):
             if type(body.get('connected')) is not bool: return 400, {'error': '连接状态无效。'}
             self.connected = body['connected']
             return 200, {'ok': True}
-        if path == '/api/start' and not self.connected:
+        if path in ('/api/start','/api/next') and not self.connected:
             return 428, {'error': '请先在当前浏览器连接模型服务。'}
         if path == '/api/limits':
             n = body.get('max_calls')
@@ -170,7 +173,7 @@ class HostedSession(GameSession):
             report['bookmark_policy']['coverage'] = report['coverage']
             report['bookmark_policy'].pop('log_join', None)
             return 200, {'ok': True, 'report': report}
-        if path in ('/api/pause', '/api/end', '/api/reset', '/api/level') and self.relay:
+        if path in ('/api/pause', '/api/end', '/api/reset', '/api/level', '/api/next') and self.relay:
             self.relay.cancel()
         return super()._command(path, body)
 
@@ -182,10 +185,10 @@ class HostedSession(GameSession):
 # Only game fields cross the same-origin boundary. Never echo invalid bodies.
 FIELDS = {
     '/api/contribution/preview': set(),
-    '/api/contribution/save': {'consent', 'consent_version'},
+    '/api/contribution/save': {'consent', 'consent_version', 'consent_mode'},
     '/api/browser-ready': {'connected'}, '/api/start': {'speed'}, '/api/pause': {'reason'},
     '/api/resume': set(), '/api/end': set(), '/api/reset': set(), '/api/restart': set(),
-    '/api/level': {'level'}, '/api/limits': {'max_calls'}, '/api/export-run': set(),
+    '/api/level': {'level'}, '/api/next': {'level'}, '/api/limits': {'max_calls'}, '/api/export-run': set(),
     '/api/feedback': set(), '/api/bookmark': set(), '/api/communicate': {'code'},
     '/api/move': {'dx', 'dy', 'seq', 'sprint'}, '/api/select': {'target'},
     '/api/interact': {'expected_item', 'mode'}, '/api/throw': {'target', 'direction', 'expected_item'},
@@ -256,6 +259,9 @@ SHELL_REPLACEMENTS = (
     ('<section aria-labelledby="memory-title"', '<section hidden aria-labelledby="memory-title"'),
 )
 CONTRIBUTION_SLOT = '<!-- hosted-contribution -->'
+CONTRIBUTION_BADGE = ('<p id="contribution-badge" role="status" hidden style="position:fixed;left:50%;bottom:8px;'
+                      'transform:translateX(-50%);z-index:60;margin:0;padding:3px 10px;background:#2b1a12cc;'
+                      'color:#fff;font:12px/16px system-ui,sans-serif;pointer-events:none"></p>')
 
 
 def hosted_html(raw):
@@ -264,6 +270,7 @@ def hosted_html(raw):
     for old, new in SHELL_REPLACEMENTS:
         page = page.replace(old, new)
     panel = (ROOT / 'hosted' / 'contribution.html').read_text()
+    page = page.replace('</body>', CONTRIBUTION_BADGE + '</body>', 1)
     # Newer shells mark a slot in the Export tab; older builds append to the settings dialog.
     page = page.replace(CONTRIBUTION_SLOT, panel, 1) if CONTRIBUTION_SLOT in page else page.replace('</dialog>', panel + '</dialog>', 1)
     return page.encode('utf-8')

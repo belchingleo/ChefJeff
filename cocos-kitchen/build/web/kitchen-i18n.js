@@ -602,7 +602,24 @@
     "请求包含不支持的字段。": "Unsupported request fields.",
     "调用上限必须为 1–2000。": "Use a limit from 1 to 2000.",
     "连接测试已取消。": "Connection cancelled.",
-    "游戏接口无效。": "Invalid game endpoint."
+    "游戏接口无效。": "Invalid game endpoint.",
+    "下一关": "Next level",
+    "再来一次": "Try again",
+    "再玩一遍": "Play again",
+    "本局结束后才能进入下一关。": "Finish this round before starting the next level.",
+    "以后每局结束自动上传": "Automatically upload future finished rounds",
+    "请先勾选同意，再开启自动上传；当前已结束的对局不会补传。选择保留在此浏览器，取消任一勾选即可停止后续自动上传。删除凭证也保存在此浏览器，可下载备份。": "Agree to the terms before enabling automatic upload. The currently finished round is not uploaded retroactively. This choice is remembered in this browser; uncheck either box to stop future automatic uploads. Deletion receipts are kept in this browser and can be downloaded as a backup.",
+    "请先勾选同意上方条款。": "Agree to the terms above first.",
+    "自动上传已开启，此后每局结束自动保存 30 天。": "Automatic upload is on. Future finished rounds will be saved for 30 days.",
+    "已关闭自动上传。": "Automatic upload is off.",
+    "自动上传已开启。": "Automatic upload is on.",
+    "本局已自动上传，保存 30 天。": "This round was uploaded automatically for 30 days.",
+    "贡献数据请求超时，请重试。": "The contribution request timed out. Please try again.",
+    "下一局请求已取消。": "The next-round request was cancelled.",
+    "松手取消": "Release to cancel",
+    "投掷": "Throw",
+    "持有": "Holding",
+    "取消": "Cancel"
   },
   "templates": [
     [
@@ -1072,6 +1089,22 @@
     [
       "模型接口返回 HTTP {0}，请检查账号和模型。",
       "Model API returned HTTP {0}. Check your account and model."
+    ],
+    [
+      "自动上传失败：{0}",
+      "Automatic upload failed: {0}"
+    ],
+    [
+      "已删除 {0} 份记录；{1} 份未删除，请检查凭证后重试。",
+      "Deleted {0} records; {1} could not be deleted. Check the receipts and try again."
+    ],
+    [
+      "下一关 · {0}",
+      "Next level · {0}"
+    ],
+    [
+      "贡献：你 {0}% · Jeff {1}%",
+      "Contribution: you {0}% · Jeff {1}%"
     ]
   ]
 }

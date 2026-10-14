@@ -8,6 +8,24 @@ from hosted_server import HostedSession
 
 
 class ContributionTests(unittest.TestCase):
+    def test_automatic_mode_still_requires_explicit_consent_and_finished_round(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store=ContributionStore(directory);s=HostedSession();s.store=store
+            try:
+                body={'consent':True,'consent_version':CONSENT_VERSION,'consent_mode':'standing'}
+                self.assertEqual(s._command('/api/contribution/save',body)[0],409)
+                s._command('/api/browser-ready',{'connected':True});s._command('/api/start',{});s._command('/api/end',{})
+                self.assertEqual(s._command('/api/contribution/save',{**body,'consent':False})[0],400)
+                self.assertEqual(s._command('/api/contribution/save',{**body,'consent_version':'old'})[0],400)
+                self.assertEqual(s._command('/api/contribution/save',{**body,'consent_mode':'unknown'})[0],400)
+                code,result=s._command('/api/contribution/save',body)
+                self.assertEqual(code,200)
+                self.assertEqual(s._command('/api/contribution/save',body),(code,result))
+                with store.connect() as db:
+                    rows=db.execute('select record from records').fetchall()
+                    self.assertEqual(len(rows),1)
+                    self.assertEqual(json.loads(rows[0][0])['consent_mode'],'standing')
+            finally:s.close()
     def test_opt_in_only_and_idempotent_receipt(self):
         with tempfile.TemporaryDirectory() as d:
             store=ContributionStore(d);s=HostedSession();s.store=store
