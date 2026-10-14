@@ -50,13 +50,18 @@ if result.returncode==36 and args.platform=='web':
     page.write_text(content.replace('</body>',shell+'</body>'))
     # Desktop exports default to a fixed subframe. Track the browser viewport so
     # SHOW_ALL can letterbox correctly after resizing instead of stretching CSS.
-    settings_path=page.parent/'src/settings.json'
+    # Release builds use md5Cache, so these names carry a content hash (settings.<hash>.json).
+    def built(pattern):
+        found=sorted(page.parent.glob(pattern))
+        if len(found)!=1:raise RuntimeError(f'Expected one {pattern}, found {len(found)}')
+        return found[0]
+    settings_path=built('src/settings*.json')
     settings=json.loads(settings_path.read_text())
     settings['screen']['exactFitScreen']=True
     settings_path.write_text(json.dumps(settings,ensure_ascii=False,indent=2)+'\n')
     # Bind the two presentation modules to their source for CI consistency checks,
     # whether compiled with Creator or the documented cloud TypeScript fallback.
-    bundle=page.parent/'assets/main/index.js'
+    bundle=built('assets/main/index*.js')
     code=bundle.read_text()
     for name in ('KitchenAudio','LevelOneArt','KitchenClient'):
         source=(ROOT/f'cocos-kitchen/assets/scripts/{name}.ts').read_bytes()

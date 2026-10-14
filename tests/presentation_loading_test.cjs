@@ -1,10 +1,12 @@
 // Test the actual shipped modules: atlas order, missing assets and lazy audio.
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),crypto=require('node:crypto');
-const bundle=fs.readFileSync('cocos-kitchen/build/web/assets/main/index.js','utf8');
+// Release builds name files by content (md5Cache): index.<hash>.js, bundle.<hash>.js.
+const built=(dir,re)=>{const found=fs.readdirSync(dir).filter(n=>re.test(n));assert.equal(found.length,1,dir+' '+re);return dir+'/'+found[0];};
+const bundle=fs.readFileSync(built('cocos-kitchen/build/web/assets/main',/^index(\.[0-9a-f]{5})?\.js$/),'utf8');
 const clientHash=crypto.createHash('sha256').update(fs.readFileSync('cocos-kitchen/assets/scripts/KitchenClient.ts')).digest('hex');
 assert(bundle.includes('source-sha256: '+clientHash),'KitchenClient source/build mismatch');
 const helpers={};
-vm.runInNewContext(fs.readFileSync('cocos-kitchen/build/web/src/chunks/bundle.js','utf8'),{
+vm.runInNewContext(fs.readFileSync(built('cocos-kitchen/build/web/src/chunks',/^bundle(\.[0-9a-f]{5})?\.js$/),'utf8'),{
  System:{register(id,deps,factory){
   if(Array.isArray(id)){deps(()=>{},{}).execute();return;}
   if(id!=='chunks:///_virtual/rollupPluginModLoBabelHelpers.js')return;
