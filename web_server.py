@@ -405,6 +405,13 @@ class GameSession:
             self._finish(aborted=self.phase!='ended')
             self.c=level_config({**self.base_config, **{key:self.c[key] for key in ('ai_max_calls','ai_max_response_age','model')}},level)
             return self._command('/api/reset',{})
+        if path == '/api/next':
+            if self.phase != 'ended':
+                return 409, {'error': '本局结束后才能进入下一关。'}
+            speed = self.speed
+            result = self._command('/api/level', {'level': body.get('level')})
+            if result[0] != 200:return result
+            return self._command('/api/start', {'speed': speed})
         if path == '/api/restart':
             if self.phase not in ('paused','ended'):
                 return 409, {'error': '请先暂停，再重新开局。'}

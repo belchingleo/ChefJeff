@@ -169,6 +169,14 @@
       // Restored settings have a fresh server session on every page load.
       if (url.pathname === '/api/start' && setting && state) await markReady(true, state);
       if (url.pathname === '/api/start' && !setting) return response(428,{error:'请先在当前浏览器连接模型服务。'});
+      if (url.pathname === '/api/next') {
+        if (testing) return response(409,{error:'正在测试连接，请等测试完成后再开局。'});
+        if (!setting) return response(428,{error:'请先在当前浏览器连接模型服务。'});
+        // The old round must still exist when its consented record is saved.
+        // Uploads time out separately; a failed upload never blocks the next round indefinitely.
+        await pendingContribution.catch(() => {});
+        if (init.signal?.aborted) throw new Error('下一局请求已取消。');
+      }
       const result = await serverFetch(url.pathname, init);
       if (url.pathname !== '/api/state' || !result.ok) return result;
       const d = await result.json(); state = d;
@@ -181,7 +189,7 @@
   // Cocos uses XMLHttpRequest locally. Its hosted hook shares this credential-free game transport.
   window.chefjeffHostedRequest = async (path, body) => {
     if (!path.startsWith('/api/')) throw new Error('游戏接口无效。');
-    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 5000);
+    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), path === '/api/next' ? 15000 : 5000);
     try {
       const r = await window.fetch(path, {method:body?'POST':'GET',signal:controller.signal,
         headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});
@@ -211,22 +219,80 @@
     finally {setTimeout(poll, 200);}
   }
   setTimeout(poll, 200);
-  let receipt = null;
+  const AUTO_KEY = 'chefjeff.contribution-auto.v1', RECEIPTS_KEY = 'chefjeff.contribution-receipts.v1';
+  const CONSENT = 'pilot-session-2026-09-v1';
+  let pendingContribution = Promise.resolve(), autoRound = '', uploadedRound = '', shown = null;
+  const stored = (name, fallback) => {try {return JSON.parse(localStorage.getItem(name) || 'null') ?? fallback;} catch (_) {return fallback;}};
+  const keep = (name, value) => {try {value == null ? localStorage.removeItem(name) : localStorage.setItem(name,JSON.stringify(value));} catch (_) {}};
+  let autoConsent = stored(AUTO_KEY, null);
+  const autoOn = () => autoConsent?.consent_version === CONSENT;
+  const setAuto = value => {autoConsent=value;keep(AUTO_KEY,value);};
+  let receipts = stored(RECEIPTS_KEY, []);
+  receipts = (Array.isArray(receipts) ? receipts : []).filter(r => r && typeof r.id === 'string' && typeof r.deletion_token === 'string' && Date.parse(r.expires_at) > Date.now());
+  const contributionStatus = text => {const n=document.getElementById('contribution-status');if(n)n.textContent=text;};
+  function showReceipts() {
+    const box=document.getElementById('contribution-receipt'),download=document.getElementById('contribution-download');
+    if(box)box.value=receipts.length?JSON.stringify(receipts.length===1?receipts[0]:receipts,null,2):'';
+    if(download)download.hidden=!receipts.length;
+  }
+  function badge() {
+    const n=document.getElementById('contribution-badge');if(!n)return;
+    const s=shown || state;
+    n.textContent=!autoOn()||!s?.hosted?.contribution_enabled||s.phase==='running'?'':
+      uploadedRound===s.game_id?'本局已自动上传，保存 30 天。':'自动上传已开启。';
+    n.hidden=!n.textContent;
+  }
+  async function contributionCommand(path, extra={}, round=state?.game_id) {
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
+    try {
+      const payload=path==='/api/contribution/delete'?extra:{game_id:round,request_id:crypto.randomUUID(),...extra};
+      const r=await serverFetch(path,{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      const d=await r.json();if(!r.ok)throw new Error(d.error||'请求失败。');return d;
+    } catch(e) {if(e.name==='AbortError')throw new Error('贡献数据请求超时，请重试。');throw e;}
+    finally {clearTimeout(timer);}
+  }
+  async function contribute(mode, round) {
+    const d=await contributionCommand('/api/contribution/save',{consent:true,consent_version:CONSENT,consent_mode:mode},round);
+    receipts=[...receipts.filter(r=>r.id!==d.receipt.id),d.receipt];
+    keep(RECEIPTS_KEY,receipts);showReceipts();
+    if(mode==='standing')uploadedRound=round;
+    return d.receipt;
+  }
   window.addEventListener('kitchen-state', e => {
+    const s=e.detail;shown=s;
     const button = document.getElementById('contribution-save');
     if (button) button.disabled = !(e.detail.phase === 'ended' && e.detail.hosted?.contribution_enabled &&
       document.getElementById('contribution-consent').checked);
+    if(autoOn()&&s.hosted?.contribution_enabled&&s.phase==='ended'&&autoRound!==s.game_id){
+      autoRound=s.game_id;
+      pendingContribution=pendingContribution.catch(()=>{}).then(()=>contribute('standing',s.game_id))
+        .then(()=>contributionStatus('本局已自动上传，保存 30 天。'))
+        .catch(error=>contributionStatus('自动上传失败：'+error.message))
+        .finally(()=>badge());
+    }
+    badge();
   });
   window.addEventListener('DOMContentLoaded', () => {
     const el = id => document.getElementById(id);
     const status = text => {el('contribution-status').textContent = text;};
-    async function command(path, extra={}) {
-      const r = await serverFetch(path, {method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({game_id:state?.game_id,request_id:crypto.randomUUID(),...extra})});
-      const d = await r.json();if (!r.ok) throw new Error(d.error || '请求失败。');return d;
-    }
+    const command=contributionCommand;
+    showReceipts();
+    if(el('contribution-auto'))el('contribution-auto').checked=autoOn();
+    if(autoOn())el('contribution-consent').checked=true;
     el('contribution-consent').onchange = () => {
       el('contribution-save').disabled = !(state?.phase === 'ended' && state?.hosted?.contribution_enabled && el('contribution-consent').checked);
+      if(!el('contribution-consent').checked){
+        setAuto(null);if(el('contribution-auto'))el('contribution-auto').checked=false;badge();
+      }
+    };
+    if(el('contribution-auto'))el('contribution-auto').onchange=()=>{
+      const box=el('contribution-auto');
+      if(box.checked&&!el('contribution-consent').checked&&!autoOn()){
+        box.checked=false;status('请先勾选同意上方条款。');return;
+      }
+      if(box.checked){const now=shown||state;autoRound=now?.phase==='ended'?now.game_id:'';setAuto({consent_version:CONSENT,since:new Date().toISOString()});}
+      else setAuto(null);
+      status(box.checked?'自动上传已开启，此后每局结束自动保存 30 天。':'已关闭自动上传。');badge();
     };
     el('contribution-preview').onclick = async () => {
       try {const d = await command('/api/contribution/preview');el('contribution-data').value = JSON.stringify(d.record,null,2);el('contribution-data').hidden = false;}
@@ -236,26 +302,32 @@
       el('contribution-save').disabled = true;
       try {
         if (!el('contribution-consent').checked) return;
-        const d = await command('/api/contribution/save',{consent:true,consent_version:'pilot-session-2026-09-v1'});
-        receipt = d.receipt;
-        el('contribution-receipt').value = JSON.stringify(receipt,null,2);
-        el('contribution-download').hidden = false;
-        el('contribution-consent').checked = false;
+        const round=(shown||state)?.game_id;
+        pendingContribution=pendingContribution.catch(()=>{}).then(()=>contribute('round',round));
+        await pendingContribution;
+        if(!autoOn())el('contribution-consent').checked = false;
         status('已保存，将保留 30 天；请在离开前下载删除凭证。');
       } catch(e) {status(e.message);}
     };
     el('contribution-download').onclick = () => {
-      if (!receipt) return;
-      const url = URL.createObjectURL(new Blob([JSON.stringify(receipt,null,2)],{type:'application/json'}));
+      if (!receipts.length) return;
+      const url = URL.createObjectURL(new Blob([JSON.stringify(receipts.length===1?receipts[0]:receipts,null,2)],{type:'application/json'}));
       const a = document.createElement('a');a.href=url;a.download='chefjeff-deletion-receipt.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
     };
     el('contribution-delete').onclick = async () => {
       try {
-        let rcp;try {rcp = JSON.parse(el('contribution-receipt').value);} catch (_) {throw new Error('删除凭证格式不正确，请粘贴完整的凭证。');}
-        const r = await serverFetch('/api/contribution/delete',{method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({id:rcp.id,deletion_token:rcp.deletion_token})});
-        if (!r.ok) throw new Error('删除凭证无效，或记录已删除／过期。');
-        status('已删除贡献数据。');el('contribution-receipt').value='';receipt=null;
+        let parsed;try {parsed=JSON.parse(el('contribution-receipt').value);} catch (_) {throw new Error('删除凭证格式不正确，请粘贴完整的凭证。');}
+        const list=Array.isArray(parsed)?parsed:[parsed];
+        if(!list.length||list.some(r=>!r||typeof r.id!=='string'||typeof r.deletion_token!=='string'))throw new Error('删除凭证格式不正确，请粘贴完整的凭证。');
+        const failed=[];let deleted=0;
+        for(const rcp of list){
+          try {
+            await command('/api/contribution/delete',{id:rcp.id,deletion_token:rcp.deletion_token});
+            receipts=receipts.filter(r=>r.id!==rcp.id);keep(RECEIPTS_KEY,receipts);deleted++;
+          }catch(_){failed.push(rcp);}
+        }
+        showReceipts();el('contribution-receipt').value=failed.length?JSON.stringify(failed.length===1?failed[0]:failed,null,2):'';
+        status(failed.length?`已删除 ${deleted} 份记录；${failed.length} 份未删除，请检查凭证后重试。`:'已删除贡献数据。');
       } catch (e) {status(e.message);}
     };
     const select = document.getElementById('api-provider');

@@ -22,7 +22,7 @@ Add atlas rectangles, frame data and needed metadata together. Rectangles use th
 
 Build with Cocos Creator 3.8.8, run affected asset/geometry tests, then inspect actual browser views for all affected directions and maps. Check visible proportions, work-surface alignment, click targets, held items and action frames. Static contact sheets help asset review but do not replace browser interaction checks. Asset provenance and rights are reviewed before public distribution; see [third-party notices](../../THIRD_PARTY_NOTICES.md).
 
-When Creator is unavailable, `scripts/rebuild_presentation.cjs` can recompile only the two plain classes `KitchenAudio.ts` and `LevelOneArt.ts` inside an existing reviewed web bundle using TypeScript 5.9.3. It retains the existing scene, engine and all other modules. Install the compiler in a temporary directory and run:
+When Creator is unavailable, `scripts/rebuild_presentation.cjs` can recompile `KitchenAudio.ts`, `LevelOneArt.ts` and the existing `KitchenClient.ts` inside an existing reviewed web bundle using TypeScript 5.9.3. For KitchenClient it verifies the existing component UUID and permits only its existing `ccclass` decorator. It retains the existing scene, engine and all other modules. Install the compiler in a temporary directory and run:
 
 ```sh
 npm install --prefix /tmp/chefjeff-presentation-tools --cache /tmp/chefjeff-npm-cache --ignore-scripts --no-audit --no-fund typescript@5.9.3
@@ -30,7 +30,7 @@ NODE_PATH=/tmp/chefjeff-presentation-tools/node_modules node scripts/rebuild_pre
 node tests/presentation_loading_test.cjs
 ```
 
-Both this fallback and the full Creator build stamp these modules with source hashes; CI checks source/build consistency and exercises the actual shipped loading code. Use Creator for scene changes, decorated components, resource imports or engine changes.
+Both this fallback and the full Creator build stamp these modules with source hashes; CI checks source/build consistency and exercises the actual shipped loading code. Use Creator for scene changes, new component decorators or serialized properties, resource imports or engine changes.
 
 ---
 

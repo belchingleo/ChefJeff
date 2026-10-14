@@ -21,9 +21,9 @@
       #touch-stick{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px;border:2px solid var(--ink);border-radius:50%;box-sizing:border-box;background:transparent;box-shadow:0 0 0 1px #fdf3e1b3;color:var(--ink);text-shadow:0 0 3px var(--paper),0 0 3px var(--paper);pointer-events:none;display:grid;place-items:center;font-size:11px;font-weight:650}#touch-joystick:active #touch-stick{background:#e8983a26}
       #touch-joystick[aria-disabled=true]{opacity:.4}.touch-buttons{position:absolute;right:max(10px,env(safe-area-inset-right));bottom:calc(max(8px,env(safe-area-inset-bottom)) + 12px);display:flex;align-items:flex-end;gap:14px;pointer-events:none}
       .touch-round{display:grid;place-items:center;flex:none;border:2px solid #2b1a12cc;border-radius:50%;box-shadow:0 0 0 1px #fdf3e1b3;color:var(--ink);text-shadow:0 0 3px var(--paper),0 0 3px var(--paper);pointer-events:auto;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;font-size:15px;font-weight:750;padding:6px;box-sizing:border-box;line-height:1.2}
-      #touch-action{width:72px;height:72px;background:transparent}#touch-action[data-pressed=true]{background:#2a5a9e26}
-      #touch-dash{position:relative;width:54px;height:54px;font-size:12px;background:transparent}#touch-dash:active:not(:disabled){background:#3c7a2a26}
-      .touch-round:disabled{color:var(--muted);background:transparent!important;opacity:.6}#touch-dash[data-cooling=true]{opacity:1}#touch-dash[data-cooling=true]::before{content:'';position:absolute;inset:-8px;border-radius:50%;background:conic-gradient(var(--honey) var(--cooldown,0%),var(--walnut) 0);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 0);mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 0);pointer-events:none}
+      #touch-action{width:72px;height:72px;background:transparent}
+      #touch-dash{position:relative;width:54px;height:54px;font-size:12px;background:transparent}
+      .touch-round:disabled{color:var(--muted);opacity:.6}#touch-dash[data-cooling=true]{opacity:1}#touch-dash[data-cooling=true]::before{content:'';position:absolute;inset:-8px;border-radius:50%;background:conic-gradient(var(--honey) var(--cooldown,0%),var(--walnut) 0);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 0);mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 0);pointer-events:none}
       #touch-cancel{position:absolute;right:calc(max(10px,env(safe-area-inset-right)) + 7px);bottom:calc(max(8px,env(safe-area-inset-bottom)) + 102px);width:146px;min-height:48px;display:grid;place-items:center;box-sizing:border-box;border:2px dashed var(--tomato);background:#fdf3e126;color:var(--tomato);text-shadow:0 0 3px var(--paper),0 0 3px var(--paper);font-size:13px;pointer-events:none}#touch-cancel[data-selected=true]{border-style:solid;background:#b8321e26}
       .touch-hint{position:absolute;left:146px;right:174px;bottom:max(9px,env(safe-area-inset-bottom));text-align:center;pointer-events:none;color:var(--paper);background:#2b1a1266;text-shadow:0 1px 2px var(--ink);padding:4px 8px;border:1px solid #6b341866;font-size:12px;line-height:1.4;border-radius:2px;max-height:50px;overflow:hidden;box-sizing:border-box}
       #touch-ai{position:absolute;right:max(10px,env(safe-area-inset-right));top:calc(max(4px,env(safe-area-inset-top)) + 40px);max-width:200px;max-height:32px;box-sizing:border-box;padding:3px 6px;border:1px solid #6b341866;background:#2b1a1266;text-shadow:0 1px 2px var(--ink);overflow:hidden;font-size:11px;line-height:12px;color:var(--paper);text-align:left;pointer-events:none;overflow-wrap:anywhere}
@@ -36,6 +36,48 @@
       body.kitchen-touch-mode dialog.panel{max-height:calc(var(--touch-vh,100dvh) - 12px);max-width:calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right) - 20px);font-size:15px;touch-action:pan-y;overscroll-behavior:contain}body.kitchen-touch-mode .dlg-head{padding:10px 14px;gap:8px}body.kitchen-touch-mode .dlg-head h2{font-size:20px;line-height:24px}body.kitchen-touch-mode .dlg-body{padding:12px 14px}body.kitchen-touch-mode .tabs{padding:0 14px 8px;gap:4px}body.kitchen-touch-mode .dlg-foot{padding:0 14px 14px}body.kitchen-touch-mode .sr-label{display:none}body.kitchen-touch-mode input,body.kitchen-touch-mode textarea,body.kitchen-touch-mode select{font-size:16px!important;-webkit-user-select:text;user-select:text;-webkit-touch-callout:default;touch-action:auto}
       body.kitchen-touch-mode #kitchen-bookmark-toast{left:50%;bottom:154px;transform:translateX(-50%);max-width:calc(100vw - 32px);font:13px/18px var(--body)}
       @media(max-width:700px){.touch-toolbar{gap:4px;padding:0 4px}.touch-toolbar button{padding:3px 6px}.touch-clock{font-size:14px}.touch-money{font-size:12px}#touch-served{display:none}#touch-joystick{width:112px;height:112px}.touch-orders{bottom:calc(max(8px,env(safe-area-inset-bottom)) + 124px)}.touch-buttons{gap:10px}.touch-hint{left:132px;right:160px;font-size:11px}.touch-menu{padding:10px 12px}.touch-menu h2{font-size:20px}.touch-menu button{min-height:36px;font-size:13px}}
+      /* Phone layout refinements: the hand/hint line lives in the toolbar so nothing covers the
+         kitchen's bottom row; the stick floats to the thumb and changes colour while aiming. */
+      #kitchen-touch-ui,#kitchen-touch-ui *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+      .touch-toolbar{height:34px}
+      .touch-toolbar .touch-hint{position:static;flex:1;min-width:0;display:flex;align-items:baseline;justify-content:center;gap:8px;padding:2px 8px;margin:0 6px;background:transparent;color:var(--ink);text-shadow:none;font-size:12px;line-height:15px;overflow:hidden;white-space:nowrap}
+      .touch-toolbar .touch-hint #touch-hand{flex:none;max-width:45%;overflow:hidden;text-overflow:ellipsis}
+      .touch-toolbar .touch-hint #touch-status{flex:0 1 auto;min-width:0;max-height:none;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}
+      #touch-zone{position:absolute;left:0;bottom:0;width:42%;height:58%;pointer-events:auto;touch-action:none;background:transparent}
+      #touch-joystick{z-index:1}#touch-joystick[data-floating=true]{bottom:auto;transition:none}
+      .touch-buttons{flex-direction:column;align-items:center;gap:14px}
+      #touch-action{position:relative;overflow:visible}
+      .touch-order.urgent{animation:touch-urgent 1s steps(2,jump-none) infinite}
+      @keyframes touch-urgent{50%{background:#f6d9c8}}
+      @media(prefers-reduced-motion:reduce){.touch-order.urgent{animation:none}}
+      .touch-menu button,.touch-menu-actions button,body.kitchen-touch-mode dialog.panel button{min-height:44px}
+      @media(max-width:700px){.touch-toolbar .touch-hint{font-size:11px;gap:5px}.touch-buttons{gap:10px}}
+      /* Plain translucent controls, as in most mobile games: a stick ring with a knob, round buttons with a
+         one-word label. Dark see-through fill under a white outline reads on light and dark ground. */
+      #touch-joystick{width:124px;height:124px;border:2px solid #ffffffbf;background:#2b1a1229;box-shadow:0 0 0 1px #2b1a1240}
+      #touch-joystick::before,#touch-joystick::after{display:none}
+      #touch-stick{width:54px;height:54px;margin:-27px;border:2px solid #ffffffe6;background:#2b1a1252;box-shadow:none;font-size:0;color:transparent;text-shadow:none}
+      #touch-joystick[data-aiming=true] #touch-stick{background:#2a5a9e80}
+      #touch-joystick[aria-disabled=true]{opacity:.45}
+      .touch-round{border:2px solid #ffffffd9;box-shadow:0 0 0 1px #2b1a1259;color:#fff;text-shadow:0 1px 2px #2b1a12;font-weight:750;place-items:center;background-image:none;transition:background-color .06s,transform .06s}
+      #touch-action{width:80px;height:80px;padding:0;font-size:16px;background-color:#2b1a1247}
+      #touch-action[data-pressed=true]{background-color:#2b1a1275;transform:scale(.95)}
+      #touch-action[data-aiming=true]{background-color:#2a5a9e80}
+      #touch-dash{width:58px;height:58px;padding:0;font-size:14px;background-color:#2b1a1240}
+      #touch-dash:active:not(:disabled){background-color:#2b1a1275;transform:scale(.95)}
+            /* Unavailable keeps the label legible on any ground: lighter fill and outline, not a faded button. */
+      #touch-action:disabled,#touch-dash:disabled{opacity:1;color:#ffffffd9;border-color:#ffffff8c;background-color:#2b1a1230;text-shadow:0 1px 2px #2b1a12,0 0 4px #2b1a12}
+      #touch-dash[data-cooling=true]{opacity:1}
+      /* Diagonal pair: Action in the corner, Dash up-left of it at 45 degrees; Cancel appears straight
+         above Action while aiming, in the same round translucent style, red while the finger is on it. */
+      .touch-buttons{width:80px;height:80px;display:block}
+      #touch-action{position:absolute;right:0;bottom:0}
+      /* Arc around Action (centre 40,40 from the corner, radius 82): Dash at 165deg, Cancel at 100deg. */
+      #touch-dash{position:absolute;right:89px;bottom:32px}
+      #touch-cancel{right:calc(max(10px,env(safe-area-inset-right)) + 28px);bottom:calc(max(8px,env(safe-area-inset-bottom)) + 12px + 95px);width:52px;height:52px;min-height:0;border:2px solid #ffffffd9;border-radius:50%;background:#2b1a1247;box-shadow:0 0 0 1px #2b1a1259;color:#fff;text-shadow:0 1px 2px #2b1a12;font-size:14px;font-weight:750}
+      /* Narrow phones: slightly smaller arc (Action 72, Dash 52, Cancel 48, radius 74) so it clears the kitchen. */
+      @media(max-width:700px){.touch-buttons{width:72px;height:72px}#touch-action{width:72px;height:72px}#touch-dash{width:52px;height:52px;right:81px;bottom:29px}#touch-cancel{width:48px;height:48px;right:calc(max(10px,env(safe-area-inset-right)) + 25px);bottom:calc(max(8px,env(safe-area-inset-bottom)) + 12px + 87px)}}
+      #touch-cancel[data-selected=true]{border-style:solid;border-color:#fff;background:#b8321ecc;transform:scale(1.12)}
     `;
     document.head.appendChild(style);
     const ui = document.createElement('div');
@@ -43,12 +85,12 @@
     ui.hidden = true;
     ui.setAttribute('data-no-i18n', '');
     ui.innerHTML = `
-      <header class="touch-toolbar"><strong id="touch-clock" class="touch-clock"></strong><span id="touch-money" class="touch-money"></span><span id="touch-served"></span><span class="touch-spacer"></span><button id="touch-pause" class="btn" type="button"></button><button id="touch-communication" class="btn" type="button" aria-expanded="false" aria-controls="kitchen-communication"></button><button id="touch-bookmark" class="btn" type="button"></button><button id="touch-menu-toggle" class="btn" type="button" aria-expanded="false" aria-controls="touch-menu"></button></header>
+      <header class="touch-toolbar"><strong id="touch-clock" class="touch-clock"></strong><span id="touch-money" class="touch-money"></span><span id="touch-served"></span><div id="touch-hint" class="touch-hint touch-spacer"><span id="touch-hand"></span><span id="touch-status" role="status" aria-live="polite"></span></div><button id="touch-pause" class="btn" type="button"></button><button id="touch-communication" class="btn" type="button" aria-expanded="false" aria-controls="kitchen-communication"></button><button id="touch-bookmark" class="btn" type="button"></button><button id="touch-menu-toggle" class="btn" type="button" aria-expanded="false" aria-controls="touch-menu"></button></header>
       <div id="touch-orders" class="touch-orders" role="region" aria-label="订单" tabindex="0"></div>
+      <div id="touch-zone" aria-hidden="true"></div>
       <div id="touch-joystick" role="group" aria-label="移动" aria-disabled="true"><div id="touch-stick"></div></div>
       <div class="touch-buttons"><button id="touch-dash" class="touch-round" type="button"></button><button id="touch-action" class="touch-round" type="button"></button></div>
       <div id="touch-cancel" hidden></div>
-      <div id="touch-hint" class="touch-hint"><span id="touch-hand"></span><span id="touch-status" role="status" aria-live="polite"></span></div>
       <div id="touch-ai"></div>
       <section id="touch-menu" class="touch-menu" aria-labelledby="touch-menu-title" hidden><h2 id="touch-menu-title">ChefJeff</h2><p id="touch-menu-copy"></p><div id="touch-levels" class="touch-levels"></div><div class="touch-menu-actions"><button id="touch-main" class="btn primary" type="button"></button><button id="touch-settings" class="btn" type="button"></button><button id="touch-help" class="btn" type="button"></button></div><div class="touch-menu-secondary"><button id="touch-end" class="btn danger" type="button"></button><button id="touch-record" class="btn" type="button"></button><button id="touch-language" class="btn" type="button" data-no-i18n></button><button id="touch-fullscreen" class="btn" type="button"></button><button id="touch-menu-close" class="btn" type="button"></button></div><p id="touch-instructions"></p></section>
     `;
@@ -70,7 +112,9 @@
     let cancelSelected = false, ordersSignature = '', levelsSignature = '', previousGame = '', modeSignature = '';
     const orderNodes = new Map();
     let lastEvent = '', eventNotice = '', eventTimer;
-    let pausePending = false;
+    let pausePending = false, wasAiming = false;
+    // Short haptic ticks where the browser supports them (Android Chrome); iOS Safari ignores this.
+    const buzz = ms => { try { navigator.vibrate?.(ms); } catch (_) {} };
     const editor = () => document.activeElement?.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"]');
     const modal = () => !!document.querySelector('dialog[open]');
     const stopped = () => !active || !landscape || document.hidden || modal() || !!editor() || menuOpen || communicationOpen;
@@ -83,6 +127,7 @@
       uncapture(joystick, joy); uncapture(action, press);
       stick.style.transform = 'translate(0px,0px)';
       action.dataset.pressed = 'false';
+      if (joystick.dataset.floating === 'true') { joystick.dataset.floating = 'false'; joystick.style.left = joystick.style.top = ''; }
       cancelSelected = false; el('touch-cancel').dataset.selected = 'false';
       if (joy !== null) controls?.move(0, 0);
       if (press !== null) controls?.cancel();
@@ -109,13 +154,16 @@
       ui.hidden = !active;
       portrait.hidden = !active || landscape;
       // Transparent controls overlay the kitchen, leaving more room for its art.
-      // Keep the narrow vertical order rail and a short bottom hint clear; the browser resolves
+      // Keep the narrow vertical order rail and right-side controls clear; the browser resolves
       // safe-area padding for notches and the home indicator.
       const safe = window.getComputedStyle(ui);
-      const left = (parseFloat(safe.paddingLeft) || 0) + 130;
-      const right = (parseFloat(safe.paddingRight) || 0) + 10;
-      const top = (parseFloat(safe.paddingTop) || 0) + 46;
-      const bottom = (parseFloat(safe.paddingBottom) || 0) + 32;
+      // Equal side margins keep the kitchen centred (orders rail left, buttons right); the margin clears
+      // the button arc's left edge (Dash) plus 8px, which is narrower on phones under 700px.
+      const side = w <= 700 ? 152 : 166;
+      const left = (parseFloat(safe.paddingLeft) || 0) + side;
+      const right = (parseFloat(safe.paddingRight) || 0) + side;
+      const top = (parseFloat(safe.paddingTop) || 0) + 40;
+      const bottom = (parseFloat(safe.paddingBottom) || 0) + 6;
       const detail = { active, landscape, width: w, height: h,
         boardRect: { left, top, width: Math.max(100, w - left - right), height: Math.max(100, h - top - bottom) } };
       const signature = JSON.stringify(detail);
@@ -151,6 +199,7 @@
       joystick.setAttribute('aria-disabled', String(!playing));
       action.hidden = dash.hidden = joystick.hidden;
       el('touch-hint').hidden = joystick.hidden;
+      el('touch-zone').hidden = joystick.hidden;
       el('touch-ai').hidden = joystick.hidden;
       action.disabled = !playing || !(state.canInteract || state.canThrow);
       const sprint = state.sprint || {};
@@ -160,11 +209,15 @@
       dash.style.setProperty('--cooldown', Math.max(0, Math.min(100, (sprint.cooldown_remaining || 0) / 3 * 100)) + '%');
       text('touch-dash', cooling ? Math.ceil(sprint.cooldown_remaining) + 's' : '冲刺');
       el('touch-cancel').hidden = !playing || actionPointer === null || !(state.holding && state.canThrow);
-      text('touch-action', aiming ? '松开投掷' : state.interaction || '操作');
+      // One word, like other mobile games; the toolbar line names the exact action.
+      text('touch-action', aiming ? '投掷' : '操作');
       text('touch-stick', aiming ? '瞄准' : '移动');
+      joystick.dataset.aiming = String(aiming); action.dataset.aiming = String(aiming);
+      if (aiming && !wasAiming) buzz(12);
+      wasAiming = aiming;
       text('touch-hand', state.handLabel || '');
       text('touch-ai', state.aiStatus || '');
-      text('touch-status', cancelSelected ? '拖到这里取消' : aiming ? '松开投掷' : eventNotice || state.interactionHint || (state.holding && state.canThrow ? '长按投掷' : ''));
+      text('touch-status', cancelSelected ? '松手取消' : aiming ? '松开投掷' : eventNotice || state.interactionHint || (state.holding && state.canThrow ? '长按投掷' : ''));
       text('touch-clock', state.timeLabel || '厨房连接中…');
       text('touch-money', state.money == null ? '' : '¥' + state.money);
       text('touch-served', state.served == null ? '' : t('已出餐') + ' ' + state.served);
@@ -260,10 +313,10 @@
     function language() {
       for (const [id, source] of Object.entries({ 'touch-pause': '暂停', 'touch-communication': '沟通', 'touch-bookmark': '标记',
         'touch-menu-toggle': '菜单', 'touch-settings': '设置', 'touch-help': '操作说明', 'touch-end': '结束本局', 'touch-record': '本局记录',
-        'touch-fullscreen': '全屏', 'touch-menu-close': '返回厨房', 'touch-cancel': '拖到这里取消', 'touch-rotate-title': '请将手机横过来',
+        'touch-fullscreen': '全屏', 'touch-menu-close': '返回厨房', 'touch-cancel': '取消', 'touch-rotate-title': '请将手机横过来',
         'touch-rotate-copy': '横屏后点“继续经营”，厨房不会自动恢复。',
         'touch-instructions': '手持物品时长按操作瞄准，松开投掷；拖到取消区可取消。' })) text(id, source);
-      el('touch-language').textContent = window.kitchenI18n?.language === 'en' ? '中文' : 'English';
+      el('touch-language').textContent = window.kitchenI18n?.language === 'en' ? 'Chinese' : '英语';
       joystick.setAttribute('aria-label', t('移动')); el('touch-orders').setAttribute('aria-label', t('订单'));
       ordersSignature = levelsSignature = ''; render();
     }
@@ -282,7 +335,20 @@
       event.preventDefault(); joyPointer = event.pointerId; capture(joystick, joyPointer); joyMove(event);
     });
     joystick.addEventListener('pointermove', event => { if (event.pointerId !== joyPointer) return; event.preventDefault(); if (canPlay()) joyMove(event); else clearPointers(); });
-    const joyEnd = event => { if (event.pointerId !== joyPointer) return; event.preventDefault(); const id = joyPointer; joyPointer = null; uncapture(joystick, id); stick.style.transform = 'translate(0px,0px)'; controls?.move(0, 0); };
+    // The stick returns to its corner when released; while held it stays where the thumb landed.
+    const homeStick = () => { if (joystick.dataset.floating !== 'true') return; joystick.dataset.floating = 'false'; joystick.style.left = joystick.style.top = ''; };
+    const joyEnd = event => { if (event.pointerId !== joyPointer) return; event.preventDefault(); const id = joyPointer; joyPointer = null; uncapture(joystick, id); stick.style.transform = 'translate(0px,0px)'; homeStick(); controls?.move(0, 0); };
+    // Floating stick: a press anywhere in the lower-left zone puts the stick's centre under the thumb.
+    el('touch-zone').addEventListener('pointerdown', event => {
+      if (event.button > 0 || joyPointer !== null || !canPlay()) return;
+      event.preventDefault();
+      const size = joystick.getBoundingClientRect().width || 120, ui = el('kitchen-touch-ui').getBoundingClientRect();
+      const x = Math.max(size / 2, Math.min(event.clientX - (ui.left || 0), (ui.width || innerWidth) - size / 2));
+      const y = Math.max(size / 2 + 44, Math.min(event.clientY - (ui.top || 0), (ui.height || innerHeight) - size / 2));
+      joystick.dataset.floating = 'true'; joystick.style.left = (x - size / 2) + 'px'; joystick.style.top = (y - size / 2) + 'px';
+      joyPointer = event.pointerId; capture(joystick, joyPointer); joyMove(event);
+    });
+    el('touch-zone').addEventListener('contextmenu', event => event.preventDefault());
     joystick.addEventListener('pointerup', joyEnd); joystick.addEventListener('pointercancel', joyEnd); joystick.addEventListener('lostpointercapture', joyEnd);
     action.addEventListener('pointerdown', event => {
       if (event.button > 0 || actionPointer !== null || action.disabled || !canPlay()) return;
@@ -298,7 +364,7 @@
     action.addEventListener('pointerup', event => {
       if (event.pointerId !== actionPointer) return;
       event.preventDefault(); const id = actionPointer; actionPointer = null; uncapture(action, id); action.dataset.pressed = 'false';
-      if (cancelSelected || !canPlay()) controls?.cancel(); else controls?.release();
+      if (cancelSelected || !canPlay()) controls?.cancel(); else { if (state.aiming) buzz(20); controls?.release(); }
       cancelSelected = false; render();
     });
     const cancelAction = event => { if (event.pointerId !== actionPointer) return; event.preventDefault(); const id = actionPointer; actionPointer = null; uncapture(action, id); action.dataset.pressed = 'false'; cancelSelected = false; controls?.cancel(); render(); };

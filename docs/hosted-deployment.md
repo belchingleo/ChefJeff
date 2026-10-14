@@ -16,11 +16,13 @@ python3 -m unittest tests.test_hosted tests.test_hosted_records
 
 - A key lives in a JavaScript closure by default. Explicit Remember stores it as plaintext in browser localStorage. Clear removes both copies. The selected model provider must allow CORS; there is no server proxy fallback.
 - Model results sent to the game server contain a validated action, sprint flag and numeric token usage only. Provider text, endpoint and model name are not submitted. The game server receives normal gameplay actions and processes the full state in memory.
-- Ordinary sessions create no disk journal or cross-round memory. A completed round is saved only after the player previews the policy and explicitly consents.
+- Ordinary sessions create no disk journal or cross-round memory. Manual contribution remains the default. After explicitly accepting the policy, a player can enable automatic contribution of subsequently completed rounds; enabling it does not upload an already-ended round. Unchecking either agreement or automatic upload stops future uploads. This preference and deletion receipts are kept in this browser; clearing browser storage removes them. Records identify manual (`round`) or standing (`standing`) consent.
 - Contributions contain engine event types/actions, one-second chef positions, preset communication codes, configuration identifiers and result statistics. They are a pilot record format, not the final benchmark schema or deterministic replay.
 - Contributions are kept privately for 30 days. Cleanup runs at startup, before saving and every 30 seconds while the service runs. A random deletion token is delivered once to the player; only its hash is stored. Losing the receipt means waiting for automatic expiry. Deleting a record does not publish or email anything.
 - No account, email, IP address, key, model endpoint, raw model prompt or response is stored in a contribution. The cloud/network provider still handles connection metadata under its own policies.
 - Do not back up the contribution database or include it in server snapshots unless the retention/deletion policy is extended accordingly. The supplied service does not create backups. The database directory must not be web-served or committed.
+
+The next-round button waits for any consented upload of the previous round before resetting it. Uploads time out after 10 seconds; failure is displayed and does not prevent continued play. Deletion receipts can be downloaded together or used for bulk deletion; failed deletions retain their receipts for retry.
 
 ## Server installation
 
@@ -66,11 +68,13 @@ python3 -m unittest tests.test_hosted tests.test_hosted_records
 
 - Key 默认仅在 JavaScript 闭包内存中，主动记住才以明文保存至 localStorage，清除会移除两份。模型供应商须支持 CORS，不提供服务器代理回退。
 - 回传游戏服务器的模型结果仅含已校验动作、冲刺值、数值 token 用量，不提交模型文本、端点或模型名称。服务器在内存处理正常游戏动作和完整状态。
-- 普通会话不写磁盘日志或跨局记忆。仅对已结束对局，在玩家预览政策并明确同意后保存。
+- 普通会话不写磁盘日志或跨局记忆，默认手动贡献。明确同意政策后，可勾选自动贡献后续已结束的对局；开启时不补传已经结束的本局。取消同意或自动上传任一勾选，即停止后续自动上传。选择和删除凭证保存在此浏览器，清理浏览器存储会移除它们。记录区分单局同意（`round`）和持续同意（`standing`）。
 - 贡献包含引擎事件／动作、每秒厨师位置、预设沟通代码、配置标识和结果统计。这是试点记录格式，最终 benchmark schema 和确定性回放另行设计。
 - 私有保存 30 天，在启动、保存前及运行期间每 30 秒清理过期数据。随机删除凭证仅交给玩家，服务器只保存其哈希；遗失后需等待自动过期。删除不产生发布或邮件。
 - 贡献记录不存账号、邮箱、IP、Key、模型端点、原始模型提示或回复；云与网络供应商仍按自己的政策处理连接元数据。
 - 不备份贡献数据库或将其包含在服务器快照中，除非同步扩展保留／删除政策。所提供服务不生成备份，数据库目录不得公开访问或提交仓库。
+
+进入下一局前先等待本局已同意的上传，避免重置后丢失记录。上传十秒超时，失败会显示提示并允许继续游戏。删除凭证可一起下载备份或批量删除；删除失败时保留对应凭证，方便重试。
 
 ## 服务器安装
 

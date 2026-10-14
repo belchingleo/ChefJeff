@@ -102,7 +102,9 @@ function check(path){
  h.publish({phase:'paused',canInput:false});h.clear();h.step(5);assert.equal(h.count('resume'),0,'held Start does not immediately resume');
  neutral(controller);h.step();button(controller,'Start',true);h.step();assert.equal(h.count('resume'),1,'a fresh Start resumes a paused round');
  h.publish({phase:'ready',canInput:false,mainEnabled:true});neutral(controller);h.step();button(controller,'Start',true);h.step();assert.equal(h.count('main'),1,'Start activates ready main after neutral');
- h.publish({phase:'ended',canInput:false});neutral(controller);h.step();button(controller,'Start',true);h.step();assert.equal(h.count('main'),1,'ended rounds do not restart from a gamepad button');
+ h.publish({phase:'ended',canInput:false,mainEnabled:true});neutral(controller);h.step();button(controller,'Start',true);h.step();assert.equal(h.count('main'),2,'Start presses the result card (next level)');
+ neutral(controller);h.step();button(controller,'A',true);h.step();assert.equal(h.count('main'),3,'A presses the result card too');
+ h.publish({phase:'ended',canInput:false,mainEnabled:false});neutral(controller);h.step();button(controller,'A',true);h.step();assert.equal(h.count('main'),3,'a disabled result card ignores A');
 
  ({h,controller}=armed(path));h.publish({pending:true});button(controller,'Start',true);h.step();
  assert.equal(h.count('pause'),1,'a pending interaction cannot block an emergency Start pause');

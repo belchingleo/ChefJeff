@@ -399,6 +399,22 @@ function checkClientAimRender(fromSource){
  assert.deepEqual([...requests[0].body.direction],[1,0],'the visual change preserves the existing release-to-throw direction');
  assert.equal(requests[0].body.expected_item,'held');
 }
+function checkResultContinuation(fromSource){
+ const h=harness(),client=clientHarness(h,fromSource),queued=[],posted=[];
+ client.state={game_id:'result',phase:'ended',won:true,kitchen:{level_id:'level-1'},
+  levels:[{id:'level-2',name:'汉堡',menu_order:2},{id:'level-1',name:'牛排',menu_order:1}]};
+ client.set=()=>{};client.scheduleOnce=fn=>queued.push(fn);client.post=(path,body)=>posted.push({path,body});
+ client.endedSeen={round:'result',at:Date.now()};client.startNext();
+ assert.equal(queued.length,0,'A mashed input in the first second must not skip results.');
+ client.endedSeen.at-=2000;client.startNext();client.startNext();
+ assert.equal(queued.length,1,'Repeated presses must not start duplicate countdowns.');
+ while(queued.length)queued.shift()();
+ assert.equal(posted.length,1);assert.equal(posted[0].path,'/api/next');assert.equal(posted[0].body.level,'level-2');
+ client.state.won=false;assert.equal(client.nextRound(client.state).id,'level-1');
+ client.state.won=true;client.state.kitchen.level_id='level-2';assert.equal(client.nextRound(client.state).id,'level-2');
+ client.startNext();client.state.game_id='changed';while(queued.length)queued.shift()();assert.equal(posted.length,1);
+ assert.equal(client.countdown,0,'A stale countdown must not act on the new round.');
+}
 const cfg={provider:'deepseek',model:'test-model',api_key:key,remember:false};
 function settingsHarness(){
  const html=fs.readFileSync('cocos-kitchen/web-shell.html','utf8');
@@ -417,6 +433,7 @@ function settingsHarness(){
  return {el,listeners,requests:()=>requests};
 }
 (async()=>{
+ checkResultContinuation(true);checkResultContinuation(false);
  let h=harness();await h.w.fetch('/api/state');
  let r=await h.w.fetch('/api/connection',{method:'POST',body:JSON.stringify(cfg)});assert.equal(r.status,200);
  assert.equal(h.data.size,0);

@@ -58,7 +58,7 @@ if result.returncode==36 and args.platform=='web':
     # whether compiled with Creator or the documented cloud TypeScript fallback.
     bundle=page.parent/'assets/main/index.js'
     code=bundle.read_text()
-    for name in ('KitchenAudio','LevelOneArt'):
+    for name in ('KitchenAudio','LevelOneArt','KitchenClient'):
         source=(ROOT/f'cocos-kitchen/assets/scripts/{name}.ts').read_bytes()
         marker='    // source-sha256: '+hashlib.sha256(source).hexdigest()+'\n'
         pattern=r'(System\.register\("chunks:///_virtual/'+name+r'\.ts"[^\n]*\n)'
