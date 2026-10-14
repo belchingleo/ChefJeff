@@ -2,9 +2,12 @@
 const vm=require('node:vm'),fs=require('node:fs'),assert=require('node:assert/strict');
 const source=fs.readFileSync('hosted/browser-agent.js','utf8');
 const key='unit-test-key-not-a-real-credential';
-function harness(saved=null, fail=false, sessions=[201]){
+function harness(saved=null, fail=false, gameState={game_id:'round',phase:'ready',limits:{},connection:{configured:false}}, sessions=[201]){
  const calls=[],data=new Map(saved?[['chefjeff.browser-key.v1',JSON.stringify(saved)]]:[]),timers=[];
- const listeners=new Map();let clock=0;
+ const listeners={},elements={};let clock=0;
+ for(const id of ['contribution-save','contribution-consent','contribution-preview','contribution-data',
+   'contribution-download','contribution-delete','contribution-status','contribution-receipt'])elements[id]={disabled:true,checked:false};
+ const document={getElementById:id=>elements[id]||null,querySelector:()=>null,activeElement:null};
  const native=async(url,init={})=>{
   calls.push({url:String(url),init});
   const u=new URL(url,'https://kitchen.example');
@@ -16,16 +19,385 @@ function harness(saved=null, fail=false, sessions=[201]){
    const status=sessions.length>1?sessions.shift():sessions[0];
    return new Response(JSON.stringify(status===201?{session:'test-session'}:{error:'Kitchens full.'}),{status});
   }
-  if(u.pathname==='/api/state')return new Response(JSON.stringify({game_id:'round',phase:'ready',limits:{},connection:{configured:false}}));
+  if(u.pathname==='/api/state')return new Response(JSON.stringify(gameState));
   return new Response('{"ok":true}');
  };
- const w={fetch:native,addEventListener:(name,fn)=>listeners.set(name,fn),dispatchEvent:()=>{}};
+ const w={fetch:native,addEventListener:(name,fn)=>{listeners[name]=fn;},dispatchEvent:e=>{listeners[e.type]?.(e);}};
  vm.runInNewContext(source,{window:w,location:{href:'https://kitchen.example/',origin:'https://kitchen.example'},
   Response,URL,Headers,AbortController,performance:{now:()=>clock},crypto:require('node:crypto').webcrypto,
   CustomEvent:class {constructor(type,options){this.type=type;this.detail=options.detail;}},
   setTimeout:fn=>{timers.push(fn);return timers.length;},clearTimeout:()=>{},
-  document:{getElementById:()=>null},localStorage:{getItem:k=>data.get(k)||null,setItem:(k,v)=>data.set(k,v),removeItem:k=>data.delete(k)}});
- return {w,calls,data,listeners,advance:ms=>{clock+=ms;}};
+  document,localStorage:{getItem:k=>data.get(k)||null,setItem:(k,v)=>data.set(k,v),removeItem:k=>data.delete(k)}});
+ return {w,calls,data,listeners,elements,document,advance:ms=>{clock+=ms;}};
+}
+
+// Execute the real key handler and state poll with rendering stubbed out. Check both
+// TypeScript source and the included web runtime so a stale build cannot hide a fix.
+function clientHarness(h, fromSource){
+ class UITransform {setContentSize(width,height){this.width=width;this.height=height;}}
+ class Color {
+  constructor(r=255,g=255,b=255,a=255){Object.assign(this,{r,g,b,a});}
+  fromHEX(hex){const value=Number.parseInt(hex.replace('#',''),16);Object.assign(this,{r:value>>>16,g:(value>>>8)&255,b:value&255});return this;}
+ }
+ class Graphics {
+  constructor(){this.clear();}
+  clear(){this.path=[];this.paints=[];}
+  moveTo(x,y){this.path=[{kind:'move',values:[x,y]}];}
+  lineTo(x,y){this.path.push({kind:'line',values:[x,y]});}
+  close(){this.path.push({kind:'close',values:[]});}
+  ellipse(x,y,rx,ry){this.path=[{kind:'ellipse',values:[x,y,rx,ry]}];}
+  paint(kind,color){this.paints.push({kind,color:{...color},path:this.path.map(part=>({...part,values:[...part.values]}))});}
+  fill(){this.paint('fill',this.fillColor);}
+  stroke(){this.paint('stroke',this.strokeColor);}
+ }
+ class Node {
+  constructor(name){this.name=name;this.children=[];this.components=new Map();this.position={x:0,y:0,z:0};this.active=this.isValid=true;}
+  addChild(child){child.parent=this;this.children.push(child);}
+  addComponent(type){const component=new type();this.components.set(type,component);return component;}
+  getComponent(type){return this.components.get(type)||null;}
+  setPosition(x,y,z=0){this.position={x,y,z};}
+  setSiblingIndex(index){const siblings=this.parent.children;siblings.splice(siblings.indexOf(this),1);siblings.splice(index,0,this);}
+ }
+ const cc={Component:function(){},Camera:class{},UITransform,Color,Graphics,Node,Layers:{Enum:{UI_2D:1}},sys:{isNative:true},game:{frameRate:15},
+   _decorator:{ccclass:()=>cls=>cls},cclegacy:{_RF:{push:()=>{},pop:()=>{}}}};
+ h.cc=cc;
+ const art={LevelOneArt:class{}},audio={KitchenAudio:class{onState(){}}};
+ const geometry={GRID_ART:{tile:48,originX:0,originY:0}};
+ const context=vm.createContext({...cc,...art,...audio,...geometry,window:h.w,document:h.document,
+   URLSearchParams,location:{search:''},Event:class{constructor(type){this.type=type;}},
+   CustomEvent:class{constructor(type,options={}){this.type=type;this.detail=options.detail;}}});
+ let Client;
+ if(fromSource){
+  const ts=fs.readFileSync('cocos-kitchen/assets/scripts/KitchenClient.ts','utf8')
+   .replace(/^import[\s\S]*?;\n/gm,'').replace(/^@ccclass\('KitchenClient'\)\n/m,'')
+   .replace('export class KitchenClient','class KitchenClient');
+  vm.runInContext(require('node:module').stripTypeScriptTypes(ts)+'\nglobalThis.TestClient=KitchenClient;',context);
+  Client=context.TestClient;
+ }else{
+  const modules=new Map(),cache=new Map([['cc',cc],['chunks:///_virtual/LevelOneArt.ts',art],
+   ['chunks:///_virtual/KitchenAudio.ts',audio],['chunks:///_virtual/KitchenGeometry.ts',geometry]]);
+  context.System={register:(name,deps,factory)=>{
+   if(typeof name!=='string'){deps(name=>name).execute();return;}
+   modules.set(name,{deps,factory});
+  }};
+  for(const path of ['cocos-kitchen/build/web/src/chunks/bundle.js','cocos-kitchen/build/web/assets/main/index.js'])
+   vm.runInContext(fs.readFileSync(path,'utf8'),context);
+  const load=name=>{
+   if(cache.has(name))return cache.get(name);
+   const out={},module=modules.get(name);
+   const instance=module.factory((key,value)=>{if(typeof key==='string')out[key]=value;else Object.assign(out,key);return value;});
+   cache.set(name,out);
+   module.deps.forEach((dep,i)=>instance.setters?.[i]?.(load(dep==='cc'?dep:'chunks:///_virtual/'+dep.replace(/^\.\//,''))));
+   instance.execute();return out;
+  };
+  Client=load('chunks:///_virtual/KitchenClient.ts').KitchenClient;
+ }
+ const client=new Client();cc.sys.isNative=false;
+ for(const method of ['enable','render','processEvents','hideLoading'])client[method]=()=>{};
+ client.mounted=client.artLoaded=client.connected=true;client.mountedLayout='level-2-1';
+ client.state={game_id:'round'};
+ return client;
+}
+
+async function checkClientInteractions(fromSource){
+ const gameState={game_id:'round',phase:'ended',limits:{},release:{version:'0.6.0-beta.1'},
+  hosted:{contribution_enabled:true},interaction:null,interaction_focus:'counter14',
+  kitchen:{map:{layout_version:'level-2-1'},stations:{counter14:{}},chefs:{human:{holding:{id:'held'}}}}};
+ const h=harness(null,false,gameState),client=clientHarness(h,fromSource);
+ h.listeners.DOMContentLoaded();
+ client.request=async()=>await (await h.w.fetch('/api/state')).json();
+ await client.poll();
+ h.elements['contribution-consent'].checked=true;h.elements['contribution-consent'].onchange();
+ assert.equal(h.elements['contribution-save'].disabled,false);
+ await client.poll();
+ assert.equal(h.elements['contribution-save'].disabled,false,'state polling must preserve explicit consent');
+ gameState.phase='running';await client.poll();
+ assert.equal(h.elements['contribution-save'].disabled,true,'unfinished rounds cannot be contributed');
+ gameState.phase='ended';gameState.hosted.contribution_enabled=false;await client.poll();
+ assert.equal(h.elements['contribution-save'].disabled,true,'disabled storage must keep contribution disabled');
+
+ const posts=[];client.post=(path,body)=>{posts.push({path,body});};client.state.phase='running';
+ const human=client.state.kitchen.chefs.human;
+ const press=(extra={})=>client.onKey({key:' ',code:'Space',preventDefault:()=>{},...extra});
+ const release=()=>client.onKeyUp({key:' ',code:'Space'});
+ const reset=()=>{client.clearInput();posts.length=0;client.clock=5;human.holding={id:'held'};human.can_throw=true;human.facing='up';};
+ // A hold must not first consume the item through a legal station action. A tap
+ // still sends interact once, including blocked targets whose reason comes from the server.
+ for(const [focus,kind] of [['counter14',null],['counter14','put_counter'],['serve','serve'],
+   ['bin','discard'],['burning_stove','stop'],['floor_5_6',null],['floor_5_6','drop'],['floor_5_6','swap']]){
+  reset();client.state.interaction_focus=focus;client.state.interaction=kind?{kind}:null;
+  press();assert.equal(client.spaceDownAt,5);assert.equal(posts.length,0,`keydown must defer ${kind||'blocked'} interaction`);
+  client.clock+=.1;press({repeat:true});assert.equal(client.spaceDownAt,5,'repeat must not restart the hold');
+  release();release();assert.equal(posts.length,1);assert.equal(posts[0].path,'/api/interact');
+  assert.equal(posts[0].body.expected_item,'held');
+
+  reset();press();client.clock+=.31;client.startAim();
+  assert.deepEqual({...client.aiming},{x:0,y:-1},`holding Space can aim at ${focus}`);
+  client.onKey({key:'d',code:'KeyD',preventDefault:()=>{}});
+  client.onKeyUp({key:'d',code:'KeyD'});press({repeat:true});
+  assert.equal(posts.length,0,'aiming must not interact with the workstation');
+  release();release();assert.equal(posts.length,1);assert.equal(posts[0].path,'/api/throw');
+  assert.equal(posts[0].body.expected_item,'held');assert.deepEqual([...posts[0].body.direction],[1,0]);
+ }
+ // Empty hands and rulesets that prohibit throwing keep their immediate interaction.
+ for(const hand of [null,{id:'held'}]){
+  reset();human.holding=hand;human.can_throw=false;
+  press();release();assert.equal(client.spaceDownAt,null);assert.equal(posts.length,1);
+  assert.equal(posts[0].path,'/api/interact');assert.equal(posts[0].body.expected_item,hand?.id||null);
+ }
+ // Never interact with or throw a replacement item acquired while Space was held.
+ for(const alreadyAiming of [false,true]){
+  reset();press();if(alreadyAiming)client.startAim();human.holding={id:'replacement'};
+  release();assert.equal(posts.length,0);assert.equal(client.aiming,null);
+ }
+ reset();press();human.holding=null;client.startAim();release();
+ assert.equal(posts.length,0);assert.equal(client.aiming,null);
+ reset();press();client.connected=false;release();client.connected=true;
+ assert.equal(posts.length,0,'disconnect cancels the pending action');
+ reset();press();client.onKey({key:'Escape',preventDefault:()=>{}});release();
+ assert.equal(posts.length,1);assert.equal(posts[0].path,'/api/pause','pausing cancels the pending action');
+ reset();press();client.startAim();client.onBlur();release();
+ assert.equal(posts.length,0,'losing focus cancels aiming');
+}
+
+async function checkClientTouchBridge(fromSource){
+ const h=harness(),client=clientHarness(h,fromSource),posts=[],moves=[];
+ client.clock=5;
+ client.state={game_id:'touch-round',phase:'running',speed:1,limits:{},connection:{configured:true},
+  interaction:{kind:'put_counter',label:'放下'},interaction_focus:'counter14',interaction_hint:'',
+  kitchen:{map:{layout_version:'level-2-1'},stations:{counter14:{}},orders:[],goals:{target_money:100},
+   chefs:{human:{holding:{id:'held'},can_throw:true,facing:'up',sprint:{available:true,cooldown_remaining:0,active_remaining:0}}}},
+  ai:{thinking:false,error:null}};
+ client.post=(path,body)=>{posts.push({path,body});};
+ client.request=async(path,body)=>{if(path==='/api/move')moves.push(body);return {ok:true};};
+ client.installControls();
+ const controls=h.w.kitchenControls;
+ assert(controls,'client installs a touch bridge without rendering');
+ for(const method of ['move','press','release','cancel','dash','pause','resume','main','settings','help','end','record','bookmark','block','getState'])
+  assert.equal(typeof controls[method],'function',`bridge method ${method}`);
+ assert.equal(controls.getState().game_id,'touch-round');assert.equal(controls.getState().phase,'running');
+ assert.equal(controls.getState().canThrow,true);
+ assert.equal(controls.getState().canInput,true,'controller polling uses the same game input gate');
+ client.hidden=true;assert.equal(controls.getState().canInput,false);client.hidden=false;
+ const human=client.state.kitchen.chefs.human;
+ const flush=()=>client.flushTouchMove();
+ const clear=()=>{client.clearInput();posts.length=0;moves.length=0;client.clock+=1;human.holding={id:'held'};human.can_throw=true;human.sprint={available:true,cooldown_remaining:0,active_remaining:0};};
+ controls.move(NaN,1);controls.move(1,Infinity);flush();assert.equal(moves.length,0,'non-finite touch coordinates are ignored');
+ for(let i=1;i<=100;i++)controls.move(1,i);
+ assert.equal(moves.length,0,'pointer movement is buffered instead of sending one request per event');
+ flush();assert.equal(moves.length,1,'a buffered movement flush sends the latest direction once');
+ controls.move(0,0);assert.equal(moves.length,2,'releasing the joystick bypasses the movement buffer');
+ clear();
+ controls.move(1,1);flush();
+ assert(Math.abs(moves.at(-1).dx-Math.SQRT1_2)<1e-8&&Math.abs(moves.at(-1).dy-Math.SQRT1_2)<1e-8,'touch diagonals share keyboard walking speed');
+ controls.press();assert.equal(posts.length,0,'holding a throwable item defers station interaction');
+ client.clock+=.31;client.startAim();assert(controls.getState().aiming,'bridge exposes active aiming');
+ assert.deepEqual({...client.manualDirection},{x:0,y:0},'aiming stops walking');
+ controls.move(-1,0);flush();assert.deepEqual({...client.aiming},{x:-1,y:0});
+ controls.release();controls.release();assert.equal(posts.length,1);assert.equal(posts[0].path,'/api/throw');
+ assert.deepEqual([...posts[0].body.direction],[-1,0]);assert.equal(posts[0].body.expected_item,'held');
+ const count=moves.length;controls.move(-1,0);flush();
+ assert.deepEqual({...client.manualDirection},{x:0,y:0},'after throwing, a displaced joystick cannot start walking');
+ assert(!moves.slice(count).some(m=>m.dx||m.dy),'after throwing, a displaced joystick sends no walking request');
+ controls.move(0,0);controls.move(0,-1);flush();assert.equal(client.manualDirection.y,-1,'returning the joystick to neutral unlocks walking');
+ controls.move(0,0);assert.deepEqual({...client.manualDirection},{x:0,y:0});
+ assert.equal(moves.at(-1).dx,0);assert.equal(moves.at(-1).dy,0,'touch stop flushes immediately');
+
+ clear();controls.press();controls.release();controls.release();assert.equal(posts.length,1);assert.equal(posts[0].path,'/api/interact');
+ clear();human.holding=null;controls.press();controls.release();assert.equal(posts.length,1);assert.equal(posts[0].body.expected_item,null,'empty-hand interaction uses the same action path');
+ for(const aiming of [false,true]){
+  clear();controls.press();if(aiming){client.clock+=.31;client.startAim();}
+  human.holding={id:'replacement'};controls.release();assert.equal(posts.length,0,'touch cannot act on an item replaced during a hold');
+  assert.equal(client.aiming,null);
+ }
+ // State polling cancels the arrow immediately when the held item disappears
+ // or the rules change, instead of waiting for a finger to lift.
+ const moveRequest=client.request;
+ for(const changed of [{holding:{id:'replacement'}},{holding:null},{can_throw:false}]){
+  clear();controls.press();client.clock+=.31;client.startAim();assert(client.aiming);
+  Object.assign(human,changed);
+  client.request=async()=>({...client.state,release:{version:'0.6.0-beta.1'}});
+  await client.poll();assert.equal(client.aiming,null,'a changed held-item snapshot cancels aiming immediately');
+  controls.release();assert.equal(posts.length,0,'a cancelled snapshot cannot throw or tap');
+ }
+ client.request=moveRequest;
+ clear();controls.move(1,0);flush();controls.press();client.clock+=.31;client.startAim();controls.cancel();controls.release();
+ assert.equal(posts.length,0,'touch cancellation cannot release a throw');assert.equal(client.aiming,null);assert.deepEqual({...client.manualDirection},{x:0,y:0});
+ clear();controls.press();client.state.phase='paused';controls.release();assert.equal(posts.length,0,'paused state cancels a pending tap');client.state.phase='running';
+ clear();controls.press();client.connected=false;controls.release();assert.equal(posts.length,0,'disconnect cancels a pending touch action');client.connected=true;
+
+ clear();controls.dash();assert(!moves.some(m=>m.sprint),'stationary touch cannot dash');
+ controls.move(1,0);flush();controls.dash();assert.equal(moves.filter(m=>m.sprint).length,1,'moving touch dashes through the existing move endpoint');
+ human.sprint={available:false,cooldown_remaining:2,active_remaining:0};controls.dash();assert.equal(moves.filter(m=>m.sprint).length,1,'touch respects sprint cooldown');
+ human.sprint={available:true,cooldown_remaining:0,active_remaining:0};controls.press();client.clock+=.31;client.startAim();controls.dash();assert.equal(moves.filter(m=>m.sprint).length,1,'aiming cannot dash');
+
+ clear();controls.move(1,0);flush();controls.press();controls.block(true);controls.release();
+ assert.equal(posts.length,1);assert.equal(posts[0].path,'/api/pause','blocking controls pauses the live round');
+ assert.equal(client.aiming,null);assert.deepEqual({...client.manualDirection},{x:0,y:0});
+ posts.length=0;moves.length=0;controls.move(1,0);flush();controls.press();controls.release();controls.dash();
+ assert.equal(posts.length,0,'blocked gameplay sends no actions');assert(!moves.some(m=>m.dx||m.dy),'blocked gameplay sends no movement');
+ controls.block(false);assert.equal(posts.length,0,'unblocking never resumes a round automatically');
+ assert.equal(controls.getState().canInput,true);
+ clear();client.onKey({key:'w',code:'KeyW',preventDefault:()=>{}});assert.equal(client.manualDirection.y,-1,'desktop keyboard walking remains available');
+ client.onKeyUp({key:'w',code:'KeyW'});assert.equal(client.manualDirection.y,0);
+ // Controller cancellation must happen before the new keyboard key is applied.
+ const manual=[];
+ h.w.addEventListener('kitchen-manual-input',event=>{manual.push(event.detail.source);controls.cancel();});
+ clear();controls.move(1,0);flush();
+ client.onKey({key:'w',code:'KeyW',isTrusted:true,preventDefault:()=>{}});
+ assert.equal(manual.at(-1),'keyboard');assert(client.heldKeys.has('w'));
+ assert.deepEqual({...client.manualDirection},{x:0,y:-1},'handing back from the gamepad must preserve the fresh keyboard input');
+ client.onKeyUp({key:'w',code:'KeyW'});
+ clear();controls.press();client.clock+=.31;client.startAim();assert(client.aiming);
+ client.onMouseDown({button:0,isTrusted:true,target:{closest:()=>null}});
+ controls.release();assert.equal(manual.at(-1),'mouse');assert.equal(client.aiming,null);
+ assert.equal(posts.length,0,'mouse takeover cancels a controller hold without releasing a throw');
+ // Both touch and controller players reach settings from their Start action.
+ let settingsOpened=0,mainCalled=0;
+ client.openConnection=()=>{settingsOpened++;};client.buttons.main={enabled:true,callback:()=>{mainCalled++;}};
+ client.state.phase='ready';client.state.connection={configured:false};client.touchLayout={active:true,landscape:true};
+ controls.main();assert.equal(settingsOpened,1,'unconfigured phone main opens connection settings');assert.equal(mainCalled,0);
+ client.state.connection.configured=true;controls.main();assert.equal(mainCalled,1,'configured phone main runs the existing start action');assert.equal(settingsOpened,1);
+ client.touchLayout={active:false,landscape:true};client.state.connection.configured=false;controls.main();
+ assert.equal(mainCalled,1);assert.equal(settingsOpened,2,'unconfigured controller Start reaches connection settings on desktop');
+ client.state.connection.configured=true;controls.main();assert.equal(mainCalled,2,'configured controller Start runs the existing callback');
+ client.touchLayout={active:true,landscape:false};controls.main();assert.equal(settingsOpened,2,'portrait cannot activate the primary button');
+ client.touchLayout.landscape=true;client.pending=true;controls.main();assert.equal(settingsOpened,2,'a pending action cannot reopen settings');
+ // The scene's Camera is a child of Canvas too. Hiding phone HUD siblings must
+ // leave that camera running, otherwise the canvas freezes without an error.
+ const node=(name,active=true)=>({name,active,isValid:true,children:[],position:{x:0,y:0},
+  getComponent:type=>type?.name==='UITransform'&&!['Camera','audio'].includes(name)?{}:null,
+  getComponentsInChildren:()=>name==='Camera'?[{}]:[],
+  setScale(x,y,z){this.scale={x,y,z};},setPosition(x,y){this.position={x,y};}});
+ const camera=node('Camera'),audio=node('audio'),world=node('kitchen-world'),background=node('background'),cover=node('cover'),hud=node('header');
+ client.node={children:[camera,audio,background,world,cover,hud]};client.world=world;
+ client.state.kitchen.map.width=15;client.state.kitchen.map.height=11;
+ client.touchLayout={active:true,landscape:true,width:844,height:390,boardRect:{left:146,top:74,width:524,height:308}};
+ client.applyTouchLayout();
+ assert.equal(camera.active,true,'phone layout must keep the scene camera active');assert.equal(audio.active,true,'phone layout must keep audio nodes active');assert.equal(world.active,true);assert.equal(background.active,true);
+ assert.equal(cover.active,false);assert.equal(hud.active,false,'phone HTML replaces desktop HUD');
+ assert(Number.isFinite(world.scale.x)&&world.scale.x>0&&Number.isFinite(world.position.x)&&Number.isFinite(world.position.y),'phone kitchen transform stays finite');
+ client.touchLayout.active=false;client.applyTouchLayout();
+ assert.equal(camera.active,true);assert.equal(audio.active,true);assert.equal(cover.active,true);assert.equal(hud.active,true,'desktop layout restores HUD visibility');
+ assert.deepEqual({...world.scale},{x:1,y:1,z:1});assert.deepEqual({...world.position},{x:0,y:0});
+ // The transport error path restores the desktop reconnect cover. It must then
+ // apply the phone layout too, while publishing the disconnected HTML state.
+ client.touchLayout.active=true;client.connected=true;client.pending=false;client.cover=cover;
+ client.buttons.main.label={};client.buttons.reset={node:{active:true}};client.buttons.record={node:{active:true}};
+ client.labels['welcome-tip']={node:{active:false}};client.set=()=>{};client.writeLabel=()=>{};
+ let lastControlsState;
+ h.w.addEventListener('kitchen-controls-state',event=>{lastControlsState=event.detail;});
+ client.request=async()=>{throw new Error('offline test');};
+ await client.poll();
+ assert.equal(client.connected,false);assert.equal(cover.active,false,'a disconnected phone must not show the desktop reconnect cover');
+ assert.equal(camera.active,true);assert.equal(audio.active,true);assert.equal(world.active,true);
+ assert.equal(controls.getState().connected,false);assert.equal(lastControlsState.connected,false,'disconnect reaches phone HTML controls');
+}
+
+function checkClientOrderBridge(fromSource){
+ const h=harness(),client=clientHarness(h,fromSource);
+ const catalog=JSON.parse(fs.readFileSync('content/recipes/chefjeff-service.json','utf8'));
+ client.state={game_id:'orders-round',phase:'running',rules:{order_patience:120},
+  kitchen:{map:{layout_version:'level-2-1'},items:catalog.items,
+   dishes:Object.entries(catalog.recipes).map(([id,recipe])=>({id,...recipe})),
+   chefs:{human:{holding:null,sprint:{available:true}}},orders:[]}};
+ const frames=new Map();
+ for(const [i,key] of ['food/beef_ready','food/bread_raw','food/lettuce_raw','food/tomato_raw',
+   'ingredients/noodles/ready','ingredients/scallion/raw','ingredients/cucumber/raw',
+   'ingredients/onion/raw','ingredients/cheese/raw','ingredients/chicken/ready',
+   'ingredients/fish/ready','ingredients/flatbread/raw','dishes/steak/ready','food/burger_ready'].entries())
+  frames.set(key,{url:'/art/'+key+'.png',x:i*8,y:16,width:64,height:64,atlasWidth:1024,atlasHeight:512,alphaBBox:[8,10,55,60]});
+ const requested=[];client.art.has=key=>frames.has(key);client.art.spriteInfo=key=>{requested.push(key);return frames.get(key)||null;};
+ const expected={
+  steak:[['beef','ready','food/beef_ready']],
+  burger:[['bread','raw','food/bread_raw'],['lettuce','raw','food/lettuce_raw'],['tomato','raw','food/tomato_raw'],['beef','ready','food/beef_ready']],
+  beef_noodles:[['noodles','ready','ingredients/noodles/ready'],['beef','ready','food/beef_ready'],['scallion','raw','ingredients/scallion/raw']],
+  chicken_noodles:[['noodles','ready','ingredients/noodles/ready'],['chicken','ready','ingredients/chicken/ready'],['scallion','raw','ingredients/scallion/raw']],
+  salad:[['lettuce','raw','food/lettuce_raw'],['tomato','raw','food/tomato_raw'],['cucumber','raw','ingredients/cucumber/raw']],
+  cheeseburger:[['bread','raw','food/bread_raw'],['beef','ready','food/beef_ready'],['cheese','raw','ingredients/cheese/raw'],['lettuce','raw','food/lettuce_raw']],
+  chicken_wrap:[['flatbread','raw','ingredients/flatbread/raw'],['chicken','ready','ingredients/chicken/ready'],['lettuce','raw','food/lettuce_raw'],['onion','raw','ingredients/onion/raw']],
+  fish_steak:[['fish','ready','ingredients/fish/ready']]
+ };
+ client.state.kitchen.orders=Object.keys(expected).map((dish,i)=>({id:'O'+i,dish,status:'pending',remaining:i===0?70:15,
+  ...(i===0?{ingredients:['beef'],patience:75}:{})}));
+ client.state.kitchen.orders.push({id:'duplicate',dish:'missing-recipe',status:'pending',remaining:0,patience:40,ingredients:['unlisted','beef','unlisted']},
+  {id:'expired',dish:'burger',status:'expired',remaining:0},{id:'served',dish:'steak',status:'served',remaining:0});
+ client.installControls();const orders=h.w.kitchenControls.getState().orders;
+ assert.equal(orders.length,9,'all pending orders are available to the vertical list');
+ for(const order of orders.slice(0,8)){
+  const recipe=expected[order.dish];
+  assert.equal(order.dishName,catalog.recipes[order.dish].name);
+  assert.deepEqual([...order.ingredientDetails].map(item=>[item.id,item.state]),recipe.map(([id,state])=>[id,state]),`ingredients for ${order.dish}`);
+  for(let i=0;i<recipe.length;i++){
+   const [id,,key]=recipe[i],detail=order.ingredientDetails[i];
+   assert.equal(detail.name,catalog.items[id].name);assert.deepEqual({...detail.icon},frames.get(key),`sprite for ${order.dish}/${id}`);
+  }
+ }
+ assert.equal(orders[0].patienceTotal,75);assert(Math.abs(orders[0].patienceRemainingFraction-70/75)<1e-8);
+ assert.equal(orders[1].patienceTotal,120,'missing per-order patience uses the current rules');
+ assert.equal(orders[1].patienceRemainingFraction,15/120);
+ assert.deepEqual([...orders[8].ingredientDetails].map(item=>[item.id,item.name,item.state]),
+  [['unlisted','unlisted','raw'],['beef','牛肉','raw'],['unlisted','unlisted','raw']],'snapshot ingredient order and duplicates survive unknown recipes');
+ assert.equal(orders[8].ingredientDetails[0].icon,null,'unknown ingredient retains a text fallback');
+ assert.equal(orders[8].patienceRemainingFraction,0);
+ assert(requested.includes('dishes/steak/ready')&&requested.includes('food/burger_ready'),'recipe sprites use the current reviewed atlas choices');
+ client.state.kitchen.orders[0].remaining=-2;assert.equal(h.w.kitchenControls.getState().orders[0].patienceRemainingFraction,0);
+ client.state.kitchen.orders[0].remaining=150;assert.equal(h.w.kitchenControls.getState().orders[0].patienceRemainingFraction,1);
+}
+
+function checkClientAimRender(fromSource){
+ const h=harness(),client=clientHarness(h,fromSource),{Node,Graphics}=h.cc,requests=[];
+ const world=new Node('kitchen-world'),chef=new Node('human'),foreground=new Node('foreground');
+ chef.setPosition(103,-57);world.addChild(chef);world.addChild(foreground);
+ client.world=world;client.people.human=chef;client.clock=5;
+ client.state={game_id:'aim-round',phase:'running',speed:1,limits:{},
+  kitchen:{map:{layout_version:'level-2-1',pass_range:4},orders:[],
+   chefs:{human:{holding:{id:'held'},can_throw:true,facing:'right',sprint:{available:true}}}},ai:{thinking:false,error:null}};
+ client.post=(path,body)=>requests.push({path,body});client.request=async(path,body)=>{requests.push({path,body});return {ok:true};};
+ client.installControls();const controls=h.w.kitchenControls,fetchCount=h.calls.length;
+ controls.press();client.clock+=.31;client.startAim();
+ const aim=client.aimArrow;assert(aim?.active,'holding an item shows the throw guide');
+ const near=(actual,expected,message)=>assert(Math.abs(actual-expected)<1e-7,message);
+ const checkDirection=(dx,dy,range)=>{
+  const length=Math.hypot(dx,dy),ux=dx/length,uy=dy/length;
+  controls.move(dx,dy);
+  const paints=aim.getComponent(Graphics).paints;
+  assert(paints.length>0,'the aim guide paints visible geometry');
+  for(const paint of paints){
+   assert(paint.color.a>0&&paint.color.a<255,'the trajectory and landing guide are semitransparent');
+   assert(paint.path.flatMap(part=>part.values).every(Number.isFinite),'all projected coordinates stay finite, including vertical aiming');
+  }
+  const ribbon=paints.find(paint=>paint.kind==='fill'&&paint.path.some(part=>part.kind==='close'));
+  assert(ribbon,'the trajectory is a filled, closed band');
+  const vertices=ribbon.path.filter(part=>part.kind==='move'||part.kind==='line').map(part=>part.values);
+  const area=Math.abs(vertices.reduce((sum,[x,y],i)=>{const [nx,ny]=vertices[(i+1)%vertices.length];return sum+x*ny-y*nx;},0))/2;
+  assert(area>range*48*2,'the trajectory has visible width instead of collapsing to a line');
+  const landing=paints.find(paint=>paint.kind==='fill'&&paint.path.some(part=>part.kind==='ellipse'));
+  assert(landing,'the maximum-range ground endpoint remains visible');
+  const [x,y,rx,ry]=landing.path.find(part=>part.kind==='ellipse').values;
+  assert(rx>0&&ry>0);
+  near(aim.position.x+x,chef.position.x+ux*range*48,'horizontal ground range matches the existing throw range');
+  near(aim.position.y+y,chef.position.y-uy*range*48,'vertical ground range is measured from the chef, not the raised hand');
+  assert.equal(world.children.at(-1),aim,'the guide remains above foreground kitchen sprites');
+  assert.equal(client.aimArrow,aim,'steering reuses the existing guide');
+  return vertices;
+ };
+ for(const direction of [[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1],[0,-1],[1,-1]])checkDirection(...direction,4);
+ for(const angle of [.137,.81,1.423,2.19,3.84,4.73,5.91])checkDirection(Math.cos(angle),Math.sin(angle),4);
+ const horizontal=checkDirection(1,0,4),heights=horizontal.map(([,y])=>y);
+ assert(Math.max(...heights)-Math.min(...heights)>20,'a horizontal throw projects a raised arc rather than a straight arrow');
+ client.state.kitchen.map={pass_range:3.5,throw_range:7};checkDirection(.41,-.83,3.5);
+ client.state.kitchen.map={throw_range:2.25};checkDirection(-.37,.91,2.25);
+ client.state.kitchen.map={};checkDirection(.2,-.9,4);
+ assert.equal(requests.length,0,'drawing and steering the arc adds no movement, throw or preview requests');
+ assert.equal(h.calls.length,fetchCount,'rendering the guide does not fetch extra resources');
+ controls.cancel();assert.equal(aim.active,false,'cancelling hides both the arc and its ground endpoint');
+ controls.release();assert.equal(requests.length,0,'releasing a cancelled guide cannot throw');
+ controls.press();client.clock+=.31;client.startAim();assert.equal(aim.active,true,'a later hold can show the same guide again');
+ controls.release();assert.equal(aim.active,false,'a completed throw hides the entire guide');
+ assert.equal(requests.length,1);assert.equal(requests[0].path,'/api/throw');
+ assert.deepEqual([...requests[0].body.direction],[1,0],'the visual change preserves the existing release-to-throw direction');
+ assert.equal(requests[0].body.expected_item,'held');
 }
 const cfg={provider:'deepseek',model:'test-model',api_key:key,remember:false};
 function settingsHarness(){
@@ -57,15 +429,15 @@ function settingsHarness(){
  assert(!h.calls.some(c=>c.url==='/api/browser-ready'));assert(!h.calls.some(c=>c.url==='/api/connection'));
  h=harness();r=await h.w.fetch('/api/connection',{body:JSON.stringify({...cfg,provider:'compatible',base_url:'https://kitchen.example'})});assert.equal(r.status,400);
  h=harness();let d=await (await h.w.fetch('/api/state')).json();assert.equal(d.connection.configured,false);
- h=harness(null,false,[503,201]);
+ h=harness(null,false,undefined,[503,201]);
  r=await h.w.fetch('/api/state');assert.equal(r.status,503);assert((await r.json()).error.includes('厨房'));
  for(let i=0;i<5;i++)await h.w.fetch('/api/state');
  assert.equal(h.calls.filter(c=>c.url==='/api/session').length,1);
  h.advance(15001);r=await h.w.fetch('/api/state');assert.equal(r.status,200);
  assert.equal(h.w.chefjeffHostedStatus(),'');
- h.listeners.get('pagehide')({persisted:true});
+ h.listeners.pagehide({persisted:true});
  assert(!h.calls.some(c=>c.url==='/api/session/close'));
- h.listeners.get('pagehide')({persisted:false});
+ h.listeners.pagehide({persisted:false});
  const close=h.calls.find(c=>c.url==='/api/session/close');
  assert(close);assert.equal(close.init.keepalive,true);assert.equal(close.init.headers['X-ChefJeff-Session'],'test-session');
  assert(!JSON.stringify(close).includes(key));
@@ -82,4 +454,15 @@ function settingsHarness(){
  detail.connection.editable=true;ui.listeners.get('kitchen-state')({detail});
  assert.equal(ui.el('api-connect').disabled,false);assert.equal(ui.el('api-key').value,key);
  console.log('Browser transport and settings: credential isolation, session retry/release, editable drafts and guarded connection checks passed.');
+ await checkClientInteractions(false);
+ await checkClientTouchBridge(false);
+ checkClientOrderBridge(false);
+ checkClientAimRender(false);
+ if(require('node:module').stripTypeScriptTypes){await checkClientInteractions(true);await checkClientTouchBridge(true);checkClientOrderBridge(true);checkClientAimRender(true);}
+ else console.log('TypeScript source execution requires Node 22.13+; included runtime checked.');
+ console.log('Browser transport: memory/remember/clear, reload, CORS failure, origin guard and no-key-to-server checks passed.');
+ console.log('Client interactions: workstation/floor tap and hold, item changes, cancellation and hosted contribution state passed.');
+ console.log('Client touch bridge: normalized movement, station tap/throw hold, neutral reset, cancellation, sprint and keyboard compatibility passed.');
+ console.log('Client order bridge: all recipe ingredients, snapshot order/duplicates, reviewed sprites, unknown fallback and patience passed.');
+ console.log('Client aim rendering: translucent arc, finite eight-way/analog geometry, unchanged range, cancellation and request-free steering passed.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

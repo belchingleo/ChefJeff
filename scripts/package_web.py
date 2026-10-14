@@ -18,10 +18,11 @@ PUBLIC_FILES = ('hosted_server.py','hosted_records.py','hosted/browser-agent.js'
                 'docs/map-format.md','docs/current-rules.md','docs/interaction-guide.md','docs/level-1-steak.md','docs/level-2-burger.md','docs/level-3-steak-burger.md','docs/status.md','docs/privacy-and-costs.md','docs/agent-integration.md',
                 'cocos-kitchen/THIRD_PARTY_LICENSE.md','docs/art/integration.md',
                 'scripts/build_cocos.py','scripts/package_web.py','scripts/audit_release.py',
-                'cocos-kitchen/web-shell.html','cocos-kitchen/i18n.js','cocos-kitchen/i18n.json','cocos-kitchen/favicon.ico','cocos-kitchen/fonts/chefjeff-pixel.woff2','cocos-kitchen/fonts/OFL.txt','scripts/subset_pixel_font.py','cocos-kitchen/package.json','cocos-kitchen/build-web.json',
+                'cocos-kitchen/web-shell.html','cocos-kitchen/touch-controls.js','cocos-kitchen/gamepad-controls.js','cocos-kitchen/i18n.js','cocos-kitchen/i18n.json','cocos-kitchen/favicon.ico','cocos-kitchen/fonts/chefjeff-pixel.woff2','cocos-kitchen/fonts/OFL.txt','scripts/subset_pixel_font.py','cocos-kitchen/package.json','cocos-kitchen/build-web.json',
                 'cocos-kitchen/tsconfig.json','cocos-kitchen/assets/scenes.meta','cocos-kitchen/assets/scripts.meta',
                 'cocos-kitchen/assets/scripts/KitchenClient.ts','cocos-kitchen/assets/scripts/KitchenClient.ts.meta',
                 'cocos-kitchen/assets/scripts/LevelOneArt.ts','cocos-kitchen/assets/scripts/LevelOneArt.ts.meta',
+                'cocos-kitchen/assets/scripts/KitchenAudio.ts','cocos-kitchen/assets/scripts/KitchenAudio.ts.meta',
                 'cocos-kitchen/assets/scripts/KitchenGeometry.ts','cocos-kitchen/assets/scripts/KitchenGeometry.ts.meta',
                 'cocos-kitchen/assets/scenes/Kitchen.scene','cocos-kitchen/assets/scenes/Kitchen.scene.meta',
                 'cocos-kitchen/settings/v2/packages/project.json','cocos-kitchen/settings/v2/packages/builder.json',
@@ -36,7 +37,7 @@ def package(root=ROOT, output=None):
     if not (web/'index.html').is_file():raise ValueError('缺少网页构建：先运行 python3 scripts/build_cocos.py web')
     names.update(p.relative_to(root).as_posix() for p in web.rglob('*') if p.is_file())
     art=root/'cocos-kitchen/assets/resources'
-    names.update(p.relative_to(root).as_posix() for p in art.rglob('*') if p.is_file() and p.suffix in ('.png','.json','.meta'))
+    names.update(p.relative_to(root).as_posix() for p in art.rglob('*') if p.is_file() and p.suffix in ('.png','.json','.meta','.mp3'))
     if art.with_suffix('.meta').is_file():names.add(art.with_suffix('.meta').relative_to(root).as_posix())
     files={}
     for name in sorted(names):

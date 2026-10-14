@@ -69,7 +69,7 @@
     doc.documentElement.lang=locale==='en'?'en':'zh-CN';
     doc.title=locale==='en'?'ChefJeff · Cook together':'ChefJeff · 一起出餐';
     const toggle=doc.getElementById('kitchen-language');
-    if(toggle){toggle.textContent=locale==='en'?'中文':'English';toggle.setAttribute('aria-label',locale==='en'?'切换到中文':'Switch to English');}
+    if(toggle){toggle.textContent=locale==='en'?'Chinese':'英语';toggle.setAttribute('aria-label',locale==='en'?'Switch to Chinese':'切换到英文');}
   }
   function setLanguage(next) {
     if (!['zh','en'].includes(next)) return;

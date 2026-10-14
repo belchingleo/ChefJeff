@@ -60,17 +60,17 @@
   }
   function validate(raw) {
     const provider = raw.provider;
-    if (!['jev','deepseek','compatible'].includes(provider)) throw new Error('Select a model provider.');
+    if (!['jev','deepseek','compatible'].includes(provider)) throw new Error('选择模型服务。');
     const api_key = typeof raw.api_key === 'string' ? raw.api_key.trim() : '';
-    if (api_key.length < 8 || api_key.length > 2048 || /\s/.test(api_key)) throw new Error('Enter a complete API key.');
+    if (api_key.length < 8 || api_key.length > 2048 || /\s/.test(api_key)) throw new Error('请输入完整的 API Key。');
     const base_url = provider === 'jev' ? 'https://api.typesafe.ai/v1' : provider === 'deepseek' ?
       'https://api.deepseek.com' : String(raw.base_url || '').trim().replace(/\/+$/, '').replace(/\/chat\/completions$/, '');
-    const u = new URL(base_url);
+    let u;try {u = new URL(base_url);} catch (_) {throw new Error('接口地址无效，请填写完整的 HTTPS 地址。');}
     if (u.protocol !== 'https:' || u.origin === location.origin || u.username || u.password || u.search || u.hash ||
         u.hostname === 'localhost' || /\.(local|localhost|internal)$/.test(u.hostname) ||
-        /^[\d.]+$/.test(u.hostname) || u.hostname.includes(':')) throw new Error('Use an external public HTTPS model service.');
+        /^[\d.]+$/.test(u.hostname) || u.hostname.includes(':')) throw new Error('请使用外部公开的 HTTPS 模型服务地址。');
     const model = provider === 'jev' ? 'jev-latest' : String(raw.model || '').trim();
-    if (!model || model.length > 120) throw new Error('Enter the model name supplied by your provider.');
+    if (!model || model.length > 120) throw new Error('请输入服务商提供的模型名称。');
     return {provider, base_url, model, api_key, remember: raw.remember === true};
   }
   try {
@@ -100,9 +100,9 @@
       const r = await nativeFetch(endpoint, {method:'POST', mode:'cors', credentials:'omit', redirect:'error',
         referrerPolicy:'no-referrer', signal:controller.signal,
         headers:{Authorization:'Bearer ' + config.api_key, 'Content-Type':'application/json'}, body:JSON.stringify(body)});
-      if (!r.ok) throw new Error('Model API returned HTTP ' + r.status + '. Check your account and model.');
+      if (!r.ok) throw new Error('模型接口返回 HTTP ' + r.status + '，请检查账号和模型。');
       const text = await r.text();
-      if (text.length > 262144) throw new Error('Model response is too large.');
+      if (text.length > 262144) throw new Error('模型回复过大。');
       let d, answer, usage;
       try {
         d = JSON.parse(text);
@@ -117,13 +117,13 @@
         }
         if (!Object.hasOwn(payload.questions.next_action.criteria, answer.choice) ||
             ('sprint' in payload.questions && typeof answer.sprint !== 'boolean')) throw new Error();
-      } catch (_) {throw new Error('Model returned an invalid action. No action was applied.');}
+      } catch (_) {throw new Error('模型返回了无效动作，未执行任何操作。');}
       return {choice:answer.choice, sprint:answer.sprint === true, usage:{
         input_tokens:boundedCount(usage.input_tokens), output_tokens:boundedCount(usage.output_tokens)},
         latency:(performance.now()-started)/1000};
     } catch (e) {
-      if (e.name === 'AbortError') throw new Error('Model request timed out or was cancelled.');
-      if (e instanceof TypeError) throw new Error('Browser could not reach this provider. Check network/CORS support; your key was not forwarded through our server.');
+      if (e.name === 'AbortError') throw new Error('模型请求超时或已取消。');
+      if (e instanceof TypeError) throw new Error('浏览器无法访问模型服务，请检查网络和跨域支持；Key 不会通过我们的服务器转发。');
       throw e;
     } finally {clearTimeout(timer);outerSignal?.removeEventListener('abort', abort);}
   }
@@ -133,7 +133,7 @@
       body:JSON.stringify({game_id:body.game_id, request_id:crypto.randomUUID(), connected})});
   }
   async function configure(body, signal) {
-    if (!connection().editable) return response(409, {error:'Finish the round before changing your connection.'});
+    if (!connection().editable) return response(409, {error:'请结束本局后再更换 API。'});
     testing = true;
     try {
       if (body.clear) {
@@ -145,7 +145,7 @@
         checks++;
         await modelRequest(candidate, {state:{connection_test:true}, questions:{next_action:{type:'choice',
           instructions:'Connection test. Choose wait.', criteria:{wait:'Wait'}}}}, signal);
-        if (signal?.aborted) throw new Error('Connection cancelled.');
+        if (signal?.aborted) throw new Error('连接测试已取消。');
         const r = await markReady(true, body); if (!r.ok) return r;
         // Remove any older remembered key even when the new choice is memory-only.
         try {
@@ -168,24 +168,24 @@
       }
       // Restored settings have a fresh server session on every page load.
       if (url.pathname === '/api/start' && setting && state) await markReady(true, state);
-      if (url.pathname === '/api/start' && !setting) return response(428,{error:'Connect your model in this browser first.'});
+      if (url.pathname === '/api/start' && !setting) return response(428,{error:'请先在当前浏览器连接模型服务。'});
       const result = await serverFetch(url.pathname, init);
       if (url.pathname !== '/api/state' || !result.ok) return result;
       const d = await result.json(); state = d;
       d.connection = connection();
       d.limits.connection_checks = checks;
       return response(200, d);
-    } catch (_) {return response(503, {error:transportError || 'Kitchen connection unavailable. Refresh to create a new session.'});}
+    } catch (_) {return response(503, {error:transportError || '厨房连接不可用，请刷新页面重新连接。'});}
   };
 
   // Cocos uses XMLHttpRequest locally. Its hosted hook shares this credential-free game transport.
   window.chefjeffHostedRequest = async (path, body) => {
-    if (!path.startsWith('/api/')) throw new Error('Invalid game endpoint.');
+    if (!path.startsWith('/api/')) throw new Error('游戏接口无效。');
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 5000);
     try {
       const r = await window.fetch(path, {method:body?'POST':'GET',signal:controller.signal,
         headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});
-      const d = await r.json();if (!r.ok) throw new Error(d.error || 'Kitchen request failed.');return d;
+      const d = await r.json();if (!r.ok) throw new Error(d.error || '厨房请求失败。');return d;
     } finally {clearTimeout(timer);}
   };
 
@@ -223,7 +223,7 @@
     async function command(path, extra={}) {
       const r = await serverFetch(path, {method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({game_id:state?.game_id,request_id:crypto.randomUUID(),...extra})});
-      const d = await r.json();if (!r.ok) throw new Error(d.error || 'Request failed.');return d;
+      const d = await r.json();if (!r.ok) throw new Error(d.error || '请求失败。');return d;
     }
     el('contribution-consent').onchange = () => {
       el('contribution-save').disabled = !(state?.phase === 'ended' && state?.hosted?.contribution_enabled && el('contribution-consent').checked);
@@ -241,7 +241,7 @@
         el('contribution-receipt').value = JSON.stringify(receipt,null,2);
         el('contribution-download').hidden = false;
         el('contribution-consent').checked = false;
-        status('Saved for 30 days. Download your deletion receipt before leaving. 已保存，请离开前下载删除凭证。');
+        status('已保存，将保留 30 天；请在离开前下载删除凭证。');
       } catch(e) {status(e.message);}
     };
     el('contribution-download').onclick = () => {
@@ -251,11 +251,11 @@
     };
     el('contribution-delete').onclick = async () => {
       try {
-        const rcp = JSON.parse(el('contribution-receipt').value);
+        let rcp;try {rcp = JSON.parse(el('contribution-receipt').value);} catch (_) {throw new Error('删除凭证格式不正确，请粘贴完整的凭证。');}
         const r = await serverFetch('/api/contribution/delete',{method:'POST',headers:{'Content-Type':'application/json'},
           body:JSON.stringify({id:rcp.id,deletion_token:rcp.deletion_token})});
-        if (!r.ok) throw new Error('Receipt invalid, record already deleted, or expired. 凭证无效，或记录已删除／过期。');
-        status('Contribution deleted. 已删除贡献数据。');el('contribution-receipt').value='';receipt=null;
+        if (!r.ok) throw new Error('删除凭证无效，或记录已删除／过期。');
+        status('已删除贡献数据。');el('contribution-receipt').value='';receipt=null;
       } catch (e) {status(e.message);}
     };
     const select = document.getElementById('api-provider');

@@ -88,7 +88,7 @@ class HostedTests(unittest.TestCase):
         raw=(Path(__file__).resolve().parents[1]/'cocos-kitchen/build/web/index.html').read_bytes()
         html=hosted_html(raw).decode()
         self.assertIn('<head><script src="/hosted-agent.js">',html)
-        self.assertIn('browser localStorage',html)
+        self.assertIn('浏览器 localStorage',html)
         self.assertNotIn('记住后以明文保存在这台电脑的本地配置文件',html)
         self.assertIn('<section hidden aria-labelledby="memory-title"',html)
         self.assertNotIn(b'hosted-agent.js',raw)

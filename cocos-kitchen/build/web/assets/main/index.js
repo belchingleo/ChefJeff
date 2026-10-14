@@ -520,9 +520,22 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             x: 0,
             y: 0
           };
-          // Hold Space to aim a throw (Overcooked-style): after AIM_HOLD seconds the chef stops, an arrow
-          // shows the direction, direction keys turn it, and releasing Space throws along it.
+          // Hold Space to aim a throw (Overcooked-style): after AIM_HOLD seconds the chef stops, a translucent arc
+          // guides the direction and maximum range; direction keys turn it, and releasing Space throws along it.
+          _this.touchDirection = {
+            x: 0,
+            y: 0
+          };
+          _this.touchMoveDirty = false;
+          _this.touchMoveAt = -Infinity;
+          _this.touchNeedsNeutral = false;
+          _this.touchBlocked = false;
+          _this.touchLayout = null;
+          _this.touchNodeVisibility = new Map();
+          _this.controls = null;
+          _this.controlsSignature = '';
           _this.spaceDownAt = null;
+          _this.spaceItemId = null;
           _this.aiming = null;
           _this.aimArrow = null;
           // Held-key walking is predicted locally so the chef answers on the same frame, then eased onto server state.
@@ -594,9 +607,13 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             var _e$target;
             if ((_e$target = e.target) != null && _e$target.closest('canvas')) e.preventDefault();
           };
-          _this.onMouseDown = function (e) {
-            var _e$target2;
-            if (e.button === 2 && (_e$target2 = e.target) != null && _e$target2.closest('canvas')) {
+          _this.onMouseDown = e => {
+            if (!sys.isNative && e.isTrusted) window.dispatchEvent(new CustomEvent('kitchen-manual-input', {
+              detail: {
+                source: 'mouse'
+              }
+            }));
+            if (e.button === 2 && e.target?.closest('canvas')) {
               e.preventDefault();
               e.stopImmediatePropagation();
             }
@@ -608,10 +625,26 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               e.stopImmediatePropagation();
             }
           };
-          _this.onKey = function (e) {
-            var _document$activeEleme, _document$activeEleme2, _this$state, _this$buttons$_this$f, _this$state2;
+          _this.onTouchMode = e => {
+            const next = e.detail || {},
+              old = _this.touchLayout;
+            _this.touchLayout = next;
+            if (old?.active !== next.active || old?.landscape !== next.landscape) _this.clearInput();
+            if (next.active && !next.landscape) _this.blockTouch(true);
+            if (_this.connected) game.frameRate = _this.state?.phase === 'running' ? next.active ? 30 : 60 : 15;
+            _this.applyTouchLayout();
+            if (_this.mounted) _this.render();
+            _this.publishControls();
+          };
+          _this.onKey = e => {
+            // Give a held controller back to the keyboard before applying this key.
+            if (!sys.isNative && e.isTrusted) window.dispatchEvent(new CustomEvent('kitchen-manual-input', {
+              detail: {
+                source: 'keyboard'
+              }
+            }));
             // The communication dock keeps native Tab/Enter/Space; Esc hands the keyboard back.
-            var dock = !sys.isNative ? (_document$activeEleme = document.activeElement) == null ? void 0 : _document$activeEleme.closest('#kitchen-communication') : null;
+            const dock = !sys.isNative ? document.activeElement?.closest('#kitchen-communication') : null;
             if (e.key === 'Escape') {
               if (dock) {
                 document.activeElement.blur();
@@ -622,7 +655,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               return;
             }
             if (e.isComposing || e.keyCode === 229) return;
-            if (!sys.isNative && (document.querySelector('dialog[open]') || (_document$activeEleme2 = document.activeElement) != null && _document$activeEleme2.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"]'))) return;
+            if (!sys.isNative && (document.querySelector('dialog[open]') || document.activeElement?.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"]'))) return;
             // P pauses and resumes like Esc, for keyboards without an Esc key (iPad Magic Keyboard).
             // Typing fields and open dialogs are excluded above.
             if (e.code === 'KeyP' && !e.ctrlKey && !e.altKey && !e.metaKey) {
@@ -631,38 +664,29 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             }
             if (dock && (e.key === 'Enter' || e.code === 'Space' || e.key === 'Tab')) return;
             // Enter bookmarks the moment, unless a focused on-screen control should be pressed.
-            if (e.key === 'Enter' && ((_this$state = _this.state) == null ? void 0 : _this$state.phase) === 'running' && !(_this.focusId && (_this$buttons$_this$f = _this.buttons[_this.focusId]) != null && _this$buttons$_this$f.enabled && _this.buttons[_this.focusId].node.activeInHierarchy)) {
+            if (e.key === 'Enter' && _this.state?.phase === 'running' && !(_this.focusId && _this.buttons[_this.focusId]?.enabled && _this.buttons[_this.focusId].node.activeInHierarchy)) {
               e.preventDefault();
               e.stopImmediatePropagation();
               if (!e.repeat && !e.ctrlKey && !e.altKey && !e.metaKey) _this.bookmark();
               return;
             }
-            if (((_this$state2 = _this.state) == null ? void 0 : _this$state2.phase) === 'running' && _this.connected) {
+            if (_this.canInput()) {
               // Keys that keep the WASD fingers in place: Space (thumb) = whatever the faced target needs,
               // including chop, wash and extinguish; hold Space to aim a throw; Shift (little finger) =
               // dash (Overcooked's Alt, which browsers reserve).
               if (e.key === 'Shift') {
                 e.preventDefault();
-                if (!e.repeat && !_this.aiming && (_this.manualDirection.x !== 0 || _this.manualDirection.y !== 0)) _this.sendMove(_this.manualDirection.x, _this.manualDirection.y, true);
+                if (!e.repeat) _this.dash();
                 return;
               }
               if (e.code === 'Space') {
                 e.preventDefault();
                 if (!e.repeat && !e.ctrlKey && !e.altKey && !e.metaKey) {
-                  var s = _this.state,
-                    held = s.kitchen.chefs.human.holding;
-                  // Facing open floor with something in hand, Space either puts it down (tap) or
-                  // aims a throw (hold): decide on release or after AIM_HOLD. Everything else acts now.
-                  if (held && (!s.interaction || s.interaction.kind === 'drop')) _this.spaceDownAt = _this.clock;else {
-                    _this.handsBusyUntil = _this.clock + .35;
-                    _this.post('/api/interact', {
-                      expected_item: (held == null ? void 0 : held.id) || null
-                    });
-                  }
+                  _this.pressInteract();
                 }
                 return;
               }
-              var key = e.key.toLowerCase();
+              const key = e.key.toLowerCase();
               if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) {
                 e.preventDefault();
                 _this.heldKeys.add(key);
@@ -672,16 +696,13 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             }
             if (e.key === 'Tab') {
               e.preventDefault();
-              var ids = _this.tabOrder().filter(function (id) {
-                var _this$buttons$id;
-                return ((_this$buttons$id = _this.buttons[id]) == null ? void 0 : _this$buttons$id.enabled) && _this.buttons[id].node.activeInHierarchy;
-              });
+              const ids = _this.tabOrder().filter(id => _this.buttons[id]?.enabled && _this.buttons[id].node.activeInHierarchy);
               if (!ids.length) return;
-              var at = ids.indexOf(_this.focusId);
+              const at = ids.indexOf(_this.focusId);
               _this.setFocus(ids[(at + (e.shiftKey ? -1 : 1) + ids.length) % ids.length]);
             } else if (e.key === 'Enter' && _this.focusId) {
-              var b = _this.buttons[_this.focusId];
-              if (b != null && b.enabled && b.node.activeInHierarchy) {
+              const b = _this.buttons[_this.focusId];
+              if (b?.enabled && b.node.activeInHierarchy) {
                 e.preventDefault();
                 _this.audio.play('ui_click');
                 b.callback();
@@ -693,30 +714,13 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             var d = e.detail;
             if (d.ok) _this.post(d.kind === 'end' ? '/api/end' : '/api/restart');else if (d.resume && ((_this$state3 = _this.state) == null ? void 0 : _this$state3.phase) === 'paused') _this.post('/api/resume');
           };
-          _this.onKeyUp = function (e) {
+          _this.onKeyUp = e => {
             if (e.code === 'Space') {
-              if (_this.aiming) {
-                var _this$state4, _this$state5;
-                var d = _this.aiming,
-                  held = (_this$state4 = _this.state) == null ? void 0 : _this$state4.kitchen.chefs.human.holding;
-                _this.endAim();
-                if (held && ((_this$state5 = _this.state) == null ? void 0 : _this$state5.phase) === 'running') _this.post('/api/throw', {
-                  expected_item: held.id,
-                  direction: [d.x, d.y]
-                });
-                _this.refreshMovement();
-              } else if (_this.spaceDownAt !== null) {
-                var _this$state6;
-                _this.spaceDownAt = null;
-                _this.handsBusyUntil = _this.clock + .35;
-                _this.post('/api/interact', {
-                  expected_item: ((_this$state6 = _this.state) == null || (_this$state6 = _this$state6.kitchen.chefs.human.holding) == null ? void 0 : _this$state6.id) || null
-                });
-              }
+              _this.releaseInteract();
               return;
             }
-            var key = e.key.toLowerCase();
-            if (_this.heldKeys["delete"](key)) {
+            const key = e.key.toLowerCase();
+            if (_this.heldKeys.delete(key)) {
               if (_this.aiming) _this.steerAim();else _this.refreshMovement();
             }
           };
@@ -798,13 +802,13 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                       _this.locate(_this.people[who], next.kitchen.chefs[who].position);
                     }
                   }
-                  if (next.phase !== 'running' || next.game_id !== ((_this$state9 = _this.state) == null ? void 0 : _this$state9.game_id)) _this.clearInput();
+                  if (next.phase !== 'running' || next.game_id !== ((_this$state9 = _this.state) == null ? void 0 : _this$state9.game_id) || (_this.spaceItemId !== null && (next.kitchen.chefs.human.holding?.id !== _this.spaceItemId || next.kitchen.chefs.human.can_throw === false))) _this.clearInput();
                   if (next.game_id !== ((_this$state10 = _this.state) == null ? void 0 : _this$state10.game_id)) _this.moveSeq = Date.now() * 1000;
                   _this.state = next;
                   _this.connected = true;
                   _this.received = _this.clock;
                   _this.stateSentAt = sent;
-                  frameRate = next.phase === 'running' ? 60 : 15;
+                  frameRate = next.phase === 'running' ? (_this.touchLayout?.active ? 30 : 60) : 15;
                   if (game.frameRate !== frameRate) game.frameRate = frameRate;
                   if (!sys.isNative) window.dispatchEvent(new CustomEvent('kitchen-state', {
                     detail: {
@@ -814,7 +818,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                       memory: next.memory,
                       limits: next.limits,
                       release: next.release,
-                      communication: next.communication
+                      communication: next.communication,
+                      hosted: next.hosted
                     }
                   }));
                   if (!_this.mounted) _this.mountMap();
@@ -843,6 +848,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                 case 51:
                   _context.prev = 51;
                   _this.polling = false;
+                  _this.applyTouchLayout();
+                  _this.publishControls();
                   return _context.finish(51);
                 case 54:
                 case "end":
@@ -998,6 +1005,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             canvas == null || canvas.setAttribute('role', 'img');
             canvas == null || canvas.setAttribute('aria-label', 'ChefJeff 厨房画面');
           }
+          this.installControls();
           game.on(Game.EVENT_HIDE, this.onHide, this);
           game.on(Game.EVENT_SHOW, this.onShow, this);
           if (!sys.isNative) {
@@ -1043,13 +1051,14 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           if (!sys.isNative) (_document$getElementB = document.getElementById('kitchen-loading')) == null || _document$getElementB.remove();
         };
         _proto.onDestroy = function onDestroy() {
-          var _this$controlAccess;
           this.audio.destroy();
-          (_this$controlAccess = this.controlAccess) == null || _this$controlAccess.remove();
+          this.controlAccess?.remove();
           this.clearInput();
           game.off(Game.EVENT_HIDE, this.onHide, this);
           game.off(Game.EVENT_SHOW, this.onShow, this);
           if (!sys.isNative) {
+            window.removeEventListener('kitchen-touch-mode', this.onTouchMode);
+            if (window.kitchenControls === this.controls) delete window.kitchenControls;
             window.removeEventListener('kitchen-language-changed', this.onLanguage);
             window.removeEventListener('kitchen-confirmed', this.onConfirmed);
             window.removeEventListener('keydown', this.onKey, true);
@@ -1081,10 +1090,12 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
         };
         _proto.openHelp = function openHelp() {
           this.clearInput();
+          if (this.touchLayout?.active) this.blockTouch(true);
           if (!sys.isNative) window.dispatchEvent(new Event('kitchen-open-help'));
         };
         _proto.openConnection = function openConnection() {
           this.clearInput();
+          if (this.touchLayout?.active) this.blockTouch(true);
           if (!sys.isNative) window.dispatchEvent(new Event('kitchen-open-connection'));
         };
         _proto.togglePause = function togglePause(e) {
@@ -1097,6 +1108,256 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             e.preventDefault();
             this.post('/api/resume');
           }
+        };
+        _proto.installControls = function installControls() {
+          if (sys.isNative) return;
+          this.controls = {
+            getState: () => this.controlsState(),
+            move: (x, y) => this.setTouchMove(x, y),
+            press: () => this.pressInteract(),
+            release: () => this.releaseInteract(),
+            cancel: () => this.clearInput(),
+            dash: () => this.dash(),
+            block: blocked => this.blockTouch(blocked),
+            pause: () => {
+              this.clearInput();
+              if (this.connected && this.state?.phase === 'running') this.post('/api/pause');
+            },
+            resume: () => this.controlButton('resume'),
+            main: () => this.controlButton('main'),
+            settings: () => this.openConnection(),
+            help: () => this.openHelp(),
+            end: () => this.controlButton('end'),
+            record: () => this.openRecord(),
+            bookmark: () => {
+              if (this.canInput()) this.bookmark();
+            },
+            level: id => {
+              if (this.connected && !this.pending && ['ready', 'ended'].includes(this.state?.phase || '') && this.state?.levels?.some(l => l.id === id)) this.post('/api/level', {
+                level: id
+              });
+            },
+            language: () => {
+              const i18n = window.kitchenI18n;
+              i18n?.setLanguage(i18n.language === 'en' ? 'zh' : 'en');
+            }
+          };
+          window.kitchenControls = this.controls;
+          window.addEventListener('kitchen-touch-mode', this.onTouchMode);
+          window.dispatchEvent(new CustomEvent('kitchen-controls-ready'));
+          this.publishControls();
+        };
+        _proto.controlButton = function controlButton(id) {
+          if (this.pending) return;
+          if (this.touchLayout?.active && !this.touchLayout.landscape) return;
+          if (!sys.isNative && document.querySelector('dialog[open]')) return;
+          if (id === 'main' && this.state?.phase === 'ready' && this.state.connection && !this.state.connection.configured) {
+            this.openConnection();
+            return;
+          }
+          const b = this.buttons[id];
+          if (b?.enabled && !this.pending) b.callback();
+        };
+        _proto.canInput = function canInput() {
+          return !!this.state && this.connected && !this.hidden && !this.touchBlocked && this.state.phase === 'running' && (sys.isNative || !document.querySelector('dialog[open]'));
+        };
+        _proto.blockTouch = function blockTouch(blocked) {
+          if (this.touchBlocked === !!blocked) return;
+          this.touchBlocked = !!blocked;
+          if (blocked) {
+            this.clearInput();
+            if (this.connected && this.state?.phase === 'running') this.post('/api/pause');
+          }
+          this.publishControls();
+        };
+        _proto.controlsState = function controlsState() {
+          const s = this.state,
+            k = s?.kitchen,
+            c = k?.chefs?.human;
+          const text = id => this.labels[id] ? this.labelSources.get(this.labels[id]) || '' : '';
+          return {
+            game_id: s?.game_id,
+            phase: s?.phase || 'loading',
+            connected: this.connected,
+            pending: this.pending,
+            canInput: this.canInput(),
+            canInteract: !!s?.interaction,
+            canThrow: !!c?.holding && c.can_throw !== false,
+            canDash: this.canInput() && !this.aiming && !!c?.sprint?.available && (this.manualDirection.x !== 0 || this.manualDirection.y !== 0),
+            holding: c?.holding || null,
+            interaction: s?.interaction?.label.split('（')[0] || '',
+            interactionHint: s?.interaction_hint || '',
+            aiming: this.aiming ? {
+              ...this.aiming
+            } : null,
+            sprint: c?.sprint || {},
+            event: text('event'),
+            orders: (k?.orders || []).filter(o => o.status === 'pending').map(o => this.touchOrder(o)),
+            money: k?.money || 0,
+            served: k?.served || 0,
+            timeLabel: text('clock'),
+            handLabel: text('hand'),
+            aiStatus: text('ai-status'),
+            coverTitle: text('coverTitle'),
+            coverText: text('coverText'),
+            mainLabel: this.buttons.main ? this.labelSources.get(this.buttons.main.label) || '' : '',
+            mainEnabled: !!this.buttons.main?.enabled && !this.pending,
+            communicationEnabled: !!s?.communication?.allowed,
+            endEnabled: ['running', 'paused'].includes(s?.phase || '') && this.connected && !this.pending,
+            recordEnabled: !!s?.round_summary && s?.phase === 'ended',
+            levels: (s?.levels || []).map(l => ({
+              id: l.id,
+              name: l.name,
+              selected: l.id === k?.level_id
+            })),
+            levelEnabled: this.connected && !this.pending && ['ready', 'ended'].includes(s?.phase || '')
+          };
+        };
+        _proto.touchOrder = function touchOrder(order) {
+          const dish = this.dishById(order.dish),
+            ingredients = order.ingredients || dish?.components?.map(c => c.item) || [];
+          const patienceTotal = order.patience || this.state?.rules?.order_patience || 90;
+          const recipeKey = [`dishes/${order.dish}/ready`, `food/${order.dish}_ready`].find(key => this.art.has(key));
+          return {
+            ...order,
+            dishName: dish?.name || order.dish,
+            patienceTotal,
+            patienceRemainingFraction: Math.max(0, Math.min(1, (order.remaining || 0) / patienceTotal)),
+            recipeIcon: recipeKey ? this.art.spriteInfo(recipeKey) : null,
+            ingredientDetails: ingredients.map(id => {
+              const required = dish?.components?.find(c => c.item === id)?.state,
+                state = required && required !== 'chopped' ? required : 'raw';
+              const art = this.itemArt(id, state, true);
+              return {
+                id,
+                name: this.itemLabel(id),
+                state,
+                icon: art ? this.art.spriteInfo(art.key) : null
+              };
+            })
+          };
+        };
+        _proto.publishControls = function publishControls() {
+          if (sys.isNative || !this.controls) return;
+          const detail = this.controlsState(),
+            signature = JSON.stringify(detail);
+          if (signature === this.controlsSignature) return;
+          this.controlsSignature = signature;
+          window.dispatchEvent(new CustomEvent('kitchen-controls-state', {
+            detail
+          }));
+        };
+        _proto.setTouchMove = function setTouchMove(x, y) {
+          if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+          const length = Math.hypot(x, y),
+            d = length ? {
+              x: x / length,
+              y: y / length
+            } : {
+              x: 0,
+              y: 0
+            };
+          if (length && !this.canInput()) return;
+          this.touchDirection = d;
+          if (this.aiming) {
+            if (length) {
+              this.aiming = d;
+              this.drawAim();
+              this.publishControls();
+            }
+            return;
+          }
+          if (this.touchNeedsNeutral) {
+            if (length) return;
+            this.touchNeedsNeutral = false;
+          }
+          this.touchMoveDirty = true;
+          if (!length) this.flushTouchMove();
+        };
+        _proto.flushTouchMove = function flushTouchMove() {
+          if (!this.touchMoveDirty) return;
+          this.touchMoveDirty = false;
+          this.touchMoveAt = this.clock;
+          this.refreshMovement();
+          this.publishControls();
+        };
+        _proto.pressInteract = function pressInteract() {
+          if (!this.canInput() || this.pending || this.spaceDownAt !== null || this.aiming) return;
+          const held = this.state.kitchen.chefs.human.holding;
+          if (held && this.state.kitchen.chefs.human.can_throw !== false) {
+            this.spaceDownAt = this.clock;
+            this.spaceItemId = held.id;
+          } else {
+            this.handsBusyUntil = this.clock + .35;
+            this.post('/api/interact', {
+              expected_item: held?.id || null
+            });
+          }
+        };
+        _proto.releaseInteract = function releaseInteract() {
+          const held = this.state?.kitchen.chefs.human.holding;
+          if (this.spaceItemId !== null && (!this.canInput() || held?.id !== this.spaceItemId)) {
+            this.clearInput();
+            return;
+          }
+          if (this.aiming) {
+            const d = this.aiming,
+              wasTouch = this.touchDirection.x !== 0 || this.touchDirection.y !== 0;
+            this.endAim();
+            this.touchNeedsNeutral = wasTouch;
+            if (held && this.canInput()) this.post('/api/throw', {
+              expected_item: held.id,
+              direction: [d.x, d.y]
+            });
+            this.refreshMovement();
+          } else if (this.spaceDownAt !== null) {
+            this.spaceDownAt = null;
+            this.spaceItemId = null;
+            this.handsBusyUntil = this.clock + .35;
+            this.post('/api/interact', {
+              expected_item: held?.id || null
+            });
+          }
+          this.publishControls();
+        };
+        _proto.dash = function dash() {
+          if (!this.canInput() || this.aiming) return;
+          const sprint = this.state?.kitchen.chefs.human.sprint;
+          if (sprint && (sprint.available === false || sprint.active_remaining > 0 || sprint.cooldown_remaining > 0)) return;
+          this.flushTouchMove();
+          if (this.manualDirection.x !== 0 || this.manualDirection.y !== 0) this.sendMove(this.manualDirection.x, this.manualDirection.y, true);
+        };
+        _proto.applyTouchLayout = function applyTouchLayout() {
+          if (!this.node || !this.world || !this.state) return;
+          const mobile = !!this.touchLayout?.active;
+          // All kitchen art shares one transform; desktop HUD and cover have a readable HTML counterpart on phones.
+          if (mobile) {
+            for (const n of this.node.children) if (n !== this.world && n.name !== 'background' && n.getComponent(UITransform)) {
+              if (!this.touchNodeVisibility.has(n)) this.touchNodeVisibility.set(n, n.active);
+              n.active = false;
+            }
+          } else {
+            for (const [n, active] of this.touchNodeVisibility) if (n.isValid) n.active = active;
+            this.touchNodeVisibility.clear();
+            this.world.setScale(1, 1, 1);
+            this.world.setPosition(0, 0);
+            return;
+          }
+          const r = this.touchLayout.boardRect;
+          if (!r || !this.touchLayout.landscape) return;
+          const w = this.touchLayout.width || innerWidth,
+            h = this.touchLayout.height || innerHeight;
+          const screenScale = Math.min(w / 1280, h / 720),
+            gx = (w - 1280 * screenScale) / 2,
+            gy = (h - 720 * screenScale) / 2;
+          const map = this.state.kitchen.map,
+            bw = map.width * TILE + 24,
+            bh = map.height * TILE + 44;
+          const scale = Math.min(r.width / bw, r.height / bh) / screenScale;
+          const cx = MAPX + map.width * TILE / 2 - 640,
+            cy = 360 - (MAPY + map.height * TILE / 2 - 10);
+          this.world.setScale(scale, scale, 1);
+          this.world.setPosition((r.left + r.width / 2 - gx) / screenScale - 640 - cx * scale, 360 - (r.top + r.height / 2 - gy) / screenScale - cy * scale);
         };
         _proto.setFocus = function setFocus(id) {
           var _this$controlAccess2, _this$controlAccess3;
@@ -1162,20 +1423,24 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }));
         };
         _proto.keyDirection = function keyDirection() {
-          var x = (this.heldKeys.has('d') || this.heldKeys.has('arrowright') ? 1 : 0) - (this.heldKeys.has('a') || this.heldKeys.has('arrowleft') ? 1 : 0);
-          var y = (this.heldKeys.has('s') || this.heldKeys.has('arrowdown') ? 1 : 0) - (this.heldKeys.has('w') || this.heldKeys.has('arrowup') ? 1 : 0),
+          const x = (this.heldKeys.has('d') || this.heldKeys.has('arrowright') ? 1 : 0) - (this.heldKeys.has('a') || this.heldKeys.has('arrowleft') ? 1 : 0);
+          const y = (this.heldKeys.has('s') || this.heldKeys.has('arrowdown') ? 1 : 0) - (this.heldKeys.has('w') || this.heldKeys.has('arrowup') ? 1 : 0),
             mag = Math.hypot(x, y);
-          return mag ? {
+          if (mag) return {
             x: x / mag,
             y: y / mag
-          } : null;
-        }
-        /** Space held long enough: stop, and aim along the held direction (or the facing). */;
+          };
+          return !this.touchNeedsNeutral && (this.touchDirection.x !== 0 || this.touchDirection.y !== 0) ? this.touchDirection : null;
+        };
         _proto.startAim = function startAim() {
-          var _this$state16;
+          const human = this.state?.kitchen.chefs.human;
+          if (!this.connected || this.state?.phase !== 'running' || !human?.holding || human.holding.id !== this.spaceItemId || human.can_throw === false) {
+            this.endAim();
+            return;
+          }
           this.spaceDownAt = null;
-          var c = (_this$state16 = this.state) == null ? void 0 : _this$state16.kitchen.chefs.human,
-            f = FACING_DIR[c == null ? void 0 : c.facing] || [0, 1];
+          const c = this.state?.kitchen.chefs.human,
+            f = FACING_DIR[c?.facing] || [0, 1];
           this.aiming = this.keyDirection() || {
             x: f[0],
             y: f[1]
@@ -1188,6 +1453,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             this.sendMove(0, 0);
           }
           this.drawAim();
+          this.publishControls();
         };
         _proto.steerAim = function steerAim() {
           var d = this.keyDirection();
@@ -1197,55 +1463,61 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }
         };
         _proto.endAim = function endAim() {
-          var _this$aimArrow;
           this.aiming = null;
           this.spaceDownAt = null;
-          if ((_this$aimArrow = this.aimArrow) != null && _this$aimArrow.isValid) this.aimArrow.active = false;
+          this.spaceItemId = null;
+          if (this.aimArrow?.isValid) this.aimArrow.active = false;
         };
         _proto.drawAim = function drawAim() {
-          var _this$aimArrow2;
-          var chef = this.people['human'];
+          const chef = this.people['human'];
           if (!this.aiming || !this.world || !chef) return;
-          if (!((_this$aimArrow2 = this.aimArrow) != null && _this$aimArrow2.isValid)) {
+          if (!this.aimArrow?.isValid) {
             this.aimArrow = this.child(this.world, 'aim-arrow', 10, 10);
             this.aimArrow.addComponent(Graphics);
           }
-          var a = this.aimArrow,
+          const a = this.aimArrow,
             k = this.state.kitchen,
             reach = (k.map.pass_range || k.map.throw_range || 4) * TILE;
           a.active = true;
           a.setSiblingIndex(this.world.children.length - 1);
           a.setPosition(chef.position.x, chef.position.y + 18);
-          var g = a.getComponent(Graphics);
+          const g = a.getComponent(Graphics);
           g.clear();
-          var ex = this.aiming.x * reach,
+          const ex = this.aiming.x * reach,
             ey = -this.aiming.y * reach,
-            px = -ey / reach * 7,
-            py = ex / reach * 7,
-            bx = ex - this.aiming.x * 14,
-            by = ey + this.aiming.y * 14;
-          for (var _i9 = 0, _arr6 = [[6, COLORS.ink], [3, COLORS.paper]]; _i9 < _arr6.length; _i9++) {
-            var _arr6$_i = _arr6[_i9],
-              w = _arr6$_i[0],
-              c = _arr6$_i[1];
-            g.lineWidth = w;
-            g.strokeColor = color(c);
-            g.moveTo(this.aiming.x * 20, -this.aiming.y * 20);
-            g.lineTo(bx, by);
-            g.stroke();
+            left = [],
+            right = [];
+          // The ground path is still straight. Only the item's height bends the
+          // screen projection; the hand starts 18px above the ground endpoint.
+          for (let i = 0; i <= 32; i++) {
+            const t = i / 32,
+              x = ex * t,
+              y = ey * t + 35 * Math.sin(Math.PI * t) - 18 * t;
+            const tx = ex,
+              ty = ey + 35 * Math.PI * Math.cos(Math.PI * t) - 18,
+              length = Math.hypot(tx, ty) || 1;
+            const nx = -ty / length * 5,
+              ny = tx / length * 5;
+            left.push([x + nx, y + ny]);
+            right.push([x - nx, y - ny]);
           }
-          g.fillColor = color(COLORS.paper);
-          g.strokeColor = color(COLORS.ink);
-          g.lineWidth = 2;
-          g.moveTo(ex, ey);
-          g.lineTo(bx + px, by + py);
-          g.lineTo(bx - px, by - py);
+          g.fillColor = new Color(59, 146, 180, 72);
+          g.strokeColor = new Color(42, 90, 158, 120);
+          g.lineWidth = 1;
+          g.moveTo(left[0][0], left[0][1]);
+          for (let i = 1; i < left.length; i++) g.lineTo(left[i][0], left[i][1]);
+          for (let i = right.length - 1; i >= 0; i--) g.lineTo(right[i][0], right[i][1]);
           g.close();
           g.fill();
           g.stroke();
-        }
-        // Anything held can be thrown or passed; the server applies each item's range (currently 4 tiles for all).
-        ;
+          // A maximum-range guide, not a prediction of collision or catching.
+          g.fillColor = new Color(59, 146, 180, 36);
+          g.strokeColor = new Color(42, 90, 158, 145);
+          g.lineWidth = 1.5;
+          g.ellipse(ex, ey - 18, 13, 7);
+          g.fill();
+          g.stroke();
+        };
 
         _proto.sendMove = /*#__PURE__*/
         function () {
@@ -1293,11 +1565,10 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           return sendMove;
         }();
         _proto.refreshMovement = function refreshMovement() {
-          var x = (this.heldKeys.has('d') || this.heldKeys.has('arrowright') ? 1 : 0) - (this.heldKeys.has('a') || this.heldKeys.has('arrowleft') ? 1 : 0);
-          var y = (this.heldKeys.has('s') || this.heldKeys.has('arrowdown') ? 1 : 0) - (this.heldKeys.has('w') || this.heldKeys.has('arrowup') ? 1 : 0),
-            mag = Math.hypot(x, y);
-          var dx = mag ? x / mag : 0,
-            dy = mag ? y / mag : 0;
+          if (this.aiming) return;
+          const d = this.canInput() ? this.keyDirection() : null,
+            dx = d?.x || 0,
+            dy = d?.y || 0;
           if (dx === this.manualDirection.x && dy === this.manualDirection.y) return;
           this.manualDirection = {
             x: dx,
@@ -1385,12 +1656,19 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
         _proto.clearInput = function clearInput() {
           this.endAim();
           this.heldKeys.clear();
-          var wasMoving = this.manualDirection.x !== 0 || this.manualDirection.y !== 0;
+          this.touchDirection = {
+            x: 0,
+            y: 0
+          };
+          this.touchMoveDirty = false;
+          this.touchNeedsNeutral = false;
+          const wasMoving = this.manualDirection.x !== 0 || this.manualDirection.y !== 0;
           this.manualDirection = {
             x: 0,
             y: 0
           };
           if (wasMoving) this.sendMove(0, 0);
+          this.publishControls();
         };
         _proto.make = function make(name, x, y, w, h, parent) {
           if (parent === void 0) {
@@ -2682,9 +2960,11 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           this.jeffError = error;
           this.jeffThinking.active = false;
           this.jeffError.active = false;
-          this.mapNodes = this.node.children.filter(function (n) {
-            return !previous.has(n);
-          });
+          for (const n of this.node.children.filter(n => !previous.has(n) && n !== this.world)) {
+            n.setParent(this.world);
+            this.registerDepth(n, () => n.name === 'floor-art' ? -2000 : 1000);
+          }
+          this.mapNodes = [this.world];
           this.mountedLayout = map.layout_version;
           this.sortWorld();
           this.refreshArtCharacters();
@@ -2699,6 +2979,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             this.buttons[id].node.setSiblingIndex(this.node.children.length - 1);
           }
           this.mounted = true;
+          this.applyTouchLayout();
         };
         _proto.characterArt = function characterArt(body, who, facing, walking, working) {
           var _this$state28, _this$state29, _URLSearchParams$get;
@@ -3091,7 +3372,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }
         };
         _proto.pop = function pop(p, text, fill) {
-          var n = this.make('result-pop', p[0], p[1], 220, 28),
+          var n = this.make('result-pop', p[0], p[1], 220, 28, this.world || this.node),
             l = n.addComponent(Label);
           this.writeLabel(l, text);
           this.pixel(l, 24);
@@ -3384,7 +3665,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               },
               parts = [];
             if (s.interaction) parts.push('空格 · ' + _short(s.interaction));
-            if (held && (!s.interaction || s.interaction.kind === 'drop')) parts.push('长按空格 · 瞄准投掷');
+            else if (s.interaction_hint) parts.push(s.interaction_hint);
+            if (held && k.chefs.human.can_throw !== false) parts.push('长按空格 · 瞄准投掷');
             this.set('interaction', this.aiming ? '松开空格投掷 · 方向键改方向' : parts.length ? parts.join('　') : s.interaction_hint || '面向工位或物品按空格');
           }
           // Game results keep the event line; Jeff's decisions and errors use their own status.
@@ -3443,6 +3725,9 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             var _id6 = _arr20[_i27];
             this.buttons[_id6].node.setSiblingIndex(this.node.children.length - 1);
           }
+          this.applyTouchLayout();
+          this.syncAccess();
+          this.publishControls();
         };
         _proto.isAiNote = function isAiNote(e) {
           return !e.kind && /^(Jeff |本局 AI)/.test(e.message);
@@ -3491,6 +3776,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           this.audio.update(dt);
           if (!this.state || !this.mounted) return;
           var k = this.state.kitchen;
+          if (this.touchMoveDirty && this.clock - this.touchMoveAt >= .05) this.flushTouchMove();
           if (this.spaceDownAt !== null && this.clock - this.spaceDownAt >= AIM_HOLD) this.startAim();
           if (this.aiming && this.state.phase !== 'running') this.endAim();
           if (this.aiming) this.drawAim();
@@ -4034,7 +4320,7 @@ System.register("chunks:///_virtual/KitchenGeometry.ts", ['cc'], function (expor
 });
 
 System.register("chunks:///_virtual/LevelOneArt.ts", ["cc"], function (exports_1, context_1) {
-    // source-sha256: 1590fd236537d3cfa19aa6552c8fd29f54cec8c4f89409b0036b6f6584cbbc05
+    // source-sha256: cad3c0f49e69c78f1e5f7a4bb3ee8dfc576caa1939c7fdd428898f7fbae74110
     "use strict";
     var cc_1, LevelOneArt;
     var __moduleName = context_1 && context_1.id;
@@ -4112,6 +4398,15 @@ System.register("chunks:///_virtual/LevelOneArt.ts", ["cc"], function (exports_1
                 has(key) { return !!this.frames[key]; }
                 /** Manifest entry of a frame (grip, pivot, edge points), or undefined. */
                 meta(key) { return this.definitions[key]; }
+                /** Let the browser HUD crop the same loaded atlas used by the kitchen. */
+                spriteInfo(key) {
+                    var _a;
+                    const frame = this.frames[key], definition = this.definitions[key], texture = frame === null || frame === void 0 ? void 0 : frame.texture, url = (_a = texture === null || texture === void 0 ? void 0 : texture.image) === null || _a === void 0 ? void 0 : _a.nativeUrl;
+                    if (!definition || !texture || !url)
+                        return null;
+                    const [x, y, width, height] = definition.rect;
+                    return { url, x, y, width, height, atlasWidth: texture.width, atlasHeight: texture.height, alphaBBox: definition.alpha_bbox || [0, 0, width, height] };
+                }
                 /** Natural pixel proportions, one 64 px art unit per gameplay cell. */
                 tile(parent, key, cellSize, x = 0, y = 0) {
                     const name = 'modular/' + key, definition = this.definitions[name];

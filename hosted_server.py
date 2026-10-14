@@ -143,25 +143,25 @@ class HostedSession(GameSession):
         if path == '/api/contribution/preview':
             return 200, {'record':pilot_record(self), 'consent_version':CONSENT_VERSION}
         if path == '/api/contribution/save':
-            if self.phase != 'ended': return 409, {'error':'Finish the round before contributing.'}
-            if not self.store: return 503, {'error':'Contributions are not enabled.'}
+            if self.phase != 'ended': return 409, {'error':'请结束本局后再贡献数据。'}
+            if not self.store: return 503, {'error':'未开启数据贡献。'}
             if body.get('consent') is not True or body.get('consent_version') != CONSENT_VERSION:
-                return 400, {'error':'Explicit consent is required.'}
+                return 400, {'error':'请先明确同意数据用途和保存期限。'}
             if self.receipt_round != self.game_id:
                 self.receipt = self.store.save(pilot_record(self))
                 self.receipt_round = self.game_id
             return 200, {'receipt':self.receipt}
         if path == '/api/browser-ready':
-            if self.phase not in ('ready', 'ended'): return 409, {'error': 'Finish this round first.'}
-            if type(body.get('connected')) is not bool: return 400, {'error': 'Invalid connection state.'}
+            if self.phase not in ('ready', 'ended'): return 409, {'error': '请先结束当前对局。'}
+            if type(body.get('connected')) is not bool: return 400, {'error': '连接状态无效。'}
             self.connected = body['connected']
             return 200, {'ok': True}
         if path == '/api/start' and not self.connected:
-            return 428, {'error': 'Connect your model in this browser first.'}
+            return 428, {'error': '请先在当前浏览器连接模型服务。'}
         if path == '/api/limits':
             n = body.get('max_calls')
-            if self.phase not in ('ready', 'ended'): return 409, {'error': 'Finish this round first.'}
-            if type(n) is not int or not 1 <= n <= 2000: return 400, {'error': 'Use a limit from 1 to 2000.'}
+            if self.phase not in ('ready', 'ended'): return 409, {'error': '请先结束当前对局。'}
+            if type(n) is not int or not 1 <= n <= 2000: return 400, {'error': '调用上限必须为 1–2000。'}
             self.c['ai_max_calls'] = n
             return 200, {'ok': True, 'next_max_calls': n}
         if path in ('/api/export-run', '/api/feedback'):
@@ -246,7 +246,7 @@ class Sessions:
 # cocos-kitchen/web-shell.html (tests/test_hosted.py checks this).
 SHELL_REPLACEMENTS = (
     ('默认只在本次服务运行期间使用。记住后以明文保存在这台电脑的本地配置文件；Key 不进入对局日志和试玩包。',
-        '<span data-no-i18n>Online privacy: Key stays in page memory and is sent only to your model provider. Refresh clears it unless you choose Remember (browser localStorage, not encrypted). Game actions/state pass through our server; ordinary sessions create no disk journal. Optional contributions are described below.<br>在线版：Key 默认只在页面内存中，仅发送给所选模型服务，刷新即清除；主动记住才以明文保存在浏览器 localStorage。游戏动作与状态经过我们的服务器，普通会话不写磁盘对局日志。自愿贡献数据另见下方说明。</span>'),
+        '在线版：Key 默认只在页面内存中，仅发送给所选模型服务，刷新即清除；主动记住才以明文保存在浏览器 localStorage。游戏动作与状态经过我们的服务器，普通会话不写磁盘对局日志。自愿贡献数据另见下方说明。'),
     ('这间厨房是围绕 Jev 开发的；其他模型也可使用，响应速度和配合方式可能不同。',
         '在线版由浏览器直连模型；服务商必须允许跨域访问。跨域失败不会改由服务器代发 Key。'),
     ('建议优先选择 Jev', '浏览器直连模型'),
@@ -307,24 +307,24 @@ class HostedHandler(Handler):
         return self.server.sessions.get(self.headers.get('X-ChefJeff-Session', ''))
 
     def do_GET(self):
-        if not self.valid_origin(): return self.reply(403, {'error': 'Origin rejected.'})
+        if not self.valid_origin(): return self.reply(403, {'error': '请求来源不允许。'})
         path = unquote(urlsplit(self.path).path)
         if path == '/healthz': return self.reply(200, {'ok': True})
         if path.startswith('/api/'):
             game = self.session()
-            if not game: return self.reply(401, {'error': 'Session expired. Refresh to start a new kitchen.'})
+            if not game: return self.reply(401, {'error': '厨房会话已过期，请刷新页面创建新厨房。'})
             with game.lock:
                 if path == '/api/state': return self.reply(200, game.public_state())
                 if path == '/api/model/request':
                     return self.reply(200, {'request': game.relay.request() if game.relay and game.phase == 'running' else None})
-            return self.reply(404, {'error': 'Unknown endpoint.'})
+            return self.reply(404, {'error': '未知的接口。'})
         root = self.server.web_root.resolve()
         file = (root / path.lstrip('/')).resolve()
         if file == root: file = root / 'index.html'
         if path == '/hosted-agent.js': file = ROOT / 'hosted' / 'browser-agent.js'
-        elif not file.is_relative_to(root): return self.reply(404, {'error': 'Not found.'})
+        elif not file.is_relative_to(root): return self.reply(404, {'error': '未找到页面或资源。'})
         if not file.is_file() or file.suffix not in ('.html','.js','.json','.css','.png','.jpg','.webp','.ico','.woff','.woff2','.ttf','.mp3','.wasm','.bin','.cconb'):
-            return self.reply(404, {'error': 'Not found.'})
+            return self.reply(404, {'error': '未找到页面或资源。'})
         data = file.read_bytes()
         content_type = mimetypes.guess_type(str(file))[0] or 'application/octet-stream'
         # HTML stays fresh and uncached. Asset URLs are not all content-addressed,
@@ -339,35 +339,35 @@ class HostedHandler(Handler):
                    cache_control='public, max-age=0, must-revalidate', etag=etag)
 
     def do_POST(self):
-        if not self.valid_origin(post=True): return self.reply(403, {'error': 'Origin rejected.'})
+        if not self.valid_origin(post=True): return self.reply(403, {'error': '请求来源不允许。'})
         if self.headers.get('Content-Type', '').split(';')[0] != 'application/json':
-            return self.reply(415, {'error': 'JSON required.'})
+            return self.reply(415, {'error': '请求必须使用 JSON 格式。'})
         try:
             length = int(self.headers.get('Content-Length', '0'))
             if not 0 < length <= 8192: raise ValueError()
             body = json.loads(self.rfile.read(length))
             if not isinstance(body, dict): raise ValueError()
-        except (ValueError, OSError): return self.reply(400, {'error': 'Invalid request.'})
+        except (ValueError, OSError): return self.reply(400, {'error': '请求无效。'})
         path = urlsplit(self.path).path
         if path == '/api/session':
-            if body: return self.reply(400, {'error': 'Empty session request required.'})
+            if body: return self.reply(400, {'error': '创建厨房的请求不得包含额外字段。'})
             token = self.server.sessions.create()
-            return self.reply(201 if token else 503, {'session': token} if token else {'error': 'Kitchens full. Please try again later.'})
+            return self.reply(201 if token else 503, {'session': token} if token else {'error': '厨房暂时已满，请稍后重试。'})
         if path == '/api/session/close':
-            if body: return self.reply(400, {'error': 'Empty close request required.'})
+            if body: return self.reply(400, {'error': '关闭厨房的请求不得包含额外字段。'})
             token = self.headers.get('X-ChefJeff-Session', '')
             if not self.server.sessions.remove(token):
-                return self.reply(401, {'error': 'Session expired.'})
+                return self.reply(401, {'error': '厨房会话已过期。'})
             return self.reply(200, {'ok': True})
         if path == '/api/contribution/delete':
             if set(body) != {'id','deletion_token'} or not self.server.sessions.store:
-                return self.reply(400, {'error':'Invalid deletion receipt.'})
+                return self.reply(400, {'error':'删除凭证无效。'})
             ok = self.server.sessions.store.delete(body['id'],body['deletion_token'])
             return self.reply(200 if ok else 404, {'deleted':ok})
         if path not in FIELDS or set(body) - FIELDS[path] - {'game_id', 'request_id'}:
-            return self.reply(400, {'error': 'Unsupported request fields.'})
+            return self.reply(400, {'error': '请求包含不支持的字段。'})
         game = self.session()
-        if not game: return self.reply(401, {'error': 'Session expired. Refresh this page.'})
+        if not game: return self.reply(401, {'error': '厨房会话已过期，请刷新页面。'})
         try:
             with game.lock:
                 if path == '/api/model/result':
@@ -375,7 +375,7 @@ class HostedHandler(Handler):
                     return self.reply(200 if ok else 409, {'ok': ok})
                 status, result = game.command(path, body)
         except (ValueError, TypeError, KeyError, OverflowError):
-            return self.reply(400, {'error': 'Invalid game command.'})
+            return self.reply(400, {'error': '游戏请求无效。'})
         self.reply(status, result)
 
 
