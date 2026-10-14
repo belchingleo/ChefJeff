@@ -7,7 +7,7 @@ import threading
 import time
 import unittest
 
-from hosted_capacity import ActiveKitchens, RequestBudget
+from hosted_capacity import ActiveKitchens, RequestBudget, NETWORK_FULL
 from hosted_server import make_server, Sessions, HostedSession
 
 
@@ -209,6 +209,111 @@ class PagePoolTests(unittest.TestCase):
         self.assertEqual(len(game.k.inputs),before+1)
         for _ in range(100):game.tick()
         self.assertEqual(len(game.k.inputs),before+1)
+
+
+
+class NetworkLimitTests(unittest.TestCase):
+    """One network (address, IPv6 /64) holds at most its share of active kitchens."""
+    def test_a_network_at_its_share_waits_while_another_network_starts(self):
+        slots = ActiveKitchens(4, per_network=2)
+        entries = {key:(SimpleNamespace(phase='ready', network=net),0)
+                   for key, net in (('a','1.2.3.4'),('b','1.2.3.4'),('c','1.2.3.4'),('d','5.6.7.8'))}
+        for token in ('a','b'):
+            self.assertIs(slots.reserve(token, entries), True)
+            entries[token][0].phase = 'running'
+            slots.settle(token, entries, True, True)
+        self.assertEqual(slots.reserve('c', entries), NETWORK_FULL)
+        self.assertEqual(slots.describe('c', entries)['reason'], NETWORK_FULL)
+        self.assertFalse(slots.describe('c', entries)['can_start'])
+        self.assertTrue(slots.describe('a', entries)['can_start'])  # Its own lease, e.g. resume.
+        self.assertIs(slots.reserve('d', entries), True)
+        self.assertEqual((slots.network_rejected, slots.rejected), (1, 0))
+        entries['a'][0].phase = 'ready'  # A finished/expired lease frees the network's share.
+        self.assertTrue(slots.describe('c', entries)['can_start'])
+
+    def test_pages_without_a_network_are_only_bound_by_total_capacity(self):
+        slots = ActiveKitchens(2, per_network=1)
+        entries = {key:(SimpleNamespace(phase='ready'),0) for key in ('a','b','c')}
+        self.assertIs(slots.reserve('a', entries), True)
+        self.assertIs(slots.reserve('b', entries), True)
+        self.assertIsNone(slots.reserve('c', entries))
+
+
+class NetworkHTTPTests(unittest.TestCase):
+    def setUp(self):
+        self.server=make_server(0,'http://127.0.0.1',capacity=4,max_waiting=4,per_network=1)
+        self.origin='http://127.0.0.1:'+str(self.server.server_port)
+        self.server.public_origin=self.origin
+        self.thread=threading.Thread(target=self.server.serve_forever,daemon=True)
+        self.thread.start()
+        self.addCleanup(self.cleanup)
+
+    def cleanup(self):
+        self.server.shutdown();self.server.sessions.close();self.server.server_close();self.thread.join(2)
+
+    def request(self,path,body=None,token=None,client=None):
+        c=http.client.HTTPConnection('127.0.0.1',self.server.server_port,timeout=5)
+        try:
+            headers={'Origin':self.origin}
+            if token:headers['X-ChefJeff-Session']=token
+            if client:headers['X-ChefJeff-Client']=client
+            if body is not None:headers['Content-Type']='application/json'
+            c.request('GET' if body is None else 'POST',path,None if body is None else json.dumps(body),headers)
+            r=c.getresponse()
+            return r.status,json.loads(r.read())
+        finally:c.close()
+
+    def start(self,client):
+        token=self.request('/api/session',{},client=client)[1]['session']
+        gid=self.request('/api/state',token=token)[1]['game_id']
+        self.assertEqual(self.request('/api/browser-ready',{'game_id':gid,'request_id':'c','connected':True},token)[0],200)
+        return token,self.request('/api/start',{'game_id':gid,'request_id':'s'},token)
+
+    def test_the_second_kitchen_from_one_network_waits_and_says_why(self):
+        self.assertEqual(self.start('203.0.113.7')[1][0],200)
+        token,(status,d)=self.start('203.0.113.7')
+        self.assertEqual(status,503)
+        self.assertEqual(d['error'],'你所在的网络已同时开了 1 个厨房，其中一个结束后再试。')
+        capacity=self.request('/api/state',token=token)[1]['capacity']
+        self.assertEqual((capacity['can_start'],capacity['reason'],capacity['per_network']),(False,'network',1))
+        # Another address, and one IPv6 /64 counted as one network.
+        self.assertEqual(self.start('198.51.100.9')[1][0],200)
+        self.assertEqual(self.start('2001:db8:1:2::10')[1][0],200)
+        self.assertEqual(self.start('2001:db8:1:2:ffff::1')[1][0],503)
+        metrics=self.request('/ops/capacity')[1]['capacity']
+        self.assertEqual((metrics['used'],metrics['network_rejections']),(3,2))
+        self.assertNotIn('203.0.113.7',json.dumps(metrics))
+
+
+class IdlePageTests(unittest.TestCase):
+    def test_a_page_that_is_not_playing_ticks_once_a_second_and_a_start_wakes_it(self):
+        game=HostedSession();ticks=[]
+        tick=game.tick
+        game.tick=lambda now=None:(ticks.append(time.monotonic()),tick(now))
+        thread=threading.Thread(target=game.run,daemon=True);thread.start()
+        self.addCleanup(game.close)
+        time.sleep(.6)
+        self.assertLessEqual(len(ticks),1)
+        with game.lock:
+            game._command('/api/browser-ready',{'connected':True})
+            self.assertEqual(game._command('/api/start',{})[0],200)
+        started=time.monotonic();time.sleep(.3)
+        self.assertGreaterEqual(len([t for t in ticks if t>=started]),3)
+        self.assertLess(min(t for t in ticks if t>=started)-started,.1)
+        game.close();thread.join(2)
+        self.assertFalse(thread.is_alive())
+
+    def test_hosted_pages_keep_the_latest_twenty_rounds_for_the_export(self):
+        game=HostedSession();self.addCleanup(game.close)
+        self.assertEqual(game.history_limit,20)
+        with game.lock:
+            game._command('/api/browser-ready',{'connected':True})
+            for _ in range(23):
+                self.assertEqual(game._command('/api/start',{})[0],200)
+                game.k.ended=True;game.phase='ended';game._finish();game._command('/api/reset',{})
+            self.assertEqual(len(game.history),20)
+            report=game._command('/api/export-run',{})[1]['report']
+        self.assertTrue(report['coverage'].startswith('The latest 20 rounds'))
 
 
 if __name__=='__main__':unittest.main()

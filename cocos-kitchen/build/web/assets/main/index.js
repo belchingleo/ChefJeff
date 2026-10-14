@@ -478,7 +478,7 @@ System.register("chunks:///_virtual/KitchenAudio.ts", ['./rollupPluginModLoBabel
 });
 
 System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabelHelpers.js', 'cc', './LevelOneArt.ts', './KitchenAudio.ts', './KitchenGeometry.ts'], function (exports) {
-    // source-sha256: 1ae0982eea03071bffef9e616bb5306c89597463067e6e9ac268a01501409400
+    // source-sha256: 0efe068a6f02f3bacd7625f1e95e9bb450b34497203dfcf989ceb0ea22b9226f
   var _inheritsLoose, _createForOfIteratorHelperLoose, _extends, _createClass, _asyncToGenerator, _regeneratorRuntime, cclegacy, _decorator, sys, profiler, view, ResolutionPolicy, director, Camera, Color, UITransform, Label, Node, Graphics, game, Game, Layers, Sprite, Vec2, Mask, Component, LevelOneArt, KitchenAudio, predictWalk, footWalkable, levelButtonLayout, plateLayers, stationView, panHandleSide, wallNeighbours, GRID_ART, surfaceOffset, trashView, throwPose, throwDiagonal, behindCounter, throwItemPoint, depthOrder, heatCountdown, flightDepth, workingChefDepth;
   return {
     setters: [function (module) {
@@ -4149,8 +4149,10 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               this.writeLabel(this.buttons.main.label, '等待空位');
             }
             if (!this.countdown) {
-              if (s.phase === 'ready') this.set('coverTitle', '厨房暂时已满');
-              this.set('coverText', (this.labelSources.get(this.labels.coverText) || '') + '\n厨房名额暂时已满。空位释放后按钮会恢复，请再点击继续。');
+              // Full overall, or this network already holds its share of kitchens (hosted per-network limit).
+              var network = s.capacity.reason === 'network';
+              if (s.phase === 'ready') this.set('coverTitle', network ? '同一网络的厨房已满' : '厨房暂时已满');
+              this.set('coverText', (this.labelSources.get(this.labels.coverText) || '') + (network ? "\n\u4F60\u6240\u5728\u7684\u7F51\u7EDC\u5DF2\u540C\u65F6\u5F00\u4E86 " + s.capacity.per_network + " \u4E2A\u53A8\u623F\u3002\u5176\u4E2D\u4E00\u4E2A\u7ED3\u675F\u540E\u6309\u94AE\u4F1A\u6062\u590D\uFF0C\u8BF7\u518D\u70B9\u51FB\u7EE7\u7EED\u3002" : '\n厨房名额暂时已满。空位释放后按钮会恢复，请再点击继续。'));
             }
           }
           this.syncAccess();
