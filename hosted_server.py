@@ -460,8 +460,12 @@ class HostedHandler(Handler):
         return game
 
     def client_network(self):
-        """The player's network: Nginx's client address (an IPv6 /64), else the direct peer. Memory only, never logged."""
-        raw = self.headers.get('X-ChefJeff-Client') or self.client_address[0]
+        """The player's network from Nginx's client address (an IPv6 /64). Memory only, never logged.
+
+        Without the header (an older proxy config, or a direct local run) every page would share
+        the proxy's address, so no per-network limit applies; the total capacity still does."""
+        raw = self.headers.get('X-ChefJeff-Client')
+        if not raw: return None
         try:
             ip = ipaddress.ip_address(raw.strip())
         except ValueError:

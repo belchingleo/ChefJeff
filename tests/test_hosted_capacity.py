@@ -283,6 +283,8 @@ class NetworkHTTPTests(unittest.TestCase):
         metrics=self.request('/ops/capacity')[1]['capacity']
         self.assertEqual((metrics['used'],metrics['network_rejections']),(3,2))
         self.assertNotIn('203.0.113.7',json.dumps(metrics))
+        # Without the proxy header (old Nginx config) pages are not grouped under the proxy's address.
+        self.assertEqual(self.start(None)[1][0],200)
 
 
 class IdlePageTests(unittest.TestCase):
