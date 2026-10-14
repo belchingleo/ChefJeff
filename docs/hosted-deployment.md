@@ -10,7 +10,7 @@ node tests/hosted_browser_test.cjs
 python3 -m unittest tests.test_hosted tests.test_hosted_records
 ```
 
-`--data-dir` enables explicit contributions. Omit it to disable persistent contributions. A refresh creates an independent page session. On page exit, the browser sends an authenticated close request containing no model credentials, except when retained in the back/forward cache. Inactive page sessions expire after 10 minutes. `--max-sessions` now limits active kitchens (default 8, configurable 1–16), while `--max-waiting` adds a bounded page-session allowance (default 32, configurable 0–32). Browsing and model setup do not reserve active slots. A pause holds its slot for 60 seconds and a result for 30 seconds; polling does not extend either lease. Expiry releases the slot while retaining the page's game state, so resume/next-round may have to wait. A disconnected running game still pauses after 8 seconds.
+`--data-dir` enables explicit contributions. Omit it to disable persistent contributions. A refresh creates an independent page session. On page exit, the browser sends an authenticated close request containing no model credentials, except when retained in the back/forward cache. Inactive page sessions expire after 10 minutes. `--max-sessions` now limits active kitchens (default 8, configurable 1–16), while `--max-waiting` adds a bounded page-session allowance (default 32, configurable 0–32). Browsing and model setup do not reserve active slots. `--max-per-network` (default 4, 1–16) caps the active kitchens one network may hold at once: Nginx passes the client address in `X-ChefJeff-Client` (always overwritten), IPv6 addresses count per /64, and the address stays in memory only; without the header no per-network limit applies. A page that reaches its network's share shows why and waits like a full server. Pages that are not playing tick once a second instead of 20 times; a start or resume wakes them at once. The data export keeps the latest 20 rounds per page. A pause holds its slot for 60 seconds and a result for 30 seconds; polling does not extend either lease. Expiry releases the slot while retaining the page's game state, so resume/next-round may have to wait. A disconnected running game still pauses after 8 seconds.
 
 When active slots are full, the browser can configure its model and displays a waiting button. State polling restores that button when a spot opens; the player must press it to start/resume. There is no automatic paid model call or promised FIFO order. If the bounded page-session pool itself is full/unavailable, creation retries at most every 15 seconds.
 
@@ -42,7 +42,7 @@ On this pilot's shared VPN server, run `bash deploy/finalize_hetzner.sh` as root
 
 ## Operational checks
 
-`/ops/capacity` is accessible on the loopback backend and blocked by the public Nginx route. It reports held slots, page sessions, aggregate rejections, recent response P95/P99, Python CPU/RSS/threads and Linux service cgroup memory where available. No session token, game ID, IP or model payload is included. These are backend metrics, not browser/network latency or total host CPU.
+`/ops/capacity` is accessible on the loopback backend and blocked by the public Nginx route. It reports held slots, per-network rejections, page sessions, aggregate rejections, recent response P95/P99, Python CPU/RSS/threads and Linux service cgroup memory where available. No session token, game ID, IP or model payload is included. These are backend metrics, not browser/network latency or total host CPU.
 
 After an approved release is installed, run `python3 /opt/chefjeff/current/deploy/set_kitchen_capacity.py 8` in the server's root SSH terminal to explicitly replace the old two-kitchen command. Existing memory/data/VPN settings remain in place. The helper restarts ChefJeff (ending current rounds), checks the effective limit and restores its previous drop-in if verification fails. A normal release update intentionally preserves existing capacity overrides.
 
@@ -74,7 +74,7 @@ node tests/hosted_browser_test.cjs
 python3 -m unittest tests.test_hosted tests.test_hosted_records
 ```
 
-`--data-dir` 启用自愿数据贡献，省略则禁用持久化贡献。刷新创建独立页面会话，闲置十分钟过期。`--max-sessions` 现在限制活跃厨房（默认 8，可配置 1–16），`--max-waiting` 提供额外的有限页面会话额度（默认 32，可配置 0–32）。浏览和填写／连接模型不占经营名额。暂停保留名额 60 秒，结算保留 30 秒，轮询不会延长保留；超时释放名额并保留页面状态，继续或下一局可能需要等待。断开页面的经营中对局仍在 8 秒后自动暂停。
+`--data-dir` 启用自愿数据贡献，省略则禁用持久化贡献。刷新创建独立页面会话，闲置十分钟过期。`--max-sessions` 现在限制活跃厨房（默认 8，可配置 1–16），`--max-waiting` 提供额外的有限页面会话额度（默认 32，可配置 0–32）。浏览和填写／连接模型不占经营名额。`--max-per-network`（默认 4，可配置 1–16）限制同一网络同时占用的经营名额：Nginx 通过 `X-ChefJeff-Client` 传入客户端地址（始终覆盖客户端自带的值），IPv6 按 /64 计，地址只保存在内存中；没有这个头时不按网络限制。达到本网络上限的页面会说明原因，并像满员时一样等待。没在经营的页面每秒只运行一次（原为 20 次），开局或继续时立即唤醒。数据导出每个页面保留最近 20 局。暂停保留名额 60 秒，结算保留 30 秒，轮询不会延长保留；超时释放名额并保留页面状态，继续或下一局可能需要等待。断开页面的经营中对局仍在 8 秒后自动暂停。
 
 经营名额已满时，仍可配置模型，开局／继续按钮显示等待；状态轮询发现空位后恢复按钮，须玩家再次点击，不自动开局或调用付费模型，也不承诺按等待顺序排队。页面会话池本身已满或服务不可用时，最多每 15 秒重试创建一次。
 
@@ -114,7 +114,7 @@ JavaScript 压缩同时覆盖 `text/javascript` 与 `application/javascript`，�
 
 ## 验证
 
-`/ops/capacity` 仅从回环后端读取，公开 Nginx 入口拒绝访问。指标包含保留名额、页面会话数、拒绝数、近期响应 P95／P99、Python CPU／内存／线程和可用时的 Linux 服务 cgroup 内存；不包含会话 token、游戏 ID、IP 或模型正文。这些是后端指标，不是浏览器／网络延迟或整机 CPU。
+`/ops/capacity` 仅从回环后端读取，公开 Nginx 入口拒绝访问。指标包含保留名额、按网络拒绝次数、页面会话数、拒绝数、近期响应 P95／P99、Python CPU／内存／线程和可用时的 Linux 服务 cgroup 内存；不包含会话 token、游戏 ID、IP 或模型正文。这些是后端指标，不是浏览器／网络延迟或整机 CPU。
 
 获得合并及部署授权、安装新版后，在服务器 root SSH 终端执行 `python3 /opt/chefjeff/current/deploy/set_kitchen_capacity.py 8`，显式替换原来的两个厨房命令。内存／数据／VPN 设置保留；脚本重启厨房（结束现有对局），校验实际容量，失败则恢复原补充配置。普通版本更新会保留现有容量覆盖配置。
 

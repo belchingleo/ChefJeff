@@ -84,6 +84,6 @@ def play_export(session):
             'bookmark_policy': dict(BOOKMARK_POLICY),
             # No user-provided model/base URL, path, notes, memory or payload.
             'excluded': list(EXCLUDED),
-            'coverage': f'Every round of this play session (up to the latest {HISTORY_LIMIT}), each with its '
+            'coverage': f'Every round of this play session (up to the latest {getattr(session, "history_limit", HISTORY_LIMIT)}), each with its '
                         'summary, work record, all bookmarks, messages and every allowlisted game event. '
                         'Not a frame-by-frame replay; the local run log keeps full context.'}

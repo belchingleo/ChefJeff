@@ -1650,8 +1650,12 @@ export class KitchenClient extends Component {
             const configuring=s.phase==='ready'&&s.connection&&!s.connection.configured;
             if(!configuring){this.enable('main',false);this.writeLabel(this.buttons.main.label,'等待空位');}
             if(!this.countdown){
-                if(s.phase==='ready')this.set('coverTitle','厨房暂时已满');
-                this.set('coverText',(this.labelSources.get(this.labels.coverText)||'')+'\n厨房名额暂时已满。空位释放后按钮会恢复，请再点击继续。');
+                // Full overall, or this network already holds its share of kitchens (hosted per-network limit).
+                const network=s.capacity.reason==='network';
+                if(s.phase==='ready')this.set('coverTitle',network?'同一网络的厨房已满':'厨房暂时已满');
+                this.set('coverText',(this.labelSources.get(this.labels.coverText)||'')+(network?
+                    `\n你所在的网络已同时开了 ${s.capacity.per_network} 个厨房。其中一个结束后按钮会恢复，请再点击继续。`:
+                    '\n厨房名额暂时已满。空位释放后按钮会恢复，请再点击继续。'));
             }
         }
         this.syncAccess();

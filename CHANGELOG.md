@@ -16,8 +16,9 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - Station targeting works like Overcooked: Space acts on the station under a point 0.75 cells ahead of the chef's feet, framed in the kitchen (denim when there is something to do, ink when idle). There is no fallback to a station beside the chef, and the player is never moved to a station: they turn and work where they stand. Jeff walks to the centre of a free station side (no 0.30 side drop). Shared work keeps the perpendicular-side rule, judged from where each chef stands. Engine semantics `continuous-2026-10`; behaviour fingerprints and capacity reports regenerated.
 - Jeff's arms are shorter (8 px from shoulder to mitten instead of 10) in every chefs-v2 pose and the diagonal throws, so they no longer read as overlong; chop grips move by up to 2 px and the knife still lands on the board.
 - One press from results to the next round: the result card stays on the kitchen (the round record no longer pops up over it) with one main button, Next level after a win and Try again otherwise; Space, Enter, A/Start or the phone button start it after a short 3·2·1 at the same pace. Presses in the card's first second are ignored so mashing from the last order does not skip it.
-- Settings has its own Data export page. It exports the whole play session: every round since the game started (online: since the page opened), each with its level, result, work record, bookmarks, messages, usage and every allowlisted action event, instead of only the current round's last 80 events.
+- Settings has its own Data export page. It exports the whole play session: every round since the game started (online: the latest 20 rounds since the page opened), each with its level, result, work record, bookmarks, messages, usage and every allowlisted action event, instead of only the current round's last 80 events.
 - Online version: after agreeing to the contribution terms, players can turn on automatic upload so every round that ends afterwards is contributed (30-day retention, as before) until they turn it off. The record notes the consent mode, the result card shows when it is on, and deletion receipts stay in the browser so uploads can be deleted later.
+- Online capacity: active kitchens are limited separately from open pages (8 by default); a full server shows Waiting for a spot, and one network (an address or an IPv6 /64) may run at most 4 kitchens at once (`--max-per-network`). Pages that are not playing check the kitchen once a second instead of 20 times, and the online data export keeps the latest 20 rounds per page.
 
 ## 0.6.0-beta.1 — 2026-10-01 · first public test release
 
@@ -73,8 +74,9 @@ First private release: a local browser game with three playable maps and player-
 - 选中工位改成《胡闹厨房》的方式：空格操作脚下往前 0.75 格处的工位，并在厨房里框出（有事可做时为牛仔蓝，否则为墨色）。不再改用身边的工位，玩家也不会被挪到工位前，原地转身操作。Jeff 走到空闲操作侧的正中（去掉侧面 0.30 的下偏）。共用工位仍要求相互垂直的两侧，按各自实际站位判断。引擎语义改为 `continuous-2026-10`，行为指纹和产能报告已重新生成。
 - Jeff 的手臂缩短（肩到手套 8 像素，原为 10），涵盖 chefs-v2 的全部姿势和斜向投掷，不再显得过长；切菜握点最多移动 2 像素，刀仍落在砧板上。
 - 结算后一键进入下一局：结算卡片留在厨房画面上（本局记录不再弹窗遮挡），只有一个主按钮，达成目标为「下一关」，否则为「再来一次」；空格、Enter、手柄 A/Start 或手机按钮都可触发，短暂 3·2·1 后按原节奏开局。卡片出现后的第一秒内忽略按键，避免最后一单连按时误跳过。
-- 设置中新增单独的「数据导出」页，导出本次游玩的全部数据：本机版从启动游戏起、在线版从打开页面起的每一局，各含关卡、结果、贡献记录、标记、沟通、调用用量和全部允许清单内的动作事件，不再只有当前局最近 80 条事件。
+- 设置中新增单独的「数据导出」页，导出本次游玩的全部数据：本机版从启动游戏起的每一局、在线版打开页面以来最近 20 局，各含关卡、结果、贡献记录、标记、沟通、调用用量和全部允许清单内的动作事件，不再只有当前局最近 80 条事件。
 - 在线版：同意贡献条款后可开启「以后每局结束自动上传」，此后每局结束自动贡献（仍保存 30 天），随时可关闭。记录注明同意方式，开启时结算卡片有提示，删除凭证保存在浏览器中，之后仍可删除。
+- 在线版容量：正在经营的厨房与打开的页面分开计数（默认 8 个厨房），满了显示「等待空位」；同一网络（同一地址或同一 IPv6 /64）最多同时开 4 个厨房（`--max-per-network`）。没在经营的页面每秒只检查一次厨房（原为 20 次），在线版数据导出每个页面保留最近 20 局。
 
 
 ## 0.6.0-beta.1 — 2026-10-01 · 首次公开测试版

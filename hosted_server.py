@@ -4,6 +4,7 @@ Run behind the supplied HTTPS reverse proxy, never expose the Python port direct
 """
 import argparse
 import hashlib
+import ipaddress
 from copy import deepcopy
 import json
 import math
@@ -22,8 +23,10 @@ from web_server import GameSession, Handler
 from release_info import release_info
 from feedback import play_export
 from hosted_records import ContributionStore, pilot_record, CONSENT_VERSION
-from hosted_capacity import ActiveKitchens, RequestBudget
+from hosted_capacity import ActiveKitchens, RequestBudget, NETWORK_FULL
 from hosted_jev import JevForwarder
+
+HOSTED_HISTORY_LIMIT = 20  # rounds kept per page for the data export; bounds memory under MemoryMax
 
 
 class NullJournal:
@@ -108,6 +111,8 @@ class HostedSession(GameSession):
         self.jev_last_check = float('-inf')
         super().__init__(client_factory=self._client, journal_factory=NullJournal,
                          kitchen_factory=SpatialKitchen, log_prefix='hosted')
+        self.history_limit = HOSTED_HISTORY_LIMIT
+        self.network = None  # Set by Sessions.create; used only in memory for the per-network limit.
         self.c['ai_max_response_age'] = 15
         self.base_config['ai_max_response_age'] = 15
         self.deployment_mode = 'hosted'
@@ -175,8 +180,9 @@ class HostedSession(GameSession):
             return 200, {'ok': True, 'next_max_calls': n}
         if path in ('/api/export-run', '/api/feedback'):
             report = play_export(self)
-            report['coverage'] = ('Every round since this page opened, each with its summary, work record, bookmarks, '
-                                  'messages and every allowlisted game event. No persistent server journal exists.')
+            report['coverage'] = (f'The latest {self.history_limit} rounds since this page opened, each with its summary, '
+                                  'work record, bookmarks, messages and every allowlisted game event. '
+                                  'No persistent server journal exists.')
             report['bookmark_policy'].pop('log_join', None)
             return 200, {'ok': True, 'report': report}
         if path in ('/api/pause', '/api/end', '/api/reset', '/api/level', '/api/next') and self.relay:
@@ -205,10 +211,10 @@ FIELDS = {
 
 
 class Sessions:
-    def __init__(self, capacity=8, ttl=600, factory=HostedSession, store=None, max_waiting=32):
+    def __init__(self, capacity=8, ttl=600, factory=HostedSession, store=None, max_waiting=32, per_network=None):
         self.capacity, self.ttl, self.factory = capacity, ttl, factory
         self.pool_limit = capacity + max_waiting
-        self.slots = ActiveKitchens(capacity)
+        self.slots = ActiveKitchens(capacity, per_network=per_network)
         self.budgets = {}
         self.rate_rejections = 0
         self.creating = 0
@@ -231,7 +237,7 @@ class Sessions:
         for session in expired:
             session.close()
 
-    def create(self):
+    def create(self, network=None):
         self.reap()
         with self.lock:
             if self.closed or len(self.entries)+self.creating >= self.pool_limit: return None
@@ -239,6 +245,7 @@ class Sessions:
         try:
             session = self.factory()
             session.store = self.store
+            session.network = network
             token = secrets.token_urlsafe(32)
         except BaseException:
             with self.lock: self.creating -= 1
@@ -311,7 +318,7 @@ SHELL_REPLACEMENTS = (
     ('仅保留到服务关闭', '仅保留到当前页面会话结束'),
     ('本次服务连接测试', '本页面连接测试'),
     ('可对应本地日志提取前后过程', '在线版没有可追溯的服务器对局日志'),
-    ('从启动游戏起玩过的每一局', '从打开本页面起玩过的每一局'),
+    ('导出本次游玩的全部数据：从启动游戏起玩过的每一局', '导出本次游玩的数据：从打开本页面起最近 20 局'),
     ('<section aria-labelledby="memory-title"', '<section hidden aria-labelledby="memory-title"'),
 )
 CONTRIBUTION_SLOT = '<!-- hosted-contribution -->'
@@ -452,6 +459,20 @@ class HostedHandler(Handler):
         self._session_limited = game is not None and not stopping and not self.server.sessions.allow_request(token)
         return game
 
+    def client_network(self):
+        """The player's network from Nginx's client address (an IPv6 /64). Memory only, never logged.
+
+        Without the header (an older proxy config, or a direct local run) every page would share
+        the proxy's address, so no per-network limit applies; the total capacity still does."""
+        raw = self.headers.get('X-ChefJeff-Client')
+        if not raw: return None
+        try:
+            ip = ipaddress.ip_address(raw.strip())
+        except ValueError:
+            return None
+        if ip.version == 6 and ip.ipv4_mapped: ip = ip.ipv4_mapped
+        return str(ipaddress.ip_network(f'{ip}/64', strict=False)) if ip.version == 6 else str(ip)
+
     def limited(self):
         if not self._session_limited: return False
         self.reply(429, {'error':'操作过于频繁，请稍后重试。'})
@@ -466,9 +487,10 @@ class HostedHandler(Handler):
             sessions = self.server.sessions
             with sessions.lock:
                 capacity = sessions.slots.describe('', sessions.entries)
-                capacity.pop('can_start')
+                capacity.pop('can_start');capacity.pop('reason')
                 capacity.update(page_sessions=len(sessions.entries), session_limit=sessions.pool_limit,
-                                admission_rejections=sessions.slots.rejected, session_rate_rejections=sessions.rate_rejections,
+                                admission_rejections=sessions.slots.rejected, network_rejections=sessions.slots.network_rejected,
+                                session_rate_rejections=sessions.rate_rejections,
                                 faulted_kitchens=sum(bool(getattr(g,'faulted',False)) for g,_ in sessions.entries.values()))
             return self.reply(200, {'capacity':capacity, 'runtime':self.server.metrics.snapshot()})
         if path.startswith('/api/'):
@@ -517,7 +539,7 @@ class HostedHandler(Handler):
         except (ValueError, OSError): return self.reply(400, {'error': '请求无效。'})
         if path == '/api/session':
             if body: return self.reply(400, {'error': '创建厨房的请求不得包含额外字段。'})
-            token = self.server.sessions.create()
+            token = self.server.sessions.create(self.client_network())
             return self.reply(201 if token else 503, {'session': token} if token else {'error': '厨房暂时已满，请稍后重试。'})
         if path == '/api/session/close':
             if body: return self.reply(400, {'error': '关闭厨房的请求不得包含额外字段。'})
@@ -550,6 +572,9 @@ class HostedHandler(Handler):
                     allocated = self.server.sessions.reserve(token)
                     if allocated is None:
                         return self.reply(503, {'error':'厨房名额暂时已满，空位释放后请再试。'})
+                    if allocated == NETWORK_FULL:
+                        limit = self.server.sessions.slots.per_network
+                        return self.reply(503, {'error':f'你所在的网络已同时开了 {limit} 个厨房，其中一个结束后再试。'})
                 try:
                     status, result = game.command(path, body)
                 finally:
@@ -559,15 +584,18 @@ class HostedHandler(Handler):
         self.reply(status, result)
 
 
-def make_server(port, origin, capacity=8, web_root=None, data_dir=None, max_waiting=32):
+def make_server(port, origin, capacity=8, web_root=None, data_dir=None, max_waiting=32, per_network=4):
     if type(capacity) is not int or not 1 <= capacity <= 16 or type(max_waiting) is not int or not 0 <= max_waiting <= 32:
         raise ValueError('Use 1–16 active kitchens and 0–32 waiting pages.')
+    if per_network is not None and (type(per_network) is not int or not 1 <= per_network <= 16):
+        raise ValueError('Use 1–16 active kitchens per network.')
     server = HostedHTTPServer(('127.0.0.1', port), HostedHandler)
     server.public_origin = origin.rstrip('/')
     # Build identity is immutable for the life of this release, not per page.
     release = release_info()
     server.sessions = Sessions(capacity, factory=lambda:HostedSession(release),
-                               store=ContributionStore(data_dir) if data_dir else None, max_waiting=max_waiting)
+                               store=ContributionStore(data_dir) if data_dir else None, max_waiting=max_waiting,
+                               per_network=per_network)
     server.jev_forwarder = JevForwarder()
     server.web_root = Path(web_root or ROOT / 'cocos-kitchen' / 'build' / 'web')
     return server
@@ -581,13 +609,16 @@ def main():
     p.add_argument('--data-dir', type=Path, help='Enable opt-in 30-day contributions in this private directory.')
     p.add_argument('--max-sessions', type=int, choices=range(1,17), default=8, help='Active kitchens, including short pause/result leases.')
     p.add_argument('--max-waiting', type=int, choices=range(0,33), default=32, help='Additional page sessions that cannot consume active slots.')
+    p.add_argument('--max-per-network', type=int, choices=range(1,17), default=4,
+                   help='Active kitchens one network (address or IPv6 /64) may hold at once.')
     args = p.parse_args()
     url = urlsplit(args.origin)
     if url.scheme != 'https' and url.hostname not in ('127.0.0.1', 'localhost'):
         p.error('A public origin must use HTTPS.')
     if url.path not in ('', '/') or url.query or url.fragment or url.username or not url.netloc:
         p.error('Use an origin, without a path or credentials.')
-    server = make_server(args.port, args.origin, args.max_sessions, web_root=args.web_root, data_dir=args.data_dir, max_waiting=args.max_waiting)
+    server = make_server(args.port, args.origin, args.max_sessions, web_root=args.web_root, data_dir=args.data_dir, max_waiting=args.max_waiting,
+                         per_network=args.max_per_network)
     def reap():
         while True:
             time.sleep(30)

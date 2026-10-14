@@ -26,6 +26,10 @@ from levels import available_levels
 from feedback import HISTORY_LIMIT, round_export
 
 
+TICK_SECONDS = .05
+IDLE_TICK_SECONDS = 1.
+
+
 PLAYER_MESSAGES = {
     'prep': 'I prefer preparing ingredients.',
     'cook': 'I prefer cooking.',
@@ -50,6 +54,8 @@ class GameSession:
         self.log_prefix = log_prefix
         self.lock = threading.RLock()
         self.stop_event = threading.Event()
+        # Set when a round starts or resumes so an idle loop picks it up at once.
+        self.wake = threading.Event()
         self.k = self.kitchen_factory(self.c)
         self.c = self.k.c
         self.game_id = uuid.uuid4().hex
@@ -76,6 +82,7 @@ class GameSession:
         self.last_bookmark_at = None
         # Every round of this play session, for the data export (feedback.play_export).
         self.history = []
+        self.history_limit = HISTORY_LIMIT
         self.session_started_at = datetime.now().astimezone().isoformat(timespec='seconds')
         self.round_started_at = None
         # Local play keeps a Session bundle beside the journal; other sinks keep records in memory only.
@@ -117,7 +124,7 @@ class GameSession:
                                 'player_messages': deepcopy(self.player_messages),
                                 'round_summary': self.round_record()})
             self.journal.close()
-            self.history = (self.history+[round_export(self, 'aborted' if aborted else 'finished')])[-HISTORY_LIMIT:]
+            self.history = (self.history+[round_export(self, 'aborted' if aborted else 'finished')])[-self.history_limit:]
             if self.bundle_root is not None:
                 try:
                     write_bundle(self.journal, self.bundle_root / self.game_id)
@@ -187,7 +194,12 @@ class GameSession:
             self.k.assert_invariants()
 
     def run(self):
-        while not self.stop_event.wait(.05):
+        while not self.stop_event.is_set():
+            # A round ticks 20 times a second; a page that is not playing only once a second.
+            self.wake.wait(TICK_SECONDS if self.phase in ('running', 'paused') else IDLE_TICK_SECONDS)
+            self.wake.clear()
+            if self.stop_event.is_set():
+                break
             try:
                 self.tick()
             except Exception as exc:
@@ -208,6 +220,7 @@ class GameSession:
 
     def close(self):
         self.stop_event.set()
+        self.wake.set()
         with self.lock:
             self._finish(aborted=self.phase != 'ended')
 
@@ -448,6 +461,7 @@ class GameSession:
             self.ai = DecisionLoop(self.k, client, self.journal, self.note)
             self.phase = 'running'
             self.last_tick = self.last_seen = time.monotonic()
+            self.wake.set()
             return 200, {'ok': True}
         if path == '/api/pause':
             if self.phase == 'running':
@@ -466,6 +480,7 @@ class GameSession:
                 return 409, {'error': '当前无需继续。'}
             self.phase = 'running'
             self.last_tick = self.last_seen = time.monotonic()
+            self.wake.set()
             self.ai.invalidate()
             self.journal('resume', {'t':self.k.time})
             return 200, {'ok': True}

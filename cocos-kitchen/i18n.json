@@ -502,7 +502,7 @@
     "长按空格 · 瞄准投掷": "Hold Space · aim and throw",
     "数据导出": "Data export",
     "导出本次游玩的全部数据：从启动游戏起玩过的每一局，各含关卡、结果、贡献记录、全部标记、沟通记录和全部动作事件。标记包含游戏时间和实际时间，可对应本地日志提取前后过程。不会附带 Key、接口地址、模型名称文本、跨局记忆或完整请求。文件只下载到本机，不自动上传。": "Export all data from this play session: every round since the game started, each with its level, result, work record, all bookmarks, messages and every action event. Bookmarks include game time and wall-clock time, so you can find the surrounding moments in the local log. Keys, endpoints, model name text, cross-round memory and full requests are never included. The file downloads only to this device and is never uploaded automatically.",
-    "导出本次游玩的全部数据：从打开本页面起玩过的每一局，各含关卡、结果、贡献记录、全部标记、沟通记录和全部动作事件。标记包含游戏时间和实际时间，在线版没有可追溯的服务器对局日志。不会附带 Key、接口地址、模型名称文本、跨局记忆或完整请求。文件只下载到本机，不自动上传。": "Export all data from this play session: every round since this page opened, each with its level, result, work record, all bookmarks, messages and every action event. Bookmarks include game time and wall-clock time; the online version keeps no server run log to trace. Keys, endpoints, model name text, cross-round memory and full requests are never included. The file downloads only to this device and is never uploaded automatically.",
+    "导出本次游玩的数据：从打开本页面起最近 20 局，各含关卡、结果、贡献记录、全部标记、沟通记录和全部动作事件。标记包含游戏时间和实际时间，在线版没有可追溯的服务器对局日志。不会附带 Key、接口地址、模型名称文本、跨局记忆或完整请求。文件只下载到本机，不自动上传。": "Export data from this play session: the latest 20 rounds since this page opened, each with its level, result, work record, all bookmarks, messages and every action event. Bookmarks include game time and wall-clock time; the online version keeps no server run log to trace. Keys, endpoints, model name text, cross-round memory and full requests are never included. The file downloads only to this device and is never uploaded automatically.",
     "导出本次游玩": "Export This Play Session",
     "待导出的游玩数据": "Play data to export",
     "标记当前片段，数据导出时可以回看。": "Bookmark this moment to review it in the data export.",
@@ -630,6 +630,7 @@
     "厨房名额暂时已满，空位释放后请再试。": "All kitchen slots are in use. Try again when a spot opens.",
     "操作过于频繁，请稍后重试。": "Too many requests. Please try again shortly.",
     "厨房请求较多，请稍后重试。": "The kitchen server is busy. Please try again shortly.",
+    "同一网络的厨房已满": "Kitchens for your network are full",
     "同意通过试玩服务器调用 Jev": "I agree to call Jev through the demo server",
     "勾选后，Key 和模型请求会经 HTTPS 通过试玩服务器发送给 Jev，不写入服务器配置、日志或对局记录。未勾选则由浏览器直连，需 Jev 允许本网站跨域访问。": "When selected, your key and model requests pass through the demo server over HTTPS to Jev. They are not written to server configuration, logs or game records. Otherwise, your browser calls Jev directly, which requires Jev to allow this website through CORS.",
     "当前连接：已同意服务器转发 Jev": "Current connection: consented Jev server forwarding",
@@ -1143,6 +1144,14 @@
     [
       "Jev 接口返回 HTTP {0}，请检查账号和模型。",
       "Jev API returned HTTP {0}. Check your account and model."
+    ],
+    [
+      "你所在的网络已同时开了 {0} 个厨房。其中一个结束后按钮会恢复，请再点击继续。",
+      "Your network already has {0} kitchens open. The button comes back when one of them ends; press it to continue."
+    ],
+    [
+      "你所在的网络已同时开了 {0} 个厨房，其中一个结束后再试。",
+      "Your network already has {0} kitchens open. Try again when one of them ends."
     ]
   ]
 }
