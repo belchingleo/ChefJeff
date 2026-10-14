@@ -26,9 +26,11 @@ python3 -m unittest tests.test_hosted tests.test_hosted_records
 
 Upload an audited ZIP containing the allowlisted runtime, web build and `hosted/`, `deploy/` files. Verify its hash and every release-manifest entry; extract under `/opt/chefjeff/releases/<version>` and execute `deploy/install_backend.py` there. The service runs as an unprivileged dedicated account and binds only `127.0.0.1:8780`. This step does not open the website publicly.
 
-Before publishing, confirm domain requirements for the server region. For the present Shanghai instance, Tencent's console reports the domain as not filed for ICP; domain-based public access is pending completion of that process. The current plan retains the Shanghai server and keeps public access closed until filing is complete.
+The current pilot uses the operator's Hetzner instance in Nuremberg, Germany, with `chefjeff.belchingleo.online` pointing to that server.
 
 The supplied Nginx templates limit traffic, compress state responses and disable access/request logs. After public exposure is approved, install Nginx/Certbot from Ubuntu's official repositories; keep the initial HTTP site on a 503 response except for ACME challenges. Request the certificate only after the operator accepts the certificate issuer's subscriber terms. Then install the HTTPS template, validate Nginx configuration and test renewal. Allow only 80/443 for the web entry; never expose the Python port. Certificate files stay on the server.
+
+On this pilot's shared VPN server, run `bash deploy/finalize_hetzner.sh` as root after HTTPS works. It adds a drop-in to the enabled `personal-vpn-firewall.service`, using the existing `inet personal_vpn_filter input` chain to allow TCP 80/443 after startup and reload. The reviewed VPN loader and its hash arguments remain intact. It also installs a certificate-specific Nginx reload hook, enables the Certbot timer, and tests renewal with the hook. This helper requires that exact firewall service/table and does not reboot the server; boot persistence has to be confirmed during a later maintenance reboot.
 
 ## Operational checks
 
@@ -74,9 +76,11 @@ python3 -m unittest tests.test_hosted tests.test_hosted_records
 
 上传经过审阅、仅含明确清单中的运行文件、网页构建、`hosted/` 与 `deploy/` 的 ZIP。验证包哈希及每条 release-manifest 记录，解压至 `/opt/chefjeff/releases/<version>`，在该目录执行 `deploy/install_backend.py`。服务以专用低权限账号运行，仅监听 `127.0.0.1:8780`，此步骤不公开网站。
 
-发布前确认服务地区的域名要求。当前上海服务器对应域名尚未备案，计划保留上海服务器，完成备案前不开放公开访问。
+当前试玩部署在运营者的 Hetzner 德国纽伦堡服务器，`chefjeff.belchingleo.online` 解析至这台服务器。
 
 Nginx 模板限流、压缩响应并关闭访问／请求日志。获得公开发布授权后，从 Ubuntu 官方仓库安装 Nginx／Certbot，初期 HTTP 除 ACME 验证外仅返回 503。运营者接受证书订户条款后申请证书，再安装 HTTPS 配置，校验 Nginx 并测试续期。网页仅开放 80／443，不公开 Python 端口；证书留在服务器。
+
+在当前共用 VPN 的试玩服务器上，HTTPS 可用后以 root 执行 `bash deploy/finalize_hetzner.sh`。它为已启用的 `personal-vpn-firewall.service` 添加补充配置，在服务启动及重新加载后，通过现有 `inet personal_vpn_filter input` 链放行 TCP 80／443；原 VPN 加载脚本及其校验参数保持原样。脚本还安装仅针对试玩证书的 Nginx 重载钩子，启用 Certbot 定时器，并模拟续期及钩子执行。此脚本要求上述指定服务及规则链存在，不会重启服务器；实际开机持久化需在之后的维护重启时确认。
 
 ## 验证
 
