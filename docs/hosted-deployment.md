@@ -14,7 +14,9 @@ python3 -m unittest tests.test_hosted tests.test_hosted_records
 
 ## Credentials and records
 
-- A key lives in a JavaScript closure by default. Explicit Remember stores it as plaintext in browser localStorage. Clear removes both copies. The selected model provider must allow CORS; there is no server proxy fallback.
+- A key lives in a JavaScript closure by default. Explicit Remember stores it and the chosen transport as plaintext in browser localStorage; Clear removes them. Browser-direct providers must allow CORS. Jev offers explicit opt-in forwarding, never an automatic fallback. `/api/model/jev` accepts a key only with the versioned consent flag and a valid page/game/task ID; neither games nor forwarding receipts store keys.
+- Deploy the matching Nginx configuration with the runtime. Its exact Jev route has a 4 KiB body cap, request/response buffering disabled and HTTP/1.1 streaming, preventing key-bearing bodies from being written to proxy temporary files. Keep access/body logging disabled. The upstream is fixed at `https://api.typesafe.ai/v1/systemone`, `jev-latest`, with verified TLS, no redirects and no forwarding retries. No provider credentials are configured on the game server; each player supplies their own.
+- Forwarding is bounded to eight concurrent upstream calls and one per kitchen, with an 18-second socket timeout. Connection tests have a ten-second per-page cooldown and deduplicate their request IDs. Game calls use existing decision IDs and call limits. Upstream I/O holds no game lock; pause/close/round changes discard late answers. Already-issued requests may still be billed. Global/per-kitchen limits can temporarily reject a call rather than queue paid work.
 - Model results sent to the game server contain a validated action, sprint flag and numeric token usage only. Provider text, endpoint and model name are not submitted. The game server receives normal gameplay actions and processes the full state in memory.
 - Ordinary sessions create no disk journal or cross-round memory. Manual contribution remains the default. After explicitly accepting the policy, a player can enable automatic contribution of subsequently completed rounds; enabling it does not upload an already-ended round. Unchecking either agreement or automatic upload stops future uploads. This preference and deletion receipts are kept in this browser; clearing browser storage removes them. Records identify manual (`round`) or standing (`standing`) consent.
 - Contributions contain engine event types/actions, one-second chef positions, preset communication codes, configuration identifiers and result statistics. They are a pilot record format, not the final benchmark schema or deterministic replay.
@@ -41,7 +43,7 @@ With Nginx installed, run `python3 -m unittest tests.test_hosted_proxy`. The rea
 1. Check `/healthz` with the configured Host and confirm the Python listener is loopback-only.
 2. Use two browser pages to verify independent kitchens and connection settings.
 3. Inspect outgoing browser traffic with a dummy key: it must appear only in the selected provider's Authorization header, never a same-origin request.
-4. Verify remembered-key opt-in and clear/refresh behavior, provider CORS failure, explicit contribution, deletion, expiry and capacity limits.
+4. Verify remembered-key/transport opt-in and clear/refresh behavior, provider CORS failure without automatic fallback, consented Jev connection, no keys in logs/records/exports, explicit contribution, deletion, expiry and capacity limits.
 5. Test the chosen real provider from the HTTPS origin with an owner-supplied key. An OPTIONS response alone does not verify an actual paid model call.
 
 No public URL is declared available until DNS, HTTPS and the full browser flow have passed validation.
@@ -66,7 +68,9 @@ python3 -m unittest tests.test_hosted tests.test_hosted_records
 
 ## 凭据与记录
 
-- Key 默认仅在 JavaScript 闭包内存中，主动记住才以明文保存至 localStorage，清除会移除两份。模型供应商须支持 CORS，不提供服务器代理回退。
+- Key 默认仅在 JavaScript 闭包内存中，主动记住会将 Key 和所选转发方式以明文保存至 localStorage，清除会移除它们。浏览器直连要求供应商支持 CORS。Jev 提供明确同意的可选转发，失败不自动回退。`/api/model/jev` 仅在同意标志／版本和页面／对局／决策标识有效时接收 Key，游戏对象和转发回执均不保存 Key。
+- 运行时和匹配的 Nginx 配置须一同部署。Jev 精确路由限制请求体 4 KiB，关闭请求／响应缓冲并使用 HTTP/1.1 流式转发，避免带 Key 的请求进入代理临时文件；保持访问／正文日志关闭。上游固定为 `https://api.typesafe.ai/v1/systemone`、`jev-latest`，校验证书、不跟随重定向、不自动重试。服务器不配置模型凭据，各玩家使用自己的 Key。
+- 最多同时转发八个请求、每厨房一个，上游 socket 超时 18 秒。连接测试每页面冷却十秒并按请求 ID 去重；经营决策沿用现有决策 ID 和调用上限。网络等待不持有游戏锁，暂停／关闭／切换回合使迟到回复失效，已发出的请求仍可能计费。达到总量／单厨房限制时会暂时拒绝，不排队调用付费模型。
 - 回传游戏服务器的模型结果仅含已校验动作、冲刺值、数值 token 用量，不提交模型文本、端点或模型名称。服务器在内存处理正常游戏动作和完整状态。
 - 普通会话不写磁盘日志或跨局记忆，默认手动贡献。明确同意政策后，可勾选自动贡献后续已结束的对局；开启时不补传已经结束的本局。取消同意或自动上传任一勾选，即停止后续自动上传。选择和删除凭证保存在此浏览器，清理浏览器存储会移除它们。记录区分单局同意（`round`）和持续同意（`standing`）。
 - 贡献包含引擎事件／动作、每秒厨师位置、预设沟通代码、配置标识和结果统计。这是试点记录格式，最终 benchmark schema 和确定性回放另行设计。
@@ -101,7 +105,7 @@ JavaScript 压缩同时覆盖 `text/javascript` 与 `application/javascript`，�
 1. 使用配置的 Host 检查 `/healthz`，确认 Python 仅监听回环地址。
 2. 用两个浏览器页面确认厨房和连接设置隔离。
 3. 用占位 Key 检查出站请求：它只能出现在所选模型服务的 Authorization 中，不得出现在同源请求。
-4. 验证记住／清除／刷新、CORS 失败、自愿贡献、删除、过期与容量限制。
+4. 验证记住 Key／转发选项、清除／刷新、CORS 失败不自动切换、明确同意的 Jev 连接、日志／记录／导出不含 Key，以及自愿贡献、删除、过期与容量限制。
 5. 在 HTTPS 来源下用运营者提供的 Key 验证所选真实供应商。仅 OPTIONS 成功不代表真实模型调用成功。
 
 DNS、HTTPS 和完整浏览器流程验证通过后，才将公开网址标为可用。届时同步更新 README 中的入口、启动方式和隐私说明。

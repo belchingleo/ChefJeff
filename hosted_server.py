@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Isolated, ephemeral kitchens. Model credentials and HTTP requests stay in the browser.
+"""Isolated, ephemeral kitchens. Browser-direct models or an explicit opt-in Jev relay.
 Run behind the supplied HTTPS reverse proxy, never expose the Python port directly.
 """
 import argparse
@@ -12,6 +12,7 @@ from pathlib import Path
 import secrets
 import threading
 import time
+from collections import OrderedDict
 from urllib.parse import urlsplit, unquote
 from http.server import ThreadingHTTPServer
 from kitchen import ROOT
@@ -21,6 +22,7 @@ from web_server import GameSession, Handler
 from release_info import release_info
 from feedback import feedback_report
 from hosted_records import ContributionStore, pilot_record, CONSENT_VERSION
+from hosted_jev import JevForwarder
 
 
 class NullJournal:
@@ -100,6 +102,9 @@ class HostedSession(GameSession):
         self.connected = False
         self.release = release_info()
         self.setting = None  # Export contains no provider URL/model text.
+        self.jev_gate = threading.Lock()
+        self.jev_receipts = OrderedDict()  # Sanitized answers/statuses only, never keys.
+        self.jev_last_check = float('-inf')
         super().__init__(client_factory=self._client, journal_factory=NullJournal,
                          kitchen_factory=SpatialKitchen, log_prefix='hosted')
         self.c['ai_max_response_age'] = 15
@@ -182,8 +187,9 @@ class HostedSession(GameSession):
         super().close()
 
 
-# Only game fields cross the same-origin boundary. Never echo invalid bodies.
+# Game fields plus the explicit opt-in Jev route. Never echo invalid bodies.
 FIELDS = {
+    '/api/model/jev': {'api_key','consent','consent_version','test','id'},
     '/api/contribution/preview': set(),
     '/api/contribution/save': {'consent', 'consent_version', 'consent_mode'},
     '/api/browser-ready': {'connected'}, '/api/start': {'speed'}, '/api/pause': {'reason'},
@@ -249,10 +255,10 @@ class Sessions:
 # cocos-kitchen/web-shell.html (tests/test_hosted.py checks this).
 SHELL_REPLACEMENTS = (
     ('默认只在本次服务运行期间使用。记住后以明文保存在这台电脑的本地配置文件；Key 不进入对局日志和试玩包。',
-        '在线版：Key 默认只在页面内存中，仅发送给所选模型服务，刷新即清除；主动记住才以明文保存在浏览器 localStorage。游戏动作与状态经过我们的服务器，普通会话不写磁盘对局日志。自愿贡献数据另见下方说明。'),
+        '在线版：Key 默认在页面内存中，刷新即清除；主动记住会将 Key 和所选转发方式以明文保存在浏览器 localStorage。浏览器直连时 Key 只发给模型服务；明确勾选 Jev 转发后，Key 和模型请求经试玩服务器发送给 Jev，仅用于处理请求，不写入服务器配置、日志或对局记录。游戏状态经过我们的服务器，自愿贡献数据另见下方说明。'),
     ('这间厨房是围绕 Jev 开发的；其他模型也可使用，响应速度和配合方式可能不同。',
-        '在线版由浏览器直连模型；服务商必须允许跨域访问。跨域失败不会改由服务器代发 Key。'),
-    ('建议优先选择 Jev', '浏览器直连模型'),
+        '默认由浏览器直连模型，需供应商允许跨域访问。Jev 可明确勾选下方服务器转发；跨域失败不会自动改为转发。'),
+    ('建议优先选择 Jev', '在线模型连接'),
     ('仅保留到服务关闭', '仅保留到当前页面会话结束'),
     ('本次服务连接测试', '本页面连接测试'),
     ('可对应本地日志提取前后过程', '在线版没有可追溯的服务器对局日志'),
@@ -283,6 +289,7 @@ class HostedHandler(Handler):
         self._cache_control = cache_control
         self.send_response(status)
         self.send_header('Content-Type', content_type)
+        if status in (429,503): self.send_header('Retry-After','1')
         if status != 304:
             self.send_header('Content-Length', str(len(raw)))
         if etag:
@@ -347,15 +354,15 @@ class HostedHandler(Handler):
 
     def do_POST(self):
         if not self.valid_origin(post=True): return self.reply(403, {'error': '请求来源不允许。'})
+        path = urlsplit(self.path).path
         if self.headers.get('Content-Type', '').split(';')[0] != 'application/json':
             return self.reply(415, {'error': '请求必须使用 JSON 格式。'})
         try:
             length = int(self.headers.get('Content-Length', '0'))
-            if not 0 < length <= 8192: raise ValueError()
+            if not 0 < length <= (4096 if path == '/api/model/jev' else 8192): raise ValueError()
             body = json.loads(self.rfile.read(length))
             if not isinstance(body, dict): raise ValueError()
         except (ValueError, OSError): return self.reply(400, {'error': '请求无效。'})
-        path = urlsplit(self.path).path
         if path == '/api/session':
             if body: return self.reply(400, {'error': '创建厨房的请求不得包含额外字段。'})
             token = self.server.sessions.create()
@@ -375,6 +382,9 @@ class HostedHandler(Handler):
             return self.reply(400, {'error': '请求包含不支持的字段。'})
         game = self.session()
         if not game: return self.reply(401, {'error': '厨房会话已过期，请刷新页面。'})
+        if path == '/api/model/jev':
+            status, result = self.server.jev_forwarder.handle(game,body)
+            return self.reply(status,result)
         try:
             with game.lock:
                 if path == '/api/model/result':
@@ -390,6 +400,7 @@ def make_server(port, origin, capacity=8, web_root=None, data_dir=None):
     server = ThreadingHTTPServer(('127.0.0.1', port), HostedHandler)
     server.public_origin = origin.rstrip('/')
     server.sessions = Sessions(capacity, store=ContributionStore(data_dir) if data_dir else None)
+    server.jev_forwarder = JevForwarder()
     server.web_root = Path(web_root or ROOT / 'cocos-kitchen' / 'build' / 'web')
     return server
 
@@ -414,7 +425,7 @@ def main():
             server.sessions.reap()
             if server.sessions.store: server.sessions.store.prune()
     threading.Thread(target=reap, daemon=True).start()
-    print('ChefJeff hosted service ready; credentials and persistent journals disabled.', flush=True)
+    print('ChefJeff hosted service ready; persistent credentials and journals disabled.', flush=True)
     try: server.serve_forever()
     except KeyboardInterrupt: pass
     finally:

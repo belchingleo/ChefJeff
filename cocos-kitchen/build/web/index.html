@@ -169,6 +169,11 @@ function kitchenTabs(dialog){
    <div id="api-model-row" hidden><label for="api-model">模型名称</label><input id="api-model" placeholder="服务商提供的模型 ID" autocomplete="off"><p><small>建议使用响应快的模型；过慢或无效的动作不会执行。</small></p></div>
    <label for="api-key">API Key</label><input id="api-key" type="password" placeholder="粘贴你的 API Key" autocomplete="off" spellcheck="false" required>
    <p><a id="api-get-key" href="https://console.typesafe.ai/login" target="_blank" rel="noopener noreferrer">去服务商获取 Key ↗</a></p>
+   <div id="api-jev-relay-row" hidden>
+    <label class="remember"><input id="api-jev-relay" type="checkbox">同意通过试玩服务器调用 Jev</label>
+    <p><small>勾选后，Key 和模型请求会经 HTTPS 通过试玩服务器发送给 Jev，不写入服务器配置、日志或对局记录。未勾选则由浏览器直连，需 Jev 允许本网站跨域访问。</small></p>
+   </div>
+   <p id="api-transport-status" hidden role="status"></p>
    <label class="remember"><input id="api-remember" type="checkbox">记住此设备（共用电脑请勿勾选）</label>
    <details class="fine"><summary>费用与隐私说明</summary><p><small>默认只在本次服务运行期间使用。记住后以明文保存在这台电脑的本地配置文件；Key 不进入对局日志和试玩包。</small></p></details>
    <p id="api-message" role="status" aria-live="polite">测试连接会发送一次小型 API 请求，可能产生少量费用。</p>
@@ -219,6 +224,7 @@ function kitchenTabs(dialog){
   const p=el('api-provider').value;el('api-url-row').hidden=p!=='compatible';el('api-model-row').hidden=p==='jev';
   el('api-url').required=p==='compatible';el('api-model').required=p!=='jev';
   el('api-get-key').hidden=p==='compatible';el('api-get-key').href=p==='deepseek'?'https://platform.deepseek.com/api_keys':'https://console.typesafe.ai/login';
+  el('api-jev-relay-row').hidden=!window.chefjeffJevRelayAvailable||p!=='jev';
  };
  const status=()=>{
   const c=state?.connection,allowed=!!c&&c.editable&&!busy;
@@ -228,7 +234,9 @@ function kitchenTabs(dialog){
   el('api-connect').textContent=c?.configured?'更换并测试':'测试并连接';
   el('api-connect').disabled=!allowed;el('api-clear').disabled=!allowed||!c?.configured;
   // Filling a draft does not change the active model or make a paid request.
-  for(const id of ['api-provider','api-url','api-model','api-key','api-remember'])el(id).disabled=busy;
+  for(const id of ['api-provider','api-url','api-model','api-key','api-remember','api-jev-relay'])el(id).disabled=busy;
+  el('api-transport-status').hidden=!window.chefjeffJevRelayAvailable||!c?.configured;
+  el('api-transport-status').textContent=c?.jev_relay?'当前连接：已同意服务器转发 Jev':'当前连接：浏览器直连模型';
   el('api-editing-status').textContent=!c?(window.chefjeffHostedStatus?.()||'等待厨房连接。可以先填写，连接成功后再测试。'):
    busy?'正在测试连接…':c.editable?'':'本局进行中，可以先填写；请结束本局后再测试或更换 API。';
   const l=state?.limits;
@@ -245,12 +253,12 @@ function kitchenTabs(dialog){
  window.addEventListener('kitchen-connection-error',()=>status());
  window.addEventListener('kitchen-open-connection',()=>{
   const c=state?.connection;
-  if(c?.configured){el('api-provider').value=c.provider;el('api-url').value=c.base_url;el('api-model').value=c.model;el('api-remember').checked=c.remembered}
+  if(c?.configured){el('api-provider').value=c.provider;el('api-url').value=c.base_url;el('api-model').value=c.model;el('api-remember').checked=c.remembered;el('api-jev-relay').checked=!!c.jev_relay}
   el('api-key').value='';el('call-limit').value=state?.limits?.next_max_calls||200;fields();status();
   message(!c?'尚未连接厨房，暂时不能测试 API。':c.editable?'测试连接会发送一次小型 API 请求，可能产生少量费用。':'请在开局前或结算后更换 API；请完成当前对局后再修改。');
   showTab(el('tab-connection'));if(!dialog.open)dialog.showModal();
  });
- el('api-provider').addEventListener('change',()=>{el('api-model').value=el('api-provider').value==='deepseek'?'deepseek-flash':'';el('api-key').value='';fields()});
+ el('api-provider').addEventListener('change',()=>{el('api-model').value=el('api-provider').value==='deepseek'?'deepseek-flash':'';el('api-key').value='';el('api-jev-relay').checked=false;fields()});
  el('api-close').onclick=()=>{el('api-key').value='';dialog.close()};
  dialog.addEventListener('close',()=>{el('api-key').value=''});
  async function send(extra){
@@ -262,11 +270,13 @@ function kitchenTabs(dialog){
     body:JSON.stringify({game_id:state.game_id,request_id:crypto.randomUUID(),...extra})});
    const data=await response.json();if(!response.ok)throw new Error(data.error||'连接失败');
    el('api-key').value='';state.connection=data.connection;
+   if(extra.clear)el('api-jev-relay').checked=false;
    message(extra.clear?'配置已清除。下次开局需要重新连接。':'连接成功！返回厨房即可开局，费用由你的 API 账号承担。');
   }catch(e){message(e.name==='AbortError'?'请求超时。请检查网络后重试。':e.message,true)}
   finally{clearTimeout(timer);busy=false;status()}
  }
- el('api-form').onsubmit=e=>{e.preventDefault();send({provider:el('api-provider').value,base_url:el('api-url').value,model:el('api-model').value,api_key:el('api-key').value,remember:el('api-remember').checked})};
+ el('api-form').onsubmit=e=>{e.preventDefault();send({provider:el('api-provider').value,base_url:el('api-url').value,model:el('api-model').value,api_key:el('api-key').value,remember:el('api-remember').checked,
+  ...(window.chefjeffJevRelayAvailable?{jev_relay:el('api-provider').value==='jev'&&el('api-jev-relay').checked}: {})})};
  el('api-clear').onclick=()=>send({clear:true});
  async function changeMemory(extra){
   if(!state||busy||memoryBusy)return;
