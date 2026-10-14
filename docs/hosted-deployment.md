@@ -10,7 +10,7 @@ node tests/hosted_browser_test.cjs
 python3 -m unittest tests.test_hosted tests.test_hosted_records
 ```
 
-`--data-dir` enables explicit contributions. Omit it to disable persistent contributions. A refresh creates a new kitchen; inactive sessions expire after 10 minutes. Capacity defaults to eight kitchens, with a busy response when full. The public reverse proxy limits new sessions and API traffic.
+`--data-dir` enables explicit contributions. Omit it to disable persistent contributions. A refresh creates a new kitchen. On page exit, the browser sends an authenticated game-session close request containing no model credentials, except when retained in the back/forward cache. If that best-effort request is lost, inactive sessions still expire after 10 minutes. Capacity defaults to eight kitchens, with a busy response when full. A full/unavailable server is retried no more than once every 15 seconds. The public reverse proxy limits new sessions and API traffic.
 
 ## Credentials and records
 
@@ -26,11 +26,15 @@ python3 -m unittest tests.test_hosted tests.test_hosted_records
 
 Upload an audited ZIP containing the allowlisted runtime, web build and `hosted/`, `deploy/` files. Verify its hash and every release-manifest entry; extract under `/opt/chefjeff/releases/<version>` and execute `deploy/install_backend.py` there. The service runs as an unprivileged dedicated account and binds only `127.0.0.1:8780`. This step does not open the website publicly.
 
-Before publishing, confirm domain requirements for the server region. For the present Shanghai instance, Tencent's console reports the domain as not filed for ICP; domain-based public access is pending completion of that process. The current plan retains the Shanghai server and keeps public access closed until filing is complete.
+The current pilot uses the operator's Hetzner instance in Nuremberg, Germany, with `chefjeff.belchingleo.online` pointing to that server.
 
 The supplied Nginx templates limit traffic, compress state responses and disable access/request logs. After public exposure is approved, install Nginx/Certbot from Ubuntu's official repositories; keep the initial HTTP site on a 503 response except for ACME challenges. Request the certificate only after the operator accepts the certificate issuer's subscriber terms. Then install the HTTPS template, validate Nginx configuration and test renewal. Allow only 80/443 for the web entry; never expose the Python port. Certificate files stay on the server.
 
+On this pilot's shared VPN server, run `bash deploy/finalize_hetzner.sh` as root after HTTPS works. It adds a drop-in to the enabled `personal-vpn-firewall.service`, using the existing `inet personal_vpn_filter input` chain to allow TCP 80/443 after startup and reload. The reviewed VPN loader and its hash arguments remain intact. It also installs a certificate-specific Nginx reload hook, enables the Certbot timer, and tests renewal with the hook. This helper requires that exact firewall service/table and does not reboot the server; boot persistence has to be confirmed during a later maintenance reboot.
+
 ## Operational checks
+
+With Nginx installed, run `python3 -m unittest tests.test_hosted_proxy`. The real-proxy checks cover public-page navigation from other sites, header forwarding and credential stripping, and rejection of cross-site game API requests. If Nginx is outside PATH, set `CHEFJEFF_NGINX_BIN` to its executable path.
 
 1. Check `/healthz` with the configured Host and confirm the Python listener is loopback-only.
 2. Use two browser pages to verify independent kitchens and connection settings.
@@ -72,11 +76,23 @@ python3 -m unittest tests.test_hosted tests.test_hosted_records
 
 上传经过审阅、仅含明确清单中的运行文件、网页构建、`hosted/` 与 `deploy/` 的 ZIP。验证包哈希及每条 release-manifest 记录，解压至 `/opt/chefjeff/releases/<version>`，在该目录执行 `deploy/install_backend.py`。服务以专用低权限账号运行，仅监听 `127.0.0.1:8780`，此步骤不公开网站。
 
-发布前确认服务地区的域名要求。当前上海服务器对应域名尚未备案，计划保留上海服务器，完成备案前不开放公开访问。
+当前试玩部署在运营者的 Hetzner 德国纽伦堡服务器，`chefjeff.belchingleo.online` 解析至这台服务器。
 
 Nginx 模板限流、压缩响应并关闭访问／请求日志。获得公开发布授权后，从 Ubuntu 官方仓库安装 Nginx／Certbot，初期 HTTP 除 ACME 验证外仅返回 503。运营者接受证书订户条款后申请证书，再安装 HTTPS 配置，校验 Nginx 并测试续期。网页仅开放 80／443，不公开 Python 端口；证书留在服务器。
 
+JavaScript 压缩同时覆盖 `text/javascript` 与 `application/javascript`，以兼容 Ubuntu/Python 的实际 MIME 类型。主要引擎脚本由约 5.7 MB 压至 0.95 MB。静态资源使用内容 ETag 和 `public, max-age=0, must-revalidate`：每次使用前检查更新，内容未变则返回 304；HTML、API、健康检查和错误响应仍为 `no-store`，不长期缓存无版本号的脚本。
+
+美术图集并发下载，全部完成后按原有顺序安装，保留后加载图集覆盖旧图集的规则。网页音频在第一次键盘／指针交互后按需下载正在使用的曲目及音效，不再在首屏下载整个音效目录；过晚到达的动作音效不补播，下载失败不会阻塞游戏。原生端保持整目录加载。真实用户首屏耗时仍受设备、网络和德国服务器到访客的往返延迟影响。
+
+设置中的供应商、地址、模型及 Key 可以先填写；收到厨房状态且处于开局前／结算后，才允许测试、更换或清除配置。等待连接不会再误报“旧页面”；容量或网络错误显示在设置页，恢复连接时保留尚未提交的草稿。只填写不会发送模型请求或产生 API 调用费用。
+
+后续更新可在服务器 SSH 终端以 root 执行 `python3 deploy/update_hetzner.py <完整提交 ID> <已测试部署包 SHA-256>`。脚本只从固定 Git 提交下载源码并打包，校验与本地测试包完全一致后，切换到新目录、重启厨房并检查健康状态，失败则回退旧版本和 Nginx 配置。它保留现有 systemd 容量／内存配置、记录数据和 VPN 配置。成功更新会结束正在进行的试玩对局；服务器部署与 Git 主线合并是独立操作。
+
+在当前共用 VPN 的试玩服务器上，HTTPS 可用后以 root 执行 `bash deploy/finalize_hetzner.sh`。它为已启用的 `personal-vpn-firewall.service` 添加补充配置，在服务启动及重新加载后，通过现有 `inet personal_vpn_filter input` 链放行 TCP 80／443；原 VPN 加载脚本及其校验参数保持原样。脚本还安装仅针对试玩证书的 Nginx 重载钩子，启用 Certbot 定时器，并模拟续期及钩子执行。此脚本要求上述指定服务及规则链存在，不会重启服务器；实际开机持久化需在之后的维护重启时确认。
+
 ## 验证
+
+安装 Nginx 后，运行 `python3 -m unittest tests.test_hosted_proxy`，通过真实代理验证外部链接打开首页、请求头转发、凭据移除，以及跨站游戏 API 请求被拒绝。Nginx 不在 PATH 时，可通过 `CHEFJEFF_NGINX_BIN` 指定可执行文件路径。
 
 1. 使用配置的 Host 检查 `/healthz`，确认 Python 仅监听回环地址。
 2. 用两个浏览器页面确认厨房和连接设置隔离。

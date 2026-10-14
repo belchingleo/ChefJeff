@@ -57,6 +57,21 @@ class HostedTests(unittest.TestCase):
         self.assertIsNone(r.request())
         r.close()
 
+    def test_closed_page_releases_capacity_and_stops_its_game(self):
+        sessions = Sessions(capacity=1)
+        try:
+            token = sessions.create()
+            game = sessions.get(token)
+            self.assertIsNone(sessions.create())
+            self.assertFalse(sessions.remove('invalid'))
+            self.assertIs(sessions.get(token), game)
+            self.assertTrue(sessions.remove(token))
+            self.assertTrue(game.stop_event.is_set())
+            self.assertFalse(sessions.remove(token))
+            self.assertIsNotNone(sessions.create())
+        finally:
+            sessions.close()
+
     def test_cancel_unblocks_waiter(self):
         r=BrowserRelay(load_config());errors=[]
         def ask():
@@ -73,7 +88,7 @@ class HostedTests(unittest.TestCase):
         raw=(Path(__file__).resolve().parents[1]/'cocos-kitchen/build/web/index.html').read_bytes()
         html=hosted_html(raw).decode()
         self.assertIn('<head><script src="/hosted-agent.js">',html)
-        self.assertIn('browser localStorage',html)
+        self.assertIn('浏览器 localStorage',html)
         self.assertNotIn('记住后以明文保存在这台电脑的本地配置文件',html)
         self.assertIn('<section hidden aria-labelledby="memory-title"',html)
         self.assertNotIn(b'hosted-agent.js',raw)
@@ -124,6 +139,16 @@ class HostedHTTPTests(unittest.TestCase):
         status,raw=self.request('/')
         self.assertEqual(status,200);self.assertIn(b'/hosted-agent.js',raw)
         self.assertEqual(self.request('/hosted-agent.js')[0],200)
+
+    def test_close_requires_a_same_origin_authenticated_empty_request(self):
+        _, raw = self.request('/api/session', {})
+        token = json.loads(raw)['session']
+        self.assertEqual(self.request('/api/session/close', {}, token, 'https://bad.example')[0], 403)
+        self.assertEqual(self.request('/api/session/close', {}, 'invalid')[0], 401)
+        self.assertEqual(self.request('/api/session/close', {'extra':True}, token)[0], 400)
+        self.assertEqual(self.request('/api/state', token=token)[0], 200)
+        self.assertEqual(self.request('/api/session/close', {}, token)[0], 200)
+        self.assertEqual(self.request('/api/state', token=token)[0], 401)
 
     def test_shipped_audio_is_served_with_audio_mime_type(self):
         files = list((self.server.web_root / 'assets/resources/native').rglob('*.mp3'))

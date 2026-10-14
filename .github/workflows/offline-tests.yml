@@ -18,6 +18,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Install Nginx for proxy integration tests
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nginx
       - run: node tests/hosted_browser_test.cjs
+      - run: node tests/presentation_loading_test.cjs
+      - run: node tests/settings_locale_test.cjs
+      - run: node tests/mobile_controls_test.cjs
+      - run: node tests/gamepad_controls_test.cjs
       - run: python -m unittest discover -s tests
       - run: python scripts/audit_release.py

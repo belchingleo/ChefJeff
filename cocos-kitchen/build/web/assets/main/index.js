@@ -1,431 +1,371 @@
-System.register("chunks:///_virtual/KitchenAudio.ts", ['./rollupPluginModLoBabelHelpers.js', 'cc'], function (exports) {
-  var _createForOfIteratorHelperLoose, _asyncToGenerator, _regeneratorRuntime, cclegacy, sys, resources, JsonAsset, AudioClip, Node, AudioSource;
-  return {
-    setters: [function (module) {
-      _createForOfIteratorHelperLoose = module.createForOfIteratorHelperLoose;
-      _asyncToGenerator = module.asyncToGenerator;
-      _regeneratorRuntime = module.regeneratorRuntime;
-    }, function (module) {
-      cclegacy = module.cclegacy;
-      sys = module.sys;
-      resources = module.resources;
-      JsonAsset = module.JsonAsset;
-      AudioClip = module.AudioClip;
-      Node = module.Node;
-      AudioSource = module.AudioSource;
-    }],
-    execute: function () {
-      cclegacy._RF.push({}, "ea8e3UwSytAOr39Sj8gvBv3", "KitchenAudio", undefined);
-      var STORAGE = 'chefjeff-audio';
-      var LOOPS = [
-      // name, clip, fade in (s), fade out (s), start at a random offset
-      ['ambience', 'amb_kitchen', 1.5, .6, false], ['sizzle', 'sizzle_loop', .15, .4, true], ['fire', 'fire_loop', .2, .5, true], ['wash_solo', 'wash_solo', .08, .1, true], ['wash_duo', 'wash_duo', .2, .2, true]];
-      var EVENT_SOUNDS = {
-        order: 'order_new',
-        ready: 'food_ready',
-        burn: 'burnt_warn',
-        fire: 'fire_ignite',
-        fire_spread: 'fire_spread',
-        served: 'serve_ok',
-        bad_service: 'serve_bad',
-        expired: 'order_expired',
-        thrown: 'throw',
-        caught: 'catch',
-        dropped: 'land',
-        plate_returned: 'plate_return'
-      };
-      var board = function board(id) {
-        return !!id && id.startsWith('b') && !id.startsWith('bin');
-      };
-      var cooking = function cooking(stage) {
-        return !!stage && /^(pot_)?(cooking|chopped|ready|burnt)$/.test(stage);
-      };
-
-      /** Presentation only: reads kitchen snapshots and plays sounds; never alters observations or rules. */
-      var KitchenAudio = exports('KitchenAudio', /*#__PURE__*/function () {
-        function KitchenAudio() {
-          var _this = this;
-          this.index = null;
-          this.clips = {};
-          this.sfx = null;
-          this.channels = {};
-          this.music = [];
-          this.musicClip = '';
-          this.last = null;
-          this.seen = new Set();
-          this.urgent = new Set();
-          this.recent = {};
-          this.lastChop = '';
-          this.endedGame = '';
-          this.menuAfter = 0;
-          this.clock = 0;
-          this.warned = false;
-          this.volume = {
-            music: .8,
-            sfx: .8
-          };
-          this.ready = false;
-          /** Cocos resumes its suspended Web Audio context only on a canvas click, but the kitchen is played
-           *  from the keyboard. Resume the same context on any key or pointer gesture; Cocos then starts the
-           *  queued sounds itself. If engine internals change, this quietly falls back to the canvas click. */
-          this.unlock = function () {
-            return _this.safely(function () {
-              // Any source that already holds a clip has a player wired to the engine's shared context.
-              for (var _i = 0, _arr = [].concat(_this.music.map(function (ch) {
-                  return ch.src;
-                }), Object.values(_this.channels).map(function (ch) {
-                  return ch.src;
-                })); _i < _arr.length; _i++) {
-                var _player;
-                var src = _arr[_i];
-                var context = src == null || (_player = src._player) == null || (_player = _player._player) == null || (_player = _player._gainNode) == null ? void 0 : _player.context;
-                if (!context) continue;
-                if (context.state !== 'running') context.resume()["catch"](function () {});
-                return;
-              }
-            });
-          };
-          this.onSettings = function (e) {
-            return _this.safely(function () {
-              Object.assign(_this.volume, e.detail || {});
-            });
-          };
-        }
-        var _proto = KitchenAudio.prototype;
-        _proto.load = /*#__PURE__*/function () {
-          var _load = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee(parent) {
-            var _yield$Promise$all, index, clips, _iterator, _step, c, source, _i2, _LOOPS, _LOOPS$_i, name, clip, fadeIn, fadeOut, randomStart;
-            return _regeneratorRuntime().wrap(function _callee$(_context) {
-              while (1) switch (_context.prev = _context.next) {
-                case 0:
-                  _context.prev = 0;
-                  _context.next = 3;
-                  return Promise.all([new Promise(function (ok, no) {
-                    return resources.load('audio/index', JsonAsset, function (e, a) {
-                      return e ? no(e) : ok(a);
+System.register("chunks:///_virtual/KitchenAudio.ts", ["cc"], function (exports_1, context_1) {
+    // source-sha256: 7ac000e7902fad7d53565fbb47a2a065a2800a94978473358b7ec20fe6036ca4
+    "use strict";
+    var cc_1, STORAGE, LOOPS, MUSIC, EVENT_SOUNDS, board, cooking, KitchenAudio;
+    var __moduleName = context_1 && context_1.id;
+    return {
+        setters: [
+            function (cc_1_1) {
+                cc_1 = cc_1_1;
+            }
+        ],
+        execute: function () {
+            STORAGE = 'chefjeff-audio';
+            LOOPS = [
+                // name, clip, fade in (s), fade out (s), start at a random offset
+                ['ambience', 'amb_kitchen', 1.5, .6, false],
+                ['sizzle', 'sizzle_loop', .15, .4, true],
+                ['fire', 'fire_loop', .2, .5, true],
+                ['wash_solo', 'wash_solo', .08, .1, true],
+                ['wash_duo', 'wash_duo', .2, .2, true],
+            ];
+            MUSIC = ['bgm_menu', 'bgm_service', 'bgm_rush'];
+            EVENT_SOUNDS = { order: 'order_new', ready: 'food_ready', burn: 'burnt_warn', fire: 'fire_ignite',
+                fire_spread: 'fire_spread', served: 'serve_ok', bad_service: 'serve_bad', expired: 'order_expired', thrown: 'throw',
+                caught: 'catch', dropped: 'land', plate_returned: 'plate_return' };
+            board = (id) => !!id && id.startsWith('b') && !id.startsWith('bin');
+            cooking = (stage) => !!stage && /^(pot_)?(cooking|chopped|ready|burnt)$/.test(stage);
+            /** Presentation only: reads kitchen snapshots and plays sounds; never alters observations or rules. */
+            KitchenAudio = class KitchenAudio {
+                constructor() {
+                    this.index = null;
+                    this.clips = {};
+                    this.sfx = null;
+                    this.channels = {};
+                    this.music = [];
+                    this.musicClip = '';
+                    this.last = null;
+                    this.seen = new Set();
+                    this.urgent = new Set();
+                    this.recent = {};
+                    this.lastChop = '';
+                    this.endedGame = '';
+                    this.menuAfter = 0;
+                    this.clock = 0;
+                    this.warned = false;
+                    this.destroyed = false;
+                    this.started = cc_1.sys.isNative;
+                    this.loading = {};
+                    this.volume = { music: .8, sfx: .8 };
+                    this.ready = false;
+                    /** Cocos resumes its suspended Web Audio context only on a canvas click, but the kitchen is played
+                     *  from the keyboard. Resume the same context on any key or pointer gesture; Cocos then starts the
+                     *  queued sounds itself. If engine internals change, this quietly falls back to the canvas click. */
+                    this.unlock = () => this.safely(() => {
+                        var _a, _b, _c;
+                        this.started = true;
+                        // Any source that already holds a clip has a player wired to the engine's shared context.
+                        for (const src of [...this.music.map(ch => ch.src), ...Object.values(this.channels).map(ch => ch.src)]) {
+                            const context = (_c = (_b = (_a = src === null || src === void 0 ? void 0 : src._player) === null || _a === void 0 ? void 0 : _a._player) === null || _b === void 0 ? void 0 : _b._gainNode) === null || _c === void 0 ? void 0 : _c.context;
+                            if (!context)
+                                continue;
+                            if (context.state !== 'running')
+                                context.resume().catch(() => { });
+                            return;
+                        }
                     });
-                  }), new Promise(function (ok, no) {
-                    return resources.loadDir('audio', AudioClip, function (e, a) {
-                      return e ? no(e) : ok(a);
-                    });
-                  })]);
-                case 3:
-                  _yield$Promise$all = _context.sent;
-                  index = _yield$Promise$all[0];
-                  clips = _yield$Promise$all[1];
-                  this.index = index.json;
-                  for (_iterator = _createForOfIteratorHelperLoose(clips); !(_step = _iterator()).done;) {
-                    c = _step.value;
-                    this.clips[c.name] = c;
-                  }
-                  source = function source(name) {
-                    var n = new Node('audio-' + name);
-                    parent.addChild(n);
-                    var s = n.addComponent(AudioSource);
-                    s.playOnAwake = false;
-                    return s;
-                  };
-                  this.sfx = source('sfx');
-                  for (_i2 = 0, _LOOPS = LOOPS; _i2 < _LOOPS.length; _i2++) {
-                    _LOOPS$_i = _LOOPS[_i2], name = _LOOPS$_i[0], clip = _LOOPS$_i[1], fadeIn = _LOOPS$_i[2], fadeOut = _LOOPS$_i[3], randomStart = _LOOPS$_i[4];
-                    this.channels[name] = {
-                      src: source(name),
-                      clip: clip,
-                      level: 0,
-                      target: 0,
-                      fadeIn: fadeIn,
-                      fadeOut: fadeOut,
-                      randomStart: randomStart
-                    };
-                  }
-                  // Two music players so the service/rush switch can crossfade.
-                  this.music = [0, 1].map(function (i) {
-                    return {
-                      src: source('music-' + i),
-                      clip: '',
-                      level: 0,
-                      target: 0,
-                      fadeIn: 1.2,
-                      fadeOut: .8,
-                      randomStart: false
-                    };
-                  });
-                  if (!sys.isNative) {
+                    this.onSettings = (e) => this.safely(() => { Object.assign(this.volume, e.detail || {}); });
+                }
+                async load(parent) {
                     try {
-                      Object.assign(this.volume, JSON.parse(localStorage.getItem(STORAGE) || '{}'));
-                    } catch (_) {}
-                    window.addEventListener('kitchen-audio-settings', this.onSettings);
-                    window.addEventListener('keydown', this.unlock, true);
-                    window.addEventListener('pointerdown', this.unlock, true);
-                  }
-                  this.ready = true;
-                  _context.next = 19;
-                  break;
-                case 16:
-                  _context.prev = 16;
-                  _context.t0 = _context["catch"](0);
-                  console.warn('ChefJeff audio unavailable; the kitchen stays silent.', _context.t0);
-                case 19:
-                case "end":
-                  return _context.stop();
-              }
-            }, _callee, this, [[0, 16]]);
-          }));
-          function load(_x) {
-            return _load.apply(this, arguments);
-          }
-          return load;
-        }() /** Sound must never break play: an audio error is reported once and that sound is skipped. */;
-        _proto.safely = function safely(run) {
-          try {
-            run();
-          } catch (error) {
-            if (!this.warned) {
-              this.warned = true;
-              console.warn('ChefJeff audio error; the kitchen carries on without this sound.', error);
-            }
-          }
-        };
-        _proto.destroy = function destroy() {
-          if (sys.isNative) return;
-          window.removeEventListener('kitchen-audio-settings', this.onSettings);
-          window.removeEventListener('keydown', this.unlock, true);
-          window.removeEventListener('pointerdown', this.unlock, true);
-        };
-        _proto.gain = function gain(name) {
-          var _ref, _this$index$sounds$na, _this$index, _this$index2;
-          return (_ref = (_this$index$sounds$na = (_this$index = this.index) == null || (_this$index = _this$index.sounds[name]) == null ? void 0 : _this$index.gain) != null ? _this$index$sounds$na : (_this$index2 = this.index) == null || (_this$index2 = _this$index2.wash[name]) == null ? void 0 : _this$index2.gain) != null ? _ref : .8;
-        };
-        _proto.play = function play(name, scale, minGap) {
-          var _this2 = this;
-          if (scale === void 0) {
-            scale = 1;
-          }
-          if (minGap === void 0) {
-            minGap = .06;
-          }
-          this.safely(function () {
-            return _this2.playNow(name, scale, minGap);
-          });
-        };
-        _proto.playNow = function playNow(name, scale, minGap) {
-          var _this$recent$name;
-          var clip = this.clips[name];
-          if (!this.ready || !clip || !this.sfx || this.volume.sfx <= 0) return;
-          if (this.clock - ((_this$recent$name = this.recent[name]) != null ? _this$recent$name : -1) < minGap) return;
-          this.recent[name] = this.clock;
-          this.sfx.playOneShot(clip, Math.min(1, this.gain(name) * this.volume.sfx * scale));
+                        const [index, clips] = await Promise.all([
+                            new Promise((ok, no) => cc_1.resources.load('audio/index', cc_1.JsonAsset, (e, a) => e ? no(e) : ok(a))),
+                            // Native builds keep their existing loading path. Web audio is
+                            // requested by name after a gesture, rather than downloading all
+                            // 51 clips while the player is waiting for the first kitchen.
+                            cc_1.sys.isNative ? new Promise((ok, no) => cc_1.resources.loadDir('audio', cc_1.AudioClip, (e, a) => e ? no(e) : ok(a))) : Promise.resolve([]),
+                        ]);
+                        if (this.destroyed || !parent.isValid)
+                            return;
+                        this.index = index.json;
+                        for (const c of clips)
+                            this.clips[c.name] = c;
+                        const source = (name) => { const n = new cc_1.Node('audio-' + name); parent.addChild(n); const s = n.addComponent(cc_1.AudioSource); s.playOnAwake = false; return s; };
+                        this.sfx = source('sfx');
+                        for (const [name, clip, fadeIn, fadeOut, randomStart] of LOOPS)
+                            this.channels[name] = { src: source(name), clip, level: 0, target: 0, fadeIn, fadeOut, randomStart };
+                        // Two music players so the service/rush switch can crossfade.
+                        this.music = [0, 1].map(i => ({ src: source('music-' + i), clip: '', level: 0, target: 0, fadeIn: 1.2, fadeOut: .8, randomStart: false }));
+                        if (!cc_1.sys.isNative) {
+                            try {
+                                Object.assign(this.volume, JSON.parse(localStorage.getItem(STORAGE) || '{}'));
+                            }
+                            catch (_) { }
+                            window.addEventListener('kitchen-audio-settings', this.onSettings);
+                            window.addEventListener('keydown', this.unlock, true);
+                            window.addEventListener('pointerdown', this.unlock, true);
+                        }
+                        this.ready = true;
+                    }
+                    catch (error) {
+                        console.warn('ChefJeff audio unavailable; the kitchen stays silent.', error);
+                    }
+                }
+                /** Sound must never break play: an audio error is reported once and that sound is skipped. */
+                safely(run) {
+                    try {
+                        run();
+                    }
+                    catch (error) {
+                        if (!this.warned) {
+                            this.warned = true;
+                            console.warn('ChefJeff audio error; the kitchen carries on without this sound.', error);
+                        }
+                    }
+                }
+                destroy() {
+                    this.destroyed = true;
+                    if (cc_1.sys.isNative)
+                        return;
+                    window.removeEventListener('kitchen-audio-settings', this.onSettings);
+                    window.removeEventListener('keydown', this.unlock, true);
+                    window.removeEventListener('pointerdown', this.unlock, true);
+                }
+                gain(name) { var _a, _b, _c, _d, _e, _f; return (_f = (_c = (_b = (_a = this.index) === null || _a === void 0 ? void 0 : _a.sounds[name]) === null || _b === void 0 ? void 0 : _b.gain) !== null && _c !== void 0 ? _c : (_e = (_d = this.index) === null || _d === void 0 ? void 0 : _d.wash[name]) === null || _e === void 0 ? void 0 : _e.gain) !== null && _f !== void 0 ? _f : .8; }
+                ensureClip(name) {
+                    if (this.clips[name])
+                        return Promise.resolve(this.clips[name]);
+                    if (!this.started || this.destroyed || !name)
+                        return Promise.resolve(null);
+                    if (!this.loading[name])
+                        this.loading[name] = new Promise(resolve => {
+                            cc_1.resources.load('audio/' + name, cc_1.AudioClip, (error, clip) => {
+                                if (error || this.destroyed) {
+                                    if (error && !this.warned) {
+                                        this.warned = true;
+                                        console.warn('ChefJeff sound unavailable: ' + name, error);
+                                    }
+                                    resolve(null);
+                                    return;
+                                }
+                                this.clips[name] = clip;
+                                resolve(clip);
+                            });
+                        });
+                    return this.loading[name];
+                }
+                play(name, scale = 1, minGap = .06) { this.safely(() => this.playNow(name, scale, minGap)); }
+                playNow(name, scale, minGap) {
+                    var _a;
+                    if (!this.ready || !this.sfx || this.volume.sfx <= 0 || this.destroyed)
+                        return;
+                    const clip = this.clips[name];
+                    if (!clip) {
+                        const at = this.clock;
+                        this.ensureClip(name).then(loaded => {
+                            // Never replay an old event after a slow download.
+                            if (loaded && !this.destroyed && this.clock - at <= .35)
+                                this.play(name, scale, minGap);
+                        });
+                        return;
+                    }
+                    if (this.clock - ((_a = this.recent[name]) !== null && _a !== void 0 ? _a : -1) < minGap)
+                        return;
+                    this.recent[name] = this.clock;
+                    this.sfx.playOneShot(clip, Math.min(1, this.gain(name) * this.volume.sfx * scale));
+                }
+                /** One knife strike, fired by the chop animation at the moment the blade meets the board. */
+                chop() { this.safely(() => this.chopNow()); }
+                chopNow() {
+                    var _a;
+                    const pool = ((_a = this.index) === null || _a === void 0 ? void 0 : _a.chop) || [];
+                    if (!pool.length)
+                        return;
+                    let name = pool[Math.floor(Math.random() * pool.length)];
+                    if (name === this.lastChop && pool.length > 1)
+                        name = pool[(pool.indexOf(name) + 1) % pool.length];
+                    this.lastChop = name;
+                    this.playNow(name, .8 + Math.random() * .2, 0);
+                }
+                onState(s) { this.safely(() => this.applyState(s)); }
+                applyState(s) {
+                    if (!this.ready)
+                        return;
+                    const prev = this.last;
+                    this.last = s;
+                    const k = s.kitchen, fresh = !prev || prev.game_id !== s.game_id;
+                    if (fresh) {
+                        this.seen = new Set((s.events || []).map((e) => e.t + '|' + e.message));
+                        this.urgent.clear();
+                    }
+                    this.phaseMusic(prev, s, fresh);
+                    const running = s.phase === 'running';
+                    if (!fresh && running) {
+                        const events = (s.events || []).filter((e) => !this.seen.has(e.t + '|' + e.message));
+                        for (const e of events) {
+                            this.seen.add(e.t + '|' + e.message);
+                            if (e.kind === 'landed')
+                                this.play(/落到/.test(e.message) ? 'place_board' : 'land');
+                            else if (EVENT_SOUNDS[e.kind])
+                                this.play(EVENT_SOUNDS[e.kind]);
+                        }
+                        if (this.seen.size > 80)
+                            this.seen = new Set([...this.seen].slice(-40));
+                        const skip = new Set(events.filter((e) => ['thrown', 'dropped', 'interrupted', 'served', 'bad_service'].includes(e.kind)).map((e) => e.actor));
+                        for (const who of Object.keys(k.chefs))
+                            if (!skip.has(who))
+                                this.chefChange(prev.kitchen.chefs[who], k.chefs[who]);
+                        this.stationChanges(prev.kitchen, k);
+                        for (const o of k.orders || [])
+                            if (o.status === 'pending' && o.remaining <= 10 && o.remaining > 0 && !this.urgent.has(o.id)) {
+                                this.urgent.add(o.id);
+                                this.play('order_urgent');
+                            }
+                    }
+                    const stations = Object.values(k.stations || {});
+                    const washers = Object.values(k.chefs).filter((c) => c.action_kind === 'wash' && c.working).length;
+                    this.channels.ambience.target = running || s.phase === 'ready' ? 1 : 0;
+                    this.channels.sizzle.target = running && stations.some(st => { var _a; return st.stove && st.heating && !st.fire && cooking((_a = st.food) === null || _a === void 0 ? void 0 : _a.stage); }) ? 1 : 0;
+                    this.channels.fire.target = running && stations.some(st => st.fire) ? 1 : 0;
+                    this.channels.wash_solo.target = running && washers === 1 ? 1 : 0;
+                    this.channels.wash_duo.target = running && washers >= 2 ? 1 : 0;
+                }
+                chefChange(a, b) {
+                    var _a, _b, _c, _d;
+                    const before = a.holding, after = b.holding, kind = a.action_kind || b.action_kind, target = a.target || b.target;
+                    const sameItem = before && after && before.id === after.id;
+                    if (sameItem && before.stage !== after.stage) {
+                        if (kind === 'assemble')
+                            this.play('assemble');
+                        else if (kind === 'empty_pot' || kind === 'discard')
+                            this.play('discard');
+                        else if (/^plate|merge/.test(kind || ''))
+                            this.play('plate_place');
+                        return;
+                    }
+                    if (after && !sameItem) {
+                        this.play(kind === 'fetch' && target === 'fridge' ? 'fridge_grab' : 'pickup');
+                        return;
+                    }
+                    if (before && !after) {
+                        if (['discard', 'empty_pot', 'clear'].includes(kind))
+                            this.play('discard');
+                        else if (target === 'serve' || ((_d = (_c = (_b = (_a = this.last) === null || _a === void 0 ? void 0 : _a.kitchen) === null || _b === void 0 ? void 0 : _b.stations) === null || _c === void 0 ? void 0 : _c[target]) === null || _d === void 0 ? void 0 : _d.stove))
+                            return; // serving/pan sounds come from events/stations
+                        else if (board(target))
+                            this.play('place_board');
+                        else
+                            this.play(/plate/.test(before.stage) ? 'plate_place' : 'place_board');
+                        return;
+                    }
+                    // Finished an assembly or plating job without a hand change (e.g. building on the counter).
+                    if (a.job_id && a.job_id !== b.job_id && a.working && (a.action_kind === 'assemble' || /^plate|merge/.test(a.action_kind || '')))
+                        this.play(a.action_kind === 'assemble' ? 'assemble' : 'plate_place');
+                }
+                stationChanges(a, b) {
+                    var _a, _b, _c;
+                    const held = new Set(Object.values(b.chefs).map((c) => { var _a; return (_a = c.holding) === null || _a === void 0 ? void 0 : _a.id; }).filter(Boolean));
+                    for (const [key, n] of Object.entries(b.stations || {})) {
+                        const p = (_a = a.stations) === null || _a === void 0 ? void 0 : _a[key];
+                        if (!p)
+                            continue;
+                        if (p.fire && !n.fire)
+                            this.play('extinguisher');
+                        if (n.stove && cooking((_b = n.food) === null || _b === void 0 ? void 0 : _b.stage) && /cooking|chopped/.test(n.food.stage) && !cooking((_c = p.food) === null || _c === void 0 ? void 0 : _c.stage))
+                            this.play('pan_sizzle_start');
+                        // Burnt food cleared out of a pot without anyone carrying it away: it was dumped.
+                        if (p.food && /burnt/.test(p.food.stage) && !n.food && !held.has(p.food.id))
+                            this.play('discard');
+                    }
+                }
+                phaseMusic(prev, s, fresh) {
+                    const was = prev === null || prev === void 0 ? void 0 : prev.phase, now = s.phase;
+                    if (!fresh && was === 'running' && now === 'paused')
+                        this.play('ui_pause');
+                    if (!fresh && was === 'paused' && now === 'running')
+                        this.play('ui_resume');
+                    if (now === 'ended' && !fresh && was !== 'ended' && this.endedGame !== s.game_id) {
+                        this.endedGame = s.game_id;
+                        this.setMusic('');
+                        this.play(s.won ? 'jingle_win' : 'jingle_lose', 1, 0);
+                        this.menuAfter = this.clock + (s.won ? 3.5 : 2.3);
+                        return;
+                    }
+                    if (now === 'ended') {
+                        if (this.menuAfter && this.clock < this.menuAfter)
+                            return;
+                        this.setMusic('bgm_menu');
+                        return;
+                    }
+                    if (now === 'running')
+                        this.setMusic(s.kitchen.round_remaining <= 30 ? 'bgm_rush' : 'bgm_service');
+                    else if (now === 'paused')
+                        this.setMusic('');
+                    else
+                        this.setMusic('bgm_menu');
+                }
+                setMusic(name) {
+                    if (name === this.musicClip)
+                        return;
+                    this.musicClip = name;
+                    for (const ch of this.music)
+                        if (ch.clip !== name)
+                            ch.target = 0;
+                    if (!name)
+                        return;
+                    // Pausing keeps the position, so resuming the same piece continues where it stopped.
+                    const same = this.music.find(ch => ch.clip === name);
+                    if (same) {
+                        same.target = 1;
+                        return;
+                    }
+                    const free = this.music[0].level <= this.music[1].level ? this.music[0] : this.music[1];
+                    free.src.stop();
+                    free.clip = name;
+                    free.src.clip = this.clips[name] || null;
+                    free.level = 0;
+                    free.target = 1;
+                }
+                update(dt) { this.safely(() => this.tick(dt)); }
+                tick(dt) {
+                    var _a;
+                    this.clock += dt;
+                    if (!this.ready)
+                        return;
+                    if (this.menuAfter && this.clock >= this.menuAfter) {
+                        this.menuAfter = 0;
+                        if (((_a = this.last) === null || _a === void 0 ? void 0 : _a.phase) === 'ended')
+                            this.setMusic('bgm_menu');
+                    }
+                    for (const ch of Object.values(this.channels))
+                        this.step(ch, dt, this.volume.sfx, true);
+                    for (const ch of this.music)
+                        this.step(ch, dt, this.volume.music, false);
+                }
+                step(ch, dt, master, sfx) {
+                    const clip = this.clips[ch.clip];
+                    if (!clip) {
+                        ch.level = 0;
+                        if (master > 0 && ch.target > 0)
+                            this.ensureClip(ch.clip);
+                        return;
+                    }
+                    const rate = ch.target > ch.level ? 1 / ch.fadeIn : 1 / ch.fadeOut;
+                    ch.level = ch.target > ch.level ? Math.min(ch.target, ch.level + dt * rate) : Math.max(ch.target, ch.level - dt * rate);
+                    const src = ch.src;
+                    if (ch.level > 0 && master > 0) {
+                        if (src.clip !== clip)
+                            src.clip = clip;
+                        src.loop = true;
+                        if (!src.playing) {
+                            src.play();
+                            if (ch.randomStart && sfx)
+                                src.currentTime = Math.random() * Math.max(0, clip.getDuration() - .2);
+                        }
+                        src.volume = ch.level * this.gain(ch.clip) * master;
+                    }
+                    else if (src.playing) {
+                        // Loops pause at silence; texture loops restart elsewhere next time, music resumes in place.
+                        if (sfx && ch.randomStart)
+                            src.stop();
+                        else
+                            src.pause();
+                    }
+                }
+            };
+            exports_1("KitchenAudio", KitchenAudio);
         }
-        /** One knife strike, fired by the chop animation at the moment the blade meets the board. */;
-        _proto.chop = function chop() {
-          var _this3 = this;
-          this.safely(function () {
-            return _this3.chopNow();
-          });
-        };
-        _proto.chopNow = function chopNow() {
-          var _this$index3;
-          var pool = ((_this$index3 = this.index) == null ? void 0 : _this$index3.chop) || [];
-          if (!pool.length) return;
-          var name = pool[Math.floor(Math.random() * pool.length)];
-          if (name === this.lastChop && pool.length > 1) name = pool[(pool.indexOf(name) + 1) % pool.length];
-          this.lastChop = name;
-          this.playNow(name, .8 + Math.random() * .2, 0);
-        };
-        _proto.onState = function onState(s) {
-          var _this4 = this;
-          this.safely(function () {
-            return _this4.applyState(s);
-          });
-        };
-        _proto.applyState = function applyState(s) {
-          var _this5 = this;
-          if (!this.ready) return;
-          var prev = this.last;
-          this.last = s;
-          var k = s.kitchen,
-            fresh = !prev || prev.game_id !== s.game_id;
-          if (fresh) {
-            this.seen = new Set((s.events || []).map(function (e) {
-              return e.t + '|' + e.message;
-            }));
-            this.urgent.clear();
-          }
-          this.phaseMusic(prev, s, fresh);
-          var running = s.phase === 'running';
-          if (!fresh && running) {
-            var events = (s.events || []).filter(function (e) {
-              return !_this5.seen.has(e.t + '|' + e.message);
-            });
-            for (var _iterator2 = _createForOfIteratorHelperLoose(events), _step2; !(_step2 = _iterator2()).done;) {
-              var e = _step2.value;
-              this.seen.add(e.t + '|' + e.message);
-              if (e.kind === 'landed') this.play(/落到/.test(e.message) ? 'place_board' : 'land');else if (EVENT_SOUNDS[e.kind]) this.play(EVENT_SOUNDS[e.kind]);
-            }
-            if (this.seen.size > 80) this.seen = new Set([].concat(this.seen).slice(-40));
-            var skip = new Set(events.filter(function (e) {
-              return ['thrown', 'dropped', 'interrupted', 'served', 'bad_service'].includes(e.kind);
-            }).map(function (e) {
-              return e.actor;
-            }));
-            for (var _i3 = 0, _Object$keys = Object.keys(k.chefs); _i3 < _Object$keys.length; _i3++) {
-              var who = _Object$keys[_i3];
-              if (!skip.has(who)) this.chefChange(prev.kitchen.chefs[who], k.chefs[who]);
-            }
-            this.stationChanges(prev.kitchen, k);
-            for (var _iterator3 = _createForOfIteratorHelperLoose(k.orders || []), _step3; !(_step3 = _iterator3()).done;) {
-              var o = _step3.value;
-              if (o.status === 'pending' && o.remaining <= 10 && o.remaining > 0 && !this.urgent.has(o.id)) {
-                this.urgent.add(o.id);
-                this.play('order_urgent');
-              }
-            }
-          }
-          var stations = Object.values(k.stations || {});
-          var washers = Object.values(k.chefs).filter(function (c) {
-            return c.action_kind === 'wash' && c.working;
-          }).length;
-          this.channels.ambience.target = running || s.phase === 'ready' ? 1 : 0;
-          this.channels.sizzle.target = running && stations.some(function (st) {
-            var _st$food;
-            return st.stove && st.heating && !st.fire && cooking((_st$food = st.food) == null ? void 0 : _st$food.stage);
-          }) ? 1 : 0;
-          this.channels.fire.target = running && stations.some(function (st) {
-            return st.fire;
-          }) ? 1 : 0;
-          this.channels.wash_solo.target = running && washers === 1 ? 1 : 0;
-          this.channels.wash_duo.target = running && washers >= 2 ? 1 : 0;
-        };
-        _proto.chefChange = function chefChange(a, b) {
-          var before = a.holding,
-            after = b.holding,
-            kind = a.action_kind || b.action_kind,
-            target = a.target || b.target;
-          var sameItem = before && after && before.id === after.id;
-          if (sameItem && before.stage !== after.stage) {
-            if (kind === 'assemble') this.play('assemble');else if (kind === 'empty_pot' || kind === 'discard') this.play('discard');else if (/^plate|merge/.test(kind || '')) this.play('plate_place');
-            return;
-          }
-          if (after && !sameItem) {
-            this.play(kind === 'fetch' && target === 'fridge' ? 'fridge_grab' : 'pickup');
-            return;
-          }
-          if (before && !after) {
-            var _this$last;
-            if (['discard', 'empty_pot', 'clear'].includes(kind)) this.play('discard');else if (target === 'serve' || (_this$last = this.last) != null && (_this$last = _this$last.kitchen) != null && (_this$last = _this$last.stations) != null && (_this$last = _this$last[target]) != null && _this$last.stove) return; // serving/pan sounds come from events/stations
-            else if (board(target)) this.play('place_board');else this.play(/plate/.test(before.stage) ? 'plate_place' : 'place_board');
-            return;
-          }
-          // Finished an assembly or plating job without a hand change (e.g. building on the counter).
-          if (a.job_id && a.job_id !== b.job_id && a.working && (a.action_kind === 'assemble' || /^plate|merge/.test(a.action_kind || ''))) this.play(a.action_kind === 'assemble' ? 'assemble' : 'plate_place');
-        };
-        _proto.stationChanges = function stationChanges(a, b) {
-          var held = new Set(Object.values(b.chefs).map(function (c) {
-            var _c$holding;
-            return (_c$holding = c.holding) == null ? void 0 : _c$holding.id;
-          }).filter(Boolean));
-          for (var _i4 = 0, _Object$entries = Object.entries(b.stations || {}); _i4 < _Object$entries.length; _i4++) {
-            var _a$stations, _n$food, _p$food;
-            var _Object$entries$_i = _Object$entries[_i4],
-              key = _Object$entries$_i[0],
-              n = _Object$entries$_i[1];
-            var p = (_a$stations = a.stations) == null ? void 0 : _a$stations[key];
-            if (!p) continue;
-            if (p.fire && !n.fire) this.play('extinguisher');
-            if (n.stove && cooking((_n$food = n.food) == null ? void 0 : _n$food.stage) && /cooking|chopped/.test(n.food.stage) && !cooking((_p$food = p.food) == null ? void 0 : _p$food.stage)) this.play('pan_sizzle_start');
-            // Burnt food cleared out of a pot without anyone carrying it away: it was dumped.
-            if (p.food && /burnt/.test(p.food.stage) && !n.food && !held.has(p.food.id)) this.play('discard');
-          }
-        };
-        _proto.phaseMusic = function phaseMusic(prev, s, fresh) {
-          var was = prev == null ? void 0 : prev.phase,
-            now = s.phase;
-          if (!fresh && was === 'running' && now === 'paused') this.play('ui_pause');
-          if (!fresh && was === 'paused' && now === 'running') this.play('ui_resume');
-          if (now === 'ended' && !fresh && was !== 'ended' && this.endedGame !== s.game_id) {
-            this.endedGame = s.game_id;
-            this.setMusic('');
-            this.play(s.won ? 'jingle_win' : 'jingle_lose', 1, 0);
-            this.menuAfter = this.clock + (s.won ? 3.5 : 2.3);
-            return;
-          }
-          if (now === 'ended') {
-            if (this.menuAfter && this.clock < this.menuAfter) return;
-            this.setMusic('bgm_menu');
-            return;
-          }
-          if (now === 'running') this.setMusic(s.kitchen.round_remaining <= 30 ? 'bgm_rush' : 'bgm_service');else if (now === 'paused') this.setMusic('');else this.setMusic('bgm_menu');
-        };
-        _proto.setMusic = function setMusic(name) {
-          if (name === this.musicClip) return;
-          this.musicClip = name;
-          for (var _iterator4 = _createForOfIteratorHelperLoose(this.music), _step4; !(_step4 = _iterator4()).done;) {
-            var ch = _step4.value;
-            if (ch.clip !== name) ch.target = 0;
-          }
-          if (!name) return;
-          // Pausing keeps the position, so resuming the same piece continues where it stopped.
-          var same = this.music.find(function (ch) {
-            return ch.clip === name;
-          });
-          if (same) {
-            same.target = 1;
-            return;
-          }
-          var free = this.music[0].level <= this.music[1].level ? this.music[0] : this.music[1];
-          free.src.stop();
-          free.clip = name;
-          free.src.clip = this.clips[name] || null;
-          free.level = 0;
-          free.target = 1;
-        };
-        _proto.update = function update(dt) {
-          var _this6 = this;
-          this.safely(function () {
-            return _this6.tick(dt);
-          });
-        };
-        _proto.tick = function tick(dt) {
-          this.clock += dt;
-          if (!this.ready) return;
-          if (this.menuAfter && this.clock >= this.menuAfter) {
-            var _this$last2;
-            this.menuAfter = 0;
-            if (((_this$last2 = this.last) == null ? void 0 : _this$last2.phase) === 'ended') this.setMusic('bgm_menu');
-          }
-          for (var _i5 = 0, _Object$values = Object.values(this.channels); _i5 < _Object$values.length; _i5++) {
-            var ch = _Object$values[_i5];
-            this.step(ch, dt, this.volume.sfx, true);
-          }
-          for (var _iterator5 = _createForOfIteratorHelperLoose(this.music), _step5; !(_step5 = _iterator5()).done;) {
-            var _ch = _step5.value;
-            this.step(_ch, dt, this.volume.music, false);
-          }
-        };
-        _proto.step = function step(ch, dt, master, sfx) {
-          var rate = ch.target > ch.level ? 1 / ch.fadeIn : 1 / ch.fadeOut;
-          ch.level = ch.target > ch.level ? Math.min(ch.target, ch.level + dt * rate) : Math.max(ch.target, ch.level - dt * rate);
-          var clip = this.clips[ch.clip];
-          if (!clip) return;
-          var src = ch.src;
-          if (ch.level > 0 && master > 0) {
-            if (src.clip !== clip) src.clip = clip;
-            src.loop = true;
-            if (!src.playing) {
-              src.play();
-              if (ch.randomStart && sfx) src.currentTime = Math.random() * Math.max(0, clip.getDuration() - .2);
-            }
-            src.volume = ch.level * this.gain(ch.clip) * master;
-          } else if (src.playing) {
-            // Loops pause at silence; texture loops restart elsewhere next time, music resumes in place.
-            if (sfx && ch.randomStart) src.stop();else src.pause();
-          }
-        };
-        return KitchenAudio;
-      }());
-      cclegacy._RF.pop();
-    }
-  };
+    };
 });
 
 System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabelHelpers.js', 'cc', './LevelOneArt.ts', './KitchenAudio.ts', './KitchenGeometry.ts'], function (exports) {
@@ -580,9 +520,22 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             x: 0,
             y: 0
           };
-          // Hold Space to aim a throw (Overcooked-style): after AIM_HOLD seconds the chef stops, an arrow
-          // shows the direction, direction keys turn it, and releasing Space throws along it.
+          // Hold Space to aim a throw (Overcooked-style): after AIM_HOLD seconds the chef stops, a translucent arc
+          // guides the direction and maximum range; direction keys turn it, and releasing Space throws along it.
+          _this.touchDirection = {
+            x: 0,
+            y: 0
+          };
+          _this.touchMoveDirty = false;
+          _this.touchMoveAt = -Infinity;
+          _this.touchNeedsNeutral = false;
+          _this.touchBlocked = false;
+          _this.touchLayout = null;
+          _this.touchNodeVisibility = new Map();
+          _this.controls = null;
+          _this.controlsSignature = '';
           _this.spaceDownAt = null;
+          _this.spaceItemId = null;
           _this.aiming = null;
           _this.aimArrow = null;
           // Held-key walking is predicted locally so the chef answers on the same frame, then eased onto server state.
@@ -654,9 +607,13 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             var _e$target;
             if ((_e$target = e.target) != null && _e$target.closest('canvas')) e.preventDefault();
           };
-          _this.onMouseDown = function (e) {
-            var _e$target2;
-            if (e.button === 2 && (_e$target2 = e.target) != null && _e$target2.closest('canvas')) {
+          _this.onMouseDown = e => {
+            if (!sys.isNative && e.isTrusted) window.dispatchEvent(new CustomEvent('kitchen-manual-input', {
+              detail: {
+                source: 'mouse'
+              }
+            }));
+            if (e.button === 2 && e.target?.closest('canvas')) {
               e.preventDefault();
               e.stopImmediatePropagation();
             }
@@ -668,10 +625,26 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               e.stopImmediatePropagation();
             }
           };
-          _this.onKey = function (e) {
-            var _document$activeEleme, _document$activeEleme2, _this$state, _this$buttons$_this$f, _this$state2;
+          _this.onTouchMode = e => {
+            const next = e.detail || {},
+              old = _this.touchLayout;
+            _this.touchLayout = next;
+            if (old?.active !== next.active || old?.landscape !== next.landscape) _this.clearInput();
+            if (next.active && !next.landscape) _this.blockTouch(true);
+            if (_this.connected) game.frameRate = _this.state?.phase === 'running' ? next.active ? 30 : 60 : 15;
+            _this.applyTouchLayout();
+            if (_this.mounted) _this.render();
+            _this.publishControls();
+          };
+          _this.onKey = e => {
+            // Give a held controller back to the keyboard before applying this key.
+            if (!sys.isNative && e.isTrusted) window.dispatchEvent(new CustomEvent('kitchen-manual-input', {
+              detail: {
+                source: 'keyboard'
+              }
+            }));
             // The communication dock keeps native Tab/Enter/Space; Esc hands the keyboard back.
-            var dock = !sys.isNative ? (_document$activeEleme = document.activeElement) == null ? void 0 : _document$activeEleme.closest('#kitchen-communication') : null;
+            const dock = !sys.isNative ? document.activeElement?.closest('#kitchen-communication') : null;
             if (e.key === 'Escape') {
               if (dock) {
                 document.activeElement.blur();
@@ -682,7 +655,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               return;
             }
             if (e.isComposing || e.keyCode === 229) return;
-            if (!sys.isNative && (document.querySelector('dialog[open]') || (_document$activeEleme2 = document.activeElement) != null && _document$activeEleme2.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"]'))) return;
+            if (!sys.isNative && (document.querySelector('dialog[open]') || document.activeElement?.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"]'))) return;
             // P pauses and resumes like Esc, for keyboards without an Esc key (iPad Magic Keyboard).
             // Typing fields and open dialogs are excluded above.
             if (e.code === 'KeyP' && !e.ctrlKey && !e.altKey && !e.metaKey) {
@@ -691,38 +664,29 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             }
             if (dock && (e.key === 'Enter' || e.code === 'Space' || e.key === 'Tab')) return;
             // Enter bookmarks the moment, unless a focused on-screen control should be pressed.
-            if (e.key === 'Enter' && ((_this$state = _this.state) == null ? void 0 : _this$state.phase) === 'running' && !(_this.focusId && (_this$buttons$_this$f = _this.buttons[_this.focusId]) != null && _this$buttons$_this$f.enabled && _this.buttons[_this.focusId].node.activeInHierarchy)) {
+            if (e.key === 'Enter' && _this.state?.phase === 'running' && !(_this.focusId && _this.buttons[_this.focusId]?.enabled && _this.buttons[_this.focusId].node.activeInHierarchy)) {
               e.preventDefault();
               e.stopImmediatePropagation();
               if (!e.repeat && !e.ctrlKey && !e.altKey && !e.metaKey) _this.bookmark();
               return;
             }
-            if (((_this$state2 = _this.state) == null ? void 0 : _this$state2.phase) === 'running' && _this.connected) {
+            if (_this.canInput()) {
               // Keys that keep the WASD fingers in place: Space (thumb) = whatever the faced target needs,
               // including chop, wash and extinguish; hold Space to aim a throw; Shift (little finger) =
               // dash (Overcooked's Alt, which browsers reserve).
               if (e.key === 'Shift') {
                 e.preventDefault();
-                if (!e.repeat && !_this.aiming && (_this.manualDirection.x !== 0 || _this.manualDirection.y !== 0)) _this.sendMove(_this.manualDirection.x, _this.manualDirection.y, true);
+                if (!e.repeat) _this.dash();
                 return;
               }
               if (e.code === 'Space') {
                 e.preventDefault();
                 if (!e.repeat && !e.ctrlKey && !e.altKey && !e.metaKey) {
-                  var s = _this.state,
-                    held = s.kitchen.chefs.human.holding;
-                  // Facing open floor with something in hand, Space either puts it down (tap) or
-                  // aims a throw (hold): decide on release or after AIM_HOLD. Everything else acts now.
-                  if (held && (!s.interaction || s.interaction.kind === 'drop')) _this.spaceDownAt = _this.clock;else {
-                    _this.handsBusyUntil = _this.clock + .35;
-                    _this.post('/api/interact', {
-                      expected_item: (held == null ? void 0 : held.id) || null
-                    });
-                  }
+                  _this.pressInteract();
                 }
                 return;
               }
-              var key = e.key.toLowerCase();
+              const key = e.key.toLowerCase();
               if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) {
                 e.preventDefault();
                 _this.heldKeys.add(key);
@@ -732,16 +696,13 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             }
             if (e.key === 'Tab') {
               e.preventDefault();
-              var ids = _this.tabOrder().filter(function (id) {
-                var _this$buttons$id;
-                return ((_this$buttons$id = _this.buttons[id]) == null ? void 0 : _this$buttons$id.enabled) && _this.buttons[id].node.activeInHierarchy;
-              });
+              const ids = _this.tabOrder().filter(id => _this.buttons[id]?.enabled && _this.buttons[id].node.activeInHierarchy);
               if (!ids.length) return;
-              var at = ids.indexOf(_this.focusId);
+              const at = ids.indexOf(_this.focusId);
               _this.setFocus(ids[(at + (e.shiftKey ? -1 : 1) + ids.length) % ids.length]);
             } else if (e.key === 'Enter' && _this.focusId) {
-              var b = _this.buttons[_this.focusId];
-              if (b != null && b.enabled && b.node.activeInHierarchy) {
+              const b = _this.buttons[_this.focusId];
+              if (b?.enabled && b.node.activeInHierarchy) {
                 e.preventDefault();
                 _this.audio.play('ui_click');
                 b.callback();
@@ -753,30 +714,13 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             var d = e.detail;
             if (d.ok) _this.post(d.kind === 'end' ? '/api/end' : '/api/restart');else if (d.resume && ((_this$state3 = _this.state) == null ? void 0 : _this$state3.phase) === 'paused') _this.post('/api/resume');
           };
-          _this.onKeyUp = function (e) {
+          _this.onKeyUp = e => {
             if (e.code === 'Space') {
-              if (_this.aiming) {
-                var _this$state4, _this$state5;
-                var d = _this.aiming,
-                  held = (_this$state4 = _this.state) == null ? void 0 : _this$state4.kitchen.chefs.human.holding;
-                _this.endAim();
-                if (held && ((_this$state5 = _this.state) == null ? void 0 : _this$state5.phase) === 'running') _this.post('/api/throw', {
-                  expected_item: held.id,
-                  direction: [d.x, d.y]
-                });
-                _this.refreshMovement();
-              } else if (_this.spaceDownAt !== null) {
-                var _this$state6;
-                _this.spaceDownAt = null;
-                _this.handsBusyUntil = _this.clock + .35;
-                _this.post('/api/interact', {
-                  expected_item: ((_this$state6 = _this.state) == null || (_this$state6 = _this$state6.kitchen.chefs.human.holding) == null ? void 0 : _this$state6.id) || null
-                });
-              }
+              _this.releaseInteract();
               return;
             }
-            var key = e.key.toLowerCase();
-            if (_this.heldKeys["delete"](key)) {
+            const key = e.key.toLowerCase();
+            if (_this.heldKeys.delete(key)) {
               if (_this.aiming) _this.steerAim();else _this.refreshMovement();
             }
           };
@@ -858,13 +802,13 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                       _this.locate(_this.people[who], next.kitchen.chefs[who].position);
                     }
                   }
-                  if (next.phase !== 'running' || next.game_id !== ((_this$state9 = _this.state) == null ? void 0 : _this$state9.game_id)) _this.clearInput();
+                  if (next.phase !== 'running' || next.game_id !== ((_this$state9 = _this.state) == null ? void 0 : _this$state9.game_id) || (_this.spaceItemId !== null && (next.kitchen.chefs.human.holding?.id !== _this.spaceItemId || next.kitchen.chefs.human.can_throw === false))) _this.clearInput();
                   if (next.game_id !== ((_this$state10 = _this.state) == null ? void 0 : _this$state10.game_id)) _this.moveSeq = Date.now() * 1000;
                   _this.state = next;
                   _this.connected = true;
                   _this.received = _this.clock;
                   _this.stateSentAt = sent;
-                  frameRate = next.phase === 'running' ? 60 : 15;
+                  frameRate = next.phase === 'running' ? (_this.touchLayout?.active ? 30 : 60) : 15;
                   if (game.frameRate !== frameRate) game.frameRate = frameRate;
                   if (!sys.isNative) window.dispatchEvent(new CustomEvent('kitchen-state', {
                     detail: {
@@ -874,7 +818,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                       memory: next.memory,
                       limits: next.limits,
                       release: next.release,
-                      communication: next.communication
+                      communication: next.communication,
+                      hosted: next.hosted
                     }
                   }));
                   if (!_this.mounted) _this.mountMap();
@@ -903,6 +848,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
                 case 51:
                   _context.prev = 51;
                   _this.polling = false;
+                  _this.applyTouchLayout();
+                  _this.publishControls();
                   return _context.finish(51);
                 case 54:
                 case "end":
@@ -1058,6 +1005,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             canvas == null || canvas.setAttribute('role', 'img');
             canvas == null || canvas.setAttribute('aria-label', 'ChefJeff 厨房画面');
           }
+          this.installControls();
           game.on(Game.EVENT_HIDE, this.onHide, this);
           game.on(Game.EVENT_SHOW, this.onShow, this);
           if (!sys.isNative) {
@@ -1103,13 +1051,14 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           if (!sys.isNative) (_document$getElementB = document.getElementById('kitchen-loading')) == null || _document$getElementB.remove();
         };
         _proto.onDestroy = function onDestroy() {
-          var _this$controlAccess;
           this.audio.destroy();
-          (_this$controlAccess = this.controlAccess) == null || _this$controlAccess.remove();
+          this.controlAccess?.remove();
           this.clearInput();
           game.off(Game.EVENT_HIDE, this.onHide, this);
           game.off(Game.EVENT_SHOW, this.onShow, this);
           if (!sys.isNative) {
+            window.removeEventListener('kitchen-touch-mode', this.onTouchMode);
+            if (window.kitchenControls === this.controls) delete window.kitchenControls;
             window.removeEventListener('kitchen-language-changed', this.onLanguage);
             window.removeEventListener('kitchen-confirmed', this.onConfirmed);
             window.removeEventListener('keydown', this.onKey, true);
@@ -1141,10 +1090,12 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
         };
         _proto.openHelp = function openHelp() {
           this.clearInput();
+          if (this.touchLayout?.active) this.blockTouch(true);
           if (!sys.isNative) window.dispatchEvent(new Event('kitchen-open-help'));
         };
         _proto.openConnection = function openConnection() {
           this.clearInput();
+          if (this.touchLayout?.active) this.blockTouch(true);
           if (!sys.isNative) window.dispatchEvent(new Event('kitchen-open-connection'));
         };
         _proto.togglePause = function togglePause(e) {
@@ -1157,6 +1108,256 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             e.preventDefault();
             this.post('/api/resume');
           }
+        };
+        _proto.installControls = function installControls() {
+          if (sys.isNative) return;
+          this.controls = {
+            getState: () => this.controlsState(),
+            move: (x, y) => this.setTouchMove(x, y),
+            press: () => this.pressInteract(),
+            release: () => this.releaseInteract(),
+            cancel: () => this.clearInput(),
+            dash: () => this.dash(),
+            block: blocked => this.blockTouch(blocked),
+            pause: () => {
+              this.clearInput();
+              if (this.connected && this.state?.phase === 'running') this.post('/api/pause');
+            },
+            resume: () => this.controlButton('resume'),
+            main: () => this.controlButton('main'),
+            settings: () => this.openConnection(),
+            help: () => this.openHelp(),
+            end: () => this.controlButton('end'),
+            record: () => this.openRecord(),
+            bookmark: () => {
+              if (this.canInput()) this.bookmark();
+            },
+            level: id => {
+              if (this.connected && !this.pending && ['ready', 'ended'].includes(this.state?.phase || '') && this.state?.levels?.some(l => l.id === id)) this.post('/api/level', {
+                level: id
+              });
+            },
+            language: () => {
+              const i18n = window.kitchenI18n;
+              i18n?.setLanguage(i18n.language === 'en' ? 'zh' : 'en');
+            }
+          };
+          window.kitchenControls = this.controls;
+          window.addEventListener('kitchen-touch-mode', this.onTouchMode);
+          window.dispatchEvent(new CustomEvent('kitchen-controls-ready'));
+          this.publishControls();
+        };
+        _proto.controlButton = function controlButton(id) {
+          if (this.pending) return;
+          if (this.touchLayout?.active && !this.touchLayout.landscape) return;
+          if (!sys.isNative && document.querySelector('dialog[open]')) return;
+          if (id === 'main' && this.state?.phase === 'ready' && this.state.connection && !this.state.connection.configured) {
+            this.openConnection();
+            return;
+          }
+          const b = this.buttons[id];
+          if (b?.enabled && !this.pending) b.callback();
+        };
+        _proto.canInput = function canInput() {
+          return !!this.state && this.connected && !this.hidden && !this.touchBlocked && this.state.phase === 'running' && (sys.isNative || !document.querySelector('dialog[open]'));
+        };
+        _proto.blockTouch = function blockTouch(blocked) {
+          if (this.touchBlocked === !!blocked) return;
+          this.touchBlocked = !!blocked;
+          if (blocked) {
+            this.clearInput();
+            if (this.connected && this.state?.phase === 'running') this.post('/api/pause');
+          }
+          this.publishControls();
+        };
+        _proto.controlsState = function controlsState() {
+          const s = this.state,
+            k = s?.kitchen,
+            c = k?.chefs?.human;
+          const text = id => this.labels[id] ? this.labelSources.get(this.labels[id]) || '' : '';
+          return {
+            game_id: s?.game_id,
+            phase: s?.phase || 'loading',
+            connected: this.connected,
+            pending: this.pending,
+            canInput: this.canInput(),
+            canInteract: !!s?.interaction,
+            canThrow: !!c?.holding && c.can_throw !== false,
+            canDash: this.canInput() && !this.aiming && !!c?.sprint?.available && (this.manualDirection.x !== 0 || this.manualDirection.y !== 0),
+            holding: c?.holding || null,
+            interaction: s?.interaction?.label.split('（')[0] || '',
+            interactionHint: s?.interaction_hint || '',
+            aiming: this.aiming ? {
+              ...this.aiming
+            } : null,
+            sprint: c?.sprint || {},
+            event: text('event'),
+            orders: (k?.orders || []).filter(o => o.status === 'pending').map(o => this.touchOrder(o)),
+            money: k?.money || 0,
+            served: k?.served || 0,
+            timeLabel: text('clock'),
+            handLabel: text('hand'),
+            aiStatus: text('ai-status'),
+            coverTitle: text('coverTitle'),
+            coverText: text('coverText'),
+            mainLabel: this.buttons.main ? this.labelSources.get(this.buttons.main.label) || '' : '',
+            mainEnabled: !!this.buttons.main?.enabled && !this.pending,
+            communicationEnabled: !!s?.communication?.allowed,
+            endEnabled: ['running', 'paused'].includes(s?.phase || '') && this.connected && !this.pending,
+            recordEnabled: !!s?.round_summary && s?.phase === 'ended',
+            levels: (s?.levels || []).map(l => ({
+              id: l.id,
+              name: l.name,
+              selected: l.id === k?.level_id
+            })),
+            levelEnabled: this.connected && !this.pending && ['ready', 'ended'].includes(s?.phase || '')
+          };
+        };
+        _proto.touchOrder = function touchOrder(order) {
+          const dish = this.dishById(order.dish),
+            ingredients = order.ingredients || dish?.components?.map(c => c.item) || [];
+          const patienceTotal = order.patience || this.state?.rules?.order_patience || 90;
+          const recipeKey = [`dishes/${order.dish}/ready`, `food/${order.dish}_ready`].find(key => this.art.has(key));
+          return {
+            ...order,
+            dishName: dish?.name || order.dish,
+            patienceTotal,
+            patienceRemainingFraction: Math.max(0, Math.min(1, (order.remaining || 0) / patienceTotal)),
+            recipeIcon: recipeKey ? this.art.spriteInfo(recipeKey) : null,
+            ingredientDetails: ingredients.map(id => {
+              const required = dish?.components?.find(c => c.item === id)?.state,
+                state = required && required !== 'chopped' ? required : 'raw';
+              const art = this.itemArt(id, state, true);
+              return {
+                id,
+                name: this.itemLabel(id),
+                state,
+                icon: art ? this.art.spriteInfo(art.key) : null
+              };
+            })
+          };
+        };
+        _proto.publishControls = function publishControls() {
+          if (sys.isNative || !this.controls) return;
+          const detail = this.controlsState(),
+            signature = JSON.stringify(detail);
+          if (signature === this.controlsSignature) return;
+          this.controlsSignature = signature;
+          window.dispatchEvent(new CustomEvent('kitchen-controls-state', {
+            detail
+          }));
+        };
+        _proto.setTouchMove = function setTouchMove(x, y) {
+          if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+          const length = Math.hypot(x, y),
+            d = length ? {
+              x: x / length,
+              y: y / length
+            } : {
+              x: 0,
+              y: 0
+            };
+          if (length && !this.canInput()) return;
+          this.touchDirection = d;
+          if (this.aiming) {
+            if (length) {
+              this.aiming = d;
+              this.drawAim();
+              this.publishControls();
+            }
+            return;
+          }
+          if (this.touchNeedsNeutral) {
+            if (length) return;
+            this.touchNeedsNeutral = false;
+          }
+          this.touchMoveDirty = true;
+          if (!length) this.flushTouchMove();
+        };
+        _proto.flushTouchMove = function flushTouchMove() {
+          if (!this.touchMoveDirty) return;
+          this.touchMoveDirty = false;
+          this.touchMoveAt = this.clock;
+          this.refreshMovement();
+          this.publishControls();
+        };
+        _proto.pressInteract = function pressInteract() {
+          if (!this.canInput() || this.pending || this.spaceDownAt !== null || this.aiming) return;
+          const held = this.state.kitchen.chefs.human.holding;
+          if (held && this.state.kitchen.chefs.human.can_throw !== false) {
+            this.spaceDownAt = this.clock;
+            this.spaceItemId = held.id;
+          } else {
+            this.handsBusyUntil = this.clock + .35;
+            this.post('/api/interact', {
+              expected_item: held?.id || null
+            });
+          }
+        };
+        _proto.releaseInteract = function releaseInteract() {
+          const held = this.state?.kitchen.chefs.human.holding;
+          if (this.spaceItemId !== null && (!this.canInput() || held?.id !== this.spaceItemId)) {
+            this.clearInput();
+            return;
+          }
+          if (this.aiming) {
+            const d = this.aiming,
+              wasTouch = this.touchDirection.x !== 0 || this.touchDirection.y !== 0;
+            this.endAim();
+            this.touchNeedsNeutral = wasTouch;
+            if (held && this.canInput()) this.post('/api/throw', {
+              expected_item: held.id,
+              direction: [d.x, d.y]
+            });
+            this.refreshMovement();
+          } else if (this.spaceDownAt !== null) {
+            this.spaceDownAt = null;
+            this.spaceItemId = null;
+            this.handsBusyUntil = this.clock + .35;
+            this.post('/api/interact', {
+              expected_item: held?.id || null
+            });
+          }
+          this.publishControls();
+        };
+        _proto.dash = function dash() {
+          if (!this.canInput() || this.aiming) return;
+          const sprint = this.state?.kitchen.chefs.human.sprint;
+          if (sprint && (sprint.available === false || sprint.active_remaining > 0 || sprint.cooldown_remaining > 0)) return;
+          this.flushTouchMove();
+          if (this.manualDirection.x !== 0 || this.manualDirection.y !== 0) this.sendMove(this.manualDirection.x, this.manualDirection.y, true);
+        };
+        _proto.applyTouchLayout = function applyTouchLayout() {
+          if (!this.node || !this.world || !this.state) return;
+          const mobile = !!this.touchLayout?.active;
+          // All kitchen art shares one transform; desktop HUD and cover have a readable HTML counterpart on phones.
+          if (mobile) {
+            for (const n of this.node.children) if (n !== this.world && n.name !== 'background' && n.getComponent(UITransform)) {
+              if (!this.touchNodeVisibility.has(n)) this.touchNodeVisibility.set(n, n.active);
+              n.active = false;
+            }
+          } else {
+            for (const [n, active] of this.touchNodeVisibility) if (n.isValid) n.active = active;
+            this.touchNodeVisibility.clear();
+            this.world.setScale(1, 1, 1);
+            this.world.setPosition(0, 0);
+            return;
+          }
+          const r = this.touchLayout.boardRect;
+          if (!r || !this.touchLayout.landscape) return;
+          const w = this.touchLayout.width || innerWidth,
+            h = this.touchLayout.height || innerHeight;
+          const screenScale = Math.min(w / 1280, h / 720),
+            gx = (w - 1280 * screenScale) / 2,
+            gy = (h - 720 * screenScale) / 2;
+          const map = this.state.kitchen.map,
+            bw = map.width * TILE + 24,
+            bh = map.height * TILE + 44;
+          const scale = Math.min(r.width / bw, r.height / bh) / screenScale;
+          const cx = MAPX + map.width * TILE / 2 - 640,
+            cy = 360 - (MAPY + map.height * TILE / 2 - 10);
+          this.world.setScale(scale, scale, 1);
+          this.world.setPosition((r.left + r.width / 2 - gx) / screenScale - 640 - cx * scale, 360 - (r.top + r.height / 2 - gy) / screenScale - cy * scale);
         };
         _proto.setFocus = function setFocus(id) {
           var _this$controlAccess2, _this$controlAccess3;
@@ -1222,20 +1423,24 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }));
         };
         _proto.keyDirection = function keyDirection() {
-          var x = (this.heldKeys.has('d') || this.heldKeys.has('arrowright') ? 1 : 0) - (this.heldKeys.has('a') || this.heldKeys.has('arrowleft') ? 1 : 0);
-          var y = (this.heldKeys.has('s') || this.heldKeys.has('arrowdown') ? 1 : 0) - (this.heldKeys.has('w') || this.heldKeys.has('arrowup') ? 1 : 0),
+          const x = (this.heldKeys.has('d') || this.heldKeys.has('arrowright') ? 1 : 0) - (this.heldKeys.has('a') || this.heldKeys.has('arrowleft') ? 1 : 0);
+          const y = (this.heldKeys.has('s') || this.heldKeys.has('arrowdown') ? 1 : 0) - (this.heldKeys.has('w') || this.heldKeys.has('arrowup') ? 1 : 0),
             mag = Math.hypot(x, y);
-          return mag ? {
+          if (mag) return {
             x: x / mag,
             y: y / mag
-          } : null;
-        }
-        /** Space held long enough: stop, and aim along the held direction (or the facing). */;
+          };
+          return !this.touchNeedsNeutral && (this.touchDirection.x !== 0 || this.touchDirection.y !== 0) ? this.touchDirection : null;
+        };
         _proto.startAim = function startAim() {
-          var _this$state16;
+          const human = this.state?.kitchen.chefs.human;
+          if (!this.connected || this.state?.phase !== 'running' || !human?.holding || human.holding.id !== this.spaceItemId || human.can_throw === false) {
+            this.endAim();
+            return;
+          }
           this.spaceDownAt = null;
-          var c = (_this$state16 = this.state) == null ? void 0 : _this$state16.kitchen.chefs.human,
-            f = FACING_DIR[c == null ? void 0 : c.facing] || [0, 1];
+          const c = this.state?.kitchen.chefs.human,
+            f = FACING_DIR[c?.facing] || [0, 1];
           this.aiming = this.keyDirection() || {
             x: f[0],
             y: f[1]
@@ -1248,6 +1453,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             this.sendMove(0, 0);
           }
           this.drawAim();
+          this.publishControls();
         };
         _proto.steerAim = function steerAim() {
           var d = this.keyDirection();
@@ -1257,55 +1463,61 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }
         };
         _proto.endAim = function endAim() {
-          var _this$aimArrow;
           this.aiming = null;
           this.spaceDownAt = null;
-          if ((_this$aimArrow = this.aimArrow) != null && _this$aimArrow.isValid) this.aimArrow.active = false;
+          this.spaceItemId = null;
+          if (this.aimArrow?.isValid) this.aimArrow.active = false;
         };
         _proto.drawAim = function drawAim() {
-          var _this$aimArrow2;
-          var chef = this.people['human'];
+          const chef = this.people['human'];
           if (!this.aiming || !this.world || !chef) return;
-          if (!((_this$aimArrow2 = this.aimArrow) != null && _this$aimArrow2.isValid)) {
+          if (!this.aimArrow?.isValid) {
             this.aimArrow = this.child(this.world, 'aim-arrow', 10, 10);
             this.aimArrow.addComponent(Graphics);
           }
-          var a = this.aimArrow,
+          const a = this.aimArrow,
             k = this.state.kitchen,
             reach = (k.map.pass_range || k.map.throw_range || 4) * TILE;
           a.active = true;
           a.setSiblingIndex(this.world.children.length - 1);
           a.setPosition(chef.position.x, chef.position.y + 18);
-          var g = a.getComponent(Graphics);
+          const g = a.getComponent(Graphics);
           g.clear();
-          var ex = this.aiming.x * reach,
+          const ex = this.aiming.x * reach,
             ey = -this.aiming.y * reach,
-            px = -ey / reach * 7,
-            py = ex / reach * 7,
-            bx = ex - this.aiming.x * 14,
-            by = ey + this.aiming.y * 14;
-          for (var _i9 = 0, _arr6 = [[6, COLORS.ink], [3, COLORS.paper]]; _i9 < _arr6.length; _i9++) {
-            var _arr6$_i = _arr6[_i9],
-              w = _arr6$_i[0],
-              c = _arr6$_i[1];
-            g.lineWidth = w;
-            g.strokeColor = color(c);
-            g.moveTo(this.aiming.x * 20, -this.aiming.y * 20);
-            g.lineTo(bx, by);
-            g.stroke();
+            left = [],
+            right = [];
+          // The ground path is still straight. Only the item's height bends the
+          // screen projection; the hand starts 18px above the ground endpoint.
+          for (let i = 0; i <= 32; i++) {
+            const t = i / 32,
+              x = ex * t,
+              y = ey * t + 35 * Math.sin(Math.PI * t) - 18 * t;
+            const tx = ex,
+              ty = ey + 35 * Math.PI * Math.cos(Math.PI * t) - 18,
+              length = Math.hypot(tx, ty) || 1;
+            const nx = -ty / length * 5,
+              ny = tx / length * 5;
+            left.push([x + nx, y + ny]);
+            right.push([x - nx, y - ny]);
           }
-          g.fillColor = color(COLORS.paper);
-          g.strokeColor = color(COLORS.ink);
-          g.lineWidth = 2;
-          g.moveTo(ex, ey);
-          g.lineTo(bx + px, by + py);
-          g.lineTo(bx - px, by - py);
+          g.fillColor = new Color(59, 146, 180, 72);
+          g.strokeColor = new Color(42, 90, 158, 120);
+          g.lineWidth = 1;
+          g.moveTo(left[0][0], left[0][1]);
+          for (let i = 1; i < left.length; i++) g.lineTo(left[i][0], left[i][1]);
+          for (let i = right.length - 1; i >= 0; i--) g.lineTo(right[i][0], right[i][1]);
           g.close();
           g.fill();
           g.stroke();
-        }
-        // Anything held can be thrown or passed; the server applies each item's range (currently 4 tiles for all).
-        ;
+          // A maximum-range guide, not a prediction of collision or catching.
+          g.fillColor = new Color(59, 146, 180, 36);
+          g.strokeColor = new Color(42, 90, 158, 145);
+          g.lineWidth = 1.5;
+          g.ellipse(ex, ey - 18, 13, 7);
+          g.fill();
+          g.stroke();
+        };
 
         _proto.sendMove = /*#__PURE__*/
         function () {
@@ -1353,11 +1565,10 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           return sendMove;
         }();
         _proto.refreshMovement = function refreshMovement() {
-          var x = (this.heldKeys.has('d') || this.heldKeys.has('arrowright') ? 1 : 0) - (this.heldKeys.has('a') || this.heldKeys.has('arrowleft') ? 1 : 0);
-          var y = (this.heldKeys.has('s') || this.heldKeys.has('arrowdown') ? 1 : 0) - (this.heldKeys.has('w') || this.heldKeys.has('arrowup') ? 1 : 0),
-            mag = Math.hypot(x, y);
-          var dx = mag ? x / mag : 0,
-            dy = mag ? y / mag : 0;
+          if (this.aiming) return;
+          const d = this.canInput() ? this.keyDirection() : null,
+            dx = d?.x || 0,
+            dy = d?.y || 0;
           if (dx === this.manualDirection.x && dy === this.manualDirection.y) return;
           this.manualDirection = {
             x: dx,
@@ -1445,12 +1656,19 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
         _proto.clearInput = function clearInput() {
           this.endAim();
           this.heldKeys.clear();
-          var wasMoving = this.manualDirection.x !== 0 || this.manualDirection.y !== 0;
+          this.touchDirection = {
+            x: 0,
+            y: 0
+          };
+          this.touchMoveDirty = false;
+          this.touchNeedsNeutral = false;
+          const wasMoving = this.manualDirection.x !== 0 || this.manualDirection.y !== 0;
           this.manualDirection = {
             x: 0,
             y: 0
           };
           if (wasMoving) this.sendMove(0, 0);
+          this.publishControls();
         };
         _proto.make = function make(name, x, y, w, h, parent) {
           if (parent === void 0) {
@@ -2742,9 +2960,11 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           this.jeffError = error;
           this.jeffThinking.active = false;
           this.jeffError.active = false;
-          this.mapNodes = this.node.children.filter(function (n) {
-            return !previous.has(n);
-          });
+          for (const n of this.node.children.filter(n => !previous.has(n) && n !== this.world)) {
+            n.setParent(this.world);
+            this.registerDepth(n, () => n.name === 'floor-art' ? -2000 : 1000);
+          }
+          this.mapNodes = [this.world];
           this.mountedLayout = map.layout_version;
           this.sortWorld();
           this.refreshArtCharacters();
@@ -2759,6 +2979,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             this.buttons[id].node.setSiblingIndex(this.node.children.length - 1);
           }
           this.mounted = true;
+          this.applyTouchLayout();
         };
         _proto.characterArt = function characterArt(body, who, facing, walking, working) {
           var _this$state28, _this$state29, _URLSearchParams$get;
@@ -3151,7 +3372,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           }
         };
         _proto.pop = function pop(p, text, fill) {
-          var n = this.make('result-pop', p[0], p[1], 220, 28),
+          var n = this.make('result-pop', p[0], p[1], 220, 28, this.world || this.node),
             l = n.addComponent(Label);
           this.writeLabel(l, text);
           this.pixel(l, 24);
@@ -3444,7 +3665,8 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
               },
               parts = [];
             if (s.interaction) parts.push('空格 · ' + _short(s.interaction));
-            if (held && (!s.interaction || s.interaction.kind === 'drop')) parts.push('长按空格 · 瞄准投掷');
+            else if (s.interaction_hint) parts.push(s.interaction_hint);
+            if (held && k.chefs.human.can_throw !== false) parts.push('长按空格 · 瞄准投掷');
             this.set('interaction', this.aiming ? '松开空格投掷 · 方向键改方向' : parts.length ? parts.join('　') : s.interaction_hint || '面向工位或物品按空格');
           }
           // Game results keep the event line; Jeff's decisions and errors use their own status.
@@ -3503,6 +3725,9 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
             var _id6 = _arr20[_i27];
             this.buttons[_id6].node.setSiblingIndex(this.node.children.length - 1);
           }
+          this.applyTouchLayout();
+          this.syncAccess();
+          this.publishControls();
         };
         _proto.isAiNote = function isAiNote(e) {
           return !e.kind && /^(Jeff |本局 AI)/.test(e.message);
@@ -3551,6 +3776,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ['./rollupPluginModLoBabe
           this.audio.update(dt);
           if (!this.state || !this.mounted) return;
           var k = this.state.kitchen;
+          if (this.touchMoveDirty && this.clock - this.touchMoveAt >= .05) this.flushTouchMove();
           if (this.spaceDownAt !== null && this.clock - this.spaceDownAt >= AIM_HOLD) this.startAim();
           if (this.aiming && this.state.phase !== 'running') this.endAim();
           if (this.aiming) this.drawAim();
@@ -4093,333 +4319,174 @@ System.register("chunks:///_virtual/KitchenGeometry.ts", ['cc'], function (expor
   };
 });
 
-System.register("chunks:///_virtual/LevelOneArt.ts", ['./rollupPluginModLoBabelHelpers.js', 'cc'], function (exports) {
-  var _asyncToGenerator, _regeneratorRuntime, cclegacy, UITransform, SpriteFrame, Rect, Size, Sprite, Node, Layers, Texture2D, resources, JsonAsset;
-  return {
-    setters: [function (module) {
-      _asyncToGenerator = module.asyncToGenerator;
-      _regeneratorRuntime = module.regeneratorRuntime;
-    }, function (module) {
-      cclegacy = module.cclegacy;
-      UITransform = module.UITransform;
-      SpriteFrame = module.SpriteFrame;
-      Rect = module.Rect;
-      Size = module.Size;
-      Sprite = module.Sprite;
-      Node = module.Node;
-      Layers = module.Layers;
-      Texture2D = module.Texture2D;
-      resources = module.resources;
-      JsonAsset = module.JsonAsset;
-    }],
-    execute: function () {
-      cclegacy._RF.push({}, "38097jSoUBAqoV/u270QjNs", "LevelOneArt", undefined);
-      /** Reviewed, local sprites only. Rendering never changes kitchen observations or rules. */
-      var LevelOneArt = exports('LevelOneArt', /*#__PURE__*/function () {
-        function LevelOneArt() {
-          this.frames = {};
-          this.definitions = {};
-          this.slices = {};
-          this.ready = false;
-          this.modular = false;
+System.register("chunks:///_virtual/LevelOneArt.ts", ["cc"], function (exports_1, context_1) {
+    // source-sha256: cad3c0f49e69c78f1e5f7a4bb3ee8dfc576caa1939c7fdd428898f7fbae74110
+    "use strict";
+    var cc_1, LevelOneArt;
+    var __moduleName = context_1 && context_1.id;
+    return {
+        setters: [
+            function (cc_1_1) {
+                cc_1 = cc_1_1;
+            }
+        ],
+        execute: function () {
+            /** Reviewed, local sprites only. Rendering never changes kitchen observations or rules. */
+            LevelOneArt = class LevelOneArt {
+                constructor() {
+                    this.frames = {};
+                    this.definitions = {};
+                    this.slices = {};
+                    this.ready = false;
+                    this.modular = false;
+                }
+                async loadAtlas(path, prefix = '') {
+                    const [manifest, texture] = await Promise.all([
+                        new Promise((resolve, reject) => cc_1.resources.load(path + '/manifest', cc_1.JsonAsset, (e, a) => e ? reject(e) : resolve(a))),
+                        new Promise((resolve, reject) => cc_1.resources.load(path + '/atlas/texture', cc_1.Texture2D, (e, a) => e ? reject(e) : resolve(a)))
+                    ]);
+                    texture.setFilters(cc_1.Texture2D.Filter.NEAREST, cc_1.Texture2D.Filter.NEAREST);
+                    for (const [key, value] of Object.entries(manifest.json.frames)) {
+                        const [x, y, w, h] = value.rect;
+                        if (w <= 0 || h <= 0 || x < 0 || y < 0 || x + w > texture.width || y + h > texture.height)
+                            throw new Error('Invalid art frame ' + key);
+                    }
+                    // Download concurrently, but apply in source order: newer atlases override
+                    // older frames regardless of which network response finishes first.
+                    return () => {
+                        for (const [key, value] of Object.entries(manifest.json.frames)) {
+                            const [x, y, w, h] = value.rect;
+                            const frame = new cc_1.SpriteFrame();
+                            frame.texture = texture;
+                            frame.rect = new cc_1.Rect(x, y, w, h);
+                            frame.originalSize = new cc_1.Size(w, h);
+                            this.frames[prefix + key] = frame;
+                            this.definitions[prefix + key] = value;
+                        }
+                    };
+                }
+                async load() {
+                    try {
+                        const atlases = [
+                            ['art/level1', '', true], ['art/level1-modular', 'modular/', false],
+                            ['art/kitchen-modules-v2', 'modular/', false], ['art/serving-side-v1', 'modular/', false],
+                            ['art/burger-food', 'food/', false], ['art/grid-foundation-v1', '', true],
+                            ['art/action-feedback-v1', '', true], ['art/chefs-v2', '', false],
+                            ['art/knife-v1', '', true], ['art/knife-arc-v1', '', false],
+                            ['art/trash-directions-v1', '', true], ['art/ingredient-pack-v1', '', false],
+                        ];
+                        if (typeof location !== 'undefined' && new URLSearchParams(location.search).get('prepSample') === '1')
+                            atlases.push(['art/prep-pose-v3', '', true]);
+                        const apply = await Promise.all(atlases.map(async ([path, prefix]) => {
+                            try {
+                                return await this.loadAtlas(path, prefix);
+                            }
+                            catch (error) {
+                                console.warn('Kitchen art unavailable: ' + path + '; retaining readable fallback.', error);
+                                return null;
+                            }
+                        }));
+                        for (const install of apply)
+                            install === null || install === void 0 ? void 0 : install();
+                        this.modular = !!apply[1];
+                        this.ready = atlases.every(([, , required], i) => !required || !!apply[i]);
+                    }
+                    catch (error) {
+                        console.warn('ChefJeff level 1 art unavailable; retaining readable fallback.', error);
+                    }
+                }
+                has(key) { return !!this.frames[key]; }
+                /** Manifest entry of a frame (grip, pivot, edge points), or undefined. */
+                meta(key) { return this.definitions[key]; }
+                /** Let the browser HUD crop the same loaded atlas used by the kitchen. */
+                spriteInfo(key) {
+                    var _a;
+                    const frame = this.frames[key], definition = this.definitions[key], texture = frame === null || frame === void 0 ? void 0 : frame.texture, url = (_a = texture === null || texture === void 0 ? void 0 : texture.image) === null || _a === void 0 ? void 0 : _a.nativeUrl;
+                    if (!definition || !texture || !url)
+                        return null;
+                    const [x, y, width, height] = definition.rect;
+                    return { url, x, y, width, height, atlasWidth: texture.width, atlasHeight: texture.height, alphaBBox: definition.alpha_bbox || [0, 0, width, height] };
+                }
+                /** Natural pixel proportions, one 64 px art unit per gameplay cell. */
+                tile(parent, key, cellSize, x = 0, y = 0) {
+                    const name = 'modular/' + key, definition = this.definitions[name];
+                    if (!definition)
+                        return false;
+                    const [, , w, h] = definition.rect;
+                    return this.show(parent, name, w * cellSize / 64, h * cellSize / 64, x, y);
+                }
+                /** Align the working surface, independently of transparent canvas and floor anchor. */
+                surface(parent, key, cellSize, x, y, depth = 1) {
+                    const name = 'modular/' + key, d = this.definitions[name];
+                    if (!(d === null || d === void 0 ? void 0 : d.workSurfaceAnchor) || !d.groundAnchor)
+                        return false;
+                    const scale = cellSize / 64, [, , w, h] = d.rect;
+                    return this.show(parent, name, w * scale, h * scale * depth, x - (d.workSurfaceAnchor[0] - d.groundAnchor[0]) * scale, y - (d.groundAnchor[1] - d.workSurfaceAnchor[1]) * scale * depth);
+                }
+                /** Decorations use a centre anchor independent of floor-based sprite anchors. */
+                centered(parent, key, w, h) {
+                    const d = this.definitions[key];
+                    if (!d)
+                        return false;
+                    const [, , cw, ch] = d.rect, [left, top, right, bottom] = d.alpha_bbox || [0, 0, cw, ch];
+                    const scale = Math.min(w / (right - left), h / (bottom - top));
+                    if (!this.show(parent, key, cw * scale, ch * scale, (cw / 2 - (left + right) / 2) * scale, ((top + bottom) / 2 - ch / 2) * scale))
+                        return false;
+                    parent.getChildByName('reviewed-art').getComponent(cc_1.UITransform).setAnchorPoint(.5, .5);
+                    return true;
+                }
+                hide(parent) { const n = parent.getChildByName('reviewed-art'); if (n)
+                    n.active = false; }
+                /** Repeatable material crop, retaining the source's pixel density. */
+                region(parent, key, x, y, w, h, displayW, displayH) {
+                    const base = this.frames[key];
+                    if (!base)
+                        return false;
+                    const cache = [key, x, y, w, h].join(':');
+                    if (!this.slices[cache]) {
+                        const f = new cc_1.SpriteFrame();
+                        f.texture = base.texture;
+                        f.rect = new cc_1.Rect(base.rect.x + x, base.rect.y + y, w, h);
+                        f.originalSize = new cc_1.Size(w, h);
+                        this.slices[cache] = f;
+                    }
+                    this.show(parent, key, displayW, displayH);
+                    const n = parent.getChildByName('reviewed-art');
+                    n.getComponent(cc_1.Sprite).spriteFrame = this.slices[cache];
+                    n.getComponent(cc_1.UITransform).setAnchorPoint(.5, .5);
+                    return true;
+                }
+                show(parent, key, w, h, x = 0, y = 0) {
+                    const frame = this.frames[key];
+                    if (!frame) {
+                        this.hide(parent);
+                        return false;
+                    }
+                    let n = parent.getChildByName('reviewed-art');
+                    if (!n) {
+                        n = new cc_1.Node('reviewed-art');
+                        n.layer = cc_1.Layers.Enum.UI_2D;
+                        parent.addChild(n);
+                        n.addComponent(cc_1.UITransform);
+                        n.addComponent(cc_1.Sprite);
+                    }
+                    n.active = true;
+                    n.setPosition(x, y);
+                    const transform = n.getComponent(cc_1.UITransform);
+                    const anchor = this.definitions[key].anchor || [.5, .5];
+                    transform.setAnchorPoint(anchor[0], anchor[1]);
+                    const sprite = n.getComponent(cc_1.Sprite);
+                    sprite.sizeMode = cc_1.Sprite.SizeMode.CUSTOM;
+                    sprite.trim = false;
+                    if (sprite.spriteFrame !== frame)
+                        sprite.spriteFrame = frame;
+                    transform.setContentSize(w, h);
+                    return true;
+                }
+            };
+            exports_1("LevelOneArt", LevelOneArt);
         }
-        var _proto = LevelOneArt.prototype;
-        _proto.loadAtlas = /*#__PURE__*/function () {
-          var _loadAtlas = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee(path, prefix) {
-            var _yield$Promise$all, manifest, texture, _i, _Object$entries, _Object$entries$_i, key, value, _value$rect, x, y, w, h, frame;
-            return _regeneratorRuntime().wrap(function _callee$(_context) {
-              while (1) switch (_context.prev = _context.next) {
-                case 0:
-                  if (prefix === void 0) {
-                    prefix = '';
-                  }
-                  _context.next = 3;
-                  return Promise.all([new Promise(function (resolve, reject) {
-                    return resources.load(path + '/manifest', JsonAsset, function (e, a) {
-                      return e ? reject(e) : resolve(a);
-                    });
-                  }), new Promise(function (resolve, reject) {
-                    return resources.load(path + '/atlas/texture', Texture2D, function (e, a) {
-                      return e ? reject(e) : resolve(a);
-                    });
-                  })]);
-                case 3:
-                  _yield$Promise$all = _context.sent;
-                  manifest = _yield$Promise$all[0];
-                  texture = _yield$Promise$all[1];
-                  texture.setFilters(Texture2D.Filter.NEAREST, Texture2D.Filter.NEAREST);
-                  _i = 0, _Object$entries = Object.entries(manifest.json.frames);
-                case 8:
-                  if (!(_i < _Object$entries.length)) {
-                    _context.next = 22;
-                    break;
-                  }
-                  _Object$entries$_i = _Object$entries[_i], key = _Object$entries$_i[0], value = _Object$entries$_i[1];
-                  _value$rect = value.rect, x = _value$rect[0], y = _value$rect[1], w = _value$rect[2], h = _value$rect[3];
-                  if (!(w <= 0 || h <= 0 || x < 0 || y < 0 || x + w > texture.width || y + h > texture.height)) {
-                    _context.next = 13;
-                    break;
-                  }
-                  throw new Error('Invalid art frame ' + key);
-                case 13:
-                  frame = new SpriteFrame();
-                  frame.texture = texture;
-                  frame.rect = new Rect(x, y, w, h);
-                  frame.originalSize = new Size(w, h);
-                  this.frames[prefix + key] = frame;
-                  this.definitions[prefix + key] = value;
-                case 19:
-                  _i++;
-                  _context.next = 8;
-                  break;
-                case 22:
-                case "end":
-                  return _context.stop();
-              }
-            }, _callee, this);
-          }));
-          function loadAtlas(_x, _x2) {
-            return _loadAtlas.apply(this, arguments);
-          }
-          return loadAtlas;
-        }();
-        _proto.load = /*#__PURE__*/function () {
-          var _load = _asyncToGenerator( /*#__PURE__*/_regeneratorRuntime().mark(function _callee2() {
-            return _regeneratorRuntime().wrap(function _callee2$(_context2) {
-              while (1) switch (_context2.prev = _context2.next) {
-                case 0:
-                  _context2.prev = 0;
-                  _context2.next = 3;
-                  return this.loadAtlas('art/level1');
-                case 3:
-                  _context2.prev = 3;
-                  _context2.next = 6;
-                  return this.loadAtlas('art/level1-modular', 'modular/');
-                case 6:
-                  this.modular = true;
-                  _context2.next = 12;
-                  break;
-                case 9:
-                  _context2.prev = 9;
-                  _context2.t0 = _context2["catch"](3);
-                  console.warn('Modular kitchen art unavailable; retaining previous level art.', _context2.t0);
-                case 12:
-                  _context2.prev = 12;
-                  _context2.next = 15;
-                  return this.loadAtlas('art/kitchen-modules-v2', 'modular/');
-                case 15:
-                  _context2.next = 20;
-                  break;
-                case 17:
-                  _context2.prev = 17;
-                  _context2.t1 = _context2["catch"](12);
-                  console.warn('Updated modular art not yet available.', _context2.t1);
-                case 20:
-                  _context2.prev = 20;
-                  _context2.next = 23;
-                  return this.loadAtlas('art/serving-side-v1', 'modular/');
-                case 23:
-                  _context2.next = 28;
-                  break;
-                case 25:
-                  _context2.prev = 25;
-                  _context2.t2 = _context2["catch"](20);
-                  console.warn('Directional serving art unavailable.', _context2.t2);
-                case 28:
-                  _context2.prev = 28;
-                  _context2.next = 31;
-                  return this.loadAtlas('art/burger-food', 'food/');
-                case 31:
-                  _context2.next = 36;
-                  break;
-                case 33:
-                  _context2.prev = 33;
-                  _context2.t3 = _context2["catch"](28);
-                  console.warn('Burger food art unavailable; retaining readable ingredient icons.', _context2.t3);
-                case 36:
-                  _context2.next = 38;
-                  return this.loadAtlas('art/grid-foundation-v1');
-                case 38:
-                  _context2.next = 40;
-                  return this.loadAtlas('art/action-feedback-v1');
-                case 40:
-                  _context2.prev = 40;
-                  _context2.next = 43;
-                  return this.loadAtlas('art/chefs-v2');
-                case 43:
-                  _context2.next = 48;
-                  break;
-                case 45:
-                  _context2.prev = 45;
-                  _context2.t4 = _context2["catch"](40);
-                  console.warn('Chef master-body art unavailable.', _context2.t4);
-                case 48:
-                  _context2.next = 50;
-                  return this.loadAtlas('art/knife-v1');
-                case 50:
-                  _context2.prev = 50;
-                  _context2.next = 53;
-                  return this.loadAtlas('art/knife-arc-v1');
-                case 53:
-                  _context2.next = 58;
-                  break;
-                case 55:
-                  _context2.prev = 55;
-                  _context2.t5 = _context2["catch"](50);
-                  console.warn('Knife arc art unavailable; chefs keep the painted knife.', _context2.t5);
-                case 58:
-                  _context2.next = 60;
-                  return this.loadAtlas('art/trash-directions-v1');
-                case 60:
-                  _context2.prev = 60;
-                  _context2.next = 63;
-                  return this.loadAtlas('art/ingredient-pack-v1');
-                case 63:
-                  _context2.next = 68;
-                  break;
-                case 65:
-                  _context2.prev = 65;
-                  _context2.t6 = _context2["catch"](60);
-                  console.warn('Ingredient pack art unavailable; new ingredients keep their fallback icons.', _context2.t6);
-                case 68:
-                  if (!(typeof location !== 'undefined' && new URLSearchParams(location.search).get('prepSample') === '1')) {
-                    _context2.next = 71;
-                    break;
-                  }
-                  _context2.next = 71;
-                  return this.loadAtlas('art/prep-pose-v3');
-                case 71:
-                  this.ready = true;
-                  _context2.next = 77;
-                  break;
-                case 74:
-                  _context2.prev = 74;
-                  _context2.t7 = _context2["catch"](0);
-                  console.warn('ChefJeff level 1 art unavailable; retaining readable fallback.', _context2.t7);
-                case 77:
-                case "end":
-                  return _context2.stop();
-              }
-            }, _callee2, this, [[0, 74], [3, 9], [12, 17], [20, 25], [28, 33], [40, 45], [50, 55], [60, 65]]);
-          }));
-          function load() {
-            return _load.apply(this, arguments);
-          }
-          return load;
-        }();
-        _proto.has = function has(key) {
-          return !!this.frames[key];
-        }
-        /** Manifest entry of a frame (grip, pivot, edge points), or undefined. */;
-        _proto.meta = function meta(key) {
-          return this.definitions[key];
-        }
-        /** Natural pixel proportions, one 64 px art unit per gameplay cell. */;
-        _proto.tile = function tile(parent, key, cellSize, x, y) {
-          if (x === void 0) {
-            x = 0;
-          }
-          if (y === void 0) {
-            y = 0;
-          }
-          var name = 'modular/' + key,
-            definition = this.definitions[name];
-          if (!definition) return false;
-          var _definition$rect = definition.rect,
-            w = _definition$rect[2],
-            h = _definition$rect[3];
-          return this.show(parent, name, w * cellSize / 64, h * cellSize / 64, x, y);
-        }
-        /** Align the working surface, independently of transparent canvas and floor anchor. */;
-        _proto.surface = function surface(parent, key, cellSize, x, y, depth) {
-          if (depth === void 0) {
-            depth = 1;
-          }
-          var name = 'modular/' + key,
-            d = this.definitions[name];
-          if (!(d != null && d.workSurfaceAnchor) || !d.groundAnchor) return false;
-          var scale = cellSize / 64,
-            _d$rect = d.rect,
-            w = _d$rect[2],
-            h = _d$rect[3];
-          return this.show(parent, name, w * scale, h * scale * depth, x - (d.workSurfaceAnchor[0] - d.groundAnchor[0]) * scale, y - (d.groundAnchor[1] - d.workSurfaceAnchor[1]) * scale * depth);
-        }
-        /** Decorations use a centre anchor independent of floor-based sprite anchors. */;
-        _proto.centered = function centered(parent, key, w, h) {
-          var d = this.definitions[key];
-          if (!d) return false;
-          var _d$rect2 = d.rect,
-            cw = _d$rect2[2],
-            ch = _d$rect2[3],
-            _ref = d.alpha_bbox || [0, 0, cw, ch],
-            left = _ref[0],
-            top = _ref[1],
-            right = _ref[2],
-            bottom = _ref[3];
-          var scale = Math.min(w / (right - left), h / (bottom - top));
-          if (!this.show(parent, key, cw * scale, ch * scale, (cw / 2 - (left + right) / 2) * scale, ((top + bottom) / 2 - ch / 2) * scale)) return false;
-          parent.getChildByName('reviewed-art').getComponent(UITransform).setAnchorPoint(.5, .5);
-          return true;
-        };
-        _proto.hide = function hide(parent) {
-          var n = parent.getChildByName('reviewed-art');
-          if (n) n.active = false;
-        }
-        /** Repeatable material crop, retaining the source's pixel density. */;
-        _proto.region = function region(parent, key, x, y, w, h, displayW, displayH) {
-          var base = this.frames[key];
-          if (!base) return false;
-          var cache = [key, x, y, w, h].join(':');
-          if (!this.slices[cache]) {
-            var f = new SpriteFrame();
-            f.texture = base.texture;
-            f.rect = new Rect(base.rect.x + x, base.rect.y + y, w, h);
-            f.originalSize = new Size(w, h);
-            this.slices[cache] = f;
-          }
-          this.show(parent, key, displayW, displayH);
-          var n = parent.getChildByName('reviewed-art');
-          n.getComponent(Sprite).spriteFrame = this.slices[cache];
-          n.getComponent(UITransform).setAnchorPoint(.5, .5);
-          return true;
-        };
-        _proto.show = function show(parent, key, w, h, x, y) {
-          if (x === void 0) {
-            x = 0;
-          }
-          if (y === void 0) {
-            y = 0;
-          }
-          var frame = this.frames[key];
-          if (!frame) {
-            this.hide(parent);
-            return false;
-          }
-          var n = parent.getChildByName('reviewed-art');
-          if (!n) {
-            n = new Node('reviewed-art');
-            n.layer = Layers.Enum.UI_2D;
-            parent.addChild(n);
-            n.addComponent(UITransform);
-            n.addComponent(Sprite);
-          }
-          n.active = true;
-          n.setPosition(x, y);
-          var transform = n.getComponent(UITransform);
-          var anchor = this.definitions[key].anchor || [.5, .5];
-          transform.setAnchorPoint(anchor[0], anchor[1]);
-          var sprite = n.getComponent(Sprite);
-          sprite.sizeMode = Sprite.SizeMode.CUSTOM;
-          sprite.trim = false;
-          if (sprite.spriteFrame !== frame) sprite.spriteFrame = frame;
-          transform.setContentSize(w, h);
-          return true;
-        };
-        return LevelOneArt;
-      }());
-      cclegacy._RF.pop();
-    }
-  };
+    };
 });
 
 System.register("chunks:///_virtual/main", ['./KitchenAudio.ts', './KitchenClient.ts', './KitchenGeometry.ts', './LevelOneArt.ts'], function () {

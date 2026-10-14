@@ -5,7 +5,7 @@
 
     <title>ChefJeff · 一起出餐</title>
 
-    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
     <meta name="apple-mobile-web-app-capable" content="yes"/>
     <meta name="mobile-web-app-capable" content="yes"/>
     <meta name="full-screen" content="yes"/>
@@ -147,7 +147,7 @@ function kitchenTabs(dialog){
 #kitchen-api-dialog .audio-row output{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
 </style>
 <dialog id="kitchen-api-dialog" class="panel" aria-labelledby="settings-title">
- <div class="dlg-head"><h2 id="settings-title">设置</h2><span class="sr-label">界面语言</span><button id="kitchen-language" class="btn" type="button" data-no-i18n>English</button><button id="api-close" class="btn close" type="button" aria-label="返回厨房">×</button></div>
+ <div class="dlg-head"><h2 id="settings-title">设置</h2><span class="sr-label">界面语言</span><button id="kitchen-language" class="btn" type="button" data-no-i18n>英语</button><button id="api-close" class="btn close" type="button" aria-label="返回厨房">×</button></div>
  <div class="tabs" role="tablist" aria-label="设置分页">
   <button class="tab" id="tab-connection" type="button" role="tab" aria-controls="panel-connection" autofocus>连接</button>
   <button class="tab" id="tab-audio" type="button" role="tab" aria-controls="audio-panel">声音</button>
@@ -161,6 +161,7 @@ function kitchenTabs(dialog){
   <p>使用你自己的 API 账号，调用费用由该账号承担。</p>
   <p><strong>建议优先选择 Jev</strong>：这间厨房是围绕 Jev 开发的；其他模型也可使用，响应速度和配合方式可能不同。</p>
   <p id="api-identity">尚未配置</p>
+  <p id="api-editing-status" role="status" aria-live="polite"></p>
   <form id="api-form">
    <label for="api-provider">模型服务</label>
    <select id="api-provider"><option value="jev">TypeSafe · Jev（推荐）</option><option value="deepseek">DeepSeek</option><option value="compatible">其他兼容 Chat Completions 的服务</option></select>
@@ -226,7 +227,10 @@ function kitchenTabs(dialog){
   el('api-key').placeholder=c?.configured?'已保存；要更换时粘贴新的 Key':'粘贴你的 API Key';
   el('api-connect').textContent=c?.configured?'更换并测试':'测试并连接';
   el('api-connect').disabled=!allowed;el('api-clear').disabled=!allowed||!c?.configured;
-  for(const id of ['api-provider','api-url','api-model','api-key','api-remember'])el(id).disabled=!allowed;
+  // Filling a draft does not change the active model or make a paid request.
+  for(const id of ['api-provider','api-url','api-model','api-key','api-remember'])el(id).disabled=busy;
+  el('api-editing-status').textContent=!c?(window.chefjeffHostedStatus?.()||'等待厨房连接。可以先填写，连接成功后再测试。'):
+   busy?'正在测试连接…':c.editable?'':'本局进行中，可以先填写；请结束本局后再测试或更换 API。';
   const l=state?.limits;
   el('call-limit').disabled=!l?.editable||limitBusy;el('limit-save').disabled=!l?.editable||limitBusy;
   el('limit-status').textContent=limitMessage||(l?`本局 ${l.calls} / ${l.max_calls} 次${l.reached?' · 已达上限':''}；成功回复 token：输入 ${l.usage.input_tokens} / 输出 ${l.usage.output_tokens}；本次服务连接测试 ${l.connection_checks} 次`:'需要新版厨房服务。');
@@ -238,18 +242,19 @@ function kitchenTabs(dialog){
   el('memory-status').textContent=memoryMessage||m?.error||(m?`${m.enabled?'已开启':'已关闭'} · 当前模型已保存 ${m.saved_rounds} / ${m.limit} 局${m.editable?'':' · 本局使用 '+m.used_rounds+' 局，结算后可修改'}`:'需要新版厨房服务。');
  };
  window.addEventListener('kitchen-state',e=>{state=e.detail;status()});
+ window.addEventListener('kitchen-connection-error',()=>status());
  window.addEventListener('kitchen-open-connection',()=>{
   const c=state?.connection;
   if(c?.configured){el('api-provider').value=c.provider;el('api-url').value=c.base_url;el('api-model').value=c.model;el('api-remember').checked=c.remembered}
   el('api-key').value='';el('call-limit').value=state?.limits?.next_max_calls||200;fields();status();
-  message(!c?'这个旧页面还不支持 API 配置，请使用新版服务。':c.editable?'测试连接会发送一次小型 API 请求，可能产生少量费用。':'请在开局前或结算后更换 API；请完成当前对局后再修改。');
+  message(!c?'尚未连接厨房，暂时不能测试 API。':c.editable?'测试连接会发送一次小型 API 请求，可能产生少量费用。':'请在开局前或结算后更换 API；请完成当前对局后再修改。');
   showTab(el('tab-connection'));if(!dialog.open)dialog.showModal();
  });
  el('api-provider').addEventListener('change',()=>{el('api-model').value=el('api-provider').value==='deepseek'?'deepseek-flash':'';el('api-key').value='';fields()});
  el('api-close').onclick=()=>{el('api-key').value='';dialog.close()};
  dialog.addEventListener('close',()=>{el('api-key').value=''});
  async function send(extra){
-  if(!state||busy)return;busy=true;status();
+  if(!state?.connection?.editable||busy)return;busy=true;status();
   message(extra.clear?'正在清除…':'正在测试连接，请稍候…');
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),30000);
   try{
@@ -327,22 +332,24 @@ function kitchenTabs(dialog){
  <div class="dlg-body">
  <section id="help-keys" role="tabpanel" aria-labelledby="tab-keys">
   <div class="keymap">
-   <span class="keys"><span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span></span><span>按住移动，松开停止；方向键也可以。只用键盘操作厨房。</span>
+   <span class="keys"><span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span></span><span>按住移动，松开停止；方向键也可以。电脑使用键盘，手机使用屏幕摇杆和按钮。</span>
    <span class="keys"><span class="key wide">Shift</span></span><span>冲刺：移动时按 Shift。1.4 倍速 1 秒，之后冷却 3 秒。</span>
-   <span class="keys"><span class="key wide">空格</span></span><span>对面前的东西做需要的事：取料、放下、下锅、装盘、切菜、洗碗、灭火、出餐。面前没有可用的，就用身边最近的。底部会提示将执行的动作。</span>
-   <span class="keys"><span class="key wide">按住空格</span></span><span>投掷：手里有东西、面前是空地时按住空格，角色停下并出现箭头，方向键改方向，松开扔出，最远 4 格；队友在这个方向上就扔给他。</span>
+   <span class="keys"><span class="key wide">空格</span></span><span>对面前的东西做需要的事：取料、放下、下锅、装盘、切菜、洗碗、灭火、出餐。面前没有可用的，就用身边最近的。手持可投掷物品时，短按松开后操作；空手时按下立即操作。底部会提示将执行的动作。</span>
+   <span class="keys"><span class="key wide">按住空格</span></span><span>投掷：手持可投掷物品时，面前是工位或空地都能按住空格约 0.3 秒瞄准，角色停下，半透明弧形带显示方向与射程参考；方向键改方向，松开扔出，最远 4 格；队友在这个方向上就扔给他。终点仅表示最大射程，实际落点和接取由引擎判定。</span>
    <span class="keys"><span class="key">Esc</span><span class="key">P</span></span><span>暂停与继续。</span>
    <span class="keys"><span class="key wide">Enter</span></span><span>标记当前片段，导出本局时可以回看。</span>
    <span class="keys"><span class="key">1</span>–<span class="key">5</span><span class="key">6</span></span><span>告诉 Jeff 你更想做哪类工作；6 表示他做错了。</span>
   </div>
+  <p>手柄：左摇杆或十字键移动，A/× 操作（持物长按瞄准、松手投掷），X/□ 冲刺，B/○ 取消瞄准；Start/Options 开始或暂停、继续。</p>
+  <p class="fine">首次连接后先按一下手柄按键，再放开按键并将左摇杆回中。设置和沟通菜单仍使用键盘和鼠标；只支持浏览器识别为标准布局的手柄。</p>
  </section>
  <section id="help-rules" role="tabpanel" aria-labelledby="tab-rules">
   <dl>
   <dt>冲刺 · Shift</dt><dd>移动时按 Shift：速度 1.4 倍，持续 1 秒，结束后冷却 3 秒。持物也能冲刺，不加速切菜或洗碗。AI 使用相同规则；没有单独开关。暂停时计时冻结。</dd>
   <dt>移动 · WASD / 方向键</dt><dd>按住方向键移动，松开停止；走开会停下切菜和洗碗，进度保留。厨房里不用鼠标，左下角沟通菜单可以点。</dd>
-  <dt>操作 · 空格</dt><dd>空格对角色面前的东西起作用；面前没有可用的，就用身边最近的（不含身后）。要操作的工位会稍稍变明显。空格做面前需要的事：取料、放下、拿起、下锅、装盘、端锅、切菜、洗碗、灭火、出餐、丢进垃圾桶；手里有东西、面前是空地时，短按放下，按住瞄准投掷。条件不满足时底部给出提示。拿、放这类短动作按下后立刻按方向键，动作会先做完再走。正在切菜或洗碗时走开或按空格会停下，进度保留。地上空锅可先放切好的牛肉，再按空格端锅，离灶不加热。</dd>
-  <dt>放下和拾取</dt><dd>面前是工位时，空格只对这个工位操作，不会把东西放到地上。面前是空地时，空格先拿面前地上的东西，再拿脚下的，然后是身边最近的工位或物品，最后把手里的东西放在面前。拿干净盘面向地上的熟锅，也能盛菜。</dd>
-  <dt>抛掷与传菜 · 按住空格</dt><dd>手里有东西、面前是空地时按住空格约 0.3 秒，角色停下并出现方向箭头；按方向键改方向（8 个方向），松开扔出；队友在这个方向的射程内时扔给他。生食材、切好的原料、餐盘、装盘菜、锅和灭火器都能抛，最远 4 格。抛到射程尽头的地上，遇墙落在墙前。队友空手、在走路或站着时能接住；正在切菜、洗碗或手里有东西时不会被打断，东西落在他旁边，盘里的菜和锅里的东西都保留。玩家与 AI 规则相同。</dd>
+  <dt>操作 · 空格</dt><dd>空格对角色面前的东西起作用；面前没有可用的，就用身边最近的（不含身后）。要操作的工位会稍稍变明显。空格做面前需要的事：取料、放下、拿起、下锅、装盘、端锅、切菜、洗碗、灭火、出餐、丢进垃圾桶。手持可投掷物品时，短按松开后操作，按住瞄准投掷，站在工位前也一样；空手时按下立即操作。条件不满足时底部给出提示。拿、放这类短动作开始后再按方向键，动作会先做完再走；持物时，动作从短按空格松开后开始。正在切菜或洗碗时走开或按空格会停下，进度保留。地上空锅可先放切好的牛肉，再短按空格端锅，离灶不加热。</dd>
+  <dt>放下和拾取</dt><dd>面前是工位时，短按空格只对这个工位操作，做不了会说明原因，不会把东西放到地上。面前是空地时，短按先拿面前地上的东西，再拿脚下的，然后是身边最近的工位或物品，最后把手里的东西放在面前。拿干净盘面向地上的熟锅，也能盛菜。</dd>
+  <dt>抛掷与传菜 · 按住空格</dt><dd>手持可投掷物品时，面前是工位或空地都能按住空格约 0.3 秒瞄准，角色停下，半透明弧形带显示方向与射程参考；按方向键改方向（8 个方向），松开扔出；队友在这个方向的射程内时扔给他。终点仅表示最大射程，不是实际落点预测；墙体阻挡和接取仍由引擎判定。生食材、切好的原料、餐盘、装盘菜、锅和灭火器都能抛，最远 4 格。可以越过工位，抛到射程尽头的地上，遇墙落在墙前；没有可用落点时保留手里的物品。队友空手、在走路或站着时能接住；正在切菜、洗碗或手里有东西时不会被打断，东西落在他旁边，盘里的菜和锅里的东西都保留。玩家与 AI 规则相同。</dd>
   <dt>餐具和锅</dt><dd>干净盘才可装菜。脏盘回收点取盘 → 放入水槽 → 空手按空格洗碗 → 取净盘。没盘时可空手到锅边端锅，离灶停止加热；空锅需放回灶台。</dd>
   <dt>丢弃与消防</dt><dd>拿食材靠近垃圾桶按空格会销毁，扣 2 元；端锅则倒掉锅里的食物，保留空锅。拿起灭火器后面向着火工位按空格，4 秒灭火。火每 8 秒向一格相邻柜台蔓延，不跨空地或墙；同时 5 个工位着火，本局结束。</dd>
   <dt>沟通 · 1–6 / 点击</dt><dd>打开左下角沟通菜单，点击偏好即可发送；“你做错了”是独立的红色描边按钮。也可按 1–5 表达偏好、按 6 纠错。共用 5 个实际秒冷却，暂停时也可发送。最新偏好只在本局有效；AI 在下一次正常请求中收到，自行判断如何配合，不强制分工或停止动作。纠错附带当时动作信息，但不指定正确答案。</dd>
@@ -379,6 +386,8 @@ function kitchenTabs(dialog){
  window.addEventListener('kitchen-open-help',()=>{showTab(document.getElementById('tab-keys'));if(!help.open)help.showModal()});
  document.getElementById('help-close').onclick=document.getElementById('help-x').onclick=()=>help.close();})();
 </script>
+<script src="touch-controls.js"></script>
+<script src="gamepad-controls.js"></script>
 <style>
 /* End-of-round record: generated from the round's summary (round_summary.py), never per level. */
 #kitchen-record-dialog{width:min(560px,calc(100vw - 28px))}
