@@ -1,6 +1,6 @@
 {
   "analyzer_version": "capacity-analyzer-0.1",
-  "input_config_hash": "sha256:f56e98293a08d84d51b4fa30604142024f9cada0ced877a2c9841a8e2853513c",
+  "input_config_hash": "sha256:9a7e4e8a5d6ffb299cc4ff38ab5b6aee9da6de2f31870019fdc2f9793b563015",
   "input_status": "frozen",
   "level_id": "level-3",
   "schema_valid": true,
@@ -105,14 +105,14 @@
       "first_dish_lower_bound_game_ms": 18900,
       "first_dish_lower_bound_basis": "max(critical path, chef time / chefs); transport excluded",
       "single_chef_walking_reference_game_ms": {
-        "assignment_0:human": 24181,
-        "assignment_0:jeff": 25623,
-        "assignment_1:human": 25623,
-        "assignment_1:jeff": 24181
+        "assignment_0:human": 24351,
+        "assignment_0:jeff": 25768,
+        "assignment_1:human": 25768,
+        "assignment_1:jeff": 24351
       },
       "walking_reference_range_game_ms": [
-        24181,
-        25623
+        24351,
+        25768
       ]
     },
     "burger": {
@@ -176,14 +176,14 @@
       "first_dish_lower_bound_game_ms": 18900,
       "first_dish_lower_bound_basis": "max(critical path, chef time / chefs); transport excluded",
       "single_chef_walking_reference_game_ms": {
-        "assignment_0:human": 40672,
-        "assignment_0:jeff": 42133,
-        "assignment_1:human": 42133,
-        "assignment_1:jeff": 40672
+        "assignment_0:human": 41005,
+        "assignment_0:jeff": 42496,
+        "assignment_1:human": 42496,
+        "assignment_1:jeff": 41005
       },
       "walking_reference_range_game_ms": [
-        40672,
-        42133
+        41005,
+        42496
       ]
     }
   },

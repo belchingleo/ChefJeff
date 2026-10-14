@@ -65,11 +65,11 @@ class BookmarkTests(unittest.TestCase):
         for _ in range(100):self.g.k.emit('private note',kind='action_done',actor='human',action='fetch')
         self.cmd('pause');self.assertEqual(self.cmd('bookmark')[0],409)
         log=self.g.journal;self.cmd('end');self.assertEqual(self.cmd('bookmark')[0],409)
-        report=self.cmd('export-run')[1]['report']
-        self.assertEqual(len(report['recent_events']),80);self.assertEqual(report['bookmarks'],self.g.bookmarks)
+        report=self.cmd('export-run')[1]['report'];last=report['rounds'][-1]
+        self.assertGreaterEqual(len(last['events']),100);self.assertEqual(last['bookmarks'],self.g.bookmarks)
         self.assertNotIn('SECRET_SENTINEL',json.dumps(report));self.assertNotIn('private note',json.dumps(report))
-        self.assertEqual(report['bookmarks'],[r for k,r in log.rows if k=='end'][0]['bookmarks'])
-        report['bookmarks'].clear();self.assertEqual(len(self.g.bookmarks),1)
+        self.assertEqual(last['bookmarks'],[r for k,r in log.rows if k=='end'][0]['bookmarks'])
+        last['bookmarks'].clear();self.assertEqual(len(self.g.bookmarks),1)
         self.cmd('reset');self.assertEqual(self.g.bookmarks,[]);self.assertIsNone(self.g.last_bookmark_at)
     def test_failed_log_write_reports_failure_and_does_not_commit(self):
         self.start();log=self.g.journal

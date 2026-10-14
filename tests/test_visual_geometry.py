@@ -243,6 +243,40 @@ assert(flyingDepth > geometry.depthOrder(4, 'solid'), 'a raised object must not 
   }
 }
 
+// Throw poses: any aim angle maps to a painted knifeless chop frame with a grip, for both chefs.
+const chefs=JSON.parse(fs.readFileSync(path.join(root,'cocos-kitchen/assets/resources/art/chefs-v2/manifest.json'),'utf8')).frames;
+const at=deg=>[Math.cos(deg*Math.PI/180),Math.sin(deg*Math.PI/180)];
+for(const [deg,view,frame] of [[0,'right',1],[45,'right',2],[90,'down',1],[135,'left',2],[180,'left',1],[225,'left',3],[270,'up',3],[315,'right',3]])
+  assert.deepStrictEqual(geometry.throwPose(...at(deg),'release'),{view,frame},`release at ${deg}`);
+let previous=null,switches=0;
+for(let deg=0;deg<360;deg+=1){
+  for(const phase of ['windup','release']){
+    const pose=geometry.throwPose(...at(deg),phase);
+    for(const kind of ['player','jeff']){
+      const meta=chefs[`knifeless/characters/${kind}/${pose.view}/chop_${pose.frame}`];
+      assert(meta&&meta.grip&&!meta.knife_hidden,`${kind} ${phase} ${deg}: needs a painted arm with a grip`);
+    }
+  }
+  const view=geometry.throwPose(...at(deg),'windup').view;if(previous!==null&&view!==previous)switches++;previous=view;
+}
+assert.strictEqual(switches,4,'four body views, each a single sector');
+const p=geometry.throwItemPoint([10,20],90,4);assert(Math.abs(p[0]-10)<1e-9&&Math.abs(p[1]-16)<1e-9,'item sits beyond the fist along the arm');
+
+// Diagonal throw bodies take 45-degree sectors centred on the diagonals (map y down).
+for(const [deg,name] of [[45,'down_right'],[135,'down_left'],[225,'up_left'],[315,'up_right'],[60,'down_right'],[0,''],[90,''],[22.4,''],[22.6,'down_right'],[-30,'up_right']])
+  assert.strictEqual(geometry.throwDiagonal(...at(deg)),name,`diagonal at ${deg}`);
+assert.strictEqual(geometry.throwDiagonal(0,0),'');
+
+// Pan handles point at the chef: the station's facing (its operation side), else from the access cell.
+for(const level of [1,2,3]){
+  const map=JSON.parse(fs.readFileSync(path.join(root,`maps/level-${level}.json`),'utf8'));
+  for(const e of map.equipment.filter(e=>e.type==='stove'||e.type==='counter'))assert.strictEqual(geometry.panHandleSide(e),e.facing,`${level} ${e.id}`);
+}
+assert.strictEqual(geometry.panHandleSide({cell:[4,4],access:[3,4]}),'west');assert.strictEqual(geometry.panHandleSide({cell:[4,4],access:[4,3]}),'north');
+const pack=JSON.parse(fs.readFileSync(path.join(root,'cocos-kitchen/assets/resources/art/ingredient-pack-v1/manifest.json'),'utf8')).frames;
+for(const stem of ['pan_vertical','pan_horizontal','pan_west','pan_north'])for(const item of ['beef','chicken','fish'])for(const stage of ['chopped','cooking','ready','burnt'])
+  assert(pack[`modular/${stem}`]&&pack[`modular/${stem}/${item}/${stage}`],`pan art for every handle side: ${stem} ${item} ${stage}`);
+
 // Held-key prediction lands where the server's manual step does, including wall slides.
 const walks = JSON.parse(fs.readFileSync(process.argv[4], 'utf8'));
 for (const {level, map, steps} of walks) {

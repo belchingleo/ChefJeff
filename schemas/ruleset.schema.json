@@ -40,7 +40,7 @@
     },
     "engine_semantics": {
       "enum": [
-        "continuous-2026-09"
+        "continuous-2026-10"
       ]
     },
     "tick_game_ms": {

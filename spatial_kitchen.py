@@ -16,6 +16,15 @@ THROW_SPEED = 12.0
 WALK_SPEED = 4.5  # Both chefs: 1.5x the original 3 cells per game second
 CHEF_SEPARATION = .4  # two small foot circles, not the full tall sprite
 UP_STANDOFF = -.22  # tiles a south-side operator stands back from the cabinet
+# Overcooked-style targeting: the station a chef acts on is the one under a point this far ahead of
+# the feet along the facing (a chef pressed against any side of a counter, or standing on the
+# neighbouring tile's centre, reaches into it); a point at most FRONT_SLACK short of a counter still picks it.
+FRONT_REACH = .75
+FRONT_SLACK = .15
+# Facing left or right, the hands and knife are drawn about this far above the feet (side chop poses:
+# fist 0.38-0.48 cells up at the strike, blade landing 0.06-0.22), so the front point is raised to hand
+# height and the station the knife points at is the target. Up and down are unchanged.
+SIDE_HAND_RISE = .35
 NUDGE_LIMIT = .25
 # Reference values of movement.stall_replan in the service ruleset: a routed chef whose
 # remaining route has not shortened by STALL_PROGRESS for STALL_SECONDS re-plans from
@@ -460,10 +469,13 @@ class SpatialKitchen(Kitchen):
     def path(self, who, target):
         if target in self.equipment:
             station=self.equipment[target]
-            if self.at_walk_limit and self.at_station_face(who,target):
+            shared=self.shared_access(who,target)
+            # Never repositioned at a station it already faces (or stands against): work where it stands,
+            # unless a shared job needs another side than this one.
+            here=self.facing_station(who)==target or (self.at_walk_limit and self.at_station_face(who,target))
+            if here and (not shared or self.station_side(target,self.positions[who]) in shared):
                 return [self.positions[who]]
             access=[station['access']] if station.get('reach')=='corner' else sorted({n for c in station.get('cells',[station['cell']]) for n in self.nav.neighbors(c)})
-            shared=self.shared_access(who,target)
             if shared is not None and shared:access=shared
             other='jeff' if who=='human' else 'human'
             taken=[self.positions[other]]+([self.routes[other]['points'][-1]] if self.routes.get(other) else [])
@@ -495,10 +507,17 @@ class SpatialKitchen(Kitchen):
         center=station['cell'];access=self.nav.neighbors(center)
         route=self.routes.get(other)
         point=route['points'][-1] if route else self.positions[other]
-        occupied=min(access,key=lambda a:math.dist(self.operation_point(target,a),point))
+        occupied=self.station_side(target,point)
         ox,oy=occupied[0]-center[0],occupied[1]-center[1]
         return [a for a in access if (a[0]-center[0])*ox+(a[1]-center[1])*oy==0
                 and math.dist(self.operation_point(target,a),point)>.4]
+
+    def station_side(self, target, point):
+        """The tile beside the station on the side ``point`` is on (the face a chef there works from)."""
+        station=self.equipment[target]
+        cell=min(station.get('cells',[station['cell']]),key=lambda c:math.dist(c,point))
+        dx,dy=point[0]-cell[0],point[1]-cell[1]
+        return (cell[0]+(1 if dx>0 else -1),cell[1]) if abs(dx)>=abs(dy) else (cell[0],cell[1]+(1 if dy>0 else -1))
 
     def can_share_work(self, who, kind, target):
         if kind!=self.shared_capability(target):return False
@@ -526,14 +545,9 @@ class SpatialKitchen(Kitchen):
                 point=(access[0]+dx*inset*scale,access[1]+dy*inset*scale)
                 if self.nav.clear_walk_line(access,point):return point
             return access
-        # Side poses have their wrist above the foot anchor. Place the feet
-        # toward the front of the side edge, so the wrist faces the board center.
-        # A chef already beside the station works in place (at_station_face), so this only
-        # sets where a route from elsewhere arrives.
-        side_drop=.30 if facing in ('left','right') else 0.
-        point=(access[0]+dx*inset,access[1]+dy*inset+side_drop)
-        if side_drop and not self.nav.clear_walk_line(access,point):
-            point=(access[0]+dx*inset,access[1]+dy*inset)
+        # Centred on the side: a routed chef's feet sit on the station's row (or column) centre.
+        # A chef whose front point already picks the station works in place (see path).
+        point=(access[0]+dx*inset,access[1]+dy*inset)
         if not 0<=inset<.5 or not self.nav.clear_walk_line(access,point):
             raise ValueError('操作停靠点超出安全地面')
         return point
@@ -767,34 +781,45 @@ class SpatialKitchen(Kitchen):
                         actions.append(action)
         return actions
 
+    def front_point(self,who):
+        """The point FRONT_REACH ahead of the chef's feet along its facing, at hand height when facing sideways."""
+        (x,y),(dx,dy)=self.positions[who],FACING_STEPS[self.facing[who]]
+        return (x+dx*FRONT_REACH,y+dy*FRONT_REACH-(SIDE_HAND_RISE if dx else 0.))
+
+    def facing_station(self,who):
+        """The station the chef faces (Overcooked-style): the one whose cell holds the front point, else the
+        nearest one at most FRONT_SLACK beyond it; None when no counter is that close ahead."""
+        px,py=self.front_point(who);best=None
+        for key,e in self.equipment.items():
+            for c in e.get('cells',[e['cell']]):
+                gap=max(abs(px-c[0]),abs(py-c[1]))-.5
+                if gap<=FRONT_SLACK:
+                    rank=(max(gap,0.),math.dist((px,py),c),key)
+                    if best is None or rank<best:best=rank
+        return best[2] if best else None
+
     def facing_candidates(self,who):
         """What the chef faces, nearest first (Overcooked-style, no remembered selection).
 
-        The station on the facing tile (or an authored corner station on the faced
-        side of this tile), then a loose item on the facing tile, one at the feet and
-        the partner standing there. With no station ahead, the stations and items
-        beside the chef (never behind) follow, nearest first; the facing floor tile
-        comes last. Returns (candidates, whether a station is directly ahead).
+        The station under the front point (see facing_station; or an authored corner station on
+        the faced side of this tile), then a loose item on the facing tile, one at the feet and the
+        partner standing there; the facing floor tile comes last. There is no fallback to stations
+        beside the chef. Returns (candidates, whether a station is ahead): facing a counter that is
+        still out of reach never drops the held item on the floor instead.
         """
         x,y=self.anchor(who)
         dx,dy=FACING_STEPS[self.facing[who]]
         front=(x+dx,y+dy)
-        out=[key for key,e in self.equipment.items() if front in e.get('cells',[e['cell']])][:1]
+        station=self.facing_station(who)
+        out=[station] if station else []
         out+=[key for key,e in sorted(self.equipment.items())
               if e.get('reach')=='corner' and tuple(e['access'])==(x,y)
               and (e['cell'][0]-x)*dx+(e['cell'][1]-y)*dy>0 and key not in out]
-        ahead=bool(out)
+        ahead=bool(out) or any(front in e.get('cells',[e['cell']]) for e in self.equipment.values())
         for cell in (front,(x,y)):
             out+=['item:'+key for key,item in self.ground.items() if self.cell(item.location)==cell][:1]
         other='jeff' if who=='human' else 'human'
         if self.anchor(other)==front:out.append('partner')
-        if not ahead:
-            beside=lambda c:max(abs(c[0]-x),abs(c[1]-y))==1 and (c[0]-x)*dx+(c[1]-y)*dy>=0
-            near=[(min(math.dist(self.positions[who],c) for c in e.get('cells',[e['cell']])),key)
-                  for key,e in self.equipment.items() if any(beside(tuple(c)) for c in e.get('cells',[e['cell']]))]
-            near+=[(math.dist(self.positions[who],self.cell(item.location)),'item:'+key)
-                   for key,item in self.ground.items() if beside(self.cell(item.location))]
-            out+=[key for _,key in sorted(near) if key not in out]
         out.append(tile_key(front))
         return out,ahead
 
@@ -1011,7 +1036,7 @@ class SpatialKitchen(Kitchen):
     def _begin_work_checked(self, who, job):
         if job.action.kind in ('chop','wash'):
             access=self.shared_access(who,job.action.target)
-            if access is not None and not any(math.dist(self.positions[who],self.operation_point(job.action.target,p))<.05 for p in access):
+            if access is not None and self.station_side(job.action.target,self.positions[who]) not in access:
                 self.emit('共同操作的位置已被占用，本次操作取消',kind='arrival_conflict',actor=who,action_id=job.id)
                 self.stop(who);return False
         if job.action.kind in ('put_board','put_counter') and self.board_reserved(job.action.target):
@@ -1165,6 +1190,8 @@ class SpatialKitchen(Kitchen):
                         'walk_speed': r.walk_speed,
                         # Exact foot-blocking boxes, so the client can predict held-key movement.
                         'walk_boxes': [list(b) for b in self.nav.walk_boxes], 'walk_clearance': WALK_CLEARANCE, 'chef_separation': r.chef_separation,
+                        # An aimed throw targets the teammate within this distance of the aim line (aimed_throw).
+                        'catch_radius': r.catch_radius,
                         **({'corner_slide': r.corner_slide} if r.corner_slide else {}),
                         'presentation': self.map_document['presentation'],
                         'layout_version': self.map_document['id']+'-'+str(self.map_document['revision']), 'spawn_rule': 'One chef near the center of each working area; assigned sides are randomized',

@@ -40,13 +40,29 @@ class SharedWorkTests(unittest.TestCase):
         self.assertAlmostEqual(k.stations['b1'].food.chopped-before,.5)
         k.assert_invariants()
 
+    def test_player_joins_a_shared_chop_where_they_stand(self):
+        # Jeff chops b1 from the north; the player, pressed against b1's west side and facing it, joins
+        # with E without being moved. From the same (north) side the join is refused.
+        k=self.make();k.positions.update(jeff=(4,2.49),human=(3.1,3.2));k.facing.update(jeff='down',human='right')
+        self.assertTrue(k.command('jeff','chop b1')[0]);k.advance(.01)
+        focus,action=k.facing_interaction('human','use')
+        self.assertEqual((focus,action.key),('b1','chop b1'))
+        self.assertTrue(k.start('human',action)[0]);k.advance(.2)
+        self.assertEqual(k.positions['human'],(3.1,3.2))
+        self.assertTrue(all(a.job and a.job.working for a in k.chefs.values()))
+        k.assert_invariants()
+        k=self.make();k.positions.update(jeff=(4.2,2.49),human=(3.75,2.49));k.facing.update(jeff='down',human='down')
+        self.assertTrue(k.command('jeff','chop b1')[0]);k.advance(.01)
+        self.assertEqual(k.facing_station('human'),'b1')
+        self.assertNotEqual(k.path('human','b1'),[k.positions['human']])
+
     def test_second_chef_reserves_distinct_perpendicular_side(self):
         k=self.make();k.positions['jeff']=(4,2)
         k.command('human','chop b1');k.command('jeff','chop b1')
         a=k.routes['human']['points'][-1];b=k.routes['jeff']['points'][-1]
         self.assertNotEqual(a,b)
         self.assertEqual(a,(4,2.49))
-        self.assertIn(b,[(3.15,3.3),(4.85,3.3)])
+        self.assertIn(b,[(3.15,3.),(4.85,3.)])
         k.advance(1);k.assert_invariants()
 
     def test_middle_board_without_corner_cannot_share(self):

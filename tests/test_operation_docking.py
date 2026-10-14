@@ -11,9 +11,10 @@ class OperationDockingTests(unittest.TestCase):
         return k
 
     def test_both_chefs_walk_to_safe_endpoint_before_chopping(self):
+        # Facing away, the board is not under the front point: the chef is routed to its safe endpoint.
         for who in ('human','jeff'):
             with self.subTest(who=who):
-                k=self.make();k.positions[who]=(4,6)
+                k=self.make();k.positions[who]=(4,6);k.facing[who]='up'
                 k.stations['b1'].food=Food('test','raw',ingredient='beef')
                 ok,message=k.command(who,'chop b1');self.assertTrue(ok,message)
                 self.assertEqual(k.positions[who],(4,6))
@@ -30,8 +31,19 @@ class OperationDockingTests(unittest.TestCase):
                 self.assertFalse(k.nav.walkable_point((4,6.51)))
                 k.assert_invariants()
 
+    def test_a_chef_facing_the_board_works_where_it_stands(self):
+        for who in ('human','jeff'):
+            with self.subTest(who=who):
+                k=self.make();k.positions[who]=(4,6);k.facing[who]='down'
+                k.stations['b1'].food=Food('test','raw',ingredient='beef')
+                ok,message=k.command(who,'chop b1');self.assertTrue(ok,message)
+                self.assertEqual(k.chefs[who].job.travel,0)
+                k.advance(.1)
+                self.assertTrue(k.chefs[who].job.working)
+                self.assertEqual(k.positions[who],(4,6))
+
     def test_stop_and_retarget_keep_continuous_real_position(self):
-        k=self.make();k.positions['human']=(4,6)
+        k=self.make();k.positions['human']=(4,6);k.facing['human']='up'
         k.stations['b1'].food=Food('test','raw',ingredient='beef')
         k.command('human','chop b1');k.advance(.05)
         before=k.positions['human'];k.stop('human')
@@ -69,7 +81,7 @@ class OperationDockingTests(unittest.TestCase):
     def test_back_facing_feet_remain_below_visible_cabinet_front(self):
         for who in ('human','jeff'):
             k=SpatialKitchen(load_config()|{'level':1,'spawn_seed':0})
-            k.positions[who]=(4,6)
+            k.positions[who]=(4,6);k.facing[who]='down'
             k.stations['b3'].food=Food('test-back','raw')
             ok,message=k.command(who,'chop b3');self.assertTrue(ok,message)
             k.advance(k.chefs[who].job.travel+.01)
@@ -82,14 +94,15 @@ class OperationDockingTests(unittest.TestCase):
 
     def test_corner_side_worker_stays_left_and_clear_of_north_worker(self):
         k=SpatialKitchen(load_config()|{'level':1,'spawn_seed':0})
-        k.positions.update(human=(4,2),jeff=(3,3))
+        k.positions.update(human=(4,2),jeff=(3,3));k.facing.update(human='up',jeff='up')
         k.stations['b1'].food=Food('corner')
         for who in ('human','jeff'):self.assertTrue(k.command(who,'chop b1')[0])
         k.advance(.3)
         self.assertEqual(k.facing['jeff'],'right')
-        self.assertEqual(k.positions['jeff'],(3.15,3.3))
+        # Docked on the side's row centre (no side drop), clear of the north worker's feet.
+        self.assertEqual(k.positions['jeff'],(3.15,3.0))
         self.assertLess(k.positions['jeff'][0],3.5)
-        self.assertGreater(k.positions['jeff'][1]-k.positions['human'][1],.8)
+        self.assertGreater(abs(k.positions['jeff'][0]-k.positions['human'][0]),.8)
         self.assertTrue(all(a.job and a.job.working for a in k.chefs.values()))
 
     def test_all_station_types_share_side_docking_and_floor_boundaries(self):
@@ -112,11 +125,11 @@ class OperationDockingTests(unittest.TestCase):
 
     def test_level_two_sink_uses_same_side_anchor_as_board(self):
         k=self.make()
-        self.assertEqual(k.operation_point('sink',(11,3)),(11.15,3.3))
-        k.positions.update(human=(11,3),jeff=(3,2))
+        self.assertEqual(k.operation_point('sink',(11,3)),(11.15,3.0))
+        k.positions.update(human=(11,3),jeff=(3,2));k.facing['human']='up'
         k.stations['sink'].food=k.stations['plates'].food;k.stations['plates'].food=None
         k.stations['sink'].food.stage='dirty_plate'
         self.assertTrue(k.command('human','wash')[0]);k.advance(.2)
-        self.assertEqual(k.positions['human'],(11.15,3.3))
+        self.assertEqual(k.positions['human'],(11.15,3.0))
         self.assertEqual(k.facing['human'],'right')
         self.assertTrue(k.chefs['human'].job.working)

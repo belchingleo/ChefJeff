@@ -20,7 +20,7 @@ from spatial_kitchen import SpatialKitchen
 from whitebox_server import SpatialJevClient
 from web_server import GameSession, Handler
 from release_info import release_info
-from feedback import feedback_report
+from feedback import play_export
 from hosted_records import ContributionStore, pilot_record, CONSENT_VERSION
 from hosted_capacity import ActiveKitchens, RequestBudget
 from hosted_jev import JevForwarder
@@ -174,9 +174,9 @@ class HostedSession(GameSession):
             self.c['ai_max_calls'] = n
             return 200, {'ok': True, 'next_max_calls': n}
         if path in ('/api/export-run', '/api/feedback'):
-            report = feedback_report(self)
-            report['coverage'] = 'Session summary and recent events only. No persistent server journal exists.'
-            report['bookmark_policy']['coverage'] = report['coverage']
+            report = play_export(self)
+            report['coverage'] = ('Every round since this page opened, each with its summary, work record, bookmarks, '
+                                  'messages and every allowlisted game event. No persistent server journal exists.')
             report['bookmark_policy'].pop('log_join', None)
             return 200, {'ok': True, 'report': report}
         if path in ('/api/pause', '/api/end', '/api/reset', '/api/level', '/api/next') and self.relay:
@@ -311,6 +311,7 @@ SHELL_REPLACEMENTS = (
     ('仅保留到服务关闭', '仅保留到当前页面会话结束'),
     ('本次服务连接测试', '本页面连接测试'),
     ('可对应本地日志提取前后过程', '在线版没有可追溯的服务器对局日志'),
+    ('从启动游戏起玩过的每一局', '从打开本页面起玩过的每一局'),
     ('<section aria-labelledby="memory-title"', '<section hidden aria-labelledby="memory-title"'),
 )
 CONTRIBUTION_SLOT = '<!-- hosted-contribution -->'

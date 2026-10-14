@@ -191,3 +191,40 @@ export function levelButtonLayout(count:number,band={left:309,right:971,top:432,
     }
     return out;
 }
+/** Throw pose for an aim direction in map coordinates (x right, y down), any angle.
+ * The knifeless chop frames already paint the throwing arm: frame 0 raised (wind-up),
+ * 1 straight forward, 2 forward-down, 3 forward-up. Side views take 120-degree sectors
+ * so diagonals lean the arm up or down instead of turning to the back or front. */
+export function throwPose(dx:number,dy:number,phase:'windup'|'release'):{view:string;frame:number}{
+    const t=((Math.atan2(dy,dx)*180/Math.PI)%360+360)%360;
+    const view=t<=60||t>=300?'right':t<120?'down':t<=240?'left':'up';
+    if(phase==='windup')return {view,frame:0};
+    if(view==='down')return {view,frame:1};
+    if(view==='up')return {view,frame:3};
+    const r=((t-(view==='right'?0:180))%360+540)%360-180;
+    if(Math.abs(r)<=20)return {view,frame:1};
+    return {view,frame:(view==='right'?r>0:r<0)?2:3};
+}
+/** Held item centre in a pose's canvas pixels: just beyond the fist, along the arm. */
+export function throwItemPoint(grip:number[],armDeg:number,out=4):[number,number]{
+    const a=armDeg*Math.PI/180;
+    return [grip[0]+Math.cos(a)*out,grip[1]-Math.sin(a)*out];
+}
+/** Which way a pan's handle points on a station: toward the operation side, where the chef stands.
+ * Uses the station's facing, else the access cell relative to the station cell. */
+export function panHandleSide(station:any):string{
+    if(!station)return 'east';
+    if(['north','south','east','west'].includes(station.facing))return station.facing;
+    const cell=station.cell||[0,0],access=station.access||cell,dx=access[0]-cell[0],dy=access[1]-cell[1];
+    if(Math.abs(dx)>=Math.abs(dy)&&dx!==0)return dx>0?'east':'west';
+    return dy<0?'north':'south';
+}
+/** The diagonal a throw aims along, when within 22.5 degrees of one: 'down_right', 'down_left',
+ * 'up_left' or 'up_right' (map y points down); '' otherwise. Selects painted diagonal throw bodies. */
+export function throwDiagonal(dx:number,dy:number):string{
+    if(!dx&&!dy)return '';
+    const t=((Math.atan2(dy,dx)*180/Math.PI)%360+360)%360;
+    const names=['down_right','down_left','up_left','up_right'];
+    for(let i=0;i<4;i++){const centre=45+90*i,off=Math.abs(((t-centre)%360+540)%360-180);if(off<22.5)return names[i];}
+    return '';
+}

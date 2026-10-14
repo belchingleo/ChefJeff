@@ -37,7 +37,7 @@ async function artTest(failed){
  const Art=loadModule('LevelOneArt',{JsonAsset,Texture2D,SpriteFrame,Rect,Size,
   resources:{load(path,type,callback){pending.push({path,type,callback});}}});
  const art=new Art(),loading=art.load();
- assert.equal(pending.length,24,'All atlas downloads should start before any completes.');
+ assert.equal(pending.length,26,'All atlas downloads should start before any completes.');
  for(const {path,type,callback} of [...pending].reverse()){
   if(failed&&path.startsWith(failed))callback(new Error('Fixture missing asset'));
   else callback(null,type===JsonAsset?{json:{frames:{shared:{rect:[0,0,8,8]}}}}:new Texture2D(path));

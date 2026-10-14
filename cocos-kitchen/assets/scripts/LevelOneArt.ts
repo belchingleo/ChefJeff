@@ -38,7 +38,7 @@ export class LevelOneArt {
                 ['art/burger-food','food/',false],['art/grid-foundation-v1','',true],
                 ['art/action-feedback-v1','',true],['art/chefs-v2','',false],
                 ['art/knife-v1','',true],['art/knife-arc-v1','',false],
-                ['art/trash-directions-v1','',true],['art/ingredient-pack-v1','',false],
+                ['art/trash-directions-v1','',true],['art/throw-diagonal-v1','',false],['art/ingredient-pack-v1','',false],
             ];
             if(typeof location!=='undefined'&&new URLSearchParams(location.search).get('prepSample')==='1')
                 atlases.push(['art/prep-pose-v3','',true]);

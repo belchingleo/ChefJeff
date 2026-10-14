@@ -255,7 +255,7 @@ def choose_zoned(k, who, role):
                 return _pick(actions, 'empty_pot')
             return _pick(actions, 'return_pot')
         if hand and hand.get('plate_id') and hand.get('dish'):
-            return pass_floor('maker', 'serve') or _key(actions, 'go fridge')
+            return pass_floor('maker', 'serve') or pass_floor('both', 'serve') or _key(actions, 'go fridge')
         if hand and hand['stage'] == 'clean_plate':
             free = [c for c in runner_counters if not st[c].get('food')]
             return _key(actions, 'put ' + min(free, key=lambda c: _near(k, c, stove))) if free else None
@@ -265,7 +265,10 @@ def choose_zoned(k, who, role):
                 return _pick(actions, 'put_pot') or throw_onto(empty_boards, stove)
             if stage == 'raw' and name != 'bread':
                 # Onto a free board when in range, else onto the floor across the counter by the boards.
-                return throw_onto(empty_boards, stove) or (pass_floor('maker', k.boards[0]) if empty_boards else None)
+                # Out of range of the maker's floor (e.g. straight from the fridge), pass onto the floor
+                # on the dividing line instead; the maker picks it up from there.
+                return throw_onto(empty_boards, stove) or ((pass_floor('maker', k.boards[0]) or pass_floor('both', k.boards[0]))
+                                                           if empty_boards else None)
             if assembly and name in missing:
                 return _pick(actions, 'assemble', assembly)
             return None
@@ -335,7 +338,7 @@ def choose_zoned(k, who, role):
     for g in state['ground']:
         f = g['food']
         if (f.get('ingredient') and not f.get('plate_id') and f['stage'] == 'raw' and empty_boards
-                and _side(k, k.cell(g['location'])[1]) == 'maker'):
+                and _side(k, k.cell(g['location'])[1]) in ('maker', 'both')):
             a = _key(actions, 'pickup ' + f['id'])
             if a:
                 return a
