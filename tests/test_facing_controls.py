@@ -27,8 +27,9 @@ class FacingControlTests(unittest.TestCase):
 
     def test_no_station_beside_is_used_when_nothing_is_ahead(self):
         k = kitchen()
-        # Floor ahead: neither the empty counter 17 beside nor the bread box diagonally ahead is a target.
-        k.positions['human'] = (7., 2.); k.facing['human'] = 'left'
+        # Floor ahead at hand height: neither the empty counter 17 beside nor the bread box diagonally
+        # ahead is a target.
+        k.positions['human'] = (7., 2.3); k.facing['human'] = 'left'
         focus, action = k.facing_interaction('human', 'hands')
         self.assertTrue(focus.startswith('floor_'))
         self.assertIsNone(action)
@@ -36,13 +37,15 @@ class FacingControlTests(unittest.TestCase):
     def test_the_station_under_the_front_point_is_the_target(self):
         k = SpatialKitchen(level_config(load_config() | {'spawn_seed': 0, 'order_seed': 1}, 1))
         k.positions['jeff'] = (10., 6.)
-        # Level 1 boards: b1 (4,3), b2 (4,4), b3 (4,5). Pressed against the column from the west at b2's
-        # height, on the neighbouring tile's centre, or a little off the row centre: b2.
-        for x, y in ((3.15, 4.), (3., 4.), (3.15, 3.6), (3.15, 4.4)):
+        # Level 1 boards: b1 (4,3), b2 (4,4), b3 (4,5). Facing sideways the front point is at hand height
+        # (SIDE_HAND_RISE above the feet): feet on b2's row centre, on the neighbouring tile's centre, or a
+        # little below it target b2; feet high enough that the hands are level with b1 target b1.
+        for x, y in ((3.15, 4.), (3., 4.), (3.15, 4.2), (3.15, 4.4)):
             k.positions['human'] = (x, y); k.facing['human'] = 'right'
             self.assertEqual(k.facing_station('human'), 'b2', (x, y))
-        k.positions['human'] = (3.15, 3.4)
-        self.assertEqual(k.facing_station('human'), 'b1')
+        for y in (3.6, 3.4):
+            k.positions['human'] = (3.15, y)
+            self.assertEqual(k.facing_station('human'), 'b1', y)
         # Every side of b2 that has floor, pressed against it.
         k.positions['human'] = (3.15, 4.); k.facing['human'] = 'right'
         self.assertEqual(k.facing_station('human'), 'b2')
@@ -79,7 +82,7 @@ class FacingControlTests(unittest.TestCase):
         k = SpatialKitchen(level_config(load_config() | {'spawn_seed': 0, 'order_seed': 1}, 1))
         k.positions['jeff'] = (10., 6.)
         k.stations['b1'].food = Food('F1', 'raw', ingredient='beef')
-        k.positions['human'] = (3.15, 3.8); k.facing['human'] = 'right'
+        k.positions['human'] = (3.15, 4.); k.facing['human'] = 'right'
         focus, action = k.facing_interaction('human', 'hands')
         self.assertEqual(focus, 'b2')
         self.assertIsNone(action)
@@ -88,11 +91,33 @@ class FacingControlTests(unittest.TestCase):
         focus, action = k.facing_interaction('human', 'use')
         self.assertEqual((focus, action.key), ('b2', 'chop b2'))
 
+    def test_the_knife_and_the_target_agree_at_the_users_spot(self):
+        # User screenshot 2026-10-06: feet on the b1/b2 seam, slightly low, facing right. The knife is drawn
+        # level with b1, so b1 is the target (it used to be b2 while the knife pointed at b1). With the feet
+        # low enough the hands are level with b2, and b2 is the target. The chef is never moved.
+        k = SpatialKitchen(level_config(load_config() | {'spawn_seed': 0, 'order_seed': 1}, 1))
+        k.positions['jeff'] = (10., 6.)
+        k.stations['b1'].food = Food('F1', 'raw', ingredient='beef')
+        k.stations['b2'].food = Food('F2', 'raw', ingredient='beef')
+        for here, board in (((3.15, 3.55), 'b1'), ((3.15, 4.), 'b2')):
+            k.stop('human')
+            k.positions['human'] = here; k.facing['human'] = 'right'
+            focus, action = k.facing_interaction('human', 'use')
+            self.assertEqual((focus, action.key), (board, 'chop ' + board), here)
+            self.assertTrue(k.start('human', action)[0])
+            k.advance(.5)
+            self.assertEqual(k.positions['human'], here)
+        # Jeff, routed to a side, stands on the row centre and his hands stay level with the same board.
+        for board in ('b1', 'b2', 'b3'):
+            k.stop('jeff')
+            k.positions['jeff'] = (k.equipment[board]['cell'][0] - .85, k.equipment[board]['cell'][1]); k.facing['jeff'] = 'right'
+            self.assertEqual(k.facing_station('jeff'), board)
+
     def test_the_player_works_where_they_stand(self):
         k = SpatialKitchen(level_config(load_config() | {'spawn_seed': 0, 'order_seed': 1}, 1))
         k.positions['jeff'] = (10., 6.)
         k.stations['b2'].food = Food('F2', 'raw', ingredient='beef')
-        for here in ((3., 3.8), (3.15, 4.3)):
+        for here in ((3., 4.), (3.15, 4.4)):
             k.stop('human')
             k.positions['human'] = here; k.facing['human'] = 'right'
             self.assertTrue(k.start('human', k.facing_interaction('human', 'use')[1])[0])

@@ -21,6 +21,10 @@ UP_STANDOFF = -.22  # tiles a south-side operator stands back from the cabinet
 # neighbouring tile's centre, reaches into it); a point at most FRONT_SLACK short of a counter still picks it.
 FRONT_REACH = .75
 FRONT_SLACK = .15
+# Facing left or right, the hands and knife are drawn about this far above the feet (side chop poses:
+# fist 0.38-0.48 cells up at the strike, blade landing 0.06-0.22), so the front point is raised to hand
+# height and the station the knife points at is the target. Up and down are unchanged.
+SIDE_HAND_RISE = .35
 NUDGE_LIMIT = .25
 # Reference values of movement.stall_replan in the service ruleset: a routed chef whose
 # remaining route has not shortened by STALL_PROGRESS for STALL_SECONDS re-plans from
@@ -778,9 +782,9 @@ class SpatialKitchen(Kitchen):
         return actions
 
     def front_point(self,who):
-        """The point FRONT_REACH ahead of the chef's feet along its facing."""
+        """The point FRONT_REACH ahead of the chef's feet along its facing, at hand height when facing sideways."""
         (x,y),(dx,dy)=self.positions[who],FACING_STEPS[self.facing[who]]
-        return (x+dx*FRONT_REACH,y+dy*FRONT_REACH)
+        return (x+dx*FRONT_REACH,y+dy*FRONT_REACH-(SIDE_HAND_RISE if dx else 0.))
 
     def facing_station(self,who):
         """The station the chef faces (Overcooked-style): the one whose cell holds the front point, else the

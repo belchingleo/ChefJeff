@@ -1518,7 +1518,9 @@ export class KitchenClient extends Component {
             if(st.food?.stage==='ready'&&prior===`${st.food.id}:cooking`)this.readyUntil[id]=this.activeClock+1.1;
             this.foodStages[id]=foodKey;
             if(st.fire&&!this.useArt){this.rect(g,-26,-26,52,52,'#f1b589');}
-            const actionable=s.interaction?.target===id||s.use_interaction?.target===id;
+            // The player's own chop/wash station keeps its frame while they work on it.
+            const me=k.chefs.human,busy=!!me?.working&&['chop','wash'].includes(me.action_kind)&&me.target===id;
+            const actionable=busy||s.interaction?.target===id||s.use_interaction?.target===id;
             if(actionable||s.interaction_focus===id){
                 if(this.useModularArt)this.facedGlow(g,-TILE/2,this.workSurfaceY(id)-TILE/2,TILE,TILE,actionable);
                 else this.facedGlow(g,-27,-27,54,54,actionable);
