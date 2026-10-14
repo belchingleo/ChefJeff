@@ -3,6 +3,7 @@
 Run behind the supplied HTTPS reverse proxy, never expose the Python port directly.
 """
 import argparse
+import hashlib
 from copy import deepcopy
 import json
 import math
@@ -228,6 +229,13 @@ class Sessions:
             self.entries[token] = (session, time.monotonic())
             return session
 
+    def remove(self, token):
+        with self.lock:
+            found = self.entries.pop(token, None)
+            if found:
+                found[0].close()
+            return found is not None
+
     def close(self):
         with self.lock:
             for session, _ in self.entries.values(): session.close()
@@ -262,11 +270,16 @@ def hosted_html(raw):
 
 
 class HostedHandler(Handler):
-    def reply(self, status, data, content_type='application/json; charset=utf-8'):
+    def reply(self, status, data, content_type='application/json; charset=utf-8',
+              cache_control='no-store', etag=None):
         raw = json.dumps(data, ensure_ascii=False).encode() if isinstance(data, dict) else data
+        self._cache_control = cache_control
         self.send_response(status)
         self.send_header('Content-Type', content_type)
-        self.send_header('Content-Length', str(len(raw)))
+        if status != 304:
+            self.send_header('Content-Length', str(len(raw)))
+        if etag:
+            self.send_header('ETag', etag)
         self.end_headers()
         try:
             self.wfile.write(raw)
@@ -280,7 +293,7 @@ class HostedHandler(Handler):
     def end_headers(self):
         self.send_header('X-Content-Type-Options', 'nosniff')
         self.send_header('Referrer-Policy', 'no-referrer')
-        self.send_header('Cache-Control', 'no-store')
+        self.send_header('Cache-Control', getattr(self, '_cache_control', 'no-store'))
         self.send_header('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; connect-src 'self' https:; img-src 'self' data: blob:; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'none'; form-action 'none'")
         super().end_headers()
 
@@ -313,8 +326,17 @@ class HostedHandler(Handler):
         if not file.is_file() or file.suffix not in ('.html','.js','.json','.css','.png','.jpg','.webp','.ico','.woff','.woff2','.ttf','.mp3','.wasm','.bin','.cconb'):
             return self.reply(404, {'error': 'Not found.'})
         data = file.read_bytes()
-        if file.name == 'index.html': data = hosted_html(data)
-        self.reply(200, data, mimetypes.guess_type(str(file))[0] or 'application/octet-stream')
+        content_type = mimetypes.guess_type(str(file))[0] or 'application/octet-stream'
+        # HTML stays fresh and uncached. Asset URLs are not all content-addressed,
+        # so always revalidate them rather than giving old builds a long lifetime.
+        if file.suffix == '.html':
+            if file.name == 'index.html': data = hosted_html(data)
+            return self.reply(200, data, content_type)
+        etag = '"' + hashlib.sha256(data).hexdigest() + '"'
+        candidates = [tag.strip().removeprefix('W/') for tag in self.headers.get('If-None-Match', '').split(',')]
+        cached = etag in candidates or '*' in candidates
+        self.reply(304 if cached else 200, b'' if cached else data, content_type,
+                   cache_control='public, max-age=0, must-revalidate', etag=etag)
 
     def do_POST(self):
         if not self.valid_origin(post=True): return self.reply(403, {'error': 'Origin rejected.'})
@@ -331,6 +353,12 @@ class HostedHandler(Handler):
             if body: return self.reply(400, {'error': 'Empty session request required.'})
             token = self.server.sessions.create()
             return self.reply(201 if token else 503, {'session': token} if token else {'error': 'Kitchens full. Please try again later.'})
+        if path == '/api/session/close':
+            if body: return self.reply(400, {'error': 'Empty close request required.'})
+            token = self.headers.get('X-ChefJeff-Session', '')
+            if not self.server.sessions.remove(token):
+                return self.reply(401, {'error': 'Session expired.'})
+            return self.reply(200, {'ok': True})
         if path == '/api/contribution/delete':
             if set(body) != {'id','deletion_token'} or not self.server.sessions.store:
                 return self.reply(400, {'error':'Invalid deletion receipt.'})

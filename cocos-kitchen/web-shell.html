@@ -114,6 +114,7 @@ function kitchenTabs(dialog){
   <p>使用你自己的 API 账号，调用费用由该账号承担。</p>
   <p><strong>建议优先选择 Jev</strong>：这间厨房是围绕 Jev 开发的；其他模型也可使用，响应速度和配合方式可能不同。</p>
   <p id="api-identity">尚未配置</p>
+  <p id="api-editing-status" role="status" aria-live="polite"></p>
   <form id="api-form">
    <label for="api-provider">模型服务</label>
    <select id="api-provider"><option value="jev">TypeSafe · Jev（推荐）</option><option value="deepseek">DeepSeek</option><option value="compatible">其他兼容 Chat Completions 的服务</option></select>
@@ -179,7 +180,10 @@ function kitchenTabs(dialog){
   el('api-key').placeholder=c?.configured?'已保存；要更换时粘贴新的 Key':'粘贴你的 API Key';
   el('api-connect').textContent=c?.configured?'更换并测试':'测试并连接';
   el('api-connect').disabled=!allowed;el('api-clear').disabled=!allowed||!c?.configured;
-  for(const id of ['api-provider','api-url','api-model','api-key','api-remember'])el(id).disabled=!allowed;
+  // Filling a draft does not change the active model or make a paid request.
+  for(const id of ['api-provider','api-url','api-model','api-key','api-remember'])el(id).disabled=busy;
+  el('api-editing-status').textContent=!c?(window.chefjeffHostedStatus?.()||'等待厨房连接。可以先填写，连接成功后再测试。'):
+   busy?'正在测试连接…':c.editable?'':'本局进行中，可以先填写；请结束本局后再测试或更换 API。';
   const l=state?.limits;
   el('call-limit').disabled=!l?.editable||limitBusy;el('limit-save').disabled=!l?.editable||limitBusy;
   el('limit-status').textContent=limitMessage||(l?`本局 ${l.calls} / ${l.max_calls} 次${l.reached?' · 已达上限':''}；成功回复 token：输入 ${l.usage.input_tokens} / 输出 ${l.usage.output_tokens}；本次服务连接测试 ${l.connection_checks} 次`:'需要新版厨房服务。');
@@ -191,18 +195,19 @@ function kitchenTabs(dialog){
   el('memory-status').textContent=memoryMessage||m?.error||(m?`${m.enabled?'已开启':'已关闭'} · 当前模型已保存 ${m.saved_rounds} / ${m.limit} 局${m.editable?'':' · 本局使用 '+m.used_rounds+' 局，结算后可修改'}`:'需要新版厨房服务。');
  };
  window.addEventListener('kitchen-state',e=>{state=e.detail;status()});
+ window.addEventListener('kitchen-connection-error',()=>status());
  window.addEventListener('kitchen-open-connection',()=>{
   const c=state?.connection;
   if(c?.configured){el('api-provider').value=c.provider;el('api-url').value=c.base_url;el('api-model').value=c.model;el('api-remember').checked=c.remembered}
   el('api-key').value='';el('call-limit').value=state?.limits?.next_max_calls||200;fields();status();
-  message(!c?'这个旧页面还不支持 API 配置，请使用新版服务。':c.editable?'测试连接会发送一次小型 API 请求，可能产生少量费用。':'请在开局前或结算后更换 API；请完成当前对局后再修改。');
+  message(!c?'尚未连接厨房，暂时不能测试 API。':c.editable?'测试连接会发送一次小型 API 请求，可能产生少量费用。':'请在开局前或结算后更换 API；请完成当前对局后再修改。');
   showTab(el('tab-connection'));if(!dialog.open)dialog.showModal();
  });
  el('api-provider').addEventListener('change',()=>{el('api-model').value=el('api-provider').value==='deepseek'?'deepseek-flash':'';el('api-key').value='';fields()});
  el('api-close').onclick=()=>{el('api-key').value='';dialog.close()};
  dialog.addEventListener('close',()=>{el('api-key').value=''});
  async function send(extra){
-  if(!state||busy)return;busy=true;status();
+  if(!state?.connection?.editable||busy)return;busy=true;status();
   message(extra.clear?'正在清除…':'正在测试连接，请稍候…');
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),30000);
   try{

@@ -11,13 +11,51 @@
   const connection = () => ({configured: !!setting, provider: setting?.provider || 'deepseek',
     base_url: setting?.base_url || '', model: setting?.model || '', remembered: !!setting?.remember,
     editable: !testing && (!state || ['ready', 'ended'].includes(state.phase))});
-  const session = nativeFetch('/api/session', {method: 'POST', headers: {'Content-Type':'application/json'}, body:'{}'})
-    .then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error); return d.session; });
-  // Attach rejection handling before the game first polls state.
-  session.catch(() => {});
+  let session = null, sessionToken = null, retryAt = 0, transportError = '', leaving = false;
+  window.chefjeffHostedStatus = () => transportError;
+  function notifyConnection(error) {
+    transportError = error;
+    window.dispatchEvent(new CustomEvent('kitchen-connection-error', {detail:error}));
+  }
+  function releaseSession() {
+    if (!sessionToken) return;
+    const token = sessionToken; sessionToken = null;
+    nativeFetch('/api/session/close', {method:'POST', keepalive:true,
+      headers:{'Content-Type':'application/json', 'X-ChefJeff-Session':token}, body:'{}'}).catch(() => {});
+  }
+  window.addEventListener('pagehide', event => {
+    // A page kept in the back/forward cache still owns its kitchen.
+    if (!event.persisted) {leaving = true; releaseSession();}
+  });
+  function getSession() {
+    if (session && (sessionToken || performance.now() < retryAt)) return session;
+    // Retry a full/unavailable server at most once every 15s, below the proxy's
+    // creation quota. Keep normal state polls from creating a request storm.
+    retryAt = performance.now() + 15000;
+    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 10000);
+    session = nativeFetch('/api/session', {method:'POST', signal:controller.signal,
+      headers:{'Content-Type':'application/json'}, body:'{}'})
+      .then(async r => {
+        const d = await r.json();
+        if (!r.ok) throw new Error(r.status === 503 ?
+          '厨房暂时已满或请求过于频繁。请关闭其他试玩页面；空位释放后会自动重试。' : '暂时无法创建厨房，请稍后重试。');
+        sessionToken = d.session;
+        if (leaving) releaseSession();
+        notifyConnection('');
+        return d.session;
+      }).catch(e => {
+        const message = e.name === 'AbortError' ? '创建厨房超时，将自动重试。' :
+          e instanceof TypeError ? '暂时无法连接厨房，请检查网络；页面会自动重试。' : e.message;
+        notifyConnection(message);
+        throw new Error(message);
+      }).finally(() => clearTimeout(timer));
+    session.catch(() => {});
+    return session;
+  }
+  getSession();
   async function serverFetch(path, init = {}) {
     const headers = new Headers(init.headers);
-    headers.set('X-ChefJeff-Session', await session);
+    headers.set('X-ChefJeff-Session', await getSession());
     return nativeFetch(path, {...init, headers});
   }
   function validate(raw) {
@@ -137,7 +175,7 @@
       d.connection = connection();
       d.limits.connection_checks = checks;
       return response(200, d);
-    } catch (_) {return response(503, {error:'Kitchen connection unavailable. Refresh to create a new session.'});}
+    } catch (_) {return response(503, {error:transportError || 'Kitchen connection unavailable. Refresh to create a new session.'});}
   };
 
   // Cocos uses XMLHttpRequest locally. Its hosted hook shares this credential-free game transport.

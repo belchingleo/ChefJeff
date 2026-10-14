@@ -10,7 +10,7 @@ node tests/hosted_browser_test.cjs
 python3 -m unittest tests.test_hosted tests.test_hosted_records
 ```
 
-`--data-dir` enables explicit contributions. Omit it to disable persistent contributions. A refresh creates a new kitchen; inactive sessions expire after 10 minutes. Capacity defaults to eight kitchens, with a busy response when full. The public reverse proxy limits new sessions and API traffic.
+`--data-dir` enables explicit contributions. Omit it to disable persistent contributions. A refresh creates a new kitchen. On page exit, the browser sends an authenticated game-session close request containing no model credentials, except when retained in the back/forward cache. If that best-effort request is lost, inactive sessions still expire after 10 minutes. Capacity defaults to eight kitchens, with a busy response when full. A full/unavailable server is retried no more than once every 15 seconds. The public reverse proxy limits new sessions and API traffic.
 
 ## Credentials and records
 
@@ -79,6 +79,14 @@ python3 -m unittest tests.test_hosted tests.test_hosted_records
 当前试玩部署在运营者的 Hetzner 德国纽伦堡服务器，`chefjeff.belchingleo.online` 解析至这台服务器。
 
 Nginx 模板限流、压缩响应并关闭访问／请求日志。获得公开发布授权后，从 Ubuntu 官方仓库安装 Nginx／Certbot，初期 HTTP 除 ACME 验证外仅返回 503。运营者接受证书订户条款后申请证书，再安装 HTTPS 配置，校验 Nginx 并测试续期。网页仅开放 80／443，不公开 Python 端口；证书留在服务器。
+
+JavaScript 压缩同时覆盖 `text/javascript` 与 `application/javascript`，以兼容 Ubuntu/Python 的实际 MIME 类型。主要引擎脚本由约 5.7 MB 压至 0.95 MB。静态资源使用内容 ETag 和 `public, max-age=0, must-revalidate`：每次使用前检查更新，内容未变则返回 304；HTML、API、健康检查和错误响应仍为 `no-store`，不长期缓存无版本号的脚本。
+
+美术图集并发下载，全部完成后按原有顺序安装，保留后加载图集覆盖旧图集的规则。网页音频在第一次键盘／指针交互后按需下载正在使用的曲目及音效，不再在首屏下载整个音效目录；过晚到达的动作音效不补播，下载失败不会阻塞游戏。原生端保持整目录加载。真实用户首屏耗时仍受设备、网络和德国服务器到访客的往返延迟影响。
+
+设置中的供应商、地址、模型及 Key 可以先填写；收到厨房状态且处于开局前／结算后，才允许测试、更换或清除配置。等待连接不会再误报“旧页面”；容量或网络错误显示在设置页，恢复连接时保留尚未提交的草稿。只填写不会发送模型请求或产生 API 调用费用。
+
+后续更新可在服务器 SSH 终端以 root 执行 `python3 deploy/update_hetzner.py <完整提交 ID> <已测试部署包 SHA-256>`。脚本只从固定 Git 提交下载源码并打包，校验与本地测试包完全一致后，切换到新目录、重启厨房并检查健康状态，失败则回退旧版本和 Nginx 配置。它保留现有 systemd 容量／内存配置、记录数据和 VPN 配置。成功更新会结束正在进行的试玩对局；服务器部署与 Git 主线合并是独立操作。
 
 在当前共用 VPN 的试玩服务器上，HTTPS 可用后以 root 执行 `bash deploy/finalize_hetzner.sh`。它为已启用的 `personal-vpn-firewall.service` 添加补充配置，在服务启动及重新加载后，通过现有 `inet personal_vpn_filter input` 链放行 TCP 80／443；原 VPN 加载脚本及其校验参数保持原样。脚本还安装仅针对试玩证书的 Nginx 重载钩子，启用 Certbot 定时器，并模拟续期及钩子执行。此脚本要求上述指定服务及规则链存在，不会重启服务器；实际开机持久化需在之后的维护重启时确认。
 

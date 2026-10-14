@@ -79,7 +79,9 @@ class IngredientPackTest(unittest.TestCase):
 
     def test_client_loads_the_pack(self):
         source = (ROOT / 'cocos-kitchen/assets/scripts/LevelOneArt.ts').read_text()
-        self.assertIn("loadAtlas('art/ingredient-pack-v1')", source)
+        # Loading and override order are also exercised against the shipped JS
+        # by presentation_loading_test.cjs; the source now uses a parallel list.
+        self.assertIn("'art/ingredient-pack-v1'", source)
         self.assertTrue((PACK / 'atlas.png.meta').exists() and (PACK / 'manifest.json.meta').exists())
 
 

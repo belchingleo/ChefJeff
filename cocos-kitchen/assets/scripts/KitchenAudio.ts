@@ -36,6 +36,9 @@ export class KitchenAudio {
     private menuAfter=0;
     private clock=0;
     private warned=false;
+    private destroyed=false;
+    private started=sys.isNative;
+    private loading:Record<string,Promise<AudioClip|null>>={};
     volume={music:.8,sfx:.8};
     ready=false;
 
@@ -43,8 +46,12 @@ export class KitchenAudio {
         try{
             const [index,clips]=await Promise.all([
                 new Promise<JsonAsset>((ok,no)=>resources.load('audio/index',JsonAsset,(e,a)=>e?no(e):ok(a))),
-                new Promise<AudioClip[]>((ok,no)=>resources.loadDir('audio',AudioClip,(e,a)=>e?no(e):ok(a))),
+                // Native builds keep their existing loading path. Web audio is
+                // requested by name after a gesture, rather than downloading all
+                // 51 clips while the player is waiting for the first kitchen.
+                sys.isNative?new Promise<AudioClip[]>((ok,no)=>resources.loadDir('audio',AudioClip,(e,a)=>e?no(e):ok(a))):Promise.resolve([]),
             ]);
+            if(this.destroyed||!parent.isValid)return;
             this.index=index.json as Index;
             for(const c of clips)this.clips[c.name]=c;
             const source=(name:string)=>{const n=new Node('audio-'+name);parent.addChild(n);const s=n.addComponent(AudioSource);s.playOnAwake=false;return s;};
@@ -68,6 +75,7 @@ export class KitchenAudio {
         catch(error){if(!this.warned){this.warned=true;console.warn('ChefJeff audio error; the kitchen carries on without this sound.',error);}}
     }
     destroy(){
+        this.destroyed=true;
         if(sys.isNative)return;
         window.removeEventListener('kitchen-audio-settings',this.onSettings);
         window.removeEventListener('keydown',this.unlock,true);
@@ -77,6 +85,7 @@ export class KitchenAudio {
      *  from the keyboard. Resume the same context on any key or pointer gesture; Cocos then starts the
      *  queued sounds itself. If engine internals change, this quietly falls back to the canvas click. */
     private unlock=()=>this.safely(()=>{
+        this.started=true;
         // Any source that already holds a clip has a player wired to the engine's shared context.
         for(const src of [...this.music.map(ch=>ch.src),...Object.values(this.channels).map(ch=>ch.src)]){
             const context:AudioContext|undefined=(src as any)?._player?._player?._gainNode?.context;
@@ -87,10 +96,26 @@ export class KitchenAudio {
     });
     private onSettings=(e:Event)=>this.safely(()=>{Object.assign(this.volume,(e as CustomEvent).detail||{});});
     private gain(name:string){return this.index?.sounds[name]?.gain??this.index?.wash[name]?.gain??.8;}
+    private ensureClip(name:string):Promise<AudioClip|null>{
+        if(this.clips[name])return Promise.resolve(this.clips[name]);
+        if(!this.started||this.destroyed||!name)return Promise.resolve(null);
+        if(!this.loading[name])this.loading[name]=new Promise(resolve=>{
+            resources.load('audio/'+name,AudioClip,(error,clip)=>{
+                if(error||this.destroyed){if(error&&!this.warned){this.warned=true;console.warn('ChefJeff sound unavailable: '+name,error);}resolve(null);return;}
+                this.clips[name]=clip;resolve(clip);
+            });
+        });
+        return this.loading[name];
+    }
 
     play(name:string,scale=1,minGap=.06){this.safely(()=>this.playNow(name,scale,minGap));}
     private playNow(name:string,scale:number,minGap:number){
-        const clip=this.clips[name];if(!this.ready||!clip||!this.sfx||this.volume.sfx<=0)return;
+        if(!this.ready||!this.sfx||this.volume.sfx<=0||this.destroyed)return;
+        const clip=this.clips[name];
+        if(!clip){const at=this.clock;this.ensureClip(name).then(loaded=>{
+            // Never replay an old event after a slow download.
+            if(loaded&&!this.destroyed&&this.clock-at<=.35)this.play(name,scale,minGap);
+        });return;}
         if(this.clock-(this.recent[name]??-1)<minGap)return;
         this.recent[name]=this.clock;
         this.sfx.playOneShot(clip,Math.min(1,this.gain(name)*this.volume.sfx*scale));
@@ -200,9 +225,11 @@ export class KitchenAudio {
         for(const ch of this.music)this.step(ch,dt,this.volume.music,false);
     }
     private step(ch:Channel,dt:number,master:number,sfx:boolean){
+        const clip=this.clips[ch.clip];if(!clip){
+            ch.level=0;if(master>0&&ch.target>0)this.ensureClip(ch.clip);return;
+        }
         const rate=ch.target>ch.level?1/ch.fadeIn:1/ch.fadeOut;
         ch.level=ch.target>ch.level?Math.min(ch.target,ch.level+dt*rate):Math.max(ch.target,ch.level-dt*rate);
-        const clip=this.clips[ch.clip];if(!clip)return;
         const src=ch.src;
         if(ch.level>0&&master>0){
             if(src.clip!==clip)src.clip=clip;

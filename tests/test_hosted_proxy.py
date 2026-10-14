@@ -1,5 +1,6 @@
 """Exercise the shipped Nginx forwarding rules against the real hosted handler."""
 import http.client
+import gzip
 import json
 import os
 from pathlib import Path
@@ -93,7 +94,7 @@ class HostedProxyTests(unittest.TestCase):
             cls.process.wait(timeout=3)
 
     @classmethod
-    def request(cls, path, body=None, headers=None):
+    def request(cls, path, body=None, headers=None, include_headers=False):
         connection = http.client.HTTPConnection('127.0.0.1', cls.port, timeout=3)
         request_headers = {'Host': DOMAIN, **(headers or {})}
         if body is not None:
@@ -102,7 +103,8 @@ class HostedProxyTests(unittest.TestCase):
             connection.request('GET' if body is None else 'POST', path,
                                None if body is None else json.dumps(body), request_headers)
             response = connection.getresponse()
-            return response.status, response.read()
+            result = response.status, response.read()
+            return (*result, dict(response.getheaders())) if include_headers else result
         finally:
             connection.close()
 
@@ -142,6 +144,33 @@ class HostedProxyTests(unittest.TestCase):
                                    headers={'Origin': ORIGIN, 'Sec-Fetch-Site': 'same-origin'})
         self.assertEqual(status, 201)
         self.assertTrue(json.loads(body)['session'])
+
+    def test_engine_javascript_is_compressed_over_the_proxy(self):
+        engine = next((self.backend.web_root / 'cocos-js').glob('_virtual_cc-*.js'))
+        path = '/' + engine.relative_to(self.backend.web_root).as_posix()
+        status, body, headers = self.request(path, headers={'Accept-Encoding': 'gzip'}, include_headers=True)
+        self.assertEqual(status, 200)
+        self.assertEqual(headers.get('Content-Encoding'), 'gzip')
+        self.assertIn('Accept-Encoding', headers.get('Vary', ''))
+        self.assertEqual(gzip.decompress(body), engine.read_bytes())
+        self.assertLess(len(body), engine.stat().st_size / 3)
+
+    def test_static_assets_revalidate_without_caching_pages_or_state(self):
+        status, body, headers = self.request('/hosted-agent.js', include_headers=True)
+        self.assertEqual(status, 200)
+        self.assertEqual(headers['Cache-Control'], 'public, max-age=0, must-revalidate')
+        etag = headers['ETag']
+        status, cached, _ = self.request('/hosted-agent.js', headers={'If-None-Match': 'W/' + etag}, include_headers=True)
+        self.assertEqual(status, 304)
+        self.assertEqual(cached, b'')
+        status, changed, _ = self.request('/hosted-agent.js', headers={'If-None-Match': '"old-release"'}, include_headers=True)
+        self.assertEqual(status, 200)
+        self.assertEqual(changed, body)
+        for path in ('/', '/api/state', '/healthz'):
+            with self.subTest(path=path):
+                _, _, headers = self.request(path, include_headers=True)
+                self.assertEqual(headers['Cache-Control'], 'no-store')
+                self.assertNotIn('ETag', headers)
 
 
 if __name__ == '__main__':

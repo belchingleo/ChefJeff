@@ -11,7 +11,8 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from release_info import ROOT, RUNTIME_FILES, release_info
 from scripts.audit_release import markers
 
-PUBLIC_FILES = ('hosted_server.py','hosted_records.py','hosted/browser-agent.js','hosted/contribution.html',
+PUBLIC_FILES = ('hosted_server.py','hosted_records.py','hosted/browser-agent.js','hosted/contribution.html','deploy/update_hetzner.py','scripts/rebuild_presentation.cjs',
+                'cocos-kitchen/assets/scripts/KitchenAudio.ts','cocos-kitchen/assets/scripts/KitchenAudio.ts.meta',
                 'deploy/chefjeff.service','deploy/nginx-http.conf','deploy/nginx-https.conf','deploy/install_backend.py','deploy/finalize_hetzner.sh','docs/hosted-deployment.md','docs/device-support.md','docs/ui-design.md','docs/api-integration.md','docs/images/gameplay.png','README.md','LICENSE','LICENSE-STATUS.md','THIRD_PARTY_NOTICES.md','SECURITY.md','CONTRIBUTING.md',
                 'start-web.command','start-web.bat','stop-web.command',
                 'docs/map-format.md','docs/current-rules.md','docs/interaction-guide.md','docs/level-1-steak.md','docs/level-2-burger.md','docs/level-3-steak-burger.md','docs/status.md','docs/privacy-and-costs.md','docs/agent-integration.md',

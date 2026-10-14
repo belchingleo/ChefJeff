@@ -19,36 +19,36 @@ export class LevelOneArt {
         for(const [key,value] of Object.entries((manifest.json as Manifest).frames)){
             const [x,y,w,h]=value.rect;
             if(w<=0||h<=0||x<0||y<0||x+w>texture.width||y+h>texture.height)throw new Error('Invalid art frame '+key);
+        }
+        // Download concurrently, but apply in source order: newer atlases override
+        // older frames regardless of which network response finishes first.
+        return ()=>{
+        for(const [key,value] of Object.entries((manifest.json as Manifest).frames)){
+            const [x,y,w,h]=value.rect;
             const frame=new SpriteFrame();frame.texture=texture;frame.rect=new Rect(x,y,w,h);frame.originalSize=new Size(w,h);
             this.frames[prefix+key]=frame;this.definitions[prefix+key]=value;
         }
+        };
     }
     async load():Promise<void>{
         try {
-            await this.loadAtlas('art/level1');
-            try {await this.loadAtlas('art/level1-modular','modular/');this.modular=true;}
-            catch(error){console.warn('Modular kitchen art unavailable; retaining previous level art.',error);}
-            try {await this.loadAtlas('art/kitchen-modules-v2','modular/');}
-            catch(error){console.warn('Updated modular art not yet available.',error);}
-            try {await this.loadAtlas('art/serving-side-v1','modular/');}
-            catch(error){console.warn('Directional serving art unavailable.',error);}
-            try {await this.loadAtlas('art/burger-food','food/');}
-            catch(error){console.warn('Burger food art unavailable; retaining readable ingredient icons.',error);}
-            await this.loadAtlas('art/grid-foundation-v1');
-            await this.loadAtlas('art/action-feedback-v1');
-            // Both chefs: every pose (walk, idle, chop) composited from one master body per view, all 68x88.
-            try {await this.loadAtlas('art/chefs-v2');}
-            catch(error){console.warn('Chef master-body art unavailable.',error);}
-            await this.loadAtlas('art/knife-v1');
-            // The chop knife as its own layer (art standard v1 knife frames only; item art is unchanged).
-            try {await this.loadAtlas('art/knife-arc-v1');}
-            catch(error){console.warn('Knife arc art unavailable; chefs keep the painted knife.',error);}
-            await this.loadAtlas('art/trash-directions-v1');
-            try {await this.loadAtlas('art/ingredient-pack-v1');}
-            catch(error){console.warn('Ingredient pack art unavailable; new ingredients keep their fallback icons.',error);}
+            const atlases:[string,string,boolean][]=[
+                ['art/level1','',true],['art/level1-modular','modular/',false],
+                ['art/kitchen-modules-v2','modular/',false],['art/serving-side-v1','modular/',false],
+                ['art/burger-food','food/',false],['art/grid-foundation-v1','',true],
+                ['art/action-feedback-v1','',true],['art/chefs-v2','',false],
+                ['art/knife-v1','',true],['art/knife-arc-v1','',false],
+                ['art/trash-directions-v1','',true],['art/ingredient-pack-v1','',false],
+            ];
             if(typeof location!=='undefined'&&new URLSearchParams(location.search).get('prepSample')==='1')
-                await this.loadAtlas('art/prep-pose-v3');
-            this.ready=true;
+                atlases.push(['art/prep-pose-v3','',true]);
+            const apply=await Promise.all(atlases.map(async([path,prefix])=>{
+                try{return await this.loadAtlas(path,prefix);}
+                catch(error){console.warn('Kitchen art unavailable: '+path+'; retaining readable fallback.',error);return null;}
+            }));
+            for(const install of apply)install?.();
+            this.modular=!!apply[1];
+            this.ready=atlases.every(([, ,required],i)=>!required||!!apply[i]);
         } catch(error) { console.warn('ChefJeff level 1 art unavailable; retaining readable fallback.',error); }
     }
     has(key:string){return !!this.frames[key];}
