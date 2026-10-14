@@ -2,7 +2,11 @@
 // Requires TypeScript 5.9.3. A full Creator build remains scripts/build_cocos.py.
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),ts=require('typescript');
 if(ts.version!=='5.9.3')throw new Error('Use TypeScript 5.9.3 for this reproducible fallback.');
-const root=path.resolve(__dirname,'..'),bundle=path.join(root,'cocos-kitchen/build/web/assets/main/index.js');
+const root=path.resolve(__dirname,'..'),web=path.join(root,'cocos-kitchen/build/web');
+// md5Cache builds name files by content (index.<v>.js); one match each, found by pattern.
+const built=(dir,re)=>{const found=fs.readdirSync(path.join(web,dir)).filter(n=>re.test(n));
+ if(found.length!==1)throw new Error('Expected one '+re+' in '+dir+', found '+found.length);return path.join(web,dir,found[0]);};
+const bundle=built('assets/main',/^index(\.[0-9a-f]{5})?\.js$/);
 let content=fs.readFileSync(bundle,'utf8');
 for(const name of ['KitchenAudio','LevelOneArt','KitchenClient']){
  const source=fs.readFileSync(path.join(root,'cocos-kitchen/assets/scripts',name+'.ts'),'utf8');
@@ -32,4 +36,23 @@ for(const name of ['KitchenAudio','LevelOneArt','KitchenClient']){
  content=content.slice(0,start)+output+'\n'+content.slice(end);
 }
 fs.writeFileSync(bundle,content);
+// Hashed names are cached for a year, so changed content needs a new name all the way up to index.html:
+// index.<v>.js and config.<v>.json (bundleVers.main) -> settings.<s>.json -> application.<a>.js -> index.html.
+const tag=text=>crypto.createHash('md5').update(text).digest('hex').slice(0,5);
+const rename=(file,next)=>{const to=file.replace(/\.[0-9a-f]{5}(\.[a-z]+)$/,'.'+next+'$1');if(to!==file)fs.renameSync(file,to);return to;};
+const old=path.basename(bundle).match(/^index\.([0-9a-f]{5})\.js$/)?.[1];
+if(old){
+ const main=tag(content);
+ rename(bundle,main);rename(built('assets/main',/^config\.[0-9a-f]{5}\.json$/),main);
+ const settingsFile=built('src',/^settings\.[0-9a-f]{5}\.json$/),settings=JSON.parse(fs.readFileSync(settingsFile,'utf8'));
+ if(settings.assets?.bundleVers?.main!==old)throw new Error('settings bundleVers.main does not match '+old);
+ settings.assets.bundleVers.main=main;
+ const settingsText=JSON.stringify(settings,null,2)+'\n';fs.writeFileSync(settingsFile,settingsText);
+ const settingsTo=rename(settingsFile,tag(settingsText));
+ const app=built('.',/^application\.[0-9a-f]{5}\.js$/);
+ const appText=fs.readFileSync(app,'utf8').replace(path.basename(settingsFile),path.basename(settingsTo));
+ fs.writeFileSync(app,appText);const appTo=rename(app,tag(appText));
+ const page=path.join(web,'index.html');
+ fs.writeFileSync(page,fs.readFileSync(page,'utf8').replace(path.basename(app),path.basename(appTo)));
+}
 console.log('Recompiled presentation/client scripts; reviewed scene, engine and component UUID retained.');

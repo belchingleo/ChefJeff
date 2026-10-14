@@ -82,7 +82,10 @@ function clientHarness(h, fromSource){
    if(typeof name!=='string'){deps(name=>name).execute();return;}
    modules.set(name,{deps,factory});
   }};
-  for(const path of ['cocos-kitchen/build/web/src/chunks/bundle.js','cocos-kitchen/build/web/assets/main/index.js'])
+  // Release builds name files by content (md5Cache): bundle.<hash>.js, index.<hash>.js.
+  const built=(dir,re)=>dir+'/'+fs.readdirSync(dir).find(n=>re.test(n));
+  for(const path of [built('cocos-kitchen/build/web/src/chunks',/^bundle(\.[0-9a-f]{5})?\.js$/),
+                     built('cocos-kitchen/build/web/assets/main',/^index(\.[0-9a-f]{5})?\.js$/)])
    vm.runInContext(fs.readFileSync(path,'utf8'),context);
   const load=name=>{
    if(cache.has(name))return cache.get(name);

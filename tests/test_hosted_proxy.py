@@ -2,6 +2,7 @@
 import http.client
 import gzip
 import json
+import re
 import os
 from pathlib import Path
 import shutil
@@ -54,12 +55,12 @@ class HostedProxyTests(unittest.TestCase):
         # Exercise authentication cases without consuming the production
         # session-creation quota; rate limiting is independent of this change.
         zones = zones.replace('rate=15r/m', 'rate=1000r/s')
-        site = template[template.index('server {\n    listen 443 ssl;'):]
+        site = template[template.index('server {\n    listen 443 ssl http2;'):]
         # TLS is unrelated to forwarding headers; retain the complete HTTPS
         # virtual host's location/header configuration on a loopback HTTP port.
         site = '\n'.join(line for line in site.splitlines()
                          if not line.strip().startswith(('ssl_certificate', 'ssl_protocols')))
-        site = site.replace('listen 443 ssl;', f'listen 127.0.0.1:{cls.port};')
+        site = site.replace('listen 443 ssl http2;', f'listen 127.0.0.1:{cls.port};')
         site = site.replace('burst=2 ', 'burst=1000 ')
         site = site.replace('127.0.0.1:8780', f'127.0.0.1:{cls.backend.server_port}')
         site = site.replace('/opt/chefjeff/current/cocos-kitchen/build/web',str(cls.backend.web_root))
@@ -169,7 +170,7 @@ class HostedProxyTests(unittest.TestCase):
         self.assertTrue(json.loads(body)['session'])
 
     def test_engine_javascript_is_compressed_over_the_proxy(self):
-        engine = next((self.backend.web_root / 'cocos-js').glob('_virtual_cc-*.js'))
+        engine = max((self.backend.web_root / 'cocos-js').glob('*.js'), key=lambda p: p.stat().st_size)
         path = '/' + engine.relative_to(self.backend.web_root).as_posix()
         status, body, headers = self.request(path, headers={'Accept-Encoding': 'gzip'}, include_headers=True)
         self.assertEqual(status, 200)
@@ -212,6 +213,24 @@ class HostedProxyTests(unittest.TestCase):
         status,_,headers=self.request('/assets/absent.js',include_headers=True)
         self.assertEqual(status,404)
         self.assertEqual(headers['Cache-Control'],'no-store')
+
+    def test_content_hashed_build_files_are_cached_for_a_year(self):
+        # md5Cache names a file by its content (cc.<5 hex>.js), so a new release never reuses a name.
+        root=self.backend.web_root
+        hashed=[p for p in root.rglob('*') if p.is_file() and re.search(r'\.[0-9a-f]{5}\.(js|json|css|png)$',p.name)]
+        self.assertTrue(hashed,'The release web build should use content-hashed names.')
+        for file in (max(hashed,key=lambda p:p.stat().st_size),next(p for p in hashed if p.suffix=='.png')):
+            with self.subTest(file=file.name):
+                status,body,headers=self.request('/'+file.relative_to(root).as_posix(),include_headers=True)
+                self.assertEqual(status,200)
+                self.assertEqual(body,file.read_bytes())
+                self.assertEqual(headers['Cache-Control'],'public, max-age=31536000, immutable')
+                self.assertEqual(headers['X-Content-Type-Options'],'nosniff')
+        status,_,headers=self.request('/cocos-js/cc.00000.js',include_headers=True)
+        self.assertEqual(status,404)
+        self.assertEqual(headers['Cache-Control'],'no-store')
+        _,_,headers=self.request('/kitchen-i18n.js',include_headers=True)
+        self.assertEqual(headers['Cache-Control'],'public, max-age=0, must-revalidate')
 
     def test_eight_same_ip_kitchens_can_poll_without_the_old_shared_limit(self):
         pages=[]

@@ -19,6 +19,7 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - Settings has its own Data export page. It exports the whole play session: every round since the game started (online: the latest 20 rounds since the page opened), each with its level, result, work record, bookmarks, messages, usage and every allowlisted action event, instead of only the current round's last 80 events.
 - Online version: after agreeing to the contribution terms, players can turn on automatic upload so every round that ends afterwards is contributed (30-day retention, as before) until they turn it off. The record notes the consent mode, the result card shows when it is on, and deletion receipts stay in the browser so uploads can be deleted later.
 - Online capacity: active kitchens are limited separately from open pages (8 by default); a full server shows Waiting for a spot, and one network (an address or an IPv6 /64) may run at most 4 kitchens at once (`--max-per-network`). Pages that are not playing check the kitchen once a second instead of 20 times, and the online data export keeps the latest 20 rounds per page.
+- Faster loading: the web build is now a release build without unused engine modules (engine 5.7 MB → 1.6 MB, page download about half). Build files carry content hashes, so the online version caches them for a year and a repeat visit downloads only what changed; HTTPS uses HTTP/2.
 
 ## 0.6.0-beta.1 — 2026-10-01 · first public test release
 
@@ -77,6 +78,7 @@ First private release: a local browser game with three playable maps and player-
 - 设置中新增单独的「数据导出」页，导出本次游玩的全部数据：本机版从启动游戏起的每一局、在线版打开页面以来最近 20 局，各含关卡、结果、贡献记录、标记、沟通、调用用量和全部允许清单内的动作事件，不再只有当前局最近 80 条事件。
 - 在线版：同意贡献条款后可开启「以后每局结束自动上传」，此后每局结束自动贡献（仍保存 30 天），随时可关闭。记录注明同意方式，开启时结算卡片有提示，删除凭证保存在浏览器中，之后仍可删除。
 - 在线版容量：正在经营的厨房与打开的页面分开计数（默认 8 个厨房），满了显示「等待空位」；同一网络（同一地址或同一 IPv6 /64）最多同时开 4 个厨房（`--max-per-network`）。没在经营的页面每秒只检查一次厨房（原为 20 次），在线版数据导出每个页面保留最近 20 局。
+- 加载更快：网页改为正式模式构建并去掉未用的引擎模块（引擎 5.7 MB → 1.6 MB，页面下载量约减半）。构建文件名带内容哈希，在线版缓存一年，再次打开只下载有变化的文件；HTTPS 启用 HTTP/2。
 
 
 ## 0.6.0-beta.1 — 2026-10-01 · 首次公开测试版

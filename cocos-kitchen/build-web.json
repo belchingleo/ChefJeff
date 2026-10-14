@@ -8,7 +8,7 @@
       "uuid": "4e38e033-1df7-4543-a0d8-400afb808412"
     }
   ],
-  "debug": true,
+  "debug": false,
   "outputName": "web",
   "packages": {
     "web-desktop": {
@@ -17,5 +17,6 @@
         "designHeight": 720
       }
     }
-  }
+  },
+  "md5Cache": true
 }
