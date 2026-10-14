@@ -4,6 +4,21 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 
 [中文](#更新记录)
 
+## Unreleased
+
+### Kitchen and controls
+- Throw poses: while aiming, the chef turns to the aim direction (any angle) and winds up; after a throw both chefs show a short release toward the target. The poses reuse the painted chop arms, and the held item follows the hand.
+- Phone layout: the hand and hint line moves into the top toolbar so nothing covers the kitchen, which grows about 10%; the joystick floats to the thumb; aiming turns through 360°; Dash sits to the left of Action on an arc around it, following the right thumb; urgent orders blink; menu buttons are at least 44 px tall; supported Android browsers vibrate briefly on aim and throw.
+- The aim trajectory bends to the other chef when the throw will target them, and rings them in the UI's denim blue.
+- Frying pans turn so the handle points at the chef: on a stove or counter toward its operation side, in hand back toward the holder (new west/north pan frames in the same light). Food keeps the same size in a throw pose as when carried.
+- Phone controls are plain, as in most mobile games: a translucent stick ring with a knob, and round translucent Action and Dash buttons with a one-word label (Action reads Throw while aiming); the knob and Action turn denim blue while aiming. The kitchen is centred horizontally. While aiming, a round Cancel button appears above Action on the same arc; slide onto it (it turns red, "Release to cancel") and let go to cancel the throw. Button labels are at least 14 px and stay readable when a button is unavailable; on phones narrower than 700 px the arc is slightly smaller and the kitchen keeps clear of it.
+- Throwing chefs turn their whole body toward diagonal aims (within 22.5° of a diagonal), with painted 3/4 front and back bodies for both chefs in `art/throw-diagonal-v1` (brief: `docs/art/throw-diagonal-spec.md`; drawn from the chefs-v2 masters by `scripts/art/throw_diagonal_bodies.py`, packed by `scripts/art/throw_diagonals.py`). Left diagonals mirror the right ones, like the left views.
+- Station targeting works like Overcooked: Space acts on the station under a point 0.75 cells ahead of the chef's feet, framed in the kitchen (denim when there is something to do, ink when idle). There is no fallback to a station beside the chef, and the player is never moved to a station: they turn and work where they stand. Jeff walks to the centre of a free station side (no 0.30 side drop). Shared work keeps the perpendicular-side rule, judged from where each chef stands. Engine semantics `continuous-2026-10`; behaviour fingerprints and capacity reports regenerated.
+- Jeff's arms are shorter (8 px from shoulder to mitten instead of 10) in every chefs-v2 pose and the diagonal throws, so they no longer read as overlong; chop grips move by up to 2 px and the knife still lands on the board.
+- One press from results to the next round: the result card stays on the kitchen (the round record no longer pops up over it) with one main button, Next level after a win and Try again otherwise; Space, Enter, A/Start or the phone button start it after a short 3·2·1 at the same pace. Presses in the card's first second are ignored so mashing from the last order does not skip it.
+- Settings has its own Data export page. It exports the whole play session: every round since the game started (online: since the page opened), each with its level, result, work record, bookmarks, messages, usage and every allowlisted action event, instead of only the current round's last 80 events.
+- Online version: after agreeing to the contribution terms, players can turn on automatic upload so every round that ends afterwards is contributed (30-day retention, as before) until they turn it off. The record notes the consent mode, the result card shows when it is on, and deletion receipts stay in the browser so uploads can be deleted later.
+
 ## 0.6.0-beta.1 — 2026-10-01 · first public test release
 
 The game now runs on a data-driven core: five data models (map, recipes, orders, equipment, level) describe every level, and the engine has no per-level code.
@@ -46,6 +61,21 @@ First private release: a local browser game with three playable maps and player-
 ---
 
 ## 更新记录
+
+### 未发布
+
+- 投掷动作：瞄准时人物转向瞄准方向（任意角度）并做出蓄力姿势；投出后两位厨师都会朝目标短暂显示出手姿势。姿势沿用已绘制的切菜手臂，手中物品跟随手部。
+- 手机界面：手中物品和提示移到顶部工具栏，不再遮挡厨房，厨房画面约放大 10%；摇杆出现在拇指按下处；瞄准方向 360° 连续；「冲刺」在「操作」左侧，沿右手拇指的弧线围绕操作键排列；快超时的订单闪烁；菜单按钮至少 44 像素高；支持的安卓浏览器在瞄准和投出时轻微震动。
+- 投掷会瞄准另一位厨师时，抛物线弯向他并用牛仔蓝圈标出。
+- 平底锅统一让手柄朝向厨师：在灶台或柜台上朝工位的操作侧，拿在手里时朝向持锅者（新增朝左、朝上两个方向的锅，光照一致）。投掷姿势中的食物与平时手持大小一致。
+- 手机按键按常见手游简化：半透明摇杆圈加摇杆头，半透明圆形「操作」「冲刺」键只显示一个词（瞄准时操作键显示「投掷」），瞄准时摇杆头和操作键变为海军蓝。厨房画面水平居中。瞄准时操作键上方（同一弧线上）出现圆形「取消」键，手指滑到上面（变红并提示「松手取消」）后松开即取消投掷。按键文字至少 14 像素，按键不可用时文字仍清晰可读；宽度小于 700 像素的手机上弧形按键略小，厨房画面不被遮挡。
+- 斜向投掷时（瞄准方向在斜向 ±22.5° 内）厨师整个身体转向瞄准方向，两位厨师新增四分之三正面和背面身体，美术包 `art/throw-diagonal-v1`（需求见 `docs/art/throw-diagonal-spec.md`；由 `scripts/art/throw_diagonal_bodies.py` 从 chefs-v2 母版绘制，`scripts/art/throw_diagonals.py` 打包）。左向斜向与左向视图一样由右向镜像。
+- 选中工位改成《胡闹厨房》的方式：空格操作脚下往前 0.75 格处的工位，并在厨房里框出（有事可做时为牛仔蓝，否则为墨色）。不再改用身边的工位，玩家也不会被挪到工位前，原地转身操作。Jeff 走到空闲操作侧的正中（去掉侧面 0.30 的下偏）。共用工位仍要求相互垂直的两侧，按各自实际站位判断。引擎语义改为 `continuous-2026-10`，行为指纹和产能报告已重新生成。
+- Jeff 的手臂缩短（肩到手套 8 像素，原为 10），涵盖 chefs-v2 的全部姿势和斜向投掷，不再显得过长；切菜握点最多移动 2 像素，刀仍落在砧板上。
+- 结算后一键进入下一局：结算卡片留在厨房画面上（本局记录不再弹窗遮挡），只有一个主按钮，达成目标为「下一关」，否则为「再来一次」；空格、Enter、手柄 A/Start 或手机按钮都可触发，短暂 3·2·1 后按原节奏开局。卡片出现后的第一秒内忽略按键，避免最后一单连按时误跳过。
+- 设置中新增单独的「数据导出」页，导出本次游玩的全部数据：本机版从启动游戏起、在线版从打开页面起的每一局，各含关卡、结果、贡献记录、标记、沟通、调用用量和全部允许清单内的动作事件，不再只有当前局最近 80 条事件。
+- 在线版：同意贡献条款后可开启「以后每局结束自动上传」，此后每局结束自动贡献（仍保存 30 天），随时可关闭。记录注明同意方式，开启时结算卡片有提示，删除凭证保存在浏览器中，之后仍可删除。
+
 
 ## 0.6.0-beta.1 — 2026-10-01 · 首次公开测试版
 

@@ -79,7 +79,7 @@ Results for 2026-09-30, after stations are worked from the walk limit (`reports/
 How to read this:
 
 - A model-controlled Jeff should at least beat the human playing alone. A random partner costs far more than it helps.
-- Level design must need both chefs, so the solo rung has to stay below the target (owner decision). Levels 2 and 3 meet this and `test_collaboration_analyzer` checks it. Level 1 is the practice tutorial and is exempt (owner decision, 2026-09-29): one scripted chef earns as much as the pair there.
+- Level design must need both chefs, so the solo rung has to stay below the target (owner decision). `test_collaboration_analyzer` checks it on the solo median of the calibration run set (`reports/calibration.json`); Level 2 meets it. Level 1 is the practice tutorial and is exempt (owner decision, 2026-09-29): one scripted chef earns as much as the pair there. Level 3 is exempt for now (owner decision, 2026-10-06): its solo script reaches ¥190 on 15 of 21 runs; one chef can finish it, two are faster.
 - The solo policy is scripted and simple, so it is a lower bound on solo play. A skilled person could do better. The level-2 margin is ¥4.
 
 ## Limits

@@ -14,7 +14,7 @@ from whitebox_server import SpatialJevClient
 from model_language import english_data
 from cooperation_memory import CooperationMemory, round_scope, episode, ROUNDS
 from release_info import release_info
-from feedback import feedback_report
+from feedback import play_export
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -160,7 +160,7 @@ class PlayerGameSession(GameSession):
             # Finished round usage remains tied to its original limit.
             return 200,{'ok':True,'next_max_calls':limit}
         if path in ('/api/feedback','/api/export-run'):
-            return 200,{'ok':True,'report':feedback_report(self)}
+            return 200,{'ok':True,'report':play_export(self)}
         if path=='/api/memory':
             if not self.memory_state()['editable']:
                 return 409,{'error':'请在开局前或结算后修改记忆设置，保证一局内条件一致。'}

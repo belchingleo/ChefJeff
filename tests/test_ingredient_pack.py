@@ -10,7 +10,9 @@ HEATED = ['chicken', 'fish']
 PAN_ITEMS = ['beef', 'chicken', 'fish']
 PAN_STAGES = ['chopped', 'cooking', 'ready', 'burnt']
 NOODLE_STAGES = ['raw', 'cooking', 'ready', 'burnt']
-PANS = {'objects/pan': (32, 32), 'modular/pan_horizontal': (50, 37), 'modular/pan_vertical': (47, 50)}
+# Handle toward the chef: horizontal = east, vertical = south, plus west and north (behind the pan).
+PANS = {'objects/pan': (32, 32), 'modular/pan_horizontal': (50, 37), 'modular/pan_vertical': (47, 50),
+        'modular/pan_west': (50, 37), 'modular/pan_north': (47, 50)}
 POTS = {'objects/pot': (32, 32), 'modular/pot_horizontal': (50, 37), 'modular/pot_vertical': (47, 50)}
 
 

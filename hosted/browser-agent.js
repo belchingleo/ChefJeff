@@ -3,6 +3,8 @@
   'use strict';
   const nativeFetch = window.fetch.bind(window);
   const storageName = 'chefjeff.browser-key.v1';
+  const relayConsent = 'jev-relay-2026-10-v1';
+  window.chefjeffJevRelayAvailable = true;
   let setting = null, state = null, checks = 0, testing = false;
   const handled = new Set();
   const response = (status, data) => new Response(JSON.stringify(data), {
@@ -10,6 +12,7 @@
   });
   const connection = () => ({configured: !!setting, provider: setting?.provider || 'deepseek',
     base_url: setting?.base_url || '', model: setting?.model || '', remembered: !!setting?.remember,
+    jev_relay: setting?.jev_relay === true,
     editable: !testing && (!state || ['ready', 'ended'].includes(state.phase))});
   let session = null, sessionToken = null, retryAt = 0, transportError = '', leaving = false;
   window.chefjeffHostedStatus = () => transportError;
@@ -71,19 +74,36 @@
         /^[\d.]+$/.test(u.hostname) || u.hostname.includes(':')) throw new Error('请使用外部公开的 HTTPS 模型服务地址。');
     const model = provider === 'jev' ? 'jev-latest' : String(raw.model || '').trim();
     if (!model || model.length > 120) throw new Error('请输入服务商提供的模型名称。');
-    return {provider, base_url, model, api_key, remember: raw.remember === true};
+    if (raw.jev_relay === true && provider !== 'jev') throw new Error('服务器转发仅适用于 Jev。');
+    return {provider, base_url, model, api_key, remember: raw.remember === true,
+      jev_relay: provider === 'jev' && raw.jev_relay === true};
   }
   try {
     const saved = JSON.parse(localStorage.getItem(storageName) || 'null');
     if (saved?.remember === true) setting = validate(saved);
   } catch (_) { /* Storage disabled/corrupted: use memory only. */ }
 
-  async function modelRequest(config, payload, outerSignal) {
+  async function modelRequest(config, payload, outerSignal, relayContext) {
     const controller = new AbortController(), started = performance.now();
-    const timer = setTimeout(() => controller.abort(), 20000);
+    const timer = setTimeout(() => controller.abort(), config.jev_relay ? 23000 : 20000);
     const abort = () => controller.abort();
     outerSignal?.addEventListener('abort', abort, {once:true});
     if (outerSignal?.aborted) controller.abort();
+    if (config.jev_relay) {
+      try {
+        const r = await serverFetch('/api/model/jev', {method:'POST',mode:'same-origin',
+          credentials:'omit',redirect:'error',signal:controller.signal,
+          headers:{'Content-Type':'application/json'},body:JSON.stringify({
+            ...relayContext, api_key:config.api_key, consent:true, consent_version:relayConsent})});
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || 'Jev 转发连接失败。');
+        return d.answer;
+      } catch (e) {
+        if (e.name === 'AbortError') throw new Error('模型请求超时或已取消。');
+        if (e instanceof TypeError) throw new Error('暂时无法连接试玩服务器，请检查网络后重试。');
+        throw e;
+      } finally {clearTimeout(timer);outerSignal?.removeEventListener('abort',abort);}
+    }
     let body, endpoint;
     if (config.provider === 'jev') {
       body = {...payload, model: config.model}; endpoint = config.base_url + '/systemone';
@@ -123,7 +143,8 @@
         latency:(performance.now()-started)/1000};
     } catch (e) {
       if (e.name === 'AbortError') throw new Error('模型请求超时或已取消。');
-      if (e instanceof TypeError) throw new Error('浏览器无法访问模型服务，请检查网络和跨域支持；Key 不会通过我们的服务器转发。');
+      if (e instanceof TypeError && config.provider === 'jev') throw new Error('浏览器无法直连 Jev。请检查网络，或明确勾选服务器转发后重试；本次直连请求未通过试玩服务器转发 Key。');
+      if (e instanceof TypeError) throw new Error('浏览器无法访问模型服务，请检查网络和跨域支持；本次直连请求未通过试玩服务器转发 Key。');
       throw e;
     } finally {clearTimeout(timer);outerSignal?.removeEventListener('abort', abort);}
   }
@@ -144,7 +165,8 @@
         const candidate = validate(body);
         checks++;
         await modelRequest(candidate, {state:{connection_test:true}, questions:{next_action:{type:'choice',
-          instructions:'Connection test. Choose wait.', criteria:{wait:'Wait'}}}}, signal);
+          instructions:'Connection test. Choose wait.', criteria:{wait:'Wait'}}}}, signal,
+          {game_id:body.game_id,request_id:crypto.randomUUID(),test:true});
         if (signal?.aborted) throw new Error('连接测试已取消。');
         const r = await markReady(true, body); if (!r.ok) return r;
         // Remove any older remembered key even when the new choice is memory-only.
@@ -199,7 +221,7 @@
 
   async function poll() {
     try {
-      if (!setting || !state || state.phase !== 'running') return;
+      if (document.hidden || !setting || !state || state.phase !== 'running') return;
       const r = await serverFetch('/api/model/request');
       if (!r.ok) return;
       const {request} = await r.json();
@@ -207,7 +229,8 @@
       handled.add(request.id);
       while (handled.size > 100) handled.delete(handled.values().next().value);
       let answer;
-      try {answer = await modelRequest(setting, request.payload);delete answer.latency;}
+      try {answer = await modelRequest(setting, request.payload, undefined,
+        {game_id:state.game_id,id:request.id,test:false});delete answer.latency;}
       catch (e) {
         answer = {failed:true};
         const label = document.getElementById('api-message');

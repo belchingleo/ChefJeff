@@ -1,9 +1,10 @@
-"""Result card to next round in one step, without clearing the player configuration."""
+"""Result card to next round in one step, and the whole play session in one export."""
 import json
 from pathlib import Path
 import tempfile
 import unittest
 import uuid
+from feedback import HISTORY_LIMIT
 from hosted_server import FIELDS
 from player_api import PlayerGameSession
 from spatial_kitchen import SpatialKitchen
@@ -40,6 +41,31 @@ class PlayFlowTests(unittest.TestCase):
         self.cmd('start');self.close_round(0);self.g.setting=None
         self.assertEqual(self.cmd('next',level='level-1')[0],428)
         self.assertEqual(self.g.phase,'ended')
+
+    def test_export_holds_every_round_of_the_session_with_all_events(self):
+        self.cmd('start')
+        for _ in range(120):self.g.k.emit('private note',kind='action_done',actor='human',action='fetch')
+        self.close_round(999);first=self.g.game_id
+        self.cmd('next',level='level-2');self.g.k.emit('x',kind='action_done',actor='jeff',action='wash')
+        report=self.cmd('export-run')[1]['report']
+        self.assertEqual((report['schema_version'],report['export_scope']),(3,'play_session'))
+        self.assertEqual([r['status'] for r in report['rounds']],['finished','in_progress'])
+        self.assertEqual([r['level_id'] for r in report['rounds']],['level-1','level-2'])
+        one,two=report['rounds']
+        self.assertEqual(one['round_id'],first);self.assertTrue(one['summary']['won'])
+        self.assertEqual(sum(e['kind']=='action_done' for e in one['events']),120)
+        self.assertIsNotNone(one['round_record']);self.assertIsNotNone(one['started_at'])
+        self.assertEqual(two['events'][-1]['action'],'wash')
+        self.assertEqual(report['totals']['rounds'],2)
+        text=json.dumps(report);self.assertNotIn('SECRET_SENTINEL',text);self.assertNotIn('private note',text)
+        self.cmd('pause');self.cmd('end')
+        statuses=[r['status'] for r in self.cmd('export-run')[1]['report']['rounds']]
+        self.assertEqual(statuses,['finished','aborted'])
+
+    def test_history_is_bounded(self):
+        for _ in range(HISTORY_LIMIT+2):
+            self.assertEqual(self.cmd('start')[0],200);self.close_round(0);self.cmd('reset')
+        self.assertEqual(len(self.g.history),HISTORY_LIMIT)
 
     def test_hosted_allows_next_with_only_a_level(self):
         self.assertEqual(FIELDS['/api/next'],{'level'})

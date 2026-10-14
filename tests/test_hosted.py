@@ -24,7 +24,7 @@ class HostedTests(unittest.TestCase):
             finally:s.close()
 
     def test_kitchens_are_isolated_and_expire(self):
-        sessions = Sessions(capacity=2, ttl=600)
+        sessions = Sessions(capacity=2, ttl=600, max_waiting=0)
         try:
             a, b = sessions.create(), sessions.create()
             self.assertNotEqual(a,b)
@@ -58,7 +58,7 @@ class HostedTests(unittest.TestCase):
         r.close()
 
     def test_closed_page_releases_capacity_and_stops_its_game(self):
-        sessions = Sessions(capacity=1)
+        sessions = Sessions(capacity=1, max_waiting=0)
         try:
             token = sessions.create()
             game = sessions.get(token)

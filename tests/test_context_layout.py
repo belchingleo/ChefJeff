@@ -53,8 +53,8 @@ class LayoutInteractionTests(unittest.TestCase):
     def test_each_accessible_board_side_works_without_circling(self):
         k=self.make()
         for cell in neighbors(EQUIPMENT['b1']['cell']):
-            k.positions['human']=cell
-            endpoint={(4,2):(4,2.49),(3,3):(3.15,3.3),(5,3):(4.85,3.3)}[cell]
+            k.positions['human']=cell;k.facing['human']={(4,2):'up',(3,3):'left',(5,3):'right'}[cell]
+            endpoint={(4,2):(4,2.49),(3,3):(3.15,3.),(5,3):(4.85,3.)}[cell]
             expected=[cell,endpoint]
             self.assertEqual(k.path('human','b1'),expected)
     def test_swap_drops_at_actual_service_side(self):

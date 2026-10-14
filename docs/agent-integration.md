@@ -29,7 +29,7 @@ Follow `CompatibleClient` in `player_api.py` and `SpatialJevClient` in `whitebox
 - Add an explicit branch in `create_client(config, setting)`, with settings validation and UI choices.
 - Use offline test doubles for invalid choices, stale replies, timeouts, budgets and recovery. Keep real keys out of CI.
 
-Hosted play uses `BrowserRelay` plus `hosted/browser-agent.js`; add browser-provider support there separately. The relay only accepts a validated choice, sprint flag and numeric usage, and never receives provider credentials.
+Hosted play uses `BrowserRelay` plus `hosted/browser-agent.js`; add browser-provider support there separately. `BrowserRelay` only accepts a validated choice, sprint flag and numeric usage and never stores credentials. Jev's explicit opt-in path uses `hosted_jev.py` at `/api/model/jev`: it requires the authenticated page token, game/task ID and consent version, forwards only the server-created task (or a fixed connection test) to the fixed Jev URL/model, and keeps the supplied key local to HTTP request processing. Never send that body through game-command receipts/journals or add a user-selected forwarding URL.
 
 ## Shared rules and extension points
 

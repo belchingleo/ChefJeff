@@ -11,8 +11,10 @@ import tempfile
 import threading
 import time
 import unittest
+from unittest.mock import patch
 
 from hosted_server import HostedHandler, make_server
+from hosted_jev import CONSENT_VERSION
 
 
 NGINX = os.environ.get('CHEFJEFF_NGINX_BIN') or shutil.which('nginx')
@@ -51,7 +53,7 @@ class HostedProxyTests(unittest.TestCase):
         zones = template[:template.index('server {')]
         # Exercise authentication cases without consuming the production
         # session-creation quota; rate limiting is independent of this change.
-        zones = zones.replace('rate=5r/m', 'rate=1000r/s')
+        zones = zones.replace('rate=15r/m', 'rate=1000r/s')
         site = template[template.index('server {\n    listen 443 ssl;'):]
         # TLS is unrelated to forwarding headers; retain the complete HTTPS
         # virtual host's location/header configuration on a loopback HTTP port.
@@ -60,6 +62,7 @@ class HostedProxyTests(unittest.TestCase):
         site = site.replace('listen 443 ssl;', f'listen 127.0.0.1:{cls.port};')
         site = site.replace('burst=2 ', 'burst=1000 ')
         site = site.replace('127.0.0.1:8780', f'127.0.0.1:{cls.backend.server_port}')
+        site = site.replace('/opt/chefjeff/current/cocos-kitchen/build/web',str(cls.backend.web_root))
         config = directory / 'nginx.conf'
         config.write_text(f'worker_processes 1;\npid {directory}/nginx.pid;\n'
                           f'error_log {directory}/error.log;\nevents {{}}\nhttp {{\n'
@@ -125,6 +128,26 @@ class HostedProxyTests(unittest.TestCase):
         self.assertNotIn('Authorization', forwarded)
         self.assertNotIn('Cookie', forwarded)
 
+    def test_consented_jev_body_streams_without_proxy_temporary_files(self):
+        status,raw=self.request('/api/session',{},headers={'Origin':ORIGIN})
+        self.assertEqual(status,201)
+        token=json.loads(raw)['session'];game=self.backend.sessions.get(token)
+        key='unit-test-'+('x'*2038)
+        body={'game_id':game.game_id,'request_id':'test-jev','api_key':key,
+              'test':True,'consent':True,'consent_version':CONSENT_VERSION}
+        try:
+            with patch.object(self.backend.jev_forwarder,'send',return_value={'choice':'wait','sprint':False,'usage':{}}) as send:
+                status,raw=self.request('/api/model/jev',body,headers={'Origin':ORIGIN,'X-ChefJeff-Session':token,
+                    'Authorization':'must-be-stripped','Cookie':'must-be-stripped'})
+                self.assertEqual(status,200)
+                self.assertNotIn(key,raw.decode())
+                self.assertEqual(send.call_args.args[0],key)
+            self.assertNotIn('Authorization',self.observed[-1]);self.assertNotIn('Cookie',self.observed[-1])
+            for folder in ('body','proxy'):
+                root=Path(self.temp.name)/folder
+                self.assertFalse(any(p.is_file() for p in root.rglob('*')))
+        finally:self.request('/api/session/close',{},headers={'Origin':ORIGIN,'X-ChefJeff-Session':token})
+
     def test_public_route_keeps_explicit_origin_validation(self):
         self.assertEqual(self.request('/', headers={'Origin': 'https://bad.example'})[0], 403)
 
@@ -171,6 +194,43 @@ class HostedProxyTests(unittest.TestCase):
                 _, _, headers = self.request(path, include_headers=True)
                 self.assertEqual(headers['Cache-Control'], 'no-store')
                 self.assertNotIn('ETag', headers)
+
+    def test_assets_bypass_python_and_keep_mime_cache_and_security_headers(self):
+        path='/touch-controls.js'
+        before=len(self.observed)
+        status,body,headers=self.request(path,include_headers=True)
+        self.assertEqual(status,200)
+        self.assertEqual(body,(self.backend.web_root/'touch-controls.js').read_bytes())
+        self.assertEqual(len(self.observed),before)
+        self.assertIn('javascript',headers['Content-Type'])
+        self.assertEqual(headers['Cache-Control'],'public, max-age=0, must-revalidate')
+        self.assertEqual(headers['X-Content-Type-Options'],'nosniff')
+        self.assertIn('max-age=',headers['Strict-Transport-Security'])
+        self.assertEqual(self.request(path,headers={'If-None-Match':headers['ETag']})[0],304)
+        for path in ('/ops/capacity','/../../hosted_records.py','/release-manifest.json','/assets/resources.meta'):
+            with self.subTest(path=path):self.assertIn(self.request(path)[0],(400,404))
+        status,_,headers=self.request('/assets/absent.js',include_headers=True)
+        self.assertEqual(status,404)
+        self.assertEqual(headers['Cache-Control'],'no-store')
+
+    def test_eight_same_ip_kitchens_can_poll_without_the_old_shared_limit(self):
+        pages=[]
+        try:
+            for _ in range(8):
+                status,raw=self.request('/api/session',{},headers={'Origin':ORIGIN})
+                self.assertEqual(status,201)
+                pages.append(json.loads(raw)['session'])
+            # One network, eight independent validated sessions. The former
+            # 30r/s + 30 burst quota would reject this sustained workload.
+            import concurrent.futures
+            def poll(token):
+                for _ in range(15):
+                    self.assertEqual(self.request('/api/state',headers={'X-ChefJeff-Session':token})[0],200)
+                    time.sleep(.05)
+            with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+                list(pool.map(poll,pages))
+        finally:
+            for token in pages:self.request('/api/session/close',{},headers={'Origin':ORIGIN,'X-ChefJeff-Session':token})
 
 
 if __name__ == '__main__':
