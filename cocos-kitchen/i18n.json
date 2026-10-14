@@ -637,7 +637,10 @@
     "连接测试过于频繁，请稍后重试。": "Connection tests are too frequent. Please try again shortly.",
     "Jev 决策请求已过期。": "The Jev decision request has expired.",
     "Jev 转发请求较多，请稍后重试。": "Jev forwarding is busy. Please try again shortly.",
-    "浏览器无法直连 Jev。请检查网络，或明确勾选服务器转发后重试；Key 尚未经过试玩服务器。": "Your browser could not call Jev directly. Check your network, or explicitly select server forwarding and try again; your key has not passed through the demo server."
+    "浏览器无法直连 Jev。请检查网络，或明确勾选服务器转发后重试；Key 尚未经过试玩服务器。": "Your browser could not call Jev directly. Check your network, or explicitly select server forwarding and try again; your key has not passed through the demo server.",
+    "勾选后，Key 和模型请求会经 HTTPS 通过试玩服务器发送给 Jev，不写入服务器配置、日志或对局记录。未勾选则由浏览器直连，需 Jev 允许本网站跨域访问。更改选项后须测试并连接才生效，清除配置会停止后续模型请求。": "When selected, your key and model requests pass through the demo server over HTTPS to Jev. They are not written to server configuration, logs or game records. Otherwise, your browser calls Jev directly, which requires Jev to allow this website through CORS. Changes take effect after Test and connect; Clear stops future model requests.",
+    "浏览器无法直连 Jev。请检查网络，或明确勾选服务器转发后重试；本次直连请求未通过试玩服务器转发 Key。": "Your browser could not call Jev directly. Check your network, or explicitly select server forwarding and try again; this direct request did not forward your key through the demo server.",
+    "浏览器无法访问模型服务，请检查网络和跨域支持；本次直连请求未通过试玩服务器转发 Key。": "Browser could not reach this provider. Check network/CORS support; this direct request did not forward your key through the demo server."
   },
   "templates": [
     [

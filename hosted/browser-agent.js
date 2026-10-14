@@ -143,8 +143,8 @@
         latency:(performance.now()-started)/1000};
     } catch (e) {
       if (e.name === 'AbortError') throw new Error('模型请求超时或已取消。');
-      if (e instanceof TypeError && config.provider === 'jev') throw new Error('浏览器无法直连 Jev。请检查网络，或明确勾选服务器转发后重试；Key 尚未经过试玩服务器。');
-      if (e instanceof TypeError) throw new Error('浏览器无法访问模型服务，请检查网络和跨域支持；Key 不会通过我们的服务器转发。');
+      if (e instanceof TypeError && config.provider === 'jev') throw new Error('浏览器无法直连 Jev。请检查网络，或明确勾选服务器转发后重试；本次直连请求未通过试玩服务器转发 Key。');
+      if (e instanceof TypeError) throw new Error('浏览器无法访问模型服务，请检查网络和跨域支持；本次直连请求未通过试玩服务器转发 Key。');
       throw e;
     } finally {clearTimeout(timer);outerSignal?.removeEventListener('abort', abort);}
   }
