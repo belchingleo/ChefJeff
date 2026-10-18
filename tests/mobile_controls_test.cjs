@@ -1,7 +1,7 @@
 // Touch input contract tests. These run without a browser or a model API.
 const vm=require('node:vm'),fs=require('node:fs'),assert=require('node:assert/strict');
 
-function harness(path,{width=844,height=390,touch=true,language='zh'}={}){
+function harness(path,{width=844,height=390,touch=true,language='zh',vibrate=true}={}){
  const elements=new Map(),observers=[],media=[],calls=[];
  class Target{
   constructor(){this.listeners={};}
@@ -38,7 +38,7 @@ function harness(path,{width=844,height=390,touch=true,language='zh'}={}){
   getAttribute(name){return this.attributes[name]??null;}
   hasAttribute(name){return name in this.attributes;}
   removeAttribute(name){delete this.attributes[name];if(name==='hidden')this.hidden=false;if(name==='open')this.open=false;}
-  matches(selector){return selector.split(',').some(part=>{part=part.trim();if(part.startsWith('#'))return this.id===part.slice(1);if(part.startsWith('.'))return this.classList.contains(part.slice(1));if(part==='dialog[open]')return this.tagName==='DIALOG'&&this.open;if(part==='dialog')return this.tagName==='DIALOG';return this.tagName.toLowerCase()===part;});}
+  matches(selector){return selector.split(',').some(part=>{part=part.trim();if(part.startsWith('#'))return this.id===part.slice(1);if(part.startsWith('.'))return this.classList.contains(part.slice(1));if(part==='dialog[open]')return this.tagName==='DIALOG'&&this.open;if(part==='dialog')return this.tagName==='DIALOG';const not=part.match(/^(\w+):not\(\[([\w-]+)\]\)$/);if(not)return this.tagName.toLowerCase()===not[1]&&!this.hasAttribute(not[2]);return this.tagName.toLowerCase()===part;});}
   closest(selector){for(let el=this;el;el=el.parentElement)if(el.matches(selector))return el;return null;}
   querySelectorAll(selector){return this.children.flatMap(c=>[...(c.matches(selector)?[c]:[]),...c.querySelectorAll(selector)]);}
   querySelector(selector){return this.querySelectorAll(selector)[0]||null;}
@@ -46,6 +46,8 @@ function harness(path,{width=844,height=390,touch=true,language='zh'}={}){
   setPointerCapture(id){this.captured.add(id);}releasePointerCapture(id){this.captured.delete(id);}hasPointerCapture(id){return this.captured.has(id);}
   getBoundingClientRect(){return this.rect||{left:20,top:220,width:120,height:120,right:140,bottom:340};}
   focus(){document.activeElement=this;}blur(){if(document.activeElement===this)document.activeElement=null;}
+  // As in WebKit: activating a label focuses its control (and focus events reach the document).
+  click(){const control=this.tagName==='LABEL'?this.children.find(c=>c.tagName==='INPUT'):this;if(control){control.focus();document.dispatchEvent(new Event('focusin'));}}
  }
  class Event{
   constructor(type,options={}){this.type=type;Object.assign(this,options);}
@@ -55,7 +57,7 @@ function harness(path,{width=844,height=390,touch=true,language='zh'}={}){
  document.documentElement=new Element('html');document.head=new Element('head');document.body=new Element('body');
  document.documentElement.append(document.head,document.body);document.createElement=tag=>new Element(tag);
  document.getElementById=id=>elements.get(id)||null;document.querySelector=selector=>document.documentElement.querySelector(selector);document.querySelectorAll=selector=>document.documentElement.querySelectorAll(selector);
- const w=new Target();w.innerWidth=width;w.innerHeight=height;w.navigator={maxTouchPoints:touch?5:0,vibrate:ms=>{calls.push(['vibrate',ms]);return true;}};w.performance={now:()=>0};
+ const w=new Target();w.innerWidth=width;w.innerHeight=height;w.navigator={maxTouchPoints:touch?5:0,...(vibrate?{vibrate:ms=>{calls.push(['vibrate',ms]);return true;}}:{})};w.performance={now:()=>0};
  w.getComputedStyle=()=>({paddingLeft:'0px',paddingRight:'0px',paddingTop:'0px',paddingBottom:'0px'});
  w.matchMedia=query=>{const m=new Target();m.matches=query.includes('coarse')&&touch;m.media=query;m.addListener=fn=>m.addEventListener('change',fn);m.removeListener=fn=>m.removeEventListener('change',fn);media.push(m);return m;};
  const locale={module:{exports:{}},globalThis:{localStorage:{getItem:()=>language}}};
@@ -254,4 +256,17 @@ function checkOrderCards(path){
 
 const entries=['cocos-kitchen/touch-controls.js','cocos-kitchen/build/web/touch-controls.js'];
 assert.equal(fs.readFileSync(entries[0],'utf8'),fs.readFileSync(entries[1],'utf8'),'source and shipped touch controls stay identical');
-for(const path of entries){check(path);checkOrderCards(path);}
+// iPhone: no Vibration API, so the haptic tick toggles a hidden switch. Its label focuses the switch,
+// which must not read as editing (that would pause the round), and focus is handed back.
+function checkIosHaptic(path){
+ const h=harness(path,{vibrate:false});h.publish({});
+ const pauseRequested=()=>h.calls.some(c=>c[0]==='pause'||(c[0]==='block'&&c[1]===true));
+ const haptic=h.document.querySelector('input');
+ assert(haptic&&haptic.hasAttribute('data-kitchen-haptic'),'the haptic switch is marked');
+ h.clear();h.w.kitchenBuzz(12);
+ assert(!pauseRequested(),'a haptic tick never pauses the round');
+ assert.notEqual(h.document.activeElement,haptic,'focus leaves the haptic switch');
+ h.clear();h.fire('touch-action','pointerdown',{pointerId:2});h.fire('touch-action','pointerup',{pointerId:2});
+ assert(h.calls.some(c=>c[0]==='press'),'touch Action still works after a tick');
+}
+for(const path of entries){check(path);checkOrderCards(path);checkIosHaptic(path);}

@@ -19,7 +19,7 @@
     const axis = value => Number.isFinite(value) ? Math.max(-1, Math.min(1, value)) : 0;
     const mobile = () => document.body.classList.contains('kitchen-touch-mode');
     const hardBlocked = () => mobile() || document.hidden || !focused || (document.hasFocus && !document.hasFocus()) ||
-      !!document.querySelector('dialog[open]') || !!document.activeElement?.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"]') ||
+      !!document.querySelector('dialog[open]') || !!document.activeElement?.closest('input:not([data-kitchen-haptic]),textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"]') ||
       !controls || !state.connected || (state.phase === 'running' && state.canInput === false);
     function showHint() {
       hint.hidden = apiDisabled || !hasAny || mobile();
