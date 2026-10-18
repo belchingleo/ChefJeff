@@ -462,6 +462,8 @@ function settingsHarness(){
  assert.equal(relayBody.consent_version,'jev-relay-2026-10-v1');assert.equal(relayBody.game_id,'round');
  assert.equal(relayBody.test,true);assert(!('payload' in relayBody));assert(!('base_url' in relayBody));
  assert.equal(relayCall.init.credentials,'omit');assert.equal(relayCall.init.redirect,'error');
+ // Under Referrer-Policy: no-referrer only 'cors' mode keeps the real Origin header on a POST (iPhone Safari).
+ assert.equal(relayCall.init.mode,'cors');
  assert(!h.calls.some(c=>c.url.startsWith('https://api.typesafe.ai')));
  for(const c of h.calls.filter(c=>c.url!=='/api/model/jev'))assert(!JSON.stringify(c).includes(key));
  d=await (await h.w.fetch('/api/state')).json();assert.equal(d.connection.jev_relay,true);assert(!JSON.stringify(d).includes(key));

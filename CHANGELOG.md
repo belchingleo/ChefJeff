@@ -21,6 +21,7 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - Online capacity: active kitchens are limited separately from open pages (8 by default); a full server shows Waiting for a spot, and one network (an address or an IPv6 /64) may run at most 4 kitchens at once (`--max-per-network`). Pages that are not playing check the kitchen once a second instead of 20 times, and the online data export keeps the latest 20 rounds per page.
 - Faster loading: the web build is now a release build without unused engine modules (engine 5.7 MB → 1.6 MB, page download about half). Build files carry content hashes, so the online version caches them for a year and a repeat visit downloads only what changed; HTTPS uses HTTP/2.
 - Unsteady networks: a slow or failed state request no longer shows the disconnect screen or stops the chef. The page keeps the picture and the keys held, shows "Unsteady connection, reconnecting…", and calls it a disconnect only after 6 seconds without any state (the server still pauses a running round after 8). The loading card explains, after 4 seconds, that opening time depends on the network.
+- iPhone: Jev forwarding works in iPhone browsers (the request now keeps its Origin header under the page's no-referrer policy). The Full screen button, which iPhone browsers cannot use, becomes a tip to add ChefJeff to the Home Screen, which now has the pot icon and the name ChefJeff. Controls describe the touch layout.
 
 ## 0.6.0-beta.1 — 2026-10-01 · first public test release
 
@@ -81,6 +82,7 @@ First private release: a local browser game with three playable maps and player-
 - 在线版容量：正在经营的厨房与打开的页面分开计数（默认 8 个厨房），满了显示「等待空位」；同一网络（同一地址或同一 IPv6 /64）最多同时开 4 个厨房（`--max-per-network`）。没在经营的页面每秒只检查一次厨房（原为 20 次），在线版数据导出每个页面保留最近 20 局。
 - 加载更快：网页改为正式模式构建并去掉未用的引擎模块（引擎 5.7 MB → 1.6 MB，页面下载量约减半）。构建文件名带内容哈希，在线版缓存一年，再次打开只下载有变化的文件；HTTPS 启用 HTTP/2。
 - 网络不稳：偶尔一次状态请求变慢或失败，不再弹出断连画面，也不会让人物停下。画面和按住的方向键保持不变，提示「网络不稳定，正在重连…」；连续 6 秒收不到任何状态才算断线（服务器仍在 8 秒后自动暂停）。打开超过 4 秒时，加载卡片会说明打开快慢取决于网络。
+- iPhone：iPhone 浏览器里可以正常通过服务器转发调用 Jev（该请求在页面的不发送来源策略下也会带上来源）。iPhone 浏览器不支持的「全屏」按钮换成「添加到主屏幕」的提示，主屏幕图标为像素锅，名称为 ChefJeff。操作说明加入触屏玩法。
 
 
 ## 0.6.0-beta.1 — 2026-10-01 · 首次公开测试版
