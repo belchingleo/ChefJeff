@@ -25,6 +25,7 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - Movement works as in Overcooked online: the browser walks the player's chef at once and reports its position about ten times a second; the engine follows with the same physics, within 1.25x walking speed, and resyncs only after a push, a blocked walk or a report too far ahead. On slow or unsteady networks the chef no longer jumps back. Space and throws carry the drawn position. New engine input `report_position`; Jeff is unchanged.
 - Snappier actions: Space, throws and clicked actions reply with the resulting state, so the outcome shows one round trip sooner, and numbered states keep a late poll from undoing it. On the key press the chef leans toward what it acts on and the action's sound plays at once (the confirmed change then stays quiet); phones give a short haptic tick (Android vibration; iOS 18 a light tap).
 - Fixed: on iPhone every Action press paused the round. The haptic tick's hidden switch took focus, which the touch and controller code read as typing into a field; it is now excluded from that check and gives focus straight back.
+- Fixed: after rotating an iPhone, the kitchen could stay drawn at the portrait size (only a strip, magnified, the rest black). The page announces the size again once it settles, and once a second checks that the canvas fills the window with a drawing buffer of the same shape. The data export now includes position resyncs (reason and position) to diagnose places where the chef seems stuck.
 
 ## 0.6.0-beta.1 — 2026-10-01 · first public test release
 
@@ -89,6 +90,7 @@ First private release: a local browser game with three playable maps and player-
 - 移动改成《胡闹厨房》联机的方式：浏览器立刻移动玩家的厨师，每秒约 10 次报告位置；引擎用同样的物理跟上，最多 1.25 倍走路速度，只在被推开、走不过去或报告太远时重新同步。网络慢或不稳时人物不再被拽回。空格和投掷会带上画面上的位置。新增引擎输入 `report_position`；Jeff 不变。
 - 操作更跟手：空格、投掷和点选动作的回复直接带回执行后的状态，结果早一个来回显示；状态带序号，迟到的旧状态不会把它盖回去。按下时人物立刻朝目标前探，并先播放该动作的音效（确认后不再重复）；手机上轻振一下（安卓为振动，iOS 18 为轻触感）。
 - 修复：iPhone 上每按一次「操作」都会暂停对局。触感用的隐藏开关抢走了焦点，触屏和手柄代码把它当成在输入框里打字；现在判断时排除它，并立即把焦点还回去。
+- 修复：iPhone 转屏后，厨房可能仍按竖屏尺寸绘制（只画一条、被放大、其余为黑）。页面在尺寸稳定后再通知一次，并每秒检查画布是否铺满窗口、绘制缓冲区形状是否一致。数据导出加入位置重新同步（原因和位置），便于排查人物「卡住」的地方。
 
 
 ## 0.6.0-beta.1 — 2026-10-01 · 首次公开测试版
