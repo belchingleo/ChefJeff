@@ -5,7 +5,7 @@ import { KitchenAudio } from './KitchenAudio';
 import { levelButtonLayout, GRID_ART, stationView, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, workingChefDepth, flightDepth, predictWalk, footWalkable, plateLayers, heatCountdown, behindCounter, throwPose, throwDiagonal, throwItemPoint, panHandleSide } from './KitchenGeometry';
 const { ccclass } = _decorator;
 type Action = { key: string; label: string; kind: string; target: string; expected: unknown[] };
-type KitchenState = { game_id: string; phase: string; speed: number; kitchen: any; actions: Action[]; levels?:any[]; limits?:any; capacity?:any; release?:any; interaction?:Action; use_interaction?:Action; interaction_hint?:string; interaction_focus?:string; interaction_cell?:number[];
+type KitchenState = { game_id: string; state_seq?: number; phase: string; speed: number; kitchen: any; actions: Action[]; levels?:any[]; limits?:any; capacity?:any; release?:any; interaction?:Action; use_interaction?:Action; interaction_hint?:string; interaction_focus?:string; interaction_cell?:number[];
     events: {t:number; message:string; kind?:string}[]; ai: {thinking:boolean; error:string|null}; won:boolean; aborted?:boolean; round_summary?:any; rules?:Record<string,number>; connection?:any; memory?:any; communication?:any; hosted?:any };
 type ChefMotion = {body:Node; leftLeg:Node; rightLeg:Node; leftArm:Node; rightArm:Node; knife:Node; facing:string; step:number};
 type PotEffects = {steam:Node; smoke:Node; fire:Node; ready:Node};
@@ -20,6 +20,18 @@ const COLORS = { ink:'#2b1a12', muted:'#6e4e38', bg:'#f0d9b5', paper:'#fdf3e1', 
 // Pixel face for titles, buttons, tags and HUD numbers (loaded by the web shell); body text stays system.
 const PIXEL='ChefJeffPixel, sans-serif';
 // Result events reach the player; AI decision notes have their own status line.
+const CUE_SECONDS=.16;
+const TAKE_CUES=new Set(['take_board','take_tool','pickup','take_plate','take_return','take_sink','take_counter','lift_pot']);
+/** The sound a Space interaction will make, as the audio plays it for a confirmed hand change; null if none. */
+function cueSound(kind:string,target:string|undefined,held:any,station:any):string|null{
+    if(kind==='fetch')return target==='fridge'?'fridge_grab':'pickup';
+    if(TAKE_CUES.has(kind))return held?null:'pickup';
+    if(['discard','empty_pot','clear'].includes(kind))return 'discard';
+    if(held&&(kind==='drop'||/^put_/.test(kind))&&target!=='serve'&&!station?.stove)
+        // Same rule as the audio's board(): b1, b2… are boards, bins are not.
+        return target?.startsWith('b')&&!target.startsWith('bin')?'place_board':/plate/.test(held.stage||'')?'plate_place':'place_board';
+    return null;
+}
 // Seconds without any state before the page calls it a disconnect (below the server's 8 s auto-pause).
 const NETWORK_GRACE_SECONDS=6;
 const RESULT_ANNOUNCE=new Set(['order','served','expired','ready','burn','fire','fire_spread','fire_loss']);
@@ -86,6 +98,8 @@ export class KitchenClient extends Component {
     private lastReportAt=-1;
     private stateSentAt=0;
     private handsBusyUntil=-1;
+    /** Until when the chef leans toward what it acts on: instant feedback while the action goes to the server. */
+    private cueUntil=-1;
     private qaNoMotion=!sys.isNative&&new URLSearchParams(location.search).get('qaMotion')==='off';
     // Isolated visual pilot; not enabled at the fixed gameplay entry.
     private prepSample=!sys.isNative&&new URLSearchParams(location.search).get('prepSample')==='1';
@@ -352,7 +366,7 @@ export class KitchenClient extends Component {
         if(!this.canInput()||this.pending||this.spaceDownAt!==null||this.aiming)return;
         const held=this.state!.kitchen.chefs.human.holding;
         if(held&&this.state!.kitchen.chefs.human.can_throw!==false){this.spaceDownAt=this.clock;this.spaceItemId=held.id;}
-        else{this.handsBusyUntil=this.clock+.35;this.post('/api/interact',{expected_item:held?.id||null,...this.atBody()});}
+        else{this.handsBusyUntil=this.clock+.35;this.actionCue();this.post('/api/interact',{expected_item:held?.id||null,...this.atBody()});}
     }
     private releaseInteract(){
         const held=this.state?.kitchen.chefs.human.holding;
@@ -363,7 +377,7 @@ export class KitchenClient extends Component {
             if(held&&this.canInput()){this.throwReleases.human={dx:d.x,dy:d.y,until:this.clock+.3};this.post('/api/throw',{expected_item:held.id,direction:[d.x,d.y],...this.atBody()});}
             this.refreshMovement();
         }else if(this.spaceDownAt!==null){
-            this.spaceDownAt=null;this.spaceItemId=null;this.handsBusyUntil=this.clock+.35;
+            this.spaceDownAt=null;this.spaceItemId=null;this.handsBusyUntil=this.clock+.35;this.actionCue();
             this.post('/api/interact',{expected_item:held?.id||null,...this.atBody()});
         }
         this.publishControls();
@@ -543,6 +557,16 @@ export class KitchenClient extends Component {
         plan.frac+=dt*this.state!.speed/.05;
         while(plan.frac>=1){plan.frac-=1;plan.at=plan.next;plan.next=step(plan.at);}
         return this.predicted=[plan.at[0]+(plan.next[0]-plan.at[0])*plan.frac,plan.at[1]+(plan.next[1]-plan.at[1])*plan.frac];
+    }
+    /** Instant feedback for a Space interaction: lean, the action's sound and (phones) a short buzz. */
+    private actionCue(){
+        const s=this.state,a=s?.interaction,held=s?.kitchen.chefs.human.holding;
+        this.cueUntil=this.clock+CUE_SECONDS;
+        // Facing open floor with an item, Space puts it down in front (no listed interaction).
+        const sound=a?cueSound(a.kind,a.target,held,s!.kitchen.stations?.[a.target||'']):held?cueSound('drop',undefined,held,null):null;
+        if(sound)this.audio.predict(sound);
+        // Touch controls' haptic tick (Vibration API, or the iOS 18 switch tap); keyboards get none.
+        if(this.touchLayout?.active&&!sys.isNative)(window as any).kitchenBuzz?.(12);
     }
     /** Tell the engine where this page has walked the chef: 10 times a second while walking, once on stopping. */
     private reportPosition(){
@@ -963,34 +987,40 @@ export class KitchenClient extends Component {
         if(this.clock-this.lastScheduledPoll<interval-.01)return;
         this.lastScheduledPoll=this.clock;this.poll();
     };
+    /** Show a state from a poll or from a gameplay reply; an older reply arriving late is ignored. */
+    private applyState(next:KitchenState,sent:number){
+        const older=typeof next.state_seq==='number'&&typeof this.state?.state_seq==='number'&&next.state_seq<=this.state.state_seq;
+        if(older&&this.connected&&next.game_id===this.state!.game_id)return;
+        // A live old round may keep its backend until the player approves
+        // restarting it. Do not pair new Space controls with old rules.
+        if(!/^level-[1-9][0-9]*-[1-9][0-9]*$/.test(next.kitchen?.map?.layout_version||'')||next.release?.version!=='0.6.0-beta.1'){
+            this.connected=false;this.clearInput();this.cover.active=true;
+            this.set('coverTitle','等待厨房更新');
+            this.set('coverText','新版页面已就绪，厨房服务仍在保留旧对局。\n服务更新后会自动连接，请先完成更新确认。');
+            for(const id of ['main','reset','cover-connection'])this.enable(id,false);
+            this.hideLoading();return;
+        }
+        this.enable('cover-connection',true);
+        if(this.mounted&&this.mountedLayout!==next.kitchen.map.layout_version){
+            for(const n of [...this.mapNodes,...Object.values(this.ground),...Object.values(this.flights)])n.destroy();
+            this.devices={};this.people={};this.motions={};this.potEffects={};this.cabinetFires={};this.ground={};this.flights={};this.groundStages={};this.mounted=false;
+        }
+        if(next.game_id!==this.state?.game_id||!this.connected){this.menuSignature='';this.foodStages={};this.readyUntil={};this.activeClock=0;
+            if(this.mounted)for(const who of ['human','jeff'])this.locate(this.people[who],next.kitchen.chefs[who].position);}
+        if(next.phase!=='running'||next.game_id!==this.state?.game_id||(this.spaceItemId!==null&&(next.kitchen.chefs.human.holding?.id!==this.spaceItemId||next.kitchen.chefs.human.can_throw===false)))this.clearInput();
+        if(next.game_id!==this.state?.game_id){this.moveSeq=Date.now()*1000;this.predicted=this.walkPlan=this.lastReported=null;this.resyncSeen=-1;}
+        this.state=next;this.connected=true;this.received=this.lastStateAt=this.clock;this.stateSentAt=sent;
+        const frameRate=next.phase==='running'?(this.touchLayout?.active?30:60):15;
+        if(game.frameRate!==frameRate)game.frameRate=frameRate;
+        if(!sys.isNative)window.dispatchEvent(new CustomEvent('kitchen-state',{detail:{game_id:next.game_id,phase:next.phase,connection:next.connection,memory:next.memory,limits:next.limits,release:next.release,communication:next.communication,hosted:next.hosted}}));
+        if(!this.mounted)this.mountMap();this.processEvents();this.render();this.hideLoading();
+        this.audio.onState(next);
+    }
     private poll=async()=>{
         if(this.polling||this.hidden||!this.artLoaded)return;this.polling=true;
         try{
             const sent=this.clock,next:KitchenState=await this.request('/api/state');
-            // A live old round may keep its backend until the player approves
-            // restarting it. Do not pair new Space controls with old rules.
-            if(!/^level-[1-9][0-9]*-[1-9][0-9]*$/.test(next.kitchen?.map?.layout_version||'')||next.release?.version!=='0.6.0-beta.1'){
-                this.connected=false;this.clearInput();this.cover.active=true;
-                this.set('coverTitle','等待厨房更新');
-                this.set('coverText','新版页面已就绪，厨房服务仍在保留旧对局。\n服务更新后会自动连接，请先完成更新确认。');
-                for(const id of ['main','reset','cover-connection'])this.enable(id,false);
-                this.hideLoading();return;
-            }
-            this.enable('cover-connection',true);
-            if(this.mounted&&this.mountedLayout!==next.kitchen.map.layout_version){
-                for(const n of [...this.mapNodes,...Object.values(this.ground),...Object.values(this.flights)])n.destroy();
-                this.devices={};this.people={};this.motions={};this.potEffects={};this.cabinetFires={};this.ground={};this.flights={};this.groundStages={};this.mounted=false;
-            }
-            if(next.game_id!==this.state?.game_id||!this.connected){this.menuSignature='';this.foodStages={};this.readyUntil={};this.activeClock=0;
-                if(this.mounted)for(const who of ['human','jeff'])this.locate(this.people[who],next.kitchen.chefs[who].position);}
-            if(next.phase!=='running'||next.game_id!==this.state?.game_id||(this.spaceItemId!==null&&(next.kitchen.chefs.human.holding?.id!==this.spaceItemId||next.kitchen.chefs.human.can_throw===false)))this.clearInput();
-            if(next.game_id!==this.state?.game_id){this.moveSeq=Date.now()*1000;this.predicted=this.walkPlan=this.lastReported=null;this.resyncSeen=-1;}
-            this.state=next;this.connected=true;this.received=this.lastStateAt=this.clock;this.stateSentAt=sent;
-            const frameRate=next.phase==='running'?(this.touchLayout?.active?30:60):15;
-            if(game.frameRate!==frameRate)game.frameRate=frameRate;
-            if(!sys.isNative)window.dispatchEvent(new CustomEvent('kitchen-state',{detail:{game_id:next.game_id,phase:next.phase,connection:next.connection,memory:next.memory,limits:next.limits,release:next.release,communication:next.communication,hosted:next.hosted}}));
-            if(!this.mounted)this.mountMap();this.processEvents();this.render();this.hideLoading();
-            this.audio.onState(next);
+            this.applyState(next,sent);
         }catch(e){
             // Keep the picture and held keys through brief gaps; the next state that arrives replaces this note.
             // The server still pauses a running round after 8 s without any request.
@@ -1017,9 +1047,14 @@ export class KitchenClient extends Component {
         // After closing (or while paused) gameplay input is not sent: the server would only refuse it.
         if(['/api/action','/api/interact'].includes(path)&&this.state.phase!=='running')return;
         this.pending=true;this.render();
-        try{await this.request(path,{game_id:this.state.game_id,request_id:Date.now().toString(36)+'-'+Math.random().toString(36).slice(2),...extra});}
+        let reply:any=null;const sent=this.clock;
+        try{reply=await this.request(path,{game_id:this.state.game_id,request_id:Date.now().toString(36)+'-'+Math.random().toString(36).slice(2),...extra});}
         catch(e){this.audio.play('ui_blocked');this.set('event',(e as Error).message);}
-        finally{this.pending=false;this.poll();}
+        finally{
+            this.pending=false;
+            // Gameplay replies carry the resulting state: draw it now instead of a round trip later.
+            if(reply?.state){try{this.applyState(reply.state,sent);}catch(_){this.poll();}}else this.poll();
+        }
     }
     private act(key:string){const a=this.state?.actions.find(a=>a.key===key);if(a)this.post('/api/action',{action:key,expected:a.expected});}
     private modularWallDecor(wallNode:Node,x:number,y:number,hasSouth:boolean){
@@ -1739,6 +1774,11 @@ export class KitchenClient extends Component {
                 const x=MAPX+(at[0]+.5)*TILE-640,y=360-MAPY-(at[1]+.5)*TILE,t=predicted?1:Math.min(1,dt*16);
                 const oldX=n.position.x,oldY=n.position.y;
                 n.setPosition(oldX+(x-oldX)*t,oldY+(y-oldY)*t);
+                if(who==='human'&&predicted&&this.clock<this.cueUntil){
+                    // A short lean toward the faced station (peaks at 4 px) on the key press.
+                    const lean=4*Math.sin(Math.PI*(1-(this.cueUntil-this.clock)/CUE_SECONDS)),f=c.facing||'down';
+                    n.setPosition(n.position.x+(f==='left'?-lean:f==='right'?lean:0),n.position.y+(f==='up'?lean:f==='down'?-lean:0));
+                }
                 const dx=n.position.x-oldX,dy=n.position.y-oldY,moved=Math.hypot(dx,dy)>.08&&(!!predicted||(c.travel_remaining||0)>0||Math.hypot(x-n.position.x,y-n.position.y)>1);
                 if(moved){
                 if((c.manual_moving||predicted)&&who==='human'&&(this.manualDirection.x!==0||this.manualDirection.y!==0)){

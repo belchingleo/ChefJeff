@@ -183,6 +183,7 @@
     finally {testing = false;}
   }
 
+  const STATE_REPLIES = new Set(['/api/interact', '/api/throw', '/api/action']);
   window.fetch = async (input, init = {}) => {
     const url = new URL(typeof input === 'string' ? input : input.url, location.href);
     if (url.origin !== location.origin || !url.pathname.startsWith('/api/')) return nativeFetch(input, init);
@@ -202,10 +203,12 @@
         if (init.signal?.aborted) throw new Error('下一局请求已取消。');
       }
       const result = await serverFetch(url.pathname, init);
-      if (url.pathname !== '/api/state' || !result.ok) return result;
-      const d = await result.json(); state = d;
-      d.connection = connection();
-      d.limits.connection_checks = checks;
+      if (!result.ok || (url.pathname !== '/api/state' && !STATE_REPLIES.has(url.pathname))) return result;
+      // Gameplay replies carry the resulting state; both get this page's connection details.
+      const withConnection = d => {state = d;d.connection = connection();d.limits.connection_checks = checks;return d;};
+      const d = await result.json();
+      if (url.pathname === '/api/state') return response(200, withConnection(d));
+      if (d.state) d.state = withConnection(d.state);
       return response(200, d);
     } catch (_) {return response(503, {error:transportError || '厨房连接不可用，请刷新页面重新连接。'});}
   };

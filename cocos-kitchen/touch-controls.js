@@ -113,8 +113,21 @@
     const orderNodes = new Map();
     let lastEvent = '', eventNotice = '', eventTimer;
     let pausePending = false, wasAiming = false;
-    // Short haptic ticks where the browser supports them (Android Chrome); iOS Safari ignores this.
-    const buzz = ms => { try { navigator.vibrate?.(ms); } catch (_) {} };
+    // Short haptic ticks: the Vibration API where the browser has it (Android Chrome). iOS browsers have
+    // none, but iOS 18 WebKit gives a light tap when a switch-style checkbox toggles inside a user gesture;
+    // older systems simply do nothing. The off-screen switch is never focusable or announced.
+    const haptic = (() => {
+      if (navigator.vibrate) return null;
+      const label = document.createElement('label'), input = document.createElement('input');
+      label.setAttribute('aria-hidden', 'true');
+      label.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none';
+      input.type = 'checkbox'; input.setAttribute('switch', ''); input.tabIndex = -1;
+      label.appendChild(input); document.body.appendChild(label);
+      return () => label.click();
+    })();
+    const buzz = ms => { try { if (navigator.vibrate) navigator.vibrate(ms); else haptic?.(); } catch (_) {} };
+    // The kitchen client calls this on a Space/Action interaction, inside the same touch gesture.
+    window.kitchenBuzz = buzz;
     const editor = () => document.activeElement?.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"]');
     const modal = () => !!document.querySelector('dialog[open]');
     const stopped = () => !active || !landscape || document.hidden || modal() || !!editor() || menuOpen || communicationOpen;

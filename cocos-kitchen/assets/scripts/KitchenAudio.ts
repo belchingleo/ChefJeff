@@ -35,6 +35,8 @@ export class KitchenAudio {
     private endedGame='';
     private menuAfter=0;
     private clock=0;
+    /** Sounds played at the key press for the player's own action (see predict), by name. */
+    private predicted=new Map<string,number>();
     private warned=false;
     private destroyed=false;
     private started=sys.isNative;
@@ -130,6 +132,13 @@ export class KitchenAudio {
     }
 
     onState(s:any){this.safely(()=>this.applyState(s));}
+    /** Play the player's action sound at the key press; the confirmed change then stays quiet. */
+    predict(name:string){this.safely(()=>{this.predicted.set(name,this.clock);this.playNow(name,1,.06);});}
+    private chefSound(who:string,name:string){
+        const at=this.predicted.get(name);
+        if(who==='human'&&at!==undefined&&this.clock-at<1.5){this.predicted.delete(name);return;}
+        this.play(name);
+    }
     private applyState(s:any){
         if(!this.ready)return;
         const prev=this.last;this.last=s;
@@ -146,7 +155,7 @@ export class KitchenAudio {
             }
             if(this.seen.size>80)this.seen=new Set([...this.seen].slice(-40));
             const skip=new Set(events.filter((e:any)=>['thrown','dropped','interrupted','served','bad_service'].includes(e.kind)).map((e:any)=>e.actor));
-            for(const who of Object.keys(k.chefs))if(!skip.has(who))this.chefChange(prev.kitchen.chefs[who],k.chefs[who]);
+            for(const who of Object.keys(k.chefs))if(!skip.has(who))this.chefChange(who,prev.kitchen.chefs[who],k.chefs[who]);
             this.stationChanges(prev.kitchen,k);
             for(const o of k.orders||[])
                 if(o.status==='pending'&&o.remaining<=10&&o.remaining>0&&!this.urgent.has(o.id)){this.urgent.add(o.id);this.play('order_urgent');}
@@ -159,26 +168,26 @@ export class KitchenAudio {
         this.channels.wash_solo.target=running&&washers===1?1:0;
         this.channels.wash_duo.target=running&&washers>=2?1:0;
     }
-    private chefChange(a:any,b:any){
+    private chefChange(who:string,a:any,b:any){
         const before=a.holding,after=b.holding,kind=a.action_kind||b.action_kind,target=a.target||b.target;
         const sameItem=before&&after&&before.id===after.id;
         if(sameItem&&before.stage!==after.stage){
-            if(kind==='assemble')this.play('assemble');
-            else if(kind==='empty_pot'||kind==='discard')this.play('discard');
-            else if(/^plate|merge/.test(kind||''))this.play('plate_place');
+            if(kind==='assemble')this.chefSound(who,'assemble');
+            else if(kind==='empty_pot'||kind==='discard')this.chefSound(who,'discard');
+            else if(/^plate|merge/.test(kind||''))this.chefSound(who,'plate_place');
             return;
         }
-        if(after&&!sameItem){this.play(kind==='fetch'&&target==='fridge'?'fridge_grab':'pickup');return;}
+        if(after&&!sameItem){this.chefSound(who,kind==='fetch'&&target==='fridge'?'fridge_grab':'pickup');return;}
         if(before&&!after){
-            if(['discard','empty_pot','clear'].includes(kind))this.play('discard');
+            if(['discard','empty_pot','clear'].includes(kind))this.chefSound(who,'discard');
             else if(target==='serve'||this.last?.kitchen?.stations?.[target]?.stove)return; // serving/pan sounds come from events/stations
-            else if(board(target))this.play('place_board');
-            else this.play(/plate/.test(before.stage)?'plate_place':'place_board');
+            else if(board(target))this.chefSound(who,'place_board');
+            else this.chefSound(who,/plate/.test(before.stage)?'plate_place':'place_board');
             return;
         }
         // Finished an assembly or plating job without a hand change (e.g. building on the counter).
         if(a.job_id&&a.job_id!==b.job_id&&a.working&&(a.action_kind==='assemble'||/^plate|merge/.test(a.action_kind||'')))
-            this.play(a.action_kind==='assemble'?'assemble':'plate_place');
+            this.chefSound(who,a.action_kind==='assemble'?'assemble':'plate_place');
     }
     private stationChanges(a:any,b:any){
         const held=new Set(Object.values(b.chefs).map((c:any)=>c.holding?.id).filter(Boolean));
