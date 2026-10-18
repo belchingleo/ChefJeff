@@ -74,6 +74,7 @@ class GameSession:
         self.game_backlog = 0.
         self.ticks = 0
         self.move_seq = -1
+        self.position_seq = -1
         self.move_until = 0.
         self.pending_move = None
         self.player_messages = []
@@ -235,7 +236,7 @@ class GameSession:
                 total = self.totals.setdefault(j.id, j.travel+j.work) if j else 0
                 state['chefs'][who]['progress'] = max(0, min(1, 1-(j.travel+j.work)/total)) if total else 0
             events = [{'t': e['t'], 'message': e['message'], 'kind': e.get('kind'), 'actor': e.get('actor')} for e in self.k.events
-                      if e.get('kind') not in ('action_start', 'action_done')]
+                      if e.get('kind') not in ('action_start', 'action_done', 'position_resync')]
             events += self.notes
             events = sorted(events, key=lambda e:e['t'])[-10:]
             return {'game_id': self.game_id, 'phase': self.phase, 'speed': self.speed,
@@ -287,6 +288,8 @@ class GameSession:
                 return 409, {'error': '这是上一局的操作，请刷新页面。'}
             if path == '/api/move':
                 return self._move(body)
+            if path == '/api/position':
+                return self._position(body)
             request_id = body.get('request_id')
             if not isinstance(request_id, str) or not (1 <= len(request_id) <= 100):
                 return 400, {'error': '请求无效，请重试。'}
@@ -325,6 +328,40 @@ class GameSession:
         self._apply_move(dx,dy,body.get('sprint') is True,seq)
         self._events()
         return 200, {'ok':True}
+
+    @staticmethod
+    def _reported_point(body):
+        """`at` and `base` of a position report (the browser moves its own chef), or None if malformed."""
+        at, base = body.get('at'), body.get('base')
+        if (not isinstance(at,list) or len(at)!=2 or isinstance(base,bool) or not isinstance(base,int) or base<0
+                or any(isinstance(v,bool) or not isinstance(v,(int,float)) or not math.isfinite(v) or abs(v)>1000 for v in at)):
+            return None
+        return float(at[0]), float(at[1]), base
+
+    def _position(self, body):
+        """Where the player's browser has walked its chef; the engine follows with its own physics."""
+        seq, point = body.get('seq'), self._reported_point(body)
+        if not hasattr(self.k,'report_position'):
+            return 400, {'error':'当前厨房不支持位置上报'}
+        if point is None or isinstance(seq,bool) or not isinstance(seq,int) or seq < 0:
+            return 400, {'error':'位置信息无效'}
+        if seq <= self.position_seq or self.phase != 'running':
+            return 200, {'ok':True,'ignored':True}
+        self.position_seq = seq
+        accepted = self.k.report_position('human',*point)
+        self._events()
+        return 200, {'ok':True,'accepted':accepted,'resync':self.k.resync['human']}
+
+    def _settle_at(self, body):
+        """An interaction carries where the browser drew the chef: walk there first, so the target matches."""
+        if 'at' not in body and 'base' not in body:
+            return None
+        point = self._reported_point(body)
+        if point is None:
+            return 400, {'error':'位置信息无效'}
+        if hasattr(self.k,'report_position'):
+            self.k.report_position('human',*point,True)
+        return None
 
     def _hands_busy(self):
         """A short hand action (take, put, plate, serve, throw...) within Space's reach is under way.
@@ -502,6 +539,7 @@ class GameSession:
             self.ticks = 0
             self.c = self.k.c
             self.move_seq = -1
+            self.position_seq = -1
             self.move_until = 0.
             self.pending_move=None
             self.player_messages=[]
@@ -545,6 +583,8 @@ class GameSession:
             hand = self.k.chefs['human'].hand
             if (hand.id if hand else None) != body.get('expected_item'):
                 return 409, {'error': '手中物品已变化，请重新按空格'}
+            invalid = self._settle_at(body)
+            if invalid: return invalid
             # Space = hands (take, put, plate, serve); E = use (chop, wash, extinguish),
             # else throw the held item straight ahead. Both act on what the chef faces.
             mode = 'use' if body.get('mode') == 'use' else 'hands'
@@ -576,6 +616,8 @@ class GameSession:
             hand = self.k.chefs['human'].hand
             if not hand or hand.id != body.get('expected_item'):
                 return 409, {'error':'手中物品已变化'}
+            invalid = self._settle_at(body)
+            if invalid: return invalid
             action = self.k.aimed_throw('human',target) if aimed and hasattr(self.k,'aimed_throw') else self.k.throw_action('human',target)
             if not action:
                 return 409, {'error':'没有可用落点，或此物品不能抛掷'}

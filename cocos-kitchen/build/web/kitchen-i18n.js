@@ -5,6 +5,8 @@
   "messages": {
     "和AI一起经营餐馆": "Run a restaurant with AI",
     "正在打开小厨房…": "Opening your kitchen…",
+    "当前厨房不支持位置上报": "This kitchen does not accept position reports.",
+    "位置信息无效": "Invalid position.",
     "iPhone 不支持网页全屏：在浏览器的分享菜单选「添加到主屏幕」，再从主屏幕打开即可全屏。": "iPhone browsers cannot go full screen: choose Add to Home Screen in the browser's Share menu, then open ChefJeff from the Home Screen.",
     "手机触屏（横屏）：左下区域按住，摇杆出现在拇指下，朝任意方向推动移动，松手停止。右侧「操作」短按交互；持物时长按约 0.3 秒瞄准（按钮变成「投掷」），用摇杆调方向，松开投掷；瞄准时操作键上方出现圆形「取消」，手指滑上去再松开即可取消。「冲刺」在操作键左侧，移动时点按。顶部有暂停和菜单（设置、操作说明、本局记录、结束本局），沟通和标记也有按钮。手机转回竖屏会自动暂停，横屏后点「继续经营」。": "Touch (landscape): press in the lower-left area and the joystick appears under your thumb; push in any direction to move, let go to stop. Tap Action on the right to interact. Holding an item, hold Action for about 0.3 s to aim (the button reads Throw), steer with the joystick and release to throw; while aiming, a round Cancel button appears above Action: slide onto it and let go to cancel. Dash sits left of Action; tap it while moving. The top bar has Pause and Menu (Settings, Controls, Round record, End round), plus Talk and Bookmark. Turning the phone to portrait pauses the round; turn back and tap Resume.",
     "网络不稳定，正在重连…": "Unsteady connection, reconnecting…",

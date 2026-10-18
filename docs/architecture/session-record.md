@@ -38,7 +38,7 @@ Local rounds write the bundle to `logs/sessions/<session_id>/` (files are `0600`
 
 ## Replay
 
-The engine logs every outermost external call (`start`, `stop`, `set_manual`, `sprint`, `advance`, `abort`) in `engine-inputs.jsonl`. `kitchen.replay(factory, resolved, inputs)` rebuilds the round without calling any model. When a bundle is written, the recorder replays it and stores `recording_meta.replay.level`:
+The engine logs every outermost external call (`start`, `stop`, `set_manual`, `sprint`, `report_position`, `advance`, `abort`; `report_position` records the browser's reported point, its resync `base` and whether it settled before an interaction) in `engine-inputs.jsonl`. `kitchen.replay(factory, resolved, inputs)` rebuilds the round without calling any model. When a bundle is written, the recorder replays it and stores `recording_meta.replay.level`:
 
 - `engine_events_verified`: replay reproduced every engine event (seq, type, game time);
 - `replay_partial` with the first divergent index when state was changed outside recorded inputs.
