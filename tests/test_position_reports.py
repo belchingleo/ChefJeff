@@ -3,7 +3,7 @@ import math
 import time
 import unittest
 
-from kitchen import Food, load_config, replay
+from kitchen import Action, Food, Job, load_config, replay
 from levels import level_config
 from spatial_kitchen import SpatialKitchen, REPORT_MAX_LEAD, REPORT_SPEED_MARGIN, REPORT_STALL
 from web_server import GameSession
@@ -85,6 +85,50 @@ class EngineTests(unittest.TestCase):
         k.positions['jeff'] = (h[0], h[1]-.6)
         k._move_with_chef_contact('jeff', (h[0], h[1]+.2))
         self.assertGreater(k.resync['human'], 0)
+
+
+class PressingIntoJeffTests(unittest.TestCase):
+    """Level 2's board notch with Jeff beside it: the browser follows the engine and asks for a short walk ahead."""
+    def make(self, jeff, busy):
+        k = kitchen(2); k.positions.update(human=(6.15, 6.5), jeff=jeff)
+        if busy:
+            k.chefs['jeff'].job = Job(99, Action('wait', 'x', 'wait', None), 0., 9999., True)
+        k.report_position('human', *k.positions['human'], 0)
+        return k
+
+    def free_steps(self, at, direction):
+        """Two ticks of walking with Jeff out of the way: the point the browser reports while pressing."""
+        g = kitchen(2); g.positions.update(human=at, jeff=(11., 2.)); g.set_manual('human', *direction)
+        g.advance(.05); g.advance(.05)
+        return g.positions['human']
+
+    def press(self, k, seconds=4.):
+        k.set_manual('human', 1, 0)
+        for i in range(int(seconds/.05)):
+            if i % 2 == 0:
+                k.report_position('human', *self.free_steps(k.positions['human'], (1, 0)), k.resync['human'])
+            k.advance(.05)
+
+    def test_an_idle_jeff_is_pushed_out_of_the_notch_way(self):
+        k = self.make((6.2, 6.0), busy=False)
+        self.press(k)
+        self.assertGreater(k.positions['human'][0], 6.8)
+        self.assertEqual(k.resync['human'], 0)
+
+    def test_pressing_into_a_busy_jeff_never_resyncs(self):
+        k = self.make((6.6, 6.0), busy=True)
+        self.press(k)
+        self.assertEqual(k.resync['human'], 0)
+        self.assertEqual(k.positions['jeff'], (6.6, 6.0))
+
+    def test_a_walk_reported_past_a_busy_jeff_comes_back_at_once(self):
+        k = self.make((6.6, 6.0), busy=True)
+        self.press(k, 1.)
+        here = k.positions['human']
+        k.report_position('human', here[0]+1.5, here[1], k.resync['human'])
+        for _ in range(3):
+            k.advance(.05)
+        self.assertEqual(k.resync['human'], 1)
 
 
 class WebTests(unittest.TestCase):

@@ -35,6 +35,8 @@ REPORT_SPEED_MARGIN = 1.25
 REPORT_BUDGET = 2.
 REPORT_MAX_LEAD = 2.5
 REPORT_STALL = .25
+# A reported point this close while the other chef blocks the way is the browser pressing into them.
+REPORT_PRESS = .8
 # Reference values of movement.stall_replan in the service ruleset: a routed chef whose
 # remaining route has not shortened by STALL_PROGRESS for STALL_SECONDS re-plans from
 # where contact left it, around the other chef. Live kitchens read the ruleset.
@@ -469,6 +471,15 @@ class SpatialKitchen(Kitchen):
         if math.dist(self.positions[who],target)<1e-6:
             self.report_target[who]=None;self.report_stalled[who]=0.
         elif moved<1e-4:
+            here,other=self.positions[who],self.positions['jeff' if who=='human' else 'human']
+            gap=math.dist(here,target);probe=tuple(here[i]+(target[i]-here[i])*min(1.,.1/gap) for i in (0,1))
+            if math.dist(here,other)<=self.rules.chef_separation+.05 and self.nav.clear_walk_line(here,probe):
+                # Held up by the other chef (a busy one is not pushed). A point just ahead is the browser
+                # pressing into it while following the engine: drop it quietly. A point further on means
+                # the browser walked past a chef it saw too late: bring it back now.
+                if gap<=REPORT_PRESS:self.report_target[who]=None;self.report_stalled[who]=0.
+                else:self._resync(who,'blocked')
+                return
             self.report_stalled[who]+=seconds
             if self.report_stalled[who]>=REPORT_STALL-1e-9:self._resync(who,'blocked')
         else:
