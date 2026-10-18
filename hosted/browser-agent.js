@@ -91,7 +91,9 @@
     if (outerSignal?.aborted) controller.abort();
     if (config.jev_relay) {
       try {
-        const r = await serverFetch('/api/model/jev', {method:'POST',mode:'same-origin',
+        // mode 'cors' like every other game request: with the page's no-referrer policy, a POST in
+        // 'same-origin' mode carries "Origin: null" (Fetch spec; Safari follows it), which the server rejects.
+        const r = await serverFetch('/api/model/jev', {method:'POST',mode:'cors',
           credentials:'omit',redirect:'error',signal:controller.signal,
           headers:{'Content-Type':'application/json'},body:JSON.stringify({
             ...relayContext, api_key:config.api_key, consent:true, consent_version:relayConsent})});

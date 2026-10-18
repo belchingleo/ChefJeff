@@ -45,6 +45,14 @@ if result.returncode==36 and args.platform=='web':
     content=content.replace('<meta name="screen-orientation" content="portrait"/>','<meta name="screen-orientation" content="landscape"/>')
     # Pixel pot icon and the subset pixel face (SIL OFL 1.1) ship beside the page.
     shutil.copyfile(ROOT/'cocos-kitchen/favicon.ico',page.parent/'favicon.ico')
+    # iPhone browsers have no Fullscreen API; "Add to Home Screen" opens the page without browser bars
+    # (apple-mobile-web-app-capable is already in Creator's template). Give it the pot icon and a name.
+    shutil.copyfile(ROOT/'cocos-kitchen/apple-touch-icon.png',page.parent/'apple-touch-icon.png')
+    icon='<link rel="icon" href="favicon.ico"/>'
+    if content.count(icon)!=1:raise RuntimeError('Expected one favicon link in the Creator page')
+    content=content.replace(icon,icon+'\n    <link rel="apple-touch-icon" href="apple-touch-icon.png"/>'
+        '\n    <meta name="apple-mobile-web-app-title" content="ChefJeff"/>'
+        '\n    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>')
     (page.parent/'fonts').mkdir(exist_ok=True)
     for name in ('chefjeff-pixel.woff2','OFL.txt'):shutil.copyfile(ROOT/'cocos-kitchen/fonts'/name,page.parent/'fonts'/name)
     page.write_text(content.replace('</body>',shell+'</body>'))

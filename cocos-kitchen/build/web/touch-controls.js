@@ -92,7 +92,7 @@
       <div class="touch-buttons"><button id="touch-dash" class="touch-round" type="button"></button><button id="touch-action" class="touch-round" type="button"></button></div>
       <div id="touch-cancel" hidden></div>
       <div id="touch-ai"></div>
-      <section id="touch-menu" class="touch-menu" aria-labelledby="touch-menu-title" hidden><h2 id="touch-menu-title">ChefJeff</h2><p id="touch-menu-copy"></p><div id="touch-levels" class="touch-levels"></div><div class="touch-menu-actions"><button id="touch-main" class="btn primary" type="button"></button><button id="touch-settings" class="btn" type="button"></button><button id="touch-help" class="btn" type="button"></button></div><div class="touch-menu-secondary"><button id="touch-end" class="btn danger" type="button"></button><button id="touch-record" class="btn" type="button"></button><button id="touch-language" class="btn" type="button" data-no-i18n></button><button id="touch-fullscreen" class="btn" type="button"></button><button id="touch-menu-close" class="btn" type="button"></button></div><p id="touch-instructions"></p></section>
+      <section id="touch-menu" class="touch-menu" aria-labelledby="touch-menu-title" hidden><h2 id="touch-menu-title">ChefJeff</h2><p id="touch-menu-copy"></p><div id="touch-levels" class="touch-levels"></div><div class="touch-menu-actions"><button id="touch-main" class="btn primary" type="button"></button><button id="touch-settings" class="btn" type="button"></button><button id="touch-help" class="btn" type="button"></button></div><div class="touch-menu-secondary"><button id="touch-end" class="btn danger" type="button"></button><button id="touch-record" class="btn" type="button"></button><button id="touch-language" class="btn" type="button" data-no-i18n></button><button id="touch-fullscreen" class="btn" type="button"></button><button id="touch-menu-close" class="btn" type="button"></button></div><p id="touch-instructions"></p><p id="touch-fullscreen-tip" hidden></p></section>
     `;
     document.body.appendChild(ui);
     const portrait = document.createElement('div');
@@ -315,7 +315,8 @@
         'touch-menu-toggle': '菜单', 'touch-settings': '设置', 'touch-help': '操作说明', 'touch-end': '结束本局', 'touch-record': '本局记录',
         'touch-fullscreen': '全屏', 'touch-menu-close': '返回厨房', 'touch-cancel': '取消', 'touch-rotate-title': '请将手机横过来',
         'touch-rotate-copy': '横屏后点“继续经营”，厨房不会自动恢复。',
-        'touch-instructions': '手持物品时长按操作瞄准，松开投掷；拖到取消区可取消。' })) text(id, source);
+        'touch-instructions': '手持物品时长按操作瞄准，松开投掷；拖到取消区可取消。',
+        'touch-fullscreen-tip': 'iPhone 不支持网页全屏：在浏览器的分享菜单选「添加到主屏幕」，再从主屏幕打开即可全屏。' })) text(id, source);
       el('touch-language').textContent = window.kitchenI18n?.language === 'en' ? 'Chinese' : '英语';
       joystick.setAttribute('aria-label', t('移动')); el('touch-orders').setAttribute('aria-label', t('订单'));
       ordersSignature = levelsSignature = ''; render();
@@ -384,6 +385,9 @@
       el(id).addEventListener('click', () => { clearPointers(); controls?.[method](); });
     el('touch-language').addEventListener('click', () => controls?.language());
     el('touch-fullscreen').hidden = !document.documentElement.requestFullscreen;
+    // iPhone (every iOS browser) has no Fullscreen API: point to the home-screen web app instead.
+    const homeScreen = navigator.standalone || window.matchMedia?.('(display-mode: standalone)').matches;
+    el('touch-fullscreen-tip').hidden = !!document.documentElement.requestFullscreen || !!homeScreen;
     el('touch-fullscreen').addEventListener('click', async () => {
       try { await document.documentElement.requestFullscreen(); try { await screen.orientation?.lock?.('landscape'); } catch (_) {} } catch (_) {}
     });
