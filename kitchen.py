@@ -122,6 +122,9 @@ def engine_input(method):
                 record['vector'] = [args[1], args[2]]
             elif method.__name__ == 'sprint':
                 record['accepted'] = bool(result)
+            elif method.__name__ == 'report_position':
+                record.update(at=[args[1], args[2]], base=args[3], settle=bool(args[4]) if len(args) > 4 else False,
+                              accepted=bool(result))
             self.inputs.append(record)
         return result
     return wrapper
@@ -147,6 +150,8 @@ def replay(factory, resolved, inputs):
             k.set_manual(record['actor'], *record['vector'])
         elif call == 'sprint':
             k.sprint(record['actor'])
+        elif call == 'report_position':
+            k.report_position(record['actor'], *record['at'], record['base'], record['settle'])
         elif call == 'abort':
             k.abort()
         else:

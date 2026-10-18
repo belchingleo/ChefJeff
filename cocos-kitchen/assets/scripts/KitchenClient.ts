@@ -75,11 +75,15 @@ export class KitchenClient extends Component {
     private spaceItemId:string|null=null;
     private aiming:{x:number,y:number}|null=null;
     private aimArrow:Node|null=null;
-    // Held-key walking is predicted locally so the chef answers on the same frame, then eased onto server state.
+    // Overcooked-style local movement: this page walks the player's chef itself and reports where it is
+    // (/api/position); the engine follows with the same physics. Only a resync from the engine (a push,
+    // a blocked walk, a report too far ahead) moves the chef here to the engine's position.
     private predicted:number[]|null=null;
     /** Held-key walk in whole server ticks: position at the last tick, the next one, and the progress between. */
     private walkPlan:{dx:number,dy:number,at:number[],next:number[],frac:number}|null=null;
-    private releasedAt:number|null=null;
+    private resyncSeen=-1;
+    private lastReported:number[]|null=null;
+    private lastReportAt=-1;
     private stateSentAt=0;
     private handsBusyUntil=-1;
     private qaNoMotion=!sys.isNative&&new URLSearchParams(location.search).get('qaMotion')==='off';
@@ -348,7 +352,7 @@ export class KitchenClient extends Component {
         if(!this.canInput()||this.pending||this.spaceDownAt!==null||this.aiming)return;
         const held=this.state!.kitchen.chefs.human.holding;
         if(held&&this.state!.kitchen.chefs.human.can_throw!==false){this.spaceDownAt=this.clock;this.spaceItemId=held.id;}
-        else{this.handsBusyUntil=this.clock+.35;this.post('/api/interact',{expected_item:held?.id||null});}
+        else{this.handsBusyUntil=this.clock+.35;this.post('/api/interact',{expected_item:held?.id||null,...this.atBody()});}
     }
     private releaseInteract(){
         const held=this.state?.kitchen.chefs.human.holding;
@@ -356,11 +360,11 @@ export class KitchenClient extends Component {
         if(this.aiming){
             const d=this.aiming,wasTouch=this.touchDirection.x!==0||this.touchDirection.y!==0;
             this.endAim();this.touchNeedsNeutral=wasTouch;
-            if(held&&this.canInput()){this.throwReleases.human={dx:d.x,dy:d.y,until:this.clock+.3};this.post('/api/throw',{expected_item:held.id,direction:[d.x,d.y]});}
+            if(held&&this.canInput()){this.throwReleases.human={dx:d.x,dy:d.y,until:this.clock+.3};this.post('/api/throw',{expected_item:held.id,direction:[d.x,d.y],...this.atBody()});}
             this.refreshMovement();
         }else if(this.spaceDownAt!==null){
             this.spaceDownAt=null;this.spaceItemId=null;this.handsBusyUntil=this.clock+.35;
-            this.post('/api/interact',{expected_item:held?.id||null});
+            this.post('/api/interact',{expected_item:held?.id||null,...this.atBody()});
         }
         this.publishControls();
     }
@@ -524,40 +528,36 @@ export class KitchenClient extends Component {
         this.manualDirection={x:dx,y:dy};this.sendMove(dx,dy);
     }
     private predictHuman(k:any,c:any,dt:number,n:Node){
+        if(!c.position){this.predicted=this.walkPlan=null;return null;}
+        if((c.resync??0)!==this.resyncSeen){this.resyncSeen=c.resync??0;this.predicted=this.walkPlan=null;}
+        if(!this.predicted)this.predicted=[c.position[0],c.position[1]];
         const d=this.manualDirection;
-        if(!c.position){this.predicted=this.releasedAt=null;return null;}
-        if(this.clock<this.handsBusyUntil){this.predicted=this.releasedAt=null;return null;}
-        if(d.x===0&&d.y===0){
-            // Released: stay put until a state requested after the stop arrives, then ease onto it (no stale pull-back).
-            if(this.predicted&&this.releasedAt===null)this.releasedAt=this.clock;
-            if(this.predicted&&this.stateSentAt<=this.releasedAt!&&this.clock-this.releasedAt!<.6)return this.predicted;
-            this.predicted=this.releasedAt=null;return null;
-        }
-        this.releasedAt=null;
-        const walk=(k.map.walk_speed||4.5)*(c.sprint?.active_remaining>0?1.4:1),rate=walk*this.state!.speed,other=k.chefs.jeff?.position;
-        // The server moves the chef in 50 ms game ticks (tick_game_ms); stepping the same distances from
-        // the same rules keeps diagonal slides along counters on its path. Drawn between ticks.
+        // A quick take/put finishes before the held direction starts, as on the server.
+        if(this.clock<this.handsBusyUntil||(d.x===0&&d.y===0)){this.walkPlan=null;return this.predicted;}
+        const walk=(k.map.walk_speed||4.5)*(c.sprint?.active_remaining>0?1.4:1),other=k.chefs.jeff?.position;
+        // The engine walks in 50 ms game ticks (tick_game_ms); stepping the same distances with the same
+        // rules keeps diagonal slides along counters on its path. Drawn between ticks.
         const tick=walk*.05,step=(p:number[])=>predictWalk(k.map,p,d.x*tick,d.y*tick,other,tick);
         let plan=this.walkPlan;
-        if(!this.predicted||!plan||plan.dx!==d.x||plan.dy!==d.y){
-            const from=this.predicted||[(n.position.x+640-MAPX)/TILE-.5,(360-MAPY-n.position.y)/TILE-.5];
-            plan=this.walkPlan={dx:d.x,dy:d.y,at:from,next:step(from),frac:0};
-        }
+        if(!plan||plan.dx!==d.x||plan.dy!==d.y)plan=this.walkPlan={dx:d.x,dy:d.y,at:this.predicted,next:step(this.predicted),frac:0};
         plan.frac+=dt*this.state!.speed/.05;
         while(plan.frac>=1){plan.frac-=1;plan.at=plan.next;plan.next=step(plan.at);}
-        let next=[plan.at[0]+(plan.next[0]-plan.at[0])*plan.frac,plan.at[1]+(plan.next[1]-plan.at[1])*plan.frac];
-        // Until the server reports this same direction it has not received the key yet: trust the prediction.
-        // Afterwards ease toward its position carried forward to now; snap only on a large disagreement (e.g. a push).
-        const heading=c.move_direction||[0,0],synced=!!c.manual_moving&&Math.abs(heading[0]-d.x)<1e-6&&Math.abs(heading[1]-d.y)<1e-6;
-        const age=synced?Math.min(.3,Math.max(0,this.clock-this.received)):0,server=predictWalk(k.map,c.position,d.x*rate*age,d.y*rate*age,other,tick);
-        const ex=server[0]-next[0],ey=server[1]-next[1],pull=Math.min(1,dt*4);
-        if(Math.hypot(ex,ey)>1.2){next=server;this.walkPlan={dx:d.x,dy:d.y,at:server,next:step(server),frac:0};}
-        else if(synced){
-            // Ease toward the server by shifting the whole tick plan, keeping its tick phase.
-            const sx=ex*pull,sy=ey*pull,eased=[next[0]+sx,next[1]+sy];
-            if(footWalkable(k.map,eased[0],eased[1])){next=eased;plan.at=[plan.at[0]+sx,plan.at[1]+sy];plan.next=step(plan.at);}
-        }
-        return this.predicted=next;
+        return this.predicted=[plan.at[0]+(plan.next[0]-plan.at[0])*plan.frac,plan.at[1]+(plan.next[1]-plan.at[1])*plan.frac];
+    }
+    /** Tell the engine where this page has walked the chef: 10 times a second while walking, once on stopping. */
+    private reportPosition(){
+        const p=this.predicted,last=this.lastReported;
+        if(!p||!this.state||this.state.phase!=='running'||!this.connected)return;
+        if(last&&Math.hypot(p[0]-last[0],p[1]-last[1])<.005)return;
+        if((this.manualDirection.x!==0||this.manualDirection.y!==0)&&this.clock-this.lastReportAt<.1)return;
+        this.lastReported=[p[0],p[1]];this.lastReportAt=this.clock;
+        this.request('/api/position',{game_id:this.state.game_id,seq:++this.moveSeq,...this.atBody()})
+            .catch(()=>{this.lastReported=null;});
+    }
+    /** Where the chef is drawn, sent with an interaction so the engine targets from the same spot. */
+    private atBody(){
+        const p=this.predicted;
+        return p&&this.resyncSeen>=0?{at:[Math.round(p[0]*1e4)/1e4,Math.round(p[1]*1e4)/1e4],base:this.resyncSeen}:{};
     }
     private clearInput(){this.endAim();this.heldKeys.clear();this.touchDirection={x:0,y:0};this.touchMoveDirty=false;this.touchNeedsNeutral=false;const wasMoving=this.manualDirection.x!==0||this.manualDirection.y!==0;this.manualDirection={x:0,y:0};if(wasMoving)this.sendMove(0,0);this.publishControls();}
     private applyTouchLayout(){
@@ -984,7 +984,7 @@ export class KitchenClient extends Component {
             if(next.game_id!==this.state?.game_id||!this.connected){this.menuSignature='';this.foodStages={};this.readyUntil={};this.activeClock=0;
                 if(this.mounted)for(const who of ['human','jeff'])this.locate(this.people[who],next.kitchen.chefs[who].position);}
             if(next.phase!=='running'||next.game_id!==this.state?.game_id||(this.spaceItemId!==null&&(next.kitchen.chefs.human.holding?.id!==this.spaceItemId||next.kitchen.chefs.human.can_throw===false)))this.clearInput();
-            if(next.game_id!==this.state?.game_id)this.moveSeq=Date.now()*1000;
+            if(next.game_id!==this.state?.game_id){this.moveSeq=Date.now()*1000;this.predicted=this.walkPlan=this.lastReported=null;this.resyncSeen=-1;}
             this.state=next;this.connected=true;this.received=this.lastStateAt=this.clock;this.stateSentAt=sent;
             const frameRate=next.phase==='running'?(this.touchLayout?.active?30:60):15;
             if(game.frameRate!==frameRate)game.frameRate=frameRate;
@@ -1735,6 +1735,7 @@ export class KitchenClient extends Component {
             }
             if(running&&p){
                 const predicted=who==='human'?this.predictHuman(k,c,dt,n):null,at=predicted||p;
+                if(predicted)this.reportPosition();
                 const x=MAPX+(at[0]+.5)*TILE-640,y=360-MAPY-(at[1]+.5)*TILE,t=predicted?1:Math.min(1,dt*16);
                 const oldX=n.position.x,oldY=n.position.y;
                 n.setPosition(oldX+(x-oldX)*t,oldY+(y-oldY)*t);

@@ -567,6 +567,10 @@
       "{0} stopped moving"
     ],
     [
+      "{0}的位置以引擎为准",
+      "{0}'s position was set by the engine"
+    ],
+    [
       "{0} {1}s 后糊",
       "{0} · burns in {1}s"
     ],

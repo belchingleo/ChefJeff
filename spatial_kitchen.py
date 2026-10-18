@@ -26,6 +26,15 @@ FRONT_SLACK = .15
 # height and the station the knife points at is the target. Up and down are unchanged.
 SIDE_HAND_RISE = .35
 NUDGE_LIMIT = .25
+# Overcooked-style local movement: the player's own browser moves its chef and reports where it is
+# (report_position); the engine walks there with the same physics. The walk is limited to
+# REPORT_SPEED_MARGIN x the walking speed (sprint included), banked up to REPORT_BUDGET cells so a late
+# report catches up at once. A target more than REPORT_MAX_LEAD away, a push, or REPORT_STALL seconds
+# without progress resyncs: the browser then takes the engine's position.
+REPORT_SPEED_MARGIN = 1.25
+REPORT_BUDGET = 2.
+REPORT_MAX_LEAD = 2.5
+REPORT_STALL = .25
 # Reference values of movement.stall_replan in the service ruleset: a routed chef whose
 # remaining route has not shortened by STALL_PROGRESS for STALL_SECONDS re-plans from
 # where contact left it, around the other chef. Live kitchens read the ruleset.
@@ -202,6 +211,11 @@ class SpatialKitchen(Kitchen):
         self.drop_locks = {}
         self.projectiles = {}
         self.manual = {who: (0., 0.) for who in self.chefs}
+        self.reported = {who: False for who in self.chefs}  # chef moved by position reports
+        self.report_target = {who: None for who in self.chefs}
+        self.report_budget = {who: REPORT_BUDGET for who in self.chefs}  # a chef starts standing still
+        self.report_stalled = {who: 0. for who in self.chefs}
+        self.resync = {who: 0 for who in self.chefs}  # reports must carry the current count as `base`
         self.floor_places = {tile_key(cell): Station(f'地面({cell[0]},{cell[1]})', self.floor_area(cell))
                              for cell in self.floor}
 
@@ -399,6 +413,66 @@ class SpatialKitchen(Kitchen):
         after=self._wall_limited(before,tuple(before[i]+delta[i] for i in (0,1)))
         self.positions[other]=after
         self.chefs[other].location=tile_key(self.anchor(other))
+        # A pushed reporting chef is no longer where its browser drew it.
+        if self.reported[other] and math.dist(before,after)>1e-6:self._resync(other,'pushed')
+
+    @engine_input
+    def report_position(self, who, x, y, base, settle=False):
+        """The player's browser says where it has moved its own chef (Overcooked-style local movement).
+
+        The engine walks there with its own physics on the next steps; `settle` walks there now, as far
+        as the speed budget allows, before an interaction uses the position. Reports made before the
+        latest resync (`base` behind) are ignored."""
+        if self.ended or base != self.resync[who]:return False
+        target=(float(x),float(y))
+        if not all(math.isfinite(v) for v in target):return False
+        self.reported[who]=True
+        if math.dist(target,self.positions[who])>REPORT_MAX_LEAD:
+            self._resync(who,'too_far');return False
+        self.report_target[who]=target
+        self.report_stalled[who]=0.
+        if settle:self._chase(who,0.)
+        return True
+
+    def _resync(self, who, reason):
+        self.resync[who]+=1
+        self.report_target[who]=None
+        self.report_stalled[who]=0.
+        self.emit(f'{NAMES[who]}的位置以引擎为准',kind='position_resync',actor=who,reason=reason,
+                  position=tuple(round(v,4) for v in self.positions[who]))
+
+    def _chase(self, who, seconds):
+        """Walk a reporting chef toward its reported point with the keyboard walking physics."""
+        target=self.report_target[who]
+        if target is None or self.chefs[who].job:return
+        start=self.positions[who];gap=math.dist(start,target)
+        if gap<1e-6:
+            self.report_target[who]=None;return
+        step=min(gap,self.report_budget[who])
+        boosted=self.time<self.sprint_until[who]-1e-8
+        if step>1e-9:
+            end=tuple(start[i]+(target[i]-start[i])*step/gap for i in (0,1))
+            if self.nav.clear_walk_line(start,end):
+                self._move_with_chef_contact(who,end,boosted)
+            else:
+                # Slide along the blocking edge, axis by axis, as keyboard walking does.
+                for axis in (0,1):
+                    here=self.positions[who];candidate=list(here);candidate[axis]=end[axis]
+                    if abs(candidate[axis]-here[axis])>1e-9:self._move_with_chef_contact(who,tuple(candidate),boosted)
+            moved=math.dist(start,self.positions[who])
+            self.report_budget[who]=max(0.,self.report_budget[who]-moved)
+            if boosted:self._nudge_food(who,start,self.positions[who])
+            self.chefs[who].location=tile_key(self.anchor(who))
+        else:
+            moved=0.
+        if self.report_target[who] is None:return  # resynced by a push during the walk
+        if math.dist(self.positions[who],target)<1e-6:
+            self.report_target[who]=None;self.report_stalled[who]=0.
+        elif moved<1e-4:
+            self.report_stalled[who]+=seconds
+            if self.report_stalled[who]>=REPORT_STALL-1e-9:self._resync(who,'blocked')
+        else:
+            self.report_stalled[who]=0.
 
     def _move_with_chef_contact(self,who,end,boosted=False):
         start=self.positions[who];other_id='jeff' if who=='human' else 'human'
@@ -1115,6 +1189,14 @@ class SpatialKitchen(Kitchen):
 
     def _after_step(self, seconds):
         for who, vector in self.manual.items():
+            if self.reported[who]:
+                # Moved by its browser's reports: the held direction only turns the chef.
+                if any(vector):self._face_vector(who,*vector)
+                boosted=max(0.,min(seconds,self.sprint_until[who]-(self.time-seconds)))
+                allowance=self.rules.walk_speed*(seconds+self.rules.sprint_boost*boosted)*REPORT_SPEED_MARGIN
+                self.report_budget[who]=min(REPORT_BUDGET,self.report_budget[who]+allowance)
+                self._chase(who,seconds)
+                continue
             if not any(vector): continue
             self._face_vector(who,*vector)
             start = self.positions[who]
@@ -1210,6 +1292,7 @@ class SpatialKitchen(Kitchen):
                 data.update(action_kind='manual_move',task='手动移动',working=False)
             data['facing'] = self.facing[who]
             data['position'] = [round(v, 4) for v in self.positions[who]]
+            data['resync'] = self.resync[who]
             data['location_name'] = self.place(self.chefs[who].location).name
             data['route'] = self.routes.get(who, {}).get('points', []) if self.chefs[who].job else []
         for item in state['ground']:

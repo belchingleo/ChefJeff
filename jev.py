@@ -302,7 +302,7 @@ class DecisionLoop:
         # HTTP choices are stateless: return actual outcomes, not just today's snapshot.
         # Walking starts/stops are already in each chef's position and move_direction; as events
         # they only push outcomes out of the window. The run log keeps them.
-        payload['state']['recent_events'] = [e for e in self.k.events if e.get('kind') != 'manual_move'][-20:]
+        payload['state']['recent_events'] = [e for e in self.k.events if e.get('kind') not in ('manual_move', 'position_resync')][-20:]
         payload['state']['recent_decisions'] = list(self.recent_decisions)
         messages=getattr(self,'player_messages',[])
         if messages:
