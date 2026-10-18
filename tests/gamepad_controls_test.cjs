@@ -23,7 +23,8 @@ function harness(path,{available=true,denied=false,secure=true}={}){
   appendChild(child){child.parentElement=this;this.children.push(child);return child;}
   setAttribute(name,value){this.attributes[name]=String(value);}getAttribute(name){return this.attributes[name]??null;}
   removeAttribute(name){delete this.attributes[name];}addEventListener(){}removeEventListener(){}remove(){}
-  closest(selector){if(selector.split(',').some(part=>part.trim()===this.tagName.toLowerCase()))return this;return null;}
+  closest(selector){if(selector.split(',').some(part=>{part=part.trim();const not=part.match(/^(\w+):not\(\[([\w-]+)\]\)$/);
+    return not?not[1]===this.tagName.toLowerCase()&&!(not[2] in (this.attributes||{})):part===this.tagName.toLowerCase();}))return this;return null;}
  }
  const document={...target(documentListeners),readyState:'complete',hidden:false,activeElement:null,
   body:new Element('body'),head:new Element('head'),documentElement:new Element('html'),

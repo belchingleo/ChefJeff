@@ -121,14 +121,16 @@
       const label = document.createElement('label'), input = document.createElement('input');
       label.setAttribute('aria-hidden', 'true');
       label.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none';
-      input.type = 'checkbox'; input.setAttribute('switch', ''); input.tabIndex = -1;
+      input.type = 'checkbox'; input.setAttribute('switch', ''); input.setAttribute('data-kitchen-haptic', ''); input.tabIndex = -1;
       label.appendChild(input); document.body.appendChild(label);
-      return () => label.click();
+      // Clicking the label focuses the switch; hand focus straight back so keys and the round carry on.
+      return () => { label.click(); if (document.activeElement === input) input.blur(); };
     })();
     const buzz = ms => { try { if (navigator.vibrate) navigator.vibrate(ms); else haptic?.(); } catch (_) {} };
     // The kitchen client calls this on a Space/Action interaction, inside the same touch gesture.
     window.kitchenBuzz = buzz;
-    const editor = () => document.activeElement?.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"]');
+    // The hidden haptic switch below is not a text field: focusing it must not pause the round.
+    const editor = () => document.activeElement?.closest('input:not([data-kitchen-haptic]),textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"]');
     const modal = () => !!document.querySelector('dialog[open]');
     const stopped = () => !active || !landscape || document.hidden || modal() || !!editor() || menuOpen || communicationOpen;
     const canPlay = () => !!controls && active && landscape && !stopped() && state.connected && state.phase === 'running' && !state.pending;
