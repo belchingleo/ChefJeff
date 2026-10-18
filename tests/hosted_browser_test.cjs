@@ -21,6 +21,7 @@ function harness(saved=null, fail=false, gameState={game_id:'round',phase:'ready
    return new Response(JSON.stringify(status===201?{session:'test-session'}:{error:'Kitchens full.'}),{status});
   }
   if(u.pathname==='/api/state')return new Response(JSON.stringify(gameState));
+  if(u.pathname==='/api/interact')return new Response(JSON.stringify({ok:true,state:JSON.parse(JSON.stringify(gameState))}));
   if(u.pathname==='/api/model/jev')return new Response(JSON.stringify({answer:{choice:'wait',sprint:false,usage:{input_tokens:3,output_tokens:4}}}));
   return new Response('{"ok":true}');
  };
@@ -63,7 +64,7 @@ function clientHarness(h, fromSource){
  const cc={Component:function(){},Camera:class{},UITransform,Color,Graphics,Node,Layers:{Enum:{UI_2D:1}},sys:{isNative:true},game:{frameRate:15},
    _decorator:{ccclass:()=>cls=>cls},cclegacy:{_RF:{push:()=>{},pop:()=>{}}}};
  h.cc=cc;
- const art={LevelOneArt:class{}},audio={KitchenAudio:class{onState(){}}};
+ const art={LevelOneArt:class{}},audio={KitchenAudio:class{onState(){}predict(){}play(){}}};
  const geometry={GRID_ART:{tile:48,originX:0,originY:0}};
  const context=vm.createContext({...cc,...art,...audio,...geometry,window:h.w,document:h.document,
    URLSearchParams,location:{search:''},Event:class{constructor(type){this.type=type;}},
@@ -475,6 +476,9 @@ function settingsHarness(){
  assert(!h.calls.some(c=>JSON.stringify(c).includes(key)),'loading remembered settings alone makes no model call');
  h=harness();r=await h.w.fetch('/api/connection',{body:JSON.stringify({...cfg,provider:'compatible',base_url:'https://kitchen.example'})});assert.equal(r.status,400);
  h=harness();d=await (await h.w.fetch('/api/state')).json();assert.equal(d.connection.configured,false);
+ // A gameplay reply's state gets the same page-side connection details as a poll.
+ h=harness();d=await (await h.w.fetch('/api/interact',{method:'POST',body:'{}'})).json();
+ assert.equal(d.ok,true);assert.equal(d.state.connection.configured,false);assert.equal(d.state.limits.connection_checks,0);
  h=harness(null,false,undefined,[503,201]);
  r=await h.w.fetch('/api/state');assert.equal(r.status,503);assert((await r.json()).error.includes('厨房'));
  for(let i=0;i<5;i++)await h.w.fetch('/api/state');

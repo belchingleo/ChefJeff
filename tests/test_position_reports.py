@@ -120,5 +120,31 @@ class WebTests(unittest.TestCase):
         self.assertEqual(self.command(g, 'interact', expected_item=None, at=[3.15], base=0)[0], 400)
 
 
+class StateReplyTests(unittest.TestCase):
+    """Gameplay replies carry the resulting state, numbered so a late poll cannot replace it."""
+    def make(self):
+        g = GameSession(kitchen_factory=SpatialKitchen, client_factory=Client, journal_factory=FakeJournal)
+        self.addCleanup(g.close)
+        return g
+
+    def command(self, g, path, **extra):
+        return g.command('/api/'+path, {'game_id': g.game_id, 'request_id': str(time.monotonic_ns()), **extra})
+
+    def test_actions_reply_with_the_new_state_and_a_newer_sequence(self):
+        g = self.make(); self.assertEqual(self.command(g, 'start')[0], 200)
+        first = g.public_state()['state_seq']
+        fetch = next(a for a in g.k.actions('human') if a.kind == 'fetch')
+        status, body = self.command(g, 'action', action=fetch.key, expected=list(fetch.expected))
+        self.assertEqual(status, 200)
+        self.assertGreater(body['state']['state_seq'], first)
+        self.assertEqual(body['state']['kitchen']['chefs']['human']['action_kind'], 'fetch')
+        self.assertGreater(g.public_state()['state_seq'], body['state']['state_seq'])
+        # Refused interactions still say why and carry no state (the page then polls).
+        status, body = self.command(g, 'interact', expected_item='not-held')
+        self.assertEqual(status, 409); self.assertNotIn('state', body)
+        # Other commands keep their short replies.
+        self.assertNotIn('state', self.command(g, 'pause')[1])
+
+
 if __name__ == '__main__':
     unittest.main()

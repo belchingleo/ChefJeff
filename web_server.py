@@ -30,6 +30,9 @@ TICK_SECONDS = .05
 IDLE_TICK_SECONDS = 1.
 
 
+# Gameplay commands whose reply carries the resulting state.
+STATE_REPLIES = ('/api/interact', '/api/throw', '/api/action')
+
 PLAYER_MESSAGES = {
     'prep': 'I prefer preparing ingredients.',
     'cook': 'I prefer cooking.',
@@ -239,7 +242,9 @@ class GameSession:
                       if e.get('kind') not in ('action_start', 'action_done', 'position_resync')]
             events += self.notes
             events = sorted(events, key=lambda e:e['t'])[-10:]
-            return {'game_id': self.game_id, 'phase': self.phase, 'speed': self.speed,
+            # Increases with every state handed out, so a page keeps the newest of overlapping replies.
+            self.state_seq = getattr(self, 'state_seq', 0) + 1
+            return {'game_id': self.game_id, 'state_seq': self.state_seq, 'phase': self.phase, 'speed': self.speed,
                     'communication': self.communication_state(),
                     'interaction': asdict(interaction) if interaction else None,
                     'use_interaction': asdict(use) if use else None,
@@ -296,6 +301,9 @@ class GameSession:
             if request_id in self.receipts:
                 return self.receipts[request_id]
             response = self._command(path, body)
+            if path in STATE_REPLIES and response[0] < 400 and isinstance(response[1], dict):
+                # The page draws the outcome from this reply instead of waiting a round trip for the next poll.
+                response = (response[0], {**response[1], 'state': self.public_state()})
             self.receipts[request_id] = response
             while len(self.receipts) > 128:
                 self.receipts.popitem(last=False)
