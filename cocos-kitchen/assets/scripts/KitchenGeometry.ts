@@ -28,6 +28,12 @@ export function wallOffset(){return GRID_ART.wallHeight*GRID_ART.tile/GRID_ART.u
  * A solid sorts by its north edge: feet at or behind that edge stay behind it, while
  * feet further south in its row can only stand beside it and draw in front. */
 export function depthOrder(y:number,kind:'solid'|'actor'|'item'){return y+(kind==='solid'?-.495:kind==='actor'?0:-.12);}
+/** A food or tool lying on the floor at map y. Cabinets (and walls) one row up hang their front panel
+ * into its tile, so it draws in front of them (above their contents too); everything from its own row
+ * down stays in front of it. It stays under any chef close enough to overlap (a steak at the feet never
+ * covers the legs): a chef is at least about a row north before the item can draw over them. Derived
+ * from rows only, so it holds for any layout. */
+export function floorItemDepth(y:number){return depthOrder(Math.round(y)-1,'solid')+.012;}
 /** Station-working chefs stand outside the cabinet footprint; the cabinet must
  * not cover their face. North/back bodies retain ordinary grounded depth. */
 export function workingChefDepth(y:number,row:number|undefined,facing:string,working:boolean){
@@ -135,6 +141,12 @@ function walkTick(map:any,from:number[],v:number[],distance:number,other?:number
 /** Local prediction of a held-key walk (dx, dy in cells), computed in the server's own steps:
  * `tick` is the distance one 50 ms game tick covers at the current speed. Same geometry, same
  * step size, so diagonal slides along counters land where the server's do. */
+/** Where a new local walk starts. The chef is drawn between two engine ticks on a straight line, which
+ * can cut the corner of a slide into a counter (level 2's board notch); a walk started from there could
+ * never move again, so it starts from the last tick point (or the engine's position) instead. */
+export function walkStart(map:any,drawn:number[],fallback:number[]):number[]{
+    return footWalkable(map,drawn[0],drawn[1])?drawn:[fallback[0],fallback[1]];
+}
 export function predictWalk(map:any,from:number[],dx:number,dy:number,other?:number[],tick=(map.walk_speed??4.5)*.05){
     const total=Math.hypot(dx,dy);
     if(total<1e-12)return [from[0],from[1]];

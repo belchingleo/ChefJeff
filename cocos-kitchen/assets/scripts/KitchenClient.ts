@@ -2,7 +2,7 @@ import { _decorator, Component, Node, UITransform, Graphics, Color, Label, Layer
     view, ResolutionPolicy, sys, game, Game, profiler, Mask, Vec2, Camera, director, Sprite } from 'cc';
 import { LevelOneArt } from './LevelOneArt';
 import { KitchenAudio } from './KitchenAudio';
-import { levelButtonLayout, GRID_ART, stationView, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, workingChefDepth, flightDepth, predictWalk, footWalkable, spaceStation, plateLayers, heatCountdown, behindCounter, throwPose, throwDiagonal, throwItemPoint, panHandleSide } from './KitchenGeometry';
+import { levelButtonLayout, GRID_ART, stationView, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, floorItemDepth, workingChefDepth, flightDepth, predictWalk, footWalkable, walkStart, spaceStation, plateLayers, heatCountdown, behindCounter, throwPose, throwDiagonal, throwItemPoint, panHandleSide } from './KitchenGeometry';
 const { ccclass } = _decorator;
 type Action = { key: string; label: string; kind: string; target: string; expected: unknown[] };
 type KitchenState = { game_id: string; state_seq?: number; phase: string; speed: number; kitchen: any; actions: Action[]; levels?:any[]; limits?:any; capacity?:any; release?:any; interaction?:Action; use_interaction?:Action; interaction_hint?:string; interaction_focus?:string; interaction_cell?:number[];
@@ -49,7 +49,6 @@ const TILE=GRID_ART.tile, MAPX=GRID_ART.originX, MAPY=GRID_ART.originY;
 const KNIFE_VIEW:Record<string,[string,boolean]>={down:['knife/v1/front_',false],up:['knife/v1/top_',false],right:['knife/v1/side_',false],left:['knife/v1/side_',true]};
 const color=(hex:string)=>new Color().fromHEX(hex);
 const AIM_HOLD=.3;
-const FLOOR_ITEM_DEPTH=-1000;
 const FACING_DIR:Record<string,[number,number]>={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
 
 @ccclass('KitchenClient')
@@ -93,6 +92,8 @@ export class KitchenClient extends Component {
     private predicted:number[]|null=null;
     /** Held-key walk in whole server ticks: position at the last tick, the next one, and the progress between. */
     private walkPlan:{dx:number,dy:number,at:number[],next:number[],frac:number}|null=null;
+    /** The last engine-tick point of the local walk: always walkable, unlike the point drawn between ticks. */
+    private tickAt:number[]|null=null;
     private resyncSeen=-1;
     /** Jeff blocks the local walk: the engine walks with the held direction (pushing or sliding) and this page follows. */
     private pressing=false;
@@ -551,7 +552,7 @@ export class KitchenClient extends Component {
     }
     private predictHuman(k:any,c:any,dt:number,n:Node){
         if(!c.position){this.predicted=this.walkPlan=null;return null;}
-        if((c.resync??0)!==this.resyncSeen){this.resyncSeen=c.resync??0;this.predicted=this.walkPlan=null;}
+        if((c.resync??0)!==this.resyncSeen){this.resyncSeen=c.resync??0;this.predicted=this.walkPlan=this.tickAt=null;}
         if(!this.predicted)this.predicted=[c.position[0],c.position[1]];
         const d=this.manualDirection;
         // A quick take/put finishes before the held direction starts, as on the server.
@@ -568,15 +569,19 @@ export class KitchenClient extends Component {
         if(other&&moved(this.predicted,free(this.predicted))&&(!moved(this.predicted,step(this.predicted))||(this.pressing&&near))){
             const pull=Math.min(1,dt*8);
             this.predicted=[this.predicted[0]+(c.position[0]-this.predicted[0])*pull,this.predicted[1]+(c.position[1]-this.predicted[1])*pull];
-            this.pressing=true;this.walkPlan=null;
+            this.pressing=true;this.walkPlan=null;this.tickAt=[c.position[0],c.position[1]];
             return this.predicted;
         }
         // Leaving the press: walk on from where the engine has got to, never report a point behind it.
         if(this.pressing){this.pressing=false;this.predicted=[c.position[0],c.position[1]];this.walkPlan=null;}
         let plan=this.walkPlan;
-        if(!plan||plan.dx!==d.x||plan.dy!==d.y)plan=this.walkPlan={dx:d.x,dy:d.y,at:this.predicted,next:step(this.predicted),frac:0};
+        if(!plan||plan.dx!==d.x||plan.dy!==d.y){
+            const from=walkStart(k.map,this.predicted,this.tickAt||c.position);
+            plan=this.walkPlan={dx:d.x,dy:d.y,at:from,next:step(from),frac:0};
+        }
         plan.frac+=dt*this.state!.speed/.05;
         while(plan.frac>=1){plan.frac-=1;plan.at=plan.next;plan.next=step(plan.at);}
+        this.tickAt=plan.at;
         return this.predicted=[plan.at[0]+(plan.next[0]-plan.at[0])*plan.frac,plan.at[1]+(plan.next[1]-plan.at[1])*plan.frac];
     }
     private updatePick(k:any,c:any){
@@ -1042,7 +1047,7 @@ export class KitchenClient extends Component {
         if(next.game_id!==this.state?.game_id||!this.connected){this.menuSignature='';this.foodStages={};this.readyUntil={};this.activeClock=0;
             if(this.mounted)for(const who of ['human','jeff'])this.locate(this.people[who],next.kitchen.chefs[who].position);}
         if(next.phase!=='running'||next.game_id!==this.state?.game_id||(this.spaceItemId!==null&&(next.kitchen.chefs.human.holding?.id!==this.spaceItemId||next.kitchen.chefs.human.can_throw===false)))this.clearInput();
-        if(next.game_id!==this.state?.game_id){this.moveSeq=Date.now()*1000;this.predicted=this.walkPlan=this.lastReported=this.lastAim=null;this.resyncSeen=-1;}
+        if(next.game_id!==this.state?.game_id){this.moveSeq=Date.now()*1000;this.predicted=this.walkPlan=this.tickAt=this.lastReported=this.lastAim=null;this.resyncSeen=-1;}
         if(next.phase!=='running')this.localPick=undefined;
         this.state=next;this.connected=true;this.received=this.lastStateAt=this.clock;this.stateSentAt=sent;
         const frameRate=next.phase==='running'?(this.touchLayout?.active?30:60):15;
@@ -1500,9 +1505,9 @@ export class KitchenClient extends Component {
     }
     private foodNode(id:string,stage:string,airborne=false){
         const n=this.make('food-'+id,0,0,44,40,this.world||this.node);n.setScale(.9,.9,1);
-        // Food and tools lying on the floor stay under every chef and cabinet (above the floor tiles, -2000);
-        // in flight they keep the flight order above the ground.
-        this.registerDepth(n,()=>airborne?(this.flightOrder[id]??0):FLOOR_ITEM_DEPTH+depthOrder((360-MAPY-n.position.y)/TILE-.5,'item')); this.drawIcon(n.addComponent(Graphics),stage);
+        // Food and tools lying on the floor: in front of the cabinets one row up, under nearby chefs
+        // (floorItemDepth); in flight they keep the flight order above the ground.
+        this.registerDepth(n,()=>airborne?(this.flightOrder[id]??0):floorItemDepth((360-MAPY-n.position.y)/TILE-.5)); this.drawIcon(n.addComponent(Graphics),stage);
         const child=new Node('id');child.layer=Layers.Enum.UI_2D;n.addChild(child);child.addComponent(UITransform).setContentSize(64,19);child.setPosition(0,-23);
         const l=child.addComponent(Label);this.writeLabel(l,id);l.fontSize=13;l.lineHeight=16;l.color=color(COLORS.ink);
         child.active=!this.useModularArt;
