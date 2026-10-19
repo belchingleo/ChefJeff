@@ -19,7 +19,7 @@ from fontTools import subset
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'cocos-kitchen' / 'fonts' / 'chefjeff-pixel.woff2'
-SOURCES = ['cocos-kitchen/assets/scripts/KitchenClient.ts', 'cocos-kitchen/web-shell.html', 'hosted/contribution.html']
+SOURCES = ['cocos-kitchen/assets/scripts/KitchenClient.ts', 'cocos-kitchen/web-shell.html', 'hosted/contribution.html', 'hosted/consent.html']
 
 
 def ui_text():

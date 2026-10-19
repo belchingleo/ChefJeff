@@ -205,7 +205,11 @@
       const result = await serverFetch(url.pathname, init);
       if (!result.ok || (url.pathname !== '/api/state' && !STATE_REPLIES.has(url.pathname))) return result;
       // Gameplay replies carry the resulting state; both get this page's connection details.
-      const withConnection = d => {state = d;d.connection = connection();d.limits.connection_checks = checks;return d;};
+      // Also this browser's contribution answer: the result card offers 贡献本局 after 暂不.
+      const withConnection = d => {state = d;d.connection = connection();d.limits.connection_checks = checks;
+        if (d.hosted) Object.assign(d.hosted, {contribution_offer: !!d.hosted.contribution_enabled && choice?.answer === 'later',
+          contribution_busy: busyRound === d.game_id});
+        return d;};
       const d = await result.json();
       if (url.pathname === '/api/state') return response(200, withConnection(d));
       if (d.state) d.state = withConnection(d.state);
@@ -247,14 +251,17 @@
     finally {setTimeout(poll, 200);}
   }
   setTimeout(poll, 200);
-  const AUTO_KEY = 'chefjeff.contribution-auto.v1', RECEIPTS_KEY = 'chefjeff.contribution-receipts.v1';
-  const CONSENT = 'pilot-session-2026-09-v1';
-  let pendingContribution = Promise.resolve(), autoRound = '', uploadedRound = '', shown = null;
+  const CHOICE_KEY = 'chefjeff.contribution-choice.v1', RECEIPTS_KEY = 'chefjeff.contribution-receipts.v1';
+  // Equals hosted_records.CONSENT_VERSION: new terms ask again instead of carrying an old answer over.
+  const CONSENT = 'pilot-session-2026-10-v2';
+  let pendingContribution = Promise.resolve(), autoRound = '', busyRound = '', shown = null, askedAt = '', notice = {round:'', text:''};
   const stored = (name, fallback) => {try {return JSON.parse(localStorage.getItem(name) || 'null') ?? fallback;} catch (_) {return fallback;}};
   const keep = (name, value) => {try {value == null ? localStorage.removeItem(name) : localStorage.setItem(name,JSON.stringify(value));} catch (_) {}};
-  let autoConsent = stored(AUTO_KEY, null);
-  const autoOn = () => autoConsent?.consent_version === CONSENT;
-  const setAuto = value => {autoConsent=value;keep(AUTO_KEY,value);};
+  keep('chefjeff.contribution-auto.v1', null); // Older opt-in under superseded terms; never read again.
+  // The up-front answer: 'auto' (standing consent for later rounds) or 'later' (ask per round).
+  let choice = stored(CHOICE_KEY, null);
+  if (choice?.consent_version !== CONSENT || !['auto','later'].includes(choice.answer)) choice = null;
+  const autoOn = () => choice?.answer === 'auto';
   let receipts = stored(RECEIPTS_KEY, []);
   receipts = (Array.isArray(receipts) ? receipts : []).filter(r => r && typeof r.id === 'string' && typeof r.deletion_token === 'string' && Date.parse(r.expires_at) > Date.now());
   const contributionStatus = text => {const n=document.getElementById('contribution-status');if(n)n.textContent=text;};
@@ -263,13 +270,19 @@
     if(box)box.value=receipts.length?JSON.stringify(receipts.length===1?receipts[0]:receipts,null,2):'';
     if(download)download.hidden=!receipts.length;
   }
+  function showChoice() {
+    const n=document.getElementById('contribution-choice');
+    if(n)n.textContent=autoOn()?'当前选择：以后每局结束自动贡献，保存 30 天。':
+      choice?'当前选择：暂不自动贡献。结算画面可点「贡献本局」只贡献这一局。':'当前选择：尚未选择。';
+  }
   function badge() {
     const n=document.getElementById('contribution-badge');if(!n)return;
     const s=shown || state;
-    n.textContent=!autoOn()||!s?.hosted?.contribution_enabled||s.phase==='running'?'':
-      uploadedRound===s.game_id?'本局已自动上传，保存 30 天。':'自动上传已开启。';
+    n.textContent=!s?.hosted?.contribution_enabled||s.phase==='running'?'':
+      notice.round===s.game_id?notice.text:autoOn()?'自动贡献已开启。':'';
     n.hidden=!n.textContent;
   }
+  const report = (round, text) => {notice={round,text};contributionStatus(text);badge();};
   async function contributionCommand(path, extra={}, round=state?.game_id) {
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
     try {
@@ -280,63 +293,64 @@
     finally {clearTimeout(timer);}
   }
   async function contribute(mode, round) {
-    const d=await contributionCommand('/api/contribution/save',{consent:true,consent_version:CONSENT,consent_mode:mode},round);
-    receipts=[...receipts.filter(r=>r.id!==d.receipt.id),d.receipt];
-    keep(RECEIPTS_KEY,receipts);showReceipts();
-    if(mode==='standing')uploadedRound=round;
-    return d.receipt;
+    busyRound=round;
+    try {
+      const d=await contributionCommand('/api/contribution/save',{consent:true,consent_version:CONSENT,consent_mode:mode},round);
+      receipts=[...receipts.filter(r=>r.id!==d.receipt.id),d.receipt];
+      keep(RECEIPTS_KEY,receipts);showReceipts();
+      return d.receipt;
+    } finally {busyRound='';}
+  }
+  // One round under the same terms: the result card's 贡献本局 and the Settings button.
+  function contributeRound() {
+    const s=shown||state,round=s?.game_id;
+    if(s?.phase!=='ended'||!s.hosted?.contribution_enabled||s.hosted.contributed||busyRound===round)return;
+    pendingContribution=pendingContribution.catch(()=>{}).then(()=>contribute('round',round))
+      .then(()=>report(round,'本局已贡献，保存 30 天。删除凭证在「设置 → 数据导出」。'))
+      .catch(error=>report(round,'贡献失败：'+error.message));
+  }
+  window.addEventListener('kitchen-contribute', contributeRound);
+  function ask(at) {
+    const dialog=document.getElementById('contribution-ask');
+    if(!dialog||document.querySelector('dialog[open]'))return; // Settings or help first; the next state asks.
+    askedAt=at;dialog.showModal();
   }
   window.addEventListener('kitchen-state', e => {
     const s=e.detail;shown=s;
     const button = document.getElementById('contribution-save');
-    if (button) button.disabled = !(e.detail.phase === 'ended' && e.detail.hosted?.contribution_enabled &&
-      document.getElementById('contribution-consent').checked);
+    if (button) button.disabled = !(s.phase === 'ended' && s.hosted?.contribution_enabled && !s.hosted.contributed && busyRound !== s.game_id);
     if(autoOn()&&s.hosted?.contribution_enabled&&s.phase==='ended'&&autoRound!==s.game_id){
-      autoRound=s.game_id;
-      pendingContribution=pendingContribution.catch(()=>{}).then(()=>contribute('standing',s.game_id))
-        .then(()=>contributionStatus('本局已自动上传，保存 30 天。'))
-        .catch(error=>contributionStatus('自动上传失败：'+error.message))
-        .finally(()=>badge());
+      const round=autoRound=s.game_id;
+      pendingContribution=pendingContribution.catch(()=>{}).then(()=>contribute('standing',round))
+        .then(()=>report(round,'本局已自动贡献，保存 30 天。'))
+        .catch(error=>report(round,'自动贡献失败：'+error.message));
     }
+    // Asked before the first round, with no default answer. Browsers may still close it on Esc without
+    // an answer; then it comes back once at the next start or result screen until answered.
+    const at=s.game_id+'/'+s.phase;
+    if(!choice&&askedAt!==at&&s.hosted?.contribution_enabled&&['ready','ended'].includes(s.phase))ask(at);
     badge();
   });
   window.addEventListener('DOMContentLoaded', () => {
     const el = id => document.getElementById(id);
-    const status = text => {el('contribution-status').textContent = text;};
-    const command=contributionCommand;
-    showReceipts();
-    if(el('contribution-auto'))el('contribution-auto').checked=autoOn();
-    if(autoOn())el('contribution-consent').checked=true;
-    el('contribution-consent').onchange = () => {
-      el('contribution-save').disabled = !(state?.phase === 'ended' && state?.hosted?.contribution_enabled && el('contribution-consent').checked);
-      if(!el('contribution-consent').checked){
-        setAuto(null);if(el('contribution-auto'))el('contribution-auto').checked=false;badge();
-      }
+    const status = contributionStatus, command=contributionCommand, dialog=el('contribution-ask');
+    showReceipts();showChoice();
+    dialog.oncancel = e => e.preventDefault(); // Both answers are one click; Esc is not an answer.
+    const answer = auto => {
+      choice={consent_version:CONSENT,answer:auto?'auto':'later',since:new Date().toISOString()};keep(CHOICE_KEY,choice);
+      // Agreeing never uploads a round that had already ended.
+      if(auto){const now=shown||state;autoRound=now?.phase==='ended'?now.game_id:'';}
+      dialog.close();showChoice();badge();
+      status(auto?'已开启自动贡献：此后每局结束自动保存 30 天。':'已选择暂不贡献，之后不会自动上传。');
     };
-    if(el('contribution-auto'))el('contribution-auto').onchange=()=>{
-      const box=el('contribution-auto');
-      if(box.checked&&!el('contribution-consent').checked&&!autoOn()){
-        box.checked=false;status('请先勾选同意上方条款。');return;
-      }
-      if(box.checked){const now=shown||state;autoRound=now?.phase==='ended'?now.game_id:'';setAuto({consent_version:CONSENT,since:new Date().toISOString()});}
-      else setAuto(null);
-      status(box.checked?'自动上传已开启，此后每局结束自动保存 30 天。':'已关闭自动上传。');badge();
-    };
+    el('ask-auto').onclick = () => answer(true);
+    el('ask-later').onclick = () => answer(false);
+    el('contribution-change').onclick = () => dialog.showModal();
     el('contribution-preview').onclick = async () => {
       try {const d = await command('/api/contribution/preview');el('contribution-data').value = JSON.stringify(d.record,null,2);el('contribution-data').hidden = false;}
       catch (e) {status(e.message);}
     };
-    el('contribution-save').onclick = async () => {
-      el('contribution-save').disabled = true;
-      try {
-        if (!el('contribution-consent').checked) return;
-        const round=(shown||state)?.game_id;
-        pendingContribution=pendingContribution.catch(()=>{}).then(()=>contribute('round',round));
-        await pendingContribution;
-        if(!autoOn())el('contribution-consent').checked = false;
-        status('已保存，将保留 30 天；请在离开前下载删除凭证。');
-      } catch(e) {status(e.message);}
-    };
+    el('contribution-save').onclick = contributeRound;
     el('contribution-download').onclick = () => {
       if (!receipts.length) return;
       const url = URL.createObjectURL(new Blob([JSON.stringify(receipts.length===1?receipts[0]:receipts,null,2)],{type:'application/json'}));

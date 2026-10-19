@@ -1,34 +1,16 @@
 <style>
 .contrib{border-top:1px solid var(--walnut,#6b3418);margin-top:24px;padding-top:16px}
-.contrib-lists{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:12px 0}
-.contrib-lists div{padding:10px 12px;border:1px solid var(--ink,#2b1a12);background:var(--surface,#f0d9b5)}
-.contrib-lists h4{margin:0 0 6px;font:12px/16px var(--pixel,system-ui);font-weight:400;color:var(--ink,#2b1a12)}
-.contrib-lists ul{margin:0;padding:0;list-style:none;font-size:13px;line-height:20px;color:var(--ink,#2b1a12)}
-.contrib-lists li::before{display:inline-block;width:1.2em;font-weight:700}
-.contrib-saved li::before{content:"+";color:var(--herb,#3c7a2a)}
-.contrib-never li::before{content:"×";color:var(--tomato,#b8321e)}
 .contrib textarea{width:100%;box-sizing:border-box;border:2px solid var(--ink,#2b1a12);font:12px monospace}
 .contrib .actions{align-items:center}
 </style>
 <section aria-labelledby="contribution-title" class="contrib">
- <h3 id="contribution-title">贡献本局数据</h3>
- <p>自愿参与，结束对局后提交；用于改进游戏及设计协作评估方法，私有保存 30 天后删除。</p>
- <div class="contrib-lists">
-  <div class="contrib-saved"><h4>会保存</h4><ul>
-   <li>地图与版本</li><li>游戏事件</li><li>每秒角色位置</li>
-   <li>预设沟通选项</li><li>结算结果</li></ul></div>
-  <div class="contrib-never"><h4>不会保存</h4><ul>
-   <li>API Key</li><li>IP</li><li>账号身份</li>
-   <li>模型接口地址</li><li>完整模型请求与回复</li></ul></div>
- </div>
- <p><small>不公开原始贡献数据；不贡献时仅维持内存会话，闲置 10 分钟后清除；网络通信仍经过云服务商。</small></p>
- <button id="contribution-preview" class="btn" type="button">预览数据</button>
+ <h3 id="contribution-title">贡献对局数据</h3>
+ <p id="contribution-choice" role="status"></p>
+ <div class="actions"><button id="contribution-change" class="btn" type="button">查看说明并更改选择</button><button id="contribution-preview" class="btn" type="button">预览数据</button></div>
  <textarea id="contribution-data" readonly hidden rows="8" aria-label="贡献数据预览"></textarea>
- <label class="remember"><input id="contribution-consent" type="checkbox">我同意上述用途与 30 天保存期限</label>
- <label class="remember"><input id="contribution-auto" type="checkbox">以后每局结束自动上传</label>
- <p><small>请先勾选同意，再开启自动上传；当前已结束的对局不会补传。选择保留在此浏览器，取消任一勾选即可停止后续自动上传。删除凭证也保存在此浏览器，可下载备份。</small></p>
  <div class="actions"><button id="contribution-save" class="btn primary" type="button" disabled>贡献已结束的本局</button><button id="contribution-download" class="btn" type="button" hidden>下载删除凭证</button></div>
  <p id="contribution-status" role="status"></p>
+ <p><small>不贡献时仅维持内存会话，闲置 10 分钟后清除；网络通信仍经过云服务商。删除凭证只保存在此浏览器，清理浏览器数据前请先下载备份。</small></p>
  <details class="fine"><summary>删除已贡献数据</summary>
   <p>粘贴删除凭证；持有该凭证即可删除对应数据，请妥善保管。</p>
   <textarea id="contribution-receipt" rows="3" aria-label="删除凭证"></textarea>

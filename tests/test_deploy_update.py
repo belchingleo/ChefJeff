@@ -67,6 +67,18 @@ class CapacityUpdateTests(unittest.TestCase):
             self.assertIn('--max-sessions 8 --max-waiting 32',dropin.read_text())
             self.assertEqual(run.call_args_list[-1].args,('systemctl','restart','chefjeff.service'))
 
+    def test_waiting_pages_can_change_with_the_same_limit(self):
+        with tempfile.TemporaryDirectory() as td:
+            dropin=Path(td)/'zz-chefjeff-capacity.conf'
+            states=[{'capacity':{'limit':8,'session_limit':24}},{'capacity':{'limit':8,'session_limit':40}}]
+            with patch.object(capacity,'read_metrics',side_effect=states),patch.object(capacity,'run'),patch.object(capacity.subprocess,'check_output',return_value=self.unit):
+                capacity.apply(8,dropin,waiting=32)
+            self.assertIn('--max-sessions 8 --max-waiting 32',dropin.read_text())
+            with patch.object(capacity,'read_metrics',return_value={'capacity':{'limit':8,'session_limit':40}}),patch.object(capacity,'run') as run:
+                capacity.apply(8,dropin,waiting=32)
+            run.assert_not_called()
+            with self.assertRaises(ValueError):capacity.apply(8,dropin,waiting=33)
+
     def test_failed_change_restores_exact_previous_override(self):
         with tempfile.TemporaryDirectory() as td:
             dropin=Path(td)/'capacity.conf';dropin.write_bytes(b'old reviewed command\n')

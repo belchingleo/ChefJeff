@@ -11,13 +11,13 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from release_info import ROOT, RUNTIME_FILES, release_info
 from scripts.audit_release import markers
 
-PUBLIC_FILES = ('hosted_server.py','hosted_records.py','hosted/browser-agent.js','hosted/contribution.html','deploy/update_hetzner.py','deploy/set_kitchen_capacity.py','scripts/rebuild_presentation.cjs',
+PUBLIC_FILES = ('hosted_server.py','hosted_records.py','hosted/browser-agent.js','hosted/contribution.html','hosted/consent.html','deploy/update_hetzner.py','deploy/set_kitchen_capacity.py','scripts/rebuild_presentation.cjs',
                 'cocos-kitchen/assets/scripts/KitchenAudio.ts','cocos-kitchen/assets/scripts/KitchenAudio.ts.meta',
                 'deploy/chefjeff.service','deploy/nginx-http.conf','deploy/nginx-https.conf','deploy/install_backend.py','deploy/finalize_hetzner.sh','docs/hosted-deployment.md','docs/device-support.md','docs/ui-design.md','docs/api-integration.md','docs/images/gameplay.png','README.md','LICENSE','LICENSE-STATUS.md','THIRD_PARTY_NOTICES.md','SECURITY.md','CONTRIBUTING.md',
                 'start-web.command','start-web.bat','stop-web.command',
                 'docs/map-format.md','docs/current-rules.md','docs/interaction-guide.md','docs/level-1-steak.md','docs/level-2-burger.md','docs/level-3-steak-burger.md','docs/status.md','docs/privacy-and-costs.md','docs/agent-integration.md',
                 'cocos-kitchen/THIRD_PARTY_LICENSE.md','docs/art/integration.md',
-                'scripts/build_cocos.py','scripts/package_web.py','scripts/audit_release.py',
+                'scripts/build_cocos.py','scripts/player_pages.py','docs/privacy.md','docs/model-guide.md','scripts/package_web.py','scripts/audit_release.py',
                 'cocos-kitchen/web-shell.html','cocos-kitchen/touch-controls.js','cocos-kitchen/gamepad-controls.js','cocos-kitchen/i18n.js','cocos-kitchen/i18n.json','cocos-kitchen/favicon.ico','cocos-kitchen/fonts/chefjeff-pixel.woff2','cocos-kitchen/fonts/OFL.txt','scripts/subset_pixel_font.py','cocos-kitchen/package.json','cocos-kitchen/build-web.json',
                 'cocos-kitchen/tsconfig.json','cocos-kitchen/assets/scenes.meta','cocos-kitchen/assets/scripts.meta',
                 'cocos-kitchen/assets/scripts/KitchenClient.ts','cocos-kitchen/assets/scripts/KitchenClient.ts.meta',
