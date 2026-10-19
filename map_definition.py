@@ -177,6 +177,53 @@ def validate_map(document):
     return d
 
 
+STEP = {'north': (0, -1), 'south': (0, 1), 'east': (1, 0), 'west': (-1, 0)}
+
+
+def build_map(name, size, stations, theme='street', revision=1):
+    """A schema-2 map from station coordinates. ``stations`` holds ``(id, x, y, facing)`` tuples or
+    mappings ``{id, cell, facing}`` with optional ``type``, ``name``, ``params`` and ``area``.
+
+    Derived: a closed boundary wall; the access cell the station faces, or for a counter boxed in by
+    counters (a run's corner) the free diagonal between its two neighbours (``reach: corner``); the
+    type from the historical ID conventions (``b1`` board, ``p1`` stove, ``fridge`` beef source, ...),
+    else ``counter``; the name from the ID; two areas split across the longer side. The result has
+    passed ``validate_map``; whether the types exist is the configuration resolver's check.
+    """
+    width, height = size
+    axis = 0 if width >= height else 1
+    split = size[axis] // 2
+    rows = [dict(zip(('id', 'cell', 'facing'), (s[0], [s[1], s[2]], s[3]))) if isinstance(s, (list, tuple)) else dict(s)
+            for s in stations]
+    surfaces = {tuple(s['cell']) for s in rows}
+    inside = lambda p: 0 < p[0] < width - 1 and 0 < p[1] < height - 1 and p not in surfaces
+    equipment = []
+    for s in rows:
+        (x, y), kind = s['cell'], s.get('type') or legacy_equipment_type(s['id']) or 'counter'
+        e = {'id': s['id'], 'type': kind, 'name': s.get('name', s['id']),
+             'area': s.get('area', 'prep' if s['cell'][axis] < split else 'cook'), 'cell': [x, y], 'facing': s['facing']}
+        params = s.get('params', {'item': LEGACY_SOURCES[s['id']]} if kind == 'ingredient_source' and s['id'] in LEGACY_SOURCES else None)
+        if params:
+            e['params'] = params
+        dx, dy = STEP[s['facing']]
+        if inside((x + dx, y + dy)):
+            e['access'] = [x + dx, y + dy]
+        else:
+            corner = [(x + a, y + b) for a in (-1, 1) for b in (-1, 1)
+                      if kind == 'counter' and inside((x + a, y + b)) and (x, y + b) in surfaces and (x + a, y) in surfaces]
+            if not corner:
+                raise ValueError(f'station {s["id"]} faces {s["facing"]} onto a wall or station, and is not a boxed-in counter corner')
+            e['reach'], e['access'] = 'corner', list(corner[0])
+        equipment.append(e)
+    document = {'schema_version': 2, 'id': name, 'revision': revision, 'size': [width, height],
+                'areas': {'prep': {'name': '处理区'}, 'cook': {'name': '烹饪区'}},
+                'floor_areas': {'axis': 'xy'[axis], 'split': split, 'below': 'prep', 'at_or_above': 'cook'},
+                'walls': [[x, y] for y in range(height) for x in range(width) if x in (0, width - 1) or y in (0, height - 1)],
+                'equipment': equipment, 'presentation': {'theme': theme}}
+    validate_map(document)
+    return document
+
+
 def load_map(level):
     """Load an authored map by legacy level number or by map id (``level-1``)."""
     if type(level) is int and level in (1,2,3):
