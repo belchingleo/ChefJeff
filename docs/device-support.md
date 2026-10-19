@@ -19,7 +19,7 @@ Touch devices show a landscape prompt in portrait and cannot start cooking until
 
 On iPhone every browser (Safari, Chrome and others use WebKit) lacks the Fullscreen API, so the Full screen button is replaced by a tip: choose Add to Home Screen in the Share menu and open ChefJeff from the Home Screen, which shows the page without browser bars, with the pot icon and the name ChefJeff.
 
-The left joystick moves; releasing stops. On the right, Action does the same work as Space: empty-handed actions start on press; holding an item, a short press interacts on release, while a hold of about 0.3 seconds aims a throw. During aiming, the joystick changes direction and the chef stands still. Release Action to throw, or drag into the cancel area before releasing to cancel. After aiming, release the joystick before using it to move again. The Dash button triggers the existing 1.4× speed for 1 game second, followed by a 3-game-second cooldown; it is unavailable while standing still or aiming. The communication panel is collapsed on touch devices; open it to send the existing preset messages. Bookmark, pause and menu buttons provide the other keyboard functions. See [interaction guide](interaction-guide.md).
+The left joystick moves; releasing stops. On the right, Action does the same work as Space: empty-handed actions start on press; holding an item, a short press interacts on release, while a hold of about 0.3 seconds aims a throw. During aiming, the joystick changes direction and the chef stands still. Release Action to throw, or drag into the cancel area before releasing to cancel. After a throw, or once work starts, the direction still held waits until the joystick returns to the centre or turns about 15 degrees. Grab (above Action) only picks up or puts down, at once on press; Throw aims while held and throws on release, or throws straight away on a quick tap. The Dash button starts at 2× speed and eases back to walking over 1 game second; the next dash is ready when it ends; it is unavailable while standing still or aiming. The communication panel is collapsed on touch devices; open it to send the existing preset messages. Bookmark, pause and menu buttons provide the other keyboard functions. See [interaction guide](interaction-guide.md).
 
 Desktop orders remain in the top horizontal rail. In the touch layout, orders use a 112 CSS-pixel-wide vertical column on the left, with vertical scrolling when needed. Each card shows the dish name, countdown, ingredient icons and patience bar. Missing ingredient artwork falls back to a text label.
 
@@ -76,7 +76,7 @@ Apple documents [mouse support on iPad](https://support.apple.com/en-ie/guide/ip
 
 iPhone 上的所有浏览器（Safari、Chrome 等都使用 WebKit）都不支持网页全屏接口，因此「全屏」按钮换成提示：在分享菜单选「添加到主屏幕」，从主屏幕打开即可去掉浏览器栏，图标为像素锅，名称为 ChefJeff。
 
-左摇杆控制移动，松手停止。右侧「操作」与空格执行相同动作：空手按下立即交互；持物短按松开交互，长按约 0.3 秒瞄准投掷。瞄准时角色停下，左摇杆改投掷方向；松开操作按钮投掷，或拖到取消区再松开取消。瞄准结束后，先放开摇杆再重新推动，才恢复移动。「冲刺」沿用 1.4 倍速度、持续 1 游戏秒、随后冷却 3 游戏秒；静止和瞄准时不可用。手机沟通面板默认折叠，打开后发送原有预设消息；标记、暂停和菜单按钮提供其余键盘功能。见[交互指南](interaction-guide.md)。
+左摇杆控制移动，松手停止。右侧「操作」与空格执行相同动作：空手按下立即交互；持物短按松开交互，长按约 0.3 秒瞄准投掷。瞄准时角色停下，左摇杆改投掷方向；松开操作按钮投掷，或拖到取消区再松开取消。扔出东西或开始工作后，仍按着的方向要等摇杆回到中间或转过约 15° 才会移动。「拿放」（操作上方）只拿起或放下，按下立即执行；「扔」按住瞄准、松开扔出，快速点按直接扔出。「冲刺」起步 2 倍速，1 游戏秒内平滑回落，结束后即可再冲；静止和瞄准时不可用。手机沟通面板默认折叠，打开后发送原有预设消息；标记、暂停和菜单按钮提供其余键盘功能。见[交互指南](interaction-guide.md)。
 
 桌面订单仍位于顶部横栏；手机触控布局将订单放在左侧宽 112 CSS 像素的纵向列，内容超出时可上下滚动。每张卡片显示菜名、倒计时、材料图标和耐心条；缺少材料美术时显示文字标签。
 

@@ -76,7 +76,7 @@
   [
    8.5,
    "jeff",
-   "take extinguisher",
+   "take pot p1",
    true
   ],
   [
@@ -165,72 +165,96 @@
   ],
   [
    17.0,
+   "human",
+   "take b1",
+   true
+  ],
+  [
+   17.0,
    "jeff",
-   "put b3",
+   "throw 3 5",
+   true
+  ],
+  [
+   17.5,
+   "human",
+   "assemble ground F3",
    true
   ],
   [
    17.5,
    "jeff",
-   "pickup F2",
+   "fetch bread",
    true
   ],
   [
-   20.0,
-   "human",
+   18.5,
+   "jeff",
+   "put b3",
+   true
+  ],
+  [
+   19.5,
+   "jeff",
    "take b3",
    true
   ],
   [
    20.0,
+   "human",
+   "fetch",
+   true
+  ],
+  [
+   20.0,
    "jeff",
-   "assemble b1",
+   "put b2",
+   true
+  ],
+  [
+   20.5,
+   "jeff",
+   "take b2",
    true
   ],
   [
    21.0,
-   "human",
+   "jeff",
    "put b2",
    true
   ],
   [
    21.5,
+   "jeff",
+   "take b2",
+   true
+  ],
+  [
+   22.0,
+   "jeff",
+   "put b3",
+   true
+  ],
+  [
+   22.5,
    "human",
-   "fetch",
+   "put b1",
    true
   ],
   [
    22.5,
    "jeff",
-   "take b2",
-   true
-  ],
-  [
-   23.0,
-   "human",
-   "put b1",
-   true
-  ],
-  [
-   23.0,
-   "jeff",
-   "put b2",
+   "fetch tomato",
    true
   ],
   [
    23.5,
    "jeff",
-   "take b2",
-   true
-  ],
-  [
-   24.0,
-   "jeff",
    "put b2",
    true
   ],
   [
-   24.5,
+   24.0,
    "human",
    "chop b1",
    true
@@ -238,163 +262,175 @@
   [
    24.5,
    "jeff",
-   "fetch tomato",
+   "chop b2",
    true
   ],
   [
-   25.5,
-   "jeff",
-   "put b3",
-   true
-  ],
-  [
-   26.5,
-   "jeff",
-   "chop b3",
-   true
-  ],
-  [
-   30.5,
-   "human",
-   "take b2",
-   true
-  ],
-  [
-   31.0,
-   "human",
-   "put b2",
-   true
-  ],
-  [
-   31.5,
-   "human",
-   "take b2",
-   true
-  ],
-  [
-   32.0,
-   "human",
-   "put b2",
-   true
-  ],
-  [
-   32.5,
+   27.0,
    "human",
    "take b1",
    true
   ],
   [
-   32.5,
+   27.5,
+   "human",
+   "put p2",
+   true
+  ],
+  [
+   27.5,
+   "jeff",
+   "take b2",
+   true
+  ],
+  [
+   28.0,
+   "jeff",
+   "assemble ground F2",
+   true
+  ],
+  [
+   30.0,
+   "human",
+   "take b3",
+   true
+  ],
+  [
+   30.5,
    "jeff",
    "take b3",
    true
   ],
   [
+   32.5,
+   "human",
+   "put b3",
+   true
+  ],
+  [
+   32.5,
+   "jeff",
+   "fetch lettuce",
+   true
+  ],
+  [
    33.0,
    "human",
-   "put p1",
+   "take b3",
    true
   ],
   [
-   33.0,
-   "jeff",
-   "assemble ground F4",
+   33.5,
+   "human",
+   "put b1",
    true
   ],
   [
-   34.0,
+   33.5,
    "jeff",
-   "take b2",
+   "put b3",
+   true
+  ],
+  [
+   34.5,
+   "human",
+   "take b1",
+   true
+  ],
+  [
+   35.0,
+   "human",
+   "put b1",
    true
   ],
   [
    35.0,
    "jeff",
-   "put b2",
+   "take counter4",
    true
   ],
   [
    35.5,
    "human",
-   "take b2",
-   true
-  ],
-  [
-   35.5,
-   "jeff",
-   "take b2",
-   true
-  ],
-  [
-   36.0,
-   "jeff",
-   "put b1",
-   true
-  ],
-  [
-   36.5,
-   "jeff",
    "take b1",
    true
   ],
   [
-   37.0,
-   "jeff",
-   "put b3",
+   36.0,
+   "human",
+   "put b2",
+   true
+  ],
+  [
+   36.5,
+   "human",
+   "chop b3",
    true
   ],
   [
    37.5,
-   "human",
-   "fetch",
+   "jeff",
+   "take extinguisher",
    true
   ],
   [
    38.0,
    "jeff",
-   "take b3",
-   true
-  ],
-  [
-   38.5,
-   "jeff",
-   "put b2",
+   "put counter_corner5",
    true
   ],
   [
    39.0,
+   "jeff",
+   "take b2",
+   true
+  ],
+  [
+   40.0,
+   "human",
+   "fetch tomato",
+   true
+  ],
+  [
+   41.0,
    "human",
    "put b1",
    true
   ],
   [
-   39.0,
-   "jeff",
-   "take counter4",
-   true
-  ],
-  [
-   40.5,
-   "human",
-   "take pot p2",
-   true
-  ],
-  [
    41.5,
    "jeff",
-   "take b1",
+   "throw 5 6",
+   true
+  ],
+  [
+   42.0,
+   "human",
+   "chop b1",
+   true
+  ],
+  [
+   42.0,
+   "jeff",
+   "take b3",
+   true
+  ],
+  [
+   42.5,
+   "jeff",
+   "put counter13",
    true
   ],
   [
    43.5,
-   "human",
-   "throw 11 5",
+   "jeff",
+   "fetch tomato",
    true
   ],
   [
-   44.0,
+   45.0,
    "human",
-   "chop b1",
+   "take b1",
    true
   ],
   [
@@ -404,57 +440,105 @@
    true
   ],
   [
+   45.5,
+   "human",
+   "assemble ground F3",
+   true
+  ],
+  [
    46.0,
+   "jeff",
+   "take pot p2",
+   true
+  ],
+  [
+   48.0,
+   "human",
+   "chop b3",
+   true
+  ],
+  [
+   48.5,
+   "jeff",
+   "put pot p1",
+   true
+  ],
+  [
+   49.0,
+   "jeff",
+   "pickup F6",
+   true
+  ],
+  [
+   51.0,
+   "jeff",
+   "put b2",
+   true
+  ],
+  [
+   52.0,
+   "jeff",
+   "take b2",
+   true
+  ],
+  [
+   52.5,
+   "jeff",
+   "put b1",
+   true
+  ],
+  [
+   53.0,
+   "human",
+   "take b3",
+   true
+  ],
+  [
+   53.0,
    "jeff",
    "take b3",
    true
   ],
   [
-   46.5,
+   53.5,
+   "human",
+   "assemble ground F4",
+   true
+  ],
+  [
+   53.5,
+   "jeff",
+   "take b1",
+   true
+  ],
+  [
+   54.0,
+   "jeff",
+   "put b2",
+   true
+  ],
+  [
+   54.5,
    "human",
    "take b2",
    true
   ],
   [
-   46.5,
+   54.5,
    "jeff",
-   "put b3",
+   "take b2",
    true
   ],
   [
-   47.0,
-   "human",
-   "put counter18",
-   true
-  ],
-  [
-   47.0,
-   "jeff",
-   "chop b3",
-   true
-  ],
-  [
-   49.5,
+   55.0,
    "human",
    "fetch lettuce",
    true
   ],
   [
-   52.0,
-   "human",
-   "put b2",
-   true
-  ],
-  [
-   53.0,
-   "human",
-   "chop b2",
-   true
-  ],
-  [
-   53.0,
+   55.0,
    "jeff",
-   "pickup E1",
+   "put b3",
    true
   ],
   [
@@ -464,69 +548,165 @@
    true
   ],
   [
-   58.0,
-   "jeff",
-   "load ground P2",
-   true
-  ],
-  [
-   59.0,
-   "human",
-   "fetch tomato",
-   true
-  ],
-  [
-   60.0,
+   56.0,
    "human",
    "put b3",
    true
   ],
   [
-   60.5,
-   "jeff",
-   "take counter18",
-   true
-  ],
-  [
-   61.0,
-   "human",
-   "chop b3",
-   true
-  ],
-  [
-   61.5,
-   "jeff",
-   "put b1",
-   true
-  ],
-  [
-   64.0,
-   "jeff",
-   "take b2",
-   true
-  ],
-  [
-   64.5,
-   "jeff",
-   "assemble ground F4",
-   true
-  ],
-  [
-   65.5,
-   "jeff",
-   "take b1",
-   true
-  ],
-  [
-   66.0,
+   56.0,
    "jeff",
    "put b2",
    true
   ],
   [
-   66.5,
+   56.5,
    "jeff",
    "take b2",
+   true
+  ],
+  [
+   57.0,
+   "jeff",
+   "put b2",
+   true
+  ],
+  [
+   57.5,
+   "human",
+   "chop b3",
+   true
+  ],
+  [
+   57.5,
+   "jeff",
+   "take b2",
+   true
+  ],
+  [
+   58.0,
+   "jeff",
+   "put b2",
+   true
+  ],
+  [
+   58.5,
+   "jeff",
+   "take b2",
+   true
+  ],
+  [
+   59.0,
+   "jeff",
+   "put b1",
+   true
+  ],
+  [
+   59.5,
+   "jeff",
+   "take b1",
+   true
+  ],
+  [
+   60.0,
+   "jeff",
+   "put b2",
+   true
+  ],
+  [
+   60.5,
+   "human",
+   "take b3",
+   true
+  ],
+  [
+   60.5,
+   "jeff",
+   "take b2",
+   true
+  ],
+  [
+   61.0,
+   "human",
+   "assemble ground F4",
+   true
+  ],
+  [
+   61.0,
+   "jeff",
+   "put b1",
+   true
+  ],
+  [
+   61.5,
+   "jeff",
+   "take b1",
+   true
+  ],
+  [
+   62.0,
+   "human",
+   "fetch",
+   true
+  ],
+  [
+   62.0,
+   "jeff",
+   "put b1",
+   true
+  ],
+  [
+   62.5,
+   "jeff",
+   "take b1",
+   true
+  ],
+  [
+   63.0,
+   "human",
+   "pickup P1",
+   true
+  ],
+  [
+   63.0,
+   "jeff",
+   "put b3",
+   true
+  ],
+  [
+   64.0,
+   "jeff",
+   "pickup F7",
+   true
+  ],
+  [
+   64.5,
+   "jeff",
+   "put b1",
+   true
+  ],
+  [
+   65.5,
+   "human",
+   "put pot p2",
+   true
+  ],
+  [
+   65.5,
+   "jeff",
+   "take b3",
+   true
+  ],
+  [
+   66.0,
+   "human",
+   "pickup F3",
+   true
+  ],
+  [
+   66.5,
+   "jeff",
+   "put b3",
    true
   ],
   [
@@ -538,31 +718,25 @@
   [
    67.0,
    "jeff",
-   "put b2",
-   true
-  ],
-  [
-   67.5,
-   "human",
-   "assemble ground F3",
+   "take b3",
    true
   ],
   [
    67.5,
    "jeff",
-   "take b2",
+   "throw 3 4",
    true
   ],
   [
    68.0,
    "jeff",
-   "put b2",
+   "take b1",
    true
   ],
   [
-   68.5,
-   "jeff",
-   "take b2",
+   69.0,
+   "human",
+   "fetch bread",
    true
   ],
   [
@@ -572,33 +746,39 @@
    true
   ],
   [
-   69.5,
+   70.0,
    "human",
-   "take b3",
-   true
-  ],
-  [
-   69.5,
-   "jeff",
-   "take b3",
+   "put b2",
    true
   ],
   [
    70.0,
    "jeff",
-   "put b1",
+   "take b3",
+   true
+  ],
+  [
+   70.5,
+   "jeff",
+   "put b3",
+   true
+  ],
+  [
+   71.0,
+   "human",
+   "take b2",
    true
   ],
   [
    71.0,
    "jeff",
-   "take b1",
+   "take b3",
    true
   ],
   [
    71.5,
    "human",
-   "fetch tomato",
+   "put b3",
    true
   ],
   [
@@ -609,8 +789,8 @@
   ],
   [
    72.0,
-   "jeff",
-   "take b1",
+   "human",
+   "take b3",
    true
   ],
   [
@@ -622,133 +802,157 @@
   [
    72.5,
    "jeff",
-   "put b2",
+   "take b1",
+   true
+  ],
+  [
+   73.0,
+   "human",
+   "take b3",
    true
   ],
   [
    73.0,
    "jeff",
-   "take b2",
+   "put b2",
    true
   ],
   [
    73.5,
    "human",
-   "chop b3",
+   "put b1",
    true
   ],
   [
    73.5,
    "jeff",
-   "put b2",
+   "take b2",
    true
   ],
   [
    74.0,
    "jeff",
+   "put b2",
+   true
+  ],
+  [
+   74.5,
+   "human",
    "take b2",
    true
   ],
   [
    74.5,
    "jeff",
-   "put b1",
+   "pickup F14",
    true
   ],
   [
    75.0,
-   "jeff",
-   "take b1",
-   true
-  ],
-  [
-   75.5,
-   "jeff",
-   "put b1",
+   "human",
+   "put b3",
    true
   ],
   [
    76.0,
-   "jeff",
-   "take b1",
+   "human",
+   "fetch",
    true
   ],
   [
    76.5,
    "jeff",
-   "pickup P3",
+   "take pot p2",
    true
   ],
   [
    77.0,
    "jeff",
-   "put pot p2",
+   "put b2",
    true
   ],
   [
-   79.5,
+   77.5,
    "human",
-   "take b3",
+   "put b2",
    true
   ],
   [
-   79.5,
+   79.0,
+   "human",
+   "chop b2",
+   true
+  ],
+  [
+   79.0,
    "jeff",
    "take b3",
    true
   ],
   [
-   80.0,
-   "human",
-   "assemble ground F2",
-   true
-  ],
-  [
-   80.5,
-   "human",
-   "fetch lettuce",
-   true
-  ],
-  [
-   81.5,
-   "human",
-   "put counter24",
-   true
-  ],
-  [
-   81.5,
-   "jeff",
-   "fetch tomato",
-   true
-  ],
-  [
-   82.5,
+   79.5,
    "jeff",
    "put b3",
    true
   ],
   [
-   83.5,
+   80.0,
    "jeff",
-   "chop b3",
+   "take b1",
+   true
+  ],
+  [
+   81.0,
+   "jeff",
+   "put b1",
+   true
+  ],
+  [
+   81.5,
+   "jeff",
+   "take b3",
+   true
+  ],
+  [
+   82.0,
+   "human",
+   "take b3",
+   true
+  ],
+  [
+   82.5,
+   "human",
+   "put b3",
+   true
+  ],
+  [
+   82.5,
+   "jeff",
+   "fetch lettuce",
+   true
+  ],
+  [
+   83.0,
+   "human",
+   "take b3",
+   true
+  ],
+  [
+   83.5,
+   "human",
+   "put b3",
    true
   ],
   [
    84.0,
    "human",
-   "fetch lettuce",
+   "take b1",
    true
   ],
   [
-   86.5,
-   "human",
-   "put counter_corner8",
-   true
-  ],
-  [
-   89.0,
-   "human",
-   "fetch lettuce",
+   84.0,
+   "jeff",
+   "take b2",
    true
   ]
  ],
@@ -946,11 +1150,11 @@
    8.5,
    "action_start",
    "jeff",
-   "take extinguisher",
-   "Jeff开始：去灭火器架拿灭火器（占用手持位）（路程 1s + 操作 0.1s）"
+   "take pot p1",
+   "Jeff开始：端起灶台 1的平底锅（离开灶台停止加热，占手持位）（路程 1s + 操作 0.1s）"
   ],
   [
-   8.7,
+   8.65,
    "action_done",
    "human",
    "assemble ground D1",
@@ -964,32 +1168,32 @@
    "你开始：取一份面包（自动换手）（路程 2s + 操作 0.1s）"
   ],
   [
-   9.55,
+   9.7,
    "action_done",
    "jeff",
-   "take extinguisher",
-   "Jeff完成动作：去灭火器架拿灭火器（占用手持位）"
+   "take pot p1",
+   "Jeff完成动作：端起灶台 1的平底锅（离开灶台停止加热，占手持位）"
   ],
   [
    10.0,
    "action_start",
    "jeff",
    "drop",
-   "Jeff开始：把手中物品放到地面(11,2)（可捡回、不扣钱）（路程 0s + 操作 0.1s）"
+   "Jeff开始：把手中物品放到地面(9,2)（可捡回、不扣钱）（路程 0s + 操作 0.1s）"
   ],
   [
    10.2,
    "dropped",
    "jeff",
    null,
-   "Jeff把 E1 放在地面(11,2)旁的地上，双方都可以捡"
+   "Jeff把 P1 放在地面(9,2)旁的地上，双方都可以捡"
   ],
   [
    10.2,
    "action_done",
    "jeff",
    "drop",
-   "Jeff完成动作：把手中物品放到地面(11,2)（可捡回、不扣钱）"
+   "Jeff完成动作：把手中物品放到地面(9,2)（可捡回、不扣钱）"
   ],
   [
    10.5,
@@ -999,7 +1203,7 @@
    "Jeff开始：取一份面包（自动换手）（路程 2s + 操作 0.1s）"
   ],
   [
-   11.2,
+   11.15,
    "action_done",
    "human",
    "fetch bread",
@@ -1034,7 +1238,7 @@
    "你完成动作：取一份生菜（自动换手）"
   ],
   [
-   12.9,
+   12.7,
    "action_done",
    "jeff",
    "fetch bread",
@@ -1073,7 +1277,7 @@
    "action_start",
    "human",
    "chop b1",
-   "你开始：到案板 1切 F5（剩 6.0s）（路程 0s + 操作 6.0s）"
+   "你开始：到案板 1切 F5（剩 3.0s）（路程 0s + 操作 3.0s）"
   ],
   [
    14.0,
@@ -1161,220 +1365,311 @@
   ],
   [
    17.0,
+   "action_done",
+   "human",
+   "chop b1",
+   "你完成动作：到案板 1切 F5（剩 3.0s）"
+  ],
+  [
+   17.0,
+   "action_start",
+   "human",
+   "take b1",
+   "你开始：从案板 1拿走 F5（生菜 · 切好）（路程 0s + 操作 0.1s）"
+  ],
+  [
+   17.0,
    "action_start",
    "jeff",
-   "put b3",
-   "Jeff开始：将手中食材放到案板 3（路程 0s + 操作 0.1s）"
+   "throw 3 5",
+   "Jeff开始：向地面(3,5)抛出手中物品（落点由射程和墙确定）"
+  ],
+  [
+   17.15,
+   "action_done",
+   "human",
+   "take b1",
+   "你完成动作：从案板 1拿走 F5（生菜 · 切好）"
+  ],
+  [
+   17.15,
+   "thrown",
+   "jeff",
+   null,
+   "Jeff抛出了 F6，落点为 (3, 5)"
   ],
   [
    17.15,
    "action_done",
    "jeff",
-   "put b3",
-   "Jeff完成动作：将手中食材放到案板 3"
+   "throw 3 5",
+   "Jeff完成动作：抛出物品"
+  ],
+  [
+   17.35,
+   "landed",
+   "jeff",
+   null,
+   "F6 落在地上，可拾取"
+  ],
+  [
+   17.5,
+   "action_start",
+   "human",
+   "assemble ground F3",
+   "你开始：把手中的生菜放进地面(10,6)的盘里（路程 2s + 操作 0.1s）"
   ],
   [
    17.5,
    "action_start",
    "jeff",
-   "pickup F2",
-   "Jeff开始：去地面(11,6)捡起 F2（待组装菜品；自动换手）（路程 2s + 操作 0.1s）"
+   "fetch bread",
+   "Jeff开始：取一份面包（自动换手）（路程 1s + 操作 0.1s）"
   ],
   [
-   19.55,
-   "picked_up",
-   "jeff",
-   null,
-   "Jeff从地面(11,6)旁的地上捡起 F2"
-  ],
-  [
-   19.55,
+   18.45,
    "action_done",
    "jeff",
-   "pickup F2",
-   "Jeff完成动作：去地面(11,6)捡起 F2（待组装菜品；自动换手）"
+   "fetch bread",
+   "Jeff完成动作：取一份面包（自动换手）"
   ],
   [
-   20.0,
-   "action_done",
-   "human",
-   "chop b1",
-   "你完成动作：到案板 1切 F5（剩 6.0s）"
-  ],
-  [
-   20.0,
-   "action_start",
-   "human",
-   "take b3",
-   "你开始：从案板 3拿走 F6（面包）（路程 0s + 操作 0.1s）"
-  ],
-  [
-   20.0,
-   "action_start",
-   "jeff",
-   "assemble b1",
-   "Jeff开始：用手中餐盘接取案板 1的食材（路程 2s + 操作 0.1s）"
-  ],
-  [
-   20.6,
-   "action_done",
-   "human",
-   "take b3",
-   "你完成动作：从案板 3拿走 F6（面包）"
-  ],
-  [
-   21.0,
-   "action_start",
-   "human",
-   "put b2",
-   "你开始：将手中食材放到案板 2（路程 0s + 操作 0.1s）"
-  ],
-  [
-   21.4,
-   "action_done",
-   "human",
-   "put b2",
-   "你完成动作：将手中食材放到案板 2"
-  ],
-  [
-   21.5,
-   "action_start",
-   "human",
-   "fetch",
-   "你开始：到冰箱取一份生肉（手中物品自动放到地上）（路程 1s + 操作 0.1s）"
-  ],
-  [
-   22.4,
-   "action_done",
-   "jeff",
-   "assemble b1",
-   "Jeff完成动作：用手中餐盘接取案板 1的食材"
-  ],
-  [
-   22.5,
-   "action_start",
-   "jeff",
-   "take b2",
-   "Jeff开始：从案板 2拿走 F6（面包）（路程 0s + 操作 0.1s）"
-  ],
-  [
-   22.7,
-   "action_done",
-   "human",
-   "fetch",
-   "你完成动作：到冰箱取一份生肉（手中物品自动放到地上）"
-  ],
-  [
-   22.9,
-   "swapped",
-   "jeff",
-   null,
-   "Jeff换手：把 F2 留在地面(3,6)的地上，可捡回"
-  ],
-  [
-   22.9,
-   "action_done",
-   "jeff",
-   "take b2",
-   "Jeff完成动作：从案板 2拿走 F6（面包）"
-  ],
-  [
-   23.0,
-   "action_start",
-   "human",
-   "put b1",
-   "你开始：将手中食材放到案板 1（路程 1s + 操作 0.1s）"
-  ],
-  [
-   23.0,
-   "action_start",
-   "jeff",
-   "put b2",
-   "Jeff开始：将手中食材放到案板 2（路程 0s + 操作 0.1s）"
-  ],
-  [
-   23.15,
-   "action_done",
-   "jeff",
-   "put b2",
-   "Jeff完成动作：将手中食材放到案板 2"
-  ],
-  [
-   23.5,
-   "action_start",
-   "jeff",
-   "take b2",
-   "Jeff开始：从案板 2拿走 F6（面包）（路程 0s + 操作 0.1s）"
-  ],
-  [
-   23.65,
-   "action_done",
-   "jeff",
-   "take b2",
-   "Jeff完成动作：从案板 2拿走 F6（面包）"
-  ],
-  [
-   24.0,
-   "action_start",
-   "jeff",
-   "put b2",
-   "Jeff开始：将手中食材放到案板 2（路程 0s + 操作 0.1s）"
-  ],
-  [
-   24.15,
-   "action_done",
-   "human",
-   "put b1",
-   "你完成动作：将手中食材放到案板 1"
-  ],
-  [
-   24.15,
-   "action_done",
-   "jeff",
-   "put b2",
-   "Jeff完成动作：将手中食材放到案板 2"
-  ],
-  [
-   24.5,
-   "action_start",
-   "human",
-   "chop b1",
-   "你开始：到案板 1切 F7（剩 6.0s）（路程 0s + 操作 6.0s）"
-  ],
-  [
-   24.5,
-   "action_start",
-   "jeff",
-   "fetch tomato",
-   "Jeff开始：取一份番茄（自动换手）（路程 1s + 操作 0.1s）"
-  ],
-  [
-   25.3,
-   "action_done",
-   "jeff",
-   "fetch tomato",
-   "Jeff完成动作：取一份番茄（自动换手）"
-  ],
-  [
-   25.5,
+   18.5,
    "action_start",
    "jeff",
    "put b3",
    "Jeff开始：将手中食材放到案板 3（路程 1s + 操作 0.1s）"
   ],
   [
-   26.4,
+   19.25,
    "action_done",
    "jeff",
    "put b3",
    "Jeff完成动作：将手中食材放到案板 3"
   ],
   [
-   26.5,
+   19.5,
    "action_start",
    "jeff",
-   "chop b3",
-   "Jeff开始：到案板 3切 F8（剩 6.0s）（路程 0s + 操作 6.0s）"
+   "take b3",
+   "Jeff开始：从案板 3拿走 F7（面包）（路程 0s + 操作 0.1s）"
+  ],
+  [
+   19.65,
+   "action_done",
+   "jeff",
+   "take b3",
+   "Jeff完成动作：从案板 3拿走 F7（面包）"
+  ],
+  [
+   19.9,
+   "action_done",
+   "human",
+   "assemble ground F3",
+   "你完成动作：把手中的生菜放进地面(10,6)的盘里"
+  ],
+  [
+   20.0,
+   "action_start",
+   "human",
+   "fetch",
+   "你开始：到冰箱取一份生肉（手中物品自动放到地上）（路程 2s + 操作 0.1s）"
+  ],
+  [
+   20.0,
+   "action_start",
+   "jeff",
+   "put b2",
+   "Jeff开始：将手中食材放到案板 2（路程 0s + 操作 0.1s）"
+  ],
+  [
+   20.4,
+   "action_done",
+   "jeff",
+   "put b2",
+   "Jeff完成动作：将手中食材放到案板 2"
+  ],
+  [
+   20.5,
+   "action_start",
+   "jeff",
+   "take b2",
+   "Jeff开始：从案板 2拿走 F7（面包）（路程 0s + 操作 0.1s）"
+  ],
+  [
+   20.65,
+   "action_done",
+   "jeff",
+   "take b2",
+   "Jeff完成动作：从案板 2拿走 F7（面包）"
+  ],
+  [
+   21.0,
+   "action_start",
+   "jeff",
+   "put b2",
+   "Jeff开始：将手中食材放到案板 2（路程 0s + 操作 0.1s）"
+  ],
+  [
+   21.15,
+   "action_done",
+   "jeff",
+   "put b2",
+   "Jeff完成动作：将手中食材放到案板 2"
+  ],
+  [
+   21.5,
+   "action_start",
+   "jeff",
+   "take b2",
+   "Jeff开始：从案板 2拿走 F7（面包）（路程 0s + 操作 0.1s）"
+  ],
+  [
+   21.65,
+   "action_done",
+   "jeff",
+   "take b2",
+   "Jeff完成动作：从案板 2拿走 F7（面包）"
+  ],
+  [
+   22.0,
+   "action_start",
+   "jeff",
+   "put b3",
+   "Jeff开始：将手中食材放到案板 3（路程 0s + 操作 0.1s）"
+  ],
+  [
+   22.3,
+   "action_done",
+   "human",
+   "fetch",
+   "你完成动作：到冰箱取一份生肉（手中物品自动放到地上）"
+  ],
+  [
+   22.4,
+   "action_done",
+   "jeff",
+   "put b3",
+   "Jeff完成动作：将手中食材放到案板 3"
+  ],
+  [
+   22.5,
+   "action_start",
+   "human",
+   "put b1",
+   "你开始：将手中食材放到案板 1（路程 1s + 操作 0.1s）"
+  ],
+  [
+   22.5,
+   "action_start",
+   "jeff",
+   "fetch tomato",
+   "Jeff开始：取一份番茄（自动换手）（路程 1s + 操作 0.1s）"
+  ],
+  [
+   23.4,
+   "action_done",
+   "jeff",
+   "fetch tomato",
+   "Jeff完成动作：取一份番茄（自动换手）"
+  ],
+  [
+   23.5,
+   "action_start",
+   "jeff",
+   "put b2",
+   "Jeff开始：将手中食材放到案板 2（路程 1s + 操作 0.1s）"
+  ],
+  [
+   23.7,
+   "action_done",
+   "human",
+   "put b1",
+   "你完成动作：将手中食材放到案板 1"
+  ],
+  [
+   24.0,
+   "action_start",
+   "human",
+   "chop b1",
+   "你开始：到案板 1切 F8（剩 3.0s）（路程 0s + 操作 3.0s）"
+  ],
+  [
+   24.3,
+   "action_done",
+   "jeff",
+   "put b2",
+   "Jeff完成动作：将手中食材放到案板 2"
+  ],
+  [
+   24.5,
+   "action_start",
+   "jeff",
+   "chop b2",
+   "Jeff开始：到案板 2切 F9（剩 3.0s）（路程 0s + 操作 3.0s）"
+  ],
+  [
+   27.0,
+   "action_done",
+   "human",
+   "chop b1",
+   "你完成动作：到案板 1切 F8（剩 3.0s）"
+  ],
+  [
+   27.0,
+   "action_start",
+   "human",
+   "take b1",
+   "你开始：从案板 1拿走 F8（切好）（路程 0s + 操作 0.1s）"
+  ],
+  [
+   27.15,
+   "action_done",
+   "human",
+   "take b1",
+   "你完成动作：从案板 1拿走 F8（切好）"
+  ],
+  [
+   27.5,
+   "action_done",
+   "jeff",
+   "chop b2",
+   "Jeff完成动作：到案板 2切 F9（剩 3.0s）"
+  ],
+  [
+   27.5,
+   "action_start",
+   "human",
+   "put p2",
+   "你开始：将切好的牛肉放进灶台 2的平底锅，开始自动加热（路程 2s + 操作 0.1s）"
+  ],
+  [
+   27.5,
+   "action_start",
+   "jeff",
+   "take b2",
+   "Jeff开始：从案板 2拿走 F9（番茄 · 切好）（路程 0s + 操作 0.1s）"
+  ],
+  [
+   27.65,
+   "action_done",
+   "jeff",
+   "take b2",
+   "Jeff完成动作：从案板 2拿走 F9（番茄 · 切好）"
+  ],
+  [
+   28.0,
+   "action_start",
+   "jeff",
+   "assemble ground F2",
+   "Jeff开始：把手中的番茄放进地面(11,6)的盘里（路程 2s + 操作 0.1s）"
+  ],
+  [
+   29.85,
+   "action_done",
+   "human",
+   "put p2",
+   "你完成动作：将切好的牛肉放进灶台 2的平底锅，开始自动加热"
   ],
   [
    30.0,
@@ -1384,385 +1679,392 @@
    "新订单 O2：汉堡，截止 135s"
   ],
   [
-   30.5,
-   "action_done",
-   "human",
-   "chop b1",
-   "你完成动作：到案板 1切 F7（剩 6.0s）"
-  ],
-  [
-   30.5,
+   30.0,
    "action_start",
    "human",
-   "take b2",
-   "你开始：从案板 2拿走 F6（面包）（路程 0s + 操作 0.1s）"
+   "take b3",
+   "你开始：从案板 3拿走 F7（面包）（路程 2s + 操作 0.1s）"
   ],
   [
-   30.9,
-   "action_done",
-   "human",
-   "take b2",
-   "你完成动作：从案板 2拿走 F6（面包）"
-  ],
-  [
-   31.0,
-   "action_start",
-   "human",
-   "put b2",
-   "你开始：将手中食材放到案板 2（路程 0s + 操作 0.1s）"
-  ],
-  [
-   31.15,
-   "action_done",
-   "human",
-   "put b2",
-   "你完成动作：将手中食材放到案板 2"
-  ],
-  [
-   31.5,
-   "action_start",
-   "human",
-   "take b2",
-   "你开始：从案板 2拿走 F6（面包）（路程 0s + 操作 0.1s）"
-  ],
-  [
-   31.65,
-   "action_done",
-   "human",
-   "take b2",
-   "你完成动作：从案板 2拿走 F6（面包）"
-  ],
-  [
-   32.0,
-   "action_start",
-   "human",
-   "put b2",
-   "你开始：将手中食材放到案板 2（路程 0s + 操作 0.1s）"
-  ],
-  [
-   32.15,
-   "action_done",
-   "human",
-   "put b2",
-   "你完成动作：将手中食材放到案板 2"
-  ],
-  [
-   32.5,
+   30.25,
    "action_done",
    "jeff",
-   "chop b3",
-   "Jeff完成动作：到案板 3切 F8（剩 6.0s）"
+   "assemble ground F2",
+   "Jeff完成动作：把手中的番茄放进地面(11,6)的盘里"
   ],
   [
-   32.5,
-   "action_start",
-   "human",
-   "take b1",
-   "你开始：从案板 1拿走 F7（切好）（路程 0s + 操作 0.1s）"
-  ],
-  [
-   32.5,
+   30.5,
    "action_start",
    "jeff",
    "take b3",
-   "Jeff开始：从案板 3拿走 F8（番茄 · 切好）（路程 0s + 操作 0.1s）"
+   "Jeff开始：从案板 3拿走 F7（面包）（路程 2s + 操作 0.1s）"
+  ],
+  [
+   32.05,
+   "action_done",
+   "human",
+   "take b3",
+   "你完成动作：从案板 3拿走 F7（面包）"
+  ],
+  [
+   32.3,
+   "arrival_conflict",
+   "jeff",
+   null,
+   "Jeff到达后发现目标已变化或被占用，动作取消"
+  ],
+  [
+   32.5,
+   "action_start",
+   "human",
+   "put b3",
+   "你开始：将手中食材放到案板 3（路程 0s + 操作 0.1s）"
+  ],
+  [
+   32.5,
+   "action_start",
+   "jeff",
+   "fetch lettuce",
+   "Jeff开始：取一份生菜（自动换手）（路程 1s + 操作 0.1s）"
   ],
   [
    32.65,
    "action_done",
-   "jeff",
-   "take b3",
-   "Jeff完成动作：从案板 3拿走 F8（番茄 · 切好）"
-  ],
-  [
-   32.9,
-   "action_done",
    "human",
-   "take b1",
-   "你完成动作：从案板 1拿走 F7（切好）"
+   "put b3",
+   "你完成动作：将手中食材放到案板 3"
   ],
   [
    33.0,
    "action_start",
    "human",
-   "put p1",
-   "你开始：将切好的牛肉放进灶台 1的平底锅，开始自动加热（路程 2s + 操作 0.1s）"
+   "take b3",
+   "你开始：从案板 3拿走 F7（面包）（路程 0s + 操作 0.1s）"
   ],
   [
-   33.0,
-   "action_start",
-   "jeff",
-   "assemble ground F4",
-   "Jeff开始：把手中的番茄放进地面(2,5)的盘里（路程 1s + 操作 0.1s）"
-  ],
-  [
-   33.9,
-   "action_done",
-   "jeff",
-   "assemble ground F4",
-   "Jeff完成动作：把手中的番茄放进地面(2,5)的盘里"
-  ],
-  [
-   34.0,
-   "action_start",
-   "jeff",
-   "take b2",
-   "Jeff开始：从案板 2拿走 F6（面包）（路程 0s + 操作 0.1s）"
-  ],
-  [
-   34.55,
-   "action_done",
-   "jeff",
-   "take b2",
-   "Jeff完成动作：从案板 2拿走 F6（面包）"
-  ],
-  [
-   35.0,
-   "action_start",
-   "jeff",
-   "put b2",
-   "Jeff开始：将手中食材放到案板 2（路程 0s + 操作 0.1s）"
-  ],
-  [
-   35.15,
-   "action_done",
-   "jeff",
-   "put b2",
-   "Jeff完成动作：将手中食材放到案板 2"
-  ],
-  [
-   35.45,
+   33.15,
    "action_done",
    "human",
-   "put p1",
-   "你完成动作：将切好的牛肉放进灶台 1的平底锅，开始自动加热"
+   "take b3",
+   "你完成动作：从案板 3拿走 F7（面包）"
   ],
   [
-   35.5,
+   33.5,
+   "action_done",
+   "jeff",
+   "fetch lettuce",
+   "Jeff完成动作：取一份生菜（自动换手）"
+  ],
+  [
+   33.5,
    "action_start",
    "human",
-   "take b2",
-   "你开始：从案板 2拿走 F6（面包）（路程 2s + 操作 0.1s）"
-  ],
-  [
-   35.5,
-   "action_start",
-   "jeff",
-   "take b2",
-   "Jeff开始：从案板 2拿走 F6（面包）（路程 0s + 操作 0.1s）"
-  ],
-  [
-   35.65,
-   "action_done",
-   "jeff",
-   "take b2",
-   "Jeff完成动作：从案板 2拿走 F6（面包）"
-  ],
-  [
-   36.0,
-   "action_start",
-   "jeff",
    "put b1",
-   "Jeff开始：将手中食材放到案板 1（路程 0s + 操作 0.1s）"
+   "你开始：将手中食材放到案板 1（路程 0s + 操作 0.1s）"
   ],
   [
-   36.4,
-   "action_done",
-   "jeff",
-   "put b1",
-   "Jeff完成动作：将手中食材放到案板 1"
-  ],
-  [
-   36.5,
-   "action_start",
-   "jeff",
-   "take b1",
-   "Jeff开始：从案板 1拿走 F6（面包）（路程 0s + 操作 0.1s）"
-  ],
-  [
-   36.65,
-   "action_done",
-   "jeff",
-   "take b1",
-   "Jeff完成动作：从案板 1拿走 F6（面包）"
-  ],
-  [
-   37.0,
+   33.5,
    "action_start",
    "jeff",
    "put b3",
-   "Jeff开始：将手中食材放到案板 3（路程 0s + 操作 0.1s）"
+   "Jeff开始：将手中食材放到案板 3（路程 1s + 操作 0.1s）"
   ],
   [
-   37.3,
-   "arrival_conflict",
-   "human",
-   null,
-   "你到达后发现目标已变化或被占用，动作取消"
-  ],
-  [
-   37.5,
-   "action_start",
-   "human",
-   "fetch",
-   "你开始：到冰箱取一份生肉（手中物品自动放到地上）（路程 1s + 操作 0.1s）"
-  ],
-  [
-   37.6,
-   "action_done",
-   "jeff",
-   "put b3",
-   "Jeff完成动作：将手中食材放到案板 3"
-  ],
-  [
-   38.0,
-   "action_start",
-   "jeff",
-   "take b3",
-   "Jeff开始：从案板 3拿走 F6（面包）（路程 0s + 操作 0.1s）"
-  ],
-  [
-   38.15,
-   "action_done",
-   "jeff",
-   "take b3",
-   "Jeff完成动作：从案板 3拿走 F6（面包）"
-  ],
-  [
-   38.5,
-   "action_start",
-   "jeff",
-   "put b2",
-   "Jeff开始：将手中食材放到案板 2（路程 0s + 操作 0.1s）"
-  ],
-  [
-   38.6,
-   "action_done",
-   "human",
-   "fetch",
-   "你完成动作：到冰箱取一份生肉（手中物品自动放到地上）"
-  ],
-  [
-   38.9,
-   "action_done",
-   "jeff",
-   "put b2",
-   "Jeff完成动作：将手中食材放到案板 2"
-  ],
-  [
-   39.0,
-   "action_start",
-   "human",
-   "put b1",
-   "你开始：将手中食材放到案板 1（路程 1s + 操作 0.1s）"
-  ],
-  [
-   39.0,
-   "action_start",
-   "jeff",
-   "take counter4",
-   "Jeff开始：从柜台 4拿起锅（自动换手）（路程 2s + 操作 0.1s）"
-  ],
-  [
-   40.15,
+   34.1,
    "action_done",
    "human",
    "put b1",
    "你完成动作：将手中食材放到案板 1"
   ],
   [
-   40.5,
+   34.5,
    "action_start",
    "human",
-   "take pot p2",
-   "你开始：端起灶台 2的平底锅（离开灶台停止加热，占手持位）（路程 2s + 操作 0.1s）"
+   "take b1",
+   "你开始：从案板 1拿走 F7（面包）（路程 0s + 操作 0.1s）"
   ],
   [
-   41.35,
+   34.6,
+   "action_done",
+   "jeff",
+   "put b3",
+   "Jeff完成动作：将手中食材放到案板 3"
+  ],
+  [
+   34.65,
+   "action_done",
+   "human",
+   "take b1",
+   "你完成动作：从案板 1拿走 F7（面包）"
+  ],
+  [
+   35.0,
+   "action_start",
+   "human",
+   "put b1",
+   "你开始：将手中食材放到案板 1（路程 0s + 操作 0.1s）"
+  ],
+  [
+   35.0,
+   "action_start",
+   "jeff",
+   "take counter4",
+   "Jeff开始：从柜台 4拿起锅（自动换手）（路程 2s + 操作 0.1s）"
+  ],
+  [
+   35.15,
+   "action_done",
+   "human",
+   "put b1",
+   "你完成动作：将手中食材放到案板 1"
+  ],
+  [
+   35.5,
+   "action_start",
+   "human",
+   "take b1",
+   "你开始：从案板 1拿走 F7（面包）（路程 0s + 操作 0.1s）"
+  ],
+  [
+   35.65,
+   "action_done",
+   "human",
+   "take b1",
+   "你完成动作：从案板 1拿走 F7（面包）"
+  ],
+  [
+   36.0,
+   "action_start",
+   "human",
+   "put b2",
+   "你开始：将手中食材放到案板 2（路程 0s + 操作 0.1s）"
+  ],
+  [
+   36.4,
+   "action_done",
+   "human",
+   "put b2",
+   "你完成动作：将手中食材放到案板 2"
+  ],
+  [
+   36.5,
+   "action_start",
+   "human",
+   "chop b3",
+   "你开始：到案板 3切 F10（剩 3.0s）（路程 0s + 操作 3.0s）"
+  ],
+  [
+   37.15,
    "action_done",
    "jeff",
    "take counter4",
    "Jeff完成动作：从柜台 4拿起锅（自动换手）"
   ],
   [
+   37.5,
+   "action_start",
+   "jeff",
+   "take extinguisher",
+   "Jeff开始：去灭火器架拿灭火器（占用手持位）（路程 0s + 操作 0.1s）"
+  ],
+  [
+   37.7,
+   "swapped",
+   "jeff",
+   null,
+   "Jeff换手：把 P3 留在地面(11,2)的地上，可捡回"
+  ],
+  [
+   37.7,
+   "action_done",
+   "jeff",
+   "take extinguisher",
+   "Jeff完成动作：去灭火器架拿灭火器（占用手持位）"
+  ],
+  [
+   38.0,
+   "action_start",
+   "jeff",
+   "put counter_corner5",
+   "Jeff开始：把手中物品放到柜台 _corner5（每格一件）（路程 0s + 操作 0.1s）"
+  ],
+  [
+   38.65,
+   "action_done",
+   "jeff",
+   "put counter_corner5",
+   "Jeff完成动作：把手中物品放到柜台 _corner5（每格一件）"
+  ],
+  [
+   39.0,
+   "action_start",
+   "jeff",
+   "take b2",
+   "Jeff开始：从案板 2拿走 F7（面包）（路程 2s + 操作 0.1s）"
+  ],
+  [
+   39.75,
+   "action_done",
+   "human",
+   "chop b3",
+   "你完成动作：到案板 3切 F10（剩 3.0s）"
+  ],
+  [
+   40.0,
+   "action_start",
+   "human",
+   "fetch tomato",
+   "你开始：取一份番茄（自动换手）（路程 1s + 操作 0.1s）"
+  ],
+  [
+   40.9,
+   "action_done",
+   "human",
+   "fetch tomato",
+   "你完成动作：取一份番茄（自动换手）"
+  ],
+  [
+   41.0,
+   "action_start",
+   "human",
+   "put b1",
+   "你开始：将手中食材放到案板 1（路程 1s + 操作 0.1s）"
+  ],
+  [
+   41.1,
+   "action_done",
+   "jeff",
+   "take b2",
+   "Jeff完成动作：从案板 2拿走 F7（面包）"
+  ],
+  [
    41.5,
    "action_start",
    "jeff",
-   "take b1",
-   "Jeff开始：从案板 1拿走 F9（生肉）（路程 2s + 操作 0.1s）"
+   "throw 5 6",
+   "Jeff开始：向地面(5,6)抛出手中物品（落点由射程和墙确定）"
+  ],
+  [
+   41.65,
+   "thrown",
+   "jeff",
+   null,
+   "Jeff抛出了 F7，落点为 (5, 6)"
+  ],
+  [
+   41.65,
+   "action_done",
+   "jeff",
+   "throw 5 6",
+   "Jeff完成动作：抛出物品"
+  ],
+  [
+   41.75,
+   "action_done",
+   "human",
+   "put b1",
+   "你完成动作：将手中食材放到案板 1"
+  ],
+  [
+   41.85,
+   "ready",
+   null,
+   null,
+   "灶台 2的 F8 熟了！10s 后糊锅"
+  ],
+  [
+   41.85,
+   "landed",
+   "jeff",
+   null,
+   "F7 落在地上，可拾取"
+  ],
+  [
+   42.0,
+   "action_start",
+   "human",
+   "chop b1",
+   "你开始：到案板 1切 F11（剩 3.0s）（路程 0s + 操作 3.0s）"
+  ],
+  [
+   42.0,
+   "action_start",
+   "jeff",
+   "take b3",
+   "Jeff开始：从案板 3拿走 F10（生菜 · 切好）（路程 0s + 操作 0.1s）"
   ],
   [
    42.4,
-   "route_replanned",
+   "action_done",
    "jeff",
-   null,
-   "Jeff受阻，重新规划路线"
+   "take b3",
+   "Jeff完成动作：从案板 3拿走 F10（生菜 · 切好）"
   ],
   [
-   43.05,
+   42.5,
+   "action_start",
+   "jeff",
+   "put counter13",
+   "Jeff开始：把手中物品放到柜台 13（每格一件）（路程 1s + 操作 0.1s）"
+  ],
+  [
+   43.4,
    "action_done",
-   "human",
-   "take pot p2",
-   "你完成动作：端起灶台 2的平底锅（离开灶台停止加热，占手持位）"
+   "jeff",
+   "put counter13",
+   "Jeff完成动作：把手中物品放到柜台 13（每格一件）"
   ],
   [
    43.5,
    "action_start",
-   "human",
-   "throw 11 5",
-   "你开始：向地面(11,5)抛出手中物品（落点由射程和墙确定）"
+   "jeff",
+   "fetch tomato",
+   "Jeff开始：取一份番茄（自动换手）（路程 1s + 操作 0.1s）"
   ],
   [
-   43.65,
-   "thrown",
-   "human",
-   null,
-   "你抛出了 P2，落点为 (11, 5)"
-  ],
-  [
-   43.65,
+   44.6,
    "action_done",
-   "human",
-   "throw 11 5",
-   "你完成动作：抛出物品"
+   "jeff",
+   "fetch tomato",
+   "Jeff完成动作：取一份番茄（自动换手）"
   ],
   [
-   43.95,
-   "landed",
-   "human",
-   null,
-   "P2 落在地上，可拾取"
-  ],
-  [
-   44.0,
-   "action_start",
+   45.0,
+   "action_done",
    "human",
    "chop b1",
-   "你开始：到案板 1切 F9（剩 6.0s）（路程 2s + 操作 6.0s）"
+   "你完成动作：到案板 1切 F11（剩 3.0s）"
   ],
   [
-   44.9,
-   "swapped",
-   "jeff",
-   null,
-   "Jeff换手：把 P3 留在地面(2,6)的地上，可捡回"
-  ],
-  [
-   44.9,
-   "action_done",
-   "jeff",
+   45.0,
+   "action_start",
+   "human",
    "take b1",
-   "Jeff完成动作：从案板 1拿走 F9（生肉）"
+   "你开始：从案板 1拿走 F11（番茄 · 切好）（路程 0s + 操作 0.1s）"
   ],
   [
    45.0,
    "action_start",
    "jeff",
    "put b3",
-   "Jeff开始：将手中食材放到案板 3（路程 0s + 操作 0.1s）"
+   "Jeff开始：将手中食材放到案板 3（路程 1s + 操作 0.1s）"
   ],
   [
-   45.6,
+   45.15,
+   "action_done",
+   "human",
+   "take b1",
+   "你完成动作：从案板 1拿走 F11（番茄 · 切好）"
+  ],
+  [
+   45.5,
+   "action_start",
+   "human",
+   "assemble ground F3",
+   "你开始：把手中的番茄放进地面(10,6)的盘里（路程 2s + 操作 0.1s）"
+  ],
+  [
+   45.9,
    "action_done",
    "jeff",
    "put b3",
@@ -1772,204 +2074,393 @@
    46.0,
    "action_start",
    "jeff",
-   "take b3",
-   "Jeff开始：从案板 3拿走 F9（生肉）（路程 0s + 操作 0.1s）"
+   "take pot p2",
+   "Jeff开始：端起灶台 2的平底锅（离开灶台停止加热，占手持位）（路程 2s + 操作 0.1s）"
   ],
   [
-   46.15,
-   "action_done",
-   "jeff",
-   "take b3",
-   "Jeff完成动作：从案板 3拿走 F9（生肉）"
-  ],
-  [
-   46.2,
-   "arrival_conflict",
-   "human",
-   null,
-   "你到达后发现食材已不需要切配，动作取消"
-  ],
-  [
-   46.2,
-   "interrupted",
-   "human",
-   null,
-   "你中断：到案板 1切 F9（剩 6.0s）"
-  ],
-  [
-   46.5,
-   "action_start",
-   "human",
-   "take b2",
-   "你开始：从案板 2拿走 F6（面包）（路程 0s + 操作 0.1s）"
-  ],
-  [
-   46.5,
-   "action_start",
-   "jeff",
-   "put b3",
-   "Jeff开始：将手中食材放到案板 3（路程 0s + 操作 0.1s）"
-  ],
-  [
-   46.65,
-   "action_done",
-   "jeff",
-   "put b3",
-   "Jeff完成动作：将手中食材放到案板 3"
-  ],
-  [
-   46.9,
+   47.75,
    "action_done",
    "human",
-   "take b2",
-   "你完成动作：从案板 2拿走 F6（面包）"
+   "assemble ground F3",
+   "你完成动作：把手中的番茄放进地面(10,6)的盘里"
   ],
   [
-   47.0,
+   48.0,
    "action_start",
    "human",
-   "put counter18",
-   "你开始：把手中物品放到柜台 18（每格一件）（路程 2s + 操作 0.1s）"
-  ],
-  [
-   47.0,
-   "action_start",
-   "jeff",
    "chop b3",
-   "Jeff开始：到案板 3切 F9（剩 6.0s）（路程 0s + 操作 6.0s）"
+   "你开始：到案板 3切 F12（剩 3.0s）（路程 2s + 操作 3.0s）"
   ],
   [
-   47.45,
-   "ready",
-   null,
-   null,
-   "灶台 1的 F7 熟了！10s 后糊锅"
-  ],
-  [
-   49.1,
+   48.05,
    "action_done",
-   "human",
-   "put counter18",
-   "你完成动作：把手中物品放到柜台 18（每格一件）"
+   "jeff",
+   "take pot p2",
+   "Jeff完成动作：端起灶台 2的平底锅（离开灶台停止加热，占手持位）"
   ],
   [
-   49.5,
+   48.5,
    "action_start",
-   "human",
-   "fetch lettuce",
-   "你开始：取一份生菜（自动换手）（路程 2s + 操作 0.1s）"
+   "jeff",
+   "put pot p1",
+   "Jeff开始：把手中的平底锅放回灶台 1（有食物时恢复加热）（路程 0s + 操作 0.1s）"
   ],
   [
-   51.7,
+   48.9,
    "action_done",
-   "human",
-   "fetch lettuce",
-   "你完成动作：取一份生菜（自动换手）"
+   "jeff",
+   "put pot p1",
+   "Jeff完成动作：把手中的平底锅放回灶台 1（有食物时恢复加热）"
+  ],
+  [
+   49.0,
+   "action_start",
+   "jeff",
+   "pickup F6",
+   "Jeff开始：去地面(3,5)捡起 F6（面包；自动换手）（路程 2s + 操作 0.1s）"
+  ],
+  [
+   50.85,
+   "picked_up",
+   "jeff",
+   null,
+   "Jeff从地面(3,5)旁的地上捡起 F6"
+  ],
+  [
+   50.85,
+   "action_done",
+   "jeff",
+   "pickup F6",
+   "Jeff完成动作：去地面(3,5)捡起 F6（面包；自动换手）"
+  ],
+  [
+   51.0,
+   "action_start",
+   "jeff",
+   "put b2",
+   "Jeff开始：将手中食材放到案板 2（路程 0s + 操作 0.1s）"
+  ],
+  [
+   51.55,
+   "action_done",
+   "jeff",
+   "put b2",
+   "Jeff完成动作：将手中食材放到案板 2"
   ],
   [
    52.0,
    "action_start",
-   "human",
-   "put b2",
-   "你开始：将手中食材放到案板 2（路程 1s + 操作 0.1s）"
+   "jeff",
+   "take b2",
+   "Jeff开始：从案板 2拿走 F6（面包）（路程 0s + 操作 0.1s）"
   ],
   [
-   53.0,
-   "action_done",
-   "human",
-   "put b2",
-   "你完成动作：将手中食材放到案板 2"
-  ],
-  [
-   53.0,
+   52.15,
    "action_done",
    "jeff",
-   "chop b3",
-   "Jeff完成动作：到案板 3切 F9（剩 6.0s）"
+   "take b2",
+   "Jeff完成动作：从案板 2拿走 F6（面包）"
   ],
   [
-   53.0,
-   "action_start",
-   "human",
-   "chop b2",
-   "你开始：到案板 2切 F10（剩 6.0s）（路程 0s + 操作 6.0s）"
-  ],
-  [
-   53.0,
+   52.5,
    "action_start",
    "jeff",
-   "pickup E1",
-   "Jeff开始：去地面(11,2)捡起 E1（灭火器；自动换手）（路程 2s + 操作 0.1s）"
+   "put b1",
+   "Jeff开始：将手中食材放到案板 1（路程 0s + 操作 0.1s）"
   ],
   [
-   55.1,
-   "picked_up",
-   "jeff",
-   null,
-   "Jeff从地面(11,2)旁的地上捡起 E1"
-  ],
-  [
-   55.1,
-   "action_done",
-   "jeff",
-   "pickup E1",
-   "Jeff完成动作：去地面(11,2)捡起 E1（灭火器；自动换手）"
-  ],
-  [
-   55.5,
-   "action_start",
-   "jeff",
-   "take b3",
-   "Jeff开始：从案板 3拿走 F9（切好）（路程 2s + 操作 0.1s）"
-  ],
-  [
-   57.45,
+   52.7,
    "burn",
    null,
    null,
    "灶台 1糊锅！8s 后着火；糊太久上桌会被拒收"
   ],
   [
-   57.6,
-   "swapped",
-   "jeff",
-   null,
-   "Jeff换手：把 E1 留在地面(4,6)的地上，可捡回"
+   52.8,
+   "action_done",
+   "human",
+   "chop b3",
+   "你完成动作：到案板 3切 F12（剩 3.0s）"
   ],
   [
-   57.6,
+   52.9,
+   "action_done",
+   "jeff",
+   "put b1",
+   "Jeff完成动作：将手中食材放到案板 1"
+  ],
+  [
+   53.0,
+   "action_start",
+   "human",
+   "take b3",
+   "你开始：从案板 3拿走 F12（番茄 · 切好）（路程 0s + 操作 0.1s）"
+  ],
+  [
+   53.0,
+   "action_start",
+   "jeff",
+   "take b3",
+   "Jeff开始：从案板 3拿走 F12（番茄 · 切好）（路程 0s + 操作 0.1s）"
+  ],
+  [
+   53.15,
+   "action_done",
+   "human",
+   "take b3",
+   "你完成动作：从案板 3拿走 F12（番茄 · 切好）"
+  ],
+  [
+   53.3,
+   "arrival_conflict",
+   "jeff",
+   null,
+   "Jeff到达后发现目标已变化或被占用，动作取消"
+  ],
+  [
+   53.5,
+   "action_start",
+   "human",
+   "assemble ground F4",
+   "你开始：把手中的番茄放进地面(2,5)的盘里（路程 1s + 操作 0.1s）"
+  ],
+  [
+   53.5,
+   "action_start",
+   "jeff",
+   "take b1",
+   "Jeff开始：从案板 1拿走 F6（面包）（路程 0s + 操作 0.1s）"
+  ],
+  [
+   53.9,
+   "action_done",
+   "jeff",
+   "take b1",
+   "Jeff完成动作：从案板 1拿走 F6（面包）"
+  ],
+  [
+   54.0,
+   "action_start",
+   "jeff",
+   "put b2",
+   "Jeff开始：将手中食材放到案板 2（路程 0s + 操作 0.1s）"
+  ],
+  [
+   54.25,
+   "action_done",
+   "human",
+   "assemble ground F4",
+   "你完成动作：把手中的番茄放进地面(2,5)的盘里"
+  ],
+  [
+   54.4,
+   "action_done",
+   "jeff",
+   "put b2",
+   "Jeff完成动作：将手中食材放到案板 2"
+  ],
+  [
+   54.5,
+   "action_start",
+   "human",
+   "take b2",
+   "你开始：从案板 2拿走 F6（面包）（路程 0s + 操作 0.1s）"
+  ],
+  [
+   54.5,
+   "action_start",
+   "jeff",
+   "take b2",
+   "Jeff开始：从案板 2拿走 F6（面包）（路程 0s + 操作 0.1s）"
+  ],
+  [
+   54.65,
+   "action_done",
+   "jeff",
+   "take b2",
+   "Jeff完成动作：从案板 2拿走 F6（面包）"
+  ],
+  [
+   54.75,
+   "arrival_conflict",
+   "human",
+   null,
+   "你到达后发现目标已变化或被占用，动作取消"
+  ],
+  [
+   55.0,
+   "action_start",
+   "human",
+   "fetch lettuce",
+   "你开始：取一份生菜（自动换手）（路程 1s + 操作 0.1s）"
+  ],
+  [
+   55.0,
+   "action_start",
+   "jeff",
+   "put b3",
+   "Jeff开始：将手中食材放到案板 3（路程 0s + 操作 0.1s）"
+  ],
+  [
+   55.4,
+   "action_done",
+   "jeff",
+   "put b3",
+   "Jeff完成动作：将手中食材放到案板 3"
+  ],
+  [
+   55.5,
+   "action_start",
+   "jeff",
+   "take b3",
+   "Jeff开始：从案板 3拿走 F6（面包）（路程 0s + 操作 0.1s）"
+  ],
+  [
+   55.65,
    "action_done",
    "jeff",
    "take b3",
-   "Jeff完成动作：从案板 3拿走 F9（切好）"
+   "Jeff完成动作：从案板 3拿走 F6（面包）"
+  ],
+  [
+   55.8,
+   "action_done",
+   "human",
+   "fetch lettuce",
+   "你完成动作：取一份生菜（自动换手）"
+  ],
+  [
+   56.0,
+   "action_start",
+   "human",
+   "put b3",
+   "你开始：将手中食材放到案板 3（路程 1s + 操作 0.1s）"
+  ],
+  [
+   56.0,
+   "action_start",
+   "jeff",
+   "put b2",
+   "Jeff开始：将手中食材放到案板 2（路程 0s + 操作 0.1s）"
+  ],
+  [
+   56.4,
+   "action_done",
+   "jeff",
+   "put b2",
+   "Jeff完成动作：将手中食材放到案板 2"
+  ],
+  [
+   56.5,
+   "action_start",
+   "jeff",
+   "take b2",
+   "Jeff开始：从案板 2拿走 F6（面包）（路程 0s + 操作 0.1s）"
+  ],
+  [
+   56.65,
+   "action_done",
+   "jeff",
+   "take b2",
+   "Jeff完成动作：从案板 2拿走 F6（面包）"
+  ],
+  [
+   57.0,
+   "action_start",
+   "jeff",
+   "put b2",
+   "Jeff开始：将手中食材放到案板 2（路程 0s + 操作 0.1s）"
+  ],
+  [
+   57.1,
+   "action_done",
+   "human",
+   "put b3",
+   "你完成动作：将手中食材放到案板 3"
+  ],
+  [
+   57.15,
+   "action_done",
+   "jeff",
+   "put b2",
+   "Jeff完成动作：将手中食材放到案板 2"
+  ],
+  [
+   57.5,
+   "action_start",
+   "human",
+   "chop b3",
+   "你开始：到案板 3切 F13（剩 3.0s）（路程 0s + 操作 3.0s）"
+  ],
+  [
+   57.5,
+   "action_start",
+   "jeff",
+   "take b2",
+   "Jeff开始：从案板 2拿走 F6（面包）（路程 0s + 操作 0.1s）"
+  ],
+  [
+   57.65,
+   "action_done",
+   "jeff",
+   "take b2",
+   "Jeff完成动作：从案板 2拿走 F6（面包）"
   ],
   [
    58.0,
    "action_start",
    "jeff",
-   "load ground P2",
-   "Jeff开始：把切好的牛肉放入地上空平底锅（离灶不加热）（路程 2s + 操作 0.1s）"
+   "put b2",
+   "Jeff开始：将手中食材放到案板 2（路程 0s + 操作 0.1s）"
   ],
   [
-   59.0,
+   58.15,
    "action_done",
-   "human",
-   "chop b2",
-   "你完成动作：到案板 2切 F10（剩 6.0s）"
+   "jeff",
+   "put b2",
+   "Jeff完成动作：将手中食材放到案板 2"
+  ],
+  [
+   58.5,
+   "action_start",
+   "jeff",
+   "take b2",
+   "Jeff开始：从案板 2拿走 F6（面包）（路程 0s + 操作 0.1s）"
+  ],
+  [
+   58.65,
+   "action_done",
+   "jeff",
+   "take b2",
+   "Jeff完成动作：从案板 2拿走 F6（面包）"
   ],
   [
    59.0,
    "action_start",
-   "human",
-   "fetch tomato",
-   "你开始：取一份番茄（自动换手）（路程 1s + 操作 0.1s）"
+   "jeff",
+   "put b1",
+   "Jeff开始：将手中食材放到案板 1（路程 0s + 操作 0.1s）"
   ],
   [
-   59.8,
+   59.4,
    "action_done",
-   "human",
-   "fetch tomato",
-   "你完成动作：取一份番茄（自动换手）"
+   "jeff",
+   "put b1",
+   "Jeff完成动作：将手中食材放到案板 1"
+  ],
+  [
+   59.5,
+   "action_start",
+   "jeff",
+   "take b1",
+   "Jeff开始：从案板 1拿走 F6（面包）（路程 0s + 操作 0.1s）"
+  ],
+  [
+   59.65,
+   "action_done",
+   "jeff",
+   "take b1",
+   "Jeff完成动作：从案板 1拿走 F6（面包）"
   ],
   [
    60.0,
@@ -1981,219 +2472,366 @@
   [
    60.0,
    "action_start",
-   "human",
-   "put b3",
-   "你开始：将手中食材放到案板 3（路程 1s + 操作 0.1s）"
+   "jeff",
+   "put b2",
+   "Jeff开始：将手中食材放到案板 2（路程 0s + 操作 0.1s）"
   ],
   [
-   60.05,
+   60.4,
    "action_done",
    "jeff",
-   "load ground P2",
-   "Jeff完成动作：把切好的牛肉放入地上空平底锅（离灶不加热）"
+   "put b2",
+   "Jeff完成动作：将手中食材放到案板 2"
+  ],
+  [
+   60.5,
+   "action_done",
+   "human",
+   "chop b3",
+   "你完成动作：到案板 3切 F13（剩 3.0s）"
+  ],
+  [
+   60.5,
+   "action_start",
+   "human",
+   "take b3",
+   "你开始：从案板 3拿走 F13（生菜 · 切好）（路程 0s + 操作 0.1s）"
   ],
   [
    60.5,
    "action_start",
    "jeff",
-   "take counter18",
-   "Jeff开始：从柜台 18拿起面包（自动换手）（路程 1s + 操作 0.1s）"
-  ],
-  [
-   60.9,
-   "action_done",
-   "human",
-   "put b3",
-   "你完成动作：将手中食材放到案板 3"
-  ],
-  [
-   61.0,
-   "action_start",
-   "human",
-   "chop b3",
-   "你开始：到案板 3切 F11（剩 6.0s）（路程 0s + 操作 6.0s）"
-  ],
-  [
-   61.5,
-   "action_done",
-   "jeff",
-   "take counter18",
-   "Jeff完成动作：从柜台 18拿起面包（自动换手）"
-  ],
-  [
-   61.5,
-   "action_start",
-   "jeff",
-   "put b1",
-   "Jeff开始：将手中食材放到案板 1（路程 2s + 操作 0.1s）"
-  ],
-  [
-   63.8,
-   "action_done",
-   "jeff",
-   "put b1",
-   "Jeff完成动作：将手中食材放到案板 1"
-  ],
-  [
-   64.0,
-   "action_start",
-   "jeff",
    "take b2",
-   "Jeff开始：从案板 2拿走 F10（生菜 · 切好）（路程 0s + 操作 0.1s）"
+   "Jeff开始：从案板 2拿走 F6（面包）（路程 0s + 操作 0.1s）"
   ],
   [
-   64.4,
+   60.65,
+   "action_done",
+   "human",
+   "take b3",
+   "你完成动作：从案板 3拿走 F13（生菜 · 切好）"
+  ],
+  [
+   60.65,
    "action_done",
    "jeff",
    "take b2",
-   "Jeff完成动作：从案板 2拿走 F10（生菜 · 切好）"
+   "Jeff完成动作：从案板 2拿走 F6（面包）"
   ],
   [
-   64.5,
-   "action_start",
-   "jeff",
-   "assemble ground F4",
-   "Jeff开始：把手中的生菜放进地面(2,5)的盘里（路程 0s + 操作 0.1s）"
-  ],
-  [
-   65.05,
-   "action_done",
-   "jeff",
-   "assemble ground F4",
-   "Jeff完成动作：把手中的生菜放进地面(2,5)的盘里"
-  ],
-  [
-   65.45,
+   60.7,
    "fire",
    null,
    null,
    "灶台 1着火！损失 5 元；必须先灭火再使用"
   ],
   [
-   65.5,
+   61.0,
+   "action_start",
+   "human",
+   "assemble ground F4",
+   "你开始：把手中的生菜放进地面(2,5)的盘里（路程 1s + 操作 0.1s）"
+  ],
+  [
+   61.0,
+   "action_start",
+   "jeff",
+   "put b1",
+   "Jeff开始：将手中食材放到案板 1（路程 0s + 操作 0.1s）"
+  ],
+  [
+   61.4,
+   "action_done",
+   "jeff",
+   "put b1",
+   "Jeff完成动作：将手中食材放到案板 1"
+  ],
+  [
+   61.5,
    "action_start",
    "jeff",
    "take b1",
    "Jeff开始：从案板 1拿走 F6（面包）（路程 0s + 操作 0.1s）"
   ],
   [
-   66.0,
+   61.65,
    "action_done",
    "jeff",
    "take b1",
    "Jeff完成动作：从案板 1拿走 F6（面包）"
   ],
   [
-   66.0,
-   "action_start",
-   "jeff",
-   "put b2",
-   "Jeff开始：将手中食材放到案板 2（路程 0s + 操作 0.1s）"
+   61.75,
+   "action_done",
+   "human",
+   "assemble ground F4",
+   "你完成动作：把手中的生菜放进地面(2,5)的盘里"
   ],
   [
-   66.4,
+   62.0,
+   "action_start",
+   "human",
+   "fetch",
+   "你开始：到冰箱取一份生肉（手中物品自动放到地上）（路程 1s + 操作 0.1s）"
+  ],
+  [
+   62.0,
+   "action_start",
+   "jeff",
+   "put b1",
+   "Jeff开始：将手中食材放到案板 1（路程 0s + 操作 0.1s）"
+  ],
+  [
+   62.15,
    "action_done",
    "jeff",
-   "put b2",
-   "Jeff完成动作：将手中食材放到案板 2"
+   "put b1",
+   "Jeff完成动作：将手中食材放到案板 1"
+  ],
+  [
+   62.5,
+   "action_start",
+   "jeff",
+   "take b1",
+   "Jeff开始：从案板 1拿走 F6（面包）（路程 0s + 操作 0.1s）"
+  ],
+  [
+   62.65,
+   "action_done",
+   "jeff",
+   "take b1",
+   "Jeff完成动作：从案板 1拿走 F6（面包）"
+  ],
+  [
+   62.85,
+   "action_done",
+   "human",
+   "fetch",
+   "你完成动作：到冰箱取一份生肉（手中物品自动放到地上）"
+  ],
+  [
+   63.0,
+   "action_start",
+   "human",
+   "pickup P1",
+   "你开始：去地面(9,2)捡起 P1（锅；自动换手）（路程 2s + 操作 0.1s）"
+  ],
+  [
+   63.0,
+   "action_start",
+   "jeff",
+   "put b3",
+   "Jeff开始：将手中食材放到案板 3（路程 0s + 操作 0.1s）"
+  ],
+  [
+   63.6,
+   "action_done",
+   "jeff",
+   "put b3",
+   "Jeff完成动作：将手中食材放到案板 3"
+  ],
+  [
+   64.0,
+   "action_start",
+   "jeff",
+   "pickup F7",
+   "Jeff开始：去地面(5,6)捡起 F7（面包；自动换手）（路程 0s + 操作 0.1s）"
+  ],
+  [
+   64.3,
+   "picked_up",
+   "jeff",
+   null,
+   "Jeff从地面(5,6)旁的地上捡起 F7"
+  ],
+  [
+   64.3,
+   "action_done",
+   "jeff",
+   "pickup F7",
+   "Jeff完成动作：去地面(5,6)捡起 F7（面包；自动换手）"
+  ],
+  [
+   64.5,
+   "action_start",
+   "jeff",
+   "put b1",
+   "Jeff开始：将手中食材放到案板 1（路程 1s + 操作 0.1s）"
+  ],
+  [
+   65.15,
+   "picked_up",
+   "human",
+   null,
+   "你从地面(9,2)旁的地上捡起 P1"
+  ],
+  [
+   65.15,
+   "swapped",
+   "human",
+   null,
+   "你换手：把 F14 留在地面(9,2)的地上，可捡回"
+  ],
+  [
+   65.15,
+   "action_done",
+   "human",
+   "pickup P1",
+   "你完成动作：去地面(9,2)捡起 P1（锅；自动换手）"
+  ],
+  [
+   65.25,
+   "action_done",
+   "jeff",
+   "put b1",
+   "Jeff完成动作：将手中食材放到案板 1"
+  ],
+  [
+   65.5,
+   "action_start",
+   "human",
+   "put pot p2",
+   "你开始：把手中的平底锅放回灶台 2（有食物时恢复加热）（路程 0s + 操作 0.1s）"
+  ],
+  [
+   65.5,
+   "action_start",
+   "jeff",
+   "take b3",
+   "Jeff开始：从案板 3拿走 F6（面包）（路程 0s + 操作 0.1s）"
+  ],
+  [
+   65.95,
+   "action_done",
+   "human",
+   "put pot p2",
+   "你完成动作：把手中的平底锅放回灶台 2（有食物时恢复加热）"
+  ],
+  [
+   66.0,
+   "action_start",
+   "human",
+   "pickup F3",
+   "你开始：去地面(10,6)捡起 F3（待组装菜品；自动换手）（路程 1s + 操作 0.1s）"
+  ],
+  [
+   66.1,
+   "action_done",
+   "jeff",
+   "take b3",
+   "Jeff完成动作：从案板 3拿走 F6（面包）"
   ],
   [
    66.5,
    "action_start",
    "jeff",
-   "take b2",
-   "Jeff开始：从案板 2拿走 F6（面包）（路程 0s + 操作 0.1s）"
+   "put b3",
+   "Jeff开始：将手中食材放到案板 3（路程 0s + 操作 0.1s）"
   ],
   [
    66.65,
    "action_done",
    "jeff",
-   "take b2",
-   "Jeff完成动作：从案板 2拿走 F6（面包）"
+   "put b3",
+   "Jeff完成动作：将手中食材放到案板 3"
   ],
   [
-   67.0,
+   66.95,
+   "picked_up",
+   "human",
+   null,
+   "你从地面(10,6)旁的地上捡起 F3"
+  ],
+  [
+   66.95,
    "action_done",
    "human",
-   "chop b3",
-   "你完成动作：到案板 3切 F11（剩 6.0s）"
+   "pickup F3",
+   "你完成动作：去地面(10,6)捡起 F3（待组装菜品；自动换手）"
   ],
   [
    67.0,
    "action_start",
    "human",
    "take b3",
-   "你开始：从案板 3拿走 F11（番茄 · 切好）（路程 0s + 操作 0.1s）"
+   "你开始：从案板 3拿走 F6（面包）（路程 2s + 操作 0.1s）"
   ],
   [
    67.0,
    "action_start",
    "jeff",
-   "put b2",
-   "Jeff开始：将手中食材放到案板 2（路程 0s + 操作 0.1s）"
-  ],
-  [
-   67.15,
-   "action_done",
-   "human",
    "take b3",
-   "你完成动作：从案板 3拿走 F11（番茄 · 切好）"
+   "Jeff开始：从案板 3拿走 F6（面包）（路程 0s + 操作 0.1s）"
   ],
   [
    67.15,
    "action_done",
    "jeff",
-   "put b2",
-   "Jeff完成动作：将手中食材放到案板 2"
-  ],
-  [
-   67.5,
-   "action_start",
-   "human",
-   "assemble ground F3",
-   "你开始：把手中的番茄放进地面(10,6)的盘里（路程 2s + 操作 0.1s）"
+   "take b3",
+   "Jeff完成动作：从案板 3拿走 F6（面包）"
   ],
   [
    67.5,
    "action_start",
    "jeff",
-   "take b2",
-   "Jeff开始：从案板 2拿走 F6（面包）（路程 0s + 操作 0.1s）"
+   "throw 3 4",
+   "Jeff开始：向地面(3,4)抛出手中物品（落点由射程和墙确定）"
+  ],
+  [
+   67.65,
+   "thrown",
+   "jeff",
+   null,
+   "Jeff抛出了 F6，落点为 (3, 4)"
   ],
   [
    67.65,
    "action_done",
    "jeff",
-   "take b2",
-   "Jeff完成动作：从案板 2拿走 F6（面包）"
+   "throw 3 4",
+   "Jeff完成动作：抛出物品"
+  ],
+  [
+   67.9,
+   "landed",
+   "jeff",
+   null,
+   "F6 落在地上，可拾取"
   ],
   [
    68.0,
    "action_start",
    "jeff",
-   "put b2",
-   "Jeff开始：将手中食材放到案板 2（路程 0s + 操作 0.1s）"
+   "take b1",
+   "Jeff开始：从案板 1拿走 F7（面包）（路程 0s + 操作 0.1s）"
   ],
   [
-   68.15,
+   68.6,
    "action_done",
    "jeff",
-   "put b2",
-   "Jeff完成动作：将手中食材放到案板 2"
-  ],
-  [
-   68.5,
-   "action_start",
-   "jeff",
-   "take b2",
-   "Jeff开始：从案板 2拿走 F6（面包）（路程 0s + 操作 0.1s）"
+   "take b1",
+   "Jeff完成动作：从案板 1拿走 F7（面包）"
   ],
   [
    68.65,
-   "action_done",
-   "jeff",
-   "take b2",
-   "Jeff完成动作：从案板 2拿走 F6（面包）"
+   "fire_spread",
+   null,
+   null,
+   "柜台 _corner5着火！损失 5 元；必须先灭火再使用"
+  ],
+  [
+   68.7,
+   "arrival_conflict",
+   "human",
+   null,
+   "你到达后发现目标已变化或被占用，动作取消"
+  ],
+  [
+   69.0,
+   "action_start",
+   "human",
+   "fetch bread",
+   "你开始：取一份面包（自动换手）（路程 1s + 操作 0.1s）"
   ],
   [
    69.0,
@@ -2203,81 +2841,102 @@
    "Jeff开始：将手中食材放到案板 3（路程 0s + 操作 0.1s）"
   ],
   [
-   69.4,
+   69.6,
    "action_done",
    "jeff",
    "put b3",
    "Jeff完成动作：将手中食材放到案板 3"
   ],
   [
-   69.5,
+   69.75,
+   "swapped",
+   "human",
+   null,
+   "你换手：把 F3 留在地面(3,5)的地上，可捡回"
+  ],
+  [
+   69.75,
    "action_done",
    "human",
-   "assemble ground F3",
-   "你完成动作：把手中的番茄放进地面(10,6)的盘里"
+   "fetch bread",
+   "你完成动作：取一份面包（自动换手）"
   ],
   [
-   69.5,
+   70.0,
    "action_start",
    "human",
-   "take b3",
-   "你开始：从案板 3拿走 F6（面包）（路程 2s + 操作 0.1s）"
-  ],
-  [
-   69.5,
-   "action_start",
-   "jeff",
-   "take b3",
-   "Jeff开始：从案板 3拿走 F6（面包）（路程 0s + 操作 0.1s）"
-  ],
-  [
-   69.65,
-   "action_done",
-   "jeff",
-   "take b3",
-   "Jeff完成动作：从案板 3拿走 F6（面包）"
+   "put b2",
+   "你开始：将手中食材放到案板 2（路程 0s + 操作 0.1s）"
   ],
   [
    70.0,
    "action_start",
    "jeff",
-   "put b1",
-   "Jeff开始：将手中食材放到案板 1（路程 0s + 操作 0.1s）"
+   "take b3",
+   "Jeff开始：从案板 3拿走 F7（面包）（路程 0s + 操作 0.1s）"
+  ],
+  [
+   70.15,
+   "action_done",
+   "jeff",
+   "take b3",
+   "Jeff完成动作：从案板 3拿走 F7（面包）"
+  ],
+  [
+   70.5,
+   "action_start",
+   "jeff",
+   "put b3",
+   "Jeff开始：将手中食材放到案板 3（路程 0s + 操作 0.1s）"
   ],
   [
    70.6,
    "action_done",
+   "human",
+   "put b2",
+   "你完成动作：将手中食材放到案板 2"
+  ],
+  [
+   70.65,
+   "action_done",
    "jeff",
-   "put b1",
-   "Jeff完成动作：将手中食材放到案板 1"
+   "put b3",
+   "Jeff完成动作：将手中食材放到案板 3"
+  ],
+  [
+   71.0,
+   "action_start",
+   "human",
+   "take b2",
+   "你开始：从案板 2拿走 F15（面包）（路程 0s + 操作 0.1s）"
   ],
   [
    71.0,
    "action_start",
    "jeff",
-   "take b1",
-   "Jeff开始：从案板 1拿走 F6（面包）（路程 0s + 操作 0.1s）"
+   "take b3",
+   "Jeff开始：从案板 3拿走 F7（面包）（路程 0s + 操作 0.1s）"
+  ],
+  [
+   71.15,
+   "action_done",
+   "human",
+   "take b2",
+   "你完成动作：从案板 2拿走 F15（面包）"
   ],
   [
    71.15,
    "action_done",
    "jeff",
-   "take b1",
-   "Jeff完成动作：从案板 1拿走 F6（面包）"
-  ],
-  [
-   71.35,
-   "arrival_conflict",
-   "human",
-   null,
-   "你到达后发现目标已变化或被占用，动作取消"
+   "take b3",
+   "Jeff完成动作：从案板 3拿走 F7（面包）"
   ],
   [
    71.5,
    "action_start",
    "human",
-   "fetch tomato",
-   "你开始：取一份番茄（自动换手）（路程 1s + 操作 0.1s）"
+   "put b3",
+   "你开始：将手中食材放到案板 3（路程 0s + 操作 0.1s）"
   ],
   [
    71.5,
@@ -2289,128 +2948,149 @@
   [
    71.65,
    "action_done",
+   "human",
+   "put b3",
+   "你完成动作：将手中食材放到案板 3"
+  ],
+  [
+   72.0,
+   "action_start",
+   "human",
+   "take b3",
+   "你开始：从案板 3拿走 F15（面包）（路程 0s + 操作 0.1s）"
+  ],
+  [
+   72.2,
+   "action_done",
    "jeff",
    "put b1",
    "Jeff完成动作：将手中食材放到案板 1"
   ],
   [
-   72.0,
-   "action_start",
-   "jeff",
-   "take b1",
-   "Jeff开始：从案板 1拿走 F6（面包）（路程 0s + 操作 0.1s）"
-  ],
-  [
-   72.15,
-   "action_done",
-   "jeff",
-   "take b1",
-   "Jeff完成动作：从案板 1拿走 F6（面包）"
-  ],
-  [
-   72.4,
+   72.45,
    "action_done",
    "human",
-   "fetch tomato",
-   "你完成动作：取一份番茄（自动换手）"
+   "take b3",
+   "你完成动作：从案板 3拿走 F15（面包）"
   ],
   [
    72.5,
    "action_start",
    "human",
    "put b3",
-   "你开始：将手中食材放到案板 3（路程 1s + 操作 0.1s）"
+   "你开始：将手中食材放到案板 3（路程 0s + 操作 0.1s）"
   ],
   [
    72.5,
    "action_start",
    "jeff",
-   "put b2",
-   "Jeff开始：将手中食材放到案板 2（路程 0s + 操作 0.1s）"
+   "take b1",
+   "Jeff开始：从案板 1拿走 F7（面包）（路程 0s + 操作 0.1s）"
   ],
   [
-   72.9,
-   "action_done",
-   "jeff",
-   "put b2",
-   "Jeff完成动作：将手中食材放到案板 2"
-  ],
-  [
-   73.0,
-   "action_start",
-   "jeff",
-   "take b2",
-   "Jeff开始：从案板 2拿走 F6（面包）（路程 0s + 操作 0.1s）"
-  ],
-  [
-   73.15,
-   "action_done",
-   "jeff",
-   "take b2",
-   "Jeff完成动作：从案板 2拿走 F6（面包）"
-  ],
-  [
-   73.4,
-   "fire_spread",
-   null,
-   null,
-   "柜台 _corner5着火！损失 5 元；必须先灭火再使用"
-  ],
-  [
-   73.4,
+   72.65,
    "action_done",
    "human",
    "put b3",
    "你完成动作：将手中食材放到案板 3"
   ],
   [
-   73.5,
-   "action_start",
-   "human",
-   "chop b3",
-   "你开始：到案板 3切 F12（剩 6.0s）（路程 0s + 操作 6.0s）"
+   72.65,
+   "action_done",
+   "jeff",
+   "take b1",
+   "Jeff完成动作：从案板 1拿走 F7（面包）"
   ],
   [
-   73.5,
+   73.0,
+   "action_start",
+   "human",
+   "take b3",
+   "你开始：从案板 3拿走 F15（面包）（路程 0s + 操作 0.1s）"
+  ],
+  [
+   73.0,
    "action_start",
    "jeff",
    "put b2",
    "Jeff开始：将手中食材放到案板 2（路程 0s + 操作 0.1s）"
   ],
   [
-   73.65,
+   73.15,
+   "action_done",
+   "human",
+   "take b3",
+   "你完成动作：从案板 3拿走 F15（面包）"
+  ],
+  [
+   73.4,
    "action_done",
    "jeff",
    "put b2",
    "Jeff完成动作：将手中食材放到案板 2"
   ],
   [
-   74.0,
+   73.5,
+   "action_start",
+   "human",
+   "put b1",
+   "你开始：将手中食材放到案板 1（路程 0s + 操作 0.1s）"
+  ],
+  [
+   73.5,
    "action_start",
    "jeff",
    "take b2",
-   "Jeff开始：从案板 2拿走 F6（面包）（路程 0s + 操作 0.1s）"
+   "Jeff开始：从案板 2拿走 F7（面包）（路程 0s + 操作 0.1s）"
+  ],
+  [
+   73.65,
+   "action_done",
+   "jeff",
+   "take b2",
+   "Jeff完成动作：从案板 2拿走 F7（面包）"
+  ],
+  [
+   74.0,
+   "action_start",
+   "jeff",
+   "put b2",
+   "Jeff开始：将手中食材放到案板 2（路程 0s + 操作 0.1s）"
   ],
   [
    74.15,
    "action_done",
    "jeff",
+   "put b2",
+   "Jeff完成动作：将手中食材放到案板 2"
+  ],
+  [
+   74.2,
+   "action_done",
+   "human",
+   "put b1",
+   "你完成动作：将手中食材放到案板 1"
+  ],
+  [
+   74.5,
+   "action_start",
+   "human",
    "take b2",
-   "Jeff完成动作：从案板 2拿走 F6（面包）"
+   "你开始：从案板 2拿走 F7（面包）（路程 0s + 操作 0.1s）"
   ],
   [
    74.5,
    "action_start",
    "jeff",
-   "put b1",
-   "Jeff开始：将手中食材放到案板 1（路程 0s + 操作 0.1s）"
+   "pickup F14",
+   "Jeff开始：去地面(9,2)捡起 F14（生肉；自动换手）（路程 2s + 操作 0.1s）"
   ],
   [
-   74.9,
+   74.65,
    "action_done",
-   "jeff",
-   "put b1",
-   "Jeff完成动作：将手中食材放到案板 1"
+   "human",
+   "take b2",
+   "你完成动作：从案板 2拿走 F7（面包）"
   ],
   [
    75.0,
@@ -2422,299 +3102,327 @@
   [
    75.0,
    "action_start",
-   "jeff",
-   "take b1",
-   "Jeff开始：从案板 1拿走 F6（面包）（路程 0s + 操作 0.1s）"
+   "human",
+   "put b3",
+   "你开始：将手中食材放到案板 3（路程 0s + 操作 0.1s）"
   ],
   [
-   75.15,
+   75.6,
    "action_done",
-   "jeff",
-   "take b1",
-   "Jeff完成动作：从案板 1拿走 F6（面包）"
-  ],
-  [
-   75.5,
-   "action_start",
-   "jeff",
-   "put b1",
-   "Jeff开始：将手中食材放到案板 1（路程 0s + 操作 0.1s）"
-  ],
-  [
-   75.65,
-   "action_done",
-   "jeff",
-   "put b1",
-   "Jeff完成动作：将手中食材放到案板 1"
+   "human",
+   "put b3",
+   "你完成动作：将手中食材放到案板 3"
   ],
   [
    76.0,
    "action_start",
-   "jeff",
-   "take b1",
-   "Jeff开始：从案板 1拿走 F6（面包）（路程 0s + 操作 0.1s）"
+   "human",
+   "fetch",
+   "你开始：到冰箱取一份生肉（手中物品自动放到地上）（路程 1s + 操作 0.1s）"
   ],
   [
-   76.15,
+   76.5,
+   "picked_up",
+   "jeff",
+   null,
+   "Jeff从地面(9,2)旁的地上捡起 F14"
+  ],
+  [
+   76.5,
    "action_done",
    "jeff",
-   "take b1",
-   "Jeff完成动作：从案板 1拿走 F6（面包）"
+   "pickup F14",
+   "Jeff完成动作：去地面(9,2)捡起 F14（生肉；自动换手）"
   ],
   [
    76.5,
    "action_start",
    "jeff",
-   "pickup P3",
-   "Jeff开始：去地面(2,6)捡起 P3（锅；自动换手）（路程 0s + 操作 0.1s）"
+   "take pot p2",
+   "Jeff开始：端起灶台 2的平底锅（离开灶台停止加热，占手持位）（路程 0s + 操作 0.1s）"
   ],
   [
    76.65,
-   "picked_up",
-   "jeff",
-   null,
-   "Jeff从地面(2,6)旁的地上捡起 P3"
-  ],
-  [
-   76.65,
-   "swapped",
-   "jeff",
-   null,
-   "Jeff换手：把 F6 留在地面(2,6)的地上，可捡回"
-  ],
-  [
-   76.65,
-   "action_done",
-   "jeff",
-   "pickup P3",
-   "Jeff完成动作：去地面(2,6)捡起 P3（锅；自动换手）"
-  ],
-  [
-   77.0,
-   "action_start",
-   "jeff",
-   "put pot p2",
-   "Jeff开始：把手中的平底锅放回灶台 2（有食物时恢复加热）（路程 2s + 操作 0.1s）"
-  ],
-  [
-   79.35,
-   "action_done",
-   "jeff",
-   "put pot p2",
-   "Jeff完成动作：把手中的平底锅放回灶台 2（有食物时恢复加热）"
-  ],
-  [
-   79.5,
-   "action_done",
-   "human",
-   "chop b3",
-   "你完成动作：到案板 3切 F12（剩 6.0s）"
-  ],
-  [
-   79.5,
-   "action_start",
-   "human",
-   "take b3",
-   "你开始：从案板 3拿走 F12（番茄 · 切好）（路程 0s + 操作 0.1s）"
-  ],
-  [
-   79.5,
-   "action_start",
-   "jeff",
-   "take b3",
-   "Jeff开始：从案板 3拿走 F12（番茄 · 切好）（路程 2s + 操作 0.1s）"
-  ],
-  [
-   79.65,
-   "action_done",
-   "human",
-   "take b3",
-   "你完成动作：从案板 3拿走 F12（番茄 · 切好）"
-  ],
-  [
-   80.0,
-   "action_start",
-   "human",
-   "assemble ground F2",
-   "你开始：把手中的番茄放进地面(3,6)的盘里（路程 0s + 操作 0.1s）"
-  ],
-  [
-   80.4,
-   "action_done",
-   "human",
-   "assemble ground F2",
-   "你完成动作：把手中的番茄放进地面(3,6)的盘里"
-  ],
-  [
-   80.5,
-   "action_start",
-   "human",
-   "fetch lettuce",
-   "你开始：取一份生菜（自动换手）（路程 1s + 操作 0.1s）"
-  ],
-  [
-   81.4,
    "fire_spread",
    null,
    null,
    "灶台 2着火！损失 5 元；必须先灭火再使用"
   ],
   [
-   81.4,
+   76.65,
    "fire_spread",
    null,
    null,
    "柜台 18着火！损失 5 元；必须先灭火再使用"
   ],
   [
-   81.4,
-   "action_done",
-   "human",
-   "fetch lettuce",
-   "你完成动作：取一份生菜（自动换手）"
-  ],
-  [
-   81.4,
+   76.75,
    "arrival_conflict",
    "jeff",
    null,
    "Jeff到达后发现目标已变化或被占用，动作取消"
   ],
   [
-   81.5,
+   77.0,
+   "action_start",
+   "jeff",
+   "put b2",
+   "Jeff开始：将手中食材放到案板 2（路程 2s + 操作 0.1s）"
+  ],
+  [
+   77.3,
+   "action_done",
+   "human",
+   "fetch",
+   "你完成动作：到冰箱取一份生肉（手中物品自动放到地上）"
+  ],
+  [
+   77.5,
    "action_start",
    "human",
-   "put counter24",
-   "你开始：把手中物品放到柜台 24（每格一件）（路程 2s + 操作 0.1s）"
+   "put b2",
+   "你开始：将手中食材放到案板 2（路程 1s + 操作 0.1s）"
   ],
   [
-   81.5,
+   78.7,
+   "action_done",
+   "human",
+   "put b2",
+   "你完成动作：将手中食材放到案板 2"
+  ],
+  [
+   78.85,
+   "arrival_conflict",
+   "jeff",
+   null,
+   "Jeff到达后发现目标已变化或被占用，动作取消"
+  ],
+  [
+   79.0,
+   "action_start",
+   "human",
+   "chop b2",
+   "你开始：到案板 2切 F16（剩 3.0s）（路程 0s + 操作 3.0s）"
+  ],
+  [
+   79.0,
    "action_start",
    "jeff",
-   "fetch tomato",
-   "Jeff开始：取一份番茄（自动换手）（路程 1s + 操作 0.1s）"
+   "take b3",
+   "Jeff开始：从案板 3拿走 F7（面包）（路程 0s + 操作 0.1s）"
   ],
   [
-   82.4,
+   79.35,
+   "swapped",
+   "jeff",
+   null,
+   "Jeff换手：把 F14 留在地面(4,6)的地上，可捡回"
+  ],
+  [
+   79.35,
    "action_done",
    "jeff",
-   "fetch tomato",
-   "Jeff完成动作：取一份番茄（自动换手）"
+   "take b3",
+   "Jeff完成动作：从案板 3拿走 F7（面包）"
   ],
   [
-   82.5,
+   79.5,
    "action_start",
    "jeff",
    "put b3",
-   "Jeff开始：将手中食材放到案板 3（路程 1s + 操作 0.1s）"
+   "Jeff开始：将手中食材放到案板 3（路程 0s + 操作 0.1s）"
   ],
   [
-   83.4,
+   79.65,
    "action_done",
    "jeff",
    "put b3",
    "Jeff完成动作：将手中食材放到案板 3"
   ],
   [
-   83.5,
+   80.0,
    "action_start",
    "jeff",
-   "chop b3",
-   "Jeff开始：到案板 3切 F14（剩 6.0s）（路程 0s + 操作 6.0s）"
+   "take b1",
+   "Jeff开始：从案板 1拿走 F15（面包）（路程 0s + 操作 0.1s）"
   ],
   [
-   83.8,
+   80.7,
+   "action_done",
+   "jeff",
+   "take b1",
+   "Jeff完成动作：从案板 1拿走 F15（面包）"
+  ],
+  [
+   81.0,
+   "action_start",
+   "jeff",
+   "put b1",
+   "Jeff开始：将手中食材放到案板 1（路程 0s + 操作 0.1s）"
+  ],
+  [
+   81.15,
+   "action_done",
+   "jeff",
+   "put b1",
+   "Jeff完成动作：将手中食材放到案板 1"
+  ],
+  [
+   81.5,
+   "action_start",
+   "jeff",
+   "take b3",
+   "Jeff开始：从案板 3拿走 F7（面包）（路程 0s + 操作 0.1s）"
+  ],
+  [
+   82.0,
    "action_done",
    "human",
-   "put counter24",
-   "你完成动作：把手中物品放到柜台 24（每格一件）"
+   "chop b2",
+   "你完成动作：到案板 2切 F16（剩 3.0s）"
+  ],
+  [
+   82.0,
+   "action_start",
+   "human",
+   "take b3",
+   "你开始：从案板 3拿走 F7（面包）（路程 0s + 操作 0.1s）"
+  ],
+  [
+   82.1,
+   "arrival_conflict",
+   "jeff",
+   null,
+   "Jeff到达后发现目标已变化或被占用，动作取消"
+  ],
+  [
+   82.15,
+   "action_done",
+   "human",
+   "take b3",
+   "你完成动作：从案板 3拿走 F7（面包）"
+  ],
+  [
+   82.5,
+   "action_start",
+   "human",
+   "put b3",
+   "你开始：将手中食材放到案板 3（路程 0s + 操作 0.1s）"
+  ],
+  [
+   82.5,
+   "action_start",
+   "jeff",
+   "fetch lettuce",
+   "Jeff开始：取一份生菜（自动换手）（路程 1s + 操作 0.1s）"
+  ],
+  [
+   82.65,
+   "action_done",
+   "human",
+   "put b3",
+   "你完成动作：将手中食材放到案板 3"
+  ],
+  [
+   83.0,
+   "action_start",
+   "human",
+   "take b3",
+   "你开始：从案板 3拿走 F7（面包）（路程 0s + 操作 0.1s）"
+  ],
+  [
+   83.4,
+   "action_done",
+   "human",
+   "take b3",
+   "你完成动作：从案板 3拿走 F7（面包）"
+  ],
+  [
+   83.5,
+   "action_start",
+   "human",
+   "put b3",
+   "你开始：将手中食材放到案板 3（路程 0s + 操作 0.1s）"
+  ],
+  [
+   83.6,
+   "action_done",
+   "jeff",
+   "fetch lettuce",
+   "Jeff完成动作：取一份生菜（自动换手）"
+  ],
+  [
+   83.65,
+   "action_done",
+   "human",
+   "put b3",
+   "你完成动作：将手中食材放到案板 3"
   ],
   [
    84.0,
    "action_start",
    "human",
-   "fetch lettuce",
-   "你开始：取一份生菜（自动换手）（路程 2s + 操作 0.1s）"
+   "take b1",
+   "你开始：从案板 1拿走 F15（面包）（路程 0s + 操作 0.1s）"
   ],
   [
-   86.3,
+   84.0,
+   "action_start",
+   "jeff",
+   "take b2",
+   "Jeff开始：从案板 2拿走 F16（切好）（路程 1s + 操作 0.1s）"
+  ],
+  [
+   84.6,
    "action_done",
    "human",
-   "fetch lettuce",
-   "你完成动作：取一份生菜（自动换手）"
+   "take b1",
+   "你完成动作：从案板 1拿走 F15（面包）"
   ],
   [
-   86.5,
-   "action_start",
-   "human",
-   "put counter_corner8",
-   "你开始：把手中物品放到柜台 _corner8（每格一件）（路程 2s + 操作 0.1s）"
-  ],
-  [
-   88.85,
-   "action_done",
-   "human",
-   "put counter_corner8",
-   "你完成动作：把手中物品放到柜台 _corner8（每格一件）"
-  ],
-  [
-   89.0,
-   "action_start",
-   "human",
-   "fetch lettuce",
-   "你开始：取一份生菜（自动换手）（路程 2s + 操作 0.1s）"
-  ],
-  [
-   89.4,
+   84.65,
    "fire_spread",
    null,
    null,
    "柜台 4着火！损失 5 元；必须先灭火再使用"
   ],
   [
-   89.4,
+   84.65,
    "fire_spread",
    null,
    null,
    "柜台 19着火！损失 5 元；必须先灭火再使用"
   ],
   [
-   89.4,
-   "interrupted",
-   "human",
-   null,
-   "你中断：取一份生菜（自动换手）"
-  ],
-  [
-   89.4,
+   84.65,
    "interrupted",
    "jeff",
    null,
-   "Jeff中断：到案板 3切 F14（剩 6.0s）"
+   "Jeff中断：从案板 2拿走 F16（切好）"
   ],
   [
-   89.4,
+   84.65,
    "fire_loss",
    null,
    null,
    "火势失控，本局结束"
   ],
   [
-   89.4,
+   84.65,
    "unresolved_at_close",
    null,
    null,
    "O2在关店时仍未完成"
   ],
   [
-   89.4,
+   84.65,
    "unresolved_at_close",
    null,
    null,
    "O3在关店时仍未完成"
   ],
   [
-   89.4,
+   84.65,
    "round_end",
    null,
    null,
@@ -2722,26 +3430,25 @@
   ]
  ],
  "checkpoints": [
-  "c295dc49c11f898a",
-  "2fa5b582aea187a6",
-  "021f2354f9a21618",
-  "efc3928e65796b62",
-  "19bc3a470bdc7633",
-  "e78bc65ccc5b3325",
-  "a8c39cec120a9296",
-  "01e19c1b9759a6c3",
-  "9d957815eff2913a",
-  "5796823bb7c8def8",
-  "60c2a34b1debe692",
-  "0befc78825c566c1",
-  "ccc765f41c06bb09",
-  "8418d2368bc0738a",
-  "e11968a3bdc965b7",
-  "5c058e354a2102b4",
-  "a424551b20b9de55"
+  "d02c67e5cbb19cca",
+  "98bf53e7cffe4565",
+  "a9dff018cfc9ee5e",
+  "1a08f159c325d9e4",
+  "df5ba2612fcd367d",
+  "418324674cbe9cef",
+  "e8756bc233b6c0f7",
+  "855fd3651cb8487e",
+  "d88b435be8b015ad",
+  "77b128dbe0b8c827",
+  "76e320d22c5883e1",
+  "5304957ea70ca3f2",
+  "654d297ec3ba9a37",
+  "1faacb046439c5d0",
+  "c4b9eef0bad9880f",
+  "b7ef8781d1ae1000"
  ],
  "final": {
-  "t": 89.4,
+  "t": 84.65,
   "money": -40,
   "served": 0,
   "ended": true,
@@ -2749,19 +3456,39 @@
   "chefs": {
    "human": [
     [
-     9.765,
-     5.023
+     2.0,
+     6.49
     ],
-    null,
+    [
+     "F15",
+     "raw",
+     0,
+     0,
+     null,
+     0,
+     "bread",
+     [],
+     null
+    ],
     null,
     false
    ],
    "jeff": [
     [
-     4.0,
-     6.49
+     2.695,
+     5.564
     ],
-    null,
+    [
+     "F17",
+     "raw",
+     0,
+     0,
+     null,
+     0,
+     "lettuce",
+     [],
+     null
+    ],
     null,
     false
    ]
@@ -2775,7 +3502,17 @@
     null
    ],
    "b2": [
-    null,
+    [
+     "F16",
+     "chopped",
+     3,
+     0,
+     null,
+     0,
+     "beef",
+     [],
+     null
+    ],
     null,
     false,
     false,
@@ -2783,13 +3520,13 @@
    ],
    "b3": [
     [
-     "F14",
+     "F7",
      "raw",
-     5.85,
+     0,
      0,
      null,
      0,
-     "tomato",
+     "bread",
      [],
      null
     ],
@@ -2834,7 +3571,17 @@
     null
    ],
    "counter13": [
-    null,
+    [
+     "F10",
+     "chopped",
+     3,
+     0,
+     null,
+     0,
+     "lettuce",
+     [],
+     null
+    ],
     null,
     false,
     false,
@@ -2890,17 +3637,7 @@
     null
    ],
    "counter24": [
-    [
-     "F13",
-     "raw",
-     0,
-     0,
-     null,
-     0,
-     "lettuce",
-     [],
-     null
-    ],
+    null,
     null,
     false,
     false,
@@ -2980,7 +3717,17 @@
     null
    ],
    "counter_corner5": [
-    null,
+    [
+     "E1",
+     "extinguisher",
+     0,
+     0,
+     null,
+     0,
+     "beef",
+     [],
+     null
+    ],
     null,
     true,
     false,
@@ -3001,17 +3748,7 @@
     null
    ],
    "counter_corner8": [
-    [
-     "F15",
-     "raw",
-     0,
-     0,
-     null,
-     0,
-     "lettuce",
-     [],
-     null
-    ],
+    null,
     null,
     false,
     false,
@@ -3040,9 +3777,9 @@
    ],
    "p1": [
     [
-     "F7",
+     "F8",
      "burnt",
-     6,
+     3,
      30.0,
      null,
      0,
@@ -3053,14 +3790,14 @@
     null,
     true,
     false,
-    "P1"
+    "P2"
    ],
    "p2": [
     null,
     null,
     true,
     false,
-    "P3"
+    "P1"
    ],
    "plates": [
     null,
@@ -3099,11 +3836,11 @@
    ]
   },
   "ground": {
-   "E1": [
+   "F14": [
     "floor_4_6",
     [
-     "E1",
-     "extinguisher",
+     "F14",
+     "raw",
      0,
      0,
      null,
@@ -3115,13 +3852,31 @@
     null
    ],
    "F2": [
-    "floor_3_6",
+    "floor_11_6",
     [
      "F2",
      "assembled",
-     6,
+     3,
      0,
      "D2",
+     0,
+     "dish",
+     [
+      "bread",
+      "tomato"
+     ],
+     null
+    ],
+    null
+   ],
+   "F3": [
+    "floor_3_5",
+    [
+     "F3",
+     "assembled",
+     3,
+     0,
+     "D1",
      0,
      "dish",
      [
@@ -3133,30 +3888,12 @@
     ],
     null
    ],
-   "F3": [
-    "floor_10_6",
-    [
-     "F3",
-     "assembled",
-     6,
-     0,
-     "D1",
-     0,
-     "dish",
-     [
-      "bread",
-      "tomato"
-     ],
-     null
-    ],
-    null
-   ],
    "F4": [
     "floor_2_5",
     [
      "F4",
      "assembled",
-     6,
+     3,
      0,
      "D3",
      0,
@@ -3171,7 +3908,7 @@
     null
    ],
    "F6": [
-    "floor_2_6",
+    "floor_3_4",
     [
      "F6",
      "raw",
@@ -3185,10 +3922,10 @@
     ],
     null
    ],
-   "P2": [
-    "floor_11_5",
+   "P3": [
+    "floor_11_2",
     [
-     "P2",
+     "P3",
      "pot",
      0,
      0,
@@ -3196,17 +3933,7 @@
      0,
      "beef",
      [],
-     [
-      "F9",
-      "chopped",
-      6,
-      0,
-      null,
-      0,
-      "beef",
-      [],
-      null
-     ]
+     null
     ],
     null
    ]

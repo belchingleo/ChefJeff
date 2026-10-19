@@ -1,6 +1,6 @@
 {
   "analyzer_version": "capacity-analyzer-0.1",
-  "input_config_hash": "sha256:ab86e460a78db984c07906b0ea6d51ea1bb748c5534ceccbc8c4802d8d0cf6bf",
+  "input_config_hash": "sha256:cd9e02755998391f6e785b8ff5f2cf62fa48f0cfccc7a9681610c1b52ea0d096",
   "input_status": "frozen",
   "level_id": "level-2",
   "schema_valid": true,
@@ -104,8 +104,8 @@
             "take_board",
             "plate"
           ],
-          "duration_game_ms": 6600,
-          "chef_time_game_ms": 6600
+          "duration_game_ms": 3600,
+          "chef_time_game_ms": 3600
         },
         {
           "item": "tomato",
@@ -117,8 +117,8 @@
             "take_board",
             "plate"
           ],
-          "duration_game_ms": 6600,
-          "chef_time_game_ms": 6600
+          "duration_game_ms": 3600,
+          "chef_time_game_ms": 3600
         },
         {
           "item": "beef",
@@ -132,23 +132,23 @@
             "heat",
             "plate"
           ],
-          "duration_game_ms": 18750,
-          "chef_time_game_ms": 6750
+          "duration_game_ms": 15750,
+          "chef_time_game_ms": 3750
         }
       ],
-      "critical_path_game_ms": 18900,
-      "chef_time_game_ms": 20550,
-      "first_dish_lower_bound_game_ms": 18900,
+      "critical_path_game_ms": 15900,
+      "chef_time_game_ms": 11550,
+      "first_dish_lower_bound_game_ms": 15900,
       "first_dish_lower_bound_basis": "max(critical path, chef time / chefs); transport excluded",
       "single_chef_walking_reference_game_ms": {
-        "assignment_0:human": 50643,
-        "assignment_0:jeff": 52761,
-        "assignment_1:human": 52761,
-        "assignment_1:jeff": 50643
+        "assignment_0:human": 41462,
+        "assignment_0:jeff": 43551,
+        "assignment_1:human": 43551,
+        "assignment_1:jeff": 41462
       },
       "walking_reference_range_game_ms": [
-        50643,
-        52761
+        41462,
+        43551
       ]
     }
   },
@@ -160,14 +160,14 @@
       "capacity": 2,
       "unit": "chefs",
       "demand_per_dish_game_ms": {
-        "burger": 25000
+        "burger": 16000
       }
     },
     "board": {
       "capacity": 2.0,
       "unit": "work-seconds per second",
       "demand_per_dish_game_ms": {
-        "burger": 18000
+        "burger": 9000
       }
     },
     "stove_with_pot": {
@@ -193,21 +193,21 @@
     }
   },
   "resource_lower_bounds_game_ms": {
-    "chef": 12500,
-    "board": 9000,
+    "chef": 8000,
+    "board": 4500,
     "stove_with_pot": 12000,
     "sink": 4000,
     "plate": 6150
   },
   "resource_loads": {
-    "chef": 0.3125,
-    "board": 0.225,
+    "chef": 0.2,
+    "board": 0.1125,
     "stove_with_pot": 0.3,
     "sink": 0.1,
     "plate": 0.1537
   },
-  "I_resource_lb_game_ms": 12500,
-  "binding_resource": "chef",
+  "I_resource_lb_game_ms": 12000,
+  "binding_resource": "stove_with_pot",
   "plan": {
     "orders": 5,
     "goal": {

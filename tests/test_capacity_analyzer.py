@@ -58,23 +58,23 @@ class BoundTests(unittest.TestCase):
     def test_first_dish_bound_uses_shared_chopping_only_where_geometry_allows(self):
         level1 = ca.analyze_capacity(frozen('level-1'))
         self.assertEqual(level1['geometry']['shared_work_capable']['board'], ['b1', 'b3'])
-        # 6 handling steps x 0.15 + chop 6 / 2 + heat 12
-        self.assertEqual(level1['dishes']['steak']['first_dish_lower_bound_game_ms'], 15900)
+        # 6 handling steps x 0.15 + chop 3 / 2 + heat 12
+        self.assertEqual(level1['dishes']['steak']['first_dish_lower_bound_game_ms'], 14400)
         solo = ca.analyze_capacity(frozen('level-1'), {'shared_work': False})
-        self.assertEqual(solo['dishes']['steak']['first_dish_lower_bound_game_ms'], 18900)
+        self.assertEqual(solo['dishes']['steak']['first_dish_lower_bound_game_ms'], 15900)
         level3 = ca.analyze_capacity(frozen('level-3'))
         self.assertEqual(level3['geometry']['shared_work_capable']['board'], [])  # not a defect
-        self.assertEqual(level3['dishes']['steak']['first_dish_lower_bound_game_ms'], 18900)
+        self.assertEqual(level3['dishes']['steak']['first_dish_lower_bound_game_ms'], 15900)
 
     def test_parallel_branches_take_the_critical_path_not_the_sum(self):
         burger = ca.analyze_capacity(frozen('level-2'))['dishes']['burger']
-        self.assertEqual(burger['critical_path_game_ms'], 18900)  # beef branch
-        self.assertEqual(burger['chef_time_game_ms'], 20550)       # all attended work
-        self.assertEqual(burger['first_dish_lower_bound_game_ms'], max(18900, 20550 // 2))
+        self.assertEqual(burger['critical_path_game_ms'], 15900)  # beef branch
+        self.assertEqual(burger['chef_time_game_ms'], 11550)       # all attended work
+        self.assertEqual(burger['first_dish_lower_bound_game_ms'], max(15900, 11550 // 2))
 
     def test_resource_loads_follow_data(self):
         base = ca.analyze_capacity(frozen('level-2'))
-        self.assertEqual(base['resource_lower_bounds_game_ms']['board'], 9000)  # 3 x 6 s over 2 boards
+        self.assertEqual(base['resource_lower_bounds_game_ms']['board'], 4500)  # 3 x 3 s over 2 boards
         slower = ca.analyze_capacity(frozen('level-2', recipe_catalog=lambda r: [t.update(work_game_ms=8000)
                                                                                for t in r['transforms'] if t['operation'] == 'chop']))
         self.assertEqual(slower['resource_lower_bounds_game_ms']['board'], 12000)

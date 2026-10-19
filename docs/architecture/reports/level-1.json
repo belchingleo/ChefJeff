@@ -1,6 +1,6 @@
 {
   "analyzer_version": "capacity-analyzer-0.1",
-  "input_config_hash": "sha256:d2b84d44983f0c52929541dd2131b7f4b3b8c31c975b754c64295a625eb0d1c5",
+  "input_config_hash": "sha256:a333b8ad1c63c4da875a4563563aadf9a4dbcd78cf6e215fb4143f8bb9115fa9",
   "input_status": "frozen",
   "level_id": "level-1",
   "schema_valid": true,
@@ -99,23 +99,23 @@
             "heat",
             "plate"
           ],
-          "duration_game_ms": 15750,
-          "chef_time_game_ms": 6750
+          "duration_game_ms": 14250,
+          "chef_time_game_ms": 3750
         }
       ],
-      "critical_path_game_ms": 15900,
-      "chef_time_game_ms": 7050,
-      "first_dish_lower_bound_game_ms": 15900,
+      "critical_path_game_ms": 14400,
+      "chef_time_game_ms": 4050,
+      "first_dish_lower_bound_game_ms": 14400,
       "first_dish_lower_bound_basis": "max(critical path, chef time / chefs); transport excluded",
       "single_chef_walking_reference_game_ms": {
-        "assignment_0:human": 19919,
-        "assignment_0:jeff": 21211,
-        "assignment_1:human": 21211,
-        "assignment_1:jeff": 19919
+        "assignment_0:human": 18419,
+        "assignment_0:jeff": 19711,
+        "assignment_1:human": 19711,
+        "assignment_1:jeff": 18419
       },
       "walking_reference_range_game_ms": [
-        19919,
-        21211
+        18419,
+        19711
       ]
     }
   },
@@ -127,14 +127,14 @@
       "capacity": 2,
       "unit": "chefs",
       "demand_per_dish_game_ms": {
-        "steak": 11500
+        "steak": 8500
       }
     },
     "board": {
       "capacity": 5.0,
       "unit": "work-seconds per second",
       "demand_per_dish_game_ms": {
-        "steak": 6000
+        "steak": 3000
       }
     },
     "stove_with_pot": {
@@ -160,15 +160,15 @@
     }
   },
   "resource_lower_bounds_game_ms": {
-    "chef": 5750,
-    "board": 1200,
+    "chef": 4250,
+    "board": 600,
     "stove_with_pot": 12000,
     "sink": 4000,
     "plate": 6150
   },
   "resource_loads": {
-    "chef": 0.1917,
-    "board": 0.04,
+    "chef": 0.1417,
+    "board": 0.02,
     "stove_with_pot": 0.4,
     "sink": 0.1333,
     "plate": 0.205
