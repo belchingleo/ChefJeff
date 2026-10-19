@@ -124,7 +124,7 @@ def engine_input(method):
                 record['accepted'] = bool(result)
             elif method.__name__ == 'report_position':
                 record.update(at=[args[1], args[2]], base=args[3], settle=bool(args[4]) if len(args) > 4 else False,
-                              accepted=bool(result))
+                              press=bool(args[5]) if len(args) > 5 else False, accepted=bool(result))
             self.inputs.append(record)
         return result
     return wrapper
@@ -151,7 +151,7 @@ def replay(factory, resolved, inputs):
         elif call == 'sprint':
             k.sprint(record['actor'])
         elif call == 'report_position':
-            k.report_position(record['actor'], *record['at'], record['base'], record['settle'])
+            k.report_position(record['actor'], *record['at'], record['base'], record['settle'], record.get('press', False))
         elif call == 'abort':
             k.abort()
         else:

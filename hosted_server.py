@@ -203,7 +203,7 @@ FIELDS = {
     '/api/resume': set(), '/api/end': set(), '/api/reset': set(), '/api/restart': set(),
     '/api/level': {'level'}, '/api/next': {'level'}, '/api/limits': {'max_calls'}, '/api/export-run': set(),
     '/api/feedback': set(), '/api/bookmark': set(), '/api/communicate': {'code'},
-    '/api/move': {'dx', 'dy', 'seq', 'sprint'}, '/api/position': {'seq', 'base', 'at'}, '/api/select': {'target'},
+    '/api/move': {'dx', 'dy', 'seq', 'sprint'}, '/api/position': {'seq', 'base', 'at', 'press'}, '/api/select': {'target'},
     '/api/interact': {'expected_item', 'mode', 'at', 'base'}, '/api/throw': {'target', 'direction', 'expected_item', 'at', 'base'},
     '/api/action': {'action', 'expected'},
     '/api/model/result': {'id', 'choice', 'sprint', 'usage', 'failed'},

@@ -348,15 +348,16 @@ class GameSession:
 
     def _position(self, body):
         """Where the player's browser has walked its chef; the engine follows with its own physics."""
-        seq, point = body.get('seq'), self._reported_point(body)
+        seq, point, press = body.get('seq'), self._reported_point(body), body.get('press', False)
         if not hasattr(self.k,'report_position'):
             return 400, {'error':'当前厨房不支持位置上报'}
-        if point is None or isinstance(seq,bool) or not isinstance(seq,int) or seq < 0:
+        if point is None or isinstance(seq,bool) or not isinstance(seq,int) or seq < 0 or type(press) is not bool:
             return 400, {'error':'位置信息无效'}
         if seq <= self.position_seq or self.phase != 'running':
             return 200, {'ok':True,'ignored':True}
         self.position_seq = seq
-        accepted = self.k.report_position('human',*point)
+        # press: the browser is pressing into Jeff and follows the engine's held-direction walk.
+        accepted = self.k.report_position('human',*point,False,press)
         self._events()
         return 200, {'ok':True,'accepted':accepted,'resync':self.k.resync['human']}
 
