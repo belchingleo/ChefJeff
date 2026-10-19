@@ -8,7 +8,7 @@ from levels import available_levels
 
 EVENTS = {'order','action_start','action_done','interrupted','arrival_conflict',
           'picked_up','dropped','thrown','landed','swapped','ready','burn','fire',
-          'served','expired','washed','plate_returned','round_end'}
+          'served','expired','washed','plate_returned','round_end','position_resync'}
 
 
 HISTORY_LIMIT = 100  # finished rounds kept per play session; older rounds stay in the local run logs
@@ -29,6 +29,10 @@ def allowed_events(k):
         if e.get('kind') not in EVENTS:continue
         row = {'t': e['t'], 'kind': e['kind']}
         if e.get('actor') in ('human', 'jeff'):row['actor'] = e['actor']
+        # Why the engine overrode the browser's walk (pushed, blocked, too_far) and where the chef was.
+        if e['kind'] == 'position_resync' and e.get('reason') in ('pushed', 'blocked', 'too_far'):
+            row['reason'] = e['reason']
+            row['position'] = [round(float(v), 2) for v in e.get('position', ())][:2]
         # Action IDs come from the game, not arbitrary notes or provider text.
         action = e.get('action', '')
         if re.fullmatch(r'(?:fetch|wash|serve|drop|discard|stop|continue|wait|(?:go|put|take|plate|chop|pickup|throw|clear|extinguish) [a-zA-Z0-9_ .-]{1,60})', action):
