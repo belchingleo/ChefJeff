@@ -1017,23 +1017,23 @@ class SpatialKitchen(Kitchen):
         return out,ahead
 
     def facing_interaction(self,who,mode='hands',actions=None,station=None):
-        """(target, action) for Space ('hands') or E ('use').
+        """(target, action) for Space ('hands'), E ('use') or touch Pick/Place ('place').
 
         Space does whatever the target needs: take, put, plate, serve, and also
-        chop, wash or extinguish. E only chops, washes or extinguishes. A candidate
-        with nothing to do falls through to the next; facing a station never
-        drops the held item on the floor instead.
+        chop, wash or extinguish. E only chops, washes or extinguishes; Pick/Place
+        never does. A candidate with nothing to do falls through to the next;
+        facing a station never drops the held item on the floor instead.
         """
         actions=self.actions(who) if actions is None else actions
         chef=self.chefs[who]
-        # Work is sticky, as in Overcooked: Space never stops it; walking away does.
+        # Work is sticky, as in Overcooked: no button stops it; walking away does.
         if chef.job and chef.job.working:return None,None
         kinds=USE_KINDS if mode=='use' else None
         candidates,ahead=self.facing_candidates(who,station)
         if mode=='use':candidates=[c for c in candidates if c in self.equipment]
         for target in candidates:
             if target.startswith('floor_') and ahead:break
-            action=self.quick_interaction(who,actions,preferred=target,kinds=kinds)
+            action=self.quick_interaction(who,actions,preferred=target,kinds=kinds,exclude=USE_KINDS if mode=='place' else None)
             if action:return target,action
         return (candidates[0] if candidates else None),None
 
