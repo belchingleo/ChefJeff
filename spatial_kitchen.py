@@ -25,6 +25,14 @@ FRONT_SLACK = .15
 # fist 0.38-0.48 cells up at the strike, blade landing 0.06-0.22), so the front point is raised to hand
 # height and the station the knife points at is the target. Up and down are unchanged.
 SIDE_HAND_RISE = .35
+# Space's station, as Overcooked 2 picks it (PlayerControls.FindNearbyObjects, InteractWithItemHelper
+# .GetFacingGridOccupant): among the stations in the eight cells around the chef's own cell, the one
+# whose direction best matches where the chef last aimed; ties go to the one nearest a point SELECT_AHEAD
+# ahead (at hand height when aiming sideways). Only stations ahead count, never beside or behind, and
+# within SELECT_REACH cells of the feet. The pick is purely geometric, so what is highlighted is what
+# Space acts on: a station with nothing to do never hands Space to another one.
+SELECT_AHEAD = .5
+SELECT_REACH = .85  # Overcooked 2's 1-unit radius, about 1.2 units per cell
 NUDGE_LIMIT = .25
 # Overcooked-style local movement: the player's own browser moves its chef and reports where it is
 # (report_position); the engine walks there with the same physics. The walk is limited to
@@ -205,6 +213,10 @@ class SpatialKitchen(Kitchen):
         self.positions = dict(zip(('human','jeff'),spawns))
         for who in self.chefs:self.chefs[who].location=tile_key(self.positions[who])
         self.facing = {who: 'down' for who in self.chefs}
+        # Where each chef last aimed (held direction, any angle): what Space's station is picked by.
+        self.aim = {who: (0., 1.) for who in self.chefs}
+        # The station Space just picked (pick_station): its action is worked where the chef stands.
+        self.space_pick = {who: None for who in self.chefs}
         self.routes = {}
         self.route_progress = {}
         self.configure_operation_points()
@@ -561,7 +573,8 @@ class SpatialKitchen(Kitchen):
             shared=self.shared_access(who,target)
             # Never repositioned at a station it already faces (or stands against): work where it stands,
             # unless a shared job needs another side than this one.
-            here=self.facing_station(who)==target or (self.at_walk_limit and self.at_station_face(who,target))
+            here=(self.facing_station(who)==target or (self.at_walk_limit and self.at_station_face(who,target))
+                  or self.space_pick[who]==target)
             if here and (not shared or self.station_side(target,self.positions[who]) in shared):
                 return [self.positions[who]]
             access=[station['access']] if station.get('reach')=='corner' else sorted({n for c in station.get('cells',[station['cell']]) for n in self.nav.neighbors(c)})
@@ -793,6 +806,7 @@ class SpatialKitchen(Kitchen):
             return
         if length:
             self.stop(who)
+            self.aim[who] = (dx/length, dy/length)
         self.manual[who] = vector
         self.chefs[who].location = tile_key(self.anchor(who))
         self.emit(f'{NAMES[who]}'+('手动移动' if length else '停止手动移动'),
@@ -887,32 +901,79 @@ class SpatialKitchen(Kitchen):
                     if best is None or rank<best:best=rank
         return best[2] if best else None
 
-    def facing_candidates(self,who):
-        """What the chef faces, nearest first (Overcooked-style, no remembered selection).
+    @engine_input
+    def face(self, who, dx, dy):
+        """Aim as the player's page last drew it (sent with Space), so the station it highlighted is picked."""
+        length=math.hypot(dx,dy)
+        if not length or not math.isfinite(length):return False
+        self.aim[who]=(dx/length,dy/length)
+        self._face_vector(who,dx,dy)
+        return True
 
-        The station under the front point (see facing_station; or an authored corner station on
-        the faced side of this tile), then a loose item on the facing tile, one at the feet and the
-        partner standing there; the facing floor tile comes last. There is no fallback to stations
-        beside the chef. Returns (candidates, whether a station is ahead): facing a counter that is
+    @engine_input
+    def pick_station(self, who, target):
+        """Space picked this station (see selectable_stations): the next start works it in place."""
+        self.space_pick[who]=target if target in self.selectable_stations(who) else None
+        return self.space_pick[who] is not None
+
+    def selectable_stations(self,who):
+        """Stations Space may pick, best first (see SELECT_AHEAD): ahead of the aim, around the chef's cell."""
+        ax,ay=self.aim_of(who);x,y=self.positions[who];cx,cy=self.anchor(who)
+        probe=(x+ax*SELECT_AHEAD,y+ay*SELECT_AHEAD-SIDE_HAND_RISE*abs(ax))
+        ranked={}
+        for key,e in self.equipment.items():
+            corner=e.get('reach')=='corner'
+            if corner and tuple(e['access'])!=(cx,cy):continue
+            for c in (e.get('cells',[e['cell']]) if not corner else [e['cell']]):
+                ox,oy=c[0]-cx,c[1]-cy
+                if not corner and max(abs(ox),abs(oy))!=1:continue
+                score=ax*ox+ay*oy
+                if score<=1e-6:continue
+                if max(abs(x-c[0]),abs(y-c[1]))-.5>SELECT_REACH+1e-9:continue
+                rank=(-round(score,6),round(math.dist(probe,c),6),key)
+                if key not in ranked or rank<ranked[key]:ranked[key]=rank
+        return [key for key,_ in sorted(ranked.items(),key=lambda kv:kv[1])]
+
+    def selected_station(self,who):
+        found=self.selectable_stations(who)
+        return found[0] if found else None
+
+    def facing_candidates(self,who,station=None):
+        """What Space acts on, best first (Overcooked 2-style, no remembered selection).
+
+        The selected station (see selectable_stations; `station` picks another one from that list,
+        as the player's page highlighted it), then a loose item on the aimed tile, one at the feet
+        and the partner standing there; the aimed floor tile comes last. Stations beside or behind
+        are never picked. Returns (candidates, whether a station is ahead): facing a counter that is
         still out of reach never drops the held item on the floor instead.
         """
         x,y=self.anchor(who)
-        dx,dy=FACING_STEPS[self.facing[who]]
+        ax,ay=self.aim_of(who)
+        # The neighbouring cell the aim points into (eight directions).
+        dx,dy=((1 if ax>0 else -1) if abs(ax)>=.38 else 0),((1 if ay>0 else -1) if abs(ay)>=.38 else 0)
         front=(x+dx,y+dy)
-        station=self.facing_station(who)
-        out=[station] if station else []
-        out+=[key for key,e in sorted(self.equipment.items())
-              if e.get('reach')=='corner' and tuple(e['access'])==(x,y)
-              and (e['cell'][0]-x)*dx+(e['cell'][1]-y)*dy>0 and key not in out]
-        ahead=bool(out) or any(front in e.get('cells',[e['cell']]) for e in self.equipment.values())
-        for cell in (front,(x,y)):
-            out+=['item:'+key for key,item in self.ground.items() if self.cell(item.location)==cell][:1]
+        stations=self.selectable_stations(who)
+        if station not in stations:station=stations[0] if stations else None
+        ahead=bool(station) or any(front in e.get('cells',[e['cell']]) for e in self.equipment.values())
+        # As Overcooked 2's ScanForObject: the picked station and the loose items on the aimed tile and at
+        # the feet go nearest-first to a point SELECT_AHEAD ahead (the station's at hand height when
+        # aiming sideways); ties keep station, aimed tile, feet.
+        px,py=self.positions[who]
+        ranked=[]
+        if station:
+            cell=min(self.equipment[station].get('cells',[self.equipment[station]['cell']]),key=lambda c:math.dist(c,(px,py)))
+            ranked.append((math.dist((px+ax*SELECT_AHEAD,py+ay*SELECT_AHEAD-SIDE_HAND_RISE*abs(ax)),cell),0,station))
+        for order,cell in ((1,front),(2,(x,y))):
+            for key,item in self.ground.items():
+                if self.cell(item.location)==cell:
+                    ranked.append((math.dist((px+ax*SELECT_AHEAD,py+ay*SELECT_AHEAD),self.ground_position(item)),order,'item:'+key));break
+        out=[key for *_,key in sorted(ranked,key=lambda r:(round(r[0],6),r[1]))]
         other='jeff' if who=='human' else 'human'
         if self.anchor(other)==front:out.append('partner')
         out.append(tile_key(front))
         return out,ahead
 
-    def facing_interaction(self,who,mode='hands',actions=None):
+    def facing_interaction(self,who,mode='hands',actions=None,station=None):
         """(target, action) for Space ('hands') or E ('use').
 
         Space does whatever the target needs: take, put, plate, serve, and also
@@ -925,7 +986,7 @@ class SpatialKitchen(Kitchen):
         if chef.job and chef.job.working:
             return None,(next((a for a in actions if a.kind=='stop'),None) if mode=='hands' else None)
         kinds=USE_KINDS if mode=='use' else None
-        candidates,ahead=self.facing_candidates(who)
+        candidates,ahead=self.facing_candidates(who,station)
         if mode=='use':candidates=[c for c in candidates if c in self.equipment]
         for target in candidates:
             if target.startswith('floor_') and ahead:break
@@ -960,6 +1021,8 @@ class SpatialKitchen(Kitchen):
                     'pickup':2,'take_board':3,'take_plate':3,'take_counter':3,'take_return':3,
                     'take_sink':3,'take_tool':3,'fetch':4,'lift_pot':4,'discard':1,'empty_pot':1,'assemble':0,'merge_plates':0}
         nearby=[]
+        # A station Space picked (in reach and ahead, see selectable_stations) is worked where the chef stands.
+        picked=set(self.selectable_stations(who)) if preferred in self.equipment else set()
         for a in actions:
             if a.kind not in priority:continue
             if (kinds and a.kind not in kinds) or (exclude and a.kind in exclude):continue
@@ -978,6 +1041,8 @@ class SpatialKitchen(Kitchen):
             if a.kind=='plate_partner':
                 if not self.can_plate_partner(who,True):continue
                 distance=math.dist(self.positions[who],self.positions['jeff' if who=='human' else 'human'])
+            elif a.target in picked:
+                distance=math.dist(self.positions[who],self.interaction_cell(who,a.target))
             else:
                 origin=self.interaction_cell(who,a.target)
                 distance=math.dist(self.positions[who],origin)
@@ -1044,6 +1109,12 @@ class SpatialKitchen(Kitchen):
 
     @engine_input
     def start(self, who, action):
+        try:
+            return self._start(who, action)
+        finally:
+            self.space_pick[who]=None
+
+    def _start(self, who, action):
         if action.kind == 'throw':
             hand = self.chefs[who].hand
             if (not self.can_throw(who) or hand.id != action.expected[0]
@@ -1072,9 +1143,18 @@ class SpatialKitchen(Kitchen):
         return ok, message
 
     def _face_vector(self, who, dx, dy):
-        if math.hypot(dx,dy) < 1e-8:return
+        length=math.hypot(dx,dy)
+        if length < 1e-8:return
         self.facing[who] = (('left' if dx<0 else 'right') if abs(dx)>=abs(dy)
                             else ('up' if dy<0 else 'down'))
+        self.aim[who] = (dx/length, dy/length)
+
+    def aim_of(self, who):
+        """The aim Space's station is picked by: the last held direction while it agrees with the facing
+        (keeping its exact angle, e.g. a diagonal), otherwise the facing itself."""
+        ax,ay=self.aim[who]
+        facing=('left' if ax<0 else 'right') if abs(ax)>=abs(ay) else ('up' if ay<0 else 'down')
+        return (ax,ay) if facing==self.facing[who] else FACING_STEPS[self.facing[who]]
 
     def _travel(self, who, job, seconds):
         route = self.routes.get(who)

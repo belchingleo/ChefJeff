@@ -229,3 +229,61 @@ export function throwDiagonal(dx:number,dy:number):string{
     for(let i=0;i<4;i++){const centre=45+90*i,off=Math.abs(((t-centre)%360+540)%360-180);if(off<22.5)return names[i];}
     return '';
 }
+/** The chef's own cell (engine anchor()): the nearest floor cell, ties to the lower row, then column. */
+export function anchorCell(map:any,pos:number[]):number[]|null{
+    const key=(x:number,y:number)=>x+','+y,blocked=new Set<string>((map.walls||[]).map((w:number[])=>key(w[0],w[1])));
+    for(const e of Object.values(map.equipment||{}) as any[])for(const c of (e.cells||[e.cell]))blocked.add(key(c[0],c[1]));
+    let anchor:number[]|null=null,best=Infinity;
+    for(let y=0;y<map.height;y++)for(let x=0;x<map.width;x++){
+        if(blocked.has(key(x,y)))continue;
+        const d=Math.hypot(x-pos[0],y-pos[1]);
+        if(d<best-1e-12){best=d;anchor=[x,y];}
+    }
+    return anchor;
+}
+/** The station Space acts on, or null when nothing or a loose item comes first (engine facing_candidates):
+ * the picked station and the items on the aimed tile and at the feet go nearest-first to a point half a
+ * cell ahead (the station's at hand height when aiming sideways); ties keep the station. */
+export function spaceStation(map:any,pos:number[],aim:number[],ground:any[]):string|null{
+    const station=selectableStations(map,pos,aim)[0];
+    if(!station)return null;
+    const length=Math.hypot(aim[0],aim[1]),ax=aim[0]/length,ay=aim[1]/length,anchor=anchorCell(map,pos)!;
+    const e=map.equipment[station],cells:number[][]=e.cells||[e.cell];
+    const cell=cells.reduce((a,b)=>Math.hypot(b[0]-pos[0],b[1]-pos[1])<Math.hypot(a[0]-pos[0],a[1]-pos[1])?b:a);
+    const near=(d:number)=>Math.round(d*1e6)/1e6;
+    const stationAt=near(Math.hypot(pos[0]+ax*.5-cell[0],pos[1]+ay*.5-.35*Math.abs(ax)-cell[1]));
+    const front=[anchor[0]+(Math.abs(ax)>=.38?Math.sign(ax):0),anchor[1]+(Math.abs(ay)>=.38?Math.sign(ay):0)];
+    for(const tile of [front,anchor]){
+        // The tile an item rests on is its location key (floor_x_y), as in the engine.
+        const item=ground.find((g:any)=>g.position&&g.location===`floor_${tile[0]}_${tile[1]}`);
+        if(item&&near(Math.hypot(pos[0]+ax*.5-item.position[0],pos[1]+ay*.5-item.position[1]))<stationAt)return null;
+    }
+    return station;
+}
+/** Space's station, picked as the engine does (spatial_kitchen.selectable_stations; Overcooked 2's grid
+ * pick): stations in the eight cells around the chef's own floor cell that lie ahead of the aim, best
+ * matching direction first, ties to the one nearest a point half a cell ahead (at hand height when aiming
+ * sideways), within 0.85 cells of the feet. Beside or behind never counts. */
+export function selectableStations(map:any,pos:number[],aim:number[]):string[]{
+    const SELECT_AHEAD=.5,SELECT_REACH=.85,SIDE_HAND_RISE=.35;
+    const length=Math.hypot(aim[0],aim[1]);if(!length)return [];
+    const ax=aim[0]/length,ay=aim[1]/length,anchor=anchorCell(map,pos);
+    if(!anchor)return [];
+    const [cx,cy]=anchor,probe=[pos[0]+ax*SELECT_AHEAD,pos[1]+ay*SELECT_AHEAD-SIDE_HAND_RISE*Math.abs(ax)];
+    const ranked=new Map<string,[number,number]>();
+    for(const [id,e] of Object.entries(map.equipment||{}) as [string,any][]){
+        const corner=e.reach==='corner';
+        if(corner&&(e.access?.[0]!==cx||e.access?.[1]!==cy))continue;
+        for(const c of (corner?[e.cell]:(e.cells||[e.cell])) as number[][]){
+            const ox=c[0]-cx,oy=c[1]-cy;
+            if(!corner&&Math.max(Math.abs(ox),Math.abs(oy))!==1)continue;
+            const score=ax*ox+ay*oy;
+            if(score<=1e-6)continue;
+            if(Math.max(Math.abs(pos[0]-c[0]),Math.abs(pos[1]-c[1]))-.5>SELECT_REACH+1e-9)continue;
+            const rank:[number,number]=[-Math.round(score*1e6)/1e6,Math.round(Math.hypot(probe[0]-c[0],probe[1]-c[1])*1e6)/1e6];
+            const old=ranked.get(id);
+            if(!old||rank[0]<old[0]||(rank[0]===old[0]&&rank[1]<old[1]))ranked.set(id,rank);
+        }
+    }
+    return Array.from(ranked.entries()).sort((a,b)=>a[1][0]-b[1][0]||a[1][1]-b[1][1]||(a[0]<b[0]?-1:a[0]>b[0]?1:0)).map(([id])=>id);
+}

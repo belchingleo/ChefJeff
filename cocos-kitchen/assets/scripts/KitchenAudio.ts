@@ -153,7 +153,7 @@ export class KitchenAudio {
                 if(e.kind==='landed')this.play(/落到/.test(e.message)?'place_board':'land');
                 else if(EVENT_SOUNDS[e.kind])this.play(EVENT_SOUNDS[e.kind]);
             }
-            if(this.seen.size>80)this.seen=new Set([...this.seen].slice(-40));
+            if(this.seen.size>80)this.seen=new Set(Array.from(this.seen).slice(-40));
             const skip=new Set(events.filter((e:any)=>['thrown','dropped','interrupted','served','bad_service'].includes(e.kind)).map((e:any)=>e.actor));
             for(const who of Object.keys(k.chefs))if(!skip.has(who))this.chefChange(who,prev.kitchen.chefs[who],k.chefs[who]);
             this.stationChanges(prev.kitchen,k);
