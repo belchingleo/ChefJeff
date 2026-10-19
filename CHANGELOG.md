@@ -24,7 +24,9 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - iPhone: Jev forwarding works in iPhone browsers (the request now keeps its Origin header under the page's no-referrer policy). The Full screen button, which iPhone browsers cannot use, becomes a tip to add ChefJeff to the Home Screen, which now has the pot icon and the name ChefJeff. Controls describe the touch layout.
 - Movement works as in Overcooked online: the browser walks the player's chef at once and reports its position about ten times a second; the engine follows with the same physics, within 1.25x walking speed, and resyncs only after a push, a blocked walk or a report too far ahead. On slow or unsteady networks the chef no longer jumps back. Space and throws carry the drawn position. New engine input `report_position`; Jeff is unchanged.
 - Snappier actions: Space, throws and clicked actions reply with the resulting state, so the outcome shows one round trip sooner, and numbered states keep a late poll from undoing it. On the key press the chef leans toward what it acts on and the action's sound plays at once (the confirmed change then stays quiet); phones give a short haptic tick (Android vibration; iOS 18 a light tap).
+- Fixed: with local movement, the chef could not move at all when Jeff stood in the way (for example right out of the level-2 board-2 notch with Jeff just above): the browser treated Jeff as a wall and so never reported a move for the engine to push him aside. When Jeff blocks the local walk, the browser now reports that it is pressing and follows the engine, which walks with the held direction as keyboard walking always did (an idle Jeff is pushed, a busy one is not). Held-direction walking no longer slides back against the walk or corner-slides away from a chef, which made the chef jitter when pressing into a busy Jeff in a narrow corridor; routed walking is unchanged. A chase that stops getting closer to the reported point resyncs.
 - Fixed: on iPhone every Action press paused the round. The haptic tick's hidden switch took focus, which the touch and controller code read as typing into a field; it is now excluded from that check and gives focus straight back.
+- Fixed: after rotating an iPhone, the kitchen could stay drawn at the portrait size (only a strip, magnified, the rest black). The page announces the size again once it settles, and once a second checks that the canvas fills the window with a drawing buffer of the same shape. The data export now includes position resyncs (reason and position) to diagnose places where the chef seems stuck.
 
 ## 0.6.0-beta.1 — 2026-10-01 · first public test release
 
@@ -88,7 +90,9 @@ First private release: a local browser game with three playable maps and player-
 - iPhone：iPhone 浏览器里可以正常通过服务器转发调用 Jev（该请求在页面的不发送来源策略下也会带上来源）。iPhone 浏览器不支持的「全屏」按钮换成「添加到主屏幕」的提示，主屏幕图标为像素锅，名称为 ChefJeff。操作说明加入触屏玩法。
 - 移动改成《胡闹厨房》联机的方式：浏览器立刻移动玩家的厨师，每秒约 10 次报告位置；引擎用同样的物理跟上，最多 1.25 倍走路速度，只在被推开、走不过去或报告太远时重新同步。网络慢或不稳时人物不再被拽回。空格和投掷会带上画面上的位置。新增引擎输入 `report_position`；Jeff 不变。
 - 操作更跟手：空格、投掷和点选动作的回复直接带回执行后的状态，结果早一个来回显示；状态带序号，迟到的旧状态不会把它盖回去。按下时人物立刻朝目标前探，并先播放该动作的音效（确认后不再重复）；手机上轻振一下（安卓为振动，iOS 18 为轻触感）。
+- 修复：浏览器负责移动后，Jeff 挡在路上时人物可能完全不动（例如第二关从案板 2 前的凹槽往右走、Jeff 在上方）：浏览器把 Jeff 当成墙，从不报告移动，引擎也就没机会推开他。现在 Jeff 挡住本地行走时，浏览器报告「正在挤」并跟随引擎，引擎按按住的方向照原来的键盘走法移动（空闲的 Jeff 会被推开，正在干活的不会）。按住方向走路时不再向后侧滑、也不会因为厨师挡路而贴边滑出，避免在窄通道顶着正在干活的 Jeff 时抖动；沿路线走路不变。追位置时离目标不再变近就重新同步。
 - 修复：iPhone 上每按一次「操作」都会暂停对局。触感用的隐藏开关抢走了焦点，触屏和手柄代码把它当成在输入框里打字；现在判断时排除它，并立即把焦点还回去。
+- 修复：iPhone 转屏后，厨房可能仍按竖屏尺寸绘制（只画一条、被放大、其余为黑）。页面在尺寸稳定后再通知一次，并每秒检查画布是否铺满窗口、绘制缓冲区形状是否一致。数据导出加入位置重新同步（原因和位置），便于排查人物「卡住」的地方。
 
 
 ## 0.6.0-beta.1 — 2026-10-01 · 首次公开测试版

@@ -94,6 +94,9 @@ export class KitchenClient extends Component {
     /** Held-key walk in whole server ticks: position at the last tick, the next one, and the progress between. */
     private walkPlan:{dx:number,dy:number,at:number[],next:number[],frac:number}|null=null;
     private resyncSeen=-1;
+    /** Jeff blocks the local walk: the engine walks with the held direction (pushing or sliding) and this page follows. */
+    private pressing=false;
+    private lastPress=false;
     private lastReported:number[]|null=null;
     private lastReportAt=-1;
     private stateSentAt=0;
@@ -547,11 +550,24 @@ export class KitchenClient extends Component {
         if(!this.predicted)this.predicted=[c.position[0],c.position[1]];
         const d=this.manualDirection;
         // A quick take/put finishes before the held direction starts, as on the server.
-        if(this.clock<this.handsBusyUntil||(d.x===0&&d.y===0)){this.walkPlan=null;return this.predicted;}
+        if(this.clock<this.handsBusyUntil||(d.x===0&&d.y===0)){this.walkPlan=null;this.pressing=false;return this.predicted;}
         const walk=(k.map.walk_speed||4.5)*(c.sprint?.active_remaining>0?1.4:1),other=k.chefs.jeff?.position;
         // The engine walks in 50 ms game ticks (tick_game_ms); stepping the same distances with the same
         // rules keeps diagonal slides along counters on its path. Drawn between ticks.
         const tick=walk*.05,step=(p:number[])=>predictWalk(k.map,p,d.x*tick,d.y*tick,other,tick);
+        // Jeff in the way (not a wall): the engine pushes an idle Jeff aside or stops at a busy one, as it
+        // always has. Follow its position and keep asking for a short step ahead until the way is clear.
+        const free=(p:number[])=>predictWalk(k.map,p,d.x*tick,d.y*tick,undefined,tick),moved=(a:number[],b:number[])=>Math.hypot(b[0]-a[0],b[1]-a[1])>1e-4;
+        // Once pressing, keep following the engine until clear of Jeff, so the walk does not flip between modes.
+        const near=!!other&&Math.hypot(this.predicted[0]-other[0],this.predicted[1]-other[1])<(k.map.chef_separation??.4)+.25;
+        if(other&&moved(this.predicted,free(this.predicted))&&(!moved(this.predicted,step(this.predicted))||(this.pressing&&near))){
+            const pull=Math.min(1,dt*8);
+            this.predicted=[this.predicted[0]+(c.position[0]-this.predicted[0])*pull,this.predicted[1]+(c.position[1]-this.predicted[1])*pull];
+            this.pressing=true;this.walkPlan=null;
+            return this.predicted;
+        }
+        // Leaving the press: walk on from where the engine has got to, never report a point behind it.
+        if(this.pressing){this.pressing=false;this.predicted=[c.position[0],c.position[1]];this.walkPlan=null;}
         let plan=this.walkPlan;
         if(!plan||plan.dx!==d.x||plan.dy!==d.y)plan=this.walkPlan={dx:d.x,dy:d.y,at:this.predicted,next:step(this.predicted),frac:0};
         plan.frac+=dt*this.state!.speed/.05;
@@ -570,17 +586,16 @@ export class KitchenClient extends Component {
     }
     /** Tell the engine where this page has walked the chef: 10 times a second while walking, once on stopping. */
     private reportPosition(){
-        const p=this.predicted,last=this.lastReported;
+        const p=this.predicted,last=this.lastReported,press=this.pressing;
         if(!p||!this.state||this.state.phase!=='running'||!this.connected)return;
-        if(last&&Math.hypot(p[0]-last[0],p[1]-last[1])<.005)return;
+        if(last&&press===this.lastPress&&Math.hypot(p[0]-last[0],p[1]-last[1])<.005)return;
         if((this.manualDirection.x!==0||this.manualDirection.y!==0)&&this.clock-this.lastReportAt<.1)return;
-        this.lastReported=[p[0],p[1]];this.lastReportAt=this.clock;
-        this.request('/api/position',{game_id:this.state.game_id,seq:++this.moveSeq,...this.atBody()})
+        this.lastReported=[p[0],p[1]];this.lastPress=press;this.lastReportAt=this.clock;
+        this.request('/api/position',{game_id:this.state.game_id,seq:++this.moveSeq,...this.atBody(p),...(press?{press:true}:{})})
             .catch(()=>{this.lastReported=null;});
     }
     /** Where the chef is drawn, sent with an interaction so the engine targets from the same spot. */
-    private atBody(){
-        const p=this.predicted;
+    private atBody(p=this.predicted){
         return p&&this.resyncSeen>=0?{at:[Math.round(p[0]*1e4)/1e4,Math.round(p[1]*1e4)/1e4],base:this.resyncSeen}:{};
     }
     private clearInput(){this.endAim();this.heldKeys.clear();this.touchDirection={x:0,y:0};this.touchMoveDirty=false;this.touchNeedsNeutral=false;const wasMoving=this.manualDirection.x!==0||this.manualDirection.y!==0;this.manualDirection={x:0,y:0};if(wasMoving)this.sendMove(0,0);this.publishControls();}

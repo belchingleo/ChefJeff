@@ -46,7 +46,7 @@
 <script src="src/import-map.e67d1.json" type="systemjs-importmap" charset="utf-8"> </script>
 
 <script>
-    System.import('./index.933be.js').catch(function(err) { console.error(err); })
+    System.import('./index.0db21.js').catch(function(err) { console.error(err); })
 </script>
   <script src="kitchen-i18n.js"></script>
 <style>
@@ -113,7 +113,25 @@ details.fine summary{cursor:pointer;color:var(--ink);font-weight:600}
 // The game letterboxes 1280×720 into the window; HTML layers scale and sit with it.
 (()=>{const root=document.documentElement.style;
  const layout=()=>{const w=innerWidth,h=innerHeight,s=Math.min(w/1280,h/720);root.setProperty('--gs',String(s));root.setProperty('--gx',(w-1280*s)/2+'px');root.setProperty('--gy',(h-720*s)/2+'px')};
- addEventListener('resize',layout);layout();})();
+ addEventListener('resize',layout);layout();
+ // iOS reports the old window size for a moment after rotating (or after the toolbar moves), and the
+ // engine sized its drawing to it: a landscape page drew only the portrait-wide strip. Once the size
+ // has settled, announce it again. Only rotation and visual-viewport changes schedule this, so the
+ // replayed resize never schedules itself.
+ let settle=[],last='';
+ const announce=()=>{const size=innerWidth+'x'+innerHeight;if(size!==last){last=size;dispatchEvent(new Event('resize'));}};
+ const settleSize=()=>{last='';settle.forEach(clearTimeout);settle=[150,400,800].map(ms=>setTimeout(announce,ms));};
+ addEventListener('orientationchange',settleSize);visualViewport?.addEventListener('resize',settleSize);
+ // Safety net for any event iOS leaves out: once a second, a canvas that no longer fills the window,
+ // or whose drawing buffer kept the old shape (the engine draws into part of it), gets one more resize;
+ // at most three times for the same mismatch.
+ let mismatch='',tries=0;
+ setInterval(()=>{const c=document.querySelector('canvas');if(!c||document.hidden)return;const r=c.getBoundingClientRect();
+  const fills=Math.abs(r.width-innerWidth)<=2&&Math.abs(r.height-innerHeight)<=2;
+  const shape=r.width&&r.height&&c.width&&c.height?Math.abs(c.width/c.height-r.width/r.height)/(r.width/r.height):0;
+  if(fills&&shape<=.02){mismatch='';return;}
+  const key=Math.round(r.width)+'x'+Math.round(r.height)+'/'+c.width+'x'+c.height+'/'+innerWidth+'x'+innerHeight;
+  if(key!==mismatch){mismatch=key;tries=0;}if(tries++<3){last='';announce();}},1000);})();
 let bookmarkToastTimer;
 window.addEventListener('kitchen-bookmark-notice',event=>{
  const toast=document.getElementById('kitchen-bookmark-toast');

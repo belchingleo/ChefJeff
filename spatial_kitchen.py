@@ -216,6 +216,8 @@ class SpatialKitchen(Kitchen):
         self.report_budget = {who: REPORT_BUDGET for who in self.chefs}  # a chef starts standing still
         self.report_stalled = {who: 0. for who in self.chefs}
         self.resync = {who: 0 for who in self.chefs}  # reports must carry the current count as `base`
+        self.report_press = {who: False for who in self.chefs}
+        self.report_best = {who: 0. for who in self.chefs}  # closest the chase has come to its point
         self.floor_places = {tile_key(cell): Station(f'地面({cell[0]},{cell[1]})', self.floor_area(cell))
                              for cell in self.floor}
 
@@ -400,7 +402,7 @@ class SpatialKitchen(Kitchen):
         offset,side=found
         before=self.positions[who]
         target=list(before);target[side]+=math.copysign(min(abs(offset),budget),offset)
-        self._move_with_chef_contact(who,tuple(target),boosted)
+        self._move_with_chef_contact(who,tuple(target),boosted,True)
         return math.dist(before,self.positions[who])
 
     def _push_chef(self,other,delta):
@@ -417,20 +419,26 @@ class SpatialKitchen(Kitchen):
         if self.reported[other] and math.dist(before,after)>1e-6:self._resync(other,'pushed')
 
     @engine_input
-    def report_position(self, who, x, y, base, settle=False):
+    def report_position(self, who, x, y, base, settle=False, press=False):
         """The player's browser says where it has moved its own chef (Overcooked-style local movement).
 
         The engine walks there with its own physics on the next steps; `settle` walks there now, as far
         as the speed budget allows, before an interaction uses the position. Reports made before the
-        latest resync (`base` behind) are ignored."""
+        latest resync (`base` behind) are ignored. `press`: the browser is pressing into the other chef
+        and follows the engine, which walks with the held direction until a plain report arrives."""
         if self.ended or base != self.resync[who]:return False
         target=(float(x),float(y))
         if not all(math.isfinite(v) for v in target):return False
         self.reported[who]=True
+        self.report_press[who]=bool(press)
+        if press:
+            self.report_target[who]=None;self.report_stalled[who]=0.
+            return True
         if math.dist(target,self.positions[who])>REPORT_MAX_LEAD:
             self._resync(who,'too_far');return False
         self.report_target[who]=target
         self.report_stalled[who]=0.
+        self.report_best[who]=math.dist(target,self.positions[who])
         if settle:self._chase(who,0.)
         return True
 
@@ -466,15 +474,18 @@ class SpatialKitchen(Kitchen):
         else:
             moved=0.
         if self.report_target[who] is None:return  # resynced by a push during the walk
-        if math.dist(self.positions[who],target)<1e-6:
+        gap=math.dist(self.positions[who],target)
+        if gap<1e-6:
             self.report_target[who]=None;self.report_stalled[who]=0.
-        elif moved<1e-4:
+        elif gap<self.report_best[who]-.01:
+            self.report_best[who]=gap;self.report_stalled[who]=0.
+        else:
+            # Not getting closer (blocked, or sliding to and fro along the other chef): the engine's
+            # position stands and the browser takes it.
             self.report_stalled[who]+=seconds
             if self.report_stalled[who]>=REPORT_STALL-1e-9:self._resync(who,'blocked')
-        else:
-            self.report_stalled[who]=0.
 
-    def _move_with_chef_contact(self,who,end,boosted=False):
+    def _move_with_chef_contact(self,who,end,boosted=False,held=False):
         start=self.positions[who];other_id='jeff' if who=='human' else 'human'
         other=self.positions[other_id];distance=math.dist(start,end)
         if distance<1e-9:return
@@ -504,6 +515,10 @@ class SpatialKitchen(Kitchen):
             if sum(tangent[i]*right[i] for i in (0,1))<0:tangent=tuple(-v for v in tangent)
         remaining=distance*(1.-fraction)
         for sign in (1.,-1.):
+            # Held-direction walking never slides back against the walk: pressed into a chef who cannot
+            # give way, the chef stays put instead of stepping back and pressing in again (a jitter in
+            # narrow corridors). Routed walking keeps its reviewed behaviour.
+            if held and sign*sum(tangent[i]*direction[i] for i in (0,1))< -1e-8:continue
             slide=tuple(point[i]+sign*tangent[i]*remaining for i in (0,1))
             slide=self._wall_limited(point,slide)
             if math.dist(point,slide)>1e-6 and contact_fraction(point,slide,other,separation)>=1.-1e-8:
@@ -1187,43 +1202,55 @@ class SpatialKitchen(Kitchen):
         self.routes.pop(who, None)
         self.drop_locks = {key: owner for key, owner in self.drop_locks.items() if owner != who}
 
+    def _keyboard_walk(self, who, vector, seconds):
+        """One step of held-direction walking: wall slides, corner slides, contact with the other chef."""
+        self._face_vector(who,*vector)
+        start = self.positions[who]
+        move_start=start
+        boosted=max(0.,min(seconds,self.sprint_until[who]-(self.time-seconds)))
+        move_seconds=seconds+self.rules.sprint_boost*boosted
+        walk=self.rules.walk_speed
+        end = tuple(start[i]+vector[i]*walk*move_seconds for i in (0,1))
+        if self.nav.clear_walk_line(start,end):
+            self._move_with_chef_contact(who,end,boosted>0,True)
+        else:
+            # Slide along the blocking edge; each axis walks up to the wall, not a step short of it.
+            for axis in (0,1):
+                if not vector[axis]:continue
+                start = self.positions[who]
+                candidate = list(start);candidate[axis] += vector[axis]*walk*move_seconds
+                self._move_with_chef_contact(who,tuple(candidate),boosted>0,True)
+        remaining=walk*move_seconds*math.hypot(*vector)-math.dist(move_start,self.positions[who])
+        # Corner slides leave counter notches. Held up by the other chef instead (the full step is clear of
+        # walls), sliding aside only to meet them again made a chef jitter in narrow corridors.
+        walled=not self.nav.clear_walk_line(move_start,tuple(move_start[i]+vector[i]*walk*move_seconds for i in (0,1)))
+        if self.rules.corner_slide and remaining>1e-9 and walled:
+            # The rest of this step's distance slides out of the notch and walks on, as the client predicts.
+            slid=self._corner_slide(who,vector,remaining,boosted>0)
+            left=remaining-slid
+            if slid>1e-9 and left>1e-9:
+                here=self.positions[who];ahead=tuple(here[i]+vector[i]*left for i in (0,1))
+                if self.nav.clear_walk_line(here,ahead):self._move_with_chef_contact(who,ahead,boosted>0,True)
+        if boosted>0:self._nudge_food(who,move_start,self.positions[who])
+        self.chefs[who].location = tile_key(self.anchor(who))
+
     def _after_step(self, seconds):
         for who, vector in self.manual.items():
             if self.reported[who]:
-                # Moved by its browser's reports: the held direction only turns the chef.
-                if any(vector):self._face_vector(who,*vector)
                 boosted=max(0.,min(seconds,self.sprint_until[who]-(self.time-seconds)))
                 allowance=self.rules.walk_speed*(seconds+self.rules.sprint_boost*boosted)*REPORT_SPEED_MARGIN
                 self.report_budget[who]=min(REPORT_BUDGET,self.report_budget[who]+allowance)
+                if self.report_press[who]:
+                    # The browser is pressing into the other chef: walk with the held direction exactly as
+                    # keyboard walking does (push an idle chef, slide by a busy one) while it follows.
+                    if any(vector) and not self.chefs[who].job:self._keyboard_walk(who,vector,seconds)
+                    continue
+                # Moved by its browser's reports: the held direction only turns the chef.
+                if any(vector):self._face_vector(who,*vector)
                 self._chase(who,seconds)
                 continue
             if not any(vector): continue
-            self._face_vector(who,*vector)
-            start = self.positions[who]
-            move_start=start
-            boosted=max(0.,min(seconds,self.sprint_until[who]-(self.time-seconds)))
-            move_seconds=seconds+self.rules.sprint_boost*boosted
-            walk=self.rules.walk_speed
-            end = tuple(start[i]+vector[i]*walk*move_seconds for i in (0,1))
-            if self.nav.clear_walk_line(start,end):
-                self._move_with_chef_contact(who,end,boosted>0)
-            else:
-                # Slide along the blocking edge; each axis walks up to the wall, not a step short of it.
-                for axis in (0,1):
-                    if not vector[axis]:continue
-                    start = self.positions[who]
-                    candidate = list(start);candidate[axis] += vector[axis]*walk*move_seconds
-                    self._move_with_chef_contact(who,tuple(candidate),boosted>0)
-            remaining=walk*move_seconds*math.hypot(*vector)-math.dist(move_start,self.positions[who])
-            if self.rules.corner_slide and remaining>1e-9:
-                # The rest of this step's distance slides out of the notch and walks on, as the client predicts.
-                slid=self._corner_slide(who,vector,remaining,boosted>0)
-                left=remaining-slid
-                if slid>1e-9 and left>1e-9:
-                    here=self.positions[who];ahead=tuple(here[i]+vector[i]*left for i in (0,1))
-                    if self.nav.clear_walk_line(here,ahead):self._move_with_chef_contact(who,ahead,boosted>0)
-            if boosted>0:self._nudge_food(who,move_start,self.positions[who])
-            self.chefs[who].location = tile_key(self.anchor(who))
+            self._keyboard_walk(who,vector,seconds)
         for key, p in list(self.projectiles.items()):
             if self.time >= p['lands_at']-1e-8:
                 if p['target'] in self.boards + self.counters:

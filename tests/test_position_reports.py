@@ -3,7 +3,7 @@ import math
 import time
 import unittest
 
-from kitchen import Food, load_config, replay
+from kitchen import Action, Food, Job, load_config, replay
 from levels import level_config
 from spatial_kitchen import SpatialKitchen, REPORT_MAX_LEAD, REPORT_SPEED_MARGIN, REPORT_STALL
 from web_server import GameSession
@@ -85,6 +85,50 @@ class EngineTests(unittest.TestCase):
         k.positions['jeff'] = (h[0], h[1]-.6)
         k._move_with_chef_contact('jeff', (h[0], h[1]+.2))
         self.assertGreater(k.resync['human'], 0)
+
+
+class PressingIntoJeffTests(unittest.TestCase):
+    """Jeff in the way: the browser reports that it is pressing, and the engine walks with the held direction."""
+    def make(self, level, human, jeff, busy):
+        k = kitchen(level); k.positions.update(human=human, jeff=jeff)
+        if busy:
+            k.chefs['jeff'].job = Job(99, Action('wait', 'x', 'wait', None), 0., 9999., True)
+        k.report_position('human', *human, 0)
+        return k
+
+    def press(self, k, seconds=4.):
+        k.set_manual('human', 1, 0)
+        for i in range(int(seconds/.05)):
+            if i % 2 == 0:
+                self.assertTrue(k.report_position('human', *k.positions['human'], k.resync['human'], False, True))
+            k.advance(.05)
+
+    def test_an_idle_jeff_is_pushed_out_of_the_way_at_the_level_2_board_notch(self):
+        # The reported case: right out of the board-2 notch with Jeff just above; the browser's own walk is
+        # blocked by Jeff, the engine's held-direction walk pushes him aside as keyboard walking always did.
+        k = self.make(2, (6.15, 6.5), (6.2, 6.0), busy=False)
+        self.press(k)
+        self.assertGreater(k.positions['human'][0], 6.8)
+        self.assertEqual(k.resync['human'], 0)
+
+    def test_pressing_into_a_busy_jeff_in_a_one_cell_corridor_neither_resyncs_nor_jitters(self):
+        # Level 3 row 4, cells 6-8: one cell wide, so a busy Jeff cannot be passed or pushed.
+        k = self.make(3, (6., 4.), (7., 4.), busy=True)
+        self.press(k, 1.)
+        settled = k.positions['human']
+        self.press(k, 2.)
+        self.assertEqual(k.resync['human'], 0)
+        self.assertEqual(k.positions['jeff'], (7., 4.))
+        self.assertLess(math.dist(settled, k.positions['human']), .05)
+
+    def test_a_walk_reported_past_a_busy_jeff_comes_back(self):
+        # The browser saw Jeff too late and walked on: the engine slides to and fro without getting closer.
+        k = self.make(3, (6.3, 4.), (7., 4.), busy=True)
+        k.report_position('human', 8., 4., 0)
+        for _ in range(int(REPORT_STALL/.05)+6):
+            k.advance(.05)
+        self.assertEqual(k.resync['human'], 1)
+        self.assertLess(k.positions['human'][0], 7.)
 
 
 class WebTests(unittest.TestCase):

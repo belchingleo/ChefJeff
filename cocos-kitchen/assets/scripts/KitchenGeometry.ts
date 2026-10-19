@@ -109,14 +109,15 @@ function walkTick(map:any,from:number[],v:number[],distance:number,other?:number
         }
         return wallLimited(map,a,b);
     };
-    let p=from;const end=[from[0]+v[0]*distance,from[1]+v[1]*distance];
-    if(clearWalkLine(map,p,end))p=move(p,end);
+    let p=from;const end=[from[0]+v[0]*distance,from[1]+v[1]*distance],walled=!clearWalkLine(map,p,end);
+    if(!walled)p=move(p,end);
     else for(const axis of [0,1]){
         if(!v[axis])continue;
         const c=[p[0],p[1]];c[axis]+=v[axis]*distance;p=move(p,c);
     }
     const remaining=distance*Math.hypot(v[0],v[1])-Math.hypot(p[0]-from[0],p[1]-from[1]);
-    if(map.corner_slide&&remaining>1e-9){
+    // As the engine: corner slides leave counter notches, never step aside from the other chef.
+    if(map.corner_slide&&remaining>1e-9&&walled){
         const found=cornerOffset(map,p,v);
         if(found){
             const [offset,side]=found,before=p,target=[p[0],p[1]];
