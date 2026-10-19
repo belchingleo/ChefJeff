@@ -178,6 +178,39 @@ class FacingControlTests(unittest.TestCase):
         self.assertIsNone(k.forward_throw('human'))
 
 
+class PickPlaceTests(unittest.TestCase):
+    """Touch Pick/Place ('place'): Space's takes and puts, never chop, wash or extinguish."""
+    def test_place_takes_what_space_would_work(self):
+        k = kitchen()
+        k.positions['human'] = (4., 6.); k.facing['human'] = 'down'
+        k.stations['b1'].food = Food('L', 'raw', ingredient='lettuce')
+        self.assertEqual(k.facing_interaction('human', 'place')[1].kind, 'take_board')
+        k.positions['human'] = (11., 3.); k.facing['human'] = 'right'
+        k.stations['sink'].food = Food('D1', 'dirty_plate')
+        self.assertEqual(k.facing_interaction('human', 'place')[1].kind, 'take_sink')
+        k.positions['human'] = (4., 6.); k.facing['human'] = 'up'
+        k.chefs['human'].hand = Food('T', 'raw', ingredient='tomato')
+        self.assertEqual(k.facing_interaction('human', 'place')[1].kind, 'drop')
+
+    def test_place_through_the_web_session(self):
+        g = GameSession(config=level_config(load_config(), 2), kitchen_factory=SpatialKitchen,
+                        client_factory=Client, journal_factory=FakeJournal)
+        self.addCleanup(g.close)
+        self.assertEqual(g.command('/api/start', {'game_id': g.game_id, 'request_id': 's', 'speed': .75})[0], 200)
+        k = g.k
+        k.positions['human'] = (4., 6.); k.facing['human'] = 'down'
+        k.stations['b1'].food = Food('L', 'raw', ingredient='lettuce')
+        state = g.public_state()
+        self.assertEqual((state['interaction']['kind'], state['place_interaction']['kind']), ('chop', 'take_board'))
+        status, body = g.command('/api/interact', {'game_id': g.game_id, 'request_id': 'p', 'expected_item': None, 'mode': 'place'})
+        self.assertEqual(status, 200, body)
+        for _ in range(20):k.advance(.05)
+        self.assertEqual(k.chefs['human'].hand.id, 'L')
+        # Nothing to take or put: the sink is empty and the hands are full.
+        k.positions['human'] = (11., 3.); k.facing['human'] = 'right'
+        self.assertEqual(g.command('/api/interact', {'game_id': g.game_id, 'request_id': 'q', 'expected_item': 'L', 'mode': 'place'})[0], 409)
+
+
 class ForwardThrowHttpTests(unittest.TestCase):
     def test_e_throws_through_the_web_session(self):
         g = GameSession(config=level_config(load_config(), 2), kitchen_factory=SpatialKitchen,

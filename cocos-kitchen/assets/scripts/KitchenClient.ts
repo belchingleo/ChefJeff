@@ -5,7 +5,7 @@ import { KitchenAudio } from './KitchenAudio';
 import { levelButtonLayout, GRID_ART, stationView, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, floorItemDepth, workingChefDepth, flightDepth, predictWalk, footWalkable, walkStart, spaceStation, plateLayers, heatCountdown, behindCounter, throwPose, throwDiagonal, throwItemPoint, panHandleSide } from './KitchenGeometry';
 const { ccclass } = _decorator;
 type Action = { key: string; label: string; kind: string; target: string; expected: unknown[] };
-type KitchenState = { game_id: string; state_seq?: number; phase: string; speed: number; kitchen: any; actions: Action[]; levels?:any[]; limits?:any; capacity?:any; release?:any; interaction?:Action; use_interaction?:Action; interaction_hint?:string; interaction_focus?:string; interaction_cell?:number[];
+type KitchenState = { game_id: string; state_seq?: number; phase: string; speed: number; kitchen: any; actions: Action[]; levels?:any[]; limits?:any; capacity?:any; release?:any; interaction?:Action; use_interaction?:Action; place_interaction?:Action; interaction_hint?:string; interaction_focus?:string; interaction_cell?:number[];
     events: {t:number; message:string; kind?:string}[]; ai: {thinking:boolean; error:string|null}; won:boolean; aborted?:boolean; round_summary?:any; rules?:Record<string,number>; connection?:any; memory?:any; communication?:any; hosted?:any };
 type ChefMotion = {body:Node; leftLeg:Node; rightLeg:Node; leftArm:Node; rightArm:Node; knife:Node; facing:string; step:number};
 type PotEffects = {steam:Node; smoke:Node; fire:Node; ready:Node};
@@ -84,6 +84,8 @@ export class KitchenClient extends Component {
     // arc guides the direction and maximum range; direction keys turn it, and releasing Space throws along it.
     private spaceDownAt:number|null=null;
     private spaceItemId:string|null=null;
+    // Touch Throw arms the same hold, but a release before AIM_HOLD throws straight ahead instead of interacting.
+    private tossOnly=false;
     private aiming:{x:number,y:number}|null=null;
     private aimArrow:Node|null=null;
     // Overcooked-style local movement: this page walks the player's chef itself and reports where it is
@@ -288,6 +290,7 @@ export class KitchenClient extends Component {
         this.controls={
             getState:()=>this.controlsState(),move:(x:number,y:number)=>this.setTouchMove(x,y),
             press:()=>this.pressInteract(),release:()=>this.releaseInteract(),
+            place:()=>this.pressInteract('place'),toss:()=>this.pressInteract('toss'),
             cancel:()=>this.clearInput(),dash:()=>this.dash(),block:(blocked:boolean)=>this.blockTouch(blocked),
             pause:()=>{this.clearInput();if(this.connected&&this.state?.phase==='running')this.post('/api/pause');},
             resume:()=>this.controlButton('resume'),main:()=>this.controlButton('main'),
@@ -326,7 +329,7 @@ export class KitchenClient extends Component {
         const s=this.state,k=s?.kitchen,c=k?.chefs?.human;
         const text=(id:string)=>this.labels[id]?this.labelSources.get(this.labels[id])||'':'';
         return {game_id:s?.game_id,phase:s?.phase||'loading',connected:this.connected,pending:this.pending,canInput:this.canInput(),
-            canInteract:!!s?.interaction,canThrow:!!c?.holding&&c.can_throw!==false,
+            canInteract:!!s?.interaction,canPlace:!!s?.place_interaction,canThrow:!!c?.holding&&c.can_throw!==false,
             canDash:this.canInput()&&!this.aiming&&!!c?.sprint?.available&&(this.manualDirection.x!==0||this.manualDirection.y!==0),
             holding:c?.holding||null,interaction:s?.interaction?.label.split('（')[0]||'',interactionHint:s?.interaction_hint||'',
             aiming:this.aiming?{...this.aiming}:null,sprint:c?.sprint||{},event:text('event'),
@@ -371,11 +374,18 @@ export class KitchenClient extends Component {
         if(!this.touchMoveDirty)return;this.touchMoveDirty=false;this.touchMoveAt=this.clock;
         this.refreshMovement();this.publishControls();
     }
-    private pressInteract(){
+    /** Space/Action ('hands'): with a throwable item the press arms a hold-to-aim. Touch Pick/Place ('place')
+     *  acts at once and never chops, washes or extinguishes; touch Throw ('toss') only arms the throw. */
+    private pressInteract(kind:'hands'|'place'|'toss'='hands'){
         if(!this.canInput()||this.pending||this.spaceDownAt!==null||this.aiming)return;
-        const held=this.state!.kitchen.chefs.human.holding;
-        if(held&&this.state!.kitchen.chefs.human.can_throw!==false){this.spaceDownAt=this.clock;this.spaceItemId=held.id;}
-        else{this.handsBusyUntil=this.clock+.35;this.actionCue();this.post('/api/interact',{expected_item:held?.id||null,...this.atBody(),...this.pickBody()});}
+        const c=this.state!.kitchen.chefs.human,held=c.holding;
+        if(kind!=='place'&&held&&c.can_throw!==false){this.spaceDownAt=this.clock;this.spaceItemId=held.id;this.tossOnly=kind==='toss';}
+        else if(kind!=='toss')this.interact(kind);
+    }
+    private interact(kind:'hands'|'place'){
+        const s=this.state!,place=kind==='place';
+        this.handsBusyUntil=this.clock+.35;this.actionCue(place?s.place_interaction:s.interaction);
+        this.post('/api/interact',{expected_item:s.kitchen.chefs.human.holding?.id||null,...(place?{mode:kind}:{}),...this.atBody(),...this.pickBody()});
     }
     private releaseInteract(){
         const held=this.state?.kitchen.chefs.human.holding;
@@ -383,13 +393,18 @@ export class KitchenClient extends Component {
         if(this.aiming){
             const d=this.aiming,wasTouch=this.touchDirection.x!==0||this.touchDirection.y!==0;
             this.endAim();this.touchNeedsNeutral=wasTouch;
-            if(held&&this.canInput()){this.throwReleases.human={dx:d.x,dy:d.y,until:this.clock+.3};this.post('/api/throw',{expected_item:held.id,direction:[d.x,d.y],...this.atBody()});}
+            this.throwAlong(held,d);
             this.refreshMovement();
+        }else if(this.tossOnly&&this.spaceDownAt!==null){
+            // A quick Throw tap throws where the aim would have started.
+            const d=this.aimStart();this.endAim();this.throwAlong(held,d);
         }else if(this.spaceDownAt!==null){
-            this.spaceDownAt=null;this.spaceItemId=null;this.handsBusyUntil=this.clock+.35;this.actionCue();
-            this.post('/api/interact',{expected_item:held?.id||null,...this.atBody(),...this.pickBody()});
+            this.spaceDownAt=null;this.spaceItemId=null;this.interact('hands');
         }
         this.publishControls();
+    }
+    private throwAlong(held:any,d:{x:number,y:number}){
+        if(held&&this.canInput()){this.throwReleases.human={dx:d.x,dy:d.y,until:this.clock+.3};this.post('/api/throw',{expected_item:held.id,direction:[d.x,d.y],...this.atBody()});}
     }
     private dash(){
         if(!this.canInput()||this.aiming)return;
@@ -497,13 +512,14 @@ export class KitchenClient extends Component {
         const human=this.state?.kitchen.chefs.human;
         if(!this.connected||this.state?.phase!=='running'||!human?.holding||human.holding.id!==this.spaceItemId||human.can_throw===false){this.endAim();return;}
         this.spaceDownAt=null;
-        const c=this.state?.kitchen.chefs.human,f=FACING_DIR[c?.facing]||[0,1];
-        this.aiming=this.keyDirection()||{x:f[0],y:f[1]};
+        this.aiming=this.aimStart();
         if(this.manualDirection.x!==0||this.manualDirection.y!==0){this.manualDirection={x:0,y:0};this.sendMove(0,0);}
         this.drawAim();this.publishControls();
     }
+    /** The held direction, else the facing. */
+    private aimStart(){const f=FACING_DIR[this.state?.kitchen.chefs.human?.facing]||[0,1];return this.keyDirection()||{x:f[0],y:f[1]};}
     private steerAim(){const d=this.keyDirection();if(d&&this.aiming){this.aiming=d;this.drawAim();}}
-    private endAim(){this.aiming=null;this.spaceDownAt=null;this.spaceItemId=null;if(this.aimArrow?.isValid)this.aimArrow.active=false;}
+    private endAim(){this.aiming=null;this.spaceDownAt=null;this.spaceItemId=null;this.tossOnly=false;if(this.aimArrow?.isValid)this.aimArrow.active=false;}
     private drawAim(){
         const chef=this.people['human'];if(!this.aiming||!this.world||!chef)return;
         if(!this.aimArrow?.isValid){this.aimArrow=this.child(this.world,'aim-arrow',10,10);this.aimArrow.addComponent(Graphics);}
@@ -599,8 +615,8 @@ export class KitchenClient extends Component {
         return {aim:this.aimNow(c),...(this.localPick?{target:this.localPick}:{})};
     }
     /** Instant feedback for a Space interaction: lean, the action's sound and (phones) a short buzz. */
-    private actionCue(){
-        const s=this.state,a=s?.interaction,held=s?.kitchen.chefs.human.holding;
+    private actionCue(a=this.state?.interaction){
+        const s=this.state,held=s?.kitchen.chefs.human.holding;
         this.cueUntil=this.clock+CUE_SECONDS;
         // Facing open floor with an item, Space puts it down in front (no listed interaction).
         const sound=a?cueSound(a.kind,a.target,held,s!.kitchen.stations?.[a.target||'']):held?cueSound('drop',undefined,held,null):null;

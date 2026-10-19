@@ -63,9 +63,9 @@ function harness(path,{width=844,height=390,touch=true,language='zh',vibrate=tru
  const locale={module:{exports:{}},globalThis:{localStorage:{getItem:()=>language}}};
  vm.runInNewContext(fs.readFileSync('cocos-kitchen/i18n.js','utf8').replace('__KITCHEN_CATALOG__',fs.readFileSync('cocos-kitchen/i18n.json','utf8')),locale);
  w.kitchenI18n=locale.module.exports;
- const state={phase:'running',connected:true,pending:false,canInteract:true,canThrow:true,canDash:true,holding:true,interaction:'拿起番茄',interactionHint:'',aiming:false,sprint:{active_remaining:0,cooldown_remaining:0},orders:[],money:0,served:0,timeLabel:'180',handLabel:'番茄',aiStatus:'',mainLabel:'开始',mainEnabled:true,game_id:'round'};
+ const state={phase:'running',connected:true,pending:false,canInteract:true,canPlace:true,canThrow:true,canDash:true,holding:true,interaction:'拿起番茄',interactionHint:'',aiming:false,sprint:{active_remaining:0,cooldown_remaining:0},orders:[],money:0,served:0,timeLabel:'180',handLabel:'番茄',aiStatus:'',mainLabel:'开始',mainEnabled:true,game_id:'round'};
  const controls={getState:()=>({...state})};
- for(const name of ['move','press','release','cancel','dash','pause','resume','main','settings','help','end','record','bookmark','block'])controls[name]=(...args)=>{calls.push([name,...args]);};
+ for(const name of ['move','press','place','toss','release','cancel','dash','pause','resume','main','settings','help','end','record','bookmark','block'])controls[name]=(...args)=>{calls.push([name,...args]);};
  w.kitchenControls=controls;
  class MutationObserver{constructor(fn){this.fn=fn;observers.push(this);}observe(){}disconnect(){}}
  const context={window:w,document,navigator:w.navigator,innerWidth:width,innerHeight:height,Event,CustomEvent:Event,HTMLElement:Element,MutationObserver,performance:w.performance,queueMicrotask:fn=>fn(),setTimeout:fn=>{fn();return 1;},clearTimeout:()=>{},requestAnimationFrame:fn=>{fn();return 1;},cancelAnimationFrame:()=>{}};
@@ -125,6 +125,30 @@ function check(path){
  assert(callNames().includes('cancel'),'cancel affordance cancels aiming');assert(!callNames().includes('release'),'cancelled aim does not throw');
  h.publish({aiming:false});
 
+ // Pick/Place acts on press even with a throwable item in hand; Throw taps throw on release, holds aim.
+ const place=h.elements.get('touch-place'),toss=h.elements.get('touch-toss'),cancel=h.elements.get('touch-cancel');
+ h.clear();h.fire('touch-place','pointerdown',{pointerId:6});h.fire('touch-place','pointerup',{pointerId:6});
+ assert.deepEqual(callNames(),['place'],'Pick/Place acts once, on press, and never arms a throw');
+ h.publish({canPlace:false});h.clear();h.fire('touch-place','pointerdown',{pointerId:6});
+ assert(place.disabled&&!callNames().includes('place'),'nothing to pick up or put down disables Pick/Place');
+ h.publish({canPlace:true});
+ h.clear();h.fire('touch-toss','pointerdown',{pointerId:7});
+ assert.deepEqual(callNames(),['toss'],'Throw arms a throw');
+ assert(!cancel.hidden&&place.hidden,'Cancel takes the Pick/Place slot while a throw is armed');
+ h.fire('touch-toss','pointerup',{pointerId:7});
+ assert(callNames().includes('release')&&h.calls.some(c=>c[0]==='vibrate'),'a Throw tap throws on release with a tick');
+ assert(cancel.hidden&&!place.hidden,'Pick/Place returns after the throw');
+ h.fire('touch-toss','pointerdown',{pointerId:7});h.publish({aiming:{x:1,y:0}});
+ assert.equal(toss.dataset.aiming,'true');assert.equal(h.elements.get('touch-action').dataset.aiming,'false');
+ assert.equal(h.elements.get('touch-action').textContent,'操作','aiming with Throw leaves Action as it is');
+ assert(place.disabled,'Pick/Place waits while aiming');
+ h.clear();h.fire('touch-action','pointerdown',{pointerId:8});assert(!callNames().includes('press'),'one hold at a time');
+ h.fire('touch-toss','pointermove',{pointerId:7,clientX:450,clientY:225});h.fire('touch-toss','pointerup',{pointerId:7,clientX:450,clientY:225});
+ assert(callNames().includes('cancel')&&!callNames().includes('release'),'Cancel cancels a Throw aim');
+ h.publish({aiming:false,canThrow:false});h.clear();h.fire('touch-toss','pointerdown',{pointerId:7});
+ assert(toss.disabled&&!callNames().includes('toss'),'Throw is unavailable with nothing throwable');
+ h.publish({canThrow:true});
+
  // Floating stick: a press in the lower-left zone moves the stick under the thumb, drags like the stick,
  // and the stick goes home on release.
  const joy=h.elements.get('touch-joystick');
@@ -182,14 +206,14 @@ function check(path){
  const touchLaptop=harness(path,{width:1280,height:720,touch:true});touchLaptop.publish({});
  assert(touchLaptop.document.getElementById('kitchen-touch-ui').hidden,'large touch laptops retain desktop layout');
  const english=harness(path,{language:'en'});english.publish({interaction:'操作',handLabel:'手中：干净餐盘',mainLabel:'开始经营'});
- const translated=['touch-action','touch-dash','touch-menu-title','touch-menu-copy','touch-main','touch-menu-toggle','touch-settings','touch-help','touch-end','touch-record','touch-bookmark','touch-communication','touch-pause','touch-cancel','touch-instructions','touch-rotate-title','touch-rotate-copy','touch-hand'];
+ const translated=['touch-action','touch-dash','touch-place','touch-toss','touch-menu-title','touch-menu-copy','touch-main','touch-menu-toggle','touch-settings','touch-help','touch-end','touch-record','touch-bookmark','touch-communication','touch-pause','touch-cancel','touch-instructions','touch-rotate-title','touch-rotate-copy','touch-hand'];
  assert.deepEqual(translated.map(id=>[id,english.elements.get(id).textContent]).filter(([,value])=>/[\u3400-\u9fff]/.test(value)),[],
                   'English touch labels must all use the display catalog');
  english.w.kitchenI18n.setLanguage('zh');english.w.dispatchEvent(new english.Event('kitchen-language-changed'));
  assert.equal(english.elements.get('touch-action').textContent,'操作','touch labels switch back to Chinese');
  english.w.kitchenI18n.setLanguage('en');english.w.dispatchEvent(new english.Event('kitchen-language-changed'));
  assert.equal(english.elements.get('touch-action').textContent,'Action','touch labels switch back to English');
- console.log(`${path}: multi-touch movement/action/dash, deadzone, cancellation, orientation, background and input gates passed.`);
+ console.log(`${path}: multi-touch movement/action/pick-place/throw/dash, deadzone, cancellation, orientation, background and input gates passed.`);
 }
 
 function checkOrderCards(path){
