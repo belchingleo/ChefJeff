@@ -108,11 +108,13 @@ function clientHarness(h, fromSource){
 async function checkClientInteractions(fromSource){
  const gameState={game_id:'round',phase:'ended',limits:{},release:{version:'0.6.0-beta.1'},
   hosted:{contribution_enabled:true},interaction:null,interaction_focus:'counter14',
-  kitchen:{map:{layout_version:'level-2-1'},stations:{counter14:{}},chefs:{human:{holding:{id:'held'}}}}};
+  kitchen:{map:{layout_version:'island-2'},stations:{counter14:{}},chefs:{human:{holding:{id:'held'}}}}};
  const h=harness(null,false,gameState),client=clientHarness(h,fromSource);
  h.listeners.DOMContentLoaded();
  client.request=async()=>await (await h.w.fetch('/api/state')).json();
- await client.poll();
+ // Any map the server names plays (an audited map, not only level-N-R); only the release must match.
+ client.mountedLayout='island-2';await client.poll();
+ assert.equal(client.connected,true,'a server-provided layout name must not wait for a kitchen update');
  h.elements['contribution-consent'].checked=true;h.elements['contribution-consent'].onchange();
  assert.equal(h.elements['contribution-save'].disabled,false);
  await client.poll();
