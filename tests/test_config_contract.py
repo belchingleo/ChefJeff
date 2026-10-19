@@ -26,6 +26,12 @@ def variant(level_id='level-1', **changes):
     return bundle
 
 
+def place(row, station):
+    """Name the station of an inventory row instead of its type."""
+    del row['at_type']
+    row['at'] = station
+
+
 def codes(bundle):
     draft, diagnostics = cc.resolve_config(bundle)
     return draft, {d['code'] for d in diagnostics if d['severity'] == 'ERROR'}
@@ -163,16 +169,41 @@ class DiagnosticTests(unittest.TestCase):
         self.assertEqual(found, {'GOAL_EXCEEDS_REVENUE'})
 
     def test_inventory_rules(self):
+        at = lambda i, station: lambda d: place(d['initial_inventory'][i], station)
         cases = {
-            'INVENTORY_INCOMPATIBLE': lambda d: d['initial_inventory'][1].update(at='b1'),
-            'INVENTORY_SLOT_CONFLICT': lambda d: d['initial_inventory'][2].update(at='plates'),
-            'INVENTORY_UNKNOWN_STATION': lambda d: d['initial_inventory'][1].update(at='nowhere'),
+            'INVENTORY_INCOMPATIBLE': at(1, 'b1'),
+            'INVENTORY_SLOT_CONFLICT': lambda d: (at(1, 'plates')(d), at(2, 'plates')(d)),
+            'INVENTORY_UNKNOWN_STATION': at(1, 'nowhere'),
             'INVENTORY_ID_SEQUENCE': lambda d: d['initial_inventory'][2].update(id='D7'),
             'INVENTORY_EXTINGUISHER': lambda d: d['initial_inventory'].pop(0),
+            'INVENTORY_NO_FREE_STATION': lambda d: d['initial_inventory'][0].update(at_type='oven'),
         }
         for code, edit in cases.items():
             with self.subTest(code=code):
                 self.assertIn(code, codes(variant(level=edit))[1])
+        # A row names a station or a station type, never both.
+        self.assertEqual(codes(variant(level=lambda d: d['initial_inventory'][1].update(at='plates')))[1], {'SCHEMA_INVALID'})
+
+    def test_inventory_by_type_takes_the_first_free_station_in_map_order(self):
+        # Shipped levels place by type and land exactly where their former station IDs did.
+        expected = {'level-1': {'E1': 'extinguisher', 'D1': 'plates', 'D2': 'counter2', 'P1': 'p1'},
+                    'level-3': {'E1': 'extinguisher', 'D1': 'plates', 'D2': 'counter2', 'D3': 'counter3',
+                                'P1': 'p1', 'P2': 'p2', 'P3': 'counter4'}}
+        for level, places in expected.items():
+            frozen = cc.load_level(level)
+            self.assertEqual({e['id']: e['at'] for e in frozen['level']['initial_inventory']}, places)
+            self.assertTrue(all('at_type' not in e for e in frozen['level']['initial_inventory']))
+            self.assertIn('/level/initial_inventory/2/at=counter2', frozen['applied_defaults'])
+        # A row naming its station keeps it, even when a typed row comes first.
+        draft, found = codes(variant(level=lambda d: place(d['initial_inventory'][2], 'plates')))
+        self.assertEqual(found, set())
+        self.assertEqual([e['at'] for e in draft['level']['initial_inventory']], ['extinguisher', 'counter2', 'plates', 'p1'])
+        # Nothing of the type left: one clear diagnostic at the row.
+        _, diagnostics = cc.resolve_config(variant(level=lambda d: d['initial_inventory'].append(
+            {'object': 'pan', 'id': 'P2', 'at_type': 'stove'})))
+        missing = [d for d in diagnostics if d['code'] == 'INVENTORY_NO_FREE_STATION']
+        self.assertEqual([(d['field_path'], d['evidence']) for d in missing],
+                         [('/level/initial_inventory/4/at_type', {'type': 'stove', 'on_map': 1})])
 
     def test_unknown_recipe_and_mode_fields(self):
         self.assertIn('ORDER_UNKNOWN_RECIPE', codes(variant(order_policy=lambda o: o['menu'][0].update(recipe_ref='pizza')))[1])

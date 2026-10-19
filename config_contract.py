@@ -286,9 +286,11 @@ def resolve_config(bundle, registry=None):
                             {'ingredients': parts, 'limit': limits['max_recipe_components']}))
 
     # Initial inventory: engine conservation rules need contiguous IDs and one extinguisher.
+    # A row names its station (`at`) or a station type (`at_type`): the first station of that type,
+    # in map order, that no earlier row and no `at` row holds. The resolved row carries `at`.
     inventory = level['initial_inventory']
     by_id = {e['id']: e for e in game_map['equipment']}
-    occupied, ids = {}, set()
+    occupied, ids, named = {}, set(), {e.get('at') for e in inventory}
     if len(inventory) > limits['max_inventory']:
         out.append(diag('LIMIT_INVENTORY', 'ERROR', '/level/initial_inventory', f'more than {limits["max_inventory"]} objects'))
     for i, entry in enumerate(inventory):
@@ -296,14 +298,25 @@ def resolve_config(bundle, registry=None):
         if entry['id'] in ids:
             out.append(diag('INVENTORY_DUPLICATE_ID', 'ERROR', path + '/id', f'{entry["id"]} appears twice'))
         ids.add(entry['id'])
+        field = path + ('/at_type' if 'at_type' in entry else '/at')
+        if 'at_type' in entry:
+            kind = entry.pop('at_type')
+            entry['at'] = next((e['id'] for e in game_map['equipment']
+                                if e['type'] == kind and e['id'] not in occupied and e['id'] not in named), None)
+            if entry['at'] is None:
+                out.append(diag('INVENTORY_NO_FREE_STATION', 'ERROR', field,
+                                f'no free {kind} on map {game_map["id"]!r} for {entry["object"]} {entry["id"]}',
+                                {'type': kind, 'on_map': counts.get(kind, 0)}))
+                continue
+            applied.append(f'{path}/at={entry["at"]}')
         station = by_id.get(entry['at'])
         if station is None:
-            out.append(diag('INVENTORY_UNKNOWN_STATION', 'ERROR', path + '/at', f'{entry["at"]!r} is not on the map'))
+            out.append(diag('INVENTORY_UNKNOWN_STATION', 'ERROR', field, f'{entry["at"]!r} is not on the map'))
             continue
         if station['type'] not in INVENTORY_HOSTS[entry['object']]:
-            out.append(diag('INVENTORY_INCOMPATIBLE', 'ERROR', path + '/at', f'{entry["object"]} cannot start on a {station["type"]}'))
+            out.append(diag('INVENTORY_INCOMPATIBLE', 'ERROR', field, f'{entry["object"]} cannot start on a {station["type"]}'))
         if entry['at'] in occupied:
-            out.append(diag('INVENTORY_SLOT_CONFLICT', 'ERROR', path + '/at', f'{entry["at"]} already holds {occupied[entry["at"]]}'))
+            out.append(diag('INVENTORY_SLOT_CONFLICT', 'ERROR', field, f'{entry["at"]} already holds {occupied[entry["at"]]}'))
         occupied[entry['at']] = entry['id']
         if entry['object'] == 'plate' and 'state' not in entry:
             entry['state'] = 'clean'

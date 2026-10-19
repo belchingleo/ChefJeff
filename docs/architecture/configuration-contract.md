@@ -87,7 +87,7 @@ Common: `patience_default_game_ms`, `patience_by_recipe`. The algorithm name is 
 | `*_ref` | exact versions of ruleset, map, equipment catalog, recipe catalog and order policy |
 | `actors[]` | `human` and `jeff` with `controller_type`; model/provider settings and keys are bound at round start, never stored here |
 | `spawns` | `nearest_floor_to_center_shuffled`: nearest floor cell to each center on its side of `partition`, then shuffled with the spawn seed |
-| `initial_inventory[]` | `{object: plate|pot|extinguisher, id, state?, at}`; IDs `D1..Dn`, `P1..Pn`, exactly one `E1`; one object per slot |
+| `initial_inventory[]` | `{object: plate|pot|pan|extinguisher, id, state?, at | at_type}`; `at` names a station, `at_type` a station type (the first station of that type, in map order, not held by an earlier row or named by an `at` row), so a level can run on any map; IDs `D1..Dn`, `P1..Pn`, exactly one `E1`; one object per slot |
 | `clock` | default and allowed game-per-real-time speeds (shipped 0.75; options 0.5 / 0.75 / 1) |
 | `round_limit_game_ms` | D |
 | `goal` | `minimum_money {min_money}`: net revenue at closing |
@@ -102,6 +102,7 @@ Common: `patience_default_game_ms`, `patience_by_recipe`. The algorithm name is 
 | `order_policy.stop_spawn_game_ms` (seeded) | the round limit |
 | `order_policy.patience_by_recipe` | `{}` |
 | `level.initial_inventory[i].state` (plates) | `clean` |
+| `level.initial_inventory[i].at` (rows with `at_type`) | the resolved station; the frozen row keeps only `at` |
 
 ## Resolved configuration (frozen)
 
@@ -124,7 +125,7 @@ Contains the full text of every referenced document, `sources` (id, version, sha
 | `GOAL_EXCEEDS_REVENUE` | ERROR | the goal needs more money than the plan can offer at full price |
 | `ORDER_BACKLOG_EXCEEDS_DISPLAY` | ERROR | `floor(longest countdown / interval) + 1` tickets could wait at once, more than `max_visible_orders` |
 | `RULESET_BURNT_TIERS` | ERROR | burnt tiers do not ascend or do not end with an open tier |
-| `INVENTORY_*` | ERROR | unknown/incompatible/duplicate placements, ID sequences, extinguisher count, no plates |
+| `INVENTORY_*` | ERROR | unknown/incompatible/duplicate placements, no free station of an `at_type` (`INVENTORY_NO_FREE_STATION`), ID sequences, extinguisher count, no plates |
 | `ACTORS_UNSUPPORTED`, `CLOCK_DEFAULT`, `SPAWN_NO_FLOOR` | ERROR | participants, clock or spawns not supported |
 | `LIMIT_*` | ERROR | technical limits exceeded |
 | `PATIENCE_SHORT` | WARNING | patience under 10 s |
