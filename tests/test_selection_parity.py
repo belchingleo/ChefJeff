@@ -70,6 +70,9 @@ console.log(JSON.stringify(bad.slice(0,5)));process.exit(bad.length?1:0);''')
             self.skipTest('TypeScript compiler unavailable')
         checked = subprocess.run([*tsc, str(TYPESCRIPT), '--target', 'ES5', '--lib', 'es2019,dom', '--noEmit',
                                   '--skipLibCheck'], cwd=ROOT, capture_output=True, text=True)
+        if 'TS5108' in checked.stdout + checked.stderr:
+            # TypeScript 6+ removed the ES5 target; the source rule above still runs.
+            self.skipTest('this TypeScript no longer type-checks for ES5')
         self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
 
 
