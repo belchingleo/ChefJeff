@@ -1,26 +1,20 @@
 """Spatial whitebox: the same kitchen rules on a walkable grid, without AI policy."""
 from functools import lru_cache
-import heapq
 import math
 import random
 from kitchen import Kitchen, Action, Station, NAMES, TAKE_KINDS, Job, GroundItem, STATES, engine_input
+from map_definition import geometry
+from navigation import WALK_CLEARANCE, Navigation, contact_fraction
 FACING_STEPS = {'up':(0,-1),'down':(0,1),'left':(-1,0),'right':(1,0)}
 USE_KINDS = ('chop','wash','extinguish')  # E; Space takes, puts, plates and serves
 
-WIDTH, HEIGHT = 14, 9
 THROW_RANGE = 4.0
 # Plates, plated food, pots and the extinguisher; reference values of the service ruleset
 # (throw.range_cells / throw.pass_range_cells). Live kitchens read the ruleset.
 PASS_RANGE = 4.0
-THROW_SPEED = 12.0
 WALK_SPEED = 4.5  # Both chefs: 1.5x the original 3 cells per game second
 CHEF_SEPARATION = .4  # two small foot circles, not the full tall sprite
 UP_STANDOFF = -.22  # tiles a south-side operator stands back from the cabinet
-# Overcooked-style targeting: the station a chef acts on is the one under a point this far ahead of
-# the feet along the facing (a chef pressed against any side of a counter, or standing on the
-# neighbouring tile's centre, reaches into it); a point at most FRONT_SLACK short of a counter still picks it.
-FRONT_REACH = .75
-FRONT_SLACK = .15
 # Facing left or right, the hands and knife are drawn about this far above the feet (side chop poses:
 # fist 0.38-0.48 cells up at the strike, blade landing 0.06-0.22), so the front point is raised to hand
 # height and the station the knife points at is the target. Up and down are unchanged.
@@ -38,7 +32,6 @@ SIDE_HAND_RISE = .35
 SELECT_AHEAD = .5
 SELECT_STRAIGHT_BONUS = .1
 SELECT_REACH = .85  # Overcooked 2's 1-unit radius, about 1.2 units per cell
-NUDGE_LIMIT = .25
 # Overcooked-style local movement: the player's own browser moves its chef and reports where it is
 # (report_position); the engine walks there with the same physics. The walk is limited to
 # REPORT_SPEED_MARGIN x the walking speed (sprint included), banked up to REPORT_BUDGET cells so a late
@@ -53,118 +46,10 @@ REPORT_STALL = .25
 # where contact left it, around the other chef. Live kitchens read the ruleset.
 STALL_SECONDS = .3
 STALL_PROGRESS = .05
-from navigation import contact_fraction
-from map_definition import load_map, geometry
-# Level-one inspection helpers use the import-time reference layout.
-# Live instances below always load their own document and geometry-keyed nav.
-EQUIPMENT, WALLS = geometry(load_map(1))
-BLOCKED = WALLS | {tuple(c) for v in EQUIPMENT.values() for c in v.get('cells',[v['cell']])}
-FLOOR = {(x, y) for x in range(WIDTH) for y in range(HEIGHT)} - BLOCKED
 
 
 def tile_key(cell):
     return f'floor_{cell[0]}_{cell[1]}'
-
-
-def neighbors(cell):
-    x, y = cell
-    return [(x+dx, y+dy) for dx, dy in ((1, 0), (0, 1), (-1, 0), (0, -1))
-            if (x+dx, y+dy) in FLOOR]
-
-
-# Expand obstacles by the chef's footprint so diagonal routes do not clip corners.
-WALK_CLEARANCE = .2
-EPSILON = 1e-9
-WALK_BOXES = tuple((x-.5-WALK_CLEARANCE, y-.5-WALK_CLEARANCE,
-                    x+.5+WALK_CLEARANCE, y+.5+WALK_CLEARANCE)
-                   for x, y in sorted(BLOCKED))
-
-
-def walkable_point(point):
-    x, y = point
-    return (math.isfinite(x) and math.isfinite(y)
-            and .5+WALK_CLEARANCE-EPSILON <= x <= WIDTH-1.5-WALK_CLEARANCE+EPSILON
-            and .5+WALK_CLEARANCE-EPSILON <= y <= HEIGHT-1.5-WALK_CLEARANCE+EPSILON
-            and not any(left+EPSILON < x < right-EPSILON and top+EPSILON < y < bottom-EPSILON
-                        for left, top, right, bottom in WALK_BOXES))
-
-
-def clear_walk_line(start, end):
-    """Segments may touch expanded boundaries, but never enter an obstacle."""
-    if not walkable_point(start) or not walkable_point(end):
-        return False
-    for left, top, right, bottom in WALK_BOXES:
-        low, high = 0., 1.
-        for axis, lower, upper in ((0,left,right),(1,top,bottom)):
-            delta = end[axis]-start[axis]
-            lower += EPSILON
-            upper -= EPSILON
-            if abs(delta) < EPSILON:
-                if not lower < start[axis] < upper:
-                    low, high = 1., 0.
-                    break
-            else:
-                a, b = (lower-start[axis])/delta, (upper-start[axis])/delta
-                low, high = max(low,min(a,b)), min(high,max(a,b))
-        if low <= high:
-            return False
-    return True
-
-
-@lru_cache(maxsize=1)
-def navigation_graph():
-    # The shortest route in polygonal free space turns only at obstacle vertices.
-    # This static visibility graph is shared by both chefs and all rounds.
-    corners = sorted({p for left,top,right,bottom in WALK_BOXES
-                      for p in ((left,top),(left,bottom),(right,top),(right,bottom))
-                      if walkable_point(p)})
-    edges = [[] for _ in corners]
-    for i, a in enumerate(corners):
-        for j in range(i):
-            b = corners[j]
-            if clear_walk_line(a,b):
-                length = math.dist(a,b)
-                edges[i].append((j,length));edges[j].append((i,length))
-    return corners, edges
-
-
-def shortest_path(start, end):
-    return list(_cached_shortest_path(tuple(start),tuple(end)))
-
-
-@lru_cache(maxsize=1024)
-def _cached_shortest_path(start, end):
-    if not walkable_point(start) or not walkable_point(end):
-        raise ValueError('目标不在可行走地面')
-    if start == end:
-        return [start]
-    if clear_walk_line(start,end):
-        return [start,end]
-    corners, static_edges = navigation_graph()
-    points = corners+[start,end]
-    edges = [list(e) for e in static_edges]+[[],[]]
-    source, target = len(corners), len(corners)+1
-    for i in (source,target):
-        for j, corner in enumerate(corners):
-            if clear_walk_line(points[i],corner):
-                length = math.dist(points[i],corner)
-                edges[i].append((j,length));edges[j].append((i,length))
-    distances, previous, queue = {source:0.}, {}, [(0.,source)]
-    while queue:
-        distance, i = heapq.heappop(queue)
-        if distance > distances[i]+EPSILON:
-            continue
-        if i == target:
-            route = [points[i]]
-            while i != source:
-                i = previous[i];route.append(points[i])
-            return list(reversed(route))
-        for j, length in edges[i]:
-            candidate = distance+length
-            if candidate < distances.get(j,math.inf)-EPSILON:
-                distances[j] = candidate;previous[j] = i
-                heapq.heappush(queue,(candidate,j))
-    raise ValueError('目标不可达')
 
 
 def _segment_distance(point, start, end):
@@ -173,18 +58,10 @@ def _segment_distance(point, start, end):
     return math.dist(point,(start[0]+dx*t,start[1]+dy*t))
 
 
-def map_navigation(level,cabinet_clearance=None):
-    document=load_map(level)
-    equipment,walls=geometry(document)
-    return _map_navigation(tuple(document['size']),tuple(sorted(walls)),
-                           tuple(sorted((key+':'+str(i),tuple(c)) for key,e in equipment.items() for i,c in enumerate(e.get('cells',[e['cell']])))),
-                           cabinet_clearance)
-
-
 @lru_cache(maxsize=12)
 def _map_navigation(size,walls,cells,cabinet_clearance=None):
-    from navigation import Navigation
     return Navigation(*size,walls,{key:{'cell':cell} for key,cell in cells},cabinet_clearance)
+
 
 class SpatialKitchen(Kitchen):
     def __init__(self, config=None, rng=None):
@@ -601,7 +478,7 @@ class SpatialKitchen(Kitchen):
             shared=self.shared_access(who,target)
             # Never repositioned at a station it already faces (or stands against): work where it stands,
             # unless a shared job needs another side than this one.
-            here=(self.facing_station(who)==target or (self.at_walk_limit and self.at_station_face(who,target))
+            here=(self.station_ahead(who)==target or (self.at_walk_limit and self.at_station_face(who,target))
                   or self.space_pick[who]==target)
             if here and (not shared or self.station_side(target,self.positions[who]) in shared):
                 return [self.positions[who]]
@@ -687,7 +564,7 @@ class SpatialKitchen(Kitchen):
                 if self.nav.clear_walk_line(access,point):return point
             return access
         # Centred on the side: a routed chef's feet sit on the station's row (or column) centre.
-        # A chef whose front point already picks the station works in place (see path).
+        # A chef whose Space pick is already the station, straight ahead, works in place (see path).
         point=(access[0]+dx*inset,access[1]+dy*inset)
         if not 0<=inset<.5 or not self.nav.clear_walk_line(access,point):
             raise ValueError('操作停靠点超出安全地面')
@@ -923,23 +800,6 @@ class SpatialKitchen(Kitchen):
                         actions.append(action)
         return actions
 
-    def front_point(self,who):
-        """The point FRONT_REACH ahead of the chef's feet along its facing, at hand height when facing sideways."""
-        (x,y),(dx,dy)=self.positions[who],FACING_STEPS[self.facing[who]]
-        return (x+dx*FRONT_REACH,y+dy*FRONT_REACH-(SIDE_HAND_RISE if dx else 0.))
-
-    def facing_station(self,who):
-        """The station the chef faces (Overcooked-style): the one whose cell holds the front point, else the
-        nearest one at most FRONT_SLACK beyond it; None when no counter is that close ahead."""
-        px,py=self.front_point(who);best=None
-        for key,e in self.equipment.items():
-            for c in e.get('cells',[e['cell']]):
-                gap=max(abs(px-c[0]),abs(py-c[1]))-.5
-                if gap<=FRONT_SLACK:
-                    rank=(max(gap,0.),math.dist((px,py),c),key)
-                    if best is None or rank<best:best=rank
-        return best[2] if best else None
-
     @engine_input
     def face(self, who, dx, dy):
         """Aim as the player's page last drew it (sent with Space), so the station it highlighted is picked."""
@@ -959,10 +819,7 @@ class SpatialKitchen(Kitchen):
         """Stations Space may pick, best first (see SELECT_AHEAD): ahead of the aim, around the chef's cell."""
         ax,ay=self.aim_of(who);x,y=self.positions[who];cx,cy=self.anchor(who)
         probe=(x+ax*SELECT_AHEAD,y+ay*SELECT_AHEAD-SIDE_HAND_RISE*abs(ax))
-        # Directions are taken from the cell the hands are over (raised when aiming sideways, as the knife
-        # is drawn), so the board the knife points at is the straight one.
-        hand=(x,y-SIDE_HAND_RISE*abs(ax))
-        hx,hy=min(self.floor,key=lambda c:(math.dist(c,hand),c[1],c[0]))
+        hx,hy=self.hand_cell(who)
         ranked={}
         for key,e in self.equipment.items():
             corner=e.get('reach')=='corner'
@@ -977,9 +834,23 @@ class SpatialKitchen(Kitchen):
                 if key not in ranked or rank<ranked[key]:ranked[key]=rank
         return [key for key,_ in sorted(ranked.items(),key=lambda kv:kv[1])]
 
+    def hand_cell(self,who):
+        """The floor cell the hands are over: Space's directions are taken from it (raised when aiming
+        sideways, as the knife is drawn), so the board the knife points at is the straight one."""
+        x,y=self.positions[who];hand=(x,y-SIDE_HAND_RISE*abs(self.aim_of(who)[0]))
+        return min(self.floor,key=lambda c:(math.dist(c,hand),c[1],c[0]))
+
     def selected_station(self,who):
         found=self.selectable_stations(who)
         return found[0] if found else None
+
+    def station_ahead(self,who):
+        """The Space pick when it is straight ahead of the hands' cell (or an authored corner reached from
+        here), never a diagonal one: a chef there works in place instead of walking to the station."""
+        key=self.selected_station(who)
+        if not key:return None
+        e=self.equipment[key];hx,hy=self.hand_cell(who)
+        return key if e.get('reach')=='corner' or any(abs(c[0]-hx)+abs(c[1]-hy)==1 for c in e.get('cells',[e['cell']])) else None
 
     def facing_candidates(self,who,station=None):
         """What Space acts on, best first (Overcooked 2-style, no remembered selection).

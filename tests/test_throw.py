@@ -1,7 +1,8 @@
 import unittest
 from kitchen import Food, GroundItem, load_config
 import math
-from spatial_kitchen import SpatialKitchen, tile_key, neighbors, THROW_RANGE, PASS_RANGE
+from spatial_kitchen import SpatialKitchen, tile_key, THROW_RANGE, PASS_RANGE
+from level_one import neighbors
 from whitebox_server import SpatialJevClient
 from levels import level_config
 

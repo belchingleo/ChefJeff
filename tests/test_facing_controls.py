@@ -54,19 +54,19 @@ class FacingControlTests(unittest.TestCase):
         # little below it target b2; feet high enough that the hands are level with b1 target b1.
         for x, y in ((3.15, 4.), (3., 4.), (3.15, 4.2), (3.15, 4.4)):
             k.positions['human'] = (x, y); k.facing['human'] = 'right'
-            self.assertEqual(k.facing_station('human'), 'b2', (x, y))
+            self.assertEqual(k.selected_station('human'), 'b2', (x, y))
         for y in (3.6, 3.4):
             k.positions['human'] = (3.15, y)
-            self.assertEqual(k.facing_station('human'), 'b1', y)
+            self.assertEqual(k.selected_station('human'), 'b1', y)
         # Every side of b2 that has floor, pressed against it.
         k.positions['human'] = (3.15, 4.); k.facing['human'] = 'right'
-        self.assertEqual(k.facing_station('human'), 'b2')
+        self.assertEqual(k.selected_station('human'), 'b2')
         k.positions['human'] = (4.85, 4.); k.facing['human'] = 'left'
-        self.assertEqual(k.facing_station('human'), 'b2')
+        self.assertEqual(k.selected_station('human'), 'b2')
         # Too far back: nothing is targeted, and the held item is not dropped instead.
         k.positions['human'] = (2.55, 4.); k.facing['human'] = 'right'
         k.chefs['human'].hand = Food('held', 'raw', ingredient='beef')
-        self.assertIsNone(k.facing_station('human'))
+        self.assertIsNone(k.selected_station('human'))
         self.assertIsNone(k.facing_interaction('human', 'hands')[1])
 
     def test_every_station_side_targets_its_station(self):
@@ -85,7 +85,7 @@ class FacingControlTests(unittest.TestCase):
                         for spot in (k.operation_point(key, access), access):
                             with self.subTest(level=level, station=key, side=access, spot=spot):
                                 k.positions['human'] = spot; k.facing['human'] = facing
-                                self.assertEqual(k.facing_station('human'), key)
+                                self.assertEqual(k.selected_station('human'), key)
 
     def test_the_user_case_targets_b2_and_never_falls_back_to_b1(self):
         # Round bcb4a7e9: standing west of the column at b2's height with b2 empty and raw beef on b1,
@@ -124,7 +124,7 @@ class FacingControlTests(unittest.TestCase):
         for board in ('b1', 'b2', 'b3'):
             k.stop('jeff')
             k.positions['jeff'] = (k.equipment[board]['cell'][0] - .85, k.equipment[board]['cell'][1]); k.facing['jeff'] = 'right'
-            self.assertEqual(k.facing_station('jeff'), board)
+            self.assertEqual(k.selected_station('jeff'), board)
 
     def test_the_player_works_where_they_stand_after_centring(self):
         # Work starts where the player stands, after a sideways slide of at most 0.6 cells (about 0.1 s) onto

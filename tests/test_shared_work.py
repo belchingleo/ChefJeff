@@ -54,7 +54,7 @@ class SharedWorkTests(unittest.TestCase):
         k.assert_invariants()
         k=self.make();k.positions.update(jeff=(4.2,2.49),human=(3.75,2.49));k.facing.update(jeff='down',human='down')
         self.assertTrue(k.command('jeff','chop b1')[0]);k.advance(.01)
-        self.assertEqual(k.facing_station('human'),'b1')
+        self.assertEqual(k.selected_station('human'),'b1')
         self.assertNotEqual(k.path('human','b1'),[k.positions['human']])
 
     def test_second_chef_reserves_distinct_perpendicular_side(self):

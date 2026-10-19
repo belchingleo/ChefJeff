@@ -3,7 +3,8 @@ import random
 import unittest
 from unittest.mock import patch
 from kitchen import Kitchen, Food, load_config
-from spatial_kitchen import SpatialKitchen, EQUIPMENT
+from spatial_kitchen import SpatialKitchen
+from level_one import EQUIPMENT
 from jev import JevClient
 from web_server import GameSession
 from levels import level_config
@@ -127,7 +128,8 @@ class TablewareTests(unittest.TestCase):
 
     def test_plates_pass_at_short_range_and_can_drop_and_pickup_for_both_chefs(self):
         import math
-        from spatial_kitchen import EQUIPMENT, PASS_RANGE
+        from spatial_kitchen import PASS_RANGE
+        from level_one import EQUIPMENT
         from kitchen import Action
         for who in ('human','jeff'):
             for stage in ('clean_plate','dirty_plate','ready','burnt'):

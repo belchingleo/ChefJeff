@@ -1,7 +1,8 @@
 import unittest
 
 from kitchen import Food, GroundItem, load_config
-from spatial_kitchen import SpatialKitchen, neighbors, tile_key
+from spatial_kitchen import SpatialKitchen, tile_key
+from level_one import neighbors
 
 
 class ThrowScatterTests(unittest.TestCase):

@@ -4,7 +4,8 @@ import time
 import unittest
 from unittest.mock import patch
 from kitchen import Food, GroundItem, load_config
-from spatial_kitchen import SpatialKitchen, WALK_SPEED, FLOOR, tile_key, neighbors, walkable_point, PASS_RANGE
+from spatial_kitchen import SpatialKitchen, WALK_SPEED, tile_key, PASS_RANGE
+from level_one import FLOOR, neighbors, walkable_point
 from web_server import GameSession
 from test_web import Client, FakeJournal
 
@@ -31,7 +32,7 @@ class ControlsTests(unittest.TestCase):
         self.throw(k,'human',(10,1));self.assertEqual(k.ground['test'].location,'floor_6_1')
 
     def test_throw_raw_or_chopped_onto_board_both_chefs(self):
-        from spatial_kitchen import EQUIPMENT
+        from level_one import EQUIPMENT
         for who in ('human','jeff'):
             for stage in ('raw','chopped'):
                 k=self.make();k.positions[who]=(3.,4.)
@@ -45,7 +46,7 @@ class ControlsTests(unittest.TestCase):
                 if stage=='raw':self.assertIn('chop b1',[a.key for a in k.actions(who)])
 
     def test_board_throw_reserves_slot_against_other_throw_or_put(self):
-        from spatial_kitchen import EQUIPMENT
+        from level_one import EQUIPMENT
         k=self.make();k.positions.update(human=(3.,4.),jeff=(3.,3.))
         k.chefs['human'].hand=Food('flying');k.chefs['jeff'].hand=Food('held')
         stale=k.throw_action('jeff',EQUIPMENT['b1']['cell'])
@@ -58,7 +59,7 @@ class ControlsTests(unittest.TestCase):
         self.assertEqual(k.chefs['jeff'].hand.id,'held');k.assert_invariants()
 
     def test_occupied_board_throw_falls_to_ground(self):
-        from spatial_kitchen import EQUIPMENT
+        from level_one import EQUIPMENT
         k=self.make();k.positions['human']=(3.,4.)
         k.chefs['human'].hand=Food('new');k.stations['b1'].food=Food('old')
         a=k.throw_action('human',EQUIPMENT['b1']['cell'])
@@ -68,7 +69,7 @@ class ControlsTests(unittest.TestCase):
         self.assertEqual(k.stations['b1'].food.id,'old')
 
     def test_board_throw_cannot_cross_wall_and_interrupt_releases_slot(self):
-        from spatial_kitchen import EQUIPMENT
+        from level_one import EQUIPMENT
         k=self.make();k.positions['human']=(10.,2.);k.chefs['human'].hand=Food('test')
         self.assertFalse(k.can_throw_to('human','b1'))
         k.positions['human']=(3.,4.)
