@@ -31,7 +31,12 @@ SIDE_HAND_RISE = .35
 # ahead (at hand height when aiming sideways). Only stations ahead count, never beside or behind, and
 # within SELECT_REACH cells of the feet. The pick is purely geometric, so what is highlighted is what
 # Space acts on: a station with nothing to do never hands Space to another one.
+# Unlike Overcooked 2, which scores the raw offset (a diagonal cell, 1.41 long, wins as soon as the
+# stick leans a little its way), directions are compared by angle and the straight cells get
+# SELECT_STRAIGHT_BONUS: a phone stick is never exactly straight, so a diagonal station is picked only
+# when the aim is about 30 degrees or more off the straight one.
 SELECT_AHEAD = .5
+SELECT_STRAIGHT_BONUS = .1
 SELECT_REACH = .85  # Overcooked 2's 1-unit radius, about 1.2 units per cell
 NUDGE_LIMIT = .25
 # Overcooked-style local movement: the player's own browser moves its chef and reports where it is
@@ -920,15 +925,19 @@ class SpatialKitchen(Kitchen):
         """Stations Space may pick, best first (see SELECT_AHEAD): ahead of the aim, around the chef's cell."""
         ax,ay=self.aim_of(who);x,y=self.positions[who];cx,cy=self.anchor(who)
         probe=(x+ax*SELECT_AHEAD,y+ay*SELECT_AHEAD-SIDE_HAND_RISE*abs(ax))
+        # Directions are taken from the cell the hands are over (raised when aiming sideways, as the knife
+        # is drawn), so the board the knife points at is the straight one.
+        hand=(x,y-SIDE_HAND_RISE*abs(ax))
+        hx,hy=min(self.floor,key=lambda c:(math.dist(c,hand),c[1],c[0]))
         ranked={}
         for key,e in self.equipment.items():
             corner=e.get('reach')=='corner'
             if corner and tuple(e['access'])!=(cx,cy):continue
             for c in (e.get('cells',[e['cell']]) if not corner else [e['cell']]):
-                ox,oy=c[0]-cx,c[1]-cy
+                ox,oy=(c[0]-cx,c[1]-cy) if corner else (c[0]-hx,c[1]-hy)
                 if not corner and max(abs(ox),abs(oy))!=1:continue
-                score=ax*ox+ay*oy
-                if score<=1e-6:continue
+                if ax*ox+ay*oy<=1e-6:continue
+                score=(ax*ox+ay*oy)/math.hypot(ox,oy)+(SELECT_STRAIGHT_BONUS if abs(ox)+abs(oy)==1 else 0)
                 if max(abs(x-c[0]),abs(y-c[1]))-.5>SELECT_REACH+1e-9:continue
                 rank=(-round(score,6),round(math.dist(probe,c),6),key)
                 if key not in ranked or rank<ranked[key]:ranked[key]=rank

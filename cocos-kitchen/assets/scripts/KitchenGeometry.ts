@@ -263,22 +263,25 @@ export function spaceStation(map:any,pos:number[],aim:number[],ground:any[]):str
 /** Space's station, picked as the engine does (spatial_kitchen.selectable_stations; Overcooked 2's grid
  * pick): stations in the eight cells around the chef's own floor cell that lie ahead of the aim, best
  * matching direction first, ties to the one nearest a point half a cell ahead (at hand height when aiming
- * sideways), within 0.85 cells of the feet. Beside or behind never counts. */
+ * sideways), within 0.85 cells of the feet. Beside or behind never counts. Directions compare by angle,
+ * with a 0.1 bonus for the straight cells, so a diagonal wins only about 30 degrees off straight. */
 export function selectableStations(map:any,pos:number[],aim:number[]):string[]{
-    const SELECT_AHEAD=.5,SELECT_REACH=.85,SIDE_HAND_RISE=.35;
+    const SELECT_AHEAD=.5,SELECT_REACH=.85,SIDE_HAND_RISE=.35,SELECT_STRAIGHT_BONUS=.1;
     const length=Math.hypot(aim[0],aim[1]);if(!length)return [];
     const ax=aim[0]/length,ay=aim[1]/length,anchor=anchorCell(map,pos);
     if(!anchor)return [];
     const [cx,cy]=anchor,probe=[pos[0]+ax*SELECT_AHEAD,pos[1]+ay*SELECT_AHEAD-SIDE_HAND_RISE*Math.abs(ax)];
+    // Directions from the cell the hands are over (raised when aiming sideways), as the engine does.
+    const [hx,hy]=anchorCell(map,[pos[0],pos[1]-SIDE_HAND_RISE*Math.abs(ax)])||anchor;
     const ranked=new Map<string,[number,number]>();
     for(const [id,e] of Object.entries(map.equipment||{}) as [string,any][]){
         const corner=e.reach==='corner';
         if(corner&&(e.access?.[0]!==cx||e.access?.[1]!==cy))continue;
         for(const c of (corner?[e.cell]:(e.cells||[e.cell])) as number[][]){
-            const ox=c[0]-cx,oy=c[1]-cy;
+            const ox=c[0]-(corner?cx:hx),oy=c[1]-(corner?cy:hy);
             if(!corner&&Math.max(Math.abs(ox),Math.abs(oy))!==1)continue;
-            const score=ax*ox+ay*oy;
-            if(score<=1e-6)continue;
+            if(ax*ox+ay*oy<=1e-6)continue;
+            const score=(ax*ox+ay*oy)/Math.hypot(ox,oy)+(Math.abs(ox)+Math.abs(oy)===1?SELECT_STRAIGHT_BONUS:0);
             if(Math.max(Math.abs(pos[0]-c[0]),Math.abs(pos[1]-c[1]))-.5>SELECT_REACH+1e-9)continue;
             const rank:[number,number]=[-Math.round(score*1e6)/1e6,Math.round(Math.hypot(probe[0]-c[0],probe[1]-c[1])*1e6)/1e6];
             const old=ranked.get(id);

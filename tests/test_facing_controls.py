@@ -35,6 +35,17 @@ class FacingControlTests(unittest.TestCase):
         k.face('human', 1, 0)
         self.assertNotIn('counter17', k.selectable_stations('human'))
 
+    def test_a_stick_leaning_toward_a_diagonal_keeps_the_station_straight_ahead(self):
+        # Player report: under the tomato box (level 2), stick up but a little left, and the lettuce box
+        # up-left was framed. Overcooked 2's raw offset score lets a diagonal win at any lean; here the
+        # straight station holds until the aim is about 30 degrees off.
+        k = kitchen()
+        k.positions['human'] = (5., 2.)
+        for degrees, want in ((0, 'tomato'), (15, 'tomato'), (28, 'tomato'), (32, 'lettuce'), (45, 'lettuce')):
+            r = math.radians(degrees)
+            k.face('human', -math.sin(r), -math.cos(r))
+            self.assertEqual(k.selected_station('human'), want, degrees)
+
     def test_the_station_under_the_front_point_is_the_target(self):
         k = SpatialKitchen(level_config(load_config() | {'spawn_seed': 0, 'order_seed': 1}, 1))
         k.positions['jeff'] = (10., 6.)
