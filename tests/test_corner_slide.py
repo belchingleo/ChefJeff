@@ -1,11 +1,11 @@
-"""Keyboard walking slides out of shallow notches (ruleset movement.corner_slide_cells)."""
+"""Keyboard walking slides past a corner it only just catches (ruleset movement.corner_slide_cells)."""
 import unittest
 
 import config_contract as cc
 from kitchen import Food
 from spatial_kitchen import SpatialKitchen
 
-NOTCH = (6.15, 6.5)  # level 2: in front of board 2, between counters 15 and 19
+CORNER = (9.75, 5.5)  # level 2: just inside the east end of the central run (counter22, side edge x=9.85)
 
 
 def walk(level, start, direction, seconds=.5, held=None):
@@ -23,14 +23,12 @@ def walk(level, start, direction, seconds=.5, held=None):
 
 
 class CornerSlideTests(unittest.TestCase):
-    def test_sideways_keys_leave_the_board_notch(self):
-        # The 2026-09-29 playtest: holding chopped beef, the player could not walk right.
-        right = walk('level-2', NOTCH, (1, 0), held=Food('F5', 'chopped', 6))
-        left = walk('level-2', NOTCH, (-1, 0))
-        self.assertGreater(right[0], 7.5)
-        self.assertLess(left[0], 5)
-        for x, y in (right, left):
-            self.assertAlmostEqual(y, NOTCH[1] - .2, places=2)
+    def test_walking_past_the_end_of_a_run(self):
+        # Walking north 0.1 cells inside the run's east edge slides out and walks on, holding food or not.
+        for held in (None, Food('F5', 'chopped', 6)):
+            x, y = walk('level-2', CORNER, (0, -1), held=held)
+            self.assertAlmostEqual(x, 9.85, places=2)
+            self.assertLess(y, 4.5)
 
     def test_no_slide_into_a_solid_row(self):
         # Walking down into the counter row: no sideways shift within the limit gets past it.
@@ -42,7 +40,7 @@ class CornerSlideTests(unittest.TestCase):
     def test_the_slide_never_exceeds_the_ruleset_limit(self):
         k = SpatialKitchen(cc.load_level('level-2'))
         limit = k.rules.corner_slide
-        found = k.corner_offset(NOTCH, (1.0, 0.0))
+        found = k.corner_offset((CORNER[0], 4.95), (0.0, -1.0))
         self.assertIsNotNone(found)
         self.assertLessEqual(abs(found[0]), limit + 1e-9)
 

@@ -97,27 +97,32 @@ class LevelThreeTests(unittest.TestCase):
         counter=next(x for x in k.counters if k.stations[x].food is None)
         self.do(k,'take pot p1');self.do(k,'put '+counter);self.do(k,'take counter4');self.do(k,'put pot p1')
         k.advance(12);self.assertEqual(k.stations[counter].food.contents.stage,'ready');self.assertEqual(k.stations['p1'].pot_id,'P3')
+    def dash(self,k,t):
+        # Overcooked-style dash: speed starts at the multiplier and eases back to walking along a sine S-curve.
+        m,d=k.rules.sprint_multiplier,k.rules.sprint_duration
+        return WALK_SPEED*(t+(m-1)/2*(t+d/math.pi*math.sin(math.pi*t/d)))
     def test_sprint_distance_cooldown_and_work_not_accelerated(self):
         k=self.kitchen();k.positions['human']=(2,4);k.set_manual('human',1,0)
         self.assertTrue(k.sprint('human'));self.assertFalse(k.sprint('human'))
-        k.advance(1);self.assertAlmostEqual(k.positions['human'][0],2+WALK_SPEED*1.4,places=6)
-        self.assertFalse(k.sprint('human'));k.set_manual('human',0,0);k.advance(3)
-        k.positions['human']=(2,4);k.set_manual('human',1,0);self.assertTrue(k.sprint('human'))
+        k.advance(.95);self.assertFalse(k.sprint('human'));k.advance(.05)
+        self.assertAlmostEqual(k.positions['human'][0],2+self.dash(k,1),places=6)
+        # As in Overcooked, the next dash is ready as soon as one ends.
+        k.positions['human']=(2,4);self.assertTrue(k.sprint('human'))
         k.set_manual('human',0,0);k.stations['b1'].food=Food('chop','raw');self.do(k,'chop b1')
-        self.assertEqual(k.stations['b1'].food.chopped,6)
+        self.assertEqual(k.stations['b1'].food.chopped,k.c['chop_seconds'])
     def test_path_sprint_matches_manual_and_stops_at_wall(self):
         k=self.kitchen();k.positions['jeff']=(2,4)
         from kitchen import Action
         a=Action('go floor_6_4','go','go','floor_6_4')
         # Player floor paths and AI station paths share the same travel integration.
         k.positions['human']=(2,4);self.assertTrue(k.start('human',a)[0]);self.assertTrue(k.sprint('human'))
-        k.advance(.5);self.assertAlmostEqual(k.positions['human'][0],2+WALK_SPEED*1.4*.5,places=6)
-        k.advance(.5);self.assertAlmostEqual(k.positions['human'][0],6)
+        k.advance(.25);self.assertAlmostEqual(k.positions['human'][0],2+self.dash(k,.25),places=6)
+        k.advance(.75);self.assertAlmostEqual(k.positions['human'][0],6)
         k.positions['human']=(2,2);k.advance(3);k.set_manual('human',-1,0);self.assertTrue(k.sprint('human'));k.advance(1)
         self.assertTrue(k.nav.walkable_point(k.positions['human']));self.assertGreater(k.positions['human'][0],1.6)
     def test_english_state_and_sprint_question(self):
         k=self.kitchen();p=SpatialJevClient(k.c,key='offline').payload(k.snapshot(),k.actions('jeff'))
-        self.assertIn('sprint',p['questions']);self.assertIn('3 seconds',p['state']['rules']['sprint'])
+        self.assertIn('sprint',p['questions']);self.assertIn('eases back to walking',p['state']['rules']['sprint'])
         self.assertFalse(re.search(r'[\u3400-\u9fff]',json.dumps(p,ensure_ascii=False)))
     def test_level_switch_and_rejected_paused_switch(self):
         g=GameSession(kitchen_factory=SpatialKitchen)

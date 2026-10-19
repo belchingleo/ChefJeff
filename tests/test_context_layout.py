@@ -81,12 +81,13 @@ class LayoutInteractionTests(unittest.TestCase):
         self.assertEqual(self.press(k),'plate_ground');self.assertIsNone(pot.contents)
         self.stand(k,'counter4');self.assertEqual(self.press(k),'put_counter')
         self.assertEqual(self.press(k),'take_counter')
-    def test_space_cancels_work_without_losing_progress(self):
+    def test_work_is_sticky_and_walking_away_keeps_progress(self):
+        # Overcooked: Space never stops chopping; walking away does, and the progress stays.
         k=self.make();self.stand(k,'b1');k.stations['b1'].food=Food('meat')
         k.start('human',k.quick_interaction('human'));k.advance(1)
-        self.assertEqual(k.quick_interaction('human').kind,'stop')
-        self.press(k);self.assertGreater(k.stations['b1'].food.chopped,0)
-        self.assertEqual(k.quick_interaction('human').kind,'chop')
+        self.assertIsNone(k.quick_interaction('human'));self.assertEqual(k.facing_interaction('human'),(None,None))
+        k.set_manual('human',-1,0);k.advance(.1);k.set_manual('human',0,0)
+        self.assertIsNone(k.chefs['human'].job);self.assertGreater(k.stations['b1'].food.chopped,0)
     def test_both_bins_discard_food_and_preserve_pot(self):
         for key in ('bin',):
             k=self.make();self.stand(k,key);k.chefs['human'].hand=Food('meat')

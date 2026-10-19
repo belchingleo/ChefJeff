@@ -47,7 +47,7 @@ class SharedWorkDataTests(unittest.TestCase):
 
     def pair(self, k):
         k.stations['b1'].food = Food('shared-food')
-        k.positions.update(human=(4, 2.49), jeff=(3.15,3.3))
+        k.positions.update(human=(4, 2.49), jeff=(3.15, 3.))
 
     def start(self, k, *chefs):
         for who in chefs:

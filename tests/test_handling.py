@@ -25,7 +25,7 @@ class HandlingTests(unittest.TestCase):
             for key in ('fetch','put b1','chop b1','take b1','drop','pickup F1','put p1'):
                 ok,msg=k.command(who,key);self.assertTrue(ok,msg)
                 j=k.chefs[who].job
-                self.assertAlmostEqual(j.work,6 if key=='chop b1' else .15)
+                self.assertAlmostEqual(j.work,k.c['chop_seconds'] if key=='chop b1' else .15)
                 k.advance(j.travel+j.work+1e-6)
                 for _ in range(100):
                     if not k.chefs[who].job:break

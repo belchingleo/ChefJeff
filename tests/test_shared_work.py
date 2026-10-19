@@ -7,7 +7,8 @@ class SharedWorkTests(unittest.TestCase):
     def make(self):
         k=SpatialKitchen(load_config()|{'level':1,'spawn_seed':0,'round_seconds':500})
         k.stations['b1'].food=Food('shared-food')
-        k.positions.update(human=(4,2.49),jeff=(3.15,3.3))
+        # Both on b1's centre lines (north, west), so neither slides before working.
+        k.positions.update(human=(4,2.49),jeff=(3.15,3.))
         return k
 
     def start_pair(self,k,kind='chop',target='b1'):
@@ -42,13 +43,13 @@ class SharedWorkTests(unittest.TestCase):
 
     def test_player_joins_a_shared_chop_where_they_stand(self):
         # Jeff chops b1 from the north; the player, pressed against b1's west side and facing it, joins
-        # with E without being moved. From the same (north) side the join is refused.
+        # with E, only sliding onto b1's row centre. From the same (north) side the join is refused.
         k=self.make();k.positions.update(jeff=(4,2.49),human=(3.1,3.2));k.facing.update(jeff='down',human='right')
         self.assertTrue(k.command('jeff','chop b1')[0]);k.advance(.01)
         focus,action=k.facing_interaction('human','use')
         self.assertEqual((focus,action.key),('b1','chop b1'))
         self.assertTrue(k.start('human',action)[0]);k.advance(.2)
-        self.assertEqual(k.positions['human'],(3.1,3.2))
+        self.assertEqual(k.positions['human'],(3.1,3.))
         self.assertTrue(all(a.job and a.job.working for a in k.chefs.values()))
         k.assert_invariants()
         k=self.make();k.positions.update(jeff=(4.2,2.49),human=(3.75,2.49));k.facing.update(jeff='down',human='down')
@@ -78,15 +79,15 @@ class SharedWorkTests(unittest.TestCase):
         self.assertIsNone(k.stations['b1'].lock);k.assert_invariants()
 
     def test_late_arrival_cannot_reprocess_completed_food(self):
-        k=self.make();k.stations['b1'].food.chopped=5.95;k.positions['jeff']=(2,2)
+        k=self.make();k.stations['b1'].food.chopped=k.c['chop_seconds']-.05;k.positions['jeff']=(2,2)
         k.command('human','chop b1');k.command('jeff','chop b1');k.advance(2)
-        self.assertEqual(k.stations['b1'].food.chopped,6)
+        self.assertEqual(k.stations['b1'].food.chopped,k.c['chop_seconds'])
         self.assertTrue(all(a.job is None for a in k.chefs.values()))
         k.assert_invariants()
 
     def test_future_sink_with_corner_supports_shared_wash(self):
         k=self.make();k.equipment['sink']={'cell':(5,4),'access':(5,3)}
-        k.nav=Navigation(k.width,k.height,k.walls,k.equipment,tuple(k.nav.contact_edges.items()),k.rules.cabinet_clearance)
+        k.nav=Navigation(k.width,k.height,k.walls,k.equipment,k.rules.cabinet_clearance)
         k.floor=k.nav.floor
         k.floor_places={tile_key(cell):Station(f'地面({cell[0]},{cell[1]})','处理区') for cell in k.floor}
         k.stations['sink'].food=k.stations['plates'].food;k.stations['plates'].food=None

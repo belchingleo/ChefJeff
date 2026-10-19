@@ -29,7 +29,7 @@ Optional fields switch a behaviour on; when absent, the simpler behaviour named 
 
 | Field | Meaning | `chefjeff-service` |
 |---|---|---|
-| `engine_semantics` | rules the engine implements: `continuous-2026-10` (net revenue judged at closing, burnt-dish tiers, no bad reviews; Overcooked-style targeting of the station under the chef's front point, the player works where they stand, routed chefs dock on the centre of a station side). It also scopes Jeff's cooperation memory, so rounds played under `continuous-2026-09` (nearest-beside fallback, docking with a side drop) no longer reach his prompt | `continuous-2026-10` |
+| `engine_semantics` | rules the engine implements: `continuous-2026-10b` (net revenue judged at closing, burnt-dish tiers, no bad reviews; Overcooked 2-style targeting of the station most squarely ahead among the eight cells around the chef; every cabinet is walked up to from behind, as boards were; work started in place slides sideways onto the station's centre line; an eased dash (2x easing back over 1 s, no cooldown) and 3 s chopping; throws are caught along their path; head-on chefs in a one-chef passage give way). `continuous-2026-10` had the board-only closer approach, a flat 1.4x sprint with a 3 s cooldown and 6 s chopping. It also scopes Jeff's cooperation memory, so rounds played under `continuous-2026-09` (nearest-beside fallback, docking with a side drop) no longer reach his prompt | `continuous-2026-10` |
 | `tick_game_ms` | fixed simulation step | 50 |
 | `supported_equipment_types` | types with engine semantics | 9 types |
 | `operations.handling_game_ms` / `extinguish_game_ms` / `clear_game_ms` | take/put/plate/serve; extinguish; clear pot | 150 / 4000 / 2000 |

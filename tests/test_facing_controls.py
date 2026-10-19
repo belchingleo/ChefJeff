@@ -106,7 +106,8 @@ class FacingControlTests(unittest.TestCase):
     def test_the_knife_and_the_target_agree_at_the_users_spot(self):
         # User screenshot 2026-10-06: feet on the b1/b2 seam, slightly low, facing right. The knife is drawn
         # level with b1, so b1 is the target (it used to be b2 while the knife pointed at b1). With the feet
-        # low enough the hands are level with b2, and b2 is the target. The chef is never moved.
+        # low enough the hands are level with b2, and b2 is the target. Work starts with a short sideways slide
+        # onto that board's row centre, never toward the board.
         k = SpatialKitchen(level_config(load_config() | {'spawn_seed': 0, 'order_seed': 1}, 1))
         k.positions['jeff'] = (10., 6.)
         k.stations['b1'].food = Food('F1', 'raw', ingredient='beef')
@@ -118,14 +119,16 @@ class FacingControlTests(unittest.TestCase):
             self.assertEqual((focus, action.key), (board, 'chop ' + board), here)
             self.assertTrue(k.start('human', action)[0])
             k.advance(.5)
-            self.assertEqual(k.positions['human'], here)
+            self.assertEqual(k.positions['human'], (here[0], k.equipment[board]['cell'][1]))
         # Jeff, routed to a side, stands on the row centre and his hands stay level with the same board.
         for board in ('b1', 'b2', 'b3'):
             k.stop('jeff')
             k.positions['jeff'] = (k.equipment[board]['cell'][0] - .85, k.equipment[board]['cell'][1]); k.facing['jeff'] = 'right'
             self.assertEqual(k.facing_station('jeff'), board)
 
-    def test_the_player_works_where_they_stand(self):
+    def test_the_player_works_where_they_stand_after_centring(self):
+        # Work starts where the player stands, after a sideways slide of at most 0.6 cells (about 0.1 s) onto
+        # the station's centre line; the distance to the station and the facing never change.
         k = SpatialKitchen(level_config(load_config() | {'spawn_seed': 0, 'order_seed': 1}, 1))
         k.positions['jeff'] = (10., 6.)
         k.stations['b2'].food = Food('F2', 'raw', ingredient='beef')
@@ -133,10 +136,13 @@ class FacingControlTests(unittest.TestCase):
             k.stop('human')
             k.positions['human'] = here; k.facing['human'] = 'right'
             self.assertTrue(k.start('human', k.facing_interaction('human', 'use')[1])[0])
-            k.advance(.5)
-            self.assertEqual(k.positions['human'], here)
+            k.advance(.15)
+            self.assertEqual(k.positions['human'], (here[0], 4.))
             self.assertTrue(k.chefs['human'].job.working)
             self.assertEqual(k.facing['human'], 'right')
+        # Too far off the line (or with the partner in the way) it works where it stands.
+        k.stop('human');k.positions['human'] = (3.15, 4.4);k.positions['jeff'] = (3.15, 4.)
+        self.assertIsNone(k._centred('human', 'b2'))
 
     def test_facing_a_busy_station_never_drops_the_held_item(self):
         k = kitchen()

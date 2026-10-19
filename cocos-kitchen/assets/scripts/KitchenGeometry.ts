@@ -141,12 +141,6 @@ function walkTick(map:any,from:number[],v:number[],distance:number,other?:number
 /** Local prediction of a held-key walk (dx, dy in cells), computed in the server's own steps:
  * `tick` is the distance one 50 ms game tick covers at the current speed. Same geometry, same
  * step size, so diagonal slides along counters land where the server's do. */
-/** Where a new local walk starts. The chef is drawn between two engine ticks on a straight line, which
- * can cut the corner of a slide into a counter (level 2's board notch); a walk started from there could
- * never move again, so it starts from the last tick point (or the engine's position) instead. */
-export function walkStart(map:any,drawn:number[],fallback:number[]):number[]{
-    return footWalkable(map,drawn[0],drawn[1])?drawn:[fallback[0],fallback[1]];
-}
 export function predictWalk(map:any,from:number[],dx:number,dy:number,other?:number[],tick=(map.walk_speed??4.5)*.05){
     const total=Math.hypot(dx,dy);
     if(total<1e-12)return [from[0],from[1]];
@@ -253,24 +247,33 @@ export function anchorCell(map:any,pos:number[]):number[]|null{
     }
     return anchor;
 }
-/** The station Space acts on, or null when nothing or a loose item comes first (engine facing_candidates):
- * the picked station and the items on the aimed tile and at the feet go nearest-first to a point half a
- * cell ahead (the station's at hand height when aiming sideways); ties keep the station. */
-export function spaceStation(map:any,pos:number[],aim:number[],ground:any[]):string|null{
+/** Shortest distance from a point to a segment (a throw's path; the engine catches along it). */
+export function segmentDistance(p:number[],a:number[],b:number[]){
+    const dx=b[0]-a[0],dy=b[1]-a[1],l=dx*dx+dy*dy,t=l<1e-12?0:Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/l));
+    return Math.hypot(p[0]-a[0]-dx*t,p[1]-a[1]-dy*t);
+}
+/** What Space acts on, as the engine's facing_candidates ranks it (Overcooked 2's ScanForObject): the picked
+ * station and the first loose item on the aimed tile and on the feet tile, nearest first to a point half a
+ * cell ahead (the station's at hand height when aiming sideways); ties keep station, aimed tile, feet.
+ * Returns a station id, 'item:<food id>' or null. */
+export function spaceTarget(map:any,pos:number[],aim:number[],ground:any[]):string|null{
+    const length=Math.hypot(aim[0],aim[1]),anchor=anchorCell(map,pos);
+    if(!length||!anchor)return null;
+    const ax=aim[0]/length,ay=aim[1]/length,near=(d:number)=>Math.round(d*1e6)/1e6,ranked:[number,number,string][]=[];
     const station=selectableStations(map,pos,aim)[0];
-    if(!station)return null;
-    const length=Math.hypot(aim[0],aim[1]),ax=aim[0]/length,ay=aim[1]/length,anchor=anchorCell(map,pos)!;
-    const e=map.equipment[station],cells:number[][]=e.cells||[e.cell];
-    const cell=cells.reduce((a,b)=>Math.hypot(b[0]-pos[0],b[1]-pos[1])<Math.hypot(a[0]-pos[0],a[1]-pos[1])?b:a);
-    const near=(d:number)=>Math.round(d*1e6)/1e6;
-    const stationAt=near(Math.hypot(pos[0]+ax*.5-cell[0],pos[1]+ay*.5-.35*Math.abs(ax)-cell[1]));
+    if(station){
+        const e=map.equipment[station],cells:number[][]=e.cells||[e.cell];
+        const cell=cells.reduce((a,b)=>Math.hypot(b[0]-pos[0],b[1]-pos[1])<Math.hypot(a[0]-pos[0],a[1]-pos[1])?b:a);
+        ranked.push([near(Math.hypot(pos[0]+ax*.5-cell[0],pos[1]+ay*.5-.35*Math.abs(ax)-cell[1])),0,station]);
+    }
     const front=[anchor[0]+(Math.abs(ax)>=.38?Math.sign(ax):0),anchor[1]+(Math.abs(ay)>=.38?Math.sign(ay):0)];
-    for(const tile of [front,anchor]){
+    [front,anchor].forEach((tile,i)=>{
         // The tile an item rests on is its location key (floor_x_y), as in the engine.
         const item=ground.find((g:any)=>g.position&&g.location===`floor_${tile[0]}_${tile[1]}`);
-        if(item&&near(Math.hypot(pos[0]+ax*.5-item.position[0],pos[1]+ay*.5-item.position[1]))<stationAt)return null;
-    }
-    return station;
+        if(item)ranked.push([near(Math.hypot(pos[0]+ax*.5-item.position[0],pos[1]+ay*.5-item.position[1])),i+1,'item:'+item.food.id]);
+    });
+    ranked.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+    return ranked.length?ranked[0][2]:null;
 }
 /** Space's station, picked as the engine does (spatial_kitchen.selectable_stations; Overcooked 2's grid
  * pick): stations in the eight cells around the chef's own floor cell that lie ahead of the aim, best

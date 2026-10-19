@@ -256,7 +256,7 @@
       "item": "beef",
       "from": "raw",
       "to": "chopped",
-      "work_game_ms": 6000
+      "work_game_ms": 3000
     },
     {
       "id": "chop_lettuce",
@@ -264,7 +264,7 @@
       "item": "lettuce",
       "from": "raw",
       "to": "chopped",
-      "work_game_ms": 6000
+      "work_game_ms": 3000
     },
     {
       "id": "chop_tomato",
@@ -272,7 +272,7 @@
       "item": "tomato",
       "from": "raw",
       "to": "chopped",
-      "work_game_ms": 6000
+      "work_game_ms": 3000
     },
     {
       "id": "cook_beef",
@@ -294,7 +294,7 @@
       "item": "cucumber",
       "from": "raw",
       "to": "chopped",
-      "work_game_ms": 6000
+      "work_game_ms": 3000
     },
     {
       "id": "chop_onion",
@@ -302,7 +302,7 @@
       "item": "onion",
       "from": "raw",
       "to": "chopped",
-      "work_game_ms": 6000
+      "work_game_ms": 3000
     },
     {
       "id": "chop_cheese",
@@ -310,7 +310,7 @@
       "item": "cheese",
       "from": "raw",
       "to": "chopped",
-      "work_game_ms": 6000
+      "work_game_ms": 3000
     },
     {
       "id": "chop_scallion",
@@ -318,7 +318,7 @@
       "item": "scallion",
       "from": "raw",
       "to": "chopped",
-      "work_game_ms": 6000
+      "work_game_ms": 3000
     },
     {
       "id": "chop_chicken",
@@ -326,7 +326,7 @@
       "item": "chicken",
       "from": "raw",
       "to": "chopped",
-      "work_game_ms": 6000
+      "work_game_ms": 3000
     },
     {
       "id": "chop_fish",
@@ -334,7 +334,7 @@
       "item": "fish",
       "from": "raw",
       "to": "chopped",
-      "work_game_ms": 6000
+      "work_game_ms": 3000
     },
     {
       "id": "cook_chicken",

@@ -113,7 +113,7 @@ class GentleCollisionTests(unittest.TestCase):
 
     def test_food_overlap_does_not_trigger_assembly_or_chain_reaction(self):
         k=self.make();a=self.item(k);b=self.item(k,'other','chopped','floor_11_4');b.offset=(-.65,0.)
-        k.set_manual('human',1,0);k.sprint('human');k.advance(.13)
+        k.set_manual('human',1,0);k.sprint('human');k.advance(.1)
         self.assertGreater(k.ground_position(a)[0],10)
         self.assertEqual(k.ground_position(b),(10.35,4))
         self.assertEqual(a.food.stage,'raw');self.assertEqual(b.food.stage,'chopped')

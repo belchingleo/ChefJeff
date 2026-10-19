@@ -167,17 +167,10 @@ def _cached_shortest_path(start, end):
     raise ValueError('目标不可达')
 
 
-def _board_contacts(equipment,walls):
-    blocked=set(walls)|{tuple(c) for e in equipment.values() for c in e.get('cells',[e['cell']])}
-    contacts=[]
-    for key,e in equipment.items():
-        # Boards allow the reviewed closer north approach.
-        if e.get('type')!='board' or e.get('reach')=='corner':continue
-        x,y=e['cell']
-        faces=tuple(face for face,dx,dy in [('down',0,-1),('up',0,1),('right',-1,0),('left',1,0)]
-                    if (x+dx,y+dy) not in blocked)
-        if faces:contacts.append(((x,y),faces))
-    return tuple(sorted(contacts))
+def _segment_distance(point, start, end):
+    dx,dy=end[0]-start[0],end[1]-start[1];length=dx*dx+dy*dy
+    t=0. if length<1e-12 else max(0.,min(1.,((point[0]-start[0])*dx+(point[1]-start[1])*dy)/length))
+    return math.dist(point,(start[0]+dx*t,start[1]+dy*t))
 
 
 def map_navigation(level,cabinet_clearance=None):
@@ -185,13 +178,13 @@ def map_navigation(level,cabinet_clearance=None):
     equipment,walls=geometry(document)
     return _map_navigation(tuple(document['size']),tuple(sorted(walls)),
                            tuple(sorted((key+':'+str(i),tuple(c)) for key,e in equipment.items() for i,c in enumerate(e.get('cells',[e['cell']])))),
-                           _board_contacts(equipment,walls),cabinet_clearance)
+                           cabinet_clearance)
 
 
 @lru_cache(maxsize=12)
-def _map_navigation(size,walls,cells,contact_edges=(),cabinet_clearance=None):
+def _map_navigation(size,walls,cells,cabinet_clearance=None):
     from navigation import Navigation
-    return Navigation(*size,walls,{key:{'cell':cell} for key,cell in cells},contact_edges,cabinet_clearance)
+    return Navigation(*size,walls,{key:{'cell':cell} for key,cell in cells},cabinet_clearance)
 
 class SpatialKitchen(Kitchen):
     def __init__(self, config=None, rng=None):
@@ -201,7 +194,7 @@ class SpatialKitchen(Kitchen):
         self.equipment,self.walls=geometry(self.map_document)
         self.nav=_map_navigation(tuple(self.map_document['size']),tuple(sorted(self.walls)),
                                  tuple(sorted((key+':'+str(i),tuple(c)) for key,e in self.equipment.items() for i,c in enumerate(e.get('cells',[e['cell']])))),
-                                 _board_contacts(self.equipment,self.walls),self.rules.cabinet_clearance)
+                                 self.rules.cabinet_clearance)
         self.floor=self.nav.floor
         self.sprint_until={who:0. for who in self.chefs}
         self.sprint_ready_at={who:0. for who in self.chefs}
@@ -246,9 +239,8 @@ class SpatialKitchen(Kitchen):
         return areas[rule['below'] if coordinate < rule['split'] else rule['at_or_above']]['name']
 
     def configure_operation_points(self):
-        # All stations use the same direction contract. Board contact edges
-        # permit the reviewed closer north approach; other solids retain their
-        # existing physical clearance. Neither actor artwork nor table is moved.
+        # All stations use the same direction contract (see Navigation: every cabinet's back edge is
+        # walked up to). Neither actor artwork nor table is moved.
         self.operation_insets={}
         # With one body size, side operators stand exactly at the side walk limit.
         side=.30 if self.rules.cabinet_clearance is None else .5-self.rules.cabinet_clearance[1]
@@ -263,11 +255,18 @@ class SpatialKitchen(Kitchen):
                 if (x+dx,y+dy) not in self.floor:continue
                 # 'up' is negative: the chef steps back from the cabinet so the tall
                 # back-view sprite reads as standing in front of it, not on it.
-                faces[face]=up if face=='up' else side if face in ('left','right') else (.49 if face in self.nav.contact_edges.get(e['cell'],()) else .30)
+                faces[face]=up if face=='up' else side if face in ('left','right') else .49
             self.operation_insets[key]=faces
 
-    def speed_factor(self, who):
-        return self.rules.sprint_multiplier if self.time < self.sprint_until[who]-1e-8 else 1.
+    def sprint_extra(self, who, seconds):
+        """Extra walking time a sprint adds to the step that ends now. As Overcooked's dash, the speed
+        starts at sprint_multiplier and eases back to walking along a sine S-curve over the sprint:
+        boost(r) = (m-1)(1-cos(pi r/D))/2 with r the sprint time left; this is its integral."""
+        d=self.rules.sprint_duration
+        if d<=0:return 0.
+        late,early=(min(d,max(0.,self.sprint_until[who]-t)) for t in (self.time,self.time-seconds))
+        wave=lambda r:r-d/math.pi*math.sin(math.pi*r/d)
+        return self.rules.sprint_boost*(wave(early)-wave(late))/2
 
     @engine_input
     def sprint(self, who):
@@ -289,7 +288,7 @@ class SpatialKitchen(Kitchen):
         start=self.time-seconds
         fast=max(0.,min(seconds,self.sprint_until[who]-start))
         walk=self.rules.walk_speed
-        speed=walk*(1.+self.rules.sprint_boost*fast/seconds) if seconds else walk
+        speed=walk*(1.+self.sprint_extra(who,seconds)/seconds) if seconds else walk
         budget=seconds*speed;spent=0.
         points=list(route['points'][1:])
         approach=job.action.key=='go partner'
@@ -312,8 +311,8 @@ class SpatialKitchen(Kitchen):
                 points.clear();break
             self._move_with_chef_contact(who,end,fast>0)
             moved=math.dist(before,self.positions[who])
-            # Facing follows real progress, not a sideways contact slide.
-            if moved>step*.5:self._face_vector(who,goal[0]-before[0],goal[1]-before[1])
+            # Facing follows real progress, not a sideways contact slide or the centring slide.
+            if moved>step*.5 and not route.get('slide'):self._face_vector(who,goal[0]-before[0],goal[1]-before[1])
             if fast>0:self._nudge_food(who,before,self.positions[who])
             spent+=step;budget-=step
             if approach and math.dist(self.positions[who],self.positions['jeff' if who=='human' else 'human'])<=self.rules.chef_separation+.05:
@@ -346,15 +345,39 @@ class SpatialKitchen(Kitchen):
         other=self.positions['jeff' if who=='human' else 'human']
         try:points=self.nav.shortest_path_around(start,goal,other,self.rules.chef_separation)
         except ValueError:
-            # The other chef closes every way round (or stands on the goal):
-            # still drop waypoints that contact has made unreachable.
-            try:points=self.nav.shortest_path(start,goal)
-            except ValueError:points=route['points']
+            # The other chef closes every way round (or stands on the goal): in a one-chef-wide passage one
+            # of them steps aside first (_give_way); otherwise still drop waypoints contact has made unreachable.
+            points=self._give_way(who,goal)
+            if not points:
+                try:points=self.nav.shortest_path(start,goal)
+                except ValueError:points=route['points']
         changed=points!=route['points']
         route['points']=points
         route['length']=sum(math.dist(a,b) for a,b in zip(points,points[1:]))
         self.route_progress[who]={'job_id':job.id,'best':route['length'],'since':self.time}
         if changed:self.emit(f'{NAMES[who]}受阻，重新规划路线',kind='route_replanned',actor=who)
+
+    def _give_way(self, who, goal):
+        """Head-on in a passage too narrow to pass: the chef with farther to go (Jeff on a tie, and always
+        Jeff against the player's own walking) backs off to the nearest cell clear of the other's way,
+        then goes on. None when this chef keeps going."""
+        other='jeff' if who=='human' else 'human'
+        theirs=self.routes.get(other) if self.chefs[other].job else None
+        if theirs:
+            mine=self.routes[who]['length']
+            if mine<theirs['length']-1e-6 or (abs(mine-theirs['length'])<=1e-6 and who!='jeff'):return None
+            way=theirs['points']
+        elif who=='jeff':way=[self.positions[other]]
+        else:return None
+        clear=lambda c:min(math.dist(c,way[0]),*(_segment_distance(c,a,b) for a,b in zip(way,way[1:])))>self.rules.chef_separation+.1
+        start=self.positions[who];seen={self.anchor(who)};frontier=[self.anchor(who)]
+        while frontier:
+            for cell in sorted(frontier,key=lambda c:(math.dist(c,start),c)):
+                if clear(cell):
+                    try:return self.nav.shortest_path_around(start,cell,self.positions[other],self.rules.chef_separation)+self.nav.shortest_path(cell,goal)[1:]
+                    except ValueError:continue
+            frontier=[n for c in frontier for n in self.nav.neighbors(c) if n not in seen and not seen.add(n)]
+        return None
 
     def ground_position(self,item):
         cell=self.cell(item.location)
@@ -630,6 +653,17 @@ class SpatialKitchen(Kitchen):
         if kind!=self.shared_capability(target):return False
         station=self.stations[target]
         return not station.fire and not self.chefs[who].hand and bool(self.shared_access(who,target))
+
+    def _centred(self, who, target):
+        """Where a chef working in place slides to first: the station's centre line along its run, at the
+        same distance from it (never a step toward it), at most 0.6 cells (about 0.1 s of walking). None when already there,
+        blocked or too near the other chef."""
+        here=self.positions[who];cell=min(self.equipment[target].get('cells',[self.equipment[target]['cell']]),key=lambda c:math.dist(c,here))
+        side=self.station_side(target,here)
+        point=(cell[0],here[1]) if side[0]==cell[0] else (here[0],cell[1])
+        other=self.positions['jeff' if who=='human' else 'human']
+        if not 1e-6<math.dist(here,point)<=.6 or not self.nav.clear_walk_line(here,point) or math.dist(point,other)<CHEF_SEPARATION:return None
+        return point
 
     def operation_point(self, target, access):
         """Move an explicitly enabled access endpoint toward its working edge.
@@ -992,8 +1026,8 @@ class SpatialKitchen(Kitchen):
         """
         actions=self.actions(who) if actions is None else actions
         chef=self.chefs[who]
-        if chef.job and chef.job.working:
-            return None,(next((a for a in actions if a.kind=='stop'),None) if mode=='hands' else None)
+        # Work is sticky, as in Overcooked: Space never stops it; walking away does.
+        if chef.job and chef.job.working:return None,None
         kinds=USE_KINDS if mode=='use' else None
         candidates,ahead=self.facing_candidates(who,station)
         if mode=='use':candidates=[c for c in candidates if c in self.equipment]
@@ -1022,8 +1056,7 @@ class SpatialKitchen(Kitchen):
         """One local, legal action. This is a player control, not an AI policy."""
         chef = self.chefs[who]
         actions = self.actions(who) if actions is None else actions
-        if chef.job and chef.job.working:
-            return None if kinds else next((a for a in actions if a.kind=='stop'),None)
+        if chef.job and chef.job.working:return None
         priority = {'swap_pot':0,'swap_ground_pot':0,'load_ground':0,'assemble_ground':0,'load_counter':0,'plate_ground':0,'plate_pot':0,'plate_counter':0,'plate_from_counter':0,
                     'plate_partner':0,'extinguish':0,'put_board':1,'put_pot':1,'return_pot':1,
                     'put_counter':1,'put_sink':1,'put_tool':1,'serve':1,'wash':1,'chop':1,
@@ -1147,8 +1180,11 @@ class SpatialKitchen(Kitchen):
         if ok and action.kind not in ('continue', 'wait', 'stop'):
             job = self.chefs[who].job
             points = self.path(who, action.target)
-            self.routes[who] = {'job_id': job.id, 'points': points,
+            slide = action.kind in USE_KINDS and len(points) == 1 and self._centred(who, action.target)
+            if slide:points = [points[0], slide]
+            self.routes[who] = {'job_id': job.id, 'points': points, 'slide': bool(slide),
                                 'length': sum(math.dist(a,b) for a,b in zip(points,points[1:]))}
+            if slide:job.travel = self.routes[who]['length']/self.rules.walk_speed
         return ok, message
 
     def _face_vector(self, who, dx, dy):
@@ -1297,7 +1333,7 @@ class SpatialKitchen(Kitchen):
         start = self.positions[who]
         move_start=start
         boosted=max(0.,min(seconds,self.sprint_until[who]-(self.time-seconds)))
-        move_seconds=seconds+self.rules.sprint_boost*boosted
+        move_seconds=seconds+self.sprint_extra(who,seconds)
         walk=self.rules.walk_speed
         end = tuple(start[i]+vector[i]*walk*move_seconds for i in (0,1))
         if self.nav.clear_walk_line(start,end):
@@ -1326,8 +1362,7 @@ class SpatialKitchen(Kitchen):
     def _after_step(self, seconds):
         for who, vector in self.manual.items():
             if self.reported[who]:
-                boosted=max(0.,min(seconds,self.sprint_until[who]-(self.time-seconds)))
-                allowance=self.rules.walk_speed*(seconds+self.rules.sprint_boost*boosted)*REPORT_SPEED_MARGIN
+                allowance=self.rules.walk_speed*(seconds+self.sprint_extra(who,seconds))*REPORT_SPEED_MARGIN
                 self.report_budget[who]=min(REPORT_BUDGET,self.report_budget[who]+allowance)
                 if self.report_press[who]:
                     # The browser is pressing into the other chef: walk with the held direction exactly as
@@ -1352,8 +1387,9 @@ class SpatialKitchen(Kitchen):
                     continue
                 other = 'jeff' if p['actor'] == 'human' else 'human'
                 chef = self.chefs[other]
+                # As in Overcooked, a throw is caught when it passes within reach on its way, not only where it lands.
                 can_catch = (not chef.hand and (not chef.job or chef.job.action.kind == 'go')
-                             and math.dist(self.positions[other],p.get('catch_at',p['to'])) <= self.rules.catch_radius
+                             and _segment_distance(self.positions[other],p['from'],p.get('catch_at',p['to'])) <= self.rules.catch_radius
                              and self.clear_throw_line(p['from'],self.positions[other]))
                 if can_catch:
                     chef.hand = p['food']
@@ -1380,7 +1416,7 @@ class SpatialKitchen(Kitchen):
             'contents': {'stage': p['food'].contents.stage, 'ingredient': p['food'].contents.ingredient} if p['food'].contents else None,
             # A passed vessel names its kind, so nothing else in flight is drawn as one.
             **({'vessel': self.rules.vessels.get(key)} if p['food'].stage == 'pot' else {}),
-            'onto': p['target'] if p['target'] in self.equipment else None, 'from': p['from'], 'to': p['to'], 'landing_cell': self.equipment[p['target']]['cell'] if p['target'] in self.equipment else self.cell(p['target']), 'started': p['started'], 'lands_at': p['lands_at']} for key,p in self.projectiles.items()]
+            'actor': p['actor'], 'onto': p['target'] if p['target'] in self.equipment else None, 'from': p['from'], 'to': p['to'], 'landing_cell': self.equipment[p['target']]['cell'] if p['target'] in self.equipment else self.cell(p['target']), 'started': p['started'], 'lands_at': p['lands_at']} for key,p in self.projectiles.items()]
         r = self.rules
         state['map'] = {'throw_range': r.throw_range, 'pass_range': r.pass_range, 'throw_speed': r.throw_speed, 'width': self.width, 'height': self.height, 'walls': sorted(self.walls),
                         # Ingredient sources name their item, so the client can pick the source symbol.
