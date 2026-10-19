@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from map_definition import load_map, save_map, validate_map, geometry
+from map_definition import build_map, load_map, save_map, validate_map, geometry
 from spatial_kitchen import SpatialKitchen
 from kitchen import load_config
 
@@ -209,3 +209,32 @@ class MapDocumentTests(unittest.TestCase):
             before=path.read_bytes();doc=load_map(1);doc['walls']=[]
             with self.assertRaises(ValueError):save_map(doc,path)
             self.assertEqual(before,path.read_bytes())
+
+
+class BuildMapTests(unittest.TestCase):
+    def test_coordinates_and_facing_make_a_valid_map(self):
+        # A run along the top wall with a boxed-in corner, a vertical island and a fridge.
+        doc = build_map('island', [8, 6], [('ctl', 1, 1, 'south'), ('fridge', 2, 1, 'south'), ('c1', 1, 2, 'east'),
+                                           ('c2', 4, 2, 'west'), ('b1', 4, 3, 'east'),
+                                           {'id': 'shelf', 'cell': [6, 4], 'facing': 'west', 'type': 'bin', 'name': '回收'}])
+        self.assertEqual(validate_map(doc), doc)
+        self.assertTrue(all(tuple(p) in map(tuple, doc['walls']) for p in [[0, 0], [7, 5], [3, 0], [0, 3]]))
+        e = {s['id']: s for s in doc['equipment']}
+        self.assertEqual((e['ctl']['reach'], e['ctl']['access']), ('corner', [2, 2]))
+        self.assertEqual([e[k]['access'] for k in ('fridge', 'c1', 'c2', 'b1')], [[2, 2], [2, 2], [3, 2], [5, 3]])
+        self.assertEqual({k: v['type'] for k, v in e.items()},
+                         {'ctl': 'counter', 'fridge': 'ingredient_source', 'c1': 'counter', 'c2': 'counter', 'b1': 'board', 'shelf': 'bin'})
+        self.assertEqual((e['fridge']['params'], e['shelf']['name'], e['c2']['name']), ({'item': 'beef'}, '回收', 'c2'))
+        self.assertEqual(doc['floor_areas'], {'axis': 'x', 'split': 4, 'below': 'prep', 'at_or_above': 'cook'})
+        self.assertEqual([e[k]['area'] for k in ('fridge', 'c2', 'shelf')], ['prep', 'cook', 'cook'])
+        # Areas split across the longer side.
+        tall = build_map('tall', [6, 9], [('c1', 1, 1, 'south'), ('c2', 1, 7, 'north')])
+        self.assertEqual((tall['floor_areas']['axis'], tall['floor_areas']['split']), ('y', 4))
+        self.assertEqual([s['area'] for s in tall['equipment']], ['prep', 'cook'])
+
+    def test_a_station_facing_a_wall_is_named(self):
+        with self.assertRaisesRegex(ValueError, 'fridge faces north'):
+            build_map('bad', [6, 6], [('fridge', 2, 1, 'north')])
+        # Only a counter boxed in by counters may be reached diagonally.
+        with self.assertRaisesRegex(ValueError, 'b1 faces'):
+            build_map('bad', [6, 6], [('b1', 1, 1, 'south'), ('c1', 1, 2, 'east'), ('c2', 2, 1, 'south')])

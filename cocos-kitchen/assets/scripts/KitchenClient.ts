@@ -2,7 +2,7 @@ import { _decorator, Component, Node, UITransform, Graphics, Color, Label, Layer
     view, ResolutionPolicy, sys, game, Game, profiler, Mask, Vec2, Camera, director, Sprite } from 'cc';
 import { LevelOneArt } from './LevelOneArt';
 import { KitchenAudio } from './KitchenAudio';
-import { levelButtonLayout, GRID_ART, stationView, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, floorItemDepth, workingChefDepth, flightDepth, predictWalk, spaceTarget, segmentDistance, plateLayers, heatCountdown, behindCounter, throwPose, throwDiagonal, throwItemPoint, panHandleSide } from './KitchenGeometry';
+import { levelButtonLayout, GRID_ART, stationView, cabinetModule, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, floorItemDepth, workingChefDepth, flightDepth, predictWalk, spaceTarget, segmentDistance, plateLayers, heatCountdown, behindCounter, throwPose, throwDiagonal, throwItemPoint, panHandleSide } from './KitchenGeometry';
 const { ccclass } = _decorator;
 type Action = { key: string; label: string; kind: string; target: string; expected: unknown[] };
 type KitchenState = { game_id: string; state_seq?: number; phase: string; speed: number; kitchen: any; actions: Action[]; levels?:any[]; limits?:any; capacity?:any; release?:any; interaction?:Action; use_interaction?:Action; place_interaction?:Action; interaction_hint?:string; interaction_focus?:string; interaction_cell?:number[];
@@ -1068,7 +1068,7 @@ export class KitchenClient extends Component {
         if(older&&this.connected&&next.game_id===this.state!.game_id)return;
         // A live old round may keep its backend until the player approves
         // restarting it. Do not pair new Space controls with old rules.
-        if(!/^level-[1-9][0-9]*-[1-9][0-9]*$/.test(next.kitchen?.map?.layout_version||'')||next.release?.version!=='0.6.0-beta.1'){
+        if(!next.kitchen?.map?.layout_version||next.release?.version!=='0.6.0-beta.1'){
             this.connected=false;this.clearInput();this.cover.active=true;
             this.set('coverTitle','等待厨房更新');
             this.set('coverText','新版页面已就绪，厨房服务仍在保留旧对局。\n服务更新后会自动连接，请先完成更新确认。');
@@ -1168,11 +1168,9 @@ export class KitchenClient extends Component {
         this.modularWallDecor(n,x,y,neighbours.south);
     }
     private cabinetArt(n:Node,id:string){
-        const map=this.state!.kitchen.map,axis=stationView(map,id).run_axis;
         const cabinet=this.child(n,'cabinet-base',TILE,TILE);
         // One body per station. Runs reuse fixed-camera modules, never rotated sprites.
-        const key=axis==='horizontal'?'counter_south':'counter_east';
-        this.art.tile(cabinet,key,TILE,0,this.prepSampleBoard(id)?0:-GRID_ART.cabinetSpriteLift*TILE/GRID_ART.unit);cabinet.setSiblingIndex(0);
+        this.art.tile(cabinet,cabinetModule(this.state!.kitchen.map,id),TILE,0,this.prepSampleBoard(id)?0:-GRID_ART.cabinetSpriteLift*TILE/GRID_ART.unit);cabinet.setSiblingIndex(0);
     }
     private prepSampleBoard(id:string){return this.prepSample&&this.state!.kitchen.level===2&&id==='b1';}
     private workSurfaceY(id:string):number {return this.prepSampleBoard(id)?GRID_ART.cabinetSpriteLift*TILE/GRID_ART.unit:surfaceOffset();}

@@ -145,6 +145,23 @@ assert.deepStrictEqual(inferred, {run_axis: 'vertical', device_axis: 'vertical'}
 legacy.equipment.board.facing = 'east';
 assert.deepStrictEqual(geometry.stationView(legacy, 'board'), inferred);
 
+// Cabinet fronts: the trimmed panel wherever the front shows (the foot of a two-cell vertical island,
+// reported as a plain dark strip), the plain strip only where the cabinet below covers it.
+const island = {presentation: {}, walls: [[7, 6]], equipment: {
+  top: {cell: [7, 3]}, foot: {cell: [7, 4]}, low: {cell: [7, 5]}, row: {cell: [3, 3]}}};
+assert.deepStrictEqual(['top', 'foot', 'row'].map(id => geometry.cabinetModule(island, id)),
+                       ['counter_east', 'counter_east', 'counter_south']);
+delete island.equipment.low;
+assert.strictEqual(geometry.cabinetModule(island, 'foot'), 'counter_south');
+island.walls.push([7, 5]);
+assert.strictEqual(geometry.cabinetModule(island, 'foot'), 'counter_east', 'a wall below covers the front too');
+const level2 = JSON.parse(fs.readFileSync(path.join(root, 'maps/level-2.json'), 'utf8'));
+const level2Map = {...level2, equipment: Object.fromEntries(level2.equipment.map(e => [e.id, e]))};
+for (const e of level2.equipment)
+  assert.strictEqual(geometry.cabinetModule(level2Map, e.id),
+                     level2.presentation.station_views[e.id].run_axis === 'horizontal' ? 'counter_south' : 'counter_east',
+                     `level 2 ${e.id} keeps its cabinet`);
+
 const tWalls = new Set(['2,2', '1,2', '3,2', '2,3']);
 assert.strictEqual(geometry.wallNeighbours(tWalls, 2, 2).south, true,
                    'a south wall neighbor closes the south face at a T junction');

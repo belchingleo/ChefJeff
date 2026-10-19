@@ -25,7 +25,6 @@ GAME_KEYS = {'level', 'boards', 'pots', 'pot_count', 'plate_count', 'round_secon
              'handling_seconds', 'dining_seconds', 'wash_seconds', 'fire_spread_seconds', 'fire_loss_threshold',
              'order_seed', 'spawn_seed', 'level_id'}
 DERIVED_KEYS = {'boards', 'pots', 'order_count'}  # counted from the map and order plan; read-only in the flat view
-PLATE_COUNTERS = ('plates', 'counter2', 'counter3')
 
 
 def _ms(seconds):
@@ -74,11 +73,11 @@ def _apply_flat_overrides(docs, overrides):
             ruleset['abstract_travel']['same_area_game_ms' if key == 'same_area_walk' else 'cross_area_game_ms'] = _ms(value)
         elif key == 'plate_count':
             n = int(value)
-            if not 1 <= n <= len(PLATE_COUNTERS):
+            if not 1 <= n <= 3:
                 raise ValueError('plate_count override supports 1 to 3 plates on the first counters')
             kept = [e for e in level['initial_inventory'] if e['object'] != 'plate']
-            level['initial_inventory'] = kept + [{'object': 'plate', 'id': f'D{i + 1}', 'state': 'clean', 'at': PLATE_COUNTERS[i]}
-                                                 for i in range(n)]
+            level['initial_inventory'] = [{'object': 'plate', 'id': f'D{i + 1}', 'state': 'clean', 'at_type': 'counter'}
+                                          for i in range(n)] + kept
         elif key == 'pot_count':
             if int(value) != sum(e['object'] in cc.VESSELS for e in level['initial_inventory']):
                 raise ValueError('pot_count is defined by the level inventory')

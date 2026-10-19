@@ -138,8 +138,19 @@
         "type": "object",
         "required": [
           "object",
-          "id",
-          "at"
+          "id"
+        ],
+        "oneOf": [
+          {
+            "required": [
+              "at"
+            ]
+          },
+          {
+            "required": [
+              "at_type"
+            ]
+          }
         ],
         "properties": {
           "object": {
@@ -162,6 +173,9 @@
           },
           "at": {
             "$ref": "common.schema.json#/$defs/station_id"
+          },
+          "at_type": {
+            "$ref": "common.schema.json#/$defs/ident"
           }
         },
         "additionalProperties": false

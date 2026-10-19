@@ -26,9 +26,21 @@ Optional `cells` declares a station footprint, for example `"cell":[12,5], "cell
 
 `facing` identifies the chef's interaction side: a right-wall serving window uses `west`, with delivery toward the right; a left-wall window uses `east`. Directional assets share a fixed camera and do not change the footprint by stretching.
 
-## Example and roadmap
+## From coordinates to a playable map
 
-The Chinese section below includes a field fragment, not a runnable map: its abbreviated wall list does not enclose the boundary. Start from a complete map in `maps/` for editing. Local JSON load/validate/save is available; visual editing, arbitrary recipes and custom station types are roadmap work. A valid map document alone does not enable those runtime features.
+`map_definition.build_map(name, size, stations, theme='street', revision=1)` turns station coordinates into a schema-2 map that has passed `validate_map`. Each station is `(id, x, y, facing)` or an object `{"id", "cell", "facing"}` with optional `type`, `name`, `params`, `area`. Derived: a closed boundary wall; `access` is the cell the station faces, or, for a counter boxed in by counters (a run's corner), the free diagonal between its two neighbours with `reach: corner`; `type` from the historical ID conventions (`b1` board, `p1` stove, `fridge`/`lettuce`/`tomato`/`bread` sources with their `params`, `serve`, `sink`, `returns`, `bin`, `extinguisher`), otherwise `counter`; `name` is the ID; areas `prep`/`cook` split across the longer side (`floor_areas`). A station that faces a wall or another station and is not such a corner is rejected by name.
+
+Levels place their starting plates, pans and extinguisher by station type (`initial_inventory[].at_type`, see the [configuration contract](architecture/configuration-contract.md)), so a level's rules run on any map that has the stations it needs. Before playing a new map, audit it:
+
+```sh
+python3 scripts/audit_map.py maps/level-2.json
+python3 scripts/audit_map.py layout.json --level level-2 --seeds 1 2 3
+python3 scripts/audit_map.py layouts.json --json
+```
+
+The input is a map document, a layout `{"name": "island", "size": [14, 10], "stations": [["fridge", 2, 1, "south"], ...]}`, or a list of layouts. Each map runs with the rules, recipes, orders and inventory of `--level` (default `level-2`); on another map than the level's own, the chefs spawn either side of the floor-area split. The audit reports: validation; whether the level bundle with this map freezes (resolver diagnostics if not); Space from every station's access cell (and a step closer), facing it, selects that station; engine walking has no point that no direction can leave; the page geometry (`KitchenGeometry.ts` compiled with `tsc`, as `tests/test_client_walk.py` does) never starts a walk stuck and draws floor items in front of the cabinet behind; a warning for each 1-cell-wide corridor that is the only route between stations (two chefs cannot pass each other there); dishes served by the scripted solo chef and the scripted pair. It exits 1 when a check fails; warnings alone pass. It is local and calls no model.
+
+To ship a map, save it with `save_map` as `maps/<id>.json`, add a level in `content/levels/` whose `map_ref` names it, and audit both. The Chinese section below includes a field fragment, not a runnable map: its abbreviated wall list does not enclose the boundary. Visual editing, arbitrary recipes and custom station types are roadmap work.
 
 ---
 
@@ -88,6 +100,18 @@ The Chinese section below includes a field fragment, not a runnable map: its abb
 外送方向向左。图像使用同一固定相机下的独立朝向资源，不通过拉伸画布
 改变占格。
 
-## 当前编辑边界
+## 从坐标生成可玩地图
 
-当前实现支持本地 JSON 的加载、校验和保存，以及既有三关数据迁移后的几何读取。保存接口允许调用方指定本地目标路径，但地图内容本身不携带可执行代码或任意资源路径。尚未实现可视化地图编辑器，也未实现任意菜谱、自定义工位或让新地图配置驱动完整运行流程；格式校验通过不代表这些能力已经验收。
+`map_definition.build_map(name, size, stations, theme='street', revision=1)` 把工位坐标转成通过 `validate_map` 的 schema 2 地图。每个工位写作 `(id, x, y, facing)`，或对象 `{"id", "cell", "facing"}`，可选 `type`、`name`、`params`、`area`。自动推导：封闭的外圈墙；`access` 取工位朝向的那一格；被柜台围住的柜台（一排柜台的转角）取两侧相邻柜台之间的空斜角，并标 `reach: corner`；`type` 按历史 ID 约定推断（`b1` 案板、`p1` 灶台、`fridge`/`lettuce`/`tomato`/`bread` 食材源及其 `params`、`serve`、`sink`、`returns`、`bin`、`extinguisher`），其余为 `counter`；`name` 即 ID；`prep`/`cook` 两区沿较长边对半划分（`floor_areas`）。朝向墙或其他工位、又不是上述转角柜台的工位，会按 ID 报错。
+
+关卡的初始盘子、锅和灭火器按工位类型放置（`initial_inventory[].at_type`，见[配置契约](architecture/configuration-contract.md)），因此关卡规则可以在任何具备所需工位的地图上运行。新地图上手前先审查：
+
+```sh
+python3 scripts/audit_map.py maps/level-2.json
+python3 scripts/audit_map.py layout.json --level level-2 --seeds 1 2 3
+python3 scripts/audit_map.py layouts.json --json
+```
+
+输入可以是地图文档、坐标布局 `{"name": "island", "size": [14, 10], "stations": [["fridge", 2, 1, "south"], ...]}`，或布局列表。每张地图使用 `--level`（默认 `level-2`）的规则、菜谱、订单和初始物品；不是该关自己的地图时，两名厨师分别出生在地面分区线两侧。报告内容：地图校验；关卡配置包换上这张地图后能否冻结（不能时给出解析诊断）；从每个工位的操作格（以及再靠近一步）面向工位按 Space 是否选中它；引擎行走中是否存在任何方向都走不出的点；网页几何（用 `tsc` 编译 `KitchenGeometry.ts`，与 `tests/test_client_walk.py` 相同）不会让行走从卡住处开始，地面物品画在身后柜台之前；每条作为工位之间唯一通路的单格宽走廊给出警告（两名厨师在其中无法错身）；脚本单人与脚本双人各出餐多少。任一检查失败时退出码为 1，仅有警告时通过。全程本地运行，不调用模型。
+
+要发布地图：用 `save_map` 保存为 `maps/<id>.json`，在 `content/levels/` 添加 `map_ref` 指向它的关卡，然后审查两者。尚未实现可视化地图编辑器、任意菜谱或自定义工位；格式校验通过不代表这些能力已经验收。地图内容本身不携带可执行代码或任意资源路径。

@@ -11,6 +11,14 @@ export function stationView(map:any,id:string):{run_axis:Axis;device_axis:Axis} 
     const v=Number(occupied.has(`${p[0]},${p[1]-1}`))+Number(occupied.has(`${p[0]},${p[1]+1}`));
     const axis:Axis=v>h?'vertical':'horizontal';return {run_axis:axis,device_axis:axis};
 }
+/** Cabinet module for a station: the trimmed front panel (counter_south) wherever its front shows, that is
+ * horizontal runs and any cabinet without a wall or station right below it (the foot of a vertical run, an
+ * island); the plain strip (counter_east) only inside a vertical run, where the cabinet below covers it. */
+export function cabinetModule(map:any,id:string):'counter_south'|'counter_east'{
+    const [x,y]=map.equipment[id].cell,below=`${x},${y+1}`;
+    const covered=(map.walls||[]).some((w:number[])=>w.join(',')===below)||Object.values(map.equipment).some((e:any)=>(e.cells||[e.cell]).some((c:number[])=>c.join(',')===below));
+    return stationView(map,id).run_axis==='vertical'&&covered?'counter_east':'counter_south';
+}
 /** The long edge faces the authored service side, independent of cabinet run. */
 export function trashView(map:any,id:string):{axis:Axis;mirror:boolean}{
     const e=map.equipment[id],dx=e.access[0]-e.cell[0],dy=e.access[1]-e.cell[1];

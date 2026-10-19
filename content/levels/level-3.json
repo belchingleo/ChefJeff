@@ -2,7 +2,7 @@
   "schema_version": 1,
   "kind": "level",
   "id": "level-3",
-  "version": 3,
+  "version": 4,
   "name": "第三关 · 牛-堡",
   "menu_order": 3,
   "ruleset_ref": {
@@ -56,40 +56,40 @@
     {
       "object": "extinguisher",
       "id": "E1",
-      "at": "extinguisher"
+      "at_type": "tool_rack"
     },
     {
       "object": "plate",
       "id": "D1",
       "state": "clean",
-      "at": "plates"
+      "at_type": "counter"
     },
     {
       "object": "plate",
       "id": "D2",
       "state": "clean",
-      "at": "counter2"
+      "at_type": "counter"
     },
     {
       "object": "plate",
       "id": "D3",
       "state": "clean",
-      "at": "counter3"
+      "at_type": "counter"
     },
     {
       "object": "pan",
       "id": "P1",
-      "at": "p1"
+      "at_type": "stove"
     },
     {
       "object": "pan",
       "id": "P2",
-      "at": "p2"
+      "at_type": "stove"
     },
     {
       "object": "pan",
       "id": "P3",
-      "at": "counter4"
+      "at_type": "counter"
     }
   ],
   "clock": {
