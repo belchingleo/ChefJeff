@@ -25,14 +25,15 @@ class FacingControlTests(unittest.TestCase):
         k.stations['sink'].food = Food('D1', 'dirty_plate')
         self.assertEqual(k.facing_interaction('human', 'hands')[1].kind, 'wash')
 
-    def test_no_station_beside_is_used_when_nothing_is_ahead(self):
+    def test_a_station_diagonally_ahead_is_picked_never_one_beside(self):
+        # Overcooked 2: the stations around the chef's cell that lie ahead are scored by the aim. Floor
+        # straight ahead, the bread box diagonally ahead is picked; counter 17 beside (up) never is.
         k = kitchen()
-        # Floor ahead at hand height: neither the empty counter 17 beside nor the bread box diagonally
-        # ahead is a target.
-        k.positions['human'] = (7., 2.3); k.facing['human'] = 'left'
-        focus, action = k.facing_interaction('human', 'hands')
-        self.assertTrue(focus.startswith('floor_'))
-        self.assertIsNone(action)
+        k.positions['human'] = (7., 2.3); k.face('human', -1, 0)
+        self.assertEqual(k.selectable_stations('human'), ['bread'])
+        self.assertEqual(k.facing_interaction('human', 'hands')[1].key, 'fetch bread')
+        k.face('human', 1, 0)
+        self.assertNotIn('counter17', k.selectable_stations('human'))
 
     def test_the_station_under_the_front_point_is_the_target(self):
         k = SpatialKitchen(level_config(load_config() | {'spawn_seed': 0, 'order_seed': 1}, 1))
@@ -101,7 +102,7 @@ class FacingControlTests(unittest.TestCase):
         k.stations['b2'].food = Food('F2', 'raw', ingredient='beef')
         for here, board in (((3.15, 3.55), 'b1'), ((3.15, 4.), 'b2')):
             k.stop('human')
-            k.positions['human'] = here; k.facing['human'] = 'right'
+            k.positions['human'] = here; k.face('human', 1, 0)
             focus, action = k.facing_interaction('human', 'use')
             self.assertEqual((focus, action.key), (board, 'chop ' + board), here)
             self.assertTrue(k.start('human', action)[0])
@@ -142,7 +143,11 @@ class FacingControlTests(unittest.TestCase):
         k.positions['human'] = (2., 2.); k.facing['human'] = 'up'
         k.chefs['human'].hand = Food('held', 'raw', ingredient='tomato')
         self.assertEqual(k.facing_interaction('human', 'hands')[1].target, 'counter9')
+        # A full counter9 does not hand Space to the corner: what is highlighted is what Space acts on.
         k.stations['counter9'].food = Food('other', 'raw', ingredient='lettuce')
+        self.assertEqual(k.facing_interaction('human', 'hands')[0], 'counter9')
+        # Aiming up-left picks the corner counter.
+        k.face('human', -1, -1)
         self.assertEqual(k.facing_interaction('human', 'hands')[1].target, 'counter_corner1')
         k.facing['human'] = 'down'
         self.assertNotEqual(k.facing_interaction('human', 'hands')[0], 'counter_corner1')

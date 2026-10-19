@@ -594,10 +594,20 @@ class GameSession:
                 return 409, {'error': '手中物品已变化，请重新按空格'}
             invalid = self._settle_at(body)
             if invalid: return invalid
+            # The page picks Space's station itself (Overcooked 2-style, highlighted at once) and sends its
+            # aim and that station; the engine takes them when the station is one it may pick from here.
+            aim, picked = body.get('aim'), body.get('target')
+            if aim is not None:
+                if (not isinstance(aim,list) or len(aim)!=2 or not any(aim)
+                        or any(isinstance(v,bool) or not isinstance(v,(int,float)) or not math.isfinite(v) or abs(v)>10 for v in aim)):
+                    return 400, {'error':'朝向无效'}
+                if hasattr(self.k,'face'):self.k.face('human',float(aim[0]),float(aim[1]))
+            if picked is not None and not isinstance(picked,str):
+                return 400, {'error':'目标无效'}
             # Space = hands (take, put, plate, serve); E = use (chop, wash, extinguish),
             # else throw the held item straight ahead. Both act on what the chef faces.
             mode = 'use' if body.get('mode') == 'use' else 'hands'
-            focus, action = self.k.facing_interaction('human',mode)
+            focus, action = self.k.facing_interaction('human',mode,station=picked if picked in getattr(self.k,'equipment',{}) else None)
             if not action and mode == 'use':
                 throw = self.k.forward_throw('human')
                 if throw:
@@ -611,6 +621,8 @@ class GameSession:
                 message=(self.k.interaction_hint('human',focus) if mode=='hands' else None) or ('面前没有可以切、洗或灭火的东西' if mode=='use' else '面前没有可操作目标')
                 self.journal('human_input',{'t':self.k.time,'source':'browser','action':'use' if mode=='use' else 'interact','applied':False,'message':message})
                 return 409, {'error': message}
+            if focus in getattr(self.k,'equipment',{}) and hasattr(self.k,'pick_station'):
+                self.k.pick_station('human',focus)  # worked where the chef stands
             return self._command('/api/action', {'action': action.key, 'expected': list(action.expected)})
         if path == '/api/throw':
             if self.phase != 'running' or not hasattr(self.k,'throw_action'):

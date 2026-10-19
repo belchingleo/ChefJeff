@@ -27,6 +27,8 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - Fixed: with local movement, the chef could not move at all when Jeff stood in the way (for example right out of the level-2 board-2 notch with Jeff just above): the browser treated Jeff as a wall and so never reported a move for the engine to push him aside. When Jeff blocks the local walk, the browser now reports that it is pressing and follows the engine, which walks with the held direction as keyboard walking always did (an idle Jeff is pushed, a busy one is not). Held-direction walking no longer slides back against the walk or corner-slides away from a chef, which made the chef jitter when pressing into a busy Jeff in a narrow corridor; routed walking is unchanged. A chase that stops getting closer to the reported point resyncs.
 - Fixed: on iPhone every Action press paused the round. The haptic tick's hidden switch took focus, which the touch and controller code read as typing into a field; it is now excluded from that check and gives focus straight back.
 - Fixed: after rotating an iPhone, the kitchen could stay drawn at the portrait size (only a strip, magnified, the rest black). The page announces the size again once it settles, and once a second checks that the canvas fills the window with a drawing buffer of the same shape. The data export now includes position resyncs (reason and position) to diagnose places where the chef seems stuck.
+- Space targeting works like Overcooked 2: among the stations in the eight cells around the chef, Space uses the one most squarely ahead along the aim, diagonals included (the aim follows the stick in any direction), within 0.85 cells of the feet; never one beside or behind. Standing between two counters, the one the chef faces more is chosen at once, without first lining up. The page frames the target the moment the chef turns, before the server replies, and sends it with the press; the engine accepts it only if it can still pick it from the reported position and aim (new engine inputs `face` and `pick_station`). Loose items on the aimed tile or at the feet that lie nearer the point ahead go first. Jeff and scripted chefs are unchanged: behaviour fingerprints and calibration are identical.
+- Fixed: in the web build, a burst of earlier event sounds could replay at once about every 80 events in a round (the release compiler dropped a set copy).
 
 ## 0.6.0-beta.1 — 2026-10-01 · first public test release
 
@@ -93,6 +95,8 @@ First private release: a local browser game with three playable maps and player-
 - 修复：浏览器负责移动后，Jeff 挡在路上时人物可能完全不动（例如第二关从案板 2 前的凹槽往右走、Jeff 在上方）：浏览器把 Jeff 当成墙，从不报告移动，引擎也就没机会推开他。现在 Jeff 挡住本地行走时，浏览器报告「正在挤」并跟随引擎，引擎按按住的方向照原来的键盘走法移动（空闲的 Jeff 会被推开，正在干活的不会）。按住方向走路时不再向后侧滑、也不会因为厨师挡路而贴边滑出，避免在窄通道顶着正在干活的 Jeff 时抖动；沿路线走路不变。追位置时离目标不再变近就重新同步。
 - 修复：iPhone 上每按一次「操作」都会暂停对局。触感用的隐藏开关抢走了焦点，触屏和手柄代码把它当成在输入框里打字；现在判断时排除它，并立即把焦点还回去。
 - 修复：iPhone 转屏后，厨房可能仍按竖屏尺寸绘制（只画一条、被放大、其余为黑）。页面在尺寸稳定后再通知一次，并每秒检查画布是否铺满窗口、绘制缓冲区形状是否一致。数据导出加入位置重新同步（原因和位置），便于排查人物「卡住」的地方。
+- 空格选目标改成《胡闹厨房 2》的方式：在角色周围 8 格的工位里，选最正对瞄准方向的那个，斜向也算（瞄准随摇杆可以是任意方向），离脚下 0.85 格以内；身边和身后的不会选。站在两个柜台之间时，立刻选更正对的那个，不用先对齐。角色一转身，页面不等服务器回复就框出目标，按键时一并发出；引擎核对从报告的位置和朝向仍能选中它才采用（新增引擎输入 `face` 和 `pick_station`）。瞄准那格或脚下的散落物品更靠近前方那点时先操作物品。Jeff 和脚本厨师不受影响：行为指纹和校准结果完全相同。
+- 修复：网页版一局里大约每 80 个事件，会一下子重放一批之前的事件音效（正式构建的编译器漏拷了一个集合）。
 
 
 ## 0.6.0-beta.1 — 2026-10-01 · 首次公开测试版

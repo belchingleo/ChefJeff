@@ -2,7 +2,7 @@ import { _decorator, Component, Node, UITransform, Graphics, Color, Label, Layer
     view, ResolutionPolicy, sys, game, Game, profiler, Mask, Vec2, Camera, director, Sprite } from 'cc';
 import { LevelOneArt } from './LevelOneArt';
 import { KitchenAudio } from './KitchenAudio';
-import { levelButtonLayout, GRID_ART, stationView, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, workingChefDepth, flightDepth, predictWalk, footWalkable, plateLayers, heatCountdown, behindCounter, throwPose, throwDiagonal, throwItemPoint, panHandleSide } from './KitchenGeometry';
+import { levelButtonLayout, GRID_ART, stationView, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, workingChefDepth, flightDepth, predictWalk, footWalkable, spaceStation, plateLayers, heatCountdown, behindCounter, throwPose, throwDiagonal, throwItemPoint, panHandleSide } from './KitchenGeometry';
 const { ccclass } = _decorator;
 type Action = { key: string; label: string; kind: string; target: string; expected: unknown[] };
 type KitchenState = { game_id: string; state_seq?: number; phase: string; speed: number; kitchen: any; actions: Action[]; levels?:any[]; limits?:any; capacity?:any; release?:any; interaction?:Action; use_interaction?:Action; interaction_hint?:string; interaction_focus?:string; interaction_cell?:number[];
@@ -99,6 +99,11 @@ export class KitchenClient extends Component {
     private lastPress=false;
     private lastReported:number[]|null=null;
     private lastReportAt=-1;
+    /** Space's station as this page picks it each frame (Overcooked 2-style, highlighted at once);
+     * undefined outside a round, where the engine's own focus is shown. */
+    private localPick:string|null|undefined=undefined;
+    /** The last held direction (any angle): what the station is picked by. */
+    private lastAim:number[]|null=null;
     private stateSentAt=0;
     private handsBusyUntil=-1;
     /** Until when the chef leans toward what it acts on: instant feedback while the action goes to the server. */
@@ -369,7 +374,7 @@ export class KitchenClient extends Component {
         if(!this.canInput()||this.pending||this.spaceDownAt!==null||this.aiming)return;
         const held=this.state!.kitchen.chefs.human.holding;
         if(held&&this.state!.kitchen.chefs.human.can_throw!==false){this.spaceDownAt=this.clock;this.spaceItemId=held.id;}
-        else{this.handsBusyUntil=this.clock+.35;this.actionCue();this.post('/api/interact',{expected_item:held?.id||null,...this.atBody()});}
+        else{this.handsBusyUntil=this.clock+.35;this.actionCue();this.post('/api/interact',{expected_item:held?.id||null,...this.atBody(),...this.pickBody()});}
     }
     private releaseInteract(){
         const held=this.state?.kitchen.chefs.human.holding;
@@ -381,7 +386,7 @@ export class KitchenClient extends Component {
             this.refreshMovement();
         }else if(this.spaceDownAt!==null){
             this.spaceDownAt=null;this.spaceItemId=null;this.handsBusyUntil=this.clock+.35;this.actionCue();
-            this.post('/api/interact',{expected_item:held?.id||null,...this.atBody()});
+            this.post('/api/interact',{expected_item:held?.id||null,...this.atBody(),...this.pickBody()});
         }
         this.publishControls();
     }
@@ -573,6 +578,20 @@ export class KitchenClient extends Component {
         plan.frac+=dt*this.state!.speed/.05;
         while(plan.frac>=1){plan.frac-=1;plan.at=plan.next;plan.next=step(plan.at);}
         return this.predicted=[plan.at[0]+(plan.next[0]-plan.at[0])*plan.frac,plan.at[1]+(plan.next[1]-plan.at[1])*plan.frac];
+    }
+    private updatePick(k:any,c:any){
+        const d=this.manualDirection;
+        if(d.x!==0||d.y!==0)this.lastAim=[d.x,d.y];
+        const pick=spaceStation(k.map,this.predicted||c.position,this.aimNow(c),k.ground||[]);
+        if(pick!==this.localPick){this.localPick=pick;if(this.mounted)this.render();}
+    }
+    private aimNow(c:any){
+        const f=c?.facing;return this.lastAim||(f==='up'?[0,-1]:f==='left'?[-1,0]:f==='right'?[1,0]:[0,1]);
+    }
+    /** What Space was aimed at as drawn: the engine picks the same station from it (see facing_interaction). */
+    private pickBody(){
+        const c=this.state?.kitchen.chefs.human;if(!c||this.localPick===undefined)return {};
+        return {aim:this.aimNow(c),...(this.localPick?{target:this.localPick}:{})};
     }
     /** Instant feedback for a Space interaction: lean, the action's sound and (phones) a short buzz. */
     private actionCue(){
@@ -1023,7 +1042,8 @@ export class KitchenClient extends Component {
         if(next.game_id!==this.state?.game_id||!this.connected){this.menuSignature='';this.foodStages={};this.readyUntil={};this.activeClock=0;
             if(this.mounted)for(const who of ['human','jeff'])this.locate(this.people[who],next.kitchen.chefs[who].position);}
         if(next.phase!=='running'||next.game_id!==this.state?.game_id||(this.spaceItemId!==null&&(next.kitchen.chefs.human.holding?.id!==this.spaceItemId||next.kitchen.chefs.human.can_throw===false)))this.clearInput();
-        if(next.game_id!==this.state?.game_id){this.moveSeq=Date.now()*1000;this.predicted=this.walkPlan=this.lastReported=null;this.resyncSeen=-1;}
+        if(next.game_id!==this.state?.game_id){this.moveSeq=Date.now()*1000;this.predicted=this.walkPlan=this.lastReported=this.lastAim=null;this.resyncSeen=-1;}
+        if(next.phase!=='running')this.localPick=undefined;
         this.state=next;this.connected=true;this.received=this.lastStateAt=this.clock;this.stateSentAt=sent;
         const frameRate=next.phase==='running'?(this.touchLayout?.active?30:60):15;
         if(game.frameRate!==frameRate)game.frameRate=frameRate;
@@ -1578,8 +1598,12 @@ export class KitchenClient extends Component {
             if(st.fire&&!this.useArt){this.rect(g,-26,-26,52,52,'#f1b589');}
             // The player's own chop/wash station keeps its frame while they work on it.
             const me=k.chefs.human,busy=!!me?.working&&['chop','wash'].includes(me.action_kind)&&me.target===id;
-            const actionable=busy||s.interaction?.target===id||s.use_interaction?.target===id;
-            if(actionable||s.interaction_focus===id){
+            // This page's own pick is framed at once; the engine's state says whether there is something to
+            // do there (denim) once it has caught up with the same pick.
+            const focus=this.localPick!==undefined?this.localPick:s.interaction_focus;
+            const offered=(s.interaction?.target===id||s.use_interaction?.target===id)&&(this.localPick===undefined||this.localPick===id);
+            const actionable=busy||offered;
+            if(actionable||focus===id){
                 if(this.useModularArt)this.facedGlow(g,-TILE/2,this.workSurfaceY(id)-TILE/2,TILE,TILE,actionable);
                 else this.facedGlow(g,-27,-27,54,54,actionable);
             }
@@ -1605,7 +1629,7 @@ export class KitchenClient extends Component {
             dev.label.color=color(st.fire||st.food?.stage==='ready'||st.food?.stage==='burnt'?COLORS.hot:COLORS.ink);
             const food=dev.node.getChildByName('food')!;food.active=!!st.food||st.fire;if(food.active)this.drawIcon(food.getComponent(Graphics)!,st.fire?'fire':this.itemStage(st.food));
             if(this.cabinetFires[id]){this.cabinetFires[id].active=!!st.fire;if(st.fire)food.active=false;}
-            if(st.counter&&!st.fire)this.writeLabel(dev.label,st.food?this.itemName(st.food):(s.interaction_focus!==id?'':'空柜台'));
+            if(st.counter&&!st.fire)this.writeLabel(dev.label,st.food?this.itemName(st.food):((this.localPick!==undefined?this.localPick:s.interaction_focus)!==id?'':'空柜台'));
             if(st.stove){
                 if(this.useModularArt)this.equipmentArt(dev.node.getChildByName('equipment')!,id);
                 else this.drawIcon(dev.node.getChildByName('equipment')!.getComponent(Graphics)!,this.useArt?'stove':st.vessel?'vessel:'+st.vessel:'stove');
@@ -1785,7 +1809,7 @@ export class KitchenClient extends Component {
             }
             if(running&&p){
                 const predicted=who==='human'?this.predictHuman(k,c,dt,n):null,at=predicted||p;
-                if(predicted)this.reportPosition();
+                if(predicted){this.reportPosition();this.updatePick(k,c);}
                 const x=MAPX+(at[0]+.5)*TILE-640,y=360-MAPY-(at[1]+.5)*TILE,t=predicted?1:Math.min(1,dt*16);
                 const oldX=n.position.x,oldY=n.position.y;
                 n.setPosition(oldX+(x-oldX)*t,oldY+(y-oldY)*t);
