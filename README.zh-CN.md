@@ -238,6 +238,9 @@ Overcooked-AI（Carroll 等，2019）用胡闹厨房式的环境研究人和强�
 - API Key 默认只放在本机内存里。勾选「记住此设备」后，Key 会以明文保存到本地文件 `.player-api.json`；在设置里点「清除配置」可以删掉它。
 - 分享之前请先检查导出的内容，不要把 Key 放进 Issue、截图或提交记录里。
 
+- 在线版的 Key 留在浏览器里；第一次开局前会问你一次是否贡献对局数据（30 天后删除）。[隐私说明与反馈](docs/privacy.md)写明存了什么、存在哪里、保存多久、怎样删除和怎样联系我们；[模型连接说明](docs/model-guide.md)列出可以从浏览器直连的服务，并估算一局的费用。游戏里的「设置」和「操作说明 → 反馈」也能打开这两页。
+- 问题和 Bug 反馈：到 [GitHub Issues](https://github.com/belchingleo/ChefJeff/issues)，附上「设置 → 数据导出」得到的文件。
+
 详见[隐私与调用费用](docs/privacy-and-costs.md)和[安全说明](SECURITY.md)。
 
 [Overcooked（胡闹厨房）](https://www.ghosttowngames.com/overcooked/)是一部关于协作的优秀作品，ChefJeff 的作者一直在 Nintendo Switch 上玩它。ChefJeff 的玩法和早期地图设计受到了它的启发；这种借鉴只在玩法和设计层面，不涉及它的任何代码。

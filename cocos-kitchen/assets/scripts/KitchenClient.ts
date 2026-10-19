@@ -36,7 +36,7 @@ function cueSound(kind:string,target:string|undefined,held:any,station:any):stri
 const NETWORK_GRACE_SECONDS=6;
 const RESULT_ANNOUNCE=new Set(['order','served','expired','ready','burn','fire','fire_spread','fire_loss']);
 // Keyboard order; the level buttons (one per listed level, from the server) follow the language button.
-const TAB_ORDER=['language','main','reset','cover-connection','help','record','resume','pause','end'];
+const TAB_ORDER=['language','main','reset','cover-connection','help','record','contribute','resume','pause','end'];
 type ButtonView = {node:Node;label:Label;callback:()=>void;enabled:boolean;width:number;height:number;tone:string;hover:boolean;selected?:boolean};
 // Labels for things that are not recipe items; item and dish names come from the server's catalog.
 const STAGES: Record<string,string> = {extinguisher:'灭火器',clean_plate:'干净餐盘',dirty_plate:'脏餐盘'};
@@ -109,6 +109,11 @@ export class KitchenClient extends Component {
     private handsBusyUntil=-1;
     /** Until when the chef leans toward what it acts on: instant feedback while the action goes to the server. */
     private cueUntil=-1;
+    /** Page diagnostics for the data export (never sent anywhere by the page): the last 30 s of running
+     * frames, sampled 5 times a second, and update-loop errors, each kept once with a count. */
+    private frames:any[]=[];
+    private frameAt=-Infinity;
+    private loopErrors:{message:string;stack:string;count:number;first:number;last:number}[]=[];
     private qaNoMotion=!sys.isNative&&new URLSearchParams(location.search).get('qaMotion')==='off';
     // Isolated visual pilot; not enabled at the fixed gameplay entry.
     private prepSample=!sys.isNative&&new URLSearchParams(location.search).get('prepSample')==='1';
@@ -241,6 +246,9 @@ export class KitchenClient extends Component {
         // The round record shares the tip's row: the tip shows before a round, the record after it.
         this.button('record','本局记录',561,566,158,36,()=>this.openRecord(),this.cover);
         this.buttons.record.node.active=false;
+        // Online, after 暂不: one tap contributes this round under the terms already shown (the hosted agent uploads it).
+        this.button('contribute','贡献本局',735,566,158,36,()=>window.dispatchEvent(new Event('kitchen-contribute')),this.cover);
+        this.buttons.contribute.node.active=false;
         if(!sys.isNative){
             // Screen-reader proxies for every canvas button. Canvas focus moves DOM
             // focus to the matching proxy so assistive technology follows it.
@@ -292,11 +300,12 @@ export class KitchenClient extends Component {
             pause:()=>{this.clearInput();if(this.connected&&this.state?.phase==='running')this.post('/api/pause');},
             resume:()=>this.controlButton('resume'),main:()=>this.controlButton('main'),
             settings:()=>this.openConnection(),help:()=>this.openHelp(),end:()=>this.controlButton('end'),
-            record:()=>this.openRecord(),bookmark:()=>{if(this.canInput())this.bookmark();},
+            record:()=>this.openRecord(),contribute:()=>this.controlButton('contribute'),bookmark:()=>{if(this.canInput())this.bookmark();},
             level:(id:string)=>{if(this.connected&&!this.pending&&['ready','ended'].includes(this.state?.phase||'')&&this.state?.levels?.some((l:any)=>l.id===id))this.post('/api/level',{level:id});},
             language:()=>{const i18n=(window as any).kitchenI18n;i18n?.setLanguage(i18n.language==='en'?'zh':'en');}
         };
         (window as any).kitchenControls=this.controls;
+        (window as any).kitchenDiagnostics=()=>this.diagnostics();
         window.addEventListener('kitchen-touch-mode',this.onTouchMode);
         window.dispatchEvent(new CustomEvent('kitchen-controls-ready'));
         this.publishControls();
@@ -335,7 +344,8 @@ export class KitchenClient extends Component {
             coverTitle:text('coverTitle'),coverText:text('coverText'),mainLabel:this.buttons.main?this.labelSources.get(this.buttons.main.label)||'':'',
             mainEnabled:!!this.buttons.main?.enabled&&!this.pending,
             communicationEnabled:!!s?.communication?.allowed,endEnabled:['running','paused'].includes(s?.phase||'')&&this.connected&&!this.pending,
-            recordEnabled:!!s?.round_summary&&s?.phase==='ended',levels:(s?.levels||[]).map((l:any)=>({id:l.id,name:l.name,selected:l.id===k?.level_id})),
+            recordEnabled:!!s?.round_summary&&s?.phase==='ended',
+            contribute:this.buttons.contribute?.node.active?{label:this.labelSources.get(this.buttons.contribute.label)||'',enabled:this.buttons.contribute.enabled}:null,levels:(s?.levels||[]).map((l:any)=>({id:l.id,name:l.name,selected:l.id===k?.level_id})),
             levelEnabled:this.connected&&!this.pending&&['ready','ended'].includes(s?.phase||'')};
     }
     private touchOrder(order:any){
@@ -1724,6 +1734,8 @@ export class KitchenClient extends Component {
         if(s.phase==='ready'&&s.connection&&!s.connection.configured)this.writeLabel(this.buttons.main.label,'先连接搭档');
         this.labels['welcome-tip'].node.active=s.phase==='ready';
         this.buttons.record.node.active=s.phase==='ended'&&!!s.round_summary;
+        const h=s.hosted,offer=s.phase==='ended'&&!!h?.contribution_offer;this.buttons.contribute.node.active=offer;
+        if(offer){this.writeLabel(this.buttons.contribute.label,h.contributed?'已贡献':h.contribution_busy?'正在贡献…':'贡献本局');this.enable('contribute',!h.contributed&&!h.contribution_busy&&!this.pending);}
         // The record stays one tap away (本局记录) instead of covering the result card.
         if(s.phase==='ended'&&this.endedSeen.round!==s.game_id)this.endedSeen={round:s.game_id,at:Date.now()};
         // Rounds close at the time limit: say so plainly, whatever the outcome.
@@ -1778,7 +1790,29 @@ export class KitchenClient extends Component {
             proxy.disabled=!b.enabled;proxy.hidden=!b.node.activeInHierarchy;
         }
     }
-    update(dt:number){
+    // One exception is recorded for the export instead of silently skipping every later frame.
+    update(dt:number){try{this.frame(dt);}catch(e){this.recordLoopError(e);}}
+    private recordLoopError(e:any){
+        const message=String(e?.message??e).slice(0,200),stack=String(e?.stack||'').split('\n').slice(0,4).join('\n').slice(0,600);
+        const seen=this.loopErrors.find(x=>x.message===message&&x.stack===stack);
+        if(seen){seen.count++;seen.last=Math.round(this.clock*100)/100;return;}
+        console.error('ChefJeff update loop:',e);
+        if(this.loopErrors.length<10)this.loopErrors.push({message,stack,count:1,first:Math.round(this.clock*100)/100,last:Math.round(this.clock*100)/100});
+    }
+    private sampleFrame(k:any){
+        if(this.state?.phase!=='running'||this.clock-this.frameAt<.2)return;this.frameAt=this.clock;
+        const r=(p:number[]|null|undefined)=>p?[Math.round(p[0]*1e3)/1e3,Math.round(p[1]*1e3)/1e3]:null;
+        this.frames.push({t:Math.round(k.time*100)/100,clock:Math.round(this.clock*100)/100,engine:r(k.chefs?.human?.position),predicted:r(this.predicted),
+            reported:r(this.lastReported),direction:[this.manualDirection.x,this.manualDirection.y],pressing:this.pressing,
+            hands_busy:this.clock<this.handsBusyUntil,resync:this.resyncSeen,connected:this.connected,hidden:this.hidden});
+        if(this.frames.length>150)this.frames.shift();
+    }
+    private diagnostics(){
+        return {schema:'chefjeff-page-diagnostics-v1',sample_hz:5,window_seconds:30,frames:this.frames.slice(),loop_errors:this.loopErrors.map(e=>({...e})),
+            viewport:[innerWidth,innerHeight],device_pixel_ratio:devicePixelRatio,touch_layout:!!this.touchLayout?.active,user_agent:navigator.userAgent,
+            coverage:'Running frames only, newest last; no keys, typed text or model data.'};
+    }
+    private frame(dt:number){
         this.clock+=dt;this.audio.update(dt);if(!this.state||!this.mounted)return;const k=this.state.kitchen;
         if(this.touchMoveDirty&&this.clock-this.touchMoveAt>=.05)this.flushTouchMove();
         if(this.spaceDownAt!==null&&this.clock-this.spaceDownAt>=AIM_HOLD)this.startAim();
@@ -1903,5 +1937,6 @@ export class KitchenClient extends Component {
             this.flightOrder[p.id]=onto&&t>=.5?Math.max(flightDepth(point[1],height),depthOrder(k.map.equipment[onto].cell[1],'solid')+.02):flightDepth(point[1],height);
         }
         this.sortWorld();
+        this.sampleFrame(k);
     }
 }

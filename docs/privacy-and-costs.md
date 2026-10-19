@@ -20,7 +20,7 @@ Browser-direct mode sends model requests and keys only to the provider and requi
 
 Keys live in page memory by default and disappear on refresh. Explicit Remember stores the key **and chosen transport** in browser localStorage in plaintext; Clear removes them. A remembered Jev relay choice remains in effect on that device until cleared or changed. Browser-direct remains the default for new/older saved configurations and for other providers. The game server never supplies a developer key.
 
-Gameplay actions and state are processed on the server. Anonymous sessions remain in memory and expire after 10 minutes of inactivity. No disk gameplay journal or cross-round memory is created. After a round, the player can preview and explicitly contribute allowlisted event/position/result data for game improvement and cooperation evaluation research. Contributions are private, retained for 30 days, and can be deleted using the supplied receipt.
+Gameplay actions and state are processed on the server. Anonymous sessions remain in memory and expire after 10 minutes of inactivity. No disk gameplay journal or cross-round memory is created. Before the first round the page asks once, with two equal choices and nothing preselected, whether to contribute every later round; after "not now" the result card offers a one-tap contribution of that round. Contributions hold allowlisted event/position/result data for game improvement and cooperation evaluation research, are private, retained for 30 days, and can be deleted using the receipt kept in the browser. The player-facing summary is [privacy and contact](privacy.md); costs per round are estimated in the [model connection guide](model-guide.md).
 
 Contributions exclude keys, account identity, email, IP addresses, model endpoints and raw model requests/responses. Network and model providers process traffic under their own policies. The demo operator must keep its reverse-proxy logging and backup practices consistent with this policy. See [deployment](hosted-deployment.md).
 
@@ -50,6 +50,6 @@ Contributions exclude keys, account identity, email, IP addresses, model endpoin
 
 Key 默认保存在页面内存，刷新后消失；主动记住会将 **Key 和所选转发方式**以明文保存至浏览器 localStorage，清除会删除它们。被记住的 Jev 转发选项在该设备上持续有效，直到清除或更换。新配置／旧的已记住配置默认浏览器直连，其他供应商也保持直连；游戏服务器不提供开发者 Key。
 
-游戏动作与状态由服务器处理。匿名会话在内存中维持，闲置十分钟后过期，不创建磁盘对局日志或跨局记忆。对局结束后，玩家可以预览并主动贡献允许清单中的事件、位置和结果数据，用于游戏改进与协作评估研究。贡献数据私有保存 30 天，也可用提供的凭证提前删除。
+游戏动作与状态由服务器处理。匿名会话在内存中维持，闲置十分钟后过期，不创建磁盘对局日志或跨局记忆。第一局前页面会问一次是否以后每局自动贡献，两个选项同等、没有默认；选「暂不」后，结算画面可一键贡献这一局。贡献内容为允许清单中的事件、位置和结果数据，用于游戏改进与协作评估研究，私有保存 30 天，也可用浏览器里保存的凭证提前删除。面向玩家的说明见[隐私说明与反馈](privacy.md)，每局费用估算见[模型连接说明](model-guide.md)。
 
 贡献记录不含 Key、账号身份、邮箱、IP、模型端点或完整模型请求／回复。网络与模型供应商仍按各自政策处理通信，试玩运营者需保证反向代理日志与备份方式符合上述政策，详见[部署说明](hosted-deployment.md)。

@@ -8,7 +8,7 @@
     "当前厨房不支持位置上报": "This kitchen does not accept position reports.",
     "位置信息无效": "Invalid position.",
     "朝向无效": "Invalid aim.",
-    "目标无效": "Invalid target.",
+    "目标无效": "Invalid target",
     "iPhone 不支持网页全屏：在浏览器的分享菜单选「添加到主屏幕」，再从主屏幕打开即可全屏。": "iPhone browsers cannot go full screen: choose Add to Home Screen in the browser's Share menu, then open ChefJeff from the Home Screen.",
     "手机触屏（横屏）：左下区域按住，摇杆出现在拇指下，朝任意方向推动移动，松手停止。右侧「操作」短按交互；持物时长按约 0.3 秒瞄准（按钮变成「投掷」），用摇杆调方向，松开投掷；瞄准时操作键上方出现圆形「取消」，手指滑上去再松开即可取消。「冲刺」在操作键左侧，移动时点按。顶部有暂停和菜单（设置、操作说明、本局记录、结束本局），沟通和标记也有按钮。手机转回竖屏会自动暂停，横屏后点「继续经营」。": "Touch (landscape): press in the lower-left area and the joystick appears under your thumb; push in any direction to move, let go to stop. Tap Action on the right to interact. Holding an item, hold Action for about 0.3 s to aim (the button reads Throw), steer with the joystick and release to throw; while aiming, a round Cancel button appears above Action: slide onto it and let go to cancel. Dash sits left of Action; tap it while moving. The top bar has Pause and Menu (Settings, Controls, Round record, End round), plus Talk and Bookmark. Turning the phone to portrait pauses the round; turn back and tap Resume.",
     "网络不稳定，正在重连…": "Unsteady connection, reconnecting…",
@@ -320,7 +320,6 @@
     "选中目标暂不可操作，请靠近或检查物品状态": "Selected target cannot be used now; move closer or check items",
     "请靠近选中的出餐口": "Move closer to the selected serving hatch",
     "地上物品已变化，请重新选择": "Ground item changed; select it again",
-    "目标无效": "Invalid target",
     "点击工位或地上物品后，空格只操作选中目标；条件不满足时给出提示。方向移动或点击空地恢复就近操作。地上空锅可先放切好的牛肉，再按空格端锅，离灶不加热。底部文字会显示将执行的动作：": "Space acts on the selected station or ground item; unavailable actions show a hint. Direction keys or clicking empty floor restore nearby interactions. Load chopped beef into an empty floor pot, then press Space again to lift it; it heats only on a stove. The footer shows the next action: ",
     "点击工位或地上物品后，空格只操作选中目标；条件不满足时给出提示。方向移动或点击空地恢复就近操作。地上空锅可先放切好的牛肉，再按空格端锅，离灶不加热。底部文字会显示将执行的动作：取料、放到案板、切菜、拿起、下锅、装盘、洗碗或出餐。正在加工时再按空格可停下，进度保留。": "Space acts on the selected station or ground item; unavailable actions show a hint. Direction keys or clicking empty floor restore nearby interactions. Load chopped beef into an empty floor pot, then press Space again to lift it; it heats only on a stove. The footer shows the next action: Move close and tap Space. The bottom hint shows the action: fetch, put on a board, chop, pick up, cook, plate, wash or serve. Tap Space while working to stop and keep progress.",
     "面前没有可操作目标": "Nothing to use in front of you",
@@ -559,7 +558,6 @@
     "厨房连接不可用，请刷新页面重新连接。": "Kitchen connection unavailable. Refresh to create a new session.",
     "厨房请求失败。": "Kitchen request failed.",
     "请求失败。": "Request failed.",
-    "已保存，将保留 30 天；请在离开前下载删除凭证。": "Saved for 30 days. Download your deletion receipt before leaving.",
     "删除凭证无效，或记录已删除／过期。": "Receipt invalid, record already deleted, or expired.",
     "已删除贡献数据。": "Contribution deleted.",
     "删除凭证格式不正确，请粘贴完整的凭证。": "Invalid receipt format. Paste the complete deletion receipt.",
@@ -572,22 +570,15 @@
     "创建厨房超时，将自动重试。": "Creating the kitchen timed out. Retrying automatically.",
     "暂时无法连接厨房，请检查网络；页面会自动重试。": "Cannot connect to the kitchen. Check your network; this page will retry automatically.",
     "在线版：Key 默认只在页面内存中，仅发送给所选模型服务，刷新即清除；主动记住才以明文保存在浏览器 localStorage。游戏动作与状态经过我们的服务器，普通会话不写磁盘对局日志。自愿贡献数据另见下方说明。": "Online privacy: your key stays in page memory and is sent only to your model provider. Refresh clears it unless you choose Remember, which stores it unencrypted in browser localStorage. Game actions and state pass through our server; ordinary sessions create no disk journal. Optional contributions are described below.",
-    "贡献本局数据": "Contribute this session",
-    "自愿参与，结束对局后提交；用于改进游戏及设计协作评估方法，私有保存 30 天后删除。": "Optional, after a round ends: helps improve the game and develop cooperation evaluation methods. Stored privately for 30 days, then deleted.",
     "会保存": "Saved",
     "不会保存": "Never saved",
     "地图与版本": "Map and version",
-    "游戏事件": "Game events",
     "每秒角色位置": "Chef positions each second",
-    "预设沟通选项": "Preset communication choices",
     "结算结果": "Results",
     "账号身份": "Account identity",
     "模型接口地址": "Provider URL",
-    "完整模型请求与回复": "Model requests and raw replies",
-    "不公开原始贡献数据；不贡献时仅维持内存会话，闲置 10 分钟后清除；网络通信仍经过云服务商。": "Raw contributions are not published. Without contribution, game data stays in server memory and expires after 10 minutes of inactivity; network traffic still passes through the hosting provider.",
     "预览数据": "Preview data",
     "贡献数据预览": "Contribution preview",
-    "我同意上述用途与 30 天保存期限": "I agree to this use and 30-day retention",
     "贡献已结束的本局": "Contribute finished round",
     "下载删除凭证": "Download deletion receipt",
     "删除已贡献数据": "Delete a contribution",
@@ -622,13 +613,6 @@
     "再来一次": "Try again",
     "再玩一遍": "Play again",
     "本局结束后才能进入下一关。": "Finish this round before starting the next level.",
-    "以后每局结束自动上传": "Automatically upload future finished rounds",
-    "请先勾选同意，再开启自动上传；当前已结束的对局不会补传。选择保留在此浏览器，取消任一勾选即可停止后续自动上传。删除凭证也保存在此浏览器，可下载备份。": "Agree to the terms before enabling automatic upload. The currently finished round is not uploaded retroactively. This choice is remembered in this browser; uncheck either box to stop future automatic uploads. Deletion receipts are kept in this browser and can be downloaded as a backup.",
-    "请先勾选同意上方条款。": "Agree to the terms above first.",
-    "自动上传已开启，此后每局结束自动保存 30 天。": "Automatic upload is on. Future finished rounds will be saved for 30 days.",
-    "已关闭自动上传。": "Automatic upload is off.",
-    "自动上传已开启。": "Automatic upload is on.",
-    "本局已自动上传，保存 30 天。": "This round was uploaded automatically for 30 days.",
     "贡献数据请求超时，请重试。": "The contribution request timed out. Please try again.",
     "下一局请求已取消。": "The next-round request was cancelled.",
     "松手取消": "Release to cancel",
@@ -665,7 +649,42 @@
     "浏览器无法直连 Jev。请检查网络，或明确勾选服务器转发后重试；Key 尚未经过试玩服务器。": "Your browser could not call Jev directly. Check your network, or explicitly select server forwarding and try again; your key has not passed through the demo server.",
     "勾选后，Key 和模型请求会经 HTTPS 通过试玩服务器发送给 Jev，不写入服务器配置、日志或对局记录。未勾选则由浏览器直连，需 Jev 允许本网站跨域访问。更改选项后须测试并连接才生效，清除配置会停止后续模型请求。": "When selected, your key and model requests pass through the demo server over HTTPS to Jev. They are not written to server configuration, logs or game records. Otherwise, your browser calls Jev directly, which requires Jev to allow this website through CORS. Changes take effect after Test and connect; Clear stops future model requests.",
     "浏览器无法直连 Jev。请检查网络，或明确勾选服务器转发后重试；本次直连请求未通过试玩服务器转发 Key。": "Your browser could not call Jev directly. Check your network, or explicitly select server forwarding and try again; this direct request did not forward your key through the demo server.",
-    "浏览器无法访问模型服务，请检查网络和跨域支持；本次直连请求未通过试玩服务器转发 Key。": "Browser could not reach this provider. Check network/CORS support; this direct request did not forward your key through the demo server."
+    "浏览器无法访问模型服务，请检查网络和跨域支持；本次直连请求未通过试玩服务器转发 Key。": "Browser could not reach this provider. Check network/CORS support; this direct request did not forward your key through the demo server.",
+    "贡献对局数据？": "Contribute your rounds?",
+    "游戏引擎事件": "Engine events",
+    "自由输入的文字": "Free text",
+    "模型回复与完整请求": "Model replies and full requests",
+    "IP 与账号身份": "IP address and account identity",
+    "私有保存 30 天后自动删除。每份贡献的删除凭证保存在这个浏览器里，可随时在「设置 → 数据导出」提前删除或更改选择。": "Stored privately and deleted automatically after 30 days. Each contribution's deletion receipt is kept in this browser: delete early or change your choice any time in Settings → Data export.",
+    "同意以后每局自动贡献（30 天后删除，可随时关闭）": "Contribute every round from now on (deleted after 30 days, turn off any time)",
+    "暂不": "Not now",
+    "贡献对局数据": "Contribute rounds",
+    "查看说明并更改选择": "Read the terms and change your choice",
+    "不贡献时仅维持内存会话，闲置 10 分钟后清除；网络通信仍经过云服务商。删除凭证只保存在此浏览器，清理浏览器数据前请先下载备份。": "Without a contribution the session stays in memory only and is cleared after 10 idle minutes; traffic still passes through the cloud provider. Deletion receipts live only in this browser, so download a backup before clearing browser data.",
+    "当前选择：以后每局结束自动贡献，保存 30 天。": "Your choice: contribute every finished round, kept for 30 days.",
+    "当前选择：尚未选择。": "Your choice: not made yet.",
+    "自动贡献已开启。": "Automatic contribution is on.",
+    "本局已贡献，保存 30 天。删除凭证在「设置 → 数据导出」。": "Round contributed and kept for 30 days. Its deletion receipt is in Settings → Data export.",
+    "本局已自动贡献，保存 30 天。": "Round contributed automatically and kept for 30 days.",
+    "已开启自动贡献：此后每局结束自动保存 30 天。": "Automatic contribution is on: every round that ends from now on is kept for 30 days.",
+    "已选择暂不贡献，之后不会自动上传。": "Not now: nothing will be uploaded automatically.",
+    "贡献本局": "Contribute this round",
+    "已贡献": "Contributed",
+    "正在贡献…": "Contributing…",
+    "反馈": "Feedback",
+    "遇到卡住、画面错位或其他问题时：": "If the chef gets stuck, the picture looks wrong or anything else goes awry:",
+    "在 GitHub 报告问题 ↗": "Report a problem on GitHub ↗",
+    "自愿参与。贡献的对局只用于改进游戏和人机协作的评估方法，不公开原始数据。": "Voluntary. Contributed rounds are used only to improve the game and to research how to evaluate human-AI cooperation. Raw data is never published.",
+    "预设沟通编号": "Preset communication codes",
+    "选择“暂不”时，也可以在结算画面点「贡献本局」只贡献这一局。": "With “Not now” you can still choose “Contribute this round” on a result card to contribute just that round.",
+    "当前选择：暂不自动贡献。结算画面可点「贡献本局」只贡献这一局。": "Your choice: not now. A result card's “Contribute this round” contributes just that round.",
+    "模型连接说明：支持的服务、一局约多少钱 ↗": "Model connection guide: supported services and rough cost per round ↗",
+    "模型连接说明 ↗": "Model connection guide ↗",
+    "隐私说明与反馈 ↗": "Privacy and contact ↗",
+    "尽快打开「设置 → 数据导出」，点「导出本次游玩」，检查内容后下载 JSON 文件。文件含最近 30 秒的页面记录，导出越快越好。": "Soon afterwards, open Settings → Data export, choose Export This Play Session, check the content and download the JSON file. It holds the last 30 seconds of page diagnostics, so the sooner the better.",
+    "在 GitHub 新建 Issue，写下经过、用的设备和浏览器，并附上这个文件。": "Open a new GitHub issue describing what happened and your device and browser, and attach the file.",
+    "导出文件不含 API Key、接口地址和模型回复，但包含浏览器型号和画面大小；公开发布前请再看一遍。": "The export holds no API key, endpoint or model replies, but does include your browser and screen size; look it over before posting it publicly.",
+    "导出还附带本页最近 30 秒的页面记录（游戏时间、角色位置、按键方向、页面报错，以及浏览器型号和画面大小），用于排查卡住或显示问题；遇到问题后请尽快导出。": "The export also carries this page's last 30 seconds of diagnostics (game time, chef positions, held direction, page errors, plus browser and screen size) to help trace stuck or display problems; export soon after a problem."
   },
   "templates": [
     [
@@ -1137,10 +1156,6 @@
       "Model API returned HTTP {0}. Check your account and model."
     ],
     [
-      "自动上传失败：{0}",
-      "Automatic upload failed: {0}"
-    ],
-    [
       "已删除 {0} 份记录；{1} 份未删除，请检查凭证后重试。",
       "Deleted {0} records; {1} could not be deleted. Check the receipts and try again."
     ],
@@ -1163,6 +1178,14 @@
     [
       "你所在的网络已同时开了 {0} 个厨房，其中一个结束后再试。",
       "Your network already has {0} kitchens open. Try again when one of them ends."
+    ],
+    [
+      "贡献失败：{0}",
+      "Contribution failed: {0}"
+    ],
+    [
+      "自动贡献失败：{0}",
+      "Automatic contribution failed: {0}"
     ]
   ]
 }

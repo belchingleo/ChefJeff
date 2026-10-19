@@ -237,6 +237,9 @@ See [CONTRIBUTING](CONTRIBUTING.md) for how to contribute. Issues and pull reque
 - By default your API key is kept only in memory. If you tick "Remember on this device", the key is saved in plain text to the local file `.player-api.json`; "Clear credentials" in Settings deletes it.
 - Check exported content before sharing it, and never put your key in an issue, a screenshot or a commit.
 
+- The online version keeps your key in the browser and asks once whether to contribute rounds (deleted after 30 days). [Privacy and contact](docs/privacy.md) explains what is stored where, how long, how to delete it and how to reach us; the [model connection guide](docs/model-guide.md) lists the providers that work from the browser and estimates the cost of a round. Both pages are also linked in the game (Settings and Controls → Feedback).
+- Questions and bug reports: [GitHub issues](https://github.com/belchingleo/ChefJeff/issues), with the file from Settings → Data export attached.
+
 See [privacy and API costs](docs/privacy-and-costs.md) and the [security notes](SECURITY.md).
 
 [Overcooked](https://www.ghosttowngames.com/overcooked/) is a wonderful game about cooperation, and ChefJeff's author has long played it on Nintendo Switch. ChefJeff's gameplay and early map designs were inspired by it; this borrowing is limited to gameplay and design and involves none of its code.

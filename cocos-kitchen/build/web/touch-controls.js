@@ -92,7 +92,7 @@
       <div class="touch-buttons"><button id="touch-dash" class="touch-round" type="button"></button><button id="touch-action" class="touch-round" type="button"></button></div>
       <div id="touch-cancel" hidden></div>
       <div id="touch-ai"></div>
-      <section id="touch-menu" class="touch-menu" aria-labelledby="touch-menu-title" hidden><h2 id="touch-menu-title">ChefJeff</h2><p id="touch-menu-copy"></p><div id="touch-levels" class="touch-levels"></div><div class="touch-menu-actions"><button id="touch-main" class="btn primary" type="button"></button><button id="touch-settings" class="btn" type="button"></button><button id="touch-help" class="btn" type="button"></button></div><div class="touch-menu-secondary"><button id="touch-end" class="btn danger" type="button"></button><button id="touch-record" class="btn" type="button"></button><button id="touch-language" class="btn" type="button" data-no-i18n></button><button id="touch-fullscreen" class="btn" type="button"></button><button id="touch-menu-close" class="btn" type="button"></button></div><p id="touch-instructions"></p><p id="touch-fullscreen-tip" hidden></p></section>
+      <section id="touch-menu" class="touch-menu" aria-labelledby="touch-menu-title" hidden><h2 id="touch-menu-title">ChefJeff</h2><p id="touch-menu-copy"></p><div id="touch-levels" class="touch-levels"></div><div class="touch-menu-actions"><button id="touch-main" class="btn primary" type="button"></button><button id="touch-settings" class="btn" type="button"></button><button id="touch-help" class="btn" type="button"></button></div><div class="touch-menu-secondary"><button id="touch-end" class="btn danger" type="button"></button><button id="touch-record" class="btn" type="button"></button><button id="touch-contribute" class="btn" type="button"></button><button id="touch-language" class="btn" type="button" data-no-i18n></button><button id="touch-fullscreen" class="btn" type="button"></button><button id="touch-menu-close" class="btn" type="button"></button></div><p id="touch-instructions"></p><p id="touch-fullscreen-tip" hidden></p></section>
     `;
     document.body.appendChild(ui);
     const portrait = document.createElement('div');
@@ -247,6 +247,8 @@
       el('touch-end').hidden = !['running', 'paused'].includes(state.phase);
       el('touch-end').disabled = !state.endEnabled;
       el('touch-record').hidden = !state.recordEnabled;
+      el('touch-contribute').hidden = !state.contribute;
+      if (state.contribute) { text('touch-contribute', state.contribute.label); el('touch-contribute').disabled = !state.contribute.enabled; }
       el('touch-menu-close').hidden = state.phase !== 'running' || !menuOpen;
       const levels = state.levels || [];
       const nextLevels = JSON.stringify([levels, state.levelEnabled]);
@@ -396,7 +398,7 @@
     el('touch-menu-close').addEventListener('click', () => menu(false));
     el('touch-communication').addEventListener('click', () => communication(!communicationOpen));
     el('touch-bookmark').addEventListener('click', () => controls?.bookmark());
-    for (const [id, method] of [['touch-settings', 'settings'], ['touch-help', 'help'], ['touch-end', 'end'], ['touch-record', 'record']])
+    for (const [id, method] of [['touch-settings', 'settings'], ['touch-help', 'help'], ['touch-end', 'end'], ['touch-record', 'record'], ['touch-contribute', 'contribute']])
       el(id).addEventListener('click', () => { clearPointers(); controls?.[method](); });
     el('touch-language').addEventListener('click', () => controls?.language());
     el('touch-fullscreen').hidden = !document.documentElement.requestFullscreen;

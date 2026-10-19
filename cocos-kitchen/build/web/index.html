@@ -46,7 +46,7 @@
 <script src="src/import-map.e67d1.json" type="systemjs-importmap" charset="utf-8"> </script>
 
 <script>
-    System.import('./index.9dc5f.js').catch(function(err) { console.error(err); })
+    System.import('./index.1a242.js').catch(function(err) { console.error(err); })
 </script>
   <script src="kitchen-i18n.js"></script>
 <style>
@@ -183,6 +183,7 @@ function kitchenTabs(dialog){
  <section id="panel-connection" role="tabpanel" aria-labelledby="api-title">
   <h3 id="api-title">连接你的 AI 搭档</h3>
   <p>使用你自己的 API 账号，调用费用由该账号承担。</p>
+  <p><a href="model-guide.html" target="_blank" rel="noopener">模型连接说明：支持的服务、一局约多少钱 ↗</a></p>
   <p><strong>建议优先选择 Jev</strong>：这间厨房是围绕 Jev 开发的；其他模型也可使用，响应速度和配合方式可能不同。</p>
   <p id="api-identity">尚未配置</p>
   <p id="api-editing-status" role="status" aria-live="polite"></p>
@@ -232,9 +233,11 @@ function kitchenTabs(dialog){
   <h3 id="feedback-title">数据导出</h3>
   <p id="release-identity"></p>
   <p>导出本次游玩的全部数据：从启动游戏起玩过的每一局，各含关卡、结果、贡献记录、全部标记、沟通记录和全部动作事件。标记包含游戏时间和实际时间，可对应本地日志提取前后过程。不会附带 Key、接口地址、模型名称文本、跨局记忆或完整请求。文件只下载到本机，不自动上传。</p>
+  <p>导出还附带本页最近 30 秒的页面记录（游戏时间、角色位置、按键方向、页面报错，以及浏览器型号和画面大小），用于排查卡住或显示问题；遇到问题后请尽快导出。</p>
   <div class="actions"><button id="feedback-preview" class="btn" type="button">导出本次游玩</button><button id="feedback-download" class="btn" type="button" disabled>下载已预览 JSON</button></div>
   <p id="feedback-status" role="status" aria-live="polite"></p>
   <textarea id="feedback-content" readonly hidden rows="12" aria-label="待导出的游玩数据" style="box-sizing:border-box;width:100%;font:12px monospace;border:2px solid var(--ink)"></textarea>
+  <p><a href="privacy.html" target="_blank" rel="noopener">隐私说明与反馈 ↗</a></p>
   <!-- hosted-contribution -->
  </section>
  </div>
@@ -333,7 +336,7 @@ function kitchenTabs(dialog){
  };
  el('feedback-preview').onclick=async()=>{
   el('feedback-preview').disabled=true;el('feedback-download').disabled=true;feedbackText='';
-  try{const d=await localCommand('/api/export-run');feedbackText=JSON.stringify(d.report,null,2);
+  try{const d=await localCommand('/api/export-run');d.report.page_diagnostics=window.kitchenDiagnostics?.()||null;feedbackText=JSON.stringify(d.report,null,2);
    el('feedback-content').value=feedbackText;el('feedback-content').hidden=false;
    el('feedback-download').disabled=false;el('feedback-status').textContent='请检查下方内容；点击下载后才会保存文件。';
   }catch(e){el('feedback-status').textContent=e.message}
@@ -354,6 +357,8 @@ function kitchenTabs(dialog){
 #kitchen-help-dialog dt{margin-top:14px;font:12px/16px var(--pixel);color:var(--ink)}
 #kitchen-help-dialog dt:first-child{margin-top:0}
 #kitchen-help-dialog dd{margin:4px 0 0;color:var(--muted)}
+#kitchen-help-dialog ol{margin:4px 0 12px;padding-left:22px;color:var(--ink)}
+#kitchen-help-dialog a{color:var(--denim)}
 .dlg-foot{display:flex;justify-content:flex-end;padding:0 24px 24px}
 </style>
 <dialog id="kitchen-help-dialog" class="panel" aria-labelledby="help-title">
@@ -362,6 +367,7 @@ function kitchenTabs(dialog){
   <button class="tab" id="tab-keys" type="button" role="tab" aria-controls="help-keys" autofocus>基础操作</button>
   <button class="tab" id="tab-rules" type="button" role="tab" aria-controls="help-rules">规则细节</button>
   <button class="tab" id="tab-levels" type="button" role="tab" aria-controls="help-levels">关卡</button>
+  <button class="tab" id="tab-feedback" type="button" role="tab" aria-controls="help-feedback">反馈</button>
  </div>
  <div class="dlg-body">
  <section id="help-keys" role="tabpanel" aria-labelledby="tab-keys">
@@ -399,6 +405,17 @@ function kitchenTabs(dialog){
   <dt>第二关 · 汉堡</dt><dd>单间厨房由横向长柜台分为上下工作区，右侧通道相连。180 游戏秒，每 40 秒来一张汉堡单，每份 ¥80；关店时净收入达到 ¥150 即达标。1 口平底锅、1 个灶台、2 只盘子、2 块案板；需要回收洗盘。食材和灶台在上、案板在下，可以隔着柜台传递。</dd>
   <dt>第三关 · 牛-堡</dt><dd>两个灶台、三口平底锅，备用的空平底锅在右上柜台。面包直接装盘；生菜和番茄切好，牛肉切好后煎熟。可手持盘从案板或柜台收集切好蔬菜和面包，也能给队友手中盘加料。两盘无重复配料可合并：成品留手中，柜台留空盘。牛肉须先煎熟；缺料不能出餐。180 游戏秒，每 30 秒来一单牛排或汉堡（¥50／¥80），关店时净收入达到 ¥190 即达标。</dd>
   </dl>
+ </section>
+ <section id="help-feedback" role="tabpanel" aria-labelledby="tab-feedback">
+  <p>遇到卡住、画面错位或其他问题时：</p>
+  <ol>
+   <li>尽快打开「设置 → 数据导出」，点「导出本次游玩」，检查内容后下载 JSON 文件。文件含最近 30 秒的页面记录，导出越快越好。</li>
+   <li>在 GitHub 新建 Issue，写下经过、用的设备和浏览器，并附上这个文件。</li>
+  </ol>
+  <p><a href="https://github.com/belchingleo/ChefJeff/issues" target="_blank" rel="noopener noreferrer">在 GitHub 报告问题 ↗</a></p>
+  <p class="fine">导出文件不含 API Key、接口地址和模型回复，但包含浏览器型号和画面大小；公开发布前请再看一遍。</p>
+  <p><a href="privacy.html" target="_blank" rel="noopener">隐私说明与反馈 ↗</a></p>
+  <p><a href="model-guide.html" target="_blank" rel="noopener">模型连接说明 ↗</a></p>
  </section>
  </div>
  <div class="dlg-foot"><button id="help-close" class="btn" type="button">返回菜单</button></div>

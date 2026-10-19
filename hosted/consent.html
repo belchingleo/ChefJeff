@@ -1,0 +1,34 @@
+<style>
+#contribution-ask{width:min(620px,calc(100vw - 28px))}
+#contribution-ask .choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:16px}
+#contribution-ask .choices .btn{min-height:52px;line-height:18px}
+#contribution-ask a{color:var(--denim,#2a5a9e)}
+#ask-summary:focus{outline:none}
+.contrib-lists{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:12px 0}
+.contrib-lists div{padding:10px 12px;border:1px solid var(--ink,#2b1a12);background:var(--surface,#f0d9b5)}
+.contrib-lists h4{margin:0 0 6px;font:12px/16px var(--pixel,system-ui);font-weight:400;color:var(--ink,#2b1a12)}
+.contrib-lists ul{margin:0;padding:0;list-style:none;font-size:13px;line-height:20px;color:var(--ink,#2b1a12)}
+.contrib-lists li::before{display:inline-block;width:1.2em;font-weight:700}
+.contrib-saved li::before{content:"+";color:var(--herb,#3c7a2a)}
+.contrib-never li::before{content:"×";color:var(--tomato,#b8321e)}
+/* Landscape phones: both lists flow inline so the two choices stay close to the terms. */
+@media (max-height:500px){#contribution-ask .contrib-lists{gap:8px;margin:8px 0}#contribution-ask .contrib-lists li{display:inline-block;margin-right:10px}#contribution-ask .choices{margin-top:8px}}
+</style>
+<dialog id="contribution-ask" class="panel" aria-labelledby="ask-title" aria-describedby="ask-summary">
+ <div class="dlg-head"><h2 id="ask-title">贡献对局数据？</h2></div>
+ <div class="dlg-body">
+  <p id="ask-summary" tabindex="-1" autofocus>自愿参与。贡献的对局只用于改进游戏和人机协作的评估方法，不公开原始数据。</p>
+  <div class="contrib-lists">
+   <div class="contrib-saved"><h4>会保存</h4><ul>
+    <li>游戏引擎事件</li><li>每秒角色位置</li><li>结算结果</li>
+    <li>预设沟通编号</li><li>地图与版本</li></ul></div>
+   <div class="contrib-never"><h4>不会保存</h4><ul>
+    <li>API Key</li><li>自由输入的文字</li><li>模型回复与完整请求</li>
+    <li>IP 与账号身份</li><li>模型接口地址</li></ul></div>
+  </div>
+  <p>私有保存 30 天后自动删除。每份贡献的删除凭证保存在这个浏览器里，可随时在「设置 → 数据导出」提前删除或更改选择。</p>
+  <p><a href="privacy.html" target="_blank" rel="noopener">隐私说明与反馈 ↗</a></p>
+  <div class="choices"><button id="ask-auto" class="btn" type="button">同意以后每局自动贡献（30 天后删除，可随时关闭）</button><button id="ask-later" class="btn" type="button">暂不</button></div>
+  <p><small>选择“暂不”时，也可以在结算画面点「贡献本局」只贡献这一局。</small></p>
+ </div>
+</dialog>
