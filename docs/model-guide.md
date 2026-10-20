@@ -14,15 +14,21 @@ Jeff 的每一步由你自己的模型账号决定，费用记在你的账号上
 
 打开「设置 → 连接」，选「模型服务」，填好 Key 后点「测试并连接」。测试会发一次小请求，可能产生少量费用。
 
-- **DeepSeek**：选「DeepSeek」，模型名称已填好 deepseek-flash，只需粘贴 Key（[platform.deepseek.com](https://platform.deepseek.com/api_keys)）。
-- **TypeSafe · Jev**：选「TypeSafe · Jev（推荐）」，并勾选「同意通过试玩服务器调用 Jev」。Jev 目前不允许浏览器直连，这一项由服务器转发。
-- 下面几家选「其他兼容 Chat Completions 的服务」，填接口地址和模型名称：
-  - **阿里云百炼（通义千问 Qwen）**：接口地址 `https://dashscope.aliyuncs.com/compatible-mode/v1`（国际站 `https://dashscope-intl.aliyuncs.com/compatible-mode/v1`），模型如 qwen-plus、qwen-flash。
-  - **Google Gemini（OpenAI 兼容接口）**：接口地址 `https://generativelanguage.googleapis.com/v1beta/openai`，模型如 gemini-2.5-flash-lite。需要所在网络能访问 Google。
-  - **OpenRouter**：接口地址 `https://openrouter.ai/api/v1`，模型名称从 OpenRouter 模型页复制，形如「厂商/模型名」。
-  - **硅基流动 SiliconFlow**：接口地址 `https://api.siliconflow.cn/v1`（国际站 `https://api.siliconflow.com/v1`），模型名称从模型广场复制，形如「厂商/模型名」。
+「模型服务」按类型分组，选好后接口地址和模型名称会自动填好，下方一行写着大约每局花费和是否实测过：
 
-我们在 2026-10-19 确认过以上接口允许浏览器跨域请求；能否真正调用，以你的账号点「测试并连接」的结果为准。模型名称会更新，请以服务商控制台为准。
+- **决策模型**（直接给每个可选动作打分，不生成文字，最快）
+  - **TypeSafe · Jev（推荐）**：勾选「同意通过试玩服务器调用 Jev」。Jev 目前不允许浏览器直连，这一项由服务器转发。已实测整局。
+  - **Microsoft-Decision-1（OpenRouter）**：在 [OpenRouter](https://openrouter.ai/keys) 开 Key。输入每百万 token 0.042 美元、输出免费，约 ¥0.3–0.7/局。未实测。
+  - **Decision 3.0**：开源决策模型，需要自己部署，暂不能选。
+- **对话模型**（已为各家关闭深度思考、只要求回一个 JSON）
+  - **DeepSeek**：[platform.deepseek.com](https://platform.deepseek.com/api_keys)，模型 deepseek-flash（10 月 17 日起为 V4.1-Flash-1017）。已实测整局。
+  - **阿里 qwen-flash**：[阿里云百炼](https://bailian.console.aliyun.com/)，约 ¥0.2–0.3/局。未实测。
+  - **豆包 Seed 2.0 lite**：[火山方舟](https://console.volcengine.com/ark)，约 ¥0.7–1.3/局。未实测。
+  - **Gemini 2.5 Flash-Lite**：[Google AI Studio](https://aistudio.google.com/apikey)，有限速的免费额度，需要所在网络能访问 Google。未实测。
+  - **其他兼容 Chat Completions 的服务**：自己填接口地址和模型名称，例如 OpenRouter 的对话模型 `https://openrouter.ai/api/v1`、硅基流动 `https://api.siliconflow.cn/v1`。不会自动关闭思考，思考型模型可能答不完。
+- 智谱 GLM-4.7-Flash（免费）只在本地版提供：智谱接口不允许浏览器跨域请求。
+
+我们在 2026-10-19 和 2026-10-20 确认过以上接口允许浏览器跨域请求；能否真正调用，以你的账号点「测试并连接」的结果为准。模型名称会更新，请以服务商控制台为准。
 
 **选模型的建议**：选响应快、不带深度思考（reasoning / thinking）的模型。每一步只需要回答一个动作，回复最多 128 个 token；思考型模型容易超时或回复被截断，超过 15 秒的回复会被丢弃。
 
@@ -56,15 +62,21 @@ Jeff's moves are decided by your own model account and billed to it. This page l
 
 Open Settings → Connection, choose an **AI provider**, paste your key and press **Test and connect**. The test sends one small request, which may cost a little.
 
-- **DeepSeek**: choose DeepSeek; the model name deepseek-flash is filled in, so only the key is needed ([platform.deepseek.com](https://platform.deepseek.com/api_keys)).
-- **TypeSafe · Jev**: choose TypeSafe · Jev (recommended) and tick **I agree to call Jev through the demo server**. Jev does not accept direct browser requests yet, so the server forwards them.
-- For the following, choose **Other Chat Completions provider** and enter the base URL and model name:
-  - **Alibaba Cloud Model Studio / DashScope (Qwen)**: base URL `https://dashscope.aliyuncs.com/compatible-mode/v1` (international `https://dashscope-intl.aliyuncs.com/compatible-mode/v1`), models such as qwen-plus or qwen-flash.
-  - **Google Gemini (OpenAI-compatible endpoint)**: base URL `https://generativelanguage.googleapis.com/v1beta/openai`, models such as gemini-2.5-flash-lite. Your network must reach Google.
-  - **OpenRouter**: base URL `https://openrouter.ai/api/v1`; copy the model ID from OpenRouter's model page (vendor/model).
-  - **SiliconFlow**: base URL `https://api.siliconflow.cn/v1` (international `https://api.siliconflow.com/v1`); copy the model ID from its model square (vendor/model).
+**AI provider** is grouped by kind; picking one fills in the base URL and model name, and a line below gives the rough cost per round and whether it has been tested:
 
-On 2026-10-19 we confirmed that these endpoints accept cross-origin browser requests; whether a call really works is decided by **Test and connect** with your account. Model names change, so check your provider's console.
+- **Decision models** (score every available action directly, no text, fastest)
+  - **TypeSafe · Jev (recommended)**: tick **I agree to call Jev through the demo server**. Jev does not accept direct browser requests yet, so the server forwards them. Tested over a full round.
+  - **Microsoft-Decision-1 (OpenRouter)**: get a key at [OpenRouter](https://openrouter.ai/keys). USD 0.042 per million input tokens, output free, about ¥0.3–0.7 a round. Not yet tested.
+  - **Decision 3.0**: an open decision model you host yourself; not selectable yet.
+- **Chat models** (thinking turned off and one JSON object requested for each provider)
+  - **DeepSeek**: [platform.deepseek.com](https://platform.deepseek.com/api_keys), model deepseek-flash (V4.1-Flash-1017 since 17 October). Tested over a full round.
+  - **Alibaba qwen-flash**: [Model Studio](https://bailian.console.aliyun.com/), about ¥0.2–0.3 a round. Not yet tested.
+  - **Doubao Seed 2.0 lite**: [Volcano Ark](https://console.volcengine.com/ark), about ¥0.7–1.3 a round. Not yet tested.
+  - **Gemini 2.5 Flash-Lite**: [Google AI Studio](https://aistudio.google.com/apikey), a rate-limited free quota; your network must reach Google. Not yet tested.
+  - **Other Chat Completions provider**: enter the base URL and model yourself, for example OpenRouter chat models `https://openrouter.ai/api/v1` or SiliconFlow `https://api.siliconflow.cn/v1`. Thinking is not turned off for you, so thinking models may not finish an answer.
+- Zhipu GLM-4.7-Flash (free) is offered in the local game only: Zhipu's API does not accept cross-origin browser requests.
+
+On 2026-10-19 and 2026-10-20 we confirmed that these endpoints accept cross-origin browser requests; whether a call really works is decided by **Test and connect** with your account. Model names change, so check your provider's console.
 
 **Choosing a model**: pick a fast model without deep thinking (reasoning). Each step only needs one action and replies are capped at 128 tokens; thinking models tend to time out or get cut off, and replies older than 15 seconds are discarded.
 

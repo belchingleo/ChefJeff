@@ -1,6 +1,7 @@
 // Pure JavaScript transport unit tests: no browser automation and no paid API.
 const vm=require('node:vm'),fs=require('node:fs'),assert=require('node:assert/strict');
 const source=fs.readFileSync('hosted/browser-agent.js','utf8');
+const chefjeffProviders=JSON.parse(fs.readFileSync('model-providers.json','utf8'));
 const key='unit-test-key-not-a-real-credential';
 function harness(saved=null, fail=false, gameState={game_id:'round',phase:'ready',limits:{},connection:{configured:false}}, sessions=[201]){
  const calls=[],data=new Map(saved?[['chefjeff.browser-key.v1',JSON.stringify(saved)]]:[]),timers=[];
@@ -26,7 +27,7 @@ function harness(saved=null, fail=false, gameState={game_id:'round',phase:'ready
   if(u.pathname==='/api/model/jev')return new Response(JSON.stringify({answer:{choice:'wait',sprint:false,usage:{input_tokens:3,output_tokens:4}}}));
   return new Response('{"ok":true}');
  };
- const w={fetch:native,addEventListener:(name,fn)=>{listeners[name]=fn;},dispatchEvent:e=>{listeners[e.type]?.(e);}};
+ const w={fetch:native,chefjeffProviders,addEventListener:(name,fn)=>{listeners[name]=fn;},dispatchEvent:e=>{listeners[e.type]?.(e);}};
  vm.runInNewContext(source,{window:w,location:{href:'https://kitchen.example/',origin:'https://kitchen.example'},
   Response,URL,Headers,AbortController,performance:{now:()=>clock},crypto:require('node:crypto').webcrypto,
   CustomEvent:class {constructor(type,options){this.type=type;this.detail=options.detail;}},
@@ -452,12 +453,12 @@ function settingsHarness(){
  const elements=new Map(),listeners=new Map();
  const el=id=>{
   if(!elements.has(id))elements.set(id,{value:id==='api-provider'?'jev':'',disabled:false,checked:false,
-   addEventListener:()=>{},showModal(){this.open=true;},close(){this.open=false;}});
+   addEventListener:()=>{},append(){},showModal(){this.open=true;},close(){this.open=false;}});
   return elements.get(id);
  };
  let requests=0;
- vm.runInNewContext(script,{document:{getElementById:el},kitchenTabs:()=>()=>{},
-  window:{addEventListener:(name,fn)=>listeners.set(name,fn),chefjeffHostedStatus:()=> '厨房暂时已满'},
+ vm.runInNewContext(script,{document:{getElementById:el,createElement:()=>({append(){}})},kitchenTabs:()=>()=>{},
+  window:{chefjeffProviders,addEventListener:(name,fn)=>listeners.set(name,fn),chefjeffHostedStatus:()=> '厨房暂时已满'},
   fetch:()=>{requests++;throw new Error('A draft must never request the model.');},AbortController,
   setTimeout:()=>0,clearTimeout:()=>{},crypto:require('node:crypto').webcrypto});
  return {el,listeners,requests:()=>requests};
@@ -465,6 +466,8 @@ function settingsHarness(){
 (async()=>{
  checkResultContinuation(true);checkResultContinuation(false);
  let h=harness();await h.w.fetch('/api/state');
+ // Local-only services (hosted: none) and placeholders are not offered online.
+ for(const provider of ['zhipu','decision3'])assert.notEqual((await h.w.fetch('/api/connection',{method:'POST',body:JSON.stringify({...cfg,provider})})).status,200);
  let r=await h.w.fetch('/api/connection',{method:'POST',body:JSON.stringify(cfg)});assert.equal(r.status,200);
  let d;
  assert.equal(h.data.size,0);

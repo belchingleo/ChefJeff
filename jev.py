@@ -111,6 +111,9 @@ def score_text(state):
 
 
 class JevClient:
+    # Any systemone-style decision API: state + questions in, option probabilities out.
+    endpoint, vendor = ENDPOINT, "TypeSafe"
+
     def __init__(self, config, key=None):
         self.key = key or load_key()
         self.c = config
@@ -158,19 +161,19 @@ class JevClient:
     def ask(self, payload):
         payload = english_data(payload)
         start = time.monotonic()
-        request = urllib.request.Request(ENDPOINT, data=json.dumps(payload, ensure_ascii=False).encode(),
+        request = urllib.request.Request(self.endpoint, data=json.dumps(payload, ensure_ascii=False).encode(),
                                          headers={"Authorization": "Bearer " + self.key, "Content-Type": "application/json"}, method="POST")
         try:
             with urllib.request.urlopen(request, timeout=self.c["ai_timeout_seconds"]) as r:
                 result = json.load(r)
         except urllib.error.HTTPError as e:
             # No response body / request headers in errors or logs.
-            raise RuntimeError(f"TypeSafe HTTP {e.code}") from None
+            raise RuntimeError(f"{self.vendor} HTTP {e.code}") from None
         except (urllib.error.URLError, TimeoutError, OSError):
-            raise RuntimeError("TypeSafe 网络连接失败或超时") from None
+            raise RuntimeError(f"{self.vendor} 网络连接失败或超时") from None
         answer = result.get("answers", {}).get("next_action", {})
         if answer.get("type") != "choice" or answer.get("choice") not in payload["questions"]["next_action"]["criteria"]:
-            raise RuntimeError("TypeSafe 返回了不符合候选集的选择")
+            raise RuntimeError(f"{self.vendor} 返回了不符合候选集的选择")
         sprint_answer=result.get('answers',{}).get('sprint',{})
         if 'sprint' in payload['questions'] and (sprint_answer.get('type')!='choice' or sprint_answer.get('choice') not in ('yes','no')):
             raise RuntimeError('Invalid sprint decision')

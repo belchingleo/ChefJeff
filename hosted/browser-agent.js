@@ -5,6 +5,9 @@
   const storageName = 'chefjeff.browser-key.v1';
   const relayConsent = 'jev-relay-2026-10-v1';
   window.chefjeffJevRelayAvailable = true;
+  // The shared service list (model-providers.js, loaded just before this script); 'none' is local-only.
+  const providers = () => Object.fromEntries((window.chefjeffProviders?.providers || [])
+    .filter(p => !p.disabled && p.hosted !== 'none').map(p => [p.id, p]));
   let setting = null, state = null, checks = 0, testing = false;
   const handled = new Set();
   const response = (status, data) => new Response(JSON.stringify(data), {
@@ -62,17 +65,17 @@
     return nativeFetch(path, {...init, headers});
   }
   function validate(raw) {
-    const provider = raw.provider;
-    if (!['jev','deepseek','compatible'].includes(provider)) throw new Error('选择模型服务。');
+    const provider = raw.provider, preset = providers()[provider];
+    if (!preset) throw new Error('选择模型服务。');
     const api_key = typeof raw.api_key === 'string' ? raw.api_key.trim() : '';
     if (api_key.length < 8 || api_key.length > 2048 || /\s/.test(api_key)) throw new Error('请输入完整的 API Key。');
-    const base_url = provider === 'jev' ? 'https://api.typesafe.ai/v1' : provider === 'deepseek' ?
-      'https://api.deepseek.com' : String(raw.base_url || '').trim().replace(/\/+$/, '').replace(/\/chat\/completions$/, '');
+    const base_url = preset.custom ? String(raw.base_url || '').trim().replace(/\/+$/, '').replace(/\/chat\/completions$/, '') :
+      preset.endpoint || preset.base_url;
     let u;try {u = new URL(base_url);} catch (_) {throw new Error('接口地址无效，请填写完整的 HTTPS 地址。');}
     if (u.protocol !== 'https:' || u.origin === location.origin || u.username || u.password || u.search || u.hash ||
         u.hostname === 'localhost' || /\.(local|localhost|internal)$/.test(u.hostname) ||
         /^[\d.]+$/.test(u.hostname) || u.hostname.includes(':')) throw new Error('请使用外部公开的 HTTPS 模型服务地址。');
-    const model = provider === 'jev' ? 'jev-latest' : String(raw.model || '').trim();
+    const model = (preset.model_editable && String(raw.model || '').trim()) || preset.model || '';
     if (!model || model.length > 120) throw new Error('请输入服务商提供的模型名称。');
     if (raw.jev_relay === true && provider !== 'jev') throw new Error('服务器转发仅适用于 Jev。');
     return {provider, base_url, model, api_key, remember: raw.remember === true,
@@ -107,14 +110,15 @@
       } finally {clearTimeout(timer);outerSignal?.removeEventListener('abort',abort);}
     }
     let body, endpoint;
-    if (config.provider === 'jev') {
-      body = {...payload, model: config.model}; endpoint = config.base_url + '/systemone';
+    const preset = providers()[config.provider];
+    if (preset.group === 'decision') {
+      body = {...payload, model: config.model}; endpoint = config.base_url;
     } else {
       body = {model:config.model, max_tokens:128, messages:[
         {role:'system', content:'Control chef jeff in this shared kitchen. Choose exactly one legal action key from questions.next_action.criteria. Return only JSON with choice and a boolean sprint. Use the supplied state and rules; do not invent actions.'},
         {role:'user', content:JSON.stringify({state:payload.state, questions:payload.questions})},
       ]};
-      if (config.provider === 'deepseek') {body.response_format = {type:'json_object'};body.thinking = {type:'disabled'};}
+      Object.assign(body, preset.extra || {});
       endpoint = config.base_url + '/chat/completions';
     }
     try {
@@ -128,7 +132,7 @@
       let d, answer, usage;
       try {
         d = JSON.parse(text);
-        if (config.provider === 'jev') {
+        if (preset.group === 'decision') {
           answer = {choice:d.answers?.next_action?.choice, sprint:d.answers?.sprint?.choice === 'yes'};
           if (d.answers?.next_action?.type !== 'choice' || ('sprint' in payload.questions &&
               !['yes','no'].includes(d.answers?.sprint?.choice))) throw new Error();
@@ -373,8 +377,6 @@
       } catch (e) {status(e.message);}
     };
     const select = document.getElementById('api-provider');
-    // Zhipu answers browser preflights without CORS headers, so the hosted page cannot call it directly.
-    document.querySelector('#api-provider option[value="zhipu"]')?.remove();
     if (select && !setting) {select.value = 'deepseek';select.dispatchEvent(new Event('change'));}
   });
 })();

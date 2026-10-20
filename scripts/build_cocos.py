@@ -36,6 +36,8 @@ if result.returncode==36 and args.platform=='web':
     shell=(ROOT/'cocos-kitchen/web-shell.html').read_text()
     catalog=(ROOT/'cocos-kitchen/i18n.json').read_text()
     (page.parent/'kitchen-i18n.js').write_text((ROOT/'cocos-kitchen/i18n.js').read_text().replace('__KITCHEN_CATALOG__',catalog))
+    # The model services the settings dialog lists (also read by the local server and the hosted page).
+    (page.parent/'model-providers.js').write_text('window.chefjeffProviders='+json.dumps(json.loads((ROOT/'model-providers.json').read_text()),ensure_ascii=False)+';\n')
     shutil.copyfile(ROOT/'cocos-kitchen/touch-controls.js',page.parent/'touch-controls.js')
     shutil.copyfile(ROOT/'cocos-kitchen/gamepad-controls.js',page.parent/'gamepad-controls.js')
     content=content.replace('<title>Cocos Creator | JevKitchen</title>','<title>ChefJeff · 一起出餐</title>')

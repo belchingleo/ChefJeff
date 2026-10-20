@@ -21,10 +21,14 @@ class PlayerPageTests(unittest.TestCase):
 
     def test_model_guide_names_each_provider_and_links_privacy(self):
         page = self.page('model-guide.md')
-        for text in ('DeepSeek', 'dashscope.aliyuncs.com/compatible-mode/v1',
-                     'generativelanguage.googleapis.com/v1beta/openai', 'openrouter.ai/api/v1', 'api.siliconflow.cn/v1',
-                     '同意通过试玩服务器调用 Jev', '估算', 'href="privacy.html"'):
+        for text in ('openrouter.ai/api/v1', 'api.siliconflow.cn/v1', '同意通过试玩服务器调用 Jev', '估算', 'href="privacy.html"'):
             self.assertIn(text, page)
+        # Every service the online settings list is explained (model-providers.json).
+        import json
+        catalog = json.loads((Path(__file__).resolve().parents[1] / 'model-providers.json').read_text())
+        for preset in catalog['providers']:
+            if preset.get('hosted') != 'none' and not preset.get('custom') and not preset.get('disabled'):
+                self.assertIn(preset['label'], page)
 
     def test_built_pages_match_their_sources(self):
         web = ROOT / 'cocos-kitchen/build/web'

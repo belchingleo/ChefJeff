@@ -22,22 +22,20 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         raise urllib.error.HTTPError(req.full_url, code, 'Redirect refused', headers, fp)
 
 
-# Presets: fixed base URL and default model. DeepSeek and Zhipu answer one JSON object with thinking off,
-# so the reply fits max_tokens; any other Chat Completions service is "compatible".
-PRESETS={'jev':('https://api.typesafe.ai/v1','jev-latest'),'deepseek':('https://api.deepseek.com','deepseek-flash'),
-         'zhipu':('https://open.bigmodel.cn/api/paas/v4','glm-4.7-flash')}
-JSON_NO_THINKING={'deepseek','zhipu'}
+# The services Jeff can use (shared with the settings dialog and the hosted page): see model-providers.json.
+PROVIDERS={p['id']:p for p in json.loads((ROOT/'model-providers.json').read_text())['providers'] if not p.get('disabled')}
 
 
 def settings_from(body):
     provider=body.get('provider')
-    if provider not in ('jev','deepseek','zhipu','compatible'):
+    if provider not in PROVIDERS:
         raise ValueError('请选择 API 服务。')
+    preset=PROVIDERS[provider]
     key=body.get('api_key')
     if not isinstance(key,str) or not 8<=len(key.strip())<=2048 or any(c.isspace() for c in key.strip()):
         raise ValueError('请填写完整的 API Key，不要包含空格或换行。')
-    base,model=PRESETS.get(provider,(body.get('base_url',''),body.get('model','')))
-    if provider in JSON_NO_THINKING:model=body.get('model') or model
+    base=body.get('base_url','') if preset.get('custom') else preset.get('endpoint') or preset['base_url']
+    model=(body.get('model') if preset['model_editable'] else None) or preset.get('model','')
     if not isinstance(base,str) or not isinstance(model,str) or not model.strip() or len(model)>120:
         raise ValueError('请填写接口地址和模型名称。')
     base=base.strip().rstrip('/')
@@ -70,9 +68,7 @@ class CompatibleClient(SpatialJevClient):
             {'role':'system','content':'You control the blue chef in a shared kitchen. Using the supplied state and rules, choose exactly one action key from questions.next_action.criteria. Return only a JSON object of the form {"choice": "<action key>", "sprint": <true or false>}, where <action key> is one key of questions.next_action.criteria; include sprint only if questions.sprint is present. Do not explain or choose an action outside the candidate set.'},
             {'role':'user','content':json.dumps({'state':payload['state'],'questions':payload['questions']},ensure_ascii=False)}],
             'max_tokens':128}
-        if self.setting['provider'] in JSON_NO_THINKING:
-            body['response_format']={'type':'json_object'}
-            body['thinking']={'type':'disabled'}
+        body.update(PROVIDERS[self.setting['provider']].get('extra',{}))
         req=urllib.request.Request(self.setting['base_url']+'/chat/completions',data=json.dumps(body).encode(),
             headers={'Authorization':'Bearer '+self.key,'Content-Type':'application/json'})
         try:
@@ -102,9 +98,25 @@ class CompatibleClient(SpatialJevClient):
             raise RuntimeError(f'模型没有返回可执行的合法动作（{reason}{reply}）；本次不执行。') from None
 
 
+class DecisionClient(SpatialJevClient):
+    """A systemone-style decision service other than TypeSafe (e.g. Microsoft-Decision-1 on OpenRouter)."""
+    def __init__(self,config,setting):
+        super().__init__(config,key=setting['api_key'])
+        self.setting=setting
+        self.endpoint,self.vendor=setting['base_url'],PROVIDERS[setting['provider']]['label']
+    def payload(self,state,actions):
+        payload=super().payload(state,actions)
+        payload['model']=self.setting['model']
+        return payload
+
+
+def is_decision(setting):
+    return PROVIDERS[setting['provider']]['group']=='decision'
+
+
 def create_client(config,setting):
     if setting['provider']=='jev':return SpatialJevClient(config,key=setting['api_key'])
-    return CompatibleClient(config,setting)
+    return (DecisionClient if is_decision(setting) else CompatibleClient)(config,setting)
 
 
 class PlayerGameSession(GameSession):
@@ -121,7 +133,7 @@ class PlayerGameSession(GameSession):
         self.memory = CooperationMemory(memory_path or self.credential_path.parent/'.player-memory.json')
         self.round_memory = None
         self.release = release_info()
-        if self.setting and self.setting['provider']!='jev':self.c['ai_max_response_age']=15
+        if self.setting and not is_decision(self.setting):self.c['ai_max_response_age']=15
     def _player_client(self,config):
         if not self.setting:raise RuntimeError('需要配置玩家 API')
         return self.connector(config,self.setting.copy())
@@ -238,7 +250,7 @@ class PlayerGameSession(GameSession):
                 else:self.credential_path.unlink(missing_ok=True)
                 self.setting=setting
                 if self.ai and self.ai.closed:self.ai=None
-                self.c['ai_max_response_age']=6 if setting['provider']=='jev' else 15
+                self.c['ai_max_response_age']=6 if is_decision(setting) else 15
                 response=(200,{'ok':True,'connection':self.connection_state()})
                 self.receipts[request_id]=response
                 while len(self.receipts)>128:self.receipts.popitem(last=False)
