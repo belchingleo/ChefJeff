@@ -129,6 +129,18 @@ class CompatibleTests(unittest.TestCase):
         body=json.loads(req.data)
         self.assertEqual(body['thinking'],{'type':'disabled'})
         self.assertEqual(body['model'],'deepseek-flash')
+    def test_zhipu_preset_turns_thinking_off_and_asks_for_json(self):
+        setting=settings_from({'provider':'zhipu','api_key':KEY})
+        self.assertEqual((setting['base_url'],setting['model']),('https://open.bigmodel.cn/api/paas/v4','glm-4.7-flash'))
+        self.client=CompatibleClient(load_config(),setting)
+        _,req=self.ask('{"choice":"wait"}')
+        self.assertEqual(req.full_url,'https://open.bigmodel.cn/api/paas/v4/chat/completions')
+        body=json.loads(req.data)
+        self.assertEqual((body['thinking'],body['response_format']),({'type':'disabled'},{'type':'json_object'}))
+    def test_other_compatible_services_get_no_vendor_fields(self):
+        self.client=CompatibleClient(load_config(),settings_from({'provider':'compatible','base_url':'https://api.example.com/v1','model':'m','api_key':KEY}))
+        body=json.loads(self.ask('{"choice":"wait"}')[1].data)
+        self.assertNotIn('thinking',body);self.assertNotIn('response_format',body)
     def test_invalid_model_output_is_not_replaced_by_script(self):
         for content in ['{"choice":"invented"}','not json',None]:
             with self.subTest(content=content),self.assertRaises(RuntimeError):self.ask(content)

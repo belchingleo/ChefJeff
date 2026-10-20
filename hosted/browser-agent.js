@@ -373,6 +373,8 @@
       } catch (e) {status(e.message);}
     };
     const select = document.getElementById('api-provider');
+    // Zhipu answers browser preflights without CORS headers, so the hosted page cannot call it directly.
+    document.querySelector('#api-provider option[value="zhipu"]')?.remove();
     if (select && !setting) {select.value = 'deepseek';select.dispatchEvent(new Event('change'));}
   });
 })();

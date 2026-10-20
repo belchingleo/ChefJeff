@@ -22,16 +22,22 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         raise urllib.error.HTTPError(req.full_url, code, 'Redirect refused', headers, fp)
 
 
+# Presets: fixed base URL and default model. DeepSeek and Zhipu answer one JSON object with thinking off,
+# so the reply fits max_tokens; any other Chat Completions service is "compatible".
+PRESETS={'jev':('https://api.typesafe.ai/v1','jev-latest'),'deepseek':('https://api.deepseek.com','deepseek-flash'),
+         'zhipu':('https://open.bigmodel.cn/api/paas/v4','glm-4.7-flash')}
+JSON_NO_THINKING={'deepseek','zhipu'}
+
+
 def settings_from(body):
     provider=body.get('provider')
-    if provider not in ('jev','deepseek','compatible'):
+    if provider not in ('jev','deepseek','zhipu','compatible'):
         raise ValueError('请选择 API 服务。')
     key=body.get('api_key')
     if not isinstance(key,str) or not 8<=len(key.strip())<=2048 or any(c.isspace() for c in key.strip()):
         raise ValueError('请填写完整的 API Key，不要包含空格或换行。')
-    defaults={'jev':('https://api.typesafe.ai/v1','jev-latest'),'deepseek':('https://api.deepseek.com','deepseek-flash')}
-    base,model=defaults.get(provider,(body.get('base_url',''),body.get('model','')))
-    if provider=='deepseek':model=body.get('model') or model
+    base,model=PRESETS.get(provider,(body.get('base_url',''),body.get('model','')))
+    if provider in JSON_NO_THINKING:model=body.get('model') or model
     if not isinstance(base,str) or not isinstance(model,str) or not model.strip() or len(model)>120:
         raise ValueError('请填写接口地址和模型名称。')
     base=base.strip().rstrip('/')
@@ -64,7 +70,7 @@ class CompatibleClient(SpatialJevClient):
             {'role':'system','content':'You control the blue chef in a shared kitchen. Using the supplied state and rules, choose exactly one action key from questions.next_action.criteria. Return only a JSON object, for example {"choice":"wait"}. If questions.sprint is present, also return a boolean sprint (true or false) in the same JSON object. Do not explain or choose an action outside the candidate set.'},
             {'role':'user','content':json.dumps({'state':payload['state'],'questions':payload['questions']},ensure_ascii=False)}],
             'max_tokens':128}
-        if self.setting['provider']=='deepseek':
+        if self.setting['provider'] in JSON_NO_THINKING:
             body['response_format']={'type':'json_object'}
             body['thinking']={'type':'disabled'}
         req=urllib.request.Request(self.setting['base_url']+'/chat/completions',data=json.dumps(body).encode(),

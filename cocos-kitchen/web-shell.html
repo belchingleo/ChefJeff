@@ -139,7 +139,7 @@ function kitchenTabs(dialog){
   <p id="api-editing-status" role="status" aria-live="polite"></p>
   <form id="api-form">
    <label for="api-provider">模型服务</label>
-   <select id="api-provider"><option value="jev">TypeSafe · Jev（推荐）</option><option value="deepseek">DeepSeek</option><option value="compatible">其他兼容 Chat Completions 的服务</option></select>
+   <select id="api-provider"><option value="jev">TypeSafe · Jev（推荐）</option><option value="deepseek">DeepSeek</option><option value="zhipu">智谱 GLM-4.7-Flash（免费）</option><option value="compatible">其他兼容 Chat Completions 的服务</option></select>
    <div id="api-url-row" hidden><label for="api-url">接口地址（Base URL）</label><input id="api-url" type="url" placeholder="https://你的服务地址/v1" autocomplete="off"></div>
    <div id="api-model-row" hidden><label for="api-model">模型名称</label><input id="api-model" placeholder="服务商提供的模型 ID" autocomplete="off"><p><small>建议使用响应快的模型；过慢或无效的动作不会执行。</small></p></div>
    <label for="api-key">API Key</label><input id="api-key" type="password" placeholder="粘贴你的 API Key" autocomplete="off" spellcheck="false" required>
@@ -200,7 +200,7 @@ function kitchenTabs(dialog){
  const fields=()=>{
   const p=el('api-provider').value;el('api-url-row').hidden=p!=='compatible';el('api-model-row').hidden=p==='jev';
   el('api-url').required=p==='compatible';el('api-model').required=p!=='jev';
-  el('api-get-key').hidden=p==='compatible';el('api-get-key').href=p==='deepseek'?'https://platform.deepseek.com/api_keys':'https://console.typesafe.ai/login';
+  el('api-get-key').hidden=p==='compatible';el('api-get-key').href=p==='deepseek'?'https://platform.deepseek.com/api_keys':p==='zhipu'?'https://open.bigmodel.cn/':'https://console.typesafe.ai/login';
   el('api-jev-relay-row').hidden=!window.chefjeffJevRelayAvailable||p!=='jev';
  };
  const status=()=>{
@@ -235,7 +235,7 @@ function kitchenTabs(dialog){
   message(!c?'尚未连接厨房，暂时不能测试 API。':c.editable?'测试连接会发送一次小型 API 请求，可能产生少量费用。':'请在开局前或结算后更换 API；请完成当前对局后再修改。');
   showTab(el('tab-connection'));if(!dialog.open)dialog.showModal();
  });
- el('api-provider').addEventListener('change',()=>{el('api-model').value=el('api-provider').value==='deepseek'?'deepseek-flash':'';el('api-key').value='';el('api-jev-relay').checked=false;fields()});
+ el('api-provider').addEventListener('change',()=>{el('api-model').value={deepseek:'deepseek-flash',zhipu:'glm-4.7-flash'}[el('api-provider').value]||'';el('api-key').value='';el('api-jev-relay').checked=false;fields()});
  el('api-close').onclick=()=>{el('api-key').value='';dialog.close()};
  dialog.addEventListener('close',()=>{el('api-key').value=''});
  async function send(extra){
