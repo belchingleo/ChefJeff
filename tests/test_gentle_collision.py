@@ -27,15 +27,28 @@ class GentleCollisionTests(unittest.TestCase):
             self.assertGreater(k.positions[other][0],10.)
             self.assertLess(k.positions[other][0],10.3)
 
-    def test_sprint_bumps_once_per_dash_and_keeps_carried_food(self):
-        k=self.make();k.positions.update(human=(9.6,4.),jeff=(10.,4.))
+    def test_sprint_knocks_back_once_per_dash_and_keeps_carried_food(self):
+        # Overcooked's dash: reaching the other chef knocks them sprint_push cells away over
+        # sprint_push_duration (here into the east cabinet's walk limit), once per sprint.
+        k=self.make();k.positions.update(human=(8.6,4.),jeff=(9.,4.))
         k.chefs['jeff'].hand=Food('held');k.set_manual('human',1,0);k.sprint('human')
-        k.advance(.05);self.assertAlmostEqual(k.positions['jeff'][0],10.25)
+        k.advance(.05);self.assertTrue(k.knockback['jeff']);k.set_manual('human',0,0)
+        k.advance(k.rules.sprint_push_duration+.05)
+        landed=k.positions['jeff'][0]
+        self.assertAlmostEqual(landed,min(9.+k.rules.sprint_push,self.east_limit(k)),places=6)
         # Repeated contact within the same sprint cannot add more displacement.
         for _ in range(3):
-            k.positions['human']=(9.85,4.);k.advance(.05)
-        self.assertAlmostEqual(k.positions['jeff'][0],10.25)
+            k.positions['human']=(landed-.4,4.);k.set_manual('human',1,0);k.advance(.05)
+        self.assertAlmostEqual(k.positions['jeff'][0],landed)
         self.assertEqual(k.chefs['jeff'].hand.id,'held')
+
+    def test_two_sprinting_chefs_both_bounce_and_stop_sprinting(self):
+        k=self.make();k.positions.update(human=(6.,4.),jeff=(7.,4.))
+        k.set_manual('human',1,0);k.set_manual('jeff',-1,0);k.sprint('human');k.sprint('jeff')
+        k.advance(.15)
+        self.assertTrue(all(k.knockback[w] for w in ('human','jeff')))
+        self.assertTrue(all(k.time>=k.sprint_until[w] for w in ('human','jeff')))
+        k.assert_invariants()
 
     @staticmethod
     def east_limit(k):
@@ -167,7 +180,7 @@ class GentleCollisionTests(unittest.TestCase):
             self.assertAlmostEqual(k.positions[who][0],8.9)
             self.assertEqual(k.snapshot()['map']['walk_speed'],4.5)
 
-    def test_contact_cannot_displace_or_interrupt_active_chop_or_wash(self):
+    def test_contact_pinning_a_worker_to_the_station_cannot_displace_or_interrupt_the_work(self):
         for kind in ('chop','wash'):
             for worker in ('human','jeff'):
                 for boosted in (False,True):
@@ -204,6 +217,19 @@ class GentleCollisionTests(unittest.TestCase):
                         after=food.chopped if kind=='chop' else food.washed
                         self.assertAlmostEqual(after-before,.2)
                         k.assert_invariants()
+
+    def test_a_dash_from_the_side_knocks_a_worker_off_keeping_the_progress(self):
+        k=self.make();k.stations['b1'].food=Food('side-chop')
+        point=k.operation_point('b1',(4,2));k.positions.update(jeff=point,human=(point[0]-1.,point[1]))
+        self.assertTrue(k.command('jeff','chop b1')[0]);k.advance(.3)
+        before=k.stations['b1'].food.chopped
+        k.set_manual('human',1,0);self.assertTrue(k.sprint('human'))
+        k.advance(.1);k.set_manual('human',0,0);k.advance(k.rules.sprint_push_duration)
+        self.assertIsNone(k.chefs['jeff'].job);self.assertIsNone(k.stations['b1'].lock)
+        self.assertGreater(k.positions['jeff'][0]-point[0],.5)
+        kept=k.stations['b1'].food.chopped;self.assertGreaterEqual(kept,before)
+        k.advance(.5);self.assertEqual(k.stations['b1'].food.chopped,kept)
+        k.assert_invariants()
 
     def test_contact_does_not_pause_stove_heating(self):
         k=self.make();pot=k.stations['p1'];pot.food=Food('heating','cooking');pot.heating=True

@@ -77,6 +77,7 @@ class SpatialKitchen(Kitchen):
         self.sprint_ready_at={who:0. for who in self.chefs}
         self.nudged_distance={who:{} for who in self.chefs}
         self.bumped_chefs={who:set() for who in self.chefs}
+        self.knockback={who:None for who in self.chefs}
         # One spawn near each center on its side of the partition; sides shuffled by the spawn seed.
         spec = self.resolved['level']['spawns']
         axis = 0 if spec['partition']['axis'] == 'x' else 1
@@ -155,7 +156,7 @@ class SpatialKitchen(Kitchen):
         self.sprint_ready_at[who]=self.time+self.rules.sprint_duration+self.rules.sprint_cooldown
         self.nudged_distance[who]={}
         self.bumped_chefs[who]=set()
-        self.emit(f'{who} started sprinting',kind='sprint',actor=who,duration=float(self.rules.sprint_duration),
+        self.emit(f'{NAMES[who]}开始冲刺',kind='sprint',actor=who,duration=float(self.rules.sprint_duration),
                   multiplier=self.rules.sprint_multiplier,cooldown=float(self.rules.sprint_cooldown))
         return True
 
@@ -324,6 +325,31 @@ class SpatialKitchen(Kitchen):
         self._move_with_chef_contact(who,tuple(target),boosted,True)
         return math.dist(before,self.positions[who])
 
+    def _knock(self,who,unit):
+        """Start a dash knockback along unit (see _move_with_chef_contact). A chef pinned against a cabinet
+        or wall that way is not moved and keeps working; one knocked away stops work, keeping its progress,
+        and a reporting chef's browser follows the engine until the chef lands."""
+        here=self.positions[who]
+        if math.dist(here,self._wall_limited(here,tuple(here[i]+unit[i]*self.rules.sprint_push for i in (0,1))))<.1:return
+        if self.chefs[who].job and self.chefs[who].job.working:self.stop(who)
+        self.knockback[who]={'unit':unit,'start':self.time,'done':0.}
+        if self.reported[who]:self._resync(who,'knocked')
+        self.emit(f'{NAMES[who]}被推开',kind='knocked',actor=who)
+
+    def _knockback_step(self,who):
+        """The knockback distance due by now (sprint_push cells over sprint_push_duration, eased out), stopped
+        by walls and by the other chef."""
+        k=self.knockback[who];d=self.rules.sprint_push_duration
+        t=1. if d<=0 else min(1.,(self.time-k['start'])/d)
+        reach=self.rules.sprint_push*(1.-(1.-t)**2);step=reach-k['done'];k['done']=reach
+        if t>=1.:self.knockback[who]=None
+        if step<=1e-9:return
+        before=self.positions[who];other=self.positions['jeff' if who=='human' else 'human']
+        end=self._wall_limited(before,tuple(before[i]+k['unit'][i]*step for i in (0,1)))
+        fraction=contact_fraction(before,end,other,self.rules.chef_separation)
+        self.positions[who]=tuple(before[i]+(end[i]-before[i])*fraction for i in (0,1))
+        self.chefs[who].location=tile_key(self.anchor(who))
+
     def _push_chef(self,other,delta):
         # Active interactions are anchored: contact must not displace the chef,
         # interrupt shared progress or invalidate station/ground reservations.
@@ -345,7 +371,7 @@ class SpatialKitchen(Kitchen):
         as the speed budget allows, before an interaction uses the position. Reports made before the
         latest resync (`base` behind) are ignored. `press`: the browser is pressing into the other chef
         and follows the engine, which walks with the held direction until a plain report arrives."""
-        if self.ended or base != self.resync[who]:return False
+        if self.ended or base != self.resync[who] or self.knockback[who]:return False
         target=(float(x),float(y))
         if not all(math.isfinite(v) for v in target):return False
         self.reported[who]=True
@@ -413,10 +439,16 @@ class SpatialKitchen(Kitchen):
         fraction=contact_fraction(start,end,other,separation)
         if fraction>=1.-1e-8:
             self.positions[who]=self._wall_limited(start,end);return
-        # A single small sprint impulse; sustained normal pressure is much slower.
-        impulse=self.rules.sprint_push if boosted and other_id not in self.bumped_chefs[who] else 0.
-        if impulse:self.bumped_chefs[who].add(other_id)
-        self._push_chef(other_id,tuple(d*(impulse if boosted else distance*.18) for d in direction))
+        # A sprint that reaches the other chef knocks them back once (Overcooked's dash); two sprinting chefs
+        # both bounce and both sprints end. Sustained normal pressure only nudges.
+        if boosted and other_id not in self.bumped_chefs[who]:
+            self.bumped_chefs[who].add(other_id)
+            gap=math.dist(start,other);away=tuple((other[i]-start[i])/gap for i in (0,1)) if gap>1e-9 else direction
+            if self.time<self.sprint_until[other_id]-1e-8:
+                self.sprint_until[who]=self.sprint_until[other_id]=self.time
+                self._knock(who,tuple(-v for v in away))
+            self._knock(other_id,away)
+        elif not boosted:self._push_chef(other_id,tuple(d*distance*.18 for d in direction))
         other=self.positions[other_id]
         fraction=contact_fraction(start,end,other,separation)
         point=tuple(start[i]+(end[i]-start[i])*fraction for i in (0,1))
@@ -1233,6 +1265,8 @@ class SpatialKitchen(Kitchen):
         self.chefs[who].location = tile_key(self.anchor(who))
 
     def _after_step(self, seconds):
+        for who in self.chefs:
+            if self.knockback[who]:self._knockback_step(who)
         for who, vector in self.manual.items():
             if self.reported[who]:
                 allowance=self.rules.walk_speed*(seconds+self.sprint_extra(who,seconds))*REPORT_SPEED_MARGIN
@@ -1309,6 +1343,7 @@ class SpatialKitchen(Kitchen):
         for who, data in state['chefs'].items():
             data['can_throw'] = self.can_throw(who)
             data['throw_range'] = self.throw_range(who) if self.can_throw(who) else None
+            data['knocked']=bool(self.knockback[who])
             data['sprint']={'available':self.time>=self.sprint_ready_at[who], 'active_remaining':round(max(0,self.sprint_until[who]-self.time),3), 'cooldown_remaining':round(max(0,self.sprint_ready_at[who]-self.time),3),'multiplier':r.sprint_multiplier,'duration':float(r.sprint_duration),'cooldown_after':float(r.sprint_cooldown)}
             data['handoff_target'] = self.handoff_target(who) if self.can_throw(who) else None
             data['manual_moving'] = any(self.manual[who]) and not self.ended

@@ -181,6 +181,7 @@ class Rules:
         self.sprint_cooldown = s(move['sprint_cooldown_game_ms'])
         self.chef_separation = move['chef_separation_cells']
         self.sprint_push = move['sprint_push_cells']
+        self.sprint_push_duration = s(move.get('sprint_push_game_ms', 0))
         self.sprint_food_nudge = move['sprint_food_nudge_cells']
         # Optional one body size against workstations: feet stay `front` south of a cabinet
         # (clear of its front panel) and `side` from its east/west edges. Absent = the

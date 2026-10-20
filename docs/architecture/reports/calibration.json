@@ -604,12 +604,12 @@
    "pair_median": 320,
    "pair_max": 320,
    "target_50pct": 160,
-   "current_target": 150,
+   "current_target": 160,
    "runs_reaching_current_target": 21,
    "solo_min": 156,
    "solo_median": 156,
    "solo_max": 156,
-   "solo_runs_reaching_current_target": 21
+   "solo_runs_reaching_current_target": 0
   },
   {
    "level": 3,

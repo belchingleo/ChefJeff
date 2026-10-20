@@ -599,6 +599,8 @@ export class KitchenClient extends Component {
         if(!c.position){this.predicted=null;return null;}
         if((c.resync??0)!==this.resyncSeen){this.resyncSeen=c.resync??0;this.predicted=null;}
         if(!this.predicted)this.predicted=[c.position[0],c.position[1]];
+        // Knocked back by a dash: the engine moves the chef; follow it until it lands.
+        if(c.knocked){const pull=Math.min(1,dt*14);this.predicted=[this.predicted[0]+(c.position[0]-this.predicted[0])*pull,this.predicted[1]+(c.position[1]-this.predicted[1])*pull];this.walkRamp=0;return this.predicted;}
         const d=this.manualDirection,walk=(k.map.walk_speed||4.5)*this.sprintFactor(c),other=k.chefs.jeff?.position,game=dt*this.state!.speed;
         // A quick take/put finishes before the held direction starts, as on the server.
         if(this.clock<this.handsBusyUntil||(d.x===0&&d.y===0)){

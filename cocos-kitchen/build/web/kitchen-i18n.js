@@ -1188,6 +1188,14 @@
     [
       "自动贡献失败：{0}",
       "Automatic contribution failed: {0}"
+    ],
+    [
+      "{0}被推开",
+      "{0} was knocked back"
+    ],
+    [
+      "{0}开始冲刺",
+      "{0} started sprinting"
     ]
   ]
 }

@@ -7,7 +7,7 @@ The Cocos browser game uses the shared rules in `kitchen.py`, `spatial_kitchen.p
 | Rule | Game-time value |
 | --- | --- |
 | Walk | 4.5 cells/second for both chefs |
-| Sprint | Starts at 2× walking speed and eases back to walking over 1 second (Overcooked's dash); the next can start as soon as one ends |
+| Sprint | Starts at 2× walking speed and eases back to walking over 1 second (Overcooked's dash); the next can start as soon as one ends; reaching the other chef knocks them about a cell away |
 | Pick/place/plate/serve | Usually 0.15 seconds plus travel |
 | Chop / cook | 3 / 12 seconds (the knife strikes about 3.7 times a second) |
 | Cooked → burnt → fire | 10 / 8 seconds while heating |
@@ -19,7 +19,7 @@ The Cocos browser game uses the shared rules in `kitchen.py`, `spatial_kitchen.p
 
 The game clock runs at real time online and at 0.75× real time by default in local play. API latency and request limits use real time. Walk diagonals do not increase speed. Sprint accelerates movement, not preparation.
 
-Hold WASD/arrows to move; release to stop. Experimental landscape touch controls also provide a left joystick: push to move, release to stop. Shift or the touch Dash button while moving triggers the same sprint; touch input does not change speed, duration or cooldown. Automatic movement uses the same chef-contact response as manual movement: slide around a partner when there is space, gently push under sustained pressure, and apply a bounded sprint nudge of at most a quarter cell. An AI route that makes no progress for 0.3 s re-plans from where contact left it, around the other chef (the same rule for both chefs), so two walkers cannot lock each other up. Walls and cabinets block movement: feet stop short of a cabinet's front panel and sides, and every cabinet is walked right up to from behind, so a chef works at any cabinet from the same line (boards are no longer a deeper exception). A held direction key that is fully blocked by an edge you could clear by stepping at most 0.3 cells sideways slides you out first, for example at the end of a counter run. In a passage too narrow for two chefs to pass, two chefs meeting head-on do not lock: the one with farther to go (Jeff on a tie, and always Jeff against the player's own walking) backs off to the nearest spot clear of the other's way, then goes on. Chefs chopping or washing cannot be pushed away. Either chef can also walk straight into the other on purpose ("go partner", the AI's counterpart of walking into Jeff): the walk ends on contact, which pushes, and a dash then gives the same bounded nudge. Ground food does not block walking or repel other food; sprint can nudge loose ingredients by at most a quarter cell.
+Hold WASD/arrows to move; release to stop. Experimental landscape touch controls also provide a left joystick: push to move, release to stop. Shift or the touch Dash button while moving triggers the same sprint; touch input does not change speed, duration or cooldown. Automatic movement uses the same chef-contact response as manual movement: slide around a partner when there is space, gently push under sustained pressure, and a sprint that reaches the other chef knocks them about a cell away over 0.2 s, once per sprint, as Overcooked's dash (two sprinting chefs both bounce and both sprints end). An AI route that makes no progress for 0.3 s re-plans from where contact left it, around the other chef (the same rule for both chefs), so two walkers cannot lock each other up. Walls and cabinets block movement: feet stop short of a cabinet's front panel and sides, and every cabinet is walked right up to from behind, so a chef works at any cabinet from the same line (boards are no longer a deeper exception). A held direction key that is fully blocked by an edge you could clear by stepping at most 0.3 cells sideways slides you out first, for example at the end of a counter run. In a passage too narrow for two chefs to pass, two chefs meeting head-on do not lock: the one with farther to go (Jeff on a tie, and always Jeff against the player's own walking) backs off to the nearest spot clear of the other's way, then goes on. Chefs chopping or washing cannot be pushed away by walking into them; a dash knocks them off the station, stopping the work with its progress kept, unless the knock would only press them into the cabinet. Either chef can also walk straight into the other on purpose ("go partner", the AI's counterpart of walking into Jeff): the walk ends on contact, which pushes, and a dash knocks them back as above. Ground food does not block walking or repel other food; sprint can nudge loose ingredients by at most a quarter cell.
 
 ## Actions and throwing
 
@@ -72,7 +72,7 @@ Cocos 浏览器版共用 `kitchen.py`、`spatial_kitchen.py`、地图 JSON 和�
 | 规则 | 游戏时间参数 |
 | --- | --- |
 | 行走 | 双方均为 4.5 格／秒 |
-| 冲刺 | 起步 2 倍行走速度，1 秒内平滑回落到正常速度（《胡闹厨房》的冲刺）；结束后可立即再冲 |
+| 冲刺 | 起步 2 倍行走速度，1 秒内平滑回落到正常速度（《胡闹厨房》的冲刺）；结束后可立即再冲；撞上对方会把对方撞开约 1 格 |
 | 取放／装盘／出餐 | 通常 0.15 秒，另加路程 |
 | 切配／烹饪 | 3／12 秒（每秒约挥刀 3.7 下） |
 | 熟到糊／糊到火 | 持续加热时 10／8 秒 |
@@ -84,7 +84,7 @@ Cocos 浏览器版共用 `kitchen.py`、`spatial_kitchen.py`、地图 JSON 和�
 
 在线版游戏时钟与现实时间相同，本地版默认为现实时间的 0.75 倍；API 延迟及请求限制按现实时间计算。斜走不加速，冲刺仅加速移动。
 
-按住 WASD／方向键移动，松开停止；试验版横屏触控也可推动左摇杆移动、松手停止。移动时按 Shift 或触屏「冲刺」按钮，均沿用相同冲刺速度、时长和冷却。自动与手动移动共用厨师接触处理：有空间时沿搭档边缘滑过，持续前进时温和推挤，冲刺产生最多四分之一格的有限位移。AI 路线若 0.3 秒无进展，会从当前位置绕开对方重新规划（双方同一规则），两位自动行走的厨师不会互相卡死。墙与柜体不可穿过：脚步停在柜门面板和柜体两侧之外，柜台背面则都可以走到贴边，所以站在哪个柜台前操作都在同一条线上（案板不再是更深的特例）；按住方向键被挡住时，如果往侧边挪不超过 0.3 格就能绕开（比如一排柜台的尽头），会先自动滑出再继续走；在窄到两人无法错身的通道里迎面相遇时不会僵持：剩余路程更长的一方（相同时由 Jeff 让，玩家自己走时总是 Jeff 让）退到最近一个不挡对方的位置，等对方过去再走；正在切菜或洗碗的厨师不可被推离。双方也都可以有意走向并撞上对方（“走到对方厨师当前的位置”，即 AI 版的“走过去撞 Jeff”）：接触即结束行走并产生推挤，冲刺时同样有上述有限位移。地面食物不挡走路，食物之间不相互弹开；冲刺可将散落原料推移最多四分之一格。
+按住 WASD／方向键移动，松开停止；试验版横屏触控也可推动左摇杆移动、松手停止。移动时按 Shift 或触屏「冲刺」按钮，均沿用相同冲刺速度、时长和冷却。自动与手动移动共用厨师接触处理：有空间时沿搭档边缘滑过，持续前进时温和推挤；冲刺撞上对方时，会像《胡闹厨房》的冲刺一样在 0.2 秒内把对方撞开约 1 格，每次冲刺只撞一次（两人都在冲刺时对撞，双双弹开，冲刺都结束）。AI 路线若 0.3 秒无进展，会从当前位置绕开对方重新规划（双方同一规则），两位自动行走的厨师不会互相卡死。墙与柜体不可穿过：脚步停在柜门面板和柜体两侧之外，柜台背面则都可以走到贴边，所以站在哪个柜台前操作都在同一条线上（案板不再是更深的特例）；按住方向键被挡住时，如果往侧边挪不超过 0.3 格就能绕开（比如一排柜台的尽头），会先自动滑出再继续走；在窄到两人无法错身的通道里迎面相遇时不会僵持：剩余路程更长的一方（相同时由 Jeff 让，玩家自己走时总是 Jeff 让）退到最近一个不挡对方的位置，等对方过去再走；正在切菜或洗碗的厨师走路顶不动；冲刺能把他撞离工位，工作中断、进度保留，但如果撞开的方向正对着柜台、根本撞不动，就继续干活。双方也都可以有意走向并撞上对方（“走到对方厨师当前的位置”，即 AI 版的“走过去撞 Jeff”）：接触即结束行走并产生推挤，冲刺时同样会把对方撞开。地面食物不挡走路，食物之间不相互弹开；冲刺可将散落原料推移最多四分之一格。
 
 ## 操作与抛掷
 

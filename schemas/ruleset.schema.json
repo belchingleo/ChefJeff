@@ -120,7 +120,13 @@
           "type": "number",
           "minimum": 0,
           "maximum": 1,
-          "description": "One-time push applied to the other chef by a sprint impulse."
+          "description": "How far a sprint that reaches the other chef knocks them back (once per sprint), as Overcooked's dash; a chef at work is knocked off it, keeping progress."
+        },
+        "sprint_push_game_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000,
+          "description": "Time the knockback takes, eased out. Absent or 0: the push is instant."
         },
         "sprint_food_nudge_cells": {
           "description": "Maximum distance a sprint moves each loose ground ingredient.",

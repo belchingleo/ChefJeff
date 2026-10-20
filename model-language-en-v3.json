@@ -571,6 +571,14 @@
       "{0}'s position was set by the engine"
     ],
     [
+      "{0}被推开",
+      "{0} was knocked back"
+    ],
+    [
+      "{0}开始冲刺",
+      "{0} started sprinting"
+    ],
+    [
       "{0} {1}s 后糊",
       "{0} · burns in {1}s"
     ],

@@ -29,7 +29,8 @@
     "sprint_duration_game_ms": 1000,
     "sprint_cooldown_game_ms": 0,
     "chef_separation_cells": 0.4,
-    "sprint_push_cells": 0.25,
+    "sprint_push_cells": 1.0,
+    "sprint_push_game_ms": 200,
     "sprint_food_nudge_cells": 0.25,
     "cabinet_clearance_cells": {
       "front": 0.45,
