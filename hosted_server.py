@@ -147,7 +147,8 @@ class HostedSession(GameSession):
                 'connection_checks': 0, 'usage': dict(ai.tokens) if ai else {'input_tokens': 0, 'output_tokens': 0}}
             state['memory'] = {'enabled': False, 'editable': False, 'saved_rounds': 0, 'limit': 0, 'used_rounds': 0}
             state['release'] = self.release
-            state['hosted'] = {'retention': 'session-only', 'idle_minutes': 10, 'contribution_enabled': self.store is not None}
+            state['hosted'] = {'retention': 'session-only', 'idle_minutes': 10, 'contribution_enabled': self.store is not None,
+                               'contributed': self.receipt_round == self.game_id}
             return state
 
     def _command(self, path, body):
@@ -204,7 +205,7 @@ FIELDS = {
     '/api/level': {'level'}, '/api/next': {'level'}, '/api/limits': {'max_calls'}, '/api/export-run': set(),
     '/api/feedback': set(), '/api/bookmark': set(), '/api/communicate': {'code'},
     '/api/move': {'dx', 'dy', 'seq', 'sprint'}, '/api/position': {'seq', 'base', 'at', 'press'}, '/api/select': {'target'},
-    '/api/interact': {'expected_item', 'mode', 'at', 'base', 'aim', 'target'}, '/api/throw': {'target', 'direction', 'expected_item', 'at', 'base'},
+    '/api/interact': {'expected_item', 'mode', 'at', 'base', 'aim', 'target'}, '/api/throw': {'direction', 'expected_item', 'at', 'base'},
     '/api/action': {'action', 'expected'},
     '/api/model/result': {'id', 'choice', 'sprint', 'usage', 'failed'},
 }
@@ -333,7 +334,9 @@ def hosted_html(raw):
     for old, new in SHELL_REPLACEMENTS:
         page = page.replace(old, new)
     panel = (ROOT / 'hosted' / 'contribution.html').read_text()
-    page = page.replace('</body>', CONTRIBUTION_BADGE + '</body>', 1)
+    # The one-time contribution question sits beside the dialogs, outside Settings.
+    consent = (ROOT / 'hosted' / 'consent.html').read_text()
+    page = page.replace('</body>', consent + CONTRIBUTION_BADGE + '</body>', 1)
     # Newer shells mark a slot in the Export tab; older builds append to the settings dialog.
     page = page.replace(CONTRIBUTION_SLOT, panel, 1) if CONTRIBUTION_SLOT in page else page.replace('</dialog>', panel + '</dialog>', 1)
     return page.encode('utf-8')

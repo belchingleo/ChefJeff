@@ -1,7 +1,8 @@
 import math
 import unittest
 from kitchen import Food, GroundItem, load_config
-from spatial_kitchen import SpatialKitchen, EQUIPMENT, FLOOR, neighbors, tile_key, clear_walk_line
+from spatial_kitchen import SpatialKitchen, tile_key
+from level_one import EQUIPMENT, FLOOR, neighbors, clear_walk_line
 
 class LayoutInteractionTests(unittest.TestCase):
     def make(self,seed=0):
@@ -57,11 +58,16 @@ class LayoutInteractionTests(unittest.TestCase):
             endpoint={(4,2):(4,2.49),(3,3):(3.15,3.),(5,3):(4.85,3.)}[cell]
             expected=[cell,endpoint]
             self.assertEqual(k.path('human','b1'),expected)
-    def test_swap_drops_at_actual_service_side(self):
-        k=self.make();k.positions['human']=(3.,3.);k.chefs['human'].hand=Food('old')
+    def test_full_hands_never_take_from_a_station(self):
+        # As with the player's Space: put the held item down first; no automatic swap at a board.
+        for who in ('human','jeff'):
+            k=self.make();k.positions[who]=(3.,3.);k.chefs[who].hand=Food('old')
+            k.stations['b1'].food=Food('cut','chopped',6)
+            self.assertFalse(k.command(who,'take b1')[0]);self.assertEqual(k.chefs[who].hand.id,'old')
+        # The player's Space facing that board does nothing either.
+        k=self.make();k.positions['human']=(3.,3.);k.facing['human']='right';k.chefs['human'].hand=Food('old')
         k.stations['b1'].food=Food('cut','chopped',6)
-        k.command('human','take b1');job=k.chefs['human'].job;k.advance(job.travel+job.work+.001)
-        self.assertEqual(k.ground['old'].location,'floor_3_3');k.assert_invariants()
+        self.assertIsNone(k.facing_interaction('human')[1])
     def test_space_cooking_chain_and_washing(self):
         k=self.make();self.stand(k,'fridge');self.assertEqual(self.press(k),'fetch')
         self.stand(k,'b1');self.assertEqual(self.press(k),'put_board')
@@ -81,12 +87,13 @@ class LayoutInteractionTests(unittest.TestCase):
         self.assertEqual(self.press(k),'plate_ground');self.assertIsNone(pot.contents)
         self.stand(k,'counter4');self.assertEqual(self.press(k),'put_counter')
         self.assertEqual(self.press(k),'take_counter')
-    def test_space_cancels_work_without_losing_progress(self):
+    def test_work_is_sticky_and_walking_away_keeps_progress(self):
+        # Overcooked: Space never stops chopping; walking away does, and the progress stays.
         k=self.make();self.stand(k,'b1');k.stations['b1'].food=Food('meat')
         k.start('human',k.quick_interaction('human'));k.advance(1)
-        self.assertEqual(k.quick_interaction('human').kind,'stop')
-        self.press(k);self.assertGreater(k.stations['b1'].food.chopped,0)
-        self.assertEqual(k.quick_interaction('human').kind,'chop')
+        self.assertIsNone(k.quick_interaction('human'));self.assertEqual(k.facing_interaction('human'),(None,None))
+        k.set_manual('human',-1,0);k.advance(.1);k.set_manual('human',0,0)
+        self.assertIsNone(k.chefs['human'].job);self.assertGreater(k.stations['b1'].food.chopped,0)
     def test_both_bins_discard_food_and_preserve_pot(self):
         for key in ('bin',):
             k=self.make();self.stand(k,key);k.chefs['human'].hand=Food('meat')

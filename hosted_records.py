@@ -11,7 +11,7 @@ import time
 from feedback import EVENTS
 
 RETENTION_SECONDS = 30 * 86400
-CONSENT_VERSION = 'pilot-session-2026-09-v1'
+CONSENT_VERSION = 'pilot-session-2026-10-v2'
 
 
 def pilot_record(session):

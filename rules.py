@@ -22,10 +22,9 @@ SETTINGS = json.loads((ROOT / 'config.json').read_text())
 GAME_KEYS = {'level', 'boards', 'pots', 'pot_count', 'plate_count', 'round_seconds', 'order_count', 'order_interval',
              'order_patience', 'target_money',
              'chop_seconds', 'cook_seconds', 'burn_after_ready', 'fire_after_burn', 'same_area_walk', 'cross_area_walk',
-             'handling_seconds', 'dining_seconds', 'wash_seconds', 'fire_spread_seconds', 'fire_loss_threshold',
+             'handling_seconds', 'dining_seconds', 'wash_seconds', 'fire_flammability_seconds', 'fire_loss_threshold',
              'order_seed', 'spawn_seed', 'level_id'}
 DERIVED_KEYS = {'boards', 'pots', 'order_count'}  # counted from the map and order plan; read-only in the flat view
-PLATE_COUNTERS = ('plates', 'counter2', 'counter3')
 
 
 def _ms(seconds):
@@ -66,19 +65,19 @@ def _apply_flat_overrides(docs, overrides):
             ruleset['operations']['handling_game_ms'] = _ms(value)
         elif key == 'dining_seconds':
             ruleset['tableware']['dining_game_ms'] = _ms(value)
-        elif key == 'fire_spread_seconds':
-            ruleset['fire']['spread_interval_game_ms'] = _ms(value)
+        elif key == 'fire_flammability_seconds':
+            ruleset['fire']['flammability_game_ms'] = _ms(value)
         elif key == 'fire_loss_threshold':
             ruleset['fire']['loss_threshold'] = int(value)
         elif key in ('same_area_walk', 'cross_area_walk'):
             ruleset['abstract_travel']['same_area_game_ms' if key == 'same_area_walk' else 'cross_area_game_ms'] = _ms(value)
         elif key == 'plate_count':
             n = int(value)
-            if not 1 <= n <= len(PLATE_COUNTERS):
+            if not 1 <= n <= 3:
                 raise ValueError('plate_count override supports 1 to 3 plates on the first counters')
             kept = [e for e in level['initial_inventory'] if e['object'] != 'plate']
-            level['initial_inventory'] = kept + [{'object': 'plate', 'id': f'D{i + 1}', 'state': 'clean', 'at': PLATE_COUNTERS[i]}
-                                                 for i in range(n)]
+            level['initial_inventory'] = [{'object': 'plate', 'id': f'D{i + 1}', 'state': 'clean', 'at_type': 'counter'}
+                                          for i in range(n)] + kept
         elif key == 'pot_count':
             if int(value) != sum(e['object'] in cc.VESSELS for e in level['initial_inventory']):
                 raise ValueError('pot_count is defined by the level inventory')
@@ -163,12 +162,15 @@ class Rules:
         s = cc.seconds
         self.handling = s(ruleset['operations']['handling_game_ms'])
         self.extinguish = s(ruleset['operations']['extinguish_game_ms'])
-        self.clear = s(ruleset['operations']['clear_game_ms'])
         # Optional: assemble with a plate or ingredient lying on the floor. Absent = pickup/swap only.
         self.ground_assembly = ruleset['operations'].get('ground_assembly', False)
         self.dining = s(ruleset['tableware']['dining_game_ms'])
         self.return_capacity = ruleset['tableware']['return_capacity']
-        self.fire_spread = s(ruleset['fire']['spread_interval_game_ms'])
+        fire = ruleset['fire']
+        self.flammability = s(fire['flammability_game_ms'])
+        self.fire_cooldown_delay = s(fire['cooldown_delay_game_ms'])
+        self.fire_cooldown = s(fire['cooldown_game_ms'])
+        self.relight_delay = s(fire['relight_delay_game_ms'])
         self.fire_loss = ruleset['fire']['loss_threshold']
         self.penalty = dict(ruleset['penalties'])
         self.burnt_service = [dict(t) for t in ruleset.get('burnt_service', [])]
@@ -182,6 +184,7 @@ class Rules:
         self.sprint_cooldown = s(move['sprint_cooldown_game_ms'])
         self.chef_separation = move['chef_separation_cells']
         self.sprint_push = move['sprint_push_cells']
+        self.sprint_push_duration = s(move.get('sprint_push_game_ms', 0))
         self.sprint_food_nudge = move['sprint_food_nudge_cells']
         # Optional one body size against workstations: feet stay `front` south of a cabinet
         # (clear of its front panel) and `side` from its east/west edges. Absent = the
@@ -207,7 +210,7 @@ class Rules:
         self.throw_speed = throw['speed_cells_per_game_s']
         self.min_flight = s(throw['min_flight_game_ms'])
         self.catch_radius = throw['catch_radius_cells']
-        # Optional: items that are not throwable ingredients (plates, plated food, pots, tools)
+        # Optional: items that are not throwable ingredients (plates, plated food, pots)
         # can be passed to the floor or a chef within this shorter range. Absent = not passable.
         self.pass_range = throw.get('pass_range_cells')
 
@@ -316,8 +319,9 @@ class Rules:
                     and not food.plate_id)
 
     def throw_reach(self, food):
-        """Flight range for a held item: throw range for loose ingredients, pass range otherwise."""
-        if not food:
+        """Flight range for a held item: throw range for loose ingredients, pass range otherwise.
+        The extinguisher is never thrown, as in Overcooked 2."""
+        if not food or food.stage == 'extinguisher':
             return None
         return self.throw_range if self.throwable(food) else self.pass_range
 

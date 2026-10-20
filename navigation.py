@@ -21,22 +21,19 @@ def contact_fraction(start,end,center,radius):
     return max(0.,min(1.,(-b-math.sqrt(disc))/a))
 
 class Navigation:
-    def __init__(self, width, height, walls, equipment, contact_edges=(), cabinet_clearance=None):
+    def __init__(self, width, height, walls, equipment, cabinet_clearance=None):
         self.width,self.height=width,height
         cabinets={tuple(c) for e in equipment.values() for c in e.get('cells',[e['cell']])}
         self.blocked=set(walls)|cabinets
         self.floor={(x,y) for x in range(width) for y in range(height)}-self.blocked
-        self.contact_edges=dict(contact_edges)
-        # Without cabinet_clearance: remove only approved board-face clearance; countertops remain solid.
-        # With cabinet_clearance (front, side), every workstation keeps one body
-        # size instead: feet stay `front` south of it, clear of its front panel,
-        # and `side` from its east/west edges, the chef's half width. The north
-        # (back) edge keeps the board-face rule, where the cabinet hides the legs.
-        # Walls keep the ordinary clearance.
+        front,side=cabinet_clearance or (WALK_CLEARANCE,WALK_CLEARANCE)
+        # Every workstation keeps one body size: feet stay `front` south of it, clear of its front
+        # panel, and `side` from its east/west edges, the chef's half width. North of it (the back
+        # edge, where the cabinet hides the legs) every cabinet is walked up to, so a chef works at
+        # any cabinet from the same line. Walls keep the ordinary clearance.
         def edge(cell,face):
-            if cabinet_clearance and cell in cabinets and face!='down':
-                return cabinet_clearance[0] if face=='up' else cabinet_clearance[1]
-            return 0 if face in self.contact_edges.get(cell,()) else WALK_CLEARANCE
+            if cell not in cabinets:return WALK_CLEARANCE
+            return 0 if face=='down' else front if face=='up' else side
         self.walk_boxes=tuple((x-.5-edge((x,y),'right'),y-.5-edge((x,y),'down'),
                                x+.5+edge((x,y),'left'),y+.5+edge((x,y),'up'))
                               for x,y in sorted(self.blocked))

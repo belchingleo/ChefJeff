@@ -2,7 +2,8 @@ import math
 import random
 import unittest
 from kitchen import Food, load_config
-from spatial_kitchen import SpatialKitchen, WALK_SPEED, FLOOR, EQUIPMENT, BLOCKED, tile_key, shortest_path, clear_walk_line, walkable_point
+from spatial_kitchen import SpatialKitchen, WALK_SPEED, tile_key
+from level_one import FLOOR, EQUIPMENT, BLOCKED, shortest_path, clear_walk_line, walkable_point
 from whitebox_server import SpatialJevClient
 from web_server import GameSession
 from test_web import Client, FakeJournal
@@ -47,7 +48,8 @@ class SpatialTests(unittest.TestCase):
     def test_single_board_detour_uses_shortest_safe_corners(self):
         route=shortest_path((3,3),(5,3))
         length=sum(math.dist(a,b) for a,b in zip(route,route[1:]))
-        self.assertAlmostEqual(length,2*math.hypot(.3,.7)+1.4)
+        # Round b1's back edge (walked up to) between its 0.35-cell side clearances: x 3.15..4.85 at y 2.5.
+        self.assertAlmostEqual(length,2*math.hypot(.15,.5)+1.7)
         self.assertTrue(all(clear_walk_line(a,b) for a,b in zip(route,route[1:])))
         self.assertFalse(clear_walk_line((3,3),(5,3)))
         # A diagonal that clips the board cannot become a shortcut.
@@ -101,7 +103,7 @@ class SpatialTests(unittest.TestCase):
 
     def test_full_floor_near_chef_does_not_destroy_held_food(self):
         from kitchen import GroundItem
-        from spatial_kitchen import neighbors
+        from level_one import neighbors
         k=self.make();origin=k.anchor('human')
         for i,cell in enumerate([origin]+neighbors(origin)):
             k.ground[str(i)]=GroundItem(Food(str(i)),tile_key(cell))
@@ -122,10 +124,11 @@ class SpatialTests(unittest.TestCase):
 
     def test_fire_and_extinguish_still_work_with_spatial_walking(self):
         # Configuration is frozen at round start: set the spread interval up front.
-        k=self.make(fire_spread_seconds=1000);self.assertEqual(k.rules.fire_spread,1000);pot=k.stations['p1'];pot.food=Food('hot','cooking',6,0);pot.heating=True
+        k=self.make(fire_flammability_seconds=1000);self.assertEqual(k.rules.flammability,1000);pot=k.stations['p1'];pot.food=Food('hot','cooking',6,0);pot.heating=True
         k.advance(31)
         self.assertTrue(pot.fire)
-        self.do(k,'human','take extinguisher');self.do(k,'human','extinguish p1');self.do(k,'human','clear p1')
+        self.do(k,'human','take extinguisher');self.do(k,'human','extinguish p1');self.do(k,'human','put extinguisher')
+        self.do(k,'human','take pot p1');self.do(k,'human','discard');self.do(k,'human','put pot p1')
         self.assertIsNone(pot.food);self.assertFalse(pot.fire)
         self.assertEqual(k.money,-7)
 

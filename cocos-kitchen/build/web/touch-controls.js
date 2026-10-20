@@ -32,7 +32,7 @@
       #kitchen-touch-landscape{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:max(20px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left));box-sizing:border-box;background:var(--frame);text-align:center;color:var(--paper)}#kitchen-touch-landscape .panel{padding:24px;max-width:370px;text-align:center}#kitchen-touch-landscape h2{font-size:24px;margin:10px 0}#kitchen-touch-landscape p{color:var(--muted);font-size:15px;line-height:1.6;margin:8px 0 0}.touch-rotate-icon{font-size:46px;line-height:1}
       body.kitchen-touch-mode #kitchen-display-hint{display:none}body.kitchen-touch-mode #GameDiv{height:100dvh!important}body.kitchen-touch-mode #GameCanvas{touch-action:none;-webkit-touch-callout:none}
       body.kitchen-touch-mode #kitchen-communication{left:auto;right:max(10px,env(safe-area-inset-right));top:calc(max(4px,env(safe-area-inset-top)) + 44px);bottom:auto;transform:none;width:min(300px,calc(100vw - 24px));max-height:calc(var(--touch-vh,100dvh) - 58px);overflow:auto;z-index:30;font:14px/20px var(--body);touch-action:pan-y}body.kitchen-touch-mode #kitchen-communication:not([data-touch-open=true]){display:none!important}
-      body.kitchen-touch-mode #kitchen-communication button{min-height:40px;font-size:14px}body.kitchen-touch-mode #kitchen-communication .key{display:none}body.kitchen-touch-mode #communication-toggle{display:none}
+      body.kitchen-touch-mode #kitchen-communication button{min-height:40px;font-size:14px}body.kitchen-touch-mode #kitchen-communication .key{display:none}body.kitchen-touch-mode #communication-toggle{display:none}#touch-communication-close{display:none}body.kitchen-touch-mode #touch-communication-close{display:block;width:100%;margin:0 0 6px;justify-content:center}
       body.kitchen-touch-mode dialog.panel{max-height:calc(var(--touch-vh,100dvh) - 12px);max-width:calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right) - 20px);font-size:15px;touch-action:pan-y;overscroll-behavior:contain}body.kitchen-touch-mode .dlg-head{padding:10px 14px;gap:8px}body.kitchen-touch-mode .dlg-head h2{font-size:20px;line-height:24px}body.kitchen-touch-mode .dlg-body{padding:12px 14px}body.kitchen-touch-mode .tabs{padding:0 14px 8px;gap:4px}body.kitchen-touch-mode .dlg-foot{padding:0 14px 14px}body.kitchen-touch-mode .sr-label{display:none}body.kitchen-touch-mode input,body.kitchen-touch-mode textarea,body.kitchen-touch-mode select{font-size:16px!important;-webkit-user-select:text;user-select:text;-webkit-touch-callout:default;touch-action:auto}
       body.kitchen-touch-mode #kitchen-bookmark-toast{left:50%;bottom:154px;transform:translateX(-50%);max-width:calc(100vw - 32px);font:13px/18px var(--body)}
       @media(max-width:700px){.touch-toolbar{gap:4px;padding:0 4px}.touch-toolbar button{padding:3px 6px}.touch-clock{font-size:14px}.touch-money{font-size:12px}#touch-served{display:none}#touch-joystick{width:112px;height:112px}.touch-orders{bottom:calc(max(8px,env(safe-area-inset-bottom)) + 124px)}.touch-buttons{gap:10px}.touch-hint{left:132px;right:160px;font-size:11px}.touch-menu{padding:10px 12px}.touch-menu h2{font-size:20px}.touch-menu button{min-height:36px;font-size:13px}}
@@ -61,22 +61,24 @@
       #touch-joystick[aria-disabled=true]{opacity:.45}
       .touch-round{border:2px solid #ffffffd9;box-shadow:0 0 0 1px #2b1a1259;color:#fff;text-shadow:0 1px 2px #2b1a12;font-weight:750;place-items:center;background-image:none;transition:background-color .06s,transform .06s}
       #touch-action{width:80px;height:80px;padding:0;font-size:16px;background-color:#2b1a1247}
-      #touch-action[data-pressed=true]{background-color:#2b1a1275;transform:scale(.95)}
-      #touch-action[data-aiming=true]{background-color:#2a5a9e80}
+      #touch-toss[data-pressed=true]{background-color:#2b1a1275;transform:scale(.95)}
+      #touch-toss[data-aiming=true]{background-color:#2a5a9e80}
       #touch-dash{width:58px;height:58px;padding:0;font-size:14px;background-color:#2b1a1240}
-      #touch-dash:active:not(:disabled){background-color:#2b1a1275;transform:scale(.95)}
+      #touch-dash:active:not(:disabled),#touch-action:active:not(:disabled){background-color:#2b1a1275;transform:scale(.95)}
             /* Unavailable keeps the label legible on any ground: lighter fill and outline, not a faded button. */
-      #touch-action:disabled,#touch-dash:disabled{opacity:1;color:#ffffffd9;border-color:#ffffff8c;background-color:#2b1a1230;text-shadow:0 1px 2px #2b1a12,0 0 4px #2b1a12}
+      #touch-action:disabled,#touch-dash:disabled,#touch-toss:disabled{opacity:1;color:#ffffffd9;border-color:#ffffff8c;background-color:#2b1a1230;text-shadow:0 1px 2px #2b1a12,0 0 4px #2b1a12}
       #touch-dash[data-cooling=true]{opacity:1}
-      /* Diagonal pair: Action in the corner, Dash up-left of it at 45 degrees; Cancel appears straight
-         above Action while aiming, in the same round translucent style, red while the finger is on it. */
+      /* Action in the corner; Cancel is round and translucent like the others, red while the finger is on it. */
       .touch-buttons{width:80px;height:80px;display:block}
       #touch-action{position:absolute;right:0;bottom:0}
-      /* Arc around Action (centre 40,40 from the corner, radius 82): Dash at 165deg, Cancel at 100deg. */
+      /* Arc around Action (centre 40,40 from the corner): Dash at 165deg (radius 82), Throw straight above (84);
+         while a throw is armed Cancel appears between them (110), next to the aiming thumb. */
       #touch-dash{position:absolute;right:89px;bottom:32px}
-      #touch-cancel{right:calc(max(10px,env(safe-area-inset-right)) + 28px);bottom:calc(max(8px,env(safe-area-inset-bottom)) + 12px + 95px);width:52px;height:52px;min-height:0;border:2px solid #ffffffd9;border-radius:50%;background:#2b1a1247;box-shadow:0 0 0 1px #2b1a1259;color:#fff;text-shadow:0 1px 2px #2b1a12;font-size:14px;font-weight:750}
-      /* Narrow phones: slightly smaller arc (Action 72, Dash 52, Cancel 48, radius 74) so it clears the kitchen. */
-      @media(max-width:700px){.touch-buttons{width:72px;height:72px}#touch-action{width:72px;height:72px}#touch-dash{width:52px;height:52px;right:81px;bottom:29px}#touch-cancel{width:48px;height:48px;right:calc(max(10px,env(safe-area-inset-right)) + 25px);bottom:calc(max(8px,env(safe-area-inset-bottom)) + 12px + 87px)}}
+      #touch-toss{position:absolute;width:58px;height:58px;padding:0;font-size:14px;background-color:#2b1a1240}
+      #touch-toss{right:11px;bottom:95px}
+      #touch-cancel{right:calc(max(10px,env(safe-area-inset-right)) + 86px);bottom:calc(max(8px,env(safe-area-inset-bottom)) + 12px + 106px);width:52px;height:52px;min-height:0;border:2px solid #ffffffd9;border-radius:50%;background:#2b1a1247;box-shadow:0 0 0 1px #2b1a1259;color:#fff;text-shadow:0 1px 2px #2b1a12;font-size:14px;font-weight:750}
+      /* Narrow phones: a slightly smaller arc (Action 72, the others 52, Cancel 48) so it clears the kitchen. */
+      @media(max-width:700px){.touch-buttons{width:72px;height:72px}#touch-action{width:72px;height:72px}#touch-dash,#touch-toss{width:52px;height:52px}#touch-dash{right:81px;bottom:29px}#touch-toss{right:10px;bottom:86px}#touch-cancel{width:48px;height:48px;right:calc(max(10px,env(safe-area-inset-right)) + 77px);bottom:calc(max(8px,env(safe-area-inset-bottom)) + 12px + 95px)}}
       #touch-cancel[data-selected=true]{border-style:solid;border-color:#fff;background:#b8321ecc;transform:scale(1.12)}
     `;
     document.head.appendChild(style);
@@ -89,10 +91,10 @@
       <div id="touch-orders" class="touch-orders" role="region" aria-label="订单" tabindex="0"></div>
       <div id="touch-zone" aria-hidden="true"></div>
       <div id="touch-joystick" role="group" aria-label="移动" aria-disabled="true"><div id="touch-stick"></div></div>
-      <div class="touch-buttons"><button id="touch-dash" class="touch-round" type="button"></button><button id="touch-action" class="touch-round" type="button"></button></div>
+      <div class="touch-buttons"><button id="touch-dash" class="touch-round" type="button"></button><button id="touch-toss" class="touch-round" type="button"></button><button id="touch-action" class="touch-round" type="button"></button></div>
       <div id="touch-cancel" hidden></div>
       <div id="touch-ai"></div>
-      <section id="touch-menu" class="touch-menu" aria-labelledby="touch-menu-title" hidden><h2 id="touch-menu-title">ChefJeff</h2><p id="touch-menu-copy"></p><div id="touch-levels" class="touch-levels"></div><div class="touch-menu-actions"><button id="touch-main" class="btn primary" type="button"></button><button id="touch-settings" class="btn" type="button"></button><button id="touch-help" class="btn" type="button"></button></div><div class="touch-menu-secondary"><button id="touch-end" class="btn danger" type="button"></button><button id="touch-record" class="btn" type="button"></button><button id="touch-language" class="btn" type="button" data-no-i18n></button><button id="touch-fullscreen" class="btn" type="button"></button><button id="touch-menu-close" class="btn" type="button"></button></div><p id="touch-instructions"></p><p id="touch-fullscreen-tip" hidden></p></section>
+      <section id="touch-menu" class="touch-menu" aria-labelledby="touch-menu-title" hidden><h2 id="touch-menu-title">ChefJeff</h2><p id="touch-menu-copy"></p><div id="touch-levels" class="touch-levels"></div><div class="touch-menu-actions"><button id="touch-main" class="btn primary" type="button"></button><button id="touch-settings" class="btn" type="button"></button><button id="touch-help" class="btn" type="button"></button></div><div class="touch-menu-secondary"><button id="touch-end" class="btn danger" type="button"></button><button id="touch-record" class="btn" type="button"></button><button id="touch-contribute" class="btn" type="button"></button><button id="touch-language" class="btn" type="button" data-no-i18n></button><button id="touch-fullscreen" class="btn" type="button"></button><button id="touch-menu-close" class="btn" type="button"></button></div><p id="touch-instructions"></p><p id="touch-fullscreen-tip" hidden></p></section>
     `;
     document.body.appendChild(ui);
     const portrait = document.createElement('div');
@@ -106,9 +108,14 @@
     const t = text => window.kitchenI18n?.t(text) || text;
     const text = (id, value) => { const n = el(id); const next = t(String(value ?? '')); if (n.textContent !== next) n.textContent = next; };
     const stick = el('touch-stick'), joystick = el('touch-joystick'), action = el('touch-action'), dash = el('touch-dash');
+    const toss = el('touch-toss');
     const dock = el('kitchen-communication');
+    // On phones the panel pauses the round; it closes with this button, a tap outside it, or once a message is sent.
+    const dockClose = Object.assign(document.createElement('button'), { id: 'touch-communication-close', type: 'button', className: 'btn' });
+    dock?.prepend(dockClose);
     let controls = window.kitchenControls || null, state = {}, active = false, landscape = true;
-    let blockState = null, menuOpen = false, communicationOpen = false, joyPointer = null, actionPointer = null;
+    // Throw's hold (the only button that aims): its pointer and button.
+    let blockState = null, menuOpen = false, communicationOpen = false, joyPointer = null, holdPointer = null, holdButton = null;
     let cancelSelected = false, ordersSignature = '', levelsSignature = '', previousGame = '', modeSignature = '';
     const orderNodes = new Map();
     let lastEvent = '', eventNotice = '', eventTimer;
@@ -137,11 +144,10 @@
     const capture = (n, id) => { try { n.setPointerCapture(id); } catch (_) {} };
     const uncapture = (n, id) => { if (id === null) return; try { if (n.hasPointerCapture(id)) n.releasePointerCapture(id); } catch (_) {} };
     function clearPointers() {
-      const joy = joyPointer, press = actionPointer;
-      joyPointer = actionPointer = null;
-      uncapture(joystick, joy); uncapture(action, press);
+      const joy = joyPointer, press = holdPointer, button = holdButton;
+      joyPointer = holdPointer = holdButton = null;
+      uncapture(joystick, joy); if (button) { uncapture(button, press); button.dataset.pressed = 'false'; }
       stick.style.transform = 'translate(0px,0px)';
-      action.dataset.pressed = 'false';
       if (joystick.dataset.floating === 'true') { joystick.dataset.floating = 'false'; joystick.style.left = joystick.style.top = ''; }
       cancelSelected = false; el('touch-cancel').dataset.selected = 'false';
       if (joy !== null) controls?.move(0, 0);
@@ -212,27 +218,29 @@
       el('touch-menu-toggle').setAttribute('aria-expanded', String(showMenu));
       joystick.hidden = !landscape || showMenu || hasModal || communicationOpen;
       joystick.setAttribute('aria-disabled', String(!playing));
-      action.hidden = dash.hidden = joystick.hidden;
+      action.hidden = dash.hidden = toss.hidden = joystick.hidden;
       el('touch-hint').hidden = joystick.hidden;
       el('touch-zone').hidden = joystick.hidden;
       el('touch-ai').hidden = joystick.hidden;
-      action.disabled = !playing || !(state.canInteract || state.canThrow);
+      const throwable = !!(state.holding && state.canThrow);
+      action.disabled = !playing || aiming || !state.canInteract;
+      toss.disabled = !playing || !throwable;
       const sprint = state.sprint || {};
       const cooling = (sprint.cooldown_remaining || 0) > 0;
       dash.disabled = !playing || !state.canDash || aiming || cooling || (sprint.active_remaining || 0) > 0;
       dash.dataset.cooling = String(cooling);
       dash.style.setProperty('--cooldown', Math.max(0, Math.min(100, (sprint.cooldown_remaining || 0) / 3 * 100)) + '%');
       text('touch-dash', cooling ? Math.ceil(sprint.cooldown_remaining) + 's' : '冲刺');
-      el('touch-cancel').hidden = !playing || actionPointer === null || !(state.holding && state.canThrow);
+      el('touch-cancel').hidden = !playing || holdPointer === null || !throwable;
       // One word, like other mobile games; the toolbar line names the exact action.
-      text('touch-action', aiming ? '投掷' : '操作');
+      text('touch-action', '操作'); text('touch-toss', '扔');
       text('touch-stick', aiming ? '瞄准' : '移动');
-      joystick.dataset.aiming = String(aiming); action.dataset.aiming = String(aiming);
+      joystick.dataset.aiming = String(aiming); toss.dataset.aiming = String(aiming);
       if (aiming && !wasAiming) buzz(12);
       wasAiming = aiming;
       text('touch-hand', state.handLabel || '');
       text('touch-ai', state.aiStatus || '');
-      text('touch-status', cancelSelected ? '松手取消' : aiming ? '松开投掷' : eventNotice || state.interactionHint || (state.holding && state.canThrow ? '长按投掷' : ''));
+      text('touch-status', cancelSelected ? '松手取消' : aiming ? '松开投掷' : eventNotice || state.interactionHint || (throwable ? '按住「扔」瞄准' : ''));
       text('touch-clock', state.timeLabel || '厨房连接中…');
       text('touch-money', state.money == null ? '' : '¥' + state.money);
       text('touch-served', state.served == null ? '' : t('已出餐') + ' ' + state.served);
@@ -247,6 +255,8 @@
       el('touch-end').hidden = !['running', 'paused'].includes(state.phase);
       el('touch-end').disabled = !state.endEnabled;
       el('touch-record').hidden = !state.recordEnabled;
+      el('touch-contribute').hidden = !state.contribute;
+      if (state.contribute) { text('touch-contribute', state.contribute.label); el('touch-contribute').disabled = !state.contribute.enabled; }
       el('touch-menu-close').hidden = state.phase !== 'running' || !menuOpen;
       const levels = state.levels || [];
       const nextLevels = JSON.stringify([levels, state.levelEnabled]);
@@ -328,9 +338,9 @@
     function language() {
       for (const [id, source] of Object.entries({ 'touch-pause': '暂停', 'touch-communication': '沟通', 'touch-bookmark': '标记',
         'touch-menu-toggle': '菜单', 'touch-settings': '设置', 'touch-help': '操作说明', 'touch-end': '结束本局', 'touch-record': '本局记录',
-        'touch-fullscreen': '全屏', 'touch-menu-close': '返回厨房', 'touch-cancel': '取消', 'touch-rotate-title': '请将手机横过来',
+        'touch-fullscreen': '全屏', 'touch-menu-close': '返回厨房', 'touch-communication-close': '返回厨房', 'touch-cancel': '取消', 'touch-rotate-title': '请将手机横过来',
         'touch-rotate-copy': '横屏后点“继续经营”，厨房不会自动恢复。',
-        'touch-instructions': '手持物品时长按操作瞄准，松开投掷；拖到取消区可取消。',
+        'touch-instructions': '「操作」按下立即做事，拿着东西也一样；「扔」点按直接扔出，长按瞄准、松开投掷；瞄准时滑到「取消」可取消。',
         'touch-fullscreen-tip': 'iPhone 不支持网页全屏：在浏览器的分享菜单选「添加到主屏幕」，再从主屏幕打开即可全屏。' })) text(id, source);
       el('touch-language').textContent = window.kitchenI18n?.language === 'en' ? 'Chinese' : '英语';
       joystick.setAttribute('aria-label', t('移动')); el('touch-orders').setAttribute('aria-label', t('订单'));
@@ -366,27 +376,33 @@
     });
     el('touch-zone').addEventListener('contextmenu', event => event.preventDefault());
     joystick.addEventListener('pointerup', joyEnd); joystick.addEventListener('pointercancel', joyEnd); joystick.addEventListener('lostpointercapture', joyEnd);
-    action.addEventListener('pointerdown', event => {
-      if (event.button > 0 || actionPointer !== null || action.disabled || !canPlay()) return;
-      event.preventDefault(); actionPointer = event.pointerId; action.dataset.pressed = 'true'; capture(action, actionPointer);
-      cancelSelected = false; controls.press(); render();
-    });
-    action.addEventListener('pointermove', event => {
-      if (event.pointerId !== actionPointer) return;
-      event.preventDefault(); const r = el('touch-cancel').getBoundingClientRect();
-      cancelSelected = !el('touch-cancel').hidden && event.clientX >= r.left && event.clientX <= r.right && event.clientY >= r.top && event.clientY <= r.bottom;
-      el('touch-cancel').dataset.selected = String(cancelSelected); render();
-    });
-    action.addEventListener('pointerup', event => {
-      if (event.pointerId !== actionPointer) return;
-      event.preventDefault(); const id = actionPointer; actionPointer = null; uncapture(action, id); action.dataset.pressed = 'false';
-      if (cancelSelected || !canPlay()) controls?.cancel(); else { if (state.aiming) buzz(20); controls?.release(); }
-      cancelSelected = false; render();
-    });
-    const cancelAction = event => { if (event.pointerId !== actionPointer) return; event.preventDefault(); const id = actionPointer; actionPointer = null; uncapture(action, id); action.dataset.pressed = 'false'; cancelSelected = false; controls?.cancel(); render(); };
-    action.addEventListener('pointercancel', cancelAction); action.addEventListener('lostpointercapture', cancelAction);
-    dash.addEventListener('pointerdown', event => { if (event.button > 0 || dash.disabled || !canPlay()) return; event.preventDefault(); controls?.dash(); });
-    for (const area of [joystick, action, dash]) area.addEventListener('contextmenu', event => event.preventDefault());
+    // Throw: tap throws straight ahead, hold aims, release throws (or cancels over Cancel).
+    const endHold = event => { event.preventDefault(); const id = holdPointer, button = holdButton; holdPointer = holdButton = null; uncapture(button, id); button.dataset.pressed = 'false'; };
+    for (const [button, press] of [[toss, 'toss']]) {
+      button.addEventListener('pointerdown', event => {
+        if (event.button > 0 || holdPointer !== null || button.disabled || !canPlay()) return;
+        event.preventDefault(); holdPointer = event.pointerId; holdButton = button; button.dataset.pressed = 'true'; capture(button, holdPointer);
+        cancelSelected = false; controls[press](); render();
+      });
+      button.addEventListener('pointermove', event => {
+        if (event.pointerId !== holdPointer) return;
+        event.preventDefault(); const r = el('touch-cancel').getBoundingClientRect();
+        cancelSelected = !el('touch-cancel').hidden && event.clientX >= r.left && event.clientX <= r.right && event.clientY >= r.top && event.clientY <= r.bottom;
+        el('touch-cancel').dataset.selected = String(cancelSelected); render();
+      });
+      button.addEventListener('pointerup', event => {
+        if (event.pointerId !== holdPointer) return;
+        endHold(event);
+        if (cancelSelected || !canPlay()) controls?.cancel(); else { buzz(20); controls?.release(); }
+        cancelSelected = false; render();
+      });
+      const cancelHold = event => { if (event.pointerId !== holdPointer) return; endHold(event); cancelSelected = false; controls?.cancel(); render(); };
+      button.addEventListener('pointercancel', cancelHold); button.addEventListener('lostpointercapture', cancelHold);
+    }
+    // Action does everything but throw, at once on press, even holding a throwable item; Dash on press.
+    for (const [button, method] of [[dash, 'dash'], [action, 'act']])
+      button.addEventListener('pointerdown', event => { if (event.button > 0 || button.disabled || !canPlay()) return; event.preventDefault(); controls?.[method](); });
+    for (const area of [joystick, action, dash, toss]) area.addEventListener('contextmenu', event => event.preventDefault());
     el('touch-pause').addEventListener('click', () => {
       if (state.phase === 'running') { clearPointers(); controls?.pause(); }
       else if (state.phase === 'paused') { menuOpen = false; communication(false); block(); controls?.resume(); }
@@ -395,8 +411,13 @@
     el('touch-menu-toggle').addEventListener('click', () => menu(!menuOpen));
     el('touch-menu-close').addEventListener('click', () => menu(false));
     el('touch-communication').addEventListener('click', () => communication(!communicationOpen));
+    dockClose.addEventListener('click', () => communication(false));
+    dock?.addEventListener('click', event => { if (communicationOpen && event.target.closest('#communication-options button')) setTimeout(() => communication(false), 0); });
+    document.addEventListener('pointerdown', event => {
+      if (communicationOpen && !dock?.contains(event.target) && !el('touch-communication').contains(event.target)) communication(false);
+    }, true);
     el('touch-bookmark').addEventListener('click', () => controls?.bookmark());
-    for (const [id, method] of [['touch-settings', 'settings'], ['touch-help', 'help'], ['touch-end', 'end'], ['touch-record', 'record']])
+    for (const [id, method] of [['touch-settings', 'settings'], ['touch-help', 'help'], ['touch-end', 'end'], ['touch-record', 'record'], ['touch-contribute', 'contribute']])
       el(id).addEventListener('click', () => { clearPointers(); controls?.[method](); });
     el('touch-language').addEventListener('click', () => controls?.language());
     el('touch-fullscreen').hidden = !document.documentElement.requestFullscreen;

@@ -625,21 +625,20 @@ class GameSession:
                 self.k.pick_station('human',focus)  # worked where the chef stands
             return self._command('/api/action', {'action': action.key, 'expected': list(action.expected)})
         if path == '/api/throw':
-            if self.phase != 'running' or not hasattr(self.k,'throw_action'):
+            if self.phase != 'running' or not hasattr(self.k,'aimed_throw'):
                 return 409, {'error':'当前不能抛掷'}
-            # Either a landing point, or a direction to aim along (hold Space, steer, release).
-            aimed = 'direction' in body
-            target = body.get('direction') if aimed else body.get('target')
+            # A direction to aim along (hold Space, steer, release); it flies to full reach, as Jeff's throws do.
+            target = body.get('direction')
             if (not isinstance(target,list) or len(target)!=2
                     or any(isinstance(v,bool) or not isinstance(v,(int,float)) or not math.isfinite(v) or abs(v)>10000 for v in target)
-                    or (aimed and not any(target))):
-                return 400, {'error':'抛掷坐标无效'}
+                    or not any(target)):
+                return 400, {'error':'抛掷方向无效'}
             hand = self.k.chefs['human'].hand
             if not hand or hand.id != body.get('expected_item'):
                 return 409, {'error':'手中物品已变化'}
             invalid = self._settle_at(body)
             if invalid: return invalid
-            action = self.k.aimed_throw('human',target) if aimed and hasattr(self.k,'aimed_throw') else self.k.throw_action('human',target)
+            action = self.k.aimed_throw('human',target)
             if not action:
                 return 409, {'error':'没有可用落点，或此物品不能抛掷'}
             ok,message = self.k.start('human',action)

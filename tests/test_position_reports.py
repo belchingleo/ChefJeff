@@ -27,6 +27,26 @@ def free_run(k, who='human', shortest=False):
 
 
 class EngineTests(unittest.TestCase):
+    def test_a_reporting_player_knocked_by_a_dash_resyncs_and_lands_before_reporting_again(self):
+        # Level 2, open row y=3: Jeff dashes left into the player, whose page reports where it stands.
+        k = kitchen(2); k.positions.update(human=(4., 3.), jeff=(6., 3.))
+        self.assertTrue(k.report_position('human', 4., 3., k.resync['human']))
+        k.set_manual('jeff', -1, 0); self.assertTrue(k.sprint('jeff'))
+        base = k.resync['human']
+        for _ in range(8):
+            k.advance(.05)
+            if k.knockback['human']:break
+        self.assertTrue(k.knockback['human']); self.assertEqual(k.resync['human'], base+1)
+        self.assertTrue(k.snapshot()['chefs']['human']['knocked'])
+        # The page follows the engine while knocked: its reports are ignored until the chef lands.
+        self.assertFalse(k.report_position('human', 4., 3., k.resync['human']))
+        k.set_manual('jeff', 0, 0); k.advance(k.rules.sprint_push_duration+.05)
+        landed = k.positions['human']
+        self.assertLess(landed[0], 3.5); self.assertFalse(k.snapshot()['chefs']['human']['knocked'])
+        self.assertTrue(k.report_position('human', landed[0]-.2, landed[1], k.resync['human']))
+        k.advance(.1); self.assertAlmostEqual(k.positions['human'][0], landed[0]-.2, places=6)
+        k.assert_invariants()
+
     def test_late_reports_are_followed_to_the_same_point_and_replay(self):
         k = kitchen(); start = k.positions['human']; d, length = free_run(k)
         walk, sent = k.rules.walk_speed, []

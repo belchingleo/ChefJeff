@@ -105,7 +105,7 @@ class AgentInputTests(unittest.TestCase):
         state = payload['state']['kitchen']
         for key in ('bad_reviews', 'settlement'):
             self.assertNotIn(key, state)
-        self.assertEqual(state['goals'], {'target_money': 150})
+        self.assertEqual(state['goals'], {'target_money': 160})
         self.assertNotIn('time_bonus_per_second', state['scoring'])
         self.assertEqual([d['id'] for d in state['dishes']], ['steak', 'burger'])
         rules = payload['state']['rules']

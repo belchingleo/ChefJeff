@@ -40,7 +40,7 @@
     },
     "engine_semantics": {
       "enum": [
-        "continuous-2026-10"
+        "continuous-2026-10b"
       ]
     },
     "tick_game_ms": {
@@ -67,17 +67,13 @@
       "type": "object",
       "required": [
         "handling_game_ms",
-        "extinguish_game_ms",
-        "clear_game_ms"
+        "extinguish_game_ms"
       ],
       "properties": {
         "handling_game_ms": {
           "$ref": "common.schema.json#/$defs/positive_game_ms"
         },
         "extinguish_game_ms": {
-          "$ref": "common.schema.json#/$defs/positive_game_ms"
-        },
-        "clear_game_ms": {
           "$ref": "common.schema.json#/$defs/positive_game_ms"
         },
         "ground_assembly": {
@@ -120,7 +116,13 @@
           "type": "number",
           "minimum": 0,
           "maximum": 1,
-          "description": "One-time push applied to the other chef by a sprint impulse."
+          "description": "How far a sprint that reaches the other chef knocks them back (once per sprint), as Overcooked's dash; a chef at work is knocked off it, keeping progress."
+        },
+        "sprint_push_game_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000,
+          "description": "Time the knockback takes, eased out. Absent or 0: the push is instant."
         },
         "sprint_food_nudge_cells": {
           "description": "Maximum distance a sprint moves each loose ground ingredient.",
@@ -163,7 +165,7 @@
           "type": "number",
           "exclusiveMinimum": 0,
           "maximum": 0.5,
-          "description": "Keyboard walking: when a single-direction step is fully blocked and moving sideways by at most this many cells would clear it (for example out of the notch in front of a board set between counters), the chef slides sideways first. Absent: no slide."
+          "description": "Held-direction walking: when a step is fully blocked along the stick's main axis and moving sideways by at most this many cells would clear it (an opening just beside the chef, as Stardew Valley nudges the farmer), the chef slides sideways first, toward the side the stick leans to on a tie. Absent: no slide."
         },
         "approach_partner": {
           "type": "boolean",
@@ -199,7 +201,7 @@
         },
         "pass_range_cells": {
           "$ref": "common.schema.json#/$defs/positive_number",
-          "description": "Range for passing held items that are not throwable ingredients (plates, plated food, pots, the extinguisher) to the floor or a chef. Absent: only throwable ingredients fly."
+          "description": "Range for passing held items that are not throwable ingredients (plates, plated food, pots; never the extinguisher) to the floor or a chef. Absent: only throwable ingredients fly."
         }
       },
       "additionalProperties": false
@@ -223,12 +225,29 @@
     "fire": {
       "type": "object",
       "required": [
-        "spread_interval_game_ms",
+        "flammability_game_ms",
+        "cooldown_delay_game_ms",
+        "cooldown_game_ms",
+        "relight_delay_game_ms",
         "loss_threshold"
       ],
+      "description": "Fire spreads as in Overcooked 2: every burning station heats each flammable station in the eight cells around it.",
       "properties": {
-        "spread_interval_game_ms": {
-          "$ref": "common.schema.json#/$defs/positive_game_ms"
+        "flammability_game_ms": {
+          "$ref": "common.schema.json#/$defs/positive_game_ms",
+          "description": "Heating time to ignite next to one burning station; several burning neighbours add up."
+        },
+        "cooldown_delay_game_ms": {
+          "$ref": "common.schema.json#/$defs/positive_game_ms",
+          "description": "With no burning neighbour, heat holds this long before it starts to drain."
+        },
+        "cooldown_game_ms": {
+          "$ref": "common.schema.json#/$defs/positive_game_ms",
+          "description": "Time for full heat to drain once it drains."
+        },
+        "relight_delay_game_ms": {
+          "$ref": "common.schema.json#/$defs/positive_game_ms",
+          "description": "A station just extinguished takes no heat for this long."
         },
         "loss_threshold": {
           "type": "integer",

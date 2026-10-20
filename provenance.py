@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 # (owner decision 2026-09-28): walking and waiting are not actions.
 NON_ACTIONS = frozenset({'go', 'wait', 'stop', 'continue'})
 PENALTY_EVENTS = {'wrong_dish': 'wrong_dish', 'dish_rejected': 'refused', 'bad_service': 'bad_service'}
+# 'clear' (emptying a stove in place) only appears in records from 0.6.0-beta.1 and earlier.
 PENALIZED_KINDS = {'discard': 'discard', 'clear': 'clear', 'empty_pot': 'empty_pot'}
 
 

@@ -2,7 +2,18 @@ import math
 import unittest
 from kitchen import load_config,Action,Job
 from levels import level_config
+import sys
+from map_definition import build_map
 from spatial_kitchen import SpatialKitchen,CHEF_SEPARATION,WALK_SPEED,STALL_SECONDS
+from test_visual_geometry import ROOT
+sys.path.insert(0,str(ROOT/'scripts'))
+import audit_map  # noqa: E402
+
+# Two counter rows joined only by a one-cell passage at x=6, too narrow (0.3 walkable) for two chefs to pass.
+PASSAGE=build_map('passage',[12,8],[('fridge',1,1,'south'),('lettuce',2,1,'south'),('tomato',3,1,'south'),('bread',4,1,'south'),
+    ('p1',8,1,'south'),('sink',9,1,'south'),('serve',10,6,'north'),('returns',9,6,'north'),('plates',8,6,'north'),('bin',1,6,'north'),
+    ('extinguisher',2,6,'north'),('b1',3,6,'north'),('b2',4,6,'north')]
+    +[(f'c{x}_{y}',x,y,'north' if y==3 else 'south') for y in (3,4) for x in range(1,11) if x!=6])
 
 
 class RouteStallTests(unittest.TestCase):
@@ -118,3 +129,28 @@ class RouteStallTests(unittest.TestCase):
             self.assertGreaterEqual(math.dist((a[0]+t*d[0],a[1]+t*d[1]),other),CHEF_SEPARATION-1e-6)
         with self.assertRaises(ValueError):
             nav.shortest_path_around((6,5),(10,4.9),other,CHEF_SEPARATION)
+
+    def test_head_on_in_a_one_chef_passage_the_farther_chef_gives_way(self):
+        k=audit_map.kitchen(PASSAGE)
+        k.positions.update(human=(6.,2.2),jeff=(6.,4.8))
+        go=lambda who,target:k.start(who,next(a for a in k.actions(who) if a.target==target and a.kind in ('go','fetch')))[0]
+        self.assertTrue(go('human','b2'));self.assertTrue(go('jeff','fridge'))
+        for _ in range(80):k.advance(.05)
+        # Both got through within 4 s (they used to press into each other until closing).
+        self.assertGreater(k.positions['human'][1],5.);self.assertLess(k.positions['jeff'][1],3.)
+        self.assertTrue(any(e.get('kind')=='route_replanned' for e in k.events))
+        k.assert_invariants()
+
+
+    def test_jeff_gives_way_to_the_player_dashing_into_a_one_chef_passage(self):
+        # Reported: dashing into Jeff in the passage froze the round (the player has no route to keep clear of).
+        k=audit_map.kitchen(PASSAGE)
+        k.positions.update(human=(6.,2.2),jeff=(6.,4.8))
+        self.assertTrue(k.start('jeff',next(a for a in k.actions('jeff') if a.target=='fridge' and a.kind=='fetch'))[0])
+        k.set_manual('human',0,1);self.assertTrue(k.sprint('human'))
+        for _ in range(60):k.advance(.05)
+        self.assertGreater(k.positions['human'][1],5.);self.assertLess(k.positions['jeff'][1],3.)
+        k.assert_invariants()
+
+if __name__ == '__main__':
+    unittest.main()

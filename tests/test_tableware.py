@@ -3,7 +3,8 @@ import random
 import unittest
 from unittest.mock import patch
 from kitchen import Kitchen, Food, load_config
-from spatial_kitchen import SpatialKitchen, EQUIPMENT
+from spatial_kitchen import SpatialKitchen
+from level_one import EQUIPMENT
 from jev import JevClient
 from web_server import GameSession
 from levels import level_config
@@ -115,10 +116,12 @@ class TablewareTests(unittest.TestCase):
         self.do(k, 'jeff', 'take sink')
         self.assertEqual(k.chefs['jeff'].hand.id, plate)
 
-    def test_full_hand_swap_preserves_plated_food_and_empty_plate(self):
+    def test_dropped_plated_food_and_taken_plate_keep_their_state(self):
         k = self.make(True)
         self.ready(k); self.plate(k)
-        self.do(k, 'human', 'take counter2')
+        # Full hands take nothing from a counter (as with the player's Space): put the dish down first.
+        self.assertFalse(k.command('human', 'take counter2')[0])
+        self.do(k, 'human', 'drop'); self.do(k, 'human', 'take counter2')
         self.assertEqual(k.chefs['human'].hand.stage, 'clean_plate')
         self.assertEqual(k.ground['meal'].food.plate_id, 'D1')
         self.do(k, 'jeff', 'pickup meal')
@@ -127,7 +130,8 @@ class TablewareTests(unittest.TestCase):
 
     def test_plates_pass_at_short_range_and_can_drop_and_pickup_for_both_chefs(self):
         import math
-        from spatial_kitchen import EQUIPMENT, PASS_RANGE
+        from spatial_kitchen import PASS_RANGE
+        from level_one import EQUIPMENT
         from kitchen import Action
         for who in ('human','jeff'):
             for stage in ('clean_plate','dirty_plate','ready','burnt'):

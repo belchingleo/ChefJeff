@@ -10,6 +10,7 @@ import sys
 import tempfile
 import hashlib
 import re
+from player_pages import write_pages
 ROOT=Path(__file__).resolve().parents[1]
 p=argparse.ArgumentParser();p.add_argument('platform',choices=['web','android']);p.add_argument('--make',action='store_true');p.add_argument('--preview',action='store_true',help='Build Web into web-feedback without replacing the live web directory');args=p.parse_args()
 if args.preview and args.platform!='web':p.error('--preview is available only for web')
@@ -55,6 +56,8 @@ if result.returncode==36 and args.platform=='web':
         '\n    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>')
     (page.parent/'fonts').mkdir(exist_ok=True)
     for name in ('chefjeff-pixel.woff2','OFL.txt'):shutil.copyfile(ROOT/'cocos-kitchen/fonts'/name,page.parent/'fonts'/name)
+    # Privacy/contact and the model guide, rendered from docs/ so the README links the same text.
+    write_pages(page.parent)
     page.write_text(content.replace('</body>',shell+'</body>'))
     # Desktop exports default to a fixed subframe. Track the browser viewport so
     # SHOW_ALL can letterbox correctly after resizing instead of stretching CSS.

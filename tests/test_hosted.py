@@ -96,8 +96,29 @@ class HostedTests(unittest.TestCase):
         shell=(Path(__file__).resolve().parents[1]/'cocos-kitchen/web-shell.html').read_text()
         for old,_ in SHELL_REPLACEMENTS:self.assertIn(old,shell)
         self.assertIn(CONTRIBUTION_SLOT,shell)
-        html=hosted_html(('<head></head>'+shell).encode()).decode()
+        html=hosted_html(('<head></head>'+shell+'</body>').encode()).decode()
         self.assertIn('contribution-save',html);self.assertNotIn(CONTRIBUTION_SLOT,html)
+        # The one-time contribution question is hosted-only and sits outside the settings dialog.
+        self.assertNotIn('contribution-ask',shell)
+        before=html[:html.index('<dialog id="contribution-ask"')]
+        self.assertEqual(before.count('<dialog'),before.count('</dialog>'))
+    def test_consent_question_states_terms_and_one_version(self):
+        root=Path(__file__).resolve().parents[1]
+        from hosted_records import CONSENT_VERSION
+        self.assertIn(f"const CONSENT = '{CONSENT_VERSION}'",(root/'hosted/browser-agent.js').read_text())
+        ask=(root/'hosted/consent.html').read_text()
+        for text in ('游戏引擎事件','每秒角色位置','结算结果','预设沟通编号','API Key','自由输入的文字','模型回复与完整请求',
+                     '30 天后自动删除','提前删除','同意以后每局自动贡献（30 天后删除，可随时关闭）','暂不','privacy.html'):
+            self.assertIn(text,ask)
+        # Two equal choices: same style, nothing preselected or focused by default.
+        self.assertEqual(ask.count('class="btn" type="button"'),2);self.assertNotIn('checked',ask)
+        self.assertIn('id="ask-summary" tabindex="-1" autofocus',ask)
+    def test_state_reports_whether_this_round_was_contributed(self):
+        s=HostedSession(release={})
+        try:
+            self.assertFalse(s.public_state()['hosted']['contributed'])
+            s.receipt_round=s.game_id;self.assertTrue(s.public_state()['hosted']['contributed'])
+        finally:s.close()
 
 
 class HostedHTTPTests(unittest.TestCase):

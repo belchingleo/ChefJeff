@@ -22,7 +22,7 @@ class CabinetFrontClearanceTests(unittest.TestCase):
         # The published walk boxes carry the same edge, so the client prediction agrees.
         boxes = k.snapshot()['map']['walk_boxes']
         side = k.rules.cabinet_clearance[1]
-        self.assertIn([5-.5-side, 3.3, 5+.5+side, 4.5+front], [[round(v, 9) for v in b] for b in boxes])
+        self.assertIn([5-.5-side, 3.5, 5+.5+side, 4.5+front], [[round(v, 9) for v in b] for b in boxes])
 
     def test_both_chefs_walking_north_stop_below_the_panel(self):
         for who in ('human', 'jeff'):

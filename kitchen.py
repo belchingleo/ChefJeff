@@ -84,8 +84,11 @@ class Station:
     fire: bool = False
     heating: bool = False
     pot_id: str | None = None
-    fire_elapsed: float = 0.0
-    scorched: bool = False
+    # Overcooked 2's fire strength while a burning neighbour heats it (0..1; 1 ignites), how long it has
+    # gone unheated, and the time left before a station just put out can take heat again.
+    fire_heat: float = 0.0
+    fire_idle: float = 0.0
+    relight_in: float = 0.0
 
 
 @dataclass
@@ -169,6 +172,13 @@ def replay(factory, resolved, inputs):
 
 
 TAKE_KINDS = {"fetch", "take_board", "take_tool", "pickup", "take_plate", "take_return", "take_sink", "take_counter", "lift_pot"}
+
+
+def hand_swap_allowed(kind, incoming=None):
+    """Taking with full hands, the same for both chefs (the player's Space): only the extinguisher,
+    or a loose raw/chopped ingredient from the floor, swaps; anything else needs the hands emptied first."""
+    return kind == 'take_tool' or (kind == 'pickup' and incoming is not None
+                                   and incoming.stage in ('raw', 'chopped') and not incoming.plate_id)
 
 
 class Kitchen:
@@ -321,9 +331,9 @@ class Kitchen:
         for i, (source, ingredient) in enumerate(self.ingredients.items()):
             name = self.state_label(ingredient, self.rules.items[ingredient]['initial_state'])
             if i == 0:
-                add("fetch", f"到{self.stations[source].name}取一份{name}（手中物品自动放到地上）", "fetch", source)
+                add("fetch", f"到{self.stations[source].name}取一份{name}", "fetch", source)
             else:
-                add('fetch '+source, '取一份'+name+'（自动换手）', 'fetch', source)
+                add('fetch '+source, '取一份'+name, 'fetch', source)
         if a.hand:
             if a.hand.plate_id and self.dish(a.hand):
                 for i, key in enumerate(self.serves):
@@ -350,7 +360,7 @@ class Kitchen:
                 if self.can_load_pot(a.hand,s.food):
                     add('load '+key,f'把{self.load_label(a.hand)}放入{s.name}的空{self.vessel_name(s.food.id)}（离灶不加热）','load_counter',key)
                 kind = 'take_plate' if s.food.stage == 'clean_plate' else 'take_counter'
-                add(f'take {key}', f'从{s.name}拿起{self.food_name(s.food)}（自动换手）', kind, key)
+                add(f'take {key}', f'从{s.name}拿起{self.food_name(s.food)}', kind, key)
                 if a.hand and a.hand.stage == 'pot' and self.can_add(s.food,a.hand.contents):
                     v = self.vessel_name(a.hand.id)
                     add(f'plate {key}', f'把手中{v}里的菜盛到{s.name}的盘里（空{v}留在手中）', 'plate_counter', key)
@@ -365,7 +375,7 @@ class Kitchen:
                     add('wash','一起洗碗（共享进度）','wash',key)
                 continue
             if s.food:
-                add(f'take {key}', f'从{s.name}拿起{self.food_name(s.food)}（自动换手）', kind, key)
+                add(f'take {key}', f'从{s.name}拿起{self.food_name(s.food)}', kind, key)
             if key == self.sink:
                 if not s.food and a.hand and a.hand.stage == 'dirty_plate':
                     add(f'put {key}', f'把脏餐盘放入{s.name}', 'put_sink', key)
@@ -413,7 +423,7 @@ class Kitchen:
                 continue
             if s.fire:
                 if a.hand and a.hand.stage == 'extinguisher':
-                    add(f"extinguish {key}", f"拿灭火器到{s.name}灭火（{self.rules.extinguish:g}s；随后仍须清理糊菜）", "extinguish", key)
+                    add(f"extinguish {key}", f"拿灭火器到{s.name}灭火（{self.rules.extinguish:g}s；随后仍须端锅到垃圾桶倒掉糊菜）", "extinguish", key)
                 continue
             if not s.pot_id:
                 if a.hand and a.hand.stage == 'pot':
@@ -428,7 +438,6 @@ class Kitchen:
             if s.food:
                 if a.hand and self.can_add(a.hand,s.food):
                     add(f'plate {key}', f'用手中的干净盘盛出{s.name}的菜', 'plate_pot', key)
-                add(f"clear {key}", f"清空{s.name}的食物（损耗 {loss} 元）", "clear", key)
         for target, s in self.stations.items():
             if target != a.location:
                 add(f"go {target}", f"走到{s.name}（{s.area}）", "go", target)
@@ -439,6 +448,9 @@ class Kitchen:
         # exactly the same legal rescue actions, including empty counters.
         out = [x for x in out if x.kind in ('go', 'extinguish') or not
                (x.target in self.stations and self.stations[x.target].fire)]
+        if a.hand:
+            out = [x for x in out if x.kind not in TAKE_KINDS or hand_swap_allowed(
+                x.kind, self.ground[x.expected[1]].food if x.kind == 'pickup' else None)]
         for key in self.boards + self.counters:
             s = self.stations[key]
             if s.fire and s.lock in (None, who) and a.hand and a.hand.stage == 'extinguisher':
@@ -595,7 +607,7 @@ class Kitchen:
         s = self.place(action.target)
         work = {"chop": (self.rules.chop_work(s.food.ingredient)-s.food.chopped) if s.food else 0,
                 "wash": self.wash_seconds-(s.food.washed if s.food else 0),
-                "extinguish": self.rules.extinguish, "clear": self.rules.clear, "go": 0}.get(action.kind, self.rules.handling)
+                "extinguish": self.rules.extinguish, "go": 0}.get(action.kind, self.rules.handling)
         self.job_serial += 1
         a.job = Job(self.job_serial, action, self.travel_time(a, action.target), work)
         self.emit(f"{NAMES[who]}开始：{action.label}（路程 {a.job.travel:.0f}s + 操作 {work:.1f}s）", kind="action_start", actor=who, action=action.key, action_id=a.job.id)
@@ -611,7 +623,7 @@ class Kitchen:
         for key in self.boards:
             keys.extend([f"put {key}", f"chop {key}", f"take {key}"])
         for key in self.pots:
-            keys.extend([f"put {key}", f"extinguish {key}", f"clear {key}"])
+            keys.extend([f"put {key}", f"extinguish {key}"])
         keys.extend(f"go {key}" for key in self.stations)
         keys.append('drop')
         keys.extend([f'take {self.rack}', f'put {self.rack}'])
@@ -819,12 +831,8 @@ class Kitchen:
             s.food.stage = self.rules.chop[s.food.ingredient]['to']
         elif k == "extinguish":
             s.fire = False
-            s.fire_elapsed = 0
+            s.relight_in = self.rules.relight_delay
             s.heating = False
-        elif k == "clear":
-            s.food = None
-            s.heating = False
-            self.money += self.rules.penalty['discard']
         elif k == "discard":
             a.hand = Food(a.hand.plate_id, 'dirty_plate') if a.hand.plate_id else None
             self.money += self.rules.penalty['discard']
@@ -895,7 +903,7 @@ class Kitchen:
         s = self.stations[key]
         if s.fire:
             return
-        s.fire, s.fire_elapsed, s.heating, s.scorched = True, 0., False, True
+        s.fire, s.fire_heat, s.fire_idle, s.heating = True, 0., 0., False
         if key in self.pots and s.food and s.food.stage != 'burnt':
             s.food.stage = 'burnt'
             self.burns += 1
@@ -908,17 +916,22 @@ class Kitchen:
                   kind='fire_spread' if source else 'fire', station=key, source=source)
 
     def _advance_fire(self, dt):
-        interval = self.rules.fire_spread
-        burning = [key for key,s in self.stations.items() if s.fire]
-        for key in burning:
-            s = self.stations[key]
-            s.fire_elapsed += dt
-            if s.fire_elapsed + 1e-8 < interval:
+        """As in Overcooked 2: each burning station heats every flammable neighbour; heat from several adds up."""
+        r = self.rules
+        burning = {key for key, s in self.stations.items() if s.fire}
+        for key, s in self.stations.items():
+            if s.fire:
                 continue
-            s.fire_elapsed = 0.
-            target = next((n for n in self.fire_neighbors(key) if not self.stations[n].fire), None)
-            if target:
-                self.ignite(target, source=key)
+            s.relight_in = max(0., s.relight_in-dt)
+            sources = [n for n in self.fire_neighbors(key) if n in burning]
+            if sources and s.relight_in <= 0:
+                s.fire_heat, s.fire_idle = min(1., s.fire_heat+dt*len(sources)/r.flammability), 0.
+                if s.fire_heat >= 1-1e-9:
+                    self.ignite(key, source=sources[0])
+            elif s.fire_heat > 0:
+                s.fire_idle += dt
+                if s.fire_idle >= r.fire_cooldown_delay-1e-9:
+                    s.fire_heat = max(0., s.fire_heat-dt/r.fire_cooldown)
         if sum(s.fire for s in self.stations.values()) >= self.rules.fire_loss:
             self.failure_reason = 'fire_spread'
             for who in self.chefs:
@@ -1038,7 +1051,7 @@ class Kitchen:
         return {'wash': r.wash_work, 'dining': r.dining, 'chop': r.chop_work(chop) if chop else None,
                 'cook': ready, 'ready_to_burn': None if heat is None else burn-ready,
                 'burn_to_fire': None if heat is None else fire-burn, 'handling': r.handling,
-                'extinguish': r.extinguish, 'clear': r.clear,
+                'extinguish': r.extinguish,
                 'walk_same_area': r.same_area, 'walk_cross_area': r.cross_area}
 
     def goal_status(self):
@@ -1106,10 +1119,9 @@ class Kitchen:
             record = {"name": s.name, "area": s.area, "food": food(s.food), "used_by": s.lock, "fire": s.fire, "heating": s.heating,
                       'pot_id': s.pot_id, 'counter': key in self.counters, 'stove': key in self.pots,
                       'type': self.rules.station_types[key]}
-            record['fire_spread_in'] = round(max(0,self.rules.fire_spread-s.fire_elapsed),2) if s.fire else None
+            record['fire_heat'] = round(s.fire_heat, 3)
             record['fire_neighbors'] = self.fire_neighbors(key)
             record['workers']=self.work_participants(key,'chop')+self.work_participants(key,'wash')
-            record['scorched'] = s.scorched
             if s.pot_id:
                 record['vessel'] = self.rules.vessels.get(s.pot_id)
             if key in self.pots and s.food:
@@ -1156,7 +1168,7 @@ class Kitchen:
                 "money": self.money, "served": self.served,
                 'fire_safety': {'burning_count': sum(s.fire for s in self.stations.values()),
                                 'loss_threshold': self.rules.fire_loss,
-                                'spread_seconds': self.rules.fire_spread},
+                                'flammability_seconds': self.rules.flammability},
                 'failure_reason': self.failure_reason,
                 "goals": {"target_money": self.rules.goal['min_money']}}
 

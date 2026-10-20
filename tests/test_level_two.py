@@ -1,3 +1,4 @@
+import math
 import json
 import re
 import unittest
@@ -46,7 +47,9 @@ class CounterLevelTests(unittest.TestCase):
         for level in (1,2,3):
             k=self.make(level);k.positions['human']=(2,2);k.set_manual('human',1,0)
             self.assertTrue(k.sprint('human'));k.advance(.1)
-            self.assertAlmostEqual(k.positions['human'][0],2+WALK_SPEED*1.4*.1)
+            # The dash starts at nearly the full multiplier (it eases back over the sprint).
+            m,d=k.rules.sprint_multiplier,k.rules.sprint_duration
+            self.assertAlmostEqual(k.positions['human'][0],2+WALK_SPEED*(.1+(m-1)/2*(.1+d/math.pi*math.sin(math.pi*.1/d))))
             payload=SpatialJevClient(k.c,key='offline').payload(k.snapshot(),k.actions('jeff'))
             self.assertIn('sprint',payload['questions'])
             self.assertIn('Off-stove pots never heat food',payload['state']['rules']['off_stove_pots'])

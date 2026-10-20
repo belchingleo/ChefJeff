@@ -22,7 +22,7 @@ The backend uses a 128-connection accept queue and at most 32 request threads. E
 - Deploy the matching Nginx configuration with the runtime. Its exact Jev route has a 4 KiB body cap, request/response buffering disabled and HTTP/1.1 streaming, preventing key-bearing bodies from being written to proxy temporary files. Keep access/body logging disabled. The upstream is fixed at `https://api.typesafe.ai/v1/systemone`, `jev-latest`, with verified TLS, no redirects and no forwarding retries. No provider credentials are configured on the game server; each player supplies their own.
 - Forwarding is bounded to eight concurrent upstream calls and one per kitchen, with an 18-second socket timeout. Connection tests have a ten-second per-page cooldown and deduplicate their request IDs. Game calls use existing decision IDs and call limits. Upstream I/O holds no game lock; pause/close/round changes discard late answers. Already-issued requests may still be billed. Global/per-kitchen limits can temporarily reject a call rather than queue paid work.
 - Model results sent to the game server contain a validated action, sprint flag and numeric token usage only. Provider text, endpoint and model name are not submitted. The game server receives normal gameplay actions and processes the full state in memory.
-- Ordinary sessions create no disk journal or cross-round memory. Manual contribution remains the default. After explicitly accepting the policy, a player can enable automatic contribution of subsequently completed rounds; enabling it does not upload an already-ended round. Unchecking either agreement or automatic upload stops future uploads. This preference and deletion receipts are kept in this browser; clearing browser storage removes them. Records identify manual (`round`) or standing (`standing`) consent.
+- Ordinary sessions create no disk journal or cross-round memory. When contributions are enabled, the page asks once before the first round (`hosted/consent.html`), with two equal buttons and nothing preselected: **contribute every round from now on** or **not now**. The question states what is and is not saved, the purpose, 30-day retention and deletion. Agreeing never uploads an already-ended round. After **not now**, the result card offers a one-tap **贡献本局** for that round only. Settings → Data export shows the current answer and reopens the question to change it. The answer and deletion receipts are kept in this browser; clearing browser storage removes them. Records identify per-round (`round`) or standing (`standing`) consent. The answer is tied to `CONSENT_VERSION` (`hosted_records.py`, mirrored in `hosted/browser-agent.js`): changing the terms means bumping it, which asks every player again.
 - Contributions contain engine event types/actions, one-second chef positions, preset communication codes, configuration identifiers and result statistics. They are a pilot record format, not the final benchmark schema or deterministic replay.
 - Contributions are kept privately for 30 days. Cleanup runs at startup, before saving and every 30 seconds while the service runs. A random deletion token is delivered once to the player; only its hash is stored. Losing the receipt means waiting for automatic expiry. Deleting a record does not publish or email anything.
 - No account, email, IP address, key, model endpoint, raw model prompt or response is stored in a contribution. The cloud/network provider still handles connection metadata under its own policies.
@@ -45,6 +45,26 @@ On this pilot's shared VPN server, run `bash deploy/finalize_hetzner.sh` as root
 `/ops/capacity` is accessible on the loopback backend and blocked by the public Nginx route. It reports held slots, per-network rejections, page sessions, aggregate rejections, recent response P95/P99, Python CPU/RSS/threads and Linux service cgroup memory where available. No session token, game ID, IP or model payload is included. These are backend metrics, not browser/network latency or total host CPU.
 
 After an approved release is installed, run `python3 /opt/chefjeff/current/deploy/set_kitchen_capacity.py 8` in the server's root SSH terminal to explicitly replace the old two-kitchen command. Existing memory/data/VPN settings remain in place. The helper restarts ChefJeff (ending current rounds), checks the effective limit and restores its previous drop-in if verification fails. A normal release update intentionally preserves existing capacity overrides.
+
+### Raising capacity
+
+Two limits apply: `--max-sessions` (active kitchens, 1–16) and `--max-waiting` (extra page sessions that can browse, set up a model and wait, 0–32). A page beyond both cannot open a kitchen and retries every 15 seconds. `--max-per-network` (default 4) is separate. On the server, as root in its SSH terminal:
+
+```sh
+python3 /opt/chefjeff/current/deploy/set_kitchen_capacity.py 12             # active kitchens; waiting pages unchanged
+python3 /opt/chefjeff/current/deploy/set_kitchen_capacity.py 12 --waiting 32 # also set waiting pages (0–32)
+```
+
+The helper accepts 2, 4, 8, 12 or 16 kitchens, rewrites only its own drop-in (`/etc/systemd/system/chefjeff.service.d/zz-chefjeff-capacity.conf`), restarts the service (ending current rounds), verifies both limits through `/ops/capacity` and restores the previous drop-in if verification fails. Memory, data and VPN settings stay as they are. Each active kitchen adds one game thread; raise `MemoryMax` only after checking the cgroup peak.
+
+Before changing the real server, rehearse locally. `scripts/load_test_hosted.py` (test-only, not in the runtime package) starts a local `hosted_server.py` and simulates pages with a stand-in browser model that always answers "wait", so no model is called. It checks that one network gets at most its share, pages past the limit see the waiting state, pages past the pool are refused, and freed slots are taken; it prints latencies, statuses and the server's own metrics:
+
+```sh
+python3 scripts/load_test_hosted.py --pages 44 --capacity 8 --max-waiting 32 --seconds 30
+python3 scripts/load_test_hosted.py --pages 52 --capacity 16 --max-waiting 32 --seconds 60
+```
+
+On the development Mac (Intel i5-1038NG7, load generator on the same machine) both passed: 8 kitchens, 44 pages: 40 sessions opened, 4 refused, 4 of 6 same-network pages started, 32 waited, 4 freed slots taken within 0.2 s; server P95 11 ms / P99 48 ms, 23% of one core, 49 MB peak RSS. 16 kitchens, 52 pages for 60 s: 48 opened, 8 freed slots taken within 0.5 s, server P95 15 ms / P99 29 ms, 21% of one core, 56 MB peak RSS. Client-side times are higher because the generator's own threads share the CPU. This is not a Hetzner capacity measurement; follow the gates below there.
 
 Start with 8 active kitchens and validate on the actual shared server for 30–60 minutes before trying 12 or 16. Include normal VPN load, simultaneous cold loads, same-network players, continuous rounds/contributions and idle lease expiry. Suggested gates: sustained total host CPU below 65%, at least 200 MiB available host RAM, service cgroup peak below 384 MiB, backend P95 below 100 ms/P99 below 200 ms, and no unexplained 5xx, timeouts, OOM or continuing memory growth. Cloud single-core tests are supporting evidence, not a Hetzner capacity guarantee.
 
@@ -86,7 +106,7 @@ python3 -m unittest tests.test_hosted tests.test_hosted_records
 - 运行时和匹配的 Nginx 配置须一同部署。Jev 精确路由限制请求体 4 KiB，关闭请求／响应缓冲并使用 HTTP/1.1 流式转发，避免带 Key 的请求进入代理临时文件；保持访问／正文日志关闭。上游固定为 `https://api.typesafe.ai/v1/systemone`、`jev-latest`，校验证书、不跟随重定向、不自动重试。服务器不配置模型凭据，各玩家使用自己的 Key。
 - 最多同时转发八个请求、每厨房一个，上游 socket 超时 18 秒。连接测试每页面冷却十秒并按请求 ID 去重；经营决策沿用现有决策 ID 和调用上限。网络等待不持有游戏锁，暂停／关闭／切换回合使迟到回复失效，已发出的请求仍可能计费。达到总量／单厨房限制时会暂时拒绝，不排队调用付费模型。
 - 回传游戏服务器的模型结果仅含已校验动作、冲刺值、数值 token 用量，不提交模型文本、端点或模型名称。服务器在内存处理正常游戏动作和完整状态。
-- 普通会话不写磁盘日志或跨局记忆，默认手动贡献。明确同意政策后，可勾选自动贡献后续已结束的对局；开启时不补传已经结束的本局。取消同意或自动上传任一勾选，即停止后续自动上传。选择和删除凭证保存在此浏览器，清理浏览器存储会移除它们。记录区分单局同意（`round`）和持续同意（`standing`）。
+- 普通会话不写磁盘日志或跨局记忆。开启数据贡献时，页面在第一局前问一次（`hosted/consent.html`）：两个同等按钮「同意以后每局自动贡献」和「暂不」，没有默认选项；问题写明保存与不保存的内容、用途、30 天保存期和删除方式。同意时不补传已经结束的对局。选「暂不」后，结算画面提供一键「贡献本局」，只贡献这一局。「设置 → 数据导出」显示当前选择，并可重新打开问题更改。选择和删除凭证保存在此浏览器，清理浏览器存储会移除它们。记录区分单局同意（`round`）和持续同意（`standing`）。选择与 `CONSENT_VERSION`（`hosted_records.py`，`hosted/browser-agent.js` 中同值）绑定，条款改动须升级版本，所有玩家会被重新询问。
 - 贡献包含引擎事件／动作、每秒厨师位置、预设沟通代码、配置标识和结果统计。这是试点记录格式，最终 benchmark schema 和确定性回放另行设计。
 - 私有保存 30 天，在启动、保存前及运行期间每 30 秒清理过期数据。随机删除凭证仅交给玩家，服务器只保存其哈希；遗失后需等待自动过期。删除不产生发布或邮件。
 - 贡献记录不存账号、邮箱、IP、Key、模型端点、原始模型提示或回复；云与网络供应商仍按自己的政策处理连接元数据。
@@ -117,6 +137,26 @@ JavaScript 压缩同时覆盖 `text/javascript` 与 `application/javascript`，�
 `/ops/capacity` 仅从回环后端读取，公开 Nginx 入口拒绝访问。指标包含保留名额、按网络拒绝次数、页面会话数、拒绝数、近期响应 P95／P99、Python CPU／内存／线程和可用时的 Linux 服务 cgroup 内存；不包含会话 token、游戏 ID、IP 或模型正文。这些是后端指标，不是浏览器／网络延迟或整机 CPU。
 
 获得合并及部署授权、安装新版后，在服务器 root SSH 终端执行 `python3 /opt/chefjeff/current/deploy/set_kitchen_capacity.py 8`，显式替换原来的两个厨房命令。内存／数据／VPN 设置保留；脚本重启厨房（结束现有对局），校验实际容量，失败则恢复原补充配置。普通版本更新会保留现有容量覆盖配置。
+
+### 提高容量
+
+有两个上限：`--max-sessions`（活跃厨房，1–16）和 `--max-waiting`（额外的页面会话，可浏览、配置模型并等待，0–32）。两者都满时页面无法创建厨房，每 15 秒重试。`--max-per-network`（默认 4）另行限制。在服务器 root SSH 终端执行：
+
+```sh
+python3 /opt/chefjeff/current/deploy/set_kitchen_capacity.py 12             # 活跃厨房，等待页数不变
+python3 /opt/chefjeff/current/deploy/set_kitchen_capacity.py 12 --waiting 32 # 同时设置等待页数（0–32）
+```
+
+脚本接受 2、4、8、12、16 个厨房，只改写自己的补充配置（`/etc/systemd/system/chefjeff.service.d/zz-chefjeff-capacity.conf`），重启服务（结束当前对局），通过 `/ops/capacity` 校验两个上限，失败则恢复原配置；内存、数据和 VPN 设置不变。每个活跃厨房多一个游戏线程，确认 cgroup 峰值后再考虑提高 `MemoryMax`。
+
+改真实服务器前先在本机演练。`scripts/load_test_hosted.py`（仅测试用，不进运行包）启动本地 `hosted_server.py`，模拟多个页面，模型由一律回答 wait 的替身代替，不调用任何模型；它检查同一网络只占自己的份额、超出上限的页面显示等待、超出页面池的被拒绝、空出的名额会被接上，并输出延迟、状态码和服务端指标：
+
+```sh
+python3 scripts/load_test_hosted.py --pages 44 --capacity 8 --max-waiting 32 --seconds 30
+python3 scripts/load_test_hosted.py --pages 52 --capacity 16 --max-waiting 32 --seconds 60
+```
+
+开发用 Mac（Intel i5-1038NG7，压测程序同机运行）上两组均通过：8 个厨房、44 个页面：40 个会话建立、4 个被拒，同一网络 6 个页面中 4 个开局，32 个等待，4 个空出的名额 0.2 秒内被接上；服务端 P95 11 毫秒／P99 48 毫秒，单核 23%，峰值内存 49 MB。16 个厨房、52 个页面、60 秒：48 个会话建立，8 个空出的名额 0.5 秒内被接上，服务端 P95 15 毫秒／P99 29 毫秒，单核 21%，峰值内存 56 MB。客户端测得的时间更高，因为压测线程同机争用 CPU。这不是 Hetzner 上的容量测量，在那里仍按下列门槛验证。
 
 首档 8 个活跃厨房，在真实共用服务器测试 30–60 分钟后再试 12 或 16；覆盖正常 VPN 流量、同时冷启动、同一网络多人、连续游玩／贡献，以及空闲名额释放。建议门槛：整机 CPU 持续低于 65%、可用内存至少 200 MiB、服务 cgroup 峰值低于 384 MiB、后端 P95 低于 100 毫秒／P99 低于 200 毫秒；没有无法解释的 5xx、超时、OOM 或持续内存增长。云端单核测试提供参考，不能作为 Hetzner 容量保证。
 

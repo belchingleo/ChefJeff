@@ -1,7 +1,8 @@
 import unittest
 
 from kitchen import Food, GroundItem, load_config
-from spatial_kitchen import SpatialKitchen, neighbors, tile_key
+from spatial_kitchen import SpatialKitchen, tile_key
+from level_one import neighbors
 
 
 class ThrowScatterTests(unittest.TestCase):
@@ -126,10 +127,13 @@ class ThrowScatterTests(unittest.TestCase):
                         access = k.equipment[corner]['access']
                         self.assertEqual(k.path('human', corner), [access])
                         food = k.chefs['jeff'].hand
+                        # Full hands do not catch: the player beside the corner lets it land there.
+                        k.chefs['human'].hand = Food('busy')
                         action = self.throw_toward(k, 'jeff', k.equipment[corner]['cell'])
                         self.assertEqual(action.target, corner)
                         k.advance(1.)
                         self.assertIs(k.stations[corner].food, food)
+                        k.chefs['human'].hand = None
                         self.assertTrue(k.command('human', f'take {corner}')[0])
                         job = k.chefs['human'].job
                         self.assertEqual(k.path('human', corner), [access])

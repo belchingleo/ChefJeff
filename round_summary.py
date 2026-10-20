@@ -31,7 +31,7 @@ CATEGORIES = (
     ('collect_plates', ('take_return',)),
     ('pass', ('throw',)),
     ('extinguish', ('extinguish',)),
-    ('discard', ('discard', 'clear', 'empty_pot')),
+    ('discard', ('discard', 'clear', 'empty_pot')),  # clear: records from 0.6.0-beta.1 and earlier
 )
 
 

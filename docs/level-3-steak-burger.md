@@ -6,8 +6,8 @@ Three frying pans and three clean plates are available: two pans start on stoves
 
 ## Recipes and assembly
 
-- Steak: chop beef for 6 seconds, cook for 12, and plate it.
-- Burger: one bun, chopped lettuce, sliced tomato and cooked beef. Vegetables take 6 seconds to prepare and need no cooking; bread is ready to use.
+- Steak: chop beef for 3 seconds, cook for 12, and plate it.
+- Burger: one bun, chopped lettuce, sliced tomato and cooked beef. Vegetables take 3 seconds to prepare and need no cooking; bread is ready to use.
 - Hold a clean/compatible plate to collect ingredients from boards/counters or beef from pans. Add ingredients to a partner's plate without taking their item. Duplicate ingredients and dirty plates are rejected.
 - Merge compatible plates without destroying a plate. Burnt contents retain their state.
 - Assembly order is free. A plate containing only cooked beef can be served as steak; once other burger ingredients are added, all four are required. Incomplete plates may be carried and placed, with missing-ingredient hints.
@@ -19,7 +19,7 @@ An order arrives every 30 game seconds until closing: steak, burger, burger, ste
 
 Order and spawn seeds are fixed per level version and recorded with the round; the session record's inputs replay a complete game.
 
-All levels allow sprint: press Shift while moving. Sprint lasts 1 game second at 1.4× speed with 3 seconds of cooldown. AI adapters submit a sprint decision alongside the chosen action; only accepted, fresh moving actions may start it. Both chefs share movement/contact rules and paused game time freezes the effect.
+All levels allow sprint: press Shift while moving. A sprint starts at 2× speed and eases back to walking over 1 game second; the next can start as soon as it ends. AI adapters submit a sprint decision alongside the chosen action; only accepted, fresh moving actions may start it. Both chefs share movement/contact rules and paused game time freezes the effect.
 
 Click-selected targets take priority for Space, with a reason when unavailable. Directional movement or clicking open floor returns to nearby targeting. Empty off-stove pans accept chopped beef; pick up and return the pan to heat it.
 
@@ -35,8 +35,8 @@ Click-selected targets take priority for Space, with a reason when unavailable. 
 
 ## 菜谱与组装
 
-- 牛排：牛肉切配 6 秒、烹饪 12 秒后装盘。
-- 汉堡：面包、切好生菜、番茄片、熟牛肉各一份；蔬菜切配 6 秒但不煮，面包直接用。
+- 牛排：牛肉切配 3 秒、烹饪 12 秒后装盘。
+- 汉堡：面包、切好生菜、番茄片、熟牛肉各一份；蔬菜切配 3 秒但不煮，面包直接用。
 - 手持净盘／兼容盘收取案板／柜台配料或平底锅中牛肉；也可给队友盘加料但不夺取物品。拒绝重复配料与脏盘。
 - 兼容两盘可合并但不销毁盘子，糊食物保留糊的状态。
 - 添加顺序不限。仅装熟牛肉时可出牛排；加入其他汉堡配料后须四种齐全。缺料盘可搬动暂放，并显示缺料提示。
@@ -48,6 +48,6 @@ Click-selected targets take priority for Space, with a reason when unavailable. 
 
 订单与出生种子按关卡版本固定并随对局记录；对局记录中的输入可完整重放一局。
 
-各关均可冲刺：移动时按 Shift，持续一游戏秒、速度 1.4 倍、随后冷却三秒。AI 随动作提交冲刺选择，仅新鲜、被接受且正在移动的动作可触发。双方共用移动／碰撞规则，暂停冻结冲刺时间。
+各关均可冲刺：移动时按 Shift，起步 2 倍速、一游戏秒内平滑回落，结束后即可再冲。AI 随动作提交冲刺选择，仅新鲜、被接受且正在移动的动作可触发。双方共用移动／碰撞规则，暂停冻结冲刺时间。
 
 空格只操作瞄着的工位（身边 8 格里最正对朝向的，会框出），不可用时说明原因，不会改用身边的工位，也不会挪动角色。离灶的空平底锅能装切好牛肉，拿起后放回灶台开始加热。

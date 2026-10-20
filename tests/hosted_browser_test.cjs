@@ -5,8 +5,9 @@ const key='unit-test-key-not-a-real-credential';
 function harness(saved=null, fail=false, gameState={game_id:'round',phase:'ready',limits:{},connection:{configured:false}}, sessions=[201]){
  const calls=[],data=new Map(saved?[['chefjeff.browser-key.v1',JSON.stringify(saved)]]:[]),timers=[];
  const listeners={},elements={};let clock=0;
- for(const id of ['contribution-save','contribution-consent','contribution-preview','contribution-data',
-   'contribution-download','contribution-delete','contribution-status','contribution-receipt'])elements[id]={disabled:true,checked:false};
+ for(const id of ['contribution-save','contribution-choice','contribution-change','contribution-preview','contribution-data',
+   'contribution-download','contribution-delete','contribution-status','contribution-receipt','ask-auto','ask-later'])elements[id]={disabled:true,checked:false};
+ elements['contribution-ask']={open:false,showModal(){this.open=true;},close(){this.open=false;}};
  const document={getElementById:id=>elements[id]||null,querySelector:()=>null,activeElement:null};
  const native=async(url,init={})=>{
   calls.push({url:String(url),init});
@@ -64,7 +65,7 @@ function clientHarness(h, fromSource){
  const cc={Component:function(){},Camera:class{},UITransform,Color,Graphics,Node,Layers:{Enum:{UI_2D:1}},sys:{isNative:true},game:{frameRate:15},
    _decorator:{ccclass:()=>cls=>cls},cclegacy:{_RF:{push:()=>{},pop:()=>{}}}};
  h.cc=cc;
- const art={LevelOneArt:class{}},audio={KitchenAudio:class{onState(){}predict(){}play(){}}};
+ const art={LevelOneArt:class{}},audio={KitchenAudio:class{onState(){}play(){}}};
  const geometry={GRID_ART:{tile:48,originX:0,originY:0}};
  const context=vm.createContext({...cc,...art,...audio,...geometry,window:h.w,document:h.document,
    URLSearchParams,location:{search:''},Event:class{constructor(type){this.type=type;}},
@@ -105,19 +106,42 @@ function clientHarness(h, fromSource){
  return client;
 }
 
+// Page diagnostics for the export: a bounded running-frame buffer and update-loop errors kept once with a count.
+function checkClientDiagnostics(fromSource){
+ const client=clientHarness(harness(),fromSource);
+ client.state={game_id:'round',phase:'running'};
+ const k={time:0,chefs:{human:{position:[3,4]}}};
+ for(let i=0;i<400;i++){client.clock=i*.25;client.sampleFrame(k);}
+ assert.equal(client.frames.length,150,'30 s at 5 Hz');
+ assert.equal(JSON.stringify(client.frames.at(-1).engine),'[3,4]');assert.equal(client.frames[0].clock,62.5,'oldest frames drop first');
+ client.state.phase='paused';client.clock=200;client.sampleFrame(k);assert.equal(client.frames.at(-1).clock,99.75,'only running frames');
+ const error=console.error;console.error=()=>{};
+ try{client.frame=()=>{throw new Error('boom');};for(let i=0;i<3;i++)client.update(.016);}finally{console.error=error;}
+ assert.equal(client.loopErrors.length,1);assert.equal(client.loopErrors[0].message,'boom');assert.equal(client.loopErrors[0].count,3);
+}
+
 async function checkClientInteractions(fromSource){
- const gameState={game_id:'round',phase:'ended',limits:{},release:{version:'0.6.0-beta.1'},
+ const gameState={game_id:'round',phase:'ended',limits:{},release:{version:'0.6.0-beta.2'},
   hosted:{contribution_enabled:true},interaction:null,interaction_focus:'counter14',
-  kitchen:{map:{layout_version:'level-2-1'},stations:{counter14:{}},chefs:{human:{holding:{id:'held'}}}}};
+  kitchen:{map:{layout_version:'island-2'},stations:{counter14:{}},chefs:{human:{holding:{id:'held'}}}}};
  const h=harness(null,false,gameState),client=clientHarness(h,fromSource);
  h.listeners.DOMContentLoaded();
  client.request=async()=>await (await h.w.fetch('/api/state')).json();
+ // Any map the server names plays (an audited map, not only level-N-R); only the release must match.
+ client.mountedLayout='island-2';await client.poll();
+ assert.equal(client.connected,true,'a server-provided layout name must not wait for a kitchen update');
+ // The one-time question opens by itself; neither answer is preselected and Esc is not an answer.
+ assert.equal(h.elements['contribution-ask'].open,true);
+ const esc={defaultPrevented:false,preventDefault(){this.defaultPrevented=true;}};h.elements['contribution-ask'].oncancel(esc);assert(esc.defaultPrevented);
+ h.elements['ask-later'].onclick();assert.equal(h.elements['contribution-ask'].open,false);
+ assert(h.elements['contribution-choice'].textContent.includes('暂不'));
  await client.poll();
- h.elements['contribution-consent'].checked=true;h.elements['contribution-consent'].onchange();
  assert.equal(h.elements['contribution-save'].disabled,false);
- await client.poll();
- assert.equal(h.elements['contribution-save'].disabled,false,'state polling must preserve explicit consent');
- gameState.phase='running';await client.poll();
+ assert.equal(client.state.hosted.contribution_offer,true,'after 暂不 the result card offers 贡献本局');
+ gameState.hosted.contributed=true;await client.poll();
+ assert.equal(h.elements['contribution-save'].disabled,true,'a contributed round is not offered again');
+ assert.equal(h.elements['contribution-ask'].open,false,'the question is asked once');
+ gameState.hosted.contributed=false;gameState.phase='running';await client.poll();
  assert.equal(h.elements['contribution-save'].disabled,true,'unfinished rounds cannot be contributed');
  gameState.phase='ended';gameState.hosted.contribution_enabled=false;await client.poll();
  assert.equal(h.elements['contribution-save'].disabled,true,'disabled storage must keep contribution disabled');
@@ -222,7 +246,7 @@ async function checkClientTouchBridge(fromSource){
  for(const changed of [{holding:{id:'replacement'}},{holding:null},{can_throw:false}]){
   clear();controls.press();client.clock+=.31;client.startAim();assert(client.aiming);
   Object.assign(human,changed);
-  client.request=async()=>({...client.state,release:{version:'0.6.0-beta.1'}});
+  client.request=async()=>({...client.state,release:{version:'0.6.0-beta.2'}});
   await client.poll();assert.equal(client.aiming,null,'a changed held-item snapshot cancels aiming immediately');
   controls.release();assert.equal(posts.length,0,'a cancelled snapshot cannot throw or tap');
  }
@@ -508,11 +532,13 @@ function settingsHarness(){
  await checkClientTouchBridge(false);
  checkClientOrderBridge(false);
  checkClientAimRender(false);
- if(require('node:module').stripTypeScriptTypes){await checkClientInteractions(true);await checkClientTouchBridge(true);checkClientOrderBridge(true);checkClientAimRender(true);}
+ checkClientDiagnostics(false);
+ if(require('node:module').stripTypeScriptTypes){await checkClientInteractions(true);await checkClientTouchBridge(true);checkClientOrderBridge(true);checkClientAimRender(true);checkClientDiagnostics(true);}
  else console.log('TypeScript source execution requires Node 22.13+; included runtime checked.');
  console.log('Browser transport: memory/remember/clear, reload, CORS failure, origin guard and no-key-to-server checks passed.');
  console.log('Client interactions: workstation/floor tap and hold, item changes, cancellation and hosted contribution state passed.');
  console.log('Client touch bridge: normalized movement, station tap/throw hold, neutral reset, cancellation, sprint and keyboard compatibility passed.');
  console.log('Client order bridge: all recipe ingredients, snapshot order/duplicates, reviewed sprites, unknown fallback and patience passed.');
  console.log('Client aim rendering: translucent arc, finite eight-way/analog geometry, unchanged range, cancellation and request-free steering passed.');
+ console.log('Client diagnostics: 30 s running-frame buffer and update-loop errors recorded instead of repeating silently passed.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

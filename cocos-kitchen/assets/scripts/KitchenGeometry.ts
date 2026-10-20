@@ -11,6 +11,14 @@ export function stationView(map:any,id:string):{run_axis:Axis;device_axis:Axis} 
     const v=Number(occupied.has(`${p[0]},${p[1]-1}`))+Number(occupied.has(`${p[0]},${p[1]+1}`));
     const axis:Axis=v>h?'vertical':'horizontal';return {run_axis:axis,device_axis:axis};
 }
+/** Cabinet module for a station: the trimmed front panel (counter_south) wherever its front shows, that is
+ * horizontal runs and any cabinet without a wall or station right below it (the foot of a vertical run, an
+ * island); the plain strip (counter_east) only inside a vertical run, where the cabinet below covers it. */
+export function cabinetModule(map:any,id:string):'counter_south'|'counter_east'{
+    const [x,y]=map.equipment[id].cell,below=`${x},${y+1}`;
+    const covered=(map.walls||[]).some((w:number[])=>w.join(',')===below)||Object.values(map.equipment).some((e:any)=>(e.cells||[e.cell]).some((c:number[])=>c.join(',')===below));
+    return stationView(map,id).run_axis==='vertical'&&covered?'counter_east':'counter_south';
+}
 /** The long edge faces the authored service side, independent of cabinet run. */
 export function trashView(map:any,id:string):{axis:Axis;mirror:boolean}{
     const e=map.equipment[id],dx=e.access[0]-e.cell[0],dy=e.access[1]-e.cell[1];
@@ -28,6 +36,12 @@ export function wallOffset(){return GRID_ART.wallHeight*GRID_ART.tile/GRID_ART.u
  * A solid sorts by its north edge: feet at or behind that edge stay behind it, while
  * feet further south in its row can only stand beside it and draw in front. */
 export function depthOrder(y:number,kind:'solid'|'actor'|'item'){return y+(kind==='solid'?-.495:kind==='actor'?0:-.12);}
+/** A food or tool lying on the floor at map y. Cabinets (and walls) one row up hang their front panel
+ * into its tile, so it draws in front of them (above their contents too); everything from its own row
+ * down stays in front of it. It stays under any chef close enough to overlap (a steak at the feet never
+ * covers the legs): a chef is at least about a row north before the item can draw over them. Derived
+ * from rows only, so it holds for any layout. */
+export function floorItemDepth(y:number){return depthOrder(Math.round(y)-1,'solid')+.012;}
 /** Station-working chefs stand outside the cabinet footprint; the cabinet must
  * not cover their face. North/back bodies retain ordinary grounded depth. */
 export function workingChefDepth(y:number,row:number|undefined,facing:string,working:boolean){
@@ -86,12 +100,12 @@ function contactFraction(a:number[],b:number[],c:number[],r:number){
  * continue: the server's corner_offset, within map.corner_slide. */
 export function cornerOffset(map:any,p:number[],v:number[]):[number,number]|null{
     const limit=map.corner_slide;
-    const axis=v[0]&&!v[1]?0:v[1]&&!v[0]?1:-1;
-    if(!limit||axis<0)return null;
-    const side=1-axis;
-    for(let n=1;n<=Math.round(limit/.01);n++)for(const sign of [-1,1]){
+    if(!limit||(!v[0]&&!v[1]))return null;
+    // As the engine's corner_offset: the main axis of the stick, the side it leans to first.
+    const axis=Math.abs(v[0])>=Math.abs(v[1])?0:1,side=1-axis,lean=v[side]<0?-1:1;
+    for(let n=1;n<=Math.round(limit/.01);n++)for(const sign of [lean,-lean]){
         const shifted=[p[0],p[1]];shifted[side]+=sign*n*.01;
-        const ahead=[shifted[0],shifted[1]];ahead[axis]+=v[axis]*.05;
+        const ahead=[shifted[0],shifted[1]];ahead[axis]+=Math.sign(v[axis])*.05;
         if(clearWalkLine(map,p,shifted)&&clearWalkLine(map,shifted,ahead))return [sign*n*.01,side];
     }
     return null;
@@ -241,44 +255,56 @@ export function anchorCell(map:any,pos:number[]):number[]|null{
     }
     return anchor;
 }
-/** The station Space acts on, or null when nothing or a loose item comes first (engine facing_candidates):
- * the picked station and the items on the aimed tile and at the feet go nearest-first to a point half a
- * cell ahead (the station's at hand height when aiming sideways); ties keep the station. */
-export function spaceStation(map:any,pos:number[],aim:number[],ground:any[]):string|null{
+/** Shortest distance from a point to a segment (a throw's path; the engine catches along it). */
+export function segmentDistance(p:number[],a:number[],b:number[]){
+    const dx=b[0]-a[0],dy=b[1]-a[1],l=dx*dx+dy*dy,t=l<1e-12?0:Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dy)/l));
+    return Math.hypot(p[0]-a[0]-dx*t,p[1]-a[1]-dy*t);
+}
+/** What Space acts on, as the engine's facing_candidates ranks it (Overcooked 2's ScanForObject): the picked
+ * station and the first loose item on the aimed tile and on the feet tile, nearest first to a point half a
+ * cell ahead (the station's at hand height when aiming sideways); ties keep station, aimed tile, feet.
+ * Returns a station id, 'item:<food id>' or null. */
+export function spaceTarget(map:any,pos:number[],aim:number[],ground:any[]):string|null{
+    const length=Math.hypot(aim[0],aim[1]),anchor=anchorCell(map,pos);
+    if(!length||!anchor)return null;
+    const ax=aim[0]/length,ay=aim[1]/length,near=(d:number)=>Math.round(d*1e6)/1e6,ranked:[number,number,string][]=[];
     const station=selectableStations(map,pos,aim)[0];
-    if(!station)return null;
-    const length=Math.hypot(aim[0],aim[1]),ax=aim[0]/length,ay=aim[1]/length,anchor=anchorCell(map,pos)!;
-    const e=map.equipment[station],cells:number[][]=e.cells||[e.cell];
-    const cell=cells.reduce((a,b)=>Math.hypot(b[0]-pos[0],b[1]-pos[1])<Math.hypot(a[0]-pos[0],a[1]-pos[1])?b:a);
-    const near=(d:number)=>Math.round(d*1e6)/1e6;
-    const stationAt=near(Math.hypot(pos[0]+ax*.5-cell[0],pos[1]+ay*.5-.35*Math.abs(ax)-cell[1]));
+    if(station){
+        const e=map.equipment[station],cells:number[][]=e.cells||[e.cell];
+        const cell=cells.reduce((a,b)=>Math.hypot(b[0]-pos[0],b[1]-pos[1])<Math.hypot(a[0]-pos[0],a[1]-pos[1])?b:a);
+        ranked.push([near(Math.hypot(pos[0]+ax*.5-cell[0],pos[1]+ay*.5-.35*Math.abs(ax)-cell[1])),0,station]);
+    }
     const front=[anchor[0]+(Math.abs(ax)>=.38?Math.sign(ax):0),anchor[1]+(Math.abs(ay)>=.38?Math.sign(ay):0)];
-    for(const tile of [front,anchor]){
+    [front,anchor].forEach((tile,i)=>{
         // The tile an item rests on is its location key (floor_x_y), as in the engine.
         const item=ground.find((g:any)=>g.position&&g.location===`floor_${tile[0]}_${tile[1]}`);
-        if(item&&near(Math.hypot(pos[0]+ax*.5-item.position[0],pos[1]+ay*.5-item.position[1]))<stationAt)return null;
-    }
-    return station;
+        if(item)ranked.push([near(Math.hypot(pos[0]+ax*.5-item.position[0],pos[1]+ay*.5-item.position[1])),i+1,'item:'+item.food.id]);
+    });
+    ranked.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+    return ranked.length?ranked[0][2]:null;
 }
 /** Space's station, picked as the engine does (spatial_kitchen.selectable_stations; Overcooked 2's grid
  * pick): stations in the eight cells around the chef's own floor cell that lie ahead of the aim, best
  * matching direction first, ties to the one nearest a point half a cell ahead (at hand height when aiming
- * sideways), within 0.85 cells of the feet. Beside or behind never counts. */
+ * sideways), within 0.85 cells of the feet. Beside or behind never counts. Directions compare by angle,
+ * with a 0.1 bonus for the straight cells, so a diagonal wins only about 30 degrees off straight. */
 export function selectableStations(map:any,pos:number[],aim:number[]):string[]{
-    const SELECT_AHEAD=.5,SELECT_REACH=.85,SIDE_HAND_RISE=.35;
+    const SELECT_AHEAD=.5,SELECT_REACH=.85,SIDE_HAND_RISE=.35,SELECT_STRAIGHT_BONUS=.1;
     const length=Math.hypot(aim[0],aim[1]);if(!length)return [];
     const ax=aim[0]/length,ay=aim[1]/length,anchor=anchorCell(map,pos);
     if(!anchor)return [];
     const [cx,cy]=anchor,probe=[pos[0]+ax*SELECT_AHEAD,pos[1]+ay*SELECT_AHEAD-SIDE_HAND_RISE*Math.abs(ax)];
+    // Directions from the cell the hands are over (raised when aiming sideways), as the engine does.
+    const [hx,hy]=anchorCell(map,[pos[0],pos[1]-SIDE_HAND_RISE*Math.abs(ax)])||anchor;
     const ranked=new Map<string,[number,number]>();
     for(const [id,e] of Object.entries(map.equipment||{}) as [string,any][]){
         const corner=e.reach==='corner';
         if(corner&&(e.access?.[0]!==cx||e.access?.[1]!==cy))continue;
         for(const c of (corner?[e.cell]:(e.cells||[e.cell])) as number[][]){
-            const ox=c[0]-cx,oy=c[1]-cy;
+            const ox=c[0]-(corner?cx:hx),oy=c[1]-(corner?cy:hy);
             if(!corner&&Math.max(Math.abs(ox),Math.abs(oy))!==1)continue;
-            const score=ax*ox+ay*oy;
-            if(score<=1e-6)continue;
+            if(ax*ox+ay*oy<=1e-6)continue;
+            const score=(ax*ox+ay*oy)/Math.hypot(ox,oy)+(Math.abs(ox)+Math.abs(oy)===1?SELECT_STRAIGHT_BONUS:0);
             if(Math.max(Math.abs(pos[0]-c[0]),Math.abs(pos[1]-c[1]))-.5>SELECT_REACH+1e-9)continue;
             const rank:[number,number]=[-Math.round(score*1e6)/1e6,Math.round(Math.hypot(probe[0]-c[0],probe[1]-c[1])*1e6)/1e6];
             const old=ranked.get(id);

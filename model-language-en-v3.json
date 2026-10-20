@@ -143,7 +143,7 @@
     "手中物品已变化，请重新按空格": "Your held item changed. Tap Space again.",
     "请靠近工位或物品，再按空格操作": "Move near a station or item, then tap Space.",
     "当前不能抛掷": "You cannot throw right now",
-    "抛掷坐标无效": "Invalid throw destination",
+    "抛掷方向无效": "Invalid throw direction",
     "手中物品已变化": "Your held item changed",
     "没有可用落点，或此物品不能抛掷": "No landing space, or this item cannot be thrown",
     "这是上一局的操作，请刷新页面。": "This action belongs to an old round. Refresh the page.",
@@ -218,7 +218,6 @@
     "没有读到可用的本地 Jev 配置，请检查 .env。厨房尚未开始计时。": "No usable local Jev configuration. Check .env. The kitchen timer has not started.",
     "对局已变化，连接未保存。": "The round changed. The connection was not saved.",
     "自动换手": "auto-swap",
-    "手中物品自动放到地上": "held item is put on the floor",
     "切配进度保留；锅继续加热": "prep progress kept; pot keeps heating",
     "可捡回、不扣钱": "recoverable, no charge",
     "可捡回，不扣钱": "recoverable, no charge",
@@ -233,7 +232,7 @@
     "损耗2元，保留空锅": "¥2 cost; keep the pot",
     "损耗 2 元": "¥2 cost",
     "没有订单在等这道菜会扣钱，糊太久会被拒收": "serving a dish no order is waiting for costs money; a dish burnt too long is refused",
-    "随后仍须清理糊菜": "burnt food must still be cleared",
+    "随后仍须端锅到垃圾桶倒掉糊菜": "then carry the pan to a bin to empty the burnt food",
     "抛出物品": "throw item",
     "糊了的菜": "burnt food",
     "没有待完成订单": "no pending order",
@@ -415,10 +414,6 @@
       "Round: {0} / {1} calls{2}; reported tokens: {3} input / {4} output; connection tests: {5}"
     ],
     [
-      "向地面({0},{1})抛出手中物品（落点由射程和墙确定）",
-      "Throw the held ingredient toward ({0},{1}); range and walls determine its landing"
-    ],
-    [
       "{0}到达后发现地上物品已变化或被捡走，动作取消",
       "{0}: the floor item changed or was taken; action cancelled"
     ],
@@ -535,10 +530,6 @@
       "{0} landed on the floor; pick it up"
     ],
     [
-      "把手中食材抛到空的{0}",
-      "Throw the held ingredient onto empty {0}"
-    ],
-    [
       "{0}从{1}旁的地上捡起 {2}",
       "{0} picked up {2} from the floor by {1}"
     ],
@@ -571,12 +562,16 @@
       "{0}'s position was set by the engine"
     ],
     [
-      "{0} {1}s 后糊",
-      "{0} · burns in {1}s"
+      "{0}被推开",
+      "{0} was knocked back"
     ],
     [
-      "清空{0}的食物",
-      "Clear food from {0}"
+      "{0}开始冲刺",
+      "{0} started sprinting"
+    ],
+    [
+      "{0} {1}s 后糊",
+      "{0} · burns in {1}s"
     ],
     [
       "地面({0},{1})",
@@ -647,8 +642,8 @@
       "New order {0}: {1}, due at {2}s"
     ],
     [
-      "取一份{0}（自动换手）",
-      "Fetch {0} (automatic hand swap)"
+      "取一份{0}",
+      "Fetch {0}"
     ],
     [
       "在{0}向盘中加入食材",
@@ -785,6 +780,54 @@
     [
       "切好的{0}",
       "chopped {0}"
+    ],
+    [
+      "到{0}取一份{1}",
+      "Take {1} from {0}"
+    ],
+    [
+      "抛给队友（接不住时落到{0}）",
+      "Throw to the other chef (lands at {0} if not caught)"
+    ],
+    [
+      "抛出手中物品（落到{0}）",
+      "Throw the held item (lands at {0})"
+    ],
+    [
+      "{0} 落进{1}的{2}，开始加热",
+      "{0} landed in the {2} on {1} and started heating"
+    ],
+    [
+      "向上方抛出手中物品（落到{0}）",
+      "Throw the held item up (lands at {0})"
+    ],
+    [
+      "向下方抛出手中物品（落到{0}）",
+      "Throw the held item down (lands at {0})"
+    ],
+    [
+      "向左方抛出手中物品（落到{0}）",
+      "Throw the held item left (lands at {0})"
+    ],
+    [
+      "向右方抛出手中物品（落到{0}）",
+      "Throw the held item right (lands at {0})"
+    ],
+    [
+      "向左上方抛出手中物品（落到{0}）",
+      "Throw the held item up-left (lands at {0})"
+    ],
+    [
+      "向右上方抛出手中物品（落到{0}）",
+      "Throw the held item up-right (lands at {0})"
+    ],
+    [
+      "向左下方抛出手中物品（落到{0}）",
+      "Throw the held item down-left (lands at {0})"
+    ],
+    [
+      "向右下方抛出手中物品（落到{0}）",
+      "Throw the held item down-right (lands at {0})"
     ]
   ],
   "actors": {

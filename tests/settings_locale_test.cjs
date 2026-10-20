@@ -11,7 +11,7 @@ class Copy(HTMLParser):
         super().__init__(); self.tags=[]; self.active=False; self.copy=[]
     def handle_starttag(self, tag, attrs):
         attrs=dict(attrs)
-        if tag=='dialog' and attrs.get('id')=='kitchen-api-dialog': self.active=True
+        if tag=='dialog' and attrs.get('id') in ('kitchen-api-dialog','contribution-ask'): self.active=True
         if self.active:
             for name in ('placeholder','aria-label','title'):
                 if attrs.get(name): self.copy.append(attrs[name])
@@ -35,7 +35,10 @@ for file in ('hosted_server.py','hosted_jev.py'):
                     copies['errors'].append(value.value)
         if isinstance(node,ast.Call) and isinstance(node.func,ast.Name) and node.func.id=='ForwardError' and len(node.args)>1 and isinstance(node.args[1],ast.Constant):
             copies['errors'].append(node.args[1].value)
-copies['browser']=re.findall(r"throw new Error\('([^']+)'\)",Path('hosted/browser-agent.js').read_text())
+agent=Path('hosted/browser-agent.js').read_text()
+copies['browser']=re.findall(r"throw new Error\('([^']+)'\)",agent)
+# Contribution choice, status and badge sentences the agent writes into the page.
+copies['contribution']=[s for s in re.findall(r"'([^'\n]*[\u4e00-\u9fff][^'\n]*。)'",agent) if not s.startswith('，')]
 print(json.dumps(copies,ensure_ascii=False))
 `],{encoding:'utf8'});
 assert.equal(result.status,0,result.stderr);
@@ -50,6 +53,9 @@ for(const [kind,strings] of Object.entries(copies))for(const source of strings){
 locale.setLanguage('zh');
 for(const strings of Object.values(copies))for(const source of strings)assert.equal(locale.t(source),source);
 assert(!fs.readFileSync('hosted/contribution.html','utf8').includes('class="contrib" data-no-i18n'));
+assert(copies.hosted.includes('同意以后每局自动贡献（30 天后删除，可随时关闭）')&&copies.hosted.includes('暂不'),'the consent question is part of the hosted page');
+assert(!copies.local.includes('暂不'),'local play has no contribution question');
+assert.equal(locale.english('贡献失败：请求失败。'),'Contribution failed: Request failed.');
 assert.equal(locale.english('模型接口返回 HTTP 401，请检查账号和模型。'),'Model API returned HTTP 401. Check your account and model.');
 assert.equal(locale.english('Jev 接口返回 HTTP 401，请检查账号和模型。'),'Jev API returned HTTP 401. Check your account and model.');
 console.log('Settings localization: local and hosted copy, privacy, contribution, attributes and error messages switch completely between Chinese and English.');

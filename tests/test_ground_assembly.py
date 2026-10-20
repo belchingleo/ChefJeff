@@ -65,13 +65,14 @@ class GroundAssemblyTests(unittest.TestCase):
         self.assertNotIn(plate.id, k.ground)
         self.assertEqual((k.ground['bun'].food.plate_id, k.ground['bun'].location), (plate.id, location))
 
-    def test_duplicates_and_swap_remain(self):
+    def test_duplicates_rejected_and_full_hands_never_swap_for_a_plate(self):
         k = self.kitchen()
         self.place(k, 'human', k.merge_plate(self.plate(k), Food('bun', ingredient='bread')))
         k.chefs['human'].hand = Food('bun2', ingredient='bread')
         keys = [a.key for a in k.actions('human')]
         self.assertNotIn('assemble ground bun', keys)
-        self.assertIn('pickup bun', keys)
+        # Full hands swap only for a loose raw or chopped ingredient, never for a plate.
+        self.assertNotIn('pickup bun', keys)
 
     def test_stale_floor_plate_is_rejected(self):
         k = self.kitchen()

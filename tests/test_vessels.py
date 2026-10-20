@@ -81,7 +81,7 @@ class VesselTests(unittest.TestCase):
 
     def test_only_a_passed_vessel_is_marked_as_one_in_flight(self):
         k = self.k
-        base = {'target': 'counter4', 'from': (2, 2), 'to': (3, 3), 'started': 0, 'lands_at': 1}
+        base = {'actor': 'human', 'target': 'counter4', 'from': (2, 2), 'to': (3, 3), 'started': 0, 'lands_at': 1}
         k.projectiles['F95'] = dict(base, food=Food('F95', ingredient='bread'))
         k.projectiles['P3'] = dict(base, food=Food('P3', 'pot', contents=Food('F96', 'ready', ingredient='beef')))
         flying = {p['id']: p for p in k.snapshot()['projectiles']}

@@ -29,10 +29,10 @@ Optional fields switch a behaviour on; when absent, the simpler behaviour named 
 
 | Field | Meaning | `chefjeff-service` |
 |---|---|---|
-| `engine_semantics` | rules the engine implements: `continuous-2026-10` (net revenue judged at closing, burnt-dish tiers, no bad reviews; Overcooked-style targeting of the station under the chef's front point, the player works where they stand, routed chefs dock on the centre of a station side). It also scopes Jeff's cooperation memory, so rounds played under `continuous-2026-09` (nearest-beside fallback, docking with a side drop) no longer reach his prompt | `continuous-2026-10` |
+| `engine_semantics` | rules the engine implements: `continuous-2026-10b` (net revenue judged at closing, burnt-dish tiers, no bad reviews; Overcooked 2-style targeting of the station most squarely ahead among the eight cells around the chef; every cabinet is walked up to from behind, as boards were; work started in place slides sideways onto the station's centre line; an eased dash (2x easing back over 1 s, no cooldown) and 3 s chopping; throws are caught along their path; head-on chefs in a one-chef passage give way). `continuous-2026-10` had the board-only closer approach, a flat 1.4x sprint with a 3 s cooldown and 6 s chopping. It also scopes Jeff's cooperation memory, so rounds played under `continuous-2026-09` (nearest-beside fallback, docking with a side drop) no longer reach his prompt | `continuous-2026-10` |
 | `tick_game_ms` | fixed simulation step | 50 |
 | `supported_equipment_types` | types with engine semantics | 9 types |
-| `operations.handling_game_ms` / `extinguish_game_ms` / `clear_game_ms` | take/put/plate/serve; extinguish; clear pot | 150 / 4000 / 2000 |
+| `operations.handling_game_ms` / `extinguish_game_ms` | take/put/plate/serve; extinguish | 150 / 4000 |
 | `operations.ground_assembly` | optional; multi-component menus may assemble with a plate or ingredient on the floor as on a counter (`assemble ground <item_id>`); absent: floor items only swap | `true` |
 | `movement.*` | walk cells/s; sprint multiplier, duration and cooldown; chef separation; sprint push and food nudge | 4.5; 1.4× for 1000 ms, 3000 ms cooldown; 0.4; 0.25 / 0.25 |
 | `movement.cabinet_clearance_cells` | optional one chef body size against workstations: feet stay `front` south of a cell, clear of its front panel, and `side` from its east/west edges (the measured half width of the chef art); stand points follow; the north side and walls keep 0.2. Absent: 0.2 everywhere, with board contact faces | `{front: 0.45, side: 0.35}` |
@@ -40,9 +40,9 @@ Optional fields switch a behaviour on; when absent, the simpler behaviour named 
 | `movement.stall_replan` | optional; re-plan a stalled route around the other chef | after 300 ms below 0.05 cells |
 | `movement.corner_slide_cells` | optional; a fully blocked single-direction key walk first slides sideways by at most this much when that clears the edge | 0.3 |
 | `movement.approach_partner` | optional; offer "go partner", a walk into the other chef that ends on contact (contact pushes; a sprint adds one bounded shove) | `true` |
-| `throw.*` | enabled; `range_cells` for throwable ingredients; optional `pass_range_cells` for plates, dishes, pots and the extinguisher (absent: not passable); speed; minimum flight; catch radius | on; 4; 4; 12 cells/s; 200 ms; 0.75 |
+| `throw.*` | enabled; `range_cells` for throwable ingredients; optional `pass_range_cells` for plates, dishes and pots, never the extinguisher (absent: not passable); speed; minimum flight; catch radius | on; 4; 4; 12 cells/s; 200 ms; 0.75 |
 | `tableware.dining_game_ms` / `return_capacity` | customer plate return delay; return station capacity | 8000 / 1 |
-| `fire.spread_interval_game_ms` / `loss_threshold` | spread cadence; simultaneous fires that end the round | 8000 / 5 |
+| `fire.flammability_game_ms` / `cooldown_delay_game_ms` / `cooldown_game_ms` / `relight_delay_game_ms` / `loss_threshold` | Overcooked 2 spread: heating time next to one burning station (several add up, diagonals count); heat hold and drain without a burning neighbour; no heat just after extinguishing; simultaneous fires that end the round | 5000 / 2000 / 1000 / 2000 / 5 |
 | `penalties.*` | wrong dish (no shown order waits for it), expired order, new fire, discard/clear | −20, −10, −5, −2 |
 | `burnt_service[]` | tiers by how long the worst component was burnt when it left the heat, `{max_overcook_game_ms, outcome, adjustment}`; ascending, last `null` | ≤ 5000 accepted −10; longer refused (order keeps waiting) |
 | `abstract_travel.*` | travel of the non-spatial text prototype only | 1000 / 3000 |
@@ -87,7 +87,7 @@ Common: `patience_default_game_ms`, `patience_by_recipe`. The algorithm name is 
 | `*_ref` | exact versions of ruleset, map, equipment catalog, recipe catalog and order policy |
 | `actors[]` | `human` and `jeff` with `controller_type`; model/provider settings and keys are bound at round start, never stored here |
 | `spawns` | `nearest_floor_to_center_shuffled`: nearest floor cell to each center on its side of `partition`, then shuffled with the spawn seed |
-| `initial_inventory[]` | `{object: plate|pot|extinguisher, id, state?, at}`; IDs `D1..Dn`, `P1..Pn`, exactly one `E1`; one object per slot |
+| `initial_inventory[]` | `{object: plate|pot|pan|extinguisher, id, state?, at | at_type}`; `at` names a station, `at_type` a station type (the first station of that type, in map order, not held by an earlier row or named by an `at` row), so a level can run on any map; IDs `D1..Dn`, `P1..Pn`, exactly one `E1`; one object per slot |
 | `clock` | default and allowed game-per-real-time speeds (shipped 0.75; options 0.5 / 0.75 / 1) |
 | `round_limit_game_ms` | D |
 | `goal` | `minimum_money {min_money}`: net revenue at closing |
@@ -102,6 +102,7 @@ Common: `patience_default_game_ms`, `patience_by_recipe`. The algorithm name is 
 | `order_policy.stop_spawn_game_ms` (seeded) | the round limit |
 | `order_policy.patience_by_recipe` | `{}` |
 | `level.initial_inventory[i].state` (plates) | `clean` |
+| `level.initial_inventory[i].at` (rows with `at_type`) | the resolved station; the frozen row keeps only `at` |
 
 ## Resolved configuration (frozen)
 
@@ -124,7 +125,7 @@ Contains the full text of every referenced document, `sources` (id, version, sha
 | `GOAL_EXCEEDS_REVENUE` | ERROR | the goal needs more money than the plan can offer at full price |
 | `ORDER_BACKLOG_EXCEEDS_DISPLAY` | ERROR | `floor(longest countdown / interval) + 1` tickets could wait at once, more than `max_visible_orders` |
 | `RULESET_BURNT_TIERS` | ERROR | burnt tiers do not ascend or do not end with an open tier |
-| `INVENTORY_*` | ERROR | unknown/incompatible/duplicate placements, ID sequences, extinguisher count, no plates |
+| `INVENTORY_*` | ERROR | unknown/incompatible/duplicate placements, no free station of an `at_type` (`INVENTORY_NO_FREE_STATION`), ID sequences, extinguisher count, no plates |
 | `ACTORS_UNSUPPORTED`, `CLOCK_DEFAULT`, `SPAWN_NO_FLOOR` | ERROR | participants, clock or spawns not supported |
 | `LIMIT_*` | ERROR | technical limits exceeded |
 | `PATIENCE_SHORT` | WARNING | patience under 10 s |

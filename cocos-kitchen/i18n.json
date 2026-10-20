@@ -5,9 +5,9 @@
     "当前厨房不支持位置上报": "This kitchen does not accept position reports.",
     "位置信息无效": "Invalid position.",
     "朝向无效": "Invalid aim.",
-    "目标无效": "Invalid target.",
+    "目标无效": "Invalid target",
     "iPhone 不支持网页全屏：在浏览器的分享菜单选「添加到主屏幕」，再从主屏幕打开即可全屏。": "iPhone browsers cannot go full screen: choose Add to Home Screen in the browser's Share menu, then open ChefJeff from the Home Screen.",
-    "手机触屏（横屏）：左下区域按住，摇杆出现在拇指下，朝任意方向推动移动，松手停止。右侧「操作」短按交互；持物时长按约 0.3 秒瞄准（按钮变成「投掷」），用摇杆调方向，松开投掷；瞄准时操作键上方出现圆形「取消」，手指滑上去再松开即可取消。「冲刺」在操作键左侧，移动时点按。顶部有暂停和菜单（设置、操作说明、本局记录、结束本局），沟通和标记也有按钮。手机转回竖屏会自动暂停，横屏后点「继续经营」。": "Touch (landscape): press in the lower-left area and the joystick appears under your thumb; push in any direction to move, let go to stop. Tap Action on the right to interact. Holding an item, hold Action for about 0.3 s to aim (the button reads Throw), steer with the joystick and release to throw; while aiming, a round Cancel button appears above Action: slide onto it and let go to cancel. Dash sits left of Action; tap it while moving. The top bar has Pause and Menu (Settings, Controls, Round record, End round), plus Talk and Bookmark. Turning the phone to portrait pauses the round; turn back and tap Resume.",
+    "手机触屏（横屏）：左下区域按住，摇杆出现在拇指下，朝任意方向推动移动，松手停止。右侧「操作」按下立即做面前需要的事（拿、放、切、洗、灭火、装盘、出餐），手里拿着东西也一样。「扔」在「操作」上方，手持可扔的物品时可用：点按朝前方直接扔出，长按瞄准、用摇杆调方向、松开投掷；瞄准时「扔」旁边出现圆形「取消」，手指滑上去再松开即可取消。「冲刺」在操作键左侧，移动时点按。顶部有暂停和菜单（设置、操作说明、本局记录、结束本局），沟通和标记也有按钮。手机转回竖屏会自动暂停，横屏后点「继续经营」。": "Touch (landscape): press in the lower-left area and the joystick appears under your thumb; push in any direction to move, let go to stop. Action on the right does what is in front of you at once (take, put, chop, wash, put out fires, plate, serve), even with an item in hand. Throw, above Action, works with a throwable item: tap to throw straight ahead, or hold to aim, steer with the stick and release to throw; while aiming, a round Cancel appears beside it: slide onto it and let go to cancel. Tap Dash, left of Action, while moving. The top bar has pause and the menu (settings, controls, round record, end round), plus communication and bookmark buttons. Turning the phone upright pauses automatically; turn it back and tap Continue.",
     "网络不稳定，正在重连…": "Unsteady connection, reconnecting…",
     "打开快慢取决于你的网络，第一次要下载约 2 MB，之后再打开会快很多。": "Loading time depends on your network: the first visit downloads about 2 MB, later visits are much faster.",
     "横屏游玩，工位和按钮会更清楚。": "Play in landscape for a clearer kitchen and controls.",
@@ -158,7 +158,7 @@
     "当前不能操作": "You cannot interact right now",
     "手中物品已变化，请重新按空格": "Your held item changed. Tap Space again.",
     "当前不能抛掷": "You cannot throw right now",
-    "抛掷坐标无效": "Invalid throw destination",
+    "抛掷方向无效": "Invalid throw direction",
     "手中物品已变化": "Your held item changed",
     "没有可用落点，或此物品不能抛掷": "No landing space, or this item cannot be thrown",
     "这是上一局的操作，请刷新页面。": "This action belongs to an old round. Refresh the page.",
@@ -230,7 +230,6 @@
     "没有读到可用的本地 Jev 配置，请检查 .env。厨房尚未开始计时。": "No usable local Jev configuration. Check .env. The kitchen timer has not started.",
     "对局已变化，连接未保存。": "The round changed. The connection was not saved.",
     "自动换手": "auto-swap",
-    "手中物品自动放到地上": "held item is put on the floor",
     "切配进度保留；锅继续加热": "prep progress kept; pot keeps heating",
     "可捡回、不扣钱": "recoverable, no charge",
     "可捡回，不扣钱": "recoverable, no charge",
@@ -245,7 +244,7 @@
     "损耗2元，保留空锅": "¥2 cost; keep the pot",
     "损耗 2 元": "¥2 cost",
     "没有订单在等这道菜会扣钱，糊太久会被拒收": "serving a dish no order is waiting for costs money; a dish burnt too long is refused",
-    "随后仍须清理糊菜": "burnt food must still be cleared",
+    "随后仍须端锅到垃圾桶倒掉糊菜": "then carry the pan to a bin to empty the burnt food",
     "抛出物品": "throw item",
     "糊了的菜": "burnt food",
     "没有待完成订单": "no pending order",
@@ -317,7 +316,6 @@
     "选中目标暂不可操作，请靠近或检查物品状态": "Selected target cannot be used now; move closer or check items",
     "请靠近选中的出餐口": "Move closer to the selected serving hatch",
     "地上物品已变化，请重新选择": "Ground item changed; select it again",
-    "目标无效": "Invalid target",
     "点击工位或地上物品后，空格只操作选中目标；条件不满足时给出提示。方向移动或点击空地恢复就近操作。地上空锅可先放切好的牛肉，再按空格端锅，离灶不加热。底部文字会显示将执行的动作：": "Space acts on the selected station or ground item; unavailable actions show a hint. Direction keys or clicking empty floor restore nearby interactions. Load chopped beef into an empty floor pot, then press Space again to lift it; it heats only on a stove. The footer shows the next action: ",
     "点击工位或地上物品后，空格只操作选中目标；条件不满足时给出提示。方向移动或点击空地恢复就近操作。地上空锅可先放切好的牛肉，再按空格端锅，离灶不加热。底部文字会显示将执行的动作：取料、放到案板、切菜、拿起、下锅、装盘、洗碗或出餐。正在加工时再按空格可停下，进度保留。": "Space acts on the selected station or ground item; unavailable actions show a hint. Direction keys or clicking empty floor restore nearby interactions. Load chopped beef into an empty floor pot, then press Space again to lift it; it heats only on a stove. The footer shows the next action: Move close and tap Space. The bottom hint shows the action: fetch, put on a board, chop, pick up, cook, plate, wash or serve. Tap Space while working to stop and keep progress.",
     "面前没有可操作目标": "Nothing to use in front of you",
@@ -413,10 +411,11 @@
     "手里没有可以抛出的东西。": "You are not holding anything to throw.",
     "牛排练习厨房，180 游戏秒。取生牛肉 → 案板切好 → 下锅煎熟 → 装进干净盘 → 出餐。每 30 秒来一张牛排单，每份 ¥50；关店时净收入达到 ¥150 即达标。熟了之后 10 秒内出锅，否则会糊，再过 8 秒着火。": "A steak practice kitchen, 180 game seconds. Fetch raw beef → chop it on a board → cook it in a pot → plate it on a clean plate → serve. A steak order arrives every 30 seconds, ¥50 each; reach ¥150 net revenue by closing time. Take the pot off within 10 seconds of it being cooked or it burns; 8 seconds later it catches fire.",
     "面前没有可以切、洗或灭火的东西": "Nothing to chop, wash or extinguish in front of you",
+    "面前没有可以拿或放的东西": "Nothing to pick up or put down in front of you",
     "向前抛出": "Throw forward",
     "面前是工位时，短按空格只对这个工位操作，做不了会说明原因，不会把东西放到地上。面前是空地时，短按先拿面前地上的东西，再拿脚下的，最后把手里的东西放在面前。拿干净盘面向地上的熟锅，也能盛菜。": "Facing a station, a short Space press acts only on that station; an unavailable action shows a reason and never drops your item on the floor. Facing open floor, a short press takes the item in front, then the one at your feet, and otherwise puts your item down in front. A clean plate facing a cooked pot on the floor takes its food.",
     "干净盘才可装菜。脏盘回收点取盘 → 放入水槽 → 空手按空格洗碗 → 取净盘。没盘时可空手到锅边端锅，离灶停止加热；空锅需放回灶台。": "Only clean plates can hold food. Collect a dirty plate → put it in the sink → press Space with empty hands to wash → take the clean plate. Without a plate, use empty hands to lift the whole pot. Taking it off the stove stops heating; return empty pots to the stove.",
-    "拿食材靠近垃圾桶按空格会销毁，扣 2 元；端锅则倒掉锅里的食物，保留空锅。拿起灭火器后面向着火工位按空格，4 秒灭火。火每 8 秒向一格相邻柜台蔓延，不跨空地或墙；同时 5 个工位着火，本局结束。": "Face a bin with food and press Space to discard it for a ¥2 penalty. Pots remain after emptying. Face a burning station with the extinguisher and press Space; extinguishing takes 4 seconds. Every 8 game seconds, fire spreads to one adjacent worktop without crossing floors or walls. Five simultaneously burning stations end the round.",
+    "拿食材靠近垃圾桶按空格会销毁，扣 2 元；端锅则倒掉锅里的食物，保留空锅。拿起灭火器后面向着火工位按空格，4 秒灭火。着火的工位会加热身边 8 格（含对角）的工位，旁边有一处着火 5 秒就会着火，多处同时着火更快，红色条显示进度；不跨空地或墙。同时 5 个工位着火，本局结束。": "Face a bin with food and press Space to discard it for a ¥2 penalty. Pots remain after emptying. Face a burning station with the extinguisher and press Space; extinguishing takes 4 seconds. A burning station heats the stations in the eight cells around it, diagonals included: next to one fire a station ignites after 5 seconds, faster beside several, and a red bar shows how close it is. Fire never crosses floors or walls. Five simultaneously burning stations end the round.",
     "面向工位或物品按空格": "Face a station or item and press Space",
     "按住移动，松开停止；方向键也可以。只用键盘操作厨房。": "Hold to move, release to stop; arrow keys work too. The kitchen is played with the keyboard only.",
     "移动 · WASD / 方向键": "Move · WASD / arrow keys",
@@ -495,16 +494,16 @@
     "贡献：出了餐的菜里，每人做的步骤按标准时间计算的占比（配置里的切菜、拿放等操作时间，加搬运所需的最短走路；煎、煮不算给任何人）。": "Contribution: each chef's share of the standard time of the served dishes (the configured chopping, handling and other work, plus the shortest walk needed to carry things; cooking counts for no one).",
     "拖延：每道菜比理想做法晚出的秒数，按两人各自做到理想能省多少来分摊。空转：做了但没用上的动作（比如来回换手）和等待的时间；你自己走动看不出是否空转，所以你的空转只是下限。": "Delayed serving: how many seconds later than ideal each dish went out, split by how much each chef would have saved by working ideally. Idle: time on actions that were never used (such as swapping items back and forth) and waiting; your own walking cannot be told apart, so your idle time is a lower bound.",
     "这三项的算法还在试验，欢迎在 GitHub Issue 里告诉我们是否合理。": "These three measures are experimental; tell us in a GitHub issue whether they look right.",
-    "冲刺：移动时按 Shift。1.4 倍速 1 秒，之后冷却 3 秒。": "Dash: press Shift while moving. 1.4× speed for 1 second, then a 3-second cooldown.",
+    "冲刺：移动时按 Shift。起步 2 倍速，1 秒内回到正常速度，之后可以立即再冲。": "Dash: press Shift while moving. It starts at 2× speed and eases back to walking over 1 second; you can dash again right after.",
     "对正前方的东西做需要的事：取料、放下、下锅、装盘、切菜、洗碗、灭火、出餐。要操作的工位会框出来，原地转身操作，不会把你挪过去。手持可投掷物品时，短按松开后操作；空手时按下立即操作。底部会提示将执行的动作。": "Does what the thing straight ahead needs: fetch, put down, cook, plate, chop, wash, extinguish or serve. The station to be used is framed, and you work where you stand, without being moved. With a throwable item in hand, a tap acts when released; empty-handed actions start on press. The bottom line shows what will happen.",
     "按住空格": "Hold Space",
     "投掷：手持可投掷物品时，面前是工位或空地都能按住空格约 0.3 秒瞄准，角色停下，半透明弧形带显示方向与射程参考；方向键改方向，松开扔出，最远 4 格；队友在这个方向上就扔给他。终点仅表示最大射程，实际落点和接取由引擎判定。": "Throw: holding a throwable item, hold Space for about 0.3 s to aim, whether facing a station or open floor. Your chef stops; a translucent curved band shows direction and range. Turn it with the direction keys and release to throw, up to 4 tiles, to your teammate when they are that way. The endpoint marks maximum range; the engine determines the actual landing and catches.",
     "冲刺 · Shift": "Dash · Shift",
-    "移动时按 Shift：速度 1.4 倍，持续 1 秒，结束后冷却 3 秒。持物也能冲刺，不加速切菜或洗碗。AI 使用相同规则；没有单独开关。暂停时计时冻结。": "Press Shift while moving: 1.4× speed for 1 second, then 3 seconds of cooldown. Carrying is allowed. Chopping and washing stay at normal speed. The AI has the same rules; there is no separate toggle. Timers freeze while paused.",
+    "移动时按 Shift：起步 2 倍速，1 秒内平稳回到正常速度，结束后可以立即再冲。持物也能冲刺，不加速切菜或洗碗。AI 使用相同规则；没有单独开关。暂停时计时冻结。": "Press Shift while moving: it starts at 2× speed and eases back to walking over 1 second; you can dash again right after. Carrying is allowed. Chopping and washing stay at normal speed. The AI has the same rules; there is no separate toggle. Timers freeze while paused.",
     "操作 · 空格": "Interact · Space",
-    "空格对角色正前方的东西起作用，像《胡闹厨房》一样：身边 8 格里最正对朝向的工位就是目标（对角的也算），一转身就用框标出（有事可做时是蓝框）；身边和身后的工位不会选中，也不会把角色挪到别处，原地转身操作。空格做面前需要的事：取料、放下、拿起、下锅、装盘、端锅、切菜、洗碗、灭火、出餐、丢进垃圾桶。手持可投掷物品时，短按松开后操作，按住瞄准投掷，站在工位前也一样；空手时按下立即操作。条件不满足时底部给出提示。拿、放这类短动作开始后再按方向键，动作会先做完再走；持物时，动作从短按空格松开后开始。正在切菜或洗碗时走开或按空格会停下，进度保留。地上空锅可先放切好的牛肉，再短按空格端锅，离灶不加热。": "Space acts on what is straight ahead of your chef, as in Overcooked: the station most squarely ahead among the eight tiles around you is the target, diagonals included, framed the moment you turn (blue when there is something to do). Stations beside or behind you are never used, and your chef is never moved there: they turn and work where they stand. Space does what the target needs: fetch, put down, pick up, cook, plate, lift a pot, chop, wash, extinguish, serve or bin. With a throwable item in hand, a tap acts when released and holding aims a throw, including in front of a station; empty-handed actions start on press. Unavailable actions show a hint at the bottom. Once a quick pick-up or put-down starts, a direction pressed during it takes effect after it finishes; with an item in hand, the action starts when the short Space press is released. Walking away or pressing Space while chopping or washing stops it; progress is kept. Load chopped beef into an empty floor pot, then tap Space to lift it; it heats only on a stove.",
+    "空格对角色正前方的东西起作用，像《胡闹厨房》一样：身边 8 格里最正对朝向的工位就是目标（朝向明显偏向对角时才选对角的），一转身就用框标出（有事可做时是蓝框）；身边和身后的工位不会选中，也不会把角色挪到别处，原地转身操作；切菜、洗碗前会先往旁边挪到工位正中。空格做面前需要的事：取料、放下、拿起、下锅、装盘、端锅、切菜、洗碗、灭火、出餐、丢进垃圾桶。手持可投掷物品时，短按松开后操作，按住瞄准投掷，站在工位前也一样；空手时按下立即操作。条件不满足时底部给出提示。拿、放这类短动作开始后再按方向键，动作会先做完再走；持物时，动作从短按空格松开后开始。切菜、洗碗开始后会一直做，按键不会停下，走开才停，进度保留。地上空锅可先放切好的牛肉，再短按空格端锅，离灶不加热。": "Space acts on what is straight ahead of your chef, as in Overcooked: the station most squarely ahead among the eight tiles around you is the target (a diagonal one only when you clearly aim that way), framed the moment you turn (blue when there is something to do). Stations beside or behind you are never used, and your chef is never moved there: they turn and work where they stand, sliding sideways onto a board's or sink's centre before chopping or washing. Space does what the target needs: fetch, put down, pick up, cook, plate, lift a pot, chop, wash, extinguish, serve or bin. With a throwable item in hand, a tap acts when released and holding aims a throw, including in front of a station; empty-handed actions start on press. Unavailable actions show a hint at the bottom. Once a quick pick-up or put-down starts, a direction pressed during it takes effect after it finishes; with an item in hand, the action starts when the short Space press is released. Chopping and washing keep going once started; no key stops them, walking away does, and progress is kept. Load chopped beef into an empty floor pot, then tap Space to lift it; it heats only on a stove.",
     "抛掷与传菜 · 按住空格": "Throw and pass · Hold Space",
-    "手持可投掷物品时，面前是工位或空地都能按住空格约 0.3 秒瞄准，角色停下，半透明弧形带显示方向与射程参考；按方向键改方向（8 个方向），松开扔出；队友在这个方向的射程内时扔给他。终点仅表示最大射程，不是实际落点预测；墙体阻挡和接取仍由引擎判定。生食材、切好的原料、餐盘、装盘菜、锅和灭火器都能抛，最远 4 格。可以越过工位，抛到射程尽头的地上，遇墙落在墙前；没有可用落点时保留手里的物品。队友空手、在走路或站着时能接住；正在切菜、洗碗或手里有东西时不会被打断，东西落在他旁边，盘里的菜和锅里的东西都保留。玩家与 AI 规则相同。": "Holding a throwable item, hold Space for about 0.3 s to aim, whether facing a station or open floor. Your chef stops; a translucent curved band shows direction and range. Turn it with the direction keys (8 directions) and release to throw; a teammate that way within range gets it. The endpoint marks maximum range, not a predicted landing point; the engine still resolves walls and catches. Raw and chopped ingredients, plates, plated dishes, pots and the extinguisher all fly up to 4 tiles. Throws can cross stations and land at the range limit on the floor; walls stop them before the wall. If no landing place is available, the item stays in your hand. An empty-handed teammate who is walking or standing catches it; one who is chopping, washing or holding something is not interrupted and the item lands beside them, keeping plated food and pot contents. The player and the AI follow the same rules.",
+    "手持可投掷物品时，面前是工位或空地都能按住空格约 0.3 秒瞄准，角色停下，半透明弧形带显示方向与射程参考；按方向键改方向（8 个方向），松开扔出；队友在这个方向的射程内时扔给他。终点仅表示最大射程，不是实际落点预测；墙体阻挡和接取仍由引擎判定。生食材、切好的原料、餐盘、装盘菜和锅都能抛，最远 4 格；灭火器不能扔。可以越过工位，飞到射程尽头，遇墙落在墙前：生料或切好的料落在空案板、空柜台上，或落进能煮这份料的空锅；其他东西落在地上。没有可用落点时保留手里的物品。队友空手、在走路或站着时能接住；正在切菜、洗碗或手里有东西时不会被打断，东西落在他旁边，盘里的菜和锅里的东西都保留。玩家与 AI 规则相同。": "Holding a throwable item, hold Space for about 0.3 s to aim, whether facing a station or open floor. Your chef stops; a translucent curved band shows direction and range. Turn it with the direction keys (8 directions) and release to throw; a teammate that way within range gets it. The endpoint marks maximum range, not a predicted landing point; the engine still resolves walls and catches. Raw and chopped ingredients, plates, plated dishes and pots all fly up to 4 tiles; the extinguisher cannot be thrown. Throws cross stations and fly to the range limit, stopping before a wall: a raw or chopped ingredient lands on an empty board or counter, or in an empty pan that cooks it; anything else lands on the floor. If no landing place is available, the item stays in your hand. An empty-handed teammate who is walking or standing catches it; one who is chopping, washing or holding something is not interrupted and the item lands beside them, keeping plated food and pot contents. The player and the AI follow the same rules.",
     "标记片段 · Enter": "Bookmark · Enter",
     "营业中按 Enter 标记当前时刻，不暂停、不打断动作。相邻两次标记间隔不超过 5 个实际秒时合并为一个区间，长按不重复。设置中的“导出本局”包含全部标记；标记不会发送给 AI。": "Press Enter during gameplay to bookmark without pausing or interrupting actions. Consecutive marks up to 5 real seconds apart merge into one interval; holding the key does not repeat. Export Run in Settings includes all bookmarks. Bookmarks are not sent to the AI.",
     "长按空格 · 瞄准投掷": "Hold Space · aim and throw",
@@ -533,7 +532,8 @@
     "连接已中断": "Connection lost",
     "点击设置连接自己的 AI 搭档": "Open Settings to connect your own AI partner",
     "使用左侧摇杆移动，右侧按钮操作和冲刺。": "Move with the left joystick. Use the right buttons to interact and dash.",
-    "手持物品时长按操作瞄准，松开投掷；拖到取消区可取消。": "While holding an item, hold Action to aim and release to throw; drag into the cancel area to cancel.",
+    "「操作」按下立即做事，拿着东西也一样；「扔」点按直接扔出，长按瞄准、松开投掷；瞄准时滑到「取消」可取消。": "Action acts at once, even with an item in hand. Throw: tap to throw straight ahead, or hold to aim and release to throw; while aiming, slide onto Cancel to cancel.",
+    "扔": "Throw",
     "当前无法操作": "No action available",
     "手持": "Holding",
     "订单": "Orders",
@@ -556,7 +556,6 @@
     "厨房连接不可用，请刷新页面重新连接。": "Kitchen connection unavailable. Refresh to create a new session.",
     "厨房请求失败。": "Kitchen request failed.",
     "请求失败。": "Request failed.",
-    "已保存，将保留 30 天；请在离开前下载删除凭证。": "Saved for 30 days. Download your deletion receipt before leaving.",
     "删除凭证无效，或记录已删除／过期。": "Receipt invalid, record already deleted, or expired.",
     "已删除贡献数据。": "Contribution deleted.",
     "删除凭证格式不正确，请粘贴完整的凭证。": "Invalid receipt format. Paste the complete deletion receipt.",
@@ -569,22 +568,15 @@
     "创建厨房超时，将自动重试。": "Creating the kitchen timed out. Retrying automatically.",
     "暂时无法连接厨房，请检查网络；页面会自动重试。": "Cannot connect to the kitchen. Check your network; this page will retry automatically.",
     "在线版：Key 默认只在页面内存中，仅发送给所选模型服务，刷新即清除；主动记住才以明文保存在浏览器 localStorage。游戏动作与状态经过我们的服务器，普通会话不写磁盘对局日志。自愿贡献数据另见下方说明。": "Online privacy: your key stays in page memory and is sent only to your model provider. Refresh clears it unless you choose Remember, which stores it unencrypted in browser localStorage. Game actions and state pass through our server; ordinary sessions create no disk journal. Optional contributions are described below.",
-    "贡献本局数据": "Contribute this session",
-    "自愿参与，结束对局后提交；用于改进游戏及设计协作评估方法，私有保存 30 天后删除。": "Optional, after a round ends: helps improve the game and develop cooperation evaluation methods. Stored privately for 30 days, then deleted.",
     "会保存": "Saved",
     "不会保存": "Never saved",
     "地图与版本": "Map and version",
-    "游戏事件": "Game events",
     "每秒角色位置": "Chef positions each second",
-    "预设沟通选项": "Preset communication choices",
     "结算结果": "Results",
     "账号身份": "Account identity",
     "模型接口地址": "Provider URL",
-    "完整模型请求与回复": "Model requests and raw replies",
-    "不公开原始贡献数据；不贡献时仅维持内存会话，闲置 10 分钟后清除；网络通信仍经过云服务商。": "Raw contributions are not published. Without contribution, game data stays in server memory and expires after 10 minutes of inactivity; network traffic still passes through the hosting provider.",
     "预览数据": "Preview data",
     "贡献数据预览": "Contribution preview",
-    "我同意上述用途与 30 天保存期限": "I agree to this use and 30-day retention",
     "贡献已结束的本局": "Contribute finished round",
     "下载删除凭证": "Download deletion receipt",
     "删除已贡献数据": "Delete a contribution",
@@ -619,13 +611,6 @@
     "再来一次": "Try again",
     "再玩一遍": "Play again",
     "本局结束后才能进入下一关。": "Finish this round before starting the next level.",
-    "以后每局结束自动上传": "Automatically upload future finished rounds",
-    "请先勾选同意，再开启自动上传；当前已结束的对局不会补传。选择保留在此浏览器，取消任一勾选即可停止后续自动上传。删除凭证也保存在此浏览器，可下载备份。": "Agree to the terms before enabling automatic upload. The currently finished round is not uploaded retroactively. This choice is remembered in this browser; uncheck either box to stop future automatic uploads. Deletion receipts are kept in this browser and can be downloaded as a backup.",
-    "请先勾选同意上方条款。": "Agree to the terms above first.",
-    "自动上传已开启，此后每局结束自动保存 30 天。": "Automatic upload is on. Future finished rounds will be saved for 30 days.",
-    "已关闭自动上传。": "Automatic upload is off.",
-    "自动上传已开启。": "Automatic upload is on.",
-    "本局已自动上传，保存 30 天。": "This round was uploaded automatically for 30 days.",
     "贡献数据请求超时，请重试。": "The contribution request timed out. Please try again.",
     "下一局请求已取消。": "The next-round request was cancelled.",
     "松手取消": "Release to cancel",
@@ -662,7 +647,42 @@
     "浏览器无法直连 Jev。请检查网络，或明确勾选服务器转发后重试；Key 尚未经过试玩服务器。": "Your browser could not call Jev directly. Check your network, or explicitly select server forwarding and try again; your key has not passed through the demo server.",
     "勾选后，Key 和模型请求会经 HTTPS 通过试玩服务器发送给 Jev，不写入服务器配置、日志或对局记录。未勾选则由浏览器直连，需 Jev 允许本网站跨域访问。更改选项后须测试并连接才生效，清除配置会停止后续模型请求。": "When selected, your key and model requests pass through the demo server over HTTPS to Jev. They are not written to server configuration, logs or game records. Otherwise, your browser calls Jev directly, which requires Jev to allow this website through CORS. Changes take effect after Test and connect; Clear stops future model requests.",
     "浏览器无法直连 Jev。请检查网络，或明确勾选服务器转发后重试；本次直连请求未通过试玩服务器转发 Key。": "Your browser could not call Jev directly. Check your network, or explicitly select server forwarding and try again; this direct request did not forward your key through the demo server.",
-    "浏览器无法访问模型服务，请检查网络和跨域支持；本次直连请求未通过试玩服务器转发 Key。": "Browser could not reach this provider. Check network/CORS support; this direct request did not forward your key through the demo server."
+    "浏览器无法访问模型服务，请检查网络和跨域支持；本次直连请求未通过试玩服务器转发 Key。": "Browser could not reach this provider. Check network/CORS support; this direct request did not forward your key through the demo server.",
+    "贡献对局数据？": "Contribute your rounds?",
+    "游戏引擎事件": "Engine events",
+    "自由输入的文字": "Free text",
+    "模型回复与完整请求": "Model replies and full requests",
+    "IP 与账号身份": "IP address and account identity",
+    "私有保存 30 天后自动删除。每份贡献的删除凭证保存在这个浏览器里，可随时在「设置 → 数据导出」提前删除或更改选择。": "Stored privately and deleted automatically after 30 days. Each contribution's deletion receipt is kept in this browser: delete early or change your choice any time in Settings → Data export.",
+    "同意以后每局自动贡献（30 天后删除，可随时关闭）": "Contribute every round from now on (deleted after 30 days, turn off any time)",
+    "暂不": "Not now",
+    "贡献对局数据": "Contribute rounds",
+    "查看说明并更改选择": "Read the terms and change your choice",
+    "不贡献时仅维持内存会话，闲置 10 分钟后清除；网络通信仍经过云服务商。删除凭证只保存在此浏览器，清理浏览器数据前请先下载备份。": "Without a contribution the session stays in memory only and is cleared after 10 idle minutes; traffic still passes through the cloud provider. Deletion receipts live only in this browser, so download a backup before clearing browser data.",
+    "当前选择：以后每局结束自动贡献，保存 30 天。": "Your choice: contribute every finished round, kept for 30 days.",
+    "当前选择：尚未选择。": "Your choice: not made yet.",
+    "自动贡献已开启。": "Automatic contribution is on.",
+    "本局已贡献，保存 30 天。删除凭证在「设置 → 数据导出」。": "Round contributed and kept for 30 days. Its deletion receipt is in Settings → Data export.",
+    "本局已自动贡献，保存 30 天。": "Round contributed automatically and kept for 30 days.",
+    "已开启自动贡献：此后每局结束自动保存 30 天。": "Automatic contribution is on: every round that ends from now on is kept for 30 days.",
+    "已选择暂不贡献，之后不会自动上传。": "Not now: nothing will be uploaded automatically.",
+    "贡献本局": "Contribute this round",
+    "已贡献": "Contributed",
+    "正在贡献…": "Contributing…",
+    "反馈": "Feedback",
+    "遇到卡住、画面错位或其他问题时：": "If the chef gets stuck, the picture looks wrong or anything else goes awry:",
+    "在 GitHub 报告问题 ↗": "Report a problem on GitHub ↗",
+    "自愿参与。贡献的对局只用于改进游戏和人机协作的评估方法，不公开原始数据。": "Voluntary. Contributed rounds are used only to improve the game and to research how to evaluate human-AI cooperation. Raw data is never published.",
+    "预设沟通编号": "Preset communication codes",
+    "选择“暂不”时，也可以在结算画面点「贡献本局」只贡献这一局。": "With “Not now” you can still choose “Contribute this round” on a result card to contribute just that round.",
+    "当前选择：暂不自动贡献。结算画面可点「贡献本局」只贡献这一局。": "Your choice: not now. A result card's “Contribute this round” contributes just that round.",
+    "模型连接说明：支持的服务、一局约多少钱 ↗": "Model connection guide: supported services and rough cost per round ↗",
+    "模型连接说明 ↗": "Model connection guide ↗",
+    "隐私说明与反馈 ↗": "Privacy and contact ↗",
+    "尽快打开「设置 → 数据导出」，点「导出本次游玩」，检查内容后下载 JSON 文件。文件含最近 30 秒的页面记录，导出越快越好。": "Soon afterwards, open Settings → Data export, choose Export This Play Session, check the content and download the JSON file. It holds the last 30 seconds of page diagnostics, so the sooner the better.",
+    "在 GitHub 新建 Issue，写下经过、用的设备和浏览器，并附上这个文件。": "Open a new GitHub issue describing what happened and your device and browser, and attach the file.",
+    "导出文件不含 API Key、接口地址和模型回复，但包含浏览器型号和画面大小；公开发布前请再看一遍。": "The export holds no API key, endpoint or model replies, but does include your browser and screen size; look it over before posting it publicly.",
+    "导出还附带本页最近 30 秒的页面记录（游戏时间、角色位置、按键方向、页面报错，以及浏览器型号和画面大小），用于排查卡住或显示问题；遇到问题后请尽快导出。": "The export also carries this page's last 30 seconds of diagnostics (game time, chef positions, held direction, page errors, plus browser and screen size) to help trace stuck or display problems; export soon after a problem."
   },
   "templates": [
     [
@@ -870,10 +890,6 @@
       "{0} · burns in {1}s"
     ],
     [
-      "清空{0}的食物",
-      "Clear food from {0}"
-    ],
-    [
       "地面({0},{1})",
       "floor ({0},{1})"
     ],
@@ -934,8 +950,8 @@
       "New order {0}: {1}, due at {2}s"
     ],
     [
-      "取一份{0}（自动换手）",
-      "Fetch {0} (automatic hand swap)"
+      "取一份{0}",
+      "Fetch {0}"
     ],
     [
       "在{0}向盘中加入食材",
@@ -1134,10 +1150,6 @@
       "Model API returned HTTP {0}. Check your account and model."
     ],
     [
-      "自动上传失败：{0}",
-      "Automatic upload failed: {0}"
-    ],
-    [
       "已删除 {0} 份记录；{1} 份未删除，请检查凭证后重试。",
       "Deleted {0} records; {1} could not be deleted. Check the receipts and try again."
     ],
@@ -1160,6 +1172,70 @@
     [
       "你所在的网络已同时开了 {0} 个厨房，其中一个结束后再试。",
       "Your network already has {0} kitchens open. Try again when one of them ends."
+    ],
+    [
+      "贡献失败：{0}",
+      "Contribution failed: {0}"
+    ],
+    [
+      "自动贡献失败：{0}",
+      "Automatic contribution failed: {0}"
+    ],
+    [
+      "{0}被推开",
+      "{0} was knocked back"
+    ],
+    [
+      "{0}开始冲刺",
+      "{0} started sprinting"
+    ],
+    [
+      "到{0}取一份{1}",
+      "Take {1} from {0}"
+    ],
+    [
+      "抛给队友（接不住时落到{0}）",
+      "Throw to the other chef (lands at {0} if not caught)"
+    ],
+    [
+      "抛出手中物品（落到{0}）",
+      "Throw the held item (lands at {0})"
+    ],
+    [
+      "{0} 落进{1}的{2}，开始加热",
+      "{0} landed in the {2} on {1} and started heating"
+    ],
+    [
+      "向上方抛出手中物品（落到{0}）",
+      "Throw the held item up (lands at {0})"
+    ],
+    [
+      "向下方抛出手中物品（落到{0}）",
+      "Throw the held item down (lands at {0})"
+    ],
+    [
+      "向左方抛出手中物品（落到{0}）",
+      "Throw the held item left (lands at {0})"
+    ],
+    [
+      "向右方抛出手中物品（落到{0}）",
+      "Throw the held item right (lands at {0})"
+    ],
+    [
+      "向左上方抛出手中物品（落到{0}）",
+      "Throw the held item up-left (lands at {0})"
+    ],
+    [
+      "向右上方抛出手中物品（落到{0}）",
+      "Throw the held item up-right (lands at {0})"
+    ],
+    [
+      "向左下方抛出手中物品（落到{0}）",
+      "Throw the held item down-left (lands at {0})"
+    ],
+    [
+      "向右下方抛出手中物品（落到{0}）",
+      "Throw the held item down-right (lands at {0})"
     ]
   ]
 }

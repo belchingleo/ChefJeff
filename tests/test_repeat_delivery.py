@@ -1,5 +1,5 @@
 import unittest
-from kitchen import load_config
+from kitchen import load_config, Food
 from spatial_kitchen import SpatialKitchen
 from whitebox_server import SpatialJevClient
 
@@ -10,22 +10,19 @@ class RepeatDeliveryTests(unittest.TestCase):
         k.assert_invariants()
     def choices(self,k):
         return SpatialJevClient(k.c,key='offline').payload(k.snapshot(),k.actions('jeff'))['questions']['next_action']['criteria']
-    def test_fetch_throw_fetch_throw_and_then_prep_own_meat(self):
+    def test_throws_onto_a_board_then_past_it_once_it_is_taken(self):
+        # Jeff throws as the player does: straight up from (4,7), four cells, onto board 1.
         k=SpatialKitchen(load_config()|{'spawn_seed':0})
-        k.positions['jeff']=(2,2);k.positions['human']=(3,3)
-        self.finish(k,'jeff','fetch');first=k.chefs['jeff'].hand.id
-        self.assertIn('throw b1',self.choices(k));self.finish(k,'jeff','throw b1')
-        self.assertIn('fetch',self.choices(k));self.finish(k,'jeff','fetch');second=k.chefs['jeff'].hand.id
-        k.advance(.5);self.assertEqual(k.stations['b1'].food.id,first)
-        self.assertNotIn('throw b1',self.choices(k))
-        self.assertTrue(k.command('human','chop b1')[0]);k.advance(.1)
-        self.assertIn('throw b2',self.choices(k));self.finish(k,'jeff','throw b2')
-        self.finish(k,'jeff','fetch');third=k.chefs['jeff'].hand.id
-        self.finish(k,'jeff','put b3');self.finish(k,'jeff','chop b3')
-        self.assertEqual(k.stations['b1'].food.stage,'chopped')
-        self.assertEqual(k.stations['b2'].food.id,second)
-        self.assertEqual(k.stations['b3'].food.id,third)
-        self.assertEqual(k.stations['b3'].food.stage,'chopped');k.assert_invariants()
+        k.positions.update(jeff=(4.,7.),human=(8.,6.))
+        k.chefs['jeff'].hand=Food('m1','raw',ingredient='beef')
+        self.assertEqual(self.choices(k)['throw up'],'Throw the held item up (lands at Board 1)')
+        self.finish(k,'jeff','throw up');k.advance(1)
+        self.assertEqual(k.stations['b1'].food.id,'m1')
+        # Board 1 is taken: the next one comes down short of it, on the floor.
+        k.chefs['jeff'].hand=Food('m2','raw',ingredient='beef')
+        self.assertTrue(self.choices(k)['throw up'].startswith('Throw the held item up (lands at floor'))
+        self.finish(k,'jeff','throw up');k.advance(1)
+        self.assertIn('m2',k.ground);self.assertEqual(k.stations['b1'].food.id,'m1');k.assert_invariants()
 
     def test_order_and_inventory_information_is_visible_without_future_dishes(self):
         k=SpatialKitchen(load_config()|{'level':2,'spawn_seed':0,'order_seed':42})

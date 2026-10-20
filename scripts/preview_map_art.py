@@ -249,8 +249,10 @@ def render(level):
             if station_id.startswith('bin'):
                 anchored(image, 'modular/bin', cx, floor_y)
             else:
-                axis = station_view(document, station_id)['run_axis']
-                cabinet = 'modular/counter_south' if axis == 'horizontal' else 'modular/counter_east'
+                # KitchenGeometry.cabinetModule: the plain strip only inside a vertical run.
+                covered = (x, y + 1) in walls or (x, y + 1) in station_at
+                vertical = station_view(document, station_id)['run_axis'] == 'vertical'
+                cabinet = 'modular/counter_east' if vertical and covered else 'modular/counter_south'
                 anchored(image, cabinet, cx, floor_y,
                          sprite_lift=GRID_ART['cabinetSpriteLift'])
             if tuple(station['cell']) == (x, y):
