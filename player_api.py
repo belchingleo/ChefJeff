@@ -67,7 +67,7 @@ class CompatibleClient(SpatialJevClient):
         payload=english_data(payload)
         started=time.monotonic()
         body={'model':self.setting['model'],'messages':[
-            {'role':'system','content':'You control the blue chef in a shared kitchen. Using the supplied state and rules, choose exactly one action key from questions.next_action.criteria. Return only a JSON object, for example {"choice":"wait"}. If questions.sprint is present, also return a boolean sprint (true or false) in the same JSON object. Do not explain or choose an action outside the candidate set.'},
+            {'role':'system','content':'You control the blue chef in a shared kitchen. Using the supplied state and rules, choose exactly one action key from questions.next_action.criteria. Return only a JSON object of the form {"choice": "<action key>", "sprint": <true or false>}, where <action key> is one key of questions.next_action.criteria; include sprint only if questions.sprint is present. Do not explain or choose an action outside the candidate set.'},
             {'role':'user','content':json.dumps({'state':payload['state'],'questions':payload['questions']},ensure_ascii=False)}],
             'max_tokens':128}
         if self.setting['provider'] in JSON_NO_THINKING:
