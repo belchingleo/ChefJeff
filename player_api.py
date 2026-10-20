@@ -79,20 +79,25 @@ class CompatibleClient(SpatialJevClient):
             with urllib.request.build_opener(NoRedirect).open(req,timeout=20) as r:data=json.load(r)
         except urllib.error.HTTPError as e:raise RuntimeError(f'模型接口 HTTP {e.code}') from None
         except (OSError,ValueError):raise RuntimeError('模型接口连接失败或返回了无效数据') from None
+        content,reason=None,'回复里没有文本'
         try:
             content=data['choices'][0]['message']['content'].strip()
             if content.startswith('```'):
                 content=content.split('\n',1)[1].rsplit('```',1)[0].strip()
-            parsed=json.loads(content)
-            choice=parsed['choice']
+            reason='不是 JSON';parsed=json.loads(content)
+            reason='缺少 choice';choice=parsed['choice']
+            reason='缺少 sprint 真假值'
             if 'sprint' in payload['questions'] and type(parsed.get('sprint')) is not bool:raise ValueError()
+            reason='choice 不在候选动作里'
             if not isinstance(choice,str) or choice not in payload['questions']['next_action']['criteria']:raise ValueError()
             usage=data.get('usage') or {}
             return {'sprint':parsed.get('sprint',False),'choice':choice,'confidence':None,'probabilities':{},'model':self.setting['model'],
                     'usage':{'input_tokens':int(usage.get('prompt_tokens',0)),'output_tokens':int(usage.get('completion_tokens',0))},
                     'latency':time.monotonic()-started}
         except (KeyError,IndexError,TypeError,AttributeError,ValueError):
-            raise RuntimeError('模型没有返回可执行的合法动作；本次不执行。') from None
+            # The model's own words (never the key or request) go into the local log, so a failing model can be diagnosed.
+            reply=f'；回复：{content[:160]!r}' if isinstance(content,str) else ''
+            raise RuntimeError(f'模型没有返回可执行的合法动作（{reason}{reply}）；本次不执行。') from None
 
 
 def create_client(config,setting):
