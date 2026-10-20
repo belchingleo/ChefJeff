@@ -34,6 +34,7 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - The extinguisher can no longer be thrown, as in Overcooked 2: carry it to the fire. Ingredients, plates, dishes and pans still fly.
 - Fix: Jeff could empty a burnt pan in place on the stove (2 s, no walking), which the player's controls never offered. As in Overcooked 2, both chefs now carry the pan to a bin. The ruleset drops `operations.clear_game_ms`.
 - Fix: Jeff could throw to any floor cell he chose, short of full range, and straight onto an empty board or counter, which the player's aimed throw never could. Now both throw the same way, as in Overcooked 2: along a direction to full range (Jeff picks one of eight) or to the other chef; a raw or chopped ingredient that comes down on an empty board or counter rests there, or goes into an empty pan that cooks it; a throw is caught on its way before it lands. `/api/throw` takes only a direction.
+- Fire spreads as in Overcooked 2: a burning station heats every flammable station in the eight cells around it, diagonals included, igniting it after 5 s beside one fire and faster beside several; a red bar shows the heat, which drains again without a burning neighbour, and a station just put out takes no heat for 2 s. Replaces one adjacent station every 8 s. The ruleset's `fire.spread_interval_game_ms` becomes `flammability_game_ms`, `cooldown_delay_game_ms`, `cooldown_game_ms` and `relight_delay_game_ms`.
 - Emptying a burnt pan at the bin now makes the dump sound; lifting a burnt pan no longer does.
 - Fix: Jeff could fetch, take or lift a pan with full hands, his held item dropped beside him automatically; the player had to put it down first. Now both swap only for the extinguisher or a loose raw/chopped floor ingredient.
 - Fixed: food and plates on the floor just below a counter were half hidden by its front panel; floor items now draw in front of the cabinets behind them, by row, on any layout.
@@ -113,6 +114,7 @@ First private release: a local browser game with three playable maps and player-
 - 灭火器不能再扔，和《胡闹厨房 2》一样，要拿着走到火边。食材、盘子、菜和锅仍能扔。
 - 修复：Jeff 能在灶台上原地清空糊锅（2 秒，不用走），玩家的操作里从来没有这一项。现在和《胡闹厨房 2》一样，两人都要端锅到垃圾桶倒掉。规则集去掉 `operations.clear_game_ms`。
 - 修复：Jeff 扔东西能指定射程内任意一格落点，还能直接扔到空案板或空柜台上，玩家的瞄准投掷都做不到。现在两人投法相同，和《胡闹厨房 2》一样：朝一个方向扔到射程尽头（Jeff 在 8 个方向里选），或扔给对方；生的或切好的原料落在空案板、空柜台上就停在那里，落进能煮它的空锅就开始加热；飞行途中先判定接住。`/api/throw` 只接受方向。
+- 火的蔓延改成和《胡闹厨房 2》一样：着火的工位烤热周围 8 格（含斜角）的可燃工位，旁边一处着火 5 秒烧起来，几处一起更快；红色条显示热度，没有着火的邻居时会退去，刚扑灭的工位 2 秒内不会被烤热。原来是每 8 秒只烧一个相邻工位。规则集的 `fire.spread_interval_game_ms` 换成 `flammability_game_ms`、`cooldown_delay_game_ms`、`cooldown_game_ms` 和 `relight_delay_game_ms`。
 - 端锅到垃圾桶倒掉糊菜时有倒掉的音效；端起糊锅不再误放这个音效。
 - 修复：Jeff 手里有东西时还能直接取料、拿起或端锅，手里的东西自动放到身边地上；玩家却得先放下。现在两人都只能和灭火器或地上的生／切好原料换手。
 - 修复：柜台正下方地上的食物和盘子会被柜台前面板挡住一半；地上物品现在按行画在后排柜台前面，任何布局都成立。

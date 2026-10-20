@@ -366,90 +366,6 @@
    "human",
    "throw up",
    true
-  ],
-  [
-   55.0,
-   "human",
-   "fetch",
-   true
-  ],
-  [
-   55.0,
-   "jeff",
-   "assemble ground F3",
-   true
-  ],
-  [
-   55.5,
-   "human",
-   "put b1",
-   true
-  ],
-  [
-   57.0,
-   "human",
-   "chop b1",
-   true
-  ],
-  [
-   57.0,
-   "jeff",
-   "take b1",
-   true
-  ],
-  [
-   59.0,
-   "jeff",
-   "pickup F5",
-   true
-  ],
-  [
-   60.0,
-   "human",
-   "take b1",
-   true
-  ],
-  [
-   60.5,
-   "human",
-   "put b2",
-   true
-  ],
-  [
-   61.0,
-   "human",
-   "fetch lettuce",
-   true
-  ],
-  [
-   61.5,
-   "jeff",
-   "throw up-left",
-   true
-  ],
-  [
-   62.0,
-   "human",
-   "put b3",
-   true
-  ],
-  [
-   62.0,
-   "jeff",
-   "take b2",
-   true
-  ],
-  [
-   63.5,
-   "human",
-   "chop b3",
-   true
-  ],
-  [
-   64.5,
-   "jeff",
-   "throw up-left",
-   true
   ]
  ],
  "events": [
@@ -1441,6 +1357,20 @@
    "Jeff开始：从案板 3拿走 F10（生菜 · 切好）（路程 2s + 操作 0.1s）"
   ],
   [
+   53.75,
+   "fire_spread",
+   null,
+   null,
+   "柜台 18着火！损失 5 元；必须先灭火再使用"
+  ],
+  [
+   53.75,
+   "fire_spread",
+   null,
+   null,
+   "柜台 _corner5着火！损失 5 元；必须先灭火再使用"
+  ],
+  [
    54.3,
    "action_done",
    "human",
@@ -1455,319 +1385,53 @@
    "你开始：向上方抛出手中物品（落到地面(2,2)）"
   ],
   [
-   54.65,
-   "thrown",
-   "human",
-   null,
-   "你抛出了 P1，落点为 (2, 2)"
-  ],
-  [
-   54.65,
-   "action_done",
-   "human",
-   "throw up",
-   "你完成动作：抛出物品"
-  ],
-  [
-   54.85,
-   "landed",
-   "human",
-   null,
-   "P1 落在地上，可拾取"
-  ],
-  [
-   54.95,
-   "action_done",
-   "jeff",
-   "take b3",
-   "Jeff完成动作：从案板 3拿走 F10（生菜 · 切好）"
-  ],
-  [
-   55.0,
-   "action_start",
-   "human",
-   "fetch",
-   "你开始：到冰箱取一份生肉（路程 0s + 操作 0.1s）"
-  ],
-  [
-   55.0,
-   "action_start",
-   "jeff",
-   "assemble ground F3",
-   "Jeff开始：把手中的生菜放进地面(9,5)的盘里（路程 1s + 操作 0.1s）"
-  ],
-  [
-   55.2,
-   "action_done",
-   "human",
-   "fetch",
-   "你完成动作：到冰箱取一份生肉"
-  ],
-  [
-   55.5,
-   "action_start",
-   "human",
-   "put b1",
-   "你开始：将手中食材放到案板 1（路程 1s + 操作 0.1s）"
-  ],
-  [
-   56.65,
-   "action_done",
-   "human",
-   "put b1",
-   "你完成动作：将手中食材放到案板 1"
-  ],
-  [
-   56.65,
-   "action_done",
-   "jeff",
-   "assemble ground F3",
-   "Jeff完成动作：把手中的生菜放进地面(9,5)的盘里"
-  ],
-  [
-   56.75,
-   "fire_spread",
-   null,
-   null,
-   "柜台 _corner5着火！损失 5 元；必须先灭火再使用"
-  ],
-  [
-   57.0,
-   "action_start",
-   "human",
-   "chop b1",
-   "你开始：到案板 1切 F11（剩 3.0s）（路程 0s + 操作 3.0s）"
-  ],
-  [
-   57.0,
-   "action_start",
-   "jeff",
-   "take b1",
-   "Jeff开始：从案板 1拿走 F11（生肉）（路程 2s + 操作 0.1s）"
-  ],
-  [
-   57.6,
+   54.6,
    "fire_spread",
    null,
    null,
    "柜台 4着火！损失 5 元；必须先灭火再使用"
   ],
   [
-   58.65,
-   "arrival_conflict",
-   "jeff",
-   null,
-   "Jeff到达后发现目标已变化或被占用，动作取消"
-  ],
-  [
-   59.0,
-   "action_start",
-   "jeff",
-   "pickup F5",
-   "Jeff开始：去地面(11,5)捡起 F5（待组装菜品；自动换手）（路程 2s + 操作 0.1s）"
-  ],
-  [
-   60.0,
-   "order",
-   null,
-   null,
-   "新订单 O3：汉堡，截止 165s"
-  ],
-  [
-   60.0,
-   "action_done",
-   "human",
-   "chop b1",
-   "你完成动作：到案板 1切 F11（剩 3.0s）"
-  ],
-  [
-   60.0,
-   "action_start",
-   "human",
-   "take b1",
-   "你开始：从案板 1拿走 F11（切好）（路程 0s + 操作 0.1s）"
-  ],
-  [
-   60.15,
-   "action_done",
-   "human",
-   "take b1",
-   "你完成动作：从案板 1拿走 F11（切好）"
-  ],
-  [
-   60.5,
-   "action_start",
-   "human",
-   "put b2",
-   "你开始：将手中食材放到案板 2（路程 0s + 操作 0.1s）"
-  ],
-  [
-   60.9,
-   "action_done",
-   "human",
-   "put b2",
-   "你完成动作：将手中食材放到案板 2"
-  ],
-  [
-   61.0,
-   "action_start",
-   "human",
-   "fetch lettuce",
-   "你开始：取一份生菜（路程 1s + 操作 0.1s）"
-  ],
-  [
-   61.05,
-   "picked_up",
-   "jeff",
-   null,
-   "Jeff从地面(11,5)旁的地上捡起 F5"
-  ],
-  [
-   61.05,
-   "action_done",
-   "jeff",
-   "pickup F5",
-   "Jeff完成动作：去地面(11,5)捡起 F5（待组装菜品；自动换手）"
-  ],
-  [
-   61.5,
-   "action_start",
-   "jeff",
-   "throw up-left",
-   "Jeff开始：向左上方抛出手中物品（落到地面(9,3)）"
-  ],
-  [
-   61.65,
-   "thrown",
-   "jeff",
-   null,
-   "Jeff抛出了 F5，落点为 (9, 3)"
-  ],
-  [
-   61.65,
-   "action_done",
-   "jeff",
-   "throw up-left",
-   "Jeff完成动作：抛出物品"
-  ],
-  [
-   61.9,
-   "landed",
-   "jeff",
-   null,
-   "F5 落在地上，可拾取"
-  ],
-  [
-   62.0,
-   "action_done",
-   "human",
-   "fetch lettuce",
-   "你完成动作：取一份生菜"
-  ],
-  [
-   62.0,
-   "action_start",
-   "human",
-   "put b3",
-   "你开始：将手中食材放到案板 3（路程 1s + 操作 0.1s）"
-  ],
-  [
-   62.0,
-   "action_start",
-   "jeff",
-   "take b2",
-   "Jeff开始：从案板 2拿走 F11（切好）（路程 2s + 操作 0.1s）"
-  ],
-  [
-   63.1,
-   "action_done",
-   "human",
-   "put b3",
-   "你完成动作：将手中食材放到案板 3"
-  ],
-  [
-   63.5,
-   "action_start",
-   "human",
-   "chop b3",
-   "你开始：到案板 3切 F12（剩 3.0s）（路程 0s + 操作 3.0s）"
-  ],
-  [
-   64.05,
-   "action_done",
-   "jeff",
-   "take b2",
-   "Jeff完成动作：从案板 2拿走 F11（切好）"
-  ],
-  [
-   64.5,
-   "action_start",
-   "jeff",
-   "throw up-left",
-   "Jeff开始：向左上方抛出手中物品（落到地面(2,5)）"
-  ],
-  [
-   64.65,
-   "thrown",
-   "jeff",
-   null,
-   "Jeff抛出了 F11，落点为 (2, 5)"
-  ],
-  [
-   64.65,
-   "action_done",
-   "jeff",
-   "throw up-left",
-   "Jeff完成动作：抛出物品"
-  ],
-  [
-   64.75,
-   "fire_spread",
-   null,
-   null,
-   "柜台 18着火！损失 5 元；必须先灭火再使用"
-  ],
-  [
-   64.75,
+   54.6,
    "interrupted",
    "human",
    null,
-   "你中断：到案板 3切 F12（剩 3.0s）"
+   "你中断：向上方抛出手中物品（落到地面(2,2)）"
   ],
   [
-   64.75,
+   54.6,
+   "interrupted",
+   "jeff",
+   null,
+   "Jeff中断：从案板 3拿走 F10（生菜 · 切好）"
+  ],
+  [
+   54.6,
    "fire_loss",
    null,
    null,
    "火势失控，本局结束"
   ],
   [
-   64.75,
+   54.6,
    "unresolved_at_close",
    null,
    null,
    "O1在关店时仍未完成"
   ],
   [
-   64.75,
+   54.6,
    "unresolved_at_close",
    null,
    null,
    "O2在关店时仍未完成"
   ],
   [
-   64.75,
-   "unresolved_at_close",
-   null,
-   null,
-   "O3在关店时仍未完成"
-  ],
-  [
-   64.75,
+   54.6,
    "round_end",
    null,
    null,
-   "火势失控：净收入 -25/190 元；完成 0 单；超时 0；拒收 0；关店未完成 3；糊锅 2，着火 5"
+   "火势失控：净收入 -25/190 元；完成 0 单；超时 0；拒收 0；关店未完成 2；糊锅 2，着火 5"
   ]
  ],
  "checkpoints": [
@@ -1780,12 +1444,10 @@
   "82855c35a1369a61",
   "8c5269c25b43c217",
   "5eed0bbac9b841ca",
-  "7eacedec04f91afb",
-  "4796e0b498e006d9",
-  "de4be650a4ae4633"
+  "7eacedec04f91afb"
  ],
  "final": {
-  "t": 64.75,
+  "t": 54.6,
   "money": -25,
   "served": 0,
   "ended": true,
@@ -1793,17 +1455,37 @@
   "chefs": {
    "human": [
     [
-     4.0,
-     6.49
+     2.0,
+     1.95
     ],
-    null,
+    [
+     "P1",
+     "pot",
+     0,
+     0,
+     null,
+     0,
+     "beef",
+     [],
+     [
+      "F9",
+      "chopped",
+      3,
+      0,
+      null,
+      0,
+      "beef",
+      [],
+      null
+     ]
+    ],
     null,
     false
    ],
    "jeff": [
     [
-     3.0,
-     6.49
+     4.474,
+     5.669
     ],
     null,
     null,
@@ -1827,9 +1509,9 @@
    ],
    "b3": [
     [
-     "F12",
-     "raw",
-     1.2,
+     "F10",
+     "chopped",
+     3,
      0,
      null,
      0,
@@ -2138,14 +1820,13 @@
     [
      "F3",
      "assembled",
-     3,
+     0,
      0,
      "D3",
      0,
      "dish",
      [
-      "bread",
-      "lettuce"
+      "bread"
      ],
      null
     ],
@@ -2170,7 +1851,7 @@
     null
    ],
    "F5": [
-    "floor_9_3",
+    "floor_11_5",
     [
      "F5",
      "assembled",
@@ -2185,31 +1866,6 @@
       "tomato"
      ],
      null
-    ],
-    null
-   ],
-   "P1": [
-    "floor_2_2",
-    [
-     "P1",
-     "pot",
-     0,
-     0,
-     null,
-     0,
-     "beef",
-     [],
-     [
-      "F9",
-      "chopped",
-      3,
-      0,
-      null,
-      0,
-      "beef",
-      [],
-      null
-     ]
     ],
     null
    ]
@@ -2234,7 +1890,7 @@
     "burger",
     60,
     165,
-    "unresolved_at_close"
+    "future"
    ],
    [
     "O4",
@@ -2259,5 +1915,5 @@
    ]
   ]
  },
- "result": "火势失控：净收入 -25/190 元；完成 0 单；超时 0；拒收 0；关店未完成 3；糊锅 2，着火 5"
+ "result": "火势失控：净收入 -25/190 元；完成 0 单；超时 0；拒收 0；关店未完成 2；糊锅 2，着火 5"
 }

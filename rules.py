@@ -22,7 +22,7 @@ SETTINGS = json.loads((ROOT / 'config.json').read_text())
 GAME_KEYS = {'level', 'boards', 'pots', 'pot_count', 'plate_count', 'round_seconds', 'order_count', 'order_interval',
              'order_patience', 'target_money',
              'chop_seconds', 'cook_seconds', 'burn_after_ready', 'fire_after_burn', 'same_area_walk', 'cross_area_walk',
-             'handling_seconds', 'dining_seconds', 'wash_seconds', 'fire_spread_seconds', 'fire_loss_threshold',
+             'handling_seconds', 'dining_seconds', 'wash_seconds', 'fire_flammability_seconds', 'fire_loss_threshold',
              'order_seed', 'spawn_seed', 'level_id'}
 DERIVED_KEYS = {'boards', 'pots', 'order_count'}  # counted from the map and order plan; read-only in the flat view
 
@@ -65,8 +65,8 @@ def _apply_flat_overrides(docs, overrides):
             ruleset['operations']['handling_game_ms'] = _ms(value)
         elif key == 'dining_seconds':
             ruleset['tableware']['dining_game_ms'] = _ms(value)
-        elif key == 'fire_spread_seconds':
-            ruleset['fire']['spread_interval_game_ms'] = _ms(value)
+        elif key == 'fire_flammability_seconds':
+            ruleset['fire']['flammability_game_ms'] = _ms(value)
         elif key == 'fire_loss_threshold':
             ruleset['fire']['loss_threshold'] = int(value)
         elif key in ('same_area_walk', 'cross_area_walk'):
@@ -166,7 +166,11 @@ class Rules:
         self.ground_assembly = ruleset['operations'].get('ground_assembly', False)
         self.dining = s(ruleset['tableware']['dining_game_ms'])
         self.return_capacity = ruleset['tableware']['return_capacity']
-        self.fire_spread = s(ruleset['fire']['spread_interval_game_ms'])
+        fire = ruleset['fire']
+        self.flammability = s(fire['flammability_game_ms'])
+        self.fire_cooldown_delay = s(fire['cooldown_delay_game_ms'])
+        self.fire_cooldown = s(fire['cooldown_game_ms'])
+        self.relight_delay = s(fire['relight_delay_game_ms'])
         self.fire_loss = ruleset['fire']['loss_threshold']
         self.penalty = dict(ruleset['penalties'])
         self.burnt_service = [dict(t) for t in ruleset.get('burnt_service', [])]

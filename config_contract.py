@@ -564,7 +564,7 @@ def flat_config(resolved):
         'handling_seconds': s(ruleset['operations']['handling_game_ms']),
         'dining_seconds': s(ruleset['tableware']['dining_game_ms']),
         'wash_seconds': s(recipes['containers']['plate']['wash_work_game_ms']) / rate('sink', 'wash'),
-        'fire_spread_seconds': s(ruleset['fire']['spread_interval_game_ms']),
+        'fire_flammability_seconds': s(ruleset['fire']['flammability_game_ms']),
         'fire_loss_threshold': ruleset['fire']['loss_threshold'],
         'order_seed': resolved['seeds']['orders'],
         'spawn_seed': resolved['seeds']['spawn'],

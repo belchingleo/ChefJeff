@@ -84,7 +84,11 @@ class Station:
     fire: bool = False
     heating: bool = False
     pot_id: str | None = None
-    fire_elapsed: float = 0.0
+    # Overcooked 2's fire strength while a burning neighbour heats it (0..1; 1 ignites), how long it has
+    # gone unheated, and the time left before a station just put out can take heat again.
+    fire_heat: float = 0.0
+    fire_idle: float = 0.0
+    relight_in: float = 0.0
 
 
 @dataclass
@@ -827,7 +831,7 @@ class Kitchen:
             s.food.stage = self.rules.chop[s.food.ingredient]['to']
         elif k == "extinguish":
             s.fire = False
-            s.fire_elapsed = 0
+            s.relight_in = self.rules.relight_delay
             s.heating = False
         elif k == "discard":
             a.hand = Food(a.hand.plate_id, 'dirty_plate') if a.hand.plate_id else None
@@ -899,7 +903,7 @@ class Kitchen:
         s = self.stations[key]
         if s.fire:
             return
-        s.fire, s.fire_elapsed, s.heating = True, 0., False
+        s.fire, s.fire_heat, s.fire_idle, s.heating = True, 0., 0., False
         if key in self.pots and s.food and s.food.stage != 'burnt':
             s.food.stage = 'burnt'
             self.burns += 1
@@ -912,17 +916,22 @@ class Kitchen:
                   kind='fire_spread' if source else 'fire', station=key, source=source)
 
     def _advance_fire(self, dt):
-        interval = self.rules.fire_spread
-        burning = [key for key,s in self.stations.items() if s.fire]
-        for key in burning:
-            s = self.stations[key]
-            s.fire_elapsed += dt
-            if s.fire_elapsed + 1e-8 < interval:
+        """As in Overcooked 2: each burning station heats every flammable neighbour; heat from several adds up."""
+        r = self.rules
+        burning = {key for key, s in self.stations.items() if s.fire}
+        for key, s in self.stations.items():
+            if s.fire:
                 continue
-            s.fire_elapsed = 0.
-            target = next((n for n in self.fire_neighbors(key) if not self.stations[n].fire), None)
-            if target:
-                self.ignite(target, source=key)
+            s.relight_in = max(0., s.relight_in-dt)
+            sources = [n for n in self.fire_neighbors(key) if n in burning]
+            if sources and s.relight_in <= 0:
+                s.fire_heat, s.fire_idle = min(1., s.fire_heat+dt*len(sources)/r.flammability), 0.
+                if s.fire_heat >= 1-1e-9:
+                    self.ignite(key, source=sources[0])
+            elif s.fire_heat > 0:
+                s.fire_idle += dt
+                if s.fire_idle >= r.fire_cooldown_delay-1e-9:
+                    s.fire_heat = max(0., s.fire_heat-dt/r.fire_cooldown)
         if sum(s.fire for s in self.stations.values()) >= self.rules.fire_loss:
             self.failure_reason = 'fire_spread'
             for who in self.chefs:
@@ -1110,7 +1119,7 @@ class Kitchen:
             record = {"name": s.name, "area": s.area, "food": food(s.food), "used_by": s.lock, "fire": s.fire, "heating": s.heating,
                       'pot_id': s.pot_id, 'counter': key in self.counters, 'stove': key in self.pots,
                       'type': self.rules.station_types[key]}
-            record['fire_spread_in'] = round(max(0,self.rules.fire_spread-s.fire_elapsed),2) if s.fire else None
+            record['fire_heat'] = round(s.fire_heat, 3)
             record['fire_neighbors'] = self.fire_neighbors(key)
             record['workers']=self.work_participants(key,'chop')+self.work_participants(key,'wash')
             if s.pot_id:
@@ -1159,7 +1168,7 @@ class Kitchen:
                 "money": self.money, "served": self.served,
                 'fire_safety': {'burning_count': sum(s.fire for s in self.stations.values()),
                                 'loss_threshold': self.rules.fire_loss,
-                                'spread_seconds': self.rules.fire_spread},
+                                'flammability_seconds': self.rules.flammability},
                 'failure_reason': self.failure_reason,
                 "goals": {"target_money": self.rules.goal['min_money']}}
 

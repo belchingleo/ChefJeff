@@ -1692,9 +1692,11 @@ export class KitchenClient extends Component {
             if(id==='sink'&&st.food)progress=1-st.food.wash_remaining/k.tableware.wash_seconds;
             if(st.food&&id.startsWith('b')&&!id.startsWith('bin'))progress=1-st.food.chop_remaining/(s.rules?.chop_seconds||6);
             if(st.food&&st.stove)progress=Math.min(1,st.food.heat_elapsed/(s.rules?.cook_seconds||12));
+            // As in Overcooked 2, a station a fire next to it is heating shows a fire bar until it ignites.
+            const igniting=!st.fire&&st.fire_heat>0;if(igniting)progress=st.fire_heat;
             if(progress>=0){
                 const py=this.useModularArt?this.workSurfaceY(id)-TILE/2+3:-18;
-                this.rect(g,-23,py-1,46,6,COLORS.ink);this.rect(g,-22,py,44*progress,4,st.fire?COLORS.hot:COLORS.paper);
+                this.rect(g,-23,py-1,46,6,COLORS.ink);this.rect(g,-22,py,44*progress,4,st.fire||igniting?COLORS.hot:COLORS.paper);
             }
             const effects=this.potEffects[id];if(effects){
                 effects.steam.active=!!st.food&&st.food.stage==='cooking'&&!!st.heating&&!st.fire;

@@ -225,12 +225,29 @@
     "fire": {
       "type": "object",
       "required": [
-        "spread_interval_game_ms",
+        "flammability_game_ms",
+        "cooldown_delay_game_ms",
+        "cooldown_game_ms",
+        "relight_delay_game_ms",
         "loss_threshold"
       ],
+      "description": "Fire spreads as in Overcooked 2: every burning station heats each flammable station in the eight cells around it.",
       "properties": {
-        "spread_interval_game_ms": {
-          "$ref": "common.schema.json#/$defs/positive_game_ms"
+        "flammability_game_ms": {
+          "$ref": "common.schema.json#/$defs/positive_game_ms",
+          "description": "Heating time to ignite next to one burning station; several burning neighbours add up."
+        },
+        "cooldown_delay_game_ms": {
+          "$ref": "common.schema.json#/$defs/positive_game_ms",
+          "description": "With no burning neighbour, heat holds this long before it starts to drain."
+        },
+        "cooldown_game_ms": {
+          "$ref": "common.schema.json#/$defs/positive_game_ms",
+          "description": "Time for full heat to drain once it drains."
+        },
+        "relight_delay_game_ms": {
+          "$ref": "common.schema.json#/$defs/positive_game_ms",
+          "description": "A station just extinguished takes no heat for this long."
         },
         "loss_threshold": {
           "type": "integer",

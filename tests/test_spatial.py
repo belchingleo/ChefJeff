@@ -124,7 +124,7 @@ class SpatialTests(unittest.TestCase):
 
     def test_fire_and_extinguish_still_work_with_spatial_walking(self):
         # Configuration is frozen at round start: set the spread interval up front.
-        k=self.make(fire_spread_seconds=1000);self.assertEqual(k.rules.fire_spread,1000);pot=k.stations['p1'];pot.food=Food('hot','cooking',6,0);pot.heating=True
+        k=self.make(fire_flammability_seconds=1000);self.assertEqual(k.rules.flammability,1000);pot=k.stations['p1'];pot.food=Food('hot','cooking',6,0);pot.heating=True
         k.advance(31)
         self.assertTrue(pot.fire)
         self.do(k,'human','take extinguisher');self.do(k,'human','extinguish p1');self.do(k,'human','put extinguisher')

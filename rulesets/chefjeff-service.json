@@ -56,7 +56,10 @@
     "return_capacity": 1
   },
   "fire": {
-    "spread_interval_game_ms": 8000,
+    "flammability_game_ms": 5000,
+    "cooldown_delay_game_ms": 2000,
+    "cooldown_game_ms": 1000,
+    "relight_delay_game_ms": 2000,
     "loss_threshold": 5
   },
   "penalties": {

@@ -42,7 +42,7 @@ Optional fields switch a behaviour on; when absent, the simpler behaviour named 
 | `movement.approach_partner` | optional; offer "go partner", a walk into the other chef that ends on contact (contact pushes; a sprint adds one bounded shove) | `true` |
 | `throw.*` | enabled; `range_cells` for throwable ingredients; optional `pass_range_cells` for plates, dishes and pots, never the extinguisher (absent: not passable); speed; minimum flight; catch radius | on; 4; 4; 12 cells/s; 200 ms; 0.75 |
 | `tableware.dining_game_ms` / `return_capacity` | customer plate return delay; return station capacity | 8000 / 1 |
-| `fire.spread_interval_game_ms` / `loss_threshold` | spread cadence; simultaneous fires that end the round | 8000 / 5 |
+| `fire.flammability_game_ms` / `cooldown_delay_game_ms` / `cooldown_game_ms` / `relight_delay_game_ms` / `loss_threshold` | Overcooked 2 spread: heating time next to one burning station (several add up, diagonals count); heat hold and drain without a burning neighbour; no heat just after extinguishing; simultaneous fires that end the round | 5000 / 2000 / 1000 / 2000 / 5 |
 | `penalties.*` | wrong dish (no shown order waits for it), expired order, new fire, discard/clear | −20, −10, −5, −2 |
 | `burnt_service[]` | tiers by how long the worst component was burnt when it left the heat, `{max_overcook_game_ms, outcome, adjustment}`; ascending, last `null` | ≤ 5000 accepted −10; longer refused (order keeps waiting) |
 | `abstract_travel.*` | travel of the non-spatial text prototype only | 1000 / 3000 |

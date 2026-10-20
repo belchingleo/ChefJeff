@@ -1333,9 +1333,10 @@ class SpatialKitchen(Kitchen):
         combustible = {k for k in self.stations if self.rules.combustible(k)}
         if key not in combustible or key not in self.equipment:
             return []
+        # Overcooked 2 spreads within 1.5 cells: the eight cells around, diagonals included.
         x,y = self.equipment[key]['cell']
         return sorted(n for n in combustible if n != key and n in self.equipment
-                      and abs(self.equipment[n]['cell'][0]-x)+abs(self.equipment[n]['cell'][1]-y)==1)
+                      and max(abs(self.equipment[n]['cell'][0]-x),abs(self.equipment[n]['cell'][1]-y))==1)
 
     def snapshot(self):
         state = super().snapshot()

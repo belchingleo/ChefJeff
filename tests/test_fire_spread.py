@@ -10,22 +10,42 @@ class FireSpreadTests(unittest.TestCase):
         c=load_config();c.update(level=2,spawn_seed=0,round_seconds=500,order_patience=450,order_interval=100)
         return SpatialKitchen(c)
 
-    def test_adjacent_counter_spreads_after_eight_game_seconds(self):
+    def burning(self,k):
+        return {key for key,s in k.stations.items() if s.fire}
+
+    def test_one_burning_neighbour_ignites_after_five_game_seconds(self):
+        # Overcooked 2: every flammable neighbour heats at once; one fire next to it takes 5 s.
         k=self.make(); k.ignite('p1')
         adjacent=k.fire_neighbors('p1'); self.assertTrue(adjacent)
-        k.advance(7.9);self.assertEqual(sum(s.fire for s in k.stations.values()),1)
-        k.advance(.11);self.assertTrue(k.stations[adjacent[0]].fire)
-        self.assertEqual(sum(s.fire for s in k.stations.values()),2)
-        self.assertLess(k.stations[adjacent[0]].fire_elapsed,.02)
+        k.advance(4.9);self.assertEqual(self.burning(k),{'p1'})
+        self.assertAlmostEqual(k.stations[adjacent[0]].fire_heat,.98,places=2)
+        k.advance(.15);self.assertTrue(set(adjacent)<=self.burning(k))
         k.assert_invariants()
 
-    def test_no_diagonal_or_floor_jump(self):
+    def test_several_burning_neighbours_add_up(self):
         k=self.make()
+        target=next(key for key in k.stations if len(k.fire_neighbors(key))>=2)
+        a,b=k.fire_neighbors(target)[:2];k.ignite(a);k.ignite(b)
+        k.advance(2.4);self.assertFalse(k.stations[target].fire)
+        k.advance(.15);self.assertTrue(k.stations[target].fire)
+
+    def test_diagonals_spread_but_never_across_floor(self):
+        k=self.make();diagonal=False
         for key in k.stations:
             for n in k.fire_neighbors(key):
                 a,b=k.equipment[key]['cell'],k.equipment[n]['cell']
-                self.assertEqual(abs(a[0]-b[0])+abs(a[1]-b[1]),1)
+                self.assertEqual(max(abs(a[0]-b[0]),abs(a[1]-b[1])),1)
+                diagonal|=abs(a[0]-b[0])==abs(a[1]-b[1])==1
+        self.assertTrue(diagonal)
         self.assertEqual(k.fire_neighbors('sink'),[])
+
+    def test_heat_holds_then_drains_without_a_burning_neighbour(self):
+        k=self.make();k.ignite('p1');n=k.fire_neighbors('p1')[0]
+        k.advance(3);self.assertAlmostEqual(k.stations[n].fire_heat,.6,places=2)
+        k.stations['p1'].fire=False
+        k.advance(1.9);self.assertAlmostEqual(k.stations[n].fire_heat,.6,places=2)
+        k.advance(.6);self.assertAlmostEqual(k.stations[n].fire_heat,.1,places=1)
+        k.advance(.2);self.assertEqual(k.stations[n].fire_heat,0)
 
     def test_counter_fire_blocks_use_and_both_chefs_can_extinguish(self):
         for who in ['human','jeff']:
@@ -36,8 +56,14 @@ class FireSpreadTests(unittest.TestCase):
             self.assertTrue(all(a.kind in ['go','extinguish'] for a in options if a.target==target))
             ok,_=k.command(who,'extinguish '+target);self.assertTrue(ok)
             j=k.chefs[who].job;k.advance(j.travel+j.work+.001)
-            self.assertFalse(k.stations[target].fire);self.assertEqual(k.stations[target].fire_elapsed,0)
+            self.assertFalse(k.stations[target].fire);self.assertEqual(k.stations[target].relight_in,k.rules.relight_delay)
             k.assert_invariants()
+
+    def test_a_station_just_put_out_takes_no_heat_for_two_seconds(self):
+        k=self.make();k.ignite('p1');n=k.fire_neighbors('p1')[0];k.ignite(n)
+        k.stations[n].fire=False;k.stations[n].relight_in=k.rules.relight_delay
+        k.advance(1.9);self.assertEqual(k.stations[n].fire_heat,0)
+        k.advance(.6);self.assertGreater(k.stations[n].fire_heat,0)
 
     def test_fifth_active_fire_ends_the_round_as_failed(self):
         k=self.make()
@@ -63,6 +89,6 @@ class FireSpreadTests(unittest.TestCase):
         text=json.dumps(payload,ensure_ascii=False)
         self.assertNotRegex(text,r'[\u3400-\u9fff]')
         self.assertIn('5 simultaneously burning',text)
-        self.assertIn('fire_spread_in',text)
+        self.assertIn('fire_heat',text)
 
 if __name__=='__main__':unittest.main()
