@@ -246,7 +246,7 @@ class SpatialKitchen(Kitchen):
             way=theirs['points']
         elif who=='jeff':way=[self.positions[other]]
         else:return None
-        clear=lambda c:min(math.dist(c,way[0]),*(_segment_distance(c,a,b) for a,b in zip(way,way[1:])))>self.rules.chef_separation+.1
+        clear=lambda c:min([math.dist(c,way[0])]+[_segment_distance(c,a,b) for a,b in zip(way,way[1:])])>self.rules.chef_separation+.1
         start=self.positions[who];seen={self.anchor(who)};frontier=[self.anchor(who)]
         while frontier:
             for cell in sorted(frontier,key=lambda c:(math.dist(c,start),c)):

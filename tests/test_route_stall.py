@@ -142,5 +142,15 @@ class RouteStallTests(unittest.TestCase):
         k.assert_invariants()
 
 
+    def test_jeff_gives_way_to_the_player_dashing_into_a_one_chef_passage(self):
+        # Reported: dashing into Jeff in the passage froze the round (the player has no route to keep clear of).
+        k=audit_map.kitchen(PASSAGE)
+        k.positions.update(human=(6.,2.2),jeff=(6.,4.8))
+        self.assertTrue(k.start('jeff',next(a for a in k.actions('jeff') if a.target=='fridge' and a.kind=='fetch'))[0])
+        k.set_manual('human',0,1);self.assertTrue(k.sprint('human'))
+        for _ in range(60):k.advance(.05)
+        self.assertGreater(k.positions['human'][1],5.);self.assertLess(k.positions['jeff'][1],3.)
+        k.assert_invariants()
+
 if __name__ == '__main__':
     unittest.main()
