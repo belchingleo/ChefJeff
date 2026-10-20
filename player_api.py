@@ -86,12 +86,14 @@ class CompatibleClient(SpatialJevClient):
                 content=content.split('\n',1)[1].rsplit('```',1)[0].strip()
             reason='不是 JSON';parsed=json.loads(content)
             reason='缺少 choice';choice=parsed['choice']
-            reason='缺少 sprint 真假值'
-            if 'sprint' in payload['questions'] and type(parsed.get('sprint')) is not bool:raise ValueError()
+            # No sprint field means no sprint request; the action is still the model's own. A sprint that is not a boolean is rejected.
+            reason='sprint 不是真假值'
+            sprint_missing='sprint' in payload['questions'] and 'sprint' not in parsed
+            if 'sprint' in payload['questions'] and not sprint_missing and type(parsed['sprint']) is not bool:raise ValueError()
             reason='choice 不在候选动作里'
             if not isinstance(choice,str) or choice not in payload['questions']['next_action']['criteria']:raise ValueError()
             usage=data.get('usage') or {}
-            return {'sprint':parsed.get('sprint',False),'choice':choice,'confidence':None,'probabilities':{},'model':self.setting['model'],
+            return {'sprint':parsed.get('sprint',False),**({'sprint_missing':True} if sprint_missing else {}),'choice':choice,'confidence':None,'probabilities':{},'model':self.setting['model'],
                     'usage':{'input_tokens':int(usage.get('prompt_tokens',0)),'output_tokens':int(usage.get('completion_tokens',0))},
                     'latency':time.monotonic()-started}
         except (KeyError,IndexError,TypeError,AttributeError,ValueError):

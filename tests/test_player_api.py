@@ -141,6 +141,12 @@ class CompatibleTests(unittest.TestCase):
         self.client=CompatibleClient(load_config(),settings_from({'provider':'compatible','base_url':'https://api.example.com/v1','model':'m','api_key':KEY}))
         body=json.loads(self.ask('{"choice":"wait"}')[1].data)
         self.assertNotIn('thinking',body);self.assertNotIn('response_format',body)
+    def test_missing_sprint_means_no_sprint_and_is_logged(self):
+        self.payload['questions']['sprint']={}
+        result,_=self.ask('{"choice":"wait"}')
+        self.assertEqual((result['choice'],result['sprint'],result['sprint_missing']),('wait',False,True))
+        self.assertNotIn('sprint_missing',self.ask('{"choice":"wait","sprint":true}')[0])
+        with self.assertRaises(RuntimeError):self.ask('{"choice":"wait","sprint":"yes"}')
     def test_invalid_model_output_is_not_replaced_by_script(self):
         for content in ['{"choice":"invented"}','not json',None]:
             with self.subTest(content=content),self.assertRaises(RuntimeError):self.ask(content)
