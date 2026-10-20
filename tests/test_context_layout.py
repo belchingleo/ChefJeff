@@ -58,11 +58,16 @@ class LayoutInteractionTests(unittest.TestCase):
             endpoint={(4,2):(4,2.49),(3,3):(3.15,3.),(5,3):(4.85,3.)}[cell]
             expected=[cell,endpoint]
             self.assertEqual(k.path('human','b1'),expected)
-    def test_swap_drops_at_actual_service_side(self):
-        k=self.make();k.positions['human']=(3.,3.);k.chefs['human'].hand=Food('old')
+    def test_full_hands_never_take_from_a_station(self):
+        # As with the player's Space: put the held item down first; no automatic swap at a board.
+        for who in ('human','jeff'):
+            k=self.make();k.positions[who]=(3.,3.);k.chefs[who].hand=Food('old')
+            k.stations['b1'].food=Food('cut','chopped',6)
+            self.assertFalse(k.command(who,'take b1')[0]);self.assertEqual(k.chefs[who].hand.id,'old')
+        # The player's Space facing that board does nothing either.
+        k=self.make();k.positions['human']=(3.,3.);k.facing['human']='right';k.chefs['human'].hand=Food('old')
         k.stations['b1'].food=Food('cut','chopped',6)
-        k.command('human','take b1');job=k.chefs['human'].job;k.advance(job.travel+job.work+.001)
-        self.assertEqual(k.ground['old'].location,'floor_3_3');k.assert_invariants()
+        self.assertIsNone(k.facing_interaction('human')[1])
     def test_space_cooking_chain_and_washing(self):
         k=self.make();self.stand(k,'fridge');self.assertEqual(self.press(k),'fetch')
         self.stand(k,'b1');self.assertEqual(self.press(k),'put_board')

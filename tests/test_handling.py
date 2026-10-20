@@ -55,21 +55,14 @@ class HandlingTests(unittest.TestCase):
         self.do(k,'human','put extinguisher')
         self.assertEqual(k.stations['extinguisher'].food.id,'E1')
 
-    def test_fetch_with_full_hand_preserves_old_item(self):
-        k=self.make();k.chefs['human'].hand=Food('old','ready',6,12)
-        self.do(k,'human','fetch')
-        self.assertEqual(k.chefs['human'].hand.id,'F1')
-        self.assertEqual(k.ground['old'].food.stage,'ready')
-
-    def test_take_board_and_pot_with_full_hands(self):
-        for key in ('b1','p1'):
-            k=self.make();k.chefs['human'].hand=Food('old')
-            k.stations[key].food=Food('new','chopped' if key=='b1' else 'ready',6,12)
-            self.do(k,'human',('take ' if key=='b1' else 'take pot ')+key)
-            item=k.chefs['human'].hand
-            self.assertEqual((item if key=='b1' else item.contents).id,'new')
-            self.assertEqual(k.ground['old'].food.id,'old')
-            self.assertIsNone(k.stations[key].food)
+    def test_full_hands_fetch_or_take_nothing_for_either_chef(self):
+        # As with the player's Space: no automatic swap at the fridge, a board or a stove.
+        for who in ('human','jeff'):
+            for key,command in (('fridge','fetch'),('b1','take b1'),('p1','take pot p1')):
+                k=self.make();k.chefs[who].hand=Food('old')
+                if key!='fridge':k.stations[key].food=Food('new','chopped' if key=='b1' else 'ready',6,12)
+                self.assertNotIn(command,[a.key for a in k.actions(who)])
+                self.assertFalse(k.command(who,command)[0]);self.assertEqual(k.chefs[who].hand.id,'old')
 
     def test_ground_swap_uses_picked_up_cell_even_when_neighbors_full(self):
         k=self.make();cell=(3,4);key=tile_key(cell)
@@ -113,7 +106,7 @@ class HandlingTests(unittest.TestCase):
         self.do(k,'human','drop');self.do(k,'jeff','pickup E1')
         self.do(k,'jeff','extinguish p1')
         self.assertFalse(pot.fire);self.assertEqual(k.chefs['jeff'].hand.id,'E1')
-        self.do(k,'jeff','fetch')
+        self.do(k,'jeff','drop')
         self.assertEqual(k.ground['E1'].food.stage,'extinguisher')
 
     def test_two_chefs_swapping_for_same_tool_cannot_duplicate(self):
@@ -125,12 +118,12 @@ class HandlingTests(unittest.TestCase):
         self.assertEqual(sum(a.hand.id=='E1' for a in k.chefs.values()),1)
         self.assertEqual(len(k.ground),1)
 
-    def test_jev_has_drop_discard_auto_swap_and_tool_rules(self):
+    def test_jev_has_drop_discard_swap_and_tool_rules(self):
         k=self.make();k.chefs['jeff'].hand=Food('meat')
         actions=k.actions('jeff');keys={a.key for a in actions}
-        self.assertTrue({'drop','discard','take extinguisher','fetch'}<=keys)
+        self.assertTrue({'drop','discard','take extinguisher'}<=keys);self.assertNotIn('fetch',keys)
         payload=SpatialJevClient(k.c,key='test-only').payload(k.snapshot(),actions)
         self.assertEqual(payload['state']['rules']['timing']['handling'],.15)
-        self.assertIn('automatically',payload['state']['rules']['ground'])
+        self.assertIn('put the held item down first',payload['state']['rules']['ground'])
         self.do(k,'jeff','discard');self.assertEqual(k.money,-2)
         self.assertIsNone(k.chefs['jeff'].hand)

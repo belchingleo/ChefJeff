@@ -333,9 +333,9 @@
       "classic": 318,
       "classic swapped": 318,
       "zoned": 320,
-      "zoned swapped": 318
+      "zoned swapped": 320
      },
-     "pair": "zoned",
+     "pair": "zoned swapped",
      "money": 320,
      "solo": 156
     },
@@ -345,7 +345,7 @@
      "pairings": {
       "classic": 318,
       "classic swapped": 318,
-      "zoned": 318,
+      "zoned": 320,
       "zoned swapped": 320
      },
      "pair": "zoned swapped",
@@ -359,9 +359,9 @@
       "classic": 318,
       "classic swapped": 318,
       "zoned": 320,
-      "zoned swapped": 318
+      "zoned swapped": 320
      },
-     "pair": "zoned",
+     "pair": "zoned swapped",
      "money": 320,
      "solo": 156
     },
@@ -371,7 +371,7 @@
      "pairings": {
       "classic": 318,
       "classic swapped": 318,
-      "zoned": 318,
+      "zoned": 320,
       "zoned swapped": 320
      },
      "pair": "zoned swapped",
@@ -385,9 +385,9 @@
       "classic": 318,
       "classic swapped": 318,
       "zoned": 320,
-      "zoned swapped": 318
+      "zoned swapped": 320
      },
-     "pair": "zoned",
+     "pair": "zoned swapped",
      "money": 320,
      "solo": 156
     },
@@ -397,7 +397,7 @@
      "pairings": {
       "classic": 318,
       "classic swapped": 318,
-      "zoned": 318,
+      "zoned": 320,
       "zoned swapped": 320
      },
      "pair": "zoned swapped",
@@ -411,9 +411,9 @@
       "classic": 318,
       "classic swapped": 318,
       "zoned": 320,
-      "zoned swapped": 318
+      "zoned swapped": 320
      },
-     "pair": "zoned",
+     "pair": "zoned swapped",
      "money": 320,
      "solo": 156
     },
@@ -423,7 +423,7 @@
      "pairings": {
       "classic": 318,
       "classic swapped": 318,
-      "zoned": 318,
+      "zoned": 320,
       "zoned swapped": 320
      },
      "pair": "zoned swapped",
@@ -437,9 +437,9 @@
       "classic": 318,
       "classic swapped": 318,
       "zoned": 320,
-      "zoned swapped": 318
+      "zoned swapped": 320
      },
-     "pair": "zoned",
+     "pair": "zoned swapped",
      "money": 320,
      "solo": 156
     },
@@ -449,7 +449,7 @@
      "pairings": {
       "classic": 318,
       "classic swapped": 318,
-      "zoned": 318,
+      "zoned": 320,
       "zoned swapped": 320
      },
      "pair": "zoned swapped",
@@ -463,9 +463,9 @@
       "classic": 318,
       "classic swapped": 318,
       "zoned": 320,
-      "zoned swapped": 318
+      "zoned swapped": 320
      },
-     "pair": "zoned",
+     "pair": "zoned swapped",
      "money": 320,
      "solo": 156
     },
@@ -475,7 +475,7 @@
      "pairings": {
       "classic": 318,
       "classic swapped": 318,
-      "zoned": 318,
+      "zoned": 320,
       "zoned swapped": 320
      },
      "pair": "zoned swapped",
@@ -489,9 +489,9 @@
       "classic": 318,
       "classic swapped": 318,
       "zoned": 320,
-      "zoned swapped": 318
+      "zoned swapped": 320
      },
-     "pair": "zoned",
+     "pair": "zoned swapped",
      "money": 320,
      "solo": 156
     },
@@ -501,7 +501,7 @@
      "pairings": {
       "classic": 318,
       "classic swapped": 318,
-      "zoned": 318,
+      "zoned": 320,
       "zoned swapped": 320
      },
      "pair": "zoned swapped",
@@ -515,9 +515,9 @@
       "classic": 318,
       "classic swapped": 318,
       "zoned": 320,
-      "zoned swapped": 318
+      "zoned swapped": 320
      },
-     "pair": "zoned",
+     "pair": "zoned swapped",
      "money": 320,
      "solo": 156
     },
@@ -527,7 +527,7 @@
      "pairings": {
       "classic": 318,
       "classic swapped": 318,
-      "zoned": 318,
+      "zoned": 320,
       "zoned swapped": 320
      },
      "pair": "zoned swapped",
@@ -541,9 +541,9 @@
       "classic": 318,
       "classic swapped": 318,
       "zoned": 320,
-      "zoned swapped": 318
+      "zoned swapped": 320
      },
-     "pair": "zoned",
+     "pair": "zoned swapped",
      "money": 320,
      "solo": 156
     },
@@ -553,7 +553,7 @@
      "pairings": {
       "classic": 318,
       "classic swapped": 318,
-      "zoned": 318,
+      "zoned": 320,
       "zoned swapped": 320
      },
      "pair": "zoned swapped",
@@ -567,9 +567,9 @@
       "classic": 318,
       "classic swapped": 318,
       "zoned": 320,
-      "zoned swapped": 318
+      "zoned swapped": 320
      },
-     "pair": "zoned",
+     "pair": "zoned swapped",
      "money": 320,
      "solo": 156
     },
@@ -579,7 +579,7 @@
      "pairings": {
       "classic": 318,
       "classic swapped": 318,
-      "zoned": 318,
+      "zoned": 320,
       "zoned swapped": 320
      },
      "pair": "zoned swapped",
@@ -593,9 +593,9 @@
       "classic": 318,
       "classic swapped": 318,
       "zoned": 320,
-      "zoned swapped": 318
+      "zoned swapped": 320
      },
-     "pair": "zoned",
+     "pair": "zoned swapped",
      "money": 320,
      "solo": 156
     }

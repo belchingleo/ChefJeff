@@ -170,6 +170,13 @@ def replay(factory, resolved, inputs):
 TAKE_KINDS = {"fetch", "take_board", "take_tool", "pickup", "take_plate", "take_return", "take_sink", "take_counter", "lift_pot"}
 
 
+def hand_swap_allowed(kind, incoming=None):
+    """Taking with full hands, the same for both chefs (the player's Space): only the extinguisher,
+    or a loose raw/chopped ingredient from the floor, swaps; anything else needs the hands emptied first."""
+    return kind == 'take_tool' or (kind == 'pickup' and incoming is not None
+                                   and incoming.stage in ('raw', 'chopped') and not incoming.plate_id)
+
+
 class Kitchen:
     def __init__(self, config=None, rng=None):
         self.resolved, self.c = runtime_config(config, rng)
@@ -320,9 +327,9 @@ class Kitchen:
         for i, (source, ingredient) in enumerate(self.ingredients.items()):
             name = self.state_label(ingredient, self.rules.items[ingredient]['initial_state'])
             if i == 0:
-                add("fetch", f"到{self.stations[source].name}取一份{name}（手中物品自动放到地上）", "fetch", source)
+                add("fetch", f"到{self.stations[source].name}取一份{name}", "fetch", source)
             else:
-                add('fetch '+source, '取一份'+name+'（自动换手）', 'fetch', source)
+                add('fetch '+source, '取一份'+name, 'fetch', source)
         if a.hand:
             if a.hand.plate_id and self.dish(a.hand):
                 for i, key in enumerate(self.serves):
@@ -349,7 +356,7 @@ class Kitchen:
                 if self.can_load_pot(a.hand,s.food):
                     add('load '+key,f'把{self.load_label(a.hand)}放入{s.name}的空{self.vessel_name(s.food.id)}（离灶不加热）','load_counter',key)
                 kind = 'take_plate' if s.food.stage == 'clean_plate' else 'take_counter'
-                add(f'take {key}', f'从{s.name}拿起{self.food_name(s.food)}（自动换手）', kind, key)
+                add(f'take {key}', f'从{s.name}拿起{self.food_name(s.food)}', kind, key)
                 if a.hand and a.hand.stage == 'pot' and self.can_add(s.food,a.hand.contents):
                     v = self.vessel_name(a.hand.id)
                     add(f'plate {key}', f'把手中{v}里的菜盛到{s.name}的盘里（空{v}留在手中）', 'plate_counter', key)
@@ -364,7 +371,7 @@ class Kitchen:
                     add('wash','一起洗碗（共享进度）','wash',key)
                 continue
             if s.food:
-                add(f'take {key}', f'从{s.name}拿起{self.food_name(s.food)}（自动换手）', kind, key)
+                add(f'take {key}', f'从{s.name}拿起{self.food_name(s.food)}', kind, key)
             if key == self.sink:
                 if not s.food and a.hand and a.hand.stage == 'dirty_plate':
                     add(f'put {key}', f'把脏餐盘放入{s.name}', 'put_sink', key)
@@ -437,6 +444,9 @@ class Kitchen:
         # exactly the same legal rescue actions, including empty counters.
         out = [x for x in out if x.kind in ('go', 'extinguish') or not
                (x.target in self.stations and self.stations[x.target].fire)]
+        if a.hand:
+            out = [x for x in out if x.kind not in TAKE_KINDS or hand_swap_allowed(
+                x.kind, self.ground[x.expected[1]].food if x.kind == 'pickup' else None)]
         for key in self.boards + self.counters:
             s = self.stations[key]
             if s.fire and s.lock in (None, who) and a.hand and a.hand.stage == 'extinguisher':

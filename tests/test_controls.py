@@ -32,14 +32,16 @@ class ControlsTests(unittest.TestCase):
         self.throw(k,'human',(10,1));self.assertEqual(k.ground['test'].location,'floor_6_1')
 
     def test_throw_raw_or_chopped_onto_board_both_chefs(self):
-        from level_one import EQUIPMENT
+        # As in Overcooked 2: an ingredient that comes down on an empty board rests there. Board 1 is
+        # four cells straight up from (4,7), the full reach of an aimed throw, the same for both chefs.
         for who in ('human','jeff'):
+            other='jeff' if who=='human' else 'human'
             for stage in ('raw','chopped'):
-                k=self.make();k.positions[who]=(3.,4.)
+                k=self.service();k.positions.update({who:(4.,7.),other:(8.,6.)})
                 food=Food('ingredient',stage,2 if stage=='raw' else 6)
                 k.chefs[who].hand=food
-                self.assertIn('throw b1',[a.key for a in k.actions(who)])
-                self.throw(k,who,EQUIPMENT['b1']['cell'])
+                self.assertEqual(k.aimed_throw(who,(0,-1)).target,'b1')
+                self.assertTrue(k.command(who,'throw up')[0]);k.advance(1);k.assert_invariants()
                 self.assertIs(k.stations['b1'].food,food)
                 self.assertIsNone(k.chefs[who].hand)
                 self.assertNotIn(food.id,k.ground)
@@ -232,7 +234,7 @@ class ControlsTests(unittest.TestCase):
             g=self.session();k=g.k
             plate=k.stations['plates'].food;k.stations['plates'].food=None;plate.stage=stage
             k.chefs['human'].hand=plate;k.positions['human']=(3.,4.)
-            self.assertEqual(self.cmd(g,'throw',target=[9,4],expected_item=plate.id)[0],200)
+            self.assertEqual(self.cmd(g,'throw',direction=[1,0],expected_item=plate.id)[0],200)
             k.advance(1);self.assertIs(k.ground[plate.id].food,plate)
             self.assertLessEqual(math.dist((3.,4.),k.cell(k.ground[plate.id].location)),PASS_RANGE+1e-8)
             k.assert_invariants()
@@ -241,9 +243,11 @@ class ControlsTests(unittest.TestCase):
         g=self.session()
         for v in (float('nan'),2,True,'1'):
             self.assertEqual(self.cmd(g,'move',dx=v,dy=0,seq=1)[0],400)
-        self.assertEqual(self.cmd(g,'throw',target=[3,4],expected_item='missing')[0],409)
-        for target in ([float('inf'),4],[1],['a',3]):
-            self.assertEqual(self.cmd(g,'throw',target=target,expected_item='x')[0],400)
+        self.assertEqual(self.cmd(g,'throw',direction=[1,0],expected_item='missing')[0],409)
+        for direction in ([float('inf'),4],[1],['a',3],[0,0]):
+            self.assertEqual(self.cmd(g,'throw',direction=direction,expected_item='x')[0],400)
+        # The player throws along a direction, never at a chosen landing point (nor does Jeff).
+        self.assertEqual(self.cmd(g,'throw',target=[6,4],expected_item='x')[0],400)
         g.k.chefs['human'].hand=Food('test');g.k.positions['human']=(3.,4.)
-        self.assertEqual(self.cmd(g,'throw',target=[6,4],expected_item='test')[0],200)
+        self.assertEqual(self.cmd(g,'throw',direction=[1,0],expected_item='test')[0],200)
         g.k.advance(1);self.assertIn('test',g.k.ground);g.k.assert_invariants()

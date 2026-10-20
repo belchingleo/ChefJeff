@@ -6,6 +6,9 @@ from kitchen import Kitchen, Action, Station, NAMES, TAKE_KINDS, Job, GroundItem
 from map_definition import geometry
 from navigation import WALK_CLEARANCE, Navigation, contact_fraction
 FACING_STEPS = {'up':(0,-1),'down':(0,1),'left':(-1,0),'right':(1,0)}
+# Jeff throws along the player's eight aim directions, always to full reach (see aimed_throw).
+THROW_DIRECTIONS = {'up':((0,-1),'上方'),'down':((0,1),'下方'),'left':((-1,0),'左方'),'right':((1,0),'右方'),
+                    'up-left':((-1,-1),'左上方'),'up-right':((1,-1),'右上方'),'down-left':((-1,1),'左下方'),'down-right':((1,1),'右下方')}
 USE_KINDS = ('chop','wash','extinguish')  # E; Space takes, puts, plates and serves
 
 THROW_RANGE = 4.0
@@ -653,14 +656,10 @@ class SpatialKitchen(Kitchen):
 
     def can_throw_to(self, who, target):
         if not self.can_throw(who):return False
-        if target in self.boards + self.counters:
-            hand = self.chefs[who].hand
-            station = self.stations[target]
-            cell = self.equipment[target]['cell']
-            return (self.rules.throwable(hand)
-                    and station.food is None and station.lock is None and not station.fire
-                    and not self.board_reserved(target,who)
-                    and math.dist(self.positions[who],cell) <= self.rules.throw_range+1e-8
+        if target in self.equipment:
+            cell = tuple(self.equipment[target]['cell'])
+            return (self.throw_station(who,cell) == target
+                    and math.dist(self.positions[who],cell) <= self.throw_range(who)+1e-8
                     and self.clear_throw_line(self.positions[who],cell))
         if target not in self.floor_places:
             return False
@@ -668,6 +667,24 @@ class SpatialKitchen(Kitchen):
         return (cell not in self.occupied_floor(who)
                 and math.dist(self.positions[who], cell) <= self.throw_range(who) + 1e-8
                 and self.clear_throw_line(self.positions[who], cell))
+
+    def throw_station(self, who, cell):
+        """The station a thrown ingredient coming down on ``cell`` rests on, as in Overcooked 2: an empty
+        board or counter, or an empty pan on a stove that cooks it. None: it falls to the floor."""
+        hand = self.chefs[who].hand
+        key = next((k for k in self.boards + self.counters + self.pots
+                    if tuple(cell) in map(tuple, self.equipment[k].get('cells', [self.equipment[k]['cell']]))), None)
+        if key is None or not self.rules.throwable(hand) or not self.station_catches(key, hand, who):
+            return None
+        return key
+
+    def station_catches(self, key, food, who=None):
+        s = self.stations[key]
+        if s.fire or s.lock is not None or self.board_reserved(key, who):
+            return False
+        if key in self.pots:
+            return bool(s.pot_id and not s.food and self.rules.potable(food, self.rules.vessels.get(s.pot_id)))
+        return s.food is None
 
     def board_reserved(self, target, who=None):
         return (any(p['target']==target for p in self.projectiles.values())
@@ -709,6 +726,9 @@ class SpatialKitchen(Kitchen):
             if beside is not None:
                 return tile_key(beside), end
             return None
+        station = self.throw_station(who, cell)
+        if station:
+            return station, tuple(cell)
         if available(cell):
             return tile_key(cell), tuple(cell)
         if cell in self.floor and cell in occupied:
@@ -727,21 +747,19 @@ class SpatialKitchen(Kitchen):
                 return tile_key(candidate), tuple(candidate)
         return None
 
-    def throw_action(self, who, target, key=None):
+    def throw_action(self, who, target, key=None, toward=None):
+        """Throw toward ``target``; it comes down where throw_landing says (partner, station or floor)."""
         hand = self.chefs[who].hand
         if not self.can_throw(who) or self.ended:
             return None
-        board = next((b for b in self.boards + self.counters if tuple(self.equipment[b]['cell']) == tuple(target)),None)
-        if board and self.can_throw_to(who,board):
-            return Action(key or f'throw {board}',f'把手中食材抛到空的{self.stations[board].name}',
-                          'throw',board,(hand.id,board,target[0],target[1]))
         landing = self.throw_landing(who,target)
         if not landing:
             return None
-        floor, aim = landing
-        return Action(key or f'throw {target[0]:g} {target[1]:g}',
-                      f'向地面({target[0]:g},{target[1]:g})抛出手中物品（落点由射程和墙确定）',
-                      'throw',floor,(hand.id, floor, aim[0], aim[1]))
+        place, aim = landing
+        where = self.place(place).name
+        label = (f'抛给队友（接不住时落到{where}）' if key == 'throw partner'
+                 else f'向{toward}抛出手中物品（落到{where}）' if toward else f'抛出手中物品（落到{where}）')
+        return Action(key or f'throw {target[0]:g} {target[1]:g}', label, 'throw', place, (hand.id, place, aim[0], aim[1]))
 
     def handoff_target(self, who):
         other = 'jeff' if who == 'human' else 'human'
@@ -784,7 +802,7 @@ class SpatialKitchen(Kitchen):
 
     def actions(self, who):
         actions = [a for a in super().actions(who) if a.kind != 'drop']
-        actions = [a for a in actions if not (a.kind in ('put_board','put_counter') and self.board_reserved(a.target))]
+        actions = [a for a in actions if not (a.kind in ('put_board','put_counter','put_pot') and self.board_reserved(a.target))]
         actions = [a for a in actions if not (a.kind in ('chop','wash')
                    and self.shared_access(who,a.target)==[])]
         if self.ended:
@@ -807,15 +825,10 @@ class SpatialKitchen(Kitchen):
             other = 'jeff' if who == 'human' else 'human'
             action = self.throw_action(who,self.positions[other],'throw partner')
             if action: actions.append(action)
-            for board in self.boards + self.counters:
-                if self.can_throw_to(who,board):
-                    actions.append(self.throw_action(who,self.equipment[board]['cell'],f'throw {board}'))
-            # Both chefs have the same targetable floor cells. Choice count stays
-            # bounded by this map; no scripted preference is inserted.
-            for cell in sorted(self.floor):
-                if self.can_throw_to(who,tile_key(cell)):
-                    action = self.throw_action(who,cell)
-                    if action: actions.append(action)
+            # The player's throws: an aim direction, always to full reach.
+            for name, (step, toward) in THROW_DIRECTIONS.items():
+                action = self.aimed_throw(who, step, key='throw '+name, toward=toward)
+                if action: actions.append(action)
         if self.can_plate_partner(who):
             other = 'jeff' if who == 'human' else 'human'
             actions.append(Action('plate partner','走近，把食材加入队友手中的盘（容器留在原持有者手中）',
@@ -979,12 +992,8 @@ class SpatialKitchen(Kitchen):
                 elif preferred=='partner':
                     if a.kind!='plate_partner':continue
                 elif a.target!=preferred:continue
-            # Only the focused loose ground ingredient opts into quick hand swapping.
-            # Nearby station take actions must not displace a carried dish implicitly.
-            if chef.hand and a.kind in TAKE_KINDS and a.kind!='take_tool':
-                incoming=self.ground.get(a.expected[1]) if a.kind=='pickup' else None
-                if not (preferred and preferred.startswith('item:') and incoming
-                        and incoming.food.stage in ('raw','chopped') and not incoming.food.plate_id):continue
+            # Full hands swap only by aiming at that loose ingredient (actions() applies hand_swap_allowed).
+            if chef.hand and a.kind=='pickup' and not (preferred and preferred.startswith('item:')):continue
             if a.kind=='plate_partner':
                 if not self.can_plate_partner(who,True):continue
                 distance=math.dist(self.positions[who],self.positions['jeff' if who=='human' else 'human'])
@@ -1010,7 +1019,7 @@ class SpatialKitchen(Kitchen):
         """Throw the held item straight ahead along the facing (see aimed_throw)."""
         return self.aimed_throw(who,FACING_STEPS[self.facing[who]],key='throw forward')
 
-    def aimed_throw(self, who, direction, key='throw aimed'):
+    def aimed_throw(self, who, direction, key='throw aimed', toward=None):
         """Throw the held item along ``direction`` (Overcooked-style: hold to aim, release).
 
         Aims at the partner when they stand roughly in that direction within reach, otherwise
@@ -1024,7 +1033,7 @@ class SpatialKitchen(Kitchen):
         other=self.positions['jeff' if who=='human' else 'human']
         ahead=(other[0]-x)*dx+(other[1]-y)*dy;side=abs((other[0]-x)*dy-(other[1]-y)*dx)
         aim=other if 0<ahead<=reach and side<=self.rules.catch_radius else (x+dx*reach,y+dy*reach)
-        return self.throw_action(who,aim,key=key)
+        return self.throw_action(who,aim,key=key,toward=toward)
 
     def interaction_hint(self, who, preferred=None):
         if preferred and preferred.startswith('floor_'):return '面前没有可操作目标'
@@ -1284,27 +1293,41 @@ class SpatialKitchen(Kitchen):
             self._keyboard_walk(who,vector,seconds)
         for key, p in list(self.projectiles.items()):
             if self.time >= p['lands_at']-1e-8:
-                if p['target'] in self.boards + self.counters:
-                    board = self.stations[p['target']]
-                    assert board.food is None, '已预留的台面被覆盖'
-                    board.food = p['food']
-                    self.emit(f'{key} 落到{board.name}，可取走',kind='landed',handoff_id=p['handoff_id'],outcome='landed_station',
-                              item=key,actor=p['actor'],target=p['target'])
-                    del self.projectiles[key]
-                    continue
-                other = 'jeff' if p['actor'] == 'human' else 'human'
-                chef = self.chefs[other]
-                # As in Overcooked, a throw is caught when it passes within reach on its way, not only where it lands.
-                can_catch = (not chef.hand and (not chef.job or chef.job.action.kind == 'go')
-                             and _segment_distance(self.positions[other],p['from'],p.get('catch_at',p['to'])) <= self.rules.catch_radius
-                             and self.clear_throw_line(p['from'],self.positions[other]))
-                if can_catch:
-                    chef.hand = p['food']
-                    self.emit(f'{NAMES[other]}接住了 {key}',kind='caught',item=key,actor=other,handoff_id=p['handoff_id'],outcome='caught',thrower=p['actor'])
-                else:
-                    self.ground[key] = GroundItem(p['food'],p['target'])
-                    self.emit(f'{key} 落在地上，可拾取',kind='landed',item=key,actor=p['actor'],handoff_id=p['handoff_id'],outcome='landed_floor')
                 del self.projectiles[key]
+                self._land(key, p)
+
+    def _land(self, key, p):
+        food, target = p['food'], p['target']
+        other = 'jeff' if p['actor'] == 'human' else 'human'
+        chef = self.chefs[other]
+        # As in Overcooked, a throw is caught when it passes within reach on its way, not only where it lands.
+        if (not chef.hand and (not chef.job or chef.job.action.kind == 'go')
+                and _segment_distance(self.positions[other],p['from'],p.get('catch_at',p['to'])) <= self.rules.catch_radius
+                and self.clear_throw_line(p['from'],self.positions[other])):
+            chef.hand = food
+            self.emit(f'{NAMES[other]}接住了 {key}',kind='caught',item=key,actor=other,handoff_id=p['handoff_id'],outcome='caught',thrower=p['actor'])
+            return
+        if target in self.equipment:
+            station = self.stations[target]
+            if self.station_catches(target, food, p['actor']):
+                station.food = food
+                if target in self.pots:
+                    food.stage, station.heating = 'cooking', True
+                    self.emit(f'{key} 落进{station.name}的{self.vessel_name(station.pot_id)}，开始加热',kind='landed',handoff_id=p['handoff_id'],
+                              outcome='landed_station',item=key,actor=p['actor'],target=target)
+                else:
+                    self.emit(f'{key} 落到{station.name}，可取走',kind='landed',handoff_id=p['handoff_id'],outcome='landed_station',
+                              item=key,actor=p['actor'],target=target)
+                return
+            # The station changed mid-flight (a pan lifted, food put there): it falls beside it.
+            cell = tuple(self.equipment[target]['cell'])
+            occupied = self.occupied_floor(p['actor'])
+            spot = min((c for c in self.floor if c not in occupied), key=lambda c:(math.dist(c,cell),c), default=None)
+            if spot is None:
+                raise AssertionError('厨房地面已满，抛出的物品无处落下')
+            target = tile_key(spot)
+        self.ground[key] = GroundItem(food,target)
+        self.emit(f'{key} 落在地上，可拾取',kind='landed',item=key,actor=p['actor'],handoff_id=p['handoff_id'],outcome='landed_floor')
 
     def fire_neighbors(self, key):
         combustible = {k for k in self.stations if self.rules.combustible(k)}
@@ -1316,7 +1339,7 @@ class SpatialKitchen(Kitchen):
 
     def snapshot(self):
         state = super().snapshot()
-        for board in self.boards + self.counters:
+        for board in self.boards + self.counters + self.pots:
             state['stations'][board]['incoming_item'] = next((key for key,p in self.projectiles.items() if p['target']==board),None)
         state['projectiles'] = [{'id': key, 'stage': p['food'].stage, 'ingredient':p['food'].ingredient, 'plate_id': p['food'].plate_id,
             'components': list(p['food'].components),

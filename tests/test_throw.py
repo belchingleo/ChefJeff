@@ -1,7 +1,7 @@
 import unittest
 from kitchen import Food, GroundItem, load_config
 import math
-from spatial_kitchen import SpatialKitchen, tile_key, THROW_RANGE
+from spatial_kitchen import SpatialKitchen, tile_key, THROW_RANGE, THROW_DIRECTIONS
 from level_one import neighbors
 from whitebox_server import SpatialJevClient
 from levels import level_config
@@ -69,6 +69,16 @@ class ThrowTests(unittest.TestCase):
             self.assertIs(k.chefs[other].job,job);self.assertIsNone(k.chefs[other].hand)
             self.assertIs(k.ground[plate.id].food,plate);self.assertEqual(plate.stage,'clean_plate');k.assert_invariants()
 
+    def test_jeffs_throws_are_the_players_aimed_throws(self):
+        # No chosen landing points and no station-only throws: Jeff's menu is the player's eight aim
+        # directions at full reach, plus a throw toward the player.
+        for position in ((5.,5.),(4.,7.),(9.,3.)):
+            k=self.make();k.positions['jeff']=position
+            menu={a.key:a.target for a in k.actions('jeff') if a.kind=='throw'}
+            self.assertEqual(set(menu),{'throw partner'}|{'throw '+name for name in THROW_DIRECTIONS})
+            for name,(step,_) in THROW_DIRECTIONS.items():
+                self.assertEqual(menu['throw '+name],k.aimed_throw('jeff',step).target)
+
     def test_extinguisher_cannot_be_thrown_by_either_chef(self):
         # As in Overcooked 2, the extinguisher is carried to the fire, never thrown.
         for who in ('human','jeff'):
@@ -135,15 +145,16 @@ class ThrowTests(unittest.TestCase):
         p=client.payload(k.snapshot(),k.actions('jeff'))
         self.assertIn('throw partner',p['questions']['next_action']['criteria'])
         self.assertEqual(p['state']['kitchen']['map']['throw_range'],THROW_RANGE)
-        self.assertIn('Decide the destination',p['state']['rules']['throw'])
+        self.assertIn('throw <direction>',p['state']['rules']['throw'])
         k.command('jeff','throw partner');k.advance(.15)
         self.assertEqual(k.snapshot()['projectiles'][0]['id'],'pass')
 
     def test_full_swap_destination_filtered_and_rechecked_after_walk(self):
-        k=self.make();origin=tuple(round(v) for v in k.path('jeff','fridge')[-1])
-        self.assertTrue(k.command('jeff','fetch')[0])
+        # Taking the extinguisher is one of the swaps full hands may make (both chefs).
+        k=self.make();origin=tuple(round(v) for v in k.path('jeff','extinguisher')[-1])
+        self.assertTrue(k.command('jeff','take extinguisher')[0])
         for i,p in enumerate([origin]+neighbors(origin)):
             k.ground[str(i)]=GroundItem(Food(str(i)),tile_key(p))
         k.advance(4)
-        self.assertEqual(k.chefs['jeff'].hand.id,'pass');self.assertFalse(k.command('jeff','fetch')[0])
-        k.ground.pop('0');self.assertTrue(k.command('jeff','fetch')[0]);k.assert_invariants()
+        self.assertEqual(k.chefs['jeff'].hand.id,'pass');self.assertFalse(k.command('jeff','take extinguisher')[0])
+        k.ground.pop('0');self.assertTrue(k.command('jeff','take extinguisher')[0]);k.assert_invariants()

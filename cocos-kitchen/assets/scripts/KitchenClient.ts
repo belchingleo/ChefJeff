@@ -1975,7 +1975,8 @@ export class KitchenClient extends Component {
         const human=k.chefs.human,at=this.predicted||human.position;
         for(const p of k.projectiles||[]){
             const t=Math.max(0,Math.min(1,(time-p.started)/(p.lands_at-p.started))),arc=Math.sin(t*Math.PI)*35;
-            this.flights[p.id].getChildByName('focus')!.active=p.actor==='jeff'&&!p.onto&&!human.holding&&!!at&&segmentDistance(at,p.from,p.to)<=(k.map.catch_radius||.75);
+            // Caught on the way before it lands anywhere, station or floor (as the engine resolves it).
+            this.flights[p.id].getChildByName('focus')!.active=p.actor==='jeff'&&!human.holding&&!!at&&segmentDistance(at,p.from,p.to)<=(k.map.catch_radius||.75);
             const point=[p.from[0]+(p.to[0]-p.from[0])*t,p.from[1]+(p.to[1]-p.from[1])*t];
             // A board/counter landing ends on its work surface, drawn over the cabinet like a resting item.
             const onto=p.onto&&k.map.equipment[p.onto]?p.onto:null,height=arc+(onto?t*this.workSurfaceY(onto):0);

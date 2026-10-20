@@ -233,9 +233,9 @@ class AimedThrowTests(unittest.TestCase):
         self.assertEqual(status, 200, body)
         for _ in range(20):k.advance(.05)
         self.assertIsNone(k.chefs['human'].hand)
-        landed = next(item.location for item in k.ground.values() if item.food.id == 'T')
-        self.assertEqual(int(landed.split('_')[1]), 3)  # straight down from x = 3, not to the right
-        self.assertGreater(int(landed.split('_')[2]), 5)
+        # Straight down from x = 3, not to the right: it comes down on the empty counter by the wall.
+        self.assertEqual(k.equipment['counter12']['cell'], (3, 7))
+        self.assertEqual(k.stations['counter12'].food.id, 'T')
 
 
 class ShortActionMoveTests(unittest.TestCase):
