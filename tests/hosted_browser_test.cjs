@@ -121,7 +121,7 @@ function checkClientDiagnostics(fromSource){
 }
 
 async function checkClientInteractions(fromSource){
- const gameState={game_id:'round',phase:'ended',limits:{},release:{version:'0.6.0-beta.1'},
+ const gameState={game_id:'round',phase:'ended',limits:{},release:{version:'0.6.0-beta.2'},
   hosted:{contribution_enabled:true},interaction:null,interaction_focus:'counter14',
   kitchen:{map:{layout_version:'island-2'},stations:{counter14:{}},chefs:{human:{holding:{id:'held'}}}}};
  const h=harness(null,false,gameState),client=clientHarness(h,fromSource);
@@ -246,7 +246,7 @@ async function checkClientTouchBridge(fromSource){
  for(const changed of [{holding:{id:'replacement'}},{holding:null},{can_throw:false}]){
   clear();controls.press();client.clock+=.31;client.startAim();assert(client.aiming);
   Object.assign(human,changed);
-  client.request=async()=>({...client.state,release:{version:'0.6.0-beta.1'}});
+  client.request=async()=>({...client.state,release:{version:'0.6.0-beta.2'}});
   await client.poll();assert.equal(client.aiming,null,'a changed held-item snapshot cancels aiming immediately');
   controls.release();assert.equal(posts.length,0,'a cancelled snapshot cannot throw or tap');
  }

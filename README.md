@@ -11,7 +11,7 @@ ChefJeff is a real-time cooking game in which a person and an AI cook together, 
 
 Where to start: [run it locally](#run-it-locally) · [connect your own model](#jeff-and-model-integration) · [change the configuration](#five-data-models) · [the environment and benchmark](#building-a-humanai-collaboration-environment-and-benchmark)
 
-> Current version: **0.6.0-beta.1**, the first public test release. You need your own model API, and interfaces and analysis rules may still change. We suggest starting with Jev models: they don't play especially well, but they are cheap. Results from other models are welcome.
+> Current version: **0.6.0-beta.2**, the second public test release. You need your own model API, and interfaces and analysis rules may still change. We suggest starting with Jev models: they don't play especially well, but they are cheap. Results from other models are welcome.
 
 ---
 
@@ -60,7 +60,7 @@ The controls work much as in Overcooked:
 | --- | --- |
 | WASD or arrow keys | Move; press **Shift** while moving to dash |
 | Space | Do whatever the thing in front of you needs: fetch, pick up, put down, put in the pan, plate, serve; it can also chop, wash and put out fires. With a throwable item in hand, a tap acts when released; empty-handed actions start on press |
-| Hold Space | Holding a throwable item, hold for about 0.3 s to aim, whether facing a station or open floor. Your chef stops and a translucent curved guide shows direction and range; turn it with the direction keys and release to throw, up to 4 tiles. The endpoint marks maximum range, not a predicted landing point; the engine still resolves walls and catches |
+| Hold Space | Holding a throwable item, hold for about 0.3 s to aim, whether facing a station or open floor. Your chef stops and a translucent curved guide shows direction and range; turn it with the direction keys and release to throw. It flies to full range (4 tiles) that way, or to Jeff if he stands in its path; as in Overcooked 2, a raw or chopped ingredient that comes down on an empty board or counter rests there, and one that comes down in an empty pan that cooks it goes in. The extinguisher cannot be thrown |
 | 1–6 | Tell Jeff what kind of work you want to do, or point out a mistake |
 | Enter | Bookmark the current moment without pausing or interrupting anything; bookmarks are included in the data export |
 | Esc or P | Pause (use P on iPad keyboards without an Esc key). Settings let you connect a model, switch language, adjust volume and export the run |
@@ -69,7 +69,7 @@ The controls work much as in Overcooked:
 
 After each round the result card stays on the kitchen with one button: **Next level** after a win, **Try again** otherwise (Space, Enter, A/Start or the phone's main button; a short 3·2·1 and the round starts at the same pace). **Round record** opens the full record, which shows how many times you and Jeff each fetched ingredients, chopped, cooked, served and washed plates, and each chef's contribution, delay and idle time (see [records and analysis](#records-and-analysis)).
 
-The game has Chinese and English interfaces, with 8-bit style music and sound effects. Desktop keyboard controls remain available. On phones and small touch viewports, experimental landscape touch controls use a left joystick and right Action/Dash buttons: release the joystick to stop, tap Action to do what is in front of you at once, even holding an item; hold Throw to aim (the joystick steers) and let go to throw, or tap it to throw straight away. Dash works as on the keyboard: 2× speed easing back to walking over 1 second, ready again when it ends. Communication, bookmarks, pause and settings also have touch buttons.
+The game has Chinese and English interfaces, with 8-bit style music and sound effects. Desktop keyboard controls remain available. On phones and small touch viewports, experimental landscape touch controls use a left joystick and right Action, Throw and Dash buttons: release the joystick to stop, tap Action to do what is in front of you at once, even holding an item; hold Throw to aim (the joystick steers) and let go to throw, or tap it to throw straight away. Dash works as on the keyboard: 2× speed easing back to walking over 1 second, ready again when it ends. Communication, bookmarks, pause and settings also have touch buttons.
 
 With the touch layout active, turning the device to portrait, hiding the page or losing the connection clears held input and pauses a running round. Return to landscape and choose Resume; the game does not resume itself. Browsers cannot always force landscape orientation. Touch support is experimental: desktop browser emulation does not establish compatibility with iPhone Safari or Android Chrome, which still need real-device validation. See [device support](docs/device-support.md), [interaction guide](docs/interaction-guide.md) and the [current rules](docs/current-rules.md).
 
@@ -102,7 +102,7 @@ Current kitchen state (orders, workstations, items on the floor, what each chef 
       The kitchen engine checks that the action is legal, runs it, and writes the result to the event log
 ```
 
-- **Different observation and control.** You press keys in real time and move step by step. Jeff picks whole steps such as "fetch", "chop" or "serve", and the engine walks him there and carries them out.
+- **Different observation and control, the same abilities.** You press keys in real time and move step by step. Jeff picks whole steps such as "fetch", "chop" or "serve", and the engine walks him there and carries them out. He can do only what your controls can: the same throws (a direction, or toward you), the same hand swaps, no shortcuts such as emptying a pan in place. Tests compare his options with yours.
 - **The default rule descriptions state only facts.** Everything sent to Jeff is in English, and the two chefs are always called `human` and `jeff`. The rules say what can be done and what will happen. They don't assign roles or suggest how to cooperate.
 - **Two other inputs are run conditions.** The messages you send with 1–6, and summaries of earlier rounds from rolling cross-round memory (on by default; it can be turned off or cleared in Settings), are also sent to Jeff. When rounds are analysed, these are recorded separately from the rule descriptions.
 - **Every decision is logged.** What was chosen, whether it was accepted and whether it was completed are recorded separately, so you can check afterwards what actually happened.
@@ -205,6 +205,7 @@ All three produce the same data, and every imported level goes through the same 
 
 - **0.5.9-alpha** (2026-09-27): the first playable version. Three maps, with the rules written directly in the code.
 - **0.6.0-beta.1** (2026-10-01): the first public test release. Now driven by five data models, with one set of rules for all three levels (180-second rounds, judged on net revenue at closing); the old rules are gone. Adds round records and replay, behaviour fingerprints, collaboration analysis and the round record, along with reworked controls, music and sound effects.
+- **0.6.0-beta.2** (2026-10-20): controls and rules aligned with Overcooked 2 for the public test: dash and knockback, quicker chopping, standing at the counter line, aimed throws that land on boards and in pans, fire that spreads to every neighbour, sounds only for actions that happen. Jeff now has exactly the player's abilities. Maps are built from station coordinates alone; consent to share data comes before the first round.
 
 See the [changelog](CHANGELOG.md) for everything.
 
