@@ -21,17 +21,6 @@ const COLORS = { ink:'#2b1a12', muted:'#6e4e38', bg:'#f0d9b5', paper:'#fdf3e1', 
 const PIXEL='ChefJeffPixel, sans-serif';
 // Result events reach the player; AI decision notes have their own status line.
 const CUE_SECONDS=.16;
-const TAKE_CUES=new Set(['take_board','take_tool','pickup','take_plate','take_return','take_sink','take_counter','lift_pot']);
-/** The sound a Space interaction will make, as the audio plays it for a confirmed hand change; null if none. */
-function cueSound(kind:string,target:string|undefined,held:any,station:any):string|null{
-    if(kind==='fetch')return target==='fridge'?'fridge_grab':'pickup';
-    if(TAKE_CUES.has(kind))return held?null:'pickup';
-    if(kind==='discard'||kind==='empty_pot')return 'discard';
-    if(held&&(kind==='drop'||/^put_/.test(kind))&&target!=='serve'&&!station?.stove)
-        // Same rule as the audio's board(): b1, b2… are boards, bins are not.
-        return target?.startsWith('b')&&!target.startsWith('bin')?'place_board':/plate/.test(held.stage||'')?'plate_place':'place_board';
-    return null;
-}
 // Seconds without any state before the page calls it a disconnect (below the server's 8 s auto-pause).
 const NETWORK_GRACE_SECONDS=6;
 const RESULT_ANNOUNCE=new Set(['order','served','expired','ready','burn','fire','fire_spread','fire_loss']);
@@ -398,7 +387,7 @@ export class KitchenClient extends Component {
     }
     private interact(){
         const s=this.state!;
-        this.handsBusyUntil=this.clock+.35;this.actionCue(s.interaction);
+        this.handsBusyUntil=this.clock+.35;this.actionCue();
         this.post('/api/interact',{expected_item:s.kitchen.chefs.human.holding?.id||null,...this.atBody(),...this.pickBody()});
     }
     private releaseInteract(){
@@ -647,13 +636,10 @@ export class KitchenClient extends Component {
         const c=this.state?.kitchen.chefs.human;if(!c||this.localPick===undefined)return {};
         return {aim:this.aimNow(c),...(this.localPick?{target:this.localPick}:{})};
     }
-    /** Instant feedback for a Space interaction: lean, the action's sound and (phones) a short buzz. */
-    private actionCue(a=this.state?.interaction){
-        const s=this.state,held=s?.kitchen.chefs.human.holding;
+    /** Instant feedback that the press registered: a lean and (phones) a short buzz. The action's sound
+     *  waits for the engine's confirmed hand change, as in Overcooked 2, so a press that does nothing is silent. */
+    private actionCue(){
         this.cueUntil=this.clock+CUE_SECONDS;
-        // Facing open floor with an item, Space puts it down in front (no listed interaction).
-        const sound=a?cueSound(a.kind,a.target,held,s!.kitchen.stations?.[a.target||'']):held?cueSound('drop',undefined,held,null):null;
-        if(sound)this.audio.predict(sound);
         // Touch controls' haptic tick (Vibration API, or the iOS 18 switch tap); keyboards get none.
         if(this.touchLayout?.active&&!sys.isNative)(window as any).kitchenBuzz?.(12);
     }

@@ -65,7 +65,7 @@ function clientHarness(h, fromSource){
  const cc={Component:function(){},Camera:class{},UITransform,Color,Graphics,Node,Layers:{Enum:{UI_2D:1}},sys:{isNative:true},game:{frameRate:15},
    _decorator:{ccclass:()=>cls=>cls},cclegacy:{_RF:{push:()=>{},pop:()=>{}}}};
  h.cc=cc;
- const art={LevelOneArt:class{}},audio={KitchenAudio:class{onState(){}predict(){}play(){}}};
+ const art={LevelOneArt:class{}},audio={KitchenAudio:class{onState(){}play(){}}};
  const geometry={GRID_ART:{tile:48,originX:0,originY:0}};
  const context=vm.createContext({...cc,...art,...audio,...geometry,window:h.w,document:h.document,
    URLSearchParams,location:{search:''},Event:class{constructor(type){this.type=type;}},
