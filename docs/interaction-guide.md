@@ -34,12 +34,10 @@ When the small-screen touch layout is active, the device must be in landscape to
 | Touch input | Behavior |
 | --- | --- |
 | Left joystick | Press anywhere in the lower-left area: the stick appears under your thumb. Push to move in any direction (360°), release to stop; diagonals do not increase speed. While aiming, it turns the throw (any angle) instead of moving |
-| Action, empty hands | Interact on press, including fetching, chopping and washing (work, once started, continues until you walk away) |
-| Action, holding an item | Short press interacts on release. Hold about 0.3 s to stop and aim (the button reads Throw), including in front of a station; release to throw. When the other chef stands roughly on the aim line within reach, the trajectory bends to them and they are ringed in denim blue |
-| Grab | Above Action. Only picks up or puts down, at once on press, even with a throwable item in hand; never chops, washes or extinguishes. Disabled when there is nothing to take or put |
-| Throw | Between Grab and Dash, enabled with a throwable item: hold to aim (the stick turns it), release to throw; a quick tap throws along the stick or the facing |
-| Cancel while aiming | While aiming, a round Cancel button takes Grab's place above Action; slide the aiming finger onto it (it turns red) and release to cancel, without throwing or interacting |
-| Dash | To the left of Action, on an arc around it (Cancel takes the top of the arc while aiming). Tap while moving: speed starts at 2× and eases back to walking over 1 game second; the next dash is ready when it ends. Disabled while standing still or aiming |
+| Action | Does what is in front of you at once on press, even with an item in hand: fetch, take, put, chop, wash, plate, serve, extinguish (work, once started, continues until you walk away). It never throws. Disabled when there is nothing to do |
+| Throw | Above Action, enabled with a throwable item: hold to aim (the stick turns it, and when the other chef stands roughly on the aim line within reach the trajectory bends to them and rings them in denim blue), release to throw; a quick tap throws along the stick or the facing |
+| Cancel while aiming | While aiming, a round Cancel button appears between Throw and Dash; slide the aiming finger onto it (it turns red) and release to cancel, without throwing |
+| Dash | To the left of Action, on an arc around it (Throw sits above Action; Cancel appears between them while aiming). Tap while moving: speed starts at 2× and eases back to walking over 1 game second; the next dash is ready when it ends. Disabled while standing still or aiming |
 | Communication / Bookmark | Expand the collapsed message panel for preset messages; bookmark uses the same timing and export rules as Enter |
 | Pause / Menu | Pause and reach Settings, controls, round records and end-round controls without a keyboard |
 
@@ -91,12 +89,10 @@ Hosted Settings additionally offer explicit contribution after the round (or, af
 | 触控输入 | 行为 |
 | --- | --- |
 | 左摇杆 | 在左下区域任意位置按下，摇杆出现在拇指下方。可朝任意方向（360°）移动，松手停止；斜走不加速。瞄准时改为调整投掷方向（任意角度），不移动角色 |
-| 空手按「操作」 | 按下立即交互，包括取料、切菜和洗碗（开始后一直做，走开才停） |
-| 持物按「操作」 | 短按松开后交互；长按约 0.3 秒停下并瞄准（按钮显示「投掷」），站在工位前也一样，松开投掷。另一位厨师大致站在瞄准线上且在射程内时，抛物线会弯向他，并用牛仔蓝圈标出 |
-| 拿放 | 位于「操作」上方。只拿起或放下，按下立即执行，手持可投掷物品时也一样；不会切菜、洗碗或灭火。没有可拿放的东西时不可用 |
-| 扔 | 位于「拿放」和「冲刺」之间，手持可投掷物品时可用：按住瞄准（摇杆调整方向），松开扔出；快速点按沿摇杆方向或朝向直接扔出 |
-| 瞄准时取消 | 瞄准时「拿放」的位置变成圆形「取消」键；瞄准的手指滑到上面（变红）后松开，取消本次瞄准，不投掷也不交互 |
-| 冲刺 | 位于「操作」左侧，与瞄准时出现的「取消」键沿弧线围绕操作键。移动时点击：起步 2 倍速，1 游戏秒内平滑回落到正常速度，结束后即可再冲。静止／瞄准时禁用 |
+| 操作 | 按下立即做面前需要的事，手里拿着东西也一样：取料、拿起、放下、切菜、洗碗、装盘、出餐、灭火（工作开始后一直做，走开才停）。不会投掷。没有可做的事时不可用 |
+| 扔 | 位于「操作」上方，手持可投掷物品时可用：按住瞄准（摇杆调整方向；另一位厨师大致站在瞄准线上且在射程内时，抛物线会弯向他，并用牛仔蓝圈标出），松开扔出；快速点按沿摇杆方向或朝向直接扔出 |
+| 瞄准时取消 | 瞄准时「扔」和「冲刺」之间出现圆形「取消」键；瞄准的手指滑到上面（变红）后松开，取消本次瞄准，不投掷 |
+| 冲刺 | 位于「操作」左侧，与「扔」（操作正上方）、瞄准时出现的「取消」键沿弧线围绕操作键。移动时点击：起步 2 倍速，1 游戏秒内平滑回落到正常速度，结束后即可再冲。静止／瞄准时禁用 |
 | 沟通／标记 | 打开默认折叠的沟通面板发送预设消息；标记与 Enter 使用相同时间与导出规则 |
 | 暂停／菜单 | 不用键盘也能暂停、进入设置和操作说明、查看本局记录或结束本局 |
 

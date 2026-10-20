@@ -30,6 +30,20 @@ class CornerSlideTests(unittest.TestCase):
             self.assertAlmostEqual(x, 9.85, places=2)
             self.assertLess(y, 4.5)
 
+    def test_a_tilted_stick_slides_into_a_one_cell_opening(self):
+        # Phone sticks are never exactly straight: the slide counts by the stick's main axis (Stardew Valley
+        # nudges a farmer half beside an opening), up to corner_slide_cells either side.
+        import sys
+        from test_visual_geometry import ROOT
+        sys.path.insert(0, str(ROOT / 'scripts'))
+        import audit_map
+        from test_route_stall import PASSAGE
+        for start, direction in (((5.6, 2.2), (.25, .97)), ((6.4, 2.2), (-.2, .98)), ((5.55, 2.2), (.4, .92))):
+            k = audit_map.kitchen(PASSAGE);k.positions.update(human=start, jeff=(10., 6.))
+            k.set_manual('human', *direction)
+            for _ in range(20):k.advance(.05)
+            self.assertGreater(k.positions['human'][1], 5.5, start)
+
     def test_no_slide_into_a_solid_row(self):
         # Walking down into the counter row: no sideways shift within the limit gets past it.
         before = (7.0, 6.3)

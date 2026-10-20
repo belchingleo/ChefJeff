@@ -63,9 +63,9 @@ function harness(path,{width=844,height=390,touch=true,language='zh',vibrate=tru
  const locale={module:{exports:{}},globalThis:{localStorage:{getItem:()=>language}}};
  vm.runInNewContext(fs.readFileSync('cocos-kitchen/i18n.js','utf8').replace('__KITCHEN_CATALOG__',fs.readFileSync('cocos-kitchen/i18n.json','utf8')),locale);
  w.kitchenI18n=locale.module.exports;
- const state={phase:'running',connected:true,pending:false,canInteract:true,canPlace:true,canThrow:true,canDash:true,holding:true,interaction:'拿起番茄',interactionHint:'',aiming:false,sprint:{active_remaining:0,cooldown_remaining:0},orders:[],money:0,served:0,timeLabel:'180',handLabel:'番茄',aiStatus:'',mainLabel:'开始',mainEnabled:true,game_id:'round'};
+ const state={phase:'running',connected:true,pending:false,canInteract:true,canThrow:true,canDash:true,holding:true,interaction:'拿起番茄',interactionHint:'',aiming:false,sprint:{active_remaining:0,cooldown_remaining:0},orders:[],money:0,served:0,timeLabel:'180',handLabel:'番茄',aiStatus:'',mainLabel:'开始',mainEnabled:true,game_id:'round'};
  const controls={getState:()=>({...state})};
- for(const name of ['move','press','place','toss','release','cancel','dash','pause','resume','main','settings','help','end','record','bookmark','block'])controls[name]=(...args)=>{calls.push([name,...args]);};
+ for(const name of ['move','press','act','toss','release','cancel','dash','pause','resume','main','settings','help','end','record','bookmark','block'])controls[name]=(...args)=>{calls.push([name,...args]);};
  w.kitchenControls=controls;
  class MutationObserver{constructor(fn){this.fn=fn;observers.push(this);}observe(){}disconnect(){}}
  const context={window:w,document,navigator:w.navigator,innerWidth:width,innerHeight:height,Event,CustomEvent:Event,HTMLElement:Element,MutationObserver,performance:w.performance,queueMicrotask:fn=>fn(),setTimeout:fn=>{fn();return 1;},clearTimeout:()=>{},requestAnimationFrame:fn=>{fn();return 1;},cancelAnimationFrame:()=>{}};
@@ -94,12 +94,11 @@ function check(path){
  h.fire('touch-joystick','pointerdown',{pointerId:2});h.fire('touch-joystick','pointermove',{pointerId:2,clientX:20});
  assert.equal(h.calls.filter(c=>c[0]==='move').length,movesBeforeOtherFinger,'another finger cannot steal an active joystick');
  h.fire('touch-action','pointerdown',{pointerId:2});
- assert(callNames().includes('press'),'another finger can operate while moving');
- h.fire('touch-action','pointerup',{pointerId:3});assert(!callNames().includes('release'),'another finger cannot release the held action');
+ assert(callNames().includes('act'),'another finger can operate while moving');
  h.fire('touch-action','pointerup',{pointerId:2});
- assert(callNames().includes('release'),'operation releases exactly once');
+ assert(!callNames().includes('release'),'Action acts on press; its release does nothing');
  h.clear();h.fire('touch-action','mouseup',{pointerId:2});h.fire('touch-action','click',{pointerId:2});
- assert.equal(h.calls.filter(c=>['press','release'].includes(c[0])).length,0,'compatibility mouse/click must not repeat operation');
+ assert.equal(h.calls.filter(c=>['act','press','release'].includes(c[0])).length,0,'compatibility mouse/click must not repeat operation');
  h.fire('touch-joystick','pointermove',{clientX:400,clientY:-60});
  movement=h.calls.filter(c=>c[0]==='move').at(-1);
  assert(movement&&Math.abs(Math.hypot(movement[1],movement[2])-1)<1e-8,'pointer capture tracks outside joystick');
@@ -115,34 +114,34 @@ function check(path){
 
  // A cancelled pointer, including browser interruption, never releases a throw.
  for(const type of ['pointercancel','lostpointercapture']){
-  h.fire('touch-action','pointerdown',{pointerId:2});h.clear();h.fire('touch-action',type,{pointerId:2});
+  h.fire('touch-toss','pointerdown',{pointerId:2});h.clear();h.fire('touch-toss',type,{pointerId:2});
   assert(callNames().includes('cancel'),`${type} cancels the pending action`);
   assert(!callNames().includes('release'),`${type} must not release a throw`);
  }
- h.fire('touch-action','pointerdown',{pointerId:2});h.publish({aiming:true});h.clear();
+ h.fire('touch-toss','pointerdown',{pointerId:2});h.publish({aiming:true});h.clear();
  h.elements.get('touch-cancel').rect={left:400,top:200,right:500,bottom:250,width:100,height:50};
- h.fire('touch-action','pointermove',{pointerId:2,clientX:450,clientY:225});h.fire('touch-action','pointerup',{pointerId:2,clientX:450,clientY:225});
+ h.fire('touch-toss','pointermove',{pointerId:2,clientX:450,clientY:225});h.fire('touch-toss','pointerup',{pointerId:2,clientX:450,clientY:225});
  assert(callNames().includes('cancel'),'cancel affordance cancels aiming');assert(!callNames().includes('release'),'cancelled aim does not throw');
  h.publish({aiming:false});
 
- // Pick/Place acts on press even with a throwable item in hand; Throw taps throw on release, holds aim.
- const place=h.elements.get('touch-place'),toss=h.elements.get('touch-toss'),cancel=h.elements.get('touch-cancel');
- h.clear();h.fire('touch-place','pointerdown',{pointerId:6});h.fire('touch-place','pointerup',{pointerId:6});
- assert.deepEqual(callNames(),['place'],'Pick/Place acts once, on press, and never arms a throw');
- h.publish({canPlace:false});h.clear();h.fire('touch-place','pointerdown',{pointerId:6});
- assert(place.disabled&&!callNames().includes('place'),'nothing to pick up or put down disables Pick/Place');
- h.publish({canPlace:true});
+ // Action does everything but throw, once, on press, even holding a throwable item; Throw taps throw on release
+ // and holds aim, with Cancel beside it only while a throw is armed.
+ const action=h.elements.get('touch-action'),toss=h.elements.get('touch-toss'),cancel=h.elements.get('touch-cancel');
+ h.clear();h.fire('touch-action','pointerdown',{pointerId:6});h.fire('touch-action','pointerup',{pointerId:6});
+ assert.deepEqual(callNames(),['act'],'Action acts once, on press, and never arms a throw');
+ h.publish({canInteract:false});h.clear();h.fire('touch-action','pointerdown',{pointerId:6});
+ assert(action.disabled&&!callNames().includes('act'),'nothing to do disables Action');
+ h.publish({canInteract:true});
+ assert(cancel.hidden,'no Cancel until a throw is armed');
  h.clear();h.fire('touch-toss','pointerdown',{pointerId:7});
  assert.deepEqual(callNames(),['toss'],'Throw arms a throw');
- assert(!cancel.hidden&&place.hidden,'Cancel takes the Pick/Place slot while a throw is armed');
+ assert(!cancel.hidden,'Cancel appears while a throw is armed');
  h.fire('touch-toss','pointerup',{pointerId:7});
  assert(callNames().includes('release')&&h.calls.some(c=>c[0]==='vibrate'),'a Throw tap throws on release with a tick');
- assert(cancel.hidden&&!place.hidden,'Pick/Place returns after the throw');
+ assert(cancel.hidden,'Cancel goes after the throw');
  h.fire('touch-toss','pointerdown',{pointerId:7});h.publish({aiming:{x:1,y:0}});
- assert.equal(toss.dataset.aiming,'true');assert.equal(h.elements.get('touch-action').dataset.aiming,'false');
- assert.equal(h.elements.get('touch-action').textContent,'操作','aiming with Throw leaves Action as it is');
- assert(place.disabled,'Pick/Place waits while aiming');
- h.clear();h.fire('touch-action','pointerdown',{pointerId:8});assert(!callNames().includes('press'),'one hold at a time');
+ assert.equal(toss.dataset.aiming,'true');assert.equal(action.textContent,'操作','aiming leaves Action as it is');
+ h.clear();h.fire('touch-action','pointerdown',{pointerId:8});assert(action.disabled&&!callNames().includes('act'),'Action waits while aiming');
  h.fire('touch-toss','pointermove',{pointerId:7,clientX:450,clientY:225});h.fire('touch-toss','pointerup',{pointerId:7,clientX:450,clientY:225});
  assert(callNames().includes('cancel')&&!callNames().includes('release'),'Cancel cancels a Throw aim');
  h.publish({aiming:false,canThrow:false});h.clear();h.fire('touch-toss','pointerdown',{pointerId:7});
@@ -158,38 +157,38 @@ function check(path){
  assert(h.calls.some(c=>c[0]==='move'&&(c[1]!==0||c[2]!==0)),'zone press drags the stick');
  h.fire('touch-joystick','pointerup',{pointerId:4});
  assert.equal(joy.dataset.floating,'false','released stick returns to its corner');assert.equal(joy.style.left,'');
- // Plain buttons: one word whatever the context (the toolbar names the action); "投掷" while aiming; haptics tick.
+ // Plain buttons: one word whatever the context (the toolbar names the action); haptics tick.
  assert.equal(h.elements.get('touch-action').textContent,'操作','no contextual text on the button');
  assert.equal(h.elements.get('touch-aim'),undefined,'no direction needle in the stick');
- h.clear();h.fire('touch-action','pointerdown',{pointerId:5});
+ h.clear();h.fire('touch-toss','pointerdown',{pointerId:5});
  h.publish({aiming:{x:Math.cos(1),y:Math.sin(1)}});
- assert.equal(joy.dataset.aiming,'true');assert.equal(h.elements.get('touch-action').textContent,'投掷');
+ assert.equal(joy.dataset.aiming,'true');assert.equal(h.elements.get('touch-toss').textContent,'扔');
  assert(h.calls.some(c=>c[0]==='vibrate'),'aim start ticks');
- h.clear();h.fire('touch-action','pointerup',{pointerId:5});
+ h.clear();h.fire('touch-toss','pointerup',{pointerId:5});
  assert(h.calls.some(c=>c[0]==='release')&&h.calls.some(c=>c[0]==='vibrate'),'release throws with a tick');
  h.publish({aiming:false});
  // The hand/hint line sits in the toolbar, not over the kitchen.
  assert.equal(h.elements.get('touch-hint').parentElement.className.includes('touch-toolbar'),true,'hint lives in the toolbar');
 
- h.fire('touch-joystick','pointerdown',{clientX:130});h.fire('touch-action','pointerdown',{pointerId:2});h.clear();h.resize(390,844);
+ h.fire('touch-joystick','pointerdown',{clientX:130});h.fire('touch-toss','pointerdown',{pointerId:2});h.clear();h.resize(390,844);
  assert(callNames().includes('cancel'),'portrait clears pending input');assert(pauseRequested(),'rotation requests pause through the action bridge');
  assert(h.calls.some(c=>c[0]==='move'&&c[1]===0&&c[2]===0),'portrait stops movement');
- h.clear();h.fire('touch-action','pointerup',{pointerId:2});assert(!callNames().includes('release'),'old finger release after rotation is ignored');
+ h.clear();h.fire('touch-toss','pointerup',{pointerId:2});assert(!callNames().includes('release'),'old finger release after rotation is ignored');
  h.clear();h.resize(844,390);assert(!callNames().some(name=>['resume','main'].includes(name)),'returning to landscape does not resume automatically');h.publish({phase:'running'});
- h.fire('touch-action','pointerdown',{pointerId:2});h.clear();h.document.hidden=true;h.document.dispatchEvent(new h.Event('visibilitychange'));
+ h.fire('touch-toss','pointerdown',{pointerId:2});h.clear();h.document.hidden=true;h.document.dispatchEvent(new h.Event('visibilitychange'));
  assert(callNames().includes('cancel'),'background clears pending action');assert(pauseRequested(),'background requests pause through the action bridge');
- h.clear();h.fire('touch-action','pointerup',{pointerId:2});assert(!callNames().includes('release'),'background pointer release is ignored');
+ h.clear();h.fire('touch-toss','pointerup',{pointerId:2});assert(!callNames().includes('release'),'background pointer release is ignored');
  h.document.hidden=false;h.document.dispatchEvent(new h.Event('visibilitychange'));
  assert(!callNames().some(name=>['resume','main'].includes(name)),'returning to foreground does not resume automatically');
 
  for(const patch of [{connected:false},{connected:true,phase:'paused'},{phase:'running',pending:true},{pending:false,canInteract:false,canThrow:false}]){
   h.publish(patch);h.clear();h.fire('touch-action','pointerdown',{pointerId:2});h.fire('touch-action','pointerup',{pointerId:2});
-  assert(!callNames().some(name=>['press','release'].includes(name)),'unavailable gameplay blocks touch action');
+  assert(!callNames().some(name=>['act','press','release'].includes(name)),'unavailable gameplay blocks touch action');
  }
  h.publish({connected:true,phase:'running',canInteract:true,canThrow:true});
  const dialog=h.document.createElement('dialog');dialog.open=true;h.document.body.appendChild(dialog);h.observers.forEach(o=>o.fn([]));
  h.clear();h.fire('touch-action','pointerdown',{pointerId:2});h.fire('touch-action','pointerup',{pointerId:2});
- assert(!callNames().some(name=>['press','release'].includes(name)),'open dialogs block gameplay');
+ assert(!callNames().some(name=>['act','press','release'].includes(name)),'open dialogs block gameplay');
  dialog.open=false;h.observers.forEach(o=>o.fn([]));
  // A soft keyboard can reshape the viewport. Editing keeps the prior phone
  // orientation and cancels gameplay, rather than flashing the rotate screen.
@@ -197,7 +196,7 @@ function check(path){
  h.clear();h.document.dispatchEvent(new h.Event('focusin'));h.resize(390,844);
  assert(pauseRequested(),'editing blocks and pauses touch gameplay');
  assert(h.elements.get('kitchen-touch-landscape').hidden,'an editor viewport resize does not show the rotate screen');
- h.fire('touch-action','pointerdown',{pointerId:2});assert(!callNames().includes('press'),'editing blocks gameplay actions');
+ h.fire('touch-action','pointerdown',{pointerId:2});assert(!callNames().includes('act'),'editing blocks gameplay actions');
  input.blur();h.document.dispatchEvent(new h.Event('focusout'));h.resize(844,390);
  assert(!callNames().some(name=>['resume','main'].includes(name)),'finishing editing does not resume automatically');
  const desktop=harness(path,{width:1280,height:720,touch:false});desktop.publish({});
@@ -206,14 +205,14 @@ function check(path){
  const touchLaptop=harness(path,{width:1280,height:720,touch:true});touchLaptop.publish({});
  assert(touchLaptop.document.getElementById('kitchen-touch-ui').hidden,'large touch laptops retain desktop layout');
  const english=harness(path,{language:'en'});english.publish({interaction:'操作',handLabel:'手中：干净餐盘',mainLabel:'开始经营'});
- const translated=['touch-action','touch-dash','touch-place','touch-toss','touch-menu-title','touch-menu-copy','touch-main','touch-menu-toggle','touch-settings','touch-help','touch-end','touch-record','touch-bookmark','touch-communication','touch-pause','touch-cancel','touch-instructions','touch-rotate-title','touch-rotate-copy','touch-hand'];
+ const translated=['touch-action','touch-dash','touch-toss','touch-menu-title','touch-menu-copy','touch-main','touch-menu-toggle','touch-settings','touch-help','touch-end','touch-record','touch-bookmark','touch-communication','touch-pause','touch-cancel','touch-instructions','touch-rotate-title','touch-rotate-copy','touch-hand'];
  assert.deepEqual(translated.map(id=>[id,english.elements.get(id).textContent]).filter(([,value])=>/[\u3400-\u9fff]/.test(value)),[],
                   'English touch labels must all use the display catalog');
  english.w.kitchenI18n.setLanguage('zh');english.w.dispatchEvent(new english.Event('kitchen-language-changed'));
  assert.equal(english.elements.get('touch-action').textContent,'操作','touch labels switch back to Chinese');
  english.w.kitchenI18n.setLanguage('en');english.w.dispatchEvent(new english.Event('kitchen-language-changed'));
  assert.equal(english.elements.get('touch-action').textContent,'Action','touch labels switch back to English');
- console.log(`${path}: multi-touch movement/action/pick-place/throw/dash, deadzone, cancellation, orientation, background and input gates passed.`);
+ console.log(`${path}: multi-touch movement/action/throw/dash, deadzone, cancellation, orientation, background and input gates passed.`);
 }
 
 function checkOrderCards(path){
@@ -291,6 +290,6 @@ function checkIosHaptic(path){
  assert(!pauseRequested(),'a haptic tick never pauses the round');
  assert.notEqual(h.document.activeElement,haptic,'focus leaves the haptic switch');
  h.clear();h.fire('touch-action','pointerdown',{pointerId:2});h.fire('touch-action','pointerup',{pointerId:2});
- assert(h.calls.some(c=>c[0]==='press'),'touch Action still works after a tick');
+ assert(h.calls.some(c=>c[0]==='act'),'touch Action still works after a tick');
 }
 for(const path of entries){check(path);checkOrderCards(path);checkIosHaptic(path);}

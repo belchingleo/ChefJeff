@@ -48,7 +48,7 @@ A round lasts 180 seconds. Orders arrive at regular intervals, each with its own
 | Level | Menu | What's special | Target |
 | --- | --- | --- | --- |
 | Level 1 · Steak | Steak ¥50 | Practice level: learn to chop, fry, plate and serve | ¥150 |
-| Level 2 · Burger | Burger ¥80 | A long counter splits the kitchen in two, so a lot has to be passed across it | ¥150 |
+| Level 2 · Burger | Burger ¥80 | A long counter splits the kitchen in two, so a lot has to be passed across it | ¥160 |
 | Level 3 · Steak and burger | Steak, burger | Two stoves and three frying pans; both dishes at once | ¥190 |
 
 Working together, you chop, cook, plate and serve between you. Along the way Jeff may pass you dishes, or chop, pass and wash up alongside you. He may also bump you aside to handle something himself, and you can do the same to him.
@@ -69,7 +69,7 @@ The controls work much as in Overcooked:
 
 After each round the result card stays on the kitchen with one button: **Next level** after a win, **Try again** otherwise (Space, Enter, A/Start or the phone's main button; a short 3·2·1 and the round starts at the same pace). **Round record** opens the full record, which shows how many times you and Jeff each fetched ingredients, chopped, cooked, served and washed plates, and each chef's contribution, delay and idle time (see [records and analysis](#records-and-analysis)).
 
-The game has Chinese and English interfaces, with 8-bit style music and sound effects. Desktop keyboard controls remain available. On phones and small touch viewports, experimental landscape touch controls use a left joystick and right Action/Dash buttons: release the joystick to stop, tap Action to interact, or hold it for about 0.3 s with an item to aim. While aiming, the joystick changes direction; release Action to throw, or drag into the cancel area before releasing. Grab only picks up or puts down at once; Throw aims while held and throws on release. Dash works as on the keyboard: 2× speed easing back to walking over 1 second, ready again when it ends. Communication, bookmarks, pause and settings also have touch buttons.
+The game has Chinese and English interfaces, with 8-bit style music and sound effects. Desktop keyboard controls remain available. On phones and small touch viewports, experimental landscape touch controls use a left joystick and right Action/Dash buttons: release the joystick to stop, tap Action to do what is in front of you at once, even holding an item; hold Throw to aim (the joystick steers) and let go to throw, or tap it to throw straight away. Dash works as on the keyboard: 2× speed easing back to walking over 1 second, ready again when it ends. Communication, bookmarks, pause and settings also have touch buttons.
 
 With the touch layout active, turning the device to portrait, hiding the page or losing the connection clears held input and pauses a running round. Return to landscape and choose Resume; the game does not resume itself. Browsers cannot always force landscape orientation. Touch support is experimental: desktop browser emulation does not establish compatibility with iPhone Safari or Android Chrome, which still need real-device validation. See [device support](docs/device-support.md), [interaction guide](docs/interaction-guide.md) and the [current rules](docs/current-rules.md).
 

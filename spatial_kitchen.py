@@ -299,21 +299,23 @@ class SpatialKitchen(Kitchen):
         return tuple(start[i]+(end[i]-start[i])*low for i in (0,1))
 
     def corner_offset(self,start,vector):
-        """Smallest sideways shift (signed, cells) that lets a blocked single-direction step continue."""
-        axis=0 if vector[0] and not vector[1] else 1 if vector[1] and not vector[0] else None
-        if axis is None:return None
-        side=1-axis;probe=.05
+        """Smallest sideways shift (signed, cells) that lets a blocked step continue along its main axis, as
+        Stardew Valley nudges a farmer whose body only half covers an opening. A stick that is not exactly
+        straight counts by its main axis; at an equal shift the side it leans to goes first."""
+        if not any(vector):return None
+        axis=0 if abs(vector[0])>=abs(vector[1]) else 1
+        side=1-axis;probe=.05;lean=-1. if vector[side]<0 else 1.
         for n in range(1,int(round(self.rules.corner_slide/.01))+1):
-            for sign in (-1.,1.):
+            for sign in (lean,-lean):
                 shifted=list(start);shifted[side]+=sign*n*.01
-                ahead=list(shifted);ahead[axis]+=vector[axis]*probe
+                ahead=list(shifted);ahead[axis]+=math.copysign(probe,vector[axis])
                 if self.nav.clear_walk_line(start,tuple(shifted)) and self.nav.clear_walk_line(tuple(shifted),tuple(ahead)):
                     return sign*n*.01,side
         return None
 
     def _corner_slide(self,who,vector,budget,boosted):
-        # Keyboard walking out of a shallow notch (e.g. a board face set between counters):
-        # slide sideways by at most the ruleset's corner_slide_cells, then keep walking.
+        # Walking into an edge an opening is just beside: slide sideways by at most the ruleset's
+        # corner_slide_cells, then keep walking.
         found=self.corner_offset(self.positions[who],vector)
         if not found:return 0.
         offset,side=found
@@ -888,12 +890,12 @@ class SpatialKitchen(Kitchen):
         return out,ahead
 
     def facing_interaction(self,who,mode='hands',actions=None,station=None):
-        """(target, action) for Space ('hands'), E ('use') or touch Pick/Place ('place').
+        """(target, action) for Space ('hands') or E ('use').
 
         Space does whatever the target needs: take, put, plate, serve, and also
-        chop, wash or extinguish. E only chops, washes or extinguishes; Pick/Place
-        never does. A candidate with nothing to do falls through to the next;
-        facing a station never drops the held item on the floor instead.
+        chop, wash or extinguish. E only chops, washes or extinguishes. A candidate
+        with nothing to do falls through to the next; facing a station never
+        drops the held item on the floor instead.
         """
         actions=self.actions(who) if actions is None else actions
         chef=self.chefs[who]
@@ -904,7 +906,7 @@ class SpatialKitchen(Kitchen):
         if mode=='use':candidates=[c for c in candidates if c in self.equipment]
         for target in candidates:
             if target.startswith('floor_') and ahead:break
-            action=self.quick_interaction(who,actions,preferred=target,kinds=kinds,exclude=USE_KINDS if mode=='place' else None)
+            action=self.quick_interaction(who,actions,preferred=target,kinds=kinds)
             if action:return target,action
         return (candidates[0] if candidates else None),None
 
@@ -923,7 +925,7 @@ class SpatialKitchen(Kitchen):
         if target and target.startswith('floor_') and target not in self.floor_places:return None
         return self.cell(target) if target else None
 
-    def quick_interaction(self, who, actions=None, preferred=None, kinds=None, exclude=None):
+    def quick_interaction(self, who, actions=None, preferred=None, kinds=None):
         """One local, legal action. This is a player control, not an AI policy."""
         chef = self.chefs[who]
         actions = self.actions(who) if actions is None else actions
@@ -938,7 +940,7 @@ class SpatialKitchen(Kitchen):
         picked=set(self.selectable_stations(who)) if preferred in self.equipment else set()
         for a in actions:
             if a.kind not in priority:continue
-            if (kinds and a.kind not in kinds) or (exclude and a.kind in exclude):continue
+            if kinds and a.kind not in kinds:continue
             if preferred:
                 if preferred.startswith('item:'):
                     if a.kind not in ('pickup','plate_ground','load_ground','swap_ground_pot','assemble_ground') or a.expected[1]!=preferred[5:]:continue

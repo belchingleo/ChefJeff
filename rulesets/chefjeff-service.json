@@ -41,7 +41,7 @@
       "min_progress_cells": 0.05
     },
     "approach_partner": true,
-    "corner_slide_cells": 0.3
+    "corner_slide_cells": 0.5
   },
   "throw": {
     "enabled": true,

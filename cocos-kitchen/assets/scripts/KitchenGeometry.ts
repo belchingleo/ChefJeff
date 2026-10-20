@@ -100,12 +100,12 @@ function contactFraction(a:number[],b:number[],c:number[],r:number){
  * continue: the server's corner_offset, within map.corner_slide. */
 export function cornerOffset(map:any,p:number[],v:number[]):[number,number]|null{
     const limit=map.corner_slide;
-    const axis=v[0]&&!v[1]?0:v[1]&&!v[0]?1:-1;
-    if(!limit||axis<0)return null;
-    const side=1-axis;
-    for(let n=1;n<=Math.round(limit/.01);n++)for(const sign of [-1,1]){
+    if(!limit||(!v[0]&&!v[1]))return null;
+    // As the engine's corner_offset: the main axis of the stick, the side it leans to first.
+    const axis=Math.abs(v[0])>=Math.abs(v[1])?0:1,side=1-axis,lean=v[side]<0?-1:1;
+    for(let n=1;n<=Math.round(limit/.01);n++)for(const sign of [lean,-lean]){
         const shifted=[p[0],p[1]];shifted[side]+=sign*n*.01;
-        const ahead=[shifted[0],shifted[1]];ahead[axis]+=v[axis]*.05;
+        const ahead=[shifted[0],shifted[1]];ahead[axis]+=Math.sign(v[axis])*.05;
         if(clearWalkLine(map,p,shifted)&&clearWalkLine(map,shifted,ahead))return [sign*n*.01,side];
     }
     return null;

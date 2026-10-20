@@ -5,7 +5,7 @@ import { KitchenAudio } from './KitchenAudio';
 import { levelButtonLayout, GRID_ART, stationView, cabinetModule, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, floorItemDepth, workingChefDepth, flightDepth, predictWalk, spaceTarget, segmentDistance, plateLayers, heatCountdown, behindCounter, throwPose, throwDiagonal, throwItemPoint, panHandleSide } from './KitchenGeometry';
 const { ccclass } = _decorator;
 type Action = { key: string; label: string; kind: string; target: string; expected: unknown[] };
-type KitchenState = { game_id: string; state_seq?: number; phase: string; speed: number; kitchen: any; actions: Action[]; levels?:any[]; limits?:any; capacity?:any; release?:any; interaction?:Action; use_interaction?:Action; place_interaction?:Action; interaction_hint?:string; interaction_focus?:string; interaction_cell?:number[];
+type KitchenState = { game_id: string; state_seq?: number; phase: string; speed: number; kitchen: any; actions: Action[]; levels?:any[]; limits?:any; capacity?:any; release?:any; interaction?:Action; use_interaction?:Action; interaction_hint?:string; interaction_focus?:string; interaction_cell?:number[];
     events: {t:number; message:string; kind?:string}[]; ai: {thinking:boolean; error:string|null}; won:boolean; aborted?:boolean; round_summary?:any; rules?:Record<string,number>; connection?:any; memory?:any; communication?:any; hosted?:any };
 type ChefMotion = {body:Node; leftLeg:Node; rightLeg:Node; leftArm:Node; rightArm:Node; knife:Node; facing:string; step:number};
 type PotEffects = {steam:Node; smoke:Node; fire:Node; ready:Node};
@@ -237,7 +237,8 @@ export class KitchenClient extends Component {
             const phase=this.state?.phase;
             if(phase==='ready'&&this.state?.connection&&!this.state.connection.configured){this.set('coverText','请先从下方「设置」连接自己的 API，再开始经营。');return;}
             if(phase==='ended'){this.startNext();return;}
-            this.post(phase==='ready'?'/api/start':phase==='paused'?'/api/resume':'/api/reset',phase==='ready'?{speed:.75}:{});
+            // The online version plays at the real clock (1x); the local default stays at 0.75.
+            this.post(phase==='ready'?'/api/start':phase==='paused'?'/api/resume':'/api/reset',phase==='ready'?{speed:this.state?.hosted?1:.75}:{});
         },this.cover,'primary');
         this.button('reset','重新开局',553,520,158,48,()=>this.confirm('restart'),this.cover);
         this.buttons.reset.node.active=false;
@@ -300,7 +301,7 @@ export class KitchenClient extends Component {
         this.controls={
             getState:()=>this.controlsState(),move:(x:number,y:number)=>this.setTouchMove(x,y),
             press:()=>this.pressInteract(),release:()=>this.releaseInteract(),
-            place:()=>this.pressInteract('place'),toss:()=>this.pressInteract('toss'),
+            act:()=>this.pressInteract('act'),toss:()=>this.pressInteract('toss'),
             cancel:()=>this.clearInput(),dash:()=>this.dash(),block:(blocked:boolean)=>this.blockTouch(blocked),
             pause:()=>{this.clearInput();if(this.connected&&this.state?.phase==='running')this.post('/api/pause');},
             resume:()=>this.controlButton('resume'),main:()=>this.controlButton('main'),
@@ -340,7 +341,7 @@ export class KitchenClient extends Component {
         const s=this.state,k=s?.kitchen,c=k?.chefs?.human;
         const text=(id:string)=>this.labels[id]?this.labelSources.get(this.labels[id])||'':'';
         return {game_id:s?.game_id,phase:s?.phase||'loading',connected:this.connected,pending:this.pending,canInput:this.canInput(),
-            canInteract:!!s?.interaction,canPlace:!!s?.place_interaction,canThrow:!!c?.holding&&c.can_throw!==false,
+            canInteract:!!s?.interaction,canThrow:!!c?.holding&&c.can_throw!==false,
             canDash:this.canInput()&&!this.aiming&&!!c?.sprint?.available&&(this.manualDirection.x!==0||this.manualDirection.y!==0),
             holding:c?.holding||null,interaction:s?.interaction?.label.split('（')[0]||'',interactionHint:s?.interaction_hint||'',
             aiming:this.aiming?{...this.aiming}:null,sprint:c?.sprint||{},event:text('event'),
@@ -385,20 +386,20 @@ export class KitchenClient extends Component {
         if(!this.touchMoveDirty)return;this.touchMoveDirty=false;this.touchMoveAt=this.clock;
         this.refreshMovement();this.publishControls();
     }
-    /** Space/Action ('hands'): with a throwable item the press arms a hold-to-aim. Touch Pick/Place ('place')
-     *  acts at once and never chops, washes or extinguishes; touch Throw ('toss') only arms the throw. */
-    private pressInteract(kind:'hands'|'place'|'toss'='hands'){
+    /** Space ('hands'): with a throwable item the press arms a hold-to-aim, a tap acts on release. Touch
+     *  Action ('act') does everything but throw, at once on press; touch Throw ('toss') only arms the throw. */
+    private pressInteract(kind:'hands'|'act'|'toss'='hands'){
         if(!this.canInput()||this.pending||this.spaceDownAt!==null||this.aiming)return;
         // Work is sticky (no button stops it), and a second press just after a pick-up is ignored (Overcooked's 0.5 s).
         const c=this.state!.kitchen.chefs.human,held=c.holding;
         if(c.working||this.clock-this.pickedAt<.5)return;
-        if(kind!=='place'&&held&&c.can_throw!==false){this.spaceDownAt=this.clock;this.spaceItemId=held.id;this.tossOnly=kind==='toss';}
-        else if(kind!=='toss')this.interact(kind);
+        if(kind!=='act'&&held&&c.can_throw!==false){this.spaceDownAt=this.clock;this.spaceItemId=held.id;this.tossOnly=kind==='toss';}
+        else if(kind!=='toss')this.interact();
     }
-    private interact(kind:'hands'|'place'){
-        const s=this.state!,place=kind==='place';
-        this.handsBusyUntil=this.clock+.35;this.actionCue(place?s.place_interaction:s.interaction);
-        this.post('/api/interact',{expected_item:s.kitchen.chefs.human.holding?.id||null,...(place?{mode:kind}:{}),...this.atBody(),...this.pickBody()});
+    private interact(){
+        const s=this.state!;
+        this.handsBusyUntil=this.clock+.35;this.actionCue(s.interaction);
+        this.post('/api/interact',{expected_item:s.kitchen.chefs.human.holding?.id||null,...this.atBody(),...this.pickBody()});
     }
     private releaseInteract(){
         const held=this.state?.kitchen.chefs.human.holding;
@@ -411,7 +412,7 @@ export class KitchenClient extends Component {
             // A quick Throw tap throws where the aim would have started.
             const d=this.aimStart();this.endAim();this.throwAlong(held,d);this.refreshMovement();
         }else if(this.spaceDownAt!==null){
-            this.spaceDownAt=null;this.spaceItemId=null;this.interact('hands');
+            this.spaceDownAt=null;this.spaceItemId=null;this.interact();
         }
         this.publishControls();
     }

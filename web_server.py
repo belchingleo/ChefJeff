@@ -233,7 +233,7 @@ class GameSession:
             self.last_seen = time.monotonic()
             state = self.k.snapshot()
             actions = self.k.actions('human')
-            focus, interaction, cell, hint, use, place = self._interaction_view(actions)
+            focus, interaction, cell, hint, use = self._interaction_view(actions)
             for who, chef in self.k.chefs.items():
                 j = chef.job
                 total = self.totals.setdefault(j.id, j.travel+j.work) if j else 0
@@ -248,7 +248,6 @@ class GameSession:
                     'communication': self.communication_state(),
                     'interaction': asdict(interaction) if interaction else None,
                     'use_interaction': asdict(use) if use else None,
-                    'place_interaction': asdict(place) if place else None,
                     'interaction_focus': focus,
                     'interaction_cell': cell,
                     'interaction_hint': hint,
@@ -271,13 +270,12 @@ class GameSession:
         # gets the kitchen state (instead of an empty response that reads as a disconnect).
         k = self.k
         try:
-            if not hasattr(k,'facing_interaction'):return None, None, None, None, None, None
+            if not hasattr(k,'facing_interaction'):return None, None, None, None, None
             focus, interaction = k.facing_interaction('human','hands',actions)
             use = k.facing_interaction('human','use',actions)[1] or k.forward_throw('human')
-            place = k.facing_interaction('human','place',actions)[1]
             cell = k.interaction_cell('human',focus)
             hint = k.interaction_hint('human',focus) if not interaction else None
-            return focus, interaction, cell, hint, use, place
+            return focus, interaction, cell, hint, use
         except Exception as exc:
             if self.journal and not getattr(self, '_interaction_error_logged', False):
                 self._interaction_error_logged = True
@@ -287,7 +285,7 @@ class GameSession:
                                                   'trace': traceback.format_exc(limit=8)})
                 except Exception:
                     pass
-            return None, None, None, None, None, None
+            return None, None, None, None, None
 
     def command(self, path, body):
         with self.lock:
@@ -607,9 +605,8 @@ class GameSession:
             if picked is not None and not isinstance(picked,str):
                 return 400, {'error':'目标无效'}
             # Space = hands (take, put, plate, serve); E = use (chop, wash, extinguish),
-            # else throw the held item straight ahead; touch Pick/Place = place (hands
-            # without use). All act on what the chef faces.
-            mode = body.get('mode') if body.get('mode') in ('use', 'place') else 'hands'
+            # else throw the held item straight ahead. Both act on what the chef faces.
+            mode = 'use' if body.get('mode') == 'use' else 'hands'
             focus, action = self.k.facing_interaction('human',mode,station=picked if picked in getattr(self.k,'equipment',{}) else None)
             if not action and mode == 'use':
                 throw = self.k.forward_throw('human')
@@ -621,8 +618,8 @@ class GameSession:
                     self._events()
                     return (200,{'ok':True}) if ok else (409,{'error':message})
             if not action:
-                message=(self.k.interaction_hint('human',focus) if mode!='use' else None) or {'use':'面前没有可以切、洗或灭火的东西','place':'面前没有可以拿或放的东西'}.get(mode,'面前没有可操作目标')
-                self.journal('human_input',{'t':self.k.time,'source':'browser','action':'interact' if mode=='hands' else mode,'applied':False,'message':message})
+                message=(self.k.interaction_hint('human',focus) if mode=='hands' else None) or ('面前没有可以切、洗或灭火的东西' if mode=='use' else '面前没有可操作目标')
+                self.journal('human_input',{'t':self.k.time,'source':'browser','action':'use' if mode=='use' else 'interact','applied':False,'message':message})
                 return 409, {'error': message}
             if focus in getattr(self.k,'equipment',{}) and hasattr(self.k,'pick_station'):
                 self.k.pick_station('human',focus)  # worked where the chef stands

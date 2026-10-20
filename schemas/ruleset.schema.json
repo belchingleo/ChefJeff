@@ -163,7 +163,7 @@
           "type": "number",
           "exclusiveMinimum": 0,
           "maximum": 0.5,
-          "description": "Keyboard walking: when a single-direction step is fully blocked and moving sideways by at most this many cells would clear it (for example out of the notch in front of a board set between counters), the chef slides sideways first. Absent: no slide."
+          "description": "Held-direction walking: when a step is fully blocked along the stick's main axis and moving sideways by at most this many cells would clear it (an opening just beside the chef, as Stardew Valley nudges the farmer), the chef slides sideways first, toward the side the stick leans to on a tie. Absent: no slide."
         },
         "approach_partner": {
           "type": "boolean",
