@@ -32,6 +32,7 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - Fixed: the chef could freeze for the rest of a round after sliding along a counter corner on a phone (a walk started from a point drawn between two steps, inside the counter). The page now steps its chef 60 times a game second.
 - A fire no longer leaves a station black for the rest of the round: as in Overcooked 2, the flames go out and the station looks as before (only the food in a pan stays burnt).
 - The extinguisher can no longer be thrown, as in Overcooked 2: carry it to the fire. Ingredients, plates, dishes and pans still fly.
+- Fix: Jeff could empty a burnt pan in place on the stove (2 s, no walking), which the player's controls never offered. As in Overcooked 2, both chefs now carry the pan to a bin. The ruleset drops `operations.clear_game_ms`.
 - Fixed: food and plates on the floor just below a counter were half hidden by its front panel; floor items now draw in front of the cabinets behind them, by row, on any layout.
 - Maps from coordinates: `map_definition.build_map` turns station coordinates and facings into a full map, and `scripts/audit_map.py` checks any map (Space selection, stuck points for the engine and the page, hidden floor items, passages too narrow to pass, scripted solo and pair play). Levels place starting items by station type (`at_type`), the page accepts any map name, and vertical counter runs get the trimmed front panel.
 - Online launch: contribution consent is asked once before the first round, with two equal choices (contribute every round from now on, kept 30 days and deletable with the receipts kept in the browser, or not now); it can be changed in Settings, and the result card offers a one-tap 贡献本局 for this round. The consent text is versioned `pilot-session-2026-10-v2`. New privacy page and model-connection guide (supported providers, rough cost per round). The data export includes page-side diagnostics (recent frames and errors) for bug reports, with how to report on GitHub. A local load test checks the waiting page and the per-network limit.
@@ -107,6 +108,7 @@ First private release: a local browser game with three playable maps and player-
 - 修复：手机上贴着柜台转角滑动后，人物可能一直卡到本局结束（新一段移动从两步之间画出的点出发，而那一点在柜台里）。页面现在每游戏秒走 60 步。
 - 着火后工位不再整局保持焦黑：和《胡闹厨房 2》一样，火灭了工位就恢复原样（只有锅里的食物仍是烧焦的）。
 - 灭火器不能再扔，和《胡闹厨房 2》一样，要拿着走到火边。食材、盘子、菜和锅仍能扔。
+- 修复：Jeff 能在灶台上原地清空糊锅（2 秒，不用走），玩家的操作里从来没有这一项。现在和《胡闹厨房 2》一样，两人都要端锅到垃圾桶倒掉。规则集去掉 `operations.clear_game_ms`。
 - 修复：柜台正下方地上的食物和盘子会被柜台前面板挡住一半；地上物品现在按行画在后排柜台前面，任何布局都成立。
 - 按坐标生成地图：`map_definition.build_map` 把工位坐标和朝向生成完整地图，`scripts/audit_map.py` 可检查任意地图（空格选取、引擎和页面是否卡住、地上物品遮挡、无法错身的窄通道、脚本单人与双人试玩）。关卡初始物品按工位类型放置（`at_type`），页面接受任意地图名，竖排柜台也用带装饰的前面板。
 - 在线公测准备：首局开始前询问一次是否同意贡献数据，两个同等选项（以后每局自动贡献，保存 30 天，可凭浏览器里的凭证删除；或暂不），可在设置中修改，结算卡片可一键「贡献本局」。同意文本版本为 `pilot-session-2026-10-v2`。新增隐私说明页和模型连接说明（支持的服务、一局大约花费）。数据导出加入页面端诊断（最近的帧和报错），并说明如何在 GitHub 反馈。新增本地压测脚本，检查排队页面和每个网络的上限。

@@ -107,7 +107,7 @@ def choose(k, who, role):
         if any(s['fire'] for s in state['stations'].values()):
             return _pick(actions, 'take_tool')
         for key in stoves(lambda s: s['food'] and s['food']['stage'] == 'burnt'):
-            return _pick(actions, 'clear', key)
+            return _pick(actions, 'lift_pot', key)
         if counter and 'beef' in missing:
             for key in stoves(lambda s: s['food'] and s['food']['stage'] == 'ready'):
                 a = _pick(actions, 'lift_pot', key)
@@ -276,7 +276,7 @@ def choose_zoned(k, who, role):
             return _pick(actions, 'drop')
         for key in sorted(st):
             if st[key].get('stove') and st[key]['food'] and st[key]['food']['stage'] == 'burnt':
-                return _pick(actions, 'clear', key)
+                return _pick(actions, 'lift_pot', key)
         if plate and plate.get('dish') and plate['dish'] in dishes:
             return _key(actions, 'take ' + assembly)
         if assembly and 'beef' in missing and st[stove]['food'] and st[stove]['food']['stage'] == 'ready':
@@ -360,11 +360,11 @@ def choose_zoned(k, who, role):
 
 # --- One chef alone --------------------------------------------------------------
 # Calibration only (scripts/reference_sweep.py): the "single chef" baseline. One chef
-# takes both roles: beef work that cannot wait (fire, burnt pot, ready beef for the
+# takes both roles: beef work that cannot wait (fire, burnt pot to the bin, ready beef for the
 # plate, chopping and loading beef) first, then fetching beef when none is in the
 # pipeline, then the assembler's work. It is a scripted lower bound on what one chef
 # can earn, not a claim about the best solo play.
-_URGENT_COOK = ('take_tool', 'clear', 'lift_pot', 'take_board', 'chop', 'put_pot', 'return_pot', 'plate_counter', 'empty_pot')
+_URGENT_COOK = ('take_tool', 'lift_pot', 'take_board', 'chop', 'put_pot', 'return_pot', 'plate_counter', 'empty_pot')
 
 
 def choose_solo(k, who, role=None):

@@ -638,7 +638,7 @@
      },
      "pair": "classic swapped",
      "money": 360,
-     "solo": 258
+     "solo": 178
     },
     {
      "level": 3,
@@ -690,7 +690,7 @@
      },
      "pair": "zoned swapped",
      "money": 340,
-     "solo": 258
+     "solo": 178
     },
     {
      "level": 3,
@@ -846,7 +846,7 @@
      },
      "pair": "zoned swapped",
      "money": 370,
-     "solo": 288
+     "solo": 208
     },
     {
      "level": 3,
@@ -894,10 +894,10 @@
    "target_50pct": 180,
    "current_target": 190,
    "runs_reaching_current_target": 21,
-   "solo_min": 198,
-   "solo_median": 250,
-   "solo_max": 288,
-   "solo_runs_reaching_current_target": 21
+   "solo_min": 178,
+   "solo_median": 236,
+   "solo_max": 280,
+   "solo_runs_reaching_current_target": 19
   }
  ]
 }

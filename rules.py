@@ -162,7 +162,6 @@ class Rules:
         s = cc.seconds
         self.handling = s(ruleset['operations']['handling_game_ms'])
         self.extinguish = s(ruleset['operations']['extinguish_game_ms'])
-        self.clear = s(ruleset['operations']['clear_game_ms'])
         # Optional: assemble with a plate or ingredient lying on the floor. Absent = pickup/swap only.
         self.ground_assembly = ruleset['operations'].get('ground_assembly', False)
         self.dining = s(ruleset['tableware']['dining_game_ms'])

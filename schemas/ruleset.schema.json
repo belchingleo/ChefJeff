@@ -67,17 +67,13 @@
       "type": "object",
       "required": [
         "handling_game_ms",
-        "extinguish_game_ms",
-        "clear_game_ms"
+        "extinguish_game_ms"
       ],
       "properties": {
         "handling_game_ms": {
           "$ref": "common.schema.json#/$defs/positive_game_ms"
         },
         "extinguish_game_ms": {
-          "$ref": "common.schema.json#/$defs/positive_game_ms"
-        },
-        "clear_game_ms": {
           "$ref": "common.schema.json#/$defs/positive_game_ms"
         },
         "ground_assembly": {

@@ -179,7 +179,7 @@ export class KitchenAudio {
         }
         if(after&&!sameItem){this.chefSound(who,kind==='fetch'&&target==='fridge'?'fridge_grab':'pickup');return;}
         if(before&&!after){
-            if(['discard','empty_pot','clear'].includes(kind))this.chefSound(who,'discard');
+            if(['discard','empty_pot'].includes(kind))this.chefSound(who,'discard');
             else if(target==='serve'||this.last?.kitchen?.stations?.[target]?.stove)return; // serving/pan sounds come from events/stations
             else if(board(target))this.chefSound(who,'place_board');
             else this.chefSound(who,/plate/.test(before.stage)?'plate_place':'place_board');

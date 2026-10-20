@@ -32,7 +32,7 @@ PRIORITY = ['serve', 'extinguish', 'plate_pot', 'plate_counter', 'plate_from_cou
             'plate_partner', 'assemble', 'merge_plates', 'put_pot', 'return_pot', 'load_counter',
             'load_ground', 'assemble_ground', 'chop', 'wash', 'put_board', 'put_sink', 'take_board', 'take_return',
             'take_sink', 'take_plate', 'fetch', 'take_counter', 'pickup', 'lift_pot', 'swap_pot',
-            'throw', 'put_counter', 'clear', 'take_tool', 'put_tool', 'discard', 'empty_pot', 'drop']
+            'throw', 'put_counter', 'take_tool', 'put_tool', 'discard', 'empty_pot', 'drop']
 
 SCENARIOS = {
     # name: (level id, policy seed, policy); each plays the level's whole fixed round (180 s).

@@ -20,7 +20,6 @@
   "operations": {
     "handling_game_ms": 150,
     "extinguish_game_ms": 4000,
-    "clear_game_ms": 2000,
     "ground_assembly": true
   },
   "movement": {

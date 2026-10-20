@@ -412,7 +412,7 @@ class Kitchen:
                 continue
             if s.fire:
                 if a.hand and a.hand.stage == 'extinguisher':
-                    add(f"extinguish {key}", f"拿灭火器到{s.name}灭火（{self.rules.extinguish:g}s；随后仍须清理糊菜）", "extinguish", key)
+                    add(f"extinguish {key}", f"拿灭火器到{s.name}灭火（{self.rules.extinguish:g}s；随后仍须端锅到垃圾桶倒掉糊菜）", "extinguish", key)
                 continue
             if not s.pot_id:
                 if a.hand and a.hand.stage == 'pot':
@@ -427,7 +427,6 @@ class Kitchen:
             if s.food:
                 if a.hand and self.can_add(a.hand,s.food):
                     add(f'plate {key}', f'用手中的干净盘盛出{s.name}的菜', 'plate_pot', key)
-                add(f"clear {key}", f"清空{s.name}的食物（损耗 {loss} 元）", "clear", key)
         for target, s in self.stations.items():
             if target != a.location:
                 add(f"go {target}", f"走到{s.name}（{s.area}）", "go", target)
@@ -594,7 +593,7 @@ class Kitchen:
         s = self.place(action.target)
         work = {"chop": (self.rules.chop_work(s.food.ingredient)-s.food.chopped) if s.food else 0,
                 "wash": self.wash_seconds-(s.food.washed if s.food else 0),
-                "extinguish": self.rules.extinguish, "clear": self.rules.clear, "go": 0}.get(action.kind, self.rules.handling)
+                "extinguish": self.rules.extinguish, "go": 0}.get(action.kind, self.rules.handling)
         self.job_serial += 1
         a.job = Job(self.job_serial, action, self.travel_time(a, action.target), work)
         self.emit(f"{NAMES[who]}开始：{action.label}（路程 {a.job.travel:.0f}s + 操作 {work:.1f}s）", kind="action_start", actor=who, action=action.key, action_id=a.job.id)
@@ -610,7 +609,7 @@ class Kitchen:
         for key in self.boards:
             keys.extend([f"put {key}", f"chop {key}", f"take {key}"])
         for key in self.pots:
-            keys.extend([f"put {key}", f"extinguish {key}", f"clear {key}"])
+            keys.extend([f"put {key}", f"extinguish {key}"])
         keys.extend(f"go {key}" for key in self.stations)
         keys.append('drop')
         keys.extend([f'take {self.rack}', f'put {self.rack}'])
@@ -820,10 +819,6 @@ class Kitchen:
             s.fire = False
             s.fire_elapsed = 0
             s.heating = False
-        elif k == "clear":
-            s.food = None
-            s.heating = False
-            self.money += self.rules.penalty['discard']
         elif k == "discard":
             a.hand = Food(a.hand.plate_id, 'dirty_plate') if a.hand.plate_id else None
             self.money += self.rules.penalty['discard']
@@ -1037,7 +1032,7 @@ class Kitchen:
         return {'wash': r.wash_work, 'dining': r.dining, 'chop': r.chop_work(chop) if chop else None,
                 'cook': ready, 'ready_to_burn': None if heat is None else burn-ready,
                 'burn_to_fire': None if heat is None else fire-burn, 'handling': r.handling,
-                'extinguish': r.extinguish, 'clear': r.clear,
+                'extinguish': r.extinguish,
                 'walk_same_area': r.same_area, 'walk_cross_area': r.cross_area}
 
     def goal_status(self):

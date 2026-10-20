@@ -26,7 +26,7 @@ const TAKE_CUES=new Set(['take_board','take_tool','pickup','take_plate','take_re
 function cueSound(kind:string,target:string|undefined,held:any,station:any):string|null{
     if(kind==='fetch')return target==='fridge'?'fridge_grab':'pickup';
     if(TAKE_CUES.has(kind))return held?null:'pickup';
-    if(['discard','empty_pot','clear'].includes(kind))return 'discard';
+    if(kind==='discard'||kind==='empty_pot')return 'discard';
     if(held&&(kind==='drop'||/^put_/.test(kind))&&target!=='serve'&&!station?.stove)
         // Same rule as the audio's board(): b1, b2… are boards, bins are not.
         return target?.startsWith('b')&&!target.startsWith('bin')?'place_board':/plate/.test(held.stage||'')?'plate_place':'place_board';

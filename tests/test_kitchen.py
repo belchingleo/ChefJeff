@@ -126,9 +126,11 @@ class RulesTest(unittest.TestCase):
         k.advance(5)
         self.assertFalse(s.fire)
         self.assertFalse(s.heating)
-        self.do(k,'jeff','clear p1')
-        self.assertIsNone(s.food)
+        # No clearing in place: the pan goes to the bin, as in Overcooked 2.
+        self.assertNotIn('clear p1',[a.key for a in k.actions('jeff')])
         self.do(k,'jeff','put extinguisher')
+        self.do(k,'jeff','take pot p1');self.do(k,'jeff','discard');self.do(k,'jeff','put pot p1')
+        self.assertIsNone(s.food)
         k.chefs['jeff'].hand=Food('fresh','chopped',6)
         self.do(k,'jeff','put p1')
         self.assertTrue(s.heating)

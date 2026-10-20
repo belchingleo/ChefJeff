@@ -245,7 +245,7 @@
     "损耗2元，保留空锅": "¥2 cost; keep the pot",
     "损耗 2 元": "¥2 cost",
     "没有订单在等这道菜会扣钱，糊太久会被拒收": "serving a dish no order is waiting for costs money; a dish burnt too long is refused",
-    "随后仍须清理糊菜": "burnt food must still be cleared",
+    "随后仍须端锅到垃圾桶倒掉糊菜": "then carry the pan to a bin to empty the burnt food",
     "抛出物品": "throw item",
     "糊了的菜": "burnt food",
     "没有待完成订单": "no pending order",
@@ -889,10 +889,6 @@
     [
       "{0} {1}s 后糊",
       "{0} · burns in {1}s"
-    ],
-    [
-      "清空{0}的食物",
-      "Clear food from {0}"
     ],
     [
       "地面({0},{1})",

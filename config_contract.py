@@ -559,7 +559,6 @@ def flat_config(resolved):
         'burn_after_ready': s(cook['overcook']['after_done_game_ms']) if cook else None,
         'fire_after_burn': s(cook['overcook']['fire_after_overcook_game_ms']) if cook else None,
         'extinguish_seconds': s(ruleset['operations']['extinguish_game_ms']),
-        'clear_seconds': s(ruleset['operations']['clear_game_ms']),
         'same_area_walk': s(ruleset['abstract_travel']['same_area_game_ms']),
         'cross_area_walk': s(ruleset['abstract_travel']['cross_area_game_ms']),
         'handling_seconds': s(ruleset['operations']['handling_game_ms']),
