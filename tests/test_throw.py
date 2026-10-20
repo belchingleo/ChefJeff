@@ -1,7 +1,7 @@
 import unittest
 from kitchen import Food, GroundItem, load_config
 import math
-from spatial_kitchen import SpatialKitchen, tile_key, THROW_RANGE, PASS_RANGE
+from spatial_kitchen import SpatialKitchen, tile_key, THROW_RANGE
 from level_one import neighbors
 from whitebox_server import SpatialJevClient
 from levels import level_config
@@ -69,26 +69,19 @@ class ThrowTests(unittest.TestCase):
             self.assertIs(k.chefs[other].job,job);self.assertIsNone(k.chefs[other].hand)
             self.assertIs(k.ground[plate.id].food,plate);self.assertEqual(plate.stage,'clean_plate');k.assert_invariants()
 
-    def test_extinguisher_passes_within_short_range_for_both_chefs(self):
+    def test_extinguisher_cannot_be_thrown_by_either_chef(self):
+        # As in Overcooked 2, the extinguisher is carried to the fire, never thrown.
         for who in ('human','jeff'):
-            other='jeff' if who=='human' else 'human'
-            # About 5.4 tiles apart: the pass falls short, on the floor at the 4-tile limit.
             k=self.make(service=True);tool=k.stations['extinguisher'].food;k.stations['extinguisher'].food=None
-            k.positions.update(jeff=(5.,5.),human=(10.,3.))
-            k.chefs['jeff'].hand=None;k.chefs[who].hand=tool;start=k.positions[who]
-            self.assertEqual(k.throw_range(who),PASS_RANGE)
-            self.assertTrue(k.command(who,'throw partner')[0]);k.advance(1)
-            self.assertIsNone(k.chefs[other].hand);self.assertIs(k.ground[tool.id].food,tool)
-            self.assertLessEqual(math.dist(start,k.cell(k.ground[tool.id].location)),PASS_RANGE+1e-8);k.assert_invariants()
-            # Within range an idle, empty-handed teammate catches it.
-            k=self.make(service=True);tool=k.stations['extinguisher'].food;k.stations['extinguisher'].food=None
-            k.positions.update(jeff=(5.,5.),human=(7.,5.));k.chefs['jeff'].hand=None;k.chefs[who].hand=tool
-            self.assertTrue(k.command(who,'throw partner')[0]);k.advance(1)
-            self.assertIs(k.chefs[other].hand,tool);k.assert_invariants()
+            k.positions.update(jeff=(5.,5.),human=(7.,5.));k.chefs['jeff'].hand=None;k.chefs['human'].hand=None
+            k.chefs[who].hand=tool
+            self.assertFalse(k.can_throw(who));self.assertIsNone(k.throw_range(who))
+            self.assertFalse(k.command(who,'throw partner')[0])
+            self.assertIs(k.chefs[who].hand,tool);self.assertFalse(k.projectiles);k.assert_invariants()
 
-    def test_invariants_hold_while_tools_and_tableware_fly(self):
-        # A passed extinguisher, plate or pot is in no hand and on no station mid-flight.
-        for source in ('extinguisher','plates','pot'):
+    def test_invariants_hold_while_tableware_flies(self):
+        # A passed plate or pot is in no hand and on no station mid-flight.
+        for source in ('plates','pot'):
             k=self.make();k.chefs['jeff'].hand=None
             if source=='pot':
                 st=k.stations[next(s for s in k.pots if k.stations[s].pot_id)]

@@ -207,7 +207,7 @@ class Rules:
         self.throw_speed = throw['speed_cells_per_game_s']
         self.min_flight = s(throw['min_flight_game_ms'])
         self.catch_radius = throw['catch_radius_cells']
-        # Optional: items that are not throwable ingredients (plates, plated food, pots, tools)
+        # Optional: items that are not throwable ingredients (plates, plated food, pots)
         # can be passed to the floor or a chef within this shorter range. Absent = not passable.
         self.pass_range = throw.get('pass_range_cells')
 
@@ -316,8 +316,9 @@ class Rules:
                     and not food.plate_id)
 
     def throw_reach(self, food):
-        """Flight range for a held item: throw range for loose ingredients, pass range otherwise."""
-        if not food:
+        """Flight range for a held item: throw range for loose ingredients, pass range otherwise.
+        The extinguisher is never thrown, as in Overcooked 2."""
+        if not food or food.stage == 'extinguisher':
             return None
         return self.throw_range if self.throwable(food) else self.pass_range
 

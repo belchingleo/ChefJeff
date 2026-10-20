@@ -31,7 +31,7 @@ The curved guide is a visual reference only: its endpoint marks maximum range, n
 
 Movement works as in Overcooked online: the browser walks the player's chef itself, with the same walking rules, and reports where it is about ten times a second; the engine walks the chef there with its own physics (wall slides, contact with Jeff, sprint nudges). The engine accepts at most 1.25 times the walking speed (sprint included), banked up to 2 cells so a late report catches up at once. A report more than 2.5 cells away, a push by Jeff, or 0.25 s without progress resyncs: the browser then moves the chef to the engine's position. Space and throws carry the position the browser drew, so the engine targets from the same spot. Jeff's movement is unchanged.
 
-Loose raw/chopped ingredients, plates, plated dishes, pans, pots and the extinguisher all fly up to 4 cells. Everything travels at 12 cells/game-second. Walls truncate the route; equipment can be crossed. A throw lands on the floor at the range limit. An empty-handed partner who is walking or standing catches it when it passes within 0.75 cells of them on its way, not only where it lands (a throw the player will catch is ringed); a partner chopping, washing or holding something is not interrupted and the item lands beside them. Dropped plates keep their food and dropped pans and pots their contents; both can be picked up again. The rules are identical for the player and the AI.
+Loose raw/chopped ingredients, plates, plated dishes, pans and pots all fly up to 4 cells; the extinguisher cannot be thrown, as in Overcooked 2. Everything travels at 12 cells/game-second. Walls truncate the route; equipment can be crossed. A throw lands on the floor at the range limit. An empty-handed partner who is walking or standing catches it when it passes within 0.75 cells of them on its way, not only where it lands (a throw the player will catch is ringed); a partner chopping, washing or holding something is not interrupted and the item lands beside them. Dropped plates keep their food and dropped pans and pots their contents; both can be picked up again. The rules are identical for the player and the AI.
 
 ## Work and shared stations
 
@@ -96,7 +96,7 @@ Cocos 浏览器版共用 `kitchen.py`、`spatial_kitchen.py`、地图 JSON 和�
 
 移动方式与《胡闹厨房》联机一样：浏览器按同样的走路规则自己移动玩家的厨师，每秒约 10 次报告位置；引擎用自己的物理（贴墙滑动、与 Jeff 的接触、冲刺推开食物）走到那里。引擎最多接受 1.25 倍走路速度（含冲刺），可累积 2 格，晚到的报告能立刻追上。报告超出 2.5 格、被 Jeff 推开、或 0.25 秒没有进展时重新同步：浏览器把厨师移到引擎的位置。空格和投掷会带上浏览器画出的位置，引擎从同一处判断目标。Jeff 的移动不变。
 
-散放的生／切好原料、餐盘、装盘菜、锅和灭火器都可以抛，最远 4 格。速度均为 12 格／游戏秒。墙截断路线，可越过设备，东西落在射程尽头的地上。空手且在走路或站着的队友，东西飞行途中经过他 0.75 格以内即可接住，不只看落点（玩家能接住的会用蓝圈标出）；正在切菜、洗碗或手里有东西时不打断，东西落在他旁边。掉在地上的盘子保留菜、锅保留内容，都能再捡起。玩家与 AI 规则相同。
+散放的生／切好原料、餐盘、装盘菜和锅都可以抛，最远 4 格；灭火器和《胡闹厨房 2》一样不能扔。速度均为 12 格／游戏秒。墙截断路线，可越过设备，东西落在射程尽头的地上。空手且在走路或站着的队友，东西飞行途中经过他 0.75 格以内即可接住，不只看落点（玩家能接住的会用蓝圈标出）；正在切菜、洗碗或手里有东西时不打断，东西落在他旁边。掉在地上的盘子保留菜、锅保留内容，都能再捡起。玩家与 AI 规则相同。
 
 ## 加工与合作工位
 

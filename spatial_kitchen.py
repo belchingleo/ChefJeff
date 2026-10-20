@@ -9,7 +9,7 @@ FACING_STEPS = {'up':(0,-1),'down':(0,1),'left':(-1,0),'right':(1,0)}
 USE_KINDS = ('chop','wash','extinguish')  # E; Space takes, puts, plates and serves
 
 THROW_RANGE = 4.0
-# Plates, plated food, pots and the extinguisher; reference values of the service ruleset
+# Plates, plated food and pots; reference values of the service ruleset
 # (throw.range_cells / throw.pass_range_cells). Live kitchens read the ruleset.
 PASS_RANGE = 4.0
 WALK_SPEED = 4.5  # Both chefs: 1.5x the original 3 cells per game second
@@ -648,7 +648,7 @@ class SpatialKitchen(Kitchen):
 
     def throw_range(self, who):
         # Loose ingredients fly the full throw range; other held items (plates, plated food,
-        # pots, the extinguisher) pass at the ruleset's shorter pass range, if it allows passing.
+        # pots) pass at the ruleset's shorter pass range, if it allows passing. The extinguisher never flies.
         return self.rules.throw_reach(self.chefs[who].hand)
 
     def can_throw_to(self, who, target):
