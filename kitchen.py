@@ -85,7 +85,6 @@ class Station:
     heating: bool = False
     pot_id: str | None = None
     fire_elapsed: float = 0.0
-    scorched: bool = False
 
 
 @dataclass
@@ -895,7 +894,7 @@ class Kitchen:
         s = self.stations[key]
         if s.fire:
             return
-        s.fire, s.fire_elapsed, s.heating, s.scorched = True, 0., False, True
+        s.fire, s.fire_elapsed, s.heating = True, 0., False
         if key in self.pots and s.food and s.food.stage != 'burnt':
             s.food.stage = 'burnt'
             self.burns += 1
@@ -1109,7 +1108,6 @@ class Kitchen:
             record['fire_spread_in'] = round(max(0,self.rules.fire_spread-s.fire_elapsed),2) if s.fire else None
             record['fire_neighbors'] = self.fire_neighbors(key)
             record['workers']=self.work_participants(key,'chop')+self.work_participants(key,'wash')
-            record['scorched'] = s.scorched
             if s.pot_id:
                 record['vessel'] = self.rules.vessels.get(s.pot_id)
             if key in self.pots and s.food:

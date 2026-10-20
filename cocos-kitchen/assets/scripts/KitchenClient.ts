@@ -1264,7 +1264,6 @@ export class KitchenClient extends Component {
             if(this.useModularArt)art.setPosition(0,0);
             this.drawIcon(art.addComponent(Graphics),this.state!.kitchen.stations[id].counter?'continuous_counter':this.state!.kitchen.stations[id].stove?'vessel':id.startsWith('bin')?'bin':/^b[0-9]/.test(id)?'board':e.type==='ingredient_source'?'source:'+this.sourceItem(id):this.useArt&&id==='extinguisher'?'extinguisher_rack':id);
             if(this.useModularArt)this.equipmentArt(art,id);
-            if(this.useModularArt){const scorch=this.child(n,'scorch',TILE,TILE);this.art.tile(scorch,'scorch',TILE);scorch.active=false;}
             const ln=new Node('label');ln.layer=Layers.Enum.UI_2D;n.addChild(ln);ln.setPosition(0,-19);ln.addComponent(UITransform).setContentSize(56,18);
             const l=ln.addComponent(Label);l.fontSize=10;l.lineHeight=13;l.isBold=true;l.color=color(COLORS.ink);l.overflow=Label.Overflow.SHRINK;
             const status=new Node('food');status.layer=Layers.Enum.UI_2D;n.addChild(status);status.addComponent(UITransform).setContentSize(30,30);status.setPosition(11,7);status.setScale(this.useModularArt?1:.6,this.useModularArt?1:.6,1);status.addComponent(Graphics);
@@ -1650,7 +1649,6 @@ export class KitchenClient extends Component {
         this.labels.clock.color=color(remaining<=30?COLORS.hot:COLORS.muted);this.drawOrders();
         for(const [id,dev] of Object.entries(this.devices)){
             const st=k.stations[id],g=dev.graphics;g.clear();
-            const scorch=dev.node.getChildByName('scorch');if(scorch)scorch.active=!!st.scorched;
             const prior=this.foodStages[id];
             const foodKey=st.food?`${st.food.id}:${st.food.stage}`:'';
             if(st.food?.stage==='ready'&&prior===`${st.food.id}:cooking`)this.readyUntil[id]=this.activeClock+1.1;
