@@ -702,7 +702,11 @@
     "OpenRouter 决策模型": "OpenRouter decision models",
     "可填 OpenRouter 上任一决策模型的 ID（默认 Microsoft-Decision-1，约 ¥0.3–0.7/局）· 已实测整局": "Any OpenRouter decision model ID works (default Microsoft-Decision-1, about ¥0.3–0.7 a round) · tested over a full round",
     "OpenRouter 对话模型": "OpenRouter chat models",
-    "填 OpenRouter 模型页上的 ID（形如 厂商/模型名）；会先长篇思考的模型可能答不完": "Enter the model ID from its OpenRouter page (vendor/model); models that think at length may not finish an answer"
+    "填 OpenRouter 模型页上的 ID（形如 厂商/模型名）；会先长篇思考的模型可能答不完": "Enter the model ID from its OpenRouter page (vendor/model); models that think at length may not finish an answer",
+    "Key 无效，请检查后重试。": "Invalid key. Check it and try again.",
+    "账号余额不足，请到服务商充值。": "Not enough balance. Top up with the provider.",
+    "账号无权访问这个模型。": "This account cannot use this model.",
+    "请求受限或额度不足，请稍后重试。": "Rate limited or out of quota. Try again later."
   },
   "templates": [
     [
@@ -1256,6 +1260,34 @@
     [
       "向右下方抛出手中物品（落到{0}）",
       "Throw the held item down-right (lands at {0})"
+    ],
+    [
+      "Key 无效，请检查后重试。（{0}）",
+      "Invalid key. Check it and try again. ({0})"
+    ],
+    [
+      "账号余额不足，请到服务商充值。（{0}）",
+      "Not enough balance. Top up with the provider. ({0})"
+    ],
+    [
+      "账号无权访问这个模型。（{0}）",
+      "This account cannot use this model. ({0})"
+    ],
+    [
+      "请求受限或额度不足，请稍后重试。（{0}）",
+      "Rate limited or out of quota. Try again later. ({0})"
+    ],
+    [
+      "连接失败（{0}）",
+      "Connection failed ({0})"
+    ],
+    [
+      "模型接口 HTTP {0}：{1}",
+      "Model API HTTP {0}: {1}"
+    ],
+    [
+      "模型接口 HTTP {0}",
+      "Model API HTTP {0}"
     ]
   ]
 }
