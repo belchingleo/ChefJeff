@@ -144,6 +144,11 @@ function check(path){
  h.clear();h.fire('touch-action','pointerdown',{pointerId:8});assert(action.disabled&&!callNames().includes('act'),'Action waits while aiming');
  h.fire('touch-toss','pointermove',{pointerId:7,clientX:450,clientY:225});h.fire('touch-toss','pointerup',{pointerId:7,clientX:450,clientY:225});
  assert(callNames().includes('cancel')&&!callNames().includes('release'),'Cancel cancels a Throw aim');
+ // A state refresh mid-hold that briefly reports nothing throwable must not disable the held button:
+ // Safari sends no pointerup to a disabled button, and the aim would never end.
+ h.fire('touch-toss','pointerdown',{pointerId:9});h.publish({aiming:{x:1,y:0},canThrow:false});
+ assert(!toss.disabled,'a held Throw stays enabled');h.clear();h.fire('touch-toss','pointerup',{pointerId:9});
+ assert(callNames().includes('release'),'its release still arrives');
  h.publish({aiming:false,canThrow:false});h.clear();h.fire('touch-toss','pointerdown',{pointerId:7});
  assert(toss.disabled&&!callNames().includes('toss'),'Throw is unavailable with nothing throwable');
  h.publish({canThrow:true});

@@ -224,7 +224,8 @@
       el('touch-ai').hidden = joystick.hidden;
       const throwable = !!(state.holding && state.canThrow);
       action.disabled = !playing || aiming || !state.canInteract;
-      toss.disabled = !playing || !throwable;
+      // Never disable Throw while it is held: Safari sends no pointerup to a disabled button, which left the aim stuck.
+      toss.disabled = holdButton !== toss && (!playing || !throwable);
       const sprint = state.sprint || {};
       const cooling = (sprint.cooldown_remaining || 0) > 0;
       dash.disabled = !playing || !state.canDash || aiming || cooling || (sprint.active_remaining || 0) > 0;
