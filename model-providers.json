@@ -11,7 +11,7 @@
     {"id": "openrouter-decision", "group": "decision", "label": "OpenRouter 决策模型", "note": "可填 OpenRouter 上任一决策模型的 ID（默认 Microsoft-Decision-1，约 ¥0.3–0.7/局）· 已实测整局",
      "endpoint": "https://openrouter.ai/api/alpha/decisions", "model": "microsoft/microsoft-decision-1", "model_editable": true,
      "key_url": "https://openrouter.ai/keys", "hosted": "direct", "tested": true},
-    {"id": "startlux", "group": "decision", "label": "StartLux-Decision（Bamboo 免费接口）", "note": "免费测试额度 · 请求经第三方中转 Bamboo Relay · 已关闭自动思考 · 未实测整局",
+    {"id": "startlux", "group": "decision", "label": "StartLux-Decision（Bamboo 存在延迟，免费接口）", "note": "免费测试额度 · 请求经第三方中转 Bamboo Relay · 已关闭自动思考 · 未实测整局",
      "endpoint": "https://api.bamboonode.dev/v1/decisions", "model": "startlux-decision-27b-autothink", "model_editable": true,
      "extra": {"allow_none": false, "think_mode": "never"},
      "key_url": "https://bamboonode.dev/", "hosted": "direct", "tested": false},

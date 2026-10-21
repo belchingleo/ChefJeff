@@ -701,7 +701,7 @@
     "约 ¥0.7–1.3/局 · 未实测": "About ¥0.7–1.3 a round · not yet tested",
     "OpenRouter 决策模型": "OpenRouter decision models",
     "可填 OpenRouter 上任一决策模型的 ID（默认 Microsoft-Decision-1，约 ¥0.3–0.7/局）· 已实测整局": "Any OpenRouter decision model ID works (default Microsoft-Decision-1, about ¥0.3–0.7 a round) · tested over a full round",
-    "StartLux-Decision（Bamboo 免费接口）": "StartLux-Decision (Bamboo free API)",
+    "StartLux-Decision（Bamboo 存在延迟，免费接口）": "StartLux-Decision (Bamboo, noticeable latency, free API)",
     "免费测试额度 · 请求经第三方中转 Bamboo Relay · 已关闭自动思考 · 未实测整局": "Free testing quota · requests pass through third-party Bamboo Relay · automatic thinking disabled · no full round tested",
     "OpenRouter 对话模型": "OpenRouter chat models",
     "填 OpenRouter 模型页上的 ID（形如 厂商/模型名）；会先长篇思考的模型可能答不完": "Enter the model ID from its OpenRouter page (vendor/model); models that think at length may not finish an answer",
