@@ -186,12 +186,16 @@ class CompatibleTests(unittest.TestCase):
         text=str(raised.exception)
         self.assertIn('HTTP 400',text);self.assertIn('too many options',text);self.assertNotIn(KEY,text);self.assertIn('***',text)
     def test_startlux_connection_and_gameplay_use_systemone_protocol(self):
+        self.check_startlux_protocol('startlux',{'allow_none':False})
+    def test_startlux_no_think_probe_and_gameplay_disable_thinking(self):
+        self.check_startlux_protocol('startlux-no-think',{'allow_none':False,'think_mode':'never'})
+    def check_startlux_protocol(self,provider,extra):
         from spatial_kitchen import SpatialKitchen
-        setting=settings_from({'provider':'startlux','api_key':KEY})
+        setting=settings_from({'provider':provider,'api_key':KEY})
         client=create_client(load_config(),setting)
         self.assertIsInstance(client,DecisionClient)
         self.assertEqual(setting['model'],'startlux-decision-27b-autothink')
-        self.assertEqual(settings_from({'provider':'startlux','api_key':KEY,'model':'another-model'})['model'],'another-model')
+        self.assertEqual(settings_from({'provider':provider,'api_key':KEY,'model':'another-model'})['model'],'another-model')
         answer={'answers':{'next_action':{'type':'choice','choice':'ready'},'sprint':{'type':'choice','choice':'no'}},
                 'usage':{'input_tokens':5,'output_tokens':7}}
         tmp=tempfile.TemporaryDirectory()
@@ -201,14 +205,14 @@ class CompatibleTests(unittest.TestCase):
         self.addCleanup(probe.close)
         with patch('jev.urllib.request.urlopen',return_value=io.BytesIO(json.dumps(answer).encode())) as opened:
             status,_=probe.command('/api/connection',{'game_id':probe.game_id,'request_id':uuid.uuid4().hex,
-                                                     'provider':'startlux','api_key':KEY})
+                                                     'provider':provider,'api_key':KEY})
         self.assertEqual(status,200)
         req=opened.call_args.args[0]
         self.assertEqual((req.full_url,req.method),('https://api.bamboonode.dev/v1/decisions','POST'))
         self.assertEqual(req.get_header('Authorization'),'Bearer '+KEY)
         sent=json.loads(req.data)
-        self.assertEqual(set(sent),{'model','state','questions','allow_none'})
-        self.assertIs(sent['allow_none'],False)
+        self.assertEqual(set(sent),{'model','state','questions'}|set(extra))
+        self.assertEqual({k:sent[k] for k in extra},extra)
         self.assertEqual(sent['model'],'startlux-decision-27b-autothink')
         self.assertEqual(sent['questions']['next_action']['type'],'choice')
         self.assertEqual(set(sent['questions']['next_action']['criteria']),{'ready','wait'})
@@ -218,14 +222,16 @@ class CompatibleTests(unittest.TestCase):
         with patch('jev.urllib.request.urlopen',return_value=io.BytesIO(json.dumps(answer).encode())) as opened:
             result=client.ask(payload)
         sent=json.loads(opened.call_args.args[0].data)
-        self.assertEqual(set(sent),{'model','state','questions','allow_none'})
-        self.assertIs(sent['allow_none'],False)
+        self.assertEqual(set(sent),{'model','state','questions'}|set(extra))
+        self.assertEqual({k:sent[k] for k in extra},extra)
         self.assertEqual(sent['model'],'startlux-decision-27b-autothink')
         self.assertIn('kitchen',sent['state'])
         self.assertIn('sprint',sent['questions'])
         self.assertEqual((result['choice'],result['sprint'],result['usage']),
                          (answer['answers']['next_action']['choice'],False,answer['usage']))
         self.assertNotIn('allow_none',payload,'Applying preset fields must not mutate the shared payload')
+        self.assertNotIn('think_mode',payload)
+        self.assertEqual((probe.c['ai_timeout_seconds'],probe.c['ai_max_response_age']),(8,6))
         for question in ('next_action','sprint'):
             with self.subTest(null_answer=question):
                 invalid=json.loads(json.dumps(answer))

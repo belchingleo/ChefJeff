@@ -42,6 +42,8 @@ Then open <http://127.0.0.1:8775/> in your browser, enter your model API details
 
 StartLux-Decision is available locally and online through the third-party [Bamboo Relay](https://bamboonode.dev/), which offers a free testing quota. Its preset uses `https://api.bamboonode.dev/v1/decisions` and editable model name `startlux-decision-27b-autothink`; online requests go directly from the browser to Bamboo Relay. Both versions send `allow_none: false` so the model chooses a listed action. It thinks when uncertain and can occasionally be slow. No developer connection with a real key or full round has been tested. See the [website](https://decision.startlux.com/) and [API docs](https://github.com/StartLuxLabs/StartLux-Decision/blob/main/docs/api.md).
 
+For a response-time comparison, choose **StartLux-Decision (no-thinking test, Bamboo free API)** in Settings; it uses the same key and model with `think_mode: never`. This mode has not been tested with a real key or over a full round. End the round and stop the old server with `stop-web.command` before launching an updated download; see the [model guide](docs/model-guide.md).
+
 > **About costs**: the connection test and every round use your own model account, and that account pays for the calls. By default a round makes at most 200 calls (adjustable from 1 to 2000). This limits the number of calls, not the amount of money. This is a real-time game and the kitchen never stops, so if the model is too slow, Jeff spends most of the round standing still, thinking.
 
 Tested so far: macOS 15.6, Python 3.12, a Chromium-based browser, with TypeSafe Jev (jev-latest) and DeepSeek V4.1-Flash as models. Other systems and models have not been checked one by one yet; reports are welcome.

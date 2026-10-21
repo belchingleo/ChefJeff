@@ -7,6 +7,7 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 ## Unreleased
 
 ### Jeff (the AI teammate)
+- Add a separate StartLux no-thinking test preset for local and online response-time comparisons. It sends `think_mode: never` and `allow_none: false` with the same endpoint, model and key; the original automatic-thinking preset and game time limits remain unchanged. Real-key latency and full-round behavior are unverified.
 - Decision presets now support vendor request fields in both clients, including connection probes. StartLux sends `allow_none: false` because Bamboo enables null choices by default; replies with a null action or sprint remain rejected. Thinking defaults and game response deadlines are unchanged.
 - Online connection tests now send two decision options and display the provider's short error reason with the key redacted. A chat reply without sprint means no sprint, matching the local game.
 - Add StartLux-Decision to decision presets locally and online via the third-party Bamboo Relay free testing quota: `https://api.bamboonode.dev/v1/decisions`, editable model `startlux-decision-27b-autothink`, key from https://bamboonode.dev/. The response follows Jev's systemone format; optional thinking controls use server defaults. It thinks when uncertain and can occasionally be slow. No connection verified with a real key or full round tested.
@@ -105,6 +106,7 @@ First private release: a local browser game with three playable maps and player-
 ## 未发布
 
 ### Jeff（AI 队友）
+- 本地版和在线版新增独立的 StartLux 不思考测试预设：同一接口、模型和 Key，发送 `think_mode: never` 与 `allow_none: false`，用于响应耗时对照。原自动思考预设和游戏时限保持不变；新模式尚未用真实 Key 验证延迟或实测整局。
 - 决策预设的额外请求字段同时支持本地版、在线版和连接测试。Bamboo 默认允许空选择，StartLux 预设显式发送 `allow_none: false`；返回空动作或空冲刺选择时仍拒绝执行。思考默认值和游戏接受回复的时限不变。
 - 在线版连接测试改为发送两个决策选项；显示服务商的简短报错原因并遮掉 Key。对话回复缺少冲刺字段时按不冲刺处理，与本地版一致。
 - 本地版和在线版的决策预设新增 StartLux-Decision，通过第三方中转 Bamboo Relay 提供免费测试额度：接口 `https://api.bamboonode.dev/v1/decisions`，模型 `startlux-decision-27b-autothink` 可编辑，在 https://bamboonode.dev/ 申请 Key。返回遵循 Jev 的 systemone 格式，可选思考字段使用服务端默认值。拿不准时会先思考，偶尔较慢；未用真实 Key 验证连接，未实测整局。

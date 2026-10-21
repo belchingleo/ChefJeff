@@ -42,6 +42,8 @@ Windows 上用 `py -3 scripts/launch_web.py`。也可以直接双击 `start-web.
 
 StartLux-Decision 在本地版和在线版均可选，通过第三方中转 [Bamboo Relay](https://bamboonode.dev/) 提供免费测试额度。预设接口为 `https://api.bamboonode.dev/v1/decisions`，模型名 `startlux-decision-27b-autothink` 可编辑；在线版由浏览器直连 Bamboo Relay。两端均发送 `allow_none: false`，要求模型从列出的动作中选择。拿不准时会先思考，偶尔较慢；开发者未用真实 Key 验证连接，未实测整局。参见[官网](https://decision.startlux.com/)和[接口文档](https://github.com/StartLuxLabs/StartLux-Decision/blob/main/docs/api.md)。
 
+可在设置中选择 **StartLux-Decision（不思考测试，Bamboo 免费接口）**，使用同一个 Key 和模型，发送 `think_mode: never` 关闭自动思考，对比响应耗时；此模式尚未用真实 Key 测试，未实测整局。更换下载版本前请先结束对局、用原文件夹的 `stop-web.command` 停止旧服务，详见[模型连接说明](docs/model-guide.md)。
+
 > **关于费用**：测试连接和每一局游戏，调用的都是你自己的模型账号，费用由这个账号承担。默认每局最多调用 200 次（可以在 1 到 2000 次之间调整），这是次数上限，不是金额上限。这是实时游戏，厨房时刻都在运转，所以如果模型太慢的话，Jeff 大多数时间都只会停在原地思考。
 
 目前实际测试过的环境：macOS 15.6、Python 3.12、Chromium 内核浏览器，模型用的是 TypeSafe Jev（jev-latest）和 DeepSeek V4.1-Flash。其他系统和模型还没有逐一验证，欢迎反馈。
