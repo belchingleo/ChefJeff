@@ -8,9 +8,9 @@
     {"id": "jev", "group": "decision", "label": "TypeSafe · Jev（推荐）", "note": "决策模型 · 已实测整局",
      "endpoint": "https://api.typesafe.ai/v1/systemone", "model": "jev-latest", "model_editable": false,
      "key_url": "https://console.typesafe.ai/login", "hosted": "relay", "tested": true},
-    {"id": "openrouter-decision", "group": "decision", "label": "Microsoft-Decision-1（OpenRouter）", "note": "决策模型 · 约 ¥0.3–0.7/局 · 未实测",
+    {"id": "openrouter-decision", "group": "decision", "label": "OpenRouter 决策模型", "note": "可填 OpenRouter 上任一决策模型的 ID（默认 Microsoft-Decision-1，约 ¥0.3–0.7/局）· 已实测整局",
      "endpoint": "https://openrouter.ai/api/alpha/decisions", "model": "microsoft/microsoft-decision-1", "model_editable": true,
-     "key_url": "https://openrouter.ai/keys", "hosted": "direct", "tested": false},
+     "key_url": "https://openrouter.ai/keys", "hosted": "direct", "tested": true},
     {"id": "decision3", "group": "decision", "label": "Decision 3.0（需本地部署，待接入）", "disabled": true},
     {"id": "deepseek", "group": "chat", "label": "DeepSeek", "note": "约 ¥1–3/局 · 已实测整局",
      "base_url": "https://api.deepseek.com", "model": "deepseek-flash", "model_editable": true,
@@ -32,6 +32,9 @@
      "base_url": "https://open.bigmodel.cn/api/paas/v4", "model": "glm-4.7-flash", "model_editable": true,
      "extra": {"thinking": {"type": "disabled"}, "response_format": {"type": "json_object"}},
      "key_url": "https://open.bigmodel.cn/", "hosted": "none", "tested": false},
+    {"id": "openrouter-chat", "group": "chat", "label": "OpenRouter 对话模型", "note": "填 OpenRouter 模型页上的 ID（形如 厂商/模型名）；会先长篇思考的模型可能答不完",
+     "base_url": "https://openrouter.ai/api/v1", "model": "", "model_editable": true,
+     "key_url": "https://openrouter.ai/keys", "hosted": "direct", "tested": false},
     {"id": "compatible", "group": "chat", "label": "其他兼容 Chat Completions 的服务", "note": "自己填接口地址和模型名；会先长篇思考的模型可能答不完",
      "custom": true, "model_editable": true, "hosted": "direct", "tested": false}
   ]

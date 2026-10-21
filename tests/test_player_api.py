@@ -159,6 +159,7 @@ class CompatibleTests(unittest.TestCase):
                     continue
                 body={'provider':preset['id'],'api_key':KEY}
                 if preset.get('custom'):body.update(base_url='https://api.example.com/v1',model='m')
+                elif not preset.get('model'):body['model']='vendor/model'
                 setting=settings_from(body)
                 self.assertEqual(setting['base_url'],'https://api.example.com/v1' if preset.get('custom') else preset.get('endpoint') or preset['base_url'])
                 client=create_client(load_config(),setting)

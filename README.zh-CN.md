@@ -27,7 +27,7 @@ python3 scripts/launch_web.py
 
 Windows 上用 `py -3 scripts/launch_web.py`。也可以直接双击 `start-web.command`（macOS）或 `start-web.bat`（Windows）。
 
-然后在浏览器打开 <http://127.0.0.1:8775/>，在「设置」里填上你自己的模型 API，测试连接成功后就能开局。设置里分两组列出现成的服务：决策模型（TypeSafe Jev、经 OpenRouter 的 Microsoft-Decision-1）直接给每个可选动作打分；对话模型（DeepSeek、阿里 qwen-flash、豆包 Seed 2.0 lite、Gemini 2.5 Flash-Lite、智谱 GLM-4.7-Flash）会自动填好地址、模型名并关闭深度思考。每一项都注明大约每局花费、是否实测过整局。其他兼容 Chat Completions 的服务可以手动填写，需要自己试一下它能不能按要求输出动作、响应够不够快。详见[模型连接说明](docs/model-guide.md)。
+然后在浏览器打开 <http://127.0.0.1:8775/>，在「设置」里填上你自己的模型 API，测试连接成功后就能开局。设置里分两组列出现成的服务：决策模型（TypeSafe Jev，或 OpenRouter 上的任一决策模型）直接给每个可选动作打分；对话模型（DeepSeek、OpenRouter 对话模型、阿里 qwen-flash、豆包 Seed 2.0 lite、Gemini 2.5 Flash-Lite、智谱 GLM-4.7-Flash）会自动填好地址、模型名并关闭深度思考。每一项都注明大约每局花费、是否实测过整局。其他兼容 Chat Completions 的服务可以手动填写，需要自己试一下它能不能按要求输出动作、响应够不够快。详见[模型连接说明](docs/model-guide.md)。
 
 > **关于费用**：测试连接和每一局游戏，调用的都是你自己的模型账号，费用由这个账号承担。默认每局最多调用 200 次（可以在 1 到 2000 次之间调整），这是次数上限，不是金额上限。这是实时游戏，厨房时刻都在运转，所以如果模型太慢的话，Jeff 大多数时间都只会停在原地思考。
 

@@ -688,7 +688,6 @@
     "导出还附带本页最近 30 秒的页面记录（游戏时间、角色位置、按键方向、页面报错，以及浏览器型号和画面大小），用于排查卡住或显示问题；遇到问题后请尽快导出。": "The export also carries this page's last 30 seconds of diagnostics (game time, chef positions, held direction, page errors, plus browser and screen size) to help trace stuck or display problems; export soon after a problem.",
     "决策模型（直接给每个动作打分）": "Decision models (score every action directly)",
     "对话模型": "Chat models",
-    "Microsoft-Decision-1（OpenRouter）": "Microsoft-Decision-1 (OpenRouter)",
     "Decision 3.0（需本地部署，待接入）": "Decision 3.0 (self-hosted, not yet supported)",
     "阿里 qwen-flash": "Alibaba qwen-flash",
     "豆包 Seed 2.0 lite": "Doubao Seed 2.0 lite",
@@ -697,10 +696,13 @@
     "有免费额度（限速）· 需能访问 Google · 未实测": "Free quota (rate-limited) · needs access to Google · not yet tested",
     "免费，但高峰常返回“访问量过大”· 未实测": "Free, but often “too busy” at peak times · not yet tested",
     "自己填接口地址和模型名；会先长篇思考的模型可能答不完": "Enter the base URL and model yourself; models that think at length may not finish an answer",
-    "决策模型 · 约 ¥0.3–0.7/局 · 未实测": "Decision model · about ¥0.3–0.7 a round · not yet tested",
     "约 ¥1–3/局 · 已实测整局": "About ¥1–3 a round · tested over a full round",
     "约 ¥0.2–0.3/局 · 未实测": "About ¥0.2–0.3 a round · not yet tested",
-    "约 ¥0.7–1.3/局 · 未实测": "About ¥0.7–1.3 a round · not yet tested"
+    "约 ¥0.7–1.3/局 · 未实测": "About ¥0.7–1.3 a round · not yet tested",
+    "OpenRouter 决策模型": "OpenRouter decision models",
+    "可填 OpenRouter 上任一决策模型的 ID（默认 Microsoft-Decision-1，约 ¥0.3–0.7/局）· 已实测整局": "Any OpenRouter decision model ID works (default Microsoft-Decision-1, about ¥0.3–0.7 a round) · tested over a full round",
+    "OpenRouter 对话模型": "OpenRouter chat models",
+    "填 OpenRouter 模型页上的 ID（形如 厂商/模型名）；会先长篇思考的模型可能答不完": "Enter the model ID from its OpenRouter page (vendor/model); models that think at length may not finish an answer"
   },
   "templates": [
     [
