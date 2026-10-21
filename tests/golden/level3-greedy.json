@@ -352,19 +352,13 @@
   [
    53.0,
    "human",
-   "take counter7",
+   "take pot p2",
    true
   ],
   [
    53.0,
    "jeff",
    "take b3",
-   true
-  ],
-  [
-   54.5,
-   "human",
-   "throw up",
    true
   ]
  ],
@@ -1346,8 +1340,8 @@
    53.0,
    "action_start",
    "human",
-   "take counter7",
-   "你开始：从柜台 7拿起锅（路程 1s + 操作 0.1s）"
+   "take pot p2",
+   "你开始：端起灶台 2的平底锅（离开灶台停止加热，占手持位）（路程 2s + 操作 0.1s）"
   ],
   [
    53.0,
@@ -1371,18 +1365,11 @@
    "柜台 _corner5着火！损失 5 元；必须先灭火再使用"
   ],
   [
-   54.3,
-   "action_done",
+   54.25,
+   "route_replanned",
    "human",
-   "take counter7",
-   "你完成动作：从柜台 7拿起锅"
-  ],
-  [
-   54.5,
-   "action_start",
-   "human",
-   "throw up",
-   "你开始：向上方抛出手中物品（落到地面(2,2)）"
+   null,
+   "你受阻，重新规划路线"
   ],
   [
    54.6,
@@ -1396,7 +1383,7 @@
    "interrupted",
    "human",
    null,
-   "你中断：向上方抛出手中物品（落到地面(2,2)）"
+   "你中断：端起灶台 2的平底锅（离开灶台停止加热，占手持位）"
   ],
   [
    54.6,
@@ -1455,37 +1442,17 @@
   "chefs": {
    "human": [
     [
-     2.0,
-     1.95
+     5.264,
+     4.009
     ],
-    [
-     "P1",
-     "pot",
-     0,
-     0,
-     null,
-     0,
-     "beef",
-     [],
-     [
-      "F9",
-      "chopped",
-      3,
-      0,
-      null,
-      0,
-      "beef",
-      [],
-      null
-     ]
-    ],
+    null,
     null,
     false
    ],
    "jeff": [
     [
-     4.474,
-     5.669
+     5.603,
+     4.421
     ],
     null,
     null,
@@ -1647,7 +1614,27 @@
     null
    ],
    "counter7": [
-    null,
+    [
+     "P1",
+     "pot",
+     0,
+     0,
+     null,
+     0,
+     "beef",
+     [],
+     [
+      "F9",
+      "chopped",
+      3,
+      0,
+      null,
+      0,
+      "beef",
+      [],
+      null
+     ]
+    ],
     null,
     false,
     false,

@@ -93,9 +93,24 @@ class FireSpreadTests(unittest.TestCase):
             k.stations['b1'].food=Food('meat','raw',ingredient='beef');k.ignite('b1');k.ignite('p1')
             keys={a.key for a in k.actions(who)}
             self.assertIn('take '+spot,keys);self.assertIn('take b1',keys);self.assertNotIn('chop b1',keys)
-            self.assertFalse({a.kind for a in k.actions(who) if a.target=='p1'}-{'go'})
+            # A burning stove gives up its pan too (Overcooked 2, checked in the game): lift, return, refill when empty.
+            self.assertEqual({a.kind for a in k.actions(who) if a.target=='p1'},{'go','lift_pot'})
             self.assertTrue(k.command(who,'take '+spot)[0]);j=k.chefs[who].job;k.advance(j.travel+j.work+.01)
             self.assertIs(k.chefs[who].hand,tool);k.assert_invariants()
+
+    def test_a_pan_lifted_off_a_burning_stove_can_go_back_and_be_refilled_but_only_cooks_after_the_fire(self):
+        for who in ['human','jeff']:
+            k=self.make();s=k.stations['p1'];s.food=Food('F','cooking',6,0,ingredient='beef');s.heating=True;k.ignite('p1')
+            k.positions[who]=tuple(map(float,k.equipment['p1']['access']))
+            def do(key):
+                self.assertTrue(k.command(who,key)[0],key);j=k.chefs[who].job;k.advance(j.travel+j.work+.01)
+            do('take pot p1');pan=k.chefs[who].hand;self.assertEqual(pan.contents.stage,'burnt');self.assertTrue(s.fire)
+            pan.contents=None;do('put pot p1');self.assertEqual(s.pot_id,pan.id)
+            k.chefs[who].hand=Food('cut','chopped',6,ingredient='beef');do('put p1')
+            heated=s.food.heated;k.advance(1);self.assertEqual(s.food.heated,heated)  # no heat while burning
+            tool=k.stations['extinguisher'].food;k.stations['extinguisher'].food=None;k.chefs[who].hand=tool
+            do('extinguish p1');self.assertFalse(s.fire);self.assertTrue(s.heating)
+            k.advance(1);self.assertGreater(s.food.heated,heated);k.assert_invariants()
 
     def test_fifth_active_fire_ends_the_round_as_failed(self):
         k=self.make()
@@ -105,17 +120,17 @@ class FireSpreadTests(unittest.TestCase):
         self.assertEqual(k.actions('jeff'),[])
         self.assertEqual(k.snapshot()['fire_safety']['burning_count'],5)
 
-    def test_new_fire_cancels_chopping_but_a_burning_board_still_catches_a_throw(self):
+    def test_new_fire_cancels_chopping_but_burning_stations_still_catch_a_throw(self):
         k=self.make();k.stations['b1'].food=Food('raw-test')
         k.positions['human']=k.equipment['b1']['access'];k.command('human','chop b1')
         k.advance(k.chefs['human'].job.travel+.1)
         self.assertTrue(k.chefs['human'].job.working)
         k.ignite('b1');self.assertIsNone(k.chefs['human'].job)
-        # Overcooked 2: the surface of a burning board still takes an item; a burning stove's pan does not.
+        # Overcooked 2: a burning board's surface and a burning stove's empty pan still catch a throw.
         food=Food('throw-test','raw',ingredient='beef');k.stations['b1'].food=None
         self.assertTrue(k.station_catches('b1',food,'human'))
         k.ignite('p1');k.stations['p1'].food=None
-        self.assertFalse(k.station_catches('p1',Food('cut','chopped',ingredient='beef'),'human'));k.assert_invariants()
+        self.assertTrue(k.station_catches('p1',Food('cut','chopped',ingredient='beef'),'human'));k.assert_invariants()
 
     def test_fire_rule_and_state_reach_model_in_english(self):
         k=self.make();k.ignite('p1')

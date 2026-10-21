@@ -176,10 +176,12 @@ def replay(factory, resolved, inputs):
 TAKE_KINDS = {"fetch", "take_board", "take_tool", "pickup", "take_plate", "take_return", "take_sink", "take_counter", "lift_pot"}
 
 
-# As in Overcooked 2, fire turns off using a station (chopping, an ingredient source, a stove) but not its surface:
-# what rests on a burning board or counter can still be taken, and things put or plated there.
+# As in Overcooked 2, fire turns off using a station (chopping, an ingredient source) but not its surface: what
+# rests on a burning board, counter or stove can still be taken, and things put or plated there; a pan can be
+# lifted off a burning stove, put back, or filled when empty. A burning stove does not heat.
 SURFACE_KINDS = {"take_counter", "take_plate", "take_board", "put_counter", "put_board", "assemble", "merge_plates",
-                 "load_counter", "plate_counter", "plate_from_counter", "swap_pot"}
+                 "load_counter", "plate_counter", "plate_from_counter", "swap_pot",
+                 "lift_pot", "return_pot", "put_pot", "plate_pot"}
 
 
 def hand_swap_allowed(kind, incoming=None):
@@ -429,10 +431,8 @@ class Kitchen:
             s = self.stations[key]
             if s.lock not in (None, who):
                 continue
-            if s.fire:
-                if a.hand and a.hand.stage == 'extinguisher':
-                    add(f"extinguish {key}", f"拿灭火器到{s.name}灭火（{round(s.fire_strength*self.rules.extinguish,1):g}s；随后仍须端锅到垃圾桶倒掉糊菜）", "extinguish", key)
-                continue
+            if s.fire and a.hand and a.hand.stage == 'extinguisher':
+                add(f"extinguish {key}", f"拿灭火器到{s.name}灭火（{round(s.fire_strength*self.rules.extinguish,1):g}s；随后仍须端锅到垃圾桶倒掉糊菜）", "extinguish", key)
             if not s.pot_id:
                 if a.hand and a.hand.stage == 'pot':
                     add(f'put pot {key}', f'把手中的{self.vessel_name(a.hand.id)}放回{s.name}（有食物时恢复加热）', 'return_pot', key)
@@ -452,9 +452,9 @@ class Kitchen:
         # Continuing a chop/move must not accidentally restart its remaining duration.
         if a.job:
             out = [x for x in out if x.key != a.job.action.key]
-        # A burning station cannot be used until extinguished; a burning board or counter still takes and
+        # A burning station cannot be used until extinguished; a burning board, counter or stove still takes and
         # gives items (SURFACE_KINDS). Both chefs see exactly the same actions.
-        surfaces = set(self.boards + self.counters)
+        surfaces = set(self.boards + self.counters + self.pots)
         out = [x for x in out if x.kind in ('go', 'extinguish') or not (x.target in self.stations and self.stations[x.target].fire)
                or (x.target in surfaces and x.kind in SURFACE_KINDS)]
         if a.hand:
@@ -748,7 +748,7 @@ class Kitchen:
             a.hand = None
             self.heat_stove(s)
         elif k == 'swap_pot':
-            if self.signature(who,job.action.target)!=job.action.expected or s.fire:
+            if self.signature(who,job.action.target)!=job.action.expected:
                 self.stop(who);return
             if job.action.target in self.pots:
                 incoming=a.hand
@@ -839,7 +839,9 @@ class Kitchen:
             s.food.chopped = self.rules.chop_work(s.food.ingredient)
             s.food.stage = self.rules.chop[s.food.ingredient]['to']
         elif k == "extinguish":
-            s.fire, s.fire_strength, s.heating = False, 0., False
+            s.fire, s.fire_strength = False, 0.
+            # A pan put on the burning stove, holding food that is not burnt, cooks once the fire is out.
+            s.heating = bool(job.action.target in self.pots and s.pot_id and s.food and s.food.stage != 'burnt')
         elif k == "discard":
             a.hand = Food(a.hand.plate_id, 'dirty_plate') if a.hand.plate_id else None
             self.money += self.rules.penalty['discard']
