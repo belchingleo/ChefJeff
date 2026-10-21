@@ -229,6 +229,7 @@
         "cooldown_delay_game_ms",
         "cooldown_game_ms",
         "relight_delay_game_ms",
+        "recovery_game_ms",
         "loss_threshold"
       ],
       "description": "Fire spreads as in Overcooked 2: every burning station heats each flammable station in the eight cells around it.",
@@ -247,7 +248,11 @@
         },
         "relight_delay_game_ms": {
           "$ref": "common.schema.json#/$defs/positive_game_ms",
-          "description": "A station just extinguished takes no heat for this long."
+          "description": "After spraying stops, a burning station does not grow back and one just put out takes no heat, for this long."
+        },
+        "recovery_game_ms": {
+          "$ref": "common.schema.json#/$defs/positive_game_ms",
+          "description": "Time for a partly sprayed fire, left alone, to grow back to full strength."
         },
         "loss_threshold": {
           "type": "integer",

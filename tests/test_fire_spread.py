@@ -56,14 +56,32 @@ class FireSpreadTests(unittest.TestCase):
             self.assertTrue(all(a.kind in ['go','extinguish'] for a in options if a.target==target))
             ok,_=k.command(who,'extinguish '+target);self.assertTrue(ok)
             j=k.chefs[who].job;k.advance(j.travel+j.work+.001)
-            self.assertFalse(k.stations[target].fire);self.assertEqual(k.stations[target].relight_in,k.rules.relight_delay)
+            self.assertFalse(k.stations[target].fire);self.assertAlmostEqual(k.stations[target].sprayed,k.rules.relight_delay,places=1)
             k.assert_invariants()
 
     def test_a_station_just_put_out_takes_no_heat_for_two_seconds(self):
         k=self.make();k.ignite('p1');n=k.fire_neighbors('p1')[0];k.ignite(n)
-        k.stations[n].fire=False;k.stations[n].relight_in=k.rules.relight_delay
+        k.stations[n].fire=False;k.stations[n].sprayed=k.rules.relight_delay
         k.advance(1.9);self.assertEqual(k.stations[n].fire_heat,0)
         k.advance(.6);self.assertGreater(k.stations[n].fire_heat,0)
+
+    def test_spraying_progress_stays_then_the_fire_grows_back_for_both_chefs(self):
+        # Overcooked 2's FightFire: spraying lowers the fire's strength, which the station keeps; left alone
+        # for 2 s it grows back to full over 5 s. Walking away mid-spray loses nothing straight away.
+        seen=[]
+        for who in ['human','jeff']:
+            k=self.make();target=k.counters[0];k.ignite(target);s=k.stations[target]
+            tool=k.stations['extinguisher'].food;k.stations['extinguisher'].food=None;k.chefs[who].hand=tool
+            k.command(who,'extinguish '+target);j=k.chefs[who].job;k.advance(j.travel+2)
+            self.assertAlmostEqual(s.fire_strength,.5,places=1);self.assertTrue(s.fire)
+            self.assertIn('2s',next(a.label for a in k.actions(who) if a.key=='extinguish '+target))
+            sprayed=s.fire_strength;k.stop(who);k.advance(1.9);self.assertAlmostEqual(s.fire_strength,.5,places=1)
+            k.advance(1.1);self.assertAlmostEqual(s.fire_strength,.68,places=1);regrown=s.fire_strength
+            # Spraying again only has what is left to put out.
+            self.assertTrue(k.command(who,'extinguish '+target)[0]);self.assertAlmostEqual(k.chefs[who].job.work,s.fire_strength*4,places=2)
+            k.advance(k.chefs[who].job.travel+k.chefs[who].job.work+.1);self.assertFalse(s.fire)
+            seen.append((round(sprayed,3),round(regrown,3)));k.assert_invariants()
+        self.assertEqual(seen[0],seen[1])
 
     def test_fifth_active_fire_ends_the_round_as_failed(self):
         k=self.make()

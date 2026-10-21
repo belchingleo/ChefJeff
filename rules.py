@@ -171,6 +171,7 @@ class Rules:
         self.fire_cooldown_delay = s(fire['cooldown_delay_game_ms'])
         self.fire_cooldown = s(fire['cooldown_game_ms'])
         self.relight_delay = s(fire['relight_delay_game_ms'])
+        self.fire_recovery = s(fire['recovery_game_ms'])
         self.fire_loss = ruleset['fire']['loss_threshold']
         self.penalty = dict(ruleset['penalties'])
         self.burnt_service = [dict(t) for t in ruleset.get('burnt_service', [])]

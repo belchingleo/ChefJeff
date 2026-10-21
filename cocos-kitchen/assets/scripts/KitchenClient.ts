@@ -1085,7 +1085,7 @@ export class KitchenClient extends Component {
         if(next.game_id!==this.state?.game_id){this.moveSeq=Date.now()*1000;this.predicted=this.lastReported=this.lastAim=null;this.resyncSeen=-1;this.sprintAt=-Infinity;}
         if(next.phase!=='running')this.localPick=undefined;
         const was=next.game_id===this.state?.game_id?this.state?.kitchen?.chefs?.human:null,now=next.kitchen?.chefs?.human;
-        const working=(c:any)=>!!c&&['chop','wash'].includes(c.action_kind)&&(c.working||(c.travel_remaining||0)>0);
+        const working=(c:any)=>!!c&&['chop','wash','extinguish'].includes(c.action_kind)&&(c.working||(c.travel_remaining||0)>0);
         if(was&&!was.holding&&now?.holding)this.pickedAt=this.clock;
         this.state=next;this.connected=true;this.received=this.lastStateAt=this.clock;this.stateSentAt=sent;
         if(working(now)&&!working(was)){this.heldThrough=this.rawDirection();this.refreshMovement();}
@@ -1694,6 +1694,8 @@ export class KitchenClient extends Component {
             if(st.food&&st.stove)progress=Math.min(1,st.food.heat_elapsed/(s.rules?.cook_seconds||12));
             // As in Overcooked 2, a station a fire next to it is heating shows a fire bar until it ignites.
             const igniting=!st.fire&&st.fire_heat>0;if(igniting)progress=st.fire_heat;
+            // A fire being sprayed shows how much is left (Overcooked 2's fire bar); full fires show none.
+            if(st.fire&&st.fire_strength<1)progress=st.fire_strength;
             if(progress>=0){
                 const py=this.useModularArt?this.workSurfaceY(id)-TILE/2+3:-18;
                 this.rect(g,-23,py-1,46,6,COLORS.ink);this.rect(g,-22,py,44*progress,4,st.fire||igniting?COLORS.hot:COLORS.paper);
