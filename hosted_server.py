@@ -11,6 +11,7 @@ import math
 import mimetypes
 from pathlib import Path
 import secrets
+import signal
 import threading
 import time
 from collections import Counter, OrderedDict, deque
@@ -25,6 +26,7 @@ from feedback import play_export
 from hosted_records import ContributionStore, pilot_record, CONSENT_VERSION
 from hosted_capacity import ActiveKitchens, RequestBudget, NETWORK_FULL
 from hosted_jev import JevForwarder
+from hosted_usage import UsageStats
 
 HOSTED_HISTORY_LIMIT = 20  # rounds kept per page for the data export; bounds memory under MemoryMax
 
@@ -104,6 +106,11 @@ class HostedSession(GameSession):
         self.receipt_round = None
         self.store = None
         self.connected = False
+        self.usage = None
+        self.usage_started = False  # Once per page session, including retries, restarts and later levels.
+        self.usage_end_reason = 'restart'
+        self.usage_visit_reported = False
+        self.usage_play_reported = False
         self.release = release if release is not None else release_info()
         self.setting = None  # Export contains no provider URL/model text.
         self.jev_gate = threading.Lock()
@@ -134,6 +141,15 @@ class HostedSession(GameSession):
         if self.relay: self.relay.close()
         self.relay = BrowserRelay(config)
         return self.relay
+
+    def _finish(self, aborted=False):
+        started = bool(self.journal)
+        completed = bool(self.journal and self.phase == 'ended' and self.k.ended
+                         and not aborted and not self.k.aborted)
+        super()._finish(aborted)
+        if started and self.usage:
+            self.usage.end_round(self.c['level'], 'completed' if completed else self.usage_end_reason,
+                                 self.k.time, self.speed)
 
     def public_state(self):
         with self.lock:
@@ -188,15 +204,28 @@ class HostedSession(GameSession):
             return 200, {'ok': True, 'report': report}
         if path in ('/api/pause', '/api/end', '/api/reset', '/api/level', '/api/next') and self.relay:
             self.relay.cancel()
-        return super()._command(path, body)
+        previous_reason = self.usage_end_reason
+        if path == '/api/end': self.usage_end_reason = 'manual_end'
+        try:
+            response = super()._command(path, body)
+        finally:
+            self.usage_end_reason = previous_reason
+        if path == '/api/start' and response[0] == 200:
+            if self.usage:
+                self.usage.start_round(self.c['level'], first=not self.usage_started)
+            self.usage_started = True
+        return response
 
     def close(self):
-        if self.relay: self.relay.close()
-        super().close()
+        with self.lock:
+            self.usage_end_reason = getattr(self, 'usage_close_reason', 'page_close')
+            if self.relay: self.relay.close()
+            super().close()
 
 
 # Game fields plus the explicit opt-in Jev route. Never echo invalid bodies.
 FIELDS = {
+    '/api/usage': {'first_visit', 'first_play'},
     '/api/model/jev': {'api_key','consent','consent_version','test','id'},
     '/api/contribution/preview': set(),
     '/api/contribution/save': {'consent', 'consent_version', 'consent_mode'},
@@ -212,7 +241,7 @@ FIELDS = {
 
 
 class Sessions:
-    def __init__(self, capacity=8, ttl=600, factory=HostedSession, store=None, max_waiting=32, per_network=None):
+    def __init__(self, capacity=8, ttl=600, factory=HostedSession, store=None, max_waiting=32, per_network=None, usage=None):
         self.capacity, self.ttl, self.factory = capacity, ttl, factory
         self.pool_limit = capacity + max_waiting
         self.slots = ActiveKitchens(capacity, per_network=per_network)
@@ -221,6 +250,7 @@ class Sessions:
         self.creating = 0
         self.closed = False
         self.store = store
+        self.usage = usage
         self.entries = {}
         self.lock = threading.RLock()
 
@@ -236,16 +266,21 @@ class Sessions:
             self.slots.refresh(self.entries)
         # Closing/summary calculation must not hold the global admission lock.
         for session in expired:
+            session.usage_close_reason = 'disconnected'
             session.close()
 
     def create(self, network=None):
         self.reap()
         with self.lock:
-            if self.closed or len(self.entries)+self.creating >= self.pool_limit: return None
+            if self.closed: return None
+            if len(self.entries)+self.creating >= self.pool_limit:
+                if self.usage: self.usage.increment('page_full_rejections')
+                return None
             self.creating += 1
         try:
             session = self.factory()
             session.store = self.store
+            session.usage = self.usage
             session.network = network
             token = secrets.token_urlsafe(32)
         except BaseException:
@@ -258,6 +293,7 @@ class Sessions:
                 self.budgets[token] = RequestBudget()
                 threading.Thread(target=session.run, daemon=True).start()
                 return token
+        session.usage_close_reason = 'shutdown'
         session.close()
         return None
 
@@ -292,7 +328,11 @@ class Sessions:
     def reserve(self, token):
         with self.lock:
             if token not in self.entries: return None
-            return self.slots.reserve(token, self.entries)
+            result = self.slots.reserve(token, self.entries)
+            if self.usage:
+                if result is None: self.usage.increment('kitchen_full_rejections')
+                elif result == NETWORK_FULL: self.usage.increment('network_full_rejections')
+            return result
 
     def settle(self, token, allocated, success):
         with self.lock:
@@ -305,7 +345,9 @@ class Sessions:
             self.entries.clear()
             self.budgets.clear()
             self.slots.refresh(self.entries)
-        for session, _ in games: session.close()
+        for session, _ in games:
+            session.usage_close_reason = 'shutdown'
+            session.close()
 
 
 # Hosted-only copy swapped into the local web shell. Each anchor must stay verbatim in
@@ -486,6 +528,16 @@ class HostedHandler(Handler):
         if not self.valid_origin(): return self.reply(403, {'error': '请求来源不允许。'})
         path = unquote(urlsplit(self.path).path)
         if path == '/healthz': return self.reply(200, {'ok': True})
+        if path == '/ops/usage':
+            # Nginx blocks /ops/ and always adds this header on public requests.
+            if self.headers.get('X-ChefJeff-Client') is not None:
+                return self.reply(404, {'error': '未找到页面或资源。'})
+            sessions = self.server.sessions
+            sessions.reap()
+            with sessions.lock:
+                running = sum(g.phase == 'running' and not g.faulted and not g.stop_event.is_set()
+                              for g, _ in sessions.entries.values())
+            return self.reply(200, {'usage': {**self.server.usage.snapshot(), 'running_sessions': running}})
         if path == '/ops/capacity':
             sessions = self.server.sessions
             with sessions.lock:
@@ -520,7 +572,9 @@ class HostedHandler(Handler):
         # HTML stays fresh and uncached. Asset URLs are not all content-addressed,
         # so always revalidate them rather than giving old builds a long lifetime.
         if file.suffix == '.html':
-            if file.name == 'index.html': data = hosted_html(data)
+            if file.name == 'index.html':
+                data = hosted_html(data)
+                self.server.usage.increment('page_views')
             return self.reply(200, data, content_type)
         etag = '"' + hashlib.sha256(data).hexdigest() + '"'
         candidates = [tag.strip().removeprefix('W/') for tag in self.headers.get('If-None-Match', '').split(',')]
@@ -560,6 +614,17 @@ class HostedHandler(Handler):
         game = self.session()
         if not game: return self.reply(401, {'error': '厨房会话已过期，请刷新页面。'})
         if self.limited(): return
+        if path == '/api/usage':
+            if set(body) != {'first_visit', 'first_play'} or any(type(v) is not bool for v in body.values()):
+                return self.reply(400, {'error': '请求无效，请重试。'})
+            with game.lock:
+                if body['first_play'] and not game.usage_started:
+                    return self.reply(409, {'error': '当前没有进行中的对局。'})
+                self.server.usage.record_browsers(body['first_visit'] and not game.usage_visit_reported,
+                                                  body['first_play'] and not game.usage_play_reported)
+                game.usage_visit_reported |= body['first_visit']
+                game.usage_play_reported |= body['first_play']
+            return self.reply(200, {'ok': True})
         if path == '/api/model/jev':
             status, result = self.server.jev_forwarder.handle(game,body)
             return self.reply(status,result)
@@ -596,9 +661,10 @@ def make_server(port, origin, capacity=8, web_root=None, data_dir=None, max_wait
     server.public_origin = origin.rstrip('/')
     # Build identity is immutable for the life of this release, not per page.
     release = release_info()
+    server.usage = UsageStats(data_dir)
     server.sessions = Sessions(capacity, factory=lambda:HostedSession(release),
                                store=ContributionStore(data_dir) if data_dir else None, max_waiting=max_waiting,
-                               per_network=per_network)
+                               per_network=per_network, usage=server.usage)
     server.jev_forwarder = JevForwarder()
     server.web_root = Path(web_root or ROOT / 'cocos-kitchen' / 'build' / 'web')
     return server
@@ -628,6 +694,9 @@ def main():
             server.sessions.reap()
             if server.sessions.store: server.sessions.store.prune()
     threading.Thread(target=reap, daemon=True).start()
+    # systemd sends SIGTERM during a normal update. Finish in-memory aggregates as
+    # shutdowns, not player exits; shutdown() must run outside serve_forever's thread.
+    signal.signal(signal.SIGTERM, lambda *_: threading.Thread(target=server.shutdown, daemon=True).start())
     print('ChefJeff hosted service ready; persistent credentials and journals disabled.', flush=True)
     try: server.serve_forever()
     except KeyboardInterrupt: pass

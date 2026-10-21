@@ -44,6 +44,22 @@ On this pilot's shared VPN server, run `bash deploy/finalize_hetzner.sh` as root
 
 ## Operational checks
 
+### Aggregate usage counters
+
+On the server, run `python3 /opt/chefjeff/current/scripts/hosted_usage.py`. From a Mac with the existing `hetzner-vpn` SSH alias, run `ssh -t -o BatchMode=no -o UseKeychain=yes hetzner-vpn 'python3 /opt/chefjeff/current/scripts/hosted_usage.py'`. The script reads `GET /ops/usage` on `127.0.0.1:8780` with the configured Host; it needs no database permissions or model credentials. The shipped Nginx configuration blocks `/ops/` publicly; the usage handler also refuses the proxy's client-address header. Keep the Python listener loopback-only.
+
+Metric definitions:
+
+- `page_views`: successful homepage (`/` or `/index.html`) responses. Includes refreshes, bots and tests; it does not prove that a human loaded all game assets. Assets, polling, health/privacy pages and failed requests are excluded.
+- `started_sessions`: once per page session after its first successful start, regardless of retries, pauses, restarts and later levels. A reload/new tab creates another session. `started_rounds` counts each successful round start, including restarts and later levels. Replayed request receipts, failed starts and resumes do not add rounds.
+- `completed_rounds`: each natural closing, including losses, once. `manual_ends`: successful manual End commands only; restarting/changing level, closing, disconnection and service shutdown are separate endings. `levels` holds round starts/completions for each of the three levels.
+- `full_rejections`: rejected creation/start/resume attempts due to the global page pool or active-kitchen limit (`page_full_rejections` / `kitchen_full_rejections`). The same browser's retries count again. `network_full_rejections` separately counts the per-network limit. State polling and validation failures do not add rejections.
+- `running_sessions`: running phase only, excluding paused/results/waiting sessions. It resets after shutdown. A lost connection pauses after the existing 8-second heartbeat timeout.
+- `durations`: per-level and per-ending histograms, with bucket counts, summed game seconds, and effective running seconds (`game_seconds / speed`). Pauses and waiting do not advance game progress. This measures simulated play progress at the selected pace, not precise time spent looking at the screen. Buckets are [0,10), [10,30), [30,60), [60,120), [120,180), [180,300), and 300+ seconds. Endings distinguish natural closing, manual End, received page-close notification, idle-session cleanup, restart/level change and service shutdown. Without a close notification, disconnection is finalized at the existing 10-minute idle cleanup, using the last game progress; its precise wall-clock exit time is unknown. Normal systemd SIGTERM is handled gracefully and classified as shutdown, not a player choosing to quit. A force-kill or crash can leave in-progress rounds without ending aggregates. No round ID, exact exit timestamp or individual-duration row is retained.
+- `estimated_visitor_browsers` / `estimated_player_browsers`: first-visit/play reports from the browser. Only two fixed localStorage flags (`chefjeff.usage-visited.v1`, `chefjeff.usage-played.v1`, each `1`) persist in the browser; no identifier or fingerprint is generated. Reports contain two booleans over the existing authenticated session, which is never persisted in stats. The server deduplicates retries in that session's memory and accepts first-play only after an actual start. Web Locks serializes tabs where available. These are approximate browsers, not people: cleared data, private browsing, other devices, shared profiles, missing acknowledgements, unsupported cross-tab locking and manipulated reports can skew totals. Browsers with unavailable storage or no admitted session are omitted. Flags span visits but do not support unique counts per day or arbitrary time window; normal API-key clearing does not clear these flags, while clearing site data does.
+
+With `--data-dir`, the private `usage.sqlite3` contains one totals row and bounded aggregates for the three levels and six ending types, not per-event records. The production directory is `/var/lib/chefjeff`; updates/restarts retain it. Tracking starts at first deployment with no historical backfill, and aggregates persist for the service's lifetime independently of optional 30-day contributions. No IPs, accounts, referrers, user agents, model information, payloads, keys or session/round IDs are written. Without `--data-dir`, counters are memory-only. `persistent: false` / `storage_errors` expose storage failure: counting continues in memory without stopping play, and unpersisted increments can be lost on restart.
+
 `/ops/capacity` is accessible on the loopback backend and blocked by the public Nginx route. It reports held slots, per-network rejections, page sessions, aggregate rejections, recent response P95/P99, Python CPU/RSS/threads and Linux service cgroup memory where available. No session token, game ID, IP or model payload is included. These are backend metrics, not browser/network latency or total host CPU.
 
 After an approved release is installed, run `python3 /opt/chefjeff/current/deploy/set_kitchen_capacity.py 8` in the server's root SSH terminal to explicitly replace the old two-kitchen command. Existing memory/data/VPN settings remain in place. The helper restarts ChefJeff (ending current rounds), checks the effective limit and restores its previous drop-in if verification fails. A normal release update intentionally preserves existing capacity overrides.
@@ -137,6 +153,19 @@ JavaScript 压缩同时覆盖 `text/javascript` 与 `application/javascript`，�
 在当前共用 VPN 的试玩服务器上，HTTPS 可用后以 root 执行 `bash deploy/finalize_hetzner.sh`。它为已启用的 `personal-vpn-firewall.service` 添加补充配置，在服务启动及重新加载后，通过现有 `inet personal_vpn_filter input` 链放行 TCP 80／443；原 VPN 加载脚本及其校验参数保持原样。脚本还安装仅针对试玩证书的 Nginx 重载钩子，启用 Certbot 定时器，并模拟续期及钩子执行。此脚本要求上述指定服务及规则链存在，不会重启服务器；实际开机持久化需在之后的维护重启时确认。
 
 ## 验证
+
+### 查看使用统计
+
+在服务器执行 `python3 /opt/chefjeff/current/scripts/hosted_usage.py`；在已配置 `hetzner-vpn` 的 Mac 上可执行 `ssh -t -o BatchMode=no -o UseKeychain=yes hetzner-vpn 'python3 /opt/chefjeff/current/scripts/hosted_usage.py'`。不需要 sudo、数据库读取权限或模型 Key。统计接口为本机 `GET /ops/usage`，Nginx 禁止公开访问 `/ops/`；处理器还会拒绝带代理客户端地址头的统计读取。
+
+累计项包括首页成功响应、首次开局会话、实际开局局数、自然完成、手动结束、全局满员拒绝及同网络名额拒绝，另按三关显示开局／完成数。访问次数含刷新、爬虫和作者测试，不是独立人数；实际开局含重开和下一关，重复请求、继续和失败请求不算新局；满员计拒绝请求次数，重复尝试会重复计数。当前游戏中的会话数只算运行阶段，不含暂停、结算或等待。
+
+已结束对局按关卡和结束方式保存时长区间次数及总秒数，不保存逐局记录。有效游玩秒数按“游戏内进度 ÷ 本局节奏”换算，暂停和等待不计；不等于人在屏幕前的精确时间。区间为 0–10、10–30、30–60、60–120、120–180、180–300、300+ 秒（左含右不含）。结束方式区分自然完成、手动结束、收到页面关闭通知、断线清理、重开／换关及服务停止。没有关闭通知的断线会在原有 10 分钟闲置清理时确认，使用最后游戏进度，不能知道实际关页时刻；普通 systemd 停止（SIGTERM）会正常结算为服务停止，不当作玩家主动退出；强制杀死或崩溃可能导致未结束局的时长缺失。
+
+“估算访问／试玩浏览器数”只用浏览器中两个固定的已计入标记（`chefjeff.usage-visited.v1` / `chefjeff.usage-played.v1`），不生成独立编号、指纹或 Cookie。服务器只接收两个布尔值，在现有页面会话内去重重试，试玩须确实开过局。支持 Web Locks 时会串行处理多标签；无痕、清除数据、换设备、共用浏览器、上报丢失、旧浏览器竞争或伪造会影响估算。禁用存储或未获页面会话者不计，不能做每日或任意时间窗口的独立人数；清除模型 Key 不影响标记，清除站点数据会清掉标记。
+
+统计从部署此功能开始，无法补算之前的访问。`--data-dir` 下的私有 `usage.sqlite3` 仅保存统计开始时间、累计数、关卡汇总和有界时长区间，在服务运营期间保留，更新／重启不清零；既有生产配置目录为 `/var/lib/chefjeff`。统计不写 IP、账号、浏览器编号、来源、User-Agent、模型、Key、会话／对局标识或逐条事件，与自愿贡献的 30 天记录分开。未配置数据目录时仅在内存计数；存储失败会标记 `persistent: false` 和 `storage_errors`，不阻断游戏，但未持久化计数可能在重启后丢失。
+
 
 `/ops/capacity` 仅从回环后端读取，公开 Nginx 入口拒绝访问。指标包含保留名额、按网络拒绝次数、页面会话数、拒绝数、近期响应 P95／P99、Python CPU／内存／线程和可用时的 Linux 服务 cgroup 内存；不包含会话 token、游戏 ID、IP 或模型正文。这些是后端指标，不是浏览器／网络延迟或整机 CPU。
 

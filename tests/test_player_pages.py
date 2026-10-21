@@ -17,6 +17,8 @@ class PlayerPageTests(unittest.TestCase):
         self.assertNotRegex(page, r'[\w.+-]+@[\w-]+\.[\w.]+')  # contact is GitHub only, no invented email
         for text in ('localStorage', '10 分钟', '30 天', '删除凭证', '本地版', 'id="english"'):
             self.assertIn(text, page)
+        for text in ('使用统计', 'Usage statistics', '不代表真实人数', 'No unique identifier'):
+            self.assertIn(text, page)
         self.assertLess(page.index('隐私说明与反馈'), page.index('Online version'))  # Chinese first
 
     def test_model_guide_names_each_provider_and_links_privacy(self):

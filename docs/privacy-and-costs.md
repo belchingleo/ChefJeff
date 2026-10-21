@@ -24,6 +24,8 @@ Gameplay actions and state are processed on the server. Anonymous sessions remai
 
 Contributions exclude keys, account identity, email, IP addresses, model endpoints and raw model requests/responses. Network and model providers process traffic under their own policies. The demo operator must keep its reverse-proxy logging and backup practices consistent with this policy. See [deployment](hosted-deployment.md).
 
+The hosted server also keeps private aggregate statistics on visits, play, level completions, exits, capacity rejections and play duration for the service’s lifetime. Local browser flags help estimate visiting and playing browsers, not people; no unique identifier or fingerprint is generated. Statistics exclude IPs, accounts, credentials and individual-round records. This is separate from voluntary 30-day contributions. See the [player privacy notice](privacy.md) and [operator documentation](hosted-deployment.md) for details.
+
 ---
 
 ## 中文说明
@@ -45,6 +47,8 @@ Contributions exclude keys, account identity, email, IP addresses, model endpoin
 本地 `logs/` 可包含完整状态与模型输出。每局还会在 `logs/sessions/<会话 id>/` 生成对局记录包（冻结配置、事件流、引擎输入与实际发送的模型请求），与日志同源派生，不含凭据，只保存在本机。反馈导出按允许清单包含构建／对局标识、时间、结果、调用与用量统计、事件计数、标记、预设沟通及近期动作事件，不含凭据、服务端点、记忆和原始模型载荷。下载或分享前请先预览。
 
 ## 托管试玩
+
+服务器另外保存访问、试玩、关卡完成、退出、满员情况及游玩时长的汇总，在服务运营期间私有保留。浏览器本地标记用于估算访问／试玩的浏览器数量，不代表真实人数，不生成唯一访客编号或指纹。统计不保存 IP、账号、凭据或逐局明细，与自愿贡献的 30 天记录分开。详见[隐私说明](privacy.md)和[运维文档](hosted-deployment.md)。
 
 浏览器直连模式只将模型请求和 Key 发给供应商，要求其支持 CORS；失败不会自动切换转发。Jev 玩家可明确勾选**同意通过试玩服务器调用 Jev**。此模式下，Key 和模型请求经 HTTPS 通过 ChefJeff 服务器发往固定的 TypeSafe Jev 接口。服务器仅在处理该请求时使用 Key，不将其或模型载荷写入配置、日志、对局记录或贡献存储。取消请求或关闭页面时，已经发出的调用仍可能计费。
 

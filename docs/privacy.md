@@ -9,6 +9,7 @@
 - **API Key**：默认只在当前页面的内存里，刷新或关闭页面即消失。勾选「记住此设备」后，Key 和所选转发方式以明文保存在这个浏览器的 localStorage；在「设置 → 连接」点「清除配置」即删除。
 - **模型请求**：默认由浏览器直接发给你选的模型服务，费用记在你的账号上。只有你为 Jev 明确勾选「同意通过试玩服务器调用 Jev」时，Key 和模型请求才经 HTTPS 通过我们的服务器转发给 TypeSafe；服务器只在处理这次请求时使用 Key，不写入配置、日志或对局记录。
 - **对局**：游戏状态和你的操作在服务器内存中处理。关闭页面或闲置 10 分钟后清除，不写磁盘对局日志，也没有跨局记忆。
+- **使用统计**：为改进游戏，服务器保存访问、试玩、关卡完成、退出、满员情况及游玩时长的汇总；浏览器用本地标记估算访问／试玩的浏览器数量，估算不代表真实人数。统计不保存 IP、账号、Key 或逐局明细，不生成唯一访客编号或指纹。汇总数据私有保存，在服务运营期间保留，与下述自愿贡献的 30 天记录分开。清除网站数据可删除本地标记。
 - **数据贡献（自愿）**：第一次开局前会问你一次，可以选「同意以后每局自动贡献」或「暂不」，没有默认选项，之后可在「设置 → 数据导出」更改；选「暂不」时，也可在结算画面点「贡献本局」只贡献那一局。
   - 会保存：游戏引擎事件、每秒角色位置、结算结果、预设沟通代码（例如「我更爱备菜」）、地图与版本。
   - 不会保存：API Key、自由输入的文字（游戏里也没有自由输入框）、模型回复与完整请求、IP 与账号身份、模型接口地址。
@@ -45,6 +46,7 @@ What ChefJeff stores, where, for how long, how to delete it, and how to reach us
 - **API key**: kept in this page's memory by default and gone on refresh or close. With **Remember on this device**, the key and chosen transport are saved in plain text in this browser's localStorage; **Clear credentials** in Settings → Connection deletes them.
 - **Model requests**: sent by your browser straight to the model service you choose and billed to your account. Only if you explicitly tick **I agree to call Jev through the demo server** do the key and model request pass over HTTPS through our server to TypeSafe; the server uses the key only for that request and never writes it to configuration, logs or game records.
 - **Rounds**: game state and your actions are processed in server memory and cleared when you close the page or after 10 idle minutes. No game journal is written to disk and there is no cross-round memory.
+- **Usage statistics**: to improve the game, the server keeps aggregate counts of visits, play, level completions, exits and capacity rejections, along with play duration summaries. Local browser flags help estimate visiting and playing browsers, not people. No unique identifier or fingerprint is generated; statistics exclude IPs, accounts, keys and individual-round records. Aggregates remain private and are retained for the service’s lifetime, separately from the voluntary 30-day contributions below. Clearing site data removes the local flags.
 - **Data contribution (voluntary)**: before your first round you are asked once, with two equal choices: **Contribute every round from now on** or **Not now**. Nothing is preselected; change it later in Settings → Data export. After **Not now**, the result card offers **Contribute this round** for that round alone.
   - Saved: engine events, chef positions once a second, results, preset communication codes (such as "I prefer ingredient prep"), map and version.
   - Never saved: API keys, free text (the game has no free-text input), model replies and full requests, IP address and account identity, model endpoints.

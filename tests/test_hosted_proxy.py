@@ -208,7 +208,8 @@ class HostedProxyTests(unittest.TestCase):
         self.assertEqual(headers['X-Content-Type-Options'],'nosniff')
         self.assertIn('max-age=',headers['Strict-Transport-Security'])
         self.assertEqual(self.request(path,headers={'If-None-Match':headers['ETag']})[0],304)
-        for path in ('/ops/capacity','/../../hosted_records.py','/release-manifest.json','/assets/resources.meta'):
+        for path in ('/ops/capacity','/ops/usage','/%6fps/usage','/ops%2fusage',
+                     '/../../hosted_records.py','/release-manifest.json','/assets/resources.meta'):
             with self.subTest(path=path):self.assertIn(self.request(path)[0],(400,404))
         status,_,headers=self.request('/assets/absent.js',include_headers=True)
         self.assertEqual(status,404)
