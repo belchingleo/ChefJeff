@@ -87,7 +87,7 @@ class HostedTests(unittest.TestCase):
     def test_privacy_markup_only_affects_hosted_page(self):
         raw=(Path(__file__).resolve().parents[1]/'cocos-kitchen/build/web/index.html').read_bytes()
         html=hosted_html(raw).decode()
-        self.assertIn('<head><script src="/hosted-agent.js">',html)
+        self.assertIn('<head><script src="/model-providers.js"></script><script src="/hosted-agent.js">',html)
         self.assertIn('浏览器 localStorage',html)
         self.assertNotIn('记住后以明文保存在这台电脑的本地配置文件',html)
         self.assertIn('<section hidden aria-labelledby="memory-title"',html)

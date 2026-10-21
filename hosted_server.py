@@ -330,7 +330,7 @@ CONTRIBUTION_BADGE = ('<p id="contribution-badge" role="status" hidden style="po
 
 def hosted_html(raw):
     page = raw.decode('utf-8')
-    page = page.replace('<head>', '<head><script src="/hosted-agent.js"></script>', 1)
+    page = page.replace('<head>', '<head><script src="/model-providers.js"></script><script src="/hosted-agent.js"></script>', 1)
     for old, new in SHELL_REPLACEMENTS:
         page = page.replace(old, new)
     panel = (ROOT / 'hosted' / 'contribution.html').read_text()

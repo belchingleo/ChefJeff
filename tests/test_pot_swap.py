@@ -76,11 +76,10 @@ class PotSwapTests(unittest.TestCase):
                 self.assertIs(stored,spare);self.assertIs(k.chefs[who].hand,other)
                 k.advance(1);self.assertEqual(stored.contents.heated,3);self.assertEqual(other.contents.heated,12)
 
-    def test_empty_incoming_pot_does_not_heat_and_fire_blocks_swap(self):
+    def test_empty_incoming_pot_does_not_heat_and_a_burning_stove_still_swaps(self):
+        # Lifting a pan off a burning stove and putting one back are allowed (Overcooked 2), so swapping is too.
         k=self.make();self.held_spare(k,'human');s=k.stations['p1'];s.food=Food('beef','burnt',heated=22);s.fire=True
-        self.assertNotIn('swap pot p1',[a.key for a in k.actions('human')])
-        s.fire=False
-        self.finish(k,'human','swap pot p1');self.assertIsNone(s.food);self.assertFalse(s.heating)
+        self.finish(k,'human','swap pot p1');self.assertIsNone(s.food);self.assertFalse(s.heating);self.assertTrue(s.fire)
         self.assertEqual(k.chefs['human'].hand.contents.stage,'burnt')
 
     def test_stale_ground_swap_and_lock_protect_both_pots(self):

@@ -11,6 +11,7 @@ import urllib.request
 from kitchen import ROOT
 from web_server import GameSession
 from whitebox_server import SpatialJevClient
+from jev import http_error_detail
 from model_language import english_data
 from cooperation_memory import CooperationMemory, round_scope, episode, ROUNDS
 from release_info import release_info
@@ -22,16 +23,20 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         raise urllib.error.HTTPError(req.full_url, code, 'Redirect refused', headers, fp)
 
 
+# The services Jeff can use (shared with the settings dialog and the hosted page): see model-providers.json.
+PROVIDERS={p['id']:p for p in json.loads((ROOT/'model-providers.json').read_text())['providers'] if not p.get('disabled')}
+
+
 def settings_from(body):
     provider=body.get('provider')
-    if provider not in ('jev','deepseek','compatible'):
+    if provider not in PROVIDERS:
         raise ValueError('请选择 API 服务。')
+    preset=PROVIDERS[provider]
     key=body.get('api_key')
     if not isinstance(key,str) or not 8<=len(key.strip())<=2048 or any(c.isspace() for c in key.strip()):
         raise ValueError('请填写完整的 API Key，不要包含空格或换行。')
-    defaults={'jev':('https://api.typesafe.ai/v1','jev-latest'),'deepseek':('https://api.deepseek.com','deepseek-flash')}
-    base,model=defaults.get(provider,(body.get('base_url',''),body.get('model','')))
-    if provider=='deepseek':model=body.get('model') or model
+    base=body.get('base_url','') if preset.get('custom') else preset.get('endpoint') or preset['base_url']
+    model=(body.get('model') if preset['model_editable'] else None) or preset.get('model','')
     if not isinstance(base,str) or not isinstance(model,str) or not model.strip() or len(model)>120:
         raise ValueError('请填写接口地址和模型名称。')
     base=base.strip().rstrip('/')
@@ -61,37 +66,58 @@ class CompatibleClient(SpatialJevClient):
         payload=english_data(payload)
         started=time.monotonic()
         body={'model':self.setting['model'],'messages':[
-            {'role':'system','content':'You control the blue chef in a shared kitchen. Using the supplied state and rules, choose exactly one action key from questions.next_action.criteria. Return only a JSON object, for example {"choice":"wait"}. If questions.sprint is present, also return a boolean sprint (true or false) in the same JSON object. Do not explain or choose an action outside the candidate set.'},
+            {'role':'system','content':'You control the blue chef in a shared kitchen. Using the supplied state and rules, choose exactly one action key from questions.next_action.criteria. Return only a JSON object of the form {"choice": "<action key>", "sprint": <true or false>}, where <action key> is one key of questions.next_action.criteria; include sprint only if questions.sprint is present. Do not explain or choose an action outside the candidate set.'},
             {'role':'user','content':json.dumps({'state':payload['state'],'questions':payload['questions']},ensure_ascii=False)}],
             'max_tokens':128}
-        if self.setting['provider']=='deepseek':
-            body['response_format']={'type':'json_object'}
-            body['thinking']={'type':'disabled'}
+        body.update(PROVIDERS[self.setting['provider']].get('extra',{}))
         req=urllib.request.Request(self.setting['base_url']+'/chat/completions',data=json.dumps(body).encode(),
             headers={'Authorization':'Bearer '+self.key,'Content-Type':'application/json'})
         try:
             with urllib.request.build_opener(NoRedirect).open(req,timeout=20) as r:data=json.load(r)
-        except urllib.error.HTTPError as e:raise RuntimeError(f'模型接口 HTTP {e.code}') from None
+        except urllib.error.HTTPError as e:raise RuntimeError(f'模型接口 HTTP {e.code}{http_error_detail(e,self.key)}') from None
         except (OSError,ValueError):raise RuntimeError('模型接口连接失败或返回了无效数据') from None
+        content,reason=None,'回复里没有文本'
         try:
             content=data['choices'][0]['message']['content'].strip()
             if content.startswith('```'):
                 content=content.split('\n',1)[1].rsplit('```',1)[0].strip()
-            parsed=json.loads(content)
-            choice=parsed['choice']
-            if 'sprint' in payload['questions'] and type(parsed.get('sprint')) is not bool:raise ValueError()
+            reason='不是 JSON';parsed=json.loads(content)
+            reason='缺少 choice';choice=parsed['choice']
+            # No sprint field means no sprint request; the action is still the model's own. A sprint that is not a boolean is rejected.
+            reason='sprint 不是真假值'
+            sprint_missing='sprint' in payload['questions'] and 'sprint' not in parsed
+            if 'sprint' in payload['questions'] and not sprint_missing and type(parsed['sprint']) is not bool:raise ValueError()
+            reason='choice 不在候选动作里'
             if not isinstance(choice,str) or choice not in payload['questions']['next_action']['criteria']:raise ValueError()
             usage=data.get('usage') or {}
-            return {'sprint':parsed.get('sprint',False),'choice':choice,'confidence':None,'probabilities':{},'model':self.setting['model'],
+            return {'sprint':parsed.get('sprint',False),**({'sprint_missing':True} if sprint_missing else {}),'choice':choice,'confidence':None,'probabilities':{},'model':self.setting['model'],
                     'usage':{'input_tokens':int(usage.get('prompt_tokens',0)),'output_tokens':int(usage.get('completion_tokens',0))},
                     'latency':time.monotonic()-started}
         except (KeyError,IndexError,TypeError,AttributeError,ValueError):
-            raise RuntimeError('模型没有返回可执行的合法动作；本次不执行。') from None
+            # The model's own words (never the key or request) go into the local log, so a failing model can be diagnosed.
+            reply=f'；回复：{content[:160]!r}' if isinstance(content,str) else ''
+            raise RuntimeError(f'模型没有返回可执行的合法动作（{reason}{reply}）；本次不执行。') from None
+
+
+class DecisionClient(SpatialJevClient):
+    """A systemone-style decision service other than TypeSafe (e.g. Microsoft-Decision-1 on OpenRouter)."""
+    def __init__(self,config,setting):
+        super().__init__(config,key=setting['api_key'])
+        self.setting=setting
+        self.endpoint,self.vendor=setting['base_url'],PROVIDERS[setting['provider']]['label']
+    def payload(self,state,actions):
+        payload=super().payload(state,actions)
+        payload['model']=self.setting['model']
+        return payload
+
+
+def is_decision(setting):
+    return PROVIDERS[setting['provider']]['group']=='decision'
 
 
 def create_client(config,setting):
     if setting['provider']=='jev':return SpatialJevClient(config,key=setting['api_key'])
-    return CompatibleClient(config,setting)
+    return (DecisionClient if is_decision(setting) else CompatibleClient)(config,setting)
 
 
 class PlayerGameSession(GameSession):
@@ -108,7 +134,7 @@ class PlayerGameSession(GameSession):
         self.memory = CooperationMemory(memory_path or self.credential_path.parent/'.player-memory.json')
         self.round_memory = None
         self.release = release_info()
-        if self.setting and self.setting['provider']!='jev':self.c['ai_max_response_age']=15
+        if self.setting and not is_decision(self.setting):self.c['ai_max_response_age']=15
     def _player_client(self,config):
         if not self.setting:raise RuntimeError('需要配置玩家 API')
         return self.connector(config,self.setting.copy())
@@ -211,7 +237,8 @@ class PlayerGameSession(GameSession):
             client=self.connector(self.c,setting)
             with self.lock:self.connection_checks+=1
             client.ask({'model':setting['model'],'state':{'purpose':'API connection check'},
-                'questions':{'next_action':{'type':'choice','instructions':'Choose ready and return the required format.','criteria':{'ready':'Connection ready'}}}})
+                'questions':{'next_action':{'type':'choice','instructions':'Choose ready and return the required format.',
+                                            'criteria':{'ready':'Connection ready','wait':'Not ready yet'}}}})
             with self.lock:
                 if body['game_id']!=self.game_id or self.phase not in ('ready','ended'):
                     return 409,{'error':'对局已变化，连接未保存。'}
@@ -225,17 +252,22 @@ class PlayerGameSession(GameSession):
                 else:self.credential_path.unlink(missing_ok=True)
                 self.setting=setting
                 if self.ai and self.ai.closed:self.ai=None
-                self.c['ai_max_response_age']=6 if setting['provider']=='jev' else 15
+                self.c['ai_max_response_age']=6 if is_decision(setting) else 15
                 response=(200,{'ok':True,'connection':self.connection_state()})
                 self.receipts[request_id]=response
                 while len(self.receipts)>128:self.receipts.popitem(last=False)
                 return response
         except Exception as e:
-            # Never echo an upstream body, key, or arbitrary provider exception.
+            # Never echo a key or an arbitrary exception: only our own RuntimeError text (status and the provider's
+            # short, key-redacted message) is shown.
             message='连接失败。请检查地址、模型名、Key、余额及网络。'
             if type(e) is RuntimeError:
-                for code in ('401','403','402','429'):
-                    if 'HTTP '+code in str(e):message={'401':'Key 无效，请检查后重试。','403':'账号无权访问这个模型。','402':'账号余额不足，请到服务商充值。','429':'请求受限或额度不足，请稍后重试。'}[code]
+                text=str(e)
+                for secret in {setting.get('api_key'),(self.setting or {}).get('api_key')}-{None,''}:text=text.replace(secret,'***')
+                text=text[:240]
+                hints={'401':'Key 无效，请检查后重试。','403':'账号无权访问这个模型。','402':'账号余额不足，请到服务商充值。','429':'请求受限或额度不足，请稍后重试。'}
+                code=next((c for c in hints if 'HTTP '+c in text),None)
+                message=f'{hints[code]}（{text}）' if code else f'连接失败（{text}）'
             return 502,{'error':message}
         finally:
             with self.lock:self.connecting=False

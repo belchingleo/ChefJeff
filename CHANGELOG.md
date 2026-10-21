@@ -4,6 +4,21 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 
 [中文](#更新记录)
 
+## Unreleased
+
+### Jeff (the AI teammate)
+- Settings list model services by kind instead of one catch-all "compatible" entry. Decision models: TypeSafe Jev and any OpenRouter decision model (OpenRouter's decisions API, same state-and-questions request as Jev; default Microsoft-Decision-1); Decision 3.0 is listed as self-hosted, not yet supported. Chat models: DeepSeek, OpenRouter chat models, Alibaba qwen-flash, Doubao Seed 2.0 lite, Gemini 2.5 Flash-Lite and, in the local game only, Zhipu GLM-4.7-Flash, each with its address, model and the vendor's switch to turn thinking off. Each shows a rough cost per round and whether a full round has been tested. The list lives in `model-providers.json`, read by the local server, the hosted page and the settings dialog.
+- A local model reply without a sprint field counts as no sprint; a rejected reply is logged with its reason and the model's words; the prompt no longer names an example action (a small model copied it every step).
+- Settings work on a phone opening the local game over the LAN (plain HTTP).
+
+### Kitchen and controls
+- Extinguishing as in Overcooked 2, for both chefs: spraying lowers the fire's strength, which stays on the station when you walk away, so a few short sprays add up to the 4 seconds; 2 seconds after spraying stops the fire grows back to full over 5 seconds. A red bar on the station shows what is left. The direction held when spraying starts no longer interrupts it. Ruleset: `fire.recovery_game_ms`.
+- Throw stays enabled while held, so a phone can always release an aim; throws the server refuses are journaled.
+- A second chef can join chopping or washing from any other free side, facing the first chef too, not only from a side at right angles: level 1's middle board can now be shared. Same for both chefs.
+- READMEs: a Play online section (https://chefjeff.online/) and a touch controls table next to the keyboard one.
+- Online play moves to https://chefjeff.online/ (www too); the first address, chefjeff.belchingleo.online, redirects there. The update script moves the service to the new address once and puts it back if the update fails; certificate renewals of either address reload Nginx.
+- As in Overcooked 2, fire stops a board or counter being used but not its surface: what rests there can still be taken (an extinguisher put down on a counter that catches fire is no longer lost), items can be put or plated there and a throw can land there. The same holds for a burning stove: a pan can be lifted off it, put back or filled when empty, but it does not heat until the fire is out, after which food that is not burnt cooks on. Chopping on a burning board and fetching from a burning source still wait for the fire to go out. Items on a burning station stay drawn under the flames.
+
 ## 0.6.0-beta.2 — 2026-10-20 · second public test release
 
 ### Kitchen and controls
@@ -83,6 +98,21 @@ First private release: a local browser game with three playable maps and player-
 ---
 
 ## 更新记录
+
+## 未发布
+
+### Jeff（AI 队友）
+- 设置里的模型服务按类型分组，不再只有一个笼统的“兼容服务”。决策模型：TypeSafe Jev，以及 OpenRouter 上的任一决策模型（经 OpenRouter 的决策接口，请求格式和 Jev 相同；默认 Microsoft-Decision-1）；Decision 3.0 标为需本地部署、待接入。对话模型：DeepSeek、OpenRouter 对话模型、阿里 qwen-flash、豆包 Seed 2.0 lite、Gemini 2.5 Flash-Lite，以及只限本地版的智谱 GLM-4.7-Flash，各自填好地址、模型名和关闭思考的参数。每项注明大约每局花费、是否实测过整局。清单在 `model-providers.json`，本地服务、线上页面和设置界面共用。
+- 本地版模型回复里没有冲刺字段时按不冲刺处理；被拒的回复会把原因和模型原话写进日志；给模型的说明不再举具体动作的例子（小模型会每步照抄）。
+- 手机通过局域网（HTTP）打开本地版时，设置页可以正常连接模型。
+
+### 厨房与操作
+- 灭火改成和《胡闹厨房 2》一样，两位厨师规则相同：喷会降低火势，走开后进度保留在工位上，几次短喷可以累计到 4 秒；停喷 2 秒后火会在 5 秒内长回满。工位上的红色条显示剩下多少。开始喷时摇杆还按着的方向不会打断灭火。规则集新增 `fire.recovery_game_ms`。
+- 按住「扔」时按钮不会被禁用，手机上总能松手结束瞄准；服务器拒绝的扔会留下记录。
+- 第二个人可以从任意另一侧空位加入一起切菜、洗碗，包括站在第一个人对面，不再只限于和他成直角的一侧：第一关中间的 2 号案板现在也能两人一起切。两位厨师规则相同。
+- README 新增「在线试玩」（https://chefjeff.online/），触屏操作单独列表，和键盘操作并列。
+- 在线试玩改到 https://chefjeff.online/（带 www 也可以），原来的地址 chefjeff.belchingleo.online 会跳转过去。更新脚本会一次性把服务改到新地址，更新失败则改回去；两个地址的证书续期后都会重新加载 Nginx。
+- 和《胡闹厨房 2》一样，火只让柜台、案板不能“使用”，不影响台面：上面的东西照样能拿走（放在柜台上的灭火器遇火后不会再被困住），也能往上放、装盘，扔过去也能落在上面。着火的灶台也一样：锅可以端走、放回去，空锅还能加料，但灭火前不加热，灭火后没糊的食物接着加热。在着火的案板上切菜、从着火的取料处取料，仍要先灭火。着火工位上的东西会画在火焰下面，不再消失。
 
 ## 0.6.0-beta.2 — 2026-10-20 · 第二个公开测试版
 

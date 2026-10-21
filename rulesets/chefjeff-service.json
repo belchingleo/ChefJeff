@@ -60,6 +60,7 @@
     "cooldown_delay_game_ms": 2000,
     "cooldown_game_ms": 1000,
     "relight_delay_game_ms": 2000,
+    "recovery_game_ms": 5000,
     "loss_threshold": 5
   },
   "penalties": {

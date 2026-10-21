@@ -30,7 +30,7 @@ cat > "$chefjeff_temp/renew-nginx.sh" <<EOF
 #!/bin/sh
 set -eu
 case "\${RENEWED_LINEAGE:-}" in
-    /etc/letsencrypt/live/chefjeff.belchingleo.online) ;;
+    /etc/letsencrypt/live/chefjeff.online|/etc/letsencrypt/live/chefjeff.belchingleo.online) ;;
     *) exit 0 ;;
 esac
 $chefjeff_nginx -t
@@ -57,5 +57,5 @@ if ! nft -n list chain inet personal_vpn_filter input | grep -Eq 'tcp dport \{ 8
 fi
 systemctl enable --now certbot.timer
 printf 'Web-port persistence and certificate reload hook installed. Testing renewal...\n'
-certbot renew --cert-name chefjeff.belchingleo.online --dry-run --run-deploy-hooks
+certbot renew --cert-name chefjeff.online --dry-run --run-deploy-hooks
 printf 'ChefJeff maintenance setup and renewal check completed.\n'

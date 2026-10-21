@@ -1,6 +1,6 @@
 {
   "analyzer_version": "capacity-analyzer-0.1",
-  "input_config_hash": "sha256:bbb7bae1e8e950a782cee0d2d2455cf10c49ae2c7e163534f7a613ebae28dbd9",
+  "input_config_hash": "sha256:c579f97a6d2bf499c1c9041198e42f19e6a9e8ecb98a5feb509fa366490fb75e",
   "input_status": "frozen",
   "level_id": "level-2",
   "schema_valid": true,
@@ -12,7 +12,7 @@
   "assumptions": [
     "Lower bounds exclude walking, throwing and handoff transport (optimistic).",
     "Chefs are interchangeable; each attended step needs one chef for its whole duration; heating is unattended.",
-    "Shared work shortens a step only on stations whose map geometry offers a second, perpendicular operation side.",
+    "Shared work shortens a step only on stations whose map geometry offers a second operation side.",
     "Every served dish returns one dirty plate that must be washed before reuse.",
     "Model response latency, pausing and human reaction time are excluded.",
     "Spawn sides are assigned by the spawn seed; walking references are reported for every assignment.",

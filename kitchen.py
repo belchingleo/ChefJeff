@@ -84,11 +84,13 @@ class Station:
     fire: bool = False
     heating: bool = False
     pot_id: str | None = None
-    # Overcooked 2's fire strength while a burning neighbour heats it (0..1; 1 ignites), how long it has
-    # gone unheated, and the time left before a station just put out can take heat again.
+    # As Overcooked 2's ServerFlammable: heat from burning neighbours (0..1; 1 ignites) and how long it has
+    # gone unheated; the strength of its own fire (1 when lit, 0 puts it out); and the time left in which
+    # spraying holds it: a burning station does not grow back and a station just put out takes no heat.
     fire_heat: float = 0.0
     fire_idle: float = 0.0
-    relight_in: float = 0.0
+    fire_strength: float = 0.0
+    sprayed: float = 0.0
 
 
 @dataclass
@@ -172,6 +174,14 @@ def replay(factory, resolved, inputs):
 
 
 TAKE_KINDS = {"fetch", "take_board", "take_tool", "pickup", "take_plate", "take_return", "take_sink", "take_counter", "lift_pot"}
+
+
+# As in Overcooked 2, fire turns off using a station (chopping, an ingredient source) but not its surface: what
+# rests on a burning board, counter or stove can still be taken, and things put or plated there; a pan can be
+# lifted off a burning stove, put back, or filled when empty. A burning stove does not heat.
+SURFACE_KINDS = {"take_counter", "take_plate", "take_board", "put_counter", "put_board", "assemble", "merge_plates",
+                 "load_counter", "plate_counter", "plate_from_counter", "swap_pot",
+                 "lift_pot", "return_pot", "put_pot", "plate_pot"}
 
 
 def hand_swap_allowed(kind, incoming=None):
@@ -421,10 +431,8 @@ class Kitchen:
             s = self.stations[key]
             if s.lock not in (None, who):
                 continue
-            if s.fire:
-                if a.hand and a.hand.stage == 'extinguisher':
-                    add(f"extinguish {key}", f"拿灭火器到{s.name}灭火（{self.rules.extinguish:g}s；随后仍须端锅到垃圾桶倒掉糊菜）", "extinguish", key)
-                continue
+            if s.fire and a.hand and a.hand.stage == 'extinguisher':
+                add(f"extinguish {key}", f"拿灭火器到{s.name}灭火（{round(s.fire_strength*self.rules.extinguish,1):g}s；随后仍须端锅到垃圾桶倒掉糊菜）", "extinguish", key)
             if not s.pot_id:
                 if a.hand and a.hand.stage == 'pot':
                     add(f'put pot {key}', f'把手中的{self.vessel_name(a.hand.id)}放回{s.name}（有食物时恢复加热）', 'return_pot', key)
@@ -444,17 +452,18 @@ class Kitchen:
         # Continuing a chop/move must not accidentally restart its remaining duration.
         if a.job:
             out = [x for x in out if x.key != a.job.action.key]
-        # Burning worktops cannot be used until extinguished. Both chefs see
-        # exactly the same legal rescue actions, including empty counters.
-        out = [x for x in out if x.kind in ('go', 'extinguish') or not
-               (x.target in self.stations and self.stations[x.target].fire)]
+        # A burning station cannot be used until extinguished; a burning board, counter or stove still takes and
+        # gives items (SURFACE_KINDS). Both chefs see exactly the same actions.
+        surfaces = set(self.boards + self.counters + self.pots)
+        out = [x for x in out if x.kind in ('go', 'extinguish') or not (x.target in self.stations and self.stations[x.target].fire)
+               or (x.target in surfaces and x.kind in SURFACE_KINDS)]
         if a.hand:
             out = [x for x in out if x.kind not in TAKE_KINDS or hand_swap_allowed(
                 x.kind, self.ground[x.expected[1]].food if x.kind == 'pickup' else None)]
         for key in self.boards + self.counters:
             s = self.stations[key]
             if s.fire and s.lock in (None, who) and a.hand and a.hand.stage == 'extinguisher':
-                add(f'extinguish {key}', f'拿灭火器到{s.name}灭火（{self.rules.extinguish:g}s）', 'extinguish', key)
+                add(f'extinguish {key}', f'拿灭火器到{s.name}灭火（{round(s.fire_strength*self.rules.extinguish,1):g}s）', 'extinguish', key)
         return out
 
     def vessel_name(self, vessel_id):
@@ -607,7 +616,7 @@ class Kitchen:
         s = self.place(action.target)
         work = {"chop": (self.rules.chop_work(s.food.ingredient)-s.food.chopped) if s.food else 0,
                 "wash": self.wash_seconds-(s.food.washed if s.food else 0),
-                "extinguish": self.rules.extinguish, "go": 0}.get(action.kind, self.rules.handling)
+                "extinguish": s.fire_strength*self.rules.extinguish, "go": 0}.get(action.kind, self.rules.handling)
         self.job_serial += 1
         a.job = Job(self.job_serial, action, self.travel_time(a, action.target), work)
         self.emit(f"{NAMES[who]}开始：{action.label}（路程 {a.job.travel:.0f}s + 操作 {work:.1f}s）", kind="action_start", actor=who, action=action.key, action_id=a.job.id)
@@ -739,7 +748,7 @@ class Kitchen:
             a.hand = None
             self.heat_stove(s)
         elif k == 'swap_pot':
-            if self.signature(who,job.action.target)!=job.action.expected or s.fire:
+            if self.signature(who,job.action.target)!=job.action.expected:
                 self.stop(who);return
             if job.action.target in self.pots:
                 incoming=a.hand
@@ -830,9 +839,9 @@ class Kitchen:
             s.food.chopped = self.rules.chop_work(s.food.ingredient)
             s.food.stage = self.rules.chop[s.food.ingredient]['to']
         elif k == "extinguish":
-            s.fire = False
-            s.relight_in = self.rules.relight_delay
-            s.heating = False
+            s.fire, s.fire_strength = False, 0.
+            # A pan put on the burning stove, holding food that is not burnt, cooks once the fire is out.
+            s.heating = bool(job.action.target in self.pots and s.pot_id and s.food and s.food.stage != 'burnt')
         elif k == "discard":
             a.hand = Food(a.hand.plate_id, 'dirty_plate') if a.hand.plate_id else None
             self.money += self.rules.penalty['discard']
@@ -903,7 +912,7 @@ class Kitchen:
         s = self.stations[key]
         if s.fire:
             return
-        s.fire, s.fire_heat, s.fire_idle, s.heating = True, 0., 0., False
+        s.fire, s.fire_heat, s.fire_idle, s.fire_strength, s.heating = True, 0., 0., 1., False
         if key in self.pots and s.food and s.food.stage != 'burnt':
             s.food.stage = 'burnt'
             self.burns += 1
@@ -919,12 +928,16 @@ class Kitchen:
         """As in Overcooked 2: each burning station heats every flammable neighbour; heat from several adds up."""
         r = self.rules
         burning = {key for key, s in self.stations.items() if s.fire}
+        spraying = {a.job.action.target for a in self.chefs.values() if a.job and a.job.working and a.job.action.kind == 'extinguish'}
         for key, s in self.stations.items():
+            s.sprayed = max(0., s.sprayed-dt)
             if s.fire:
+                # Left alone after spraying, a fire grows back to full strength.
+                if s.fire_strength < 1 and s.sprayed <= 0 and key not in spraying:
+                    s.fire_strength = min(1., s.fire_strength+dt/r.fire_recovery)
                 continue
-            s.relight_in = max(0., s.relight_in-dt)
             sources = [n for n in self.fire_neighbors(key) if n in burning]
-            if sources and s.relight_in <= 0:
+            if sources and s.sprayed <= 0:
                 s.fire_heat, s.fire_idle = min(1., s.fire_heat+dt*len(sources)/r.flammability), 0.
                 if s.fire_heat >= 1-1e-9:
                     self.ignite(key, source=sources[0])
@@ -990,6 +1003,9 @@ class Kitchen:
                     if not self._begin_work(who, job):
                         continue
                 rate = 1
+                if job.action.kind == 'extinguish':
+                    # Spraying lowers the fire's own strength, which stays on the station (Overcooked 2's FightFire).
+                    job.work = self.stations[job.action.target].fire_strength*self.rules.extinguish
                 if job.action.kind in ('chop','wash'):
                     food=self.stations[job.action.target].food
                     job.work=max(0,(self.rules.chop_work(food.ingredient)-food.chopped) if job.action.kind=='chop' else (self.wash_seconds-food.washed))
@@ -998,6 +1014,9 @@ class Kitchen:
                     rate=self.rules.progress_rate(job.action.target,job.action.kind,max(1,workers))
                 used = min(job.work, remaining*rate)
                 job.work -= used
+                if job.action.kind == 'extinguish':
+                    s = self.stations[job.action.target]
+                    s.fire_strength, s.sprayed = max(0., s.fire_strength-used/self.rules.extinguish), self.rules.relight_delay
                 if job.action.kind == "chop":
                     self.stations[job.action.target].food.chopped += used
                 elif job.action.kind == 'wash':
@@ -1120,6 +1139,7 @@ class Kitchen:
                       'pot_id': s.pot_id, 'counter': key in self.counters, 'stove': key in self.pots,
                       'type': self.rules.station_types[key]}
             record['fire_heat'] = round(s.fire_heat, 3)
+            record['fire_strength'] = round(s.fire_strength, 3) if s.fire else None
             record['fire_neighbors'] = self.fire_neighbors(key)
             record['workers']=self.work_participants(key,'chop')+self.work_participants(key,'wash')
             if s.pot_id:

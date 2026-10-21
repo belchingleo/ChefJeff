@@ -8,7 +8,8 @@ import urllib.error
 import uuid
 
 from kitchen import load_config
-from player_api import PlayerGameSession, CompatibleClient, NoRedirect, settings_from
+from player_api import PlayerGameSession, CompatibleClient, DecisionClient, NoRedirect, settings_from, create_client
+from kitchen import ROOT
 from test_web import FakeJournal
 
 KEY = 'test-player-secret-never-real'
@@ -129,6 +130,65 @@ class CompatibleTests(unittest.TestCase):
         body=json.loads(req.data)
         self.assertEqual(body['thinking'],{'type':'disabled'})
         self.assertEqual(body['model'],'deepseek-flash')
+    def test_zhipu_preset_turns_thinking_off_and_asks_for_json(self):
+        setting=settings_from({'provider':'zhipu','api_key':KEY})
+        self.assertEqual((setting['base_url'],setting['model']),('https://open.bigmodel.cn/api/paas/v4','glm-4.7-flash'))
+        self.client=CompatibleClient(load_config(),setting)
+        _,req=self.ask('{"choice":"wait"}')
+        self.assertEqual(req.full_url,'https://open.bigmodel.cn/api/paas/v4/chat/completions')
+        body=json.loads(req.data)
+        self.assertEqual((body['thinking'],body['response_format']),({'type':'disabled'},{'type':'json_object'}))
+    def test_other_compatible_services_get_no_vendor_fields(self):
+        self.client=CompatibleClient(load_config(),settings_from({'provider':'compatible','base_url':'https://api.example.com/v1','model':'m','api_key':KEY}))
+        body=json.loads(self.ask('{"choice":"wait"}')[1].data)
+        self.assertNotIn('thinking',body);self.assertNotIn('response_format',body)
+    def test_missing_sprint_means_no_sprint_and_is_logged(self):
+        self.payload['questions']['sprint']={}
+        result,_=self.ask('{"choice":"wait"}')
+        self.assertEqual((result['choice'],result['sprint'],result['sprint_missing']),('wait',False,True))
+        self.assertNotIn('sprint_missing',self.ask('{"choice":"wait","sprint":true}')[0])
+        with self.assertRaises(RuntimeError):self.ask('{"choice":"wait","sprint":"yes"}')
+    def test_every_listed_service_validates_with_its_own_address_and_vendor_fields(self):
+        catalog=json.loads((ROOT/'model-providers.json').read_text())
+        groups={g['id'] for g in catalog['groups']}
+        for preset in catalog['providers']:
+            with self.subTest(provider=preset['id']):
+                self.assertIn(preset['group'],groups)
+                if preset.get('disabled'):
+                    with self.assertRaises(ValueError):settings_from({'provider':preset['id'],'api_key':KEY})
+                    continue
+                body={'provider':preset['id'],'api_key':KEY}
+                if preset.get('custom'):body.update(base_url='https://api.example.com/v1',model='m')
+                elif not preset.get('model'):body['model']='vendor/model'
+                setting=settings_from(body)
+                self.assertEqual(setting['base_url'],'https://api.example.com/v1' if preset.get('custom') else preset.get('endpoint') or preset['base_url'])
+                client=create_client(load_config(),setting)
+                self.assertIsInstance(client,DecisionClient if preset['group']=='decision' and preset['id']!='jev' else (CompatibleClient if preset['group']=='chat' else object))
+    def test_decision_service_posts_state_and_questions_to_its_endpoint(self):
+        setting=settings_from({'provider':'openrouter-decision','api_key':KEY})
+        client=DecisionClient(load_config(),setting)
+        answer={'answers':{'next_action':{'type':'choice','choice':'wait','probabilities':{'wait':.9}},'sprint':{'type':'choice','choice':'no'}},
+                'model':'microsoft/microsoft-decision-1','usage':{'input_tokens':5,'output_tokens':0}}
+        payload={'model':setting['model'],'state':{'kitchen':{}},'questions':{'next_action':{'type':'choice','criteria':{'wait':'等待'}},'sprint':{'type':'choice','criteria':{'yes':'','no':''}}}}
+        with patch('jev.urllib.request.urlopen',return_value=io.BytesIO(json.dumps(answer).encode())) as opened:
+            result=client.ask(payload)
+        req=opened.call_args.args[0]
+        self.assertEqual(req.full_url,'https://openrouter.ai/api/alpha/decisions')
+        self.assertEqual(json.loads(req.data)['model'],'microsoft/microsoft-decision-1')
+        self.assertEqual((result['choice'],result['sprint']),('wait',False))
+    def test_refused_request_reports_status_and_provider_message_without_the_key(self):
+        client=DecisionClient(load_config(),settings_from({'provider':'openrouter-decision','api_key':KEY}))
+        body=json.dumps({'error':{'message':f'questions.next_action: too many options for key {KEY}'}}).encode()
+        error=urllib.error.HTTPError('https://openrouter.ai/api/alpha/decisions',400,'Bad Request',{},io.BytesIO(body))
+        with patch('jev.urllib.request.urlopen',side_effect=error),self.assertRaises(RuntimeError) as raised:
+            client.ask({'model':'m','state':{},'questions':{'next_action':{'type':'choice','criteria':{'a':'','b':''}}}})
+        text=str(raised.exception)
+        self.assertIn('HTTP 400',text);self.assertIn('too many options',text);self.assertNotIn(KEY,text);self.assertIn('***',text)
+    def test_listed_service_names_and_notes_have_english(self):
+        catalog=json.loads((ROOT/'model-providers.json').read_text())
+        messages=json.loads((ROOT/'cocos-kitchen/i18n.json').read_text())['messages']
+        for text in [g['label'] for g in catalog['groups']]+[p[k] for p in catalog['providers'] for k in ('label','note') if k in p]:
+            if any('\u3400'<=c<='\u9fff' for c in text):self.assertIn(text,messages)
     def test_invalid_model_output_is_not_replaced_by_script(self):
         for content in ['{"choice":"invented"}','not json',None]:
             with self.subTest(content=content),self.assertRaises(RuntimeError):self.ask(content)

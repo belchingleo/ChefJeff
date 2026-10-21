@@ -51,7 +51,7 @@
   function element(el) {
     if (el.nodeType!==1 || el.closest('script,style,textarea,[data-no-i18n]')) return;
     let rows=attributes.get(el)||{};
-    for (const name of ['placeholder','aria-label','title']) {
+    for (const name of ['placeholder','aria-label','title','label']) {
       if (!el.hasAttribute(name)) continue;
       let row=rows[name],current=el.getAttribute(name);
       if (!row || current!==row.rendered) row={source:current};
@@ -88,7 +88,7 @@
           else if(record.type==='attributes')element(record.target);
           else for(const node of record.addedNodes)walk(node);
         }
-      }).observe(doc.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['placeholder','aria-label','title']});
+      }).observe(doc.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['placeholder','aria-label','title','label']});
     }
     if(doc.readyState==='loading')doc.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
   }

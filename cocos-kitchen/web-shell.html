@@ -1,4 +1,5 @@
 <script src="kitchen-i18n.js"></script>
+<script src="model-providers.js"></script>
 <style>
 /* Tokens from the "ChefJeff 厨房 UI" design system; KitchenClient.ts COLORS uses the same values. */
 :root{--ink:#2b1a12;--muted:#6e4e38;--surface:#f0d9b5;--paper:#fdf3e1;--honey-tint:#fbe3b8;--walnut:#6b3418;--frame:#4a2616;--frame-line:#3f2112;
@@ -139,7 +140,8 @@ function kitchenTabs(dialog){
   <p id="api-editing-status" role="status" aria-live="polite"></p>
   <form id="api-form">
    <label for="api-provider">模型服务</label>
-   <select id="api-provider"><option value="jev">TypeSafe · Jev（推荐）</option><option value="deepseek">DeepSeek</option><option value="compatible">其他兼容 Chat Completions 的服务</option></select>
+   <select id="api-provider"></select>
+   <p><small id="api-provider-note"></small></p>
    <div id="api-url-row" hidden><label for="api-url">接口地址（Base URL）</label><input id="api-url" type="url" placeholder="https://你的服务地址/v1" autocomplete="off"></div>
    <div id="api-model-row" hidden><label for="api-model">模型名称</label><input id="api-model" placeholder="服务商提供的模型 ID" autocomplete="off"><p><small>建议使用响应快的模型；过慢或无效的动作不会执行。</small></p></div>
    <label for="api-key">API Key</label><input id="api-key" type="password" placeholder="粘贴你的 API Key" autocomplete="off" spellcheck="false" required>
@@ -195,12 +197,26 @@ function kitchenTabs(dialog){
 <script>
 (()=>{
  const el=id=>document.getElementById(id),dialog=el('kitchen-api-dialog'),showTab=kitchenTabs(dialog);
+ // randomUUID exists only on secure pages; a phone on the LAN (plain HTTP) still has getRandomValues.
+ const requestId=()=>crypto.randomUUID?.()||Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('');
  let state=null,busy=false,memoryBusy=false,memoryMessage='',limitBusy=false,limitMessage='',feedbackText='';
  const message=(text,error=false)=>{el('api-message').textContent=text;el('api-message').className=error?'error':''};
+ // Services from model-providers.json, grouped; the hosted page leaves out the ones its browser cannot reach.
+ const catalog=window.chefjeffProviders||{groups:[],providers:[]};
+ const presets=Object.fromEntries(catalog.providers.map(p=>[p.id,p]));
+ for(const g of catalog.groups){
+  const group=document.createElement('optgroup');group.label=g.label;
+  for(const p of catalog.providers.filter(p=>p.group===g.id&&!(window.chefjeffJevRelayAvailable&&p.hosted==='none'))){
+   const o=document.createElement('option');o.value=p.id;o.textContent=p.label;o.disabled=!!p.disabled;group.append(o);
+  }
+  el('api-provider').append(group);
+ }
  const fields=()=>{
-  const p=el('api-provider').value;el('api-url-row').hidden=p!=='compatible';el('api-model-row').hidden=p==='jev';
-  el('api-url').required=p==='compatible';el('api-model').required=p!=='jev';
-  el('api-get-key').hidden=p==='compatible';el('api-get-key').href=p==='deepseek'?'https://platform.deepseek.com/api_keys':'https://console.typesafe.ai/login';
+  const p=el('api-provider').value,preset=presets[p]||{};
+  el('api-url-row').hidden=!preset.custom;el('api-model-row').hidden=!preset.model_editable;
+  el('api-url').required=!!preset.custom;el('api-model').required=!!preset.model_editable;
+  el('api-provider-note').textContent=preset.note||'';
+  el('api-get-key').hidden=!preset.key_url;if(preset.key_url)el('api-get-key').href=preset.key_url;
   el('api-jev-relay-row').hidden=!window.chefjeffJevRelayAvailable||p!=='jev';
  };
  const status=()=>{
@@ -235,7 +251,7 @@ function kitchenTabs(dialog){
   message(!c?'尚未连接厨房，暂时不能测试 API。':c.editable?'测试连接会发送一次小型 API 请求，可能产生少量费用。':'请在开局前或结算后更换 API；请完成当前对局后再修改。');
   showTab(el('tab-connection'));if(!dialog.open)dialog.showModal();
  });
- el('api-provider').addEventListener('change',()=>{el('api-model').value=el('api-provider').value==='deepseek'?'deepseek-flash':'';el('api-key').value='';el('api-jev-relay').checked=false;fields()});
+ el('api-provider').addEventListener('change',()=>{el('api-model').value=presets[el('api-provider').value]?.model||'';el('api-key').value='';el('api-jev-relay').checked=false;fields()});
  el('api-close').onclick=()=>{el('api-key').value='';dialog.close()};
  dialog.addEventListener('close',()=>{el('api-key').value=''});
  async function send(extra){
@@ -244,7 +260,7 @@ function kitchenTabs(dialog){
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),30000);
   try{
    const response=await fetch('/api/connection',{method:'POST',headers:{'Content-Type':'application/json'},signal:controller.signal,
-    body:JSON.stringify({game_id:state.game_id,request_id:crypto.randomUUID(),...extra})});
+    body:JSON.stringify({game_id:state.game_id,request_id:requestId(),...extra})});
    const data=await response.json();if(!response.ok)throw new Error(data.error||'连接失败');
    el('api-key').value='';state.connection=data.connection;
    if(extra.clear)el('api-jev-relay').checked=false;
@@ -261,7 +277,7 @@ function kitchenTabs(dialog){
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),5000);
   try{
    const response=await fetch('/api/memory',{method:'POST',headers:{'Content-Type':'application/json'},signal:controller.signal,
-    body:JSON.stringify({game_id:state.game_id,request_id:crypto.randomUUID(),...extra})});
+    body:JSON.stringify({game_id:state.game_id,request_id:requestId(),...extra})});
    const data=await response.json();if(!response.ok)throw new Error(data.error||'记忆设置失败');
    state.memory=data.memory;memoryMessage='';
   }catch(e){memoryMessage=e.name==='AbortError'?'请求超时，请重新打开设置确认结果。':e.message}
@@ -273,7 +289,7 @@ function kitchenTabs(dialog){
   if(!state)throw new Error('厨房尚未连接');
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),5000);
   try{const response=await fetch(path,{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json'},
-   body:JSON.stringify({game_id:state.game_id,request_id:crypto.randomUUID(),...extra})});
+   body:JSON.stringify({game_id:state.game_id,request_id:requestId(),...extra})});
    const data=await response.json();if(!response.ok)throw new Error(data.error||'操作失败');return data;
   }catch(e){if(e.name==='AbortError')throw new Error('请求超时，请重新打开设置确认结果。');throw e;}
   finally{clearTimeout(timer);}
@@ -343,7 +359,7 @@ function kitchenTabs(dialog){
   <dt>放下和拾取</dt><dd>面前是工位时，短按空格只对这个工位操作，做不了会说明原因，不会把东西放到地上。面前是空地时，短按先拿面前地上的东西，再拿脚下的，最后把手里的东西放在面前。拿干净盘面向地上的熟锅，也能盛菜。</dd>
   <dt>抛掷与传菜 · 按住空格</dt><dd>手持可投掷物品时，面前是工位或空地都能按住空格约 0.3 秒瞄准，角色停下，半透明弧形带显示方向与射程参考；按方向键改方向（8 个方向），松开扔出；队友在这个方向的射程内时扔给他。终点仅表示最大射程，不是实际落点预测；墙体阻挡和接取仍由引擎判定。生食材、切好的原料、餐盘、装盘菜和锅都能抛，最远 4 格；灭火器不能扔。可以越过工位，飞到射程尽头，遇墙落在墙前：生料或切好的料落在空案板、空柜台上，或落进能煮这份料的空锅；其他东西落在地上。没有可用落点时保留手里的物品。队友空手、在走路或站着时能接住；正在切菜、洗碗或手里有东西时不会被打断，东西落在他旁边，盘里的菜和锅里的东西都保留。玩家与 AI 规则相同。</dd>
   <dt>餐具和锅</dt><dd>干净盘才可装菜。脏盘回收点取盘 → 放入水槽 → 空手按空格洗碗 → 取净盘。没盘时可空手到锅边端锅，离灶停止加热；空锅需放回灶台。</dd>
-  <dt>丢弃与消防</dt><dd>拿食材靠近垃圾桶按空格会销毁，扣 2 元；端锅则倒掉锅里的食物，保留空锅。拿起灭火器后面向着火工位按空格，4 秒灭火。着火的工位会加热身边 8 格（含对角）的工位，旁边有一处着火 5 秒就会着火，多处同时着火更快，红色条显示进度；不跨空地或墙。同时 5 个工位着火，本局结束。</dd>
+  <dt>丢弃与消防</dt><dd>拿食材靠近垃圾桶按空格会销毁，扣 2 元；端锅则倒掉锅里的食物，保留空锅。拿起灭火器后面向着火工位按空格喷，累计喷 4 秒灭火；中途走开，进度保留，但停喷 2 秒后火会慢慢变旺。着火的工位会加热身边 8 格（含对角）的工位，旁边有一处着火 5 秒就会着火，多处同时着火更快，红色条显示进度；不跨空地或墙。同时 5 个工位着火，本局结束。</dd>
   <dt>沟通 · 1–6 / 点击</dt><dd>打开左下角沟通菜单，点击偏好即可发送；“你做错了”是独立的红色描边按钮。也可按 1–5 表达偏好、按 6 纠错。共用 5 个实际秒冷却，暂停时也可发送。最新偏好只在本局有效；AI 在下一次正常请求中收到，自行判断如何配合，不强制分工或停止动作。纠错附带当时动作信息，但不指定正确答案。</dd>
   <dt>标记片段 · Enter</dt><dd>营业中按 Enter 标记当前时刻，不暂停、不打断动作。相邻两次标记间隔不超过 5 个实际秒时合并为一个区间，长按不重复。设置中的“数据导出”包含全部标记；标记不会发送给 AI。</dd>
   <dt>暂停与继续 · Esc / P</dt><dd>暂停会停止锅火、订单和双方动作。再按 Esc 或 P（键盘没有 Esc 键时用，如 iPad）或点「继续经营」回到厨房；也可重新开局、打开设置或查看本说明。结束本局、暂停中重新开局都会先请你确认；重新开局沿用当前配置与速度。更换 API、记忆和调用上限请在结算后或开局前进行。</dd>

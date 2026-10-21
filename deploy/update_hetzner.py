@@ -14,7 +14,11 @@ import time
 import urllib.request
 import zipfile
 
-DOMAIN = 'chefjeff.belchingleo.online'
+DOMAIN = 'chefjeff.online'
+# The pilot's first address; its service command is moved to DOMAIN once, and Nginx redirects it.
+OLD_DOMAIN = 'chefjeff.belchingleo.online'
+UNIT_FILES = (Path('/etc/systemd/system/chefjeff.service'),
+              Path('/etc/systemd/system/chefjeff.service.d/zz-chefjeff-capacity.conf'))
 
 
 def run(*args):
@@ -37,6 +41,27 @@ def health():
     raise RuntimeError('Backend health check failed.')
 
 
+def move_origin(files=None):
+    """Point the service's --origin at DOMAIN where it still names OLD_DOMAIN; return the files' previous text."""
+    previous = {}
+    for path in UNIT_FILES if files is None else files:
+        if path.is_file() and not path.is_symlink():
+            text = path.read_text()
+            if '--origin https://' + OLD_DOMAIN in text:
+                previous[path] = text
+                path.write_text(text.replace('--origin https://' + OLD_DOMAIN, '--origin https://' + DOMAIN))
+    if previous:
+        run('systemctl', 'daemon-reload')
+    return previous
+
+
+def restore_units(previous):
+    for path, text in previous.items():
+        path.write_text(text)
+    if previous:
+        run('systemctl', 'daemon-reload')
+
+
 def switch_link(current, target):
     pending = current.with_name('next')
     if pending.exists() or pending.is_symlink():
@@ -49,19 +74,24 @@ def install(release, current, site):
     previous = current.resolve(strict=True)
     previous_config = site.read_bytes()
     switched = False
+    moved = {}
     try:
         site.write_bytes((release / 'deploy/nginx-https.conf').read_bytes())
         run('nginx', '-t')
+        moved = move_origin()
         switch_link(current, release)
         switched = True
-        # Existing unit, two-room/memory drop-in, data and VPN configuration stay in place.
+        # Existing unit, two-room/memory drop-in, data and VPN configuration stay in place (only an
+        # --origin still on OLD_DOMAIN moves to DOMAIN).
         run('systemctl', 'restart', 'chefjeff.service')
         health()
         run('systemctl', 'reload', 'nginx')
     except BaseException:
         site.write_bytes(previous_config)
-        if switched:
-            switch_link(current, previous)
+        restore_units(moved)
+        if switched or moved:
+            if switched:
+                switch_link(current, previous)
             run('systemctl', 'restart', 'chefjeff.service')
         run('nginx', '-t')
         run('systemctl', 'reload', 'nginx')
@@ -84,6 +114,9 @@ def main():
         parser.error('Existing reviewed release symlink is required.')
     if not site.is_file() or site.is_symlink():
         parser.error('Expected a regular ChefJeff Nginx site configuration.')
+    if not Path('/etc/letsencrypt/live/' + DOMAIN + '/fullchain.pem').is_file():
+        parser.error('No certificate for ' + DOMAIN + ' yet. Point its DNS at this server, then run: certbot certonly '
+                     '--webroot -w /var/www/chefjeff-acme -d ' + DOMAIN + ' -d www.' + DOMAIN)
     run('systemctl', 'is-active', '--quiet', 'chefjeff.service')
     run('nginx', '-t')
     with tempfile.TemporaryDirectory(prefix='chefjeff-update-') as temporary:

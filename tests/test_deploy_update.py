@@ -53,8 +53,40 @@ class UpdateTests(unittest.TestCase):
         self.assertEqual(run.call_args_list[-1].args, ('systemctl', 'reload', 'nginx'))
 
 
+    def units(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        unit, dropin = Path(temporary.name) / 'chefjeff.service', Path(temporary.name) / 'zz-chefjeff-capacity.conf'
+        unit.write_text('ExecStart=/usr/bin/python3 hosted_server.py --origin https://chefjeff.belchingleo.online --max-sessions 2\n')
+        dropin.write_text('[Service]\nExecStart=\nExecStart=/usr/bin/python3 hosted_server.py --origin https://chefjeff.belchingleo.online --max-sessions 8\n')
+        return unit, dropin
+
+    def test_moving_to_the_new_domain_rewrites_only_the_origin(self):
+        unit, dropin = self.units()
+        with patch.object(update, 'run') as run:
+            previous = update.move_origin((unit, dropin))
+        self.assertEqual(set(previous), {unit, dropin})
+        self.assertIn('--origin https://chefjeff.online --max-sessions 8', dropin.read_text())
+        self.assertNotIn('belchingleo', unit.read_text() + dropin.read_text())
+        self.assertEqual(run.call_args_list[-1].args, ('systemctl', 'daemon-reload'))
+        with patch.object(update, 'run') as run:
+            self.assertEqual(update.move_origin((unit, dropin)), {})  # already moved: nothing to do
+        run.assert_not_called()
+
+    def test_failed_update_puts_the_old_origin_back(self):
+        old, new, current, site = self.fixture()
+        unit, dropin = self.units()
+        before = unit.read_text(), dropin.read_text()
+        with patch.object(update, 'UNIT_FILES', (unit, dropin)), patch.object(update, 'run'), \
+                patch.object(update, 'health', side_effect=RuntimeError('Unhealthy')):
+            with self.assertRaisesRegex(RuntimeError, 'Unhealthy'):
+                update.install(new, current, site)
+        self.assertEqual((unit.read_text(), dropin.read_text()), before)
+        self.assertEqual(site.read_text(), 'old proxy')
+
+
 class CapacityUpdateTests(unittest.TestCase):
-    unit = '/usr/bin/python3 /opt/chefjeff/current/hosted_server.py --port 8780 --origin https://chefjeff.belchingleo.online --max-sessions 2 --data-dir /var/lib/chefjeff'
+    unit = '/usr/bin/python3 /opt/chefjeff/current/hosted_server.py --port 8780 --origin https://chefjeff.online --max-sessions 2 --data-dir /var/lib/chefjeff'
 
     def test_verified_change_preserves_other_unit_settings(self):
         with tempfile.TemporaryDirectory() as td:

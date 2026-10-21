@@ -7,7 +7,7 @@ Type=simple
 User=chefjeff
 Group=chefjeff
 WorkingDirectory=/opt/chefjeff/current
-ExecStart=/usr/bin/python3 /opt/chefjeff/current/hosted_server.py --port 8780 --origin https://chefjeff.belchingleo.online --max-sessions 8 --data-dir /var/lib/chefjeff
+ExecStart=/usr/bin/python3 /opt/chefjeff/current/hosted_server.py --port 8780 --origin https://chefjeff.online --max-sessions 8 --data-dir /var/lib/chefjeff
 Environment=PYTHONDONTWRITEBYTECODE=1
 Restart=on-failure
 RestartSec=3

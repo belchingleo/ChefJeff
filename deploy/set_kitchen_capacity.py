@@ -8,7 +8,7 @@ from pathlib import Path
 import subprocess
 import time
 
-DOMAIN = 'chefjeff.belchingleo.online'
+DOMAIN = 'chefjeff.online'
 DROPIN = Path('/etc/systemd/system/chefjeff.service.d/zz-chefjeff-capacity.conf')
 
 

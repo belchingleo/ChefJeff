@@ -57,7 +57,7 @@ class SharedWorkTests(unittest.TestCase):
         self.assertEqual(k.selected_station('human'),'b1')
         self.assertNotEqual(k.path('human','b1'),[k.positions['human']])
 
-    def test_second_chef_reserves_distinct_perpendicular_side(self):
+    def test_second_chef_reserves_a_distinct_side(self):
         k=self.make();k.positions['jeff']=(4,2)
         k.command('human','chop b1');k.command('jeff','chop b1')
         a=k.routes['human']['points'][-1];b=k.routes['jeff']['points'][-1]
@@ -66,12 +66,19 @@ class SharedWorkTests(unittest.TestCase):
         self.assertIn(b,[(3.15,3.),(4.85,3.)])
         k.advance(1);k.assert_invariants()
 
-    def test_middle_board_without_corner_cannot_share(self):
-        k=self.make();k.stations['b2'].food=Food('middle')
-        k.positions.update(human=(3.15,4.3),jeff=(5,4))
-        k.command('human','chop b2');k.advance(.01)
-        self.assertNotIn('chop b2',[a.key for a in k.actions('jeff')])
-        self.assertFalse(k.command('jeff','chop b2')[0])
+    def test_middle_board_is_shared_face_to_face(self):
+        # Level 1's b2 sits between b1 and b3: Jeff chops it from the west, and the player standing on the
+        # free east side, facing it, joins with Space; both work and the chop runs at the shared rate.
+        k=self.make();k.stations['b2'].food=Food('middle','raw',ingredient='beef')
+        k.positions.update(jeff=(3.15,4.),human=(4.85,4.));k.facing.update(jeff='right',human='left')
+        self.assertTrue(k.command('jeff','chop b2')[0]);k.advance(.01)
+        focus,action=k.facing_interaction('human')
+        self.assertEqual((focus,action.key),('b2','chop b2'))
+        self.assertTrue(k.start('human',action)[0]);k.advance(.2)
+        self.assertTrue(all(a.job and a.job.working and a.job.action.target=='b2' for a in k.chefs.values()))
+        self.assertTrue(any(e.get('kind')=='shared_work_join' for e in k.events))
+        before=k.stations['b2'].food.chopped;k.advance(1);self.assertAlmostEqual(k.stations['b2'].food.chopped-before,2)
+        k.assert_invariants()
 
     def test_fire_cancels_both_workers(self):
         k=self.make();self.start_pair(k);k.ignite('b1')

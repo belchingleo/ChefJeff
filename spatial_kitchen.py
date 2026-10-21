@@ -537,7 +537,7 @@ class SpatialKitchen(Kitchen):
         return next((cap for cap,rule in shared.items() if rule['max_workers']>1),None)
 
     def shared_access(self, who, target):
-        """Reserve a perpendicular, reachable side; never stack two chefs."""
+        """Reserve another reachable side (beside or facing the first chef); never stack two chefs."""
         if target not in self.equipment:return None
         kind=self.shared_capability(target)
         if not kind:return None
@@ -552,9 +552,7 @@ class SpatialKitchen(Kitchen):
         route=self.routes.get(other)
         point=route['points'][-1] if route else self.positions[other]
         occupied=self.station_side(target,point)
-        ox,oy=occupied[0]-center[0],occupied[1]-center[1]
-        return [a for a in access if (a[0]-center[0])*ox+(a[1]-center[1])*oy==0
-                and math.dist(self.operation_point(target,a),point)>.4]
+        return [a for a in access if tuple(a)!=tuple(occupied) and math.dist(self.operation_point(target,a),point)>.4]
 
     def station_side(self, target, point):
         """The tile beside the station on the side ``point`` is on (the face a chef there works from)."""
@@ -680,7 +678,8 @@ class SpatialKitchen(Kitchen):
 
     def station_catches(self, key, food, who=None):
         s = self.stations[key]
-        if s.fire or s.lock is not None or self.board_reserved(key, who):
+        # A thrown item lands on a burning station too, as in Overcooked 2 (catching ignores fire).
+        if s.lock is not None or self.board_reserved(key, who):
             return False
         if key in self.pots:
             return bool(s.pot_id and not s.food and self.rules.potable(food, self.rules.vessels.get(s.pot_id)))

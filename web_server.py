@@ -633,14 +633,19 @@ class GameSession:
                     or any(isinstance(v,bool) or not isinstance(v,(int,float)) or not math.isfinite(v) or abs(v)>10000 for v in target)
                     or not any(target)):
                 return 400, {'error':'抛掷方向无效'}
+            def refused(status, error):
+                # A refused throw is journaled too, so a "stuck" report can be told from a refused press.
+                self.journal('human_input',{'t':self.k.time,'source':'browser','action':'throw aimed','target':target,
+                                          'applied':False,'message':error.get('error')})
+                return status, error
             hand = self.k.chefs['human'].hand
             if not hand or hand.id != body.get('expected_item'):
-                return 409, {'error':'手中物品已变化'}
+                return refused(409, {'error':'手中物品已变化'})
             invalid = self._settle_at(body)
-            if invalid: return invalid
+            if invalid: return refused(*invalid)
             action = self.k.aimed_throw('human',target)
             if not action:
-                return 409, {'error':'没有可用落点，或此物品不能抛掷'}
+                return refused(409, {'error':'没有可用落点，或此物品不能抛掷'})
             ok,message = self.k.start('human',action)
             self.journal('human_input',{'t':self.k.time,'source':'browser','action':action.key,
                                       'target':target,'landing':action.target,'applied':ok,'message':message})

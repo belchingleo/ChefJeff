@@ -23,7 +23,7 @@ DEFAULT_PROFILE = {'shared_work': True}
 ASSUMPTIONS = [
     'Lower bounds exclude walking, throwing and handoff transport (optimistic).',
     'Chefs are interchangeable; each attended step needs one chef for its whole duration; heating is unattended.',
-    'Shared work shortens a step only on stations whose map geometry offers a second, perpendicular operation side.',
+    'Shared work shortens a step only on stations whose map geometry offers a second operation side.',
     'Every served dish returns one dirty plate that must be washed before reuse.',
     'Model response latency, pausing and human reaction time are excluded.',
     'Spawn sides are assigned by the spawn seed; walking references are reported for every assignment.',
@@ -91,14 +91,11 @@ class _Geometry:
         return self._cache[key]
 
     def second_side(self, key):
-        """Whether two chefs can work this station from perpendicular sides (as the engine requires)."""
+        """Whether two chefs can work this station from two different sides (as the engine requires)."""
         station = self.k.equipment[key]
         if station.get('reach') == 'corner':
             return False
-        cell = station['cell']
-        access = self.k.nav.neighbors(cell)
-        return any((a[0] - cell[0]) * (b[0] - cell[0]) + (a[1] - cell[1]) * (b[1] - cell[1]) == 0
-                   for a, b in itertools.combinations(access, 2))
+        return len(self.k.nav.neighbors(station['cell'])) >= 2
 
 
 def _mix(policy, plan):

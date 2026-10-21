@@ -418,7 +418,7 @@
     "向前抛出": "Throw forward",
     "面前是工位时，短按空格只对这个工位操作，做不了会说明原因，不会把东西放到地上。面前是空地时，短按先拿面前地上的东西，再拿脚下的，最后把手里的东西放在面前。拿干净盘面向地上的熟锅，也能盛菜。": "Facing a station, a short Space press acts only on that station; an unavailable action shows a reason and never drops your item on the floor. Facing open floor, a short press takes the item in front, then the one at your feet, and otherwise puts your item down in front. A clean plate facing a cooked pot on the floor takes its food.",
     "干净盘才可装菜。脏盘回收点取盘 → 放入水槽 → 空手按空格洗碗 → 取净盘。没盘时可空手到锅边端锅，离灶停止加热；空锅需放回灶台。": "Only clean plates can hold food. Collect a dirty plate → put it in the sink → press Space with empty hands to wash → take the clean plate. Without a plate, use empty hands to lift the whole pot. Taking it off the stove stops heating; return empty pots to the stove.",
-    "拿食材靠近垃圾桶按空格会销毁，扣 2 元；端锅则倒掉锅里的食物，保留空锅。拿起灭火器后面向着火工位按空格，4 秒灭火。着火的工位会加热身边 8 格（含对角）的工位，旁边有一处着火 5 秒就会着火，多处同时着火更快，红色条显示进度；不跨空地或墙。同时 5 个工位着火，本局结束。": "Face a bin with food and press Space to discard it for a ¥2 penalty. Pots remain after emptying. Face a burning station with the extinguisher and press Space; extinguishing takes 4 seconds. A burning station heats the stations in the eight cells around it, diagonals included: next to one fire a station ignites after 5 seconds, faster beside several, and a red bar shows how close it is. Fire never crosses floors or walls. Five simultaneously burning stations end the round.",
+    "拿食材靠近垃圾桶按空格会销毁，扣 2 元；端锅则倒掉锅里的食物，保留空锅。拿起灭火器后面向着火工位按空格喷，累计喷 4 秒灭火；中途走开，进度保留，但停喷 2 秒后火会慢慢变旺。着火的工位会加热身边 8 格（含对角）的工位，旁边有一处着火 5 秒就会着火，多处同时着火更快，红色条显示进度；不跨空地或墙。同时 5 个工位着火，本局结束。": "Face a bin with food and press Space to discard it for a ¥2 penalty. Pots remain after emptying. Face a burning station with the extinguisher and press Space to spray; 4 seconds of spraying in total put it out. Walk away and the progress stays, but 2 seconds after spraying stops the fire starts growing back. A burning station heats the stations in the eight cells around it, diagonals included: next to one fire a station ignites after 5 seconds, faster beside several, and a red bar shows how close it is. Fire never crosses floors or walls. Five simultaneously burning stations end the round.",
     "面向工位或物品按空格": "Face a station or item and press Space",
     "按住移动，松开停止；方向键也可以。只用键盘操作厨房。": "Hold to move, release to stop; arrow keys work too. The kitchen is played with the keyboard only.",
     "移动 · WASD / 方向键": "Move · WASD / arrow keys",
@@ -685,7 +685,24 @@
     "尽快打开「设置 → 数据导出」，点「导出本次游玩」，检查内容后下载 JSON 文件。文件含最近 30 秒的页面记录，导出越快越好。": "Soon afterwards, open Settings → Data export, choose Export This Play Session, check the content and download the JSON file. It holds the last 30 seconds of page diagnostics, so the sooner the better.",
     "在 GitHub 新建 Issue，写下经过、用的设备和浏览器，并附上这个文件。": "Open a new GitHub issue describing what happened and your device and browser, and attach the file.",
     "导出文件不含 API Key、接口地址和模型回复，但包含浏览器型号和画面大小；公开发布前请再看一遍。": "The export holds no API key, endpoint or model replies, but does include your browser and screen size; look it over before posting it publicly.",
-    "导出还附带本页最近 30 秒的页面记录（游戏时间、角色位置、按键方向、页面报错，以及浏览器型号和画面大小），用于排查卡住或显示问题；遇到问题后请尽快导出。": "The export also carries this page's last 30 seconds of diagnostics (game time, chef positions, held direction, page errors, plus browser and screen size) to help trace stuck or display problems; export soon after a problem."
+    "导出还附带本页最近 30 秒的页面记录（游戏时间、角色位置、按键方向、页面报错，以及浏览器型号和画面大小），用于排查卡住或显示问题；遇到问题后请尽快导出。": "The export also carries this page's last 30 seconds of diagnostics (game time, chef positions, held direction, page errors, plus browser and screen size) to help trace stuck or display problems; export soon after a problem.",
+    "决策模型（直接给每个动作打分）": "Decision models (score every action directly)",
+    "对话模型": "Chat models",
+    "Decision 3.0（需本地部署，待接入）": "Decision 3.0 (self-hosted, not yet supported)",
+    "阿里 qwen-flash": "Alibaba qwen-flash",
+    "豆包 Seed 2.0 lite": "Doubao Seed 2.0 lite",
+    "智谱 GLM-4.7-Flash（免费，接口繁忙）": "Zhipu GLM-4.7-Flash (free, often busy)",
+    "决策模型 · 已实测整局": "Decision model · tested over a full round",
+    "有免费额度（限速）· 需能访问 Google · 未实测": "Free quota (rate-limited) · needs access to Google · not yet tested",
+    "免费，但高峰常返回“访问量过大”· 未实测": "Free, but often “too busy” at peak times · not yet tested",
+    "自己填接口地址和模型名；会先长篇思考的模型可能答不完": "Enter the base URL and model yourself; models that think at length may not finish an answer",
+    "约 ¥1–3/局 · 已实测整局": "About ¥1–3 a round · tested over a full round",
+    "约 ¥0.2–0.3/局 · 未实测": "About ¥0.2–0.3 a round · not yet tested",
+    "约 ¥0.7–1.3/局 · 未实测": "About ¥0.7–1.3 a round · not yet tested",
+    "OpenRouter 决策模型": "OpenRouter decision models",
+    "可填 OpenRouter 上任一决策模型的 ID（默认 Microsoft-Decision-1，约 ¥0.3–0.7/局）· 已实测整局": "Any OpenRouter decision model ID works (default Microsoft-Decision-1, about ¥0.3–0.7 a round) · tested over a full round",
+    "OpenRouter 对话模型": "OpenRouter chat models",
+    "填 OpenRouter 模型页上的 ID（形如 厂商/模型名）；会先长篇思考的模型可能答不完": "Enter the model ID from its OpenRouter page (vendor/model); models that think at length may not finish an answer"
   },
   "templates": [
     [
@@ -1292,7 +1309,7 @@
   function element(el) {
     if (el.nodeType!==1 || el.closest('script,style,textarea,[data-no-i18n]')) return;
     let rows=attributes.get(el)||{};
-    for (const name of ['placeholder','aria-label','title']) {
+    for (const name of ['placeholder','aria-label','title','label']) {
       if (!el.hasAttribute(name)) continue;
       let row=rows[name],current=el.getAttribute(name);
       if (!row || current!==row.rendered) row={source:current};
@@ -1329,7 +1346,7 @@
           else if(record.type==='attributes')element(record.target);
           else for(const node of record.addedNodes)walk(node);
         }
-      }).observe(doc.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['placeholder','aria-label','title']});
+      }).observe(doc.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['placeholder','aria-label','title','label']});
     }
     if(doc.readyState==='loading')doc.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
   }

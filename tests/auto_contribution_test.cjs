@@ -1,6 +1,7 @@
 // Exercise the shipped browser agent with only same-origin mock records; no paid model calls.
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const source=fs.readFileSync('hosted/browser-agent.js','utf8');
+const chefjeffProviders=JSON.parse(fs.readFileSync('model-providers.json','utf8'));
 const consent=/CONSENT_VERSION = '([^']+)'/.exec(fs.readFileSync('hosted_records.py','utf8'))[1];
 const choiceKey='chefjeff.contribution-choice.v1',receiptsKey='chefjeff.contribution-receipts.v1',oldKey='chefjeff.contribution-auto.v1';
 const fakeKey='unit-test-key-not-a-real-credential';
@@ -29,7 +30,7 @@ function harness(options={}){
   }
   return new Response('{"ok":true}');
  };
- const w={fetch:native,addEventListener:(name,fn)=>{listeners[name]=fn;},dispatchEvent:e=>listeners[e.type]?.(e)};
+ const w={fetch:native,chefjeffProviders,addEventListener:(name,fn)=>{listeners[name]=fn;},dispatchEvent:e=>listeners[e.type]?.(e)};
  vm.runInNewContext(source,{window:w,location:{origin:'https://kitchen.example',href:'https://kitchen.example/'},
   document:{getElementById:el,querySelector:selector=>selector==='dialog[open]'?[...elements.values()].find(e=>e.open)||null:null},
   localStorage:{getItem:key=>data.get(key)||null,setItem:(key,value)=>data.set(key,value),removeItem:key=>data.delete(key)},

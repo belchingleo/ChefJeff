@@ -110,7 +110,22 @@ def score_text(state):
             f"Fire: {p['new_fire']} yuan per burning workstation. Discarding food or emptying a pot: {p['discard']} yuan. There are no bad reviews.")
 
 
+def http_error_detail(error, key):
+    """The provider's short error message (never headers), with the key redacted, for diagnosing a refused request."""
+    try:
+        body = json.loads(error.read(4096) or b"{}")
+        detail = body.get("error", body) if isinstance(body, dict) else {}
+        message = detail.get("message") if isinstance(detail, dict) else detail
+        message = str(message or "").replace(key, "***").strip()[:160] if key else ""
+    except (ValueError, OSError, AttributeError):
+        message = ""
+    return f"：{message}" if message else ""
+
+
 class JevClient:
+    # Any systemone-style decision API: state + questions in, option probabilities out.
+    endpoint, vendor = ENDPOINT, "TypeSafe"
+
     def __init__(self, config, key=None):
         self.key = key or load_key()
         self.c = config
@@ -143,7 +158,7 @@ class JevClient:
                                                      "walk_same_area", "walk_cross_area", "handling", "extinguish")},
                                "take_put_fetch": t["handling"], "serve": t["handling"]},
                     "interrupt": 'continue keeps the current task; another action interrupts it. Chopping progress is preserved. Cooking in a pot does not stop when a chef switches tasks. Decide whether to continue or interrupt.',
-                    "fire": f'Burnt food cannot be restored. Removing the whole pot stops heating. A burning stove cannot be used for taking or placing items. First take extinguisher from its rack, or pickup E1 from the floor; extinguish takes {t["extinguish"]:g} seconds; to reuse the pot, lift it (take pot pN) and empty the burnt food at a bin (discard). The extinguisher occupies your hands; a previously held item is automatically put on the floor. Return it with put extinguisher or drop it. There is one extinguisher, usable by either chef; it cannot be discarded or served. Extinguishing stops heating. Each burning stove, board or counter heats every combustible workstation in the eight cells around it, diagonals included: next to one burning workstation it ignites after {fire["flammability_seconds"]:g} game seconds, and several burning neighbours add up. The fire_heat of each station (0 to 1) shows how close it is to igniting; without a burning neighbour the heat drains again after a short delay, and a workstation just extinguished takes no heat for a moment. Fire never jumps across a floor gap or wall. Burning workstations cannot be used until extinguished. {fire["loss_threshold"]} simultaneously burning workstations immediately lose the round. Extinguish any burning workstation with the same extinguisher. An extinguished workstation can reignite from an adjacent fire; removing food does not remove a cabinet fire. Check kitchen.fire_safety and each station fire_neighbors and fire_heat. The extinguisher is a movable object.',
+                    "fire": f'Burnt food cannot be restored. Removing the whole pot stops heating. First take extinguisher from its rack, or pickup E1 from the floor; extinguish sprays it, and {t["extinguish"]:g} seconds of spraying in total put a fire out. Spraying lowers the fire_strength of that station (1 full, 0 out), which stays if you stop; after 2 seconds without spraying a fire grows back to full over 5 seconds. Both chefs follow the same rule. To reuse the pot, lift it (take pot pN) and empty the burnt food at a bin (discard). The extinguisher occupies your hands; a previously held item is automatically put on the floor. Return it with put extinguisher or drop it. There is one extinguisher, usable by either chef; it cannot be discarded or served. Extinguishing stops heating. Each burning stove, board or counter heats every combustible workstation in the eight cells around it, diagonals included: next to one burning workstation it ignites after {fire["flammability_seconds"]:g} game seconds, and several burning neighbours add up. The fire_heat of each station (0 to 1) shows how close it is to igniting; without a burning neighbour the heat drains again after a short delay, and a workstation just extinguished takes no heat for a moment. Fire never jumps across a floor gap or wall. Until the fire is out, a burning ingredient source cannot be used and nobody can chop on a burning board; but what rests on a burning board, counter or stove can still be taken and items put or plated there: a pan can be lifted off a burning stove, put back, or filled when empty. A burning stove does not heat; once it is put out, food in its pan that is not burnt cooks on. The same for both chefs. {fire["loss_threshold"]} simultaneously burning workstations immediately lose the round. Extinguish any burning workstation with the same extinguisher. An extinguished workstation can reignite from an adjacent fire; removing food does not remove a cabinet fire. Check kitchen.fire_safety and each station fire_neighbors and fire_heat. The extinguisher is a movable object.',
                     "score": score_text(state),
                     "visibility": 'Both chefs see the same kitchen state. All available actions are in criteria; legal does not mean useful. Waiting and continuing are allowed. The program does not choose your strategy.'
                 }
@@ -158,19 +173,19 @@ class JevClient:
     def ask(self, payload):
         payload = english_data(payload)
         start = time.monotonic()
-        request = urllib.request.Request(ENDPOINT, data=json.dumps(payload, ensure_ascii=False).encode(),
+        request = urllib.request.Request(self.endpoint, data=json.dumps(payload, ensure_ascii=False).encode(),
                                          headers={"Authorization": "Bearer " + self.key, "Content-Type": "application/json"}, method="POST")
         try:
             with urllib.request.urlopen(request, timeout=self.c["ai_timeout_seconds"]) as r:
                 result = json.load(r)
         except urllib.error.HTTPError as e:
-            # No response body / request headers in errors or logs.
-            raise RuntimeError(f"TypeSafe HTTP {e.code}") from None
+            # Only the status and the provider's short message; no headers, request or key.
+            raise RuntimeError(f"{self.vendor} HTTP {e.code}{http_error_detail(e, self.key)}") from None
         except (urllib.error.URLError, TimeoutError, OSError):
-            raise RuntimeError("TypeSafe 网络连接失败或超时") from None
+            raise RuntimeError(f"{self.vendor} 网络连接失败或超时") from None
         answer = result.get("answers", {}).get("next_action", {})
         if answer.get("type") != "choice" or answer.get("choice") not in payload["questions"]["next_action"]["criteria"]:
-            raise RuntimeError("TypeSafe 返回了不符合候选集的选择")
+            raise RuntimeError(f"{self.vendor} 返回了不符合候选集的选择")
         sprint_answer=result.get('answers',{}).get('sprint',{})
         if 'sprint' in payload['questions'] and (sprint_answer.get('type')!='choice' or sprint_answer.get('choice') not in ('yes','no')):
             raise RuntimeError('Invalid sprint decision')

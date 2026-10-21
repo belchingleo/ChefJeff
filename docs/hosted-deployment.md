@@ -34,7 +34,9 @@ The next-round button waits for any consented upload of the previous round befor
 
 Upload an audited ZIP containing the allowlisted runtime, web build and `hosted/`, `deploy/` files. Verify its hash and every release-manifest entry; extract under `/opt/chefjeff/releases/<version>` and execute `deploy/install_backend.py` there. The service runs as an unprivileged dedicated account and binds only `127.0.0.1:8780`. This step does not open the website publicly.
 
-The current pilot uses the operator's Hetzner instance in Nuremberg, Germany, with `chefjeff.belchingleo.online` pointing to that server.
+The current pilot uses the operator's Hetzner instance in Nuremberg, Germany, at `chefjeff.online` (and `www.chefjeff.online`). The first address, `chefjeff.belchingleo.online`, still points there and redirects to `chefjeff.online`.
+
+Moving from the first address (once): point `chefjeff.online` and `www` at the server; as root run `certbot certonly --webroot -w /var/www/chefjeff-acme -d chefjeff.online -d www.chefjeff.online`; then run the update script from the new commit, `curl -fsSLo /root/update_hetzner.py https://raw.githubusercontent.com/belchingleo/ChefJeff/<commit>/deploy/update_hetzner.py` and `python3 /root/update_hetzner.py <commit> <package SHA-256>`. It installs the redirects and moves the service's `--origin` to the new address, restoring both on failure. Finally rerun `bash deploy/finalize_hetzner.sh` from the new release so certificate renewals of either address reload Nginx. Players' browser storage is per address: keys remembered on the old address and contribution receipts kept only in that browser stay with it.
 
 The supplied Nginx templates limit traffic, compress state responses and disable access/request logs. After public exposure is approved, install Nginx/Certbot from Ubuntu's official repositories; keep the initial HTTP site on a 503 response except for ACME challenges. Request the certificate only after the operator accepts the certificate issuer's subscriber terms. Then install the HTTPS template, validate Nginx configuration and test renewal. Allow only 80/443 for the web entry; never expose the Python port. Certificate files stay on the server.
 
@@ -118,7 +120,9 @@ python3 -m unittest tests.test_hosted tests.test_hosted_records
 
 上传经过审阅、仅含明确清单中的运行文件、网页构建、`hosted/` 与 `deploy/` 的 ZIP。验证包哈希及每条 release-manifest 记录，解压至 `/opt/chefjeff/releases/<version>`，在该目录执行 `deploy/install_backend.py`。服务以专用低权限账号运行，仅监听 `127.0.0.1:8780`，此步骤不公开网站。
 
-当前试玩部署在运营者的 Hetzner 德国纽伦堡服务器，`chefjeff.belchingleo.online` 解析至这台服务器。
+当前试玩部署在运营者的 Hetzner 德国纽伦堡服务器，地址为 `chefjeff.online`（及 `www.chefjeff.online`）。最初的地址 `chefjeff.belchingleo.online` 仍指向这台服务器，并跳转到 `chefjeff.online`。
+
+从最初地址迁移（只需一次）：把 `chefjeff.online` 和 `www` 解析到服务器；以 root 执行 `certbot certonly --webroot -w /var/www/chefjeff-acme -d chefjeff.online -d www.chefjeff.online`；再用新提交里的更新脚本更新：`curl -fsSLo /root/update_hetzner.py https://raw.githubusercontent.com/belchingleo/ChefJeff/<提交 ID>/deploy/update_hetzner.py`，然后 `python3 /root/update_hetzner.py <提交 ID> <部署包 SHA-256>`。它会装好跳转，并把服务的 `--origin` 改到新地址，失败则两者一并恢复。最后在新版本目录重新执行 `bash deploy/finalize_hetzner.sh`，让两个地址的证书续期后都会重新加载 Nginx。玩家的浏览器存储按地址区分：在旧地址记住的 Key、只存在那个浏览器里的贡献删除凭证都留在旧地址。
 
 Nginx 模板限流、压缩响应并关闭访问／请求日志。获得公开发布授权后，从 Ubuntu 官方仓库安装 Nginx／Certbot，初期 HTTP 除 ACME 验证外仅返回 503。运营者接受证书订户条款后申请证书，再安装 HTTPS 配置，校验 Nginx 并测试续期。网页仅开放 80／443，不公开 Python 端口；证书留在服务器。
 
