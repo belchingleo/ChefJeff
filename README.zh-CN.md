@@ -277,3 +277,5 @@ Overcooked-AI（Carroll 等，2019）用胡闹厨房式的环境研究人和强�
 - 像素字体：TakWolf 的 Fusion Pixel，采用 SIL 开源字体许可 1.1。
 - 音乐与音效：用 Stability AI 的 Stable Audio 3 Small SFX 离线生成（Powered by Stability AI），另有几个提示音由代码合成。
 - 其他依赖与素材的许可状态：见[第三方说明](THIRD_PARTY_NOTICES.md)和[许可状态](LICENSE-STATUS.md)。
+
+社区交流：[LINUX DO](https://linux.do/)。

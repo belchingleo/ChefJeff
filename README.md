@@ -276,3 +276,5 @@ See [privacy and API costs](docs/privacy-and-costs.md) and the [security notes](
 - Pixel font: Fusion Pixel by TakWolf, under the SIL Open Font License 1.1.
 - Music and sound effects: generated offline with Stability AI's Stable Audio 3 Small SFX (Powered by Stability AI); a few cue sounds are synthesized in code.
 - Licence status of other dependencies and assets: see the [third-party notices](THIRD_PARTY_NOTICES.md) and [licence status](LICENSE-STATUS.md).
+
+Community: [LINUX DO](https://linux.do/).
