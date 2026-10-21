@@ -12,7 +12,7 @@
   "assumptions": [
     "Lower bounds exclude walking, throwing and handoff transport (optimistic).",
     "Chefs are interchangeable; each attended step needs one chef for its whole duration; heating is unattended.",
-    "Shared work shortens a step only on stations whose map geometry offers a second, perpendicular operation side.",
+    "Shared work shortens a step only on stations whose map geometry offers a second operation side.",
     "Every served dish returns one dirty plate that must be washed before reuse.",
     "Model response latency, pausing and human reaction time are excluded.",
     "Spawn sides are assigned by the spawn seed; walking references are reported for every assignment.",

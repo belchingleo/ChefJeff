@@ -57,7 +57,7 @@ class ReportShapeTests(unittest.TestCase):
 class BoundTests(unittest.TestCase):
     def test_first_dish_bound_uses_shared_chopping_only_where_geometry_allows(self):
         level1 = ca.analyze_capacity(frozen('level-1'))
-        self.assertEqual(level1['geometry']['shared_work_capable']['board'], ['b1', 'b3'])
+        self.assertEqual(level1['geometry']['shared_work_capable']['board'], ['b1', 'b2', 'b3'])
         # 6 handling steps x 0.15 + chop 3 / 2 + heat 12
         self.assertEqual(level1['dishes']['steak']['first_dish_lower_bound_game_ms'], 14400)
         solo = ca.analyze_capacity(frozen('level-1'), {'shared_work': False})

@@ -43,7 +43,7 @@ class NoLevelBranchTests(unittest.TestCase):
 
 
 class SharedWorkDataTests(unittest.TestCase):
-    """Level-1 board b1 has a second, perpendicular operation side."""
+    """Level-1 board b1 has a second operation side."""
 
     def pair(self, k):
         k.stations['b1'].food = Food('shared-food')
