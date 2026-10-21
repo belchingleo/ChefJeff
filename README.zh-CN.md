@@ -17,10 +17,10 @@ ChefJeff 是一个实时的人与 AI 合作烹饪游戏，也是一套可以扩�
 
 ## 在线试玩
 
-打开 <https://chefjeff.belchingleo.online/> 就能玩，不用安装。
+打开 <https://chefjeff.online/> 就能玩，不用安装。
 
-- 需要你自己的模型 Key：在「设置 → 连接」里选服务、粘贴 Key。Key 默认只留在当前页面里，由浏览器直接发给服务商；只有 Jev 需要你勾选同意后经试玩服务器转发。哪些服务能用、一局大约花多少钱，见[模型连接说明](https://chefjeff.belchingleo.online/model-guide.html)。
-- 第一次开局前会问你是否愿意匿名贡献对局数据，可以随时改主意；贡献的数据保留 30 天，可凭删除凭证删除，详见[隐私说明与反馈](https://chefjeff.belchingleo.online/privacy.html)。
+- 需要你自己的模型 Key：在「设置 → 连接」里选服务、粘贴 Key。Key 默认只留在当前页面里，由浏览器直接发给服务商；只有 Jev 需要你勾选同意后经试玩服务器转发。哪些服务能用、一局大约花多少钱，见[模型连接说明](https://chefjeff.online/model-guide.html)。
+- 第一次开局前会问你是否愿意匿名贡献对局数据，可以随时改主意；贡献的数据保留 30 天，可凭删除凭证删除，详见[隐私说明与反馈](https://chefjeff.online/privacy.html)。
 - 电脑用键盘；手机横屏后用触屏操作（见下方[触屏操作](#触屏操作试验版)）。iPhone 可以在 Safari 分享菜单里选「添加到主屏幕」，再从主屏幕打开即可全屏。
 - 服务器在德国，国内访问可能稍慢；同时营业的厨房数量有限，满了会提示稍后再来。
 

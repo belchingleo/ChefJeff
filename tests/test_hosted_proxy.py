@@ -20,7 +20,7 @@ from hosted_jev import CONSENT_VERSION
 
 NGINX = os.environ.get('CHEFJEFF_NGINX_BIN') or shutil.which('nginx')
 ROOT = Path(__file__).resolve().parents[1]
-DOMAIN = 'chefjeff.belchingleo.online'
+DOMAIN = 'chefjeff.online'
 ORIGIN = 'https://' + DOMAIN
 
 
