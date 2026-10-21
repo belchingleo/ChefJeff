@@ -4,7 +4,7 @@ ChefJeff 0.6.0-beta.2 is a playable human–AI cooperative cooking game on a dat
 
 Implemented: three maps; shared kitchen rules; continuous movement and sprint; direction-aware workstation docking; cooperative chopping and washing; sliding and pushing between chefs, with walking never pushing a working chef; Overcooked-style dash knockback; plate return and washing; movable pans and pots with preserved heat progress, one vessel per stove; model adapters; preset communication; bounded local memory; and data-driven maps. Existing maps do not yet offer a shared sink; the shared-washing rule has a dedicated test layout.
 
-The hosted runtime adds independent browser sessions, browser-direct model calls and optional anonymous contributions retained for 30 days with deletion receipts. Public access is pending deployment validation and domain filing; use the local quick start in the [README](../README.md) meanwhile.
+The hosted runtime adds independent browser sessions, browser-direct model calls and optional anonymous contributions retained for 30 days with deletion receipts. Public play is open at <https://chefjeff.belchingleo.online/>; the [README](../README.md) also explains how to run it locally.
 
 Next: community playtesting and pacing; asset/license review; recipe data contracts and map/recipe editors; broader agent and team configurations; iPad and other device compatibility; and a community-defined whole-session scenario schema and evaluation protocol. The game and benchmark are both open co-creation goals. Fixed-entry fixtures support development regression.
 
@@ -18,6 +18,6 @@ ChefJeff 0.6.0-beta.2 是一款可以玩的人与 AI 合作做菜游戏，运行
 
 已实现：三张地图、共用厨房规则、连续移动与冲刺、按方向停靠工位、合作切菜与洗碗、厨师间滑动与推挤（走路推不动干活的人）、《胡闹厨房》式冲刺撞开、餐盘回收清洗、保留加热进度的搬锅、模型适配、预设沟通、有限本地记忆及数据化地图。现有地图尚未提供共用水槽布局；合作洗碗规则有专门测试布局。
 
-托管运行时增加独立浏览器会话、浏览器直连模型，以及附删除凭证、保留 30 天的自愿匿名数据贡献。公开访问等待部署验证与域名备案，当前可按 [README](../README.md) 在本地启动。
+托管运行时增加独立浏览器会话、浏览器直连模型，以及附删除凭证、保留 30 天的自愿匿名数据贡献。在线试玩已开放：<https://chefjeff.belchingleo.online/>；也可按 [README](../README.md) 在本地启动。
 
 后续：社区试玩与节奏打磨、素材许可审查、菜谱数据契约及地图／菜谱编辑器、更多 agent 与团队组合、iPad 和其他终端兼容，以及社区共同定义的完整对局 scenario schema 与评估协议。游戏和 benchmark 都是开放共创目标，固定入口用例用于开发回归。

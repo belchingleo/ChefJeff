@@ -9,9 +9,20 @@ ChefJeff is a real-time cooking game in which a person and an AI cook together, 
 
 ![Gameplay](docs/images/gameplay.png)
 
-Where to start: [run it locally](#run-it-locally) · [connect your own model](#jeff-and-model-integration) · [change the configuration](#five-data-models) · [the environment and benchmark](#building-a-humanai-collaboration-environment-and-benchmark)
+Where to start: [play online](#play-online) · [run it locally](#run-it-locally) · [connect your own model](#jeff-and-model-integration) · [change the configuration](#five-data-models) · [the environment and benchmark](#building-a-humanai-collaboration-environment-and-benchmark)
 
 > Current version: **0.6.0-beta.2**, the second public test release. You need your own model API, and interfaces and analysis rules may still change. We suggest starting with Jev models: they don't play especially well, but they are cheap. Results from other models are welcome.
+
+---
+
+## Play online
+
+Open <https://chefjeff.belchingleo.online/> to play; nothing to install.
+
+- Bring your own model key: choose a service under Settings → Connection and paste the key. By default the key stays in that page and your browser sends it straight to the provider; only Jev goes through the demo server, and only if you agree. The [model connection guide](https://chefjeff.belchingleo.online/model-guide.html) lists the services that work and roughly what a round costs.
+- Before your first round you are asked whether to contribute anonymous round data; you can change your mind at any time. Contributions are kept for 30 days and can be deleted with a deletion receipt; see [privacy and contact](https://chefjeff.belchingleo.online/privacy.html).
+- Use the keyboard on a computer, and touch controls on a phone held landscape (see [touch controls](#touch-controls-experimental)). On iPhone, choose Add to Home Screen in Safari's share menu and open it from there to play full screen.
+- The server is in Germany, so it may be slower from far away; the number of kitchens open at once is limited, and a full kitchen asks you to come back shortly.
 
 ---
 
@@ -65,13 +76,25 @@ The controls work much as in Overcooked:
 | Enter | Bookmark the current moment without pausing or interrupting anything; bookmarks are included in the data export |
 | Esc or P | Pause (use P on iPad keyboards without an Esc key). Settings let you connect a model, switch language, adjust volume and export the run |
 
+### Touch controls (experimental)
+
+Phones and small touch screens need landscape:
+
+| Touch | Action |
+| --- | --- |
+| Joystick, lower left | Move; let go to stop. Press anywhere in the lower-left area and the stick moves under your thumb |
+| Action | Does what the thing in front of you needs, at once, even holding an item (it never throws) |
+| Throw | Tap to throw straight ahead; hold to aim (steer with the joystick) and let go to throw; drag onto Cancel and let go to cancel |
+| Dash | Press while moving, like Shift on the keyboard |
+| Top buttons | Communication (like keys 1–6), bookmark, pause, settings and the round record |
+
 **Desktop controller trial:** Chrome on `localhost` or HTTPS with the Gamepad API can use one `standard`-mapped controller. Press a button if it has not been discovered. Left stick/D-pad moves; A/× taps to interact or holds about 0.3 s with an item to aim and releases to throw; X/□ dashes; B/○ cancels the controller aim; Start/Options starts a ready round (or opens model Settings), pauses or resumes; on the result card Start or A goes on to the next round. Settings, communication and menus still use keyboard/mouse. Interruptions clear controller input; center the stick and release buttons before taking control again, with manual resume after a pause. Real-controller compatibility is unverified; see [device support](docs/device-support.md) and [interaction guide](docs/interaction-guide.md).
 
 After each round the result card stays on the kitchen with one button: **Next level** after a win, **Try again** otherwise (Space, Enter, A/Start or the phone's main button; a short 3·2·1 and the round starts at the same pace). **Round record** opens the full record, which shows how many times you and Jeff each fetched ingredients, chopped, cooked, served and washed plates, and each chef's contribution, delay and idle time (see [records and analysis](#records-and-analysis)).
 
-The game has Chinese and English interfaces, with 8-bit style music and sound effects. Desktop keyboard controls remain available. On phones and small touch viewports, experimental landscape touch controls use a left joystick and right Action, Throw and Dash buttons: release the joystick to stop, tap Action to do what is in front of you at once, even holding an item; hold Throw to aim (the joystick steers) and let go to throw, or tap it to throw straight away. Dash works as on the keyboard: 2× speed easing back to walking over 1 second, ready again when it ends. Communication, bookmarks, pause and settings also have touch buttons.
+The game has Chinese and English interfaces, with 8-bit style music and sound effects. A dash starts at 2× speed and eases back to walking over 1 second, ready again when it ends.
 
-With the touch layout active, turning the device to portrait, hiding the page or losing the connection clears held input and pauses a running round. Return to landscape and choose Resume; the game does not resume itself. Browsers cannot always force landscape orientation. Touch support is experimental: desktop browser emulation does not establish compatibility with iPhone Safari or Android Chrome, which still need real-device validation. See [device support](docs/device-support.md), [interaction guide](docs/interaction-guide.md) and the [current rules](docs/current-rules.md).
+With the touch layout active, turning the device to portrait, hiding the page or losing the connection clears held input and pauses a running round. Return to landscape and choose Resume; the game does not resume itself. Browsers cannot always force landscape orientation. Touch support is experimental: it has been played on a real iPhone; Android Chrome has not yet been checked on a real device. See [device support](docs/device-support.md), [interaction guide](docs/interaction-guide.md) and the [current rules](docs/current-rules.md).
 
 ---
 
