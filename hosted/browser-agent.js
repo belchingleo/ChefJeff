@@ -115,18 +115,18 @@
       body = {...payload, model: config.model}; endpoint = config.base_url;
     } else {
       body = {model:config.model, max_tokens:128, messages:[
-        {role:'system', content:'Control chef jeff in this shared kitchen. Choose exactly one legal action key from questions.next_action.criteria. Return only JSON with choice and a boolean sprint. Use the supplied state and rules; do not invent actions.'},
+        {role:'system', content:'You control chef jeff in a shared kitchen. Using the supplied state and rules, choose exactly one action key from questions.next_action.criteria. Return only a JSON object of the form {"choice": "<action key>", "sprint": <true or false>}, where <action key> is one key of questions.next_action.criteria; include sprint only if questions.sprint is present. Do not explain or choose an action outside the candidate set.'},
         {role:'user', content:JSON.stringify({state:payload.state, questions:payload.questions})},
       ]};
-      Object.assign(body, preset.extra || {});
       endpoint = config.base_url + '/chat/completions';
     }
+    Object.assign(body, preset.extra || {});
     try {
       // No cookies, redirects, proxy fallback, or credentials in the URL/body.
       const r = await nativeFetch(endpoint, {method:'POST', mode:'cors', credentials:'omit', redirect:'error',
         referrerPolicy:'no-referrer', signal:controller.signal,
         headers:{Authorization:'Bearer ' + config.api_key, 'Content-Type':'application/json'}, body:JSON.stringify(body)});
-      if (!r.ok) throw new Error('模型接口返回 HTTP ' + r.status + '，请检查账号和模型。');
+      if (!r.ok) throw new Error(await refusal(r, config.api_key));
       const text = await r.text();
       if (text.length > 262144) throw new Error('模型回复过大。');
       let d, answer, usage;
@@ -141,8 +141,10 @@
           answer = JSON.parse(d.choices[0].message.content.trim().replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, ''));
           usage = {input_tokens:d.usage?.prompt_tokens || 0, output_tokens:d.usage?.completion_tokens || 0};
         }
+        // A chat reply without sprint means no sprint, as in the local game; a sprint that is not a boolean is rejected.
         if (!Object.hasOwn(payload.questions.next_action.criteria, answer.choice) ||
-            ('sprint' in payload.questions && typeof answer.sprint !== 'boolean')) throw new Error();
+            ('sprint' in payload.questions && preset.group !== 'decision' && 'sprint' in answer &&
+             typeof answer.sprint !== 'boolean')) throw new Error();
       } catch (_) {throw new Error('模型返回了无效动作，未执行任何操作。');}
       return {choice:answer.choice, sprint:answer.sprint === true, usage:{
         input_tokens:boundedCount(usage.input_tokens), output_tokens:boundedCount(usage.output_tokens)},
@@ -153,6 +155,18 @@
       if (e instanceof TypeError) throw new Error('浏览器无法访问模型服务，请检查网络和跨域支持；本次直连请求未通过试玩服务器转发 Key。');
       throw e;
     } finally {clearTimeout(timer);outerSignal?.removeEventListener('abort', abort);}
+  }
+  // The status and the provider's short message (never headers), with the key redacted, as in the local game.
+  async function refusal(r, key) {
+    let message = '';
+    try {
+      const body = JSON.parse((await r.text()).slice(0, 4096) || '{}');
+      const detail = body && typeof body === 'object' ? body.error ?? body : '';
+      message = String((detail && typeof detail === 'object' ? detail.message : detail) || '').split(key).join('***').trim().slice(0, 160);
+    } catch (_) {}
+    const text = '模型接口 HTTP ' + r.status + (message ? '：' + message : '');
+    const hint = {401:'Key 无效，请检查后重试。',402:'账号余额不足，请到服务商充值。',403:'账号无权访问这个模型。',429:'请求受限或额度不足，请稍后重试。'}[r.status];
+    return hint ? hint + '（' + text + '）' : '连接失败（' + text + '）';
   }
   function boundedCount(n) {return Number.isInteger(n) && n >= 0 && n <= 10000000 ? n : 0;}
   async function markReady(connected, body) {
@@ -171,7 +185,8 @@
         const candidate = validate(body);
         checks++;
         await modelRequest(candidate, {state:{connection_test:true}, questions:{next_action:{type:'choice',
-          instructions:'Connection test. Choose wait.', criteria:{wait:'Wait'}}}}, signal,
+          // Two options, as in the local game: a decision service may refuse a one-option question.
+          instructions:'Choose ready and return the required format.', criteria:{ready:'Connection ready',wait:'Not ready yet'}}}}, signal,
           {game_id:body.game_id,request_id:crypto.randomUUID(),test:true});
         if (signal?.aborted) throw new Error('连接测试已取消。');
         const r = await markReady(true, body); if (!r.ok) return r;

@@ -174,6 +174,7 @@ class CompatibleTests(unittest.TestCase):
             result=client.ask(payload)
         req=opened.call_args.args[0]
         self.assertEqual(req.full_url,'https://openrouter.ai/api/alpha/decisions')
+        self.assertEqual(set(json.loads(req.data)),{'model','state','questions'})
         self.assertEqual(json.loads(req.data)['model'],'microsoft/microsoft-decision-1')
         self.assertEqual((result['choice'],result['sprint']),('wait',False))
     def test_refused_request_reports_status_and_provider_message_without_the_key(self):
@@ -184,6 +185,57 @@ class CompatibleTests(unittest.TestCase):
             client.ask({'model':'m','state':{},'questions':{'next_action':{'type':'choice','criteria':{'a':'','b':''}}}})
         text=str(raised.exception)
         self.assertIn('HTTP 400',text);self.assertIn('too many options',text);self.assertNotIn(KEY,text);self.assertIn('***',text)
+    def test_startlux_connection_and_gameplay_disable_thinking(self):
+        provider='startlux'
+        extra={'allow_none':False,'think_mode':'never'}
+        from spatial_kitchen import SpatialKitchen
+        setting=settings_from({'provider':provider,'api_key':KEY})
+        client=create_client(load_config(),setting)
+        self.assertIsInstance(client,DecisionClient)
+        self.assertEqual(setting['model'],'startlux-decision-27b-autothink')
+        self.assertEqual(settings_from({'provider':provider,'api_key':KEY,'model':'another-model'})['model'],'another-model')
+        answer={'answers':{'next_action':{'type':'choice','choice':'ready'},'sprint':{'type':'choice','choice':'no'}},
+                'usage':{'input_tokens':5,'output_tokens':7}}
+        tmp=tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        probe=PlayerGameSession(credential_path=Path(tmp.name)/'.player-api.json',
+                                connector=create_client,journal_factory=FakeJournal)
+        self.addCleanup(probe.close)
+        with patch('jev.urllib.request.urlopen',return_value=io.BytesIO(json.dumps(answer).encode())) as opened:
+            status,_=probe.command('/api/connection',{'game_id':probe.game_id,'request_id':uuid.uuid4().hex,
+                                                     'provider':provider,'api_key':KEY})
+        self.assertEqual(status,200)
+        req=opened.call_args.args[0]
+        self.assertEqual((req.full_url,req.method),('https://api.bamboonode.dev/v1/decisions','POST'))
+        self.assertEqual(req.get_header('Authorization'),'Bearer '+KEY)
+        sent=json.loads(req.data)
+        self.assertEqual(set(sent),{'model','state','questions'}|set(extra))
+        self.assertEqual({k:sent[k] for k in extra},extra)
+        self.assertEqual(sent['model'],'startlux-decision-27b-autothink')
+        self.assertEqual(sent['questions']['next_action']['type'],'choice')
+        self.assertEqual(set(sent['questions']['next_action']['criteria']),{'ready','wait'})
+        kitchen=SpatialKitchen(load_config())
+        payload=client.payload(kitchen.snapshot(),kitchen.actions('jeff'))
+        answer['answers']['next_action']['choice']=next(iter(payload['questions']['next_action']['criteria']))
+        with patch('jev.urllib.request.urlopen',return_value=io.BytesIO(json.dumps(answer).encode())) as opened:
+            result=client.ask(payload)
+        sent=json.loads(opened.call_args.args[0].data)
+        self.assertEqual(set(sent),{'model','state','questions'}|set(extra))
+        self.assertEqual({k:sent[k] for k in extra},extra)
+        self.assertEqual(sent['model'],'startlux-decision-27b-autothink')
+        self.assertIn('kitchen',sent['state'])
+        self.assertIn('sprint',sent['questions'])
+        self.assertEqual((result['choice'],result['sprint'],result['usage']),
+                         (answer['answers']['next_action']['choice'],False,answer['usage']))
+        self.assertNotIn('allow_none',payload,'Applying preset fields must not mutate the shared payload')
+        self.assertNotIn('think_mode',payload)
+        self.assertEqual((probe.c['ai_timeout_seconds'],probe.c['ai_max_response_age']),(8,6))
+        for question in ('next_action','sprint'):
+            with self.subTest(null_answer=question):
+                invalid=json.loads(json.dumps(answer))
+                invalid['answers'][question]['choice']=None
+                with patch('jev.urllib.request.urlopen',return_value=io.BytesIO(json.dumps(invalid).encode())):
+                    with self.assertRaises(RuntimeError):client.ask(payload)
     def test_listed_service_names_and_notes_have_english(self):
         catalog=json.loads((ROOT/'model-providers.json').read_text())
         messages=json.loads((ROOT/'cocos-kitchen/i18n.json').read_text())['messages']

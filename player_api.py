@@ -109,6 +109,9 @@ class DecisionClient(SpatialJevClient):
         payload=super().payload(state,actions)
         payload['model']=self.setting['model']
         return payload
+    def ask(self,payload):
+        # Connection probes and gameplay both need the provider's request fields.
+        return super().ask({**payload,**PROVIDERS[self.setting['provider']].get('extra',{})})
 
 
 def is_decision(setting):

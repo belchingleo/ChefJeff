@@ -3,6 +3,8 @@ const vm=require('node:vm'),fs=require('node:fs'),assert=require('node:assert/st
 const source=fs.readFileSync('hosted/browser-agent.js','utf8');
 const chefjeffProviders=JSON.parse(fs.readFileSync('model-providers.json','utf8'));
 const key='unit-test-key-not-a-real-credential';
+// Per-test overrides: a model provider's reply, and the game server's pending model request.
+let upstream=null,modelTask=null;
 function harness(saved=null, fail=false, gameState={game_id:'round',phase:'ready',limits:{},connection:{configured:false}}, sessions=[201]){
  const calls=[],data=new Map(saved?[['chefjeff.browser-key.v1',JSON.stringify(saved)]]:[]),timers=[];
  const listeners={},elements={};let clock=0;
@@ -15,6 +17,7 @@ function harness(saved=null, fail=false, gameState={game_id:'round',phase:'ready
   const u=new URL(url,'https://kitchen.example');
   if(u.origin!=='https://kitchen.example'){
    if(fail)throw new TypeError('blocked');
+   if(upstream)return upstream(u,init);
    if(u.hostname==='api.typesafe.ai')return new Response(JSON.stringify({answers:{next_action:{type:'choice',choice:'wait'}},usage:{input_tokens:3,output_tokens:4}}));
    return new Response(JSON.stringify({choices:[{message:{content:'{"choice":"wait","sprint":false}'}}],usage:{prompt_tokens:3,completion_tokens:4}}));
   }
@@ -23,6 +26,7 @@ function harness(saved=null, fail=false, gameState={game_id:'round',phase:'ready
    return new Response(JSON.stringify(status===201?{session:'test-session'}:{error:'Kitchens full.'}),{status});
   }
   if(u.pathname==='/api/state')return new Response(JSON.stringify(gameState));
+  if(u.pathname==='/api/model/request')return new Response(JSON.stringify({request:modelTask}));
   if(u.pathname==='/api/interact')return new Response(JSON.stringify({ok:true,state:JSON.parse(JSON.stringify(gameState))}));
   if(u.pathname==='/api/model/jev')return new Response(JSON.stringify({answer:{choice:'wait',sprint:false,usage:{input_tokens:3,output_tokens:4}}}));
   return new Response('{"ok":true}');
@@ -33,7 +37,7 @@ function harness(saved=null, fail=false, gameState={game_id:'round',phase:'ready
   CustomEvent:class {constructor(type,options){this.type=type;this.detail=options.detail;}},
   setTimeout:fn=>{timers.push(fn);return timers.length;},clearTimeout:()=>{},
   document,localStorage:{getItem:k=>data.get(k)||null,setItem:(k,v)=>data.set(k,v),removeItem:k=>data.delete(k)}});
- return {w,calls,data,listeners,elements,document,advance:ms=>{clock+=ms;}};
+ return {w,calls,data,listeners,elements,document,timers,advance:ms=>{clock+=ms;}};
 }
 
 // Execute the real key handler and state poll with rendering stubbed out. Check both
@@ -501,6 +505,83 @@ function settingsHarness(){
  const remembered=JSON.parse(h.data.get('chefjeff.browser-key.v1'));assert.equal(remembered.jev_relay,true);
  h=harness(remembered);d=await (await h.w.fetch('/api/state')).json();assert.equal(d.connection.jev_relay,true);
  assert(!h.calls.some(c=>JSON.stringify(c).includes(key)),'loading remembered settings alone makes no model call');
+ // Decision services (OpenRouter): the connection test asks a two-option question, like the local game.
+ upstream=(u,init)=>new Response(JSON.stringify({answers:{next_action:{type:'choice',choice:'ready'}},usage:{input_tokens:1,output_tokens:1}}));
+ h=harness();r=await h.w.fetch('/api/connection',{body:JSON.stringify({provider:'openrouter-decision',api_key:key,model:'openai/gpt-6-luna-decisions'})});
+ assert.equal(r.status,200);
+ let call=h.calls.find(c=>c.url==='https://openrouter.ai/api/alpha/decisions'),sent=JSON.parse(call.init.body);
+ assert.equal(sent.model,'openai/gpt-6-luna-decisions');
+ assert.deepEqual(Object.keys(sent.questions.next_action.criteria).sort(),['ready','wait'],'a one-option test is refused by decision services');
+ // A refusal shows the status and the provider's short message, never the key.
+ upstream=()=>new Response(JSON.stringify({error:{message:'Invalid request for '+key,code:400}}),{status:400});
+ h=harness();d=await (await h.w.fetch('/api/connection',{body:JSON.stringify({provider:'openrouter-decision',api_key:key})})).json();
+ assert.equal(d.error,'连接失败（模型接口 HTTP 400：Invalid request for ***）');
+ upstream=()=>new Response('not json',{status:401});
+ h=harness();d=await (await h.w.fetch('/api/connection',{body:JSON.stringify(cfg)})).json();
+ assert.equal(d.error,'Key 无效，请检查后重试。（模型接口 HTTP 401）');
+ // StartLux uses the same decision protocol, directly from the browser to Bamboo Relay.
+ const startlux={provider:'startlux',api_key:key,game_id:'round'};
+ upstream=()=>new Response(JSON.stringify({answers:{next_action:{type:'choice',choice:'ready'}},usage:{input_tokens:5,output_tokens:7}}));
+ for(const model of [undefined,'another-model']){
+  h=harness();r=await h.w.fetch('/api/connection',{body:JSON.stringify({...startlux,model})});
+  assert.equal(r.status,200);
+  call=h.calls.find(c=>c.url==='https://api.bamboonode.dev/v1/decisions');sent=JSON.parse(call.init.body);
+  assert.equal(call.init.method,'POST');assert.equal(call.init.headers.Authorization,'Bearer '+key);
+  assert.equal(call.init.mode,'cors');assert.equal(call.init.credentials,'omit');assert.equal(call.init.redirect,'error');
+  assert.equal(sent.model,model||'startlux-decision-27b-autothink');
+  assert.deepEqual(Object.keys(sent).sort(),['allow_none','model','questions','state','think_mode']);
+  assert.equal(sent.allow_none,false);
+  assert.equal(sent.think_mode,'never');
+  assert.equal(sent.questions.next_action.type,'choice');
+  assert.deepEqual(Object.keys(sent.questions.next_action.criteria).sort(),['ready','wait']);
+  assert(!h.calls.some(c=>c.url==='/api/model/jev'),'StartLux never uses the demo-server Jev relay');
+  for(const c of h.calls.filter(c=>c!==call))assert(!JSON.stringify(c).includes(key));
+ }
+ // Both documented string errors and relay-style nested errors retain the reason and redact the key.
+ for(const [status,error] of [[401,'Invalid API key '+key],[400,{message:'Unsupported model for '+key}]]){
+  upstream=()=>new Response(JSON.stringify({error}),{status});
+  h=harness();r=await h.w.fetch('/api/connection',{body:JSON.stringify(startlux)});d=await r.json();
+  assert.equal(r.status,400);
+  assert(d.error.includes('HTTP '+status));
+  assert(d.error.includes(status===401?'Invalid API key ***':'Unsupported model for ***'));
+  assert(!JSON.stringify(d).includes(key));assert.equal(h.data.size,0);
+  assert(!h.calls.some(c=>c.url==='/api/browser-ready'));
+  assert(h.calls.some(c=>c.url==='https://api.bamboonode.dev/v1/decisions'));
+ }
+ // A gameplay decision includes sprint and normalizes the provider's choice and token usage.
+ upstream=()=>new Response(JSON.stringify({answers:{next_action:{type:'choice',choice:'wait'},sprint:{type:'choice',choice:'no'}},usage:{input_tokens:5,output_tokens:7}}));
+ modelTask={id:'startlux-task',payload:{model:'jev-latest',state:{kitchen:{}},questions:{next_action:{type:'choice',criteria:{wait:'Wait',continue:'Continue'}},sprint:{type:'choice',criteria:{yes:'Yes',no:'No'}}}}};
+ h=harness({...startlux,remember:true},false,{game_id:'round',phase:'running',limits:{},connection:{configured:true}});
+ await h.w.fetch('/api/state');await h.timers.find(fn=>fn.name==='poll')();
+ sent=JSON.parse(h.calls.find(c=>c.url==='https://api.bamboonode.dev/v1/decisions').init.body);
+ assert.equal(sent.model,'startlux-decision-27b-autothink');assert.deepEqual(sent.questions,modelTask.payload.questions);
+ assert.equal(sent.allow_none,false);assert(!Object.hasOwn(modelTask.payload,'allow_none'));
+ assert.equal(sent.think_mode,'never');assert(!Object.hasOwn(modelTask.payload,'think_mode'));
+ const startluxResult=JSON.parse(h.calls.find(c=>c.url==='/api/model/result').init.body);
+ assert.equal(startluxResult.choice,'wait');assert.equal(startluxResult.sprint,false);
+ assert.deepEqual(startluxResult.usage,{input_tokens:5,output_tokens:7});assert(!JSON.stringify(startluxResult).includes(key));
+ // Null action or sprint answers are still refused, even if a provider ignores allow_none:false.
+ for(const question of ['next_action','sprint']){
+  upstream=()=>{
+   const answers={next_action:{type:'choice',choice:'wait'},sprint:{type:'choice',choice:'no'}};
+   answers[question].choice=null;
+   return new Response(JSON.stringify({answers,usage:{input_tokens:5,output_tokens:7}}));
+  };
+  h=harness({...startlux,remember:true},false,{game_id:'round',phase:'running',limits:{},connection:{configured:true}});
+  await h.w.fetch('/api/state');await h.timers.find(fn=>fn.name==='poll')();
+  const failed=JSON.parse(h.calls.find(c=>c.url==='/api/model/result').init.body);
+  assert.equal(failed.failed,true);assert.equal(failed.choice,undefined);
+ }
+ // During play a chat reply without sprint means no sprint (local game rule); a non-boolean sprint is refused.
+ for(const [content,expected] of [['{"choice":"wait"}',{choice:'wait',sprint:false}],['{"choice":"wait","sprint":"yes"}',{failed:true}]]){
+  upstream=()=>new Response(JSON.stringify({choices:[{message:{content}}],usage:{prompt_tokens:1,completion_tokens:1}}));
+  modelTask={id:'task',payload:{state:{},questions:{next_action:{type:'choice',criteria:{wait:'Wait'}},sprint:{type:'choice',criteria:{yes:'Yes',no:'No'}}}}};
+  h=harness(cfg.remember?cfg:{...cfg,remember:true},false,{game_id:'round',phase:'running',limits:{},connection:{configured:true}});
+  await h.w.fetch('/api/state');await h.timers.find(fn=>fn.name==='poll')();
+  const result=JSON.parse(h.calls.find(c=>c.url==='/api/model/result').init.body);
+  assert.deepEqual({choice:result.choice,sprint:result.sprint,failed:result.failed},{choice:expected.choice,sprint:expected.sprint,failed:expected.failed});
+ }
+ upstream=null;modelTask=null;
  h=harness();r=await h.w.fetch('/api/connection',{body:JSON.stringify({...cfg,provider:'compatible',base_url:'https://kitchen.example'})});assert.equal(r.status,400);
  h=harness();d=await (await h.w.fetch('/api/state')).json();assert.equal(d.connection.configured,false);
  // A gameplay reply's state gets the same page-side connection details as a poll.

@@ -16,9 +16,10 @@ Jeff 的每一步由你自己的模型账号决定，费用记在你的账号上
 
 「模型服务」按类型分组，选好后接口地址和模型名称会自动填好，下方一行写着大约每局花费和是否实测过：
 
-- **决策模型**（直接给每个可选动作打分，不生成文字，最快）
+- **决策模型**（直接从可选动作中选择）
   - **TypeSafe · Jev（推荐）**：勾选「同意通过试玩服务器调用 Jev」。Jev 目前不允许浏览器直连，这一项由服务器转发。已实测整局。
   - **OpenRouter 决策模型**：在 [OpenRouter](https://openrouter.ai/keys) 开 Key。默认是 Microsoft-Decision-1（输入每百万 token 0.042 美元、输出免费，约 ¥0.3–0.7/局）；「模型名称」可以换成 OpenRouter 上[任一决策模型](https://openrouter.ai/models?output_modalities=decisions)的 ID，例如 `typesafe/jev-1.14`、`openai/gpt-6-luna-decisions`、`perplexity/pplx-decider-v1.2`。已实测整局。只读前约 2 千 token 的模型（如 Cloudflare Clef）看不全厨房，不要选。
+  - **StartLux-Decision（Bamboo 存在延迟，免费接口）**：在 [Bamboo Relay](https://bamboonode.dev/) 申请 Key，有免费测试额度；请求经第三方中转 Bamboo Relay。接口 `https://api.bamboonode.dev/v1/decisions`，默认模型 `startlux-decision-27b-autothink`，模型名可编辑。本地版和在线版均可选，在线版由浏览器跨域直连 Bamboo Relay。预设关闭自动思考；完整厨房请求仍可能超时或超过游戏接受回复的时限。开发者未用真实 Key 验证连接，未实测整局。[官网](https://decision.startlux.com/) · [接口文档](https://github.com/StartLuxLabs/StartLux-Decision/blob/main/docs/api.md)。返回与 Jev 相同的 `answers.next_action.choice` 和 `usage`；两端预设均发送 `think_mode: never`，默认不思考。Bamboo 默认允许返回“以上都不是”（`choice: null`）；两端预设均发送 `allow_none: false`，要求从列出的动作中选择。
   - **Decision 3.0**：开源决策模型，需要自己部署，暂不能选。
 - **对话模型**（已为各家关闭深度思考、只要求回一个 JSON）
   - **DeepSeek**：[platform.deepseek.com](https://platform.deepseek.com/api_keys)，模型 deepseek-flash（10 月 17 日起为 V4.1-Flash-1017）。已实测整局。
@@ -29,9 +30,15 @@ Jeff 的每一步由你自己的模型账号决定，费用记在你的账号上
   - **其他兼容 Chat Completions 的服务**：自己填接口地址和模型名称，例如硅基流动 `https://api.siliconflow.cn/v1`。不会自动关闭思考，思考型模型可能答不完。
 - 智谱 GLM-4.7-Flash（免费）只在本地版提供：智谱接口不允许浏览器跨域请求。
 
-我们在 2026-10-19 和 2026-10-20 确认过以上接口允许浏览器跨域请求；能否真正调用，以你的账号点「测试并连接」的结果为准。模型名称会更新，请以服务商控制台为准。
+我们在 2026-10-19 和 2026-10-20 确认过上述其他在线接口允许浏览器跨域请求；StartLux 的 Bamboo Relay 接口支持跨域直连，但尚未在此项目中用真实 Key 验证。能否真正调用，以你的账号点「测试并连接」的结果为准。模型名称会更新，请以服务商控制台为准。
 
-**选模型的建议**：选响应快、不带深度思考（reasoning / thinking）的模型。每一步只需要回答一个动作，回复最多 128 个 token；思考型模型容易超时或回复被截断，超过 15 秒的回复会被丢弃。
+**响应时限**：对话模型的回复最多 128 个 token，超过 15 秒的回复会被丢弃。决策模型走独立的 systemone 协议，不受这项对话输出上限约束，但过时的回复也会被丢弃（默认本地版 6 秒、在线版 15 秒）。StartLux 预设已关闭思考，但网络、排队及模型处理仍需耗时；连接测试通过不代表整局响应都能及时采用。
+
+### 本地版更新与测试
+
+- 先结束当前对局，在原游戏文件夹双击 `stop-web.command` 停止旧服务，再从新版文件夹双击 `start-web.command`。仅关闭网页或从另一个文件夹启动，会复用仍在运行的旧服务。
+- 在「设置 → 连接」选择「StartLux-Decision（Bamboo 存在延迟，免费接口）」，填同一个 Key，点「测试并连接」后试玩。
+- 记录是否仍出现请求失败，并导出本次游玩；若需定位具体原因，本地 `logs` 中的运行日志包含错误条目。不要分享凭据配置文件。
 
 ## 一局大约多少钱（估算）
 
@@ -65,9 +72,10 @@ Open Settings → Connection, choose an **AI provider**, paste your key and pres
 
 **AI provider** is grouped by kind; picking one fills in the base URL and model name, and a line below gives the rough cost per round and whether it has been tested:
 
-- **Decision models** (score every available action directly, no text, fastest)
+- **Decision models** (choose directly from the available actions)
   - **TypeSafe · Jev (recommended)**: tick **I agree to call Jev through the demo server**. Jev does not accept direct browser requests yet, so the server forwards them. Tested over a full round.
   - **OpenRouter decision models**: get a key at [OpenRouter](https://openrouter.ai/keys). The default is Microsoft-Decision-1 (USD 0.042 per million input tokens, output free, about ¥0.3–0.7 a round); the model name can be the ID of [any OpenRouter decision model](https://openrouter.ai/models?output_modalities=decisions), for example `typesafe/jev-1.14`, `openai/gpt-6-luna-decisions` or `perplexity/pplx-decider-v1.2`. Tested over a full round. Avoid models that read only the first ~2,000 tokens (such as Cloudflare Clef): they miss most of the kitchen.
+  - **StartLux-Decision (Bamboo, noticeable latency, free API)**: get a key at [Bamboo Relay](https://bamboonode.dev/), which offers a free testing quota. Requests pass through the third-party Bamboo Relay. The endpoint is `https://api.bamboonode.dev/v1/decisions`, with editable model name `startlux-decision-27b-autothink`. Available locally and online; the browser calls Bamboo Relay directly with CORS. The preset disables automatic thinking. Full kitchen requests can still time out or arrive too late for the game. No developer connection verified with a real key and no full round tested. [Website](https://decision.startlux.com/) · [API docs](https://github.com/StartLuxLabs/StartLux-Decision/blob/main/docs/api.md). Responses use the same `answers.next_action.choice` and `usage` as Jev; both clients send `think_mode: never` to disable thinking by default. Bamboo enables “None of the above” (`choice: null`) by default; both clients send `allow_none: false` to require a listed action.
   - **Decision 3.0**: an open decision model you host yourself; not selectable yet.
 - **Chat models** (thinking turned off and one JSON object requested for each provider)
   - **DeepSeek**: [platform.deepseek.com](https://platform.deepseek.com/api_keys), model deepseek-flash (V4.1-Flash-1017 since 17 October). Tested over a full round.
@@ -78,9 +86,15 @@ Open Settings → Connection, choose an **AI provider**, paste your key and pres
   - **Other Chat Completions provider**: enter the base URL and model yourself, for example SiliconFlow `https://api.siliconflow.cn/v1`. Thinking is not turned off for you, so thinking models may not finish an answer.
 - Zhipu GLM-4.7-Flash (free) is offered in the local game only: Zhipu's API does not accept cross-origin browser requests.
 
-On 2026-10-19 and 2026-10-20 we confirmed that these endpoints accept cross-origin browser requests; whether a call really works is decided by **Test and connect** with your account. Model names change, so check your provider's console.
+On 2026-10-19 and 2026-10-20 we confirmed that the other online endpoints above accept cross-origin browser requests. StartLux's Bamboo Relay endpoint supports direct cross-origin requests, but has not been verified with a real key in this project. Whether a call really works is decided by **Test and connect** with your account. Model names change, so check your provider's console.
 
-**Choosing a model**: pick a fast model without deep thinking (reasoning). Each step only needs one action and replies are capped at 128 tokens; thinking models tend to time out or get cut off, and replies older than 15 seconds are discarded.
+**Response limits**: chat replies are capped at 128 tokens and discarded when older than 15 seconds. Decision models use the separate systemone protocol without that chat output cap, but stale replies are also discarded (by default, after 6 seconds locally or 15 seconds online). StartLux's preset disables thinking, but networking, queueing and model processing still take time; passing the connection test does not establish that replies will arrive in time throughout a round.
+
+### Updating and testing locally
+
+- End the current round and double-click `stop-web.command` in the old game folder. Then run `start-web.command` from the updated folder. Closing a tab or launching from another folder reuses an old server that is still running.
+- Under Settings → Connection, choose **StartLux-Decision (Bamboo, noticeable latency, free API)**, enter the same key, press **Test and connect**, and play.
+- Note any request failures and export the play session. The local run log under `logs` contains specific error entries when further diagnosis is needed. Do not share credential configuration files.
 
 ### Roughly what a round costs (estimate)
 
