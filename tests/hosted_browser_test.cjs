@@ -519,6 +519,43 @@ function settingsHarness(){
  upstream=()=>new Response('not json',{status:401});
  h=harness();d=await (await h.w.fetch('/api/connection',{body:JSON.stringify(cfg)})).json();
  assert.equal(d.error,'Key 无效，请检查后重试。（模型接口 HTTP 401）');
+ // StartLux uses the same decision protocol, directly from the browser to Bamboo Relay.
+ const startlux={provider:'startlux',api_key:key,game_id:'round'};
+ upstream=()=>new Response(JSON.stringify({answers:{next_action:{type:'choice',choice:'ready'}},usage:{input_tokens:5,output_tokens:7}}));
+ for(const model of [undefined,'another-model']){
+  h=harness();r=await h.w.fetch('/api/connection',{body:JSON.stringify({...startlux,model})});
+  assert.equal(r.status,200);
+  call=h.calls.find(c=>c.url==='https://api.bamboonode.dev/v1/decisions');sent=JSON.parse(call.init.body);
+  assert.equal(call.init.method,'POST');assert.equal(call.init.headers.Authorization,'Bearer '+key);
+  assert.equal(call.init.mode,'cors');assert.equal(call.init.credentials,'omit');assert.equal(call.init.redirect,'error');
+  assert.equal(sent.model,model||'startlux-decision-27b-autothink');
+  assert.deepEqual(Object.keys(sent).sort(),['model','questions','state']);
+  assert.equal(sent.questions.next_action.type,'choice');
+  assert.deepEqual(Object.keys(sent.questions.next_action.criteria).sort(),['ready','wait']);
+  assert(!h.calls.some(c=>c.url==='/api/model/jev'),'StartLux never uses the demo-server Jev relay');
+  for(const c of h.calls.filter(c=>c!==call))assert(!JSON.stringify(c).includes(key));
+ }
+ // Both documented string errors and relay-style nested errors retain the reason and redact the key.
+ for(const [status,error] of [[401,'Invalid API key '+key],[400,{message:'Unsupported model for '+key}]]){
+  upstream=()=>new Response(JSON.stringify({error}),{status});
+  h=harness();r=await h.w.fetch('/api/connection',{body:JSON.stringify(startlux)});d=await r.json();
+  assert.equal(r.status,400);
+  assert(d.error.includes('HTTP '+status));
+  assert(d.error.includes(status===401?'Invalid API key ***':'Unsupported model for ***'));
+  assert(!JSON.stringify(d).includes(key));assert.equal(h.data.size,0);
+  assert(!h.calls.some(c=>c.url==='/api/browser-ready'));
+  assert(h.calls.some(c=>c.url==='https://api.bamboonode.dev/v1/decisions'));
+ }
+ // A gameplay decision includes sprint and normalizes the provider's choice and token usage.
+ upstream=()=>new Response(JSON.stringify({answers:{next_action:{type:'choice',choice:'wait'},sprint:{type:'choice',choice:'no'}},usage:{input_tokens:5,output_tokens:7}}));
+ modelTask={id:'startlux-task',payload:{model:'jev-latest',state:{kitchen:{}},questions:{next_action:{type:'choice',criteria:{wait:'Wait',continue:'Continue'}},sprint:{type:'choice',criteria:{yes:'Yes',no:'No'}}}}};
+ h=harness({...startlux,remember:true},false,{game_id:'round',phase:'running',limits:{},connection:{configured:true}});
+ await h.w.fetch('/api/state');await h.timers.find(fn=>fn.name==='poll')();
+ sent=JSON.parse(h.calls.find(c=>c.url==='https://api.bamboonode.dev/v1/decisions').init.body);
+ assert.equal(sent.model,'startlux-decision-27b-autothink');assert.deepEqual(sent.questions,modelTask.payload.questions);
+ const startluxResult=JSON.parse(h.calls.find(c=>c.url==='/api/model/result').init.body);
+ assert.equal(startluxResult.choice,'wait');assert.equal(startluxResult.sprint,false);
+ assert.deepEqual(startluxResult.usage,{input_tokens:5,output_tokens:7});assert(!JSON.stringify(startluxResult).includes(key));
  // During play a chat reply without sprint means no sprint (local game rule); a non-boolean sprint is refused.
  for(const [content,expected] of [['{"choice":"wait"}',{choice:'wait',sprint:false}],['{"choice":"wait","sprint":"yes"}',{failed:true}]]){
   upstream=()=>new Response(JSON.stringify({choices:[{message:{content}}],usage:{prompt_tokens:1,completion_tokens:1}}));
