@@ -174,6 +174,7 @@ class CompatibleTests(unittest.TestCase):
             result=client.ask(payload)
         req=opened.call_args.args[0]
         self.assertEqual(req.full_url,'https://openrouter.ai/api/alpha/decisions')
+        self.assertEqual(set(json.loads(req.data)),{'model','state','questions'})
         self.assertEqual(json.loads(req.data)['model'],'microsoft/microsoft-decision-1')
         self.assertEqual((result['choice'],result['sprint']),('wait',False))
     def test_refused_request_reports_status_and_provider_message_without_the_key(self):
@@ -206,7 +207,8 @@ class CompatibleTests(unittest.TestCase):
         self.assertEqual((req.full_url,req.method),('https://api.bamboonode.dev/v1/decisions','POST'))
         self.assertEqual(req.get_header('Authorization'),'Bearer '+KEY)
         sent=json.loads(req.data)
-        self.assertEqual(set(sent),{'model','state','questions'})
+        self.assertEqual(set(sent),{'model','state','questions','allow_none'})
+        self.assertIs(sent['allow_none'],False)
         self.assertEqual(sent['model'],'startlux-decision-27b-autothink')
         self.assertEqual(sent['questions']['next_action']['type'],'choice')
         self.assertEqual(set(sent['questions']['next_action']['criteria']),{'ready','wait'})
@@ -216,12 +218,20 @@ class CompatibleTests(unittest.TestCase):
         with patch('jev.urllib.request.urlopen',return_value=io.BytesIO(json.dumps(answer).encode())) as opened:
             result=client.ask(payload)
         sent=json.loads(opened.call_args.args[0].data)
-        self.assertEqual(set(sent),{'model','state','questions'})
+        self.assertEqual(set(sent),{'model','state','questions','allow_none'})
+        self.assertIs(sent['allow_none'],False)
         self.assertEqual(sent['model'],'startlux-decision-27b-autothink')
         self.assertIn('kitchen',sent['state'])
         self.assertIn('sprint',sent['questions'])
         self.assertEqual((result['choice'],result['sprint'],result['usage']),
                          (answer['answers']['next_action']['choice'],False,answer['usage']))
+        self.assertNotIn('allow_none',payload,'Applying preset fields must not mutate the shared payload')
+        for question in ('next_action','sprint'):
+            with self.subTest(null_answer=question):
+                invalid=json.loads(json.dumps(answer))
+                invalid['answers'][question]['choice']=None
+                with patch('jev.urllib.request.urlopen',return_value=io.BytesIO(json.dumps(invalid).encode())):
+                    with self.assertRaises(RuntimeError):client.ask(payload)
     def test_listed_service_names_and_notes_have_english(self):
         catalog=json.loads((ROOT/'model-providers.json').read_text())
         messages=json.loads((ROOT/'cocos-kitchen/i18n.json').read_text())['messages']

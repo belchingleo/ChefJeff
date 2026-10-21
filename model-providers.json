@@ -1,5 +1,5 @@
 {
-  "description": "Model services Jeff can use, read by the local server, the hosted page and the settings dialog. decision: a systemone-style decision API (state + questions, answered with option probabilities). chat: an OpenAI-compatible Chat Completions API; extra holds the vendor fields that turn thinking off or ask for JSON, so the answer fits max_tokens. hosted: direct (the browser calls it), relay (only through the demo server, with consent) or none (local game only). tested: a whole round has been played with it.",
+  "description": "Model services Jeff can use, read by the local server, the hosted page and the settings dialog. decision: a systemone-style decision API (state + questions, answered with option probabilities). chat: an OpenAI-compatible Chat Completions API. extra holds vendor request fields for either group, such as requiring a listed decision option, turning chat thinking off or asking for JSON. hosted: direct (the browser calls it), relay (only through the demo server, with consent) or none (local game only). tested: a whole round has been played with it.",
   "groups": [
     {"id": "decision", "label": "决策模型（直接给每个动作打分）"},
     {"id": "chat", "label": "对话模型"}
@@ -13,6 +13,7 @@
      "key_url": "https://openrouter.ai/keys", "hosted": "direct", "tested": true},
     {"id": "startlux", "group": "decision", "label": "StartLux-Decision（Bamboo 免费接口）", "note": "免费测试额度 · 请求经第三方中转 Bamboo Relay · 拿不准时会先思考，偶尔较慢 · 未实测整局",
      "endpoint": "https://api.bamboonode.dev/v1/decisions", "model": "startlux-decision-27b-autothink", "model_editable": true,
+     "extra": {"allow_none": false},
      "key_url": "https://bamboonode.dev/", "hosted": "direct", "tested": false},
     {"id": "decision3", "group": "decision", "label": "Decision 3.0（需本地部署，待接入）", "disabled": true},
     {"id": "deepseek", "group": "chat", "label": "DeepSeek", "note": "约 ¥1–3/局 · 已实测整局",

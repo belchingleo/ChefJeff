@@ -529,7 +529,8 @@ function settingsHarness(){
   assert.equal(call.init.method,'POST');assert.equal(call.init.headers.Authorization,'Bearer '+key);
   assert.equal(call.init.mode,'cors');assert.equal(call.init.credentials,'omit');assert.equal(call.init.redirect,'error');
   assert.equal(sent.model,model||'startlux-decision-27b-autothink');
-  assert.deepEqual(Object.keys(sent).sort(),['model','questions','state']);
+  assert.deepEqual(Object.keys(sent).sort(),['allow_none','model','questions','state']);
+  assert.equal(sent.allow_none,false);
   assert.equal(sent.questions.next_action.type,'choice');
   assert.deepEqual(Object.keys(sent.questions.next_action.criteria).sort(),['ready','wait']);
   assert(!h.calls.some(c=>c.url==='/api/model/jev'),'StartLux never uses the demo-server Jev relay');
@@ -553,9 +554,22 @@ function settingsHarness(){
  await h.w.fetch('/api/state');await h.timers.find(fn=>fn.name==='poll')();
  sent=JSON.parse(h.calls.find(c=>c.url==='https://api.bamboonode.dev/v1/decisions').init.body);
  assert.equal(sent.model,'startlux-decision-27b-autothink');assert.deepEqual(sent.questions,modelTask.payload.questions);
+ assert.equal(sent.allow_none,false);assert(!Object.hasOwn(modelTask.payload,'allow_none'));
  const startluxResult=JSON.parse(h.calls.find(c=>c.url==='/api/model/result').init.body);
  assert.equal(startluxResult.choice,'wait');assert.equal(startluxResult.sprint,false);
  assert.deepEqual(startluxResult.usage,{input_tokens:5,output_tokens:7});assert(!JSON.stringify(startluxResult).includes(key));
+ // Null action or sprint answers are still refused, even if a provider ignores allow_none:false.
+ for(const question of ['next_action','sprint']){
+  upstream=()=>{
+   const answers={next_action:{type:'choice',choice:'wait'},sprint:{type:'choice',choice:'no'}};
+   answers[question].choice=null;
+   return new Response(JSON.stringify({answers,usage:{input_tokens:5,output_tokens:7}}));
+  };
+  h=harness({...startlux,remember:true},false,{game_id:'round',phase:'running',limits:{},connection:{configured:true}});
+  await h.w.fetch('/api/state');await h.timers.find(fn=>fn.name==='poll')();
+  const failed=JSON.parse(h.calls.find(c=>c.url==='/api/model/result').init.body);
+  assert.equal(failed.failed,true);assert.equal(failed.choice,undefined);
+ }
  // During play a chat reply without sprint means no sprint (local game rule); a non-boolean sprint is refused.
  for(const [content,expected] of [['{"choice":"wait"}',{choice:'wait',sprint:false}],['{"choice":"wait","sprint":"yes"}',{failed:true}]]){
   upstream=()=>new Response(JSON.stringify({choices:[{message:{content}}],usage:{prompt_tokens:1,completion_tokens:1}}));

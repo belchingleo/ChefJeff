@@ -7,6 +7,7 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 ## Unreleased
 
 ### Jeff (the AI teammate)
+- Decision presets now support vendor request fields in both clients, including connection probes. StartLux sends `allow_none: false` because Bamboo enables null choices by default; replies with a null action or sprint remain rejected. Thinking defaults and game response deadlines are unchanged.
 - Online connection tests now send two decision options and display the provider's short error reason with the key redacted. A chat reply without sprint means no sprint, matching the local game.
 - Add StartLux-Decision to decision presets locally and online via the third-party Bamboo Relay free testing quota: `https://api.bamboonode.dev/v1/decisions`, editable model `startlux-decision-27b-autothink`, key from https://bamboonode.dev/. The response follows Jev's systemone format; optional thinking controls use server defaults. It thinks when uncertain and can occasionally be slow. No connection verified with a real key or full round tested.
 - Settings list model services by kind instead of one catch-all "compatible" entry. Decision models: TypeSafe Jev and any OpenRouter decision model (OpenRouter's decisions API, same state-and-questions request as Jev; default Microsoft-Decision-1); Decision 3.0 is listed as self-hosted, not yet supported. Chat models: DeepSeek, OpenRouter chat models, Alibaba qwen-flash, Doubao Seed 2.0 lite, Gemini 2.5 Flash-Lite and, in the local game only, Zhipu GLM-4.7-Flash, each with its address, model and the vendor's switch to turn thinking off. Each shows a rough cost per round and whether a full round has been tested. The list lives in `model-providers.json`, read by the local server, the hosted page and the settings dialog.
@@ -104,6 +105,7 @@ First private release: a local browser game with three playable maps and player-
 ## 未发布
 
 ### Jeff（AI 队友）
+- 决策预设的额外请求字段同时支持本地版、在线版和连接测试。Bamboo 默认允许空选择，StartLux 预设显式发送 `allow_none: false`；返回空动作或空冲刺选择时仍拒绝执行。思考默认值和游戏接受回复的时限不变。
 - 在线版连接测试改为发送两个决策选项；显示服务商的简短报错原因并遮掉 Key。对话回复缺少冲刺字段时按不冲刺处理，与本地版一致。
 - 本地版和在线版的决策预设新增 StartLux-Decision，通过第三方中转 Bamboo Relay 提供免费测试额度：接口 `https://api.bamboonode.dev/v1/decisions`，模型 `startlux-decision-27b-autothink` 可编辑，在 https://bamboonode.dev/ 申请 Key。返回遵循 Jev 的 systemone 格式，可选思考字段使用服务端默认值。拿不准时会先思考，偶尔较慢；未用真实 Key 验证连接，未实测整局。
 - 设置里的模型服务按类型分组，不再只有一个笼统的“兼容服务”。决策模型：TypeSafe Jev，以及 OpenRouter 上的任一决策模型（经 OpenRouter 的决策接口，请求格式和 Jev 相同；默认 Microsoft-Decision-1）；Decision 3.0 标为需本地部署、待接入。对话模型：DeepSeek、OpenRouter 对话模型、阿里 qwen-flash、豆包 Seed 2.0 lite、Gemini 2.5 Flash-Lite，以及只限本地版的智谱 GLM-4.7-Flash，各自填好地址、模型名和关闭思考的参数。每项注明大约每局花费、是否实测过整局。清单在 `model-providers.json`，本地服务、线上页面和设置界面共用。

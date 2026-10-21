@@ -118,9 +118,9 @@
         {role:'system', content:'You control chef jeff in a shared kitchen. Using the supplied state and rules, choose exactly one action key from questions.next_action.criteria. Return only a JSON object of the form {"choice": "<action key>", "sprint": <true or false>}, where <action key> is one key of questions.next_action.criteria; include sprint only if questions.sprint is present. Do not explain or choose an action outside the candidate set.'},
         {role:'user', content:JSON.stringify({state:payload.state, questions:payload.questions})},
       ]};
-      Object.assign(body, preset.extra || {});
       endpoint = config.base_url + '/chat/completions';
     }
+    Object.assign(body, preset.extra || {});
     try {
       // No cookies, redirects, proxy fallback, or credentials in the URL/body.
       const r = await nativeFetch(endpoint, {method:'POST', mode:'cors', credentials:'omit', redirect:'error',
