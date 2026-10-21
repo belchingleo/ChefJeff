@@ -522,16 +522,16 @@ function settingsHarness(){
  // StartLux uses the same decision protocol, directly from the browser to Bamboo Relay.
  const startlux={provider:'startlux',api_key:key,game_id:'round'};
  upstream=()=>new Response(JSON.stringify({answers:{next_action:{type:'choice',choice:'ready'}},usage:{input_tokens:5,output_tokens:7}}));
- for(const provider of ['startlux','startlux-no-think'])for(const model of [undefined,'another-model']){
-  h=harness();r=await h.w.fetch('/api/connection',{body:JSON.stringify({...startlux,provider,model})});
+ for(const model of [undefined,'another-model']){
+  h=harness();r=await h.w.fetch('/api/connection',{body:JSON.stringify({...startlux,model})});
   assert.equal(r.status,200);
   call=h.calls.find(c=>c.url==='https://api.bamboonode.dev/v1/decisions');sent=JSON.parse(call.init.body);
   assert.equal(call.init.method,'POST');assert.equal(call.init.headers.Authorization,'Bearer '+key);
   assert.equal(call.init.mode,'cors');assert.equal(call.init.credentials,'omit');assert.equal(call.init.redirect,'error');
   assert.equal(sent.model,model||'startlux-decision-27b-autothink');
-  assert.deepEqual(Object.keys(sent).sort(),['allow_none','model','questions','state',...(provider==='startlux-no-think'?['think_mode']:[])].sort());
+  assert.deepEqual(Object.keys(sent).sort(),['allow_none','model','questions','state','think_mode']);
   assert.equal(sent.allow_none,false);
-  assert.equal(sent.think_mode,provider==='startlux-no-think'?'never':undefined);
+  assert.equal(sent.think_mode,'never');
   assert.equal(sent.questions.next_action.type,'choice');
   assert.deepEqual(Object.keys(sent.questions.next_action.criteria).sort(),['ready','wait']);
   assert(!h.calls.some(c=>c.url==='/api/model/jev'),'StartLux never uses the demo-server Jev relay');
@@ -551,17 +551,15 @@ function settingsHarness(){
  // A gameplay decision includes sprint and normalizes the provider's choice and token usage.
  upstream=()=>new Response(JSON.stringify({answers:{next_action:{type:'choice',choice:'wait'},sprint:{type:'choice',choice:'no'}},usage:{input_tokens:5,output_tokens:7}}));
  modelTask={id:'startlux-task',payload:{model:'jev-latest',state:{kitchen:{}},questions:{next_action:{type:'choice',criteria:{wait:'Wait',continue:'Continue'}},sprint:{type:'choice',criteria:{yes:'Yes',no:'No'}}}}};
- for(const provider of ['startlux','startlux-no-think']){
-  h=harness({...startlux,provider,remember:true},false,{game_id:'round',phase:'running',limits:{},connection:{configured:true}});
-  await h.w.fetch('/api/state');await h.timers.find(fn=>fn.name==='poll')();
-  sent=JSON.parse(h.calls.find(c=>c.url==='https://api.bamboonode.dev/v1/decisions').init.body);
-  assert.equal(sent.model,'startlux-decision-27b-autothink');assert.deepEqual(sent.questions,modelTask.payload.questions);
-  assert.equal(sent.allow_none,false);assert(!Object.hasOwn(modelTask.payload,'allow_none'));
-  assert.equal(sent.think_mode,provider==='startlux-no-think'?'never':undefined);assert(!Object.hasOwn(modelTask.payload,'think_mode'));
-  const startluxResult=JSON.parse(h.calls.find(c=>c.url==='/api/model/result').init.body);
-  assert.equal(startluxResult.choice,'wait');assert.equal(startluxResult.sprint,false);
-  assert.deepEqual(startluxResult.usage,{input_tokens:5,output_tokens:7});assert(!JSON.stringify(startluxResult).includes(key));
- }
+ h=harness({...startlux,remember:true},false,{game_id:'round',phase:'running',limits:{},connection:{configured:true}});
+ await h.w.fetch('/api/state');await h.timers.find(fn=>fn.name==='poll')();
+ sent=JSON.parse(h.calls.find(c=>c.url==='https://api.bamboonode.dev/v1/decisions').init.body);
+ assert.equal(sent.model,'startlux-decision-27b-autothink');assert.deepEqual(sent.questions,modelTask.payload.questions);
+ assert.equal(sent.allow_none,false);assert(!Object.hasOwn(modelTask.payload,'allow_none'));
+ assert.equal(sent.think_mode,'never');assert(!Object.hasOwn(modelTask.payload,'think_mode'));
+ const startluxResult=JSON.parse(h.calls.find(c=>c.url==='/api/model/result').init.body);
+ assert.equal(startluxResult.choice,'wait');assert.equal(startluxResult.sprint,false);
+ assert.deepEqual(startluxResult.usage,{input_tokens:5,output_tokens:7});assert(!JSON.stringify(startluxResult).includes(key));
  // Null action or sprint answers are still refused, even if a provider ignores allow_none:false.
  for(const question of ['next_action','sprint']){
   upstream=()=>{

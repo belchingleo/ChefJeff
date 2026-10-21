@@ -185,11 +185,9 @@ class CompatibleTests(unittest.TestCase):
             client.ask({'model':'m','state':{},'questions':{'next_action':{'type':'choice','criteria':{'a':'','b':''}}}})
         text=str(raised.exception)
         self.assertIn('HTTP 400',text);self.assertIn('too many options',text);self.assertNotIn(KEY,text);self.assertIn('***',text)
-    def test_startlux_connection_and_gameplay_use_systemone_protocol(self):
-        self.check_startlux_protocol('startlux',{'allow_none':False})
-    def test_startlux_no_think_probe_and_gameplay_disable_thinking(self):
-        self.check_startlux_protocol('startlux-no-think',{'allow_none':False,'think_mode':'never'})
-    def check_startlux_protocol(self,provider,extra):
+    def test_startlux_connection_and_gameplay_disable_thinking(self):
+        provider='startlux'
+        extra={'allow_none':False,'think_mode':'never'}
         from spatial_kitchen import SpatialKitchen
         setting=settings_from({'provider':provider,'api_key':KEY})
         client=create_client(load_config(),setting)
