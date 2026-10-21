@@ -6,9 +6,11 @@ import json
 from pathlib import Path
 import sqlite3
 import subprocess
+import socket
 import sys
 import tempfile
 import threading
+import time
 import unittest
 from unittest.mock import patch
 
@@ -287,3 +289,60 @@ class UsageHTTPTests(unittest.TestCase):
         self.assertIn('页面访问次数： 1', result.stdout)
         self.assertIn('当前游戏中的会话数： 0', result.stdout)
         self.assertNotIn('仅保存在内存中', result.stdout)
+
+
+class UsageProcessTests(unittest.TestCase):
+    def test_systemd_style_sigterm_records_shutdown_and_restart_retains_counts(self):
+        with tempfile.TemporaryDirectory() as directory:
+            def start():
+                with socket.socket() as probe:
+                    probe.bind(('127.0.0.1', 0))
+                    port = probe.getsockname()[1]
+                process = subprocess.Popen([sys.executable, 'hosted_server.py', '--port', str(port),
+                                            '--origin', 'https://chefjeff.online', '--data-dir', directory],
+                                           cwd=Path(__file__).resolve().parents[1],
+                                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                def stop():
+                    if process.poll() is None:
+                        process.terminate()
+                        process.wait(timeout=10)
+                self.addCleanup(stop)
+                for _ in range(100):
+                    try:
+                        if request(port, '/healthz')[0] == 200: return process, port
+                    except OSError: pass
+                    time.sleep(.05)
+                self.fail('Hosted subprocess failed to start')
+
+            def request(port, path, body=None, token=None):
+                connection = http.client.HTTPConnection('127.0.0.1', port, timeout=3)
+                headers = {'Host': 'chefjeff.online', 'Origin': 'https://chefjeff.online'}
+                if token: headers['X-ChefJeff-Session'] = token
+                if body is not None: headers['Content-Type'] = 'application/json'
+                try:
+                    connection.request('GET' if body is None else 'POST', path,
+                                       json.dumps(body) if body is not None else None, headers)
+                    response = connection.getresponse()
+                    return response.status, json.loads(response.read())
+                finally: connection.close()
+
+            process, port = start()
+            token = request(port, '/api/session', {})[1]['session']
+            base = {'game_id': request(port, '/api/state', token=token)[1]['game_id']}
+            self.assertEqual(request(port, '/api/browser-ready', {**base, 'request_id': 'connect', 'connected': True}, token)[0], 200)
+            self.assertEqual(request(port, '/api/start', {**base, 'request_id': 'start'}, token)[0], 200)
+            process.terminate()
+            self.assertEqual(process.wait(timeout=10), 0)
+            before = UsageStats(directory).snapshot()
+            self.assertEqual(before['started_rounds'], 1)
+            self.assertEqual(before['round_outcomes']['shutdown'], 1)
+            self.assertEqual(before['round_outcomes']['page_close'], 0)
+            self.assertEqual(before['manual_ends'], 0)
+            process, port = start()
+            usage = request(port, '/ops/usage')[1]['usage']
+            self.assertEqual(usage['tracking_since'], before['tracking_since'])
+            self.assertEqual(usage['started_rounds'], 1)
+            self.assertEqual(usage['round_outcomes']['shutdown'], 1)
+            self.assertEqual(usage['running_sessions'], 0)
+            process.terminate()
+            self.assertEqual(process.wait(timeout=10), 0)

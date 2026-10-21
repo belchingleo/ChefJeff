@@ -11,6 +11,7 @@ import math
 import mimetypes
 from pathlib import Path
 import secrets
+import signal
 import threading
 import time
 from collections import Counter, OrderedDict, deque
@@ -693,6 +694,9 @@ def main():
             server.sessions.reap()
             if server.sessions.store: server.sessions.store.prune()
     threading.Thread(target=reap, daemon=True).start()
+    # systemd sends SIGTERM during a normal update. Finish in-memory aggregates as
+    # shutdowns, not player exits; shutdown() must run outside serve_forever's thread.
+    signal.signal(signal.SIGTERM, lambda *_: threading.Thread(target=server.shutdown, daemon=True).start())
     print('ChefJeff hosted service ready; persistent credentials and journals disabled.', flush=True)
     try: server.serve_forever()
     except KeyboardInterrupt: pass
