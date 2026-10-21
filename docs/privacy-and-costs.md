@@ -24,7 +24,7 @@ Gameplay actions and state are processed on the server. Anonymous sessions remai
 
 Contributions exclude keys, account identity, email, IP addresses, model endpoints and raw model requests/responses. Network and model providers process traffic under their own policies. The demo operator must keep its reverse-proxy logging and backup practices consistent with this policy. See [deployment](hosted-deployment.md).
 
-The hosted server also retains aggregate visit/start/completion/end/capacity counts, per-level starts/completions, and duration bucket counts with summed game/effective seconds for the service's lifetime. It keeps no individual visit or round analytics records. Browsers use two fixed localStorage booleans to report a first visit/play, without generating an identifier or fingerprint; only aggregate browser estimates are persisted. Storage-disabled browsers are omitted; clearing storage, private browsing, different devices, retries and tab races can skew estimates. No IPs, credentials, model information, cookies or session/round identifiers are added to persistent statistics. This counting is independent of opting into detailed 30-day round contributions, and earlier traffic cannot be backfilled. Operator queries stay loopback-only; see [deployment](hosted-deployment.md).
+The hosted server also keeps private aggregate statistics on visits, play, level completions, exits, capacity rejections and play duration for the service’s lifetime. Local browser flags help estimate visiting and playing browsers, not people; no unique identifier or fingerprint is generated. Statistics exclude IPs, accounts, credentials and individual-round records. This is separate from voluntary 30-day contributions. See the [player privacy notice](privacy.md) and [operator documentation](hosted-deployment.md) for details.
 
 ---
 
@@ -48,7 +48,7 @@ The hosted server also retains aggregate visit/start/completion/end/capacity cou
 
 ## 托管试玩
 
-服务器另外保留访问、开局、自然完成、手动结束、满员拒绝等累计数，分关卡的开局／完成数，以及按结束方式分组的时长区间次数和游戏／有效游玩总秒数，在服务运营期间保留。不保存逐个访客或逐局的统计明细。浏览器用两个固定的 localStorage 是／否标记上报首次访问／试玩，不生成独立编号或指纹，服务器只保存估算汇总数。禁用存储时跳过浏览器估算；清除数据、无痕、换设备、重试或多标签竞争会使估算有偏差。统计不保存 IP、凭据、模型信息、Cookie 或会话／对局标识，无法补算启用前的访问；与自愿贡献的 30 天记录分别处理。查询入口只允许服务器本机访问，详见[部署说明](hosted-deployment.md)。
+服务器另外保存访问、试玩、关卡完成、退出、满员情况及游玩时长的汇总，在服务运营期间私有保留。浏览器本地标记用于估算访问／试玩的浏览器数量，不代表真实人数，不生成唯一访客编号或指纹。统计不保存 IP、账号、凭据或逐局明细，与自愿贡献的 30 天记录分开。详见[隐私说明](privacy.md)和[运维文档](hosted-deployment.md)。
 
 浏览器直连模式只将模型请求和 Key 发给供应商，要求其支持 CORS；失败不会自动切换转发。Jev 玩家可明确勾选**同意通过试玩服务器调用 Jev**。此模式下，Key 和模型请求经 HTTPS 通过 ChefJeff 服务器发往固定的 TypeSafe Jev 接口。服务器仅在处理该请求时使用 Key，不将其或模型载荷写入配置、日志、对局记录或贡献存储。取消请求或关闭页面时，已经发出的调用仍可能计费。
 
