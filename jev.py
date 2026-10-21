@@ -110,6 +110,18 @@ def score_text(state):
             f"Fire: {p['new_fire']} yuan per burning workstation. Discarding food or emptying a pot: {p['discard']} yuan. There are no bad reviews.")
 
 
+def http_error_detail(error, key):
+    """The provider's short error message (never headers), with the key redacted, for diagnosing a refused request."""
+    try:
+        body = json.loads(error.read(4096) or b"{}")
+        detail = body.get("error", body) if isinstance(body, dict) else {}
+        message = detail.get("message") if isinstance(detail, dict) else detail
+        message = str(message or "").replace(key, "***").strip()[:160] if key else ""
+    except (ValueError, OSError, AttributeError):
+        message = ""
+    return f"：{message}" if message else ""
+
+
 class JevClient:
     # Any systemone-style decision API: state + questions in, option probabilities out.
     endpoint, vendor = ENDPOINT, "TypeSafe"
@@ -167,8 +179,8 @@ class JevClient:
             with urllib.request.urlopen(request, timeout=self.c["ai_timeout_seconds"]) as r:
                 result = json.load(r)
         except urllib.error.HTTPError as e:
-            # No response body / request headers in errors or logs.
-            raise RuntimeError(f"{self.vendor} HTTP {e.code}") from None
+            # Only the status and the provider's short message; no headers, request or key.
+            raise RuntimeError(f"{self.vendor} HTTP {e.code}{http_error_detail(e, self.key)}") from None
         except (urllib.error.URLError, TimeoutError, OSError):
             raise RuntimeError(f"{self.vendor} 网络连接失败或超时") from None
         answer = result.get("answers", {}).get("next_action", {})

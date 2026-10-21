@@ -11,6 +11,7 @@ import urllib.request
 from kitchen import ROOT
 from web_server import GameSession
 from whitebox_server import SpatialJevClient
+from jev import http_error_detail
 from model_language import english_data
 from cooperation_memory import CooperationMemory, round_scope, episode, ROUNDS
 from release_info import release_info
@@ -73,7 +74,7 @@ class CompatibleClient(SpatialJevClient):
             headers={'Authorization':'Bearer '+self.key,'Content-Type':'application/json'})
         try:
             with urllib.request.build_opener(NoRedirect).open(req,timeout=20) as r:data=json.load(r)
-        except urllib.error.HTTPError as e:raise RuntimeError(f'模型接口 HTTP {e.code}') from None
+        except urllib.error.HTTPError as e:raise RuntimeError(f'模型接口 HTTP {e.code}{http_error_detail(e,self.key)}') from None
         except (OSError,ValueError):raise RuntimeError('模型接口连接失败或返回了无效数据') from None
         content,reason=None,'回复里没有文本'
         try:
@@ -236,7 +237,8 @@ class PlayerGameSession(GameSession):
             client=self.connector(self.c,setting)
             with self.lock:self.connection_checks+=1
             client.ask({'model':setting['model'],'state':{'purpose':'API connection check'},
-                'questions':{'next_action':{'type':'choice','instructions':'Choose ready and return the required format.','criteria':{'ready':'Connection ready'}}}})
+                'questions':{'next_action':{'type':'choice','instructions':'Choose ready and return the required format.',
+                                            'criteria':{'ready':'Connection ready','wait':'Not ready yet'}}}})
             with self.lock:
                 if body['game_id']!=self.game_id or self.phase not in ('ready','ended'):
                     return 409,{'error':'对局已变化，连接未保存。'}
@@ -256,11 +258,16 @@ class PlayerGameSession(GameSession):
                 while len(self.receipts)>128:self.receipts.popitem(last=False)
                 return response
         except Exception as e:
-            # Never echo an upstream body, key, or arbitrary provider exception.
+            # Never echo a key or an arbitrary exception: only our own RuntimeError text (status and the provider's
+            # short, key-redacted message) is shown.
             message='连接失败。请检查地址、模型名、Key、余额及网络。'
             if type(e) is RuntimeError:
-                for code in ('401','403','402','429'):
-                    if 'HTTP '+code in str(e):message={'401':'Key 无效，请检查后重试。','403':'账号无权访问这个模型。','402':'账号余额不足，请到服务商充值。','429':'请求受限或额度不足，请稍后重试。'}[code]
+                text=str(e)
+                for secret in {setting.get('api_key'),(self.setting or {}).get('api_key')}-{None,''}:text=text.replace(secret,'***')
+                text=text[:240]
+                hints={'401':'Key 无效，请检查后重试。','403':'账号无权访问这个模型。','402':'账号余额不足，请到服务商充值。','429':'请求受限或额度不足，请稍后重试。'}
+                code=next((c for c in hints if 'HTTP '+c in text),None)
+                message=f'{hints[code]}（{text}）' if code else f'连接失败（{text}）'
             return 502,{'error':message}
         finally:
             with self.lock:self.connecting=False

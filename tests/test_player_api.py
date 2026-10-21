@@ -175,6 +175,14 @@ class CompatibleTests(unittest.TestCase):
         self.assertEqual(req.full_url,'https://openrouter.ai/api/alpha/decisions')
         self.assertEqual(json.loads(req.data)['model'],'microsoft/microsoft-decision-1')
         self.assertEqual((result['choice'],result['sprint']),('wait',False))
+    def test_refused_request_reports_status_and_provider_message_without_the_key(self):
+        client=DecisionClient(load_config(),settings_from({'provider':'openrouter-decision','api_key':KEY}))
+        body=json.dumps({'error':{'message':f'questions.next_action: too many options for key {KEY}'}}).encode()
+        error=urllib.error.HTTPError('https://openrouter.ai/api/alpha/decisions',400,'Bad Request',{},io.BytesIO(body))
+        with patch('jev.urllib.request.urlopen',side_effect=error),self.assertRaises(RuntimeError) as raised:
+            client.ask({'model':'m','state':{},'questions':{'next_action':{'type':'choice','criteria':{'a':'','b':''}}}})
+        text=str(raised.exception)
+        self.assertIn('HTTP 400',text);self.assertIn('too many options',text);self.assertNotIn(KEY,text);self.assertIn('***',text)
     def test_listed_service_names_and_notes_have_english(self):
         catalog=json.loads((ROOT/'model-providers.json').read_text())
         messages=json.loads((ROOT/'cocos-kitchen/i18n.json').read_text())['messages']
