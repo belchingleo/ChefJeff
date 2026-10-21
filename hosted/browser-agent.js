@@ -47,6 +47,7 @@
           '厨房暂时已满或请求过于频繁。请关闭其他试玩页面；空位释放后会自动重试。' : '暂时无法创建厨房，请稍后重试。');
         sessionToken = d.session;
         if (leaving) releaseSession();
+        else queueUsage(false);
         notifyConnection('');
         return d.session;
       }).catch(e => {
@@ -63,6 +64,45 @@
     const headers = new Headers(init.headers);
     headers.set('X-ChefJeff-Session', await getSession());
     return nativeFetch(path, {...init, headers});
+  }
+  // Two local booleans, no visitor ID/fingerprint. These estimate browsers, never people.
+  const USAGE_VISIT = 'chefjeff.usage-visited.v1', USAGE_PLAY = 'chefjeff.usage-played.v1';
+  let usageVisitDone = false, usagePlayDone = false, usageWantsPlay = false, usageQueued = false, usageRetryAt = 0;
+  function queueUsage(played) {
+    if (played && !usageWantsPlay) {usageWantsPlay = true; usageRetryAt = 0;}
+    if (leaving || usageQueued || (usageVisitDone && (!usageWantsPlay || usagePlayDone)) || performance.now() < usageRetryAt) return;
+    usageQueued = true;
+    setTimeout(async function reportUsage() {
+      async function report() {
+        let visit, play;
+        try {
+          visit = localStorage.getItem(USAGE_VISIT) !== '1';
+          play = usageWantsPlay && localStorage.getItem(USAGE_PLAY) !== '1';
+          usageVisitDone = !visit;
+          usagePlayDone = localStorage.getItem(USAGE_PLAY) === '1';
+          if (!visit && !play) return;
+          // Verify writable storage before counting. Without it, skip browser estimates.
+          const probe = visit ? USAGE_VISIT : USAGE_PLAY;
+          localStorage.setItem(probe, '0'); localStorage.removeItem(probe);
+        } catch (_) {usageVisitDone = usagePlayDone = true; return;}
+        usageRetryAt = performance.now() + 15000;
+        const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 5000);
+        try {
+          const r = await serverFetch('/api/usage', {method:'POST', signal:controller.signal,
+            headers:{'Content-Type':'application/json'}, body:JSON.stringify({first_visit:visit, first_play:play})});
+          if (!r.ok) return;
+          // Server retries are also deduplicated in this page session's memory.
+          if (visit) {localStorage.setItem(USAGE_VISIT, '1'); usageVisitDone = true;}
+          if (play) {localStorage.setItem(USAGE_PLAY, '1'); usagePlayDone = true;}
+        } finally {clearTimeout(timer);}
+      }
+      try {
+        // Serialize cooperating tabs where Web Locks is available; older browsers can double-count a race.
+        if (window.navigator?.locks?.request) await window.navigator.locks.request('chefjeff-usage', report);
+        else await report();
+      } catch (_) { /* A failed usage report must never block play. Retry on a later normal poll. */ }
+      finally {usageQueued = false;}
+    }, 0);
   }
   function validate(raw) {
     const provider = raw.provider, preset = providers()[provider];
@@ -222,10 +262,11 @@
         if (init.signal?.aborted) throw new Error('下一局请求已取消。');
       }
       const result = await serverFetch(url.pathname, init);
+      if (result.ok && ['/api/start', '/api/restart', '/api/next', '/api/resume'].includes(url.pathname)) queueUsage(true);
       if (!result.ok || (url.pathname !== '/api/state' && !STATE_REPLIES.has(url.pathname))) return result;
       // Gameplay replies carry the resulting state; both get this page's connection details.
       // Also this browser's contribution answer: the result card offers 贡献本局 after 暂不.
-      const withConnection = d => {state = d;d.connection = connection();d.limits.connection_checks = checks;
+      const withConnection = d => {state = d;queueUsage(d.phase === 'running');d.connection = connection();d.limits.connection_checks = checks;
         if (d.hosted) Object.assign(d.hosted, {contribution_offer: !!d.hosted.contribution_enabled && choice?.answer === 'later',
           contribution_busy: busyRound === d.game_id});
         return d;};
