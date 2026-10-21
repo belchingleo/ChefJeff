@@ -680,7 +680,8 @@ class SpatialKitchen(Kitchen):
 
     def station_catches(self, key, food, who=None):
         s = self.stations[key]
-        if s.fire or s.lock is not None or self.board_reserved(key, who):
+        # A thrown item lands on a burning board or counter too (Overcooked 2), never in a burning stove's pan.
+        if (s.fire and key in self.pots) or s.lock is not None or self.board_reserved(key, who):
             return False
         if key in self.pots:
             return bool(s.pot_id and not s.food and self.rules.potable(food, self.rules.vessels.get(s.pot_id)))

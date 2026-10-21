@@ -1671,8 +1671,9 @@ export class KitchenClient extends Component {
                 }
             }
             dev.label.color=color(st.fire||st.food?.stage==='ready'||st.food?.stage==='burnt'?COLORS.hot:COLORS.ink);
-            const food=dev.node.getChildByName('food')!;food.active=!!st.food||st.fire;if(food.active)this.drawIcon(food.getComponent(Graphics)!,st.fire?'fire':this.itemStage(st.food));
-            if(this.cabinetFires[id]){this.cabinetFires[id].active=!!st.fire;if(st.fire)food.active=false;}
+            // What rests on a burning station stays drawn (the flames go over it), so an item never seems to vanish.
+            const food=dev.node.getChildByName('food')!;food.active=!!st.food||st.fire;if(food.active)this.drawIcon(food.getComponent(Graphics)!,st.food?this.itemStage(st.food):'fire');
+            if(this.cabinetFires[id]){this.cabinetFires[id].active=!!st.fire;if(st.fire&&!st.food)food.active=false;}
             if(st.counter&&!st.fire)this.writeLabel(dev.label,st.food?this.itemName(st.food):((this.localPick!==undefined?this.localPick:s.interaction_focus)!==id?'':'空柜台'));
             if(st.stove){
                 if(this.useModularArt)this.equipmentArt(dev.node.getChildByName('equipment')!,id);

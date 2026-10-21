@@ -176,6 +176,12 @@ def replay(factory, resolved, inputs):
 TAKE_KINDS = {"fetch", "take_board", "take_tool", "pickup", "take_plate", "take_return", "take_sink", "take_counter", "lift_pot"}
 
 
+# As in Overcooked 2, fire turns off using a station (chopping, an ingredient source, a stove) but not its surface:
+# what rests on a burning board or counter can still be taken, and things put or plated there.
+SURFACE_KINDS = {"take_counter", "take_plate", "take_board", "put_counter", "put_board", "assemble", "merge_plates",
+                 "load_counter", "plate_counter", "plate_from_counter", "swap_pot"}
+
+
 def hand_swap_allowed(kind, incoming=None):
     """Taking with full hands, the same for both chefs (the player's Space): only the extinguisher,
     or a loose raw/chopped ingredient from the floor, swaps; anything else needs the hands emptied first."""
@@ -446,10 +452,11 @@ class Kitchen:
         # Continuing a chop/move must not accidentally restart its remaining duration.
         if a.job:
             out = [x for x in out if x.key != a.job.action.key]
-        # Burning worktops cannot be used until extinguished. Both chefs see
-        # exactly the same legal rescue actions, including empty counters.
-        out = [x for x in out if x.kind in ('go', 'extinguish') or not
-               (x.target in self.stations and self.stations[x.target].fire)]
+        # A burning station cannot be used until extinguished; a burning board or counter still takes and
+        # gives items (SURFACE_KINDS). Both chefs see exactly the same actions.
+        surfaces = set(self.boards + self.counters)
+        out = [x for x in out if x.kind in ('go', 'extinguish') or not (x.target in self.stations and self.stations[x.target].fire)
+               or (x.target in surfaces and x.kind in SURFACE_KINDS)]
         if a.hand:
             out = [x for x in out if x.kind not in TAKE_KINDS or hand_swap_allowed(
                 x.kind, self.ground[x.expected[1]].food if x.kind == 'pickup' else None)]
