@@ -572,6 +572,37 @@ function settingsHarness(){
   const failed=JSON.parse(h.calls.find(c=>c.url==='/api/model/result').init.body);
   assert.equal(failed.failed,true);assert.equal(failed.choice,undefined);
  }
+ // Intern InkStone uses SystemOne directly; its endpoint rejects chat/streaming extensions.
+ const intern={provider:'intern-decision',api_key:key,game_id:'round'};
+ const internEndpoint='https://discovery-api.intern-ai.org.cn/v1/systemone';
+ upstream=()=>new Response(JSON.stringify({answers:{next_action:{type:'choice',choice:'ready'}},usage:{input_tokens:5,output_tokens:1}}));
+ h=harness();r=await h.w.fetch('/api/connection',{body:JSON.stringify(intern)});
+ assert.equal(r.status,200);
+ call=h.calls.find(c=>c.url===internEndpoint);sent=JSON.parse(call.init.body);
+ assert.equal(call.init.method,'POST');assert.equal(call.init.headers.Authorization,'Bearer '+key);
+ assert.equal(call.init.mode,'cors');assert.equal(call.init.credentials,'omit');assert.equal(call.init.redirect,'error');
+ assert.equal(sent.model,'intern-decision-4b');assert.deepEqual(Object.keys(sent).sort(),['model','questions','state']);
+ assert.deepEqual(Object.keys(sent.questions.next_action.criteria).sort(),['ready','wait']);
+ for(const c of h.calls.filter(c=>c!==call))assert(!JSON.stringify(c).includes(key));
+ for(const [status,message] of [[401,'Invalid API key'],[400,'Unsupported model'],[422,'Unsupported request field']]){
+  upstream=()=>new Response(JSON.stringify({error:{message:message+' '+key}}),{status});
+  h=harness();r=await h.w.fetch('/api/connection',{body:JSON.stringify(intern)});d=await r.json();
+  assert.equal(r.status,400);assert(d.error.includes('HTTP '+status));assert(d.error.includes(message+' ***'));
+  assert(!JSON.stringify(d).includes(key));assert(!h.calls.some(c=>c.url==='/api/browser-ready'));
+ }
+ for(const sprint of ['yes','no']){
+  upstream=()=>new Response(JSON.stringify({answers:{next_action:{type:'choice',choice:'wait'},sprint:{type:'choice',choice:sprint}},usage:{input_tokens:5,output_tokens:2}}));
+  modelTask={id:'intern-task-'+sprint,payload:{model:'jev-latest',state:{kitchen:{}},questions:{next_action:{type:'choice',criteria:{wait:'Wait',continue:'Continue'}},sprint:{type:'choice',criteria:{yes:'Yes',no:'No'}}}}};
+  h=harness({...intern,remember:true},false,{game_id:'round',phase:'running',limits:{},connection:{configured:true}});
+  await h.w.fetch('/api/state');await h.timers.find(fn=>fn.name==='poll')();
+  call=h.calls.find(c=>c.url===internEndpoint);sent=JSON.parse(call.init.body);
+  assert.equal(sent.model,'intern-decision-4b');assert.deepEqual(Object.keys(sent).sort(),['model','questions','state']);
+  assert.deepEqual(sent.questions,modelTask.payload.questions);assert.deepEqual(sent.state,modelTask.payload.state);
+  const result=JSON.parse(h.calls.find(c=>c.url==='/api/model/result').init.body);
+  assert.equal(result.choice,'wait');assert.equal(result.sprint,sprint==='yes');
+  assert.deepEqual(result.usage,{input_tokens:5,output_tokens:2});assert(!JSON.stringify(result).includes(key));
+  assert(!h.calls.some(c=>c.url==='/api/model/jev'),'InkStone must not use the TypeSafe forwarding route');
+ }
  // During play a chat reply without sprint means no sprint (local game rule); a non-boolean sprint is refused.
  for(const [content,expected] of [['{"choice":"wait"}',{choice:'wait',sprint:false}],['{"choice":"wait","sprint":"yes"}',{failed:true}]]){
   upstream=()=>new Response(JSON.stringify({choices:[{message:{content}}],usage:{prompt_tokens:1,completion_tokens:1}}));

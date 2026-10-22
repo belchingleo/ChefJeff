@@ -705,7 +705,9 @@
     "Key 无效，请检查后重试。": "Invalid key. Check it and try again.",
     "账号余额不足，请到服务商充值。": "Not enough balance. Top up with the provider.",
     "账号无权访问这个模型。": "This account cannot use this model.",
-    "请求受限或额度不足，请稍后重试。": "Rate limited or out of quota. Try again later."
+    "请求受限或额度不足，请稍后重试。": "Rate limited or out of quota. Try again later.",
+    "Intern-Decision（书生·端砚）": "Intern-Decision (Intern InkStone)",
+    "使用端砚墨点额度 · 8K 上下文，长请求可能超限 · 网页跨域未验证 · 未实测整局": "Uses InkStone credits · 8K context; long requests may exceed it · Browser CORS unverified · No full round tested"
   },
   "templates": [
     [

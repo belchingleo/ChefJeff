@@ -236,6 +236,52 @@ class CompatibleTests(unittest.TestCase):
                 invalid['answers'][question]['choice']=None
                 with patch('jev.urllib.request.urlopen',return_value=io.BytesIO(json.dumps(invalid).encode())):
                     with self.assertRaises(RuntimeError):client.ask(payload)
+    def test_intern_decision_connection_and_gameplay_use_systemone(self):
+        from spatial_kitchen import SpatialKitchen
+        setting=settings_from({'provider':'intern-decision','api_key':KEY})
+        client=create_client(load_config(),setting)
+        self.assertIsInstance(client,DecisionClient)
+        self.assertEqual(setting['model'],'intern-decision-4b')
+        answer={'answers':{'next_action':{'type':'choice','choice':'ready'}},
+                'model':'intern-decision-4b','usage':{'input_tokens':5,'output_tokens':1}}
+        tmp=tempfile.TemporaryDirectory();self.addCleanup(tmp.cleanup)
+        probe=PlayerGameSession(credential_path=Path(tmp.name)/'.player-api.json',
+                               connector=create_client,journal_factory=FakeJournal)
+        self.addCleanup(probe.close)
+        with patch('jev.urllib.request.urlopen',return_value=io.BytesIO(json.dumps(answer).encode())) as opened:
+            status,_=probe.command('/api/connection',{'game_id':probe.game_id,'request_id':uuid.uuid4().hex,
+                                                     'provider':'intern-decision','api_key':KEY})
+        self.assertEqual(status,200)
+        req=opened.call_args.args[0];sent=json.loads(req.data)
+        self.assertEqual((req.full_url,req.method),('https://discovery-api.intern-ai.org.cn/v1/systemone','POST'))
+        self.assertEqual(req.get_header('Authorization'),'Bearer '+KEY)
+        self.assertEqual(set(sent),{'model','state','questions'})  # Rejects stream, even false; no thinking extensions.
+        self.assertEqual(sent['model'],'intern-decision-4b')
+        self.assertEqual(set(sent['questions']['next_action']['criteria']),{'ready','wait'})
+        kitchen=SpatialKitchen(load_config())
+        payload=client.payload(kitchen.snapshot(),kitchen.actions('jeff'))
+        choice=next(iter(payload['questions']['next_action']['criteria']))
+        for sprint in ('yes','no'):
+            answer['answers']={'next_action':{'type':'choice','choice':choice},
+                               'sprint':{'type':'choice','choice':sprint}}
+            with self.subTest(sprint=sprint),patch('jev.urllib.request.urlopen',return_value=io.BytesIO(json.dumps(answer).encode())) as opened:
+                result=client.ask(payload)
+            sent=json.loads(opened.call_args.args[0].data)
+            self.assertEqual(set(sent),{'model','state','questions'})
+            self.assertEqual(sent['model'],'intern-decision-4b')
+            self.assertEqual(set(sent['questions']),{'next_action','sprint'})
+            self.assertEqual(sent['questions']['sprint']['type'],'choice')
+            self.assertIn('kitchen',sent['state'])
+            self.assertEqual((result['choice'],result['sprint'],result['usage']),(choice,sprint=='yes',answer['usage']))
+        for code in (400,401,422):
+            detail=f'Invalid SystemOne request for {KEY}'
+            error=urllib.error.HTTPError(setting['base_url'],code,'Refused',{},io.BytesIO(json.dumps({'error':{'message':detail}}).encode()))
+            with self.subTest(code=code),patch('jev.urllib.request.urlopen',side_effect=error),self.assertRaises(RuntimeError) as raised:
+                client.ask(payload)
+            self.assertIn(f'HTTP {code}',str(raised.exception))
+            self.assertIn('Invalid SystemOne request for ***',str(raised.exception))
+            self.assertNotIn(KEY,str(raised.exception))
+
     def test_listed_service_names_and_notes_have_english(self):
         catalog=json.loads((ROOT/'model-providers.json').read_text())
         messages=json.loads((ROOT/'cocos-kitchen/i18n.json').read_text())['messages']
