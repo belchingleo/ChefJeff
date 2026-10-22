@@ -42,7 +42,7 @@ Windows 上用 `py -3 scripts/launch_web.py`。也可以直接双击 `start-web.
 
 StartLux-Decision 在本地版和在线版均可选，通过第三方中转 [Bamboo Relay](https://bamboonode.dev/) 提供免费测试额度。预设接口为 `https://api.bamboonode.dev/v1/decisions`，模型名 `startlux-decision-27b-autothink` 可编辑；在线版由浏览器直连 Bamboo Relay。两端均发送 `allow_none: false`，要求模型从列出的动作中选择，并发送 `think_mode: never` 默认关闭思考。开发者未用真实 Key 验证连接，未实测整局。参见[官网](https://decision.startlux.com/)和[接口文档](https://github.com/StartLuxLabs/StartLux-Decision/blob/main/docs/api.md)。
 
-Intern-Decision 在本地版和在线版均可选，通过[书生·端砚](https://discovery.intern-ai.org.cn/token-plan/home)使用平台墨点额度。预设向 `https://discovery-api.intern-ai.org.cn/v1/systemone` 发送 `model`、`state`、`questions`，模型为 `intern-decision-4b`，上下文上限 8K。在线版需要服务商允许浏览器跨域直连；真实 Key 连接、跨域、延迟和整局表现均未验证，详见[模型连接说明](docs/model-guide.md)。
+Intern-Decision 在本地版和在线版均可选，通过[书生·端砚](https://discovery.intern-ai.org.cn/token-plan/home)使用平台墨点额度。预设向 `https://discovery-api.intern-ai.org.cn/v1/systemone` 发送 `model`、`state`、`questions`，模型为 `intern-decision-4b`，上下文上限 8K。在线版需要服务商允许浏览器跨域直连；本地短连接测试通过，但实际游戏请求因输入超限被拒绝，普通试玩尚不可视为可用。可先运行独立的[单次开局实验](docs/intern-opening-test.md)，测试可还原全部输入的压缩格式；跨域、压缩请求、延迟和整局仍待验证，详见[模型连接说明](docs/model-guide.md)。
 
 更换下载版本前请先结束对局、用原文件夹的 `stop-web.command` 停止旧服务，详见[模型连接说明](docs/model-guide.md)。
 
