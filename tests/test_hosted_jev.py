@@ -127,7 +127,11 @@ class ForwardHTTPTests(unittest.TestCase):
         self.assertEqual(self.request('/api/browser-ready',{'game_id':game.game_id,'request_id':'ready','connected':True},token)[0],200)
 
     def test_live_memory_condition_is_bounded_recorded_and_frozen_for_the_round(self):
-        token,game=self.page();task=self.pending_task(game)
+        token,game=self.page()
+        with game.lock:
+            game.connected=True
+            self.assertEqual(game._command('/api/start',{})[0],200)
+            task=self.pending_task(game)
         condition={'version':2,'enabled':True,'used_rounds':1,'omitted_rounds':0}
         result={'id':task['id'],'choice':'wait','sprint':False,'usage':{},'memory_condition':condition}
         self.assertEqual(self.request('/api/model/result',result,token)[0],200)

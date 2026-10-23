@@ -136,6 +136,9 @@ def engine_input(method):
                 record.update(at=[args[1], args[2]], base=args[3], settle=bool(args[4]) if len(args) > 4 else False,
                               press=bool(args[5]) if len(args) > 5 else False, accepted=bool(result))
             self.inputs.append(record)
+            observer = getattr(self, '_record_observer', None)
+            if observer is not None:
+                observer.observe_input(record)
         return result
     return wrapper
 
@@ -278,6 +281,9 @@ class Kitchen:
         self.event_seq += 1
         self.events.append({"t": round(self.time, 3), "message": message, **extra,
                             "seq": self.event_seq, "game_time_ms": round(self.time*1000)})
+        observer = getattr(self, '_record_observer', None)
+        if observer is not None:
+            observer.observe_event(self.events[-1])
 
     def _arrivals(self):
         for o in self.orders:
@@ -508,8 +514,12 @@ class Kitchen:
         assert self.can_add(plate,ingredient)
         parts=self.parts(plate)|{ingredient.ingredient}
         stage=self._dish_stage(parts,plate.stage,ingredient.stage)
-        return Food(ingredient.id if not plate.plate_id else plate.id,stage,chopped=max(plate.chopped,ingredient.chopped),heated=max(plate.heated,ingredient.heated),plate_id=plate.plate_id or plate.id,
+        combined = Food(ingredient.id if not plate.plate_id else plate.id,stage,chopped=max(plate.chopped,ingredient.chopped),heated=max(plate.heated,ingredient.heated),plate_id=plate.plate_id or plate.id,
                     ingredient='dish',components=tuple(sorted(parts)))
+        observer = getattr(self, '_record_observer', None)
+        if observer is not None:
+            observer.item_transform([plate.id, ingredient.id], [combined.id])
+        return combined
 
     def can_merge_plates(self, destination, source):
         if not source or not source.plate_id or source.stage not in ('ready','burnt','assembled'):
@@ -531,6 +541,9 @@ class Kitchen:
         combined=Food(destination.id,stage,chopped=max(destination.chopped,source.chopped),
                       heated=max(destination.heated,source.heated),plate_id=destination.plate_id or destination.id,
                       ingredient='dish',components=tuple(sorted(parts)))
+        observer = getattr(self, '_record_observer', None)
+        if observer is not None:
+            observer.item_transform([destination.id, source.id], [combined.id, source.plate_id])
         return combined,Food(source.plate_id,'clean_plate')
 
     def ground_plate_signature(self, who, item_id):

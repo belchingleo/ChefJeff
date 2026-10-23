@@ -43,8 +43,11 @@ class ContributionTests(unittest.TestCase):
                     rows=db.execute('select record from records').fetchall()
                     self.assertEqual(len(rows),1)
                     self.assertNotIn('api_key',rows[0][0])
-                    self.assertNotIn('payload',rows[0][0])
-                    self.assertIn('positions',json.loads(rows[0][0]))
+                    record=json.loads(rows[0][0])
+                    self.assertEqual(record['schema'],'chefjeff-pilot-session-v2')
+                    self.assertTrue(any(e['type']=='state_checkpoint' for e in record['events']))
+                    self.assertNotIn('model-requests.jsonl',rows[0][0])
+                    self.assertNotIn('Authorization',rows[0][0])
                 r=reply['receipt']
                 self.assertFalse(store.delete(r['id'],'wrong'))
                 self.assertTrue(store.delete(r['id'],r['deletion_token']))

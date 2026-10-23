@@ -384,6 +384,11 @@
         await pendingContribution.catch(() => {});
         if (init.signal?.aborted) throw new Error('下一局请求已取消。');
       }
+      if (['/api/start','/api/restart','/api/next'].includes(url.pathname) && state?.hosted?.contribution_enabled) {
+        // A server acknowledgement is required for automatic retention of an early close.
+        await contributionCommand('/api/contribution/consent', {consent:autoOn(), consent_version:CONSENT,
+          decision_telemetry:!!(autoOn() && choice.decision_telemetry)}, state.game_id);
+      }
       const opening=['/api/start','/api/restart','/api/next'].includes(url.pathname)?openingMemory(state,JSON.parse(init.body||'{}'),url.pathname):null;
       const previousMemory=activeMemory;
       // Publish before awaiting the start acknowledgement: a state poll can see a
@@ -391,11 +396,14 @@
       if(opening)activeMemory=opening;
       const result = await serverFetch(url.pathname, init);
       if(!result.ok && opening && activeMemory===opening)activeMemory=previousMemory;
+      if(result.ok && ['/api/start','/api/restart','/api/next'].includes(url.pathname)) {
+        const opened=await result.clone().json();if(opened.receipt)rememberReceipt(opened.receipt);
+      }
       if (result.ok && ['/api/start', '/api/restart', '/api/next', '/api/resume'].includes(url.pathname)) queueUsage(true);
       if (!result.ok || (url.pathname !== '/api/state' && !STATE_REPLIES.has(url.pathname))) return result;
       // Gameplay replies carry the resulting state; both get this page's connection details.
       // Also this browser's contribution answer: the result card offers 贡献本局 after 暂不.
-      const withConnection = d => {observeMemory(d);state = d;queueUsage(d.phase === 'running');d.connection = connection();d.limits.connection_checks = checks;
+      const withConnection = d => {observeMemory(d);if(d.hosted?.contribution_receipt)rememberReceipt(d.hosted.contribution_receipt);state = d;queueUsage(d.phase === 'running');d.connection = connection();d.limits.connection_checks = checks;
         if (d.hosted) Object.assign(d.hosted, {contribution_offer: !!d.hosted.contribution_enabled && choice?.answer === 'later',
           contribution_busy: busyRound === d.game_id});
         return d;};
@@ -428,15 +436,20 @@
       while (handled.size > 100) handled.delete(handled.values().next().value);
       const reportedMemory=activeMemory?.game_id===state.game_id?activeMemory.context:null;
       let answer;
+      const startedAt=performance.now();
+      let errorType=null;
       try {answer = await modelRequest(setting, request.payload, undefined,
         {game_id:state.game_id,id:request.id,test:false});delete answer.latency;}
       catch (e) {
         answer = {failed:true};
+        errorType=e.name==='AbortError'?'timeout':'transport_or_response_error';
         const label = document.getElementById('api-message');
         if (label) {label.textContent = e.message;label.className = 'error';}
       }
+      const measuredDuration=Math.round(performance.now()-startedAt);
       await serverFetch('/api/model/result', {method:'POST', headers:{'Content-Type':'application/json'},
         body:JSON.stringify({id:request.id, ...answer,
+          ...(autoOn() && choice.decision_telemetry && state.hosted?.research_active && Number.isFinite(measuredDuration) && measuredDuration>=0 && measuredDuration<=120000?{telemetry:{duration_ms:measuredDuration,error_type:errorType}}:{}),
           ...(reportedMemory?{memory_condition:{enabled:reportedMemory.enabled,version:2,
             used_rounds:reportedMemory.episodes.length,omitted_rounds:reportedMemory.omitted_rounds}}:{})})});
     } catch (_) { /* Next normal state poll displays session/network failures. */ }
@@ -445,7 +458,7 @@
   setTimeout(poll, 200);
   const CHOICE_KEY = 'chefjeff.contribution-choice.v1', RECEIPTS_KEY = 'chefjeff.contribution-receipts.v1';
   // Equals hosted_records.CONSENT_VERSION: new terms ask again instead of carrying an old answer over.
-  const CONSENT = 'pilot-session-2026-10-v3';
+  const CONSENT = 'pilot-session-2026-10-v4';
   let pendingContribution = Promise.resolve(), autoRound = '', busyRound = '', shown = null, askedAt = '', notice = {round:'', text:''};
   const stored = (name, fallback) => {try {return JSON.parse(localStorage.getItem(name) || 'null') ?? fallback;} catch (_) {return fallback;}};
   const keep = (name, value) => {try {value == null ? localStorage.removeItem(name) : localStorage.setItem(name,JSON.stringify(value));} catch (_) {}};
@@ -457,6 +470,10 @@
   let receipts = stored(RECEIPTS_KEY, []);
   receipts = (Array.isArray(receipts) ? receipts : []).filter(r => r && typeof r.id === 'string' && typeof r.deletion_token === 'string' && Date.parse(r.expires_at) > Date.now());
   const contributionStatus = text => {const n=document.getElementById('contribution-status');if(n)n.textContent=text;};
+  function rememberReceipt(receipt) {
+    receipts=[...receipts.filter(r=>r.id!==receipt.id),receipt];
+    keep(RECEIPTS_KEY,receipts);showReceipts();
+  }
   function showReceipts() {
     const box=document.getElementById('contribution-receipt'),download=document.getElementById('contribution-download');
     if(box)box.value=receipts.length?JSON.stringify(receipts.length===1?receipts[0]:receipts,null,2):'';
@@ -478,7 +495,7 @@
   async function contributionCommand(path, extra={}, round=state?.game_id) {
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
     try {
-      const payload=path==='/api/contribution/delete'?extra:{game_id:round,request_id:crypto.randomUUID(),...extra};
+      const payload=['/api/contribution/delete','/api/contribution/download'].includes(path)?extra:{game_id:round,request_id:crypto.randomUUID(),...extra};
       const r=await serverFetch(path,{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
       const d=await r.json();if(!r.ok)throw new Error(d.error||'请求失败。');return d;
     } catch(e) {if(e.name==='AbortError')throw new Error('贡献数据请求超时，请重试。');throw e;}
@@ -509,6 +526,7 @@
   }
   window.addEventListener('kitchen-state', e => {
     const s=e.detail;shown=s;
+    if(s.hosted?.research_error)contributionStatus('贡献保存失败，请下载本局预览并稍后重试。');
     const button = document.getElementById('contribution-save');
     if (button) button.disabled = !(s.phase === 'ended' && s.hosted?.contribution_enabled && !s.hosted.contributed && busyRound !== s.game_id);
     if(autoOn()&&s.hosted?.contribution_enabled&&s.phase==='ended'&&autoRound!==s.game_id){
@@ -529,9 +547,13 @@
     showReceipts();showChoice();
     dialog.oncancel = e => e.preventDefault(); // Both answers are one click; Esc is not an answer.
     const answer = auto => {
-      choice={consent_version:CONSENT,answer:auto?'auto':'later',since:new Date().toISOString()};keep(CHOICE_KEY,choice);
+      choice={consent_version:CONSENT,answer:auto?'auto':'later',decision_telemetry:!!el('ask-telemetry')?.checked,since:new Date().toISOString()};keep(CHOICE_KEY,choice);
       // Agreeing never uploads a round that had already ended.
       if(auto){const now=shown||state;autoRound=now?.phase==='ended'?now.game_id:'';}
+      if(!auto && state?.hosted?.research_active) {
+        pendingContribution=pendingContribution.catch(()=>{}).then(()=>command('/api/contribution/consent',
+          {consent:false,consent_version:CONSENT,decision_telemetry:false})).catch(()=>status('关闭自动贡献未确认，请重试。'));
+      }
       dialog.close();showChoice();badge();
       status(auto?'已开启自动贡献：此后每局结束自动保存 30 天。':'已选择暂不贡献，之后不会自动上传。');
     };
@@ -543,6 +565,16 @@
       catch (e) {status(e.message);}
     };
     el('contribution-save').onclick = contributeRound;
+    if(el('contribution-own-data'))el('contribution-own-data').onclick = async () => {
+      try {
+        const receipt=receipts[receipts.length-1];
+        if(!receipt)throw new Error('尚无可下载的贡献记录。');
+        const records=(await command('/api/contribution/download',{id:receipt.id,deletion_token:receipt.deletion_token})).record;
+        const url=URL.createObjectURL(new Blob([JSON.stringify(records,null,2)],{type:'application/json'}));
+        const link=document.createElement('a');link.href=url;link.download='chefjeff-my-contributions.json';link.click();
+        setTimeout(()=>URL.revokeObjectURL(url),1000);
+      }catch(e){status(e.message);}
+    };
     el('contribution-download').onclick = () => {
       if (!receipts.length) return;
       const url = URL.createObjectURL(new Blob([JSON.stringify(receipts.length===1?receipts[0]:receipts,null,2)],{type:'application/json'}));

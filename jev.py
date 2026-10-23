@@ -254,7 +254,8 @@ class DecisionLoop:
                 self.failures += 1
                 self.error_count += 1
                 self.next_allowed = now + min(30, 2 ** min(self.failures, 5))
-                self.log("ai_error", {"request_id": context["id"], "error": error, "retry_in": round(self.next_allowed-now,1)})
+                self.log("ai_error", {"request_id": context["id"], "error": error, "retry_in": round(self.next_allowed-now,1),
+                    "server_received_wall_ms": round((context["returned_monotonic"]-self.log.monotonic_start)*1000) if "returned_monotonic" in context and hasattr(self.log,"monotonic_start") else None})
                 self.notify(f"Jeff 请求失败：{error}；{self.next_allowed-now:.0f}s 后重试。无脚本队友代替。")
             else:
                 self.successes += 1
@@ -275,7 +276,10 @@ class DecisionLoop:
                 elif not applied:self.rejected_count += 1
                 chef_job = self.k.chefs["jeff"].job
                 self.log("ai_response", {"request_id": context["id"], **result, "applied": applied, "execution": message, "sprint_applied":sprint_applied,
-                                         "fresh": fresh, "action_id": chef_job.id if applied and chef_job and decision.kind not in ("continue", "wait") else None,
+                                         "fresh": fresh,
+                                         "server_received_wall_ms": round((context["returned_monotonic"]-self.log.monotonic_start)*1000) if "returned_monotonic" in context and hasattr(self.log,"monotonic_start") else None,
+                                         "server_transport_started_wall_ms": round((context["transport_started_monotonic"]-self.log.monotonic_start)*1000) if "transport_started_monotonic" in context and hasattr(self.log,"monotonic_start") else None,
+                                         "action_id": chef_job.id if applied and chef_job and decision.kind not in ("continue", "wait") else None,
                                          "accepted_engine_seq": self.k.event_seq, "current_state": self.k.snapshot()})
                 self.last_choice = result["choice"] + ("" if applied else "（未执行）")
                 self.recent_decisions.append({"t": round(self.k.time, 2), "choice": result["choice"],
@@ -361,9 +365,12 @@ class DecisionLoop:
         self.inflight = True
         def work():
             try:
+                context['transport_started_monotonic'] = time.monotonic()
                 result = self.client.ask(payload)
+                context['returned_monotonic'] = time.monotonic()
                 self.q.put((context, result, None))
             except Exception as exc:
+                context['returned_monotonic'] = time.monotonic()
                 # Only our sanitized failures should reach logs.
                 message = str(exc) if type(exc) is RuntimeError else f"响应读取失败（{type(exc).__name__}）"
                 self.q.put((context, None, message))
