@@ -1,4 +1,4 @@
-# ChefJeff · Cook Together
+# ChefJeff · Cooking with AI
 
 English · [中文](README.zh-CN.md)
 
