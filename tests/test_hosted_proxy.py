@@ -113,6 +113,36 @@ class HostedProxyTests(unittest.TestCase):
         finally:
             connection.close()
 
+    def test_private_research_download_never_spools_response_to_proxy_disk(self):
+        from hosted_records import ContributionStore, pilot_record
+        previous = self.backend.sessions.store
+        self.backend.sessions.store = ContributionStore(Path(self.temp.name)/'private-research')
+        status,raw = self.request('/api/session',{},headers={'Origin':ORIGIN})
+        self.assertEqual(status,201)
+        token=json.loads(raw)['session'];game=self.backend.sessions.get(token)
+        receipt=None
+        try:
+            with game.lock:
+                game.stop_event.set();game.wake.set();game.connected=True
+                self.assertEqual(game._command('/api/start',{})[0],200)
+                # Synthetic volume fixture from the real unified projection; no production data.
+                for _ in range(12000):
+                    game.k.emit('synthetic correction',kind='position_resync',actor='human',reason='blocked',position=(3.,4.))
+                self.assertEqual(game._command('/api/end',{})[0],200)
+                receipt=game.store.save(pilot_record(game))
+            credentials={key:receipt[key] for key in ('id','deletion_token')}
+            status,raw=self.request('/api/contribution/download',credentials,headers={'Origin':ORIGIN})
+            self.assertEqual(status,200);self.assertGreater(len(raw),4*1024*1024)
+            data=json.loads(raw)['record'];self.assertEqual(data['schema'],'chefjeff-pilot-session-v2')
+            self.assertGreater(len(data['events']),12000)
+            for folder in ('body','proxy'):
+                path=Path(self.temp.name)/folder
+                self.assertFalse(path.exists() and any(p.is_file() for p in path.rglob('*')))
+        finally:
+            if receipt:game.store.delete(receipt['id'],receipt['deletion_token'])
+            self.backend.sessions.remove(token)
+            self.backend.sessions.store=previous
+
     def test_public_page_opens_from_external_links(self):
         for site in ('cross-site', 'same-site', 'none'):
             with self.subTest(site=site):

@@ -20,15 +20,17 @@
   <p id="ask-summary" tabindex="-1" autofocus>自愿参与。贡献的对局只用于改进游戏和人机协作的评估方法，不公开原始数据。</p>
   <div class="contrib-lists">
    <div class="contrib-saved"><h4>会保存</h4><ul>
-    <li>游戏引擎事件</li><li>每秒角色位置</li><li>结算结果</li>
-    <li>预设沟通编号</li><li>地图与版本</li><li>记忆开关与使用局数</li></ul></div>
+    <li>游戏引擎事件</li><li>初始局面、每秒状态变化与关键事件状态</li><li>结算结果与报告的 token 用量（非账单）</li>
+    <li>物品、订单、工位、动作与决策关联</li><li>实际地图、菜谱、规则、种子与版本</li><li>记忆开关与使用局数</li></ul></div>
    <div class="contrib-never"><h4>不会保存</h4><ul>
     <li>API Key</li><li>自由输入的文字</li><li>模型回复与完整请求</li>
-    <li>IP 与账号身份</li><li>模型接口地址</li><li>跨局记忆内容</li></ul></div>
+    <li>IP 与账号身份</li><li>模型接口地址</li><li>跨局记忆内容与预设沟通</li></ul></div>
   </div>
+  <p>自动贡献会在开局时创建私有记录；正常结束、手动结束、重开、关闭请求或闲置回收时更新。突然断电或进程崩溃可能只保留未完成的开局记录，不会推断退出原因。记录容量耗尽会明确标注丢失范围。</p>
+  <p><label><input id="ask-telemetry" type="checkbox"> 另同意收集浏览器自报的请求耗时及受控错误类型（可不选；不采集模型名或地址）</label></p>
   <p>私有保存 30 天后自动删除。每份贡献的删除凭证保存在这个浏览器里，可随时在「设置 → 数据导出」提前删除或更改选择。</p>
   <p><a href="privacy.html" target="_blank" rel="noopener">隐私说明与反馈 ↗</a></p>
-  <div class="choices"><button id="ask-auto" class="btn" type="button">同意以后每局自动贡献（30 天后删除，可随时关闭）</button><button id="ask-later" class="btn" type="button">暂不</button></div>
-  <p><small>选择“暂不”时，也可以在结算画面点「贡献本局」只贡献这一局。</small></p>
+  <div class="choices"><button id="ask-auto" class="btn" type="button">同意以后每局自动贡献（含提前结束，30 天后删除）</button><button id="ask-later" class="btn" type="button">暂不</button></div>
+  <p><small>选择“暂不”时，也可以在结算画面点「贡献本局」只贡献这一局。没有开局前同意时，只含已有事实与首尾状态，缺失过程会标注。</small></p>
  </div>
 </dialog>

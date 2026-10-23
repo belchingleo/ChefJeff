@@ -717,7 +717,27 @@
     "记忆开关与使用局数": "Memory setting and number of past rounds used",
     "跨局记忆内容": "Past-round memory content",
     "本局记忆条件已经固定。": "Memory conditions are fixed for this round.",
-    "不贡献时，服务器仅维持内存会话，闲置 10 分钟后清除；跨局摘要另存在此浏览器。删除凭证也只存在此浏览器，清理网站数据前请先下载备份。": "Without contribution, the server keeps only an in-memory session, cleared after 10 idle minutes. Past-round summaries remain in this browser. Deletion receipts also stay here; download them before clearing site data."
+    "不贡献时，服务器仅维持内存会话，闲置 10 分钟后清除；跨局摘要另存在此浏览器。删除凭证也只存在此浏览器，清理网站数据前请先下载备份。": "Without contribution, the server keeps only an in-memory session, cleared after 10 idle minutes. Past-round summaries remain in this browser. Deletion receipts also stay here; download them before clearing site data.",
+    "下载凭证无效。": "Invalid download receipt.",
+    "下载最近一局贡献": "Download latest contribution",
+    "关闭自动贡献未确认，请重试。": "Turning off automatic contribution was not confirmed. Please retry.",
+    "初始局面、每秒状态变化与关键事件状态": "Initial state, changes each game second, and event states",
+    "另同意收集浏览器自报的请求耗时及受控错误类型（可不选；不采集模型名或地址）": "Also collect browser-reported request duration and controlled error categories (optional; no model name or endpoint)",
+    "同意以后每局自动贡献（含提前结束，30 天后删除）": "Contribute future rounds automatically, including early endings (delete after 30 days)",
+    "同意字段无效。": "Invalid consent fields.",
+    "实际地图、菜谱、规则、种子与版本": "Resolved map, recipes, rules, seeds and versions",
+    "尚无可下载的贡献记录。": "No contribution is available to download.",
+    "开局后可预览本局记录。": "Start a round to preview its record.",
+    "未同意可选决策测量。": "Optional decision measurements were not consented to.",
+    "物品、订单、工位、动作与决策关联": "Item, order, station, action and decision links",
+    "自动贡献会在开局时创建私有记录；正常结束、手动结束、重开、关闭请求或闲置回收时更新。突然断电或进程崩溃可能只保留未完成的开局记录，不会推断退出原因。记录容量耗尽会明确标注丢失范围。": "Automatic contribution creates a private opening record and updates it on normal or manual endings, restart, close requests or idle removal. A power or process failure may leave an incomplete opening record; no exit motive is inferred. Capacity losses are explicitly marked.",
+    "自动贡献需在下一局开始前确认。": "Confirm automatic contribution before the next round starts.",
+    "记录不存在或凭证无效。": "The record does not exist or the receipt is invalid.",
+    "请阅读并选择本版数据说明。": "Read and choose under the current data terms.",
+    "贡献保存失败，请下载本局预览并稍后重试。": "Saving the contribution failed. Download the round preview and retry later.",
+    "跨局记忆内容与预设沟通": "Past-round memory content and preset communication",
+    "结算结果与报告的 token 用量（非账单）": "Outcomes and reported token usage (not a bill)",
+    "选择“暂不”时，也可以在结算画面点「贡献本局」只贡献这一局。没有开局前同意时，只含已有事实与首尾状态，缺失过程会标注。": "After Not now, you can contribute that round on the results screen. Without pre-start consent, only existing facts and initial/final states are included; missing history is marked."
   },
   "templates": [
     [
