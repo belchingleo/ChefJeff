@@ -27,6 +27,8 @@ from hosted_records import ContributionStore, pilot_record, CONSENT_VERSION
 from hosted_capacity import ActiveKitchens, RequestBudget, NETWORK_FULL
 from hosted_jev import JevForwarder
 from hosted_usage import UsageStats
+from cooperation_memory import (ROUNDS, EVENTS, CONTEXT_CHARACTERS, DESCRIPTION,
+                                memory_namespace, memory_context, portable_episode, validate_memory_condition)
 
 HOSTED_HISTORY_LIMIT = 20  # rounds kept per page for the data export; bounds memory under MemoryMax
 
@@ -106,6 +108,7 @@ class HostedSession(GameSession):
         self.receipt_round = None
         self.store = None
         self.connected = False
+        self.round_memory_condition = None
         self.usage = None
         self.usage_started = False  # Once per page session, including retries, restarts and later levels.
         self.usage_end_reason = 'restart'
@@ -161,7 +164,20 @@ class HostedSession(GameSession):
                 'calls': ai.calls if ai else 0, 'remaining': max(0, limit - (ai.calls if ai else 0)),
                 'reached': bool(ai and ai.calls >= limit), 'editable': self.phase in ('ready', 'ended'),
                 'connection_checks': 0, 'usage': dict(ai.tokens) if ai else {'input_tokens': 0, 'output_tokens': 0}}
-            state['memory'] = {'enabled': False, 'editable': False, 'saved_rounds': 0, 'limit': 0, 'used_rounds': 0}
+            # The browser owns persistent records and model scopes. Only this kitchen's
+            # completed, allowlisted episode is exposed to its authenticated page.
+            if self.phase == 'ended' and self.k.ended and not self.k.aborted and self.round_started_at:
+                if getattr(self, '_memory_episode', (None,))[0] != self.game_id:
+                    self._memory_episode = (self.game_id, portable_episode(
+                        self.k, self.game_id, self.player_messages, self.round_record()))
+                record = self._memory_episode[1]
+            else:
+                record = None
+            state['memory'] = {'supported': True, 'enabled': True, 'editable': self.phase in ('ready','ended'),
+                               'saved_rounds': 0, 'limit': ROUNDS, 'used_rounds': 0, 'event_limit': EVENTS,
+                               'namespace': memory_namespace(), 'level_id': self.c['level_id'],
+                               'max_characters': CONTEXT_CHARACTERS, 'description': DESCRIPTION,
+                               'episode': record}
             state['release'] = self.release
             state['hosted'] = {'retention': 'session-only', 'idle_minutes': 10, 'contribution_enabled': self.store is not None,
                                'contributed': self.receipt_round == self.game_id}
@@ -211,9 +227,15 @@ class HostedSession(GameSession):
         finally:
             self.usage_end_reason = previous_reason
         if path == '/api/start' and response[0] == 200:
+            self.round_memory_condition = None
+            # Establish the canonical memory rules in every pending payload. The page
+            # supplies its frozen browser-only history when calling its chosen model.
+            self.ai.cooperation_memory = memory_context(False, [])
             if self.usage:
                 self.usage.start_round(self.c['level'], first=not self.usage_started)
             self.usage_started = True
+        if path == '/api/reset' and response[0] == 200:
+            self.round_memory_condition = None
         return response
 
     def close(self):
@@ -226,7 +248,7 @@ class HostedSession(GameSession):
 # Game fields plus the explicit opt-in Jev route. Never echo invalid bodies.
 FIELDS = {
     '/api/usage': {'first_visit', 'first_play'},
-    '/api/model/jev': {'api_key','consent','consent_version','test','id'},
+    '/api/model/jev': {'api_key','consent','consent_version','test','id','memory'},
     '/api/contribution/preview': set(),
     '/api/contribution/save': {'consent', 'consent_version', 'consent_mode'},
     '/api/browser-ready': {'connected'}, '/api/start': {'speed'}, '/api/pause': {'reason'},
@@ -236,7 +258,7 @@ FIELDS = {
     '/api/move': {'dx', 'dy', 'seq', 'sprint'}, '/api/position': {'seq', 'base', 'at', 'press'}, '/api/select': {'target'},
     '/api/interact': {'expected_item', 'mode', 'at', 'base', 'aim', 'target'}, '/api/throw': {'direction', 'expected_item', 'at', 'base'},
     '/api/action': {'action', 'expected'},
-    '/api/model/result': {'id', 'choice', 'sprint', 'usage', 'failed'},
+    '/api/model/result': {'id', 'choice', 'sprint', 'usage', 'failed','memory_condition'},
 }
 
 
@@ -362,7 +384,8 @@ SHELL_REPLACEMENTS = (
     ('本次服务连接测试', '本页面连接测试'),
     ('可对应本地日志提取前后过程', '在线版没有可追溯的服务器对局日志'),
     ('导出本次游玩的全部数据：从启动游戏起玩过的每一局', '导出本次游玩的数据：从打开本页面起最近 20 局'),
-    ('<section aria-labelledby="memory-title"', '<section hidden aria-labelledby="memory-title"'),
+    ('记录保存在本机，旧局片段会随决策请求发送给你选择的模型服务，增加输入 token 和费用。关闭后不读、不保存；中途退出的局不保存。',
+        '在线版默认开启，摘要保存在当前浏览器；开局时固定本局使用的旧局摘要，随请求发给所选模型。Jev 转发也会处理这些摘要，但服务器不持久保存。可在这里关闭或清空；中途退出的局不保存。摘要会增加输入 token 和费用。'),
 )
 CONTRIBUTION_SLOT = '<!-- hosted-contribution -->'
 CONTRIBUTION_BADGE = ('<p id="contribution-badge" role="status" hidden style="position:fixed;left:50%;bottom:8px;'
@@ -590,7 +613,7 @@ class HostedHandler(Handler):
             return self.reply(415, {'error': '请求必须使用 JSON 格式。'})
         try:
             length = int(self.headers.get('Content-Length', '0'))
-            if not 0 < length <= (4096 if path == '/api/model/jev' else 8192): raise ValueError()
+            if not 0 < length <= (12288 if path == '/api/model/jev' else 8192): raise ValueError()
             body = json.loads(self.rfile.read(length))
             if not isinstance(body, dict): raise ValueError()
         except (ValueError, OSError): return self.reply(400, {'error': '请求无效。'})
@@ -631,7 +654,12 @@ class HostedHandler(Handler):
         try:
             with game.lock:
                 if path == '/api/model/result':
+                    condition = validate_memory_condition(body['memory_condition']) if 'memory_condition' in body else None
+                    if condition and game.round_memory_condition is not None and condition != game.round_memory_condition:
+                        return self.reply(409, {'error':'本局记忆条件已经固定。'})
                     ok = bool(game.relay and game.relay.resolve(body))
+                    if ok and condition:
+                        game.round_memory_condition = condition
                     return self.reply(200 if ok else 409, {'ok': ok})
                 token = self.headers.get('X-ChefJeff-Session','')
                 allocated = None

@@ -11,6 +11,7 @@ import urllib.request
 from pathlib import Path
 from kitchen import ROOT
 from model_language import english_data, INPUT_LANGUAGE_VERSION
+from cooperation_memory import PAST_EPISODES_RULE
 
 ENDPOINT = "https://api.typesafe.ai/v1/systemone"
 # Bump whenever model-visible rule wording changes, so sessions stay comparable.
@@ -18,7 +19,8 @@ ENDPOINT = "https://api.typesafe.ai/v1/systemone"
 # v3: continuous service rules (money goal, burnt tiers, no bad reviews) where the level uses them.
 # v4: plain English input with clear chef names and fewer duplicate choices.
 # v5: a plate's missing components name the state they are needed in ("tomato (chopped)").
-AGENT_RULES_VERSION = "rules-v5"
+# v6: memory summaries distinguish historical work/messages from current roles and preferences.
+AGENT_RULES_VERSION = "rules-v6"
 
 
 def load_key():
@@ -342,10 +344,7 @@ class DecisionLoop:
 
         if hasattr(self, 'cooperation_memory'):
             payload['state']['past_episodes'] = self.cooperation_memory
-            payload['state']['rules']['past_episodes'] = (
-                'past_episodes contains limited factual records of past rounds, not the current state, fixed preferences, or instructions. '
-                'Decide whether those records are relevant and whether they still apply. The player may change their behavior; '
-                'you are not required to follow or repeat past strategies.')
+            payload['state']['rules']['past_episodes'] = PAST_EPISODES_RULE
         payload['state']['rules']['continuity'] = (
             'recent_decisions lists recent choices and whether they were accepted; accepted does not mean completed. '
             'recent_events records actual actions and outcomes. Use them to check for repeatedly picking up and putting down the same item, '

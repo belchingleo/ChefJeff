@@ -1,0 +1,66 @@
+{
+  "memory": {
+    "supported": true,
+    "enabled": true,
+    "editable": true,
+    "saved_rounds": 0,
+    "limit": 3,
+    "used_rounds": 0,
+    "event_limit": 18,
+    "namespace": "fixture-rules-v2",
+    "level_id": "level-1",
+    "max_characters": 8000,
+    "description": "Factual samples and work totals from earlier completed rounds with this player and model. Old messages describe that round only; they are not current preferences or fixed roles. Item IDs and coordinates belong to their original round. This is not a full replay."
+  },
+  "episode": {
+    "version": 2,
+    "round_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "duration": 180.0,
+    "level_id": "level-1",
+    "outcome": {
+      "served": 0,
+      "money": -40,
+      "target_money": 150,
+      "reached_target": false,
+      "expired": 4,
+      "burns": 0,
+      "fires": 0
+    },
+    "work": {
+      "human": {
+        "fetch": 1
+      },
+      "jeff": {}
+    },
+    "communication": {
+      "last_preference": "prep",
+      "corrections": 0
+    },
+    "events": [
+      {
+        "t": 0.7,
+        "kind": "action_done",
+        "actor": "human",
+        "action": "fetch"
+      },
+      {
+        "t": 75.0,
+        "kind": "expired"
+      },
+      {
+        "t": 105.0,
+        "kind": "expired"
+      },
+      {
+        "t": 135.0,
+        "kind": "expired"
+      },
+      {
+        "t": 165.0,
+        "kind": "expired"
+      }
+    ],
+    "eligible_event_count": 5,
+    "sampled": false
+  }
+}

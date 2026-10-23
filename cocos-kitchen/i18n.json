@@ -705,7 +705,16 @@
     "Key 无效，请检查后重试。": "Invalid key. Check it and try again.",
     "账号余额不足，请到服务商充值。": "Not enough balance. Top up with the provider.",
     "账号无权访问这个模型。": "This account cannot use this model.",
-    "请求受限或额度不足，请稍后重试。": "Rate limited or out of quota. Try again later."
+    "请求受限或额度不足，请稍后重试。": "Rate limited or out of quota. Try again later.",
+    "保留同一关卡最近 3 局的合作摘要：双方完成的工作、结果、沟通和有限事件片段。不同接口和模型分开保存；旧局偏好不代表你本局的分工。": "Keep summaries of the last 3 completed rounds on this level: work by both chefs, results, communication and sampled events. Services and models are separate; old preferences do not assign your role this round.",
+    "在线版默认开启，摘要保存在当前浏览器；开局时固定本局使用的旧局摘要，随请求发给所选模型。Jev 转发也会处理这些摘要，但服务器不持久保存。可在这里关闭或清空；中途退出的局不保存。摘要会增加输入 token 和费用。": "Online memory is on by default and stored in this browser. Past summaries are fixed at round start and sent to your selected model. The Jev relay also processes them without persistent server storage. Disable or clear memory here; abandoned rounds are not saved. Summaries add input tokens and cost.",
+    "浏览器无法保存记忆，暂时仅在本页使用。": "Browser storage is unavailable; memory is temporary in this page.",
+    "跨局记录无法读取，已关闭记忆；可清空后重新启用。": "Past-round records could not be read. Memory is disabled; clear it before enabling it again.",
+    "跨局记忆格式无效；请清空记忆后重试。": "Invalid past-round memory. Clear memory and try again.",
+    "记忆开关与使用局数": "Memory setting and number of past rounds used",
+    "跨局记忆内容": "Past-round memory content",
+    "本局记忆条件已经固定。": "Memory conditions are fixed for this round.",
+    "不贡献时，服务器仅维持内存会话，闲置 10 分钟后清除；跨局摘要另存在此浏览器。删除凭证也只存在此浏览器，清理网站数据前请先下载备份。": "Without contribution, the server keeps only an in-memory session, cleared after 10 idle minutes. Past-round summaries remain in this browser. Deletion receipts also stay here; download them before clearing site data."
   },
   "templates": [
     [
@@ -1287,6 +1296,10 @@
     [
       "模型接口 HTTP {0}",
       "Model API HTTP {0}"
+    ],
+    [
+      "受输入长度限制，本局省略 {0} 局较旧记录。",
+      "Input length limit: {0} older rounds omitted for this round."
     ]
   ]
 }

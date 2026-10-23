@@ -8,14 +8,14 @@ import re
 import secrets
 import sqlite3
 import time
-from feedback import EVENTS
+from feedback import EVENTS, memory_condition
 
 RETENTION_SECONDS = 30 * 86400
-CONSENT_VERSION = 'pilot-session-2026-10-v2'
+CONSENT_VERSION = 'pilot-session-2026-10-v3'
 
 
 def pilot_record(session):
-    """All values originate from the engine or finite communication choices, never request/provider text."""
+    """Engine facts, finite communication and validated memory conditions; never provider text."""
     k = session.k
     events = []
     log = getattr(session, 'session_log', None)
@@ -34,6 +34,7 @@ def pilot_record(session):
         'release':session.release, 'level':k.c.get('level',1), 'speed':session.speed,
         'duration':round(k.time,3), 'aborted':bool(k.aborted),
         'result':{'served':k.served,'money':k.money,'won':k.won()},
+        'conditions':{'cross_round_memory':memory_condition(session)},
         'events':events,
         'communication':[{'t':m['game_time'],'code':m['code']} for m in session.player_messages],
         'positions':list(session.positions),

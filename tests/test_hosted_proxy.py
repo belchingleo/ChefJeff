@@ -14,8 +14,9 @@ import time
 import unittest
 from unittest.mock import patch
 
-from hosted_server import HostedHandler, make_server
+from hosted_server import HostedHandler, make_server, BrowserRelay
 from hosted_jev import CONSENT_VERSION
+from cooperation_memory import memory_context
 
 
 NGINX = os.environ.get('CHEFJEFF_NGINX_BIN') or shutil.which('nginx')
@@ -144,6 +145,22 @@ class HostedProxyTests(unittest.TestCase):
                 self.assertNotIn(key,raw.decode())
                 self.assertEqual(send.call_args.args[0],key)
             self.assertNotIn('Authorization',self.observed[-1]);self.assertNotIn('Cookie',self.observed[-1])
+            # A real bounded memory context plus a maximum-length key exceeds the old 4 KiB cap.
+            fixture=json.loads((ROOT/'tests/fixtures/cooperation-memory-v2.json').read_text())
+            record=fixture['episode']
+            record['events']=[{'t':i,'kind':'action_done','actor':'human','action':'go '+('counter'*10)} for i in range(18)]
+            records=[{**record,'round_id':str(i+1)*32} for i in range(3)]
+            context=memory_context(True,records)
+            game.phase='running';game.relay=BrowserRelay(game.c)
+            payload={'state':{'rules':{},'kitchen':{}},'questions':{'next_action':{'criteria':{'wait':'Wait'}}}}
+            game.relay.pending={'id':'large-memory-task','payload':payload,'event':threading.Event(),
+                                'result':None,'sent':time.monotonic()}
+            body.update(test=False,id='large-memory-task',memory=context)
+            self.assertGreater(len(json.dumps(body).encode()),4096)
+            with patch.object(self.backend.jev_forwarder,'send',return_value={'choice':'wait','sprint':False,'usage':{}}) as send:
+                status,raw=self.request('/api/model/jev',body,headers={'Origin':ORIGIN,'X-ChefJeff-Session':token})
+                self.assertEqual(status,200)
+                self.assertEqual(send.call_args.args[1]['state']['past_episodes'],context)
             for folder in ('body','proxy'):
                 root=Path(self.temp.name)/folder
                 self.assertFalse(any(p.is_file() for p in root.rglob('*')))

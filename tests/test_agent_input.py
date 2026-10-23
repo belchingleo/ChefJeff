@@ -130,7 +130,7 @@ class AgentInputTests(unittest.TestCase):
         scopes = {round_scope(setting, kitchen(level)) for level in LEVELS}
         self.assertEqual(len(scopes), len(LEVELS))
         outcome = episode(kitchen(2), 'g', 'm')['outcome']
-        self.assertEqual(set(outcome), {'served', 'money', 'target_money', 'reached_target'})
+        self.assertEqual(set(outcome), {'served', 'money', 'target_money', 'reached_target', 'expired', 'burns', 'fires'})
         self.assertEqual(episode(kitchen(2), 'g', 'm')['level_id'], 'level-2')
 
 

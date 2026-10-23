@@ -6,6 +6,9 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 
 ## Unreleased
 
+### Cross-round cooperation memory
+- Enable browser-owned online memory by default, with local controls, model/level/contract isolation, fixed per-round context, three-round retention and an 8000-character input budget. Add factual work totals for both chefs, old communication and balanced event sampling to local and online summaries. Support identical context on direct models and the consented Jev relay, with a bounded 12 KiB no-buffering proxy route. Research records include only finite memory conditions; v3 contribution terms ask again and exclude old episode content.
+
 ### Hosted usage statistics
 - Add persistent aggregate usage counts, including round starts/completions, manual endings, capacity rejections and per-level results; keep ending-specific duration histograms and a live running-session count. Estimate visiting/playing browsers with two local yes/no flags, without generating identifiers or storing IPs, credentials or individual analytics events. Add a loopback-only operator endpoint and CLI, with counting and privacy limits documented in both languages.
 
@@ -106,6 +109,9 @@ First private release: a local browser game with three playable maps and player-
 ## 更新记录
 
 ## 未发布
+
+### 跨局协作记忆
+- 在线版默认开启浏览器本地记忆，可关闭或清空，按模型／关卡／版本隔离，开局固定上下文，最多三局并限制 8000 个输入字符。为本地和在线摘要加入双方工作、旧局沟通及平衡抽样；直连与明确同意的 Jev 转发均支持，代理同步为有界 12 KiB 且不缓冲。研究记录只增加记忆条件，v3 贡献说明重新询问，不上传旧局摘要。
 
 ### 在线使用统计
 - 增加持久化使用汇总，包括实际开局／完成、手动结束、名额拒绝和分关卡结果，并按结束方式保存时长区间，显示当前运行会话数。用浏览器中两个是／否标记估算访问／试玩浏览器数量，不生成独立编号，不保存 IP、凭据或逐条统计事件。增加仅服务器本机可读的接口和查询脚本，中英文文档写明口径与隐私限制。

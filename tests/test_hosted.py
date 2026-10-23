@@ -90,7 +90,8 @@ class HostedTests(unittest.TestCase):
         self.assertIn('<head><script src="/model-providers.js"></script><script src="/hosted-agent.js">',html)
         self.assertIn('浏览器 localStorage',html)
         self.assertNotIn('记住后以明文保存在这台电脑的本地配置文件',html)
-        self.assertIn('<section hidden aria-labelledby="memory-title"',html)
+        self.assertIn('<section aria-labelledby="memory-title"',html)
+        self.assertNotIn('<section hidden aria-labelledby="memory-title"',html)
         self.assertNotIn(b'hosted-agent.js',raw)
     def test_web_shell_keeps_every_hosted_anchor(self):
         shell=(Path(__file__).resolve().parents[1]/'cocos-kitchen/web-shell.html').read_text()
