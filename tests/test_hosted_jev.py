@@ -11,6 +11,7 @@ import urllib.error
 
 from hosted_jev import CONSENT_VERSION, ENDPOINT, ForwardError, JevForwarder, NoRedirect, TEST_PAYLOAD, parse_answer
 from hosted_server import BrowserRelay, make_server
+from cooperation_memory import memory_context
 
 KEY = 'unit-test-jev-key-not-a-real-secret'
 ANSWER = {'choice':'wait','sprint':False,'usage':{'input_tokens':3,'output_tokens':0}}
@@ -124,6 +125,26 @@ class ForwardHTTPTests(unittest.TestCase):
         self.assertIsNone(game.setting);self.assertFalse(game.connected)
         # Confirmation still follows the existing browser-ready flow.
         self.assertEqual(self.request('/api/browser-ready',{'game_id':game.game_id,'request_id':'ready','connected':True},token)[0],200)
+
+    def test_live_memory_condition_is_bounded_recorded_and_frozen_for_the_round(self):
+        token,game=self.page()
+        with game.lock:
+            game.connected=True
+            self.assertEqual(game._command('/api/start',{})[0],200)
+            task=self.pending_task(game)
+        condition={'version':2,'enabled':True,'used_rounds':1,'omitted_rounds':0}
+        result={'id':task['id'],'choice':'wait','sprint':False,'usage':{},'memory_condition':condition}
+        self.assertEqual(self.request('/api/model/result',result,token)[0],200)
+        self.assertEqual(game.round_memory_condition,{**condition,'source':'browser-reported'})
+        from hosted_records import pilot_record
+        self.assertEqual(pilot_record(game)['conditions']['cross_round_memory'],game.round_memory_condition)
+        self.assertNotIn('episodes',json.dumps(pilot_record(game)['conditions']))
+        task=self.pending_task(game);result['memory_condition']={**condition,'used_rounds':2}
+        self.assertEqual(self.request('/api/model/result',result,token)[0],409)
+        self.assertEqual(game.round_memory_condition['used_rounds'],1)
+        result['memory_condition']={**condition,'api_key':KEY}
+        status,body=self.request('/api/model/result',result,token)
+        self.assertEqual(status,400);self.assertNotIn(KEY,str(body))
 
     def test_task_payload_is_server_created_and_other_kitchens_cannot_borrow_it(self):
         a,one=self.page();b,two=self.page();task=self.pending_task(one)

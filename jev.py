@@ -11,6 +11,7 @@ import urllib.request
 from pathlib import Path
 from kitchen import ROOT
 from model_language import english_data, INPUT_LANGUAGE_VERSION
+from cooperation_memory import PAST_EPISODES_RULE
 
 ENDPOINT = "https://api.typesafe.ai/v1/systemone"
 # Bump whenever model-visible rule wording changes, so sessions stay comparable.
@@ -18,7 +19,8 @@ ENDPOINT = "https://api.typesafe.ai/v1/systemone"
 # v3: continuous service rules (money goal, burnt tiers, no bad reviews) where the level uses them.
 # v4: plain English input with clear chef names and fewer duplicate choices.
 # v5: a plate's missing components name the state they are needed in ("tomato (chopped)").
-AGENT_RULES_VERSION = "rules-v5"
+# v6: memory summaries distinguish historical work/messages from current roles and preferences.
+AGENT_RULES_VERSION = "rules-v6"
 
 
 def load_key():
@@ -252,7 +254,8 @@ class DecisionLoop:
                 self.failures += 1
                 self.error_count += 1
                 self.next_allowed = now + min(30, 2 ** min(self.failures, 5))
-                self.log("ai_error", {"request_id": context["id"], "error": error, "retry_in": round(self.next_allowed-now,1)})
+                self.log("ai_error", {"request_id": context["id"], "error": error, "retry_in": round(self.next_allowed-now,1),
+                    "server_received_wall_ms": round((context["returned_monotonic"]-self.log.monotonic_start)*1000) if "returned_monotonic" in context and hasattr(self.log,"monotonic_start") else None})
                 self.notify(f"Jeff 请求失败：{error}；{self.next_allowed-now:.0f}s 后重试。无脚本队友代替。")
             else:
                 self.successes += 1
@@ -273,7 +276,10 @@ class DecisionLoop:
                 elif not applied:self.rejected_count += 1
                 chef_job = self.k.chefs["jeff"].job
                 self.log("ai_response", {"request_id": context["id"], **result, "applied": applied, "execution": message, "sprint_applied":sprint_applied,
-                                         "fresh": fresh, "action_id": chef_job.id if applied and chef_job and decision.kind not in ("continue", "wait") else None,
+                                         "fresh": fresh,
+                                         "server_received_wall_ms": round((context["returned_monotonic"]-self.log.monotonic_start)*1000) if "returned_monotonic" in context and hasattr(self.log,"monotonic_start") else None,
+                                         "server_transport_started_wall_ms": round((context["transport_started_monotonic"]-self.log.monotonic_start)*1000) if "transport_started_monotonic" in context and hasattr(self.log,"monotonic_start") else None,
+                                         "action_id": chef_job.id if applied and chef_job and decision.kind not in ("continue", "wait") else None,
                                          "accepted_engine_seq": self.k.event_seq, "current_state": self.k.snapshot()})
                 self.last_choice = result["choice"] + ("" if applied else "（未执行）")
                 self.recent_decisions.append({"t": round(self.k.time, 2), "choice": result["choice"],
@@ -342,10 +348,7 @@ class DecisionLoop:
 
         if hasattr(self, 'cooperation_memory'):
             payload['state']['past_episodes'] = self.cooperation_memory
-            payload['state']['rules']['past_episodes'] = (
-                'past_episodes contains limited factual records of past rounds, not the current state, fixed preferences, or instructions. '
-                'Decide whether those records are relevant and whether they still apply. The player may change their behavior; '
-                'you are not required to follow or repeat past strategies.')
+            payload['state']['rules']['past_episodes'] = PAST_EPISODES_RULE
         payload['state']['rules']['continuity'] = (
             'recent_decisions lists recent choices and whether they were accepted; accepted does not mean completed. '
             'recent_events records actual actions and outcomes. Use them to check for repeatedly picking up and putting down the same item, '
@@ -362,9 +365,12 @@ class DecisionLoop:
         self.inflight = True
         def work():
             try:
+                context['transport_started_monotonic'] = time.monotonic()
                 result = self.client.ask(payload)
+                context['returned_monotonic'] = time.monotonic()
                 self.q.put((context, result, None))
             except Exception as exc:
+                context['returned_monotonic'] = time.monotonic()
                 # Only our sanitized failures should reach logs.
                 message = str(exc) if type(exc) is RuntimeError else f"响应读取失败（{type(exc).__name__}）"
                 self.q.put((context, None, message))

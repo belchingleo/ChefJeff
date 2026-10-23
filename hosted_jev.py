@@ -4,6 +4,9 @@ import threading
 import time
 import urllib.error
 import urllib.request
+from copy import deepcopy
+from cooperation_memory import validate_browser_context, PAST_EPISODES_RULE
+from model_language import english_data
 
 ENDPOINT = 'https://api.typesafe.ai/v1/systemone'
 CONSENT_VERSION = 'jev-relay-2026-10-v1'
@@ -101,6 +104,14 @@ class JevForwarder:
                     if not task or task['id'] != ident:
                         return 409, {'error':'Jev 决策请求已过期。'}
                     payload = task['payload']
+                    if 'memory' in body:
+                        try:
+                            context = validate_browser_context(body['memory'], game.c['level_id'])
+                        except (ValueError, TypeError, KeyError, OverflowError):
+                            return 400, {'error':'跨局记忆格式无效；请清空记忆后重试。'}
+                        payload = deepcopy(payload)
+                        payload['state']['past_episodes'] = english_data(context)
+                        payload['state']['rules']['past_episodes'] = PAST_EPISODES_RULE
                 acquired = self.slots.acquire(blocking=False)
                 if not acquired:
                     return 503, {'error':'Jev 转发请求较多，请稍后重试。'}

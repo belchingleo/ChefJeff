@@ -34,7 +34,7 @@ import config_contract as cc
 
 SCHEMA_VERSION = 1
 DERIVED_VERSION = 'derived-v1'
-ENVELOPE = ('actor_id', 'action_id', 'request_id', 'order_id')
+ENVELOPE = ('actor_id', 'action_id', 'request_id', 'order_id', 'item_id', 'station_id', 'receiver_id', 'handoff_id', 'input_id')
 # Heavy fields kept out of the in-memory stream; payloads go to model-requests.jsonl.
 STATE_FIELDS = ('current_state',)
 
@@ -52,6 +52,8 @@ class SessionLog:
 
     def __init__(self, session, journal=None, keep_payloads=False, deployment_mode='local'):
         self.session = session
+        self.kitchen = session.k
+        self.round_id = session.game_id
         self.journal = journal
         self.keep_payloads = keep_payloads
         self.deployment_mode = deployment_mode
@@ -61,6 +63,28 @@ class SessionLog:
         self.ended_at = None
         self.monotonic_start = time.monotonic()
         self.closed = False
+        self.next_seq = 1
+        self.research = deployment_mode == 'hosted'
+        self.capture_observations = bool(getattr(session, 'research_armed', None))
+        self.observations_withdrawn = False
+        self.dropped = 0
+        self.loss_ranges = []
+        self.projection_errors = 0
+        self.record_bytes = 0
+        self.state_ref = None
+        self.final_state_ref = None
+        self.not_projected = {'engine_events': 0, 'session_records': 0}
+        self.last_state = None
+        self.last_sample_ms = -1000
+        self.last_checkpoint_ms = -10000
+        self.last_engine_seq = 0
+        self.action_links = {}
+        self.candidate_catalog = {}
+        self.termination = None
+        if self.research:
+            from research_record import config
+            self.research_config = config(session.k)
+            session.k._record_observer = self
 
     def __getattr__(self, name):
         # Journal-specific attributes (e.g. a file path) stay reachable through the log.
@@ -72,7 +96,7 @@ class SessionLog:
     # Stream ---------------------------------------------------------------
     def _envelope(self, kind, data, source):
         k = self.session.k
-        record = {'seq': len(self.records) + 1, 'type': kind, 'source': source,
+        record = {'seq': self.next_seq, 'type': kind, 'source': source,
                   'game_time_ms': round(k.time * 1000),
                   'elapsed_wall_ms': round((time.monotonic() - self.monotonic_start) * 1000),
                   'clock_id': 'server_monotonic'}
@@ -93,6 +117,44 @@ class SessionLog:
     def __call__(self, kind, data):
         data = dict(data)
         original = dict(data)
+        if self.research:
+            from research_record import payload
+            if kind == 'event':
+                if data.get('seq') is not None and data['seq'] <= self.last_engine_seq:
+                    return
+                if data.get('seq') is not None:
+                    self.last_engine_seq = data['seq']
+                name = data.get('kind', 'event')
+                projected = payload(name, data, self.session.k)
+                if projected is None:
+                    self.not_projected['engine_events'] += 1
+                    return
+                if data.get('actor') not in ('human','jeff'): data.pop('actor',None)
+                if data.get('receiver') not in ('human','jeff'): data.pop('receiver',None)
+                data = {**projected, 'kind': name,
+                        **{key: data[key] for key in ('seq', 'game_time_ms', 'actor', 'action_id', 'request_id', 'order_id', 'handoff_id') if key in data},
+                        'item_id': data.get('item'), 'station_id': data.get('station'),
+                        'receiver_id': data.get('receiver') or (data.get('actor') if name == 'caught' else None)}
+            else:
+                projected = payload(kind, data, self.session.k)
+                if projected is None:
+                    self.not_projected['session_records'] += 1
+                    return
+                if kind == 'ai_request':
+                    descriptors = projected.pop('candidate_actions', [])
+                    added = [a for a in descriptors if self.candidate_catalog.get(a['key']) != a]
+                    if added:
+                        catalog = self._envelope('action_catalog', {'actions': added}, 'session')
+                        self._append(catalog)
+                        self.candidate_catalog.update({a['key']: a for a in added})
+                    while len(self.candidate_catalog) > 4096:
+                        self.candidate_catalog.pop(next(iter(self.candidate_catalog)))
+                    projected['candidate_catalog'] = 'session_action_catalog'
+                elif kind == 'ai_response':
+                    selected = projected['choice']['key']
+                    if selected in self.candidate_catalog:
+                        projected['choice'] = copy.deepcopy(self.candidate_catalog[selected])
+                data = {**projected, **{key: data[key] for key in ENVELOPE if key in data}}
         source = 'engine' if kind == 'event' else 'session'
         if kind == 'event':
             kind = data.get('kind', 'event')
@@ -109,12 +171,150 @@ class SessionLog:
             if field in data:
                 data[field + '_sha256'] = _sha(data.pop(field))
         record = self._envelope(kind, data, source)
-        self.records.append(record)
+        self._append(record, reserve=kind == 'end')
+        if self.research and kind in ('start', 'end'):
+            self.capture_state('initial' if kind == 'start' else 'final', force=True)
+            if kind == 'start':
+                for event in self.session.k.events:
+                    self('event', event)
         if self.journal:
             # The file journal receives the same record: one stream, two views.
             envelope = {k: v for k, v in record.items() if k not in ('payload', 'type', 'source')}
             self.journal(kind if source == 'session' else 'event', {**original, **envelope})
         return record
+
+    def _append(self, record, reserve=False):
+        if self.closed:
+            return None
+        record['seq'] = self.next_seq
+        self.next_seq += 1
+        if self.research:
+            from research_record import MAX_RECORDS, MAX_BYTES
+            size = len(json.dumps(record, ensure_ascii=False, separators=(',', ':'), allow_nan=False).encode()) + 256
+            if self.record_bytes + size > MAX_BYTES or (not reserve and (len(self.records) >= MAX_RECORDS - 4 or self.record_bytes + size > MAX_BYTES - 2000000)):
+                self.dropped += 1
+                seq = record['seq']
+                if self.loss_ranges and self.loss_ranges[-1]['last_seq'] == seq - 1:
+                    self.loss_ranges[-1]['last_seq'] = seq
+                elif len(self.loss_ranges) < 16:
+                    self.loss_ranges.append({'first_seq': seq, 'last_seq': seq})
+                else:
+                    self.loss_ranges[-1]['last_seq'] = seq
+                return None
+            self.record_bytes += size
+        self.records.append(record)
+        return record['seq']
+
+    def capture_state(self, trigger, force=False):
+        if not self.research or self.closed or (not self.capture_observations and trigger not in ('initial', 'final')):
+            return self.state_ref
+        from research_record import state, PERIOD_MS, CHECKPOINT_MS
+        now = round(self.session.k.time * 1000)
+        current = state(self.session.k)
+        full = self.last_state is None or force or now - self.last_checkpoint_ms >= CHECKPOINT_MS
+        changes = current if full else {key: value for key, value in current.items() if self.last_state.get(key) != value}
+        if not full:
+            for key in ('chefs', 'stations'):
+                if key in changes:
+                    changes[key] = {entity: value for entity, value in current[key].items()
+                                    if self.last_state[key].get(entity) != value}
+        if not changes and trigger != 'periodic':
+            return self.state_ref
+        row = self._envelope('state_checkpoint' if full else 'state_delta',
+                             {'base_state_seq': None if full else self.state_ref, 'trigger': trigger,
+                              'state': changes}, 'session')
+        seq = self._append(row, reserve=trigger == 'final')
+        self.last_sample_ms = now
+        if seq is not None:
+            self.state_ref = seq
+            if trigger == 'final': self.final_state_ref = seq
+            self.session.k._research_state_ref = seq
+            self.last_state = current
+            self.last_sample_ms = now
+            if full:
+                self.last_checkpoint_ms = now
+        return self.state_ref
+
+    def observe_event(self, event):
+        if self.closed:
+            return
+        try:
+            before = self.state_ref if self.capture_observations else None
+            after = self.capture_state('event_emission') if self.capture_observations else None
+            enriched = dict(event)
+            actor = event.get('actor')
+            chef = self.session.k.chefs.get(actor)
+            job = chef.job if chef else None
+            action_id = event.get('action_id')
+            if job and action_id == job.id:
+                self.action_links[action_id] = {'key': job.action.key, 'target': job.action.target, 'kind': job.action.kind}
+                if len(self.action_links) > 2048:
+                    self.action_links.pop(next(iter(self.action_links)))
+            link = self.action_links.get(action_id)
+            if link:
+                enriched['station'] = enriched.get('station') or (link['target'] if link['target'] in self.session.k.stations else None)
+            if event['kind'] in ('served', 'wrong_dish', 'dish_rejected') and chef and chef.hand:
+                enriched['item'] = chef.hand.id
+            if event['kind'] == 'plate_returned':
+                tray = self.session.k.stations[self.session.k.returns].food
+                if tray: enriched['item'] = tray.id
+            row = self('event', enriched)
+            if row is not None and link and 'action' in row['payload']:
+                from research_record import action
+                row['payload']['action'] = action(link['key'], link['target'], link['kind'])
+            if row is not None:
+                row['state_before_seq'], row['state_after_seq'] = before, after
+        except Exception:
+            # A recorder failure must not change kitchen behavior; never retain exception text.
+            self.projection_errors += 1
+
+    def observe_input(self, data):
+        if self.closed:
+            return
+        try:
+            from research_record import action, PERIOD_MS, code, point
+            call = data['call']
+            before = self.state_ref
+            low_frequency = call in ('advance','report_position','set_manual','face','pick_station')
+            sampled = not low_frequency or round(self.session.k.time * 1000) - self.last_sample_ms >= PERIOD_MS
+            if sampled:
+                self.capture_state('periodic' if low_frequency else 'outer_input_completion')
+            if call not in ('advance', 'face', 'pick_station'):
+                a = data.get('action', {})
+                record = self._envelope('engine_input', {
+                    'call': call, 'action': action(a.get('key'), a.get('target'), a.get('kind')),
+                    'accepted': data.get('accepted'), 'stage': 'engine_input_return',
+                    'reason': 'engine_rejected' if data.get('accepted') is False else None,
+                    'vector': point(data.get('vector')), 'at': point(data.get('at')),
+                    'source_time_game_ms': data['game_time_ms'],
+                    'actor_id': data.get('actor')}, 'session')
+                chef = self.session.k.chefs.get(data.get('actor'))
+                record['action_id'] = chef.job.id if chef and chef.job and call == 'start' and data.get('accepted') else None
+                record['state_before_seq'], record['state_after_seq'] = (before, self.state_ref) if self.capture_observations and sampled else (None, None)
+                self._append(record)
+        except Exception:
+            # A recorder failure must not change kitchen behavior; never retain exception text.
+            self.projection_errors += 1
+
+    def item_transform(self, inputs, outputs):
+        if self.closed:
+            return
+        self('event', {'kind': 'item_transform', 'input_item_ids': inputs,
+                       'output_item_ids': outputs, 'game_time_ms': round(self.session.k.time * 1000)})
+
+    def observe_close(self, reason):
+        """A later context close may follow natural game end; keep it in this stream."""
+        if not self.research or self.termination is not None or reason == 'not_observed':
+            return
+        was_closed = self.closed
+        self.closed = False
+        try:
+            row = self._envelope('context_closed', {'reason': reason}, 'session')
+            row['game_time_ms'] = round(self.kitchen.time * 1000)
+            self._append(row, reserve=True)
+            self.termination = {'reason': reason, 'source': 'server'}
+        finally:
+            self.closed = was_closed
 
     def engine_events(self):
         return [r for r in self.records if r['source'] == 'engine']

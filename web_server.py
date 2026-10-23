@@ -120,7 +120,13 @@ class GameSession:
             self.ai.invalidate()
         if self.journal:
             self._events()
+            if getattr(self.journal, 'research', False) and self.ai and self.ai.inflight:
+                self.journal('request_unresolved', {'request_id': self.ai.calls, 'reason': 'not_observed'})
             self.k.aborted = aborted
+            if aborted and self.session_log.termination is None:
+                reason = getattr(self, 'round_close_reason', 'not_observed')
+                if reason != 'not_observed':
+                    self.session_log.termination = {'reason': reason, 'source': 'server'}
             self.journal('end', {'state': self.k.snapshot(), 'result': self.k.result(),
                                 'aborted': aborted, 'ai_calls': self.ai.calls,
                                 'ai_successes': self.ai.successes, 'usage': self.ai.tokens,
@@ -182,6 +188,8 @@ class GameSession:
                     self.pending_move = None
                     self.ai.invalidate()
                     self.note('页面已断开，厨房自动暂停。回来后点击继续。')
+                    if self.journal:
+                        self.journal('pause', {'reason': 'connection_timeout'})
                 else:
                     self._advance_ticks(elapsed, now)
                     if self.k.ended:
@@ -469,6 +477,7 @@ class GameSession:
             level=body.get('level')
             try:level_id(level)
             except ValueError:return 400,{'error':'Unknown level.'}
+            if hasattr(self, '_record_context_close'): self._record_context_close('next_level')
             self._finish(aborted=self.phase!='ended')
             self.c=level_config({**self.base_config, **{key:self.c[key] for key in ('ai_max_calls','ai_max_response_age','model')}},level)
             return self._command('/api/reset',{})
@@ -499,6 +508,7 @@ class GameSession:
             except (RuntimeError, OSError, ValueError):
                 return 503, {'error': '没有读到可用的本地 Jev 配置，请检查 .env。厨房尚未开始计时。'}
             self.speed = speed
+            self.round_close_reason = 'not_observed'
             self.round_started_at = datetime.now().astimezone().isoformat(timespec='seconds')
             self.journal = SessionLog(self, self.journal_factory(self.log_prefix+'-'+self.game_id[:8]),
                                       keep_payloads=self.bundle_root is not None, deployment_mode=self.deployment_mode)
@@ -534,6 +544,7 @@ class GameSession:
             if self.phase=='ended':return 200,{'ok':True}
             if self.phase not in ('running','paused'):
                 return 409,{'error':'当前没有进行中的对局。'}
+            self.round_close_reason = 'manual_end'
             self.k.abort()
             self.phase='ended'
             self._finish(aborted=True)
@@ -541,6 +552,8 @@ class GameSession:
         if path == '/api/reset':
             if self.phase == 'running':
                 return 409, {'error': '先暂停，再重新开局。'}
+            self.round_close_reason = getattr(self, 'pending_close_reason', 'restart')
+            if hasattr(self, '_record_context_close'): self._record_context_close(self.round_close_reason)
             self._finish(aborted=self.phase != 'ended')
             # Unconfigured seeds are drawn again when the new round is frozen.
             self.k = self.kitchen_factory(self.c)

@@ -13,7 +13,7 @@ EVENTS = {'order','action_start','action_done','interrupted','arrival_conflict',
 
 HISTORY_LIMIT = 100  # finished rounds kept per play session; older rounds stay in the local run logs
 EXCLUDED = ['API keys', 'endpoint and model text', 'absolute paths', 'raw model responses',
-            'request snapshots', 'cross-round memory', 'free-text messages']
+            'request snapshots', 'cross-round memory content', 'free-text messages']
 BOOKMARK_POLICY = {'schema_version': 1, 'merge_window_seconds': 5,
                    'merge_clock': 'server_monotonic_real_time',
                    'merge_rule': 'consecutive presses within 5 seconds of the previous press',
@@ -56,6 +56,7 @@ def round_export(session, status):
                         'expired': count('expired'), 'unresolved_at_close': count('unresolved_at_close'),
                         'burns': getattr(k, 'burns', 0), 'fires': getattr(k, 'fires', 0)},
             'round_record': session.round_record() if k.ended else None,
+            'conditions': {'cross_round_memory': memory_condition(session)},
             'api': {'calls': ai.calls if ai else 0, 'successful_responses': ai.successes if ai else 0,
                     'request_or_parse_errors': ai.error_count if ai else 0,
                     'stale_or_cancelled_responses': ai.stale_count if ai else 0,
@@ -66,6 +67,18 @@ def round_export(session, status):
             'events': events,
             'bookmarks': deepcopy(session.bookmarks),
             'player_messages': deepcopy(session.player_messages)}
+
+
+def memory_condition(session):
+    """Report bounded conditions only; never include old summaries, scopes, keys or endpoints."""
+    if hasattr(session, 'round_memory_condition'):
+        return deepcopy(session.round_memory_condition)
+    memory = getattr(session, 'round_memory', None)
+    if memory is None:
+        return None
+    return {'enabled': bool(memory['enabled']), 'version': memory.get('version',1),
+            'used_rounds': len(memory['episodes']), 'omitted_rounds': memory.get('omitted_rounds',0),
+            'source': 'local-runtime'}
 
 
 def play_export(session):

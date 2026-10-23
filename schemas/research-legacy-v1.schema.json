@@ -1,0 +1,214 @@
+{
+  "type": "object",
+  "properties": {
+    "schema": {
+      "const": "chefjeff-pilot-session-v1"
+    },
+    "consent_version": {
+      "type": "string"
+    },
+    "consent_mode": {
+      "enum": [
+        "round",
+        "standing"
+      ]
+    },
+    "purpose": {
+      "type": "string"
+    },
+    "release": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "fingerprint": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "level": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 3
+    },
+    "speed": {
+      "type": "number"
+    },
+    "duration": {
+      "type": "number"
+    },
+    "aborted": {
+      "type": "boolean"
+    },
+    "result": {
+      "type": "object",
+      "properties": {
+        "served": {
+          "type": "integer"
+        },
+        "money": {
+          "type": "number"
+        },
+        "won": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "served",
+        "money",
+        "won"
+      ],
+      "additionalProperties": false
+    },
+    "conditions": {
+      "type": "object",
+      "properties": {
+        "cross_round_memory": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "version": {
+                  "type": "integer"
+                },
+                "used_rounds": {
+                  "type": "integer"
+                },
+                "omitted_rounds": {
+                  "type": "integer"
+                },
+                "source": {
+                  "enum": [
+                    "browser-reported",
+                    "local-runtime"
+                  ]
+                }
+              },
+              "required": [
+                "enabled",
+                "version",
+                "used_rounds",
+                "omitted_rounds",
+                "source"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "t": {
+            "type": "number"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "actor": {
+            "enum": [
+              "human",
+              "jeff"
+            ]
+          },
+          "action": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "t",
+          "kind"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "communication": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "t": {
+            "type": "number"
+          },
+          "code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "t",
+          "code"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "positions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "t": {
+            "type": "number"
+          },
+          "chefs": {
+            "type": "object",
+            "properties": {
+              "human": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": {
+                  "type": "number"
+                }
+              },
+              "jeff": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 2,
+                "items": {
+                  "type": "number"
+                }
+              }
+            },
+            "required": [
+              "human",
+              "jeff"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "t",
+          "chefs"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "coverage": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "research-legacy-v1.schema.json",
+  "description": "Read-only legacy compatibility. Fields other than schema may be absent: absence is not_collected, never a negative observation."
+}

@@ -168,12 +168,14 @@ class PlayerGameSession(GameSession):
         return {'enabled':self.memory.data['enabled'],'saved_rounds':len(rounds),'limit':ROUNDS,
                 'editable':self.phase in ('ready','ended') and not self.connecting,
                 'error':self.memory.error,
-                'used_rounds':len(self.round_memory['episodes']) if self.round_memory else 0}
+                'used_rounds':len(self.round_memory['episodes']) if self.round_memory else 0,
+                'omitted_rounds':self.round_memory.get('omitted_rounds',0) if self.round_memory else 0}
     def _finish(self,aborted=False):
         if self.journal and not aborted and self.k.ended and self.round_memory and self.round_memory['enabled']:
             try:
                 self.memory.remember(round_scope(self.setting or {},self.k),
-                                     episode(self.k,self.game_id,getattr(self.ai,'actual_model',None)))
+                                     episode(self.k,self.game_id,getattr(self.ai,'actual_model',None),
+                                             self.player_messages,self.round_record()))
             except OSError:
                 self.memory.error='本局已结束，但跨局记录未能保存；请检查本地文件权限。'
                 self.note(self.memory.error)

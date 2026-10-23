@@ -12,6 +12,7 @@ import mimetypes
 from pathlib import Path
 import secrets
 import signal
+import sqlite3
 import threading
 import time
 from collections import Counter, OrderedDict, deque
@@ -27,6 +28,8 @@ from hosted_records import ContributionStore, pilot_record, CONSENT_VERSION
 from hosted_capacity import ActiveKitchens, RequestBudget, NETWORK_FULL
 from hosted_jev import JevForwarder
 from hosted_usage import UsageStats
+from cooperation_memory import (ROUNDS, EVENTS, CONTEXT_CHARACTERS, DESCRIPTION,
+                                memory_namespace, memory_context, portable_episode, validate_memory_condition)
 
 HOSTED_HISTORY_LIMIT = 20  # rounds kept per page for the data export; bounds memory under MemoryMax
 
@@ -100,12 +103,16 @@ class HostedSession(GameSession):
     def __init__(self, release=None):
         self.relay = None
         self.positions = []
-        self.position_round = None
-        self.last_sample = -1
         self.receipt = None
         self.receipt_round = None
+        self.research_armed = None
+        self.research_telemetry = False
+        self.research_active = False
+        self.research_error = None
+        self.research_mode = 'standing'
         self.store = None
         self.connected = False
+        self.round_memory_condition = None
         self.usage = None
         self.usage_started = False  # Once per page session, including retries, restarts and later levels.
         self.usage_end_reason = 'restart'
@@ -124,19 +131,6 @@ class HostedSession(GameSession):
         self.base_config['ai_max_response_age'] = 15
         self.deployment_mode = 'hosted'
 
-    def tick(self, now=None):
-        with self.lock:
-            super().tick(now)
-            if self.position_round != self.game_id:
-                self.positions = []
-                self.last_sample = -1
-                self.position_round = self.game_id
-            sample = int(self.k.time)
-            if self.phase == 'running' and sample != self.last_sample and len(self.positions) < 3600:
-                self.last_sample = sample
-                self.positions.append({'t':round(self.k.time,3),
-                    'chefs':{who:[round(float(v),3) for v in self.k.positions[who]] for who in ('human','jeff')}})
-
     def _client(self, config):
         if self.relay: self.relay.close()
         self.relay = BrowserRelay(config)
@@ -147,9 +141,41 @@ class HostedSession(GameSession):
         completed = bool(self.journal and self.phase == 'ended' and self.k.ended
                          and not aborted and not self.k.aborted)
         super()._finish(aborted)
+        if started:
+            self._persist_research()
         if started and self.usage:
             self.usage.end_round(self.c['level'], 'completed' if completed else self.usage_end_reason,
                                  self.k.time, self.speed)
+
+    def _persist_research(self):
+        if not self.research_active or not self.store or self.receipt_round != self.game_id:
+            return
+        try:
+            data = {**pilot_record(self), 'consent_mode': self.research_mode}
+            if not self.store.update(self.receipt['id'], data):
+                self.research_active = False  # withdrawn or expired, never recreate
+        except (ValueError, OSError, sqlite3.Error):
+            self.research_error = 'storage_failed'
+
+    def command(self, path, body):
+        # Actual browser command receipt, separate from model choice and engine execution.
+        with self.lock:
+            log = self.journal
+            input_id = None
+            gameplay = path in ('/api/action', '/api/interact', '/api/throw', '/api/select', '/api/move', '/api/position')
+            if log and gameplay and body.get('game_id') == self.game_id:
+                row = log._envelope('browser_input', {'command': path[5:], 'stage': 'server_received',
+                                                     'raw_device_input': 'not_collected'}, 'session')
+                row['actor_id'] = 'human'
+                input_id = log._append(row)
+            result = super().command(path, body)
+            if log and input_id is not None:
+                job = self.k.chefs['human'].job
+                row = log._envelope('browser_result', {'command': path[5:], 'accepted': result[0] < 400,
+                    'stage': 'server_command_result', 'reason': None if result[0] < 400 else 'command_rejected'}, 'session')
+                row.update(actor_id='human', input_id=input_id, action_id=job.id if job and result[0] < 400 else None)
+                log._append(row)
+            return result
 
     def public_state(self):
         with self.lock:
@@ -161,15 +187,60 @@ class HostedSession(GameSession):
                 'calls': ai.calls if ai else 0, 'remaining': max(0, limit - (ai.calls if ai else 0)),
                 'reached': bool(ai and ai.calls >= limit), 'editable': self.phase in ('ready', 'ended'),
                 'connection_checks': 0, 'usage': dict(ai.tokens) if ai else {'input_tokens': 0, 'output_tokens': 0}}
-            state['memory'] = {'enabled': False, 'editable': False, 'saved_rounds': 0, 'limit': 0, 'used_rounds': 0}
+            # The browser owns persistent records and model scopes. Only this kitchen's
+            # completed, allowlisted episode is exposed to its authenticated page.
+            if self.phase == 'ended' and self.k.ended and not self.k.aborted and self.round_started_at:
+                if getattr(self, '_memory_episode', (None,))[0] != self.game_id:
+                    self._memory_episode = (self.game_id, portable_episode(
+                        self.k, self.game_id, self.player_messages, self.round_record()))
+                record = self._memory_episode[1]
+            else:
+                record = None
+            state['memory'] = {'supported': True, 'enabled': True, 'editable': self.phase in ('ready','ended'),
+                               'saved_rounds': 0, 'limit': ROUNDS, 'used_rounds': 0, 'event_limit': EVENTS,
+                               'namespace': memory_namespace(), 'level_id': self.c['level_id'],
+                               'max_characters': CONTEXT_CHARACTERS, 'description': DESCRIPTION,
+                               'episode': record}
             state['release'] = self.release
             state['hosted'] = {'retention': 'session-only', 'idle_minutes': 10, 'contribution_enabled': self.store is not None,
-                               'contributed': self.receipt_round == self.game_id}
+                               'contributed': self.receipt_round == self.game_id and self.phase == 'ended',
+                               'contribution_receipt': self.receipt if self.receipt_round == self.game_id else None,
+                               'research_active': self.research_active and self.receipt_round == self.game_id, 'research_error': self.research_error}
             return state
 
+    def _record_context_close(self, reason):
+        log = self.session_log
+        if self.phase == 'ended' and log and log.round_id == self.game_id and log.termination is None:
+            log.observe_close(reason)
+            self._persist_research()
+
     def _command(self, path, body):
+        if path == '/api/contribution/consent':
+            if set(body) - {'game_id', 'request_id', 'consent', 'consent_version', 'decision_telemetry'}:
+                return 400, {'error': '同意字段无效。'}
+            if type(body.get('consent')) is not bool or body.get('consent_version') != CONSENT_VERSION or type(body.get('decision_telemetry', False)) is not bool:
+                return 400, {'error': '请阅读并选择本版数据说明。'}
+            if body['consent']:
+                if not self.store: return 503, {'error': '未开启数据贡献。'}
+                if self.phase not in ('ready', 'paused', 'ended'):
+                    return 409, {'error': '自动贡献需在下一局开始前确认。'}
+                self.research_armed = {'decision_telemetry': body.get('decision_telemetry', False)}
+            else:
+                self.research_armed = None
+                if self.research_active and self.phase in ('running', 'paused') and self.receipt_round == self.game_id and self.store:
+                    self.store.delete(self.receipt['id'], self.receipt['deletion_token'])
+                    self.receipt = None
+                    self.receipt_round = None
+                self.research_active = False
+                self.research_telemetry = False
+                if self.journal:
+                    self.journal.observations_withdrawn = self.journal.capture_observations
+                    self.journal.capture_observations = False
+            return 200, {'ok': True, 'consent_version': CONSENT_VERSION}
         if path == '/api/contribution/preview':
-            return 200, {'record':pilot_record(self), 'consent_version':CONSENT_VERSION}
+            if not self.session_log or self.session_log.round_id != self.game_id or self.session_log.kitchen is not self.k:
+                return 409, {'error': '开局后可预览本局记录。'}
+            return 200, {'record':{**pilot_record(self), 'consent_mode': 'standing' if self.research_active else 'round'}, 'consent_version':CONSENT_VERSION}
         if path == '/api/contribution/save':
             if self.phase != 'ended': return 409, {'error':'请结束本局后再贡献数据。'}
             if not self.store: return 503, {'error':'未开启数据贡献。'}
@@ -179,8 +250,13 @@ class HostedSession(GameSession):
             if mode not in ('round', 'standing'):
                 return 400, {'error':'请先明确同意数据用途和保存期限。'}
             if self.receipt_round != self.game_id:
-                self.receipt = self.store.save({**pilot_record(self), 'consent_mode':mode})
+                try:
+                    self.receipt = self.store.save({**pilot_record(self), 'consent_mode':mode})
+                except (ValueError, OSError, sqlite3.Error):
+                    return 503, {'error': '贡献保存失败，请下载本局预览并稍后重试。'}
                 self.receipt_round = self.game_id
+                self.research_active = True
+                self.research_mode = mode
             return 200, {'receipt':self.receipt}
         if path == '/api/browser-ready':
             if self.phase not in ('ready', 'ended'): return 409, {'error': '请先结束当前对局。'}
@@ -205,20 +281,50 @@ class HostedSession(GameSession):
         if path in ('/api/pause', '/api/end', '/api/reset', '/api/level', '/api/next') and self.relay:
             self.relay.cancel()
         previous_reason = self.usage_end_reason
+        if path == '/api/next': self.pending_close_reason = 'next_level'
+        elif path in ('/api/restart', '/api/reset'): self.pending_close_reason = 'restart'
         if path == '/api/end': self.usage_end_reason = 'manual_end'
         try:
             response = super()._command(path, body)
         finally:
             self.usage_end_reason = previous_reason
         if path == '/api/start' and response[0] == 200:
+            self.research_active = False
+            self.research_mode = 'standing'
+            self.round_memory_condition = None
+            self.research_telemetry = bool(self.research_armed and self.research_armed['decision_telemetry'])
+            self.research_error = None
+            if self.research_armed and self.store:
+                try:
+                    self.receipt = self.store.save({**pilot_record(self), 'consent_mode': 'standing'})
+                    self.receipt_round = self.game_id
+                    self.research_active = True
+                    response = (response[0], {**response[1], 'receipt': self.receipt})
+                except (ValueError, OSError, sqlite3.Error):
+                    self.research_error = 'storage_failed'
+            self.research_armed = None  # each next round needs its own pre-start declaration
+            self.round_memory_condition = None
+            # Establish the canonical memory rules in every pending payload. The page
+            # supplies its frozen browser-only history when calling its chosen model.
+            self.ai.cooperation_memory = memory_context(False, [])
             if self.usage:
                 self.usage.start_round(self.c['level'], first=not self.usage_started)
             self.usage_started = True
+        if path == '/api/reset' and response[0] == 200:
+            self.round_memory_condition = None
         return response
 
     def close(self):
         with self.lock:
-            self.usage_end_reason = getattr(self, 'usage_close_reason', 'page_close')
+            observed_close = getattr(self, 'usage_close_reason', None)
+            self.usage_end_reason = observed_close or 'page_close'  # existing aggregate contract
+            self.round_close_reason = {'page_close': 'page_close_request', 'disconnected': 'idle_timeout',
+                                       'shutdown': 'server_shutdown'}.get(observed_close, 'not_observed')
+            if self.faulted:
+                self.round_close_reason = 'engine_fault'
+            if self.session_log and self.session_log.round_id == self.game_id and self.session_log.closed:
+                self.session_log.observe_close(self.round_close_reason)
+                self._persist_research()
             if self.relay: self.relay.close()
             super().close()
 
@@ -226,8 +332,9 @@ class HostedSession(GameSession):
 # Game fields plus the explicit opt-in Jev route. Never echo invalid bodies.
 FIELDS = {
     '/api/usage': {'first_visit', 'first_play'},
-    '/api/model/jev': {'api_key','consent','consent_version','test','id'},
+    '/api/model/jev': {'api_key','consent','consent_version','test','id','memory'},
     '/api/contribution/preview': set(),
+    '/api/contribution/consent': {'consent', 'consent_version', 'decision_telemetry'},
     '/api/contribution/save': {'consent', 'consent_version', 'consent_mode'},
     '/api/browser-ready': {'connected'}, '/api/start': {'speed'}, '/api/pause': {'reason'},
     '/api/resume': set(), '/api/end': set(), '/api/reset': set(), '/api/restart': set(),
@@ -236,7 +343,7 @@ FIELDS = {
     '/api/move': {'dx', 'dy', 'seq', 'sprint'}, '/api/position': {'seq', 'base', 'at', 'press'}, '/api/select': {'target'},
     '/api/interact': {'expected_item', 'mode', 'at', 'base', 'aim', 'target'}, '/api/throw': {'direction', 'expected_item', 'at', 'base'},
     '/api/action': {'action', 'expected'},
-    '/api/model/result': {'id', 'choice', 'sprint', 'usage', 'failed'},
+    '/api/model/result': {'id', 'choice', 'sprint', 'usage', 'failed','memory_condition','telemetry'},
 }
 
 
@@ -311,7 +418,9 @@ class Sessions:
             found = self.entries.pop(token, None)
             self.budgets.pop(token, None)
             self.slots.refresh(self.entries)
-        if found: found[0].close()
+        if found:
+            found[0].usage_close_reason = 'page_close'
+            found[0].close()
         return found is not None
 
     def allow_request(self, token):
@@ -362,7 +471,8 @@ SHELL_REPLACEMENTS = (
     ('本次服务连接测试', '本页面连接测试'),
     ('可对应本地日志提取前后过程', '在线版没有可追溯的服务器对局日志'),
     ('导出本次游玩的全部数据：从启动游戏起玩过的每一局', '导出本次游玩的数据：从打开本页面起最近 20 局'),
-    ('<section aria-labelledby="memory-title"', '<section hidden aria-labelledby="memory-title"'),
+    ('记录保存在本机，旧局片段会随决策请求发送给你选择的模型服务，增加输入 token 和费用。关闭后不读、不保存；中途退出的局不保存。',
+        '在线版默认开启，摘要保存在当前浏览器；开局时固定本局使用的旧局摘要，随请求发给所选模型。Jev 转发也会处理这些摘要，但服务器不持久保存。可在这里关闭或清空；中途退出的局不保存。摘要会增加输入 token 和费用。'),
 )
 CONTRIBUTION_SLOT = '<!-- hosted-contribution -->'
 CONTRIBUTION_BADGE = ('<p id="contribution-badge" role="status" hidden style="position:fixed;left:50%;bottom:8px;'
@@ -590,7 +700,7 @@ class HostedHandler(Handler):
             return self.reply(415, {'error': '请求必须使用 JSON 格式。'})
         try:
             length = int(self.headers.get('Content-Length', '0'))
-            if not 0 < length <= (4096 if path == '/api/model/jev' else 8192): raise ValueError()
+            if not 0 < length <= (12288 if path == '/api/model/jev' else 8192): raise ValueError()
             body = json.loads(self.rfile.read(length))
             if not isinstance(body, dict): raise ValueError()
         except (ValueError, OSError): return self.reply(400, {'error': '请求无效。'})
@@ -604,6 +714,11 @@ class HostedHandler(Handler):
             if not self.server.sessions.remove(token):
                 return self.reply(401, {'error': '厨房会话已过期。'})
             return self.reply(200, {'ok': True})
+        if path == '/api/contribution/download':
+            if set(body) != {'id', 'deletion_token'} or not self.server.sessions.store:
+                return self.reply(400, {'error': '下载凭证无效。'})
+            record = self.server.sessions.store.download(body['id'], body['deletion_token'])
+            return self.reply(200, {'record': record}) if record else self.reply(404, {'error': '记录不存在或凭证无效。'})
         if path == '/api/contribution/delete':
             if set(body) != {'id','deletion_token'} or not self.server.sessions.store:
                 return self.reply(400, {'error':'删除凭证无效。'})
@@ -631,7 +746,23 @@ class HostedHandler(Handler):
         try:
             with game.lock:
                 if path == '/api/model/result':
+                    condition = validate_memory_condition(body['memory_condition']) if 'memory_condition' in body else None
+                    if condition and game.round_memory_condition is not None and condition != game.round_memory_condition:
+                        return self.reply(409, {'error':'本局记忆条件已经固定。'})
+                    telemetry = None
+                    if 'telemetry' in body:
+                        from research_record import validate_telemetry
+                        telemetry = validate_telemetry(body['telemetry'])
+                        if not game.research_telemetry:
+                            return self.reply(400, {'error': '未同意可选决策测量。'})
                     ok = bool(game.relay and game.relay.resolve(body))
+                    if ok and telemetry and game.journal:
+                        pending = game.ai.calls if game.ai else None
+                        game.journal._append(game.journal._envelope('client_telemetry',
+                            {**telemetry, 'request_id': pending, 'source': 'client-reported',
+                             'provider_verified': False}, 'session'))
+                    if ok and condition:
+                        game.round_memory_condition = condition
                     return self.reply(200 if ok else 409, {'ok': ok})
                 token = self.headers.get('X-ChefJeff-Session','')
                 allocated = None

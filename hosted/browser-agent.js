@@ -17,6 +17,126 @@
     base_url: setting?.base_url || '', model: setting?.model || '', remembered: !!setting?.remember,
     jev_relay: setting?.jev_relay === true,
     editable: !testing && (!state || ['ready', 'ended'].includes(state.phase))});
+  // Browser-owned, bounded history. No model URL, name, key or visitor identifier
+  // is sent to the game server as a scope. Active context is frozen at round start.
+  const MEMORY_KEY = 'chefjeff.cooperation-memory.v2';
+  const memoryKinds = new Set(['action_done','thrown','caught','landed','washed','served','bad_service','burn','fire','expired','arrival_conflict']);
+  const workKinds = new Set(['fetch','chop','heat','assemble','serve','wash','collect_plates','pass','extinguish','discard']);
+  const preferences = ['prep','cook','plate','deliver','wash',null];
+  const memoryAction = /^(?:fetch|wash|serve|drop|discard|stop|continue|wait|(?:fetch|go|put|take|plate|chop|pickup|throw|clear|extinguish|assemble|merge|swap|load) [A-Za-z0-9_ .,-]{1,70})$/;
+  const clone = value => JSON.parse(JSON.stringify(value));
+  const fields = (value, names) => value && typeof value === 'object' && !Array.isArray(value) &&
+    Object.keys(value).length === names.length && names.every(k=>Object.hasOwn(value,k));
+  const count = n => Number.isInteger(n) && n >= 0 && n <= 1000000;
+  const amount = (n, positive=true) => typeof n === 'number' && Number.isFinite(n) && Math.abs(n) <= 1e9 && (!positive || n >= 0);
+  function validEpisode(r, level) {
+    if (!fields(r,['version','round_id','duration','level_id','outcome','work','communication','events','eligible_event_count','sampled']) ||
+        r.version!==2 || !/^[0-9a-f]{32}$/.test(r.round_id) || r.level_id!==level || !amount(r.duration) ||
+        typeof r.sampled!=='boolean' || !count(r.eligible_event_count)) return false;
+    const o=r.outcome,c=r.communication,w=r.work;
+    if (!fields(o,['served','money','target_money','reached_target','expired','burns','fires']) ||
+        !['served','expired','burns','fires'].every(k=>count(o[k])) || !amount(o.money,false) ||
+        !amount(o.target_money) || typeof o.reached_target!=='boolean' ||
+        !fields(c,['last_preference','corrections']) || !preferences.includes(c.last_preference) || !count(c.corrections) ||
+        !fields(w,['human','jeff'])) return false;
+    for(const actor of ['human','jeff']) {
+      if (!w[actor] || typeof w[actor]!=='object' || Array.isArray(w[actor]) ||
+          !Object.entries(w[actor]).every(([k,v])=>workKinds.has(k)&&count(v))) return false;
+    }
+    return Array.isArray(r.events) && r.events.length<=18 && r.events.every(e=>
+      e && typeof e==='object' && !Array.isArray(e) && Object.keys(e).every(k=>['t','kind','actor','action'].includes(k)) &&
+      amount(e.t) && memoryKinds.has(e.kind) && (!Object.hasOwn(e,'actor') || ['human','jeff'].includes(e.actor)) &&
+      (!Object.hasOwn(e,'action') || (typeof e.action==='string' && memoryAction.test(e.action))));
+  }
+  let browserMemory={version:2,enabled:true,scopes:[]},memoryError='',activeMemory=null;
+  const processedMemoryRounds = new Set();
+  function readMemory() {
+    let raw;
+    try {raw=localStorage.getItem(MEMORY_KEY);}
+    catch (_) {memoryError='浏览器无法保存记忆，暂时仅在本页使用。';return;}
+    if (!raw) return;
+    try {
+      if(raw.length>300000)throw new Error();
+      const value=JSON.parse(raw);
+      if(!fields(value,['version','enabled','scopes']) || value.version!==2 || typeof value.enabled!=='boolean' ||
+          !Array.isArray(value.scopes) || value.scopes.length>24)throw new Error();
+      for(const entry of value.scopes){
+        if(!fields(entry,['key','episodes']) || typeof entry.key!=='string' || entry.key.length>1500 ||
+            !Array.isArray(entry.episodes) || entry.episodes.length>3)throw new Error();
+        const parts=JSON.parse(entry.key);
+        if(!Array.isArray(parts)||parts.length!==5||!parts.every(p=>typeof p==='string')||
+            !entry.episodes.every(e=>validEpisode(e,parts[4])))throw new Error();
+      }
+      browserMemory=value;
+    } catch (_) {browserMemory={version:2,enabled:false,scopes:[]};memoryError='跨局记录无法读取，已关闭记忆；可清空后重新启用。';}
+  }
+  function writeMemory() {
+    while(browserMemory.scopes.length>24 || (JSON.stringify(browserMemory).length>280000 && browserMemory.scopes.length>1))browserMemory.scopes.shift();
+    try {localStorage.setItem(MEMORY_KEY,JSON.stringify(browserMemory));memoryError='';}
+    catch (_) {memoryError='浏览器无法保存记忆，暂时仅在本页使用。';}
+  }
+  readMemory();
+  window.addEventListener('storage', event => {
+    if(event.key===MEMORY_KEY || event.key===null){
+      if(event.newValue===null)browserMemory={version:2,enabled:true,scopes:[]};
+      readMemory();
+    }
+  });
+  const memoryKey = (s, level=s?.memory?.level_id) => setting && s?.memory?.supported ?
+    JSON.stringify([setting.provider,setting.base_url,setting.model,s.memory.namespace,level]) : null;
+  const episodesFor = scope => browserMemory.scopes.find(e=>e.key===scope)?.episodes || [];
+  function contextFor(s, scope) {
+    const context={enabled:browserMemory.enabled,version:2,episodes:browserMemory.enabled?clone(episodesFor(scope)):[],
+      description:s.memory.description,omitted_rounds:0,max_characters:s.memory.max_characters};
+    while(JSON.stringify(context).length>context.max_characters && context.episodes.length){context.episodes.shift();context.omitted_rounds++;}
+    return context;
+  }
+  function openingMemory(s, body, path) {
+    if(!s?.memory?.supported || !setting)return null;
+    readMemory();
+    const requested=path==='/api/next'?body.level:s.memory.level_id;
+    const level=typeof requested==='number'?'level-'+requested:requested;
+    const scope=memoryKey(s,level);
+    return {scope,level,context:contextFor(s,scope),game_id:path==='/api/start'?body.game_id || s.game_id:null,
+      previous:path==='/api/start'?null:s.game_id};
+  }
+  function observeMemory(s) {
+    if(!s?.memory?.supported)return s;
+    if(activeMemory && !activeMemory.game_id && s.game_id!==activeMemory.previous && s.memory.level_id===activeMemory.level &&
+        ['running','paused','ended'].includes(s.phase)) activeMemory.game_id=s.game_id;
+    const record=s.memory.episode;
+    if(record && activeMemory?.game_id===s.game_id && !processedMemoryRounds.has(s.game_id)) {
+      processedMemoryRounds.add(s.game_id);
+      while(processedMemoryRounds.size>100)processedMemoryRounds.delete(processedMemoryRounds.values().next().value);
+      if(activeMemory.context.enabled && validEpisode(record,activeMemory.level)) {
+        readMemory();
+        if(browserMemory.enabled){
+          const records=episodesFor(activeMemory.scope).filter(e=>e.round_id!==record.round_id);
+          records.push(clone(record));
+          browserMemory.scopes=browserMemory.scopes.filter(e=>e.key!==activeMemory.scope);
+          browserMemory.scopes.push({key:activeMemory.scope,episodes:records.slice(-3)});writeMemory();
+        }
+      }
+    }
+    const scope=memoryKey(s);
+    s.memory={...s.memory,enabled:browserMemory.enabled,saved_rounds:episodesFor(scope).length,
+      used_rounds:activeMemory?.game_id===s.game_id?activeMemory.context.episodes.length:0,
+      omitted_rounds:activeMemory?.game_id===s.game_id?activeMemory.context.omitted_rounds:0,error:memoryError,
+      storage:'browser-local',editable:['ready','ended'].includes(s.phase)&&!testing};
+    return s;
+  }
+  function changeBrowserMemory(body) {
+    if(!state?.memory?.supported)return response(409,{error:'需要新版厨房服务。'});
+    if(!['ready','ended'].includes(state.phase)||testing)return response(409,{error:'请在开局前或结算后修改记忆设置，保证一局内条件一致。'});
+    if(body.game_id!==state.game_id)return response(409,{error:'对局已变化，请重试。'});
+    if((body.enabled!==undefined&&typeof body.enabled!=='boolean') || (body.clear!==undefined&&typeof body.clear!=='boolean') ||
+        (body.enabled===undefined&&body.clear!==true))return response(400,{error:'记忆设置无效。'});
+    readMemory();
+    if(body.clear)browserMemory.scopes=[];
+    if(body.enabled!==undefined)browserMemory.enabled=body.enabled;
+    writeMemory();observeMemory(state);
+    return response(200,{ok:true,memory:state.memory});
+  }
   let session = null, sessionToken = null, retryAt = 0, transportError = '', leaving = false;
   window.chefjeffHostedStatus = () => transportError;
   function notifyConnection(error) {
@@ -127,6 +247,8 @@
   } catch (_) { /* Storage disabled/corrupted: use memory only. */ }
 
   async function modelRequest(config, payload, outerSignal, relayContext) {
+    const memory=payload.state?.rules && activeMemory?.game_id===state?.game_id ? activeMemory.context:null;
+    if(memory)payload={...payload,state:{...payload.state,past_episodes:clone(memory)}};
     const controller = new AbortController(), started = performance.now();
     const timer = setTimeout(() => controller.abort(), config.jev_relay ? 23000 : 20000);
     const abort = () => controller.abort();
@@ -139,7 +261,7 @@
         const r = await serverFetch('/api/model/jev', {method:'POST',mode:'cors',
           credentials:'omit',redirect:'error',signal:controller.signal,
           headers:{'Content-Type':'application/json'},body:JSON.stringify({
-            ...relayContext, api_key:config.api_key, consent:true, consent_version:relayConsent})});
+            ...relayContext, ...(memory?{memory}:{}), api_key:config.api_key, consent:true, consent_version:relayConsent})});
         const d = await r.json();
         if (!r.ok) throw new Error(d.error || 'Jev 转发连接失败。');
         return d.answer;
@@ -250,6 +372,7 @@
       if (url.pathname === '/api/connection') {
         return configure(JSON.parse(init.body || '{}'), init.signal); // This body NEVER reaches nativeFetch.
       }
+      if (url.pathname === '/api/memory') return changeBrowserMemory(JSON.parse(init.body || '{}'));
       // Restored settings have a fresh server session on every page load.
       if (url.pathname === '/api/start' && setting && state) await markReady(true, state);
       if (url.pathname === '/api/start' && !setting) return response(428,{error:'请先在当前浏览器连接模型服务。'});
@@ -261,12 +384,26 @@
         await pendingContribution.catch(() => {});
         if (init.signal?.aborted) throw new Error('下一局请求已取消。');
       }
+      if (['/api/start','/api/restart','/api/next'].includes(url.pathname) && state?.hosted?.contribution_enabled) {
+        // A server acknowledgement is required for automatic retention of an early close.
+        await contributionCommand('/api/contribution/consent', {consent:autoOn(), consent_version:CONSENT,
+          decision_telemetry:!!(autoOn() && choice.decision_telemetry)}, state.game_id);
+      }
+      const opening=['/api/start','/api/restart','/api/next'].includes(url.pathname)?openingMemory(state,JSON.parse(init.body||'{}'),url.pathname):null;
+      const previousMemory=activeMemory;
+      // Publish before awaiting the start acknowledgement: a state poll can see a
+      // running kitchen first, and a lost acknowledgement must not lose its context.
+      if(opening)activeMemory=opening;
       const result = await serverFetch(url.pathname, init);
+      if(!result.ok && opening && activeMemory===opening)activeMemory=previousMemory;
+      if(result.ok && ['/api/start','/api/restart','/api/next'].includes(url.pathname)) {
+        const opened=await result.clone().json();if(opened.receipt)rememberReceipt(opened.receipt);
+      }
       if (result.ok && ['/api/start', '/api/restart', '/api/next', '/api/resume'].includes(url.pathname)) queueUsage(true);
       if (!result.ok || (url.pathname !== '/api/state' && !STATE_REPLIES.has(url.pathname))) return result;
       // Gameplay replies carry the resulting state; both get this page's connection details.
       // Also this browser's contribution answer: the result card offers 贡献本局 after 暂不.
-      const withConnection = d => {state = d;queueUsage(d.phase === 'running');d.connection = connection();d.limits.connection_checks = checks;
+      const withConnection = d => {observeMemory(d);if(d.hosted?.contribution_receipt)rememberReceipt(d.hosted.contribution_receipt);state = d;queueUsage(d.phase === 'running');d.connection = connection();d.limits.connection_checks = checks;
         if (d.hosted) Object.assign(d.hosted, {contribution_offer: !!d.hosted.contribution_enabled && choice?.answer === 'later',
           contribution_busy: busyRound === d.game_id});
         return d;};
@@ -297,23 +434,31 @@
       if (!request || handled.has(request.id)) return;
       handled.add(request.id);
       while (handled.size > 100) handled.delete(handled.values().next().value);
+      const reportedMemory=activeMemory?.game_id===state.game_id?activeMemory.context:null;
       let answer;
+      const startedAt=performance.now();
+      let errorType=null;
       try {answer = await modelRequest(setting, request.payload, undefined,
         {game_id:state.game_id,id:request.id,test:false});delete answer.latency;}
       catch (e) {
         answer = {failed:true};
+        errorType=e.name==='AbortError'?'timeout':'transport_or_response_error';
         const label = document.getElementById('api-message');
         if (label) {label.textContent = e.message;label.className = 'error';}
       }
+      const measuredDuration=Math.round(performance.now()-startedAt);
       await serverFetch('/api/model/result', {method:'POST', headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({id:request.id, ...answer})});
+        body:JSON.stringify({id:request.id, ...answer,
+          ...(autoOn() && choice.decision_telemetry && state.hosted?.research_active && Number.isFinite(measuredDuration) && measuredDuration>=0 && measuredDuration<=120000?{telemetry:{duration_ms:measuredDuration,error_type:errorType}}:{}),
+          ...(reportedMemory?{memory_condition:{enabled:reportedMemory.enabled,version:2,
+            used_rounds:reportedMemory.episodes.length,omitted_rounds:reportedMemory.omitted_rounds}}:{})})});
     } catch (_) { /* Next normal state poll displays session/network failures. */ }
     finally {setTimeout(poll, 200);}
   }
   setTimeout(poll, 200);
   const CHOICE_KEY = 'chefjeff.contribution-choice.v1', RECEIPTS_KEY = 'chefjeff.contribution-receipts.v1';
   // Equals hosted_records.CONSENT_VERSION: new terms ask again instead of carrying an old answer over.
-  const CONSENT = 'pilot-session-2026-10-v2';
+  const CONSENT = 'pilot-session-2026-10-v4';
   let pendingContribution = Promise.resolve(), autoRound = '', busyRound = '', shown = null, askedAt = '', notice = {round:'', text:''};
   const stored = (name, fallback) => {try {return JSON.parse(localStorage.getItem(name) || 'null') ?? fallback;} catch (_) {return fallback;}};
   const keep = (name, value) => {try {value == null ? localStorage.removeItem(name) : localStorage.setItem(name,JSON.stringify(value));} catch (_) {}};
@@ -325,6 +470,10 @@
   let receipts = stored(RECEIPTS_KEY, []);
   receipts = (Array.isArray(receipts) ? receipts : []).filter(r => r && typeof r.id === 'string' && typeof r.deletion_token === 'string' && Date.parse(r.expires_at) > Date.now());
   const contributionStatus = text => {const n=document.getElementById('contribution-status');if(n)n.textContent=text;};
+  function rememberReceipt(receipt) {
+    receipts=[...receipts.filter(r=>r.id!==receipt.id),receipt];
+    keep(RECEIPTS_KEY,receipts);showReceipts();
+  }
   function showReceipts() {
     const box=document.getElementById('contribution-receipt'),download=document.getElementById('contribution-download');
     if(box)box.value=receipts.length?JSON.stringify(receipts.length===1?receipts[0]:receipts,null,2):'';
@@ -346,7 +495,7 @@
   async function contributionCommand(path, extra={}, round=state?.game_id) {
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
     try {
-      const payload=path==='/api/contribution/delete'?extra:{game_id:round,request_id:crypto.randomUUID(),...extra};
+      const payload=['/api/contribution/delete','/api/contribution/download'].includes(path)?extra:{game_id:round,request_id:crypto.randomUUID(),...extra};
       const r=await serverFetch(path,{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
       const d=await r.json();if(!r.ok)throw new Error(d.error||'请求失败。');return d;
     } catch(e) {if(e.name==='AbortError')throw new Error('贡献数据请求超时，请重试。');throw e;}
@@ -377,6 +526,7 @@
   }
   window.addEventListener('kitchen-state', e => {
     const s=e.detail;shown=s;
+    if(s.hosted?.research_error)contributionStatus('贡献保存失败，请下载本局预览并稍后重试。');
     const button = document.getElementById('contribution-save');
     if (button) button.disabled = !(s.phase === 'ended' && s.hosted?.contribution_enabled && !s.hosted.contributed && busyRound !== s.game_id);
     if(autoOn()&&s.hosted?.contribution_enabled&&s.phase==='ended'&&autoRound!==s.game_id){
@@ -397,9 +547,13 @@
     showReceipts();showChoice();
     dialog.oncancel = e => e.preventDefault(); // Both answers are one click; Esc is not an answer.
     const answer = auto => {
-      choice={consent_version:CONSENT,answer:auto?'auto':'later',since:new Date().toISOString()};keep(CHOICE_KEY,choice);
+      choice={consent_version:CONSENT,answer:auto?'auto':'later',decision_telemetry:!!el('ask-telemetry')?.checked,since:new Date().toISOString()};keep(CHOICE_KEY,choice);
       // Agreeing never uploads a round that had already ended.
       if(auto){const now=shown||state;autoRound=now?.phase==='ended'?now.game_id:'';}
+      if(!auto && state?.hosted?.research_active) {
+        pendingContribution=pendingContribution.catch(()=>{}).then(()=>command('/api/contribution/consent',
+          {consent:false,consent_version:CONSENT,decision_telemetry:false})).catch(()=>status('关闭自动贡献未确认，请重试。'));
+      }
       dialog.close();showChoice();badge();
       status(auto?'已开启自动贡献：此后每局结束自动保存 30 天。':'已选择暂不贡献，之后不会自动上传。');
     };
@@ -411,6 +565,16 @@
       catch (e) {status(e.message);}
     };
     el('contribution-save').onclick = contributeRound;
+    if(el('contribution-own-data'))el('contribution-own-data').onclick = async () => {
+      try {
+        const receipt=receipts[receipts.length-1];
+        if(!receipt)throw new Error('尚无可下载的贡献记录。');
+        const records=(await command('/api/contribution/download',{id:receipt.id,deletion_token:receipt.deletion_token})).record;
+        const url=URL.createObjectURL(new Blob([JSON.stringify(records,null,2)],{type:'application/json'}));
+        const link=document.createElement('a');link.href=url;link.download='chefjeff-my-contributions.json';link.click();
+        setTimeout(()=>URL.revokeObjectURL(url),1000);
+      }catch(e){status(e.message);}
+    };
     el('contribution-download').onclick = () => {
       if (!receipts.length) return;
       const url = URL.createObjectURL(new Blob([JSON.stringify(receipts.length===1?receipts[0]:receipts,null,2)],{type:'application/json'}));

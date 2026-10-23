@@ -1,0 +1,553 @@
+{
+  "type": "object",
+  "properties": {
+    "schema": {
+      "const": "chefjeff-pilot-session-v2"
+    },
+    "consent_version": {
+      "const": "pilot-session-2026-10-v4"
+    },
+    "round_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32}$"
+    },
+    "relation_missing_default": {
+      "const": "not_emitted"
+    },
+    "level": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 3
+    },
+    "speed": {
+      "enum": [
+        0.5,
+        0.75,
+        1
+      ]
+    },
+    "duration": {
+      "type": "number",
+      "minimum": 0
+    },
+    "aborted": {
+      "type": "boolean"
+    },
+    "result": {
+      "type": "object",
+      "properties": {
+        "served": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "money": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "won": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "served",
+        "money",
+        "won"
+      ],
+      "additionalProperties": false
+    },
+    "release": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+        },
+        "fingerprint": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+        }
+      },
+      "required": [
+        "version",
+        "fingerprint"
+      ],
+      "additionalProperties": false
+    },
+    "started_at": {
+      "type": "string"
+    },
+    "ended_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "initial_state_seq": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "config_hash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "config_projection_hash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "conditions": {
+      "type": "object",
+      "properties": {
+        "cross_round_memory": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "version": {
+                  "type": "integer"
+                },
+                "used_rounds": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "omitted_rounds": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "source": {
+                  "enum": [
+                    "browser-reported",
+                    "local-runtime"
+                  ]
+                }
+              },
+              "required": [
+                "enabled",
+                "version",
+                "used_rounds",
+                "omitted_rounds",
+                "source"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "engine_semantics": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rules_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "input_language": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "observation_interface": {
+          "const": "structured_state"
+        },
+        "action_interface": {
+          "const": "legal_action_choice"
+        },
+        "model_identity": {
+          "type": "null"
+        },
+        "model_identity_reason": {
+          "const": "not_verified_or_not_collected"
+        },
+        "decision_telemetry": {
+          "type": "boolean"
+        },
+        "model_parameters": {
+          "type": "object",
+          "properties": {
+            "sampling": {
+              "type": "null"
+            },
+            "reasoning": {
+              "type": "null"
+            },
+            "safety": {
+              "type": "null"
+            },
+            "upstream_adapter": {
+              "type": "null"
+            },
+            "status": {
+              "const": "not_collected_from_browser"
+            }
+          },
+          "required": [
+            "sampling",
+            "reasoning",
+            "safety",
+            "upstream_adapter",
+            "status"
+          ],
+          "additionalProperties": false
+        },
+        "request_policy": {
+          "type": "object",
+          "properties": {
+            "ai_min_interval": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "ai_refresh_seconds": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "ai_timeout_seconds": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "ai_max_response_age": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "max_calls": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "ai_min_interval",
+            "ai_refresh_seconds",
+            "ai_timeout_seconds",
+            "ai_max_response_age",
+            "max_calls"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "cross_round_memory",
+        "engine_semantics",
+        "rules_version",
+        "input_language",
+        "observation_interface",
+        "action_interface",
+        "model_identity",
+        "model_identity_reason",
+        "decision_telemetry",
+        "model_parameters",
+        "request_policy"
+      ],
+      "additionalProperties": false
+    },
+    "termination": {
+      "type": "object",
+      "properties": {
+        "game_condition": {
+          "enum": [
+            "round_limit",
+            "fire_loss",
+            "none_observed",
+            "in_progress"
+          ]
+        },
+        "session_close": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "reason": {
+                  "enum": [
+                    "game_condition",
+                    "manual_end",
+                    "restart",
+                    "next_level",
+                    "page_close_request",
+                    "idle_timeout",
+                    "server_shutdown",
+                    "engine_fault",
+                    "not_observed"
+                  ]
+                },
+                "source": {
+                  "const": "server"
+                }
+              },
+              "required": [
+                "reason",
+                "source"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "confirmed": {
+          "type": "boolean"
+        },
+        "last_game_time_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "last_event_seq": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "final_state_seq": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      },
+      "required": [
+        "game_condition",
+        "session_close",
+        "confirmed",
+        "last_game_time_ms",
+        "last_event_seq",
+        "final_state_seq"
+      ],
+      "additionalProperties": false
+    },
+    "quality": {
+      "type": "object",
+      "properties": {
+        "scope": {
+          "const": "allowlisted_session_facts_and_state_observations"
+        },
+        "complete": {
+          "type": "boolean"
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "dropped": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "loss_ranges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "first_seq": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "last_seq": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              }
+            },
+            "required": [
+              "first_seq",
+              "last_seq"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 16
+        },
+        "projection_errors": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "state_history": {
+          "enum": [
+            "consented_capture",
+            "partial_consent_withdrawn",
+            "initial_final_only_no_prestart_consent"
+          ]
+        },
+        "observed_max_state_gap_game_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "not_projected": {
+          "type": "object",
+          "properties": {
+            "engine_events": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "session_records": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "engine_events",
+            "session_records"
+          ],
+          "additionalProperties": false
+        },
+        "engine_input_scope": {
+          "const": "non-advance outer calls; advance sampled as state observations"
+        },
+        "capacity_records": {
+          "const": 24000
+        },
+        "capacity_bytes": {
+          "const": 12000000
+        },
+        "period_game_ms": {
+          "const": 1000
+        },
+        "checkpoint_game_ms": {
+          "const": 10000
+        },
+        "state_trigger": {
+          "const": "initial,event_emission,outer_input_completion,periodic,final"
+        },
+        "delta_format": {
+          "const": "merge_chefs_stations_by_id_replace_other_sections"
+        },
+        "state_precision": {
+          "const": "emission observations are not atomic operation boundaries"
+        },
+        "replay": {
+          "const": "not_claimed"
+        },
+        "missing": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "raw_device_input",
+              "provider_verified_model",
+              "provider_server_clock",
+              "free_text",
+              "preset_communication",
+              "intermediate_state_not_collected_without_prestart_consent"
+            ]
+          }
+        }
+      },
+      "required": [
+        "scope",
+        "complete",
+        "truncated",
+        "dropped",
+        "loss_ranges",
+        "projection_errors",
+        "state_history",
+        "observed_max_state_gap_game_ms",
+        "not_projected",
+        "engine_input_scope",
+        "capacity_records",
+        "capacity_bytes",
+        "period_game_ms",
+        "checkpoint_game_ms",
+        "state_trigger",
+        "delta_format",
+        "state_precision",
+        "replay",
+        "missing"
+      ],
+      "additionalProperties": false
+    },
+    "consent_mode": {
+      "enum": [
+        "standing",
+        "round"
+      ]
+    },
+    "artifacts": {
+      "type": "object",
+      "properties": {
+        "config": {
+          "type": "string"
+        },
+        "events": {
+          "type": "string"
+        },
+        "state_records": {
+          "const": "state_checkpoint/state_delta in the same events.jsonl"
+        }
+      },
+      "required": [
+        "config",
+        "events",
+        "state_records"
+      ],
+      "additionalProperties": false
+    },
+    "source_expires_at": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema",
+    "consent_version",
+    "round_id",
+    "relation_missing_default",
+    "level",
+    "speed",
+    "duration",
+    "aborted",
+    "result",
+    "release",
+    "started_at",
+    "ended_at",
+    "initial_state_seq",
+    "config_hash",
+    "config_projection_hash",
+    "conditions",
+    "termination",
+    "quality",
+    "artifacts",
+    "source_expires_at"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "research-metadata.schema.json",
+  "description": "Private v2 research record. Original engine hash and safe config projection hash have different purposes. v1 has no recoverable config/state; never fill it with absence claims."
+}
