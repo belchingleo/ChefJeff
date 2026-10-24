@@ -853,7 +853,19 @@ class SpatialKitchen(Kitchen):
         if not length or not math.isfinite(length):return False
         self.aim[who]=(dx/length,dy/length)
         self._face_vector(who,dx,dy)
+        self._stop_unreachable_work(who)
         return True
+
+    def _stop_unreachable_work(self, who):
+        """Continuous station work needs the chef to remain in reach and facing it."""
+        job=self.chefs[who].job
+        if (job and job.working and job.action.kind in USE_KINDS
+                and job.action.target not in self.selectable_stations(who)):
+            self.stop(who)
+
+    def _before_step(self, seconds):
+        # Revalidate before any worker contributes progress or shared-work overlap.
+        for who in self.chefs:self._stop_unreachable_work(who)
 
     @engine_input
     def pick_station(self, who, target):
