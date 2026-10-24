@@ -109,8 +109,13 @@ class SessionLog:
         else:
             payload.pop('t', None)
         for key in ENVELOPE:
-            if payload.get(key) is not None:
-                record[key] = payload.pop(key)
+            # Consume absent links too: a null ID left in payload breaks the
+            # hosted schema and blocks saving the whole round. Hosted projection
+            # restores null links; local envelopes omit optional, non-null IDs.
+            if key in payload:
+                value = payload.pop(key)
+                if value is not None:
+                    record[key] = value
         record['payload'] = payload
         return record
 
