@@ -42,6 +42,73 @@ class ResearchHTTPTests(unittest.TestCase):
         status,data=self.command('start');self.assertEqual(status,200)
         return data['receipt']
 
+    def browser_answer(self, choice, stale=False):
+        """Exercise the real relay worker and scheduler, with no upstream model call."""
+        with self.game.lock:
+            self.game.ai.poll()
+        deadline=time.monotonic()+2
+        pending=None
+        while time.monotonic()<deadline:
+            pending=self.game.relay.request()
+            if pending:break
+            time.sleep(.005)
+        self.assertIsNotNone(pending)
+        self.assertEqual(self.request('/api/model/result',{
+            'id':pending['id'],'choice':choice,'sprint':False,
+            'usage':{'input_tokens':6500,'output_tokens':1},
+            'telemetry':{'duration_ms':100,'error_type':None},
+            'memory_condition':{'enabled':True,'version':2,'used_rounds':0,'omitted_rounds':0},
+        },self.token)[0],200)
+        deadline=time.monotonic()+2
+        while self.game.ai.q.empty() and time.monotonic()<deadline:time.sleep(.005)
+        self.assertFalse(self.game.ai.q.empty())
+        with self.game.lock:
+            if stale:self.game.ai.invalidate()
+            self.game.ai.poll()
+            self.game.k.advance(.2)
+
+    def begin_manual_relay(self):
+        with self.game.lock:
+            self.game.stop_event.set();self.game.wake.set()
+        return self.begin(True)
+
+    def saved_null_action_response(self, receipt, choice, applied):
+        status,data=self.request('/api/contribution/download',{
+            key:receipt[key] for key in ('id','deletion_token')})
+        self.assertEqual(status,200)
+        record=data['record']
+        self.assertGreaterEqual(record['duration'],.2)
+        self.assertIsNotNone(record['ended_at'])
+        self.assertTrue(record['quality']['complete'])
+        validate_record(record)
+        response=next(e for e in record['events'] if e['type']=='ai_response')
+        self.assertEqual(response['payload']['choice']['key'],choice)
+        self.assertEqual(response['payload']['applied'],applied)
+        self.assertIsNone(response['action_id'])
+        self.assertNotIn('action_id',response['payload'])
+        self.assertIsNone(self.game.research_error)
+        return record
+
+    def test_wait_response_survives_finish_save_and_own_download(self):
+        receipt=self.begin_manual_relay()
+        self.browser_answer('wait')
+        self.assertEqual(self.command('end')[0],200)
+        self.saved_null_action_response(receipt,'wait',True)
+
+    def test_continue_response_survives_page_close_save_and_own_download(self):
+        receipt=self.begin_manual_relay()
+        with self.game.lock:self.assertTrue(self.game.k.command('jeff','fetch')[0])
+        self.browser_answer('continue')
+        self.assertEqual(self.request('/api/session/close',{},self.token)[0],200)
+        record=self.saved_null_action_response(receipt,'continue',True)
+        self.assertEqual(record['termination']['session_close']['reason'],'page_close_request')
+
+    def test_stale_choice_with_no_applied_action_still_saves_the_round(self):
+        receipt=self.begin_manual_relay()
+        self.browser_answer('fetch',stale=True)
+        self.assertEqual(self.command('end')[0],200)
+        self.saved_null_action_response(receipt,'fetch',False)
+
     def test_preview_exact_saved_projection_and_own_download_delete(self):
         receipt=self.begin()
         with self.game.lock:self.game.k.command('human','fetch');self.game.k.advance(1.2)
