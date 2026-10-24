@@ -4,6 +4,7 @@ Only server-authored game identifiers, numbers and explicit structures cross thi
 boundary. No model payload, exception string, player message or endpoint does.
 """
 from copy import deepcopy
+from pathlib import Path
 import json
 import math
 import re
@@ -11,7 +12,10 @@ import config_contract as cc
 import schema_check
 
 SCHEMA = 'chefjeff-pilot-session-v2'
-CONSENT = 'pilot-session-2026-10-v4'
+CONSENT = 'pilot-session-2026-10-v5'
+MODEL_PROVIDERS = {p['id']: p for p in json.loads(
+    (Path(__file__).resolve().parent / 'model-providers.json').read_text())['providers']
+    if not p.get('disabled')}
 MAX_RECORDS = 24000
 MAX_BYTES = 12_000_000
 PERIOD_MS = 1000
@@ -35,6 +39,30 @@ EVENT_TYPES = {'order', 'action_start', 'action_done', 'interrupted', 'arrival_c
 
 def code(value):
     return value if isinstance(value, str) and CODE.fullmatch(value) else None
+
+
+def reported_model_identity(value):
+    """Explicit model metadata only; never accept connection settings or a claimed verification."""
+    if value is None:
+        return None
+    if not isinstance(value, dict) or set(value) != {'provider', 'model_id'}:
+        raise ValueError('模型标识字段无效。')
+    provider, model = value['provider'], value['model_id']
+    if not isinstance(provider, str) or provider not in MODEL_PROVIDERS:
+        raise ValueError('模型服务标识无效。')
+    if (not isinstance(model, str) or not 1 <= len(model) <= 120 or model != model.strip()
+            or any(ord(c) < 32 or ord(c) == 127 for c in model) or '://' in model):
+        raise ValueError('模型 ID 无效。')
+    return {'provider': provider, 'model_id': model,
+            'interface': 'systemone' if MODEL_PROVIDERS[provider]['group'] == 'decision' else 'chat_completions',
+            'source': 'browser-reported', 'verified': False}
+
+
+def model_condition(session):
+    log = getattr(session, 'session_log', None)
+    if log is None or log.round_id != session.game_id or log.kitchen is not session.k:
+        return None
+    return deepcopy(getattr(log, 'model_identity', None))
 
 
 def number(value):
@@ -226,7 +254,8 @@ def record(session):
                            'rules_version': _rules_version(),
                            'input_language': _input_language(),
                            'observation_interface': 'structured_state', 'action_interface': 'legal_action_choice',
-                           'model_identity': None, 'model_identity_reason': 'not_verified_or_not_collected',
+                           'model_identity': model_condition(session),
+                           'model_identity_reason': 'browser_reported_not_verified' if model_condition(session) else 'not_reported',
                            'decision_telemetry': bool(getattr(session, 'research_telemetry', False)),
                            'model_parameters': {'sampling': None, 'reasoning': None, 'safety': None, 'upstream_adapter': None, 'status': 'not_collected_from_browser'},
                            'request_policy': {key: number(k.c.get(key)) for key in ('ai_min_interval', 'ai_refresh_seconds', 'ai_timeout_seconds', 'ai_max_response_age')} | {'max_calls': getattr(getattr(session, 'ai', None), 'call_limit', None)}},

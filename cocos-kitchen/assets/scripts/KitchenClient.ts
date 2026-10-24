@@ -25,7 +25,7 @@ const CUE_SECONDS=.16;
 const NETWORK_GRACE_SECONDS=6;
 const RESULT_ANNOUNCE=new Set(['order','served','expired','ready','burn','fire','fire_spread','fire_loss']);
 // Keyboard order; the level buttons (one per listed level, from the server) follow the language button.
-const TAB_ORDER=['language','main','reset','cover-connection','help','record','contribute','resume','pause','end'];
+const TAB_ORDER=['language','more','level-picker','main','reset','cover-connection','help','record','contribute','resume','pause','end'];
 type ButtonView = {node:Node;label:Label;callback:()=>void;enabled:boolean;width:number;height:number;tone:string;hover:boolean;selected?:boolean};
 // Labels for things that are not recipe items; item and dish names come from the server's catalog.
 const STAGES: Record<string,string> = {extinguisher:'灭火器',clean_plate:'干净餐盘',dirty_plate:'脏餐盘'};
@@ -219,7 +219,7 @@ export class KitchenClient extends Component {
         this.labels.coverTitle.horizontalAlign=Label.HorizontalAlign.CENTER;
         this.chef(this.cover,'welcome-human',550,332,'human',1.25);
         this.chef(this.cover,'welcome-jeff',730,332,'jeff',1.25);
-        this.icon(this.cover,'welcome-food',640,332,'ready',1.05);
+        this.icon(this.cover,'welcome-food',640,332,'vessel',1.05);
         this.text('coverText','正在连接厨房…',330,404,620,78,19,this.cover).horizontalAlign=Label.HorizontalAlign.CENTER;
         this.button('main','开始经营',379,520,158,48,()=>{
             if(!this.connected){this.poll();return;}
@@ -236,6 +236,10 @@ export class KitchenClient extends Component {
         // Language sits on the board where people look first, not only inside Settings.
         this.pixel(this.button('language','English',944,196,88,30,()=>{const i18n=(window as any).kitchenI18n;i18n?.setLanguage(i18n.language==='en'?'zh':'en');},this.cover).getComponentInChildren(Label)!,12);
         if(sys.isNative)this.buttons.language.node.active=false;
+        this.button('more','更多',944,196,88,30,()=>this.openCoverMenu('more'),this.cover);
+        this.button('level-picker','关卡选择',772,464,158,36,()=>this.openCoverMenu('levels'),this.cover);
+        this.pixel(this.text('selected-level','',390,464,270,24,13,this.cover),13).horizontalAlign=Label.HorizontalAlign.CENTER;
+        this.buttons.more.node.active=this.buttons['level-picker'].node.active=false;
         this.text('welcome-tip','先看操作说明，准备好了就开店。',333,577,614,19,11,this.cover).horizontalAlign=Label.HorizontalAlign.CENTER;
         // The round record shares the tip's row: the tip shows before a round, the record after it.
         this.button('record','本局记录',561,566,158,36,()=>this.openRecord(),this.cover);
@@ -282,6 +286,10 @@ export class KitchenClient extends Component {
     };
     private onMouseUp=(e:MouseEvent)=>{if(e.button===2&&(e.target as HTMLElement)?.closest('canvas')){e.preventDefault();e.stopImmediatePropagation();}};
     private openRecord(){if(!sys.isNative&&this.state?.round_summary)window.dispatchEvent(new CustomEvent('kitchen-open-record',{detail:this.state.round_summary}));}
+    private openCoverMenu(kind:string){
+        if(sys.isNative||this.pending||!['ready','ended'].includes(this.state?.phase||''))return;
+        this.clearInput();window.dispatchEvent(new Event('kitchen-open-'+kind));
+    }
     private openHelp(){this.clearInput();if(this.touchLayout?.active)this.blockTouch(true);if(!sys.isNative)window.dispatchEvent(new Event('kitchen-open-help'));}
     private openConnection(){this.clearInput();if(this.touchLayout?.active)this.blockTouch(true);if(!sys.isNative)window.dispatchEvent(new Event('kitchen-open-connection'));}
     // Keyboard and touch share gameplay actions; the web shell only owns pointer gestures and layout.
@@ -293,10 +301,11 @@ export class KitchenClient extends Component {
             act:()=>this.pressInteract('act'),toss:()=>this.pressInteract('toss'),
             cancel:()=>this.clearInput(),dash:()=>this.dash(),block:(blocked:boolean)=>this.blockTouch(blocked),
             pause:()=>{this.clearInput();if(this.connected&&this.state?.phase==='running')this.post('/api/pause');},
-            resume:()=>this.controlButton('resume'),main:()=>this.controlButton('main'),
+            resume:()=>this.controlButton('resume'),main:()=>this.controlButton('main'),restart:()=>this.controlButton('reset'),
             settings:()=>this.openConnection(),help:()=>this.openHelp(),end:()=>this.controlButton('end'),
             record:()=>this.openRecord(),contribute:()=>this.controlButton('contribute'),bookmark:()=>{if(this.canInput())this.bookmark();},
-            level:(id:string)=>{if(this.connected&&!this.pending&&['ready','ended'].includes(this.state?.phase||'')&&this.state?.levels?.some((l:any)=>l.id===id))this.post('/api/level',{level:id});},
+            levels:()=>this.openCoverMenu('levels'),more:()=>this.openCoverMenu('more'),
+            level:(id:string)=>{if(this.connected&&!this.pending&&['ready','ended'].includes(this.state?.phase||'')&&this.state?.levels?.some((l:any)=>l.id===id))return this.post('/api/level',{level:id});},
             language:()=>{const i18n=(window as any).kitchenI18n;i18n?.setLanguage(i18n.language==='en'?'zh':'en');}
         };
         (window as any).kitchenControls=this.controls;
@@ -340,7 +349,7 @@ export class KitchenClient extends Component {
             mainEnabled:!!this.buttons.main?.enabled&&!this.pending,
             communicationEnabled:!!s?.communication?.allowed,endEnabled:['running','paused'].includes(s?.phase||'')&&this.connected&&!this.pending,
             recordEnabled:!!s?.round_summary&&s?.phase==='ended',
-            contribute:this.buttons.contribute?.node.active?{label:this.labelSources.get(this.buttons.contribute.label)||'',enabled:this.buttons.contribute.enabled}:null,levels:(s?.levels||[]).map((l:any)=>({id:l.id,name:l.name,selected:l.id===k?.level_id})),
+            contribute:s?.phase==='ended'&&s?.hosted?.contribution_offer?{label:this.labelSources.get(this.buttons.contribute.label)||'',enabled:this.buttons.contribute.enabled}:null,levels:(s?.levels||[]).map((l:any)=>({id:l.id,name:l.name,selected:l.id===k?.level_id})),
             levelEnabled:this.connected&&!this.pending&&['ready','ended'].includes(s?.phase||'')};
     }
     private touchOrder(order:any){
@@ -736,9 +745,10 @@ export class KitchenClient extends Component {
         return b;
     }
     private levelIds:string[]=[];
-    private tabOrder(){return [TAB_ORDER[0],...this.levelIds.map(id=>'level:'+id),...TAB_ORDER.slice(1)];}
+    private tabOrder(){return sys.isNative?[TAB_ORDER[0],...this.levelIds.map(id=>'level:'+id),...TAB_ORDER.slice(1)]:TAB_ORDER;}
     /** One button per level the server lists (menu order), laid out to fit the cover; rebuilt when the list changes. */
     private syncLevelButtons(levels:any[]){
+        if(!sys.isNative)return; // Web uses one bounded, scrollable picker instead of a row per level.
         const sorted=[...levels].sort((a,b)=>(a.menu_order??0)-(b.menu_order??0)),ids=sorted.map(l=>l.id);
         if(ids.join()===this.levelIds.join())return;
         for(const id of this.levelIds){
@@ -959,19 +969,17 @@ export class KitchenClient extends Component {
         return key===filled?'filled':'empty';
     }
     private closingSummary(k:any,won:boolean,summary?:any){
-        const share=summary?.contribution?.standard?.share;
-        const count=(status:string)=>k.orders.filter((o:any)=>o.status===status).length,target=k.goals.target_money;
+        const target=k.goals.target_money;
         // Each line ends in fixed text so its translation template cannot swallow the next line.
         return `净收入 ¥${k.money}（目标 ¥${target}）`+(won?'':`，还差 ¥${Math.max(0,target-k.money)} 元`)
-            +`\n完成 ${k.served} 单 · 超时 ${count('expired')} 单 · 关店时未完成 ${count('unresolved_at_close')} 单`
-            +(share?.human!=null&&share?.jeff!=null?`\n贡献：你 ${Math.round(share.human*100)}% · Jeff ${Math.round(share.jeff*100)}%`:'');
+            +`\n完成 ${k.served} 单`;
     }
     // The result screen's one button: the next level after a win, the same level otherwise.
     private nextRound(s:KitchenState):{id:string;label:string}{
         const levels=[...(s.levels||[])].sort((a:any,b:any)=>(a.menu_order??0)-(b.menu_order??0));
         const here=levels.findIndex((l:any)=>l.id===s.kitchen?.level_id),next=levels[here+1];
         if(!(s as any).won||here<0)return {id:s.kitchen?.level_id,label:'再来一次'};
-        return next?{id:next.id,label:`下一关 · ${next.name}`}:{id:levels[here].id,label:'再玩一遍'};
+        return next?{id:next.id,label:'下一关'}:{id:levels[here].id,label:'再玩一遍'};
     }
     // A short 3·2·1 on the result card, then one request chooses the level and starts at the same pace.
     private startNext(){
@@ -1757,7 +1765,7 @@ export class KitchenClient extends Component {
         this.labels['ai-status'].color=color(s.ai.error||(s.limits?.reached&&s.phase==='running')?COLORS.alert:COLORS.muted);
         this.syncLevelButtons(s.levels||[]);
         for(const level of s.levels||[]){
-            const id='level:'+level.id,b=this.buttons[id],sel=k.level_id===level.id;b.node.active=s.phase==='ready'||s.phase==='ended';
+            const id='level:'+level.id,b=this.buttons[id],sel=k.level_id===level.id;if(!b)continue;b.node.active=s.phase==='ready'||s.phase==='ended';
             this.writeLabel(b.label,level.name+(sel?' · 当前':''));
             if(b.selected!==sel){b.selected=sel;this.styleButton(id);}this.enable(id,!this.pending&&!sel);
         }
@@ -1771,6 +1779,24 @@ export class KitchenClient extends Component {
         this.buttons.record.node.active=s.phase==='ended'&&!!s.round_summary;
         const h=s.hosted,offer=s.phase==='ended'&&!!h?.contribution_offer;this.buttons.contribute.node.active=offer;
         if(offer){this.writeLabel(this.buttons.contribute.label,h.contributed?'已贡献':h.contribution_busy?'正在贡献…':'贡献本局');this.enable('contribute',!h.contributed&&!h.contribution_busy&&!this.pending);}
+        if(!sys.isNative){
+            // Reflow existing controls inside the original 736 x 464 panel. Artwork,
+            // 1280 x 720 scaling and the centre soup-pot frame remain unchanged.
+            const ended=s.phase==='ended',ready=s.phase==='ready';
+            const move=(id:string,x:number,y:number)=>this.buttons[id].node.setPosition(x-640,360-y);
+            this.buttons.more.node.active=ended;
+            this.buttons.reset.node.active=!ready;
+            this.buttons.language.node.active=!ended;
+            this.buttons['cover-connection'].node.active=this.buttons.help.node.active=!ended;
+            this.buttons.contribute.node.active=false; // Offered in More, under the same consent state.
+            this.buttons['level-picker'].node.active=ready||ended;
+            this.enable('level-picker',!this.pending);this.enable('more',!this.pending);
+            const current=(s.levels||[]).find((l:any)=>l.id===k.level_id);
+            this.labels['selected-level'].node.active=ready;this.set('selected-level',current?.name||'');
+            if(ended){move('main',553,506);move('reset',727,506);move('record',553,562);move('level-picker',727,562);}
+            else if(ready){move('main',466,520);move('cover-connection',640,520);move('help',814,520);move('level-picker',772,464);}
+            else{move('main',379,520);move('reset',553,520);move('cover-connection',727,520);move('help',901,520);}
+        }
         // The record stays one tap away (本局记录) instead of covering the result card.
         if(s.phase==='ended'&&this.endedSeen.round!==s.game_id)this.endedSeen={round:s.game_id,at:Date.now()};
         // Rounds close at the time limit: say so plainly, whatever the outcome.

@@ -113,6 +113,8 @@ def round_summary(k):
         'version': SUMMARY_VERSION,
         'level_id': k.c.get('level_id'),
         'result': {'served': k.served, 'money': k.money, 'target_money': goal.get('target_money'),
+                   'expired': sum(o.get('status') == 'expired' for o in k.orders),
+                   'unresolved_at_close': sum(o.get('status') == 'unresolved_at_close' for o in k.orders),
                    'reached_target': bool(k.won())},
         'chefs': list(CHEFS),
         'rows': rows,

@@ -737,7 +737,26 @@
     "贡献保存失败，请下载本局预览并稍后重试。": "Saving the contribution failed. Download the round preview and retry later.",
     "跨局记忆内容与预设沟通": "Past-round memory content and preset communication",
     "结算结果与报告的 token 用量（非账单）": "Outcomes and reported token usage (not a bill)",
-    "选择“暂不”时，也可以在结算画面点「贡献本局」只贡献这一局。没有开局前同意时，只含已有事实与首尾状态，缺失过程会标注。": "After Not now, you can contribute that round on the results screen. Without pre-start consent, only existing facts and initial/final states are included; missing history is marked."
+    "选择“暂不”时，也可以在结算画面点「贡献本局」只贡献这一局。没有开局前同意时，只含已有事实与首尾状态，缺失过程会标注。": "After Not now, you can contribute that round on the results screen. Without pre-start consent, only existing facts and initial/final states are included; missing history is marked.",
+    "关卡选择": "Level select",
+    "更多": "More",
+    "选择这一关": "Choose this level",
+    "当前": "Current",
+    "自愿参与，不贡献也能正常游玩。": "Participation is optional. You can play normally without contributing.",
+    "会保存模型服务、模型 ID，以及游戏状态、动作、模型决策和结果。": "Stores the model service and ID, game states, actions, model decisions and outcomes.",
+    "不保存 API Key、IP 或账号身份。": "Does not store API keys, IP addresses or account identity.",
+    "私有保存 30 天，可提前删除。": "Kept privately for 30 days; you can delete it earlier.",
+    "采集范围、用途与保存方式": "Collection, purpose and storage",
+    "只用于改进游戏和人机协作的评估方法，不公开原始数据。游戏没有玩家聊天输入框，记录的是局面、操作和模型的动作选择。": "Used only to improve the game and human-AI cooperation evaluation; raw data is not published. There is no player chat input: records contain game situations, actions and model choices.",
+    "本局模型服务与模型 ID（含自定义模型，注明浏览器上报、未经独立核验）": "This round’s model service and ID, including custom models, marked browser-reported and not independently verified",
+    "模型请求和返回按游戏状态、候选动作、选项与执行结果等结构化字段保存，不另存完整 API 请求或响应。": "Model requests and results are recorded as structured game states, candidate actions, choices and execution results, without additional verbatim API requests or responses.",
+    "可选：连接诊断": "Optional: connection diagnostics",
+    "另同意收集浏览器自报的请求耗时及受控错误类型（默认不选）": "Also allow browser-reported request timing and controlled error types (off by default)",
+    "同意每局自动贡献": "Automatically contribute each round",
+    "暂不贡献，继续": "Continue without contributing",
+    "自动贡献含提前结束的对局，可在设置中更改选择。": "Automatic contribution includes early endings; change your choice in Settings.",
+    "导出本次游玩的全部数据：从启动游戏起玩过的每一局，各含关卡、结果、贡献记录、全部标记、沟通记录和全部动作事件，并注明可用的模型服务与模型 ID。标记包含游戏时间和实际时间，可对应本地日志提取前后过程。不会附带 Key、接口地址、跨局记忆或完整请求。文件只下载到本机，不自动上传。": "Export every round played since opening the game, including its level, outcome, work record, bookmarks, communication and action events, with model service and ID where available. Bookmarks include game and wall time for matching local logs. No keys, endpoints, memory content or full requests are included. The file downloads locally and is not uploaded.",
+    "导出本次游玩的数据：从打开本页面起最近 20 局，各含关卡、结果、贡献记录、全部标记、沟通记录和全部动作事件，并注明可用的模型服务与模型 ID。标记包含游戏时间和实际时间，在线版没有可追溯的服务器对局日志。不会附带 Key、接口地址、跨局记忆或完整请求。文件只下载到本机，不自动上传。": "Export the latest 20 rounds since opening this page: levels, results, work records, bookmarks, communication and action events, with model service and ID where available. Bookmarks include game and wall time. The online version has no persistent game journal. No keys, endpoints, memory content or full requests are included. The file downloads locally and is not uploaded."
   },
   "templates": [
     [
@@ -1323,6 +1342,10 @@
     [
       "受输入长度限制，本局省略 {0} 局较旧记录。",
       "Input length limit: {0} older rounds omitted for this round."
+    ],
+    [
+      "超时 {0} 单 · 关店时未完成 {1} 单",
+      "Expired {0} · Unfinished at closing {1}"
     ]
   ]
 }

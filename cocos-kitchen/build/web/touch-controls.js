@@ -94,7 +94,7 @@
       <div class="touch-buttons"><button id="touch-dash" class="touch-round" type="button"></button><button id="touch-toss" class="touch-round" type="button"></button><button id="touch-action" class="touch-round" type="button"></button></div>
       <div id="touch-cancel" hidden></div>
       <div id="touch-ai"></div>
-      <section id="touch-menu" class="touch-menu" aria-labelledby="touch-menu-title" hidden><h2 id="touch-menu-title">ChefJeff</h2><p id="touch-menu-copy"></p><div id="touch-levels" class="touch-levels"></div><div class="touch-menu-actions"><button id="touch-main" class="btn primary" type="button"></button><button id="touch-settings" class="btn" type="button"></button><button id="touch-help" class="btn" type="button"></button></div><div class="touch-menu-secondary"><button id="touch-end" class="btn danger" type="button"></button><button id="touch-record" class="btn" type="button"></button><button id="touch-contribute" class="btn" type="button"></button><button id="touch-language" class="btn" type="button" data-no-i18n></button><button id="touch-fullscreen" class="btn" type="button"></button><button id="touch-menu-close" class="btn" type="button"></button></div><p id="touch-instructions"></p><p id="touch-fullscreen-tip" hidden></p></section>
+      <section id="touch-menu" class="touch-menu" aria-labelledby="touch-menu-title" hidden><h2 id="touch-menu-title">ChefJeff</h2><p id="touch-menu-copy"></p><div id="touch-levels" class="touch-levels"></div><div class="touch-menu-actions"><button id="touch-main" class="btn primary" type="button"></button><button id="touch-retry" class="btn" type="button"></button><button id="touch-settings" class="btn" type="button"></button><button id="touch-help" class="btn" type="button"></button></div><div class="touch-menu-secondary"><button id="touch-end" class="btn danger" type="button"></button><button id="touch-record" class="btn" type="button"></button><button id="touch-more" class="btn" type="button"></button><button id="touch-contribute" class="btn" type="button"></button><button id="touch-language" class="btn" type="button" data-no-i18n></button><button id="touch-fullscreen" class="btn" type="button"></button><button id="touch-menu-close" class="btn" type="button"></button></div><p id="touch-instructions"></p><p id="touch-fullscreen-tip" hidden></p></section>
     `;
     document.body.appendChild(ui);
     const portrait = document.createElement('div');
@@ -256,18 +256,22 @@
       el('touch-end').hidden = !['running', 'paused'].includes(state.phase);
       el('touch-end').disabled = !state.endEnabled;
       el('touch-record').hidden = !state.recordEnabled;
-      el('touch-contribute').hidden = !state.contribute;
+      const ended=state.phase==='ended';
+      el('touch-settings').hidden=el('touch-help').hidden=el('touch-language').hidden=ended;
+      el('touch-more').hidden=el('touch-retry').hidden=!ended;
+      el('touch-fullscreen').hidden=ended||!document.documentElement.requestFullscreen;
+      el('touch-instructions').hidden=ended;
+      el('touch-more').disabled=el('touch-retry').disabled=!!state.pending;
+      el('touch-contribute').hidden = !state.contribute || ended;
       if (state.contribute) { text('touch-contribute', state.contribute.label); el('touch-contribute').disabled = !state.contribute.enabled; }
       el('touch-menu-close').hidden = state.phase !== 'running' || !menuOpen;
       const levels = state.levels || [];
       const nextLevels = JSON.stringify([levels, state.levelEnabled]);
       if (nextLevels !== levelsSignature) {
         levelsSignature = nextLevels; el('touch-levels').replaceChildren();
-        for (const level of levels) {
-          const button = document.createElement('button'); button.type = 'button'; button.className = 'btn';
-          button.textContent = t(level.name); button.setAttribute('aria-pressed', String(!!level.selected));
-          button.disabled = !state.levelEnabled; button.addEventListener('click', () => controls?.level(level.id)); el('touch-levels').appendChild(button);
-        }
+        const button = document.createElement('button'); button.type = 'button'; button.className = 'btn';
+        button.textContent = t('关卡选择');button.disabled = !state.levelEnabled;
+        button.addEventListener('click', () => controls?.levels());el('touch-levels').appendChild(button);
       }
       el('touch-levels').hidden = !levels.length || !['ready', 'ended'].includes(state.phase);
       renderOrders(state.orders || []);
@@ -338,7 +342,7 @@
     }
     function language() {
       for (const [id, source] of Object.entries({ 'touch-pause': '暂停', 'touch-communication': '沟通', 'touch-bookmark': '标记',
-        'touch-menu-toggle': '菜单', 'touch-settings': '设置', 'touch-help': '操作说明', 'touch-end': '结束本局', 'touch-record': '本局记录',
+        'touch-menu-toggle': '菜单', 'touch-settings': '设置', 'touch-help': '操作说明', 'touch-end': '结束本局', 'touch-record': '本局记录', 'touch-retry': '重新开局', 'touch-more': '更多',
         'touch-fullscreen': '全屏', 'touch-menu-close': '返回厨房', 'touch-communication-close': '返回厨房', 'touch-cancel': '取消', 'touch-rotate-title': '请将手机横过来',
         'touch-rotate-copy': '横屏后点“继续经营”，厨房不会自动恢复。',
         'touch-instructions': '「操作」按下立即做事，拿着东西也一样；「扔」点按直接扔出，长按瞄准、松开投掷；瞄准时滑到「取消」可取消。',
@@ -418,7 +422,7 @@
       if (communicationOpen && !dock?.contains(event.target) && !el('touch-communication').contains(event.target)) communication(false);
     }, true);
     el('touch-bookmark').addEventListener('click', () => controls?.bookmark());
-    for (const [id, method] of [['touch-settings', 'settings'], ['touch-help', 'help'], ['touch-end', 'end'], ['touch-record', 'record'], ['touch-contribute', 'contribute']])
+    for (const [id, method] of [['touch-retry', 'restart'], ['touch-more', 'more'], ['touch-settings', 'settings'], ['touch-help', 'help'], ['touch-end', 'end'], ['touch-record', 'record'], ['touch-contribute', 'contribute']])
       el(id).addEventListener('click', () => { clearPointers(); controls?.[method](); });
     el('touch-language').addEventListener('click', () => controls?.language());
     el('touch-fullscreen').hidden = !document.documentElement.requestFullscreen;

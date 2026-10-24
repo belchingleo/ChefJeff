@@ -18,10 +18,47 @@
           "type": "boolean"
         },
         "consent_version": {
-          "const": "pilot-session-2026-10-v4"
+          "const": "pilot-session-2026-10-v5"
         },
         "decision_telemetry": {
           "type": "boolean"
+        },
+        "model_identity": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "provider": {
+                  "enum": [
+                    "jev",
+                    "openrouter-decision",
+                    "startlux",
+                    "deepseek",
+                    "qwen",
+                    "doubao",
+                    "gemini",
+                    "zhipu",
+                    "openrouter-chat",
+                    "compatible"
+                  ]
+                },
+                "model_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120,
+                  "pattern": "^(?!.*://)[^\\x00-\\x1f\\x7f]+$"
+                }
+              },
+              "required": [
+                "provider",
+                "model_id"
+              ],
+              "additionalProperties": false
+            }
+          ]
         }
       },
       "required": [
@@ -67,12 +104,49 @@
           "const": true
         },
         "consent_version": {
-          "const": "pilot-session-2026-10-v4"
+          "const": "pilot-session-2026-10-v5"
         },
         "consent_mode": {
           "enum": [
             "standing",
             "round"
+          ]
+        },
+        "model_identity": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "provider": {
+                  "enum": [
+                    "jev",
+                    "openrouter-decision",
+                    "startlux",
+                    "deepseek",
+                    "qwen",
+                    "doubao",
+                    "gemini",
+                    "zhipu",
+                    "openrouter-chat",
+                    "compatible"
+                  ]
+                },
+                "model_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120,
+                  "pattern": "^(?!.*://)[^\\x00-\\x1f\\x7f]+$"
+                }
+              },
+              "required": [
+                "provider",
+                "model_id"
+              ],
+              "additionalProperties": false
+            }
           ]
         }
       },
@@ -209,7 +283,7 @@
           "const": true
         },
         "consent_version": {
-          "const": "pilot-session-2026-10-v4"
+          "const": "pilot-session-2026-10-v5"
         }
       },
       "required": [

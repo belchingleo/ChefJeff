@@ -36,9 +36,9 @@ class ResearchHTTPTests(unittest.TestCase):
     def command(self,path,**body):
         return self.request('/api/'+path,{'game_id':self.game.game_id,'request_id':uuid.uuid4().hex,**body},self.token)
 
-    def begin(self,telemetry=False):
+    def begin(self,telemetry=False,model_identity=None):
         self.assertEqual(self.command('browser-ready',connected=True)[0],200)
-        self.assertEqual(self.command('contribution/consent',consent=True,consent_version=CONSENT_VERSION,decision_telemetry=telemetry)[0],200)
+        self.assertEqual(self.command('contribution/consent',consent=True,consent_version=CONSENT_VERSION,decision_telemetry=telemetry,model_identity=model_identity)[0],200)
         status,data=self.command('start');self.assertEqual(status,200)
         return data['receipt']
 
@@ -71,6 +71,50 @@ class ResearchHTTPTests(unittest.TestCase):
         with self.game.lock:
             self.game.stop_event.set();self.game.wake.set()
         return self.begin(True)
+
+    def test_custom_model_identity_persists_with_states_and_decisions(self):
+        with self.game.lock:
+            self.game.stop_event.set();self.game.wake.set()
+        identity={'provider':'compatible','model_id':'studio/not-in-presets-v2:fast'}
+        receipt=self.begin(True,identity)
+        initial=self.game.store.download(receipt['id'],receipt['deletion_token'])
+        self.assertEqual(initial['conditions']['model_identity']['model_id'],identity['model_id'])
+        self.browser_answer('wait')
+        self.assertEqual(self.command('end')[0],200)
+        # A newly armed model belongs to the next round, never the finished one.
+        other={'provider':'openrouter-chat','model_id':'other/new-model'}
+        self.assertEqual(self.command('contribution/consent',consent=True,consent_version=CONSENT_VERSION,model_identity=other)[0],200)
+        status,data=self.request('/api/contribution/download',{k:receipt[k] for k in ('id','deletion_token')})
+        self.assertEqual(status,200);r=data['record'];validate_record(r)
+        self.assertEqual(r['conditions']['model_identity'],{**identity,'interface':'chat_completions','source':'browser-reported','verified':False})
+        self.assertTrue(any(e['type']=='state_checkpoint' for e in r['events']))
+        self.assertTrue(any(e['type']=='ai_response' and e['payload']['choice']['key']=='wait' for e in r['events']))
+        self.assertNotIn('api_key',json.dumps(r))
+
+    def test_manual_model_metadata_requires_current_consent_and_cannot_relabel_saved_round(self):
+        self.assertEqual(self.command('browser-ready',connected=True)[0],200)
+        self.assertEqual(self.command('start')[0],200)
+        self.assertEqual(self.command('end')[0],200)
+        identity={'provider':'openrouter-decision','model_id':'lab/custom-decision'}
+        self.assertEqual(self.command('contribution/save',consent=True,consent_version='pilot-session-2026-10-v4',model_identity=identity)[0],400)
+        status,data=self.command('contribution/save',consent=True,consent_version=CONSENT_VERSION,model_identity=identity)
+        self.assertEqual(status,200);receipt=data['receipt']
+        self.assertEqual(self.command('contribution/save',consent=True,consent_version=CONSENT_VERSION,model_identity={'provider':'compatible','model_id':'changed-after-round'})[0],200)
+        saved=self.game.store.download(receipt['id'],receipt['deletion_token'])
+        self.assertEqual(saved['conditions']['model_identity']['model_id'],'lab/custom-decision')
+        self.assertEqual(saved['conditions']['model_identity']['interface'],'systemone')
+
+    def test_model_descriptor_rejects_connection_secrets_and_verification_claims(self):
+        for identity in [
+            {'provider':'compatible','model_id':'model','api_key':'synthetic-secret'},
+            {'provider':'compatible','model_id':'model','base_url':'https://private.example'},
+            {'provider':'compatible','model_id':'model','verified':True},
+            {'provider':'unknown','model_id':'model'},
+            {'provider':'compatible','model_id':'https://private.example/model'},
+        ]:
+            with self.subTest(identity=identity):
+                self.assertEqual(self.command('contribution/consent',consent=True,consent_version=CONSENT_VERSION,model_identity=identity)[0],400)
+                self.assertIsNone(self.game.research_armed)
 
     def saved_null_action_response(self, receipt, choice, applied):
         status,data=self.request('/api/contribution/download',{

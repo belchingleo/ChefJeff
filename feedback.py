@@ -12,7 +12,7 @@ EVENTS = {'order','action_start','action_done','interrupted','arrival_conflict',
 
 
 HISTORY_LIMIT = 100  # finished rounds kept per play session; older rounds stay in the local run logs
-EXCLUDED = ['API keys', 'endpoint and model text', 'absolute paths', 'raw model responses',
+EXCLUDED = ['API keys', 'endpoint addresses', 'absolute paths', 'raw model responses',
             'request snapshots', 'cross-round memory content', 'free-text messages']
 BOOKMARK_POLICY = {'schema_version': 1, 'merge_window_seconds': 5,
                    'merge_clock': 'server_monotonic_real_time',
@@ -56,7 +56,8 @@ def round_export(session, status):
                         'expired': count('expired'), 'unresolved_at_close': count('unresolved_at_close'),
                         'burns': getattr(k, 'burns', 0), 'fires': getattr(k, 'fires', 0)},
             'round_record': session.round_record() if k.ended else None,
-            'conditions': {'cross_round_memory': memory_condition(session)},
+            'conditions': {'cross_round_memory': memory_condition(session),
+                           'model_identity': model_condition(session)},
             'api': {'calls': ai.calls if ai else 0, 'successful_responses': ai.successes if ai else 0,
                     'request_or_parse_errors': ai.error_count if ai else 0,
                     'stale_or_cancelled_responses': ai.stale_count if ai else 0,
@@ -81,6 +82,11 @@ def memory_condition(session):
             'source': 'local-runtime'}
 
 
+def model_condition(session):
+    from research_record import model_condition as reported
+    return reported(session)
+
+
 def play_export(session):
     """Everything allowlisted from this play session: every round since the game (or page) opened."""
     rounds = deepcopy(session.history)
@@ -99,7 +105,7 @@ def play_export(session):
                        'api_calls': sum(r['api']['calls'] for r in rounds)},
             'rounds': rounds,
             'bookmark_policy': dict(BOOKMARK_POLICY),
-            # No user-provided model/base URL, path, notes, memory or payload.
+            # Model metadata is separate from connection secrets, endpoints and payloads.
             'excluded': list(EXCLUDED),
             'coverage': f'Every round of this play session (up to the latest {getattr(session, "history_limit", HISTORY_LIMIT)}), each with its '
                         'summary, work record, all bookmarks, messages and every allowlisted game event. '

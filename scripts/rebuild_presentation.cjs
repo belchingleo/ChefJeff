@@ -35,6 +35,10 @@ for(const name of ['KitchenAudio','LevelOneArt','KitchenClient']){
  const start=starts[index].index,end=index+1<starts.length?starts[index+1].index:content.length;
  content=content.slice(0,start)+output+'\n'+content.slice(end);
 }
+// Creator's generated prerequisite footer contains trailing whitespace. Normalize
+// only that boilerplate, leaving all game-module strings untouched.
+const footer=content.lastIndexOf('\n(function(r) {');
+if(footer>=0)content=content.slice(0,footer)+content.slice(footer).replace(/[ \t]+$/gm,'');
 fs.writeFileSync(bundle,content);
 // Hashed names are cached for a year, so changed content needs a new name all the way up to index.html:
 // index.<v>.js and config.<v>.json (bundleVers.main) -> settings.<s>.json -> application.<a>.js -> index.html.
@@ -52,7 +56,12 @@ if(old){
  const app=built('.',/^application\.[0-9a-f]{5}\.js$/);
  const appText=fs.readFileSync(app,'utf8').replace(path.basename(settingsFile),path.basename(settingsTo));
  fs.writeFileSync(app,appText);const appTo=rename(app,tag(appText));
+ // The root bootstrap imports application.<hash>.js; updating index.html alone
+ // leaves it requesting a removed application file and the kitchen never loads.
+ const boot=built('.',/^index\.[0-9a-f]{5}\.js$/);
+ const bootText=fs.readFileSync(boot,'utf8').replace(/application\.[0-9a-f]{5}\.js/g,path.basename(appTo));
+ fs.writeFileSync(boot,bootText);const bootTo=rename(boot,tag(bootText));
  const page=path.join(web,'index.html');
- fs.writeFileSync(page,fs.readFileSync(page,'utf8').replace(path.basename(app),path.basename(appTo)));
+ fs.writeFileSync(page,fs.readFileSync(page,'utf8').replace(path.basename(app),path.basename(appTo)).replace(path.basename(boot),path.basename(bootTo)));
 }
 console.log('Recompiled presentation/client scripts; reviewed scene, engine and component UUID retained.');

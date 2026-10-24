@@ -119,7 +119,7 @@ class HostedSession(GameSession):
         self.usage_visit_reported = False
         self.usage_play_reported = False
         self.release = release if release is not None else release_info()
-        self.setting = None  # Export contains no provider URL/model text.
+        self.setting = None  # Connection secrets and endpoints remain browser-owned.
         self.jev_gate = threading.Lock()
         self.jev_receipts = OrderedDict()  # Sanitized answers/statuses only, never keys.
         self.jev_last_check = float('-inf')
@@ -216,7 +216,7 @@ class HostedSession(GameSession):
 
     def _command(self, path, body):
         if path == '/api/contribution/consent':
-            if set(body) - {'game_id', 'request_id', 'consent', 'consent_version', 'decision_telemetry'}:
+            if set(body) - {'game_id', 'request_id', 'consent', 'consent_version', 'decision_telemetry', 'model_identity'}:
                 return 400, {'error': '同意字段无效。'}
             if type(body.get('consent')) is not bool or body.get('consent_version') != CONSENT_VERSION or type(body.get('decision_telemetry', False)) is not bool:
                 return 400, {'error': '请阅读并选择本版数据说明。'}
@@ -224,7 +224,13 @@ class HostedSession(GameSession):
                 if not self.store: return 503, {'error': '未开启数据贡献。'}
                 if self.phase not in ('ready', 'paused', 'ended'):
                     return 409, {'error': '自动贡献需在下一局开始前确认。'}
-                self.research_armed = {'decision_telemetry': body.get('decision_telemetry', False)}
+                from research_record import reported_model_identity
+                try:
+                    identity = reported_model_identity(body.get('model_identity'))
+                except ValueError as error:
+                    return 400, {'error': str(error)}
+                self.research_armed = {'decision_telemetry': body.get('decision_telemetry', False),
+                                       'model_identity': identity}
             else:
                 self.research_armed = None
                 if self.research_active and self.phase in ('running', 'paused') and self.receipt_round == self.game_id and self.store:
@@ -250,6 +256,13 @@ class HostedSession(GameSession):
             if mode not in ('round', 'standing'):
                 return 400, {'error':'请先明确同意数据用途和保存期限。'}
             if self.receipt_round != self.game_id:
+                from research_record import reported_model_identity
+                try:
+                    identity = reported_model_identity(body.get('model_identity'))
+                except ValueError as error:
+                    return 400, {'error': str(error)}
+                if self.session_log and self.session_log.round_id == self.game_id and not getattr(self.session_log, 'model_identity', None):
+                    self.session_log.model_identity = identity
                 try:
                     self.receipt = self.store.save({**pilot_record(self), 'consent_mode':mode})
                 except (ValueError, OSError, sqlite3.Error):
@@ -294,6 +307,8 @@ class HostedSession(GameSession):
             self.round_memory_condition = None
             self.research_telemetry = bool(self.research_armed and self.research_armed['decision_telemetry'])
             self.research_error = None
+            # Freeze this round's consented metadata before the first disk snapshot.
+            self.session_log.model_identity = deepcopy((self.research_armed or {}).get('model_identity'))
             if self.research_armed and self.store:
                 try:
                     self.receipt = self.store.save({**pilot_record(self), 'consent_mode': 'standing'})
@@ -334,8 +349,8 @@ FIELDS = {
     '/api/usage': {'first_visit', 'first_play'},
     '/api/model/jev': {'api_key','consent','consent_version','test','id','memory'},
     '/api/contribution/preview': set(),
-    '/api/contribution/consent': {'consent', 'consent_version', 'decision_telemetry'},
-    '/api/contribution/save': {'consent', 'consent_version', 'consent_mode'},
+    '/api/contribution/consent': {'consent', 'consent_version', 'decision_telemetry', 'model_identity'},
+    '/api/contribution/save': {'consent', 'consent_version', 'consent_mode', 'model_identity'},
     '/api/browser-ready': {'connected'}, '/api/start': {'speed'}, '/api/pause': {'reason'},
     '/api/resume': set(), '/api/end': set(), '/api/reset': set(), '/api/restart': set(),
     '/api/level': {'level'}, '/api/next': {'level'}, '/api/limits': {'max_calls'}, '/api/export-run': set(),

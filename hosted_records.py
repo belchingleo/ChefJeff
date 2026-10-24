@@ -9,7 +9,7 @@ import sqlite3
 import time
 
 RETENTION_SECONDS = 30 * 86400
-CONSENT_VERSION = 'pilot-session-2026-10-v4'
+CONSENT_VERSION = 'pilot-session-2026-10-v5'
 
 
 def pilot_record(session):

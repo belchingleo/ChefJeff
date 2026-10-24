@@ -12,6 +12,8 @@ In the experimental phone touch layout, orders form a 112 CSS-pixel-wide vertica
 
 ## Interaction and language
 
+The ready and result cards retain the original 1280×720 design coordinates, 736×464 panel, chef sprites and centre soup-pot artwork. Level selection is one entry that opens a bounded, scrollable list. The result card leads with next/restart, followed by round record and level selection; settings, controls, language and contribution move into More. Detailed order outcomes and contribution statistics remain in the existing round-record dialog, opened only by the player. Hosted contribution consent shows its key collection facts first and folds the full terms and optional timing diagnostics.
+
 Selection outlines, hints and Space actions share a single target. Keyboard movement takes over from clicking, and unavailable targets explain why an action cannot run. Workstation progress, heat countdowns, chopping/washing effects and collision feedback reflect authoritative game state.
 
 English and Chinese UI share an explicit translation catalog. Explanatory documents present English first, then Chinese. Keep credential storage and contribution consent language accurate for the local versus hosted runtime. Model names and actor IDs are identifiers, not translated labels.
@@ -35,6 +37,8 @@ ChefJeff 用温暖的像素厨房，让玩家在移动中看清订单、工位�
 试验版手机触控布局将订单放在左侧宽 112 CSS 像素的纵向列，支持上下滚动。每张卡片保留菜名、倒计时、材料图标和耐心条；材料精灵缺失时改为文字标签。桌面订单横栏保持不变。
 
 ## 交互与语言
+
+开局与结算沿用原有 1280×720 设计坐标、736×464 面板、人物和中间汤锅。关卡收为一个入口，点击打开限高可滚动列表。结算以“下一关／重新开局”为主要操作，“本局记录／关卡选择”为次要入口；设置、操作说明、语言和贡献收进“更多”。订单细项和贡献统计仍在原有本局记录弹窗，点击才打开。在线数据同意页先展示关键采集信息，完整条款和可选耗时诊断默认折叠。
 
 选框、提示和空格操作共用目标。键盘移动接管点击，目标不可用时解释原因。加工进度、加热倒计时、切菜／洗碗特效和碰撞反馈对应权威游戏状态。
 

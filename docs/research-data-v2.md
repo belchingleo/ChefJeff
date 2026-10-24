@@ -102,7 +102,7 @@ python3 scripts/research_export.py --database /var/lib/chefjeff/contributions.sq
 | state.ground / projectiles / dining | 地面物、飞行物、用餐盘及归还时间 | position/from/to 为引擎格；started/lands_at/returns_at 为游戏秒；handoff_id 连接实际交接 |
 | state.orders | id、dish、arrival、deadline、status | 时刻为游戏秒；保留实际订单规则及计划，pending/served/expired/unresolved_at_close 与 future 分开 |
 | resolved_config / config_hash / config_projection_hash | 白名单游戏配置 / 原引擎配置摘要 / 实际安全投影摘要 | 排除运行时 overrides 和未声明 params；实际规则已在强类型配置中展开。原 hash 不用于宣称安全投影逐字等于原包 |
-| conditions.* | 规则/输入版本、接口、请求间隔/超时/年龄/调用上限、记忆条件、可选测量状态 | memory 是 browser-reported；不存内容、接口 URL、自定义模型名；model_parameters 的 sampling/reasoning/safety/upstream_adapter 明确为 null（not_collected_from_browser），不把默认值当成真实参数；model_identity=null，未验证/未采集 |
+| conditions.* | 规则/输入版本、接口、请求间隔/超时/年龄/调用上限、记忆条件、可选测量状态 | memory 是 browser-reported；不存记忆内容或接口 URL；model_parameters 的 sampling/reasoning/safety/upstream_adapter 明确为 null（not_collected_from_browser），不把默认值当成真实参数；model_identity 保存本局 provider、model_id、interface、source=browser-reported、verified=false；没有上报时为 null，不从预设猜补 |
 | termination.game_condition | round_limit / fire_loss / none_observed / in_progress | 与 aborted、won、会话关闭原因分开；达到目标本游戏不会自动关店，不虚构 goal 结束 |
 | termination.session_close | reason + source=server，可为 null | 只写系统观察到的手动/重开/下一关/关闭请求/回收/正常关服/异常；null 不填“主动退出” |
 | termination.last_game_time_ms / last_event_seq / final_state_seq / confirmed | 终点游戏时间、最终序号、可用终局状态、关闭是否确认 | 未确认的开局保留记录不冒充完整局 |
@@ -136,3 +136,10 @@ CLI 私有导出是管理员明确创建的外部副本，临时文件 0600 且 
 - 六条真实引擎的合成完整轨迹（各 180 秒）均无事件丢失，数据量和内存见测量文件；没有付费模型调用。
 - 发布包检查了全部新增运行时模块、六份 schema、私有 CLI 和接口文档。敏感标记审计无发现。
 - 本轮没有访问生产 15 局，没有线上部署，没有真人试玩验收；不据此作模型协作或研究结论。
+
+
+## 模型标识（同意版本 v5）
+
+每局保存浏览器实际配置的模型服务与模型 ID，含预设列表之外的自定义模型。开局前同意时随声明传入，在创建开局记录前固定；事后单局贡献使用浏览器为该局冻结的配置，结算后更换设置不改写旧局。标记来源为 browser-reported、verified=false，不声称独立验证底层模型。游戏状态、动作、候选项、模型选择和执行结果继续按既有结构采集；这里没有玩家聊天数据。
+
+API 输入 model_identity 只允许 provider、model_id 两个字段，不接受 Key、接口地址或客户端的核验声明。记录中补上 interface（systemone/chat_completions）、source、verified。不同回合可用不同模型；不把后来的配置回填给缺失记录。新同意版本为 pilot-session-2026-10-v5，旧选择需重新确认；旧 v4 记录、下载、删除与导出继续兼容。

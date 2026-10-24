@@ -29,6 +29,7 @@ function harness(saved=null, fail=false, gameState={game_id:'round',phase:'ready
   if(u.pathname==='/api/model/request')return new Response(JSON.stringify({request:modelTask}));
   if(u.pathname==='/api/interact')return new Response(JSON.stringify({ok:true,state:JSON.parse(JSON.stringify(gameState))}));
   if(u.pathname==='/api/model/jev')return new Response(JSON.stringify({answer:{choice:'wait',sprint:false,usage:{input_tokens:3,output_tokens:4}}}));
+  if(u.pathname==='/api/contribution/save')return new Response(JSON.stringify({receipt:{id:'synthetic-record',deletion_token:'synthetic-receipt',expires_at:'2099-01-01T00:00:00Z'}}));
   return new Response('{"ok":true}');
  };
  const w={fetch:native,chefjeffProviders,addEventListener:(name,fn)=>{listeners[name]=fn;},dispatchEvent:e=>{listeners[e.type]?.(e);}};
@@ -123,6 +124,24 @@ function checkClientDiagnostics(fromSource){
  const error=console.error;console.error=()=>{};
  try{client.frame=()=>{throw new Error('boom');};for(let i=0;i<3;i++)client.update(.016);}finally{console.error=error;}
  assert.equal(client.loopErrors.length,1);assert.equal(client.loopErrors[0].message,'boom');assert.equal(client.loopErrors[0].count,3);
+}
+
+async function checkModelIdentity(){
+ const config={provider:'compatible',base_url:'https://custom.example/v1',model:'lab/not-in-presets:fast',api_key:key,remember:true};
+ const game={game_id:'identity-round',phase:'ready',limits:{},hosted:{contribution_enabled:true},connection:{editable:true}};
+ const h=harness(config,false,game);await h.w.fetch('/api/state');h.listeners.DOMContentLoaded();h.elements['ask-auto'].onclick();
+ await h.w.fetch('/api/start',{method:'POST',body:JSON.stringify({game_id:game.game_id})});
+ const sent=JSON.parse(h.calls.find(c=>new URL(c.url,'https://kitchen.example').pathname==='/api/contribution/consent').init.body);
+ assert.deepEqual(sent.model_identity,{provider:config.provider,model_id:config.model});
+ assert(!JSON.stringify(sent).includes(key));assert(!JSON.stringify(sent).includes('custom.example'));
+ game.phase='running';await h.w.fetch('/api/state');game.phase='ended';await h.w.fetch('/api/state');
+ await h.w.fetch('/api/connection',{method:'POST',body:JSON.stringify({...config,model:'changed-after-round'})});
+ h.elements['contribution-save'].onclick();await new Promise(resolve=>setImmediate(resolve));
+ const saved=JSON.parse(h.calls.find(c=>new URL(c.url,'https://kitchen.example').pathname==='/api/contribution/save').init.body);
+ assert.deepEqual(saved.model_identity,{provider:config.provider,model_id:config.model},'manual contribution keeps the model used during the round');
+ const h2=harness(config,false,{...game,phase:'ready'});await h2.w.fetch('/api/state');h2.listeners.DOMContentLoaded();h2.elements['ask-later'].onclick();
+ await h2.w.fetch('/api/start',{method:'POST',body:'{}'});
+ for(const call of h2.calls.filter(c=>new URL(c.url,'https://kitchen.example').origin==='https://kitchen.example'))assert(!call.init.body?.includes(config.model),'no unconsented model identity upload');
 }
 
 async function checkClientInteractions(fromSource){
@@ -612,6 +631,7 @@ function settingsHarness(){
  detail.connection.editable=true;ui.listeners.get('kitchen-state')({detail});
  assert.equal(ui.el('api-connect').disabled,false);assert.equal(ui.el('api-key').value,key);
  console.log('Browser transport and settings: credential isolation, session retry/release, editable drafts and guarded connection checks passed.');
+ await checkModelIdentity();
  await checkClientInteractions(false);
  await checkClientTouchBridge(false);
  checkClientOrderBridge(false);
