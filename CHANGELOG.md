@@ -12,6 +12,9 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 ### Hosted usage statistics
 - Add persistent aggregate usage counts, including round starts/completions, manual endings, capacity rejections and per-level results; keep ending-specific duration histograms and a live running-session count. Estimate visiting/playing browsers with two local yes/no flags, without generating identifiers or storing IPs, credentials or individual analytics events. Add a loopback-only operator endpoint and CLI, with counting and privacy limits documented in both languages.
 
+### Research records
+- A consented round whose final record could not be written to the database is no longer shown as contributed: the result screen says the contribution failed, and the save is retried once. Before this, such rounds kept only their opening snapshot while the page said they were saved. Wait, continue and stale model answers no longer leave empty action links in event payloads, which had blocked those final saves. Rounds already stored with only an opening snapshot stay as they are, marked incomplete.
+
 ### Jeff (the AI teammate)
 - Decision presets now support vendor request fields in both clients, including connection probes. StartLux sends `allow_none: false` because Bamboo enables null choices by default; replies with a null action or sprint remain rejected. The preset disables thinking by default; game response deadlines are unchanged.
 - Online connection tests now send two decision options and display the provider's short error reason with the key redacted. A chat reply without sprint means no sprint, matching the local game.
@@ -115,6 +118,9 @@ First private release: a local browser game with three playable maps and player-
 
 ### 在线使用统计
 - 增加持久化使用汇总，包括实际开局／完成、手动结束、名额拒绝和分关卡结果，并按结束方式保存时长区间，显示当前运行会话数。用浏览器中两个是／否标记估算访问／试玩浏览器数量，不生成独立编号，不保存 IP、凭据或逐条统计事件。增加仅服务器本机可读的接口和查询脚本，中英文文档写明口径与隐私限制。
+
+### 研究记录
+- 已同意贡献的一局，如果结束时完整记录没能写进数据库，不再显示“已贡献”：结算画面会提示贡献失败，并重试保存一次。此前这类对局只留下开局快照，页面却显示已保存。AI 选择等待、继续或回复过时的情况，不再在事件内容里留下空的动作关联，这正是此前结束保存被拒的原因。已经只存了开局快照的历史记录保持原样，标记为不完整。
 
 ### Jeff（AI 队友）
 - 决策预设的额外请求字段同时支持本地版、在线版和连接测试。Bamboo 默认允许空选择，StartLux 预设显式发送 `allow_none: false`；返回空动作或空冲刺选择时仍拒绝执行。预设默认关闭思考，游戏接受回复的时限不变。

@@ -98,6 +98,8 @@ const guard=setTimeout(()=>{console.error('Automatic contribution test did not c
  h.release();await next;assert(h.calls.some(c=>c.url==='/api/next'));
  assert(h.calls.findIndex(c=>c.url==='/api/contribution/save')<h.calls.findIndex(c=>c.url==='/api/next'));
  h=harness({fail:true});await h.publish({});h.answer(true);await h.publish({phase:'ended'});await flush();
+ // A refused save (e.g. the final record never reached disk) is shown on the result screen, never as contributed.
+ assert(h.el('contribution-badge').textContent.startsWith('自动贡献失败'),h.el('contribution-badge').textContent);
  await h.w.chefjeffHostedRequest('/api/next',{game_id:'round-a',level:'level-2'});assert(h.el('contribution-status').textContent.includes('失败'));
  h=harness({delay:true});await h.publish({});h.answer(true);await h.publish({phase:'ended'});await flush();
  const timedNext=h.w.chefjeffHostedRequest('/api/next',{game_id:'round-a',level:'level-2'});await flush();
