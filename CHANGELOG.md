@@ -16,6 +16,7 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - A consented round whose final record could not be written to the database is no longer shown as contributed: the result screen says the contribution failed, and the save is retried once. Before this, such rounds kept only their opening snapshot while the page said they were saved. Wait, continue and stale model answers no longer leave empty action links in event payloads, which had blocked those final saves. Rounds already stored with only an opening snapshot stay as they are, marked incomplete.
 
 ### Jeff (the AI teammate)
+- Model input `en-v4`: joining the other chef's chopping or washing, walking to a floor tile and the start of a throw now reach Jeff in English. Before, these labels and events were partly Chinese (for example `一起切配 F2 (共享进度)`), so rounds recorded with `en-v3` show them that way.
 - Decision presets now support vendor request fields in both clients, including connection probes. StartLux sends `allow_none: false` because Bamboo enables null choices by default; replies with a null action or sprint remain rejected. The preset disables thinking by default; game response deadlines are unchanged.
 - Online connection tests now send two decision options and display the provider's short error reason with the key redacted. A chat reply without sprint means no sprint, matching the local game.
 - Add StartLux-Decision to decision presets locally and online via the third-party Bamboo Relay free testing quota: `https://api.bamboonode.dev/v1/decisions`, editable model `startlux-decision-27b-autothink`, key from https://bamboonode.dev/. The response follows Jev's systemone format; both clients send `think_mode: never` to disable thinking by default. No developer connection with a real key or full round has been tested with these defaults.
@@ -123,6 +124,7 @@ First private release: a local browser game with three playable maps and player-
 - 已同意贡献的一局，如果结束时完整记录没能写进数据库，不再显示“已贡献”：结算画面会提示贡献失败，并重试保存一次。此前这类对局只留下开局快照，页面却显示已保存。AI 选择等待、继续或回复过时的情况，不再在事件内容里留下空的动作关联，这正是此前结束保存被拒的原因。已经只存了开局快照的历史记录保持原样，标记为不完整。
 
 ### Jeff（AI 队友）
+- 模型输入升为 `en-v4`：加入对方的切配或洗碗、走到某个地面格子、开始抛递这几类选项和事件，现在都以英文发给 Jeff。之前它们部分是中文（例如 `一起切配 F2 (共享进度)`），所以按 `en-v3` 记录的对局里保留着这些中文。
 - 决策预设的额外请求字段同时支持本地版、在线版和连接测试。Bamboo 默认允许空选择，StartLux 预设显式发送 `allow_none: false`；返回空动作或空冲刺选择时仍拒绝执行。预设默认关闭思考，游戏接受回复的时限不变。
 - 在线版连接测试改为发送两个决策选项；显示服务商的简短报错原因并遮掉 Key。对话回复缺少冲刺字段时按不冲刺处理，与本地版一致。
 - 本地版和在线版的决策预设新增 StartLux-Decision，通过第三方中转 Bamboo Relay 提供免费测试额度：接口 `https://api.bamboonode.dev/v1/decisions`，模型 `startlux-decision-27b-autothink` 可编辑，在 https://bamboonode.dev/ 申请 Key。返回遵循 Jev 的 systemone 格式；两端均发送 `think_mode: never` 默认关闭思考。开发者未用真实 Key 验证这些默认设置，未实测整局。

@@ -23,6 +23,21 @@ class HostedTests(unittest.TestCase):
                 self.assertIsNotNone(s.relay)
             finally:s.close()
 
+    def test_browser_receives_english_join_label(self):
+        """The hosted payload is built by the same server code: joining the partner's chopping reads in English."""
+        s = HostedSession()
+        try:
+            s._command('/api/browser-ready', {'connected':True});self.assertEqual(s._command('/api/start', {})[0], 200)
+            k = s.k;k.stations['b1'].food = Food('shared-food');k.positions.update(human=(4,2.49), jeff=(3.15,3.3))
+            self.assertTrue(k.command('human', 'chop b1')[0]);k.advance(.01);s.tick()
+            for _ in range(200):
+                task = s.relay.request()
+                if task:break
+                time.sleep(.005)
+            self.assertEqual(task['payload']['questions']['next_action']['criteria']['chop b1'], 'Join chopping shared-food (shared progress)')
+            self.assertEqual([c for c in json.dumps(task['payload'], ensure_ascii=False) if ord(c) > 127], [])
+        finally:s.close()
+
     def test_kitchens_are_isolated_and_expire(self):
         sessions = Sessions(capacity=2, ttl=600, max_waiting=0)
         try:
