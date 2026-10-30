@@ -62,8 +62,8 @@ class ModelLanguageTests(unittest.TestCase):
         walk=next(a.key for a in k.actions('human') if a.key.startswith('go floor_'))
         self.assertTrue(k.command('human',walk)[0]);x,y=walk.split('_')[1:]
         self.assertEqual(self.request(k)['state']['kitchen']['chefs']['human']['task'],f'Walk to floor ({x},{y})')
-        k.chefs['jeff'].hand=Food('thrown','raw');self.assertTrue(k.command('jeff','throw counter4')[0])
-        self.assertIn('jeff started: Throw the held ingredient onto empty Counter 4',
+        k.chefs['jeff'].hand=Food('thrown','raw');self.assertTrue(k.command('jeff','throw right')[0])
+        self.assertIn('jeff started: Throw the held item right (lands at Counter 5)',
                       [e['message'] for e in self.request(k)['state']['recent_events']])
     def test_integers_booleans_action_keys_and_coordinates_unchanged(self):
         source={'criteria':{'put b1':'将手中食材放到案板 1'},'target':[4,3],'accepted':False,'remaining':.15,'nullable':None}
