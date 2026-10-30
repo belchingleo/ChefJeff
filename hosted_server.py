@@ -154,7 +154,9 @@ class HostedSession(GameSession):
             data = {**pilot_record(self), 'consent_mode': self.research_mode}
             if not self.store.update(self.receipt['id'], data):
                 self.research_active = False  # withdrawn or expired, never recreate
+            self.research_error = None
         except (ValueError, OSError, sqlite3.Error):
+            # The opening snapshot stays on disk, marked incomplete; the page must not call this round contributed.
             self.research_error = 'storage_failed'
 
     def command(self, path, body):
@@ -203,7 +205,7 @@ class HostedSession(GameSession):
                                'episode': record}
             state['release'] = self.release
             state['hosted'] = {'retention': 'session-only', 'idle_minutes': 10, 'contribution_enabled': self.store is not None,
-                               'contributed': self.receipt_round == self.game_id and self.phase == 'ended',
+                               'contributed': self.receipt_round == self.game_id and self.phase == 'ended' and not self.research_error,
                                'contribution_receipt': self.receipt if self.receipt_round == self.game_id else None,
                                'research_active': self.research_active and self.receipt_round == self.game_id, 'research_error': self.research_error}
             return state
@@ -278,6 +280,12 @@ class HostedSession(GameSession):
                 self.receipt_round = self.game_id
                 self.research_active = True
                 self.research_mode = mode
+                self.research_error = None
+            elif self.research_error:
+                # The finished round never reached disk: try again, and say so if it still fails.
+                self._persist_research()
+                if self.research_error:
+                    return 503, {'error': '贡献保存失败，请下载本局预览并稍后重试。'}
             return 200, {'receipt':self.receipt}
         if path == '/api/browser-ready':
             if self.phase not in ('ready', 'ended'): return 409, {'error': '请先结束当前对局。'}
