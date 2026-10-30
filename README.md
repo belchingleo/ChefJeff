@@ -2,7 +2,7 @@
 
 English · [中文](README.zh-CN.md)
 
-> **Online access update (2026-10-30):** The original domain, `chefjeff.online`, is undergoing ICP filing in China and is temporarily unavailable during review. **[Play now at chefjeff.belchingleo.online](https://chefjeff.belchingleo.online/).**
+> **Online access update (2026-10-30):** The original domain, `chefjeff.online`, is undergoing ICP filing in China and is temporarily unavailable during review. Play at **[China · Shanghai](https://chefjeff.belchingleo.online/)** or **[Overseas · Germany](https://global.belchingleo.online/)**.
 
 What can't be computed? We seem to have been asking this ever since computers appeared: what can a computer not do?
 My first answer was cooking. Does a computer know how to cook? Now we can ask: can an AI cook?
@@ -19,12 +19,12 @@ Where to start: [play online](#play-online) · [run it locally](#run-it-locally)
 
 ## Play online
 
-Open <https://chefjeff.belchingleo.online/> to play; nothing to install.
+Choose the [China site (Shanghai)](https://chefjeff.belchingleo.online/) or the [overseas site (Germany)](https://global.belchingleo.online/) to play; nothing to install.
 
 - Bring your own model key: choose a service under Settings → Connection and paste the key. By default the key stays in that page and your browser sends it straight to the provider; only Jev goes through the demo server, and only if you agree. The [model connection guide](https://chefjeff.belchingleo.online/model-guide.html) lists the services that work and roughly what a round costs.
 - Before your first round you are asked whether to contribute anonymous round data; you can change your mind at any time. Contributions are kept for 30 days and can be deleted with a deletion receipt; see [privacy and contact](https://chefjeff.belchingleo.online/privacy.html).
 - Use the keyboard on a computer, and touch controls on a phone held landscape (see [touch controls](#touch-controls-experimental)). On iPhone, choose Add to Home Screen in Safari's share menu and open it from there to play full screen.
-- The current demo server is in Shanghai, China. The number of kitchens open at once is limited, and a full kitchen asks you to come back shortly.
+- The game servers are in Shanghai and Germany; contributed round data and aggregate usage statistics are stored in Shanghai. The number of kitchens open at once is limited, and a full kitchen asks you to come back shortly.
 
 ---
 
