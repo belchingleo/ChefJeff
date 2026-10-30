@@ -1,0 +1,28 @@
+[Unit]
+Description=ChefJeff shared contribution and aggregate data
+After=network.target
+
+[Service]
+Type=simple
+User=chefjeff
+Group=chefjeff
+WorkingDirectory=/opt/chefjeff/current
+ExecStart=/usr/bin/python3 /opt/chefjeff/current/shared_server.py --port 8790 --data-dir /var/lib/chefjeff-data --credentials /etc/chefjeff/data-server.json
+Environment=PYTHONDONTWRITEBYTECODE=1
+Restart=on-failure
+RestartSec=3
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/chefjeff-data
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryMax=768M
+TasksMax=32
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

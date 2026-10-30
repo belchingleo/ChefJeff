@@ -109,6 +109,8 @@ def main():
     if not re.fullmatch(r'[0-9a-f]{40}', args.commit) or not re.fullmatch(r'[0-9a-f]{64}', args.package_sha256):
         parser.error('A full commit ID and package checksum are required.')
     current = Path('/opt/chefjeff/current')
+    if Path('/etc/systemd/system/chefjeff.service.d/zzzz-chefjeff-region.conf').exists():
+        parser.error('This server uses shared regional deployment. Use deploy/install_region.py; the fixed pilot updater cannot preserve its domain/data configuration.')
     site = Path('/etc/nginx/sites-available/chefjeff')
     if not current.is_symlink() or not current.resolve(strict=True).is_relative_to('/opt/chefjeff/releases'):
         parser.error('Existing reviewed release symlink is required.')

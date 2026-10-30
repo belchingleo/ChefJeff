@@ -18,7 +18,7 @@
           "type": "boolean"
         },
         "consent_version": {
-          "const": "pilot-session-2026-10-v5"
+          "const": "pilot-session-2026-10-v6"
         },
         "decision_telemetry": {
           "type": "boolean"
@@ -104,7 +104,7 @@
           "const": true
         },
         "consent_version": {
-          "const": "pilot-session-2026-10-v5"
+          "const": "pilot-session-2026-10-v6"
         },
         "consent_mode": {
           "enum": [
@@ -283,7 +283,7 @@
           "const": true
         },
         "consent_version": {
-          "const": "pilot-session-2026-10-v5"
+          "const": "pilot-session-2026-10-v6"
         }
       },
       "required": [
