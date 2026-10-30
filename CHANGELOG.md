@@ -17,6 +17,9 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - Settings has its own Data export page. It exports the whole play session: every round since the game started (online: since the page opened), each with its level, result, work record, bookmarks, messages, usage and every allowlisted action event, instead of only the current round's last 80 events.
 - Online version: after agreeing to the contribution terms, players can turn on automatic upload so every round that ends afterwards is contributed (30-day retention, as before) until they turn it off. The record notes the consent mode, the result card shows when it is on, and deletion receipts stay in the browser so uploads can be deleted later.
 
+### Jeff (the AI teammate)
+- Model input `en-v4`: joining the other chef's chopping or washing, walking to a floor tile and the start of a throw now reach Jeff in English. Before, these labels and events were partly Chinese (for example `一起切配 F2 (共享进度)`), so rounds recorded with `en-v3` show them that way.
+
 ## 0.6.0-beta.1 — 2026-10-01 · first public test release
 
 The game now runs on a data-driven core: five data models (map, recipes, orders, equipment, level) describe every level, and the engine has no per-level code.
@@ -71,6 +74,9 @@ First private release: a local browser game with three playable maps and player-
 - 结算后一键进入下一局：结算卡片留在厨房画面上（本局记录不再弹窗遮挡），只有一个主按钮，达成目标为「下一关」，否则为「再来一次」；空格、Enter、手柄 A/Start 或手机按钮都可触发，短暂 3·2·1 后按原节奏开局。卡片出现后的第一秒内忽略按键，避免最后一单连按时误跳过。
 - 设置中新增单独的「数据导出」页，导出本次游玩的全部数据：本机版从启动游戏起、在线版从打开页面起的每一局，各含关卡、结果、贡献记录、标记、沟通、调用用量和全部允许清单内的动作事件，不再只有当前局最近 80 条事件。
 - 在线版：同意贡献条款后可开启「以后每局结束自动上传」，此后每局结束自动贡献（仍保存 30 天），随时可关闭。记录注明同意方式，开启时结算卡片有提示，删除凭证保存在浏览器中，之后仍可删除。
+
+### Jeff（AI 队友）
+- 模型输入升为 `en-v4`：加入对方的切配或洗碗、走到某个地面格子、开始抛递这几类选项和事件，现在都以英文发给 Jeff。之前它们部分是中文（例如 `一起切配 F2 (共享进度)`），所以按 `en-v3` 记录的对局里保留着这些中文。
 
 
 ## 0.6.0-beta.1 — 2026-10-01 · 首次公开测试版

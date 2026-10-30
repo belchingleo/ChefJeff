@@ -371,7 +371,8 @@
     "煎鱼排": "Fried fish",
     "葱箱": "Scallion supply",
     "面条箱": "Noodle supply",
-    "鸡肉箱": "Chicken supply"
+    "鸡肉箱": "Chicken supply",
+    "一起洗碗（共享进度）": "Join washing dishes (shared progress)"
   },
   "templates": [
     [
@@ -781,6 +782,18 @@
     [
       "切好的{0}",
       "chopped {0}"
+    ],
+    [
+      "一起切配 {0}（共享进度）",
+      "Join chopping {0} (shared progress)"
+    ],
+    [
+      "走到地面({0},{1})",
+      "Walk to floor ({0},{1})"
+    ],
+    [
+      "{0}开始：{1}",
+      "{0} started: {1}"
     ]
   ],
   "actors": {

@@ -41,6 +41,30 @@ class ModelLanguageTests(unittest.TestCase):
         payload=next(d['payload'] for kind,d in rows if kind=='ai_request')
         self.assert_english(payload);self.assertEqual(payload['state']['input_language'],INPUT_LANGUAGE_VERSION)
         self.assertEqual(memory,original);self.assertIn('洗好了',k.events[-1]['message'])
+    def request(self,k):
+        rows=[];ai=DecisionLoop(k,SpatialJevClient(k.c,key='test'),lambda kind,data:rows.append((kind,data)),lambda text:None)
+        with patch('jev.threading.Thread'):ai.poll()
+        payload=next(d['payload'] for kind,d in rows if kind=='ai_request')
+        self.assert_english(payload);return payload
+    def test_mid_round_labels_are_english(self):
+        """Joining the partner's chopping, walking to a floor tile and throw starts only appear mid-round (were partly Chinese in en-v3)."""
+        # No shipped sink is shareable yet; the label is translated for when one is.
+        self.assertEqual(english_data('一起洗碗（共享进度）'),'Join washing dishes (shared progress)')
+        k=SpatialKitchen(load_config()|{'level':1,'spawn_seed':0,'round_seconds':500})
+        k.stations['b1'].food=Food('shared-food');k.positions.update(human=(4,2.49),jeff=(3.15,3.3))
+        self.assertTrue(k.command('human','chop b1')[0]);k.advance(.01)
+        payload=self.request(k)
+        self.assertEqual(payload['questions']['next_action']['criteria']['chop b1'],'Join chopping shared-food (shared progress)')
+        self.assertTrue(k.command('jeff','chop b1')[0])
+        self.assertIn('jeff started: Join chopping shared-food (shared progress) (travel',
+                      ' | '.join(e['message'] for e in self.request(k)['state']['recent_events']))
+        k=SpatialKitchen(load_config()|{'level':1,'spawn_seed':0,'round_seconds':500})
+        walk=next(a.key for a in k.actions('human') if a.key.startswith('go floor_'))
+        self.assertTrue(k.command('human',walk)[0]);x,y=walk.split('_')[1:]
+        self.assertEqual(self.request(k)['state']['kitchen']['chefs']['human']['task'],f'Walk to floor ({x},{y})')
+        k.chefs['jeff'].hand=Food('thrown','raw');self.assertTrue(k.command('jeff','throw counter4')[0])
+        self.assertIn('jeff started: Throw the held ingredient onto empty Counter 4',
+                      [e['message'] for e in self.request(k)['state']['recent_events']])
     def test_integers_booleans_action_keys_and_coordinates_unchanged(self):
         source={'criteria':{'put b1':'将手中食材放到案板 1'},'target':[4,3],'accepted':False,'remaining':.15,'nullable':None}
         result=english_data(source)
