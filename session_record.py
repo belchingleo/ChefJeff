@@ -24,6 +24,7 @@ import copy
 from datetime import datetime, timezone
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import platform
@@ -81,10 +82,11 @@ class SessionLog:
         self.action_links = {}
         self.candidate_catalog = {}
         self.termination = None
+        # Research logs observe the engine directly; local logs only take arrivals from it.
+        session.k._record_observer = self
         if self.research:
             from research_record import config
             self.research_config = config(session.k)
-            session.k._record_observer = self
 
     def __getattr__(self, name):
         # Journal-specific attributes (e.g. a file path) stay reachable through the log.
@@ -186,6 +188,11 @@ class SessionLog:
             # The file journal receives the same record: one stream, two views.
             envelope = {k: v for k, v in record.items() if k not in ('payload', 'type', 'source')}
             self.journal(kind if source == 'session' else 'event', {**original, **envelope})
+        if kind == 'action_start' and source == 'engine':
+            try:
+                self.throw_aim(original)
+            except Exception:
+                self.projection_errors += 1
         return record
 
     def _append(self, record, reserve=False):
@@ -241,7 +248,7 @@ class SessionLog:
         return self.state_ref
 
     def observe_event(self, event):
-        if self.closed:
+        if self.closed or not self.research:
             return
         try:
             before = self.state_ref if self.capture_observations else None
@@ -274,7 +281,7 @@ class SessionLog:
             self.projection_errors += 1
 
     def observe_input(self, data):
-        if self.closed:
+        if self.closed or not self.research:
             return
         try:
             from research_record import action, PERIOD_MS, code, point
@@ -301,8 +308,36 @@ class SessionLog:
             # A recorder failure must not change kitchen behavior; never retain exception text.
             self.projection_errors += 1
 
-    def item_transform(self, inputs, outputs):
+    def arrival(self, who, job, game_time_ms):
+        """The moment a chef starts working at its target. A chef's action_start is when it chose; a human's
+        press is already at the station, Jeff's choice is not, so only arrivals compare the two."""
         if self.closed:
+            return
+        try:
+            self('event', {'kind': 'arrival', 'actor': who, 'action_id': job.id, 'action': job.action.key,
+                           'station': job.action.target if job.action.target in self.session.k.stations else None,
+                           'position': getattr(self.session.k, 'positions', {}).get(who),
+                           'game_time_ms': game_time_ms})
+        except Exception:
+            self.projection_errors += 1
+
+    def throw_aim(self, event):
+        """Whether a throw that just started aims at the other chef, recorded the same way for both."""
+        k = self.session.k
+        who = event.get('actor')
+        job = k.chefs[who].job if who in k.chefs else None
+        if not job or job.id != event.get('action_id') or job.action.kind != 'throw':
+            return
+        other = 'jeff' if who == 'human' else 'human'
+        aim = job.action.expected[2:4]
+        partner = job.action.key == 'throw partner' or (
+            hasattr(k, 'positions') and len(aim) == 2 and math.dist(aim, k.positions[other]) <= 1e-6)
+        self('event', {'kind': 'throw_aim', 'actor': who, 'action_id': job.id, 'action': job.action.key,
+                       'receiver': other if partner else None, 'target': tuple(aim),
+                       'game_time_ms': round(k.time * 1000)})
+
+    def item_transform(self, inputs, outputs):
+        if self.closed or not self.research:
             return
         self('event', {'kind': 'item_transform', 'input_item_ids': inputs,
                        'output_item_ids': outputs, 'game_time_ms': round(self.session.k.time * 1000)})

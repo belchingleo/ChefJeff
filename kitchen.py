@@ -1025,6 +1025,10 @@ class Kitchen:
                         continue
                     if not self._begin_work(who, job):
                         continue
+                    observer = getattr(self, '_record_observer', None)
+                    if observer is not None:
+                        # Not an engine event: Jeff's recent events, sequence numbers and revisions stay as they were.
+                        observer.arrival(who, job, round((self.time-remaining)*1000))
                 rate = 1
                 if job.action.kind == 'extinguish':
                     # Spraying lowers the fire's own strength, which stays on the station (Overcooked 2's FightFire).

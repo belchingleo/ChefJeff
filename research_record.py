@@ -34,7 +34,8 @@ EVENT_TYPES = {'order', 'action_start', 'action_done', 'interrupted', 'arrival_c
                'served', 'wrong_dish', 'dish_rejected', 'plate_returned', 'ready', 'burn', 'fire',
                'fire_spread', 'fire_loss', 'expired', 'unresolved_at_close', 'round_end',
                'goal_unreachable', 'dropped', 'picked_up', 'swapped', 'manual_move', 'sprint',
-               'knocked', 'ground_nudge', 'route_replanned', 'position_resync', 'item_transform'}
+               'knocked', 'ground_nudge', 'route_replanned', 'position_resync', 'item_transform',
+               'arrival', 'throw_aim'}
 
 
 def code(value):
