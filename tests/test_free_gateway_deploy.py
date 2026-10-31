@@ -18,28 +18,96 @@ from shared_client import SharedClient
 
 
 class DeploymentTests(unittest.TestCase):
-    def test_failed_region_health_check_restores_old_link_and_only_restarts_game(self):
+    def activation_fixture(self,root):
+        previous=root/'old';previous.mkdir();new=root/'new';new.mkdir()
+        current=root/'current';current.symlink_to(previous)
+        override=root/'override.conf';work=root/'review';work.mkdir()
+        command='/usr/bin/python3 /opt/chefjeff/current/hosted_server.py --port 8780 --origin https://chefjeff.belchingleo.online --data-dir /var/lib/chefjeff --shared-config /etc/chefjeff/shared-client.json'
+        raw='{ argv[]='+command+' ; ignore_errors=no ; pid=456; }'
+        candidate=work/'free-region.conf';candidate.write_text('[Service]\nExecStart=\nExecStart='+command+' --free-model-gateway\n')
+        save(work,{'phase':'prepared','previous':str(previous),'release':str(new),
+            'manifest_sha':'synthetic','unit_sha':digest(candidate),'startup_snapshot':'old metadata only',
+            'startup_arguments':command.split(),'other_pids':{}})
+        return previous,new,current,override,work,raw
+
+    def test_failed_region_check_records_stage_rolls_back_and_can_retry_same_review(self):
         with tempfile.TemporaryDirectory() as d:
-            root=Path(d);previous=root/'old';previous.mkdir();new=root/'new';new.mkdir()
-            current=root/'current';current.symlink_to(previous)
-            override=root/'override.conf';work=root/'review';work.mkdir()
-            candidate=work/'free-region.conf';candidate.write_text('[Service]\nExecStart=reviewed\n')
-            import hashlib
-            save(work,{'phase':'prepared','previous':str(previous),'release':str(new),
-                'unit_sha':digest(candidate),'startup_snapshot':hashlib.sha256(b'original').hexdigest()})
+            root=Path(d);previous,new,current,override,work,raw=self.activation_fixture(root)
             calls=[]
+            def fail(site,folder,mark):
+                mark('public_fingerprint')
+                raise region.InstallError('unexpected_http_status',http_status=502,expected_status=200)
+            def props(unit,name):return raw if name=='ExecStart' else 'active'
             with patch.object(region,'CURRENT',current),patch.object(region,'OVERRIDE',override),\
-                 patch.object(region,'property_of',return_value='original'),patch.object(region,'run',side_effect=lambda *a:calls.append(a)),\
-                 patch.object(region,'wait_local'),patch.object(region,'verify',side_effect=ValueError('synthetic health failure')):
-                with self.assertRaises(ValueError):region.activate('cn',work,False)
+                 patch.object(region,'property_of',side_effect=props),patch.object(region,'run',side_effect=lambda *a:calls.append(a)),\
+                 patch.object(region,'wait_local'),patch.object(region,'verify',side_effect=fail) as verify,\
+                 patch.object(region,'public_release',return_value=(new,{'release':{'fingerprint':'synthetic'}})),\
+                 patch.object(region,'validate_import'):
+                with self.assertRaises(region.InstallError):region.activate('cn',work,False)
                 self.assertEqual(calls,[])
-                with self.assertRaises(ValueError):region.activate('cn',work,True)
-            self.assertEqual(current.resolve(),previous)
-            self.assertFalse(override.exists())
-            self.assertTrue(new.is_dir())
-            self.assertEqual(load(work)['phase'],'rolled-back')
+                output=io.StringIO()
+                with contextlib.redirect_stdout(output),self.assertRaises(region.InstallError):region.activate('cn',work,True)
+                self.assertEqual(current.resolve(),previous);self.assertFalse(override.exists())
+                state=load(work)
+                self.assertEqual(state['phase'],'rolled-back')
+                self.assertEqual(state['last_failure']['stage'],'public_fingerprint')
+                self.assertEqual(state['last_failure']['http_status'],502)
+                verify.side_effect=None
+                region.activate('cn',work,True)
+                self.assertEqual(load(work)['phase'],'active');self.assertEqual(current.resolve(),new)
+            self.assertTrue(previous.is_dir());self.assertTrue(new.is_dir())
             self.assertEqual([c for c in calls if c[:2]==('systemctl','restart')],
-                [('systemctl','restart','chefjeff.service')]*2)
+                [('systemctl','restart','chefjeff.service')]*3)
+
+    def test_changed_arguments_stop_before_switching_or_restarting(self):
+        with tempfile.TemporaryDirectory() as d:
+            previous,new,current,override,work,raw=self.activation_fixture(Path(d))
+            with patch.object(region,'CURRENT',current),patch.object(region,'OVERRIDE',override),\
+                 patch.object(region,'property_of',return_value=raw.replace('--port 8780','--port 9999')),patch.object(region,'run') as run:
+                with self.assertRaises(ValueError):region.activate('cn',work,True)
+                run.assert_not_called()
+            self.assertEqual(current.resolve(),previous);self.assertFalse(override.exists())
+
+    def test_service_user_import_failure_stops_before_any_live_change(self):
+        with tempfile.TemporaryDirectory() as d:
+            previous,new,current,override,work,raw=self.activation_fixture(Path(d))
+            with patch.object(region,'CURRENT',current),patch.object(region,'OVERRIDE',override),\
+                 patch.object(region,'property_of',return_value=raw),patch.object(region,'run') as run,\
+                 patch.object(region,'public_release',return_value=(new,{'release':{'fingerprint':'synthetic'}})),\
+                 patch.object(region,'validate_import',side_effect=region.InstallError('service_user_import_failed')):
+                with self.assertRaises(region.InstallError):region.activate('cn',work,True)
+                run.assert_not_called()
+            self.assertEqual(load(work)['phase'],'prepared');self.assertEqual(current.resolve(),previous)
+
+    def test_import_preflight_never_prints_untrusted_stderr_or_exception_text(self):
+        from subprocess import CompletedProcess
+        secret='synthetic-private-text-not-for-output'
+        result=CompletedProcess([],1,stdout='not JSON '+secret,stderr=secret)
+        with patch.object(region.subprocess,'run',return_value=result):
+            with self.assertRaises(region.InstallError) as error:region.validate_import('/public/release','expected')
+        self.assertEqual(error.exception.code,'service_user_import_failed')
+        self.assertNotIn(secret,json.dumps(error.exception.details))
+
+    def test_http_failure_keeps_actual_stage_and_is_not_hidden_by_session_cleanup_failure(self):
+        with tempfile.TemporaryDirectory() as d:
+            previous,new,current,override,work,raw=self.activation_fixture(Path(d))
+            current.unlink();current.symlink_to(new)
+            state=load(work);state['switched_monotonic_us']=1;save(work,state)
+            def props(unit,name):return '2' if name=='ExecMainStartTimestampMonotonic' else 'active'
+            calls=[]
+            def request(domain,path,*args,**kwargs):
+                calls.append(path)
+                return {'/healthz':(200,b'{}'),'/':(200,b'<aside id="free-model-picker"></aside><script>inline</script>'),
+                    '/api/session':(201,b'{"session":"synthetic-session"}'),'/api/state':(503,b'{}'),
+                    '/api/session/close':(500,b'{}')}[path]
+            stages=[]
+            with patch.object(region,'CURRENT',current),patch.object(region,'property_of',side_effect=props),\
+                 patch.object(region,'public_release',return_value=(new,{'release':{'fingerprint':'synthetic'}})),\
+                 patch.object(region,'request',side_effect=request):
+                with self.assertRaises(region.InstallError) as caught:region.verify('cn',work,stages.append)
+            self.assertEqual(caught.exception.details['http_status'],503)
+            self.assertEqual(stages[-1],'public_fingerprint')
+            self.assertEqual(calls[-1],'/api/session/close')
 
     def test_existing_data_routes_are_preserved_with_one_scoped_include(self):
         original=data_nginx('data.belchingleo.online','2.31.58.179')

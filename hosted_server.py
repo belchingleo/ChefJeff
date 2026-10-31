@@ -550,6 +550,10 @@ def hosted_html(raw):
     # The one-time contribution question sits beside the dialogs, outside Settings.
     consent = (ROOT / 'hosted' / 'consent.html').read_text()
     picker = (ROOT / 'hosted' / 'free-model-picker.html').read_text()
+    # Existing regional Nginx serves *.js directly from the web build. Keep this
+    # hosted-only control with its page instead of requiring another proxy rule.
+    picker = picker.replace('<script src="/free-model-picker.js"></script>',
+                            '<script>' + (ROOT / 'hosted' / 'free-model-picker.js').read_text() + '</script>')
     page = page.replace('</body>', consent + CONTRIBUTION_BADGE + picker + '</body>', 1)
     # Newer shells mark a slot in the Export tab; older builds append to the settings dialog.
     page = page.replace(CONTRIBUTION_SLOT, panel, 1) if CONTRIBUTION_SLOT in page else page.replace('</dialog>', panel + '</dialog>', 1)

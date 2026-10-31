@@ -58,7 +58,7 @@ def main():
     else:
         temporary=Path(tempfile.mkdtemp(prefix='.free-stage-',dir=parent))
         try:
-            target=temporary/'chefjeff-web-demo';target.mkdir(mode=0o755)
+            target=temporary/'chefjeff-web-demo';target.mkdir(mode=0o755);target.chmod(0o755)
             for name in [*manifest['files'],'release-manifest.json']:
                 destination=target/name;destination.parent.mkdir(parents=True,exist_ok=True)
                 # Verify the copied bytes too, before making the release visible.
