@@ -617,9 +617,6 @@
         },
         "state_records": {
           "const": "state_checkpoint/state_delta in the same events.jsonl"
-        },
-        "replay": {
-          "type": "string"
         }
       },
       "required": [
@@ -633,7 +630,66 @@
       "type": "string"
     },
     "replay": {
-      "type": "null"
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "engine": {
+              "enum": [
+                "Kitchen",
+                "SpatialKitchen"
+              ]
+            },
+            "resolved_config": {
+              "type": "object"
+            },
+            "inputs": {
+              "type": "array",
+              "maxItems": 200000,
+              "items": {
+                "type": "object",
+                "properties": {
+                  "n": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "call": {
+                    "enum": [
+                      "advance",
+                      "start",
+                      "stop",
+                      "set_manual",
+                      "sprint",
+                      "face",
+                      "pick_station",
+                      "report_position",
+                      "abort"
+                    ]
+                  },
+                  "game_time_ms": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "n",
+                  "call",
+                  "game_time_ms"
+                ]
+              }
+            }
+          },
+          "required": [
+            "engine",
+            "resolved_config",
+            "inputs"
+          ],
+          "additionalProperties": false
+        }
+      ]
     }
   },
   "required": [

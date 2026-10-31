@@ -150,7 +150,7 @@ API 输入 model_identity 只允许 provider、model_id 两个字段，不接受
 
 v7 把保存期改为半年（180 天），并在开局前同意的对局里加入下面这些字段。没有开局前同意、事后单局贡献的记录不含它们，`quality.missing` 标为 `engine_inputs_not_collected_without_prestart_consent`。旧版本记录仍可读取，不补造任何字段。
 
-- `replay`：未裁剪的冻结配置 `resolved_config`（其 `config_hash` 必须等于记录的 `config_hash`）和全部外层引擎调用 `inputs`，包括 advance、start、stop、set_manual、sprint、face、pick_station、report_position、abort 及其全部参数，`n` 从 0 连续编号。`quality.replay` 为 `engine_inputs`。私有导出包把它单独存为 `replay.json`。
+- `replay`：未裁剪的冻结配置 `resolved_config`（其 `config_hash` 必须等于记录的 `config_hash`）和全部外层引擎调用 `inputs`，包括 advance、start、stop、set_manual、sprint、face、pick_station、report_position、abort 及其全部参数，`n` 从 0 连续编号。`quality.replay` 为 `engine_inputs`。私有导出包把它放在该局的 `metadata.json` 里（导出程序本身不变，管理台核对过的版本仍然适用）。
 - 状态行增加 `engine_input_n`：采集时已经执行的外层调用数。`initial`、`outer_input_completion`、`periodic`、`final` 四类状态处在两次调用之间，可与重放结果逐字段比较；`event_emission` 发生在一次调用内部，只作参考。
 - `arrival`（来源 engine）：厨师在目标处真正开始操作的游戏时刻，人和 Jeff 都记，用 `action_id` 关联 `action_start`。人按键时已在工位前，`action_start` 就是动手的时刻；Jeff 的 `action_start` 是他做选择的时刻，之后才走过去，所以比较先后要用 `arrival` 或 `action_done`。
 - `throw_aim`（来源 engine）：投掷开始时记录，`receiver` 为被瞄准的队友（Jeff 的 `throw partner`，或玩家投掷时瞄准系统指向了 Jeff），否则为 null；`target` 为瞄准点。
