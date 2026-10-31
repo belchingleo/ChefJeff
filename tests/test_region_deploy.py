@@ -124,6 +124,14 @@ class RegionDeployTests(unittest.TestCase):
             data_nginx('data.chefjeff.online', '2.31.58.179')]
         import re
         for i, body in enumerate(configurations):
+            # Nginx -t can bind the configured listeners. Validate the unchanged
+            # virtual-host structure on disposable loopback ports as an ordinary user.
+            with socket.socket() as http_listener, socket.socket() as tls_listener:
+                http_listener.bind(('127.0.0.1', 0));tls_listener.bind(('127.0.0.1', 0))
+                http_port=http_listener.getsockname()[1];tls_port=tls_listener.getsockname()[1]
+            body=re.sub(r'(?m)^(\s*listen)\s+80(?=[\s;])',rf'\1 127.0.0.1:{http_port}',body)
+            body=re.sub(r'(?m)^(\s*listen)\s+443(?=[\s;])',rf'\1 127.0.0.1:{tls_port}',body)
+            self.assertNotRegex(body,r'(?m)^\s*listen\s+(?:80|443)\b')
             body = re.sub(r'/etc/letsencrypt/live/[^/]+/fullchain.pem', str(certificate), body)
             body = re.sub(r'/etc/letsencrypt/live/[^/]+/privkey.pem', str(key), body)
             config = self.root/f'nginx-{i}.conf'

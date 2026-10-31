@@ -25,6 +25,7 @@ jobs:
       - name: Install offline test tools
         run: |
           npm ci
+          python -m pip install -r tests/requirements.txt
           echo "$GITHUB_WORKSPACE/node_modules/.bin" >> "$GITHUB_PATH"
       - name: Install Chromium for the private console browser check
         if: matrix.python == '3.12'

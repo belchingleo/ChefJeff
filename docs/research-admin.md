@@ -43,6 +43,7 @@ python3 scripts/package_research_admin.py
 
 ```sh
 npm ci
+python3 -m pip install -r tests/requirements.txt
 npx playwright install chromium
 python3 -m unittest discover -s tests
 python3 tests/run_admin_browser.py
