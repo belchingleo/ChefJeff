@@ -22,7 +22,7 @@ Where to start: [play online](#play-online) · [run it locally](#run-it-locally)
 Choose the [China site (Shanghai)](https://chefjeff.belchingleo.online/) or the [overseas site (Germany)](https://global.belchingleo.online/) to play; nothing to install.
 
 - Bring your own model key: choose a service under Settings → Connection and paste the key. By default the key stays in that page and your browser sends it straight to the provider; only Jev goes through the demo server, and only if you agree. The [model connection guide](https://chefjeff.belchingleo.online/model-guide.html) lists the services that work and roughly what a round costs.
-- Before your first round you are asked whether to contribute anonymous round data; you can change your mind at any time. Contributions are kept for 30 days and can be deleted with a deletion receipt; see [privacy and contact](https://chefjeff.belchingleo.online/privacy.html).
+- Before your first round you are asked whether to contribute anonymous round data; you can change your mind at any time. Contributions are kept for six months (180 days) and can be deleted with a deletion receipt; see [privacy and contact](https://chefjeff.belchingleo.online/privacy.html).
 - Use the keyboard on a computer, and touch controls on a phone held landscape (see [touch controls](#touch-controls-experimental)). On iPhone, choose Add to Home Screen in Safari's share menu and open it from there to play full screen.
 - The game servers are in Shanghai and Germany; contributed round data and aggregate usage statistics are stored in Shanghai. The number of kitchens open at once is limited, and a full kitchen asks you to come back shortly.
 - Maintainers can deploy the separate, authenticated [research admin console](https://github.com/belchingleo/ChefJeff/blob/main/docs/research-admin.md) for private record previews, selected exports, charts and regional attribution. It is not a public data browser.
@@ -270,7 +270,7 @@ See [CONTRIBUTING](CONTRIBUTING.md) for how to contribute. Issues and pull reque
 - By default your API key is kept only in memory. If you tick "Remember on this device", the key is saved in plain text to the local file `.player-api.json`; "Clear credentials" in Settings deletes it.
 - Check exported content before sharing it, and never put your key in an issue, a screenshot or a commit.
 
-- The online version keeps your key in the browser and asks once whether to contribute rounds (deleted after 30 days). [Privacy and contact](docs/privacy.md) explains what is stored where, how long, how to delete it and how to reach us; the [model connection guide](docs/model-guide.md) lists the providers that work from the browser and estimates the cost of a round. Both pages are also linked in the game (Settings and Controls → Feedback).
+- The online version keeps your key in the browser and asks once whether to contribute rounds (deleted after six months, i.e. 180 days). [Privacy and contact](docs/privacy.md) explains what is stored where, how long, how to delete it and how to reach us; the [model connection guide](docs/model-guide.md) lists the providers that work from the browser and estimates the cost of a round. Both pages are also linked in the game (Settings and Controls → Feedback).
 - Questions and bug reports: [GitHub issues](https://github.com/belchingleo/ChefJeff/issues), with the file from Settings → Data export attached.
 
 See [privacy and API costs](docs/privacy-and-costs.md) and the [security notes](SECURITY.md).

@@ -875,7 +875,7 @@ def main():
     p.add_argument('--port', type=int, default=8780)
     p.add_argument('--origin', required=True)
     p.add_argument('--web-root', type=Path)
-    p.add_argument('--data-dir', type=Path, help='Enable opt-in 30-day contributions in this private directory.')
+    p.add_argument('--data-dir', type=Path, help='Enable opt-in six-month (180-day) contributions in this private directory.')
     p.add_argument('--shared-config', type=Path, help='Private backend data-service configuration; data-dir holds only regional usage in shared mode.')
     p.add_argument('--max-sessions', type=int, choices=range(1,17), default=8, help='Active kitchens, including short pause/result leases.')
     p.add_argument('--max-waiting', type=int, choices=range(0,33), default=32, help='Additional page sessions that cannot consume active slots.')

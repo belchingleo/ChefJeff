@@ -8,7 +8,8 @@
       "enum": [
         "pilot-session-2026-10-v4",
         "pilot-session-2026-10-v5",
-        "pilot-session-2026-10-v6"
+        "pilot-session-2026-10-v6",
+        "pilot-session-2026-10-v7"
       ]
     },
     "round_id": {

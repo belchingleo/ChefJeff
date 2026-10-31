@@ -18,7 +18,7 @@
           "type": "boolean"
         },
         "consent_version": {
-          "const": "pilot-session-2026-10-v6"
+          "const": "pilot-session-2026-10-v7"
         },
         "decision_telemetry": {
           "type": "boolean"
@@ -104,7 +104,7 @@
           "const": true
         },
         "consent_version": {
-          "const": "pilot-session-2026-10-v6"
+          "const": "pilot-session-2026-10-v7"
         },
         "consent_mode": {
           "enum": [
@@ -231,7 +231,7 @@
           "$ref": "research-record.schema.json"
         },
         "consent_version": {
-          "const": "pilot-session-2026-10-v4"
+          "const": "pilot-session-2026-10-v7"
         }
       },
       "required": [
@@ -283,7 +283,7 @@
           "const": true
         },
         "consent_version": {
-          "const": "pilot-session-2026-10-v6"
+          "const": "pilot-session-2026-10-v7"
         }
       },
       "required": [

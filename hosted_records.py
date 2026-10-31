@@ -8,8 +8,8 @@ import secrets
 import sqlite3
 import time
 
-RETENTION_SECONDS = 30 * 86400
-CONSENT_VERSION = 'pilot-session-2026-10-v6'
+RETENTION_SECONDS = 180 * 86400
+CONSENT_VERSION = 'pilot-session-2026-10-v7'
 
 
 def pilot_record(session):

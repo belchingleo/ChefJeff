@@ -188,8 +188,9 @@ class ResearchTests(unittest.TestCase):
             self.assertEqual(before,store.path.read_bytes())
             self.assertEqual(target.stat().st_mode&0o777,0o600)
             self.assertIn('not_collected',legacy_quality({})['interpretation'])
-            with self.assertRaises(ValueError):verify_package(target,now=time.time()+31*86400)
-            store.prune(time.time()+31*86400)
+            self.assertEqual(verify_package(target,now=time.time()+31*86400)['rounds'],2)  # six-month terms
+            with self.assertRaises(ValueError):verify_package(target,now=time.time()+181*86400)
+            store.prune(time.time()+181*86400)
             self.assertEqual(list(rows(store.path)),[])
 
     def test_consented_full_round_orders_work_and_state_gap_are_measured(self):

@@ -1,5 +1,6 @@
 """Real two-region HTTP checks, retained receipts and retry-safe shared totals."""
 from contextlib import closing
+from datetime import datetime
 import hashlib
 import http.client
 import json
@@ -65,6 +66,31 @@ class SharedDataTests(unittest.TestCase):
             client.request('records/save', body)
         with self.server.records.connect() as db:
             self.assertEqual(db.execute('SELECT count(*) FROM records').fetchone()[0], 0)
+
+    def test_new_contributions_keep_180_days_and_earlier_expiries_never_move(self):
+        self.assertEqual(RETENTION_SECONDS, 180 * 86400)
+        for store in (ContributionStore(self.root/'local'), RemoteRecords(self.client('cn'))):
+            before = time.time()
+            receipt = store.save(self.record)
+            expires = datetime.fromisoformat(receipt['expires_at']).timestamp()
+            self.assertGreaterEqual(expires, before + RETENTION_SECONDS - 1)
+            self.assertLessEqual(expires, time.time() + RETENTION_SECONDS + 1)
+        # A record saved under the 30-day terms keeps its expiry through the final update.
+        local = ContributionStore(self.root/'local')
+        receipt = local.save(self.record)
+        thirty_days = time.time() + 30 * 86400
+        with local.connect() as db:
+            db.execute('UPDATE records SET expires=? WHERE id=?', (thirty_days, receipt['id']))
+        self.assertTrue(local.update(receipt['id'], self.record))
+        with local.connect() as db:
+            self.assertEqual(db.execute('SELECT expires FROM records WHERE id=?', (receipt['id'],)).fetchone()[0], thirty_days)
+        remote = RemoteRecords(self.client('global'))
+        receipt = remote.save(self.record)
+        with self.server.records.connect() as db:
+            db.execute('UPDATE records SET expires=? WHERE id=?', (thirty_days, receipt['id']))
+        self.assertTrue(remote.update(receipt['id'], self.record))
+        with self.server.records.connect() as db:
+            self.assertEqual(db.execute('SELECT expires FROM records WHERE id=?', (receipt['id'],)).fetchone()[0], thirty_days)
 
     def test_legacy_receipt_hash_and_original_expiry_survive_service_adoption(self):
         legacy = {'schema': 'chefjeff-pilot-session-v1', 'events': [], 'duration': 12}

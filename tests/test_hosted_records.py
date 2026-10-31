@@ -71,7 +71,9 @@ class ContributionTests(unittest.TestCase):
             self.assertEqual(store.path.stat().st_mode&0o777,0o600)
             with self.assertRaises(ValueError):store.save({})
             self.assertNotIn(receipt['deletion_token'].encode(),store.path.read_bytes())
-            store.prune(time.time()+31*86400)
+            store.prune(time.time()+31*86400)  # still inside the six-month term
+            with store.connect() as db:self.assertEqual(db.execute('select count(*) from records').fetchone()[0],1)
+            store.prune(time.time()+181*86400)
             with store.connect() as db:self.assertEqual(db.execute('select count(*) from records').fetchone()[0],0)
             self.assertNotIn(b'"schema":"test"',store.path.read_bytes())
 

@@ -501,7 +501,7 @@
   setTimeout(poll, 200);
   const CHOICE_KEY = 'chefjeff.contribution-choice.v1', RECEIPTS_KEY = 'chefjeff.contribution-receipts.v1';
   // Equals hosted_records.CONSENT_VERSION: new terms ask again instead of carrying an old answer over.
-  const CONSENT = 'pilot-session-2026-10-v6';
+  const CONSENT = 'pilot-session-2026-10-v7';
   let pendingContribution = Promise.resolve(), autoRound = '', busyRound = '', shown = null, askedAt = '', notice = {round:'', text:''};
   const stored = (name, fallback) => {try {return JSON.parse(localStorage.getItem(name) || 'null') ?? fallback;} catch (_) {return fallback;}};
   const keep = (name, value) => {try {value == null ? localStorage.removeItem(name) : localStorage.setItem(name,JSON.stringify(value));} catch (_) {}};
@@ -524,7 +524,7 @@
   }
   function showChoice() {
     const n=document.getElementById('contribution-choice');
-    if(n)n.textContent=autoOn()?'当前选择：以后每局结束自动贡献，保存 30 天。':
+    if(n)n.textContent=autoOn()?'当前选择：以后每局结束自动贡献，保存半年（180 天）。':
       choice?'当前选择：暂不自动贡献。结算画面可点「贡献本局」只贡献这一局。':'当前选择：尚未选择。';
   }
   function badge() {
@@ -559,7 +559,7 @@
     const s=shown||state,round=s?.game_id;
     if(s?.phase!=='ended'||!s.hosted?.contribution_enabled||s.hosted.contributed||busyRound===round)return;
     pendingContribution=pendingContribution.catch(()=>{}).then(()=>contribute('round',round))
-      .then(()=>report(round,'本局已贡献，保存 30 天。删除凭证在「设置 → 数据导出」。'))
+      .then(()=>report(round,'本局已贡献，保存半年（180 天）。删除凭证在「设置 → 数据导出」。'))
       .catch(error=>report(round,'贡献失败：'+error.message));
   }
   window.addEventListener('kitchen-contribute', contributeRound);
@@ -576,7 +576,7 @@
     if(autoOn()&&s.hosted?.contribution_enabled&&s.phase==='ended'&&autoRound!==s.game_id){
       const round=autoRound=s.game_id;
       pendingContribution=pendingContribution.catch(()=>{}).then(()=>contribute('standing',round))
-        .then(()=>report(round,'本局已自动贡献，保存 30 天。'))
+        .then(()=>report(round,'本局已自动贡献，保存半年（180 天）。'))
         .catch(error=>report(round,'自动贡献失败：'+error.message));
     }
     // Asked before the first round, with no default answer. Browsers may still close it on Esc without
@@ -599,7 +599,7 @@
           {consent:false,consent_version:CONSENT,decision_telemetry:false})).catch(()=>status('关闭自动贡献未确认，请重试。'));
       }
       dialog.close();showChoice();badge();
-      status(auto?'已开启自动贡献：此后每局结束自动保存 30 天。':'已选择暂不贡献，之后不会自动上传。');
+      status(auto?'已开启自动贡献：此后每局结束自动保存半年（180 天）。':'已选择暂不贡献，之后不会自动上传。');
     };
     el('ask-auto').onclick = () => answer(true);
     el('ask-later').onclick = () => answer(false);

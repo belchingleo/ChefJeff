@@ -15,7 +15,7 @@ class PlayerPageTests(unittest.TestCase):
         page = self.page('privacy.md')
         self.assertIn('href="https://github.com/belchingleo/ChefJeff/issues" target="_blank"', page)
         self.assertNotRegex(page, r'[\w.+-]+@[\w-]+\.[\w.]+')  # contact is GitHub only, no invented email
-        for text in ('localStorage', '10 分钟', '30 天', '删除凭证', '本地版', 'id="english"'):
+        for text in ('localStorage', '10 分钟', '半年（180 天）', '删除凭证', '本地版', 'id="english"'):
             self.assertIn(text, page)
         for text in ('使用统计', 'Usage statistics', '不代表真实人数', 'No unique identifier'):
             self.assertIn(text, page)
