@@ -124,7 +124,7 @@ AI 选择 wait / continue，或回复过时未应用时，`action_id` 可以为 
 
 CLI 私有导出是管理员明确创建的外部副本，临时文件 0600 且 finally 清理，输出文件 0600，新增父目录 0700。它们**不由游戏服务器自动追踪/删除**：不得放进网站根目录、Git、公开例子或备份；保留至 manifest 最早源到期时间前，玩家撤回任何包含记录时删除整包和所有人工派生/标注副本。每次使用前用源数据库 verify；运维需将导出目录纳入到期清理和撤回流程。未配置该流程之前不要在生产创建持久研究包。导出的 SHA 不是匿名玩家追踪 ID，而是单份随机记录的校验引用。
 
-旧 v1 行保持原样只读；原有 15 局不进入测试或仓库。代码回滚不修改它们，新 v2 行也不降格。版本不兼容由 schema/consent 识别，不能用新字段默认值填补旧数据。跨局记忆内容、通信偏好、请求文本、原始回复、Key/Authorization/Cookie、账号/IP、端点、私有路径及删除凭证均不进入研究记录。
+旧 v1 行保持原样只读；原有 15 局不进入测试或仓库。代码回滚不修改它们，新 v2 行也不降格。版本不兼容由 schema/consent 识别，不能用新字段默认值填补旧数据。跨局记忆内容、请求原文、原始回复、Key/Authorization/Cookie、账号/IP、端点、私有路径及删除凭证均不进入研究记录。v7 起，开局前同意的对局会保存发给 Jeff 的预设沟通消息（见下文“精确重放与请求复现”）。
 
 部署前：审查变更，完成 Python/JS 测试、发布包审计；同时安装运行时代码、schema、浏览器脚本、隐私页面与 Nginx 响应不落临时文件配置。使用现有固定提交+包摘要的部署器，在用户明确授权后执行；本任务不修改服务器权限或 VPN。
 
@@ -145,3 +145,31 @@ CLI 私有导出是管理员明确创建的外部副本，临时文件 0600 且 
 每局保存浏览器实际配置的模型服务与模型 ID，含预设列表之外的自定义模型。开局前同意时随声明传入，在创建开局记录前固定；事后单局贡献使用浏览器为该局冻结的配置，结算后更换设置不改写旧局。标记来源为 browser-reported、verified=false，不声称独立验证底层模型。游戏状态、动作、候选项、模型选择和执行结果继续按既有结构采集；这里没有玩家聊天数据。
 
 API 输入 model_identity 只允许 provider、model_id 两个字段，不接受 Key、接口地址或客户端的核验声明。记录中补上 interface（systemone/chat_completions）、source、verified。不同回合可用不同模型；不把后来的配置回填给缺失记录。新同意版本为 pilot-session-2026-10-v5，旧选择需重新确认；旧 v4 记录、下载、删除与导出继续兼容。
+
+## 精确重放与请求复现（同意版本 v7）
+
+v7 把保存期改为半年（180 天），并在开局前同意的对局里加入下面这些字段。没有开局前同意、事后单局贡献的记录不含它们，`quality.missing` 标为 `engine_inputs_not_collected_without_prestart_consent`。旧版本记录仍可读取，不补造任何字段。
+
+- `replay`：未裁剪的冻结配置 `resolved_config`（其 `config_hash` 必须等于记录的 `config_hash`）和全部外层引擎调用 `inputs`，包括 advance、start、stop、set_manual、sprint、face、pick_station、report_position、abort 及其全部参数，`n` 从 0 连续编号。`quality.replay` 为 `engine_inputs`。私有导出包把它单独存为 `replay.json`。
+- 状态行增加 `engine_input_n`：采集时已经执行的外层调用数。`initial`、`outer_input_completion`、`periodic`、`final` 四类状态处在两次调用之间，可与重放结果逐字段比较；`event_emission` 发生在一次调用内部，只作参考。
+- `arrival`（来源 engine）：厨师在目标处真正开始操作的游戏时刻，人和 Jeff 都记，用 `action_id` 关联 `action_start`。人按键时已在工位前，`action_start` 就是动手的时刻；Jeff 的 `action_start` 是他做选择的时刻，之后才走过去，所以比较先后要用 `arrival` 或 `action_done`。
+- `throw_aim`（来源 engine）：投掷开始时记录，`receiver` 为被瞄准的队友（Jeff 的 `throw partner`，或玩家投掷时瞄准系统指向了 Jeff），否则为 null；`target` 为瞄准点。
+- 以上两类都不是引擎事件：不进入 `kitchen.events`，不占用引擎序号，也不改变状态版本，所以 Jeff 收到的输入不变。固定种子的 12 局（354 次请求，其中 271 次带玩家消息）与改动前逐字一致，golden fingerprint 不变。
+- `ai_request` 增加 `engine_input_n`、请求的规范 SHA-256 `payload_sha256`、`recent_decisions`、`player_communication`（发给 Jeff 的预设消息原样，含发送时间）和 `memory_input`（`absent`、`empty_placeholder` 或 `not_stored`）。请求原文约 41 KB、一局最多约 200 次，不整份保存；`research_replay.rebuild_requests()` 重放到 `engine_input_n`，用 `jev.compose_payload` 重建请求，并核对校验值。
+- `ai_response.payload.probabilities`：决策模型报告的各选项概率，只保留候选里有的键，取值 0–1；聊天模型为空。网页和 Jev 转发都会带回，服务器拒绝不在候选里的键和越界的值。
+- `conditions.memory_provenance`：开启跨局记忆、并且自动贡献时，浏览器报告本局记忆来自哪几局（`source_round_ids`）和 `JSON.stringify(context)` 的 SHA-256。整局固定，不保存记忆内容；以后可以从这些局的记录重建记忆，再用校验值核对。记下的局号会把同一浏览器的几局联系起来，同意页已写明。
+- 容量：默认最多 5000 局、5 GB；磁盘剩余空间低于 2 GB 时拒绝保存和更新，页面显示贡献失败。
+
+检查命令（只读，不调用模型）：
+
+```bash
+python3 scripts/check_research_record.py round.json
+```
+
+```bash
+python3 scripts/check_research_record.py --database /path/to/contributions.sqlite3
+```
+
+每局输出一行 JSON：是否开局、结束时间、`complete`、是否确认关闭、`truncated`/`dropped`/`loss_ranges`、序号缺口 `seq_gaps`，以及 `replay`（`verified`、`diverged` 或 `not_available`）和比较过的状态数。`tests/test_research_replay.py`、`tests/test_arrival_records.py` 用合成对局覆盖这些路径。
+
+线上真人对局的检查步骤：在实验室外按平常方式开启“每局自动贡献”，完整打一局到结算；在「设置 → 数据导出」下载本局记录；运行第一条命令。期望 `complete` 为 true、`seq_gaps` 为空、`replay` 为 `verified`。
