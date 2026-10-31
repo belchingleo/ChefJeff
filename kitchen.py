@@ -312,6 +312,9 @@ class Kitchen:
     def _after_step(self, seconds):
         pass
 
+    def _before_step(self, seconds):
+        pass
+
     def signature(self, who, target=""):
         hand = self.chefs[who].hand
         s = self.stations.get(target)
@@ -975,6 +978,7 @@ class Kitchen:
             if dt <= 1e-9:
                 self._end()
                 break
+            self._before_step(dt)
             self.time += dt
             seconds -= dt
             self._arrivals()
