@@ -14,8 +14,9 @@ import time
 import unittest
 from unittest.mock import patch
 
-from hosted_server import HostedHandler, make_server
+from hosted_server import HostedHandler, make_server, BrowserRelay
 from hosted_jev import CONSENT_VERSION
+from cooperation_memory import memory_context
 
 
 NGINX = os.environ.get('CHEFJEFF_NGINX_BIN') or shutil.which('nginx')
@@ -112,6 +113,36 @@ class HostedProxyTests(unittest.TestCase):
         finally:
             connection.close()
 
+    def test_private_research_download_never_spools_response_to_proxy_disk(self):
+        from hosted_records import ContributionStore, pilot_record
+        previous = self.backend.sessions.store
+        self.backend.sessions.store = ContributionStore(Path(self.temp.name)/'private-research')
+        status,raw = self.request('/api/session',{},headers={'Origin':ORIGIN})
+        self.assertEqual(status,201)
+        token=json.loads(raw)['session'];game=self.backend.sessions.get(token)
+        receipt=None
+        try:
+            with game.lock:
+                game.stop_event.set();game.wake.set();game.connected=True
+                self.assertEqual(game._command('/api/start',{})[0],200)
+                # Synthetic volume fixture from the real unified projection; no production data.
+                for _ in range(12000):
+                    game.k.emit('synthetic correction',kind='position_resync',actor='human',reason='blocked',position=(3.,4.))
+                self.assertEqual(game._command('/api/end',{})[0],200)
+                receipt=game.store.save(pilot_record(game))
+            credentials={key:receipt[key] for key in ('id','deletion_token')}
+            status,raw=self.request('/api/contribution/download',credentials,headers={'Origin':ORIGIN})
+            self.assertEqual(status,200);self.assertGreater(len(raw),4*1024*1024)
+            data=json.loads(raw)['record'];self.assertEqual(data['schema'],'chefjeff-pilot-session-v2')
+            self.assertGreater(len(data['events']),12000)
+            for folder in ('body','proxy'):
+                path=Path(self.temp.name)/folder
+                self.assertFalse(path.exists() and any(p.is_file() for p in path.rglob('*')))
+        finally:
+            if receipt:game.store.delete(receipt['id'],receipt['deletion_token'])
+            self.backend.sessions.remove(token)
+            self.backend.sessions.store=previous
+
     def test_public_page_opens_from_external_links(self):
         for site in ('cross-site', 'same-site', 'none'):
             with self.subTest(site=site):
@@ -144,6 +175,22 @@ class HostedProxyTests(unittest.TestCase):
                 self.assertNotIn(key,raw.decode())
                 self.assertEqual(send.call_args.args[0],key)
             self.assertNotIn('Authorization',self.observed[-1]);self.assertNotIn('Cookie',self.observed[-1])
+            # A real bounded memory context plus a maximum-length key exceeds the old 4 KiB cap.
+            fixture=json.loads((ROOT/'tests/fixtures/cooperation-memory-v2.json').read_text())
+            record=fixture['episode']
+            record['events']=[{'t':i,'kind':'action_done','actor':'human','action':'go '+('counter'*10)} for i in range(18)]
+            records=[{**record,'round_id':str(i+1)*32} for i in range(3)]
+            context=memory_context(True,records)
+            game.phase='running';game.relay=BrowserRelay(game.c)
+            payload={'state':{'rules':{},'kitchen':{}},'questions':{'next_action':{'criteria':{'wait':'Wait'}}}}
+            game.relay.pending={'id':'large-memory-task','payload':payload,'event':threading.Event(),
+                                'result':None,'sent':time.monotonic()}
+            body.update(test=False,id='large-memory-task',memory=context)
+            self.assertGreater(len(json.dumps(body).encode()),4096)
+            with patch.object(self.backend.jev_forwarder,'send',return_value={'choice':'wait','sprint':False,'usage':{}}) as send:
+                status,raw=self.request('/api/model/jev',body,headers={'Origin':ORIGIN,'X-ChefJeff-Session':token})
+                self.assertEqual(status,200)
+                self.assertEqual(send.call_args.args[1]['state']['past_episodes'],context)
             for folder in ('body','proxy'):
                 root=Path(self.temp.name)/folder
                 self.assertFalse(any(p.is_file() for p in root.rglob('*')))

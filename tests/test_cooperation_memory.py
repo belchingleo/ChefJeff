@@ -4,8 +4,10 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 import uuid
+import time
 
-from cooperation_memory import CooperationMemory, episode, sample_events, scope_for
+from cooperation_memory import (CooperationMemory, episode, sample_events, scope_for, round_scope,
+                                memory_context, CONTEXT_CHARACTERS, portable_episode, validate_browser_context)
 from kitchen import load_config
 from player_api import PlayerGameSession, CompatibleClient
 from spatial_kitchen import SpatialKitchen
@@ -159,3 +161,47 @@ class CooperationMemoryTests(unittest.TestCase):
         sent=json.loads(body['messages'][1]['content'])
         self.assertEqual(sent['state']['past_episodes'],payload['state']['past_episodes'])
         self.assertEqual(opener.open.call_count,1)
+
+    def test_summary_contains_completed_work_and_past_communication_without_inferred_roles(self):
+        g=self.game();self.command(g,'start')
+        self.assertTrue(g.k.command('human','fetch')[0])
+        g.k.advance(15)
+        self.assertEqual(self.command(g,'communicate',code='prep')[0],200)
+        g.k.advance(3)
+        with patch('web_server.time.monotonic',return_value=time.monotonic()+6):
+            self.assertEqual(self.command(g,'communicate',code='mistake')[0],200)
+        self.finish(g)
+        record=next(iter(g.memory.data['scopes'].values()))[0]
+        self.assertGreaterEqual(record['work']['human']['fetch'],1)
+        self.assertEqual(record['communication'],{'last_preference':'prep','corrections':1})
+        self.assertNotIn('preferred_role',record)
+        self.assertIn('expired',record['outcome'])
+
+    def test_sampling_keeps_both_chefs_world_events_and_recent_failure(self):
+        events=[{'t':i,'kind':'action_done','actor':'human' if i%2 else 'jeff','action':'chop b1'} for i in range(100)]
+        events += [{'t':101,'kind':'served','actor':'jeff'},{'t':102,'kind':'burn'},{'t':103,'kind':'expired'}]
+        records,count=sample_events(events)
+        self.assertEqual(count,103);self.assertEqual(len(records),18)
+        self.assertEqual({r.get('actor') for r in records},{'human','jeff',None})
+        self.assertTrue(any(r['kind']=='burn' for r in records))
+        self.assertTrue(any(r['kind']=='expired' for r in records))
+
+    def test_context_budget_drops_whole_old_episodes_and_does_not_mutate_storage(self):
+        records=[{'round_id':str(i),'events':[{'message':'x'*3000}]} for i in range(3)]
+        original=json.loads(json.dumps(records))
+        context=memory_context(True,records)
+        self.assertLessEqual(len(json.dumps(context,ensure_ascii=False,separators=(',',':'))),CONTEXT_CHARACTERS)
+        self.assertGreater(context['omitted_rounds'],0)
+        self.assertEqual(context['episodes'][-1],original[-1]);self.assertEqual(records,original)
+        self.assertEqual(memory_context(False,records)['episodes'],[])
+
+    def test_scope_changes_for_level_and_contract_but_not_random_seeds(self):
+        from levels import level_config
+        first=SpatialKitchen({**level_config(load_config(),1),'order_seed':1,'spawn_seed':0})
+        other=SpatialKitchen({**level_config(load_config(),1),'order_seed':2,'spawn_seed':1})
+        self.assertEqual(round_scope(self.setting,first),round_scope(self.setting,other))
+        second=SpatialKitchen(level_config(load_config(),2))
+        self.assertNotEqual(round_scope(self.setting,first),round_scope(self.setting,second))
+        with patch('cooperation_memory.memory_namespace',return_value='new-contract'):
+            changed=round_scope(self.setting,first)
+        self.assertNotEqual(changed,round_scope(self.setting,first))

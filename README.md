@@ -178,7 +178,9 @@ python3 scripts/build_cocos.py web        # rebuild the web client, only needed 
 | Session record bundle | `logs/sessions/<round id>/` | The frozen configuration, the event stream, engine inputs, and the exact requests sent to the model | Replay and collaboration analysis; contains no API key |
 | Runtime logs | `logs/` | Full game state and model output | Troubleshooting; may contain the model's raw replies, so check before sharing |
 | Data export | Pause menu → Settings → Data export → Export This Play Session | Everything from this play session (since the game started; online, the latest 20 rounds since the page opened): for every round its level, result, work record, call counts and usage, bookmarks, preset messages and every allowlisted action event | Attach to an issue; contains no key, model endpoint, cross-round memory, or full model requests and replies |
-| Cross-round memory | `.player-memory.json` | The last three rounds with the same model, at most 18 sampled events each | Sent to Jeff as a run condition; can be turned off or cleared in Settings |
+| Cross-round memory | Browser localStorage online; `.player-memory.json` locally | The last three completed rounds per model/level/contract: both chefs’ work, outcomes, old communication and up to 18 sampled events each | Sent to Jeff as a run condition; can be turned off or cleared in Settings |
+
+Online cooperation memory is on by default, stored in this browser and bounded per model and level. See [memory behavior and controls](docs/cooperation-memory.md).
 
 The export shows a preview first. If you'd like to contribute a round to research, attach the export to an issue and say which model and level you used; if a full replay is needed, the session record bundle can be shared on request.
 

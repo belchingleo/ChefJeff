@@ -167,9 +167,10 @@ function kitchenTabs(dialog){
  </section>
  <section aria-labelledby="memory-title" id="memory-panel" role="tabpanel">
   <h3 id="memory-title">跨局协作记忆 · 试验版</h3>
-  <p>保留最近 3 局的有限事件片段，让搭档自行判断如何配合，不预设你的习惯。不同接口和模型分开保存。</p>
+  <p>保留同一关卡最近 3 局的合作摘要：双方完成的工作、结果、沟通和有限事件片段。不同接口和模型分开保存；旧局偏好不代表你本局的分工。</p>
   <label class="remember"><input id="memory-enabled" type="checkbox">下一局使用并保存跨局记忆</label>
   <p id="memory-status" role="status" aria-live="polite"></p>
+  <p id="memory-budget" class="fine" role="status" hidden></p>
   <details class="fine"><summary>费用与隐私说明</summary><p><small>记录保存在本机，旧局片段会随决策请求发送给你选择的模型服务，增加输入 token 和费用。关闭后不读、不保存；中途退出的局不保存。</small></p></details>
   <div class="actions"><button id="memory-clear" class="btn" type="button">清空所有模型的协作记忆</button></div>
  </section>
@@ -241,6 +242,8 @@ function kitchenTabs(dialog){
   el('memory-enabled').disabled=!m?.editable||busy||memoryBusy;
   el('memory-clear').disabled=!m?.editable||busy||memoryBusy;
   el('memory-status').textContent=memoryMessage||m?.error||(m?`${m.enabled?'已开启':'已关闭'} · 当前模型已保存 ${m.saved_rounds} / ${m.limit} 局${m.editable?'':' · 本局使用 '+m.used_rounds+' 局，结算后可修改'}`:'需要新版厨房服务。');
+  el('memory-budget').hidden=!m?.omitted_rounds;
+  el('memory-budget').textContent=`受输入长度限制，本局省略 ${m?.omitted_rounds||0} 局较旧记录。`;
  };
  window.addEventListener('kitchen-state',e=>{state=e.detail;status()});
  window.addEventListener('kitchen-connection-error',()=>status());

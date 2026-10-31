@@ -53,7 +53,7 @@ for(const [kind,strings] of Object.entries(copies))for(const source of strings){
 locale.setLanguage('zh');
 for(const strings of Object.values(copies))for(const source of strings)assert.equal(locale.t(source),source);
 assert(!fs.readFileSync('hosted/contribution.html','utf8').includes('class="contrib" data-no-i18n'));
-assert(copies.hosted.includes('同意以后每局自动贡献（30 天后删除，可随时关闭）')&&copies.hosted.includes('暂不'),'the consent question is part of the hosted page');
+assert(copies.hosted.includes('同意以后每局自动贡献（含提前结束，30 天后删除）')&&copies.hosted.includes('暂不'),'the consent question is part of the hosted page');
 assert(!copies.local.includes('暂不'),'local play has no contribution question');
 assert.equal(locale.english('贡献失败：请求失败。'),'Contribution failed: Request failed.');
 assert.equal(locale.english('模型接口返回 HTTP 401，请检查账号和模型。'),'Model API returned HTTP 401. Check your account and model.');

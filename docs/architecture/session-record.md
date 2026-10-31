@@ -56,3 +56,7 @@ Replay reproduces engine-level results, not a model's internal reasoning or pixe
 | Derived facts | `derived` (`derived-v1`): action counts by actor, shared-work joins/leaves/overlap, handoff counts and outcomes, model call counts and latency range |
 
 Privacy follows [privacy and costs](../privacy-and-costs.md): keys, authorization headers and deletion secrets are never recorded; hosted sessions store nothing unless the player contributes.
+
+## Hosted research projection v2
+
+See [research data interface](../research-data-v2.md). Hosted records are now allowlisted before entering SessionLog memory. With new pre-start consent the same stream adds bounded state observations/deltas and lifecycle relations. Local bundles retain their existing schema and replay path; hosted exports do not claim replay. Existing v1 contributions remain read-only and missing fields are not backfilled.

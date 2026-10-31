@@ -1,0 +1,262 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "research-api.schema.json",
+  "$defs": {
+    "consent_request": {
+      "type": "object",
+      "properties": {
+        "game_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{32}$"
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "consent": {
+          "type": "boolean"
+        },
+        "consent_version": {
+          "const": "pilot-session-2026-10-v4"
+        },
+        "decision_telemetry": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "game_id",
+        "request_id",
+        "consent",
+        "consent_version"
+      ],
+      "additionalProperties": false
+    },
+    "preview_request": {
+      "type": "object",
+      "properties": {
+        "game_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{32}$"
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        }
+      },
+      "required": [
+        "game_id",
+        "request_id"
+      ],
+      "additionalProperties": false
+    },
+    "save_request": {
+      "type": "object",
+      "properties": {
+        "game_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{32}$"
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "consent": {
+          "const": true
+        },
+        "consent_version": {
+          "const": "pilot-session-2026-10-v4"
+        },
+        "consent_mode": {
+          "enum": [
+            "standing",
+            "round"
+          ]
+        }
+      },
+      "required": [
+        "game_id",
+        "request_id",
+        "consent",
+        "consent_version"
+      ],
+      "additionalProperties": false
+    },
+    "receipt": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "deletion_token": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "expires_at": {
+          "type": "string"
+        },
+        "consent_version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "deletion_token",
+        "expires_at",
+        "consent_version"
+      ],
+      "additionalProperties": false
+    },
+    "credential_request": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "deletion_token": {
+          "type": "string",
+          "maxLength": 100
+        }
+      },
+      "required": [
+        "id",
+        "deletion_token"
+      ],
+      "additionalProperties": false
+    },
+    "telemetry": {
+      "type": "object",
+      "properties": {
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 120000
+        },
+        "error_type": {
+          "enum": [
+            null,
+            "timeout",
+            "transport_or_response_error"
+          ]
+        }
+      },
+      "required": [
+        "duration_ms",
+        "error_type"
+      ],
+      "additionalProperties": false
+    },
+    "preview_response": {
+      "type": "object",
+      "properties": {
+        "record": {
+          "$ref": "research-record.schema.json"
+        },
+        "consent_version": {
+          "const": "pilot-session-2026-10-v4"
+        }
+      },
+      "required": [
+        "record",
+        "consent_version"
+      ],
+      "additionalProperties": false
+    },
+    "save_response": {
+      "type": "object",
+      "properties": {
+        "receipt": {
+          "$ref": "#/$defs/receipt"
+        }
+      },
+      "required": [
+        "receipt"
+      ],
+      "additionalProperties": false
+    },
+    "download_v2_response": {
+      "type": "object",
+      "properties": {
+        "record": {
+          "$ref": "research-record.schema.json"
+        }
+      },
+      "required": [
+        "record"
+      ],
+      "additionalProperties": false
+    },
+    "delete_response": {
+      "type": "object",
+      "properties": {
+        "deleted": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "deleted"
+      ],
+      "additionalProperties": false
+    },
+    "consent_response": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "const": true
+        },
+        "consent_version": {
+          "const": "pilot-session-2026-10-v4"
+        }
+      },
+      "required": [
+        "ok",
+        "consent_version"
+      ],
+      "additionalProperties": false
+    },
+    "error_response": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "error"
+      ],
+      "additionalProperties": false
+    },
+    "download_response": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "record": {
+              "$ref": "research-record.schema.json"
+            }
+          },
+          "required": [
+            "record"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "record": {
+              "$ref": "research-legacy-v1.schema.json"
+            }
+          },
+          "required": [
+            "record"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}

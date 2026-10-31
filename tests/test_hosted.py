@@ -90,7 +90,8 @@ class HostedTests(unittest.TestCase):
         self.assertIn('<head><script src="/model-providers.js"></script><script src="/hosted-agent.js">',html)
         self.assertIn('浏览器 localStorage',html)
         self.assertNotIn('记住后以明文保存在这台电脑的本地配置文件',html)
-        self.assertIn('<section hidden aria-labelledby="memory-title"',html)
+        self.assertIn('<section aria-labelledby="memory-title"',html)
+        self.assertNotIn('<section hidden aria-labelledby="memory-title"',html)
         self.assertNotIn(b'hosted-agent.js',raw)
     def test_web_shell_keeps_every_hosted_anchor(self):
         shell=(Path(__file__).resolve().parents[1]/'cocos-kitchen/web-shell.html').read_text()
@@ -107,8 +108,8 @@ class HostedTests(unittest.TestCase):
         from hosted_records import CONSENT_VERSION
         self.assertIn(f"const CONSENT = '{CONSENT_VERSION}'",(root/'hosted/browser-agent.js').read_text())
         ask=(root/'hosted/consent.html').read_text()
-        for text in ('游戏引擎事件','每秒角色位置','结算结果','预设沟通编号','API Key','自由输入的文字','模型回复与完整请求',
-                     '30 天后自动删除','提前删除','同意以后每局自动贡献（30 天后删除，可随时关闭）','暂不','privacy.html'):
+        for text in ('游戏引擎事件','初始局面、每秒状态变化与关键事件状态','结算结果','物品、订单、工位、动作与决策关联','API Key','自由输入的文字','模型回复与完整请求',
+                     '30 天后自动删除','提前删除','同意以后每局自动贡献（含提前结束，30 天后删除）','暂不','privacy.html'):
             self.assertIn(text,ask)
         # Two equal choices: same style, nothing preselected or focused by default.
         self.assertEqual(ask.count('class="btn" type="button"'),2);self.assertNotIn('checked',ask)
@@ -117,7 +118,7 @@ class HostedTests(unittest.TestCase):
         s=HostedSession(release={})
         try:
             self.assertFalse(s.public_state()['hosted']['contributed'])
-            s.receipt_round=s.game_id;self.assertTrue(s.public_state()['hosted']['contributed'])
+            s.receipt_round=s.game_id;s.phase='ended';self.assertTrue(s.public_state()['hosted']['contributed'])
         finally:s.close()
 
 

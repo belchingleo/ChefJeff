@@ -1,0 +1,1965 @@
+{
+  "type": "object",
+  "properties": {
+    "seq": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "type": {
+      "enum": [
+        "action_catalog",
+        "action_done",
+        "action_start",
+        "ai_error",
+        "ai_request",
+        "ai_response",
+        "arrival_conflict",
+        "browser_input",
+        "browser_result",
+        "burn",
+        "call_limit",
+        "caught",
+        "client_telemetry",
+        "context_closed",
+        "dish_rejected",
+        "dropped",
+        "end",
+        "engine_error",
+        "engine_input",
+        "expired",
+        "fire",
+        "fire_loss",
+        "fire_spread",
+        "goal_unreachable",
+        "ground_nudge",
+        "human_input",
+        "interrupted",
+        "item_transform",
+        "knocked",
+        "landed",
+        "manual_move",
+        "order",
+        "pause",
+        "picked_up",
+        "plate_returned",
+        "position_resync",
+        "ready",
+        "request_unresolved",
+        "resume",
+        "round_end",
+        "route_replanned",
+        "served",
+        "shared_work_join",
+        "shared_work_leave",
+        "sprint",
+        "start",
+        "state_checkpoint",
+        "state_delta",
+        "swapped",
+        "thrown",
+        "unresolved_at_close",
+        "washed",
+        "wrong_dish"
+      ]
+    },
+    "source": {
+      "enum": [
+        "engine",
+        "session"
+      ]
+    },
+    "game_time_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "elapsed_wall_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "clock_id": {
+      "const": "server_monotonic"
+    },
+    "engine_seq": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "actor_id": {
+      "enum": [
+        "human",
+        "jeff",
+        null
+      ]
+    },
+    "action_id": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "request_id": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "order_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+    },
+    "item_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+    },
+    "station_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+    },
+    "receiver_id": {
+      "enum": [
+        "human",
+        "jeff",
+        null
+      ]
+    },
+    "handoff_id": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "input_id": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "state_before_seq": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "state_after_seq": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "item": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+        },
+        "taken": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+        },
+        "dish": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+        },
+        "receiver": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+        },
+        "thrower": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+        },
+        "outcome": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+        },
+        "source": {
+          "oneOf": [
+            {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+            },
+            {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "station": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+        },
+        "target": {
+          "oneOf": [
+            {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+            },
+            {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "reason_detail": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+        },
+        "price": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "adjustment": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "overcook_game_ms": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "duration": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "max_distance": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "retry_in_seconds": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "speed": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "server_round_trip_ms": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "server_received_wall_ms": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "server_transport_started_wall_ms": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "from": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "to": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "at": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "base": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "position": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "vector": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "workers": {
+          "oneOf": [
+            {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+              }
+            }
+          ]
+        },
+        "participants": {
+          "type": "array",
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+          }
+        },
+        "input_item_ids": {
+          "type": "array",
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+          }
+        },
+        "output_item_ids": {
+          "type": "array",
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+          }
+        },
+        "action": {
+          "$ref": "#/$defs/action"
+        },
+        "reason": {
+          "enum": [
+            null,
+            "manual",
+            "hidden",
+            "connection_timeout",
+            "manual_end",
+            "restart",
+            "next_level",
+            "page_close_request",
+            "idle_timeout",
+            "server_shutdown",
+            "engine_fault",
+            "state_changed",
+            "stale_or_disabled",
+            "engine_rejected",
+            "transport_failed",
+            "not_observed",
+            "route_blocked",
+            "position_resync",
+            "arrival_state_changed",
+            "action_replaced",
+            "stop_called",
+            "pushed",
+            "blocked",
+            "too_far",
+            "command_rejected"
+          ]
+        },
+        "stage": {
+          "enum": [
+            "model_request",
+            "model_choice_and_application",
+            "input_report",
+            "engine_input_return",
+            "server_received",
+            "server_command_result"
+          ]
+        },
+        "observed_state_seq": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "candidates": {
+          "type": "array",
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+          }
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/action"
+          }
+        },
+        "candidate_catalog": {
+          "const": "session_action_catalog"
+        },
+        "candidate_actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/action"
+          }
+        },
+        "choice_source": {
+          "enum": [
+            "not_observed",
+            "client-reported"
+          ]
+        },
+        "state_ref": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "choice": {
+          "$ref": "#/$defs/action"
+        },
+        "fresh": {
+          "type": "boolean"
+        },
+        "applied": {
+          "type": "boolean"
+        },
+        "accepted_engine_seq": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "usage": {
+          "type": "object",
+          "properties": {
+            "input_tokens": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000000
+            },
+            "output_tokens": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000000
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        },
+        "usage_source": {
+          "const": "client-reported"
+        },
+        "provider_verified": {
+          "const": false
+        },
+        "missing_stages": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "raw_device_input"
+            ]
+          }
+        },
+        "calls": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "limit": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "aborted": {
+          "type": "boolean"
+        },
+        "call": {
+          "enum": [
+            "start",
+            "stop",
+            "set_manual",
+            "sprint",
+            "report_position",
+            "abort"
+          ]
+        },
+        "accepted": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "source_time_game_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "actor_id": {
+          "enum": [
+            "human",
+            "jeff",
+            null
+          ]
+        },
+        "command": {
+          "enum": [
+            "action",
+            "interact",
+            "throw",
+            "select",
+            "move",
+            "position"
+          ]
+        },
+        "raw_device_input": {
+          "const": "not_collected"
+        },
+        "duration_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 120000
+        },
+        "error_type": {
+          "enum": [
+            null,
+            "timeout",
+            "transport_or_response_error"
+          ]
+        },
+        "base_state_seq": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "trigger": {
+          "enum": [
+            "initial",
+            "event_emission",
+            "outer_input_completion",
+            "periodic",
+            "final"
+          ]
+        },
+        "state": {
+          "type": "object",
+          "properties": {
+            "chefs": {
+              "type": "object",
+              "properties": {
+                "human": {
+                  "type": "object",
+                  "properties": {
+                    "position": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "array",
+                          "minItems": 2,
+                          "maxItems": 2,
+                          "items": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    "location": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+                    },
+                    "hand": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/$defs/food"
+                        }
+                      ]
+                    },
+                    "action_id": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 0
+                    },
+                    "action": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/$defs/action"
+                        }
+                      ]
+                    },
+                    "working": {
+                      "type": "boolean"
+                    },
+                    "travel_remaining": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "work_remaining": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "manual": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "array",
+                          "minItems": 2,
+                          "maxItems": 2,
+                          "items": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "position",
+                    "location",
+                    "hand",
+                    "action_id",
+                    "action",
+                    "working",
+                    "travel_remaining",
+                    "work_remaining",
+                    "manual"
+                  ],
+                  "additionalProperties": false
+                },
+                "jeff": {
+                  "type": "object",
+                  "properties": {
+                    "position": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "array",
+                          "minItems": 2,
+                          "maxItems": 2,
+                          "items": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    "location": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+                    },
+                    "hand": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/$defs/food"
+                        }
+                      ]
+                    },
+                    "action_id": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 0
+                    },
+                    "action": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "$ref": "#/$defs/action"
+                        }
+                      ]
+                    },
+                    "working": {
+                      "type": "boolean"
+                    },
+                    "travel_remaining": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "work_remaining": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "manual": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "array",
+                          "minItems": 2,
+                          "maxItems": 2,
+                          "items": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "position",
+                    "location",
+                    "hand",
+                    "action_id",
+                    "action",
+                    "working",
+                    "travel_remaining",
+                    "work_remaining",
+                    "manual"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [],
+              "additionalProperties": false
+            },
+            "stations": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{1,64}$"
+              },
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "food": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "$ref": "#/$defs/food"
+                      }
+                    ]
+                  },
+                  "used_by": {
+                    "enum": [
+                      "human",
+                      "jeff",
+                      null
+                    ]
+                  },
+                  "pot_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+                  },
+                  "heating": {
+                    "type": "boolean"
+                  },
+                  "fire": {
+                    "type": "boolean"
+                  },
+                  "fire_heat": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "fire_strength": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "workers": {
+                    "type": "array",
+                    "items": {
+                      "enum": [
+                        "human",
+                        "jeff"
+                      ]
+                    },
+                    "maxItems": 2
+                  }
+                },
+                "required": [
+                  "food",
+                  "used_by",
+                  "pot_id",
+                  "heating",
+                  "fire",
+                  "fire_heat",
+                  "fire_strength",
+                  "workers"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "ground": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "food": {
+                    "$ref": "#/$defs/food"
+                  },
+                  "location": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+                  },
+                  "used_by": {
+                    "enum": [
+                      "human",
+                      "jeff",
+                      null
+                    ]
+                  },
+                  "position": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "array",
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "items": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "food",
+                  "location",
+                  "used_by",
+                  "position"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "projectiles": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "food": {
+                    "$ref": "#/$defs/food"
+                  },
+                  "actor": {
+                    "enum": [
+                      "human",
+                      "jeff",
+                      null
+                    ]
+                  },
+                  "target": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+                  },
+                  "from": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "array",
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "items": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        }
+                      }
+                    ]
+                  },
+                  "to": {
+                    "oneOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "array",
+                        "minItems": 2,
+                        "maxItems": 2,
+                        "items": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        }
+                      }
+                    ]
+                  },
+                  "started": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "lands_at": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "handoff_id": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "food",
+                  "actor",
+                  "target",
+                  "from",
+                  "to",
+                  "started",
+                  "lands_at",
+                  "handoff_id"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "orders": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+                  },
+                  "dish": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+                  },
+                  "arrival": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "deadline": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "status": {
+                    "enum": [
+                      "future",
+                      "pending",
+                      "served",
+                      "expired",
+                      "unresolved_at_close"
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "dish",
+                  "arrival",
+                  "deadline",
+                  "status"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "dining": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "plate": {
+                    "$ref": "#/$defs/food"
+                  },
+                  "returns_at": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "plate",
+                  "returns_at"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "money": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "served": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "ended": {
+              "type": "boolean"
+            },
+            "aborted": {
+              "type": "boolean"
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        },
+        "item_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+        },
+        "station_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+        },
+        "receiver_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "missing_relations": {
+      "type": "object",
+      "propertyNames": {
+        "enum": [
+          "engine_seq",
+          "actor_id",
+          "action_id",
+          "request_id",
+          "order_id",
+          "item_id",
+          "station_id",
+          "receiver_id",
+          "handoff_id",
+          "input_id",
+          "state_before_seq",
+          "state_after_seq"
+        ]
+      },
+      "additionalProperties": {
+        "enum": [
+          "not_emitted",
+          "join_via_action_id",
+          "pending_handoff"
+        ]
+      }
+    }
+  },
+  "required": [
+    "seq",
+    "type",
+    "source",
+    "game_time_ms",
+    "elapsed_wall_ms",
+    "clock_id",
+    "engine_seq",
+    "actor_id",
+    "action_id",
+    "request_id",
+    "order_id",
+    "item_id",
+    "station_id",
+    "receiver_id",
+    "handoff_id",
+    "input_id",
+    "state_before_seq",
+    "state_after_seq",
+    "payload",
+    "missing_relations"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "research-event.schema.json",
+  "$defs": {
+    "action": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+        },
+        "verb": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+        },
+        "kind": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+        },
+        "target": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+        },
+        "target_source": {
+          "enum": [
+            "engine_action",
+            "not_collected"
+          ]
+        }
+      },
+      "required": [
+        "key",
+        "verb",
+        "kind",
+        "target",
+        "target_source"
+      ],
+      "additionalProperties": false
+    },
+    "food": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+        },
+        "stage": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+        },
+        "ingredient": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+        },
+        "components": {
+          "type": "array",
+          "items": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+          }
+        },
+        "plate_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+        },
+        "chopped": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "heated": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "washed": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "contents": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/food"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "stage",
+        "ingredient",
+        "components",
+        "plate_id",
+        "chopped",
+        "heated",
+        "washed",
+        "contents"
+      ],
+      "additionalProperties": false
+    },
+    "state": {
+      "type": "object",
+      "properties": {
+        "chefs": {
+          "type": "object",
+          "properties": {
+            "human": {
+              "type": "object",
+              "properties": {
+                "position": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "array",
+                      "minItems": 2,
+                      "maxItems": 2,
+                      "items": {
+                        "type": [
+                          "number",
+                          "null"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "location": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+                },
+                "hand": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "$ref": "#/$defs/food"
+                    }
+                  ]
+                },
+                "action_id": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "action": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "$ref": "#/$defs/action"
+                    }
+                  ]
+                },
+                "working": {
+                  "type": "boolean"
+                },
+                "travel_remaining": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "work_remaining": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "manual": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "array",
+                      "minItems": 2,
+                      "maxItems": 2,
+                      "items": {
+                        "type": [
+                          "number",
+                          "null"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "position",
+                "location",
+                "hand",
+                "action_id",
+                "action",
+                "working",
+                "travel_remaining",
+                "work_remaining",
+                "manual"
+              ],
+              "additionalProperties": false
+            },
+            "jeff": {
+              "type": "object",
+              "properties": {
+                "position": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "array",
+                      "minItems": 2,
+                      "maxItems": 2,
+                      "items": {
+                        "type": [
+                          "number",
+                          "null"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "location": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+                },
+                "hand": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "$ref": "#/$defs/food"
+                    }
+                  ]
+                },
+                "action_id": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "action": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "$ref": "#/$defs/action"
+                    }
+                  ]
+                },
+                "working": {
+                  "type": "boolean"
+                },
+                "travel_remaining": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "work_remaining": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "manual": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "array",
+                      "minItems": 2,
+                      "maxItems": 2,
+                      "items": {
+                        "type": [
+                          "number",
+                          "null"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "position",
+                "location",
+                "hand",
+                "action_id",
+                "action",
+                "working",
+                "travel_remaining",
+                "work_remaining",
+                "manual"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        },
+        "stations": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,64}$"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "food": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/$defs/food"
+                  }
+                ]
+              },
+              "used_by": {
+                "enum": [
+                  "human",
+                  "jeff",
+                  null
+                ]
+              },
+              "pot_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+              },
+              "heating": {
+                "type": "boolean"
+              },
+              "fire": {
+                "type": "boolean"
+              },
+              "fire_heat": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "fire_strength": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "workers": {
+                "type": "array",
+                "items": {
+                  "enum": [
+                    "human",
+                    "jeff"
+                  ]
+                },
+                "maxItems": 2
+              }
+            },
+            "required": [
+              "food",
+              "used_by",
+              "pot_id",
+              "heating",
+              "fire",
+              "fire_heat",
+              "fire_strength",
+              "workers"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "ground": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "food": {
+                "$ref": "#/$defs/food"
+              },
+              "location": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+              },
+              "used_by": {
+                "enum": [
+                  "human",
+                  "jeff",
+                  null
+                ]
+              },
+              "position": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            "required": [
+              "food",
+              "location",
+              "used_by",
+              "position"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "projectiles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "food": {
+                "$ref": "#/$defs/food"
+              },
+              "actor": {
+                "enum": [
+                  "human",
+                  "jeff",
+                  null
+                ]
+              },
+              "target": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+              },
+              "from": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    }
+                  }
+                ]
+              },
+              "to": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "array",
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "items": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    }
+                  }
+                ]
+              },
+              "started": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "lands_at": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "handoff_id": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              }
+            },
+            "required": [
+              "food",
+              "actor",
+              "target",
+              "from",
+              "to",
+              "started",
+              "lands_at",
+              "handoff_id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "orders": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+              },
+              "dish": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+              },
+              "arrival": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "deadline": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "future",
+                  "pending",
+                  "served",
+                  "expired",
+                  "unresolved_at_close"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "dish",
+              "arrival",
+              "deadline",
+              "status"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "dining": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "plate": {
+                "$ref": "#/$defs/food"
+              },
+              "returns_at": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "plate",
+              "returns_at"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "money": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "served": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ended": {
+          "type": "boolean"
+        },
+        "aborted": {
+          "type": "boolean"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    }
+  },
+  "description": "Server-authored fact envelope. Nullable relations mean unavailable/not applicable; browser claims have explicit source. See docs/research-data-v2.md."
+}

@@ -40,7 +40,7 @@ class NeutralRulesTests(unittest.TestCase):
             self.assertIsNone(VALUE_WORDING.search(prompt), prompt)
 
     def test_rules_version_is_published(self):
-        self.assertEqual(jev.AGENT_RULES_VERSION, 'rules-v5')
+        self.assertEqual(jev.AGENT_RULES_VERSION, 'rules-v6')
 
 
 if __name__ == '__main__':

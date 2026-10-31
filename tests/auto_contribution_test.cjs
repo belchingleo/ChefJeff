@@ -24,6 +24,8 @@ function harness(options={}){
    if(body.game_id===current.game_id)current.hosted={...current.hosted,contributed:true};
    return new Response(JSON.stringify({receipt:{id:body.game_id,deletion_token:'fixture-token',expires_at:'2035-01-01T00:00:00Z'}}));
   }
+  if(url==='/api/contribution/consent' && options.failConsent)return new Response('{"error":"consent failed"}',{status:503});
+  if(['/api/start','/api/restart','/api/next'].includes(url) && options.openReceipt)return new Response(JSON.stringify({ok:true,receipt:{id:'opening',deletion_token:'fixture-token',expires_at:'2035-01-01T00:00:00Z'}}));
   if(url==='/api/contribution/delete'){
    assert.deepEqual(Object.keys(body).sort(),['deletion_token','id']);
    return new Response('{}',{status:options.failDelete===body.id?404:200});
@@ -101,6 +103,21 @@ const guard=setTimeout(()=>{console.error('Automatic contribution test did not c
  const timedNext=h.w.chefjeffHostedRequest('/api/next',{game_id:'round-a',level:'level-2'});await flush();
  assert(h.timers.some(t=>t.ms===15000));h.timers.find(t=>t.ms===10000&&t.active).fn();await timedNext;
  assert(h.el('contribution-status').textContent.includes('超时'));
+ for(const call of h.calls)assert(!JSON.stringify(call).includes(fakeKey));
+ // New scope is registered for each round before opening, with optional telemetry off by default.
+ h=harness({openReceipt:true});await h.publish({});h.answer(true);
+ await h.w.chefjeffHostedRequest('/api/start',{game_id:'round-a',request_id:'open'});
+ let declaration=h.calls.find(c=>c.url==='/api/contribution/consent');assert(declaration);
+ let declared=JSON.parse(declaration.init.body);assert.equal(declared.consent,true);assert.equal(declared.consent_version,consent);
+ assert.equal(declared.decision_telemetry,false);
+ assert(h.calls.indexOf(declaration)<h.calls.findIndex(c=>c.url==='/api/start'));
+ assert(JSON.parse(h.data.get(receiptsKey)).some(r=>r.id==='opening'),'Opening receipt survives an early exit.');
+ h=harness();await h.publish({});h.el('ask-telemetry').checked=true;h.answer(true);
+ await h.w.chefjeffHostedRequest('/api/start',{game_id:'round-a'});
+ assert.equal(JSON.parse(h.calls.find(c=>c.url==='/api/contribution/consent').init.body).decision_telemetry,true);
+ h=harness({failConsent:true});await h.publish({});h.answer(true);
+ await assert.rejects(()=>h.w.chefjeffHostedRequest('/api/start',{game_id:'round-a'}));
+ assert(!h.calls.some(c=>c.url==='/api/start'),'Failed consent acknowledgement cannot create a retained round.');
  for(const call of h.calls)assert(!JSON.stringify(call).includes(fakeKey));
  console.log('Contribution consent: one up-front question without a default, automatic and per-round uploads, withdrawal, no backfill, re-ask on new terms, receipts and next-round ordering/timeout passed.');
 })().catch(error=>{console.error(error);process.exitCode=1;}).finally(()=>clearTimeout(guard));
