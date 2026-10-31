@@ -9,6 +9,7 @@
   const providers = () => Object.fromEntries((window.chefjeffProviders?.providers || [])
     .filter(p => !p.disabled && p.hosted !== 'none').map(p => [p.id, p]));
   let setting = null, state = null, checks = 0, testing = false, openingRound = false;
+  let freeCatalog = {enabled:false,models:[]}, freeCatalogPromise = null, freeAutoPicked = false, freeCatalogAt = -Infinity;
   // Freeze the actual configured ID per round; changing settings after the result
   // must never relabel that round. This map stays in this page, with no endpoint/key.
   let activeRoundModel = null;
@@ -37,6 +38,7 @@
   const connection = () => ({configured: !!setting, provider: setting?.provider || 'deepseek',
     base_url: setting?.base_url || '', model: setting?.model || '', remembered: !!setting?.remember,
     jev_relay: setting?.jev_relay === true,
+    free_model: setting?.free_model === true, free_models: freeCatalog,
     editable: !testing && !openingRound && (!state || ['ready', 'ended'].includes(state.phase))});
   // Browser-owned, bounded history. No model URL, name, key or visitor identifier
   // is sent to the game server as a scope. Active context is frozen at round start.
@@ -296,6 +298,17 @@
     const abort = () => controller.abort();
     outerSignal?.addEventListener('abort', abort, {once:true});
     if (outerSignal?.aborted) controller.abort();
+    if (config.free_model) {
+      try {
+        const r = await serverFetch('/api/model/free', {method:'POST',mode:'cors',
+          credentials:'omit',redirect:'error',signal:controller.signal,
+          headers:{'Content-Type':'application/json'},body:JSON.stringify({
+            game_id:relayContext.game_id,id:relayContext.id,provider:config.provider,...(memory?{memory}:{})})});
+        const d=await r.json();
+        if(!r.ok)throw new Error(d.error||'免费模型暂不可用。');
+        return d.answer;
+      } finally {clearTimeout(timer);outerSignal?.removeEventListener('abort',abort);}
+    }
     if (config.jev_relay) {
       try {
         // mode 'cors' like every other game request: with the page's no-referrer policy, a POST in
@@ -323,6 +336,7 @@
         {role:'user', content:JSON.stringify({state:payload.state, questions:payload.questions})},
       ]};
       endpoint = config.base_url + '/chat/completions';
+      if(config.provider==='zhipu')body.messages[0].content=zhipuSystem(payload);
     }
     Object.assign(body, preset.extra || {});
     try {
@@ -375,7 +389,25 @@
     return hint ? hint + '（' + text + '）' : '连接失败（' + text + '）';
   }
   function boundedCount(n) {return Number.isInteger(n) && n >= 0 && n <= 10000000 ? n : 0;}
-  async function markReady(connected, body) {
+  function zhipuSystem(payload) {
+    const properties={choice:{type:'string',enum:Object.keys(payload.questions.next_action.criteria)}};
+    const required=['choice'];
+    if('sprint' in payload.questions){properties.sprint={type:'boolean'};required.push('sprint');}
+    const schema={type:'object',properties,required,additionalProperties:false};
+    return 'You control chef jeff in a shared kitchen. Using the supplied state and rules, '+
+      'choose exactly one action key from questions.next_action.criteria. '+
+      'Return only one JSON object matching the following JSON Schema. '+
+      'The choice must be an offered action key, not its description. '+
+      'When questions.sprint is present, decide between its yes/no options but encode '+
+      'sprint as the JSON boolean true for yes or false for no. '+
+      'Never encode sprint as a string, number or null. '+
+      'When questions.sprint is absent, omit sprint. Do not explain or add other fields. '+
+      'JSON Schema: '+JSON.stringify(schema);
+  }
+  async function markReady(connected, body, config=setting) {
+    if(connected && config?.free_model)return serverFetch('/api/model/free/select', {method:'POST',
+      headers:{'Content-Type':'application/json'},body:JSON.stringify({game_id:body.game_id,
+        request_id:crypto.randomUUID(),provider:config.provider})});
     return serverFetch('/api/browser-ready', {method:'POST', headers:{'Content-Type':'application/json'},
       body:JSON.stringify({game_id:body.game_id, request_id:crypto.randomUUID(), connected})});
   }
@@ -383,19 +415,32 @@
     if (!connection().editable) return response(409, {error:'请结束本局后再更换 API。'});
     testing = true;
     try {
+      freeAutoPicked=true;
       if (body.clear) {
         const r = await markReady(false, body); if (!r.ok) return r;
         setting = null;activeRoundConfig = null;
         try {localStorage.removeItem(storageName);} catch (_) {}
       } else {
-        const candidate = validate(body);
-        checks++;
-        await modelRequest(candidate, {state:{connection_test:true}, questions:{next_action:{type:'choice',
-          // Two options, as in the local game: a decision service may refuse a one-option question.
-          instructions:'Choose ready and return the required format.', criteria:{ready:'Connection ready',wait:'Not ready yet'}}}}, signal,
-          {game_id:body.game_id,request_id:crypto.randomUUID(),test:true});
-        if (signal?.aborted) throw new Error('连接测试已取消。');
-        const r = await markReady(true, body); if (!r.ok) return r;
+        let candidate;
+        if(Object.hasOwn(body,'free_provider')) {
+          const selected=freeCatalog.enabled && freeCatalog.models.find(m=>m.provider===body.free_provider);
+          if(!selected)throw new Error('请选择开放的免费模型。');
+          candidate={provider:selected.provider,model:selected.model,free_model:true,
+            base_url:location.origin+'/api/model/free',remember:false};
+          const r=await serverFetch('/api/model/free/select',{method:'POST',signal,
+            headers:{'Content-Type':'application/json'},body:JSON.stringify({game_id:body.game_id,
+              request_id:crypto.randomUUID(),provider:candidate.provider})});
+          if(!r.ok)return r;
+        } else {
+          candidate = validate(body);
+          checks++;
+          await modelRequest(candidate, {state:{connection_test:true}, questions:{next_action:{type:'choice',
+            // Two options, as in the local game: a decision service may refuse a one-option question.
+            instructions:'Choose ready and return the required format.', criteria:{ready:'Connection ready',wait:'Not ready yet'}}}}, signal,
+            {game_id:body.game_id,request_id:crypto.randomUUID(),test:true});
+          if (signal?.aborted) throw new Error('连接测试已取消。');
+          const r = await markReady(true, body, candidate); if (!r.ok) return r;
+        }
         // Remove any older remembered key even when the new choice is memory-only.
         try {
           localStorage.removeItem(storageName);
@@ -406,6 +451,29 @@
       return response(200, {ok:true, connection:{...connection(), editable:true}});
     } catch (e) {return response(400, {error:e.message});}
     finally {testing = false;}
+  }
+
+  async function prepareFreeModels(s) {
+    if(['ready','ended'].includes(s.phase) && performance.now()-freeCatalogAt>=3000)freeCatalogPromise=null;
+    if(!freeCatalogPromise)freeCatalogPromise=(async()=>{
+      try {
+        const r=await serverFetch('/api/model/free/catalog');const d=await r.json();
+        if(r.ok && d.enabled===true && Array.isArray(d.models) && d.models.length===2 &&
+           d.models.every(m=>typeof m.name==='string' && typeof m.platform==='string' &&
+             ((m.provider==='zhipu'&&m.model==='glm-4.7-flash')||
+              (m.provider==='startlux'&&m.model==='startlux-decision-27b-autothink'))) &&
+           new Set(d.models.map(m=>m.provider)).size===2 && d.models.some(m=>m.provider===d.default))freeCatalog=d;
+      } catch (_) { /* Own-key connections remain available when trials are disabled. */ }
+      finally {freeCatalogAt=performance.now();}
+    })();
+    await freeCatalogPromise;
+    if(!freeAutoPicked && freeCatalog.enabled) {
+      freeAutoPicked=true;
+      if(!setting && ['ready','ended'].includes(s.phase)) {
+        state=s;
+        await configure({game_id:s.game_id,free_provider:freeCatalog.default});
+      }
+    }
   }
 
   const STATE_REPLIES = new Set(['/api/interact', '/api/throw', '/api/action']);
@@ -473,7 +541,7 @@
           contribution_busy: busyRound === d.game_id});
         return d;};
       const d = await result.json();
-      if (url.pathname === '/api/state') return response(200, withConnection(d));
+      if (url.pathname === '/api/state') {await prepareFreeModels(d);return response(200, withConnection(d));}
       if (d.state) d.state = withConnection(d.state);
       return response(200, d);
     } catch (_) {return response(503, {error:transportError || '厨房连接不可用，请刷新页面重新连接。'});}

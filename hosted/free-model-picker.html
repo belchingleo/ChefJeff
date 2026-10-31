@@ -1,0 +1,35 @@
+<style>
+#free-model-picker{position:fixed;left:12px;top:64px;z-index:40;box-sizing:border-box;width:330px;max-width:calc(100vw - 24px);max-height:calc(100dvh - 88px);overflow:auto;padding:12px;text-align:left;background:#12283f;color:#fdf3e1;border:3px solid #2a5a9e;box-shadow:4px 4px 0 var(--denim,#35648a);font:13px/1.5 var(--pixel,monospace)}
+#free-model-picker[hidden],#free-model-picker [hidden]{display:none!important}
+#free-model-picker p{margin:5px 0}
+#free-model-picker .free-buttons{display:flex;gap:8px;margin:9px 0;flex-wrap:wrap}
+#free-model-picker button{border:2px solid var(--ink,#12283f);border-radius:0;padding:7px 9px;background:var(--paper,#fff8e8);color:var(--ink,#12283f);font:inherit;cursor:pointer}
+#free-model-picker button[aria-pressed=true]{background:#2a5a9e;color:#fff8e8}
+#free-model-picker button:focus-visible{outline:3px solid var(--denim,#35648a);outline-offset:3px}
+#free-model-picker button:disabled{opacity:.55;cursor:default}
+#free-model-picker summary{cursor:pointer}
+#free-model-picker .free-error{color:#9c302b}
+@media(max-width:900px),(max-height:550px){
+ #free-model-picker{left:8px;top:auto;bottom:4px;width:calc(100vw - 16px);max-width:none;max-height:calc(100dvh - 64px);padding:4px 8px;font-size:11px}
+ #free-model-picker>strong,#free-model-message,#free-model-settings{display:none}
+ #free-model-current{margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ #free-model-picker .free-buttons{max-width:calc(100% - 80px);margin:2px 0 0;gap:6px}
+ #free-model-picker button{padding:4px 6px}
+ #free-model-details{position:absolute;right:8px;bottom:8px;max-width:74px}
+ #free-model-details[open]{position:static;max-width:none;margin-top:6px}
+}
+</style>
+<aside id="free-model-picker" aria-label="免费 AI 搭档" hidden>
+ <strong>选择免费 AI 搭档</strong>
+ <p id="free-model-current" aria-live="polite"></p>
+ <div class="free-buttons" id="free-model-buttons">
+  <button type="button" id="free-model-startlux" aria-pressed="false">StartLux · Bamboo</button>
+  <button type="button" id="free-model-zhipu" aria-pressed="false">智谱 · GLM-4.7-Flash</button>
+ </div>
+ <p id="free-model-message" role="status" aria-live="polite"></p>
+ <details id="free-model-details"><summary>模型说明</summary>
+  <p id="free-model-default"></p><p id="free-model-reason"></p><p id="free-model-note"></p>
+ </details>
+ <button id="free-model-settings" type="button">使用自己的模型 / 设置</button>
+</aside>
+<script src="/free-model-picker.js"></script>

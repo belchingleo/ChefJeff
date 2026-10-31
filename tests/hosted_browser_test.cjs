@@ -4,7 +4,7 @@ const source=fs.readFileSync('hosted/browser-agent.js','utf8');
 const chefjeffProviders=JSON.parse(fs.readFileSync('model-providers.json','utf8'));
 const key='unit-test-key-not-a-real-credential';
 // Per-test overrides: a model provider's reply, and the game server's pending model request.
-let upstream=null,modelTask=null;
+let upstream=null,modelTask=null,freeCatalogOverride=null;
 function harness(saved=null, fail=false, gameState={game_id:'round',phase:'ready',limits:{},connection:{configured:false}}, sessions=[201]){
  const calls=[],data=new Map(saved?[['chefjeff.browser-key.v1',JSON.stringify(saved)]]:[]),timers=[];
  const listeners={},elements={};let clock=0;
@@ -27,6 +27,9 @@ function harness(saved=null, fail=false, gameState={game_id:'round',phase:'ready
   }
   if(u.pathname==='/api/state')return new Response(JSON.stringify(gameState));
   if(u.pathname==='/api/model/request')return new Response(JSON.stringify({request:modelTask}));
+  if(u.pathname==='/api/model/free/catalog')return new Response(JSON.stringify(freeCatalogOverride||{enabled:false,models:[]}));
+  if(u.pathname==='/api/model/free/select')return new Response('{"ok":true}');
+  if(u.pathname==='/api/model/free')return new Response(JSON.stringify({answer:{choice:'wait',sprint:false,usage:{input_tokens:3,output_tokens:0}}}));
   if(u.pathname==='/api/interact')return new Response(JSON.stringify({ok:true,state:JSON.parse(JSON.stringify(gameState))}));
   if(u.pathname==='/api/model/jev')return new Response(JSON.stringify({answer:{choice:'wait',sprint:false,usage:{input_tokens:3,output_tokens:4}}}));
   if(u.pathname==='/api/contribution/save')return new Response(JSON.stringify({receipt:{id:'synthetic-record',deletion_token:'synthetic-receipt',expires_at:'2099-01-01T00:00:00Z'}}));
@@ -142,6 +145,48 @@ async function checkModelIdentity(){
  const h2=harness(config,false,{...game,phase:'ready'});await h2.w.fetch('/api/state');h2.listeners.DOMContentLoaded();h2.elements['ask-later'].onclick();
  await h2.w.fetch('/api/start',{method:'POST',body:'{}'});
  for(const call of h2.calls.filter(c=>new URL(c.url,'https://kitchen.example').origin==='https://kitchen.example'))assert(!call.init.body?.includes(config.model),'no unconsented model identity upload');
+}
+
+async function checkFreeModels(){
+ freeCatalogOverride={enabled:true,default:'startlux',models:[
+  {provider:'startlux',model:'startlux-decision-27b-autothink',name:'StartLux',platform:'Bamboo Relay'},
+  {provider:'zhipu',model:'glm-4.7-flash',name:'Zhipu',platform:'Zhipu'}]};
+ try{
+  const game={game_id:'free-round',phase:'ready',limits:{},hosted:{contribution_enabled:true}};
+  const h=harness(null,false,game);
+  let d=await(await h.w.fetch('/api/state')).json();
+  assert.equal(d.connection.free_model,true);assert.equal(d.connection.provider,'startlux');
+  assert.equal(d.connection.model,'startlux-decision-27b-autothink');
+  assert(!h.calls.some(c=>new URL(c.url,'https://kitchen.example').origin!=='https://kitchen.example'),'default selection calls no upstream');
+  assert(!h.calls.some(c=>c.url==='/api/contribution/consent'),'default selection never opts into research');
+  let r=await h.w.fetch('/api/connection',{method:'POST',body:JSON.stringify({game_id:game.game_id,free_provider:'zhipu'})});
+  assert.equal(r.status,200);assert.equal((await r.json()).connection.provider,'zhipu');
+  h.listeners.DOMContentLoaded();h.elements['ask-auto'].onclick();
+  await h.w.fetch('/api/start',{method:'POST',body:JSON.stringify({game_id:game.game_id})});
+  const consent=JSON.parse(h.calls.find(c=>c.url==='/api/contribution/consent').init.body);
+  assert.deepEqual(consent.model_identity,{provider:'zhipu',model_id:'glm-4.7-flash'});
+  game.phase='running';await h.w.fetch('/api/state');
+  r=await h.w.fetch('/api/connection',{method:'POST',body:JSON.stringify({game_id:game.game_id,free_provider:'startlux'})});
+  assert.equal(r.status,409,'cannot change model within a round');
+  modelTask={id:'free-task',payload:{state:{},questions:{next_action:{type:'choice',criteria:{wait:'Wait'}}}}};
+  await h.timers.find(fn=>fn.name==='poll')();
+  const sent=JSON.parse(h.calls.find(c=>c.url==='/api/model/free').init.body);
+  assert.deepEqual(Object.keys(sent).sort(),['game_id','id','provider']);assert.equal(sent.provider,'zhipu');
+  assert(!JSON.stringify(sent).includes('api_key'));assert(!h.data.has('chefjeff.browser-key.v1'));
+  game.phase='ended';await h.w.fetch('/api/state');
+  r=await h.w.fetch('/api/connection',{method:'POST',body:JSON.stringify({game_id:game.game_id,free_provider:'startlux'})});
+  assert.equal(r.status,200);
+  h.elements['contribution-save'].onclick();await new Promise(resolve=>setImmediate(resolve));
+  const saved=JSON.parse(h.calls.find(c=>c.url==='/api/contribution/save').init.body);
+  assert.deepEqual(saved.model_identity,{provider:'zhipu',model_id:'glm-4.7-flash'},'result keeps the model that played this round');
+  const own={provider:'deepseek',model:'own-model',api_key:key};
+  const start=h.calls.length;
+  r=await h.w.fetch('/api/connection',{method:'POST',body:JSON.stringify({game_id:game.game_id,...own})});
+  assert.equal(r.status,200);assert.equal((await r.json()).connection.free_model,false);
+  assert(h.calls.slice(start).some(c=>c.url==='/api/browser-ready'),'own-key connection clears free selection through browser-ready');
+  assert(!h.calls.slice(start).some(c=>c.url==='/api/model/free/select'));
+ }finally{freeCatalogOverride=null;modelTask=null;}
+ console.log('Free models: no-key defaults, one-click pre-round selection, locked rounds, model identity and own-key restoration passed.');
 }
 
 async function checkClientInteractions(fromSource){
@@ -638,6 +683,7 @@ function settingsHarness(){
  assert.equal(ui.el('api-connect').disabled,false);assert.equal(ui.el('api-key').value,key);
  console.log('Browser transport and settings: credential isolation, session retry/release, editable drafts and guarded connection checks passed.');
  await checkModelIdentity();
+ await checkFreeModels();
  await checkClientInteractions(false);
  await checkClientTouchBridge(false);
  checkClientOrderBridge(false);

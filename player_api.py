@@ -69,6 +69,9 @@ class CompatibleClient(SpatialJevClient):
             {'role':'system','content':'You control the blue chef in a shared kitchen. Using the supplied state and rules, choose exactly one action key from questions.next_action.criteria. Return only a JSON object of the form {"choice": "<action key>", "sprint": <true or false>}, where <action key> is one key of questions.next_action.criteria; include sprint only if questions.sprint is present. Do not explain or choose an action outside the candidate set.'},
             {'role':'user','content':json.dumps({'state':payload['state'],'questions':payload['questions']},ensure_ascii=False)}],
             'max_tokens':128}
+        if self.setting['provider']=='zhipu':
+            from model_output import zhipu_system
+            body['messages'][0]['content']=zhipu_system(payload)
         body.update(PROVIDERS[self.setting['provider']].get('extra',{}))
         req=urllib.request.Request(self.setting['base_url']+'/chat/completions',data=json.dumps(body).encode(),
             headers={'Authorization':'Bearer '+self.key,'Content-Type':'application/json'})

@@ -766,7 +766,64 @@
     "对局记录统一保存在腾讯云中国上海；海外站经加密连接提交和访问记录。": "Round records are stored centrally on Tencent Cloud in Shanghai, China. The overseas site submits and accesses records over an encrypted connection.",
     "记录服务暂时不可用，请稍后重试。": "The records service is temporarily unavailable. Please retry later.",
     "删除暂未完成，请保留凭证并稍后重试。": "Deletion is not complete. Keep your receipt and retry later.",
-    "已停止继续记录，服务器删除失败，请保留凭证并稍后重试。": "Further recording has stopped, but server deletion failed. Keep your receipt and retry later."
+    "已停止继续记录，服务器删除失败，请保留凭证并稍后重试。": "Further recording has stopped, but server deletion failed. Keep your receipt and retry later.",
+    "免费 AI 搭档": "Free AI partner",
+    "选择免费 AI 搭档": "Choose a free AI partner",
+    "StartLux · Bamboo": "StartLux · Bamboo",
+    "智谱 · GLM-4.7-Flash": "Zhipu · GLM-4.7-Flash",
+    "模型与默认选择说明": "Models and default choice",
+    "使用自己的模型 / 设置": "Use your own model / Settings",
+    "当前使用自有模型配置": "Using your own model account",
+    "正在选择…": "Selecting…",
+    "已选择。返回厨房即可开局。": "Selected. Return to the kitchen to start.",
+    "开局前一键选择，本局使用同一个模型。": "Choose before starting. One model is used throughout each round.",
+    "模型选择未完成，请刷新厨房状态后重试。": "Model selection failed. Refresh the kitchen status and try again.",
+    "本局模型已固定；结算后可选择另一模型。": "The model is fixed for this round. Choose another after the results.",
+    "当前连接：服务器提供的免费模型": "Connection: server-provided free model",
+    "已选择免费模型，返回厨房即可开局。": "Free model selected. Return to the kitchen to start.",
+    "服务器提供额度": "Server-provided allowance",
+    "免费试玩": "Free trial",
+    "智谱 GLM-4.7-Flash": "Zhipu GLM-4.7-Flash",
+    "智谱开放平台": "Zhipu API platform",
+    "默认使用 StartLux：它原生返回候选动作及选项概率，便于观察决策；你也可以切换智谱进行比较。": "StartLux is the default because it natively returns candidate actions and option probabilities for inspecting decisions. You can also compare it with Zhipu.",
+    "默认使用智谱 GLM-4.7-Flash：它通过通用对话接口生成动作；你也可以切换 StartLux 比较不同决策方式。": "Zhipu GLM-4.7-Flash is the default. It generates actions through a general chat API; switch to StartLux to compare decision methods.",
+    "免费试玩由服务器提供调用额度，无需填写 Key；每局最多 200 次请求。开局前选择，本局固定。研究数据贡献由你单独选择。": "The server provides free trial calls; no Key is needed. Up to 200 requests per round. Choose before starting; the model stays fixed for the round. Research contribution is a separate choice.",
+    "请选择开放的免费模型。": "Choose an available free model.",
+    "免费模型暂不可用。": "The free model is temporarily unavailable.",
+    "免费试玩暂未开放，请使用自己的模型配置。": "Free trials are not enabled. Use your own model configuration.",
+    "厨房已更新，请刷新状态。": "The kitchen has changed. Refresh its status.",
+    "本局模型已固定，请结算后切换。": "The model is fixed for this round. Switch after the results.",
+    "免费试玩暂未开放。": "Free trials are not enabled.",
+    "免费模型请求无效。": "Invalid free model request.",
+    "当前模型请求仍在处理中。": "The current model request is still being processed.",
+    "本局模型或对局状态已经改变。": "The round or its model has changed.",
+    "模型决策请求已过期。": "The model decision request has expired.",
+    "跨局记忆格式无效。": "Invalid cross-round memory format.",
+    "本局免费模型调用已达 200 次上限。": "This round has reached its 200-request free trial limit.",
+    "免费试玩请求较多，请稍后再试。": "Free trials are busy. Try again later.",
+    "所选免费模型暂不可用，请稍后再试。": "The selected free model is temporarily unavailable. Try again later.",
+    "所选免费模型正在服务其他厨房，请稍后再试。": "The selected free model is serving another kitchen. Try again later.",
+    "所选免费模型暂不可用，请稍后再试；结算后可切换其他模型。": "The selected free model is temporarily unavailable. Try again later, or switch models after this round.",
+    "免费模型连接超时或不可用，请稍后再试。": "The free model timed out or is unavailable. Try again later.",
+    "免费模型回复过大，本次未执行。": "The free model reply was too large. No action was executed.",
+    "免费模型回复不符合预期，本次未执行。": "The free model reply was invalid. No action was executed.",
+    "StartLux 回复格式或动作无效，本次未执行。": "StartLux returned an invalid response or action. No action was executed.",
+    "智谱回复格式或动作无效，本次未执行。": "Zhipu returned an invalid response or action. No action was executed.",
+    "模型说明": "Model details",
+    "请先取得当前模型的免费厨房名额。": "Acquire a free kitchen seat for this model before starting.",
+    "正在申请免费名额，请稍候。": "Reserving a free kitchen seat. Please wait.",
+    "这个模型的免费厨房名额已满，请稍后开局或使用自己的模型。": "This model has no free kitchen seats available. Wait before starting or use your own model.",
+    "所选免费模型仍在处理请求，请稍后再试。": "The selected free model is still processing a request. Try again later.",
+    "本局免费名额已释放，请尝试继续；满额时需等待或结束本局。": "Your free seat was released. Try resuming; if full, wait or end the round.",
+    "免费服务已重启，请结束本局后重新开局。": "The free model service restarted. End this round and start a new one.",
+    "所选免费模型暂不可用，恢复确认后才能继续提供试玩。": "The selected free model is unavailable until recovery has been confirmed.",
+    "所选免费模型正在冷却，请稍后再试。": "The selected free model is cooling down. Try again later.",
+    "免费试玩调用预算已用完，请稍后再来或使用自己的模型。": "The free trial call budget has been used. Come back later or use your own model.",
+    "免费试玩预算服务暂不可用，本次未发起模型请求。": "The free trial budget service is unavailable. No model request was sent.",
+    "免费模型协调服务暂不可用，请稍后再试。": "The free model coordinator is unavailable. Try again later.",
+    " · 可用": " · Available",
+    " · 名额已满": " · Full",
+    " · 暂不可用": " · Unavailable"
   },
   "templates": [
     [
@@ -1356,6 +1413,18 @@
     [
       "超时 {0} 单 · 关店时未完成 {1} 单",
       "Expired {0} · Unfinished at closing {1}"
+    ],
+    [
+      "免费试玩：{0} · 服务器提供额度",
+      "Free trial: {0} · Server-provided allowance"
+    ],
+    [
+      "当前：{0}（{1}）",
+      "Current: {0} ({1})"
+    ],
+    [
+      "默认：{0}（{1}）",
+      "Default: {0} ({1})"
     ]
   ]
 }

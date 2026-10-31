@@ -272,7 +272,7 @@ function kitchenTabs(dialog){
  };
  const status=()=>{
   const c=state?.connection,allowed=!!c&&c.editable&&!busy;
-  el('api-identity').textContent=c?.configured?`已连接：${c.model} · 玩家账号付费${c.remembered?' · 已记住此设备':''}`:'尚未配置 · 不使用开发者 Key';
+  el('api-identity').textContent=c?.free_model?`免费试玩：${c.model} · 服务器提供额度`:c?.configured?`已连接：${c.model} · 玩家账号付费${c.remembered?' · 已记住此设备':''}`:'尚未配置 · 不使用开发者 Key';
   // A saved key is never shown back; say so instead of presenting an empty, required field.
   el('api-key').placeholder=c?.configured?'已保存；要更换时粘贴新的 Key':'粘贴你的 API Key';
   el('api-connect').textContent=c?.configured?'更换并测试':'测试并连接';
@@ -280,7 +280,7 @@ function kitchenTabs(dialog){
   // Filling a draft does not change the active model or make a paid request.
   for(const id of ['api-provider','api-url','api-model','api-key','api-remember','api-jev-relay'])el(id).disabled=busy;
   el('api-transport-status').hidden=!window.chefjeffJevRelayAvailable||!c?.configured;
-  el('api-transport-status').textContent=c?.jev_relay?'当前连接：已同意服务器转发 Jev':'当前连接：浏览器直连模型';
+  el('api-transport-status').textContent=c?.free_model?'当前连接：服务器提供的免费模型':c?.jev_relay?'当前连接：已同意服务器转发 Jev':'当前连接：浏览器直连模型';
   el('api-editing-status').textContent=!c?(window.chefjeffHostedStatus?.()||'等待厨房连接。可以先填写，连接成功后再测试。'):
    busy?'正在测试连接…':c.editable?'':'本局进行中，可以先填写；请结束本局后再测试或更换 API。';
   const l=state?.limits;
@@ -317,7 +317,7 @@ function kitchenTabs(dialog){
    const data=await response.json();if(!response.ok)throw new Error(data.error||'连接失败');
    el('api-key').value='';state.connection=data.connection;
    if(extra.clear)el('api-jev-relay').checked=false;
-   message(extra.clear?'配置已清除。下次开局需要重新连接。':'连接成功！返回厨房即可开局，费用由你的 API 账号承担。');
+   message(extra.clear?'配置已清除。下次开局需要重新连接。':data.connection?.free_model?'已选择免费模型，返回厨房即可开局。':'连接成功！返回厨房即可开局，费用由你的 API 账号承担。');
   }catch(e){message(e.name==='AbortError'?'请求超时。请检查网络后重试。':e.message,true)}
   finally{clearTimeout(timer);busy=false;status()}
  }
