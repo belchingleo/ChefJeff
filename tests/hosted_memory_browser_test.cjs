@@ -35,7 +35,7 @@ function harness(data=new Map(),{provider='jev',key=KEY,blocked=false}={}){
  };
  const w={fetch:native,chefjeffProviders:providers,addEventListener:(n,f)=>listeners[n]=f,dispatchEvent(){}};
  vm.runInNewContext(source,{window:w,location:{href:'https://kitchen.example/',origin:'https://kitchen.example'},Response,Headers,URL,
-  AbortController,performance:{now:()=>0},crypto:require('node:crypto').webcrypto,CustomEvent:class{},
+  AbortController,performance:{now:()=>0},crypto:require('node:crypto').webcrypto,TextEncoder,CustomEvent:class{},
   document:{getElementById:()=>null,querySelector:()=>null,hidden:false},
   setTimeout:fn=>{timers.push(fn);return timers.length;},clearTimeout(){},
   localStorage:{getItem:k=>{if(blocked&&k===MEMORY)throw Error();return data.get(k)||null;},
@@ -68,6 +68,18 @@ function saved(h){return JSON.parse(h.data.get(MEMORY));}
  assert.equal(sent.memory.episodes.length,1);assert.equal(sent.memory.episodes[0].work.human.fetch,1);
  const condition=JSON.parse(restored.calls.find(c=>c.url==='/api/model/result').init.body).memory_condition;
  assert.deepEqual(condition,{enabled:true,version:2,used_rounds:1,omitted_rounds:0});
+ assert(!Object.hasOwn(JSON.parse(restored.calls.find(c=>c.url==='/api/model/result').init.body),'memory_provenance'),
+  'Memory sources are reported only for a consented contribution');
+ // With automatic contribution on, the round records which earlier rounds its memory came from and a digest of it.
+ const consented=new Map(data);
+ consented.set('chefjeff.contribution-choice.v1',JSON.stringify({consent_version:/const CONSENT = '([^']+)'/.exec(source)[1],answer:'auto'}));
+ const researched=harness(consented);await researched.start();researched.current.hosted={research_active:true};
+ await researched.read();await researched.poll();
+ const relayed=JSON.parse(researched.calls.find(c=>c.url==='/api/model/jev').init.body).memory;
+ const provenance=JSON.parse(researched.calls.find(c=>c.url==='/api/model/result').init.body).memory_provenance;
+ assert.deepEqual(provenance,{version:2,source_round_ids:relayed.episodes.map(e=>e.round_id),
+  context_sha256:require('node:crypto').createHash('sha256').update(JSON.stringify(relayed)).digest('hex')});
+ assert.equal(provenance.source_round_ids.length,1);assert(!JSON.stringify(provenance).includes('fetch'));
  assert.equal(sent.api_key,'rotated-key-not-a-real-secret');
  for(const c of restored.calls.filter(c=>c!==relay))assert(!JSON.stringify(c).includes('rotated-key-not-a-real-secret'));
  assert.equal(restored.calls.filter(c=>c.url.startsWith('https://api.')).length,0,'Jev must use only its consented relay');

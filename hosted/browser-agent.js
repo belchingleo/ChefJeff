@@ -267,6 +267,27 @@
     if (saved?.remember === true) setting = validate(saved);
   } catch (_) { /* Storage disabled/corrupted: use memory only. */ }
 
+  // A decision model's option probabilities, kept only for offered keys and real probabilities.
+  function offered(value, criteria) {
+    const result={};
+    if(!value || typeof value!=='object' || Array.isArray(value))return result;
+    for(const [key,p] of Object.entries(value).slice(0,512))
+      if(Object.hasOwn(criteria,key) && typeof p==='number' && Number.isFinite(p) && p>=0 && p<=1)result[key]=p;
+    return result;
+  }
+  // Which earlier rounds this round's memory came from, and a digest of the exact context; never its content.
+  const provenanceDigests=new WeakMap();
+  async function memoryProvenance(context) {
+    if(!provenanceDigests.has(context)) {
+      let digest=null;
+      try {
+        const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(context)));
+        digest=Array.from(new Uint8Array(bytes),b=>b.toString(16).padStart(2,'0')).join('');
+      } catch (_) { /* No Web Crypto: the source rounds are still recorded. */ }
+      provenanceDigests.set(context,{version:2,source_round_ids:context.episodes.map(e=>e.round_id),context_sha256:digest});
+    }
+    return provenanceDigests.get(context);
+  }
   async function modelRequest(config, payload, outerSignal, relayContext) {
     const memory=payload.state?.rules && activeMemory?.game_id===state?.game_id ? activeMemory.context:null;
     if(memory)payload={...payload,state:{...payload.state,past_episodes:clone(memory)}};
@@ -316,7 +337,8 @@
       try {
         d = JSON.parse(text);
         if (preset.group === 'decision') {
-          answer = {choice:d.answers?.next_action?.choice, sprint:d.answers?.sprint?.choice === 'yes'};
+          answer = {choice:d.answers?.next_action?.choice, sprint:d.answers?.sprint?.choice === 'yes',
+            probabilities:offered(d.answers?.next_action?.probabilities, payload.questions.next_action.criteria)};
           if (d.answers?.next_action?.type !== 'choice' || ('sprint' in payload.questions &&
               !['yes','no'].includes(d.answers?.sprint?.choice))) throw new Error();
           usage = d.usage || {};
@@ -329,7 +351,8 @@
             ('sprint' in payload.questions && preset.group !== 'decision' && 'sprint' in answer &&
              typeof answer.sprint !== 'boolean')) throw new Error();
       } catch (_) {throw new Error('模型返回了无效动作，未执行任何操作。');}
-      return {choice:answer.choice, sprint:answer.sprint === true, usage:{
+      return {choice:answer.choice, sprint:answer.sprint === true,
+        ...(preset.group === 'decision' && Object.keys(answer.probabilities).length?{probabilities:answer.probabilities}:{}), usage:{
         input_tokens:boundedCount(usage.input_tokens), output_tokens:boundedCount(usage.output_tokens)},
         latency:(performance.now()-started)/1000};
     } catch (e) {
@@ -490,18 +513,20 @@
         if (label) {label.textContent = e.message;label.className = 'error';}
       }
       const measuredDuration=Math.round(performance.now()-startedAt);
+      const provenance=reportedMemory && autoOn() && state.hosted?.research_active?await memoryProvenance(reportedMemory):null;
       await serverFetch('/api/model/result', {method:'POST', headers:{'Content-Type':'application/json'},
         body:JSON.stringify({id:request.id, ...answer,
           ...(autoOn() && choice.decision_telemetry && state.hosted?.research_active && Number.isFinite(measuredDuration) && measuredDuration>=0 && measuredDuration<=120000?{telemetry:{duration_ms:measuredDuration,error_type:errorType}}:{}),
           ...(reportedMemory?{memory_condition:{enabled:reportedMemory.enabled,version:2,
-            used_rounds:reportedMemory.episodes.length,omitted_rounds:reportedMemory.omitted_rounds}}:{})})});
+            used_rounds:reportedMemory.episodes.length,omitted_rounds:reportedMemory.omitted_rounds}}:{}),
+          ...(provenance?{memory_provenance:provenance}:{})})});
     } catch (_) { /* Next normal state poll displays session/network failures. */ }
     finally {setTimeout(poll, 200);}
   }
   setTimeout(poll, 200);
   const CHOICE_KEY = 'chefjeff.contribution-choice.v1', RECEIPTS_KEY = 'chefjeff.contribution-receipts.v1';
   // Equals hosted_records.CONSENT_VERSION: new terms ask again instead of carrying an old answer over.
-  const CONSENT = 'pilot-session-2026-10-v6';
+  const CONSENT = 'pilot-session-2026-10-v7';
   let pendingContribution = Promise.resolve(), autoRound = '', busyRound = '', shown = null, askedAt = '', notice = {round:'', text:''};
   const stored = (name, fallback) => {try {return JSON.parse(localStorage.getItem(name) || 'null') ?? fallback;} catch (_) {return fallback;}};
   const keep = (name, value) => {try {value == null ? localStorage.removeItem(name) : localStorage.setItem(name,JSON.stringify(value));} catch (_) {}};
@@ -524,7 +549,7 @@
   }
   function showChoice() {
     const n=document.getElementById('contribution-choice');
-    if(n)n.textContent=autoOn()?'当前选择：以后每局结束自动贡献，保存 30 天。':
+    if(n)n.textContent=autoOn()?'当前选择：以后每局结束自动贡献，保存半年（180 天）。':
       choice?'当前选择：暂不自动贡献。结算画面可点「贡献本局」只贡献这一局。':'当前选择：尚未选择。';
   }
   function badge() {
@@ -559,7 +584,7 @@
     const s=shown||state,round=s?.game_id;
     if(s?.phase!=='ended'||!s.hosted?.contribution_enabled||s.hosted.contributed||busyRound===round)return;
     pendingContribution=pendingContribution.catch(()=>{}).then(()=>contribute('round',round))
-      .then(()=>report(round,'本局已贡献，保存 30 天。删除凭证在「设置 → 数据导出」。'))
+      .then(()=>report(round,'本局已贡献，保存半年（180 天）。删除凭证在「设置 → 数据导出」。'))
       .catch(error=>report(round,'贡献失败：'+error.message));
   }
   window.addEventListener('kitchen-contribute', contributeRound);
@@ -576,7 +601,7 @@
     if(autoOn()&&s.hosted?.contribution_enabled&&s.phase==='ended'&&autoRound!==s.game_id){
       const round=autoRound=s.game_id;
       pendingContribution=pendingContribution.catch(()=>{}).then(()=>contribute('standing',round))
-        .then(()=>report(round,'本局已自动贡献，保存 30 天。'))
+        .then(()=>report(round,'本局已自动贡献，保存半年（180 天）。'))
         .catch(error=>report(round,'自动贡献失败：'+error.message));
     }
     // Asked before the first round, with no default answer. Browsers may still close it on Esc without
@@ -599,7 +624,7 @@
           {consent:false,consent_version:CONSENT,decision_telemetry:false})).catch(()=>status('关闭自动贡献未确认，请重试。'));
       }
       dialog.close();showChoice();badge();
-      status(auto?'已开启自动贡献：此后每局结束自动保存 30 天。':'已选择暂不贡献，之后不会自动上传。');
+      status(auto?'已开启自动贡献：此后每局结束自动保存半年（180 天）。':'已选择暂不贡献，之后不会自动上传。');
     };
     el('ask-auto').onclick = () => answer(true);
     el('ask-later').onclick = () => answer(false);

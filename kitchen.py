@@ -151,28 +151,34 @@ def replay(factory, resolved, inputs):
     """Rebuild a kitchen from a frozen configuration and its recorded engine inputs."""
     k = factory(resolved)
     for record in inputs:
-        call = record['call']
-        if call == 'advance':
-            k.advance(record['seconds'])
-        elif call == 'start':
-            a = record['action']
-            k.start(record['actor'], Action(a['key'], a['label'], a['kind'], a['target'], _tupled(a['expected'])))
-        elif call == 'stop':
-            k.stop(record['actor'])
-        elif call == 'set_manual':
-            k.set_manual(record['actor'], *record['vector'])
-        elif call == 'sprint':
-            k.sprint(record['actor'])
-        elif call == 'face':
-            k.face(record['actor'], *record['vector'])
-        elif call == 'pick_station':
-            k.pick_station(record['actor'], record['target'])
-        elif call == 'report_position':
-            k.report_position(record['actor'], *record['at'], record['base'], record['settle'], record.get('press', False))
-        elif call == 'abort':
-            k.abort()
-        else:
-            raise ValueError(f'unknown engine input {call!r}')
+        apply_input(k, record)
+    return k
+
+
+def apply_input(k, record):
+    """Repeat one recorded outer engine call."""
+    call = record['call']
+    if call == 'advance':
+        k.advance(record['seconds'])
+    elif call == 'start':
+        a = record['action']
+        k.start(record['actor'], Action(a['key'], a['label'], a['kind'], a['target'], _tupled(a['expected'])))
+    elif call == 'stop':
+        k.stop(record['actor'])
+    elif call == 'set_manual':
+        k.set_manual(record['actor'], *record['vector'])
+    elif call == 'sprint':
+        k.sprint(record['actor'])
+    elif call == 'face':
+        k.face(record['actor'], *record['vector'])
+    elif call == 'pick_station':
+        k.pick_station(record['actor'], record['target'])
+    elif call == 'report_position':
+        k.report_position(record['actor'], *record['at'], record['base'], record['settle'], record.get('press', False))
+    elif call == 'abort':
+        k.abort()
+    else:
+        raise ValueError(f'unknown engine input {call!r}')
     return k
 
 
@@ -1019,6 +1025,10 @@ class Kitchen:
                         continue
                     if not self._begin_work(who, job):
                         continue
+                    observer = getattr(self, '_record_observer', None)
+                    if observer is not None:
+                        # Not an engine event: Jeff's recent events, sequence numbers and revisions stay as they were.
+                        observer.arrival(who, job, round((self.time-remaining)*1000))
                 rate = 1
                 if job.action.kind == 'extinguish':
                     # Spraying lowers the fire's own strength, which stays on the station (Overcooked 2's FightFire).

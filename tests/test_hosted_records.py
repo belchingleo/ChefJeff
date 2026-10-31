@@ -3,7 +3,9 @@ from pathlib import Path
 import tempfile
 import time
 import unittest
-from hosted_records import ContributionStore, CONSENT_VERSION
+from collections import namedtuple
+from unittest import mock
+from hosted_records import ContributionStore, CONSENT_VERSION, MIN_FREE_BYTES
 from hosted_server import HostedSession
 
 
@@ -64,6 +66,16 @@ class ContributionTests(unittest.TestCase):
                 with store.connect() as db:
                     self.assertEqual(json.loads(db.execute('select record from records').fetchone()[0])['consent_mode'],'standing')
             finally:s.close()
+    def test_low_disk_refuses_saves_and_updates_before_writing(self):
+        with tempfile.TemporaryDirectory() as d:
+            store=ContributionStore(d)
+            self.assertEqual((store.limit,store.byte_limit),(5000,5_000_000_000))
+            receipt=store.save({'schema':'test'})
+            usage=namedtuple('usage','total used free')
+            with mock.patch('hosted_records.shutil.disk_usage',return_value=usage(40e9,39e9,MIN_FREE_BYTES)):
+                with self.assertRaises(ValueError):store.save({'schema':'test'})
+                with self.assertRaises(ValueError):store.update(receipt['id'],{'schema':'test'})
+            with store.connect() as db:self.assertEqual(db.execute('select count(*) from records').fetchone()[0],1)
     def test_expiry_capacity_and_private_permissions(self):
         with tempfile.TemporaryDirectory() as d:
             store=ContributionStore(d,limit=1)
@@ -71,7 +83,9 @@ class ContributionTests(unittest.TestCase):
             self.assertEqual(store.path.stat().st_mode&0o777,0o600)
             with self.assertRaises(ValueError):store.save({})
             self.assertNotIn(receipt['deletion_token'].encode(),store.path.read_bytes())
-            store.prune(time.time()+31*86400)
+            store.prune(time.time()+31*86400)  # still inside the six-month term
+            with store.connect() as db:self.assertEqual(db.execute('select count(*) from records').fetchone()[0],1)
+            store.prune(time.time()+181*86400)
             with store.connect() as db:self.assertEqual(db.execute('select count(*) from records').fetchone()[0],0)
             self.assertNotIn(b'"schema":"test"',store.path.read_bytes())
 

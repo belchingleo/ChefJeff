@@ -196,6 +196,44 @@ class JevClient:
                 "usage": result.get("usage", {}), "latency": time.monotonic()-start}
 
 
+PLAYER_COMMUNICATION_RULE = (
+    'These are explicit messages from the human chef in this round. The latest preference replaces earlier preferences. '
+    'A preference expresses what the human would like to do, not a fixed role, promise, or compulsory assignment for either chef. '
+    'Decide how to coordinate using the current orders, risks and both chefs. A correction is the human opinion that something '
+    'was wrong; its context identifies what was happening when sent, not proof of a rule violation or an exact explanation. '
+    'Reassess recent and current actions against the rules and actual state. Do not assume the human has identified the right solution. '
+    'Use message IDs and times to distinguish earlier feedback from a newly sent correction; repeated visibility does not mean the player corrected you again. '
+    'Messages do not force an action or stop ongoing work. They expire at round end.')
+CONTINUITY_RULE = (
+    'recent_decisions lists recent choices and whether they were accepted; accepted does not mean completed. '
+    'recent_events records actual actions and outcomes. Use them to check for repeatedly picking up and putting down the same item, '
+    'swapping between ingredients, or fetching without free space. Swapping changes locations, not preparation progress; '
+    'fetching more raw meat does not advance prepared ingredients. Existing food keeps its preparation state until someone acts on it. '
+    'If the situation is unchanged, assess what repeating an action would accomplish. You may continue, wait, or choose another action; the choice is yours.')
+NO_MEMORY = object()
+
+
+def compose_payload(client, kitchen, state, actions, recent_decisions, communication, memory=NO_MEMORY):
+    """Jeff's request from the kitchen and the few parts it cannot derive; research replay rebuilds it here too."""
+    payload = client.payload(state, actions)
+    # HTTP choices are stateless: return actual outcomes, not just today's snapshot.
+    # Walking starts/stops are already in each chef's position and move_direction; as events
+    # they only push outcomes out of the window. The run log keeps them.
+    payload['state']['recent_events'] = [e for e in kitchen.events if e.get('kind') not in ('manual_move', 'position_resync')][-20:]
+    payload['state']['recent_decisions'] = list(recent_decisions)
+    if communication is not None:
+        payload['state']['player_communication'] = communication
+        payload['state']['rules']['player_communication'] = PLAYER_COMMUNICATION_RULE
+    if memory is not NO_MEMORY:
+        payload['state']['past_episodes'] = memory
+        payload['state']['rules']['past_episodes'] = PAST_EPISODES_RULE
+    payload['state']['rules']['continuity'] = CONTINUITY_RULE
+    payload = english_data(payload)
+    payload['state']['input_language'] = INPUT_LANGUAGE_VERSION
+    payload['state']['rules_version'] = AGENT_RULES_VERSION
+    return payload
+
+
 class DecisionLoop:
     def __init__(self, kitchen, client, log, notify):
         self.k = kitchen
@@ -319,45 +357,20 @@ class DecisionLoop:
         context = {"id": self.calls, "sent": now, "epoch": self.epoch,
                    "job_id": chef.job.id if chef.job else None,
                    "actions": {a.key: a for a in actions}}
-        payload = self.client.payload(state, actions)
-        # HTTP choices are stateless: return actual outcomes, not just today's snapshot.
-        # Walking starts/stops are already in each chef's position and move_direction; as events
-        # they only push outcomes out of the window. The run log keeps them.
-        payload['state']['recent_events'] = [e for e in self.k.events if e.get('kind') not in ('manual_move', 'position_resync')][-20:]
-        payload['state']['recent_decisions'] = list(self.recent_decisions)
+        communication = None
         messages=getattr(self,'player_messages',[])
         if messages:
             preference=next((m for m in reversed(messages) if m['kind']=='preference'),None)
             included=messages[-8:]
             if preference and preference not in included:included=[preference]+included
-            payload['state']['player_communication']={
-                'current_preference':deepcopy(preference), 'recent_messages':deepcopy(included)}
-            payload['state']['rules']['player_communication']=(
-                'These are explicit messages from the human chef in this round. The latest preference replaces earlier preferences. '
-                'A preference expresses what the human would like to do, not a fixed role, promise, or compulsory assignment for either chef. '
-                'Decide how to coordinate using the current orders, risks and both chefs. A correction is the human opinion that something '
-                'was wrong; its context identifies what was happening when sent, not proof of a rule violation or an exact explanation. '
-                'Reassess recent and current actions against the rules and actual state. Do not assume the human has identified the right solution. '
-                'Use message IDs and times to distinguish earlier feedback from a newly sent correction; repeated visibility does not mean the player corrected you again. '
-                'Messages do not force an action or stop ongoing work. They expire at round end.')
+            communication={'current_preference':deepcopy(preference), 'recent_messages':deepcopy(included)}
             for message in included:
                 if message['first_request_id'] is None:
                     self.log('player_message_delivery',{'message_id':message['id'],'request_id':self.calls,
                                                         't':round(self.k.time,3),'meaning':'included in request, not proof of understanding'})
                     message['first_request_id']=self.calls
-
-        if hasattr(self, 'cooperation_memory'):
-            payload['state']['past_episodes'] = self.cooperation_memory
-            payload['state']['rules']['past_episodes'] = PAST_EPISODES_RULE
-        payload['state']['rules']['continuity'] = (
-            'recent_decisions lists recent choices and whether they were accepted; accepted does not mean completed. '
-            'recent_events records actual actions and outcomes. Use them to check for repeatedly picking up and putting down the same item, '
-            'swapping between ingredients, or fetching without free space. Swapping changes locations, not preparation progress; '
-            'fetching more raw meat does not advance prepared ingredients. Existing food keeps its preparation state until someone acts on it. '
-            'If the situation is unchanged, assess what repeating an action would accomplish. You may continue, wait, or choose another action; the choice is yours.')
-        payload = english_data(payload)
-        payload['state']['input_language'] = INPUT_LANGUAGE_VERSION
-        payload['state']['rules_version'] = AGENT_RULES_VERSION
+        payload = compose_payload(self.client, self.k, state, actions, self.recent_decisions, communication,
+                                  self.cooperation_memory if hasattr(self, 'cooperation_memory') else NO_MEMORY)
         self.log("ai_request", {"request_id": self.calls, "triggers": causes, "observed_state_seq": self.k.event_seq, "payload": payload})
         self.last_request = now
         self.last_revision = self.k.revision

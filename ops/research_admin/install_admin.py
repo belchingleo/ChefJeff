@@ -183,12 +183,18 @@ def prepare():
     if socket.gethostname() != 'VM-0-5-ubuntu':
         raise ValueError('只可在上海腾讯云服务器执行。')
     release = Path('/opt/chefjeff/current').resolve(strict=True)
-    if release != Path('/opt/chefjeff/releases/china-en-v4-269d7af296be/chefjeff-web-demo'):
-        raise ValueError('当前游戏发布目录已变化，需要重新核对兼容性。')
-    if digest((release/'scripts/research_export.py').read_bytes()) != SOURCE_EXPORTER_SHA:
-        raise ValueError('研究导出程序与已核对版本不一致。')
     manifest = json.loads((HERE/'manifest.json').read_text())
-    for name in (*APP_FILES, 'install_admin.py'):
+    bound = 'game-binding.json' in manifest['files']
+    if bound:
+        from release_binding import verify_game_release
+        verify_game_release(release, HERE)
+    else:  # Compatibility with the already shipped, fixed-version v2 installer.
+        if release != Path('/opt/chefjeff/releases/china-en-v4-269d7af296be/chefjeff-web-demo'):
+            raise ValueError('当前游戏发布目录已变化，需要重新核对兼容性。')
+        if digest((release/'scripts/research_export.py').read_bytes()) != SOURCE_EXPORTER_SHA:
+            raise ValueError('研究导出程序与已核对版本不一致。')
+    binding_files = ('release_binding.py','game-binding.json') if bound else ()
+    for name in (*APP_FILES, 'install_admin.py', *binding_files):
         if digest((HERE/name).read_bytes()) != manifest['files'].get(name):
             raise ValueError('安装文件摘要不匹配：'+name)
     found = []

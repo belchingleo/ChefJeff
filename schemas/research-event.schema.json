@@ -13,6 +13,7 @@
         "ai_error",
         "ai_request",
         "ai_response",
+        "arrival",
         "arrival_conflict",
         "browser_input",
         "browser_result",
@@ -56,6 +57,7 @@
         "state_checkpoint",
         "state_delta",
         "swapped",
+        "throw_aim",
         "thrown",
         "unresolved_at_close",
         "washed",
@@ -1249,6 +1251,49 @@
             "null"
           ],
           "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+        },
+        "engine_input_n": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "payload_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "recent_decisions": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "type": "object"
+          }
+        },
+        "player_communication": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object"
+            }
+          ]
+        },
+        "memory_input": {
+          "enum": [
+            "absent",
+            "empty_placeholder",
+            "not_stored"
+          ]
+        },
+        "probabilities": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+          },
+          "additionalProperties": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
         }
       },
       "required": [],

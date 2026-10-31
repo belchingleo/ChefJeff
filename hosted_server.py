@@ -29,7 +29,8 @@ from hosted_capacity import ActiveKitchens, RequestBudget, NETWORK_FULL
 from hosted_jev import JevForwarder
 from hosted_usage import UsageStats
 from cooperation_memory import (ROUNDS, EVENTS, CONTEXT_CHARACTERS, DESCRIPTION,
-                                memory_namespace, memory_context, portable_episode, validate_memory_condition)
+                                memory_namespace, memory_context, portable_episode, validate_memory_condition,
+                                validate_memory_provenance)
 
 HOSTED_HISTORY_LIMIT = 20  # rounds kept per page for the data export; bounds memory under MemoryMax
 
@@ -83,9 +84,13 @@ class BrowserRelay(SpatialJevClient):
             usage = body.get('usage', {})
             if not isinstance(usage, dict) or set(usage) - {'input_tokens', 'output_tokens'}: return False
             if any(type(v) is not int or not 0 <= v <= 10000000 for v in usage.values()): return False
+            reported = body.get('probabilities', {})
+            from research_record import probabilities
+            if not isinstance(reported, dict) or probabilities(reported, criteria) != {k: round(v, 6) for k, v in reported.items()}:
+                return False
             task['result'] = {'choice': choice, 'sprint': body['sprint'], 'model': 'browser-model',
                               'usage': usage, 'latency': time.monotonic() - task['sent'],
-                              'confidence': None, 'probabilities': {}}
+                              'confidence': None, 'probabilities': probabilities(reported, criteria)}
             task['event'].set()
             return True
 
@@ -113,6 +118,7 @@ class HostedSession(GameSession):
         self.store = None
         self.connected = False
         self.round_memory_condition = None
+        self.round_memory_provenance = None
         self.usage = None
         self.usage_started = False  # Once per page session, including retries, restarts and later levels.
         self.usage_end_reason = 'restart'
@@ -321,6 +327,7 @@ class HostedSession(GameSession):
             self.research_active = False
             self.research_mode = 'standing'
             self.round_memory_condition = None
+            self.round_memory_provenance = None
             self.research_telemetry = bool(self.research_armed and self.research_armed['decision_telemetry'])
             self.research_error = None
             # Freeze this round's consented metadata before the first disk snapshot.
@@ -335,6 +342,7 @@ class HostedSession(GameSession):
                     self.research_error = 'storage_failed'
             self.research_armed = None  # each next round needs its own pre-start declaration
             self.round_memory_condition = None
+            self.round_memory_provenance = None
             # Establish the canonical memory rules in every pending payload. The page
             # supplies its frozen browser-only history when calling its chosen model.
             self.ai.cooperation_memory = memory_context(False, [])
@@ -343,6 +351,7 @@ class HostedSession(GameSession):
             self.usage_started = True
         if path == '/api/reset' and response[0] == 200:
             self.round_memory_condition = None
+            self.round_memory_provenance = None
         return response
 
     def close(self):
@@ -374,7 +383,7 @@ FIELDS = {
     '/api/move': {'dx', 'dy', 'seq', 'sprint'}, '/api/position': {'seq', 'base', 'at', 'press'}, '/api/select': {'target'},
     '/api/interact': {'expected_item', 'mode', 'at', 'base', 'aim', 'target'}, '/api/throw': {'direction', 'expected_item', 'at', 'base'},
     '/api/action': {'action', 'expected'},
-    '/api/model/result': {'id', 'choice', 'sprint', 'usage', 'failed','memory_condition','telemetry'},
+    '/api/model/result': {'id', 'choice', 'sprint', 'usage', 'failed','memory_condition','telemetry','probabilities','memory_provenance'},
 }
 
 
@@ -799,6 +808,9 @@ class HostedHandler(Handler):
                     condition = validate_memory_condition(body['memory_condition']) if 'memory_condition' in body else None
                     if condition and game.round_memory_condition is not None and condition != game.round_memory_condition:
                         return self.reply(409, {'error':'本局记忆条件已经固定。'})
+                    provenance = validate_memory_provenance(body['memory_provenance'], condition) if 'memory_provenance' in body else None
+                    if provenance and game.round_memory_provenance is not None and provenance != game.round_memory_provenance:
+                        return self.reply(409, {'error':'本局记忆来源已经固定。'})
                     telemetry = None
                     if 'telemetry' in body:
                         from research_record import validate_telemetry
@@ -813,6 +825,8 @@ class HostedHandler(Handler):
                              'provider_verified': False}, 'session'))
                     if ok and condition:
                         game.round_memory_condition = condition
+                    if ok and provenance:
+                        game.round_memory_provenance = provenance
                     return self.reply(200 if ok else 409, {'ok': ok})
                 token = self.headers.get('X-ChefJeff-Session','')
                 allocated = None
@@ -875,7 +889,7 @@ def main():
     p.add_argument('--port', type=int, default=8780)
     p.add_argument('--origin', required=True)
     p.add_argument('--web-root', type=Path)
-    p.add_argument('--data-dir', type=Path, help='Enable opt-in 30-day contributions in this private directory.')
+    p.add_argument('--data-dir', type=Path, help='Enable opt-in six-month (180-day) contributions in this private directory.')
     p.add_argument('--shared-config', type=Path, help='Private backend data-service configuration; data-dir holds only regional usage in shared mode.')
     p.add_argument('--max-sessions', type=int, choices=range(1,17), default=8, help='Active kitchens, including short pause/result leases.')
     p.add_argument('--max-waiting', type=int, choices=range(0,33), default=32, help='Additional page sessions that cannot consume active slots.')

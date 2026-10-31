@@ -8,7 +8,8 @@
       "enum": [
         "pilot-session-2026-10-v4",
         "pilot-session-2026-10-v5",
-        "pilot-session-2026-10-v6"
+        "pilot-session-2026-10-v6",
+        "pilot-session-2026-10-v7"
       ]
     },
     "round_id": {
@@ -317,6 +318,50 @@
             "max_calls"
           ],
           "additionalProperties": false
+        },
+        "memory_provenance": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "version": {
+                  "const": 2
+                },
+                "source_round_ids": {
+                  "type": "array",
+                  "maxItems": 3,
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{32}$"
+                  }
+                },
+                "context_sha256": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "source": {
+                  "const": "browser-reported"
+                },
+                "context_digest": {
+                  "const": "sha256 of JSON.stringify(context) in the browser"
+                }
+              },
+              "required": [
+                "version",
+                "source_round_ids",
+                "context_sha256",
+                "source",
+                "context_digest"
+              ],
+              "additionalProperties": false
+            }
+          ]
         }
       },
       "required": [
@@ -512,7 +557,10 @@
           "const": "emission observations are not atomic operation boundaries"
         },
         "replay": {
-          "const": "not_claimed"
+          "enum": [
+            "not_claimed",
+            "engine_inputs"
+          ]
         },
         "missing": {
           "type": "array",
@@ -523,7 +571,8 @@
               "provider_server_clock",
               "free_text",
               "preset_communication",
-              "intermediate_state_not_collected_without_prestart_consent"
+              "intermediate_state_not_collected_without_prestart_consent",
+              "engine_inputs_not_collected_without_prestart_consent"
             ]
           }
         }
@@ -579,6 +628,68 @@
     },
     "source_expires_at": {
       "type": "string"
+    },
+    "replay": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "engine": {
+              "enum": [
+                "Kitchen",
+                "SpatialKitchen"
+              ]
+            },
+            "resolved_config": {
+              "type": "object"
+            },
+            "inputs": {
+              "type": "array",
+              "maxItems": 200000,
+              "items": {
+                "type": "object",
+                "properties": {
+                  "n": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "call": {
+                    "enum": [
+                      "advance",
+                      "start",
+                      "stop",
+                      "set_manual",
+                      "sprint",
+                      "face",
+                      "pick_station",
+                      "report_position",
+                      "abort"
+                    ]
+                  },
+                  "game_time_ms": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "n",
+                  "call",
+                  "game_time_ms"
+                ]
+              }
+            }
+          },
+          "required": [
+            "engine",
+            "resolved_config",
+            "inputs"
+          ],
+          "additionalProperties": false
+        }
+      ]
     }
   },
   "required": [

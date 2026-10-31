@@ -5,11 +5,16 @@ import hashlib
 import json
 from pathlib import Path
 import secrets
+import shutil
 import sqlite3
 import time
 
-RETENTION_SECONDS = 30 * 86400
-CONSENT_VERSION = 'pilot-session-2026-10-v6'
+RETENTION_SECONDS = 180 * 86400
+CONSENT_VERSION = 'pilot-session-2026-10-v7'
+# Six months of rounds on the 40 GB Shanghai system disk, which also holds the OS and releases.
+RECORD_LIMIT = 5000
+BYTE_LIMIT = 5_000_000_000
+MIN_FREE_BYTES = 2_000_000_000
 
 
 def pilot_record(session):
@@ -19,7 +24,7 @@ def pilot_record(session):
 
 
 class ContributionStore:
-    def __init__(self, directory, limit=1000, byte_limit=256_000_000):
+    def __init__(self, directory, limit=RECORD_LIMIT, byte_limit=BYTE_LIMIT):
         self.directory = Path(directory)
         self.directory.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.path = self.directory / 'contributions.sqlite3'
@@ -28,6 +33,10 @@ class ContributionStore:
         with self.connect() as db:
             db.execute('CREATE TABLE IF NOT EXISTS records (id TEXT PRIMARY KEY, deletion_hash TEXT NOT NULL, expires REAL NOT NULL, record TEXT NOT NULL)')
         self.path.chmod(0o600)
+
+    def check_disk(self, size):
+        if shutil.disk_usage(self.directory).free - size < MIN_FREE_BYTES:
+            raise ValueError('Server disk space is low. Please keep your local export.')
         self.prune()
 
     @contextmanager
@@ -53,6 +62,7 @@ class ContributionStore:
             validate_record(record)
         encoded = json.dumps(record, ensure_ascii=False, separators=(',',':'), allow_nan=False)
         if len(encoded.encode()) > 13_000_000: raise ValueError('Session record exceeds storage limit.')
+        self.check_disk(len(encoded.encode()))
         with self.connect() as db:
             # Transaction serializes capacity check and insertion across sessions.
             db.execute('BEGIN IMMEDIATE')
@@ -83,6 +93,7 @@ class ContributionStore:
         encoded = json.dumps(record, ensure_ascii=False, separators=(',', ':'), allow_nan=False)
         if len(encoded.encode()) > 13_000_000:
             raise ValueError('Session record exceeds storage limit.')
+        self.check_disk(len(encoded.encode()))
         with self.connect() as db:
             db.execute('BEGIN IMMEDIATE')
             stored_bytes = db.execute('SELECT coalesce(sum(length(CAST(record AS BLOB))),0) FROM records WHERE id!=?', (identifier,)).fetchone()[0]

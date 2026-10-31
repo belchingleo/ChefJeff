@@ -12,7 +12,7 @@ import config_contract as cc
 import schema_check
 
 SCHEMA = 'chefjeff-pilot-session-v2'
-CONSENT = 'pilot-session-2026-10-v6'
+CONSENT = 'pilot-session-2026-10-v7'
 MODEL_PROVIDERS = {p['id']: p for p in json.loads(
     (Path(__file__).resolve().parent / 'model-providers.json').read_text())['providers']
     if not p.get('disabled')}
@@ -34,7 +34,8 @@ EVENT_TYPES = {'order', 'action_start', 'action_done', 'interrupted', 'arrival_c
                'served', 'wrong_dish', 'dish_rejected', 'plate_returned', 'ready', 'burn', 'fire',
                'fire_spread', 'fire_loss', 'expired', 'unresolved_at_close', 'round_end',
                'goal_unreachable', 'dropped', 'picked_up', 'swapped', 'manual_move', 'sprint',
-               'knocked', 'ground_nudge', 'route_replanned', 'position_resync', 'item_transform'}
+               'knocked', 'ground_nudge', 'route_replanned', 'position_resync', 'item_transform',
+               'arrival', 'throw_aim'}
 
 
 def code(value):
@@ -63,6 +64,28 @@ def model_condition(session):
     if log is None or log.round_id != session.game_id or log.kitchen is not session.k:
         return None
     return deepcopy(getattr(log, 'model_identity', None))
+
+
+def memory_input(body):
+    """Which past_episodes the server put in the request; never their content."""
+    if 'past_episodes' not in body.get('state', {}):
+        return 'absent'
+    from cooperation_memory import memory_context
+    from model_language import english_data
+    return 'empty_placeholder' if body['state']['past_episodes'] == english_data(memory_context(False, [])) else 'not_stored'
+
+
+def probabilities(value, criteria=None):
+    """Option probabilities a decision model reported, bounded to the offered keys."""
+    if not isinstance(value, dict) or len(value) > 512:
+        return {}
+    result = {}
+    for key, p in value.items():
+        if code(key) is None or (criteria is not None and key not in criteria):
+            continue
+        if type(p) in (int, float) and math.isfinite(p) and 0 <= p <= 1:
+            result[key] = round(p, 6)
+    return result
 
 
 def number(value):
@@ -181,7 +204,13 @@ def payload(kind, data, k):
     if kind == 'ai_request':
         body = data.get('payload', {})
         candidates = body.get('questions', {}).get('next_action', {}).get('criteria', {})
-        return {'observed_state_seq': data.get('observed_state_seq'),
+        observed = getattr(getattr(k, '_record_observer', None), 'capture_observations', False)
+        # With the engine inputs, these few parts rebuild the request exactly (jev.compose_payload).
+        rebuild = {'engine_input_n': len(k.inputs), 'payload_sha256': cc.sha256(body),
+                   'recent_decisions': deepcopy(body.get('state', {}).get('recent_decisions', [])),
+                   'player_communication': deepcopy(body.get('state', {}).get('player_communication')),
+                   'memory_input': memory_input(body)} if observed else {}
+        return {**rebuild, 'observed_state_seq': data.get('observed_state_seq'),
                 'candidates': [code(v) for v in candidates],
                 'candidate_actions': [action(a.key, a.target, a.kind) for a in k.actions('jeff') if a.key in candidates], 'stage': 'model_request',
                 'choice_source': 'not_observed', 'state_ref': getattr(k, '_research_state_ref', None) if getattr(getattr(k, '_record_observer', None), 'capture_observations', False) else None}
@@ -196,7 +225,8 @@ def payload(kind, data, k):
                 'reason': None if applied else 'stale_or_disabled' if not fresh else 'engine_rejected',
                 'usage': {key: value for key, value in data.get('usage', {}).items()
                           if key in ('input_tokens', 'output_tokens') and type(value) is int and 0 <= value <= 10000000},
-                'usage_source': 'client-reported', 'provider_verified': False}
+                'usage_source': 'client-reported', 'provider_verified': False,
+                'probabilities': probabilities(data.get('probabilities'))}
     if kind == 'request_unresolved':
         return {'reason': 'not_observed'}
     if kind == 'ai_error':
@@ -238,6 +268,11 @@ def record(session):
     game_reason = ('fire_loss' if k.failure_reason == 'fire_spread' else 'round_limit'
                    if k.time >= k.rules.round_limit - 1e-8 else 'none_observed' if k.aborted else 'in_progress')
     rows = [project_event(r) for r in log.records]
+    # Exact replay needs the unprojected frozen configuration and every outer engine call. Both
+    # describe the whole round, so they are kept only when it was observed with pre-start consent.
+    observed = bool(log.capture_observations and not log.observations_withdrawn)
+    replay = {'engine': type(k).__name__, 'resolved_config': deepcopy(k.resolved),
+              'inputs': deepcopy(k.inputs)} if observed else None
     state_times = [r['game_time_ms'] for r in rows if r['type'] in ('state_checkpoint', 'state_delta')]
     max_gap = max((b-a for a,b in zip(state_times,state_times[1:])), default=0)
     return {'schema': SCHEMA, 'consent_version': CONSENT, 'round_id': session.game_id,
@@ -250,6 +285,7 @@ def record(session):
             'config_hash': k.config_hash, 'resolved_config': deepcopy(log.research_config),
             'config_projection_hash': 'sha256:' + cc.sha256(log.research_config),
             'conditions': {'cross_round_memory': memory_condition(session),
+                           'memory_provenance': deepcopy(getattr(session, 'round_memory_provenance', None)),
                            'engine_semantics': k.rules.semantics,
                            'rules_version': _rules_version(),
                            'input_language': _input_language(),
@@ -259,7 +295,7 @@ def record(session):
                            'decision_telemetry': bool(getattr(session, 'research_telemetry', False)),
                            'model_parameters': {'sampling': None, 'reasoning': None, 'safety': None, 'upstream_adapter': None, 'status': 'not_collected_from_browser'},
                            'request_policy': {key: number(k.c.get(key)) for key in ('ai_min_interval', 'ai_refresh_seconds', 'ai_timeout_seconds', 'ai_max_response_age')} | {'max_calls': getattr(getattr(session, 'ai', None), 'call_limit', None)}},
-            'events': rows,
+            'events': rows, 'replay': replay,
             'termination': {'game_condition': game_reason, 'session_close': ending,
                             'confirmed': ending is not None and ending['reason'] != 'not_observed', 'last_game_time_ms': round(k.time * 1000),
                             'last_event_seq': log.next_seq - 1, 'final_state_seq': log.final_state_ref},
@@ -276,8 +312,9 @@ def record(session):
                         'state_trigger': 'initial,event_emission,outer_input_completion,periodic,final',
                         'delta_format': 'merge_chefs_stations_by_id_replace_other_sections',
                         'state_precision': 'emission observations are not atomic operation boundaries',
-                        'replay': 'not_claimed', 'missing': ['raw_device_input', 'provider_verified_model',
-                                                            'provider_server_clock', 'free_text', 'preset_communication'] + ([] if log.capture_observations else ['intermediate_state_not_collected_without_prestart_consent'])}}
+                        'replay': 'engine_inputs' if replay else 'not_claimed',
+                        'missing': ['raw_device_input', 'provider_verified_model',
+                                    'provider_server_clock', 'free_text', 'preset_communication'] + ([] if log.capture_observations else ['intermediate_state_not_collected_without_prestart_consent']) + ([] if replay else ['engine_inputs_not_collected_without_prestart_consent'])}}
 
 
 def validate_telemetry(value):
@@ -297,6 +334,13 @@ def validate_record(value):
         raise ValueError('Research schema violation at ' + errors[0][0])
     if value['config_projection_hash'] != 'sha256:' + cc.sha256(value['resolved_config']):
         raise ValueError('Configuration projection digest mismatch')
+    replay = value.get('replay')
+    if replay is not None:
+        resolved = dict(replay['resolved_config'])
+        if resolved.pop('config_hash', None) != value['config_hash'] or 'sha256:' + cc.sha256(resolved) != value['config_hash']:
+            raise ValueError('Replay configuration digest mismatch')
+        if [row['n'] for row in replay['inputs']] != list(range(len(replay['inputs']))):
+            raise ValueError('Replay inputs are not contiguous')
     previous, wall, states = 0, -1, set()
     for row in value['events']:
         seq = row['seq']

@@ -22,7 +22,7 @@ ChefJeff 是一个实时的人与 AI 合作烹饪游戏，也是一套可以扩�
 选择[国内站（上海）](https://chefjeff.belchingleo.online/)或[海外站（德国）](https://global.belchingleo.online/)就能玩，不用安装。
 
 - 需要你自己的模型 Key：在「设置 → 连接」里选服务、粘贴 Key。Key 默认只留在当前页面里，由浏览器直接发给服务商；只有 Jev 需要你勾选同意后经试玩服务器转发。哪些服务能用、一局大约花多少钱，见[模型连接说明](https://chefjeff.belchingleo.online/model-guide.html)。
-- 第一次开局前会问你是否愿意匿名贡献对局数据，可以随时改主意；贡献的数据保留 30 天，可凭删除凭证删除，详见[隐私说明与反馈](https://chefjeff.belchingleo.online/privacy.html)。
+- 第一次开局前会问你是否愿意匿名贡献对局数据，可以随时改主意；贡献的数据保留半年（180 天），可凭删除凭证删除，详见[隐私说明与反馈](https://chefjeff.belchingleo.online/privacy.html)。
 - 电脑用键盘；手机横屏后用触屏操作（见下方[触屏操作](#触屏操作试验版)）。iPhone 可以在 Safari 分享菜单里选「添加到主屏幕」，再从主屏幕打开即可全屏。
 - 游戏服务器分别位于上海和德国，贡献记录与汇总访问统计统一保存在上海；同时营业的厨房数量有限，满了会提示稍后再来。
 
@@ -272,7 +272,7 @@ Overcooked-AI（Carroll 等，2019）用胡闹厨房式的环境研究人和强�
 - API Key 默认只放在本机内存里。勾选「记住此设备」后，Key 会以明文保存到本地文件 `.player-api.json`；在设置里点「清除配置」可以删掉它。
 - 分享之前请先检查导出的内容，不要把 Key 放进 Issue、截图或提交记录里。
 
-- 在线版的 Key 留在浏览器里；第一次开局前会问你一次是否贡献对局数据（30 天后删除）。[隐私说明与反馈](docs/privacy.md)写明存了什么、存在哪里、保存多久、怎样删除和怎样联系我们；[模型连接说明](docs/model-guide.md)列出可以从浏览器直连的服务，并估算一局的费用。游戏里的「设置」和「操作说明 → 反馈」也能打开这两页。
+- 在线版的 Key 留在浏览器里；第一次开局前会问你一次是否贡献对局数据（半年即 180 天后删除）。[隐私说明与反馈](docs/privacy.md)写明存了什么、存在哪里、保存多久、怎样删除和怎样联系我们；[模型连接说明](docs/model-guide.md)列出可以从浏览器直连的服务，并估算一局的费用。游戏里的「设置」和「操作说明 → 反馈」也能打开这两页。
 - 问题和 Bug 反馈：到 [GitHub Issues](https://github.com/belchingleo/ChefJeff/issues)，附上「设置 → 数据导出」得到的文件。
 
 详见[隐私与调用费用](docs/privacy-and-costs.md)和[安全说明](SECURITY.md)。

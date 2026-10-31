@@ -13,6 +13,9 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - Add persistent aggregate usage counts, including round starts/completions, manual endings, capacity rejections and per-level results; keep ending-specific duration histograms and a live running-session count. Estimate visiting/playing browsers with two local yes/no flags, without generating identifiers or storing IPs, credentials or individual analytics events. Add a loopback-only operator endpoint and CLI, with counting and privacy limits documented in both languages.
 
 ### Research records
+- Contributed rounds are now kept for six months (180 days) instead of 30 days. The contribution terms move to `pilot-session-2026-10-v7`, so every player is asked again. Rounds saved under the earlier terms keep their 30-day expiry.
+- With consent before the round starts, a contributed round can now be replayed exactly: the record keeps the full frozen configuration and every engine input. It also records when each chef actually starts working at a station (`arrival`), whether a throw aims at the other chef (`throw_aim`), what is needed to rebuild every request to Jeff (a digest, recent decisions and the preset messages), the option probabilities a decision model reports, and, with cross-round memory on, which earlier rounds the memory came from. Memory content is still not stored. Jeff's input is unchanged. `scripts/check_research_record.py` checks a record and replays it.
+- Contribution storage holds up to 5000 rounds and 5 GB, and refuses saves before the server disk runs low.
 - A consented round whose final record could not be written to the database is no longer shown as contributed: the result screen says the contribution failed, and the save is retried once. Before this, such rounds kept only their opening snapshot while the page said they were saved. Wait, continue and stale model answers no longer leave empty action links in event payloads, which had blocked those final saves. Rounds already stored with only an opening snapshot stay as they are, marked incomplete.
 
 ### Jeff (the AI teammate)
@@ -121,6 +124,9 @@ First private release: a local browser game with three playable maps and player-
 - 增加持久化使用汇总，包括实际开局／完成、手动结束、名额拒绝和分关卡结果，并按结束方式保存时长区间，显示当前运行会话数。用浏览器中两个是／否标记估算访问／试玩浏览器数量，不生成独立编号，不保存 IP、凭据或逐条统计事件。增加仅服务器本机可读的接口和查询脚本，中英文文档写明口径与隐私限制。
 
 ### 研究记录
+- 贡献的对局改为保存半年（180 天），原为 30 天。贡献说明升为 `pilot-session-2026-10-v7`，每位玩家都会重新被询问一次。按旧说明保存的对局仍按原来的 30 天到期。
+- 开局前同意的贡献对局现在可以精确重放：记录保存完整的冻结配置和全部引擎输入。另外记录双方真正开始操作的时刻（`arrival`）、投掷是否瞄准队友（`throw_aim`）、重建每次 Jeff 请求所需的内容（校验值、最近决策和预设消息）、决策模型给出的各选项概率，以及开启跨局记忆时记忆来自哪几局。记忆内容仍不保存。Jeff 收到的输入不变。`scripts/check_research_record.py` 检查并重放一条记录。
+- 贡献存储最多 5000 局、5 GB，服务器磁盘空间不足前会拒绝保存。
 - 已同意贡献的一局，如果结束时完整记录没能写进数据库，不再显示“已贡献”：结算画面会提示贡献失败，并重试保存一次。此前这类对局只留下开局快照，页面却显示已保存。AI 选择等待、继续或回复过时的情况，不再在事件内容里留下空的动作关联，这正是此前结束保存被拒的原因。已经只存了开局快照的历史记录保持原样，标记为不完整。
 
 ### Jeff（AI 队友）
