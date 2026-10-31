@@ -75,6 +75,8 @@ def replacement_units(admin_text,data_text,new_release):
 
 
 def prepare():
+    if (HERE/'game-binding.json').exists():
+        raise ValueError('此发布包请使用prepare-release并明确指定新游戏目录；不会套用旧版固定目录升级。')
     if socket.gethostname()!='VM-0-5-ubuntu':raise ValueError('仅限上海腾讯云服务器。')
     if STATE.exists() and json.loads(STATE.read_text()).get('phase')=='active':raise ValueError('v2已经启用；无需再次准备。')
     for name,path in [('chefjeff-admin.service',ADMIN_UNIT),('chefjeff-data.service',DATA_UNIT)]:
@@ -223,8 +225,14 @@ def rollback():
 
 
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('command',choices=('prepare','activate','rollback'));args=parser.parse_args()
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('command',choices=('prepare','activate','rollback','prepare-release','activate-release','rollback-release'))
+    parser.add_argument('--game-release',type=Path)
+    args=parser.parse_args()
     if os.geteuid()!=0:raise SystemExit('请用sudo在上海服务器执行。')
+    if args.command.endswith('-release'):
+        import release_upgrade
+        return release_upgrade.main(args.command, args.game_release, HERE)
     WORK.mkdir(exist_ok=True,mode=0o700)
     with (WORK/'upgrade.lock').open('a') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)

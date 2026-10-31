@@ -15,12 +15,16 @@ class AdminPackageTests(unittest.TestCase):
             root=Path(directory);(root/'ops/research_admin').mkdir(parents=True);(root/'docs').mkdir()
             for name in FILES:shutil.copyfile(ROOT/'ops/research_admin'/name,root/'ops/research_admin'/name)
             shutil.copyfile(ROOT/'docs/research-admin.md',root/'docs/research-admin.md')
+            from release_info import RUNTIME_FILES
+            for name in set(RUNTIME_FILES)|{'scripts/research_export.py','research_replay.py'}:
+                destination=root/name;destination.parent.mkdir(parents=True,exist_ok=True)
+                shutil.copyfile(ROOT/name,destination)
             (root/'ops/research_admin/auth.json').write_text('synthetic-private-marker')
             (root/'ops/research_admin/records.cjresearch.zip').write_text('synthetic-record-marker')
             one,manifest=package(root,root/'one.zip');two,_=package(root,root/'two.zip')
             self.assertEqual(hashlib.sha256(one.read_bytes()).digest(),hashlib.sha256(two.read_bytes()).digest())
             with zipfile.ZipFile(one) as archive:
-                self.assertEqual(set(archive.namelist()),{'chefjeff-admin-v2/'+name for name in (*FILES,'README.md','manifest.json')})
+                self.assertEqual(set(archive.namelist()),{'chefjeff-admin-v2/'+name for name in (*FILES,'README.md','manifest.json','game-binding.json')})
                 self.assertFalse(json.loads(archive.read('chefjeff-admin-v2/manifest.json'))['production_data_included'])
                 for name,expected in manifest['files'].items():self.assertEqual(hashlib.sha256(archive.read('chefjeff-admin-v2/'+name)).hexdigest(),expected)
             path=root/'ops/research_admin/admin_server.py';path.unlink();path.symlink_to(ROOT/'ops/research_admin/admin_server.py')

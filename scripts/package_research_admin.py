@@ -14,7 +14,8 @@ from scripts.audit_release import markers
 
 FILES=('admin_server.py','admin_data.py','source_observer.py','authority_runner.py',
        'app.js','dashboard.js','charts.js','app.css','index.html','login.html',
-       'chefjeff-pixel.woff2','OFL.txt','install_admin.py','upgrade_admin.py')
+       'chefjeff-pixel.woff2','OFL.txt','install_admin.py','upgrade_admin.py',
+       'release_binding.py','release_upgrade.py')
 
 
 def package(root=ROOT,output=None):
@@ -29,6 +30,16 @@ def package(root=ROOT,output=None):
         raw=path.read_bytes()
         if markers(raw):raise ValueError('Sensitive marker in package source: '+name)
         files[name]=raw
+    # Pin the complete Python/runtime/schema closure, not just an unchanged exporter.
+    from release_info import RUNTIME_FILES
+    game_names=sorted(set(RUNTIME_FILES)|{'scripts/research_export.py','research_replay.py'})
+    binding={'format':'chefjeff-admin-game-binding-v1', 'files':{}}
+    for name in game_names:
+        path=root/name
+        if path.is_symlink() or not path.resolve().is_relative_to(root.resolve()):
+            raise ValueError('Linked game binding source: '+name)
+        binding['files'][name]=hashlib.sha256(path.read_bytes()).hexdigest()
+    files['game-binding.json']=(json.dumps(binding,sort_keys=True,indent=2)+'\n').encode()
     hashes={name:hashlib.sha256(raw).hexdigest() for name,raw in files.items()}
     bundle_id=hashlib.sha256(json.dumps(hashes,sort_keys=True).encode()).hexdigest()[:16]
     manifest={'format':'chefjeff-private-admin-v2','bundle_id':bundle_id,'files':hashes,

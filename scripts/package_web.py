@@ -27,6 +27,7 @@ PUBLIC_FILES = ('deploy/render_region.py','deploy/install_region.py','deploy/ini
                 'cocos-kitchen/assets/scenes/Kitchen.scene','cocos-kitchen/assets/scenes/Kitchen.scene.meta',
                 'cocos-kitchen/settings/v2/packages/project.json','cocos-kitchen/settings/v2/packages/builder.json',
                 'cocos-kitchen/settings/v2/packages/engine.json','cocos-kitchen/settings/v2/packages/device.json')
+PUBLIC_FILES += ('scripts/check_research_record.py',)
 
 
 def package(root=ROOT, output=None):
