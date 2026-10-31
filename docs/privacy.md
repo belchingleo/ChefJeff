@@ -14,7 +14,7 @@
   - 会保存：本局模型服务与模型 ID（含自定义模型，注明浏览器上报、未经独立核验）、游戏事实、物品/工位/订单与动作决策关联、实际地图菜谱规则和种子、结算及结束原因、记忆开关与局数。开局前同意后，另保存每秒及关键事件的状态变化、每 10 秒检查点。可单独勾选浏览器自报请求耗时和受控错误；token 报告不是账单。
   - 不会保存：API Key、IP 与账号身份、模型接口地址、旧局记忆内容和预设偏好沟通。游戏没有玩家聊天输入框；游戏状态、候选动作、模型选项和执行结果按结构化字段保存，不另存完整 API 请求或响应。
   - 用途：改进游戏，研究人机协作的评估方法；不公开原始数据。
-  - 保存：私有保存在试玩服务器（Hetzner，德国纽伦堡），30 天后自动删除，不做备份。
+  - 保存：私有保存在统一数据服务（腾讯云，中国上海），国内与海外站共用记录；海外站经加密连接提交和访问记录。30 天后自动删除，不做备份。历史记录迁移保留原到期时间及删除凭证。
   - 删除：每份贡献的删除凭证保存在你的浏览器里，在「设置 → 数据导出 → 删除已贡献数据」即可提前删除；也可以下载凭证备份。凭证只交给你，服务器只存它的哈希；凭证丢失时我们无法认出哪条记录是你的，只能等 30 天自动删除。
 - 自动贡献在每局开局前由服务器确认，开局创建记录，提前结束也更新；突然崩溃可能只留下未完成的开局记录。不依赖页面退出后上传。没有开局前同意时不额外采集连续局面；事后贡献会明确标注只有已有事实和首尾状态。旧自动贡献选择须重新确认。关闭自动贡献会撤回本局未结束记录并停止新增过程状态，已结束的贡献需凭证删除。
 - **浏览器里的其他设置**：界面语言、音量、数据贡献选择和删除凭证，都只保存在这个浏览器；清除本网站的数据即可全部删除。
@@ -52,7 +52,7 @@ What ChefJeff stores, where, for how long, how to delete it, and how to reach us
   - Saved: the round’s model service and model ID (including custom models, marked browser-reported and not independently verified), game facts, item/station/order and action/decision links, resolved map/recipes/rules/seeds, outcomes, observed close reasons, reported memory settings and token usage (not a bill). With consent before start, state changes are observed each game second and at events, with ten-second checkpoints. Browser-reported request duration and controlled error categories require a separate optional checkbox.
   - Never saved: API keys, IP address and account identity, model endpoints, past-round memory content and preset preference communication. There is no player chat input. Game states, candidate actions, model choices and execution results are stored as structured fields, without additional verbatim API requests or responses.
   - Purpose: improving the game and researching how to evaluate human-AI cooperation. Raw data is not published.
-  - Retention: stored privately on the demo server (Hetzner, Nuremberg, Germany), deleted automatically after 30 days, never backed up.
+  - Retention: stored privately by the shared data service on Tencent Cloud in Shanghai, China. The Chinese and overseas sites share records; the overseas site submits and accesses them over an encrypted connection. Records are deleted automatically after 30 days and are never backed up. Migrated records keep their original expiry dates and deletion receipts.
   - Deletion: each contribution's deletion receipt is kept in your browser; Settings → Data export → Delete a contribution removes it early, and you can download the receipts as a backup. Only you get the receipt; the server keeps its hash, so without the receipt we cannot tell which record is yours and it expires after 30 days.
 - Automatic contribution is confirmed server-side before each round and starts a private row at opening; early endings update it. A crash may leave only an incomplete opening record. Without pre-start consent, no additional continuous state history is collected; a later one-round contribution labels those gaps. Old standing consent is asked again. Turning it off withdraws the current unfinished record and stops additional state/optional measurements; completed records use their deletion receipts.
 - **Other browser settings**: language, volume, your contribution choice and deletion receipts stay in this browser only; clearing this site's data removes them all.

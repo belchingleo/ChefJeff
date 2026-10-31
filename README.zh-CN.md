@@ -28,6 +28,8 @@ ChefJeff 是一个实时的人与 AI 合作烹饪游戏，也是一套可以扩�
 
 ---
 
+维护者可单独部署需要登录的[研究数据管理台](https://github.com/belchingleo/ChefJeff/blob/main/docs/research-admin.md)，用于记录预览、自选导出、可配置图表和站点来源区分。研究数据不公开展示。
+
 ## 本地运行
 
 需要 Python 3.10 或更高版本、一台带键盘的电脑，以及支持 WebGL 的浏览器。后端只用到 Python 标准库；网页已经构建好放在仓库里，普通试玩不需要重新构建。

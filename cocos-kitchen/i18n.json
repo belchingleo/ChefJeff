@@ -753,7 +753,11 @@
     "暂不贡献，继续": "Continue without contributing",
     "自动贡献含提前结束的对局，可在设置中更改选择。": "Automatic contribution includes early endings; change your choice in Settings.",
     "导出本次游玩的全部数据：从启动游戏起玩过的每一局，各含关卡、结果、贡献记录、全部标记、沟通记录和全部动作事件，并注明可用的模型服务与模型 ID。标记包含游戏时间和实际时间，可对应本地日志提取前后过程。不会附带 Key、接口地址、跨局记忆或完整请求。文件只下载到本机，不自动上传。": "Export every round played since opening the game, including its level, outcome, work record, bookmarks, communication and action events, with model service and ID where available. Bookmarks include game and wall time for matching local logs. No keys, endpoints, memory content or full requests are included. The file downloads locally and is not uploaded.",
-    "导出本次游玩的数据：从打开本页面起最近 20 局，各含关卡、结果、贡献记录、全部标记、沟通记录和全部动作事件，并注明可用的模型服务与模型 ID。标记包含游戏时间和实际时间，在线版没有可追溯的服务器对局日志。不会附带 Key、接口地址、跨局记忆或完整请求。文件只下载到本机，不自动上传。": "Export the latest 20 rounds since opening this page: levels, results, work records, bookmarks, communication and action events, with model service and ID where available. Bookmarks include game and wall time. The online version has no persistent game journal. No keys, endpoints, memory content or full requests are included. The file downloads locally and is not uploaded."
+    "导出本次游玩的数据：从打开本页面起最近 20 局，各含关卡、结果、贡献记录、全部标记、沟通记录和全部动作事件，并注明可用的模型服务与模型 ID。标记包含游戏时间和实际时间，在线版没有可追溯的服务器对局日志。不会附带 Key、接口地址、跨局记忆或完整请求。文件只下载到本机，不自动上传。": "Export the latest 20 rounds since opening this page: levels, results, work records, bookmarks, communication and action events, with model service and ID where available. Bookmarks include game and wall time. The online version has no persistent game journal. No keys, endpoints, memory content or full requests are included. The file downloads locally and is not uploaded.",
+    "对局记录统一保存在腾讯云中国上海；海外站经加密连接提交和访问记录。": "Round records are stored centrally on Tencent Cloud in Shanghai, China. The overseas site submits and accesses records over an encrypted connection.",
+    "记录服务暂时不可用，请稍后重试。": "The records service is temporarily unavailable. Please retry later.",
+    "删除暂未完成，请保留凭证并稍后重试。": "Deletion is not complete. Keep your receipt and retry later.",
+    "已停止继续记录，服务器删除失败，请保留凭证并稍后重试。": "Further recording has stopped, but server deletion failed. Keep your receipt and retry later."
   },
   "templates": [
     [

@@ -8,10 +8,11 @@ import json
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--port', type=int, default=8780)
+    parser.add_argument('--host', default='chefjeff.online', help='The configured regional hostname')
     args = parser.parse_args()
     connection = http.client.HTTPConnection('127.0.0.1', args.port, timeout=5)
     try:
-        connection.request('GET', '/ops/usage', headers={'Host': 'chefjeff.online'})
+        connection.request('GET', '/ops/usage', headers={'Host': args.host})
         response = connection.getresponse()
         if response.status != 200:
             raise SystemExit(f'无法读取统计（HTTP {response.status}），请确认已部署统计版本。')
@@ -21,6 +22,12 @@ def main():
     finally:
         connection.close()
     print('统计开始时间（UTC）：', usage['tracking_since'])
+    if usage.get('shared'):
+        print('统计范围：', '两站汇总' if usage.get('scope') == 'global' else '暂为本站，尚未完成首次汇总')
+        if not usage.get('synchronized'):
+            print('共享统计尚未同步或已过期；本地持久化增量将在连接恢复后继续提交。')
+        if not usage.get('regional_persistent'):
+            print('本站统计持久化失败，重启可能丢失尚未汇总的增量。')
     for label, key in [('页面访问次数', 'page_views'), ('首次开局会话数', 'started_sessions'),
                        ('实际开局局数', 'started_rounds'), ('自然完成对局数', 'completed_rounds'),
                        ('手动结束局数', 'manual_ends'), ('当前游戏中的会话数', 'running_sessions'),

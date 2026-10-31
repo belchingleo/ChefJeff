@@ -25,6 +25,7 @@ Choose the [China site (Shanghai)](https://chefjeff.belchingleo.online/) or the 
 - Before your first round you are asked whether to contribute anonymous round data; you can change your mind at any time. Contributions are kept for 30 days and can be deleted with a deletion receipt; see [privacy and contact](https://chefjeff.belchingleo.online/privacy.html).
 - Use the keyboard on a computer, and touch controls on a phone held landscape (see [touch controls](#touch-controls-experimental)). On iPhone, choose Add to Home Screen in Safari's share menu and open it from there to play full screen.
 - The game servers are in Shanghai and Germany; contributed round data and aggregate usage statistics are stored in Shanghai. The number of kitchens open at once is limited, and a full kitchen asks you to come back shortly.
+- Maintainers can deploy the separate, authenticated [research admin console](https://github.com/belchingleo/ChefJeff/blob/main/docs/research-admin.md) for private record previews, selected exports, charts and regional attribution. It is not a public data browser.
 
 ---
 
