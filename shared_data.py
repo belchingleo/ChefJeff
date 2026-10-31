@@ -55,6 +55,7 @@ class SharedRecords(ContributionStore):
         raw = encode(record)
         if len(raw.encode()) > 13_000_000:
             raise ValueError('Record too large')
+        self.check_disk(len(raw.encode()))
         digest = hashlib.sha256(raw.encode()).hexdigest()
         deletion_hash = hashlib.sha256(token.encode()).hexdigest()
         with self.connect() as db:
