@@ -227,7 +227,7 @@ class SessionLog:
             return self.state_ref
         row = self._envelope('state_checkpoint' if full else 'state_delta',
                              {'base_state_seq': None if full else self.state_ref, 'trigger': trigger,
-                              'state': changes}, 'session')
+                              'engine_input_n': len(self.session.k.inputs), 'state': changes}, 'session')
         seq = self._append(row, reserve=trigger == 'final')
         self.last_sample_ms = now
         if seq is not None:

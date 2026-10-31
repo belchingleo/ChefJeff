@@ -513,7 +513,10 @@
           "const": "emission observations are not atomic operation boundaries"
         },
         "replay": {
-          "const": "not_claimed"
+          "enum": [
+            "not_claimed",
+            "engine_inputs"
+          ]
         },
         "missing": {
           "type": "array",
@@ -524,7 +527,8 @@
               "provider_server_clock",
               "free_text",
               "preset_communication",
-              "intermediate_state_not_collected_without_prestart_consent"
+              "intermediate_state_not_collected_without_prestart_consent",
+              "engine_inputs_not_collected_without_prestart_consent"
             ]
           }
         }
@@ -569,6 +573,9 @@
         },
         "state_records": {
           "const": "state_checkpoint/state_delta in the same events.jsonl"
+        },
+        "replay": {
+          "type": "string"
         }
       },
       "required": [
@@ -580,6 +587,9 @@
     },
     "source_expires_at": {
       "type": "string"
+    },
+    "replay": {
+      "type": "null"
     }
   },
   "required": [

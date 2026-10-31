@@ -238,6 +238,11 @@ def record(session):
     game_reason = ('fire_loss' if k.failure_reason == 'fire_spread' else 'round_limit'
                    if k.time >= k.rules.round_limit - 1e-8 else 'none_observed' if k.aborted else 'in_progress')
     rows = [project_event(r) for r in log.records]
+    # Exact replay needs the unprojected frozen configuration and every outer engine call. Both
+    # describe the whole round, so they are kept only when it was observed with pre-start consent.
+    observed = bool(log.capture_observations and not log.observations_withdrawn)
+    replay = {'engine': type(k).__name__, 'resolved_config': deepcopy(k.resolved),
+              'inputs': deepcopy(k.inputs)} if observed else None
     state_times = [r['game_time_ms'] for r in rows if r['type'] in ('state_checkpoint', 'state_delta')]
     max_gap = max((b-a for a,b in zip(state_times,state_times[1:])), default=0)
     return {'schema': SCHEMA, 'consent_version': CONSENT, 'round_id': session.game_id,
@@ -259,7 +264,7 @@ def record(session):
                            'decision_telemetry': bool(getattr(session, 'research_telemetry', False)),
                            'model_parameters': {'sampling': None, 'reasoning': None, 'safety': None, 'upstream_adapter': None, 'status': 'not_collected_from_browser'},
                            'request_policy': {key: number(k.c.get(key)) for key in ('ai_min_interval', 'ai_refresh_seconds', 'ai_timeout_seconds', 'ai_max_response_age')} | {'max_calls': getattr(getattr(session, 'ai', None), 'call_limit', None)}},
-            'events': rows,
+            'events': rows, 'replay': replay,
             'termination': {'game_condition': game_reason, 'session_close': ending,
                             'confirmed': ending is not None and ending['reason'] != 'not_observed', 'last_game_time_ms': round(k.time * 1000),
                             'last_event_seq': log.next_seq - 1, 'final_state_seq': log.final_state_ref},
@@ -276,8 +281,9 @@ def record(session):
                         'state_trigger': 'initial,event_emission,outer_input_completion,periodic,final',
                         'delta_format': 'merge_chefs_stations_by_id_replace_other_sections',
                         'state_precision': 'emission observations are not atomic operation boundaries',
-                        'replay': 'not_claimed', 'missing': ['raw_device_input', 'provider_verified_model',
-                                                            'provider_server_clock', 'free_text', 'preset_communication'] + ([] if log.capture_observations else ['intermediate_state_not_collected_without_prestart_consent'])}}
+                        'replay': 'engine_inputs' if replay else 'not_claimed',
+                        'missing': ['raw_device_input', 'provider_verified_model',
+                                    'provider_server_clock', 'free_text', 'preset_communication'] + ([] if log.capture_observations else ['intermediate_state_not_collected_without_prestart_consent']) + ([] if replay else ['engine_inputs_not_collected_without_prestart_consent'])}}
 
 
 def validate_telemetry(value):
@@ -297,6 +303,13 @@ def validate_record(value):
         raise ValueError('Research schema violation at ' + errors[0][0])
     if value['config_projection_hash'] != 'sha256:' + cc.sha256(value['resolved_config']):
         raise ValueError('Configuration projection digest mismatch')
+    replay = value.get('replay')
+    if replay is not None:
+        resolved = dict(replay['resolved_config'])
+        if resolved.pop('config_hash', None) != value['config_hash'] or 'sha256:' + cc.sha256(resolved) != value['config_hash']:
+            raise ValueError('Replay configuration digest mismatch')
+        if [row['n'] for row in replay['inputs']] != list(range(len(replay['inputs']))):
+            raise ValueError('Replay inputs are not contiguous')
     previous, wall, states = 0, -1, set()
     for row in value['events']:
         seq = row['seq']

@@ -1249,6 +1249,10 @@
             "null"
           ],
           "pattern": "^[A-Za-z0-9_ .:-]{1,100}$"
+        },
+        "engine_input_n": {
+          "type": "integer",
+          "minimum": 0
         }
       },
       "required": [],

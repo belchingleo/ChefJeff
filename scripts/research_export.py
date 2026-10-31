@@ -74,9 +74,12 @@ def export_package(database, destination, **filters):
                                  'record_sha256': cc.sha256(data)})
                 if data.get('schema') == SCHEMA:
                     validate_record(data)
-                    metadata = {k: v for k, v in data.items() if k not in ('events','resolved_config')}
+                    metadata = {k: v for k, v in data.items() if k not in ('events','resolved_config') and not (k == 'replay' and v is not None)}
                     metadata['artifacts'] = {'config': prefix + 'resolved-config.json', 'events': prefix + 'events.jsonl',
                                              'state_records': 'state_checkpoint/state_delta in the same events.jsonl'}
+                    if data.get('replay') is not None:
+                        metadata['artifacts']['replay'] = prefix + 'replay.json'
+                        write(prefix + 'replay.json', data['replay'])
                     metadata['source_expires_at'] = datetime.fromtimestamp(expiry, timezone.utc).isoformat()
                     write(prefix + 'metadata.json', metadata)
                     write(prefix + 'resolved-config.json', data['resolved_config'])
@@ -132,6 +135,9 @@ def verify_package(path, now=None, database=None):
                 events=[json.loads(line) for line in archive.read(prefix+'events.jsonl').splitlines() if line]
                 restored={k:v for k,v in metadata.items() if k not in ('artifacts','source_expires_at')}
                 restored.update(resolved_config=config,events=events)
+                if 'replay' in metadata['artifacts']:
+                    if metadata['artifacts']['replay'] != prefix+'replay.json': raise ValueError('Invalid artifact reference')
+                    restored['replay']=json.loads(archive.read(prefix+'replay.json'))
                 validate_record(restored)
                 if cc.sha256(restored)!=source['record_sha256']: raise ValueError('Source digest mismatch')
             else:

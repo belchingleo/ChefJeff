@@ -523,7 +523,10 @@
           "const": "emission observations are not atomic operation boundaries"
         },
         "replay": {
-          "const": "not_claimed"
+          "enum": [
+            "not_claimed",
+            "engine_inputs"
+          ]
         },
         "missing": {
           "type": "array",
@@ -534,7 +537,8 @@
               "provider_server_clock",
               "free_text",
               "preset_communication",
-              "intermediate_state_not_collected_without_prestart_consent"
+              "intermediate_state_not_collected_without_prestart_consent",
+              "engine_inputs_not_collected_without_prestart_consent"
             ]
           }
         }
@@ -566,6 +570,68 @@
       "enum": [
         "standing",
         "round"
+      ]
+    },
+    "replay": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "engine": {
+              "enum": [
+                "Kitchen",
+                "SpatialKitchen"
+              ]
+            },
+            "resolved_config": {
+              "type": "object"
+            },
+            "inputs": {
+              "type": "array",
+              "maxItems": 200000,
+              "items": {
+                "type": "object",
+                "properties": {
+                  "n": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "call": {
+                    "enum": [
+                      "advance",
+                      "start",
+                      "stop",
+                      "set_manual",
+                      "sprint",
+                      "face",
+                      "pick_station",
+                      "report_position",
+                      "abort"
+                    ]
+                  },
+                  "game_time_ms": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "n",
+                  "call",
+                  "game_time_ms"
+                ]
+              }
+            }
+          },
+          "required": [
+            "engine",
+            "resolved_config",
+            "inputs"
+          ],
+          "additionalProperties": false
+        }
       ]
     }
   },
