@@ -6,6 +6,7 @@ import contextlib
 import io
 import json
 import tempfile
+import time
 from pathlib import Path
 
 import research_replay
@@ -55,6 +56,10 @@ class ReplayTests(paths.SavePathTests):
         self.assertGreater(report['replay_states_checked'], 100)
         self.assertEqual(report['seq_gaps'], [])
         self.assertEqual(report['replay_end_time_ms'], record['termination']['last_game_time_ms'])
+        requests = list(research_replay.rebuild_requests(record))
+        self.assertGreater(len(requests), 3)
+        self.assertEqual({r['status'] for r in requests}, {'verified'}, [r['request_id'] for r in requests if r['status'] != 'verified'])
+        self.assertTrue(any('player_communication' in r['rebuilt']['state'] for r in requests))
         # The rebuilt kitchen is the recorded one, including what only the engine knows.
         with self.game.lock:
             self.assertEqual(research_replay.rebuild(record).inputs, self.game.k.inputs)
@@ -73,6 +78,53 @@ class ReplayTests(paths.SavePathTests):
                 self.assertEqual(check_cli([str(download), '--database', str(self.game.store.path)]), 0)
         reports = [json.loads(line) for line in out.getvalue().splitlines()]
         self.assertEqual([r['replay'] for r in reports], ['verified', 'verified'])
+
+    def answer_with(self, **extra):
+        """A browser model result carrying optional probabilities and memory provenance."""
+        self.due()
+        with self.game.lock:
+            self.game.ai.poll()
+        deadline = time.monotonic() + 2
+        while time.monotonic() < deadline and not self.game.relay.request():
+            time.sleep(.005)
+        pending = self.game.relay.request()
+        criteria = pending['payload']['questions']['next_action']['criteria']
+        choice = next(key for key in criteria if key not in ('wait', 'continue'))
+        body = {'id': pending['id'], 'choice': choice, 'sprint': False, 'usage': {'input_tokens': 1, 'output_tokens': 1}}
+        body.update({key: value(criteria, choice) if callable(value) else value for key, value in extra.items()})
+        status, _ = self.request('/api/model/result', body, self.token)
+        if status == 200:
+            deadline = time.monotonic() + 2
+            while self.game.ai.q.empty() and time.monotonic() < deadline:
+                time.sleep(.005)
+            with self.game.lock:
+                self.game.ai.poll()
+        return status, choice
+
+    def test_reported_probabilities_and_memory_sources_are_kept_with_the_round(self):
+        receipt = self.begin_manual_relay()
+        self.human_action()
+        source = 'ab' * 16
+        provenance = {'version': 2, 'source_round_ids': [source], 'context_sha256': 'cd' * 32}
+        condition = {'enabled': True, 'version': 2, 'used_rounds': 1, 'omitted_rounds': 0}
+        other_key = {}
+        def split(criteria, choice):
+            other_key['key'] = next(k for k in criteria if k != choice)
+            return {choice: .75, other_key['key']: .25}
+        status, choice = self.answer_with(probabilities=split,
+                                          memory_provenance=provenance, memory_condition=condition)
+        self.assertEqual(status, 200)
+        self.assertEqual(self.answer_with(probabilities={'not-offered': 1.0})[0], 409)
+        self.assertEqual(self.answer_with(probabilities=lambda c, choice: {choice: 1.5})[0], 409)
+        other = {**provenance, 'source_round_ids': ['ef' * 16]}
+        self.assertEqual(self.answer_with(memory_provenance=other, memory_condition=condition)[0], 409)
+        self.natural_end()
+        self.assertEqual(self.contribute()[0], 200)
+        record = self.game.store.download(receipt['id'], receipt['deletion_token'])
+        reported = [r['payload']['probabilities'] for r in record['events'] if r['type'] == 'ai_response']
+        self.assertIn({choice: .75, other_key['key']: .25}, reported)
+        kept = record['conditions']['memory_provenance']
+        self.assertEqual((kept['source_round_ids'], kept['context_sha256'], kept['source']), ([source], 'cd' * 32, 'browser-reported'))
 
     def test_a_tampered_record_is_reported_as_diverged(self):
         receipt = self.play()

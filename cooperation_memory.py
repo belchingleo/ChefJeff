@@ -200,6 +200,19 @@ def validate_memory_condition(condition):
     return {**condition, 'source': 'browser-reported'}
 
 
+def validate_memory_provenance(provenance, condition=None):
+    """Which earlier rounds the browser's memory came from, and a digest of the exact context; never content."""
+    if (not isinstance(provenance, dict) or set(provenance) != {'version', 'source_round_ids', 'context_sha256'}
+            or provenance['version'] != 2 or not isinstance(provenance['source_round_ids'], list)
+            or len(provenance['source_round_ids']) > ROUNDS
+            or not all(isinstance(r, str) and re.fullmatch(r'[0-9a-f]{32}', r) for r in provenance['source_round_ids'])
+            or not (provenance['context_sha256'] is None or isinstance(provenance['context_sha256'], str)
+                    and re.fullmatch(r'[0-9a-f]{64}', provenance['context_sha256']))
+            or (condition is not None and len(provenance['source_round_ids']) != condition['used_rounds'])):
+        raise ValueError('Invalid memory provenance')
+    return {**provenance, 'source': 'browser-reported', 'context_digest': 'sha256 of JSON.stringify(context) in the browser'}
+
+
 class CooperationMemory:
     def __init__(self, path):
         self.path = Path(path)

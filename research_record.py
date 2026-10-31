@@ -66,6 +66,28 @@ def model_condition(session):
     return deepcopy(getattr(log, 'model_identity', None))
 
 
+def memory_input(body):
+    """Which past_episodes the server put in the request; never their content."""
+    if 'past_episodes' not in body.get('state', {}):
+        return 'absent'
+    from cooperation_memory import memory_context
+    from model_language import english_data
+    return 'empty_placeholder' if body['state']['past_episodes'] == english_data(memory_context(False, [])) else 'not_stored'
+
+
+def probabilities(value, criteria=None):
+    """Option probabilities a decision model reported, bounded to the offered keys."""
+    if not isinstance(value, dict) or len(value) > 512:
+        return {}
+    result = {}
+    for key, p in value.items():
+        if code(key) is None or (criteria is not None and key not in criteria):
+            continue
+        if type(p) in (int, float) and math.isfinite(p) and 0 <= p <= 1:
+            result[key] = round(p, 6)
+    return result
+
+
 def number(value):
     return round(value, 4) if type(value) in (int, float) and math.isfinite(value) and abs(value) <= 1e10 else None
 
@@ -182,7 +204,13 @@ def payload(kind, data, k):
     if kind == 'ai_request':
         body = data.get('payload', {})
         candidates = body.get('questions', {}).get('next_action', {}).get('criteria', {})
-        return {'observed_state_seq': data.get('observed_state_seq'),
+        observed = getattr(getattr(k, '_record_observer', None), 'capture_observations', False)
+        # With the engine inputs, these few parts rebuild the request exactly (jev.compose_payload).
+        rebuild = {'engine_input_n': len(k.inputs), 'payload_sha256': cc.sha256(body),
+                   'recent_decisions': deepcopy(body.get('state', {}).get('recent_decisions', [])),
+                   'player_communication': deepcopy(body.get('state', {}).get('player_communication')),
+                   'memory_input': memory_input(body)} if observed else {}
+        return {**rebuild, 'observed_state_seq': data.get('observed_state_seq'),
                 'candidates': [code(v) for v in candidates],
                 'candidate_actions': [action(a.key, a.target, a.kind) for a in k.actions('jeff') if a.key in candidates], 'stage': 'model_request',
                 'choice_source': 'not_observed', 'state_ref': getattr(k, '_research_state_ref', None) if getattr(getattr(k, '_record_observer', None), 'capture_observations', False) else None}
@@ -197,7 +225,8 @@ def payload(kind, data, k):
                 'reason': None if applied else 'stale_or_disabled' if not fresh else 'engine_rejected',
                 'usage': {key: value for key, value in data.get('usage', {}).items()
                           if key in ('input_tokens', 'output_tokens') and type(value) is int and 0 <= value <= 10000000},
-                'usage_source': 'client-reported', 'provider_verified': False}
+                'usage_source': 'client-reported', 'provider_verified': False,
+                'probabilities': probabilities(data.get('probabilities'))}
     if kind == 'request_unresolved':
         return {'reason': 'not_observed'}
     if kind == 'ai_error':
@@ -256,6 +285,7 @@ def record(session):
             'config_hash': k.config_hash, 'resolved_config': deepcopy(log.research_config),
             'config_projection_hash': 'sha256:' + cc.sha256(log.research_config),
             'conditions': {'cross_round_memory': memory_condition(session),
+                           'memory_provenance': deepcopy(getattr(session, 'round_memory_provenance', None)),
                            'engine_semantics': k.rules.semantics,
                            'rules_version': _rules_version(),
                            'input_language': _input_language(),

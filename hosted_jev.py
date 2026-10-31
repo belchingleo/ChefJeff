@@ -43,8 +43,10 @@ def parse_answer(raw, payload):
         if not isinstance(usage,dict): raise ValueError()
         counts = {name:usage.get(name,0) for name in ('input_tokens','output_tokens')}
         if any(type(n) is not int or not 0 <= n <= 10000000 for n in counts.values()): raise ValueError()
-        # Never return provider model text, headers, probabilities or raw replies.
-        return {'choice':choice, 'sprint':sprint.get('choice')=='yes', 'usage':counts}
+        from research_record import probabilities
+        # Never return provider model text, headers or raw replies; option probabilities only for offered keys.
+        return {'choice':choice, 'sprint':sprint.get('choice')=='yes', 'usage':counts,
+                'probabilities':probabilities(answer.get('probabilities'), payload['questions']['next_action']['criteria'])}
     except (ValueError,TypeError,KeyError,AttributeError):
         raise ForwardError(502,'Jev 返回了无效动作，未执行任何操作。') from None
 

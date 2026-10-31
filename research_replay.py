@@ -84,3 +84,35 @@ def check(record):
                   replay_states_checked=len(observed), replay_mismatches=mismatches[:20],
                   replay_end_time_ms=round(k.time * 1000))
     return report
+
+
+def rebuild_requests(record):
+    """Recompose each recorded Jeff request and compare it with the digest taken when it was sent.
+
+    Yields one row per request; ``rebuilt`` is the payload, so a researcher can vary it offline.
+    """
+    from cooperation_memory import memory_context
+    from jev import NO_MEMORY, compose_payload
+    from whitebox_server import SpatialJevClient
+    import config_contract as cc
+    replay = record.get('replay')
+    if not replay:
+        raise ValueError('This record carries no engine inputs; its requests cannot be rebuilt.')
+    k = factory(replay['engine'])(deepcopy(replay['resolved_config']))
+    client = SpatialJevClient(k.c, key='research-replay-no-credential')
+    done = 0
+    for row in record['events']:
+        data = row['payload']
+        if row['type'] != 'ai_request' or 'payload_sha256' not in data:
+            continue
+        for item in replay['inputs'][done:data['engine_input_n']]:
+            apply_input(k, item)
+        done = data['engine_input_n']
+        if data['memory_input'] == 'not_stored':
+            yield {'request_id': row['request_id'], 'seq': row['seq'], 'status': 'memory_not_stored', 'rebuilt': None}
+            continue
+        memory = memory_context(False, []) if data['memory_input'] == 'empty_placeholder' else NO_MEMORY
+        payload = compose_payload(client, k, k.snapshot(), k.actions('jeff'), data['recent_decisions'],
+                                  data['player_communication'], memory)
+        yield {'request_id': row['request_id'], 'seq': row['seq'], 'rebuilt': payload,
+               'status': 'verified' if cc.sha256(payload) == data['payload_sha256'] else 'diverged'}

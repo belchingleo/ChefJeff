@@ -318,6 +318,50 @@
             "max_calls"
           ],
           "additionalProperties": false
+        },
+        "memory_provenance": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "version": {
+                  "const": 2
+                },
+                "source_round_ids": {
+                  "type": "array",
+                  "maxItems": 3,
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{32}$"
+                  }
+                },
+                "context_sha256": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "source": {
+                  "const": "browser-reported"
+                },
+                "context_digest": {
+                  "const": "sha256 of JSON.stringify(context) in the browser"
+                }
+              },
+              "required": [
+                "version",
+                "source_round_ids",
+                "context_sha256",
+                "source",
+                "context_digest"
+              ],
+              "additionalProperties": false
+            }
+          ]
         }
       },
       "required": [

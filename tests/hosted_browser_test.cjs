@@ -579,6 +579,11 @@ function settingsHarness(){
  const startluxResult=JSON.parse(h.calls.find(c=>c.url==='/api/model/result').init.body);
  assert.equal(startluxResult.choice,'wait');assert.equal(startluxResult.sprint,false);
  assert.deepEqual(startluxResult.usage,{input_tokens:5,output_tokens:7});assert(!JSON.stringify(startluxResult).includes(key));
+ // A decision model's option probabilities reach the server for offered keys only; chat replies carry none.
+ upstream=()=>new Response(JSON.stringify({answers:{next_action:{type:'choice',choice:'wait',probabilities:{wait:.6,continue:.4,elsewhere:.2,bad:2}},sprint:{type:'choice',choice:'no'}},usage:{input_tokens:5,output_tokens:7}}));
+ h=harness({...startlux,remember:true},false,{game_id:'round',phase:'running',limits:{},connection:{configured:true}});
+ await h.w.fetch('/api/state');await h.timers.find(fn=>fn.name==='poll')();
+ assert.deepEqual(JSON.parse(h.calls.find(c=>c.url==='/api/model/result').init.body).probabilities,{wait:.6,continue:.4});
  // Null action or sprint answers are still refused, even if a provider ignores allow_none:false.
  for(const question of ['next_action','sprint']){
   upstream=()=>{
@@ -599,6 +604,7 @@ function settingsHarness(){
   await h.w.fetch('/api/state');await h.timers.find(fn=>fn.name==='poll')();
   const result=JSON.parse(h.calls.find(c=>c.url==='/api/model/result').init.body);
   assert.deepEqual({choice:result.choice,sprint:result.sprint,failed:result.failed},{choice:expected.choice,sprint:expected.sprint,failed:expected.failed});
+  assert(!Object.hasOwn(result,'probabilities'));
  }
  upstream=null;modelTask=null;
  h=harness();r=await h.w.fetch('/api/connection',{body:JSON.stringify({...cfg,provider:'compatible',base_url:'https://kitchen.example'})});assert.equal(r.status,400);

@@ -14,7 +14,7 @@ from hosted_server import BrowserRelay, make_server
 from cooperation_memory import memory_context
 
 KEY = 'unit-test-jev-key-not-a-real-secret'
-ANSWER = {'choice':'wait','sprint':False,'usage':{'input_tokens':3,'output_tokens':0}}
+ANSWER = {'choice':'wait','sprint':False,'usage':{'input_tokens':3,'output_tokens':0},'probabilities':{}}
 
 
 class UpstreamTests(unittest.TestCase):
@@ -47,6 +47,12 @@ class UpstreamTests(unittest.TestCase):
             build.return_value.open.side_effect=urllib.error.URLError(KEY)
             with self.assertRaises(ForwardError) as result:JevForwarder().send(KEY,TEST_PAYLOAD)
             self.assertNotIn(KEY,str(result.exception))
+
+    def test_option_probabilities_pass_for_offered_keys_only(self):
+        reply={'answers':{'next_action':{'type':'choice','choice':'wait','probabilities':{'wait':.9,'invented':.1,'bad':'x'}}}}
+        self.assertEqual(parse_answer(json.dumps(reply).encode(),TEST_PAYLOAD)['probabilities'],{'wait':.9})
+        reply['answers']['next_action'].pop('probabilities')
+        self.assertEqual(parse_answer(json.dumps(reply).encode(),TEST_PAYLOAD)['probabilities'],{})
 
     def test_invalid_action_usage_sprint_and_oversized_reply_rejected(self):
         bad=[{}, {'answers':[]}, {'answers':{'next_action':{'type':'choice','choice':'invented'}}},
