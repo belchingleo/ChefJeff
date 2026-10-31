@@ -185,7 +185,7 @@ function kitchenTabs(dialog){
  <section aria-labelledby="feedback-title" id="export-panel" role="tabpanel">
   <h3 id="feedback-title">数据导出</h3>
   <p id="release-identity"></p>
-  <p>导出本次游玩的全部数据：从启动游戏起玩过的每一局，各含关卡、结果、贡献记录、全部标记、沟通记录和全部动作事件。标记包含游戏时间和实际时间，可对应本地日志提取前后过程。不会附带 Key、接口地址、模型名称文本、跨局记忆或完整请求。文件只下载到本机，不自动上传。</p>
+  <p>导出本次游玩的全部数据：从启动游戏起玩过的每一局，各含关卡、结果、贡献记录、全部标记、沟通记录和全部动作事件，并注明可用的模型服务与模型 ID。标记包含游戏时间和实际时间，可对应本地日志提取前后过程。不会附带 Key、接口地址、跨局记忆或完整请求。文件只下载到本机，不自动上传。</p>
   <p>导出还附带本页最近 30 秒的页面记录（游戏时间、角色位置、按键方向、页面报错，以及浏览器型号和画面大小），用于排查卡住或显示问题；遇到问题后请尽快导出。</p>
   <div class="actions"><button id="feedback-preview" class="btn" type="button">导出本次游玩</button><button id="feedback-download" class="btn" type="button" disabled>下载已预览 JSON</button></div>
   <p id="feedback-status" role="status" aria-live="polite"></p>
@@ -486,7 +486,10 @@ function kitchenTabs(dialog){
   secondsRow('拖延出餐',c.delay_seconds);
   secondsRow('空转',c.idle_seconds);
  }
- window.addEventListener('kitchen-open-record',e=>{render(e.detail||{});if(!dialog.open)dialog.showModal();});
+ window.addEventListener('kitchen-open-record',e=>{render(e.detail||{});
+  const r=e.detail?.result||{};
+  if(r.expired!=null)document.getElementById('record-result').textContent+=`\n超时 ${r.expired} 单 · 关店时未完成 ${r.unresolved_at_close||0} 单`;
+  if(!dialog.open)dialog.showModal();});
  window.addEventListener('kitchen-state',e=>{if(e.detail?.phase!=='ended'&&dialog.open)dialog.close();});
  document.getElementById('record-close').onclick=document.getElementById('record-x').onclick=()=>dialog.close();})();
 </script>
@@ -609,5 +612,54 @@ function kitchenTabs(dialog){
   queue.push(...String(e.detail.message).split('\n').filter(Boolean));clearTimeout(timer);
   timer=setTimeout(()=>{live.replaceChildren(...queue.slice(-4).map(m=>{const s=document.createElement('span');s.textContent=m;return s}));queue=[]},600);
  });
+})();
+</script>
+
+<style>
+#kitchen-level-dialog{width:min(560px,calc(100vw - 28px))}
+#kitchen-level-list{box-sizing:border-box;display:grid;gap:10px;max-height:min(42vh,280px);overflow:auto;padding:3px 6px 6px 0}
+#kitchen-level-list .btn{justify-content:space-between;min-height:44px;text-align:left;line-height:18px}
+#kitchen-level-list .btn[aria-pressed="true"]{background:var(--honey)}
+#kitchen-more-dialog{width:min(360px,calc(100vw - 28px))}
+#kitchen-more-dialog .actions{display:grid;grid-template-columns:1fr 1fr;margin:0}
+#kitchen-more-dialog .btn{min-height:40px;line-height:18px}
+#record-result{white-space:pre-line}
+</style>
+<dialog id="kitchen-level-dialog" class="panel" aria-labelledby="level-dialog-title">
+ <div class="dlg-head"><h2 id="level-dialog-title">关卡选择</h2><button class="btn close" id="level-dialog-close" type="button" aria-label="返回厨房">×</button></div>
+ <div class="dlg-body"><div id="kitchen-level-list" aria-label="关卡"></div><div class="actions"><button class="btn primary" id="level-dialog-confirm" type="button">选择这一关</button><button class="btn" id="level-dialog-cancel" type="button">取消</button></div></div>
+</dialog>
+<dialog id="kitchen-more-dialog" class="panel" aria-labelledby="more-dialog-title">
+ <div class="dlg-head"><h2 id="more-dialog-title">更多</h2><button class="btn close" id="more-dialog-close" type="button" aria-label="返回结算">×</button></div>
+ <div class="dlg-body"><div class="actions"><button class="btn" data-cover-action="settings" type="button">设置</button><button class="btn" data-cover-action="help" type="button">操作说明</button><button class="btn" data-cover-action="language" id="more-dialog-language" data-no-i18n type="button">English</button><button class="btn" data-cover-action="contribute" id="more-dialog-contribute" type="button" hidden>贡献本局</button></div></div>
+</dialog>
+<script>
+(()=>{
+ const levels=document.getElementById('kitchen-level-dialog'),more=document.getElementById('kitchen-more-dialog'),list=document.getElementById('kitchen-level-list');
+ const controls=()=>window.kitchenControls,state=()=>controls()?.getState(),t=text=>window.kitchenI18n?.t(text)||text;
+ let selected='',openedRound='',signature='';
+ function paint(force=false){
+  const s=state();if(!s)return;
+  if((levels.open||more.open)&&(s.game_id!==openedRound||!['ready','ended'].includes(s.phase))){levels.close();more.close();return;}
+  if(levels.open){
+   const items=s.levels||[];if(!items.some(l=>l.id===selected))selected=items.find(l=>l.selected)?.id||items[0]?.id||'';
+   const next=JSON.stringify([items,s.levelEnabled,selected,window.kitchenI18n?.language]);
+   if(force||signature!==next){signature=next;list.replaceChildren();
+    for(const level of items){const button=document.createElement('button');button.className='btn';button.type='button';button.textContent=t(level.name);button.setAttribute('aria-pressed',String(level.id===selected));button.disabled=!s.levelEnabled;
+     if(level.selected){const current=document.createElement('span');current.textContent=t('当前');button.appendChild(current);}
+     button.onclick=()=>{selected=level.id;paint(true);list.querySelector('[aria-pressed="true"]')?.focus()};list.appendChild(button);}
+   }
+   document.getElementById('level-dialog-confirm').disabled=!s.levelEnabled||!selected;
+  }
+  const offer=document.getElementById('more-dialog-contribute');offer.hidden=!s.contribute;if(s.contribute){offer.textContent=t(s.contribute.label);offer.disabled=!s.contribute.enabled;}
+  document.getElementById('more-dialog-language').textContent=window.kitchenI18n?.language==='en'?'中文':'English';
+ }
+ window.addEventListener('kitchen-open-levels',()=>{const s=state();if(!s?.levelEnabled)return;openedRound=s.game_id;selected=(s.levels||[]).find(l=>l.selected)?.id||'';more.close();if(!levels.open)levels.showModal();paint(true)});
+ window.addEventListener('kitchen-open-more',()=>{const s=state();if(s?.phase!=='ended')return;openedRound=s.game_id;levels.close();if(!more.open)more.showModal();paint(true)});
+ window.addEventListener('kitchen-controls-state',()=>paint());window.addEventListener('kitchen-language',()=>paint(true));
+ document.getElementById('level-dialog-close').onclick=document.getElementById('level-dialog-cancel').onclick=()=>levels.close();
+ document.getElementById('level-dialog-confirm').onclick=()=>{const s=state();if(!s?.levelEnabled||s.game_id!==openedRound)return;const id=selected;levels.close();controls()?.level(id)};
+ document.getElementById('more-dialog-close').onclick=()=>more.close();
+ more.querySelectorAll('[data-cover-action]').forEach(button=>button.onclick=()=>{const action=button.dataset.coverAction;more.close();controls()?.[action]?.()});
 })();
 </script>

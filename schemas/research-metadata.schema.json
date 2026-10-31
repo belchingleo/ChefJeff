@@ -5,7 +5,10 @@
       "const": "chefjeff-pilot-session-v2"
     },
     "consent_version": {
-      "const": "pilot-session-2026-10-v4"
+      "enum": [
+        "pilot-session-2026-10-v4",
+        "pilot-session-2026-10-v5"
+      ]
     },
     "round_id": {
       "type": "string",
@@ -182,10 +185,63 @@
           "const": "legal_action_choice"
         },
         "model_identity": {
-          "type": "null"
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "provider": {
+                  "enum": [
+                    "jev",
+                    "openrouter-decision",
+                    "startlux",
+                    "deepseek",
+                    "qwen",
+                    "doubao",
+                    "gemini",
+                    "zhipu",
+                    "openrouter-chat",
+                    "compatible"
+                  ]
+                },
+                "model_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120,
+                  "pattern": "^(?!.*://)[^\\x00-\\x1f\\x7f]+$"
+                },
+                "interface": {
+                  "enum": [
+                    "systemone",
+                    "chat_completions"
+                  ]
+                },
+                "source": {
+                  "const": "browser-reported"
+                },
+                "verified": {
+                  "const": false
+                }
+              },
+              "required": [
+                "provider",
+                "model_id",
+                "interface",
+                "source",
+                "verified"
+              ],
+              "additionalProperties": false
+            }
+          ]
         },
         "model_identity_reason": {
-          "const": "not_verified_or_not_collected"
+          "enum": [
+            "not_verified_or_not_collected",
+            "not_reported",
+            "browser_reported_not_verified"
+          ]
         },
         "decision_telemetry": {
           "type": "boolean"

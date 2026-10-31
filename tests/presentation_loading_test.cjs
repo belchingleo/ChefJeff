@@ -2,6 +2,14 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),crypto=require('node:crypto');
 // Release builds name files by content (md5Cache): index.<hash>.js, bundle.<hash>.js.
 const built=(dir,re)=>{const found=fs.readdirSync(dir).filter(n=>re.test(n));assert.equal(found.length,1,dir+' '+re);return dir+'/'+found[0];};
+const web='cocos-kitchen/build/web';
+const bootstrap=built(web,/^index\.[0-9a-f]{5}\.js$/);
+assert(fs.readFileSync(web+'/index.html','utf8').includes(require('node:path').basename(bootstrap)),'HTML must reference the current bootstrap');
+for(const name of fs.readFileSync(bootstrap,'utf8').match(/application\.[0-9a-f]{5}\.js/g)||[]){
+ assert(fs.existsSync(web+'/'+name),'Bootstrap application dependency is missing: '+name);
+ for(const settings of fs.readFileSync(web+'/'+name,'utf8').match(/settings\.[0-9a-f]{5}\.json/g)||[])
+  assert(fs.existsSync(web+'/src/'+settings),'Application settings dependency is missing: '+settings);
+}
 const bundle=fs.readFileSync(built('cocos-kitchen/build/web/assets/main',/^index(\.[0-9a-f]{5})?\.js$/),'utf8');
 const clientHash=crypto.createHash('sha256').update(fs.readFileSync('cocos-kitchen/assets/scripts/KitchenClient.ts')).digest('hex');
 assert(bundle.includes('source-sha256: '+clientHash),'KitchenClient source/build mismatch');

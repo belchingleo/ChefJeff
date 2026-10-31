@@ -8,7 +8,28 @@
   // The shared service list (model-providers.js, loaded just before this script); 'none' is local-only.
   const providers = () => Object.fromEntries((window.chefjeffProviders?.providers || [])
     .filter(p => !p.disabled && p.hosted !== 'none').map(p => [p.id, p]));
-  let setting = null, state = null, checks = 0, testing = false;
+  let setting = null, state = null, checks = 0, testing = false, openingRound = false;
+  // Freeze the actual configured ID per round; changing settings after the result
+  // must never relabel that round. This map stays in this page, with no endpoint/key.
+  let activeRoundModel = null;
+  let activeRoundConfig = null; // Browser memory only; never copy this object into telemetry.
+  const roundModels = new Map();
+  const configuredModel = () => setting ? {provider:setting.provider, model_id:setting.model} : null;
+  function observeRoundModel(s) {
+    if(activeRoundModel && !activeRoundModel.game_id && s.game_id!==activeRoundModel.previous &&
+        ['running','paused','ended'].includes(s.phase))activeRoundModel.game_id=s.game_id;
+    if(activeRoundModel?.game_id===s.game_id && !roundModels.has(s.game_id)) {
+      roundModels.set(s.game_id,{...activeRoundModel.identity});
+      while(roundModels.size>20)roundModels.delete(roundModels.keys().next().value);
+    }
+  }
+  const modelForRound = round => roundModels.get(round) ||
+    (activeRoundModel?.game_id===round ? activeRoundModel.identity : null);
+  function localModelIdentity(round) {
+    const m=modelForRound(round);if(!m)return null;
+    return {...m,interface:providers()[m.provider]?.group==='decision'?'systemone':'chat_completions',
+      source:'browser-reported',verified:false};
+  }
   const handled = new Set();
   const response = (status, data) => new Response(JSON.stringify(data), {
     status, headers: {'Content-Type': 'application/json'},
@@ -16,7 +37,7 @@
   const connection = () => ({configured: !!setting, provider: setting?.provider || 'deepseek',
     base_url: setting?.base_url || '', model: setting?.model || '', remembered: !!setting?.remember,
     jev_relay: setting?.jev_relay === true,
-    editable: !testing && (!state || ['ready', 'ended'].includes(state.phase))});
+    editable: !testing && !openingRound && (!state || ['ready', 'ended'].includes(state.phase))});
   // Browser-owned, bounded history. No model URL, name, key or visitor identifier
   // is sent to the game server as a scope. Active context is frozen at round start.
   const MEMORY_KEY = 'chefjeff.cooperation-memory.v2';
@@ -341,7 +362,7 @@
     try {
       if (body.clear) {
         const r = await markReady(false, body); if (!r.ok) return r;
-        setting = null;
+        setting = null;activeRoundConfig = null;
         try {localStorage.removeItem(storageName);} catch (_) {}
       } else {
         const candidate = validate(body);
@@ -357,7 +378,7 @@
           localStorage.removeItem(storageName);
           if (candidate.remember) localStorage.setItem(storageName, JSON.stringify(candidate));
         } catch (_) {candidate.remember = false;}
-        setting = candidate;
+        setting = candidate;activeRoundConfig = null;
       }
       return response(200, {ok:true, connection:{...connection(), editable:true}});
     } catch (e) {return response(400, {error:e.message});}
@@ -368,6 +389,9 @@
   window.fetch = async (input, init = {}) => {
     const url = new URL(typeof input === 'string' ? input : input.url, location.href);
     if (url.origin !== location.origin || !url.pathname.startsWith('/api/')) return nativeFetch(input, init);
+    const isOpening=['/api/start','/api/restart','/api/next'].includes(url.pathname);
+    if(isOpening && (openingRound || testing))return response(409,{error:'正在测试连接，请等测试完成后再开局。'});
+    if(isOpening)openingRound=true;
     try {
       if (url.pathname === '/api/connection') {
         return configure(JSON.parse(init.body || '{}'), init.signal); // This body NEVER reaches nativeFetch.
@@ -387,23 +411,41 @@
       if (['/api/start','/api/restart','/api/next'].includes(url.pathname) && state?.hosted?.contribution_enabled) {
         // A server acknowledgement is required for automatic retention of an early close.
         await contributionCommand('/api/contribution/consent', {consent:autoOn(), consent_version:CONSENT,
-          decision_telemetry:!!(autoOn() && choice.decision_telemetry)}, state.game_id);
+          decision_telemetry:!!(autoOn() && choice.decision_telemetry),
+          ...(autoOn()?{model_identity:configuredModel()}: {})}, state.game_id);
       }
       const opening=['/api/start','/api/restart','/api/next'].includes(url.pathname)?openingMemory(state,JSON.parse(init.body||'{}'),url.pathname):null;
       const previousMemory=activeMemory;
+      const previousModel=activeRoundModel;
+      const previousConfig=activeRoundConfig;
+      if(['/api/start','/api/restart','/api/next'].includes(url.pathname) && setting) {
+        activeRoundConfig={...setting};
+        activeRoundModel={identity:configuredModel(),game_id:url.pathname==='/api/start'?state?.game_id:null,
+          previous:url.pathname==='/api/start'?null:state?.game_id};
+      }
       // Publish before awaiting the start acknowledgement: a state poll can see a
       // running kitchen first, and a lost acknowledgement must not lose its context.
       if(opening)activeMemory=opening;
       const result = await serverFetch(url.pathname, init);
       if(!result.ok && opening && activeMemory===opening)activeMemory=previousMemory;
+      if(!result.ok && ['/api/start','/api/restart','/api/next'].includes(url.pathname)){activeRoundModel=previousModel;activeRoundConfig=previousConfig;}
       if(result.ok && ['/api/start','/api/restart','/api/next'].includes(url.pathname)) {
         const opened=await result.clone().json();if(opened.receipt)rememberReceipt(opened.receipt);
       }
       if (result.ok && ['/api/start', '/api/restart', '/api/next', '/api/resume'].includes(url.pathname)) queueUsage(true);
+      if(result.ok && ['/api/export-run','/api/feedback'].includes(url.pathname)) {
+        const d=await result.json();
+        for(const round of d.report?.rounds || []) {
+          const identity=localModelIdentity(round.round_id);
+          if(identity)round.conditions={...round.conditions,model_identity:identity};
+        }
+        if(d.report && setting)d.report.provider=setting.provider;
+        return response(200,d);
+      }
       if (!result.ok || (url.pathname !== '/api/state' && !STATE_REPLIES.has(url.pathname))) return result;
       // Gameplay replies carry the resulting state; both get this page's connection details.
       // Also this browser's contribution answer: the result card offers 贡献本局 after 暂不.
-      const withConnection = d => {observeMemory(d);if(d.hosted?.contribution_receipt)rememberReceipt(d.hosted.contribution_receipt);state = d;queueUsage(d.phase === 'running');d.connection = connection();d.limits.connection_checks = checks;
+      const withConnection = d => {observeRoundModel(d);observeMemory(d);if(d.hosted?.contribution_receipt)rememberReceipt(d.hosted.contribution_receipt);state = d;queueUsage(d.phase === 'running');d.connection = connection();d.limits.connection_checks = checks;
         if (d.hosted) Object.assign(d.hosted, {contribution_offer: !!d.hosted.contribution_enabled && choice?.answer === 'later',
           contribution_busy: busyRound === d.game_id});
         return d;};
@@ -412,6 +454,7 @@
       if (d.state) d.state = withConnection(d.state);
       return response(200, d);
     } catch (_) {return response(503, {error:transportError || '厨房连接不可用，请刷新页面重新连接。'});}
+    finally {if(isOpening)openingRound=false;}
   };
 
   // Cocos uses XMLHttpRequest locally. Its hosted hook shares this credential-free game transport.
@@ -438,7 +481,7 @@
       let answer;
       const startedAt=performance.now();
       let errorType=null;
-      try {answer = await modelRequest(setting, request.payload, undefined,
+      try {answer = await modelRequest(activeRoundConfig || setting, request.payload, undefined,
         {game_id:state.game_id,id:request.id,test:false});delete answer.latency;}
       catch (e) {
         answer = {failed:true};
@@ -458,7 +501,7 @@
   setTimeout(poll, 200);
   const CHOICE_KEY = 'chefjeff.contribution-choice.v1', RECEIPTS_KEY = 'chefjeff.contribution-receipts.v1';
   // Equals hosted_records.CONSENT_VERSION: new terms ask again instead of carrying an old answer over.
-  const CONSENT = 'pilot-session-2026-10-v4';
+  const CONSENT = 'pilot-session-2026-10-v5';
   let pendingContribution = Promise.resolve(), autoRound = '', busyRound = '', shown = null, askedAt = '', notice = {round:'', text:''};
   const stored = (name, fallback) => {try {return JSON.parse(localStorage.getItem(name) || 'null') ?? fallback;} catch (_) {return fallback;}};
   const keep = (name, value) => {try {value == null ? localStorage.removeItem(name) : localStorage.setItem(name,JSON.stringify(value));} catch (_) {}};
@@ -504,7 +547,8 @@
   async function contribute(mode, round) {
     busyRound=round;
     try {
-      const d=await contributionCommand('/api/contribution/save',{consent:true,consent_version:CONSENT,consent_mode:mode},round);
+      const d=await contributionCommand('/api/contribution/save',{consent:true,consent_version:CONSENT,consent_mode:mode,
+        model_identity:modelForRound(round)},round);
       receipts=[...receipts.filter(r=>r.id!==d.receipt.id),d.receipt];
       keep(RECEIPTS_KEY,receipts);showReceipts();
       return d.receipt;
@@ -561,7 +605,10 @@
     el('ask-later').onclick = () => answer(false);
     el('contribution-change').onclick = () => dialog.showModal();
     el('contribution-preview').onclick = async () => {
-      try {const d = await command('/api/contribution/preview');el('contribution-data').value = JSON.stringify(d.record,null,2);el('contribution-data').hidden = false;}
+      try {const d = await command('/api/contribution/preview');
+        const identity=localModelIdentity(d.record.round_id);
+        if(identity && !d.record.conditions.model_identity){d.record.conditions.model_identity=identity;d.record.conditions.model_identity_reason='browser_reported_not_verified';}
+        el('contribution-data').value = JSON.stringify(d.record,null,2);el('contribution-data').hidden = false;}
       catch (e) {status(e.message);}
     };
     el('contribution-save').onclick = contributeRound;

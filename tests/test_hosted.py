@@ -108,8 +108,8 @@ class HostedTests(unittest.TestCase):
         from hosted_records import CONSENT_VERSION
         self.assertIn(f"const CONSENT = '{CONSENT_VERSION}'",(root/'hosted/browser-agent.js').read_text())
         ask=(root/'hosted/consent.html').read_text()
-        for text in ('游戏引擎事件','初始局面、每秒状态变化与关键事件状态','结算结果','物品、订单、工位、动作与决策关联','API Key','自由输入的文字','模型回复与完整请求',
-                     '30 天后自动删除','提前删除','同意以后每局自动贡献（含提前结束，30 天后删除）','暂不','privacy.html'):
+        for text in ('游戏引擎事件','初始局面、每秒状态变化与关键事件状态','结算结果','物品、订单、工位、动作与决策关联','API Key','模型服务与模型 ID','结构化字段',
+                     '30 天后自动删除','提前删除','同意每局自动贡献','暂不贡献，继续','privacy.html'):
             self.assertIn(text,ask)
         # Two equal choices: same style, nothing preselected or focused by default.
         self.assertEqual(ask.count('class="btn" type="button"'),2);self.assertNotIn('checked',ask)
