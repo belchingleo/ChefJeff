@@ -7,7 +7,8 @@
     "consent_version": {
       "enum": [
         "pilot-session-2026-10-v4",
-        "pilot-session-2026-10-v5"
+        "pilot-session-2026-10-v5",
+        "pilot-session-2026-10-v6"
       ]
     },
     "round_id": {

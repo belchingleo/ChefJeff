@@ -501,7 +501,7 @@
   setTimeout(poll, 200);
   const CHOICE_KEY = 'chefjeff.contribution-choice.v1', RECEIPTS_KEY = 'chefjeff.contribution-receipts.v1';
   // Equals hosted_records.CONSENT_VERSION: new terms ask again instead of carrying an old answer over.
-  const CONSENT = 'pilot-session-2026-10-v5';
+  const CONSENT = 'pilot-session-2026-10-v6';
   let pendingContribution = Promise.resolve(), autoRound = '', busyRound = '', shown = null, askedAt = '', notice = {round:'', text:''};
   const stored = (name, fallback) => {try {return JSON.parse(localStorage.getItem(name) || 'null') ?? fallback;} catch (_) {return fallback;}};
   const keep = (name, value) => {try {value == null ? localStorage.removeItem(name) : localStorage.setItem(name,JSON.stringify(value));} catch (_) {}};

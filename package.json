@@ -1,0 +1,11 @@
+{
+  "name": "chefjeff-offline-checks",
+  "private": true,
+  "scripts": {
+    "test:admin-browser": "python3 tests/run_admin_browser.py"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1",
+    "typescript": "5.9.3"
+  }
+}

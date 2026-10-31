@@ -236,7 +236,15 @@ class HostedSession(GameSession):
             else:
                 self.research_armed = None
                 if self.research_active and self.phase in ('running', 'paused') and self.receipt_round == self.game_id and self.store:
-                    self.store.delete(self.receipt['id'], self.receipt['deletion_token'])
+                    try:
+                        self.store.delete(self.receipt['id'], self.receipt['deletion_token'])
+                    except (OSError, sqlite3.Error):
+                        self.research_active = False
+                        self.research_telemetry = False
+                        if self.journal:
+                            self.journal.observations_withdrawn = self.journal.capture_observations
+                            self.journal.capture_observations = False
+                        return 503, {'error': '已停止继续记录，服务器删除失败，请保留凭证并稍后重试。'}
                     self.receipt = None
                     self.receipt_round = None
                 self.research_active = False
@@ -592,6 +600,12 @@ class HostedHTTPServer(ThreadingHTTPServer):
         finally:
             self.request_slots.release()
 
+    def server_close(self):
+        close_usage = getattr(getattr(self, 'usage', None), 'close', None)
+        if close_usage:
+            close_usage()
+        super().server_close()
+
 
 class HostedHandler(Handler):
     def reply(self, status, data, content_type='application/json; charset=utf-8',
@@ -670,7 +684,14 @@ class HostedHandler(Handler):
             with sessions.lock:
                 running = sum(g.phase == 'running' and not g.faulted and not g.stop_event.is_set()
                               for g, _ in sessions.entries.values())
-            return self.reply(200, {'usage': {**self.server.usage.snapshot(), 'running_sessions': running}})
+            usage = self.server.usage.snapshot()
+            if usage.get('shared'):
+                usage['regional_running_sessions'] = running
+                if usage.get('scope') != 'global':
+                    usage['running_sessions'] = running
+            else:
+                usage['running_sessions'] = running
+            return self.reply(200, {'usage': usage})
         if path == '/ops/capacity':
             sessions = self.server.sessions
             with sessions.lock:
@@ -740,12 +761,18 @@ class HostedHandler(Handler):
         if path == '/api/contribution/download':
             if set(body) != {'id', 'deletion_token'} or not self.server.sessions.store:
                 return self.reply(400, {'error': '下载凭证无效。'})
-            record = self.server.sessions.store.download(body['id'], body['deletion_token'])
+            try:
+                record = self.server.sessions.store.download(body['id'], body['deletion_token'])
+            except (OSError, sqlite3.Error):
+                return self.reply(503, {'error': '记录服务暂时不可用，请稍后重试。'})
             return self.reply(200, {'record': record}) if record else self.reply(404, {'error': '记录不存在或凭证无效。'})
         if path == '/api/contribution/delete':
             if set(body) != {'id','deletion_token'} or not self.server.sessions.store:
                 return self.reply(400, {'error':'删除凭证无效。'})
-            ok = self.server.sessions.store.delete(body['id'],body['deletion_token'])
+            try:
+                ok = self.server.sessions.store.delete(body['id'],body['deletion_token'])
+            except (OSError, sqlite3.Error):
+                return self.reply(503, {'error': '删除暂未完成，请保留凭证并稍后重试。'})
             return self.reply(200 if ok else 404, {'deleted':ok})
         if path not in FIELDS or set(body) - FIELDS[path] - {'game_id', 'request_id'}:
             return self.reply(400, {'error': '请求包含不支持的字段。'})
@@ -806,21 +833,40 @@ class HostedHandler(Handler):
         self.reply(status, result)
 
 
-def make_server(port, origin, capacity=8, web_root=None, data_dir=None, max_waiting=32, per_network=4):
+def make_server(port, origin, capacity=8, web_root=None, data_dir=None, max_waiting=32, per_network=4, shared_config=None):
     if type(capacity) is not int or not 1 <= capacity <= 16 or type(max_waiting) is not int or not 0 <= max_waiting <= 32:
         raise ValueError('Use 1–16 active kitchens and 0–32 waiting pages.')
     if per_network is not None and (type(per_network) is not int or not 1 <= per_network <= 16):
         raise ValueError('Use 1–16 active kitchens per network.')
+    if shared_config is not None and data_dir is None:
+        raise ValueError('Shared mode requires a persistent regional usage outbox')
+    client = None
+    if shared_config is not None:
+        from shared_client import SharedClient
+        from shared_server import read_private_json
+        client = SharedClient(shared_config if isinstance(shared_config, dict) else read_private_json(shared_config))
     server = HostedHTTPServer(('127.0.0.1', port), HostedHandler)
     server.public_origin = origin.rstrip('/')
     # Build identity is immutable for the life of this release, not per page.
     release = release_info()
-    server.usage = UsageStats(data_dir)
+    if client:
+        from shared_client import RegionalUsage, RemoteRecords
+        server.usage = RegionalUsage(data_dir, client)
+        store = RemoteRecords(client)
+    else:
+        server.usage = UsageStats(data_dir)
+        store = ContributionStore(data_dir) if data_dir else None
     server.sessions = Sessions(capacity, factory=lambda:HostedSession(release),
-                               store=ContributionStore(data_dir) if data_dir else None, max_waiting=max_waiting,
+                               store=store, max_waiting=max_waiting,
                                per_network=per_network, usage=server.usage)
     server.jev_forwarder = JevForwarder()
     server.web_root = Path(web_root or ROOT / 'cocos-kitchen' / 'build' / 'web')
+    if client:
+        def running():
+            with server.sessions.lock:
+                return sum(g.phase == 'running' and not g.faulted and not g.stop_event.is_set()
+                           for g, _ in server.sessions.entries.values())
+        server.usage.start(running)
     return server
 
 
@@ -830,6 +876,7 @@ def main():
     p.add_argument('--origin', required=True)
     p.add_argument('--web-root', type=Path)
     p.add_argument('--data-dir', type=Path, help='Enable opt-in 30-day contributions in this private directory.')
+    p.add_argument('--shared-config', type=Path, help='Private backend data-service configuration; data-dir holds only regional usage in shared mode.')
     p.add_argument('--max-sessions', type=int, choices=range(1,17), default=8, help='Active kitchens, including short pause/result leases.')
     p.add_argument('--max-waiting', type=int, choices=range(0,33), default=32, help='Additional page sessions that cannot consume active slots.')
     p.add_argument('--max-per-network', type=int, choices=range(1,17), default=4,
@@ -841,7 +888,7 @@ def main():
     if url.path not in ('', '/') or url.query or url.fragment or url.username or not url.netloc:
         p.error('Use an origin, without a path or credentials.')
     server = make_server(args.port, args.origin, args.max_sessions, web_root=args.web_root, data_dir=args.data_dir, max_waiting=args.max_waiting,
-                         per_network=args.max_per_network)
+                         per_network=args.max_per_network, shared_config=args.shared_config)
     def reap():
         while True:
             time.sleep(30)

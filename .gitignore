@@ -26,3 +26,10 @@ cocos-kitchen/settings/v2/packages/information.json
 cocos-kitchen/settings/v2/packages/program.json
 *.keystore
 *.jks
+
+# Private research downloads and administrator credentials
+*.cjresearch.zip
+**/auth.json
+**/shared-client.json
+**/data-server.json
+node_modules/
