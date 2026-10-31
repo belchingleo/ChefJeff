@@ -116,6 +116,8 @@ python3 scripts/research_export.py --database /var/lib/chefjeff/contributions.sq
 
 AI 选择 wait / continue，或回复过时未应用时，`action_id` 可以为 null，表示没有本次新建的执行动作。此字段仍归入事件信封，不得残留在 payload。旧实现曾因此在结束保存时被严格 schema 拒绝，只留下开局预存行；修复保留 null 的真实含义，不放宽 payload 允许清单，不伪造动作关联。HTTP 回归覆盖真实浏览器 relay 返回、调度器处理、手动结束或关页、SQLite 更新及本人凭证下载。
 
+结束时的完整更新如果写不进数据库（例如磁盘或 SQLite 错误），开局预存行原样保留且仍为 `complete=false`，页面状态的 `contributed` 为 false，`research_error` 为 `storage_failed`。结算时浏览器的贡献请求会用同一局记录重试一次更新；仍失败则返回 503，结算画面显示“自动贡献失败”，不再显示“已贡献”。`tests/test_research_save_paths.py` 用合成对局覆盖自然结束、手动结束、暂停后重开、下一关、对局中与结算后关页，以及保存失败与重试，每条都从 SQLite、本人凭证下载和私有导出包三处读回校验。
+
 历史上仅存开局的行仍保持 `complete=false`，不能补造缺失事件。已经关闭并释放的内存会话没有可供恢复的过程；此修复用于后续保存，不声称修复历史记录。
 
 研究数据（配置、事实、状态、条件、质量）只保存在贡献 SQLite 的同一行，不生成服务器状态分块、持久派生视图或额外索引文件。删除/到期清理该行即删除本版本的全部服务器研究内容；沿用 SQLite secure_delete。没有研究数据备份。到期删除由原有后台清理执行；读取/更新还会拒绝过期行。应用层删除不承诺物理介质上的取证擦除。
