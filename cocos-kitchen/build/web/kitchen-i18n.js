@@ -900,11 +900,11 @@
     "Enter 再来一次 · L 全部关卡": "Enter Try again · L All levels",
     "还没玩过": "Not played yet",
     "自定义关卡": "Custom levels",
-    "做自己的地图和菜谱 · 即将开放": "Make your own maps and recipes · coming soon",
-    "不分星级，只看有没有达成目标。最佳成绩只保存在这个浏览器里。": "No stars, only whether you reached the goal. Best results are kept in this browser only.",
     "有空位": "Seat available",
     "名额已满": "Seat taken",
-    "暂不可用": "Unavailable"
+    "暂不可用": "Unavailable",
+    "做自己的地图和菜谱": "Make your own maps and recipes",
+    "即将开放": "Coming soon"
   },
   "templates": [
     [
