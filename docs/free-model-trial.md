@@ -187,8 +187,12 @@ and link switches must be executed by the operator after reviewing the fixed rel
 
 1. 在上海创建 `extra-model-keys.json`（不经过聊天或 Git），权限 0640，属主与 `model-keys.json` 相同。
 2. `deploy/upgrade_free_gateway.py prepare --extra-models` 会校验这个文件（不打印内容），生成带
-   `--extra-keys-file … --extra-models-verified` 的服务单元；审阅后按原流程 `activate --allow-round-end`。
+   `--extra-keys-file … --extra-models-verified` 的服务单元；审阅后执行 `activate --extra-models --allow-round-end`。
+   `--release` 和 `--manifest-sha` 可以就是正在运行的发布版本。开放新模型有自己的审阅目录
+   （`/root/chefjeff-free-gateway-extra-models-…`），不会和这个版本已完成的代码升级记录混在一起；
+   之后的 `activate`、`verify`、`rollback` 也都要带 `--extra-models`。
    验证时，名额列表必须正好是原来两家加上文件里启用的模型，每个名额上限 1。
+   开放以后，再升级协调服务也必须带 `--extra-models`，否则 `prepare` 会拒绝，新模型不会被悄悄关掉。
 3. 启用后立刻做服务器出口检查：`scripts/probe_free_gateway.py --providers gemini,cloudflare-gemma,cloudflare-llama`，
    每个模型最多一次真实请求。连不上的模型会显示“暂不可用”和实际原因，不会被当成可用。
 

@@ -267,3 +267,41 @@ class GatewayUpgradeTests(unittest.TestCase):
     def test_gateway_upgrade_failure_restores_previous_unit(self):self.exercise(fail=True)
     def test_changed_gateway_stops_before_mutations(self):self.exercise(changed=True)
     def test_missing_round_end_permission_stops_before_mutations(self):self.exercise(allow=False)
+
+    def test_enabling_later_models_on_the_running_release_is_its_own_review(self):
+        from deploy import upgrade_free_gateway as upgrade
+        live=Path('/opt/chefjeff/releases/china-free-live/chefjeff-web-demo');sha='a'*64
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);unit=root/'gateway.service';unit.write_text(gateway_unit(live))
+            def work_path(kind,manifest_sha):
+                path=root/(kind+'-'+manifest_sha[:12]);path.mkdir(exist_ok=True);return path
+            # The code upgrade to the running release already finished.
+            save(work_path('gateway-upgrade',sha),{'phase':'active','release':str(live),'manifest_sha':sha})
+            argv=['upgrade_free_gateway.py','prepare','--extra-models','--release',str(live),'--manifest-sha',sha]
+            with patch.object(upgrade,'UNIT',unit),patch.object(upgrade,'PREVIOUS',live),\
+                 patch.object(upgrade.os,'geteuid',return_value=0),patch.object(upgrade,'work_path',work_path),\
+                 patch.object(upgrade,'public_release',return_value=(live,{'release':{'fingerprint':'test'}})),\
+                 patch.object(upgrade,'validate_import'),patch.object(upgrade,'read_extra_keys',return_value={'gemini':{}}),\
+                 patch.object(upgrade,'property_of',side_effect=lambda name,key:'' if key=='DropInPaths' else 'active'),\
+                 patch('sys.argv',argv),contextlib.redirect_stdout(io.StringIO()):
+                upgrade.main()
+            extra=root/('gateway-extra-models-'+sha[:12])
+            self.assertEqual((load(extra)['phase'],load(extra)['later_models']),('prepared',['gemini']))
+            self.assertIn('--extra-models-verified',(extra/'gateway.candidate.service').read_text())
+            self.assertEqual(load(root/('gateway-upgrade-'+sha[:12]))['phase'],'active')
+            self.assertEqual(unit.read_text(),gateway_unit(live))
+
+    def test_upgrade_after_enabling_later_models_must_keep_them(self):
+        from deploy import upgrade_free_gateway as upgrade
+        live=Path('/opt/chefjeff/releases/china-free-live/chefjeff-web-demo')
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);unit=root/'gateway.service';unit.write_text(gateway_unit(live,True))
+            with patch.object(upgrade,'UNIT',unit),patch.object(upgrade,'PREVIOUS',live),\
+                 patch.object(upgrade,'public_release',return_value=(live,{'release':{'fingerprint':'test'}})),\
+                 patch.object(upgrade,'validate_import'),patch.object(upgrade,'read_extra_keys',return_value={'gemini':{}}),\
+                 patch.object(upgrade,'property_of',side_effect=lambda name,key:'' if key=='DropInPaths' else 'active'),\
+                 contextlib.redirect_stdout(io.StringIO()):
+                with self.assertRaises(ValueError):upgrade.prepare(live,'b'*64,root/'plain')
+                self.assertFalse((root/'plain/state.json').exists())
+                (root/'extra').mkdir();upgrade.prepare(live,'b'*64,root/'extra',True)
+            self.assertIn('--extra-models-verified',(root/'extra/gateway.candidate.service').read_text())

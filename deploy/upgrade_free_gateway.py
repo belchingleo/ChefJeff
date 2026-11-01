@@ -38,13 +38,24 @@ def capacity_ok(catalog):
     return set(ORIGINAL)<=set(rows)<=set(MODELS) and all(row.get('limit')==1 for row in rows.values())
 
 
+def review_kind(extra_models):
+    # Enabling the later models is its own reviewed step, usually on the release already running,
+    # so it must not reuse (and be mistaken for) that release's finished code upgrade.
+    return 'gateway-extra-models' if extra_models else 'gateway-upgrade'
+
+
 def prepare(release,manifest_sha,work,extra_models=False):
     if (work/'state.json').exists():
         state=load(work)
         if state['release']!=str(release) or state['manifest_sha']!=manifest_sha:raise ValueError('Different prepared upgrade')
         print(json.dumps({'status':'gateway-upgrade-already-'+state['phase'],'review_directory':str(work)}));return
     public_release(PREVIOUS,PREVIOUS_MANIFEST)
-    if UNIT.is_symlink() or UNIT.read_text()!=gateway_unit(PREVIOUS):raise ValueError('Existing gateway unit differs from audited release')
+    if UNIT.is_symlink():raise ValueError('Existing gateway unit differs from audited release')
+    live=UNIT.read_text()
+    if live==gateway_unit(PREVIOUS,True):
+        # Once enabled, the later models are kept explicitly; an upgrade never drops them silently.
+        if not extra_models:raise ValueError('Later models are enabled; keep them with --extra-models')
+    elif live!=gateway_unit(PREVIOUS):raise ValueError('Existing gateway unit differs from audited release')
     if property_of(UNIT_NAME,'DropInPaths'):raise ValueError('Gateway has unreviewed drop-ins')
     if property_of(UNIT_NAME,'ActiveState')!='active':raise ValueError('Existing gateway is not active')
     _,manifest=public_release(release,manifest_sha)
@@ -124,7 +135,7 @@ def main():
     parser.add_argument('--allow-round-end',action='store_true')
     parser.add_argument('--extra-models',action='store_true',help='also enable the later models in '+EXTRA_KEYS);args=parser.parse_args()
     if os.geteuid()!=0:parser.error('Run the reviewed command with sudo')
-    release,_=public_release(args.release,args.manifest_sha);work=work_path('gateway-upgrade',args.manifest_sha)
+    release,_=public_release(args.release,args.manifest_sha);work=work_path(review_kind(args.extra_models),args.manifest_sha)
     if args.operation=='prepare':prepare(release,args.manifest_sha,work,args.extra_models)
     elif args.operation=='activate':activate(work,args.allow_round_end)
     elif args.operation=='verify':verify(work)
