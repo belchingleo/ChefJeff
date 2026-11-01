@@ -536,7 +536,7 @@
       if (!result.ok || (url.pathname !== '/api/state' && !STATE_REPLIES.has(url.pathname))) return result;
       // Gameplay replies carry the resulting state; both get this page's connection details.
       // Also this browser's contribution answer: the result card offers 贡献本局 after 暂不.
-      const withConnection = d => {observeRoundModel(d);observeMemory(d);if(d.hosted?.contribution_receipt)rememberReceipt(d.hosted.contribution_receipt);state = d;queueUsage(d.phase === 'running');d.connection = connection();d.limits.connection_checks = checks;
+      const withConnection = d => {observeRoundModel(d);observeMemory(d);if(d.hosted?.contribution_receipt)rememberReceipt(d.hosted.contribution_receipt);state = d;showModelServiceStatus(d);queueUsage(d.phase === 'running');d.connection = connection();d.limits.connection_checks = checks;
         if (d.hosted) Object.assign(d.hosted, {contribution_offer: !!d.hosted.contribution_enabled && choice?.answer === 'later',
           contribution_busy: busyRound === d.game_id});
         return d;};
@@ -558,6 +558,18 @@
       const d = await r.json();if (!r.ok) throw new Error(d.error || '厨房请求失败。');return d;
     } finally {clearTimeout(timer);}
   };
+
+  function showModelServiceStatus(d) {
+    const label=document.getElementById('api-message'),status=d.model_service_status;
+    if(!label?.dataset)return;
+    if(d.phase==='running' && status?.message) {
+      const seconds=Number(status.remaining_seconds);
+      const suffix=status.blocked?'':status.waiting && Number.isFinite(seconds)?` 剩余 ${Math.ceil(seconds)} 秒。`:' 正在重新请求。';
+      label.textContent=status.message+suffix;label.className='error';label.dataset.modelServiceStatus='true';
+    } else if(label.dataset.modelServiceStatus==='true') {
+      label.textContent='';label.className='';delete label.dataset.modelServiceStatus;
+    }
+  }
 
   async function poll() {
     try {

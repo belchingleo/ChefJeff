@@ -821,7 +821,17 @@
     " · 可用": " · Available",
     " · 名额已满": " · Full",
     " · 暂不可用": " · Unavailable",
-    "免费模型暂时无法连接，请稍后再试。": "The free model is temporarily unreachable. Please try again later."
+    "免费模型暂时无法连接，请稍后再试。": "The free model is temporarily unreachable. Please try again later.",
+    "模型平台过载，等待冷却后再试。": "The model provider is overloaded. Waiting for its cooldown.",
+    "模型平台限流，等待冷却后再试。": "The model provider is rate limiting requests. Waiting for its cooldown.",
+    "模型服务鉴权失败，免费调用已暂停。": "Model authentication failed. Free calls are paused.",
+    "模型返回的动作或格式无效，稍后重新请求。": "The model returned an invalid action or format. Retrying shortly.",
+    "模型平台拒绝请求，稍后再试。": "The model provider rejected the request. Retrying shortly.",
+    "模型请求结果未知，免费调用已暂停，请结算后更换模型。": "The request outcome is unknown. Free calls are paused. Choose another model after this round.",
+    "模型返回型号不符，免费调用已暂停。": "The returned model does not match. Free calls are paused.",
+    "正在重新请求。": "Requesting again.",
+    "免费模型返回格式或动作无效，本次未执行。": "The free model returned an invalid format or action. Nothing was executed.",
+    "本局免费名额已释放，请结束本局后重新开局。": "This round’s free seat was released. End the round and start again."
   },
   "templates": [
     [
@@ -1423,6 +1433,18 @@
     [
       "默认：{0}（{1}）",
       "Default: {0} ({1})"
+    ],
+    [
+      "{0} 剩余 {1} 秒。",
+      "{0} {1} seconds remaining."
+    ],
+    [
+      "{0} 正在重新请求。",
+      "{0} Requesting again."
+    ],
+    [
+      "{0} 约 {1} 秒后重试。",
+      "{0} Retrying in about {1} seconds."
     ]
   ]
 }

@@ -799,31 +799,42 @@
     "本局模型或对局状态已经改变。": "The round or its model has changed.",
     "模型决策请求已过期。": "The model decision request has expired.",
     "跨局记忆格式无效。": "Invalid cross-round memory format.",
-    "本局免费模型调用已达 200 次上限。": "This round has reached its 200-request free trial limit.",
+    "本局免费模型调用已达 200 次上限。": "This round reached its limit of 200 free model calls.",
     "免费试玩请求较多，请稍后再试。": "Free trials are busy. Try again later.",
     "所选免费模型暂不可用，请稍后再试。": "The selected free model is temporarily unavailable. Try again later.",
     "所选免费模型正在服务其他厨房，请稍后再试。": "The selected free model is serving another kitchen. Try again later.",
     "所选免费模型暂不可用，请稍后再试；结算后可切换其他模型。": "The selected free model is temporarily unavailable. Try again later, or switch models after this round.",
     "免费模型连接超时或不可用，请稍后再试。": "The free model timed out or is unavailable. Try again later.",
     "免费模型回复过大，本次未执行。": "The free model reply was too large. No action was executed.",
-    "免费模型回复不符合预期，本次未执行。": "The free model reply was invalid. No action was executed.",
+    "免费模型回复不符合预期，本次未执行。": "The free model returned an unexpected response. No action was applied.",
     "StartLux 回复格式或动作无效，本次未执行。": "StartLux returned an invalid response or action. No action was executed.",
     "智谱回复格式或动作无效，本次未执行。": "Zhipu returned an invalid response or action. No action was executed.",
     "模型说明": "Model details",
     "请先取得当前模型的免费厨房名额。": "Acquire a free kitchen seat for this model before starting.",
-    "正在申请免费名额，请稍候。": "Reserving a free kitchen seat. Please wait.",
-    "这个模型的免费厨房名额已满，请稍后开局或使用自己的模型。": "This model has no free kitchen seats available. Wait before starting or use your own model.",
-    "所选免费模型仍在处理请求，请稍后再试。": "The selected free model is still processing a request. Try again later.",
-    "本局免费名额已释放，请尝试继续；满额时需等待或结束本局。": "Your free seat was released. Try resuming; if full, wait or end the round.",
-    "免费服务已重启，请结束本局后重新开局。": "The free model service restarted. End this round and start a new one.",
-    "所选免费模型暂不可用，恢复确认后才能继续提供试玩。": "The selected free model is unavailable until recovery has been confirmed.",
-    "所选免费模型正在冷却，请稍后再试。": "The selected free model is cooling down. Try again later.",
-    "免费试玩调用预算已用完，请稍后再来或使用自己的模型。": "The free trial call budget has been used. Come back later or use your own model.",
+    "正在申请免费名额，请稍候。": "Requesting a free place. Please wait.",
+    "这个模型的免费厨房名额已满，请稍后开局或使用自己的模型。": "All free kitchen places for this model are occupied. Try later or use your own model.",
+    "所选免费模型仍在处理请求，请稍后再试。": "The selected free model is still processing a request. Please try again later.",
+    "本局免费名额已释放，请尝试继续；满额时需等待或结束本局。": "Your free place was released. Try resuming; if full, wait or end this round.",
+    "免费服务已重启，请结束本局后重新开局。": "The free service restarted. End this round and start a new one.",
+    "所选免费模型暂不可用，恢复确认后才能继续提供试玩。": "The selected free model is unavailable pending a recovery check.",
+    "所选免费模型正在冷却，请稍后再试。": "The selected free model is cooling down. Please try again later.",
+    "免费试玩调用预算已用完，请稍后再来或使用自己的模型。": "The free trial call budget is exhausted. Return later or use your own model.",
     "免费试玩预算服务暂不可用，本次未发起模型请求。": "The free trial budget service is unavailable. No model request was sent.",
-    "免费模型协调服务暂不可用，请稍后再试。": "The free model coordinator is unavailable. Try again later.",
+    "免费模型协调服务暂不可用，请稍后再试。": "The shared free model service is unavailable. Please try again later.",
     " · 可用": " · Available",
     " · 名额已满": " · Full",
-    " · 暂不可用": " · Unavailable"
+    " · 暂不可用": " · Unavailable",
+    "免费模型暂时无法连接，请稍后再试。": "The free model is temporarily unreachable. Please try again later.",
+    "模型平台过载，等待冷却后再试。": "The model provider is overloaded. Waiting for its cooldown.",
+    "模型平台限流，等待冷却后再试。": "The model provider is rate limiting requests. Waiting for its cooldown.",
+    "模型服务鉴权失败，免费调用已暂停。": "Model authentication failed. Free calls are paused.",
+    "模型返回的动作或格式无效，稍后重新请求。": "The model returned an invalid action or format. Retrying shortly.",
+    "模型平台拒绝请求，稍后再试。": "The model provider rejected the request. Retrying shortly.",
+    "模型请求结果未知，免费调用已暂停，请结算后更换模型。": "The request outcome is unknown. Free calls are paused. Choose another model after this round.",
+    "模型返回型号不符，免费调用已暂停。": "The returned model does not match. Free calls are paused.",
+    "正在重新请求。": "Requesting again.",
+    "免费模型返回格式或动作无效，本次未执行。": "The free model returned an invalid format or action. Nothing was executed.",
+    "本局免费名额已释放，请结束本局后重新开局。": "This round’s free seat was released. End the round and start again."
   },
   "templates": [
     [
@@ -1425,6 +1436,18 @@
     [
       "默认：{0}（{1}）",
       "Default: {0} ({1})"
+    ],
+    [
+      "{0} 剩余 {1} 秒。",
+      "{0} {1} seconds remaining."
+    ],
+    [
+      "{0} 正在重新请求。",
+      "{0} Requesting again."
+    ],
+    [
+      "{0} 约 {1} 秒后重试。",
+      "{0} Retrying in about {1} seconds."
     ]
   ]
 }

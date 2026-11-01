@@ -127,6 +127,20 @@ class CallBudget:
                 return 'call_budget'
             return None
 
+    def retry_after(self, provider):
+        with self.lock:
+            now=self.clock();reason=self.available(provider)
+            if reason=='upstream_blocked':return None
+            if reason=='upstream_cooldown':return max(0,self.value['cooldown'][provider]-now)
+            if reason=='request_busy':return 1
+            if reason=='call_budget':
+                waits=[]
+                for span,limit,selected in ((60,self.minute,True),(3600,self.hour,False),(86400,self.day,False)):
+                    times=sorted(t for t,p in self.value['attempts'] if t>now-span and (not selected or p==provider))
+                    if len(times)>=limit:waits.append(times[-limit]+span-now)
+                return max(waits,default=1)
+            return 0
+
     def begin(self, provider):
         with self.lock:
             error = self.available(provider)
@@ -148,7 +162,7 @@ class CallBudget:
             if category in ('transport_uncertain', 'authentication', 'model_mismatch', 'interrupted'):
                 self.value['blocked'][provider] = True
             if category is not None:
-                self.value['cooldown'][provider] = self.clock()+60
+                self.value['cooldown'][provider] = self.clock()+(2 if category=='invalid_response' else 60)
             try:
                 self._save()
             except Exception:

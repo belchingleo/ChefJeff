@@ -23,6 +23,7 @@ from spatial_kitchen import SpatialKitchen
 from whitebox_server import SpatialJevClient
 from web_server import GameSession, Handler
 from release_info import release_info
+from model_status import clean as clean_diagnostic, ModelWait
 from feedback import play_export
 from hosted_records import ContributionStore, pilot_record, CONSENT_VERSION
 from hosted_capacity import ActiveKitchens, RequestBudget, NETWORK_FULL
@@ -55,12 +56,14 @@ class BrowserRelay(SpatialJevClient):
 
     def ask(self, payload):
         task = {'id': secrets.token_urlsafe(24), 'payload': deepcopy(payload),
-                'event': threading.Event(), 'result': None, 'sent': time.monotonic()}
+                'event': threading.Event(), 'result': None, 'failure':None, 'sent': time.monotonic()}
         with self.guard:
             if self.closed: raise RuntimeError('Browser connection closed')
             self.pending = task
         try:
-            if not task['event'].wait(24) or task['result'] is None:
+            completed=task['event'].wait(24)
+            if task.get('failure') is not None:raise task['failure']
+            if not completed or task['result'] is None:
                 raise RuntimeError('Browser model request failed or expired')
             return task['result']
         finally:
@@ -72,6 +75,11 @@ class BrowserRelay(SpatialJevClient):
             task = self.pending
             if not task or task['event'].is_set(): return None
             return {'id': task['id'], 'payload': deepcopy(task['payload'])}
+
+    def mark_failure(self,ident,error):
+        with self.guard:
+            if self.pending and self.pending['id']==ident and not self.pending['event'].is_set():
+                self.pending['failure']=error
 
     def resolve(self, body):
         with self.guard:
@@ -144,6 +152,8 @@ class HostedSession(GameSession):
         self.free_lease_epoch = None
         self.free_round_game = None
         self.free_renew_at = 0
+        self.free_diagnostic_round=None
+        self.free_diagnostics=OrderedDict()
         super().__init__(client_factory=self._client, journal_factory=NullJournal,
                          kitchen_factory=SpatialKitchen, log_prefix='hosted')
         self.history_limit = HOSTED_HISTORY_LIMIT
@@ -151,6 +161,15 @@ class HostedSession(GameSession):
         self.c['ai_max_response_age'] = 15
         self.base_config['ai_max_response_age'] = 15
         self.deployment_mode = 'hosted'
+
+    def record_free_diagnostic(self,ident,diagnostic):
+        with self.lock:
+            if self.free_diagnostic_round!=self.game_id:
+                self.free_diagnostic_round=self.game_id;self.free_diagnostics.clear()
+            if ident not in self.free_diagnostics:
+                self.free_diagnostics[ident]={'attempt':self.ai.calls if self.ai else 0,
+                    'game_seconds':round(self.k.time,3),**clean_diagnostic(diagnostic)}
+            while len(self.free_diagnostics)>256:self.free_diagnostics.popitem(last=False)
 
     def _client(self, config):
         if self.relay: self.relay.close()
@@ -224,6 +243,12 @@ class HostedSession(GameSession):
                                'namespace': memory_namespace(), 'level_id': self.c['level_id'],
                                'max_characters': CONTEXT_CHARACTERS, 'description': DESCRIPTION,
                                'episode': record}
+            state['model_service_status']=None
+            if ai and getattr(ai,'service_wait',None):
+                wait=ai.service_wait
+                state['model_service_status']={**wait['diagnostic'],'message':wait['message'],
+                    'remaining_seconds':None if wait['blocked'] else max(0,round(ai.next_allowed-time.monotonic(),1)),
+                    'waiting':wait['blocked'] or time.monotonic()<ai.next_allowed}
             state['release'] = self.release
             state['hosted'] = {'retention': 'session-only', 'idle_minutes': 10, 'contribution_enabled': self.store is not None,
                                'contributed': self.receipt_round == self.game_id and self.phase == 'ended' and not self.research_error,

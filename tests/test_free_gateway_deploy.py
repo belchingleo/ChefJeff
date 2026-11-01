@@ -121,7 +121,7 @@ class DeploymentTests(unittest.TestCase):
                 return {'/healthz':(200,b'{}'),'/':(200,b'<aside id="free-model-picker"></aside><script>inline</script>'),
                     '/api/session':(201,b'{"session":"synthetic-session"}'),
                     '/api/state':(200,b'{"release":{"fingerprint":"synthetic"}}'),
-                    '/api/model/free/catalog':(200,b'{"gateway_available":true}'),
+                    '/api/model/free/catalog':(200,b'{"gateway_available":true,"diagnostics_version":1}'),
                     '/api/session/close':(200,b'{}')}[path]
             class Redirect:
                 status=301
@@ -207,3 +207,63 @@ class DeploymentTests(unittest.TestCase):
 
 
 if __name__=='__main__':unittest.main()
+
+class ExistingFreeRegionUpgradeTests(unittest.TestCase):
+    activation_fixture=DeploymentTests.activation_fixture
+    def test_upgrade_preserves_free_flag_and_restores_previous_override_on_failure(self):
+        with tempfile.TemporaryDirectory() as d:
+            previous,new,current,override,work,raw=self.activation_fixture(Path(d))
+            raw=raw.replace(' ; ignore_errors',' --free-model-gateway ; ignore_errors')
+            state=load(work);state['startup_arguments'].append('--free-model-gateway')
+            override.write_bytes((work/'free-region.conf').read_bytes())
+            (work/'override.before.conf').write_bytes(override.read_bytes())
+            state['previous_override_sha']=digest(override);save(work,state)
+            before=override.read_bytes()
+            with patch.object(region,'CURRENT',current),patch.object(region,'OVERRIDE',override),\
+                 patch.object(region,'property_of',return_value=raw),patch.object(region,'run'),\
+                 patch.object(region,'public_release',return_value=(new,{'release':{'fingerprint':'synthetic'}})),\
+                 patch.object(region,'validate_import'),patch.object(region,'wait_local'),\
+                 patch.object(region,'verify',side_effect=region.InstallError('synthetic_failure')),\
+                 contextlib.redirect_stdout(io.StringIO()):
+                with self.assertRaises(region.InstallError):region.activate('cn',work,True)
+            self.assertEqual(current.resolve(),previous)
+            self.assertEqual(override.read_bytes(),before)
+            self.assertEqual(load(work)['phase'],'rolled-back')
+            self.assertEqual(region.existing_arguments(raw,'chefjeff.belchingleo.online').count('--free-model-gateway'),1)
+
+
+class GatewayUpgradeTests(unittest.TestCase):
+    def exercise(self,fail=False,changed=False,allow=True):
+        from deploy import upgrade_free_gateway as upgrade
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);unit=root/'gateway.service';unit.write_text('old unit')
+            work=root/'review';work.mkdir()
+            (work/'gateway.before.service').write_text('old unit')
+            (work/'gateway.candidate.service').write_text('new unit')
+            save(work,{'phase':'prepared','release':'/public/new','manifest_sha':'synthetic',
+                'previous_unit_sha':digest(unit),'candidate_unit_sha':digest(work/'gateway.candidate.service')})
+            if changed:unit.write_text('unreviewed unit')
+            calls=[]
+            fake=unittest.mock.Mock()
+            fake.request.return_value={'diagnostics_version':1}
+            with patch.object(upgrade,'UNIT',unit),patch.object(upgrade,'run',side_effect=lambda *a:calls.append(a)),\
+                 patch.object(upgrade,'public_release',return_value=(Path('/public/new'),{'release':{'fingerprint':'test'}})),\
+                 patch.object(upgrade,'validate_import'),patch.object(upgrade,'other_pids',return_value={'game':'123'}),\
+                 patch.object(upgrade,'client',return_value=fake),patch.object(upgrade,'property_of',return_value='active'),\
+                 patch.object(upgrade,'verify',side_effect=ValueError() if fail else None),\
+                 contextlib.redirect_stdout(io.StringIO()):
+                if fail or changed or not allow:
+                    with self.assertRaises(ValueError):upgrade.activate(work,allow)
+                else:upgrade.activate(work,allow)
+            if changed or not allow:self.assertEqual(calls,[])
+            else:
+                self.assertEqual([x for x in calls if x[:2]==('systemctl','restart')],
+                    [('systemctl','restart','chefjeff-free.service')]*(2 if fail else 1))
+                self.assertEqual(unit.read_text(),'old unit' if fail else 'new unit')
+                self.assertEqual(load(work)['phase'],'rolled-back' if fail else 'active')
+                self.assertEqual(fake.request.call_args.args,('catalog',{}))
+
+    def test_gateway_upgrade_changes_only_its_unit_and_control_catalog(self):self.exercise()
+    def test_gateway_upgrade_failure_restores_previous_unit(self):self.exercise(fail=True)
+    def test_changed_gateway_stops_before_mutations(self):self.exercise(changed=True)
+    def test_missing_round_end_permission_stops_before_mutations(self):self.exercise(allow=False)

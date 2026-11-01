@@ -16,8 +16,8 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from deploy.free_install_common import atomic, digest, load, property_of, public_release, run, save, work_path
 
 DOMAINS={'cn':'chefjeff.belchingleo.online','de':'global.belchingleo.online'}
-BASE_SERVER_SHA='623c49f5fe69d4ce77190a09af39ea91dceb9ff0bb84bedbea9b8d74646b8682'
-BASE_MANIFEST_SHA='4fbf74567484dc6fc49c23ab6cbcf42fe43db1fa024f08958fece713b4c409c7'
+BASE_SERVER_SHA='71e0fd4db54c9cf1bbf9bf4a752f9f8d506efb31a25eb692fbc0d1af91d276ba'
+BASE_MANIFEST_SHA='27880fc3a1d418922cc07cd63eec37a9ec0dceb6550ed57d07f57dadfdb8cd10'
 OVERRIDE=Path('/etc/systemd/system/chefjeff.service.d/zzzzzzzz-chefjeff-free.conf')
 CURRENT=Path('/opt/chefjeff/current')
 
@@ -60,11 +60,15 @@ def existing_arguments(value, domain):
         raise ValueError('Unexpected existing game entrypoint')
     allowed={'--port','--origin','--data-dir','--shared-config','--max-sessions','--max-waiting','--max-per-network','--web-root'}
     values={}
-    for i in range(2,len(args),2):
-        if i+1>=len(args) or args[i] not in allowed or args[i] in values:
+    options=args[2:]
+    if '--free-model-gateway' in options:
+        if options.count('--free-model-gateway')!=1:raise ValueError('Duplicate free gateway flag')
+        options.remove('--free-model-gateway')
+    for i in range(0,len(options),2):
+        if i+1>=len(options) or options[i] not in allowed or options[i] in values:
             raise ValueError('Unknown or duplicate existing startup option')
-        values[args[i]]=args[i+1]
-        if not re.fullmatch(r'[A-Za-z0-9_./:+-]+',args[i+1]):raise ValueError('Unexpected startup value')
+        values[options[i]]=options[i+1]
+        if not re.fullmatch(r'[A-Za-z0-9_./:+-]+',options[i+1]):raise ValueError('Unexpected startup value')
     if (values.get('--port')!='8780' or values.get('--origin')!='https://'+domain
             or values.get('--shared-config')!='/etc/chefjeff/shared-client.json'
             or values.get('--data-dir')!='/var/lib/chefjeff'):
@@ -136,7 +140,9 @@ def verify(site,work,mark=lambda stage:None):
         mark('public_free_gateway')
         catalog,raw=request(domain,'/api/model/free/catalog',session=session)
         expect_status(catalog,200)
-        if json.loads(raw).get('gateway_available') is not True:raise InstallError('shared_free_gateway_unavailable')
+        value=json.loads(raw)
+        if value.get('gateway_available') is not True:raise InstallError('shared_free_gateway_unavailable')
+        if value.get('diagnostics_version')!=1:raise InstallError('shared_free_gateway_requires_upgrade')
     except BaseException:
         primary_failure=True;raise
     finally:
@@ -166,16 +172,20 @@ def prepare(site,release,manifest_sha,work):
         state=load(work)
         if state['release']!=str(release):raise ValueError('Different prepared release')
         print(json.dumps({'status':'region-already-'+state['phase'],'review_directory':str(work)}));return
-    if not CURRENT.is_symlink() or OVERRIDE.exists():raise ValueError('Unexpected current link or existing free override')
+    if not CURRENT.is_symlink() or OVERRIDE.is_symlink():raise ValueError('Unexpected current or override link')
     previous=CURRENT.resolve(strict=True)
     public_release(previous, BASE_MANIFEST_SHA)
-    if digest(previous/'hosted_server.py')!=BASE_SERVER_SHA:raise ValueError('Current code differs from the audited v7 baseline')
+    if digest(previous/'hosted_server.py')!=BASE_SERVER_SHA:raise ValueError('Current code differs from the audited free-model baseline')
     args=existing_arguments(property_of('chefjeff.service','ExecStart'),DOMAINS[site])
-    unit='[Service]\nExecStart=\nExecStart='+' '.join([*args,'--free-model-gateway'])+'\n'
+    unit='[Service]\nExecStart=\nExecStart='+' '.join(args if '--free-model-gateway' in args else [*args,'--free-model-gateway'])+'\n'
+    previous_override=OVERRIDE.read_bytes() if OVERRIDE.exists() else None
+    if previous_override is not None:
+        if previous_override!=unit.encode():raise ValueError('Existing free override differs from audited startup')
+        atomic(work/'override.before.conf',previous_override,0o644)
     atomic(work/'free-region.conf',unit.encode(),0o644)
     state={'phase':'prepared','site':site,'release':str(release),'manifest_sha':manifest_sha,'previous':str(previous),
         'unit_sha':digest(work/'free-region.conf'),'previous_server_sha':digest(previous/'hosted_server.py'),
-        'startup_arguments':args,
+        'startup_arguments':args,'previous_override_sha':digest(OVERRIDE) if OVERRIDE.exists() else None,
         'other_pids':{n:property_of(n,'MainPID') for n in ('chefjeff-data.service','chefjeff-admin.service')}}
     state['startup_snapshot']=hashlib.sha256(property_of('chefjeff.service','ExecStart').encode()).hexdigest()
     save(work,state)
@@ -184,11 +194,25 @@ def prepare(site,release,manifest_sha,work):
         'player_database_opened':False,'activation_restarts':['chefjeff.service']},indent=2))
 
 
+def previous_override_matches(state):
+    if OVERRIDE.is_symlink():return False
+    expected=state.get('previous_override_sha')
+    return digest(OVERRIDE)==expected if expected and OVERRIDE.is_file() else expected is None and not OVERRIDE.exists()
+
+
+def restore_override(work,state):
+    expected=state.get('previous_override_sha')
+    if expected:
+        if digest(work/'override.before.conf')!=expected:raise ValueError('Previous override backup changed')
+        atomic(OVERRIDE,(work/'override.before.conf').read_bytes(),0o644)
+    else:OVERRIDE.unlink(missing_ok=True)
+
+
 def activate(site,work,allow_round_end):
     state=load(work)
     if state['phase']=='active':return verify(site,work)
     if not allow_round_end:raise InstallError('round_end_permission_required')
-    if state['phase'] not in ('prepared','rolled-back') or CURRENT.resolve()!=Path(state['previous']) or OVERRIDE.exists():
+    if state['phase'] not in ('prepared','rolled-back') or CURRENT.resolve()!=Path(state['previous']) or not previous_override_matches(state):
         raise InstallError('installation_changed_after_review')
     if digest(work/'free-region.conf')!=state['unit_sha']:raise InstallError('reviewed_startup_changed')
     live=existing_arguments(property_of('chefjeff.service','ExecStart'),DOMAINS[site])
@@ -217,7 +241,7 @@ def activate(site,work,allow_round_end):
         except Exception:failure['game_status_unavailable']=True
         state['last_failure']=failure
         try:
-            switch(state['previous']);OVERRIDE.unlink(missing_ok=True)
+            switch(state['previous']);restore_override(work,state)
             run('systemctl','daemon-reload');run('systemctl','restart','chefjeff.service')
             wait_local(site)
             state['phase']='rolled-back'
@@ -249,7 +273,7 @@ def main():
         state=load(work)
         if state['phase']!='active' or CURRENT.resolve()!=release:raise ValueError('Different active release')
         if digest(OVERRIDE)!=state['unit_sha']:raise ValueError('Startup override changed')
-        switch(state['previous']);OVERRIDE.unlink();run('systemctl','daemon-reload');run('systemctl','restart','chefjeff.service')
+        switch(state['previous']);restore_override(work,state);run('systemctl','daemon-reload');run('systemctl','restart','chefjeff.service')
         state['phase']='rolled-back';save(work,state)
         print(json.dumps({'status':'previous-game-restored','current_release':state['previous'],'data_admin_restarted':False}))
 

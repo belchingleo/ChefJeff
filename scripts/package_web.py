@@ -27,7 +27,7 @@ PUBLIC_FILES = ('deploy/render_region.py','deploy/install_region.py','deploy/ini
                 'cocos-kitchen/assets/scenes/Kitchen.scene','cocos-kitchen/assets/scenes/Kitchen.scene.meta',
                 'cocos-kitchen/settings/v2/packages/project.json','cocos-kitchen/settings/v2/packages/builder.json',
                 'cocos-kitchen/settings/v2/packages/engine.json','cocos-kitchen/settings/v2/packages/device.json')
-PUBLIC_FILES += ('scripts/check_research_record.py', 'docs/free-model-trial.md',
+PUBLIC_FILES += ('deploy/upgrade_free_gateway.py', 'scripts/free_gateway_status.py', 'scripts/check_research_record.py', 'docs/free-model-trial.md',
                  'deploy/free_gateway_config.py', 'deploy/free_install_common.py',
                  'deploy/stage_free_release.py','deploy/install_free_gateway.py', 'deploy/install_free_region.py', 'scripts/probe_free_gateway.py')
 

@@ -166,6 +166,16 @@ async function checkFreeModels(){
   const consent=JSON.parse(h.calls.find(c=>c.url==='/api/contribution/consent').init.body);
   assert.deepEqual(consent.model_identity,{provider:'zhipu',model_id:'glm-4.7-flash'});
   game.phase='running';await h.w.fetch('/api/state');
+  h.elements['api-message']={textContent:'',className:'',dataset:{}};
+  game.model_service_status={code:'upstream_overloaded',message:'模型平台过载，等待冷却后再试。',remaining_seconds:59.1,waiting:true,blocked:false};
+  await h.w.fetch('/api/state');assert.match(h.elements['api-message'].textContent,/剩余 60 秒/);
+  game.model_service_status.remaining_seconds=5.2;
+  await h.w.fetch('/api/state');assert.match(h.elements['api-message'].textContent,/剩余 6 秒/);
+  game.model_service_status.blocked=true;
+  await h.w.fetch('/api/state');assert(!h.elements['api-message'].textContent.includes('剩余'));
+  game.model_service_status=null;await h.w.fetch('/api/state');assert.equal(h.elements['api-message'].textContent,'');
+  h.elements['api-message'].textContent='own model error';
+  await h.w.fetch('/api/state');assert.equal(h.elements['api-message'].textContent,'own model error');
   r=await h.w.fetch('/api/connection',{method:'POST',body:JSON.stringify({game_id:game.game_id,free_provider:'startlux'})});
   assert.equal(r.status,409,'cannot change model within a round');
   modelTask={id:'free-task',payload:{state:{},questions:{next_action:{type:'choice',criteria:{wait:'Wait'}}}}};

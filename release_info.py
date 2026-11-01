@@ -4,7 +4,7 @@ from pathlib import Path
 
 VERSION = '0.6.0-beta.2'
 ROOT = Path(__file__).resolve().parent
-RUNTIME_FILES = ('free_model_budget.py', 'free_model_gateway.py', 'free_model_client.py', 'model_output.py', 'hosted_free_models.py', 'hosted/free-model-picker.html', 'hosted/free-model-picker.js', 'shared_client.py', 'shared_data.py', 'shared_server.py', 'hosted_server.py', 'hosted_records.py', 'hosted_capacity.py', 'hosted_jev.py', 'hosted_usage.py', 'hosted/browser-agent.js', 'hosted/contribution.html', 'hosted/consent.html', 'map_definition.py', 'maps/level-1.json', 'maps/level-2.json', 'maps/level-3.json', 'levels.py', 'navigation.py', 'kitchen.py', 'spatial_kitchen.py', 'jev.py', 'model_language.py', 'model-language-en-v4.json', 'model-providers.json', 'web_server.py',
+RUNTIME_FILES = ('model_status.py', 'free_model_diagnostics.py', 'free_model_budget.py', 'free_model_gateway.py', 'free_model_client.py', 'model_output.py', 'hosted_free_models.py', 'hosted/free-model-picker.html', 'hosted/free-model-picker.js', 'shared_client.py', 'shared_data.py', 'shared_server.py', 'hosted_server.py', 'hosted_records.py', 'hosted_capacity.py', 'hosted_jev.py', 'hosted_usage.py', 'hosted/browser-agent.js', 'hosted/contribution.html', 'hosted/consent.html', 'map_definition.py', 'maps/level-1.json', 'maps/level-2.json', 'maps/level-3.json', 'levels.py', 'navigation.py', 'kitchen.py', 'spatial_kitchen.py', 'jev.py', 'model_language.py', 'model-language-en-v4.json', 'model-providers.json', 'web_server.py',
                  'cocos_server.py', 'player_api.py', 'cooperation_memory.py', 'play.py',
                  'whitebox_server.py', 'feedback.py', 'release_info.py', 'config.json', 'research_replay.py',
                  'scripts/launch_web.py', 'scripts/stop_web.py',

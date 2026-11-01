@@ -6,6 +6,7 @@ No arbitrary prompts, endpoints, paid fallback, automatic retries or raw replies
 from collections import OrderedDict, deque
 from copy import deepcopy
 import json
+import http.client
 import os
 from pathlib import Path
 import re
@@ -19,6 +20,7 @@ from cooperation_memory import validate_browser_context, PAST_EPISODES_RULE
 from hosted_jev import ForwardError, NoRedirect, valid_key, parse_answer as decision_answer
 from model_language import english_data
 from model_output import zhipu_body
+from model_status import ObservedAnswer, clean, numeric_provider_code, response_issue
 
 MODELS = {
     'zhipu': {'model': 'glm-4.7-flash', 'name': '智谱 GLM-4.7-Flash', 'platform': '智谱开放平台',
@@ -29,9 +31,10 @@ MODELS = {
 
 
 class FreeCallError(ForwardError):
-    def __init__(self, status, message, category):
+    def __init__(self, status, message, category, diagnostic=None):
         super().__init__(status, message)
         self.category = category
+        self.diagnostic = clean(diagnostic)
 
 
 def read_trial_keys(path, *, allow_root_import=False):
@@ -133,8 +136,14 @@ class FreeModels:
             **payload, 'model': model['model'], 'think_mode': 'never', 'allow_none': False}
         request = urllib.request.Request(model['endpoint'], data=json.dumps(body, ensure_ascii=False).encode(),
             headers={'Authorization': 'Bearer ' + self.keys[provider], 'Content-Type': 'application/json'}, method='POST')
+        started=time.monotonic();http_status=None;raw=b''
+        def diagnostic(code,**extra):
+            return clean({'code':code,'provider':provider,'upstream_called':True,
+                'upstream_http_status':http_status,'duration_ms':round((time.monotonic()-started)*1000),**extra})
         try:
             with urllib.request.build_opener(NoRedirect()).open(request, timeout=18) as response:
+                observed_status=getattr(response,'status',None)
+                http_status=observed_status if type(observed_status) is int else None
                 raw = response.read(262145)
             if len(raw) > 262144:
                 raise ForwardError(502, '免费模型回复过大，本次未执行。')
@@ -144,30 +153,42 @@ class FreeModels:
                 if returned is not None and returned != model['model']:
                     with self.lock:
                         self.blocked.add(provider)
-                    raise FreeCallError(502, '免费模型回复不符合预期，本次未执行。', 'model_mismatch')
+                    raise FreeCallError(502, '免费模型回复不符合预期，本次未执行。', 'model_mismatch',diagnostic('model_mismatch'))
                 if isinstance(data, dict) and 'error' in data:
                     with self.lock:
                         self.cooldown[provider] = self.clock() + 60
-                    raise ValueError()
+                    code=numeric_provider_code(data)
+                    raise FreeCallError(503,'所选免费模型暂不可用，请稍后再试。','upstream_rejected',
+                        diagnostic('upstream_overloaded' if code==1305 else 'upstream_http_error',provider_error_code=code))
             except (ValueError, TypeError):
                 raise ForwardError(502, '免费模型回复不符合预期，本次未执行。') from None
             if provider == 'zhipu':
-                return chat_answer(raw, payload)
+                return ObservedAnswer(chat_answer(raw, payload),diagnostic('ok'))
             try:
-                return decision_answer(raw, payload)
+                return ObservedAnswer(decision_answer(raw, payload),diagnostic('ok'))
             except ForwardError:
                 raise ForwardError(502, 'StartLux 回复格式或动作无效，本次未执行。') from None
         except urllib.error.HTTPError as error:
-            status = error.code
+            status = error.code;http_status=status;code=None
+            try:
+                body=error.read(65537)
+                if len(body)<=65536:code=numeric_provider_code(json.loads(body))
+            except Exception:pass
             error.close()
             with self.lock:
                 self.cooldown[provider] = self.clock() + 60
                 if status in (401, 403):
                     self.blocked.add(provider)
             raise FreeCallError(503, '所选免费模型暂不可用，请稍后再试；结算后可切换其他模型。',
-                                'authentication' if status in (401, 403) else 'upstream_rejected') from None
-        except (urllib.error.URLError, TimeoutError, OSError):
-            raise FreeCallError(503, '免费模型连接超时或不可用，请稍后再试。', 'transport_uncertain') from None
+                                'authentication' if status in (401, 403) else 'upstream_rejected',
+                                diagnostic('upstream_authentication' if status in (401,403) else 'upstream_overloaded' if code==1305 else 'upstream_rate_limited' if status==429 else 'upstream_http_error',provider_error_code=code)) from None
+        except (urllib.error.URLError, TimeoutError, OSError, http.client.HTTPException):
+            raise FreeCallError(503, '免费模型连接超时或不可用，请稍后再试。', 'transport_uncertain',diagnostic('transport_uncertain')) from None
+        except FreeCallError:
+            raise
+        except ForwardError:
+            raise FreeCallError(502,'免费模型返回格式或动作无效，本次未执行。','invalid_response',
+                diagnostic('invalid_response',format_error=response_issue(raw,payload,provider))) from None
 
     def handle(self, game, body):
         if not self.keys:

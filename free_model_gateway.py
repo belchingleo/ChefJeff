@@ -13,6 +13,8 @@ import threading
 import time
 
 from free_model_budget import CallBudget, BudgetError
+from free_model_diagnostics import Diagnostics
+from model_status import clean
 from hosted_free_models import FreeModels, FreeCallError, MODELS, read_trial_keys
 from hosted_jev import ForwardError
 
@@ -24,9 +26,10 @@ CODES = frozenset(('invalid_request', 'seat_busy', 'request_busy', 'lease_lost',
 
 
 class GatewayError(Exception):
-    def __init__(self, status, code):
+    def __init__(self, status, code, diagnostic=None):
         self.status = status
         self.code = code if code in CODES else 'gateway_unavailable'
+        self.diagnostic=clean(diagnostic)
         super().__init__(self.code)
 
 
@@ -46,6 +49,7 @@ class FreeCoordinator:
         self.epoch = secrets.token_urlsafe(24)
         self.leases = {}
         self.round_calls = OrderedDict()
+        self.diagnostics=Diagnostics(self.budget.directory)
 
     def _reap(self):
         now = self.clock()
@@ -58,12 +62,14 @@ class FreeCoordinator:
             self._reap()
             result = self.sender.catalog()
             result['epoch'] = self.epoch
+            result['diagnostics_version']=1
             result['global_capacity'] = {}
             for provider in MODELS:
                 used = sum(x['provider'] == provider for x in self.leases.values())
                 reason = self.budget.available(provider)
                 result['global_capacity'][provider] = {'used': used, 'limit': 1,
-                    'available': not reason and used < 1, 'reason': reason or ('seat_busy' if used else None)}
+                    'available': not reason and used < 1, 'reason': reason or ('seat_busy' if used else None),
+                    'retry_after_seconds':self.budget.retry_after(provider)}
             return result
 
     def _lookup(self, site, token):
@@ -141,28 +147,34 @@ class FreeCoordinator:
             cached = lease['receipts'].get(body['id'])
             if cached is not None:
                 if cached[0] != 200:
-                    raise GatewayError(*cached)
+                    raise GatewayError(cached[0],cached[1],cached[2])
                 return cached[1]
             if lease['inflight']:
                 raise GatewayError(503, 'request_busy')
             usage_key = (site, lease['owner'], lease['round'])
             used = self.round_calls.get(usage_key, 0)
             if used >= 200:
-                raise GatewayError(429, 'round_budget')
+                raise GatewayError(429,'round_budget',{'code':'round_budget','provider':lease['provider'],'upstream_called':False,'blocked':True})
             provider = lease['provider']
             try:
                 self.budget.begin(provider)
             except BudgetError as error:
-                raise GatewayError(429 if error.code == 'call_budget' else 503, error.code) from None
+                raise GatewayError(429 if error.code == 'call_budget' else 503,error.code,
+                    {'code':error.code,'provider':provider,'upstream_called':False,
+                     'retry_after_seconds':self.budget.retry_after(provider),'blocked':self.budget.retry_after(provider) is None}) from None
             lease['inflight'] = True
             self.round_calls[usage_key] = used+1
             while len(self.round_calls) > 2048:
                 self.round_calls.popitem(last=False)
         category, result = None, (503, 'upstream_failed')
+        started=time.monotonic();diagnostic={}
         try:
-            result = (200, {'answer': self.sender.send(provider, payload)})
+            answer=self.sender.send(provider,payload)
+            diagnostic=getattr(answer,'diagnostic',{})
+            result=(200,{'answer':dict(answer)})
         except FreeCallError as error:
             category = error.category
+            diagnostic=error.diagnostic
         except ForwardError:
             category = 'invalid_response'
         except Exception:
@@ -176,12 +188,20 @@ class FreeCoordinator:
                 result = (503, 'budget_unavailable')
             if lease['released'] or lease['until'] <= self.clock():
                 result = (409, 'lease_lost')
-            lease['receipts'][body['id']] = result
+            self._reap()
+            diagnostic=clean({'code':'ok' if result[0]==200 else category if category in ('invalid_response','transport_uncertain','model_mismatch') else 'upstream_failed',
+                'provider':provider,'upstream_called':True if result[0]==200 else None,'duration_ms':round((time.monotonic()-started)*1000),**diagnostic,
+                'retry_after_seconds':self.budget.retry_after(provider),
+                'blocked':self.budget.available(provider) in ('upstream_blocked','budget_unavailable')})
+            if isinstance(result[1],str) and result[1] in ('lease_lost','budget_unavailable'):
+                diagnostic.update(code=result[1],blocked=True)
+            diagnostic['diagnostics_saved']=self.diagnostics.record(diagnostic)
+            if result[0]==200:result[1]['diagnostic']=diagnostic
+            lease['receipts'][body['id']]=(result[0],result[1],diagnostic)
             while len(lease['receipts']) > 200:
                 lease['receipts'].popitem(last=False)
-            self._reap()
         if result[0] != 200:
-            raise GatewayError(*result)
+            raise GatewayError(result[0],result[1],diagnostic)
         return result[1]
 
     def operation(self, site, operation, body):
@@ -189,6 +209,8 @@ class FreeCoordinator:
             raise GatewayError(400, 'invalid_request')
         if operation == 'catalog' and not body:
             return self.catalog()
+        if operation=='status' and not body:
+            with self.lock:return {'catalog':self.catalog(),'diagnostics':self.diagnostics.snapshot()}
         function = {'reserve': self.reserve, 'renew': self.renew, 'release': self.release, 'decide': self.decide}.get(operation)
         if function is None:
             raise GatewayError(400, 'invalid_request')
@@ -272,7 +294,7 @@ class GatewayHandler(BaseHTTPRequestHandler):
             value = self.server.coordinator.operation(site, self.path[len(PREFIX):], body)
             return self.reply(200, {'value': value})
         except GatewayError as error:
-            return self.reply(error.status, {'error': error.code})
+            return self.reply(error.status, {'error': error.code,'diagnostic':error.diagnostic})
         except (ValueError, TypeError, KeyError, OverflowError):
             return self.reply(400, {'error': 'invalid_request'})
         except Exception:

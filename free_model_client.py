@@ -12,11 +12,12 @@ from cooperation_memory import validate_browser_context, PAST_EPISODES_RULE
 from free_model_gateway import GatewayError, CODES, PREFIX
 from hosted_free_models import MODELS
 from model_language import english_data
+from model_status import clean, ModelWait
 
 ERRORS = {
     'seat_busy': '这个模型的免费厨房名额已满，请稍后开局或使用自己的模型。',
     'request_busy': '所选免费模型仍在处理请求，请稍后再试。',
-    'lease_lost': '本局免费名额已释放，请尝试继续；满额时需等待或结束本局。',
+    'lease_lost': '本局免费名额已释放，请结束本局后重新开局。',
     'round_changed': '免费服务已重启，请结束本局后重新开局。',
     'upstream_blocked': '所选免费模型暂不可用，恢复确认后才能继续提供试玩。',
     'upstream_cooldown': '所选免费模型正在冷却，请稍后再试。',
@@ -26,8 +27,23 @@ ERRORS = {
 }
 
 
+def diagnostic_message(diagnostic,fallback):
+    code=diagnostic.get('code')
+    messages={'upstream_overloaded':'模型平台过载，等待冷却后再试。',
+        'upstream_rate_limited':'模型平台限流，等待冷却后再试。',
+        'upstream_authentication':'模型服务鉴权失败，免费调用已暂停。',
+        'invalid_response':'模型返回的动作或格式无效，稍后重新请求。',
+        'upstream_http_error':'模型平台拒绝请求，稍后再试。',
+        'transport_uncertain':'模型请求结果未知，免费调用已暂停，请结算后更换模型。',
+        'model_mismatch':'模型返回型号不符，免费调用已暂停。'}
+    return messages.get(code,ERRORS.get(code,fallback))
+
+
 def public_error(error):
-    return error.status, {'error': ERRORS.get(error.code, '免费模型协调服务暂不可用，请稍后再试。')}
+    safe=clean(error.diagnostic)
+    return error.status, {'error':diagnostic_message(safe,ERRORS.get(error.code,'免费模型协调服务暂不可用，请稍后再试。')),
+                         'diagnostic':safe}
+
 
 
 class FreeGatewayClient:
@@ -43,7 +59,7 @@ class FreeGatewayClient:
             self.url = self.url._replace(netloc=self.url.hostname+':8798')
 
     def request(self, operation, body):
-        if operation not in ('catalog', 'reserve', 'renew', 'release', 'decide'):
+        if operation not in ('catalog', 'status', 'reserve', 'renew', 'release', 'decide'):
             raise GatewayError(400, 'invalid_request')
         kind = http.client.HTTPSConnection if self.url.scheme == 'https' else http.client.HTTPConnection
         options = {'timeout': 22 if operation == 'decide' else 3}
@@ -64,7 +80,8 @@ class FreeGatewayClient:
             if response.status != 200:
                 code = value.get('error') if isinstance(value, dict) else None
                 raise GatewayError(response.status if response.status in (400, 401, 409, 429, 503) else 503,
-                                   code if isinstance(code, str) and code in CODES else 'gateway_unavailable')
+                                   code if isinstance(code, str) and code in CODES else 'gateway_unavailable',
+                                   value.get('diagnostic',{}) if isinstance(value,dict) else {})
             if not isinstance(value, dict) or set(value) != {'value'} or not isinstance(value['value'], dict):
                 raise ValueError()
             return value['value']
@@ -241,7 +258,7 @@ class RegionalFreeModels:
                     return public_error(GatewayError(409, 'round_changed'))
                 lease = game.free_model_lease
                 if not lease:
-                    return public_error(GatewayError(409, 'lease_lost'))
+                    raise GatewayError(409, 'lease_lost')
                 relay = game.relay
                 task = relay.request() if relay else None
                 if not task or body.get('id') != task['id']:
@@ -257,13 +274,26 @@ class RegionalFreeModels:
                     payload['state']['rules']['past_episodes'] = PAST_EPISODES_RULE
                 ident = task['id']
             result = self.client.request('decide', {'lease': lease, 'id': ident, 'payload': payload})
+            diagnostic=clean(result.get('diagnostic',{}))
             with game.lock:
                 current = relay.request() if relay else None
                 if (game.free_model_lease != lease or game.relay is not relay or game.phase != 'running'
                         or game.stop_event.is_set() or not current or current['id'] != ident):
                     raise GatewayError(409, 'round_changed')
+                if diagnostic:game.record_free_diagnostic(ident,diagnostic)
             return 200, result
         except GatewayError as error:
+            diagnostic=clean(error.diagnostic or {'code':error.code,'retry_after_seconds':2,
+                'blocked':error.code in ('round_changed','lease_lost','budget_unavailable')})
+            with game.lock:
+                task=game.relay.request() if game.relay else None
+                if task and task.get('id')==body.get('id'):
+                    if 'provider' not in diagnostic and game.free_model_provider:
+                        diagnostic['provider']=game.free_model_provider
+                    error.diagnostic=diagnostic
+                    game.record_free_diagnostic(task['id'],diagnostic)
+                    message=diagnostic_message(diagnostic,'免费模型暂不可用，请稍后再试。')
+                    game.relay.mark_failure(task['id'],ModelWait(diagnostic,message))
             return public_error(error)
         finally:
             game.free_model_gate.release()

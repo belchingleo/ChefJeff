@@ -98,3 +98,54 @@ node tests/auto_contribution_test.cjs
 ```
 
 测试使用临时文件、合成厨房及 mock 上游。开发验证不读取线上玩家记录，也不调用任何付费或真实模型。
+
+
+## Failure diagnostics and recovery
+
+Free calls expose only allowlisted operational fields: provider, safe error category,
+upstream HTTP status, numeric provider error code, elapsed time, whether an upstream
+request was actually made, and the remaining cooldown. No prompt, response text,
+credential or player identifier enters the gateway summary.
+
+A platform rejection (including Zhipu 429/1305) waits for the gateway cooldown.
+An invalid action/format waits two seconds. The regional scheduler uses that deadline
+instead of adding its generic exponential backoff. Local cooldown and budget denials
+are marked as deferred requests, not additional upstream API calls. The existing
+stale/job-change checks still decide whether a successful answer may execute.
+
+Unknown transport outcomes, authentication failures and model mismatches retain the
+existing fail-closed block. These are not automatically cleared or retried. The page
+shows a paused service; players may choose another model after ending the round.
+
+The ordinary **Settings → Data export** download includes per-round
+`free_model_diagnostics`; this does not require research contribution consent. These
+entries live only in the page session until export/closure. Research schema, consent,
+retention and database export validation stay unchanged. Research ZIPs from earlier
+rounds cannot retroactively recover the upstream error codes.
+
+`/var/lib/chefjeff-free/diagnostics.json` is a separate, bounded private file containing
+only each provider's upstream-attempt counter and latest safe result. It never changes
+or replaces `budget.json`. Authenticated operators can run
+`sudo python3 /opt/chefjeff/current/scripts/free_gateway_status.py` on either region to
+read this summary without making any model API calls or reading player databases.
+The most recent result is shared across players; it is not a full per-player history.
+
+### Upgrade an already running free-model deployment
+
+This upgrade expects the audited game release `bf11efd9b0cc` on both regions and the
+original gateway release `22fd0d25aaad` in Shanghai. Build the pinned GitHub commit
+archive twice and require matching SHA-256 before staging. The regional installer
+preserves and restores the existing free-model startup override on rollback.
+
+On Shanghai, use `deploy/upgrade_free_gateway.py prepare`, review its output, then
+`activate --allow-round-end`, with the staged `--release` and `--manifest-sha`.
+This replaces only the gateway unit's code paths and restarts `chefjeff-free.service`;
+credentials, Nginx, the locked budget and data/admin services are retained. Existing
+free-model leases expire on gateway restart. Update both game regions in the same
+maintenance window using `deploy/install_free_region.py`. New game verification
+requires gateway `diagnostics_version: 1` and performs zero model calls.
+
+Both installers retain the previous release/unit and support explicit `rollback`.
+Rollback the games first, then the gateway. The old gateway ignores the additional
+private summary file; its budget schema is unchanged. Root commands, game restarts
+and link switches must be executed by the operator after reviewing the fixed release.

@@ -182,7 +182,8 @@ class GatewayHTTPTests(unittest.TestCase):
         with self.assertRaises(GatewayError):
             self.clients['global'].request('reserve', {'provider': 'zhipu', 'owner': 'g'*24, 'round': 'r'*24})
         result = self.clients['cn'].request('decide', {'lease': one['lease'], 'id': 'task', 'payload': TEST_PAYLOAD})
-        self.assertEqual(result, {'answer': ANSWER})
+        self.assertEqual(result['answer'], ANSWER)
+        self.assertTrue(result['diagnostic']['upstream_called'])
         self.assertEqual(self.calls, [('zhipu', TEST_PAYLOAD)])
 
     def test_browser_origin_cookie_or_wrong_credentials_are_rejected(self):
@@ -234,7 +235,9 @@ class RegionalTests(unittest.TestCase):
         permit = self.prepare('cn'); game = self.games['cn']; game.phase = 'running'
         self.regions['cn'].finish_start(permit, True); self.task(game)
         status, result = self.regions['cn'].handle(game, {'game_id': game.game_id, 'id': 'synthetic-task', 'provider': 'zhipu'})
-        self.assertEqual((status, result), (200, {'answer': ANSWER}))
+        self.assertEqual(status, 200)
+        self.assertEqual(result['answer'], ANSWER)
+        self.assertEqual(result['diagnostic']['code'], 'ok')
         game.phase = 'ended'; self.regions['cn'].tick(game)
         self.assertIsNone(game.free_model_lease)
         two = self.prepare('global'); self.regions['global'].finish_start(two, False)
@@ -356,3 +359,36 @@ class TwoRegionAdmissionHTTPTests(unittest.TestCase):
 
 
 if __name__ == '__main__': unittest.main()
+
+class RegionalDiagnosticTests(unittest.TestCase):
+    setUp=RegionalTests.setUp
+    prepare=RegionalTests.prepare
+    task=RegionalTests.task
+    def test_trusted_gateway_error_marks_relay_and_records_only_safe_metadata(self):
+        from model_status import ModelWait
+        permit=self.prepare('cn');game=self.games['cn'];game.phase='running'
+        self.regions['cn'].finish_start(permit,True);self.task(game)
+        self.sender.send=lambda *args:(_ for _ in ()).throw(FreeCallError(503,'safe','upstream_rejected',{
+            'code':'upstream_overloaded','provider':'zhipu','upstream_called':True,
+            'upstream_http_status':429,'provider_error_code':1305,'raw_response':'private'}))
+        status,result=self.regions['cn'].handle(game,{'game_id':game.game_id,'id':'synthetic-task','provider':'zhipu'})
+        self.assertEqual(status,503)
+        self.assertEqual(result['diagnostic']['retry_after_seconds'],60)
+        self.assertIsInstance(game.relay.pending['failure'],ModelWait)
+        self.assertFalse(game.relay.pending['event'].is_set())
+        self.assertTrue(game.relay.resolve({'id':'synthetic-task','failed':True}))
+        self.assertTrue(game.relay.pending['event'].is_set())
+        self.assertNotIn('private',json.dumps(list(game.free_diagnostics.values())))
+        self.assertEqual(len(game.free_diagnostics),1)
+
+    def test_late_old_round_response_is_not_recorded_against_the_new_round(self):
+        permit=self.prepare('cn');game=self.games['cn'];game.phase='running'
+        self.regions['cn'].finish_start(permit,True);self.task(game)
+        def late(*args):
+            game.game_id='new-round';self.task(game)
+            game.relay.pending['id']='new-task'
+            return deepcopy(ANSWER)
+        self.sender.send=late
+        status,_=self.regions['cn'].handle(game,{'game_id':game.game_id,'id':'synthetic-task','provider':'zhipu'})
+        self.assertEqual(status,409);self.assertFalse(game.free_diagnostics)
+        self.assertNotIn('failure',game.relay.pending)

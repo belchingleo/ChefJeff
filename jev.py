@@ -1,5 +1,6 @@
 """Real TypeSafe HTTP Choice client and bounded asynchronous decision scheduling."""
 from __future__ import annotations
+from model_status import ModelWait
 from copy import deepcopy
 import json
 import os
@@ -262,6 +263,8 @@ class DecisionLoop:
         self.event_cursor = 0
         self.last_wait_notice = -1e9
         self.recent_decisions = []
+        self.service_wait=None
+        self.deferred_count=0
         self.call_limit = self.k.c.get('ai_max_calls', 200)
         self.budget_notified = False
 
@@ -288,7 +291,18 @@ class DecisionLoop:
         if packet:
             self.inflight = False
             context, result, error = packet
-            if error:
+            if isinstance(error,ModelWait):
+                self.error_count+=1
+                self.deferred_count+=int(error.deferred)
+                self.failures=0
+                self.next_allowed=float('inf') if error.blocked else max(now,error.retry_deadline)
+                retry=None if error.blocked else max(0,self.next_allowed-now)
+                self.service_wait={'diagnostic':error.diagnostic,'message':str(error),'blocked':error.blocked}
+                self.log('ai_error',{'request_id':context['id'],'error':str(error),'retry_in':retry,
+                    'server_received_wall_ms':round((context['returned_monotonic']-self.log.monotonic_start)*1000) if 'returned_monotonic' in context and hasattr(self.log,'monotonic_start') else None})
+                self.notify(str(error)+('' if error.blocked else f" 约 {retry:.0f} 秒后重试。"))
+            elif error:
+                self.service_wait=None
                 self.failures += 1
                 self.error_count += 1
                 self.next_allowed = now + min(30, 2 ** min(self.failures, 5))
@@ -297,6 +311,7 @@ class DecisionLoop:
                 self.notify(f"Jeff 请求失败：{error}；{self.next_allowed-now:.0f}s 后重试。无脚本队友代替。")
             else:
                 self.successes += 1
+                self.service_wait=None
                 self.failures = 0
                 self.actual_model = result["model"]
                 self.last_latency = result["latency"]
@@ -382,6 +397,9 @@ class DecisionLoop:
                 result = self.client.ask(payload)
                 context['returned_monotonic'] = time.monotonic()
                 self.q.put((context, result, None))
+            except ModelWait as exc:
+                context['returned_monotonic']=time.monotonic()
+                self.q.put((context,None,exc))
             except Exception as exc:
                 context['returned_monotonic'] = time.monotonic()
                 # Only our sanitized failures should reach logs.

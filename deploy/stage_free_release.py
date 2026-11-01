@@ -9,7 +9,7 @@ import re
 import shutil
 import tempfile
 
-BASE_MANIFEST_SHA='4fbf74567484dc6fc49c23ab6cbcf42fe43db1fa024f08958fece713b4c409c7'
+BASE_MANIFEST_SHA='27880fc3a1d418922cc07cd63eec37a9ec0dceb6550ed57d07f57dadfdb8cd10'
 
 
 def sha(path):
@@ -48,7 +48,7 @@ def main():
     source=args.source.resolve(strict=True)
     current=Path('/opt/chefjeff/current')
     if not current.is_symlink() or sha(current.resolve()/'release-manifest.json')!=BASE_MANIFEST_SHA:
-        raise ValueError('Current release differs from the audited v7 baseline')
+        raise ValueError('Current release differs from the audited free-model baseline')
     manifest=verify_source(source,args.manifest_sha)
     parent=Path('/opt/chefjeff/releases')
     outer=parent/(('china' if args.site=='cn' else 'global')+'-free-'+args.commit[:12])
