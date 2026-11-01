@@ -351,6 +351,7 @@ class AdminHandler(BaseHTTPRequestHandler):
     def download(self, selected, refs=None):
         if not self.server.export_lock.acquire(False):
             return self.reply(429, {'error': '另一份研究包正在生成，请稍后重试。'})
+        source = None
         try:
             with tempfile.TemporaryDirectory(dir=self.server.config['temporary']) as folder:
                 package = Path(folder)/'records.cjresearch.zip'
@@ -370,13 +371,17 @@ class AdminHandler(BaseHTTPRequestHandler):
                     return self.reply(401, {'error': '导出令牌已过期或已吊销，研究包没有发送。'})
                 if not self._token and not self.session():
                     return self.reply(401, {'error': '登录已过期，请重新登录。'})
-                self.headers_for(200, 'application/zip', package.stat().st_size, {
-                    'Content-Disposition': 'attachment; filename="chefjeff-research.cjresearch.zip"',
-                    'X-Research-Expires': str(int(manifest['expires']))})
-                with package.open('rb') as source:
-                    while chunk := source.read(65536):
-                        self.wfile.write(chunk)
+                size, expires = package.stat().st_size, str(int(manifest['expires']))
+                # Open it before the folder is removed: nothing stays on disk while the package is sent.
+                source = package.open('rb')
+            self.headers_for(200, 'application/zip', size, {
+                'Content-Disposition': 'attachment; filename="chefjeff-research.cjresearch.zip"',
+                'X-Research-Expires': expires})
+            while chunk := source.read(65536):
+                self.wfile.write(chunk)
         finally:
+            if source is not None:
+                source.close()
             self.server.export_lock.release()
 
     def do_POST(self):
