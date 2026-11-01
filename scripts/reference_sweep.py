@@ -53,6 +53,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / 'tests'))
 
 import config_contract as cc  # noqa: E402
+from level_calibration import drive  # noqa: E402  (also imported from here by audit_map)
 
 INTERVALS = (20000, 25000, 30000, 35000, 40000, 45000)
 COUNTDOWNS = {'steak': (60000, 75000, 90000), 'burger': (75000, 90000, 105000, 120000, 135000)}
@@ -84,19 +85,6 @@ def bundle(level, interval, countdowns, seed):
     b['order_policy']['patience_by_recipe'] = dict(countdowns)
     b['level']['goal']['min_money'] = 0
     return b
-
-
-def drive(k, roles, policy, period):
-    """Run one round to closing. Stalled routes are the engine's job (movement.stall_replan)."""
-    step = 0
-    while not k.ended:
-        for who, role in roles:
-            if step % period[who] == 0:
-                action = policy(k, who, role)
-                if action:
-                    k.start(who, action)
-        k.advance(.05)
-        step += 1
 
 
 def play(level, interval, countdowns, seed, variant, pair, swap):
