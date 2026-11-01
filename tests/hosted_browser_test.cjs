@@ -4,7 +4,7 @@ const source=fs.readFileSync('hosted/browser-agent.js','utf8');
 const chefjeffProviders=JSON.parse(fs.readFileSync('model-providers.json','utf8'));
 const key='unit-test-key-not-a-real-credential';
 // Per-test overrides: a model provider's reply, and the game server's pending model request.
-let upstream=null,modelTask=null;
+let upstream=null,modelTask=null,freeCatalogOverride=null;
 function harness(saved=null, fail=false, gameState={game_id:'round',phase:'ready',limits:{},connection:{configured:false}}, sessions=[201]){
  const calls=[],data=new Map(saved?[['chefjeff.browser-key.v1',JSON.stringify(saved)]]:[]),timers=[];
  const listeners={},elements={};let clock=0;
@@ -27,8 +27,12 @@ function harness(saved=null, fail=false, gameState={game_id:'round',phase:'ready
   }
   if(u.pathname==='/api/state')return new Response(JSON.stringify(gameState));
   if(u.pathname==='/api/model/request')return new Response(JSON.stringify({request:modelTask}));
+  if(u.pathname==='/api/model/free/catalog')return new Response(JSON.stringify(freeCatalogOverride||{enabled:false,models:[]}));
+  if(u.pathname==='/api/model/free/select')return new Response('{"ok":true}');
+  if(u.pathname==='/api/model/free')return new Response(JSON.stringify({answer:{choice:'wait',sprint:false,usage:{input_tokens:3,output_tokens:0}}}));
   if(u.pathname==='/api/interact')return new Response(JSON.stringify({ok:true,state:JSON.parse(JSON.stringify(gameState))}));
   if(u.pathname==='/api/model/jev')return new Response(JSON.stringify({answer:{choice:'wait',sprint:false,usage:{input_tokens:3,output_tokens:4}}}));
+  if(u.pathname==='/api/model/cloudflare')return new Response(JSON.stringify({answer:{choice:'wait',sprint:false,usage:{input_tokens:3,output_tokens:1}}}));
   if(u.pathname==='/api/contribution/save')return new Response(JSON.stringify({receipt:{id:'synthetic-record',deletion_token:'synthetic-receipt',expires_at:'2099-01-01T00:00:00Z'}}));
   return new Response('{"ok":true}');
  };
@@ -142,6 +146,95 @@ async function checkModelIdentity(){
  const h2=harness(config,false,{...game,phase:'ready'});await h2.w.fetch('/api/state');h2.listeners.DOMContentLoaded();h2.elements['ask-later'].onclick();
  await h2.w.fetch('/api/start',{method:'POST',body:'{}'});
  for(const call of h2.calls.filter(c=>new URL(c.url,'https://kitchen.example').origin==='https://kitchen.example'))assert(!call.init.body?.includes(config.model),'no unconsented model identity upload');
+}
+
+async function checkFreeModels(){
+ freeCatalogOverride={enabled:true,default:'startlux',models:[
+  {provider:'startlux',model:'startlux-decision-27b-autothink',name:'StartLux',platform:'Bamboo Relay'},
+  {provider:'zhipu',model:'glm-4.7-flash',name:'Zhipu',platform:'Zhipu'}]};
+ try{
+  const game={game_id:'free-round',phase:'ready',limits:{},hosted:{contribution_enabled:true}};
+  const h=harness(null,false,game);
+  let d=await(await h.w.fetch('/api/state')).json();
+  assert.equal(d.connection.free_model,true);assert.equal(d.connection.provider,'startlux');
+  assert.equal(d.connection.model,'startlux-decision-27b-autothink');
+  assert(!h.calls.some(c=>new URL(c.url,'https://kitchen.example').origin!=='https://kitchen.example'),'default selection calls no upstream');
+  assert(!h.calls.some(c=>c.url==='/api/contribution/consent'),'default selection never opts into research');
+  let r=await h.w.fetch('/api/connection',{method:'POST',body:JSON.stringify({game_id:game.game_id,free_provider:'zhipu'})});
+  assert.equal(r.status,200);assert.equal((await r.json()).connection.provider,'zhipu');
+  h.listeners.DOMContentLoaded();h.elements['ask-auto'].onclick();
+  await h.w.fetch('/api/start',{method:'POST',body:JSON.stringify({game_id:game.game_id})});
+  const consent=JSON.parse(h.calls.find(c=>c.url==='/api/contribution/consent').init.body);
+  assert.deepEqual(consent.model_identity,{provider:'zhipu',model_id:'glm-4.7-flash'});
+  game.phase='running';await h.w.fetch('/api/state');
+  h.elements['api-message']={textContent:'',className:'',dataset:{}};
+  game.model_service_status={code:'upstream_overloaded',message:'模型平台过载，等待冷却后再试。',remaining_seconds:59.1,waiting:true,blocked:false};
+  await h.w.fetch('/api/state');assert.match(h.elements['api-message'].textContent,/剩余 60 秒/);
+  game.model_service_status.remaining_seconds=5.2;
+  await h.w.fetch('/api/state');assert.match(h.elements['api-message'].textContent,/剩余 6 秒/);
+  game.model_service_status.blocked=true;
+  await h.w.fetch('/api/state');assert(!h.elements['api-message'].textContent.includes('剩余'));
+  game.model_service_status=null;await h.w.fetch('/api/state');assert.equal(h.elements['api-message'].textContent,'');
+  h.elements['api-message'].textContent='own model error';
+  await h.w.fetch('/api/state');assert.equal(h.elements['api-message'].textContent,'own model error');
+  r=await h.w.fetch('/api/connection',{method:'POST',body:JSON.stringify({game_id:game.game_id,free_provider:'startlux'})});
+  assert.equal(r.status,409,'cannot change model within a round');
+  modelTask={id:'free-task',payload:{state:{},questions:{next_action:{type:'choice',criteria:{wait:'Wait'}}}}};
+  await h.timers.find(fn=>fn.name==='poll')();
+  const sent=JSON.parse(h.calls.find(c=>c.url==='/api/model/free').init.body);
+  assert.deepEqual(Object.keys(sent).sort(),['game_id','id','provider']);assert.equal(sent.provider,'zhipu');
+  assert(!JSON.stringify(sent).includes('api_key'));assert(!h.data.has('chefjeff.browser-key.v1'));
+  game.phase='ended';await h.w.fetch('/api/state');
+  r=await h.w.fetch('/api/connection',{method:'POST',body:JSON.stringify({game_id:game.game_id,free_provider:'startlux'})});
+  assert.equal(r.status,200);
+  h.elements['contribution-save'].onclick();await new Promise(resolve=>setImmediate(resolve));
+  const saved=JSON.parse(h.calls.find(c=>c.url==='/api/contribution/save').init.body);
+  assert.deepEqual(saved.model_identity,{provider:'zhipu',model_id:'glm-4.7-flash'},'result keeps the model that played this round');
+  const own={provider:'deepseek',model:'own-model',api_key:key};
+  const start=h.calls.length;
+  r=await h.w.fetch('/api/connection',{method:'POST',body:JSON.stringify({game_id:game.game_id,...own})});
+  assert.equal(r.status,200);assert.equal((await r.json()).connection.free_model,false);
+  assert(h.calls.slice(start).some(c=>c.url==='/api/browser-ready'),'own-key connection clears free selection through browser-ready');
+  assert(!h.calls.slice(start).some(c=>c.url==='/api/model/free/select'));
+ }finally{freeCatalogOverride=null;modelTask=null;}
+ console.log('Free models: no-key defaults, one-click pre-round selection, locked rounds, model identity and own-key restoration passed.');
+}
+
+async function checkLaterModels(){
+ freeCatalogOverride={enabled:true,default:'startlux',models:[
+  {provider:'startlux',model:'startlux-decision-27b-autothink',name:'StartLux',platform:'Bamboo Relay',record:'startlux'},
+  {provider:'gemini',model:'gemini-3.5-flash-lite',name:'Gemini 3.5 Flash-Lite',platform:'Google AI Studio',record:'gemini'},
+  {provider:'cloudflare-llama',model:'@cf/meta/llama-3.1-8b-instruct-fp8',name:'Llama 3.1 8B',platform:'Cloudflare Workers AI',record:'cloudflare'}]};
+ try{
+  const game={game_id:'later-round',phase:'ready',limits:{},hosted:{contribution_enabled:true}};
+  const h=harness(null,false,game);
+  const d=await(await h.w.fetch('/api/state')).json();
+  assert.equal(d.connection.free_models.models.length,3,'every model the server enables is offered');
+  const r=await h.w.fetch('/api/connection',{method:'POST',body:JSON.stringify({game_id:game.game_id,free_provider:'cloudflare-llama'})});
+  assert.equal(r.status,200);
+  h.listeners.DOMContentLoaded();h.elements['ask-auto'].onclick();
+  await h.w.fetch('/api/start',{method:'POST',body:JSON.stringify({game_id:game.game_id})});
+  const consent=JSON.parse(h.calls.find(c=>c.url==='/api/contribution/consent').init.body);
+  assert.deepEqual(consent.model_identity,{provider:'cloudflare',model_id:'@cf/meta/llama-3.1-8b-instruct-fp8'},'recorded under its research service with the exact model ID');
+ }finally{freeCatalogOverride=null;}
+ freeCatalogOverride={enabled:true,default:'startlux',models:[{provider:'startlux',model:'m',name:'S',platform:'P'},
+  {provider:'other',model:'y',name:'X',platform:'P',record:'invented'}]};
+ try{
+  const h=harness(null,false,{game_id:'r',phase:'ready',limits:{}});
+  assert.equal((await(await h.w.fetch('/api/state')).json()).connection.free_models.enabled,false,'an unknown research service rejects the list');
+ }finally{freeCatalogOverride=null;}
+ const game={game_id:'cf-round',phase:'ready',limits:{},connection:{configured:false}};
+ const h=harness(null,false,game);await h.w.fetch('/api/state');
+ const own={game_id:game.game_id,provider:'cloudflare',api_key:key,model:'@cf/google/gemma-4-26b-a4b-it',account_id:'0123456789abcdef0123456789abcdef'};
+ for(const bad of [{...own,relay:true,account_id:'nope'},{...own},{...own,relay:true,model:'@cf/other/model'}])
+  assert.equal((await h.w.fetch('/api/connection',{method:'POST',body:JSON.stringify(bad)})).status,400);
+ assert(!h.calls.some(c=>c.url.includes('cloudflare')),'nothing is sent before the account ID and consent are valid');
+ assert.equal((await h.w.fetch('/api/connection',{method:'POST',body:JSON.stringify({...own,relay:true})})).status,200);
+ const body=JSON.parse(h.calls.find(c=>c.url==='/api/model/cloudflare').init.body);
+ assert.deepEqual([body.account_id,body.model,body.consent_version,body.consent],[own.account_id,own.model,'cloudflare-relay-2026-11-v1',true]);
+ assert(!h.calls.some(c=>new URL(c.url,'https://kitchen.example').hostname==='api.cloudflare.com'),'the browser never calls Cloudflare directly');
+ for(const c of h.calls.filter(c=>c.url!=='/api/model/cloudflare'))assert(!JSON.stringify(c).includes(key));
+ console.log('Later free models and own Cloudflare key: list-driven catalog, research service names, account ID, consent and relay-only transport passed.');
 }
 
 async function checkClientInteractions(fromSource){
@@ -458,15 +551,20 @@ function checkResultContinuation(fromSource){
  client.state={game_id:'result',phase:'ended',won:true,kitchen:{level_id:'level-1'},
   levels:[{id:'level-2',name:'汉堡',menu_order:2},{id:'level-1',name:'牛排',menu_order:1}]};
  client.set=()=>{};client.scheduleOnce=fn=>queued.push(fn);client.post=(path,body)=>posted.push({path,body});
- client.endedSeen={round:'result',at:Date.now()};client.startNext();
+ const next=()=>client.startNext(client.resultActions(client.state).main.id);
+ client.endedSeen={round:'result',at:Date.now()};next();
  assert.equal(queued.length,0,'A mashed input in the first second must not skip results.');
- client.endedSeen.at-=2000;client.startNext();client.startNext();
+ client.endedSeen.at-=2000;next();next();
  assert.equal(queued.length,1,'Repeated presses must not start duplicate countdowns.');
  while(queued.length)queued.shift()();
  assert.equal(posted.length,1);assert.equal(posted[0].path,'/api/next');assert.equal(posted[0].body.level,'level-2');
- client.state.won=false;assert.equal(client.nextRound(client.state).id,'level-1');
- client.state.won=true;client.state.kitchen.level_id='level-2';assert.equal(client.nextRound(client.state).id,'level-2');
- client.startNext();client.state.game_id='changed';while(queued.length)queued.shift()();assert.equal(posted.length,1);
+ // After a loss playing again leads; the next level stays one button away.
+ client.state.won=false;let acts=client.resultActions(client.state);
+ assert.deepEqual([acts.main.id,acts.alt.id],['level-1','level-2']);
+ // A win on the last level leads to all levels, with playing again beside it.
+ client.state.won=true;client.state.kitchen.level_id='level-2';acts=client.resultActions(client.state);
+ assert.equal(acts.main.kind,'levels');assert.equal(acts.alt.id,'level-2');
+ client.startNext('level-2');client.state.game_id='changed';while(queued.length)queued.shift()();assert.equal(posted.length,1);
  assert.equal(client.countdown,0,'A stale countdown must not act on the new round.');
 }
 const cfg={provider:'deepseek',model:'test-model',api_key:key,remember:false};
@@ -475,7 +573,7 @@ function settingsHarness(){
  const script=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m=>m[1]).find(s=>s.includes('let state=null,busy=false'));
  const elements=new Map(),listeners=new Map();
  const el=id=>{
-  if(!elements.has(id))elements.set(id,{value:id==='api-provider'?'jev':'',disabled:false,checked:false,
+  if(!elements.has(id))elements.set(id,{value:id==='api-provider'?'jev':'',disabled:false,checked:false,dataset:{},
    addEventListener:()=>{},append(){},showModal(){this.open=true;},close(){this.open=false;}});
   return elements.get(id);
  };
@@ -624,7 +722,7 @@ function settingsHarness(){
  const close=h.calls.find(c=>c.url==='/api/session/close');
  assert(close);assert.equal(close.init.keepalive,true);assert.equal(close.init.headers['X-ChefJeff-Session'],'test-session');
  assert(!JSON.stringify(close).includes(key));
- const ui=settingsHarness();ui.listeners.get('kitchen-open-connection')();
+ const ui=settingsHarness();ui.listeners.get('kitchen-open-connection')({detail:{view:'settings'}});
  assert.equal(ui.el('api-provider').disabled,false);assert.equal(ui.el('api-key').disabled,false);
  assert.equal(ui.el('api-connect').disabled,true);assert(ui.el('api-editing-status').textContent.includes('厨房暂时已满'));
  ui.el('api-key').value=key;
@@ -638,6 +736,8 @@ function settingsHarness(){
  assert.equal(ui.el('api-connect').disabled,false);assert.equal(ui.el('api-key').value,key);
  console.log('Browser transport and settings: credential isolation, session retry/release, editable drafts and guarded connection checks passed.');
  await checkModelIdentity();
+ await checkFreeModels();
+ await checkLaterModels();
  await checkClientInteractions(false);
  await checkClientTouchBridge(false);
  checkClientOrderBridge(false);

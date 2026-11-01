@@ -52,8 +52,18 @@ def parse_answer(raw, payload):
 
 
 class JevForwarder:
+    """One opt-in relay. Subclasses change only the vendor, its consent and what goes upstream."""
+    name, consent = 'Jev', CONSENT_VERSION
+
     def __init__(self, concurrency=8):
         self.slots = threading.BoundedSemaphore(concurrency)
+
+    def check(self, body):
+        """An error for vendor fields the request must carry, before any slot or game lock."""
+        return None
+
+    def forward(self, body, payload):
+        return self.send(body['api_key'], payload)
 
     def send(self, key, payload):
         """Fixed upstream, verified TLS/default runtime proxy, no redirects/retries."""
@@ -74,25 +84,30 @@ class JevForwarder:
             raise ForwardError(502,'试玩服务器无法连接 Jev，请稍后重试。') from None
 
     def handle(self, game, body):
-        if body.get('consent_version') != CONSENT_VERSION or body.get('consent') is not True:
-            return 400, {'error':'请先同意通过试玩服务器调用 Jev。'}
+        name = self.name
+        if body.get('consent_version') != self.consent or body.get('consent') is not True:
+            return 400, {'error':f'请先同意通过试玩服务器调用 {name}。'}
         if not valid_key(body.get('api_key')):
             return 400, {'error':'请输入完整的 API Key。'}
         if type(body.get('test')) is not bool:
-            return 400, {'error':'Jev 请求无效。'}
+            return 400, {'error':f'{name} 请求无效。'}
+        problem = self.check(body)
+        if problem:
+            return 400, {'error':problem}
         check = body.get('test') is True
         ident = body.get('request_id') if check else body.get('id')
         if not isinstance(ident,str) or not 1 <= len(ident) <= 100:
-            return 400, {'error':'Jev 请求无效。'}
+            return 400, {'error':f'{name} 请求无效。'}
+        # One relayed request per kitchen at a time, whichever vendor it goes to.
         if not game.jev_gate.acquire(blocking=False):
-            return 409, {'error':'此厨房的 Jev 请求仍在处理中。'}
+            return 409, {'error':f'此厨房的 {name} 请求仍在处理中。'}
         acquired = False
         try:
             with game.lock:
                 if body.get('game_id') != game.game_id or game.stop_event.is_set():
                     return 409, {'error':'这是上一局的操作，请刷新页面。'}
                 if (check and game.phase not in ('ready','ended')) or (not check and game.phase!='running'):
-                    return 409, {'error':'当前不能请求 Jev。'}
+                    return 409, {'error':f'当前不能请求 {name}。'}
                 cache_id = ('test' if check else 'task', game.game_id, ident)
                 if cache_id in game.jev_receipts:
                     return game.jev_receipts[cache_id]
@@ -104,7 +119,7 @@ class JevForwarder:
                 else:
                     task = relay.request() if relay else None
                     if not task or task['id'] != ident:
-                        return 409, {'error':'Jev 决策请求已过期。'}
+                        return 409, {'error':f'{name} 决策请求已过期。'}
                     payload = task['payload']
                     if 'memory' in body:
                         try:
@@ -116,11 +131,11 @@ class JevForwarder:
                         payload['state']['rules']['past_episodes'] = PAST_EPISODES_RULE
                 acquired = self.slots.acquire(blocking=False)
                 if not acquired:
-                    return 503, {'error':'Jev 转发请求较多，请稍后重试。'}
+                    return 503, {'error':f'{name} 转发请求较多，请稍后重试。'}
                 if check: game.jev_last_check = time.monotonic()
             # No game/global admission lock is held during network I/O.
             try:
-                answer = self.send(body['api_key'],payload)
+                answer = self.forward(body, payload)
                 result = (200, {'answer':answer})
             except ForwardError as e:
                 result = (e.status, {'error':e.message})
@@ -129,7 +144,7 @@ class JevForwarder:
                 current = relay.request() if relay else None
                 if body['game_id'] != game.game_id or game.stop_event.is_set() or (not check and (
                         game.phase!='running' or game.relay is not relay or not current or current['id']!=ident)):
-                    result = (409, {'error':'Jev 决策请求已过期。'})
+                    result = (409, {'error':f'{name} 决策请求已过期。'})
                 game.jev_receipts[cache_id] = result
                 while len(game.jev_receipts)>16: game.jev_receipts.popitem(last=False)
             return result

@@ -151,6 +151,13 @@ class HostedProxyTests(unittest.TestCase):
                 self.assertEqual(status, 200)
                 self.assertIn(b'/hosted-agent.js', page)
 
+    def test_free_picker_works_with_existing_static_asset_routes(self):
+        status,page=self.request('/')
+        self.assertEqual(status,200)
+        self.assertIn(b'id="free-model-picker"',page)
+        self.assertNotIn(b'<script src="/free-model-picker.js"></script>',page)
+        self.assertIn((ROOT/'hosted/free-model-picker.js').read_bytes(),page)
+
     def test_public_route_keeps_host_and_strips_credentials(self):
         status, _ = self.request('/healthz', headers={'Authorization': 'unit-test-placeholder',
                                                      'Cookie': 'unit-test=placeholder'})

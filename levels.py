@@ -10,12 +10,13 @@ import config_contract
 
 @lru_cache(maxsize=1)
 def _listed():
-    return tuple({'id': d['id'], 'name': d['name'], 'menu_order': d.get('menu_order')}
+    return tuple({'id': d['id'], 'name': d['name'], 'menu_order': d.get('menu_order'),
+                  'target': (d.get('goal') or {}).get('min_money')}
             for d in config_contract.Registry().levels() if d.get('menu_order') is not None)
 
 
 def available_levels():
-    """Listed levels in menu order: [{id, name, menu_order}]."""
+    """Listed levels in menu order: [{id, name, menu_order, target}] (target: the net income goal)."""
     return [dict(entry) for entry in _listed()]
 
 

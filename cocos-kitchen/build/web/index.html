@@ -46,7 +46,7 @@
 <script src="src/import-map.e67d1.json" type="systemjs-importmap" charset="utf-8"> </script>
 
 <script>
-    System.import('./index.35c3e.js').catch(function(err) { console.error(err); })
+    System.import('./index.ad92a.js').catch(function(err) { console.error(err); })
 </script>
   <script src="kitchen-i18n.js"></script>
 <script src="model-providers.js"></script>
@@ -78,6 +78,22 @@ h1.header,p.footer{display:none}
 .panel{box-sizing:border-box;background:var(--paper);color:var(--ink);border:3px solid var(--walnut);box-shadow:6px 6px 0 var(--ink);font:15px/24px var(--body);text-align:left}
 dialog.panel{padding:0;max-height:92vh;overflow:auto}
 dialog.panel::backdrop{background:#2b1a12b8}
+/* Two sizes. A page (card-page) has the start card's size and place: 900×580 of the 1280×720 game,
+   scaled with the window like the Cocos card, so opening one reads as turning the same card over.
+   A short note (card-note) is one narrow width with the height of its content. */
+dialog.card-page{width:min(70.3125vw,125vh);height:min(45.3125vw,80.5556vh);max-width:calc(100vw - 16px);max-height:calc(100vh - 16px);
+ overflow:hidden;border:4px solid var(--ink);box-shadow:0 10px 0 var(--ink);translate:0 min(.78125vw,1.3889vh)}
+dialog.card-page[open]{display:flex;flex-direction:column}
+.card-awning{height:34px;flex:none;background:repeating-linear-gradient(90deg,var(--denim) 0 64px,var(--paper) 64px 128px);border-bottom:4px solid var(--walnut)}
+.card-page .dlg-head{position:static;flex:none;gap:18px;padding:16px 32px 14px;border-bottom:0}
+.card-page .dlg-head h2{flex:none;font-size:30px;line-height:34px}
+.card-page .dlg-head .btn{min-height:44px;padding:0 16px;font-size:18px;line-height:18px}
+.card-page>.tabs{flex:none;padding:0 32px 12px}
+.card-page>.tabs .tab{padding:8px 14px;font-size:16px;line-height:20px}
+.card-page .card-scroll{flex:1;min-height:0;overflow:auto;padding:4px 32px 24px}
+dialog.card-note{width:min(520px,calc(100vw - 28px))}
+body.kitchen-touch-mode dialog.card-page{width:calc(100vw - 20px);height:calc(var(--touch-vh,100dvh) - 12px);translate:none}
+body.kitchen-touch-mode .card-awning{height:12px;border-bottom-width:3px}
 .dlg-head{position:sticky;top:0;z-index:1;display:flex;align-items:center;gap:12px;padding:20px 24px 12px;background:var(--paper);border-bottom:1px solid var(--walnut)}
 .dlg-head h2{margin:0;flex:1;font:24px/28px var(--pixel);font-weight:400}
 .dlg-body{padding:16px 24px 24px}
@@ -144,24 +160,71 @@ if(!document.documentElement.requestFullscreen)expandKitchen.hidden=true;
 expandKitchen.addEventListener('click',async()=>{try{await document.documentElement.requestFullscreen()}catch{expandKitchen.textContent='请手动展开浏览器窗口'}});
 // Tabs inside a dialog: arrow keys move between tabs; a panel hidden in the source (hosted mode) stays hidden with its tab.
 function kitchenTabs(dialog){
- const tabs=[...dialog.querySelectorAll('.tab')].filter(t=>{const p=document.getElementById(t.getAttribute('aria-controls'));if(p.hasAttribute('hidden')){t.hidden=true;return false}return true});
+ const tabs=[...dialog.querySelectorAll('[role=tab]')].filter(t=>{const p=document.getElementById(t.getAttribute('aria-controls'));if(p.hasAttribute('hidden')){t.hidden=true;return false}return true});
  const show=tab=>{for(const t of tabs){const on=t===tab;t.setAttribute('aria-selected',String(on));t.tabIndex=on?0:-1;document.getElementById(t.getAttribute('aria-controls')).hidden=!on}};
- tabs.forEach((t,i)=>{t.onclick=()=>show(t);t.onkeydown=e=>{const d=e.key==='ArrowRight'?1:e.key==='ArrowLeft'?-1:0;if(!d)return;e.preventDefault();const n=tabs[(i+d+tabs.length)%tabs.length];show(n);n.focus()}});
+ const vertical=dialog.querySelector('[role=tablist]')?.getAttribute('aria-orientation')==='vertical',next=vertical?'ArrowDown':'ArrowRight',back=vertical?'ArrowUp':'ArrowLeft';
+ tabs.forEach((t,i)=>{t.onclick=()=>show(t);t.onkeydown=e=>{const d=e.key===next?1:e.key===back?-1:0;if(!d)return;e.preventDefault();const n=tabs[(i+d+tabs.length)%tabs.length];show(n);n.focus()}});
  show(tabs[0]);return show;
 }
 </script>
 <style>
-#kitchen-api-dialog{width:min(560px,calc(100vw - 28px))}
-#kitchen-api-dialog label:not(.remember){display:block;font-weight:600;margin:13px 0 4px;color:var(--ink)}
-#kitchen-api-dialog input:not([type=checkbox]):not([type=range]),#kitchen-api-dialog select{box-sizing:border-box;width:100%;padding:10px;border:2px solid var(--ink);border-radius:0;background:var(--paper);color:var(--ink);font:inherit}
+/* Settings is its own shop card: awning, tabs down the left, one scrolling page on the right. */
+#kitchen-api-dialog{font-size:16px}
+.dlg-note{margin-left:auto;font-size:15px;color:var(--muted)}
+.settings-main{flex:1;display:flex;gap:24px;min-height:0;padding:0 32px 24px}
+#kitchen-api-dialog .side{width:200px;flex:none;flex-direction:column;flex-wrap:nowrap;gap:4px;padding:0 16px 0 0;border-bottom:0;border-right:3px solid var(--ink)}
+#kitchen-api-dialog .side .tab{padding:12px 16px;font-size:18px;line-height:22px;text-align:left;border:0}
+#kitchen-api-dialog .side .tab[aria-selected="true"]{background:var(--denim);color:var(--paper)}
+#kitchen-api-dialog .settings-page{flex:1;min-width:0;overflow:auto;padding:0 6px 0 0;line-height:24px}
+#kitchen-api-dialog .settings-page p{margin:4px 0 12px;color:var(--muted)}
+#kitchen-api-dialog h3{margin:0 0 6px;font:22px/28px var(--pixel);font-weight:400;color:var(--ink)}
+#kitchen-api-dialog label:not(.remember){display:block;font-size:16px;margin:14px 0 6px;color:var(--ink)}
+#kitchen-api-dialog input:not([type=checkbox]):not([type=range]),#kitchen-api-dialog select{box-sizing:border-box;width:100%;height:44px;padding:0 12px;border:3px solid var(--ink);border-radius:0;background:#fff;color:var(--ink);font:inherit}
 #kitchen-api-dialog input:focus-visible,#kitchen-api-dialog select:focus-visible,#kitchen-api-dialog input[type=checkbox]:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
-#kitchen-api-dialog input[type=checkbox]{accent-color:var(--denim);width:18px;height:18px}
-#kitchen-api-dialog .remember{display:flex;align-items:center;gap:8px;margin:16px 0;font-size:14px;color:var(--ink)}
+#kitchen-api-dialog input[type=checkbox]{accent-color:var(--denim);width:18px;height:18px;flex:none}
+#kitchen-api-dialog .remember{display:flex;align-items:center;gap:8px;margin:14px 0;font-size:15px;color:var(--ink)}
 #kitchen-api-dialog a{color:var(--denim)}
-#kitchen-api-dialog .primary{flex:1}
+#kitchen-api-dialog .actions .btn{min-height:48px;padding:0 22px;font-size:18px;line-height:18px;box-shadow:0 5px 0 var(--ink);border-width:3px}
 #api-message{min-height:24px;white-space:pre-wrap;color:var(--ink)!important}
 #api-message.error{color:var(--tomato)!important}
-#api-identity{font-weight:600;color:var(--denim)!important}
+.partner-now{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;padding:14px 16px;margin:0 0 20px;background:var(--surface);border:3px solid var(--ink)}
+.partner-now span{font-size:16px;color:var(--ink)}
+#api-identity{margin:0!important;font:20px/26px var(--pixel);color:var(--ink)!important}
+.card-badge{display:inline-block;margin-left:8px;padding:3px 8px;font:13px/18px var(--pixel);color:var(--paper);background:var(--muted);vertical-align:middle}
+.card-section{margin:0 0 22px}
+.card-tip{padding:10px 12px;background:var(--surface);color:var(--ink)!important;font-size:15px;line-height:22px}
+.key-row{display:flex;gap:8px}
+.key-row input{flex:1;min-width:0}
+#kitchen-api-dialog .key-row .btn{min-height:44px;padding:0 12px;font-size:14px;box-shadow:0 3px 0 var(--ink)}
+.connection-columns{display:flex;gap:28px;align-items:flex-start}
+.connection-columns form{flex:1;min-width:0}
+.card-help{width:300px;flex:none;display:flex;flex-direction:column;gap:12px;font-size:14px;line-height:21px}
+.card-help>div{padding:14px 16px}
+.card-help strong{display:block;margin-bottom:6px;font:17px/22px var(--pixel);font-weight:400;color:var(--ink)}
+.card-help p{margin:0 0 8px!important;color:inherit!important}
+.card-help .plain{background:var(--surface);color:var(--ink)}
+.card-help .dashed{border:2px dashed var(--muted);color:var(--muted)}
+.card-help .dashed b{font-weight:400;color:var(--ink)}
+.settings-row{display:flex;align-items:center;gap:16px;margin:14px 0}
+.settings-row>span{font-size:16px;color:var(--ink)}
+#kitchen-api-dialog .settings-row .btn{min-height:44px;padding:0 18px;font-size:16px;line-height:16px;border-width:3px;box-shadow:0 5px 0 var(--ink)}
+/* 模型服务: the same grouped, pixel-style dropdown as the free-model list on the start card. */
+.service-pick{position:relative}
+#kitchen-api-dialog .service-field{display:flex;align-items:center;gap:12px;box-sizing:border-box;width:100%;height:48px;padding:0 14px;border:3px solid var(--ink);background:#fff;color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+#kitchen-api-dialog .service-field:disabled{background:var(--surface);color:var(--muted);cursor:default}
+#kitchen-api-dialog .service-field:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.service-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:18px/22px var(--pixel)}
+.service-kind{flex:none;padding:2px 6px;border:2px solid var(--muted);color:var(--muted);font-size:13px;line-height:16px}
+.service-caret{margin-left:auto}
+.service-list{position:absolute;left:0;right:0;top:52px;z-index:5;max-height:300px;overflow:auto;background:var(--paper);border:3px solid var(--ink);box-shadow:0 5px 0 var(--ink)}
+.service-list .group{padding:8px 14px 4px;background:var(--surface);color:var(--muted);font-size:13px}
+.service-list [role=option]{display:block;padding:8px 14px;border-bottom:2px dashed #e3c79a;cursor:pointer}
+.service-list [role=option]:last-child{border-bottom:0}
+.service-list .name{display:block;font-size:16px;line-height:22px;color:var(--ink)}
+.service-list .hint{display:block;font-size:13px;line-height:18px;color:var(--muted)}
+.service-list [role=option].active,.service-list [role=option][aria-selected=true]{background:var(--honey-tint)}
+.service-list [role=option][aria-selected=true]{box-shadow:inset 4px 0 0 var(--denim)}
+.service-list [role=option][aria-disabled=true]{opacity:.55;cursor:default}
 #kitchen-api-dialog [hidden]{display:none!important}
 #kitchen-api-dialog [role=tabpanel]{border:0;margin:0;padding:0}
 #kitchen-api-dialog .audio-grid{display:grid;grid-template-columns:max-content 1fr 3em;align-items:center;gap:14px 16px;margin:14px 0}
@@ -170,35 +233,66 @@ function kitchenTabs(dialog){
 #kitchen-api-dialog .audio-row input{width:100%;margin:0;accent-color:var(--denim)}
 #kitchen-api-dialog .audio-row input:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
 #kitchen-api-dialog .audio-row output{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
+/* The 自定义模型 tile opens the same card on just the key form, with the help column beside it. */
+#kitchen-api-dialog .custom-only{display:none}
+#kitchen-api-dialog[data-view=custom] .custom-only{display:flex}
+#kitchen-api-dialog[data-view=custom] .card-badge.custom-only{display:inline-block}
+#kitchen-api-dialog[data-view=custom] .settings-only{display:none}
+@media (max-width:760px){
+ #kitchen-api-dialog .dlg-head{flex-wrap:wrap;gap:10px;padding:14px 16px 10px}
+ #kitchen-api-dialog .dlg-head h2{font-size:26px;line-height:30px}
+ .dlg-note{margin-left:0;width:100%}
+ .settings-main{flex-direction:column;gap:12px;padding:0 16px 16px}
+ #kitchen-api-dialog .side{width:auto;flex-direction:row;flex-wrap:wrap;padding:0 0 10px;border-right:0;border-bottom:3px solid var(--ink)}
+ #kitchen-api-dialog .side .tab{padding:8px 10px;font-size:15px}
+ .connection-columns{flex-direction:column}
+ .card-help{width:auto}
+}
 </style>
-<dialog id="kitchen-api-dialog" class="panel" aria-labelledby="settings-title">
- <div class="dlg-head"><h2 id="settings-title">设置</h2><span class="sr-label">界面语言</span><button id="kitchen-language" class="btn" type="button" data-no-i18n>英语</button><button id="api-close" class="btn close" type="button" aria-label="返回厨房">×</button></div>
- <div class="tabs" role="tablist" aria-label="设置分页">
-  <button class="tab" id="tab-connection" type="button" role="tab" aria-controls="panel-connection" autofocus>连接</button>
-  <button class="tab" id="tab-audio" type="button" role="tab" aria-controls="audio-panel">声音</button>
-  <button class="tab" id="tab-memory" type="button" role="tab" aria-controls="memory-panel">协作记忆</button>
+<dialog id="kitchen-api-dialog" class="panel card-page" aria-labelledby="settings-title" data-view="settings">
+ <div class="card-awning" aria-hidden="true"></div>
+ <div class="dlg-head"><button id="api-close" class="btn" type="button">← 返回</button><h2 id="settings-title">设置</h2><span class="card-badge custom-only" id="settings-badge">API Key</span><span class="dlg-note">改完直接返回，下一局生效</span></div>
+ <div class="settings-main">
+ <div class="tabs side settings-only" role="tablist" aria-label="设置分页" aria-orientation="vertical">
+  <button class="tab" id="tab-connection" type="button" role="tab" aria-controls="panel-connection" autofocus>AI 搭档</button>
+  <button class="tab" id="tab-memory" type="button" role="tab" aria-controls="memory-panel">跨局记忆</button>
   <button class="tab" id="tab-limits" type="button" role="tab" aria-controls="limits-panel">调用上限</button>
-  <button class="tab" id="tab-export" type="button" role="tab" aria-controls="export-panel">数据导出</button>
+  <button class="tab" id="tab-export" type="button" role="tab" aria-controls="export-panel">数据与贡献</button>
+  <button class="tab" id="tab-audio" type="button" role="tab" aria-controls="audio-panel">声音与语言</button>
+  <button class="tab" id="settings-help" type="button">操作说明</button>
  </div>
- <div class="dlg-body">
- <section id="panel-connection" role="tabpanel" aria-labelledby="api-title">
-  <h3 id="api-title">连接你的 AI 搭档</h3>
-  <p>使用你自己的 API 账号，调用费用由该账号承担。</p>
-  <p><a href="model-guide.html" target="_blank" rel="noopener">模型连接说明：支持的服务、一局约多少钱 ↗</a></p>
+ <div class="settings-page">
+ <section id="panel-connection" role="tabpanel" aria-labelledby="tab-connection">
+  <div class="partner-now settings-only"><span>当前搭档</span><p id="api-identity">尚未配置</p></div>
+  <!-- hosted-free-models -->
+  <div class="card-section settings-only">
+   <h3 id="api-title">自定义模型<span class="card-badge">API Key</span></h3>
+   <p>使用你自己的 API 账号，调用费用由该账号承担。</p>
+   <p class="card-tip">也可以填自己申请的免费 Key：智谱 GLM-4.7-Flash、StartLux（Bamboo）等平台都提供免费额度，申请后选对应的服务填进来即可。 <a href="model-guide.html" target="_blank" rel="noopener">怎么申请、一局大约多少钱 →</a></p>
+  </div>
   <p><strong>建议优先选择 Jev</strong>：这间厨房是围绕 Jev 开发的；其他模型也可使用，响应速度和配合方式可能不同。</p>
-  <p id="api-identity">尚未配置</p>
   <p id="api-editing-status" role="status" aria-live="polite"></p>
+  <div class="connection-columns">
   <form id="api-form">
-   <label for="api-provider">模型服务</label>
-   <select id="api-provider"></select>
+   <label id="api-provider-label" for="api-provider-button">模型服务</label>
+   <select id="api-provider" hidden tabindex="-1" aria-hidden="true"></select>
+   <div class="service-pick">
+    <button id="api-provider-button" class="service-field" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="api-provider-list"><span class="service-name" id="api-provider-name"></span><span class="service-kind" id="api-provider-kind"></span><span class="service-caret" aria-hidden="true">▾</span></button>
+    <div id="api-provider-list" class="service-list" role="listbox" aria-labelledby="api-provider-label" hidden></div>
+   </div>
    <p><small id="api-provider-note"></small></p>
+   <div id="api-account-row" hidden><label for="api-account">Account ID</label><input id="api-account" placeholder="32 位 Account ID" autocomplete="off" spellcheck="false"></div>
    <div id="api-url-row" hidden><label for="api-url">接口地址（Base URL）</label><input id="api-url" type="url" placeholder="https://你的服务地址/v1" autocomplete="off"></div>
    <div id="api-model-row" hidden><label for="api-model">模型名称</label><input id="api-model" placeholder="服务商提供的模型 ID" autocomplete="off"><p><small>建议使用响应快的模型；过慢或无效的动作不会执行。</small></p></div>
-   <label for="api-key">API Key</label><input id="api-key" type="password" placeholder="粘贴你的 API Key" autocomplete="off" spellcheck="false" required>
+   <label for="api-key">API Key</label><div class="key-row"><input id="api-key" type="password" placeholder="粘贴你的 API Key" autocomplete="off" spellcheck="false" required><button id="api-key-show" class="btn" type="button" aria-controls="api-key" aria-pressed="false">显示</button></div>
    <p><a id="api-get-key" href="https://console.typesafe.ai/login" target="_blank" rel="noopener noreferrer">去服务商获取 Key ↗</a></p>
    <div id="api-jev-relay-row" hidden>
     <label class="remember"><input id="api-jev-relay" type="checkbox">同意通过试玩服务器调用 Jev</label>
     <p><small>勾选后，Key 和模型请求会经 HTTPS 通过试玩服务器发送给 Jev，不写入服务器配置、日志或对局记录。未勾选则由浏览器直连，需 Jev 允许本网站跨域访问。更改选项后须测试并连接才生效，清除配置会停止后续模型请求。</small></p>
+   </div>
+   <div id="api-cf-relay-row" hidden>
+    <label class="remember"><input id="api-cf-relay" type="checkbox">同意通过试玩服务器转发 Cloudflare 请求（Cloudflare 不支持浏览器直连）</label>
+    <p><small>勾选后，Key、Account ID 和模型请求会经 HTTPS 通过试玩服务器发送给 Cloudflare，不写入服务器配置、日志或对局记录。在线转发只支持 Gemma 4 26B 和 Llama 3.1 8B。</small></p>
    </div>
    <p id="api-transport-status" hidden role="status"></p>
    <label class="remember"><input id="api-remember" type="checkbox">记住此设备（共用电脑请勿勾选）</label>
@@ -206,6 +300,11 @@ function kitchenTabs(dialog){
    <p id="api-message" role="status" aria-live="polite">测试连接会发送一次小型 API 请求，可能产生少量费用。</p>
    <div class="actions"><button id="api-connect" class="btn primary" type="submit">测试并连接</button><button id="api-clear" class="btn" type="button">清除配置</button></div>
   </form>
+  <aside class="card-help custom-only" aria-label="自定义模型说明">
+   <div class="plain"><strong>还没有 Key？</strong><p>智谱 GLM-4.7-Flash、StartLux（Bamboo）等平台提供免费额度，自己申请一个就能填在这里。</p><p>DeepSeek、OpenRouter 等按用量付费，一局大约几毛到几块钱。</p><p><a href="model-guide.html" target="_blank" rel="noopener">怎么申请、一局大约多少钱 →</a></p></div>
+   <div class="dashed"><strong>两类模型</strong><p><b>决策模型</b>：直接从候选动作里选一个，还会给出每个选项的概率。</p><p><b>快思考模型</b>：通用对话模型，读完厨房状态后回一个动作。</p><p>调用按你在服务商那边的账号计费，或计入你的免费额度。Key 不会写进游戏记录或研究数据。</p></div>
+  </aside>
+  </div>
  </section>
  <section aria-labelledby="audio-title" id="audio-panel" role="tabpanel">
   <h3 id="audio-title">声音</h3>
@@ -214,6 +313,8 @@ function kitchenTabs(dialog){
   <div class="audio-row"><label for="audio-sfx">音效</label><input id="audio-sfx" type="range" min="0" max="100" step="5"><output id="audio-sfx-value" for="audio-sfx" data-no-i18n></output></div>
   </div>
   <p>拉到 0 即静音。设置只保存在这台设备的浏览器里。</p>
+  <h3>界面语言</h3>
+  <div class="settings-row"><span class="sr-label">界面语言</span><button id="kitchen-language" class="btn" type="button" data-no-i18n>English</button></div>
  </section>
  <section aria-labelledby="memory-title" id="memory-panel" role="tabpanel">
   <h3 id="memory-title">跨局协作记忆 · 试验版</h3>
@@ -244,6 +345,7 @@ function kitchenTabs(dialog){
   <!-- hosted-contribution -->
  </section>
  </div>
+ </div>
 </dialog>
 <script>
 (()=>{
@@ -262,25 +364,76 @@ function kitchenTabs(dialog){
   }
   el('api-provider').append(group);
  }
+ // 模型服务 as a grouped list drawn like the start card's free-model dropdown. The hidden select keeps the value.
+ const pick=el('api-provider'),field=el('api-provider-button'),list=el('api-provider-list');let active=-1;
+ const options=()=>[...list.querySelectorAll('[role=option]')];
+ const showProvider=()=>{const p=presets[pick.value];el('api-provider-name').textContent=p?.label||'';
+  el('api-provider-kind').textContent=catalog.groups.find(g=>g.id===p?.group)?.label||'';};
+ function buildList(){
+  list.replaceChildren();
+  for(const g of catalog.groups){
+   const items=[...pick.options].filter(o=>presets[o.value]?.group===g.id);if(!items.length)continue;
+   const head=document.createElement('div');head.className='group';head.setAttribute('role','presentation');head.textContent=g.label;list.append(head);
+   for(const o of items){
+    const p=presets[o.value],item=document.createElement('div');item.id='api-provider-'+o.value;item.dataset.value=o.value;
+    item.setAttribute('role','option');item.setAttribute('aria-selected',String(o.value===pick.value));
+    if(o.disabled)item.setAttribute('aria-disabled','true');
+    const name=document.createElement('span');name.className='name';name.textContent=p.label;item.append(name);
+    if(p.note){const hint=document.createElement('span');hint.className='hint';hint.textContent=p.note;item.append(hint);}
+    item.onclick=()=>{if(!o.disabled)choose(o.value)};item.onmouseenter=()=>setActive(options().indexOf(item));
+    list.append(item);
+   }
+  }
+ }
+ function setActive(i){
+  const all=options();active=i;all.forEach((x,n)=>x.classList.toggle('active',n===i));
+  if(all[i]){field.setAttribute('aria-activedescendant',all[i].id);all[i].scrollIntoView?.({block:'nearest'});}
+ }
+ function openList(){if(field.disabled)return;buildList();list.hidden=false;field.setAttribute('aria-expanded','true');setActive(options().findIndex(x=>x.dataset.value===pick.value));}
+ function closeList(){list.hidden=true;field.setAttribute('aria-expanded','false');field.removeAttribute('aria-activedescendant');active=-1;}
+ function choose(value){closeList();if(pick.value!==value){pick.value=value;pick.dispatchEvent(new Event('change'));}field.focus();}
+ field.onclick=()=>list.hidden?openList():closeList();
+ field.onkeydown=e=>{
+  const all=options();
+  if(list.hidden){if(['ArrowDown','ArrowUp','Enter',' '].includes(e.key)){e.preventDefault();openList();}return;}
+  if(e.key==='Escape'){e.preventDefault();e.stopPropagation();closeList();return;}
+  if(e.key==='Tab'){closeList();return;}
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+   e.preventDefault();const d=e.key==='ArrowDown'?1:-1;let i=active;
+   for(let n=0;n<all.length;n++){i=(i+d+all.length)%all.length;if(all[i].getAttribute('aria-disabled')!=='true')break;}
+   setActive(i);return;
+  }
+  if(e.key==='Enter'||e.key===' '){e.preventDefault();const x=all[active];if(x&&x.getAttribute('aria-disabled')!=='true')choose(x.dataset.value);}
+ };
+ // Esc closes the list before the dialog; a press anywhere else in the card closes it too.
+ dialog.addEventListener('cancel',e=>{if(!list.hidden){e.preventDefault();closeList();field.focus();}});
+ dialog.addEventListener('pointerdown',e=>{if(!list.hidden&&!e.target.closest?.('.service-pick'))closeList();},true);
  const fields=()=>{
+  showProvider();
   const p=el('api-provider').value,preset=presets[p]||{};
   el('api-url-row').hidden=!preset.custom;el('api-model-row').hidden=!preset.model_editable;
   el('api-url').required=!!preset.custom;el('api-model').required=!!preset.model_editable;
   el('api-provider-note').textContent=preset.note||'';
   el('api-get-key').hidden=!preset.key_url;if(preset.key_url)el('api-get-key').href=preset.key_url;
   el('api-jev-relay-row').hidden=!window.chefjeffJevRelayAvailable||p!=='jev';
+  el('api-account-row').hidden=!preset.account_id;el('api-account').required=!!preset.account_id;
+  el('api-cf-relay-row').hidden=!window.chefjeffJevRelayAvailable||p!=='cloudflare';
  };
  const status=()=>{
   const c=state?.connection,allowed=!!c&&c.editable&&!busy;
-  el('api-identity').textContent=c?.configured?`已连接：${c.model} · 玩家账号付费${c.remembered?' · 已记住此设备':''}`:'尚未配置 · 不使用开发者 Key';
+  const free=c?.free_model&&c.free_models?.models?.find(m=>m.provider===c.provider);
+  el('api-identity').textContent=c?.free_model?`免费试玩：${free?.name||c.model} · 服务器提供额度`:c?.configured?`已连接：${c.model} · 玩家账号付费${c.remembered?' · 已记住此设备':''}`:'尚未配置 · 不使用开发者 Key';
   // A saved key is never shown back; say so instead of presenting an empty, required field.
-  el('api-key').placeholder=c?.configured?'已保存；要更换时粘贴新的 Key':'粘贴你的 API Key';
-  el('api-connect').textContent=c?.configured?'更换并测试':'测试并连接';
-  el('api-connect').disabled=!allowed;el('api-clear').disabled=!allowed||!c?.configured;
+  // A free model is not the player's own key: the form stays empty and there is nothing of theirs to clear.
+  const own=c?.configured&&!c.free_model;
+  el('api-key').placeholder=own?'已保存；要更换时粘贴新的 Key':'粘贴你的 API Key';
+  el('api-connect').textContent=own?'更换并测试':'测试并连接';
+  el('api-connect').disabled=!allowed;el('api-clear').disabled=!allowed||!own;
   // Filling a draft does not change the active model or make a paid request.
-  for(const id of ['api-provider','api-url','api-model','api-key','api-remember','api-jev-relay'])el(id).disabled=busy;
+  for(const id of ['api-provider','api-provider-button','api-account','api-url','api-model','api-key','api-remember','api-jev-relay','api-cf-relay'])el(id).disabled=busy;
+  if(busy)closeList();
   el('api-transport-status').hidden=!window.chefjeffJevRelayAvailable||!c?.configured;
-  el('api-transport-status').textContent=c?.jev_relay?'当前连接：已同意服务器转发 Jev':'当前连接：浏览器直连模型';
+  el('api-transport-status').textContent=c?.free_model?'当前连接：服务器提供的免费模型':c?.jev_relay?'当前连接：已同意服务器转发 Jev':c?.relay?'当前连接：已同意服务器转发 Cloudflare':'当前连接：浏览器直连模型';
   el('api-editing-status').textContent=!c?(window.chefjeffHostedStatus?.()||'等待厨房连接。可以先填写，连接成功后再测试。'):
    busy?'正在测试连接…':c.editable?'':'本局进行中，可以先填写；请结束本局后再测试或更换 API。';
   const l=state?.limits;
@@ -297,16 +450,22 @@ function kitchenTabs(dialog){
  };
  window.addEventListener('kitchen-state',e=>{state=e.detail;status()});
  window.addEventListener('kitchen-connection-error',()=>status());
- window.addEventListener('kitchen-open-connection',()=>{
+ // The gear opens the whole card; the 自定义模型 tile opens only the key form and its help column.
+ window.addEventListener('kitchen-open-connection',e=>{
+  const custom=e.detail?.view==='custom';dialog.dataset.view=custom?'custom':'settings';
+  el('settings-title').textContent=custom?'自定义模型':'设置';
   const c=state?.connection;
-  if(c?.configured){el('api-provider').value=c.provider;el('api-url').value=c.base_url;el('api-model').value=c.model;el('api-remember').checked=c.remembered;el('api-jev-relay').checked=!!c.jev_relay}
+  if(c?.configured&&!c.free_model){el('api-provider').value=c.provider;el('api-url').value=c.base_url;el('api-model').value=c.model;el('api-remember').checked=c.remembered;el('api-jev-relay').checked=!!c.jev_relay;el('api-account').value=c.account_id||'';el('api-cf-relay').checked=!!c.relay}
   el('api-key').value='';el('call-limit').value=state?.limits?.next_max_calls||200;fields();status();
   message(!c?'尚未连接厨房，暂时不能测试 API。':c.editable?'测试连接会发送一次小型 API 请求，可能产生少量费用。':'请在开局前或结算后更换 API；请完成当前对局后再修改。');
   showTab(el('tab-connection'));if(!dialog.open)dialog.showModal();
  });
- el('api-provider').addEventListener('change',()=>{el('api-model').value=presets[el('api-provider').value]?.model||'';el('api-key').value='';el('api-jev-relay').checked=false;fields()});
+ el('api-provider').addEventListener('change',()=>{el('api-model').value=presets[el('api-provider').value]?.model||'';el('api-key').value='';el('api-jev-relay').checked=false;el('api-cf-relay').checked=false;fields()});
  el('api-close').onclick=()=>{el('api-key').value='';dialog.close()};
- dialog.addEventListener('close',()=>{el('api-key').value=''});
+ const showKey=on=>{el('api-key').type=on?'text':'password';el('api-key-show').textContent=on?'隐藏':'显示';el('api-key-show').setAttribute('aria-pressed',String(on))};
+ el('api-key-show').onclick=()=>showKey(el('api-key').type==='password');
+ dialog.addEventListener('close',()=>{el('api-key').value='';showKey(false);closeList()});
+ el('settings-help').onclick=()=>{dialog.close();window.dispatchEvent(new Event('kitchen-open-help'))};
  async function send(extra){
   if(!state?.connection?.editable||busy)return;busy=true;status();
   message(extra.clear?'正在清除…':'正在测试连接，请稍候…');
@@ -316,13 +475,15 @@ function kitchenTabs(dialog){
     body:JSON.stringify({game_id:state.game_id,request_id:requestId(),...extra})});
    const data=await response.json();if(!response.ok)throw new Error(data.error||'连接失败');
    el('api-key').value='';state.connection=data.connection;
-   if(extra.clear)el('api-jev-relay').checked=false;
-   message(extra.clear?'配置已清除。下次开局需要重新连接。':'连接成功！返回厨房即可开局，费用由你的 API 账号承担。');
+   if(extra.clear){el('api-jev-relay').checked=false;el('api-cf-relay').checked=false;}
+   message(extra.clear?'配置已清除。下次开局需要重新连接。':data.connection?.free_model?'已选择免费模型，返回厨房即可开局。':'连接成功！返回厨房即可开局，费用由你的 API 账号承担。');
   }catch(e){message(e.name==='AbortError'?'请求超时。请检查网络后重试。':e.message,true)}
   finally{clearTimeout(timer);busy=false;status()}
  }
  el('api-form').onsubmit=e=>{e.preventDefault();send({provider:el('api-provider').value,base_url:el('api-url').value,model:el('api-model').value,api_key:el('api-key').value,remember:el('api-remember').checked,
-  ...(window.chefjeffJevRelayAvailable?{jev_relay:el('api-provider').value==='jev'&&el('api-jev-relay').checked}: {})})};
+  ...(presets[el('api-provider').value]?.account_id?{account_id:el('api-account').value.trim()}:{}),
+  ...(window.chefjeffJevRelayAvailable?{jev_relay:el('api-provider').value==='jev'&&el('api-jev-relay').checked,
+    ...(el('api-provider').value==='cloudflare'?{relay:el('api-cf-relay').checked}:{})}: {})})};
  el('api-clear').onclick=()=>send({clear:true});
  async function changeMemory(extra){
   if(!state||busy||memoryBusy)return;
@@ -368,7 +529,6 @@ function kitchenTabs(dialog){
 })();
 </script>
 <style>
-#kitchen-help-dialog{width:min(680px,calc(100vw - 28px))}
 #kitchen-help-dialog [hidden]{display:none!important}
 .keymap{display:grid;grid-template-columns:minmax(150px,auto) 1fr;gap:14px 20px;align-items:center;margin:4px 0 8px;color:var(--ink)}
 .keymap .keys{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font:12px/16px var(--pixel);color:var(--muted)}
@@ -380,15 +540,16 @@ function kitchenTabs(dialog){
 #kitchen-help-dialog a{color:var(--denim)}
 .dlg-foot{display:flex;justify-content:flex-end;padding:0 24px 24px}
 </style>
-<dialog id="kitchen-help-dialog" class="panel" aria-labelledby="help-title">
- <div class="dlg-head"><h2 id="help-title">操作说明</h2><button id="help-x" class="btn close" type="button" aria-label="返回菜单">×</button></div>
+<dialog id="kitchen-help-dialog" class="panel card-page" aria-labelledby="help-title">
+ <div class="card-awning" aria-hidden="true"></div>
+ <div class="dlg-head"><button id="help-x" class="btn" type="button">← 返回</button><h2 id="help-title">操作说明</h2></div>
  <div class="tabs" role="tablist" aria-label="说明分页">
   <button class="tab" id="tab-keys" type="button" role="tab" aria-controls="help-keys" autofocus>基础操作</button>
   <button class="tab" id="tab-rules" type="button" role="tab" aria-controls="help-rules">规则细节</button>
   <button class="tab" id="tab-levels" type="button" role="tab" aria-controls="help-levels">关卡</button>
   <button class="tab" id="tab-feedback" type="button" role="tab" aria-controls="help-feedback">反馈</button>
  </div>
- <div class="dlg-body">
+ <div class="dlg-body card-scroll">
  <section id="help-keys" role="tabpanel" aria-labelledby="tab-keys">
   <div class="keymap">
    <span class="keys"><span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span></span><span>按住移动，松开停止；方向键也可以。电脑使用键盘，手机使用屏幕摇杆和按钮。</span>
@@ -428,7 +589,7 @@ function kitchenTabs(dialog){
  <section id="help-feedback" role="tabpanel" aria-labelledby="tab-feedback">
   <p>遇到卡住、画面错位或其他问题时：</p>
   <ol>
-   <li>尽快打开「设置 → 数据导出」，点「导出本次游玩」，检查内容后下载 JSON 文件。文件含最近 30 秒的页面记录，导出越快越好。</li>
+   <li>尽快打开「设置 → 数据与贡献」，点「导出本次游玩」，检查内容后下载 JSON 文件。文件含最近 30 秒的页面记录，导出越快越好。</li>
    <li>在 GitHub 新建 Issue，写下经过、用的设备和浏览器，并附上这个文件。</li>
   </ol>
   <p><a href="https://github.com/belchingleo/ChefJeff/issues" target="_blank" rel="noopener noreferrer">在 GitHub 报告问题 ↗</a></p>
@@ -437,7 +598,6 @@ function kitchenTabs(dialog){
   <p><a href="model-guide.html" target="_blank" rel="noopener">模型连接说明 ↗</a></p>
  </section>
  </div>
- <div class="dlg-foot"><button id="help-close" class="btn" type="button">返回菜单</button></div>
 </dialog>
 <script>
 (()=>{
@@ -456,13 +616,12 @@ function kitchenTabs(dialog){
 })();
 (()=>{const help=document.getElementById('kitchen-help-dialog'),showTab=kitchenTabs(help);
  window.addEventListener('kitchen-open-help',()=>{showTab(document.getElementById('tab-keys'));if(!help.open)help.showModal()});
- document.getElementById('help-close').onclick=document.getElementById('help-x').onclick=()=>help.close();})();
+ document.getElementById('help-x').onclick=()=>help.close();})();
 </script>
 <script src="touch-controls.js"></script>
 <script src="gamepad-controls.js"></script>
 <style>
 /* End-of-round record: generated from the round's summary (round_summary.py), never per level. */
-#kitchen-record-dialog{width:min(560px,calc(100vw - 28px))}
 #record-result{margin:0 0 12px;color:var(--ink);font:15px/24px var(--pixel)}
 #record-table{width:100%;border-collapse:collapse;font:15px/22px var(--body);color:var(--ink)}
 #record-table th,#record-table td{padding:6px 8px;border-bottom:1px solid var(--surface);text-align:right;vertical-align:top}
@@ -475,9 +634,10 @@ function kitchenTabs(dialog){
 #record-table tr.share2 th,#record-table tr.share2 td{border-bottom:0;font-weight:600}
 #record-table .note{display:block;font-size:12px;line-height:16px;color:var(--muted);font-weight:400;white-space:nowrap}
 </style>
-<dialog id="kitchen-record-dialog" class="panel" aria-labelledby="record-title">
- <div class="dlg-head"><h2 id="record-title">本局记录</h2><button id="record-x" class="btn close" type="button" aria-label="返回结算">×</button></div>
- <div class="dlg-body">
+<dialog id="kitchen-record-dialog" class="panel card-page" aria-labelledby="record-title">
+ <div class="card-awning" aria-hidden="true"></div>
+ <div class="dlg-head"><button id="record-x" class="btn" type="button">← 返回</button><h2 id="record-title">本局分析</h2></div>
+ <div class="dlg-body card-scroll">
   <p id="record-result"></p>
   <table id="record-table">
    <thead><tr><th scope="col">工作</th><th scope="col">你</th><th scope="col">Jeff</th></tr></thead>
@@ -488,7 +648,6 @@ function kitchenTabs(dialog){
   <p>拖延：每道菜比理想做法晚出的秒数，按两人各自做到理想能省多少来分摊。空转：做了但没用上的动作（比如来回换手）和等待的时间；你自己走动看不出是否空转，所以你的空转只是下限。</p>
   <p>这三项的算法还在试验，欢迎在 GitHub Issue 里告诉我们是否合理。</p>
  </div>
- <div class="dlg-foot"><button id="record-close" class="btn primary" type="button">返回结算</button></div>
 </dialog>
 <script>
 (()=>{const dialog=document.getElementById('kitchen-record-dialog'),body=dialog.querySelector('tbody');
@@ -541,7 +700,7 @@ function kitchenTabs(dialog){
   if(r.expired!=null)document.getElementById('record-result').textContent+=`\n超时 ${r.expired} 单 · 关店时未完成 ${r.unresolved_at_close||0} 单`;
   if(!dialog.open)dialog.showModal();});
  window.addEventListener('kitchen-state',e=>{if(e.detail?.phase!=='ended'&&dialog.open)dialog.close();});
- document.getElementById('record-close').onclick=document.getElementById('record-x').onclick=()=>dialog.close();})();
+ document.getElementById('record-x').onclick=()=>dialog.close();})();
 </script>
 <style>
 /* Communication dock: pinned to the game's lower-left corner in design pixels, scaled with it. */
@@ -626,7 +785,6 @@ function kitchenTabs(dialog){
 })();
 </script>
 <style>
-#kitchen-confirm-dialog{width:min(420px,calc(100vw - 28px))}
 #kitchen-confirm-dialog .dlg-body{padding:24px}
 #kitchen-confirm-dialog h2{margin:0 0 8px;font:24px/28px var(--pixel);font-weight:400}
 #kitchen-confirm-dialog p{margin:0;color:var(--ink)}
@@ -634,7 +792,7 @@ function kitchenTabs(dialog){
 #kitchen-live{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}#kitchen-live span{display:block}
 .sr-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
 </style>
-<dialog id="kitchen-confirm-dialog" class="panel" aria-labelledby="confirm-title" aria-describedby="confirm-text">
+<dialog id="kitchen-confirm-dialog" class="panel card-note" aria-labelledby="confirm-title" aria-describedby="confirm-text">
  <div class="dlg-body">
  <h2 id="confirm-title">结束本局？</h2>
  <p id="confirm-text">本局会立即结算，当前进度不会保留。</p>
@@ -666,20 +824,30 @@ function kitchenTabs(dialog){
 </script>
 
 <style>
-#kitchen-level-dialog{width:min(560px,calc(100vw - 28px))}
-#kitchen-level-list{box-sizing:border-box;display:grid;gap:10px;max-height:min(42vh,280px);overflow:auto;padding:3px 6px 6px 0}
-#kitchen-level-list .btn{justify-content:space-between;min-height:44px;text-align:left;line-height:18px}
-#kitchen-level-list .btn[aria-pressed="true"]{background:var(--honey)}
-#kitchen-more-dialog{width:min(360px,calc(100vw - 28px))}
+#kitchen-level-list{box-sizing:border-box;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;max-height:min(62vh,520px);overflow:auto;padding:4px 6px 10px 2px}
+#kitchen-level-list .level-card{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-height:170px;padding:14px;border:3px solid var(--ink);box-shadow:0 5px 0 var(--ink);background:var(--paper);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+#kitchen-level-list .level-card:hover:not(:disabled){background:var(--honey-tint,#fbe3b8)}
+#kitchen-level-list .level-card:disabled{cursor:default}
+#kitchen-level-list .level-card[aria-current="true"]{border-color:var(--denim,#2a5a9e);box-shadow:inset 0 0 0 1px var(--denim,#2a5a9e),0 5px 0 var(--denim,#2a5a9e)}
+#kitchen-level-list .level-number{font:24px/28px var(--pixel)}
+#kitchen-level-list .level-dish{font:18px/24px var(--pixel)}
+#kitchen-level-list .level-target{font-size:14px;color:var(--muted,#6e4e38)}
+#kitchen-level-list .level-best{margin-top:auto;width:100%;padding-top:8px;border-top:2px dashed var(--muted,#6e4e38);font-size:13px;color:var(--muted,#6e4e38)}
+#kitchen-level-list .level-best.won{color:var(--herb,#3c7a2a);font-weight:600}
+#kitchen-level-list .level-now{position:absolute;top:-3px;right:-3px;padding:2px 8px;background:var(--denim,#2a5a9e);color:#fff;font:13px/18px var(--pixel)}
+#kitchen-level-list .level-custom{align-items:center;justify-content:center;border:3px dashed var(--muted,#6e4e38);box-shadow:none;background:transparent;color:var(--muted,#6e4e38)}
+#kitchen-level-list .level-plus{display:flex;align-items:center;justify-content:center;width:56px;height:56px;border:3px dashed var(--muted,#6e4e38);font:36px/1 var(--pixel)}
+@media(max-width:760px){#kitchen-level-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
 #kitchen-more-dialog .actions{display:grid;grid-template-columns:1fr 1fr;margin:0}
 #kitchen-more-dialog .btn{min-height:40px;line-height:18px}
 #record-result{white-space:pre-line}
 </style>
-<dialog id="kitchen-level-dialog" class="panel" aria-labelledby="level-dialog-title">
- <div class="dlg-head"><h2 id="level-dialog-title">关卡选择</h2><button class="btn close" id="level-dialog-close" type="button" aria-label="返回厨房">×</button></div>
- <div class="dlg-body"><div id="kitchen-level-list" aria-label="关卡"></div><div class="actions"><button class="btn primary" id="level-dialog-confirm" type="button">选择这一关</button><button class="btn" id="level-dialog-cancel" type="button">取消</button></div></div>
+<dialog id="kitchen-level-dialog" class="panel card-page" aria-labelledby="level-dialog-title">
+ <div class="card-awning" aria-hidden="true"></div>
+ <div class="dlg-head"><button class="btn" id="level-dialog-cancel" type="button">← 返回</button><h2 id="level-dialog-title">全部关卡</h2></div>
+ <div class="dlg-body card-scroll"><div id="kitchen-level-list" aria-label="关卡"></div></div>
 </dialog>
-<dialog id="kitchen-more-dialog" class="panel" aria-labelledby="more-dialog-title">
+<dialog id="kitchen-more-dialog" class="panel card-note" aria-labelledby="more-dialog-title">
  <div class="dlg-head"><h2 id="more-dialog-title">更多</h2><button class="btn close" id="more-dialog-close" type="button" aria-label="返回结算">×</button></div>
  <div class="dlg-body"><div class="actions"><button class="btn" data-cover-action="settings" type="button">设置</button><button class="btn" data-cover-action="help" type="button">操作说明</button><button class="btn" data-cover-action="language" id="more-dialog-language" data-no-i18n type="button">English</button><button class="btn" data-cover-action="contribute" id="more-dialog-contribute" type="button" hidden>贡献本局</button></div></div>
 </dialog>
@@ -687,28 +855,52 @@ function kitchenTabs(dialog){
 (()=>{
  const levels=document.getElementById('kitchen-level-dialog'),more=document.getElementById('kitchen-more-dialog'),list=document.getElementById('kitchen-level-list');
  const controls=()=>window.kitchenControls,state=()=>controls()?.getState(),t=text=>window.kitchenI18n?.t(text)||text;
- let selected='',openedRound='',signature='';
+ let openedRound='',signature='';
  function paint(force=false){
   const s=state();if(!s)return;
   if((levels.open||more.open)&&(s.game_id!==openedRound||!['ready','ended'].includes(s.phase))){levels.close();more.close();return;}
   if(levels.open){
-   const items=s.levels||[];if(!items.some(l=>l.id===selected))selected=items.find(l=>l.selected)?.id||items[0]?.id||'';
-   const next=JSON.stringify([items,s.levelEnabled,selected,window.kitchenI18n?.language]);
+   const items=s.levels||[],best=readBest();
+   const next=JSON.stringify([items,s.levelEnabled,best,window.kitchenI18n?.language]);
    if(force||signature!==next){signature=next;list.replaceChildren();
-    for(const level of items){const button=document.createElement('button');button.className='btn';button.type='button';button.textContent=t(level.name);button.setAttribute('aria-pressed',String(level.id===selected));button.disabled=!s.levelEnabled;
-     if(level.selected){const current=document.createElement('span');current.textContent=t('当前');button.appendChild(current);}
-     button.onclick=()=>{selected=level.id;paint(true);list.querySelector('[aria-pressed="true"]')?.focus()};list.appendChild(button);}
+    items.forEach((level,index)=>{
+     const card=document.createElement('button');card.className='level-card';card.type='button';card.disabled=!s.levelEnabled;
+     card.setAttribute('aria-current',String(!!level.selected));
+     const part=(cls,text)=>{const e=document.createElement('span');e.className=cls;e.textContent=text;card.appendChild(e);return e;};
+     if(level.selected)part('level-now',t('当前'));
+     part('level-number',t(`第 ${index+1} 关`));
+     part('level-dish',t(String(level.name).split('·').pop().trim()));
+     if(level.target!=null)part('level-target',t(`目标 ¥${level.target}`));
+     const b=best[level.id];
+     part('level-best'+(b?.won?' won':''),b?t(b.won?`✓ 已达成 · 最佳 ¥${b.money}`:`未达成 · 最佳 ¥${b.money}`):t('还没玩过'));
+     card.onclick=()=>{const now=state();if(!now?.levelEnabled||now.game_id!==openedRound)return;levels.close();if(!level.selected)controls()?.level(level.id)};
+     list.appendChild(card);
+    });
+    // The entry for player-made levels; it opens once creating levels exists.
+    const custom=document.createElement('button');custom.className='level-card level-custom';custom.type='button';custom.disabled=true;
+    const plus=document.createElement('span');plus.className='level-plus';plus.textContent='+';plus.setAttribute('aria-hidden','true');
+    const label=document.createElement('span');label.className='level-dish';label.textContent=t('自定义关卡');
+    const what=document.createElement('span');what.className='level-target';what.textContent=t('做自己的地图和菜谱');
+    const soon=document.createElement('span');soon.className='level-target';soon.textContent=t('即将开放');
+    custom.append(plus,label,what,soon);list.appendChild(custom);
    }
-   document.getElementById('level-dialog-confirm').disabled=!s.levelEnabled||!selected;
   }
   const offer=document.getElementById('more-dialog-contribute');offer.hidden=!s.contribute;if(s.contribute){offer.textContent=t(s.contribute.label);offer.disabled=!s.contribute.enabled;}
   document.getElementById('more-dialog-language').textContent=window.kitchenI18n?.language==='en'?'中文':'English';
  }
- window.addEventListener('kitchen-open-levels',()=>{const s=state();if(!s?.levelEnabled)return;openedRound=s.game_id;selected=(s.levels||[]).find(l=>l.selected)?.id||'';more.close();if(!levels.open)levels.showModal();paint(true)});
+ // This browser's best result per level, from rounds that reached the time limit.
+ const BEST='chefjeff.level-best.v1';let recorded='';
+ function readBest(){try{const v=JSON.parse(localStorage.getItem(BEST)||'{}');return v&&typeof v==='object'?v:{};}catch(_){return {};}}
+ function keepBest(s){
+  const o=s?.outcome;if(!o||!o.level||s.game_id===recorded)return;recorded=s.game_id;
+  const all=readBest(),old=all[o.level];
+  all[o.level]={money:Math.max(old?.money??-Infinity,o.money),won:!!(old?.won||o.won)};
+  try{localStorage.setItem(BEST,JSON.stringify(all));}catch(_){}
+ }
+ window.addEventListener('kitchen-open-levels',()=>{const s=state();if(!s?.levelEnabled)return;openedRound=s.game_id;more.close();if(!levels.open)levels.showModal();paint(true)});
  window.addEventListener('kitchen-open-more',()=>{const s=state();if(s?.phase!=='ended')return;openedRound=s.game_id;levels.close();if(!more.open)more.showModal();paint(true)});
- window.addEventListener('kitchen-controls-state',()=>paint());window.addEventListener('kitchen-language',()=>paint(true));
- document.getElementById('level-dialog-close').onclick=document.getElementById('level-dialog-cancel').onclick=()=>levels.close();
- document.getElementById('level-dialog-confirm').onclick=()=>{const s=state();if(!s?.levelEnabled||s.game_id!==openedRound)return;const id=selected;levels.close();controls()?.level(id)};
+ window.addEventListener('kitchen-controls-state',()=>{keepBest(state());paint();});window.addEventListener('kitchen-language-changed',()=>paint(true));
+ document.getElementById('level-dialog-cancel').onclick=()=>levels.close();
  document.getElementById('more-dialog-close').onclick=()=>more.close();
  more.querySelectorAll('[data-cover-action]').forEach(button=>button.onclick=()=>{const action=button.dataset.coverAction;more.close();controls()?.[action]?.()});
 })();

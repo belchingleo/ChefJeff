@@ -146,6 +146,8 @@ CLI 私有导出是管理员明确创建的外部副本，临时文件 0600 且 
 
 API 输入 model_identity 只允许 provider、model_id 两个字段，不接受 Key、接口地址或客户端的核验声明。记录中补上 interface（systemone/chat_completions）、source、verified。不同回合可用不同模型；不把后来的配置回填给缺失记录。新同意版本为 pilot-session-2026-10-v5，旧选择需重新确认；旧 v4 记录、下载、删除与导出继续兼容。
 
+provider 取自 `model-providers.json` 的服务名。2026-11-01 新增 `cloudflare`：Cloudflare Workers AI 上的 Gemma 4 26B 和 Llama 3.1 8B，免费试玩和自有 Key 都记这一个服务名，model_id 记准确的模型 ID。研究管理台按自己发布版本里的结构文件校验，必须先升级管理台，再让游戏写入这个服务名。
+
 ## 精确重放与请求复现（同意版本 v7）
 
 v7 把保存期改为半年（180 天），并在开局前同意的对局里加入下面这些字段。没有开局前同意、事后单局贡献的记录不含它们，`quality.missing` 标为 `engine_inputs_not_collected_without_prestart_consent`。旧版本记录仍可读取，不补造任何字段。
@@ -172,4 +174,4 @@ python3 scripts/check_research_record.py --database /path/to/contributions.sqlit
 
 每局输出一行 JSON：是否开局、结束时间、`complete`、是否确认关闭、`truncated`/`dropped`/`loss_ranges`、序号缺口 `seq_gaps`，以及 `replay`（`verified`、`diverged` 或 `not_available`）和比较过的状态数。`tests/test_research_replay.py`、`tests/test_arrival_records.py` 用合成对局覆盖这些路径。
 
-线上真人对局的检查步骤：在实验室外按平常方式开启“每局自动贡献”，完整打一局到结算；在「设置 → 数据导出」下载本局记录；运行第一条命令。期望 `complete` 为 true、`seq_gaps` 为空、`replay` 为 `verified`。
+线上真人对局的检查步骤：在实验室外按平常方式开启“每局自动贡献”，完整打一局到结算；在「设置 → 数据与贡献」下载本局记录；运行第一条命令。期望 `complete` 为 true、`seq_gaps` 为空、`replay` 为 `verified`。

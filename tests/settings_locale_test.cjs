@@ -11,13 +11,13 @@ class Copy(HTMLParser):
         super().__init__(); self.tags=[]; self.active=False; self.copy=[]
     def handle_starttag(self, tag, attrs):
         attrs=dict(attrs)
-        if tag=='dialog' and attrs.get('id') in ('kitchen-api-dialog','contribution-ask'): self.active=True
+        if tag in ('dialog','aside') and attrs.get('id') in ('kitchen-api-dialog','contribution-ask','free-model-picker'): self.active=True
         if self.active:
             for name in ('placeholder','aria-label','title'):
                 if attrs.get(name): self.copy.append(attrs[name])
         if tag not in ('input','br','img','meta','link','hr'): self.tags.append(tag)
     def handle_endtag(self, tag):
-        if tag=='dialog': self.active=False
+        if tag in ('dialog','aside'): self.active=False
         if tag in self.tags: self.tags=self.tags[:len(self.tags)-1-self.tags[::-1].index(tag)]
     def handle_data(self, data):
         if self.active and not set(self.tags).intersection(('script','style','textarea')) and data.strip():
@@ -27,13 +27,13 @@ copies={}
 for kind,html in [('local',raw),('hosted',hosted_html(raw))]:
     parser=Copy();parser.feed(html.decode());copies[kind]=parser.copy
 copies['errors']=[]
-for file in ('hosted_server.py','hosted_jev.py'):
+for file in ('hosted_server.py','hosted_jev.py','hosted_free_models.py','free_model_client.py'):
     for node in ast.walk(ast.parse(Path(file).read_text())):
         if isinstance(node,ast.Dict):
             for key,value in zip(node.keys,node.values):
-                if isinstance(key,ast.Constant) and key.value=='error' and isinstance(value,ast.Constant) and isinstance(value.value,str):
+                if isinstance(key,ast.Constant) and (key.value=='error' or file=='free_model_client.py') and isinstance(value,ast.Constant) and isinstance(value.value,str):
                     copies['errors'].append(value.value)
-        if isinstance(node,ast.Call) and isinstance(node.func,ast.Name) and node.func.id=='ForwardError' and len(node.args)>1 and isinstance(node.args[1],ast.Constant):
+        if isinstance(node,ast.Call) and isinstance(node.func,ast.Name) and node.func.id in ('ForwardError','FreeCallError') and len(node.args)>1 and isinstance(node.args[1],ast.Constant):
             copies['errors'].append(node.args[1].value)
 agent=Path('hosted/browser-agent.js').read_text()
 copies['browser']=re.findall(r"throw new Error\('([^']+)'\)",agent)

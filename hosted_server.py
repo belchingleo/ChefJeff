@@ -23,10 +23,15 @@ from spatial_kitchen import SpatialKitchen
 from whitebox_server import SpatialJevClient
 from web_server import GameSession, Handler
 from release_info import release_info
+from model_status import clean as clean_diagnostic, ModelWait
 from feedback import play_export
 from hosted_records import ContributionStore, pilot_record, CONSENT_VERSION
 from hosted_capacity import ActiveKitchens, RequestBudget, NETWORK_FULL
 from hosted_jev import JevForwarder
+from hosted_cloudflare import CloudflareForwarder
+from hosted_free_models import FreeModels, read_trial_keys
+from free_model_client import RegionalFreeModels, FreeGatewayClient, public_error
+from free_model_gateway import GatewayError
 from hosted_usage import UsageStats
 from cooperation_memory import (ROUNDS, EVENTS, CONTEXT_CHARACTERS, DESCRIPTION,
                                 memory_namespace, memory_context, portable_episode, validate_memory_condition,
@@ -52,12 +57,14 @@ class BrowserRelay(SpatialJevClient):
 
     def ask(self, payload):
         task = {'id': secrets.token_urlsafe(24), 'payload': deepcopy(payload),
-                'event': threading.Event(), 'result': None, 'sent': time.monotonic()}
+                'event': threading.Event(), 'result': None, 'failure':None, 'sent': time.monotonic()}
         with self.guard:
             if self.closed: raise RuntimeError('Browser connection closed')
             self.pending = task
         try:
-            if not task['event'].wait(24) or task['result'] is None:
+            completed=task['event'].wait(24)
+            if task.get('failure') is not None:raise task['failure']
+            if not completed or task['result'] is None:
                 raise RuntimeError('Browser model request failed or expired')
             return task['result']
         finally:
@@ -69,6 +76,11 @@ class BrowserRelay(SpatialJevClient):
             task = self.pending
             if not task or task['event'].is_set(): return None
             return {'id': task['id'], 'payload': deepcopy(task['payload'])}
+
+    def mark_failure(self,ident,error):
+        with self.guard:
+            if self.pending and self.pending['id']==ident and not self.pending['event'].is_set():
+                self.pending['failure']=error
 
     def resolve(self, body):
         with self.guard:
@@ -129,6 +141,20 @@ class HostedSession(GameSession):
         self.jev_gate = threading.Lock()
         self.jev_receipts = OrderedDict()  # Sanitized answers/statuses only, never keys.
         self.jev_last_check = float('-inf')
+        self.free_model_provider = None
+        self.free_model_gate = threading.Lock()
+        self.free_model_receipts = OrderedDict()
+        self.free_model_budget_round = None
+        self.free_model_calls = 0
+        self.free_admission_gate = threading.Lock()
+        self.free_owner = secrets.token_urlsafe(24)
+        self.free_model_lease = None
+        self.free_round_ref = None
+        self.free_lease_epoch = None
+        self.free_round_game = None
+        self.free_renew_at = 0
+        self.free_diagnostic_round=None
+        self.free_diagnostics=OrderedDict()
         super().__init__(client_factory=self._client, journal_factory=NullJournal,
                          kitchen_factory=SpatialKitchen, log_prefix='hosted')
         self.history_limit = HOSTED_HISTORY_LIMIT
@@ -136,6 +162,15 @@ class HostedSession(GameSession):
         self.c['ai_max_response_age'] = 15
         self.base_config['ai_max_response_age'] = 15
         self.deployment_mode = 'hosted'
+
+    def record_free_diagnostic(self,ident,diagnostic):
+        with self.lock:
+            if self.free_diagnostic_round!=self.game_id:
+                self.free_diagnostic_round=self.game_id;self.free_diagnostics.clear()
+            if ident not in self.free_diagnostics:
+                self.free_diagnostics[ident]={'attempt':self.ai.calls if self.ai else 0,
+                    'game_seconds':round(self.k.time,3),**clean_diagnostic(diagnostic)}
+            while len(self.free_diagnostics)>256:self.free_diagnostics.popitem(last=False)
 
     def _client(self, config):
         if self.relay: self.relay.close()
@@ -209,6 +244,12 @@ class HostedSession(GameSession):
                                'namespace': memory_namespace(), 'level_id': self.c['level_id'],
                                'max_characters': CONTEXT_CHARACTERS, 'description': DESCRIPTION,
                                'episode': record}
+            state['model_service_status']=None
+            if ai and getattr(ai,'service_wait',None):
+                wait=ai.service_wait
+                state['model_service_status']={**wait['diagnostic'],'message':wait['message'],
+                    'remaining_seconds':None if wait['blocked'] else max(0,round(ai.next_allowed-time.monotonic(),1)),
+                    'waiting':wait['blocked'] or time.monotonic()<ai.next_allowed}
             state['release'] = self.release
             state['hosted'] = {'retention': 'session-only', 'idle_minutes': 10, 'contribution_enabled': self.store is not None,
                                'contributed': self.receipt_round == self.game_id and self.phase == 'ended' and not self.research_error,
@@ -294,12 +335,16 @@ class HostedSession(GameSession):
                     return 503, {'error': '贡献保存失败，请下载本局预览并稍后重试。'}
             return 200, {'receipt':self.receipt}
         if path == '/api/browser-ready':
+            if self.free_admission_gate.locked(): return 409, {'error': '正在申请免费名额，请稍候。'}
             if self.phase not in ('ready', 'ended'): return 409, {'error': '请先结束当前对局。'}
             if type(body.get('connected')) is not bool: return 400, {'error': '连接状态无效。'}
             self.connected = body['connected']
+            self.free_model_provider = None
             return 200, {'ok': True}
         if path in ('/api/start','/api/next') and not self.connected:
             return 428, {'error': '请先在当前浏览器连接模型服务。'}
+        if path in ('/api/start','/api/resume') and self.free_model_provider and not self.free_model_lease:
+            return 503, {'error': '请先取得当前模型的免费厨房名额。'}
         if path == '/api/limits':
             n = body.get('max_calls')
             if self.phase not in ('ready', 'ended'): return 409, {'error': '请先结束当前对局。'}
@@ -369,10 +414,13 @@ class HostedSession(GameSession):
             super().close()
 
 
-# Game fields plus the explicit opt-in Jev route. Never echo invalid bodies.
+# Game fields plus the explicit opt-in Jev and Cloudflare routes. Never echo invalid bodies.
 FIELDS = {
+    '/api/model/free/select': {'provider'},
+    '/api/model/free': {'provider', 'id', 'memory'},
     '/api/usage': {'first_visit', 'first_play'},
     '/api/model/jev': {'api_key','consent','consent_version','test','id','memory'},
+    '/api/model/cloudflare': {'api_key','account_id','model','consent','consent_version','test','id','memory'},
     '/api/contribution/preview': set(),
     '/api/contribution/consent': {'consent', 'consent_version', 'decision_telemetry', 'model_identity'},
     '/api/contribution/save': {'consent', 'consent_version', 'consent_mode', 'model_identity'},
@@ -503,9 +551,9 @@ class Sessions:
 # cocos-kitchen/web-shell.html (tests/test_hosted.py checks this).
 SHELL_REPLACEMENTS = (
     ('默认只在本次服务运行期间使用。记住后以明文保存在这台电脑的本地配置文件；Key 不进入对局日志和试玩包。',
-        '在线版：Key 默认在页面内存中，刷新即清除；主动记住会将 Key 和所选转发方式以明文保存在浏览器 localStorage。浏览器直连时 Key 只发给模型服务；明确勾选 Jev 转发后，Key 和模型请求经试玩服务器发送给 Jev，仅用于处理请求，不写入服务器配置、日志或对局记录。游戏状态经过我们的服务器，自愿贡献数据另见下方说明。'),
+        '在线版：Key 默认在页面内存中，刷新即清除；主动记住会将 Key 和所选转发方式以明文保存在浏览器 localStorage。浏览器直连时 Key 只发给模型服务；明确勾选 Jev 或 Cloudflare 转发后，Key（Cloudflare 还有 Account ID）和模型请求经试玩服务器发送给对应服务，仅用于处理请求，不写入服务器配置、日志或对局记录。游戏状态经过我们的服务器，自愿贡献数据另见下方说明。'),
     ('这间厨房是围绕 Jev 开发的；其他模型也可使用，响应速度和配合方式可能不同。',
-        '默认由浏览器直连模型，需供应商允许跨域访问。Jev 可明确勾选下方服务器转发；跨域失败不会自动改为转发。'),
+        '默认由浏览器直连模型，需供应商允许跨域访问。Jev 可明确勾选下方服务器转发，Cloudflare 只能经服务器转发；跨域失败不会自动改为转发。'),
     ('建议优先选择 Jev', '在线模型连接'),
     ('仅保留到服务关闭', '仅保留到当前页面会话结束'),
     ('本次服务连接测试', '本页面连接测试'),
@@ -513,8 +561,14 @@ SHELL_REPLACEMENTS = (
     ('导出本次游玩的全部数据：从启动游戏起玩过的每一局', '导出本次游玩的数据：从打开本页面起最近 20 局'),
     ('记录保存在本机，旧局片段会随决策请求发送给你选择的模型服务，增加输入 token 和费用。关闭后不读、不保存；中途退出的局不保存。',
         '在线版默认开启，摘要保存在当前浏览器；开局时固定本局使用的旧局摘要，随请求发给所选模型。Jev 转发也会处理这些摘要，但服务器不持久保存。可在这里关闭或清空；中途退出的局不保存。摘要会增加输入 token 和费用。'),
+    # The key form on the hosted page: browser-direct by default, and free models exist.
+    ('使用你自己的 API 账号，调用费用由该账号承担。', 'Key 默认只留在这个页面，由浏览器直接发给服务商；费用记在你的账号上。'),
+    ('申请后选对应的服务填进来即可。', '申请后选对应的服务填进来即可，不占免费模型的名额。'),
+    ('自己申请一个就能填在这里。', '自己申请一个就能填在这里，不占免费模型的名额。'),
+    ('记住此设备（共用电脑请勿勾选）', '记住此设备（Key 以明文保存在这个浏览器）'),
 )
 CONTRIBUTION_SLOT = '<!-- hosted-contribution -->'
+FREE_MODELS_SLOT = '<!-- hosted-free-models -->'
 CONTRIBUTION_BADGE = ('<p id="contribution-badge" role="status" hidden style="position:fixed;left:50%;bottom:8px;'
                       'transform:translateX(-50%);z-index:60;margin:0;padding:3px 10px;background:#2b1a12cc;'
                       'color:#fff;font:12px/16px system-ui,sans-serif;pointer-events:none"></p>')
@@ -528,7 +582,14 @@ def hosted_html(raw):
     panel = (ROOT / 'hosted' / 'contribution.html').read_text()
     # The one-time contribution question sits beside the dialogs, outside Settings.
     consent = (ROOT / 'hosted' / 'consent.html').read_text()
-    page = page.replace('</body>', consent + CONTRIBUTION_BADGE + '</body>', 1)
+    picker = (ROOT / 'hosted' / 'free-model-picker.html').read_text()
+    # Existing regional Nginx serves *.js directly from the web build. Keep this
+    # hosted-only control with its page instead of requiring another proxy rule.
+    picker = picker.replace('<script src="/free-model-picker.js"></script>',
+                            '<script>' + (ROOT / 'hosted' / 'free-model-picker.js').read_text() + '</script>')
+    page = page.replace('</body>', consent + CONTRIBUTION_BADGE + picker + '</body>', 1)
+    # Settings → AI 搭档 lists the same free models; the picker script fills both.
+    page = page.replace(FREE_MODELS_SLOT, (ROOT / 'hosted' / 'free-model-settings.html').read_text(), 1)
     # Newer shells mark a slot in the Export tab; older builds append to the settings dialog.
     page = page.replace(CONTRIBUTION_SLOT, panel, 1) if CONTRIBUTION_SLOT in page else page.replace('</dialog>', panel + '</dialog>', 1)
     return page.encode('utf-8')
@@ -610,6 +671,9 @@ class HostedHTTPServer(ThreadingHTTPServer):
             self.request_slots.release()
 
     def server_close(self):
+        close_free = getattr(getattr(self, 'free_models', None), 'close', None)
+        if close_free:
+            close_free()
         close_usage = getattr(getattr(self, 'usage', None), 'close', None)
         if close_usage:
             close_usage()
@@ -715,6 +779,8 @@ class HostedHandler(Handler):
             game = self.session()
             if not game: return self.reply(401, {'error': '厨房会话已过期，请刷新页面创建新厨房。'})
             if self.limited(): return
+            if path == '/api/model/free/catalog':
+                return self.reply(200, self.server.free_models.catalog())
             with game.lock:
                 if path == '/api/state':
                     state = game.public_state()
@@ -727,6 +793,7 @@ class HostedHandler(Handler):
         file = (root / path.lstrip('/')).resolve()
         if file == root: file = root / 'index.html'
         if path == '/hosted-agent.js': file = ROOT / 'hosted' / 'browser-agent.js'
+        elif path == '/free-model-picker.js': file = ROOT / 'hosted' / 'free-model-picker.js'
         elif not file.is_relative_to(root): return self.reply(404, {'error': '未找到页面或资源。'})
         if not file.is_file() or file.suffix not in ('.html','.js','.json','.css','.png','.jpg','.webp','.ico','.woff','.woff2','.ttf','.mp3','.wasm','.bin','.cconb'):
             return self.reply(404, {'error': '未找到页面或资源。'})
@@ -753,7 +820,7 @@ class HostedHandler(Handler):
             return self.reply(415, {'error': '请求必须使用 JSON 格式。'})
         try:
             length = int(self.headers.get('Content-Length', '0'))
-            if not 0 < length <= (12288 if path == '/api/model/jev' else 8192): raise ValueError()
+            if not 0 < length <= (12288 if path in ('/api/model/jev', '/api/model/cloudflare', '/api/model/free') else 8192): raise ValueError()
             body = json.loads(self.rfile.read(length))
             if not isinstance(body, dict): raise ValueError()
         except (ValueError, OSError): return self.reply(400, {'error': '请求无效。'})
@@ -799,10 +866,24 @@ class HostedHandler(Handler):
                 game.usage_visit_reported |= body['first_visit']
                 game.usage_play_reported |= body['first_play']
             return self.reply(200, {'ok': True})
-        if path == '/api/model/jev':
-            status, result = self.server.jev_forwarder.handle(game,body)
+        if path in ('/api/model/jev', '/api/model/cloudflare'):
+            forwarder = self.server.jev_forwarder if path == '/api/model/jev' else self.server.cloudflare_forwarder
+            status, result = forwarder.handle(game,body)
             return self.reply(status,result)
+        if path == '/api/model/free/select':
+            status, result = self.server.free_models.select(game, body)
+            return self.reply(status, result)
+        if path == '/api/model/free':
+            status, result = self.server.free_models.handle(game, body)
+            return self.reply(status, result)
+        permit, admitted = None, False
         try:
+            if path in ('/api/start', '/api/next', '/api/restart', '/api/resume') and isinstance(self.server.free_models, RegionalFreeModels):
+                try:
+                    permit = self.server.free_models.prepare_start(game, path, body)
+                except GatewayError as error:
+                    status, result = public_error(error)
+                    return self.reply(status, result)
             with game.lock:
                 if path == '/api/model/result':
                     condition = validate_memory_condition(body['memory_condition']) if 'memory_condition' in body else None
@@ -840,25 +921,38 @@ class HostedHandler(Handler):
                         return self.reply(503, {'error':f'你所在的网络已同时开了 {limit} 个厨房，其中一个结束后再试。'})
                 try:
                     status, result = game.command(path, body)
+                    admitted = status < 400
                 finally:
                     self.server.sessions.settle(token, allocated is True, status < 400)
         except (ValueError, TypeError, KeyError, OverflowError):
             return self.reply(400, {'error': '游戏请求无效。'})
+        finally:
+            if permit is not None:
+                self.server.free_models.finish_start(permit, admitted)
+            if isinstance(self.server.free_models, RegionalFreeModels) and path in ('/api/end', '/api/reset', '/api/level', '/api/browser-ready'):
+                self.server.free_models.tick(game)
         self.reply(status, result)
 
 
-def make_server(port, origin, capacity=8, web_root=None, data_dir=None, max_waiting=32, per_network=4, shared_config=None):
+def make_server(port, origin, capacity=8, web_root=None, data_dir=None, max_waiting=32, per_network=4, shared_config=None,
+                free_model_keys=None, free_models_verified=False, default_free_model='startlux', free_model_gateway=False):
     if type(capacity) is not int or not 1 <= capacity <= 16 or type(max_waiting) is not int or not 0 <= max_waiting <= 32:
         raise ValueError('Use 1–16 active kitchens and 0–32 waiting pages.')
     if per_network is not None and (type(per_network) is not int or not 1 <= per_network <= 16):
         raise ValueError('Use 1–16 active kitchens per network.')
     if shared_config is not None and data_dir is None:
         raise ValueError('Shared mode requires a persistent regional usage outbox')
+    # Regional services cannot independently call a shared single-concurrency account.
+    if free_model_keys is not None:
+        raise ValueError('Use the one shared free-model gateway, not regional model credentials')
     client = None
     if shared_config is not None:
         from shared_client import SharedClient
         from shared_server import read_private_json
         client = SharedClient(shared_config if isinstance(shared_config, dict) else read_private_json(shared_config))
+    if free_model_gateway and client is None:
+        raise ValueError('The free-model gateway requires authenticated shared regional configuration')
+    free_models = RegionalFreeModels(FreeGatewayClient(client)) if free_model_gateway else FreeModels()
     server = HostedHTTPServer(('127.0.0.1', port), HostedHandler)
     server.public_origin = origin.rstrip('/')
     # Build identity is immutable for the life of this release, not per page.
@@ -874,6 +968,10 @@ def make_server(port, origin, capacity=8, web_root=None, data_dir=None, max_wait
                                store=store, max_waiting=max_waiting,
                                per_network=per_network, usage=server.usage)
     server.jev_forwarder = JevForwarder()
+    server.cloudflare_forwarder = CloudflareForwarder()
+    server.free_models = free_models
+    if isinstance(free_models, RegionalFreeModels):
+        free_models.start()
     server.web_root = Path(web_root or ROOT / 'cocos-kitchen' / 'build' / 'web')
     if client:
         def running():
@@ -891,6 +989,7 @@ def main():
     p.add_argument('--web-root', type=Path)
     p.add_argument('--data-dir', type=Path, help='Enable opt-in six-month (180-day) contributions in this private directory.')
     p.add_argument('--shared-config', type=Path, help='Private backend data-service configuration; data-dir holds only regional usage in shared mode.')
+    p.add_argument('--free-model-gateway', action='store_true', help='Use the single authenticated Shanghai free-model gateway; disabled by default.')
     p.add_argument('--max-sessions', type=int, choices=range(1,17), default=8, help='Active kitchens, including short pause/result leases.')
     p.add_argument('--max-waiting', type=int, choices=range(0,33), default=32, help='Additional page sessions that cannot consume active slots.')
     p.add_argument('--max-per-network', type=int, choices=range(1,17), default=4,
@@ -902,7 +1001,8 @@ def main():
     if url.path not in ('', '/') or url.query or url.fragment or url.username or not url.netloc:
         p.error('Use an origin, without a path or credentials.')
     server = make_server(args.port, args.origin, args.max_sessions, web_root=args.web_root, data_dir=args.data_dir, max_waiting=args.max_waiting,
-                         per_network=args.max_per_network, shared_config=args.shared_config)
+                         per_network=args.max_per_network, shared_config=args.shared_config,
+                         free_model_gateway=args.free_model_gateway)
     def reap():
         while True:
             time.sleep(30)
@@ -912,7 +1012,7 @@ def main():
     # systemd sends SIGTERM during a normal update. Finish in-memory aggregates as
     # shutdowns, not player exits; shutdown() must run outside serve_forever's thread.
     signal.signal(signal.SIGTERM, lambda *_: threading.Thread(target=server.shutdown, daemon=True).start())
-    print('ChefJeff hosted service ready; persistent credentials and journals disabled.', flush=True)
+    print('ChefJeff hosted service ready; private journals disabled.', flush=True)
     try: server.serve_forever()
     except KeyboardInterrupt: pass
     finally:

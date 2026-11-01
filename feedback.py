@@ -63,8 +63,10 @@ def round_export(session, status):
                     'stale_or_cancelled_responses': ai.stale_count if ai else 0,
                     'game_rule_rejections': ai.rejected_count if ai else 0,
                     'max_calls': ai.call_limit if ai else session.c.get('ai_max_calls', 200),
+                    'deferred_requests':getattr(ai,'deferred_count',0) if ai else 0,
                     'usage': dict(ai.tokens) if ai else {}, 'usage_scope': 'successful_responses_only'},
             'event_counts': dict(Counter(e['kind'] for e in events)),
+            'free_model_diagnostics': [dict(v) for v in getattr(session,'free_diagnostics',{}).values()] if getattr(session,'free_diagnostic_round',None)==session.game_id else [],
             'events': events,
             'bookmarks': deepcopy(session.bookmarks),
             'player_messages': deepcopy(session.player_messages)}

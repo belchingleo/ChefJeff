@@ -1,6 +1,7 @@
 """Player-owned credentials for the local, single-kitchen web demo."""
 import ipaddress
 import json
+import re
 import os
 from pathlib import Path
 import tempfile
@@ -36,6 +37,12 @@ def settings_from(body):
     if not isinstance(key,str) or not 8<=len(key.strip())<=2048 or any(c.isspace() for c in key.strip()):
         raise ValueError('请填写完整的 API Key，不要包含空格或换行。')
     base=body.get('base_url','') if preset.get('custom') else preset.get('endpoint') or preset['base_url']
+    account=body.get('account_id')
+    if preset.get('account_id'):
+        # The provider's address names the player's own account (Cloudflare: 32 hex characters).
+        if not isinstance(account,str) or not re.fullmatch(r'[0-9a-f]{32}',account.strip()):
+            raise ValueError('请填写 32 位的 Account ID（在服务商控制台里可以找到）。')
+        account=account.strip();base=base.replace('{account_id}',account)
     model=(body.get('model') if preset['model_editable'] else None) or preset.get('model','')
     if not isinstance(base,str) or not isinstance(model,str) or not model.strip() or len(model)>120:
         raise ValueError('请填写接口地址和模型名称。')
@@ -51,7 +58,8 @@ def settings_from(body):
     except ValueError:address=None
     if address is not None and not address.is_global:raise ValueError('不支持内网接口地址。')
     if type(body.get('remember',False)) is not bool:raise ValueError('保存选项无效。')
-    return {'provider':provider,'base_url':base,'model':model.strip(),'api_key':key.strip(),'remember':body.get('remember',False)}
+    return {'provider':provider,'base_url':base,'model':model.strip(),'api_key':key.strip(),'remember':body.get('remember',False),
+            **({'account_id':account} if preset.get('account_id') else {})}
 
 
 class CompatibleClient(SpatialJevClient):
@@ -69,7 +77,11 @@ class CompatibleClient(SpatialJevClient):
             {'role':'system','content':'You control the blue chef in a shared kitchen. Using the supplied state and rules, choose exactly one action key from questions.next_action.criteria. Return only a JSON object of the form {"choice": "<action key>", "sprint": <true or false>}, where <action key> is one key of questions.next_action.criteria; include sprint only if questions.sprint is present. Do not explain or choose an action outside the candidate set.'},
             {'role':'user','content':json.dumps({'state':payload['state'],'questions':payload['questions']},ensure_ascii=False)}],
             'max_tokens':128}
-        body.update(PROVIDERS[self.setting['provider']].get('extra',{}))
+        if self.setting['provider']=='zhipu':
+            from model_output import zhipu_system
+            body['messages'][0]['content']=zhipu_system(payload)
+        preset=PROVIDERS[self.setting['provider']]
+        body.update(preset.get('extra',{}));body.update(preset.get('model_extra',{}).get(self.setting['model'],{}))
         req=urllib.request.Request(self.setting['base_url']+'/chat/completions',data=json.dumps(body).encode(),
             headers={'Authorization':'Bearer '+self.key,'Content-Type':'application/json'})
         try:
@@ -144,7 +156,7 @@ class PlayerGameSession(GameSession):
     def connection_state(self):
         s=self.setting or {}
         return {'configured':bool(s),'provider':s.get('provider','jev'),'base_url':s.get('base_url',''),
-                'model':s.get('model',''),'remembered':s.get('remember',False),
+                'model':s.get('model',''),'remembered':s.get('remember',False),'account_id':s.get('account_id',''),
                 'editable':self.phase in ('ready','ended') and not self.connecting}
     def public_state(self):
         with self.lock:

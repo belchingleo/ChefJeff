@@ -4,17 +4,20 @@
   const nativeFetch = window.fetch.bind(window);
   const storageName = 'chefjeff.browser-key.v1';
   const relayConsent = 'jev-relay-2026-10-v1';
+  const cloudflareConsent = 'cloudflare-relay-2026-11-v1';
   window.chefjeffJevRelayAvailable = true;
   // The shared service list (model-providers.js, loaded just before this script); 'none' is local-only.
   const providers = () => Object.fromEntries((window.chefjeffProviders?.providers || [])
     .filter(p => !p.disabled && p.hosted !== 'none').map(p => [p.id, p]));
   let setting = null, state = null, checks = 0, testing = false, openingRound = false;
+  let freeCatalog = {enabled:false,models:[]}, freeCatalogPromise = null, freeAutoPicked = false, freeCatalogAt = -Infinity;
   // Freeze the actual configured ID per round; changing settings after the result
   // must never relabel that round. This map stays in this page, with no endpoint/key.
   let activeRoundModel = null;
   let activeRoundConfig = null; // Browser memory only; never copy this object into telemetry.
   const roundModels = new Map();
-  const configuredModel = () => setting ? {provider:setting.provider, model_id:setting.model} : null;
+  // A free model is recorded under its research service name (record), with its exact model ID.
+  const configuredModel = () => setting ? {provider:setting.record || setting.provider, model_id:setting.model} : null;
   function observeRoundModel(s) {
     if(activeRoundModel && !activeRoundModel.game_id && s.game_id!==activeRoundModel.previous &&
         ['running','paused','ended'].includes(s.phase))activeRoundModel.game_id=s.game_id;
@@ -36,7 +39,8 @@
   });
   const connection = () => ({configured: !!setting, provider: setting?.provider || 'deepseek',
     base_url: setting?.base_url || '', model: setting?.model || '', remembered: !!setting?.remember,
-    jev_relay: setting?.jev_relay === true,
+    jev_relay: setting?.jev_relay === true, account_id: setting?.account_id || '', relay: setting?.relay === true,
+    free_model: setting?.free_model === true, free_models: freeCatalog,
     editable: !testing && !openingRound && (!state || ['ready', 'ended'].includes(state.phase))});
   // Browser-owned, bounded history. No model URL, name, key or visitor identifier
   // is sent to the game server as a scope. Active context is frozen at round start.
@@ -250,8 +254,14 @@
     if (!preset) throw new Error('选择模型服务。');
     const api_key = typeof raw.api_key === 'string' ? raw.api_key.trim() : '';
     if (api_key.length < 8 || api_key.length > 2048 || /\s/.test(api_key)) throw new Error('请输入完整的 API Key。');
-    const base_url = preset.custom ? String(raw.base_url || '').trim().replace(/\/+$/, '').replace(/\/chat\/completions$/, '') :
+    let base_url = preset.custom ? String(raw.base_url || '').trim().replace(/\/+$/, '').replace(/\/chat\/completions$/, '') :
       preset.endpoint || preset.base_url;
+    // The provider's address names the player's own account (Cloudflare: 32 hex characters).
+    const account_id = preset.account_id ? String(raw.account_id || '').trim() : '';
+    if (preset.account_id) {
+      if (!/^[0-9a-f]{32}$/.test(account_id)) throw new Error('请填写 32 位的 Account ID（在服务商控制台里可以找到）。');
+      base_url = base_url.replace('{account_id}', account_id);
+    }
     let u;try {u = new URL(base_url);} catch (_) {throw new Error('接口地址无效，请填写完整的 HTTPS 地址。');}
     if (u.protocol !== 'https:' || u.origin === location.origin || u.username || u.password || u.search || u.hash ||
         u.hostname === 'localhost' || /\.(local|localhost|internal)$/.test(u.hostname) ||
@@ -259,8 +269,12 @@
     const model = (preset.model_editable && String(raw.model || '').trim()) || preset.model || '';
     if (!model || model.length > 120) throw new Error('请输入服务商提供的模型名称。');
     if (raw.jev_relay === true && provider !== 'jev') throw new Error('服务器转发仅适用于 Jev。');
+    // Cloudflare refuses browser requests, so online it only runs through the demo server, with consent.
+    const relay = preset.hosted === 'relay' && provider !== 'jev';
+    if (relay && raw.relay !== true) throw new Error('请先同意通过试玩服务器调用 Cloudflare。');
+    if (relay && !(preset.relay_models || []).includes(model)) throw new Error('在线转发只支持 Gemma 4 26B 和 Llama 3.1 8B。');
     return {provider, base_url, model, api_key, remember: raw.remember === true,
-      jev_relay: provider === 'jev' && raw.jev_relay === true};
+      jev_relay: provider === 'jev' && raw.jev_relay === true, ...(account_id ? {account_id} : {}), ...(relay ? {relay} : {})};
   }
   try {
     const saved = JSON.parse(localStorage.getItem(storageName) || 'null');
@@ -292,20 +306,34 @@
     const memory=payload.state?.rules && activeMemory?.game_id===state?.game_id ? activeMemory.context:null;
     if(memory)payload={...payload,state:{...payload.state,past_episodes:clone(memory)}};
     const controller = new AbortController(), started = performance.now();
-    const timer = setTimeout(() => controller.abort(), config.jev_relay ? 23000 : 20000);
+    const timer = setTimeout(() => controller.abort(), config.jev_relay || config.relay ? 23000 : 20000);
     const abort = () => controller.abort();
     outerSignal?.addEventListener('abort', abort, {once:true});
     if (outerSignal?.aborted) controller.abort();
-    if (config.jev_relay) {
+    if (config.free_model) {
+      try {
+        const r = await serverFetch('/api/model/free', {method:'POST',mode:'cors',
+          credentials:'omit',redirect:'error',signal:controller.signal,
+          headers:{'Content-Type':'application/json'},body:JSON.stringify({
+            game_id:relayContext.game_id,id:relayContext.id,provider:config.provider,...(memory?{memory}:{})})});
+        const d=await r.json();
+        if(!r.ok)throw new Error(d.error||'免费模型暂不可用。');
+        return d.answer;
+      } finally {clearTimeout(timer);outerSignal?.removeEventListener('abort',abort);}
+    }
+    if (config.jev_relay || config.relay) {
+      const route = config.relay ? '/api/model/cloudflare' : '/api/model/jev', vendor = config.relay ? 'Cloudflare' : 'Jev';
       try {
         // mode 'cors' like every other game request: with the page's no-referrer policy, a POST in
         // 'same-origin' mode carries "Origin: null" (Fetch spec; Safari follows it), which the server rejects.
-        const r = await serverFetch('/api/model/jev', {method:'POST',mode:'cors',
+        const r = await serverFetch(route, {method:'POST',mode:'cors',
           credentials:'omit',redirect:'error',signal:controller.signal,
           headers:{'Content-Type':'application/json'},body:JSON.stringify({
-            ...relayContext, ...(memory?{memory}:{}), api_key:config.api_key, consent:true, consent_version:relayConsent})});
+            ...relayContext, ...(memory?{memory}:{}), api_key:config.api_key, consent:true,
+            ...(config.relay ? {account_id:config.account_id, model:config.model, consent_version:cloudflareConsent} :
+              {consent_version:relayConsent})})});
         const d = await r.json();
-        if (!r.ok) throw new Error(d.error || 'Jev 转发连接失败。');
+        if (!r.ok) throw new Error(d.error || vendor + ' 转发连接失败。');
         return d.answer;
       } catch (e) {
         if (e.name === 'AbortError') throw new Error('模型请求超时或已取消。');
@@ -323,6 +351,7 @@
         {role:'user', content:JSON.stringify({state:payload.state, questions:payload.questions})},
       ]};
       endpoint = config.base_url + '/chat/completions';
+      if(config.provider==='zhipu')body.messages[0].content=zhipuSystem(payload);
     }
     Object.assign(body, preset.extra || {});
     try {
@@ -375,7 +404,25 @@
     return hint ? hint + '（' + text + '）' : '连接失败（' + text + '）';
   }
   function boundedCount(n) {return Number.isInteger(n) && n >= 0 && n <= 10000000 ? n : 0;}
-  async function markReady(connected, body) {
+  function zhipuSystem(payload) {
+    const properties={choice:{type:'string',enum:Object.keys(payload.questions.next_action.criteria)}};
+    const required=['choice'];
+    if('sprint' in payload.questions){properties.sprint={type:'boolean'};required.push('sprint');}
+    const schema={type:'object',properties,required,additionalProperties:false};
+    return 'You control chef jeff in a shared kitchen. Using the supplied state and rules, '+
+      'choose exactly one action key from questions.next_action.criteria. '+
+      'Return only one JSON object matching the following JSON Schema. '+
+      'The choice must be an offered action key, not its description. '+
+      'When questions.sprint is present, decide between its yes/no options but encode '+
+      'sprint as the JSON boolean true for yes or false for no. '+
+      'Never encode sprint as a string, number or null. '+
+      'When questions.sprint is absent, omit sprint. Do not explain or add other fields. '+
+      'JSON Schema: '+JSON.stringify(schema);
+  }
+  async function markReady(connected, body, config=setting) {
+    if(connected && config?.free_model)return serverFetch('/api/model/free/select', {method:'POST',
+      headers:{'Content-Type':'application/json'},body:JSON.stringify({game_id:body.game_id,
+        request_id:crypto.randomUUID(),provider:config.provider})});
     return serverFetch('/api/browser-ready', {method:'POST', headers:{'Content-Type':'application/json'},
       body:JSON.stringify({game_id:body.game_id, request_id:crypto.randomUUID(), connected})});
   }
@@ -383,19 +430,32 @@
     if (!connection().editable) return response(409, {error:'请结束本局后再更换 API。'});
     testing = true;
     try {
+      freeAutoPicked=true;
       if (body.clear) {
         const r = await markReady(false, body); if (!r.ok) return r;
         setting = null;activeRoundConfig = null;
         try {localStorage.removeItem(storageName);} catch (_) {}
       } else {
-        const candidate = validate(body);
-        checks++;
-        await modelRequest(candidate, {state:{connection_test:true}, questions:{next_action:{type:'choice',
-          // Two options, as in the local game: a decision service may refuse a one-option question.
-          instructions:'Choose ready and return the required format.', criteria:{ready:'Connection ready',wait:'Not ready yet'}}}}, signal,
-          {game_id:body.game_id,request_id:crypto.randomUUID(),test:true});
-        if (signal?.aborted) throw new Error('连接测试已取消。');
-        const r = await markReady(true, body); if (!r.ok) return r;
+        let candidate;
+        if(Object.hasOwn(body,'free_provider')) {
+          const selected=freeCatalog.enabled && freeCatalog.models.find(m=>m.provider===body.free_provider);
+          if(!selected)throw new Error('请选择开放的免费模型。');
+          candidate={provider:selected.provider,record:selected.record ?? selected.provider,model:selected.model,free_model:true,
+            base_url:location.origin+'/api/model/free',remember:false};
+          const r=await serverFetch('/api/model/free/select',{method:'POST',signal,
+            headers:{'Content-Type':'application/json'},body:JSON.stringify({game_id:body.game_id,
+              request_id:crypto.randomUUID(),provider:candidate.provider})});
+          if(!r.ok)return r;
+        } else {
+          candidate = validate(body);
+          checks++;
+          await modelRequest(candidate, {state:{connection_test:true}, questions:{next_action:{type:'choice',
+            // Two options, as in the local game: a decision service may refuse a one-option question.
+            instructions:'Choose ready and return the required format.', criteria:{ready:'Connection ready',wait:'Not ready yet'}}}}, signal,
+            {game_id:body.game_id,request_id:crypto.randomUUID(),test:true});
+          if (signal?.aborted) throw new Error('连接测试已取消。');
+          const r = await markReady(true, body, candidate); if (!r.ok) return r;
+        }
         // Remove any older remembered key even when the new choice is memory-only.
         try {
           localStorage.removeItem(storageName);
@@ -406,6 +466,32 @@
       return response(200, {ok:true, connection:{...connection(), editable:true}});
     } catch (e) {return response(400, {error:e.message});}
     finally {testing = false;}
+  }
+
+  async function prepareFreeModels(s) {
+    if(['ready','ended'].includes(s.phase) && performance.now()-freeCatalogAt>=3000)freeCatalogPromise=null;
+    if(!freeCatalogPromise)freeCatalogPromise=(async()=>{
+      try {
+        const r=await serverFetch('/api/model/free/catalog');const d=await r.json();
+        // Whatever fixed models the server enables, each named once and recorded under a known service.
+        const services=new Set((window.chefjeffProviders?.providers||[]).map(p=>p.id));
+        const fine=m=>m && typeof m.name==='string' && typeof m.platform==='string' &&
+          typeof m.provider==='string' && /^[a-z0-9-]{1,40}$/.test(m.provider) &&
+          typeof m.model==='string' && m.model.length>0 && m.model.length<=120 && services.has(m.record ?? m.provider);
+        if(r.ok && d.enabled===true && Array.isArray(d.models) && d.models.length>0 && d.models.length<=16 &&
+           d.models.every(fine) && new Set(d.models.map(m=>m.provider)).size===d.models.length &&
+           d.models.some(m=>m.provider===d.default))freeCatalog=d;
+      } catch (_) { /* Own-key connections remain available when trials are disabled. */ }
+      finally {freeCatalogAt=performance.now();}
+    })();
+    await freeCatalogPromise;
+    if(!freeAutoPicked && freeCatalog.enabled) {
+      freeAutoPicked=true;
+      if(!setting && ['ready','ended'].includes(s.phase)) {
+        state=s;
+        await configure({game_id:s.game_id,free_provider:freeCatalog.default});
+      }
+    }
   }
 
   const STATE_REPLIES = new Set(['/api/interact', '/api/throw', '/api/action']);
@@ -468,12 +554,12 @@
       if (!result.ok || (url.pathname !== '/api/state' && !STATE_REPLIES.has(url.pathname))) return result;
       // Gameplay replies carry the resulting state; both get this page's connection details.
       // Also this browser's contribution answer: the result card offers 贡献本局 after 暂不.
-      const withConnection = d => {observeRoundModel(d);observeMemory(d);if(d.hosted?.contribution_receipt)rememberReceipt(d.hosted.contribution_receipt);state = d;queueUsage(d.phase === 'running');d.connection = connection();d.limits.connection_checks = checks;
+      const withConnection = d => {observeRoundModel(d);observeMemory(d);if(d.hosted?.contribution_receipt)rememberReceipt(d.hosted.contribution_receipt);state = d;showModelServiceStatus(d);queueUsage(d.phase === 'running');d.connection = connection();d.limits.connection_checks = checks;
         if (d.hosted) Object.assign(d.hosted, {contribution_offer: !!d.hosted.contribution_enabled && choice?.answer === 'later',
           contribution_busy: busyRound === d.game_id});
         return d;};
       const d = await result.json();
-      if (url.pathname === '/api/state') return response(200, withConnection(d));
+      if (url.pathname === '/api/state') {await prepareFreeModels(d);return response(200, withConnection(d));}
       if (d.state) d.state = withConnection(d.state);
       return response(200, d);
     } catch (_) {return response(503, {error:transportError || '厨房连接不可用，请刷新页面重新连接。'});}
@@ -490,6 +576,18 @@
       const d = await r.json();if (!r.ok) throw new Error(d.error || '厨房请求失败。');return d;
     } finally {clearTimeout(timer);}
   };
+
+  function showModelServiceStatus(d) {
+    const label=document.getElementById('api-message'),status=d.model_service_status;
+    if(!label?.dataset)return;
+    if(d.phase==='running' && status?.message) {
+      const seconds=Number(status.remaining_seconds);
+      const suffix=status.blocked?'':status.waiting && Number.isFinite(seconds)?` 剩余 ${Math.ceil(seconds)} 秒。`:' 正在重新请求。';
+      label.textContent=status.message+suffix;label.className='error';label.dataset.modelServiceStatus='true';
+    } else if(label.dataset.modelServiceStatus==='true') {
+      label.textContent='';label.className='';delete label.dataset.modelServiceStatus;
+    }
+  }
 
   async function poll() {
     try {
@@ -584,7 +682,7 @@
     const s=shown||state,round=s?.game_id;
     if(s?.phase!=='ended'||!s.hosted?.contribution_enabled||s.hosted.contributed||busyRound===round)return;
     pendingContribution=pendingContribution.catch(()=>{}).then(()=>contribute('round',round))
-      .then(()=>report(round,'本局已贡献，保存半年（180 天）。删除凭证在「设置 → 数据导出」。'))
+      .then(()=>report(round,'本局已贡献，保存半年（180 天）。删除凭证在「设置 → 数据与贡献」。'))
       .catch(error=>report(round,'贡献失败：'+error.message));
   }
   window.addEventListener('kitchen-contribute', contributeRound);
