@@ -11,7 +11,7 @@
 #free-model-list .name{font:17px/24px var(--pixel)}
 #free-model-list .detail{font-size:13px;line-height:18px;color:var(--muted,#6e4e38)}
 #free-model-list .status{font-size:13px;white-space:nowrap}
-#free-model-list .open{color:var(--herb,#3c7a2a)}#free-model-list .full{color:#a8520e}#free-model-list .off{color:var(--muted,#6e4e38)}
+#free-model-list .open{color:var(--herb,#3c7a2a)}#free-model-list .full{color:#a8520e}#free-model-list .off,#free-model-list .spent{color:var(--muted,#6e4e38)}
 .free-note{font-size:13px;line-height:20px;color:var(--muted,#6e4e38);margin:0 0 10px}
 #free-model-limits ul{margin:0 0 12px;padding-left:20px;display:flex;flex-direction:column;gap:6px}
 /* The same list inside Settings → AI 搭档: one choice per catalog model, two per row. */
@@ -23,7 +23,7 @@
 .free-choices button:hover:not(:disabled){background:var(--honey-tint,#fbe3b8)}
 .free-choices button:disabled{opacity:.55;cursor:default}
 .free-choices .status{margin-left:auto;font-size:13px;white-space:nowrap}
-.free-choices .open{color:var(--herb,#3c7a2a)}.free-choices .full{color:#a8520e}.free-choices .off{color:var(--muted,#6e4e38)}
+.free-choices .open{color:var(--herb,#3c7a2a)}.free-choices .full{color:#a8520e}.free-choices .off,.free-choices .spent{color:var(--muted,#6e4e38)}
 .free-limits-box strong{display:block;margin-bottom:4px;font-size:16px;font-weight:400}
 .free-limits-box ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:2px}
 @media (max-width:760px){.free-choices{grid-template-columns:1fr}}
@@ -46,7 +46,7 @@
    <li>名额满了不排队：可以稍后再试，或者换另一个免费模型。</li>
    <li>不想等名额，可以自己去智谱、Bamboo 等平台申请免费的 API Key，填在“自定义模型”里使用。这样不占这里的名额，限额按你在服务商那边的账号算。</li>
    <li class="free-limits-round">每局最多向模型请求 200 次，没成功的请求也算在内。</li>
-   <li>全站每小时、每天的免费请求总数也有上限，用完后要等额度恢复。</li>
+   <li>全站每小时、每天的免费请求总数也有上限。某个模型今天的额度用完后，会显示“今日额度已用完”，第二天恢复。</li>
    <li>开局时固定本局的模型，结算后才能换。</li>
   </ul>
  </div>

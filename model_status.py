@@ -4,8 +4,10 @@ import time
 
 CODES=frozenset(('ok','upstream_rate_limited','upstream_overloaded','upstream_authentication',
  'upstream_http_error','invalid_response','transport_uncertain','model_mismatch','upstream_failed',
- 'upstream_blocked','upstream_cooldown','call_budget','round_budget','budget_unavailable',
+ 'upstream_blocked','upstream_cooldown','call_budget','daily_budget','call_pacing','round_budget','budget_unavailable',
  'seat_busy','request_busy','lease_lost','round_changed','gateway_unavailable'))
+# The fixed free-model names (hosted_free_models.MODELS); a diagnostic never carries any other text.
+FREE_PROVIDERS=frozenset(('zhipu','startlux','gemini','cloudflare-gemma','cloudflare-llama'))
 FORMAT_ERRORS=frozenset(('invalid_json','invalid_action','invalid_sprint','invalid_usage','unknown'))
 
 
@@ -13,7 +15,7 @@ def clean(value):
     if not isinstance(value,dict):return {}
     out={}
     if isinstance(value.get('code'),str) and value['code'] in CODES:out['code']=value['code']
-    if isinstance(value.get('provider'),str) and value['provider'] in ('zhipu','startlux'):out['provider']=value['provider']
+    if isinstance(value.get('provider'),str) and value['provider'] in FREE_PROVIDERS:out['provider']=value['provider']
     for key in ('upstream_called','blocked','diagnostics_saved'):
         if type(value.get(key)) is bool:out[key]=value[key]
     for key,low,high in [('upstream_http_status',100,599),('provider_error_code',0,99999999),
@@ -50,7 +52,7 @@ def response_issue(raw,payload,provider):
     import json,re
     try:
         data=json.loads(raw)
-        if provider=='zhipu':
+        if provider!='startlux':
             content=data['choices'][0]['message']['content']
             if not isinstance(content,str):return 'invalid_json'
             a=json.loads(re.sub(r'\s*```$','',re.sub(r'^```(?:json)?\s*','',content.strip())))

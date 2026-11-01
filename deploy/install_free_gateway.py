@@ -108,7 +108,7 @@ def verify(work):
     client = FreeGatewayClient(shared, gateway_url='http://127.0.0.1:8798')
     catalog = client.request('catalog',{})
     if catalog.get('enabled') is not True or set(catalog.get('global_capacity',{})) != {'zhipu','startlux'}:
-        raise ValueError('Gateway catalog verification failed')
+        raise ValueError('Gateway catalog verification failed')  # a first install enables the original two only
     if any(catalog['global_capacity'][provider].get('limit') != 1 for provider in ('zhipu','startlux')):
         raise ValueError('Unexpected global model capacity')
     if pids() != state['pids']:raise ValueError('An existing game/data/admin process changed')

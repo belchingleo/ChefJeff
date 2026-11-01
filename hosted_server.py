@@ -28,6 +28,7 @@ from feedback import play_export
 from hosted_records import ContributionStore, pilot_record, CONSENT_VERSION
 from hosted_capacity import ActiveKitchens, RequestBudget, NETWORK_FULL
 from hosted_jev import JevForwarder
+from hosted_cloudflare import CloudflareForwarder
 from hosted_free_models import FreeModels, read_trial_keys
 from free_model_client import RegionalFreeModels, FreeGatewayClient, public_error
 from free_model_gateway import GatewayError
@@ -413,12 +414,13 @@ class HostedSession(GameSession):
             super().close()
 
 
-# Game fields plus the explicit opt-in Jev route. Never echo invalid bodies.
+# Game fields plus the explicit opt-in Jev and Cloudflare routes. Never echo invalid bodies.
 FIELDS = {
     '/api/model/free/select': {'provider'},
     '/api/model/free': {'provider', 'id', 'memory'},
     '/api/usage': {'first_visit', 'first_play'},
     '/api/model/jev': {'api_key','consent','consent_version','test','id','memory'},
+    '/api/model/cloudflare': {'api_key','account_id','model','consent','consent_version','test','id','memory'},
     '/api/contribution/preview': set(),
     '/api/contribution/consent': {'consent', 'consent_version', 'decision_telemetry', 'model_identity'},
     '/api/contribution/save': {'consent', 'consent_version', 'consent_mode', 'model_identity'},
@@ -549,9 +551,9 @@ class Sessions:
 # cocos-kitchen/web-shell.html (tests/test_hosted.py checks this).
 SHELL_REPLACEMENTS = (
     ('默认只在本次服务运行期间使用。记住后以明文保存在这台电脑的本地配置文件；Key 不进入对局日志和试玩包。',
-        '在线版：Key 默认在页面内存中，刷新即清除；主动记住会将 Key 和所选转发方式以明文保存在浏览器 localStorage。浏览器直连时 Key 只发给模型服务；明确勾选 Jev 转发后，Key 和模型请求经试玩服务器发送给 Jev，仅用于处理请求，不写入服务器配置、日志或对局记录。游戏状态经过我们的服务器，自愿贡献数据另见下方说明。'),
+        '在线版：Key 默认在页面内存中，刷新即清除；主动记住会将 Key 和所选转发方式以明文保存在浏览器 localStorage。浏览器直连时 Key 只发给模型服务；明确勾选 Jev 或 Cloudflare 转发后，Key（Cloudflare 还有 Account ID）和模型请求经试玩服务器发送给对应服务，仅用于处理请求，不写入服务器配置、日志或对局记录。游戏状态经过我们的服务器，自愿贡献数据另见下方说明。'),
     ('这间厨房是围绕 Jev 开发的；其他模型也可使用，响应速度和配合方式可能不同。',
-        '默认由浏览器直连模型，需供应商允许跨域访问。Jev 可明确勾选下方服务器转发；跨域失败不会自动改为转发。'),
+        '默认由浏览器直连模型，需供应商允许跨域访问。Jev 可明确勾选下方服务器转发，Cloudflare 只能经服务器转发；跨域失败不会自动改为转发。'),
     ('建议优先选择 Jev', '在线模型连接'),
     ('仅保留到服务关闭', '仅保留到当前页面会话结束'),
     ('本次服务连接测试', '本页面连接测试'),
@@ -818,7 +820,7 @@ class HostedHandler(Handler):
             return self.reply(415, {'error': '请求必须使用 JSON 格式。'})
         try:
             length = int(self.headers.get('Content-Length', '0'))
-            if not 0 < length <= (12288 if path in ('/api/model/jev', '/api/model/free') else 8192): raise ValueError()
+            if not 0 < length <= (12288 if path in ('/api/model/jev', '/api/model/cloudflare', '/api/model/free') else 8192): raise ValueError()
             body = json.loads(self.rfile.read(length))
             if not isinstance(body, dict): raise ValueError()
         except (ValueError, OSError): return self.reply(400, {'error': '请求无效。'})
@@ -864,8 +866,9 @@ class HostedHandler(Handler):
                 game.usage_visit_reported |= body['first_visit']
                 game.usage_play_reported |= body['first_play']
             return self.reply(200, {'ok': True})
-        if path == '/api/model/jev':
-            status, result = self.server.jev_forwarder.handle(game,body)
+        if path in ('/api/model/jev', '/api/model/cloudflare'):
+            forwarder = self.server.jev_forwarder if path == '/api/model/jev' else self.server.cloudflare_forwarder
+            status, result = forwarder.handle(game,body)
             return self.reply(status,result)
         if path == '/api/model/free/select':
             status, result = self.server.free_models.select(game, body)
@@ -965,6 +968,7 @@ def make_server(port, origin, capacity=8, web_root=None, data_dir=None, max_wait
                                store=store, max_waiting=max_waiting,
                                per_network=per_network, usage=server.usage)
     server.jev_forwarder = JevForwarder()
+    server.cloudflare_forwarder = CloudflareForwarder()
     server.free_models = free_models
     if isinstance(free_models, RegionalFreeModels):
         free_models.start()

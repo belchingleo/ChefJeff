@@ -36,7 +36,12 @@ def data_candidate(text):
     return text.replace('    location /v1/ {', INCLUDE+'    location /v1/ {', 1)
 
 
-def gateway_unit(release):
+# The later free models: their own private key file, enabled only by an explicit, reviewed unit.
+EXTRA_KEYS = '/etc/chefjeff-free/extra-model-keys.json'
+EXTRA_FLAGS = ' --extra-keys-file ' + EXTRA_KEYS + ' --extra-models-verified'
+
+
+def gateway_unit(release, extra_models=False):
     path = Path(release)
     if not path.is_absolute() or not re.fullmatch(r'/opt/chefjeff/releases/[a-z0-9-]+/chefjeff-web-demo', str(path)):
         raise ValueError('Use a staged, immutable game release')
@@ -49,7 +54,7 @@ Wants=network-online.target
 User=chefjeff-free
 Group=chefjeff-free
 WorkingDirectory=RELEASE
-ExecStart=/usr/bin/python3 RELEASE/free_model_gateway.py serve --port 8798 --state-dir /var/lib/chefjeff-free --keys-file /etc/chefjeff-free/model-keys.json --site-credentials /etc/chefjeff-free/sites.json --models-verified
+ExecStart=/usr/bin/python3 RELEASE/free_model_gateway.py serve --port 8798 --state-dir /var/lib/chefjeff-free --keys-file /etc/chefjeff-free/model-keys.json --site-credentials /etc/chefjeff-free/sites.json --models-verifiedEXTRA
 Environment=PYTHONDONTWRITEBYTECODE=1
 Restart=on-failure
 RestartSec=5
@@ -66,4 +71,4 @@ TasksMax=48
 
 [Install]
 WantedBy=multi-user.target
-'''.replace('RELEASE', str(path))
+'''.replace('RELEASE', str(path)).replace('EXTRA', EXTRA_FLAGS if extra_models else '')

@@ -7,10 +7,11 @@ from pathlib import Path
 import sys
 import time
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from deploy.free_gateway_config import gateway_unit
+from deploy.free_gateway_config import EXTRA_KEYS, gateway_unit
 from deploy.free_install_common import atomic, digest, load, property_of, public_release, run, save, work_path
 from deploy.install_free_region import validate_import
 from free_model_client import FreeGatewayClient
+from hosted_free_models import MODELS, ORIGINAL, read_extra_keys
 from shared_client import SharedClient
 from shared_server import read_private_json
 
@@ -30,7 +31,13 @@ def client():
     return FreeGatewayClient(shared,gateway_url='http://127.0.0.1:8798')
 
 
-def prepare(release,manifest_sha,work):
+def capacity_ok(catalog):
+    """The original two always, any later model only if the code knows it, one global seat each."""
+    rows=catalog.get('global_capacity',{})
+    return set(ORIGINAL)<=set(rows)<=set(MODELS) and all(row.get('limit')==1 for row in rows.values())
+
+
+def prepare(release,manifest_sha,work,extra_models=False):
     if (work/'state.json').exists():
         state=load(work)
         if state['release']!=str(release) or state['manifest_sha']!=manifest_sha:raise ValueError('Different prepared upgrade')
@@ -41,12 +48,14 @@ def prepare(release,manifest_sha,work):
     if property_of(UNIT_NAME,'ActiveState')!='active':raise ValueError('Existing gateway is not active')
     _,manifest=public_release(release,manifest_sha)
     validate_import(release,manifest['release']['fingerprint'])
+    # Validated, never printed: the later models' file must exist before the unit names it.
+    later=sorted(read_extra_keys(EXTRA_KEYS,allow_root_import=True)) if extra_models else []
     atomic(work/'gateway.before.service',UNIT.read_bytes(),0o644)
-    atomic(work/'gateway.candidate.service',gateway_unit(release).encode(),0o644)
-    save(work,{'phase':'prepared','release':str(release),'manifest_sha':manifest_sha,
+    atomic(work/'gateway.candidate.service',gateway_unit(release,extra_models).encode(),0o644)
+    save(work,{'phase':'prepared','release':str(release),'manifest_sha':manifest_sha,'later_models':later,
         'previous_unit_sha':digest(UNIT),'candidate_unit_sha':digest(work/'gateway.candidate.service')})
     print(json.dumps({'status':'gateway-upgrade-prepared','review_directory':str(work),
-        'old_code':str(PREVIOUS),'new_code':str(release),'services_restarted':False,
+        'old_code':str(PREVIOUS),'new_code':str(release),'later_models':later,'services_restarted':False,
         'credentials_changed':False,'budget_opened':False,'player_databases_opened':False,
         'api_requests_sent':0,'activation_restarts':[UNIT_NAME]},indent=2))
 
@@ -62,8 +71,8 @@ def verify(work):
     catalog=status['catalog']
     if catalog.get('enabled') is not True or catalog.get('diagnostics_version')!=1:
         raise ValueError('Gateway diagnostics unavailable')
-    if set(catalog.get('global_capacity',{}))!={'zhipu','startlux'} or any(
-            row.get('limit')!=1 for row in catalog['global_capacity'].values()):raise ValueError('Unexpected capacity')
+    if not capacity_ok(catalog) or set(catalog['global_capacity'])!=set(ORIGINAL)|set(state.get('later_models',[])):
+        raise ValueError('Unexpected capacity')
     print(json.dumps({'status':'gateway-diagnostics-upgrade-verified','release':state['release'],
         'process_started_after_switch':True,'diagnostics_version':1,'both_global_seat_limits':1,
         'credentials_changed':False,'budget_reset':False,'nginx_changed':False,
@@ -111,10 +120,11 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('operation',choices=('prepare','activate','verify','rollback'))
     parser.add_argument('--release',type=Path,required=True);parser.add_argument('--manifest-sha',required=True)
-    parser.add_argument('--allow-round-end',action='store_true');args=parser.parse_args()
+    parser.add_argument('--allow-round-end',action='store_true')
+    parser.add_argument('--extra-models',action='store_true',help='also enable the later models in '+EXTRA_KEYS);args=parser.parse_args()
     if os.geteuid()!=0:parser.error('Run the reviewed command with sudo')
     release,_=public_release(args.release,args.manifest_sha);work=work_path('gateway-upgrade',args.manifest_sha)
-    if args.operation=='prepare':prepare(release,args.manifest_sha,work)
+    if args.operation=='prepare':prepare(release,args.manifest_sha,work,args.extra_models)
     elif args.operation=='activate':activate(work,args.allow_round_end)
     elif args.operation=='verify':verify(work)
     else:

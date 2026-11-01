@@ -22,6 +22,8 @@ ERRORS = {
     'upstream_blocked': '所选免费模型暂不可用，恢复确认后才能继续提供试玩。',
     'upstream_cooldown': '所选免费模型正在冷却，请稍后再试。',
     'call_budget': '免费试玩调用预算已用完，请稍后再来或使用自己的模型。',
+    'daily_budget': '这个免费模型今天的额度已经用完，明天再来，或换一个模型。',
+    'call_pacing': '这个免费模型每分钟能请求的次数有限，Jeff 会慢一点。',
     'round_budget': '本局免费模型调用已达 200 次上限。',
     'budget_unavailable': '免费试玩预算服务暂不可用，本次未发起模型请求。',
 }
@@ -111,10 +113,11 @@ class RegionalFreeModels:
             try:
                 value = self.client.request('catalog', {})
                 models = value['models']
-                if (value.get('enabled') is not True or not isinstance(models, list) or len(models) != 2
-                        or {m.get('provider') for m in models} != set(MODELS)
-                        or any(m.get('model') != MODELS[m['provider']]['model'] for m in models)
-                        or value.get('default') not in MODELS):
+                # Any operator-enabled subset of the fixed models, each with its fixed ID.
+                providers = [m.get('provider') for m in models] if isinstance(models, list) else []
+                if (value.get('enabled') is not True or not models or len(set(providers)) != len(models)
+                        or any(p not in MODELS or m.get('model') != MODELS[p]['model'] for p, m in zip(providers, models))
+                        or value.get('default') not in providers):
                     raise ValueError()
                 value.pop('epoch', None)  # Generation is private control metadata, not player telemetry.
                 value['gateway_available'] = True
@@ -122,8 +125,8 @@ class RegionalFreeModels:
             except (GatewayError, ValueError, TypeError, KeyError):
                 self.cached_catalog = {**self.cached_catalog, 'gateway_available': False}
                 if self.cached_catalog.get('enabled'):
-                    self.cached_catalog['global_capacity'] = {p: {'used': 0, 'limit': 1, 'available': False,
-                        'reason': 'gateway_unavailable'} for p in MODELS}
+                    self.cached_catalog['global_capacity'] = {m['provider']: {'used': 0, 'limit': 1, 'available': False,
+                        'reason': 'gateway_unavailable'} for m in self.cached_catalog.get('models', [])}
             self.catalog_time = self.clock()
             return deepcopy(self.cached_catalog)
 
@@ -132,7 +135,7 @@ class RegionalFreeModels:
         catalog = self.catalog()
         if not catalog.get('gateway_available'):
             return public_error(GatewayError(503, 'gateway_unavailable'))
-        if not isinstance(provider, str) or provider not in MODELS:
+        if not isinstance(provider, str) or provider not in {m['provider'] for m in catalog.get('models', [])}:
             return 400, {'error': '请选择开放的免费模型。'}
         if not game.free_admission_gate.acquire(blocking=False):
             return 409, {'error': '正在申请免费名额，请稍候。'}

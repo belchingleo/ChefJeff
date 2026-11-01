@@ -32,6 +32,7 @@ function harness(saved=null, fail=false, gameState={game_id:'round',phase:'ready
   if(u.pathname==='/api/model/free')return new Response(JSON.stringify({answer:{choice:'wait',sprint:false,usage:{input_tokens:3,output_tokens:0}}}));
   if(u.pathname==='/api/interact')return new Response(JSON.stringify({ok:true,state:JSON.parse(JSON.stringify(gameState))}));
   if(u.pathname==='/api/model/jev')return new Response(JSON.stringify({answer:{choice:'wait',sprint:false,usage:{input_tokens:3,output_tokens:4}}}));
+  if(u.pathname==='/api/model/cloudflare')return new Response(JSON.stringify({answer:{choice:'wait',sprint:false,usage:{input_tokens:3,output_tokens:1}}}));
   if(u.pathname==='/api/contribution/save')return new Response(JSON.stringify({receipt:{id:'synthetic-record',deletion_token:'synthetic-receipt',expires_at:'2099-01-01T00:00:00Z'}}));
   return new Response('{"ok":true}');
  };
@@ -197,6 +198,43 @@ async function checkFreeModels(){
   assert(!h.calls.slice(start).some(c=>c.url==='/api/model/free/select'));
  }finally{freeCatalogOverride=null;modelTask=null;}
  console.log('Free models: no-key defaults, one-click pre-round selection, locked rounds, model identity and own-key restoration passed.');
+}
+
+async function checkLaterModels(){
+ freeCatalogOverride={enabled:true,default:'startlux',models:[
+  {provider:'startlux',model:'startlux-decision-27b-autothink',name:'StartLux',platform:'Bamboo Relay',record:'startlux'},
+  {provider:'gemini',model:'gemini-3.5-flash-lite',name:'Gemini 3.5 Flash-Lite',platform:'Google AI Studio',record:'gemini'},
+  {provider:'cloudflare-llama',model:'@cf/meta/llama-3.1-8b-instruct-fp8',name:'Llama 3.1 8B',platform:'Cloudflare Workers AI',record:'cloudflare'}]};
+ try{
+  const game={game_id:'later-round',phase:'ready',limits:{},hosted:{contribution_enabled:true}};
+  const h=harness(null,false,game);
+  const d=await(await h.w.fetch('/api/state')).json();
+  assert.equal(d.connection.free_models.models.length,3,'every model the server enables is offered');
+  const r=await h.w.fetch('/api/connection',{method:'POST',body:JSON.stringify({game_id:game.game_id,free_provider:'cloudflare-llama'})});
+  assert.equal(r.status,200);
+  h.listeners.DOMContentLoaded();h.elements['ask-auto'].onclick();
+  await h.w.fetch('/api/start',{method:'POST',body:JSON.stringify({game_id:game.game_id})});
+  const consent=JSON.parse(h.calls.find(c=>c.url==='/api/contribution/consent').init.body);
+  assert.deepEqual(consent.model_identity,{provider:'cloudflare',model_id:'@cf/meta/llama-3.1-8b-instruct-fp8'},'recorded under its research service with the exact model ID');
+ }finally{freeCatalogOverride=null;}
+ freeCatalogOverride={enabled:true,default:'startlux',models:[{provider:'startlux',model:'m',name:'S',platform:'P'},
+  {provider:'other',model:'y',name:'X',platform:'P',record:'invented'}]};
+ try{
+  const h=harness(null,false,{game_id:'r',phase:'ready',limits:{}});
+  assert.equal((await(await h.w.fetch('/api/state')).json()).connection.free_models.enabled,false,'an unknown research service rejects the list');
+ }finally{freeCatalogOverride=null;}
+ const game={game_id:'cf-round',phase:'ready',limits:{},connection:{configured:false}};
+ const h=harness(null,false,game);await h.w.fetch('/api/state');
+ const own={game_id:game.game_id,provider:'cloudflare',api_key:key,model:'@cf/google/gemma-4-26b-a4b-it',account_id:'0123456789abcdef0123456789abcdef'};
+ for(const bad of [{...own,relay:true,account_id:'nope'},{...own},{...own,relay:true,model:'@cf/other/model'}])
+  assert.equal((await h.w.fetch('/api/connection',{method:'POST',body:JSON.stringify(bad)})).status,400);
+ assert(!h.calls.some(c=>c.url.includes('cloudflare')),'nothing is sent before the account ID and consent are valid');
+ assert.equal((await h.w.fetch('/api/connection',{method:'POST',body:JSON.stringify({...own,relay:true})})).status,200);
+ const body=JSON.parse(h.calls.find(c=>c.url==='/api/model/cloudflare').init.body);
+ assert.deepEqual([body.account_id,body.model,body.consent_version,body.consent],[own.account_id,own.model,'cloudflare-relay-2026-11-v1',true]);
+ assert(!h.calls.some(c=>new URL(c.url,'https://kitchen.example').hostname==='api.cloudflare.com'),'the browser never calls Cloudflare directly');
+ for(const c of h.calls.filter(c=>c.url!=='/api/model/cloudflare'))assert(!JSON.stringify(c).includes(key));
+ console.log('Later free models and own Cloudflare key: list-driven catalog, research service names, account ID, consent and relay-only transport passed.');
 }
 
 async function checkClientInteractions(fromSource){
@@ -699,6 +737,7 @@ function settingsHarness(){
  console.log('Browser transport and settings: credential isolation, session retry/release, editable drafts and guarded connection checks passed.');
  await checkModelIdentity();
  await checkFreeModels();
+ await checkLaterModels();
  await checkClientInteractions(false);
  await checkClientTouchBridge(false);
  checkClientOrderBridge(false);

@@ -15,14 +15,24 @@ import time
 from free_model_budget import CallBudget, BudgetError
 from free_model_diagnostics import Diagnostics
 from model_status import clean
-from hosted_free_models import FreeModels, FreeCallError, MODELS, read_trial_keys
+from hosted_free_models import FreeModels, FreeCallError, MODELS, ORIGINAL, read_trial_keys, read_extra_keys
 from hosted_jev import ForwardError
 
 PREFIX = '/v1/free-models/'
 MAX_BODY = 262144
 CODES = frozenset(('invalid_request', 'seat_busy', 'request_busy', 'lease_lost', 'round_changed',
-    'upstream_blocked', 'upstream_cooldown', 'call_budget', 'round_budget', 'budget_unavailable',
-    'upstream_failed', 'gateway_unavailable', 'unauthorized'))
+    'upstream_blocked', 'upstream_cooldown', 'call_budget', 'daily_budget', 'call_pacing', 'round_budget',
+    'budget_unavailable', 'upstream_failed', 'gateway_unavailable', 'unauthorized'))
+
+
+def platform_pools(state_dir):
+    """The later models' budgets, each in its own directory so the original budget file keeps its format.
+    Below each platform's free tier: Gemini 15 requests a minute and 500 a day; Cloudflare 10,000
+    Neurons a day for the whole account, about 70 (Gemma) or 100 (Llama) per kitchen request."""
+    from pathlib import Path
+    return (CallBudget(Path(state_dir)/'gemini', providers=('gemini',), minute=14, hour=450, day=450, spacing=4.3),
+            CallBudget(Path(state_dir)/'cloudflare', providers=('cloudflare-gemma', 'cloudflare-llama'),
+                       minute=30, hour=9000, day=9000, weights={'cloudflare-gemma': 80, 'cloudflare-llama': 115}))
 
 
 class GatewayError(Exception):
@@ -38,18 +48,25 @@ def identifier(value, minimum=1):
 
 
 class FreeCoordinator:
-    def __init__(self, sender, budget=None, clock=time.monotonic, lease_seconds=45, seats=None):
+    def __init__(self, sender, budget=None, clock=time.monotonic, lease_seconds=45, seats=None, pools=()):
         self.sender, self.budget, self.clock = sender, budget or CallBudget(), clock
+        self.enabled = tuple(p for p in MODELS if p in sender.keys)
+        # Each model draws on its platform's pool; the original two share the original budget.
+        self.budgets = {p: self.budget for p in self.budget.providers}
+        for pool in pools:
+            self.budgets.update(dict.fromkeys(pool.providers, pool))
+        if any(p not in self.budgets for p in self.enabled):
+            raise ValueError('Every enabled free model needs a call budget')
         self.lease_seconds = lease_seconds
-        self.seats = seats or dict.fromkeys(MODELS, 1)
+        self.seats = seats or dict.fromkeys(self.enabled, 1)
         # Initial rollout always respects the confirmed Zhipu single-concurrency limit.
-        if set(self.seats) != set(MODELS) or any(type(n) is not int or n != 1 for n in self.seats.values()):
+        if set(self.seats) != set(self.enabled) or any(type(n) is not int or n != 1 for n in self.seats.values()):
             raise ValueError('Initial global trial has one seat per model')
         self.lock = threading.RLock()
         self.epoch = secrets.token_urlsafe(24)
         self.leases = {}
         self.round_calls = OrderedDict()
-        self.diagnostics=Diagnostics(self.budget.directory)
+        self.diagnostics=Diagnostics(self.budget.directory, self.enabled)
 
     def _reap(self):
         now = self.clock()
@@ -64,12 +81,13 @@ class FreeCoordinator:
             result['epoch'] = self.epoch
             result['diagnostics_version']=1
             result['global_capacity'] = {}
-            for provider in MODELS:
+            for provider in self.enabled:
                 used = sum(x['provider'] == provider for x in self.leases.values())
-                reason = self.budget.available(provider)
+                budget = self.budgets[provider]
+                reason = budget.available(provider)
                 result['global_capacity'][provider] = {'used': used, 'limit': 1,
                     'available': not reason and used < 1, 'reason': reason or ('seat_busy' if used else None),
-                    'retry_after_seconds':self.budget.retry_after(provider)}
+                    'retry_after_seconds':budget.retry_after(provider)}
             return result
 
     def _lookup(self, site, token):
@@ -80,7 +98,7 @@ class FreeCoordinator:
 
     def reserve(self, site, body):
         if (set(body) - {'provider', 'owner', 'round', 'epoch'} or
-                not isinstance(body.get('provider'), str) or body.get('provider') not in MODELS or not identifier(body.get('owner'), 16)
+                not isinstance(body.get('provider'), str) or body.get('provider') not in self.enabled or not identifier(body.get('owner'), 16)
                 or not identifier(body.get('round'), 16)):
             raise GatewayError(400, 'invalid_request')
         if body.get('epoch', self.epoch) != self.epoch:
@@ -96,9 +114,9 @@ class FreeCoordinator:
                     if lease['inflight']:
                         raise GatewayError(503, 'request_busy')
                     del self.leases[token]
-            reason = self.budget.available(provider)
+            reason = self.budgets[provider].available(provider)
             if reason:
-                raise GatewayError(429 if reason == 'call_budget' else 503, reason)
+                raise GatewayError(429 if reason in ('call_budget', 'daily_budget') else 503, reason)
             if sum(x['provider'] == provider for x in self.leases.values()) >= self.seats[provider]:
                 raise GatewayError(503, 'seat_busy')
             token = secrets.token_urlsafe(32)
@@ -156,12 +174,17 @@ class FreeCoordinator:
             if used >= 200:
                 raise GatewayError(429,'round_budget',{'code':'round_budget','provider':lease['provider'],'upstream_called':False,'blocked':True})
             provider = lease['provider']
+            budget = self.budgets[provider]
+            wait = budget.pace(provider)
+            if wait:  # a platform per-minute limit: Jeff waits a few seconds, nothing is spent
+                raise GatewayError(503,'call_pacing',{'code':'call_pacing','provider':provider,
+                    'upstream_called':False,'retry_after_seconds':wait,'blocked':False})
             try:
-                self.budget.begin(provider)
+                budget.begin(provider)
             except BudgetError as error:
-                raise GatewayError(429 if error.code == 'call_budget' else 503,error.code,
+                raise GatewayError(429 if error.code in ('call_budget', 'daily_budget') else 503,error.code,
                     {'code':error.code,'provider':provider,'upstream_called':False,
-                     'retry_after_seconds':self.budget.retry_after(provider),'blocked':self.budget.retry_after(provider) is None}) from None
+                     'retry_after_seconds':budget.retry_after(provider),'blocked':budget.retry_after(provider) is None}) from None
             lease['inflight'] = True
             self.round_calls[usage_key] = used+1
             while len(self.round_calls) > 2048:
@@ -183,7 +206,7 @@ class FreeCoordinator:
         with self.lock:
             lease['inflight'] = False
             try:
-                self.budget.finish(provider, category)
+                budget.finish(provider, category)
             except BudgetError:
                 result = (503, 'budget_unavailable')
             if lease['released'] or lease['until'] <= self.clock():
@@ -191,8 +214,8 @@ class FreeCoordinator:
             self._reap()
             diagnostic=clean({'code':'ok' if result[0]==200 else category if category in ('invalid_response','transport_uncertain','model_mismatch') else 'upstream_failed',
                 'provider':provider,'upstream_called':True if result[0]==200 else None,'duration_ms':round((time.monotonic()-started)*1000),**diagnostic,
-                'retry_after_seconds':self.budget.retry_after(provider),
-                'blocked':self.budget.available(provider) in ('upstream_blocked','budget_unavailable')})
+                'retry_after_seconds':budget.retry_after(provider),
+                'blocked':budget.available(provider) in ('upstream_blocked','budget_unavailable')})
             if isinstance(result[1],str) and result[1] in ('lease_lost','budget_unavailable'):
                 diagnostic.update(code=result[1],blocked=True)
             diagnostic['diagnostics_saved']=self.diagnostics.record(diagnostic)
@@ -308,7 +331,9 @@ def main():
     parser.add_argument('--keys-file', type=Path)
     parser.add_argument('--site-credentials', type=Path)
     parser.add_argument('--models-verified', action='store_true')
-    parser.add_argument('--default-model', choices=tuple(MODELS), default='startlux')
+    parser.add_argument('--extra-keys-file', type=Path)
+    parser.add_argument('--extra-models-verified', action='store_true')
+    parser.add_argument('--default-model', choices=ORIGINAL, default='startlux')
     parser.add_argument('--provider', choices=tuple(MODELS))
     parser.add_argument('--upstream-idle-confirmed', action='store_true')
     parser.add_argument('--port', type=int, default=8798)
@@ -316,23 +341,29 @@ def main():
     if args.operation == 'acknowledge-idle':
         if not args.provider or not args.upstream_idle_confirmed:
             parser.error('Confirm upstream idle before acknowledging an interrupted request')
-        with_budget = CallBudget(args.state_dir)
+        pool = next((b for b in platform_pools(args.state_dir) if args.provider in b.providers), None) \
+            if args.provider not in ORIGINAL else CallBudget(args.state_dir)
         try:
-            with_budget.acknowledge_idle(args.provider)
+            pool.acknowledge_idle(args.provider)
         finally:
-            with_budget.close()
+            pool.close()
         print('Gateway recovery acknowledged; call budgets preserved; 60-second cooldown applied.')
         return
     if not args.models_verified or args.keys_file is None or args.site_credentials is None:
         parser.error('Verify both fixed models and provide private external credentials')
+    if (args.extra_keys_file is None) != (not args.extra_models_verified):
+        parser.error('Later free models need their own key file and operator verification')
     from shared_server import read_private_json
     config = read_private_json(args.site_credentials)
     if set(config) != {'sites'}:
         parser.error('Invalid private sites configuration')
     budget = CallBudget(args.state_dir)
+    pools = ()
     try:
-        sender = FreeModels(read_trial_keys(args.keys_file), verified=True, default=args.default_model)
-        server = GatewayServer(args.port, FreeCoordinator(sender, budget), config['sites'])
+        extra = read_extra_keys(args.extra_keys_file) if args.extra_keys_file else None
+        pools = platform_pools(args.state_dir) if extra else ()
+        sender = FreeModels(read_trial_keys(args.keys_file), verified=True, default=args.default_model, extra=extra)
+        server = GatewayServer(args.port, FreeCoordinator(sender, budget, pools=pools), config['sites'])
         signal.signal(signal.SIGTERM, lambda *_: threading.Thread(target=server.shutdown, daemon=True).start())
         try:
             server.serve_forever()
@@ -342,6 +373,8 @@ def main():
             server.shutdown(); server.server_close()
     finally:
         budget.close()
+        for pool in pools:
+            pool.close()
 
 
 if __name__ == '__main__':

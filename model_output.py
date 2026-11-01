@@ -28,10 +28,15 @@ def zhipu_system(payload):
         'JSON Schema: ' + json.dumps(schema, ensure_ascii=False, separators=(',', ':')))
 
 
-def zhipu_body(payload):
-    return {'model': 'glm-4.7-flash', 'max_tokens': 128,
-            'thinking': {'type': 'disabled'}, 'response_format': {'type': 'json_object'},
+def chat_body(payload, model, extra=None):
+    """One OpenAI-compatible request: the full kitchen state, the offered actions and the vendor's fixed fields."""
+    return {'model': model, 'max_tokens': 128, **json.loads(json.dumps(extra or {})),
             'messages': [{'role': 'system', 'content': zhipu_system(payload)},
                          {'role': 'user', 'content': json.dumps(
                              {'state': payload['state'], 'questions': payload['questions']},
                              ensure_ascii=False, separators=(',', ':'))}]}
+
+
+def zhipu_body(payload):
+    return chat_body(payload, 'glm-4.7-flash',
+                     {'thinking': {'type': 'disabled'}, 'response_format': {'type': 'json_object'}})

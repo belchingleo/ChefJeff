@@ -1,5 +1,5 @@
 {
-  "description": "Model services Jeff can use, read by the local server, the hosted page and the settings dialog. decision: a systemone-style decision API (state + questions, answered with option probabilities). chat: an OpenAI-compatible Chat Completions API. extra holds vendor request fields for either group, such as requiring a listed decision option, turning chat thinking off or asking for JSON. hosted: direct (the browser calls it), relay (only through the demo server, with consent) or none (local game only). tested: a whole round has been played with it.",
+  "description": "Model services Jeff can use, read by the local server, the hosted page and the settings dialog. decision: a systemone-style decision API (state + questions, answered with option probabilities). chat: an OpenAI-compatible Chat Completions API. extra holds vendor request fields for either group (model_extra adds fields for one model ID; account_id: the base URL takes the player\u2019s account ID), such as requiring a listed decision option, turning chat thinking off or asking for JSON. hosted: direct (the browser calls it), relay (through the demo server, with consent; relay_models lists what it forwards) or none (local game only). tested: a whole round has been played with it.",
   "groups": [
     {"id": "decision", "label": "决策模型"},
     {"id": "chat", "label": "快思考模型"}
@@ -28,10 +28,17 @@
      "base_url": "https://ark.cn-beijing.volces.com/api/v3", "model": "doubao-seed-2-0-lite-260428", "model_editable": true,
      "extra": {"thinking": {"type": "disabled"}},
      "key_url": "https://console.volcengine.com/ark", "hosted": "direct", "tested": false},
-    {"id": "gemini", "group": "chat", "label": "Gemini 2.5 Flash-Lite", "note": "有免费额度（限速）· 需能访问 Google · 未实测",
-     "base_url": "https://generativelanguage.googleapis.com/v1beta/openai", "model": "gemini-2.5-flash-lite", "model_editable": true,
-     "extra": {"reasoning_effort": "none"},
+    {"id": "gemini", "group": "chat", "label": "Gemini 3.5 Flash-Lite", "note": "Google AI Studio 免费层级：每分钟 15 次、每天 500 次 · 需能访问 Google · 合成快照单次实测",
+     "base_url": "https://generativelanguage.googleapis.com/v1beta/openai", "model": "gemini-3.5-flash-lite", "model_editable": true,
+     "extra": {"reasoning_effort": "minimal", "response_format": {"type": "json_object"}},
      "key_url": "https://aistudio.google.com/apikey", "hosted": "direct", "tested": false},
+    {"id": "cloudflare", "group": "chat", "label": "Cloudflare Workers AI（Gemma 4 / Llama 3.1）", "note": "免费额度每个账户每天 10,000 Neurons，约 100–140 次请求 · 也可填 @cf/meta/llama-3.1-8b-instruct-fp8 · 合成快照单次实测",
+     "base_url": "https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/v1", "account_id": true,
+     "model": "@cf/google/gemma-4-26b-a4b-it", "model_editable": true,
+     "extra": {"response_format": {"type": "json_object"}},
+     "model_extra": {"@cf/google/gemma-4-26b-a4b-it": {"chat_template_kwargs": {"enable_thinking": false}}},
+     "relay_models": ["@cf/google/gemma-4-26b-a4b-it", "@cf/meta/llama-3.1-8b-instruct-fp8"],
+     "key_url": "https://dash.cloudflare.com/profile/api-tokens", "hosted": "relay", "tested": false},
     {"id": "zhipu", "group": "chat", "label": "智谱 GLM-4.7-Flash（免费，接口繁忙）", "note": "免费，但高峰常返回“访问量过大”· 未实测",
      "base_url": "https://open.bigmodel.cn/api/paas/v4", "model": "glm-4.7-flash", "model_editable": true,
      "extra": {"thinking": {"type": "disabled"}, "response_format": {"type": "json_object"}},

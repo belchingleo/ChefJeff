@@ -22,7 +22,11 @@ FIXTURES_B64='H4sIAAAAAAACA+y9627jVrI2fCuE/mw3PlkRqaOt7Blkctg7wCAJsnuQ+TBoCJRI2U
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--shared-config',type=Path,default=Path('/etc/chefjeff/shared-client.json'))
+    parser.add_argument('--providers',default='zhipu,startlux',help='comma-separated fixed models; one request each')
     args=parser.parse_args()
+    providers=[p for p in args.providers.split(',') if p]
+    if not providers or len(set(providers))!=len(providers) or any(p not in MODELS for p in providers):
+        parser.error('Name fixed free models, each once')
     client=FreeGatewayClient(SharedClient(read_private_json(args.shared_config)))
     raw=gzip.decompress(base64.b64decode(FIXTURES_B64,validate=True))
     if hashlib.sha256(raw).hexdigest()!=FIXTURES_SHA:raise ValueError()
@@ -31,8 +35,8 @@ def main():
     payload=fixtures['cases'][0]['payload']
     client.request('catalog',{})
     rows=[]
-    print('私密协调服务合成快照检查：每个固定免费模型最多一次，合计最多两次；不连接线上厨房。',flush=True)
-    for provider in ('zhipu','startlux'):
+    print(f'私密协调服务合成快照检查：每个所选免费模型最多一次，合计最多 {len(providers)} 次；不连接线上厨房。',flush=True)
+    for provider in providers:
         lease=None
         row={'provider':provider,'model':MODELS[provider]['model'],'valid_action':False}
         try:
@@ -54,7 +58,7 @@ def main():
                 except GatewayError:pass
         rows.append(row)
         print(json.dumps(row,ensure_ascii=False),flush=True)
-    print(json.dumps({'site':client.site,'results':rows,'synthetic_only':True,'maximum_upstream_calls':2,
+    print(json.dumps({'site':client.site,'results':rows,'synthetic_only':True,'maximum_upstream_calls':len(providers),
         'real_model_full_round_tested':False,'live_kitchen_contacted':False,'round_started':False,
         'research_consent_sent':False,'model_api_keys_read':False,'private_site_config_used':True,
         'credentials_printed':False,'player_database_opened':False},ensure_ascii=False,indent=2))

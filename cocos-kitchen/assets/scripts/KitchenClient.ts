@@ -1953,6 +1953,8 @@ export class KitchenClient extends Component {
         const cap=f?.enabled&&f.gateway_available!==false?f.global_capacity?.[provider]:null;
         if(cap?.available)return {text:'● 有空位',tone:COLORS.herb};
         if(cap?.reason==='seat_busy')return {text:'● 名额已满，稍后再试',tone:COLORS.jeff};
+        // The shared free allowance for today is spent; it comes back tomorrow.
+        if(cap?.reason==='daily_budget')return {text:'○ 今日额度已用完',tone:COLORS.muted};
         return {text:'○ 暂不可用',tone:COLORS.muted};
     }
     private partnerName(s:KitchenState){

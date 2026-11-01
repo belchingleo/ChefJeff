@@ -10,6 +10,7 @@
     const cap=c?.enabled&&c.gateway_available!==false?c.global_capacity?.[provider]:null;
     if(cap?.available)return ['● 有空位','open',true];
     if(cap?.reason==='seat_busy')return ['● 名额已满，稍后再试','full',true];
+    if(cap?.reason==='daily_budget')return ['○ 今日额度已用完','spent',false];
     return ['○ 暂不可用','off',false];
   }
   async function select(provider){
@@ -26,7 +27,7 @@
     finally{busy=false;render();}
   }
   // Settings has two choices per row, so it uses the short words.
-  const SHORT={open:'有空位',full:'名额已满',off:'暂不可用'};
+  const SHORT={open:'有空位',full:'名额已满',spent:'今日已用完',off:'暂不可用'};
   function choice(m,f,c,current,picked,short=false){
     const [long,tone,usable]=status(f,m.provider),text=short?SHORT[tone]:long,b=document.createElement('button');
     b.type='button';b.setAttribute('aria-pressed',String(m.provider===current));
