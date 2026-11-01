@@ -16,9 +16,9 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from deploy.free_install_common import atomic, digest, load, property_of, public_release, run, save, work_path
 
 DOMAINS={'cn':'chefjeff.belchingleo.online','de':'global.belchingleo.online'}
-# The release both regions run now (b98a4fc, checked on both servers 2026-11-01).
-BASE_SERVER_SHA='e1d62ed38c9ecdac116277dc3b4f3a1c21a5c2c725db88c7086d59f31dd70a6c'
-BASE_MANIFEST_SHA='11988b0ffc823b0112c267d87a8c44e8f532cb7fe396b6dbe78af426e16ca9dc'
+# The release both regions run now (25e4931, checked on both servers 2026-11-01).
+BASE_SERVER_SHA='a250e37dca88e503e3bb0b9348bac8900779e297663c96f521dee8c64fef2270'
+BASE_MANIFEST_SHA='4d840d7a09f393034d1248bb79d70a0b3b70bf0bc1847fa1459c45ed97d26eb6'
 OVERRIDE=Path('/etc/systemd/system/chefjeff.service.d/zzzzzzzz-chefjeff-free.conf')
 CURRENT=Path('/opt/chefjeff/current')
 

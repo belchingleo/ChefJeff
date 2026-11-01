@@ -132,8 +132,8 @@ The most recent result is shared across players; it is not a full per-player his
 
 ### Upgrade an already running free-model deployment
 
-This upgrade expects the game release `b98a4fc6b8e8` on both regions and the gateway
-running from that release in Shanghai (both checked on the servers on 2026-11-01). Build the pinned GitHub commit
+This upgrade expects the game release `25e4931a262b` on both regions and the gateway
+running from that release in Shanghai (both checked on the servers after the 2026-11-01 deploy). Build the pinned GitHub commit
 archive twice and require matching SHA-256 before staging. The regional installer
 preserves and restores the existing free-model startup override on rollback.
 
@@ -178,8 +178,10 @@ and link switches must be executed by the operator after reviewing the fixed rel
 这些是按平台公开的免费额度设置的保守值。滚动 24 小时与平台的重置时间（Cloudflare 按 UTC 零点，Gemini 按太平洋时间零点）不同，只会更早停下，不会超出。
 
 **研究记录。** `cloudflare` 是新增的研究记录服务名。研究管理台按它自己发布版本里的
-`schemas/research-record.schema.json` 校验，所以上线顺序必须是：先升级研究管理台，再升级两站游戏；
-否则带 `cloudflare` 的贡献记录会被拒收。
+`schemas/research-record.schema.json` 校验，旧版管理台会拒收带 `cloudflare` 的贡献记录。
+所以研究管理台要和两站游戏在同一个维护窗口里升级，德国游戏在管理台激活之后才启动。
+具体顺序见 `docs/research-admin.md` 的「v7 游戏发布时更新已有 v2 管理台」：
+因为管理台激活要求上海游戏链接已经切换，上海要先切游戏，再停下来激活管理台。
 
 **启用步骤（由运维执行）：**
 
