@@ -28,7 +28,7 @@
       .touch-hint{position:absolute;left:146px;right:174px;bottom:max(9px,env(safe-area-inset-bottom));text-align:center;pointer-events:none;color:var(--paper);background:#2b1a1266;text-shadow:0 1px 2px var(--ink);padding:4px 8px;border:1px solid #6b341866;font-size:12px;line-height:1.4;border-radius:2px;max-height:50px;overflow:hidden;box-sizing:border-box}
       #touch-ai{position:absolute;right:max(10px,env(safe-area-inset-right));top:calc(max(4px,env(safe-area-inset-top)) + 40px);max-width:200px;max-height:32px;box-sizing:border-box;padding:3px 6px;border:1px solid #6b341866;background:#2b1a1266;text-shadow:0 1px 2px var(--ink);overflow:hidden;font-size:11px;line-height:12px;color:var(--paper);text-align:left;pointer-events:none;overflow-wrap:anywhere}
       #touch-hand{display:block;font-weight:650;line-height:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#touch-status{display:block;line-height:14px;max-height:28px;overflow:hidden}.touch-menu{position:absolute;left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));top:calc(max(4px,env(safe-area-inset-top)) + 76px);bottom:max(8px,env(safe-area-inset-bottom));margin:auto;max-width:560px;box-sizing:border-box;overflow:auto;overscroll-behavior:contain;background:var(--paper);border:3px solid var(--walnut);box-shadow:5px 5px 0 var(--ink);padding:14px 18px;pointer-events:auto;touch-action:pan-y;text-align:center}
-      .touch-menu h2{margin:0 0 5px;font-size:23px;line-height:1.2}.touch-menu p{white-space:pre-line;margin:5px 0 10px;font-size:14px;line-height:1.45;color:var(--muted)}.touch-menu-actions{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}.touch-menu button{min-height:40px;font-size:14px;line-height:1.2;touch-action:manipulation}.touch-menu .primary{min-width:152px}.touch-menu-secondary{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:10px}.touch-levels{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin:10px 0}.touch-levels button{min-height:34px;padding:6px 10px;font-size:12px}.touch-levels button[aria-pressed=true]{background:var(--honey)}
+      .touch-menu h2{margin:0 0 5px;font-size:23px;line-height:1.2}.touch-menu p{white-space:pre-line;margin:5px 0 10px;font-size:14px;line-height:1.45;color:var(--muted)}.touch-menu-actions{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}.touch-menu button{min-height:40px;font-size:14px;line-height:1.2;touch-action:manipulation}.touch-menu .primary{min-width:152px}.touch-menu-secondary{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:10px}.touch-plate{display:flex;align-items:center;gap:8px;margin:0 0 10px;padding:6px 8px;background:var(--surface);border:3px solid var(--ink)}.touch-plate>button{flex:none;padding:6px 10px}.touch-plate-mid{flex:1;min-width:0;display:flex;align-items:baseline;justify-content:center;flex-wrap:wrap;gap:4px 10px}#touch-level-title{font:20px/24px var(--pixel)}#touch-level-dish{font:17px/22px var(--pixel)}#touch-level-target{font-size:13px;color:var(--muted)}#touch-level-tag{padding:1px 6px;font-size:12px;color:var(--paper);background:var(--muted)}#touch-level-tag.won{background:var(--herb)}#touch-level-tag:empty{display:none}.touch-partner{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 12px}.touch-tile{display:flex;align-items:center;gap:8px;min-height:48px;padding:6px 10px;border:3px solid var(--ink);box-shadow:0 4px 0 var(--ink);background:var(--paper);color:var(--ink);font:15px/19px var(--body);text-align:left;cursor:pointer}.touch-tile[aria-pressed=true]{border:4px solid var(--denim);box-shadow:0 4px 0 var(--denim)}.touch-tile:disabled{opacity:.55}.touch-badge{flex:none;padding:2px 6px;font:12px/16px var(--pixel);color:var(--paper);background:var(--muted)}.touch-badge.free{background:var(--herb)}.touch-tile-status{margin-left:auto;font-size:12px;color:var(--muted);white-space:nowrap}#touch-free-name,#touch-custom-title{white-space:nowrap}.touch-tile{flex-wrap:wrap}
       #kitchen-touch-landscape{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:max(20px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left));box-sizing:border-box;background:var(--frame);text-align:center;color:var(--paper)}#kitchen-touch-landscape .panel{padding:24px;max-width:370px;text-align:center}#kitchen-touch-landscape h2{font-size:24px;margin:10px 0}#kitchen-touch-landscape p{color:var(--muted);font-size:15px;line-height:1.6;margin:8px 0 0}.touch-rotate-icon{font-size:46px;line-height:1}
       body.kitchen-touch-mode #kitchen-display-hint{display:none}body.kitchen-touch-mode #GameDiv{height:100dvh!important}body.kitchen-touch-mode #GameCanvas{touch-action:none;-webkit-touch-callout:none}
       body.kitchen-touch-mode #kitchen-communication{left:auto;right:max(10px,env(safe-area-inset-right));top:calc(max(4px,env(safe-area-inset-top)) + 44px);bottom:auto;transform:none;width:min(300px,calc(100vw - 24px));max-height:calc(var(--touch-vh,100dvh) - 58px);overflow:auto;z-index:30;font:14px/20px var(--body);touch-action:pan-y}body.kitchen-touch-mode #kitchen-communication:not([data-touch-open=true]){display:none!important}
@@ -94,7 +94,7 @@
       <div class="touch-buttons"><button id="touch-dash" class="touch-round" type="button"></button><button id="touch-toss" class="touch-round" type="button"></button><button id="touch-action" class="touch-round" type="button"></button></div>
       <div id="touch-cancel" hidden></div>
       <div id="touch-ai"></div>
-      <section id="touch-menu" class="touch-menu" aria-labelledby="touch-menu-title" hidden><h2 id="touch-menu-title">ChefJeff</h2><p id="touch-menu-copy"></p><div id="touch-levels" class="touch-levels"></div><div class="touch-menu-actions"><button id="touch-main" class="btn primary" type="button"></button><button id="touch-retry" class="btn" type="button"></button><button id="touch-settings" class="btn" type="button"></button><button id="touch-help" class="btn" type="button"></button></div><div class="touch-menu-secondary"><button id="touch-end" class="btn danger" type="button"></button><button id="touch-record" class="btn" type="button"></button><button id="touch-more" class="btn" type="button"></button><button id="touch-contribute" class="btn" type="button"></button><button id="touch-language" class="btn" type="button" data-no-i18n></button><button id="touch-fullscreen" class="btn" type="button"></button><button id="touch-menu-close" class="btn" type="button"></button></div><p id="touch-instructions"></p><p id="touch-fullscreen-tip" hidden></p></section>
+      <section id="touch-menu" class="touch-menu" aria-labelledby="touch-menu-title" hidden><h2 id="touch-menu-title">ChefJeff</h2><p id="touch-menu-copy"></p><div id="touch-plate" class="touch-plate" hidden><button id="touch-level-prev" class="btn" type="button">◀</button><div class="touch-plate-mid"><strong id="touch-level-title"></strong><span id="touch-level-dish"></span><span id="touch-level-target"></span><span id="touch-level-tag"></span></div><button id="touch-levels" class="btn" type="button"></button><button id="touch-level-next" class="btn" type="button">▶</button></div><div id="touch-partner" class="touch-partner" hidden><button id="touch-free" class="touch-tile" type="button"><span id="touch-free-badge" class="touch-badge free"></span><span id="touch-free-name"></span><span id="touch-free-status" class="touch-tile-status"></span></button><button id="touch-custom" class="touch-tile" type="button"><span class="touch-badge">API Key</span><span id="touch-custom-title"></span><span id="touch-custom-status" class="touch-tile-status"></span></button></div><div class="touch-menu-actions"><button id="touch-main" class="btn primary" type="button"></button><button id="touch-retry" class="btn" type="button"></button><button id="touch-settings" class="btn" type="button"></button><button id="touch-help" class="btn" type="button"></button></div><div class="touch-menu-secondary"><button id="touch-end" class="btn danger" type="button"></button><button id="touch-record" class="btn" type="button"></button><button id="touch-more" class="btn" type="button"></button><button id="touch-contribute" class="btn" type="button"></button><button id="touch-language" class="btn" type="button" data-no-i18n></button><button id="touch-fullscreen" class="btn" type="button"></button><button id="touch-menu-close" class="btn" type="button"></button></div><p id="touch-instructions"></p><p id="touch-fullscreen-tip" hidden></p></section>
     `;
     document.body.appendChild(ui);
     const portrait = document.createElement('div');
@@ -116,7 +116,7 @@
     let controls = window.kitchenControls || null, state = {}, active = false, landscape = true;
     // Throw's hold (the only button that aims): its pointer and button.
     let blockState = null, menuOpen = false, communicationOpen = false, joyPointer = null, holdPointer = null, holdButton = null;
-    let cancelSelected = false, ordersSignature = '', levelsSignature = '', previousGame = '', modeSignature = '';
+    let cancelSelected = false, ordersSignature = '', previousGame = '', modeSignature = '';
     const orderNodes = new Map();
     let lastEvent = '', eventNotice = '', eventTimer;
     let pausePending = false, wasAiming = false;
@@ -250,7 +250,9 @@
       el('touch-bookmark').disabled = !state.connected || state.phase !== 'running' || state.pending;
       el('touch-communication').disabled = !state.communicationEnabled || !state.connected || hasModal;
       text('touch-menu-title', state.coverTitle || 'ChefJeff');
-      text('touch-menu-copy', !state.connected ? '连接已中断' : state.coverText || '使用左侧摇杆移动，右侧按钮操作和冲刺。');
+      // Results lead with the income line, as the card does.
+      const income = state.phase === 'ended' && state.card?.money ? state.card.money + '\n' : '';
+      text('touch-menu-copy', !state.connected ? '连接已中断' : income + (state.coverText || '使用左侧摇杆移动，右侧按钮操作和冲刺。'));
       text('touch-main', state.mainLabel || '开始经营');
       el('touch-main').disabled = !controls || state.mainEnabled === false || state.pending;
       el('touch-end').hidden = !['running', 'paused'].includes(state.phase);
@@ -265,15 +267,27 @@
       el('touch-contribute').hidden = !state.contribute || ended;
       if (state.contribute) { text('touch-contribute', state.contribute.label); el('touch-contribute').disabled = !state.contribute.enabled; }
       el('touch-menu-close').hidden = state.phase !== 'running' || !menuOpen;
-      const levels = state.levels || [];
-      const nextLevels = JSON.stringify([levels, state.levelEnabled]);
-      if (nextLevels !== levelsSignature) {
-        levelsSignature = nextLevels; el('touch-levels').replaceChildren();
-        const button = document.createElement('button'); button.type = 'button'; button.className = 'btn';
-        button.textContent = t('关卡选择');button.disabled = !state.levelEnabled;
-        button.addEventListener('click', () => controls?.levels());el('touch-levels').appendChild(button);
+      const card = state.card, levels = state.levels || [];
+      // Before a round the plate and the tiles say everything the title and copy did.
+      el('touch-menu-title').hidden = el('touch-menu-copy').hidden = !!card && state.phase === 'ready';
+      el('touch-plate').hidden = !card || !levels.length;
+      if (card) {
+        const index = levels.findIndex(level => level.selected);
+        text('touch-level-title', card.level); text('touch-level-dish', card.dish); text('touch-level-target', card.target);
+        text('touch-level-tag', card.tag); el('touch-level-tag').className = card.tag.startsWith('✓') ? 'won' : '';
+        el('touch-level-prev').hidden = el('touch-level-next').hidden = ended;
+        el('touch-level-prev').disabled = !card.stepEnabled || index <= 0;
+        el('touch-level-next').disabled = !card.stepEnabled || index < 0 || index >= levels.length - 1;
+        el('touch-levels').disabled = !state.levelEnabled;
+        if (ended && card.alt) text('touch-retry', card.alt.label);
       }
-      el('touch-levels').hidden = !levels.length || !['ready', 'ended'].includes(state.phase);
+      el('touch-partner').hidden = !card || state.phase !== 'ready';
+      if (card) {
+        el('touch-free').hidden = !card.free;
+        if (card.free) { text('touch-free-name', card.free.pick); text('touch-free-status', card.free.status); el('touch-free').setAttribute('aria-pressed', String(card.free.selected)); }
+        text('touch-custom-status', card.custom.status); el('touch-custom').setAttribute('aria-pressed', String(card.custom.selected));
+        el('touch-free').disabled = el('touch-custom').disabled = !state.connected || !!state.pending;
+      }
       renderOrders(state.orders || []);
     }
     function sprite(icon, label) {
@@ -342,14 +356,15 @@
     }
     function language() {
       for (const [id, source] of Object.entries({ 'touch-pause': '暂停', 'touch-communication': '沟通', 'touch-bookmark': '标记',
-        'touch-menu-toggle': '菜单', 'touch-settings': '设置', 'touch-help': '操作说明', 'touch-end': '结束本局', 'touch-record': '本局记录', 'touch-retry': '重新开局', 'touch-more': '更多',
-        'touch-fullscreen': '全屏', 'touch-menu-close': '返回厨房', 'touch-communication-close': '返回厨房', 'touch-cancel': '取消', 'touch-rotate-title': '请将手机横过来',
+        'touch-menu-toggle': '菜单', 'touch-settings': '设置', 'touch-help': '操作说明', 'touch-end': '结束本局', 'touch-record': '本局分析', 'touch-retry': '重新开局', 'touch-more': '更多',
+        'touch-fullscreen': '全屏', 'touch-menu-close': '返回厨房', 'touch-levels': '全部关卡', 'touch-free-badge': '免费', 'touch-custom-title': '自定义模型', 'touch-communication-close': '返回厨房', 'touch-cancel': '取消', 'touch-rotate-title': '请将手机横过来',
         'touch-rotate-copy': '横屏后点“继续经营”，厨房不会自动恢复。',
         'touch-instructions': '「操作」按下立即做事，拿着东西也一样；「扔」点按直接扔出，长按瞄准、松开投掷；瞄准时滑到「取消」可取消。',
         'touch-fullscreen-tip': 'iPhone 不支持网页全屏：在浏览器的分享菜单选「添加到主屏幕」，再从主屏幕打开即可全屏。' })) text(id, source);
-      el('touch-language').textContent = window.kitchenI18n?.language === 'en' ? 'Chinese' : '英语';
+      el('touch-language').textContent = window.kitchenI18n?.language === 'en' ? '中文' : 'English';
       joystick.setAttribute('aria-label', t('移动')); el('touch-orders').setAttribute('aria-label', t('订单'));
-      ordersSignature = levelsSignature = ''; render();
+      el('touch-level-prev').setAttribute('aria-label', t('上一关')); el('touch-level-next').setAttribute('aria-label', t('下一关'));
+      ordersSignature = ''; render();
     }
     function joyMove(event) {
       const r = joystick.getBoundingClientRect(), radius = r.width / 2;
@@ -422,9 +437,11 @@
       if (communicationOpen && !dock?.contains(event.target) && !el('touch-communication').contains(event.target)) communication(false);
     }, true);
     el('touch-bookmark').addEventListener('click', () => controls?.bookmark());
-    for (const [id, method] of [['touch-retry', 'restart'], ['touch-more', 'more'], ['touch-settings', 'settings'], ['touch-help', 'help'], ['touch-end', 'end'], ['touch-record', 'record'], ['touch-contribute', 'contribute']])
+    for (const [id, method] of [['touch-retry', 'alt'], ['touch-more', 'more'], ['touch-levels', 'levels'], ['touch-free', 'freeModels'], ['touch-custom', 'custom'], ['touch-settings', 'settings'], ['touch-help', 'help'], ['touch-end', 'end'], ['touch-record', 'record'], ['touch-contribute', 'contribute']])
       el(id).addEventListener('click', () => { clearPointers(); controls?.[method](); });
     el('touch-language').addEventListener('click', () => controls?.language());
+    el('touch-level-prev').addEventListener('click', () => controls?.step(-1));
+    el('touch-level-next').addEventListener('click', () => controls?.step(1));
     el('touch-fullscreen').hidden = !document.documentElement.requestFullscreen;
     // iPhone (every iOS browser) has no Fullscreen API: point to the home-screen web app instead.
     const homeScreen = navigator.standalone || window.matchMedia?.('(display-mode: standalone)').matches;

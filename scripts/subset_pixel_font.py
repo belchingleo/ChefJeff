@@ -19,7 +19,8 @@ from fontTools import subset
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'cocos-kitchen' / 'fonts' / 'chefjeff-pixel.woff2'
-SOURCES = ['cocos-kitchen/assets/scripts/KitchenClient.ts', 'cocos-kitchen/web-shell.html', 'hosted/contribution.html', 'hosted/consent.html']
+SOURCES = ['cocos-kitchen/assets/scripts/KitchenClient.ts', 'cocos-kitchen/web-shell.html', 'hosted/contribution.html', 'hosted/consent.html',
+           'hosted/free-model-picker.html', 'hosted/free-model-settings.html', 'hosted/free-model-picker.js']
 
 
 def ui_text():

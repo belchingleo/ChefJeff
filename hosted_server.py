@@ -559,8 +559,14 @@ SHELL_REPLACEMENTS = (
     ('导出本次游玩的全部数据：从启动游戏起玩过的每一局', '导出本次游玩的数据：从打开本页面起最近 20 局'),
     ('记录保存在本机，旧局片段会随决策请求发送给你选择的模型服务，增加输入 token 和费用。关闭后不读、不保存；中途退出的局不保存。',
         '在线版默认开启，摘要保存在当前浏览器；开局时固定本局使用的旧局摘要，随请求发给所选模型。Jev 转发也会处理这些摘要，但服务器不持久保存。可在这里关闭或清空；中途退出的局不保存。摘要会增加输入 token 和费用。'),
+    # The key form on the hosted page: browser-direct by default, and free models exist.
+    ('使用你自己的 API 账号，调用费用由该账号承担。', 'Key 默认只留在这个页面，由浏览器直接发给服务商；费用记在你的账号上。'),
+    ('申请后选对应的服务填进来即可。', '申请后选对应的服务填进来即可，不占免费模型的名额。'),
+    ('自己申请一个就能填在这里。', '自己申请一个就能填在这里，不占免费模型的名额。'),
+    ('记住此设备（共用电脑请勿勾选）', '记住此设备（Key 以明文保存在这个浏览器）'),
 )
 CONTRIBUTION_SLOT = '<!-- hosted-contribution -->'
+FREE_MODELS_SLOT = '<!-- hosted-free-models -->'
 CONTRIBUTION_BADGE = ('<p id="contribution-badge" role="status" hidden style="position:fixed;left:50%;bottom:8px;'
                       'transform:translateX(-50%);z-index:60;margin:0;padding:3px 10px;background:#2b1a12cc;'
                       'color:#fff;font:12px/16px system-ui,sans-serif;pointer-events:none"></p>')
@@ -580,6 +586,8 @@ def hosted_html(raw):
     picker = picker.replace('<script src="/free-model-picker.js"></script>',
                             '<script>' + (ROOT / 'hosted' / 'free-model-picker.js').read_text() + '</script>')
     page = page.replace('</body>', consent + CONTRIBUTION_BADGE + picker + '</body>', 1)
+    # Settings → AI 搭档 lists the same free models; the picker script fills both.
+    page = page.replace(FREE_MODELS_SLOT, (ROOT / 'hosted' / 'free-model-settings.html').read_text(), 1)
     # Newer shells mark a slot in the Export tab; older builds append to the settings dialog.
     page = page.replace(CONTRIBUTION_SLOT, panel, 1) if CONTRIBUTION_SLOT in page else page.replace('</dialog>', panel + '</dialog>', 1)
     return page.encode('utf-8')

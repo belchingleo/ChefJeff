@@ -21,7 +21,7 @@ Where to start: [play online](#play-online) · [run it locally](#run-it-locally)
 
 Choose the [China site (Shanghai)](https://chefjeff.belchingleo.online/) or the [overseas site (Germany)](https://global.belchingleo.online/) to play; nothing to install.
 
-- Bring your own model key: choose a service under Settings → Connection and paste the key. By default the key stays in that page and your browser sends it straight to the provider; only Jev goes through the demo server, and only if you agree. The [model connection guide](https://chefjeff.belchingleo.online/model-guide.html) lists the services that work and roughly what a round costs.
+- Bring your own model key: choose a service under Settings → AI teammate and paste the key. By default the key stays in that page and your browser sends it straight to the provider; only Jev goes through the demo server, and only if you agree. The [model connection guide](https://chefjeff.belchingleo.online/model-guide.html) lists the services that work and roughly what a round costs.
 - Before your first round you are asked whether to contribute anonymous round data; you can change your mind at any time. Contributions are kept for six months (180 days) and can be deleted with a deletion receipt; see [privacy and contact](https://chefjeff.belchingleo.online/privacy.html).
 - Use the keyboard on a computer, and touch controls on a phone held landscape (see [touch controls](#touch-controls-experimental)). On iPhone, choose Add to Home Screen in Safari's share menu and open it from there to play full screen.
 - The game servers are in Shanghai and Germany; contributed round data and aggregate usage statistics are stored in Shanghai. The number of kitchens open at once is limited, and a full kitchen asks you to come back shortly.
@@ -178,7 +178,7 @@ python3 scripts/build_cocos.py web        # rebuild the web client, only needed 
 | --- | --- | --- | --- |
 | Session record bundle | `logs/sessions/<round id>/` | The frozen configuration, the event stream, engine inputs, and the exact requests sent to the model | Replay and collaboration analysis; contains no API key |
 | Runtime logs | `logs/` | Full game state and model output | Troubleshooting; may contain the model's raw replies, so check before sharing |
-| Data export | Pause menu → Settings → Data export → Export This Play Session | Everything from this play session (since the game started; online, the latest 20 rounds since the page opened): for every round its level, result, work record, call counts and usage, bookmarks, preset messages and every allowlisted action event | Attach to an issue; contains no key, model endpoint, cross-round memory, or full model requests and replies |
+| Data export | Pause menu → Settings → Data and contributions → Export This Play Session | Everything from this play session (since the game started; online, the latest 20 rounds since the page opened): for every round its level, result, work record, call counts and usage, bookmarks, preset messages and every allowlisted action event | Attach to an issue; contains no key, model endpoint, cross-round memory, or full model requests and replies |
 | Cross-round memory | Browser localStorage online; `.player-memory.json` locally | The last three completed rounds per model/level/contract: both chefs’ work, outcomes, old communication and up to 18 sampled events each | Sent to Jeff as a run condition; can be turned off or cleared in Settings |
 
 Online cooperation memory is on by default, stored in this browser and bounded per model and level. See [memory behavior and controls](docs/cooperation-memory.md).
@@ -271,7 +271,7 @@ See [CONTRIBUTING](CONTRIBUTING.md) for how to contribute. Issues and pull reque
 - Check exported content before sharing it, and never put your key in an issue, a screenshot or a commit.
 
 - The online version keeps your key in the browser and asks once whether to contribute rounds (deleted after six months, i.e. 180 days). [Privacy and contact](docs/privacy.md) explains what is stored where, how long, how to delete it and how to reach us; the [model connection guide](docs/model-guide.md) lists the providers that work from the browser and estimates the cost of a round. Both pages are also linked in the game (Settings and Controls → Feedback).
-- Questions and bug reports: [GitHub issues](https://github.com/belchingleo/ChefJeff/issues), with the file from Settings → Data export attached.
+- Questions and bug reports: [GitHub issues](https://github.com/belchingleo/ChefJeff/issues), with the file from Settings → Data and contributions attached.
 
 See [privacy and API costs](docs/privacy-and-costs.md) and the [security notes](SECURITY.md).
 

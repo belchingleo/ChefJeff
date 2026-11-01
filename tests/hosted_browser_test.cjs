@@ -513,15 +513,20 @@ function checkResultContinuation(fromSource){
  client.state={game_id:'result',phase:'ended',won:true,kitchen:{level_id:'level-1'},
   levels:[{id:'level-2',name:'汉堡',menu_order:2},{id:'level-1',name:'牛排',menu_order:1}]};
  client.set=()=>{};client.scheduleOnce=fn=>queued.push(fn);client.post=(path,body)=>posted.push({path,body});
- client.endedSeen={round:'result',at:Date.now()};client.startNext();
+ const next=()=>client.startNext(client.resultActions(client.state).main.id);
+ client.endedSeen={round:'result',at:Date.now()};next();
  assert.equal(queued.length,0,'A mashed input in the first second must not skip results.');
- client.endedSeen.at-=2000;client.startNext();client.startNext();
+ client.endedSeen.at-=2000;next();next();
  assert.equal(queued.length,1,'Repeated presses must not start duplicate countdowns.');
  while(queued.length)queued.shift()();
  assert.equal(posted.length,1);assert.equal(posted[0].path,'/api/next');assert.equal(posted[0].body.level,'level-2');
- client.state.won=false;assert.equal(client.nextRound(client.state).id,'level-1');
- client.state.won=true;client.state.kitchen.level_id='level-2';assert.equal(client.nextRound(client.state).id,'level-2');
- client.startNext();client.state.game_id='changed';while(queued.length)queued.shift()();assert.equal(posted.length,1);
+ // After a loss playing again leads; the next level stays one button away.
+ client.state.won=false;let acts=client.resultActions(client.state);
+ assert.deepEqual([acts.main.id,acts.alt.id],['level-1','level-2']);
+ // A win on the last level leads to all levels, with playing again beside it.
+ client.state.won=true;client.state.kitchen.level_id='level-2';acts=client.resultActions(client.state);
+ assert.equal(acts.main.kind,'levels');assert.equal(acts.alt.id,'level-2');
+ client.startNext('level-2');client.state.game_id='changed';while(queued.length)queued.shift()();assert.equal(posted.length,1);
  assert.equal(client.countdown,0,'A stale countdown must not act on the new round.');
 }
 const cfg={provider:'deepseek',model:'test-model',api_key:key,remember:false};
@@ -530,7 +535,7 @@ function settingsHarness(){
  const script=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m=>m[1]).find(s=>s.includes('let state=null,busy=false'));
  const elements=new Map(),listeners=new Map();
  const el=id=>{
-  if(!elements.has(id))elements.set(id,{value:id==='api-provider'?'jev':'',disabled:false,checked:false,
+  if(!elements.has(id))elements.set(id,{value:id==='api-provider'?'jev':'',disabled:false,checked:false,dataset:{},
    addEventListener:()=>{},append(){},showModal(){this.open=true;},close(){this.open=false;}});
   return elements.get(id);
  };
@@ -679,7 +684,7 @@ function settingsHarness(){
  const close=h.calls.find(c=>c.url==='/api/session/close');
  assert(close);assert.equal(close.init.keepalive,true);assert.equal(close.init.headers['X-ChefJeff-Session'],'test-session');
  assert(!JSON.stringify(close).includes(key));
- const ui=settingsHarness();ui.listeners.get('kitchen-open-connection')();
+ const ui=settingsHarness();ui.listeners.get('kitchen-open-connection')({detail:{view:'settings'}});
  assert.equal(ui.el('api-provider').disabled,false);assert.equal(ui.el('api-key').disabled,false);
  assert.equal(ui.el('api-connect').disabled,true);assert(ui.el('api-editing-status').textContent.includes('厨房暂时已满'));
  ui.el('api-key').value=key;

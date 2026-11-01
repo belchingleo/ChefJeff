@@ -1,8 +1,8 @@
 {
   "description": "Model services Jeff can use, read by the local server, the hosted page and the settings dialog. decision: a systemone-style decision API (state + questions, answered with option probabilities). chat: an OpenAI-compatible Chat Completions API. extra holds vendor request fields for either group, such as requiring a listed decision option, turning chat thinking off or asking for JSON. hosted: direct (the browser calls it), relay (only through the demo server, with consent) or none (local game only). tested: a whole round has been played with it.",
   "groups": [
-    {"id": "decision", "label": "决策模型（直接给每个动作打分）"},
-    {"id": "chat", "label": "对话模型"}
+    {"id": "decision", "label": "决策模型"},
+    {"id": "chat", "label": "快思考模型"}
   ],
   "providers": [
     {"id": "jev", "group": "decision", "label": "TypeSafe · Jev（推荐）", "note": "决策模型 · 已实测整局",

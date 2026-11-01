@@ -233,7 +233,7 @@ export class KitchenClient extends Component {
         hint.color=color(COLORS.muted);hint.horizontalAlign=Label.HorizontalAlign.RIGHT;
         this.pixel(this.button('free-limits','免费使用限制',982,282,148,30,()=>this.coverEvent('kitchen-open-free-limits'),this.cover).getComponentInChildren(Label)!,14);
         for(const [id,x,badge,badgeFill] of [['tile-free',424,'免费',COLORS.herb],['tile-key',856,'API Key',COLORS.muted]] as [string,number,string,string][]){
-            const tile=this.button(id,'',x,360,412,120,()=>id==='tile-free'?this.useFree():this.openConnection(),this.cover,'tile');
+            const tile=this.button(id,'',x,360,412,120,()=>id==='tile-free'?this.useFree():this.openConnection('custom'),this.cover,'tile');
             const tag=this.child(tile,'badge',this.textWidth(badge,14)+16,24,-206+12+(this.textWidth(badge,14)+16)/2,40);
             this.paintBox(tag,this.textWidth(badge,14)+16,24,badgeFill);
             const tagText=this.child(tag,'text',this.textWidth(badge,14)+16,22).addComponent(Label);this.writeLabel(tagText,badge);this.pixel(tagText,14);tagText.color=color(COLORS.paper);
@@ -333,7 +333,7 @@ export class KitchenClient extends Component {
         this.clearInput();window.dispatchEvent(new Event('kitchen-open-'+kind));
     }
     private openHelp(){this.clearInput();if(this.touchLayout?.active)this.blockTouch(true);if(!sys.isNative)window.dispatchEvent(new Event('kitchen-open-help'));}
-    private openConnection(){this.clearInput();if(this.touchLayout?.active)this.blockTouch(true);if(!sys.isNative)window.dispatchEvent(new Event('kitchen-open-connection'));}
+    private openConnection(view:'settings'|'custom'='settings'){this.clearInput();if(this.touchLayout?.active)this.blockTouch(true);if(!sys.isNative)window.dispatchEvent(new CustomEvent('kitchen-open-connection',{detail:{view}}));}
     // Keyboard and touch share gameplay actions; the web shell only owns pointer gestures and layout.
     private installControls(){
         if(sys.isNative)return;
@@ -347,6 +347,8 @@ export class KitchenClient extends Component {
             settings:()=>this.openConnection(),help:()=>this.openHelp(),end:()=>this.controlButton('end'),
             record:()=>this.openRecord(),contribute:()=>this.controlButton('contribute'),bookmark:()=>{if(this.canInput())this.bookmark();},
             levels:()=>this.openCoverMenu('levels'),more:()=>this.openCoverMenu('more'),
+            alt:()=>this.controlButton('next-alt'),step:(d:number)=>this.stepLevel(d),custom:()=>this.openConnection('custom'),
+            freeModels:()=>this.coverEvent('kitchen-open-free-models'),
             level:(id:string)=>{if(this.connected&&!this.pending&&['ready','ended'].includes(this.state?.phase||'')&&this.state?.levels?.some((l:any)=>l.id===id))return this.post('/api/level',{level:id});},
             language:()=>{const i18n=(window as any).kitchenI18n;i18n?.setLanguage(i18n.language==='en'?'zh':'en');}
         };
@@ -391,8 +393,22 @@ export class KitchenClient extends Component {
             mainEnabled:!!this.buttons.main?.enabled&&!this.pending,
             communicationEnabled:!!s?.communication?.allowed,endEnabled:['running','paused'].includes(s?.phase||'')&&this.connected&&!this.pending,
             recordEnabled:!!s?.round_summary&&s?.phase==='ended',
-            contribute:s?.phase==='ended'&&s?.hosted?.contribution_offer?{label:this.labelSources.get(this.buttons.contribute.label)||'',enabled:this.buttons.contribute.enabled}:null,levels:(s?.levels||[]).map((l:any)=>({id:l.id,name:l.name,selected:l.id===k?.level_id})),
-            levelEnabled:this.connected&&!this.pending&&['ready','ended'].includes(s?.phase||'')};
+            contribute:s?.phase==='ended'&&s?.hosted?.contribution_offer?{label:this.labelSources.get(this.buttons.contribute.label)||'',enabled:this.buttons.contribute.enabled}:null,levels:this.sortedLevels(s).map((l:any)=>({id:l.id,name:l.name,target:l.target,selected:l.id===k?.level_id})),
+            // A finished round at the time limit, so the page can keep this browser's best result per level.
+            outcome:s?.phase==='ended'&&!s.aborted&&k?.failure_reason!=='fire_spread'?{level:k?.level_id,money:k?.money,won:!!(s as any).won}:null,
+            levelEnabled:this.connected&&!this.pending&&['ready','ended'].includes(s?.phase||''),card:this.cardState(s)};
+    }
+    // The phone menu redraws the shop card in HTML, with the same words the Cocos card shows.
+    private cardState(s:KitchenState|null){
+        if(!s||!this.buttons['free-pick']||!['ready','ended'].includes(s.phase))return null;
+        const text=(id:string)=>this.labels[id]?this.labelSources.get(this.labels[id])||'':'';
+        const label=(id:string)=>this.labelSources.get(this.buttons[id].label)||'';
+        const c=s.connection,acts=s.phase==='ended'?this.resultActions(s):null;
+        return {level:text('level-title'),dish:text('level-name'),target:text('level-target'),tag:s.phase==='ended'?text('level-tag-text'):'',
+            money:s.phase==='ended'?text('result-money'):'',stepEnabled:s.phase==='ready'&&this.connected&&!this.pending&&!this.countdown,
+            free:c?.free_models?.enabled?{status:text('tile-free-status'),pick:label('free-pick'),selected:!!c.free_model}:null,
+            custom:{status:text('tile-key-status'),selected:!!c?.configured&&!c.free_model},
+            alt:acts?{label:acts.alt.label,sub:acts.alt.sub}:null};
     }
     private touchOrder(order:any){
         const dish=this.dishById(order.dish),ingredients:string[]=order.ingredients||dish?.components?.map((c:any)=>c.item)||[];
@@ -506,7 +522,7 @@ export class KitchenClient extends Component {
             return;
         }
         // Shop-card keys: ← → change level before a round; N, R and L act on the result card.
-        const plain=!e.repeat&&!e.ctrlKey&&!e.altKey&&!e.metaKey&&this.connected&&this.cover.active&&!this.countdown;
+        const plain=['ready','ended'].includes(this.state?.phase||'')&&!e.repeat&&!e.ctrlKey&&!e.altKey&&!e.metaKey&&this.connected&&!!this.cover?.active&&!this.countdown;
         if(plain&&this.state?.phase==='ready'&&(e.key==='ArrowLeft'||e.key==='ArrowRight')){
             e.preventDefault();this.stepLevel(e.key==='ArrowLeft'?-1:1);return;
         }
@@ -2027,7 +2043,9 @@ export class KitchenClient extends Component {
                 sub.color=color(b.tone==='primary'?COLORS.paper:COLORS.ink);b.label.node.setPosition(0,a.sub?8:0);
             }
             hide('reset','help');
-            this.set('welcome-tip',(s.won?'Enter 下一关 · R 再来一次':'Enter 再来一次 · N 下一关')+' · L 全部关卡');this.placeText('welcome-tip',218,538,844,19);
+            // On the last level the forward action is 全部关卡 itself, so L is not listed twice.
+            const fwd=acts.main.label==='再来一次'?acts.alt:acts.main,last=fwd.kind==='levels';
+            this.set('welcome-tip',(s.won?`Enter ${fwd.label} · R 再来一次`:`Enter 再来一次 · ${last?'L':'N'} ${fwd.label}`)+(last?'':' · L 全部关卡'));this.placeText('welcome-tip',218,538,844,19);
             // Light chips: round analysis (when there is one), all levels, settings.
             const offer=!sys.isNative&&!!s.hosted?.contribution_offer;
             const chips=[...(s.round_summary?[['record',150]]:[]),['level-picker',150],['cover-connection',110],...(offer?[['contribute',130]]:[])] as [string,number][];

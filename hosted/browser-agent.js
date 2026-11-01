@@ -664,7 +664,7 @@
     const s=shown||state,round=s?.game_id;
     if(s?.phase!=='ended'||!s.hosted?.contribution_enabled||s.hosted.contributed||busyRound===round)return;
     pendingContribution=pendingContribution.catch(()=>{}).then(()=>contribute('round',round))
-      .then(()=>report(round,'本局已贡献，保存半年（180 天）。删除凭证在「设置 → 数据导出」。'))
+      .then(()=>report(round,'本局已贡献，保存半年（180 天）。删除凭证在「设置 → 数据与贡献」。'))
       .catch(error=>report(round,'贡献失败：'+error.message));
   }
   window.addEventListener('kitchen-contribute', contributeRound);

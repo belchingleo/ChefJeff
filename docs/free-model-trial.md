@@ -117,7 +117,7 @@ Unknown transport outcomes, authentication failures and model mismatches retain 
 existing fail-closed block. These are not automatically cleared or retried. The page
 shows a paused service; players may choose another model after ending the round.
 
-The ordinary **Settings → Data export** download includes per-round
+The ordinary **Settings → Data and contributions** download includes per-round
 `free_model_diagnostics`; this does not require research contribution consent. These
 entries live only in the page session until export/closure. Research schema, consent,
 retention and database export validation stay unchanged. Research ZIPs from earlier
