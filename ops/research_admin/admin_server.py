@@ -25,6 +25,13 @@ COOKIE = '__Secure-ChefJeffAdmin'
 IDLE_SECONDS = 1800
 MAX_SECONDS = 8 * 3600
 MAX_EXPORT = 280_000_000
+# The export token reaches only these read routes; it never logs in or changes the account.
+TOKEN_SCOPE = {('GET', PREFIX+'api/records'): 'records', ('GET', PREFIX+'api/preview'): 'preview',
+               ('GET', PREFIX+'download/research.cjresearch.zip'): 'download',
+               ('POST', PREFIX+'download/selected.cjresearch.zip'): 'selected'}
+TOKEN_FORMAT = 'chefjeff-export-token-v1'
+TOKEN_PATTERN = re.compile(r'cjx1\.([a-f0-9]{8})\.([A-Za-z0-9_-]{43})')
+TOKEN_FAILURES = 10
 
 
 def password_hash(password, salt):
@@ -38,6 +45,21 @@ def credentials(username, password):
         raise ValueError('密码需要16至256个字符。')
     salt = secrets.token_hex(16)
     return dict(username=username, salt=salt, password_hash=password_hash(password, salt))
+
+
+def export_token(days, now=None):
+    """Return the token, shown once, and the record that stores only its scrypt hash."""
+    if not 1 <= days <= 365:
+        raise ValueError('有效天数需要在1至365之间。')
+    now = int(time.time() if now is None else now)
+    identifier, secret, salt = secrets.token_hex(4), secrets.token_urlsafe(32), secrets.token_hex(16)
+    record = dict(format=TOKEN_FORMAT, id=identifier, salt=salt, token_hash=password_hash(secret, salt),
+                  issued_at=now, expires_at=now+days*86400)
+    return 'cjx1.'+identifier+'.'+secret, record
+
+
+def token_path(config):
+    return Path(config['auth']).with_name('export-token.json')
 
 
 def filters(query):
@@ -98,6 +120,7 @@ class AdminServer(ThreadingHTTPServer):
         self.auth = json.loads(Path(config['auth']).read_text())
         self.sessions = {}
         self.failures = deque()
+        self.token_failures = deque()
         self.lock = threading.Lock()
         self.export_lock = threading.Lock()
         self.slots = threading.BoundedSemaphore(6)
@@ -126,6 +149,8 @@ class AdminServer(ThreadingHTTPServer):
 class AdminHandler(BaseHTTPRequestHandler):
     server_version = 'ChefJeffAdmin'
     sys_version = ''
+    _audit = None
+    _token = None
 
     def log_message(self, *args):
         pass
@@ -136,6 +161,9 @@ class AdminHandler(BaseHTTPRequestHandler):
 
     def headers_for(self, status, content_type, length, extra=None):
         self._sent = True
+        if self._audit:
+            # Fixed route name, status and token label only: no token, query, IP or record content.
+            sys.stderr.write('export-token '+self._audit+' '+str(status)+' id='+(self._token or '-')+'\n')
         self.send_response(status)
         self.send_header('Content-Type', content_type)
         self.send_header('Content-Length', str(length))
@@ -173,6 +201,45 @@ class AdminHandler(BaseHTTPRequestHandler):
                 found['seen'] = now
                 return token
 
+    def bearer(self):
+        """Return the active token's label, or None; cookies are never consulted here."""
+        header = self.headers.get('Authorization', '')
+        match = TOKEN_PATTERN.fullmatch(header[7:]) if header.startswith('Bearer ') else None
+        if not match:
+            return None
+        try:
+            stored = json.loads(token_path(self.server.config).read_text())
+        except FileNotFoundError:
+            return None  # Revoked or never issued.
+        if (stored.get('format') != TOKEN_FORMAT or time.time() >= stored['expires_at']
+                or not hmac.compare_digest(match[1], stored['id'])):
+            return None
+        if not hmac.compare_digest(password_hash(match[2], stored['salt']), stored['token_hash']):
+            return None
+        return stored['id']
+
+    def token_allowed(self, method, path):
+        """Authorization requests use only the export token and never touch login sessions."""
+        self._audit = method+' '+TOKEN_SCOPE.get((method, path), 'other')
+        if (method, path) not in TOKEN_SCOPE:
+            self.reply(403, {'error': '导出令牌只能读取记录和下载研究包。'})
+            return False
+        now = time.monotonic()
+        with self.server.lock:
+            while self.server.token_failures and now - self.server.token_failures[0] > 60:
+                self.server.token_failures.popleft()
+            limited = len(self.server.token_failures) >= TOKEN_FAILURES
+        if limited:  # Checked before hashing, so invalid tokens cannot spend scrypt time.
+            self.reply(429, {'error': '令牌尝试过于频繁，请一分钟后重试。'})
+            return False
+        self._token = self.bearer()
+        if not self._token:
+            with self.server.lock:
+                self.server.token_failures.append(now)
+            self.reply(401, {'error': '导出令牌无效、已过期或已吊销。'})
+            return False
+        return True
+
     def same_origin(self):
         return (self.headers.get('Origin') == self.server.config['origin'] and
                 self.headers.get('Sec-Fetch-Site') not in ('cross-site', 'none'))
@@ -197,7 +264,7 @@ class AdminHandler(BaseHTTPRequestHandler):
         path = parsed.path
         if path == '/healthz':
             return self.reply(200, {'ok': True, 'database_opened': False, 'admin_version': 2,
-                                    'features': ['selected_download', 'record_preview', 'custom_charts', 'dynamic_levels', 'regional_usage', 'source_filter']})
+                                    'features': ['selected_download', 'record_preview', 'custom_charts', 'dynamic_levels', 'regional_usage', 'source_filter', 'export_token']})
         assets = {'app.css': 'text/css; charset=utf-8', 'app.js': 'application/javascript; charset=utf-8', 'charts.js':'application/javascript; charset=utf-8', 'dashboard.js':'application/javascript; charset=utf-8',
                   'chefjeff-pixel.woff2': 'font/woff2', 'OFL.txt': 'text/plain; charset=utf-8'}
         if path in [PREFIX+name for name in assets]:
@@ -209,7 +276,10 @@ class AdminHandler(BaseHTTPRequestHandler):
             return self.reply(404, {'error': '未找到页面。'})
         if self.headers.get('Sec-Fetch-Site') == 'cross-site':
             return self.reply(403, {'error': '请从管理页访问。'})
-        if not self.session():
+        if 'Authorization' in self.headers:
+            if not self.token_allowed('GET', path):
+                return
+        elif not self.session():
             if path == PREFIX:
                 return self.reply(303, b'', extra={'Location': PREFIX+'login'})
             return self.reply(401, {'error': '登录已过期，请重新登录。'})
@@ -296,7 +366,9 @@ class AdminHandler(BaseHTTPRequestHandler):
                     return self.reply(413, {'error': '研究包较大，请缩短日期范围后下载。'})
                 # Recheck withdrawal, expiry and updates immediately before serving.
                 self.server.verifier(package, database=self.server.config['database'])
-                if not self.session():
+                if self._token and self.bearer() != self._token:
+                    return self.reply(401, {'error': '导出令牌已过期或已吊销，研究包没有发送。'})
+                if not self._token and not self.session():
                     return self.reply(401, {'error': '登录已过期，请重新登录。'})
                 self.headers_for(200, 'application/zip', package.stat().st_size, {
                     'Content-Disposition': 'attachment; filename="chefjeff-research.cjresearch.zip"',
@@ -318,11 +390,17 @@ class AdminHandler(BaseHTTPRequestHandler):
             self.close_connection=True
 
     def post(self):
-        if not self.valid_host() or not self.same_origin():
+        if not self.valid_host():
+            return self.reply(403, {'error': '请求来源不正确。'})
+        if 'Authorization' in self.headers:
+            # Browsers never attach this header on their own, so the cookie Origin check does not apply.
+            if not self.token_allowed('POST', self.path):
+                return
+        elif not self.same_origin():
             return self.reply(403, {'error': '请求来源不正确。'})
         if self.headers.get('Transfer-Encoding') or self.headers.get('Content-Type', '').split(';')[0] != 'application/x-www-form-urlencoded':
             return self.reply(400, {'error': '请求格式不正确。'})
-        if self.path == PREFIX+'download/selected.cjresearch.zip' and not self.session():
+        if self.path == PREFIX+'download/selected.cjresearch.zip' and not self._token and not self.session():
             return self.reply(401, {'error':'请先登录。'})
         try:
             length = int(self.headers.get('Content-Length', '0'))
