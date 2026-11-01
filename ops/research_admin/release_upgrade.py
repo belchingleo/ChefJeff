@@ -17,9 +17,28 @@ RELEASES = Path('/opt/chefjeff/releases')
 ADMIN_RELEASES = Path('/opt/chefjeff-admin/releases')
 ADMIN_UNIT = Path('/etc/systemd/system/chefjeff-admin.service')
 DATA_UNIT = Path('/etc/systemd/system/chefjeff-data.service')
-LEGACY_GAME = Path('/opt/chefjeff/releases/china-en-v4-269d7af296be/chefjeff-web-demo')
-LEGACY_ADMIN = Path('/opt/chefjeff-admin/releases/v2-21cdee2e28e3fcb9')
+# The live Shanghai state this upgrade starts from (checked 2026-11-01): the game link on b98a4fc,
+# the console still bound to the v7 game, the console program from the #41 package and the
+# shared-data program from the v7 package, in two folders.
+LEGACY_GAME = Path('/opt/chefjeff/releases/china-free-b98a4fc6b8e8/chefjeff-web-demo')
+BOUND_GAME = Path('/opt/chefjeff/releases/china-v7-05c76fb9875a/chefjeff-web-demo')
+LEGACY_ADMIN = Path('/opt/chefjeff-admin/releases/v2-e6013860c32ed57f')
+LEGACY_DATA = Path('/opt/chefjeff-admin/releases/v2-d6662e869d059f4b')
 LEGACY_PROGRAMS = {
+    'admin_server.py': '40ae4da8f54083ab68ce8e9b4cd8590951f142e358f963066bb7c4e0f821483e',
+    'admin_data.py': '80d5ae4631fefe26c83a798024681bd50b0c1c286c2e5ea4ccdd661300e6c4a9',
+    'source_observer.py': '291b3197fc5aeed3937a00a56d97da9905ab0f8784dbc265618d5ce3ebc1d88d',
+    'authority_runner.py': '2b20dd59a2641ed6f482eaa5080b6ef8e6d46dad9d32ab5f899f409ec9239f36',
+    'app.js': '1755af29a27df57b455eaa87a236f2c729ea0d766e8f2e683a5c0d5f0b103bdf',
+    'dashboard.js': '9d37bd3cc59268e38494f1ea230c2084f702a0616bdc9644dacad387434d9580',
+    'charts.js': '82ea010e0b7520515b97ff53b7e75c26806c641905a1dc2f20d95b9bad75abf9',
+    'app.css': '5cb7301f321c604243344e3d5b5cbce39acc3bcf32d40430e3206df5ab66156d',
+    'index.html': 'be3a544f0984a1d5618081ba353a7e9c00785ce1bf97977cbaf6746888e306b1',
+    'login.html': '93ecd860987f80c978b3eb72527977d2690504842aca1e6f87dd1e7eed7545f4',
+    'chefjeff-pixel.woff2': '043eae5e616b0d1e75dc746d3d687b4413f9f1c70c1a09bc4ebb705ef1cc8e32',
+    'OFL.txt': 'a0e37147ea540c0a2f46039aac2c8fa42b0457018cb49bcd6a5771619c46a7a7',
+}
+LEGACY_DATA_PROGRAMS = {
     'admin_server.py': 'd2116c6c9854d58aae6fbb27a154d5a26885c89602a922b352df980021e8ac62',
     'admin_data.py': '80d5ae4631fefe26c83a798024681bd50b0c1c286c2e5ea4ccdd661300e6c4a9',
     'source_observer.py': '291b3197fc5aeed3937a00a56d97da9905ab0f8784dbc265618d5ce3ebc1d88d',
@@ -28,7 +47,7 @@ LEGACY_PROGRAMS = {
     'dashboard.js': '9d37bd3cc59268e38494f1ea230c2084f702a0616bdc9644dacad387434d9580',
     'charts.js': '82ea010e0b7520515b97ff53b7e75c26806c641905a1dc2f20d95b9bad75abf9',
     'app.css': '5cb7301f321c604243344e3d5b5cbce39acc3bcf32d40430e3206df5ab66156d',
-    'index.html': '42671cfe11da51d7ff5d3b524a6d52835a1a9f2693e037121dba58a3220c3699',
+    'index.html': 'be3a544f0984a1d5618081ba353a7e9c00785ce1bf97977cbaf6746888e306b1',
     'login.html': '93ecd860987f80c978b3eb72527977d2690504842aca1e6f87dd1e7eed7545f4',
     'chefjeff-pixel.woff2': '043eae5e616b0d1e75dc746d3d687b4413f9f1c70c1a09bc4ebb705ef1cc8e32',
     'OFL.txt': 'a0e37147ea540c0a2f46039aac2c8fa42b0457018cb49bcd6a5771619c46a7a7',
@@ -44,17 +63,18 @@ def save_state(state):
 
 
 def unit_candidates(admin, data, destination):
-    old = str(LEGACY_ADMIN)
-    expected_admin = ['/usr/bin/python3', old+'/admin_server.py', '--config', str(CONFIG)]
-    expected_data = ['/usr/bin/python3', old+'/authority_runner.py', '--port', '8790',
+    old_admin, old_data = str(LEGACY_ADMIN), str(LEGACY_DATA)
+    expected_admin = ['/usr/bin/python3', old_admin+'/admin_server.py', '--config', str(CONFIG)]
+    expected_data = ['/usr/bin/python3', old_data+'/authority_runner.py', '--port', '8790',
                      '--data-dir', '/var/lib/chefjeff-data', '--credentials', '/etc/chefjeff/data-server.json']
     for text, expected in ((admin,expected_admin),(data,expected_data)):
         starts=[line[10:] for line in text.splitlines() if line.startswith('ExecStart=')]
         if len(starts)!=1 or shlex.split(starts[0])!=expected:
             raise ValueError('服务入口与已核对的v2实例不一致；不会覆盖。')
-    if admin.count(old)!=2 or data.count(old)!=1:
+    if admin.count(old_admin)!=2 or data.count(old_data)!=1 or old_data in admin or old_admin in data:
         raise ValueError('服务工作目录引用与已核对配置不一致。')
-    return admin.replace(old,str(destination)), data.replace(old,str(destination))
+    # Both services move to the one new program folder.
+    return admin.replace(old_admin,str(destination)), data.replace(old_data,str(destination))
 
 
 def prepare(target, bundle):
@@ -64,9 +84,9 @@ def prepare(target, bundle):
         raise ValueError('已有发布升级状态；请先核对，不会覆盖回退资料。')
     target=verify_game_release(target,bundle)
     if CURRENT.resolve(strict=True)!=LEGACY_GAME:
-        raise ValueError('当前游戏不是已核对的269d7af版本。')
+        raise ValueError('当前游戏不是已核对的 b98a4fc 版本。')
     config_raw=CONFIG.read_bytes();cfg=json.loads(config_raw)
-    if (Path(cfg['release']).resolve()!=LEGACY_GAME or cfg['origin']!='https://'+legacy.DOMAIN
+    if (Path(cfg['release']).resolve()!=BOUND_GAME or cfg['origin']!='https://'+legacy.DOMAIN
             or cfg['database']!='/var/lib/chefjeff-data/contributions.sqlite3'
             or cfg['auth']!='/etc/chefjeff-admin/auth.json'):
         raise ValueError('管理配置与已核对实例不一致。')
@@ -75,9 +95,10 @@ def prepare(target, bundle):
                 or legacy.property_value(unit,'DropInPaths')
                 or legacy.property_value(unit,'ActiveState')!='active'):
             raise ValueError('管理或数据服务状态与已核对实例不一致。')
-    for name,checksum in LEGACY_PROGRAMS.items():
-        if legacy.sha((LEGACY_ADMIN/name).read_bytes())!=checksum:
-            raise ValueError('已安装管理程序发生变化：'+name)
+    for folder,programs in ((LEGACY_ADMIN,LEGACY_PROGRAMS),(LEGACY_DATA,LEGACY_DATA_PROGRAMS)):
+        for name,checksum in programs.items():
+            if legacy.sha((folder/name).read_bytes())!=checksum:
+                raise ValueError('已安装管理程序发生变化：'+str(folder/name))
     manifest=json.loads((bundle/'manifest.json').read_text())
     names=(*legacy.APP_FILES,'release_binding.py','release_upgrade.py','upgrade_admin.py','game-binding.json')
     for name in names:
@@ -101,7 +122,7 @@ def prepare(target, bundle):
     for name,raw in sources.items():legacy.write(WORK/name,raw)
     stat=CONFIG.stat()
     state={'phase':'prepared','target':str(target),'previous_game':str(LEGACY_GAME),
-           'previous_admin':str(LEGACY_ADMIN),'new_admin':str(destination),'auth':auth,
+           'previous_admin':str(LEGACY_ADMIN),'previous_data':str(LEGACY_DATA),'new_admin':str(destination),'auth':auth,
            'config_owner':[stat.st_uid,stat.st_gid],'config_mode':stat.st_mode&0o777,
            'hashes':{name:legacy.sha(raw) for name,raw in sources.items()},
            'app_hashes':{name:manifest['files'][name] for name in legacy.APP_FILES}}

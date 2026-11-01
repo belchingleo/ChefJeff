@@ -156,8 +156,14 @@ python3 scripts/package_research_admin.py
 `game-binding.json` 固定同一次源码构建的运行模块、schema 和导出器的 SHA-256；
 只核对 `research_export.py` 一个文件不足以判断兼容性。初次安装器也核对该绑定。
 
-针对已核对的上海 `269d7af` 游戏和 `v2-21cdee2e28e3fcb9` 管理台，使用新增的
-发布升级命令。先暂存新游戏目录和独立管理包，然后执行（替换 `<新游戏目录>`）：
+这个发布升级命令只认 2026-11-01 核对过的上海实例：
+- 游戏链接在 `china-free-b98a4fc6b8e8`；
+- 管理配置仍绑定 v7 游戏 `china-v7-05c76fb9875a`；
+- 管理台程序在 `v2-e6013860c32ed57f`（#41 的管理包），共享数据程序在 `v2-d6662e869d059f4b`（v7 的管理包），两个目录分开；
+- 两个目录里每个程序文件的 SHA-256 都写在 `release_upgrade.py` 里，任何一个不一致都会拒绝。
+
+激活后，管理台和共享数据服务都改用新管理包的程序目录，配置绑定到新游戏目录；
+共享数据服务的工作目录仍是 `/opt/chefjeff/current`。先暂存新游戏目录和独立管理包，然后执行（替换 `<新游戏目录>`）：
 
 ```sh
 sudo python3 ~/chefjeff-admin-v2/upgrade_admin.py prepare-release --game-release '<新游戏目录>'
