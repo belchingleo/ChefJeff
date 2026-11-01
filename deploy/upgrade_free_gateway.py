@@ -16,8 +16,9 @@ from shared_client import SharedClient
 from shared_server import read_private_json
 
 UNIT=Path('/etc/systemd/system/chefjeff-free.service')
-PREVIOUS=Path('/opt/chefjeff/releases/china-free-22fd0d25aaad/chefjeff-web-demo')
-PREVIOUS_MANIFEST='dc5bc390d6472e5fc0aa987afdd9f69ba5995790bf20fc9ad5dec248eaacc87b'
+# The gateway Shanghai runs now (b98a4fc, unit checked byte for byte 2026-11-01).
+PREVIOUS=Path('/opt/chefjeff/releases/china-free-b98a4fc6b8e8/chefjeff-web-demo')
+PREVIOUS_MANIFEST='11988b0ffc823b0112c267d87a8c44e8f532cb7fe396b6dbe78af426e16ca9dc'
 UNIT_NAME='chefjeff-free.service'
 
 

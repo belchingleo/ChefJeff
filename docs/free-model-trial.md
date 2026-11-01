@@ -132,8 +132,8 @@ The most recent result is shared across players; it is not a full per-player his
 
 ### Upgrade an already running free-model deployment
 
-This upgrade expects the audited game release `bf11efd9b0cc` on both regions and the
-original gateway release `22fd0d25aaad` in Shanghai. Build the pinned GitHub commit
+This upgrade expects the game release `b98a4fc6b8e8` on both regions and the gateway
+running from that release in Shanghai (both checked on the servers on 2026-11-01). Build the pinned GitHub commit
 archive twice and require matching SHA-256 before staging. The regional installer
 preserves and restores the existing free-model startup override on rollback.
 

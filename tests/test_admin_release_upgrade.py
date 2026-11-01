@@ -32,18 +32,23 @@ class ReleaseUpgradeTests(unittest.TestCase):
             (self.bundle/name).write_text('synthetic public program '+name)
         self.manifest={'bundle_id':'b'*16,'files':{p.name:up.legacy.sha(p.read_bytes()) for p in self.bundle.iterdir()}}
         (self.bundle/'manifest.json').write_text(json.dumps(self.manifest))
-        self.old_admin=root/'admin/old';self.old_admin.mkdir(parents=True)
-        programs={}
-        for name in up.LEGACY_PROGRAMS:
-            p=self.old_admin/name;p.write_text('synthetic previous '+name);programs[name]=up.legacy.sha(p.read_bytes())
+        # As on the live server: the console and the shared-data service run from two program
+        # folders, and the console is still bound to an older game than the current link.
+        self.old_admin=root/'admin/console';self.old_admin.mkdir(parents=True)
+        self.old_data=root/'admin/data';self.old_data.mkdir()
+        self.bound=root/'game/v7';self.bound.mkdir()
+        programs,data_programs={},{}
+        for folder,pins in ((self.old_admin,programs),(self.old_data,data_programs)):
+            for name in up.LEGACY_PROGRAMS:
+                p=folder/name;p.write_text('synthetic previous '+folder.name+' '+name);pins[name]=up.legacy.sha(p.read_bytes())
         self.config=root/'config.json'
-        self.original=json.dumps({'release':str(self.old),'origin':'https://'+up.legacy.DOMAIN,
+        self.original=json.dumps({'release':str(self.bound),'origin':'https://'+up.legacy.DOMAIN,
             'database':'/var/lib/chefjeff-data/contributions.sqlite3','auth':'/etc/chefjeff-admin/auth.json',
             'temporary':'/run/chefjeff-admin','game_port':8780}).encode()
         self.config.write_bytes(self.original)
         self.admin=root/'admin.service';self.data=root/'data.service'
         self.admin.write_text('[Service]\nExecStart=/usr/bin/python3 '+str(self.old_admin)+'/admin_server.py --config '+str(self.config)+'\nWorkingDirectory='+str(self.old_admin)+'\nProtectSystem=strict\n')
-        self.data.write_text('[Service]\nExecStart=/usr/bin/python3 '+str(self.old_admin)+'/authority_runner.py --port 8790 --data-dir /var/lib/chefjeff-data --credentials /etc/chefjeff/data-server.json\nReadWritePaths=/var/lib/chefjeff-data\n')
+        self.data.write_text('[Service]\nWorkingDirectory=/opt/chefjeff/current\nExecStart=/usr/bin/python3 '+str(self.old_data)+'/authority_runner.py --port 8790 --data-dir /var/lib/chefjeff-data --credentials /etc/chefjeff/data-server.json\nReadWritePaths=/var/lib/chefjeff-data\n')
         self.original_admin=self.admin.read_bytes();self.original_data=self.data.read_bytes()
         self.work=root/'review';self.work.mkdir()
         self.calls=[];self.game_state='active'
@@ -54,8 +59,9 @@ class ReleaseUpgradeTests(unittest.TestCase):
             raise AssertionError(key)
         for name,value in {'WORK':self.work,'CONFIG':self.config,'CURRENT':self.current,
                            'RELEASES':self.target.parent,'ADMIN_RELEASES':self.old_admin.parent,
-                           'ADMIN_UNIT':self.admin,'DATA_UNIT':self.data,'LEGACY_GAME':self.old,
-                           'LEGACY_ADMIN':self.old_admin,'LEGACY_PROGRAMS':programs}.items():
+                           'ADMIN_UNIT':self.admin,'DATA_UNIT':self.data,'LEGACY_GAME':self.old,'BOUND_GAME':self.bound,
+                           'LEGACY_ADMIN':self.old_admin,'LEGACY_PROGRAMS':programs,
+                           'LEGACY_DATA':self.old_data,'LEGACY_DATA_PROGRAMS':data_programs}.items():
             p=patch.object(up,name,value);p.start();self.addCleanup(p.stop)
         for p in [patch.object(up.legacy,'property_value',side_effect=prop),
                   patch.object(up.legacy,'auth_stat',return_value=[1,2,3]),
@@ -73,6 +79,12 @@ class ReleaseUpgradeTests(unittest.TestCase):
         self.assertEqual(self.config.read_bytes(),self.original);self.assertEqual(self.calls,[])
         self.switch();up.activate()
         self.assertEqual(json.loads(self.config.read_text())['release'],str(self.target))
+        new=up.read_state()['new_admin']
+        self.assertIn(new+'/admin_server.py',self.admin.read_text())
+        self.assertIn(new+'/authority_runner.py',self.data.read_text())
+        self.assertNotIn(str(self.old_admin),self.admin.read_text()+self.data.read_text())
+        self.assertNotIn(str(self.old_data),self.admin.read_text()+self.data.read_text())
+        self.assertIn('WorkingDirectory=/opt/chefjeff/current',self.data.read_text())  # data still follows the game link
         self.assertIn('ProtectSystem=strict',self.admin.read_text())
         self.assertIn('ReadWritePaths=/var/lib/chefjeff-data',self.data.read_text())
         up.rollback()
@@ -106,6 +118,14 @@ class ReleaseUpgradeTests(unittest.TestCase):
         self.assertEqual(up.read_state()['phase'],'rolled-back')
         self.assertEqual(self.calls[-3:],[('systemctl','stop','chefjeff-admin.service'),
             ('systemctl','stop','chefjeff-data.service'),('systemctl','daemon-reload')])
+
+    def test_refuses_another_binding_or_changed_data_program(self):
+        self.config.write_text(self.original.decode().replace(str(self.bound),str(self.old)))
+        with self.assertRaises(ValueError):up.prepare(self.target,self.bundle)
+        self.config.write_bytes(self.original)
+        (self.old_data/'authority_runner.py').write_text('changed')
+        with self.assertRaises(ValueError):up.prepare(self.target,self.bundle)
+        self.assertFalse((self.work/'state.json').exists());self.assertEqual(self.calls,[])
 
     def test_refuses_changed_v2_arguments_and_target_outside_release_root(self):
         self.data.write_bytes(self.original_data.replace(b'--port 8790',b'--port 9999'))
