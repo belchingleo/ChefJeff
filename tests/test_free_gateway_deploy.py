@@ -5,6 +5,7 @@ import io
 import json
 from pathlib import Path
 import tempfile
+import types
 import unittest
 from unittest.mock import patch
 
@@ -108,6 +109,41 @@ class DeploymentTests(unittest.TestCase):
             self.assertEqual(caught.exception.details['http_status'],503)
             self.assertEqual(stages[-1],'public_fingerprint')
             self.assertEqual(calls[-1],'/api/session/close')
+
+    def test_full_success_verification_reaches_and_finishes_http_redirect(self):
+        with tempfile.TemporaryDirectory() as d:
+            previous,new,current,override,work,raw=self.activation_fixture(Path(d))
+            current.unlink();current.symlink_to(new)
+            state=load(work);state['switched_monotonic_us']=1;save(work,state)
+            calls=[]
+            def request(domain,path,*args,**kwargs):
+                calls.append(path)
+                return {'/healthz':(200,b'{}'),'/':(200,b'<aside id="free-model-picker"></aside><script>inline</script>'),
+                    '/api/session':(201,b'{"session":"synthetic-session"}'),
+                    '/api/state':(200,b'{"release":{"fingerprint":"synthetic"}}'),
+                    '/api/model/free/catalog':(200,b'{"gateway_available":true}'),
+                    '/api/session/close':(200,b'{}')}[path]
+            class Redirect:
+                status=301
+                def request(self,*args):calls.append('http-redirect')
+                def getresponse(self):return self
+                def read(self):return b''
+                def getheader(self,name):return 'https://chefjeff.belchingleo.online/'
+                def close(self):calls.append('http-connection-closed')
+            client=unittest.mock.Mock(return_value=Redirect())
+            def props(unit,name):return '2' if name=='ExecMainStartTimestampMonotonic' else 'active'
+            stages=[];output=io.StringIO()
+            with patch.object(region,'CURRENT',current),patch.object(region,'property_of',side_effect=props),\
+                 patch.object(region,'public_release',return_value=(new,{'release':{'fingerprint':'synthetic'}})),\
+                 patch.object(region,'request',side_effect=request),\
+                 patch.object(region,'http',types.SimpleNamespace(client=types.SimpleNamespace(HTTPConnection=client))),\
+                 contextlib.redirect_stdout(output):
+                region.verify('cn',work,stages.append)
+            self.assertEqual(json.loads(output.getvalue())['status'],'free-model-region-verified')
+            self.assertEqual(stages[-1],'http_redirect')
+            self.assertEqual(calls[-2:],['http-redirect','http-connection-closed'])
+            self.assertEqual(calls.count('/api/session/close'),1)
+            client.assert_called_once_with('chefjeff.belchingleo.online',timeout=8)
 
     def test_existing_data_routes_are_preserved_with_one_scoped_include(self):
         original=data_nginx('data.belchingleo.online','2.31.58.179')

@@ -147,12 +147,12 @@ def verify(site,work,mark=lambda stage:None):
             except Exception:
                 if not primary_failure:raise InstallError('test_session_close_failed') from None
     mark('http_redirect')
-    http=http.client.HTTPConnection(domain,timeout=8)
+    redirect_connection=http.client.HTTPConnection(domain,timeout=8)
     try:
-        http.request('GET','/');response=http.getresponse();response.read()
+        redirect_connection.request('GET','/');response=redirect_connection.getresponse();response.read()
         redirect=response.status in (301,308) and response.getheader('Location')=='https://'+domain+'/'
         if not redirect:raise InstallError('https_redirect_failed',http_status=response.status)
-    finally:http.close()
+    finally:redirect_connection.close()
     print(json.dumps({'status':'free-model-region-verified','site':site,'domain':domain,
         'previous_release':state['previous'],'current_release':str(release),'previous_release_preserved':True,
         'fingerprint':manifest['release']['fingerprint'],'process_started_after_switch':True,
