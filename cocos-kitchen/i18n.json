@@ -934,7 +934,15 @@
     "Google AI Studio 免费层级：每分钟 15 次、每天 500 次 · 需能访问 Google": "Google AI Studio free tier: 15 requests a minute, 500 a day · needs access to Google",
     "免费额度每个账户每天 10,000 Neurons，约 100–140 次请求 · 也可填 @cf/meta/llama-3.1-8b-instruct-fp8": "Free tier: 10,000 Neurons a day per account, about 100–140 requests · you can also enter @cf/meta/llama-3.1-8b-instruct-fp8",
     "免费，但高峰常返回“访问量过大”": "Free, but often answers “too many requests” at peak times",
-    "请优先选择快思考模型": "Prefer a fast-thinking model"
+    "请优先选择快思考模型": "Prefer a fast-thinking model",
+    "没有校准好的这张关卡。": "This level has not been calibrated.",
+    "这张关卡算下来不能玩。": "Calibration found that this level cannot be played.",
+    "校准服务已停止。": "Level calibration has stopped.",
+    "上一张关卡还在计算，请等它算完。": "Your previous level is still being calibrated; wait until it finishes.",
+    "校准排队已满，请稍后再试。": "The calibration queue is full; try again later.",
+    "没有这项校准。": "No such calibration.",
+    "校准超时，请简化关卡后再试。": "Calibration took too long; simplify the level and try again.",
+    "校准出错，请稍后再试。": "Calibration failed; try again later."
   },
   "templates": [
     [

@@ -61,6 +61,9 @@ class GameSession:
         self.wake = threading.Event()
         self.k = self.kitchen_factory(self.c)
         self.c = self.k.c
+        # A calibrated player level replaces the listed level until another is chosen (player_level_entry).
+        self.player_level = None
+        self.pending_player_level = None
         self.game_id = uuid.uuid4().hex
         self.phase = 'ready'
         self.faulted = False
@@ -270,6 +273,9 @@ class GameSession:
                     'won': self.k.won() and not self.k.aborted if self.phase == 'ended' else False,
                     'round_summary': self.round_record() if self.phase == 'ended' else None,
                     'levels': available_levels(),
+                    'player_level': {'id': self.k.resolved['level']['id'], 'names': self.player_level['names'],
+                                     **{key: self.player_level['report'][key] for key in ('target', 'solo_reaches_target')}}
+                                    if self.player_level else None,
                     'rules': {key:self.c[key] for key in ('chop_seconds', 'cook_seconds', 'burn_after_ready',
                               'fire_after_burn', 'order_patience', 'round_seconds', 'order_count')}}
 
@@ -480,6 +486,16 @@ class GameSession:
             if hasattr(self, '_record_context_close'): self._record_context_close('next_level')
             self._finish(aborted=self.phase!='ended')
             self.c=level_config({**self.base_config, **{key:self.c[key] for key in ('ai_max_calls','ai_max_response_age','model')}},level)
+            self.player_level=None
+            return self._command('/api/reset',{})
+        if path == '/api/player-level/play':
+            if self.pending_player_level is None:
+                return 404,{'error':'没有校准好的这张关卡。'}
+            if self.phase not in ('ready','ended') or not hasattr(self.k,'nav'):
+                return 409,{'error':'Choose a level before starting or after the round ends.'}
+            if hasattr(self, '_record_context_close'): self._record_context_close('next_level')
+            self._finish(aborted=self.phase!='ended')
+            self.player_level=self.pending_player_level
             return self._command('/api/reset',{})
         if path == '/api/next':
             if self.phase != 'ended':
@@ -556,10 +572,15 @@ class GameSession:
             if hasattr(self, '_record_context_close'): self._record_context_close(self.round_close_reason)
             self._finish(aborted=self.phase != 'ended')
             # Unconfigured seeds are drawn again when the new round is frozen.
-            self.k = self.kitchen_factory(self.c)
+            if self.player_level:
+                carried = {key: self.c[key] for key in ('ai_max_calls', 'ai_max_response_age', 'model') if key in self.c}
+                self.k = self.kitchen_factory(deepcopy(self.player_level['config']))
+                self.c = {**self.k.c, **carried}
+            else:
+                self.k = self.kitchen_factory(self.c)
+                self.c = self.k.c
             self.game_backlog = 0.
             self.ticks = 0
-            self.c = self.k.c
             self.move_seq = -1
             self.position_seq = -1
             self.move_until = 0.
@@ -687,6 +708,19 @@ class GameSession:
 PLAYER_LEVEL_BODY = 65536
 
 
+def player_level_entry(found):
+    """What a session needs to play a calibrated level (player_level_queue.result), or an error reply."""
+    if not found:
+        return None, (404, {'error': '没有校准好的这张关卡。'})
+    level, report = found
+    if not report.get('playable'):
+        return None, (409, {'error': '这张关卡算下来不能玩。'})
+    from level_calibration import DISPLAY_NAMES, finalize
+    from player_level_queue import summary
+    return {'config': finalize(level, report), 'report': summary(report),
+            'names': level['recipe_catalog']['extensions'][DISPLAY_NAMES]}, None
+
+
 class Handler(BaseHTTPRequestHandler):
     web_root = ROOT/'web'
     static_files = {'/':'index.html','/app.js':'app.js','/style.css':'style.css'}
@@ -763,7 +797,20 @@ class Handler(BaseHTTPRequestHandler):
             if not isinstance(body.get('level'),dict) or set(body)-{'level','game_id','request_id'}:
                 return self.reply(400,{'error':'请求格式无效。'})
             return self.reply(*queue.submit('local',body['level']))
-        status,data=self.server.game.command(path,body)
+        game=self.server.game
+        if path=='/api/player-level/play':
+            queue=self.player_levels()
+            entry,error=player_level_entry(queue and queue.result('local',body.get('job')))
+            if error:
+                return self.reply(*error)
+            with game.lock:
+                game.pending_player_level=entry
+                try:
+                    status,data=game.command(path,body)
+                finally:
+                    game.pending_player_level=None
+            return self.reply(status,data)
+        status,data=game.command(path,body)
         self.reply(status,data)
 
 

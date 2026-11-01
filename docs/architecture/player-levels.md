@@ -1,11 +1,14 @@
 # Player levels
 
-Status: server side of the level editor. Modules `level_calibration.py` (check, pacing, calibration, freeze) and `player_level_queue.py` (the queue behind the endpoints). There is no editor page yet and no way to play a player level yet.
+Status: server side of the level editor. Modules `level_calibration.py` (check, pacing, calibration, freeze) and `player_level_queue.py` (the queue behind the endpoints). There is no editor page yet; the endpoints are ready for one.
 
 ```text
 POST /api/player-level/submit   {"level": <design>}      -> 202 queued | 200 done (seen before) | 400 refused | 409 | 503
 GET  /api/player-level/status?job=<job>                  -> 200 {job, state, content_id, position | report | error} | 404
+POST /api/player-level/play     {"job", "game_id", "request_id"}  -> 200 | 404 (not this owner's, or not done) | 409
 ```
+
+`play` switches the session to a calibrated, playable level between rounds, as `/api/level` does; a restart keeps it and `/api/level` returns to a listed level. While it is active, `/api/state` carries `player_level: {id, names, target, solo_reaches_target}`, `kitchen.level` is null and `kitchen.level_id` is the content id.
 
 The local game server (`cocos_server.py`) offers both endpoints. The hosted server offers them only when started with `--player-levels`, because calibration costs CPU on a machine shared with live kitchens; hosted requests need the page's `X-ChefJeff-Session`, and a session sees only its own jobs.
 
@@ -13,7 +16,9 @@ The local game server (`cocos_server.py`) offers both endpoints. The hosted serv
 
 A design is the part of a level bundle a player controls: `level` (name, spawns, initial inventory), `map`, `order_policy` (its `menu`) and `recipe_catalog.recipes` (each dish: name, price, components). The request body may be up to 64 KB; every other command stays at 8 KB.
 
-`level_calibration.normalize` puts the design on the release's rules: the ruleset, the equipment and every ingredient, container and cooking step come from the release, whatever the design carries. Prices must be 10–150 in steps of 10. The level, map, menu and dishes are named `player-` plus 12 hex digits of their content hash, so the same design keeps its id and never shares one with an authored level. A design the configuration contract cannot freeze (for example a dish whose ingredient has no source on the map) is refused with the contract's diagnostics before anything is queued.
+`level_calibration.normalize` puts the design on the release's rules: the ruleset, the equipment and every ingredient, container and cooking step come from the release, whatever the design carries. Prices must be 10–150 in steps of 10.
+
+Jeff reads dish ids and names, so a player's text never enters the game (owner decision 2026-11-01): the dishes become `dish_1`, `dish_2`… in their order, each named by its components in English (`bread + chopped lettuce + cooked chicken`; component labels likewise). The player's own names, trimmed to 20 characters without control characters, are kept in the recipe catalog's `chefjeff.player_dish_names` for the page (`player_level.names`) and the research record. A normalized level normalizes to itself. The level, map, menu and dishes are named `player-` plus 12 hex digits of their content hash, so the same design keeps its id and never shares one with an authored level. A design the configuration contract cannot freeze (for example a dish whose ingredient has no source on the map) is refused with the contract's diagnostics before anything is queued.
 
 ## Pacing and target
 

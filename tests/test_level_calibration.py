@@ -52,7 +52,10 @@ class NormalizeTests(unittest.TestCase):
         self.assertEqual(problems, [])
         self.assertEqual(level['ruleset'], release['ruleset'])
         self.assertEqual(level['recipe_catalog']['transforms'], release['recipe_catalog']['transforms'])
-        self.assertEqual(list(level['recipe_catalog']['recipes']), ['steak'])
+        self.assertEqual(level['recipe_catalog']['recipes'], {'dish_1': {
+            'name': 'cooked beef', 'container': 'plate', 'price': 50,
+            'components': [{'item': 'beef', 'state': 'ready', 'label': 'cooked beef'}]}})
+        self.assertEqual(level['order_policy']['menu'], [{'recipe_ref': 'dish_1', 'weight': 1}])
         self.assertEqual(level['level']['recipe_catalog_ref'], {'id': level['level']['id'], 'version': 1})
         self.assertNotIn('menu_order', level['level'])
 

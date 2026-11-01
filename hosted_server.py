@@ -22,7 +22,7 @@ from kitchen import ROOT
 from levels import level_number
 from spatial_kitchen import SpatialKitchen
 from whitebox_server import SpatialJevClient
-from web_server import GameSession, Handler, PLAYER_LEVEL_BODY
+from web_server import GameSession, Handler, PLAYER_LEVEL_BODY, player_level_entry
 from release_info import release_info
 from model_status import clean as clean_diagnostic, ModelWait
 from feedback import play_export
@@ -360,7 +360,7 @@ class HostedSession(GameSession):
                                   'No persistent server journal exists.')
             report['bookmark_policy'].pop('log_join', None)
             return 200, {'ok': True, 'report': report}
-        if path in ('/api/pause', '/api/end', '/api/reset', '/api/level', '/api/next') and self.relay:
+        if path in ('/api/pause', '/api/end', '/api/reset', '/api/level', '/api/player-level/play', '/api/next') and self.relay:
             self.relay.cancel()
         previous_reason = self.usage_end_reason
         if path == '/api/next': self.pending_close_reason = 'next_level'
@@ -428,7 +428,7 @@ FIELDS = {
     '/api/contribution/save': {'consent', 'consent_version', 'consent_mode', 'model_identity'},
     '/api/browser-ready': {'connected'}, '/api/start': {'speed'}, '/api/pause': {'reason'},
     '/api/resume': set(), '/api/end': set(), '/api/reset': set(), '/api/restart': set(),
-    '/api/level': {'level'}, '/api/next': {'level'}, '/api/player-level/submit': {'level'}, '/api/limits': {'max_calls'}, '/api/export-run': set(),
+    '/api/level': {'level'}, '/api/next': {'level'}, '/api/player-level/submit': {'level'}, '/api/player-level/play': {'job'}, '/api/limits': {'max_calls'}, '/api/export-run': set(),
     '/api/feedback': set(), '/api/bookmark': set(), '/api/communicate': {'code'},
     '/api/move': {'dx', 'dy', 'seq', 'sprint'}, '/api/position': {'seq', 'base', 'at', 'press'}, '/api/select': {'target'},
     '/api/interact': {'expected_item', 'mode', 'at', 'base', 'aim', 'target'}, '/api/throw': {'direction', 'expected_item', 'at', 'base'},
@@ -932,17 +932,24 @@ class HostedHandler(Handler):
                     if allocated == NETWORK_FULL:
                         limit = self.server.sessions.slots.per_network
                         return self.reply(503, {'error':f'你所在的网络已同时开了 {limit} 个厨房，其中一个结束后再试。'})
+                if path == '/api/player-level/play':
+                    # The session's own calibrated level; the switch then runs like a level change.
+                    queue = self.server.player_levels
+                    entry, error = player_level_entry(queue and queue.result(token, body.get('job')))
+                    if error: return self.reply(*error)
+                    game.pending_player_level = entry
                 try:
                     status, result = game.command(path, body)
                     admitted = status < 400
                 finally:
+                    game.pending_player_level = None
                     self.server.sessions.settle(token, allocated is True, status < 400)
         except (ValueError, TypeError, KeyError, OverflowError):
             return self.reply(400, {'error': '游戏请求无效。'})
         finally:
             if permit is not None:
                 self.server.free_models.finish_start(permit, admitted)
-            if isinstance(self.server.free_models, RegionalFreeModels) and path in ('/api/end', '/api/reset', '/api/level', '/api/browser-ready'):
+            if isinstance(self.server.free_models, RegionalFreeModels) and path in ('/api/end', '/api/reset', '/api/level', '/api/player-level/play', '/api/browser-ready'):
                 self.server.free_models.tick(game)
         self.reply(status, result)
 

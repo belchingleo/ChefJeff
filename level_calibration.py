@@ -15,6 +15,7 @@ chef can pass is playable with a note.
 import copy
 from multiprocessing import Pool
 import statistics
+import unicodedata
 
 import config_contract as cc
 
@@ -25,6 +26,9 @@ PATIENCE_RANGE_GAME_MS = (60000, 135000)
 SEEDS = tuple(range(1, 8))
 PRICE_RANGE = (10, 150)
 PRICE_STEP = 10
+DISPLAY_NAME_LENGTH = 20
+# Where a player's own names for the dishes are kept: for the page, never in the game's text.
+DISPLAY_NAMES = 'chefjeff.player_dish_names'
 PAIRINGS = (('classic', False), ('classic', True), ('zoned', False), ('zoned', True))
 PLAYER_PREFIX = 'player-'
 # Any authored level carries the release's ruleset, equipment and ingredient data.
@@ -44,6 +48,46 @@ def drive(k, roles, policy, period):
         step += 1
 
 
+def component_name(part):
+    """A component in English from its item id and state, e.g. "chopped lettuce", "cooked chicken", "bread"."""
+    words = {'raw': '', 'chopped': 'chopped ', 'ready': 'cooked '}
+    return words.get(part['state'], part['state'] + ' ') + part['item']
+
+
+def display_name(value):
+    """A player's name for a dish, trimmed and without control characters, or None."""
+    if not isinstance(value, str):
+        return None
+    text = ''.join(ch for ch in value if not unicodedata.category(ch).startswith('C')).strip()
+    return text if 1 <= len(text) <= DISPLAY_NAME_LENGTH else None
+
+
+def _dishes(recipes, given, problems):
+    """The player's dishes renamed dish_1, dish_2... and named by their components (owner decision 2026-11-01:
+    Jeff reads dish ids and names, and must see the components in English, never a player's text), plus
+    {old id: new id} and {new id: the player's name}. ``given`` holds names an earlier pass kept, so a
+    normalized level normalizes to itself."""
+    dishes, renamed, names = {}, {}, {}
+    for n, (dish, recipe) in enumerate(recipes.items(), 1):
+        parts = recipe.get('components') if isinstance(recipe, dict) else None
+        if (not isinstance(parts, list) or not parts
+                or not all(isinstance(p, dict) and isinstance(p.get('item'), str) and isinstance(p.get('state'), str) for p in parts)):
+            problems.append(cc.diag('BUNDLE_INVALID', 'ERROR', f'/recipe_catalog/recipes/{dish}/components',
+                                    'each component needs an item and a state'))
+            continue
+        price = recipe.get('price')
+        if type(price) is not int or not PRICE_RANGE[0] <= price <= PRICE_RANGE[1] or price % PRICE_STEP:
+            problems.append(cc.diag('PRICE_OUT_OF_RANGE', 'ERROR', f'/recipe_catalog/recipes/{dish}/price',
+                                    f'a dish costs {PRICE_RANGE[0]}-{PRICE_RANGE[1]} in steps of {PRICE_STEP}'))
+        new = f'dish_{n}'
+        components = [{'item': p['item'], 'state': p['state'], 'label': component_name(p)} for p in parts]
+        name = ' + '.join(c['label'] for c in components)
+        dishes[new] = {'name': name, 'container': 'plate', 'price': price, 'components': components}
+        renamed[dish] = new
+        names[new] = display_name(given.get(dish)) or display_name(recipe.get('name')) or name
+    return dishes, renamed, names
+
+
 def normalize(bundle, registry=None):
     """The player's level on the release's rules: (bundle, diagnostics). Nothing is calibrated yet."""
     release = cc.level_bundle(RELEASE_LEVEL, registry, embed=True)
@@ -60,11 +104,19 @@ def normalize(bundle, registry=None):
     out['schema_version'] = release['schema_version']
     for kind in ('ruleset', 'equipment_catalog'):
         out[kind] = copy.deepcopy(release[kind])
+    given = (out['recipe_catalog'].get('extensions') or {}).get(DISPLAY_NAMES)
+    dishes, renamed, names = _dishes(recipes, given if isinstance(given, dict) else {}, problems)
+    if problems:
+        return None, problems
     catalog = copy.deepcopy(release['recipe_catalog'])
-    catalog['recipes'] = copy.deepcopy(recipes)
-    catalog.pop('extensions', None)
-    catalog['name'] = 'player dishes'
+    catalog.update(name='player dishes', recipes=dishes, extensions={DISPLAY_NAMES: names})
     out['recipe_catalog'] = catalog
+    menu = out['order_policy'].get('menu')
+    if isinstance(menu, list):
+        for entry in menu:
+            if isinstance(entry, dict) and entry.get('recipe_ref') in renamed:
+                entry['recipe_ref'] = renamed[entry['recipe_ref']]
+    out['order_policy'].pop('patience_by_recipe', None)  # set again by the pacing rule
     level = out['level']
     for field, kind in (('ruleset_ref', 'ruleset'), ('equipment_catalog_ref', 'equipment_catalog'),
                         ('recipe_catalog_ref', 'recipe_catalog')):
@@ -81,12 +133,7 @@ def normalize(bundle, registry=None):
             level[field] = {'id': content_id, 'version': 1}
     name_documents('player')  # a placeholder, so the hash covers the content only
     name_documents(PLAYER_PREFIX + cc.sha256({kind: out[kind] for kind in named})[:12])
-    for dish, recipe in recipes.items():
-        price = recipe.get('price') if isinstance(recipe, dict) else None
-        if type(price) is not int or not PRICE_RANGE[0] <= price <= PRICE_RANGE[1] or price % PRICE_STEP:
-            problems.append(cc.diag('PRICE_OUT_OF_RANGE', 'ERROR', f'/recipe_catalog/recipes/{dish}/price',
-                                    f'a dish costs {PRICE_RANGE[0]}-{PRICE_RANGE[1]} in steps of {PRICE_STEP}'))
-    return (None if problems else out), problems
+    return out, problems
 
 
 def dish_work_ms(catalog, dish):
