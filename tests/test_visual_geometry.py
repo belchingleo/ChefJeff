@@ -294,6 +294,12 @@ const pack=JSON.parse(fs.readFileSync(path.join(root,'cocos-kitchen/assets/resou
 for(const stem of ['pan_vertical','pan_horizontal','pan_west','pan_north'])for(const item of ['beef','chicken','fish'])for(const stage of ['chopped','cooking','ready','burnt'])
   assert(pack[`modular/${stem}`]&&pack[`modular/${stem}/${item}/${stage}`],`pan art for every handle side: ${stem} ${item} ${stage}`);
 
+// Reported: on release the player's chef turned to the engine's late facing (down) and back. A steered
+// chef keeps the page's facing; any other chef standing still takes the engine's.
+assert.strictEqual(geometry.restingFacing('right','down',true),'right');
+assert.strictEqual(geometry.restingFacing('right','down',false),'down');
+assert.strictEqual(geometry.restingFacing('right',undefined,false),'right');
+
 // Held-key prediction lands where the server's manual step does, including wall slides.
 const walks = JSON.parse(fs.readFileSync(process.argv[4], 'utf8'));
 for (const {level, map, steps} of walks) {

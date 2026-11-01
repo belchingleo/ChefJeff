@@ -2,7 +2,7 @@ import { _decorator, Component, Node, UITransform, Graphics, Color, Label, Layer
     view, ResolutionPolicy, sys, game, Game, profiler, Mask, Vec2, Camera, director, Sprite } from 'cc';
 import { LevelOneArt } from './LevelOneArt';
 import { KitchenAudio } from './KitchenAudio';
-import { levelButtonLayout, GRID_ART, stationView, cabinetModule, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, floorItemDepth, workingChefDepth, flightDepth, predictWalk, spaceTarget, segmentDistance, plateLayers, heatCountdown, behindCounter, throwPose, throwDiagonal, throwItemPoint, panHandleSide } from './KitchenGeometry';
+import { levelButtonLayout, GRID_ART, stationView, cabinetModule, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, floorItemDepth, workingChefDepth, flightDepth, predictWalk, spaceTarget, segmentDistance, plateLayers, heatCountdown, behindCounter, throwPose, throwDiagonal, throwItemPoint, panHandleSide, restingFacing } from './KitchenGeometry';
 const { ccclass } = _decorator;
 type Action = { key: string; label: string; kind: string; target: string; expected: unknown[] };
 type KitchenState = { game_id: string; state_seq?: number; phase: string; speed: number; kitchen: any; actions: Action[]; levels?:any[]; limits?:any; capacity?:any; release?:any; interaction?:Action; use_interaction?:Action; interaction_hint?:string; interaction_focus?:string; interaction_cell?:number[];
@@ -148,6 +148,8 @@ export class KitchenClient extends Component {
     private devices: Record<string,{node:Node;graphics:Graphics;label:Label}>={};
     private people: Record<string,Node>={};
     private motions: Record<string,ChefMotion>={};
+    /** The player has turned their own chef: as in Overcooked, its facing is then the page's, not a late poll's. */
+    private steeredFacing=false;
     private potEffects: Record<string,PotEffects>={};
     private cabinetFires:Record<string,Node>={};
     private foodStages: Record<string,string>={};
@@ -631,7 +633,7 @@ export class KitchenClient extends Component {
         this.drawAim();this.publishControls();
     }
     /** The held direction (even one held through an action), else the facing. */
-    private aimStart(){const f=FACING_DIR[this.state?.kitchen.chefs.human?.facing]||[0,1];return this.rawDirection()||{x:f[0],y:f[1]};}
+    private aimStart(){const f=FACING_DIR[this.motions.human?.facing||this.state?.kitchen.chefs.human?.facing]||[0,1];return this.rawDirection()||{x:f[0],y:f[1]};}
     private steerAim(){const d=this.rawDirection();if(d&&this.aiming){this.aiming=d;this.drawAim();}}
     private endAim(){this.aiming=null;this.spaceDownAt=null;this.spaceItemId=null;this.tossOnly=false;if(this.aimArrow?.isValid)this.aimArrow.active=false;}
     private drawAim(){
@@ -1237,7 +1239,7 @@ export class KitchenClient extends Component {
         if(next.game_id!==this.state?.game_id||!this.connected){this.menuSignature='';this.foodStages={};this.readyUntil={};this.activeClock=0;
             if(this.mounted)for(const who of ['human','jeff'])this.locate(this.people[who],next.kitchen.chefs[who].position);}
         if(next.phase!=='running'||next.game_id!==this.state?.game_id||(this.spaceItemId!==null&&(next.kitchen.chefs.human.holding?.id!==this.spaceItemId||next.kitchen.chefs.human.can_throw===false)))this.clearInput();
-        if(next.game_id!==this.state?.game_id){this.moveSeq=Date.now()*1000;this.predicted=this.lastReported=this.lastAim=null;this.resyncSeen=-1;this.sprintAt=-Infinity;}
+        if(next.game_id!==this.state?.game_id){this.moveSeq=Date.now()*1000;this.steeredFacing=false;this.predicted=this.lastReported=this.lastAim=null;this.resyncSeen=-1;this.sprintAt=-Infinity;}
         if(next.phase!=='running')this.localPick=undefined;
         const was=next.game_id===this.state?.game_id?this.state?.kitchen?.chefs?.human:null,now=next.kitchen?.chefs?.human;
         const working=(c:any)=>!!c&&['chop','wash','extinguish'].includes(c.action_kind)&&(c.working||(c.travel_remaining||0)>0);
@@ -2253,7 +2255,7 @@ export class KitchenClient extends Component {
                 n.setPosition(oldX+(x-oldX)*t,oldY+(y-oldY)*t);
                 if(who==='human'&&predicted&&this.clock<this.cueUntil){
                     // A short lean toward the faced station (peaks at 4 px) on the key press.
-                    const lean=4*Math.sin(Math.PI*(1-(this.cueUntil-this.clock)/CUE_SECONDS)),f=c.facing||'down';
+                    const lean=4*Math.sin(Math.PI*(1-(this.cueUntil-this.clock)/CUE_SECONDS)),f=motion.facing||c.facing||'down';
                     n.setPosition(n.position.x+(f==='left'?-lean:f==='right'?lean:0),n.position.y+(f==='up'?lean:f==='down'?-lean:0));
                 }
                 const dx=n.position.x-oldX,dy=n.position.y-oldY,moved=Math.hypot(dx,dy)>.08&&(!!predicted||(c.travel_remaining||0)>0||Math.hypot(x-n.position.x,y-n.position.y)>1);
@@ -2261,11 +2263,11 @@ export class KitchenClient extends Component {
                 if((c.manual_moving||predicted)&&who==='human'&&(this.manualDirection.x!==0||this.manualDirection.y!==0)){
                     if(Math.abs(this.manualDirection.x)>=Math.abs(this.manualDirection.y))motion.facing=this.manualDirection.x<0?'left':'right';
                     else motion.facing=this.manualDirection.y<0?'up':'down';
+                    this.steeredFacing=true;
                 }else if(Math.abs(dx)>=Math.abs(dy))motion.facing=dx<0?'left':'right';
                 else motion.facing=dy>0?'up':'down';
                 }
-                // Authoritative orientation survives short actions between polls.
-                if(!moved&&c.facing)motion.facing=c.facing;
+                if(!moved)motion.facing=restingFacing(motion.facing,c.facing,!!predicted&&this.steeredFacing);
                 if(c.working&&c.facing)motion.facing=c.facing;
                 const held=who==='human'&&(this.manualDirection.x!==0||this.manualDirection.y!==0);
                 const walkIntent=(predicted?held:!!c.manual_moving)||(!c.working&&(c.travel_remaining||0)>0);
