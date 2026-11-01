@@ -656,7 +656,7 @@
     "自由输入的文字": "Free text",
     "模型回复与完整请求": "Model replies and full requests",
     "IP 与账号身份": "IP address and account identity",
-    "私有保存，半年（180 天）后自动删除。每份贡献的删除凭证保存在这个浏览器里，可随时在「设置 → 数据导出」提前删除或更改选择。": "Stored privately and deleted automatically after six months (180 days). Each contribution's deletion receipt is kept in this browser: delete early or change your choice any time in Settings → Data export.",
+    "私有保存，半年（180 天）后自动删除。每份贡献的删除凭证保存在这个浏览器里，可随时在「设置 → 数据与贡献」提前删除或更改选择。": "Stored privately and deleted automatically after six months (180 days). Each contribution's deletion receipt is kept in this browser: delete early or change your choice any time in Settings → Data and contributions.",
     "同意以后每局自动贡献（半年即 180 天后删除，可随时关闭）": "Contribute every round from now on (deleted after six months, i.e. 180 days; turn off any time)",
     "暂不": "Not now",
     "贡献对局数据": "Contribute rounds",
@@ -665,7 +665,7 @@
     "当前选择：以后每局结束自动贡献，保存半年（180 天）。": "Your choice: contribute every finished round, kept for six months (180 days).",
     "当前选择：尚未选择。": "Your choice: not made yet.",
     "自动贡献已开启。": "Automatic contribution is on.",
-    "本局已贡献，保存半年（180 天）。删除凭证在「设置 → 数据导出」。": "Round contributed and kept for six months (180 days). Its deletion receipt is in Settings → Data export.",
+    "本局已贡献，保存半年（180 天）。删除凭证在「设置 → 数据与贡献」。": "Round contributed and kept for six months (180 days). Its deletion receipt is in Settings → Data and contributions.",
     "本局已自动贡献，保存半年（180 天）。": "Round contributed automatically and kept for six months (180 days).",
     "已开启自动贡献：此后每局结束自动保存半年（180 天）。": "Automatic contribution is on: every round that ends from now on is kept for six months (180 days).",
     "已选择暂不贡献，之后不会自动上传。": "Not now: nothing will be uploaded automatically.",
@@ -682,7 +682,7 @@
     "模型连接说明：支持的服务、一局约多少钱 ↗": "Model connection guide: supported services and rough cost per round ↗",
     "模型连接说明 ↗": "Model connection guide ↗",
     "隐私说明与反馈 ↗": "Privacy and contact ↗",
-    "尽快打开「设置 → 数据导出」，点「导出本次游玩」，检查内容后下载 JSON 文件。文件含最近 30 秒的页面记录，导出越快越好。": "Soon afterwards, open Settings → Data export, choose Export This Play Session, check the content and download the JSON file. It holds the last 30 seconds of page diagnostics, so the sooner the better.",
+    "尽快打开「设置 → 数据与贡献」，点「导出本次游玩」，检查内容后下载 JSON 文件。文件含最近 30 秒的页面记录，导出越快越好。": "Soon afterwards, open Settings → Data and contributions, choose Export This Play Session, check the content and download the JSON file. It holds the last 30 seconds of page diagnostics, so the sooner the better.",
     "在 GitHub 新建 Issue，写下经过、用的设备和浏览器，并附上这个文件。": "Open a new GitHub issue describing what happened and your device and browser, and attach the file.",
     "导出文件不含 API Key、接口地址和模型回复，但包含浏览器型号和画面大小；公开发布前请再看一遍。": "The export holds no API key, endpoint or model replies, but does include your browser and screen size; look it over before posting it publicly.",
     "导出还附带本页最近 30 秒的页面记录（游戏时间、角色位置、按键方向、页面报错，以及浏览器型号和画面大小），用于排查卡住或显示问题；遇到问题后请尽快导出。": "The export also carries this page's last 30 seconds of diagnostics (game time, chef positions, held direction, page errors, plus browser and screen size) to help trace stuck or display problems; export soon after a problem.",
@@ -834,7 +834,110 @@
     "模型返回型号不符，免费调用已暂停。": "The returned model does not match. Free calls are paused.",
     "正在重新请求。": "Requesting again.",
     "免费模型返回格式或动作无效，本次未执行。": "The free model returned an invalid format or action. Nothing was executed.",
-    "本局免费名额已释放，请结束本局后重新开局。": "This round’s free seat was released. End the round and start again."
+    "本局免费名额已释放，请结束本局后重新开局。": "This round’s free seat was released. End the round and start again.",
+    "AI 搭档": "AI teammate",
+    "跨局记忆": "Cross-round memory",
+    "数据与贡献": "Data and contributions",
+    "声音与语言": "Sound and language",
+    "当前搭档": "Current teammate",
+    "改完直接返回，下一局生效": "Changes apply from the next round",
+    "← 返回": "← Back",
+    "自定义模型": "Custom model",
+    "自定义模型（API Key）": "Custom model (API key)",
+    "自定义模型说明": "About custom models",
+    "改用自定义模型（API Key）": "Use a custom model (API key) instead",
+    "显示": "Show",
+    "隐藏": "Hide",
+    "也可以填自己申请的免费 Key：智谱 GLM-4.7-Flash、StartLux（Bamboo）等平台都提供免费额度，申请后选对应的服务填进来即可。": "You can also use a free key of your own: Zhipu GLM-4.7-Flash, StartLux (Bamboo) and similar platforms offer free quotas. Apply, then choose that service here and paste the key.",
+    "也可以填自己申请的免费 Key：智谱 GLM-4.7-Flash、StartLux（Bamboo）等平台都提供免费额度，申请后选对应的服务填进来即可，不占免费模型的名额。": "You can also use a free key of your own: Zhipu GLM-4.7-Flash, StartLux (Bamboo) and similar platforms offer free quotas. Apply, then choose that service here and paste the key. It does not use a free-model seat.",
+    "怎么申请、一局大约多少钱 →": "How to apply, and what a round costs →",
+    "还没有 Key？": "No key yet?",
+    "智谱 GLM-4.7-Flash、StartLux（Bamboo）等平台提供免费额度，自己申请一个就能填在这里。": "Zhipu GLM-4.7-Flash, StartLux (Bamboo) and similar platforms offer free quotas. Apply for a key and paste it here.",
+    "智谱 GLM-4.7-Flash、StartLux（Bamboo）等平台提供免费额度，自己申请一个就能填在这里，不占免费模型的名额。": "Zhipu GLM-4.7-Flash, StartLux (Bamboo) and similar platforms offer free quotas. Apply for a key and paste it here. It does not use a free-model seat.",
+    "DeepSeek、OpenRouter 等按用量付费，一局大约几毛到几块钱。": "DeepSeek, OpenRouter and similar services charge by usage, from under ¥1 to a few yuan per round.",
+    "两类模型": "Two kinds of model",
+    "决策模型": "Decision models",
+    "快思考模型": "Fast-thinking models",
+    "：直接从候选动作里选一个，还会给出每个选项的概率。": ": pick one of the candidate actions directly and give a probability for every option.",
+    "：通用对话模型，读完厨房状态后回一个动作。": ": general chat models that read the kitchen state and reply with one action.",
+    "调用按你在服务商那边的账号计费，或计入你的免费额度。Key 不会写进游戏记录或研究数据。": "Calls are billed to your account with the provider or count against your free quota. The key never goes into game records or research data.",
+    "Key 默认只留在这个页面，由浏览器直接发给服务商；费用记在你的账号上。": "By default the key stays in this page and your browser sends it straight to the provider. Costs go to your account.",
+    "记住此设备（Key 以明文保存在这个浏览器）": "Remember on this device (the key is stored as plain text in this browser)",
+    "支持 Jev、DeepSeek、OpenRouter 等决策模型与快思考模型": "Decision and fast-thinking models such as Jev, DeepSeek and OpenRouter",
+    "免费模型": "Free models",
+    "免费": "Free",
+    "免费模型不用 API Key，但名额有限": "Free models need no API key, but seats are limited",
+    "不用 API Key。可以换着试，看看哪个更合拍。": "No API key needed. Try them in turn and see which one works best with you.",
+    "使用限制": "Limits",
+    "免费模型的使用限制": "Free model limits",
+    "免费使用限制": "Free-use limits",
+    "每个免费模型同一时间只能一位玩家使用，国内站和海外站共用这个名额。": "Each free model serves one player at a time, and the China and international sites share that seat.",
+    "名额满了不排队：可以稍后再试，或者换另一个免费模型。": "There is no queue when the seat is taken: try again later, or pick another free model.",
+    "不想等名额，可以自己去智谱、Bamboo 等平台申请免费的 API Key，填在“自定义模型”里使用。这样不占这里的名额，限额按你在服务商那边的账号算。": "If you would rather not wait, apply for a free API key on Zhipu, Bamboo or a similar platform and enter it under “Custom model”. It does not take a seat here, and its limits follow your account with that provider.",
+    "开局时固定本局的模型，结算后才能换。": "The model is fixed when a round starts and can be changed after the results.",
+    "列表由服务器提供，新接入的免费模型会直接出现在这里。": "The server provides this list; newly added free models appear here automatically.",
+    "● 有空位": "● Seat available",
+    "● 名额已满，稍后再试": "● Seat taken, try again later",
+    "○ 暂不可用": "○ Unavailable for now",
+    "● 已连接": "● Connected",
+    "未连接": "Not connected",
+    "StartLux 决策模型": "StartLux decision model",
+    "选一位 AI 搭档": "Pick an AI teammate",
+    "全部关卡": "All levels",
+    "本局分析": "Round analysis",
+    "换一位搭档": "Change teammate",
+    "今天配合得不错！": "Great teamwork today!",
+    "关店结算": "Closing time",
+    "✓ 达成目标": "✓ Goal reached",
+    "上一关": "Previous level",
+    "（免费）": " (free)",
+    "请先选一位 AI 搭档，再开始经营。": "Pick an AI teammate before you start.",
+    "Enter 开始 · ← → 换关卡": "Enter Start · ← → Change level",
+    "Enter 下一关 · R 再来一次 · L 全部关卡": "Enter Next level · R Try again · L All levels",
+    "Enter 再来一次 · N 下一关 · L 全部关卡": "Enter Try again · N Next level · L All levels",
+    "Enter 全部关卡 · R 再来一次": "Enter All levels · R Try again",
+    "Enter 再来一次 · L 全部关卡": "Enter Try again · L All levels",
+    "还没玩过": "Not played yet",
+    "自定义关卡": "Custom levels",
+    "有空位": "Seat available",
+    "名额已满": "Seat taken",
+    "暂不可用": "Unavailable",
+    "做自己的地图和菜谱": "Make your own maps and recipes",
+    "即将开放": "Coming soon",
+    "○ 今日额度已用完": "○ Used up for today",
+    "今日已用完": "Used up today",
+    "全站每小时、每天的免费请求总数也有上限。某个模型今天的额度用完后，会显示“今日额度已用完”，第二天恢复。": "The whole site also caps free requests per hour and per day. When a model’s allowance for today is spent, it shows “Used up for today” and comes back the next day.",
+    "这个免费模型今天的额度已经用完，明天再来，或换一个模型。": "This free model has used up today’s allowance. Come back tomorrow, or pick another model.",
+    "这个免费模型每分钟能请求的次数有限，Jeff 会慢一点。": "This free model allows only a few requests a minute, so Jeff will be a little slower.",
+    "默认使用 StartLux：它原生返回候选动作及选项概率，便于观察决策；你也可以切换其他免费模型比较。": "StartLux is the default: it returns the candidate actions with their probabilities, which makes decisions easy to follow. You can switch to another free model to compare.",
+    "默认使用智谱 GLM-4.7-Flash：它通过通用对话接口生成动作；你也可以切换其他免费模型比较不同决策方式。": "Zhipu GLM-4.7-Flash is the default: it picks actions through a general chat interface. You can switch to another free model to compare.",
+    "Gemma 4 26B": "Gemma 4 26B",
+    "Llama 3.1 8B": "Llama 3.1 8B",
+    "：默认由浏览器直连模型，需供应商允许跨域访问。Jev 可明确勾选下方服务器转发，Cloudflare 只能经服务器转发；跨域失败不会自动改为转发。": ": Models are called directly from your browser by default and require provider CORS support. You can explicitly select Jev server forwarding below; Cloudflare only works through server forwarding. A CORS failure never switches to forwarding automatically.",
+    "默认由浏览器直连模型，需供应商允许跨域访问。Jev 可明确勾选下方服务器转发，Cloudflare 只能经服务器转发；跨域失败不会自动改为转发。": "Models are called directly from your browser by default and require provider CORS support. You can explicitly select Jev server forwarding below; Cloudflare only works through server forwarding. A CORS failure never switches to forwarding automatically.",
+    "32 位 Account ID": "32-character account ID",
+    "同意通过试玩服务器转发 Cloudflare 请求（Cloudflare 不支持浏览器直连）": "I agree to forward Cloudflare requests through the demo server (Cloudflare does not accept browser requests)",
+    "勾选后，Key、Account ID 和模型请求会经 HTTPS 通过试玩服务器发送给 Cloudflare，不写入服务器配置、日志或对局记录。在线转发只支持 Gemma 4 26B 和 Llama 3.1 8B。": "When selected, your key, account ID and model requests pass through the demo server over HTTPS to Cloudflare. They are not written to server configuration, logs or round records. Online forwarding supports Gemma 4 26B and Llama 3.1 8B only.",
+    "请填写 32 位的 Account ID（在服务商控制台里可以找到）。": "Enter the 32-character account ID (you can find it in the provider’s dashboard).",
+    "在线转发只支持 Gemma 4 26B 和 Llama 3.1 8B。": "Online forwarding supports Gemma 4 26B and Llama 3.1 8B only.",
+    "请先同意通过试玩服务器调用 Cloudflare。": "Please first agree to call Cloudflare through the demo server.",
+    "当前连接：已同意服务器转发 Cloudflare": "Current connection: Cloudflare server forwarding accepted",
+    "Cloudflare 回复过大。": "Cloudflare reply too large.",
+    "试玩服务器无法连接 Cloudflare，请稍后重试。": "The demo server cannot reach Cloudflare. Try again later.",
+    "Google AI Studio 免费层级：每分钟 15 次、每天 500 次 · 需能访问 Google · 合成快照单次实测": "Google AI Studio free tier: 15 requests a minute, 500 a day · needs access to Google · probed once with a synthetic snapshot",
+    "Cloudflare Workers AI（Gemma 4 / Llama 3.1）": "Cloudflare Workers AI (Gemma 4 / Llama 3.1)",
+    "免费额度每个账户每天 10,000 Neurons，约 100–140 次请求 · 也可填 @cf/meta/llama-3.1-8b-instruct-fp8 · 合成快照单次实测": "Free tier: 10,000 Neurons a day per account, about 100–140 requests · you can also enter @cf/meta/llama-3.1-8b-instruct-fp8 · probed once with a synthetic snapshot",
+    "Gemini 3.5 Flash-Lite": "Gemini 3.5 Flash-Lite",
+    "在线版：Key 默认在页面内存中，刷新即清除；主动记住会将 Key 和所选转发方式以明文保存在浏览器 localStorage。浏览器直连时 Key 只发给模型服务；明确勾选 Jev 或 Cloudflare 转发后，Key（Cloudflare 还有 Account ID）和模型请求经试玩服务器发送给对应服务，仅用于处理请求，不写入服务器配置、日志或对局记录。游戏状态经过我们的服务器，自愿贡献数据另见下方说明。": "Online: your key stays in this page’s memory by default and is cleared on refresh; choosing Remember stores the key and the chosen forwarding in this browser’s localStorage as plain text. With direct browser calls the key goes only to the model service; after you explicitly tick Jev or Cloudflare forwarding, the key (and for Cloudflare the account ID) and model requests pass through the demo server to that service, are used only to handle the request, and are not written to server configuration, logs or round records. Game state passes through our server; voluntary data contributions are described below.",
+    "可填 OpenRouter 上任一决策模型的 ID（默认 Microsoft-Decision-1，约 ¥0.3–0.7/局）": "Enter any OpenRouter decision model ID (default Microsoft-Decision-1, about ¥0.3–0.7 a round)",
+    "免费测试额度 · 请求经第三方中转 Bamboo Relay · 已关闭自动思考": "Free test quota · requests go through the third-party Bamboo Relay · automatic thinking off",
+    "约 ¥1–3/局": "about ¥1–3 a round",
+    "约 ¥0.2–0.3/局": "about ¥0.2–0.3 a round",
+    "约 ¥0.7–1.3/局": "about ¥0.7–1.3 a round",
+    "Google AI Studio 免费层级：每分钟 15 次、每天 500 次 · 需能访问 Google": "Google AI Studio free tier: 15 requests a minute, 500 a day · needs access to Google",
+    "免费额度每个账户每天 10,000 Neurons，约 100–140 次请求 · 也可填 @cf/meta/llama-3.1-8b-instruct-fp8": "Free tier: 10,000 Neurons a day per account, about 100–140 requests · you can also enter @cf/meta/llama-3.1-8b-instruct-fp8",
+    "免费，但高峰常返回“访问量过大”": "Free, but often answers “too many requests” at peak times",
+    "请优先选择快思考模型": "Prefer a fast-thinking model"
   },
   "templates": [
     [
@@ -1448,6 +1551,86 @@
     [
       "{0} 约 {1} 秒后重试。",
       "{0} Retrying in about {1} seconds."
+    ],
+    [
+      "Enter 开始 · ← → 换关卡 · 搭档：{0}",
+      "Enter Start · ← → Change level · Teammate: {0}"
+    ],
+    [
+      "搭档：{0}",
+      "Teammate: {0}"
+    ],
+    [
+      "第 {0} 关 · {1}",
+      "Level {0} · {1}"
+    ],
+    [
+      "第 {0} 关",
+      "Level {0}"
+    ],
+    [
+      "目标：关店时净收入 ¥{0} · {1} / {2}",
+      "Goal: net revenue ¥{0} at closing · {1} / {2}"
+    ],
+    [
+      "目标 ¥{0}",
+      "Goal ¥{0}"
+    ],
+    [
+      "多赚 ¥{0} · 完成 {1} 单",
+      "¥{0} over the goal · {1} orders served"
+    ],
+    [
+      "还差 ¥{0} · 完成 {1} 单",
+      "¥{0} short · {1} orders served"
+    ],
+    [
+      "✓ 已达成 · 最佳 ¥{0}",
+      "✓ Reached · best ¥{0}"
+    ],
+    [
+      "未达成 · 最佳 ¥{0}",
+      "Not reached · best ¥{0}"
+    ],
+    [
+      "每局最多向模型请求 {0} 次，没成功的请求也算在内。",
+      "Up to {0} model requests per round; failed requests count too."
+    ],
+    [
+      "{0} 回复格式或动作无效，本次未执行。",
+      "{0} returned an invalid format or action; nothing was done."
+    ],
+    [
+      "请先同意通过试玩服务器调用 {0}。",
+      "Please first agree to call {0} through the demo server."
+    ],
+    [
+      "{0} 请求无效。",
+      "{0} request is invalid."
+    ],
+    [
+      "此厨房的 {0} 请求仍在处理中。",
+      "A {0} request for this kitchen is still in progress."
+    ],
+    [
+      "当前不能请求 {0}。",
+      "{0} cannot be requested now."
+    ],
+    [
+      "{0} 决策请求已过期。",
+      "The {0} decision request has expired."
+    ],
+    [
+      "{0} 转发请求较多，请稍后重试。",
+      "{0} forwarding is busy. Try again later."
+    ],
+    [
+      "{0} 转发连接失败。",
+      "{0} forwarding failed."
+    ],
+    [
+      "{0} 接口返回 HTTP {1}，请检查账号和模型。",
+      "{0} API returned HTTP {1}. Check your account and model."
     ]
   ]
 }
@@ -1519,7 +1702,7 @@
     doc.documentElement.lang=locale==='en'?'en':'zh-CN';
     doc.title=locale==='en'?'ChefJeff · Cook together':'ChefJeff · 一起出餐';
     const toggle=doc.getElementById('kitchen-language');
-    if(toggle){toggle.textContent=locale==='en'?'Chinese':'英语';toggle.setAttribute('aria-label',locale==='en'?'Switch to Chinese':'切换到英文');}
+    if(toggle){toggle.textContent=locale==='en'?'中文':'English';toggle.setAttribute('aria-label',locale==='en'?'Switch to Chinese':'切换到英文');}
   }
   function setLanguage(next) {
     if (!['zh','en'].includes(next)) return;

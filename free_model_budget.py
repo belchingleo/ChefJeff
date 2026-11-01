@@ -19,21 +19,32 @@ class BudgetError(Exception):
 
 
 class CallBudget:
-    def __init__(self, directory=None, clock=time.time, minute=30, hour=300, day=1000):
+    """One budget pool. minute counts each provider's calls; hour and day count weighted units
+    across the pool (one per call unless a platform meters by estimated cost); spacing is the
+    shortest gap between one provider's calls."""
+    def __init__(self, directory=None, clock=time.time, minute=30, hour=300, day=1000,
+                 providers=PROVIDERS, weights=None, spacing=0):
         self.clock, self.minute, self.hour, self.day = clock, minute, hour, day
-        if any(type(n) is not int or n < 1 for n in (minute, hour, day)) or not minute <= hour <= day <= 10000:
+        self.providers = tuple(providers)
+        self.weights = {p: 1 for p in self.providers}
+        self.weights.update(weights or {})
+        self.spacing = spacing
+        if (any(type(n) is not int or n < 1 for n in (minute, hour, day)) or not minute <= hour <= day <= 10000
+                or not self.providers or set(self.weights) != set(self.providers)
+                or any(type(n) is not int or not 1 <= n <= hour for n in self.weights.values())
+                or type(spacing) not in (int, float) or not 0 <= spacing <= 60):
             raise ValueError('Invalid aggregate budget')
         self.lock = threading.RLock()
         self.directory = Path(directory) if directory is not None else None
         self.descriptor = None
-        self.value = {'version': 1, 'attempts': [], 'inflight': dict.fromkeys(PROVIDERS, False),
-                      'blocked': dict.fromkeys(PROVIDERS, False), 'cooldown': dict.fromkeys(PROVIDERS, 0.0)}
+        self.value = {'version': 1, 'attempts': [], 'inflight': dict.fromkeys(self.providers, False),
+                      'blocked': dict.fromkeys(self.providers, False), 'cooldown': dict.fromkeys(self.providers, 0.0)}
         if self.directory is not None:
             try:
                 self._open()
                 self._load()
                 # A crash with an outstanding HTTP call leaves its upstream outcome uncertain.
-                for provider in PROVIDERS:
+                for provider in self.providers:
                     if self.value['inflight'][provider]:
                         self.value['blocked'][provider] = True
                         self.value['inflight'][provider] = False
@@ -75,16 +86,16 @@ class CallBudget:
                 or not isinstance(value['attempts'], list) or len(value['attempts']) > 10000):
             raise ValueError('Invalid budget state')
         for field in ('inflight', 'blocked', 'cooldown'):
-            if not isinstance(value[field], dict) or set(value[field]) != set(PROVIDERS):
+            if not isinstance(value[field], dict) or set(value[field]) != set(self.providers):
                 raise ValueError('Invalid budget state')
-        for provider in PROVIDERS:
+        for provider in self.providers:
             if type(value['inflight'][provider]) is not bool or type(value['blocked'][provider]) is not bool:
                 raise ValueError('Invalid budget state')
             n = value['cooldown'][provider]
             if type(n) not in (int, float) or not math.isfinite(n) or n < 0:
                 raise ValueError('Invalid budget state')
         for row in value['attempts']:
-            if (not isinstance(row, list) or len(row) != 2 or row[1] not in PROVIDERS
+            if (not isinstance(row, list) or len(row) != 2 or row[1] not in self.providers
                     or type(row[0]) not in (int, float) or not math.isfinite(row[0]) or row[0] < 0):
                 raise ValueError('Invalid budget state')
         self.value = value
@@ -111,6 +122,13 @@ class CallBudget:
         finally:
             temp.unlink(missing_ok=True)
 
+    def _windows(self, provider):
+        """(rows in the window, limit, units this call adds) for the minute, hour and day windows."""
+        rows, w = self.value['attempts'], self.weights[provider]
+        return ((60, [(t, 1) for t, p in rows if p == provider], self.minute, 1),
+                (3600, [(t, self.weights[p]) for t, p in rows], self.hour, w),
+                (86400, [(t, self.weights[p]) for t, p in rows], self.day, w))
+
     def available(self, provider):
         with self.lock:
             now = self.clock()
@@ -120,12 +138,10 @@ class CallBudget:
                 return 'request_busy'
             if now < self.value['cooldown'][provider]:
                 return 'upstream_cooldown'
-            rows = self.value['attempts']
-            if (sum(p == provider and t > now-60 for t, p in rows) >= self.minute
-                    or sum(t > now-3600 for t, _ in rows) >= self.hour
-                    or sum(t > now-86400 for t, _ in rows) >= self.day):
-                return 'call_budget'
-            return None
+            full = [span for span, rows, limit, w in self._windows(provider)
+                    if sum(n for t, n in rows if t > now-span)+w > limit]
+            # The day's allowance is spent: say so, rather than "try again shortly".
+            return 'daily_budget' if 86400 in full else 'call_budget' if full else None
 
     def retry_after(self, provider):
         with self.lock:
@@ -133,13 +149,21 @@ class CallBudget:
             if reason=='upstream_blocked':return None
             if reason=='upstream_cooldown':return max(0,self.value['cooldown'][provider]-now)
             if reason=='request_busy':return 1
-            if reason=='call_budget':
+            if reason in ('call_budget','daily_budget'):
                 waits=[]
-                for span,limit,selected in ((60,self.minute,True),(3600,self.hour,False),(86400,self.day,False)):
-                    times=sorted(t for t,p in self.value['attempts'] if t>now-span and (not selected or p==provider))
-                    if len(times)>=limit:waits.append(times[-limit]+span-now)
+                for span,rows,limit,w in self._windows(provider):
+                    live=sorted((t,n) for t,n in rows if t>now-span);used=sum(n for _,n in live)
+                    for t,n in live:  # the oldest calls leave the window first
+                        if used+w<=limit:break
+                        used-=n;waits.append(t+span-now)
                 return max(waits,default=1)
             return 0
+
+    def pace(self, provider):
+        """Seconds until this provider's next call keeps the platform's per-minute rate."""
+        with self.lock:
+            last = max((t for t, p in self.value['attempts'] if p == provider), default=None)
+            return 0 if last is None or not self.spacing else max(0, last+self.spacing-self.clock())
 
     def begin(self, provider):
         with self.lock:

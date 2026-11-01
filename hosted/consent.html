@@ -1,5 +1,4 @@
 <style>
-#contribution-ask{width:min(620px,calc(100vw - 28px))}
 #contribution-ask .choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:16px}
 #contribution-ask .choices .btn{min-height:48px;line-height:18px}
 #contribution-ask a{color:var(--denim,#2a5a9e)}
@@ -16,9 +15,10 @@
 .contrib-never li::before{content:"×";color:var(--tomato,#b8321e)}
 @media(max-height:500px){#contribution-ask .choices{margin-top:8px}}
 </style>
-<dialog id="contribution-ask" class="panel" aria-labelledby="ask-title" aria-describedby="ask-summary">
+<dialog id="contribution-ask" class="panel card-page" aria-labelledby="ask-title" aria-describedby="ask-summary">
+ <div class="card-awning" aria-hidden="true"></div>
  <div class="dlg-head"><h2 id="ask-title">贡献对局数据？</h2></div>
- <div class="dlg-body">
+ <div class="dlg-body card-scroll">
   <p id="ask-summary" tabindex="-1" autofocus>自愿参与，不贡献也能正常游玩。</p>
   <ul class="ask-highlights"><li><strong>会保存模型服务、模型 ID、双方的完整操作（可原样重放这一局），以及模型的选择和各选项概率。</strong></li><li><strong>不保存 API Key、IP 或账号身份。</strong></li><li><strong>私有保存半年（180 天），可提前删除。</strong></li></ul>
   <details class="fine"><summary>采集范围、用途与保存方式</summary>
@@ -27,7 +27,7 @@
    <p>不另存完整 API 请求或响应。每次请求只保存校验值和重建它所需的少量内容，研究时用操作记录把原请求重建出来。开启跨局记忆时记下的局号，能把这个浏览器里的几局联系起来。</p>
    <p>自动贡献会在开局时创建私有记录；正常结束、手动结束、重开、关闭请求或闲置回收时更新。突然断电或进程崩溃可能只保留未完成的开局记录，不会推断退出原因。记录容量耗尽会明确标注丢失范围。</p>
    <p>对局记录统一保存在腾讯云中国上海；海外站经加密连接提交和访问记录。</p>
-   <p>私有保存，半年（180 天）后自动删除。每份贡献的删除凭证保存在这个浏览器里，可随时在「设置 → 数据导出」提前删除或更改选择。</p>
+   <p>私有保存，半年（180 天）后自动删除。每份贡献的删除凭证保存在这个浏览器里，可随时在「设置 → 数据与贡献」提前删除或更改选择。</p>
    <p>选择“暂不”时，也可以在结算画面点「贡献本局」只贡献这一局。没有开局前同意时，只含已有事实与首尾状态，不含操作记录，缺失过程会标注。</p>
   </details>
   <details class="fine"><summary>可选：连接诊断</summary><p><label><input id="ask-telemetry" type="checkbox"> 另同意收集浏览器自报的请求耗时及受控错误类型（默认不选）</label></p></details>

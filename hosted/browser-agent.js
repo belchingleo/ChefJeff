@@ -4,6 +4,7 @@
   const nativeFetch = window.fetch.bind(window);
   const storageName = 'chefjeff.browser-key.v1';
   const relayConsent = 'jev-relay-2026-10-v1';
+  const cloudflareConsent = 'cloudflare-relay-2026-11-v1';
   window.chefjeffJevRelayAvailable = true;
   // The shared service list (model-providers.js, loaded just before this script); 'none' is local-only.
   const providers = () => Object.fromEntries((window.chefjeffProviders?.providers || [])
@@ -15,7 +16,8 @@
   let activeRoundModel = null;
   let activeRoundConfig = null; // Browser memory only; never copy this object into telemetry.
   const roundModels = new Map();
-  const configuredModel = () => setting ? {provider:setting.provider, model_id:setting.model} : null;
+  // A free model is recorded under its research service name (record), with its exact model ID.
+  const configuredModel = () => setting ? {provider:setting.record || setting.provider, model_id:setting.model} : null;
   function observeRoundModel(s) {
     if(activeRoundModel && !activeRoundModel.game_id && s.game_id!==activeRoundModel.previous &&
         ['running','paused','ended'].includes(s.phase))activeRoundModel.game_id=s.game_id;
@@ -37,7 +39,7 @@
   });
   const connection = () => ({configured: !!setting, provider: setting?.provider || 'deepseek',
     base_url: setting?.base_url || '', model: setting?.model || '', remembered: !!setting?.remember,
-    jev_relay: setting?.jev_relay === true,
+    jev_relay: setting?.jev_relay === true, account_id: setting?.account_id || '', relay: setting?.relay === true,
     free_model: setting?.free_model === true, free_models: freeCatalog,
     editable: !testing && !openingRound && (!state || ['ready', 'ended'].includes(state.phase))});
   // Browser-owned, bounded history. No model URL, name, key or visitor identifier
@@ -252,8 +254,14 @@
     if (!preset) throw new Error('选择模型服务。');
     const api_key = typeof raw.api_key === 'string' ? raw.api_key.trim() : '';
     if (api_key.length < 8 || api_key.length > 2048 || /\s/.test(api_key)) throw new Error('请输入完整的 API Key。');
-    const base_url = preset.custom ? String(raw.base_url || '').trim().replace(/\/+$/, '').replace(/\/chat\/completions$/, '') :
+    let base_url = preset.custom ? String(raw.base_url || '').trim().replace(/\/+$/, '').replace(/\/chat\/completions$/, '') :
       preset.endpoint || preset.base_url;
+    // The provider's address names the player's own account (Cloudflare: 32 hex characters).
+    const account_id = preset.account_id ? String(raw.account_id || '').trim() : '';
+    if (preset.account_id) {
+      if (!/^[0-9a-f]{32}$/.test(account_id)) throw new Error('请填写 32 位的 Account ID（在服务商控制台里可以找到）。');
+      base_url = base_url.replace('{account_id}', account_id);
+    }
     let u;try {u = new URL(base_url);} catch (_) {throw new Error('接口地址无效，请填写完整的 HTTPS 地址。');}
     if (u.protocol !== 'https:' || u.origin === location.origin || u.username || u.password || u.search || u.hash ||
         u.hostname === 'localhost' || /\.(local|localhost|internal)$/.test(u.hostname) ||
@@ -261,8 +269,12 @@
     const model = (preset.model_editable && String(raw.model || '').trim()) || preset.model || '';
     if (!model || model.length > 120) throw new Error('请输入服务商提供的模型名称。');
     if (raw.jev_relay === true && provider !== 'jev') throw new Error('服务器转发仅适用于 Jev。');
+    // Cloudflare refuses browser requests, so online it only runs through the demo server, with consent.
+    const relay = preset.hosted === 'relay' && provider !== 'jev';
+    if (relay && raw.relay !== true) throw new Error('请先同意通过试玩服务器调用 Cloudflare。');
+    if (relay && !(preset.relay_models || []).includes(model)) throw new Error('在线转发只支持 Gemma 4 26B 和 Llama 3.1 8B。');
     return {provider, base_url, model, api_key, remember: raw.remember === true,
-      jev_relay: provider === 'jev' && raw.jev_relay === true};
+      jev_relay: provider === 'jev' && raw.jev_relay === true, ...(account_id ? {account_id} : {}), ...(relay ? {relay} : {})};
   }
   try {
     const saved = JSON.parse(localStorage.getItem(storageName) || 'null');
@@ -294,7 +306,7 @@
     const memory=payload.state?.rules && activeMemory?.game_id===state?.game_id ? activeMemory.context:null;
     if(memory)payload={...payload,state:{...payload.state,past_episodes:clone(memory)}};
     const controller = new AbortController(), started = performance.now();
-    const timer = setTimeout(() => controller.abort(), config.jev_relay ? 23000 : 20000);
+    const timer = setTimeout(() => controller.abort(), config.jev_relay || config.relay ? 23000 : 20000);
     const abort = () => controller.abort();
     outerSignal?.addEventListener('abort', abort, {once:true});
     if (outerSignal?.aborted) controller.abort();
@@ -309,16 +321,19 @@
         return d.answer;
       } finally {clearTimeout(timer);outerSignal?.removeEventListener('abort',abort);}
     }
-    if (config.jev_relay) {
+    if (config.jev_relay || config.relay) {
+      const route = config.relay ? '/api/model/cloudflare' : '/api/model/jev', vendor = config.relay ? 'Cloudflare' : 'Jev';
       try {
         // mode 'cors' like every other game request: with the page's no-referrer policy, a POST in
         // 'same-origin' mode carries "Origin: null" (Fetch spec; Safari follows it), which the server rejects.
-        const r = await serverFetch('/api/model/jev', {method:'POST',mode:'cors',
+        const r = await serverFetch(route, {method:'POST',mode:'cors',
           credentials:'omit',redirect:'error',signal:controller.signal,
           headers:{'Content-Type':'application/json'},body:JSON.stringify({
-            ...relayContext, ...(memory?{memory}:{}), api_key:config.api_key, consent:true, consent_version:relayConsent})});
+            ...relayContext, ...(memory?{memory}:{}), api_key:config.api_key, consent:true,
+            ...(config.relay ? {account_id:config.account_id, model:config.model, consent_version:cloudflareConsent} :
+              {consent_version:relayConsent})})});
         const d = await r.json();
-        if (!r.ok) throw new Error(d.error || 'Jev 转发连接失败。');
+        if (!r.ok) throw new Error(d.error || vendor + ' 转发连接失败。');
         return d.answer;
       } catch (e) {
         if (e.name === 'AbortError') throw new Error('模型请求超时或已取消。');
@@ -425,7 +440,7 @@
         if(Object.hasOwn(body,'free_provider')) {
           const selected=freeCatalog.enabled && freeCatalog.models.find(m=>m.provider===body.free_provider);
           if(!selected)throw new Error('请选择开放的免费模型。');
-          candidate={provider:selected.provider,model:selected.model,free_model:true,
+          candidate={provider:selected.provider,record:selected.record ?? selected.provider,model:selected.model,free_model:true,
             base_url:location.origin+'/api/model/free',remember:false};
           const r=await serverFetch('/api/model/free/select',{method:'POST',signal,
             headers:{'Content-Type':'application/json'},body:JSON.stringify({game_id:body.game_id,
@@ -458,11 +473,14 @@
     if(!freeCatalogPromise)freeCatalogPromise=(async()=>{
       try {
         const r=await serverFetch('/api/model/free/catalog');const d=await r.json();
-        if(r.ok && d.enabled===true && Array.isArray(d.models) && d.models.length===2 &&
-           d.models.every(m=>typeof m.name==='string' && typeof m.platform==='string' &&
-             ((m.provider==='zhipu'&&m.model==='glm-4.7-flash')||
-              (m.provider==='startlux'&&m.model==='startlux-decision-27b-autothink'))) &&
-           new Set(d.models.map(m=>m.provider)).size===2 && d.models.some(m=>m.provider===d.default))freeCatalog=d;
+        // Whatever fixed models the server enables, each named once and recorded under a known service.
+        const services=new Set((window.chefjeffProviders?.providers||[]).map(p=>p.id));
+        const fine=m=>m && typeof m.name==='string' && typeof m.platform==='string' &&
+          typeof m.provider==='string' && /^[a-z0-9-]{1,40}$/.test(m.provider) &&
+          typeof m.model==='string' && m.model.length>0 && m.model.length<=120 && services.has(m.record ?? m.provider);
+        if(r.ok && d.enabled===true && Array.isArray(d.models) && d.models.length>0 && d.models.length<=16 &&
+           d.models.every(fine) && new Set(d.models.map(m=>m.provider)).size===d.models.length &&
+           d.models.some(m=>m.provider===d.default))freeCatalog=d;
       } catch (_) { /* Own-key connections remain available when trials are disabled. */ }
       finally {freeCatalogAt=performance.now();}
     })();
@@ -664,7 +682,7 @@
     const s=shown||state,round=s?.game_id;
     if(s?.phase!=='ended'||!s.hosted?.contribution_enabled||s.hosted.contributed||busyRound===round)return;
     pendingContribution=pendingContribution.catch(()=>{}).then(()=>contribute('round',round))
-      .then(()=>report(round,'本局已贡献，保存半年（180 天）。删除凭证在「设置 → 数据导出」。'))
+      .then(()=>report(round,'本局已贡献，保存半年（180 天）。删除凭证在「设置 → 数据与贡献」。'))
       .catch(error=>report(round,'贡献失败：'+error.message));
   }
   window.addEventListener('kitchen-contribute', contributeRound);

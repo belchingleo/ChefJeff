@@ -142,6 +142,27 @@ class CompatibleTests(unittest.TestCase):
         self.client=CompatibleClient(load_config(),settings_from({'provider':'compatible','base_url':'https://api.example.com/v1','model':'m','api_key':KEY}))
         body=json.loads(self.ask('{"choice":"wait"}')[1].data)
         self.assertNotIn('thinking',body);self.assertNotIn('response_format',body)
+    def test_gemini_uses_the_open_35_model_with_minimal_reasoning(self):
+        self.client=CompatibleClient(load_config(),settings_from({'provider':'gemini','api_key':KEY}))
+        _,req=self.ask('{"choice":"wait"}')
+        body=json.loads(req.data)
+        self.assertEqual(req.full_url,'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions')
+        self.assertEqual((body['model'],body['reasoning_effort']),('gemini-3.5-flash-lite','minimal'))
+    def test_cloudflare_needs_the_account_id_and_gemma_alone_turns_thinking_off(self):
+        account='0123456789abcdef0123456789abcdef'
+        for bad in (None,'',account.upper(),account[:-1],'../'+account):
+            with self.subTest(account=bad),self.assertRaises(ValueError):
+                settings_from({'provider':'cloudflare','api_key':KEY,**({'account_id':bad} if bad is not None else {})})
+        for model,thinking in (('@cf/google/gemma-4-26b-a4b-it',True),('@cf/meta/llama-3.1-8b-instruct-fp8',False)):
+            setting=settings_from({'provider':'cloudflare','api_key':KEY,'account_id':account,'model':model})
+            self.assertEqual(setting['account_id'],account)
+            self.assertEqual(settings_from(json.loads(json.dumps(setting))),setting)  # a remembered setting reloads unchanged
+            self.client=CompatibleClient(load_config(),setting)
+            _,req=self.ask('{"choice":"wait"}')
+            self.assertEqual(req.full_url,f'https://api.cloudflare.com/client/v4/accounts/{account}/ai/v1/chat/completions')
+            body=json.loads(req.data)
+            self.assertEqual((body['model'],body['response_format']),(model,{'type':'json_object'}))
+            self.assertEqual('chat_template_kwargs' in body,thinking)
     def test_missing_sprint_means_no_sprint_and_is_logged(self):
         self.payload['questions']['sprint']={}
         result,_=self.ask('{"choice":"wait"}')
@@ -160,8 +181,10 @@ class CompatibleTests(unittest.TestCase):
                 body={'provider':preset['id'],'api_key':KEY}
                 if preset.get('custom'):body.update(base_url='https://api.example.com/v1',model='m')
                 elif not preset.get('model'):body['model']='vendor/model'
+                if preset.get('account_id'):body['account_id']='0'*32
                 setting=settings_from(body)
-                self.assertEqual(setting['base_url'],'https://api.example.com/v1' if preset.get('custom') else preset.get('endpoint') or preset['base_url'])
+                self.assertEqual(setting['base_url'],'https://api.example.com/v1' if preset.get('custom') else
+                                 (preset.get('endpoint') or preset['base_url']).replace('{account_id}','0'*32))
                 client=create_client(load_config(),setting)
                 self.assertIsInstance(client,DecisionClient if preset['group']=='decision' and preset['id']!='jev' else (CompatibleClient if preset['group']=='chat' else object))
     def test_decision_service_posts_state_and_questions_to_its_endpoint(self):

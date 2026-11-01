@@ -9,12 +9,12 @@
 ## Key 留在你的浏览器里
 
 - 在线版的 Key 默认只在当前页面的内存里，刷新即消失；勾选「记住此设备」才以明文存进这个浏览器的 localStorage，「清除配置」即删除。
-- 浏览器直接把请求发给你选的服务商，Key 不经过我们的服务器。唯一例外是 Jev：只有你明确勾选「同意通过试玩服务器调用 Jev」时，Key 才经我们的服务器转发，且不写入任何日志或记录。
+- 浏览器直接把请求发给你选的服务商，Key 不经过我们的服务器。例外是 Jev 和 Cloudflare：只有你明确勾选对应的「同意通过试玩服务器…」时，Key 才经我们的服务器转发，且不写入任何日志或记录。Cloudflare 不接受浏览器直连，在线版只能这样用。
 - 详见[隐私说明与反馈](privacy.md)。
 
 ## 怎么填
 
-打开「设置 → 连接」，选「模型服务」，填好 Key 后点「测试并连接」。测试会发一次小请求，可能产生少量费用。
+打开「设置 → AI 搭档」，选「模型服务」，填好 Key 后点「测试并连接」。测试会发一次小请求，可能产生少量费用。
 
 「模型服务」按类型分组，选好后接口地址和模型名称会自动填好，下方一行写着大约每局花费和是否实测过：
 
@@ -23,11 +23,12 @@
   - **OpenRouter 决策模型**：在 [OpenRouter](https://openrouter.ai/keys) 开 Key。默认是 Microsoft-Decision-1（输入每百万 token 0.042 美元、输出免费，约 ¥0.3–0.7/局）；「模型名称」可以换成 OpenRouter 上[任一决策模型](https://openrouter.ai/models?output_modalities=decisions)的 ID，例如 `typesafe/jev-1.14`、`openai/gpt-6-luna-decisions`、`perplexity/pplx-decider-v1.2`。已实测整局。只读前约 2 千 token 的模型（如 Cloudflare Clef）看不全厨房，不要选。
   - **StartLux-Decision（Bamboo 存在延迟，免费接口）**：在 [Bamboo Relay](https://bamboonode.dev/) 申请 Key，有免费测试额度；请求经第三方中转 Bamboo Relay。接口 `https://api.bamboonode.dev/v1/decisions`，默认模型 `startlux-decision-27b-autothink`，模型名可编辑。本地版和在线版均可选，在线版由浏览器跨域直连 Bamboo Relay。预设关闭自动思考；完整厨房请求仍可能超时或超过游戏接受回复的时限。开发者未用真实 Key 验证连接，未实测整局。[官网](https://decision.startlux.com/) · [接口文档](https://github.com/StartLuxLabs/StartLux-Decision/blob/main/docs/api.md)。返回与 Jev 相同的 `answers.next_action.choice` 和 `usage`；两端预设均发送 `think_mode: never`，默认不思考。Bamboo 默认允许返回“以上都不是”（`choice: null`）；两端预设均发送 `allow_none: false`，要求从列出的动作中选择。
   - **Decision 3.0**：开源决策模型，需要自己部署，暂不能选。
-- **对话模型**（已为各家关闭深度思考、只要求回一个 JSON）
+- **快思考模型**（通用对话模型；已为各家关闭深度思考、只要求回一个 JSON）
   - **DeepSeek**：[platform.deepseek.com](https://platform.deepseek.com/api_keys)，模型 deepseek-flash（10 月 17 日起为 V4.1-Flash-1017）。已实测整局。
   - **阿里 qwen-flash**：[阿里云百炼](https://bailian.console.aliyun.com/)，约 ¥0.2–0.3/局。未实测。
   - **豆包 Seed 2.0 lite**：[火山方舟](https://console.volcengine.com/ark)，约 ¥0.7–1.3/局。未实测。
-  - **Gemini 2.5 Flash-Lite**：[Google AI Studio](https://aistudio.google.com/apikey)，有限速的免费额度，需要所在网络能访问 Google。未实测。
+  - **Gemini 3.5 Flash-Lite**：[Google AI Studio](https://aistudio.google.com/apikey)。免费层级每分钟 15 次、每天 500 次，需要所在网络能访问 Google。Google 不再向新账号开放 2.5 系列。只用合成快照实测过一次。
+  - **Cloudflare Workers AI（Gemma 4 / Llama 3.1）**：在 [Cloudflare 控制台](https://dash.cloudflare.com/profile/api-tokens) 创建带 Workers AI 权限的 API Token，再填账户的 32 位 Account ID。免费额度每个账户每天 10,000 Neurons，按 Jeff 每次请求约 7 千输入 Token 算，Gemma 约 140 次、Llama 约 100 次。默认模型是 `@cf/google/gemma-4-26b-a4b-it`，也可填 `@cf/meta/llama-3.1-8b-instruct-fp8`。在线版要勾选「同意通过试玩服务器转发 Cloudflare 请求」。只用合成快照实测过一次。
   - **OpenRouter 对话模型**：同一个 OpenRouter Key，地址已填好（`https://openrouter.ai/api/v1`），「模型名称」填模型页上的 ID（形如「厂商/模型名」）。不会自动关闭思考，挑不带深度思考的模型。未实测。
   - **其他兼容 Chat Completions 的服务**：自己填接口地址和模型名称，例如硅基流动 `https://api.siliconflow.cn/v1`。不会自动关闭思考，思考型模型可能答不完。
 - 智谱 GLM-4.7-Flash（免费）只在本地版提供：智谱接口不允许浏览器跨域请求。
@@ -39,7 +40,7 @@
 ### 本地版更新与测试
 
 - 先结束当前对局，在原游戏文件夹双击 `stop-web.command` 停止旧服务，再从新版文件夹双击 `start-web.command`。仅关闭网页或从另一个文件夹启动，会复用仍在运行的旧服务。
-- 在「设置 → 连接」选择「StartLux-Decision（Bamboo 存在延迟，免费接口）」，填同一个 Key，点「测试并连接」后试玩。
+- 在「设置 → AI 搭档」选择「StartLux-Decision（Bamboo 存在延迟，免费接口）」，填同一个 Key，点「测试并连接」后试玩。
 - 记录是否仍出现请求失败，并导出本次游玩；若需定位具体原因，本地 `logs` 中的运行日志包含错误条目。不要分享凭据配置文件。
 
 ## 一局大约多少钱（估算）
@@ -65,12 +66,12 @@ Jeff's moves are decided by your own model account and billed to it. This page l
 ### Your key stays in your browser
 
 - Online, the key lives in this page's memory by default and is gone on refresh. Only **Remember on this device** saves it, in plain text, to this browser's localStorage; **Clear credentials** deletes it.
-- Your browser sends requests straight to the provider; the key does not pass through our server. The one exception is Jev: only when you explicitly tick **I agree to call Jev through the demo server** is the key forwarded by our server, which never writes it to any log or record.
+- Your browser sends requests straight to the provider; the key does not pass through our server. The exceptions are Jev and Cloudflare: only when you explicitly tick the matching **I agree to … through the demo server** box is the key forwarded by our server, which never writes it to any log or record. Cloudflare does not accept browser requests, so online this is the only way to use it.
 - See [privacy and contact](privacy.md).
 
 ### What to enter
 
-Open Settings → Connection, choose an **AI provider**, paste your key and press **Test and connect**. The test sends one small request, which may cost a little.
+Open Settings → AI teammate, choose an **AI provider**, paste your key and press **Test and connect**. The test sends one small request, which may cost a little.
 
 **AI provider** is grouped by kind; picking one fills in the base URL and model name, and a line below gives the rough cost per round and whether it has been tested:
 
@@ -79,11 +80,12 @@ Open Settings → Connection, choose an **AI provider**, paste your key and pres
   - **OpenRouter decision models**: get a key at [OpenRouter](https://openrouter.ai/keys). The default is Microsoft-Decision-1 (USD 0.042 per million input tokens, output free, about ¥0.3–0.7 a round); the model name can be the ID of [any OpenRouter decision model](https://openrouter.ai/models?output_modalities=decisions), for example `typesafe/jev-1.14`, `openai/gpt-6-luna-decisions` or `perplexity/pplx-decider-v1.2`. Tested over a full round. Avoid models that read only the first ~2,000 tokens (such as Cloudflare Clef): they miss most of the kitchen.
   - **StartLux-Decision (Bamboo, noticeable latency, free API)**: get a key at [Bamboo Relay](https://bamboonode.dev/), which offers a free testing quota. Requests pass through the third-party Bamboo Relay. The endpoint is `https://api.bamboonode.dev/v1/decisions`, with editable model name `startlux-decision-27b-autothink`. Available locally and online; the browser calls Bamboo Relay directly with CORS. The preset disables automatic thinking. Full kitchen requests can still time out or arrive too late for the game. No developer connection verified with a real key and no full round tested. [Website](https://decision.startlux.com/) · [API docs](https://github.com/StartLuxLabs/StartLux-Decision/blob/main/docs/api.md). Responses use the same `answers.next_action.choice` and `usage` as Jev; both clients send `think_mode: never` to disable thinking by default. Bamboo enables “None of the above” (`choice: null`) by default; both clients send `allow_none: false` to require a listed action.
   - **Decision 3.0**: an open decision model you host yourself; not selectable yet.
-- **Chat models** (thinking turned off and one JSON object requested for each provider)
+- **Fast-thinking models** (general chat models; thinking turned off and one JSON object requested for each provider)
   - **DeepSeek**: [platform.deepseek.com](https://platform.deepseek.com/api_keys), model deepseek-flash (V4.1-Flash-1017 since 17 October). Tested over a full round.
   - **Alibaba qwen-flash**: [Model Studio](https://bailian.console.aliyun.com/), about ¥0.2–0.3 a round. Not yet tested.
   - **Doubao Seed 2.0 lite**: [Volcano Ark](https://console.volcengine.com/ark), about ¥0.7–1.3 a round. Not yet tested.
-  - **Gemini 2.5 Flash-Lite**: [Google AI Studio](https://aistudio.google.com/apikey), a rate-limited free quota; your network must reach Google. Not yet tested.
+  - **Gemini 3.5 Flash-Lite**: [Google AI Studio](https://aistudio.google.com/apikey). The free tier allows 15 requests a minute and 500 a day; your network must reach Google. Google no longer opens the 2.5 series to new accounts. Probed once with a synthetic snapshot.
+  - **Cloudflare Workers AI (Gemma 4 / Llama 3.1)**: create an API token with Workers AI access in the [Cloudflare dashboard](https://dash.cloudflare.com/profile/api-tokens) and enter your 32-character account ID. The free tier is 10,000 Neurons a day per account: at about 7,000 input tokens per Jeff request, roughly 140 Gemma or 100 Llama requests. The default model is `@cf/google/gemma-4-26b-a4b-it`; you can also enter `@cf/meta/llama-3.1-8b-instruct-fp8`. Online, tick **I agree to forward Cloudflare requests through the demo server**. Probed once with a synthetic snapshot.
   - **OpenRouter chat models**: the same OpenRouter key and a ready-filled address (`https://openrouter.ai/api/v1`); enter the model ID from its page (vendor/model). Thinking is not turned off for you, so pick a model without deep thinking. Not yet tested.
   - **Other Chat Completions provider**: enter the base URL and model yourself, for example SiliconFlow `https://api.siliconflow.cn/v1`. Thinking is not turned off for you, so thinking models may not finish an answer.
 - Zhipu GLM-4.7-Flash (free) is offered in the local game only: Zhipu's API does not accept cross-origin browser requests.
@@ -95,7 +97,7 @@ On 2026-10-19 and 2026-10-20 we confirmed that the other online endpoints above 
 ### Updating and testing locally
 
 - End the current round and double-click `stop-web.command` in the old game folder. Then run `start-web.command` from the updated folder. Closing a tab or launching from another folder reuses an old server that is still running.
-- Under Settings → Connection, choose **StartLux-Decision (Bamboo, noticeable latency, free API)**, enter the same key, press **Test and connect**, and play.
+- Under Settings → AI teammate, choose **StartLux-Decision (Bamboo, noticeable latency, free API)**, enter the same key, press **Test and connect**, and play.
 - Note any request failures and export the play session. The local run log under `logs` contains specific error entries when further diagnosis is needed. Do not share credential configuration files.
 
 ### Roughly what a round costs (estimate)

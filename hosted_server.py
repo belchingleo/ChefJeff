@@ -28,6 +28,7 @@ from feedback import play_export
 from hosted_records import ContributionStore, pilot_record, CONSENT_VERSION
 from hosted_capacity import ActiveKitchens, RequestBudget, NETWORK_FULL
 from hosted_jev import JevForwarder
+from hosted_cloudflare import CloudflareForwarder
 from hosted_free_models import FreeModels, read_trial_keys
 from free_model_client import RegionalFreeModels, FreeGatewayClient, public_error
 from free_model_gateway import GatewayError
@@ -413,12 +414,13 @@ class HostedSession(GameSession):
             super().close()
 
 
-# Game fields plus the explicit opt-in Jev route. Never echo invalid bodies.
+# Game fields plus the explicit opt-in Jev and Cloudflare routes. Never echo invalid bodies.
 FIELDS = {
     '/api/model/free/select': {'provider'},
     '/api/model/free': {'provider', 'id', 'memory'},
     '/api/usage': {'first_visit', 'first_play'},
     '/api/model/jev': {'api_key','consent','consent_version','test','id','memory'},
+    '/api/model/cloudflare': {'api_key','account_id','model','consent','consent_version','test','id','memory'},
     '/api/contribution/preview': set(),
     '/api/contribution/consent': {'consent', 'consent_version', 'decision_telemetry', 'model_identity'},
     '/api/contribution/save': {'consent', 'consent_version', 'consent_mode', 'model_identity'},
@@ -549,9 +551,9 @@ class Sessions:
 # cocos-kitchen/web-shell.html (tests/test_hosted.py checks this).
 SHELL_REPLACEMENTS = (
     ('默认只在本次服务运行期间使用。记住后以明文保存在这台电脑的本地配置文件；Key 不进入对局日志和试玩包。',
-        '在线版：Key 默认在页面内存中，刷新即清除；主动记住会将 Key 和所选转发方式以明文保存在浏览器 localStorage。浏览器直连时 Key 只发给模型服务；明确勾选 Jev 转发后，Key 和模型请求经试玩服务器发送给 Jev，仅用于处理请求，不写入服务器配置、日志或对局记录。游戏状态经过我们的服务器，自愿贡献数据另见下方说明。'),
+        '在线版：Key 默认在页面内存中，刷新即清除；主动记住会将 Key 和所选转发方式以明文保存在浏览器 localStorage。浏览器直连时 Key 只发给模型服务；明确勾选 Jev 或 Cloudflare 转发后，Key（Cloudflare 还有 Account ID）和模型请求经试玩服务器发送给对应服务，仅用于处理请求，不写入服务器配置、日志或对局记录。游戏状态经过我们的服务器，自愿贡献数据另见下方说明。'),
     ('这间厨房是围绕 Jev 开发的；其他模型也可使用，响应速度和配合方式可能不同。',
-        '默认由浏览器直连模型，需供应商允许跨域访问。Jev 可明确勾选下方服务器转发；跨域失败不会自动改为转发。'),
+        '默认由浏览器直连模型，需供应商允许跨域访问。Jev 可明确勾选下方服务器转发，Cloudflare 只能经服务器转发；跨域失败不会自动改为转发。'),
     ('建议优先选择 Jev', '在线模型连接'),
     ('仅保留到服务关闭', '仅保留到当前页面会话结束'),
     ('本次服务连接测试', '本页面连接测试'),
@@ -559,8 +561,14 @@ SHELL_REPLACEMENTS = (
     ('导出本次游玩的全部数据：从启动游戏起玩过的每一局', '导出本次游玩的数据：从打开本页面起最近 20 局'),
     ('记录保存在本机，旧局片段会随决策请求发送给你选择的模型服务，增加输入 token 和费用。关闭后不读、不保存；中途退出的局不保存。',
         '在线版默认开启，摘要保存在当前浏览器；开局时固定本局使用的旧局摘要，随请求发给所选模型。Jev 转发也会处理这些摘要，但服务器不持久保存。可在这里关闭或清空；中途退出的局不保存。摘要会增加输入 token 和费用。'),
+    # The key form on the hosted page: browser-direct by default, and free models exist.
+    ('使用你自己的 API 账号，调用费用由该账号承担。', 'Key 默认只留在这个页面，由浏览器直接发给服务商；费用记在你的账号上。'),
+    ('申请后选对应的服务填进来即可。', '申请后选对应的服务填进来即可，不占免费模型的名额。'),
+    ('自己申请一个就能填在这里。', '自己申请一个就能填在这里，不占免费模型的名额。'),
+    ('记住此设备（共用电脑请勿勾选）', '记住此设备（Key 以明文保存在这个浏览器）'),
 )
 CONTRIBUTION_SLOT = '<!-- hosted-contribution -->'
+FREE_MODELS_SLOT = '<!-- hosted-free-models -->'
 CONTRIBUTION_BADGE = ('<p id="contribution-badge" role="status" hidden style="position:fixed;left:50%;bottom:8px;'
                       'transform:translateX(-50%);z-index:60;margin:0;padding:3px 10px;background:#2b1a12cc;'
                       'color:#fff;font:12px/16px system-ui,sans-serif;pointer-events:none"></p>')
@@ -580,6 +588,8 @@ def hosted_html(raw):
     picker = picker.replace('<script src="/free-model-picker.js"></script>',
                             '<script>' + (ROOT / 'hosted' / 'free-model-picker.js').read_text() + '</script>')
     page = page.replace('</body>', consent + CONTRIBUTION_BADGE + picker + '</body>', 1)
+    # Settings → AI 搭档 lists the same free models; the picker script fills both.
+    page = page.replace(FREE_MODELS_SLOT, (ROOT / 'hosted' / 'free-model-settings.html').read_text(), 1)
     # Newer shells mark a slot in the Export tab; older builds append to the settings dialog.
     page = page.replace(CONTRIBUTION_SLOT, panel, 1) if CONTRIBUTION_SLOT in page else page.replace('</dialog>', panel + '</dialog>', 1)
     return page.encode('utf-8')
@@ -810,7 +820,7 @@ class HostedHandler(Handler):
             return self.reply(415, {'error': '请求必须使用 JSON 格式。'})
         try:
             length = int(self.headers.get('Content-Length', '0'))
-            if not 0 < length <= (12288 if path in ('/api/model/jev', '/api/model/free') else 8192): raise ValueError()
+            if not 0 < length <= (12288 if path in ('/api/model/jev', '/api/model/cloudflare', '/api/model/free') else 8192): raise ValueError()
             body = json.loads(self.rfile.read(length))
             if not isinstance(body, dict): raise ValueError()
         except (ValueError, OSError): return self.reply(400, {'error': '请求无效。'})
@@ -856,8 +866,9 @@ class HostedHandler(Handler):
                 game.usage_visit_reported |= body['first_visit']
                 game.usage_play_reported |= body['first_play']
             return self.reply(200, {'ok': True})
-        if path == '/api/model/jev':
-            status, result = self.server.jev_forwarder.handle(game,body)
+        if path in ('/api/model/jev', '/api/model/cloudflare'):
+            forwarder = self.server.jev_forwarder if path == '/api/model/jev' else self.server.cloudflare_forwarder
+            status, result = forwarder.handle(game,body)
             return self.reply(status,result)
         if path == '/api/model/free/select':
             status, result = self.server.free_models.select(game, body)
@@ -957,6 +968,7 @@ def make_server(port, origin, capacity=8, web_root=None, data_dir=None, max_wait
                                store=store, max_waiting=max_waiting,
                                per_network=per_network, usage=server.usage)
     server.jev_forwarder = JevForwarder()
+    server.cloudflare_forwarder = CloudflareForwarder()
     server.free_models = free_models
     if isinstance(free_models, RegionalFreeModels):
         free_models.start()

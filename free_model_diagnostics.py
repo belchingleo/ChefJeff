@@ -8,9 +8,9 @@ from model_status import clean
 
 
 class Diagnostics:
-    def __init__(self,directory=None):
+    def __init__(self,directory=None,providers=('zhipu','startlux')):
         self.directory=Path(directory) if directory is not None else None
-        self.data={'version':1,'providers':{p:{'upstream_attempts':0,'last_result':{}} for p in ('zhipu','startlux')}}
+        self.data={'version':1,'providers':{p:{'upstream_attempts':0,'last_result':{}} for p in providers}}
         if self.directory is not None:
             path=self.directory/'diagnostics.json'
             if path.exists():
@@ -18,6 +18,7 @@ class Diagnostics:
                     if path.is_symlink() or path.stat().st_size>65536 or path.stat().st_mode&0o077:raise ValueError()
                     old=json.loads(path.read_text())
                     for p in self.data['providers']:
+                        if p not in old['providers']:continue  # a model enabled after the last save
                         value=old['providers'][p];n=value['upstream_attempts']
                         if type(n) is not int or not 0<=n<=1000000000:raise ValueError()
                         self.data['providers'][p]={'upstream_attempts':n,'last_result':clean(value['last_result'])}

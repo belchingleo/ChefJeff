@@ -6,6 +6,20 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 
 ## Unreleased
 
+### Start, results and settings
+- The start and result screens are one shop card. A level plate shows the dish, level and goal; ◀ ▶ change level and the title row (第 N 关 · dish ▾) opens all levels. Below it, pick an AI teammate from two entries: free models (no API key, listed by the server) or a custom model with your own key.
+- Results show the income against the goal, the teammate and two big buttons, 再来一次 and 下一关; the next level leads after a win and is also offered after a loss, and on the last level it becomes 全部关卡. Round analysis, all levels and settings sit below as light chips.
+- All levels: four per row, the goal, whether it was reached and this browser's best result; a card for player-made levels marks what is coming.
+- Settings is its own card with tabs down the left (AI 搭档, 跨局记忆, 调用上限, 数据与贡献, 声音与语言). The 自定义模型 tile opens just the key form, with a help column.
+- Phone menus show the same level plate, partner tiles and result buttons. The language button always reads "English" in Chinese.
+
+### Free models
+- Register Gemini 3.5 Flash-Lite (Google AI Studio) and Gemma 4 26B and Llama 3.1 8B (Cloudflare Workers AI) as later free models. They stay off until their own private key file is installed and the gateway is started with it; each was probed once with a synthetic snapshot only.
+- Each platform has its own budget below its free tier: Gemini 450 a day and at least 4.3 s between calls; Cloudflare 9,000 estimated Neurons a day shared by both models. A spent day shows 今日额度已用完 instead of "try again later".
+- The free list on every screen follows the server's catalog, so an enabled model appears with no page change.
+- Custom models: Gemini moves to 3.5 Flash-Lite (Google no longer opens 2.5 to new accounts). Cloudflare Workers AI is added with your account ID; online it runs only through the demo server, with its own consent, because Cloudflare refuses browser requests.
+- Research records add the service name `cloudflare`. Upgrade the research console before the games, or its records are refused.
+
 ### Cross-round cooperation memory
 - Enable browser-owned online memory by default, with local controls, model/level/contract isolation, fixed per-round context, three-round retention and an 8000-character input budget. Add factual work totals for both chefs, old communication and balanced event sampling to local and online summaries. Support identical context on direct models and the consented Jev relay, with a bounded 12 KiB no-buffering proxy route. Research records include only finite memory conditions; v3 contribution terms ask again and exclude old episode content.
 
@@ -116,6 +130,20 @@ First private release: a local browser game with three playable maps and player-
 ## 更新记录
 
 ## 未发布
+
+### 开局、结算与设置
+- 开局和结算合成一张店面卡。关卡牌上是菜、关卡和目标；◀ ▶ 换关卡，点「第 N 关 · 菜名 ▾」打开全部关卡。下面选 AI 搭档，两个入口：免费模型（不用 API Key，列表由服务器提供）和用自己 Key 的自定义模型。
+- 结算显示收入和目标、本局搭档，以及「再来一次」「下一关」两个大按钮；赢了「下一关」在前，输了也能直接去下一关，最后一关换成「全部关卡」。本局分析、全部关卡、设置放在下面一排浅色按钮里。
+- 全部关卡：每行四关，显示目标、是否达成和这个浏览器里的最佳成绩；最后一张是即将开放的自定义关卡。
+- 设置改成独立卡片，页签在左边：AI 搭档、跨局记忆、调用上限、数据与贡献、声音与语言。点「自定义模型」只打开 Key 表单，旁边附说明。
+- 手机菜单也用同样的关卡牌、搭档方块和结算按钮。中文界面的语言按钮一律写「English」。
+
+### 免费模型
+- 登记三个后加入的免费模型：Gemini 3.5 Flash-Lite（Google AI Studio），以及 Cloudflare Workers AI 上的 Gemma 4 26B 和 Llama 3.1 8B。装好它们单独的私密 Key 文件、并用它启动协调服务后才会开放；目前每个只用合成快照试过一次。
+- 每个平台单独计额度，都低于平台的免费额度：Gemini 每天 450 次，两次请求至少间隔 4.3 秒；Cloudflare 两个模型合计每天约 9,000 Neurons。一天用完后显示「今日额度已用完」，不再只说稍后再试。
+- 各处的免费模型列表都按服务器给的来，新开放的模型不用改页面就会出现。
+- 自定义模型：Gemini 改为 3.5 Flash-Lite（Google 不再向新账号开放 2.5）；新增 Cloudflare Workers AI，需填 Account ID。Cloudflare 不接受浏览器直连，在线版只能经试玩服务器转发，并要单独勾选同意。
+- 研究记录新增服务名 `cloudflare`。要先升级研究管理台，再升级游戏，否则这类记录会被拒收。
 
 ### 跨局协作记忆
 - 在线版默认开启浏览器本地记忆，可关闭或清空，按模型／关卡／版本隔离，开局固定上下文，最多三局并限制 8000 个输入字符。为本地和在线摘要加入双方工作、旧局沟通及平衡抽样；直连与明确同意的 Jev 转发均支持，代理同步为有界 12 KiB 且不缓冲。研究记录只增加记忆条件，v3 贡献说明重新询问，不上传旧局摘要。

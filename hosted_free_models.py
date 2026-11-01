@@ -1,4 +1,5 @@
-"""Optional, fixed-model free trials. Disabled until both models are operator-verified.
+"""Optional, fixed-model free trials. Disabled until the original two models are operator-verified;
+each later model is enabled only by its own verified private key.
 
 Only server-created pending kitchen requests can consume the private credentials.
 No arbitrary prompts, endpoints, paid fallback, automatic retries or raw replies.
@@ -19,15 +20,30 @@ import urllib.request
 from cooperation_memory import validate_browser_context, PAST_EPISODES_RULE
 from hosted_jev import ForwardError, NoRedirect, valid_key, parse_answer as decision_answer
 from model_language import english_data
-from model_output import zhipu_body
+from model_output import chat_body, zhipu_body
 from model_status import ObservedAnswer, clean, numeric_provider_code, response_issue
 
+CLOUDFLARE = 'https://api.cloudflare.com/client/v4/accounts/{account}/ai/v1/chat/completions'
 MODELS = {
     'zhipu': {'model': 'glm-4.7-flash', 'name': '智谱 GLM-4.7-Flash', 'platform': '智谱开放平台',
               'endpoint': 'https://open.bigmodel.cn/api/paas/v4/chat/completions', 'field': 'zhipu_api_key'},
-    'startlux': {'model': 'startlux-decision-27b-autothink', 'name': 'StartLux Decision 27B AutoThink',
+    'startlux': {'model': 'startlux-decision-27b-autothink', 'name': 'StartLux 决策模型',
                 'platform': 'Bamboo Relay', 'endpoint': 'https://api.bamboonode.dev/v1/decisions', 'field': 'bamboo_api_key'},
+    # Later models: OpenAI-compatible chat with the request fields that passed the synthetic probe.
+    # record: the research-record service name (model-providers.json); the model ID stays exact.
+    'gemini': {'model': 'gemini-3.5-flash-lite', 'name': 'Gemini 3.5 Flash-Lite', 'platform': 'Google AI Studio',
+               'endpoint': 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+               'field': 'gemini_api_key', 'record': 'gemini',
+               'extra': {'reasoning_effort': 'minimal', 'response_format': {'type': 'json_object'}}},
+    'cloudflare-gemma': {'model': '@cf/google/gemma-4-26b-a4b-it', 'name': 'Gemma 4 26B', 'platform': 'Cloudflare Workers AI',
+                         'endpoint': CLOUDFLARE, 'field': 'cloudflare_api_key', 'record': 'cloudflare',
+                         'extra': {'chat_template_kwargs': {'enable_thinking': False}, 'response_format': {'type': 'json_object'}}},
+    'cloudflare-llama': {'model': '@cf/meta/llama-3.1-8b-instruct-fp8', 'name': 'Llama 3.1 8B', 'platform': 'Cloudflare Workers AI',
+                         'endpoint': CLOUDFLARE, 'field': 'cloudflare_api_key', 'record': 'cloudflare',
+                         'extra': {'response_format': {'type': 'json_object'}}},
 }
+ORIGINAL = ('zhipu', 'startlux')
+EXTRA_FIELDS = {'gemini_api_key', 'cloudflare_api_key', 'cloudflare_account_id'}
 
 
 class FreeCallError(ForwardError):
@@ -37,7 +53,7 @@ class FreeCallError(ForwardError):
         self.diagnostic = clean(diagnostic)
 
 
-def read_trial_keys(path, *, allow_root_import=False):
+def private_json(path, allow_root_import=False):
     path = Path(path)
     if path.is_symlink():
         raise ValueError('Trial credentials must be a private regular file')
@@ -56,19 +72,44 @@ def read_trial_keys(path, *, allow_root_import=False):
     finally:
         if fd is not None:
             os.close(fd)
+    return value
+
+
+def read_trial_keys(path, *, allow_root_import=False):
+    value = private_json(path, allow_root_import)
     if (not isinstance(value, dict) or set(value) != {'format', 'zhipu_api_key', 'bamboo_api_key'}
             or value.get('format') != 'chefjeff-private-api-keys-v1'
-            or any(not valid_key(value.get(m['field'])) for m in MODELS.values())):
+            or any(not valid_key(value.get(MODELS[p]['field'])) for p in ORIGINAL)):
         raise ValueError('Both trial services require valid private credentials')
-    return {p: value[m['field']] for p, m in MODELS.items()}
+    return {p: value[MODELS[p]['field']] for p in ORIGINAL}
 
 
-def chat_answer(raw, payload):
+def read_extra_keys(path, *, allow_root_import=False):
+    """A separate private file, so the original key file and an older gateway stay valid on rollback.
+    A platform's models are enabled only when its own fields are present and well formed."""
+    value = private_json(path, allow_root_import)
+    if (not isinstance(value, dict) or value.get('format') != 'chefjeff-private-extra-keys-v1'
+            or set(value) - EXTRA_FIELDS - {'format'} or len(value) < 2
+            or any(not valid_key(value[f]) for f in ('gemini_api_key', 'cloudflare_api_key') if f in value)
+            or ('cloudflare_api_key' in value) != ('cloudflare_account_id' in value)
+            or ('cloudflare_account_id' in value and not (isinstance(value['cloudflare_account_id'], str)
+                and re.fullmatch(r'[0-9a-f]{32}', value['cloudflare_account_id'])))):
+        raise ValueError('Invalid private credentials for the later free models')
+    keys = {}
+    for provider, model in MODELS.items():
+        if provider not in ORIGINAL and model['field'] in value:
+            keys[provider] = {'key': value[model['field']],
+                              'endpoint': model['endpoint'].format(account=value.get('cloudflare_account_id', ''))}
+    return keys
+
+
+def chat_answer(raw, payload, provider='zhipu'):
+    model = MODELS[provider]
     try:
         data = json.loads(raw)
         if not isinstance(data, dict) or 'error' in data:
             raise ValueError()
-        if data.get('model', MODELS['zhipu']['model']) != MODELS['zhipu']['model']:
+        if data.get('model', model['model']) != model['model']:
             raise ValueError()
         content = data['choices'][0]['message']['content']
         if not isinstance(content, str):
@@ -86,17 +127,23 @@ def chat_answer(raw, payload):
             raise ValueError()
         return {'choice': answer['choice'], 'sprint': answer.get('sprint') is True, 'usage': counts}
     except (ValueError, TypeError, KeyError, IndexError, AttributeError):
-        raise ForwardError(502, '智谱回复格式或动作无效，本次未执行。') from None
+        raise ForwardError(502, model['name'] + ' 回复格式或动作无效，本次未执行。') from None
 
 
 class FreeModels:
-    def __init__(self, keys=None, verified=False, default='startlux', clock=time.monotonic):
-        if default not in MODELS:
+    def __init__(self, keys=None, verified=False, default='startlux', clock=time.monotonic, extra=None):
+        if default not in ORIGINAL:
             raise ValueError('Unknown default free model')
-        if keys is not None and (verified is not True or set(keys) != set(MODELS)
+        if keys is not None and (verified is not True or set(keys) != set(ORIGINAL)
                                  or any(not valid_key(key) for key in keys.values())):
             raise ValueError('Verify both free services before enabling trials')
+        if extra and (keys is None or set(extra) - set(MODELS) - set(ORIGINAL) or any(
+                not valid_key(v.get('key')) or not str(v.get('endpoint', '')).startswith('https://') for v in extra.values())):
+            raise ValueError('Later free models need the original two and their own verified keys')
         self.keys = dict(keys or {})
+        self.endpoints = {p: MODELS[p]['endpoint'] for p in self.keys}
+        for provider, value in (extra or {}).items():
+            self.keys[provider], self.endpoints[provider] = value['key'], value['endpoint']
         self.default, self.clock = default, clock
         self.lock = threading.Lock()
         self.slots = {p: threading.BoundedSemaphore(1) for p in MODELS}
@@ -109,11 +156,11 @@ class FreeModels:
         if not self.keys:
             return {'enabled': False, 'models': []}
         return {'enabled': True, 'default': self.default, 'per_round_limit': 200,
-                'reason': ('默认使用 StartLux：它原生返回候选动作及选项概率，便于观察决策；你也可以切换智谱进行比较。'
-                           if self.default == 'startlux' else '默认使用智谱 GLM-4.7-Flash：它通过通用对话接口生成动作；你也可以切换 StartLux 比较不同决策方式。'),
+                'reason': ('默认使用 StartLux：它原生返回候选动作及选项概率，便于观察决策；你也可以切换其他免费模型比较。'
+                           if self.default == 'startlux' else '默认使用智谱 GLM-4.7-Flash：它通过通用对话接口生成动作；你也可以切换其他免费模型比较不同决策方式。'),
                 'note': '免费试玩由服务器提供调用额度，无需填写 Key；每局最多 200 次请求。开局前选择，本局固定。研究数据贡献由你单独选择。',
-                'models': [{'provider': p, 'model': m['model'], 'name': m['name'], 'platform': m['platform']}
-                           for p, m in MODELS.items()]}
+                'models': [{'provider': p, 'model': m['model'], 'name': m['name'], 'platform': m['platform'],
+                            'record': m.get('record', p)} for p, m in MODELS.items() if p in self.keys]}
 
     def select(self, game, body):
         provider = body.get('provider')
@@ -132,9 +179,10 @@ class FreeModels:
 
     def send(self, provider, payload):
         model = MODELS[provider]
-        body = zhipu_body(payload) if provider == 'zhipu' else {
-            **payload, 'model': model['model'], 'think_mode': 'never', 'allow_none': False}
-        request = urllib.request.Request(model['endpoint'], data=json.dumps(body, ensure_ascii=False).encode(),
+        body = (zhipu_body(payload) if provider == 'zhipu' else
+                {**payload, 'model': model['model'], 'think_mode': 'never', 'allow_none': False} if provider == 'startlux' else
+                chat_body(payload, model['model'], model['extra']))
+        request = urllib.request.Request(self.endpoints[provider], data=json.dumps(body, ensure_ascii=False).encode(),
             headers={'Authorization': 'Bearer ' + self.keys[provider], 'Content-Type': 'application/json'}, method='POST')
         started=time.monotonic();http_status=None;raw=b''
         def diagnostic(code,**extra):
@@ -162,8 +210,8 @@ class FreeModels:
                         diagnostic('upstream_overloaded' if code==1305 else 'upstream_http_error',provider_error_code=code))
             except (ValueError, TypeError):
                 raise ForwardError(502, '免费模型回复不符合预期，本次未执行。') from None
-            if provider == 'zhipu':
-                return ObservedAnswer(chat_answer(raw, payload),diagnostic('ok'))
+            if provider != 'startlux':
+                return ObservedAnswer(chat_answer(raw, payload, provider),diagnostic('ok'))
             try:
                 return ObservedAnswer(decision_answer(raw, payload),diagnostic('ok'))
             except ForwardError:

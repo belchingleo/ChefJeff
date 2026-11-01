@@ -1,35 +1,53 @@
 <style>
-#free-model-picker{position:fixed;left:12px;top:64px;z-index:40;box-sizing:border-box;width:330px;max-width:calc(100vw - 24px);max-height:calc(100dvh - 88px);overflow:auto;padding:12px;text-align:left;background:#12283f;color:#fdf3e1;border:3px solid #2a5a9e;box-shadow:4px 4px 0 var(--denim,#35648a);font:13px/1.5 var(--pixel,monospace)}
 #free-model-picker[hidden],#free-model-picker [hidden]{display:none!important}
-#free-model-picker p{margin:5px 0}
-#free-model-picker .free-buttons{display:flex;gap:8px;margin:9px 0;flex-wrap:wrap}
-#free-model-picker button{border:2px solid var(--ink,#12283f);border-radius:0;padding:7px 9px;background:var(--paper,#fff8e8);color:var(--ink,#12283f);font:inherit;cursor:pointer}
-#free-model-picker button[aria-pressed=true]{background:#2a5a9e;color:#fff8e8}
-#free-model-picker button:focus-visible{outline:3px solid var(--denim,#35648a);outline-offset:3px}
-#free-model-picker button:disabled{opacity:.55;cursor:default}
-#free-model-picker summary{cursor:pointer}
-#free-model-picker .free-error{color:#9c302b}
-@media(max-width:900px),(max-height:550px){
- #free-model-picker{left:8px;top:auto;bottom:4px;width:calc(100vw - 16px);max-width:none;max-height:calc(100dvh - 64px);padding:4px 8px;font-size:11px}
- #free-model-picker>strong,#free-model-message,#free-model-settings{display:none}
- #free-model-current{margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
- #free-model-picker .free-buttons{max-width:calc(100% - 80px);margin:2px 0 0;gap:6px}
- #free-model-picker button{padding:4px 6px}
- #free-model-details{position:absolute;right:8px;bottom:8px;max-width:74px}
- #free-model-details[open]{position:static;max-width:none;margin-top:6px}
-}
+#free-model-list{display:flex;flex-direction:column;border:3px solid var(--ink);margin:4px 0 12px}
+#free-model-list button{display:flex;flex-direction:column;gap:2px;width:100%;padding:10px 14px;border:0;border-bottom:2px dashed #e3c79a;background:var(--paper);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+#free-model-list button:last-child{border-bottom:0}
+#free-model-list button[aria-pressed=true]{background:var(--honey-tint,#fbe3b8)}
+#free-model-list button:hover:not(:disabled){background:var(--honey-tint,#fbe3b8)}
+#free-model-list button:disabled{opacity:.55;cursor:default}
+#free-model-list .row{display:flex;justify-content:space-between;gap:12px;width:100%}
+#free-model-list .name{font:17px/24px var(--pixel)}
+#free-model-list .detail{font-size:13px;line-height:18px;color:var(--muted,#6e4e38)}
+#free-model-list .status{font-size:13px;white-space:nowrap}
+#free-model-list .open{color:var(--herb,#3c7a2a)}#free-model-list .full{color:#a8520e}#free-model-list .off,#free-model-list .spent{color:var(--muted,#6e4e38)}
+.free-note{font-size:13px;line-height:20px;color:var(--muted,#6e4e38);margin:0 0 10px}
+#free-model-limits ul{margin:0 0 12px;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+/* The same list inside Settings → AI 搭档: one choice per catalog model, two per row. */
+.free-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:6px 0 12px}
+.free-choices button{display:flex;align-items:center;gap:10px;min-height:52px;padding:10px 14px;border:3px solid var(--ink);background:var(--paper);color:var(--ink);font:17px/22px var(--body);text-align:left;cursor:pointer}
+.free-choices button::before{content:"";flex:none;width:14px;height:14px;border:3px solid var(--ink);border-radius:50%;background:var(--paper)}
+.free-choices button[aria-pressed=true]{border:4px solid var(--denim);padding:9px 13px}
+.free-choices button[aria-pressed=true]::before{background:var(--denim);border-color:var(--denim)}
+.free-choices button:hover:not(:disabled){background:var(--honey-tint,#fbe3b8)}
+.free-choices button:disabled{opacity:.55;cursor:default}
+.free-choices .status{margin-left:auto;font-size:13px;white-space:nowrap}
+.free-choices .open{color:var(--herb,#3c7a2a)}.free-choices .full{color:#a8520e}.free-choices .off,.free-choices .spent{color:var(--muted,#6e4e38)}
+.free-limits-box strong{display:block;margin-bottom:4px;font-size:16px;font-weight:400}
+.free-limits-box ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:2px}
+@media (max-width:760px){.free-choices{grid-template-columns:1fr}}
 </style>
-<aside id="free-model-picker" aria-label="免费 AI 搭档" hidden>
- <strong>选择免费 AI 搭档</strong>
- <p id="free-model-current" aria-live="polite"></p>
- <div class="free-buttons" id="free-model-buttons">
-  <button type="button" id="free-model-startlux" aria-pressed="false">StartLux · Bamboo</button>
-  <button type="button" id="free-model-zhipu" aria-pressed="false">智谱 · GLM-4.7-Flash</button>
+<dialog id="free-model-picker" class="panel card-note" aria-labelledby="free-model-title">
+ <div class="dlg-head"><h2 id="free-model-title">免费模型</h2><button class="btn close" id="free-model-close" type="button" aria-label="返回">×</button></div>
+ <div class="dlg-body">
+  <p class="free-note" id="free-model-reason"></p>
+  <div id="free-model-list" aria-label="免费模型"></div>
+  <p class="free-note">列表由服务器提供，新接入的免费模型会直接出现在这里。</p>
+  <p class="free-note" id="free-model-message" role="status" aria-live="polite"></p>
+  <div class="actions"><button class="btn" id="free-model-settings" type="button">改用自定义模型（API Key）</button></div>
  </div>
- <p id="free-model-message" role="status" aria-live="polite"></p>
- <details id="free-model-details"><summary>模型说明</summary>
-  <p id="free-model-default"></p><p id="free-model-reason"></p><p id="free-model-note"></p>
- </details>
- <button id="free-model-settings" type="button">使用自己的模型 / 设置</button>
-</aside>
+</dialog>
+<dialog id="free-model-limits" class="panel card-note" aria-labelledby="free-limits-title">
+ <div class="dlg-head"><h2 id="free-limits-title">免费模型的使用限制</h2><button class="btn close" id="free-limits-close" type="button" aria-label="返回">×</button></div>
+ <div class="dlg-body">
+  <ul>
+   <li>每个免费模型同一时间只能一位玩家使用，国内站和海外站共用这个名额。</li>
+   <li>名额满了不排队：可以稍后再试，或者换另一个免费模型。</li>
+   <li>不想等名额，可以自己去智谱、Bamboo 等平台申请免费的 API Key，填在“自定义模型”里使用。这样不占这里的名额，限额按你在服务商那边的账号算。</li>
+   <li class="free-limits-round">每局最多向模型请求 200 次，没成功的请求也算在内。</li>
+   <li>全站每小时、每天的免费请求总数也有上限。某个模型今天的额度用完后，会显示“今日额度已用完”，第二天恢复。</li>
+   <li>开局时固定本局的模型，结算后才能换。</li>
+  </ul>
+ </div>
+</dialog>
 <script src="/free-model-picker.js"></script>

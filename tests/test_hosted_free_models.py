@@ -14,7 +14,7 @@ from unittest.mock import patch
 import urllib.error
 
 from hosted_server import BrowserRelay, make_server
-from hosted_free_models import FreeModels, MODELS, read_trial_keys
+from hosted_free_models import FreeModels, MODELS, read_extra_keys, read_trial_keys
 from hosted_jev import ForwardError, TEST_PAYLOAD
 
 KEYS = {'zhipu': 'synthetic-zhipu-credential', 'startlux': 'synthetic-bamboo-credential'}
@@ -79,7 +79,7 @@ class ConfigTests(unittest.TestCase):
 
     def test_fixed_upstreams_no_redirect_retry_or_paid_fallback_and_sanitized_errors(self):
         models = FreeModels(KEYS, verified=True)
-        for provider in MODELS:
+        for provider in models.keys:
             error = urllib.error.HTTPError('https://example.invalid', 429, KEYS[provider], {}, io.BytesIO(KEYS[provider].encode()))
             opener = unittest.mock.Mock()
             opener.open.side_effect = error
@@ -88,11 +88,73 @@ class ConfigTests(unittest.TestCase):
                     models.send(provider, deepcopy(TEST_PAYLOAD))
             self.assertEqual(opener.open.call_count, 1)
             request = opener.open.call_args.args[0]
-            self.assertEqual(request.full_url, MODELS[provider]['endpoint'])
+            self.assertEqual(request.full_url, models.endpoints[provider])
             self.assertEqual(json.loads(request.data)['model'], MODELS[provider]['model'])
             self.assertNotIn(KEYS[provider], request.data.decode())
             self.assertNotIn(KEYS[provider], str(result.exception))
             self.assertGreater(models.cooldown[provider], models.clock())
+
+
+
+class Reply:
+    def __init__(self, value):
+        self.raw, self.status = json.dumps(value).encode(), 200
+    def __enter__(self): return self
+    def __exit__(self, *_args): return False
+    def read(self, _n): return self.raw
+
+
+class LaterModelTests(unittest.TestCase):
+    """Gemini and Cloudflare: a separate private key file, the probed request fields, exact model IDs."""
+    def write(self, d, value):
+        path = Path(d)/'extra.json'; path.write_text(json.dumps(value)); path.chmod(0o600); return path
+
+    def test_extra_key_file_enables_only_the_platforms_it_names(self):
+        account = '0123456789abcdef0123456789abcdef'
+        with tempfile.TemporaryDirectory() as d:
+            only_gemini = read_extra_keys(self.write(d, {'format': 'chefjeff-private-extra-keys-v1',
+                                                         'gemini_api_key': 'synthetic-gemini-key'}))
+            self.assertEqual(set(only_gemini), {'gemini'})
+            both = read_extra_keys(self.write(d, {'format': 'chefjeff-private-extra-keys-v1', 'gemini_api_key': 'synthetic-gemini-key',
+                                                  'cloudflare_api_key': 'synthetic-cf-key', 'cloudflare_account_id': account}))
+            self.assertEqual(both['cloudflare-llama']['endpoint'],
+                             f'https://api.cloudflare.com/client/v4/accounts/{account}/ai/v1/chat/completions')
+            for bad in ({'format': 'chefjeff-private-extra-keys-v1', 'cloudflare_api_key': 'synthetic-cf-key'},
+                        {'format': 'chefjeff-private-extra-keys-v1', 'cloudflare_api_key': 'synthetic-cf-key', 'cloudflare_account_id': 'x/../y'},
+                        {'format': 'chefjeff-private-extra-keys-v1', 'gemini_api_key': 'synthetic-gemini-key', 'nvidia_api_key': 'k'*12},
+                        {'format': 'chefjeff-private-api-keys-v1', 'gemini_api_key': 'synthetic-gemini-key'},
+                        {'format': 'chefjeff-private-extra-keys-v1'}):
+                with self.assertRaises(ValueError): read_extra_keys(self.write(d, bad))
+        with self.assertRaises(ValueError):  # later models never run without the verified original pair
+            FreeModels(extra=only_gemini)
+        catalog = FreeModels(KEYS, verified=True, extra=only_gemini).catalog()
+        self.assertEqual([m['provider'] for m in catalog['models']], ['zhipu', 'startlux', 'gemini'])
+        self.assertEqual(catalog['default'], 'startlux')
+
+    def test_requests_use_probed_fields_and_replies_must_name_the_fixed_model(self):
+        extra = {p: {'key': 'synthetic-' + p + '-key', 'endpoint': 'https://example.invalid/' + p}
+                 for p in ('gemini', 'cloudflare-gemma', 'cloudflare-llama')}
+        models = FreeModels(KEYS, verified=True, extra=extra)
+        for provider, field in (('gemini', 'reasoning_effort'), ('cloudflare-gemma', 'chat_template_kwargs'),
+                                ('cloudflare-llama', 'response_format')):
+            opener = unittest.mock.Mock()
+            opener.open.return_value = Reply({'model': MODELS[provider]['model'], 'usage': {'prompt_tokens': 7400, 'completion_tokens': 11},
+                                              'choices': [{'message': {'content': '{"choice":"wait","sprint":false}'}}]})
+            with patch('hosted_free_models.urllib.request.build_opener', return_value=opener):
+                answer = models.send(provider, deepcopy(TEST_PAYLOAD))
+            request = opener.open.call_args.args[0]
+            body = json.loads(request.data)
+            self.assertEqual(request.full_url, 'https://example.invalid/' + provider)
+            self.assertEqual((body['model'], body['max_tokens']), (MODELS[provider]['model'], 128))
+            self.assertEqual(body[field], MODELS[provider]['extra'][field])
+            self.assertEqual(body['response_format'], {'type': 'json_object'})
+            self.assertEqual(request.headers['Authorization'], 'Bearer synthetic-' + provider + '-key')
+            self.assertEqual((answer['choice'], answer['usage']['input_tokens']), ('wait', 7400))
+        opener.open.return_value = Reply({'model': 'gemini-2.5-flash-lite',
+                                          'choices': [{'message': {'content': '{"choice":"wait"}'}}]})
+        with patch('hosted_free_models.urllib.request.build_opener', return_value=opener):
+            with self.assertRaises(ForwardError): models.send('gemini', deepcopy(TEST_PAYLOAD))
+        self.assertIn('gemini', models.blocked)  # another model's reply never counts as this one
 
 
 class FreeHTTPTests(unittest.TestCase):
