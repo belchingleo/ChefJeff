@@ -925,7 +925,16 @@
     "Cloudflare Workers AI（Gemma 4 / Llama 3.1）": "Cloudflare Workers AI (Gemma 4 / Llama 3.1)",
     "免费额度每个账户每天 10,000 Neurons，约 100–140 次请求 · 也可填 @cf/meta/llama-3.1-8b-instruct-fp8 · 合成快照单次实测": "Free tier: 10,000 Neurons a day per account, about 100–140 requests · you can also enter @cf/meta/llama-3.1-8b-instruct-fp8 · probed once with a synthetic snapshot",
     "Gemini 3.5 Flash-Lite": "Gemini 3.5 Flash-Lite",
-    "在线版：Key 默认在页面内存中，刷新即清除；主动记住会将 Key 和所选转发方式以明文保存在浏览器 localStorage。浏览器直连时 Key 只发给模型服务；明确勾选 Jev 或 Cloudflare 转发后，Key（Cloudflare 还有 Account ID）和模型请求经试玩服务器发送给对应服务，仅用于处理请求，不写入服务器配置、日志或对局记录。游戏状态经过我们的服务器，自愿贡献数据另见下方说明。": "Online: your key stays in this page’s memory by default and is cleared on refresh; choosing Remember stores the key and the chosen forwarding in this browser’s localStorage as plain text. With direct browser calls the key goes only to the model service; after you explicitly tick Jev or Cloudflare forwarding, the key (and for Cloudflare the account ID) and model requests pass through the demo server to that service, are used only to handle the request, and are not written to server configuration, logs or round records. Game state passes through our server; voluntary data contributions are described below."
+    "在线版：Key 默认在页面内存中，刷新即清除；主动记住会将 Key 和所选转发方式以明文保存在浏览器 localStorage。浏览器直连时 Key 只发给模型服务；明确勾选 Jev 或 Cloudflare 转发后，Key（Cloudflare 还有 Account ID）和模型请求经试玩服务器发送给对应服务，仅用于处理请求，不写入服务器配置、日志或对局记录。游戏状态经过我们的服务器，自愿贡献数据另见下方说明。": "Online: your key stays in this page’s memory by default and is cleared on refresh; choosing Remember stores the key and the chosen forwarding in this browser’s localStorage as plain text. With direct browser calls the key goes only to the model service; after you explicitly tick Jev or Cloudflare forwarding, the key (and for Cloudflare the account ID) and model requests pass through the demo server to that service, are used only to handle the request, and are not written to server configuration, logs or round records. Game state passes through our server; voluntary data contributions are described below.",
+    "可填 OpenRouter 上任一决策模型的 ID（默认 Microsoft-Decision-1，约 ¥0.3–0.7/局）": "Enter any OpenRouter decision model ID (default Microsoft-Decision-1, about ¥0.3–0.7 a round)",
+    "免费测试额度 · 请求经第三方中转 Bamboo Relay · 已关闭自动思考": "Free test quota · requests go through the third-party Bamboo Relay · automatic thinking off",
+    "约 ¥1–3/局": "about ¥1–3 a round",
+    "约 ¥0.2–0.3/局": "about ¥0.2–0.3 a round",
+    "约 ¥0.7–1.3/局": "about ¥0.7–1.3 a round",
+    "Google AI Studio 免费层级：每分钟 15 次、每天 500 次 · 需能访问 Google": "Google AI Studio free tier: 15 requests a minute, 500 a day · needs access to Google",
+    "免费额度每个账户每天 10,000 Neurons，约 100–140 次请求 · 也可填 @cf/meta/llama-3.1-8b-instruct-fp8": "Free tier: 10,000 Neurons a day per account, about 100–140 requests · you can also enter @cf/meta/llama-3.1-8b-instruct-fp8",
+    "免费，但高峰常返回“访问量过大”": "Free, but often answers “too many requests” at peak times",
+    "请优先选择快思考模型": "Prefer a fast-thinking model"
   },
   "templates": [
     [

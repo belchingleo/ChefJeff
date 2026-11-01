@@ -25,6 +25,8 @@ const CUE_SECONDS=.16;
 const NETWORK_GRACE_SECONDS=6;
 const RESULT_ANNOUNCE=new Set(['order','served','expired','ready','burn','fire','fire_spread','fire_loss']);
 // Keyboard order; the level buttons (one per listed level, from the server) follow the language button.
+// The start card's partner row: heading line and the two tiles, centred between the level plate and the buttons.
+const PARTNER_Y=314,TILES_Y=398,START_Y=562;
 const TAB_ORDER=['language','cover-connection','level-prev','level-picker','level-next','free-limits','tile-free','free-pick','tile-key','main','next-alt','reset','help','partner-change','record','contribute','more','resume','pause','end'];
 type ButtonView = {node:Node;label:Label;callback:()=>void;enabled:boolean;width:number;height:number;tone:string;hover:boolean;selected?:boolean};
 // Labels for things that are not recipe items; item and dish names come from the server's catalog.
@@ -233,12 +235,12 @@ export class KitchenClient extends Component {
         this.button('level-prev','◀',252,208,44,64,()=>this.stepLevel(-1),this.cover);
         this.button('level-next','▶',1028,208,44,64,()=>this.stepLevel(1),this.cover);
         // Partner row: two entries; the free list and its limits come from the server (any number of models).
-        this.pixel(this.text('partner-title','选一位 AI 搭档',218,282,240,28,20,this.cover),20);
-        const hint=this.text('partner-hint','免费模型不用 API Key，但名额有限',560,282,330,24,13,this.cover);
+        this.pixel(this.text('partner-title','选一位 AI 搭档',218,PARTNER_Y,240,28,20,this.cover),20);
+        const hint=this.text('partner-hint','免费模型不用 API Key，但名额有限',694,PARTNER_Y,330,24,13,this.cover);
         hint.color=color(COLORS.muted);hint.horizontalAlign=Label.HorizontalAlign.RIGHT;
-        this.pixel(this.button('free-limits','免费使用限制',982,282,148,30,()=>this.coverEvent('kitchen-open-free-limits'),this.cover).getComponentInChildren(Label)!,14);
+        this.button('free-limits','',1047,PARTNER_Y,28,28,()=>this.coverEvent('kitchen-open-free-limits'),this.cover,'info');
         for(const [id,x,badge,badgeFill] of [['tile-free',424,'免费',COLORS.herb],['tile-key',856,'API Key',COLORS.muted]] as [string,number,string,string][]){
-            const tile=this.button(id,'',x,360,412,120,()=>id==='tile-free'?this.useFree():this.openConnection('custom'),this.cover,'tile');
+            const tile=this.button(id,'',x,TILES_Y,412,120,()=>id==='tile-free'?this.useFree():this.openConnection('custom'),this.cover,'tile');
             const tag=this.child(tile,'badge',this.textWidth(badge,14)+16,24,-206+12+(this.textWidth(badge,14)+16)/2,40);
             this.paintBox(tag,this.textWidth(badge,14)+16,24,badgeFill);
             const tagText=this.child(tag,'text',this.textWidth(badge,14)+16,22).addComponent(Label);this.writeLabel(tagText,badge);this.pixel(tagText,14);tagText.color=color(COLORS.paper);
@@ -249,7 +251,7 @@ export class KitchenClient extends Component {
                 if(px)this.pixel(l,size);this.labels[id+'-'+part]=l;
             }
         }
-        this.button('free-pick','',424,396,380,38,()=>this.toggleFreeMenu(),this.cover);
+        this.button('free-pick','',424,TILES_Y+36,380,38,()=>this.toggleFreeMenu(),this.cover);
         this.freeShade=this.make('free-shade',640,360,1280,720,this.cover);this.freeShade.active=false;
         this.freeShade.on(Node.EventType.TOUCH_END,()=>this.closeFreeMenu());
         this.freeMenu=this.make('free-menu',424,440,380,10,this.cover);this.freeMenu.addComponent(Graphics);this.freeMenu.active=false;
@@ -832,6 +834,14 @@ export class KitchenClient extends Component {
     }
     private styleButton(id:string){
         const b=this.buttons[id];if(!b)return;
+        if(b.tone==='info'){
+            const g=b.node.getComponent(Graphics)||b.node.addComponent(Graphics),r=b.width/2-2,c=b.hover&&b.enabled?COLORS.ink:COLORS.muted;g.clear();
+            if(b.hover&&b.enabled){g.fillColor=color(COLORS.honeyTint);g.circle(0,0,r);g.fill();}
+            g.strokeColor=color(c);g.lineWidth=2;g.circle(0,0,r);g.stroke();
+            this.rect(g,-1.5,4,3,3,c);this.rect(g,-1.5,-7,3,9,c);
+            if(this.focusId===id){g.strokeColor=color(COLORS.ink);g.lineWidth=2;g.circle(0,0,r+5);g.stroke();}
+            b.label.string='';return;
+        }
         if(b.tone==='tile'||b.tone==='chip'){
             // Shop-card pieces: a partner tile (selected = denim frame) and a borderless footer chip.
             const w=b.width,h=b.height,g=b.node.getComponent(Graphics)||b.node.addComponent(Graphics);g.clear();
@@ -1993,7 +2003,8 @@ export class KitchenClient extends Component {
         if(sig===this.freeSig)return;this.freeSig=sig;
         menu.destroyAllChildren();this.freeRows=[];
         const w=380,rowH=46,h=rows.length*rowH+6,g=menu.getComponent(Graphics)!;
-        menu.getComponent(UITransform)!.setContentSize(w,h);this.place(menu,424,419+h/2);
+        const below=TILES_Y+36+23;menu.getComponent(UITransform)!.setContentSize(w,h);
+        this.place(menu,424,below+h<=712?below+h/2:TILES_Y+36-23-h/2);
         g.clear();this.rect(g,-w/2,-h/2-5,w,h,COLORS.ink);this.rect(g,-w/2,-h/2,w,h,COLORS.paper);
         g.strokeColor=color(COLORS.ink);g.lineWidth=3;g.rect(-w/2+1.5,-h/2+1.5,w-3,h-3);g.stroke();
         rows.forEach((r:any,i:number)=>{
@@ -2147,11 +2158,11 @@ export class KitchenClient extends Component {
             this.writeLabel(gear.label,'');gear.label.string='';this.labelSources.set(gear.label,'设置');
             gear.node.getChildByName('icon')?.setPosition(0,0);
             if(ready){
-                this.place(human,330,548);this.place(jeff,950,548);
-                btn('main',560,548,220,56,'primary');btn('help',780,548,170,56);hide('reset');
+                this.place(human,330,START_Y);this.place(jeff,950,START_Y);
+                btn('main',560,START_Y,220,56,'primary');btn('help',780,START_Y,170,56);hide('reset');
                 if(!partner){this.placeText('coverTitle',316,300,648,40);this.placeText('coverText',330,350,620,56);}
                 const name=this.partnerName(s);
-                this.set('welcome-tip','Enter 开始 · ← → 换关卡'+(name?` · 搭档：${name}`:''));this.placeText('welcome-tip',218,628,844,19);
+                this.set('welcome-tip','Enter 开始 · ← → 换关卡'+(name?` · 搭档：${name}`:''));this.placeText('welcome-tip',218,636,844,19);
             }else{
                 this.place(human,330,548);this.place(jeff,950,548);
                 this.placeText('coverTitle',316,plate?292:300,648,40);this.placeText('coverText',330,plate?346:356,620,56);
@@ -2169,7 +2180,7 @@ export class KitchenClient extends Component {
     private syncAccess(){
         if(!this.controlAccess)return;
         const icons:Record<string,string>={pause:'暂停',resume:'继续经营',end:'结束本局','cover-connection':'设置','level-prev':'上一关','level-next':'下一关',
-            'tile-free':'免费模型','tile-key':'自定义模型（API Key）','level-picker':'全部关卡'};
+            'tile-free':'免费模型','tile-key':'自定义模型（API Key）','level-picker':'全部关卡','free-limits':'免费使用限制'};
         for(const id of this.tabOrder()){
             const b=this.buttons[id],proxy=this.controlAccess.querySelector(`[data-control="${id}"]`) as HTMLButtonElement|null;if(!proxy)continue;
             const text=id==='language'?b.label.string:icons[id]||this.labelSources.get(b.label)||id;

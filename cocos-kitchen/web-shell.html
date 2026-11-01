@@ -147,6 +147,23 @@ function kitchenTabs(dialog){
 .settings-row{display:flex;align-items:center;gap:16px;margin:14px 0}
 .settings-row>span{font-size:16px;color:var(--ink)}
 #kitchen-api-dialog .settings-row .btn{min-height:44px;padding:0 18px;font-size:16px;line-height:16px;border-width:3px;box-shadow:0 5px 0 var(--ink)}
+/* 模型服务: the same grouped, pixel-style dropdown as the free-model list on the start card. */
+.service-pick{position:relative}
+#kitchen-api-dialog .service-field{display:flex;align-items:center;gap:12px;box-sizing:border-box;width:100%;height:48px;padding:0 14px;border:3px solid var(--ink);background:#fff;color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+#kitchen-api-dialog .service-field:disabled{background:var(--surface);color:var(--muted);cursor:default}
+#kitchen-api-dialog .service-field:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.service-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:18px/22px var(--pixel)}
+.service-kind{flex:none;padding:2px 6px;border:2px solid var(--muted);color:var(--muted);font-size:13px;line-height:16px}
+.service-caret{margin-left:auto}
+.service-list{position:absolute;left:0;right:0;top:52px;z-index:5;max-height:300px;overflow:auto;background:var(--paper);border:3px solid var(--ink);box-shadow:0 5px 0 var(--ink)}
+.service-list .group{padding:8px 14px 4px;background:var(--surface);color:var(--muted);font-size:13px}
+.service-list [role=option]{display:block;padding:8px 14px;border-bottom:2px dashed #e3c79a;cursor:pointer}
+.service-list [role=option]:last-child{border-bottom:0}
+.service-list .name{display:block;font-size:16px;line-height:22px;color:var(--ink)}
+.service-list .hint{display:block;font-size:13px;line-height:18px;color:var(--muted)}
+.service-list [role=option].active,.service-list [role=option][aria-selected=true]{background:var(--honey-tint)}
+.service-list [role=option][aria-selected=true]{box-shadow:inset 4px 0 0 var(--denim)}
+.service-list [role=option][aria-disabled=true]{opacity:.55;cursor:default}
 #kitchen-api-dialog [hidden]{display:none!important}
 #kitchen-api-dialog [role=tabpanel]{border:0;margin:0;padding:0}
 #kitchen-api-dialog .audio-grid{display:grid;grid-template-columns:max-content 1fr 3em;align-items:center;gap:14px 16px;margin:14px 0}
@@ -196,8 +213,12 @@ function kitchenTabs(dialog){
   <p id="api-editing-status" role="status" aria-live="polite"></p>
   <div class="connection-columns">
   <form id="api-form">
-   <label for="api-provider">模型服务</label>
-   <select id="api-provider"></select>
+   <label id="api-provider-label" for="api-provider-button">模型服务</label>
+   <select id="api-provider" hidden tabindex="-1" aria-hidden="true"></select>
+   <div class="service-pick">
+    <button id="api-provider-button" class="service-field" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="api-provider-list"><span class="service-name" id="api-provider-name"></span><span class="service-kind" id="api-provider-kind"></span><span class="service-caret" aria-hidden="true">▾</span></button>
+    <div id="api-provider-list" class="service-list" role="listbox" aria-labelledby="api-provider-label" hidden></div>
+   </div>
    <p><small id="api-provider-note"></small></p>
    <div id="api-account-row" hidden><label for="api-account">Account ID</label><input id="api-account" placeholder="32 位 Account ID" autocomplete="off" spellcheck="false"></div>
    <div id="api-url-row" hidden><label for="api-url">接口地址（Base URL）</label><input id="api-url" type="url" placeholder="https://你的服务地址/v1" autocomplete="off"></div>
@@ -282,7 +303,52 @@ function kitchenTabs(dialog){
   }
   el('api-provider').append(group);
  }
+ // 模型服务 as a grouped list drawn like the start card's free-model dropdown. The hidden select keeps the value.
+ const pick=el('api-provider'),field=el('api-provider-button'),list=el('api-provider-list');let active=-1;
+ const options=()=>[...list.querySelectorAll('[role=option]')];
+ const showProvider=()=>{const p=presets[pick.value];el('api-provider-name').textContent=p?.label||'';
+  el('api-provider-kind').textContent=catalog.groups.find(g=>g.id===p?.group)?.label||'';};
+ function buildList(){
+  list.replaceChildren();
+  for(const g of catalog.groups){
+   const items=[...pick.options].filter(o=>presets[o.value]?.group===g.id);if(!items.length)continue;
+   const head=document.createElement('div');head.className='group';head.setAttribute('role','presentation');head.textContent=g.label;list.append(head);
+   for(const o of items){
+    const p=presets[o.value],item=document.createElement('div');item.id='api-provider-'+o.value;item.dataset.value=o.value;
+    item.setAttribute('role','option');item.setAttribute('aria-selected',String(o.value===pick.value));
+    if(o.disabled)item.setAttribute('aria-disabled','true');
+    const name=document.createElement('span');name.className='name';name.textContent=p.label;item.append(name);
+    if(p.note){const hint=document.createElement('span');hint.className='hint';hint.textContent=p.note;item.append(hint);}
+    item.onclick=()=>{if(!o.disabled)choose(o.value)};item.onmouseenter=()=>setActive(options().indexOf(item));
+    list.append(item);
+   }
+  }
+ }
+ function setActive(i){
+  const all=options();active=i;all.forEach((x,n)=>x.classList.toggle('active',n===i));
+  if(all[i]){field.setAttribute('aria-activedescendant',all[i].id);all[i].scrollIntoView?.({block:'nearest'});}
+ }
+ function openList(){if(field.disabled)return;buildList();list.hidden=false;field.setAttribute('aria-expanded','true');setActive(options().findIndex(x=>x.dataset.value===pick.value));}
+ function closeList(){list.hidden=true;field.setAttribute('aria-expanded','false');field.removeAttribute('aria-activedescendant');active=-1;}
+ function choose(value){closeList();if(pick.value!==value){pick.value=value;pick.dispatchEvent(new Event('change'));}field.focus();}
+ field.onclick=()=>list.hidden?openList():closeList();
+ field.onkeydown=e=>{
+  const all=options();
+  if(list.hidden){if(['ArrowDown','ArrowUp','Enter',' '].includes(e.key)){e.preventDefault();openList();}return;}
+  if(e.key==='Escape'){e.preventDefault();e.stopPropagation();closeList();return;}
+  if(e.key==='Tab'){closeList();return;}
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+   e.preventDefault();const d=e.key==='ArrowDown'?1:-1;let i=active;
+   for(let n=0;n<all.length;n++){i=(i+d+all.length)%all.length;if(all[i].getAttribute('aria-disabled')!=='true')break;}
+   setActive(i);return;
+  }
+  if(e.key==='Enter'||e.key===' '){e.preventDefault();const x=all[active];if(x&&x.getAttribute('aria-disabled')!=='true')choose(x.dataset.value);}
+ };
+ // Esc closes the list before the dialog; a press anywhere else in the card closes it too.
+ dialog.addEventListener('cancel',e=>{if(!list.hidden){e.preventDefault();closeList();field.focus();}});
+ dialog.addEventListener('pointerdown',e=>{if(!list.hidden&&!e.target.closest?.('.service-pick'))closeList();},true);
  const fields=()=>{
+  showProvider();
   const p=el('api-provider').value,preset=presets[p]||{};
   el('api-url-row').hidden=!preset.custom;el('api-model-row').hidden=!preset.model_editable;
   el('api-url').required=!!preset.custom;el('api-model').required=!!preset.model_editable;
@@ -303,7 +369,8 @@ function kitchenTabs(dialog){
   el('api-connect').textContent=own?'更换并测试':'测试并连接';
   el('api-connect').disabled=!allowed;el('api-clear').disabled=!allowed||!own;
   // Filling a draft does not change the active model or make a paid request.
-  for(const id of ['api-provider','api-account','api-url','api-model','api-key','api-remember','api-jev-relay','api-cf-relay'])el(id).disabled=busy;
+  for(const id of ['api-provider','api-provider-button','api-account','api-url','api-model','api-key','api-remember','api-jev-relay','api-cf-relay'])el(id).disabled=busy;
+  if(busy)closeList();
   el('api-transport-status').hidden=!window.chefjeffJevRelayAvailable||!c?.configured;
   el('api-transport-status').textContent=c?.free_model?'当前连接：服务器提供的免费模型':c?.jev_relay?'当前连接：已同意服务器转发 Jev':c?.relay?'当前连接：已同意服务器转发 Cloudflare':'当前连接：浏览器直连模型';
   el('api-editing-status').textContent=!c?(window.chefjeffHostedStatus?.()||'等待厨房连接。可以先填写，连接成功后再测试。'):
@@ -336,7 +403,7 @@ function kitchenTabs(dialog){
  el('api-close').onclick=()=>{el('api-key').value='';dialog.close()};
  const showKey=on=>{el('api-key').type=on?'text':'password';el('api-key-show').textContent=on?'隐藏':'显示';el('api-key-show').setAttribute('aria-pressed',String(on))};
  el('api-key-show').onclick=()=>showKey(el('api-key').type==='password');
- dialog.addEventListener('close',()=>{el('api-key').value='';showKey(false)});
+ dialog.addEventListener('close',()=>{el('api-key').value='';showKey(false);closeList()});
  el('settings-help').onclick=()=>{dialog.close();window.dispatchEvent(new Event('kitchen-open-help'))};
  async function send(extra){
   if(!state?.connection?.editable||busy)return;busy=true;status();
