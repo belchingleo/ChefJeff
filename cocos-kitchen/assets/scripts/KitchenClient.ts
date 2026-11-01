@@ -136,6 +136,9 @@ export class KitchenClient extends Component {
     private tickets:Node[]=[];
     private orderArt:string[]=[];
     private focusId="";
+    // The free-model dropdown: rows under the field and a clear shade that closes it on an outside click.
+    private freeMenu:Node|null=null;private freeShade:Node|null=null;
+    private freeRows:{provider:string,usable:boolean,paint:()=>void}[]=[];private freeAt=-1;private freeSig='';
     private meters:Record<string,Node>={};
     private overlayPhase="";
     private countdown=0;
@@ -246,7 +249,10 @@ export class KitchenClient extends Component {
                 if(px)this.pixel(l,size);this.labels[id+'-'+part]=l;
             }
         }
-        this.button('free-pick','',424,396,380,38,()=>this.coverEvent('kitchen-open-free-models'),this.cover);
+        this.button('free-pick','',424,396,380,38,()=>this.toggleFreeMenu(),this.cover);
+        this.freeShade=this.make('free-shade',640,360,1280,720,this.cover);this.freeShade.active=false;
+        this.freeShade.on(Node.EventType.TOUCH_END,()=>this.closeFreeMenu());
+        this.freeMenu=this.make('free-menu',424,440,380,10,this.cover);this.freeMenu.addComponent(Graphics);this.freeMenu.active=false;
         this.buttons['free-pick'].label.horizontalAlign=Label.HorizontalAlign.LEFT;
         this.pixel(this.buttons['free-pick'].label,16);
         this.pixel(this.text('coverTitle','ChefJeff',316,268,648,40,26,this.cover),26);
@@ -504,6 +510,13 @@ export class KitchenClient extends Component {
         if(!sys.isNative&&e.isTrusted)window.dispatchEvent(new CustomEvent('kitchen-manual-input',{detail:{source:'keyboard'}}));
         // The communication dock keeps native Tab/Enter/Space; Esc hands the keyboard back.
         const dock=!sys.isNative?(document.activeElement as HTMLElement)?.closest('#kitchen-communication') as HTMLElement|null:null;
+        if(this.freeMenu?.active&&!e.isComposing){
+            e.preventDefault();
+            if(e.key==='Escape'||e.key==='Tab')this.closeFreeMenu();
+            else if(e.key==='ArrowDown'||e.key==='ArrowUp')this.moveFreeMenu(e.key==='ArrowDown'?1:-1);
+            else if((e.key==='Enter'||e.code==='Space')&&!e.repeat){const r=this.freeRows[this.freeAt];if(r?.usable)this.pickFree(r.provider);}
+            return;
+        }
         if(e.key==='Escape'){
             if(dock){(document.activeElement as HTMLElement).blur();return;}
             if(e.repeat||(!sys.isNative&&document.querySelector('dialog[open]')))return;
@@ -1949,6 +1962,58 @@ export class KitchenClient extends Component {
     // Keeps the screen-reader proxies in step with the visible canvas buttons.
     private tr(text:string){return !sys.isNative?(window as any).kitchenI18n?.t(text)??text:text;}
     /** Free-model status in the prototype's three words; only what the server reports, never "free to use" by default. */
+    // Opening waits a frame: the click that opens it must not also reach the new shade and close it.
+    private toggleFreeMenu(){if(this.freeMenu?.active)this.closeFreeMenu();else this.scheduleOnce(()=>this.openFreeMenu(),0);}
+    private openFreeMenu(){
+        const c=this.state?.connection,f=c?.free_models;if(!this.freeMenu||!this.freeShade||!f?.enabled||c?.editable===false)return;
+        this.clearInput();this.freeShade.active=this.freeMenu.active=true;
+        // Above everything else on the card, the shade just under the rows.
+        this.freeShade.setSiblingIndex(this.cover.children.length-1);this.freeMenu.setSiblingIndex(this.cover.children.length-1);
+        this.freeSig='';this.freeAt=(f.models||[]).findIndex((m:any)=>m.provider===(c.free_model?c.provider:f.default));this.drawFreeMenu();
+    }
+    private closeFreeMenu(){if(!this.freeMenu?.active)return;this.freeMenu.active=false;this.freeShade!.active=false;this.freeAt=-1;}
+    private pickFree(provider:string){
+        this.audio.play('ui_click');this.closeFreeMenu();
+        const c=this.state?.connection;if(c?.free_model&&c.provider===provider)return;
+        this.coverEvent('kitchen-select-free',{provider});
+    }
+    private moveFreeMenu(d:number){
+        const rows=this.freeRows;if(!rows.some(r=>r.usable))return;
+        let i=this.freeAt;do{i=(i+d+rows.length)%rows.length;}while(!rows[i].usable);
+        this.freeAt=i;rows.forEach(r=>r.paint());
+    }
+    /** One row per model the server lists: name and status, then platform and the fixed model ID. */
+    private drawFreeMenu(){
+        const menu=this.freeMenu,s=this.state,c=s?.connection,f=c?.free_models;if(!menu?.active)return;
+        if(!f?.enabled||s?.phase!=='ready'||c?.editable===false||!this.cover.active){this.closeFreeMenu();return;}
+        const current=c.free_model?c.provider:'',models=f.models||[];
+        const rows=models.map((m:any)=>{const st=this.freeStatus(f,m.provider);
+            return {m,st,usable:!!f.global_capacity?.[m.provider]?.available||f.global_capacity?.[m.provider]?.reason==='seat_busy'};});
+        const sig=JSON.stringify([rows.map((r:any)=>[r.m.provider,r.m.name,r.st.text,r.usable]),current]);
+        if(sig===this.freeSig)return;this.freeSig=sig;
+        menu.destroyAllChildren();this.freeRows=[];
+        const w=380,rowH=46,h=rows.length*rowH+6,g=menu.getComponent(Graphics)!;
+        menu.getComponent(UITransform)!.setContentSize(w,h);this.place(menu,424,419+h/2);
+        g.clear();this.rect(g,-w/2,-h/2-5,w,h,COLORS.ink);this.rect(g,-w/2,-h/2,w,h,COLORS.paper);
+        g.strokeColor=color(COLORS.ink);g.lineWidth=3;g.rect(-w/2+1.5,-h/2+1.5,w-3,h-3);g.stroke();
+        rows.forEach((r:any,i:number)=>{
+            const rw=w-6,row=this.child(menu,'row-'+r.m.provider,rw,rowH,0,h/2-3-rowH*i-rowH/2),rg=row.addComponent(Graphics);
+            const text=(name:string,value:string,size:number,x:number,y:number,tw:number,tone:string,align=Label.HorizontalAlign.LEFT)=>{
+                const l=this.child(row,name,tw,size+8,x,y).addComponent(Label);l.fontSize=size;l.lineHeight=size+4;l.fontFamily='sans-serif';
+                l.horizontalAlign=align;l.verticalAlign=Label.VerticalAlign.CENTER;l.overflow=Label.Overflow.SHRINK;l.color=color(tone);this.writeLabel(l,value);return l;};
+            const ink=r.usable?COLORS.ink:COLORS.muted;
+            this.pixel(text('name',r.m.name,16,-rw/2+14+110,8,220,ink),16);
+            text('status',r.st.text,13,rw/2-14-80,8,160,r.st.tone,Label.HorizontalAlign.RIGHT);
+            text('detail',[r.m.platform,r.m.model].filter(Boolean).join(' · '),12,-rw/2+14+170,-11,340,COLORS.muted);
+            const paint=()=>{rg.clear();const lit=r.usable&&(i===this.freeAt||r.m.provider===current);
+                this.rect(rg,-rw/2,-rowH/2,rw,rowH,lit?COLORS.honeyTint:COLORS.paper);
+                if(i<rows.length-1)for(let x=-rw/2+8;x<rw/2-8;x+=10)this.rect(rg,x,-rowH/2,6,2,'#e3c79a');
+                if(r.m.provider===current)this.rect(rg,-rw/2,-rowH/2,4,rowH,COLORS.human);};
+            paint();this.freeRows.push({provider:r.m.provider,usable:r.usable,paint});
+            row.on(Node.EventType.MOUSE_ENTER,()=>{if(r.usable){this.freeAt=i;this.freeRows.forEach(x=>x.paint());}});
+            row.on(Node.EventType.TOUCH_END,()=>{if(r.usable)this.pickFree(r.m.provider);else this.audio.play('ui_blocked');});
+        });
+    }
     private freeStatus(f:any,provider:string):{text:string;tone:string}{
         const cap=f?.enabled&&f.gateway_available!==false?f.global_capacity?.[provider]:null;
         if(cap?.available)return {text:'● 有空位',tone:COLORS.herb};
@@ -2097,6 +2162,7 @@ export class KitchenClient extends Component {
         }
         on(label('coverTitle').node,!(ready&&partner));on(label('coverText').node,!(ready&&partner));
         on(label('welcome-tip').node,true);hide('more');
+        this.drawFreeMenu();
         this.buttons.language.node.active=!sys.isNative;
         this.enable('level-picker',!this.pending);
     }
