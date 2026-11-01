@@ -25,7 +25,7 @@ const CUE_SECONDS=.16;
 const NETWORK_GRACE_SECONDS=6;
 const RESULT_ANNOUNCE=new Set(['order','served','expired','ready','burn','fire','fire_spread','fire_loss']);
 // Keyboard order; the level buttons (one per listed level, from the server) follow the language button.
-const TAB_ORDER=['language','more','level-picker','main','reset','cover-connection','help','record','contribute','resume','pause','end'];
+const TAB_ORDER=['language','cover-connection','level-prev','level-picker','level-next','free-limits','tile-free','free-pick','tile-key','main','next-alt','reset','help','partner-change','record','contribute','more','resume','pause','end'];
 type ButtonView = {node:Node;label:Label;callback:()=>void;enabled:boolean;width:number;height:number;tone:string;hover:boolean;selected?:boolean};
 // Labels for things that are not recipe items; item and dish names come from the server's catalog.
 const STAGES: Record<string,string> = {extinguisher:'灭火器',clean_plate:'干净餐盘',dirty_plate:'脏餐盘'};
@@ -210,39 +210,81 @@ export class KitchenClient extends Component {
         this.cover=this.make('cover',640,360,1280,720);
         this.cover.on(Node.EventType.TOUCH_END,(e:any)=>{e.propagationStopped=true;});
         const shade=this.cover.addComponent(Graphics);shade.fillColor=new Color(43,26,18,170);shade.rect(-640,-360,1280,720);shade.fill();
-        // A cafe awning frames the start/pause board; the kitchen stays visible behind it.
-        this.box(this.cover,'welcome-shadow',646,367,736,464,COLORS.ink);
-        this.box(this.cover,'welcome-board',640,358,736,464,COLORS.paper);
-        for(let i=0;i<16;i++)this.box(this.cover,'awning',295+i*46,145,46,38,i%2?COLORS.paper:COLORS.human);
-        this.text('welcome-kicker','和AI一起经营餐馆',340,193,600,25,13,this.cover).horizontalAlign=Label.HorizontalAlign.CENTER;
-        this.pixel(this.text('coverTitle','ChefJeff',316,244,648,56,48,this.cover),48);
+        // One shop card frames the start, pause and result screens (approved prototype, 2026-11).
+        // Every phase keeps the same frame; each one only swaps what sits inside it.
+        this.box(this.cover,'welcome-shadow',646,377,900,580,COLORS.ink);
+        this.box(this.cover,'welcome-board',640,370,900,580,COLORS.paper);
+        for(let i=0;i<20;i++)this.box(this.cover,'awning',212.5+i*45,98,45,34,i%2?COLORS.paper:COLORS.human);
+        this.pixel(this.text('cover-brand','ChefJeff',218,140,150,34,26,this.cover),26);
+        this.text('welcome-kicker','和AI一起经营餐馆',372,142,240,24,13,this.cover).color=color(COLORS.muted);
+        // Level plate: which level, its dish and target; arrows and 全部关卡 change it before a round.
+        this.box(this.cover,'level-plate',640,208,844,84,COLORS.bg);
+        for(const id of ['level-dish','level-dish-2'])this.make(id,0,0,64,64,this.cover).addComponent(Graphics);
+        this.pixel(this.text('level-title','',0,196,200,40,34,this.cover),34);
+        this.pixel(this.text('level-name','',0,198,240,32,22,this.cover),22);
+        this.text('level-target','',0,230,320,22,14,this.cover).color=color(COLORS.muted);
+        this.box(this.cover,'level-tag',0,0,120,34,COLORS.hot);
+        this.pixel(this.text('level-tag-text','',0,0,120,30,17,this.cover),17).horizontalAlign=Label.HorizontalAlign.CENTER;
+        this.button('level-prev','◀',252,208,44,64,()=>this.stepLevel(-1),this.cover);
+        this.button('level-next','▶',1028,208,44,64,()=>this.stepLevel(1),this.cover);
+        // Partner row: two entries; the free list and its limits come from the server (any number of models).
+        this.pixel(this.text('partner-title','选一位 AI 搭档',218,282,240,28,20,this.cover),20);
+        const hint=this.text('partner-hint','免费模型不用 API Key，但名额有限',560,282,330,24,13,this.cover);
+        hint.color=color(COLORS.muted);hint.horizontalAlign=Label.HorizontalAlign.RIGHT;
+        this.pixel(this.button('free-limits','免费使用限制',982,282,148,30,()=>this.coverEvent('kitchen-open-free-limits'),this.cover).getComponentInChildren(Label)!,14);
+        for(const [id,x,badge,badgeFill] of [['tile-free',424,'免费',COLORS.herb],['tile-key',856,'API Key',COLORS.muted]] as [string,number,string,string][]){
+            const tile=this.button(id,'',x,360,412,120,()=>id==='tile-free'?this.useFree():this.openConnection(),this.cover,'tile');
+            const tag=this.child(tile,'badge',this.textWidth(badge,14)+16,24,-206+12+(this.textWidth(badge,14)+16)/2,40);
+            this.paintBox(tag,this.textWidth(badge,14)+16,24,badgeFill);
+            const tagText=this.child(tag,'text',this.textWidth(badge,14)+16,22).addComponent(Label);this.writeLabel(tagText,badge);this.pixel(tagText,14);tagText.color=color(COLORS.paper);
+            for(const [part,y,size,px] of [['status',40,13,false],['title',8,20,true],['desc',-36,14,false]] as [string,number,number,boolean][]){
+                const l=this.child(tile,part,380,part==='desc'?38:26,0,y).addComponent(Label);
+                l.fontSize=size;l.lineHeight=size+6;l.color=color(part==='title'?COLORS.ink:COLORS.muted);l.fontFamily='sans-serif';
+                l.horizontalAlign=part==='status'?Label.HorizontalAlign.RIGHT:Label.HorizontalAlign.LEFT;l.verticalAlign=Label.VerticalAlign.CENTER;l.overflow=Label.Overflow.SHRINK;
+                if(px)this.pixel(l,size);this.labels[id+'-'+part]=l;
+            }
+        }
+        this.button('free-pick','',424,396,380,38,()=>this.coverEvent('kitchen-open-free-models'),this.cover);
+        this.buttons['free-pick'].label.horizontalAlign=Label.HorizontalAlign.LEFT;
+        this.pixel(this.buttons['free-pick'].label,16);
+        this.pixel(this.text('coverTitle','ChefJeff',316,268,648,40,26,this.cover),26);
         this.labels.coverTitle.horizontalAlign=Label.HorizontalAlign.CENTER;
-        this.chef(this.cover,'welcome-human',550,332,'human',1.25);
-        this.chef(this.cover,'welcome-jeff',730,332,'jeff',1.25);
+        this.pixel(this.text('result-money','',380,316,520,52,44,this.cover),44).horizontalAlign=Label.HorizontalAlign.CENTER;
+        this.chef(this.cover,'welcome-human',330,548,'human',1.25);
+        this.chef(this.cover,'welcome-jeff',950,548,'jeff',1.25);
         this.icon(this.cover,'welcome-food',640,332,'vessel',1.05);
-        this.text('coverText','正在连接厨房…',330,404,620,78,19,this.cover).horizontalAlign=Label.HorizontalAlign.CENTER;
-        this.button('main','开始经营',379,520,158,48,()=>{
+        this.text('coverText','正在连接厨房…',330,362,620,56,16,this.cover).horizontalAlign=Label.HorizontalAlign.CENTER;
+        const line=this.text('partner-line','',330,404,470,24,14,this.cover);line.color=color(COLORS.muted);line.horizontalAlign=Label.HorizontalAlign.RIGHT;
+        this.pixel(this.button('partner-change','换一位搭档',876,404,120,30,()=>this.coverEvent('kitchen-open-free-models'),this.cover).getComponentInChildren(Label)!,14);
+        this.button('main','开始经营',560,548,220,56,()=>{
             if(!this.connected){this.poll();return;}
             const phase=this.state?.phase;
-            if(phase==='ready'&&this.state?.connection&&!this.state.connection.configured){this.set('coverText','请先从下方「设置」连接自己的 API，再开始经营。');return;}
-            if(phase==='ended'){this.startNext();return;}
+            if(phase==='ready'&&this.state?.connection&&!this.state.connection.configured){this.set('coverText','请先选一位 AI 搭档，再开始经营。');return;}
+            if(phase==='ended'){this.endedAction(this.resultActions(this.state!).main);return;}
             // The online version plays at the real clock (1x); the local default stays at 0.75.
             this.post(phase==='ready'?'/api/start':phase==='paused'?'/api/resume':'/api/reset',phase==='ready'?{speed:this.state?.hosted?1:.75}:{});
         },this.cover,'primary');
-        this.button('reset','重新开局',553,520,158,48,()=>this.confirm('restart'),this.cover);
+        // The result card's second big button: 下一关 after a loss, 再来一次 after a win.
+        this.button('next-alt','',790,470,270,64,()=>{if(this.state?.phase==='ended')this.endedAction(this.resultActions(this.state).alt);},this.cover);
+        this.button('reset','重新开局',660,548,170,56,()=>this.confirm('restart'),this.cover);
         this.buttons.reset.node.active=false;
-        this.button('cover-connection','设置',727,520,158,48,()=>this.openConnection(),this.cover);
-        this.button('help','操作说明',901,520,158,48,()=>this.openHelp(),this.cover);
-        // Language sits on the board where people look first, not only inside Settings.
-        this.pixel(this.button('language','English',944,196,88,30,()=>{const i18n=(window as any).kitchenI18n;i18n?.setLanguage(i18n.language==='en'?'zh':'en');},this.cover).getComponentInChildren(Label)!,12);
+        this.button('cover-connection','设置',1046,140,46,34,()=>this.openConnection(),this.cover);
+        this.glyph(this.buttons['cover-connection'].node,'icon','gear',0,0);
+        this.button('help','操作说明',780,548,170,56,()=>this.openHelp(),this.cover);
+        // Language sits on the board where people look first, not only inside Settings. Always "English" in Chinese.
+        this.pixel(this.button('language','English',976,140,104,34,()=>{const i18n=(window as any).kitchenI18n;i18n?.setLanguage(i18n.language==='en'?'zh':'en');},this.cover).getComponentInChildren(Label)!,14);
         if(sys.isNative)this.buttons.language.node.active=false;
         this.button('more','更多',944,196,88,30,()=>this.openCoverMenu('more'),this.cover);
-        this.button('level-picker','关卡选择',772,464,158,36,()=>this.openCoverMenu('levels'),this.cover);
+        this.button('level-picker','全部关卡',0,0,104,30,()=>this.openCoverMenu('levels'),this.cover);
+        this.pixel(this.buttons['level-picker'].label,14);
+        this.glyph(this.buttons['level-picker'].node,'icon','grid',-50,0);
         this.pixel(this.text('selected-level','',390,464,270,24,13,this.cover),13).horizontalAlign=Label.HorizontalAlign.CENTER;
-        this.buttons.more.node.active=this.buttons['level-picker'].node.active=false;
-        this.text('welcome-tip','先看操作说明，准备好了就开店。',333,577,614,19,11,this.cover).horizontalAlign=Label.HorizontalAlign.CENTER;
-        // The round record shares the tip's row: the tip shows before a round, the record after it.
-        this.button('record','本局记录',561,566,158,36,()=>this.openRecord(),this.cover);
+        this.buttons.more.node.active=false;this.labels['selected-level'].node.active=false;
+        this.text('welcome-tip','',218,628,844,19,12,this.cover).horizontalAlign=Label.HorizontalAlign.CENTER;
+        this.labels['welcome-tip'].color=color(COLORS.muted);
+        // Round analysis, all levels and settings sit as light chips under the result buttons.
+        this.button('record','本局分析',0,0,150,40,()=>this.openRecord(),this.cover,'chip');
+        this.glyph(this.buttons.record.node,'icon','chart',-50,0);
         this.buttons.record.node.active=false;
         // Online, after 暂不: one tap contributes this round under the terms already shown (the hosted agent uploads it).
         this.button('contribute','贡献本局',735,566,158,36,()=>window.dispatchEvent(new Event('kitchen-contribute')),this.cover);
@@ -462,6 +504,16 @@ export class KitchenClient extends Component {
             e.preventDefault();const b=this.buttons.main;
             if(!e.repeat&&b?.enabled&&b.node.activeInHierarchy){this.audio.play('ui_click');b.callback();}
             return;
+        }
+        // Shop-card keys: ← → change level before a round; N, R and L act on the result card.
+        const plain=!e.repeat&&!e.ctrlKey&&!e.altKey&&!e.metaKey&&this.connected&&this.cover.active&&!this.countdown;
+        if(plain&&this.state?.phase==='ready'&&(e.key==='ArrowLeft'||e.key==='ArrowRight')){
+            e.preventDefault();this.stepLevel(e.key==='ArrowLeft'?-1:1);return;
+        }
+        if(plain&&this.state?.phase==='ended'&&['n','r','l'].includes(e.key.toLowerCase())){
+            e.preventDefault();const s=this.state,acts=this.resultActions(s),key=e.key.toLowerCase();
+            const act=key==='l'?{kind:'levels',id:''}:[acts.main,acts.alt].find(a=>key==='r'?a.label==='再来一次':a.label!=='再来一次');
+            if(act)this.endedAction(act);return;
         }
         // Enter bookmarks the moment, unless a focused on-screen control should be pressed.
         if(e.key==='Enter'&&this.state?.phase==='running'&&!(this.focusId&&this.buttons[this.focusId]?.enabled&&this.buttons[this.focusId].node.activeInHierarchy)){
@@ -708,6 +760,23 @@ export class KitchenClient extends Component {
         this.rect(g,-w/2,-h/2-3,w,h,COLORS.wood);this.rect(g,-w/2,-h/2,w,h,fill);return g;
     }
     private box(parent:Node,name:string,x:number,y:number,w:number,h:number,fill:string){const n=this.make(name,x,y,w,h,parent);this.paintBox(n,w,h,fill);return n;}
+    /** Width a label needs, near enough to centre a row of separate labels (pixel face: CJK is square). */
+    private textWidth(text:string,size:number){let w=0;for(const ch of text)w+=/[\x00-\x7f]/.test(ch)?size*.62:size;return w;}
+    private place(n:Node|undefined,x:number,y:number){n?.setPosition(x-640,360-y);}
+    private placeText(id:string,x:number,y:number,w:number,h:number){const l=this.labels[id];if(!l)return;l.node.setPosition(x+w/2-640,360-y);l.node.getComponent(UITransform)!.setContentSize(w,h);}
+    private resizeButton(id:string,w:number,h:number){
+        const b=this.buttons[id];if(!b||(b.width===w&&b.height===h))return;
+        b.width=w;b.height=h;b.node.getComponent(UITransform)!.setContentSize(w,h);
+        b.label.node.getComponent(UITransform)!.setContentSize(w-22,h-6);this.styleButton(id);
+    }
+    /** Small pixel glyphs for the shop card: chart (round analysis), grid (levels), gear (settings). */
+    private glyph(parent:Node,name:string,kind:'chart'|'grid'|'gear',x:number,y:number){
+        const n=this.child(parent,name,18,18,x,y),g=n.addComponent(Graphics),r=(a:number,b:number,w:number,h:number,c=COLORS.ink)=>this.rect(g,a,b,w,h,c);
+        if(kind==='chart'){r(-8,-8,16,2);r(-7,-6,3,5);r(-2,-6,3,10);r(3,-6,3,7);}
+        else if(kind==='grid'){r(-8,1,7,7);r(1,1,7,7);r(-8,-8,7,7);r(1,-8,7,7);}
+        else{r(-5,-5,10,10);r(-2,6,4,3);r(-2,-9,4,3);r(-9,-2,3,4);r(6,-2,3,4);r(-8,5,3,3);r(5,5,3,3);r(-8,-8,3,3);r(5,-8,3,3);r(-2,-2,4,4,COLORS.paper);}
+        return n;
+    }
     private text(id:string,value:string,x:number,y:number,w:number,h:number,size=18,parent=this.node){
         const n=this.make(id,x+w/2,y,w,h,parent);const l=n.addComponent(Label);
         this.writeLabel(l,value);l.fontSize=size;l.lineHeight=size+6;l.color=color(COLORS.ink);l.fontFamily='sans-serif';
@@ -725,6 +794,19 @@ export class KitchenClient extends Component {
     }
     private styleButton(id:string){
         const b=this.buttons[id];if(!b)return;
+        if(b.tone==='tile'||b.tone==='chip'){
+            // Shop-card pieces: a partner tile (selected = denim frame) and a borderless footer chip.
+            const w=b.width,h=b.height,g=b.node.getComponent(Graphics)||b.node.addComponent(Graphics);g.clear();
+            if(b.tone==='tile'){
+                const on=!!b.selected,edge=on?COLORS.human:COLORS.ink;
+                this.rect(g,-w/2,-h/2-5,w,h,edge);
+                this.rect(g,-w/2,-h/2,w,h,!b.enabled?COLORS.bg:b.hover?COLORS.honeyTint:COLORS.paper);
+                g.strokeColor=color(!b.enabled?COLORS.muted:edge);g.lineWidth=on?4:2;g.rect(-w/2+g.lineWidth/2,-h/2+g.lineWidth/2,w-g.lineWidth,h-g.lineWidth);g.stroke();
+            }else this.rect(g,-w/2,-h/2,w,h,b.hover&&b.enabled?COLORS.honeyTint:COLORS.bg);
+            if(this.focusId===id){g.strokeColor=color(COLORS.ink);g.lineWidth=3;g.rect(-w/2-5,-h/2-8,w+10,h+13);g.stroke();}
+            b.label.color=color(b.enabled?COLORS.ink:COLORS.muted);
+            return;
+        }
         // Pressable: 2px ink border over a 3px ink shadow. Selected sits pressed-in on honey;
         // disabled goes flat on the surface so the two never look alike.
         const sel=!!b.selected,flat=sel||!b.enabled,dy=sel?-3:0,w=b.width,h=b.height;
@@ -968,29 +1050,46 @@ export class KitchenClient extends Component {
         if(!this.art.centered(node,key,TILE*(upright?.62:.76)*scale,TILE*.76*scale))return '';
         return key===filled?'filled':'empty';
     }
-    private closingSummary(k:any,won:boolean,summary?:any){
-        const target=k.goals.target_money;
-        // Each line ends in fixed text so its translation template cannot swallow the next line.
-        return `净收入 ¥${k.money}（目标 ¥${target}）`+(won?'':`，还差 ¥${Math.max(0,target-k.money)} 元`)
-            +`\n完成 ${k.served} 单`;
+    /** The line under the big income figure: how far from the target, and orders served. */
+    private resultDetail(k:any,won:boolean){
+        const gap=Math.abs(k.money-k.goals.target_money);
+        return (won?`多赚 ¥${gap}`:`还差 ¥${gap}`)+` · 完成 ${k.served} 单`;
     }
-    // The result screen's one button: the next level after a win, the same level otherwise.
-    private nextRound(s:KitchenState):{id:string;label:string}{
-        const levels=[...(s.levels||[])].sort((a:any,b:any)=>(a.menu_order??0)-(b.menu_order??0));
-        const here=levels.findIndex((l:any)=>l.id===s.kitchen?.level_id),next=levels[here+1];
-        if(!(s as any).won||here<0)return {id:s.kitchen?.level_id,label:'再来一次'};
-        return next?{id:next.id,label:'下一关'}:{id:levels[here].id,label:'再玩一遍'};
+    private sortedLevels(s=this.state){return [...(s?.levels||[])].sort((a:any,b:any)=>(a.menu_order??0)-(b.menu_order??0));}
+    private dishName(level:any){const n=String(level?.name||'');return n.includes('·')?n.split('·').pop()!.trim():n;}
+    private levelNumber(index:number){return `第 ${index+1} 关`;}
+    /** ◀ ▶ on the level plate: the neighbouring level, before a round only. */
+    private stepLevel(d:number){
+        const s=this.state;if(!s||s.phase!=='ready'||this.pending)return;
+        const ls=this.sortedLevels(s),i=ls.findIndex((l:any)=>l.id===s.kitchen?.level_id),to=ls[i+d];
+        if(to)this.post('/api/level',{level:to.id});
     }
+    /** Hands a shop-card request to the page (lists, limits, free-model choice live in HTML). */
+    private coverEvent(name:string,detail?:any){this.clearInput();if(!sys.isNative)window.dispatchEvent(new CustomEvent(name,{detail}));}
+    private useFree(){
+        const c=this.state?.connection,f=c?.free_models;if(!f?.enabled||!c.editable||c.free_model)return;
+        this.coverEvent('kitchen-select-free',{provider:f.default});
+    }
+    /** The result card's two big buttons: after a win the next level leads, otherwise playing again does.
+     *  On the last level the forward button opens all levels instead. */
+    private resultActions(s:KitchenState){
+        const ls=this.sortedLevels(s),i=ls.findIndex((l:any)=>l.id===s.kitchen?.level_id),next=i>=0?ls[i+1]:undefined;
+        const retry={kind:'level',id:String(s.kitchen?.level_id||''),label:'再来一次',sub:''};
+        const forward=next?{kind:'level',id:String(next.id),label:'下一关',sub:this.levelNumber(i+1)+' · '+this.dishName(next)}
+            :{kind:'levels',id:'',label:'全部关卡',sub:''};
+        return (s as any).won?{main:forward,alt:retry}:{main:retry,alt:forward};
+    }
+    private endedAction(a:{kind:string;id:string}){if(a.kind==='levels'){this.openCoverMenu('levels');return;}this.startNext(a.id);}
     // A short 3·2·1 on the result card, then one request chooses the level and starts at the same pace.
-    private startNext(){
+    private startNext(id:string){
         if(this.countdown||!this.state||this.pending)return;
         // Ignore presses in the card's first second: Space/A may still be mashed from the last order.
         if(this.endedSeen.round!==this.state.game_id||Date.now()-this.endedSeen.at<1000)return;
-        const {id}=this.nextRound(this.state),round=this.state.game_id;
+        const round=this.state.game_id;
         const step=(n:number)=>{
             if(this.state?.game_id!==round||this.state?.phase!=='ended'){this.countdown=0;return;}
             if(n===0){this.countdown=0;this.post('/api/next',{level:id});return;}
-            this.countdown=n;this.set('coverTitle',String(n));this.set('coverText','');
+            this.countdown=n;this.set('coverTitle',String(n));this.set('coverText','');this.set('result-money','');
             this.scheduleOnce(()=>step(n-1),.3);
         };
         step(3);
@@ -1773,37 +1872,20 @@ export class KitchenClient extends Component {
         this.cover.active=s.phase!=='running';this.buttons.reset.node.active=true;
         this.enable('main',!this.pending);this.buttons.main.node.active=true;
         this.enable('reset',!this.pending&&s.phase!=='ready');
-        this.writeLabel(this.buttons.main.label,s.phase==='ready'?'开始经营':s.phase==='paused'?'继续经营':s.phase==='ended'?this.nextRound(s).label:'准备下一局');
+        this.writeLabel(this.buttons.main.label,s.phase==='ready'?'开始经营':s.phase==='paused'?'继续经营':s.phase==='ended'?this.resultActions(s).main.label:'准备下一局');
         if(s.phase==='ready'&&s.connection&&!s.connection.configured)this.writeLabel(this.buttons.main.label,'先连接搭档');
         this.labels['welcome-tip'].node.active=s.phase==='ready';
         this.buttons.record.node.active=s.phase==='ended'&&!!s.round_summary;
         const h=s.hosted,offer=s.phase==='ended'&&!!h?.contribution_offer;this.buttons.contribute.node.active=offer;
         if(offer){this.writeLabel(this.buttons.contribute.label,h.contributed?'已贡献':h.contribution_busy?'正在贡献…':'贡献本局');this.enable('contribute',!h.contributed&&!h.contribution_busy&&!this.pending);}
-        if(!sys.isNative){
-            // Reflow existing controls inside the original 736 x 464 panel. Artwork,
-            // 1280 x 720 scaling and the centre soup-pot frame remain unchanged.
-            const ended=s.phase==='ended',ready=s.phase==='ready';
-            const move=(id:string,x:number,y:number)=>this.buttons[id].node.setPosition(x-640,360-y);
-            this.buttons.more.node.active=ended;
-            this.buttons.reset.node.active=!ready;
-            this.buttons.language.node.active=!ended;
-            this.buttons['cover-connection'].node.active=this.buttons.help.node.active=!ended;
-            this.buttons.contribute.node.active=false; // Offered in More, under the same consent state.
-            this.buttons['level-picker'].node.active=ready||ended;
-            this.enable('level-picker',!this.pending);this.enable('more',!this.pending);
-            const current=(s.levels||[]).find((l:any)=>l.id===k.level_id);
-            this.labels['selected-level'].node.active=ready;this.set('selected-level',current?.name||'');
-            if(ended){move('main',553,506);move('reset',727,506);move('record',553,562);move('level-picker',727,562);}
-            else if(ready){move('main',466,520);move('cover-connection',640,520);move('help',814,520);move('level-picker',772,464);}
-            else{move('main',379,520);move('reset',553,520);move('cover-connection',727,520);move('help',901,520);}
-        }
+        this.layoutShopCard(s,k);
         // The record stays one tap away (本局记录) instead of covering the result card.
         if(s.phase==='ended'&&this.endedSeen.round!==s.game_id)this.endedSeen={round:s.game_id,at:Date.now()};
         // Rounds close at the time limit: say so plainly, whatever the outcome.
         const closed=s.phase==='ended'&&!s.aborted&&k.failure_reason!=='fire_spread';
         if(!this.countdown){ // the 3·2·1 owns the card until the next round starts
-        this.set('coverTitle',s.phase==='ready'?'ChefJeff':s.phase==='paused'?'歇一小会儿':k.failure_reason==='fire_spread'?'火势失控':s.aborted?'本局已结束':closed?(s.won?'关店结算 · 达成目标':'关店结算 · 未达目标'):s.won?'今天，配合得不错！':'明天再接再厉');
-        this.set('coverText',s.phase==='ready'?`你和 AI 搭档，一起照顾这间小厨房。\n本局目标：关店时净收入达到 ¥${k.goals.target_money}`:s.phase==='paused'?'锅火和订单都按下了暂停。\n准备好了，就和 Jeff 接着做菜。':closed?this.closingSummary(k,!!s.won,s.round_summary):`出餐 ${k.served} 单 · 净收入 ¥${k.money} / ¥${k.goals.target_money}`);
+        this.set('coverTitle',s.phase==='ready'?'ChefJeff':s.phase==='paused'?'歇一小会儿':k.failure_reason==='fire_spread'?'火势失控':s.aborted?'本局已结束':closed?(s.won?'今天配合得不错！':'关店结算'):s.won?'今天，配合得不错！':'明天再接再厉');
+        this.set('coverText',s.phase==='ready'?`你和 AI 搭档，一起照顾这间小厨房。\n本局目标：关店时净收入达到 ¥${k.goals.target_money}`:s.phase==='paused'?'锅火和订单都按下了暂停。\n准备好了，就和 Jeff 接着做菜。':closed?this.resultDetail(k,!!s.won):`出餐 ${k.served} 单 · 净收入 ¥${k.money} / ¥${k.goals.target_money}`);
         }
         if(s.capacity?.can_start===false&&s.phase!=='running'){
             this.enable('resume',false);
@@ -1840,9 +1922,153 @@ export class KitchenClient extends Component {
         return note?.message.startsWith('Jeff 请求失败')?'Jeff 暂时连不上，正在重试':'';
     }
     // Keeps the screen-reader proxies in step with the visible canvas buttons.
+    private tr(text:string){return !sys.isNative?(window as any).kitchenI18n?.t(text)??text:text;}
+    /** Free-model status in the prototype's three words; only what the server reports, never "free to use" by default. */
+    private freeStatus(f:any,provider:string):{text:string;tone:string}{
+        const cap=f?.enabled&&f.gateway_available!==false?f.global_capacity?.[provider]:null;
+        if(cap?.available)return {text:'● 有空位',tone:COLORS.herb};
+        if(cap?.reason==='seat_busy')return {text:'● 名额已满，稍后再试',tone:COLORS.jeff};
+        return {text:'○ 暂不可用',tone:COLORS.muted};
+    }
+    private partnerName(s:KitchenState){
+        const c=s.connection,f=c?.free_models;if(!c)return '';
+        if(c.free_model){const m=(f?.models||[]).find((m:any)=>m.provider===c.provider);return m?m.name+'（免费）':'';}
+        return c.configured?'自定义模型':'';
+    }
+    private subLabel(id:string){
+        const b=this.buttons[id];let n=b.node.getChildByName('sub');
+        if(!n){n=this.child(b.node,'sub',b.width-20,18,0,-18);const l=n.addComponent(Label);l.fontSize=13;l.lineHeight=16;l.fontFamily='sans-serif';l.horizontalAlign=Label.HorizontalAlign.CENTER;}
+        return n.getComponent(Label)!;
+    }
+    /** Positions and contents of the shop card for this phase (start, pause, result, connecting). */
+    private layoutShopCard(s:KitchenState,k:any){
+        const ready=s.phase==='ready',ended=s.phase==='ended',paused=s.phase==='paused';
+        const label=(id:string)=>this.labels[id],on=(n:Node|null|undefined,v:boolean)=>{if(n)n.active=v;};
+        const btn=(id:string,x:number,y:number,w:number,h:number,tone?:string)=>{const b=this.buttons[id];if(!b)return;b.node.active=true;
+            if(tone&&b.tone!==tone){b.tone=tone;this.styleButton(id);}this.resizeButton(id,w,h);b.node.setPosition(x-640,360-y);};
+        const hide=(...ids:string[])=>{for(const id of ids){const n=this.buttons[id]?.node||this.labels[id]?.node||this.cover.getChildByName(id);on(n,false);}};
+        const ls=this.sortedLevels(s),i=ls.findIndex((l:any)=>l.id===k.level_id),lvl=ls[i];
+        const plate=(ready||ended||paused)&&!!lvl,target=k.goals?.target_money;
+        on(this.cover.getChildByName('level-plate'),plate);on(this.cover.getChildByName('welcome-food'),false);
+        // Level plate: dish, 第 N 关, dish name and the target, centred as one group.
+        const dishes=(k.menu||[]).slice(0,2);
+        for(const [j,id] of ['level-dish','level-dish-2'].entries()){
+            const n=this.cover.getChildByName(id)!,d=dishes[j];on(n,plate&&!!d);if(!d)continue;
+            const key=[`dishes/${d.id}/ready`,`food/${d.id}_ready`].find(x=>this.art.has(x)),size=dishes.length>1?44:60;
+            n.getComponent(Graphics)!.clear();if(!(key&&this.useArt&&this.art.centered(n,key,size,size)))this.drawIcon(n.getComponent(Graphics)!,'vessel');
+        }
+        const dishW=dishes.length>1?72:64,placeDishes=(x:number,y:number)=>{
+            if(dishes.length>1){this.place(this.cover.getChildByName('level-dish')!,x+18,y-10);this.place(this.cover.getChildByName('level-dish-2')!,x+dishW-18,y+10);}
+            else this.place(this.cover.getChildByName('level-dish')!,x+dishW/2,y);
+        };
+        on(label('level-title').node,plate);on(label('level-name').node,plate);on(label('level-target').node,plate);
+        on(this.cover.getChildByName('level-tag'),false);on(label('level-tag-text').node,false);
+        if(plate){
+            this.set('level-title',this.levelNumber(i));this.set('level-name',this.dishName(lvl));
+            const tw=this.textWidth(this.tr(this.levelNumber(i)),34)+8,nw=this.textWidth(this.tr(this.dishName(lvl)),22)+8;
+            if(ready){
+                this.set('level-target',`目标：关店时净收入 ¥${target} · ${i+1} / ${ls.length}`);
+                const row=dishW+14+tw+12+nw,x0=640-row/2;placeDishes(x0,194);
+                this.placeText('level-title',x0+dishW+14,194,tw,40);this.placeText('level-name',x0+dishW+14+tw+12,198,nw,30);
+                const gw=this.textWidth(this.tr(`目标：关店时净收入 ¥${target} · ${i+1} / ${ls.length}`),14)+6,g0=640-(gw+12+104)/2;
+                this.placeText('level-target',g0,232,gw,22);
+                btn('level-picker',g0+gw+12+52,232,104,30,'normal');this.writeLabel(this.buttons['level-picker'].label,'全部关卡');
+                on(this.buttons['level-picker'].node.getChildByName('icon'),false);
+                btn('level-prev',252,208,44,64);btn('level-next',1028,208,44,64);
+                this.enable('level-prev',!this.pending&&i>0);this.enable('level-next',!this.pending&&i<ls.length-1);
+            }else{
+                hide('level-prev','level-next');
+                this.set('level-target',`目标 ¥${target}`);
+                const gw=this.textWidth(this.tr(`目标 ¥${target}`),14)+6,tag=ended?(s.won?'✓ 达成目标':'未达目标'):'';
+                const tagW=tag?this.textWidth(this.tr(tag),17)+28:0,row=dishW+14+tw+12+nw+14+gw+(tag?14+tagW:0),x0=640-row/2;
+                placeDishes(x0,208);this.placeText('level-title',x0+dishW+14,208,tw,40);
+                this.placeText('level-name',x0+dishW+14+tw+12,210,nw,30);this.placeText('level-target',x0+dishW+14+tw+12+nw+14,210,gw,22);
+                if(tag){const t=this.cover.getChildByName('level-tag')!,cx=x0+row-tagW/2;on(t,true);this.paintBox(t,tagW,34,s.won?COLORS.herb:COLORS.hot);
+                    t.getComponent(UITransform)!.setContentSize(tagW,34);this.place(t,cx,208);
+                    on(label('level-tag-text').node,true);this.set('level-tag-text',tag);label('level-tag-text').color=color(COLORS.paper);this.placeText('level-tag-text',cx-tagW/2,208,tagW,30);}
+            }
+        }else hide('level-prev','level-next');
+        // Partner row, before a round only.
+        const c=s.connection,f=c?.free_models,partner=ready&&!!c;
+        for(const id of ['partner-title','partner-hint'])on(label(id).node,partner);
+        for(const id of ['tile-free','tile-key'])on(this.buttons[id].node,partner);
+        on(this.buttons['free-limits'].node,partner&&!!f?.enabled);on(this.buttons['free-pick'].node,partner&&!!f?.enabled);
+        if(partner){
+            const free=!!c.free_model,editable=c.editable!==false&&!this.pending;
+            const current=(f?.models||[]).find((m:any)=>m.provider===(free?c.provider:f?.default));
+            const st=this.freeStatus(f,current?.provider||'');
+            this.buttons['tile-free'].selected=free;this.buttons['tile-key'].selected=!free&&!!c.configured;
+            this.enable('tile-free',!!f?.enabled&&editable);this.enable('tile-key',editable);
+            for(const id of ['tile-free','tile-key'])this.styleButton(id);
+            this.set('tile-free-title','免费模型');this.set('tile-free-status',st.text);label('tile-free-status').color=color(st.tone);
+            this.set('tile-free-desc','');
+            this.set('tile-key-title','自定义模型');this.set('tile-key-status',!free&&c.configured?'● 已连接':'未连接');
+            label('tile-key-status').color=color(!free&&c.configured?COLORS.herb:COLORS.muted);
+            this.set('tile-key-desc','支持 Jev、DeepSeek、OpenRouter 等决策模型与快思考模型');
+            if(f?.enabled){this.writeLabel(this.buttons['free-pick'].label,(current?.name||'')+'  ▾');this.enable('free-pick',editable);
+                this.enable('free-limits',true);this.set('partner-hint','免费模型不用 API Key，但名额有限');}
+            else this.set('partner-hint','');
+        }
+        // Result block, chefs and the partner line.
+        const human=this.cover.getChildByName('welcome-human'),jeff=this.cover.getChildByName('welcome-jeff');
+        on(human,true);on(jeff,true);on(label('result-money').node,ended&&!this.countdown);
+        const line=ended&&!!c,partnerName=this.partnerName(s);
+        on(label('partner-line').node,line);on(this.buttons['partner-change'].node,line&&c?.editable!==false);
+        if(ended){
+            this.place(human,420,340);this.place(jeff,860,340);
+            this.placeText('coverTitle',380,268,520,40);this.placeText('coverText',380,364,520,30);
+            if(!this.countdown)this.set('result-money',`¥${k.money} / ¥${target}`);
+            if(line){this.set('partner-line',partnerName?`搭档：${partnerName}`:'');this.placeText('partner-line',330,406,470,24);}
+            const acts=this.resultActions(s);
+            btn('main',500,474,270,64,'primary');btn('next-alt',790,474,270,64,'normal');
+            this.writeLabel(this.buttons['next-alt'].label,acts.alt.label);this.enable('next-alt',!this.pending&&!this.countdown);
+            for(const [id,a] of [['main',acts.main],['next-alt',acts.alt]] as [string,any][]){
+                const sub=this.subLabel(id),b=this.buttons[id];this.writeLabel(sub,a.sub);sub.node.active=!!a.sub;
+                sub.color=color(b.tone==='primary'?COLORS.paper:COLORS.ink);b.label.node.setPosition(0,a.sub?8:0);
+            }
+            hide('reset','help');
+            this.set('welcome-tip',(s.won?'Enter 下一关 · R 再来一次':'Enter 再来一次 · N 下一关')+' · L 全部关卡');this.placeText('welcome-tip',218,538,844,19);
+            // Light chips: round analysis (when there is one), all levels, settings.
+            const offer=!sys.isNative&&!!s.hosted?.contribution_offer;
+            const chips=[...(s.round_summary?[['record',150]]:[]),['level-picker',150],['cover-connection',110],...(offer?[['contribute',130]]:[])] as [string,number][];
+            if(!offer)hide('contribute');
+            let x=640-(chips.reduce((t,[,w])=>t+w,0)+16*(chips.length-1))/2;
+            if(!s.round_summary)hide('record');
+            for(const [id,w] of chips){btn(id,x+w/2,594,w,40,'chip');const b=this.buttons[id];
+                if(id==='level-picker')this.writeLabel(b.label,'全部关卡');if(id==='cover-connection')this.writeLabel(b.label,'设置');
+                const icon=b.node.getChildByName('icon');on(icon,!!icon);icon?.setPosition(-w/2+24,0);
+                b.label.horizontalAlign=Label.HorizontalAlign.CENTER;this.pixel(b.label,17);b.label.node.setPosition(icon?12:0,0);x+=w+16;}
+        }else{
+            for(const id of ['next-alt','record','contribute'])hide(id);
+            for(const id of ['main','next-alt'])if(this.buttons[id].node.getChildByName('sub'))this.subLabel(id).node.active=false;
+            this.buttons.main.label.node.setPosition(0,0);
+            // Settings: a gear beside English at the top of the card.
+            const gear=this.buttons['cover-connection'];btn('cover-connection',1046,140,46,34,'normal');
+            this.writeLabel(gear.label,'');gear.label.string='';this.labelSources.set(gear.label,'设置');
+            gear.node.getChildByName('icon')?.setPosition(0,0);
+            if(ready){
+                this.place(human,330,548);this.place(jeff,950,548);
+                btn('main',560,548,220,56,'primary');btn('help',780,548,170,56);hide('reset');
+                if(!partner){this.placeText('coverTitle',316,300,648,40);this.placeText('coverText',330,350,620,56);}
+                const name=this.partnerName(s);
+                this.set('welcome-tip','Enter 开始 · ← → 换关卡'+(name?` · 搭档：${name}`:''));this.placeText('welcome-tip',218,628,844,19);
+            }else{
+                this.place(human,330,548);this.place(jeff,950,548);
+                this.placeText('coverTitle',316,plate?292:300,648,40);this.placeText('coverText',330,plate?346:356,620,56);
+                if(paused){btn('main',470,548,190,56,'primary');btn('reset',660,548,150,56);btn('help',815,548,150,56);}
+                else{btn('main',560,548,220,56,'primary');btn('help',780,548,170,56);hide('reset');}
+                this.set('welcome-tip','');
+            }
+        }
+        on(label('coverTitle').node,!(ready&&partner));on(label('coverText').node,!(ready&&partner));
+        on(label('welcome-tip').node,true);hide('more');
+        this.buttons.language.node.active=!sys.isNative;
+        this.enable('level-picker',!this.pending);
+    }
     private syncAccess(){
         if(!this.controlAccess)return;
-        const icons:Record<string,string>={pause:'暂停',resume:'继续经营',end:'结束本局'};
+        const icons:Record<string,string>={pause:'暂停',resume:'继续经营',end:'结束本局','cover-connection':'设置','level-prev':'上一关','level-next':'下一关',
+            'tile-free':'免费模型','tile-key':'自定义模型（API Key）'};
         for(const id of this.tabOrder()){
             const b=this.buttons[id],proxy=this.controlAccess.querySelector(`[data-control="${id}"]`) as HTMLButtonElement|null;if(!proxy)continue;
             const text=id==='language'?b.label.string:icons[id]||this.labelSources.get(b.label)||id;

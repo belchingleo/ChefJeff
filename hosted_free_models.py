@@ -25,7 +25,7 @@ from model_status import ObservedAnswer, clean, numeric_provider_code, response_
 MODELS = {
     'zhipu': {'model': 'glm-4.7-flash', 'name': '智谱 GLM-4.7-Flash', 'platform': '智谱开放平台',
               'endpoint': 'https://open.bigmodel.cn/api/paas/v4/chat/completions', 'field': 'zhipu_api_key'},
-    'startlux': {'model': 'startlux-decision-27b-autothink', 'name': 'StartLux Decision 27B AutoThink',
+    'startlux': {'model': 'startlux-decision-27b-autothink', 'name': 'StartLux 决策模型',
                 'platform': 'Bamboo Relay', 'endpoint': 'https://api.bamboonode.dev/v1/decisions', 'field': 'bamboo_api_key'},
 }
 
