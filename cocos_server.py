@@ -2,6 +2,7 @@
 """Web kitchen client and authoritative game API on one local origin.
 """
 import argparse
+import os
 import mimetypes
 import threading
 import webbrowser
@@ -11,6 +12,7 @@ from kitchen import ROOT
 from spatial_kitchen import SpatialKitchen
 from web_server import Handler
 from player_api import PlayerGameSession
+from player_level_queue import CalibrationQueue
 
 
 class CocosHandler(Handler):
@@ -22,6 +24,8 @@ class CocosHandler(Handler):
         path=unquote(urlparse(self.path).path)
         if path=='/api/state':
             return self.reply(200,self.server.game.public_state())
+        if path=='/api/player-level/status':
+            return self.player_level_status()
         root=self.web_root.resolve()
         file=(root/path.lstrip('/')).resolve()
         if file==root:file=root/'index.html'
@@ -49,11 +53,13 @@ def main():
         session.close()
         raise SystemExit(f'启动失败：{exc}。若厨房已启动，请打开 http://127.0.0.1:{args.port}/；也可用 --port 指定其他端口。')
     server.game=session
+    # Players' levels calibrate here too, on up to four processes of this computer.
+    server.player_levels=CalibrationQueue(workers=max(1,min(4,(os.cpu_count() or 2)-1)),nice=5)
     threading.Thread(target=session.run,daemon=True).start()
     print(f'网页版厨房已就绪：http://127.0.0.1:{args.port}/，请先在 API 设置中连接玩家自己的账号；测试连接和开局会调用所选模型。',flush=True)
     if args.open:webbrowser.open(f'http://127.0.0.1:{args.port}/')
     try:server.serve_forever()
     except KeyboardInterrupt:pass
-    finally:session.close();server.server_close()
+    finally:session.close();server.player_levels.close();server.server_close()
 
 if __name__=='__main__':main()

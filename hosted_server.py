@@ -22,13 +22,14 @@ from kitchen import ROOT
 from levels import level_number
 from spatial_kitchen import SpatialKitchen
 from whitebox_server import SpatialJevClient
-from web_server import GameSession, Handler
+from web_server import GameSession, Handler, PLAYER_LEVEL_BODY
 from release_info import release_info
 from model_status import clean as clean_diagnostic, ModelWait
 from feedback import play_export
 from hosted_records import ContributionStore, pilot_record, CONSENT_VERSION
 from hosted_capacity import ActiveKitchens, RequestBudget, NETWORK_FULL
 from hosted_jev import JevForwarder
+from player_level_queue import CalibrationQueue
 from hosted_cloudflare import CloudflareForwarder
 from hosted_free_models import FreeModels, read_trial_keys
 from free_model_client import RegionalFreeModels, FreeGatewayClient, public_error
@@ -427,7 +428,7 @@ FIELDS = {
     '/api/contribution/save': {'consent', 'consent_version', 'consent_mode', 'model_identity'},
     '/api/browser-ready': {'connected'}, '/api/start': {'speed'}, '/api/pause': {'reason'},
     '/api/resume': set(), '/api/end': set(), '/api/reset': set(), '/api/restart': set(),
-    '/api/level': {'level'}, '/api/next': {'level'}, '/api/limits': {'max_calls'}, '/api/export-run': set(),
+    '/api/level': {'level'}, '/api/next': {'level'}, '/api/player-level/submit': {'level'}, '/api/limits': {'max_calls'}, '/api/export-run': set(),
     '/api/feedback': set(), '/api/bookmark': set(), '/api/communicate': {'code'},
     '/api/move': {'dx', 'dy', 'seq', 'sprint'}, '/api/position': {'seq', 'base', 'at', 'press'}, '/api/select': {'target'},
     '/api/interact': {'expected_item', 'mode', 'at', 'base', 'aim', 'target'}, '/api/throw': {'direction', 'expected_item', 'at', 'base'},
@@ -678,6 +679,8 @@ class HostedHTTPServer(ThreadingHTTPServer):
         close_usage = getattr(getattr(self, 'usage', None), 'close', None)
         if close_usage:
             close_usage()
+        if getattr(self, 'player_levels', None) is not None:
+            self.player_levels.close()
         super().server_close()
 
 
@@ -789,6 +792,8 @@ class HostedHandler(Handler):
                     return self.reply(200, state)
                 if path == '/api/model/request':
                     return self.reply(200, {'request': game.relay.request() if game.relay and game.phase == 'running' else None})
+            if path == '/api/player-level/status':
+                return self.player_level_status(self.headers.get('X-ChefJeff-Session', ''))
             return self.reply(404, {'error': '未知的接口。'})
         root = self.server.web_root.resolve()
         file = (root / path.lstrip('/')).resolve()
@@ -821,7 +826,9 @@ class HostedHandler(Handler):
             return self.reply(415, {'error': '请求必须使用 JSON 格式。'})
         try:
             length = int(self.headers.get('Content-Length', '0'))
-            if not 0 < length <= (12288 if path in ('/api/model/jev', '/api/model/cloudflare', '/api/model/free') else 8192): raise ValueError()
+            limit = (12288 if path in ('/api/model/jev', '/api/model/cloudflare', '/api/model/free')
+                     else PLAYER_LEVEL_BODY if path == '/api/player-level/submit' else 8192)
+            if not 0 < length <= limit: raise ValueError()
             body = json.loads(self.rfile.read(length))
             if not isinstance(body, dict): raise ValueError()
         except (ValueError, OSError): return self.reply(400, {'error': '请求无效。'})
@@ -874,6 +881,11 @@ class HostedHandler(Handler):
         if path == '/api/model/free/select':
             status, result = self.server.free_models.select(game, body)
             return self.reply(status, result)
+        if path == '/api/player-level/submit':
+            # One calibration per session at a time, in its own low-priority process (player_level_queue).
+            if self.player_levels() is None: return self.reply(404, {'error': '未知的接口。'})
+            if not isinstance(body.get('level'), dict): return self.reply(400, {'error': '请求无效。'})
+            return self.reply(*self.server.player_levels.submit(self.headers.get('X-ChefJeff-Session', ''), body['level']))
         if path == '/api/model/free':
             status, result = self.server.free_models.handle(game, body)
             return self.reply(status, result)
@@ -936,7 +948,8 @@ class HostedHandler(Handler):
 
 
 def make_server(port, origin, capacity=8, web_root=None, data_dir=None, max_waiting=32, per_network=4, shared_config=None,
-                free_model_keys=None, free_models_verified=False, default_free_model='startlux', free_model_gateway=False):
+                free_model_keys=None, free_models_verified=False, default_free_model='startlux', free_model_gateway=False,
+                player_levels=False):
     if type(capacity) is not int or not 1 <= capacity <= 16 or type(max_waiting) is not int or not 0 <= max_waiting <= 32:
         raise ValueError('Use 1–16 active kitchens and 0–32 waiting pages.')
     if per_network is not None and (type(per_network) is not int or not 1 <= per_network <= 16):
@@ -974,6 +987,8 @@ def make_server(port, origin, capacity=8, web_root=None, data_dir=None, max_wait
     if isinstance(free_models, RegionalFreeModels):
         free_models.start()
     server.web_root = Path(web_root or ROOT / 'cocos-kitchen' / 'build' / 'web')
+    # Off unless asked for: calibrating players' levels costs CPU on a server shared with live kitchens.
+    server.player_levels = CalibrationQueue() if player_levels else None
     if client:
         def running():
             with server.sessions.lock:
@@ -995,6 +1010,8 @@ def main():
     p.add_argument('--max-waiting', type=int, choices=range(0,33), default=32, help='Additional page sessions that cannot consume active slots.')
     p.add_argument('--max-per-network', type=int, choices=range(1,17), default=4,
                    help='Active kitchens one network (address or IPv6 /64) may hold at once.')
+    p.add_argument('--player-levels', action='store_true',
+                   help="Calibrate levels players built, one at a time in a separate low-priority process; off by default.")
     args = p.parse_args()
     url = urlsplit(args.origin)
     if url.scheme != 'https' and url.hostname not in ('127.0.0.1', 'localhost'):
@@ -1003,7 +1020,7 @@ def main():
         p.error('Use an origin, without a path or credentials.')
     server = make_server(args.port, args.origin, args.max_sessions, web_root=args.web_root, data_dir=args.data_dir, max_waiting=args.max_waiting,
                          per_network=args.max_per_network, shared_config=args.shared_config,
-                         free_model_gateway=args.free_model_gateway)
+                         free_model_gateway=args.free_model_gateway, player_levels=args.player_levels)
     def reap():
         while True:
             time.sleep(30)
