@@ -156,11 +156,10 @@ python3 scripts/package_research_admin.py
 `game-binding.json` 固定同一次源码构建的运行模块、schema 和导出器的 SHA-256；
 只核对 `research_export.py` 一个文件不足以判断兼容性。初次安装器也核对该绑定。
 
-这个发布升级命令只认 2026-11-01 核对过的上海实例：
-- 游戏链接在 `china-free-b98a4fc6b8e8`；
-- 管理配置仍绑定 v7 游戏 `china-v7-05c76fb9875a`；
-- 管理台程序在 `v2-e6013860c32ed57f`（#41 的管理包），共享数据程序在 `v2-d6662e869d059f4b`（v7 的管理包），两个目录分开；
-- 两个目录里每个程序文件的 SHA-256 都写在 `release_upgrade.py` 里，任何一个不一致都会拒绝。
+这个发布升级命令只认 2026-11-01 部署 25e4931 后核对过的上海实例：
+- 游戏链接和管理配置绑定的都是 `china-free-25e4931a262b`；
+- 管理台和共享数据服务都运行 `v2-818a6d7d18b0b8c1`（25e4931 的管理包）里的程序，在同一个目录；
+- 这个目录里每个程序文件的 SHA-256 都写在 `release_upgrade.py` 里，任何一个不一致都会拒绝。
 
 激活后，管理台和共享数据服务都改用新管理包的程序目录，配置绑定到新游戏目录；
 共享数据服务的工作目录仍是 `/opt/chefjeff/current`。先暂存新游戏目录和独立管理包，然后执行（替换 `<新游戏目录>`）：
@@ -171,16 +170,29 @@ sudo python3 ~/chefjeff-admin-v2/upgrade_admin.py prepare-release --game-release
 
 准备阶段只核对代码、配置、服务单元和账号文件元信息，备份配置及服务单元，
 不打开数据库、不修改线上配置、不重启服务。未知的实例或额外修改会被拒绝。
-**两站游戏必须在同一个维护窗口停止**。协调切换两站到同一提交的游戏目录，
-确认上海游戏服务已停止后，再执行：
 
-```sh
-sudo python3 ~/chefjeff-admin-v2/upgrade_admin.py activate-release
-```
+激活有两个前提：上海的游戏链接已经切到新目录，并且上海游戏已经停止。
+而 `deploy/install_free_region.py activate` 切换链接后会立刻启动游戏，
+还要求管理和数据服务在它准备之后没有重启过。所以上海只能先切游戏、再停下，然后激活管理台。
+两站游戏、协调服务和管理台的准备（`prepare`）都在停服前做完，维护窗口内按这个顺序执行：
 
-该步骤保留账号，更新管理配置里的游戏目录以及管理/数据服务的程序路径，
+1. 停止两站游戏（`sudo systemctl stop chefjeff.service`）。
+2. 如果协调服务也要升级，在上海执行 `deploy/upgrade_free_gateway.py activate --allow-round-end`。
+3. 上海执行 `deploy/install_free_region.py activate --site cn … --allow-round-end`，它会切换链接、启动游戏并自检。
+4. 再次停止上海游戏。
+5. 激活管理台：
+
+   ```sh
+   sudo python3 ~/chefjeff-admin-v2/upgrade_admin.py activate-release
+   ```
+
+6. 启动上海游戏，再在德国执行 `deploy/install_free_region.py activate --site de … --allow-round-end`。
+7. 核对两站公开指纹一致、`/api/session` 返回 201、管理台登录页返回 200。
+
+第 3 到第 4 步之间，上海的新游戏会短暂连着旧管理台运行；德国这时仍然停服。
+
+第 5 步保留账号，更新管理配置里的游戏目录以及管理/数据服务的程序路径，
 仅启动管理和共享数据服务，不启动游戏、不修改Nginx、不切换游戏软链接。
-管理与数据均就绪后，再由同一维护流程启动两站游戏并核对公开指纹一致。
 合成 v7 数据的预览和导出检查必须使用独立临时数据库和隔离服务，不写入生产库。
 
 失败会恢复原配置和服务单元，**管理与数据服务保持停止**，避免混用同意版本。

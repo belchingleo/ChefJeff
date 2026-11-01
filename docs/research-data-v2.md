@@ -146,7 +146,7 @@ CLI 私有导出是管理员明确创建的外部副本，临时文件 0600 且 
 
 API 输入 model_identity 只允许 provider、model_id 两个字段，不接受 Key、接口地址或客户端的核验声明。记录中补上 interface（systemone/chat_completions）、source、verified。不同回合可用不同模型；不把后来的配置回填给缺失记录。新同意版本为 pilot-session-2026-10-v5，旧选择需重新确认；旧 v4 记录、下载、删除与导出继续兼容。
 
-provider 取自 `model-providers.json` 的服务名。2026-11-01 新增 `cloudflare`：Cloudflare Workers AI 上的 Gemma 4 26B 和 Llama 3.1 8B，免费试玩和自有 Key 都记这一个服务名，model_id 记准确的模型 ID。研究管理台按自己发布版本里的结构文件校验，必须先升级管理台，再让游戏写入这个服务名。
+provider 取自 `model-providers.json` 的服务名。2026-11-01 新增 `cloudflare`：Cloudflare Workers AI 上的 Gemma 4 26B 和 Llama 3.1 8B，免费试玩和自有 Key 都记这一个服务名，model_id 记准确的模型 ID。研究管理台按自己发布版本里的结构文件校验，旧版管理台会拒收这个服务名，所以管理台要和游戏在同一个维护窗口里升级，顺序见 `docs/research-admin.md`。
 
 ## 精确重放与请求复现（同意版本 v7）
 
