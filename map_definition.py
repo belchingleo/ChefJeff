@@ -180,9 +180,10 @@ def validate_map(document):
 STEP = {'north': (0, -1), 'south': (0, 1), 'east': (1, 0), 'west': (-1, 0)}
 
 
-def build_map(name, size, stations, theme='street', revision=1):
+def build_map(name, size, stations, theme='street', revision=1, walls=()):
     """A schema-2 map from station coordinates. ``stations`` holds ``(id, x, y, facing)`` tuples or
-    mappings ``{id, cell, facing}`` with optional ``type``, ``name``, ``params`` and ``area``.
+    mappings ``{id, cell, facing}`` with optional ``type``, ``name``, ``params`` and ``area``;
+    ``walls`` adds wall cells inside the boundary.
 
     Derived: a closed boundary wall; the access cell the station faces, or for a counter boxed in by
     counters (a run's corner) the free diagonal between its two neighbours (``reach: corner``); the
@@ -196,7 +197,8 @@ def build_map(name, size, stations, theme='street', revision=1):
     rows = [dict(zip(('id', 'cell', 'facing'), (s[0], [s[1], s[2]], s[3]))) if isinstance(s, (list, tuple)) else dict(s)
             for s in stations]
     surfaces = {tuple(s['cell']) for s in rows}
-    inside = lambda p: 0 < p[0] < width - 1 and 0 < p[1] < height - 1 and p not in surfaces
+    inner_walls = {tuple(w) for w in walls}
+    inside = lambda p: 0 < p[0] < width - 1 and 0 < p[1] < height - 1 and p not in surfaces and p not in inner_walls
     equipment = []
     for s in rows:
         (x, y), kind = s['cell'], s.get('type') or legacy_equipment_type(s['id']) or 'counter'
@@ -218,7 +220,8 @@ def build_map(name, size, stations, theme='street', revision=1):
     document = {'schema_version': 2, 'id': name, 'revision': revision, 'size': [width, height],
                 'areas': {'prep': {'name': '处理区'}, 'cook': {'name': '烹饪区'}},
                 'floor_areas': {'axis': 'xy'[axis], 'split': split, 'below': 'prep', 'at_or_above': 'cook'},
-                'walls': [[x, y] for y in range(height) for x in range(width) if x in (0, width - 1) or y in (0, height - 1)],
+                'walls': [[x, y] for y in range(height) for x in range(width)
+                          if x in (0, width - 1) or y in (0, height - 1) or (x, y) in inner_walls],
                 'equipment': equipment, 'presentation': {'theme': theme}}
     validate_map(document)
     return document

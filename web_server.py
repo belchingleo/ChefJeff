@@ -708,6 +708,18 @@ class GameSession:
 PLAYER_LEVEL_BODY = 65536
 
 
+def player_level_submission(body):
+    """(level bundle, None) from a submit body: an editor design (level_design) or a level bundle; else (None, reply)."""
+    if isinstance(body.get('design'), dict) and 'level' not in body:
+        from level_design import bundle
+        from player_level_queue import summary
+        level, problems = bundle(body['design'])
+        return (level, None) if level else (None, (400, {'state': 'refused', **summary({'diagnostics': problems})}))
+    if isinstance(body.get('level'), dict) and 'design' not in body:
+        return body['level'], None
+    return None, (400, {'error': '请求格式无效。'})
+
+
 def player_level_entry(found):
     """What a session needs to play a calibrated level (player_level_queue.result), or an error reply."""
     if not found:
@@ -794,9 +806,10 @@ class Handler(BaseHTTPRequestHandler):
             queue=self.player_levels()
             if queue is None:
                 return self.reply(404,{'error':'页面不存在。'})
-            if not isinstance(body.get('level'),dict) or set(body)-{'level','game_id','request_id'}:
-                return self.reply(400,{'error':'请求格式无效。'})
-            return self.reply(*queue.submit('local',body['level']))
+            level,error=player_level_submission(body) if not set(body)-{'level','design','game_id','request_id'} else (None,(400,{'error':'请求格式无效。'}))
+            if error:
+                return self.reply(*error)
+            return self.reply(*queue.submit('local',level))
         game=self.server.game
         if path=='/api/player-level/play':
             queue=self.player_levels()

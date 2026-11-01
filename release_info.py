@@ -9,7 +9,7 @@ RUNTIME_FILES = ('model_status.py', 'free_model_diagnostics.py', 'free_model_bud
                  'whitebox_server.py', 'feedback.py', 'release_info.py', 'config.json', 'research_replay.py',
                  'scripts/launch_web.py', 'scripts/stop_web.py',
                  'rules.py', 'config_contract.py', 'schema_check.py', 'session_record.py', 'research_record.py', 'provenance.py', 'collaboration_analyzer.py', 'round_summary.py',
-                 'reference_policy.py', 'level_calibration.py', 'player_level_queue.py')
+                 'reference_policy.py', 'level_calibration.py', 'player_level_queue.py', 'level_design.py')
 
 
 # Contracts and authored content ship with the runtime; listed from disk so new documents are never missed.

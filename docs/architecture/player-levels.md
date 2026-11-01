@@ -3,7 +3,7 @@
 Status: server side of the level editor. Modules `level_calibration.py` (check, pacing, calibration, freeze) and `player_level_queue.py` (the queue behind the endpoints). There is no editor page yet; the endpoints are ready for one.
 
 ```text
-POST /api/player-level/submit   {"level": <design>}      -> 202 queued | 200 done (seen before) | 400 refused | 409 | 503
+POST /api/player-level/submit   {"design": <design>} or {"level": <bundle>}  -> 202 queued | 200 done (seen before) | 400 refused | 409 | 503
 GET  /api/player-level/status?job=<job>                  -> 200 {job, state, content_id, position | report | error} | 404
 POST /api/player-level/play     {"job", "game_id", "request_id"}  -> 200 | 404 (not this owner's, or not done) | 409
 ```
@@ -14,7 +14,16 @@ The local game server (`cocos_server.py`) offers both endpoints. The hosted serv
 
 ## The design
 
-A design is the part of a level bundle a player controls: `level` (name, spawns, initial inventory), `map`, `order_policy` (its `menu`) and `recipe_catalog.recipes` (each dish: name, price, components). The request body may be up to 64 KB; every other command stays at 8 KB.
+The editor sends a design (`level_design.py`, `"format": "chefjeff-player-level-1"`): the level's name, the room size (12×8, 14×9 or 16×10), walls inside the room, the stations (`type`, `x`, `y`, plus `item` for an ingredient source and `vessel` `pan`/`pot` for a stove) and up to four dishes (`name`, `price`, `items`). The server builds the bundle from it:
+
+- the map with `map_definition.build_map`. Station ids follow the client's drawing conventions (`serve`, `sink`, `returns`, `extinguisher`, `bin`, `b1`, `p1`, `counter1`, sources by item, beef as `fridge`), and each station faces the free floor neighbour most towards the room's centre;
+- one chef spawning in each half of the longer side;
+- the starting inventory: the extinguisher, three clean plates on counters and each stove's own pan or pot;
+- the recipes, with each ingredient in the state its cooking step gives (cooked, chopped, or as dispensed).
+
+It refuses a design whose walls cut the room in two, with other than exactly one sink, plate return and extinguisher rack, with no serving window or more than two, with fewer than three counters, or with a station that has no floor in front of it. A whole level bundle is still accepted as `{"level": …}`.
+
+A bundle is the part of a level a player controls: `level` (name, spawns, initial inventory), `map`, `order_policy` (its `menu`) and `recipe_catalog.recipes` (each dish: name, price, components). The request body may be up to 64 KB; every other command stays at 8 KB.
 
 `level_calibration.normalize` puts the design on the release's rules: the ruleset, the equipment and every ingredient, container and cooking step come from the release, whatever the design carries. Prices must be 10–150 in steps of 10.
 

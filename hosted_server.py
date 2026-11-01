@@ -22,7 +22,7 @@ from kitchen import ROOT
 from levels import level_number
 from spatial_kitchen import SpatialKitchen
 from whitebox_server import SpatialJevClient
-from web_server import GameSession, Handler, PLAYER_LEVEL_BODY, player_level_entry
+from web_server import GameSession, Handler, PLAYER_LEVEL_BODY, player_level_entry, player_level_submission
 from release_info import release_info
 from model_status import clean as clean_diagnostic, ModelWait
 from feedback import play_export
@@ -428,7 +428,7 @@ FIELDS = {
     '/api/contribution/save': {'consent', 'consent_version', 'consent_mode', 'model_identity'},
     '/api/browser-ready': {'connected'}, '/api/start': {'speed'}, '/api/pause': {'reason'},
     '/api/resume': set(), '/api/end': set(), '/api/reset': set(), '/api/restart': set(),
-    '/api/level': {'level'}, '/api/next': {'level'}, '/api/player-level/submit': {'level'}, '/api/player-level/play': {'job'}, '/api/limits': {'max_calls'}, '/api/export-run': set(),
+    '/api/level': {'level'}, '/api/next': {'level'}, '/api/player-level/submit': {'level', 'design'}, '/api/player-level/play': {'job'}, '/api/limits': {'max_calls'}, '/api/export-run': set(),
     '/api/feedback': set(), '/api/bookmark': set(), '/api/communicate': {'code'},
     '/api/move': {'dx', 'dy', 'seq', 'sprint'}, '/api/position': {'seq', 'base', 'at', 'press'}, '/api/select': {'target'},
     '/api/interact': {'expected_item', 'mode', 'at', 'base', 'aim', 'target'}, '/api/throw': {'direction', 'expected_item', 'at', 'base'},
@@ -884,8 +884,9 @@ class HostedHandler(Handler):
         if path == '/api/player-level/submit':
             # One calibration per session at a time, in its own low-priority process (player_level_queue).
             if self.player_levels() is None: return self.reply(404, {'error': '未知的接口。'})
-            if not isinstance(body.get('level'), dict): return self.reply(400, {'error': '请求无效。'})
-            return self.reply(*self.server.player_levels.submit(self.headers.get('X-ChefJeff-Session', ''), body['level']))
+            level, error = player_level_submission(body)
+            if error: return self.reply(*error)
+            return self.reply(*self.server.player_levels.submit(self.headers.get('X-ChefJeff-Session', ''), level))
         if path == '/api/model/free':
             status, result = self.server.free_models.handle(game, body)
             return self.reply(status, result)
