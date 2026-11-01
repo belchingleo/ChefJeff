@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 import re
+import subprocess
+import sys
 import tempfile
 import time
 import unittest
@@ -140,6 +142,23 @@ class PackageTests(unittest.TestCase):
                     with self.subTest(source=name):
                         self.assertIn(name, archive.namelist())
                         self.assertEqual(archive.read(name), file.read_bytes())
+
+    def test_real_package_imports_service_entries_from_its_own_files(self):
+        root = Path(__file__).resolve().parents[1]
+        entries = ['hosted_server', 'free_model_gateway', 'cocos_server', 'web_server',
+                   'player_api', 'scripts.probe_free_gateway']
+        with tempfile.TemporaryDirectory() as tmp:
+            output, _ = package(root, Path(tmp) / 'demo.zip')
+            with zipfile.ZipFile(output) as archive:
+                archive.extractall(Path(tmp) / 'unpacked')
+            demo = Path(tmp) / 'unpacked/chefjeff-web-demo'
+            for entry in entries:
+                with self.subTest(entry=entry):
+                    code = ('import importlib,sys;sys.path.insert(0,sys.argv[1]);'
+                            'importlib.import_module(sys.argv[2])')
+                    result = subprocess.run([sys.executable, '-I', '-B', '-c', code, str(demo), entry],
+                                            cwd=tmp, capture_output=True, text=True, timeout=60)
+                    self.assertEqual(result.returncode, 0, result.stderr[-2000:])
 
     def test_real_package_keeps_gamepad_controls_and_matching_web_entries(self):
         root = Path(__file__).resolve().parents[1]
