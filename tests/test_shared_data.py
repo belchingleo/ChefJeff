@@ -169,6 +169,20 @@ class SharedDataTests(unittest.TestCase):
             previous = json.loads(db.execute('SELECT aggregate FROM shared_streams').fetchone()[0])
         self.assertEqual(previous['counts']['page_views'], 1)
 
+    def test_a_region_on_an_older_release_reports_without_the_player_level_row(self):
+        local = UsageStats()
+        local.start_round(1);local.start_round(0)
+        current = usage_payload(local.snapshot())
+        older = dict(current, levels=[row for row in current['levels'] if row['level'] != 0])
+        self.server.usage.apply('cn', secrets.token_hex(16), older)
+        self.server.usage.apply('global', secrets.token_hex(16), current)
+        totals = {row['level']: row['started_rounds'] for row in UsageStats(self.root/'central').snapshot()['levels']}
+        self.assertEqual(totals, {1: 2, 2: 0, 3: 0, 0: 1})
+        extra = {'level': 4, 'started_rounds': 0, 'completed_rounds': 0}
+        for levels in ([row for row in current['levels'] if row['level'] != 1], current['levels'] + [extra]):
+            with self.assertRaises(ValueError):
+                self.server.usage.apply('cn', secrets.token_hex(16), dict(current, levels=levels))
+
     def test_site_authentication_is_required_and_request_material_is_not_echoed(self):
         connection = http.client.HTTPConnection('127.0.0.1', self.server.server_port)
         connection.request('POST', '/v1/usage/read', '{}', {'Content-Type': 'application/json',

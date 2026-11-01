@@ -21,7 +21,7 @@
     },
     "level": {
       "type": "integer",
-      "minimum": 1,
+      "minimum": 0,
       "maximum": 3
     },
     "speed": {

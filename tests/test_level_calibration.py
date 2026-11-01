@@ -1,8 +1,13 @@
 """A player's level runs on the release's rules and gets its pacing and target from the scripted chefs."""
 import unittest
 
+import json
+from pathlib import Path
+
 import config_contract as cc
 import level_calibration as lc
+from levels import PLAYER_LEVEL, level_number
+import schema_check
 from spatial_kitchen import SpatialKitchen
 
 
@@ -48,8 +53,19 @@ class NormalizeTests(unittest.TestCase):
         self.assertEqual(level['ruleset'], release['ruleset'])
         self.assertEqual(level['recipe_catalog']['transforms'], release['recipe_catalog']['transforms'])
         self.assertEqual(list(level['recipe_catalog']['recipes']), ['steak'])
-        self.assertEqual(level['level']['recipe_catalog_ref'], {'id': 'player-recipes', 'version': 1})
+        self.assertEqual(level['level']['recipe_catalog_ref'], {'id': level['level']['id'], 'version': 1})
         self.assertNotIn('menu_order', level['level'])
+
+    def test_a_design_is_named_by_its_content(self):
+        level, _ = lc.normalize(restock({}, ['steak']))
+        content_id = level['level']['id']
+        self.assertRegex(content_id, r'^player-[0-9a-f]{12}$')
+        self.assertEqual({level[kind]['id'] for kind in ('map', 'order_policy', 'recipe_catalog')}, {content_id})
+        self.assertEqual({level['level'][ref]['id'] for ref in ('map_ref', 'order_policy_ref', 'recipe_catalog_ref')}, {content_id})
+        self.assertEqual(lc.normalize(restock({}, ['steak']))[0]['level']['id'], content_id)
+        dearer = restock({}, ['steak'])
+        dearer['recipe_catalog']['recipes']['steak']['price'] = 60
+        self.assertNotEqual(lc.normalize(dearer)[0]['level']['id'], content_id)
 
     def test_bad_price_or_missing_ingredient_is_refused_before_any_round(self):
         bundle = restock({}, ['steak'])
@@ -69,6 +85,14 @@ class CalibrationTests(unittest.TestCase):
         k = SpatialKitchen(lc.finalize(bundle, report))
         self.assertEqual(k.snapshot()['goal_status']['target_money'], report['target'])
         self.assertEqual(k.rules.round_limit, 180)
+        # Statistics and research records count it as level 0; its design is in the resolved configuration.
+        self.assertEqual(level_number(k.c), PLAYER_LEVEL)
+        self.assertTrue(k.resolved['level']['id'].startswith(lc.PLAYER_PREFIX))
+
+    def test_research_records_accept_level_zero(self):
+        record = json.loads((Path(__file__).parent / 'fixtures/research-v2-short.json').read_text())
+        record['level'] = PLAYER_LEVEL
+        self.assertEqual(schema_check.validate(record, 'research-record.schema.json'), [])
 
 
 if __name__ == '__main__':

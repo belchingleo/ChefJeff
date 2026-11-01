@@ -44,8 +44,9 @@ if(el('filter-form')) (()=>{
   async function options(){
     const data=await request('api/options'),select=el('filter-form').elements.namedItem('level');
     const existing=select.value;select.replaceChildren(new Option('全部关卡',''));
-    for(const level of data.levels)select.add(new Option(`第 ${level} 关`,String(level)));
-    if(existing&&!data.levels.map(String).includes(existing))select.add(new Option(`第 ${existing} 关（当前无有效记录）`,existing));
+    const label=level=>String(level)==='0'?'玩家关卡':`第 ${level} 关`;
+    for(const level of data.levels)select.add(new Option(label(level),String(level)));
+    if(existing&&!data.levels.map(String).includes(existing))select.add(new Option(`${label(existing)}（当前无有效记录）`,existing));
     select.value=existing;
     for(const [id,catalog] of [['chart-group',data.groups],['chart-metric',data.metrics]]){
       const control=el(id),value=control.value;control.replaceChildren(...Object.entries(catalog).map(([key,label])=>new Option(typeof label==='string'?label:label.label,key)));control.value=value||control.options[0].value;

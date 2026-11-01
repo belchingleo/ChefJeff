@@ -151,7 +151,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--database', type=Path)
     parser.add_argument('--schema', choices=['chefjeff-pilot-session-v1', SCHEMA])
-    parser.add_argument('--level', type=int, choices=[1,2,3])
+    parser.add_argument('--level', type=int, choices=[0,1,2,3], help='0: levels players built')
     parser.add_argument('--since', help='inclusive ISO 8601 UTC start time; v1 without date excluded')
     parser.add_argument('--until', help='exclusive ISO 8601 UTC start time; v1 without date excluded')
     parser.add_argument('command', choices=['list','export','verify'])

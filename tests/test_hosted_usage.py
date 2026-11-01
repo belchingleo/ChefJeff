@@ -57,6 +57,22 @@ class UsageStoreTests(unittest.TestCase):
             with closing(sqlite3.connect(Path(directory) / 'usage.sqlite3')) as db:
                 self.assertEqual(db.execute('SELECT count(*) FROM durations').fetchone()[0], 2)
 
+    def test_player_levels_count_together_as_level_zero_and_older_stores_load(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with closing(sqlite3.connect(Path(directory) / 'usage.sqlite3')) as db, db:
+                db.execute('CREATE TABLE levels (level INTEGER PRIMARY KEY, '
+                           'started_rounds INTEGER NOT NULL, completed_rounds INTEGER NOT NULL)')
+                db.execute('INSERT INTO levels VALUES (1, 4, 3)')  # written before player levels existed
+            stats = UsageStats(directory)
+            stats.start_round(0)
+            stats.end_round(0, 'completed', 180, 1)
+            data = UsageStats(directory).snapshot()
+            self.assertEqual([row['level'] for row in data['levels']], [1, 2, 3, 0])
+            self.assertEqual(data['levels'][0]['started_rounds'], 4)
+            self.assertEqual(data['levels'][3], {'level': 0, 'started_rounds': 1, 'completed_rounds': 1})
+            with self.assertRaises(ValueError):
+                stats.start_round(4)
+
     def test_concurrent_requests_do_not_lose_increments(self):
         with tempfile.TemporaryDirectory() as directory:
             stats = UsageStats(directory)

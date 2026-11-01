@@ -26,6 +26,7 @@ SEEDS = tuple(range(1, 8))
 PRICE_RANGE = (10, 150)
 PRICE_STEP = 10
 PAIRINGS = (('classic', False), ('classic', True), ('zoned', False), ('zoned', True))
+PLAYER_PREFIX = 'player-'
 # Any authored level carries the release's ruleset, equipment and ingredient data.
 RELEASE_LEVEL = 'level-1'
 
@@ -62,13 +63,24 @@ def normalize(bundle, registry=None):
     catalog = copy.deepcopy(release['recipe_catalog'])
     catalog['recipes'] = copy.deepcopy(recipes)
     catalog.pop('extensions', None)
-    catalog.update(id='player-recipes', version=1, name='player dishes')
+    catalog['name'] = 'player dishes'
     out['recipe_catalog'] = catalog
     level = out['level']
     for field, kind in (('ruleset_ref', 'ruleset'), ('equipment_catalog_ref', 'equipment_catalog'),
                         ('recipe_catalog_ref', 'recipe_catalog')):
         level[field] = {'id': out[kind]['id'], 'version': out[kind]['version']}
     level.pop('menu_order', None)  # never listed among the authored levels
+    # Named by its content: two designs never share an id, with each other or with an authored level.
+    named = {'level': 'version', 'map': 'revision', 'order_policy': 'version', 'recipe_catalog': 'version'}
+    refs = {'map': 'map_ref', 'order_policy': 'order_policy_ref', 'recipe_catalog': 'recipe_catalog_ref'}
+
+    def name_documents(content_id):
+        for kind, field in named.items():
+            out[kind].update({'id': content_id, field: 1})
+        for kind, field in refs.items():
+            level[field] = {'id': content_id, 'version': 1}
+    name_documents('player')  # a placeholder, so the hash covers the content only
+    name_documents(PLAYER_PREFIX + cc.sha256({kind: out[kind] for kind in named})[:12])
     for dish, recipe in recipes.items():
         price = recipe.get('price') if isinstance(recipe, dict) else None
         if type(price) is not int or not PRICE_RANGE[0] <= price <= PRICE_RANGE[1] or price % PRICE_STEP:

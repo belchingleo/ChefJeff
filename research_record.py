@@ -9,6 +9,7 @@ import json
 import math
 import re
 import config_contract as cc
+from levels import level_number
 import schema_check
 
 SCHEMA = 'chefjeff-pilot-session-v2'
@@ -277,7 +278,7 @@ def record(session):
     max_gap = max((b-a for a,b in zip(state_times,state_times[1:])), default=0)
     return {'schema': SCHEMA, 'consent_version': CONSENT, 'round_id': session.game_id,
             'relation_missing_default': 'not_emitted',
-            'level': k.c.get('level', 1), 'speed': session.speed, 'duration': round(k.time, 3),
+            'level': level_number(k.c), 'speed': session.speed, 'duration': round(k.time, 3),
             'aborted': bool(k.aborted), 'result': {'served': k.served, 'money': k.money, 'won': k.won()},
             'release': {key: code(session.release.get(key)) for key in ('version', 'fingerprint')},
             'started_at': log.started_at, 'ended_at': log.ended_at,

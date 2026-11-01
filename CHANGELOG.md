@@ -54,6 +54,7 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - The scripted reference chefs behind calibration, the baseline ladder and map audits read what each dish needs from the level (its dishes, and what its vessels cook from which state) instead of knowing only steak and burger. Any recipe in the catalog can now be calibrated, including a dish that needs the pot and the pan at once and one with nothing to cook. Levels 1–3 keep every decision: the 21-seed calibration and the behaviour fingerprints match the recorded ones.
 - Fire spread no longer looks up every station's neighbours again on every tick. The layout is fixed for the round, so they are found once. Results are identical and rounds run about five times faster: level 3's calibration takes 54 s instead of 268 s on four processes.
 - `level_calibration.py` measures a level a player built, on the release's rules: one order every 30 s, each dish waiting 5 times its chop and cook seconds (60–135 s; levels 1 and 3 come out exactly as authored), and a target of half the scripted pair's median income over 7 order seeds. Prices outside 10–150 and dishes the map cannot make are refused before any round runs; a level the pair serves nothing on is not playable, and one a single chef can pass carries a note. The scripted chefs move to the repository root so the server release carries them.
+- A player's level is named by its content (`player-` and 12 hex digits on its level, map, menu and dishes), so it never shares an id with an authored level or another design. Usage statistics and research records count every player-built level as level 0; which design it was stays in the record's resolved configuration. A region on an older release may still report levels 1–3 only, and the research console labels level 0 "玩家关卡".
 
 ## 0.6.0-beta.2 — 2026-10-20 · second public test release
 
@@ -185,6 +186,7 @@ First private release: a local browser game with three playable maps and player-
 - 校准、基线阶梯和地图检查用的脚本厨师，改为从关卡数据里读每道菜要什么、每口锅能把什么从哪一步煮熟，不再只会做牛排和汉堡。所以菜谱目录里的任何一道菜都能校准，包括同时要用汤锅和平底锅的菜，以及完全不用下锅的菜。前三关的每一步决定都没有变，21 个种子的校准结果和行为指纹都和原来一致。
 - 引擎判断火会不会蔓延时，原来每一帧都要重新找一遍每个工位挨着谁。因为一局里地图不会变，现在只找一次。结果完全相同，一局快了约五倍：第三关校准在 4 个进程下从 268 秒降到 54 秒。
 - 新增 `level_calibration.py`，按发布版的规则给玩家做的关卡算订单节奏和目标：每 30 秒来一单，顾客耐心是这道菜切和煮总时间的 5 倍（60–135 秒，第一关和第三关算出来和原来完全一样），目标是脚本双人在 7 个订单种子上收入中位数的一半。价格不在 10–150 之间、地图做不出来的菜，会在开跑前被拦下；脚本双人一道菜都做不出的关卡不能玩，一个人也能过的关卡会加提示。脚本厨师挪到仓库根目录，跟着服务器一起发布。
+- 玩家关卡按内容生成编号（关卡、地图、菜单和菜都用 `player-` 加 12 位十六进制），不会和官方关卡或别的设计撞号。在线统计和研究记录把所有玩家关卡记作第 0 关，具体是哪一张，研究记录里存的完整配置写得清楚。还在旧版本上的地区服务器可以继续只报第 1–3 关；研究后台把第 0 关显示为“玩家关卡”。
 
 ## 0.6.0-beta.2 — 2026-10-20 · 第二个公开测试版
 

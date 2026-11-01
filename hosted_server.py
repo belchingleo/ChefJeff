@@ -19,6 +19,7 @@ from collections import Counter, OrderedDict, deque
 from urllib.parse import urlsplit, unquote
 from http.server import ThreadingHTTPServer
 from kitchen import ROOT
+from levels import level_number
 from spatial_kitchen import SpatialKitchen
 from whitebox_server import SpatialJevClient
 from web_server import GameSession, Handler
@@ -185,7 +186,7 @@ class HostedSession(GameSession):
         if started:
             self._persist_research()
         if started and self.usage:
-            self.usage.end_round(self.c['level'], 'completed' if completed else self.usage_end_reason,
+            self.usage.end_round(level_number(self.c), 'completed' if completed else self.usage_end_reason,
                                  self.k.time, self.speed)
 
     def _persist_research(self):
@@ -392,7 +393,7 @@ class HostedSession(GameSession):
             # supplies its frozen browser-only history when calling its chosen model.
             self.ai.cooperation_memory = memory_context(False, [])
             if self.usage:
-                self.usage.start_round(self.c['level'], first=not self.usage_started)
+                self.usage.start_round(level_number(self.c), first=not self.usage_started)
             self.usage_started = True
         if path == '/api/reset' and response[0] == 200:
             self.round_memory_condition = None
