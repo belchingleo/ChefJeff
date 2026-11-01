@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Operator-run upgrade; preserve account, game and Nginx. Restart admin/data only."""
 import argparse
+from datetime import datetime, timezone
 import fcntl
 import hashlib
 import http.client
@@ -9,6 +10,7 @@ import os
 from pathlib import Path
 import re
 import shlex
+import shutil
 import socket
 import ssl
 import subprocess
@@ -224,19 +226,65 @@ def rollback():
     print('已恢复原管理台和共享服务入口；账号、游戏、研究记录和新来源索引均保留，没有回填或恢复数据库。')
 
 
+def token_file():
+    if socket.gethostname()!='VM-0-5-ubuntu':raise ValueError('仅限上海腾讯云服务器。')
+    cfg=json.loads(CONFIG.read_text())
+    if cfg.get('origin')!='https://'+DOMAIN:raise ValueError('管理台配置与预期不同。')
+    from admin_server import token_path
+    return token_path(cfg)
+
+
+def day(stamp):return datetime.fromtimestamp(stamp,timezone.utc).isoformat(timespec='seconds')
+
+
+def issue_token(days):
+    from admin_server import export_token
+    path=token_file();replaced=path.exists()
+    token,record=export_token(days)
+    # The service reads this file on every token request: no restart, and only root can change it.
+    write(path,json.dumps(record)+'\n',0o640);shutil.chown(path,user='root',group='chefjeff')
+    print(json.dumps({'status':'export-token-issued','id':record['id'],'issued_at':day(record['issued_at']),
+        'expires_at':day(record['expires_at']),'previous_token_revoked':replaced,'service_restarted':False},ensure_ascii=False,indent=2))
+    print('导出令牌只显示这一次。请复制到本机 pull_research.py save-token 的输入提示里，不要发进聊天或写进文件：')
+    print(token)
+
+
+def revoke_token():
+    path=token_file();existed=path.exists()
+    path.unlink(missing_ok=True)
+    print(json.dumps({'status':'export-token-revoked','token_existed':existed,'effective':'immediately','service_restarted':False},ensure_ascii=False,indent=2))
+
+
+def token_status():
+    path=token_file()
+    if not path.exists():
+        return print(json.dumps({'status':'no-export-token'},indent=2))
+    record=json.loads(path.read_text())
+    print(json.dumps({'status':'export-token-present','id':record['id'],'issued_at':day(record['issued_at']),
+        'expires_at':day(record['expires_at']),'expired':time.time()>=record['expires_at']},indent=2))
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command',choices=('prepare','activate','rollback','prepare-release','activate-release','rollback-release'))
+    parser.add_argument('command',choices=('prepare','activate','rollback','prepare-release','activate-release','rollback-release',
+                                           'prepare-admin','activate-admin','rollback-admin',
+                                           'issue-export-token','revoke-export-token','export-token-status'))
     parser.add_argument('--game-release',type=Path)
+    parser.add_argument('--days',type=int,default=90)
     args=parser.parse_args()
     if os.geteuid()!=0:raise SystemExit('请用sudo在上海服务器执行。')
     if args.command.endswith('-release'):
         import release_upgrade
         return release_upgrade.main(args.command, args.game_release, HERE)
+    if args.command.endswith('-admin'):
+        import admin_update
+        return admin_update.main(args.command, HERE)
     WORK.mkdir(exist_ok=True,mode=0o700)
     with (WORK/'upgrade.lock').open('a') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
-        {'prepare':prepare,'activate':activate,'rollback':rollback}[args.command]()
+        if args.command=='issue-export-token':return issue_token(args.days)
+        {'prepare':prepare,'activate':activate,'rollback':rollback,
+         'revoke-export-token':revoke_token,'export-token-status':token_status}[args.command]()
 
 
 if __name__=='__main__':
