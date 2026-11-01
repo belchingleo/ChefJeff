@@ -1,5 +1,4 @@
 <style>
-#contribution-ask{width:min(620px,calc(100vw - 28px))}
 #contribution-ask .choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:16px}
 #contribution-ask .choices .btn{min-height:48px;line-height:18px}
 #contribution-ask a{color:var(--denim,#2a5a9e)}
@@ -16,9 +15,10 @@
 .contrib-never li::before{content:"×";color:var(--tomato,#b8321e)}
 @media(max-height:500px){#contribution-ask .choices{margin-top:8px}}
 </style>
-<dialog id="contribution-ask" class="panel" aria-labelledby="ask-title" aria-describedby="ask-summary">
+<dialog id="contribution-ask" class="panel card-page" aria-labelledby="ask-title" aria-describedby="ask-summary">
+ <div class="card-awning" aria-hidden="true"></div>
  <div class="dlg-head"><h2 id="ask-title">贡献对局数据？</h2></div>
- <div class="dlg-body">
+ <div class="dlg-body card-scroll">
   <p id="ask-summary" tabindex="-1" autofocus>自愿参与，不贡献也能正常游玩。</p>
   <ul class="ask-highlights"><li><strong>会保存模型服务、模型 ID、双方的完整操作（可原样重放这一局），以及模型的选择和各选项概率。</strong></li><li><strong>不保存 API Key、IP 或账号身份。</strong></li><li><strong>私有保存半年（180 天），可提前删除。</strong></li></ul>
   <details class="fine"><summary>采集范围、用途与保存方式</summary>

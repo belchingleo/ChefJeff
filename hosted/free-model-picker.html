@@ -1,5 +1,4 @@
 <style>
-#free-model-picker,#free-model-limits{width:min(560px,calc(100vw - 28px))}
 #free-model-picker[hidden],#free-model-picker [hidden]{display:none!important}
 #free-model-list{display:flex;flex-direction:column;border:3px solid var(--ink);margin:4px 0 12px}
 #free-model-list button{display:flex;flex-direction:column;gap:2px;width:100%;padding:10px 14px;border:0;border-bottom:2px dashed #e3c79a;background:var(--paper);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
@@ -28,7 +27,7 @@
 .free-limits-box ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:2px}
 @media (max-width:760px){.free-choices{grid-template-columns:1fr}}
 </style>
-<dialog id="free-model-picker" class="panel" aria-labelledby="free-model-title">
+<dialog id="free-model-picker" class="panel card-note" aria-labelledby="free-model-title">
  <div class="dlg-head"><h2 id="free-model-title">免费模型</h2><button class="btn close" id="free-model-close" type="button" aria-label="返回">×</button></div>
  <div class="dlg-body">
   <p class="free-note" id="free-model-reason"></p>
@@ -38,7 +37,7 @@
   <div class="actions"><button class="btn" id="free-model-settings" type="button">改用自定义模型（API Key）</button></div>
  </div>
 </dialog>
-<dialog id="free-model-limits" class="panel" aria-labelledby="free-limits-title">
+<dialog id="free-model-limits" class="panel card-note" aria-labelledby="free-limits-title">
  <div class="dlg-head"><h2 id="free-limits-title">免费模型的使用限制</h2><button class="btn close" id="free-limits-close" type="button" aria-label="返回">×</button></div>
  <div class="dlg-body">
   <ul>
