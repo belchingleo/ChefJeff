@@ -25,6 +25,118 @@
 
 将来 `chefjeff.online` 接回同一共享数据源与对应cn/global配置后，自然使用这套查询和来源索引，不需要另做域名下载功能。
 
+## 只读导出令牌：在本机用脚本直接拉取
+
+浏览器登录每次都要输入密码，下载时还要手动确认保存，所以不适合让本机脚本或 AI 定期拉取最新数据。只读导出令牌解决的就是这件事。令牌由研究者本人在上海服务器上签发，保存在自己电脑的私有文件里，之后由 `scripts/pull_research.py` 带着它直接下载研究包，不再经过浏览器。
+
+### 令牌能做什么、不能做什么
+
+令牌只能用于四个读取接口：记录列表 `api/records`、单条预览 `api/preview`、按筛选下载 `download/research.cjresearch.zip`，以及按勾选下载 `download/selected.cjresearch.zip`。带令牌访问其他任何地址都会得到 403，包括登录、登出、首页、图表和访问统计。令牌不能改账号，也不能做任何写操作。
+
+令牌只认 `Authorization: Bearer` 请求头，放在网址参数或 Cookie 里都不会生效。请求里只要有这个请求头，服务器就只按令牌判断，不再看 Cookie。令牌请求也不碰浏览器登录的会话，所以新登录不会让令牌失效，用令牌也不会踢掉浏览器里的登录。
+
+导出仍然受原有限制。一次只生成一份研究包，大小上限280MB，筛选范围最多5000条，发送前重新核对撤回和到期。研究包生成后、发送前，服务器还会再核对一次令牌，所以导出途中吊销令牌的话，这份包不会发出。
+
+服务器不保存令牌本身。它在 `/etc/chefjeff-admin/export-token.json` 里只存令牌编号、scrypt 哈希和起止时间，文件属主和权限与 `auth.json` 相同。同一时间只有一枚令牌有效，重新签发就会作废旧令牌。管理服务每次收到令牌请求都会重新读这个文件，所以签发和吊销立即生效，不需要重启服务。
+
+### 签发：只能由研究者本人执行
+
+签发命令会在终端里显示令牌明文，而且只显示这一次。所以这条命令必须由研究者本人在腾讯云网页终端里运行，不要交给部署代理或 AI 执行，也不要把输出截图或复制到聊天里。下面的 `~/chefjeff-admin-token` 是上传管理包时使用的文件夹，若用了别的名字请相应替换：
+
+```sh
+sudo python3 ~/chefjeff-admin-token/upgrade_admin.py issue-export-token --days 90
+```
+
+有效期默认90天，可在1至365天之间选择。输出的最后一行就是令牌，以 `cjx1.` 开头。接着在自己电脑的仓库目录里运行下面的命令，在不回显的提示里粘贴这一行：
+
+```sh
+python3 scripts/pull_research.py save-token
+```
+
+令牌保存在 `~/.config/chefjeff/research-export.token`，文件权限600。这个位置在仓库外面，所以不会被提交。脚本发现文件权限宽于600、属主不是当前用户，或者文件放在仓库目录里时，都会拒绝使用。以后换成新令牌时，加 `--replace` 再运行一次。
+
+### 使用
+
+```sh
+python3 scripts/pull_research.py pull --out ~/ChefJeff-research
+```
+
+`pull` 可以加 `--since`、`--until`（UTC日期，含首尾两天）、`--level`、`--schema`、`--site cn|global|unknown` 缩小范围。也可以先用 `list` 查看记录编号，再用 `--refs` 下载指定的1至50条：
+
+```sh
+python3 scripts/pull_research.py list --since 2026-10-01
+```
+
+```sh
+python3 scripts/pull_research.py pull --out ~/ChefJeff-research --refs 编号1,编号2
+```
+
+脚本先把研究包写成目标目录里的临时文件，然后核对收到的字节数，再用仓库自带的 `verify_package` 核对 manifest，包括每个文件的哈希、文件清单和记录摘要。全部通过后，才以不覆盖的方式存成 `chefjeff-research-<UTC时间>.cjresearch.zip`，权限600。任何一步失败，临时文件都会删除，并报告原因。最后输出文件路径、局数、最早到期时间和ZIP的SHA-256，不会输出令牌。
+
+服务器地址在脚本里固定为 `https://chefjeff.belchingleo.online`，脚本会验证证书，也不跟随重定向，所以令牌只会发往这个域名。AI 帮忙拉数据时只运行 `list` 和 `pull`，不读取令牌文件，也不运行 `save-token` 或服务器上的签发命令。
+
+### 查看状态和吊销
+
+```sh
+sudo python3 ~/chefjeff-admin-token/upgrade_admin.py export-token-status
+```
+
+```sh
+sudo python3 ~/chefjeff-admin-token/upgrade_admin.py revoke-export-token
+```
+
+状态只显示令牌编号、签发时间、到期时间和是否已过期，不显示哈希。吊销会删除服务器上的令牌文件，下一次请求就会被拒绝。吊销后本机的令牌文件已经没有用处，可以删掉。
+
+### 审计和限流
+
+每个令牌请求会在管理服务的 journald 日志里留一行，内容只有方法、接口名、状态码和令牌编号，例如 `export-token GET download 200 id=1a2b3c4d`。核对失败时编号记为 `-`。日志不记令牌、网址查询串、记录内容或 IP。管理服务只能看到本机代理地址，本来也拿不到真实 IP。查看最近的令牌使用：
+
+```sh
+sudo journalctl -u chefjeff-admin --since '7 days ago' | grep export-token
+```
+
+令牌失败单独计数，与密码登录互不影响。一分钟内失败满10次后，之后的令牌请求直接返回429，服务器不再计算哈希，所以乱填的令牌耗不了服务器资源。成功的请求不另设次数上限，因为泄露的令牌一次请求就能下载整个研究包，限次数挡不住泄露，起作用的是到期、吊销和审计。
+
+### 风险与保管
+
+令牌泄露就等于研究数据泄露。拿到令牌的人，在它到期或被吊销之前，可以下载全部仍然有效的贡献记录，令牌不按日期缩小范围。上面的到期、单一令牌、立即吊销、服务器只存哈希、只发往固定域名和审计日志都是为了缩小这个风险。研究者本人还需要做到下面几点：
+
+- 令牌只从服务器终端复制到 `save-token` 的输入提示里，不要贴进聊天、文档、提交、云笔记或发给 AI。
+- 不要在共用电脑上保存令牌，能登录这台电脑账号的人也能读到令牌文件。
+- 怀疑泄露时先运行 `revoke-export-token`，再重新签发。
+- 偶尔查看审计日志，确认没有意料之外的使用。
+- 一段时间不需要拉取时，吊销令牌并删除本机文件。
+
+### 部署：只更新上海管理台
+
+令牌功能只改管理台，德国站没有管理台，不需要部署。在本机构建管理包：
+
+```sh
+python3 scripts/package_research_admin.py
+```
+
+解压 `dist/chefjeff-admin-v2.zip`，把里面的 `chefjeff-admin-v2` 文件夹改名为 `chefjeff-admin-token`，上传到 `/home/ubuntu`，不要覆盖已有的管理包文件夹。然后在上海执行：
+
+```sh
+sudo python3 ~/chefjeff-admin-token/upgrade_admin.py prepare-admin
+```
+
+准备阶段核对包摘要、管理配置、服务单元和账号文件元信息，并确认新包绑定的游戏文件与管理台配置里的游戏目录（`config.json` 的 `release`）一致，然后暂存新程序和候选服务单元。这一步不打开数据库、不修改线上配置、不重启服务，也不改变管理台绑定的游戏目录。
+
+`/opt/chefjeff/current` 可能指向另一个游戏版本，例如试运行版。共享数据服务跟着 `current` 走，管理台则继续使用配置里绑定的游戏导出程序，这次更新不改变这一点。输出会同时列出两个目录，供核对研究格式是否一致。若报告游戏绑定不一致，说明这个包与管理台绑定的游戏不配套，例如 v7 发布升级还没有执行。这时不要继续，改用上面的 `prepare-release` / `activate-release` 流程，同一个新包会把令牌功能一起带上。若共享数据程序与正在运行的版本不同，准备也会停止，因为那需要完整发布升级。看到 `admin-code-prepared` 后，选无人下载数据的时段执行：
+
+```sh
+sudo python3 ~/chefjeff-admin-token/upgrade_admin.py activate-admin
+```
+
+激活只切换并重启 `chefjeff-admin.service`。游戏、共享数据服务、Nginx、游戏目录和账号文件都不变。重启会清掉内存里的登录会话，所以浏览器需要重新登录一次。验收访问登录页（200）、未登录的记录接口（401），以及带无效令牌请求头的选项接口（403）；最后一项证明 Nginx 把请求头转给了新程序。验收期间会核对游戏和共享数据服务进程没有变化，任何一步失败都会自动恢复原管理台。需要主动回退时执行：
+
+```sh
+sudo python3 ~/chefjeff-admin-token/upgrade_admin.py rollback-admin
+```
+
+回退恢复原管理台程序目录，新旧程序目录都会保留。旧程序不认令牌，所以回退后令牌只是不再生效，服务器上的令牌文件可以保留，也可以用 `revoke-export-token` 删除。
+
 ## 从主线构建与维护
 
 源码位于 `ops/research_admin/`；服务端只用Python标准库。游戏代码、模型输入和研究保存仍在原有模块中，管理台不复制这些逻辑。

@@ -15,7 +15,7 @@ from scripts.audit_release import markers
 FILES=('admin_server.py','admin_data.py','source_observer.py','authority_runner.py',
        'app.js','dashboard.js','charts.js','app.css','index.html','login.html',
        'chefjeff-pixel.woff2','OFL.txt','install_admin.py','upgrade_admin.py',
-       'release_binding.py','release_upgrade.py')
+       'release_binding.py','release_upgrade.py','admin_update.py')
 
 
 def package(root=ROOT,output=None):
