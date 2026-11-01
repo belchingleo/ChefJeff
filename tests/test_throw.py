@@ -5,6 +5,7 @@ from spatial_kitchen import SpatialKitchen, tile_key, THROW_RANGE, THROW_DIRECTI
 from level_one import neighbors
 from whitebox_server import SpatialJevClient
 from levels import level_config
+import config_contract as cc
 
 
 class ThrowTests(unittest.TestCase):
@@ -158,3 +159,24 @@ class ThrowTests(unittest.TestCase):
         k.advance(4)
         self.assertEqual(k.chefs['jeff'].hand.id,'pass');self.assertFalse(k.command('jeff','take extinguisher')[0])
         k.ground.pop('0');self.assertTrue(k.command('jeff','take extinguisher')[0]);k.assert_invariants()
+
+    def test_throw_ending_inside_a_far_board_square_starts_and_lands_on_it(self):
+        # Level 3: from the lettuce crate, board 1's centre is 4.003 cells away. The listed
+        # "throw down" comes down inside its square, so it must start and rest there.
+        k=SpatialKitchen(cc.load_level('level-3'))
+        k.start('human',next(a for a in k.actions('human') if a.key=='fetch lettuce'))
+        while k.chefs['human'].job:k.advance(.05)
+        action=next(a for a in k.actions('human') if a.key=='throw down')
+        self.assertEqual(action.target,'b1');self.assertGreater(math.dist(k.positions['human'],k.equipment['b1']['cell']),THROW_RANGE)
+        self.assertTrue(k.start('human',action)[0]);k.advance(2)
+        self.assertEqual(k.stations['b1'].food.ingredient,'lettuce');k.assert_invariants()
+
+    def test_every_listed_throw_can_start(self):
+        # Listing and starting share one reach test, from every cell of the kitchen floor.
+        k=SpatialKitchen(cc.load_level('level-3'));k.chefs['human'].hand=Food('F900','raw',ingredient='lettuce')
+        for cell in sorted(k.floor):
+            k.positions['human']=cell
+            for a in k.actions('human'):
+                if a.kind=='throw':
+                    with self.subTest(cell=cell,throw=a.key):
+                        self.assertTrue(k.can_throw_to('human',a.target))

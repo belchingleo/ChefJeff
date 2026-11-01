@@ -652,13 +652,21 @@ class SpatialKitchen(Kitchen):
         # pots) pass at the ruleset's shorter pass range, if it allows passing. The extinguisher never flies.
         return self.rules.throw_reach(self.chefs[who].hand)
 
+    def throw_reaches(self, who, cell):
+        """A throw can come down on ``cell``: its centre, or the nearest point of its square,
+        lies within reach on a clear line (a throw ending just inside the square rests there)."""
+        start, reach = self.positions[who], self.throw_range(who)
+        near = tuple(min(max(start[i], cell[i]-.5), cell[i]+.5) for i in (0,1))
+        return any(math.dist(start,point) <= reach+1e-8 and self.clear_throw_line(start,point)
+                   for point in (tuple(cell), near))
+
     def can_throw_to(self, who, target):
         if not self.can_throw(who):return False
         if target in self.equipment:
-            cell = tuple(self.equipment[target]['cell'])
-            return (self.throw_station(who,cell) == target
-                    and math.dist(self.positions[who],cell) <= self.throw_range(who)+1e-8
-                    and self.clear_throw_line(self.positions[who],cell))
+            # The same test throw_landing applies, on any cell of the station.
+            cells = self.equipment[target].get('cells', [self.equipment[target]['cell']])
+            return any(self.throw_station(who,tuple(cell)) == target and self.throw_reaches(who,tuple(cell))
+                       for cell in cells)
         if target not in self.floor_places:
             return False
         cell = self.cell(target)
@@ -726,7 +734,7 @@ class SpatialKitchen(Kitchen):
                 return tile_key(beside), end
             return None
         station = self.throw_station(who, cell)
-        if station:
+        if station and self.throw_reaches(who, cell):
             return station, tuple(cell)
         if available(cell):
             return tile_key(cell), tuple(cell)

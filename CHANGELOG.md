@@ -48,6 +48,7 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - READMEs: a Play online section (https://chefjeff.online/) and a touch controls table next to the keyboard one.
 - Online play moves to https://chefjeff.online/ (www too); the first address, chefjeff.belchingleo.online, redirects there. The update script moves the service to the new address once and puts it back if the update fails; certificate renewals of either address reload Nginx.
 - As in Overcooked 2, fire stops a board or counter being used but not its surface: what rests there can still be taken (an extinguisher put down on a counter that catches fire is no longer lost), items can be put or plated there and a throw can land there. The same holds for a burning stove: a pan can be lifted off it, put back or filled when empty, but it does not heat until the fire is out, after which food that is not burnt cooks on. Chopping on a burning board and fetching from a burning source still wait for the fire to go out. Items on a burning station stay drawn under the flames.
+- Fix: a throw that came down on a board or counter whose centre lay just beyond reach was offered and then refused ("the throw target changed"). This was about 2–3% of the throws offered on levels 1–3, for the player and Jeff alike. Offering and starting a throw now use one reach test, so a throw that ends inside a station's square rests on it.
 
 ### Level calibration
 - The scripted reference chefs behind calibration, the baseline ladder and map audits read what each dish needs from the level (its dishes, and what its vessels cook from which state) instead of knowing only steak and burger. Any recipe in the catalog can now be calibrated, including a dish that needs the pot and the pan at once and one with nothing to cook. Levels 1–3 keep every decision: the 21-seed calibration and the behaviour fingerprints match the recorded ones.
@@ -177,6 +178,7 @@ First private release: a local browser game with three playable maps and player-
 - README 新增「在线试玩」（https://chefjeff.online/），触屏操作单独列表，和键盘操作并列。
 - 在线试玩改到 https://chefjeff.online/（带 www 也可以），原来的地址 chefjeff.belchingleo.online 会跳转过去。更新脚本会一次性把服务改到新地址，更新失败则改回去；两个地址的证书续期后都会重新加载 Nginx。
 - 和《胡闹厨房 2》一样，火只让柜台、案板不能“使用”，不影响台面：上面的东西照样能拿走（放在柜台上的灭火器遇火后不会再被困住），也能往上放、装盘，扔过去也能落在上面。着火的灶台也一样：锅可以端走、放回去，空锅还能加料，但灭火前不加热，灭火后没糊的食物接着加热。在着火的案板上切菜、从着火的取料处取料，仍要先灭火。着火工位上的东西会画在火焰下面，不再消失。
+- 修复：扔的落点如果是一块中心略超出射程的案板或柜台，这个扔法会被列出来，按下去却被拒绝，提示“抛递目标已变化”。前三关列出的扔法里约有 2% 到 3% 属于这种情况，玩家和 Jeff 都会遇到。现在列出和执行用同一个射程判断，扔到工位方格以内就落在上面。
 
 ### 关卡校准
 - 校准、基线阶梯和地图检查用的脚本厨师，改为从关卡数据里读每道菜要什么、每口锅能把什么从哪一步煮熟，不再只会做牛排和汉堡。所以菜谱目录里的任何一道菜都能校准，包括同时要用汤锅和平底锅的菜，以及完全不用下锅的菜。前三关的每一步决定都没有变，21 个种子的校准结果和行为指纹都和原来一致。
