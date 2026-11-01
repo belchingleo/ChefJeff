@@ -1341,13 +1341,19 @@ class SpatialKitchen(Kitchen):
         self.emit(f'{key} 落在地上，可拾取',kind='landed',item=key,actor=p['actor'],handoff_id=p['handoff_id'],outcome='landed_floor')
 
     def fire_neighbors(self, key):
-        combustible = {k for k in self.stations if self.rules.combustible(k)}
-        if key not in combustible or key not in self.equipment:
-            return []
-        # Overcooked 2 spreads within 1.5 cells: the eight cells around, diagonals included.
-        x,y = self.equipment[key]['cell']
-        return sorted(n for n in combustible if n != key and n in self.equipment
-                      and max(abs(self.equipment[n]['cell'][0]-x),abs(self.equipment[n]['cell'][1]-y))==1)
+        # The layout is fixed for the round, so each station's neighbours are found once
+        # (fire spread asks for every station on every tick).
+        cache = self.__dict__.setdefault('_fire_neighbors', {})
+        if key not in cache:
+            combustible = {k for k in self.stations if self.rules.combustible(k)}
+            if key not in combustible or key not in self.equipment:
+                cache[key] = ()
+            else:
+                # Overcooked 2 spreads within 1.5 cells: the eight cells around, diagonals included.
+                x,y = self.equipment[key]['cell']
+                cache[key] = tuple(sorted(n for n in combustible if n != key and n in self.equipment
+                                          and max(abs(self.equipment[n]['cell'][0]-x),abs(self.equipment[n]['cell'][1]-y))==1))
+        return list(cache[key])
 
     def snapshot(self):
         state = super().snapshot()

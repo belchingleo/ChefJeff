@@ -1,14 +1,15 @@
-"""A deterministic, recipe-following reference policy for regression traces.
+"""A deterministic, recipe-following reference policy for regression traces and calibration.
 
-It reads only the public snapshot and legal action list. It is not an AI
-teammate, a difficulty oracle or a benchmark baseline: its sole purpose is to
-drive the engine through preparation, cooking, assembly, service and plate
-reuse so that behaviour fingerprints cover those paths. ``cook`` prepares and
-cooks beef; ``assembler`` prepares vegetables/bread, assembles, serves and
-washes.
+It reads the public snapshot, the legal action list and where each ingredient is
+dispensed. It is not an AI teammate, a difficulty oracle or a benchmark baseline:
+its purpose is to drive the engine through preparation, cooking, assembly, service
+and plate reuse so that behaviour fingerprints cover those paths, and to give level
+calibration a scripted pair to measure. What each dish needs comes from the
+snapshot's ``dishes`` and ``vessels``, so it plays any recipe of the catalog:
+``cook`` prepares and cooks what the level's vessels cook (chopping it first when the
+vessel takes it chopped); ``assembler`` prepares the other components (chops them, or
+takes them as they come), assembles, serves and washes.
 """
-
-VEG = ('lettuce', 'tomato')
 
 
 def _pick(actions, kind, target=None, key=None):
@@ -22,6 +23,47 @@ def _needs(state):
     """Earliest pending dish and the components still missing on the assembly plate."""
     pending = sorted((o for o in state['orders'] if o['status'] == 'pending'), key=lambda o: (o['deadline'], o['id']))
     return [o['dish'] for o in pending]
+
+
+def _recipes(state):
+    """Dish -> [(item, required state)] in recipe order, for every dish the level can serve."""
+    return {d['id']: [(c['item'], c['state']) for c in d['components']] for d in state['dishes']}
+
+
+def _heat(state):
+    """Item -> (vessel kind, state it goes in) for everything this level's vessels cook."""
+    return {c['item']: (kind, c['from']) for kind, v in sorted(state['vessels'].items()) for c in v['cooks']}
+
+
+def _prep(state, heat):
+    """Components no vessel cooks -> the state a dish takes them in ('chopped', or 'raw' as dispensed)."""
+    out = {}
+    for parts in _recipes(state).values():
+        for item, need in parts:
+            if item not in heat:
+                out.setdefault(item, need)
+    return out
+
+
+def _chopped_first(item, heat, prep):
+    """Whether ``item`` is chopped on a board before it is cooked or plated."""
+    return prep.get(item) == 'chopped' or (item in heat and heat[item][1] == 'chopped')
+
+
+def _cooked(state, dishes, heat):
+    """Cooked components of ``dishes``, in dish then recipe order, each once."""
+    recipes, out = _recipes(state), []
+    for dish in dishes:
+        for item, _ in recipes.get(dish, ()):
+            if item in heat and item not in out:
+                out.append(item)
+    return out
+
+
+def _fetch(k, actions, item):
+    """Fetch ``item`` from the ingredient source that dispenses it."""
+    source = next((key for key, it in sorted(k.rules.sources.items()) if it == item), None)
+    return _pick(actions, 'fetch', source) if source else None
 
 
 def _assembly(state):
@@ -39,15 +81,13 @@ def _assembly(state):
 
 
 def _parts(food):
-    if not food:
+    if not food or food['stage'] == 'clean_plate':
         return set()
-    if food['stage'] == 'clean_plate':
-        return set()
-    return set(food.get('components') or ['beef'])
+    return set(food.get('components') or ([food['ingredient']] if food.get('ingredient') else []))
 
 
-def _target_parts(dish):
-    return {'steak': {'beef'}, 'burger': {'beef', 'bread', 'lettuce', 'tomato'}}.get(dish, {'beef'})
+def _target_parts(state, dish):
+    return {item for item, _ in _recipes(state).get(dish, ())}
 
 
 def _loose(state, ingredient, stages):
@@ -80,8 +120,9 @@ def choose(k, who, role):
     dishes = _needs(state)
     counter, plate = _assembly(state)
     have = _parts(plate)
-    want = set().union(*(_target_parts(d) for d in dishes[:1])) if dishes else set()
+    want = set().union(*(_target_parts(state, d) for d in dishes[:1])) if dishes else set()
     missing = want - have
+    heat = _heat(state)
 
     def stoves(pred):
         return [key for key, s in sorted(state['stations'].items()) if s.get('stove') and pred(s)]
@@ -89,17 +130,19 @@ def choose(k, who, role):
     if role == 'cook':
         if hand and hand['stage'] == 'pot':
             c = hand.get('contents')
-            if c and c['stage'] == 'ready' and counter and 'beef' in missing:
+            if c and c['stage'] == 'ready' and counter and c['ingredient'] in missing:
                 return _pick(actions, 'plate_counter', counter)
             if not c or c['stage'] in ('ready', 'burnt'):
                 if c and c['stage'] == 'burnt':
                     return _pick(actions, 'empty_pot')
                 return _pick(actions, 'return_pot')
             return _pick(actions, 'return_pot')
-        if hand and hand.get('ingredient') == 'beef' and hand['stage'] == 'chopped':
-            return _pick(actions, 'put_pot')
-        if hand and hand.get('ingredient') == 'beef' and hand['stage'] == 'raw':
-            return _pick(actions, 'put_board')
+        if hand and not hand.get('plate_id') and hand.get('ingredient') in heat:
+            goes_in = heat[hand['ingredient']][1]
+            if hand['stage'] == goes_in:
+                return _pick(actions, 'put_pot')
+            if hand['stage'] == 'raw' and goes_in == 'chopped':
+                return _pick(actions, 'put_board')
         if hand and hand['stage'] == 'extinguisher':
             return _pick(actions, 'extinguish') or _pick(actions, 'put_tool')
         if hand:
@@ -108,26 +151,29 @@ def choose(k, who, role):
             return _pick(actions, 'take_tool')
         for key in stoves(lambda s: s['food'] and s['food']['stage'] == 'burnt'):
             return _pick(actions, 'lift_pot', key)
-        if counter and 'beef' in missing:
-            for key in stoves(lambda s: s['food'] and s['food']['stage'] == 'ready'):
+        if counter:
+            for key in stoves(lambda s: s['food'] and s['food']['stage'] == 'ready' and s['food']['ingredient'] in missing):
                 a = _pick(actions, 'lift_pot', key)
                 if a:
                     return a
         for key, s in sorted(state['stations'].items()):
             f = s.get('food')
-            if f and f.get('ingredient') == 'beef' and not f.get('plate_id') and key.startswith('b') and s.get('used_by') is None:
+            if (f and f.get('ingredient') in heat and heat[f['ingredient']][1] == 'chopped' and not f.get('plate_id')
+                    and s['type'] == 'board' and s.get('used_by') is None):
                 if f['stage'] == 'raw':
                     a = _pick(actions, 'chop', key)
                     if a:
                         return a
-                if f['stage'] == 'chopped' and stoves(lambda s: s['pot_id'] and not s['food']):
+                vessel = heat[f['ingredient']][0]
+                if f['stage'] == 'chopped' and stoves(lambda s: s['pot_id'] and not s['food'] and s.get('vessel') == vessel):
                     return _pick(actions, 'take_board', key)
-        beef = _loose(state, 'beef', ('raw', 'chopped', 'cooking', 'ready'))
-        if beef < 1 and dishes:
-            return _pick(actions, 'fetch', 'fridge')
+        for item in _cooked(state, dishes, heat):
+            if _loose(state, item, ('raw', 'chopped', 'cooking', 'ready')) < 1:
+                return _fetch(k, actions, item)
         return _join(state, actions)
 
     # assembler
+    prep = _prep(state, heat)
     if hand and hand['stage'] == 'dirty_plate':
         return _pick(actions, 'put_sink')
     if hand and hand.get('plate_id'):
@@ -136,8 +182,8 @@ def choose(k, who, role):
         return _pick(actions, 'put_counter')
     if hand and hand['stage'] == 'clean_plate':
         return _pick(actions, 'put_counter')
-    if hand and hand.get('ingredient') in VEG + ('bread',):
-        ready = hand['stage'] == 'chopped' or hand['ingredient'] == 'bread'
+    if hand and hand.get('ingredient') in prep:
+        ready = hand['stage'] == prep[hand['ingredient']]
         if ready and counter and hand['ingredient'] in missing:
             return _pick(actions, 'assemble', counter)
         if not ready:
@@ -157,16 +203,18 @@ def choose(k, who, role):
         return _pick(actions, 'take_return', 'returns')
     for key, s in sorted(state['stations'].items()):
         f = s.get('food')
-        if f and f.get('ingredient') in VEG and not f.get('plate_id') and key.startswith('b') and not key.startswith('bin'):
+        if f and prep.get(f.get('ingredient')) == 'chopped' and not f.get('plate_id') and s['type'] == 'board':
             if f['stage'] == 'raw' and s.get('used_by') is None:
                 a = _pick(actions, 'chop', key)
                 if a:
                     return a
             if f['stage'] == 'chopped' and f['ingredient'] in missing and counter:
                 return _pick(actions, 'take_board', key)
-    for name in ('bread',) + VEG:
-        if name in missing and _loose(state, name, ('raw', 'chopped')) == 0:
-            return _pick(actions, 'fetch', name)
+    # Fetch the first dish's missing components: those used as dispensed, then those to chop.
+    first = [item for item, _ in _recipes(state).get(dishes[0], ())] if dishes else []
+    for item in [i for i in first if prep.get(i) == 'raw'] + [i for i in first if prep.get(i) == 'chopped']:
+        if item in missing and _loose(state, item, ('raw', 'chopped')) == 0:
+            return _fetch(k, actions, item)
     # Otherwise join any chopping/washing that the layout lets two chefs share.
     return _join(state, actions)
 
@@ -178,6 +226,7 @@ def choose(k, who, role):
 # passes finished dishes across. The 'maker' stays on the board side: chops, throws
 # prepared food back across, serves, returns and washes plates. The split is derived
 # from the map (midway between source and board access rows), not from a level id.
+# The runner watches the first stove holding each vessel kind it needs.
 
 def _key(actions, key):
     return next((a for a in actions if a.key == key), None)
@@ -218,7 +267,17 @@ def choose_zoned(k, who, role):
     hand = me['holding']
     dishes = _needs(state)
     st = state['stations']
+    heat = _heat(state)
+    prep = _prep(state, heat)
     stove = next((key for key, s in sorted(st.items()) if s.get('stove')), None)
+
+    def stove_for(item):
+        return next((key for key, s in sorted(st.items()) if s.get('stove') and s.get('vessel') == heat[item][0]), None)
+
+    def free_vessel(item):
+        key = stove_for(item)
+        return bool(key and st[key]['pot_id'] and not st[key]['food'])
+
     runner_counters = [key for key, s in sorted(st.items()) if s.get('counter') and _station_side(k, key) == 'runner']
     # Assembly plate: the most advanced clean/partial plate on a runner-side counter.
     assembly, plate = None, None
@@ -227,7 +286,7 @@ def choose_zoned(k, who, role):
         if f and (f['stage'] == 'clean_plate' or (f.get('plate_id') and f['stage'] in ('ready', 'assembled'))):
             if plate is None or len(_parts(f)) > len(_parts(plate)):
                 assembly, plate = key, f
-    want = _target_parts(dishes[0]) if dishes else set()
+    want = _target_parts(state, dishes[0]) if dishes else set()
     missing = want - _parts(plate) if plate else set(want)
     fire = any(s['fire'] for s in st.values())
 
@@ -249,7 +308,7 @@ def choose_zoned(k, who, role):
     if role == 'runner':
         if hand and hand['stage'] == 'pot':
             c = hand.get('contents')
-            if c and c['stage'] == 'ready' and assembly and 'beef' in missing:
+            if c and c['stage'] == 'ready' and assembly and c['ingredient'] in missing:
                 return _pick(actions, 'plate_counter', assembly)
             if c and c['stage'] == 'burnt':
                 return _pick(actions, 'empty_pot')
@@ -261,9 +320,11 @@ def choose_zoned(k, who, role):
             return _key(actions, 'put ' + min(free, key=lambda c: _near(k, c, stove))) if free else None
         if hand and hand.get('ingredient'):
             name, stage = hand['ingredient'], hand['stage']
-            if name == 'beef' and stage == 'chopped':
-                return _pick(actions, 'put_pot') or throw_onto(empty_boards, stove)
-            if stage == 'raw' and name != 'bread':
+            if name in heat and stage == heat[name][1]:
+                if stage == 'chopped':
+                    return _pick(actions, 'put_pot') or throw_onto(empty_boards, stove)
+                return _pick(actions, 'put_pot')
+            if stage == 'raw' and _chopped_first(name, heat, prep):
                 # Onto a free board when in range, else onto the floor across the counter by the boards.
                 # Out of range of the maker's floor (e.g. straight from the fridge), pass onto the floor
                 # on the dividing line instead; the maker picks it up from there.
@@ -279,22 +340,27 @@ def choose_zoned(k, who, role):
                 return _pick(actions, 'lift_pot', key)
         if plate and plate.get('dish') and plate['dish'] in dishes:
             return _key(actions, 'take ' + assembly)
-        if assembly and 'beef' in missing and st[stove]['food'] and st[stove]['food']['stage'] == 'ready':
-            return _pick(actions, 'lift_pot', stove)
+        if assembly:
+            for item in _cooked(state, dishes[:1], heat):
+                key = stove_for(item)
+                f = key and st[key]['food']
+                if item in missing and f and f['stage'] == 'ready' and f['ingredient'] == item:
+                    return _pick(actions, 'lift_pot', key)
         for g in state['ground']:
             f = g['food']
-            if (f.get('ingredient') and not f.get('plate_id') and f['stage'] == 'chopped'
-                    and _side(k, k.cell(g['location'])[1]) == 'runner'
-                    and ((f['ingredient'] == 'beef' and st[stove]['pot_id'] and not st[stove]['food'])
-                         or (f['ingredient'] != 'beef' and assembly and f['ingredient'] in missing))):
+            if not (f.get('ingredient') and not f.get('plate_id') and _side(k, k.cell(g['location'])[1]) == 'runner'):
+                continue
+            name = f['ingredient']
+            if ((name in heat and f['stage'] == heat[name][1] and free_vessel(name))
+                    or (name not in heat and f['stage'] == 'chopped' and assembly and name in missing)):
                 a = _key(actions, 'pickup ' + f['id'])
                 if a:
                     return a
         for key in runner_counters:
             f = st[key].get('food')
             if f and not f.get('plate_id') and f.get('ingredient'):
-                if (f['ingredient'] == 'beef' and st[stove]['pot_id'] and not st[stove]['food']) or (
-                        f['ingredient'] != 'beef' and assembly and f['ingredient'] in missing):
+                name = f['ingredient']
+                if (name in heat and free_vessel(name)) or (name not in heat and assembly and name in missing):
                     a = _key(actions, 'take ' + key)
                     if a:
                         return a
@@ -306,13 +372,17 @@ def choose_zoned(k, who, role):
                 f = s.get('food')
                 if s.get('counter') and key not in runner_counters and f and f['stage'] == 'clean_plate':
                     return _key(actions, 'take ' + key)
-        if dishes and _loose_all(state, 'beef') < 1:
-            return _pick(actions, 'fetch', 'fridge')
-        if assembly and 'bread' in missing:
-            return _pick(actions, 'fetch', 'bread')
-        for name in VEG:
-            if assembly and name in missing and _loose(state, name, ('raw', 'chopped')) == 0 and empty_boards:
-                return _pick(actions, 'fetch', name)
+        for item in _cooked(state, dishes, heat):
+            if _loose_all(state, item) < 1:
+                return _fetch(k, actions, item)
+        first = [item for item, _ in _recipes(state).get(dishes[0], ())] if dishes else []
+        for item in first:
+            if assembly and prep.get(item) == 'raw' and item in missing:
+                return _fetch(k, actions, item)
+        for item in first:
+            if (assembly and prep.get(item) == 'chopped' and item in missing
+                    and _loose(state, item, ('raw', 'chopped')) == 0 and empty_boards):
+                return _fetch(k, actions, item)
         return None
 
     # maker
@@ -321,7 +391,7 @@ def choose_zoned(k, who, role):
             return _pick(actions, 'serve')
         return _pick(actions, 'drop')
     if hand and hand.get('ingredient'):
-        if hand['stage'] == 'raw':
+        if hand['stage'] == 'raw' and _chopped_first(hand['ingredient'], heat, prep):
             return _pick(actions, 'put_board')
         free = [c for c in runner_counters if not st[c].get('food')]
         return throw_onto(free, assembly or stove) or pass_floor('runner', stove)
@@ -338,6 +408,7 @@ def choose_zoned(k, who, role):
     for g in state['ground']:
         f = g['food']
         if (f.get('ingredient') and not f.get('plate_id') and f['stage'] == 'raw' and empty_boards
+                and _chopped_first(f['ingredient'], heat, prep)
                 and _side(k, k.cell(g['location'])[1]) in ('maker', 'both')):
             a = _key(actions, 'pickup ' + f['id'])
             if a:
@@ -360,10 +431,10 @@ def choose_zoned(k, who, role):
 
 # --- One chef alone --------------------------------------------------------------
 # Calibration only (scripts/reference_sweep.py): the "single chef" baseline. One chef
-# takes both roles: beef work that cannot wait (fire, burnt pot to the bin, ready beef for the
-# plate, chopping and loading beef) first, then fetching beef when none is in the
-# pipeline, then the assembler's work. It is a scripted lower bound on what one chef
-# can earn, not a claim about the best solo play.
+# takes both roles: cooking work that cannot wait (fire, burnt pot to the bin, cooked food for
+# the plate, chopping and loading what a vessel cooks) first, then fetching what to cook when
+# none is in the pipeline, then the assembler's work. It is a scripted lower bound on what one
+# chef can earn, not a claim about the best solo play.
 _URGENT_COOK = ('take_tool', 'lift_pot', 'take_board', 'chop', 'put_pot', 'return_pot', 'plate_counter', 'empty_pot')
 
 
@@ -374,7 +445,7 @@ def choose_solo(k, who, role=None):
         return None
     hand = me['holding']
     if hand:
-        cookish = hand['stage'] in ('pot', 'extinguisher') or (hand.get('ingredient') == 'beef' and not hand.get('plate_id'))
+        cookish = hand['stage'] in ('pot', 'extinguisher') or (hand.get('ingredient') in _heat(state) and not hand.get('plate_id'))
         return choose(k, who, 'cook' if cookish else 'assembler')
     cook = choose(k, who, 'cook')
     if cook and cook.kind in _URGENT_COOK:
