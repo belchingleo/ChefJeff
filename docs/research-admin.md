@@ -156,9 +156,9 @@ python3 scripts/package_research_admin.py
 `game-binding.json` 固定同一次源码构建的运行模块、schema 和导出器的 SHA-256；
 只核对 `research_export.py` 一个文件不足以判断兼容性。初次安装器也核对该绑定。
 
-这个发布升级命令只认 2026-11-01 部署 25e4931 后核对过的上海实例：
-- 游戏链接和管理配置绑定的都是 `china-free-25e4931a262b`；
-- 管理台和共享数据服务都运行 `v2-818a6d7d18b0b8c1`（25e4931 的管理包）里的程序，在同一个目录；
+这个发布升级命令只认 2026-11-02 部署 377bf0b 后核对过的上海实例：
+- 游戏链接和管理配置绑定的都是 `china-free-377bf0b666f0`；
+- 管理台和共享数据服务都运行 `v2-a28df71cf538fb4c`（377bf0b 的管理包）里的程序，在同一个目录；
 - 这个目录里每个程序文件的 SHA-256 都写在 `release_upgrade.py` 里，任何一个不一致都会拒绝。
 
 激活后，管理台和共享数据服务都改用新管理包的程序目录，配置绑定到新游戏目录；
@@ -170,6 +170,11 @@ sudo python3 ~/chefjeff-admin-v2/upgrade_admin.py prepare-release --game-release
 
 准备阶段只核对代码、配置、服务单元和账号文件元信息，备份配置及服务单元，
 不打开数据库、不修改线上配置、不重启服务。未知的实例或额外修改会被拒绝。
+
+上一次升级的工作目录 `/root/chefjeff-admin-release-upgrade` 里留有它的状态和回退资料，
+准备阶段看到它就会拒绝，不会覆盖。确认上一次已经激活完成后，先把这个目录改名存档
+（例如 `sudo mv -n /root/chefjeff-admin-release-upgrade /root/chefjeff-admin-release-upgrade-<旧提交>-<日期>`），
+不要删除，再执行准备命令。
 
 激活有两个前提：上海的游戏链接已经切到新目录，并且上海游戏已经停止。
 而 `deploy/install_free_region.py activate` 切换链接后会立刻启动游戏，

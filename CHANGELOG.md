@@ -42,6 +42,7 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - Settings work on a phone opening the local game over the LAN (plain HTTP).
 
 ### Kitchen and controls
+- Your own chef keeps the direction you last steered when you stop, as in Overcooked. It used to snap back to the server's older facing for a moment, most visibly after short moves online.
 - Extinguishing as in Overcooked 2, for both chefs: spraying lowers the fire's strength, which stays on the station when you walk away, so a few short sprays add up to the 4 seconds; 2 seconds after spraying stops the fire grows back to full over 5 seconds. A red bar on the station shows what is left. The direction held when spraying starts no longer interrupts it. Ruleset: `fire.recovery_game_ms`.
 - Throw stays enabled while held, so a phone can always release an aim; throws the server refuses are journaled.
 - A second chef can join chopping or washing from any other free side, facing the first chef too, not only from a side at right angles: level 1's middle board can now be shared. Same for both chefs.
@@ -167,6 +168,7 @@ First private release: a local browser game with three playable maps and player-
 - 手机通过局域网（HTTP）打开本地版时，设置页可以正常连接模型。
 
 ### 厨房与操作
+- 松开方向键时，自己的厨师保持最后按的方向，和《胡闹厨房》一样。以前会先转回服务器那边还没更新的旧朝向，再转回来，线上短距离挪位置时最明显。
 - 灭火改成和《胡闹厨房 2》一样，两位厨师规则相同：喷会降低火势，走开后进度保留在工位上，几次短喷可以累计到 4 秒；停喷 2 秒后火会在 5 秒内长回满。工位上的红色条显示剩下多少。开始喷时摇杆还按着的方向不会打断灭火。规则集新增 `fire.recovery_game_ms`。
 - 按住「扔」时按钮不会被禁用，手机上总能松手结束瞄准；服务器拒绝的扔会留下记录。
 - 第二个人可以从任意另一侧空位加入一起切菜、洗碗，包括站在第一个人对面，不再只限于和他成直角的一侧：第一关中间的 2 号案板现在也能两人一起切。两位厨师规则相同。
