@@ -90,6 +90,24 @@ def upgrade_map(document):
     return d
 
 
+def floor_parts(cells):
+    """The orthogonally connected parts of a set of cells, largest first."""
+    parts, seen = [], set()
+    for start in sorted(cells):
+        if start in seen:
+            continue
+        part, todo = set(), [start]
+        while todo:
+            p = todo.pop()
+            if p in seen:
+                continue
+            seen.add(p)
+            part.add(p)
+            todo.extend(q for q in ((p[0]+1,p[1]),(p[0]-1,p[1]),(p[0],p[1]+1),(p[0],p[1]-1)) if q in cells and q not in seen)
+        parts.append(part)
+    return sorted(parts, key=lambda part: (-len(part), min(part)))
+
+
 def validate_map(document):
     d = copy.deepcopy(document)
     if d.get('schema_version') not in (1, 2):
@@ -140,15 +158,13 @@ def validate_map(document):
                         and not any(q in floor for q in ((p[0]+1,p[1]),(p[0]-1,p[1]),(p[0],p[1]+1),(p[0],p[1]-1))))
         if access not in floor or (not valid_corner if corner else not any(sum(abs(a-b) for a,b in zip(v,access)) == 1 for v in station.get('cells',[p]))):
             raise ValueError('Station needs adjacent reachable access')
+    # Walls may not cut the kitchen in two: nothing is passed through a wall. Counters and devices may, one
+    # chef working each side and food thrown across, so the floor itself may come in two parts.
     if floor:
-        reached, todo = set(), [next(iter(floor))]
-        while todo:
-            p = todo.pop()
-            if p in reached: continue
-            reached.add(p)
-            todo.extend(q for q in ((p[0]+1,p[1]),(p[0]-1,p[1]),(p[0],p[1]+1),(p[0],p[1]-1)) if q in floor and q not in reached)
-        if reached != floor:
-            raise ValueError('Disconnected walkable floor')
+        if len(floor_parts(floor | surfaces)) != 1:
+            raise ValueError('Walls cut the kitchen in two')
+        if len(floor_parts(floor)) > 2:
+            raise ValueError('Walkable floor in more than two parts')
     presentation = d.get('presentation', {})
     if presentation.get('theme') not in ('courtyard','street','terrace'):
         raise ValueError('Unknown environment theme')

@@ -21,7 +21,7 @@ The editor sends a design (`level_design.py`, `"format": "chefjeff-player-level-
 - the starting inventory: the extinguisher, three clean plates on counters and each stove's own pan or pot;
 - the recipes, with each ingredient in the state its cooking step gives (cooked, chopped, or as dispensed).
 
-It refuses a design whose walls cut the room in two, with other than exactly one sink, plate return and extinguisher rack, with no serving window or more than two, with fewer than three counters, or with a station that has no floor in front of it. A whole level bundle is still accepted as `{"level": …}`.
+Counters may split the room in two, one chef working each part and food thrown across ([map format](../map-format.md)); the scripted zoned pair plays such a kitchen, so it calibrates. It refuses a design whose walls cut the room in two, with other than exactly one sink, plate return and extinguisher rack, with no serving window or more than two, with fewer than three counters, or with a station that has no floor in front of it. A whole level bundle is still accepted as `{"level": …}`.
 
 A bundle is the part of a level a player controls: `level` (name, spawns, initial inventory), `map`, `order_policy` (its `menu`) and `recipe_catalog.recipes` (each dish: name, price, components). The request body may be up to 64 KB; every other command stays at 8 KB.
 

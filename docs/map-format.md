@@ -2,7 +2,7 @@
 
 Maps are UTF-8 JSON at `maps/<map-id>.json`. Levels 1–3 are included and use schema 2. `map_definition.py` loads, validates, atomically saves and extracts geometry; invalid documents cannot replace the target file.
 
-A map contains `schema_version`, `id`, `revision`, `size`, `walls`, `equipment` and optional `presentation`. Coordinates start at the top-left: x increases right, y down. Width and height must be integers from 5 to 64. Walls form a complete outer boundary without duplicate cells, and remaining walkable floor must be connected.
+A map contains `schema_version`, `id`, `revision`, `size`, `walls`, `equipment` and optional `presentation`. Coordinates start at the top-left: x increases right, y down. Width and height must be integers from 5 to 64. Walls form a complete outer boundary without duplicate cells. Walls may not cut the room in two: every cell that is not a wall is connected. Counters and other stations may, so the walkable floor is in one or two parts; with two, the engine spawns one chef in each, offers each chef only what it can reach, and food is thrown across (the configuration check requires a cell in each part within throw reach).
 
 Each station has a unique nonempty `id`, a `cell`, walkable `access`, and `facing` from `north`, `south`, `east`, `west`. Ordinary access is orthogonally adjacent; station cells cannot overlap walls or other stations.
 
@@ -78,7 +78,7 @@ To ship a map, save it with `save_map` as `maps/<id>.json`, add a level in `cont
 }
 ```
 
-坐标原点在左上角，`[x, y]` 的 x 向右、y 向下。尺寸是 `[宽, 高]`，两边都须为 5–64 的整数。`walls` 列出不可通行格，外圈边界必须完整封闭且墙格不能重复。每个工位需有唯一、非空的 `id`、不与墙或其他工位重叠的 `cell`、可通行的 `access`，以及 `north`、`south`、`east`、`west` 之一的 `facing`。普通工位的 `access` 必须与工位格四邻接。剩余可走地面必须连通。
+坐标原点在左上角，`[x, y]` 的 x 向右、y 向下。尺寸是 `[宽, 高]`，两边都须为 5–64 的整数。`walls` 列出不可通行格，外圈边界必须完整封闭且墙格不能重复。每个工位需有唯一、非空的 `id`、不与墙或其他工位重叠的 `cell`、可通行的 `access`，以及 `north`、`south`、`east`、`west` 之一的 `facing`。普通工位的 `access` 必须与工位格四邻接。墙不能把房间隔成两半：除墙以外的所有格子必须连通。柜台等设备可以把房间隔开，所以可走地面可以是一块，也可以是两块；分成两块时，两位厨师各出生在一块，引擎只给每人列出走得到的动作，东西隔着柜台扔过去（配置检查要求两块地面之间有在投掷距离内的格子）。
 
 角落柜台可使用特殊字段 `{ "reach": "corner" }`，并将 `access` 指向一个斜对角地面格。这个例外仅适用于 `counter` 前缀的柜台：两侧正交相邻格都必须是工位，柜台的四邻接位置不能有可走地面，且斜角 `access` 必须可通行。这样柜台沿用被墙占据的内角位置，玩家从指定斜角接近并操作；角落柜台和墙占据相同格位，不会额外侵占可走地面。普通工位不能用斜角访问绕过墙或隔墙。
 

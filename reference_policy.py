@@ -245,7 +245,32 @@ def _side(k, y):
     return 'runner' if (y < split) == sources_low else 'maker'
 
 
+def _runner_part(k):
+    """On a kitchen split by counters: the part of the floor by the ingredient sources, where the runner works."""
+    if '_runner_part' not in k.__dict__:
+        counts = {}
+        for e in k.equipment.values():
+            if e.get('type') == 'ingredient_source':
+                for c in k.nav.neighbors(tuple(e['cell'])):
+                    if c in k.floor_part:
+                        counts[k.floor_part[c]] = counts.get(k.floor_part[c], 0) + 1
+        k.__dict__['_runner_part'] = max(counts, key=lambda p: (counts[p], -p)) if counts else 0
+    return k.__dict__['_runner_part']
+
+
+def _cell_side(k, cell):
+    """Whose side a floor cell is on: by the split line, or by the part of a floor split by counters."""
+    if getattr(k, 'split_floor', False):
+        return 'runner' if k.floor_part.get(tuple(cell)) == _runner_part(k) else 'maker'
+    return _side(k, cell[1])
+
+
 def _station_side(k, key):
+    if getattr(k, 'split_floor', False):
+        # A counter in the dividing row is worked from both parts; it counts as the runner's.
+        e = k.equipment[key]
+        sides = {k.floor_part.get(c) for cell in e.get('cells', [e['cell']]) for c in k.nav.neighbors(tuple(cell))}
+        return 'runner' if _runner_part(k) in sides else 'maker'
     return _side(k, k.equipment[key]['access'][1])
 
 
@@ -295,11 +320,12 @@ def choose_zoned(k, who, role):
         return min(options, key=lambda a: _near(k, a.target, goal)) if options else None
 
     def pass_floor(side, goal):
-        options = [a for a in actions if a.kind == 'throw' and a.target in k.floor_places and _side(k, k.cell(a.target)[1]) == side]
+        options = [a for a in actions if a.kind == 'throw' and a.target in k.floor_places and _cell_side(k, k.cell(a.target)) == side]
         return min(options, key=lambda a: (abs(k.cell(a.target)[0] - k.equipment[goal]['access'][0])
                                            + abs(k.cell(a.target)[1] - k.equipment[goal]['access'][1]), a.target)) if options else None
 
     empty_boards = [b for b in k.boards if not st[b].get('food')]
+    split = getattr(k, 'split_floor', False)
     if hand and hand['stage'] == 'extinguisher':
         return _pick(actions, 'extinguish') or _pick(actions, 'put_tool')
     if hand and hand['stage'] == 'dirty_plate':
@@ -314,6 +340,8 @@ def choose_zoned(k, who, role):
                 return _pick(actions, 'empty_pot')
             return _pick(actions, 'return_pot')
         if hand and hand.get('plate_id') and hand.get('dish'):
+            if split and _pick(actions, 'serve'):
+                return _pick(actions, 'serve')  # the serving window is on this side
             return pass_floor('maker', 'serve') or pass_floor('both', 'serve') or _key(actions, 'go fridge')
         if hand and hand['stage'] == 'clean_plate':
             free = [c for c in runner_counters if not st[c].get('food')]
@@ -348,7 +376,7 @@ def choose_zoned(k, who, role):
                     return _pick(actions, 'lift_pot', key)
         for g in state['ground']:
             f = g['food']
-            if not (f.get('ingredient') and not f.get('plate_id') and _side(k, k.cell(g['location'])[1]) == 'runner'):
+            if not (f.get('ingredient') and not f.get('plate_id') and _cell_side(k, k.cell(g['location'])) == 'runner'):
                 continue
             name = f['ingredient']
             if ((name in heat and f['stage'] == heat[name][1] and free_vessel(name))
@@ -395,10 +423,18 @@ def choose_zoned(k, who, role):
             return _pick(actions, 'put_board')
         free = [c for c in runner_counters if not st[c].get('food')]
         return throw_onto(free, assembly or stove) or pass_floor('runner', stove)
+    if split and hand and hand['stage'] == 'clean_plate':
+        # The runner cannot reach the sink: pass a clean plate onto a counter on its side.
+        free = [c for c in runner_counters if not st[c].get('food')]
+        near = [c for c in free if k.reaches(who, c)]  # a counter in the dividing row
+        return throw_onto(free, stove) or (_key(actions, 'put ' + near[0]) if near else None)
     if hand:
         return _pick(actions, 'drop')
     if fire:
         return _pick(actions, 'take_tool')
+    sink_food = st['sink'].get('food')
+    if split and not assembly and dishes and sink_food and sink_food['stage'] == 'clean_plate':
+        return _pick(actions, 'take_sink', 'sink')
     for g in state['ground']:
         f = g['food']
         if f.get('plate_id') and f.get('dish') in dishes:
@@ -409,7 +445,7 @@ def choose_zoned(k, who, role):
         f = g['food']
         if (f.get('ingredient') and not f.get('plate_id') and f['stage'] == 'raw' and empty_boards
                 and _chopped_first(f['ingredient'], heat, prep)
-                and _side(k, k.cell(g['location'])[1]) in ('maker', 'both')):
+                and _cell_side(k, k.cell(g['location'])) in ('maker', 'both')):
             a = _key(actions, 'pickup ' + f['id'])
             if a:
                 return a
@@ -419,7 +455,8 @@ def choose_zoned(k, who, role):
             a = _pick(actions, 'chop', b)
             if a:
                 return a
-        if f and f['stage'] == 'chopped' and any(not st[c].get('food') for c in runner_counters):
+        # On a kitchen split by counters the maker can also pass it across onto the runner's floor.
+        if f and f['stage'] == 'chopped' and (any(not st[c].get('food') for c in runner_counters) or getattr(k, 'split_floor', False)):
             return _pick(actions, 'take_board', b)
     sink = st['sink'].get('food')
     if sink and sink['stage'] == 'dirty_plate':

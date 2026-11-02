@@ -3,7 +3,7 @@ from functools import lru_cache
 import math
 import random
 from kitchen import Kitchen, Action, Station, NAMES, TAKE_KINDS, Job, GroundItem, STATES, engine_input
-from map_definition import geometry
+from map_definition import floor_parts, geometry
 from navigation import WALK_CLEARANCE, Navigation, contact_fraction
 FACING_STEPS = {'up':(0,-1),'down':(0,1),'left':(-1,0),'right':(1,0)}
 # Jeff throws along the player's eight aim directions, always to full reach (see aimed_throw).
@@ -76,6 +76,10 @@ class SpatialKitchen(Kitchen):
                                  tuple(sorted((key+':'+str(i),tuple(c)) for key,e in self.equipment.items() for i,c in enumerate(e.get('cells',[e['cell']])))),
                                  self.rules.cabinet_clearance)
         self.floor=self.nav.floor
+        # Counters may split the floor in two (map_definition.validate_map): one chef works each part and
+        # food is thrown across. On a kitchen in one piece every station is in reach, as before.
+        self.floor_part={cell:n for n,part in enumerate(floor_parts(set(self.floor))) for cell in part}
+        self.split_floor=len(set(self.floor_part.values()))>1
         self.sprint_until={who:0. for who in self.chefs}
         self.sprint_ready_at={who:0. for who in self.chefs}
         self.nudged_distance={who:{} for who in self.chefs}
@@ -88,6 +92,11 @@ class SpatialKitchen(Kitchen):
         spawns = [min((c for c in self.floor if (c[axis]<split)==(center[axis]<split)),
                       key=lambda c:(math.dist(c,center),c[1-axis],c[axis]))
                   for center in (tuple(center) for center in spec['centers'])]
+        if self.split_floor:
+            # One chef in each part of the floor, near the middle of it.
+            parts = [[c for c in self.floor if self.floor_part[c]==n] for n in (0,1)]
+            spawns = [min(part, key=lambda c, part=part: (math.dist(c, (sum(p[0] for p in part)/len(part), sum(p[1] for p in part)/len(part))), c[1], c[0]))
+                      for part in parts]
         random.Random(self.resolved['seeds']['spawn']).shuffle(spawns)
         self.positions = dict(zip(('human','jeff'),spawns))
         for who in self.chefs:self.chefs[who].location=tile_key(self.positions[who])
@@ -493,6 +502,20 @@ class SpatialKitchen(Kitchen):
         p = self.positions[who]
         return min(self.floor, key=lambda c: (math.dist(c, p), c[1], c[0]))
 
+    def reaches(self, who, target):
+        """Whether the chef can walk to work ``target`` (a station or a floor place) from the part of the floor it stands on."""
+        if not self.split_floor or target is None:
+            return True
+        mine = self.floor_part.get(self.anchor(who))
+        if target in self.equipment:
+            e = self.equipment[target]
+            sides = ([tuple(e['access'])] if e.get('reach') == 'corner'
+                     else [n for c in e.get('cells', [e['cell']]) for n in self.nav.neighbors(tuple(c))])
+            return any(self.floor_part.get(c) == mine for c in sides)
+        if target in self.floor_places:
+            return self.floor_part.get(self.cell(target)) == mine
+        return True
+
     @property
     def at_walk_limit(self):
         return bool(self.rules.operate_at_walk_limit and self.rules.cabinet_clearance)
@@ -521,6 +544,10 @@ class SpatialKitchen(Kitchen):
                 return [self.positions[who]]
             access=[station['access']] if station.get('reach')=='corner' else sorted({n for c in station.get('cells',[station['cell']]) for n in self.nav.neighbors(c)})
             if shared is not None and shared:access=shared
+            if self.split_floor:
+                # Only the sides on this chef's part of the floor (a dividing counter has one on each).
+                mine=self.floor_part.get(self.anchor(who))
+                access=[cell for cell in access if self.floor_part.get(tuple(cell))==mine] or access
             other='jeff' if who=='human' else 'human'
             taken=[self.positions[other]]+([self.routes[other]['points'][-1]] if self.routes.get(other) else [])
             free=[cell for cell in access if all(math.dist(self.operation_point(target,cell),p)>=CHEF_SEPARATION for p in taken)]
@@ -808,7 +835,7 @@ class SpatialKitchen(Kitchen):
                                         and self.nav.clear_walk_line(self.positions[who],self.positions[other]))))
 
     def actions(self, who):
-        actions = [a for a in super().actions(who) if a.kind != 'drop']
+        actions = [a for a in super().actions(who) if a.kind != 'drop' and (a.kind == 'throw' or self.reaches(who, a.target))]
         actions = [a for a in actions if not (a.kind in ('put_board','put_counter','put_pot') and self.board_reserved(a.target))]
         actions = [a for a in actions if not (a.kind in ('chop','wash')
                    and self.shared_access(who,a.target)==[])]
@@ -852,6 +879,8 @@ class SpatialKitchen(Kitchen):
                     action = Action(f'go {key}', f'走到{self.place(key).name}', 'go', key)
                     if not chef.job or chef.job.action.key != action.key:
                         actions.append(action)
+        if self.split_floor:
+            actions = [a for a in actions if a.kind == 'throw' or self.reaches(who, a.target)]
         return actions
 
     @engine_input
@@ -1027,8 +1056,9 @@ class SpatialKitchen(Kitchen):
                 if sum(math.dist(x,y) for x,y in zip(route,route[1:]))>1.5:continue
             nearby.append((round(distance,5),priority[a.kind],a.key,a))
         closest=min(nearby,key=lambda row:row[:3]) if nearby else None
-        if self.interaction_hint(who) and (not preferred or preferred=='serve'):
-            distance=math.dist(self.positions[who],self.interaction_cell(who,'serve'))
+        serve=self.nearest_serve(who)
+        if serve and self.interaction_hint(who) and (not preferred or preferred in self.serves):
+            distance=math.dist(self.positions[who],self.interaction_cell(who,serve))
             if closest is None or distance<=closest[0]+1e-5:return None
         if closest:return closest[3]
         if kinds or (preferred and not preferred.startswith('floor_')):return None
@@ -1054,6 +1084,11 @@ class SpatialKitchen(Kitchen):
         aim=other if 0<ahead<=reach and side<=self.rules.catch_radius else (x+dx*reach,y+dy*reach)
         return self.throw_action(who,aim,key=key,toward=toward)
 
+    def nearest_serve(self, who):
+        """The serving window this chef would walk to: the nearest one it can reach, else None."""
+        return min((s for s in self.serves if self.reaches(who, s)),
+                   key=lambda s: (math.dist(self.positions[who], self.interaction_cell(who, s)), s), default=None)
+
     def interaction_hint(self, who, preferred=None):
         if preferred and preferred.startswith('floor_'):return '面前没有可操作目标'
         if preferred in self.stations:
@@ -1062,12 +1097,14 @@ class SpatialKitchen(Kitchen):
             if (plate and plate.plate_id and held and not held.plate_id and held.ingredient
                     and held.ingredient in self.parts(plate)):
                 return f'盘里已经有{self.rules.component_labels.get(held.ingredient,held.ingredient)}了'
-        if preferred and preferred!='serve':return '选中目标暂不可操作，请靠近或检查物品状态'
+        if preferred and preferred not in self.serves:return '选中目标暂不可操作，请靠近或检查物品状态'
         hand=self.chefs[who].hand
         if not hand or not hand.plate_id or self.dish(hand):return '选中目标暂不可操作，请靠近或检查物品状态' if preferred else None
-        target=self.interaction_cell(who,'serve')
+        serve=preferred if preferred in self.serves else self.nearest_serve(who)
+        if serve is None:return None
+        target=self.interaction_cell(who,serve)
         if math.dist(self.positions[who],target)>1.5:return '请靠近选中的出餐口' if preferred else None
-        route=self.path(who,'serve')
+        route=self.path(who,serve)
         if sum(math.dist(a,b) for a,b in zip(route,route[1:]))>1.5:return None
         missing=self.rules.missing(self.parts(hand))
         return '暂不能出餐，还缺：'+'、'.join(self.rules.component_labels[x] for x in missing)
