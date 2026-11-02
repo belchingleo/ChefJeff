@@ -5,7 +5,7 @@ import { KitchenAudio } from './KitchenAudio';
 import { levelButtonLayout, GRID_ART, stationView, cabinetModule, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, floorItemDepth, workingChefDepth, flightDepth, predictWalk, spaceTarget, segmentDistance, plateLayers, heatCountdown, behindCounter, throwPose, throwDiagonal, throwItemPoint, panHandleSide } from './KitchenGeometry';
 const { ccclass } = _decorator;
 type Action = { key: string; label: string; kind: string; target: string; expected: unknown[] };
-type KitchenState = { game_id: string; state_seq?: number; phase: string; speed: number; kitchen: any; actions: Action[]; levels?:any[]; limits?:any; capacity?:any; release?:any; interaction?:Action; use_interaction?:Action; interaction_hint?:string; interaction_focus?:string; interaction_cell?:number[];
+type KitchenState = { game_id: string; state_seq?: number; phase: string; speed: number; kitchen: any; actions: Action[]; levels?:any[]; limits?:any; capacity?:any; release?:any; player_level?:any; interaction?:Action; use_interaction?:Action; interaction_hint?:string; interaction_focus?:string; interaction_cell?:number[];
     events: {t:number; message:string; kind?:string}[]; ai: {thinking:boolean; error:string|null}; won:boolean; aborted?:boolean; round_summary?:any; rules?:Record<string,number>; connection?:any; memory?:any; communication?:any; hosted?:any };
 type ChefMotion = {body:Node; leftLeg:Node; rightLeg:Node; leftArm:Node; rightArm:Node; knife:Node; facing:string; step:number};
 type PotEffects = {steam:Node; smoke:Node; fire:Node; ready:Node};
@@ -425,8 +425,8 @@ export class KitchenClient extends Component {
     private touchOrder(order:any){
         const dish=this.dishById(order.dish),ingredients:string[]=order.ingredients||dish?.components?.map((c:any)=>c.item)||[];
         const patienceTotal=order.patience||this.state?.rules?.order_patience||90;
-        const recipeKey=[`dishes/${order.dish}/ready`,`food/${order.dish}_ready`].find(key=>this.art.has(key));
-        return {...order,dishName:dish?.name||order.dish,patienceTotal,
+        const recipeKey=this.dishIcon(dish||{id:order.dish});
+        return {...order,dishName:dish?.name||order.dish,ownName:!!dish?.own,patienceTotal,
             patienceRemainingFraction:Math.max(0,Math.min(1,(order.remaining||0)/patienceTotal)),
             recipeIcon:recipeKey?this.art.spriteInfo(recipeKey):null,
             ingredientDetails:ingredients.map(id=>{
@@ -902,7 +902,17 @@ export class KitchenClient extends Component {
     private labelSources=new WeakMap<Label,string>();
     private writeLabel(label:Label,value:string){
         this.labelSources.set(label,value);
-        label.string=!sys.isNative?(window as any).kitchenI18n?.t(value)??value:value;
+        label.string=this.translate(value);
+    }
+    /** Page text in the chosen language. A player's own dish names are free text, not catalog words, so they
+     * stay as written: each is held out of the translation by a private-use mark and put back after it. */
+    private translate(text:string){
+        const i18n=(window as any).kitchenI18n;if(sys.isNative||!i18n)return text;
+        const kept:string[]=[];let marked=text;
+        if(i18n.language==='en')for(const name of (Object.values(this.state?.player_level?.names||{}) as string[]).sort((a,b)=>b.length-a.length))
+            if(name&&marked.includes(name)){marked=marked.split(name).join('\uE000'+kept.length+'\uE001');kept.push(name);}
+        const out=i18n.t(marked)??marked;
+        return kept.length?out.replace(/\uE000(\d+)\uE001/g,(_:string,n:string)=>kept[Number(n)]):out;
     }
     private onLanguage=()=>{
         this.clearInput();
@@ -982,7 +992,17 @@ export class KitchenClient extends Component {
         if(stage==='burnt')return FOOD_COLORS.burnt;
         return this.itemDef(item)?.color||FOOD_COLORS[stage]||FOOD_COLORS.ready;
     }
-    private dishById(id:string|undefined):any{return id?(this.state?.kitchen.dishes||this.state?.kitchen.menu||[]).find((d:any)=>d.id===id):undefined;}
+    private dishById(id:string|undefined):any{return id?this.shownDish((this.state?.kitchen.dishes||this.state?.kitchen.menu||[]).find((d:any)=>d.id===id)):undefined;}
+    /** A dish as the page shows it. On a player's level: the player's own name, and the official dish with the
+     * same components whose picture it borrows (player_level); the engine's id and English name stay for Jeff. */
+    private shownDish(d:any):any{
+        const p=this.state?.player_level;if(!d||!p)return d;
+        return {...d,name:p.names?.[d.id]||d.name,own:!!p.names?.[d.id],look:p.looks?.[d.id]};
+    }
+    /** The plated picture a finished dish is drawn with (ready and burnt frames), when one exists. */
+    private dishPicture(d:any):string|null{const id=d?.look||d?.id;return id&&this.art.has(`dishes/${id}/ready`)?id:null;}
+    /** A whole-dish icon for tickets and the level plate: its plated frame, else its food frame (the burger). */
+    private dishIcon(d:any):string|undefined{const id=d?.look||d?.id;return id?[`dishes/${id}/ready`,`food/${id}_ready`].find(key=>this.art.has(key)):undefined;}
     /** The menu dish a plate is heading for: one whose components include every item on it. */
     private targetDish(components:string[]):any{
         return (this.state?.kitchen.menu||[]).find((d:any)=>components.every(x=>d.components?.some((c:any)=>c.item===x)));
@@ -1163,14 +1183,15 @@ export class KitchenClient extends Component {
         const same=(d:any)=>Array.from(new Set((d.components||[]).map((c:any)=>c.item))).sort().join()===items;
         // The menu decides first; a servable dish that is off this level's menu still gets its plate art.
         const dish=(this.state?.kitchen.menu||[]).find(same)||(this.state?.kitchen.dishes||[]).find(same);
-        return dish&&!dish.plating?dish:undefined;
+        return dish&&!dish.plating?this.shownDish(dish):undefined;
     }
     private itemStage(f:any){
         // Vessels (any kind) carry their contents; the kind comes from the server.
         // Only real vessels: in-flight items always carry a contents field, null unless they are one.
         if(f&&(f.vessel||f.contents))return `vessel:${f.vessel||''}`+(f.contents?.ingredient?`:${f.contents.ingredient}:${f.contents.stage}`:'');
         if(f?.plate_id&&this.plateItems(f).length){
-            const whole=this.wholeDish(f);if(whole)return `dish:${whole.id}:${f.stage}`;
+            // A whole dish with a picture of its own (or borrowed by a player's dish); otherwise its layers on the plate.
+            const picture=this.dishPicture(this.wholeDish(f));if(picture)return `dish:${picture}:${f.stage}`;
             // Burnt plates keep their layers (burnt dishes can be served); items that burn are drawn charred.
             return 'assembly:'+this.plateItems(f).join(',')+(f.stage==='burnt'?',burnt':'');
         }
@@ -1976,7 +1997,7 @@ export class KitchenClient extends Component {
         return note?.message.startsWith('Jeff 请求失败')?'Jeff 暂时连不上，正在重试':'';
     }
     // Keeps the screen-reader proxies in step with the visible canvas buttons.
-    private tr(text:string){return !sys.isNative?(window as any).kitchenI18n?.t(text)??text:text;}
+    private tr(text:string){return this.translate(text);}
     /** Free-model status in the prototype's three words; only what the server reports, never "free to use" by default. */
     // Opening waits a frame: the click that opens it must not also reach the new shade and close it.
     private toggleFreeMenu(){if(this.freeMenu?.active)this.closeFreeMenu();else this.scheduleOnce(()=>this.openFreeMenu(),0);}
@@ -2063,7 +2084,7 @@ export class KitchenClient extends Component {
         const dishes=(k.menu||[]).slice(0,2);
         for(const [j,id] of ['level-dish','level-dish-2'].entries()){
             const n=this.cover.getChildByName(id)!,d=dishes[j];on(n,plate&&!!d);if(!d)continue;
-            const key=[`dishes/${d.id}/ready`,`food/${d.id}_ready`].find(x=>this.art.has(x)),size=dishes.length>1?44:60;
+            const key=this.dishIcon(this.shownDish(d)),size=dishes.length>1?44:60;
             n.getComponent(Graphics)!.clear();if(!(key&&this.useArt&&this.art.centered(n,key,size,size)))this.drawIcon(n.getComponent(Graphics)!,'vessel');
         }
         const dishW=dishes.length>1?72:64,placeDishes=(x:number,y:number)=>{

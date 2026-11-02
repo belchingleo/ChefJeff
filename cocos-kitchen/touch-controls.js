@@ -315,7 +315,8 @@
       const rail = el('touch-orders'), ids = orders.map(order => String(order.id));
       for (const [id, row] of orderNodes) if (!ids.includes(id)) { row.ticket.remove(); orderNodes.delete(id); }
       for (const order of orders) {
-        const id = String(order.id), name = t(String(order.dishName || order.dish || ''));
+        // A player's own dish name is shown as written, never translated.
+        const id = String(order.id), name = order.ownName ? String(order.dishName) : t(String(order.dishName || order.dish || ''));
         let row = orderNodes.get(id);
         if (!row) {
           const ticket = document.createElement('article'); ticket.className = 'touch-order'; ticket.dataset.orderId = id;

@@ -62,7 +62,33 @@ def display_name(value):
     return text if 1 <= len(text) <= DISPLAY_NAME_LENGTH else None
 
 
-def _dishes(recipes, given, problems):
+def _wraps(release_recipes):
+    """{item: (bottom layer, top layer)} for an item an official plating lays twice, around the rest (the
+    burger's bread, as its bun)."""
+    wraps = {}
+    for key in sorted(release_recipes):
+        layers = release_recipes[key].get('plating') or []
+        for item in sorted({layer['item'] for layer in layers}):
+            own = [layer['layer'] for layer in layers if layer['item'] == item]
+            if len(own) > 1:
+                wraps.setdefault(item, (own[0], own[-1]))
+    return wraps
+
+
+def plating(parts, wraps):
+    """How the page stacks a player's dish, or None to stack it as it comes: an item the release lays twice
+    wraps the rest, bottom first and top last, and every other part is one layer of its own. Display only:
+    Jeff's input leaves plating out (jev.model_kitchen)."""
+    items = [p['item'] for p in parts]
+    outer = [item for item in items if item in wraps]
+    if not outer:
+        return None
+    return ([{'layer': wraps[item][0], 'item': item} for item in outer]
+            + [{'layer': item, 'item': item} for item in items if item not in wraps]
+            + [{'layer': wraps[item][1], 'item': item} for item in reversed(outer)])
+
+
+def _dishes(recipes, given, problems, wraps=None):
     """The player's dishes renamed dish_1, dish_2... and named by their components (owner decision 2026-11-01:
     Jeff reads dish ids and names, and must see the components in English, never a player's text), plus
     {old id: new id} and {new id: the player's name}. ``given`` holds names an earlier pass kept, so a
@@ -83,9 +109,25 @@ def _dishes(recipes, given, problems):
         components = [{'item': p['item'], 'state': p['state'], 'label': component_name(p)} for p in parts]
         name = ' + '.join(c['label'] for c in components)
         dishes[new] = {'name': name, 'container': 'plate', 'price': price, 'components': components}
+        layers = plating(parts, wraps or {})
+        if layers:
+            dishes[new]['plating'] = layers
         renamed[dish] = new
         names[new] = display_name(given.get(dish)) or display_name(recipe.get('name')) or name
     return dishes, renamed, names
+
+
+def official_looks(level, registry=None):
+    """{dish id: official recipe id} for each of a player's dishes made of exactly an official dish's components
+    (items and states), so the page draws it with that dish's picture (owner decision 2026-11-02: the release's
+    art style). Only the page reads it; the game's rules and Jeff's input do not change."""
+    official = cc.level_bundle(RELEASE_LEVEL, registry, embed=True)['recipe_catalog']['recipes']
+    parts = lambda recipe: frozenset((c['item'], c['state']) for c in recipe['components'])
+    by_parts = {}
+    for key in sorted(official):
+        by_parts.setdefault(parts(official[key]), key)
+    return {dish: by_parts[parts(recipe)] for dish, recipe in level['recipe_catalog']['recipes'].items()
+            if parts(recipe) in by_parts}
 
 
 def normalize(bundle, registry=None):
@@ -105,7 +147,8 @@ def normalize(bundle, registry=None):
     for kind in ('ruleset', 'equipment_catalog'):
         out[kind] = copy.deepcopy(release[kind])
     given = (out['recipe_catalog'].get('extensions') or {}).get(DISPLAY_NAMES)
-    dishes, renamed, names = _dishes(recipes, given if isinstance(given, dict) else {}, problems)
+    dishes, renamed, names = _dishes(recipes, given if isinstance(given, dict) else {}, problems,
+                                     _wraps(release['recipe_catalog']['recipes']))
     if problems:
         return None, problems
     catalog = copy.deepcopy(release['recipe_catalog'])

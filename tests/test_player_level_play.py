@@ -102,7 +102,9 @@ class LocalPlayTests(unittest.TestCase):
         status, _ = self.command('/api/player-level/play', {'job': reply['job']})
         self.assertEqual(status, 200)
         state = self.call('GET', '/api/state')[1]
+        # The page shows the player's names, and the official noodle dishes' pictures for the same components.
         self.assertEqual(state['player_level'], {'id': reply['content_id'], 'names': {'dish_1': '红烧牛肉面！', 'dish_2': '鸡丝面'},
+                                                 'looks': {'dish_1': 'beef_noodles', 'dish_2': 'chicken_noodles'},
                                                  'target': 150, 'solo_reaches_target': False})
         self.assertEqual(state['kitchen']['goal_status']['target_money'], 150)
         self.assertEqual(state['kitchen']['level'], None)

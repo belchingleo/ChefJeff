@@ -274,6 +274,7 @@ class GameSession:
                     'round_summary': self.round_record() if self.phase == 'ended' else None,
                     'levels': available_levels(),
                     'player_level': {'id': self.k.resolved['level']['id'], 'names': self.player_level['names'],
+                                     'looks': self.player_level['looks'],
                                      **{key: self.player_level['report'][key] for key in ('target', 'solo_reaches_target')}}
                                     if self.player_level else None,
                     'rules': {key:self.c[key] for key in ('chop_seconds', 'cook_seconds', 'burn_after_ready',
@@ -727,10 +728,10 @@ def player_level_entry(found):
     level, report = found
     if not report.get('playable'):
         return None, (409, {'error': '这张关卡算下来不能玩。'})
-    from level_calibration import DISPLAY_NAMES, finalize
+    from level_calibration import DISPLAY_NAMES, finalize, official_looks
     from player_level_queue import summary
     return {'config': finalize(level, report), 'report': summary(report),
-            'names': level['recipe_catalog']['extensions'][DISPLAY_NAMES]}, None
+            'names': level['recipe_catalog']['extensions'][DISPLAY_NAMES], 'looks': official_looks(level)}, None
 
 
 class Handler(BaseHTTPRequestHandler):

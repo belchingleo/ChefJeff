@@ -99,6 +99,28 @@ class BuildTests(unittest.TestCase):
         self.assertIn('STATION_UNREACHABLE', codes(level_design.bundle(design(stations=stations + [{'type': 'bin', 'x': 0, 'y': 3}]))[1]))
 
 
+class LookTests(unittest.TestCase):
+    def test_a_players_dish_borrows_the_picture_of_the_official_dish_with_its_components(self):
+        dishes = DESIGN['dishes'] + [{'name': '单煎牛排', 'price': 60, 'items': ['beef']},
+                                     {'name': '番茄生菜', 'price': 50, 'items': ['tomato', 'lettuce']}]
+        level, problems = level_design.bundle(design(dishes=dishes))
+        self.assertEqual(problems, [])
+        normalized, _ = lc.normalize(level)
+        # 红烧牛肉面 and 鸡丝面 are the noodle dishes, the beef alone is the steak; the salad half matches nothing.
+        self.assertEqual(lc.official_looks(normalized), {'dish_1': 'beef_noodles', 'dish_2': 'chicken_noodles', 'dish_3': 'steak'})
+
+    def test_bread_wraps_a_players_dish_as_the_burgers_bun(self):
+        dishes = DESIGN['dishes'] + [{'name': '芝士牛肉堡', 'price': 90, 'items': ['beef', 'bread', 'cheese']}]
+        level, _ = level_design.bundle(design(dishes=dishes, stations=DESIGN['stations'] + [
+            {'type': 'ingredient_source', 'x': 0, 'y': 2, 'item': 'bread'}, {'type': 'ingredient_source', 'x': 0, 'y': 7, 'item': 'cheese'}]))
+        normalized, problems = lc.normalize(level)
+        self.assertEqual(problems, [])
+        recipes = normalized['recipe_catalog']['recipes']
+        self.assertEqual([layer['layer'] for layer in recipes['dish_3']['plating']], ['bun_bottom', 'beef', 'cheese', 'bun_top'])
+        self.assertNotIn('plating', recipes['dish_1'])  # a dish without bread keeps its whole-dish picture
+        self.assertEqual(lc.normalize(normalized)[0], normalized)
+
+
 class SubmitTests(unittest.TestCase):
     def test_the_local_page_submits_a_design(self):
         server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
