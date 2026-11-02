@@ -364,7 +364,7 @@ export class KitchenClient extends Component {
             levels:()=>this.openCoverMenu('levels'),more:()=>this.openCoverMenu('more'),
             alt:()=>this.controlButton('next-alt'),step:(d:number)=>this.stepLevel(d),custom:()=>this.openConnection('custom'),
             freeModels:()=>this.coverEvent('kitchen-open-free-models'),
-            sprite:(key:string)=>this.art?.spriteInfo(key)||null,
+            sprite:(key:string)=>this.art?.spriteInfo(key)||null,translate:(text:string)=>this.translate(text),
             level:(id:string)=>{if(this.connected&&!this.pending&&['ready','ended'].includes(this.state?.phase||'')&&this.state?.levels?.some((l:any)=>l.id===id))return this.post('/api/level',{level:id});},
             language:()=>{const i18n=(window as any).kitchenI18n;i18n?.setLanguage(i18n.language==='en'?'zh':'en');}
         };
@@ -911,6 +911,7 @@ export class KitchenClient extends Component {
     /** Page text in the chosen language. A player's own dish names are free text, not catalog words, so they
      * stay as written: each is held out of the translation by a private-use mark and put back after it. */
     private translate(text:string){
+        text=this.ownNames(text);
         const i18n=(window as any).kitchenI18n;if(sys.isNative||!i18n)return text;
         const kept:string[]=[];let marked=text;
         const own=[this.state?.player_level?.name,...Object.values(this.state?.player_level?.names||{})].filter(Boolean) as string[];
@@ -918,6 +919,16 @@ export class KitchenClient extends Component {
             if(name&&marked.includes(name)){marked=marked.split(name).join('\uE000'+kept.length+'\uE001');kept.push(name);}
         const out=i18n.t(marked)??marked;
         return kept.length?out.replace(/\uE000(\d+)\uE001/g,(_:string,n:string)=>kept[Number(n)]):out;
+    }
+    /** On a player's level the engine names each dish by its English components, which Jeff reads; the page
+     * shows the player's own name in those lines instead (orders, serving, hints). The longest name goes first,
+     * so a dish whose name sits inside another's is not split. */
+    private ownNames(text:string){
+        const p=this.state?.player_level;if(!p?.names||!text)return text;
+        const pairs=((this.state?.kitchen?.dishes||this.state?.kitchen?.menu||[]) as any[]).map(d=>[d.name,p.names[d.id]] as string[])
+            .filter(([engine,own])=>engine&&own).sort((a,b)=>b[0].length-a[0].length);
+        for(const [engine,own] of pairs)if(text.includes(engine))text=text.split(engine).join(own);
+        return text;
     }
     private onLanguage=()=>{
         this.clearInput();

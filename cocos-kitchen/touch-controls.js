@@ -105,7 +105,8 @@
     document.body.appendChild(portrait);
 
     const el = id => document.getElementById(id);
-    const t = text => window.kitchenI18n?.t(text) || text;
+    // The kitchen's own translation where it is ready: it also shows a player's dish names as written.
+    const t = text => window.kitchenControls?.translate ? window.kitchenControls.translate(text) : window.kitchenI18n?.t(text) || text;
     const text = (id, value) => { const n = el(id); const next = t(String(value ?? '')); if (n.textContent !== next) n.textContent = next; };
     const stick = el('touch-stick'), joystick = el('touch-joystick'), action = el('touch-action'), dash = el('touch-dash');
     const toss = el('touch-toss');
