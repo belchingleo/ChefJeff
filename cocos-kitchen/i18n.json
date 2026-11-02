@@ -1068,7 +1068,19 @@
     "编辑这张关卡": "Edit this level",
     "一个人也能过": "one player can pass",
     "需要两个人配合": "needs both chefs",
-    "Enter 开始": "Enter Start"
+    "Enter 开始": "Enter Start",
+    "测试": "Test",
+    "测试功能，不是正式玩法，以后可能调整。": "A test feature, not part of the regular game; it may change.",
+    "沟通 · 1–6 / 点击（测试功能）": "Communicate · 1–6 / Click (test feature)",
+    "这是测试中的功能，不是正式玩法，以后可能调整。打开左下角沟通菜单，点击偏好即可发送；“你做错了”是独立的红色描边按钮。也可按 1–5 表达偏好、按 6 纠错。共用 5 个实际秒冷却，暂停时也可发送。最新偏好只在本局有效；AI 在下一次正常请求中收到，自行判断如何配合，不强制分工或停止动作。纠错附带当时动作信息，但不指定正确答案。": "This is a test feature, not part of the regular game; it may change. Click a preference in the bottom-left menu, or the separate red-outlined correction button. Shortcuts: 1–5 for preferences, 6 for correction. All share a 5-real-second cooldown; messages also work while paused. The latest preference applies only to this round. The AI receives it in its next regular request and decides how to cooperate; jobs and roles are not forced. Corrections include action context, not a prescribed solution.",
+    "这是测试中的功能，不是正式玩法，以后可能调整。打开左下角沟通菜单，点击即可告诉 AI 由你来做哪类工作；“你做错了”是独立的红色描边按钮。也可按 1–5 说明分工、按 6 纠错。共用 5 个实际秒冷却，暂停时也可发送。最新的说明只在本局有效；AI 在下一次正常请求中收到，自行判断如何配合，不强制分工或停止动作。纠错附带当时动作信息，但不指定正确答案。": "This is a test feature, not part of the regular game; it may change. In the bottom-left menu, click to tell the AI which work you will do, or use the separate red-outlined correction button. Shortcuts: 1–5 to say who does what, 6 for correction. All share a 5-real-second cooldown; messages also work while paused. The latest message applies only to this round. The AI receives it in its next regular request and decides how to cooperate; jobs and roles are not forced. Corrections include action context, not a prescribed solution.",
+    "我来备菜": "I'll prep ingredients",
+    "我来烹饪": "I'll cook",
+    "我来摆盘": "I'll plate",
+    "我来传菜": "I'll carry / serve",
+    "我来洗盘子": "I'll wash dishes",
+    "还没说分工": "No split said yet",
+    "玩自制关卡时：这张关卡的完整设计，包括你起的关卡名和菜名": "When you play a level you made: its full design, including the level and dish names you gave it"
   },
   "templates": [
     [
@@ -1954,6 +1966,10 @@
     [
       "Enter 开始 · 搭档：{0}",
       "Enter Start · Teammate: {0}"
+    ],
+    [
+      "已说：{0}",
+      "Said: {0}"
     ]
   ]
 }

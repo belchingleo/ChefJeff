@@ -21,7 +21,8 @@ ENDPOINT = "https://api.typesafe.ai/v1/systemone"
 # v4: plain English input with clear chef names and fewer duplicate choices.
 # v5: a plate's missing components name the state they are needed in ("tomato (chopped)").
 # v6: memory summaries distinguish historical work/messages from current roles and preferences.
-AGENT_RULES_VERSION = "rules-v6"
+# v7: the human's preference messages say who will do the work ("Chef human will do the cooking.").
+AGENT_RULES_VERSION = "rules-v7"
 
 
 def load_key():

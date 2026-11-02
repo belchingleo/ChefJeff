@@ -33,12 +33,14 @@ IDLE_TICK_SECONDS = 1.
 # Gameplay commands whose reply carries the resulting state.
 STATE_REPLIES = ('/api/interact', '/api/throw', '/api/action')
 
+# The human's 1-5 say who will do the work (owner decision 2026-10-30, rules-v7): in a replay of Jev's
+# choices the first-person "I prefer cooking." made Jeff likelier to do the very work the human claimed.
 PLAYER_MESSAGES = {
-    'prep': 'I prefer preparing ingredients.',
-    'cook': 'I prefer cooking.',
-    'plate': 'I prefer plating and assembling dishes.',
-    'deliver': 'I prefer carrying ingredients and dishes between stations and serving customers.',
-    'wash': 'I prefer washing dishes.',
+    'prep': 'Chef human will prepare the ingredients.',
+    'cook': 'Chef human will do the cooking.',
+    'plate': 'Chef human will plate and assemble the dishes.',
+    'deliver': 'Chef human will carry ingredients and dishes between stations and serve customers.',
+    'wash': 'Chef human will wash the dishes.',
     'mistake': 'You made a mistake. Please reassess your recent or current action.'
 }
 

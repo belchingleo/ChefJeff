@@ -77,7 +77,7 @@ class VesselTests(unittest.TestCase):
         k.positions['human'] = k.path('human', 'serve')[-1]
         self.assertTrue(k.command('human', 'serve')[0])
         k.advance(2)
-        self.assertEqual((k.served, k.money), (1, 70))
+        self.assertEqual((k.served, k.money), (1, 90))
 
     def test_only_a_passed_vessel_is_marked_as_one_in_flight(self):
         k = self.k

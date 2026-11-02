@@ -19,7 +19,7 @@
   },
   "recipe_catalog_ref": {
     "id": "chefjeff-service",
-    "version": 2
+    "version": 3
   },
   "order_policy_ref": {
     "id": "level-1",

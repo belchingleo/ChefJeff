@@ -2,7 +2,7 @@
   "schema_version": 1,
   "kind": "recipe_catalog",
   "id": "chefjeff-service",
-  "version": 2,
+  "version": 3,
   "name": "ChefJeff service menu",
   "items": {
     "beef": {
@@ -357,10 +357,10 @@
       "container": "pan",
       "from": "chopped",
       "to": "ready",
-      "work_game_ms": 12000,
+      "work_game_ms": 9000,
       "overcook": {
         "state": "burnt",
-        "after_done_game_ms": 10000,
+        "after_done_game_ms": 8000,
         "fire_after_overcook_game_ms": 8000
       }
     },
@@ -371,10 +371,10 @@
       "container": "pot",
       "from": "raw",
       "to": "ready",
-      "work_game_ms": 12000,
+      "work_game_ms": 16000,
       "overcook": {
         "state": "burnt",
-        "after_done_game_ms": 10000,
+        "after_done_game_ms": 13000,
         "fire_after_overcook_game_ms": 8000
       }
     }
@@ -444,7 +444,7 @@
     "beef_noodles": {
       "name": "牛肉拌面",
       "container": "plate",
-      "price": 70,
+      "price": 90,
       "components": [
         {
           "item": "noodles",
@@ -466,7 +466,7 @@
     "chicken_noodles": {
       "name": "鸡肉拌面",
       "container": "plate",
-      "price": 70,
+      "price": 90,
       "components": [
         {
           "item": "noodles",
@@ -510,7 +510,7 @@
     "cheeseburger": {
       "name": "芝士汉堡",
       "container": "plate",
-      "price": 85,
+      "price": 80,
       "components": [
         {
           "item": "bread",
