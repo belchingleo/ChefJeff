@@ -1063,7 +1063,12 @@
     "没能换到这张关卡。": "Could not switch to this level.",
     "厨房还没连上，请稍等再试。": "The kitchen is not connected yet; try again in a moment.",
     "出餐口和脏盘回收要贴着外墙摆": "Serving windows and the plate return go against the outer wall",
-    "按住拖动能连续摆；在同种设备上再点一下就擦掉；选「擦除」能拖着成片擦。外圈是墙，不能放东西；出餐口和脏盘回收只能贴着外墙摆。里面也可以画墙。": "Drag to place in a row; click a station of the kind you hold again to remove it; with Erase, drag to clear an area. The outer wall is wall and holds nothing; serving windows and the plate return go only against it. You can draw walls inside too."
+    "按住拖动能连续摆；在同种设备上再点一下就擦掉；选「擦除」能拖着成片擦。外圈是墙，不能放东西；出餐口和脏盘回收只能贴着外墙摆。里面也可以画墙。": "Drag to place in a row; click a station of the kind you hold again to remove it; with Erase, drag to clear an area. The outer wall is wall and holds nothing; serving windows and the plate return go only against it. You can draw walls inside too.",
+    "自制关卡": "My level",
+    "编辑这张关卡": "Edit this level",
+    "一个人也能过": "one player can pass",
+    "需要两个人配合": "needs both chefs",
+    "Enter 开始": "Enter Start"
   },
   "templates": [
     [
@@ -1937,6 +1942,18 @@
     [
       "{0}只能贴着外墙摆，点有橙色边框的格子",
       "{0} only goes against the outer wall: click a cell with an orange border"
+    ],
+    [
+      "目标：关店时净收入 ¥{0} · 一个人也能过",
+      "Goal: net revenue ¥{0} at closing · one player can pass"
+    ],
+    [
+      "目标：关店时净收入 ¥{0} · 需要两个人配合",
+      "Goal: net revenue ¥{0} at closing · needs both chefs"
+    ],
+    [
+      "Enter 开始 · 搭档：{0}",
+      "Enter Start · Teammate: {0}"
     ]
   ]
 }

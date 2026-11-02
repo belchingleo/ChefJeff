@@ -103,7 +103,8 @@ class LocalPlayTests(unittest.TestCase):
         self.assertEqual(status, 200)
         state = self.call('GET', '/api/state')[1]
         # The page shows the player's names, and the official noodle dishes' pictures for the same components.
-        self.assertEqual(state['player_level'], {'id': reply['content_id'], 'names': {'dish_1': '红烧牛肉面！', 'dish_2': '鸡丝面'},
+        self.assertEqual(state['player_level'], {'id': reply['content_id'], 'name': noodle_design()['level']['name'],
+                                                 'names': {'dish_1': '红烧牛肉面！', 'dish_2': '鸡丝面'},
                                                  'looks': {'dish_1': 'beef_noodles', 'dish_2': 'chicken_noodles'},
                                                  'target': 150, 'solo_reaches_target': False})
         self.assertEqual(state['kitchen']['goal_status']['target_money'], 150)
@@ -153,6 +154,27 @@ class HostedPlayTests(unittest.TestCase):
         state = call('GET', '/api/state', token=mine)[1]
         self.assertEqual(state['player_level']['id'], reply['content_id'])
         self.assertEqual(server.sessions.get(mine).k.resolved['level']['id'], reply['content_id'])
+
+
+class AgainTests(unittest.TestCase):
+    def test_again_after_a_round_on_a_players_level_keeps_that_level(self):
+        """The result card's 再来一次 sends the level's id; a player's level is not listed, so it restarts."""
+        from hosted_server import HostedSession
+        from web_server import player_level_entry
+        level, _ = lc.normalize(noodle_design())
+        entry, error = player_level_entry((level, {'playable': True, 'target': 150, 'solo_reaches_target': False}))
+        self.assertIsNone(error)
+        game = HostedSession(release={})
+        game.connected = True
+        self.addCleanup(game.close)
+        game.pending_player_level = entry
+        self.assertEqual(game._command('/api/player-level/play', {})[0], 200)
+        game.pending_player_level = None
+        self.assertEqual(game._command('/api/start', {})[0], 200)
+        game._command('/api/end', {})
+        self.assertEqual(game._command('/api/next', {'level': level['level']['id']})[0], 200)
+        self.assertEqual((game.k.resolved['level']['id'], game.phase), (level['level']['id'], 'running'))
+        self.assertEqual(game.public_state()['player_level']['name'], noodle_design()['level']['name'])
 
 
 if __name__ == '__main__':

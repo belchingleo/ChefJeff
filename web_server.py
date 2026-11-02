@@ -273,8 +273,8 @@ class GameSession:
                     'won': self.k.won() and not self.k.aborted if self.phase == 'ended' else False,
                     'round_summary': self.round_record() if self.phase == 'ended' else None,
                     'levels': available_levels(),
-                    'player_level': {'id': self.k.resolved['level']['id'], 'names': self.player_level['names'],
-                                     'looks': self.player_level['looks'],
+                    'player_level': {'id': self.k.resolved['level']['id'], 'name': self.player_level['name'],
+                                     'names': self.player_level['names'], 'looks': self.player_level['looks'],
                                      **{key: self.player_level['report'][key] for key in ('target', 'solo_reaches_target')}}
                                     if self.player_level else None,
                     'rules': {key:self.c[key] for key in ('chop_seconds', 'cook_seconds', 'burn_after_ready',
@@ -502,6 +502,10 @@ class GameSession:
             if self.phase != 'ended':
                 return 409, {'error': '本局结束后才能进入下一关。'}
             speed = self.speed
+            # Again on a player's level: its id is not a listed level, and a restart keeps the level.
+            asked = body.get('level')
+            if self.player_level and asked == self.k.resolved['level']['id']:
+                return self._command('/api/restart', {})
             result = self._command('/api/level', {'level': body.get('level')})
             if result[0] != 200:return result
             return self._command('/api/start', {'speed': speed})
@@ -728,10 +732,11 @@ def player_level_entry(found):
     level, report = found
     if not report.get('playable'):
         return None, (409, {'error': '这张关卡算下来不能玩。'})
-    from level_calibration import DISPLAY_NAMES, finalize, official_looks
+    from level_calibration import DISPLAY_NAMES, display_name, finalize, official_looks
     from player_level_queue import summary
     return {'config': finalize(level, report), 'report': summary(report),
-            'names': level['recipe_catalog']['extensions'][DISPLAY_NAMES], 'looks': official_looks(level)}, None
+            'names': level['recipe_catalog']['extensions'][DISPLAY_NAMES], 'looks': official_looks(level),
+            'name': display_name(level['level'].get('name')) or ''}, None
 
 
 class Handler(BaseHTTPRequestHandler):

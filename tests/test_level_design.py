@@ -111,6 +111,8 @@ class CatalogTests(unittest.TestCase):
         self.assertEqual((items['noodles']['english'], [s['container'] for s in items['noodles']['steps']]), ('cooked noodles', ['pot']))
         self.assertEqual((items['bread']['state'], items['bread']['steps']), ('raw', []))
         self.assertEqual(items['beef']['name'], '牛肉')
+        self.assertIn({'id': 'beef_noodles', 'items': ['beef', 'noodles', 'scallion']}, catalog['official'])
+        self.assertEqual(catalog['wraps'], {'bread': ['bun_bottom', 'bun_top']})
 
 
 class LookTests(unittest.TestCase):

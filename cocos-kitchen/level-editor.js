@@ -247,6 +247,32 @@
   // Element.append would write null as text: leave out what a condition left empty.
   const add = (parent, ...kids) => {for (const k of kids.flat()) if (k != null && k !== false) parent.append(k.nodeType ? k : String(k));};
   const button = (label, onClick, cls = 'btn', extra = {}) => h('button', Object.assign({class: cls, type: 'button', onclick: onClick}, extra), label);
+  // A dish as the game draws it on the plate: an official dish's own picture when the ingredients are the
+  // same, else its layers on a clean plate, bread as the burger's bun (the server's plating rule). The
+  // sprites are the release's, as the kitchen already loaded them; without them there is no picture.
+  function dishPicture(items, size) {
+    const sprite = key => controls()?.sprite?.(key) || null;
+    const look = catalog.official.find(o => o.items.join('+') === items.slice().sort().join('+'));
+    const whole = look && sprite(`dishes/${look.id}/ready`), plate = !whole && sprite('objects/clean_plate');
+    if (!whole && !plate) return null;
+    const box = h('span', {class: 'ed-pic', 'aria-hidden': 'true', style: `width:${size}px;height:${size}px`});
+    box.append(spriteImage(whole || plate, size, size, 0));
+    if (whole) return box;
+    const unit = size / 40, outer = items.filter(i => catalog.wraps[i]);
+    const layers = [...outer.map(i => catalog.wraps[i][0]), ...items.filter(i => !catalog.wraps[i]), ...outer.map(i => catalog.wraps[i][1]).reverse()];
+    layers.forEach((layer, n) => {const icon = sprite('feedback/' + layer); if (icon) box.append(spriteImage(icon, 34 * unit, 22 * unit, (3 - n * 4) * unit));});
+    return box;
+  }
+  function spriteImage(icon, width, height, dy) {
+    let [left, top, right, bottom] = icon.alphaBBox || [0, 0, icon.width, icon.height];
+    if (!(right > left && bottom > top)) [left, top, right, bottom] = [0, 0, icon.width, icon.height];
+    const scale = Math.min(width / (right - left), height / (bottom - top)), e = h('span', {class: 'ed-sprite'});
+    Object.assign(e.style, {width: (right - left) * scale + 'px', height: (bottom - top) * scale + 'px',
+      transform: `translate(-50%, -50%) translateY(${dy}px)`, backgroundImage: 'url(' + JSON.stringify(icon.url) + ')',
+      backgroundSize: `${icon.atlasWidth * scale}px ${icon.atlasHeight * scale}px`,
+      backgroundPosition: `${-(icon.x + left) * scale}px ${-(icon.y + top) * scale}px`});
+    return e;
+  }
   const dishNames = design => design.dishes.map(d => (d.name || '').trim()).filter(Boolean).join(' · ');
 
   // ---- The dialog and its screens.
@@ -305,6 +331,8 @@
       .ed-dots{display:flex;gap:8px}.ed-dots span{width:10px;height:10px;background:var(--steel);animation:ed-dot 1.2s infinite}
       .ed-dots span:nth-child(2){animation-delay:.2s}.ed-dots span:nth-child(3){animation-delay:.4s}
       @keyframes ed-dot{50%{opacity:.25}}
+      .ed-pic{position:relative;display:inline-block;flex:none}
+      .ed-sprite{position:absolute;left:50%;top:50%;background-repeat:no-repeat;image-rendering:pixelated}
       @media (prefers-reduced-motion:reduce){.ed-dots span{animation:none}}
     `;
     document.head.appendChild(style);
@@ -550,9 +578,11 @@
     const i = Math.max(0, view.dish), cur = design.dishes[i];
     const change = (fn, again = true) => {fn(); saveLevel(rec); if (again) render();};
     const list = h('div', {class: 'ed-side', style: 'width:200px'}, h('span', {class: 'ed-label', style: 'font-size:20px;line-height:24px'}, '菜单'),
-      design.dishes.map((d, j) => h('button', {class: 'ed-dish', type: 'button', 'aria-pressed': String(j === i), onclick: () => {view.dish = j; render();}},
-        h('span', {user: (d.name || '').trim() || '未命名', style: 'font:12px/16px var(--pixel)'}),
-        h('span', {class: 'ed-hint'}, fmt('¥{0} · {1} 样配料', d.price, d.items.length)))),
+      design.dishes.map((d, j) => h('button', {class: 'ed-dish', type: 'button', 'aria-pressed': String(j === i), onclick: () => {view.dish = j; render();},
+          style: 'flex-direction:row;align-items:center;gap:8px'}, dishPicture(d.items, 36),
+        h('span', {style: 'display:flex;flex-direction:column;gap:2px;min-width:0'},
+          h('span', {user: (d.name || '').trim() || '未命名', style: 'font:12px/16px var(--pixel)'}),
+          h('span', {class: 'ed-hint'}, fmt('¥{0} · {1} 样配料', d.price, d.items.length))))),
       button('+ 加一道菜', () => change(() => {
         const free = catalog.items.find(it => !design.dishes.some(d => d.items.length === 1 && d.items[0] === it.id)) || catalog.items[0];
         design.dishes.push({name: '新菜', price: suggestedPrice([free.id]), items: [free.id]}); view.dish = design.dishes.length - 1;
@@ -560,7 +590,7 @@
       h('p', {class: 'ed-hint'}, fmt('最多 {0} 道菜。每 {1} 秒来一单，菜单上的菜轮流出现。', max, catalog.interval_game_ms / 1000)));
     const panel = h('div', {class: 'ed-panel'});
     if (cur) {
-      add(panel, h('div', {class: 'ed-row', style: 'flex-wrap:nowrap'}, h('label', {class: 'ed-label', for: 'editor-dish-name', style: 'color:' + MUTED}, '菜名'),
+      add(panel, h('div', {class: 'ed-row', style: 'flex-wrap:nowrap'}, dishPicture(cur.items, 56), h('label', {class: 'ed-label', for: 'editor-dish-name', style: 'color:' + MUTED}, '菜名'),
         h('input', {class: 'ed-input', id: 'editor-dish-name', 'data-focus': 'dish-name', 'data-no-i18n': true, type: 'text', maxlength: String(catalog.dish_name_length), value: cur.name, style: 'flex:1',
           oninput: e => change(() => {cur.name = e.target.value;}, false), onchange: () => render()}),
         button('删掉这道菜', () => change(() => {design.dishes.splice(i, 1); view.dish = Math.max(0, i - 1);}), 'btn', {disabled: design.dishes.length === 1})));
@@ -744,7 +774,14 @@
     dialog.close();
   }
 
+  async function edit(e) {
+    await open();
+    if (!dialog?.open) return;
+    const rec = readLevels().find(r => r.result?.content_id && r.result.content_id === e?.detail?.id);
+    if (rec) {view = {screen: 'edit', rec, step: 1}; render();}
+  }
   window.chefjeffEditor = {available: () => !!catalog, open};
   window.addEventListener('kitchen-open-editor', open);
+  window.addEventListener('kitchen-edit-level', edit);
   loadCatalog();
 })();

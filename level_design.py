@@ -64,6 +64,10 @@ def editor_catalog(registry=None):
         items.append({'id': item, 'name': entry['name'], 'state': state, 'english': lc.component_name({'item': item, 'state': state}),
                       'steps': steps})
     low, high = lc.PATIENCE_RANGE_GAME_MS
+    # The official dishes a player's dish can borrow a picture from (same items, each in its plated state),
+    # and how bread wraps a dish, for the editor's preview of each dish.
+    official = [{'id': key, 'items': sorted(c['item'] for c in recipe['components'])} for key, recipe in sorted(catalog['recipes'].items())
+                if all(c['state'] == _dish_state(c['item'], catalog) for c in recipe['components'])]
     return {'format': FORMAT, 'sizes': [list(s) for s in SIZES], 'types': list(TYPES), 'exactly_one': list(EXACTLY_ONE),
             'against_the_wall': list(AGAINST_THE_WALL), 'serving_windows': list(SERVING_WINDOWS), 'vessels': list(VESSELS),
             'containers': {key: c['name'] for key, c in catalog['containers'].items() if key in VESSELS},
@@ -72,7 +76,8 @@ def editor_catalog(registry=None):
             'price': {'min': lc.PRICE_RANGE[0], 'max': lc.PRICE_RANGE[1], 'step': lc.PRICE_STEP, **SUGGESTED_PRICE},
             'interval_game_ms': lc.INTERVAL_GAME_MS, 'round_game_ms': release['level']['round_limit_game_ms'], 'seeds': len(lc.SEEDS),
             'patience': {'factor': lc.PATIENCE_FACTOR, 'step_game_ms': lc.PATIENCE_STEP_GAME_MS, 'min_game_ms': low, 'max_game_ms': high},
-            'items': items}
+            'items': items, 'official': official,
+            'wraps': {item: list(layers) for item, layers in lc._wraps(catalog['recipes']).items()}}
 
 
 def _ids(stations):
