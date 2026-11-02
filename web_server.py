@@ -766,6 +766,13 @@ class Handler(BaseHTTPRequestHandler):
         """The server's calibration queue (player_level_queue), or None when it does not offer one."""
         return getattr(self.server, 'player_levels', None)
 
+    def player_level_catalog(self):
+        """The editor's rules and ingredients (level_design.editor_catalog), where players' levels are offered."""
+        if self.player_levels() is None:
+            return self.reply(404, {'error': '页面不存在。'})
+        from level_design import editor_catalog
+        return self.reply(200, editor_catalog())
+
     def player_level_status(self, owner='local'):
         queue = self.player_levels()
         if queue is None:
@@ -779,6 +786,8 @@ class Handler(BaseHTTPRequestHandler):
         path=urlparse(self.path).path
         if path=='/api/state':
             return self.reply(200,self.server.game.public_state())
+        if path=='/api/player-level/catalog':
+            return self.player_level_catalog()
         if path=='/api/player-level/status':
             return self.player_level_status()
         files=self.static_files

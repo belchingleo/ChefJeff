@@ -570,6 +570,7 @@ function kitchenTabs(dialog){
 </script>
 <script src="touch-controls.js"></script>
 <script src="gamepad-controls.js"></script>
+<script src="level-editor.js"></script>
 <style>
 /* End-of-round record: generated from the round's summary (round_summary.py), never per level. */
 #record-result{margin:0 0 12px;color:var(--ink);font:15px/24px var(--pixel)}
@@ -826,13 +827,16 @@ function kitchenTabs(dialog){
      card.onclick=()=>{const now=state();if(!now?.levelEnabled||now.game_id!==openedRound)return;levels.close();if(!level.selected)controls()?.level(level.id)};
      list.appendChild(card);
     });
-    // The entry for player-made levels; it opens once creating levels exists.
-    const custom=document.createElement('button');custom.className='level-card level-custom';custom.type='button';custom.disabled=true;
+    // Players' own levels (level-editor.js), where this server calibrates them.
+    const editor=window.chefjeffEditor,ready=!!editor?.available();
+    const custom=document.createElement('button');custom.className='level-card level-custom';custom.type='button';custom.disabled=!ready;
     const plus=document.createElement('span');plus.className='level-plus';plus.textContent='+';plus.setAttribute('aria-hidden','true');
     const label=document.createElement('span');label.className='level-dish';label.textContent=t('自定义关卡');
     const what=document.createElement('span');what.className='level-target';what.textContent=t('做自己的地图和菜谱');
-    const soon=document.createElement('span');soon.className='level-target';soon.textContent=t('即将开放');
-    custom.append(plus,label,what,soon);list.appendChild(custom);
+    custom.append(plus,label,what);
+    if(!ready){const soon=document.createElement('span');soon.className='level-target';soon.textContent=t('即将开放');custom.append(soon);}
+    custom.onclick=()=>{if(!window.chefjeffEditor?.available())return;levels.close();window.chefjeffEditor.open();};
+    list.appendChild(custom);
    }
   }
   const offer=document.getElementById('more-dialog-contribute');offer.hidden=!s.contribute;if(s.contribute){offer.textContent=t(s.contribute.label);offer.disabled=!s.contribute.enabled;}
@@ -850,6 +854,7 @@ function kitchenTabs(dialog){
  window.addEventListener('kitchen-open-levels',()=>{const s=state();if(!s?.levelEnabled)return;openedRound=s.game_id;more.close();if(!levels.open)levels.showModal();paint(true)});
  window.addEventListener('kitchen-open-more',()=>{const s=state();if(s?.phase!=='ended')return;openedRound=s.game_id;levels.close();if(!more.open)more.showModal();paint(true)});
  window.addEventListener('kitchen-controls-state',()=>{keepBest(state());paint();});window.addEventListener('kitchen-language-changed',()=>paint(true));
+ window.addEventListener('kitchen-editor-ready',()=>paint(true));
  document.getElementById('level-dialog-cancel').onclick=()=>levels.close();
  document.getElementById('more-dialog-close').onclick=()=>more.close();
  more.querySelectorAll('[data-cover-action]').forEach(button=>button.onclick=()=>{const action=button.dataset.coverAction;more.close();controls()?.[action]?.()});

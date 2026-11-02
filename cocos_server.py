@@ -26,6 +26,8 @@ class CocosHandler(Handler):
             return self.reply(200,self.server.game.public_state())
         if path=='/api/player-level/status':
             return self.player_level_status()
+        if path=='/api/player-level/catalog':
+            return self.player_level_catalog()
         root=self.web_root.resolve()
         file=(root/path.lstrip('/')).resolve()
         if file==root:file=root/'index.html'

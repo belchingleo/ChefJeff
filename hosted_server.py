@@ -794,6 +794,8 @@ class HostedHandler(Handler):
                     return self.reply(200, {'request': game.relay.request() if game.relay and game.phase == 'running' else None})
             if path == '/api/player-level/status':
                 return self.player_level_status(self.headers.get('X-ChefJeff-Session', ''))
+            if path == '/api/player-level/catalog':
+                return self.player_level_catalog()
             return self.reply(404, {'error': '未知的接口。'})
         root = self.server.web_root.resolve()
         file = (root / path.lstrip('/')).resolve()

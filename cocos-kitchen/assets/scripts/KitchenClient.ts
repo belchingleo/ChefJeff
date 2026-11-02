@@ -1337,13 +1337,19 @@ export class KitchenClient extends Component {
             const face=this.child(n,'wall-front',TILE,h,0,-TILE/2+h/2);
             this.art.region(face,'modular/wall_face',0,0,64,GRID_ART.northFace,TILE,h);
         }
-        const serve=map.equipment.serve;
-        const boundary=serve&&(serve.facing==='west'?map.width-1:serve.facing==='east'?0:-1);
-        if(x===boundary&&y===serve?.cell[1]){
-            const slot=this.child(n,'serving-aperture',TILE*.82,TILE*.42),g=slot.addComponent(Graphics);
-            this.rect(g,-TILE*.41,-TILE*.21,TILE*.82,TILE*.42,'#344756');
-            this.rect(g,-TILE*.36,-TILE*.15,TILE*.72,TILE*.30,'#75543a');
-            this.rect(g,-TILE*.36,-TILE*.15,TILE*.72,3,'#c99551');
+        // A serving window's hatch is in the wall at its back, the side opposite the floor it faces. Seen from
+        // above it runs the way food passes through (turned in the bottom wall); in the top wall, whose face
+        // the camera sees, it is a window in that face.
+        const back:Record<string,number[]>={west:[1,0],east:[-1,0],north:[0,1],south:[0,-1]};
+        for(const e of Object.values(map.equipment) as any[]){
+            const d=e.type==='serving_window'&&back[e.facing];
+            if(!d||x!==e.cell[0]+d[0]||y!==e.cell[1]+d[1])continue;
+            const face=d[1]<0,faceH=GRID_ART.northFace*TILE/GRID_ART.unit,w=TILE*.82,t=face?faceH*.55:TILE*.42;
+            const slot=this.child(n,'serving-aperture',w,t,0,face?-TILE/2+faceH/2:0),g=slot.addComponent(Graphics);
+            if(d[1]>0)slot.angle=90;
+            this.rect(g,-w/2,-t/2,w,t,'#344756');
+            this.rect(g,-w/2+TILE*.05,-t/2+TILE*.06,w-TILE*.1,t-TILE*.12,'#75543a');
+            this.rect(g,-w/2+TILE*.05,-t/2+TILE*.06,w-TILE*.1,3,'#c99551');
         }
         this.modularWallDecor(n,x,y,neighbours.south);
     }

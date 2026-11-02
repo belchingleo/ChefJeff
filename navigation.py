@@ -47,11 +47,10 @@ class Navigation:
 
 
     def walkable_point(self, point):
-        # The boundary is closed by walls and by stations set into it, and their walk boxes keep feet
-        # off it (a station's own clearance, a wall's WALK_CLEARANCE); the bound only keeps the map.
         x, y = point
         return (math.isfinite(x) and math.isfinite(y)
-                and -.5 <= x <= self.width-.5 and -.5 <= y <= self.height-.5
+                and .5+WALK_CLEARANCE-EPSILON <= x <= self.width-1.5-WALK_CLEARANCE+EPSILON
+                and .5+WALK_CLEARANCE-EPSILON <= y <= self.height-1.5-WALK_CLEARANCE+EPSILON
                 and not any(left+EPSILON < x < right-EPSILON and top+EPSILON < y < bottom-EPSILON
                             for left, top, right, bottom in self.walk_boxes))
 

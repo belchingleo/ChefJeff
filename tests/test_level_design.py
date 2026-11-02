@@ -21,11 +21,11 @@ DESIGN = {
         {'type': 'ingredient_source', 'x': 2, 'y': 1, 'item': 'beef'}, {'type': 'ingredient_source', 'x': 3, 'y': 1, 'item': 'noodles'},
         {'type': 'ingredient_source', 'x': 4, 'y': 1, 'item': 'scallion'}, {'type': 'ingredient_source', 'x': 5, 'y': 1, 'item': 'chicken'},
         {'type': 'counter', 'x': 7, 'y': 1}, {'type': 'counter', 'x': 8, 'y': 1}, {'type': 'counter', 'x': 9, 'y': 1},
-        {'type': 'serving_window', 'x': 11, 'y': 0},
+        {'type': 'serving_window', 'x': 11, 'y': 1},
         {'type': 'board', 'x': 1, 'y': 3}, {'type': 'board', 'x': 1, 'y': 4}, {'type': 'counter', 'x': 1, 'y': 5},
         {'type': 'stove', 'x': 12, 'y': 3, 'vessel': 'pan'}, {'type': 'stove', 'x': 12, 'y': 4, 'vessel': 'pot'},
         {'type': 'counter', 'x': 12, 'y': 5}, {'type': 'counter', 'x': 6, 'y': 4}, {'type': 'counter', 'x': 7, 'y': 4},
-        {'type': 'sink', 'x': 3, 'y': 7}, {'type': 'plate_return', 'x': 4, 'y': 8}, {'type': 'counter', 'x': 6, 'y': 7},
+        {'type': 'sink', 'x': 3, 'y': 7}, {'type': 'plate_return', 'x': 4, 'y': 7}, {'type': 'counter', 'x': 6, 'y': 7},
         {'type': 'counter', 'x': 7, 'y': 7}, {'type': 'bin', 'x': 9, 'y': 7}, {'type': 'tool_rack', 'x': 10, 'y': 7}],
     'dishes': [{'name': '红烧牛肉面', 'price': 90, 'items': ['noodles', 'beef', 'scallion']},
                {'name': '鸡丝面', 'price': 90, 'items': ['noodles', 'chicken', 'scallion']}],
@@ -72,31 +72,45 @@ class BuildTests(unittest.TestCase):
         for code, case in cases.items():
             with self.subTest(code=code):
                 self.assertIn(code, codes(level_design.bundle(case)[1]))
-        serving = [{'type': 'serving_window', 'x': 10, 'y': 0}, {'type': 'serving_window', 'x': 12, 'y': 0}]
+        serving = [{'type': 'serving_window', 'x': 10, 'y': 1}, {'type': 'serving_window', 'x': 12, 'y': 1}]
         self.assertEqual(level_design.bundle(design(stations=stations + serving[:1]))[1], [])
         self.assertIn('UNSUPPORTED_EQUIPMENT_COUNT', codes(level_design.bundle(design(stations=stations + serving))[1]))
         self.assertEqual(codes(level_design.bundle(design(size=[20, 20]))[1]), ['DESIGN_INVALID'])
         self.assertEqual(codes(level_design.bundle({**DESIGN, 'format': 'other'})[1]), ['DESIGN_INVALID'])
         five = [{'name': str(n), 'price': 50, 'items': ['beef']} for n in range(5)]
         self.assertIn('DESIGN_INVALID', codes(level_design.bundle(design(dishes=five))[1]))
+        twins = DESIGN['dishes'] + [{'name': '葱香牛肉面', 'price': 80, 'items': ['scallion', 'beef', 'noodles']}]
+        self.assertIn('DISHES_ALIKE', codes(level_design.bundle(design(dishes=twins))[1]))
 
-    def test_stations_may_be_set_into_the_outer_wall(self):
+    def test_serving_windows_and_the_plate_return_stand_against_the_wall(self):
         stations = DESIGN['stations']
-        level, problems = level_design.bundle(design(stations=stations + [{'type': 'counter', 'x': 6, 'y': 0}]))
+        level, problems = level_design.bundle(design())
         self.assertEqual(problems, [])
         e = {s['id']: s for s in level['map']['equipment']}
-        self.assertEqual((e['serve']['cell'], e['serve']['facing'], e['serve']['access']), ([11, 0], 'south', [11, 1]))
-        self.assertEqual((e['returns']['cell'], e['returns']['facing'], e['returns']['access']), ([4, 8], 'north', [4, 7]))
-        self.assertNotIn([6, 0], level['map']['walls'])
-        # Food leaves and dirty plates come back through the wall, so those two must be set into it.
+        # Facing into the room with the outer wall at their back, where the page draws the hatch.
+        self.assertEqual((e['serve']['cell'], e['serve']['facing']), ([11, 1], 'south'))
+        self.assertEqual((e['returns']['cell'], e['returns']['facing']), ([4, 7], 'north'))
         moved = lambda kind, x, y: [dict(s, x=x, y=y) if s['type'] == kind else s for s in stations]
-        self.assertIn('STATION_NOT_IN_WALL', codes(level_design.bundle(design(stations=moved('serving_window', 11, 1)))[1]))
-        self.assertIn('STATION_NOT_IN_WALL', codes(level_design.bundle(design(stations=moved('plate_return', 4, 7)))[1]))
-        # Not in a corner, which faces no floor; walls themselves go inside the room.
-        self.assertIn('DESIGN_INVALID', codes(level_design.bundle(design(stations=stations + [{'type': 'counter', 'x': 0, 'y': 0}]))[1]))
+        self.assertIn('STATION_NOT_AGAINST_WALL', codes(level_design.bundle(design(stations=moved('serving_window', 11, 3)))[1]))
+        self.assertIn('STATION_NOT_AGAINST_WALL', codes(level_design.bundle(design(stations=moved('plate_return', 4, 5)))[1]))
+        # The outer wall is wall: nothing goes on it.
+        self.assertIn('DESIGN_INVALID', codes(level_design.bundle(design(stations=stations + [{'type': 'counter', 'x': 6, 'y': 0}]))[1]))
         self.assertIn('DESIGN_INVALID', codes(level_design.bundle(design(walls=[[5, 0]]))[1]))
-        # A station in the wall is reached only from the cell in front of it.
-        self.assertIn('STATION_UNREACHABLE', codes(level_design.bundle(design(stations=stations + [{'type': 'bin', 'x': 0, 'y': 3}]))[1]))
+        # Against the west wall with a counter in front: no side faces the room with the wall behind.
+        blocked = moved('serving_window', 1, 6) + [{'type': 'counter', 'x': 2, 'y': 6}]
+        self.assertIn('STATION_UNREACHABLE', codes(level_design.bundle(design(stations=blocked))[1]))
+
+
+class CatalogTests(unittest.TestCase):
+    def test_the_editor_reads_rules_and_ingredients_from_the_release(self):
+        catalog = level_design.editor_catalog()
+        self.assertEqual(catalog['sizes'], [[12, 8], [14, 9], [16, 10]])
+        self.assertEqual(catalog['against_the_wall'], ['serving_window', 'plate_return'])
+        items = {i['id']: i for i in catalog['items']}
+        self.assertEqual(len(items), 12)
+        self.assertEqual((items['noodles']['english'], [s['container'] for s in items['noodles']['steps']]), ('cooked noodles', ['pot']))
+        self.assertEqual((items['bread']['state'], items['bread']['steps']), ('raw', []))
+        self.assertEqual(items['beef']['name'], '牛肉')
 
 
 class LookTests(unittest.TestCase):
@@ -112,7 +126,7 @@ class LookTests(unittest.TestCase):
     def test_bread_wraps_a_players_dish_as_the_burgers_bun(self):
         dishes = DESIGN['dishes'] + [{'name': '芝士牛肉堡', 'price': 90, 'items': ['beef', 'bread', 'cheese']}]
         level, _ = level_design.bundle(design(dishes=dishes, stations=DESIGN['stations'] + [
-            {'type': 'ingredient_source', 'x': 0, 'y': 2, 'item': 'bread'}, {'type': 'ingredient_source', 'x': 0, 'y': 7, 'item': 'cheese'}]))
+            {'type': 'ingredient_source', 'x': 1, 'y': 6, 'item': 'bread'}, {'type': 'ingredient_source', 'x': 2, 'y': 7, 'item': 'cheese'}]))
         normalized, problems = lc.normalize(level)
         self.assertEqual(problems, [])
         recipes = normalized['recipe_catalog']['recipes']

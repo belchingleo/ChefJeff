@@ -124,6 +124,8 @@ def validate_map(document):
     if len(walls) != len(set(walls)):
         raise ValueError('Duplicate wall')
     boundary = {(x,y) for x in range(width) for y in range(height) if x in (0,width-1) or y in (0,height-1)}
+    if not boundary <= set(walls):
+        raise ValueError('Map boundary must be closed')
     occupied, ids = set(walls), set()
     for station in d['equipment']:
         key = station['id']
@@ -145,9 +147,6 @@ def validate_map(document):
         occupied.update(footprint)
         if station['facing'] not in ('north','south','east','west'):
             raise ValueError('Invalid station facing')
-    # The boundary is closed by walls and by stations set into it, which are reached from inside.
-    if not boundary <= occupied:
-        raise ValueError('Map boundary must be closed')
     floor = {(x,y) for x in range(width) for y in range(height)} - occupied
     surfaces = {tuple(p) for e in d['equipment'] for p in e.get('cells',[e['cell']])}
     for station in d['equipment']:
@@ -160,10 +159,9 @@ def validate_map(document):
         if access not in floor or (not valid_corner if corner else not any(sum(abs(a-b) for a,b in zip(v,access)) == 1 for v in station.get('cells',[p]))):
             raise ValueError('Station needs adjacent reachable access')
     # Walls may not cut the kitchen in two: nothing is passed through a wall. Counters and devices may, one
-    # chef working each side and food thrown across, so the floor itself may come in two parts. A station
-    # set into the boundary is reached only from inside, so it joins no parts along the edge.
+    # chef working each side and food thrown across, so the floor itself may come in two parts.
     if floor:
-        if len(floor_parts(floor | (surfaces - boundary))) != 1:
+        if len(floor_parts(floor | surfaces)) != 1:
             raise ValueError('Walls cut the kitchen in two')
         if len(floor_parts(floor)) > 2:
             raise ValueError('Walkable floor in more than two parts')
@@ -203,7 +201,7 @@ def build_map(name, size, stations, theme='street', revision=1, walls=()):
     mappings ``{id, cell, facing}`` with optional ``type``, ``name``, ``params`` and ``area``;
     ``walls`` adds wall cells inside the boundary.
 
-    Derived: a closed boundary wall, except where a station is set into it (reached from inside); the access cell the station faces, or for a counter boxed in by
+    Derived: a closed boundary wall; the access cell the station faces, or for a counter boxed in by
     counters (a run's corner) the free diagonal between its two neighbours (``reach: corner``); the
     type from the historical ID conventions (``b1`` board, ``p1`` stove, ``fridge`` beef source, ...),
     else ``counter``; the name from the ID; two areas split across the longer side. The result has
@@ -239,7 +237,7 @@ def build_map(name, size, stations, theme='street', revision=1, walls=()):
                 'areas': {'prep': {'name': '处理区'}, 'cook': {'name': '烹饪区'}},
                 'floor_areas': {'axis': 'xy'[axis], 'split': split, 'below': 'prep', 'at_or_above': 'cook'},
                 'walls': [[x, y] for y in range(height) for x in range(width)
-                          if (x in (0, width - 1) or y in (0, height - 1)) and (x, y) not in surfaces or (x, y) in inner_walls],
+                          if x in (0, width - 1) or y in (0, height - 1) or (x, y) in inner_walls],
                 'equipment': equipment, 'presentation': {'theme': theme}}
     validate_map(document)
     return document

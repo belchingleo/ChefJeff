@@ -1,12 +1,15 @@
 # Player levels
 
-Status: server side of the level editor. Modules `level_calibration.py` (check, pacing, calibration, freeze) and `player_level_queue.py` (the queue behind the endpoints). There is no editor page yet; the endpoints are ready for one.
+Status: the level editor and its server side. Modules `level_design.py` (the editor's design and catalog), `level_calibration.py` (check, pacing, calibration, freeze), `player_level_queue.py` (the queue behind the endpoints) and the page's `cocos-kitchen/level-editor.js`.
 
 ```text
 POST /api/player-level/submit   {"design": <design>} or {"level": <bundle>}  -> 202 queued | 200 done (seen before) | 400 refused | 409 | 503
 GET  /api/player-level/status?job=<job>                  -> 200 {job, state, content_id, position | report | error} | 404
+GET  /api/player-level/catalog                            -> 200 the editor's rules and ingredients | 404 (not offered)
 POST /api/player-level/play     {"job", "game_id", "request_id"}  -> 200 | 404 (not this owner's, or not done) | 409
 ```
+
+The editor page (`level-editor.js`) opens from the "+ 自定义关卡" card of the level list where the server offers player levels (the catalog answers 200). It keeps a player's levels in this browser only (`localStorage`, key `chefjeff.player-levels.v1`), with export to and import from a JSON file of the design. It has three steps: the kitchen layout (room size, stations, walls, drag to place or erase, a station of the held kind clicked again is removed, a serving window or plate return pressed away from the outer wall explains where it goes), the menu, and calibration and play. Its live checks mirror the server's, from `GET /api/player-level/catalog` (`level_design.editor_catalog`): the room sizes and station rules, and each ingredient's name, plated state, the English name Jeff reads and its chop and heat steps. So the page names no ingredient and shows the release's times. Every design is still checked again on submit, and the server's diagnostics are shown with a sentence for the known codes. Editing is for a computer browser; on a phone the list only plays finished levels. "Play" submits the design again (answered at once from the server's memory of calibrated designs) and switches the session with `play`.
 
 `play` switches the session to a calibrated, playable level between rounds, as `/api/level` does; a restart keeps it and `/api/level` returns to a listed level. While it is active, `/api/state` carries `player_level: {id, names, looks, target, solo_reaches_target}`, `kitchen.level` is null and `kitchen.level_id` is the content id.
 
@@ -14,14 +17,14 @@ The local game server (`cocos_server.py`) offers both endpoints. The hosted serv
 
 ## The design
 
-The editor sends a design (`level_design.py`, `"format": "chefjeff-player-level-1"`): the level's name, the room size (12×8, 14×9 or 16×10), walls inside the room, the stations (`type`, `x`, `y`, plus `item` for an ingredient source and `vessel` `pan`/`pot` for a stove; a station may be set into the outer wall, except at its corners, and serving windows and the plate return must be) and up to four dishes (`name`, `price`, `items`). The server builds the bundle from it:
+The editor sends a design (`level_design.py`, `"format": "chefjeff-player-level-1"`): the level's name, the room size (12×8, 14×9 or 16×10), walls inside the room, the stations (`type`, `x`, `y`, plus `item` for an ingredient source and `vessel` `pan`/`pot` for a stove; the outer wall holds nothing, and serving windows and the plate return stand against it, facing into the room) and up to four dishes (`name`, `price`, `items`). The server builds the bundle from it:
 
 - the map with `map_definition.build_map`. Station ids follow the client's drawing conventions (`serve`, `sink`, `returns`, `extinguisher`, `bin`, `b1`, `p1`, `counter1`, sources by item, beef as `fridge`), and each station faces the free floor neighbour most towards the room's centre;
 - one chef spawning in each half of the longer side;
 - the starting inventory: the extinguisher, three clean plates on counters and each stove's own pan or pot;
 - the recipes, with each ingredient in the state its cooking step gives (cooked, chopped, or as dispensed).
 
-Counters may split the room in two, one chef working each part and food thrown across ([map format](../map-format.md)); the scripted zoned pair plays such a kitchen, so it calibrates. It refuses a design whose walls cut the room in two, with other than exactly one sink, plate return and extinguisher rack, with no serving window or more than two, with a serving window or plate return inside the room rather than in its wall, with fewer than three counters, or with a station that has no floor in front of it. A whole level bundle is still accepted as `{"level": …}`.
+Counters may split the room in two, one chef working each part and food thrown across ([map format](../map-format.md)); the scripted zoned pair plays such a kitchen, so it calibrates. It refuses a design whose walls cut the room in two, with two dishes of the same ingredients (`DISHES_ALIKE`), with other than exactly one sink, plate return and extinguisher rack, with no serving window or more than two, with a serving window or plate return away from the outer wall, with fewer than three counters, or with a station that has no floor in front of it. A whole level bundle is still accepted as `{"level": …}`.
 
 A bundle is the part of a level a player controls: `level` (name, spawns, initial inventory), `map`, `order_policy` (its `menu`) and `recipe_catalog.recipes` (each dish: name, price, components). The request body may be up to 64 KB; every other command stays at 8 KB.
 

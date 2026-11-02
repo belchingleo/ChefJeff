@@ -54,9 +54,8 @@ export function flightDepth(groundRow:number,height:number){
 }
 /** Mirrors the server's foot test (navigation.walkable_point) using the map's walk boxes. */
 export function footWalkable(map:any,x:number,y:number){
-    const e=1e-9;
-    // The closed boundary's walk boxes (walls, stations set into it) keep feet off it; this keeps the map.
-    if(!(x>=-.5&&x<=map.width-.5&&y>=-.5&&y<=map.height-.5))return false;
+    const c=map.walk_clearance??.2,e=1e-9;
+    if(!(x>=.5+c-e&&x<=map.width-1.5-c+e&&y>=.5+c-e&&y<=map.height-1.5-c+e))return false;
     return !(map.walk_boxes||[]).some((b:number[])=>b[0]+e<x&&x<b[2]-e&&b[1]+e<y&&y<b[3]-e);
 }
 const EPS=1e-9;
