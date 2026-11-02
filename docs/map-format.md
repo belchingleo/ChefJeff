@@ -2,7 +2,7 @@
 
 Maps are UTF-8 JSON at `maps/<map-id>.json`. Levels 1–3 are included and use schema 2. `map_definition.py` loads, validates, atomically saves and extracts geometry; invalid documents cannot replace the target file.
 
-A map contains `schema_version`, `id`, `revision`, `size`, `walls`, `equipment` and optional `presentation`. Coordinates start at the top-left: x increases right, y down. Width and height must be integers from 5 to 64. Walls form a complete outer boundary without duplicate cells. Walls may not cut the room in two: every cell that is not a wall is connected. Counters and other stations may, so the walkable floor is in one or two parts; with two, the engine spawns one chef in each, offers each chef only what it can reach, and food is thrown across (the configuration check requires a cell in each part within throw reach).
+A map contains `schema_version`, `id`, `revision`, `size`, `walls`, `equipment` and optional `presentation`. Coordinates start at the top-left: x increases right, y down. Width and height must be integers from 5 to 64. Walls, and stations set into the wall, close the outer boundary; wall cells are not duplicated. A station in the boundary is reached only from the cell inside in front of it. Walls may not cut the room in two: every cell that is not a wall is connected. Counters and other stations may, so the walkable floor is in one or two parts; with two, the engine spawns one chef in each, offers each chef only what it can reach, and food is thrown across (the configuration check requires a cell in each part within throw reach).
 
 Each station has a unique nonempty `id`, a `cell`, walkable `access`, and `facing` from `north`, `south`, `east`, `west`. Ordinary access is orthogonally adjacent; station cells cannot overlap walls or other stations.
 
@@ -28,7 +28,7 @@ Optional `cells` declares a station footprint, for example `"cell":[12,5], "cell
 
 ## From coordinates to a playable map
 
-`map_definition.build_map(name, size, stations, theme='street', revision=1)` turns station coordinates into a schema-2 map that has passed `validate_map`. Each station is `(id, x, y, facing)` or an object `{"id", "cell", "facing"}` with optional `type`, `name`, `params`, `area`. Derived: a closed boundary wall; `access` is the cell the station faces, or, for a counter boxed in by counters (a run's corner), the free diagonal between its two neighbours with `reach: corner`; `type` from the historical ID conventions (`b1` board, `p1` stove, `fridge`/`lettuce`/`tomato`/`bread` sources with their `params`, `serve`, `sink`, `returns`, `bin`, `extinguisher`), otherwise `counter`; `name` is the ID; areas `prep`/`cook` split across the longer side (`floor_areas`). A station that faces a wall or another station and is not such a corner is rejected by name.
+`map_definition.build_map(name, size, stations, theme='street', revision=1)` turns station coordinates into a schema-2 map that has passed `validate_map`. Each station is `(id, x, y, facing)` or an object `{"id", "cell", "facing"}` with optional `type`, `name`, `params`, `area`. Derived: a closed boundary wall, except where a station is set into it; `access` is the cell the station faces, or, for a counter boxed in by counters (a run's corner), the free diagonal between its two neighbours with `reach: corner`; `type` from the historical ID conventions (`b1` board, `p1` stove, `fridge`/`lettuce`/`tomato`/`bread` sources with their `params`, `serve`, `sink`, `returns`, `bin`, `extinguisher`), otherwise `counter`; `name` is the ID; areas `prep`/`cook` split across the longer side (`floor_areas`). A station that faces a wall or another station and is not such a corner is rejected by name.
 
 Levels place their starting plates, pans and extinguisher by station type (`initial_inventory[].at_type`, see the [configuration contract](architecture/configuration-contract.md)), so a level's rules run on any map that has the stations it needs. Before playing a new map, audit it:
 
@@ -78,7 +78,7 @@ To ship a map, save it with `save_map` as `maps/<id>.json`, add a level in `cont
 }
 ```
 
-坐标原点在左上角，`[x, y]` 的 x 向右、y 向下。尺寸是 `[宽, 高]`，两边都须为 5–64 的整数。`walls` 列出不可通行格，外圈边界必须完整封闭且墙格不能重复。每个工位需有唯一、非空的 `id`、不与墙或其他工位重叠的 `cell`、可通行的 `access`，以及 `north`、`south`、`east`、`west` 之一的 `facing`。普通工位的 `access` 必须与工位格四邻接。墙不能把房间隔成两半：除墙以外的所有格子必须连通。柜台等设备可以把房间隔开，所以可走地面可以是一块，也可以是两块；分成两块时，两位厨师各出生在一块，引擎只给每人列出走得到的动作，东西隔着柜台扔过去（配置检查要求两块地面之间有在投掷距离内的格子）。
+坐标原点在左上角，`[x, y]` 的 x 向右、y 向下。尺寸是 `[宽, 高]`，两边都须为 5–64 的整数。`walls` 列出不可通行格，墙格不能重复。外圈边界必须完整封闭，封住它的可以是墙，也可以是嵌在墙里的工位；嵌在外圈的工位只能从它前面那一格（房间里面）操作。每个工位需有唯一、非空的 `id`、不与墙或其他工位重叠的 `cell`、可通行的 `access`，以及 `north`、`south`、`east`、`west` 之一的 `facing`。普通工位的 `access` 必须与工位格四邻接。墙不能把房间隔成两半：除墙以外的所有格子必须连通。柜台等设备可以把房间隔开，所以可走地面可以是一块，也可以是两块；分成两块时，两位厨师各出生在一块，引擎只给每人列出走得到的动作，东西隔着柜台扔过去（配置检查要求两块地面之间有在投掷距离内的格子）。
 
 角落柜台可使用特殊字段 `{ "reach": "corner" }`，并将 `access` 指向一个斜对角地面格。这个例外仅适用于 `counter` 前缀的柜台：两侧正交相邻格都必须是工位，柜台的四邻接位置不能有可走地面，且斜角 `access` 必须可通行。这样柜台沿用被墙占据的内角位置，玩家从指定斜角接近并操作；角落柜台和墙占据相同格位，不会额外侵占可走地面。普通工位不能用斜角访问绕过墙或隔墙。
 
@@ -102,7 +102,7 @@ To ship a map, save it with `save_map` as `maps/<id>.json`, add a level in `cont
 
 ## 从坐标生成可玩地图
 
-`map_definition.build_map(name, size, stations, theme='street', revision=1)` 把工位坐标转成通过 `validate_map` 的 schema 2 地图。每个工位写作 `(id, x, y, facing)`，或对象 `{"id", "cell", "facing"}`，可选 `type`、`name`、`params`、`area`。自动推导：封闭的外圈墙；`access` 取工位朝向的那一格；被柜台围住的柜台（一排柜台的转角）取两侧相邻柜台之间的空斜角，并标 `reach: corner`；`type` 按历史 ID 约定推断（`b1` 案板、`p1` 灶台、`fridge`/`lettuce`/`tomato`/`bread` 食材源及其 `params`、`serve`、`sink`、`returns`、`bin`、`extinguisher`），其余为 `counter`；`name` 即 ID；`prep`/`cook` 两区沿较长边对半划分（`floor_areas`）。朝向墙或其他工位、又不是上述转角柜台的工位，会按 ID 报错。
+`map_definition.build_map(name, size, stations, theme='street', revision=1)` 把工位坐标转成通过 `validate_map` 的 schema 2 地图。每个工位写作 `(id, x, y, facing)`，或对象 `{"id", "cell", "facing"}`，可选 `type`、`name`、`params`、`area`。自动推导：封闭的外圈墙，工位嵌进外圈的格子除外；`access` 取工位朝向的那一格；被柜台围住的柜台（一排柜台的转角）取两侧相邻柜台之间的空斜角，并标 `reach: corner`；`type` 按历史 ID 约定推断（`b1` 案板、`p1` 灶台、`fridge`/`lettuce`/`tomato`/`bread` 食材源及其 `params`、`serve`、`sink`、`returns`、`bin`、`extinguisher`），其余为 `counter`；`name` 即 ID；`prep`/`cook` 两区沿较长边对半划分（`floor_areas`）。朝向墙或其他工位、又不是上述转角柜台的工位，会按 ID 报错。
 
 关卡的初始盘子、锅和灭火器按工位类型放置（`initial_inventory[].at_type`，见[配置契约](architecture/configuration-contract.md)），因此关卡规则可以在任何具备所需工位的地图上运行。新地图上手前先审查：
 

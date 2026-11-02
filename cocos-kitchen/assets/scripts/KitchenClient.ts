@@ -762,7 +762,12 @@ export class KitchenClient extends Component {
             if(!this.touchNodeVisibility.has(n))this.touchNodeVisibility.set(n,n.active);n.active=false;
         }}else{
             for(const [n,active] of this.touchNodeVisibility)if(n.isValid)n.active=active;
-            this.touchNodeVisibility.clear();this.world.setScale(1,1,1);this.world.setPosition(0,0);return;
+            this.touchNodeVisibility.clear();
+            // The desktop HUD is laid out around a 14x9 board. A player's room of another size scales down
+            // to fit it and is centred there; 14x9, every official level, stays at scale 1 in place.
+            const map=this.state.kitchen.map,s=Math.min(1,14/map.width,9/map.height);
+            const dx=(14-map.width*s)*TILE/2,dy=(9-map.height*s)*TILE/2;
+            this.world.setScale(s,s,1);this.world.setPosition((MAPX-640)*(1-s)+dx,(360-MAPY)*(1-s)-dy);return;
         }
         const r=this.touchLayout.boardRect;if(!r||!this.touchLayout.landscape)return;
         const w=this.touchLayout.width||innerWidth,h=this.touchLayout.height||innerHeight;
@@ -1333,7 +1338,7 @@ export class KitchenClient extends Component {
         const g=n.getComponent(Graphics)!;g.clear();
         this.art.hide(n);
         for(const name of ['supply-symbol','assembly-parts','vessel-contents']){const child=n.getChildByName(name);if(child)child.active=false;}
-        n.setPosition(0,this.workSurfaceY(id));
+        n.setPosition(0,this.workSurfaceY(id));n.angle=0;
         if(this.prepSampleBoard(id))n.setPosition(0,this.workSurfaceY(id)+11);
         if(id.startsWith('bin')){
             const view=trashView(this.state!.kitchen.map,id);
@@ -1341,11 +1346,12 @@ export class KitchenClient extends Component {
             this.art.centered(n,view.axis==='vertical'?'feedback/trash_opening_vertical':'feedback/trash_opening',TILE*.8,TILE*.8);return;
         }
         if(st.counter)return;
-        if(id==='serve'){
-            // Neutral double chevron points from the chef into the serving boundary.
-            const east=this.state!.kitchen.map.equipment[id].facing==='west',d=east?1:-1;
+        if(this.state!.kitchen.map.equipment[id]?.type==='serving_window'){
+            // Neutral double chevron points from the chef into the serving boundary: drawn pointing east,
+            // turned away from the side the window faces (a window set into any wall, or two windows).
+            n.angle=({west:0,south:90,east:180,north:-90} as Record<string,number>)[this.state!.kitchen.map.equipment[id].facing]??0;
             g.fillColor=color('#344756');
-            for(const x of [-10,5]){g.moveTo(d*(x-5),-12);g.lineTo(d*(x+6),0);g.lineTo(d*(x-5),12);g.lineTo(d*(x-5),5);g.lineTo(d*(x-1),0);g.lineTo(d*(x-5),-5);g.close();g.fill();}
+            for(const x of [-10,5]){g.moveTo(x-5,-12);g.lineTo(x+6,0);g.lineTo(x-5,12);g.lineTo(x-5,5);g.lineTo(x-1,0);g.lineTo(x-5,-5);g.close();g.fill();}
             return;
         }
         const kind=/^b[0-9]+$/.test(id)?'board':id==='returns'?'returns':id==='sink'?'sink':'';
@@ -1403,7 +1409,7 @@ export class KitchenClient extends Component {
             this.registerDepth(n,()=>depthOrder(e.cell[1],'solid')+.01);
             const art=new Node('equipment');art.layer=Layers.Enum.UI_2D;n.addChild(art);art.addComponent(UITransform).setContentSize(44,44);art.setPosition(0,6);
             if(this.useModularArt)art.setPosition(0,0);
-            this.drawIcon(art.addComponent(Graphics),this.state!.kitchen.stations[id].counter?'continuous_counter':this.state!.kitchen.stations[id].stove?'vessel':id.startsWith('bin')?'bin':/^b[0-9]/.test(id)?'board':e.type==='ingredient_source'?'source:'+this.sourceItem(id):this.useArt&&id==='extinguisher'?'extinguisher_rack':id);
+            this.drawIcon(art.addComponent(Graphics),this.state!.kitchen.stations[id].counter?'continuous_counter':this.state!.kitchen.stations[id].stove?'vessel':id.startsWith('bin')?'bin':/^b[0-9]/.test(id)?'board':e.type==='ingredient_source'?'source:'+this.sourceItem(id):e.type==='serving_window'?'serve':this.useArt&&id==='extinguisher'?'extinguisher_rack':id);
             if(this.useModularArt)this.equipmentArt(art,id);
             const ln=new Node('label');ln.layer=Layers.Enum.UI_2D;n.addChild(ln);ln.setPosition(0,-19);ln.addComponent(UITransform).setContentSize(56,18);
             const l=ln.addComponent(Label);l.fontSize=10;l.lineHeight=13;l.isBold=true;l.color=color(COLORS.ink);l.overflow=Label.Overflow.SHRINK;

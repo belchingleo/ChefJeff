@@ -10,9 +10,10 @@ level_calibration then puts the bundle on the release's rules and measures it.
                   {"type": "ingredient_source", "x": 2, "y": 1, "item": "beef"}, ...],
      "dishes": [{"name": "红烧牛肉面", "price": 90, "items": ["noodles", "beef", "scallion"]}]}
 
-Rules the editor shows as it goes (owner decisions 2026-11-01): three room sizes; walls inside the
-room may not cut it in two; exactly one sink, plate return and extinguisher rack, one or two serving
-windows; three plates at the start; at most four dishes of one to four ingredients. Station ids follow
+Rules the editor shows as it goes (owner decisions 2026-11-01/02): three room sizes; walls inside the
+room may not cut it in two; stations may be set into the outer wall, except at its four corners, and
+serving windows and the plate return must be; exactly one sink, plate return and extinguisher rack, one
+or two serving windows; three plates at the start; at most four dishes of one to four ingredients. Station ids follow
 the client's drawing conventions (serve, sink, returns, extinguisher, b1, p1...).
 """
 import copy
@@ -24,6 +25,7 @@ FORMAT = 'chefjeff-player-level-1'
 SIZES = ((12, 8), (14, 9), (16, 10))
 TYPES = ('counter', 'board', 'stove', 'ingredient_source', 'serving_window', 'sink', 'plate_return', 'bin', 'tool_rack')
 EXACTLY_ONE = ('sink', 'plate_return', 'tool_rack')
+IN_THE_WALL = ('serving_window', 'plate_return')  # food leaves and dirty plates come back through the wall
 SERVING_WINDOWS = (1, 2)
 VESSELS = ('pan', 'pot')
 PLATES = 3
@@ -94,12 +96,15 @@ def bundle(design, registry=None):
         return None, problems + [_problem('/size', 'the room is 12x8, 14x9 or 16x10')]
     width, height = size
     interior = lambda p: 0 < p[0] < width - 1 and 0 < p[1] < height - 1
+    # The outer wall's cells but its corners, which face no floor.
+    in_wall = lambda p: (0 <= p[0] < width and 0 <= p[1] < height and not interior(p)
+                         and (0 < p[0] < width - 1 or 0 < p[1] < height - 1))
 
-    def cell(value, path):
+    def cell(value, path, wall=False):
         if (isinstance(value, (list, tuple)) and len(value) == 2 and all(type(v) is int for v in value)
-                and interior(value)):
+                and (interior(value) or wall and in_wall(value))):
             return tuple(value)
-        problems.append(_problem(path, 'a cell inside the room'))
+        problems.append(_problem(path, 'a cell inside the room or in its outer wall, not a corner' if wall else 'a cell inside the room'))
         return None
 
     walls = set()
@@ -113,8 +118,11 @@ def bundle(design, registry=None):
         if not isinstance(s, dict) or s.get('type') not in TYPES:
             problems.append(_problem(path, 'a station type of ' + ', '.join(TYPES)))
             continue
-        c = cell([s.get('x'), s.get('y')], path)
+        c = cell([s.get('x'), s.get('y')], path, wall=True)
         if c is None:
+            continue
+        if s['type'] in IN_THE_WALL and interior(c):
+            problems.append(_problem(path, f'a {s["type"]} is set into the outer wall', 'STATION_NOT_IN_WALL'))
             continue
         if c in walls or c in taken:
             problems.append(_problem(path, 'two things on one cell'))

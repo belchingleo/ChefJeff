@@ -14,10 +14,10 @@ SPLIT = {
     'format': level_design.FORMAT, 'name': '隔开的厨房', 'size': [14, 9], 'walls': [],
     'stations': (
         [{'type': 'ingredient_source', 'x': x, 'y': 1, 'item': item} for x, item in ((2, 'beef'), (3, 'lettuce'), (4, 'tomato'), (5, 'bread'))]
-        + [{'type': 'counter', 'x': 7, 'y': 1}, {'type': 'stove', 'x': 9, 'y': 1, 'vessel': 'pan'}, {'type': 'serving_window', 'x': 12, 'y': 2}]
+        + [{'type': 'counter', 'x': 7, 'y': 1}, {'type': 'stove', 'x': 9, 'y': 1, 'vessel': 'pan'}, {'type': 'serving_window', 'x': 13, 'y': 2}]
         + [{'type': 'counter', 'x': x, 'y': 4} for x in range(1, 13)]
         + [{'type': 'board', 'x': 2, 'y': 7}, {'type': 'board', 'x': 3, 'y': 7}, {'type': 'sink', 'x': 5, 'y': 7},
-           {'type': 'plate_return', 'x': 6, 'y': 7}, {'type': 'bin', 'x': 8, 'y': 7}, {'type': 'tool_rack', 'x': 10, 'y': 7},
+           {'type': 'plate_return', 'x': 6, 'y': 8}, {'type': 'bin', 'x': 8, 'y': 7}, {'type': 'tool_rack', 'x': 10, 'y': 7},
            {'type': 'counter', 'x': 11, 'y': 7}]),
     'dishes': [{'name': '汉堡', 'price': 80, 'items': ['bread', 'lettuce', 'tomato', 'beef']}],
 }
@@ -69,7 +69,7 @@ class EngineTests(unittest.TestCase):
 
     def test_the_serve_hint_points_at_the_nearest_window(self):
         design = copy.deepcopy(SPLIT)
-        design['stations'].append({'type': 'serving_window', 'x': 6, 'y': 1})
+        design['stations'].append({'type': 'serving_window', 'x': 6, 'y': 0})
         k = kitchen(design)
         runner = next(w for w in k.chefs if k.positions[w][1] < 4)
         k.positions[runner] = (6.0, 2.0)

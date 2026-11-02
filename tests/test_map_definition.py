@@ -232,6 +232,18 @@ class BuildMapTests(unittest.TestCase):
         self.assertEqual((tall['floor_areas']['axis'], tall['floor_areas']['split']), ('y', 4))
         self.assertEqual([s['area'] for s in tall['equipment']], ['prep', 'cook'])
 
+    def test_stations_may_be_set_into_the_outer_wall(self):
+        # A serving window in the east wall and a counter in the top wall, both reached from inside.
+        doc = build_map('inset', [8, 6], [('serve', 7, 2, 'west'), ('c1', 3, 0, 'south'), ('c2', 2, 2, 'east')])
+        walls = set(map(tuple, doc['walls']))
+        self.assertTrue((7, 2) not in walls and (3, 0) not in walls and (4, 0) in walls)
+        e = {s['id']: s for s in doc['equipment']}
+        self.assertEqual((e['serve']['access'], e['c1']['access']), ([6, 2], [3, 1]))
+        with self.assertRaisesRegex(ValueError, 'c1 faces north'):
+            build_map('out', [8, 6], [('c1', 3, 0, 'north')])
+        with self.assertRaisesRegex(ValueError, 'boundary must be closed'):
+            validate_map(dict(doc, walls=[w for w in doc['walls'] if w != [4, 0]]))
+
     def test_a_station_facing_a_wall_is_named(self):
         with self.assertRaisesRegex(ValueError, 'fridge faces north'):
             build_map('bad', [6, 6], [('fridge', 2, 1, 'north')])
