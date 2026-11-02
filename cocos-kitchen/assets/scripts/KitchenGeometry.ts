@@ -243,6 +243,12 @@ export function throwDiagonal(dx:number,dy:number):string{
     for(let i=0;i<4;i++){const centre=45+90*i,off=Math.abs(((t-centre)%360+540)%360-180);if(off<22.5)return names[i];}
     return '';
 }
+/** The facing a chef keeps while standing still. The engine's facing wins (it turns a chef for work between
+ * polls), except for the player's own steered chef: as in Overcooked, the local chef keeps the page's facing,
+ * since the engine's arrives a round trip after the key and would flash the old direction on release. */
+export function restingFacing(drawn:string,engine:string|undefined,steered:boolean):string{
+    return steered||!engine?drawn:engine;
+}
 /** The chef's own cell (engine anchor()): the nearest floor cell, ties to the lower row, then column. */
 export function anchorCell(map:any,pos:number[]):number[]|null{
     const key=(x:number,y:number)=>x+','+y,blocked=new Set<string>((map.walls||[]).map((w:number[])=>key(w[0],w[1])));
