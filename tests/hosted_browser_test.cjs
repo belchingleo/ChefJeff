@@ -755,6 +755,13 @@ function settingsHarness(){
  ui.el('api-form').onsubmit({preventDefault(){}});assert.equal(ui.requests(),0);
  detail.connection.editable=true;ui.listeners.get('kitchen-state')({detail});
  assert.equal(ui.el('api-connect').disabled,false);assert.equal(ui.el('api-key').value,key);
+ // Jeff's plan switch follows the server's setting and is locked during a round.
+ detail.communication={jeff_plan:{mode:'choice',editable:true,current:null}};ui.listeners.get('kitchen-state')({detail});
+ assert.equal(ui.el('jeff-plan-choice').checked,true);assert.equal(ui.el('jeff-plan-off').checked,false);
+ assert.equal(ui.el('jeff-plan-choice').disabled,false);
+ detail.communication.jeff_plan={mode:'off',editable:false,current:null};ui.listeners.get('kitchen-state')({detail});
+ assert.equal(ui.el('jeff-plan-off').checked,true);assert.equal(ui.el('jeff-plan-choice').disabled,true);
+ assert(ui.el('plan-status').textContent.includes('本局进行中'));
  console.log('Browser transport and settings: credential isolation, session retry/release, editable drafts and guarded connection checks passed.');
  await checkModelIdentity();
  await checkFreeModels();

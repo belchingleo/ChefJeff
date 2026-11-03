@@ -937,7 +937,18 @@
     "Google AI Studio 免费层级：每分钟 15 次、每天 500 次 · 需能访问 Google": "Google AI Studio free tier: 15 requests a minute, 500 a day · needs access to Google",
     "免费额度每个账户每天 10,000 Neurons，约 100–140 次请求 · 也可填 @cf/meta/llama-3.1-8b-instruct-fp8": "Free tier: 10,000 Neurons a day per account, about 100–140 requests · you can also enter @cf/meta/llama-3.1-8b-instruct-fp8",
     "免费，但高峰常返回“访问量过大”": "Free, but often answers “too many requests” at peak times",
-    "请优先选择快思考模型": "Prefer a fast-thinking model"
+    "请优先选择快思考模型": "Prefer a fast-thinking model",
+    "Jeff 的计划（测试）": "Jeff's plan (trial)",
+    "关闭（默认）": "Off (default)",
+    "选择题：Jeff 没有计划时，顺带选接下来负责哪一段（备料、加热、装盘出餐、收洗盘或随机应变），约 12 秒内有效，沟通栏里能看到": "Multiple choice: while Jeff has no plan, it also picks the part it takes on next (prep, cooking, plating and serving, plates, or flexible), held for about 12 seconds and shown in the communication panel",
+    "计划说明": "About the plan",
+    "计划不限制 Jeff 的动作，它每次仍从全部可选动作里选。开局前或结算后才能修改，一局内不变。打开后，没有计划的那次请求会多一道选择题。": "The plan does not limit Jeff's actions; it still chooses from every available action each time. Change it before a round or after the results; it stays the same during a round. When it is on, a request without a plan carries one more multiple-choice question.",
+    "请在开局前或结算后修改 Jeff 的计划设置。": "Change Jeff's plan setting before a round or after the results.",
+    "计划设置无效。": "Invalid plan setting.",
+    "本局进行中；结束本局后可以修改。": "A round is in progress; change this after it ends.",
+    "下一局起，Jeff 会选择自己的计划。": "From the next round, Jeff chooses its own plan.",
+    "下一局起不再询问计划。": "From the next round, Jeff is no longer asked for a plan.",
+    "Jeff：还没选计划": "Jeff: no plan yet"
   },
   "templates": [
     [
@@ -1631,6 +1642,46 @@
     [
       "{0} 接口返回 HTTP {1}，请检查账号和模型。",
       "{0} API returned HTTP {1}. Check your account and model."
+    ],
+    [
+      "Jeff：备料 · 还剩 {0} 秒",
+      "Jeff: Prep · {0} s left"
+    ],
+    [
+      "Jeff：备料 · {0} 秒",
+      "Jeff: Prep · {0} s"
+    ],
+    [
+      "Jeff：加热 · 还剩 {0} 秒",
+      "Jeff: Cooking · {0} s left"
+    ],
+    [
+      "Jeff：加热 · {0} 秒",
+      "Jeff: Cooking · {0} s"
+    ],
+    [
+      "Jeff：装盘出餐 · 还剩 {0} 秒",
+      "Jeff: Plating & serving · {0} s left"
+    ],
+    [
+      "Jeff：装盘出餐 · {0} 秒",
+      "Jeff: Plating & serving · {0} s"
+    ],
+    [
+      "Jeff：收洗盘 · 还剩 {0} 秒",
+      "Jeff: Plates · {0} s left"
+    ],
+    [
+      "Jeff：收洗盘 · {0} 秒",
+      "Jeff: Plates · {0} s"
+    ],
+    [
+      "Jeff：随机应变 · 还剩 {0} 秒",
+      "Jeff: Flexible · {0} s left"
+    ],
+    [
+      "Jeff：随机应变 · {0} 秒",
+      "Jeff: Flexible · {0} s"
     ]
   ]
 }
