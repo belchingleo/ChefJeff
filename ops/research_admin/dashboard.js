@@ -29,14 +29,30 @@ if(el('filter-form')) (()=>{
     checked?chosen.add(ref):chosen.delete(ref);
     if(el('chart-population').value==='selected')staleChart();
   }
+  let packageBusy=false;
+  // A large package is built on the server while the page asks again every few seconds (202 means still building).
+  async function packageDownload(path,init){
+    if(packageBusy)return messages('上一份研究包还在生成，请稍候。');
+    packageBusy=true;messages('');const started=Date.now(),status=el('download-status');
+    try{
+      for(;;){
+        const response=await fetch(base+path,{credentials:'same-origin',cache:'no-store',...init});
+        if(response.status===202||response.status===429){
+          await response.text().catch(()=>'');
+          status.textContent=`研究包正在生成，请不要关闭页面…已等待 ${Math.round((Date.now()-started)/1000)} 秒`;
+          const wait=Math.min(10,Math.max(1,Number(response.headers.get('Retry-After'))||5));
+          await new Promise(resolve=>setTimeout(resolve,wait*1000));continue;
+        }
+        if(response.status===401){location.assign(base+'login');throw new Error('请重新登录。');}
+        if(!response.ok){const error=await response.json().catch(()=>({}));throw new Error(error.error||'研究包下载失败，请重试。');}
+        saveBlob(await response.arrayBuffer(),'application/zip','chefjeff-research.cjresearch.zip');return;
+      }
+    }finally{packageBusy=false;status.textContent='';}
+  }
   function selectedDownload(refs){
     if(!refs.length)return messages('请先勾选记录。');
-    const form=document.createElement('form');form.method='POST';form.action=base+'download/selected.cjresearch.zip';form.target='_blank';
-    const field=document.createElement('input');field.type='hidden';field.name='refs';field.value=JSON.stringify(refs);form.append(field);
-    document.body.append(form);form.submit();form.remove();
-  }
-  function nativeDownload(url){
-    const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';document.body.append(a);a.click();a.remove();
+    return guard(()=>packageDownload('download/selected.cjresearch.zip',{method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({refs:JSON.stringify(refs)})}));
   }
   function saveBlob(raw,type,name){
     const url=URL.createObjectURL(new Blob([raw],{type}));const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
@@ -96,7 +112,7 @@ if(el('filter-form')) (()=>{
   el('select-page').addEventListener('change',()=>{const checked=el('select-page').checked;for(const row of shown)select(row.ref,checked);selection();});
   el('clear-selection').addEventListener('click',()=>{chosen.clear();selection();if(el('chart-population').value==='selected')staleChart();});
   el('download-selected').addEventListener('click',()=>selectedDownload([...chosen]));
-  el('download').addEventListener('click',()=>nativeDownload(base+'download/research.cjresearch.zip?'+params()));
+  el('download').addEventListener('click',()=>guard(()=>packageDownload('download/research.cjresearch.zip?'+params())));
   el('refresh').addEventListener('click',()=>{messages('');guard(usage);guard(regionalUsage);guard(options);});
 
   function tab(name){
