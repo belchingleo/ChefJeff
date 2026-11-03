@@ -19,6 +19,7 @@ import webbrowser
 
 from kitchen import Kitchen, ROOT, load_config
 from jev import JevClient, DecisionLoop
+from harness import Plan, PLAN_RULES_VERSION, PLAN_SECONDS
 from play import Journal
 from round_summary import round_summary
 from session_record import SessionLog, write_bundle
@@ -84,6 +85,8 @@ class GameSession:
         self.last_player_message_at = None
         self.bookmarks = []
         self.last_bookmark_at = None
+        # Jeff's plan switch (off or choice), chosen before a round and kept for later rounds.
+        self.jeff_plan_mode = 'off'
         # Every round of this play session, for the data export (feedback.play_export).
         self.history = []
         self.history_limit = HISTORY_LIMIT
@@ -406,7 +409,17 @@ class GameSession:
         remaining=max(0.,5-(time.monotonic()-self.last_player_message_at)) if self.last_player_message_at is not None else 0.
         return {'preference': preference['code'] if preference else None,
                 'cooldown_remaining': round(remaining,2), 'last_message': deepcopy(last),
-                'allowed': self.phase in ('running','paused') and not self.k.ended}
+                'allowed': self.phase in ('running','paused') and not self.k.ended,
+                'jeff_plan': self.plan_state()}
+
+    def plan_state(self):
+        """The plan switch for the next round, and Jeff's current plan as the player sees it."""
+        plan = getattr(self.ai, 'plan', None) if self.ai else None
+        current = plan.current if plan and self.phase in ('running', 'paused') and not self.k.ended else None
+        if current and current['expires_at'] <= self.k.time:
+            current = None   # ended; the loop notices at its next request
+        return {'mode': self.jeff_plan_mode, 'editable': self.phase in ('ready', 'ended'),
+                'current': {'role': current['role'], 'remaining': round(current['expires_at'] - self.k.time, 1)} if current else None}
 
     def _communicate(self, body):
         if self.phase not in ('running','paused') or self.k.ended or self.journal is None:
@@ -488,6 +501,13 @@ class GameSession:
             result = self._command('/api/level', {'level': body.get('level')})
             if result[0] != 200:return result
             return self._command('/api/start', {'speed': speed})
+        if path == '/api/plan':
+            if self.phase not in ('ready', 'ended'):
+                return 409, {'error': '请在开局前或结算后修改 Jeff 的计划设置。'}
+            if body.get('mode') not in ('off', 'choice'):
+                return 400, {'error': '计划设置无效。'}
+            self.jeff_plan_mode = body['mode']
+            return 200, {'ok': True, 'jeff_plan': self.plan_state()}
         if path == '/api/restart':
             if self.phase not in ('paused','ended'):
                 return 409, {'error': '请先暂停，再重新开局。'}
@@ -513,8 +533,13 @@ class GameSession:
             self.journal = SessionLog(self, self.journal_factory(self.log_prefix+'-'+self.game_id[:8]),
                                       keep_payloads=self.bundle_root is not None, deployment_mode=self.deployment_mode)
             self.session_log = self.journal
-            self.journal('start', {'config':self.c, 'config_hash':self.k.config_hash, 'speed':self.speed, 'state':self.k.snapshot()})
+            plan_seconds = self.c.get('jeff_plan_seconds', PLAN_SECONDS)
+            plan = ({'jeff_plan': {'mode': 'choice', 'seconds': plan_seconds, 'rules_version': PLAN_RULES_VERSION}}
+                    if self.jeff_plan_mode == 'choice' else {})
+            self.journal('start', {'config':self.c, 'config_hash':self.k.config_hash, 'speed':self.speed, 'state':self.k.snapshot(), **plan})
             self.ai = DecisionLoop(self.k, client, self.journal, self.note)
+            if plan:
+                self.ai.plan = Plan(plan_seconds)
             self.phase = 'running'
             self.last_tick = self.last_seen = time.monotonic()
             self.wake.set()

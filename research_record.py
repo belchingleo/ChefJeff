@@ -209,7 +209,9 @@ def payload(kind, data, k):
         rebuild = {'engine_input_n': len(k.inputs), 'payload_sha256': cc.sha256(body),
                    'recent_decisions': deepcopy(body.get('state', {}).get('recent_decisions', [])),
                    'player_communication': deepcopy(body.get('state', {}).get('player_communication')),
-                   'memory_input': memory_input(body)} if observed else {}
+                   'memory_input': memory_input(body),
+                   # Only rounds with Jeff's plan switch on carry it (harness.Plan.input).
+                   **({'jeff_plan': deepcopy(data['jeff_plan'])} if data.get('jeff_plan') is not None else {})} if observed else {}
         return {**rebuild, 'observed_state_seq': data.get('observed_state_seq'),
                 'candidates': [code(v) for v in candidates],
                 'candidate_actions': [action(a.key, a.target, a.kind) for a in k.actions('jeff') if a.key in candidates], 'stage': 'model_request',
@@ -242,6 +244,15 @@ def payload(kind, data, k):
         return {'reason': data.get('reason') if data.get('reason') in REASONS else 'not_observed',
                 'speed': number(data.get('speed')), 'aborted': bool(k.aborted)}
     return None  # presets, bookmark texts, release metadata, raw errors: not this study
+
+
+def plan_condition(session):
+    """Jeff's plan switch as this round started with it; nothing when it was off."""
+    plan = getattr(getattr(session, 'ai', None), 'plan', None)
+    if plan is None:
+        return {}
+    from harness import PLAN_RULES_VERSION
+    return {'jeff_plan': {'mode': 'choice', 'seconds': plan.seconds, 'rules_version': PLAN_RULES_VERSION}}
 
 
 def project_event(record):
@@ -286,6 +297,7 @@ def record(session):
             'config_projection_hash': 'sha256:' + cc.sha256(log.research_config),
             'conditions': {'cross_round_memory': memory_condition(session),
                            'memory_provenance': deepcopy(getattr(session, 'round_memory_provenance', None)),
+                           **plan_condition(session),
                            'engine_semantics': k.rules.semantics,
                            'rules_version': _rules_version(),
                            'input_language': _input_language(),

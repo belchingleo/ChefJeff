@@ -100,9 +100,11 @@ class BrowserRelay(SpatialJevClient):
             from research_record import probabilities
             if not isinstance(reported, dict) or probabilities(reported, criteria) != {k: round(v, 6) for k, v in reported.items()}:
                 return False
+            from harness import plan_answer
             task['result'] = {'choice': choice, 'sprint': body['sprint'], 'model': 'browser-model',
                               'usage': usage, 'latency': time.monotonic() - task['sent'],
-                              'confidence': None, 'probabilities': probabilities(reported, criteria)}
+                              'confidence': None, 'probabilities': probabilities(reported, criteria),
+                              **plan_answer(body.get('plan_role'), task['payload'])}
             task['event'].set()
             return True
 
@@ -426,12 +428,12 @@ FIELDS = {
     '/api/contribution/save': {'consent', 'consent_version', 'consent_mode', 'model_identity'},
     '/api/browser-ready': {'connected'}, '/api/start': {'speed'}, '/api/pause': {'reason'},
     '/api/resume': set(), '/api/end': set(), '/api/reset': set(), '/api/restart': set(),
-    '/api/level': {'level'}, '/api/next': {'level'}, '/api/limits': {'max_calls'}, '/api/export-run': set(),
+    '/api/level': {'level'}, '/api/next': {'level'}, '/api/plan': {'mode'}, '/api/limits': {'max_calls'}, '/api/export-run': set(),
     '/api/feedback': set(), '/api/bookmark': set(), '/api/communicate': {'code'},
     '/api/move': {'dx', 'dy', 'seq', 'sprint'}, '/api/position': {'seq', 'base', 'at', 'press'}, '/api/select': {'target'},
     '/api/interact': {'expected_item', 'mode', 'at', 'base', 'aim', 'target'}, '/api/throw': {'direction', 'expected_item', 'at', 'base'},
     '/api/action': {'action', 'expected'},
-    '/api/model/result': {'id', 'choice', 'sprint', 'usage', 'failed','memory_condition','telemetry','probabilities','memory_provenance'},
+    '/api/model/result': {'id', 'choice', 'sprint', 'plan_role', 'usage', 'failed','memory_condition','telemetry','probabilities','memory_provenance'},
 }
 
 

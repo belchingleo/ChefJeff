@@ -10,6 +10,7 @@ import time
 from pathlib import Path
 
 import research_replay
+from research_record import validate_record
 from scripts.check_research_record import main as check_cli
 import test_research_save_paths as paths
 from web_server import PLAYER_MESSAGES
@@ -125,6 +126,27 @@ class ReplayTests(paths.SavePathTests):
         self.assertIn({choice: .75, other_key['key']: .25}, reported)
         kept = record['conditions']['memory_provenance']
         self.assertEqual((kept['source_round_ids'], kept['context_sha256'], kept['source']), ([source], 'cd' * 32, 'browser-reported'))
+
+    def test_a_round_with_jeffs_plan_keeps_the_condition_and_replays_exactly(self):
+        self.assertEqual(self.command('plan', mode='choice')[0], 200)
+        receipt = self.begin_manual_relay()
+        initial = self.game.store.download(receipt['id'], receipt['deletion_token'])
+        self.assertEqual(initial['conditions']['jeff_plan'], {'mode': 'choice', 'seconds': 12, 'rules_version': 'plan-v1'})
+        self.human_action()
+        self.assertEqual(self.answer_with(plan_role='prep')[0], 200)
+        self.assertEqual(self.answer_with()[0], 200)
+        self.natural_end()
+        self.assertEqual(self.contribute()[0], 200)
+        record = self.game.store.download(receipt['id'], receipt['deletion_token'])
+        validate_record(record)
+        self.assertEqual(record['conditions']['jeff_plan'], initial['conditions']['jeff_plan'])
+        plans = [e['payload']['jeff_plan'] for e in record['events'] if e['type'] == 'ai_request']
+        self.assertIsNone(plans[0]['current'])
+        self.assertEqual(plans[1]['current']['role'], 'prep')
+        requests = list(research_replay.rebuild_requests(record))
+        self.assertEqual({r['status'] for r in requests}, {'verified'})
+        self.assertIn('plan_role', requests[0]['rebuilt']['questions'])
+        self.assertEqual(requests[1]['rebuilt']['state']['jeff_plan']['role'], 'prep')
 
     def test_a_tampered_record_is_reported_as_diverged(self):
         receipt = self.play()

@@ -71,9 +71,17 @@ console.log(JSON.stringify(JSON.parse(process.argv[1]).map(build)));
 """
         without = deepcopy(PAYLOAD)
         del without['questions']['sprint']
-        payloads = [PAYLOAD, without]
+        planned = deepcopy(PAYLOAD)
+        planned['questions']['plan_role'] = {'type': 'choice', 'criteria': {'prep': 'Prepare', 'flexible': 'No particular part'}}
+        payloads = [PAYLOAD, without, planned]
         result = subprocess.run(['node', '-e', js, json.dumps(payloads)], cwd=root, capture_output=True, text=True, check=True)
         self.assertEqual(json.loads(result.stdout), [zhipu_system(p) for p in payloads])
+
+    def test_browser_chat_prompt_adds_the_same_plan_sentence(self):
+        import re
+        from harness import PLAN_CHAT_RULE
+        source = (Path(__file__).resolve().parents[1] / 'hosted' / 'browser-agent.js').read_text()
+        self.assertEqual(re.findall(r"const PLAN_CHAT_RULE = '([^']*)';", source), [PLAN_CHAT_RULE])
 
 
 if __name__ == '__main__':

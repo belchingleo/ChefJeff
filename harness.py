@@ -250,8 +250,113 @@ CONTINUITY_RULE = (
 NO_MEMORY = object()
 
 
-def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY):
-    """Add what one request needs beyond the snapshot; research replay rebuilds requests here too."""
+# Jeff's plan, the multiple-choice tier: in the same request as its action, Jeff picks the part of
+# the work it takes on next. The plan only adds to the input; it never changes the listed actions.
+PLAN_RULES_VERSION = 'plan-v1'
+PLAN_SECONDS = 12
+# Engine action kinds of each part, the same for every level (engine semantics only, like
+# round_summary.CATEGORIES). A throw belongs to the part of the item it carries.
+PLAN_PARTS = {
+    'prep': ('fetch', 'put_board', 'take_board', 'chop'),
+    'cook': ('put_pot', 'lift_pot', 'return_pot', 'swap_pot', 'swap_ground_pot', 'load_counter', 'load_ground'),
+    'serve': ('take_plate', 'assemble', 'assemble_ground', 'plate_pot', 'plate_counter', 'plate_from_counter',
+              'plate_ground', 'plate_partner', 'merge_plates', 'serve'),
+    'plates': ('take_return', 'put_sink', 'wash', 'take_sink'),
+}
+PLAN_OPTIONS = {
+    'prep': 'Prepare ingredients: fetch, put on boards, chop, and pass raw or chopped ingredients',
+    'cook': 'Cook: put ingredients into pots; lift, swap, load and return pots; pass pots',
+    'serve': 'Plate and serve: take clean plates, plate and assemble dishes, pass plated food, and serve',
+    'plates': 'Plates: collect dirty plates, put them in the sink, wash them, and take clean plates from the sink',
+    'flexible': 'No particular part: each action is decided as it comes',
+}
+PLAN_CHAT_RULE = (' When questions.plan_role is present, also include "plan_role": "<part key>", '
+                  'one key of questions.plan_role.criteria.')
+PLAN_RULE = ('jeff_plan, when present, is the part of the work you chose with plan_role: prep, cook, serve, plates, or flexible '
+             '(no particular part). set_at and expires_at are game times. A plan holds for {seconds:g} game seconds and ends earlier '
+             'when the human sends a new preference, or when neither the action you are doing nor any of your listed actions belongs '
+             'to its part. The human sees your plan. '
+             'It does not change your listed actions; you may follow it or not. While no plan holds, questions.plan_role asks for one, '
+             'and your answer holds from your next request.')
+
+
+def plan_answer(value, payload):
+    """A reply's plan_role for a request that asked it: one of its options, else None (no plan).
+
+    Requests that did not ask get no plan_role field at all, so their replies stay as they were.
+    """
+    if 'plan_role' not in payload['questions']:
+        return {}
+    return {'plan_role': value if isinstance(value, str) and value in payload['questions']['plan_role']['criteria'] else None}
+
+
+def plan_parts(state):
+    """The parts this level can offer, from its equipment and recipes."""
+    kinds = {e.get('type') for e in state['map']['equipment'].values()}
+    cooked = any(c.get('state') == 'ready' for d in state.get('dishes', state.get('menu', [])) for c in d.get('components', []))
+    offered = {'prep': 'ingredient_source' in kinds, 'cook': 'stove' in kinds and cooked,
+               'serve': 'serving_window' in kinds, 'plates': 'sink' in kinds}
+    return {part: PLAN_OPTIONS[part] for part in PLAN_PARTS if offered[part]} | {'flexible': PLAN_OPTIONS['flexible']}
+
+
+def action_part(action, state):
+    """The part of the work an action belongs to, or None (walking, waiting, tools, carrying)."""
+    if action.kind == 'throw':
+        held = state['chefs']['jeff'].get('holding') or {}
+        stage = held.get('stage')
+        return ('plates' if stage == 'dirty_plate' else 'serve' if stage == 'clean_plate' or held.get('plate_id')
+                else 'cook' if stage == 'pot' else 'prep' if stage in ('raw', 'chopped') else None)
+    return next((part for part, kinds in PLAN_PARTS.items() if action.kind in kinds), None)
+
+
+class Plan:
+    """Jeff's current plan within one round, and when it ends.
+
+    A plan answered in one request holds from the next one for `seconds` of game time. It ends
+    earlier when the human sends a new preference (messages 1-5) or, for a part other than
+    flexible, when neither the action Jeff is doing nor any of its listed actions belongs to it.
+    Then plan_role is asked again.
+    """
+
+    def __init__(self, seconds=PLAN_SECONDS):
+        self.seconds = seconds
+        self.current = None     # {'role', 'set_at', 'expires_at', 'preference'}
+
+    def check(self, now, state, actions, preference, doing=None):
+        """End the current plan if one of its end conditions holds; returns the reason or None.
+
+        doing is the action of Jeff's running job, if any: walking to the only fridge is still prep
+        although that fetch is no longer listed.
+        """
+        c = self.current
+        if not c:
+            return None
+        reason = ('expired' if now >= c['expires_at'] - 1e-9 else 'new_preference' if preference != c['preference']
+                  else 'nothing_to_do' if c['role'] != 'flexible' and not any(
+                      action_part(a, state) == c['role'] for a in [*actions, *([doing] if doing else [])])
+                  else None)
+        if reason:
+            self.current = None
+        return reason
+
+    def input(self, state):
+        """Everything compose needs; research records keep it so requests can be rebuilt."""
+        current = {k: self.current[k] for k in ('role', 'set_at', 'expires_at')} if self.current else None
+        return {'seconds': self.seconds, 'current': current, 'options': None if current else plan_parts(state)}
+
+    def accept(self, role, now, offered, preference):
+        """Hold Jeff's answer to plan_role, if it was asked and the answer is one of its options."""
+        if self.current or not offered or role not in offered:
+            return False
+        self.current = {'role': role, 'set_at': round(now, 3), 'expires_at': round(now + self.seconds, 3), 'preference': preference}
+        return True
+
+
+def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY, plan=None):
+    """Add what one request needs beyond the snapshot; research replay rebuilds requests here too.
+
+    plan is Plan.input() when the plan switch is on, else None (the input is then unchanged).
+    """
     # HTTP choices are stateless: return actual outcomes, not just today's snapshot.
     # Walking starts/stops are already in each chef's position and move_direction; as events
     # they only push outcomes out of the window. The run log keeps them.
@@ -264,7 +369,19 @@ def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY)
         payload['state']['past_episodes'] = memory
         payload['state']['rules']['past_episodes'] = PAST_EPISODES_RULE
     payload['state']['rules']['continuity'] = CONTINUITY_RULE
+    if plan is not None:
+        if plan['current']:
+            payload['state']['jeff_plan'] = dict(plan['current'])
+        payload['state']['rules']['jeff_plan'] = PLAN_RULE.format(seconds=plan['seconds'])
+        if not plan['current']:
+            payload['questions']['plan_role'] = {
+                'type': 'choice',
+                'instructions': 'Which part of the work do you take on from your next request? Your answer is shown to the human chef '
+                                'and returned to you as jeff_plan while it holds; it does not limit your actions.',
+                'criteria': dict(plan['options'])}
     payload = english_data(payload)
     payload['state']['input_language'] = INPUT_LANGUAGE_VERSION
     payload['state']['rules_version'] = AGENT_RULES_VERSION
+    if plan is not None:
+        payload['state']['plan_rules_version'] = PLAN_RULES_VERSION
     return payload
