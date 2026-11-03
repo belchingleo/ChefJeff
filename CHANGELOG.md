@@ -42,6 +42,7 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - Settings work on a phone opening the local game over the LAN (plain HTTP).
 - A route always starts and ends at the points it was asked for. Kitchens on one map share a route cache in which (6, 2) and (6.0, 2.0) are the same key, so after earlier rounds in the same server process a route could be written with the other number type (for example 6.0 instead of 6) in Jeff's input.
 - Payload fingerprints guard Jeff's model input: fixed rounds on the three levels record every request's payload and, on every fourth request, the exact body each local and online client would send, so refactors cannot change the input by accident.
+- Jeff's input is assembled in one module, `harness.py`: the rule text (each paragraph written once, with the grid kitchen's wording chosen in place), the listed actions and the per-request additions. The clients only send it. The input is unchanged byte for byte: the payload fingerprints and a separate check of the non-grid kitchen match.
 
 ### Kitchen and controls
 - Your own chef keeps the direction you last steered when you stop, as in Overcooked. It used to snap back to the server's older facing for a moment, most visibly after short moves online.
@@ -170,6 +171,7 @@ First private release: a local browser game with three playable maps and player-
 - 手机通过局域网（HTTP）打开本地版时，设置页可以正常连接模型。
 - 路线的起点和终点总是请求时给出的那两个点。同一张地图的厨房共用路线缓存，缓存里 (6, 2) 和 (6.0, 2.0) 是同一个键，所以同一个服务器进程玩过几局之后，Jeff 输入里的路线可能写成另一种数字类型（比如把 6 写成 6.0）。
 - 新增输入指纹，守住 Jeff 的模型输入：在三关的固定对局中记录每次请求的输入，并每隔四次请求记录本地版和在线版各客户端实际发出的请求内容，代码整理不会意外改变输入。
+- Jeff 的输入集中到一个模块 `harness.py` 里拼装：规则说明（每段只写一次，网格厨房的写法在原位置按条件选择）、列出的可选动作，以及每次请求追加的内容；各客户端只负责发送。输入逐字节不变：输入指纹和对非网格厨房的单独比对都一致。
 
 ### 厨房与操作
 - 松开方向键时，自己的厨师保持最后按的方向，和《胡闹厨房》一样。以前会先转回服务器那边还没更新的旧朝向，再转回来，线上短距离挪位置时最明显。

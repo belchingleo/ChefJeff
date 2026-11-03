@@ -22,9 +22,9 @@ Choose a compatible Chat Completions service in Settings and supply your own HTT
 
 ## New adapters
 
-Follow `CompatibleClient` in `player_api.py` and `SpatialJevClient` in `whitebox_server.py`:
+Jeff's input is assembled in `harness.py`: `harness.payload` builds the kitchen, rules and listed actions, and `harness.compose` adds recent events and decisions, player messages and memory. Follow `CompatibleClient` in `player_api.py`, which inherits `SpatialJevClient` from `whitebox_server.py`:
 
-- `payload(state, actions)` constructs input without modifying the game.
+- `payload(state, actions)` returns the harness input, adding only the adapter's own fields (such as `model`), without modifying the game.
 - `ask(payload)` returns a dictionary with `choice`, following existing `sprint`, `model`, `usage` and `latency` conventions.
 - Add an explicit branch in `create_client(config, setting)`, with settings validation and UI choices.
 - Use offline test doubles for invalid choices, stale replies, timeouts, budgets and recovery. Keep real keys out of CI.
@@ -67,9 +67,9 @@ Cocos 提供画面与玩家输入，Python 维护权威厨房状态。Agent 选�
 
 ## 新增适配器
 
-参考 `player_api.py` 中的 `CompatibleClient` 和 `whitebox_server.py` 中的 `SpatialJevClient`：
+Jeff 的输入在 `harness.py` 中拼装：`harness.payload` 生成厨房状态、规则说明和可选动作，`harness.compose` 再加入最近事件与选择、玩家消息和记忆。参考 `player_api.py` 中的 `CompatibleClient`，它继承 `whitebox_server.py` 的 `SpatialJevClient`：
 
-- `payload(state, actions)` 构造输入，不改变游戏。
+- `payload(state, actions)` 返回 harness 生成的输入，只添加适配器自己的字段（如 `model`），不改变游戏。
 - `ask(payload)` 返回含 `choice` 的字典，遵循现有 `sprint`、`model`、`usage`、`latency` 字段约定。
 - 在 `create_client(config, setting)` 增加明确分支，同步设置校验与界面选项。
 - 用离线替身覆盖非法选择、过期回复、超时、额度和恢复，CI 不使用真实密钥。

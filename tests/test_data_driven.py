@@ -14,7 +14,7 @@ from spatial_kitchen import SpatialKitchen
 from whitebox_server import SpatialJevClient
 
 ROOT = Path(cc.__file__).resolve().parent
-ENGINE_FILES = ('kitchen.py', 'spatial_kitchen.py', 'rules.py', 'jev.py', 'whitebox_server.py', 'web_server.py',
+ENGINE_FILES = ('kitchen.py', 'spatial_kitchen.py', 'rules.py', 'jev.py', 'harness.py', 'whitebox_server.py', 'web_server.py',
                 'player_api.py', 'cocos_server.py', 'hosted_server.py', 'levels.py')
 
 
