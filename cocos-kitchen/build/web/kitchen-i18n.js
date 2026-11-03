@@ -1083,7 +1083,10 @@
     "我来传菜": "I'll carry / serve",
     "我来洗盘子": "I'll wash dishes",
     "还没说分工": "No split said yet",
-    "玩自制关卡时：这张关卡的完整设计，包括你起的关卡名和菜名": "When you play a level you made: its full design, including the level and dish names you gave it"
+    "玩自制关卡时：这张关卡的完整设计，包括你起的关卡名和菜名": "When you play a level you made: its full design, including the level and dish names you gave it",
+    "厨房里能做": "The kitchen can make",
+    "厨房里还做不了": "Not yet in this kitchen",
+    "这里只能选厨房里做得出来的食材。一样食材要有它的食材箱，要切的还得有案板，要下锅的还得有对应的灶台。想用别的食材，先回第 1 步把这些摆上。": "Only ingredients this kitchen can make are offered here. Each needs its box; one that is chopped also needs a board, and one that is cooked needs the right stove. To use another ingredient, place these in step 1 first."
   },
   "templates": [
     [
@@ -1973,6 +1976,22 @@
     [
       "已说：{0}",
       "Said: {0}"
+    ],
+    [
+      "{0}（缺{1}）",
+      "{0} (needs {1})"
+    ],
+    [
+      "厨房里还缺{0}",
+      "The kitchen still needs {0}"
+    ],
+    [
+      "菜单没用上：{0}",
+      "Not on the menu: {0}"
+    ],
+    [
+      "送错 -¥{0}",
+      "Wrong dish -¥{0}"
     ]
   ]
 }

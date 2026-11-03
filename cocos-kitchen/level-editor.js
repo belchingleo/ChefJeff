@@ -212,6 +212,28 @@
       out.push({name: fmt('灶台·{0}', containerName(v)), placed: c => !!c['stove:' + v]}));
     return out;
   }
+  // What this kitchen still lacks to make one ingredient, in the order the cook needs it: its source, a
+  // board when it is chopped, a stove with its vessel when it is cooked. Empty when the kitchen can make it.
+  function lacks(it, design) {
+    const have = {}, heat = heatStep(it), out = [];
+    Object.values(geometry(design).stations).forEach(s => {have[toolKey(s)] = true; have[s.type] = true;});
+    if (!have['source:' + it.id]) out.push(TOOLS.ingredient_source.name);
+    if (chops(it) && !have.board) out.push(TOOLS.board.name);
+    if (heat && !have['stove:' + heat.container]) out.push(fmt('灶台·{0}', containerName(heat.container)));
+    return out;
+  }
+  const ready = design => catalog.items.filter(it => !lacks(it, design).length);
+  // A dish's choices for one ingredient: what the kitchen can make, then the rest greyed out with the first
+  // thing each one lacks. The ingredient already chosen stays selectable so the select can show it.
+  function ingredientOptions(design, dish, id) {
+    const can = [], cannot = [];
+    catalog.items.filter(o => o.id === id || !dish.items.includes(o.id)).forEach(o => {
+      const lack = lacks(o, design);
+      (lack.length ? cannot : can).push(h('option', {value: o.id, selected: o.id === id, disabled: !!lack.length && o.id !== id},
+        lack.length && o.id !== id ? fmt('{0}（缺{1}）', o.name, lack[0]) : o.name));
+    });
+    return [can.length ? h('optgroup', {label: '厨房里能做'}, can) : null, cannot.length ? h('optgroup', {label: '厨房里还做不了'}, cannot) : null];
+  }
   function menuChecks(design) {
     const out = [], p = catalog.price, err = text => out.push({text, error: true});
     if (!design.dishes.length) err('菜单上至少要有 1 道菜');
@@ -484,12 +506,14 @@
 
     const cell = 34;
     const same = s => !!s && toolKey(s) === (view.tool === 'source' ? 'source:' + view.item : view.tool);
-    const strokeAt = (x, y, g) => view.tool === 'erase' ? {erase: true, any: true} : same(g.stations[x + ',' + y]) ? {erase: true} : {};
+    // Walls are kept apart from stations, so a wall clicked with the wall tool is matched there.
+    const sameAt = (g, key) => view.tool === 'wall' ? g.walls.has(key) : same(g.stations[key]);
+    const strokeAt = (x, y, g) => view.tool === 'erase' ? {erase: true, any: true} : sameAt(g, x + ',' + y) ? {erase: true} : {};
     function apply(x, y, how) {
       const g = geometry(design), key = x + ',' + y, tool = toolOf();
       const wallHere = g.walls.has(key), here = g.stations[key];
       if (how.erase) {
-        if (!how.any && !same(here)) return;
+        if (!how.any && !sameAt(g, key)) return;
         if (!wallHere && !here) return;
         design.walls = design.walls.filter(([wx, wy]) => wx + ',' + wy !== key);
         design.stations = design.stations.filter(s => s.x + ',' + s.y !== key);
@@ -512,19 +536,28 @@
       paint();
       setTimeout(() => {if (view.notice?.n === n) {view.notice = null; paint();}}, 2600);
     }
+    // One stroke per press. Every change redraws the cells, which would drop the pressed one and with it the
+    // release, so the grid itself holds the pointer for the stroke; a move without the button held also ends it.
+    let lastCell = '';
     grid.addEventListener('pointerdown', e => {
       const b = e.target.closest('[data-x]');
       if (!b || e.button) return;
       e.preventDefault();
+      try {grid.setPointerCapture(e.pointerId);} catch (_) {}
       const x = +b.dataset.x, y = +b.dataset.y;
-      stroke = strokeAt(x, y, geometry(design));
+      stroke = strokeAt(x, y, geometry(design)); lastCell = x + ',' + y;
       apply(x, y, stroke); warnInside(x, y, stroke);
-      b.focus({preventScroll: true});
+      grid.querySelector(`[data-x="${x}"][data-y="${y}"]`)?.focus({preventScroll: true});
     });
-    grid.addEventListener('pointerover', e => {
-      const b = e.target.closest('[data-x]');
-      if (b && stroke) apply(+b.dataset.x, +b.dataset.y, stroke);
+    grid.addEventListener('pointermove', e => {
+      if (!stroke) return;
+      if (!(e.buttons & 1)) {endStroke(); return;}
+      const b = document.elementFromPoint(e.clientX, e.clientY)?.closest?.('.ed-grid [data-x]');
+      if (!b || !grid.contains(b) || b.dataset.x + ',' + b.dataset.y === lastCell) return;
+      lastCell = b.dataset.x + ',' + b.dataset.y;
+      apply(+b.dataset.x, +b.dataset.y, stroke);
     });
+    for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) grid.addEventListener(type, endStroke);
     grid.addEventListener('click', e => {
       const b = e.target.closest('[data-x]');
       if (!b || e.detail !== 0) return;  // Enter or Space on a focused cell
@@ -584,9 +617,9 @@
           h('span', {user: (d.name || '').trim() || '未命名', style: 'font:12px/16px var(--pixel)'}),
           h('span', {class: 'ed-hint'}, fmt('¥{0} · {1} 样配料', d.price, d.items.length))))),
       button('+ 加一道菜', () => change(() => {
-        const free = catalog.items.find(it => !design.dishes.some(d => d.items.length === 1 && d.items[0] === it.id)) || catalog.items[0];
+        const can = ready(design), free = can.find(it => !design.dishes.some(d => d.items.length === 1 && d.items[0] === it.id)) || can[0];
         design.dishes.push({name: '新菜', price: suggestedPrice([free.id]), items: [free.id]}); view.dish = design.dishes.length - 1;
-      }), 'btn', {disabled: design.dishes.length >= max}),
+      }), 'btn', {disabled: design.dishes.length >= max || !ready(design).length}),
       h('p', {class: 'ed-hint'}, fmt('最多 {0} 道菜。每 {1} 秒来一单，菜单上的菜轮流出现。', max, catalog.interval_game_ms / 1000)));
     const panel = h('div', {class: 'ed-panel'});
     if (cur) {
@@ -595,17 +628,20 @@
           oninput: e => change(() => {cur.name = e.target.value;}, false), onchange: () => render()}),
         button('删掉这道菜', () => change(() => {design.dishes.splice(i, 1); view.dish = Math.max(0, i - 1);}), 'btn', {disabled: design.dishes.length === 1})));
       add(panel, h('p', {class: 'ed-hint'}, fmt('菜名只显示给人看，最多 {0} 个字。', catalog.dish_name_length)));
-      add(panel, h('span', {class: 'ed-label'}, fmt('配料（最多 {0} 样，做法由食材决定）', catalog.max_items)));
+      add(panel, h('span', {class: 'ed-label'}, fmt('配料（最多 {0} 样，做法由食材决定）', catalog.max_items)),
+        h('p', {class: 'ed-hint'}, '这里只能选厨房里做得出来的食材。一样食材要有它的食材箱，要切的还得有案板，要下锅的还得有对应的灶台。想用别的食材，先回第 1 步把这些摆上。'));
       cur.items.forEach((id, n) => {
         const it = itemOf(id);
         add(panel, h('div', {class: 'ed-row', style: 'flex-wrap:nowrap'}, h('span', {class: 'ed-hint', style: 'width:52px'}, fmt('第 {0} 样', n + 1)),
           h('select', {class: 'ed-select', 'aria-label': fmt('第 {0} 样配料', n + 1), onchange: e => change(() => {cur.items[n] = e.target.value;})},
-            catalog.items.filter(o => o.id === id || !cur.items.includes(o.id)).map(o => h('option', {value: o.id, selected: o.id === id}, o.name))),
-          h('span', {style: 'flex:1;font-size:13px;line-height:20px'}, it ? method(it) : ''),
+            ingredientOptions(design, cur, id)),
+          it && lacks(it, design).length ? h('span', {style: 'flex:1;font-size:13px;line-height:20px;color:' + RED}, fmt('厨房里还缺{0}', lacks(it, design)[0]))
+            : h('span', {style: 'flex:1;font-size:13px;line-height:20px'}, it ? method(it) : ''),
           button('×', () => change(() => {cur.items.splice(n, 1);}), 'btn', {'aria-label': '去掉这样配料', disabled: cur.items.length === 1, style: 'min-width:34px'})));
       });
-      add(panel, button('+ 加一样配料', () => change(() => {cur.items.push(catalog.items.find(o => !cur.items.includes(o.id)).id);}), 'btn',
-        {disabled: cur.items.length >= catalog.max_items, style: 'align-self:flex-start'}));
+      const more = ready(design).find(o => !cur.items.includes(o.id));
+      add(panel, button('+ 加一样配料', () => change(() => {cur.items.push(more.id);}), 'btn',
+        {disabled: !more || cur.items.length >= catalog.max_items, style: 'align-self:flex-start'}));
       const suggested = suggestedPrice(cur.items);
       add(panel, h('div', {class: 'ed-row'}, h('span', {class: 'ed-label', style: 'color:' + MUTED}, '售价'),
         button('-', () => change(() => {cur.price = Math.max(p.min, cur.price - p.step);}), 'btn', {'aria-label': fmt('便宜 {0} 元', p.step), disabled: cur.price <= p.min}),
@@ -636,6 +672,9 @@
       return h('span', {style: 'color:' + (ok ? INK : RED)}, fmt(ok ? '已摆：{0}' : '还缺：{0}', n.name));
     });
     if (missing) rows.push(h('span', {style: 'color:' + MUTED}, '回第 1 步把缺的摆上'));
+    const used = new Set(design.dishes.flatMap(d => d.items));
+    Object.keys(sources).filter(id => !used.has(id)).map(itemOf).filter(Boolean).forEach(it =>
+      rows.push(h('span', {style: 'color:' + MUTED}, fmt('菜单没用上：{0}', fmt('{0}食材箱', it.name)))));
     return rows;
   }
 

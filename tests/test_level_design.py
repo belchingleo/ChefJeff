@@ -87,7 +87,7 @@ class BuildTests(unittest.TestCase):
         level, problems = level_design.bundle(design())
         self.assertEqual(problems, [])
         e = {s['id']: s for s in level['map']['equipment']}
-        # Facing into the room with the outer wall at their back, where the page draws the hatch.
+        # Facing into the room with the outer wall at their back.
         self.assertEqual((e['serve']['cell'], e['serve']['facing']), ([11, 1], 'south'))
         self.assertEqual((e['returns']['cell'], e['returns']['facing']), ([4, 7], 'north'))
         moved = lambda kind, x, y: [dict(s, x=x, y=y) if s['type'] == kind else s for s in stations]

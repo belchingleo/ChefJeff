@@ -6,7 +6,7 @@ import { levelButtonLayout, GRID_ART, stationView, cabinetModule, trashView, wal
 const { ccclass } = _decorator;
 type Action = { key: string; label: string; kind: string; target: string; expected: unknown[] };
 type KitchenState = { game_id: string; state_seq?: number; phase: string; speed: number; kitchen: any; actions: Action[]; levels?:any[]; limits?:any; capacity?:any; release?:any; player_level?:any; interaction?:Action; use_interaction?:Action; interaction_hint?:string; interaction_focus?:string; interaction_cell?:number[];
-    events: {t:number; message:string; kind?:string}[]; ai: {thinking:boolean; error:string|null}; won:boolean; aborted?:boolean; round_summary?:any; rules?:Record<string,number>; connection?:any; memory?:any; communication?:any; hosted?:any };
+    events: {t:number; message:string; kind?:string; actor?:string}[]; ai: {thinking:boolean; error:string|null}; won:boolean; aborted?:boolean; round_summary?:any; rules?:Record<string,number>; connection?:any; memory?:any; communication?:any; hosted?:any };
 type ChefMotion = {body:Node; leftLeg:Node; rightLeg:Node; leftArm:Node; rightArm:Node; knife:Node; facing:string; step:number};
 type PotEffects = {steam:Node; smoke:Node; fire:Node; ready:Node};
 // Tokens from the "ChefJeff 厨房 UI" design system: every colour is sampled from the art
@@ -1355,20 +1355,6 @@ export class KitchenClient extends Component {
             const face=this.child(n,'wall-front',TILE,h,0,-TILE/2+h/2);
             this.art.region(face,'modular/wall_face',0,0,64,GRID_ART.northFace,TILE,h);
         }
-        // A serving window's hatch is in the wall at its back, the side opposite the floor it faces. Seen from
-        // above it runs the way food passes through (turned in the bottom wall); in the top wall, whose face
-        // the camera sees, it is a window in that face.
-        const back:Record<string,number[]>={west:[1,0],east:[-1,0],north:[0,1],south:[0,-1]};
-        for(const e of Object.values(map.equipment) as any[]){
-            const d=e.type==='serving_window'&&back[e.facing];
-            if(!d||x!==e.cell[0]+d[0]||y!==e.cell[1]+d[1])continue;
-            const face=d[1]<0,faceH=GRID_ART.northFace*TILE/GRID_ART.unit,w=TILE*.82,t=face?faceH*.55:TILE*.42;
-            const slot=this.child(n,'serving-aperture',w,t,0,face?-TILE/2+faceH/2:0),g=slot.addComponent(Graphics);
-            if(d[1]>0)slot.angle=90;
-            this.rect(g,-w/2,-t/2,w,t,'#344756');
-            this.rect(g,-w/2+TILE*.05,-t/2+TILE*.06,w-TILE*.1,t-TILE*.12,'#75543a');
-            this.rect(g,-w/2+TILE*.05,-t/2+TILE*.06,w-TILE*.1,3,'#c99551');
-        }
         this.modularWallDecor(n,x,y,neighbours.south);
     }
     private cabinetArt(n:Node,id:string){
@@ -1774,17 +1760,37 @@ export class KitchenClient extends Component {
         }
         if(this.seenEvents.size>300)this.seenEvents=new Set(s.events.map(e=>e.t+'|'+e.message));
     }
-    private feedback(e:{message:string;kind?:string}){
-        const k=this.state!.kitchen,amount=/(\d+) 元/.exec(e.message)?.[1]||'',serve=k.map.equipment.serve?.cell;
-        const at=(cell:number[]|undefined)=>cell?[MAPX+(cell[0]+.5)*TILE,MAPY+(cell[1]-.1)*TILE]:[640,150];
-        if(e.kind==='served'){this.pop(at(serve),'+¥'+amount,COLORS.herb);this.flash(['served','money'],COLORS.herb);}
+    private feedback(e:{message:string;kind?:string;actor?:string}){
+        const amount=/(\d+) 元/.exec(e.message)?.[1]||'';
+        if(e.kind==='served'){this.windowPop(this.servedAt(e.actor),'+¥'+amount,COLORS.herb);this.flash(['served','money'],COLORS.herb);}
+        else if(e.kind==='wrong_dish'){this.windowPop(this.servedAt(e.actor),`送错 -¥${amount}`,COLORS.alert);this.flash(['money'],COLORS.alert);}
+        else if(e.kind==='dish_rejected')this.windowPop(this.servedAt(e.actor),'拒收',COLORS.alert);
         else if(e.kind==='expired'){this.pop([312,180],`${/^(\S+?)超时/.exec(e.message)?.[1]||''} 超时 -¥${amount}`,COLORS.alert);this.flash(['money'],COLORS.alert);}
         else if(e.kind==='fire'||e.kind==='fire_spread')this.flash(['money'],COLORS.alert);
         if(e.kind&&RESULT_ANNOUNCE.has(e.kind))this.announce(e.message);
     }
+    // The window a dish just went out at, ordered or not. The event names the chef, not the window, and a
+    // player's level may have two: the one nearest the chef who served, who stands at it.
+    private servedAt(actor?:string):any{
+        const k=this.state!.kitchen,p=actor?k.chefs[actor]?.position:undefined;
+        const windows=Object.values(k.map.equipment).filter((e:any)=>e.type==='serving_window') as any[];
+        if(!p)return k.map.equipment.serve??windows[0];
+        const far=(w:any)=>Math.hypot(w.cell[0]-p[0],w.cell[1]-p[1]);
+        return windows.reduce((best:any,w)=>!best||far(w)<far(best)?w:best,undefined);
+    }
+    // Over the window, the text starting on it and running towards the middle of the room, so a long one never
+    // reaches a side wall: from a window in the left wall or the left half rightwards, otherwise leftwards.
+    private windowPop(w:any,text:string,fill:string){
+        if(!w){this.pop([640,150],text,fill);return;}
+        const [x,y]=w.cell,top=MAPY+(y-.1)*TILE;
+        const right=w.facing==='east'||(w.facing!=='west'&&x+.5<this.state!.kitchen.map.width/2);
+        this.pop([MAPX+(right?x:x+1)*TILE,top],text,fill,right?0:1);
+    }
     private flash(ids:string[],fill:string){for(const id of ids){this.flashes[id]={until:this.clock+1.2,fill};this.labels[id].color=color(fill);}}
-    private pop(p:number[],text:string,fill:string){
+    /** A short rising text at p; anchorX 0 starts it at p, 1 ends it there (the label is as wide as its text). */
+    private pop(p:number[],text:string,fill:string,anchorX=.5){
         const n=this.make('result-pop',p[0],p[1],220,28,this.world||this.node),l=n.addComponent(Label);
+        n.getComponent(UITransform)!.anchorX=anchorX;
         this.writeLabel(l,text);this.pixel(l,24);l.horizontalAlign=Label.HorizontalAlign.CENTER;
         l.enableShadow=true;l.shadowColor=color(COLORS.ink);l.shadowOffset=new Vec2(2,-2);l.shadowBlur=0;l.color=color(fill); // hard pixel shadow
         this.pops.push({node:n,label:l,born:this.clock,y:n.position.y,fill:color(fill)});

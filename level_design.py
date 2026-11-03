@@ -101,8 +101,8 @@ def _ids(stations):
 
 def _facing(cell, open_cells, size, wall_behind=False):
     """Face a free floor neighbour, the one most towards the room's centre; None when there is none. With
-    ``wall_behind`` only a side whose opposite neighbour is the outer wall counts: the serving hatch is drawn
-    in the wall at the station's back."""
+    ``wall_behind`` only a side whose opposite neighbour is the outer wall counts: food leaves and dirty plates
+    come back through the wall at the station's back."""
     centre = ((size[0] - 1) / 2, (size[1] - 1) / 2)
     outer = lambda p: p[0] in (0, size[0] - 1) or p[1] in (0, size[1] - 1)
     options = [(name, d) for name, d in STEP.items() if (cell[0] + d[0], cell[1] + d[1]) in open_cells
