@@ -34,6 +34,15 @@ class SourceObserver:
         with self.lock, closing(sqlite3.connect(self.path, timeout=1)) as db, db:
             db.execute('INSERT OR IGNORE INTO sources VALUES (?,?,?)', (ref,site,expiry))
 
+    def extend(self, receipt):
+        """An earlier round moved to newer terms keeps its site tag until its new expiry."""
+        if not isinstance(receipt,dict):
+            return
+        expiry = datetime.fromisoformat(receipt['expires_at'].replace('Z','+00:00')).timestamp()
+        ref = hashlib.sha256(receipt['id'].encode()).hexdigest()[:24]
+        with self.lock, closing(sqlite3.connect(self.path, timeout=1)) as db, db:
+            db.execute('UPDATE sources SET expires=max(expires,?) WHERE ref=?', (expiry,ref))
+
     def prune(self):
         # Remove withdrawn/expired provenance as well. Read IDs only, never deletion hashes.
         original = (self.directory/'contributions.sqlite3').resolve().as_uri()+'?mode=ro'
@@ -63,6 +72,8 @@ def observed_classes(module):
                     if self.path == '/v1/records/save':
                         # Original do_POST has already checked this site's private token.
                         self.server.source_observer.save_receipt(self.headers.get('X-ChefJeff-Site',''),value.get('value'))
+                    elif self.path == '/v1/records/terms':
+                        self.server.source_observer.extend(value.get('value'))
                     elif self.path == '/v1/records/delete' and value.get('value') is True:
                         self.server.source_observer.prune()
                     elif self.path == '/v1/health':

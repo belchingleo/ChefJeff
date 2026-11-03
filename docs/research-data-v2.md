@@ -154,7 +154,7 @@ v8 改了保存期和用途，所以每位玩家都会按新说明重新被问�
 
 - 保存期：新贡献最长保存两年（`RETENTION_SECONDS`），研究者下载到本地的副本同样最长两年，研究项目提前结束时一并删除。按旧说明保存的记录保留原到期时间。
 - 公开数据集：相关研究发表后，可能把记录脱敏后公开发布。每份数据集只收录发布日 30 天以前贡献的对局，所以每局贡献后至少有 30 天可以删除；收进数据集后无法再删除。可以收录的记录：`consent_version` 为 v8，或 `terms.version` 为 v8。
-- 旧对局：按旧说明贡献过的玩家同意 v8 时，除非选「保持原样」，浏览器会用每局的删除凭证调用 `/api/contribution/terms`（`id`、`deletion_token`、`consent_version`）。服务器核对凭证后，记录的 `consent_version` 保持收集时的版本不变，另加 `terms: {version, accepted_at}`，到期时间改为该局开局时间加两年；共享数据服务里的 `shared_creates` 一并延长。v1 旧格式记录不变。
+- 旧对局：按旧说明贡献过的玩家同意 v8 时，除非选「保持原样」，浏览器会用每局的删除凭证调用 `/api/contribution/terms`（`id`、`deletion_token`、`consent_version`）。服务器核对凭证后，记录的 `consent_version` 保持收集时的版本不变，另加 `terms: {version, accepted_at}`，到期时间改为该局开局时间加两年；共享数据服务里的 `shared_creates` 和研究管理台记下的来源站点一并延长。v1 旧格式记录不变。
 - 免费模型：站点承担免费模型的费用，所以使用免费模型的对局需要开局前同意贡献。没有同意时，服务器拒绝开局（403，`free_model_needs_consent`），页面再问一次；不同意可以改用自己的 Key 或本地版。
 
 ## 精确重放与请求复现（同意版本 v7）
