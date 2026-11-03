@@ -47,6 +47,8 @@ function harness(saved=null, fail=false, gameState={game_id:'round',phase:'ready
 
 // Execute the real key handler and state poll with rendering stubbed out. Check both
 // TypeScript source and the included web runtime so a stale build cannot hide a fix.
+// KitchenGeometry as the client tests see it, from source and from the bundle alike.
+const TEST_GRID={tile:48,originX:0,originY:0};
 function clientHarness(h, fromSource){
  class UITransform {setContentSize(width,height){this.width=width;this.height=height;}}
  class Color {
@@ -76,7 +78,7 @@ function clientHarness(h, fromSource){
    _decorator:{ccclass:()=>cls=>cls},cclegacy:{_RF:{push:()=>{},pop:()=>{}}}};
  h.cc=cc;
  const art={LevelOneArt:class{}},audio={KitchenAudio:class{onState(){}play(){}}};
- const geometry={GRID_ART:{tile:48,originX:0,originY:0}};
+ const geometry={GRID_ART:TEST_GRID};
  const context=vm.createContext({...cc,...art,...audio,...geometry,window:h.w,document:h.document,
    URLSearchParams,location:{search:''},Event:class{constructor(type){this.type=type;}},
    CustomEvent:class{constructor(type,options={}){this.type=type;this.detail=options.detail;}}});
@@ -426,6 +428,15 @@ async function checkClientTouchBridge(fromSource){
  assert(Number.isFinite(world.scale.x)&&world.scale.x>0&&Number.isFinite(world.position.x)&&Number.isFinite(world.position.y),'phone kitchen transform stays finite');
  client.touchLayout.active=false;client.applyTouchLayout();
  assert.equal(camera.active,true);assert.equal(audio.active,true);assert.equal(cover.active,true);assert.equal(hud.active,true,'desktop layout restores HUD visibility');
+ // On a computer a player's room larger than the 14x9 board shrinks to fit it, centred on the board.
+ const fit=9/11,{tile:T,originX:X0,originY:Y0}=TEST_GRID;
+ const centre=(w,h,s,p)=>[(X0+w*T/2-640)*s+p.x,(360-Y0-h*T/2)*s+p.y];
+ assert.deepEqual({...world.scale},{x:fit,y:fit,z:1},'a 15x11 room fits the 14x9 board');
+ centre(15,11,fit,world.position).forEach((v,i)=>assert(Math.abs(v-centre(14,9,1,{x:0,y:0})[i])<1e-9,'the shrunk room is centred on the board'));
+ // A room of the default size, every official level, is drawn as it is, also after the phone layout.
+ client.state.kitchen.map.width=14;client.state.kitchen.map.height=9;
+ client.touchLayout.active=true;client.applyTouchLayout();assert.notEqual(world.scale.x,1);
+ client.touchLayout.active=false;client.applyTouchLayout();
  assert.deepEqual({...world.scale},{x:1,y:1,z:1});assert.deepEqual({...world.position},{x:0,y:0});
  // The transport error path restores the desktop reconnect cover. It must then
  // apply the phone layout too, while publishing the disconnected HTML state.
