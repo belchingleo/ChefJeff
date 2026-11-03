@@ -1,6 +1,7 @@
 """Live loopback boundaries; upstream requests stay in BrowserRelay, never a provider."""
 import http.client
 import json
+import sqlite3
 import tempfile
 import threading
 import time
@@ -167,6 +168,24 @@ class ResearchHTTPTests(unittest.TestCase):
         self.assertEqual(self.request('/api/contribution/download',credentials)[0],404)
         self.game._persist_research()
         self.assertEqual(self.request('/api/contribution/download',credentials)[0],404)
+
+    def test_an_earlier_round_moves_to_the_new_terms_with_its_receipt(self):
+        receipt=self.begin()
+        self.assertEqual(self.command('end')[0],200)
+        credentials={key:receipt[key] for key in ('id','deletion_token')}
+        with sqlite3.connect(self.game.store.path) as db:     # as a round saved under the v7 terms sits there
+            raw=db.execute('SELECT record FROM records WHERE id=?',(receipt['id'],)).fetchone()[0]
+            db.execute('UPDATE records SET record=? WHERE id=?',(raw.replace(CONSENT_VERSION,'pilot-session-2026-10-v7'),receipt['id']))
+        self.assertEqual(self.request('/api/contribution/terms',{**credentials,'consent_version':'pilot-session-2026-10-v7'})[0],400)
+        self.assertEqual(self.request('/api/contribution/terms',{**credentials,'consent_version':CONSENT_VERSION,'extra':1})[0],400)
+        self.assertEqual(self.request('/api/contribution/terms',{'id':receipt['id'],'deletion_token':'bad','consent_version':CONSENT_VERSION})[0],404)
+        status,moved=self.request('/api/contribution/terms',{**credentials,'consent_version':CONSENT_VERSION})
+        self.assertEqual(status,200)
+        self.assertEqual(set(moved['receipt']),{'id','expires_at','consent_version'})
+        self.assertEqual(moved['receipt']['consent_version'],CONSENT_VERSION)
+        record=self.request('/api/contribution/download',credentials)[1]['record']
+        validate_record(record)
+        self.assertEqual((record['consent_version'],record['terms']['version']),('pilot-session-2026-10-v7',CONSENT_VERSION))
 
     def test_other_page_origin_and_arbitrary_metadata_are_rejected(self):
         self.assertEqual(self.command('contribution/preview')[0],409)

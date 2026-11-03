@@ -9,9 +9,9 @@ import shutil
 import sqlite3
 import time
 
-RETENTION_SECONDS = 180 * 86400
-CONSENT_VERSION = 'pilot-session-2026-10-v7'
-# Six months of rounds on the 40 GB Shanghai system disk, which also holds the OS and releases.
+RETENTION_SECONDS = 730 * 86400     # two years; rows saved under earlier terms keep their own expiry
+CONSENT_VERSION = 'pilot-session-2026-11-v8'
+# Capacity on the 40 GB Shanghai system disk, which also holds the OS and releases.
 RECORD_LIMIT = 5000
 BYTE_LIMIT = 5_000_000_000
 MIN_FREE_BYTES = 2_000_000_000
@@ -85,6 +85,46 @@ class ContributionStore:
             if not row or not secrets.compare_digest(row[0],digest): return False
             db.execute('DELETE FROM records WHERE id=?',(identifier,))
         return True
+
+    def accept_terms(self, identifier, token):
+        """Move one earlier round to the current terms, on its contributor's deletion receipt.
+
+        The record keeps the terms it was collected under (consent_version) and gains `terms`: the
+        version its contributor accepted later, and when. Its expiry becomes RETENTION_SECONDS from
+        the round's start. Returns the receipt without its token, or None when the receipt matches no
+        active v2 record (old v1 records stay as they are).
+        """
+        if not isinstance(identifier, str) or not isinstance(token, str) or len(identifier) > 100 or len(token) > 100:
+            return None
+        digest = hashlib.sha256(token.encode()).hexdigest()
+        now = time.time()
+        with self.connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            row = db.execute('SELECT deletion_hash,expires,record FROM records WHERE id=? AND expires>?',
+                             (identifier, now)).fetchone()
+            if not row or not secrets.compare_digest(row[0], digest):
+                return None
+            record, expires = json.loads(row[2]), row[1]
+            if record.get('schema') != 'chefjeff-pilot-session-v2':
+                return None
+            if CONSENT_VERSION not in (record.get('consent_version'), (record.get('terms') or {}).get('version')):
+                from research_record import validate_record
+                record['terms'] = {'version': CONSENT_VERSION,
+                                   'accepted_at': datetime.now(timezone.utc).isoformat(timespec='seconds')}
+                validate_record(record)
+                try:
+                    started = datetime.fromisoformat(record['started_at'].replace('Z', '+00:00')).timestamp()
+                except (KeyError, TypeError, ValueError, AttributeError):
+                    started = now
+                expires = max(expires, min(started, now) + RETENTION_SECONDS)
+                encoded = json.dumps(record, ensure_ascii=False, separators=(',', ':'), allow_nan=False)
+                db.execute('UPDATE records SET record=?,expires=? WHERE id=?', (encoded, expires, identifier))
+                self.terms_accepted(db, identifier, expires)
+        return {'id': identifier, 'expires_at': datetime.fromtimestamp(expires, timezone.utc).isoformat(),
+                'consent_version': CONSENT_VERSION}
+
+    def terms_accepted(self, db, identifier, expires):
+        """Hook for stores that keep more rows per record, inside the same transaction."""
 
     def update(self, identifier, record):
         """Update an already consented round; deletion/expiry cannot resurrect it."""
