@@ -14,6 +14,7 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - Phone menus show the same level plate, partner tiles and result buttons. The language button always reads "English" in Chinese.
 
 ### Free models
+- Free models now need consent to contribute the round, since the site pays for them: the server refuses a free-model start without it, the card says so, and its decline button opens the own-key form. Own keys and the local version need no contribution.
 - Register Gemini 3.5 Flash-Lite (Google AI Studio) and Gemma 4 26B and Llama 3.1 8B (Cloudflare Workers AI) as later free models. They stay off until their own private key file is installed and the gateway is started with it; each was probed once with a synthetic snapshot only.
 - Each platform has its own budget below its free tier: Gemini 450 a day and at least 4.3 s between calls; Cloudflare 9,000 estimated Neurons a day shared by both models. A spent day shows 今日额度已用完 instead of "try again later".
 - The free list on every screen follows the server's catalog, so an enabled model appears with no page change.
@@ -27,6 +28,7 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - Add persistent aggregate usage counts, including round starts/completions, manual endings, capacity rejections and per-level results; keep ending-specific duration histograms and a live running-session count. Estimate visiting/playing browsers with two local yes/no flags, without generating identifiers or storing IPs, credentials or individual analytics events. Add a loopback-only operator endpoint and CLI, with counting and privacy limits documented in both languages.
 
 ### Research records
+- Contribution terms move to `pilot-session-2026-11-v8`, so every player is asked again, with a short card: what a round records, and that de-identified data may be published once the research is published. **Details** holds the full terms. New contributions are kept for at most two years, researchers' downloaded copies too. A public dataset would only include rounds contributed at least 30 days before its release, and a round in it can no longer be deleted. Players holding receipts from earlier terms see one more line: agreeing moves those rounds to the new terms with their receipts (`/api/contribution/terms`; the record keeps its `consent_version` and gains `terms`), unless they choose **Keep as they were**. Rounds left under earlier terms keep their expiry. Upgrade the shared data service, both game sites and the research console together.
 - Contributed rounds are now kept for six months (180 days) instead of 30 days. The contribution terms move to `pilot-session-2026-10-v7`, so every player is asked again. Rounds saved under the earlier terms keep their 30-day expiry.
 - With consent before the round starts, a contributed round can now be replayed exactly: the record keeps the full frozen configuration and every engine input. It also records when each chef actually starts working at a station (`arrival`), whether a throw aims at the other chef (`throw_aim`), what is needed to rebuild every request to Jeff (a digest, recent decisions and the preset messages), the option probabilities a decision model reports, and, with cross-round memory on, which earlier rounds the memory came from. Memory content is still not stored. Jeff's input is unchanged. `scripts/check_research_record.py` checks a record and replays it.
 - Contribution storage holds up to 5000 rounds and 5 GB, and refuses saves before the server disk runs low.
@@ -150,6 +152,7 @@ First private release: a local browser game with three playable maps and player-
 - 手机菜单也用同样的关卡牌、搭档方块和结算按钮。中文界面的语言按钮一律写「English」。
 
 ### 免费模型
+- 免费模型的费用由站点承担，所以使用免费模型的对局需要同意贡献：没有同意时服务器拒绝开局，卡片会写明这一点，拒绝按钮会打开填写自己 Key 的设置。用自己的 Key 或玩本地版不需要贡献。
 - 登记三个后加入的免费模型：Gemini 3.5 Flash-Lite（Google AI Studio），以及 Cloudflare Workers AI 上的 Gemma 4 26B 和 Llama 3.1 8B。装好它们单独的私密 Key 文件、并用它启动协调服务后才会开放；目前每个只用合成快照试过一次。
 - 每个平台单独计额度，都低于平台的免费额度：Gemini 每天 450 次，两次请求至少间隔 4.3 秒；Cloudflare 两个模型合计每天约 9,000 Neurons。一天用完后显示「今日额度已用完」，不再只说稍后再试。
 - 各处的免费模型列表都按服务器给的来，新开放的模型不用改页面就会出现。
@@ -163,6 +166,7 @@ First private release: a local browser game with three playable maps and player-
 - 增加持久化使用汇总，包括实际开局／完成、手动结束、名额拒绝和分关卡结果，并按结束方式保存时长区间，显示当前运行会话数。用浏览器中两个是／否标记估算访问／试玩浏览器数量，不生成独立编号，不保存 IP、凭据或逐条统计事件。增加仅服务器本机可读的接口和查询脚本，中英文文档写明口径与隐私限制。
 
 ### 研究记录
+- 贡献说明升为 `pilot-session-2026-11-v8`，每位玩家都会重新被问一次。新的卡片很短：写明一局会记录什么，以及相关研究发表后，去掉身份信息的数据可能公开；完整内容放在「详情」里。新贡献最长保存两年，研究者下载的副本同样最长两年。公开数据集只会收录发布日 30 天以前贡献的对局，收进数据集后无法再删除。持有旧说明凭证的玩家会多看到一行：同意后，浏览器用这些凭证把以前的对局改按新说明处理（`/api/contribution/terms`；记录保留原来的 `consent_version`，另加 `terms`），选「保持原样」则不改。仍按旧说明的对局保留原到期时间。共享数据服务、两个游戏站点和研究管理台需要一起升级。
 - 贡献的对局改为保存半年（180 天），原为 30 天。贡献说明升为 `pilot-session-2026-10-v7`，每位玩家都会重新被询问一次。按旧说明保存的对局仍按原来的 30 天到期。
 - 开局前同意的贡献对局现在可以精确重放：记录保存完整的冻结配置和全部引擎输入。另外记录双方真正开始操作的时刻（`arrival`）、投掷是否瞄准队友（`throw_aim`）、重建每次 Jeff 请求所需的内容（校验值、最近决策和预设消息）、决策模型给出的各选项概率，以及开启跨局记忆时记忆来自哪几局。记忆内容仍不保存。Jeff 收到的输入不变。`scripts/check_research_record.py` 检查并重放一条记录。
 - 贡献存储最多 5000 局、5 GB，服务器磁盘空间不足前会拒绝保存。

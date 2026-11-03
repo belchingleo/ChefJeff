@@ -12,7 +12,7 @@ import config_contract as cc
 import schema_check
 
 SCHEMA = 'chefjeff-pilot-session-v2'
-CONSENT = 'pilot-session-2026-10-v7'
+CONSENT = 'pilot-session-2026-11-v8'
 MODEL_PROVIDERS = {p['id']: p for p in json.loads(
     (Path(__file__).resolve().parent / 'model-providers.json').read_text())['providers']
     if not p.get('disabled')}

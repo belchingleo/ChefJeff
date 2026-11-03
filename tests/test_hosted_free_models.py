@@ -285,5 +285,36 @@ class FreeHTTPTests(unittest.TestCase):
         self.server.free_models.slots['startlux'].release()
 
 
+class FreeModelConsentTests(unittest.TestCase):
+    """The site pays for free models, so a round with one is contributed: consent comes before the start."""
+
+    def game(self, store):
+        from hosted_server import HostedSession
+        game = HostedSession()
+        self.addCleanup(game.close)
+        with game.lock:
+            game.stop_event.set(); game.wake.set()
+            game.store = store
+            game.connected = True
+            game.free_model_provider, game.free_model_lease = 'zhipu', object()
+        return game
+
+    def test_a_free_model_round_needs_consent_while_contributions_are_on(self):
+        from hosted_records import CONSENT_VERSION, ContributionStore
+        with tempfile.TemporaryDirectory() as folder:
+            game = self.game(ContributionStore(Path(folder)))
+            with game.lock:
+                status, body = game._command('/api/start', {})
+                self.assertEqual((status, body.get('free_model_needs_consent')), (403, True))
+                self.assertEqual(game.phase, 'ready')
+                self.assertEqual(game._command('/api/contribution/consent', {'consent': True, 'consent_version': CONSENT_VERSION})[0], 200)
+                self.assertNotEqual(game._command('/api/start', {})[0], 403)
+
+    def test_without_contribution_storage_a_free_model_needs_no_consent(self):
+        game = self.game(None)
+        with game.lock:
+            self.assertNotEqual(game._command('/api/start', {})[0], 403)
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -67,8 +67,8 @@ class SharedDataTests(unittest.TestCase):
         with self.server.records.connect() as db:
             self.assertEqual(db.execute('SELECT count(*) FROM records').fetchone()[0], 0)
 
-    def test_new_contributions_keep_180_days_and_earlier_expiries_never_move(self):
-        self.assertEqual(RETENTION_SECONDS, 180 * 86400)
+    def test_new_contributions_keep_two_years_and_earlier_expiries_never_move(self):
+        self.assertEqual(RETENTION_SECONDS, 730 * 86400)
         for store in (ContributionStore(self.root/'local'), RemoteRecords(self.client('cn'))):
             before = time.time()
             receipt = store.save(self.record)
@@ -91,6 +91,45 @@ class SharedDataTests(unittest.TestCase):
         self.assertTrue(remote.update(receipt['id'], self.record))
         with self.server.records.connect() as db:
             self.assertEqual(db.execute('SELECT expires FROM records WHERE id=?', (receipt['id'],)).fetchone()[0], thirty_days)
+
+    def earlier(self, store, path):
+        """A round saved under the six-month v7 terms, as such rounds sit in the database."""
+        receipt = store.save(self.record)
+        older = {**self.record, 'consent_version': 'pilot-session-2026-10-v7'}
+        six_months = time.time() + 100 * 86400
+        with sqlite3.connect(path) as db:
+            db.execute('UPDATE records SET record=?,expires=? WHERE id=?', (json.dumps(older), six_months, receipt['id']))
+        return receipt, older
+
+    def test_an_earlier_round_moves_to_the_new_terms_only_with_its_receipt(self):
+        started = datetime.fromisoformat(self.record['started_at'].replace('Z', '+00:00')).timestamp()
+        for store, path in ((ContributionStore(self.root/'local'), self.root/'local'/'contributions.sqlite3'),
+                            (RemoteRecords(self.client('cn')), self.server.records.path)):
+            receipt, older = self.earlier(store, path)
+            self.assertIsNone(store.accept_terms(receipt['id'], secrets.token_urlsafe(32)))
+            moved = store.accept_terms(receipt['id'], receipt['deletion_token'])
+            self.assertEqual(moved['consent_version'], CONSENT_VERSION)
+            self.assertNotIn('deletion_token', moved)
+            kept = store.download(receipt['id'], receipt['deletion_token'])
+            self.assertEqual(kept['consent_version'], 'pilot-session-2026-10-v7')     # what it was collected under
+            self.assertEqual(kept['terms']['version'], CONSENT_VERSION)
+            self.assertEqual({k: v for k, v in kept.items() if k != 'terms'}, older)
+            with sqlite3.connect(path) as db:
+                expires = db.execute('SELECT expires FROM records WHERE id=?', (receipt['id'],)).fetchone()[0]
+            self.assertAlmostEqual(expires, max(time.time() + 100 * 86400, min(started, time.time()) + RETENTION_SECONDS), delta=5)
+            # Asking again changes nothing.
+            self.assertEqual(store.accept_terms(receipt['id'], receipt['deletion_token'])['expires_at'], moved['expires_at'])
+            self.assertEqual(store.download(receipt['id'], receipt['deletion_token']), kept)
+        with self.server.records.connect() as db:   # a retried create finds the longer expiry too
+            self.assertEqual(db.execute('SELECT expires FROM shared_creates WHERE id=?', (receipt['id'],)).fetchone()[0], expires)
+
+    def test_a_legacy_or_withdrawn_round_does_not_move(self):
+        store = ContributionStore(self.root/'local')
+        legacy = store.save({'schema': 'chefjeff-pilot-session-v1', 'events': [], 'duration': 12})
+        self.assertIsNone(store.accept_terms(legacy['id'], legacy['deletion_token']))
+        receipt = store.save(self.record)
+        self.assertTrue(store.delete(receipt['id'], receipt['deletion_token']))
+        self.assertIsNone(store.accept_terms(receipt['id'], receipt['deletion_token']))
 
     def test_legacy_receipt_hash_and_original_expiry_survive_service_adoption(self):
         legacy = {'schema': 'chefjeff-pilot-session-v1', 'events': [], 'duration': 12}

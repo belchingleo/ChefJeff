@@ -7,7 +7,7 @@ const choiceKey='chefjeff.contribution-choice.v1',receiptsKey='chefjeff.contribu
 const fakeKey='unit-test-key-not-a-real-credential';
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
 function harness(options={}){
- const data=new Map(options.data||[]),calls=[],elements=new Map(),listeners={},timers=[];
+ const data=new Map(options.data||[]),calls=[],elements=new Map(),listeners={},timers=[];let consented=false;
  data.set('chefjeff.browser-key.v1',JSON.stringify({provider:'deepseek',model:'fixture',api_key:fakeKey,remember:true}));
  const el=id=>{if(!elements.has(id))elements.set(id,{checked:false,disabled:false,value:'',textContent:'',open:false,
   showModal(){this.open=true;},close(){this.open=false;}});return elements.get(id);};
@@ -26,6 +26,14 @@ function harness(options={}){
   }
   if(url==='/api/contribution/consent' && options.failConsent)return new Response('{"error":"consent failed"}',{status:503});
   if(['/api/start','/api/restart','/api/next'].includes(url) && options.openReceipt)return new Response(JSON.stringify({ok:true,receipt:{id:'opening',deletion_token:'fixture-token',expires_at:'2035-01-01T00:00:00Z'}}));
+  if(url==='/api/model/free/catalog' && options.freeCatalog)return new Response(JSON.stringify(options.freeCatalog));
+  if(url==='/api/start' && options.freeRefused && !consented)return new Response(JSON.stringify({error:'使用免费模型需要贡献本局数据；也可以改用自己的 Key 或本地版。',free_model_needs_consent:true}),{status:403});
+  if(url==='/api/contribution/consent')consented=body.consent===true;
+  if(url==='/api/contribution/terms'){
+   assert.deepEqual(Object.keys(body).sort(),['consent_version','deletion_token','id']);
+   if(options.goneTerms===body.id)return new Response('{"error":"gone"}',{status:404});
+   return new Response(JSON.stringify({receipt:{id:body.id,expires_at:'2036-01-01T00:00:00+00:00',consent_version:body.consent_version}}));
+  }
   if(url==='/api/contribution/delete'){
    assert.deepEqual(Object.keys(body).sort(),['deletion_token','id']);
    return new Response('{}',{status:options.failDelete===body.id?404:200});
@@ -121,5 +129,45 @@ const guard=setTimeout(()=>{console.error('Automatic contribution test did not c
  await assert.rejects(()=>h.w.chefjeffHostedRequest('/api/start',{game_id:'round-a'}));
  assert(!h.calls.some(c=>c.url==='/api/start'),'Failed consent acknowledgement cannot create a retained round.');
  for(const call of h.calls)assert(!JSON.stringify(call).includes(fakeKey));
- console.log('Contribution consent: one up-front question without a default, automatic and per-round uploads, withdrawal, no backfill, re-ask on new terms, receipts and next-round ordering/timeout passed.');
+ // Players who contributed under earlier terms see one more line; agreeing moves those rounds with their own receipts.
+ const earlier={id:'old-round',deletion_token:'old-token',expires_at:'2035-01-01T00:00:00Z',consent_version:'pilot-session-2026-10-v7'};
+ const gone={...earlier,id:'gone-round'};
+ h=harness({data:[[receiptsKey,JSON.stringify([earlier,gone])]],goneTerms:'gone-round'});await h.publish({});
+ assert.equal(h.el('ask-earlier').hidden,false);assert.equal(h.el('ask-earlier-kept').hidden,true);
+ h.answer(true);for(let i=0;i<6;i++)await flush();
+ const moved=h.calls.filter(c=>c.url==='/api/contribution/terms');
+ assert.deepEqual(moved.map(c=>JSON.parse(c.init.body)),[{id:'old-round',deletion_token:'old-token',consent_version:consent},
+   {id:'gone-round',deletion_token:'old-token',consent_version:consent}]);
+ assert.deepEqual(JSON.parse(h.data.get(receiptsKey)).map(r=>[r.id,r.consent_version]),[['old-round',consent]],'a gone round leaves the receipts');
+ assert.equal(JSON.parse(h.data.get(choiceKey)).earlier,'move');
+ assert.equal(h.el('contribution-status').textContent,'已把以前贡献的 1 局按新说明处理。');
+ // 保持原样 keeps them as they were, and so does 暂不; a new player never sees the line.
+ h=harness({data:[[receiptsKey,JSON.stringify([earlier])]]});await h.publish({});
+ h.el('ask-keep').onclick();assert.equal(h.el('ask-earlier-kept').hidden,false);h.answer(true);await flush();
+ assert(!h.calls.some(c=>c.url==='/api/contribution/terms'));assert.equal(JSON.parse(h.data.get(choiceKey)).earlier,'keep');
+ h=harness({data:[[receiptsKey,JSON.stringify([earlier])]]});await h.publish({});h.answer(false);await flush();
+ assert(!h.calls.some(c=>c.url==='/api/contribution/terms'));
+ h=harness();await h.publish({});assert.equal(h.el('ask-earlier').hidden,true);assert.equal(h.el('ask-free').hidden,true);
+ assert.equal(JSON.parse(h.data.get(receiptsKey)||'[]').length,0);
+ // The details open from the card.
+ assert.equal(h.el('contribution-details').hidden,undefined);h.el('contribution-details').hidden=true;
+ h.el('ask-details').setAttribute=(k,v)=>{h.el('ask-details')[k]=v;};h.el('ask-details').onclick();
+ assert.equal(h.el('contribution-details').hidden,false);assert.equal(h.el('ask-details')['aria-expanded'],'true');
+ // With a free model the card says contributing is required, and declining opens the own-key form.
+ const freeCatalog={enabled:true,default:'startlux',models:[{provider:'startlux',model:'m',name:'S',platform:'P'}]};
+ h=harness({freeCatalog,freeRefused:true});
+ await h.w.fetch('/api/state');
+ const free=await (await h.w.fetch('/api/connection',{method:'POST',body:JSON.stringify({game_id:'round-a',free_provider:'startlux'})})).json();
+ assert.equal(free.connection.free_model,true);
+ await h.publish({});assert.equal(h.el('contribution-ask').open,true);
+ assert.equal(h.el('ask-free').hidden,false);assert.equal(h.el('ask-later-free').hidden,false);assert.equal(h.el('ask-later-plain').hidden,true);
+ let opened=null;h.listeners['kitchen-open-connection']=e=>{opened=e.detail;};
+ h.answer(false);assert.equal(JSON.stringify(opened),'{"view":"custom"}');
+ // Starting anyway is refused by the server, and the card asks again; agreeing then lets the round open.
+ const refused=await h.w.fetch('/api/start',{method:'POST',body:JSON.stringify({game_id:'round-a'})});
+ assert.equal(refused.status,403);
+ for(const timer of h.timers.filter(t=>t.ms===0&&t.active)){timer.active=false;timer.fn();}
+ assert.equal(h.el('contribution-ask').open,true);h.el('ask-auto').onclick();
+ assert.equal((await h.w.fetch('/api/start',{method:'POST',body:JSON.stringify({game_id:'round-a'})})).status,200);
+ console.log('Contribution consent: one up-front question without a default, automatic and per-round uploads, withdrawal, no backfill, re-ask on new terms, earlier rounds moved only with their receipts, free models needing contribution, receipts and next-round ordering/timeout passed.');
 })().catch(error=>{console.error(error);process.exitCode=1;}).finally(()=>clearTimeout(guard));
