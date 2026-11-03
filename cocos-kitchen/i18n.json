@@ -931,7 +931,7 @@
     "下一局起不再询问计划。": "From the next round, Jeff is no longer asked for a plan.",
     "Jeff：还没选计划": "Jeff: no plan yet",
     "一起改进 Jeff？": "Help improve Jeff?",
-    "游戏会记录这一局的操作和模型的选择，但不包含 Key、IP、账号等个人信息。相关研究发表后，去掉身份信息的数据可能公开。": "The game records your moves and the model's choices in this round, but no personal information such as API keys, IP addresses or accounts. Once the research is published, the data may be made public with identifying information removed.",
+    "游戏会记录每一局的操作和模型的选择，但不包含 Key、IP、账号等个人信息。相关研究发表后，去掉身份信息的数据可能公开。": "The game records your moves and the model's choices in every round, but no personal information such as API keys, IP addresses or accounts. Once the research is published, the data may be made public with identifying information removed.",
     "使用免费模型需要贡献对局数据。": "Free models require contributing your round data.",
     "你以前贡献的对局，也会按这份新说明处理。不想的话，点": "Rounds you contributed earlier will follow these new terms too. If you don't want that, choose ",
     "「保持原样」": "“Keep as they were”",
