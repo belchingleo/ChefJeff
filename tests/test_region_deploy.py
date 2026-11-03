@@ -29,7 +29,8 @@ NGINX = os.environ.get('CHEFJEFF_NGINX_BIN') or shutil.which('nginx')
 class RegionDeployTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory();self.addCleanup(self.temporary.cleanup)
-        self.root = Path(self.temporary.name)
+        # Resolved: on macOS the temporary folder is under /var, a link to /private/var.
+        self.root = Path(self.temporary.name).resolve()
 
     def source(self):
         source = self.root/'original'
