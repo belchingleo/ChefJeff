@@ -137,7 +137,7 @@ def export():
         (out / (name + ".jsonl")).write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in trace))
         summaries.append({key: value for key, value in summary.items() if key not in ("events", "final_state")})
     write("results.json", summaries)
-    sources = ["kitchen.py", "spatial_kitchen.py", "navigation.py", "levels.py", "jev.py",
+    sources = ["kitchen.py", "spatial_kitchen.py", "navigation.py", "levels.py", "jev.py", "harness.py",
                "whitebox_server.py", "model_language.py", "model-language-en-v4.json",
                "scenarios/fixed_entry_001/scenario.json", "scenarios/fixed_entry_001/run.py"]
     write("manifest.json", {"scenario": "fixed-entry-001", "model_calls": 0,

@@ -1,113 +1,20 @@
 #!/usr/bin/env python3
 """Local spatial whitebox; shares rules, API protections and real Jev scheduling."""
 import argparse
-import math
 from http.server import ThreadingHTTPServer
 import threading
 import webbrowser
 from kitchen import ROOT
 from spatial_kitchen import SpatialKitchen
 from web_server import GameSession, Handler
-from jev import JevClient, STATE_WORDS
-
-
-
-
-def model_candidates(state, actions, per_area):
-    """Legal actions listed to the model, without duplicates or interchangeable copies.
-
-    Engine legality is unchanged. Two mechanical rules, the same for every level:
-    - "go X" is dropped when another listed action already walks to X;
-    - empty counters differ only by place, so per area only the per_area nearest
-      (straight-line distance to their access cell) are offered for go/put.
-    """
-    me = state['chefs']['jeff']['position']
-    equipment = state['map']['equipment']
-    def distance(key):
-        cell = equipment.get(key, {}).get('access') or equipment.get(key, {}).get('cell')
-        return math.dist(me, cell) if cell else math.inf
-    empty = {}
-    for key, station in state['stations'].items():
-        if station.get('counter') and not station.get('food') and not station.get('fire'):
-            empty.setdefault(station['area'], []).append(key)
-    offered = {key for keys in empty.values() for key in sorted(keys, key=lambda k: (distance(k), k))[:per_area]}
-    spare = {key for keys in empty.values() for key in keys} - offered
-    acted = {a.target for a in actions if a.kind not in ('go', 'throw')}
-    return [a for a in actions
-            if not (a.kind == 'go' and a.target in acted and a.key != 'go partner')
-            and not (a.kind in ('go', 'put_counter') and a.target in spare)]
+from jev import JevClient
+# Candidate pruning moved to harness.py; the name stays importable from here.
+from harness import model_candidates  # noqa: F401
 
 
 class SpatialJevClient(JevClient):
-    def payload(self, state, actions):
-        payload = super().payload(state, actions)
-        per_area = self.c.get('ai_empty_counters_per_area', 2)
-        listed = {a.key for a in model_candidates(state, actions, per_area)}
-        criteria = payload['questions']['next_action']['criteria']
-        payload['questions']['next_action']['criteria'] = {k: v for k, v in criteria.items() if k in listed}
-        payload['state']['rules']['visibility'] += (
-            ' go X is listed only when no other listed action already walks to X. Empty counters differ only in place, '
-            f'so for each area the {per_area} nearest empty counters are listed for go and put.')
-        # Cosmetic settings belong in the run log/UI, not repeated model tokens.
-        # movement_rule/ground_rule/spawn_rule restate the rules paragraphs below.
-        for key in ('presentation','walk_boxes','walk_clearance','chef_separation','movement_rule','ground_rule','spawn_rule','corner_slide'):
-            payload['state']['kitchen']['map'].pop(key,None)
-        rules = payload['state']['rules']
-        geometry = state['map']
-        sprint = state['chefs']['jeff']['sprint']
-        rules['ground'] = ('Any held item can be put down with drop on the current or an adjacent free floor tile. Each tile holds one item. Actions walk to the destination; placing takes timing.handling seconds. No free tile means no drop. Either chef can use pickup <item_id> to walk to and pick up an item. With an item in hand you can only take the extinguisher or pick up a loose raw or chopped ingredient from the floor; the previous item then goes on nearby ground, and without free space nothing changes. To take anything else, put the held item down first; the person plays by the same rule. State and preparation progress are preserved, with no penalty, spoilage or heating. Only discard destroys food and costs money.')
-        collision = geometry.get('collision', {})
-        contact = (f"Chefs cannot overlap: each keeps {collision['chef_separation']:g} tiles from the other, slides along the other chef when there is room "
-                   f"and pushes slowly when pressing on; walking never pushes a chef who is chopping or washing. A sprint into the other chef knocks them "
-                   f"back up to {collision['sprint_push']:g} tiles and stops their work (its progress is kept); when both sprint into each other, both bounce. "
-                   'A chef pinned against a wall is not knocked and keeps working. ' if 'sprint_push' in collision else '')
-        if collision.get('stall_replan_after'):
-            contact += (f"A routed chef whose route makes no progress for {collision['stall_replan_after']:g} s re-plans "
-                        'from its current position around the other chef. ')
-        rules['movement'] = ('This is a top-down grid kitchen. map specifies walls, equipment and reference access positions; position is the live coordinate. Travel follows the shortest navigable polyline by actual distance, going straight when clear and leaving body clearance around walls and equipment. Switching tasks during travel starts a new route from the current position. Stations can be used from the nearest reachable adjacent floor tile; access is only a reference, not the only usable side. '
-                             'Walls and equipment block movement; floor items do not. '
-                             + contact +
-                             'go only moves; drop and pickup move items via the floor.')
-        rules['partner'] = ("human is the other chef, controlled by a person. position is the current coordinate; holding is the held item; task and target identify the current action; travel_remaining and work_remaining give remaining time. During travel, location may still name the origin station, so use position for distance. Future human intentions are not known facts.")
-        reach = (f"Loose raw or chopped ingredients fly up to {geometry['throw_range']:g} tiles; clean plates, dirty plates, plated food and pots "
-                 f"up to {geometry['pass_range']:g} tiles (your throw_range shows the current limit); the extinguisher cannot be thrown. "
-                 if geometry.get('pass_range') else
-                 f"Only raw or chopped, unplated ingredients can be thrown, up to {geometry['throw_range']:g} tiles; carry or put down plates, "
-                 "plated food, pots and the extinguisher. ")
-        rules['throw'] = ("throw partner throws toward the other chef's current position; throw <direction> (up, down, left, right, up-left, up-right, "
-                          "down-left, down-right) throws to full range that way. These are the throws the person can make too. " + reach +
-                          "Each throw option names where the item would come down. Throws pass over equipment; the first wall stops them. "
-                          "An empty-handed chef who is walking or standing close to the path catches the item; a chef who is working or holding "
-                          "something is not interrupted and it lands beside them. A raw or chopped ingredient that comes down on an empty board or "
-                          "counter rests there (chop only on boards; take from either), and one that comes down in an empty pan on a stove that cooks it "
-                          "goes in and starts heating. Anything else lands on the nearest free floor tile; with none free the throw is unavailable. "
-                          "incoming_item marks a station an item is flying to. projectiles lists in-flight items and landing times; they cannot be "
-                          "picked up in flight. At release your hands become empty. Decide whether and where to throw yourself.")
-        rules['partner_plating'] = ("plate partner: approach the other chef holding a clean or compatible partially assembled plate. Add your prepared ingredient, or transfer cooked/burnt food from your held pot. When the menu has multi-ingredient dishes, you can also transfer all ingredients from your held plate if none duplicate the receiving plate. Food stays on the receiving plate; your pot or emptied plate stays in your hands, or your hand becomes empty after donating a loose ingredient. A chef currently performing work cannot receive, and the transfer does not interrupt that work. Proximity and held items are checked again on arrival and completion; if they change, the transfer is cancelled. Neither chef can directly take an item from the other chef's hands.")
-        rules['pot_swap'] = 'swap pot <stove_or_counter_id> or swap pot ground <pot_id> exchanges your held pot with the target pot in place. Contents and cooking progress stay with each original pot. The incoming pot heats only on a stove; the outgoing pot stops heating in your hands. A chopped ingredient starts cooking when its pot reaches a stove. Empty pots do not heat; cooked or burnt food resumes its existing heat progress. A burning stove must be extinguished before exchanging pots. Both chefs have these actions.'
-        rules['off_stove_pots'] = 'load ground <pot_id> puts held food into an empty pot on the floor. load <counter_id> puts held food into an empty pot on that counter. The ingredient stays inside the pot; your hands become empty. Then pickup or take the pot and return it to a stove to heat it. Off-stove pots never heat food. Only food in the state that kitchen.vessels lists for that kind of vessel can be loaded. Rules are identical for both chefs and all levels.'
-        timing = rules['timing']
-        timing.pop('walk_same_area', None)
-        timing.pop('walk_cross_area', None)
-        timing['walk_cells_per_second'] = geometry['walk_speed']
-        timing['throw_cells_per_second'] = geometry['throw_speed']
-        timing['throw_windup'] = state['timing']['handling']
-        if state.get('assembly'):
-            recipes='; '.join(r['id']+' = '+', '.join(f"{c['item']} ({STATE_WORDS.get(c['state'],c['state'])})" for c in r['components'])
-                              for r in state.get('dishes',state['menu']))
-            ordered=', '.join(r['id'] for r in state['menu'])
-            moved=('carried, put down or passed like other plates' if geometry.get('pass_range') else 'carried or put down, not thrown')
-            rules['flow']=(f'Dishes, all components on one clean plate in any order: {recipes}. Orders in this round ask for: {ordered}. '
-                           'Ingredients reach the listed state by chopping on a board '
-                           'and, where the recipe needs cooked food, cooking in a pot on a stove; ingredients listed as chopped or as fetched are never cooked. '
-                           f'Recipes and order ingredients are explicit in state. A plate that matches no dish can be {moved}, but not served.')
-            rules['assembly']='assemble <counter_id> adds your ingredient to a counter plate, or the counter ingredient to your held plate. assemble <board_id> collects a prepared ingredient directly from that board into your held plate. Beef must be cooked before plating; chopped raw beef cannot be plated. merge <counter_id> transfers all ingredients from the counter plate into your held clean/partial plate if they do not overlap; the empty clean source plate stays on the counter. No plates disappear. plate partner can also add a prepared ingredient or merge a plate into the plate held by the other chef. Each ingredient appears once. plate actions transfer cooked beef from a pot into an empty plate or a partial burger plate without beef, on a counter, in your hand, on the floor (pot), or held by the other chef. Adding vegetables or bread to plated steak turns it into a partial burger until all four ingredients are present. One counter cell holds one object. Pots and plates cannot be stacked.'
-            if state.get('ground_assembly'):
-                rules['assembly']+=' assemble ground <item_id> does the same with a plate or prepared ingredient on the floor: your ingredient goes onto the floor plate, which stays on its tile, or the floor ingredient goes onto your held plate. pickup <item_id> still exchanges the held item instead.'
-        cooldown=f', then {sprint["cooldown_after"]:g} seconds cooldown' if sprint['cooldown_after'] else '; a new sprint can start as soon as one ends'
-        rules['sprint']=f'Both chefs may sprint: movement speed starts at {sprint["multiplier"]:g}x and eases back to walking over {sprint["duration"]:g} game seconds{cooldown}. Holding items is allowed; working speed is unchanged. Sprint does not bypass walls. Decide independently whether to request sprint along with next_action. It triggers only if the chosen action is accepted, you are moving, and cooldown is ready. No queued sprint; expiry/cooldown use game time, not response latency.'
-        payload['questions']['sprint']={'type':'choice','instructions':'Request a short sprint for this accepted movement action or continuing travel?', 'criteria':{'yes':'Request sprint if moving and available','no':'Do not request sprint'}}
-        return payload
+    """Jev client for the spatial kitchen: harness.payload adds its rules, pruning and sprint question."""
+    spatial = True
 
 
 class WhiteboxHandler(Handler):

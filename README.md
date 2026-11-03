@@ -155,6 +155,7 @@ To connect your own model, implement two methods, `payload(state, actions)` and 
 | --- | --- |
 | Kitchen rules | `kitchen.py`, `rules.py`, `config_contract.py` |
 | Maps and space | `maps/`, `spatial_kitchen.py`, `navigation.py` |
+| Jeff's input: rule text, listed actions, request assembly | `harness.py` |
 | Jeff's decision loop and model adapters | `jev.py`, `whitebox_server.py`, `player_api.py`, `model_language.py` |
 | Round records and analysis | `session_record.py`, `provenance.py`, `collaboration_analyzer.py`, `round_summary.py`, `capacity_analyzer.py` |
 | Local servers | `web_server.py`, `cocos_server.py` |

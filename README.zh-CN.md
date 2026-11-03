@@ -157,6 +157,7 @@ Jeff 不看画面，他读的是结构化的游戏状态，从当前合法的动
 | --- | --- |
 | 厨房规则 | `kitchen.py`、`rules.py`、`config_contract.py` |
 | 地图与空间 | `maps/`、`spatial_kitchen.py`、`navigation.py` |
+| Jeff 的输入：规则说明、可选动作、请求拼装 | `harness.py` |
 | Jeff 的决策调度与模型适配 | `jev.py`、`whitebox_server.py`、`player_api.py`、`model_language.py` |
 | 对局记录与分析 | `session_record.py`、`provenance.py`、`collaboration_analyzer.py`、`round_summary.py`、`capacity_analyzer.py` |
 | 本地服务 | `web_server.py`、`cocos_server.py` |
