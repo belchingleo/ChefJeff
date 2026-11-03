@@ -366,6 +366,29 @@
               "additionalProperties": false
             }
           ]
+        },
+        "jeff_plan": {
+          "description": "Only with Jeff's plan switch on for this round.",
+          "type": "object",
+          "properties": {
+            "mode": {
+              "const": "choice"
+            },
+            "seconds": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "rules_version": {
+              "type": "string",
+              "pattern": "^plan-v[0-9]{1,3}$"
+            }
+          },
+          "required": [
+            "mode",
+            "seconds",
+            "rules_version"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [

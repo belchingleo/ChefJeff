@@ -246,6 +246,15 @@ def payload(kind, data, k):
     return None  # presets, bookmark texts, release metadata, raw errors: not this study
 
 
+def plan_condition(session):
+    """Jeff's plan switch as this round started with it; nothing when it was off."""
+    plan = getattr(getattr(session, 'ai', None), 'plan', None)
+    if plan is None:
+        return {}
+    from harness import PLAN_RULES_VERSION
+    return {'jeff_plan': {'mode': 'choice', 'seconds': plan.seconds, 'rules_version': PLAN_RULES_VERSION}}
+
+
 def project_event(record):
     result = {key: deepcopy(record[key]) for key in ('seq', 'type', 'source', 'game_time_ms',
               'elapsed_wall_ms', 'clock_id', 'payload')}
@@ -288,6 +297,7 @@ def record(session):
             'config_projection_hash': 'sha256:' + cc.sha256(log.research_config),
             'conditions': {'cross_round_memory': memory_condition(session),
                            'memory_provenance': deepcopy(getattr(session, 'round_memory_provenance', None)),
+                           **plan_condition(session),
                            'engine_semantics': k.rules.semantics,
                            'rules_version': _rules_version(),
                            'input_language': _input_language(),

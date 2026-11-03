@@ -31,6 +31,7 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - With consent before the round starts, a contributed round can now be replayed exactly: the record keeps the full frozen configuration and every engine input. It also records when each chef actually starts working at a station (`arrival`), whether a throw aims at the other chef (`throw_aim`), what is needed to rebuild every request to Jeff (a digest, recent decisions and the preset messages), the option probabilities a decision model reports, and, with cross-round memory on, which earlier rounds the memory came from. Memory content is still not stored. Jeff's input is unchanged. `scripts/check_research_record.py` checks a record and replays it.
 - Contribution storage holds up to 5000 rounds and 5 GB, and refuses saves before the server disk runs low.
 - A consented round whose final record could not be written to the database is no longer shown as contributed: the result screen says the contribution failed, and the save is retried once. Before this, such rounds kept only their opening snapshot while the page said they were saved. Wait, continue and stale model answers no longer leave empty action links in event payloads, which had blocked those final saves. Rounds already stored with only an opening snapshot stay as they are, marked incomplete.
+- Rounds played with Jeff's plan on keep the switch in `conditions.jeff_plan` (mode, seconds, rules version) and, in each `ai_request`, the plan input that rebuilds the request (`jeff_plan`: the plan holding, or the parts offered). Rounds with it off have neither field. Upgrade the research console with this release so it reads them.
 
 ### Jeff (the AI teammate)
 - Model input `en-v4`: joining the other chef's chopping or washing, walking to a floor tile and the start of a throw now reach Jeff in English. Before, these labels and events were partly Chinese (for example `一起切配 F2 (共享进度)`), so rounds recorded with `en-v3` show them that way.
@@ -43,6 +44,8 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - A route always starts and ends at the points it was asked for. Kitchens on one map share a route cache in which (6, 2) and (6.0, 2.0) are the same key, so after earlier rounds in the same server process a route could be written with the other number type (for example 6.0 instead of 6) in Jeff's input.
 - Payload fingerprints guard Jeff's model input: fixed rounds on the three levels record every request's payload and, on every fourth request, the exact body each local and online client would send, so refactors cannot change the input by accident.
 - Jeff's input is assembled in one module, `harness.py`: the rule text (each paragraph written once, with the grid kitchen's wording chosen in place), the listed actions and the per-request additions. The clients only send it. The input is unchanged byte for byte: the payload fingerprints and a separate check of the non-grid kitchen match.
+- Jeff's plan, a test switch in Settings → AI 搭档, off by default. With it on, whenever Jeff has no plan its request also asks which part of the work it takes on next: prep (备料), cook (加热), plate and serve (装盘出餐), plates (收洗盘) or flexible (随机应变). Only the parts this level's stations and recipes need are offered. The answer holds from Jeff's next request for 12 game seconds (`jeff_plan_seconds`), and ends earlier when the human sends a new preference (messages 1–5), or when neither the action Jeff is doing nor any of its listed actions belongs to the part. The plan adds or removes none of Jeff's actions, and Jeff is told it may follow it or not. The communication area on desktop and the phone's top toolbar show Jeff's plan and the seconds left. A missing or unknown answer means no plan, and the action still counts.
+- With the plan switch off, Jeff's input is unchanged byte for byte. With it on, requests carry `plan_rules_version` `plan-v1`, and a fifth payload fingerprint covers level 2 with the plan on. Local, online and browser clients read `plan_role` the same way, Zhipu's structured output included.
 
 ### Kitchen and controls
 - Your own chef keeps the direction you last steered when you stop, as in Overcooked. It used to snap back to the server's older facing for a moment, most visibly after short moves online.
@@ -160,6 +163,7 @@ First private release: a local browser game with three playable maps and player-
 - 开局前同意的贡献对局现在可以精确重放：记录保存完整的冻结配置和全部引擎输入。另外记录双方真正开始操作的时刻（`arrival`）、投掷是否瞄准队友（`throw_aim`）、重建每次 Jeff 请求所需的内容（校验值、最近决策和预设消息）、决策模型给出的各选项概率，以及开启跨局记忆时记忆来自哪几局。记忆内容仍不保存。Jeff 收到的输入不变。`scripts/check_research_record.py` 检查并重放一条记录。
 - 贡献存储最多 5000 局、5 GB，服务器磁盘空间不足前会拒绝保存。
 - 已同意贡献的一局，如果结束时完整记录没能写进数据库，不再显示“已贡献”：结算画面会提示贡献失败，并重试保存一次。此前这类对局只留下开局快照，页面却显示已保存。AI 选择等待、继续或回复过时的情况，不再在事件内容里留下空的动作关联，这正是此前结束保存被拒的原因。已经只存了开局快照的历史记录保持原样，标记为不完整。
+- 打开 Jeff 的计划玩的对局，在 `conditions.jeff_plan` 里记下开关（模式、秒数、规则版本），并在每条 `ai_request` 里记下重建这次请求所需的计划输入（`jeff_plan`：当时有效的计划，或给出的选项）。关闭时两处都没有。研究管理台需要随这个版本一起升级，才能读取这些记录。
 
 ### Jeff（AI 队友）
 - 模型输入升为 `en-v4`：加入对方的切配或洗碗、走到某个地面格子、开始抛递这几类选项和事件，现在都以英文发给 Jeff。之前它们部分是中文（例如 `一起切配 F2 (共享进度)`），所以按 `en-v3` 记录的对局里保留着这些中文。
@@ -172,6 +176,8 @@ First private release: a local browser game with three playable maps and player-
 - 路线的起点和终点总是请求时给出的那两个点。同一张地图的厨房共用路线缓存，缓存里 (6, 2) 和 (6.0, 2.0) 是同一个键，所以同一个服务器进程玩过几局之后，Jeff 输入里的路线可能写成另一种数字类型（比如把 6 写成 6.0）。
 - 新增输入指纹，守住 Jeff 的模型输入：在三关的固定对局中记录每次请求的输入，并每隔四次请求记录本地版和在线版各客户端实际发出的请求内容，代码整理不会意外改变输入。
 - Jeff 的输入集中到一个模块 `harness.py` 里拼装：规则说明（每段只写一次，网格厨房的写法在原位置按条件选择）、列出的可选动作，以及每次请求追加的内容；各客户端只负责发送。输入逐字节不变：输入指纹和对非网格厨房的单独比对都一致。
+- Jeff 的计划：设置 → AI 搭档里的测试开关，默认关闭。打开后，Jeff 没有计划时，那次请求会多问一句接下来负责哪一段：备料（prep）、加热（cook）、装盘出餐（serve）、收洗盘（plates）或随机应变（flexible）。只列出本关工位和菜谱用得上的段。回答从 Jeff 的下一次请求起生效，保持 12 个游戏秒（`jeff_plan_seconds`）；玩家发出新的偏好消息（1–5）时，或者 Jeff 正在做的动作和可选动作都不属于这一段时，提前结束。计划不增减 Jeff 的任何动作，规则里也告诉 Jeff 可以照做，也可以不照做。电脑上的沟通区和手机顶部工具栏显示 Jeff 的计划和剩余秒数。没有回答或回答不在选项里，就当没有计划，动作照常执行。
+- 计划开关关闭时，Jeff 的输入逐字节不变。打开时请求带 `plan_rules_version` `plan-v1`，新增第五份输入指纹覆盖第二关计划打开的情况。本地版、在线版和浏览器端读取 `plan_role` 的方式一致，智谱的结构化输出也包括在内。
 
 ### 厨房与操作
 - 松开方向键时，自己的厨师保持最后按的方向，和《胡闹厨房》一样。以前会先转回服务器那边还没更新的旧朝向，再转回来，线上短距离挪位置时最明显。

@@ -38,6 +38,7 @@ import player_api  # noqa: E402
 import reference_policy  # noqa: E402
 import spatial_kitchen  # noqa: E402
 from cooperation_memory import episode, memory_context  # noqa: E402
+from harness import PLAN_SECONDS, Plan, action_part  # noqa: E402
 from jev import DecisionLoop  # noqa: E402
 from kitchen import load_config  # noqa: E402
 from levels import level_config  # noqa: E402
@@ -54,11 +55,12 @@ SPEED = .75         # default game seconds per wall second; the loop's clock is 
 KEY = 'payload-fingerprint-key'
 WALL_TIME = '2026-11-03T12:00:00+08:00'
 SCENARIOS = {
-    # name: (level id, with player messages and cross-round memory)
-    'level1': ('level-1', False),
-    'level2': ('level-2', False),
-    'level3': ('level-3', False),
-    'level2-messages-memory': ('level-2', True),
+    # name: (level id, with player messages and cross-round memory, with Jeff's plan switch on)
+    'level1': ('level-1', False, False),
+    'level2': ('level-2', False, False),
+    'level3': ('level-3', False, False),
+    'level2-messages-memory': ('level-2', True, False),
+    'level2-plan': ('level-2', True, True),
 }
 MESSAGES = ((20.0, 'prep'), (70.0, 'mistake'), (120.0, 'wash'))
 COMPOSE = jev.compose_payload
@@ -162,8 +164,13 @@ class StandIn(SpatialJevClient):
         move = reference_policy.choose(self.k, 'jeff', 'cook')
         choice = (move.key if move and move.key in criteria else
                   next((key for key in ('wait', 'continue') if key in criteria), sorted(criteria)[0]))
+        plan = {}
+        if 'plan_role' in payload['questions']:
+            # The part of the move it is about to make, else flexible.
+            part = action_part(move, self.k.snapshot()) if move and move.key in criteria else None
+            plan = {'plan_role': part if part in payload['questions']['plan_role']['criteria'] else 'flexible'}
         return {'sprint_answer': {}, 'sprint': False, 'choice': choice, 'confidence': None,
-                'probabilities': {}, 'model': 'payload-fingerprint', 'usage': {}, 'latency': 0.0}
+                'probabilities': {}, 'model': 'payload-fingerprint', 'usage': {}, 'latency': 0.0, **plan}
 
 
 class Inline:
@@ -210,7 +217,7 @@ def message(k, loop, code):
 
 
 def run(name):
-    level, talk = SCENARIOS[name]
+    level, talk, planned = SCENARIOS[name]
     memory = previous_round_memory(level) if talk else None
     # Start like a freshly started server. Kitchens on one map share a navigation object and its
     # route caches, so rounds or tests run earlier in the same process never reach this recording.
@@ -221,6 +228,8 @@ def run(name):
     loop.player_messages = []
     if talk:
         loop.cooperation_memory = memory
+    if planned:
+        loop.plan = Plan(PLAN_SECONDS)
     pending = list(MESSAGES) if talk else []
     step = 0
     with (patch('jev.time.monotonic', lambda: 1000 + k.time / SPEED), patch('jev.threading.Thread', Inline),
