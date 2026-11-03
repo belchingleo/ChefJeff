@@ -12,6 +12,7 @@ from pathlib import Path
 import research_replay
 from research_record import validate_record
 from scripts.check_research_record import main as check_cli
+from scripts.research_export import export_package, verify_package
 import test_research_save_paths as paths
 from web_server import PLAYER_MESSAGES
 
@@ -140,6 +141,10 @@ class ReplayTests(paths.SavePathTests):
         record = self.game.store.download(receipt['id'], receipt['deletion_token'])
         validate_record(record)
         self.assertEqual(record['conditions']['jeff_plan'], initial['conditions']['jeff_plan'])
+        with tempfile.TemporaryDirectory() as folder:     # the private export package keeps and verifies it too
+            package = Path(folder) / 'private.cjresearch.zip'
+            export_package(self.game.store.path, package)
+            self.assertEqual(verify_package(package)['rounds'], 1)
         plans = [e['payload']['jeff_plan'] for e in record['events'] if e['type'] == 'ai_request']
         self.assertIsNone(plans[0]['current'])
         self.assertEqual(plans[1]['current']['role'], 'prep')

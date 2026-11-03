@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
-"""How Jeff decided in finished local rounds, per model. Record only.
+"""How Jeff decided in finished rounds, per model. Record only.
 
-    python3 scripts/decision_stats.py logs/            (or some logs/*.jsonl files)
+    python3 scripts/decision_stats.py logs/                          local round journals
+    python3 scripts/decision_stats.py <folder>/*.cjresearch.zip      research packages (scripts/pull_research.py)
 
-It reads the local round journals (logs/*.jsonl) and changes nothing: no game, no model call.
+It reads, and changes nothing: no game, no model call. Inputs are local round journals
+(logs/*.jsonl), research packages (*.cjresearch.zip, checked with research_export.verify_package,
+so an expired package is refused) and single research records (*.json, a player's download).
+Research records name the model only as the browser reported it (conditions.model_identity), and
+do not keep how a plan ended, so their plan ends read `not_recorded`. Legacy v1 records are skipped.
 For each model it counts:
 
 - unsure: how far apart a decision model put its top two options (margin = first minus second
@@ -33,8 +38,9 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from harness import action_part  # noqa: E402
 from kitchen import Action  # noqa: E402
+from research_record import SCHEMA as RECORD_SCHEMA  # noqa: E402
 
-VERSION = 'decision-stats-1'
+VERSION = 'decision-stats-2'
 MARGINS = (0.05, 0.1)
 PLAN_AGE = 5.0
 NON_ACTIONS = ('continue', 'wait', 'stop')
@@ -60,6 +66,85 @@ def read_rounds(path):
     if rows:
         rounds.append(rows)
     return rounds, unreadable
+
+
+def record_rows(record):
+    """One research record as journal rows, with the fields add_round reads."""
+    conditions = record.get('conditions') or {}
+    identity = conditions.get('model_identity') or {}
+    model = identity.get('model_id') or identity.get('provider') or 'not reported'
+    events = record.get('events') or []
+    states = None
+    def holding(seq):
+        nonlocal states
+        if states is None:
+            from research_replay import states as rebuilt
+            states = rebuilt(record)
+        row = next((s for s in reversed(states) if s['seq'] <= seq), None)
+        return ((row or {}).get('state', {}).get('chefs', {}).get('jeff') or {}).get('hand')
+    rows = [{'kind': 'start', 'jeff_plan': conditions.get('jeff_plan'), 'game_time_ms': 0}]
+    previous = None     # the plan the previous request carried
+    for e in events:
+        p, at = e.get('payload') or {}, {'game_time_ms': e.get('game_time_ms')}
+        if e['type'] == 'ai_request':
+            plan = p.get('jeff_plan')
+            current = (plan or {}).get('current')
+            ended = 'not_recorded' if previous and (not current or current['set_at'] != previous['set_at']) else None
+            rows.append({'kind': 'ai_request', 'request_id': e.get('request_id'), 'candidates': p.get('candidates'),
+                         'jeff_plan': plan, **({'plan_ended': ended} if ended else {}), **at})
+            previous = current
+        elif e['type'] == 'ai_response':
+            choice = p.get('choice') or {}
+            chef = {'target': choice.get('target'), 'action_kind': choice.get('kind'),
+                    'holding': holding(e['seq']) if choice.get('kind') == 'throw' else None}
+            rows.append({'kind': 'ai_response', 'request_id': e.get('request_id'), 'model': model, 'choice': choice.get('key'),
+                         'probabilities': p.get('probabilities'), 'applied': p.get('applied'), 'fresh': p.get('fresh'),
+                         'action_id': e.get('action_id'), 'current_state': {'chefs': {'jeff': chef}}, **at})
+        elif e['type'] in ('action_start', 'interrupted', 'knocked'):
+            rows.append({'kind': e['type'], 'actor': e.get('actor_id'), 'action_id': e.get('action_id'),
+                         'action': (p.get('action') or {}).get('key'), **at})
+    # A plan answer is not kept. It shows as the plan the next request carries, set when the answer came,
+    # and only an answer to a request that asked for one (no plan held) can have set it.
+    asked = {r['request_id'] for r in rows if r['kind'] == 'ai_request' and r.get('jeff_plan')
+             and not r['jeff_plan'].get('current')}
+    for i, response in enumerate(rows):
+        if (response['kind'] != 'ai_response' or response.get('game_time_ms') is None
+                or response.get('request_id') not in asked):
+            continue
+        following = next((r for r in rows[i + 1:] if r['kind'] == 'ai_request'), None)
+        current = ((following or {}).get('jeff_plan') or {}).get('current')
+        if current and abs(current['set_at'] - response['game_time_ms'] / 1000) < .002:
+            response.update(plan_set=True, plan_role=current['role'])
+    rows.append({'kind': 'end', 'game_time_ms': round((record.get('duration') or 0) * 1000)})
+    return rows
+
+
+def sources(path):
+    """(rounds as journal rows, unreadable journal lines, skipped records) from one input file."""
+    path = Path(path)
+    if path.suffix == '.zip':
+        import zipfile
+        from scripts.research_export import verify_package
+        manifest = verify_package(path)
+        rounds, skipped = [], 0
+        with zipfile.ZipFile(path) as archive:
+            for source in manifest['sources']:
+                prefix = source['source_ref'] + '/'
+                if prefix + 'metadata.json' not in archive.namelist():
+                    skipped += 1        # legacy v1
+                    continue
+                record = json.loads(archive.read(prefix + 'metadata.json'))
+                record['events'] = [json.loads(line) for line in archive.read(prefix + 'events.jsonl').splitlines() if line]
+                rounds.append(record_rows(record))
+        return rounds, 0, skipped
+    if path.suffix == '.json':
+        data = json.loads(path.read_text(encoding='utf-8'))
+        record = data.get('record', data) if isinstance(data, dict) else None
+        if not isinstance(record, dict) or record.get('schema') != RECORD_SCHEMA:
+            return [], 0, 1
+        return [record_rows(record)], 0, 0
+    rounds, unreadable = read_rounds(path)
+    return rounds, unreadable, 0
 
 
 def game_time(row):
@@ -212,25 +297,33 @@ def summary(m, margins=MARGINS):
 def report(paths, margins=MARGINS, plan_age=PLAN_AGE):
     files = []
     for path in map(Path, paths):
-        files += sorted(path.glob('*.jsonl')) if path.is_dir() else [path]
+        files += (sorted(p for pattern in ('*.jsonl', '*.cjresearch.zip', '*.json') for p in path.glob(pattern))
+                  if path.is_dir() else [path])
     models = defaultdict(new_model)
-    counted = skipped = unreadable = 0
+    counted = skipped = unreadable = unsupported = 0
+    refused = {}
     for path in files:
-        rounds, bad = read_rounds(path)
+        try:
+            rounds, bad, legacy = sources(path)
+        except (ValueError, KeyError, OSError) as error:   # an expired or damaged package, an unreadable record
+            refused[path.name] = str(error)   # the name only: folders can be private
+            continue
         unreadable += bad
+        unsupported += legacy
         for rows in rounds:
             if add_round(rows, models, margins, plan_age) is None:
                 skipped += 1
             else:
                 counted += 1
-    return {'version': VERSION, 'files': len(files), 'rounds': counted, 'rounds_without_model_answers': skipped,
+    return {'version': VERSION, 'files': len(files), 'refused_files': refused, 'rounds': counted,
+            'rounds_without_model_answers': skipped, 'unsupported_records': unsupported,
             'unreadable_lines': unreadable, 'margins': list(margins), 'plan_age_seconds': plan_age,
             'models': {name: summary(m, margins) for name, m in sorted(models.items()) if m['decisions']}}
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="How Jeff decided in local round logs, per model (record only).")
-    parser.add_argument('paths', nargs='+', help='journal files or folders of them (logs/)')
+    parser = argparse.ArgumentParser(description="How Jeff decided, per model, from round logs or research data (record only).")
+    parser.add_argument('paths', nargs='+', help='journals (logs/), research packages (*.cjresearch.zip), record files (*.json) or folders of them')
     parser.add_argument('--margins', type=float, nargs='+', default=list(MARGINS), help='unsure below these margins')
     parser.add_argument('--plan-age', type=float, default=PLAN_AGE, help='seconds a plan has held before unsure counts')
     parser.add_argument('--out', help='write the JSON report here instead of printing it')

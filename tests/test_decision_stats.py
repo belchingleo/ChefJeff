@@ -177,3 +177,114 @@ class HandBuiltTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+import time  # noqa: E402
+
+import test_research_save_paths as paths  # noqa: E402
+from scripts.research_export import export_package  # noqa: E402
+
+
+class ResearchRecordTests(paths.SavePathTests):
+    """A consented online round through the real HTTP handlers and relay, read as a record and as a package."""
+
+    def answer(self, choice, top, second):
+        """Answer choice with probability top, and second for the first other option offered."""
+        self.due()
+        with self.game.lock:
+            self.game.ai.poll()
+        deadline = time.monotonic() + 2
+        while time.monotonic() < deadline and not self.game.relay.request():
+            time.sleep(.005)
+        pending = self.game.relay.request()
+        criteria = pending['payload']['questions']['next_action']['criteria']
+        self.assertIn(choice, criteria)
+        other = next(key for key in criteria if key != choice)
+        body = {'id': pending['id'], 'choice': choice, 'sprint': False, 'usage': {'input_tokens': 1, 'output_tokens': 1},
+                'probabilities': {choice: top, other: second}}
+        if 'plan_role' in pending['payload']['questions']:
+            body['plan_role'] = 'prep'
+        self.assertEqual(self.request('/api/model/result', body, self.token)[0], 200)
+        deadline = time.monotonic() + 2
+        while self.game.ai.q.empty() and time.monotonic() < deadline:
+            time.sleep(.005)
+        with self.game.lock:
+            self.game.ai.poll()
+
+    def test_a_record_and_its_package_give_the_same_counts(self):
+        self.assertEqual(self.command('plan', mode='choice')[0], 200)
+        with self.game.lock:
+            self.game.stop_event.set()
+            self.game.wake.set()
+        receipt = self.begin(True, {'provider': 'compatible', 'model_id': 'test/decider'})
+        # To the fridge, then the serving window, then the fridge again: two replacements, one back-and-forth.
+        self.answer('fetch', .5, .48)
+        self.answer('go serve', .7, .2)
+        self.answer('fetch', .9, .05)
+        self.natural_end()
+        self.assertEqual(self.contribute()[0], 200)
+        record = self.game.store.download(receipt['id'], receipt['deletion_token'])
+        with tempfile.TemporaryDirectory() as folder:
+            download = Path(folder, 'round.json')
+            download.write_text(json.dumps({'record': record}))
+            package = Path(folder, 'private.cjresearch.zip')
+            export_package(self.game.store.path, package)
+            from_record, from_package = report([download]), report([package])
+        self.assertEqual(from_record['models'], from_package['models'])
+        m = from_record['models']['test/decider']
+        self.assertEqual(m['decisions']['answered'], 3)
+        self.assertEqual(m['unsure']['below']['0.05']['count'], 1)
+        self.assertEqual(m['unsure']['closest_pairs'], {'fetch/wait': 1})
+        self.assertEqual((m['actions']['replaced_by_own_next_choice'], m['actions']['back_and_forth']), (2, 1))
+        plan = m['plan']
+        self.assertEqual(plan['set'], {'prep': 1})          # answered with the first request, carried by the second
+        self.assertEqual(plan['actions_while_held']['prep']['in_part'], 1)          # the second fetch
+        self.assertEqual(plan['actions_while_held']['prep']['no_part'], 1)          # go serve
+
+    def test_an_expired_package_is_refused(self):
+        receipt = self.play()
+        self.natural_end()
+        self.assertEqual(self.contribute()[0], 200)
+        with tempfile.TemporaryDirectory() as folder:
+            package = Path(folder, 'private.cjresearch.zip')
+            export_package(self.game.store.path, package)
+            with patch('scripts.research_export.time.time', lambda: 10 ** 12):
+                result = report([package])
+        self.assertEqual(result['rounds'], 0)
+        self.assertIn('expired', result['refused_files']['private.cjresearch.zip'])
+        self.assertIsNotNone(receipt)
+
+
+# Only the cases above; the inherited ones already run in their own modules.
+for _name in dir(paths.SavePathTests):
+    if _name.startswith('test_'):
+        setattr(ResearchRecordTests, _name, None)
+
+
+class RecordRowsTests(unittest.TestCase):
+    def test_a_throw_takes_its_part_from_the_hand_in_the_state_rows(self):
+        plan = {'seconds': 12, 'current': {'role': 'plates', 'set_at': 1.0, 'expires_at': 13.0}, 'options': None}
+        hand = {'stage': 'dirty_plate', 'plate_id': None}
+        record = {'schema': 'chefjeff-pilot-session-v2', 'duration': 30.0,
+                  'conditions': {'model_identity': None, 'jeff_plan': {'mode': 'choice', 'seconds': 12, 'rules_version': 'plan-v1'}},
+                  'events': [
+                      {'seq': 1, 'type': 'state_checkpoint', 'game_time_ms': 0, 'payload': {'trigger': 'initial', 'state': {'chefs': {'jeff': {'hand': None}}}}},
+                      {'seq': 2, 'type': 'state_delta', 'game_time_ms': 2000, 'payload': {'trigger': 'periodic', 'base_state_seq': 1,
+                                                                                         'state': {'chefs': {'jeff': {'hand': hand}}}}},
+                      {'seq': 3, 'type': 'ai_request', 'game_time_ms': 2000, 'request_id': 1, 'payload': {'candidates': ['throw partner', 'wait'], 'jeff_plan': plan}},
+                      {'seq': 4, 'type': 'ai_response', 'game_time_ms': 2050, 'request_id': 1, 'action_id': 5,
+                       'payload': {'choice': {'key': 'throw partner', 'kind': 'throw', 'target': None}, 'applied': True, 'fresh': True}},
+                      {'seq': 5, 'type': 'action_start', 'game_time_ms': 2050, 'actor_id': 'jeff', 'action_id': 5, 'payload': {'action': {'key': 'throw partner'}}}]}
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder, 'round.json')
+            path.write_text(json.dumps(record))
+            m = report([path])['models']['not reported']
+        self.assertEqual(m['plan']['actions_while_held'], {'plates': {'in_part': 1, 'other_part': 0, 'no_part': 0, 'in_part_share': 1.0}})
+        self.assertEqual(m['actions']['started'], 1)
+
+    def test_a_legacy_record_is_counted_as_unsupported(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder, 'old.json')
+            path.write_text(json.dumps({'schema': 'chefjeff-pilot-session-v1'}))
+            result = report([folder])
+        self.assertEqual((result['files'], result['rounds'], result['unsupported_records']), (1, 0, 1))
