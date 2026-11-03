@@ -212,9 +212,8 @@ def message(k, loop, code):
 def run(name):
     level, talk = SCENARIOS[name]
     memory = previous_round_memory(level) if talk else None
-    # Start like a freshly started server. Kitchens on one map share a navigation object whose
-    # route cache keeps the number type of the call that filled it ((6, 2) and (6.0, 2.0) are equal
-    # keys), so earlier rounds in the same process could otherwise change how a route is written.
+    # Start like a freshly started server. Kitchens on one map share a navigation object and its
+    # route caches, so rounds or tests run earlier in the same process never reach this recording.
     spatial_kitchen._map_navigation.cache_clear()
     k = SpatialKitchen(level_config(load_config(), level))
     model = StandIn(k.c, k, wire_clients(k.c))
