@@ -209,7 +209,9 @@ def payload(kind, data, k):
         rebuild = {'engine_input_n': len(k.inputs), 'payload_sha256': cc.sha256(body),
                    'recent_decisions': deepcopy(body.get('state', {}).get('recent_decisions', [])),
                    'player_communication': deepcopy(body.get('state', {}).get('player_communication')),
-                   'memory_input': memory_input(body)} if observed else {}
+                   'memory_input': memory_input(body),
+                   # Only rounds with Jeff's plan switch on carry it (harness.Plan.input).
+                   **({'jeff_plan': deepcopy(data['jeff_plan'])} if data.get('jeff_plan') is not None else {})} if observed else {}
         return {**rebuild, 'observed_state_seq': data.get('observed_state_seq'),
                 'candidates': [code(v) for v in candidates],
                 'candidate_actions': [action(a.key, a.target, a.kind) for a in k.actions('jeff') if a.key in candidates], 'stage': 'model_request',

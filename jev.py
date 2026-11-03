@@ -86,14 +86,21 @@ class JevClient:
         sprint_answer=result.get('answers',{}).get('sprint',{})
         if 'sprint' in payload['questions'] and (sprint_answer.get('type')!='choice' or sprint_answer.get('choice') not in ('yes','no')):
             raise RuntimeError('Invalid sprint decision')
+        plan = {}
+        if 'plan_role' in payload['questions']:
+            # A missing or unknown plan answer only leaves Jeff without a plan; the action stands.
+            plan_answer = result.get('answers', {}).get('plan_role', {})
+            offered = payload['questions']['plan_role']['criteria']
+            plan = {'plan_answer': plan_answer, 'plan_role': plan_answer.get('choice') if plan_answer.get('type') == 'choice'
+                    and plan_answer.get('choice') in offered else None}
         return {"sprint_answer":sprint_answer, "sprint":sprint_answer.get('choice')=='yes', "choice": answer["choice"], "confidence": answer.get("confidence"),
                 "probabilities": answer.get("probabilities", {}), "model": result.get("model"),
-                "usage": result.get("usage", {}), "latency": time.monotonic()-start}
+                "usage": result.get("usage", {}), "latency": time.monotonic()-start, **plan}
 
 
-def compose_payload(client, kitchen, state, actions, recent_decisions, communication, memory=NO_MEMORY):
+def compose_payload(client, kitchen, state, actions, recent_decisions, communication, memory=NO_MEMORY, plan=None):
     """Jeff's request from the kitchen and the few parts it cannot derive; research replay rebuilds it here too."""
-    return harness.compose(client.payload(state, actions), kitchen, recent_decisions, communication, memory)
+    return harness.compose(client.payload(state, actions), kitchen, recent_decisions, communication, memory, plan)
 
 
 class DecisionLoop:
@@ -128,6 +135,8 @@ class DecisionLoop:
         self.deferred_count=0
         self.call_limit = self.k.c.get('ai_max_calls', 200)
         self.budget_notified = False
+        # Jeff's plan (harness.Plan) when the round's plan switch is on.
+        self.plan = None
 
     def invalidate(self):
         self.epoch += 1
@@ -186,11 +195,14 @@ class DecisionLoop:
                          and context["job_id"] == current_job)
                 applied, message = self.k.start("jeff", decision) if fresh else (False, "回复已过期、任务已变化或游戏已暂停")
                 sprint_applied=bool(applied and result.get('sprint') is True and hasattr(self.k,'sprint') and self.k.sprint('jeff'))
+                # A plan answer counts like the action: only from a fresh reply, and only if plan_role was asked.
+                plan_set = bool(self.plan and fresh and self.plan.accept(result.get('plan_role'), self.k.time,
+                                                                         context.get('plan_offered'), context.get('preference')))
                 if not fresh:self.stale_count += 1
                 elif not applied:self.rejected_count += 1
                 chef_job = self.k.chefs["jeff"].job
                 self.log("ai_response", {"request_id": context["id"], **result, "applied": applied, "execution": message, "sprint_applied":sprint_applied,
-                                         "fresh": fresh,
+                                         "fresh": fresh, **({"plan_set": plan_set} if self.plan else {}),
                                          "server_received_wall_ms": round((context["returned_monotonic"]-self.log.monotonic_start)*1000) if "returned_monotonic" in context and hasattr(self.log,"monotonic_start") else None,
                                          "server_transport_started_wall_ms": round((context["transport_started_monotonic"]-self.log.monotonic_start)*1000) if "transport_started_monotonic" in context and hasattr(self.log,"monotonic_start") else None,
                                          "action_id": chef_job.id if applied and chef_job and decision.kind not in ("continue", "wait") else None,
@@ -245,9 +257,16 @@ class DecisionLoop:
                     self.log('player_message_delivery',{'message_id':message['id'],'request_id':self.calls,
                                                         't':round(self.k.time,3),'meaning':'included in request, not proof of understanding'})
                     message['first_request_id']=self.calls
+        plan = plan_ended = None
+        if self.plan:
+            context['preference'] = next((m['id'] for m in reversed(messages) if m['kind'] == 'preference'), None)
+            plan_ended = self.plan.check(self.k.time, state, actions, context['preference'])
+            plan = self.plan.input(state)
+            context['plan_offered'] = plan['options']
         payload = compose_payload(self.client, self.k, state, actions, self.recent_decisions, communication,
-                                  self.cooperation_memory if hasattr(self, 'cooperation_memory') else NO_MEMORY)
-        self.log("ai_request", {"request_id": self.calls, "triggers": causes, "observed_state_seq": self.k.event_seq, "payload": payload})
+                                  self.cooperation_memory if hasattr(self, 'cooperation_memory') else NO_MEMORY, plan)
+        self.log("ai_request", {"request_id": self.calls, "triggers": causes, "observed_state_seq": self.k.event_seq, "payload": payload,
+                                **({"jeff_plan": plan, "plan_ended": plan_ended} if plan is not None else {})})
         self.last_request = now
         self.last_revision = self.k.revision
         self.last_urgency = urgency
