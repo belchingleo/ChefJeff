@@ -145,6 +145,29 @@ def references(value):
     return value
 
 
+def fingerprints(database, refs):
+    """Expiry and a digest of the stored text of each referenced active record.
+
+    Cheap enough to run right before a built package is sent: it reads the stored text but
+    never parses or validates it, so any withdrawal, expiry or change since the build shows.
+    """
+    wanted, found = set(refs), {}
+    db = connection(database)
+    try:
+        now = time.time()
+        identifiers = db.execute('SELECT id FROM records WHERE expires>?', (now,)).fetchall()
+        for (identifier,) in identifiers:
+            ref = reference(identifier)
+            if ref not in wanted:
+                continue
+            row = db.execute('SELECT expires,record FROM records WHERE id=? AND expires>?', (identifier, now)).fetchone()
+            if row is not None:
+                found[ref] = [row[0], hashlib.sha256(row[1].encode()).hexdigest()]
+    finally:
+        db.close()
+    return found
+
+
 def selected_rows(database, refs, **unused):
     """Look up pseudonymous references without selecting deletion hashes or credentials."""
     refs = references(refs)

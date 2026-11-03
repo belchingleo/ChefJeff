@@ -9,6 +9,7 @@ It reads, and changes nothing: no game, no model call. Inputs are local round jo
 so an expired package is refused) and single research records (*.json, a player's download).
 Research records name the model only as the browser reported it (conditions.model_identity), and
 do not keep how a plan ended, so their plan ends read `not_recorded`. Legacy v1 records are skipped.
+A round found in several inputs (overlapping packages) is counted once, from its fullest copy.
 For each model it counts:
 
 - unsure: how far apart a decision model put its top two options (margin = first minus second
@@ -82,7 +83,7 @@ def record_rows(record):
             states = rebuilt(record)
         row = next((s for s in reversed(states) if s['seq'] <= seq), None)
         return ((row or {}).get('state', {}).get('chefs', {}).get('jeff') or {}).get('hand')
-    rows = [{'kind': 'start', 'jeff_plan': conditions.get('jeff_plan'), 'game_time_ms': 0}]
+    rows = [{'kind': 'start', 'jeff_plan': conditions.get('jeff_plan'), 'game_time_ms': 0, 'round_id': record.get('round_id')}]
     previous = None     # the plan the previous request carried
     for e in events:
         p, at = e.get('payload') or {}, {'game_time_ms': e.get('game_time_ms')}
@@ -300,8 +301,8 @@ def report(paths, margins=MARGINS, plan_age=PLAN_AGE):
         files += (sorted(p for pattern in ('*.jsonl', '*.cjresearch.zip', '*.json') for p in path.glob(pattern))
                   if path.is_dir() else [path])
     models = defaultdict(new_model)
-    counted = skipped = unreadable = unsupported = 0
-    refused = {}
+    counted = skipped = unreadable = unsupported = duplicates = 0
+    refused, journals, records = {}, [], {}
     for path in files:
         try:
             rounds, bad, legacy = sources(path)
@@ -311,11 +312,23 @@ def report(paths, margins=MARGINS, plan_age=PLAN_AGE):
         unreadable += bad
         unsupported += legacy
         for rows in rounds:
-            if add_round(rows, models, margins, plan_age) is None:
-                skipped += 1
+            identifier = rows[0].get('round_id') if rows else None
+            if identifier is None:
+                journals.append(rows)
+            elif identifier in records:
+                # Overlapping packages hold one round twice; count it once, from its fullest copy.
+                duplicates += 1
+                if len(rows) > len(records[identifier]):
+                    records[identifier] = rows
             else:
-                counted += 1
+                records[identifier] = rows
+    for rows in journals + list(records.values()):
+        if add_round(rows, models, margins, plan_age) is None:
+            skipped += 1
+        else:
+            counted += 1
     return {'version': VERSION, 'files': len(files), 'refused_files': refused, 'rounds': counted,
+            'duplicate_rounds_dropped': duplicates,
             'rounds_without_model_answers': skipped, 'unsupported_records': unsupported,
             'unreadable_lines': unreadable, 'margins': list(margins), 'plan_age_seconds': plan_age,
             'models': {name: summary(m, margins) for name, m in sorted(models.items()) if m['decisions']}}

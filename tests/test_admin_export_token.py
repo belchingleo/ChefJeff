@@ -228,6 +228,89 @@ class PullScriptTests(SyntheticAdmin):
                 self.run_main('pull', '--out', str(self.out))
         self.assertEqual(list(self.out.iterdir()), [])
 
+    def test_pull_waits_while_the_server_builds_the_package(self):
+        real_sleep, real_sites, built = time.sleep, app.data.add_source_artifact, []
+        def slow_sites(*args):
+            built.append(1)
+            real_sleep(.5)
+            return real_sites(*args)
+        with patch.object(app, 'BUILD_WAIT', .05), patch.object(app.data, 'add_source_artifact', slow_sites), \
+                patch.object(pull.time, 'sleep', lambda seconds: real_sleep(.05)):
+            result = json.loads(self.run_main('pull', '--out', str(self.out)))
+        self.assertEqual((result['rounds'], len(built)), (2, 1))
+        self.assertEqual(verify_package(Path(result['path']), database=self.db)['rounds'], 2)
+
+    def test_pull_gives_up_after_its_wait_and_a_bad_date_is_refused_locally(self):
+        real_sleep = time.sleep
+        with patch.object(app, 'BUILD_WAIT', .05), patch.object(app.data, 'add_source_artifact', lambda *a: real_sleep(1.5)), \
+                patch.object(pull.time, 'sleep', lambda seconds: real_sleep(.05)):
+            with self.assertRaisesRegex(SystemExit, '还在生成'):
+                self.run_main('pull', '--out', str(self.out), '--wait', '0')
+        self.assertEqual(list(self.out.iterdir()), [])
+        with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):
+            self.run_main('pull', '--out', str(self.out), '--since', '2026-11-03T00:00:00Z')
+
+    def sync(self, *args):
+        return json.loads(self.run_main('sync', '--out', str(self.out), *args))
+
+    def test_sync_pulls_only_what_is_missing_in_small_packages(self):
+        first = self.sync('--batch', '1')
+        self.assertEqual((first['pulled'], first['packages_pulled'], first['local_rounds']), (2, 2, 2))
+        packages = sorted(p.name for p in self.out.glob('*.cjresearch.zip'))
+        self.assertEqual(len(packages), 2)          # two packages in the same second keep different names
+        for name in packages:
+            self.assertEqual(verify_package(self.out/name, database=self.db)['rounds'], 1)
+        index = json.loads((self.out/pull.SYNC_INDEX).read_text())
+        self.assertEqual(sorted(index['packages']), packages)
+        self.assertEqual((self.out/pull.SYNC_INDEX).stat().st_mode & 0o777, 0o600)
+        again = self.sync()
+        self.assertEqual((again['pulled'], again['local_rounds']), (0, 2))
+        self.assertEqual(sorted(p.name for p in self.out.glob('*.cjresearch.zip')), packages)
+
+    def test_sync_removes_a_round_gone_from_the_server_and_pulls_an_updated_one_again(self):
+        self.sync('--batch', '1')
+        index = json.loads((self.out/pull.SYNC_INDEX).read_text())
+        identifiers = {app.data.reference(record['id']): record['id'] for record in self.saved}
+        gone, updated = sorted(index['records'])
+        with sqlite3.connect(self.db) as db:
+            db.execute('UPDATE records SET expires=? WHERE id=?', (time.time()-1, identifiers[gone]))
+            text = db.execute('SELECT record FROM records WHERE id=?', (identifiers[updated],)).fetchone()[0]
+            record = json.loads(text)
+            record['duration'] = record['duration'] + 1
+            db.execute('UPDATE records SET record=? WHERE id=?', (json.dumps(record), identifiers[updated]))
+        report = self.sync()
+        self.assertEqual(report['removed_not_on_server'], [gone])
+        self.assertEqual(report['removed_updated'], [updated])
+        self.assertEqual((report['pulled'], report['local_rounds'], report['server_rounds']), (1, 1, 1))
+        index = json.loads((self.out/pull.SYNC_INDEX).read_text())
+        self.assertEqual(sorted(index['records']), [updated])
+        self.assertEqual(sorted(p.name for p in self.out.glob('*.cjresearch.zip')), sorted(index['packages']))
+        package = self.out/index['records'][updated]['package']
+        self.assertEqual(verify_package(package, database=self.db)['rounds'], 1)     # the new version
+        with zipfile.ZipFile(package) as archive:
+            self.assertEqual([s['source_ref'] for s in json.loads(archive.read('manifest.json'))['sources']], [updated])
+
+    def test_sync_retries_a_cut_package_once(self):
+        real_pull, calls = pull.pull, []
+        def flaky(*args, **kwargs):
+            calls.append(1)
+            if len(calls) == 1:
+                raise pull.PullError('研究包没有完整收到，请重试。')
+            return real_pull(*args, **kwargs)
+        with patch.object(pull, 'pull', flaky), patch.object(pull.time, 'sleep', lambda seconds: None):
+            report = pull.sync(self.token, self.out)
+        self.assertEqual((report['pulled'], len(calls)), (2, 2))
+
+    def test_sync_deletes_an_expired_local_package(self):
+        self.sync()
+        index = json.loads((self.out/pull.SYNC_INDEX).read_text())
+        name, info = next(iter(index['packages'].items()))
+        with patch.object(pull.time, 'time', lambda: info['expires'] + 1), patch.object(pull, 'list_records', lambda *a: {'total': 0, 'records': []}):
+            report = pull.sync(self.token, self.out)
+        self.assertEqual(sorted(report['removed_expired']), sorted(info['refs']))
+        self.assertFalse((self.out/name).exists())
+        self.assertEqual(report['local_rounds'], 0)
+
     def issue_into_file(self):
         self.token = self.issue()
         pull.save_token(self.token_file, replace=True, prompt=lambda _: self.token)

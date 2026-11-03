@@ -282,6 +282,22 @@ class RecordRowsTests(unittest.TestCase):
         self.assertEqual(m['plan']['actions_while_held'], {'plates': {'in_part': 1, 'other_part': 0, 'no_part': 0, 'in_part_share': 1.0}})
         self.assertEqual(m['actions']['started'], 1)
 
+    def test_a_round_in_two_inputs_counts_once_from_its_fuller_copy(self):
+        def record(answers):
+            events = []
+            for n in range(1, answers + 1):
+                events += [{'seq': 2 * n, 'type': 'ai_request', 'game_time_ms': n * 1000, 'request_id': n, 'payload': {'candidates': ['wait']}},
+                           {'seq': 2 * n + 1, 'type': 'ai_response', 'game_time_ms': n * 1000, 'request_id': n,
+                            'payload': {'choice': {'key': 'wait', 'kind': 'wait'}, 'applied': True, 'fresh': True}}]
+            return {'schema': 'chefjeff-pilot-session-v2', 'round_id': 'r' * 32, 'duration': 10.0,
+                    'conditions': {'model_identity': {'model_id': 'm'}}, 'events': events}
+        with tempfile.TemporaryDirectory() as folder:
+            Path(folder, 'early.json').write_text(json.dumps(record(2)))
+            Path(folder, 'final.json').write_text(json.dumps({'record': record(3)}))
+            result = report([folder])
+        self.assertEqual((result['rounds'], result['duplicate_rounds_dropped']), (1, 1))
+        self.assertEqual(result['models']['m']['decisions']['answered'], 3)
+
     def test_a_legacy_record_is_counted_as_unsupported(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder, 'old.json')
