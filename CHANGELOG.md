@@ -40,6 +40,7 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - Settings list model services by kind instead of one catch-all "compatible" entry. Decision models: TypeSafe Jev and any OpenRouter decision model (OpenRouter's decisions API, same state-and-questions request as Jev; default Microsoft-Decision-1); Decision 3.0 is listed as self-hosted, not yet supported. Chat models: DeepSeek, OpenRouter chat models, Alibaba qwen-flash, Doubao Seed 2.0 lite, Gemini 2.5 Flash-Lite and, in the local game only, Zhipu GLM-4.7-Flash, each with its address, model and the vendor's switch to turn thinking off. Each shows a rough cost per round and whether a full round has been tested. The list lives in `model-providers.json`, read by the local server, the hosted page and the settings dialog.
 - A local model reply without a sprint field counts as no sprint; a rejected reply is logged with its reason and the model's words; the prompt no longer names an example action (a small model copied it every step).
 - Settings work on a phone opening the local game over the LAN (plain HTTP).
+- A route always starts and ends at the points it was asked for. Kitchens on one map share a route cache in which (6, 2) and (6.0, 2.0) are the same key, so after earlier rounds in the same server process a route could be written with the other number type (for example 6.0 instead of 6) in Jeff's input.
 - Payload fingerprints guard Jeff's model input: fixed rounds on the three levels record every request's payload and, on every fourth request, the exact body each local and online client would send, so refactors cannot change the input by accident.
 
 ### Kitchen and controls
@@ -167,6 +168,7 @@ First private release: a local browser game with three playable maps and player-
 - 设置里的模型服务按类型分组，不再只有一个笼统的“兼容服务”。决策模型：TypeSafe Jev，以及 OpenRouter 上的任一决策模型（经 OpenRouter 的决策接口，请求格式和 Jev 相同；默认 Microsoft-Decision-1）；Decision 3.0 标为需本地部署、待接入。对话模型：DeepSeek、OpenRouter 对话模型、阿里 qwen-flash、豆包 Seed 2.0 lite、Gemini 2.5 Flash-Lite，以及只限本地版的智谱 GLM-4.7-Flash，各自填好地址、模型名和关闭思考的参数。每项注明大约每局花费、是否实测过整局。清单在 `model-providers.json`，本地服务、线上页面和设置界面共用。
 - 本地版模型回复里没有冲刺字段时按不冲刺处理；被拒的回复会把原因和模型原话写进日志；给模型的说明不再举具体动作的例子（小模型会每步照抄）。
 - 手机通过局域网（HTTP）打开本地版时，设置页可以正常连接模型。
+- 路线的起点和终点总是请求时给出的那两个点。同一张地图的厨房共用路线缓存，缓存里 (6, 2) 和 (6.0, 2.0) 是同一个键，所以同一个服务器进程玩过几局之后，Jeff 输入里的路线可能写成另一种数字类型（比如把 6 写成 6.0）。
 - 新增输入指纹，守住 Jeff 的模型输入：在三关的固定对局中记录每次请求的输入，并每隔四次请求记录本地版和在线版各客户端实际发出的请求内容，代码整理不会意外改变输入。
 
 ### 厨房与操作
