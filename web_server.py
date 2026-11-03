@@ -85,8 +85,8 @@ class GameSession:
         self.last_player_message_at = None
         self.bookmarks = []
         self.last_bookmark_at = None
-        # Jeff's plan switch (off or choice), chosen before a round and kept for later rounds.
-        self.jeff_plan_mode = 'off'
+        # Plan mode (off or choice), on by default; chosen before a round and kept for later rounds.
+        self.jeff_plan_mode = 'choice'
         # Every round of this play session, for the data export (feedback.play_export).
         self.history = []
         self.history_limit = HISTORY_LIMIT
@@ -503,9 +503,9 @@ class GameSession:
             return self._command('/api/start', {'speed': speed})
         if path == '/api/plan':
             if self.phase not in ('ready', 'ended'):
-                return 409, {'error': '请在开局前或结算后修改 Jeff 的计划设置。'}
+                return 409, {'error': '请在开局前或结算后修改计划模式。'}
             if body.get('mode') not in ('off', 'choice'):
-                return 400, {'error': '计划设置无效。'}
+                return 400, {'error': '计划模式设置无效。'}
             self.jeff_plan_mode = body['mode']
             return 200, {'ok': True, 'jeff_plan': self.plan_state()}
         if path == '/api/restart':

@@ -472,7 +472,7 @@ function kitchenTabs(dialog){
  for(const [id,mode] of PLAN_MODES)el(id).onchange=async()=>{
   if(planBusy)return;planBusy=true;planMessage='正在保存…';status();
   try{const d=await localCommand('/api/plan',{mode});state.communication={...state.communication,jeff_plan:d.jeff_plan};
-   planMessage=d.jeff_plan.mode==='choice'?'下一局起，Jeff 会选择自己的计划。':'下一局起不再询问计划。';
+   planMessage=d.jeff_plan.mode==='choice'?'下一局起开启计划模式。':'下一局起关闭计划模式。';
   }catch(e){planMessage=e.message}finally{planBusy=false;status()}
  };
  el('limit-save').onclick=async()=>{
@@ -542,6 +542,7 @@ function kitchenTabs(dialog){
   <dt>餐具和锅</dt><dd>干净盘才可装菜。脏盘回收点取盘 → 放入水槽 → 空手按空格洗碗 → 取净盘。没盘时可空手到锅边端锅，离灶停止加热；空锅需放回灶台。</dd>
   <dt>丢弃与消防</dt><dd>拿食材靠近垃圾桶按空格会销毁，扣 2 元；端锅则倒掉锅里的食物，保留空锅。拿起灭火器后面向着火工位按空格喷，累计喷 4 秒灭火；中途走开，进度保留，但停喷 2 秒后火会慢慢变旺。着火的工位会加热身边 8 格（含对角）的工位，旁边有一处着火 5 秒就会着火，多处同时着火更快，红色条显示进度；不跨空地或墙。同时 5 个工位着火，本局结束。</dd>
   <dt>沟通 · 1–6 / 点击</dt><dd>打开左下角沟通菜单，点击偏好即可发送；“你做错了”是独立的红色描边按钮。也可按 1–5 表达偏好、按 6 纠错。共用 5 个实际秒冷却，暂停时也可发送。最新偏好只在本局有效；AI 在下一次正常请求中收到，自行判断如何配合，不强制分工或停止动作。纠错附带当时动作信息，但不指定正确答案。</dd>
+  <dt>计划模式（测试）</dt><dd>默认开启。Jeff 没有计划时，会在决定下一步动作的同时，选定接下来负责哪一段：备料、加热、装盘出餐、收洗盘或随机应变。计划约 12 秒有效；你发了新的偏好，或者这一段眼下没事可做，就提前结束，Jeff 再重新选。计划不限制 Jeff 的动作，它每次仍从全部可选动作里选。沟通栏里能看到 Jeff 当前的计划。开局前或结算后可以在「设置 → AI 搭档」里关掉，一局内不变。</dd>
   <dt>标记片段 · Enter</dt><dd>营业中按 Enter 标记当前时刻，不暂停、不打断动作。相邻两次标记间隔不超过 5 个实际秒时合并为一个区间，长按不重复。设置中的“数据导出”包含全部标记；标记不会发送给 AI。</dd>
   <dt>暂停与继续 · Esc / P</dt><dd>暂停会停止锅火、订单和双方动作。再按 Esc 或 P（键盘没有 Esc 键时用，如 iPad）或点「继续经营」回到厨房；也可重新开局、打开设置或查看本说明。结束本局、暂停中重新开局都会先请你确认；重新开局沿用当前配置与速度。更换 API、记忆和调用上限请在结算后或开局前进行。</dd>
   </dl>

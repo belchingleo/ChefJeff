@@ -316,9 +316,9 @@ class SessionTests(unittest.TestCase):
 
     def test_the_switch_is_set_between_rounds_and_installs_the_plan(self):
         g = self.session()
-        self.assertEqual(g.communication_state()['jeff_plan'], {'mode': 'off', 'editable': True, 'current': None})
+        # Plan mode is on by default.
+        self.assertEqual(g.communication_state()['jeff_plan'], {'mode': 'choice', 'editable': True, 'current': None})
         self.assertEqual(g._command('/api/plan', {'mode': 'deep'})[0], 400)
-        self.assertEqual(g._command('/api/plan', {'mode': 'choice'})[0], 200)
         self.assertEqual(g._command('/api/start', {})[0], 200)
         self.assertIsInstance(g.ai.plan, Plan)
         start = next(d for kind, d in g.journal.journal.rows if kind == 'start')
