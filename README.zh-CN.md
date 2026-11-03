@@ -151,6 +151,8 @@ Jeff 不看画面，他读的是结构化的游戏状态，从当前合法的动
 
    这些结果可以重复计算，但“这算不算好的合作”仍需要人来解读：比如提前备好的料因为订单变化没用上，并不说明当时的准备没有道理。思路参考了 AgentWorld（arXiv 2609.31590）的 CCE 指标，详见[协作分析](docs/architecture/collaboration-analyzer.md)。
 
+3. **Jeff 怎么做决定**：`python3 scripts/decision_stats.py logs/` 读取本机的对局日志，按模型统计：决策模型给出的第一、第二选项概率差得很近的次数，Jeff 的动作还没做完就被它自己的下一个选择换掉的次数，在两个目标之间来回改（A → B → A）的次数；打开 Jeff 的计划时，还统计它做的动作有多少属于计划的那一段。它只读日志，不调用模型。报告里有模型名，请和 `logs/` 一样只留在本机。
+
 ### 代码结构
 
 | 模块 | 主要文件 |
@@ -159,7 +161,7 @@ Jeff 不看画面，他读的是结构化的游戏状态，从当前合法的动
 | 地图与空间 | `maps/`、`spatial_kitchen.py`、`navigation.py` |
 | Jeff 的输入：规则说明、可选动作、请求拼装 | `harness.py` |
 | Jeff 的决策调度与模型适配 | `jev.py`、`whitebox_server.py`、`player_api.py`、`model_language.py` |
-| 对局记录与分析 | `session_record.py`、`provenance.py`、`collaboration_analyzer.py`、`round_summary.py`、`capacity_analyzer.py` |
+| 对局记录与分析 | `session_record.py`、`provenance.py`、`collaboration_analyzer.py`、`round_summary.py`、`capacity_analyzer.py`、`scripts/decision_stats.py` |
 | 本地服务 | `web_server.py`、`cocos_server.py` |
 | 画面与声音 | `cocos-kitchen/`（Cocos Creator 3.8.8，TypeScript） |
 

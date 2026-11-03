@@ -149,6 +149,8 @@ To connect your own model, implement two methods, `payload(state, actions)` and 
 
    These results can be recomputed exactly, but whether they reflect good cooperation still needs human interpretation. For example, ingredients prepared early but left unused because the orders changed don't mean the preparation was pointless at the time. The idea draws on the CCE metric from AgentWorld (arXiv 2609.31590); see [collaboration analysis](docs/architecture/collaboration-analyzer.md).
 
+3. **How Jeff decided**: `python3 scripts/decision_stats.py logs/` reads the local round logs and counts, for each model: close calls between its top two options (decision models report probabilities), actions Jeff replaced with its own next choice before they were done, back-and-forth between two targets (A → B → A) and, with Jeff's plan on, how many of its actions belonged to the plan's part. It only reads the logs and calls no model. The report names models, so keep it private like `logs/`.
+
 ### Code layout
 
 | Area | Main files |
@@ -157,7 +159,7 @@ To connect your own model, implement two methods, `payload(state, actions)` and 
 | Maps and space | `maps/`, `spatial_kitchen.py`, `navigation.py` |
 | Jeff's input: rule text, listed actions, request assembly | `harness.py` |
 | Jeff's decision loop and model adapters | `jev.py`, `whitebox_server.py`, `player_api.py`, `model_language.py` |
-| Round records and analysis | `session_record.py`, `provenance.py`, `collaboration_analyzer.py`, `round_summary.py`, `capacity_analyzer.py` |
+| Round records and analysis | `session_record.py`, `provenance.py`, `collaboration_analyzer.py`, `round_summary.py`, `capacity_analyzer.py`, `scripts/decision_stats.py` |
 | Local servers | `web_server.py`, `cocos_server.py` |
 | Graphics and sound | `cocos-kitchen/` (Cocos Creator 3.8.8, TypeScript) |
 
