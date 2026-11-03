@@ -180,6 +180,15 @@ class PartTests(unittest.TestCase):
                                                      {'stage': 'extinguisher'})],
                          ['prep', 'cook', 'serve', 'serve', 'plates', None])
 
+    def test_the_action_jeff_is_doing_counts_as_work_in_its_part(self):
+        # Walking to the only fridge: that fetch is no longer listed, but the prep plan still has work.
+        state = kitchen().snapshot()
+        listed = [Action('continue', 'x', 'continue', None), Action('stop', 'x', 'stop', None)]
+        plan = Plan(12)
+        plan.accept('prep', 0., plan_parts(state), None)
+        self.assertIsNone(plan.check(1., state, listed, None, Action('fetch', 'x', 'fetch', 'fridge')))
+        self.assertEqual(plan.check(1., state, listed, None), 'nothing_to_do')
+
 
 class Reply(io.BytesIO):
     def __enter__(self):

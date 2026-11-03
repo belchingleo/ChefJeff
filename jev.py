@@ -257,7 +257,7 @@ class DecisionLoop:
         plan = plan_ended = None
         if self.plan:
             context['preference'] = next((m['id'] for m in reversed(messages) if m['kind'] == 'preference'), None)
-            plan_ended = self.plan.check(self.k.time, state, actions, context['preference'])
+            plan_ended = self.plan.check(self.k.time, state, actions, context['preference'], chef.job.action if chef.job else None)
             plan = self.plan.input(state)
             context['plan_offered'] = plan['options']
         payload = compose_payload(self.client, self.k, state, actions, self.recent_decisions, communication,

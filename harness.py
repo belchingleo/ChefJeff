@@ -274,7 +274,8 @@ PLAN_CHAT_RULE = (' When questions.plan_role is present, also include "plan_role
                   'one key of questions.plan_role.criteria.')
 PLAN_RULE = ('jeff_plan, when present, is the part of the work you chose with plan_role: prep, cook, serve, plates, or flexible '
              '(no particular part). set_at and expires_at are game times. A plan holds for {seconds:g} game seconds and ends earlier '
-             'when the human sends a new preference, or when none of your listed actions belongs to its part. The human sees your plan. '
+             'when the human sends a new preference, or when neither the action you are doing nor any of your listed actions belongs '
+             'to its part. The human sees your plan. '
              'It does not change your listed actions; you may follow it or not. While no plan holds, questions.plan_role asks for one, '
              'and your answer holds from your next request.')
 
@@ -313,20 +314,26 @@ class Plan:
 
     A plan answered in one request holds from the next one for `seconds` of game time. It ends
     earlier when the human sends a new preference (messages 1-5) or, for a part other than
-    flexible, when none of Jeff's listed actions belongs to it. Then plan_role is asked again.
+    flexible, when neither the action Jeff is doing nor any of its listed actions belongs to it.
+    Then plan_role is asked again.
     """
 
     def __init__(self, seconds=PLAN_SECONDS):
         self.seconds = seconds
         self.current = None     # {'role', 'set_at', 'expires_at', 'preference'}
 
-    def check(self, now, state, actions, preference):
-        """End the current plan if one of its end conditions holds; returns the reason or None."""
+    def check(self, now, state, actions, preference, doing=None):
+        """End the current plan if one of its end conditions holds; returns the reason or None.
+
+        doing is the action of Jeff's running job, if any: walking to the only fridge is still prep
+        although that fetch is no longer listed.
+        """
         c = self.current
         if not c:
             return None
         reason = ('expired' if now >= c['expires_at'] - 1e-9 else 'new_preference' if preference != c['preference']
-                  else 'nothing_to_do' if c['role'] != 'flexible' and not any(action_part(a, state) == c['role'] for a in actions)
+                  else 'nothing_to_do' if c['role'] != 'flexible' and not any(
+                      action_part(a, state) == c['role'] for a in [*actions, *([doing] if doing else [])])
                   else None)
         if reason:
             self.current = None
