@@ -232,7 +232,8 @@ server { listen 443 ssl; server_name chefjeff.online; return 444; }
 
 class InstallationLifecycleTests(unittest.TestCase):
     def setUp(self):
-        self.temp=tempfile.TemporaryDirectory();self.root=Path(self.temp.name)
+        # Resolved: on macOS the temporary folder is under /var, a link to /private/var.
+        self.temp=tempfile.TemporaryDirectory();self.root=Path(self.temp.name).resolve()
         self.real_path=Path
         def mapped(value='.'):
             value=str(value)

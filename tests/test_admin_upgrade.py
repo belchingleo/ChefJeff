@@ -29,7 +29,8 @@ ReadWritePaths=/var/lib/chefjeff-data
 
 class UpgradeTests(unittest.TestCase):
     def setUp(self):
-        self.temp=tempfile.TemporaryDirectory();self.root=Path(self.temp.name)
+        # Resolved: on macOS the temporary folder is under /var, a link to /private/var.
+        self.temp=tempfile.TemporaryDirectory();self.root=Path(self.temp.name).resolve()
         def mapped(value='.'):
             value=str(value)
             return self.root/value.lstrip('/') if value.startswith(('/root/','/etc/','/var/','/opt/')) else Path(value)
