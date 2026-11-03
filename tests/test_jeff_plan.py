@@ -241,6 +241,63 @@ class ClientTests(unittest.TestCase):
         self.assertEqual(self.chat(self.asked, {'choice': 'wait', 'sprint': False, 'plan_role': 'prep'}, 'zhipu')[1], system)
 
 
+class OnlineTests(unittest.TestCase):
+    """The online server's decision, chat and browser paths read plan_role the same way."""
+
+    def setUp(self):
+        k = kitchen()
+        self.k = k
+        self.asked = compose_payload(SpatialJevClient(k.c, key='x'), k, k.snapshot(), k.actions('jeff'), [], None, NO_MEMORY,
+                                     Plan(12).input(k.snapshot()))
+        self.plain = compose_payload(SpatialJevClient(k.c, key='x'), k, k.snapshot(), k.actions('jeff'), [], None, NO_MEMORY)
+
+    def test_jev_and_startlux_replies(self):
+        from hosted_jev import parse_answer
+        def reply(plan):
+            answers = {'next_action': {'type': 'choice', 'choice': 'wait'}, 'sprint': {'type': 'choice', 'choice': 'no'}}
+            if plan is not None:
+                answers['plan_role'] = plan
+            return json.dumps({'answers': answers, 'usage': {}})
+        self.assertEqual(parse_answer(reply({'type': 'choice', 'choice': 'serve'}), self.asked)['plan_role'], 'serve')
+        for plan in ({'type': 'choice', 'choice': 'dance'}, 'serve', None):
+            self.assertIsNone(parse_answer(reply(plan), self.asked)['plan_role'])
+        self.assertNotIn('plan_role', parse_answer(reply({'type': 'choice', 'choice': 'serve'}), self.plain))
+
+    def test_free_chat_replies_and_diagnostics(self):
+        from hosted_free_models import ForwardError, chat_answer
+        from model_status import response_issue
+        def raw(answer):
+            return json.dumps({'model': 'glm-4.7-flash', 'choices': [{'message': {'content': json.dumps(answer)}}],
+                               'usage': {'prompt_tokens': 1, 'completion_tokens': 1}})
+        self.assertEqual(chat_answer(raw({'choice': 'wait', 'sprint': False, 'plan_role': 'plates'}), self.asked)['plan_role'], 'plates')
+        self.assertIsNone(chat_answer(raw({'choice': 'wait', 'sprint': False, 'plan_role': 'dishes'}), self.asked)['plan_role'])
+        self.assertNotIn('plan_role', chat_answer(raw({'choice': 'wait', 'sprint': False}), self.plain))
+        with self.assertRaises(ForwardError):
+            chat_answer(raw({'choice': 'wait', 'sprint': False, 'note': 'other fields stay refused'}), self.asked)
+        self.assertNotEqual(response_issue(raw({'choice': 'wait', 'plan_role': 'prep'}), self.asked, 'zhipu'), 'invalid_json')
+
+    def test_browser_results(self):
+        import threading
+        from hosted_server import BrowserRelay, FIELDS
+        self.assertIn('plan_role', FIELDS['/api/model/result'])
+        self.assertEqual(FIELDS['/api/plan'], {'mode'})
+        relay = BrowserRelay(self.k.c)
+        def resolve(payload, **extra):
+            relay.pending = {'id': 'task', 'payload': payload, 'event': threading.Event(), 'result': None, 'failure': None, 'sent': 0}
+            self.assertTrue(relay.resolve({'id': 'task', 'choice': 'wait', 'sprint': False, **extra}))
+            return relay.pending['result']
+        self.assertEqual(resolve(self.asked, plan_role='cook')['plan_role'], 'cook')
+        self.assertIsNone(resolve(self.asked, plan_role='dance')['plan_role'])
+        self.assertIsNone(resolve(self.asked)['plan_role'])
+        self.assertNotIn('plan_role', resolve(self.plain, plan_role='cook'))
+
+    def test_plan_wording_is_factual(self):
+        from test_agent_rules_neutral import VALUE_WORDING
+        text = (harness.PLAN_RULE + PLAN_CHAT_RULE + json.dumps(harness.PLAN_OPTIONS)
+                + self.asked['questions']['plan_role']['instructions'])
+        self.assertIsNone(VALUE_WORDING.search(text))
+
+
 class SessionTests(unittest.TestCase):
     def session(self):
         g = GameSession(level_config(load_config(), 'level-2'), client_factory=lambda c: Scripted(c, ['prep']),

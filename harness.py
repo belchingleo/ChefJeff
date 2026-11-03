@@ -279,6 +279,16 @@ PLAN_RULE = ('jeff_plan, when present, is the part of the work you chose with pl
              'and your answer holds from your next request.')
 
 
+def plan_answer(value, payload):
+    """A reply's plan_role for a request that asked it: one of its options, else None (no plan).
+
+    Requests that did not ask get no plan_role field at all, so their replies stay as they were.
+    """
+    if 'plan_role' not in payload['questions']:
+        return {}
+    return {'plan_role': value if isinstance(value, str) and value in payload['questions']['plan_role']['criteria'] else None}
+
+
 def plan_parts(state):
     """The parts this level can offer, from its equipment and recipes."""
     kinds = {e.get('type') for e in state['map']['equipment'].values()}

@@ -13,7 +13,7 @@ from kitchen import ROOT
 from web_server import GameSession
 from whitebox_server import SpatialJevClient
 from jev import http_error_detail
-from harness import PLAN_CHAT_RULE
+from harness import PLAN_CHAT_RULE, plan_answer
 from model_language import english_data
 from cooperation_memory import CooperationMemory, round_scope, episode, ROUNDS
 from release_info import release_info
@@ -106,8 +106,7 @@ class CompatibleClient(SpatialJevClient):
             if not isinstance(choice,str) or choice not in payload['questions']['next_action']['criteria']:raise ValueError()
             usage=data.get('usage') or {}
             # A missing or unknown plan answer only leaves Jeff without a plan; the action stands.
-            plan={'plan_role':parsed.get('plan_role') if isinstance(parsed.get('plan_role'),str)
-                  and parsed['plan_role'] in payload['questions']['plan_role']['criteria'] else None} if 'plan_role' in payload['questions'] else {}
+            plan=plan_answer(parsed.get('plan_role'),payload)
             return {**plan,'sprint':parsed.get('sprint',False),**({'sprint_missing':True} if sprint_missing else {}),'choice':choice,'confidence':None,'probabilities':{},'model':self.setting['model'],
                     'usage':{'input_tokens':int(usage.get('prompt_tokens',0)),'output_tokens':int(usage.get('completion_tokens',0))},
                     'latency':time.monotonic()-started}

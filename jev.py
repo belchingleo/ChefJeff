@@ -86,13 +86,10 @@ class JevClient:
         sprint_answer=result.get('answers',{}).get('sprint',{})
         if 'sprint' in payload['questions'] and (sprint_answer.get('type')!='choice' or sprint_answer.get('choice') not in ('yes','no')):
             raise RuntimeError('Invalid sprint decision')
-        plan = {}
-        if 'plan_role' in payload['questions']:
-            # A missing or unknown plan answer only leaves Jeff without a plan; the action stands.
-            plan_answer = result.get('answers', {}).get('plan_role', {})
-            offered = payload['questions']['plan_role']['criteria']
-            plan = {'plan_answer': plan_answer, 'plan_role': plan_answer.get('choice') if plan_answer.get('type') == 'choice'
-                    and plan_answer.get('choice') in offered else None}
+        # A missing or unknown plan answer only leaves Jeff without a plan; the action stands.
+        plan_reply = result.get('answers', {}).get('plan_role')
+        plan = harness.plan_answer(plan_reply.get('choice') if isinstance(plan_reply, dict) and plan_reply.get('type') == 'choice' else None,
+                                   payload)
         return {"sprint_answer":sprint_answer, "sprint":sprint_answer.get('choice')=='yes', "choice": answer["choice"], "confidence": answer.get("confidence"),
                 "probabilities": answer.get("probabilities", {}), "model": result.get("model"),
                 "usage": result.get("usage", {}), "latency": time.monotonic()-start, **plan}

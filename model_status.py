@@ -56,7 +56,7 @@ def response_issue(raw,payload,provider):
             content=data['choices'][0]['message']['content']
             if not isinstance(content,str):return 'invalid_json'
             a=json.loads(re.sub(r'\s*```$','',re.sub(r'^```(?:json)?\s*','',content.strip())))
-            if not isinstance(a,dict) or set(a)-{'choice','sprint'}:return 'invalid_json'
+            if not isinstance(a,dict) or set(a)-{'choice','sprint','plan_role'}:return 'invalid_json'
             if type(a.get('sprint',False)) is not bool:return 'invalid_sprint'
             choice=a.get('choice');usage=data.get('usage',{})
             if not isinstance(usage,dict) or any(type(usage.get(k,0)) is not int for k in ('prompt_tokens','completion_tokens')):return 'invalid_usage'
