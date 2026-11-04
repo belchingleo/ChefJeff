@@ -573,8 +573,8 @@ function settingsHarness(){
  const script=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m=>m[1]).find(s=>s.includes('let state=null,busy=false'));
  const elements=new Map(),listeners=new Map();
  const el=id=>{
-  if(!elements.has(id))elements.set(id,{value:id==='api-provider'?'jev':'',disabled:false,checked:false,dataset:{},
-   addEventListener:()=>{},append(){},showModal(){this.open=true;},close(){this.open=false;}});
+  if(!elements.has(id))elements.set(id,{value:id==='api-provider'?'jev':'',disabled:false,checked:false,dataset:{},attrs:{},
+   setAttribute(name,value){this.attrs[name]=String(value);},getAttribute(name){return this.attrs[name]??null;},addEventListener:()=>{},append(){},showModal(){this.open=true;},close(){this.open=false;}});
   return elements.get(id);
  };
  let requests=0;
@@ -757,11 +757,16 @@ function settingsHarness(){
  assert.equal(ui.el('api-connect').disabled,false);assert.equal(ui.el('api-key').value,key);
  // Jeff's plan switch follows the server's setting and is locked during a round.
  detail.communication={jeff_plan:{mode:'choice',editable:true,current:null}};ui.listeners.get('kitchen-state')({detail});
- assert.equal(ui.el('jeff-plan-choice').checked,true);assert.equal(ui.el('jeff-plan-off').checked,false);
- assert.equal(ui.el('jeff-plan-choice').disabled,false);
+ assert.equal(ui.el('jeff-plan').getAttribute('aria-checked'),'true');assert.equal(ui.el('jeff-plan').disabled,false);
  detail.communication.jeff_plan={mode:'off',editable:false,current:null};ui.listeners.get('kitchen-state')({detail});
- assert.equal(ui.el('jeff-plan-off').checked,true);assert.equal(ui.el('jeff-plan-choice').disabled,true);
+ assert.equal(ui.el('jeff-plan').getAttribute('aria-checked'),'false');assert.equal(ui.el('jeff-plan').disabled,true);
  assert(ui.el('plan-status').textContent.includes('本局进行中'));
+ // Saving keeps the switch enabled (disabling it would drop keyboard focus mid-toggle) and marks it busy.
+ detail.communication.jeff_plan={mode:'off',editable:true,current:null};ui.listeners.get('kitchen-state')({detail});
+ const before=ui.requests(),saving=ui.el('jeff-plan').onclick();
+ assert.equal(ui.el('jeff-plan').disabled,false);assert.equal(ui.el('jeff-plan').getAttribute('aria-busy'),'true');
+ await saving;assert.equal(ui.requests(),before+1,'one /api/plan request per toggle');
+ assert.equal(ui.el('jeff-plan').getAttribute('aria-busy'),'false');assert.equal(ui.el('jeff-plan').getAttribute('aria-checked'),'false','a failed save leaves the switch on the server value');
  console.log('Browser transport and settings: credential isolation, session retry/release, editable drafts and guarded connection checks passed.');
  await checkModelIdentity();
  await checkFreeModels();
