@@ -19,6 +19,10 @@ For each model it counts:
   is counted apart; that was not Jeff's choice.
 - back_and_forth: A -> B -> A, where Jeff replaced an action at target A with one at B and that
   one again with an action at A.
+- undone: Jeff's finished steps that the next one undid: put_then_taken_back (he put an item on a station
+  and his next finished step, within --put-back game seconds, took it back from there; or dropped it and
+  his next step picked an item up from the floor) and walk_round_trips (three finished walks in a row,
+  go A -> go B -> go A), with walks_share, the share of his finished steps that were only walks.
 - plan (rounds with Jeff's plan on, plan-v2): plans set (a request carrying a plan it had not
   carried before), how they ended, how many steps they had and how long they held, and how often
   Jeff chose wait with a plan held and without one in the same rounds. Rounds under the earlier plan
@@ -50,9 +54,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from harness import PLAN_RULES_VERSION  # noqa: E402
 from research_record import SCHEMA as RECORD_SCHEMA  # noqa: E402
 
-VERSION = 'decision-stats-4'
+VERSION = 'decision-stats-5'
 MARGINS = (0.05, 0.1)
 PLAN_AGE = 5.0
+PUT_BACK = 10.0
 NON_ACTIONS = ('continue', 'wait', 'stop')
 
 
@@ -166,10 +171,27 @@ def new_model():
             'started': 0, 'replaced': 0, 'knocked_off': 0, 'other_interruptions': 0, 'back_and_forth': 0,
             'plan_rounds': 0, 'plan_older_rounds': 0, 'plans_set': 0, 'plan_ends': Counter(), 'holds': [], 'plan_steps': [],
             'held_decisions': 0, 'held_waits': 0, 'free_decisions': 0, 'free_waits': 0, 'unsure_with_plan': 0,
-            'gaps': {}}
+            'gaps': {}, 'done': 0, 'walks_done': 0, 'put_then_taken_back': 0, 'walk_round_trips': 0}
 
 
-def add_round(rows, models, margins=MARGINS, plan_age=PLAN_AGE):
+def undone(rows, m, put_back=PUT_BACK):
+    """Jeff's finished steps that his next ones undid (see the module notes)."""
+    done = [r for r in rows if r.get('actor') == 'jeff' and r.get('kind') == 'action_done' and isinstance(r.get('action'), str)]
+    m['done'] += len(done)
+    m['walks_done'] += sum(r['action'].startswith('go ') for r in done)
+    for a, b in zip(done, done[1:]):
+        ta, tb = game_time(a), game_time(b)
+        if ta is None or tb is None or tb - ta > put_back:
+            continue
+        put, take = a['action'], b['action']
+        m['put_then_taken_back'] += ((put.startswith('put ') and take == 'take ' + put[4:])
+                                     or (put == 'drop' and take.startswith('pickup ')))
+    for a, b, c in zip(done, done[1:], done[2:]):
+        m['walk_round_trips'] += (all(x['action'].startswith('go ') for x in (a, b, c))
+                                  and a['action'] == c['action'] != b['action'])
+
+
+def add_round(rows, models, margins=MARGINS, plan_age=PLAN_AGE, put_back=PUT_BACK):
     responses = [r for r in rows if r.get('kind') == 'ai_response']
     if not responses:
         return None
@@ -252,6 +274,7 @@ def add_round(rows, models, margins=MARGINS, plan_age=PLAN_AGE):
             else:
                 m['other_interruptions'] += 1
     step_gaps(rows, m)
+    undone(rows, m, put_back)
     return main
 
 
@@ -356,6 +379,12 @@ def summary(m, margins=MARGINS):
                       'replaced_per_game_minute': per_minute(m['replaced'], minutes),
                       'back_and_forth': m['back_and_forth'], 'back_and_forth_per_game_minute': per_minute(m['back_and_forth'], minutes),
                       'knocked_off': m['knocked_off'], 'other_interruptions': m['other_interruptions']}
+    if m['done']:
+        out['undone'] = {'finished_steps': m['done'], 'walks_share': share(m['walks_done'], m['done']),
+                         'put_then_taken_back': m['put_then_taken_back'],
+                         'put_then_taken_back_per_game_minute': per_minute(m['put_then_taken_back'], minutes),
+                         'walk_round_trips': m['walk_round_trips'],
+                         'walk_round_trips_per_game_minute': per_minute(m['walk_round_trips'], minutes)}
     if m['plan_rounds'] or m['plan_older_rounds']:
         out['plan'] = {'rounds': m['plan_rounds'], 'older_rules_rounds': m['plan_older_rounds'], 'set': m['plans_set'],
                        'ended': dict(m['plan_ends']),
@@ -388,7 +417,7 @@ def gap_summary(g):
             'share_of_round_wall_time': share(sum(g['total']), g['wall_seconds'])}
 
 
-def report(paths, margins=MARGINS, plan_age=PLAN_AGE):
+def report(paths, margins=MARGINS, plan_age=PLAN_AGE, put_back=PUT_BACK):
     files = []
     for path in map(Path, paths):
         files += (sorted(p for pattern in ('*.jsonl', '*.cjresearch.zip', '*.json') for p in path.glob(pattern))
@@ -416,14 +445,14 @@ def report(paths, margins=MARGINS, plan_age=PLAN_AGE):
             else:
                 records[identifier] = rows
     for rows in journals + list(records.values()):
-        if add_round(rows, models, margins, plan_age) is None:
+        if add_round(rows, models, margins, plan_age, put_back) is None:
             skipped += 1
         else:
             counted += 1
     return {'version': VERSION, 'files': len(files), 'refused_files': refused, 'rounds': counted,
             'duplicate_rounds_dropped': duplicates,
             'rounds_without_model_answers': skipped, 'unsupported_records': unsupported,
-            'unreadable_lines': unreadable, 'margins': list(margins), 'plan_age_seconds': plan_age,
+            'unreadable_lines': unreadable, 'margins': list(margins), 'plan_age_seconds': plan_age, 'put_back_seconds': put_back,
             'models': {name: summary(m, margins) for name, m in sorted(models.items()) if m['decisions']}}
 
 
@@ -432,9 +461,10 @@ def main(argv=None):
     parser.add_argument('paths', nargs='+', help='journals (logs/), research packages (*.cjresearch.zip), record files (*.json) or folders of them')
     parser.add_argument('--margins', type=float, nargs='+', default=list(MARGINS), help='unsure below these margins')
     parser.add_argument('--plan-age', type=float, default=PLAN_AGE, help='seconds a plan has held before unsure counts')
+    parser.add_argument('--put-back', type=float, default=PUT_BACK, help='game seconds within which a take undoes a put')
     parser.add_argument('--out', help='write the JSON report here instead of printing it')
     args = parser.parse_args(argv)
-    result = report(args.paths, tuple(sorted(args.margins)), args.plan_age)
+    result = report(args.paths, tuple(sorted(args.margins)), args.plan_age, args.put_back)
     text = json.dumps(result, ensure_ascii=False, indent=2)
     if args.out:
         Path(args.out).write_text(text + '\n', encoding='utf-8')
