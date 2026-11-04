@@ -2,6 +2,7 @@
   "ai_min_interval": 2,
   "ai_max_calls": 200,
   "ai_refresh_seconds": 4,
+  "ai_ask_on_step_end": true,
   "ai_timeout_seconds": 8,
   "ai_max_response_age": 6,
   "ai_empty_counters_per_area": 2,

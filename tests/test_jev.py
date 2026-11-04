@@ -66,6 +66,83 @@ class SchedulerTest(unittest.TestCase):
         self.assertEqual(ai.calls,3)
         self.ready(ai)
 
+    def finish_step(self,k):
+        while k.chefs['jeff'].job:
+            k.advance(.05)
+
+    def test_a_finished_step_asks_at_once_instead_of_waiting_out_the_interval(self):
+        for on,calls in ((True,2),(False,1)):
+            with self.subTest(ai_ask_on_step_end=on):
+                k,client,ai,records=self.make('fetch')
+                ai.ask_on_step_end=on
+                with patch('jev.time.monotonic',return_value=100):ai.poll()
+                self.ready(ai)
+                with patch('jev.time.monotonic',return_value=100.1):ai.poll()
+                self.assertIsNotNone(k.chefs['jeff'].job)
+                self.finish_step(k)
+                # Half a second after the last request, well inside ai_min_interval.
+                with patch('jev.time.monotonic',return_value=100.5):ai.poll()
+                self.assertEqual(ai.calls,calls)
+                if on:
+                    self.ready(ai)
+                    with patch('jev.time.monotonic',return_value=100.6):ai.poll()
+                    self.assertFalse(ai.step_ended)
+                    self.assertTrue([d for kind,d in records if kind=='ai_response'][-1]['fresh'])
+
+    def test_no_request_the_current_step_will_outlast(self):
+        k,client,ai,records=self.make('fetch')
+        with patch('jev.time.monotonic',return_value=100):ai.poll()
+        self.ready(ai)
+        with patch('jev.time.monotonic',return_value=100.1):ai.poll()
+        job=k.chefs['jeff'].job
+        ai.reply_times=[job.travel+job.work+1]      # replies come after this step will have ended
+        k.emit('the kitchen changed')
+        with patch('jev.time.monotonic',return_value=103):ai.poll()
+        self.assertEqual(ai.calls,1)
+        self.finish_step(k)
+        with patch('jev.time.monotonic',return_value=103.1):ai.poll()
+        self.assertEqual(ai.calls,2)
+        self.ready(ai)
+        # A step that outlasts the reply time is still asked about while it runs.
+        k,client,ai,records=self.make('fetch')
+        with patch('jev.time.monotonic',return_value=100):ai.poll()
+        self.ready(ai)
+        with patch('jev.time.monotonic',return_value=100.1):ai.poll()
+        ai.reply_times=[.01]
+        k.emit('the kitchen changed')
+        with patch('jev.time.monotonic',return_value=103):ai.poll()
+        self.assertEqual(ai.calls,2)
+        self.ready(ai)
+
+    def test_the_step_left_is_counted_in_wall_seconds_at_the_round_speed(self):
+        from types import SimpleNamespace
+        k,client,ai,records=self.make()
+        step=SimpleNamespace(travel=.6,work=.4)    # one game second left
+        self.assertFalse(ai.outlasts_reply(step))  # no reply yet: nothing to compare with
+        ai.reply_times=[1.4,1.5,1.6]
+        self.assertTrue(ai.outlasts_reply(step))
+        ai.game_speed=.5                           # two wall seconds left
+        self.assertFalse(ai.outlasts_reply(step))
+
+    def test_the_switch_is_on_by_config_and_can_be_turned_off(self):
+        import json, tempfile
+        from pathlib import Path
+        from types import SimpleNamespace
+        c=load_config()
+        self.assertIs(c['ai_ask_on_step_end'],True)
+        self.assertTrue(DecisionLoop(Kitchen(c),NoKeyClient(c),lambda *_:None,lambda *_:None).ask_on_step_end)
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/'config.json'
+            path.write_text(json.dumps({**c,'ai_ask_on_step_end':False}))
+            off=load_config(path)
+            path.write_text(json.dumps({**c,'ai_ask_on_step_end':1}))
+            with self.assertRaises(ValueError):load_config(path)
+            path.write_text(json.dumps({**c,'ai_min_interval':True}))
+            with self.assertRaises(ValueError):load_config(path)
+        self.assertFalse(DecisionLoop(Kitchen(off),NoKeyClient(off),lambda *_:None,lambda *_:None).ask_on_step_end)
+        # A configuration without the key (older settings) keeps the old timing.
+        self.assertFalse(DecisionLoop(SimpleNamespace(c={}),None,lambda *_:None,lambda *_:None).ask_on_step_end)
+
     def test_no_overlapping_requests(self):
         k,client,ai,records=self.make()
         ai.inflight=True
