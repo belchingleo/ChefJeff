@@ -95,6 +95,8 @@ class ResearchTests(unittest.TestCase):
         self.assertTrue(any(e['action_id']==response['action_id'] and e['type']=='action_done' for e in r['events']))
         self.assertFalse(response['payload']['provider_verified'])
         self.assertIsNone(r['conditions']['model_identity'])
+        # Whether Jeff was asked as soon as his step ended is part of the request policy.
+        self.assertIs(r['conditions']['request_policy']['ai_ask_on_step_end'], True)
 
     def test_pause_disconnect_speed_and_wall_clocks(self):
         s=self.game();start(s)

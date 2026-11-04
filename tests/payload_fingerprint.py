@@ -225,6 +225,7 @@ def run(name):
     k = SpatialKitchen(level_config(load_config(), level))
     model = StandIn(k.c, k, wire_clients(k.c))
     loop = DecisionLoop(k, model, lambda *_: None, lambda *_: None)
+    loop.game_speed = SPEED   # as the session sets it
     loop.player_messages = []
     if talk:
         loop.cooperation_memory = memory
