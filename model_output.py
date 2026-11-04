@@ -14,9 +14,10 @@ def zhipu_system(payload):
     if 'sprint' in questions:
         properties['sprint'] = {'type': 'boolean'}
         required.append('sprint')
-    if 'plan_role' in questions:
-        properties['plan_role'] = {'type': 'string', 'enum': list(questions['plan_role']['criteria'])}
-        required.append('plan_role')
+    from harness import plan_questions
+    for question in plan_questions(payload):
+        properties[question] = {'type': 'string', 'enum': list(questions[question]['criteria'])}
+        required.append(question)
     schema = {'type': 'object', 'properties': properties, 'required': required,
               'additionalProperties': False}
     return (
@@ -28,7 +29,8 @@ def zhipu_system(payload):
         'sprint as the JSON boolean true for yes or false for no. '
         'Never encode sprint as a string, number or null. '
         'When questions.sprint is absent, omit sprint. '
-        + ('When questions.plan_role is present, plan_role must be one of its keys. ' if 'plan_role' in questions else '')
+        + ('Each question whose name starts with plan_ is a field whose value is one of its keys. '
+           if any(q.startswith('plan_') for q in questions) else '')
         + 'Do not explain or add other fields. '
         'JSON Schema: ' + json.dumps(schema, ensure_ascii=False, separators=(',', ':')))
 

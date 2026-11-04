@@ -1,0 +1,210 @@
+#!/usr/bin/env python3
+"""Does Jeff's plan hold him back from an emergency? A controlled check with the real model, run locally.
+
+    python3 scripts/plan_probe.py [--repeats 3] [--dry-run] [--out report.json]
+
+It builds two fixed emergencies on level 2 from a scripted round (no player data): cooked beef in a
+pan a few seconds from burning, and a stove on fire, each with Jeff idle and empty-handed. Each is
+asked in three arms with the same kitchen: plan mode off, plan mode on with no plan yet (the request
+asks for one), and plan mode on while a plan of unrelated steps holds. For each arm it reports how
+often the model chose an action that deals with the emergency (lift that pan or plate its food; take
+the extinguisher), the mean probability it gave those actions, and how often it chose wait.
+Acceptance: in every emergency, the arm with a plan held chooses the emergency at least as often as
+the arm with plan mode off.
+
+A third kitchen checks that Jeff drops a plan the kitchen has left behind: level 1 played by the
+reference policy for both chefs until every order is served and none is still to come, while Jeff
+holds a plan to fetch, chop, cook and plate beef. It reports how often the model answered drop to
+plan_keep. Acceptance: drop in more than half of the answers.
+
+The key is read the way the game reads it (jev.load_key) and is never printed. It calls the model,
+so run it on your own machine. --dry-run builds the requests and prints their size only.
+"""
+from __future__ import annotations
+import argparse
+from collections import Counter
+from copy import deepcopy
+import json
+from pathlib import Path
+from statistics import mean
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path[:0] = [str(ROOT), str(ROOT / 'tests')]
+from harness import Plan, work_item, work_items  # noqa: E402
+from jev import NO_MEMORY, compose_payload  # noqa: E402
+from kitchen import load_config  # noqa: E402
+from levels import level_config  # noqa: E402
+from spatial_kitchen import SpatialKitchen  # noqa: E402
+from whitebox_server import SpatialJevClient  # noqa: E402
+
+LEVEL = 'level-2'
+UNRELATED = ('fetch:lettuce', 'chop:lettuce', 'plate:lettuce', 'serve')
+STALE_PLAN = ('fetch:beef', 'chop:beef', 'cook:beef', 'plate:beef')
+ARMS = ('plan_off', 'plan_asking', 'plan_held')
+BURN_MARGIN = 4.0       # game seconds left before the cooked food burns
+PRICE_PER_M = 0.042     # USD per million input tokens, for the estimate only
+
+
+def pan(k):
+    """The stove whose pan holds food, and that food, or (None, None)."""
+    return next(((key, s.food) for key, s in k.stations.items() if key in k.pots and s.food), (None, None))
+
+
+def reach(condition, limit=150.0):
+    """Play level 2 with the human cooking until food is in a pan, then nobody acts, until condition(k) holds."""
+    import reference_policy
+    k = SpatialKitchen(level_config(load_config(), LEVEL))
+    step = 0
+    while k.time < limit:
+        if condition(k) and k.chefs['jeff'].job is None and k.chefs['jeff'].hand is None:
+            return k
+        if step % 10 == 0 and pan(k)[1] is None and k.chefs['human'].job is None:
+            action = reference_policy.choose(k, 'human', 'cook')
+            if action:
+                k.start('human', action)
+        k.advance(.05)
+        step += 1
+    raise RuntimeError('the scripted round did not reach the emergency')
+
+
+def about_to_burn(k):
+    stove, food = pan(k)
+    if food is None:
+        return False
+    ready, burn, _ = k.rules.heat_thresholds(food.ingredient)
+    return ready <= food.heated and burn - food.heated <= BURN_MARGIN
+
+
+def on_fire(k):
+    return any(s.fire for s in k.stations.values())
+
+
+def emergencies():
+    """[(name, kitchen, keys of the actions that deal with it)] for each fixed emergency."""
+    burn = reach(about_to_burn)
+    stove, food = pan(burn)
+    state = burn.snapshot()
+    saving = [a.key for a in burn.actions('jeff')
+              if (a.kind == 'lift_pot' and a.target == stove) or work_item(a, state) == f'plate:{food.ingredient}']
+    fire = reach(on_fire)
+    extinguish = [a.key for a in fire.actions('jeff') if a.kind == 'take_tool' and a.target == 'extinguisher'
+                  or 'extinguish' in a.kind]
+    return [('pan_about_to_burn', burn, saving), ('stove_on_fire', fire, extinguish)]
+
+
+def nothing_left(limit=180.0):
+    """Level 1 played by the reference policy for both chefs until every order is served and none is still to come."""
+    import reference_policy
+    k = SpatialKitchen(level_config(load_config(), 'level-1'))
+    step = 0
+    while not k.ended and k.time < limit:
+        if (all(o['status'] not in ('pending', 'future') for o in k.orders)
+                and k.chefs['jeff'].job is None and k.chefs['jeff'].hand is None):
+            return k
+        if step % 10 == 0:
+            for who, role in (('human', 'assembler'), ('jeff', 'cook')):
+                action = reference_policy.choose(k, who, role)
+                if action and k.chefs[who].job is None:
+                    k.start(who, action)
+        k.advance(.05)
+        step += 1
+    raise RuntimeError('the scripted round did not serve every order')
+
+
+def stale_payload(client, k):
+    """The request while Jeff holds a plan for beef that no order needs any more (set 5 game seconds earlier)."""
+    state = k.snapshot()
+    held = Plan()
+    assert held.accept({'steps': list(STALE_PLAN)}, max(0.0, k.time - 5), work_items(state), None)
+    return compose_payload(client, k, deepcopy(state), k.actions('jeff'), [], None, NO_MEMORY, held.input(state))
+
+
+def arm_payload(client, k, arm):
+    """The request Jeff would send in this arm, from the same kitchen."""
+    state, actions = k.snapshot(), k.actions('jeff')
+    plan = None
+    if arm != 'plan_off':
+        held = Plan()
+        if arm == 'plan_held':
+            offered = work_items(state)
+            assert held.accept({'steps': [s for s in UNRELATED if s in offered]}, max(0.0, k.time - 3), offered, None)
+        plan = held.input(state)
+    return compose_payload(client, k, deepcopy(state), actions, [], None, NO_MEMORY, plan)
+
+
+def summary(answers, urgent):
+    ok = [a for a in answers if 'choice' in a]
+    if not ok:
+        return {'asked': len(answers), 'answered': 0}
+    mass = [sum(v for key, v in (a.get('probabilities') or {}).items() if key in urgent) for a in ok if a.get('probabilities')]
+    return {'asked': len(answers), 'answered': len(ok),
+            'chose_emergency_action': round(sum(a['choice'] in urgent for a in ok) / len(ok), 3),
+            'mean_probability_on_emergency_actions': round(mean(mass), 3) if mass else None,
+            'chose_wait': round(sum(a['choice'] == 'wait' for a in ok) / len(ok), 3),
+            'choices': dict(Counter(a['choice'] for a in ok).most_common())}
+
+
+def run(client, repeats=3, ask=None):
+    """The report; ask(payload) answers one request (the model by default)."""
+    ask = ask or client.ask
+    report = {'level': LEVEL, 'repeats': repeats, 'unrelated_plan': list(UNRELATED), 'emergencies': {}}
+    for name, k, urgent in emergencies():
+        arms = {}
+        for arm in ARMS:
+            payload = arm_payload(client, k, arm)
+            answers = []
+            for _ in range(repeats):
+                try:
+                    answers.append(ask(deepcopy(payload)))
+                except RuntimeError as error:   # the client's own sanitized message, never the key
+                    answers.append({'error': str(error)})
+            arms[arm] = summary(answers, urgent)
+        held, off = arms['plan_held'].get('chose_emergency_action'), arms['plan_off'].get('chose_emergency_action')
+        report['emergencies'][name] = {'emergency_actions': urgent, 'game_time': round(k.time, 2), 'arms': arms,
+                                       'plan_held_not_below_plan_off': None if held is None or off is None else held >= off}
+    k = nothing_left()
+    payload = stale_payload(client, k)
+    answers = []
+    for _ in range(repeats):
+        try:
+            answers.append(ask(deepcopy(payload)))
+        except RuntimeError as error:
+            answers.append({'error': str(error)})
+    keeps = [(a.get('plan') or {}).get('keep') for a in answers if 'choice' in a]
+    dropped = round(sum(v is False for v in keeps) / len(keeps), 3) if keeps else None
+    report['stale_plan'] = {'level': 'level-1', 'game_time': round(k.time, 2), 'plan': list(STALE_PLAN),
+                            'asked': len(answers), 'answered': len(keeps), 'chose_drop': dropped,
+                            'chose_keep': round(sum(v is True for v in keeps) / len(keeps), 3) if keeps else None,
+                            'choices': dict(Counter(a['choice'] for a in answers if 'choice' in a).most_common()),
+                            'dropped_in_most_answers': None if dropped is None else dropped > .5}
+    return report
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument('--repeats', type=int, default=3, help='requests per arm and emergency')
+    parser.add_argument('--dry-run', action='store_true', help='build the requests and print their size only')
+    parser.add_argument('--out', help='write the JSON report here instead of printing it')
+    args = parser.parse_args(argv)
+    config = level_config(load_config(), LEVEL)
+    if args.dry_run:
+        client = SpatialJevClient(config, key='dry-run-not-sent')
+        sizes = [len(json.dumps(arm_payload(client, k, arm), ensure_ascii=False))
+                 for _, k, _ in emergencies() for arm in ARMS]
+        sizes.append(len(json.dumps(stale_payload(client, nothing_left()), ensure_ascii=False)))
+        sends = len(sizes) * args.repeats
+        tokens = sum(sizes) * args.repeats / 4
+        print(f'{sends} requests, about {tokens / 1e6:.2f}M input tokens, about ${tokens / 1e6 * PRICE_PER_M:.2f}')
+        return 0
+    report = run(SpatialJevClient(config), args.repeats)
+    text = json.dumps(report, ensure_ascii=False, indent=2)
+    if args.out:
+        Path(args.out).write_text(text + '\n', encoding='utf-8')
+    else:
+        print(text)
+    return 0
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

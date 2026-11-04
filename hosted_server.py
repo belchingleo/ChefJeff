@@ -106,7 +106,7 @@ class BrowserRelay(SpatialJevClient):
             task['result'] = {'choice': choice, 'sprint': body['sprint'], 'model': 'browser-model',
                               'usage': usage, 'latency': time.monotonic() - task['sent'],
                               'confidence': None, 'probabilities': probabilities(reported, criteria),
-                              **plan_answer(body.get('plan_role'), task['payload'])}
+                              **plan_answer(body.get('plan'), task['payload'])}
             task['event'].set()
             return True
 
@@ -439,7 +439,7 @@ FIELDS = {
     '/api/move': {'dx', 'dy', 'seq', 'sprint'}, '/api/position': {'seq', 'base', 'at', 'press'}, '/api/select': {'target'},
     '/api/interact': {'expected_item', 'mode', 'at', 'base', 'aim', 'target'}, '/api/throw': {'direction', 'expected_item', 'at', 'base'},
     '/api/action': {'action', 'expected'},
-    '/api/model/result': {'id', 'choice', 'sprint', 'plan_role', 'usage', 'failed','memory_condition','telemetry','probabilities','memory_provenance'},
+    '/api/model/result': {'id', 'choice', 'sprint', 'plan', 'usage', 'failed','memory_condition','telemetry','probabilities','memory_provenance'},
 }
 
 

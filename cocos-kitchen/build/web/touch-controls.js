@@ -88,7 +88,7 @@
     ui.hidden = true;
     ui.setAttribute('data-no-i18n', '');
     ui.innerHTML = `
-      <header class="touch-toolbar"><strong id="touch-clock" class="touch-clock"></strong><span id="touch-money" class="touch-money"></span><span id="touch-served"></span><div id="touch-hint" class="touch-hint touch-spacer"><span id="touch-hand"></span><span id="touch-plan" hidden></span><span id="touch-status" role="status" aria-live="polite"></span></div><button id="touch-pause" class="btn" type="button"></button><button id="touch-communication" class="btn" type="button" aria-expanded="false" aria-controls="kitchen-communication"></button><button id="touch-bookmark" class="btn" type="button"></button><button id="touch-menu-toggle" class="btn" type="button" aria-expanded="false" aria-controls="touch-menu"></button></header>
+      <header class="touch-toolbar"><strong id="touch-clock" class="touch-clock"></strong><span id="touch-money" class="touch-money"></span><span id="touch-served"></span><div id="touch-hint" class="touch-hint touch-spacer"><span id="touch-hand"></span><span id="touch-plan" data-no-i18n hidden></span><span id="touch-status" role="status" aria-live="polite"></span></div><button id="touch-pause" class="btn" type="button"></button><button id="touch-communication" class="btn" type="button" aria-expanded="false" aria-controls="kitchen-communication"></button><button id="touch-bookmark" class="btn" type="button"></button><button id="touch-menu-toggle" class="btn" type="button" aria-expanded="false" aria-controls="touch-menu"></button></header>
       <div id="touch-orders" class="touch-orders" role="region" aria-label="订单" tabindex="0"></div>
       <div id="touch-zone" aria-hidden="true"></div>
       <div id="touch-joystick" role="group" aria-label="移动" aria-disabled="true"><div id="touch-stick"></div></div>
@@ -108,8 +108,15 @@
     const el = id => document.getElementById(id);
     // The kitchen's own translation where it is ready: it also shows a player's dish names as written.
     const t = text => window.kitchenControls?.translate ? window.kitchenControls.translate(text) : window.kitchenI18n?.t(text) || text;
-    const PLAN_PARTS = { prep: '备料', cook: '加热', serve: '装盘出餐', plates: '收洗盘', flexible: '随机应变' };
     let jeffPlan = null;
+    // Jeff's plan as one line in the player's language: its steps in order, done ones ticked (web_server.plan_state).
+    // The communication dock (web-shell) shows the same line.
+    window.kitchenPlanLine = plan => {
+      if (plan?.mode !== 'choice') return '';
+      const en = window.kitchenI18n?.language === 'en', steps = plan.current?.steps;
+      if (!steps) return en ? 'Jeff: no plan yet' : 'Jeff：还没定计划';
+      return (en ? "Jeff's plan: " : 'Jeff 计划：') + steps.map(s => (en ? s.label_en : s.label) + (s.done ? ' ✓' : '')).join(' → ');
+    };
     window.addEventListener('kitchen-state', event => { jeffPlan = event.detail?.communication?.jeff_plan || null; render(); });
     const text = (id, value) => { const n = el(id); const next = t(String(value ?? '')); if (n.textContent !== next) n.textContent = next; };
     const stick = el('touch-stick'), joystick = el('touch-joystick'), action = el('touch-action'), dash = el('touch-dash');
@@ -245,9 +252,10 @@
       if (aiming && !wasAiming) buzz(12);
       wasAiming = aiming;
       text('touch-hand', state.handLabel || '');
-      // Jeff's plan, as in the communication dock (web-shell): part and seconds left.
+      // Jeff's plan, the same line as the communication dock, already in the player's language.
       const plan = jeffPlan?.mode === 'choice' ? jeffPlan : null;
-      text('touch-plan', !plan ? '' : plan.current ? `Jeff：${PLAN_PARTS[plan.current.role] || plan.current.role} · ${Math.max(0, Math.ceil(plan.current.remaining))} 秒` : 'Jeff：还没选计划');
+      const planText = window.kitchenPlanLine(plan);
+      if (el('touch-plan').textContent !== planText) el('touch-plan').textContent = planText;
       el('touch-plan').hidden = !plan || state.phase !== 'running';
       text('touch-ai', state.aiStatus || '');
       text('touch-status', cancelSelected ? '松手取消' : aiming ? '松开投掷' : eventNotice || state.interactionHint || (throwable ? '按住「扔」瞄准' : ''));

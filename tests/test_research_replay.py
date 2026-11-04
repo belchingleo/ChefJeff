@@ -132,9 +132,9 @@ class ReplayTests(paths.SavePathTests):
         self.assertEqual(self.command('plan', mode='choice')[0], 200)
         receipt = self.begin_manual_relay()
         initial = self.game.store.download(receipt['id'], receipt['deletion_token'])
-        self.assertEqual(initial['conditions']['jeff_plan'], {'mode': 'choice', 'seconds': 12, 'rules_version': 'plan-v1'})
+        self.assertEqual(initial['conditions']['jeff_plan'], {'mode': 'choice', 'steps': 4, 'rules_version': 'plan-v2'})
         self.human_action()
-        self.assertEqual(self.answer_with(plan_role='prep')[0], 200)
+        self.assertEqual(self.answer_with(plan={'plan_step_1': 'fetch:beef', 'plan_step_2': 'chop:beef'})[0], 200)
         self.assertEqual(self.answer_with()[0], 200)
         self.natural_end()
         self.assertEqual(self.contribute()[0], 200)
@@ -147,11 +147,12 @@ class ReplayTests(paths.SavePathTests):
             self.assertEqual(verify_package(package)['rounds'], 1)
         plans = [e['payload']['jeff_plan'] for e in record['events'] if e['type'] == 'ai_request']
         self.assertIsNone(plans[0]['current'])
-        self.assertEqual(plans[1]['current']['role'], 'prep')
+        self.assertEqual(plans[1]['current']['steps'], [{'work': 'fetch:beef', 'done': False}, {'work': 'chop:beef', 'done': False}])
         requests = list(research_replay.rebuild_requests(record))
         self.assertEqual({r['status'] for r in requests}, {'verified'})
-        self.assertIn('plan_role', requests[0]['rebuilt']['questions'])
-        self.assertEqual(requests[1]['rebuilt']['state']['jeff_plan']['role'], 'prep')
+        self.assertIn('plan_step_1', requests[0]['rebuilt']['questions'])
+        self.assertIn('plan_keep', requests[1]['rebuilt']['questions'])
+        self.assertEqual(requests[1]['rebuilt']['state']['jeff_plan']['steps'][0]['work'], 'fetch:beef')
 
     def test_a_tampered_record_is_reported_as_diverged(self):
         receipt = self.play()

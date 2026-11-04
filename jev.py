@@ -86,10 +86,8 @@ class JevClient:
         sprint_answer=result.get('answers',{}).get('sprint',{})
         if 'sprint' in payload['questions'] and (sprint_answer.get('type')!='choice' or sprint_answer.get('choice') not in ('yes','no')):
             raise RuntimeError('Invalid sprint decision')
-        # A missing or unknown plan answer only leaves Jeff without a plan; the action stands.
-        plan_reply = result.get('answers', {}).get('plan_role')
-        plan = harness.plan_answer(plan_reply.get('choice') if isinstance(plan_reply, dict) and plan_reply.get('type') == 'choice' else None,
-                                   payload)
+        # A missing or unknown plan answer only leaves Jeff without a plan (or keeps it); the action stands.
+        plan = harness.plan_answer(harness.choices(result.get('answers'), harness.plan_questions(payload)), payload)
         return {"sprint_answer":sprint_answer, "sprint":sprint_answer.get('choice')=='yes', "choice": answer["choice"], "confidence": answer.get("confidence"),
                 "probabilities": answer.get("probabilities", {}), "model": result.get("model"),
                 "usage": result.get("usage", {}), "latency": time.monotonic()-start, **plan}
@@ -134,6 +132,9 @@ class DecisionLoop:
         self.budget_notified = False
         # Jeff's plan (harness.Plan) when the round's plan switch is on.
         self.plan = None
+        self.plan_work = {}         # action id -> the work item it does, for Jeff's started actions
+        self.plan_cursor = 0        # engine events already checked for Jeff's finished actions
+        self.plan_due = False       # the plan ended and Jeff has not been asked for a new one since
         # ai_ask_on_step_end: when Jeff's step ends, ask at once instead of waiting out ai_min_interval,
         # and do not start a request his current step will outlast (its reply would be discarded as stale
         # and, while on its way, would hold back the question about his next step).
@@ -212,16 +213,23 @@ class DecisionLoop:
                 fresh = (not self.closed and enabled and not self.k.ended and context["epoch"] == self.epoch
                          and now-context["sent"] <= self.k.c["ai_max_response_age"]
                          and context["job_id"] == current_job)
+                # The work an action does is read from the kitchen as it starts (what is in hand, on the board).
+                work = harness.work_item(decision, self.k.snapshot()) if self.plan and fresh and harness.does_work(decision) else None
                 applied, message = self.k.start("jeff", decision) if fresh else (False, "回复已过期、任务已变化或游戏已暂停")
+                if applied and work and self.k.chefs["jeff"].job:
+                    self.plan_work[self.k.chefs["jeff"].job.id] = work
                 sprint_applied=bool(applied and result.get('sprint') is True and hasattr(self.k,'sprint') and self.k.sprint('jeff'))
-                # A plan answer counts like the action: only from a fresh reply, and only if plan_role was asked.
-                plan_set = bool(self.plan and fresh and self.plan.accept(result.get('plan_role'), self.k.time,
-                                                                         context.get('plan_offered'), context.get('preference')))
+                # A plan answer counts like the action: only from a fresh reply, and only for the questions asked.
+                plan_set = plan_dropped = False
+                if self.plan and fresh:
+                    plan_set = self.plan.accept(result.get('plan'), self.k.time, context.get('plan_offered'), context.get('preference'))
+                    plan_dropped = self.plan.keep(result.get('plan'))
+                    self.plan_due = self.plan_due or plan_dropped
                 if not fresh:self.stale_count += 1
                 elif not applied:self.rejected_count += 1
                 chef_job = self.k.chefs["jeff"].job
                 self.log("ai_response", {"request_id": context["id"], **result, "applied": applied, "execution": message, "sprint_applied":sprint_applied,
-                                         "fresh": fresh, **({"plan_set": plan_set} if self.plan else {}),
+                                         "fresh": fresh, **({"plan_set": plan_set, "plan_dropped": plan_dropped} if self.plan else {}),
                                          "server_received_wall_ms": round((context["returned_monotonic"]-self.log.monotonic_start)*1000) if "returned_monotonic" in context and hasattr(self.log,"monotonic_start") else None,
                                          "server_transport_started_wall_ms": round((context["transport_started_monotonic"]-self.log.monotonic_start)*1000) if "transport_started_monotonic" in context and hasattr(self.log,"monotonic_start") else None,
                                          "action_id": chef_job.id if applied and chef_job and decision.kind not in ("continue", "wait") else None,
@@ -235,6 +243,16 @@ class DecisionLoop:
                     self.last_wait_notice = now
                 if not applied:
                     self.last_revision = -1
+        if self.plan:
+            # Jeff's finished actions tick his plan; the step that finishes it asks for a new one at once.
+            for event in self.k.events[self.plan_cursor:]:
+                if event.get('actor') != 'jeff' or event.get('action_id') not in self.plan_work:
+                    continue
+                if event.get('kind') == 'action_done':
+                    self.plan_due = self.plan.tick(self.plan_work.pop(event['action_id'])) or self.plan_due
+                elif event.get('kind') == 'interrupted':
+                    self.plan_work.pop(event['action_id'])
+            self.plan_cursor = len(self.k.events)
         job = self.k.chefs["jeff"].job
         if job is None and self.watched_job is not None:
             self.step_ended = True      # done, interrupted or knocked off: he now needs his next step
@@ -251,12 +269,14 @@ class DecisionLoop:
             return
         age = now-self.last_request
         step_end = self.ask_on_step_end and self.step_ended
-        if age < self.k.c["ai_min_interval"] and not step_end:
+        # A plan that just ended asks for the next one like a finished step does.
+        plan_end = self.ask_on_step_end and self.plan_due
+        if age < self.k.c["ai_min_interval"] and not (step_end or plan_end):
             return
         urgency = self.urgency()
         changed = self.k.revision != self.last_revision
         urgent = urgency != self.last_urgency
-        if not (changed or urgent or step_end or age >= self.k.c["ai_refresh_seconds"]):
+        if not (changed or urgent or step_end or self.plan_due or age >= self.k.c["ai_refresh_seconds"]):
             return
         if self.ask_on_step_end and job is not None and self.outlasts_reply(job):
             # The answer would come after this step ends and be discarded; ask when it ends instead.
@@ -289,7 +309,7 @@ class DecisionLoop:
         plan = plan_ended = None
         if self.plan:
             context['preference'] = next((m['id'] for m in reversed(messages) if m['kind'] == 'preference'), None)
-            plan_ended = self.plan.check(self.k.time, state, actions, context['preference'], chef.job.action if chef.job else None)
+            plan_ended = self.plan.check(context['preference'])
             plan = self.plan.input(state)
             context['plan_offered'] = plan['options']
         payload = compose_payload(self.client, self.k, state, actions, self.recent_decisions, communication,
@@ -300,6 +320,7 @@ class DecisionLoop:
         self.last_revision = self.k.revision
         self.last_urgency = urgency
         self.step_ended = False
+        self.plan_due = False
         self.inflight = True
         def work():
             try:
