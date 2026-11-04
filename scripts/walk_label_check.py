@@ -16,6 +16,11 @@ logged answer was such a walk (not go partner) and sends each to the current Jev
   he holds, none of his listed actions is there ("; Board 1 holds Lettuce (raw); with what you hold, no
   other listed action is at b1 now"). Like walks_labeled it changes only labels, and only facts the
   request already holds;
+- put_then_take: the same, with one more option next to every walk with full hands to a station that
+  holds an item: "put then take <station>", labelled "Put the held <item> on <the first counter a put is
+  offered for> (or down where you stand), then take <what lies there> from <station>". It is two legal
+  steps the player can take with two presses; the check only asks whether Jeff picks it over the walk,
+  and the game does not offer it;
 - no_aimed_throws: the same with the eight aimed throws (throw up, throw down-left, ...) left out of
   the options and throw partner kept, so the request has fewer options. It tells whether the number of
   options changes his walks; it also takes the throws away, so read it with that in mind.
@@ -42,7 +47,8 @@ sys.path.insert(0, str(ROOT))
 from scripts.jev_replay_check import (ask_once, client, estimate, hands_full, journal_requests, kind,  # noqa: E402
                                       moves_forward, pick, share)
 
-ARMS = ('as_logged', 'walks_labeled', 'walks_explained', 'no_aimed_throws')
+ARMS = ('as_logged', 'walks_labeled', 'walks_explained', 'put_then_take', 'no_aimed_throws')
+PUT_THEN_TAKE = 'put then take '
 DEFAULT_ARMS = ('as_logged', 'walks_labeled')
 KINDS = ('walk', 'wait', 'use_or_put_down', 'take')
 
@@ -91,6 +97,35 @@ def explain(payload):
     return payload
 
 
+def held_item(payload):
+    food = (((payload.get('state') or {}).get('kitchen') or {}).get('chefs', {}).get('jeff') or {}).get('holding')
+    return lying_there({'food': food}) if food else None
+
+
+def with_put_then_take(payload):
+    """The request with a put-then-take option next to every walk with full hands to a station holding an item."""
+    payload = deepcopy(payload)
+    criteria = payload['questions']['next_action']['criteria']
+    stations = ((payload.get('state') or {}).get('kitchen') or {}).get('stations') or {}
+    held = held_item(payload)
+    if held is None:
+        return payload
+    spot = next((stations[k[4:]].get('name', k[4:]) for k in criteria
+                 if k.startswith('put ') and (stations.get(k[4:]) or {}).get('counter')), None)
+    where = f'on {spot}' if spot else ('down where you stand' if 'drop' in criteria else None)
+    if where is None:
+        return payload
+    out = {}
+    for key, text in criteria.items():
+        out[key] = text
+        station = stations.get(key[3:]) or {}
+        there = lying_there(station)
+        if walk(key) and nothing_else_there(key, criteria) and there:
+            out[PUT_THEN_TAKE + key[3:]] = f"Put the held {held} {where}, then take {there} from {station.get('name', key[3:])}"
+    payload['questions']['next_action']['criteria'] = out
+    return payload
+
+
 def without_aimed_throws(payload):
     """The request without the aimed throws; throw partner and every other option stay as they were."""
     payload = deepcopy(payload)
@@ -105,6 +140,8 @@ def arm(payload, name):
         return label(payload)
     if name == 'walks_explained':
         return explain(payload)
+    if name == 'put_then_take':
+        return with_put_then_take(payload)
     if name == 'no_aimed_throws':
         return without_aimed_throws(payload)
     return payload
@@ -121,6 +158,9 @@ def arm_report(answers):
             'same_as_logged': share(sum(a['choice'] == i['logged_choice'] for i, _, a in ok), len(ok)),
             **{f'chose_{k}': share(kinds[k], len(ok)) for k in KINDS},
             'chose_a_step_of_the_dish': share(sum(moves_forward(a['choice'], p) for _, p, a in ok), len(ok)),
+            'chose_put_then_take': share(sum(a['choice'].startswith(PUT_THEN_TAKE) for _, _, a in ok), len(ok)),
+            'offered_put_then_take': sum(any(k.startswith(PUT_THEN_TAKE) for k in p['questions']['next_action']['criteria'])
+                                         for _, p, _ in answers),
             'mean_options': round(sum(len(p['questions']['next_action']['criteria']) for _, p, _ in answers) / len(answers), 2)
             if answers else None,
             'kinds': dict(kinds.most_common()),

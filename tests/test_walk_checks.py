@@ -88,6 +88,25 @@ class WalkLabelTests(unittest.TestCase):
         self.assertEqual([k for k in after if after[k] != criteria[k]], [k for k in criteria if walk_label_check.walk(k)])
         self.assertEqual(walk_label_check.lying_there({'food': {'stage': 'clean_plate', 'meaning': 'Clean plate'}}), 'Clean plate')
 
+    def test_put_then_take_sits_next_to_walks_to_an_item(self):
+        payload = deepcopy(self.full)
+        payload['state']['kitchen']['stations']['b1']['food'] = {'id': 'F7', 'stage': 'raw', 'ingredient': 'lettuce', 'meaning': 'Lettuce'}
+        criteria = payload['questions']['next_action']['criteria']
+        for key in [k for k in criteria if k.endswith(' b1')]:
+            del criteria[key]
+        criteria['go b1'] = 'Walk to Board 1 (Prep area)'
+        after = walk_label_check.arm(payload, 'put_then_take')['questions']['next_action']['criteria']
+        added = {k: v for k, v in after.items() if k not in criteria}
+        self.assertEqual(added, {'put then take b1': 'Put the held Bread (raw) on Counter 14, then take Lettuce (raw) from Board 1'})
+        keys = list(after)
+        self.assertEqual(keys.index('put then take b1'), keys.index('go b1') + 1)       # right after its walk
+        self.assertEqual({k: after[k] for k in criteria}, criteria)                     # the rest unchanged
+        self.assertEqual(walk_label_check.arm(self.empty, 'put_then_take'), self.empty)  # empty hands: nothing added
+        answers = [({'logged_choice': 'go b1', 'payload': payload}, walk_label_check.arm(payload, 'put_then_take'),
+                    {'choice': 'put then take b1'})]
+        report = walk_label_check.arm_report(answers)
+        self.assertEqual((report['chose_put_then_take'], report['offered_put_then_take'], report['chose_walk']), (1.0, 1, 0.0))
+
     def test_hands_full_groups_name_where_walks_went(self):
         moments = [{'payload': self.full, 'logged_choice': key, 'round': 1} for key in ('go serve', 'go p1', 'go partner', 'wait')]
         walks = hands_full_check.groups(moments)['walks']
