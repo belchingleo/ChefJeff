@@ -213,7 +213,7 @@ assert.deepStrictEqual(names(geometry.plateLayers(plating, ['a', 'c'])), ['base_
 assert.deepStrictEqual(names(geometry.plateLayers(undefined, ['x', 'y', 'x'])), ['x', 'y']);
 
 // Level buttons: any listed count from 1 to 6 fits the cover band, without overlap, wide enough
-// for a long pixel-font name such as "第四关 · 拌面（试玩） · 当前".
+// for a long pixel-font name such as "第四关 · 拌面（试玩）".
 for (let n = 1; n <= 6; n++) {
   const slots = geometry.levelButtonLayout(n);
   assert.strictEqual(slots.length, n);

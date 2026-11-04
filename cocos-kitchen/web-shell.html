@@ -595,8 +595,8 @@ function kitchenTabs(dialog){
   <dt>抛掷与传菜 · 按住空格</dt><dd>手持可投掷物品时，面前是工位或空地都能按住空格约 0.3 秒瞄准，角色停下，半透明弧形带显示方向与射程参考；按方向键改方向（8 个方向），松开扔出；队友在这个方向的射程内时扔给他。终点仅表示最大射程，不是实际落点预测；墙体阻挡和接取仍由引擎判定。生食材、切好的原料、餐盘、装盘菜和锅都能抛，最远 4 格；灭火器不能扔。可以越过工位，飞到射程尽头，遇墙落在墙前：生料或切好的料落在空案板、空柜台上，或落进能煮这份料的空锅；其他东西落在地上。没有可用落点时保留手里的物品。队友空手、在走路或站着时能接住；正在切菜、洗碗或手里有东西时不会被打断，东西落在他旁边，盘里的菜和锅里的东西都保留。玩家与 AI 规则相同。</dd>
   <dt>餐具和锅</dt><dd>干净盘才可装菜。脏盘回收点取盘 → 放入水槽 → 空手按空格洗碗 → 取净盘。没盘时可空手到锅边端锅，离灶停止加热；空锅需放回灶台。</dd>
   <dt>丢弃与消防</dt><dd>拿食材靠近垃圾桶按空格会销毁，扣 2 元；端锅则倒掉锅里的食物，保留空锅。拿起灭火器后面向着火工位按空格喷，累计喷 4 秒灭火；中途走开，进度保留，但停喷 2 秒后火会慢慢变旺。着火的工位会加热身边 8 格（含对角）的工位，旁边有一处着火 5 秒就会着火，多处同时着火更快，红色条显示进度；不跨空地或墙。同时 5 个工位着火，本局结束。</dd>
-  <dt>沟通 · 1–6 / 点击</dt><dd>打开左下角沟通菜单，点击偏好即可发送；“你做错了”是独立的红色描边按钮。也可按 1–5 表达偏好、按 6 纠错。共用 5 个实际秒冷却，暂停时也可发送。最新偏好只在本局有效；AI 在下一次正常请求中收到，自行判断如何配合，不强制分工或停止动作。纠错附带当时动作信息，但不指定正确答案。</dd>
-  <dt>计划模式（测试）</dt><dd>默认开启。Jeff 没有计划时，会在决定下一步动作的同时，选定接下来负责哪一段：备料、加热、装盘出餐、收洗盘或随机应变。计划约 12 秒有效；你发了新的偏好，或者这一段现在没事可做，就提前结束，Jeff 再重新选。计划不限制 Jeff 的动作，它每次仍从全部可选动作里选。沟通菜单里能看到 Jeff 当前的计划。开局前或结算后可以在「设置 → AI 搭档」里关掉，一局内不变。</dd>
+  <dt>沟通 · 1–6 / 点击（测试功能）</dt><dd>这是测试中的功能，不是正式玩法，以后可能调整。打开左下角沟通菜单，点击即可告诉 AI 由你来做哪类工作；“你做错了”是独立的红色描边按钮。也可按 1–5 说明分工、按 6 纠错。共用 5 个实际秒冷却，暂停时也可发送。最新的说明只在本局有效；AI 在下一次正常请求中收到，自行判断如何配合，不强制分工或停止动作。纠错附带当时动作信息，但不指定正确答案。</dd>
+  <dt>计划模式（测试）</dt><dd>默认开启。Jeff 没有计划时，会在决定下一步动作的同时，选定接下来负责哪一段：备料、加热、装盘出餐、收洗盘或随机应变。计划约 12 秒有效；你发了新的分工说明，或者这一段现在没事可做，就提前结束，Jeff 再重新选。计划不限制 Jeff 的动作，它每次仍从全部可选动作里选。沟通菜单里能看到 Jeff 当前的计划。开局前或结算后可以在「设置 → AI 搭档」里关掉，一局内不变。</dd>
   <dt>标记片段 · Enter</dt><dd>营业中按 Enter 标记当前时刻，不暂停、不打断动作。相邻两次标记间隔不超过 5 个实际秒时合并为一个区间，长按不重复。设置中的“数据导出”包含全部标记；标记不会发送给 AI。</dd>
   <dt>暂停与继续 · Esc / P</dt><dd>暂停会停止锅火、订单和双方动作。再按 Esc 或 P（键盘没有 Esc 键时用，如 iPad）或点「继续经营」回到厨房；也可重新开局、打开设置或查看本说明。结束本局、暂停中重新开局都会先请你确认；重新开局沿用当前配置与速度。更换 API、记忆和调用上限请在结算后或开局前进行。</dd>
   </dl>
@@ -642,6 +642,7 @@ function kitchenTabs(dialog){
 </script>
 <script src="touch-controls.js"></script>
 <script src="gamepad-controls.js"></script>
+<script src="level-editor.js"></script>
 <style>
 /* End-of-round record: generated from the round's summary (round_summary.py), never per level. */
 #record-result{margin:0 0 12px;color:var(--ink);font:15px/24px var(--pixel)}
@@ -739,16 +740,21 @@ function kitchenTabs(dialog){
 #communication-meter span{display:block;height:100%;width:0;background:var(--steel)}
 #kitchen-communication #communication-correction{margin-top:4px;border:2px solid var(--tomato);color:var(--tomato)}
 #communication-slip{margin:2px 0 0;justify-self:start}
+/* 1-6 is a test feature (owner, 2026-10-30): a badge on the toggle and one line above the options. */
+#communication-toggle{white-space:nowrap}
+#communication-toggle .comm-test{margin:0 auto 0 4px;padding:1px 4px;font:11px/14px var(--pixel);background:var(--honey);color:var(--ink)}
+#communication-note{margin:0;padding:0 6px 2px;font:11px/15px var(--body);color:var(--muted)}
 </style>
 <aside id="kitchen-communication" aria-label="队友沟通" hidden>
  <div id="communication-options">
-  <button type="button" data-code="prep" aria-pressed="false"><span class="key sm">1</span>我更爱备菜</button>
-  <button type="button" data-code="cook" aria-pressed="false"><span class="key sm">2</span>我更爱烹饪</button>
-  <button type="button" data-code="plate" aria-pressed="false"><span class="key sm">3</span>我更爱摆盘</button>
-  <button type="button" data-code="deliver" aria-pressed="false"><span class="key sm">4</span>我更爱传菜</button>
-  <button type="button" data-code="wash" aria-pressed="false"><span class="key sm">5</span>我更爱洗盘子</button>
+  <p id="communication-note">测试功能，不是正式玩法，以后可能调整。</p>
+  <button type="button" data-code="prep" aria-pressed="false"><span class="key sm">1</span>我来备菜</button>
+  <button type="button" data-code="cook" aria-pressed="false"><span class="key sm">2</span>我来烹饪</button>
+  <button type="button" data-code="plate" aria-pressed="false"><span class="key sm">3</span>我来摆盘</button>
+  <button type="button" data-code="deliver" aria-pressed="false"><span class="key sm">4</span>我来传菜</button>
+  <button type="button" data-code="wash" aria-pressed="false"><span class="key sm">5</span>我来洗盘子</button>
  </div>
- <button id="communication-toggle" type="button" aria-expanded="true" aria-controls="communication-options">沟通 · 1–6<span aria-hidden="true">▼</span></button>
+ <button id="communication-toggle" type="button" aria-expanded="true" aria-controls="communication-options">沟通 · 1–6<span class="comm-test">测试</span><span aria-hidden="true">▼</span></button>
  <span id="communication-current"></span><span id="communication-plan" hidden></span><span id="communication-cooldown"></span>
  <div id="communication-meter" aria-hidden="true"><span></span></div>
  <p id="communication-slip" class="slip" role="status" aria-live="polite" hidden></p>
@@ -758,7 +764,8 @@ function kitchenTabs(dialog){
 (()=>{
  const dock=document.getElementById('kitchen-communication'),panel=document.getElementById('communication-options'),toggle=document.getElementById('communication-toggle');
  const buttons=[...dock.querySelectorAll('button[data-code]')],codes=buttons.map(b=>b.dataset.code);
- const labels={prep:'偏好：备菜',cook:'偏好：烹饪',plate:'偏好：摆盘',deliver:'偏好：传菜',wash:'偏好：洗盘子'};
+ // What the human said they will do (the text Jeff gets says the same: "Chef human will do the cooking.").
+ const labels={prep:'已说：我来备菜',cook:'已说：我来烹饪',plate:'已说：我来摆盘',deliver:'已说：我来传菜',wash:'已说：我来洗盘子'};
  // Jeff's plan (harness.PLAN_PARTS); the same words as the phone toolbar.
  const parts={prep:'备料',cook:'加热',serve:'装盘出餐',plates:'收洗盘',flexible:'随机应变'};
  const meter=document.querySelector('#communication-meter span'),slip=document.getElementById('communication-slip');
@@ -770,7 +777,7 @@ function kitchenTabs(dialog){
   const cooling=performance.now()<until;
   for(const button of buttons){button.disabled=!allowed||busy||cooling;if(button.dataset.code!=='mistake')button.setAttribute('aria-pressed',String(state?.communication?.preference===button.dataset.code))}
   const current=document.getElementById('communication-current');
-  const text=labels[state?.communication?.preference]||'偏好：尚未表达';
+  const text=labels[state?.communication?.preference]||'还没说分工';
   if(current.dataset.source!==text){current.dataset.source=text;current.textContent=text}
   const planNode=document.getElementById('communication-plan'),plan=state?.communication?.jeff_plan;
   const planText=plan?.mode!=='choice'?'':plan.current?`Jeff：${parts[plan.current.role]||plan.current.role} · 还剩 ${Math.max(0,Math.ceil(plan.current.remaining))} 秒`:'Jeff：还没选计划';
@@ -861,7 +868,6 @@ function kitchenTabs(dialog){
 #kitchen-level-list .level-target{font-size:14px;color:var(--muted,#6e4e38)}
 #kitchen-level-list .level-best{margin-top:auto;width:100%;padding-top:8px;border-top:2px dashed var(--muted,#6e4e38);font-size:13px;color:var(--muted,#6e4e38)}
 #kitchen-level-list .level-best.won{color:var(--herb,#3c7a2a);font-weight:600}
-#kitchen-level-list .level-now{position:absolute;top:-3px;right:-3px;padding:2px 8px;background:var(--denim,#2a5a9e);color:#fff;font:13px/18px var(--pixel)}
 #kitchen-level-list .level-custom{align-items:center;justify-content:center;border:3px dashed var(--muted,#6e4e38);box-shadow:none;background:transparent;color:var(--muted,#6e4e38)}
 #kitchen-level-list .level-plus{display:flex;align-items:center;justify-content:center;width:56px;height:56px;border:3px dashed var(--muted,#6e4e38);font:36px/1 var(--pixel)}
 @media(max-width:760px){#kitchen-level-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -894,22 +900,24 @@ function kitchenTabs(dialog){
      const card=document.createElement('button');card.className='level-card';card.type='button';card.disabled=!s.levelEnabled;
      card.setAttribute('aria-current',String(!!level.selected));
      const part=(cls,text)=>{const e=document.createElement('span');e.className=cls;e.textContent=text;card.appendChild(e);return e;};
-     if(level.selected)part('level-now',t('当前'));
      part('level-number',t(`第 ${index+1} 关`));
      part('level-dish',t(String(level.name).split('·').pop().trim()));
      if(level.target!=null)part('level-target',t(`目标 ¥${level.target}`));
      const b=best[level.id];
-     part('level-best'+(b?.won?' won':''),b?t(b.won?`✓ 已达成 · 最佳 ¥${b.money}`:`未达成 · 最佳 ¥${b.money}`):t('还没玩过'));
+     part('level-best'+(b?.won?' won':''),b?t(b.won?`★ 已达成 · 最佳 ¥${b.money}`:`未达成 · 最佳 ¥${b.money}`):t('还没玩过'));
      card.onclick=()=>{const now=state();if(!now?.levelEnabled||now.game_id!==openedRound)return;levels.close();if(!level.selected)controls()?.level(level.id)};
      list.appendChild(card);
     });
-    // The entry for player-made levels; it opens once creating levels exists.
-    const custom=document.createElement('button');custom.className='level-card level-custom';custom.type='button';custom.disabled=true;
+    // Players' own levels (level-editor.js), where this server calibrates them.
+    const editor=window.chefjeffEditor,ready=!!editor?.available();
+    const custom=document.createElement('button');custom.className='level-card level-custom';custom.type='button';custom.disabled=!ready;
     const plus=document.createElement('span');plus.className='level-plus';plus.textContent='+';plus.setAttribute('aria-hidden','true');
     const label=document.createElement('span');label.className='level-dish';label.textContent=t('自定义关卡');
     const what=document.createElement('span');what.className='level-target';what.textContent=t('做自己的地图和菜谱');
-    const soon=document.createElement('span');soon.className='level-target';soon.textContent=t('即将开放');
-    custom.append(plus,label,what,soon);list.appendChild(custom);
+    custom.append(plus,label,what);
+    if(!ready){const soon=document.createElement('span');soon.className='level-target';soon.textContent=t('即将开放');custom.append(soon);}
+    custom.onclick=()=>{if(!window.chefjeffEditor?.available())return;levels.close();window.chefjeffEditor.open();};
+    list.appendChild(custom);
    }
   }
   const offer=document.getElementById('more-dialog-contribute');offer.hidden=!s.contribute;if(s.contribute){offer.textContent=t(s.contribute.label);offer.disabled=!s.contribute.enabled;}
@@ -927,6 +935,7 @@ function kitchenTabs(dialog){
  window.addEventListener('kitchen-open-levels',()=>{const s=state();if(!s?.levelEnabled)return;openedRound=s.game_id;more.close();if(!levels.open)levels.showModal();paint(true)});
  window.addEventListener('kitchen-open-more',()=>{const s=state();if(s?.phase!=='ended')return;openedRound=s.game_id;levels.close();if(!more.open)more.showModal();paint(true)});
  window.addEventListener('kitchen-controls-state',()=>{keepBest(state());paint();});window.addEventListener('kitchen-language-changed',()=>paint(true));
+ window.addEventListener('kitchen-editor-ready',()=>paint(true));
  document.getElementById('level-dialog-cancel').onclick=()=>levels.close();
  document.getElementById('more-dialog-close').onclick=()=>more.close();
  more.querySelectorAll('[data-cover-action]').forEach(button=>button.onclick=()=>{const action=button.dataset.coverAction;more.close();controls()?.[action]?.()});

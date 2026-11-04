@@ -38,7 +38,7 @@ def main():
     print('次数包含重复访问和自己的测试；浏览器数是客户端标记估算，不是真实人数。')
     print('\n各关试玩情况：')
     for level in usage['levels']:
-        print(f"第 {level['level']} 关：开局 {level['started_rounds']} 局，自然完成 {level['completed_rounds']} 局")
+        print(f"{'玩家关卡' if level['level'] == 0 else '第 ' + str(level['level']) + ' 关'}：开局 {level['started_rounds']} 局，自然完成 {level['completed_rounds']} 局")
     print('\n已结束对局的时长汇总（有效游玩秒数 = 游戏内进度 / 节奏，不含暂停和排队）：')
     names = {'completed': '自然完成', 'manual_end': '手动结束', 'page_close': '页面关闭（收到通知）',
              'disconnected': '断线清理（延迟确认）', 'restart': '重开／换关', 'shutdown': '服务停止（不作玩家退出）'}

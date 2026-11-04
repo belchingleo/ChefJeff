@@ -52,6 +52,25 @@ assert.equal(i.t('Kitchen timeout'),'Kitchen timeout');
                     for key,value in zip(node.keys,node.values):
                         if isinstance(key,ast.Constant) and key.value=='error' and isinstance(value,ast.Constant) and isinstance(value.value,str):corpus.append(value.value)
         self.run_js("const missing=corpus.filter(x=>/[\\u3400-\\u9fff]/.test(i.t(x)));assert.deepEqual(missing,[]);",corpus)
+    def test_level_editor_copy_is_fully_translated(self):
+        """Every Chinese literal of level-editor.js (placeholders filled), the release's ingredient and pan
+        names it shows, and the strings it composes from them."""
+        import re
+        import level_design
+        corpus = []
+        for line in (ROOT / 'cocos-kitchen/level-editor.js').read_text().splitlines():
+            if 'i18n: bilingual' in line:
+                continue
+            for literal in re.findall(r"'((?:[^'\\\n]|\\.)*)'", line):
+                if re.search(r'[\u3400-\u9fff]', literal):
+                    corpus.append(re.sub(r'\{\d+\}', '1', literal))
+        catalog = level_design.editor_catalog()
+        names = [i['name'] for i in catalog['items']] + list(catalog['containers'].values())
+        corpus += names + ['还缺：%s食材箱' % names[0], '已摆：灶台·%s' % names[-1], '切好后放进%s加热' % names[-1],
+                           '%s食材箱只能贴着外墙摆，点有橙色边框的格子' % names[0], '出餐口要贴着外墙摆']
+        self.assertGreater(len(corpus), 150)
+        self.run_js("const missing=corpus.filter(x=>/[\\u3400-\\u9fff]/.test(i.t(x)));assert.deepEqual(missing,[]);",corpus)
+
     def test_hosted_connection_and_usage_copy_is_fully_translated(self):
         corpus=['浏览器直连模型',
             '：在线版由浏览器直连模型；服务商必须允许跨域访问。跨域失败不会改由服务器代发 Key。',

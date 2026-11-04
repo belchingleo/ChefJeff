@@ -12,6 +12,8 @@ COUNTERS = ('page_views', 'started_sessions', 'started_rounds', 'completed_round
             'estimated_visitor_browsers', 'estimated_player_browsers')
 OUTCOMES = ('completed', 'manual_end', 'page_close', 'disconnected', 'restart', 'shutdown')
 # Effective running seconds (game progress / the round's fixed speed), not page-open time.
+# Levels 1-3, and 0 for every level a player built (levels.PLAYER_LEVEL), counted together.
+LEVELS = (1, 2, 3, 0)
 DURATION_BUCKETS = ((10, '0–10s'), (30, '10–30s'), (60, '30–60s'), (120, '1–2min'),
                     (180, '2–3min'), (300, '3–5min'), (math.inf, '5min+'))
 
@@ -20,7 +22,7 @@ class UsageStats:
     def __init__(self, directory=None):
         self.lock = threading.Lock()
         self.counts = dict.fromkeys(COUNTERS, 0)
-        self.levels = {level: {'started_rounds': 0, 'completed_rounds': 0} for level in (1, 2, 3)}
+        self.levels = {level: {'started_rounds': 0, 'completed_rounds': 0} for level in LEVELS}
         self.durations = {}
         self.tracking_since = datetime.now(timezone.utc).isoformat(timespec='seconds')
         self.path = None
@@ -82,7 +84,7 @@ class UsageStats:
 
     @staticmethod
     def _check_level(level):
-        if type(level) is not int or level not in (1, 2, 3):
+        if type(level) is not int or level not in LEVELS:
             raise ValueError('Unknown level')
 
     def _record(self, updates, level=None, duration=None):
@@ -125,7 +127,7 @@ class UsageStats:
             durations = [{'level': level, 'outcome': outcome, 'bucket': bucket, 'rounds': row['rounds'],
                           'game_seconds': round(row['game_seconds'], 3), 'active_seconds': round(row['active_seconds'], 3),
                           'average_active_seconds': round(row['active_seconds'] / row['rounds'], 1)}
-                         for level in (1, 2, 3) for outcome in OUTCOMES for _, bucket in DURATION_BUCKETS
+                         for level in LEVELS for outcome in OUTCOMES for _, bucket in DURATION_BUCKETS
                          if (row := self.durations.get((level, outcome, bucket)))]
             return {'tracking_since': self.tracking_since, **self.counts,
                     'full_rejections': self.counts['page_full_rejections'] + self.counts['kitchen_full_rejections'],

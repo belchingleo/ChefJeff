@@ -32,7 +32,7 @@
       #kitchen-touch-landscape{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:max(20px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left));box-sizing:border-box;background:var(--frame);text-align:center;color:var(--paper)}#kitchen-touch-landscape .panel{padding:24px;max-width:370px;text-align:center}#kitchen-touch-landscape h2{font-size:24px;margin:10px 0}#kitchen-touch-landscape p{color:var(--muted);font-size:15px;line-height:1.6;margin:8px 0 0}.touch-rotate-icon{font-size:46px;line-height:1}
       body.kitchen-touch-mode #kitchen-display-hint{display:none}body.kitchen-touch-mode #GameDiv{height:100dvh!important}body.kitchen-touch-mode #GameCanvas{touch-action:none;-webkit-touch-callout:none}
       body.kitchen-touch-mode #kitchen-communication{left:auto;right:max(10px,env(safe-area-inset-right));top:calc(max(4px,env(safe-area-inset-top)) + 44px);bottom:auto;transform:none;width:min(300px,calc(100vw - 24px));max-height:calc(var(--touch-vh,100dvh) - 58px);overflow:auto;z-index:30;font:14px/20px var(--body);touch-action:pan-y}body.kitchen-touch-mode #kitchen-communication:not([data-touch-open=true]){display:none!important}
-      body.kitchen-touch-mode #kitchen-communication button{min-height:40px;font-size:14px}body.kitchen-touch-mode #kitchen-communication .key{display:none}body.kitchen-touch-mode #communication-toggle{display:none}#touch-communication-close{display:none}body.kitchen-touch-mode #touch-communication-close{display:block;width:100%;margin:0 0 6px;justify-content:center}
+      body.kitchen-touch-mode #kitchen-communication button{min-height:40px;font-size:14px}body.kitchen-touch-mode #kitchen-communication .key{display:none}body.kitchen-touch-mode #communication-toggle{display:none}#kitchen-communication #touch-communication-close{display:none}body.kitchen-touch-mode #kitchen-communication #touch-communication-close{display:block;width:100%;margin:0 0 6px;justify-content:center}
       body.kitchen-touch-mode dialog.panel{max-height:calc(var(--touch-vh,100dvh) - 12px);max-width:calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right) - 20px);font-size:15px;touch-action:pan-y;overscroll-behavior:contain}body.kitchen-touch-mode .dlg-head{padding:10px 14px;gap:8px}body.kitchen-touch-mode .dlg-head h2{font-size:20px;line-height:24px}body.kitchen-touch-mode .dlg-body{padding:12px 14px}body.kitchen-touch-mode .tabs{padding:0 14px 8px;gap:4px}body.kitchen-touch-mode .dlg-foot{padding:0 14px 14px}body.kitchen-touch-mode .sr-label{display:none}body.kitchen-touch-mode input,body.kitchen-touch-mode textarea,body.kitchen-touch-mode select{font-size:16px!important;-webkit-user-select:text;user-select:text;-webkit-touch-callout:default;touch-action:auto}
       body.kitchen-touch-mode #kitchen-bookmark-toast{left:50%;bottom:154px;transform:translateX(-50%);max-width:calc(100vw - 32px);font:13px/18px var(--body)}
       @media(max-width:700px){.touch-toolbar{gap:4px;padding:0 4px}.touch-toolbar button{padding:3px 6px}.touch-clock{font-size:14px}.touch-money{font-size:12px}#touch-served{display:none}#touch-joystick{width:112px;height:112px}.touch-orders{bottom:calc(max(8px,env(safe-area-inset-bottom)) + 124px)}.touch-buttons{gap:10px}.touch-hint{left:132px;right:160px;font-size:11px}.touch-menu{padding:10px 12px}.touch-menu h2{font-size:20px}.touch-menu button{min-height:36px;font-size:13px}}
@@ -106,7 +106,8 @@
     document.body.appendChild(portrait);
 
     const el = id => document.getElementById(id);
-    const t = text => window.kitchenI18n?.t(text) || text;
+    // The kitchen's own translation where it is ready: it also shows a player's dish names as written.
+    const t = text => window.kitchenControls?.translate ? window.kitchenControls.translate(text) : window.kitchenI18n?.t(text) || text;
     const PLAN_PARTS = { prep: '备料', cook: '加热', serve: '装盘出餐', plates: '收洗盘', flexible: '随机应变' };
     let jeffPlan = null;
     window.addEventListener('kitchen-state', event => { jeffPlan = event.detail?.communication?.jeff_plan || null; render(); });
@@ -281,14 +282,19 @@
       el('touch-plate').hidden = !card || !levels.length;
       if (card) {
         const index = levels.findIndex(level => level.selected);
-        text('touch-level-title', card.level); text('touch-level-dish', card.dish); text('touch-level-target', card.target);
-        text('touch-level-tag', card.tag); el('touch-level-tag').className = card.tag.startsWith('✓') ? 'won' : '';
-        el('touch-level-prev').hidden = el('touch-level-next').hidden = ended;
+        // A player's own level name is shown as written, never translated.
+        text('touch-level-title', card.level); text('touch-level-target', card.target);
+        if (card.own) { if (el('touch-level-dish').textContent !== card.dish) el('touch-level-dish').textContent = card.dish; } else text('touch-level-dish', card.dish);
+        text('touch-level-tag', card.tag); el('touch-level-tag').className = card.won ? 'won' : '';
+        el('touch-level-prev').hidden = el('touch-level-next').hidden = ended || !!card.own;  // a player's level has no neighbours
         el('touch-level-prev').disabled = !card.stepEnabled || index <= 0;
-        el('touch-level-next').disabled = !card.stepEnabled || index < 0 || index >= levels.length - 1;
+        // After the last official level, ▶ opens 我的关卡 (card.nextEditor), as on the desktop card.
+        el('touch-level-next').disabled = !card.stepEnabled || index < 0 || (index >= levels.length - 1 && !card.nextEditor);
+        const nextLabel = t(card.nextEditor ? '自定义关卡' : '下一关');
+        if (el('touch-level-next').getAttribute('aria-label') !== nextLabel) el('touch-level-next').setAttribute('aria-label', nextLabel);
         el('touch-levels').disabled = !state.levelEnabled;
         // The title row is the 全部关卡 entry, as on the desktop card.
-        el('touch-levels').setAttribute('aria-label', t(card.level) + ' ' + t(card.dish) + ' · ' + t('全部关卡'));
+        el('touch-levels').setAttribute('aria-label', t(card.level) + ' ' + (card.own ? card.dish : t(card.dish)) + ' · ' + t('全部关卡'));
         if (ended && card.alt) text('touch-retry', card.alt.label);
       }
       el('touch-partner').hidden = !card || state.phase !== 'ready';
@@ -323,7 +329,8 @@
       const rail = el('touch-orders'), ids = orders.map(order => String(order.id));
       for (const [id, row] of orderNodes) if (!ids.includes(id)) { row.ticket.remove(); orderNodes.delete(id); }
       for (const order of orders) {
-        const id = String(order.id), name = t(String(order.dishName || order.dish || ''));
+        // A player's own dish name is shown as written, never translated.
+        const id = String(order.id), name = order.ownName ? String(order.dishName) : t(String(order.dishName || order.dish || ''));
         let row = orderNodes.get(id);
         if (!row) {
           const ticket = document.createElement('article'); ticket.className = 'touch-order'; ticket.dataset.orderId = id;
@@ -373,7 +380,7 @@
         'touch-fullscreen-tip': 'iPhone 不支持网页全屏：在浏览器的分享菜单选「添加到主屏幕」，再从主屏幕打开即可全屏。' })) text(id, source);
       el('touch-language').textContent = window.kitchenI18n?.language === 'en' ? '中文' : 'English';
       joystick.setAttribute('aria-label', t('移动')); el('touch-orders').setAttribute('aria-label', t('订单'));
-      el('touch-level-prev').setAttribute('aria-label', t('上一关')); el('touch-level-next').setAttribute('aria-label', t('下一关'));
+      el('touch-level-prev').setAttribute('aria-label', t('上一关'));
       ordersSignature = ''; render();
     }
     function joyMove(event) {

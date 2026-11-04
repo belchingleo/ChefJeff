@@ -39,6 +39,10 @@ class FireSpreadTests(unittest.TestCase):
         self.assertTrue(diagonal)
         self.assertEqual(k.fire_neighbors('sink'),[])
 
+    def test_neighbours_are_found_once_and_handed_out_as_copies(self):
+        k=self.make();first=k.fire_neighbors('p1');first.append('sink')
+        self.assertNotIn('sink',k.fire_neighbors('p1'))
+
     def test_heat_holds_then_drains_without_a_burning_neighbour(self):
         k=self.make();k.ignite('p1');n=k.fire_neighbors('p1')[0]
         k.advance(3);self.assertAlmostEqual(k.stations[n].fire_heat,.6,places=2)

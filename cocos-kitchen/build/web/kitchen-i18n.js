@@ -739,7 +739,6 @@
     "关卡选择": "Level select",
     "更多": "More",
     "选择这一关": "Choose this level",
-    "当前": "Current",
     "不保存 API Key、IP 或账号身份。": "Does not store API keys, IP addresses or account identity.",
     "本局模型服务与模型 ID（含自定义模型，注明浏览器上报、未经独立核验）": "This round’s model service and ID, including custom models, marked browser-reported and not independently verified",
     "不另存完整 API 请求或响应。每次请求只保存校验值和重建它所需的少量内容，研究时用操作记录把原请求重建出来。开启跨局记忆时记下的局号，能把这个浏览器里的几局联系起来。": "Verbatim API requests and replies are not stored. Each request keeps only a digest and the few parts needed to rebuild it; researchers rebuild the original request from the recorded inputs. With cross-round memory on, the recorded round IDs link this browser's rounds to each other.",
@@ -872,7 +871,7 @@
     "换一位搭档": "Change teammate",
     "今天配合得不错！": "Great teamwork today!",
     "关店结算": "Closing time",
-    "✓ 达成目标": "✓ Goal reached",
+    "★ 达成目标": "★ Goal reached",
     "上一关": "Previous level",
     "（免费）": " (free)",
     "请先选一位 AI 搭档，再开始经营。": "Pick an AI teammate before you start.",
@@ -922,17 +921,165 @@
     "免费额度每个账户每天 10,000 Neurons，约 100–140 次请求 · 也可填 @cf/meta/llama-3.1-8b-instruct-fp8": "Free tier: 10,000 Neurons a day per account, about 100–140 requests · you can also enter @cf/meta/llama-3.1-8b-instruct-fp8",
     "免费，但高峰常返回“访问量过大”": "Free, but often answers “too many requests” at peak times",
     "请优先选择快思考模型": "Prefer a fast-thinking model",
-    "Jeff 的计划（测试）": "Jeff's plan (trial)",
-    "关闭（默认）": "Off (default)",
-    "选择题：Jeff 没有计划时，顺带选接下来负责哪一段（备料、加热、装盘出餐、收洗盘或随机应变），约 12 秒内有效，沟通栏里能看到": "Multiple choice: while Jeff has no plan, it also picks the part it takes on next (prep, cooking, plating and serving, plates, or flexible), held for about 12 seconds and shown in the communication panel",
-    "计划说明": "About the plan",
-    "计划不限制 Jeff 的动作，它每次仍从全部可选动作里选。开局前或结算后才能修改，一局内不变。打开后，没有计划的那次请求会多一道选择题。": "The plan does not limit Jeff's actions; it still chooses from every available action each time. Change it before a round or after the results; it stays the same during a round. When it is on, a request without a plan carries one more multiple-choice question.",
-    "请在开局前或结算后修改 Jeff 的计划设置。": "Change Jeff's plan setting before a round or after the results.",
-    "计划设置无效。": "Invalid plan setting.",
+    "没有校准好的这张关卡。": "This level has not been calibrated.",
+    "这张关卡算下来不能玩。": "Calibration found that this level cannot be played.",
+    "校准服务已停止。": "Level calibration has stopped.",
+    "上一张关卡还在计算，请等它算完。": "Your previous level is still being calibrated; wait until it finishes.",
+    "校准排队已满，请稍后再试。": "The calibration queue is full; try again later.",
+    "没有这项校准。": "No such calibration.",
+    "校准超时，请简化关卡后再试。": "Calibration took too long; simplify the level and try again.",
+    "校准出错，请稍后再试。": "Calibration failed; try again later.",
+    "墙": "Wall",
+    "食材箱": "Ingredient box",
+    "在案板上切好": "Chopped on a board",
+    "直接放进盘子": "Goes straight onto the plate",
+    "新关卡": "New level",
+    "新菜": "New dish",
+    "地板被柜台隔成了两块：两位厨师各站一边，隔着柜台扔东西": "Counters split the floor in two: each chef works one side and food is thrown over the counters",
+    "菜单上至少要有 1 道菜": "The menu needs at least 1 dish",
+    "编辑步骤": "Editing steps",
+    "1 厨房布局": "1 Kitchen",
+    "2 菜单": "2 Menu",
+    "3 校准与试玩": "3 Calibrate and play",
+    "关卡名字": "Level name",
+    "← 我的关卡": "← My levels",
+    "编辑关卡": "Edit level",
+    "校准中": "Calibrating",
+    "脚本厨师正在试做": "The scripted chefs are test-cooking",
+    "算完会自动更新，可以先去玩别的关卡": "It updates by itself when done; play another level meanwhile",
+    "草稿": "Draft",
+    "补齐以后才能提交校准": "Complete it before submitting for calibration",
+    "继续编辑": "Keep editing",
+    "待校准": "Not calibrated",
+    "设计好了，还没交给服务器计算": "Ready, not yet sent to the server",
+    "在第 3 步提交校准": "Submit it in step 3",
+    "可以玩": "Playable",
+    "提示：一个人也能过": "Note: one player can pass it alone",
+    "需要两个人配合，一个人过不了": "Needs both chefs; one alone cannot pass",
+    "不能玩": "Not playable",
+    "两个脚本厨师一道菜都没做出来": "The two scripted chefs served no dish",
+    "常见原因：案板或灶台被围住，人站不到跟前": "Usually a board or stove is boxed in, with nowhere to stand",
+    "回去修改": "Back to editing",
+    "服务器的检查没通过": "The server's check failed",
+    "打开第 3 步看具体原因": "Open step 3 for the reasons",
+    "我的关卡": "My levels",
+    "导入关卡文件": "Import a level file",
+    "+ 新建关卡": "+ New level",
+    "自己摆厨房、配菜，服务器算出订单节奏和目标以后就能开局。关卡只保存在这个浏览器里，换电脑或发给朋友，先导出成文件。": "Lay out a kitchen and a menu; once the server works out the order pace and the target, you can play it. Levels are kept in this browser only: to move one to another computer or send it to a friend, export it as a file first.",
+    "这个浏览器不让网页保存数据，关卡关掉页面就没了。请先导出成文件。": "This browser does not let the page save data, so levels go when the page closes. Export them as files first.",
+    "未命名": "Untitled",
+    "编辑": "Edit",
+    "确定删除？": "Delete it?",
+    "删除": "Delete",
+    "新建关卡": "New level",
+    "从一间摆好基本设备的示例厨房开始": "Starts from a sample kitchen with the basic stations",
+    "手机上可以玩已经做好的关卡；编辑关卡请用电脑浏览器。": "On a phone you can play finished levels; edit levels in a computer browser.",
+    "编辑器只在电脑浏览器里打开；手机上可以玩已经做好的关卡。": "The editor opens in a computer browser only; on a phone you can play finished levels.",
+    "这个文件不是关卡文件，没有导入。": "This file is not a level file; nothing was imported.",
+    "导入好了。": "Imported.",
+    "工具": "Tools",
+    "食材箱里放什么": "What the box holds",
+    "擦除": "Erase",
+    "房间大小": "Room size",
+    "厨房格子": "Kitchen grid",
+    "下一步：菜单 →": "Next: Menu →",
+    "，跟前没有地方站": ", nowhere to stand in front",
+    "外墙": "Outer wall",
+    "地板": "Floor",
+    "检查": "Checks",
+    "可以进入下一步": "Ready for the next step",
+    "设备齐了，每台设备跟前都能站人": "All stations are there and each can be reached",
+    "+ 加一道菜": "+ Add a dish",
+    "菜名": "Dish name",
+    "删掉这道菜": "Remove this dish",
+    "去掉这样配料": "Remove this ingredient",
+    "+ 加一样配料": "+ Add an ingredient",
+    "售价": "Price",
+    "用建议价": "Use the suggested price",
+    "Jeff 看到的名字": "The name Jeff reads",
+    "Jeff 读不到你起的菜名，只看到英文配料。": "Jeff never reads your dish name, only its ingredients in English.",
+    "顾客能等多久": "How long customers wait",
+    "这份菜单要的设备": "Stations this menu needs",
+    "← 厨房布局": "← Kitchen",
+    "下一步：校准 →": "Next: Calibrate →",
+    "回第 1 步把缺的摆上": "Place the missing ones in step 1",
+    "厨房": "Kitchen",
+    "顾客": "Customers",
+    "盘子": "Plates",
+    "一局": "A round",
+    "要交给服务器的关卡": "The level you send to the server",
+    "重新校准": "Calibrate again",
+    "提交校准": "Submit for calibration",
+    "同一份设计算过一次就记住了，再交会立刻出结果。": "The server remembers a design it has calibrated, so sending it again answers at once.",
+    "回厨房布局": "Back to the kitchen",
+    "回菜单": "Back to the menu",
+    "排队中": "Queued",
+    "服务器一次只算一张关卡，前面的算完就轮到这张。": "The server calibrates one level at a time; this one is next after those ahead of it.",
+    "每个页面同时只能排一张；排队的关卡多了，会请你稍后再交。": "Each page can queue one level at a time; when the queue is full you will be asked to try later.",
+    "计算中": "Calculating",
+    "算的时候可以离开这一页，回到「我的关卡」也能看到进度。": "You can leave this page while it runs; My levels shows the progress too.",
+    "没交上去": "Not sent",
+    "服务器没收下这张关卡": "The server did not take this level",
+    "目标": "Target",
+    "关店时净收入达到就算过关": "Reach it in net income by closing time to pass",
+    "两个脚本厨师": "Two scripted chefs",
+    "一个脚本厨师": "One scripted chef",
+    "能达到目标": "reaches the target",
+    "达不到目标": "misses the target",
+    "一个人也能达到目标，照样可以玩。想让两个人非得配合，可以少放一块案板，或把食材箱和灶台拉远一些，再交一次。": "One chef alone reaches the target, and the level is still playable. To make teamwork necessary, use one board fewer or move the boxes and stoves further apart, then send it again.",
+    "脚本厨师只是用来定目标的参照，不代表真人和 Jeff 能打多少分。": "The scripted chefs only set the target; they do not predict what you and Jeff will score.",
+    "这张关卡还玩不了": "This level cannot be played yet",
+    "最常见的原因：案板或灶台被柜台围住，人站不到跟前；或者出餐口离厨房太远。": "Most often a board or stove is boxed in by counters with nowhere to stand, or the serving window is too far from the kitchen.",
+    "第 1 步的检查会标出“跟前没有地方站”的设备。": "The checks in step 1 mark stations with nowhere to stand in front.",
+    "还没校准": "Not calibrated yet",
+    "交上去以后，服务器先当场检查一遍：价格对不对、菜在这张地图上做不做得出来。检查通过才会排队计算。": "The server first checks it at once: are the prices right, can each dish be made on this map? Only then does it queue the calculation.",
+    "墙把厨房隔开了，两边没法传递东西": "Walls cut the kitchen in two, so nothing can pass between the sides",
+    "有设备跟前没有地方站": "A station has nowhere to stand in front of it",
+    "水槽、脏盘回收、灭火器架要各有 1 个，出餐口 1 到 2 个": "One sink, one plate return and one extinguisher rack, and 1 or 2 serving windows",
+    "柜台不够放开局的盘子": "Not enough counters for the starting plates",
+    "柜台隔开的两块地板离得太远，东西扔不过去": "The two parts of the floor are too far apart to throw food across",
+    "有菜的价格超出了范围": "A price is out of range",
+    "有两道菜的配料一样": "Two dishes have the same ingredients",
+    "地图不成立": "The map is not valid",
+    "服务器暂时不能校准，请稍后再试。": "The server cannot calibrate right now; please try later.",
+    "计算出错了，请再交一次。": "The calculation failed; please send it again.",
+    "和服务器的连接断了，请再交一次。": "The connection to the server dropped; please send it again.",
+    "这一局结束以后才能换关卡。": "You can change the level after this round ends.",
+    "这张关卡要重新校准，请到第 3 步再交一次。": "This level needs calibrating again; send it again in step 3.",
+    "没能换到这张关卡。": "Could not switch to this level.",
+    "厨房还没连上，请稍等再试。": "The kitchen is not connected yet; try again in a moment.",
+    "出餐口和脏盘回收要贴着外墙摆": "Serving windows and the plate return go against the outer wall",
+    "按住拖动能连续摆；在同种设备上再点一下就擦掉；选「擦除」能拖着成片擦。外圈是墙，不能放东西；出餐口和脏盘回收只能贴着外墙摆。里面也可以画墙。": "Drag to place in a row; click a station of the kind you hold again to remove it; with Erase, drag to clear an area. The outer wall is wall and holds nothing; serving windows and the plate return go only against it. You can draw walls inside too.",
+    "自制关卡": "My level",
+    "编辑这张关卡": "Edit this level",
+    "一个人也能过": "one player can pass",
+    "需要两个人配合": "needs both chefs",
+    "Enter 开始": "Enter Start",
+    "测试": "Test",
+    "测试功能，不是正式玩法，以后可能调整。": "A test feature, not part of the regular game; it may change.",
+    "沟通 · 1–6 / 点击（测试功能）": "Communicate · 1–6 / Click (test feature)",
+    "这是测试中的功能，不是正式玩法，以后可能调整。打开左下角沟通菜单，点击偏好即可发送；“你做错了”是独立的红色描边按钮。也可按 1–5 表达偏好、按 6 纠错。共用 5 个实际秒冷却，暂停时也可发送。最新偏好只在本局有效；AI 在下一次正常请求中收到，自行判断如何配合，不强制分工或停止动作。纠错附带当时动作信息，但不指定正确答案。": "This is a test feature, not part of the regular game; it may change. Click a preference in the bottom-left menu, or the separate red-outlined correction button. Shortcuts: 1–5 for preferences, 6 for correction. All share a 5-real-second cooldown; messages also work while paused. The latest preference applies only to this round. The AI receives it in its next regular request and decides how to cooperate; jobs and roles are not forced. Corrections include action context, not a prescribed solution.",
+    "这是测试中的功能，不是正式玩法，以后可能调整。打开左下角沟通菜单，点击即可告诉 AI 由你来做哪类工作；“你做错了”是独立的红色描边按钮。也可按 1–5 说明分工、按 6 纠错。共用 5 个实际秒冷却，暂停时也可发送。最新的说明只在本局有效；AI 在下一次正常请求中收到，自行判断如何配合，不强制分工或停止动作。纠错附带当时动作信息，但不指定正确答案。": "This is a test feature, not part of the regular game; it may change. In the bottom-left menu, click to tell the AI which work you will do, or use the separate red-outlined correction button. Shortcuts: 1–5 to say who does what, 6 for correction. All share a 5-real-second cooldown; messages also work while paused. The latest message applies only to this round. The AI receives it in its next regular request and decides how to cooperate; jobs and roles are not forced. Corrections include action context, not a prescribed solution.",
+    "我来备菜": "I'll prep ingredients",
+    "我来烹饪": "I'll cook",
+    "我来摆盘": "I'll plate",
+    "我来传菜": "I'll carry / serve",
+    "我来洗盘子": "I'll wash dishes",
+    "还没说分工": "No split said yet",
+    "玩自制关卡时：这张关卡的完整设计，包括你起的关卡名和菜名": "When you play a level you made: its full design, including the level and dish names you gave it",
+    "厨房里能做": "The kitchen can make",
+    "厨房里还做不了": "Not yet in this kitchen",
+    "这里只能选厨房里做得出来的食材。一样食材要有它的食材箱，要切的还得有案板，要下锅的还得有对应的灶台。想用别的食材，先回第 1 步把这些摆上。": "Only ingredients this kitchen can make are offered here. Each needs its box; one that is chopped also needs a board, and one that is cooked needs the right stove. To use another ingredient, place these in step 1 first.",
+    "计划模式（测试）": "Plan mode (trial)",
+    "计划模式说明": "About plan mode",
+    "Jeff 会先定下接下来负责哪一段，用来减少来回倒腾": "Jeff settles on the part of the work it takes next, to cut down on back-and-forth",
+    "请在开局前或结算后修改计划模式。": "Change plan mode before a round or after the results.",
+    "计划模式设置无效。": "Invalid plan mode setting.",
     "本局进行中；结束本局后可以修改。": "A round is in progress; change this after it ends.",
-    "下一局起，Jeff 会选择自己的计划。": "From the next round, Jeff chooses its own plan.",
-    "下一局起不再询问计划。": "From the next round, Jeff is no longer asked for a plan.",
+    "下一局起开启计划模式。": "Plan mode is on from the next round.",
+    "下一局起关闭计划模式。": "Plan mode is off from the next round.",
     "Jeff：还没选计划": "Jeff: no plan yet",
+    "默认开启。Jeff 没有计划时，会在决定下一步动作的同时，选定接下来负责哪一段：备料、加热、装盘出餐、收洗盘或随机应变。计划约 12 秒有效；你发了新的分工说明，或者这一段现在没事可做，就提前结束，Jeff 再重新选。计划不限制 Jeff 的动作，它每次仍从全部可选动作里选。沟通菜单里能看到 Jeff 当前的计划。开局前或结算后可以在「设置 → AI 搭档」里关掉，一局内不变。": "On by default. While Jeff has no plan, it picks the part of the work it takes on next along with its next action: prep, cooking, plating and serving, plates, or flexible. A plan holds for about 12 seconds; it ends early when you send a new message about who does what, or when that part has nothing to do right now, and Jeff picks again. The plan does not limit Jeff's actions; it still chooses from every available action each time. The communication menu shows Jeff's current plan. Turn it off in Settings → AI teammate before a round or after the results; it stays the same during a round.",
     "一起改进 Jeff？": "Help improve Jeff?",
     "游戏会记录每一局的操作和模型的选择，但不包含 Key、IP、账号等个人信息。相关研究发表后，去掉身份信息的数据可能公开。": "The game records your moves and the model's choices in every round, but no personal information such as API keys, IP addresses or accounts. Once the research is published, the data may be made public with identifying information removed.",
     "使用免费模型需要贡献对局数据。": "Free models require contributing your round data.",
@@ -1328,10 +1475,6 @@
       "{0} expired -¥{1}"
     ],
     [
-      "{0} · 当前",
-      "{0} · current"
-    ],
-    [
       "熟 {0}",
       "cooked {0}"
     ],
@@ -1608,8 +1751,8 @@
       "¥{0} short · {1} orders served"
     ],
     [
-      "✓ 已达成 · 最佳 ¥{0}",
-      "✓ Reached · best ¥{0}"
+      "★ 已达成 · 最佳 ¥{0}",
+      "★ Reached · best ¥{0}"
     ],
     [
       "未达成 · 最佳 ¥{0}",
@@ -1654,6 +1797,218 @@
     [
       "{0} 接口返回 HTTP {1}，请检查账号和模型。",
       "{0} API returned HTTP {1}. Check your account and model."
+    ],
+    [
+      "切好后放进{0}加热",
+      "Chop, then heat in the {0}"
+    ],
+    [
+      "直接放进{0}加热",
+      "Heat in the {0} as it comes"
+    ],
+    [
+      "灶台·{0}",
+      "Stove · {0}"
+    ],
+    [
+      "{0}食材箱",
+      "{0} box"
+    ],
+    [
+      "墙把厨房隔成了 {0} 块，隔开的两边没法传递东西",
+      "Walls cut the kitchen into {0} parts; nothing passes between them"
+    ],
+    [
+      "地板被隔成了 {0} 块，两位厨师最多各管一块",
+      "The floor is in {0} parts; two chefs can each work one at most"
+    ],
+    [
+      "还缺：{0}",
+      "Missing: {0}"
+    ],
+    [
+      "{0}只能有 1 个，现在有 {1} 个",
+      "Only 1 {0} allowed; there are {1}"
+    ],
+    [
+      "出餐口最多 {0} 个，现在有 {1} 个",
+      "At most {0} serving windows; there are {1}"
+    ],
+    [
+      "柜台至少 {0} 个，用来放开局的盘子",
+      "At least {0} counters, for the starting plates"
+    ],
+    [
+      "{0}跟前没有地方站，人够不着",
+      "{0}: nowhere to stand in front, so nobody can reach it"
+    ],
+    [
+      "第 {0} 道菜还没起名",
+      "Dish {0} has no name yet"
+    ],
+    [
+      "第 {0} 道菜还没选配料",
+      "Dish {0} has no ingredients yet"
+    ],
+    [
+      "第 {0} 道菜的价格要在 {1} 到 {2} 元之间",
+      "Dish {0} must cost {1} to {2}"
+    ],
+    [
+      "第 {0} 道菜和第 {1} 道菜的配料一样，端上去分不清",
+      "Dishes {0} and {1} have the same ingredients and could not be told apart"
+    ],
+    [
+      "排在第 {0} 位",
+      "Number {0} in line"
+    ],
+    [
+      "小 {0}×{1}",
+      "Small {0}×{1}"
+    ],
+    [
+      "中 {0}×{1}",
+      "Medium {0}×{1}"
+    ],
+    [
+      "大 {0}×{1}",
+      "Large {0}×{1}"
+    ],
+    [
+      "还有 {0} 处要改",
+      "{0} things to fix"
+    ],
+    [
+      "¥{0} · {1} 样配料",
+      "¥{0} · {1} ingredients"
+    ],
+    [
+      "最多 {0} 道菜。每 {1} 秒来一单，菜单上的菜轮流出现。",
+      "Up to {0} dishes. An order comes every {1} s, the menu dishes in turn."
+    ],
+    [
+      "菜名只显示给人看，最多 {0} 个字。",
+      "Only people see the dish name, up to {0} characters."
+    ],
+    [
+      "配料（最多 {0} 样，做法由食材决定）",
+      "Ingredients (up to {0}; each is prepared its own way)"
+    ],
+    [
+      "第 {0} 样",
+      "No. {0}"
+    ],
+    [
+      "第 {0} 样配料",
+      "Ingredient {0}"
+    ],
+    [
+      "便宜 {0} 元",
+      "{0} cheaper"
+    ],
+    [
+      "贵 {0} 元",
+      "{0} dearer"
+    ],
+    [
+      "按做法算的建议价 ¥{0}",
+      "Suggested price ¥{0}"
+    ],
+    [
+      "{0} 到 {1} 元，每档 {2} 元。建议价 = {3} + 每样配料 {4} + 每样要下锅的再加 {5}。",
+      "{0} to {1} in steps of {2}. Suggested price = {3} + {4} per ingredient + {5} more for each one that is heated."
+    ],
+    [
+      "切和煮一共 {0} 秒 → 最多等 {1} 秒",
+      "{0} s of chopping and cooking → waits up to {1} s"
+    ],
+    [
+      "按工时的 {0} 倍算，在 {1} 到 {2} 秒之间。",
+      "{0} times the work time, between {1} and {2} s."
+    ],
+    [
+      "已摆：{0}",
+      "Placed: {0}"
+    ],
+    [
+      "{0} 台设备",
+      "{0} stations"
+    ],
+    [
+      "每 {0} 秒一单，菜单上的菜轮流出现",
+      "An order every {0} s, the menu dishes in turn"
+    ],
+    [
+      "每道菜最多等 {0} 秒",
+      "Each dish waits up to {0} s"
+    ],
+    [
+      "开局 {0} 个，用过要洗了再用",
+      "{0} at the start; wash them to reuse"
+    ],
+    [
+      "{0} 分钟，关店时看净收入",
+      "{0} minutes; net income counts at closing"
+    ],
+    [
+      "规则、走路速度和切煮时间都和官方关卡一样，不能改。服务器让两个脚本厨师照这张关卡试做 {0} 局，取收入中位数的一半作为目标。",
+      "The rules, walking speed and chop and cook times are those of the official levels and cannot change. The server has two scripted chefs play this level {0} times and sets the target at half their median income."
+    ],
+    [
+      "一共试做 {0} 局，大约 1 分钟。服务器只告诉我们“在算”和“算完了”，所以这里不画进度条。",
+      "{0} rounds in all, about a minute. The server only says \"running\" or \"done\", so there is no progress bar."
+    ],
+    [
+      "{0} 局收入中位数 ¥{1}，目标取一半",
+      "Median income of {0} rounds ¥{1}; the target is half"
+    ],
+    [
+      "中位数 ¥{0} · {1}",
+      "Median ¥{0} · {1}"
+    ],
+    [
+      "两个脚本厨师 {0} 局一道菜都没做出来。",
+      "In {0} rounds the two scripted chefs served no dish."
+    ],
+    [
+      "{0}要贴着外墙摆",
+      "{0}: put it against the outer wall"
+    ],
+    [
+      "{0}只能贴着外墙摆，点有橙色边框的格子",
+      "{0} only goes against the outer wall: click a cell with an orange border"
+    ],
+    [
+      "目标：关店时净收入 ¥{0} · 一个人也能过",
+      "Goal: net revenue ¥{0} at closing · one player can pass"
+    ],
+    [
+      "目标：关店时净收入 ¥{0} · 需要两个人配合",
+      "Goal: net revenue ¥{0} at closing · needs both chefs"
+    ],
+    [
+      "Enter 开始 · 搭档：{0}",
+      "Enter Start · Teammate: {0}"
+    ],
+    [
+      "已说：{0}",
+      "Said: {0}"
+    ],
+    [
+      "{0}（缺{1}）",
+      "{0} (needs {1})"
+    ],
+    [
+      "厨房里还缺{0}",
+      "The kitchen still needs {0}"
+    ],
+    [
+      "菜单没用上：{0}",
+      "Not on the menu: {0}"
+    ],
+    [
+      "送错 -¥{0}",
+      "Wrong dish -¥{0}"
     ],
     [
       "Jeff：备料 · 还剩 {0} 秒",

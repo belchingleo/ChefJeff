@@ -47,6 +47,8 @@ function harness(saved=null, fail=false, gameState={game_id:'round',phase:'ready
 
 // Execute the real key handler and state poll with rendering stubbed out. Check both
 // TypeScript source and the included web runtime so a stale build cannot hide a fix.
+// KitchenGeometry as the client tests see it, from source and from the bundle alike.
+const TEST_GRID={tile:48,originX:0,originY:0};
 function clientHarness(h, fromSource){
  class UITransform {setContentSize(width,height){this.width=width;this.height=height;}}
  class Color {
@@ -76,7 +78,7 @@ function clientHarness(h, fromSource){
    _decorator:{ccclass:()=>cls=>cls},cclegacy:{_RF:{push:()=>{},pop:()=>{}}}};
  h.cc=cc;
  const art={LevelOneArt:class{}},audio={KitchenAudio:class{onState(){}play(){}}};
- const geometry={GRID_ART:{tile:48,originX:0,originY:0}};
+ const geometry={GRID_ART:TEST_GRID};
  const context=vm.createContext({...cc,...art,...audio,...geometry,window:h.w,document:h.document,
    URLSearchParams,location:{search:''},Event:class{constructor(type){this.type=type;}},
    CustomEvent:class{constructor(type,options={}){this.type=type;this.detail=options.detail;}}});
@@ -426,6 +428,15 @@ async function checkClientTouchBridge(fromSource){
  assert(Number.isFinite(world.scale.x)&&world.scale.x>0&&Number.isFinite(world.position.x)&&Number.isFinite(world.position.y),'phone kitchen transform stays finite');
  client.touchLayout.active=false;client.applyTouchLayout();
  assert.equal(camera.active,true);assert.equal(audio.active,true);assert.equal(cover.active,true);assert.equal(hud.active,true,'desktop layout restores HUD visibility');
+ // On a computer a player's room larger than the 14x9 board shrinks to fit it, centred on the board.
+ const fit=9/11,{tile:T,originX:X0,originY:Y0}=TEST_GRID;
+ const centre=(w,h,s,p)=>[(X0+w*T/2-640)*s+p.x,(360-Y0-h*T/2)*s+p.y];
+ assert.deepEqual({...world.scale},{x:fit,y:fit,z:1},'a 15x11 room fits the 14x9 board');
+ centre(15,11,fit,world.position).forEach((v,i)=>assert(Math.abs(v-centre(14,9,1,{x:0,y:0})[i])<1e-9,'the shrunk room is centred on the board'));
+ // A room of the default size, every official level, is drawn as it is, also after the phone layout.
+ client.state.kitchen.map.width=14;client.state.kitchen.map.height=9;
+ client.touchLayout.active=true;client.applyTouchLayout();assert.notEqual(world.scale.x,1);
+ client.touchLayout.active=false;client.applyTouchLayout();
  assert.deepEqual({...world.scale},{x:1,y:1,z:1});assert.deepEqual({...world.position},{x:0,y:0});
  // The transport error path restores the desktop reconnect cover. It must then
  // apply the phone layout too, while publishing the disconnected HTML state.
@@ -567,6 +578,23 @@ function checkResultContinuation(fromSource){
  client.startNext('level-2');client.state.game_id='changed';while(queued.length)queued.shift()();assert.equal(posted.length,1);
  assert.equal(client.countdown,0,'A stale countdown must not act on the new round.');
 }
+function checkLevelPlateNext(fromSource){
+ const h=harness(),client=clientHarness(h,fromSource),opened=[],posted=[];
+ const plate={game_id:'plate',phase:'ready',kitchen:{level_id:'level-2'},
+  levels:[{id:'level-2',name:'汉堡',menu_order:2},{id:'level-1',name:'牛排',menu_order:1}]};
+ client.state=plate;client.coverEvent=(name,detail)=>opened.push([name,detail]);client.post=(path,body)=>posted.push({path,body});
+ // On the last official level ▶ (and →) opens the player's own levels where this server calibrates them.
+ client.editorReady=()=>false;client.stepLevel(1);
+ assert.equal(client.nextOpensEditor(),false);assert.equal(opened.length+posted.length,0,'Without the editor ▶ stays put.');
+ client.editorReady=()=>true;assert.equal(client.nextOpensEditor(),true);client.stepLevel(1);
+ assert.equal(JSON.stringify(opened),JSON.stringify([['kitchen-open-editor',{from:'card'}]]));assert.equal(posted.length,0);
+ client.stepLevel(-1);assert.equal(JSON.stringify(posted),JSON.stringify([{path:'/api/level',body:{level:'level-1'}}]));
+ // Before the last level ▶ still changes level; a player's level and a running round have no ▶.
+ client.state={...plate,kitchen:{level_id:'level-1'}};assert.equal(client.nextOpensEditor(),false);
+ client.state={...plate,player_level:{id:'player-1'}};client.stepLevel(1);
+ client.state={...plate,phase:'running'};client.stepLevel(1);
+ assert.equal(opened.length,1);assert.equal(posted.length,1);
+}
 const cfg={provider:'deepseek',model:'test-model',api_key:key,remember:false};
 function settingsHarness(){
  const html=fs.readFileSync('cocos-kitchen/web-shell.html','utf8');
@@ -585,7 +613,7 @@ function settingsHarness(){
  return {el,listeners,requests:()=>requests};
 }
 (async()=>{
- checkResultContinuation(true);checkResultContinuation(false);
+ checkResultContinuation(true);checkResultContinuation(false);checkLevelPlateNext(true);checkLevelPlateNext(false);
  let h=harness();await h.w.fetch('/api/state');
  // Local-only services (hosted: none) and placeholders are not offered online.
  for(const provider of ['zhipu','decision3'])assert.notEqual((await h.w.fetch('/api/connection',{method:'POST',body:JSON.stringify({...cfg,provider})})).status,200);

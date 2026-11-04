@@ -14,7 +14,7 @@ const LOOPS:[string,string,number,number,boolean][]=[
 ];
 const MUSIC=['bgm_menu','bgm_service','bgm_rush'];
 const EVENT_SOUNDS:Record<string,string>={order:'order_new',ready:'food_ready',burn:'burnt_warn',fire:'fire_ignite',
-    fire_spread:'fire_spread',served:'serve_ok',bad_service:'serve_bad',expired:'order_expired',thrown:'throw',
+    fire_spread:'fire_spread',served:'serve_ok',wrong_dish:'serve_bad',dish_rejected:'serve_bad',bad_service:'serve_bad',expired:'order_expired',thrown:'throw',
     caught:'catch',dropped:'land',plate_returned:'plate_return'};
 const board=(id?:string|null)=>!!id&&id.startsWith('b')&&!id.startsWith('bin');
 const cooking=(stage?:string)=>!!stage&&/^(pot_)?(cooking|chopped|ready|burnt)$/.test(stage);
@@ -145,7 +145,7 @@ export class KitchenAudio {
                 else if(EVENT_SOUNDS[e.kind])this.play(EVENT_SOUNDS[e.kind]);
             }
             if(this.seen.size>80)this.seen=new Set(Array.from(this.seen).slice(-40));
-            const skip=new Set(events.filter((e:any)=>['thrown','dropped','interrupted','served','bad_service'].includes(e.kind)).map((e:any)=>e.actor));
+            const skip=new Set(events.filter((e:any)=>['thrown','dropped','interrupted','served','wrong_dish','dish_rejected','bad_service'].includes(e.kind)).map((e:any)=>e.actor));
             for(const who of Object.keys(k.chefs))if(!skip.has(who))this.chefChange(prev.kitchen.chefs[who],k.chefs[who]);
             this.stationChanges(prev.kitchen,k);
             for(const o of k.orders||[])

@@ -25,6 +25,11 @@ METRICS = {'records': ('贡献记录数', '条'), 'avg_duration': ('平均记录
            'win_rate': ('已结束贡献胜率', '%'), 'complete_rate': ('完整记录率', '%')}
 
 
+def level_label(level):
+    """Level 0 holds every level a player built (levels.PLAYER_LEVEL in the game)."""
+    return '玩家关卡' if level == 0 else '第 '+str(level)+' 关'
+
+
 class RecordGone(Exception):
     pass
 
@@ -243,7 +248,7 @@ def group_label(row, group):
         except ValueError:
             return '未知日期'
     if group == 'level':
-        return '第 '+str(row['level'])+' 关' if row['level'] is not None else '未知关卡'
+        return level_label(row['level']) if row['level'] is not None else '未知关卡'
     if group == 'model':
         return ' / '.join(str(row.get(k) or '') for k in ('conditions.model_identity.provider','conditions.model_identity.model_id')).strip(' /') or '未知模型'
     if group == 'quality':
@@ -300,7 +305,7 @@ def analysis(database, selected, group, metric, refs=None):
         groups.append({'label': label, 'records': len(values), 'eligible': len(valid), 'excluded': len(values)-len(valid),
                        'value': (sum(valid) if metric=='records' else sum(valid)/len(valid)) if valid else None})
     description=[SITES.get(selected.get('site'),'全部站点')]
-    if 'level' in selected:description.append('第 '+str(selected['level'])+' 关')
+    if 'level' in selected:description.append(level_label(selected['level']))
     if 'since' in selected or 'until' in selected:
         description.append('UTC ['+selected.get('since','不限')[:10]+', '+selected.get('until','不限')[:10]+')')
     return {'group': group, 'metric': metric, 'group_label': GROUPS[group], 'metric_label': METRICS[metric][0],

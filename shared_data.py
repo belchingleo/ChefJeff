@@ -12,7 +12,7 @@ import threading
 import time
 
 from hosted_records import ContributionStore, CONSENT_VERSION, RETENTION_SECONDS
-from hosted_usage import COUNTERS, OUTCOMES, DURATION_BUCKETS, UsageStats
+from hosted_usage import COUNTERS, OUTCOMES, DURATION_BUCKETS, LEVELS, UsageStats
 
 
 def encode(value):
@@ -106,23 +106,26 @@ def validate_usage(value):
         return type(n) in (int, float) and math.isfinite(n) and 0 <= n <= 10**15
     if not isinstance(counts, dict) or set(counts) != set(COUNTERS) or not all(integer(n) for n in counts.values()):
         raise ValueError('Invalid counters')
-    if not isinstance(levels, list) or len(levels) != 3:
+    # A region on an older release reports levels 1-3 only, without the player-level row.
+    if not isinstance(levels, list) or len(levels) not in (len(LEVELS) - 1, len(LEVELS)):
         raise ValueError('Invalid levels')
     seen = set()
     for row in levels:
         if (not isinstance(row, dict) or set(row) != {'level', 'started_rounds', 'completed_rounds'}
-                or type(row['level']) is not int or row['level'] not in (1, 2, 3) or row['level'] in seen
+                or type(row['level']) is not int or row['level'] not in LEVELS or row['level'] in seen
                 or not all(integer(row[k]) for k in ('started_rounds', 'completed_rounds'))):
             raise ValueError('Invalid level aggregate')
         seen.add(row['level'])
-    if not isinstance(durations, list) or len(durations) > 126:
+    if not {1, 2, 3} <= seen:
+        raise ValueError('Invalid levels')
+    if not isinstance(durations, list) or len(durations) > len(LEVELS) * len(OUTCOMES) * len(DURATION_BUCKETS):
         raise ValueError('Invalid durations')
     seen = set()
     for row in durations:
         if not isinstance(row, dict) or set(row) != {'level', 'outcome', 'bucket', 'rounds', 'game_seconds', 'active_seconds'}:
             raise ValueError('Invalid duration aggregate')
         key = (row['level'], row['outcome'], row['bucket'])
-        if (type(row['level']) is not int or row['level'] not in (1, 2, 3)
+        if (type(row['level']) is not int or row['level'] not in LEVELS
                 or row['outcome'] not in OUTCOMES or row['bucket'] not in {b for _, b in DURATION_BUCKETS}
                 or key in seen or not integer(row['rounds']) or row['rounds'] == 0
                 or not number(row['game_seconds']) or not number(row['active_seconds'])):

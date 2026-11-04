@@ -10,7 +10,7 @@ Use a desktop/laptop browser with a keyboard and mouse, or try the experimental 
 | Hold Space | Holding a throwable item, hold for about 0.3 s to aim, whether facing a station or open floor. Turn with the direction keys and release to throw (to the partner when that way in range) |
 | Esc or P / Ⅱ / ▶ / ■ | Esc or P pauses and resumes (P for keyboards without Esc, such as iPad) / pause / resume / end early (asks to confirm; restarting from pause also confirms) |
 | Enter | Bookmark a moment; nearby marks merge into intervals |
-| 1–5 / 6 | Cooperation preference / perceived mistake, with a shared cooldown; the dock (open by default) also takes clicks |
+| 1–5 / 6 | Which work you will do ("I'll cook"; a test feature) / perceived mistake, with a shared cooldown; the dock (open by default) also takes clicks |
 | Settings | Provider connection, language, next-round call limit, local memory, feedback |
 
 ## Experimental desktop controller
@@ -65,7 +65,7 @@ Hosted Settings additionally offer explicit contribution after the round (or, af
 | 按住空格 | 手持可投掷物品时，面前是工位或空地都能按住约 0.3 秒瞄准：方向键改方向，松开扔出（队友在这个方向的射程内则扔给他） |
 | Esc 或 P／Ⅱ／▶／■ | Esc 或 P 暂停与继续（P 用于没有 Esc 键的键盘，如 iPad）／暂停／继续／提前结束（需确认；暂停中重新开局也需确认） |
 | Enter | 标记时刻，相近标记合并为区间 |
-| 1–5／6 | 协作偏好／玩家认为出错，共用冷却；沟通面板默认展开，也可以用鼠标点 |
+| 1–5／6 | 由你来做哪类工作（“我来烹饪”，测试功能）／玩家认为出错，共用冷却；沟通面板默认展开，也可以用鼠标点 |
 | 设置 | 接口连接、语言、下一局调用上限、本地记忆、反馈 |
 
 ## 试验版桌面手柄

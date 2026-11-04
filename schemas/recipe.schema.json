@@ -247,7 +247,10 @@
       ],
       "properties": {
         "name": {
-          "$ref": "common.schema.json#/$defs/display_name"
+          "description": "Display name. A player's dish is named by its components in English (level_calibration), so it may run longer than other names.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
         },
         "container": {
           "const": "plate"

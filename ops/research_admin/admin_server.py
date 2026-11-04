@@ -86,7 +86,7 @@ def filters(query):
         raise ValueError('开始日期不能晚于结束日期。')
     level = query.get('level', [''])[0]
     if level:
-        if not re.fullmatch(r'[1-9][0-9]{0,5}', level):
+        if not re.fullmatch(r'0|[1-9][0-9]{0,5}', level):
             raise ValueError('不支持的关卡。')
         result['level'] = int(level)
     schema = query.get('schema', [''])[0]

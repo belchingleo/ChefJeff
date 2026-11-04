@@ -13,7 +13,7 @@ import mimetypes
 import threading
 import traceback
 import time
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 import uuid
 import webbrowser
 
@@ -34,12 +34,14 @@ IDLE_TICK_SECONDS = 1.
 # Gameplay commands whose reply carries the resulting state.
 STATE_REPLIES = ('/api/interact', '/api/throw', '/api/action')
 
+# The human's 1-5 say who will do the work (owner decision 2026-10-30, rules-v7): in a replay of Jev's
+# choices the first-person "I prefer cooking." made Jeff likelier to do the very work the human claimed.
 PLAYER_MESSAGES = {
-    'prep': 'I prefer preparing ingredients.',
-    'cook': 'I prefer cooking.',
-    'plate': 'I prefer plating and assembling dishes.',
-    'deliver': 'I prefer carrying ingredients and dishes between stations and serving customers.',
-    'wash': 'I prefer washing dishes.',
+    'prep': 'Chef human will prepare the ingredients.',
+    'cook': 'Chef human will do the cooking.',
+    'plate': 'Chef human will plate and assemble the dishes.',
+    'deliver': 'Chef human will carry ingredients and dishes between stations and serve customers.',
+    'wash': 'Chef human will wash the dishes.',
     'mistake': 'You made a mistake. Please reassess your recent or current action.'
 }
 
@@ -62,6 +64,9 @@ class GameSession:
         self.wake = threading.Event()
         self.k = self.kitchen_factory(self.c)
         self.c = self.k.c
+        # A calibrated player level replaces the listed level until another is chosen (player_level_entry).
+        self.player_level = None
+        self.pending_player_level = None
         self.game_id = uuid.uuid4().hex
         self.phase = 'ready'
         self.faulted = False
@@ -273,6 +278,10 @@ class GameSession:
                     'won': self.k.won() and not self.k.aborted if self.phase == 'ended' else False,
                     'round_summary': self.round_record() if self.phase == 'ended' else None,
                     'levels': available_levels(),
+                    'player_level': {'id': self.k.resolved['level']['id'], 'name': self.player_level['name'],
+                                     'names': self.player_level['names'], 'looks': self.player_level['looks'],
+                                     **{key: self.player_level['report'][key] for key in ('target', 'solo_reaches_target')}}
+                                    if self.player_level else None,
                     'rules': {key:self.c[key] for key in ('chop_seconds', 'cook_seconds', 'burn_after_ready',
                               'fire_after_burn', 'order_patience', 'round_seconds', 'order_count')}}
 
@@ -493,11 +502,25 @@ class GameSession:
             if hasattr(self, '_record_context_close'): self._record_context_close('next_level')
             self._finish(aborted=self.phase!='ended')
             self.c=level_config({**self.base_config, **{key:self.c[key] for key in ('ai_max_calls','ai_max_response_age','model')}},level)
+            self.player_level=None
+            return self._command('/api/reset',{})
+        if path == '/api/player-level/play':
+            if self.pending_player_level is None:
+                return 404,{'error':'没有校准好的这张关卡。'}
+            if self.phase not in ('ready','ended') or not hasattr(self.k,'nav'):
+                return 409,{'error':'Choose a level before starting or after the round ends.'}
+            if hasattr(self, '_record_context_close'): self._record_context_close('next_level')
+            self._finish(aborted=self.phase!='ended')
+            self.player_level=self.pending_player_level
             return self._command('/api/reset',{})
         if path == '/api/next':
             if self.phase != 'ended':
                 return 409, {'error': '本局结束后才能进入下一关。'}
             speed = self.speed
+            # Again on a player's level: its id is not a listed level, and a restart keeps the level.
+            asked = body.get('level')
+            if self.player_level and asked == self.k.resolved['level']['id']:
+                return self._command('/api/restart', {})
             result = self._command('/api/level', {'level': body.get('level')})
             if result[0] != 200:return result
             return self._command('/api/start', {'speed': speed})
@@ -582,10 +605,15 @@ class GameSession:
             if hasattr(self, '_record_context_close'): self._record_context_close(self.round_close_reason)
             self._finish(aborted=self.phase != 'ended')
             # Unconfigured seeds are drawn again when the new round is frozen.
-            self.k = self.kitchen_factory(self.c)
+            if self.player_level:
+                carried = {key: self.c[key] for key in ('ai_max_calls', 'ai_max_response_age', 'model') if key in self.c}
+                self.k = self.kitchen_factory(deepcopy(self.player_level['config']))
+                self.c = {**self.k.c, **carried}
+            else:
+                self.k = self.kitchen_factory(self.c)
+                self.c = self.k.c
             self.game_backlog = 0.
             self.ticks = 0
-            self.c = self.k.c
             self.move_seq = -1
             self.position_seq = -1
             self.move_until = 0.
@@ -709,6 +737,36 @@ class GameSession:
         return 404, {'error':'没有这个操作。'}
 
 
+# A player's level (map, inventory, dishes and menu) is larger than any game command.
+PLAYER_LEVEL_BODY = 65536
+
+
+def player_level_submission(body):
+    """(level bundle, None) from a submit body: an editor design (level_design) or a level bundle; else (None, reply)."""
+    if isinstance(body.get('design'), dict) and 'level' not in body:
+        from level_design import bundle
+        from player_level_queue import summary
+        level, problems = bundle(body['design'])
+        return (level, None) if level else (None, (400, {'state': 'refused', **summary({'diagnostics': problems})}))
+    if isinstance(body.get('level'), dict) and 'design' not in body:
+        return body['level'], None
+    return None, (400, {'error': '请求格式无效。'})
+
+
+def player_level_entry(found):
+    """What a session needs to play a calibrated level (player_level_queue.result), or an error reply."""
+    if not found:
+        return None, (404, {'error': '没有校准好的这张关卡。'})
+    level, report = found
+    if not report.get('playable'):
+        return None, (409, {'error': '这张关卡算下来不能玩。'})
+    from level_calibration import DISPLAY_NAMES, display_name, finalize, official_looks
+    from player_level_queue import summary
+    return {'config': finalize(level, report), 'report': summary(report),
+            'names': level['recipe_catalog']['extensions'][DISPLAY_NAMES], 'looks': official_looks(level),
+            'name': display_name(level['level'].get('name')) or ''}, None
+
+
 class Handler(BaseHTTPRequestHandler):
     web_root = ROOT/'web'
     static_files = {'/':'index.html','/app.js':'app.js','/style.css':'style.css'}
@@ -737,12 +795,34 @@ class Handler(BaseHTTPRequestHandler):
         origin=self.headers.get('Origin')
         return not origin or origin in ('http://'+host for host in hosts)
 
+    def player_levels(self):
+        """The server's calibration queue (player_level_queue), or None when it does not offer one."""
+        return getattr(self.server, 'player_levels', None)
+
+    def player_level_catalog(self):
+        """The editor's rules and ingredients (level_design.editor_catalog), where players' levels are offered."""
+        if self.player_levels() is None:
+            return self.reply(404, {'error': '页面不存在。'})
+        from level_design import editor_catalog
+        return self.reply(200, editor_catalog())
+
+    def player_level_status(self, owner='local'):
+        queue = self.player_levels()
+        if queue is None:
+            return self.reply(404, {'error': '页面不存在。'})
+        job = parse_qs(urlparse(self.path).query).get('job', [''])[0]
+        return self.reply(*queue.status(owner, job))
+
     def do_GET(self):
         if not self.local_request():
             return self.reply(403,{'error':'仅允许本机页面访问。'})
         path=urlparse(self.path).path
         if path=='/api/state':
             return self.reply(200,self.server.game.public_state())
+        if path=='/api/player-level/catalog':
+            return self.player_level_catalog()
+        if path=='/api/player-level/status':
+            return self.player_level_status()
         files=self.static_files
         if path not in files:
             return self.reply(404,{'error':'页面不存在。'})
@@ -755,16 +835,38 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply(403,{'error':'仅允许本机页面操作。'})
         if not self.headers.get('Content-Type','').startswith('application/json'):
             return self.reply(415,{'error':'需要 JSON 请求。'})
+        path=urlparse(self.path).path
         try:
             n=int(self.headers.get('Content-Length','0'))
-            if not 0<n<=8192:
+            if not 0<n<=(PLAYER_LEVEL_BODY if path=='/api/player-level/submit' else 8192):
                 raise ValueError()
             body=json.loads(self.rfile.read(n))
             if not isinstance(body,dict):
                 raise ValueError()
         except (ValueError, json.JSONDecodeError):
             return self.reply(400,{'error':'请求格式无效。'})
-        status,data=self.server.game.command(urlparse(self.path).path,body)
+        if path=='/api/player-level/submit':
+            queue=self.player_levels()
+            if queue is None:
+                return self.reply(404,{'error':'页面不存在。'})
+            level,error=player_level_submission(body) if not set(body)-{'level','design','game_id','request_id'} else (None,(400,{'error':'请求格式无效。'}))
+            if error:
+                return self.reply(*error)
+            return self.reply(*queue.submit('local',level))
+        game=self.server.game
+        if path=='/api/player-level/play':
+            queue=self.player_levels()
+            entry,error=player_level_entry(queue and queue.result('local',body.get('job')))
+            if error:
+                return self.reply(*error)
+            with game.lock:
+                game.pending_player_level=entry
+                try:
+                    status,data=game.command(path,body)
+                finally:
+                    game.pending_player_level=None
+            return self.reply(status,data)
+        status,data=game.command(path,body)
         self.reply(status,data)
 
 

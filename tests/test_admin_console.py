@@ -248,7 +248,9 @@ class InstallationLifecycleTests(unittest.TestCase):
         (self.bundle/'manifest.json').write_text(json.dumps(manifest))
         self.release=mapped('/opt/chefjeff/releases/china-en-v4-269d7af296be/chefjeff-web-demo')
         (self.release/'scripts').mkdir(parents=True)
-        (self.release/'scripts/research_export.py').write_bytes((RELEASE/'scripts/research_export.py').read_bytes())
+        # The exporter that installer checked for the shipped v2 release, whatever the repository's is now.
+        checked=b'# research_export.py as checked for the fixed v2 release\n'
+        (self.release/'scripts/research_export.py').write_bytes(checked)
         mapped('/opt/chefjeff/current').symlink_to(self.release,target_is_directory=True)
         self.site=mapped('/etc/nginx/sites-available/game');self.site.parent.mkdir(parents=True)
         self.original='server { listen 443 ssl; server_name chefjeff.belchingleo.online; location / { return 200 "game"; } }\n'
@@ -265,7 +267,8 @@ class InstallationLifecycleTests(unittest.TestCase):
             patch.object(installer.socket,'gethostname',return_value='VM-0-5-ubuntu'),
             patch.object(installer.shutil,'chown'),patch.object(installer,'run'),
             patch.object(installer,'service_pid',return_value='123'),patch.object(installer,'local_check'),
-            patch.object(installer,'https_check'),patch.object(installer.subprocess,'run')]
+            patch.object(installer,'https_check'),patch.object(installer.subprocess,'run'),
+            patch.object(installer,'SOURCE_EXPORTER_SHA',hashlib.sha256(checked).hexdigest())]
         self.mocks=[p.start() for p in self.patchers]
         self.commands=self.mocks[8]
 
@@ -299,6 +302,11 @@ class InstallationLifecycleTests(unittest.TestCase):
         self.assertEqual(self.site.read_text(),self.original)
         self.assertFalse(self.unit.exists())
         self.assertEqual(installer.Path('/opt/chefjeff/current').resolve(),self.release)
+
+    def test_refuse_an_exporter_other_than_the_checked_one(self):
+        (self.release/'scripts/research_export.py').write_bytes(b'# a later exporter\n')
+        with self.assertRaisesRegex(ValueError,'研究导出程序与已核对版本不一致'):installer.prepare()
+        self.assertFalse(self.unit.exists())
 
     def test_refuse_overwriting_changed_nginx(self):
         installer.prepare()

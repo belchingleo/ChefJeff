@@ -18,7 +18,7 @@ import math
 from pathlib import Path
 import random
 
-from map_definition import MAP_ROOT, upgrade_map, validate_map
+from map_definition import MAP_ROOT, floor_parts, upgrade_map, validate_map
 import schema_check
 
 ROOT = Path(__file__).resolve().parent
@@ -422,6 +422,18 @@ def resolve_config(bundle, registry=None):
         side = center[axis] < part['split']
         if not any((c[axis] < part['split']) == side for c in floor):
             out.append(diag('SPAWN_NO_FLOOR', 'ERROR', f'/level/spawns/centers/{j}', 'no walkable floor on this side of the partition'))
+    # A floor split by counters needs a throw across it: a cell in each part within reach, no wall between.
+    parts = floor_parts(set(floor))
+    if len(parts) == 2:
+        reach, walls = ruleset['throw']['range_cells'], {tuple(w) for w in game_map['walls']}
+
+        def clear(a, b):
+            steps = max(1, int(math.dist(a, b) * 4))
+            return not any((round(a[0] + (b[0] - a[0]) * i / steps), round(a[1] + (b[1] - a[1]) * i / steps)) in walls
+                           for i in range(steps + 1))
+        if not any(math.dist(a, b) <= reach and clear(a, b) for a in parts[0] for b in parts[1]):
+            out.append(diag('FLOOR_PARTS_OUT_OF_REACH', 'ERROR', '/map/equipment',
+                            'the two parts of the floor are too far apart to throw anything across'))
     bounds = [t['max_overcook_game_ms'] for t in ruleset['burnt_service']]
     if bounds[-1] is not None or any(b is None for b in bounds[:-1]) or bounds[:-1] != sorted(bounds[:-1]):
         out.append(diag('RULESET_BURNT_TIERS', 'ERROR', '/ruleset/burnt_service',

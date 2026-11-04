@@ -15,6 +15,17 @@ def _listed():
             for d in config_contract.Registry().levels() if d.get('menu_order') is not None)
 
 
+# Every level a player built counts as level 0 in usage statistics and research records; which
+# design it was is in the record's resolved configuration (its id starts with "player-").
+PLAYER_LEVEL = 0
+
+
+def level_number(config):
+    """The listed level's number, or PLAYER_LEVEL for a level no menu lists."""
+    number = config.get('level', 1)
+    return PLAYER_LEVEL if number is None else number
+
+
 def available_levels():
     """Listed levels in menu order: [{id, name, menu_order, target}] (target: the net income goal)."""
     return [dict(entry) for entry in _listed()]

@@ -18,7 +18,7 @@ PUBLIC_FILES = ('deploy/render_region.py','deploy/install_region.py','deploy/ini
                 'docs/map-format.md','docs/current-rules.md','docs/interaction-guide.md','docs/level-1-steak.md','docs/level-2-burger.md','docs/level-3-steak-burger.md','docs/status.md','docs/privacy-and-costs.md','docs/agent-integration.md',
                 'cocos-kitchen/THIRD_PARTY_LICENSE.md','docs/art/integration.md',
                 'scripts/build_cocos.py','scripts/player_pages.py','docs/privacy.md','docs/model-guide.md','docs/cooperation-memory.md','scripts/package_web.py','scripts/audit_release.py',
-                'cocos-kitchen/web-shell.html','cocos-kitchen/touch-controls.js','cocos-kitchen/gamepad-controls.js','cocos-kitchen/i18n.js','cocos-kitchen/i18n.json','cocos-kitchen/favicon.ico','cocos-kitchen/fonts/chefjeff-pixel.woff2','cocos-kitchen/fonts/OFL.txt','scripts/subset_pixel_font.py','cocos-kitchen/package.json','cocos-kitchen/build-web.json',
+                'cocos-kitchen/web-shell.html','cocos-kitchen/touch-controls.js','cocos-kitchen/gamepad-controls.js','cocos-kitchen/level-editor.js','cocos-kitchen/i18n.js','cocos-kitchen/i18n.json','cocos-kitchen/favicon.ico','cocos-kitchen/fonts/chefjeff-pixel.woff2','cocos-kitchen/fonts/OFL.txt','scripts/subset_pixel_font.py','cocos-kitchen/package.json','cocos-kitchen/build-web.json',
                 'cocos-kitchen/tsconfig.json','cocos-kitchen/assets/scenes.meta','cocos-kitchen/assets/scripts.meta',
                 'cocos-kitchen/assets/scripts/KitchenClient.ts','cocos-kitchen/assets/scripts/KitchenClient.ts.meta',
                 'cocos-kitchen/assets/scripts/LevelOneArt.ts','cocos-kitchen/assets/scripts/LevelOneArt.ts.meta',

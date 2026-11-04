@@ -51,9 +51,9 @@ Take the extinguisher to a burning station and spray: 4 seconds of spraying in t
 
 Esc, P or Ⅱ pauses (Esc or P also resumes); ▶ resumes; ■ ends early without a success bonus. Settings and input fields suppress game shortcuts. Hidden/disconnected pages pause. With the small-screen touch layout active, devices must be in landscape to start or resume; turning to portrait clears input, cancels pending actions/throws and pauses a running round. Returning to landscape does not resume automatically. Browsers need not support orientation lock. The local page reconnects to its existing kitchen after refresh; the hosted pilot creates a new per-page kitchen. Restart from pause/results; select a level from ready/results.
 
-Enter or the touch Bookmark button bookmarks the current round without affecting play or model input. Presses within 5 real seconds merge into an interval. Number keys 1–5 send a fixed cooperation preference; 6 reports a perceived mistake. The touch Communication button opens the same preset messages, collapsed by default. Messages share a 5-second cooldown and are delivered with the next normal request, without forcing a task interruption. The latest preference lasts for the round. Feedback includes bookmarks and preset messages.
+Enter or the touch Bookmark button bookmarks the current round without affecting play or model input. Presses within 5 real seconds merge into an interval. Number keys 1–5 (a test feature, labelled 测试) say which work the human will do ("Chef human will do the cooking." since `rules-v7`); 6 reports a perceived mistake. The touch Communication button opens the same preset messages, collapsed by default. Messages share a 5-second cooldown and are delivered with the next normal request, without forcing a task interruption. The latest one lasts for the round. Feedback includes bookmarks and preset messages.
 
-Models receive English structured observations (`en-v4`, plain ASCII; the chefs are named `human` and `jeff`), factual rules (`rules-v6`) and legal actions. The rules describe what the kitchen allows; they do not instruct the agent to cooperate with or help the human. UI language does not change model input. Requests distinguish selection, acceptance and completion; stale replies are rejected, and failures remain visible. The default budget is 200 requests/round (configurable 1–2000); failures count and in-flight requests can still complete. At the limit, current actions continue and the player may pause. See [agent integration](agent-integration.md) and [privacy/costs](privacy-and-costs.md).
+Models receive English structured observations (`en-v4`, plain ASCII; the chefs are named `human` and `jeff`), factual rules (`rules-v7`) and legal actions. The rules describe what the kitchen allows; they do not instruct the agent to cooperate with or help the human. UI language does not change model input. Requests distinguish selection, acceptance and completion; stale replies are rejected, and failures remain visible. The default budget is 200 requests/round (configurable 1–2000); failures count and in-flight requests can still complete. At the limit, current actions continue and the player may pause. See [agent integration](agent-integration.md) and [privacy/costs](privacy-and-costs.md).
 
 ## Levels
 
@@ -116,9 +116,9 @@ Cocos 浏览器版共用 `kitchen.py`、`spatial_kitchen.py`、地图 JSON 和�
 
 Esc、P 或 Ⅱ 暂停（Esc 或 P 也可继续），▶ 继续，■ 提前结束且无成功奖励。设置及输入框禁用游戏快捷键，页面隐藏／失联会暂停。小尺寸触屏布局启用时，需横屏才能开局或继续；转竖屏会清理输入、取消待执行交互／投掷并暂停正在运行的对局，恢复横屏后不自动继续，网页不要求浏览器支持横屏锁定。本地版刷新后连接原厨房，托管版刷新产生新的页面会话。暂停／结算时重开，准备／结算时选关。
 
-Enter 或触屏「标记」按钮标记本局片段，不影响玩法或模型输入；间隔五个现实秒内的按键合并为区间。数字 1–5 发送固定协作偏好，6 表示玩家认为出错；触屏「沟通」入口展开相同预设消息，默认折叠；共用五秒冷却，下一次正常请求送达，不强行打断任务。最新偏好持续本局，反馈包含标记与预设消息。
+Enter 或触屏「标记」按钮标记本局片段，不影响玩法或模型输入；间隔五个现实秒内的按键合并为区间。数字 1–5（测试功能，界面标“测试”）说明由玩家来做哪类工作（从 `rules-v7` 起 Jeff 收到“Chef human will do the cooking.”这类说法），6 表示玩家认为出错；触屏「沟通」入口展开相同预设消息，默认折叠；共用五秒冷却，下一次正常请求送达，不强行打断任务。最新的说明持续本局，反馈包含标记与预设消息。
 
-模型收到英文结构化观察（`en-v4`，纯 ASCII；两位厨师分别称为 `human` 和 `jeff`）、事实规则（`rules-v6`）与合法动作；规则只说明厨房允许什么，不要求 agent 协作或帮助玩家。界面语言不改变模型输入。请求区分选择、接受与完成，拒绝过期回复并显示失败。默认每局 200 次（可设 1–2000），失败计数，在途请求仍可完成。达到上限后已有动作继续，玩家可暂停。详见 [agent 接入](agent-integration.md)与[隐私／费用](privacy-and-costs.md)。
+模型收到英文结构化观察（`en-v4`，纯 ASCII；两位厨师分别称为 `human` 和 `jeff`）、事实规则（`rules-v7`）与合法动作；规则只说明厨房允许什么，不要求 agent 协作或帮助玩家。界面语言不改变模型输入。请求区分选择、接受与完成，拒绝过期回复并显示失败。默认每局 200 次（可设 1–2000），失败计数，在途请求仍可完成。达到上限后已有动作继续，玩家可暂停。详见 [agent 接入](agent-integration.md)与[隐私／费用](privacy-and-costs.md)。
 
 ## 关卡
 

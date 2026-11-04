@@ -5,8 +5,8 @@ import { KitchenAudio } from './KitchenAudio';
 import { levelButtonLayout, GRID_ART, stationView, cabinetModule, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, floorItemDepth, workingChefDepth, flightDepth, predictWalk, spaceTarget, segmentDistance, plateLayers, heatCountdown, behindCounter, throwPose, throwDiagonal, throwItemPoint, panHandleSide, restingFacing } from './KitchenGeometry';
 const { ccclass } = _decorator;
 type Action = { key: string; label: string; kind: string; target: string; expected: unknown[] };
-type KitchenState = { game_id: string; state_seq?: number; phase: string; speed: number; kitchen: any; actions: Action[]; levels?:any[]; limits?:any; capacity?:any; release?:any; interaction?:Action; use_interaction?:Action; interaction_hint?:string; interaction_focus?:string; interaction_cell?:number[];
-    events: {t:number; message:string; kind?:string}[]; ai: {thinking:boolean; error:string|null}; won:boolean; aborted?:boolean; round_summary?:any; rules?:Record<string,number>; connection?:any; memory?:any; communication?:any; hosted?:any };
+type KitchenState = { game_id: string; state_seq?: number; phase: string; speed: number; kitchen: any; actions: Action[]; levels?:any[]; limits?:any; capacity?:any; release?:any; player_level?:any; interaction?:Action; use_interaction?:Action; interaction_hint?:string; interaction_focus?:string; interaction_cell?:number[];
+    events: {t:number; message:string; kind?:string; actor?:string}[]; ai: {thinking:boolean; error:string|null}; won:boolean; aborted?:boolean; round_summary?:any; rules?:Record<string,number>; connection?:any; memory?:any; communication?:any; hosted?:any };
 type ChefMotion = {body:Node; leftLeg:Node; rightLeg:Node; leftArm:Node; rightArm:Node; knife:Node; facing:string; step:number};
 type PotEffects = {steam:Node; smoke:Node; fire:Node; ready:Node};
 // Tokens from the "ChefJeff 厨房 UI" design system: every colour is sampled from the art
@@ -288,6 +288,9 @@ export class KitchenClient extends Component {
         if(sys.isNative)this.buttons.language.node.active=false;
         this.button('more','更多',944,196,88,30,()=>this.openCoverMenu('more'),this.cover);
         this.button('level-picker','全部关卡',0,0,104,30,()=>this.openCoverMenu('levels'),this.cover);
+        // A player's own level, made in the page's editor: this opens it there again.
+        this.button('level-edit','编辑这张关卡',0,0,150,40,()=>{if(this.state?.player_level)this.coverEvent('kitchen-edit-level',{id:this.state.player_level.id});},this.cover);
+        this.pixel(this.buttons['level-edit'].label,14);
         this.pixel(this.buttons['level-picker'].label,14);
         this.glyph(this.buttons['level-picker'].node,'icon','grid',-50,0);
         // Before a round this button is the title row's hover area, so it sits under the plate's words.
@@ -315,7 +318,7 @@ export class KitchenClient extends Component {
         }
         this.installControls();
         game.on(Game.EVENT_HIDE,this.onHide,this);game.on(Game.EVENT_SHOW,this.onShow,this);
-        if(!sys.isNative){window.addEventListener('kitchen-language-changed',this.onLanguage);window.addEventListener('kitchen-confirmed',this.onConfirmed);window.addEventListener('keydown',this.onKey,true);window.addEventListener('keyup',this.onKeyUp,true);window.addEventListener('mousedown',this.onMouseDown,true);window.addEventListener('mouseup',this.onMouseUp,true);window.addEventListener('blur',this.onBlur);document.addEventListener('visibilitychange',this.onVisibility);document.addEventListener('contextmenu',this.onContextMenu);}
+        if(!sys.isNative){window.addEventListener('kitchen-language-changed',this.onLanguage);window.addEventListener('kitchen-confirmed',this.onConfirmed);window.addEventListener('kitchen-editor-ready',this.onEditorReady);window.addEventListener('keydown',this.onKey,true);window.addEventListener('keyup',this.onKeyUp,true);window.addEventListener('mousedown',this.onMouseDown,true);window.addEventListener('mouseup',this.onMouseUp,true);window.addEventListener('blur',this.onBlur);document.addEventListener('visibilitychange',this.onVisibility);document.addEventListener('contextmenu',this.onContextMenu);}
         // Idle screens need neither gameplay frame rate nor five snapshots a second.
         game.frameRate=15;
         this.audio.load(this.node);
@@ -330,7 +333,7 @@ export class KitchenClient extends Component {
     // cover never flashes placeholder art or a second "connecting" state.
     private loadingStep(text:string){const el=!sys.isNative&&document.querySelector('#kitchen-loading span');if(el)el.textContent=text;}
     private hideLoading(){if(!sys.isNative)document.getElementById('kitchen-loading')?.remove();}
-    onDestroy(){this.audio.destroy();this.controlAccess?.remove();this.clearInput();game.off(Game.EVENT_HIDE,this.onHide,this);game.off(Game.EVENT_SHOW,this.onShow,this);if(!sys.isNative){window.removeEventListener('kitchen-touch-mode',this.onTouchMode);if((window as any).kitchenControls===this.controls)delete (window as any).kitchenControls;window.removeEventListener('kitchen-language-changed',this.onLanguage);window.removeEventListener('kitchen-confirmed',this.onConfirmed);window.removeEventListener('keydown',this.onKey,true);window.removeEventListener('keyup',this.onKeyUp,true);window.removeEventListener('mousedown',this.onMouseDown,true);window.removeEventListener('mouseup',this.onMouseUp,true);window.removeEventListener('blur',this.onBlur);document.removeEventListener('visibilitychange',this.onVisibility);document.removeEventListener('contextmenu',this.onContextMenu);}}
+    onDestroy(){this.audio.destroy();this.controlAccess?.remove();this.clearInput();game.off(Game.EVENT_HIDE,this.onHide,this);game.off(Game.EVENT_SHOW,this.onShow,this);if(!sys.isNative){window.removeEventListener('kitchen-touch-mode',this.onTouchMode);if((window as any).kitchenControls===this.controls)delete (window as any).kitchenControls;window.removeEventListener('kitchen-language-changed',this.onLanguage);window.removeEventListener('kitchen-confirmed',this.onConfirmed);window.removeEventListener('kitchen-editor-ready',this.onEditorReady);window.removeEventListener('keydown',this.onKey,true);window.removeEventListener('keyup',this.onKeyUp,true);window.removeEventListener('mousedown',this.onMouseDown,true);window.removeEventListener('mouseup',this.onMouseUp,true);window.removeEventListener('blur',this.onBlur);document.removeEventListener('visibilitychange',this.onVisibility);document.removeEventListener('contextmenu',this.onContextMenu);}}
     private onHide(){this.hidden=true;this.clearInput();if(this.state?.phase==='running')this.post('/api/pause',{reason:'hidden'});}
     private onShow(){this.hidden=false;this.poll();}
     private onBlur=()=>this.clearInput();
@@ -363,6 +366,7 @@ export class KitchenClient extends Component {
             levels:()=>this.openCoverMenu('levels'),more:()=>this.openCoverMenu('more'),
             alt:()=>this.controlButton('next-alt'),step:(d:number)=>this.stepLevel(d),custom:()=>this.openConnection('custom'),
             freeModels:()=>this.coverEvent('kitchen-open-free-models'),
+            sprite:(key:string)=>this.art?.spriteInfo(key)||null,translate:(text:string)=>this.translate(text),
             level:(id:string)=>{if(this.connected&&!this.pending&&['ready','ended'].includes(this.state?.phase||'')&&this.state?.levels?.some((l:any)=>l.id===id))return this.post('/api/level',{level:id});},
             language:()=>{const i18n=(window as any).kitchenI18n;i18n?.setLanguage(i18n.language==='en'?'zh':'en');}
         };
@@ -418,8 +422,8 @@ export class KitchenClient extends Component {
         const text=(id:string)=>this.labels[id]?this.labelSources.get(this.labels[id])||'':'';
         const label=(id:string)=>this.labelSources.get(this.buttons[id].label)||'';
         const c=s.connection,acts=s.phase==='ended'?this.resultActions(s):null;
-        return {level:text('level-title'),dish:text('level-name'),target:text('level-target'),tag:s.phase==='ended'?text('level-tag-text'):'',
-            money:s.phase==='ended'?text('result-money'):'',stepEnabled:s.phase==='ready'&&this.connected&&!this.pending&&!this.countdown,
+        return {level:text('level-title'),dish:text('level-name'),own:!!s.player_level,target:text('level-target'),tag:s.phase==='ended'?text('level-tag-text'):'',won:s.phase==='ended'&&!!s.won,
+            money:s.phase==='ended'?text('result-money'):'',stepEnabled:s.phase==='ready'&&this.connected&&!this.pending&&!this.countdown,nextEditor:this.nextOpensEditor(s),
             free:c?.free_models?.enabled?{status:text('tile-free-status'),pick:label('free-pick'),selected:!!c.free_model}:null,
             custom:{status:text('tile-key-status'),selected:!!c?.configured&&!c.free_model},
             alt:acts?{label:acts.alt.label,sub:acts.alt.sub}:null};
@@ -427,8 +431,8 @@ export class KitchenClient extends Component {
     private touchOrder(order:any){
         const dish=this.dishById(order.dish),ingredients:string[]=order.ingredients||dish?.components?.map((c:any)=>c.item)||[];
         const patienceTotal=order.patience||this.state?.rules?.order_patience||90;
-        const recipeKey=[`dishes/${order.dish}/ready`,`food/${order.dish}_ready`].find(key=>this.art.has(key));
-        return {...order,dishName:dish?.name||order.dish,patienceTotal,
+        const recipeKey=this.dishIcon(dish||{id:order.dish});
+        return {...order,dishName:dish?.name||order.dish,ownName:!!dish?.own,patienceTotal,
             patienceRemainingFraction:Math.max(0,Math.min(1,(order.remaining||0)/patienceTotal)),
             recipeIcon:recipeKey?this.art.spriteInfo(recipeKey):null,
             ingredientDetails:ingredients.map(id=>{
@@ -764,7 +768,12 @@ export class KitchenClient extends Component {
             if(!this.touchNodeVisibility.has(n))this.touchNodeVisibility.set(n,n.active);n.active=false;
         }}else{
             for(const [n,active] of this.touchNodeVisibility)if(n.isValid)n.active=active;
-            this.touchNodeVisibility.clear();this.world.setScale(1,1,1);this.world.setPosition(0,0);return;
+            this.touchNodeVisibility.clear();
+            // The desktop HUD is laid out around a 14x9 board. A player's room of another size scales down
+            // to fit it and is centred there; 14x9, every official level, stays at scale 1 in place.
+            const map=this.state.kitchen.map,s=Math.min(1,14/map.width,9/map.height);
+            const dx=(14-map.width*s)*TILE/2,dy=(9-map.height*s)*TILE/2;
+            this.world.setScale(s,s,1);this.world.setPosition((MAPX-640)*(1-s)+dx,(360-MAPY)*(1-s)-dy);return;
         }
         const r=this.touchLayout.boardRect;if(!r||!this.touchLayout.landscape)return;
         const w=this.touchLayout.width||innerWidth,h=this.touchLayout.height||innerHeight;
@@ -899,7 +908,29 @@ export class KitchenClient extends Component {
     private labelSources=new WeakMap<Label,string>();
     private writeLabel(label:Label,value:string){
         this.labelSources.set(label,value);
-        label.string=!sys.isNative?(window as any).kitchenI18n?.t(value)??value:value;
+        label.string=this.translate(value);
+    }
+    /** Page text in the chosen language. A player's own dish names are free text, not catalog words, so they
+     * stay as written: each is held out of the translation by a private-use mark and put back after it. */
+    private translate(text:string){
+        text=this.ownNames(text);
+        const i18n=(window as any).kitchenI18n;if(sys.isNative||!i18n)return text;
+        const kept:string[]=[];let marked=text;
+        const own=[this.state?.player_level?.name,...Object.values(this.state?.player_level?.names||{})].filter(Boolean) as string[];
+        if(i18n.language==='en')for(const name of own.sort((a,b)=>b.length-a.length))
+            if(name&&marked.includes(name)){marked=marked.split(name).join('\uE000'+kept.length+'\uE001');kept.push(name);}
+        const out=i18n.t(marked)??marked;
+        return kept.length?out.replace(/\uE000(\d+)\uE001/g,(_:string,n:string)=>kept[Number(n)]):out;
+    }
+    /** On a player's level the engine names each dish by its English components, which Jeff reads; the page
+     * shows the player's own name in those lines instead (orders, serving, hints). The longest name goes first,
+     * so a dish whose name sits inside another's is not split. */
+    private ownNames(text:string){
+        const p=this.state?.player_level;if(!p?.names||!text)return text;
+        const pairs=((this.state?.kitchen?.dishes||this.state?.kitchen?.menu||[]) as any[]).map(d=>[d.name,p.names[d.id]] as string[])
+            .filter(([engine,own])=>engine&&own).sort((a,b)=>b[0].length-a[0].length);
+        for(const [engine,own] of pairs)if(text.includes(engine))text=text.split(engine).join(own);
+        return text;
     }
     private onLanguage=()=>{
         this.clearInput();
@@ -979,7 +1010,17 @@ export class KitchenClient extends Component {
         if(stage==='burnt')return FOOD_COLORS.burnt;
         return this.itemDef(item)?.color||FOOD_COLORS[stage]||FOOD_COLORS.ready;
     }
-    private dishById(id:string|undefined):any{return id?(this.state?.kitchen.dishes||this.state?.kitchen.menu||[]).find((d:any)=>d.id===id):undefined;}
+    private dishById(id:string|undefined):any{return id?this.shownDish((this.state?.kitchen.dishes||this.state?.kitchen.menu||[]).find((d:any)=>d.id===id)):undefined;}
+    /** A dish as the page shows it. On a player's level: the player's own name, and the official dish with the
+     * same components whose picture it borrows (player_level); the engine's id and English name stay for Jeff. */
+    private shownDish(d:any):any{
+        const p=this.state?.player_level;if(!d||!p)return d;
+        return {...d,name:p.names?.[d.id]||d.name,own:!!p.names?.[d.id],look:p.looks?.[d.id]};
+    }
+    /** The plated picture a finished dish is drawn with (ready and burnt frames), when one exists. */
+    private dishPicture(d:any):string|null{const id=d?.look||d?.id;return id&&this.art.has(`dishes/${id}/ready`)?id:null;}
+    /** A whole-dish icon for tickets and the level plate: its plated frame, else its food frame (the burger). */
+    private dishIcon(d:any):string|undefined{const id=d?.look||d?.id;return id?[`dishes/${id}/ready`,`food/${id}_ready`].find(key=>this.art.has(key)):undefined;}
     /** The menu dish a plate is heading for: one whose components include every item on it. */
     private targetDish(components:string[]):any{
         return (this.state?.kitchen.menu||[]).find((d:any)=>components.every(x=>d.components?.some((c:any)=>c.item===x)));
@@ -1108,12 +1149,21 @@ export class KitchenClient extends Component {
     private sortedLevels(s=this.state){return [...(s?.levels||[])].sort((a:any,b:any)=>(a.menu_order??0)-(b.menu_order??0));}
     private dishName(level:any){const n=String(level?.name||'');return n.includes('·')?n.split('·').pop()!.trim():n;}
     private levelNumber(index:number){return `第 ${index+1} 关`;}
-    /** ◀ ▶ on the level plate: the neighbouring level, before a round only. */
+    /** ◀ ▶ on the level plate: the neighbouring level, before a round only; ▶ after the last one opens the player's own levels. */
     private stepLevel(d:number){
-        const s=this.state;if(!s||s.phase!=='ready'||this.pending)return;
+        const s=this.state;if(!s||s.phase!=='ready'||this.pending||s.player_level)return;  // a player's level has no neighbours
         const ls=this.sortedLevels(s),i=ls.findIndex((l:any)=>l.id===s.kitchen?.level_id),to=ls[i+d];
         if(to)this.post('/api/level',{level:to.id});
+        else if(this.nextOpensEditor(s))this.coverEvent('kitchen-open-editor',{from:'card'});
     }
+    /** The level editor (level-editor.js) is there when this server calibrates players' levels. */
+    private editorReady(){return !sys.isNative&&!!(window as any).chefjeffEditor?.available?.();}
+    /** On the last official level, ▶ leads to 我的关卡 instead of greying out. */
+    private nextOpensEditor(s=this.state){
+        if(!s||s.player_level)return false;
+        const ls=this.sortedLevels(s);return ls.length>0&&ls[ls.length-1].id===s.kitchen?.level_id&&this.editorReady();
+    }
+    private onEditorReady=()=>this.render();
     /** Hands a shop-card request to the page (lists, limits, free-model choice live in HTML). */
     private coverEvent(name:string,detail?:any){this.clearInput();if(!sys.isNative)window.dispatchEvent(new CustomEvent(name,{detail}));}
     private useFree(){
@@ -1160,14 +1210,15 @@ export class KitchenClient extends Component {
         const same=(d:any)=>Array.from(new Set((d.components||[]).map((c:any)=>c.item))).sort().join()===items;
         // The menu decides first; a servable dish that is off this level's menu still gets its plate art.
         const dish=(this.state?.kitchen.menu||[]).find(same)||(this.state?.kitchen.dishes||[]).find(same);
-        return dish&&!dish.plating?dish:undefined;
+        return dish&&!dish.plating?this.shownDish(dish):undefined;
     }
     private itemStage(f:any){
         // Vessels (any kind) carry their contents; the kind comes from the server.
         // Only real vessels: in-flight items always carry a contents field, null unless they are one.
         if(f&&(f.vessel||f.contents))return `vessel:${f.vessel||''}`+(f.contents?.ingredient?`:${f.contents.ingredient}:${f.contents.stage}`:'');
         if(f?.plate_id&&this.plateItems(f).length){
-            const whole=this.wholeDish(f);if(whole)return `dish:${whole.id}:${f.stage}`;
+            // A whole dish with a picture of its own (or borrowed by a player's dish); otherwise its layers on the plate.
+            const picture=this.dishPicture(this.wholeDish(f));if(picture)return `dish:${picture}:${f.stage}`;
             // Burnt plates keep their layers (burnt dishes can be served); items that burn are drawn charred.
             return 'assembly:'+this.plateItems(f).join(',')+(f.stage==='burnt'?',burnt':'');
         }
@@ -1313,14 +1364,6 @@ export class KitchenClient extends Component {
             const face=this.child(n,'wall-front',TILE,h,0,-TILE/2+h/2);
             this.art.region(face,'modular/wall_face',0,0,64,GRID_ART.northFace,TILE,h);
         }
-        const serve=map.equipment.serve;
-        const boundary=serve&&(serve.facing==='west'?map.width-1:serve.facing==='east'?0:-1);
-        if(x===boundary&&y===serve?.cell[1]){
-            const slot=this.child(n,'serving-aperture',TILE*.82,TILE*.42),g=slot.addComponent(Graphics);
-            this.rect(g,-TILE*.41,-TILE*.21,TILE*.82,TILE*.42,'#344756');
-            this.rect(g,-TILE*.36,-TILE*.15,TILE*.72,TILE*.30,'#75543a');
-            this.rect(g,-TILE*.36,-TILE*.15,TILE*.72,3,'#c99551');
-        }
         this.modularWallDecor(n,x,y,neighbours.south);
     }
     private cabinetArt(n:Node,id:string){
@@ -1335,7 +1378,7 @@ export class KitchenClient extends Component {
         const g=n.getComponent(Graphics)!;g.clear();
         this.art.hide(n);
         for(const name of ['supply-symbol','assembly-parts','vessel-contents']){const child=n.getChildByName(name);if(child)child.active=false;}
-        n.setPosition(0,this.workSurfaceY(id));
+        n.setPosition(0,this.workSurfaceY(id));n.angle=0;
         if(this.prepSampleBoard(id))n.setPosition(0,this.workSurfaceY(id)+11);
         if(id.startsWith('bin')){
             const view=trashView(this.state!.kitchen.map,id);
@@ -1343,11 +1386,12 @@ export class KitchenClient extends Component {
             this.art.centered(n,view.axis==='vertical'?'feedback/trash_opening_vertical':'feedback/trash_opening',TILE*.8,TILE*.8);return;
         }
         if(st.counter)return;
-        if(id==='serve'){
-            // Neutral double chevron points from the chef into the serving boundary.
-            const east=this.state!.kitchen.map.equipment[id].facing==='west',d=east?1:-1;
+        if(this.state!.kitchen.map.equipment[id]?.type==='serving_window'){
+            // Neutral double chevron points from the chef into the serving boundary: drawn pointing east,
+            // turned away from the side the window faces (a window set into any wall, or two windows).
+            n.angle=({west:0,south:90,east:180,north:-90} as Record<string,number>)[this.state!.kitchen.map.equipment[id].facing]??0;
             g.fillColor=color('#344756');
-            for(const x of [-10,5]){g.moveTo(d*(x-5),-12);g.lineTo(d*(x+6),0);g.lineTo(d*(x-5),12);g.lineTo(d*(x-5),5);g.lineTo(d*(x-1),0);g.lineTo(d*(x-5),-5);g.close();g.fill();}
+            for(const x of [-10,5]){g.moveTo(x-5,-12);g.lineTo(x+6,0);g.lineTo(x-5,12);g.lineTo(x-5,5);g.lineTo(x-1,0);g.lineTo(x-5,-5);g.close();g.fill();}
             return;
         }
         const kind=/^b[0-9]+$/.test(id)?'board':id==='returns'?'returns':id==='sink'?'sink':'';
@@ -1405,7 +1449,7 @@ export class KitchenClient extends Component {
             this.registerDepth(n,()=>depthOrder(e.cell[1],'solid')+.01);
             const art=new Node('equipment');art.layer=Layers.Enum.UI_2D;n.addChild(art);art.addComponent(UITransform).setContentSize(44,44);art.setPosition(0,6);
             if(this.useModularArt)art.setPosition(0,0);
-            this.drawIcon(art.addComponent(Graphics),this.state!.kitchen.stations[id].counter?'continuous_counter':this.state!.kitchen.stations[id].stove?'vessel':id.startsWith('bin')?'bin':/^b[0-9]/.test(id)?'board':e.type==='ingredient_source'?'source:'+this.sourceItem(id):this.useArt&&id==='extinguisher'?'extinguisher_rack':id);
+            this.drawIcon(art.addComponent(Graphics),this.state!.kitchen.stations[id].counter?'continuous_counter':this.state!.kitchen.stations[id].stove?'vessel':id.startsWith('bin')?'bin':/^b[0-9]/.test(id)?'board':e.type==='ingredient_source'?'source:'+this.sourceItem(id):e.type==='serving_window'?'serve':this.useArt&&id==='extinguisher'?'extinguisher_rack':id);
             if(this.useModularArt)this.equipmentArt(art,id);
             const ln=new Node('label');ln.layer=Layers.Enum.UI_2D;n.addChild(ln);ln.setPosition(0,-19);ln.addComponent(UITransform).setContentSize(56,18);
             const l=ln.addComponent(Label);l.fontSize=10;l.lineHeight=13;l.isBold=true;l.color=color(COLORS.ink);l.overflow=Label.Overflow.SHRINK;
@@ -1725,17 +1769,37 @@ export class KitchenClient extends Component {
         }
         if(this.seenEvents.size>300)this.seenEvents=new Set(s.events.map(e=>e.t+'|'+e.message));
     }
-    private feedback(e:{message:string;kind?:string}){
-        const k=this.state!.kitchen,amount=/(\d+) 元/.exec(e.message)?.[1]||'',serve=k.map.equipment.serve?.cell;
-        const at=(cell:number[]|undefined)=>cell?[MAPX+(cell[0]+.5)*TILE,MAPY+(cell[1]-.1)*TILE]:[640,150];
-        if(e.kind==='served'){this.pop(at(serve),'+¥'+amount,COLORS.herb);this.flash(['served','money'],COLORS.herb);}
+    private feedback(e:{message:string;kind?:string;actor?:string}){
+        const amount=/(\d+) 元/.exec(e.message)?.[1]||'';
+        if(e.kind==='served'){this.windowPop(this.servedAt(e.actor),'+¥'+amount,COLORS.herb);this.flash(['served','money'],COLORS.herb);}
+        else if(e.kind==='wrong_dish'){this.windowPop(this.servedAt(e.actor),`送错 -¥${amount}`,COLORS.alert);this.flash(['money'],COLORS.alert);}
+        else if(e.kind==='dish_rejected')this.windowPop(this.servedAt(e.actor),'拒收',COLORS.alert);
         else if(e.kind==='expired'){this.pop([312,180],`${/^(\S+?)超时/.exec(e.message)?.[1]||''} 超时 -¥${amount}`,COLORS.alert);this.flash(['money'],COLORS.alert);}
         else if(e.kind==='fire'||e.kind==='fire_spread')this.flash(['money'],COLORS.alert);
         if(e.kind&&RESULT_ANNOUNCE.has(e.kind))this.announce(e.message);
     }
+    // The window a dish just went out at, ordered or not. The event names the chef, not the window, and a
+    // player's level may have two: the one nearest the chef who served, who stands at it.
+    private servedAt(actor?:string):any{
+        const k=this.state!.kitchen,p=actor?k.chefs[actor]?.position:undefined;
+        const windows=Object.values(k.map.equipment).filter((e:any)=>e.type==='serving_window') as any[];
+        if(!p)return k.map.equipment.serve??windows[0];
+        const far=(w:any)=>Math.hypot(w.cell[0]-p[0],w.cell[1]-p[1]);
+        return windows.reduce((best:any,w)=>!best||far(w)<far(best)?w:best,undefined);
+    }
+    // Over the window, the text starting on it and running towards the middle of the room, so a long one never
+    // reaches a side wall: from a window in the left wall or the left half rightwards, otherwise leftwards.
+    private windowPop(w:any,text:string,fill:string){
+        if(!w){this.pop([640,150],text,fill);return;}
+        const [x,y]=w.cell,top=MAPY+(y-.1)*TILE;
+        const right=w.facing==='east'||(w.facing!=='west'&&x+.5<this.state!.kitchen.map.width/2);
+        this.pop([MAPX+(right?x:x+1)*TILE,top],text,fill,right?0:1);
+    }
     private flash(ids:string[],fill:string){for(const id of ids){this.flashes[id]={until:this.clock+1.2,fill};this.labels[id].color=color(fill);}}
-    private pop(p:number[],text:string,fill:string){
+    /** A short rising text at p; anchorX 0 starts it at p, 1 ends it there (the label is as wide as its text). */
+    private pop(p:number[],text:string,fill:string,anchorX=.5){
         const n=this.make('result-pop',p[0],p[1],220,28,this.world||this.node),l=n.addComponent(Label);
+        n.getComponent(UITransform)!.anchorX=anchorX;
         this.writeLabel(l,text);this.pixel(l,24);l.horizontalAlign=Label.HorizontalAlign.CENTER;
         l.enableShadow=true;l.shadowColor=color(COLORS.ink);l.shadowOffset=new Vec2(2,-2);l.shadowBlur=0;l.color=color(fill); // hard pixel shadow
         this.pops.push({node:n,label:l,born:this.clock,y:n.position.y,fill:color(fill)});
@@ -1915,7 +1979,7 @@ export class KitchenClient extends Component {
         this.syncLevelButtons(s.levels||[]);
         for(const level of s.levels||[]){
             const id='level:'+level.id,b=this.buttons[id],sel=k.level_id===level.id;if(!b)continue;b.node.active=s.phase==='ready'||s.phase==='ended';
-            this.writeLabel(b.label,level.name+(sel?' · 当前':''));
+            this.writeLabel(b.label,level.name);  // the selected level shows by its highlight alone
             if(b.selected!==sel){b.selected=sel;this.styleButton(id);}this.enable(id,!this.pending&&!sel);
         }
         const lang=(window as any).kitchenI18n?.language==='en'?'中文':'English';if(this.buttons.language.label.string!==lang)this.buttons.language.label.string=lang;
@@ -1972,7 +2036,7 @@ export class KitchenClient extends Component {
         return note?.message.startsWith('Jeff 请求失败')?'Jeff 暂时连不上，正在重试':'';
     }
     // Keeps the screen-reader proxies in step with the visible canvas buttons.
-    private tr(text:string){return !sys.isNative?(window as any).kitchenI18n?.t(text)??text:text;}
+    private tr(text:string){return this.translate(text);}
     /** Free-model status in the prototype's three words; only what the server reports, never "free to use" by default. */
     // Opening waits a frame: the click that opens it must not also reach the new shade and close it.
     private toggleFreeMenu(){if(this.freeMenu?.active)this.closeFreeMenu();else this.scheduleOnce(()=>this.openFreeMenu(),0);}
@@ -2052,15 +2116,19 @@ export class KitchenClient extends Component {
         const btn=(id:string,x:number,y:number,w:number,h:number,tone?:string)=>{const b=this.buttons[id];if(!b)return;b.node.active=true;
             if(tone&&b.tone!==tone){b.tone=tone;this.styleButton(id);}this.resizeButton(id,w,h);b.node.setPosition(x-640,360-y);};
         const hide=(...ids:string[])=>{for(const id of ids){const n=this.buttons[id]?.node||this.labels[id]?.node||this.cover.getChildByName(id);on(n,false);}};
-        const ls=this.sortedLevels(s),i=ls.findIndex((l:any)=>l.id===k.level_id),lvl=ls[i];
-        const plate=(ready||ended||paused)&&!!lvl,target=k.goals?.target_money;
+        const ls=this.sortedLevels(s),i=ls.findIndex((l:any)=>l.id===k.level_id),lvl=ls[i],own=s.player_level;
+        const plate=(ready||ended||paused)&&(!!lvl||!!own),target=k.goals?.target_money;
+        const title=own?'自制关卡':this.levelNumber(i),name=own?(own.name||'未命名'):this.dishName(lvl);
+        hide('level-edit');
         on(this.cover.getChildByName('level-plate'),plate);on(this.cover.getChildByName('welcome-food'),false);
         // Level plate: dish, 第 N 关, dish name and the target, centred as one group.
         const dishes=(k.menu||[]).slice(0,2);
         for(const [j,id] of ['level-dish','level-dish-2'].entries()){
             const n=this.cover.getChildByName(id)!,d=dishes[j];on(n,plate&&!!d);if(!d)continue;
-            const key=[`dishes/${d.id}/ready`,`food/${d.id}_ready`].find(x=>this.art.has(x)),size=dishes.length>1?44:60;
-            n.getComponent(Graphics)!.clear();if(!(key&&this.useArt&&this.art.centered(n,key,size,size)))this.drawIcon(n.getComponent(Graphics)!,'vessel');
+            const key=this.dishIcon(this.shownDish(d)),size=dishes.length>1?44:60,parts=n.getChildByName('assembly-parts');
+            n.getComponent(Graphics)!.clear();if(parts)parts.active=false;
+            // A dish without a picture of its own (a player's) is its layers on a plate, as when it is served.
+            if(!(key&&this.useArt&&this.art.centered(n,key,size,size)))this.drawIcon(n.getComponent(Graphics)!,d.components?.length?'assembly:'+d.components.map((c:any)=>c.item).join(','):'vessel');
         }
         const dishW=dishes.length>1?72:64,placeDishes=(x:number,y:number)=>{
             if(dishes.length>1){this.place(this.cover.getChildByName('level-dish')!,x+18,y-10);this.place(this.cover.getChildByName('level-dish-2')!,x+dishW-18,y+10);}
@@ -2069,28 +2137,35 @@ export class KitchenClient extends Component {
         on(label('level-title').node,plate);on(label('level-name').node,plate);on(label('level-target').node,plate);
         on(this.cover.getChildByName('level-tag'),false);on(label('level-tag-text').node,false);
         if(plate){
-            this.set('level-title',this.levelNumber(i));this.set('level-name',this.dishName(lvl));
-            const tw=this.textWidth(this.tr(this.levelNumber(i)),34)+8,nw=this.textWidth(this.tr(this.dishName(lvl)),22)+8;
+            this.set('level-title',title);this.set('level-name',name);
+            const tw=this.textWidth(this.tr(title),34)+8,nw=this.textWidth(this.tr(name),22)+8;
+            const line=own?`目标：关店时净收入 ¥${target} · ${own.solo_reaches_target?'一个人也能过':'需要两个人配合'}`:`目标：关店时净收入 ¥${target} · ${i+1} / ${ls.length}`;
             if(ready){
                 // The title row opens all levels (▾ and a dashed rule); the target sits centred under it.
-                this.set('level-target',`目标：关店时净收入 ¥${target} · ${i+1} / ${ls.length}`);
+                this.set('level-target',line);
                 const cw=this.textWidth('▾',22)+4,row=dishW+14+tw+12+nw+6+cw,x0=640-row/2;placeDishes(x0,192);
                 this.placeText('level-title',x0+dishW+14,192,tw,40);this.placeText('level-name',x0+dishW+14+tw+12,196,nw,30);
                 on(label('level-caret').node,true);this.placeText('level-caret',x0+row-cw,196,cw,30);
-                const gw=this.textWidth(this.tr(`目标：关店时净收入 ¥${target} · ${i+1} / ${ls.length}`),14)+6;
+                const gw=this.textWidth(this.tr(line),14)+6;
                 this.placeText('level-target',640-gw/2,236,gw,22);
                 const pick=this.buttons['level-picker'];btn('level-picker',640,196,row+28,48,'chip');
                 this.writeLabel(pick.label,'');pick.label.string='';this.labelSources.set(pick.label,'全部关卡');
                 on(pick.node.getChildByName('icon'),false);
                 const rule=this.cover.getChildByName('level-underline')!,g=rule.getComponent(Graphics)!;on(rule,true);this.place(rule,640,220);
                 g.clear();for(let x=-row/2;x<row/2;x+=10)this.rect(g,x,-1,Math.min(6,row/2-x),2,COLORS.muted);
-                btn('level-prev',252,208,44,64);btn('level-next',1028,208,44,64);
-                this.enable('level-prev',!this.pending&&i>0);this.enable('level-next',!this.pending&&i<ls.length-1);
+                if(own){
+                    // A player's level is not among the listed ones: no neighbours, but it can be edited (on a computer).
+                    hide('level-prev','level-next');
+                    if(!this.touchLayout?.active){btn('level-edit',966,208,150,40);this.enable('level-edit',!this.pending);}
+                }else{
+                    btn('level-prev',252,208,44,64);btn('level-next',1028,208,44,64);
+                    this.enable('level-prev',!this.pending&&i>0);this.enable('level-next',!this.pending&&(i<ls.length-1||this.nextOpensEditor(s)));
+                }
             }else{
                 hide('level-prev','level-next','level-caret');on(this.cover.getChildByName('level-underline'),false);
                 if(!ended)hide('level-picker');
                 this.set('level-target',`目标 ¥${target}`);
-                const gw=this.textWidth(this.tr(`目标 ¥${target}`),14)+6,tag=ended?(s.won?'✓ 达成目标':'未达目标'):'';
+                const gw=this.textWidth(this.tr(`目标 ¥${target}`),14)+6,tag=ended?(s.won?'★ 达成目标':'未达目标'):'';
                 const tagW=tag?this.textWidth(this.tr(tag),17)+28:0,row=dishW+14+tw+12+nw+14+gw+(tag?14+tagW:0),x0=640-row/2;
                 placeDishes(x0,208);this.placeText('level-title',x0+dishW+14,208,tw,40);
                 this.placeText('level-name',x0+dishW+14+tw+12,210,nw,30);this.placeText('level-target',x0+dishW+14+tw+12+nw+14,210,gw,22);
@@ -2164,7 +2239,7 @@ export class KitchenClient extends Component {
                 btn('main',560,START_Y,220,56,'primary');btn('help',780,START_Y,170,56);hide('reset');
                 if(!partner){this.placeText('coverTitle',316,300,648,40);this.placeText('coverText',330,350,620,56);}
                 const name=this.partnerName(s);
-                this.set('welcome-tip','Enter 开始 · ← → 换关卡'+(name?` · 搭档：${name}`:''));this.placeText('welcome-tip',218,636,844,19);
+                this.set('welcome-tip',(s.player_level?'Enter 开始':'Enter 开始 · ← → 换关卡')+(name?` · 搭档：${name}`:''));this.placeText('welcome-tip',218,636,844,19);
             }else{
                 this.place(human,330,548);this.place(jeff,950,548);
                 this.placeText('coverTitle',316,plate?292:300,648,40);this.placeText('coverText',330,plate?346:356,620,56);
@@ -2181,7 +2256,7 @@ export class KitchenClient extends Component {
     }
     private syncAccess(){
         if(!this.controlAccess)return;
-        const icons:Record<string,string>={pause:'暂停',resume:'继续经营',end:'结束本局','cover-connection':'设置','level-prev':'上一关','level-next':'下一关',
+        const icons:Record<string,string>={pause:'暂停',resume:'继续经营',end:'结束本局','cover-connection':'设置','level-prev':'上一关','level-next':this.nextOpensEditor()?'自定义关卡':'下一关',
             'tile-free':'免费模型','tile-key':'自定义模型（API Key）','level-picker':'全部关卡','free-limits':'免费使用限制'};
         for(const id of this.tabOrder()){
             const b=this.buttons[id],proxy=this.controlAccess.querySelector(`[data-control="${id}"]`) as HTMLButtonElement|null;if(!proxy)continue;
