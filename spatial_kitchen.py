@@ -758,9 +758,9 @@ class SpatialKitchen(Kitchen):
 
     def throw_station(self, who, cell):
         """The station a thrown ingredient coming down on ``cell`` rests on, as in Overcooked 2: an empty
-        board or counter, or an empty pan on a stove that cooks it. None: it falls to the floor."""
+        board, counter or ingredient-source top, or an empty pan on a stove that cooks it. None: it falls to the floor."""
         hand = self.chefs[who].hand
-        key = next((k for k in self.boards + self.counters + self.pots
+        key = next((k for k in self.boards + self.counters + list(self.ingredients) + self.pots
                     if tuple(cell) in map(tuple, self.equipment[k].get('cells', [self.equipment[k]['cell']]))), None)
         if key is None or not self.rules.throwable(hand) or not self.station_catches(key, hand, who):
             return None
@@ -1467,7 +1467,7 @@ class SpatialKitchen(Kitchen):
 
     def snapshot(self):
         state = super().snapshot()
-        for board in self.boards + self.counters + self.pots:
+        for board in self.boards + self.counters + list(self.ingredients) + self.pots:
             state['stations'][board]['incoming_item'] = next((key for key,p in self.projectiles.items() if p['target']==board),None)
         state['projectiles'] = [{'id': key, 'stage': p['food'].stage, 'ingredient':p['food'].ingredient, 'plate_id': p['food'].plate_id,
             'components': list(p['food'].components),
