@@ -2343,7 +2343,8 @@ export class KitchenClient extends Component {
                 // chef faces the station its white frame marks (Overcooked 2 turns the chef to the stick).
                 const steer=who==='human'&&(c.manual_moving||predicted)&&!this.aiming?steeredFacing(this.manualDirection.x,this.manualDirection.y):null;
                 if(steer){motion.facing=steer;this.steeredFacing=true;}
-                else if(moved){
+                // Centring on the tile (e.g. before putting something down) is not a walk: the chef keeps facing ahead.
+                else if(moved&&!c.route_slide){
                 if(Math.abs(dx)>=Math.abs(dy))motion.facing=dx<0?'left':'right';
                 else motion.facing=dy>0?'up':'down';
                 }

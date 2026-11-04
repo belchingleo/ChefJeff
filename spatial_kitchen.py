@@ -1212,6 +1212,8 @@ class SpatialKitchen(Kitchen):
             points = self.path(who, action.target)
             slide = action.kind in USE_KINDS and len(points) == 1 and self._centred(who, action.target)
             if slide:points = [points[0], slide]
+            # Putting something down on the chef's own tile only centres them there; as in Overcooked, they keep facing ahead.
+            if action.kind == 'drop' and self.cell(action.target) == self.anchor(who):slide = True
             if action.kind in ('chop','wash') and action.target in self.equipment and not self.in_work_reach(action.target,points[-1]):
                 # A whole action facing it from out of reach walks to a work spot instead.
                 points, slide = self.path(who, action.target, in_place=False), False
@@ -1241,16 +1243,18 @@ class SpatialKitchen(Kitchen):
         distance = max(0, route['length'] - job.travel * self.rules.walk_speed)
         points = route['points']
         previous = self.positions[who]
+        # The centring slide (also before putting something down where the chef stands) keeps the facing.
+        turn = (lambda *_: None) if route.get('slide') else self._face_vector
         for a, b in zip(points, points[1:]):
             length = math.dist(a, b)
             if distance <= length:
                 t = distance / length if length else 1
                 self.positions[who] = (a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t)
-                self._face_vector(who,self.positions[who][0]-previous[0],self.positions[who][1]-previous[1])
+                turn(who,self.positions[who][0]-previous[0],self.positions[who][1]-previous[1])
                 return
             distance -= length
         self.positions[who] = points[-1]
-        self._face_vector(who,self.positions[who][0]-previous[0],self.positions[who][1]-previous[1])
+        turn(who,self.positions[who][0]-previous[0],self.positions[who][1]-previous[1])
 
     def _reserve_hand_swap(self, who, job):
         if not self.chefs[who].hand or job.action.kind not in TAKE_KINDS:
@@ -1506,6 +1510,8 @@ class SpatialKitchen(Kitchen):
             data['resync'] = self.resync[who]
             data['location_name'] = self.place(self.chefs[who].location).name
             data['route'] = self.routes.get(who, {}).get('points', []) if self.chefs[who].job else []
+            # A centring slide, not a walk: the client keeps the chef's facing (display only, not sent to Jeff).
+            data['route_slide'] = bool(self.chefs[who].job and self.routes.get(who, {}).get('slide'))
         for item in state['ground']:
             item['position'] = self.ground_position(self.ground[item['food']['id']])
         return state

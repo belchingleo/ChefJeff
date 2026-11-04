@@ -87,6 +87,19 @@ class SpatialTests(unittest.TestCase):
         self.assertEqual(k.chefs['jeff'].hand.id,'F1')
         self.assertFalse(k.ground)
 
+    def test_putting_down_where_the_chef_stands_keeps_the_facing(self):
+        # As in Overcooked: past the tile's centre, centring to drop is no walk back and no half turn.
+        for who in ('human','jeff'):
+            for facing,offset in (('right',(.3,0)),('left',(-.3,0)),('down',(0,.3)),('up',(0,-.3))):
+                k=self.make(level=2);k.positions[who]=(10+offset[0],3+offset[1]);k.facing[who]=facing
+                k.chefs[who].hand=Food('T9',ingredient='tomato')
+                self.assertTrue(k.command(who,'drop')[0])
+                self.assertTrue(k.snapshot()['chefs'][who]['route_slide'])
+                for _ in range(30):
+                    k.advance(.02);self.assertEqual(k.facing[who],facing,(who,facing))
+                self.assertEqual([g.location for g in k.ground.values()],['floor_10_3'])
+                self.assertNotIn('route_slide',__import__('harness').model_kitchen(k.snapshot())['chefs'][who])
+
     def test_two_drops_cannot_overwrite_the_same_floor_cell(self):
         k=self.make()
         for who in k.chefs:

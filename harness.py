@@ -55,6 +55,8 @@ def _with_required_states(value, required):
 def model_kitchen(state):
     """The kitchen state as the model sees it: display-only fields for the client are left out."""
     kitchen = {k: v for k, v in state.items() if k != 'items'}
+    if 'chefs' in kitchen:
+        kitchen['chefs'] = {who: {k: v for k, v in chef.items() if k != 'route_slide'} for who, chef in kitchen['chefs'].items()}
     for key in ('menu', 'dishes'):
         if key in kitchen:
             kitchen[key] = [{k: v for k, v in dish.items() if k != 'plating'} for dish in kitchen[key]]
