@@ -330,6 +330,9 @@
                 "number",
                 "null"
               ]
+            },
+            "ai_ask_on_step_end": {
+              "type": "boolean"
             }
           },
           "required": [

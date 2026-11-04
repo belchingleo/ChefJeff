@@ -53,7 +53,10 @@ class Scripted(SpatialJevClient):
 
 def play_round(folder, seconds=20.0, plan=True):
     with patch('play.ROOT', Path(folder)):
-        game = GameSession(level_config(load_config(), 'level-2'), client_factory=lambda c: Scripted(c, lambda: game),
+        # The scripted timeline (the round's end stops Jeff mid-action) was written for the request timing
+        # without ai_ask_on_step_end; this file tests the report, not when Jeff is asked.
+        config = {**level_config(load_config(), 'level-2'), 'ai_ask_on_step_end': False}
+        game = GameSession(config, client_factory=lambda c: Scripted(c, lambda: game),
                            journal_factory=play.Journal, kitchen_factory=SpatialKitchen, log_prefix='whitebox')
         if plan:
             game._command('/api/plan', {'mode': 'choice'})

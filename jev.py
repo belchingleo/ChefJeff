@@ -134,6 +134,27 @@ class DecisionLoop:
         self.budget_notified = False
         # Jeff's plan (harness.Plan) when the round's plan switch is on.
         self.plan = None
+        # ai_ask_on_step_end: when Jeff's step ends, ask at once instead of waiting out ai_min_interval,
+        # and do not start a request his current step will outlast (its reply would be discarded as stale
+        # and, while on its way, would hold back the question about his next step).
+        self.ask_on_step_end = bool(self.k.c.get('ai_ask_on_step_end', False))
+        self.game_speed = 1.0       # game seconds per wall second; the session sets the round's speed
+        self.watched_job = None     # Jeff's job at the previous poll
+        self.step_ended = False     # his step ended and he has not been asked since
+        self.reply_times = []       # recent reply times (wall seconds) of answered requests
+
+    def reply_time(self):
+        """The typical recent reply time, or None before any answer."""
+        recent = sorted(self.reply_times[-5:])
+        return recent[len(recent)//2] if recent else None
+
+    def outlasts_reply(self, job):
+        """Whether Jeff's current step will end before a request sent now could be answered."""
+        expected = self.reply_time()
+        if expected is None:
+            return False
+        remaining = max(0.0, job.travel) + max(0.0, job.work)
+        return remaining / max(self.game_speed, 1e-6) < expected
 
     def invalidate(self):
         self.epoch += 1
@@ -182,6 +203,7 @@ class DecisionLoop:
                 self.failures = 0
                 self.actual_model = result["model"]
                 self.last_latency = result["latency"]
+                self.reply_times = (self.reply_times + [now-context["sent"]])[-5:]
                 for key in self.tokens:
                     self.tokens[key] += result["usage"].get(key, 0)
                 decision = context["actions"][result["choice"]]
@@ -213,6 +235,12 @@ class DecisionLoop:
                     self.last_wait_notice = now
                 if not applied:
                     self.last_revision = -1
+        job = self.k.chefs["jeff"].job
+        if job is None and self.watched_job is not None:
+            self.step_ended = True      # done, interrupted or knocked off: he now needs his next step
+        elif job is not None:
+            self.step_ended = False
+        self.watched_job = job.id if job else None
         if not enabled or self.closed or self.k.ended or self.inflight or now < self.next_allowed:
             return
         if self.calls >= self.call_limit:
@@ -222,12 +250,16 @@ class DecisionLoop:
                 self.notify('本局 AI 调用已达上限，不再发起请求；已有动作继续，玩家仍可操作。')
             return
         age = now-self.last_request
-        if age < self.k.c["ai_min_interval"]:
+        step_end = self.ask_on_step_end and self.step_ended
+        if age < self.k.c["ai_min_interval"] and not step_end:
             return
         urgency = self.urgency()
         changed = self.k.revision != self.last_revision
         urgent = urgency != self.last_urgency
-        if not (changed or urgent or age >= self.k.c["ai_refresh_seconds"]):
+        if not (changed or urgent or step_end or age >= self.k.c["ai_refresh_seconds"]):
+            return
+        if self.ask_on_step_end and job is not None and self.outlasts_reply(job):
+            # The answer would come after this step ends and be discarded; ask when it ends instead.
             return
         actions = self.k.actions("jeff")
         state = self.k.snapshot()
@@ -267,6 +299,7 @@ class DecisionLoop:
         self.last_request = now
         self.last_revision = self.k.revision
         self.last_urgency = urgency
+        self.step_ended = False
         self.inflight = True
         def work():
             try:
