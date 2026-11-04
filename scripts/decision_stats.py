@@ -22,11 +22,15 @@ For each model it counts:
 - undone: Jeff's finished steps that the next one undid: put_then_taken_back (he put an item on a station
   and his next finished step, within --put-back game seconds, took it back from there; or dropped it and
   his next step picked an item up from the floor) and walk_round_trips (three finished walks in a row,
-  go A -> go B -> go A), with walks_share, the share of his finished steps that were only walks.
+  go A -> go B -> go A), with walks_share, the share of his finished steps that were only walks;
+  round_trip_routes names the most common pairs of stations those round trips went between, and
+  walked_to the stations his finished walks most often went to (station ids of the level map).
 - plan (rounds with Jeff's plan on, plan-v2): plans set (a request carrying a plan it had not
   carried before), how they ended, how many steps they had and how long they held, and how often
   Jeff chose wait with a plan held and without one in the same rounds. Rounds under the earlier plan
-  rules (plan-v1, parts held for a fixed time) count only as `older_rules_rounds`.
+  rules (plan-v1, parts held for a fixed time) count only as `older_rules_rounds`, and rounds with the
+  two-step rolling intent (plan mode `rolling`) only as `rolling_rounds`: compare them with the
+  undone counts of separate runs over those rounds' files.
   `unsure_with_plan` counts the decisions that were unsure (first margin) while a plan had held
   for more than --plan-age seconds: the trigger proposed for the third tier, here only counted.
 - step_gaps: how long Jeff stood between steps, in wall seconds, from the end of a step (action_done)
@@ -54,7 +58,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from harness import PLAN_RULES_VERSION  # noqa: E402
 from research_record import SCHEMA as RECORD_SCHEMA  # noqa: E402
 
-VERSION = 'decision-stats-5'
+VERSION = 'decision-stats-6'
 MARGINS = (0.05, 0.1)
 PLAN_AGE = 5.0
 PUT_BACK = 10.0
@@ -169,9 +173,10 @@ def new_model():
     return {'rounds': 0, 'game_minutes': 0.0, 'decisions': 0, 'fresh': 0, 'applied': 0,
             'top': [], 'margins': [], 'chose_top': 0, 'single_probability': 0, 'pairs': Counter(),
             'started': 0, 'replaced': 0, 'knocked_off': 0, 'other_interruptions': 0, 'back_and_forth': 0,
-            'plan_rounds': 0, 'plan_older_rounds': 0, 'plans_set': 0, 'plan_ends': Counter(), 'holds': [], 'plan_steps': [],
+            'plan_rounds': 0, 'plan_older_rounds': 0, 'plan_rolling_rounds': 0, 'plans_set': 0, 'plan_ends': Counter(), 'holds': [], 'plan_steps': [],
             'held_decisions': 0, 'held_waits': 0, 'free_decisions': 0, 'free_waits': 0, 'unsure_with_plan': 0,
-            'gaps': {}, 'done': 0, 'walks_done': 0, 'put_then_taken_back': 0, 'walk_round_trips': 0}
+            'gaps': {}, 'done': 0, 'walks_done': 0, 'put_then_taken_back': 0, 'walk_round_trips': 0,
+            'round_trip_routes': Counter(), 'walked_to': Counter()}
 
 
 def undone(rows, m, put_back=PUT_BACK):
@@ -179,6 +184,7 @@ def undone(rows, m, put_back=PUT_BACK):
     done = [r for r in rows if r.get('actor') == 'jeff' and r.get('kind') == 'action_done' and isinstance(r.get('action'), str)]
     m['done'] += len(done)
     m['walks_done'] += sum(r['action'].startswith('go ') for r in done)
+    m['walked_to'].update(r['action'][3:] for r in done if r['action'].startswith('go '))
     for a, b in zip(done, done[1:]):
         ta, tb = game_time(a), game_time(b)
         if ta is None or tb is None or tb - ta > put_back:
@@ -187,8 +193,9 @@ def undone(rows, m, put_back=PUT_BACK):
         m['put_then_taken_back'] += ((put.startswith('put ') and take == 'take ' + put[4:])
                                      or (put == 'drop' and take.startswith('pickup ')))
     for a, b, c in zip(done, done[1:], done[2:]):
-        m['walk_round_trips'] += (all(x['action'].startswith('go ') for x in (a, b, c))
-                                  and a['action'] == c['action'] != b['action'])
+        if all(x['action'].startswith('go ') for x in (a, b, c)) and a['action'] == c['action'] != b['action']:
+            m['walk_round_trips'] += 1
+            m['round_trip_routes']['/'.join(sorted((a['action'][3:], b['action'][3:])))] += 1
 
 
 def add_round(rows, models, margins=MARGINS, plan_age=PLAN_AGE, put_back=PUT_BACK):
@@ -203,9 +210,12 @@ def add_round(rows, models, margins=MARGINS, plan_age=PLAN_AGE, put_back=PUT_BAC
     m['game_minutes'] += (max(times) if times else 0) / 60
     by_action = {}      # action_id -> (model, target)
     plan_on = bool(rows[0].get('jeff_plan')) or any(r.get('jeff_plan') for r in requests.values())
-    older = plan_on and (rows[0].get('jeff_plan') or {}).get('rules_version', PLAN_RULES_VERSION) != PLAN_RULES_VERSION
-    plan_on = plan_on and not older
+    condition = rows[0].get('jeff_plan') or {}
+    rolling = plan_on and condition.get('mode') == 'rolling'
+    older = plan_on and not rolling and condition.get('rules_version', PLAN_RULES_VERSION) != PLAN_RULES_VERSION
+    plan_on = plan_on and not older and not rolling
     m['plan_older_rounds'] += older
+    m['plan_rolling_rounds'] += rolling
     if plan_on:
         m['plan_rounds'] += 1
     holding = None      # the plan the previous request carried; a plan still held at closing is not counted
@@ -384,9 +394,12 @@ def summary(m, margins=MARGINS):
                          'put_then_taken_back': m['put_then_taken_back'],
                          'put_then_taken_back_per_game_minute': per_minute(m['put_then_taken_back'], minutes),
                          'walk_round_trips': m['walk_round_trips'],
-                         'walk_round_trips_per_game_minute': per_minute(m['walk_round_trips'], minutes)}
-    if m['plan_rounds'] or m['plan_older_rounds']:
-        out['plan'] = {'rounds': m['plan_rounds'], 'older_rules_rounds': m['plan_older_rounds'], 'set': m['plans_set'],
+                         'walk_round_trips_per_game_minute': per_minute(m['walk_round_trips'], minutes),
+                         'round_trip_routes': dict(m['round_trip_routes'].most_common(8)),
+                         'walked_to': dict(m['walked_to'].most_common(8))}
+    if m['plan_rounds'] or m['plan_older_rounds'] or m['plan_rolling_rounds']:
+        out['plan'] = {'rounds': m['plan_rounds'], 'older_rules_rounds': m['plan_older_rounds'],
+                       'rolling_rounds': m['plan_rolling_rounds'], 'set': m['plans_set'],
                        'ended': dict(m['plan_ends']),
                        'median_steps': median(m['plan_steps']) if m['plan_steps'] else None,
                        'median_hold_seconds': round(median(m['holds']), 2) if m['holds'] else None,
