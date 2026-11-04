@@ -154,6 +154,32 @@ class ReplayTests(paths.SavePathTests):
         self.assertIn('plan_keep', requests[1]['rebuilt']['questions'])
         self.assertEqual(requests[1]['rebuilt']['state']['jeff_plan']['steps'][0]['work'], 'fetch:beef')
 
+    def test_a_round_with_the_rolling_intent_keeps_the_condition_and_replays_exactly(self):
+        self.assertEqual(self.command('plan', mode='rolling')[0], 200)
+        receipt = self.begin_manual_relay()
+        initial = self.game.store.download(receipt['id'], receipt['deletion_token'])
+        self.assertEqual(initial['conditions']['jeff_plan'], {'mode': 'rolling', 'steps': 2, 'rules_version': 'rolling-v2'})
+        self.human_action()
+        self.assertEqual(self.answer_with(plan={'plan_step_1': 'fetch:beef', 'plan_step_2': 'chop:beef'})[0], 200)
+        self.assertEqual(self.answer_with(plan={'plan_step_1': 'take_plate'})[0], 200)
+        self.assertEqual(self.answer_with()[0], 200)
+        self.natural_end()
+        self.assertEqual(self.contribute()[0], 200)
+        record = self.game.store.download(receipt['id'], receipt['deletion_token'])
+        validate_record(record)
+        self.assertEqual(record['conditions']['jeff_plan'], initial['conditions']['jeff_plan'])
+        plans = [e['payload']['jeff_plan'] for e in record['events'] if e['type'] == 'ai_request']
+        self.assertEqual({p['mode'] for p in plans}, {'rolling'})
+        self.assertIsNone(plans[0]['current'])
+        self.assertEqual([s['work'] for s in plans[1]['current']['steps']], ['fetch:beef', 'chop:beef'])
+        self.assertEqual([s['work'] for s in plans[2]['current']['steps']], ['take_plate'])    # each answer replaces the last
+        requests = list(research_replay.rebuild_requests(record))
+        self.assertEqual({r['status'] for r in requests}, {'verified'})
+        for request in requests[:3]:     # asked at every request, never keep or drop
+            self.assertIn('plan_step_1', request['rebuilt']['questions'])
+            self.assertNotIn('plan_keep', request['rebuilt']['questions'])
+        self.assertEqual(requests[2]['rebuilt']['state']['plan_rules_version'], 'rolling-v2')
+
     def test_a_tampered_record_is_reported_as_diverged(self):
         receipt = self.play()
         self.natural_end()

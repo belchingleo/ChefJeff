@@ -112,10 +112,11 @@
     // Jeff's plan as one line in the player's language: its steps in order, done ones ticked (web_server.plan_state).
     // The communication dock (web-shell) shows the same line.
     window.kitchenPlanLine = plan => {
-      if (plan?.mode !== 'choice') return '';
-      const en = window.kitchenI18n?.language === 'en', steps = plan.current?.steps;
-      if (!steps) return en ? 'Jeff: no plan yet' : 'Jeff：还没定计划';
-      return (en ? "Jeff's plan: " : 'Jeff 计划：') + steps.map(s => (en ? s.label_en : s.label) + (s.done ? ' ✓' : '')).join(' → ');
+      if (plan?.mode !== 'choice' && plan?.mode !== 'rolling') return '';
+      const en = window.kitchenI18n?.language === 'en', steps = plan.current?.steps, rolling = plan.mode === 'rolling';
+      if (!steps) return rolling ? (en ? 'Jeff: no intent yet' : 'Jeff：还没说打算') : (en ? 'Jeff: no plan yet' : 'Jeff：还没定计划');
+      return (rolling ? (en ? "Jeff's intent: " : 'Jeff 打算：') : (en ? "Jeff's plan: " : 'Jeff 计划：'))
+        + steps.map(s => (en ? s.label_en : s.label) + (s.done ? ' ✓' : '')).join(' → ');
     };
     window.addEventListener('kitchen-state', event => { jeffPlan = event.detail?.communication?.jeff_plan || null; render(); });
     const text = (id, value) => { const n = el(id); const next = t(String(value ?? '')); if (n.textContent !== next) n.textContent = next; };
@@ -253,7 +254,7 @@
       wasAiming = aiming;
       text('touch-hand', state.handLabel || '');
       // Jeff's plan, the same line as the communication dock, already in the player's language.
-      const plan = jeffPlan?.mode === 'choice' ? jeffPlan : null;
+      const plan = jeffPlan?.mode === 'choice' || jeffPlan?.mode === 'rolling' ? jeffPlan : null;
       const planText = window.kitchenPlanLine(plan);
       if (el('touch-plan').textContent !== planText) el('touch-plan').textContent = planText;
       el('touch-plan').hidden = !plan || state.phase !== 'running';

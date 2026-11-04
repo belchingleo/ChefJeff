@@ -803,6 +803,16 @@ function settingsHarness(){
  assert.equal(ui.el('jeff-plan').disabled,false);assert.equal(ui.el('jeff-plan').getAttribute('aria-busy'),'true');
  await saving;assert.equal(ui.requests(),before+1,'one /api/plan request per toggle');
  assert.equal(ui.el('jeff-plan').getAttribute('aria-busy'),'false');assert.equal(ui.el('jeff-plan').getAttribute('aria-checked'),'false','a failed save leaves the switch on the server value');
+ // The two-step intent switch shows the same single mode: on with rolling, while the plan switch shows off.
+ detail.communication.jeff_plan={mode:'rolling',editable:true,current:null};ui.listeners.get('kitchen-state')({detail});
+ assert.equal(ui.el('jeff-rolling').getAttribute('aria-checked'),'true');assert.equal(ui.el('jeff-plan').getAttribute('aria-checked'),'false');
+ assert.equal(ui.el('jeff-rolling').disabled,false);
+ detail.communication.jeff_plan={mode:'rolling',editable:false,current:null};ui.listeners.get('kitchen-state')({detail});
+ assert.equal(ui.el('jeff-rolling').disabled,true);assert.equal(ui.el('jeff-plan').disabled,true);
+ detail.communication.jeff_plan={mode:'off',editable:true,current:null};ui.listeners.get('kitchen-state')({detail});
+ const rollingBefore=ui.requests(),rollingSaving=ui.el('jeff-rolling').onclick();
+ assert.equal(ui.el('jeff-rolling').getAttribute('aria-busy'),'true');
+ await rollingSaving;assert.equal(ui.requests(),rollingBefore+1,'one /api/plan request per toggle');
  console.log('Browser transport and settings: credential isolation, session retry/release, editable drafts and guarded connection checks passed.');
  await checkModelIdentity();
  await checkFreeModels();

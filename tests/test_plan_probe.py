@@ -82,6 +82,29 @@ class PlanProbeTests(unittest.TestCase):
         self.assertEqual(report['arms']['plan_off'], {'asked': 1, 'answered': 0})
         self.assertIsNone(report['plan_held_not_below_plan_off'])
 
+    def test_the_rolling_arms_and_stale_intent(self):
+        _, k, _ = self.emergencies[0]
+        off, asking, held = (plan_probe.arm_payload(self.client, k, arm, 'rolling') for arm in plan_probe.ARMS)
+        for payload in (asking, held):     # asked at every request, never keep or drop
+            self.assertEqual([q for q in payload['questions'] if q.startswith('plan_')], ['plan_step_1', 'plan_step_2'])
+            self.assertEqual(payload['questions']['next_action'], off['questions']['next_action'])
+        self.assertNotIn('jeff_plan', held['state'])
+        self.assertEqual([d.get('intent') is not None for d in held['state']['recent_decisions']], [True])
+        self.assertEqual([s['work'] for s in held['state']['recent_decisions'][0]['intent']], list(plan_probe.UNRELATED[:2]))
+        self.assertNotIn('intent', asking['state']['recent_decisions'][0])          # the same decision, without intent
+        self.assertEqual(off['state']['recent_decisions'], [])                       # the off arm as in choice mode
+        stale = plan_probe.STALE_PLAN[:2]
+
+        def answer(steps):
+            return lambda payload: {'choice': 'wait', 'plan': {'steps': list(steps)}}
+        with patch.object(plan_probe, 'emergencies', lambda: []):
+            again = plan_probe.run(self.client, repeats=2, ask=answer(stale), mode='rolling')['stale_plan']
+            moved = plan_probe.run(self.client, repeats=1, ask=answer(['take_plate']), mode='rolling')['stale_plan']
+            silent = plan_probe.run(self.client, repeats=1, ask=answer([]), mode='rolling')['stale_plan']
+        self.assertEqual((again['intent'], again['repeated_stale_intent'], again['left_it_in_most_answers']), (list(stale), 1.0, False))
+        self.assertEqual((moved['repeated_stale_intent'], moved['left_it_in_most_answers']), (0.0, True))
+        self.assertEqual((silent['gave_no_intent'], silent['left_it_in_most_answers']), (1.0, True))
+
 
 if __name__ == '__main__':
     unittest.main()
