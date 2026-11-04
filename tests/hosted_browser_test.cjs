@@ -578,6 +578,23 @@ function checkResultContinuation(fromSource){
  client.startNext('level-2');client.state.game_id='changed';while(queued.length)queued.shift()();assert.equal(posted.length,1);
  assert.equal(client.countdown,0,'A stale countdown must not act on the new round.');
 }
+function checkLevelPlateNext(fromSource){
+ const h=harness(),client=clientHarness(h,fromSource),opened=[],posted=[];
+ const plate={game_id:'plate',phase:'ready',kitchen:{level_id:'level-2'},
+  levels:[{id:'level-2',name:'汉堡',menu_order:2},{id:'level-1',name:'牛排',menu_order:1}]};
+ client.state=plate;client.coverEvent=(name,detail)=>opened.push([name,detail]);client.post=(path,body)=>posted.push({path,body});
+ // On the last official level ▶ (and →) opens the player's own levels where this server calibrates them.
+ client.editorReady=()=>false;client.stepLevel(1);
+ assert.equal(client.nextOpensEditor(),false);assert.equal(opened.length+posted.length,0,'Without the editor ▶ stays put.');
+ client.editorReady=()=>true;assert.equal(client.nextOpensEditor(),true);client.stepLevel(1);
+ assert.equal(JSON.stringify(opened),JSON.stringify([['kitchen-open-editor',{from:'card'}]]));assert.equal(posted.length,0);
+ client.stepLevel(-1);assert.equal(JSON.stringify(posted),JSON.stringify([{path:'/api/level',body:{level:'level-1'}}]));
+ // Before the last level ▶ still changes level; a player's level and a running round have no ▶.
+ client.state={...plate,kitchen:{level_id:'level-1'}};assert.equal(client.nextOpensEditor(),false);
+ client.state={...plate,player_level:{id:'player-1'}};client.stepLevel(1);
+ client.state={...plate,phase:'running'};client.stepLevel(1);
+ assert.equal(opened.length,1);assert.equal(posted.length,1);
+}
 const cfg={provider:'deepseek',model:'test-model',api_key:key,remember:false};
 function settingsHarness(){
  const html=fs.readFileSync('cocos-kitchen/web-shell.html','utf8');
@@ -596,7 +613,7 @@ function settingsHarness(){
  return {el,listeners,requests:()=>requests};
 }
 (async()=>{
- checkResultContinuation(true);checkResultContinuation(false);
+ checkResultContinuation(true);checkResultContinuation(false);checkLevelPlateNext(true);checkLevelPlateNext(false);
  let h=harness();await h.w.fetch('/api/state');
  // Local-only services (hosted: none) and placeholders are not offered online.
  for(const provider of ['zhipu','decision3'])assert.notEqual((await h.w.fetch('/api/connection',{method:'POST',body:JSON.stringify({...cfg,provider})})).status,200);

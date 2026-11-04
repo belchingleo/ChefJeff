@@ -318,7 +318,7 @@ export class KitchenClient extends Component {
         }
         this.installControls();
         game.on(Game.EVENT_HIDE,this.onHide,this);game.on(Game.EVENT_SHOW,this.onShow,this);
-        if(!sys.isNative){window.addEventListener('kitchen-language-changed',this.onLanguage);window.addEventListener('kitchen-confirmed',this.onConfirmed);window.addEventListener('keydown',this.onKey,true);window.addEventListener('keyup',this.onKeyUp,true);window.addEventListener('mousedown',this.onMouseDown,true);window.addEventListener('mouseup',this.onMouseUp,true);window.addEventListener('blur',this.onBlur);document.addEventListener('visibilitychange',this.onVisibility);document.addEventListener('contextmenu',this.onContextMenu);}
+        if(!sys.isNative){window.addEventListener('kitchen-language-changed',this.onLanguage);window.addEventListener('kitchen-confirmed',this.onConfirmed);window.addEventListener('kitchen-editor-ready',this.onEditorReady);window.addEventListener('keydown',this.onKey,true);window.addEventListener('keyup',this.onKeyUp,true);window.addEventListener('mousedown',this.onMouseDown,true);window.addEventListener('mouseup',this.onMouseUp,true);window.addEventListener('blur',this.onBlur);document.addEventListener('visibilitychange',this.onVisibility);document.addEventListener('contextmenu',this.onContextMenu);}
         // Idle screens need neither gameplay frame rate nor five snapshots a second.
         game.frameRate=15;
         this.audio.load(this.node);
@@ -333,7 +333,7 @@ export class KitchenClient extends Component {
     // cover never flashes placeholder art or a second "connecting" state.
     private loadingStep(text:string){const el=!sys.isNative&&document.querySelector('#kitchen-loading span');if(el)el.textContent=text;}
     private hideLoading(){if(!sys.isNative)document.getElementById('kitchen-loading')?.remove();}
-    onDestroy(){this.audio.destroy();this.controlAccess?.remove();this.clearInput();game.off(Game.EVENT_HIDE,this.onHide,this);game.off(Game.EVENT_SHOW,this.onShow,this);if(!sys.isNative){window.removeEventListener('kitchen-touch-mode',this.onTouchMode);if((window as any).kitchenControls===this.controls)delete (window as any).kitchenControls;window.removeEventListener('kitchen-language-changed',this.onLanguage);window.removeEventListener('kitchen-confirmed',this.onConfirmed);window.removeEventListener('keydown',this.onKey,true);window.removeEventListener('keyup',this.onKeyUp,true);window.removeEventListener('mousedown',this.onMouseDown,true);window.removeEventListener('mouseup',this.onMouseUp,true);window.removeEventListener('blur',this.onBlur);document.removeEventListener('visibilitychange',this.onVisibility);document.removeEventListener('contextmenu',this.onContextMenu);}}
+    onDestroy(){this.audio.destroy();this.controlAccess?.remove();this.clearInput();game.off(Game.EVENT_HIDE,this.onHide,this);game.off(Game.EVENT_SHOW,this.onShow,this);if(!sys.isNative){window.removeEventListener('kitchen-touch-mode',this.onTouchMode);if((window as any).kitchenControls===this.controls)delete (window as any).kitchenControls;window.removeEventListener('kitchen-language-changed',this.onLanguage);window.removeEventListener('kitchen-confirmed',this.onConfirmed);window.removeEventListener('kitchen-editor-ready',this.onEditorReady);window.removeEventListener('keydown',this.onKey,true);window.removeEventListener('keyup',this.onKeyUp,true);window.removeEventListener('mousedown',this.onMouseDown,true);window.removeEventListener('mouseup',this.onMouseUp,true);window.removeEventListener('blur',this.onBlur);document.removeEventListener('visibilitychange',this.onVisibility);document.removeEventListener('contextmenu',this.onContextMenu);}}
     private onHide(){this.hidden=true;this.clearInput();if(this.state?.phase==='running')this.post('/api/pause',{reason:'hidden'});}
     private onShow(){this.hidden=false;this.poll();}
     private onBlur=()=>this.clearInput();
@@ -423,7 +423,7 @@ export class KitchenClient extends Component {
         const label=(id:string)=>this.labelSources.get(this.buttons[id].label)||'';
         const c=s.connection,acts=s.phase==='ended'?this.resultActions(s):null;
         return {level:text('level-title'),dish:text('level-name'),own:!!s.player_level,target:text('level-target'),tag:s.phase==='ended'?text('level-tag-text'):'',won:s.phase==='ended'&&!!s.won,
-            money:s.phase==='ended'?text('result-money'):'',stepEnabled:s.phase==='ready'&&this.connected&&!this.pending&&!this.countdown,
+            money:s.phase==='ended'?text('result-money'):'',stepEnabled:s.phase==='ready'&&this.connected&&!this.pending&&!this.countdown,nextEditor:this.nextOpensEditor(s),
             free:c?.free_models?.enabled?{status:text('tile-free-status'),pick:label('free-pick'),selected:!!c.free_model}:null,
             custom:{status:text('tile-key-status'),selected:!!c?.configured&&!c.free_model},
             alt:acts?{label:acts.alt.label,sub:acts.alt.sub}:null};
@@ -1149,12 +1149,21 @@ export class KitchenClient extends Component {
     private sortedLevels(s=this.state){return [...(s?.levels||[])].sort((a:any,b:any)=>(a.menu_order??0)-(b.menu_order??0));}
     private dishName(level:any){const n=String(level?.name||'');return n.includes('·')?n.split('·').pop()!.trim():n;}
     private levelNumber(index:number){return `第 ${index+1} 关`;}
-    /** ◀ ▶ on the level plate: the neighbouring level, before a round only. */
+    /** ◀ ▶ on the level plate: the neighbouring level, before a round only; ▶ after the last one opens the player's own levels. */
     private stepLevel(d:number){
         const s=this.state;if(!s||s.phase!=='ready'||this.pending||s.player_level)return;  // a player's level has no neighbours
         const ls=this.sortedLevels(s),i=ls.findIndex((l:any)=>l.id===s.kitchen?.level_id),to=ls[i+d];
         if(to)this.post('/api/level',{level:to.id});
+        else if(this.nextOpensEditor(s))this.coverEvent('kitchen-open-editor',{from:'card'});
     }
+    /** The level editor (level-editor.js) is there when this server calibrates players' levels. */
+    private editorReady(){return !sys.isNative&&!!(window as any).chefjeffEditor?.available?.();}
+    /** On the last official level, ▶ leads to 我的关卡 instead of greying out. */
+    private nextOpensEditor(s=this.state){
+        if(!s||s.player_level)return false;
+        const ls=this.sortedLevels(s);return ls.length>0&&ls[ls.length-1].id===s.kitchen?.level_id&&this.editorReady();
+    }
+    private onEditorReady=()=>this.render();
     /** Hands a shop-card request to the page (lists, limits, free-model choice live in HTML). */
     private coverEvent(name:string,detail?:any){this.clearInput();if(!sys.isNative)window.dispatchEvent(new CustomEvent(name,{detail}));}
     private useFree(){
@@ -2150,7 +2159,7 @@ export class KitchenClient extends Component {
                     if(!this.touchLayout?.active){btn('level-edit',966,208,150,40);this.enable('level-edit',!this.pending);}
                 }else{
                     btn('level-prev',252,208,44,64);btn('level-next',1028,208,44,64);
-                    this.enable('level-prev',!this.pending&&i>0);this.enable('level-next',!this.pending&&i<ls.length-1);
+                    this.enable('level-prev',!this.pending&&i>0);this.enable('level-next',!this.pending&&(i<ls.length-1||this.nextOpensEditor(s)));
                 }
             }else{
                 hide('level-prev','level-next','level-caret');on(this.cover.getChildByName('level-underline'),false);
@@ -2247,7 +2256,7 @@ export class KitchenClient extends Component {
     }
     private syncAccess(){
         if(!this.controlAccess)return;
-        const icons:Record<string,string>={pause:'暂停',resume:'继续经营',end:'结束本局','cover-connection':'设置','level-prev':'上一关','level-next':'下一关',
+        const icons:Record<string,string>={pause:'暂停',resume:'继续经营',end:'结束本局','cover-connection':'设置','level-prev':'上一关','level-next':this.nextOpensEditor()?'自定义关卡':'下一关',
             'tile-free':'免费模型','tile-key':'自定义模型（API Key）','level-picker':'全部关卡','free-limits':'免费使用限制'};
         for(const id of this.tabOrder()){
             const b=this.buttons[id],proxy=this.controlAccess.querySelector(`[data-control="${id}"]`) as HTMLButtonElement|null;if(!proxy)continue;

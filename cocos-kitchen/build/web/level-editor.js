@@ -365,7 +365,10 @@
     window.addEventListener('kitchen-language-changed', () => {if (dialog.open) render();});
     return dialog;
   }
-  async function open() {
+  // Where ← 返回 leads: the all-levels list, or the start card when ▶ opened this from there.
+  let back = 'levels';
+  async function open(e) {
+    back = e?.detail?.from === 'card' ? 'card' : 'levels';
     if (!await loadCatalog()) return;
     ensureDialog();
     view = {screen: 'list'};
@@ -408,7 +411,7 @@
   }
   function renderList() {
     const list = readLevels(), picker = h('input', {type: 'file', accept: '.json,application/json', hidden: true, onchange: e => importFile(e.target.files[0])});
-    dialog.append(h('div', {class: 'dlg-head'}, button('← 返回', () => {dialog.close(); window.dispatchEvent(new Event('kitchen-open-levels'));}),
+    dialog.append(h('div', {class: 'dlg-head'}, button('← 返回', () => {dialog.close(); if (back === 'levels') window.dispatchEvent(new Event('kitchen-open-levels'));}),
       h('h2', {id: 'editor-title'}, '我的关卡'),
       h('div', {class: 'ed-row', style: 'margin-left:auto'}, picker, button('导入关卡文件', () => picker.click()),
         touch() ? null : button('+ 新建关卡', () => createLevel(), 'btn primary'))));

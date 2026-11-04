@@ -288,7 +288,10 @@
         text('touch-level-tag', card.tag); el('touch-level-tag').className = card.won ? 'won' : '';
         el('touch-level-prev').hidden = el('touch-level-next').hidden = ended || !!card.own;  // a player's level has no neighbours
         el('touch-level-prev').disabled = !card.stepEnabled || index <= 0;
-        el('touch-level-next').disabled = !card.stepEnabled || index < 0 || index >= levels.length - 1;
+        // After the last official level, ▶ opens 我的关卡 (card.nextEditor), as on the desktop card.
+        el('touch-level-next').disabled = !card.stepEnabled || index < 0 || (index >= levels.length - 1 && !card.nextEditor);
+        const nextLabel = t(card.nextEditor ? '自定义关卡' : '下一关');
+        if (el('touch-level-next').getAttribute('aria-label') !== nextLabel) el('touch-level-next').setAttribute('aria-label', nextLabel);
         el('touch-levels').disabled = !state.levelEnabled;
         // The title row is the 全部关卡 entry, as on the desktop card.
         el('touch-levels').setAttribute('aria-label', t(card.level) + ' ' + (card.own ? card.dish : t(card.dish)) + ' · ' + t('全部关卡'));
@@ -377,7 +380,7 @@
         'touch-fullscreen-tip': 'iPhone 不支持网页全屏：在浏览器的分享菜单选「添加到主屏幕」，再从主屏幕打开即可全屏。' })) text(id, source);
       el('touch-language').textContent = window.kitchenI18n?.language === 'en' ? '中文' : 'English';
       joystick.setAttribute('aria-label', t('移动')); el('touch-orders').setAttribute('aria-label', t('订单'));
-      el('touch-level-prev').setAttribute('aria-label', t('上一关')); el('touch-level-next').setAttribute('aria-label', t('下一关'));
+      el('touch-level-prev').setAttribute('aria-label', t('上一关'));
       ordersSignature = ''; render();
     }
     function joyMove(event) {
