@@ -31,10 +31,6 @@ MODELS = {
                 'platform': 'Bamboo Relay', 'endpoint': 'https://api.bamboonode.dev/v1/decisions', 'field': 'bamboo_api_key'},
     # Later models: OpenAI-compatible chat with the request fields that passed the synthetic probe.
     # record: the research-record service name (model-providers.json); the model ID stays exact.
-    'gemini': {'model': 'gemini-3.5-flash-lite', 'name': 'Gemini 3.5 Flash-Lite', 'platform': 'Google AI Studio',
-               'endpoint': 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
-               'field': 'gemini_api_key', 'record': 'gemini',
-               'extra': {'reasoning_effort': 'minimal', 'response_format': {'type': 'json_object'}}},
     'cloudflare-gemma': {'model': '@cf/google/gemma-4-26b-a4b-it', 'name': 'Gemma 4 26B', 'platform': 'Cloudflare Workers AI',
                          'endpoint': CLOUDFLARE, 'field': 'cloudflare_api_key', 'record': 'cloudflare',
                          'extra': {'chat_template_kwargs': {'enable_thinking': False}, 'response_format': {'type': 'json_object'}}},
@@ -43,7 +39,11 @@ MODELS = {
                          'extra': {'response_format': {'type': 'json_object'}}},
 }
 ORIGINAL = ('zhipu', 'startlux')
-EXTRA_FIELDS = {'gemini_api_key', 'cloudflare_api_key', 'cloudflare_account_id'}
+EXTRA_FIELDS = {'cloudflare_api_key', 'cloudflare_account_id'}
+# Gemini was a later free model until it was dropped: its free tier allows one call every 4.3 s, and Jeff
+# asks at least every 2 s and right after each step. A key file that still holds its field keeps working;
+# the field is ignored.
+RETIRED_FIELDS = {'gemini_api_key'}
 
 
 class FreeCallError(ForwardError):
@@ -89,8 +89,8 @@ def read_extra_keys(path, *, allow_root_import=False):
     A platform's models are enabled only when its own fields are present and well formed."""
     value = private_json(path, allow_root_import)
     if (not isinstance(value, dict) or value.get('format') != 'chefjeff-private-extra-keys-v1'
-            or set(value) - EXTRA_FIELDS - {'format'} or len(value) < 2
-            or any(not valid_key(value[f]) for f in ('gemini_api_key', 'cloudflare_api_key') if f in value)
+            or set(value) - EXTRA_FIELDS - RETIRED_FIELDS - {'format'} or len(value) < 2
+            or ('cloudflare_api_key' in value and not valid_key(value['cloudflare_api_key']))
             or ('cloudflare_api_key' in value) != ('cloudflare_account_id' in value)
             or ('cloudflare_account_id' in value and not (isinstance(value['cloudflare_account_id'], str)
                 and re.fullmatch(r'[0-9a-f]{32}', value['cloudflare_account_id'])))):

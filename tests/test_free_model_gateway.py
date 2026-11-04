@@ -166,12 +166,10 @@ class CoordinatorTests(unittest.TestCase):
 
 
 class LaterModelTests(unittest.TestCase):
-    """Gemini and the two Cloudflare models: their own pools, pacing and the day's limit."""
+    """The two Cloudflare models: their own pool, pacing and the day's limit."""
     def setUp(self):
         self.clock = [1000.0]
-        extra = {'gemini': {'key': 'synthetic-gemini-key-not-real',
-                            'endpoint': 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'},
-                 'cloudflare-gemma': {'key': 'synthetic-cf-key-not-real', 'endpoint': 'https://api.cloudflare.com/x'},
+        extra = {'cloudflare-gemma': {'key': 'synthetic-cf-key-not-real', 'endpoint': 'https://api.cloudflare.com/x'},
                  'cloudflare-llama': {'key': 'synthetic-cf-key-not-real', 'endpoint': 'https://api.cloudflare.com/x'}}
         self.sender = FreeModels(KEYS, verified=True, extra=extra)
         self.calls = []
@@ -179,9 +177,8 @@ class LaterModelTests(unittest.TestCase):
             self.calls.append(provider); return deepcopy(ANSWER)
         self.sender.send = send
         clock = lambda: self.clock[0]
-        self.pools = (CallBudget(clock=clock, providers=('gemini',), minute=14, hour=450, day=450, spacing=4.3),
-                      CallBudget(clock=clock, providers=('cloudflare-gemma', 'cloudflare-llama'), minute=30,
-                                 hour=9000, day=9000, weights={'cloudflare-gemma': 80, 'cloudflare-llama': 115}))
+        self.pools = (CallBudget(clock=clock, providers=('cloudflare-gemma', 'cloudflare-llama'), minute=30,
+                                 hour=9000, day=9000, weights={'cloudflare-gemma': 80, 'cloudflare-llama': 115}),)
         self.coordinator = FreeCoordinator(self.sender, CallBudget(clock=clock), clock=clock, pools=self.pools)
 
     def lease(self, provider, owner='o'*24):
@@ -193,25 +190,30 @@ class LaterModelTests(unittest.TestCase):
     def test_catalog_lists_every_enabled_model_with_its_own_seat(self):
         catalog = self.coordinator.catalog()
         self.assertEqual([m['provider'] for m in catalog['models']],
-                         ['zhipu', 'startlux', 'gemini', 'cloudflare-gemma', 'cloudflare-llama'])
+                         ['zhipu', 'startlux', 'cloudflare-gemma', 'cloudflare-llama'])
         self.assertEqual({m['provider']: m['record'] for m in catalog['models']}['cloudflare-llama'], 'cloudflare')
         self.assertTrue(all(row['available'] and row['limit'] == 1 for row in catalog['global_capacity'].values()))
         self.assertNotIn('synthetic', json.dumps(catalog))
         with self.assertRaises(ValueError):  # an enabled model without a budget never runs unmetered
-            FreeCoordinator(self.sender, CallBudget(), pools=self.pools[:1])
+            FreeCoordinator(self.sender, CallBudget(), pools=())
 
-    def test_gemini_waits_between_calls_without_spending_budget(self):
-        one = self.lease('gemini')
+    def test_a_paced_platform_waits_between_calls_without_spending_budget(self):
+        # No enabled platform paces calls now (Gemini, which needed 4.3 s, was dropped); the gateway still can.
+        clock = lambda: self.clock[0]
+        paced = (CallBudget(clock=clock, providers=('cloudflare-gemma', 'cloudflare-llama'), minute=14, hour=450,
+                            day=450, spacing=4.3),)
+        self.coordinator = FreeCoordinator(self.sender, CallBudget(clock=clock), clock=clock, pools=paced)
+        one = self.lease('cloudflare-gemma')
         self.decide(one, 'first')
         self.clock[0] += 2
         with self.assertRaises(GatewayError) as error: self.decide(one, 'second')
         self.assertEqual(error.exception.code, 'call_pacing')
         self.assertAlmostEqual(error.exception.diagnostic['retry_after_seconds'], 2.3, places=2)
         self.assertIs(error.exception.diagnostic['upstream_called'], False)
-        self.assertEqual(self.calls, ['gemini'])
+        self.assertEqual(self.calls, ['cloudflare-gemma'])
         self.clock[0] += 2.4
         self.decide(one, 'third')
-        self.assertEqual(self.calls, ['gemini', 'gemini'])
+        self.assertEqual(self.calls, ['cloudflare-gemma', 'cloudflare-gemma'])
 
     def test_cloudflare_models_share_one_daily_allowance(self):
         gemma, llama = self.lease('cloudflare-gemma'), self.lease('cloudflare-llama', owner='l'*24)
@@ -231,7 +233,7 @@ class LaterModelTests(unittest.TestCase):
         capacity = self.coordinator.catalog()['global_capacity']
         self.assertEqual(capacity['cloudflare-llama']['reason'], 'daily_budget')
         self.assertFalse(capacity['cloudflare-gemma']['available'])
-        self.assertTrue(capacity['gemini']['available'] and capacity['zhipu']['available'])  # other pools unaffected
+        self.assertTrue(capacity['zhipu']['available'] and capacity['startlux']['available'])  # other pools unaffected
 
 
     def test_regions_accept_any_enabled_subset_but_never_another_model_id(self):
@@ -241,8 +243,8 @@ class LaterModelTests(unittest.TestCase):
         catalog = self.coordinator.catalog()
         region = RegionalFreeModels(Client(catalog), clock=lambda: self.clock[0])
         self.assertTrue(region.catalog()['gateway_available'])
-        self.assertEqual(len(region.catalog()['models']), 5)
-        changed = deepcopy(catalog); changed['models'][2]['model'] = 'gemini-2.5-flash-lite'
+        self.assertEqual(len(region.catalog()['models']), 4)
+        changed = deepcopy(catalog); changed['models'][2]['model'] = '@cf/google/gemma-3-12b-it'
         region = RegionalFreeModels(Client(changed), clock=lambda: self.clock[0])
         self.assertFalse(region.catalog()['gateway_available'])
 
@@ -255,8 +257,8 @@ class LaterModelTests(unittest.TestCase):
             path = Path(d)/'diagnostics.json'
             path.write_text(json.dumps({'version': 1, 'providers': {p: {'upstream_attempts': 3, 'last_result': {}}
                                                                     for p in ('zhipu', 'startlux')}})); path.chmod(0o600)
-            rows = Diagnostics(d, ('zhipu', 'startlux', 'gemini')).snapshot()['providers']
-        self.assertEqual((rows['zhipu']['upstream_attempts'], rows['gemini']['upstream_attempts']), (3, 0))
+            rows = Diagnostics(d, ('zhipu', 'startlux', 'cloudflare-gemma')).snapshot()['providers']
+        self.assertEqual((rows['zhipu']['upstream_attempts'], rows['cloudflare-gemma']['upstream_attempts']), (3, 0))
 
 
 class GatewayHTTPTests(unittest.TestCase):

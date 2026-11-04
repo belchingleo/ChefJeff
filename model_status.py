@@ -7,7 +7,7 @@ CODES=frozenset(('ok','upstream_rate_limited','upstream_overloaded','upstream_au
  'upstream_blocked','upstream_cooldown','call_budget','daily_budget','call_pacing','round_budget','budget_unavailable',
  'seat_busy','request_busy','lease_lost','round_changed','gateway_unavailable'))
 # The fixed free-model names (hosted_free_models.MODELS); a diagnostic never carries any other text.
-FREE_PROVIDERS=frozenset(('zhipu','startlux','gemini','cloudflare-gemma','cloudflare-llama'))
+FREE_PROVIDERS=frozenset(('zhipu','startlux','cloudflare-gemma','cloudflare-llama'))
 FORMAT_ERRORS=frozenset(('invalid_json','invalid_action','invalid_sprint','invalid_usage','unknown'))
 
 

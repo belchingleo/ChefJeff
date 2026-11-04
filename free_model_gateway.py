@@ -27,12 +27,11 @@ CODES = frozenset(('invalid_request', 'seat_busy', 'request_busy', 'lease_lost',
 
 def platform_pools(state_dir):
     """The later models' budgets, each in its own directory so the original budget file keeps its format.
-    Below each platform's free tier: Gemini 15 requests a minute and 500 a day; Cloudflare 10,000
-    Neurons a day for the whole account, about 70 (Gemma) or 100 (Llama) per kitchen request."""
+    Below the platform's free tier: Cloudflare 10,000 Neurons a day for the whole account, about 70 (Gemma)
+    or 100 (Llama) per kitchen request."""
     from pathlib import Path
-    return (CallBudget(Path(state_dir)/'gemini', providers=('gemini',), minute=14, hour=450, day=450, spacing=4.3),
-            CallBudget(Path(state_dir)/'cloudflare', providers=('cloudflare-gemma', 'cloudflare-llama'),
-                       minute=30, hour=9000, day=9000, weights={'cloudflare-gemma': 80, 'cloudflare-llama': 115}))
+    return (CallBudget(Path(state_dir)/'cloudflare', providers=('cloudflare-gemma', 'cloudflare-llama'),
+                       minute=30, hour=9000, day=9000, weights={'cloudflare-gemma': 80, 'cloudflare-llama': 115}),)
 
 
 class GatewayError(Exception):
