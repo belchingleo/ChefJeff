@@ -105,38 +105,43 @@ class Reply:
 
 
 class LaterModelTests(unittest.TestCase):
-    """Gemini and Cloudflare: a separate private key file, the probed request fields, exact model IDs."""
+    """Cloudflare: a separate private key file, the probed request fields, exact model IDs."""
     def write(self, d, value):
         path = Path(d)/'extra.json'; path.write_text(json.dumps(value)); path.chmod(0o600); return path
 
     def test_extra_key_file_enables_only_the_platforms_it_names(self):
         account = '0123456789abcdef0123456789abcdef'
+        cloudflare = {'format': 'chefjeff-private-extra-keys-v1', 'cloudflare_api_key': 'synthetic-cf-key',
+                      'cloudflare_account_id': account}
         with tempfile.TemporaryDirectory() as d:
-            only_gemini = read_extra_keys(self.write(d, {'format': 'chefjeff-private-extra-keys-v1',
-                                                         'gemini_api_key': 'synthetic-gemini-key'}))
-            self.assertEqual(set(only_gemini), {'gemini'})
-            both = read_extra_keys(self.write(d, {'format': 'chefjeff-private-extra-keys-v1', 'gemini_api_key': 'synthetic-gemini-key',
-                                                  'cloudflare_api_key': 'synthetic-cf-key', 'cloudflare_account_id': account}))
-            self.assertEqual(both['cloudflare-llama']['endpoint'],
+            only_cloudflare = read_extra_keys(self.write(d, cloudflare))
+            self.assertEqual(set(only_cloudflare), {'cloudflare-gemma', 'cloudflare-llama'})
+            self.assertEqual(only_cloudflare['cloudflare-llama']['endpoint'],
                              f'https://api.cloudflare.com/client/v4/accounts/{account}/ai/v1/chat/completions')
+            # Gemini was dropped from the free list; a file that still names it keeps working and the field is ignored.
+            self.assertNotIn('gemini', MODELS)
+            self.assertEqual(read_extra_keys(self.write(d, {**cloudflare, 'gemini_api_key': 'synthetic-gemini-key'})),
+                             only_cloudflare)
+            self.assertEqual(read_extra_keys(self.write(d, {'format': 'chefjeff-private-extra-keys-v1',
+                                                            'gemini_api_key': 'synthetic-gemini-key'})), {})
             for bad in ({'format': 'chefjeff-private-extra-keys-v1', 'cloudflare_api_key': 'synthetic-cf-key'},
-                        {'format': 'chefjeff-private-extra-keys-v1', 'cloudflare_api_key': 'synthetic-cf-key', 'cloudflare_account_id': 'x/../y'},
-                        {'format': 'chefjeff-private-extra-keys-v1', 'gemini_api_key': 'synthetic-gemini-key', 'nvidia_api_key': 'k'*12},
-                        {'format': 'chefjeff-private-api-keys-v1', 'gemini_api_key': 'synthetic-gemini-key'},
+                        {**cloudflare, 'cloudflare_account_id': 'x/../y'},
+                        {**cloudflare, 'cloudflare_api_key': 'short'},
+                        {**cloudflare, 'nvidia_api_key': 'k'*12},
+                        {**cloudflare, 'format': 'chefjeff-private-api-keys-v1'},
                         {'format': 'chefjeff-private-extra-keys-v1'}):
                 with self.assertRaises(ValueError): read_extra_keys(self.write(d, bad))
         with self.assertRaises(ValueError):  # later models never run without the verified original pair
-            FreeModels(extra=only_gemini)
-        catalog = FreeModels(KEYS, verified=True, extra=only_gemini).catalog()
-        self.assertEqual([m['provider'] for m in catalog['models']], ['zhipu', 'startlux', 'gemini'])
+            FreeModels(extra=only_cloudflare)
+        catalog = FreeModels(KEYS, verified=True, extra=only_cloudflare).catalog()
+        self.assertEqual([m['provider'] for m in catalog['models']], ['zhipu', 'startlux', 'cloudflare-gemma', 'cloudflare-llama'])
         self.assertEqual(catalog['default'], 'startlux')
 
     def test_requests_use_probed_fields_and_replies_must_name_the_fixed_model(self):
         extra = {p: {'key': 'synthetic-' + p + '-key', 'endpoint': 'https://example.invalid/' + p}
-                 for p in ('gemini', 'cloudflare-gemma', 'cloudflare-llama')}
+                 for p in ('cloudflare-gemma', 'cloudflare-llama')}
         models = FreeModels(KEYS, verified=True, extra=extra)
-        for provider, field in (('gemini', 'reasoning_effort'), ('cloudflare-gemma', 'chat_template_kwargs'),
-                                ('cloudflare-llama', 'response_format')):
+        for provider, field in (('cloudflare-gemma', 'chat_template_kwargs'), ('cloudflare-llama', 'response_format')):
             opener = unittest.mock.Mock()
             opener.open.return_value = Reply({'model': MODELS[provider]['model'], 'usage': {'prompt_tokens': 7400, 'completion_tokens': 11},
                                               'choices': [{'message': {'content': '{"choice":"wait","sprint":false}'}}]})
@@ -150,11 +155,11 @@ class LaterModelTests(unittest.TestCase):
             self.assertEqual(body['response_format'], {'type': 'json_object'})
             self.assertEqual(request.headers['Authorization'], 'Bearer synthetic-' + provider + '-key')
             self.assertEqual((answer['choice'], answer['usage']['input_tokens']), ('wait', 7400))
-        opener.open.return_value = Reply({'model': 'gemini-2.5-flash-lite',
+        opener.open.return_value = Reply({'model': '@cf/meta/llama-3.2-1b-instruct',
                                           'choices': [{'message': {'content': '{"choice":"wait"}'}}]})
         with patch('hosted_free_models.urllib.request.build_opener', return_value=opener):
-            with self.assertRaises(ForwardError): models.send('gemini', deepcopy(TEST_PAYLOAD))
-        self.assertIn('gemini', models.blocked)  # another model's reply never counts as this one
+            with self.assertRaises(ForwardError): models.send('cloudflare-llama', deepcopy(TEST_PAYLOAD))
+        self.assertIn('cloudflare-llama', models.blocked)  # another model's reply never counts as this one
 
 
 class FreeHTTPTests(unittest.TestCase):

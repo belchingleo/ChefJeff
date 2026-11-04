@@ -150,32 +150,33 @@ Rollback the games first, then the gateway. The old gateway ignores the addition
 private summary file; its budget schema is unchanged. Root commands, game restarts
 and link switches must be executed by the operator after reviewing the fixed release.
 
-## 后加入的免费模型：Gemini 3.5 Flash-Lite、Gemma 4 26B、Llama 3.1 8B
+## 后加入的免费模型：Gemma 4 26B、Llama 3.1 8B
 
-2026-11-01 加入登记，代码默认不启用。三者都只在开发者的 Mac 上用第一关合成快照各成功调用过一次；
+2026-11-01 加入登记，代码默认不启用。两者都只在开发者的 Mac 上用第一关合成快照各成功调用过一次；
 服务器出口、整局和并发都还没有验证。
+
+Gemini 3.5 Flash-Lite 同日登记，2026-11-04 在启用之前撤下。它的免费额度每分钟 15 次，也就是每 4.3 秒一次；
+Jeff 至少每 2 秒请求一次，做完一步还会马上请求，模拟里两次请求的间隔几乎全部短于 4.3 秒，几乎每次都要等。
 
 | 模型 | 平台 | 固定模型 ID | 研究记录服务名 |
 | --- | --- | --- | --- |
-| Gemini 3.5 Flash-Lite | Google AI Studio | `gemini-3.5-flash-lite` | `gemini` |
 | Gemma 4 26B | Cloudflare Workers AI | `@cf/google/gemma-4-26b-a4b-it` | `cloudflare` |
 | Llama 3.1 8B | Cloudflare Workers AI | `@cf/meta/llama-3.1-8b-instruct-fp8` | `cloudflare` |
 
 **Key 文件。** 它们的 Key 放在单独的私密文件 `/etc/chefjeff-free/extra-model-keys.json`，
-格式 `chefjeff-private-extra-keys-v1`，可选字段 `gemini_api_key`、`cloudflare_api_key` 和 `cloudflare_account_id`（32 位十六进制，
-和 Cloudflare Key 必须同时出现）。文件里写了哪个平台，才启用那个平台的模型。原来的 `model-keys.json` 和它的格式不变，
+格式 `chefjeff-private-extra-keys-v1`，字段 `cloudflare_api_key` 和 `cloudflare_account_id`（32 位十六进制，
+两者必须同时出现）。文件里写了哪个平台，才启用那个平台的模型。以前写进去的 `gemini_api_key` 仍然允许，但会被忽略。原来的 `model-keys.json` 和它的格式不变，
 所以协调服务回滚到旧版本时仍能启动。权限要求与原文件相同。
 
-**额度。** 每个平台一个独立的预算目录（`/var/lib/chefjeff-free/gemini`、`/var/lib/chefjeff-free/cloudflare`），
-原来的 `budget.json` 不变。上限都低于平台的免费额度：
+**额度。** 每个平台一个独立的预算目录（`/var/lib/chefjeff-free/cloudflare`），
+原来的 `budget.json` 不变。上限低于平台的免费额度：
 
-- Gemini：每分钟最多 14 次，两次请求至少间隔 4.3 秒（平台每分钟 15 次）；滚动 24 小时最多 450 次（平台每天 500 次）。
-  间隔不够时本次不调用模型，Jeff 等几秒再请求，不消耗额度。
 - Cloudflare：两个模型共用一个账户的每天 10,000 Neurons。按每次约 7 千输入 Token 估算，Gemma 记 80、Llama 记 115，
   滚动 24 小时合计不超过 9,000；每个模型每分钟最多 30 次。
 - 一天的额度用完后，名额状态显示“今日额度已用完”（`daily_budget`），和每分钟、每小时的临时限制（`call_budget`）分开。
 
-这些是按平台公开的免费额度设置的保守值。滚动 24 小时与平台的重置时间（Cloudflare 按 UTC 零点，Gemini 按太平洋时间零点）不同，只会更早停下，不会超出。
+这些是按平台公开的免费额度设置的保守值。滚动 24 小时与平台的重置时间（Cloudflare 按 UTC 零点）不同，只会更早停下，不会超出。
+协调服务仍支持给某个平台设置两次调用的最短间隔（间隔不够时本次不调用模型，Jeff 等几秒再请求，不消耗额度），目前没有平台用到。
 
 **研究记录。** `cloudflare` 是新增的研究记录服务名。研究管理台按它自己发布版本里的
 `schemas/research-record.schema.json` 校验，旧版管理台会拒收带 `cloudflare` 的贡献记录。
@@ -193,10 +194,10 @@ and link switches must be executed by the operator after reviewing the fixed rel
    之后的 `activate`、`verify`、`rollback` 也都要带 `--extra-models`。
    验证时，名额列表必须正好是原来两家加上文件里启用的模型，每个名额上限 1。
    开放以后，再升级协调服务也必须带 `--extra-models`，否则 `prepare` 会拒绝，新模型不会被悄悄关掉。
-3. 启用后立刻做服务器出口检查：`scripts/probe_free_gateway.py --providers gemini,cloudflare-gemma,cloudflare-llama`，
+3. 启用后立刻做服务器出口检查：`scripts/probe_free_gateway.py --providers cloudflare-gemma,cloudflare-llama`，
    每个模型最多一次真实请求。连不上的模型会显示“暂不可用”和实际原因，不会被当成可用。
 
-玩家也可以在「自定义模型」里填自己的 Gemini 或 Cloudflare Key，不占这里的名额。Gemini 由浏览器直连；
+玩家也可以在「自定义模型」里填自己的 Gemini 或 Cloudflare Key，不占这里的名额。Gemini 由浏览器直连，用免费层级的 Key 时同样受每分钟 15 次的限制；
 Cloudflare 不接受浏览器直连，在线版经 `/api/model/cloudflare` 转发，必须勾选单独的同意项
 （`cloudflare-relay-2026-11-v1`），只转发上面两个固定模型，Key 和 Account ID 只用于这一次请求。
 

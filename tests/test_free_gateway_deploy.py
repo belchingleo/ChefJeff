@@ -283,12 +283,12 @@ class GatewayUpgradeTests(unittest.TestCase):
             with patch.object(upgrade,'UNIT',unit),patch.object(upgrade,'PREVIOUS',live),\
                  patch.object(upgrade.os,'geteuid',return_value=0),patch.object(upgrade,'work_path',work_path),\
                  patch.object(upgrade,'public_release',return_value=(live,{'release':{'fingerprint':'test'}})),\
-                 patch.object(upgrade,'validate_import'),patch.object(upgrade,'read_extra_keys',return_value={'gemini':{}}),\
+                 patch.object(upgrade,'validate_import'),patch.object(upgrade,'read_extra_keys',return_value={'cloudflare-gemma':{},'cloudflare-llama':{}}),\
                  patch.object(upgrade,'property_of',side_effect=lambda name,key:'' if key=='DropInPaths' else 'active'),\
                  patch('sys.argv',argv),contextlib.redirect_stdout(io.StringIO()):
                 upgrade.main()
             extra=root/('gateway-extra-models-'+sha[:12])
-            self.assertEqual((load(extra)['phase'],load(extra)['later_models']),('prepared',['gemini']))
+            self.assertEqual((load(extra)['phase'],load(extra)['later_models']),('prepared',['cloudflare-gemma','cloudflare-llama']))
             self.assertIn('--extra-models-verified',(extra/'gateway.candidate.service').read_text())
             self.assertEqual(load(root/('gateway-upgrade-'+sha[:12]))['phase'],'active')
             self.assertEqual(unit.read_text(),gateway_unit(live))
@@ -300,7 +300,7 @@ class GatewayUpgradeTests(unittest.TestCase):
             root=Path(d);unit=root/'gateway.service';unit.write_text(gateway_unit(live,True))
             with patch.object(upgrade,'UNIT',unit),patch.object(upgrade,'PREVIOUS',live),\
                  patch.object(upgrade,'public_release',return_value=(live,{'release':{'fingerprint':'test'}})),\
-                 patch.object(upgrade,'validate_import'),patch.object(upgrade,'read_extra_keys',return_value={'gemini':{}}),\
+                 patch.object(upgrade,'validate_import'),patch.object(upgrade,'read_extra_keys',return_value={'cloudflare-gemma':{},'cloudflare-llama':{}}),\
                  patch.object(upgrade,'property_of',side_effect=lambda name,key:'' if key=='DropInPaths' else 'active'),\
                  contextlib.redirect_stdout(io.StringIO()):
                 with self.assertRaises(ValueError):upgrade.prepare(live,'b'*64,root/'plain')
