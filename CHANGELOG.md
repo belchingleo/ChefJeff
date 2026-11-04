@@ -15,8 +15,8 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 
 ### Free models
 - Free models now need consent to contribute the round, since the site pays for them: the server refuses a free-model start without it, the card says so, and its decline button opens the own-key form. Own keys and the local version need no contribution.
-- Register Gemini 3.5 Flash-Lite (Google AI Studio) and Gemma 4 26B and Llama 3.1 8B (Cloudflare Workers AI) as later free models. They stay off until their own private key file is installed and the gateway is started with it; each was probed once with a synthetic snapshot only.
-- Each platform has its own budget below its free tier: Gemini 450 a day and at least 4.3 s between calls; Cloudflare 9,000 estimated Neurons a day shared by both models. A spent day shows 今日额度已用完 instead of "try again later".
+- Register Gemma 4 26B and Llama 3.1 8B (Cloudflare Workers AI) as later free models. They stay off until their own private key file is installed and the gateway is started with it; each was probed once with a synthetic snapshot only. Gemini 3.5 Flash-Lite was registered too, then dropped before it was ever enabled: its free tier allows one call every 4.3 s, while Jeff asks at least every 2 s and right after each step, so nearly every request would have to wait. A key file that still names it keeps working; the field is ignored.
+- The Cloudflare models have their own budget below the platform's free tier: 9,000 estimated Neurons a day shared by both. A spent day shows 今日额度已用完 instead of "try again later".
 - The free list on every screen follows the server's catalog, so an enabled model appears with no page change.
 - Custom models: Gemini moves to 3.5 Flash-Lite (Google no longer opens 2.5 to new accounts). Cloudflare Workers AI is added with your account ID; online it runs only through the demo server, with its own consent, because Cloudflare refuses browser requests.
 - Research records add the service name `cloudflare`. Upgrade the research console before the games, or its records are refused.
@@ -154,8 +154,8 @@ First private release: a local browser game with three playable maps and player-
 
 ### 免费模型
 - 免费模型的费用由站点承担，所以使用免费模型的对局需要同意贡献：没有同意时服务器拒绝开局，卡片会写明这一点，拒绝按钮会打开填写自己 Key 的设置。用自己的 Key 或玩本地版不需要贡献。
-- 登记三个后加入的免费模型：Gemini 3.5 Flash-Lite（Google AI Studio），以及 Cloudflare Workers AI 上的 Gemma 4 26B 和 Llama 3.1 8B。装好它们单独的私密 Key 文件、并用它启动协调服务后才会开放；目前每个只用合成快照试过一次。
-- 每个平台单独计额度，都低于平台的免费额度：Gemini 每天 450 次，两次请求至少间隔 4.3 秒；Cloudflare 两个模型合计每天约 9,000 Neurons。一天用完后显示「今日额度已用完」，不再只说稍后再试。
+- 登记两个后加入的免费模型：Cloudflare Workers AI 上的 Gemma 4 26B 和 Llama 3.1 8B。装好它们单独的私密 Key 文件、并用它启动协调服务后才会开放；目前每个只用合成快照试过一次。Gemini 3.5 Flash-Lite 也登记过，在启用之前就撤下了：它的免费额度每 4.3 秒只能调用一次，而 Jeff 至少每 2 秒、并且每做完一步就会请求，几乎每次请求都得等。Key 文件里仍写着它也能照常使用，这一项会被忽略。
+- Cloudflare 的两个模型单独计额度，低于平台的免费额度：两个模型合计每天约 9,000 Neurons。一天用完后显示「今日额度已用完」，不再只说稍后再试。
 - 各处的免费模型列表都按服务器给的来，新开放的模型不用改页面就会出现。
 - 自定义模型：Gemini 改为 3.5 Flash-Lite（Google 不再向新账号开放 2.5）；新增 Cloudflare Workers AI，需填 Account ID。Cloudflare 不接受浏览器直连，在线版只能经试玩服务器转发，并要单独勾选同意。
 - 研究记录新增服务名 `cloudflare`。旧版研究管理台会拒收这类记录，所以管理台要和游戏在同一个维护窗口里升级，顺序见 `docs/research-admin.md`。
