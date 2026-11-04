@@ -23,6 +23,14 @@ For each model it counts:
   of the actions Jeff started while a plan held belong to its part (harness.action_part).
   `unsure_with_plan` counts the decisions that were unsure (first margin) while a plan had held
   for more than --plan-age seconds: the trigger proposed for the third tier, here only counted.
+- step_gaps: how long Jeff stood between steps, in wall seconds, from the end of a step (action_done)
+  to the start of his next (action_start), grouped by the round's request policy:
+  `ask_on_step_end` (ai_ask_on_step_end on) or `min_interval_only` (off, or a record from before the
+  switch existed). Each gap is split into waiting_to_ask (until the first request after the step),
+  answers_before_the_step (earlier answers that started nothing: a wait, a rejected or a discarded
+  reply) and reply (the request whose answer started the next step, until that answer). The answer
+  that starts a step is found by its action_id, since research records log the step's start before
+  that answer and local journals after it. Gaps with a pause, and rounds without wall times, are left out.
 
 Rates are per game minute. A round counts for the model that answered most of its requests.
 
@@ -41,7 +49,7 @@ from harness import action_part  # noqa: E402
 from kitchen import Action  # noqa: E402
 from research_record import SCHEMA as RECORD_SCHEMA  # noqa: E402
 
-VERSION = 'decision-stats-2'
+VERSION = 'decision-stats-3'
 MARGINS = (0.05, 0.1)
 PLAN_AGE = 5.0
 NON_ACTIONS = ('continue', 'wait', 'stop')
@@ -83,10 +91,12 @@ def record_rows(record):
             states = rebuilt(record)
         row = next((s for s in reversed(states) if s['seq'] <= seq), None)
         return ((row or {}).get('state', {}).get('chefs', {}).get('jeff') or {}).get('hand')
-    rows = [{'kind': 'start', 'jeff_plan': conditions.get('jeff_plan'), 'game_time_ms': 0, 'round_id': record.get('round_id')}]
+    policy = conditions.get('request_policy') or {}
+    rows = [{'kind': 'start', 'jeff_plan': conditions.get('jeff_plan'), 'game_time_ms': 0, 'round_id': record.get('round_id'),
+             'ask_on_step_end': policy.get('ai_ask_on_step_end') is True}]
     previous = None     # the plan the previous request carried
     for e in events:
-        p, at = e.get('payload') or {}, {'game_time_ms': e.get('game_time_ms')}
+        p, at = e.get('payload') or {}, {'game_time_ms': e.get('game_time_ms'), 'wall_ms': e.get('elapsed_wall_ms')}
         if e['type'] == 'ai_request':
             plan = p.get('jeff_plan')
             current = (plan or {}).get('current')
@@ -101,9 +111,11 @@ def record_rows(record):
             rows.append({'kind': 'ai_response', 'request_id': e.get('request_id'), 'model': model, 'choice': choice.get('key'),
                          'probabilities': p.get('probabilities'), 'applied': p.get('applied'), 'fresh': p.get('fresh'),
                          'action_id': e.get('action_id'), 'current_state': {'chefs': {'jeff': chef}}, **at})
-        elif e['type'] in ('action_start', 'interrupted', 'knocked'):
+        elif e['type'] in ('action_start', 'action_done', 'interrupted', 'knocked'):
             rows.append({'kind': e['type'], 'actor': e.get('actor_id'), 'action_id': e.get('action_id'),
                          'action': (p.get('action') or {}).get('key'), **at})
+        elif e['type'] in ('pause', 'resume'):
+            rows.append({'kind': e['type'], **at})
     # A plan answer is not kept. It shows as the plan the next request carries, set when the answer came,
     # and only an answer to a request that asked for one (no plan held) can have set it.
     asked = {r['request_id'] for r in rows if r['kind'] == 'ai_request' and r.get('jeff_plan')
@@ -173,7 +185,8 @@ def new_model():
             'top': [], 'margins': [], 'chose_top': 0, 'single_probability': 0, 'pairs': Counter(),
             'started': 0, 'replaced': 0, 'knocked_off': 0, 'other_interruptions': 0, 'back_and_forth': 0,
             'plan_rounds': 0, 'plans_set': Counter(), 'plan_ends': Counter(), 'holds': [],
-            'in_part': Counter(), 'off_part': Counter(), 'no_part': Counter(), 'unsure_with_plan': 0}
+            'in_part': Counter(), 'off_part': Counter(), 'no_part': Counter(), 'unsure_with_plan': 0,
+            'gaps': {}}
 
 
 def add_round(rows, models, margins=MARGINS, plan_age=PLAN_AGE):
@@ -255,7 +268,75 @@ def add_round(rows, models, margins=MARGINS, plan_age=PLAN_AGE):
                 m['knocked_off'] += 1
             else:
                 m['other_interruptions'] += 1
+    step_gaps(rows, m)
     return main
+
+
+def wall(row):
+    """Wall seconds since the round started: research records and journals both carry elapsed_wall_ms."""
+    value = row.get('wall_ms', row.get('elapsed_wall_ms'))
+    return value / 1000 if isinstance(value, (int, float)) and not isinstance(value, bool) else None
+
+
+def request_policy(rows):
+    start = rows[0] if rows and rows[0].get('kind') == 'start' else {}
+    on = start.get('ask_on_step_end')
+    if on is None:
+        on = (start.get('config') or {}).get('ai_ask_on_step_end')
+    return 'ask_on_step_end' if on is True else 'min_interval_only'
+
+
+def step_gaps(rows, m):
+    """From the end of each of Jeff's steps to the start of his next, in wall seconds (see the module notes)."""
+    timed = [wall(r) for r in rows if wall(r) is not None]
+    if not timed:
+        return
+    g = m['gaps'].setdefault(request_policy(rows), {'rounds': 0, 'wall_seconds': 0.0, 'total': [], 'waiting_to_ask': [],
+                                                    'answers_before_the_step': [], 'reply': [], 'with_discarded': 0,
+                                                    'unexplained': 0})
+    paused, since = 0.0, None
+    for r in rows:
+        if r.get('kind') == 'pause' and wall(r) is not None:
+            since = wall(r)
+        elif r.get('kind') == 'resume' and since is not None and wall(r) is not None:
+            paused, since = paused + max(0.0, wall(r) - since), None
+    if since is not None:       # the round closed while paused
+        paused += max(0.0, max(timed) - since)
+    g['rounds'] += 1
+    g['wall_seconds'] += max(0.0, max(timed) - min(timed) - paused)
+    requests = {r.get('request_id'): r for r in rows if r.get('kind') == 'ai_request' and r.get('request_id') is not None}
+    starters = {r['action_id']: r for r in rows if r.get('kind') == 'ai_response' and r.get('applied')
+                and r.get('action_id') is not None}
+    for i, done in enumerate(rows):
+        if done.get('kind') != 'action_done' or done.get('actor') != 'jeff' or wall(done) is None:
+            continue
+        first, discarded, start = None, 0, None
+        for later in rows[i + 1:]:
+            kind = later.get('kind')
+            if kind in ('pause', 'end', 'round_end', 'context_closed'):
+                break
+            if kind == 'action_start' and later.get('actor') == 'jeff':
+                start = later
+                break
+            if kind == 'ai_request' and first is None:
+                first = wall(later)
+            elif kind == 'ai_response' and not later.get('fresh'):
+                discarded += 1
+        if start is None or wall(start) is None:
+            continue
+        t0 = wall(done)
+        g['total'].append(wall(start) - t0)
+        g['with_discarded'] += discarded > 0
+        answer = starters.get(start.get('action_id'))
+        request = requests.get((answer or {}).get('request_id'))
+        if answer is None or request is None or wall(answer) is None or wall(request) is None or wall(request) < t0:
+            g['unexplained'] += 1
+            continue
+        sent = wall(request)
+        first = sent if first is None else min(first, sent)
+        g['waiting_to_ask'].append(first - t0)
+        g['answers_before_the_step'].append(sent - first)
+        g['reply'].append(max(0.0, wall(answer) - sent))
 
 
 def share(part, whole):
@@ -292,7 +373,28 @@ def summary(m, margins=MARGINS):
                                                      'in_part_share': share(m['in_part'][role], m['in_part'][role] + m['off_part'][role])}
                                               for role in roles},
                        'unsure_with_plan': m['unsure_with_plan']}
+    if m['gaps']:
+        out['step_gaps'] = {policy: gap_summary(g) for policy, g in sorted(m['gaps'].items())}
     return out
+
+
+def spread(values):
+    if not values:
+        return None
+    values = sorted(values)
+    pick = lambda f: values[min(len(values) - 1, int(f * len(values)))]
+    return {'median': round(median(values), 2), 'mean': round(sum(values) / len(values), 2),
+            'p75': round(pick(.75), 2), 'p90': round(pick(.9), 2)}
+
+
+def gap_summary(g):
+    n = len(g['total'])
+    return {'rounds': g['rounds'], 'gaps': n, 'total': spread(g['total']),
+            'waiting_to_ask': spread(g['waiting_to_ask']), 'answers_before_the_step': spread(g['answers_before_the_step']),
+            'reply': spread(g['reply']), 'split_unknown': g['unexplained'],
+            'with_discarded_reply_share': share(g['with_discarded'], n),
+            'seconds_per_round': round(sum(g['total']) / g['rounds'], 1) if g['rounds'] else None,
+            'share_of_round_wall_time': share(sum(g['total']), g['wall_seconds'])}
 
 
 def report(paths, margins=MARGINS, plan_age=PLAN_AGE):
