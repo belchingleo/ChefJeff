@@ -256,6 +256,29 @@ class StepGapTests(unittest.TestCase):
         self.assertEqual(g['with_discarded_reply_share'], 1.0)
         self.assertEqual(g['share_of_round_wall_time'], round(1.1 / 9, 4))      # 12 wall seconds less the 3 paused
 
+    def test_a_request_written_above_the_step_end_of_its_tick_is_asked_after_it(self):
+        # A local journal writes a tick's engine events after that tick's request: the request sent as the
+        # step ended comes first, a millisecond earlier, at a game time no earlier than the step's end.
+        def at(kind, wall, game, **data):
+            return {'kind': kind, 'game_time_ms': round(game * 1000), 'elapsed_wall_ms': round(wall * 1000), **data}
+        rows = [at('start', 0, 0, config={'ai_ask_on_step_end': True}),
+                at('ai_request', 0, 0, request_id=1, candidates=['chop']),
+                at('ai_response', .1, .1, request_id=1, choice='chop', model='m', applied=True, fresh=True, action_id=1),
+                at('action_start', .1, .1, actor='jeff', action='chop', action_id=1),
+                at('ai_request', 2.999, 3.0, request_id=2, candidates=['fetch']),          # sent as the step ended
+                at('action_done', 3.0, 2.98, actor='jeff', action='chop', action_id=1),
+                at('ai_response', 4.0, 4.0, request_id=2, choice='fetch', model='m', applied=True, fresh=True, action_id=2),
+                at('action_start', 4.0, 4.0, actor='jeff', action='fetch', action_id=2),
+                # A request sent in the middle of a step, whose answer starts the next one: not split.
+                at('ai_request', 5.0, 5.0, request_id=3, candidates=['go x']),
+                at('action_done', 6.0, 6.0, actor='jeff', action='fetch', action_id=2),
+                at('ai_response', 6.5, 6.5, request_id=3, choice='go x', model='m', applied=True, fresh=True, action_id=3),
+                at('action_start', 6.5, 6.5, actor='jeff', action='go x', action_id=3),
+                at('end', 8, 8)]
+        g = report([self.write(rows)])['models']['m']['step_gaps']['ask_on_step_end']
+        self.assertEqual((g['gaps'], g['split_unknown']), (2, 1))
+        self.assertEqual([g[part]['median'] for part in ('waiting_to_ask', 'answers_before_the_step', 'reply')], [0.0, 0.0, 1.0])
+
     def test_a_step_without_its_answer_counts_but_is_not_split(self):
         rows = [timed('start', 0),
                 timed('ai_request', 0, request_id=1, candidates=['chop']),

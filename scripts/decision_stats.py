@@ -293,8 +293,14 @@ def step_gaps(rows, m):
     for i, done in enumerate(rows):
         if done.get('kind') != 'action_done' or done.get('actor') != 'jeff' or wall(done) is None:
             continue
+        # A local journal writes a tick's engine events after that tick's request and answers: the
+        # request sent as the step ended sits just above its action_done, at a game time no earlier.
+        ended, j = game_time(done), i
+        while ended is not None and j > 0 and game_time(rows[j - 1]) is not None and game_time(rows[j - 1]) >= ended \
+                and rows[j - 1].get('kind') in ('ai_request', 'ai_response'):
+            j -= 1
         first, discarded, start = None, 0, None
-        for later in rows[i + 1:]:
+        for later in rows[j:i] + rows[i + 1:]:
             kind = later.get('kind')
             if kind in ('pause', 'end', 'round_end', 'context_closed'):
                 break
@@ -312,13 +318,16 @@ def step_gaps(rows, m):
         g['with_discarded'] += discarded > 0
         answer = starters.get(start.get('action_id'))
         request = requests.get((answer or {}).get('request_id'))
-        if answer is None or request is None or wall(answer) is None or wall(request) is None or wall(request) < t0:
+        # Sent before the step ended (by game time; wall times of one tick follow the journal's write order).
+        before = (game_time(request) < ended if game_time(request) is not None and ended is not None
+                  else wall(request) is not None and wall(request) < t0) if request else True
+        if answer is None or request is None or wall(answer) is None or wall(request) is None or before:
             g['unexplained'] += 1
             continue
         sent = wall(request)
         first = sent if first is None else min(first, sent)
-        g['waiting_to_ask'].append(first - t0)
-        g['answers_before_the_step'].append(sent - first)
+        g['waiting_to_ask'].append(max(0.0, first - t0))
+        g['answers_before_the_step'].append(max(0.0, sent - first))
         g['reply'].append(max(0.0, wall(answer) - sent))
 
 
