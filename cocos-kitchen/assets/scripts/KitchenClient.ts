@@ -2,7 +2,7 @@ import { _decorator, Component, Node, UITransform, Graphics, Color, Label, Layer
     view, ResolutionPolicy, sys, game, Game, profiler, Mask, Vec2, Camera, director, Sprite } from 'cc';
 import { LevelOneArt } from './LevelOneArt';
 import { KitchenAudio } from './KitchenAudio';
-import { levelButtonLayout, GRID_ART, stationView, cabinetModule, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, floorItemDepth, workingChefDepth, flightDepth, predictWalk, spaceTarget, segmentDistance, plateLayers, heatCountdown, behindCounter, throwPose, throwDiagonal, throwItemPoint, panHandleSide, restingFacing } from './KitchenGeometry';
+import { levelButtonLayout, GRID_ART, stationView, cabinetModule, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, floorItemDepth, workingChefDepth, flightDepth, predictWalk, spaceTarget, segmentDistance, plateLayers, heatCountdown, behindCounter, throwPose, throwDiagonal, throwItemPoint, panHandleSide, restingFacing, steeredFacing } from './KitchenGeometry';
 const { ccclass } = _decorator;
 type Action = { key: string; label: string; kind: string; target: string; expected: unknown[] };
 type KitchenState = { game_id: string; state_seq?: number; phase: string; speed: number; kitchen: any; actions: Action[]; levels?:any[]; limits?:any; capacity?:any; release?:any; player_level?:any; interaction?:Action; use_interaction?:Action; interaction_hint?:string; interaction_focus?:string; interaction_cell?:number[];
@@ -2334,15 +2334,15 @@ export class KitchenClient extends Component {
                     n.setPosition(n.position.x+(f==='left'?-lean:f==='right'?lean:0),n.position.y+(f==='up'?lean:f==='down'?-lean:0));
                 }
                 const dx=n.position.x-oldX,dy=n.position.y-oldY,moved=Math.hypot(dx,dy)>.08&&(!!predicted||(c.travel_remaining||0)>0||Math.hypot(x-n.position.x,y-n.position.y)>1);
-                if(moved){
-                if((c.manual_moving||predicted)&&who==='human'&&(this.manualDirection.x!==0||this.manualDirection.y!==0)){
-                    if(Math.abs(this.manualDirection.x)>=Math.abs(this.manualDirection.y))motion.facing=this.manualDirection.x<0?'left':'right';
-                    else motion.facing=this.manualDirection.y<0?'up':'down';
-                    this.steeredFacing=true;
-                }else if(Math.abs(dx)>=Math.abs(dy))motion.facing=dx<0?'left':'right';
+                // A held direction turns the player's chef at once, moving or pressed against a counter, so the
+                // chef faces the station its white frame marks (Overcooked 2 turns the chef to the stick).
+                const steer=who==='human'&&(c.manual_moving||predicted)&&!this.aiming?steeredFacing(this.manualDirection.x,this.manualDirection.y):null;
+                if(steer){motion.facing=steer;this.steeredFacing=true;}
+                else if(moved){
+                if(Math.abs(dx)>=Math.abs(dy))motion.facing=dx<0?'left':'right';
                 else motion.facing=dy>0?'up':'down';
                 }
-                if(!moved)motion.facing=restingFacing(motion.facing,c.facing,!!predicted&&this.steeredFacing);
+                if(!moved&&!steer)motion.facing=restingFacing(motion.facing,c.facing,!!predicted&&this.steeredFacing);
                 if(c.working&&c.facing)motion.facing=c.facing;
                 const held=who==='human'&&(this.manualDirection.x!==0||this.manualDirection.y!==0);
                 const walkIntent=(predicted?held:!!c.manual_moving)||(!c.working&&(c.travel_remaining||0)>0);
