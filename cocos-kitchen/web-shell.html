@@ -875,11 +875,13 @@ function kitchenTabs(dialog){
 #kitchen-level-list .level-number{font:24px/28px var(--pixel)}
 #kitchen-level-list .level-dish{font:18px/24px var(--pixel)}
 #kitchen-level-list .level-target{font-size:14px;color:var(--muted,#6e4e38)}
+#kitchen-level-list .level-target:has(span){display:flex;flex-wrap:wrap;column-gap:10px}
+#kitchen-level-list .level-target span{white-space:nowrap}
 #kitchen-level-list .level-best{margin-top:auto;width:100%;padding-top:8px;border-top:2px dashed var(--muted,#6e4e38);font-size:13px;color:var(--muted,#6e4e38)}
 #kitchen-level-list .level-best.won{color:var(--herb,#3c7a2a);font-weight:600}
 #kitchen-level-list .level-custom{align-items:center;justify-content:center;border:3px dashed var(--muted,#6e4e38);box-shadow:none;background:transparent;color:var(--muted,#6e4e38)}
 #kitchen-level-list .level-plus{display:flex;align-items:center;justify-content:center;width:56px;height:56px;border:3px dashed var(--muted,#6e4e38);font:36px/1 var(--pixel)}
-@media(max-width:760px){#kitchen-level-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px),(max-height:500px){#kitchen-level-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
 #kitchen-more-dialog .actions{display:grid;grid-template-columns:1fr 1fr;margin:0}
 #kitchen-more-dialog .btn{min-height:40px;line-height:18px}
 #record-result{white-space:pre-line}
@@ -911,9 +913,12 @@ function kitchenTabs(dialog){
      const part=(cls,text)=>{const e=document.createElement('span');e.className=cls;e.textContent=text;card.appendChild(e);return e;};
      part('level-number',t(`第 ${index+1} 关`));
      part('level-dish',t(String(level.name).split('·').pop().trim()));
-     if(level.target!=null)part('level-target',t(`目标 ¥${level.target}`));
-     const b=best[level.id];
-     part('level-best'+(b?.won?' won':''),b?t(b.won?`★ 已达成 · 最佳 ¥${b.money}`:`未达成 · 最佳 ¥${b.money}`):t('还没玩过'));
+     // As in Overcooked 2's map: the three star scores (the target, 1.5 and 2 times it) and the best round's stars.
+     const scores=level.target!=null?[level.target,Math.floor(level.target*3/2),level.target*2]:null;
+     // Each score keeps its stars on one line, so a narrow card wraps between scores.
+     if(scores)part('level-target','').replaceChildren(...scores.map((x,j)=>{const e=document.createElement('span');e.textContent=`${'★'.repeat(j+1)} ¥${x}`;return e;}));
+     const b=best[level.id],earned=b&&scores?scores.filter(x=>b.money>=x).length:0;
+     part('level-best'+(b?.won?' won':''),b?t(b.won?`${'★'.repeat(earned)+'☆'.repeat(3-earned)} · 最佳 ¥${b.money}`:`未达成 · 最佳 ¥${b.money}`):t('还没玩过'));
      card.onclick=()=>{const now=state();if(!now?.levelEnabled||now.game_id!==openedRound)return;levels.close();if(!level.selected)controls()?.level(level.id)};
      list.appendChild(card);
     });

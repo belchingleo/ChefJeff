@@ -7,6 +7,7 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 ## Unreleased
 
 ### Start, results and settings
+- Rounds are rated in stars, as in Overcooked 2: the target earns one star, 1.5 times it two and twice it three (Level 2: ¥160, ¥240, ¥320), so earning more than the target now counts. The level plate shows the three scores before a round, the level list shows them with the best round's stars (★★☆), and the result shows the stars earned and what the next one still needs; the HUD is unchanged. Jeff is told to earn as much net revenue as he can with the same three scores, and his rules move to `rules-v10`. The pixel font gains ☆; every other glyph is unchanged.
 - The start and result screens are one shop card. A level plate shows the dish, level and goal; ◀ ▶ change level and the title row (第 N 关 · dish ▾) opens all levels. Below it, pick an AI teammate from two entries: free models (no API key, listed by the server) or a custom model with your own key.
 - Results show the income against the goal, the teammate and two big buttons, 再来一次 and 下一关; the next level leads after a win and is also offered after a loss, and on the last level it becomes 全部关卡. Round analysis, all levels and settings sit below as light chips.
 - All levels: four per row, the goal, whether it was reached and this browser's best result; a card for player-made levels marks what is coming. The current level is marked by its blue highlight alone.
@@ -180,6 +181,7 @@ First private release: a local browser game with three playable maps and player-
 ## 未发布
 
 ### 开局、结算与设置
+- 和《胡闹厨房 2》一样按星级评价：达到目标金额得 1 星，1.5 倍得 2 星，2 倍得 3 星（第二关：¥160、¥240、¥320），超过目标多赚的部分也算数了。开局前关卡牌上显示三档分数，全部关卡列表里显示三档分数和最佳一局的星数（★★☆），结算显示得了几颗星、下一颗还差多少；对局中的收入栏不变。Jeff 的目标改为关店时净收入尽量高，拿到同样的三档分数，规则升到 `rules-v10`。像素字体加了 ☆，其他字形不变。
 - 开局和结算合成一张店面卡。关卡牌上是菜、关卡和目标；◀ ▶ 换关卡，点「第 N 关 · 菜名 ▾」打开全部关卡。下面选 AI 搭档，两个入口：免费模型（不用 API Key，列表由服务器提供）和用自己 Key 的自定义模型。
 - 结算显示收入和目标、本局搭档，以及「再来一次」「下一关」两个大按钮；赢了「下一关」在前，输了也能直接去下一关，最后一关换成「全部关卡」。本局分析、全部关卡、设置放在下面一排浅色按钮里。
 - 全部关卡：每行四关，显示目标、是否达成和这个浏览器里的最佳成绩；最后一张是即将开放的自定义关卡。当前这一关只用蓝色高亮标出。

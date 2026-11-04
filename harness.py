@@ -20,7 +20,8 @@ from cooperation_memory import PAST_EPISODES_RULE
 # v7: the human's preference messages say who will do the work ("Chef human will do the cooking.").
 # v8: chopping and washing need the hands over the station; two chefs may share it, side by side too.
 # v9: boards and ingredient-source tops hold any one object, as counters do; a source with something on top gives no ingredient.
-AGENT_RULES_VERSION = "rules-v9"
+# v10: the objective is as much net revenue as possible, rated in stars (the target, 1.5 and 2 times it).
+AGENT_RULES_VERSION = "rules-v10"
 
 
 # How a recipe component's required state reads in model input: "tomato (chopped)".
@@ -69,10 +70,12 @@ def model_kitchen(state):
 def objective_text(state):
     """Objective and end rules, generated from the round's goal and end policy."""
     goal = state['goal_status']
-    return (f"Reach a net revenue of at least {goal['target_money']} yuan at closing time, {state['round_limit']:g} game seconds. "
-            "The round always runs until closing and only the net revenue at closing counts: penalties after reaching the target "
-            "can take you below it again. Orders keep arriving until closing; orders still waiting at closing carry no penalty. "
-            "There is no bonus for remaining time.")
+    one, two, three = goal['star_scores']
+    return (f"Earn as much net revenue as you can by closing time, {state['round_limit']:g} game seconds. The round is rated in "
+            f"stars by the net revenue at closing: {one} yuan or more earns one star and reaches the target, {two} two stars, "
+            f"{three} three stars; below {one} the target is missed. The round always runs until closing and only the net revenue "
+            "at closing counts: penalties can take you below a star again. Orders keep arriving until closing; orders still "
+            "waiting at closing carry no penalty. There is no bonus for remaining time.")
 
 
 def score_text(state):

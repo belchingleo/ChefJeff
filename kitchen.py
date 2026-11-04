@@ -1116,15 +1116,29 @@ class Kitchen:
                 'extinguish': r.extinguish,
                 'walk_same_area': r.same_area, 'walk_cross_area': r.cross_area}
 
+    def star_scores(self):
+        """Net revenue at closing for one, two and three stars: the target, 1.5 times it and twice it.
+
+        As in Overcooked 2 a round is rated in stars; there each level sets its own, here they
+        follow the target so that every level, a player's own included, has them.
+        """
+        target = self.rules.goal['min_money']
+        return [target, target * 3 // 2, target * 2]
+
+    def stars(self, money=None):
+        money = self.money if money is None else money
+        return sum(money >= score for score in self.star_scores())
+
     def goal_status(self):
         """Progress towards the goal as the players may see it.
 
-        Only the target and current money: an upper bound would reveal the
-        hidden future orders.
+        Only the target, the star scores and current money: an upper bound would
+        reveal the hidden future orders.
         """
         goal = self.rules.goal
-        return {'type': goal['type'], 'target_money': goal['min_money'], 'money': self.money,
-                'met_now': self.money >= goal['min_money'], 'judged_at': 'closing'}
+        return {'type': goal['type'], 'target_money': goal['min_money'], 'star_scores': self.star_scores(),
+                'money': self.money, 'met_now': self.money >= goal['min_money'], 'stars_now': self.stars(),
+                'judged_at': 'closing'}
 
     def revenue_ceiling(self):
         """Money now plus every waiting or future order at full price (engine-only knowledge)."""
@@ -1233,7 +1247,7 @@ class Kitchen:
                                 'loss_threshold': self.rules.fire_loss,
                                 'flammability_seconds': self.rules.flammability},
                 'failure_reason': self.failure_reason,
-                "goals": {"target_money": self.rules.goal['min_money']}}
+                "goals": {"target_money": self.rules.goal['min_money'], "star_scores": self.star_scores()}}
 
     def _dish_view(self, recipe):
         r = self.rules.recipes[recipe]

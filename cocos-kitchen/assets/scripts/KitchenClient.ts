@@ -1141,10 +1141,18 @@ export class KitchenClient extends Component {
         if(!this.art.centered(node,key,TILE*(upright?.62:.76)*scale,TILE*.76*scale))return '';
         return key===filled?'filled':'empty';
     }
-    /** The line under the big income figure: how far from the target, and orders served. */
+    /** Net revenue for one, two and three stars (the engine's star_scores: the target, 1.5 and 2 times it). */
+    private starScores(k:any):number[]{const t=k.goals?.target_money??0;return k.goals?.star_scores||[t,Math.floor(t*3/2),t*2];}
+    private stars(k:any,money=k.money){return this.starScores(k).filter(score=>money>=score).length;}
+    /** Earned stars filled, the rest open: ★★☆. */
+    private starRow(n:number){return '★'.repeat(n)+'☆'.repeat(3-n);}
+    /** The three scores, as Overcooked 2 shows them before a level. */
+    private starLine(k:any){const [a,b,c]=this.starScores(k);return `★ ¥${a} · ★★ ¥${b} · ★★★ ¥${c}`;}
+    /** The line under the big income figure: the stars, what the next one needs, and orders served. */
     private resultDetail(k:any,won:boolean){
-        const gap=Math.abs(k.money-k.goals.target_money);
-        return (won?`多赚 ¥${gap}`:`还差 ¥${gap}`)+` · 完成 ${k.served} 单`;
+        const scores=this.starScores(k),n=this.stars(k);
+        if(!won||!n)return `还差 ¥${Math.abs(scores[0]-k.money)} · 完成 ${k.served} 单`;
+        return (n<3?`${this.starRow(n)} · 离 ${'★'.repeat(n+1)} 还差 ¥${scores[n]-k.money}`:`${this.starRow(3)} · 多赚 ¥${k.money-scores[0]}`)+` · 完成 ${k.served} 单`;
     }
     private sortedLevels(s=this.state){return [...(s?.levels||[])].sort((a:any,b:any)=>(a.menu_order??0)-(b.menu_order??0));}
     private dishName(level:any){const n=String(level?.name||'');return n.includes('·')?n.split('·').pop()!.trim():n;}
@@ -2144,7 +2152,7 @@ export class KitchenClient extends Component {
         if(plate){
             this.set('level-title',title);this.set('level-name',name);
             const tw=this.textWidth(this.tr(title),34)+8,nw=this.textWidth(this.tr(name),22)+8;
-            const line=own?`目标：关店时净收入 ¥${target} · ${own.solo_reaches_target?'一个人也能过':'需要两个人配合'}`:`目标：关店时净收入 ¥${target} · ${i+1} / ${ls.length}`;
+            const line=own?`关店时净收入 ${this.starLine(k)} · ${own.solo_reaches_target?'一个人也能过':'需要两个人配合'}`:`关店时净收入 ${this.starLine(k)} · ${i+1} / ${ls.length}`;
             if(ready){
                 // The title row opens all levels (▾ and a dashed rule); the target sits centred under it.
                 this.set('level-target',line);
@@ -2170,7 +2178,7 @@ export class KitchenClient extends Component {
                 hide('level-prev','level-next','level-caret');on(this.cover.getChildByName('level-underline'),false);
                 if(!ended)hide('level-picker');
                 this.set('level-target',`目标 ¥${target}`);
-                const gw=this.textWidth(this.tr(`目标 ¥${target}`),14)+6,tag=ended?(s.won?'★ 达成目标':'未达目标'):'';
+                const gw=this.textWidth(this.tr(`目标 ¥${target}`),14)+6,tag=ended?(s.won?this.starRow(this.stars(k)):'未达目标'):'';
                 const tagW=tag?this.textWidth(this.tr(tag),17)+28:0,row=dishW+14+tw+12+nw+14+gw+(tag?14+tagW:0),x0=640-row/2;
                 placeDishes(x0,208);this.placeText('level-title',x0+dishW+14,208,tw,40);
                 this.placeText('level-name',x0+dishW+14+tw+12,210,nw,30);this.placeText('level-target',x0+dishW+14+tw+12+nw+14,210,gw,22);

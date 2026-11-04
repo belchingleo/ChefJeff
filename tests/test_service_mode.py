@@ -261,7 +261,7 @@ class RoundTests(unittest.TestCase):
     def test_observations_do_not_reveal_future_orders(self):
         k = Kitchen(level(3))
         state = k.snapshot()
-        self.assertEqual(set(state['goal_status']), {'type', 'target_money', 'money', 'met_now', 'judged_at'})
+        self.assertEqual(set(state['goal_status']), {'type', 'target_money', 'star_scores', 'money', 'met_now', 'stars_now', 'judged_at'})
         self.assertIn(state['future_orders'], (0, 1))
         self.assertTrue(all(o['status'] != 'future' for o in state['orders']))
 
@@ -297,7 +297,7 @@ class AgentRulesTests(unittest.TestCase):
     def test_jeff_receives_the_service_rules(self):
         k = SpatialKitchen(level(3))
         rules = SpatialJevClient(k.c, key='t').payload(k.snapshot(), k.actions('jeff'))['state']['rules']
-        self.assertIn(f"at least {k.rules.goal['min_money']} yuan", rules['objective'])
+        self.assertIn(f"{k.rules.goal['min_money']} yuan or more earns one star and reaches the target", rules['objective'])
         self.assertIn('only the net revenue at closing counts', rules['objective'])
         for text in ('steak 50 yuan', 'burger 80 yuan', 'up to 5 s: accepted at the price -10 yuan', 'refused with no payment',
                      'order keeps waiting', 'serving exactly at the deadline still counts', '-20 yuan', 'Expired order: -10 yuan',
