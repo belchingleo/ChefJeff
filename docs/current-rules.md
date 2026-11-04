@@ -35,7 +35,7 @@ Loose raw/chopped ingredients, plates, plated dishes, pans and pots all fly up t
 
 ## Work and shared stations
 
-Put raw ingredients on a board, chop with empty hands, then collect them. Bread is used directly. Chopping and washing keep their progress when the chef walks away. Multiple chefs may cooperate where separate reachable operation sides exist, sharing progress; the current maps have no shared-sink layout. Jeff's actions are whole, so he walks to a free side and stands at its centre, feet stopping at the walk limit (cabinet fronts are never entered); the player works from where they stand, after the short sideways slide onto the centre line. Two chefs sharing a board must work from perpendicular sides, judged from where each actually stands. Contact cannot interrupt active chopping/washing, but a fire can make the workstation unusable.
+Put raw ingredients on a board, chop with empty hands, then collect them. Bread is used directly. Chopping and washing keep their progress when the chef walks away. Chopping and washing need the hands over the station: the feet within half a cell of the centre line of one of its floor sides, judged after the short sideways slide onto that line, and no more than half a cell behind where a routed chef stands on that side. Facing a board from the next cell along the counter or diagonally is too far, so nobody chops thin air. As in Overcooked 2, both chefs can chop one board or wash at one sink together, from different sides or side by side on a one-sided board, and their progress adds up. Jeff's actions are whole, so he walks to a free side and stands at its centre, or beside the other chef on the same side when every centre is taken, feet stopping at the walk limit (cabinet fronts are never entered); the player works from where they stand, after the short sideways slide onto the centre line. Contact cannot interrupt active chopping/washing, but a fire can make the workstation unusable.
 
 Each ingredient cooks in one kind of vessel, set by the recipe data: beef fries in a frying pan, noodles boil in a soup pot (left too long, the water boils dry, then they burn and catch fire). A stove holds one vessel at a time. The three current levels use frying pans only. A pan or pot heats only on a stove. Carrying it or placing it on a counter/floor pauses heat progress; returning resumes it, including the countdown to burning. Chopped beef may be put into an empty pan off the stove. Raw beef must be chopped first; vegetables and bread do not go in pans. Swaps retain each vessel's contents and progress. Burning pans and pots must be extinguished before moving/clearing.
 
@@ -53,7 +53,7 @@ Esc, P or Ⅱ pauses (Esc or P also resumes); ▶ resumes; ■ ends early withou
 
 Enter or the touch Bookmark button bookmarks the current round without affecting play or model input. Presses within 5 real seconds merge into an interval. Number keys 1–5 (a test feature, labelled 测试) say which work the human will do ("Chef human will do the cooking." since `rules-v7`); 6 reports a perceived mistake. The touch Communication button opens the same preset messages, collapsed by default. Messages share a 5-second cooldown and are delivered with the next normal request, without forcing a task interruption. The latest one lasts for the round. Feedback includes bookmarks and preset messages.
 
-Models receive English structured observations (`en-v4`, plain ASCII; the chefs are named `human` and `jeff`), factual rules (`rules-v7`) and legal actions. The rules describe what the kitchen allows; they do not instruct the agent to cooperate with or help the human. UI language does not change model input. Requests distinguish selection, acceptance and completion; stale replies are rejected, and failures remain visible. The default budget is 200 requests/round (configurable 1–2000); failures count and in-flight requests can still complete. At the limit, current actions continue and the player may pause. See [agent integration](agent-integration.md) and [privacy/costs](privacy-and-costs.md).
+Models receive English structured observations (`en-v4`, plain ASCII; the chefs are named `human` and `jeff`), factual rules (`rules-v8`) and legal actions. The rules describe what the kitchen allows; they do not instruct the agent to cooperate with or help the human. UI language does not change model input. Requests distinguish selection, acceptance and completion; stale replies are rejected, and failures remain visible. The default budget is 200 requests/round (configurable 1–2000); failures count and in-flight requests can still complete. At the limit, current actions continue and the player may pause. See [agent integration](agent-integration.md) and [privacy/costs](privacy-and-costs.md).
 
 ## Levels
 
@@ -100,7 +100,7 @@ Cocos 浏览器版共用 `kitchen.py`、`spatial_kitchen.py`、地图 JSON 和�
 
 ## 加工与合作工位
 
-把生原料放在案板，空手切配后取走；面包直接使用。走开时切菜或洗碗的进度保留。有分别可达的操作侧时，多位厨师可共用工位推进加工；当前地图没有双人水槽。Jeff 的动作是整段的，会走到空闲操作侧的正中，脚停在行走极限处（不会走进柜门）；玩家在自己站的位置操作，只会先侧移到正中。两人共用案板时要在相互垂直的两侧，按各自实际站的位置判断。碰撞不打断切菜／洗碗，着火会使工位不可用。
+把生原料放在案板，空手切配后取走；面包直接使用。走开时切菜或洗碗的进度保留。切菜和洗碗时手要在工位正上方：脚离某个可站人那一侧的中线不超过半格（按侧移到中线之后的位置判断），并且最多比走过去时的站位往后半格。从台面上隔壁一格或斜对角对着案板太远，不会再出现对着空气切菜。和《胡闹厨房 2》一样，两位厨师可以一起切同一块案板、一起洗同一个水槽，可以在不同侧，也可以在单面案板前并排，进度相加。Jeff 的动作是整段的，会走到空闲操作侧的正中；各侧正中都有人时，站到同一侧对方旁边。脚停在行走极限处（不会走进柜门）；玩家在自己站的位置操作，只会先侧移到正中。碰撞不打断切菜／洗碗，着火会使工位不可用。
 
 每种食材只进一种锅，由菜谱数据决定：牛肉用平底锅煎，面条用汤锅煮（煮太久水烧干会糊，再久会着火）。一个灶台同时只放一口锅。目前三关只用平底锅。锅仅在灶台上加热，端走或放在柜台／地面时暂停，放回后继续，包括烧糊倒计时。离灶空锅可先装切好牛肉；生牛肉须先切，蔬菜和面包不入锅。交换锅保留各自内容与进度，着火锅须先灭火再搬动／清理。
 
@@ -118,7 +118,7 @@ Esc、P 或 Ⅱ 暂停（Esc 或 P 也可继续），▶ 继续，■ 提前结�
 
 Enter 或触屏「标记」按钮标记本局片段，不影响玩法或模型输入；间隔五个现实秒内的按键合并为区间。数字 1–5（测试功能，界面标“测试”）说明由玩家来做哪类工作（从 `rules-v7` 起 Jeff 收到“Chef human will do the cooking.”这类说法），6 表示玩家认为出错；触屏「沟通」入口展开相同预设消息，默认折叠；共用五秒冷却，下一次正常请求送达，不强行打断任务。最新的说明持续本局，反馈包含标记与预设消息。
 
-模型收到英文结构化观察（`en-v4`，纯 ASCII；两位厨师分别称为 `human` 和 `jeff`）、事实规则（`rules-v7`）与合法动作；规则只说明厨房允许什么，不要求 agent 协作或帮助玩家。界面语言不改变模型输入。请求区分选择、接受与完成，拒绝过期回复并显示失败。默认每局 200 次（可设 1–2000），失败计数，在途请求仍可完成。达到上限后已有动作继续，玩家可暂停。详见 [agent 接入](agent-integration.md)与[隐私／费用](privacy-and-costs.md)。
+模型收到英文结构化观察（`en-v4`，纯 ASCII；两位厨师分别称为 `human` 和 `jeff`）、事实规则（`rules-v8`）与合法动作；规则只说明厨房允许什么，不要求 agent 协作或帮助玩家。界面语言不改变模型输入。请求区分选择、接受与完成，拒绝过期回复并显示失败。默认每局 200 次（可设 1–2000），失败计数，在途请求仍可完成。达到上限后已有动作继续，玩家可暂停。详见 [agent 接入](agent-integration.md)与[隐私／费用](privacy-and-costs.md)。
 
 ## 关卡
 

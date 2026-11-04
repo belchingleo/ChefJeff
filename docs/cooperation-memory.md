@@ -23,7 +23,7 @@ The newest complete episodes must fit within **8000 serialized English JSON char
 
 `past_episodes` and its historical-evidence rule are included for browser-direct services and the explicitly consented Jev relay. The relay validates episode fields, level, numeric bounds and context size before adding history to the server-created task. It cannot accept arbitrary replacement game state, instructions, endpoints or extra credentials. It does not retain the history as a server profile.
 
-This is bounded context supplied to the selected model, **not model training or a promise of better cooperation**. Rules are versioned as `rules-v7`, memory context/episodes as version 2. A changed representation can change model behavior; evaluate it as an experimental condition.
+This is bounded context supplied to the selected model, **not model training or a promise of better cooperation**. Rules are versioned as `rules-v8`, memory context/episodes as version 2. A changed representation can change model behavior; evaluate it as an experimental condition.
 
 ## Storage and controls
 

@@ -48,8 +48,11 @@ class RoundSummaryTests(unittest.TestCase):
                 served = row(s, 'serve')
                 accepted = sum(d['counts'][w] for d in served['details'] if d['outcome'] == 'served' for w in d['counts'])
                 self.assertEqual(accepted, k.served)
+                # A plate washed together counts for both chefs; the washed event names the one who
+                # finished it, so every washed event is credited to its actor at least.
                 washed = Counter(e['actor'] for e in k.events if e.get('kind') == 'washed')
-                self.assertEqual(row(s, 'wash')['counts'], {w: washed[w] for w in ('human', 'jeff')})
+                for w in ('human', 'jeff'):
+                    self.assertGreaterEqual(row(s, 'wash')['counts'][w], washed[w], w)
 
     def test_details_add_up_and_come_from_the_level_data(self):
         k = self.rounds[2]

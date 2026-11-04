@@ -35,6 +35,15 @@ SIDE_HAND_RISE = .35
 SELECT_AHEAD = .5
 SELECT_STRAIGHT_BONUS = .1
 SELECT_REACH = .85  # Overcooked 2's 1-unit radius, about 1.2 units per cell
+# Chopping and washing need the hands over the station: the feet within this many cells of the centre
+# line of one of its floor sides (after the short slide onto that line). Any number of such spots may be
+# used together, side by side included, as in Overcooked 2 (ServerWorkstation keeps a list of choppers).
+WORK_REACH = .5
+# ... and at most this far behind where a routed chef stands on that side (its operation point): a chef
+# on the middle of the tile in front still works where it stands.
+WORK_BACK = .5
+# A second chef joining on the same side stands this far along it from the side's centre.
+JOIN_OFFSET = .45
 # Overcooked-style local movement: the player's own browser moves its chef and reports where it is
 # (report_position); the engine walks there with the same physics. The walk is limited to
 # REPORT_SPEED_MARGIN x the walking speed (sprint included), banked up to REPORT_BUDGET cells so a late
@@ -532,27 +541,43 @@ class SpatialKitchen(Kitchen):
             if abs(here[axis]-spot[axis])<=.02 and abs(here[1-axis]-cell[1-axis])<=.5:return True
         return False
 
-    def path(self, who, target):
+    def path(self, who, target, in_place=True):
         if target in self.equipment:
             station=self.equipment[target]
             shared=self.shared_access(who,target)
             # Never repositioned at a station it already faces (or stands against): work where it stands,
-            # unless a shared job needs another side than this one.
-            here=(self.station_ahead(who)==target or (self.at_walk_limit and self.at_station_face(who,target))
-                  or self.space_pick[who]==target)
-            if here and (not shared or self.station_side(target,self.positions[who]) in shared):
+            # unless a shared job needs a spot this chef is not on. in_place=False walks to a work spot.
+            here=in_place and (self.station_ahead(who)==target or (self.at_walk_limit and self.at_station_face(who,target))
+                               or self.space_pick[who]==target)
+            if here and (not shared or tuple(self.positions[who]) in shared):
                 return [self.positions[who]]
+            if shared:
+                # Join spots: a free side's centre, or beside the other chef on the same side. The chef's
+                # own spot counts only when it faces the station (here).
+                spots=[p for p in shared if p!=tuple(self.positions[who])] or shared
+                if self.split_floor:
+                    mine=self.floor_part.get(self.anchor(who))
+                    spots=[p for p in spots if self.floor_part.get(min(self.floor,key=lambda c:math.dist(c,p)))==mine] or spots
+                routes=[self.nav.shortest_path(self.positions[who],p) for p in spots]
+                return min(routes,key=lambda route:sum(math.dist(a,b) for a,b in zip(route,route[1:])))
             access=[station['access']] if station.get('reach')=='corner' else sorted({n for c in station.get('cells',[station['cell']]) for n in self.nav.neighbors(c)})
-            if shared is not None and shared:access=shared
             if self.split_floor:
                 # Only the sides on this chef's part of the floor (a dividing counter has one on each).
                 mine=self.floor_part.get(self.anchor(who))
                 access=[cell for cell in access if self.floor_part.get(tuple(cell))==mine] or access
             other='jeff' if who=='human' else 'human'
             taken=[self.positions[other]]+([self.routes[other]['points'][-1]] if self.routes.get(other) else [])
-            free=[cell for cell in access if all(math.dist(self.operation_point(target,cell),p)>=CHEF_SEPARATION for p in taken)]
-            if free:access=free
-            routes = [self.nav.shortest_path(self.positions[who],self.operation_point(target,cell)) for cell in access]
+            points=[self.operation_point(target,cell) for cell in access]
+            free=[p for p in points if all(math.dist(p,q)>=CHEF_SEPARATION for q in taken)]
+            if not free and station.get('reach')!='corner':
+                # Every side's centre is taken (a one-sided board with the other chef standing in front):
+                # stand beside them on the same side, still within WORK_REACH.
+                cells=station.get('cells',[station['cell']])
+                beside=[(c[0]+abs(cell[1]-near[1])*o,c[1]+abs(cell[0]-near[0])*o) for cell,c in zip(access,points)
+                        for near in [min(cells,key=lambda n:math.dist(n,cell))] for o in (-JOIN_OFFSET,JOIN_OFFSET)]
+                free=[p for p in beside if all(math.dist(p,q)>=CHEF_SEPARATION+.02 for q in taken) and self.nav.walkable_point(p)]
+            if free:points=free
+            routes = [self.nav.shortest_path(self.positions[who],point) for point in points]
             if not routes:raise ValueError('工位没有可操作的一侧')
             return min(routes,key=lambda route:sum(math.dist(a,b) for a,b in zip(route,route[1:])))
         return self.nav.shortest_path(self.positions[who],self.cell(target))
@@ -564,7 +589,9 @@ class SpatialKitchen(Kitchen):
         return next((cap for cap,rule in shared.items() if rule['max_workers']>1),None)
 
     def shared_access(self, who, target):
-        """Reserve another reachable side (beside or facing the first chef); never stack two chefs."""
+        """Where this chef can join a chop or wash the other chef is doing here: None when nobody is,
+        else the work spots within reach (WORK_REACH) and clear of the other chef, from any side, beside
+        them included. The chef's own spot comes first when it already qualifies."""
         if target not in self.equipment:return None
         kind=self.shared_capability(target)
         if not kind:return None
@@ -575,11 +602,39 @@ class SpatialKitchen(Kitchen):
         if len(others)>=self.rules.max_workers(target,kind):return []
         station=self.equipment[target]
         if station.get('reach')=='corner':return []
-        center=station['cell'];access=self.nav.neighbors(center)
         route=self.routes.get(other)
         point=route['points'][-1] if route else self.positions[other]
-        occupied=self.station_side(target,point)
-        return [a for a in access if tuple(a)!=tuple(occupied) and math.dist(self.operation_point(target,a),point)>.4]
+        def clear(p):
+            # Clear of the other chef and beside them, never behind them on the same side.
+            if any(math.dist(p,q)<CHEF_SEPARATION+.02 for q in (point,self.positions[other])):return False
+            if self.station_side(target,p)!=self.station_side(target,point):return True
+            side=self.station_side(target,point);cell=min(station.get('cells',[station['cell']]),key=lambda c:math.dist(c,point))
+            axis=0 if side[0]==cell[0] else 1
+            return abs(p[axis]-point[axis])>=CHEF_SEPARATION
+        here=tuple(self.positions[who])
+        spots=[here] if self.in_work_reach(target,here) and clear(here) else []
+        for cell in station.get('cells',[station['cell']]):
+            for side in self.nav.neighbors(tuple(cell)):
+                centre=self.operation_point(target,side)
+                along=(abs(side[1]-cell[1]),abs(side[0]-cell[0]))   # the direction along this side
+                for offset in (0.,-JOIN_OFFSET,JOIN_OFFSET):
+                    spot=(centre[0]+along[0]*offset,centre[1]+along[1]*offset)
+                    if clear(spot) and (not offset or self.nav.clear_walk_line(centre,spot)) and spot not in spots:
+                        spots.append(spot)
+        return spots
+
+    def in_work_reach(self, target, point):
+        """Whether a chef standing at point has the hands over the station: on one of its floor sides,
+        within WORK_REACH of that side's centre line and no more than WORK_BACK behind its operation point. Authored
+        corner stations always are."""
+        station=self.equipment[target]
+        if station.get('reach')=='corner':return True
+        for cell in station.get('cells',[station['cell']]):
+            for side in self.nav.neighbors(tuple(cell)):
+                dx,dy=side[0]-cell[0],side[1]-cell[1];rx,ry=point[0]-cell[0],point[1]-cell[1]
+                spot=self.operation_point(target,side);limit=(spot[0]-cell[0])*dx+(spot[1]-cell[1])*dy+WORK_BACK
+                if .25<rx*dx+ry*dy<=limit+1e-9 and abs(rx*dy-ry*dx)<=WORK_REACH+1e-9:return True
+        return False
 
     def station_side(self, target, point):
         """The tile beside the station on the side ``point`` is on (the face a chef there works from)."""
@@ -1127,6 +1182,11 @@ class SpatialKitchen(Kitchen):
             self.space_pick[who]=None
 
     def _start(self, who, action):
+        if (action.kind in ('chop','wash') and self.reported[who] and action.target in self.equipment
+                and not self.in_work_reach(action.target,self._centred(who,action.target) or self.positions[who])):
+            # A player at the keyboard works where they stand (after the short slide), never walked to a
+            # spot: the hands must already be over the station.
+            return False, f"站到{self.place(action.target).name}正前方才能{'切' if action.kind=='chop' else '洗'}"
         if action.kind == 'throw':
             hand = self.chefs[who].hand
             if (not self.can_throw(who) or hand.id != action.expected[0]
@@ -1152,6 +1212,9 @@ class SpatialKitchen(Kitchen):
             points = self.path(who, action.target)
             slide = action.kind in USE_KINDS and len(points) == 1 and self._centred(who, action.target)
             if slide:points = [points[0], slide]
+            if action.kind in ('chop','wash') and action.target in self.equipment and not self.in_work_reach(action.target,points[-1]):
+                # A whole action facing it from out of reach walks to a work spot instead.
+                points, slide = self.path(who, action.target, in_place=False), False
             self.routes[who] = {'job_id': job.id, 'points': points, 'slide': bool(slide),
                                 'length': sum(math.dist(a,b) for a,b in zip(points,points[1:]))}
             if slide:job.travel = self.routes[who]['length']/self.rules.walk_speed
@@ -1218,10 +1281,12 @@ class SpatialKitchen(Kitchen):
         return True
 
     def _begin_work_checked(self, who, job):
-        if job.action.kind in ('chop','wash'):
+        if job.action.kind in ('chop','wash') and job.action.target in self.equipment:
             access=self.shared_access(who,job.action.target)
-            if access is not None and self.station_side(job.action.target,self.positions[who]) not in access:
-                self.emit('共同操作的位置已被占用，本次操作取消',kind='arrival_conflict',actor=who,action_id=job.id)
+            here=tuple(self.positions[who])
+            if not self.in_work_reach(job.action.target,here) or (access is not None and here not in access):
+                self.emit('共同操作的位置已被占用，本次操作取消' if access is not None else '不在工位正前方，本次操作取消',
+                          kind='arrival_conflict',actor=who,action_id=job.id)
                 self.stop(who);return False
         if job.action.kind in ('put_board','put_counter') and self.board_reserved(job.action.target):
             self.emit('工位有食材正在飞入，本次放置取消',kind='arrival_conflict',actor=who,action_id=job.id)
