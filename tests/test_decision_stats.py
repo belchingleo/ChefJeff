@@ -51,11 +51,11 @@ class Scripted(SpatialJevClient):
         return answer
 
 
-def play_round(folder, seconds=20.0, plan=True):
+def play_round(folder, seconds=20.0, plan=True, ask_on_step_end=False):
     with patch('play.ROOT', Path(folder)):
         # The scripted timeline (the round's end stops Jeff mid-action) was written for the request timing
-        # without ai_ask_on_step_end; this file tests the report, not when Jeff is asked.
-        config = {**level_config(load_config(), 'level-2'), 'ai_ask_on_step_end': False}
+        # without ai_ask_on_step_end; only the step gap tests turn it on.
+        config = {**level_config(load_config(), 'level-2'), 'ai_ask_on_step_end': ask_on_step_end}
         game = GameSession(config, client_factory=lambda c: Scripted(c, lambda: game),
                            journal_factory=play.Journal, kitchen_factory=SpatialKitchen, log_prefix='whitebox')
         if plan:
@@ -178,6 +178,110 @@ class HandBuiltTests(unittest.TestCase):
         self.assertEqual((result['rounds'], result['rounds_without_model_answers'], result['models']), (0, 1, {}))
 
 
+def timed(kind, wall, **data):
+    return {'kind': kind, 'game_time_ms': round(wall * 1000), 'elapsed_wall_ms': round(wall * 1000), **data}
+
+
+def event(seq, kind, wall, **data):
+    return {'seq': seq, 'type': kind, 'game_time_ms': round(wall * 1000), 'elapsed_wall_ms': round(wall * 1000), **data}
+
+
+def chop(n, wall, applied=True, fresh=True):
+    return event(n, 'ai_response', wall, request_id=n, action_id=n if applied else None,
+                 payload={'choice': {'key': 'chop', 'kind': 'chop', 'target': 'b1'}, 'applied': applied, 'fresh': fresh})
+
+
+class StepGapTests(unittest.TestCase):
+    write = HandBuiltTests.write
+
+    def test_a_journal_gap_is_split_at_the_first_request_and_the_answer_that_started_the_step(self):
+        # Journal order: the answer is written before the step it started.
+        rows = [timed('start', 0, config={'ai_ask_on_step_end': True}),
+                timed('ai_request', 0, request_id=1, candidates=['chop', 'wait']),
+                timed('ai_response', .1, request_id=1, choice='chop', model='m', applied=True, fresh=True, action_id=1),
+                timed('action_start', .1, actor='jeff', action='chop', action_id=1),
+                timed('action_done', 3, actor='jeff', action='chop', action_id=1),
+                timed('ai_request', 3.5, request_id=2, candidates=['fetch', 'wait']),
+                timed('ai_response', 3.8, request_id=2, choice='wait', model='m', applied=True, fresh=True, action_id=None),
+                timed('ai_request', 4, request_id=3, candidates=['fetch', 'wait']),
+                timed('ai_response', 4.4, request_id=3, choice='fetch', model='m', applied=True, fresh=True, action_id=2),
+                timed('action_start', 4.4, actor='jeff', action='fetch', action_id=2),
+                timed('pause', 8), timed('end', 10)]       # closed while paused: 8 wall seconds of play
+        gaps = report([self.write(rows)])['models']['m']['step_gaps']
+        self.assertEqual(set(gaps), {'ask_on_step_end'})
+        g = gaps['ask_on_step_end']
+        self.assertEqual((g['rounds'], g['gaps'], g['split_unknown']), (1, 1, 0))
+        self.assertEqual([g[part]['median'] for part in ('total', 'waiting_to_ask', 'answers_before_the_step', 'reply')],
+                         [1.4, .5, .5, .4])
+        self.assertEqual((g['with_discarded_reply_share'], g['seconds_per_round'], g['share_of_round_wall_time']), (0.0, 1.4, .175))
+
+    def test_a_record_gap_finds_its_answer_after_the_step_and_leaves_out_a_pause(self):
+        # Record order: the step's start is logged before the answer that started it.
+        events = [event(1, 'ai_request', 0, request_id=1),
+                  event(2, 'action_start', .1, actor_id='jeff', action_id=1, payload={'action': {'key': 'chop'}}), chop(1, .1),
+                  event(3, 'ai_request', 2, request_id=2),
+                  event(4, 'action_done', 3, actor_id='jeff', action_id=1, payload={'action': {'key': 'chop'}}),
+                  chop(2, 3.2, applied=False, fresh=False),       # asked mid-step, came back after it: discarded
+                  event(5, 'ai_request', 3.5, request_id=3),
+                  event(6, 'action_start', 4.1, actor_id='jeff', action_id=3, payload={'action': {'key': 'chop'}}), chop(3, 4.1),
+                  event(7, 'action_done', 6, actor_id='jeff', action_id=3, payload={'action': {'key': 'chop'}}),
+                  event(8, 'pause', 6.5), event(9, 'resume', 9.5),
+                  event(10, 'ai_request', 9.6, request_id=4),
+                  event(11, 'action_start', 9.8, actor_id='jeff', action_id=4, payload={'action': {'key': 'chop'}}), chop(4, 9.8),
+                  event(12, 'action_done', 12, actor_id='jeff', action_id=4, payload={'action': {'key': 'chop'}})]
+        record = {'schema': 'chefjeff-pilot-session-v2', 'duration': 12.0,
+                  'conditions': {'model_identity': {'model_id': 'm'}, 'request_policy': {'ai_min_interval': 2}}, 'events': events}
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        path = Path(folder.name, 'round.json')
+        path.write_text(json.dumps(record))
+        gaps = report([path])['models']['m']['step_gaps']
+        self.assertEqual(set(gaps), {'min_interval_only'})     # a record from before the switch
+        g = gaps['min_interval_only']
+        self.assertEqual((g['gaps'], g['split_unknown']), (1, 0))    # the gap with the pause is left out
+        self.assertEqual([g[part]['median'] for part in ('total', 'waiting_to_ask', 'answers_before_the_step', 'reply')],
+                         [1.1, .5, 0.0, .6])
+        self.assertEqual(g['with_discarded_reply_share'], 1.0)
+        self.assertEqual(g['share_of_round_wall_time'], round(1.1 / 9, 4))      # 12 wall seconds less the 3 paused
+
+    def test_a_step_without_its_answer_counts_but_is_not_split(self):
+        rows = [timed('start', 0),
+                timed('ai_request', 0, request_id=1, candidates=['chop']),
+                timed('ai_response', .1, request_id=1, choice='chop', model='m', applied=True, fresh=True, action_id=1),
+                timed('action_start', .1, actor='jeff', action='chop', action_id=1),
+                timed('action_done', 2, actor='jeff', action='chop', action_id=1),
+                timed('action_start', 2.5, actor='jeff', action='chop', action_id=9),
+                timed('end', 5)]
+        g = report([self.write(rows)])['models']['m']['step_gaps']['min_interval_only']
+        self.assertEqual((g['gaps'], g['split_unknown'], g['total']['median'], g['waiting_to_ask']), (1, 1, .5, None))
+
+    def test_rows_without_wall_times_give_no_step_gaps(self):
+        rows = [row('start', 0), row('ai_request', 0, request_id=1, candidates=['chop']),
+                row('ai_response', 0, request_id=1, choice='chop', model='m', applied=True, fresh=True, action_id=1),
+                row('action_start', 0, actor='jeff', action='chop', action_id=1),
+                row('action_done', 2, actor='jeff', action='chop', action_id=1)]
+        self.assertNotIn('step_gaps', report([self.write(rows)])['models']['m'])
+
+
+class StepGapJournalTests(unittest.TestCase):
+    def test_asking_on_step_end_shortens_the_wait_in_a_real_round(self):
+        gaps = {}
+        for on in (False, True):
+            with tempfile.TemporaryDirectory() as folder:
+                path = play_round(folder, ask_on_step_end=on)
+                rows = [json.loads(line) for line in path.read_text().splitlines()]
+                gaps.update(report([path])['models']['test-model']['step_gaps'])
+            ends = [i for i, r in enumerate(rows) if r['kind'] == 'action_done' and r['actor'] == 'jeff']
+            followed = sum(any(r['kind'] == 'action_start' and r.get('actor') == 'jeff' for r in rows[i + 1:]) for i in ends)
+            policy = 'ask_on_step_end' if on else 'min_interval_only'
+            self.assertEqual((gaps[policy]['gaps'], gaps[policy]['split_unknown']), (followed, 0))
+            self.assertGreater(followed, 0)
+        off, on = gaps['min_interval_only'], gaps['ask_on_step_end']
+        self.assertGreater(off['waiting_to_ask']['median'], 1.0)            # the 2 s minimum after the last request
+        self.assertLess(on['waiting_to_ask']['median'], .1)                 # asked when the step ended
+        self.assertLess(on['total']['mean'], off['total']['mean'])
+
+
 if __name__ == '__main__':
     unittest.main()
 
@@ -239,6 +343,8 @@ class ResearchRecordTests(paths.SavePathTests):
         self.assertEqual(m['unsure']['below']['0.05']['count'], 1)
         self.assertEqual(m['unsure']['closest_pairs'], {'fetch/wait': 1})
         self.assertEqual((m['actions']['replaced_by_own_next_choice'], m['actions']['back_and_forth']), (2, 1))
+        self.assertEqual(record['conditions']['request_policy']['ai_ask_on_step_end'], True)    # config.json
+        self.assertEqual(set(m['step_gaps']), {'ask_on_step_end'})
         plan = m['plan']
         self.assertEqual(plan['set'], {'prep': 1})          # answered with the first request, carried by the second
         self.assertEqual(plan['actions_while_held']['prep']['in_part'], 1)          # the second fetch

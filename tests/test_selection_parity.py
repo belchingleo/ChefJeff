@@ -68,8 +68,12 @@ console.log(JSON.stringify(bad.slice(0,5)));process.exit(bad.length?1:0);''')
         tsc = geometry_tests.KitchenGeometryExecutionTests.resolve_tsc(self)
         if not tsc:
             self.skipTest('TypeScript compiler unavailable')
-        checked = subprocess.run([*tsc, str(TYPESCRIPT), '--target', 'ES5', '--lib', 'es2019,dom', '--noEmit',
-                                  '--skipLibCheck'], cwd=ROOT, capture_output=True, text=True)
+        command = [*tsc, str(TYPESCRIPT), '--target', 'ES5', '--lib', 'es2019,dom', '--noEmit', '--skipLibCheck']
+        checked = subprocess.run(command, cwd=ROOT, capture_output=True, text=True)
+        if 'TS5107' in checked.stdout + checked.stderr:
+            # TypeScript 6 only deprecates the ES5 target, so the check still runs with the warning off;
+            # TypeScript 5 refuses this value, so it is passed only when asked for.
+            checked = subprocess.run([*command, '--ignoreDeprecations', '6.0'], cwd=ROOT, capture_output=True, text=True)
         if 'TS5108' in checked.stdout + checked.stderr:
             # TypeScript 6+ removed the ES5 target; the source rule above still runs.
             self.skipTest('this TypeScript no longer type-checks for ES5')

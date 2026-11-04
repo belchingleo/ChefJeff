@@ -18,7 +18,7 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - Register Gemma 4 26B and Llama 3.1 8B (Cloudflare Workers AI) as later free models. They stay off until their own private key file is installed and the gateway is started with it; each was probed once with a synthetic snapshot only. Gemini 3.5 Flash-Lite was registered too, then dropped before it was ever enabled: its free tier allows one call every 4.3 s, while Jeff asks at least every 2 s and right after each step, so nearly every request would have to wait. A key file that still names it keeps working; the field is ignored.
 - The Cloudflare models have their own budget below the platform's free tier: 9,000 estimated Neurons a day shared by both. A spent day shows 今日额度已用完 instead of "try again later".
 - The free list on every screen follows the server's catalog, so an enabled model appears with no page change.
-- Custom models: Gemini moves to 3.5 Flash-Lite (Google no longer opens 2.5 to new accounts). Cloudflare Workers AI is added with your account ID; online it runs only through the demo server, with its own consent, because Cloudflare refuses browser requests.
+- Custom models: Gemini moves to 3.5 Flash-Lite (Google no longer opens 2.5 to new accounts). Its note and the model guide say what the free tier means for Jeff: he usually asks more than the 15 requests a minute it allows, so past that he waits before asking again. Cloudflare Workers AI is added with your account ID; online it runs only through the demo server, with its own consent, because Cloudflare refuses browser requests.
 - Research records add the service name `cloudflare`. Upgrade the research console before the games, or its records are refused.
 
 ### Cross-round cooperation memory
@@ -40,6 +40,7 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 
 ### Jeff (the AI teammate)
 - Jeff asks for his next step as soon as his current step ends, instead of waiting out the 2-second minimum between requests; the 2 seconds still apply to every other trigger (kitchen changes, urgency bands, the periodic refresh). He also no longer asks in the middle of a step that will end before a typical reply comes back, because that reply was always discarded and, while on its way, held back the question about his next step. In fixed-seed simulations the wait after a step drops to the reply time itself (about 1.2 s instead of 1.8–2.2 s with 1.2 s replies; 3.5 s instead of 5.5–6.0 s with 3.5 s replies), with as many or fewer calls for slower models and up to a third more for very fast ones. `config.json` turns it on with `ai_ask_on_step_end: true`; research records and session records keep it in `request_policy`, so rounds from before and after can be told apart. Jeff's input is unchanged; the payload fingerprints were re-recorded only because the fixed rounds now ask at different moments.
+- `scripts/decision_stats.py` reports how long Jeff stood between two steps (`step_gaps`, in wall seconds), from the end of one step to the start of the next, and splits each gap into the wait before the first request, earlier answers that started nothing (a wait, a rejected or a discarded reply) and the reply that started the next step. Rounds are grouped by `request_policy.ai_ask_on_step_end`, so rounds from before and after the change are counted apart; records without the field count as before. The answer that started a step is matched by its action, because research records log the step's start before that answer. Gaps with a pause are left out.
 - Model input `en-v4`: joining the other chef's chopping or washing, walking to a floor tile and the start of a throw now reach Jeff in English. Before, these labels and events were partly Chinese (for example `一起切配 F2 (共享进度)`), so rounds recorded with `en-v3` show them that way.
 - Decision presets now support vendor request fields in both clients, including connection probes. StartLux sends `allow_none: false` because Bamboo enables null choices by default; replies with a null action or sprint remain rejected. The preset disables thinking by default; game response deadlines are unchanged.
 - Online connection tests now send two decision options and display the provider's short error reason with the key redacted. A chat reply without sprint means no sprint, matching the local game.
@@ -181,7 +182,7 @@ First private release: a local browser game with three playable maps and player-
 - 登记两个后加入的免费模型：Cloudflare Workers AI 上的 Gemma 4 26B 和 Llama 3.1 8B。装好它们单独的私密 Key 文件、并用它启动协调服务后才会开放；目前每个只用合成快照试过一次。Gemini 3.5 Flash-Lite 也登记过，在启用之前就撤下了：它的免费额度每 4.3 秒只能调用一次，而 Jeff 至少每 2 秒、并且每做完一步就会请求，几乎每次请求都得等。Key 文件里仍写着它也能照常使用，这一项会被忽略。
 - Cloudflare 的两个模型单独计额度，低于平台的免费额度：两个模型合计每天约 9,000 Neurons。一天用完后显示「今日额度已用完」，不再只说稍后再试。
 - 各处的免费模型列表都按服务器给的来，新开放的模型不用改页面就会出现。
-- 自定义模型：Gemini 改为 3.5 Flash-Lite（Google 不再向新账号开放 2.5）；新增 Cloudflare Workers AI，需填 Account ID。Cloudflare 不接受浏览器直连，在线版只能经试玩服务器转发，并要单独勾选同意。
+- 自定义模型：Gemini 改为 3.5 Flash-Lite（Google 不再向新账号开放 2.5），它的说明和模型指南写明了免费层级对 Jeff 的影响：Jeff 每分钟通常要问的次数超过免费层级允许的 15 次，超出后要等一会儿才能再问；新增 Cloudflare Workers AI，需填 Account ID。Cloudflare 不接受浏览器直连，在线版只能经试玩服务器转发，并要单独勾选同意。
 - 研究记录新增服务名 `cloudflare`。旧版研究管理台会拒收这类记录，所以管理台要和游戏在同一个维护窗口里升级，顺序见 `docs/research-admin.md`。
 
 ### 跨局协作记忆
@@ -203,6 +204,7 @@ First private release: a local browser game with three playable maps and player-
 
 ### Jeff（AI 队友）
 - Jeff 做完一步就马上请求下一步，不再等满两次请求之间至少 2 秒的间隔；其他触发情况（厨房变化、紧急档位、定期刷新）仍按 2 秒间隔。一步剩下的时间比通常的回复时间还短时，不再在这一步中途提问：这种回复回来时这一步已经做完，总会因为过期被丢掉，而它还在路上时，又会挡住下一步的提问。固定种子模拟里，做完一步后的等待降到只剩模型回复本身的时间（回复约 1.2 秒时，从 1.8–2.2 秒降到约 1.2 秒；回复 3.5 秒时，从 5.5–6.0 秒降到 3.5 秒）。回复慢的模型调用次数持平或更少，回复很快的模型最多多三分之一。`config.json` 用 `ai_ask_on_step_end: true` 打开；研究记录和本地会话记录在 `request_policy` 里记下这一项，新旧对局可以区分。Jeff 收到的输入不变；输入指纹重录只是因为固定对局的提问时机变了。
+- `scripts/decision_stats.py` 新增统计 Jeff 两步之间站了多久（`step_gaps`，真实秒数），从一步做完算到下一步开始，并把每段拆成三部分：做完到发出第一次请求，之前那些没有开始新动作的回复（等待、被拒绝或过期丢掉的回复），开始下一步的那次请求的回复时间。对局按 `request_policy.ai_ask_on_step_end` 分组，改动前后的对局分开统计；没有这一项的记录算作改动前。开始一步的回复按动作编号去找，因为研究记录里这一步的开始写在那次回复前面。中间有暂停的停顿不算。
 - 模型输入升为 `en-v4`：加入对方的切配或洗碗、走到某个地面格子、开始抛递这几类选项和事件，现在都以英文发给 Jeff。之前它们部分是中文（例如 `一起切配 F2 (共享进度)`），所以按 `en-v3` 记录的对局里保留着这些中文。
 - 决策预设的额外请求字段同时支持本地版、在线版和连接测试。Bamboo 默认允许空选择，StartLux 预设显式发送 `allow_none: false`；返回空动作或空冲刺选择时仍拒绝执行。预设默认关闭思考，游戏接受回复的时限不变。
 - 在线版连接测试改为发送两个决策选项；显示服务商的简短报错原因并遮掉 Key。对话回复缺少冲刺字段时按不冲刺处理，与本地版一致。

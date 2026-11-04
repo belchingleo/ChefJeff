@@ -917,7 +917,7 @@
     "约 ¥1–3/局": "about ¥1–3 a round",
     "约 ¥0.2–0.3/局": "about ¥0.2–0.3 a round",
     "约 ¥0.7–1.3/局": "about ¥0.7–1.3 a round",
-    "Google AI Studio 免费层级：每分钟 15 次、每天 500 次 · 需能访问 Google": "Google AI Studio free tier: 15 requests a minute, 500 a day · needs access to Google",
+    "Google AI Studio 免费层级：每分钟 15 次、每天 500 次 · Jeff 每分钟常要问超过 15 次，超出时要等一会儿才能再问 · 需能访问 Google": "Google AI Studio free tier: 15 requests a minute, 500 a day · Jeff often asks more than 15 times a minute, and past the limit he has to wait before asking again · needs access to Google",
     "免费额度每个账户每天 10,000 Neurons，约 100–140 次请求 · 也可填 @cf/meta/llama-3.1-8b-instruct-fp8": "Free tier: 10,000 Neurons a day per account, about 100–140 requests · you can also enter @cf/meta/llama-3.1-8b-instruct-fp8",
     "免费，但高峰常返回“访问量过大”": "Free, but often answers “too many requests” at peak times",
     "请优先选择快思考模型": "Prefer a fast-thinking model",
