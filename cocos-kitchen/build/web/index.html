@@ -238,6 +238,36 @@ function kitchenTabs(dialog){
 #kitchen-api-dialog[data-view=custom] .custom-only{display:flex}
 #kitchen-api-dialog[data-view=custom] .card-badge.custom-only{display:inline-block}
 #kitchen-api-dialog[data-view=custom] .settings-only{display:none}
+/* 计划模式: a switch in the shell's square, ink-bordered, hard-shadow style; denim marks "on". */
+#plan-setting{position:relative;margin-top:22px;padding-top:18px;border-top:2px dashed #e3c79a}
+.switch-row{display:flex;align-items:center;gap:12px;margin:0 0 4px}
+.switch-text{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;min-width:0}
+#kitchen-api-dialog label.switch-label{display:inline;margin:0;font:18px/24px var(--pixel);color:var(--ink);cursor:pointer}
+.switch{position:relative;flex:none;width:56px;height:30px;padding:0;box-sizing:border-box;border:3px solid var(--ink);background:var(--surface);box-shadow:0 3px 0 var(--ink);cursor:pointer}
+.switch-knob{position:absolute;top:3px;left:3px;width:18px;height:18px;box-sizing:border-box;background:var(--paper);border:3px solid var(--ink)}
+.switch[aria-checked=true]{background:var(--denim)}
+.switch[aria-checked=true] .switch-knob{left:29px}
+.switch:hover{background:var(--honey-tint)}
+.switch[aria-checked=true]:hover{background:var(--denim-hover)}
+.switch:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.switch:focus-visible,.info-btn:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
+.switch:disabled{border-color:var(--muted);background:var(--surface);box-shadow:none;transform:none;cursor:default}
+.switch:disabled[aria-checked=true]{background:var(--muted)}
+.switch:disabled .switch-knob{border-color:var(--muted)}
+.switch:disabled+.switch-text .switch-label{color:var(--muted);cursor:default}
+.info-btn{position:relative;flex:none;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;padding:0;box-sizing:border-box;border:2px solid var(--ink);border-radius:50%;background:var(--paper);color:var(--ink);font:14px/14px var(--pixel);cursor:pointer}
+.info-btn:hover{background:var(--honey-tint)}
+/* Touch mode gives dialog buttons a 44px minimum height; these keep their shape and get the hit area from ::after. */
+#kitchen-api-dialog .switch,#kitchen-api-dialog .info-btn{min-height:0}
+.switch::after{content:"";position:absolute;inset:-10px -4px}
+.info-btn[aria-expanded=true]{background:var(--ink);color:var(--paper)}
+/* The tap target stays 44px on touch screens while the circle keeps its size. */
+.info-btn::after{content:"";position:absolute;inset:-9px}
+/* An overlay above the row (below when there is no room above), so it never shifts the page or gets clipped. */
+.tip{position:absolute;left:0;z-index:6;width:max-content;max-width:min(420px,100%);padding:10px 12px;box-sizing:border-box;background:var(--paper);border:3px solid var(--ink);box-shadow:0 5px 0 var(--ink);font-size:15px;line-height:22px;color:var(--ink)}
+.tip::before{content:"";position:absolute;left:var(--arrow-x,24px);width:12px;height:12px;margin-left:-6px;background:var(--paper);transform:rotate(45deg)}
+.tip[data-side=above]::before{bottom:-9px;border-right:3px solid var(--ink);border-bottom:3px solid var(--ink)}
+.tip[data-side=below]::before{top:-9px;border-left:3px solid var(--ink);border-top:3px solid var(--ink)}
 @media (max-width:760px){
  #kitchen-api-dialog .dlg-head{flex-wrap:wrap;gap:10px;padding:14px 16px 10px}
  #kitchen-api-dialog .dlg-head h2{font-size:26px;line-height:30px}
@@ -306,11 +336,12 @@ function kitchenTabs(dialog){
   </aside>
   </div>
   <div class="card-section settings-only" id="plan-setting">
-   <h3>Jeff 的计划（测试）</h3>
-   <label class="remember"><input id="jeff-plan-off" type="radio" name="jeff-plan" value="off">关闭（默认）</label>
-   <label class="remember"><input id="jeff-plan-choice" type="radio" name="jeff-plan" value="choice">选择题：Jeff 没有计划时，顺带选接下来负责哪一段（备料、加热、装盘出餐、收洗盘或随机应变），约 12 秒内有效，沟通栏里能看到</label>
+   <div class="switch-row">
+    <button id="jeff-plan" class="switch" type="button" role="switch" aria-checked="true" aria-labelledby="jeff-plan-label" aria-describedby="plan-status"><span class="switch-knob" aria-hidden="true"></span></button>
+    <span class="switch-text"><label for="jeff-plan" id="jeff-plan-label" class="switch-label">计划模式（测试）</label><button id="plan-info" class="info-btn" type="button" aria-label="计划模式说明" aria-expanded="false" aria-controls="plan-tip" aria-describedby="plan-tip">i</button></span>
+   </div>
+   <div id="plan-tip" class="tip" role="tooltip" hidden>Jeff 会先定下接下来负责哪一段，用来减少来回倒腾</div>
    <p id="plan-status" role="status" aria-live="polite"></p>
-   <details class="fine"><summary>计划说明</summary><p><small>计划不限制 Jeff 的动作，它每次仍从全部可选动作里选。开局前或结算后才能修改，一局内不变。打开后，没有计划的那次请求会多一道选择题。</small></p></details>
   </div>
  </section>
  <section aria-labelledby="audio-title" id="audio-panel" role="tabpanel">
@@ -360,7 +391,7 @@ function kitchenTabs(dialog){
  // randomUUID exists only on secure pages; a phone on the LAN (plain HTTP) still has getRandomValues.
  const requestId=()=>crypto.randomUUID?.()||Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('');
  let state=null,busy=false,memoryBusy=false,memoryMessage='',limitBusy=false,limitMessage='',planBusy=false,planMessage='',feedbackText='';
- const PLAN_MODES=[['jeff-plan-off','off'],['jeff-plan-choice','choice']];
+ const planSwitch=el('jeff-plan');
  const message=(text,error=false)=>{el('api-message').textContent=text;el('api-message').className=error?'error':''};
  // Services from model-providers.json, grouped; the hosted page leaves out the ones its browser cannot reach.
  const catalog=window.chefjeffProviders||{groups:[],providers:[]};
@@ -445,8 +476,10 @@ function kitchenTabs(dialog){
   el('api-editing-status').textContent=!c?(window.chefjeffHostedStatus?.()||'等待厨房连接。可以先填写，连接成功后再测试。'):
    busy?'正在测试连接…':c.editable?'':'本局进行中，可以先填写；请结束本局后再测试或更换 API。';
   const plan=state?.communication?.jeff_plan;
-  for(const [id,mode] of PLAN_MODES){el(id).checked=plan?.mode===mode;el(id).disabled=!plan?.editable||planBusy}
-  el('plan-status').textContent=planMessage||(plan&&!plan.editable?'本局进行中；结束本局后可以修改。':'');
+  // Saving must not disable the switch: a disabled button drops keyboard focus mid-toggle. Clicks are ignored while busy.
+  if(plan)planSwitch.setAttribute('aria-checked',String(plan.mode==='choice'));planSwitch.disabled=!plan?.editable;planSwitch.setAttribute('aria-busy',String(planBusy));
+  // While locked the reason wins over the last save message; the switch alone shows on/off.
+  el('plan-status').textContent=plan&&!plan.editable&&!planBusy?'本局进行中；结束本局后可以修改。':planMessage||'';
   const l=state?.limits;
   el('call-limit').disabled=!l?.editable||limitBusy;el('limit-save').disabled=!l?.editable||limitBusy;
   el('limit-status').textContent=limitMessage||(l?`本局 ${l.calls} / ${l.max_calls} 次${l.reached?' · 已达上限':''}；成功回复 token：输入 ${l.usage.input_tokens} / 输出 ${l.usage.output_tokens}；本次服务连接测试 ${l.connection_checks} 次`:'需要新版厨房服务。');
@@ -519,8 +552,9 @@ function kitchenTabs(dialog){
   }catch(e){if(e.name==='AbortError')throw new Error('请求超时，请重新打开设置确认结果。');throw e;}
   finally{clearTimeout(timer);}
  }
- for(const [id,mode] of PLAN_MODES)el(id).onchange=async()=>{
-  if(planBusy)return;planBusy=true;planMessage='正在保存…';status();
+ planSwitch.onclick=async()=>{
+  if(planBusy||planSwitch.disabled)return;const mode=planSwitch.getAttribute('aria-checked')==='true'?'off':'choice';
+  planBusy=true;planMessage='正在保存…';status();
   try{const d=await localCommand('/api/plan',{mode});state.communication={...state.communication,jeff_plan:d.jeff_plan};
    planMessage=d.jeff_plan.mode==='choice'?'下一局起开启计划模式。':'下一局起关闭计划模式。';
   }catch(e){planMessage=e.message}finally{planBusy=false;status()}
@@ -543,6 +577,26 @@ function kitchenTabs(dialog){
   if(!feedbackText)return;const url=URL.createObjectURL(new Blob([feedbackText],{type:'application/json'}));
   const a=document.createElement('a');a.href=url;const r=JSON.parse(feedbackText);a.download='chefjeff-play-'+String(r.session_started_at||r.exported_at||'').replace(/[^0-9]/g,'').slice(0,14)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
  };
+})();
+</script>
+<script>
+// 计划模式 info button: hover shows the tip with a mouse; touch and keyboard toggle it; Esc or a tap elsewhere closes it.
+(()=>{const btn=document.getElementById('plan-info'),tip=document.getElementById('plan-tip');if(!btn||!tip)return;
+ let pinned=false;const inside=t=>!!t&&(btn.contains(t)||tip.contains(t));
+ const show=v=>{tip.hidden=!v;btn.setAttribute('aria-expanded',String(v));if(!v)return;
+  const card=tip.parentElement.getBoundingClientRect(),b=btn.getBoundingClientRect(),row=btn.closest('.switch-row').getBoundingClientRect();
+  const view=(tip.closest('.settings-page')||document.documentElement).getBoundingClientRect(),h=tip.offsetHeight;
+  const above=row.top-Math.max(view.top,0)>=h+14;tip.dataset.side=above?'above':'below';
+  tip.style.top=(above?row.top-card.top-h-12:row.bottom-card.top+12)+'px';tip.style.setProperty('--arrow-x',(b.left+b.width/2-card.left)+'px')};
+ // Hovering the i opens it; it stays open while the pointer is anywhere on the card or the tip
+ // (the tip belongs to the card), so crossing from the i to the tip never closes it.
+ btn.addEventListener('pointerenter',e=>{if(e.pointerType==='mouse'&&tip.hidden)show(true)});
+ tip.parentElement.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse'&&!pinned)show(false)});
+ btn.addEventListener('click',()=>{pinned=!(pinned&&!tip.hidden);show(pinned||tip.hidden)});
+ btn.addEventListener('focus',()=>show(true));btn.addEventListener('blur',()=>{if(!pinned)show(false)});
+ document.addEventListener('pointerdown',e=>{if(!tip.hidden&&!inside(e.target)){pinned=false;show(false)}});
+ // Esc closes only the tip while it is open, not the settings dialog behind it.
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!tip.hidden){e.preventDefault();e.stopImmediatePropagation();pinned=false;show(false)}},true);
 })();
 </script>
 <style>
@@ -592,7 +646,7 @@ function kitchenTabs(dialog){
   <dt>餐具和锅</dt><dd>干净盘才可装菜。脏盘回收点取盘 → 放入水槽 → 空手按空格洗碗 → 取净盘。没盘时可空手到锅边端锅，离灶停止加热；空锅需放回灶台。</dd>
   <dt>丢弃与消防</dt><dd>拿食材靠近垃圾桶按空格会销毁，扣 2 元；端锅则倒掉锅里的食物，保留空锅。拿起灭火器后面向着火工位按空格喷，累计喷 4 秒灭火；中途走开，进度保留，但停喷 2 秒后火会慢慢变旺。着火的工位会加热身边 8 格（含对角）的工位，旁边有一处着火 5 秒就会着火，多处同时着火更快，红色条显示进度；不跨空地或墙。同时 5 个工位着火，本局结束。</dd>
   <dt>沟通 · 1–6 / 点击（测试功能）</dt><dd>这是测试中的功能，不是正式玩法，以后可能调整。打开左下角沟通菜单，点击即可告诉 AI 由你来做哪类工作；“你做错了”是独立的红色描边按钮。也可按 1–5 说明分工、按 6 纠错。共用 5 个实际秒冷却，暂停时也可发送。最新的说明只在本局有效；AI 在下一次正常请求中收到，自行判断如何配合，不强制分工或停止动作。纠错附带当时动作信息，但不指定正确答案。</dd>
-  <dt>计划模式（测试）</dt><dd>默认开启。Jeff 没有计划时，会在决定下一步动作的同时，选定接下来负责哪一段：备料、加热、装盘出餐、收洗盘或随机应变。计划约 12 秒有效；你发了新的分工说明，或者这一段眼下没事可做，就提前结束，Jeff 再重新选。计划不限制 Jeff 的动作，它每次仍从全部可选动作里选。沟通栏里能看到 Jeff 当前的计划。开局前或结算后可以在「设置 → AI 搭档」里关掉，一局内不变。</dd>
+  <dt>计划模式（测试）</dt><dd>默认开启。Jeff 没有计划时，会在决定下一步动作的同时，选定接下来负责哪一段：备料、加热、装盘出餐、收洗盘或随机应变。计划约 12 秒有效；你发了新的分工说明，或者这一段现在没事可做，就提前结束，Jeff 再重新选。计划不限制 Jeff 的动作，它每次仍从全部可选动作里选。沟通菜单里能看到 Jeff 当前的计划。开局前或结算后可以在「设置 → AI 搭档」里关掉，一局内不变。</dd>
   <dt>标记片段 · Enter</dt><dd>营业中按 Enter 标记当前时刻，不暂停、不打断动作。相邻两次标记间隔不超过 5 个实际秒时合并为一个区间，长按不重复。设置中的“数据导出”包含全部标记；标记不会发送给 AI。</dd>
   <dt>暂停与继续 · Esc / P</dt><dd>暂停会停止锅火、订单和双方动作。再按 Esc 或 P（键盘没有 Esc 键时用，如 iPad）或点「继续经营」回到厨房；也可重新开局、打开设置或查看本说明。结束本局、暂停中重新开局都会先请你确认；重新开局沿用当前配置与速度。更换 API、记忆和调用上限请在结算后或开局前进行。</dd>
   </dl>
