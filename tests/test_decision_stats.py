@@ -171,7 +171,8 @@ class HandBuiltTests(unittest.TestCase):
         undone = report([self.write(rows)])['models']['m']['undone']
         self.assertEqual(undone, {'finished_steps': 11, 'walks_share': round(3 / 11, 4), 'put_then_taken_back': 2,
                                   'put_then_taken_back_per_game_minute': 2.0, 'walk_round_trips': 1,
-                                  'walk_round_trips_per_game_minute': 1.0})
+                                  'walk_round_trips_per_game_minute': 1.0,
+                                  'round_trip_routes': {'lettuce/serve': 1}, 'walked_to': {'lettuce': 2, 'serve': 1}})
         self.assertEqual(report([self.write(rows)], put_back=30)['models']['m']['undone']['put_then_taken_back'], 3)
 
     def test_unsure_with_a_plan_counts_only_after_the_plan_age(self):

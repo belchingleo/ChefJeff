@@ -20,7 +20,8 @@ chop) rather than parking it (a counter, a supply top, the floor, a throw, the b
 The moments themselves are grouped, from the logged request alone, so a wait that had something to wait
 for can be told from one that was stuck: what he held (plate, ingredient, dirty plate, pan or pot,
 extinguisher), whether a step of the dish was among his options, whether only parking was, and whether
-food was heating on a stove. `waits` crosses the logged waits with those. With --groups-only the report
+food was heating on a stove. `waits` crosses the logged waits with those, and `walks` gives the kinds of
+station the logged walks went to (board, counter, stove, ...; partner for go partner). With --groups-only the report
 also gives, for every request with full hands (stuck or not), the logged answer kinds and options offered.
 
 The report holds counts and shares only (no request, state or model text). It reads the journals and
@@ -87,8 +88,17 @@ def cooking(payload):
     return any(s.get('stove') and s.get('heating') and s.get('food') for s in stations(payload).values())
 
 
+def walk_target(key, payload):
+    """The kind of station a walk goes to: its station type, partner, or other."""
+    target = key[3:]
+    if target == 'partner':
+        return 'partner'
+    return (stations(payload).get(target) or {}).get('type') or 'other'
+
+
 def groups(items):
     waits = [i for i in items if kind(i['logged_choice'], i['payload']) == 'wait']
+    walks = [i for i in items if kind(i['logged_choice'], i['payload']) in ('walk', 'supply_walk')]
     return {'held': dict(Counter(held(i['payload']) for i in items).most_common()),
             'options': dict(Counter(offered(i['payload']) for i in items).most_common()),
             'food_heating': sum(cooking(i['payload']) for i in items),
@@ -97,7 +107,10 @@ def groups(items):
                       'with_only_parking': sum(offered(i['payload']) == 'parking' for i in waits),
                       'while_food_heating': sum(cooking(i['payload']) for i in waits),
                       'holding_a_plate_while_food_heating': sum(held(i['payload']) == 'plate' and cooking(i['payload']) for i in waits),
-                      'by_held': dict(Counter(held(i['payload']) for i in waits).most_common())}}
+                      'by_held': dict(Counter(held(i['payload']) for i in waits).most_common())},
+            'walks': {'count': len(walks),
+                      'to': dict(Counter(walk_target(i['logged_choice'], i['payload']) for i in walks).most_common()),
+                      'by_held': dict(Counter(held(i['payload']) for i in walks).most_common())}}
 
 
 def run(items, ask):
