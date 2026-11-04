@@ -28,7 +28,7 @@
      "base_url": "https://ark.cn-beijing.volces.com/api/v3", "model": "doubao-seed-2-0-lite-260428", "model_editable": true,
      "extra": {"thinking": {"type": "disabled"}},
      "key_url": "https://console.volcengine.com/ark", "hosted": "direct", "tested": false},
-    {"id": "gemini", "group": "chat", "label": "Gemini 3.5 Flash-Lite", "note": "Google AI Studio 免费层级：每分钟 15 次、每天 500 次 · 需能访问 Google",
+    {"id": "gemini", "group": "chat", "label": "Gemini 3.5 Flash-Lite", "note": "Google AI Studio 免费层级：每分钟 15 次、每天 500 次 · Jeff 每分钟常要问超过 15 次，超出时要等一会儿才能再问 · 需能访问 Google",
      "base_url": "https://generativelanguage.googleapis.com/v1beta/openai", "model": "gemini-3.5-flash-lite", "model_editable": true,
      "extra": {"reasoning_effort": "minimal", "response_format": {"type": "json_object"}},
      "key_url": "https://aistudio.google.com/apikey", "hosted": "direct", "tested": false},
