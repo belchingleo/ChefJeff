@@ -19,8 +19,10 @@ For each model it counts:
   is counted apart; that was not Jeff's choice.
 - back_and_forth: A -> B -> A, where Jeff replaced an action at target A with one at B and that
   one again with an action at A.
-- plan (rounds with Jeff's plan on): plans set, how they ended, how long they held, and how many
-  of the actions Jeff started while a plan held belong to its part (harness.action_part).
+- plan (rounds with Jeff's plan on, plan-v2): plans set (a request carrying a plan it had not
+  carried before), how they ended, how many steps they had and how long they held, and how often
+  Jeff chose wait with a plan held and without one in the same rounds. Rounds under the earlier plan
+  rules (plan-v1, parts held for a fixed time) count only as `older_rules_rounds`.
   `unsure_with_plan` counts the decisions that were unsure (first margin) while a plan had held
   for more than --plan-age seconds: the trigger proposed for the third tier, here only counted.
 - step_gaps: how long Jeff stood between steps, in wall seconds, from the end of a step (action_done)
@@ -45,11 +47,10 @@ from statistics import median
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from harness import action_part  # noqa: E402
-from kitchen import Action  # noqa: E402
+from harness import PLAN_RULES_VERSION  # noqa: E402
 from research_record import SCHEMA as RECORD_SCHEMA  # noqa: E402
 
-VERSION = 'decision-stats-3'
+VERSION = 'decision-stats-4'
 MARGINS = (0.05, 0.1)
 PLAN_AGE = 5.0
 NON_ACTIONS = ('continue', 'wait', 'stop')
@@ -83,14 +84,6 @@ def record_rows(record):
     identity = conditions.get('model_identity') or {}
     model = identity.get('model_id') or identity.get('provider') or 'not reported'
     events = record.get('events') or []
-    states = None
-    def holding(seq):
-        nonlocal states
-        if states is None:
-            from research_replay import states as rebuilt
-            states = rebuilt(record)
-        row = next((s for s in reversed(states) if s['seq'] <= seq), None)
-        return ((row or {}).get('state', {}).get('chefs', {}).get('jeff') or {}).get('hand')
     policy = conditions.get('request_policy') or {}
     rows = [{'kind': 'start', 'jeff_plan': conditions.get('jeff_plan'), 'game_time_ms': 0, 'round_id': record.get('round_id'),
              'ask_on_step_end': policy.get('ai_ask_on_step_end') is True}]
@@ -106,8 +99,7 @@ def record_rows(record):
             previous = current
         elif e['type'] == 'ai_response':
             choice = p.get('choice') or {}
-            chef = {'target': choice.get('target'), 'action_kind': choice.get('kind'),
-                    'holding': holding(e['seq']) if choice.get('kind') == 'throw' else None}
+            chef = {'target': choice.get('target'), 'action_kind': choice.get('kind')}
             rows.append({'kind': 'ai_response', 'request_id': e.get('request_id'), 'model': model, 'choice': choice.get('key'),
                          'probabilities': p.get('probabilities'), 'applied': p.get('applied'), 'fresh': p.get('fresh'),
                          'action_id': e.get('action_id'), 'current_state': {'chefs': {'jeff': chef}}, **at})
@@ -116,18 +108,6 @@ def record_rows(record):
                          'action': (p.get('action') or {}).get('key'), **at})
         elif e['type'] in ('pause', 'resume'):
             rows.append({'kind': e['type'], **at})
-    # A plan answer is not kept. It shows as the plan the next request carries, set when the answer came,
-    # and only an answer to a request that asked for one (no plan held) can have set it.
-    asked = {r['request_id'] for r in rows if r['kind'] == 'ai_request' and r.get('jeff_plan')
-             and not r['jeff_plan'].get('current')}
-    for i, response in enumerate(rows):
-        if (response['kind'] != 'ai_response' or response.get('game_time_ms') is None
-                or response.get('request_id') not in asked):
-            continue
-        following = next((r for r in rows[i + 1:] if r['kind'] == 'ai_request'), None)
-        current = ((following or {}).get('jeff_plan') or {}).get('current')
-        if current and abs(current['set_at'] - response['game_time_ms'] / 1000) < .002:
-            response.update(plan_set=True, plan_role=current['role'])
     rows.append({'kind': 'end', 'game_time_ms': round((record.get('duration') or 0) * 1000)})
     return rows
 
@@ -184,8 +164,8 @@ def new_model():
     return {'rounds': 0, 'game_minutes': 0.0, 'decisions': 0, 'fresh': 0, 'applied': 0,
             'top': [], 'margins': [], 'chose_top': 0, 'single_probability': 0, 'pairs': Counter(),
             'started': 0, 'replaced': 0, 'knocked_off': 0, 'other_interruptions': 0, 'back_and_forth': 0,
-            'plan_rounds': 0, 'plans_set': Counter(), 'plan_ends': Counter(), 'holds': [],
-            'in_part': Counter(), 'off_part': Counter(), 'no_part': Counter(), 'unsure_with_plan': 0,
+            'plan_rounds': 0, 'plan_older_rounds': 0, 'plans_set': 0, 'plan_ends': Counter(), 'holds': [], 'plan_steps': [],
+            'held_decisions': 0, 'held_waits': 0, 'free_decisions': 0, 'free_waits': 0, 'unsure_with_plan': 0,
             'gaps': {}}
 
 
@@ -201,15 +181,22 @@ def add_round(rows, models, margins=MARGINS, plan_age=PLAN_AGE):
     m['game_minutes'] += (max(times) if times else 0) / 60
     by_action = {}      # action_id -> (model, target)
     plan_on = bool(rows[0].get('jeff_plan')) or any(r.get('jeff_plan') for r in requests.values())
+    older = plan_on and (rows[0].get('jeff_plan') or {}).get('rules_version', PLAN_RULES_VERSION) != PLAN_RULES_VERSION
+    plan_on = plan_on and not older
+    m['plan_older_rounds'] += older
     if plan_on:
         m['plan_rounds'] += 1
     holding = None      # the plan the previous request carried; a plan still held at closing is not counted
-    for request in sorted(requests.values(), key=lambda r: r.get('request_id') or 0):
+    for request in sorted(requests.values(), key=lambda r: r.get('request_id') or 0) if plan_on else ():
+        current = (request.get('jeff_plan') or {}).get('current')
         if request.get('plan_ended'):
             m['plan_ends'][request['plan_ended']] += 1
             if holding and game_time(request) is not None:
                 m['holds'].append(round(game_time(request) - holding['set_at'], 3))
-        holding = (request.get('jeff_plan') or {}).get('current')
+        if current and (not holding or current['set_at'] != holding['set_at']):
+            m['plans_set'] += 1
+            m['plan_steps'].append(len(current['steps']))
+        holding = current
     for response in responses:
         model = models[str(response.get('model') or 'unknown')]
         request = requests.get(response.get('request_id'))
@@ -221,8 +208,11 @@ def add_round(rows, models, margins=MARGINS, plan_age=PLAN_AGE):
         reported = response.get('probabilities')
         probabilities = {k: v for k, v in (reported if isinstance(reported, dict) else {}).items()
                          if isinstance(v, (int, float)) and not isinstance(v, bool) and (keys is None or k in keys)}
-        current = (request or {}).get('jeff_plan', {}) or {}
-        current = current.get('current')
+        current = ((request or {}).get('jeff_plan') or {}).get('current') if plan_on else None
+        if plan_on and request is not None:
+            held = 'held' if current else 'free'
+            model[held + '_decisions'] += 1
+            model[held + '_waits'] += choice == 'wait'
         if probabilities:
             ranked = sorted(probabilities.items(), key=lambda kv: -kv[1])
             first = ranked[0][1]
@@ -237,17 +227,10 @@ def add_round(rows, models, margins=MARGINS, plan_age=PLAN_AGE):
             now = game_time(response)
             if current and now is not None and now - current['set_at'] > plan_age and margin < min(margins):
                 model['unsure_with_plan'] += 1
-        if response.get('plan_set'):
-            model['plans_set'][response.get('plan_role')] += 1
         state = response.get('current_state')
         if response.get('applied') and response.get('action_id') is not None and choice not in NON_ACTIONS:
             target = jeff(state).get('target')
             by_action[response['action_id']] = (model, target if target is not None else choice)
-            kind = jeff(state).get('action_kind')
-            if current and current['role'] != 'flexible' and kind:
-                part = action_part(Action(choice, '', kind, target), state)
-                bucket = 'no_part' if part is None else 'in_part' if part == current['role'] else 'off_part'
-                model[bucket][current['role']] += 1
     events = [r for r in rows if r.get('actor') == 'jeff' and r.get('kind') in ('action_start', 'interrupted', 'knocked')]
     starts = []         # (target, replaced by Jeff's next choice)
     for i, event in enumerate(events):
@@ -364,14 +347,13 @@ def summary(m, margins=MARGINS):
                       'replaced_per_game_minute': per_minute(m['replaced'], minutes),
                       'back_and_forth': m['back_and_forth'], 'back_and_forth_per_game_minute': per_minute(m['back_and_forth'], minutes),
                       'knocked_off': m['knocked_off'], 'other_interruptions': m['other_interruptions']}
-    if m['plan_rounds']:
-        roles = sorted(set(m['in_part']) | set(m['off_part']) | set(m['no_part']))
-        out['plan'] = {'rounds': m['plan_rounds'], 'set': dict(m['plans_set']), 'ended': dict(m['plan_ends']),
+    if m['plan_rounds'] or m['plan_older_rounds']:
+        out['plan'] = {'rounds': m['plan_rounds'], 'older_rules_rounds': m['plan_older_rounds'], 'set': m['plans_set'],
+                       'ended': dict(m['plan_ends']),
+                       'median_steps': median(m['plan_steps']) if m['plan_steps'] else None,
                        'median_hold_seconds': round(median(m['holds']), 2) if m['holds'] else None,
-                       'actions_while_held': {role: {'in_part': m['in_part'][role], 'other_part': m['off_part'][role],
-                                                     'no_part': m['no_part'][role],
-                                                     'in_part_share': share(m['in_part'][role], m['in_part'][role] + m['off_part'][role])}
-                                              for role in roles},
+                       'decisions_with_plan': m['held_decisions'], 'wait_share_with_plan': share(m['held_waits'], m['held_decisions']),
+                       'decisions_without_plan': m['free_decisions'], 'wait_share_without_plan': share(m['free_waits'], m['free_decisions']),
                        'unsure_with_plan': m['unsure_with_plan']}
     if m['gaps']:
         out['step_gaps'] = {policy: gap_summary(g) for policy, g in sorted(m['gaps'].items())}

@@ -8,8 +8,8 @@ from unittest.mock import patch
 
 import play
 import reference_policy
-from harness import action_part
-from kitchen import Action, load_config
+from harness import PLAN_KEEP_QUESTION, PLAN_STEP_QUESTIONS, plan_answer, plan_questions
+from kitchen import load_config
 from levels import level_config
 from scripts.decision_stats import main, report
 from spatial_kitchen import SpatialKitchen
@@ -46,8 +46,10 @@ class Scripted(SpatialJevClient):
         close = scripted is not None
         answer = {'choice': choice, 'sprint': False, 'confidence': None, 'model': 'test-model', 'usage': {}, 'latency': 0.0,
                   'probabilities': {choice: .5, other: .48} if close else {choice: .8, other: .1}}
-        if 'plan_role' in payload['questions']:
-            answer['plan_role'] = 'prep'
+        if PLAN_STEP_QUESTIONS[0] in plan_questions(payload):
+            answer.update(plan_answer({'plan_step_1': 'fetch:beef', 'plan_step_2': 'chop:beef'}, payload))
+        elif PLAN_KEEP_QUESTION in plan_questions(payload):
+            answer.update(plan_answer({PLAN_KEEP_QUESTION: 'keep'}, payload))
         return answer
 
 
@@ -102,21 +104,19 @@ class RealJournalTests(unittest.TestCase):
         self.assertEqual(actions['back_and_forth'], 1)
         self.assertEqual((actions['knocked_off'], actions['other_interruptions']), (0, 1))   # the round's end stops Jeff
 
-    def test_the_plan_parts_follow_the_started_actions(self):
+    def test_the_plan_counts_follow_the_requests(self):
         plan = self.model['plan']
-        self.assertEqual(plan['rounds'], 1)
-        self.assertEqual(set(plan['set']), {'prep'})
-        held = plan['actions_while_held']['prep']
-        expected = {'in_part': 0, 'other_part': 0, 'no_part': 0}
         requests = {r['request_id']: r for r in self.rows if r['kind'] == 'ai_request'}
-        for r in self.rows:
-            current = (requests.get(r.get('request_id'), {}).get('jeff_plan') or {}).get('current') if r['kind'] == 'ai_response' else None
-            if current and r['applied'] and r['action_id'] is not None and r['choice'] not in ('wait', 'continue'):
-                chef = r['current_state']['chefs']['jeff']
-                part = action_part(Action(r['choice'], '', chef['action_kind'], chef['target']), r['current_state'])
-                expected['no_part' if part is None else 'in_part' if part == 'prep' else 'other_part'] += 1
-        self.assertEqual({k: held[k] for k in expected}, expected)
-        self.assertGreater(held['in_part'], 0)
+        current = lambda r: r['jeff_plan']['current']
+        set_at = [current(r)['set_at'] for r in requests.values() if current(r)]
+        self.assertEqual((plan['rounds'], plan['older_rules_rounds'], plan['set']), (1, 0, len(set(set_at))))
+        self.assertGreater(plan['set'], 0)
+        self.assertEqual(plan['ended'], dict(Counter(r['plan_ended'] for r in requests.values() if r['plan_ended'])))
+        answers = [r for r in self.rows if r['kind'] == 'ai_response']
+        held = [r for r in answers if current(requests[r['request_id']])]
+        self.assertEqual(plan['decisions_with_plan'], len(held))
+        self.assertEqual(plan['decisions_without_plan'], len(answers) - len(held))
+        self.assertEqual(plan['wait_share_with_plan'], round(sum(r['choice'] == 'wait' for r in held) / len(held), 4))
 
     def test_the_command_line_writes_the_same_report(self):
         out = Path(self.folder.name, 'report.json')
@@ -157,21 +157,33 @@ class HandBuiltTests(unittest.TestCase):
         self.assertNotIn('plan', m)
 
     def test_unsure_with_a_plan_counts_only_after_the_plan_age(self):
-        plan = {'seconds': 12, 'current': {'role': 'prep', 'set_at': 1.0, 'expires_at': 13.0}, 'options': None}
-        rows = [row('start', 0, jeff_plan={'mode': 'choice', 'seconds': 12, 'rules_version': 'plan-v1'})]
+        plan = {'steps': 4, 'current': {'steps': [{'work': 'fetch:beef', 'done': True}, {'work': 'chop:beef', 'done': False}],
+                                        'set_at': 1.0}, 'options': None}
+        rows = [row('start', 0, jeff_plan={'mode': 'choice', 'steps': 4, 'rules_version': 'plan-v2'})]
         for n, t in enumerate((3.0, 7.0), 1):
             rows += [row('ai_request', t, request_id=n, candidates=['go x', 'go y'], jeff_plan=plan),
                      row('ai_response', t, request_id=n, choice='go x', model='m', applied=True, fresh=True,
                          probabilities={'go x': .51, 'go y': .49})]
         rows += [row('ai_request', 9.0, request_id=3, candidates=['wait'], plan_ended='new_preference',
-                     jeff_plan={'seconds': 12, 'current': None, 'options': {'prep': 'p', 'flexible': 'f'}}),
+                     jeff_plan={'steps': 4, 'current': None, 'options': {'fetch:beef': 'f', 'serve': 's'}}),
                  row('ai_response', 9.0, request_id=3, choice='wait', model='m', applied=True, fresh=True)]
         m = report([self.write(rows)])['models']['m']
         self.assertEqual(m['unsure']['below']['0.05']['count'], 2)
         self.assertEqual(m['unsure']['closest_pairs'], {'go/go': 2})
-        self.assertEqual(m['plan']['unsure_with_plan'], 1)          # at 7 s the plan had held 6 s; at 3 s only 2 s
-        self.assertEqual(m['plan']['ended'], {'new_preference': 1})
-        self.assertEqual(m['plan']['median_hold_seconds'], 8.0)
+        plan = m['plan']
+        self.assertEqual(plan['unsure_with_plan'], 1)          # at 7 s the plan had held 6 s; at 3 s only 2 s
+        self.assertEqual((plan['set'], plan['median_steps'], plan['ended'], plan['median_hold_seconds']),
+                         (1, 2, {'new_preference': 1}, 8.0))
+        self.assertEqual((plan['decisions_with_plan'], plan['wait_share_with_plan']), (2, 0.0))
+        self.assertEqual((plan['decisions_without_plan'], plan['wait_share_without_plan']), (1, 1.0))
+
+    def test_a_round_under_the_earlier_plan_rules_is_only_counted(self):
+        plan = {'seconds': 12, 'current': {'role': 'prep', 'set_at': 1.0, 'expires_at': 13.0}, 'options': None}
+        rows = [row('start', 0, jeff_plan={'mode': 'choice', 'seconds': 12, 'rules_version': 'plan-v1'}),
+                row('ai_request', 2.0, request_id=1, candidates=['wait'], jeff_plan=plan),
+                row('ai_response', 2.0, request_id=1, choice='wait', model='m', applied=True, fresh=True)]
+        plan = report([self.write(rows)])['models']['m']['plan']
+        self.assertEqual((plan['rounds'], plan['older_rules_rounds'], plan['set'], plan['decisions_with_plan']), (0, 1, 0, 0))
 
     def test_a_round_without_model_answers_is_skipped(self):
         result = report([self.write([row('start', 0), row('action_start', 1, actor='human', action='fetch', action_id=1)])])
@@ -309,8 +321,9 @@ class ResearchRecordTests(paths.SavePathTests):
         other = next(key for key in criteria if key != choice)
         body = {'id': pending['id'], 'choice': choice, 'sprint': False, 'usage': {'input_tokens': 1, 'output_tokens': 1},
                 'probabilities': {choice: top, other: second}}
-        if 'plan_role' in pending['payload']['questions']:
-            body['plan_role'] = 'prep'
+        asked = plan_questions(pending['payload'])
+        if asked:
+            body['plan'] = {'plan_step_1': 'fetch:beef'} if PLAN_STEP_QUESTIONS[0] in asked else {PLAN_KEEP_QUESTION: 'keep'}
         self.assertEqual(self.request('/api/model/result', body, self.token)[0], 200)
         deadline = time.monotonic() + 2
         while self.game.ai.q.empty() and time.monotonic() < deadline:
@@ -346,9 +359,9 @@ class ResearchRecordTests(paths.SavePathTests):
         self.assertEqual(record['conditions']['request_policy']['ai_ask_on_step_end'], True)    # config.json
         self.assertEqual(set(m['step_gaps']), {'ask_on_step_end'})
         plan = m['plan']
-        self.assertEqual(plan['set'], {'prep': 1})          # answered with the first request, carried by the second
-        self.assertEqual(plan['actions_while_held']['prep']['in_part'], 1)          # the second fetch
-        self.assertEqual(plan['actions_while_held']['prep']['no_part'], 1)          # go serve
+        self.assertEqual(plan['set'], 1)          # answered with the first request, carried by the second and third
+        self.assertEqual((plan['decisions_with_plan'], plan['decisions_without_plan']), (2, 1))
+        self.assertEqual(plan['ended'], {})
 
     def test_an_expired_package_is_refused(self):
         receipt = self.play()
@@ -371,25 +384,23 @@ for _name in dir(paths.SavePathTests):
 
 
 class RecordRowsTests(unittest.TestCase):
-    def test_a_throw_takes_its_part_from_the_hand_in_the_state_rows(self):
-        plan = {'seconds': 12, 'current': {'role': 'plates', 'set_at': 1.0, 'expires_at': 13.0}, 'options': None}
-        hand = {'stage': 'dirty_plate', 'plate_id': None}
+    def test_a_records_plan_ends_read_not_recorded(self):
+        held = {'steps': 4, 'current': {'steps': [{'work': 'fetch:beef', 'done': False}], 'set_at': 1.0}, 'options': None}
+        free = {'steps': 4, 'current': None, 'options': {'fetch:beef': 'f'}}
+        events = []
+        for n, (t, plan, key) in enumerate(((1000, free, 'wait'), (2000, held, 'fetch'), (5000, free, 'wait')), 1):
+            events += [{'seq': 2 * n, 'type': 'ai_request', 'game_time_ms': t, 'request_id': n, 'payload': {'candidates': ['wait', 'fetch'], 'jeff_plan': plan}},
+                       {'seq': 2 * n + 1, 'type': 'ai_response', 'game_time_ms': t, 'request_id': n,
+                        'payload': {'choice': {'key': key, 'kind': key}, 'applied': True, 'fresh': True}}]
         record = {'schema': 'chefjeff-pilot-session-v2', 'duration': 30.0,
-                  'conditions': {'model_identity': None, 'jeff_plan': {'mode': 'choice', 'seconds': 12, 'rules_version': 'plan-v1'}},
-                  'events': [
-                      {'seq': 1, 'type': 'state_checkpoint', 'game_time_ms': 0, 'payload': {'trigger': 'initial', 'state': {'chefs': {'jeff': {'hand': None}}}}},
-                      {'seq': 2, 'type': 'state_delta', 'game_time_ms': 2000, 'payload': {'trigger': 'periodic', 'base_state_seq': 1,
-                                                                                         'state': {'chefs': {'jeff': {'hand': hand}}}}},
-                      {'seq': 3, 'type': 'ai_request', 'game_time_ms': 2000, 'request_id': 1, 'payload': {'candidates': ['throw partner', 'wait'], 'jeff_plan': plan}},
-                      {'seq': 4, 'type': 'ai_response', 'game_time_ms': 2050, 'request_id': 1, 'action_id': 5,
-                       'payload': {'choice': {'key': 'throw partner', 'kind': 'throw', 'target': None}, 'applied': True, 'fresh': True}},
-                      {'seq': 5, 'type': 'action_start', 'game_time_ms': 2050, 'actor_id': 'jeff', 'action_id': 5, 'payload': {'action': {'key': 'throw partner'}}}]}
+                  'conditions': {'model_identity': None, 'jeff_plan': {'mode': 'choice', 'steps': 4, 'rules_version': 'plan-v2'}},
+                  'events': events}
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder, 'round.json')
             path.write_text(json.dumps(record))
-            m = report([path])['models']['not reported']
-        self.assertEqual(m['plan']['actions_while_held'], {'plates': {'in_part': 1, 'other_part': 0, 'no_part': 0, 'in_part_share': 1.0}})
-        self.assertEqual(m['actions']['started'], 1)
+            plan = report([path])['models']['not reported']['plan']
+        self.assertEqual((plan['set'], plan['ended'], plan['median_hold_seconds']), (1, {'not_recorded': 1}, 4.0))
+        self.assertEqual((plan['decisions_with_plan'], plan['wait_share_with_plan'], plan['wait_share_without_plan']), (1, 0.0, 1.0))
 
     def test_a_round_in_two_inputs_counts_once_from_its_fuller_copy(self):
         def record(answers):

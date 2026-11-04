@@ -13,7 +13,7 @@ from kitchen import ROOT
 from web_server import GameSession
 from whitebox_server import SpatialJevClient
 from jev import http_error_detail
-from harness import PLAN_CHAT_RULE, plan_answer
+from harness import PLAN_CHAT_RULE, plan_answer, plan_questions
 from model_language import english_data
 from cooperation_memory import CooperationMemory, round_scope, episode, ROUNDS
 from release_info import release_info
@@ -81,7 +81,7 @@ class CompatibleClient(SpatialJevClient):
         if self.setting['provider']=='zhipu':
             from model_output import zhipu_system
             body['messages'][0]['content']=zhipu_system(payload)
-        elif 'plan_role' in payload['questions']:
+        elif plan_questions(payload):
             body['messages'][0]['content']+=PLAN_CHAT_RULE
         preset=PROVIDERS[self.setting['provider']]
         body.update(preset.get('extra',{}));body.update(preset.get('model_extra',{}).get(self.setting['model'],{}))
@@ -105,8 +105,8 @@ class CompatibleClient(SpatialJevClient):
             reason='choice 不在候选动作里'
             if not isinstance(choice,str) or choice not in payload['questions']['next_action']['criteria']:raise ValueError()
             usage=data.get('usage') or {}
-            # A missing or unknown plan answer only leaves Jeff without a plan; the action stands.
-            plan=plan_answer(parsed.get('plan_role'),payload)
+            # A missing or unknown plan answer only leaves Jeff without a plan (or keeps it); the action stands.
+            plan=plan_answer(parsed,payload)
             return {**plan,'sprint':parsed.get('sprint',False),**({'sprint_missing':True} if sprint_missing else {}),'choice':choice,'confidence':None,'probabilities':{},'model':self.setting['model'],
                     'usage':{'input_tokens':int(usage.get('prompt_tokens',0)),'output_tokens':int(usage.get('completion_tokens',0))},
                     'latency':time.monotonic()-started}

@@ -253,7 +253,7 @@ def plan_condition(session):
     if plan is None:
         return {}
     from harness import PLAN_RULES_VERSION
-    return {'jeff_plan': {'mode': 'choice', 'seconds': plan.seconds, 'rules_version': PLAN_RULES_VERSION}}
+    return {'jeff_plan': {'mode': 'choice', 'steps': plan.steps, 'rules_version': PLAN_RULES_VERSION}}
 
 
 def project_event(record):

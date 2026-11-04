@@ -31,9 +31,9 @@ Jeff's input is assembled in `harness.py`: `harness.payload` builds the kitchen,
 
 Hosted play uses `BrowserRelay` plus `hosted/browser-agent.js`; add browser-provider support there separately. `BrowserRelay` only accepts a validated choice, sprint flag and numeric usage and never stores credentials. Jev's explicit opt-in path uses `hosted_jev.py` at `/api/model/jev`: it requires the authenticated page token, game/task ID and consent version, forwards only the server-created task (or a fixed connection test) to the fixed Jev URL/model, and keeps the supplied key local to HTTP request processing. Never send that body through game-command receipts/journals or add a user-selected forwarding URL.
 
-## Jeff's plan (`plan_role`)
+## Jeff's plan (plan questions)
 
-With the plan switch on, a request made while no plan holds also carries `questions.plan_role`, a `choice` question whose criteria are the parts offered. The adapter returns the chosen key next to the action: a chat model writes `"plan_role": "<part key>"` in the same JSON (its system prompt gets `harness.PLAN_CHAT_RULE` only when the question is asked), a decision model answers `answers.plan_role` as a choice. Pass that value through `harness.plan_answer(value, payload)`, which returns `{}` when the question was not asked and `{"plan_role": None}` for a key that was not offered. `DecisionLoop` holds the plan (`harness.Plan`) only from a fresh reply, and a bad plan answer never rejects the action. Hosted play does the same in `hosted/browser-agent.js`, and `BrowserRelay` accepts `plan_role` with the result.
+With the plan switch on, a request made while no plan holds also carries `questions.plan_step_1` to `plan_step_4`: `choice` questions whose criteria are the level's work items (`harness.work_items`: fetch, chop, cook or plate an ingredient, take a clean plate, serve, collect or wash plates), with `none` from step 2 on to end the plan there. While a plan holds, the request shows it as `state.jeff_plan` (its steps, each marked done) and asks `questions.plan_keep` (`keep` or `drop`) instead. The adapter returns each chosen key next to the action: a chat model writes `"plan_step_1": "<key>"` and so on in the same JSON (its system prompt gets `harness.PLAN_CHAT_RULE` only when plan questions are asked), a decision model answers each as a choice under `answers`. Pass the answers through `harness.plan_answer(answers, payload)`, which returns `{}` when nothing was asked, `{"plan": {"steps": [...]}}` (stopping at `none` or a key that was not offered) or `{"plan": {"keep": True, False or None}}`. `DecisionLoop` takes the plan only from a fresh reply and a bad plan answer never rejects the action. It ticks a step when Jeff finishes an action doing that work (`harness.work_item`), in any order; the plan has no clock and ends when every step is done, when Jeff answers `drop`, or when the human sends a new preference, and the next request, sent at once like after a finished step, asks for a new one. Hosted play does the same in `hosted/browser-agent.js`, which sends the answers as `plan` with the result.
 
 ## Shared rules and extension points
 
@@ -80,9 +80,9 @@ Jeff 的输入在 `harness.py` 中拼装：`harness.payload` 生成厨房状态�
 
 托管版使用 `BrowserRelay` 与 `hosted/browser-agent.js`，需要另外接入浏览器供应商适配。中继仅接收校验后的动作、冲刺值和数值用量，不接收供应商凭据。
 
-## Jeff 的计划（`plan_role`）
+## Jeff 的计划（计划题）
 
-计划开关打开后，在没有有效计划时发出的请求会多一道 `questions.plan_role`，类型为 `choice`，选项就是给出的几段。适配器把选中的键和动作一起返回：对话模型在同一个 JSON 里写 `"plan_role": "<段的键>"`（只有问到时，系统提示才加上 `harness.PLAN_CHAT_RULE`），决策模型以选择题形式回答 `answers.plan_role`。把这个值交给 `harness.plan_answer(value, payload)`：没有问到时返回 `{}`，回答不在选项里时返回 `{"plan_role": None}`。`DecisionLoop` 只采用未过期回复里的计划（`harness.Plan`），计划回答有误也不会拒绝动作。托管版在 `hosted/browser-agent.js` 里做同样的处理，`BrowserRelay` 随结果接收 `plan_role`。
+计划开关打开后，在没有计划时发出的请求会多出 `questions.plan_step_1` 到 `plan_step_4`，类型为 `choice`，选项是本关的工序（`harness.work_items`：取、切、下锅、装盘某种食材，拿干净盘子，出餐，收脏盘，洗盘子），从第 2 步起多一个 `none`，表示计划到此为止。有计划时，请求在 `state.jeff_plan` 里给出这份计划（每一步是否已做完），并改问 `questions.plan_keep`（`keep` 或 `drop`）。适配器把选中的键和动作一起返回：对话模型在同一个 JSON 里写 `"plan_step_1": "<键>"` 等字段（只有问到计划题时，系统提示才加上 `harness.PLAN_CHAT_RULE`），决策模型在 `answers` 里逐题以选择题形式回答。把这些回答交给 `harness.plan_answer(answers, payload)`：没有问到时返回 `{}`，问步骤时返回 `{"plan": {"steps": [...]}}`（遇到 `none` 或不在选项里的键就停），问去留时返回 `{"plan": {"keep": True、False 或 None}}`。`DecisionLoop` 只采用未过期回复里的计划，计划回答有误也不会拒绝动作。Jeff 每做完一个对应工序的动作（`harness.work_item`），计划里那一步就打勾，不要求顺序。计划没有时限，全部做完、Jeff 回答 `drop`，或玩家发来新的偏好时结束，下一次请求会像一步做完时那样马上发出，问新的计划。托管版在 `hosted/browser-agent.js` 里做同样的处理，回答随结果放在 `plan` 里发回。
 
 ## 共用规则与扩展点
 

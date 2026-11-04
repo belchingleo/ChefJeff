@@ -340,7 +340,7 @@ function kitchenTabs(dialog){
     <button id="jeff-plan" class="switch" type="button" role="switch" aria-checked="true" aria-labelledby="jeff-plan-label" aria-describedby="plan-status"><span class="switch-knob" aria-hidden="true"></span></button>
     <span class="switch-text"><label for="jeff-plan" id="jeff-plan-label" class="switch-label">计划模式（测试）</label><button id="plan-info" class="info-btn" type="button" aria-label="计划模式说明" aria-expanded="false" aria-controls="plan-tip" aria-describedby="plan-tip">i</button></span>
    </div>
-   <div id="plan-tip" class="tip" role="tooltip" hidden>Jeff 会先定下接下来负责哪一段，用来减少来回倒腾</div>
+   <div id="plan-tip" class="tip" role="tooltip" hidden>Jeff 会写下接下来要做的几步，把前后动作串起来，用来减少来回倒腾</div>
    <p id="plan-status" role="status" aria-live="polite"></p>
   </div>
  </section>
@@ -646,7 +646,7 @@ function kitchenTabs(dialog){
   <dt>餐具和锅</dt><dd>干净盘才可装菜。脏盘回收点取盘 → 放入水槽 → 空手按空格洗碗 → 取净盘。没盘时可空手到锅边端锅，离灶停止加热；空锅需放回灶台。</dd>
   <dt>丢弃与消防</dt><dd>拿食材靠近垃圾桶按空格会销毁，扣 2 元；端锅则倒掉锅里的食物，保留空锅。拿起灭火器后面向着火工位按空格喷，累计喷 4 秒灭火；中途走开，进度保留，但停喷 2 秒后火会慢慢变旺。着火的工位会加热身边 8 格（含对角）的工位，旁边有一处着火 5 秒就会着火，多处同时着火更快，红色条显示进度；不跨空地或墙。同时 5 个工位着火，本局结束。</dd>
   <dt>沟通 · 1–6 / 点击（测试功能）</dt><dd>这是测试中的功能，不是正式玩法，以后可能调整。打开左下角沟通菜单，点击即可告诉 AI 由你来做哪类工作；“你做错了”是独立的红色描边按钮。也可按 1–5 说明分工、按 6 纠错。共用 5 个实际秒冷却，暂停时也可发送。最新的说明只在本局有效；AI 在下一次正常请求中收到，自行判断如何配合，不强制分工或停止动作。纠错附带当时动作信息，但不指定正确答案。</dd>
-  <dt>计划模式（测试）</dt><dd>默认开启。Jeff 没有计划时，会在决定下一步动作的同时，选定接下来负责哪一段：备料、加热、装盘出餐、收洗盘或随机应变。计划约 12 秒有效；你发了新的分工说明，或者这一段现在没事可做，就提前结束，Jeff 再重新选。计划不限制 Jeff 的动作，它每次仍从全部可选动作里选。沟通菜单里能看到 Jeff 当前的计划。开局前或结算后可以在「设置 → AI 搭档」里关掉，一局内不变。</dd>
+  <dt>计划模式（测试）</dt><dd>默认开启。Jeff 没有计划时，会在决定下一步动作的同时，写下接下来打算做的几道工序，最多 4 步，比如切生菜、生菜装盘、出餐。它每做完一道，那一步就打上勾。计划没有时限：全部做完、Jeff 自己放弃，或者你发了新的分工说明时才结束，Jeff 马上再写一份。计划不限制 Jeff 的动作，它每次仍从全部可选动作里选；临时去做计划外的事，计划也照旧留着。沟通菜单里能看到 Jeff 当前的计划。开局前或结算后可以在「设置 → AI 搭档」里关掉，一局内不变。</dd>
   <dt>标记片段 · Enter</dt><dd>营业中按 Enter 标记当前时刻，不暂停、不打断动作。相邻两次标记间隔不超过 5 个实际秒时合并为一个区间，长按不重复。设置中的“数据导出”包含全部标记；标记不会发送给 AI。</dd>
   <dt>暂停与继续 · Esc / P</dt><dd>暂停会停止锅火、订单和双方动作。再按 Esc 或 P（键盘没有 Esc 键时用，如 iPad）或点「继续经营」回到厨房；也可重新开局、打开设置或查看本说明。结束本局、暂停中重新开局都会先请你确认；重新开局沿用当前配置与速度。更换 API、记忆和调用上限请在结算后或开局前进行。</dd>
   </dl>
@@ -805,7 +805,7 @@ function kitchenTabs(dialog){
   <button type="button" data-code="wash" aria-pressed="false"><span class="key sm">5</span>我来洗盘子</button>
  </div>
  <button id="communication-toggle" type="button" aria-expanded="true" aria-controls="communication-options">沟通 · 1–6<span class="comm-test">测试</span><span aria-hidden="true">▼</span></button>
- <span id="communication-current"></span><span id="communication-plan" hidden></span><span id="communication-cooldown"></span>
+ <span id="communication-current"></span><span id="communication-plan" data-no-i18n hidden></span><span id="communication-cooldown"></span>
  <div id="communication-meter" aria-hidden="true"><span></span></div>
  <p id="communication-slip" class="slip" role="status" aria-live="polite" hidden></p>
  <button id="communication-correction" type="button" data-code="mistake"><span class="key sm">6</span>你做错了</button>
@@ -816,8 +816,8 @@ function kitchenTabs(dialog){
  const buttons=[...dock.querySelectorAll('button[data-code]')],codes=buttons.map(b=>b.dataset.code);
  // What the human said they will do (the text Jeff gets says the same: "Chef human will do the cooking.").
  const labels={prep:'已说：我来备菜',cook:'已说：我来烹饪',plate:'已说：我来摆盘',deliver:'已说：我来传菜',wash:'已说：我来洗盘子'};
- // Jeff's plan (harness.PLAN_PARTS); the same words as the phone toolbar.
- const parts={prep:'备料',cook:'加热',serve:'装盘出餐',plates:'收洗盘',flexible:'随机应变'};
+ // Jeff's plan, the same line as the phone toolbar (touch-controls.js, loaded on every page, writes it).
+ const planLine=plan=>window.kitchenPlanLine?window.kitchenPlanLine(plan):'';
  const meter=document.querySelector('#communication-meter span'),slip=document.getElementById('communication-slip');
  let state=null,busy=false,until=0,slipTimer=0;const COOLDOWN=5000;
  function render(){
@@ -830,7 +830,7 @@ function kitchenTabs(dialog){
   const text=labels[state?.communication?.preference]||'还没说分工';
   if(current.dataset.source!==text){current.dataset.source=text;current.textContent=text}
   const planNode=document.getElementById('communication-plan'),plan=state?.communication?.jeff_plan;
-  const planText=plan?.mode!=='choice'?'':plan.current?`Jeff：${parts[plan.current.role]||plan.current.role} · 还剩 ${Math.max(0,Math.ceil(plan.current.remaining))} 秒`:'Jeff：还没选计划';
+  const planText=planLine(plan);
   if(planNode.dataset.source!==planText){planNode.dataset.source=planText;planNode.textContent=planText;planNode.hidden=!planText}
   const cooldown=document.getElementById('communication-cooldown');
   const left=Math.max(0,until-performance.now());

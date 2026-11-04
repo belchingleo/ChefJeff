@@ -1072,14 +1072,13 @@
     "这里只能选厨房里做得出来的食材。一样食材要有它的食材箱，要切的还得有案板，要下锅的还得有对应的灶台。想用别的食材，先回第 1 步把这些摆上。": "Only ingredients this kitchen can make are offered here. Each needs its box; one that is chopped also needs a board, and one that is cooked needs the right stove. To use another ingredient, place these in step 1 first.",
     "计划模式（测试）": "Plan mode (trial)",
     "计划模式说明": "About plan mode",
-    "Jeff 会先定下接下来负责哪一段，用来减少来回倒腾": "Jeff settles on the part of the work it takes next, to cut down on back-and-forth",
+    "Jeff 会写下接下来要做的几步，把前后动作串起来，用来减少来回倒腾": "Jeff writes down its next few steps in order, linking them up, to cut down on back-and-forth",
     "请在开局前或结算后修改计划模式。": "Change plan mode before a round or after the results.",
     "计划模式设置无效。": "Invalid plan mode setting.",
     "本局进行中；结束本局后可以修改。": "A round is in progress; change this after it ends.",
     "下一局起开启计划模式。": "Plan mode is on from the next round.",
     "下一局起关闭计划模式。": "Plan mode is off from the next round.",
-    "Jeff：还没选计划": "Jeff: no plan yet",
-    "默认开启。Jeff 没有计划时，会在决定下一步动作的同时，选定接下来负责哪一段：备料、加热、装盘出餐、收洗盘或随机应变。计划约 12 秒有效；你发了新的分工说明，或者这一段现在没事可做，就提前结束，Jeff 再重新选。计划不限制 Jeff 的动作，它每次仍从全部可选动作里选。沟通菜单里能看到 Jeff 当前的计划。开局前或结算后可以在「设置 → AI 搭档」里关掉，一局内不变。": "On by default. While Jeff has no plan, it picks the part of the work it takes on next along with its next action: prep, cooking, plating and serving, plates, or flexible. A plan holds for about 12 seconds; it ends early when you send a new message about who does what, or when that part has nothing to do right now, and Jeff picks again. The plan does not limit Jeff's actions; it still chooses from every available action each time. The communication menu shows Jeff's current plan. Turn it off in Settings → AI teammate before a round or after the results; it stays the same during a round.",
+    "默认开启。Jeff 没有计划时，会在决定下一步动作的同时，写下接下来打算做的几道工序，最多 4 步，比如切生菜、生菜装盘、出餐。它每做完一道，那一步就打上勾。计划没有时限：全部做完、Jeff 自己放弃，或者你发了新的分工说明时才结束，Jeff 马上再写一份。计划不限制 Jeff 的动作，它每次仍从全部可选动作里选；临时去做计划外的事，计划也照旧留着。沟通菜单里能看到 Jeff 当前的计划。开局前或结算后可以在「设置 → AI 搭档」里关掉，一局内不变。": "On by default. While Jeff has no plan, it writes down the next few pieces of work it intends to do along with its next action, up to 4 steps, such as chop lettuce, plate lettuce, serve. Each step is ticked when Jeff finishes it. The plan has no time limit: it ends only when every step is done, when Jeff drops it, or when you send a new message about who does what, and Jeff writes a new one at once. The plan does not limit Jeff's actions; it still chooses from every available action each time, and doing something outside the plan leaves the plan in place. The communication menu shows Jeff's current plan. Turn it off in Settings → AI teammate before a round or after the results; it stays the same during a round.",
     "一起改进 Jeff？": "Help improve Jeff?",
     "游戏会记录每一局的操作和模型的选择，但不包含 Key、IP、账号等个人信息。相关研究发表后，去掉身份信息的数据可能公开。": "The game records your moves and the model's choices in every round, but no personal information such as API keys, IP addresses or accounts. Once the research is published, the data may be made public with identifying information removed.",
     "使用免费模型需要贡献对局数据。": "Free models require contributing your round data.",
@@ -2009,46 +2008,6 @@
     [
       "送错 -¥{0}",
       "Wrong dish -¥{0}"
-    ],
-    [
-      "Jeff：备料 · 还剩 {0} 秒",
-      "Jeff: Prep · {0} s left"
-    ],
-    [
-      "Jeff：备料 · {0} 秒",
-      "Jeff: Prep · {0} s"
-    ],
-    [
-      "Jeff：加热 · 还剩 {0} 秒",
-      "Jeff: Cooking · {0} s left"
-    ],
-    [
-      "Jeff：加热 · {0} 秒",
-      "Jeff: Cooking · {0} s"
-    ],
-    [
-      "Jeff：装盘出餐 · 还剩 {0} 秒",
-      "Jeff: Plating & serving · {0} s left"
-    ],
-    [
-      "Jeff：装盘出餐 · {0} 秒",
-      "Jeff: Plating & serving · {0} s"
-    ],
-    [
-      "Jeff：收洗盘 · 还剩 {0} 秒",
-      "Jeff: Plates · {0} s left"
-    ],
-    [
-      "Jeff：收洗盘 · {0} 秒",
-      "Jeff: Plates · {0} s"
-    ],
-    [
-      "Jeff：随机应变 · 还剩 {0} 秒",
-      "Jeff: Flexible · {0} s left"
-    ],
-    [
-      "Jeff：随机应变 · {0} 秒",
-      "Jeff: Flexible · {0} s"
     ],
     [
       "已把以前贡献的 {0} 局按新说明处理。",

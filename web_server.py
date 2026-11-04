@@ -19,7 +19,7 @@ import webbrowser
 
 from kitchen import Kitchen, ROOT, load_config
 from jev import JevClient, DecisionLoop
-from harness import Plan, PLAN_RULES_VERSION, PLAN_SECONDS
+from harness import Plan, PLAN_RULES_VERSION, PLAN_STEPS
 from play import Journal
 from round_summary import round_summary
 from session_record import SessionLog, write_bundle
@@ -44,6 +44,20 @@ PLAYER_MESSAGES = {
     'wash': 'Chef human will wash the dishes.',
     'mistake': 'You made a mistake. Please reassess your recent or current action.'
 }
+
+
+WORK_LABELS = {'fetch': ('取{}', 'Fetch {}'), 'chop': ('切{}', 'Chop {}'), 'cook': ('{}下锅', 'Cook {}'), 'plate': ('{}装盘', 'Plate {}'),
+               'take_plate': ('拿干净盘子', 'Take a clean plate'), 'serve': ('出餐', 'Serve'),
+               'collect_plates': ('收脏盘', 'Collect dirty plates'), 'wash_plates': ('洗盘子', 'Wash a plate')}
+
+
+def work_label(work, items):
+    """A plan step as the player reads it (harness.work_items keys): Chinese with the level's ingredient names, and English."""
+    kind, _, name = work.partition(':')
+    if kind not in WORK_LABELS:
+        return {'label': work, 'label_en': work}
+    zh, en = WORK_LABELS[kind]
+    return {'label': zh.format((items.get(name) or {}).get('name', name)), 'label_en': en.format(name)}
 
 
 class GameSession:
@@ -422,13 +436,11 @@ class GameSession:
                 'jeff_plan': self.plan_state()}
 
     def plan_state(self):
-        """The plan switch for the next round, and Jeff's current plan as the player sees it."""
+        """The plan switch for the next round, and Jeff's current plan as the player sees it: its steps, in Chinese, and which are done."""
         plan = getattr(self.ai, 'plan', None) if self.ai else None
         current = plan.current if plan and self.phase in ('running', 'paused') and not self.k.ended else None
-        if current and current['expires_at'] <= self.k.time:
-            current = None   # ended; the loop notices at its next request
-        return {'mode': self.jeff_plan_mode, 'editable': self.phase in ('ready', 'ended'),
-                'current': {'role': current['role'], 'remaining': round(current['expires_at'] - self.k.time, 1)} if current else None}
+        steps = [{**work_label(s['work'], self.k.rules.items), 'done': s['done']} for s in current['steps']] if current else None
+        return {'mode': self.jeff_plan_mode, 'editable': self.phase in ('ready', 'ended'), 'current': {'steps': steps} if current else None}
 
     def _communicate(self, body):
         if self.phase not in ('running','paused') or self.k.ended or self.journal is None:
@@ -556,14 +568,13 @@ class GameSession:
             self.journal = SessionLog(self, self.journal_factory(self.log_prefix+'-'+self.game_id[:8]),
                                       keep_payloads=self.bundle_root is not None, deployment_mode=self.deployment_mode)
             self.session_log = self.journal
-            plan_seconds = self.c.get('jeff_plan_seconds', PLAN_SECONDS)
-            plan = ({'jeff_plan': {'mode': 'choice', 'seconds': plan_seconds, 'rules_version': PLAN_RULES_VERSION}}
+            plan = ({'jeff_plan': {'mode': 'choice', 'steps': PLAN_STEPS, 'rules_version': PLAN_RULES_VERSION}}
                     if self.jeff_plan_mode == 'choice' else {})
             self.journal('start', {'config':self.c, 'config_hash':self.k.config_hash, 'speed':self.speed, 'state':self.k.snapshot(), **plan})
             self.ai = DecisionLoop(self.k, client, self.journal, self.note)
             self.ai.game_speed = self.speed
             if plan:
-                self.ai.plan = Plan(plan_seconds)
+                self.ai.plan = Plan(PLAN_STEPS)
             self.phase = 'running'
             self.last_tick = self.last_seen = time.monotonic()
             self.wake.set()

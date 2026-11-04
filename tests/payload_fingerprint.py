@@ -38,7 +38,7 @@ import player_api  # noqa: E402
 import reference_policy  # noqa: E402
 import spatial_kitchen  # noqa: E402
 from cooperation_memory import episode, memory_context  # noqa: E402
-from harness import PLAN_SECONDS, Plan, action_part  # noqa: E402
+from harness import PLAN_KEEP_QUESTION, PLAN_STEP_QUESTIONS, Plan, plan_answer, plan_questions, work_item  # noqa: E402
 from jev import DecisionLoop  # noqa: E402
 from kitchen import load_config  # noqa: E402
 from levels import level_config  # noqa: E402
@@ -165,12 +165,27 @@ class StandIn(SpatialJevClient):
         choice = (move.key if move and move.key in criteria else
                   next((key for key in ('wait', 'continue') if key in criteria), sorted(criteria)[0]))
         plan = {}
-        if 'plan_role' in payload['questions']:
-            # The part of the move it is about to make, else flexible.
-            part = action_part(move, self.k.snapshot()) if move and move.key in criteria else None
-            plan = {'plan_role': part if part in payload['questions']['plan_role']['criteria'] else 'flexible'}
+        asked = plan_questions(payload)
+        if PLAN_STEP_QUESTIONS[0] in asked:
+            # The work of the move it is about to make and what follows it, else no plan.
+            first = work_item(move, self.k.snapshot()) if move and move.key in criteria else None
+            chain = following(first, payload['questions'][PLAN_STEP_QUESTIONS[0]]['criteria'])
+            plan = plan_answer({q: chain[n] if n < len(chain) else 'none' for n, q in enumerate(PLAN_STEP_QUESTIONS)}, payload)
+        elif PLAN_KEEP_QUESTION in asked:
+            plan = plan_answer({PLAN_KEEP_QUESTION: 'keep'}, payload)
         return {'sprint_answer': {}, 'sprint': False, 'choice': choice, 'confidence': None,
                 'probabilities': {}, 'model': 'payload-fingerprint', 'usage': {}, 'latency': 0.0, **plan}
+
+
+def following(work, offered):
+    """A work item and the ones that follow it for the same ingredient or plate, as offered (a stand-in's plan)."""
+    if work is None:
+        return []
+    kind, _, name = work.partition(':')
+    stages = (['fetch', 'chop', 'cook', 'plate'] if name else
+              ['take_plate', 'serve'] if kind in ('take_plate', 'serve') else ['collect_plates', 'wash_plates'])
+    later = stages[stages.index(kind):] if kind in stages else [kind]
+    return [w for w in (f'{s}:{name}' if name else s for s in later) if w in offered][:len(PLAN_STEP_QUESTIONS)]
 
 
 class Inline:
@@ -230,7 +245,7 @@ def run(name):
     if talk:
         loop.cooperation_memory = memory
     if planned:
-        loop.plan = Plan(PLAN_SECONDS)
+        loop.plan = Plan()
     pending = list(MESSAGES) if talk else []
     step = 0
     with (patch('jev.time.monotonic', lambda: 1000 + k.time / SPEED), patch('jev.threading.Thread', Inline),

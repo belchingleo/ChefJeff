@@ -395,9 +395,10 @@
             "mode": {
               "const": "choice"
             },
-            "seconds": {
-              "type": "number",
-              "exclusiveMinimum": 0
+            "steps": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10
             },
             "rules_version": {
               "type": "string",
@@ -406,7 +407,7 @@
           },
           "required": [
             "mode",
-            "seconds",
+            "steps",
             "rules_version"
           ],
           "additionalProperties": false

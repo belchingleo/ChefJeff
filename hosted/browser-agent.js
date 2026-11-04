@@ -352,7 +352,7 @@
       ]};
       endpoint = config.base_url + '/chat/completions';
       if(config.provider==='zhipu')body.messages[0].content=zhipuSystem(payload);
-      else if('plan_role' in payload.questions)body.messages[0].content+=PLAN_CHAT_RULE;
+      else if(planQuestions(payload).length)body.messages[0].content+=PLAN_CHAT_RULE;
     }
     Object.assign(body, preset.extra || {});
     try {
@@ -368,7 +368,7 @@
         d = JSON.parse(text);
         if (preset.group === 'decision') {
           answer = {choice:d.answers?.next_action?.choice, sprint:d.answers?.sprint?.choice === 'yes',
-            plan_role:d.answers?.plan_role?.type === 'choice' ? d.answers.plan_role.choice : null,
+            ...Object.fromEntries(planQuestions(payload).map(q => [q, d.answers?.[q]?.type === 'choice' ? d.answers[q].choice : null])),
             probabilities:offered(d.answers?.next_action?.probabilities, payload.questions.next_action.criteria)};
           if (d.answers?.next_action?.type !== 'choice' || ('sprint' in payload.questions &&
               !['yes','no'].includes(d.answers?.sprint?.choice))) throw new Error();
@@ -382,9 +382,11 @@
             ('sprint' in payload.questions && preset.group !== 'decision' && 'sprint' in answer &&
              typeof answer.sprint !== 'boolean')) throw new Error();
       } catch (_) {throw new Error('模型返回了无效动作，未执行任何操作。');}
-      // A missing or unknown plan answer only leaves Jeff without a plan; the action stands (harness.plan_answer).
-      const plan = 'plan_role' in payload.questions ? {plan_role:typeof answer.plan_role === 'string' &&
-        Object.hasOwn(payload.questions.plan_role.criteria, answer.plan_role) ? answer.plan_role : null} : {};
+      // The plan answers go to the server as given (offered keys or null); harness.plan_answer reads them there.
+      // A missing or unknown one only leaves Jeff without a plan (or keeps it); the action stands.
+      const asked = planQuestions(payload);
+      const plan = asked.length ? {plan:Object.fromEntries(asked.map(q => [q, typeof answer[q] === 'string' &&
+        Object.hasOwn(payload.questions[q].criteria, answer[q]) ? answer[q] : null]))} : {};
       return {choice:answer.choice, sprint:answer.sprint === true, ...plan,
         ...(preset.group === 'decision' && Object.keys(answer.probabilities).length?{probabilities:answer.probabilities}:{}), usage:{
         input_tokens:boundedCount(usage.input_tokens), output_tokens:boundedCount(usage.output_tokens)},
@@ -410,12 +412,12 @@
   }
   function boundedCount(n) {return Number.isInteger(n) && n >= 0 && n <= 10000000 ? n : 0;}
   // The same sentence as harness.PLAN_CHAT_RULE.
-  const PLAN_CHAT_RULE = ' When questions.plan_role is present, also include "plan_role": "<part key>", one key of questions.plan_role.criteria.';
+  const PLAN_CHAT_RULE = ' For each question whose name starts with plan_, also include "<question name>": "<key>", one key of the criteria of that question.';
   function zhipuSystem(payload) {
     const properties={choice:{type:'string',enum:Object.keys(payload.questions.next_action.criteria)}};
     const required=['choice'];
     if('sprint' in payload.questions){properties.sprint={type:'boolean'};required.push('sprint');}
-    if('plan_role' in payload.questions){properties.plan_role={type:'string',enum:Object.keys(payload.questions.plan_role.criteria)};required.push('plan_role');}
+    for(const q of planQuestions(payload)){properties[q]={type:'string',enum:Object.keys(payload.questions[q].criteria)};required.push(q);}
     const schema={type:'object',properties,required,additionalProperties:false};
     return 'You control chef jeff in a shared kitchen. Using the supplied state and rules, '+
       'choose exactly one action key from questions.next_action.criteria. '+
@@ -425,10 +427,13 @@
       'sprint as the JSON boolean true for yes or false for no. '+
       'Never encode sprint as a string, number or null. '+
       'When questions.sprint is absent, omit sprint. '+
-      ('plan_role' in payload.questions ? 'When questions.plan_role is present, plan_role must be one of its keys. ' : '')+
+      (Object.keys(payload.questions).some(q => q.startsWith('plan_')) ? 'Each question whose name starts with plan_ is a field whose value is one of its keys. ' : '')+
       'Do not explain or add other fields. '+
       'JSON Schema: '+JSON.stringify(schema);
   }
+  // The same questions, in the same order, as harness.plan_questions.
+  const PLAN_QUESTIONS = ['plan_step_1', 'plan_step_2', 'plan_step_3', 'plan_step_4', 'plan_keep'];
+  function planQuestions(payload) {return PLAN_QUESTIONS.filter(q => q in payload.questions);}
   async function markReady(connected, body, config=setting) {
     if(connected && config?.free_model)return serverFetch('/api/model/free/select', {method:'POST',
       headers:{'Content-Type':'application/json'},body:JSON.stringify({game_id:body.game_id,

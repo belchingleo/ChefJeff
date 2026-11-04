@@ -1288,9 +1288,10 @@
           "description": "Only with Jeff's plan switch on: harness.Plan.input() for this request, enough to rebuild it.",
           "type": "object",
           "properties": {
-            "seconds": {
-              "type": "number",
-              "exclusiveMinimum": 0
+            "steps": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10
             },
             "current": {
               "oneOf": [
@@ -1300,28 +1301,36 @@
                 {
                   "type": "object",
                   "properties": {
-                    "role": {
-                      "enum": [
-                        "prep",
-                        "cook",
-                        "serve",
-                        "plates",
-                        "flexible"
-                      ]
+                    "steps": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 10,
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "work": {
+                            "type": "string",
+                            "pattern": "^((fetch|chop|cook|plate):[a-z_]{1,40}|take_plate|serve|collect_plates|wash_plates)$"
+                          },
+                          "done": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "work",
+                          "done"
+                        ],
+                        "additionalProperties": false
+                      }
                     },
                     "set_at": {
-                      "type": "number",
-                      "minimum": 0
-                    },
-                    "expires_at": {
                       "type": "number",
                       "minimum": 0
                     }
                   },
                   "required": [
-                    "role",
-                    "set_at",
-                    "expires_at"
+                    "steps",
+                    "set_at"
                   ],
                   "additionalProperties": false
                 }
@@ -1336,13 +1345,7 @@
                   "type": "object",
                   "minProperties": 1,
                   "propertyNames": {
-                    "enum": [
-                      "prep",
-                      "cook",
-                      "serve",
-                      "plates",
-                      "flexible"
-                    ]
+                    "pattern": "^((fetch|chop|cook|plate):[a-z_]{1,40}|take_plate|serve|collect_plates|wash_plates)$"
                   },
                   "additionalProperties": {
                     "type": "string",
@@ -1353,7 +1356,7 @@
             }
           },
           "required": [
-            "seconds",
+            "steps",
             "current",
             "options"
           ],
