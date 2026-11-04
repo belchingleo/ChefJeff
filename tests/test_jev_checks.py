@@ -26,6 +26,13 @@ def payloads():
         k.advance(.05)
     recent = [{'t': 1.0, 'choice': 'go lettuce', 'accepted': True, 'result': '开始', 'sprint_applied': False}]
     full = compose_payload(client, k, k.snapshot(), k.actions('jeff'), recent, None, NO_MEMORY)
+    # The scripts read journals from before rules-v9, when a source top held nothing: there a full hand
+    # was offered walks to the supplies, not puts on them.
+    walks = {a.key: a.label for a in k.actions('jeff') if a.kind == 'go' and a.target in k.ingredients}
+    criteria = full['questions']['next_action']['criteria']
+    full['questions']['next_action']['criteria'] = {
+        **{key: label for key, label in criteria.items() if not (key.startswith('put ') and key[4:] in k.ingredients)},
+        **{key: label for key, label in walks.items() if key[3:] != 'bread'}}
     return empty, full
 
 
