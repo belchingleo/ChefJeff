@@ -538,6 +538,7 @@ class GameSession:
                     if self.jeff_plan_mode == 'choice' else {})
             self.journal('start', {'config':self.c, 'config_hash':self.k.config_hash, 'speed':self.speed, 'state':self.k.snapshot(), **plan})
             self.ai = DecisionLoop(self.k, client, self.journal, self.note)
+            self.ai.game_speed = self.speed
             if plan:
                 self.ai.plan = Plan(plan_seconds)
             self.phase = 'running'

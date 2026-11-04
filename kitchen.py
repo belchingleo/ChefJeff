@@ -22,7 +22,11 @@ STATES = {"raw": "生肉", "chopped": "切好", "cooking": "加热中", "ready":
 def load_config(path=None):
     c = json.loads(Path(path or ROOT / "config.json").read_text())
     for key, value in c.items():
-        if key != "model" and (not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0):
+        if key == "ai_ask_on_step_end":
+            if type(value) is not bool:
+                raise ValueError(f"配置 {key} 必须是 true 或 false")
+            continue
+        if key != "model" and (type(value) is bool or not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0):
             raise ValueError(f"配置 {key} 必须是正数")
     for key in ("boards", "pots", "plate_count", "ai_max_calls"):
         if key not in c:

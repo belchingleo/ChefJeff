@@ -148,6 +148,10 @@ API 输入 model_identity 只允许 provider、model_id 两个字段，不接受
 
 provider 取自 `model-providers.json` 的服务名。2026-11-01 新增 `cloudflare`：Cloudflare Workers AI 上的 Gemma 4 26B 和 Llama 3.1 8B，免费试玩和自有 Key 都记这一个服务名，model_id 记准确的模型 ID。研究管理台按自己发布版本里的结构文件校验，旧版管理台会拒收这个服务名，所以管理台要和游戏在同一个维护窗口里升级，顺序见 `docs/research-admin.md`。
 
+## Jeff 何时提问（`request_policy.ai_ask_on_step_end`）
+
+`conditions.request_policy` 记下本局 Jeff 的提问规则：两次请求的最短间隔 `ai_min_interval`、定期刷新 `ai_refresh_seconds`、超时、回复最长有效时间和每局调用上限。新增的 `ai_ask_on_step_end` 为 `true` 时，Jeff 做完一步（完成、被打断或被撞开）就马上请求下一步，不受最短间隔限制；一步剩下的时间短于最近几次回复时间的中位数时，不在这一步中途提问。没有这一项的旧记录按原规则：所有请求都受最短间隔限制。比较 Jeff 的反应时间、停顿和调用次数时，要按这一项分组。
+
 ## 两年保存、公开数据集与旧对局（同意版本 v8）
 
 v8 改了保存期和用途，所以每位玩家都会按新说明重新被问一次。
