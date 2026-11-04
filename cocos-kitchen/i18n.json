@@ -2050,6 +2050,14 @@
     [
       "已把以前贡献的 {0} 局按新说明处理。",
       "Moved {0} earlier rounds to the new terms."
+    ],
+    [
+      "站到{0}正前方才能切",
+      "Stand right in front of {0} to chop"
+    ],
+    [
+      "站到{0}正前方才能洗",
+      "Stand right in front of {0} to wash"
     ]
   ]
 }

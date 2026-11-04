@@ -1,3 +1,4 @@
+import math
 import unittest
 from kitchen import Food,Station,load_config
 from spatial_kitchen import SpatialKitchen,tile_key
@@ -52,18 +53,24 @@ class SharedWorkTests(unittest.TestCase):
         self.assertEqual(k.positions['human'],(3.1,3.))
         self.assertTrue(all(a.job and a.job.working for a in k.chefs.values()))
         k.assert_invariants()
-        k=self.make();k.positions.update(jeff=(4.2,2.49),human=(3.75,2.49));k.facing.update(jeff='down',human='down')
+        # From the same (north) side, beside Jeff and within half a cell of the centre line, the
+        # player joins too, as in Overcooked 2.
+        k=self.make();k.positions.update(jeff=(4.,2.49),human=(3.55,2.49));k.facing.update(jeff='down',human='down')
         self.assertTrue(k.command('jeff','chop b1')[0]);k.advance(.01)
         self.assertEqual(k.selected_station('human'),'b1')
-        self.assertNotEqual(k.path('human','b1'),[k.positions['human']])
+        self.assertEqual(k.path('human','b1'),[k.positions['human']])
+        self.assertTrue(k.command('human','chop b1')[0]);k.advance(.2)
+        self.assertTrue(all(a.job and a.job.working for a in k.chefs.values()))
+        k.assert_invariants()
 
     def test_second_chef_reserves_a_distinct_side(self):
         k=self.make();k.positions['jeff']=(4,2)
         k.command('human','chop b1');k.command('jeff','chop b1')
         a=k.routes['human']['points'][-1];b=k.routes['jeff']['points'][-1]
-        self.assertNotEqual(a,b)
         self.assertEqual(a,(4,2.49))
-        self.assertIn(b,[(3.15,3.),(4.85,3.)])
+        # Jeff, standing behind the player's spot, does not chop from there: it takes a spot of its own
+        # with its hands over the board, beside the player or on another side.
+        self.assertTrue(k.in_work_reach('b1',b));self.assertGreaterEqual(math.dist(a,b),.4)
         k.advance(1);k.assert_invariants()
 
     def test_middle_board_is_shared_face_to_face(self):
@@ -108,3 +115,51 @@ class SharedWorkTests(unittest.TestCase):
         k.advance(4)
         self.assertEqual(k.stations['sink'].food.stage,'clean_plate')
         self.assertIsNone(k.chefs['jeff'].job);k.assert_invariants()
+
+
+class WorkReachTests(unittest.TestCase):
+    """Chopping needs the hands over the board (WORK_REACH); both chefs may chop a one-sided board."""
+
+    def make(self, human, jeff):
+        # Level 2's b1 at (4,7) is worked only from the north tile (4,6).
+        k=SpatialKitchen(load_config()|{'level':2,'spawn_seed':0,'round_seconds':500})
+        k.stations['b1'].food=Food('x',ingredient='lettuce')
+        k.positions.update(human=human,jeff=jeff);k._face_vector('human',0,1);k._face_vector('jeff',0,1)
+        k.reported['human']=True   # the player at the keyboard works where they stand
+        return k
+
+    def test_the_player_does_not_chop_from_the_next_cell(self):
+        # Diagonal from the board, one cell along the counter: Space picks b1 but the hands are not over it.
+        k=self.make((4.95,6.5),(4.,6.49));k._face_vector('human',-.95,.5)
+        focus,action=k.facing_interaction('human','use')
+        self.assertEqual((focus,action.key),('b1','chop b1'))
+        ok,message=k.start('human',action)
+        self.assertFalse(ok);self.assertIn('正前方',message);self.assertIsNone(k.chefs['human'].job)
+
+    def test_both_chefs_chop_a_one_sided_board_side_by_side(self):
+        k=self.make((4.45,6.5),(4.,6.49))
+        self.assertTrue(k.command('jeff','chop b1')[0]);k.advance(.05)
+        focus,action=k.facing_interaction('human','use')
+        self.assertEqual((focus,action.key),('b1','chop b1'))
+        self.assertTrue(k.start('human',action)[0]);k.advance(.01)
+        before=k.stations['b1'].food.chopped;k.advance(.5)
+        self.assertAlmostEqual(k.stations['b1'].food.chopped-before,1)
+        k.assert_invariants()
+
+    def test_jeff_joins_beside_the_player(self):
+        k=self.make((4.,6.49),(6.,6.49))
+        self.assertTrue(k.command('human','chop b1')[0]);k.advance(.05)
+        self.assertIn('chop b1',[a.key for a in k.actions('jeff')])
+        self.assertTrue(k.command('jeff','chop b1')[0])
+        for _ in range(30):k.advance(.1)
+        self.assertEqual(k.positions['jeff'],(4.45,6.49))
+        self.assertEqual(k.stations['b1'].food.stage,'chopped')
+        self.assertTrue(any(e.get('kind')=='shared_work_join' and e.get('actor')=='jeff' for e in k.events))
+
+    def test_jeff_chops_beside_a_player_standing_in_front(self):
+        k=self.make((4.,6.49),(6.,6.49))
+        self.assertTrue(k.command('jeff','chop b1')[0])
+        for _ in range(40):k.advance(.1)
+        self.assertEqual(k.positions['jeff'],(4.45,6.49))
+        self.assertTrue(k.in_work_reach('b1',k.positions['jeff']))
+        self.assertEqual(k.stations['b1'].food.stage,'chopped')

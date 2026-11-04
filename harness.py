@@ -18,7 +18,8 @@ from cooperation_memory import PAST_EPISODES_RULE
 # v5: a plate's missing components name the state they are needed in ("tomato (chopped)").
 # v6: memory summaries distinguish historical work/messages from current roles and preferences.
 # v7: the human's preference messages say who will do the work ("Chef human will do the cooking.").
-AGENT_RULES_VERSION = "rules-v7"
+# v8: chopping and washing need the hands over the station; two chefs may share it, side by side too.
+AGENT_RULES_VERSION = "rules-v8"
 
 
 # How a recipe component's required state reads in model input: "tomato (chopped)".
@@ -186,6 +187,9 @@ def rules(state, spatial=False, per_area=2):
                     'from its current position around the other chef. ')
     rules['movement'] = ('This is a top-down grid kitchen. map specifies walls, equipment and reference access positions; position is the live coordinate. Travel follows the shortest navigable polyline by actual distance, going straight when clear and leaving body clearance around walls and equipment. Switching tasks during travel starts a new route from the current position. Stations can be used from the nearest reachable adjacent floor tile; access is only a reference, not the only usable side. '
                          'Walls and equipment block movement; floor items do not. '
+                         'Chopping and washing need the hands over the station: within half a tile of the centre of one of its sides; '
+                         'chop and wash walk there. Both chefs can chop on the same board or wash at the same sink together, from different sides '
+                         'or side by side on one side, and their progress adds up. '
                          + contact +
                          'go only moves; drop and pickup move items via the floor.')
     rules['partner'] = ("human is the other chef, controlled by a person. position is the current coordinate; holding is the held item; task and target identify the current action; travel_remaining and work_remaining give remaining time. During travel, location may still name the origin station, so use position for distance. Future human intentions are not known facts.")
