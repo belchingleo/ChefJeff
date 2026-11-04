@@ -7,8 +7,9 @@ It builds two fixed emergencies on level 2 from a scripted round (no player data
 pan a few seconds from burning, and a stove on fire, each with Jeff idle and empty-handed. Each is
 asked in three arms with the same kitchen: plan mode off, plan mode on with no plan yet (the request
 asks for one), and plan mode on while a plan of unrelated steps holds. For each arm it reports how
-often the model chose an action that deals with the emergency (lift that pan or plate its food; take
-the extinguisher), the mean probability it gave those actions, and how often it chose wait.
+often the model chose an action that deals with the emergency (lift that pan, take a clean plate to
+plate its food, or plate it; take the extinguisher), the mean probability it gave those actions, and
+how often it chose wait.
 Acceptance: in every emergency, the arm with a plan held chooses the emergency at least as often as
 the arm with plan mode off.
 
@@ -85,8 +86,11 @@ def emergencies():
     burn = reach(about_to_burn)
     stove, food = pan(burn)
     state = burn.snapshot()
+    # Empty-handed, Jeff saves the food by lifting the pan, or by taking a clean plate to plate it from the pan.
+    clean_plate = lambda a: ((state['stations'].get(a.target) or {}).get('food') or {}).get('stage') == 'clean_plate'
     saving = [a.key for a in burn.actions('jeff')
-              if (a.kind == 'lift_pot' and a.target == stove) or work_item(a, state) == f'plate:{food.ingredient}']
+              if (a.kind == 'lift_pot' and a.target == stove) or work_item(a, state) in ('take_plate', f'plate:{food.ingredient}')
+              or (a.kind == 'take_counter' and clean_plate(a))]
     fire = reach(on_fire)
     extinguish = [a.key for a in fire.actions('jeff') if a.kind == 'take_tool' and a.target == 'extinguisher'
                   or 'extinguish' in a.kind]

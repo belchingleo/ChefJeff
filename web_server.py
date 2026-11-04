@@ -104,8 +104,9 @@ class GameSession:
         self.last_player_message_at = None
         self.bookmarks = []
         self.last_bookmark_at = None
-        # Plan mode (off or choice), on by default; chosen before a round and kept for later rounds.
-        self.jeff_plan_mode = 'choice'
+        # Plan mode (off or choice), off by default (a held plan drew Jev away from a pan about to burn in
+        # scripts/plan_probe.py); chosen before a round and kept for later rounds.
+        self.jeff_plan_mode = 'off'
         # Every round of this play session, for the data export (feedback.play_export).
         self.history = []
         self.history_limit = HISTORY_LIMIT
