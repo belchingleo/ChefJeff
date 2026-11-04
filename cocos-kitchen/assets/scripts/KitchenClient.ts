@@ -1895,6 +1895,11 @@ export class KitchenClient extends Component {
             // What rests on a burning station stays drawn (the flames go over it), so an item never seems to vanish.
             const food=dev.node.getChildByName('food')!;food.active=!!st.food||st.fire;if(food.active)this.drawIcon(food.getComponent(Graphics)!,st.food?this.itemStage(st.food):'fire');
             if(this.cabinetFires[id]){this.cabinetFires[id].active=!!st.fire;if(st.fire&&!st.food)food.active=false;}
+            // An item resting on a source sits in the middle; the source's own ingredient shrinks to a corner mark so the source stays recognisable.
+            if(this.useModularArt&&this.state!.kitchen.map.equipment[id]?.type==='ingredient_source'){
+                const mark=dev.node.getChildByName('equipment')!,held=!!st.food;
+                mark.setScale(held?.45:1,held?.45:1,1);mark.setPosition(held?-TILE*.3:0,this.workSurfaceY(id)+(held?TILE*.3:0));
+            }
             if(st.counter&&!st.fire)this.writeLabel(dev.label,st.food?this.itemName(st.food):((this.localPick!==undefined?this.localPick:s.interaction_focus)!==id?'':'空柜台'));
             if(st.stove){
                 if(this.useModularArt)this.equipmentArt(dev.node.getChildByName('equipment')!,id);
@@ -1912,7 +1917,7 @@ export class KitchenClient extends Component {
             if(id==='sink'&&st.food)this.writeLabel(dev.label,st.food.stage==='dirty_plate'?`待洗 ${Math.ceil(st.food.wash_remaining)}s`:'洗好了');
             let progress=-1;
             if(id==='sink'&&st.food)progress=1-st.food.wash_remaining/k.tableware.wash_seconds;
-            if(st.food&&id.startsWith('b')&&!id.startsWith('bin'))progress=1-st.food.chop_remaining/(s.rules?.chop_seconds||6);
+            if(st.food&&!st.food.plate_id&&!(st.food.stage==='raw'&&!st.food.chop_remaining)&&id.startsWith('b')&&!id.startsWith('bin'))progress=1-st.food.chop_remaining/(s.rules?.chop_seconds||6);
             if(st.food&&st.stove)progress=Math.min(1,st.food.heat_elapsed/(s.rules?.cook_seconds||12));
             // As in Overcooked 2, a station a fire next to it is heating shows a fire bar until it ignites.
             const igniting=!st.fire&&st.fire_heat>0;if(igniting)progress=st.fire_heat;
@@ -2338,7 +2343,8 @@ export class KitchenClient extends Component {
                 // chef faces the station its white frame marks (Overcooked 2 turns the chef to the stick).
                 const steer=who==='human'&&(c.manual_moving||predicted)&&!this.aiming?steeredFacing(this.manualDirection.x,this.manualDirection.y):null;
                 if(steer){motion.facing=steer;this.steeredFacing=true;}
-                else if(moved){
+                // Centring on the tile (e.g. before putting something down) is not a walk: the chef keeps facing ahead.
+                else if(moved&&!c.route_slide){
                 if(Math.abs(dx)>=Math.abs(dy))motion.facing=dx<0?'left':'right';
                 else motion.facing=dy>0?'up':'down';
                 }
