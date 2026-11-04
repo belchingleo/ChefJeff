@@ -1979,7 +1979,7 @@ export class KitchenClient extends Component {
         this.syncLevelButtons(s.levels||[]);
         for(const level of s.levels||[]){
             const id='level:'+level.id,b=this.buttons[id],sel=k.level_id===level.id;if(!b)continue;b.node.active=s.phase==='ready'||s.phase==='ended';
-            this.writeLabel(b.label,level.name+(sel?' · 当前':''));
+            this.writeLabel(b.label,level.name);  // the selected level shows by its highlight alone
             if(b.selected!==sel){b.selected=sel;this.styleButton(id);}this.enable(id,!this.pending&&!sel);
         }
         const lang=(window as any).kitchenI18n?.language==='en'?'中文':'English';if(this.buttons.language.label.string!==lang)this.buttons.language.label.string=lang;

@@ -9,7 +9,7 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 ### Start, results and settings
 - The start and result screens are one shop card. A level plate shows the dish, level and goal; ◀ ▶ change level and the title row (第 N 关 · dish ▾) opens all levels. Below it, pick an AI teammate from two entries: free models (no API key, listed by the server) or a custom model with your own key.
 - Results show the income against the goal, the teammate and two big buttons, 再来一次 and 下一关; the next level leads after a win and is also offered after a loss, and on the last level it becomes 全部关卡. Round analysis, all levels and settings sit below as light chips.
-- All levels: four per row, the goal, whether it was reached and this browser's best result; a card for player-made levels marks what is coming.
+- All levels: four per row, the goal, whether it was reached and this browser's best result; a card for player-made levels marks what is coming. The current level is marked by its blue highlight alone.
 - Settings is its own card with tabs down the left (AI 搭档, 跨局记忆, 调用上限, 数据与贡献, 声音与语言). The 自定义模型 tile opens just the key form, with a help column.
 - Phone menus show the same level plate, partner tiles and result buttons. The language button always reads "English" in Chinese.
 
@@ -170,7 +170,7 @@ First private release: a local browser game with three playable maps and player-
 ### 开局、结算与设置
 - 开局和结算合成一张店面卡。关卡牌上是菜、关卡和目标；◀ ▶ 换关卡，点「第 N 关 · 菜名 ▾」打开全部关卡。下面选 AI 搭档，两个入口：免费模型（不用 API Key，列表由服务器提供）和用自己 Key 的自定义模型。
 - 结算显示收入和目标、本局搭档，以及「再来一次」「下一关」两个大按钮；赢了「下一关」在前，输了也能直接去下一关，最后一关换成「全部关卡」。本局分析、全部关卡、设置放在下面一排浅色按钮里。
-- 全部关卡：每行四关，显示目标、是否达成和这个浏览器里的最佳成绩；最后一张是即将开放的自定义关卡。
+- 全部关卡：每行四关，显示目标、是否达成和这个浏览器里的最佳成绩；最后一张是即将开放的自定义关卡。当前这一关只用蓝色高亮标出。
 - 设置改成独立卡片，页签在左边：AI 搭档、跨局记忆、调用上限、数据与贡献、声音与语言。点「自定义模型」只打开 Key 表单，旁边附说明。
 - 手机菜单也用同样的关卡牌、搭档方块和结算按钮。中文界面的语言按钮一律写「English」。
 

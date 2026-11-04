@@ -736,7 +736,6 @@
     "关卡选择": "Level select",
     "更多": "More",
     "选择这一关": "Choose this level",
-    "当前": "Current",
     "不保存 API Key、IP 或账号身份。": "Does not store API keys, IP addresses or account identity.",
     "本局模型服务与模型 ID（含自定义模型，注明浏览器上报、未经独立核验）": "This round’s model service and ID, including custom models, marked browser-reported and not independently verified",
     "不另存完整 API 请求或响应。每次请求只保存校验值和重建它所需的少量内容，研究时用操作记录把原请求重建出来。开启跨局记忆时记下的局号，能把这个浏览器里的几局联系起来。": "Verbatim API requests and replies are not stored. Each request keeps only a digest and the few parts needed to rebuild it; researchers rebuild the original request from the recorded inputs. With cross-round memory on, the recorded round IDs link this browser's rounds to each other.",
@@ -1474,10 +1473,6 @@
     [
       "{0} 超时 -¥{1}",
       "{0} expired -¥{1}"
-    ],
-    [
-      "{0} · 当前",
-      "{0} · current"
     ],
     [
       "熟 {0}",

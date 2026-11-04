@@ -814,7 +814,6 @@ function kitchenTabs(dialog){
 #kitchen-level-list .level-target{font-size:14px;color:var(--muted,#6e4e38)}
 #kitchen-level-list .level-best{margin-top:auto;width:100%;padding-top:8px;border-top:2px dashed var(--muted,#6e4e38);font-size:13px;color:var(--muted,#6e4e38)}
 #kitchen-level-list .level-best.won{color:var(--herb,#3c7a2a);font-weight:600}
-#kitchen-level-list .level-now{position:absolute;top:-3px;right:-3px;padding:2px 8px;background:var(--denim,#2a5a9e);color:#fff;font:13px/18px var(--pixel)}
 #kitchen-level-list .level-custom{align-items:center;justify-content:center;border:3px dashed var(--muted,#6e4e38);box-shadow:none;background:transparent;color:var(--muted,#6e4e38)}
 #kitchen-level-list .level-plus{display:flex;align-items:center;justify-content:center;width:56px;height:56px;border:3px dashed var(--muted,#6e4e38);font:36px/1 var(--pixel)}
 @media(max-width:760px){#kitchen-level-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -847,7 +846,6 @@ function kitchenTabs(dialog){
      const card=document.createElement('button');card.className='level-card';card.type='button';card.disabled=!s.levelEnabled;
      card.setAttribute('aria-current',String(!!level.selected));
      const part=(cls,text)=>{const e=document.createElement('span');e.className=cls;e.textContent=text;card.appendChild(e);return e;};
-     if(level.selected)part('level-now',t('当前'));
      part('level-number',t(`第 ${index+1} 关`));
      part('level-dish',t(String(level.name).split('·').pop().trim()));
      if(level.target!=null)part('level-target',t(`目标 ¥${level.target}`));
