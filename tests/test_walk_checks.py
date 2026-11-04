@@ -107,6 +107,53 @@ class WalkLabelTests(unittest.TestCase):
         report = walk_label_check.arm_report(answers)
         self.assertEqual((report['chose_put_then_take'], report['offered_put_then_take'], report['chose_walk']), (1.0, 1, 0.0))
 
+    def kitchen_with(self, held=True):
+        payload = deepcopy(self.full if held else self.empty)
+        stations = payload['state']['kitchen']['stations']
+        stations['b1']['food'] = {'id': 'F7', 'stage': 'raw', 'ingredient': 'lettuce', 'meaning': 'Lettuce'}
+        stations['returns']['food'] = {'id': 'D9', 'stage': 'dirty_plate', 'meaning': 'Dirty plate'}
+        criteria = payload['questions']['next_action']['criteria']
+        for key in [k for k in criteria if k.endswith(' b1')]:
+            del criteria[key]
+        criteria['go b1'] = 'Walk to Board 1 (Prep area)'
+        return payload
+
+    def test_one_press_offers_both_and_lets_him_choose_where(self):
+        payload = self.kitchen_with()
+        after = walk_label_check.arm(payload, 'one_press')
+        criteria = after['questions']['next_action']['criteria']
+        self.assertEqual(criteria['put then take b1'], 'Put the held Bread (raw) where you choose in put_where, then take Lettuce (raw) from Board 1')
+        self.assertEqual(criteria['wash from returns'], 'Put the held Bread (raw) where you choose in put_where, then take the dirty '
+                                                        'plate from Plate return, put it in Sink and wash it')
+        places = after['questions']['put_where']['criteria']
+        self.assertEqual(places, walk_label_check.put_places(payload))
+        self.assertIn('drop', places)
+        self.assertTrue(all(k == 'drop' or k.startswith('put ') for k in places))
+        empty = walk_label_check.arm(self.kitchen_with(held=False), 'one_press')
+        self.assertEqual(empty['questions']['next_action']['criteria']['wash from returns'],
+                         'Take the dirty plate from Plate return, put it in Sink and wash it')
+        self.assertNotIn('put_where', empty['questions'])                       # nothing to put down
+        self.assertNotIn('put then take b1', empty['questions']['next_action']['criteria'])
+
+    def test_the_put_where_answer_is_read_back_and_reported(self):
+        import harness
+        payload = walk_label_check.arm(self.kitchen_with(), 'one_press')
+        place = next(k for k in payload['questions']['put_where']['criteria'] if k.startswith('put counter'))
+
+        def client(sent):     # what jev.JevClient.ask does with the answers it gets
+            answers = {'put_where': {'type': 'choice', 'choice': place}}     # the decision API's answer shape
+            return {'choice': 'put then take b1', 'model': 'jev-1.14.0',
+                    **harness.plan_answer(harness.choices(answers, harness.plan_questions(sent)), sent)}
+        answer = walk_label_check.ask_keeping_put_where(client, payload)
+        self.assertEqual(answer, {'choice': 'put then take b1', 'model': 'jev-1.14.0', 'put_where': place})
+        self.assertEqual(harness.plan_questions(payload), [])                    # the patch is gone afterwards
+        report = walk_label_check.arm_report([({'logged_choice': 'go b1', 'payload': payload}, payload, answer),
+                                              ({'logged_choice': 'go b1', 'payload': payload}, payload,
+                                               {'choice': 'wash from returns', 'put_where': 'nowhere'})])
+        self.assertEqual((report['chose_put_then_take'], report['chose_wash_from_returns']), (.5, .5))
+        self.assertEqual((report['offered_put_then_take'], report['offered_wash_from_returns']), (2, 2))
+        self.assertEqual(report['put_where'], {'counter': 1, 'not_offered': 1})
+
     def test_hands_full_groups_name_where_walks_went(self):
         moments = [{'payload': self.full, 'logged_choice': key, 'round': 1} for key in ('go serve', 'go p1', 'go partner', 'wait')]
         walks = hands_full_check.groups(moments)['walks']

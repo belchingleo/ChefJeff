@@ -21,6 +21,15 @@ logged answer was such a walk (not go partner) and sends each to the current Jev
   offered for> (or down where you stand), then take <what lies there> from <station>". It is two legal
   steps the player can take with two presses; the check only asks whether Jeff picks it over the walk,
   and the game does not offer it;
+- one_press: two options that save presses, neither a judgment: put_then_take as above, but Jeff
+  chooses where the held item goes ("Put the held <item> where you choose in put_where, then take ..."),
+  and, when a dirty plate is on the plate return and the sink is empty, "wash from returns": put the
+  held item where he chooses (if he holds one), take the dirty plate, put it in the sink and wash it.
+  One more question, put_where, lists the places a put is already offered for (its own put keys, and
+  drop for where he stands); it is asked only when he holds something. The report adds how often each
+  was offered and chosen, and where he put the item (counter, board, ingredient supply top, floor,
+  missing or not offered). Jev's client does not return answers to questions it does not know, so
+  the check reads put_where by patching harness.plan_questions and plan_answer while that arm is asked;
 - no_aimed_throws: the same with the eight aimed throws (throw up, throw down-left, ...) left out of
   the options and throw partner kept, so the request has fewer options. It tells whether the number of
   options changes his walks; it also takes the throws away, so read it with that in mind.
@@ -47,7 +56,9 @@ sys.path.insert(0, str(ROOT))
 from scripts.jev_replay_check import (ask_once, client, estimate, hands_full, journal_requests, kind,  # noqa: E402
                                       moves_forward, pick, share)
 
-ARMS = ('as_logged', 'walks_labeled', 'walks_explained', 'put_then_take', 'no_aimed_throws')
+ARMS = ('as_logged', 'walks_labeled', 'walks_explained', 'put_then_take', 'one_press', 'no_aimed_throws')
+WASH = 'wash from returns'
+PUT_WHERE = 'put_where'
 PUT_THEN_TAKE = 'put then take '
 DEFAULT_ARMS = ('as_logged', 'walks_labeled')
 KINDS = ('walk', 'wait', 'use_or_put_down', 'take')
@@ -126,6 +137,74 @@ def with_put_then_take(payload):
     return payload
 
 
+def put_places(payload):
+    """The put keys a request already offers (put on a station, or drop where he stands), with their labels."""
+    criteria = payload['questions']['next_action']['criteria']
+    stations = ((payload.get('state') or {}).get('kitchen') or {}).get('stations') or {}
+    return {k: v for k, v in criteria.items() if k == 'drop' or (k.startswith('put ') and k[4:] in stations)}
+
+
+def with_one_press(payload):
+    """put_then_take with the place left to Jeff, and a one-press wash from the plate return."""
+    places = put_places(payload)
+    held = held_item(payload)
+    if held is not None and not places:
+        return payload
+    payload = with_put_then_take(payload) if held is not None else deepcopy(payload)
+    criteria = payload['questions']['next_action']['criteria']
+    for key in [k for k in criteria if k.startswith(PUT_THEN_TAKE)]:
+        taken = criteria[key].split(', then take ', 1)[1]
+        criteria[key] = f'Put the held {held} where you choose in put_where, then take {taken}'
+    stations = ((payload.get('state') or {}).get('kitchen') or {}).get('stations') or {}
+    by_type = {}
+    for key, station in stations.items():
+        by_type.setdefault(station.get('type'), (key, station))
+    returns, sink = by_type.get('plate_return'), by_type.get('sink')
+    if (returns and sink and ((returns[1].get('food') or {}).get('stage') == 'dirty_plate')
+            and not sink[1].get('food') and not sink[1].get('fire')):
+        first = f'Put the held {held} where you choose in put_where, then take' if held is not None else 'Take'
+        criteria[WASH] = (f"{first} the dirty plate from {returns[1].get('name', returns[0])}, "
+                          f"put it in {sink[1].get('name', sink[0])} and wash it")
+    if held is None or not any(k.startswith(PUT_THEN_TAKE) or k == WASH for k in criteria):
+        return payload
+    payload['questions'][PUT_WHERE] = {
+        'type': 'choice', 'criteria': dict(places),
+        'instructions': 'Only if your next_action is a "put then take" action or "wash from returns": where the held '
+                        'item goes first. Otherwise it is not used.'}
+    return payload
+
+
+def place_kind(key, payload):
+    """Where a put_where answer puts the item: counter, board, supply_top, floor, or missing / not_offered."""
+    if key is None:
+        return 'missing'
+    if key not in put_places(payload):
+        return 'not_offered'
+    if key == 'drop':
+        return 'floor'
+    station = (((payload.get('state') or {}).get('kitchen') or {}).get('stations') or {}).get(key[4:]) or {}
+    return {'counter': 'counter', 'board': 'board', 'ingredient_source': 'supply_top'}.get(station.get('type'), 'other')
+
+
+def reading_put_where(ask):
+    """ask, with the put_where answer read back: Jev's client keeps only the questions harness knows."""
+    import harness
+    from unittest.mock import patch
+    known, answer = harness.plan_questions, harness.plan_answer
+
+    def questions(payload):
+        return known(payload) + ([PUT_WHERE] if PUT_WHERE in payload['questions'] else [])
+
+    def answers(chosen, payload):
+        value = (chosen or {}).get(PUT_WHERE) if isinstance(chosen, dict) else None
+        return {**answer({k: v for k, v in (chosen or {}).items() if k != PUT_WHERE}, payload), PUT_WHERE: value}
+
+    def asking(payload):
+        with patch.object(harness, 'plan_questions', questions), patch.object(harness, 'plan_answer', answers):
+            return ask(payload)
+    return asking
+
+
 def without_aimed_throws(payload):
     """The request without the aimed throws; throw partner and every other option stay as they were."""
     payload = deepcopy(payload)
@@ -142,6 +221,8 @@ def arm(payload, name):
         return explain(payload)
     if name == 'put_then_take':
         return with_put_then_take(payload)
+    if name == 'one_press':
+        return with_one_press(payload)
     if name == 'no_aimed_throws':
         return without_aimed_throws(payload)
     return payload
@@ -161,10 +242,24 @@ def arm_report(answers):
             'chose_put_then_take': share(sum(a['choice'].startswith(PUT_THEN_TAKE) for _, _, a in ok), len(ok)),
             'offered_put_then_take': sum(any(k.startswith(PUT_THEN_TAKE) for k in p['questions']['next_action']['criteria'])
                                          for _, p, _ in answers),
+            'chose_wash_from_returns': share(sum(a['choice'] == WASH for _, _, a in ok), len(ok)),
+            'offered_wash_from_returns': sum(WASH in p['questions']['next_action']['criteria'] for _, p, _ in answers),
+            'put_where': dict(Counter(place_kind(a.get(PUT_WHERE), p) for _, p, a in ok
+                                      if PUT_WHERE in p['questions'] and (a['choice'].startswith(PUT_THEN_TAKE) or a['choice'] == WASH))
+                              .most_common()),
             'mean_options': round(sum(len(p['questions']['next_action']['criteria']) for _, p, _ in answers) / len(answers), 2)
             if answers else None,
             'kinds': dict(kinds.most_common()),
             'errors': dict(Counter(a['error'] for _, _, a in answers if 'error' in a).most_common())}
+
+
+def ask_keeping_put_where(ask, payload):
+    """ask_once, keeping the put_where answer."""
+    try:
+        answer = reading_put_where(ask)(deepcopy(payload))
+        return {'choice': answer['choice'], 'model': answer.get('model'), PUT_WHERE: answer.get(PUT_WHERE)}
+    except RuntimeError as error:    # the client's own sanitized message, never the key
+        return {'error': str(error)}
 
 
 def run(items, ask, arms_asked=DEFAULT_ARMS):
@@ -173,7 +268,7 @@ def run(items, ask, arms_asked=DEFAULT_ARMS):
         answers = []
         for item in items:
             payload = arm(item['payload'], name)
-            answers.append((item, payload, ask_once(ask, payload)))
+            answers.append((item, payload, ask_keeping_put_where(ask, payload) if name == 'one_press' else ask_once(ask, payload)))
         full = [x for x in answers if hands_full(x[0]['payload'])]
         empty = [x for x in answers if not hands_full(x[0]['payload'])]
         arms[name] = {'all': arm_report(answers), 'hands_full': arm_report(full), 'hands_empty': arm_report(empty)}
