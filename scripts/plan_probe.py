@@ -18,9 +18,11 @@ reference policy for both chefs until every order is served and none is still to
 holds a plan to fetch, chop, cook and plate beef. It reports how often the model answered drop to
 plan_keep. Acceptance: drop in more than half of the answers.
 
---mode rolling checks the two-step rolling intent instead (harness ROLLING_RULE): the held arm and the
-stale kitchen show Jeff an intent of the first two steps of those plans, as his previous request would
-have left it, and every request asks for a new one. The emergencies have the same acceptance. In the
+--mode rolling checks the two-step rolling intent instead (harness ROLLING_RULE): the two rolling arms
+carry a previous decision in recent_decisions (the action that does the first step, 3 game seconds
+earlier), and in the held arm and the stale kitchen that decision carries the intent of the first two
+steps of those plans, as his previous request would have left it; every request asks for a new one.
+The off arm stays as in choice mode, with no previous decision, so the held arm carries every pull. The emergencies have the same acceptance. In the
 stale kitchen there is no keep or drop: it reports how often his new intent repeated the stale one
 (the same steps, or the same first step), and accepts at most half of the answers doing so.
 
@@ -122,26 +124,39 @@ def nothing_left(limit=180.0):
     raise RuntimeError('the scripted round did not serve every order')
 
 
+def previous_decision(k, work, at):
+    """Jeff's previous decision as recent_decisions keeps it: the listed action doing that work, else wait."""
+    state = k.snapshot()
+    action = next((a for a in k.actions('jeff') if work_item(a, state) == work), None)
+    return {'t': round(at, 2), 'choice': action.key if action else 'wait', 'accepted': True, 'result': 'started',
+            'sprint_applied': False}
+
+
 def stale_payload(client, k, mode='choice'):
     """The request while Jeff holds a plan for beef that no order needs any more (set 5 game seconds earlier)."""
     state = k.snapshot()
     held = Plan(mode=mode)
-    assert held.accept({'steps': list(STALE_PLAN)[:held.steps]}, max(0.0, k.time - 5), work_items(state), None)
-    return compose_payload(client, k, deepcopy(state), k.actions('jeff'), [], None, NO_MEMORY, held.input(state))
+    at = max(0.0, k.time - 5)
+    assert held.accept({'steps': list(STALE_PLAN)[:held.steps]}, at, work_items(state), None)
+    recent = [previous_decision(k, STALE_PLAN[0], at)] if mode == 'rolling' else []
+    return compose_payload(client, k, deepcopy(state), k.actions('jeff'), recent, None, NO_MEMORY, held.input(state))
 
 
 def arm_payload(client, k, arm, mode='choice'):
     """The request Jeff would send in this arm, from the same kitchen."""
     state, actions = k.snapshot(), k.actions('jeff')
+    at = max(0.0, k.time - 3)
+    # The off arm stays as in choice mode (no previous decision), so the rolling arms carry every pull.
+    recent = [previous_decision(k, UNRELATED[0], at)] if mode == 'rolling' and arm != 'plan_off' else []
     plan = None
     if arm != 'plan_off':
         held = Plan(mode=mode)
         if arm == 'plan_held':
             offered = work_items(state)
             steps = [s for s in UNRELATED if s in offered][:held.steps]
-            assert held.accept({'steps': steps}, max(0.0, k.time - 3), offered, None)
+            assert held.accept({'steps': steps}, at, offered, None)
         plan = held.input(state)
-    return compose_payload(client, k, deepcopy(state), actions, [], None, NO_MEMORY, plan)
+    return compose_payload(client, k, deepcopy(state), actions, recent, None, NO_MEMORY, plan)
 
 
 def summary(answers, urgent):

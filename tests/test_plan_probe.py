@@ -88,7 +88,11 @@ class PlanProbeTests(unittest.TestCase):
         for payload in (asking, held):     # asked at every request, never keep or drop
             self.assertEqual([q for q in payload['questions'] if q.startswith('plan_')], ['plan_step_1', 'plan_step_2'])
             self.assertEqual(payload['questions']['next_action'], off['questions']['next_action'])
-        self.assertEqual([s['work'] for s in held['state']['jeff_plan']['steps']], list(plan_probe.UNRELATED[:2]))
+        self.assertNotIn('jeff_plan', held['state'])
+        self.assertEqual([d.get('intent') is not None for d in held['state']['recent_decisions']], [True])
+        self.assertEqual([s['work'] for s in held['state']['recent_decisions'][0]['intent']], list(plan_probe.UNRELATED[:2]))
+        self.assertNotIn('intent', asking['state']['recent_decisions'][0])          # the same decision, without intent
+        self.assertEqual(off['state']['recent_decisions'], [])                       # the off arm as in choice mode
         stale = plan_probe.STALE_PLAN[:2]
 
         def answer(steps):

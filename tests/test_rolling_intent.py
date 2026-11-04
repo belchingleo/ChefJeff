@@ -45,8 +45,12 @@ class RollingLoopTests(unittest.TestCase):
         return [d for k, d in self.records if k == kind]
 
     def steps(self, request):
-        current = request['payload']['state'].get('jeff_plan')
-        return [(s['work'], s['done']) for s in current['steps']] if current else None
+        """The intent shown to Jeff: on the decision it was noted with, in recent_decisions; never as a plan."""
+        state = request['payload']['state']
+        self.assertNotIn('jeff_plan', state)
+        noted = [d for d in state['recent_decisions'] if 'intent' in d]
+        self.assertLessEqual(len(noted), 1)              # only the newest is kept
+        return [(s['work'], s['done']) for s in noted[0]['intent']] if noted else None
 
     def test_every_request_asks_two_steps_and_shows_the_last_answer(self):
         self.client.plans = [['fetch:lettuce', 'chop:lettuce'], None, ['take_plate']]
@@ -54,11 +58,14 @@ class RollingLoopTests(unittest.TestCase):
         self.assertEqual([q for q in first['questions'] if q.startswith('plan_')], ['plan_step_1', 'plan_step_2'])
         self.assertEqual(first['questions']['plan_step_1']['criteria'], work_items(self.k.snapshot()))
         self.assertIn('next_action', first['questions']['plan_step_1']['instructions'])
-        self.assertEqual(first['state']['rules']['jeff_plan'], ROLLING_RULE)
-        self.assertEqual(first['state']['plan_rules_version'], 'rolling-v1')
+        self.assertEqual(first['state']['rules']['intent'], ROLLING_RULE)
+        self.assertNotIn('jeff_plan', first['state']['rules'])
+        self.assertEqual(first['state']['plan_rules_version'], 'rolling-v2')
         self.assertNotIn('jeff_plan', first['state'])
         second = self.cycle()
         self.assertEqual(self.steps(second), [('fetch:lettuce', False), ('chop:lettuce', False)])
+        decisions = second['payload']['state']['recent_decisions']
+        self.assertEqual([('intent' in d, d['choice']) for d in decisions], [(True, self.rows('ai_response')[0]['choice'])])
         self.assertIn('plan_step_1', second['payload']['questions'])         # asked again, not keep or drop
         self.assertNotIn(PLAN_KEEP_QUESTION, second['payload']['questions'])
         third = self.cycle()                                                  # no answer: the last intent stays
@@ -103,7 +110,7 @@ class RollingLoopTests(unittest.TestCase):
 
 class RollingConditionTests(unittest.TestCase):
     def test_the_condition_and_input_name_the_mode(self):
-        self.assertEqual(plan_condition('rolling', 2), {'mode': 'rolling', 'steps': 2, 'rules_version': 'rolling-v1'})
+        self.assertEqual(plan_condition('rolling', 2), {'mode': 'rolling', 'steps': 2, 'rules_version': 'rolling-v2'})
         self.assertEqual(plan_condition('choice', 4), {'mode': 'choice', 'steps': 4, 'rules_version': 'plan-v2'})
         state = kitchen().snapshot()
         self.assertEqual(Plan(mode='rolling').input(state)['mode'], 'rolling')
@@ -120,7 +127,7 @@ class RollingConditionTests(unittest.TestCase):
         self.assertEqual(g._command('/api/start', {})[0], 200)
         self.assertEqual((g.ai.plan.mode, g.ai.plan.steps), ('rolling', 2))
         start = next(d for kind, d in g.journal.journal.rows if kind == 'start')
-        self.assertEqual(start['jeff_plan'], {'mode': 'rolling', 'steps': 2, 'rules_version': 'rolling-v1'})
+        self.assertEqual(start['jeff_plan'], {'mode': 'rolling', 'steps': 2, 'rules_version': 'rolling-v2'})
 
     def test_decision_stats_counts_rolling_rounds_apart(self):
         rows = [{'kind': 'start', 'game_time_ms': 0, 'jeff_plan': plan_condition('rolling', 2)},
