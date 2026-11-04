@@ -36,6 +36,24 @@ class PlanProbeTests(unittest.TestCase):
             self.assertEqual(payload['questions']['next_action'], off['questions']['next_action'])
             self.assertEqual(payload['state']['kitchen'], off['state']['kitchen'])
 
+    def test_the_stale_plan_has_nothing_left_to_serve(self):
+        k = plan_probe.nothing_left()
+        self.assertFalse([o for o in k.orders if o['status'] in ('pending', 'future')])
+        self.assertIsNone(k.chefs['jeff'].job)
+        payload = plan_probe.stale_payload(self.client, k)
+        self.assertEqual([s['work'] for s in payload['state']['jeff_plan']['steps']], list(plan_probe.STALE_PLAN))
+        self.assertEqual([q for q in payload['questions'] if q.startswith('plan_')], [PLAN_KEEP_QUESTION])
+
+    def test_the_report_counts_drop_answers_for_the_stale_plan(self):
+        def answer(keep):
+            return lambda payload: {'choice': 'wait', 'plan': {'keep': keep}} if PLAN_KEEP_QUESTION in payload['questions'] \
+                else {'choice': 'wait'}
+        with patch.object(plan_probe, 'emergencies', lambda: []):
+            dropping = plan_probe.run(self.client, repeats=2, ask=answer(False))['stale_plan']
+            keeping = plan_probe.run(self.client, repeats=1, ask=answer(None))['stale_plan']
+        self.assertEqual((dropping['answered'], dropping['chose_drop'], dropping['dropped_in_most_answers']), (2, 1.0, True))
+        self.assertEqual((keeping['chose_drop'], keeping['chose_keep'], keeping['dropped_in_most_answers']), (0.0, 0.0, False))
+
     def probe(self, scenario, ask, repeats=1):
         with patch.object(plan_probe, 'emergencies', lambda: [scenario]):
             return plan_probe.run(self.client, repeats=repeats, ask=ask)['emergencies'][scenario[0]]

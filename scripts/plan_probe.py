@@ -12,6 +12,11 @@ the extinguisher), the mean probability it gave those actions, and how often it 
 Acceptance: in every emergency, the arm with a plan held chooses the emergency at least as often as
 the arm with plan mode off.
 
+A third kitchen checks that Jeff drops a plan the kitchen has left behind: level 1 played by the
+reference policy for both chefs until every order is served and none is still to come, while Jeff
+holds a plan to fetch, chop, cook and plate beef. It reports how often the model answered drop to
+plan_keep. Acceptance: drop in more than half of the answers.
+
 The key is read the way the game reads it (jev.load_key) and is never printed. It calls the model,
 so run it on your own machine. --dry-run builds the requests and prints their size only.
 """
@@ -35,6 +40,7 @@ from whitebox_server import SpatialJevClient  # noqa: E402
 
 LEVEL = 'level-2'
 UNRELATED = ('fetch:lettuce', 'chop:lettuce', 'plate:lettuce', 'serve')
+STALE_PLAN = ('fetch:beef', 'chop:beef', 'cook:beef', 'plate:beef')
 ARMS = ('plan_off', 'plan_asking', 'plan_held')
 BURN_MARGIN = 4.0       # game seconds left before the cooked food burns
 PRICE_PER_M = 0.042     # USD per million input tokens, for the estimate only
@@ -87,6 +93,33 @@ def emergencies():
     return [('pan_about_to_burn', burn, saving), ('stove_on_fire', fire, extinguish)]
 
 
+def nothing_left(limit=180.0):
+    """Level 1 played by the reference policy for both chefs until every order is served and none is still to come."""
+    import reference_policy
+    k = SpatialKitchen(level_config(load_config(), 'level-1'))
+    step = 0
+    while not k.ended and k.time < limit:
+        if (all(o['status'] not in ('pending', 'future') for o in k.orders)
+                and k.chefs['jeff'].job is None and k.chefs['jeff'].hand is None):
+            return k
+        if step % 10 == 0:
+            for who, role in (('human', 'assembler'), ('jeff', 'cook')):
+                action = reference_policy.choose(k, who, role)
+                if action and k.chefs[who].job is None:
+                    k.start(who, action)
+        k.advance(.05)
+        step += 1
+    raise RuntimeError('the scripted round did not serve every order')
+
+
+def stale_payload(client, k):
+    """The request while Jeff holds a plan for beef that no order needs any more (set 5 game seconds earlier)."""
+    state = k.snapshot()
+    held = Plan()
+    assert held.accept({'steps': list(STALE_PLAN)}, max(0.0, k.time - 5), work_items(state), None)
+    return compose_payload(client, k, deepcopy(state), k.actions('jeff'), [], None, NO_MEMORY, held.input(state))
+
+
 def arm_payload(client, k, arm):
     """The request Jeff would send in this arm, from the same kitchen."""
     state, actions = k.snapshot(), k.actions('jeff')
@@ -130,6 +163,21 @@ def run(client, repeats=3, ask=None):
         held, off = arms['plan_held'].get('chose_emergency_action'), arms['plan_off'].get('chose_emergency_action')
         report['emergencies'][name] = {'emergency_actions': urgent, 'game_time': round(k.time, 2), 'arms': arms,
                                        'plan_held_not_below_plan_off': None if held is None or off is None else held >= off}
+    k = nothing_left()
+    payload = stale_payload(client, k)
+    answers = []
+    for _ in range(repeats):
+        try:
+            answers.append(ask(deepcopy(payload)))
+        except RuntimeError as error:
+            answers.append({'error': str(error)})
+    keeps = [(a.get('plan') or {}).get('keep') for a in answers if 'choice' in a]
+    dropped = round(sum(v is False for v in keeps) / len(keeps), 3) if keeps else None
+    report['stale_plan'] = {'level': 'level-1', 'game_time': round(k.time, 2), 'plan': list(STALE_PLAN),
+                            'asked': len(answers), 'answered': len(keeps), 'chose_drop': dropped,
+                            'chose_keep': round(sum(v is True for v in keeps) / len(keeps), 3) if keeps else None,
+                            'choices': dict(Counter(a['choice'] for a in answers if 'choice' in a).most_common()),
+                            'dropped_in_most_answers': None if dropped is None else dropped > .5}
     return report
 
 
@@ -144,6 +192,7 @@ def main(argv=None):
         client = SpatialJevClient(config, key='dry-run-not-sent')
         sizes = [len(json.dumps(arm_payload(client, k, arm), ensure_ascii=False))
                  for _, k, _ in emergencies() for arm in ARMS]
+        sizes.append(len(json.dumps(stale_payload(client, nothing_left()), ensure_ascii=False)))
         sends = len(sizes) * args.repeats
         tokens = sum(sizes) * args.repeats / 4
         print(f'{sends} requests, about {tokens / 1e6:.2f}M input tokens, about ${tokens / 1e6 * PRICE_PER_M:.2f}')
