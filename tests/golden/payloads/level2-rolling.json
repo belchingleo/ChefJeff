@@ -1,0 +1,2266 @@
+{
+ "scenario":"level2-rolling",
+ "level":"level-2",
+ "result":"目标达成：净收入 318/160 元；完成 4 单；超时 0；拒收 0；关店未完成 1；糊锅 1，着火 0",
+ "requests":[
+  {"t":0.0,"payload":"a6aaa6586ef7b32b","sections":{"top.model":"93d926fb5a12ad7d","top.questions":"7cb628dd27a38c8c","state.kitchen":"06bfe9585ae03276","state.recent_events":"7b2a6bc6845325c1","state.recent_decisions":"4f53cda18c2baa0c","state.past_episodes":"a73e02a862a66d85","state.input_language":"fd5de4da8a292faa","state.rules_version":"3d2f3ac173c17a37","state.plan_rules_version":"5afec01740164d47","rules.role":"c6019f6fb6910de2","rules.objective":"004e6ab40ff6329a","rules.flow":"074c1b2c6f3a3fd2","rules.vessels":"8f48ba49fc0f3f48","rules.plate_reuse":"25123453872d4d52","rules.tableware":"c484a45598e6edc2","rules.resources":"e47e722b7434aacc","rules.ground":"2a6a41cc08d85500","rules.timing":"259377201ed9bbc9","rules.interrupt":"390fc6e722a4f7b5","rules.fire":"5caeb111f1e210a0","rules.score":"b30b536d6be4b9cb","rules.visibility":"acd5b0dba5939bae","rules.movement":"40abaf4950f0d770","rules.partner":"e44eea4bc2cd41b6","rules.throw":"fd5883df216b57cb","rules.partner_plating":"854b92a818b1803e","rules.pot_swap":"f0c7bf8a7c522adb","rules.off_stove_pots":"9b7c331acdf6c0eb","rules.assembly":"b1e9e45f7ada9054","rules.sprint":"fe3711a26b9acfa0","rules.past_episodes":"3303d4be456daedf","rules.continuity":"e538aaaed73e6a2a","rules.jeff_plan":"99d814005912f0af"},"removed":[],"wire":{"local:cloudflare":"3a565fc5c693d4e0","local:compatible":"04367147a1332978","local:deepseek":"170c5985780a8f95","local:doubao":"209cf389a13512f7","local:gemini":"ce22f89954b1ebf4","local:jev":"a6aaa6586ef7b32b","local:openrouter-chat":"04367147a1332978","local:openrouter-decision":"bbe85f861c73b098","local:qwen":"0009a2b369fbaedb","local:startlux":"4532d12affb21771","local:zhipu":"878f2f1793c88927","hosted:jev":"a6aaa6586ef7b32b","hosted:cloudflare-gemma":"f32c02ed1e7509c8","hosted:cloudflare-llama":"fd68c492461a931a","hosted:startlux":"c57966cf0b1fa0d4","hosted:zhipu":"0f9a506f0a3e0c5c"}},
+  {"t":1.5,"payload":"8e466646dcc800ae","sections":{"top.questions":"426941b692aaa525","state.kitchen":"7522f2d023d61675","state.recent_events":"16c70f86c2c17120","state.recent_decisions":"47960b0322b38902","state.jeff_plan":"695afaf846b6b912"},"removed":[]},
+  {"t":3.0,"payload":"aff19f09b46b64be","sections":{"top.questions":"67b71c1174870cde","state.kitchen":"74a0cdb181582878","state.recent_events":"7e58e4310add5b96","state.recent_decisions":"e71c6b9bf499660b","state.jeff_plan":"bb52f82295cc008c"},"removed":[]},
+  {"t":4.5,"payload":"42f1dec2e4885129","sections":{"top.questions":"f67b165100ff1ede","state.kitchen":"f44042f38d533064","state.recent_events":"68df0df0ceff1f01","state.recent_decisions":"29dcb4ad72b8478e"},"removed":[]},
+  {"t":6.0,"payload":"ef27449ebe3bd85b","sections":{"top.questions":"7fe761c04a4f6aea","state.kitchen":"bc07b90350581ea5","state.recent_events":"ac3f7f2511d3ecd8","state.recent_decisions":"ffdb8607b449968b"},"removed":[],"wire":{"local:cloudflare":"2114df3e0a3f5e53","local:compatible":"3b55d0212d69955a","local:deepseek":"886a86cffb4a4583","local:doubao":"0b90a7531a6db117","local:gemini":"9427a059753829d9","local:jev":"ef27449ebe3bd85b","local:openrouter-chat":"3b55d0212d69955a","local:openrouter-decision":"de21925590396ee5","local:qwen":"e4bb28bc42a58d7a","local:startlux":"a9dd8394b6382b56","local:zhipu":"36332ea66ba1fe0b","hosted:jev":"ef27449ebe3bd85b","hosted:cloudflare-gemma":"0a5ae82e7bd587c3","hosted:cloudflare-llama":"306252cfc3a70099","hosted:startlux":"c9bc369ef8692f69","hosted:zhipu":"5521d1cc92027ffe"}},
+  {"t":6.5,"payload":"e7e8903c9db243b9","sections":{"top.questions":"79be9ad6a350b9ee","state.kitchen":"4bcf855d369a5659","state.recent_events":"a498f581373f8ee3","state.recent_decisions":"3218bde4dcf7a10e"},"removed":[]},
+  {"t":8.0,"payload":"3be58b5b815cb87d","sections":{"top.questions":"be18ad86394dfe49","state.kitchen":"76350e5dcb5d242b","state.recent_events":"d60437a71437d53a","state.recent_decisions":"1b161042dc3c112e","state.jeff_plan":"d48693dab6fe6b40"},"removed":[]},
+  {"t":9.5,"payload":"01b6aacf0e8a2e92","sections":{"top.questions":"c26d1559971fa91e","state.kitchen":"07f244345359c207","state.recent_events":"b42a51044c8cfbe5","state.recent_decisions":"818b787b6ef70bc0"},"removed":[]},
+  {"t":9.55,"payload":"5b3d417d49698e7e","sections":{"top.questions":"71d3d2e728730d59","state.kitchen":"ab0ba90bb53bb6ff","state.recent_events":"696d25e93c1e047d","state.recent_decisions":"7e38c4312f1f6588","state.jeff_plan":"ae069807a5cd3a4b"},"removed":[],"wire":{"local:cloudflare":"f6c8482f6cee8199","local:compatible":"392994895a60e6f0","local:deepseek":"e5159ddefebe836c","local:doubao":"6ce504298a7c878e","local:gemini":"ef5ce4e5b2093407","local:jev":"5b3d417d49698e7e","local:openrouter-chat":"392994895a60e6f0","local:openrouter-decision":"d4e7ed6ec2194463","local:qwen":"d7bc4cfc6f247da0","local:startlux":"5a70be1b35ef5b70","local:zhipu":"b80316391254858d","hosted:jev":"5b3d417d49698e7e","hosted:cloudflare-gemma":"d34802b7dbabfa77","hosted:cloudflare-llama":"48ade2fd7d9f78ae","hosted:startlux":"bcec7d239416ff65","hosted:zhipu":"12c25b48f0bed2f9"}},
+  {"t":9.75,"payload":"46ac19923868c3f0","sections":{"top.questions":"fe598e8e54dc567f","state.kitchen":"16a4fa06a1f963bd","state.recent_events":"c677a6057593421b","state.recent_decisions":"2f1a637b1a91c96f"},"removed":[]},
+  {"t":11.25,"payload":"99cf0e752634dd44","sections":{"top.questions":"eb2a5000fc5bafe1","state.kitchen":"11a6e3bb6b6ac43f","state.recent_events":"6574852d20a53963","state.recent_decisions":"219afc7f5d5e0696","state.jeff_plan":"188677a7388dedfd"},"removed":[]},
+  {"t":12.05,"payload":"c73c2c60219a0f63","sections":{"top.questions":"f10c9de55115b531","state.kitchen":"a2ab25eda1adf6d0","state.recent_events":"1f6b6be9a004f2a4","state.recent_decisions":"2c9c135a6f0111b1","state.jeff_plan":"2081c54e0909cf3f"},"removed":[]},
+  {"t":13.55,"payload":"e80b8253ed4fd378","sections":{"state.kitchen":"278a721fa125b1c0","state.recent_events":"c8b64fb3ee53de9c","state.recent_decisions":"34003419030ad283"},"removed":[],"wire":{"local:cloudflare":"2e55776ba45d3aad","local:compatible":"a80dfbdda349bd9a","local:deepseek":"9821cb032d8b6207","local:doubao":"cd5b2acf5c706c6b","local:gemini":"bd9d76532ae558b2","local:jev":"e80b8253ed4fd378","local:openrouter-chat":"a80dfbdda349bd9a","local:openrouter-decision":"bf7a11b7112f753f","local:qwen":"c116dc0a36ae8c8e","local:startlux":"e1b8b49f1b078415","local:zhipu":"33b239f8763b70b3","hosted:jev":"e80b8253ed4fd378","hosted:cloudflare-gemma":"61f9ec146b5ec51e","hosted:cloudflare-llama":"07b08862b448974a","hosted:startlux":"4f7f9170aadecd79","hosted:zhipu":"99a527325da56449"}},
+  {"t":15.5,"payload":"f8e8e768a3b16eaa","sections":{"state.kitchen":"33870ee951551e22","state.recent_events":"410d648c30ab2123","state.recent_decisions":"32318a090b9460b9"},"removed":[]},
+  {"t":18.45,"payload":"267a11393c897b8e","sections":{"top.questions":"881145298fc69fd8","state.kitchen":"7e76455c1f0a58ff","state.recent_events":"739328061d0a722e","state.recent_decisions":"48342c9dd41ab890"},"removed":[]},
+  {"t":19.95,"payload":"16410d059089d173","sections":{"top.questions":"ad6ccf8a22a5856f","state.kitchen":"f2d44d815d752385","state.recent_events":"0922feddf149bee9","state.recent_decisions":"0db22a3602f6fa98"},"removed":[]},
+  {"t":21.45,"payload":"9124f68d7cf5d644","sections":{"top.questions":"c6c7e57cd1c47049","state.kitchen":"b9b3305feaa9f02b","state.recent_events":"9d2604f1e8e5ed07","state.recent_decisions":"0d65f96bcd16951b","state.player_communication":"0aecae79fa6b665a","rules.player_communication":"b814d45bc7d19491"},"removed":["state.jeff_plan"],"wire":{"local:cloudflare":"8408d799b707fb9f","local:compatible":"e3952501005c5ca8","local:deepseek":"4db81bb4db710e60","local:doubao":"f0a0b05eafb43c43","local:gemini":"756fd6e7feab8a06","local:jev":"9124f68d7cf5d644","local:openrouter-chat":"e3952501005c5ca8","local:openrouter-decision":"608d78c7a253a61a","local:qwen":"871f4c698b278191","local:startlux":"8bd8e94383e551c2","local:zhipu":"a766ea81943d86f2","hosted:jev":"9124f68d7cf5d644","hosted:cloudflare-gemma":"a4ded96e9ff90867","hosted:cloudflare-llama":"46c3048b32094d9e","hosted:startlux":"939fd6cb470a8c66","hosted:zhipu":"8ca13feaaaeb6609"}},
+  {"t":22.0,"payload":"170770368b859df1","sections":{"top.questions":"6fdb43a2fa3e75c7","state.kitchen":"493d4d1814278004","state.recent_events":"48dbfaff06726c21","state.recent_decisions":"d0f62e71a380bf41","state.player_communication":"0f9a18d61ea9548b"},"removed":[]},
+  {"t":24.05,"payload":"b66ea612efe77fc8","sections":{"top.questions":"aba507a1ac13716d","state.kitchen":"adbfb7c1694b4fa2","state.recent_events":"0be2c289d7a016a7","state.recent_decisions":"feb50d1fc90c0f04"},"removed":[]},
+  {"t":25.55,"payload":"36451bda94d9ffed","sections":{"top.questions":"7fe341ae100100a3","state.kitchen":"1c31ebd2a127559c","state.recent_events":"bafc14cefa24b891","state.recent_decisions":"ab6f9da6180f2512"},"removed":[]},
+  {"t":25.85,"payload":"5495d12e329e3c70","sections":{"top.questions":"130c5b57a540c616","state.kitchen":"be337fe8685a11b8","state.recent_events":"66ed93ef2f7e862f","state.recent_decisions":"eb722a5e0c9b5bf6"},"removed":[],"wire":{"local:cloudflare":"f1c7f1c212c0a16f","local:compatible":"335918f455fd8790","local:deepseek":"d1ad50263d7d37a3","local:doubao":"8b2980835ee4a7a2","local:gemini":"2f8682702686a712","local:jev":"5495d12e329e3c70","local:openrouter-chat":"335918f455fd8790","local:openrouter-decision":"9b931be5726f2df1","local:qwen":"9a32ba1d941a3145","local:startlux":"50f0b179661a80ac","local:zhipu":"39a1164ae08d3b11","hosted:jev":"5495d12e329e3c70","hosted:cloudflare-gemma":"789005a24fd74225","hosted:cloudflare-llama":"ba5cbd19e68e0033","hosted:startlux":"37a62c7e57a3c8e8","hosted:zhipu":"f720fabbfceda5e4"}},
+  {"t":27.15,"payload":"4fd3a01ca3559be2","sections":{"top.questions":"fcb13f4d60d6e5ee","state.kitchen":"78469191d95978f7","state.recent_events":"5d6dec39b8a8eb3d","state.recent_decisions":"267ec00bdac44ce2"},"removed":[]},
+  {"t":28.45,"payload":"2569bd5a3c570a98","sections":{"top.questions":"2adeef5f7b225af7","state.kitchen":"639254f7bc139e36","state.recent_events":"1baa1bccc70a12a9","state.recent_decisions":"36a45ca70cf23890"},"removed":[]},
+  {"t":30.0,"payload":"e50f27c22633010e","sections":{"top.questions":"0b54becb5e66d686","state.kitchen":"d9d378d94e87af3b","state.recent_events":"5965de96c867470c","state.recent_decisions":"d2723d36f38d7a6c","state.jeff_plan":"9e483dca4ea216fc"},"removed":[]},
+  {"t":31.5,"payload":"b4348689707fb6b2","sections":{"top.questions":"4099671f0433a2a2","state.kitchen":"3ab3b2f5a1218826","state.recent_events":"1a1893aea1724a8d","state.recent_decisions":"3bfc47c03fe323a0"},"removed":[],"wire":{"local:cloudflare":"d5cdf010c1c07018","local:compatible":"7b4e42e376f632f8","local:deepseek":"7a20f31ca8c068a9","local:doubao":"afbbc951a1d942e1","local:gemini":"b198c4a265788690","local:jev":"b4348689707fb6b2","local:openrouter-chat":"7b4e42e376f632f8","local:openrouter-decision":"286ed3c3687ef02b","local:qwen":"320098e51a55788e","local:startlux":"29c1d7d820b52dd9","local:zhipu":"6a0d459477d82597","hosted:jev":"b4348689707fb6b2","hosted:cloudflare-gemma":"f903455789095b56","hosted:cloudflare-llama":"b5770d5c0ec40ea8","hosted:startlux":"0b20780f675a1968","hosted:zhipu":"a9c0ce54693460de"}},
+  {"t":33.45,"payload":"1c47fc9056366bd4","sections":{"top.questions":"c0074a4a93d1b4e5","state.kitchen":"e3b5f38e849d53cf","state.recent_events":"c5d5b899ea5500ff","state.recent_decisions":"3f639de0734eee72"},"removed":[]},
+  {"t":35.0,"payload":"011b8a1fe9386d68","sections":{"top.questions":"d42498436cd94cb4","state.kitchen":"fb5a20ef4028204e","state.recent_events":"89c30c5b1ce6377d","state.recent_decisions":"219de65e9c4844ad","state.jeff_plan":"c8f913708f189ae0"},"removed":[]},
+  {"t":35.45,"payload":"23a1122972963b5e","sections":{"top.questions":"60485bc12b71be87","state.kitchen":"1bb9b6859794a369","state.recent_events":"07279352a0a618ce","state.recent_decisions":"c3e80bf4b0b12594","state.jeff_plan":"3c0bc63e8c4760bf"},"removed":[]},
+  {"t":35.65,"payload":"af8aa97c934a8710","sections":{"top.questions":"f78bfae1ada0775f","state.kitchen":"71adef143f18ae0a","state.recent_events":"8910f655b7cc4550","state.recent_decisions":"08ca959194b028e5"},"removed":[],"wire":{"local:cloudflare":"f543fdd4d658b7b4","local:compatible":"b496c17c6424f497","local:deepseek":"262165008e7c5108","local:doubao":"7aa51b09453cfb89","local:gemini":"8adaf4c3369822ac","local:jev":"af8aa97c934a8710","local:openrouter-chat":"b496c17c6424f497","local:openrouter-decision":"266771ea4ec79361","local:qwen":"b2376af177ac583c","local:startlux":"12678082a9563590","local:zhipu":"fbb03a0b52c02e2e","hosted:jev":"af8aa97c934a8710","hosted:cloudflare-gemma":"74813a2e8033a9a2","hosted:cloudflare-llama":"214e9cfd572ac3fd","hosted:startlux":"55f4a4ad314c918a","hosted:zhipu":"bd63a88855629b12"}},
+  {"t":37.2,"payload":"9599cec7d7a4da1a","sections":{"top.questions":"a91a26f3de642612","state.kitchen":"b543aa48eff68699","state.recent_events":"9bb7cf9a877a88f4","state.recent_decisions":"479c0fb0274f2ad5","state.jeff_plan":"39b18ac4628b12e1"},"removed":[]},
+  {"t":37.95,"payload":"789450456e62b1bf","sections":{"top.questions":"2adeef5f7b225af7","state.kitchen":"92d126dc90bc382e","state.recent_events":"f9eebc296b28c2f8","state.recent_decisions":"d635468ecefabd12","state.jeff_plan":"7a70eeeb5473ffdf"},"removed":[]},
+  {"t":39.45,"payload":"5557836e39f0b861","sections":{"state.kitchen":"697a20f4074944cb","state.recent_events":"0b5255a3c9fbbd13","state.recent_decisions":"e6068805055a3039"},"removed":[]},
+  {"t":41.0,"payload":"6d1ab049663f304b","sections":{"state.kitchen":"7b5cac1116a45ba4","state.recent_events":"0423808880fd542f","state.recent_decisions":"69a0ad887fae8217"},"removed":[],"wire":{"local:cloudflare":"2862cd0203f63a1e","local:compatible":"5116de154695304c","local:deepseek":"fc17f9b5b4d59715","local:doubao":"25472eaf7cc049ea","local:gemini":"aef67a6306a57374","local:jev":"6d1ab049663f304b","local:openrouter-chat":"5116de154695304c","local:openrouter-decision":"06e927c52b8a733d","local:qwen":"99745b71945d049b","local:startlux":"d2edc010a9e3f6e4","local:zhipu":"a7885ecfe0c547f5","hosted:jev":"6d1ab049663f304b","hosted:cloudflare-gemma":"586471bb2423af39","hosted:cloudflare-llama":"b99366e271f12806","hosted:startlux":"975c153905b63417","hosted:zhipu":"1de9ba4791dac1f3"}},
+  {"t":42.55,"payload":"4f3308fb04395653","sections":{"top.questions":"279794bdc8fbafe0","state.kitchen":"5af111bff23ba851","state.recent_events":"5c2bd2e6ebfeff50","state.recent_decisions":"8b9ede02185f7c32"},"removed":[]},
+  {"t":44.05,"payload":"680a294d4c3d1c9d","sections":{"top.questions":"d1a9307a1e634cd4","state.kitchen":"1b4d63beb2341ffe","state.recent_events":"679e08066564fe09","state.recent_decisions":"4bf89b3937cb96c8","state.jeff_plan":"0db7886a2eed6abc"},"removed":[]},
+  {"t":44.55,"payload":"cdc0da979b728af3","sections":{"top.questions":"2616c67edce01c80","state.kitchen":"4be1f4a216b46674","state.recent_events":"ea4224a405b2f1d4","state.recent_decisions":"9e46598ff0596458"},"removed":["state.jeff_plan"]},
+  {"t":46.05,"payload":"c4912f44566c460a","sections":{"state.kitchen":"31565664fda7f3ff","state.recent_events":"32043b355b850095","state.recent_decisions":"ef40db5d54c96b7b"},"removed":[],"wire":{"local:cloudflare":"4ae5bd101338a6d5","local:compatible":"cedf7c55883e0470","local:deepseek":"b1d58bec5bcab447","local:doubao":"cabb13a556526548","local:gemini":"a52f4f8f8833cc1c","local:jev":"c4912f44566c460a","local:openrouter-chat":"cedf7c55883e0470","local:openrouter-decision":"558ce40312f55bce","local:qwen":"9a0141f2eeac93c1","local:startlux":"e1ee0a2ce10c6f19","local:zhipu":"d3a47fac33f2ed1b","hosted:jev":"c4912f44566c460a","hosted:cloudflare-gemma":"eaa6f4e30e0ed88d","hosted:cloudflare-llama":"5d93d2335597f633","hosted:startlux":"dfccb9ed42e08160","hosted:zhipu":"ba314b49df05d1f8"}},
+  {"t":47.6,"payload":"0e9f5bd97e9e4ee2","sections":{"state.kitchen":"c8e6c0f249009d82","state.recent_events":"bdaca873663905cb","state.recent_decisions":"2583ea851f74a011"},"removed":[]},
+  {"t":49.15,"payload":"3915e8ed9a883f93","sections":{"top.questions":"3dcefc0a51dd5b5d","state.kitchen":"5e04b605649b12ce","state.recent_events":"a3bce9d1f1df1451","state.recent_decisions":"e46f9dc9402cc117"},"removed":[]},
+  {"t":50.65,"payload":"2ebb4e58a91d0a56","sections":{"state.kitchen":"d2ec0e94a963d121","state.recent_events":"576c8f9e93df1aff","state.recent_decisions":"84023f5866f7bef4"},"removed":[]},
+  {"t":51.35,"payload":"c14749685af2af3b","sections":{"top.questions":"ca0b6f516ee4ce48","state.kitchen":"04dd81a57cc3c7be","state.recent_events":"b261de95a49f4e4f","state.recent_decisions":"c05833f314e43cd7"},"removed":[],"wire":{"local:cloudflare":"2ce65cc5a6f9f18f","local:compatible":"00cc3da3e6030f86","local:deepseek":"2518f7327209f398","local:doubao":"4a14ebc8e99a4d45","local:gemini":"f635cf95642c17b8","local:jev":"c14749685af2af3b","local:openrouter-chat":"00cc3da3e6030f86","local:openrouter-decision":"9c31f771703411dd","local:qwen":"7de9b54af5bbe414","local:startlux":"a5040b5e791e059a","local:zhipu":"a81f223a4bac3682","hosted:jev":"c14749685af2af3b","hosted:cloudflare-gemma":"c6fdb4661a47057a","hosted:cloudflare-llama":"3b9b28be9a2a0f14","hosted:startlux":"365710abf525bdf6","hosted:zhipu":"e10e3cd58763616a"}},
+  {"t":52.65,"payload":"f7acfea996e93a98","sections":{"top.questions":"5c1024bd3f9f33e5","state.kitchen":"9b66eb216992ae71","state.recent_events":"1dbac6c689bc0485","state.recent_decisions":"41d5b87051226469"},"removed":[]},
+  {"t":53.95,"payload":"0c42662a7c33836e","sections":{"top.questions":"ad01b641392a02a3","state.kitchen":"72254bc6b6b54c6b","state.recent_events":"1a8ceda08987bbb4","state.recent_decisions":"dd71af5376cc604c"},"removed":[]},
+  {"t":55.5,"payload":"a38201c7d80b9530","sections":{"top.questions":"fefa542a29444779","state.kitchen":"c5a93bfd6727564c","state.recent_events":"6e406643871ee576","state.recent_decisions":"b06f0e69c96d0f62","state.jeff_plan":"fe0a7def3406de51"},"removed":[]},
+  {"t":57.0,"payload":"4a3b6c93566147a4","sections":{"top.questions":"40bbae5550ff60fd","state.kitchen":"9a281400cb831d32","state.recent_events":"2f5ca8a77a1373ee","state.recent_decisions":"aeeb983bb2386306"},"removed":[],"wire":{"local:cloudflare":"536e27dc09b9a448","local:compatible":"09e5d76c44fbb41b","local:deepseek":"150f0458a38e9c5b","local:doubao":"0bb275717a776bc9","local:gemini":"cee07f48babcf154","local:jev":"4a3b6c93566147a4","local:openrouter-chat":"09e5d76c44fbb41b","local:openrouter-decision":"2dcc5644104d6666","local:qwen":"4a0da708e22ac50c","local:startlux":"008a246fa64847bc","local:zhipu":"9eadf3a3cdf2aea4","hosted:jev":"4a3b6c93566147a4","hosted:cloudflare-gemma":"682a0d1c2fde368e","hosted:cloudflare-llama":"04cece9687cf8c98","hosted:startlux":"30eda812d9e81f58","hosted:zhipu":"1bcac9fd534fd1bb"}},
+  {"t":58.5,"payload":"ed48c9d7fa81ed75","sections":{"top.questions":"1210275abf42766e","state.kitchen":"f2016e619c999878","state.recent_events":"9fab951b1b483038","state.recent_decisions":"9d9e526c8e266bc9"},"removed":[]},
+  {"t":60.0,"payload":"bdcd124cf4d8a890","sections":{"top.questions":"2ac877bbb71887d9","state.kitchen":"3d6bb01705375b53","state.recent_events":"71b3335936a3fed7","state.recent_decisions":"0250bbb7642fe157","state.jeff_plan":"70fad7b112537bdb"},"removed":[]},
+  {"t":61.6,"payload":"dd479e7821002e56","sections":{"top.questions":"1aba9530c4ff001f","state.kitchen":"f258cf29823b0831","state.recent_events":"f3a7712f6c4d3b89","state.recent_decisions":"4031230c994e086a","state.jeff_plan":"94bc383493dd7551"},"removed":[]},
+  {"t":61.8,"payload":"f2d606e65cc5bb6e","sections":{"top.questions":"eb3002b17ec5edbf","state.kitchen":"96f9bc70ec954ea9","state.recent_events":"e88d6e018ef91e31","state.recent_decisions":"c2cff0fd4e99bb9e"},"removed":[],"wire":{"local:cloudflare":"33036b115db68600","local:compatible":"f031d830f4f51c6c","local:deepseek":"9fd1ccdb27b9d4b9","local:doubao":"50b2134fd04c7f6d","local:gemini":"182e26497955c0b9","local:jev":"f2d606e65cc5bb6e","local:openrouter-chat":"f031d830f4f51c6c","local:openrouter-decision":"c5bfef370aec3c64","local:qwen":"ceda6db37de2166e","local:startlux":"7e02c9e1ddc80ee7","local:zhipu":"713c5d361d343c65","hosted:jev":"f2d606e65cc5bb6e","hosted:cloudflare-gemma":"ab3dc3469864812f","hosted:cloudflare-llama":"28802cb3a68706c6","hosted:startlux":"a1eb15b63940a6f4","hosted:zhipu":"9f304493972a45f3"}},
+  {"t":63.35,"payload":"48b0572cbd45f1fa","sections":{"top.questions":"74e14b21808649e0","state.kitchen":"d9609f72850b733a","state.recent_events":"e5c736578270e156","state.recent_decisions":"efbda3c82ce823f8","state.jeff_plan":"13786e3c93115bd3"},"removed":[]},
+  {"t":64.65,"payload":"db9fd8e7651c8cd3","sections":{"top.questions":"ad01b641392a02a3","state.kitchen":"a1503bb72c8259d6","state.recent_events":"beb5e6142a0bae37","state.recent_decisions":"15eb5117d2aa79a1","state.jeff_plan":"be26d92c0f53e1b2"},"removed":[]},
+  {"t":66.2,"payload":"34f35e019360ffe0","sections":{"top.questions":"48b20efe5b39057e","state.kitchen":"e0f7e81449d3ea2d","state.recent_events":"2c7489737a885bfe","state.recent_decisions":"ef486465421c3262"},"removed":[]},
+  {"t":67.75,"payload":"b7b8ecbf9f885140","sections":{"top.questions":"2b77955ba0b30621","state.kitchen":"133e618a5bd7739b","state.recent_events":"f79791ae725f87dd","state.recent_decisions":"b973fef34516875b","state.jeff_plan":"bf6e8223cea74b2f"},"removed":[],"wire":{"local:cloudflare":"50384527a3a24884","local:compatible":"30d2562d50a577c3","local:deepseek":"7f34f398dcda4251","local:doubao":"57f44da3ea4128a9","local:gemini":"fc5cdf3847a8fb87","local:jev":"b7b8ecbf9f885140","local:openrouter-chat":"30d2562d50a577c3","local:openrouter-decision":"f5fdb79cc66e39dd","local:qwen":"ad2e76bc4503db9b","local:startlux":"aaa7a130a8331047","local:zhipu":"4562ca2af1a928b4","hosted:jev":"b7b8ecbf9f885140","hosted:cloudflare-gemma":"97e1acfd7cfcb77d","hosted:cloudflare-llama":"37fc63b0828da188","hosted:startlux":"961ab9affc5fab0e","hosted:zhipu":"98d0642aa7c71900"}},
+  {"t":68.4,"payload":"a160811495532a43","sections":{"top.questions":"290784f381f4956d","state.kitchen":"9399abfd827a3856","state.recent_events":"b714bfbcedfe0ad5","state.recent_decisions":"f318047a5ad5210a","state.jeff_plan":"46110d9da5e28ca9"},"removed":[]},
+  {"t":69.95,"payload":"3a729e847075c508","sections":{"top.questions":"d5f20c7a669a9406","state.kitchen":"bacfa76760a1e213","state.recent_events":"0261860e9e295fea","state.recent_decisions":"ce71075e8d5a596b"},"removed":[]},
+  {"t":71.45,"payload":"6e267f64febcf670","sections":{"top.questions":"6aa22e463ed7980c","state.kitchen":"67c62e5f541cb513","state.recent_decisions":"dde8cb9670c0f846","state.player_communication":"e85b5987bcdfe196"},"removed":[]},
+  {"t":73.0,"payload":"1f6b2c0d1bc59d57","sections":{"top.questions":"9b527dab805e70b5","state.kitchen":"d1c038b1e2d4c0dd","state.recent_decisions":"ca601e34a00ba8eb","state.player_communication":"782d1b5892cbeb1f"},"removed":[],"wire":{"local:cloudflare":"f0f44a9463b4bc4b","local:compatible":"2bf675d6e7a9766f","local:deepseek":"7b9074348ce3edd9","local:doubao":"15f7cf52be3f8cfd","local:gemini":"ffd3bdcd6bc724a1","local:jev":"1f6b2c0d1bc59d57","local:openrouter-chat":"2bf675d6e7a9766f","local:openrouter-decision":"0970dda6ae0d145a","local:qwen":"d1cf1877a86f6d08","local:startlux":"f64dd76f201c1cff","local:zhipu":"d00a593a4dfcc715","hosted:jev":"1f6b2c0d1bc59d57","hosted:cloudflare-gemma":"8575747a7e104ebe","hosted:cloudflare-llama":"a211a6e97f0a8f69","hosted:startlux":"8c393c15bec49a4b","hosted:zhipu":"11b6566982b2caa9"}},
+  {"t":75.55,"payload":"c5d90a80d0bb7f5f","sections":{"top.questions":"ddc27610f0f96265","state.kitchen":"17956eb2f4822ac6","state.recent_events":"74e4b0bf58d19a48","state.recent_decisions":"dc54ceab1dbb7c3b"},"removed":[]},
+  {"t":77.05,"payload":"ea2ed85172c8ccd0","sections":{"top.questions":"165ada6d71fd303b","state.kitchen":"cceb3841e0a9d182","state.recent_events":"371391a70096396c","state.recent_decisions":"dc5c7fa1a74c771e"},"removed":[]},
+  {"t":78.65,"payload":"d734e523ba450c9b","sections":{"state.kitchen":"76ef16774c15a233","state.recent_decisions":"fe8250eae7b7cd7b"},"removed":[]},
+  {"t":80.2,"payload":"2255a0fcd9cb8682","sections":{"state.kitchen":"090a45f043ac79b5","state.recent_events":"12274bb4ef944952","state.recent_decisions":"082f7ba7f6cd6a1f"},"removed":[],"wire":{"local:cloudflare":"f5c90d466e27877c","local:compatible":"d3e0e9c0d380c8f0","local:deepseek":"57eb54163681ba38","local:doubao":"7eacb59c5a1e06f2","local:gemini":"b7ebb1389941b1b1","local:jev":"2255a0fcd9cb8682","local:openrouter-chat":"d3e0e9c0d380c8f0","local:openrouter-decision":"c38109524524a604","local:qwen":"00b8dd2907816214","local:startlux":"7ea1fbd519f92a7c","local:zhipu":"53c95e363e347997","hosted:jev":"2255a0fcd9cb8682","hosted:cloudflare-gemma":"3d2ea66edc108e7c","hosted:cloudflare-llama":"6fa141a6b553fba7","hosted:startlux":"0a78c62442ac5150","hosted:zhipu":"25c594ab6fc3930d"}},
+  {"t":81.75,"payload":"21217f906db632ac","sections":{"top.questions":"91351b37328f0910","state.kitchen":"e2b2cc5a0aaee503","state.recent_events":"bec86e0ed52fafc0","state.recent_decisions":"a1966fdd4f4bbda9"},"removed":[]},
+  {"t":83.25,"payload":"51f0997de54dc413","sections":{"top.questions":"2ae3f4cc5153e523","state.kitchen":"5a6f8955c1c8034e","state.recent_events":"efddf0b6b1912f09","state.recent_decisions":"42349c543c56ac7d"},"removed":[]},
+  {"t":84.55,"payload":"3abc51e78efcd083","sections":{"top.questions":"0a5ae46d02568e05","state.kitchen":"b684f73dbf23e03c","state.recent_events":"9ab93be45fadc4e5","state.recent_decisions":"5200e95b0db87aa4"},"removed":[]},
+  {"t":85.85,"payload":"87473db36f4d1748","sections":{"top.questions":"a462f77d66bdf808","state.kitchen":"4bab6cd65a0c096d","state.recent_events":"b1909f8e6c2ff164","state.recent_decisions":"713134e50cb2b232"},"removed":["state.jeff_plan"],"wire":{"local:cloudflare":"754c908dc2618dd0","local:compatible":"6dbea63241e6c4fc","local:deepseek":"32c29ad23cfbc63e","local:doubao":"429bc2286d8f80ca","local:gemini":"e2cb71f2cc1361bf","local:jev":"87473db36f4d1748","local:openrouter-chat":"6dbea63241e6c4fc","local:openrouter-decision":"39e597057edd5d58","local:qwen":"12956d723d5212b2","local:startlux":"d3459a9b7cc6c0e5","local:zhipu":"ca7fb0dc63529f88","hosted:jev":"87473db36f4d1748","hosted:cloudflare-gemma":"7ac548da01e37d29","hosted:cloudflare-llama":"3693ebf312cfb043","hosted:startlux":"70fcd8f99686c219","hosted:zhipu":"c327f714316905b7"}},
+  {"t":87.4,"payload":"723231c2b4b60e44","sections":{"top.questions":"558ebd0cb8681ce8","state.kitchen":"2adcef35fc338ad0","state.recent_events":"f71d5887bfd0f434","state.recent_decisions":"c3992441191ffa3e"},"removed":[]},
+  {"t":87.6,"payload":"e0f268728da4ccab","sections":{"top.questions":"20467a31af8dbc79","state.kitchen":"01a91f4a57e871c1","state.recent_events":"edf90919aae93672","state.recent_decisions":"b43766f91c832d25"},"removed":[]},
+  {"t":89.15,"payload":"df5c9cfacb13529a","sections":{"top.questions":"7398159a21cb7a49","state.kitchen":"91354ad93632632e","state.recent_events":"6abf5c189b8ed7ad","state.recent_decisions":"673a312b2baf9083","state.jeff_plan":"f55aed20d8df9a4c"},"removed":[]},
+  {"t":90.65,"payload":"13cf843b18931180","sections":{"top.questions":"f6561390c065782b","state.kitchen":"d3fc8378b91e7c82","state.recent_events":"0bb1c209ab7d4e80","state.recent_decisions":"dddace712f50efb1"},"removed":[],"wire":{"local:cloudflare":"3e18fb6603ba26a2","local:compatible":"1e33647a3a746ddc","local:deepseek":"51baefa7d2922dfe","local:doubao":"814b0ad21ae248ee","local:gemini":"be61f64d9eb696cb","local:jev":"13cf843b18931180","local:openrouter-chat":"1e33647a3a746ddc","local:openrouter-decision":"52f7a521d04f65dc","local:qwen":"46b986c8d162e6ee","local:startlux":"c538f8719dec9d90","local:zhipu":"5edc435357bcde6d","hosted:jev":"13cf843b18931180","hosted:cloudflare-gemma":"66fce692fc35d96a","hosted:cloudflare-llama":"4bca0063b92f6d71","hosted:startlux":"661e2cd24c28da18","hosted:zhipu":"bb9978f251730623"}},
+  {"t":92.2,"payload":"8c98d1a6d5ed2784","sections":{"top.questions":"337febcaff1b92cb","state.kitchen":"8b5f97d74364e338","state.recent_events":"18ca6fc417cdfddc","state.recent_decisions":"a2eaf7f0645f7779"},"removed":[]},
+  {"t":92.65,"payload":"6d1be0fc9147f7c1","sections":{"top.questions":"bd941d20282368c7","state.kitchen":"ac9441b5ecfc22eb","state.recent_events":"6f68e5870c10264a","state.recent_decisions":"377ff4d4c495c80a"},"removed":[]},
+  {"t":94.2,"payload":"b536211659e2ee54","sections":{"top.questions":"1d7065f95d851070","state.kitchen":"6ba17af407d9289f","state.recent_events":"0380310d0904e993","state.recent_decisions":"a0ae827f7504d038","state.jeff_plan":"afe3dc714285d7a3"},"removed":[]},
+  {"t":95.7,"payload":"bbfff76462964f1e","sections":{"top.questions":"54123334ea2a36c6","state.kitchen":"4b2f59fb7cab8b8c","state.recent_events":"f815f140b2c20e68","state.recent_decisions":"9456e7b09b72addf","state.jeff_plan":"6d5ef2c7588ac882"},"removed":[],"wire":{"local:cloudflare":"80bc2a3ee24086a0","local:compatible":"9cf580e867aaa09e","local:deepseek":"43e4c80bd5c09689","local:doubao":"5d01eff9580011e0","local:gemini":"13890b4215777ada","local:jev":"bbfff76462964f1e","local:openrouter-chat":"9cf580e867aaa09e","local:openrouter-decision":"43d0f76756e25a3c","local:qwen":"764f96ec4768602d","local:startlux":"06401ee8c32a86cd","local:zhipu":"fe183ad8e528a8f7","hosted:jev":"bbfff76462964f1e","hosted:cloudflare-gemma":"555cb91938edf463","hosted:cloudflare-llama":"8b7b7dde8bd33ffd","hosted:startlux":"84cdc817eeaab5f5","hosted:zhipu":"0dfecb94f07d20ce"}},
+  {"t":95.9,"payload":"f7a24311e5abfa16","sections":{"top.questions":"f5ab9049d5b2b0d8","state.kitchen":"c6b88cc484ef552c","state.recent_events":"8861891112c92d02","state.recent_decisions":"5a5069494f32d693"},"removed":[]},
+  {"t":97.4,"payload":"71bf0dd3c26e8cfb","sections":{"top.questions":"3d6dbefbdab66bbb","state.kitchen":"757e2141f658be37","state.recent_events":"11f89cb272862a3e","state.recent_decisions":"f1012a6d0d760fb8","state.jeff_plan":"cc47ddd7cd134054"},"removed":[]},
+  {"t":98.2,"payload":"e1efdd25d8253c5c","sections":{"top.questions":"ad01b641392a02a3","state.kitchen":"38eccd6cbdf8a219","state.recent_events":"9fe623cd31411610","state.recent_decisions":"db0764037904a8d2","state.jeff_plan":"1342c53de92ec71c"},"removed":[]},
+  {"t":99.75,"payload":"3b868a9cd77123c8","sections":{"state.kitchen":"41a49294f9a67af1","state.recent_events":"c90fff5c48c9a7ac","state.recent_decisions":"39485599d6848ec8"},"removed":[],"wire":{"local:cloudflare":"95baf7abd9d266c2","local:compatible":"b5da547f87d3aab3","local:deepseek":"43a96c3317b27587","local:doubao":"a0c6a0b4ce7b7c36","local:gemini":"2a3e84355d716467","local:jev":"3b868a9cd77123c8","local:openrouter-chat":"b5da547f87d3aab3","local:openrouter-decision":"a59d2f16369b81f6","local:qwen":"01bdc1d00a18323b","local:startlux":"555d40c38a153de8","local:zhipu":"b4be42dc97a7a088","hosted:jev":"3b868a9cd77123c8","hosted:cloudflare-gemma":"bb2c7ab7b0e33a96","hosted:cloudflare-llama":"ed6d0a58ec03ecd0","hosted:startlux":"d04bcc4aef8c4680","hosted:zhipu":"97214e32503c1e83"}},
+  {"t":101.7,"payload":"086f5ab357d4cab2","sections":{"top.questions":"0553d163309791e0","state.kitchen":"7dc000cd3decf28d","state.recent_events":"9284c67fb920202a","state.recent_decisions":"01e49d8202140b74"},"removed":[]},
+  {"t":103.2,"payload":"5c0e48606d0eef34","sections":{"top.questions":"2fdb9d45e3d32920","state.kitchen":"7538c1c48c81c87b","state.recent_events":"8eae69979739d01a","state.recent_decisions":"02ca1dc8cbb4be1d"},"removed":[]},
+  {"t":104.75,"payload":"b813be829c58d794","sections":{"top.questions":"2b77955ba0b30621","state.kitchen":"c812e89b0c5d0b8e","state.recent_events":"bd50f2850fa35b65","state.recent_decisions":"fe699994c61b7c20","state.jeff_plan":"7f45a02c790e591c"},"removed":[]},
+  {"t":105.25,"payload":"32cf24cefaabd23b","sections":{"top.questions":"9764f05be4f43c94","state.kitchen":"beeb0200f756d83f","state.recent_events":"87f075f1fc0939c3","state.recent_decisions":"f055d52cb78541a9"},"removed":[],"wire":{"local:cloudflare":"63416035c13f986c","local:compatible":"24490e62980fa2e5","local:deepseek":"77acba93d0b52dee","local:doubao":"0f1c79555e37bf67","local:gemini":"dd5a76abc4fdb005","local:jev":"32cf24cefaabd23b","local:openrouter-chat":"24490e62980fa2e5","local:openrouter-decision":"24328b6881b4ece1","local:qwen":"c18f624497c40aac","local:startlux":"263121d141db107b","local:zhipu":"cf1082c75dc5e56b","hosted:jev":"32cf24cefaabd23b","hosted:cloudflare-gemma":"101c47995fa71e84","hosted:cloudflare-llama":"5749764af7997cf9","hosted:startlux":"4d498515b9f85b29","hosted:zhipu":"5b6e6c3dde936dac"}},
+  {"t":106.8,"payload":"c53066043d39d14b","sections":{"top.questions":"6aa22e463ed7980c","state.kitchen":"c52699309dff6e22","state.recent_events":"b37657b9f689434a","state.recent_decisions":"e30734e16d03708d"},"removed":[]},
+  {"t":109.85,"payload":"b2629084ccdef866","sections":{"top.questions":"9b527dab805e70b5","state.kitchen":"ff15b07d6f57fa03","state.recent_decisions":"1aef9274a2c60e28"},"removed":[]},
+  {"t":111.4,"payload":"54b80229e2211550","sections":{"top.questions":"273a3fa928531809","state.kitchen":"dd0849ecc6d6eb73","state.recent_events":"eaa5dffb70e1fb0e","state.recent_decisions":"535f58e8c4cd6f4c"},"removed":[]},
+  {"t":112.95,"payload":"41dec1d9f106901d","sections":{"top.questions":"4c132f556656897c","state.kitchen":"4dfab8ff3b850573","state.recent_events":"ed69fa07ba655881","state.recent_decisions":"816348a9fc25f251"},"removed":[],"wire":{"local:cloudflare":"28c8b127c8141c91","local:compatible":"afb0745c1167dba7","local:deepseek":"8319a2845bad9e81","local:doubao":"8184051a1c44275f","local:gemini":"6a40132ae204f21e","local:jev":"41dec1d9f106901d","local:openrouter-chat":"afb0745c1167dba7","local:openrouter-decision":"6ef5dd8779648960","local:qwen":"fad73504101d0246","local:startlux":"fe7796d22f5dbc9a","local:zhipu":"741e8cf88b2de9e2","hosted:jev":"41dec1d9f106901d","hosted:cloudflare-gemma":"a4493dc871a504ca","hosted:cloudflare-llama":"52d4820c3e93f3e7","hosted:startlux":"d813321d6819eb67","hosted:zhipu":"8a526b29eda4939f"}},
+  {"t":114.45,"payload":"b2ad5c0f77525bf1","sections":{"state.kitchen":"7f2e447b53d1ed51","state.recent_decisions":"69e8d76dd243d947"},"removed":[]},
+  {"t":116.0,"payload":"237a2329349cf9cb","sections":{"state.kitchen":"20ede0077df8859b","state.recent_events":"a195173b2813cd9c","state.recent_decisions":"48c78dba6f16f2d1"},"removed":[]},
+  {"t":117.55,"payload":"dc80503833ea743b","sections":{"top.questions":"708685bb62922346","state.kitchen":"f01dc09d305726d6","state.recent_events":"eb3453bfc0410d7b","state.recent_decisions":"e3c891c2b028db08"},"removed":[]},
+  {"t":119.05,"payload":"57146503cb96e434","sections":{"top.questions":"56332533c7faaf04","state.kitchen":"7e68e95dc6b3b020","state.recent_events":"82acc02db4f83e74","state.recent_decisions":"64548fad943e8413","state.jeff_plan":"6eaa75c787b5b165"},"removed":[],"wire":{"local:cloudflare":"48efa194ad5a07f7","local:compatible":"cc9fa3077cc35662","local:deepseek":"2161ce6ba826ba3b","local:doubao":"01129b47187a055a","local:gemini":"c16ff5e0ed7d42e0","local:jev":"57146503cb96e434","local:openrouter-chat":"cc9fa3077cc35662","local:openrouter-decision":"5bdfdfd5d08dfdac","local:qwen":"c3df4308e7485e3f","local:startlux":"d2821db9b77e64b3","local:zhipu":"c69645d451678a1e","hosted:jev":"57146503cb96e434","hosted:cloudflare-gemma":"c8de4fe3268a5358","hosted:cloudflare-llama":"bfc866cbb73d6964","hosted:startlux":"d5aaa5cf0371f69d","hosted:zhipu":"c391c7ae0837ddf3"}},
+  {"t":119.65,"payload":"7cc55d828cc9dabf","sections":{"top.questions":"a32e819a9852f4d3","state.kitchen":"6ac574196af79012","state.recent_events":"3c69552c286cba4c","state.recent_decisions":"a37edf397da4d9b2","state.jeff_plan":"2857808f25478d4a"},"removed":[]},
+  {"t":121.2,"payload":"8e4df3d7eac97fe2","sections":{"top.questions":"d5f20c7a669a9406","state.kitchen":"665328239efb4f6a","state.recent_events":"1b222760a84fa4a5","state.recent_decisions":"041e0d9ce79aa146","state.player_communication":"69afef71996173e5"},"removed":["state.jeff_plan"]},
+  {"t":122.75,"payload":"bc02a743b7ac7de4","sections":{"top.questions":"474d07adf8413301","state.kitchen":"9436a9501dfc8a5d","state.recent_events":"8285fc3a42c014f6","state.recent_decisions":"67c6b3b28af4002c","state.player_communication":"3ed67089e54b855d"},"removed":[]},
+  {"t":123.25,"payload":"1677191805910b3e","sections":{"top.questions":"ac01b6e73cf50da1","state.kitchen":"b1fcb766e3353f29","state.recent_events":"8ea7f8f9de2d72eb","state.recent_decisions":"d838af09b975f143"},"removed":[],"wire":{"local:cloudflare":"9ba06f90915906ee","local:compatible":"4595d4464c6702a0","local:deepseek":"20e729f2adcd2dce","local:doubao":"0924c34ec0c43915","local:gemini":"65e76894453afda0","local:jev":"1677191805910b3e","local:openrouter-chat":"4595d4464c6702a0","local:openrouter-decision":"9ca236a9203385ca","local:qwen":"ded727c631b962f8","local:startlux":"ca7f5a3f58172cdd","local:zhipu":"e914052d1260e0bf","hosted:jev":"1677191805910b3e","hosted:cloudflare-gemma":"6a1f2cb3b8a0b935","hosted:cloudflare-llama":"77bc16673e23bf53","hosted:startlux":"7694210a1f8d91f2","hosted:zhipu":"780e449518b2c647"}},
+  {"t":124.5,"payload":"adee36216195cfb5","sections":{"top.questions":"23f1d71faeb03982","state.kitchen":"c80eed7d22421ce8","state.recent_events":"a239fcd2ddf93354","state.recent_decisions":"0f8a3dd416892779"},"removed":[]},
+  {"t":125.75,"payload":"8794f073f9dfb99c","sections":{"top.questions":"354abafbab412f6b","state.kitchen":"9b7694683f6aca3d","state.recent_events":"7e1993c3ce5e8b63","state.recent_decisions":"bdf1fc62b8aa08b2"},"removed":[]},
+  {"t":127.3,"payload":"62cb93dc198dd8a7","sections":{"top.questions":"9c980661496c819d","state.kitchen":"0aac14cc62cd18da","state.recent_events":"d8742bcf6d369f96","state.recent_decisions":"9a5e20921f388434","state.jeff_plan":"cec37fe2ce694276"},"removed":[]},
+  {"t":128.8,"payload":"367c389600e89637","sections":{"top.questions":"fed803686ea129ba","state.kitchen":"1196f9474d52b01d","state.recent_events":"a5425546384965d8","state.recent_decisions":"17a881fc49a17f17"},"removed":[],"wire":{"local:cloudflare":"d094761d069f31c0","local:compatible":"65fa7bbe3668a756","local:deepseek":"1f991cbb4ddd74eb","local:doubao":"86a041e00cb57771","local:gemini":"bf762edc44ea1b31","local:jev":"367c389600e89637","local:openrouter-chat":"65fa7bbe3668a756","local:openrouter-decision":"3e8c82878dd93549","local:qwen":"33a3e07d58570742","local:startlux":"6f8ebe5b999880f6","local:zhipu":"1479f4b898d0a45a","hosted:jev":"367c389600e89637","hosted:cloudflare-gemma":"dd63e96bb8ab674e","hosted:cloudflare-llama":"354d34b3ffdf18ff","hosted:startlux":"8626b58832a39bac","hosted:zhipu":"4ec9b47ab404b04f"}},
+  {"t":130.3,"payload":"2f7469d3784c9c29","sections":{"top.questions":"de6a3def3367d069","state.kitchen":"8dd42ad1ffb2d6f5","state.recent_events":"af0289cf1b3c7249","state.recent_decisions":"64cf066e66fd3447"},"removed":[]},
+  {"t":130.75,"payload":"18972db6edc5c200","sections":{"top.questions":"e664578edc0a3466","state.kitchen":"d17fffb8192108c7","state.recent_events":"abeed8ba3ab825a2","state.recent_decisions":"a920a3de70f378c3"},"removed":[]},
+  {"t":132.25,"payload":"364f6a04346ef505","sections":{"top.questions":"12e41751ec3b2168","state.kitchen":"1cbda88138fbdbee","state.recent_events":"1448e699456a6956","state.recent_decisions":"7f14cba639509547","state.jeff_plan":"a36d51e7e297209c"},"removed":[]},
+  {"t":133.75,"payload":"56393dcfb18806ad","sections":{"top.questions":"af31bdd6a6808e71","state.kitchen":"f187ef0beec0cf54","state.recent_events":"2c8382a56172dc72","state.recent_decisions":"dc790ad15bbfefb1"},"removed":[],"wire":{"local:cloudflare":"e4008f1a737433a8","local:compatible":"1b2f097bedaf2b60","local:deepseek":"6e48f895e3a9edee","local:doubao":"7a3b45b604defa41","local:gemini":"efa8093b239b2dc5","local:jev":"56393dcfb18806ad","local:openrouter-chat":"1b2f097bedaf2b60","local:openrouter-decision":"278c215a00a709d6","local:qwen":"1fd61d757a5de5da","local:startlux":"ac32dcf401b1cf3d","local:zhipu":"6986bcfacab0634b","hosted:jev":"56393dcfb18806ad","hosted:cloudflare-gemma":"8d9d2856cb41d8c8","hosted:cloudflare-llama":"b1258b001b797941","hosted:startlux":"f5fc184ac92a0db4","hosted:zhipu":"628024209c49e4c7"}},
+  {"t":133.8,"payload":"1e59e9cdcea91125","sections":{"top.questions":"92d0ce346a0fa39c","state.kitchen":"a7f5074381764605","state.recent_events":"4cda55e10c3df5a0","state.recent_decisions":"5439915082eec6cf","state.jeff_plan":"ee6d28e671c0c9df"},"removed":[]},
+  {"t":134.0,"payload":"6e7d1dbd3505138f","sections":{"top.questions":"87a849b5bb24fdea","state.kitchen":"00fc5d1a5d5c9439","state.recent_events":"fc076018c350c6f8","state.recent_decisions":"afa8475732f4bf46"},"removed":[]},
+  {"t":135.5,"payload":"34522cd09b16f66a","sections":{"top.questions":"9ee60d72b542184d","state.kitchen":"0a37873f7e0431c9","state.recent_events":"4189a364909d6e47","state.recent_decisions":"e7e4dbe4d7dc8672","state.jeff_plan":"9d24811b4e5ca499"},"removed":[]},
+  {"t":136.3,"payload":"8338a1d94c97bd47","sections":{"top.questions":"20467a31af8dbc79","state.kitchen":"69b5ae35f67c39c8","state.recent_events":"ea1605c5f10cc484","state.recent_decisions":"ff5841b0af74027f","state.jeff_plan":"30d34ad8db285926"},"removed":[],"wire":{"local:cloudflare":"69caa3b5357e7fc7","local:compatible":"cfd44be80b620aad","local:deepseek":"135058fbd1c2a6b0","local:doubao":"3f409e138fc00f23","local:gemini":"fe56b849d43d1cec","local:jev":"8338a1d94c97bd47","local:openrouter-chat":"cfd44be80b620aad","local:openrouter-decision":"3b4bc3eca99964bf","local:qwen":"48acc25398c07899","local:startlux":"9fef0ffc50191b22","local:zhipu":"42f98fc60245fbdb","hosted:jev":"8338a1d94c97bd47","hosted:cloudflare-gemma":"827aac16f45d1374","hosted:cloudflare-llama":"8ecc054ab675050e","hosted:startlux":"0b0df3d515300906","hosted:zhipu":"a119d6c28d7af5f8"}},
+  {"t":138.7,"payload":"35130d8cd332dcda","sections":{"top.questions":"0b9d98d128d7ad2d","state.kitchen":"6e519eff96802ea5","state.recent_events":"6e37623b0d5a1962","state.recent_decisions":"6dbf18e3e3752679"},"removed":[]},
+  {"t":140.2,"payload":"688f4bad00abc67f","sections":{"top.questions":"91078efd8be5e062","state.kitchen":"dea6dd70026effe4","state.recent_events":"a4c7ad1500c66e4e","state.recent_decisions":"88f91b8d5b915ca0"},"removed":[]},
+  {"t":142.45,"payload":"ba40ed9356eed38e","sections":{"top.questions":"439c58d37d56fa6a","state.kitchen":"ccfdc019da1fdcb0","state.recent_events":"f4c9b72213869e68","state.recent_decisions":"ae13fa2d324a9a6b"},"removed":[]},
+  {"t":143.95,"payload":"15914c4cc4ac6546","sections":{"top.questions":"e44e7ae7cb71ecff","state.kitchen":"a9964ecccdc82271","state.recent_events":"b86f1cdc62de9de2","state.recent_decisions":"28deafec12d9cfb3"},"removed":[],"wire":{"local:cloudflare":"a9d0079d4beace69","local:compatible":"897addb4738ac553","local:deepseek":"74d98b313adcd4ad","local:doubao":"6ce444c2cb7f11ee","local:gemini":"edf98e707e8a14af","local:jev":"15914c4cc4ac6546","local:openrouter-chat":"897addb4738ac553","local:openrouter-decision":"1f99f71f2e088d02","local:qwen":"0474637e60638960","local:startlux":"a7e3b2b117b07e49","local:zhipu":"7599f8861ab381a4","hosted:jev":"15914c4cc4ac6546","hosted:cloudflare-gemma":"c993639e0711a4e3","hosted:cloudflare-llama":"860cfb4fc56b571c","hosted:startlux":"d24c229e8c74b1b5","hosted:zhipu":"b8dbfd79a4d0d0a3"}},
+  {"t":145.45,"payload":"f8732ddeca49e5e7","sections":{"top.questions":"07395da4fdb61dc2","state.kitchen":"024cf934d3033093","state.recent_events":"de1088f003bbecca","state.recent_decisions":"1660c4e305185ab4","state.jeff_plan":"8a85ab85aad8dec7"},"removed":[]},
+  {"t":145.5,"payload":"ae3c398635e7eea7","sections":{"top.questions":"d545504b4bbb33ea","state.kitchen":"01f71a6663ac6ca9","state.recent_events":"85f3a2d44167ba55","state.recent_decisions":"4bd3b18fb5195ed2"},"removed":["state.jeff_plan"]},
+  {"t":148.3,"payload":"41faa08fd80ea72d","sections":{"top.questions":"444abd296e3142cb","state.kitchen":"82cbc4219d322799","state.recent_events":"5ef20304f9c6bc79","state.recent_decisions":"71af133acdae27c5"},"removed":[]},
+  {"t":149.0,"payload":"41318f84789656de","sections":{"top.questions":"07de151220aa2bde","state.kitchen":"1ca870d652002c25","state.recent_events":"ac0a8bc08ae1e550","state.recent_decisions":"acc79ec85ad42233"},"removed":[],"wire":{"local:cloudflare":"afc076e6bf32c6d2","local:compatible":"1aca661ffeef3a75","local:deepseek":"2a5e49c46aaa2455","local:doubao":"cd3929b3e120a6bb","local:gemini":"d121a7d4d6c81cd8","local:jev":"41318f84789656de","local:openrouter-chat":"1aca661ffeef3a75","local:openrouter-decision":"17c836efe1f66ef0","local:qwen":"26d222e5e1d85cca","local:startlux":"fd92ea623516ce08","local:zhipu":"50a67bd6c0bc0208","hosted:jev":"41318f84789656de","hosted:cloudflare-gemma":"f68859a78843254c","hosted:cloudflare-llama":"14455ebd974f00c6","hosted:startlux":"ca494059e0dd014e","hosted:zhipu":"8729c57d1ec3be0b"}},
+  {"t":150.3,"payload":"56ea0f14bab4f1b8","sections":{"top.questions":"1efbc68f2e428abf","state.kitchen":"fc3d15313dca9c48","state.recent_events":"f41b060829fd6f9f","state.recent_decisions":"31737b9353e9a11a"},"removed":[]},
+  {"t":151.6,"payload":"e7b88366f080f694","sections":{"top.questions":"ad01b641392a02a3","state.kitchen":"0811160d3f0702fa","state.recent_events":"2bbb0c95b068d22d","state.recent_decisions":"12fd7e2f262ac5ac"},"removed":[]},
+  {"t":153.15,"payload":"a30290c98645df55","sections":{"top.questions":"6675229e5194c0cc","state.kitchen":"f61c0e8928d27eb0","state.recent_events":"721c83fb390e566c","state.recent_decisions":"7f7c0b5bee2b0218","state.jeff_plan":"db29dc9d14bad3dc"},"removed":[]},
+  {"t":154.65,"payload":"559df2c43ca7de36","sections":{"top.questions":"f5e107b29016dad8","state.kitchen":"ff4dd5505d37e30d","state.recent_events":"eeb8593b12c07f5f","state.recent_decisions":"f19ecbfb8d3d37c6"},"removed":[],"wire":{"local:cloudflare":"52b865f3a8445d06","local:compatible":"f1eb7bb4b52a7749","local:deepseek":"8e2ee32286b6b30e","local:doubao":"47ded34507015847","local:gemini":"80dc1bc220108494","local:jev":"559df2c43ca7de36","local:openrouter-chat":"f1eb7bb4b52a7749","local:openrouter-decision":"caaac928ab233c57","local:qwen":"db73d415dbf33d37","local:startlux":"5819a8291d5f2aed","local:zhipu":"6ad35019ca5af785","hosted:jev":"559df2c43ca7de36","hosted:cloudflare-gemma":"175825a7d74f5daa","hosted:cloudflare-llama":"f9e144d30ffe7f94","hosted:startlux":"e1ff89e79e0650ef","hosted:zhipu":"006b943bf0fb744d"}},
+  {"t":156.15,"payload":"0cfb241d7ef5ada4","sections":{"top.questions":"15c2bac8b015d9b0","state.kitchen":"394d921a2ee01b53","state.recent_events":"ccd127992c6e224b","state.recent_decisions":"d73a7f6027128de2"},"removed":[]},
+  {"t":156.65,"payload":"c0deb615f75b907d","sections":{"top.questions":"59a30c1df1d77ae2","state.kitchen":"5da8d456b658ce8a","state.recent_events":"3ca8e77e618eb4cc","state.recent_decisions":"23a578436cd20c30"},"removed":[]},
+  {"t":158.15,"payload":"ed524cf54e13fb5d","sections":{"top.questions":"6b09610e2f29ff4e","state.kitchen":"cb245f614aefe215","state.recent_events":"fdebc0f302741043","state.recent_decisions":"14e3fce708c9cc42","state.jeff_plan":"d5077bedaef51218"},"removed":[]},
+  {"t":159.65,"payload":"117d9dbc99e0fb69","sections":{"top.questions":"aeae8519c20a4308","state.kitchen":"962cd7aabcff0a02","state.recent_events":"8b904c40ce1b98f2","state.recent_decisions":"b01c69359286079e"},"removed":[],"wire":{"local:cloudflare":"3afb6ad79f433a30","local:compatible":"be3d25f3a905c160","local:deepseek":"01cc6b5230ad9eeb","local:doubao":"cf34dbf9823c9771","local:gemini":"0b9de66f4a040cc5","local:jev":"117d9dbc99e0fb69","local:openrouter-chat":"be3d25f3a905c160","local:openrouter-decision":"3c461279d33c8115","local:qwen":"a2669f1fb64eefae","local:startlux":"3ab893dd4013425e","local:zhipu":"412554f9cde2e863","hosted:jev":"117d9dbc99e0fb69","hosted:cloudflare-gemma":"03f718dbe4d03896","hosted:cloudflare-llama":"86c07e173f10fd53","hosted:startlux":"8ef301152be9cb60","hosted:zhipu":"5b37214ee88691d5"}},
+  {"t":159.7,"payload":"67358a37d458f0cc","sections":{"top.questions":"39cfb05f5fceec86","state.kitchen":"f844e28825bc13f0","state.recent_events":"93aa585a59aba842","state.recent_decisions":"5fa18aeac0fe7d74","state.jeff_plan":"4167373e6696ab2c"},"removed":[]},
+  {"t":159.9,"payload":"842f880d6cc6bfb1","sections":{"top.questions":"372874e1d9d418d6","state.kitchen":"14373592f2e7dc6f","state.recent_events":"b60c58b03e600b3a","state.recent_decisions":"fbe4e505b86ed13a"},"removed":[]},
+  {"t":161.4,"payload":"0e738b2e0d5f8406","sections":{"top.questions":"d3030b3fb4611291","state.kitchen":"3c37acd519aa7e16","state.recent_events":"d8adbfc197dc1d3c","state.recent_decisions":"e90636ec3e927d9a","state.jeff_plan":"89f24a898d3f9235"},"removed":[]},
+  {"t":162.2,"payload":"d26f64374a97a230","sections":{"top.questions":"ad01b641392a02a3","state.kitchen":"2cc68766ee232495","state.recent_events":"ab5e4470346676fa","state.recent_decisions":"19e5101c7161b374","state.jeff_plan":"88204360068bfac0"},"removed":[],"wire":{"local:cloudflare":"3bfe9bcef3d6192d","local:compatible":"d9e79b03847fcad4","local:deepseek":"4617c5d164a32727","local:doubao":"c8e118301c8f8ae5","local:gemini":"e714e9c60aec8d7c","local:jev":"d26f64374a97a230","local:openrouter-chat":"d9e79b03847fcad4","local:openrouter-decision":"db32586f92cf3ce0","local:qwen":"13d3ebc6d9b445ef","local:startlux":"5d694ccf1a467f3b","local:zhipu":"acd0e7fd44a9acba","hosted:jev":"d26f64374a97a230","hosted:cloudflare-gemma":"9d4b834640bbf3d5","hosted:cloudflare-llama":"3332802cb8de4d03","hosted:startlux":"49928474cbe51dbb","hosted:zhipu":"6e9672f03dfec36d"}},
+  {"t":163.7,"payload":"99980faa1d453f62","sections":{"top.questions":"354abafbab412f6b","state.kitchen":"b879ed31192620fc","state.recent_events":"4d3a792ce8c35bd3","state.recent_decisions":"8b87a16732f4904b"},"removed":[]},
+  {"t":165.2,"payload":"05d58a36cdaafdcf","sections":{"state.kitchen":"5bf509e7fe556617","state.recent_events":"fabca8fce890fc98","state.recent_decisions":"1b99373421b06aa5"},"removed":[]},
+  {"t":166.7,"payload":"f3334c10ca55ab61","sections":{"state.kitchen":"b93334e66ba34cc8","state.recent_events":"215ad6984457ad75","state.recent_decisions":"74c996b622c3d65b"},"removed":[]},
+  {"t":168.5,"payload":"87355ce6f144e99f","sections":{"top.questions":"21d2bb670e457642","state.kitchen":"48db52e0875c7162","state.recent_events":"3b487c166fc0c81c","state.recent_decisions":"6d2d6782b2cfe5d3"},"removed":[],"wire":{"local:cloudflare":"68d29874d2fa8cb9","local:compatible":"481b49d7e77dfd5f","local:deepseek":"248f1d1b8036b321","local:doubao":"95c1d08cc8b2d534","local:gemini":"6936957239b3b5c8","local:jev":"87355ce6f144e99f","local:openrouter-chat":"481b49d7e77dfd5f","local:openrouter-decision":"38fb41ecf13d5e49","local:qwen":"dc59c1bd87e8e5fc","local:startlux":"65774aaa4943eec9","local:zhipu":"454bc605d93eee9c","hosted:jev":"87355ce6f144e99f","hosted:cloudflare-gemma":"04ccfc56f3d5b768","hosted:cloudflare-llama":"8c1dc24f8f177f80","hosted:startlux":"2cca0a60e7380c5a","hosted:zhipu":"00728a8266e4fbc8"}},
+  {"t":170.0,"payload":"6c3f89592b0f7a60","sections":{"top.questions":"2adeef5f7b225af7","state.kitchen":"4fc3a231ee749158","state.recent_events":"d9248746488bc3d9","state.recent_decisions":"921156140ba18ce2"},"removed":[]},
+  {"t":171.5,"payload":"a20c73345ecc4324","sections":{"state.kitchen":"86b1548173d16bf1","state.recent_events":"dcca966397458769","state.recent_decisions":"b368c4e670f1bea1"},"removed":[]},
+  {"t":173.0,"payload":"fe5b3b5eefe00712","sections":{"state.kitchen":"97514aaddc1eb3f1","state.recent_decisions":"a2f85200a8ee8c1b"},"removed":[]},
+  {"t":174.5,"payload":"3762da44e4f1b84a","sections":{"top.questions":"20467a31af8dbc79","state.kitchen":"3e0832cd601a6df6","state.recent_events":"796d5263754b4a8b","state.recent_decisions":"92e875f6cae518ea"},"removed":[],"wire":{"local:cloudflare":"ae0cc6bc6dd6b3c5","local:compatible":"1d12f1d58bd970eb","local:deepseek":"f73620ea512e6734","local:doubao":"c1d9bffa83b2072d","local:gemini":"10cc017eb6db1beb","local:jev":"3762da44e4f1b84a","local:openrouter-chat":"1d12f1d58bd970eb","local:openrouter-decision":"76306081e1120b2d","local:qwen":"876ee44e6381a371","local:startlux":"11e0d2966a7c5b94","local:zhipu":"e3652e59358c5bb0","hosted:jev":"3762da44e4f1b84a","hosted:cloudflare-gemma":"b9cb9fd33b867819","hosted:cloudflare-llama":"1983ce0dbfdb81e8","hosted:startlux":"8d4755bb25d029e7","hosted:zhipu":"e97eaa2774f8388f"}},
+  {"t":174.7,"payload":"e74157ec2facbd9b","sections":{"top.questions":"07de151220aa2bde","state.kitchen":"df800c14e39a65e1","state.recent_events":"99049b2286e29cfc","state.recent_decisions":"9a1a690dfbc8e492"},"removed":[]},
+  {"t":176.0,"payload":"be661d5313eb42b5","sections":{"top.questions":"9dd823a2ced15fa3","state.kitchen":"47e72ccaa388c1b1","state.recent_events":"14043896d7315cb3","state.recent_decisions":"e3e9698f7f9c382a"},"removed":["state.jeff_plan"]},
+  {"t":177.3,"payload":"1f90a75e30b60952","sections":{"top.questions":"20467a31af8dbc79","state.kitchen":"7e5777ef46cfe9eb","state.recent_events":"812e4f262be71fc2","state.recent_decisions":"5a810a8b3fdbcb4c"},"removed":[]},
+  {"t":178.85,"payload":"0997e7d395ef464f","sections":{"top.questions":"33aae252f17d484d","state.kitchen":"2ab14d83f1e21848","state.recent_events":"2abf211f135b3746","state.recent_decisions":"5492b7eb7b59baca","state.jeff_plan":"44d8ac39fda825d5"},"removed":[],"wire":{"local:cloudflare":"c33a20b33d8561fb","local:compatible":"89ff319f9ab7d13c","local:deepseek":"4354cf077673bb8b","local:doubao":"c93f40fab4ea5031","local:gemini":"ac71fcbfb1f5b139","local:jev":"0997e7d395ef464f","local:openrouter-chat":"89ff319f9ab7d13c","local:openrouter-decision":"5544dc68f72cdfca","local:qwen":"8b5e4f656ee452d8","local:startlux":"d4fe6a14b1c0b135","local:zhipu":"5147af14712751a3","hosted:jev":"0997e7d395ef464f","hosted:cloudflare-gemma":"dbf592874bb11cda","hosted:cloudflare-llama":"2880d50ee912104e","hosted:startlux":"66d4b835dc11f7c1","hosted:zhipu":"93dfd83eaf15dd1b"}}
+ ],
+ "sample_payload":{
+ "model": "jev-latest",
+ "state": {
+  "kitchen": {
+   "level": 2,
+   "level_id": "level-2",
+   "config_hash": "sha256:50c0b13c8de347c6cbbb8bf26de44e6d0e5dff31db36e1cc78d63d5ef4f2e598",
+   "order_seed": 26,
+   "time": 0.0,
+   "round_remaining": 180.0,
+   "tableware": {
+    "total": 2,
+    "wash_seconds": 4,
+    "dining_seconds": 8,
+    "return_capacity": 1,
+    "counters": [
+     "plates",
+     "counter2",
+     "counter3",
+     "counter5",
+     "counter6",
+     "counter9",
+     "counter10",
+     "counter12",
+     "counter13",
+     "counter14",
+     "counter15",
+     "counter16",
+     "counter17",
+     "counter18",
+     "counter19",
+     "counter20",
+     "counter21",
+     "counter22",
+     "counter23",
+     "counter24",
+     "counter25",
+     "counter27",
+     "counter28",
+     "counter29",
+     "counter_corner1",
+     "counter_corner2",
+     "counter_corner3",
+     "counter_corner4",
+     "counter_corner5",
+     "counter11"
+    ],
+    "customers": []
+   },
+   "chefs": {
+    "human": {
+     "location": "floor_6_2",
+     "area": "Prep area",
+     "holding": null,
+     "job_id": 1,
+     "task": "Fetch Bread",
+     "target": "bread",
+     "action_kind": "fetch",
+     "working": false,
+     "travel_remaining": 0.01,
+     "work_remaining": 0.15,
+     "can_throw": false,
+     "throw_range": null,
+     "knocked": false,
+     "sprint": {
+      "available": true,
+      "active_remaining": 0,
+      "cooldown_remaining": 0,
+      "multiplier": 2.0,
+      "duration": 1.0,
+      "cooldown_after": 0.0
+     },
+     "handoff_target": null,
+     "manual_moving": false,
+     "move_direction": [
+      0.0,
+      0.0
+     ],
+     "facing": "down",
+     "position": [
+      6,
+      2
+     ],
+     "resync": 0,
+     "location_name": "floor (6,2)",
+     "route": [
+      [
+       6,
+       2
+      ],
+      [
+       6.0,
+       1.95
+      ]
+     ]
+    },
+    "jeff": {
+     "location": "floor_6_5",
+     "area": "Prep area",
+     "holding": null,
+     "job_id": null,
+     "task": "idle",
+     "target": null,
+     "action_kind": null,
+     "working": false,
+     "travel_remaining": 0,
+     "work_remaining": 0,
+     "can_throw": false,
+     "throw_range": null,
+     "knocked": false,
+     "sprint": {
+      "available": true,
+      "active_remaining": 0,
+      "cooldown_remaining": 0,
+      "multiplier": 2.0,
+      "duration": 1.0,
+      "cooldown_after": 0.0
+     },
+     "handoff_target": null,
+     "manual_moving": false,
+     "move_direction": [
+      0.0,
+      0.0
+     ],
+     "facing": "down",
+     "position": [
+      6,
+      5
+     ],
+     "resync": 0,
+     "location_name": "floor (6,5)",
+     "route": []
+    }
+   },
+   "stations": {
+    "fridge": {
+     "name": "Fridge",
+     "area": "Prep area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": false,
+     "stove": false,
+     "type": "ingredient_source",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [],
+     "workers": []
+    },
+    "serve": {
+     "name": "Serve",
+     "area": "Cooking area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": false,
+     "stove": false,
+     "type": "serving_window",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [],
+     "workers": []
+    },
+    "bin": {
+     "name": "Bin",
+     "area": "Cooking area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": false,
+     "stove": false,
+     "type": "bin",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [],
+     "workers": []
+    },
+    "extinguisher": {
+     "name": "Extinguisher rack",
+     "area": "Cooking area",
+     "food": {
+      "id": "E1",
+      "stage": "extinguisher",
+      "meaning": "Extinguisher",
+      "tool": true
+     },
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": false,
+     "stove": false,
+     "type": "tool_rack",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [],
+     "workers": []
+    },
+    "returns": {
+     "name": "Plate return",
+     "area": "Cooking area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": false,
+     "stove": false,
+     "type": "plate_return",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [],
+     "workers": []
+    },
+    "sink": {
+     "name": "Sink",
+     "area": "Cooking area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": false,
+     "stove": false,
+     "type": "sink",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [],
+     "workers": []
+    },
+    "plates": {
+     "name": "Counter 1",
+     "area": "Cooking area",
+     "food": {
+      "id": "D1",
+      "stage": "clean_plate",
+      "meaning": "Clean plate",
+      "wash_remaining": 0
+     },
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": true,
+     "stove": false,
+     "type": "counter",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [
+      "counter2",
+      "counter23"
+     ],
+     "workers": [],
+     "incoming_item": null
+    },
+    "counter2": {
+     "name": "Counter 2",
+     "area": "Cooking area",
+     "food": {
+      "id": "D2",
+      "stage": "clean_plate",
+      "meaning": "Clean plate",
+      "wash_remaining": 0
+     },
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": true,
+     "stove": false,
+     "type": "counter",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [
+      "counter_corner5",
+      "plates"
+     ],
+     "workers": [],
+     "incoming_item": null
+    },
+    "counter3": {
+     "name": "Counter 3",
+     "area": "Prep area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": true,
+     "stove": false,
+     "type": "counter",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [
+      "counter10",
+      "counter13"
+     ],
+     "workers": [],
+     "incoming_item": null
+    },
+    "b1": {
+     "name": "Board 1",
+     "area": "Prep area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": false,
+     "stove": false,
+     "type": "board",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [
+      "counter12",
+      "counter15"
+     ],
+     "workers": [],
+     "incoming_item": null
+    },
+    "b2": {
+     "name": "Board 2",
+     "area": "Prep area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": false,
+     "stove": false,
+     "type": "board",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [
+      "counter15",
+      "counter19"
+     ],
+     "workers": [],
+     "incoming_item": null
+    },
+    "p1": {
+     "name": "Stove 1",
+     "area": "Cooking area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": "P1",
+     "counter": false,
+     "stove": true,
+     "type": "stove",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [
+      "counter20",
+      "counter24"
+     ],
+     "workers": [],
+     "vessel": "pan",
+     "incoming_item": null
+    },
+    "lettuce": {
+     "name": "Lettuce supply",
+     "area": "Prep area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": false,
+     "stove": false,
+     "type": "ingredient_source",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [],
+     "workers": []
+    },
+    "tomato": {
+     "name": "Tomato supply",
+     "area": "Prep area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": false,
+     "stove": false,
+     "type": "ingredient_source",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [],
+     "workers": []
+    },
+    "bread": {
+     "name": "Bread supply",
+     "area": "Prep area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": false,
+     "stove": false,
+     "type": "ingredient_source",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [],
+     "workers": []
+    },
+    "counter5": {
+     "name": "Counter 5",
+     "area": "Prep area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": true,
+     "stove": false,
+     "type": "counter",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [
+      "counter6",
+      "counter9",
+      "counter_corner1"
+     ],
+     "workers": [],
+     "incoming_item": null
+    },
+    "counter6": {
+     "name": "Counter 6",
+     "area": "Prep area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": true,
+     "stove": false,
+     "type": "counter",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [
+      "counter10",
+      "counter5",
+      "counter_corner2"
+     ],
+     "workers": [],
+     "incoming_item": null
+    },
+    "counter9": {
+     "name": "Counter 9",
+     "area": "Prep area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": true,
+     "stove": false,
+     "type": "counter",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [
+      "counter5",
+      "counter_corner1"
+     ],
+     "workers": [],
+     "incoming_item": null
+    },
+    "counter10": {
+     "name": "Counter 10",
+     "area": "Prep area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": true,
+     "stove": false,
+     "type": "counter",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [
+      "counter3",
+      "counter6",
+      "counter_corner2"
+     ],
+     "workers": [],
+     "incoming_item": null
+    },
+    "counter12": {
+     "name": "Counter 12",
+     "area": "Prep area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": true,
+     "stove": false,
+     "type": "counter",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [
+      "b1",
+      "counter11"
+     ],
+     "workers": [],
+     "incoming_item": null
+    },
+    "counter13": {
+     "name": "Counter 13",
+     "area": "Prep area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": true,
+     "stove": false,
+     "type": "counter",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [
+      "counter14",
+      "counter3"
+     ],
+     "workers": [],
+     "incoming_item": null
+    },
+    "counter14": {
+     "name": "Counter 14",
+     "area": "Prep area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": true,
+     "stove": false,
+     "type": "counter",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [
+      "counter13",
+      "counter16"
+     ],
+     "workers": [],
+     "incoming_item": null
+    },
+    "counter15": {
+     "name": "Counter 15",
+     "area": "Prep area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": true,
+     "stove": false,
+     "type": "counter",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [
+      "b1",
+      "b2"
+     ],
+     "workers": [],
+     "incoming_item": null
+    },
+    "counter16": {
+     "name": "Counter 16",
+     "area": "Prep area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": true,
+     "stove": false,
+     "type": "counter",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [
+      "counter14",
+      "counter18"
+     ],
+     "workers": [],
+     "incoming_item": null
+    },
+    "counter17": {
+     "name": "Counter 17",
+     "area": "Cooking area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": true,
+     "stove": false,
+     "type": "counter",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [
+      "counter20"
+     ],
+     "workers": [],
+     "incoming_item": null
+    },
+    "counter18": {
+     "name": "Counter 18",
+     "area": "Cooking area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": true,
+     "stove": false,
+     "type": "counter",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [
+      "counter16"
+     ],
+     "workers": [],
+     "incoming_item": null
+    },
+    "counter19": {
+     "name": "Counter 19",
+     "area": "Cooking area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": true,
+     "stove": false,
+     "type": "counter",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [
+      "b2",
+      "counter21"
+     ],
+     "workers": [],
+     "incoming_item": null
+    },
+    "counter20": {
+     "name": "Counter 20",
+     "area": "Cooking area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": true,
+     "stove": false,
+     "type": "counter",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [
+      "counter17",
+      "p1"
+     ],
+     "workers": [],
+     "incoming_item": null
+    },
+    "counter21": {
+     "name": "Counter 21",
+     "area": "Cooking area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": true,
+     "stove": false,
+     "type": "counter",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [
+      "counter19",
+      "counter23"
+     ],
+     "workers": [],
+     "incoming_item": null
+    },
+    "counter22": {
+     "name": "Counter 22",
+     "area": "Cooking area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": true,
+     "stove": false,
+     "type": "counter",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [],
+     "workers": [],
+     "incoming_item": null
+    },
+    "counter23": {
+     "name": "Counter 23",
+     "area": "Cooking area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": true,
+     "stove": false,
+     "type": "counter",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [
+      "counter21",
+      "plates"
+     ],
+     "workers": [],
+     "incoming_item": null
+    },
+    "counter24": {
+     "name": "Counter 24",
+     "area": "Cooking area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": true,
+     "stove": false,
+     "type": "counter",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [
+      "counter25",
+      "p1"
+     ],
+     "workers": [],
+     "incoming_item": null
+    },
+    "counter25": {
+     "name": "Counter 25",
+     "area": "Cooking area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": true,
+     "stove": false,
+     "type": "counter",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [
+      "counter24",
+      "counter27",
+      "counter_corner4"
+     ],
+     "workers": [],
+     "incoming_item": null
+    },
+    "counter27": {
+     "name": "Counter 27",
+     "area": "Cooking area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": true,
+     "stove": false,
+     "type": "counter",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [
+      "counter25",
+      "counter_corner4"
+     ],
+     "workers": [],
+     "incoming_item": null
+    },
+    "counter28": {
+     "name": "Counter 28",
+     "area": "Cooking area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": true,
+     "stove": false,
+     "type": "counter",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [
+      "counter29"
+     ],
+     "workers": [],
+     "incoming_item": null
+    },
+    "counter29": {
+     "name": "Counter 29",
+     "area": "Cooking area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": true,
+     "stove": false,
+     "type": "counter",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [
+      "counter28"
+     ],
+     "workers": [],
+     "incoming_item": null
+    },
+    "counter_corner1": {
+     "name": "Counter _corner1",
+     "area": "Prep area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": true,
+     "stove": false,
+     "type": "counter",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [
+      "counter5",
+      "counter9"
+     ],
+     "workers": [],
+     "incoming_item": null
+    },
+    "counter_corner2": {
+     "name": "Counter _corner2",
+     "area": "Prep area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": true,
+     "stove": false,
+     "type": "counter",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [
+      "counter10",
+      "counter6"
+     ],
+     "workers": [],
+     "incoming_item": null
+    },
+    "counter_corner3": {
+     "name": "Counter _corner3",
+     "area": "Prep area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": true,
+     "stove": false,
+     "type": "counter",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [
+      "counter11"
+     ],
+     "workers": [],
+     "incoming_item": null
+    },
+    "counter_corner4": {
+     "name": "Counter _corner4",
+     "area": "Cooking area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": true,
+     "stove": false,
+     "type": "counter",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [
+      "counter25",
+      "counter27"
+     ],
+     "workers": [],
+     "incoming_item": null
+    },
+    "counter_corner5": {
+     "name": "Counter _corner5",
+     "area": "Cooking area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": true,
+     "stove": false,
+     "type": "counter",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [
+      "counter2"
+     ],
+     "workers": [],
+     "incoming_item": null
+    },
+    "counter11": {
+     "name": "Counter 11",
+     "area": "Prep area",
+     "food": null,
+     "used_by": null,
+     "fire": false,
+     "heating": false,
+     "pot_id": null,
+     "counter": true,
+     "stove": false,
+     "type": "counter",
+     "fire_heat": 0.0,
+     "fire_strength": null,
+     "fire_neighbors": [
+      "counter12",
+      "counter_corner3"
+     ],
+     "workers": [],
+     "incoming_item": null
+    }
+   },
+   "ground": [],
+   "orders": [
+    {
+     "id": "O1",
+     "dish": "burger",
+     "arrival": 0,
+     "patience": 120,
+     "deadline": 120,
+     "status": "pending",
+     "ingredients": [
+      "bread",
+      "lettuce",
+      "tomato",
+      "beef"
+     ],
+     "remaining": 120.0
+    }
+   ],
+   "future_orders": 1,
+   "goal_status": {
+    "type": "minimum_money",
+    "target_money": 160,
+    "money": 0,
+    "met_now": false,
+    "judged_at": "closing"
+   },
+   "end_policy": "fixed_round",
+   "menu": [
+    {
+     "id": "burger",
+     "name": "Burger",
+     "price": 80,
+     "components": [
+      {
+       "item": "bread",
+       "state": "raw"
+      },
+      {
+       "item": "lettuce",
+       "state": "chopped"
+      },
+      {
+       "item": "tomato",
+       "state": "chopped"
+      },
+      {
+       "item": "beef",
+       "state": "ready"
+      }
+     ]
+    }
+   ],
+   "assembly": true,
+   "dishes": [
+    {
+     "id": "steak",
+     "name": "Steak",
+     "price": 50,
+     "components": [
+      {
+       "item": "beef",
+       "state": "ready"
+      }
+     ]
+    },
+    {
+     "id": "burger",
+     "name": "Burger",
+     "price": 80,
+     "components": [
+      {
+       "item": "bread",
+       "state": "raw"
+      },
+      {
+       "item": "lettuce",
+       "state": "chopped"
+      },
+      {
+       "item": "tomato",
+       "state": "chopped"
+      },
+      {
+       "item": "beef",
+       "state": "ready"
+      }
+     ]
+    }
+   ],
+   "vessels": {
+    "pan": {
+     "name": "frying pan",
+     "cooks": [
+      {
+       "item": "beef",
+       "from": "chopped"
+      }
+     ]
+    }
+   },
+   "ground_assembly": true,
+   "scoring": {
+    "penalties": {
+     "wrong_dish": -20,
+     "expired_order": -10,
+     "new_fire": -5,
+     "discard": -2
+    },
+    "burnt_service": [
+     {
+      "max_overcook_game_ms": 5000,
+      "outcome": "accepted",
+      "adjustment": -10
+     },
+     {
+      "max_overcook_game_ms": null,
+      "outcome": "rejected",
+      "adjustment": 0
+     }
+    ]
+   },
+   "round_limit": 180,
+   "timing": {
+    "wash": 4,
+    "dining": 8,
+    "chop": 3,
+    "cook": 12,
+    "ready_to_burn": 10,
+    "burn_to_fire": 8,
+    "handling": 0.15,
+    "extinguish": 4,
+    "walk_same_area": 1,
+    "walk_cross_area": 3
+   },
+   "money": 0,
+   "served": 0,
+   "fire_safety": {
+    "burning_count": 0,
+    "loss_threshold": 5,
+    "flammability_seconds": 5
+   },
+   "failure_reason": null,
+   "goals": {
+    "target_money": 160
+   },
+   "projectiles": [],
+   "map": {
+    "throw_range": 4,
+    "pass_range": 4,
+    "throw_speed": 12,
+    "width": 14,
+    "height": 9,
+    "walls": [
+     [
+      0,
+      0
+     ],
+     [
+      0,
+      1
+     ],
+     [
+      0,
+      2
+     ],
+     [
+      0,
+      3
+     ],
+     [
+      0,
+      4
+     ],
+     [
+      0,
+      5
+     ],
+     [
+      0,
+      6
+     ],
+     [
+      0,
+      7
+     ],
+     [
+      0,
+      8
+     ],
+     [
+      1,
+      0
+     ],
+     [
+      1,
+      8
+     ],
+     [
+      2,
+      0
+     ],
+     [
+      2,
+      8
+     ],
+     [
+      3,
+      0
+     ],
+     [
+      3,
+      8
+     ],
+     [
+      4,
+      0
+     ],
+     [
+      4,
+      8
+     ],
+     [
+      5,
+      0
+     ],
+     [
+      5,
+      8
+     ],
+     [
+      6,
+      0
+     ],
+     [
+      6,
+      8
+     ],
+     [
+      7,
+      0
+     ],
+     [
+      7,
+      8
+     ],
+     [
+      8,
+      0
+     ],
+     [
+      8,
+      8
+     ],
+     [
+      9,
+      0
+     ],
+     [
+      9,
+      8
+     ],
+     [
+      10,
+      0
+     ],
+     [
+      10,
+      8
+     ],
+     [
+      11,
+      0
+     ],
+     [
+      11,
+      8
+     ],
+     [
+      12,
+      0
+     ],
+     [
+      12,
+      8
+     ],
+     [
+      13,
+      0
+     ],
+     [
+      13,
+      1
+     ],
+     [
+      13,
+      2
+     ],
+     [
+      13,
+      3
+     ],
+     [
+      13,
+      4
+     ],
+     [
+      13,
+      5
+     ],
+     [
+      13,
+      6
+     ],
+     [
+      13,
+      7
+     ],
+     [
+      13,
+      8
+     ]
+    ],
+    "equipment": {
+     "fridge": {
+      "cell": [
+       3,
+       1
+      ],
+      "access": [
+       3,
+       2
+      ],
+      "facing": "south",
+      "type": "ingredient_source"
+     },
+     "serve": {
+      "cell": [
+       1,
+       6
+      ],
+      "access": [
+       2,
+       6
+      ],
+      "facing": "east",
+      "cells": [
+       [
+        1,
+        6
+       ]
+      ],
+      "type": "serving_window"
+     },
+     "bin": {
+      "cell": [
+       12,
+       6
+      ],
+      "access": [
+       11,
+       6
+      ],
+      "facing": "west",
+      "type": "bin"
+     },
+     "extinguisher": {
+      "cell": [
+       8,
+       4
+      ],
+      "access": [
+       8,
+       5
+      ],
+      "facing": "south",
+      "type": "tool_rack"
+     },
+     "returns": {
+      "cell": [
+       1,
+       5
+      ],
+      "access": [
+       2,
+       5
+      ],
+      "facing": "east",
+      "type": "plate_return"
+     },
+     "sink": {
+      "cell": [
+       12,
+       3
+      ],
+      "access": [
+       11,
+       3
+      ],
+      "facing": "west",
+      "type": "sink"
+     },
+     "plates": {
+      "cell": [
+       10,
+       7
+      ],
+      "access": [
+       10,
+       6
+      ],
+      "facing": "north",
+      "type": "counter"
+     },
+     "counter2": {
+      "cell": [
+       11,
+       7
+      ],
+      "access": [
+       11,
+       6
+      ],
+      "facing": "north",
+      "type": "counter"
+     },
+     "counter3": {
+      "cell": [
+       3,
+       4
+      ],
+      "access": [
+       3,
+       5
+      ],
+      "facing": "south",
+      "type": "counter"
+     },
+     "b1": {
+      "cell": [
+       4,
+       7
+      ],
+      "access": [
+       4,
+       6
+      ],
+      "facing": "north",
+      "type": "board"
+     },
+     "b2": {
+      "cell": [
+       6,
+       7
+      ],
+      "access": [
+       6,
+       6
+      ],
+      "facing": "north",
+      "type": "board"
+     },
+     "p1": {
+      "cell": [
+       9,
+       1
+      ],
+      "access": [
+       9,
+       2
+      ],
+      "facing": "south",
+      "type": "stove"
+     },
+     "lettuce": {
+      "cell": [
+       4,
+       1
+      ],
+      "access": [
+       4,
+       2
+      ],
+      "facing": "south",
+      "type": "ingredient_source"
+     },
+     "tomato": {
+      "cell": [
+       5,
+       1
+      ],
+      "access": [
+       5,
+       2
+      ],
+      "facing": "south",
+      "type": "ingredient_source"
+     },
+     "bread": {
+      "cell": [
+       6,
+       1
+      ],
+      "access": [
+       6,
+       2
+      ],
+      "facing": "south",
+      "type": "ingredient_source"
+     },
+     "counter5": {
+      "cell": [
+       1,
+       2
+      ],
+      "access": [
+       2,
+       2
+      ],
+      "facing": "east",
+      "type": "counter"
+     },
+     "counter6": {
+      "cell": [
+       1,
+       3
+      ],
+      "access": [
+       2,
+       3
+      ],
+      "facing": "east",
+      "type": "counter"
+     },
+     "counter9": {
+      "cell": [
+       2,
+       1
+      ],
+      "access": [
+       2,
+       2
+      ],
+      "facing": "south",
+      "type": "counter"
+     },
+     "counter10": {
+      "cell": [
+       2,
+       4
+      ],
+      "access": [
+       2,
+       5
+      ],
+      "facing": "south",
+      "type": "counter"
+     },
+     "counter12": {
+      "cell": [
+       3,
+       7
+      ],
+      "access": [
+       3,
+       6
+      ],
+      "facing": "north",
+      "type": "counter"
+     },
+     "counter13": {
+      "cell": [
+       4,
+       4
+      ],
+      "access": [
+       4,
+       5
+      ],
+      "facing": "south",
+      "type": "counter"
+     },
+     "counter14": {
+      "cell": [
+       5,
+       4
+      ],
+      "access": [
+       5,
+       5
+      ],
+      "facing": "south",
+      "type": "counter"
+     },
+     "counter15": {
+      "cell": [
+       5,
+       7
+      ],
+      "access": [
+       5,
+       6
+      ],
+      "facing": "north",
+      "type": "counter"
+     },
+     "counter16": {
+      "cell": [
+       6,
+       4
+      ],
+      "access": [
+       6,
+       5
+      ],
+      "facing": "south",
+      "type": "counter"
+     },
+     "counter17": {
+      "cell": [
+       7,
+       1
+      ],
+      "access": [
+       7,
+       2
+      ],
+      "facing": "south",
+      "type": "counter"
+     },
+     "counter18": {
+      "cell": [
+       7,
+       4
+      ],
+      "access": [
+       7,
+       5
+      ],
+      "facing": "south",
+      "type": "counter"
+     },
+     "counter19": {
+      "cell": [
+       7,
+       7
+      ],
+      "access": [
+       7,
+       6
+      ],
+      "facing": "north",
+      "type": "counter"
+     },
+     "counter20": {
+      "cell": [
+       8,
+       1
+      ],
+      "access": [
+       8,
+       2
+      ],
+      "facing": "south",
+      "type": "counter"
+     },
+     "counter21": {
+      "cell": [
+       8,
+       7
+      ],
+      "access": [
+       8,
+       6
+      ],
+      "facing": "north",
+      "type": "counter"
+     },
+     "counter22": {
+      "cell": [
+       9,
+       4
+      ],
+      "access": [
+       10,
+       4
+      ],
+      "facing": "east",
+      "type": "counter"
+     },
+     "counter23": {
+      "cell": [
+       9,
+       7
+      ],
+      "access": [
+       9,
+       6
+      ],
+      "facing": "north",
+      "type": "counter"
+     },
+     "counter24": {
+      "cell": [
+       10,
+       1
+      ],
+      "access": [
+       10,
+       2
+      ],
+      "facing": "south",
+      "type": "counter"
+     },
+     "counter25": {
+      "cell": [
+       11,
+       1
+      ],
+      "access": [
+       11,
+       2
+      ],
+      "facing": "south",
+      "type": "counter"
+     },
+     "counter27": {
+      "cell": [
+       12,
+       2
+      ],
+      "access": [
+       11,
+       2
+      ],
+      "facing": "west",
+      "type": "counter"
+     },
+     "counter28": {
+      "cell": [
+       12,
+       4
+      ],
+      "access": [
+       11,
+       4
+      ],
+      "facing": "west",
+      "type": "counter"
+     },
+     "counter29": {
+      "cell": [
+       12,
+       5
+      ],
+      "access": [
+       11,
+       5
+      ],
+      "facing": "west",
+      "type": "counter"
+     },
+     "counter_corner1": {
+      "cell": [
+       1,
+       1
+      ],
+      "access": [
+       2,
+       2
+      ],
+      "facing": "south",
+      "reach": "corner",
+      "type": "counter"
+     },
+     "counter_corner2": {
+      "cell": [
+       1,
+       4
+      ],
+      "access": [
+       2,
+       3
+      ],
+      "facing": "north",
+      "reach": "corner",
+      "type": "counter"
+     },
+     "counter_corner3": {
+      "cell": [
+       1,
+       7
+      ],
+      "access": [
+       2,
+       6
+      ],
+      "facing": "north",
+      "reach": "corner",
+      "type": "counter"
+     },
+     "counter_corner4": {
+      "cell": [
+       12,
+       1
+      ],
+      "access": [
+       11,
+       2
+      ],
+      "facing": "south",
+      "reach": "corner",
+      "type": "counter"
+     },
+     "counter_corner5": {
+      "cell": [
+       12,
+       7
+      ],
+      "access": [
+       11,
+       6
+      ],
+      "facing": "north",
+      "reach": "corner",
+      "type": "counter"
+     },
+     "counter11": {
+      "cell": [
+       2,
+       7
+      ],
+      "access": [
+       2,
+       6
+      ],
+      "facing": "north",
+      "type": "counter"
+     }
+    },
+    "walk_speed": 4.5,
+    "catch_radius": 0.75,
+    "layout_version": "level-2-4",
+    "collision": {
+     "chef_separation": 0.4,
+     "sprint_food_limit": 0.25,
+     "food_blocks_walking": false,
+     "food_repulsion": false,
+     "sprint_push": 1.0,
+     "stall_replan_after": 0.3
+    }
+   }
+  },
+  "rules": {
+   "role": "You control chef jeff. Chef human is controlled by a person in the same kitchen. Both chefs can perform the same actions; neither has a fixed role. Choose one next action for your own chef.",
+   "objective": "Reach a net revenue of at least 160 yuan at closing time, 180 game seconds. The round always runs until closing and only the net revenue at closing counts: penalties after reaching the target can take you below it again. Orders keep arriving until closing; orders still waiting at closing carry no penalty. There is no bonus for remaining time.",
+   "flow": "Dishes, all components on one clean plate in any order: steak = beef (cooked); burger = bread (as fetched), lettuce (chopped), tomato (chopped), beef (cooked). Orders in this round ask for: burger. Ingredients reach the listed state by chopping on a board and, where the recipe needs cooked food, cooking in a pot on a stove; ingredients listed as chopped or as fetched are never cooked. Recipes and order ingredients are explicit in state. A plate that matches no dish can be carried, put down or passed like other plates, but not served.",
+   "vessels": "In action keys and these rules, pot means any cooking vessel on a stove or held. kitchen.vessels lists each kind of vessel in this level, its name and the ingredients it cooks; each stove, held item or floor item that is a vessel shows its kind as vessel. An ingredient can be put only into the kind of vessel that cooks it.",
+   "plate_reuse": "Dirty plates cannot hold food or substitute for clean plates. If no clean plate is available, dirty plates must be washed before plating and serving can continue. Waiting alone does not clean plates. Decide when to wash and how to divide work based on the situation.",
+   "tableware": "Tableware is limited and distributed across counters. Each counter holds one item: a plate, a pot, or an ingredient. There is no stacking rack. tableware.counters lists counter IDs; stations, ground, and chefs show actual locations. clean_plate means clean; dirty_plate means dirty; food is plated only when plate_id is nonempty. Use take/put at counters. Removing cooked food requires a container: hold a clean plate and use plate pN at a stove, hold a filled pot and use plate <counter_id> at a clean plate on a counter, or hold a clean plate and use plate <counter_id> at a filled pot on a counter. take pot pN lifts the pot and contents together. A pot occupies your hands; like plates it can be passed to the other chef or the floor within 4 tiles. Off the stove heating stops; returning it resumes heating. contents is the food inside. An empty stove cannot accept ingredients until its pot is returned. Recycling: take returns collects a dirty plate; put sink puts it in an empty sink; wash with empty hands; take sink collects the clean plate for plating or storage. Washing can be interrupted and resumed by either chef with progress preserved. Diners return plates after the dining time. The return station holds one plate; further returns queue. Clean plates, dirty plates and plated food can be passed to the other chef or the floor within 4 tiles (never onto boards or counters); a dropped plate keeps its food. They can also be put down and picked up. Plates and pots cannot be destroyed. Discarding plated food leaves a dirty plate; emptying a pot leaves an empty pot, costing 2 yuan. Decide when to wash, carry plates or lift pots; roles are not fixed.",
+   "resources": "Each chef holds one item. With an item in hand you can only take the extinguisher or pick up a loose raw or chopped ingredient from the floor; the previously held item is then placed on nearby ground when the action completes and can be recovered without a penalty. If no nearby space is available, the swap fails and neither item changes. To take anything else, first put the held item down. Each pot and board holds one food item. Chopping requires empty hands; chopped food still occupies the board. Cooking is automatic; no chef needs to stay at the stove. There is no transfer window.",
+   "ground": "Any held item can be put down with drop on the current or an adjacent free floor tile. Each tile holds one item. Actions walk to the destination; placing takes timing.handling seconds. No free tile means no drop. Either chef can use pickup <item_id> to walk to and pick up an item. With an item in hand you can only take the extinguisher or pick up a loose raw or chopped ingredient from the floor; the previous item then goes on nearby ground, and without free space nothing changes. To take anything else, put the held item down first; the person plays by the same rule. State and preparation progress are preserved, with no penalty, spoilage or heating. Only discard destroys food and costs money.",
+   "timing": {
+    "wash": 4,
+    "dining": 8,
+    "chop": 3,
+    "cook": 12,
+    "ready_to_burn": 10,
+    "burn_to_fire": 8,
+    "handling": 0.15,
+    "extinguish": 4,
+    "take_put_fetch": 0.15,
+    "serve": 0.15,
+    "walk_cells_per_second": 4.5,
+    "throw_cells_per_second": 12,
+    "throw_windup": 0.15
+   },
+   "interrupt": "continue keeps the current task; another action interrupts it. Chopping progress is preserved. Cooking in a pot does not stop when a chef switches tasks. Decide whether to continue or interrupt.",
+   "fire": "Burnt food cannot be restored. Removing the whole pot stops heating. First take extinguisher from its rack, or pickup E1 from the floor; extinguish sprays it, and 4 seconds of spraying in total put a fire out. Spraying lowers the fire_strength of that station (1 full, 0 out), which stays if you stop; after 2 seconds without spraying a fire grows back to full over 5 seconds. Both chefs follow the same rule. To reuse the pot, lift it (take pot pN) and empty the burnt food at a bin (discard). The extinguisher occupies your hands; a previously held item is automatically put on the floor. Return it with put extinguisher or drop it. There is one extinguisher, usable by either chef; it cannot be discarded or served. Extinguishing stops heating. Each burning stove, board or counter heats every combustible workstation in the eight cells around it, diagonals included: next to one burning workstation it ignites after 5 game seconds, and several burning neighbours add up. The fire_heat of each station (0 to 1) shows how close it is to igniting; without a burning neighbour the heat drains again after a short delay, and a workstation just extinguished takes no heat for a moment. Fire never jumps across a floor gap or wall. Until the fire is out, a burning ingredient source cannot be used and nobody can chop on a burning board; but what rests on a burning board, counter or stove can still be taken and items put or plated there: a pan can be lifted off a burning stove, put back, or filled when empty. A burning stove does not heat; once it is put out, food in its pan that is not burnt cooks on. The same for both chefs. 5 simultaneously burning workstations immediately lose the round. Extinguish any burning workstation with the same extinguisher. An extinguished workstation can reignite from an adjacent fire; removing food does not remove a cabinet fire. Check kitchen.fire_safety and each station fire_neighbors and fire_heat. The extinguisher is a movable object.",
+   "score": "Serving a complete plated dish goes to the waiting order of the same dish with the earliest deadline and earns its price (steak 50 yuan, burger 80 yuan); serving exactly at the deadline still counts. A plate can be served when its components are exactly those of one dish in kitchen.dishes; orders show which dishes customers are waiting for. Unplated food, or a plate that matches no dish, cannot be served. If any component was burnt, what counts is how long it had been burnt when it left the heat: burnt for up to 5 s: accepted at the price -10 yuan; burnt for longer: refused with no payment; the dish is lost and the order keeps waiting. Serving a dish that no shown order is waiting for: -20 yuan. Expired order: -10 yuan. Fire: -5 yuan per burning workstation. Discarding food or emptying a pot: -2 yuan. There are no bad reviews.",
+   "visibility": "Both chefs see the same kitchen state. All available actions are in criteria; legal does not mean useful. Waiting and continuing are allowed. The program does not choose your strategy. go X is listed only when no other listed action already walks to X. Empty counters differ only in place, so for each area the 2 nearest empty counters are listed for go and put.",
+   "movement": "This is a top-down grid kitchen. map specifies walls, equipment and reference access positions; position is the live coordinate. Travel follows the shortest navigable polyline by actual distance, going straight when clear and leaving body clearance around walls and equipment. Switching tasks during travel starts a new route from the current position. Stations can be used from the nearest reachable adjacent floor tile; access is only a reference, not the only usable side. Walls and equipment block movement; floor items do not. Chopping and washing need the hands over the station: within half a tile of the centre of one of its sides; chop and wash walk there. Both chefs can chop on the same board or wash at the same sink together, from different sides or side by side on one side, and their progress adds up. Chefs cannot overlap: each keeps 0.4 tiles from the other, slides along the other chef when there is room and pushes slowly when pressing on; walking never pushes a chef who is chopping or washing. A sprint into the other chef knocks them back up to 1 tiles and stops their work (its progress is kept); when both sprint into each other, both bounce. A chef pinned against a wall is not knocked and keeps working. A routed chef whose route makes no progress for 0.3 s re-plans from its current position around the other chef. go only moves; drop and pickup move items via the floor.",
+   "partner": "human is the other chef, controlled by a person. position is the current coordinate; holding is the held item; task and target identify the current action; travel_remaining and work_remaining give remaining time. During travel, location may still name the origin station, so use position for distance. Future human intentions are not known facts.",
+   "throw": "throw partner throws toward the other chef's current position; throw <direction> (up, down, left, right, up-left, up-right, down-left, down-right) throws to full range that way. These are the throws the person can make too. Loose raw or chopped ingredients fly up to 4 tiles; clean plates, dirty plates, plated food and pots up to 4 tiles (your throw_range shows the current limit); the extinguisher cannot be thrown. Each throw option names where the item would come down. Throws pass over equipment; the first wall stops them. An empty-handed chef who is walking or standing close to the path catches the item; a chef who is working or holding something is not interrupted and it lands beside them. A raw or chopped ingredient that comes down on an empty board or counter rests there (chop only on boards; take from either), and one that comes down in an empty pan on a stove that cooks it goes in and starts heating. Anything else lands on the nearest free floor tile; with none free the throw is unavailable. incoming_item marks a station an item is flying to. projectiles lists in-flight items and landing times; they cannot be picked up in flight. At release your hands become empty. Decide whether and where to throw yourself.",
+   "partner_plating": "plate partner: approach the other chef holding a clean or compatible partially assembled plate. Add your prepared ingredient, or transfer cooked/burnt food from your held pot. When the menu has multi-ingredient dishes, you can also transfer all ingredients from your held plate if none duplicate the receiving plate. Food stays on the receiving plate; your pot or emptied plate stays in your hands, or your hand becomes empty after donating a loose ingredient. A chef currently performing work cannot receive, and the transfer does not interrupt that work. Proximity and held items are checked again on arrival and completion; if they change, the transfer is cancelled. Neither chef can directly take an item from the other chef's hands.",
+   "pot_swap": "swap pot <stove_or_counter_id> or swap pot ground <pot_id> exchanges your held pot with the target pot in place. Contents and cooking progress stay with each original pot. The incoming pot heats only on a stove; the outgoing pot stops heating in your hands. A chopped ingredient starts cooking when its pot reaches a stove. Empty pots do not heat; cooked or burnt food resumes its existing heat progress. A burning stove must be extinguished before exchanging pots. Both chefs have these actions.",
+   "off_stove_pots": "load ground <pot_id> puts held food into an empty pot on the floor. load <counter_id> puts held food into an empty pot on that counter. The ingredient stays inside the pot; your hands become empty. Then pickup or take the pot and return it to a stove to heat it. Off-stove pots never heat food. Only food in the state that kitchen.vessels lists for that kind of vessel can be loaded. Rules are identical for both chefs and all levels.",
+   "assembly": "assemble <counter_id> adds your ingredient to a counter plate, or the counter ingredient to your held plate. assemble <board_id> collects a prepared ingredient directly from that board into your held plate. Beef must be cooked before plating; chopped raw beef cannot be plated. merge <counter_id> transfers all ingredients from the counter plate into your held clean/partial plate if they do not overlap; the empty clean source plate stays on the counter. No plates disappear. plate partner can also add a prepared ingredient or merge a plate into the plate held by the other chef. Each ingredient appears once. plate actions transfer cooked beef from a pot into an empty plate or a partial burger plate without beef, on a counter, in your hand, on the floor (pot), or held by the other chef. Adding vegetables or bread to plated steak turns it into a partial burger until all four ingredients are present. One counter cell holds one object. Pots and plates cannot be stacked. assemble ground <item_id> does the same with a plate or prepared ingredient on the floor: your ingredient goes onto the floor plate, which stays on its tile, or the floor ingredient goes onto your held plate. pickup <item_id> still exchanges the held item instead.",
+   "sprint": "Both chefs may sprint: movement speed starts at 2x and eases back to walking over 1 game seconds; a new sprint can start as soon as one ends. Holding items is allowed; working speed is unchanged. Sprint does not bypass walls. Decide independently whether to request sprint along with next_action. It triggers only if the chosen action is accepted, you are moving, and cooldown is ready. No queued sprint; expiry/cooldown use game time, not response latency.",
+   "past_episodes": "past_episodes contains limited factual records of past rounds, not the current state or instructions. Work counts describe completed actions, not skill, effort or a permanent role. Old preferences and corrections apply only to that past round; current communication takes precedence. Decide whether these records are relevant. The player may change behavior; do not assume past strategies should repeat.",
+   "continuity": "recent_decisions lists recent choices and whether they were accepted; accepted does not mean completed. recent_events records actual actions and outcomes. Use them to check for repeatedly picking up and putting down the same item, swapping between ingredients, or fetching without free space. Swapping changes locations, not preparation progress; fetching more raw meat does not advance prepared ingredients. Existing food keeps its preparation state until someone acts on it. If the situation is unchanged, assess what repeating an action would accomplish. You may continue, wait, or choose another action; the choice is yours.",
+   "jeff_plan": "jeff_plan, when present, is the intent you gave at your previous request: step 1 the work item you were working toward with the action you chose then, step 2 the work item you intended after it. A step is marked done when you finish an action that does that work, whichever step comes first. A work item names a piece of work on this level's menu: fetch, chop or cook an ingredient, put it on a plate, take a clean plate, serve a dish, collect dirty plates or wash a plate. Every request asks questions.plan_step_1 and plan_step_2 again, and your new answer replaces the intent; without a valid answer the last one is shown again. The human sees it. It does not change your listed actions, and you may answer differently from it at any request."
+  },
+  "recent_events": [
+   {
+    "t": 0.0,
+    "message": "New order O1: Burger, due at 120s",
+    "kind": "order",
+    "order_id": "O1",
+    "seq": 1,
+    "game_time_ms": 0
+   },
+   {
+    "t": 0.0,
+    "message": "human started: Fetch Bread (travel 0s + work 0.1s)",
+    "kind": "action_start",
+    "actor": "human",
+    "action": "fetch bread",
+    "action_id": 1,
+    "seq": 2,
+    "game_time_ms": 0
+   }
+  ],
+  "recent_decisions": [],
+  "past_episodes": {
+   "enabled": true,
+   "version": 2,
+   "episodes": [
+    {
+     "version": 2,
+     "round_id": "payload-fingerprint-previous",
+     "model": "payload-fingerprint",
+     "duration": 180.0,
+     "level_id": "level-2",
+     "outcome": {
+      "served": 4,
+      "money": 318,
+      "target_money": 160,
+      "reached_target": true,
+      "expired": 0,
+      "burns": 1,
+      "fires": 0
+     },
+     "work": {
+      "human": {
+       "fetch": 14,
+       "chop": 9,
+       "assemble": 13,
+       "serve": 4,
+       "wash": 3,
+       "collect_plates": 4
+      },
+      "jeff": {
+       "fetch": 6,
+       "chop": 10,
+       "heat": 6,
+       "assemble": 5,
+       "wash": 2,
+       "discard": 1
+      }
+     },
+     "communication": {
+      "last_preference": "prep",
+      "corrections": 1
+     },
+     "layout": "level-2-4",
+     "events": [
+      {
+       "t": 0.2,
+       "kind": "action_done",
+       "actor": "human",
+       "action": "fetch bread",
+       "message": "human completed: Fetch Bread"
+      },
+      {
+       "t": 2.95,
+       "kind": "action_done",
+       "actor": "jeff",
+       "action": "fetch",
+       "message": "jeff completed: Take raw meat from the fridge"
+      },
+      {
+       "t": 8.05,
+       "kind": "arrival_conflict",
+       "actor": "human",
+       "message": "human: target changed or is occupied; action cancelled"
+      },
+      {
+       "t": 30.7,
+       "kind": "action_done",
+       "actor": "human",
+       "action": "serve",
+       "message": "human completed: Serve the plated dish (serving a dish no order is waiting for costs money; a dish burnt too long is refused)"
+      },
+      {
+       "t": 36.45,
+       "kind": "action_done",
+       "actor": "jeff",
+       "action": "chop b1",
+       "message": "jeff completed: Chop F5 at Board 1 (3.0s left)"
+      },
+      {
+       "t": 63.15,
+       "kind": "action_done",
+       "actor": "jeff",
+       "action": "take b2",
+       "message": "jeff completed: Take F8 (Chopped) from Board 2"
+      },
+      {
+       "t": 64.45,
+       "kind": "action_done",
+       "actor": "human",
+       "action": "put b1",
+       "message": "human completed: Put the held ingredient on Board 1"
+      },
+      {
+       "t": 67.5,
+       "kind": "arrival_conflict",
+       "actor": "jeff",
+       "message": "jeff: ingredient no longer needs chopping; action cancelled"
+      },
+      {
+       "t": 85.65,
+       "kind": "arrival_conflict",
+       "actor": "human",
+       "message": "human: target changed or is occupied; action cancelled"
+      },
+      {
+       "t": 95.5,
+       "kind": "washed",
+       "actor": "human",
+       "message": "human washed D1; take it to plate food or put it on a counter"
+      },
+      {
+       "t": 103.75,
+       "kind": "action_done",
+       "actor": "jeff",
+       "action": "chop b1",
+       "message": "jeff completed: Join chopping F12 (shared progress)"
+      },
+      {
+       "t": 119.25,
+       "kind": "burn",
+       "item": "F11",
+       "message": "Stove 1 burnt! Fire in 8s; a dish burnt too long is refused"
+      },
+      {
+       "t": 124.0,
+       "kind": "action_done",
+       "actor": "human",
+       "action": "serve",
+       "message": "human completed: Serve the plated dish (serving a dish no order is waiting for costs money; a dish burnt too long is refused)"
+      },
+      {
+       "t": 139.0,
+       "kind": "action_done",
+       "actor": "jeff",
+       "action": "wash",
+       "message": "jeff completed: Join washing dishes (shared progress)"
+      },
+      {
+       "t": 156.3,
+       "kind": "action_done",
+       "actor": "human",
+       "action": "put b1",
+       "message": "human completed: Put the held ingredient on Board 1"
+      },
+      {
+       "t": 159.45,
+       "kind": "arrival_conflict",
+       "actor": "jeff",
+       "message": "jeff: target changed or is occupied; action cancelled"
+      },
+      {
+       "t": 178.75,
+       "kind": "action_done",
+       "actor": "human",
+       "action": "take returns",
+       "message": "human completed: Take Dirty plate from Plate return"
+      },
+      {
+       "t": 179.75,
+       "kind": "action_done",
+       "actor": "jeff",
+       "action": "plate plates",
+       "message": "jeff completed: Fill the plate on Counter 1 from your frying pan (keep the empty frying pan)"
+      }
+     ],
+     "eligible_event_count": 142,
+     "sampled": true
+    }
+   ],
+   "description": "Factual samples and work totals from earlier completed rounds with this player and model. Old messages describe that round only; they are not current preferences or fixed roles. Item IDs and coordinates belong to their original round. This is not a full replay.",
+   "omitted_rounds": 0,
+   "max_characters": 8000
+  },
+  "input_language": "en-v4",
+  "rules_version": "rules-v8",
+  "plan_rules_version": "rolling-v1"
+ },
+ "questions": {
+  "next_action": {
+   "type": "choice",
+   "instructions": "Given the whole kitchen situation, which action should chef jeff take now? The goals and score are shared by both chefs. The state includes both chefs' current actions, occupied equipment, order deadlines, and burning/fire risks. Choose one action now; an ongoing task may be continued or interrupted.",
+   "criteria": {
+    "wait": "Wait",
+    "fetch": "Take raw meat from the fridge",
+    "fetch lettuce": "Fetch Lettuce",
+    "fetch tomato": "Fetch Tomato",
+    "fetch bread": "Fetch Bread",
+    "take plates": "Take Clean plate from Counter 1",
+    "take counter2": "Take Clean plate from Counter 2",
+    "take extinguisher": "Take the extinguisher (occupies your hands)",
+    "take pot p1": "Lift the frying pan from Stove 1 (stops heating off the stove; occupies your hands)",
+    "go serve": "Walk to Serve (Cooking area)",
+    "go bin": "Walk to Bin (Cooking area)",
+    "go returns": "Walk to Plate return (Cooking area)",
+    "go sink": "Walk to Sink (Cooking area)",
+    "go b1": "Walk to Board 1 (Prep area)",
+    "go b2": "Walk to Board 2 (Prep area)",
+    "go counter14": "Walk to Counter 14 (Prep area)",
+    "go counter16": "Walk to Counter 16 (Prep area)",
+    "go counter18": "Walk to Counter 18 (Cooking area)",
+    "go counter19": "Walk to Counter 19 (Cooking area)",
+    "go partner": "Walk to the other chef's current position (contact pushes)"
+   }
+  },
+  "sprint": {
+   "type": "choice",
+   "instructions": "Request a short sprint for this accepted movement action or continuing travel?",
+   "criteria": {
+    "yes": "Request sprint if moving and available",
+    "no": "Do not request sprint"
+   }
+  },
+  "plan_step_1": {
+   "type": "choice",
+   "instructions": "Your intent, step 1: the work item you are working toward with the action you choose in next_action (the work that action does, or that it leads to). It is shown to the human chef and returned to you as jeff_plan at your next request; it does not limit your actions.",
+   "criteria": {
+    "fetch:beef": "Fetch beef",
+    "fetch:bread": "Fetch bread",
+    "fetch:lettuce": "Fetch lettuce",
+    "fetch:tomato": "Fetch tomato",
+    "chop:beef": "Chop beef",
+    "chop:lettuce": "Chop lettuce",
+    "chop:tomato": "Chop tomato",
+    "cook:beef": "Put chopped beef into a pan to cook",
+    "plate:beef": "Put beef on a plate",
+    "plate:bread": "Put bread on a plate",
+    "plate:lettuce": "Put lettuce on a plate",
+    "plate:tomato": "Put tomato on a plate",
+    "take_plate": "Take a clean plate",
+    "serve": "Serve a dish at the serving window",
+    "collect_plates": "Collect dirty plates from the plate return",
+    "wash_plates": "Wash a dirty plate at the sink"
+   }
+  },
+  "plan_step_2": {
+   "type": "choice",
+   "instructions": "Your intent, step 2: the work item you intend to do after step 1, or none.",
+   "criteria": {
+    "fetch:beef": "Fetch beef",
+    "fetch:bread": "Fetch bread",
+    "fetch:lettuce": "Fetch lettuce",
+    "fetch:tomato": "Fetch tomato",
+    "chop:beef": "Chop beef",
+    "chop:lettuce": "Chop lettuce",
+    "chop:tomato": "Chop tomato",
+    "cook:beef": "Put chopped beef into a pan to cook",
+    "plate:beef": "Put beef on a plate",
+    "plate:bread": "Put bread on a plate",
+    "plate:lettuce": "Put lettuce on a plate",
+    "plate:tomato": "Put tomato on a plate",
+    "take_plate": "Take a clean plate",
+    "serve": "Serve a dish at the serving window",
+    "collect_plates": "Collect dirty plates from the plate return",
+    "wash_plates": "Wash a dirty plate at the sink",
+    "none": "No further step"
+   }
+  }
+ }
+}
+}

@@ -252,8 +252,8 @@ def plan_condition(session):
     plan = getattr(getattr(session, 'ai', None), 'plan', None)
     if plan is None:
         return {}
-    from harness import PLAN_RULES_VERSION
-    return {'jeff_plan': {'mode': 'choice', 'steps': plan.steps, 'rules_version': PLAN_RULES_VERSION}}
+    from harness import plan_condition as condition
+    return {'jeff_plan': condition(plan.mode, plan.steps)}
 
 
 def project_event(record):

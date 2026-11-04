@@ -19,7 +19,7 @@ import webbrowser
 
 from kitchen import Kitchen, ROOT, load_config
 from jev import JevClient, DecisionLoop
-from harness import Plan, PLAN_RULES_VERSION, PLAN_STEPS
+from harness import Plan, PLAN_MODES, plan_condition
 from play import Journal
 from round_summary import round_summary
 from session_record import SessionLog, write_bundle
@@ -540,7 +540,7 @@ class GameSession:
         if path == '/api/plan':
             if self.phase not in ('ready', 'ended'):
                 return 409, {'error': '请在开局前或结算后修改计划模式。'}
-            if body.get('mode') not in ('off', 'choice'):
+            if body.get('mode') not in ('off', *PLAN_MODES):
                 return 400, {'error': '计划模式设置无效。'}
             self.jeff_plan_mode = body['mode']
             return 200, {'ok': True, 'jeff_plan': self.plan_state()}
@@ -569,13 +569,13 @@ class GameSession:
             self.journal = SessionLog(self, self.journal_factory(self.log_prefix+'-'+self.game_id[:8]),
                                       keep_payloads=self.bundle_root is not None, deployment_mode=self.deployment_mode)
             self.session_log = self.journal
-            plan = ({'jeff_plan': {'mode': 'choice', 'steps': PLAN_STEPS, 'rules_version': PLAN_RULES_VERSION}}
-                    if self.jeff_plan_mode == 'choice' else {})
+            held = Plan(mode=self.jeff_plan_mode) if self.jeff_plan_mode in PLAN_MODES else None
+            plan = {'jeff_plan': plan_condition(held.mode, held.steps)} if held else {}
             self.journal('start', {'config':self.c, 'config_hash':self.k.config_hash, 'speed':self.speed, 'state':self.k.snapshot(), **plan})
             self.ai = DecisionLoop(self.k, client, self.journal, self.note)
             self.ai.game_speed = self.speed
-            if plan:
-                self.ai.plan = Plan(PLAN_STEPS)
+            if held:
+                self.ai.plan = held
             self.phase = 'running'
             self.last_tick = self.last_seen = time.monotonic()
             self.wake.set()

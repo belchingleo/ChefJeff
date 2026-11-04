@@ -1285,9 +1285,12 @@
           ]
         },
         "jeff_plan": {
-          "description": "Only with Jeff's plan switch on: harness.Plan.input() for this request, enough to rebuild it.",
+          "description": "Only with Jeff's plan switch on: harness.Plan.input() for this request, enough to rebuild it. mode appears only for the rolling intent trial.",
           "type": "object",
           "properties": {
+            "mode": {
+              "const": "rolling"
+            },
             "steps": {
               "type": "integer",
               "minimum": 1,

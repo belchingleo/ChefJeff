@@ -55,12 +55,13 @@ SPEED = .75         # default game seconds per wall second; the loop's clock is 
 KEY = 'payload-fingerprint-key'
 WALL_TIME = '2026-11-03T12:00:00+08:00'
 SCENARIOS = {
-    # name: (level id, with player messages and cross-round memory, with Jeff's plan switch on)
+    # name: (level id, with player messages and cross-round memory, Jeff's plan mode: off, on, or 'rolling')
     'level1': ('level-1', False, False),
     'level2': ('level-2', False, False),
     'level3': ('level-3', False, False),
     'level2-messages-memory': ('level-2', True, False),
     'level2-plan': ('level-2', True, True),
+    'level2-rolling': ('level-2', True, 'rolling'),
 }
 MESSAGES = ((20.0, 'prep'), (70.0, 'mistake'), (120.0, 'wash'))
 COMPOSE = jev.compose_payload
@@ -245,7 +246,7 @@ def run(name):
     if talk:
         loop.cooperation_memory = memory
     if planned:
-        loop.plan = Plan()
+        loop.plan = Plan(mode='rolling' if planned == 'rolling' else 'choice')
     pending = list(MESSAGES) if talk else []
     step = 0
     with (patch('jev.time.monotonic', lambda: 1000 + k.time / SPEED), patch('jev.threading.Thread', Inline),

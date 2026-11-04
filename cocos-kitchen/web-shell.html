@@ -190,6 +190,7 @@ function kitchenTabs(dialog){
 #kitchen-api-dialog[data-view=custom] .settings-only{display:none}
 /* 计划模式: a switch in the shell's square, ink-bordered, hard-shadow style; denim marks "on". */
 #plan-setting{position:relative;margin-top:22px;padding-top:18px;border-top:2px dashed #e3c79a}
+#rolling-row{margin-top:12px}
 .switch-row{display:flex;align-items:center;gap:12px;margin:0 0 4px}
 .switch-text{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;min-width:0}
 #kitchen-api-dialog label.switch-label{display:inline;margin:0;font:18px/24px var(--pixel);color:var(--ink);cursor:pointer}
@@ -291,6 +292,10 @@ function kitchenTabs(dialog){
     <span class="switch-text"><label for="jeff-plan" id="jeff-plan-label" class="switch-label">计划模式（测试）</label><button id="plan-info" class="info-btn" type="button" aria-label="计划模式说明" aria-expanded="false" aria-controls="plan-tip" aria-describedby="plan-tip">i</button></span>
    </div>
    <div id="plan-tip" class="tip" role="tooltip" hidden>Jeff 会写下接下来要做的几步，把前后动作连起来，用来减少来回倒腾</div>
+   <div class="switch-row" id="rolling-row">
+    <button id="jeff-rolling" class="switch" type="button" role="switch" aria-checked="false" aria-labelledby="jeff-rolling-label" aria-describedby="plan-status"><span class="switch-knob" aria-hidden="true"></span></button>
+    <span class="switch-text"><label for="jeff-rolling" id="jeff-rolling-label" class="switch-label">两步打算（测试）</label></span>
+   </div>
    <p id="plan-status" role="status" aria-live="polite"></p>
   </div>
  </section>
@@ -341,7 +346,7 @@ function kitchenTabs(dialog){
  // randomUUID exists only on secure pages; a phone on the LAN (plain HTTP) still has getRandomValues.
  const requestId=()=>crypto.randomUUID?.()||Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('');
  let state=null,busy=false,memoryBusy=false,memoryMessage='',limitBusy=false,limitMessage='',planBusy=false,planMessage='',feedbackText='';
- const planSwitch=el('jeff-plan');
+ const planSwitch=el('jeff-plan'),rollingSwitch=el('jeff-rolling');
  const message=(text,error=false)=>{el('api-message').textContent=text;el('api-message').className=error?'error':''};
  // Services from model-providers.json, grouped; the hosted page leaves out the ones its browser cannot reach.
  const catalog=window.chefjeffProviders||{groups:[],providers:[]};
@@ -427,7 +432,8 @@ function kitchenTabs(dialog){
    busy?'正在测试连接…':c.editable?'':'本局进行中，可以先填写；请结束本局后再测试或更换 API。';
   const plan=state?.communication?.jeff_plan;
   // Saving must not disable the switch: a disabled button drops keyboard focus mid-toggle. Clicks are ignored while busy.
-  if(plan)planSwitch.setAttribute('aria-checked',String(plan.mode==='choice'));planSwitch.disabled=!plan?.editable;planSwitch.setAttribute('aria-busy',String(planBusy));
+  // One plan mode at a time: the plan switch and the two-step intent switch show the same server value.
+  for(const [node,mode] of [[planSwitch,'choice'],[rollingSwitch,'rolling']]){if(plan)node.setAttribute('aria-checked',String(plan.mode===mode));node.disabled=!plan?.editable;node.setAttribute('aria-busy',String(planBusy))}
   // While locked the reason wins over the last save message; the switch alone shows on/off.
   el('plan-status').textContent=plan&&!plan.editable&&!planBusy?'本局进行中；结束本局后可以修改。':planMessage||'';
   const l=state?.limits;
@@ -502,13 +508,15 @@ function kitchenTabs(dialog){
   }catch(e){if(e.name==='AbortError')throw new Error('请求超时，请重新打开设置确认结果。');throw e;}
   finally{clearTimeout(timer);}
  }
- planSwitch.onclick=async()=>{
-  if(planBusy||planSwitch.disabled)return;const mode=planSwitch.getAttribute('aria-checked')==='true'?'off':'choice';
+ const savePlan=async(node,on,saved)=>{
+  if(planBusy||node.disabled)return;const mode=node.getAttribute('aria-checked')==='true'?'off':on;
   planBusy=true;planMessage='正在保存…';status();
   try{const d=await localCommand('/api/plan',{mode});state.communication={...state.communication,jeff_plan:d.jeff_plan};
-   planMessage=d.jeff_plan.mode==='choice'?'下一局起开启计划模式。':'下一局起关闭计划模式。';
+   planMessage=saved[d.jeff_plan.mode===on?0:1];
   }catch(e){planMessage=e.message}finally{planBusy=false;status()}
  };
+ planSwitch.onclick=()=>savePlan(planSwitch,'choice',['下一局起开启计划模式。','下一局起关闭计划模式。']);
+ rollingSwitch.onclick=()=>savePlan(rollingSwitch,'rolling',['下一局起开启两步打算。','下一局起关闭两步打算。']);
  el('limit-save').onclick=async()=>{
   if(limitBusy)return;limitBusy=true;limitMessage='正在保存…';status();
   try{const d=await localCommand('/api/limits',{max_calls:Number(el('call-limit').value)});
@@ -597,6 +605,7 @@ function kitchenTabs(dialog){
   <dt>丢弃与消防</dt><dd>拿食材靠近垃圾桶按空格会销毁，扣 2 元；端锅则倒掉锅里的食物，保留空锅。拿起灭火器后面向着火工位按空格喷，累计喷 4 秒灭火；中途走开，进度保留，但停喷 2 秒后火会慢慢变旺。着火的工位会加热身边 8 格（含对角）的工位，旁边有一处着火 5 秒就会着火，多处同时着火更快，红色条显示进度；不跨空地或墙。同时 5 个工位着火，本局结束。</dd>
   <dt>沟通 · 1–6 / 点击（测试功能）</dt><dd>这是测试中的功能，不是正式玩法，以后可能调整。打开左下角沟通菜单，点击即可告诉 AI 由你来做哪类工作；“你做错了”是独立的红色描边按钮。也可按 1–5 说明分工、按 6 纠错。共用 5 个实际秒冷却，暂停时也可发送。最新的说明只在本局有效；AI 在下一次正常请求中收到，自行判断如何配合，不强制分工或停止动作。纠错附带当时动作信息，但不指定正确答案。</dd>
   <dt>计划模式（测试）</dt><dd>默认关闭。Jeff 没有计划时，会在决定下一步动作的同时，写下接下来打算做的几道工序，最多 4 步，比如切生菜、生菜装盘、出餐。它每做完一道，那一步就打上勾。计划没有时限：全部做完、Jeff 自己放弃，或者你发了新的分工说明时才结束，Jeff 立刻再写一份。计划不限制 Jeff 的动作，它每次仍从全部可选动作里选；中途去做计划外的事，计划也照旧留着。沟通菜单里能看到 Jeff 当前的计划。开局前或结算后可以在「设置 → AI 搭档」里关掉，一局内不变。</dd>
+  <dt>两步打算（测试）</dt><dd>默认关闭，和计划模式二选一。Jeff 每次决定动作时，同时说出这个动作是为了哪道工序，以及做完之后打算做的下一道工序。下一次请求把这两道工序带回给它，做完的打上勾，然后再问一遍，用新的回答换掉旧的。它不用决定留不留，也不限制动作，随时可以改。沟通菜单里能看到 Jeff 当前的打算。开局前或结算后可以在「设置 → AI 搭档」里打开或关掉，一局内不变。</dd>
   <dt>标记片段 · Enter</dt><dd>营业中按 Enter 标记当前时刻，不暂停、不打断动作。相邻两次标记间隔不超过 5 个实际秒时合并为一个区间，长按不重复。设置中的“数据导出”包含全部标记；标记不会发送给 AI。</dd>
   <dt>暂停与继续 · Esc / P</dt><dd>暂停会停止锅火、订单和双方动作。再按 Esc 或 P（键盘没有 Esc 键时用，如 iPad）或点「继续经营」回到厨房；也可重新开局、打开设置或查看本说明。结束本局、暂停中重新开局都会先请你确认；重新开局沿用当前配置与速度。更换 API、记忆和调用上限请在结算后或开局前进行。</dd>
   </dl>

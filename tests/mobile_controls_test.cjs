@@ -311,6 +311,10 @@ function checkPlan(path){
  const english=harness(path,{language:'en'});english.publish({});
  english.w.dispatchEvent(new english.Event('kitchen-state',{detail:{communication:{jeff_plan:{mode:'choice',editable:false,current:{steps}}}}}));
  assert.equal(english.document.getElementById('touch-plan').textContent,"Jeff's plan: Fetch lettuce ✓ → Plate lettuce → Serve");
+ send({mode:'rolling',editable:false,current:null});assert.equal(plan().textContent,'Jeff：还没说打算');
+ send({mode:'rolling',editable:false,current:{steps:steps.slice(0,2)}});assert.equal(plan().textContent,'Jeff 打算：取生菜 ✓ → 生菜装盘');
+ english.w.dispatchEvent(new english.Event('kitchen-state',{detail:{communication:{jeff_plan:{mode:'rolling',editable:false,current:{steps:steps.slice(0,2)}}}}}));
+ assert.equal(english.document.getElementById('touch-plan').textContent,"Jeff's intent: Fetch lettuce ✓ → Plate lettuce");
  h.publish({phase:'paused'});assert.equal(plan().hidden,true,'the plan line belongs to a running round');
  h.publish({phase:'running'});send({mode:'off',editable:true,current:null});assert.equal(plan().hidden,true);
 }

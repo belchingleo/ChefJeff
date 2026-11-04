@@ -173,7 +173,7 @@ v7 把保存期改为半年（180 天），并在开局前同意的对局里加�
 - `ai_request` 增加 `engine_input_n`、请求的规范 SHA-256 `payload_sha256`、`recent_decisions`、`player_communication`（发给 Jeff 的预设消息原样，含发送时间）和 `memory_input`（`absent`、`empty_placeholder` 或 `not_stored`）。请求原文约 41 KB、一局最多约 200 次，不整份保存；`research_replay.rebuild_requests()` 重放到 `engine_input_n`，用 `jev.compose_payload` 重建请求，并核对校验值。
 - `ai_response.payload.probabilities`：决策模型报告的各选项概率，只保留候选里有的键，取值 0–1；聊天模型为空。网页和 Jev 转发都会带回，服务器拒绝不在候选里的键和越界的值。
 - `conditions.memory_provenance`：开启跨局记忆、并且自动贡献时，浏览器报告本局记忆来自哪几局（`source_round_ids`）和 `JSON.stringify(context)` 的 SHA-256。整局固定，不保存记忆内容；以后可以从这些局的记录重建记忆，再用校验值核对。记下的局号会把同一浏览器的几局联系起来，同意页已写明。
-- Jeff 的计划（开关打开的对局才有）：`conditions.jeff_plan` 记下本局开局时的开关，含 `mode`（`choice`）、`steps`（最多几步，目前为 4）和 `rules_version`（`plan-v2`）；每条 `ai_request` 另有 `jeff_plan`，即 `harness.Plan.input()`：`steps`、当时的计划 `current`（`steps` 列出每一步的工序 `work` 和是否做完 `done`，`set_at` 是定下计划的游戏时刻；没有计划时为 null）和这次给出的工序选项 `options`（有计划时为 null）。重建请求时把它原样交给 `jev.compose_payload`。关闭开关的对局两处都没有，记录与之前相同。`plan-v1`（按分工持续 12 秒）从未上线，`plan-v2` 取代了它。
+- Jeff 的计划（开关打开的对局才有）：`conditions.jeff_plan` 记下本局开局时的开关，含 `mode`（`choice`）、`steps`（最多几步，目前为 4）和 `rules_version`（`plan-v2`）；每条 `ai_request` 另有 `jeff_plan`，即 `harness.Plan.input()`：`steps`、当时的计划 `current`（`steps` 列出每一步的工序 `work` 和是否做完 `done`，`set_at` 是定下计划的游戏时刻；没有计划时为 null）和这次给出的工序选项 `options`（有计划时为 null）。重建请求时把它原样交给 `jev.compose_payload`。关闭开关的对局两处都没有，记录与之前相同。`plan-v1`（按分工持续 12 秒）从未上线，`plan-v2` 取代了它。两步打算（试验，默认关闭）的对局里，`conditions.jeff_plan` 为 `mode` `rolling`、`steps` 2、`rules_version` `rolling-v1`；每条 `ai_request` 的 `jeff_plan` 多一个 `mode`（`rolling`），`options` 每次都有，因为每次请求都问。
 - 容量：默认最多 5000 局、5 GB；磁盘剩余空间低于 2 GB 时拒绝保存和更新，页面显示贡献失败。
 
 检查命令（只读，不调用模型）：

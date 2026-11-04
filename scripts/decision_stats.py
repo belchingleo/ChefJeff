@@ -26,7 +26,9 @@ For each model it counts:
 - plan (rounds with Jeff's plan on, plan-v2): plans set (a request carrying a plan it had not
   carried before), how they ended, how many steps they had and how long they held, and how often
   Jeff chose wait with a plan held and without one in the same rounds. Rounds under the earlier plan
-  rules (plan-v1, parts held for a fixed time) count only as `older_rules_rounds`.
+  rules (plan-v1, parts held for a fixed time) count only as `older_rules_rounds`, and rounds with the
+  two-step rolling intent (plan mode `rolling`) only as `rolling_rounds`: compare them with the
+  undone counts of separate runs over those rounds' files.
   `unsure_with_plan` counts the decisions that were unsure (first margin) while a plan had held
   for more than --plan-age seconds: the trigger proposed for the third tier, here only counted.
 - step_gaps: how long Jeff stood between steps, in wall seconds, from the end of a step (action_done)
@@ -169,7 +171,7 @@ def new_model():
     return {'rounds': 0, 'game_minutes': 0.0, 'decisions': 0, 'fresh': 0, 'applied': 0,
             'top': [], 'margins': [], 'chose_top': 0, 'single_probability': 0, 'pairs': Counter(),
             'started': 0, 'replaced': 0, 'knocked_off': 0, 'other_interruptions': 0, 'back_and_forth': 0,
-            'plan_rounds': 0, 'plan_older_rounds': 0, 'plans_set': 0, 'plan_ends': Counter(), 'holds': [], 'plan_steps': [],
+            'plan_rounds': 0, 'plan_older_rounds': 0, 'plan_rolling_rounds': 0, 'plans_set': 0, 'plan_ends': Counter(), 'holds': [], 'plan_steps': [],
             'held_decisions': 0, 'held_waits': 0, 'free_decisions': 0, 'free_waits': 0, 'unsure_with_plan': 0,
             'gaps': {}, 'done': 0, 'walks_done': 0, 'put_then_taken_back': 0, 'walk_round_trips': 0}
 
@@ -203,9 +205,12 @@ def add_round(rows, models, margins=MARGINS, plan_age=PLAN_AGE, put_back=PUT_BAC
     m['game_minutes'] += (max(times) if times else 0) / 60
     by_action = {}      # action_id -> (model, target)
     plan_on = bool(rows[0].get('jeff_plan')) or any(r.get('jeff_plan') for r in requests.values())
-    older = plan_on and (rows[0].get('jeff_plan') or {}).get('rules_version', PLAN_RULES_VERSION) != PLAN_RULES_VERSION
-    plan_on = plan_on and not older
+    condition = rows[0].get('jeff_plan') or {}
+    rolling = plan_on and condition.get('mode') == 'rolling'
+    older = plan_on and not rolling and condition.get('rules_version', PLAN_RULES_VERSION) != PLAN_RULES_VERSION
+    plan_on = plan_on and not older and not rolling
     m['plan_older_rounds'] += older
+    m['plan_rolling_rounds'] += rolling
     if plan_on:
         m['plan_rounds'] += 1
     holding = None      # the plan the previous request carried; a plan still held at closing is not counted
@@ -385,8 +390,9 @@ def summary(m, margins=MARGINS):
                          'put_then_taken_back_per_game_minute': per_minute(m['put_then_taken_back'], minutes),
                          'walk_round_trips': m['walk_round_trips'],
                          'walk_round_trips_per_game_minute': per_minute(m['walk_round_trips'], minutes)}
-    if m['plan_rounds'] or m['plan_older_rounds']:
-        out['plan'] = {'rounds': m['plan_rounds'], 'older_rules_rounds': m['plan_older_rounds'], 'set': m['plans_set'],
+    if m['plan_rounds'] or m['plan_older_rounds'] or m['plan_rolling_rounds']:
+        out['plan'] = {'rounds': m['plan_rounds'], 'older_rules_rounds': m['plan_older_rounds'],
+                       'rolling_rounds': m['plan_rolling_rounds'], 'set': m['plans_set'],
                        'ended': dict(m['plan_ends']),
                        'median_steps': median(m['plan_steps']) if m['plan_steps'] else None,
                        'median_hold_seconds': round(median(m['holds']), 2) if m['holds'] else None,

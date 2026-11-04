@@ -261,8 +261,16 @@ NO_MEMORY = object()
 # changes the listed actions, and it has no clock. A step is ticked when Jeff finishes an action
 # doing it, in any order; the plan ends when every step is ticked, when Jeff drops it, or when the
 # human sends a new preference, and the next request asks for a new one.
+#
+# Rolling intent (plan mode 'rolling', a trial): every request asks for the work item Jeff is working toward
+# with the action he chooses now and the one after it; the next request shows that intent back to him,
+# ticked as above, and asks again, so each answer replaces the last. There is no keep or drop: an intent
+# lasts until the next request, and he may change it at any request.
 PLAN_RULES_VERSION = 'plan-v2'
+ROLLING_RULES_VERSION = 'rolling-v1'
+PLAN_MODES = ('choice', 'rolling')
 PLAN_STEPS = 4
+ROLLING_STEPS = 2
 PLAN_NONE = 'none'
 PLAN_STEP_QUESTIONS = tuple(f'plan_step_{n}' for n in range(1, PLAN_STEPS + 1))
 PLAN_KEEP_QUESTION = 'plan_keep'
@@ -288,6 +296,27 @@ PLAN_RULE = ('jeff_plan, when present, is the plan you wrote: its steps are work
              'questions.plan_keep, or when the human sends a new preference; then questions.plan_step_1 to plan_step_{steps} ask for a '
              'new one, and your answer holds from your next request. The human sees your plan. It does not change your listed actions; '
              'an action that is not in it leaves it as it is.')
+ROLLING_RULE = ('jeff_plan, when present, is the intent you gave at your previous request: step 1 the work item you were working '
+                'toward with the action you chose then, step 2 the work item you intended after it. A step is marked done when you '
+                'finish an action that does that work, whichever step comes first. A work item names a piece of work on this level\'s '
+                'menu: fetch, chop or cook an ingredient, put it on a plate, take a clean plate, serve a dish, collect dirty plates or '
+                'wash a plate. Every request asks questions.plan_step_1 and plan_step_2 again, and your new answer replaces the '
+                'intent; without a valid answer the last one is shown again. The human sees it. It does not change your listed '
+                'actions, and you may answer differently from it at any request.')
+ROLLING_QUESTIONS = ('Your intent, step 1: the work item you are working toward with the action you choose in next_action (the '
+                     'work that action does, or that it leads to). It is shown to the human chef and returned to you as jeff_plan '
+                     'at your next request; it does not limit your actions.',
+                     'Your intent, step 2: the work item you intend to do after step 1, or {none}.')
+
+
+def plan_version(mode):
+    """The rules version of a plan mode."""
+    return ROLLING_RULES_VERSION if mode == 'rolling' else PLAN_RULES_VERSION
+
+
+def plan_condition(mode, steps):
+    """The jeff_plan condition a round's start row and research record carry."""
+    return {'mode': mode, 'steps': steps, 'rules_version': plan_version(mode)}
 
 
 def work_items(state):
@@ -389,15 +418,21 @@ def plan_answer(answers, payload):
 class Plan:
     """Jeff's current plan within one round: its steps, which are done, and when it ends."""
 
-    def __init__(self, steps=PLAN_STEPS):
-        self.steps = steps
+    def __init__(self, steps=None, mode='choice'):
+        if mode not in PLAN_MODES:
+            raise ValueError(f'unknown plan mode {mode!r}')
+        self.mode = mode
+        self.steps = steps or (ROLLING_STEPS if mode == 'rolling' else PLAN_STEPS)
         self.current = None     # {'steps': [{'work', 'done'}], 'set_at', 'preference'}
         self.ended = None       # why the last plan ended, until the next request reports it
 
     def accept(self, answer, now, offered, preference):
-        """Hold the steps Jeff wrote, if they were asked and the first is one of the offered work items."""
+        """Hold the steps Jeff wrote, if they were asked and the first is one of the offered work items.
+
+        A rolling intent is asked at every request and a valid answer replaces the last one; a missing or
+        invalid answer leaves the last one as it was."""
         steps = (answer or {}).get('steps')
-        if self.current or not offered or not steps or any(s not in offered for s in steps):
+        if (self.current and self.mode != 'rolling') or not offered or not steps or any(s not in offered for s in steps):
             return False
         self.current = {'steps': [{'work': s, 'done': False} for s in steps[:self.steps]], 'set_at': round(now, 3),
                         'preference': preference}
@@ -431,6 +466,8 @@ class Plan:
     def input(self, state):
         """Everything compose needs; research records keep it so requests can be rebuilt."""
         current = {'steps': [dict(s) for s in self.current['steps']], 'set_at': self.current['set_at']} if self.current else None
+        if self.mode == 'rolling':     # asked at every request, so the options always come along
+            return {'mode': 'rolling', 'steps': self.steps, 'current': current, 'options': work_items(state)}
         return {'steps': self.steps, 'current': current, 'options': None if current else work_items(state)}
 
 
@@ -451,7 +488,16 @@ def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY,
         payload['state']['past_episodes'] = memory
         payload['state']['rules']['past_episodes'] = PAST_EPISODES_RULE
     payload['state']['rules']['continuity'] = CONTINUITY_RULE
-    if plan is not None:
+    rolling = plan is not None and plan.get('mode') == 'rolling'
+    if rolling:
+        payload['state']['rules']['jeff_plan'] = ROLLING_RULE
+        if plan['current']:
+            payload['state']['jeff_plan'] = {'steps': [dict(s) for s in plan['current']['steps']], 'set_at': plan['current']['set_at']}
+        for n, question in enumerate(PLAN_STEP_QUESTIONS[:plan['steps']]):
+            payload['questions'][question] = {
+                'type': 'choice', 'instructions': ROLLING_QUESTIONS[min(n, 1)].format(none=PLAN_NONE),
+                'criteria': dict(plan['options']) if n == 0 else {**plan['options'], PLAN_NONE: 'No further step'}}
+    elif plan is not None:
         payload['state']['rules']['jeff_plan'] = PLAN_RULE.format(steps=plan['steps'])
         if plan['current']:
             payload['state']['jeff_plan'] = {'steps': [dict(s) for s in plan['current']['steps']], 'set_at': plan['current']['set_at']}
@@ -470,5 +516,5 @@ def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY,
     payload['state']['input_language'] = INPUT_LANGUAGE_VERSION
     payload['state']['rules_version'] = AGENT_RULES_VERSION
     if plan is not None:
-        payload['state']['plan_rules_version'] = PLAN_RULES_VERSION
+        payload['state']['plan_rules_version'] = plan_version(plan.get('mode'))
     return payload
