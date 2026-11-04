@@ -285,7 +285,7 @@
         // A player's own level name is shown as written, never translated.
         text('touch-level-title', card.level); text('touch-level-target', card.target);
         if (card.own) { if (el('touch-level-dish').textContent !== card.dish) el('touch-level-dish').textContent = card.dish; } else text('touch-level-dish', card.dish);
-        text('touch-level-tag', card.tag); el('touch-level-tag').className = card.tag.startsWith('✓') ? 'won' : '';
+        text('touch-level-tag', card.tag); el('touch-level-tag').className = card.won ? 'won' : '';
         el('touch-level-prev').hidden = el('touch-level-next').hidden = ended || !!card.own;  // a player's level has no neighbours
         el('touch-level-prev').disabled = !card.stepEnabled || index <= 0;
         el('touch-level-next').disabled = !card.stepEnabled || index < 0 || index >= levels.length - 1;

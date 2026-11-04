@@ -422,7 +422,7 @@ export class KitchenClient extends Component {
         const text=(id:string)=>this.labels[id]?this.labelSources.get(this.labels[id])||'':'';
         const label=(id:string)=>this.labelSources.get(this.buttons[id].label)||'';
         const c=s.connection,acts=s.phase==='ended'?this.resultActions(s):null;
-        return {level:text('level-title'),dish:text('level-name'),own:!!s.player_level,target:text('level-target'),tag:s.phase==='ended'?text('level-tag-text'):'',
+        return {level:text('level-title'),dish:text('level-name'),own:!!s.player_level,target:text('level-target'),tag:s.phase==='ended'?text('level-tag-text'):'',won:s.phase==='ended'&&!!s.won,
             money:s.phase==='ended'?text('result-money'):'',stepEnabled:s.phase==='ready'&&this.connected&&!this.pending&&!this.countdown,
             free:c?.free_models?.enabled?{status:text('tile-free-status'),pick:label('free-pick'),selected:!!c.free_model}:null,
             custom:{status:text('tile-key-status'),selected:!!c?.configured&&!c.free_model},
@@ -2156,7 +2156,7 @@ export class KitchenClient extends Component {
                 hide('level-prev','level-next','level-caret');on(this.cover.getChildByName('level-underline'),false);
                 if(!ended)hide('level-picker');
                 this.set('level-target',`目标 ¥${target}`);
-                const gw=this.textWidth(this.tr(`目标 ¥${target}`),14)+6,tag=ended?(s.won?'✓ 达成目标':'未达目标'):'';
+                const gw=this.textWidth(this.tr(`目标 ¥${target}`),14)+6,tag=ended?(s.won?'★ 达成目标':'未达目标'):'';
                 const tagW=tag?this.textWidth(this.tr(tag),17)+28:0,row=dishW+14+tw+12+nw+14+gw+(tag?14+tagW:0),x0=640-row/2;
                 placeDishes(x0,208);this.placeText('level-title',x0+dishW+14,208,tw,40);
                 this.placeText('level-name',x0+dishW+14+tw+12,210,nw,30);this.placeText('level-target',x0+dishW+14+tw+12+nw+14,210,gw,22);

@@ -46,7 +46,7 @@
 <script src="src/import-map.e67d1.json" type="systemjs-importmap" charset="utf-8"> </script>
 
 <script>
-    System.import('./index.1d621.js').catch(function(err) { console.error(err); })
+    System.import('./index.363cf.js').catch(function(err) { console.error(err); })
 </script>
   <script src="kitchen-i18n.js"></script>
 <script src="model-providers.js"></script>
@@ -902,7 +902,7 @@ function kitchenTabs(dialog){
      part('level-dish',t(String(level.name).split('·').pop().trim()));
      if(level.target!=null)part('level-target',t(`目标 ¥${level.target}`));
      const b=best[level.id];
-     part('level-best'+(b?.won?' won':''),b?t(b.won?`✓ 已达成 · 最佳 ¥${b.money}`:`未达成 · 最佳 ¥${b.money}`):t('还没玩过'));
+     part('level-best'+(b?.won?' won':''),b?t(b.won?`★ 已达成 · 最佳 ¥${b.money}`:`未达成 · 最佳 ¥${b.money}`):t('还没玩过'));
      card.onclick=()=>{const now=state();if(!now?.levelEnabled||now.game_id!==openedRound)return;levels.close();if(!level.selected)controls()?.level(level.id)};
      list.appendChild(card);
     });
