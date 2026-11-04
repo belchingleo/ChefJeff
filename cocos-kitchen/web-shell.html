@@ -845,7 +845,7 @@ function kitchenTabs(dialog){
      part('level-dish',t(String(level.name).split('·').pop().trim()));
      if(level.target!=null)part('level-target',t(`目标 ¥${level.target}`));
      const b=best[level.id];
-     part('level-best'+(b?.won?' won':''),b?t(b.won?`✓ 已达成 · 最佳 ¥${b.money}`:`未达成 · 最佳 ¥${b.money}`):t('还没玩过'));
+     part('level-best'+(b?.won?' won':''),b?t(b.won?`★ 已达成 · 最佳 ¥${b.money}`:`未达成 · 最佳 ¥${b.money}`):t('还没玩过'));
      card.onclick=()=>{const now=state();if(!now?.levelEnabled||now.game_id!==openedRound)return;levels.close();if(!level.selected)controls()?.level(level.id)};
      list.appendChild(card);
     });
