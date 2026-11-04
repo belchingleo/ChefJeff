@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Does Jeff walk less when each walk says there is nothing listed to do there? Run locally; it sends to Jev.
 
-    python3 scripts/walk_label_check.py logs/ --since 2026-11-04 [--sample 20] [--dry-run]
+    python3 scripts/walk_label_check.py logs/ --since 2026-11-04 [--sample 20] [--arms as_logged,walks_labeled] [--dry-run]
 
 Each "go X" Jeff is offered is, by construction (harness.model_candidates), a walk to a station where
 none of his other listed actions is: an action at X would already walk there, and "go X" is then left
@@ -11,7 +11,12 @@ logged answer was such a walk (not go partner) and sends each to the current Jev
 - as_logged: exactly as it was sent;
 - walks_labeled: the same, with that fact added to the label of every such walk ("; no other listed
   action is at <station> now"). Only the labels change, and only for walks where no other offered key
-  names that station.
+  names that station;
+- no_aimed_throws: the same with the eight aimed throws (throw up, throw down-left, ...) left out of
+  the options and throw partner kept, so the request has fewer options. It tells whether the number of
+  options changes his walks; it also takes the throws away, so read it with that in mind.
+
+--arms picks the arms to send (default as_logged,walks_labeled); each arm sends every moment once.
 
 For each arm it reports, split by whether Jeff's hands were full, how often the answer was the logged
 one, a walk, wait, an action that uses or puts down what he holds and of those a step of the dish
@@ -33,7 +38,8 @@ sys.path.insert(0, str(ROOT))
 from scripts.jev_replay_check import (ask_once, client, estimate, hands_full, journal_requests, kind,  # noqa: E402
                                       moves_forward, pick, share)
 
-ARMS = ('as_logged', 'walks_labeled')
+ARMS = ('as_logged', 'walks_labeled', 'no_aimed_throws')
+DEFAULT_ARMS = ('as_logged', 'walks_labeled')
 KINDS = ('walk', 'wait', 'use_or_put_down', 'take')
 
 
@@ -58,6 +64,23 @@ def label(payload):
     return payload
 
 
+def without_aimed_throws(payload):
+    """The request without the aimed throws; throw partner and every other option stay as they were."""
+    payload = deepcopy(payload)
+    criteria = payload['questions']['next_action']['criteria']
+    payload['questions']['next_action']['criteria'] = {k: v for k, v in criteria.items()
+                                                       if not (k.startswith('throw ') and k != 'throw partner')}
+    return payload
+
+
+def arm(payload, name):
+    if name == 'walks_labeled':
+        return label(payload)
+    if name == 'no_aimed_throws':
+        return without_aimed_throws(payload)
+    return payload
+
+
 def picked(item):
     return walk(item['logged_choice'])
 
@@ -69,16 +92,18 @@ def arm_report(answers):
             'same_as_logged': share(sum(a['choice'] == i['logged_choice'] for i, _, a in ok), len(ok)),
             **{f'chose_{k}': share(kinds[k], len(ok)) for k in KINDS},
             'chose_a_step_of_the_dish': share(sum(moves_forward(a['choice'], p) for _, p, a in ok), len(ok)),
+            'mean_options': round(sum(len(p['questions']['next_action']['criteria']) for _, p, _ in answers) / len(answers), 2)
+            if answers else None,
             'kinds': dict(kinds.most_common()),
             'errors': dict(Counter(a['error'] for _, _, a in answers if 'error' in a).most_common())}
 
 
-def run(items, ask):
+def run(items, ask, arms_asked=DEFAULT_ARMS):
     arms = {}
-    for name in ARMS:
+    for name in arms_asked:
         answers = []
         for item in items:
-            payload = item['payload'] if name == 'as_logged' else label(item['payload'])
+            payload = arm(item['payload'], name)
             answers.append((item, payload, ask_once(ask, payload)))
         full = [x for x in answers if hands_full(x[0]['payload'])]
         empty = [x for x in answers if not hands_full(x[0]['payload'])]
@@ -98,17 +123,21 @@ def main(argv=None):
     parser.add_argument('--until', help='last day of rounds to use, YYYY-MM-DD')
     parser.add_argument('--sample', type=int, default=20, help='walk moments to pick')
     parser.add_argument('--seed', type=int, default=1)
+    parser.add_argument('--arms', default=','.join(DEFAULT_ARMS), help='comma-separated arms to send: ' + ', '.join(ARMS))
     parser.add_argument('--dry-run', action='store_true', help='pick the moments and print their number and size only')
     parser.add_argument('--out', help='write the JSON report here instead of printing it')
     args = parser.parse_args(argv)
+    arms_asked = tuple(a for a in args.arms.split(',') if a)
+    if not arms_asked or set(arms_asked) - set(ARMS):
+        parser.error('--arms takes ' + ', '.join(ARMS))
     items = pick([i for i in journal_requests(args.paths, args.since, args.until) if picked(i)], args.sample, args.seed)
     if not items:
         print('no walks to a station in Jev rounds of those journals and days')
         return 1
-    print(estimate(items, len(ARMS)), file=sys.stderr)
+    print(estimate(items, len(arms_asked)), file=sys.stderr)
     if args.dry_run:
         return 0
-    text = json.dumps(run(items, client().ask), ensure_ascii=False, indent=2)
+    text = json.dumps(run(items, client().ask, arms_asked), ensure_ascii=False, indent=2)
     if args.out:
         Path(args.out).write_text(text + '\n', encoding='utf-8')
     else:
