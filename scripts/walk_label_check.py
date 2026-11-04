@@ -12,6 +12,10 @@ logged answer was such a walk (not go partner) and sends each to the current Jev
 - walks_labeled: the same, with that fact added to the label of every such walk ("; no other listed
   action is at <station> now"). Only the labels change, and only for walks where no other offered key
   names that station;
+- walks_explained: the same, with every such walk's label stating what lies there and that, with what
+  he holds, none of his listed actions is there ("; Board 1 holds Lettuce (raw); with what you hold, no
+  other listed action is at b1 now"). Like walks_labeled it changes only labels, and only facts the
+  request already holds;
 - no_aimed_throws: the same with the eight aimed throws (throw up, throw down-left, ...) left out of
   the options and throw partner kept, so the request has fewer options. It tells whether the number of
   options changes his walks; it also takes the throws away, so read it with that in mind.
@@ -38,7 +42,7 @@ sys.path.insert(0, str(ROOT))
 from scripts.jev_replay_check import (ask_once, client, estimate, hands_full, journal_requests, kind,  # noqa: E402
                                       moves_forward, pick, share)
 
-ARMS = ('as_logged', 'walks_labeled', 'no_aimed_throws')
+ARMS = ('as_logged', 'walks_labeled', 'walks_explained', 'no_aimed_throws')
 DEFAULT_ARMS = ('as_logged', 'walks_labeled')
 KINDS = ('walk', 'wait', 'use_or_put_down', 'take')
 
@@ -64,6 +68,29 @@ def label(payload):
     return payload
 
 
+def lying_there(station):
+    """What lies on a station, in the request's own words: an ingredient with its stage, else its meaning."""
+    food = (station or {}).get('food')
+    if not food:
+        return None
+    meaning = food.get('meaning') or food.get('ingredient') or 'an item'
+    return f"{meaning} ({food['stage']})" if food.get('stage') in ('raw', 'chopped') else meaning
+
+
+def explain(payload):
+    """The request with every walk to a station stating what lies there and that nothing else listed is there."""
+    payload = deepcopy(payload)
+    criteria = payload['questions']['next_action']['criteria']
+    stations = ((payload.get('state') or {}).get('kitchen') or {}).get('stations') or {}
+    for key in list(criteria):
+        if walk(key) and nothing_else_there(key, criteria):
+            station = stations.get(key[3:]) or {}
+            there = lying_there(station)
+            held = f"{station.get('name', key[3:])} holds {there}; " if there else ''
+            criteria[key] = f'{criteria[key]}; {held}with what you hold, no other listed action is at {key[3:]} now'
+    return payload
+
+
 def without_aimed_throws(payload):
     """The request without the aimed throws; throw partner and every other option stay as they were."""
     payload = deepcopy(payload)
@@ -76,6 +103,8 @@ def without_aimed_throws(payload):
 def arm(payload, name):
     if name == 'walks_labeled':
         return label(payload)
+    if name == 'walks_explained':
+        return explain(payload)
     if name == 'no_aimed_throws':
         return without_aimed_throws(payload)
     return payload

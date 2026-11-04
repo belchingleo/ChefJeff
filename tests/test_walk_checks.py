@@ -74,6 +74,20 @@ class WalkLabelTests(unittest.TestCase):
             self.assertEqual(walk_label_check.main([logs, '--since', '2026-12-01', '--dry-run']), 1)
         self.assertIn('2 requests', err.getvalue())         # one moment, two arms
 
+    def test_explained_walks_state_what_lies_there(self):
+        payload = deepcopy(self.full)
+        payload['state']['kitchen']['stations']['b1']['food'] = {'id': 'F7', 'stage': 'raw', 'ingredient': 'lettuce', 'meaning': 'Lettuce'}
+        criteria = payload['questions']['next_action']['criteria']
+        criteria['go b1'] = 'Walk to Board 1 (Prep area)'
+        for key in [k for k in criteria if k.endswith(' b1') and k != 'go b1']:
+            del criteria[key]
+        after = walk_label_check.arm(payload, 'walks_explained')['questions']['next_action']['criteria']
+        self.assertEqual(after['go b1'], 'Walk to Board 1 (Prep area); Board 1 holds Lettuce (raw); '
+                                         'with what you hold, no other listed action is at b1 now')
+        self.assertEqual(after['go serve'], criteria['go serve'] + '; with what you hold, no other listed action is at serve now')
+        self.assertEqual([k for k in after if after[k] != criteria[k]], [k for k in criteria if walk_label_check.walk(k)])
+        self.assertEqual(walk_label_check.lying_there({'food': {'stage': 'clean_plate', 'meaning': 'Clean plate'}}), 'Clean plate')
+
     def test_hands_full_groups_name_where_walks_went(self):
         moments = [{'payload': self.full, 'logged_choice': key, 'round': 1} for key in ('go serve', 'go p1', 'go partner', 'wait')]
         walks = hands_full_check.groups(moments)['walks']
