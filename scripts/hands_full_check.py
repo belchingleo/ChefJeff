@@ -21,7 +21,9 @@ The moments themselves are grouped, from the logged request alone, so a wait tha
 for can be told from one that was stuck: what he held (plate, ingredient, dirty plate, pan or pot,
 extinguisher), whether a step of the dish was among his options, whether only parking was, and whether
 food was heating on a stove. `waits` crosses the logged waits with those, and `walks` gives the kinds of
-station the logged walks went to (board, counter, stove, ...; partner for go partner). With --groups-only the report
+station the logged walks went to (board, counter, stove, ...; partner for go partner), what was on that
+station (empty, plate, ingredient, dirty plate, pan or pot, ...) and, as held -> on station, both
+together: a walk with full hands to a station holding something is a walk to an item he cannot take. With --groups-only the report
 also gives, for every request with full hands (stuck or not), the logged answer kinds and options offered.
 
 The report holds counts and shares only (no request, state or model text). It reads the journals and
@@ -60,6 +62,33 @@ def arm(payload, name):
         payload['questions']['next_action']['criteria'] = {
             key: label for key, label in criteria.items() if not (key.startswith('go ') and key[3:] in supplies(payload))}
     return payload
+
+
+def food_kind(food):
+    """A food or item as a kind: plate (clean or with food), dirty_plate, ingredient, pan_or_pot, extinguisher, empty."""
+    if not food:
+        return 'empty'
+    stage = food.get('stage')
+    if stage == 'clean_plate' or food.get('plate_id'):
+        return 'plate'
+    if stage in ('dirty_plate', 'extinguisher'):
+        return stage
+    if stage == 'pot':
+        return 'pan_or_pot'
+    return 'ingredient' if stage in ('raw', 'chopped') else 'other'
+
+
+def on_station(key, payload):
+    """What lies on the station a walk goes to, as a kind; partner for go partner."""
+    target = key[3:]
+    if target == 'partner':
+        return 'partner'
+    station = stations(payload).get(target)
+    if station is None:
+        return 'other'
+    if station.get('pot_id'):      # a stove: its pan or pot, and what is in it
+        return 'empty_pan' if not station.get('food') else 'pan_with_food'
+    return food_kind(station.get('food'))
 
 
 def held(payload):
@@ -110,7 +139,10 @@ def groups(items):
                       'by_held': dict(Counter(held(i['payload']) for i in waits).most_common())},
             'walks': {'count': len(walks),
                       'to': dict(Counter(walk_target(i['logged_choice'], i['payload']) for i in walks).most_common()),
-                      'by_held': dict(Counter(held(i['payload']) for i in walks).most_common())}}
+                      'by_held': dict(Counter(held(i['payload']) for i in walks).most_common()),
+                      'on_station': dict(Counter(on_station(i['logged_choice'], i['payload']) for i in walks).most_common()),
+                      'held_and_on_station': dict(Counter(f"{held(i['payload'])} -> {on_station(i['logged_choice'], i['payload'])}"
+                                                          for i in walks).most_common(10))}}
 
 
 def run(items, ask):

@@ -91,8 +91,11 @@ class PlanProbeTests(unittest.TestCase):
         self.assertNotIn('jeff_plan', held['state'])
         self.assertEqual([d.get('intent') is not None for d in held['state']['recent_decisions']], [True])
         self.assertEqual([s['work'] for s in held['state']['recent_decisions'][0]['intent']], list(plan_probe.UNRELATED[:2]))
-        self.assertNotIn('intent', asking['state']['recent_decisions'][0])          # the same decision, without intent
-        self.assertEqual(off['state']['recent_decisions'], [])                       # the off arm as in choice mode
+        # Every arm has the same previous decision, one that agrees with an idle, empty-handed Jeff; only the held arm's has intent.
+        self.assertEqual([d['choice'] for d in off['state']['recent_decisions']], ['wait'])
+        self.assertEqual(off['state']['recent_decisions'], asking['state']['recent_decisions'])
+        self.assertEqual({k: v for k, v in held['state']['recent_decisions'][0].items() if k != 'intent'},
+                         off['state']['recent_decisions'][0])
         stale = plan_probe.STALE_PLAN[:2]
 
         def answer(steps):

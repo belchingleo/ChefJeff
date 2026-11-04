@@ -77,7 +77,14 @@ class WalkLabelTests(unittest.TestCase):
     def test_hands_full_groups_name_where_walks_went(self):
         moments = [{'payload': self.full, 'logged_choice': key, 'round': 1} for key in ('go serve', 'go p1', 'go partner', 'wait')]
         walks = hands_full_check.groups(moments)['walks']
-        self.assertEqual(walks, {'count': 3, 'to': {'serving_window': 1, 'stove': 1, 'partner': 1}, 'by_held': {'ingredient': 3}})
+        self.assertEqual(walks, {'count': 3, 'to': {'serving_window': 1, 'stove': 1, 'partner': 1}, 'by_held': {'ingredient': 3},
+                                 'on_station': {'empty': 1, 'empty_pan': 1, 'partner': 1},
+                                 'held_and_on_station': {'ingredient -> empty': 1, 'ingredient -> empty_pan': 1,
+                                                         'ingredient -> partner': 1}})
+        board = deepcopy(self.full)
+        board['state']['kitchen']['stations']['b1']['food'] = {'id': 'F7', 'stage': 'chopped', 'ingredient': 'lettuce'}
+        moment = [{'payload': board, 'logged_choice': 'go b1', 'round': 1}]
+        self.assertEqual(hands_full_check.groups(moment)['walks']['held_and_on_station'], {'ingredient -> ingredient': 1})
 
 
 if __name__ == '__main__':
