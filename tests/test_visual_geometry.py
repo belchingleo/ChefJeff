@@ -299,6 +299,11 @@ for(const stem of ['pan_vertical','pan_horizontal','pan_west','pan_north'])for(c
 assert.strictEqual(geometry.restingFacing('right','down',true),'right');
 assert.strictEqual(geometry.restingFacing('right','down',false),'down');
 assert.strictEqual(geometry.restingFacing('right',undefined,false),'right');
+// A held direction turns the chef at once, even pressed against a counter (no step needed).
+assert.strictEqual(geometry.steeredFacing(0,0),null);
+assert.strictEqual(geometry.steeredFacing(-1,0),'left');
+assert.strictEqual(geometry.steeredFacing(0,1),'down');
+assert.strictEqual(geometry.steeredFacing(.7,-.71),'up');
 
 // Held-key prediction lands where the server's manual step does, including wall slides.
 const walks = JSON.parse(fs.readFileSync(process.argv[4], 'utf8'));

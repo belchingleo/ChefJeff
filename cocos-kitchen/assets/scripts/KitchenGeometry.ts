@@ -246,6 +246,11 @@ export function throwDiagonal(dx:number,dy:number):string{
 /** The facing a chef keeps while standing still. The engine's facing wins (it turns a chef for work between
  * polls), except for the player's own steered chef: as in Overcooked, the local chef keeps the page's facing,
  * since the engine's arrives a round trip after the key and would flash the old direction on release. */
+/** The facing a held direction turns the chef to: at once, even against a counter, as in Overcooked 2. */
+export function steeredFacing(x:number,y:number):string|null{
+    if(x===0&&y===0)return null;
+    return Math.abs(x)>=Math.abs(y)?(x<0?'left':'right'):(y<0?'up':'down');
+}
 export function restingFacing(drawn:string,engine:string|undefined,steered:boolean):string{
     return steered||!engine?drawn:engine;
 }
