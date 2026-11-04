@@ -12,7 +12,7 @@
 | 状态 | 冻结 resolved-config，本地首尾快照 | 安全游戏配置、同意后的周期/事件状态、可读取增量 | 每帧轨迹、确定性回放 |
 | 物品 | 引擎物品、订单、动作、handoff 编号 | 投影保留关联，装盘/拼盘输入输出关系 | 未经引擎匹配的食材→订单归属 |
 | 结束 | aborted / 引擎结束 | 游戏条件与会话关闭分开，明确实际观测来源 | 崩溃、断网背后的玩家原因 |
-| 保存 | 自愿贡献、私有 SQLite、半年（180 天）、删除凭证 | 新同意、逐局开局前确认、提前结束保存、本人下载 | 跨设备身份、跨页面玩家追踪 |
+| 保存 | 自愿贡献、私有 SQLite、最长两年、删除凭证 | 新同意、逐局开局前确认、提前结束保存、本人下载 | 跨设备身份、跨页面玩家追踪 |
 | 研究出口 | v1 简略记录 | 只读 CLI、版本化私有包、schema/关联/摘要校验 | 无数据库核对时的来源真实性 |
 
 ## 同意与记录范围
@@ -32,7 +32,7 @@
 - 每 10000 游戏毫秒保存完整检查点，其间保存变化。`state_delta.payload.state` 中 `chefs` / `stations` 按 ID 合并，只发送有变化的实体；其他出现的顶层部分整体替换，未出现的部分保持不变。地图固定于本局，厨师/工位 ID 不在局内删除。`restored_states()` 实现读取。
 - `seq` 同时编号事实和状态记录；事件 `state_before_seq/state_after_seq` 引用已存在的可读状态观察。**事件发出时的观察不是整个操作的事务边界**；外层调用结束的状态补充收尾变化。不能把两个采样之间没有事件当作“没有变化”。未同意连续采集时，这些事件状态关联为 null。
 - 单局最多 24000 条、12 MB 保守计费的内存记录预算，其中预留 2 MB 和 4 条给结束资料。计费含每条额外 256 字节余量。达到预算后，统一序号继续递增，记录 `dropped/loss_ranges/truncated`，不删改已记录事实或悄悄缩减字段；终局资料若也无法容纳，保留 null 最终状态引用并标记丢失。投影失败单独计数，不保存原异常字符串。
-- SQLite 单条紧凑 JSON 上限 13 MB；总有效 JSON 内容默认 5 GB、最多 5000 条（上海服务器系统盘 40 GB，按半年保存期估算）；磁盘剩余空间低于 2 GB 时也拒绝保存和更新。容量不足时拒绝保存/更新并提示，已有行保留上一版，不假称完整成功。JSON 使用逐实体增量减小重复；研究包按配置/事件/元数据分文件并压缩，CLI 逐条处理，不一次加载整个数据库。
+- SQLite 单条紧凑 JSON 上限 13 MB；总有效 JSON 内容默认 5 GB、最多 5000 条（上海服务器系统盘 40 GB；保存期改为两年后上限不变，满了会拒绝新的保存）；磁盘剩余空间低于 2 GB 时也拒绝保存和更新。容量不足时拒绝保存/更新并提示，已有行保留上一版，不假称完整成功。JSON 使用逐实体增量减小重复；研究包按配置/事件/元数据分文件并压缩，CLI 逐条处理，不一次加载整个数据库。
 - 新增事实记录不调用模型，不做模型摘要。仅可选采集浏览器自报的耗时/受控错误，不改变直连/转发选择。
 
 在完整源码仓库中复现开销：`python3 scripts/benchmark_research.py`；高频输入：`python3 scripts/benchmark_research.py --dense-inputs`。只用测试中的合成轨迹驱动真实引擎，**不会调用 API，也不是产品里的脚本队友**。结果见 `docs/research-benchmark.json`；常规三关记录约 0.64/0.82/0.81 MB、跟踪峰值 4.4–5.4 MB；每秒 20 次输入的三关约 6.32/6.55/6.53 MB、峰值 23.7–24.9 MB，六种轨迹均无丢失。计时区分不带内存跟踪的 elapsed 时间与 tracemalloc 开销；同一共享环境上运行，不能当作隔离 CPU 基准，内存是该测量段的 Python 跟踪峰值，不是整个服务器 RSS。测量不证明线上负载、浏览器体验或模型协作效果。
@@ -148,6 +148,15 @@ API 输入 model_identity 只允许 provider、model_id 两个字段，不接受
 
 provider 取自 `model-providers.json` 的服务名。2026-11-01 新增 `cloudflare`：Cloudflare Workers AI 上的 Gemma 4 26B 和 Llama 3.1 8B，免费试玩和自有 Key 都记这一个服务名，model_id 记准确的模型 ID。研究管理台按自己发布版本里的结构文件校验，旧版管理台会拒收这个服务名，所以管理台要和游戏在同一个维护窗口里升级，顺序见 `docs/research-admin.md`。
 
+## 两年保存、公开数据集与旧对局（同意版本 v8）
+
+v8 改了保存期和用途，所以每位玩家都会按新说明重新被问一次。
+
+- 保存期：新贡献最长保存两年（`RETENTION_SECONDS`），研究者下载到本地的副本同样最长两年，研究项目提前结束时一并删除。按旧说明保存的记录保留原到期时间。
+- 公开数据集：相关研究发表后，可能把记录脱敏后公开发布。每份数据集只收录发布日 30 天以前贡献的对局，所以每局贡献后至少有 30 天可以删除；收进数据集后无法再删除。可以收录的记录：`consent_version` 为 v8，或 `terms.version` 为 v8。
+- 旧对局：按旧说明贡献过的玩家同意 v8 时，除非选「保持原样」，浏览器会用每局的删除凭证调用 `/api/contribution/terms`（`id`、`deletion_token`、`consent_version`）。服务器核对凭证后，记录的 `consent_version` 保持收集时的版本不变，另加 `terms: {version, accepted_at}`，到期时间改为该局开局时间加两年；共享数据服务里的 `shared_creates` 和研究管理台记下的来源站点一并延长。v1 旧格式记录不变。
+- 免费模型：站点承担免费模型的费用，所以使用免费模型的对局需要开局前同意贡献。没有同意时，服务器拒绝开局（403，`free_model_needs_consent`），页面再问一次；不同意可以改用自己的 Key 或本地版。
+
 ## 精确重放与请求复现（同意版本 v7）
 
 v7 把保存期改为半年（180 天），并在开局前同意的对局里加入下面这些字段。没有开局前同意、事后单局贡献的记录不含它们，`quality.missing` 标为 `engine_inputs_not_collected_without_prestart_consent`。旧版本记录仍可读取，不补造任何字段。
@@ -160,6 +169,7 @@ v7 把保存期改为半年（180 天），并在开局前同意的对局里加�
 - `ai_request` 增加 `engine_input_n`、请求的规范 SHA-256 `payload_sha256`、`recent_decisions`、`player_communication`（发给 Jeff 的预设消息原样，含发送时间）和 `memory_input`（`absent`、`empty_placeholder` 或 `not_stored`）。请求原文约 41 KB、一局最多约 200 次，不整份保存；`research_replay.rebuild_requests()` 重放到 `engine_input_n`，用 `jev.compose_payload` 重建请求，并核对校验值。
 - `ai_response.payload.probabilities`：决策模型报告的各选项概率，只保留候选里有的键，取值 0–1；聊天模型为空。网页和 Jev 转发都会带回，服务器拒绝不在候选里的键和越界的值。
 - `conditions.memory_provenance`：开启跨局记忆、并且自动贡献时，浏览器报告本局记忆来自哪几局（`source_round_ids`）和 `JSON.stringify(context)` 的 SHA-256。整局固定，不保存记忆内容；以后可以从这些局的记录重建记忆，再用校验值核对。记下的局号会把同一浏览器的几局联系起来，同意页已写明。
+- Jeff 的计划（开关打开的对局才有）：`conditions.jeff_plan` 记下本局开局时的开关，含 `mode`（`choice`）、`seconds` 和 `rules_version`（`plan-v1`）；每条 `ai_request` 另有 `jeff_plan`，即 `harness.Plan.input()`：`seconds`、当时有效的计划 `current`（`role`、`set_at`、`expires_at`，没有时为 null）和这次给出的选项 `options`（有计划时为 null）。重建请求时把它原样交给 `jev.compose_payload`。关闭开关的对局两处都没有，记录与之前相同。
 - 容量：默认最多 5000 局、5 GB；磁盘剩余空间低于 2 GB 时拒绝保存和更新，页面显示贡献失败。
 
 检查命令（只读，不调用模型）：

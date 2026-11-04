@@ -117,6 +117,8 @@ class DataHandler(BaseHTTPRequestHandler):
                 value = records.delete(body['id'], body['deletion_token'])
             elif self.path == '/v1/records/download' and set(body) == {'id', 'deletion_token'}:
                 value = records.download(body['id'], body['deletion_token'])
+            elif self.path == '/v1/records/terms' and set(body) == {'id', 'deletion_token'}:
+                value = records.accept_terms(body['id'], body['deletion_token'])
             elif self.path == '/v1/usage/push' and set(body) == {'stream', 'aggregate', 'running'}:
                 value = self.server.usage.apply(site, body['stream'], body['aggregate'], body['running'])
             elif self.path == '/v1/usage/read' and not body:

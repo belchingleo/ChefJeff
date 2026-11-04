@@ -1,0 +1,354 @@
+#!/usr/bin/env python3
+"""How Jeff decided in finished rounds, per model. Record only.
+
+    python3 scripts/decision_stats.py logs/                          local round journals
+    python3 scripts/decision_stats.py <folder>/*.cjresearch.zip      research packages (scripts/pull_research.py)
+
+It reads, and changes nothing: no game, no model call. Inputs are local round journals
+(logs/*.jsonl), research packages (*.cjresearch.zip, checked with research_export.verify_package,
+so an expired package is refused) and single research records (*.json, a player's download).
+Research records name the model only as the browser reported it (conditions.model_identity), and
+do not keep how a plan ended, so their plan ends read `not_recorded`. Legacy v1 records are skipped.
+A round found in several inputs (overlapping packages) is counted once, from its fullest copy.
+For each model it counts:
+
+- unsure: how far apart a decision model put its top two options (margin = first minus second
+  probability, over the options that were offered). Chat models report no probabilities.
+- replaced: Jeff's actions that its own next choice replaced before they were done (the engine's
+  `interrupted` event followed at once by Jeff's next `action_start`). Being knocked off by a dash
+  is counted apart; that was not Jeff's choice.
+- back_and_forth: A -> B -> A, where Jeff replaced an action at target A with one at B and that
+  one again with an action at A.
+- plan (rounds with Jeff's plan on): plans set, how they ended, how long they held, and how many
+  of the actions Jeff started while a plan held belong to its part (harness.action_part).
+  `unsure_with_plan` counts the decisions that were unsure (first margin) while a plan had held
+  for more than --plan-age seconds: the trigger proposed for the third tier, here only counted.
+
+Rates are per game minute. A round counts for the model that answered most of its requests.
+
+The report names models: keep it private like logs/, and do not publish per-model results.
+"""
+from __future__ import annotations
+import argparse
+from collections import Counter, defaultdict
+import json
+from pathlib import Path
+from statistics import median
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from harness import action_part  # noqa: E402
+from kitchen import Action  # noqa: E402
+from research_record import SCHEMA as RECORD_SCHEMA  # noqa: E402
+
+VERSION = 'decision-stats-2'
+MARGINS = (0.05, 0.1)
+PLAN_AGE = 5.0
+NON_ACTIONS = ('continue', 'wait', 'stop')
+
+
+def read_rounds(path):
+    """The rounds in one journal: a file normally holds one, each beginning with its start row."""
+    rounds, rows, unreadable = [], [], 0
+    with open(path, encoding='utf-8') as f:
+        for line in f:
+            try:
+                row = json.loads(line)
+            except ValueError:
+                unreadable += 1
+                continue
+            if not isinstance(row, dict):
+                unreadable += 1
+                continue
+            if row.get('kind') == 'start' and rows:
+                rounds.append(rows)
+                rows = []
+            rows.append(row)
+    if rows:
+        rounds.append(rows)
+    return rounds, unreadable
+
+
+def record_rows(record):
+    """One research record as journal rows, with the fields add_round reads."""
+    conditions = record.get('conditions') or {}
+    identity = conditions.get('model_identity') or {}
+    model = identity.get('model_id') or identity.get('provider') or 'not reported'
+    events = record.get('events') or []
+    states = None
+    def holding(seq):
+        nonlocal states
+        if states is None:
+            from research_replay import states as rebuilt
+            states = rebuilt(record)
+        row = next((s for s in reversed(states) if s['seq'] <= seq), None)
+        return ((row or {}).get('state', {}).get('chefs', {}).get('jeff') or {}).get('hand')
+    rows = [{'kind': 'start', 'jeff_plan': conditions.get('jeff_plan'), 'game_time_ms': 0, 'round_id': record.get('round_id')}]
+    previous = None     # the plan the previous request carried
+    for e in events:
+        p, at = e.get('payload') or {}, {'game_time_ms': e.get('game_time_ms')}
+        if e['type'] == 'ai_request':
+            plan = p.get('jeff_plan')
+            current = (plan or {}).get('current')
+            ended = 'not_recorded' if previous and (not current or current['set_at'] != previous['set_at']) else None
+            rows.append({'kind': 'ai_request', 'request_id': e.get('request_id'), 'candidates': p.get('candidates'),
+                         'jeff_plan': plan, **({'plan_ended': ended} if ended else {}), **at})
+            previous = current
+        elif e['type'] == 'ai_response':
+            choice = p.get('choice') or {}
+            chef = {'target': choice.get('target'), 'action_kind': choice.get('kind'),
+                    'holding': holding(e['seq']) if choice.get('kind') == 'throw' else None}
+            rows.append({'kind': 'ai_response', 'request_id': e.get('request_id'), 'model': model, 'choice': choice.get('key'),
+                         'probabilities': p.get('probabilities'), 'applied': p.get('applied'), 'fresh': p.get('fresh'),
+                         'action_id': e.get('action_id'), 'current_state': {'chefs': {'jeff': chef}}, **at})
+        elif e['type'] in ('action_start', 'interrupted', 'knocked'):
+            rows.append({'kind': e['type'], 'actor': e.get('actor_id'), 'action_id': e.get('action_id'),
+                         'action': (p.get('action') or {}).get('key'), **at})
+    # A plan answer is not kept. It shows as the plan the next request carries, set when the answer came,
+    # and only an answer to a request that asked for one (no plan held) can have set it.
+    asked = {r['request_id'] for r in rows if r['kind'] == 'ai_request' and r.get('jeff_plan')
+             and not r['jeff_plan'].get('current')}
+    for i, response in enumerate(rows):
+        if (response['kind'] != 'ai_response' or response.get('game_time_ms') is None
+                or response.get('request_id') not in asked):
+            continue
+        following = next((r for r in rows[i + 1:] if r['kind'] == 'ai_request'), None)
+        current = ((following or {}).get('jeff_plan') or {}).get('current')
+        if current and abs(current['set_at'] - response['game_time_ms'] / 1000) < .002:
+            response.update(plan_set=True, plan_role=current['role'])
+    rows.append({'kind': 'end', 'game_time_ms': round((record.get('duration') or 0) * 1000)})
+    return rows
+
+
+def sources(path):
+    """(rounds as journal rows, unreadable journal lines, skipped records) from one input file."""
+    path = Path(path)
+    if path.suffix == '.zip':
+        import zipfile
+        from scripts.research_export import verify_package
+        manifest = verify_package(path)
+        rounds, skipped = [], 0
+        with zipfile.ZipFile(path) as archive:
+            for source in manifest['sources']:
+                prefix = source['source_ref'] + '/'
+                if prefix + 'metadata.json' not in archive.namelist():
+                    skipped += 1        # legacy v1
+                    continue
+                record = json.loads(archive.read(prefix + 'metadata.json'))
+                record['events'] = [json.loads(line) for line in archive.read(prefix + 'events.jsonl').splitlines() if line]
+                rounds.append(record_rows(record))
+        return rounds, 0, skipped
+    if path.suffix == '.json':
+        data = json.loads(path.read_text(encoding='utf-8'))
+        record = data.get('record', data) if isinstance(data, dict) else None
+        if not isinstance(record, dict) or record.get('schema') != RECORD_SCHEMA:
+            return [], 0, 1
+        return [record_rows(record)], 0, 0
+    rounds, unreadable = read_rounds(path)
+    return rounds, unreadable, 0
+
+
+def game_time(row):
+    if isinstance(row.get('game_time_ms'), (int, float)):
+        return row['game_time_ms'] / 1000
+    return row.get('t') if isinstance(row.get('t'), (int, float)) else None
+
+
+def offered(request):
+    """Option keys of a request, from the full payload or the logged candidate list."""
+    if not request:
+        return None
+    payload = request.get('payload')
+    if isinstance(payload, dict):
+        return list(payload.get('questions', {}).get('next_action', {}).get('criteria', {}))
+    return request.get('candidates')
+
+
+def jeff(state):
+    return ((state or {}).get('chefs') or {}).get('jeff') or {}
+
+
+def new_model():
+    return {'rounds': 0, 'game_minutes': 0.0, 'decisions': 0, 'fresh': 0, 'applied': 0,
+            'top': [], 'margins': [], 'chose_top': 0, 'single_probability': 0, 'pairs': Counter(),
+            'started': 0, 'replaced': 0, 'knocked_off': 0, 'other_interruptions': 0, 'back_and_forth': 0,
+            'plan_rounds': 0, 'plans_set': Counter(), 'plan_ends': Counter(), 'holds': [],
+            'in_part': Counter(), 'off_part': Counter(), 'no_part': Counter(), 'unsure_with_plan': 0}
+
+
+def add_round(rows, models, margins=MARGINS, plan_age=PLAN_AGE):
+    responses = [r for r in rows if r.get('kind') == 'ai_response']
+    if not responses:
+        return None
+    requests = {r.get('request_id'): r for r in rows if r.get('kind') == 'ai_request'}
+    main = Counter(str(r.get('model') or 'unknown') for r in responses).most_common(1)[0][0]
+    m = models[main]
+    times = [t for t in map(game_time, rows) if t is not None]
+    m['rounds'] += 1
+    m['game_minutes'] += (max(times) if times else 0) / 60
+    by_action = {}      # action_id -> (model, target)
+    plan_on = bool(rows[0].get('jeff_plan')) or any(r.get('jeff_plan') for r in requests.values())
+    if plan_on:
+        m['plan_rounds'] += 1
+    holding = None      # the plan the previous request carried; a plan still held at closing is not counted
+    for request in sorted(requests.values(), key=lambda r: r.get('request_id') or 0):
+        if request.get('plan_ended'):
+            m['plan_ends'][request['plan_ended']] += 1
+            if holding and game_time(request) is not None:
+                m['holds'].append(round(game_time(request) - holding['set_at'], 3))
+        holding = (request.get('jeff_plan') or {}).get('current')
+    for response in responses:
+        model = models[str(response.get('model') or 'unknown')]
+        request = requests.get(response.get('request_id'))
+        model['decisions'] += 1
+        model['fresh'] += bool(response.get('fresh'))
+        model['applied'] += bool(response.get('applied'))
+        choice = response.get('choice')
+        keys = offered(request)
+        reported = response.get('probabilities')
+        probabilities = {k: v for k, v in (reported if isinstance(reported, dict) else {}).items()
+                         if isinstance(v, (int, float)) and not isinstance(v, bool) and (keys is None or k in keys)}
+        current = (request or {}).get('jeff_plan', {}) or {}
+        current = current.get('current')
+        if probabilities:
+            ranked = sorted(probabilities.items(), key=lambda kv: -kv[1])
+            first = ranked[0][1]
+            second = ranked[1][1] if len(ranked) > 1 else 0.0
+            model['single_probability'] += len(ranked) == 1
+            margin = round(first - second, 6)
+            model['top'].append(first)
+            model['margins'].append(margin)
+            model['chose_top'] += choice == ranked[0][0]
+            if len(ranked) > 1 and margin < max(margins):
+                model['pairs']['/'.join(sorted(k.split(' ')[0] for k, _ in ranked[:2]))] += 1
+            now = game_time(response)
+            if current and now is not None and now - current['set_at'] > plan_age and margin < min(margins):
+                model['unsure_with_plan'] += 1
+        if response.get('plan_set'):
+            model['plans_set'][response.get('plan_role')] += 1
+        state = response.get('current_state')
+        if response.get('applied') and response.get('action_id') is not None and choice not in NON_ACTIONS:
+            target = jeff(state).get('target')
+            by_action[response['action_id']] = (model, target if target is not None else choice)
+            kind = jeff(state).get('action_kind')
+            if current and current['role'] != 'flexible' and kind:
+                part = action_part(Action(choice, '', kind, target), state)
+                bucket = 'no_part' if part is None else 'in_part' if part == current['role'] else 'off_part'
+                model[bucket][current['role']] += 1
+    events = [r for r in rows if r.get('actor') == 'jeff' and r.get('kind') in ('action_start', 'interrupted', 'knocked')]
+    starts = []         # (target, replaced by Jeff's next choice)
+    for i, event in enumerate(events):
+        if event['kind'] == 'action_start':
+            owner, target = by_action.get(event.get('action_id'), (m, event.get('action')))
+            owner['started'] += 1
+            starts.append([owner, target, False])
+            if len(starts) >= 3 and starts[-3][2] and starts[-2][2] and starts[-3][1] == target != starts[-2][1]:
+                owner['back_and_forth'] += 1
+        elif event['kind'] == 'interrupted':
+            following = events[i + 1] if i + 1 < len(events) else None
+            if following and following['kind'] == 'action_start' and game_time(following) == game_time(event):
+                owner, _ = by_action.get(following.get('action_id'), (m, None))
+                owner['replaced'] += 1
+                if starts:
+                    starts[-1][2] = True
+            elif following and following['kind'] == 'knocked':
+                m['knocked_off'] += 1
+            else:
+                m['other_interruptions'] += 1
+    return main
+
+
+def share(part, whole):
+    return round(part / whole, 4) if whole else None
+
+
+def per_minute(count, minutes):
+    return round(count / minutes, 2) if minutes else None
+
+
+def summary(m, margins=MARGINS):
+    minutes = round(m['game_minutes'], 2)
+    out = {'rounds': m['rounds'], 'game_minutes': minutes,
+           'decisions': {'answered': m['decisions'], 'fresh': m['fresh'], 'applied': m['applied']}}
+    n = len(m['margins'])
+    out['unsure'] = None if not n else {
+        'with_probabilities': n, 'only_one_probability': m['single_probability'],
+        'median_top_probability': round(median(m['top']), 4), 'median_margin': round(median(m['margins']), 4),
+        'chose_the_top_option': share(m['chose_top'], n),
+        'below': {f'{t:g}': {'count': sum(x < t for x in m['margins']), 'share': share(sum(x < t for x in m['margins']), n),
+                             'per_game_minute': per_minute(sum(x < t for x in m['margins']), minutes)} for t in margins},
+        'closest_pairs': dict(m['pairs'].most_common(8))}
+    out['actions'] = {'started': m['started'], 'replaced_by_own_next_choice': m['replaced'],
+                      'replaced_share': share(m['replaced'], m['started']),
+                      'replaced_per_game_minute': per_minute(m['replaced'], minutes),
+                      'back_and_forth': m['back_and_forth'], 'back_and_forth_per_game_minute': per_minute(m['back_and_forth'], minutes),
+                      'knocked_off': m['knocked_off'], 'other_interruptions': m['other_interruptions']}
+    if m['plan_rounds']:
+        roles = sorted(set(m['in_part']) | set(m['off_part']) | set(m['no_part']))
+        out['plan'] = {'rounds': m['plan_rounds'], 'set': dict(m['plans_set']), 'ended': dict(m['plan_ends']),
+                       'median_hold_seconds': round(median(m['holds']), 2) if m['holds'] else None,
+                       'actions_while_held': {role: {'in_part': m['in_part'][role], 'other_part': m['off_part'][role],
+                                                     'no_part': m['no_part'][role],
+                                                     'in_part_share': share(m['in_part'][role], m['in_part'][role] + m['off_part'][role])}
+                                              for role in roles},
+                       'unsure_with_plan': m['unsure_with_plan']}
+    return out
+
+
+def report(paths, margins=MARGINS, plan_age=PLAN_AGE):
+    files = []
+    for path in map(Path, paths):
+        files += (sorted(p for pattern in ('*.jsonl', '*.cjresearch.zip', '*.json') for p in path.glob(pattern))
+                  if path.is_dir() else [path])
+    models = defaultdict(new_model)
+    counted = skipped = unreadable = unsupported = duplicates = 0
+    refused, journals, records = {}, [], {}
+    for path in files:
+        try:
+            rounds, bad, legacy = sources(path)
+        except (ValueError, KeyError, OSError) as error:   # an expired or damaged package, an unreadable record
+            refused[path.name] = str(error)   # the name only: folders can be private
+            continue
+        unreadable += bad
+        unsupported += legacy
+        for rows in rounds:
+            identifier = rows[0].get('round_id') if rows else None
+            if identifier is None:
+                journals.append(rows)
+            elif identifier in records:
+                # Overlapping packages hold one round twice; count it once, from its fullest copy.
+                duplicates += 1
+                if len(rows) > len(records[identifier]):
+                    records[identifier] = rows
+            else:
+                records[identifier] = rows
+    for rows in journals + list(records.values()):
+        if add_round(rows, models, margins, plan_age) is None:
+            skipped += 1
+        else:
+            counted += 1
+    return {'version': VERSION, 'files': len(files), 'refused_files': refused, 'rounds': counted,
+            'duplicate_rounds_dropped': duplicates,
+            'rounds_without_model_answers': skipped, 'unsupported_records': unsupported,
+            'unreadable_lines': unreadable, 'margins': list(margins), 'plan_age_seconds': plan_age,
+            'models': {name: summary(m, margins) for name, m in sorted(models.items()) if m['decisions']}}
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description="How Jeff decided, per model, from round logs or research data (record only).")
+    parser.add_argument('paths', nargs='+', help='journals (logs/), research packages (*.cjresearch.zip), record files (*.json) or folders of them')
+    parser.add_argument('--margins', type=float, nargs='+', default=list(MARGINS), help='unsure below these margins')
+    parser.add_argument('--plan-age', type=float, default=PLAN_AGE, help='seconds a plan has held before unsure counts')
+    parser.add_argument('--out', help='write the JSON report here instead of printing it')
+    args = parser.parse_args(argv)
+    result = report(args.paths, tuple(sorted(args.margins)), args.plan_age)
+    text = json.dumps(result, ensure_ascii=False, indent=2)
+    if args.out:
+        Path(args.out).write_text(text + '\n', encoding='utf-8')
+    else:
+        print(text)
+    return 0
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

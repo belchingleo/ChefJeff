@@ -14,6 +14,7 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - Phone menus show the same level plate, partner tiles and result buttons. The language button always reads "English" in Chinese.
 
 ### Free models
+- Free models now need consent to contribute the round, since the site pays for them: the server refuses a free-model start without it, the card says so, and its decline button opens the own-key form. Own keys and the local version need no contribution.
 - Register Gemini 3.5 Flash-Lite (Google AI Studio) and Gemma 4 26B and Llama 3.1 8B (Cloudflare Workers AI) as later free models. They stay off until their own private key file is installed and the gateway is started with it; each was probed once with a synthetic snapshot only.
 - Each platform has its own budget below its free tier: Gemini 450 a day and at least 4.3 s between calls; Cloudflare 9,000 estimated Neurons a day shared by both models. A spent day shows 今日额度已用完 instead of "try again later".
 - The free list on every screen follows the server's catalog, so an enabled model appears with no page change.
@@ -27,10 +28,15 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - Add persistent aggregate usage counts, including round starts/completions, manual endings, capacity rejections and per-level results; keep ending-specific duration histograms and a live running-session count. Estimate visiting/playing browsers with two local yes/no flags, without generating identifiers or storing IPs, credentials or individual analytics events. Add a loopback-only operator endpoint and CLI, with counting and privacy limits documented in both languages.
 
 ### Research records
+- Contribution terms move to `pilot-session-2026-11-v8`, so every player is asked again, with a short card: what a round records, and that de-identified data may be published once the research is published. **Details** holds the full terms. New contributions are kept for at most two years, researchers' downloaded copies too. A public dataset would only include rounds contributed at least 30 days before its release, and a round in it can no longer be deleted. Players holding receipts from earlier terms see one more line: agreeing moves those rounds to the new terms with their receipts (`/api/contribution/terms`; the record keeps its `consent_version` and gains `terms`), unless they choose **Keep as they were**. Rounds left under earlier terms keep their expiry. Upgrade the shared data service, both game sites and the research console together.
 - Contributed rounds are now kept for six months (180 days) instead of 30 days. The contribution terms move to `pilot-session-2026-10-v7`, so every player is asked again. Rounds saved under the earlier terms keep their 30-day expiry.
 - With consent before the round starts, a contributed round can now be replayed exactly: the record keeps the full frozen configuration and every engine input. It also records when each chef actually starts working at a station (`arrival`), whether a throw aims at the other chef (`throw_aim`), what is needed to rebuild every request to Jeff (a digest, recent decisions and the preset messages), the option probabilities a decision model reports, and, with cross-round memory on, which earlier rounds the memory came from. Memory content is still not stored. Jeff's input is unchanged. `scripts/check_research_record.py` checks a record and replays it.
 - Contribution storage holds up to 5000 rounds and 5 GB, and refuses saves before the server disk runs low.
+- Large research packages download again. The private console now builds a package in the background: a request waits up to 20 seconds, then gets 202 with `Retry-After` until the package is ready, so a build of several minutes (the console runs at 30% of a CPU) no longer holds one connection until a proxy or the network cuts it. A client that leaves does not stop the build, and the finished package waits up to 10 minutes for the same request; before sending, a quick check confirms every round is still active and unchanged. The console page and `scripts/pull_research.py` wait and ask again by themselves.
+- `scripts/pull_research.py sync --out DIR` pulls only the rounds DIR does not hold yet, 3 per package by default (`--batch`), with a local list of what came in which package. A local package goes as a whole when it expires, when one of its rounds left the server (withdrawn or expired) or was updated there, as each package's terms require; its other rounds are pulled again. Date filters take a date (`2026-11-03`), not a time, and a wrong one is refused locally.
+- `scripts/decision_stats.py` counts a round found in several inputs (overlapping packages) once, from its fullest copy, and reports how many copies it dropped.
 - A consented round whose final record could not be written to the database is no longer shown as contributed: the result screen says the contribution failed, and the save is retried once. Before this, such rounds kept only their opening snapshot while the page said they were saved. Wait, continue and stale model answers no longer leave empty action links in event payloads, which had blocked those final saves. Rounds already stored with only an opening snapshot stay as they are, marked incomplete.
+- Rounds played with Jeff's plan on keep the switch in `conditions.jeff_plan` (mode, seconds, rules version) and, in each `ai_request`, the plan input that rebuilds the request (`jeff_plan`: the plan holding, or the parts offered). Rounds with it off have neither field. Private export packages declare `conditions.jeff_plan` in their metadata schema too, so packages with such rounds pass verification; a test keeps the metadata and record schemas in step. Upgrade the research console with this release so it reads them.
 
 ### Jeff (the AI teammate)
 - Model input `en-v4`: joining the other chef's chopping or washing, walking to a floor tile and the start of a throw now reach Jeff in English. Before, these labels and events were partly Chinese (for example `一起切配 F2 (共享进度)`), so rounds recorded with `en-v3` show them that way.
@@ -40,8 +46,15 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - Settings list model services by kind instead of one catch-all "compatible" entry. Decision models: TypeSafe Jev and any OpenRouter decision model (OpenRouter's decisions API, same state-and-questions request as Jev; default Microsoft-Decision-1); Decision 3.0 is listed as self-hosted, not yet supported. Chat models: DeepSeek, OpenRouter chat models, Alibaba qwen-flash, Doubao Seed 2.0 lite, Gemini 2.5 Flash-Lite and, in the local game only, Zhipu GLM-4.7-Flash, each with its address, model and the vendor's switch to turn thinking off. Each shows a rough cost per round and whether a full round has been tested. The list lives in `model-providers.json`, read by the local server, the hosted page and the settings dialog.
 - A local model reply without a sprint field counts as no sprint; a rejected reply is logged with its reason and the model's words; the prompt no longer names an example action (a small model copied it every step).
 - Settings work on a phone opening the local game over the LAN (plain HTTP).
+- A route always starts and ends at the points it was asked for. Kitchens on one map share a route cache in which (6, 2) and (6.0, 2.0) are the same key, so after earlier rounds in the same server process a route could be written with the other number type (for example 6.0 instead of 6) in Jeff's input.
+- Payload fingerprints guard Jeff's model input: fixed rounds on the three levels record every request's payload and, on every fourth request, the exact body each local and online client would send, so refactors cannot change the input by accident.
+- Jeff's input is assembled in one module, `harness.py`: the rule text (each paragraph written once, with the grid kitchen's wording chosen in place), the listed actions and the per-request additions. The clients only send it. The input is unchanged byte for byte: the payload fingerprints and a separate check of the non-grid kitchen match.
+- Jeff's plan, a test switch in Settings → AI 搭档, off by default. With it on, whenever Jeff has no plan its request also asks which part of the work it takes on next: prep (备料), cook (加热), plate and serve (装盘出餐), plates (收洗盘) or flexible (随机应变). Only the parts this level's stations and recipes need are offered. The answer holds from Jeff's next request for 12 game seconds (`jeff_plan_seconds`), and ends earlier when the human sends a new preference (messages 1–5), or when neither the action Jeff is doing nor any of its listed actions belongs to the part. The plan adds or removes none of Jeff's actions, and Jeff is told it may follow it or not. The communication area on desktop and the phone's top toolbar show Jeff's plan and the seconds left. A missing or unknown answer means no plan, and the action still counts.
+- With the plan switch off, Jeff's input is unchanged byte for byte. With it on, requests carry `plan_rules_version` `plan-v1`, and a fifth payload fingerprint covers level 2 with the plan on. Local, online and browser clients read `plan_role` the same way, Zhipu's structured output included.
+- `scripts/decision_stats.py` counts, per model, how Jeff decided in the local round logs: close calls between its top two options, actions it replaced with its own next choice before they were done, back-and-forth between two targets, and, with the plan on, how its actions matched the plan's part and how often the trigger proposed for the third tier (a close call while a plan has held for over 5 seconds) would have fired. It reads local journals (`logs/`), research packages pulled with `scripts/pull_research.py` (verified first, so an expired one is refused) and downloaded round records; in research data the model is the one the browser reported, and how a plan ended is not recorded. Record only: it changes nothing and calls no model.
 
 ### Kitchen and controls
+- Your own chef keeps the direction you last steered when you stop, as in Overcooked. It used to snap back to the server's older facing for a moment, most visibly after short moves online.
 - Extinguishing as in Overcooked 2, for both chefs: spraying lowers the fire's strength, which stays on the station when you walk away, so a few short sprays add up to the 4 seconds; 2 seconds after spraying stops the fire grows back to full over 5 seconds. A red bar on the station shows what is left. The direction held when spraying starts no longer interrupts it. Ruleset: `fire.recovery_game_ms`.
 - Throw stays enabled while held, so a phone can always release an aim; throws the server refuses are journaled.
 - A second chef can join chopping or washing from any other free side, facing the first chef too, not only from a side at right angles: level 1's middle board can now be shared. Same for both chefs.
@@ -67,7 +80,7 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - A player's level on the start card: the plate says 自制关卡 with the level's name, its dishes' pictures (a borrowed official picture, or the layers on a plate) and whether both chefs are needed, with an Edit this level button that reopens it in the editor on a computer. It has no neighbouring levels, so ◀ ▶ are hidden; Again on its result card restarts the same level (the server treats `/api/next` with the current player level's id as a restart). The menu step of the editor shows each dish's picture as the game will draw it. The page state's `player_level` carries the level's name, shown as written and never in Jeff's input.
 - Jeff's rules move to `rules-v7`: the human's 1–5 now say who will do the work ("Chef human will do the cooking.", "Chef human will prepare the ingredients." and likewise for plating, carrying and washing) instead of "I prefer cooking.", which in a replay of Jev's choices made Jeff likelier to do the very work the human had claimed. The buttons read 我来烹饪 and so on, and 1–6 is labelled 测试 with a line saying it is a test feature that may change.
 - The recipe catalog moves to version 3 with the confirmed times: fish fries in 9 s and burns 8 s after it is done, noodles boil in 16 s and burn 13 s after; chopping stays 3 s and fire 8 s after burning. Dish prices follow the default rule, 20 plus 10 per ingredient plus 20 per heated one: beef and chicken noodles 90, cheeseburger 80. Levels 1–3 use none of these and play as before; their configuration hashes change with the catalog version.
-- The online consent lists what a contributed round on a level you made also keeps: its full design, including the level and dish names you gave it. The consent version stays `pilot-session-2026-10-v7` (owner decision).
+- The online consent lists what a contributed round on a level you made also keeps: its full design, including the level and dish names you gave it. The line is part of the `pilot-session-2026-11-v8` terms.
 - The phone-only Back to kitchen button no longer shows at the top of the 1–6 dock on a computer.
 
 ## 0.6.0-beta.2 — 2026-10-20 · second public test release
@@ -160,6 +173,7 @@ First private release: a local browser game with three playable maps and player-
 - 手机菜单也用同样的关卡牌、搭档方块和结算按钮。中文界面的语言按钮一律写「English」。
 
 ### 免费模型
+- 免费模型的费用由站点承担，所以使用免费模型的对局需要同意贡献：没有同意时服务器拒绝开局，卡片会写明这一点，拒绝按钮会打开填写自己 Key 的设置。用自己的 Key 或玩本地版不需要贡献。
 - 登记三个后加入的免费模型：Gemini 3.5 Flash-Lite（Google AI Studio），以及 Cloudflare Workers AI 上的 Gemma 4 26B 和 Llama 3.1 8B。装好它们单独的私密 Key 文件、并用它启动协调服务后才会开放；目前每个只用合成快照试过一次。
 - 每个平台单独计额度，都低于平台的免费额度：Gemini 每天 450 次，两次请求至少间隔 4.3 秒；Cloudflare 两个模型合计每天约 9,000 Neurons。一天用完后显示「今日额度已用完」，不再只说稍后再试。
 - 各处的免费模型列表都按服务器给的来，新开放的模型不用改页面就会出现。
@@ -173,10 +187,15 @@ First private release: a local browser game with three playable maps and player-
 - 增加持久化使用汇总，包括实际开局／完成、手动结束、名额拒绝和分关卡结果，并按结束方式保存时长区间，显示当前运行会话数。用浏览器中两个是／否标记估算访问／试玩浏览器数量，不生成独立编号，不保存 IP、凭据或逐条统计事件。增加仅服务器本机可读的接口和查询脚本，中英文文档写明口径与隐私限制。
 
 ### 研究记录
+- 贡献说明升为 `pilot-session-2026-11-v8`，每位玩家都会重新被问一次。新的卡片很短：写明一局会记录什么，以及相关研究发表后，去掉身份信息的数据可能公开；完整内容放在「详情」里。新贡献最长保存两年，研究者下载的副本同样最长两年。公开数据集只会收录发布日 30 天以前贡献的对局，收进数据集后无法再删除。持有旧说明凭证的玩家会多看到一行：同意后，浏览器用这些凭证把以前的对局改按新说明处理（`/api/contribution/terms`；记录保留原来的 `consent_version`，另加 `terms`），选「保持原样」则不改。仍按旧说明的对局保留原到期时间。共享数据服务、两个游戏站点和研究管理台需要一起升级。
 - 贡献的对局改为保存半年（180 天），原为 30 天。贡献说明升为 `pilot-session-2026-10-v7`，每位玩家都会重新被询问一次。按旧说明保存的对局仍按原来的 30 天到期。
 - 开局前同意的贡献对局现在可以精确重放：记录保存完整的冻结配置和全部引擎输入。另外记录双方真正开始操作的时刻（`arrival`）、投掷是否瞄准队友（`throw_aim`）、重建每次 Jeff 请求所需的内容（校验值、最近决策和预设消息）、决策模型给出的各选项概率，以及开启跨局记忆时记忆来自哪几局。记忆内容仍不保存。Jeff 收到的输入不变。`scripts/check_research_record.py` 检查并重放一条记录。
 - 贡献存储最多 5000 局、5 GB，服务器磁盘空间不足前会拒绝保存。
+- 较大的研究包又能下载了。私人管理台改为在后台生成研究包：一次请求最多等 20 秒，还没好就回 202 和 `Retry-After`，直到包生成完。管理台只用 30% 的 CPU，几十局的包要生成几分钟，以前这段时间一直占着一个连接，会被代理或网络切断。现在客户端中途离开也不会停止生成，生成好的包最多保留 10 分钟等同一个请求来取，发送前再快速核对其中每一局仍然有效、内容没变。管理台网页和 `scripts/pull_research.py` 都会自动等待、再次请求。
+- `scripts/pull_research.py sync --out 目录` 只拉目录里还没有的记录，默认每个包 3 局（`--batch` 可改），并在本地记下每个包里有哪几局。本地的包到期，或其中有一局在服务器上已撤回、到期或更新过，就按研究包自己的条款整包删除，其他仍有效的局重新拉取。日期筛选只写日期（`2026-11-03`），不带时间，写错会在本机直接报错。
+- `scripts/decision_stats.py` 遇到同一局出现在多个输入里（数据包有重叠）时只算一次，取最完整的那份，并在报告里写明去掉了几份。
 - 已同意贡献的一局，如果结束时完整记录没能写进数据库，不再显示“已贡献”：结算画面会提示贡献失败，并重试保存一次。此前这类对局只留下开局快照，页面却显示已保存。AI 选择等待、继续或回复过时的情况，不再在事件内容里留下空的动作关联，这正是此前结束保存被拒的原因。已经只存了开局快照的历史记录保持原样，标记为不完整。
+- 打开 Jeff 的计划玩的对局，在 `conditions.jeff_plan` 里记下开关（模式、秒数、规则版本），并在每条 `ai_request` 里记下重建这次请求所需的计划输入（`jeff_plan`：当时有效的计划，或给出的选项）。关闭时两处都没有。私有导出包的元数据格式表也声明了 `conditions.jeff_plan`，含这类对局的导出包能通过核对；另有测试保证元数据和研究记录两份格式表一致。研究管理台需要随这个版本一起升级，才能读取这些记录。
 
 ### Jeff（AI 队友）
 - 模型输入升为 `en-v4`：加入对方的切配或洗碗、走到某个地面格子、开始抛递这几类选项和事件，现在都以英文发给 Jeff。之前它们部分是中文（例如 `一起切配 F2 (共享进度)`），所以按 `en-v3` 记录的对局里保留着这些中文。
@@ -186,8 +205,15 @@ First private release: a local browser game with three playable maps and player-
 - 设置里的模型服务按类型分组，不再只有一个笼统的“兼容服务”。决策模型：TypeSafe Jev，以及 OpenRouter 上的任一决策模型（经 OpenRouter 的决策接口，请求格式和 Jev 相同；默认 Microsoft-Decision-1）；Decision 3.0 标为需本地部署、待接入。对话模型：DeepSeek、OpenRouter 对话模型、阿里 qwen-flash、豆包 Seed 2.0 lite、Gemini 2.5 Flash-Lite，以及只限本地版的智谱 GLM-4.7-Flash，各自填好地址、模型名和关闭思考的参数。每项注明大约每局花费、是否实测过整局。清单在 `model-providers.json`，本地服务、线上页面和设置界面共用。
 - 本地版模型回复里没有冲刺字段时按不冲刺处理；被拒的回复会把原因和模型原话写进日志；给模型的说明不再举具体动作的例子（小模型会每步照抄）。
 - 手机通过局域网（HTTP）打开本地版时，设置页可以正常连接模型。
+- 路线的起点和终点总是请求时给出的那两个点。同一张地图的厨房共用路线缓存，缓存里 (6, 2) 和 (6.0, 2.0) 是同一个键，所以同一个服务器进程玩过几局之后，Jeff 输入里的路线可能写成另一种数字类型（比如把 6 写成 6.0）。
+- 新增输入指纹，守住 Jeff 的模型输入：在三关的固定对局中记录每次请求的输入，并每隔四次请求记录本地版和在线版各客户端实际发出的请求内容，代码整理不会意外改变输入。
+- Jeff 的输入集中到一个模块 `harness.py` 里拼装：规则说明（每段只写一次，网格厨房的写法在原位置按条件选择）、列出的可选动作，以及每次请求追加的内容；各客户端只负责发送。输入逐字节不变：输入指纹和对非网格厨房的单独比对都一致。
+- Jeff 的计划：设置 → AI 搭档里的测试开关，默认关闭。打开后，Jeff 没有计划时，那次请求会多问一句接下来负责哪一段：备料（prep）、加热（cook）、装盘出餐（serve）、收洗盘（plates）或随机应变（flexible）。只列出本关工位和菜谱用得上的段。回答从 Jeff 的下一次请求起生效，保持 12 个游戏秒（`jeff_plan_seconds`）；玩家发出新的偏好消息（1–5）时，或者 Jeff 正在做的动作和可选动作都不属于这一段时，提前结束。计划不增减 Jeff 的任何动作，规则里也告诉 Jeff 可以照做，也可以不照做。电脑上的沟通区和手机顶部工具栏显示 Jeff 的计划和剩余秒数。没有回答或回答不在选项里，就当没有计划，动作照常执行。
+- 计划开关关闭时，Jeff 的输入逐字节不变。打开时请求带 `plan_rules_version` `plan-v1`，新增第五份输入指纹覆盖第二关计划打开的情况。本地版、在线版和浏览器端读取 `plan_role` 的方式一致，智谱的结构化输出也包括在内。
+- 新增 `scripts/decision_stats.py`，按模型统计本机对局日志里 Jeff 怎么做决定：第一、第二选项概率差得很近的次数，动作还没做完就被它自己的下一个选择换掉的次数，在两个目标之间来回改的次数；打开计划时，还统计它的动作和计划那一段是否一致，以及第三档设想的触发条件（计划已经定了超过 5 秒时又拿不准）会触发多少次。它能读本机日志（`logs/`）、用 `scripts/pull_research.py` 拉下来的研究数据包（先核对，过期的会拒绝）和单局下载的研究记录；研究数据里的模型名是浏览器报告的，计划是怎么结束的没有记录。只记录：它不改任何东西，也不调用模型。
 
 ### 厨房与操作
+- 松开方向键时，自己的厨师保持最后按的方向，和《胡闹厨房》一样。以前会先转回服务器那边还没更新的旧朝向，再转回来，线上短距离挪位置时最明显。
 - 灭火改成和《胡闹厨房 2》一样，两位厨师规则相同：喷会降低火势，走开后进度保留在工位上，几次短喷可以累计到 4 秒；停喷 2 秒后火会在 5 秒内长回满。工位上的红色条显示剩下多少。开始喷时摇杆还按着的方向不会打断灭火。规则集新增 `fire.recovery_game_ms`。
 - 按住「扔」时按钮不会被禁用，手机上总能松手结束瞄准；服务器拒绝的扔会留下记录。
 - 第二个人可以从任意另一侧空位加入一起切菜、洗碗，包括站在第一个人对面，不再只限于和他成直角的一侧：第一关中间的 2 号案板现在也能两人一起切。两位厨师规则相同。
@@ -213,7 +239,7 @@ First private release: a local browser game with three playable maps and player-
 - 开始卡片显示玩家关卡：标题是“自制关卡”加关卡名，旁边是菜的图（借用的官方成品图，或者盘子上一层层的配料），并写明需不需要两个人配合；电脑上还有“编辑这张关卡”按钮，可以回到编辑器修改。玩家关卡没有前后相邻的关卡，所以不显示 ◀ ▶；结算页的“再来一次”会重开同一张关卡（服务器把带当前玩家关卡 id 的 `/api/next` 当作重开）。编辑器的“2 菜单”这一步会显示每道菜在游戏里的样子。页面状态里的 `player_level` 带上关卡名，照原样显示，不进 Jeff 的输入。
 - Jeff 的规则升到 `rules-v7`：玩家按 1–5 发出的消息改成说明由谁来做（“Chef human will do the cooking.”、“Chef human will prepare the ingredients.”，摆盘、传菜、洗盘子同理），不再说“I prefer cooking.”。因为在 Jev 选择的重放实验里，旧的第一人称说法反而让 Jeff 更可能去做玩家说要做的那件事。按钮也改成“我来烹饪”等，1–6 标上“测试”，并注明这是测试功能，以后可能调整。
 - 菜谱目录升到第 3 版，写入确认过的时间：鱼煎 9 秒、熟后 8 秒烧糊；面条煮 16 秒、熟后 13 秒烧糊；切菜仍是 3 秒，烧糊 8 秒后起火。菜价按默认规则（20 元，每样配料加 10 元，每样要下锅的再加 20 元）：牛肉拌面和鸡肉拌面 90 元，芝士汉堡 80 元。前三关都不用这些食材，玩法不变；配置哈希随目录版本一起变。
-- 在线版的同意说明补上：贡献自制关卡的对局时，还会保存这张关卡的完整设计，包括你起的关卡名和菜名。同意版本仍是 `pilot-session-2026-10-v7`（用户决定）。
+- 在线版的同意说明补上：贡献自制关卡的对局时，还会保存这张关卡的完整设计，包括你起的关卡名和菜名。这一条写在 `pilot-session-2026-11-v8` 的说明里。
 - 电脑上，1–6 沟通面板顶部不再出现手机专用的“返回厨房”按钮。
 
 ## 0.6.0-beta.2 — 2026-10-20 · 第二个公开测试版

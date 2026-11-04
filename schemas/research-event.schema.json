@@ -1284,6 +1284,81 @@
             "not_stored"
           ]
         },
+        "jeff_plan": {
+          "description": "Only with Jeff's plan switch on: harness.Plan.input() for this request, enough to rebuild it.",
+          "type": "object",
+          "properties": {
+            "seconds": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "current": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "role": {
+                      "enum": [
+                        "prep",
+                        "cook",
+                        "serve",
+                        "plates",
+                        "flexible"
+                      ]
+                    },
+                    "set_at": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "expires_at": {
+                      "type": "number",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "role",
+                    "set_at",
+                    "expires_at"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "options": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "minProperties": 1,
+                  "propertyNames": {
+                    "enum": [
+                      "prep",
+                      "cook",
+                      "serve",
+                      "plates",
+                      "flexible"
+                    ]
+                  },
+                  "additionalProperties": {
+                    "type": "string",
+                    "maxLength": 200
+                  }
+                }
+              ]
+            }
+          },
+          "required": [
+            "seconds",
+            "current",
+            "options"
+          ],
+          "additionalProperties": false
+        },
         "probabilities": {
           "type": "object",
           "propertyNames": {

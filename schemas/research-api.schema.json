@@ -18,7 +18,7 @@
           "type": "boolean"
         },
         "consent_version": {
-          "const": "pilot-session-2026-10-v7"
+          "const": "pilot-session-2026-11-v8"
         },
         "decision_telemetry": {
           "type": "boolean"
@@ -105,7 +105,7 @@
           "const": true
         },
         "consent_version": {
-          "const": "pilot-session-2026-10-v7"
+          "const": "pilot-session-2026-11-v8"
         },
         "consent_mode": {
           "enum": [
@@ -233,7 +233,7 @@
           "$ref": "research-record.schema.json"
         },
         "consent_version": {
-          "const": "pilot-session-2026-10-v7"
+          "const": "pilot-session-2026-11-v8"
         }
       },
       "required": [
@@ -278,6 +278,58 @@
       ],
       "additionalProperties": false
     },
+    "terms_request": {
+      "description": "POST /api/contribution/terms: move one earlier round to the current terms with its receipt.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "deletion_token": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "consent_version": {
+          "const": "pilot-session-2026-11-v8"
+        }
+      },
+      "required": [
+        "id",
+        "deletion_token",
+        "consent_version"
+      ],
+      "additionalProperties": false
+    },
+    "terms_response": {
+      "type": "object",
+      "properties": {
+        "receipt": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "expires_at": {
+              "type": "string"
+            },
+            "consent_version": {
+              "const": "pilot-session-2026-11-v8"
+            }
+          },
+          "required": [
+            "id",
+            "expires_at",
+            "consent_version"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "receipt"
+      ],
+      "additionalProperties": false
+    },
     "consent_response": {
       "type": "object",
       "properties": {
@@ -285,7 +337,7 @@
           "const": true
         },
         "consent_version": {
-          "const": "pilot-session-2026-10-v7"
+          "const": "pilot-session-2026-11-v8"
         }
       },
       "required": [

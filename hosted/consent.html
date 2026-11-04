@@ -3,9 +3,10 @@
 #contribution-ask .choices .btn{min-height:48px;line-height:18px}
 #contribution-ask a{color:var(--denim,#2a5a9e)}
 #ask-summary:focus{outline:none}
-.ask-highlights{margin:14px 0 18px;padding-left:20px;font-size:14px;line-height:22px}
-.ask-highlights li{margin:8px 0}
-#contribution-ask details.fine{border-top:1px solid var(--surface);padding-top:10px}
+#contribution-ask .ask-note{margin:10px 0 0;font-size:14px;line-height:22px}
+#contribution-ask .link-button{padding:0;border:0;background:none;color:var(--denim,#2a5a9e);font:inherit;text-decoration:underline;cursor:pointer}
+#contribution-ask .ask-links{margin:12px 0 0;font-size:14px}
+#contribution-ask .fine{margin-top:12px;border-top:1px solid var(--surface);padding-top:10px}
 .contrib-lists{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:12px 0}
 .contrib-lists div{padding:10px 12px;border:1px solid var(--ink,#2b1a12);background:var(--surface,#f0d9b5)}
 .contrib-lists h4{margin:0 0 6px;font:12px/16px var(--pixel,system-ui);font-weight:400;color:var(--ink,#2b1a12)}
@@ -13,26 +14,30 @@
 .contrib-lists li::before{display:inline-block;width:1.2em;font-weight:700}
 .contrib-saved li::before{content:"+";color:var(--herb,#3c7a2a)}
 .contrib-never li::before{content:"×";color:var(--tomato,#b8321e)}
+/* The short card is only as tall as its text; opening the details grows it up to the full card size, then it scrolls. */
+body:not(.kitchen-touch-mode) #contribution-ask{height:fit-content;max-height:min(45.3125vw,80.5556vh,calc(100vh - 16px))}
 @media(max-height:500px){#contribution-ask .choices{margin-top:8px}}
 </style>
 <dialog id="contribution-ask" class="panel card-page" aria-labelledby="ask-title" aria-describedby="ask-summary">
  <div class="card-awning" aria-hidden="true"></div>
- <div class="dlg-head"><h2 id="ask-title">贡献对局数据？</h2></div>
+ <div class="dlg-head"><h2 id="ask-title">一起改进 Jeff？</h2></div>
  <div class="dlg-body card-scroll">
-  <p id="ask-summary" tabindex="-1" autofocus>自愿参与，不贡献也能正常游玩。</p>
-  <ul class="ask-highlights"><li><strong>会保存模型服务、模型 ID、双方的完整操作（可原样重放这一局），以及模型的选择和各选项概率。</strong></li><li><strong>不保存 API Key、IP 或账号身份。</strong></li><li><strong>私有保存半年（180 天），可提前删除。</strong></li></ul>
-  <details class="fine"><summary>采集范围、用途与保存方式</summary>
-   <p>只用于改进游戏和人机协作的评估方法，不公开原始数据。游戏没有玩家聊天输入框，记录的是局面、操作和模型的动作选择。</p>
+  <p id="ask-summary" tabindex="-1" autofocus>游戏会记录每一局的操作和模型的选择，但不包含 Key、IP、账号等个人信息。相关研究发表后，去掉身份信息的数据可能公开。</p>
+  <p id="ask-free" class="ask-note" hidden><strong>使用免费模型需要贡献对局数据。</strong></p>
+  <p id="ask-earlier" class="ask-note" hidden><span id="ask-earlier-move">你以前贡献的对局，也会按这份新说明处理。不想的话，点<button id="ask-keep" class="link-button" type="button">「保持原样」</button></span><span id="ask-earlier-kept" hidden>你以前贡献的对局保持原来的说明，到期删除，不收进公开数据集。<button id="ask-move" class="link-button" type="button">改回按新说明处理</button></span></p>
+  <div class="choices"><button id="ask-auto" class="btn" type="button">同意贡献</button><button id="ask-later" class="btn" type="button"><span id="ask-later-plain">暂不，继续</span><span id="ask-later-free" hidden>暂不贡献，用自己的 Key 或本地版</span></button></div>
+  <p class="ask-links"><button id="ask-details" class="link-button" type="button" aria-expanded="false" aria-controls="contribution-details">详情 ▾</button> · <a href="privacy.html" target="_blank" rel="noopener">隐私说明 ↗</a></p>
+  <div class="fine" id="contribution-details" hidden>
+   <p>自愿参与。只有选「同意贡献」才会保存；选「暂不」也能正常游玩，随时可以在「设置 → 数据与贡献」更改。</p>
+   <p>用途：改进游戏，研究人机协作的评估方法，并建立开放的人机协作基准。原始记录不公开。游戏没有玩家聊天输入框，记录的是局面、操作和模型的动作选择。</p>
    <div class="contrib-lists"><div class="contrib-saved"><h4>会保存</h4><ul><li>游戏引擎事件</li><li>初始局面、每秒状态变化与关键事件状态</li><li>结算结果与报告的 token 用量（非账单）</li><li>物品、订单、工位、动作与决策关联</li><li>实际地图、菜谱、规则、种子与版本</li><li>玩自制关卡时：这张关卡的完整设计，包括你起的关卡名和菜名</li><li>记忆开关与使用局数</li><li>全部操作输入：移动、位置、转向、按键和投掷，可原样重放整局</li><li>双方开始操作的时刻，以及投掷是否瞄准队友</li><li>每次给 Jeff 的请求的校验值，以及重建请求所需的最近决策和预设沟通消息（含发送时间）</li><li>模型给出的各选项概率（如有）</li><li>开启跨局记忆时，用到了哪几局（局号）及记忆内容的校验值</li><li>本局模型服务与模型 ID（含自定义模型，注明浏览器上报、未经独立核验）</li></ul></div><div class="contrib-never"><h4>不会保存</h4><ul><li>API Key</li><li>IP 与账号身份</li><li>模型接口地址</li><li>跨局记忆的内容（只记局号和校验值）</li></ul></div></div>
    <p>不另存完整 API 请求或响应。每次请求只保存校验值和重建它所需的少量内容，研究时用操作记录把原请求重建出来。开启跨局记忆时记下的局号，能把这个浏览器里的几局联系起来。</p>
-   <p>自动贡献会在开局时创建私有记录；正常结束、手动结束、重开、关闭请求或闲置回收时更新。突然断电或进程崩溃可能只保留未完成的开局记录，不会推断退出原因。记录容量耗尽会明确标注丢失范围。</p>
-   <p>对局记录统一保存在腾讯云中国上海；海外站经加密连接提交和访问记录。</p>
-   <p>私有保存，半年（180 天）后自动删除。每份贡献的删除凭证保存在这个浏览器里，可随时在「设置 → 数据与贡献」提前删除或更改选择。</p>
-   <p>选择“暂不”时，也可以在结算画面点「贡献本局」只贡献这一局。没有开局前同意时，只含已有事实与首尾状态，不含操作记录，缺失过程会标注。</p>
-  </details>
-  <details class="fine"><summary>可选：连接诊断</summary><p><label><input id="ask-telemetry" type="checkbox"> 另同意收集浏览器自报的请求耗时及受控错误类型（默认不选）</label></p></details>
-  <p><a href="privacy.html" target="_blank" rel="noopener">隐私说明与反馈 ↗</a></p>
-  <div class="choices"><button id="ask-auto" class="btn" type="button">同意每局自动贡献</button><button id="ask-later" class="btn" type="button">暂不贡献，继续</button></div>
-  <p><small>自动贡献含提前结束的对局，可在设置中更改选择。</small></p>
+   <p>保存：私有保存在腾讯云（中国上海），海外站经加密连接提交。研究者会把记录下载到自己的电脑上分析。原始记录（包括下载的副本）最长保存两年，研究项目提前结束时一并删除，不做备份。</p>
+   <p>公开数据集：相关研究发表后，我们可能把记录整理成数据集公开发布，任何人都可以下载使用，具体许可在发布时注明。发布前会对数据做脱敏处理，除了对局本身，只保留模型服务和模型 ID。</p>
+   <p>删除：每局的删除凭证保存在这个浏览器里，可以在「设置 → 数据与贡献」删除。每份公开数据集只收录发布日 30 天以前贡献的对局，所以每局贡献后，你至少有 30 天可以删除；被收进数据集以后，就认不出是哪一局了，无法再删除。</p>
+   <p>自动贡献会在开局时创建私有记录；正常结束、手动结束、重开、关闭请求或闲置回收时更新，提前结束的对局也包括在内。突然断电或进程崩溃可能只保留未完成的开局记录，不会推断退出原因。记录容量耗尽会明确标注丢失范围。关闭自动贡献会撤回本局未结束的记录。</p>
+   <p>选「暂不」时，也可以在结算画面点「贡献本局」只贡献这一局。没有开局前同意时，只含已有事实与首尾状态，不含操作记录，缺失过程会标注。</p>
+   <p><label><input id="ask-telemetry" type="checkbox"> 可选：另同意收集浏览器自报的请求耗时及受控错误类型（默认不选）</label></p>
+  </div>
  </div>
 </dialog>

@@ -16,7 +16,8 @@ import release_upgrade as up
 class ReleaseUpgradeTests(unittest.TestCase):
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
-        root=Path(self.tmp.name)
+        # Resolved: on macOS the temporary folder is under /var, a link to /private/var.
+        root=Path(self.tmp.name).resolve()
         self.old=root/'game/old';self.old.mkdir(parents=True)
         self.target=root/'game/new';self.target.mkdir()
         self.current=root/'current';self.current.symlink_to(self.old)

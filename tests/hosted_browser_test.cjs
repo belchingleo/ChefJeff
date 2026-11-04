@@ -715,6 +715,27 @@ function settingsHarness(){
   assert.deepEqual({choice:result.choice,sprint:result.sprint,failed:result.failed},{choice:expected.choice,sprint:expected.sprint,failed:expected.failed});
   assert(!Object.hasOwn(result,'probabilities'));
  }
+ // Jeff's plan: plan_role is answered with the action; an unknown or missing answer only leaves no plan.
+ const planQuestion={type:'choice',criteria:{prep:'Prepare',flexible:'No particular part'}};
+ assert(!Object.hasOwn(startluxResult,'plan_role'),'requests without plan_role send no plan field');
+ for(const [plan,expected] of [[{type:'choice',choice:'prep'},'prep'],[{type:'choice',choice:'dance'},null],[undefined,null]]){
+  upstream=()=>new Response(JSON.stringify({answers:{next_action:{type:'choice',choice:'wait'},sprint:{type:'choice',choice:'no'},...(plan?{plan_role:plan}:{})},usage:{input_tokens:5,output_tokens:7}}));
+  modelTask={id:'plan-task',payload:{model:'jev-latest',state:{kitchen:{}},questions:{next_action:{type:'choice',criteria:{wait:'Wait'}},sprint:{type:'choice',criteria:{yes:'Yes',no:'No'}},plan_role:planQuestion}}};
+  h=harness({...startlux,remember:true},false,{game_id:'round',phase:'running',limits:{},connection:{configured:true}});
+  await h.w.fetch('/api/state');await h.timers.find(fn=>fn.name==='poll')();
+  const result=JSON.parse(h.calls.find(c=>c.url==='/api/model/result').init.body);
+  assert.equal(result.choice,'wait');assert.strictEqual(result.plan_role,expected,'decision plan answer '+JSON.stringify(plan));
+ }
+ for(const [content,expected] of [['{"choice":"wait","plan_role":"prep"}','prep'],['{"choice":"wait","plan_role":"Prep!"}',null],['{"choice":"wait"}',null]]){
+  upstream=()=>new Response(JSON.stringify({choices:[{message:{content}}],usage:{prompt_tokens:1,completion_tokens:1}}));
+  modelTask={id:'task',payload:{state:{},questions:{next_action:{type:'choice',criteria:{wait:'Wait'}},plan_role:planQuestion}}};
+  h=harness(cfg.remember?cfg:{...cfg,remember:true},false,{game_id:'round',phase:'running',limits:{},connection:{configured:true}});
+  await h.w.fetch('/api/state');await h.timers.find(fn=>fn.name==='poll')();
+  const result=JSON.parse(h.calls.find(c=>c.url==='/api/model/result').init.body);
+  assert.equal(result.choice,'wait');assert.strictEqual(result.plan_role,expected,'chat plan answer '+content);
+  const system=JSON.parse(h.calls.find(c=>c.init?.body?.includes('"messages"')).init.body).messages[0].content;
+  assert(system.endsWith(' When questions.plan_role is present, also include "plan_role": "<part key>", one key of questions.plan_role.criteria.'));
+ }
  upstream=null;modelTask=null;
  h=harness();r=await h.w.fetch('/api/connection',{body:JSON.stringify({...cfg,provider:'compatible',base_url:'https://kitchen.example'})});assert.equal(r.status,400);
  h=harness();d=await (await h.w.fetch('/api/state')).json();assert.equal(d.connection.configured,false);
@@ -745,6 +766,13 @@ function settingsHarness(){
  ui.el('api-form').onsubmit({preventDefault(){}});assert.equal(ui.requests(),0);
  detail.connection.editable=true;ui.listeners.get('kitchen-state')({detail});
  assert.equal(ui.el('api-connect').disabled,false);assert.equal(ui.el('api-key').value,key);
+ // Jeff's plan switch follows the server's setting and is locked during a round.
+ detail.communication={jeff_plan:{mode:'choice',editable:true,current:null}};ui.listeners.get('kitchen-state')({detail});
+ assert.equal(ui.el('jeff-plan-choice').checked,true);assert.equal(ui.el('jeff-plan-off').checked,false);
+ assert.equal(ui.el('jeff-plan-choice').disabled,false);
+ detail.communication.jeff_plan={mode:'off',editable:false,current:null};ui.listeners.get('kitchen-state')({detail});
+ assert.equal(ui.el('jeff-plan-off').checked,true);assert.equal(ui.el('jeff-plan-choice').disabled,true);
+ assert(ui.el('plan-status').textContent.includes('本局进行中'));
  console.log('Browser transport and settings: credential isolation, session retry/release, editable drafts and guarded connection checks passed.');
  await checkModelIdentity();
  await checkFreeModels();

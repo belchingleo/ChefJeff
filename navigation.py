@@ -99,7 +99,14 @@ class Navigation:
 
 
     def shortest_path(self, start, end):
-        return list(self._cached_shortest_path(tuple(start),tuple(end)))
+        path = list(self._cached_shortest_path(tuple(start),tuple(end)))
+        # (6, 2) and (6.0, 2.0) are one cache key, so a cached route may carry another call's
+        # number types at its ends. Kitchens on one map share this object across rounds; the ends
+        # are always the caller's own points, so a route reads the same whatever was planned before.
+        path[0] = tuple(start)
+        if len(path) > 1:
+            path[-1] = tuple(end)
+        return path
 
     def _cached_shortest_path(self, start, end):
         if not self.walkable_point(start) or not self.walkable_point(end):

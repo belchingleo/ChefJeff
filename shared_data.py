@@ -83,6 +83,11 @@ class SharedRecords(ContributionStore):
                 'consent_version': CONSENT_VERSION}
 
 
+    def terms_accepted(self, db, identifier, expires):
+        # A retried create of this record must find the same, longer expiry.
+        db.execute('UPDATE shared_creates SET expires=? WHERE id=?', (expires, identifier))
+
+
 def usage_payload(snapshot):
     """Only bounded aggregates cross the connection; never visitor/session data."""
     return {'counts': {key: snapshot[key] for key in COUNTERS},

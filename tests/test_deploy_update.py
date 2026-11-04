@@ -13,7 +13,8 @@ class UpdateTests(unittest.TestCase):
     def fixture(self):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
-        root = Path(temporary.name)
+        # Resolved: on macOS the temporary folder is under /var, a link to /private/var.
+        root = Path(temporary.name).resolve()
         old, new = root / 'old', root / 'new'
         old.mkdir()
         (new / 'deploy').mkdir(parents=True)

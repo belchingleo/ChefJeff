@@ -22,7 +22,7 @@ Where to start: [play online](#play-online) · [run it locally](#run-it-locally)
 Choose the [China site (Shanghai)](https://chefjeff.belchingleo.online/) or the [overseas site (Germany)](https://global.belchingleo.online/) to play; nothing to install.
 
 - Bring your own model key: choose a service under Settings → AI teammate and paste the key. By default the key stays in that page and your browser sends it straight to the provider; only Jev goes through the demo server, and only if you agree. The [model connection guide](https://chefjeff.belchingleo.online/model-guide.html) lists the services that work and roughly what a round costs.
-- Before your first round you are asked whether to contribute anonymous round data; you can change your mind at any time. Contributions are kept for six months (180 days) and can be deleted with a deletion receipt; see [privacy and contact](https://chefjeff.belchingleo.online/privacy.html).
+- Before your first round you are asked whether to contribute anonymous round data; you can change your mind at any time. Contributions are kept for at most two years and can be deleted with a deletion receipt; once the research is published, de-identified data may be made public; see [privacy and contact](https://chefjeff.belchingleo.online/privacy.html).
 - Use the keyboard on a computer, and touch controls on a phone held landscape (see [touch controls](#touch-controls-experimental)). On iPhone, choose Add to Home Screen in Safari's share menu and open it from there to play full screen.
 - The game servers are in Shanghai and Germany; contributed round data and aggregate usage statistics are stored in Shanghai. The number of kitchens open at once is limited, and a full kitchen asks you to come back shortly.
 - Maintainers can deploy the separate, authenticated [research admin console](https://github.com/belchingleo/ChefJeff/blob/main/docs/research-admin.md) for private record previews, selected exports, charts and regional attribution. It is not a public data browser.
@@ -149,14 +149,17 @@ To connect your own model, implement two methods, `payload(state, actions)` and 
 
    These results can be recomputed exactly, but whether they reflect good cooperation still needs human interpretation. For example, ingredients prepared early but left unused because the orders changed don't mean the preparation was pointless at the time. The idea draws on the CCE metric from AgentWorld (arXiv 2609.31590); see [collaboration analysis](docs/architecture/collaboration-analyzer.md).
 
+3. **How Jeff decided**: `python3 scripts/decision_stats.py logs/` reads the local round logs and counts, for each model: close calls between its top two options (decision models report probabilities), actions Jeff replaced with its own next choice before they were done, back-and-forth between two targets (A → B → A) and, with Jeff's plan on, how many of its actions belonged to the plan's part. It also reads research packages pulled with `scripts/pull_research.py` (an expired package is refused) and downloaded round records; there the model is the one the browser reported, and how a plan ended is not recorded. It only reads and calls no model. The report names models, so keep it private like `logs/`.
+
 ### Code layout
 
 | Area | Main files |
 | --- | --- |
 | Kitchen rules | `kitchen.py`, `rules.py`, `config_contract.py` |
 | Maps and space | `maps/`, `spatial_kitchen.py`, `navigation.py` |
+| Jeff's input: rule text, listed actions, request assembly | `harness.py` |
 | Jeff's decision loop and model adapters | `jev.py`, `whitebox_server.py`, `player_api.py`, `model_language.py` |
-| Round records and analysis | `session_record.py`, `provenance.py`, `collaboration_analyzer.py`, `round_summary.py`, `capacity_analyzer.py` |
+| Round records and analysis | `session_record.py`, `provenance.py`, `collaboration_analyzer.py`, `round_summary.py`, `capacity_analyzer.py`, `scripts/decision_stats.py` |
 | Local servers | `web_server.py`, `cocos_server.py` |
 | Graphics and sound | `cocos-kitchen/` (Cocos Creator 3.8.8, TypeScript) |
 
@@ -270,7 +273,7 @@ See [CONTRIBUTING](CONTRIBUTING.md) for how to contribute. Issues and pull reque
 - By default your API key is kept only in memory. If you tick "Remember on this device", the key is saved in plain text to the local file `.player-api.json`; "Clear credentials" in Settings deletes it.
 - Check exported content before sharing it, and never put your key in an issue, a screenshot or a commit.
 
-- The online version keeps your key in the browser and asks once whether to contribute rounds (deleted after six months, i.e. 180 days). [Privacy and contact](docs/privacy.md) explains what is stored where, how long, how to delete it and how to reach us; the [model connection guide](docs/model-guide.md) lists the providers that work from the browser and estimates the cost of a round. Both pages are also linked in the game (Settings and Controls → Feedback).
+- The online version keeps your key in the browser and asks once whether to contribute rounds (kept for at most two years; free models need contribution). [Privacy and contact](docs/privacy.md) explains what is stored where, how long, how to delete it and how to reach us; the [model connection guide](docs/model-guide.md) lists the providers that work from the browser and estimates the cost of a round. Both pages are also linked in the game (Settings and Controls → Feedback).
 - Questions and bug reports: [GitHub issues](https://github.com/belchingleo/ChefJeff/issues), with the file from Settings → Data and contributions attached.
 
 See [privacy and API costs](docs/privacy-and-costs.md) and the [security notes](SECURITY.md).

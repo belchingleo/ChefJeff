@@ -102,9 +102,11 @@ class BrowserRelay(SpatialJevClient):
             from research_record import probabilities
             if not isinstance(reported, dict) or probabilities(reported, criteria) != {k: round(v, 6) for k, v in reported.items()}:
                 return False
+            from harness import plan_answer
             task['result'] = {'choice': choice, 'sprint': body['sprint'], 'model': 'browser-model',
                               'usage': usage, 'latency': time.monotonic() - task['sent'],
-                              'confidence': None, 'probabilities': probabilities(reported, criteria)}
+                              'confidence': None, 'probabilities': probabilities(reported, criteria),
+                              **plan_answer(body.get('plan_role'), task['payload'])}
             task['event'].set()
             return True
 
@@ -347,6 +349,10 @@ class HostedSession(GameSession):
             return 428, {'error': '请先在当前浏览器连接模型服务。'}
         if path in ('/api/start','/api/resume') and self.free_model_provider and not self.free_model_lease:
             return 503, {'error': '请先取得当前模型的免费厨房名额。'}
+        # The site pays for free models; a round with one needs consent to contribute it, declared
+        # before the start (/api/next and /api/restart reach here through /api/start too).
+        if path == '/api/start' and self.free_model_provider and self.store and not self.research_armed:
+            return 403, {'error': FREE_NEEDS_CONSENT, 'free_model_needs_consent': True}
         if path == '/api/limits':
             n = body.get('max_calls')
             if self.phase not in ('ready', 'ended'): return 409, {'error': '请先结束当前对局。'}
@@ -428,13 +434,16 @@ FIELDS = {
     '/api/contribution/save': {'consent', 'consent_version', 'consent_mode', 'model_identity'},
     '/api/browser-ready': {'connected'}, '/api/start': {'speed'}, '/api/pause': {'reason'},
     '/api/resume': set(), '/api/end': set(), '/api/reset': set(), '/api/restart': set(),
-    '/api/level': {'level'}, '/api/next': {'level'}, '/api/player-level/submit': {'level', 'design'}, '/api/player-level/play': {'job'}, '/api/limits': {'max_calls'}, '/api/export-run': set(),
+    '/api/level': {'level'}, '/api/next': {'level'}, '/api/player-level/submit': {'level', 'design'}, '/api/player-level/play': {'job'}, '/api/plan': {'mode'}, '/api/limits': {'max_calls'}, '/api/export-run': set(),
     '/api/feedback': set(), '/api/bookmark': set(), '/api/communicate': {'code'},
     '/api/move': {'dx', 'dy', 'seq', 'sprint'}, '/api/position': {'seq', 'base', 'at', 'press'}, '/api/select': {'target'},
     '/api/interact': {'expected_item', 'mode', 'at', 'base', 'aim', 'target'}, '/api/throw': {'direction', 'expected_item', 'at', 'base'},
     '/api/action': {'action', 'expected'},
-    '/api/model/result': {'id', 'choice', 'sprint', 'usage', 'failed','memory_condition','telemetry','probabilities','memory_provenance'},
+    '/api/model/result': {'id', 'choice', 'sprint', 'plan_role', 'usage', 'failed','memory_condition','telemetry','probabilities','memory_provenance'},
 }
+
+
+FREE_NEEDS_CONSENT = '使用免费模型需要贡献本局数据；也可以改用自己的 Key 或本地版。'
 
 
 class Sessions:
@@ -852,6 +861,16 @@ class HostedHandler(Handler):
             except (OSError, sqlite3.Error):
                 return self.reply(503, {'error': '记录服务暂时不可用，请稍后重试。'})
             return self.reply(200, {'record': record}) if record else self.reply(404, {'error': '记录不存在或凭证无效。'})
+        if path == '/api/contribution/terms':
+            # An earlier contributor moves one round to the current terms with its receipt.
+            if (set(body) != {'id', 'deletion_token', 'consent_version'} or body['consent_version'] != CONSENT_VERSION
+                    or not self.server.sessions.store):
+                return self.reply(400, {'error': '凭证或同意版本无效。'})
+            try:
+                receipt = self.server.sessions.store.accept_terms(body['id'], body['deletion_token'])
+            except (OSError, sqlite3.Error, ValueError):
+                return self.reply(503, {'error': '记录服务暂时不可用，请稍后重试。'})
+            return self.reply(200, {'receipt': receipt}) if receipt else self.reply(404, {'error': '记录不存在、已到期或凭证无效。'})
         if path == '/api/contribution/delete':
             if set(body) != {'id','deletion_token'} or not self.server.sessions.store:
                 return self.reply(400, {'error':'删除凭证无效。'})
@@ -1013,7 +1032,7 @@ def main():
     p.add_argument('--port', type=int, default=8780)
     p.add_argument('--origin', required=True)
     p.add_argument('--web-root', type=Path)
-    p.add_argument('--data-dir', type=Path, help='Enable opt-in six-month (180-day) contributions in this private directory.')
+    p.add_argument('--data-dir', type=Path, help='Enable opt-in two-year contributions in this private directory.')
     p.add_argument('--shared-config', type=Path, help='Private backend data-service configuration; data-dir holds only regional usage in shared mode.')
     p.add_argument('--free-model-gateway', action='store_true', help='Use the single authenticated Shanghai free-model gateway; disabled by default.')
     p.add_argument('--max-sessions', type=int, choices=range(1,17), default=8, help='Active kitchens, including short pause/result leases.')

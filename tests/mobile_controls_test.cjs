@@ -297,4 +297,17 @@ function checkIosHaptic(path){
  h.clear();h.fire('touch-action','pointerdown',{pointerId:2});h.fire('touch-action','pointerup',{pointerId:2});
  assert(h.calls.some(c=>c[0]==='act'),'touch Action still works after a tick');
 }
-for(const path of entries){check(path);checkOrderCards(path);checkIosHaptic(path);}
+// Jeff's plan shows in the toolbar during play, the same words as the communication dock.
+function checkPlan(path){
+ const h=harness(path);h.publish({});
+ const plan=()=>h.document.getElementById('touch-plan');
+ assert.equal(plan().hidden,true,'no plan line while the switch is off');
+ const send=jeff_plan=>h.w.dispatchEvent(new h.Event('kitchen-state',{detail:{communication:{jeff_plan}}}));
+ send({mode:'choice',editable:false,current:null});
+ assert.equal(plan().hidden,false);assert.equal(plan().textContent,'Jeff：还没选计划');
+ send({mode:'choice',editable:false,current:{role:'plates',remaining:8.2}});
+ assert.equal(plan().textContent,'Jeff：收洗盘 · 9 秒');
+ h.publish({phase:'paused'});assert.equal(plan().hidden,true,'the plan line belongs to a running round');
+ h.publish({phase:'running'});send({mode:'off',editable:true,current:null});assert.equal(plan().hidden,true);
+}
+for(const path of entries){check(path);checkOrderCards(path);checkIosHaptic(path);checkPlan(path);}

@@ -166,6 +166,25 @@ class SourceTests(unittest.TestCase):
         self.assertTrue(self.client('global').request('records/delete',{'id':new['id'],'deletion_token':new['deletion_token']}))
         self.assertNotIn(data.reference(new['id']),data.source_index(self.root/'data/contributions.sqlite3')['sources'])
 
+    def test_a_round_moved_to_the_new_terms_keeps_its_site_until_the_new_expiry(self):
+        receipt=self.client('global').request('records/save',self.body());ref=data.reference(receipt['id'])
+        older={**self.record,'consent_version':'pilot-session-2026-10-v7'};soon=time.time()+100*86400
+        with sqlite3.connect(self.root/'data/contributions.sqlite3') as db:
+            db.execute('UPDATE records SET record=?,expires=? WHERE id=?',(json.dumps(older),soon,receipt['id']))
+        with sqlite3.connect(self.server.source_observer.path) as db:
+            db.execute('UPDATE sources SET expires=? WHERE ref=?',(soon,ref))
+        self.assertIsNone(self.client('cn').request('records/terms',{'id':receipt['id'],'deletion_token':secrets.token_urlsafe(32)}))
+        moved=self.client('cn').request('records/terms',{'id':receipt['id'],'deletion_token':receipt['deletion_token']})
+        later=datetime.fromisoformat(moved['expires_at']).timestamp()
+        self.assertGreater(later,soon)
+        with sqlite3.connect(self.server.source_observer.path) as db:
+            self.assertEqual(db.execute('SELECT expires FROM sources WHERE ref=?',(ref,)).fetchone()[0],later)
+        # Past the old expiry the round still carries the site it came from.
+        with patch.object(source_observer.time,'time',return_value=soon+86400):
+            self.server.source_observer.prune()
+            self.assertEqual(data.source_index(self.root/'data/contributions.sqlite3')['sources'][ref],'global')
+        self.assertEqual(self.server.source_observer.failures,0)
+
     def test_bad_auth_never_creates_source_metadata(self):
         with self.assertRaises(Exception):self.client('cn',secrets.token_urlsafe(32)).request('records/save',self.body())
         self.assertEqual(data.source_index(self.root/'data/contributions.sqlite3')['sources'],{})

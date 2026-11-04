@@ -352,6 +352,7 @@
       ]};
       endpoint = config.base_url + '/chat/completions';
       if(config.provider==='zhipu')body.messages[0].content=zhipuSystem(payload);
+      else if('plan_role' in payload.questions)body.messages[0].content+=PLAN_CHAT_RULE;
     }
     Object.assign(body, preset.extra || {});
     try {
@@ -367,6 +368,7 @@
         d = JSON.parse(text);
         if (preset.group === 'decision') {
           answer = {choice:d.answers?.next_action?.choice, sprint:d.answers?.sprint?.choice === 'yes',
+            plan_role:d.answers?.plan_role?.type === 'choice' ? d.answers.plan_role.choice : null,
             probabilities:offered(d.answers?.next_action?.probabilities, payload.questions.next_action.criteria)};
           if (d.answers?.next_action?.type !== 'choice' || ('sprint' in payload.questions &&
               !['yes','no'].includes(d.answers?.sprint?.choice))) throw new Error();
@@ -380,7 +382,10 @@
             ('sprint' in payload.questions && preset.group !== 'decision' && 'sprint' in answer &&
              typeof answer.sprint !== 'boolean')) throw new Error();
       } catch (_) {throw new Error('模型返回了无效动作，未执行任何操作。');}
-      return {choice:answer.choice, sprint:answer.sprint === true,
+      // A missing or unknown plan answer only leaves Jeff without a plan; the action stands (harness.plan_answer).
+      const plan = 'plan_role' in payload.questions ? {plan_role:typeof answer.plan_role === 'string' &&
+        Object.hasOwn(payload.questions.plan_role.criteria, answer.plan_role) ? answer.plan_role : null} : {};
+      return {choice:answer.choice, sprint:answer.sprint === true, ...plan,
         ...(preset.group === 'decision' && Object.keys(answer.probabilities).length?{probabilities:answer.probabilities}:{}), usage:{
         input_tokens:boundedCount(usage.input_tokens), output_tokens:boundedCount(usage.output_tokens)},
         latency:(performance.now()-started)/1000};
@@ -404,10 +409,13 @@
     return hint ? hint + '（' + text + '）' : '连接失败（' + text + '）';
   }
   function boundedCount(n) {return Number.isInteger(n) && n >= 0 && n <= 10000000 ? n : 0;}
+  // The same sentence as harness.PLAN_CHAT_RULE.
+  const PLAN_CHAT_RULE = ' When questions.plan_role is present, also include "plan_role": "<part key>", one key of questions.plan_role.criteria.';
   function zhipuSystem(payload) {
     const properties={choice:{type:'string',enum:Object.keys(payload.questions.next_action.criteria)}};
     const required=['choice'];
     if('sprint' in payload.questions){properties.sprint={type:'boolean'};required.push('sprint');}
+    if('plan_role' in payload.questions){properties.plan_role={type:'string',enum:Object.keys(payload.questions.plan_role.criteria)};required.push('plan_role');}
     const schema={type:'object',properties,required,additionalProperties:false};
     return 'You control chef jeff in a shared kitchen. Using the supplied state and rules, '+
       'choose exactly one action key from questions.next_action.criteria. '+
@@ -416,7 +424,9 @@
       'When questions.sprint is present, decide between its yes/no options but encode '+
       'sprint as the JSON boolean true for yes or false for no. '+
       'Never encode sprint as a string, number or null. '+
-      'When questions.sprint is absent, omit sprint. Do not explain or add other fields. '+
+      'When questions.sprint is absent, omit sprint. '+
+      ('plan_role' in payload.questions ? 'When questions.plan_role is present, plan_role must be one of its keys. ' : '')+
+      'Do not explain or add other fields. '+
       'JSON Schema: '+JSON.stringify(schema);
   }
   async function markReady(connected, body, config=setting) {
@@ -536,6 +546,10 @@
       // running kitchen first, and a lost acknowledgement must not lose its context.
       if(opening)activeMemory=opening;
       const result = await serverFetch(url.pathname, init);
+      if(result.status===403 && isOpening) {
+        const refused=await result.clone().json().catch(()=>({}));
+        if(refused.free_model_needs_consent)setTimeout(()=>ask('free/'+Date.now()),0);
+      }
       if(!result.ok && opening && activeMemory===opening)activeMemory=previousMemory;
       if(!result.ok && ['/api/start','/api/restart','/api/next'].includes(url.pathname)){activeRoundModel=previousModel;activeRoundConfig=previousConfig;}
       if(result.ok && ['/api/start','/api/restart','/api/next'].includes(url.pathname)) {
@@ -624,7 +638,7 @@
   setTimeout(poll, 200);
   const CHOICE_KEY = 'chefjeff.contribution-choice.v1', RECEIPTS_KEY = 'chefjeff.contribution-receipts.v1';
   // Equals hosted_records.CONSENT_VERSION: new terms ask again instead of carrying an old answer over.
-  const CONSENT = 'pilot-session-2026-10-v7';
+  const CONSENT = 'pilot-session-2026-11-v8';
   let pendingContribution = Promise.resolve(), autoRound = '', busyRound = '', shown = null, askedAt = '', notice = {round:'', text:''};
   const stored = (name, fallback) => {try {return JSON.parse(localStorage.getItem(name) || 'null') ?? fallback;} catch (_) {return fallback;}};
   const keep = (name, value) => {try {value == null ? localStorage.removeItem(name) : localStorage.setItem(name,JSON.stringify(value));} catch (_) {}};
@@ -647,7 +661,7 @@
   }
   function showChoice() {
     const n=document.getElementById('contribution-choice');
-    if(n)n.textContent=autoOn()?'当前选择：以后每局结束自动贡献，保存半年（180 天）。':
+    if(n)n.textContent=autoOn()?'当前选择：以后每局自动贡献，最长保存两年。':
       choice?'当前选择：暂不自动贡献。结算画面可点「贡献本局」只贡献这一局。':'当前选择：尚未选择。';
   }
   function badge() {
@@ -661,7 +675,7 @@
   async function contributionCommand(path, extra={}, round=state?.game_id) {
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
     try {
-      const payload=['/api/contribution/delete','/api/contribution/download'].includes(path)?extra:{game_id:round,request_id:crypto.randomUUID(),...extra};
+      const payload=['/api/contribution/delete','/api/contribution/download','/api/contribution/terms'].includes(path)?extra:{game_id:round,request_id:crypto.randomUUID(),...extra};
       const r=await serverFetch(path,{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
       const d=await r.json();if(!r.ok)throw new Error(d.error||'请求失败。');return d;
     } catch(e) {if(e.name==='AbortError')throw new Error('贡献数据请求超时，请重试。');throw e;}
@@ -682,14 +696,42 @@
     const s=shown||state,round=s?.game_id;
     if(s?.phase!=='ended'||!s.hosted?.contribution_enabled||s.hosted.contributed||busyRound===round)return;
     pendingContribution=pendingContribution.catch(()=>{}).then(()=>contribute('round',round))
-      .then(()=>report(round,'本局已贡献，保存半年（180 天）。删除凭证在「设置 → 数据与贡献」。'))
+      .then(()=>report(round,'本局已贡献，最长保存两年。删除凭证在「设置 → 数据与贡献」。'))
       .catch(error=>report(round,'贡献失败：'+error.message));
   }
   window.addEventListener('kitchen-contribute', contributeRound);
+  const freeSelected = () => setting?.free_model === true;
+  // Receipts from before these terms: only players who contributed earlier see that line.
+  const earlierReceipts = () => receipts.filter(r => r.consent_version !== CONSENT);
+  let earlierShown = false, keepEarlier = false;
+  // Pages built without the card's optional lines (and test pages) simply skip them.
+  const hide = (id, hidden) => {const n=document.getElementById(id);if(n)n.hidden=hidden;};
+  function showEarlierChoice() {hide('ask-earlier-move',keepEarlier);hide('ask-earlier-kept',!keepEarlier);}
   function ask(at) {
     const dialog=document.getElementById('contribution-ask');
     if(!dialog||document.querySelector('dialog[open]'))return; // Settings or help first; the next state asks.
+    const free=freeSelected();
+    hide('ask-free',!free);hide('ask-later-plain',free);hide('ask-later-free',!free);
+    earlierShown=earlierReceipts().length>0;keepEarlier=false;hide('ask-earlier',!earlierShown);showEarlierChoice();
     askedAt=at;dialog.showModal();
+  }
+  // With the player's own receipts, earlier rounds move to the terms just agreed to. Retried on the
+  // next page load while some have not moved; a round that is gone is dropped from the receipts.
+  async function moveEarlier() {
+    let moved=0,failed=0;
+    for(const r of earlierReceipts()) {
+      try {
+        const reply=await serverFetch('/api/contribution/terms',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({id:r.id,deletion_token:r.deletion_token,consent_version:CONSENT})});
+        if(reply.status===404){receipts=receipts.filter(x=>x.id!==r.id);continue;}
+        if(!reply.ok){failed++;continue;}
+        const d=await reply.json();
+        receipts=receipts.map(x=>x.id===r.id?{...x,expires_at:d.receipt.expires_at,consent_version:d.receipt.consent_version}:x);moved++;
+      } catch (_) {failed++;}
+    }
+    keep(RECEIPTS_KEY,receipts);showReceipts();
+    if(failed)contributionStatus('以前贡献的对局暂时没能按新说明处理，下次打开页面会再试。');
+    else if(moved)contributionStatus(`已把以前贡献的 ${moved} 局按新说明处理。`);
   }
   window.addEventListener('kitchen-state', e => {
     const s=e.detail;shown=s;
@@ -699,7 +741,7 @@
     if(autoOn()&&s.hosted?.contribution_enabled&&s.phase==='ended'&&autoRound!==s.game_id){
       const round=autoRound=s.game_id;
       pendingContribution=pendingContribution.catch(()=>{}).then(()=>contribute('standing',round))
-        .then(()=>report(round,'本局已自动贡献，保存半年（180 天）。'))
+        .then(()=>report(round,'本局已自动贡献，最长保存两年。'))
         .catch(error=>report(round,'自动贡献失败：'+error.message));
     }
     // Asked before the first round, with no default answer. Browsers may still close it on Esc without
@@ -714,7 +756,9 @@
     showReceipts();showChoice();
     dialog.oncancel = e => e.preventDefault(); // Both answers are one click; Esc is not an answer.
     const answer = auto => {
-      choice={consent_version:CONSENT,answer:auto?'auto':'later',decision_telemetry:!!el('ask-telemetry')?.checked,since:new Date().toISOString()};keep(CHOICE_KEY,choice);
+      choice={consent_version:CONSENT,answer:auto?'auto':'later',decision_telemetry:!!el('ask-telemetry')?.checked,since:new Date().toISOString(),
+        ...(earlierShown?{earlier:auto&&!keepEarlier?'move':'keep'}:{})};keep(CHOICE_KEY,choice);
+      const free=freeSelected();
       // Agreeing never uploads a round that had already ended.
       if(auto){const now=shown||state;autoRound=now?.phase==='ended'?now.game_id:'';}
       if(!auto && state?.hosted?.research_active) {
@@ -722,8 +766,17 @@
           {consent:false,consent_version:CONSENT,decision_telemetry:false})).catch(()=>status('关闭自动贡献未确认，请重试。'));
       }
       dialog.close();showChoice();badge();
-      status(auto?'已开启自动贡献：此后每局结束自动保存半年（180 天）。':'已选择暂不贡献，之后不会自动上传。');
+      status(auto?'已开启自动贡献：此后每局自动保存，最长两年。':'已选择暂不贡献，之后不会自动上传。');
+      if(auto&&choice.earlier==='move')moveEarlier();
+      // Free models need contribution; without it, set up your own key (or play the local version).
+      if(!auto&&free)window.dispatchEvent(new CustomEvent('kitchen-open-connection',{detail:{view:'custom'}}));
     };
+    const on = (id, handler) => {const n=el(id);if(n)n.onclick=handler;};
+    on('ask-keep', () => {keepEarlier=true;showEarlierChoice();});
+    on('ask-move', () => {keepEarlier=false;showEarlierChoice();});
+    on('ask-details', () => {const box=el('contribution-details');if(!box)return;const open=box.hidden;box.hidden=!open;
+      el('ask-details').setAttribute('aria-expanded',String(open));});
+    if(autoOn()&&choice.earlier==='move'&&earlierReceipts().length)moveEarlier();
     el('ask-auto').onclick = () => answer(true);
     el('ask-later').onclick = () => answer(false);
     el('contribution-change').onclick = () => dialog.showModal();

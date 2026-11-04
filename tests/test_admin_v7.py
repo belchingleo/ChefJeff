@@ -26,7 +26,7 @@ class V7PreviewExportTests(baseline.AdminTests):
                 self.assertEqual(session._command('/api/end',{})[0],200)
                 synthetic=record(session)
         finally:session.close()
-        self.assertEqual(synthetic['consent_version'],'pilot-session-2026-10-v7')
+        self.assertEqual(synthetic['consent_version'],CONSENT_VERSION)
         self.assertIsNotNone(synthetic['replay'])
         receipt=ContributionStore(self.db.parent).save(synthetic)
         import admin_data
@@ -42,6 +42,6 @@ class V7PreviewExportTests(baseline.AdminTests):
         self.assertEqual(baseline.verify_package(target,database=self.db)['rounds'],1)
         with zipfile.ZipFile(io.BytesIO(raw)) as archive:
             metadata=json.loads(archive.read(ref+'/metadata.json'))
-            self.assertEqual(metadata['consent_version'],'pilot-session-2026-10-v7')
+            self.assertEqual(metadata['consent_version'],CONSENT_VERSION)
             self.assertEqual(metadata['replay'],synthetic['replay'])
         self.assertEqual(research_replay.check(synthetic)['replay'],'verified')

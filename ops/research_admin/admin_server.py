@@ -25,6 +25,11 @@ COOKIE = '__Secure-ChefJeffAdmin'
 IDLE_SECONDS = 1800
 MAX_SECONDS = 8 * 3600
 MAX_EXPORT = 280_000_000
+# A package is built apart from the request that asked for it, so a slow build (the console runs at
+# 30% of a CPU) never holds one connection open long enough for a proxy or the network to cut it.
+BUILD_WAIT = 20         # seconds one request waits for its package before answering 202
+BUILD_KEEP = 600        # seconds a built package waits for the same request to come back
+RETRY_AFTER = 5
 # The export token reaches only these read routes; it never logs in or changes the account.
 TOKEN_SCOPE = {('GET', PREFIX+'api/records'): 'records', ('GET', PREFIX+'api/preview'): 'preview',
                ('GET', PREFIX+'download/research.cjresearch.zip'): 'download',
@@ -109,6 +114,24 @@ def read_connection(database):
 def record_index(database, selected, page):
     return data.index(database, selected, page)
 
+class Build:
+    """One research package: being built, or built and waiting for the request that asked for it."""
+
+    def __init__(self, key):
+        self.key = key
+        self.started = time.monotonic()
+        self.finished = None
+        self.claimed = False
+        self.error = None           # (status, message) when the build failed
+        self.folder = None          # private temporary folder holding the package
+        self.package = self.manifest = self.fingerprints = None
+
+    def discard(self):
+        if self.folder is not None:
+            self.folder.cleanup()
+            self.folder = None
+
+
 class AdminServer(ThreadingHTTPServer):
     daemon_threads = True
     request_queue_size = 16
@@ -122,8 +145,59 @@ class AdminServer(ThreadingHTTPServer):
         self.failures = deque()
         self.token_failures = deque()
         self.lock = threading.Lock()
-        self.export_lock = threading.Lock()
+        self.export_lock = threading.Lock()     # held while a package is being built
+        self.builds = threading.Condition()     # guards self.build and wakes requests waiting for it
+        self.build = None
         self.slots = threading.BoundedSemaphore(6)
+
+    def start_build(self, key, selected, refs):
+        """Begin one package in its own thread; the caller holds self.builds."""
+        build = self.build = Build(key)
+        threading.Thread(target=self.run_build, args=(build, dict(selected), refs), daemon=True).start()
+        return build
+
+    def run_build(self, build, selected, refs):
+        database = self.config['database']
+        try:
+            with self.export_lock:
+                build.folder = tempfile.TemporaryDirectory(dir=self.config['temporary'])
+                package = Path(build.folder.name)/'records.cjresearch.zip'
+                site = selected.pop('site', None)
+                exporter = self.exporter if refs is None and site is None else data.selected_exporter(self.exporter, refs, site)
+                try:
+                    manifest = exporter(database, package, **selected)
+                    manifest = data.add_source_artifact(package, database, manifest)
+                except ValueError:
+                    build.error = (422, '没有可导出的有效记录，或记录未通过格式校验。')
+                else:
+                    if package.stat().st_size > MAX_EXPORT:
+                        build.error = (413, '研究包较大，请缩短日期范围后下载。')
+                    else:
+                        self.verifier(package, database=database)
+                        sources = [source['source_ref'] for source in manifest['sources']]
+                        # Taken after the full check: what the package was checked against.
+                        build.fingerprints = data.fingerprints(database, sources)
+                        if set(build.fingerprints) != set(sources):
+                            build.error = (410, '记录在生成研究包时已到期或撤回，请刷新后重新下载。')
+                        build.package, build.manifest = package, manifest
+        except data.RecordGone:
+            build.error = (410, '所选记录已到期或撤回，请刷新后重新选择。')
+        except Exception:   # noqa: BLE001 - a failed build must still answer; no details are logged
+            sys.stderr.write('Admin export failed.\n')
+            build.error = (503, '数据暂时不可用，请稍后重试；没有修改原始记录。')
+        if build.error:
+            build.discard()
+        with self.builds:
+            build.finished = time.monotonic()
+            self.builds.notify_all()
+            # This thread stays only until the package is fetched or replaced; a package nobody
+            # comes back for is removed after BUILD_KEEP. No timer threads (the unit allows 16 tasks).
+            end = build.finished + BUILD_KEEP
+            while self.build is build and not build.claimed and (left := end - time.monotonic()) > 0:
+                self.builds.wait(left)
+            if self.build is build and not build.claimed:
+                self.build = None
+                build.discard()
 
     def process_request(self, request, address):
         if not self.slots.acquire(False):
@@ -349,43 +423,68 @@ class AdminHandler(BaseHTTPRequestHandler):
         self.reply(404, {'error': '未找到页面。'})
 
     def download(self, selected, refs=None):
-        if not self.server.export_lock.acquire(False):
-            return self.reply(429, {'error': '另一份研究包正在生成，请稍后重试。'})
-        source, locked = None, True
+        server = self.server
+        key = (self._token or 'session', None if refs is None else tuple(refs), tuple(sorted(selected.items())))
+        deadline = time.monotonic() + BUILD_WAIT
+        with server.builds:
+            build = server.build
+            if build is not None and build.key != key:
+                # One build at a time; a finished one nobody fetched for a minute gives way.
+                if build.finished is None or build.claimed or time.monotonic() - build.finished < 60:
+                    build = None
+                    busy = True
+                else:
+                    server.build = None
+                    build.discard()
+                    server.builds.notify_all()
+                    build = None
+                    busy = False
+            else:
+                busy = False
+            if not busy:
+                if build is None:
+                    build = server.start_build(key, selected, refs)
+                while build.finished is None and (left := deadline - time.monotonic()) > 0:
+                    server.builds.wait(left)
+                ready = build.finished is not None and not build.claimed and server.build is build
+                if ready:
+                    build.claimed = True
+                    server.build = None
+                    server.builds.notify_all()      # lets the build thread finish
+        if busy:
+            return self.reply(429, {'error': '另一份研究包正在生成，请稍后重试。'}, extra={'Retry-After': str(RETRY_AFTER)})
+        if not ready:
+            return self.reply(202, {'status': 'building', 'waited_seconds': int(time.monotonic() - build.started),
+                                    'message': '研究包正在生成，请过几秒再发同一个请求来下载。'},
+                              extra={'Retry-After': str(RETRY_AFTER)})
+        source, error = None, build.error
         try:
-            with tempfile.TemporaryDirectory(dir=self.server.config['temporary']) as folder:
-                package = Path(folder)/'records.cjresearch.zip'
-                try:
-                    selected = dict(selected)
-                    site = selected.pop('site',None)
-                    exporter = self.server.exporter if refs is None and site is None else data.selected_exporter(self.server.exporter,refs,site)
-                    manifest = exporter(self.server.config['database'], package, **selected)
-                    manifest = data.add_source_artifact(package,self.server.config['database'],manifest)
-                except ValueError:
-                    return self.reply(422, {'error': '没有可导出的有效记录，或记录未通过格式校验。'})
-                if package.stat().st_size > MAX_EXPORT:
-                    return self.reply(413, {'error': '研究包较大，请缩短日期范围后下载。'})
+            if error is None and self._token and self.bearer() != self._token:
+                error = (401, '导出令牌已过期或已吊销，研究包没有发送。')
+            elif error is None and not self._token and not self.session():
+                error = (401, '登录已过期，请重新登录。')
+            elif error is None:
                 # Recheck withdrawal, expiry and updates immediately before serving.
-                self.server.verifier(package, database=self.server.config['database'])
-                if self._token and self.bearer() != self._token:
-                    return self.reply(401, {'error': '导出令牌已过期或已吊销，研究包没有发送。'})
-                if not self._token and not self.session():
-                    return self.reply(401, {'error': '登录已过期，请重新登录。'})
-                size, expires = package.stat().st_size, str(int(manifest['expires']))
-                # Open it before the folder is removed: nothing stays on disk while the package is sent.
-                source = package.open('rb')
-            # The package is built; the next export may start while this one is still being sent.
-            self.server.export_lock.release();locked=False
+                sources = [s['source_ref'] for s in build.manifest['sources']]
+                if (build.manifest['expires'] <= time.time()
+                        or data.fingerprints(server.config['database'], sources) != build.fingerprints):
+                    error = (410, '记录在生成研究包之后已到期、撤回或更新，请重新下载。')
+                else:
+                    size, expires = build.package.stat().st_size, str(int(build.manifest['expires']))
+                    # Open it before the folder is removed: nothing stays on disk while the package is sent.
+                    source = build.package.open('rb')
+        finally:
+            build.discard()     # before any reply, so a client that has its answer finds nothing left
+        if error:
+            return self.reply(error[0], {'error': error[1]})
+        try:
             self.headers_for(200, 'application/zip', size, {
                 'Content-Disposition': 'attachment; filename="chefjeff-research.cjresearch.zip"',
                 'X-Research-Expires': expires})
             while chunk := source.read(65536):
                 self.wfile.write(chunk)
         finally:
-            if source is not None:
-                source.close()
-            if locked:
-                self.server.export_lock.release()
+            source.close()
 
     def do_POST(self):
         try:

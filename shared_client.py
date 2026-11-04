@@ -78,6 +78,9 @@ class RemoteRecords:
     def download(self, identifier, token):
         return self.client.request('records/download', {'id': identifier, 'deletion_token': token})
 
+    def accept_terms(self, identifier, token):
+        return self.client.request('records/terms', {'id': identifier, 'deletion_token': token})
+
     def prune(self):
         # The authoritative service owns expiry, independently of game processes.
         pass

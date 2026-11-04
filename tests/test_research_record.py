@@ -188,9 +188,9 @@ class ResearchTests(unittest.TestCase):
             self.assertEqual(before,store.path.read_bytes())
             self.assertEqual(target.stat().st_mode&0o777,0o600)
             self.assertIn('not_collected',legacy_quality({})['interpretation'])
-            self.assertEqual(verify_package(target,now=time.time()+31*86400)['rounds'],2)  # six-month terms
-            with self.assertRaises(ValueError):verify_package(target,now=time.time()+181*86400)
-            store.prune(time.time()+181*86400)
+            self.assertEqual(verify_package(target,now=time.time()+181*86400)['rounds'],2)  # two-year terms
+            with self.assertRaises(ValueError):verify_package(target,now=time.time()+731*86400)
+            store.prune(time.time()+731*86400)
             self.assertEqual(list(rows(store.path)),[])
 
     def test_consented_full_round_orders_work_and_state_gap_are_measured(self):
@@ -254,6 +254,19 @@ class ResearchTests(unittest.TestCase):
     def test_synthetic_fixture_is_versioned_and_valid(self):
         data=json.loads((ROOT/'tests/fixtures/research-v2-short.json').read_text())
         validate_record(data)
+
+
+
+class PackageSchemaTests(unittest.TestCase):
+    def test_package_metadata_declares_the_same_fields_as_the_record(self):
+        # A field added to the record but not to the metadata makes every package with it fail verification.
+        load=lambda name:json.loads((ROOT/'schemas'/name).read_text())
+        record,metadata=load('research-record.schema.json'),load('research-metadata.schema.json')
+        only_record,only_metadata={'events','resolved_config'},{'artifacts','source_expires_at'}
+        self.assertEqual(set(record['properties'])-only_record,set(metadata['properties'])-only_metadata)
+        for key in set(record['properties'])-only_record:
+            self.assertEqual(record['properties'][key],metadata['properties'][key],key)
+        self.assertEqual(set(record['required'])-only_record,set(metadata['required'])-only_metadata)
 
 
 if __name__=='__main__':unittest.main()

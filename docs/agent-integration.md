@@ -22,14 +22,18 @@ Choose a compatible Chat Completions service in Settings and supply your own HTT
 
 ## New adapters
 
-Follow `CompatibleClient` in `player_api.py` and `SpatialJevClient` in `whitebox_server.py`:
+Jeff's input is assembled in `harness.py`: `harness.payload` builds the kitchen, rules and listed actions, and `harness.compose` adds recent events and decisions, player messages and memory. Follow `CompatibleClient` in `player_api.py`, which inherits `SpatialJevClient` from `whitebox_server.py`:
 
-- `payload(state, actions)` constructs input without modifying the game.
+- `payload(state, actions)` returns the harness input, adding only the adapter's own fields (such as `model`), without modifying the game.
 - `ask(payload)` returns a dictionary with `choice`, following existing `sprint`, `model`, `usage` and `latency` conventions.
 - Add an explicit branch in `create_client(config, setting)`, with settings validation and UI choices.
 - Use offline test doubles for invalid choices, stale replies, timeouts, budgets and recovery. Keep real keys out of CI.
 
 Hosted play uses `BrowserRelay` plus `hosted/browser-agent.js`; add browser-provider support there separately. `BrowserRelay` only accepts a validated choice, sprint flag and numeric usage and never stores credentials. Jev's explicit opt-in path uses `hosted_jev.py` at `/api/model/jev`: it requires the authenticated page token, game/task ID and consent version, forwards only the server-created task (or a fixed connection test) to the fixed Jev URL/model, and keeps the supplied key local to HTTP request processing. Never send that body through game-command receipts/journals or add a user-selected forwarding URL.
+
+## Jeff's plan (`plan_role`)
+
+With the plan switch on, a request made while no plan holds also carries `questions.plan_role`, a `choice` question whose criteria are the parts offered. The adapter returns the chosen key next to the action: a chat model writes `"plan_role": "<part key>"` in the same JSON (its system prompt gets `harness.PLAN_CHAT_RULE` only when the question is asked), a decision model answers `answers.plan_role` as a choice. Pass that value through `harness.plan_answer(value, payload)`, which returns `{}` when the question was not asked and `{"plan_role": None}` for a key that was not offered. `DecisionLoop` holds the plan (`harness.Plan`) only from a fresh reply, and a bad plan answer never rejects the action. Hosted play does the same in `hosted/browser-agent.js`, and `BrowserRelay` accepts `plan_role` with the result.
 
 ## Shared rules and extension points
 
@@ -67,14 +71,18 @@ Cocos 提供画面与玩家输入，Python 维护权威厨房状态。Agent 选�
 
 ## 新增适配器
 
-参考 `player_api.py` 中的 `CompatibleClient` 和 `whitebox_server.py` 中的 `SpatialJevClient`：
+Jeff 的输入在 `harness.py` 中拼装：`harness.payload` 生成厨房状态、规则说明和可选动作，`harness.compose` 再加入最近事件与选择、玩家消息和记忆。参考 `player_api.py` 中的 `CompatibleClient`，它继承 `whitebox_server.py` 的 `SpatialJevClient`：
 
-- `payload(state, actions)` 构造输入，不改变游戏。
+- `payload(state, actions)` 返回 harness 生成的输入，只添加适配器自己的字段（如 `model`），不改变游戏。
 - `ask(payload)` 返回含 `choice` 的字典，遵循现有 `sprint`、`model`、`usage`、`latency` 字段约定。
 - 在 `create_client(config, setting)` 增加明确分支，同步设置校验与界面选项。
 - 用离线替身覆盖非法选择、过期回复、超时、额度和恢复，CI 不使用真实密钥。
 
 托管版使用 `BrowserRelay` 与 `hosted/browser-agent.js`，需要另外接入浏览器供应商适配。中继仅接收校验后的动作、冲刺值和数值用量，不接收供应商凭据。
+
+## Jeff 的计划（`plan_role`）
+
+计划开关打开后，在没有有效计划时发出的请求会多一道 `questions.plan_role`，类型为 `choice`，选项就是给出的几段。适配器把选中的键和动作一起返回：对话模型在同一个 JSON 里写 `"plan_role": "<段的键>"`（只有问到时，系统提示才加上 `harness.PLAN_CHAT_RULE`），决策模型以选择题形式回答 `answers.plan_role`。把这个值交给 `harness.plan_answer(value, payload)`：没有问到时返回 `{}`，回答不在选项里时返回 `{"plan_role": None}`。`DecisionLoop` 只采用未过期回复里的计划（`harness.Plan`），计划回答有误也不会拒绝动作。托管版在 `hosted/browser-agent.js` 里做同样的处理，`BrowserRelay` 随结果接收 `plan_role`。
 
 ## 共用规则与扩展点
 

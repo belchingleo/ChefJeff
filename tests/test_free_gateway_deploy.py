@@ -20,6 +20,8 @@ from shared_client import SharedClient
 
 class DeploymentTests(unittest.TestCase):
     def activation_fixture(self,root):
+        # Resolved: on macOS the temporary folder is under /var, a link to /private/var.
+        root=root.resolve()
         previous=root/'old';previous.mkdir();new=root/'new';new.mkdir()
         current=root/'current';current.symlink_to(previous)
         override=root/'override.conf';work=root/'review';work.mkdir()
