@@ -282,7 +282,7 @@
       if (card) {
         const index = levels.findIndex(level => level.selected);
         text('touch-level-title', card.level); text('touch-level-dish', card.dish); text('touch-level-target', card.target);
-        text('touch-level-tag', card.tag); el('touch-level-tag').className = card.tag.startsWith('✓') ? 'won' : '';
+        text('touch-level-tag', card.tag); el('touch-level-tag').className = card.won ? 'won' : '';
         el('touch-level-prev').hidden = el('touch-level-next').hidden = ended;
         el('touch-level-prev').disabled = !card.stepEnabled || index <= 0;
         el('touch-level-next').disabled = !card.stepEnabled || index < 0 || index >= levels.length - 1;

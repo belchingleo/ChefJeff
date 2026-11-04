@@ -869,7 +869,7 @@
     "换一位搭档": "Change teammate",
     "今天配合得不错！": "Great teamwork today!",
     "关店结算": "Closing time",
-    "✓ 达成目标": "✓ Goal reached",
+    "★ 达成目标": "★ Goal reached",
     "上一关": "Previous level",
     "（免费）": " (free)",
     "请先选一位 AI 搭档，再开始经营。": "Pick an AI teammate before you start.",
@@ -1607,8 +1607,8 @@
       "¥{0} short · {1} orders served"
     ],
     [
-      "✓ 已达成 · 最佳 ¥{0}",
-      "✓ Reached · best ¥{0}"
+      "★ 已达成 · 最佳 ¥{0}",
+      "★ Reached · best ¥{0}"
     ],
     [
       "未达成 · 最佳 ¥{0}",
