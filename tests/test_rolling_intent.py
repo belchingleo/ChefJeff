@@ -2,7 +2,7 @@
 import unittest
 from unittest.mock import patch
 
-from harness import PLAN_KEEP_QUESTION, ROLLING_RULE, Plan, plan_condition, work_items
+from harness import PLAN_KEEP_QUESTION, ROLLING_RULE, ROLLING_YIELD_SECONDS, Plan, burning_soon, plan_condition, work_items
 from jev import DecisionLoop
 from kitchen import load_config
 from levels import level_config
@@ -58,9 +58,9 @@ class RollingLoopTests(unittest.TestCase):
         self.assertEqual([q for q in first['questions'] if q.startswith('plan_')], ['plan_step_1', 'plan_step_2'])
         self.assertEqual(first['questions']['plan_step_1']['criteria'], work_items(self.k.snapshot()))
         self.assertIn('next_action', first['questions']['plan_step_1']['instructions'])
-        self.assertEqual(first['state']['rules']['intent'], ROLLING_RULE)
+        self.assertEqual(first['state']['rules']['intent'], ROLLING_RULE.format(seconds=ROLLING_YIELD_SECONDS))
         self.assertNotIn('jeff_plan', first['state']['rules'])
-        self.assertEqual(first['state']['plan_rules_version'], 'rolling-v2')
+        self.assertEqual(first['state']['plan_rules_version'], 'rolling-v3')
         self.assertNotIn('jeff_plan', first['state'])
         second = self.cycle()
         self.assertEqual(self.steps(second), [('fetch:lettuce', False), ('chop:lettuce', False)])
@@ -74,6 +74,27 @@ class RollingLoopTests(unittest.TestCase):
         self.assertEqual(self.steps(fourth), [('take_plate', False)])
         self.assertEqual([r['jeff_plan']['mode'] for r in self.rows('ai_request')], ['rolling'] * 4)
         self.assertEqual([r['plan_set'] for r in self.rows('ai_response')], [True, False, True])
+
+    def test_a_pan_about_to_burn_hides_the_intent_but_still_asks(self):
+        from scripts import plan_probe
+        _, k, _ = plan_probe.emergencies()[0]          # cooked food a few seconds from burning
+        self.assertTrue(burning_soon(k))
+        client = Scripted(k.c)
+        held = Plan(mode='rolling')
+        state = k.snapshot()
+        self.assertTrue(held.accept({'steps': ['fetch:lettuce', 'chop:lettuce']}, k.time, work_items(state), None))
+        recent = [{'t': round(k.time, 2), 'choice': 'wait', 'accepted': True, 'result': 'wait', 'sprint_applied': False}]
+        payload = compose_payload(client, k, deepcopy(state), k.actions('jeff'), recent, None, NO_MEMORY, held.input(state))
+        self.assertEqual(payload['state']['recent_decisions'], [{**recent[0], 'result': payload['state']['recent_decisions'][0]['result']}])
+        self.assertIn('plan_step_1', payload['questions'])                       # still asked
+        quiet = kitchen()                                                        # nothing on a stove: the intent shows
+        self.assertFalse(burning_soon(quiet))
+        recent = [{**recent[0], 't': round(quiet.time, 2)}]
+        held = Plan(mode='rolling')
+        held.accept({'steps': ['fetch:lettuce']}, quiet.time, work_items(quiet.snapshot()), None)
+        shown = compose_payload(client, quiet, quiet.snapshot(), quiet.actions('jeff'), recent, None, NO_MEMORY,
+                                held.input(quiet.snapshot()))
+        self.assertEqual(shown['state']['recent_decisions'][0]['intent'], [{'work': 'fetch:lettuce', 'done': False}])
 
     def test_a_finished_action_ticks_its_step(self):
         self.client.plans = [['fetch:lettuce', 'chop:lettuce']]
@@ -110,7 +131,7 @@ class RollingLoopTests(unittest.TestCase):
 
 class RollingConditionTests(unittest.TestCase):
     def test_the_condition_and_input_name_the_mode(self):
-        self.assertEqual(plan_condition('rolling', 2), {'mode': 'rolling', 'steps': 2, 'rules_version': 'rolling-v2'})
+        self.assertEqual(plan_condition('rolling', 2), {'mode': 'rolling', 'steps': 2, 'rules_version': 'rolling-v3'})
         self.assertEqual(plan_condition('choice', 4), {'mode': 'choice', 'steps': 4, 'rules_version': 'plan-v2'})
         state = kitchen().snapshot()
         self.assertEqual(Plan(mode='rolling').input(state)['mode'], 'rolling')
@@ -127,7 +148,7 @@ class RollingConditionTests(unittest.TestCase):
         self.assertEqual(g._command('/api/start', {})[0], 200)
         self.assertEqual((g.ai.plan.mode, g.ai.plan.steps), ('rolling', 2))
         start = next(d for kind, d in g.journal.journal.rows if kind == 'start')
-        self.assertEqual(start['jeff_plan'], {'mode': 'rolling', 'steps': 2, 'rules_version': 'rolling-v2'})
+        self.assertEqual(start['jeff_plan'], {'mode': 'rolling', 'steps': 2, 'rules_version': 'rolling-v3'})
 
     def test_decision_stats_counts_rolling_rounds_apart(self):
         rows = [{'kind': 'start', 'game_time_ms': 0, 'jeff_plan': plan_condition('rolling', 2)},

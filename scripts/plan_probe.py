@@ -24,7 +24,8 @@ seconds earlier (Jeff is idle and empty-handed). In the held arm and the stale k
 carries the intent of the first two steps of those plans, as his previous request would have left it,
 so the arms differ only in the intent; every rolling request asks for a new one. (An earlier version
 gave the rolling arms a started fetch he never finished, a history at odds with the kitchen that pulled
-Jeff to fetch on its own.) The emergencies have the same acceptance. In the
+Jeff to fetch on its own.) Since rolling-v3 a pan about to burn leaves the intent out of the request, so in
+that kitchen the held arm checks that it does. The emergencies have the same acceptance. In the
 stale kitchen there is no keep or drop: it reports how often his new intent repeated the stale one
 (the same steps, or the same first step), and accepts at most half of the answers doing so.
 

@@ -158,7 +158,7 @@ class ReplayTests(paths.SavePathTests):
         self.assertEqual(self.command('plan', mode='rolling')[0], 200)
         receipt = self.begin_manual_relay()
         initial = self.game.store.download(receipt['id'], receipt['deletion_token'])
-        self.assertEqual(initial['conditions']['jeff_plan'], {'mode': 'rolling', 'steps': 2, 'rules_version': 'rolling-v2'})
+        self.assertEqual(initial['conditions']['jeff_plan'], {'mode': 'rolling', 'steps': 2, 'rules_version': 'rolling-v3'})
         self.human_action()
         self.assertEqual(self.answer_with(plan={'plan_step_1': 'fetch:beef', 'plan_step_2': 'chop:beef'})[0], 200)
         self.assertEqual(self.answer_with(plan={'plan_step_1': 'take_plate'})[0], 200)
@@ -178,7 +178,7 @@ class ReplayTests(paths.SavePathTests):
         for request in requests[:3]:     # asked at every request, never keep or drop
             self.assertIn('plan_step_1', request['rebuilt']['questions'])
             self.assertNotIn('plan_keep', request['rebuilt']['questions'])
-        self.assertEqual(requests[2]['rebuilt']['state']['plan_rules_version'], 'rolling-v2')
+        self.assertEqual(requests[2]['rebuilt']['state']['plan_rules_version'], 'rolling-v3')
 
     def test_a_tampered_record_is_reported_as_diverged(self):
         receipt = self.play()

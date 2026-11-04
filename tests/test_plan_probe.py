@@ -83,7 +83,11 @@ class PlanProbeTests(unittest.TestCase):
         self.assertIsNone(report['plan_held_not_below_plan_off'])
 
     def test_the_rolling_arms_and_stale_intent(self):
-        _, k, _ = self.emergencies[0]
+        _, burn, _ = self.emergencies[0]
+        burning = plan_probe.arm_payload(self.client, burn, 'plan_held', 'rolling')
+        self.assertNotIn('intent', burning['state']['recent_decisions'][0])          # a pan about to burn hides it (rolling-v3)
+        self.assertIn('plan_step_1', burning['questions'])                           # but it is still asked
+        _, k, _ = self.emergencies[1]                                                # the stove on fire: no pan about to burn
         off, asking, held = (plan_probe.arm_payload(self.client, k, arm, 'rolling') for arm in plan_probe.ARMS)
         for payload in (asking, held):     # asked at every request, never keep or drop
             self.assertEqual([q for q in payload['questions'] if q.startswith('plan_')], ['plan_step_1', 'plan_step_2'])

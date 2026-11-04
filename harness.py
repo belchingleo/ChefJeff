@@ -265,10 +265,13 @@ NO_MEMORY = object()
 # Rolling intent (plan mode 'rolling', a trial): every request asks, as notes on next_action, for the work item
 # the chosen action is for and the one after it. The newest notes ride on that decision in recent_decisions
 # (ticked as above), a record of what Jeff said then rather than a plan in the state, and each answer replaces
-# the last. There is no keep or drop. rolling-v1 showed the intent as state.jeff_plan; at a pan about to burn
-# it kept Jeff on the intent, so rolling-v2 shows it as history.
+# the last. There is no keep or drop. rolling-v1 showed the intent as state.jeff_plan and rolling-v2 as
+# history; either way, at a pan about to burn Jeff kept to an unrelated intent shown to him (while being asked
+# for one did not pull him). rolling-v3 leaves the intent out of a request while food in a pan on a stove is
+# within ROLLING_YIELD_SECONDS of burning; it is still asked, and shown again once no pan is that close.
 PLAN_RULES_VERSION = 'plan-v2'
-ROLLING_RULES_VERSION = 'rolling-v2'
+ROLLING_RULES_VERSION = 'rolling-v3'
+ROLLING_YIELD_SECONDS = 8.0   # a pan within this many game seconds of burning hides the intent
 PLAN_MODES = ('choice', 'rolling')
 PLAN_STEPS = 4
 ROLLING_STEPS = 2
@@ -302,10 +305,21 @@ ROLLING_RULE = ('In recent_decisions, a decision may carry intent: the two work 
                 'what you said then; the kitchen state is as it is now. A work item names a piece of work on this level\'s menu: '
                 'fetch, chop or cook an ingredient, put it on a plate, take a clean plate, serve a dish, collect dirty plates or wash a '
                 'plate. Every request asks for the two notes again (questions.plan_step_1 and plan_step_2), and only the newest is '
-                'kept. The human sees it. The notes do not change your listed actions.')
+                'kept. It is left out of a request while food in a pan on a stove is within {seconds:g} game seconds of burning. '
+                'The human sees it. The notes do not change your listed actions.')
 ROLLING_QUESTIONS = ('A note on next_action, not a choice of action: the work item the action you choose there does or is for. '
                      'It is kept with that decision in recent_decisions as intent.',
                      'A note: the work item you intend after it, or {none}.')
+
+
+def burning_soon(kitchen, within=ROLLING_YIELD_SECONDS):
+    """Whether food in a pan on a stove is within this many game seconds of burning (the engine's own thresholds)."""
+    for key in getattr(kitchen, 'pots', ()):
+        food = kitchen.stations[key].food
+        if food is not None and food.stage in ('cooking', 'ready') and food.ingredient in kitchen.rules.heat:
+            if kitchen.rules.heat_thresholds(food.ingredient)[1] - food.heated <= within:
+                return True
+    return False
 
 
 def plan_version(mode):
@@ -490,8 +504,8 @@ def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY,
     rolling = plan is not None and plan.get('mode') == 'rolling'
     if rolling:
         # The newest intent rides on the decision it was noted with, as a record of what Jeff said then.
-        payload['state']['rules']['intent'] = ROLLING_RULE
-        current = plan['current']
+        payload['state']['rules']['intent'] = ROLLING_RULE.format(seconds=ROLLING_YIELD_SECONDS)
+        current = None if burning_soon(kitchen) else plan['current']
         decisions = [dict(d) for d in recent_decisions]
         noted = next((d for d in reversed(decisions) if current and abs(d.get('t', -1) - current['set_at']) < .011), None)
         if noted is not None:
