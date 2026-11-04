@@ -29,7 +29,13 @@ from scripts.decision_stats import read_rounds  # noqa: E402
 
 PRICE_PER_M = 0.042     # USD per million input tokens, for the estimate only
 # Keys that use or put down what Jeff holds; with full hands, these are the ways forward.
-USE_PREFIXES = ('put ', 'drop', 'throw ', 'assemble ', 'plate ', 'load ', 'swap ', 'merge ', 'serve', 'discard', 'chop ', 'wash')
+USE_PREFIXES = ('put ', 'drop', 'throw ', 'assemble ', 'plate ', 'load ', 'swap ', 'merge ', 'serve', 'discard', 'chop ', 'wash',
+                'extinguish ')
+# Keys that pick something up: with full hands only a swap (the extinguisher, a loose ingredient on the floor).
+TAKE_PREFIXES = ('take ', 'pickup ', 'fetch')
+# Stations where putting the held item down is a step of the dish rather than parking it (a board only for
+# an ingredient still to chop).
+FORWARD_PUT_TYPES = ('stove', 'sink', 'tool_rack')
 
 
 def journals(paths):
@@ -74,14 +80,35 @@ def supplies(payload):
 
 
 def kind(key, payload):
-    """wait, continue, a walk to an ingredient supply, another walk, using or putting down what is held, or other."""
+    """wait, continue, a walk to an ingredient supply, another walk, using or putting down what is held, a swap
+    (picking up with full hands), a take (with empty hands), or other."""
     if key in ('wait', 'continue', 'stop'):
         return key
     if key.startswith('go '):
         return 'supply_walk' if key[3:] in supplies(payload) else 'walk'
     if key.startswith(USE_PREFIXES):
         return 'use_or_put_down'
+    if key.startswith(TAKE_PREFIXES):
+        return 'swap' if hands_full(payload) else 'take'
     return 'other'
+
+
+def stations(payload):
+    return ((payload.get('state') or {}).get('kitchen') or {}).get('stations') or {}
+
+
+def moves_forward(key, payload):
+    """Whether a use-or-put-down key is a step of the dish (plate, assemble, load, serve, a pan, the sink, a board
+    for an ingredient still to chop, ...) rather than parking the item (a counter, a supply top, the floor, a throw,
+    the bin)."""
+    if not key.startswith(USE_PREFIXES) or key.startswith(('drop', 'throw ', 'discard')):
+        return False
+    if not key.startswith('put ') or key.startswith('put pot '):    # put pot: a pan or pot back on its stove
+        return True
+    station = stations(payload).get(key[4:]) or {}
+    if station.get('type') == 'board':
+        return ((jeff(payload).get('holding') or {}).get('chop_remaining') or 0) > 0
+    return station.get('type') in FORWARD_PUT_TYPES
 
 
 def share(part, whole):

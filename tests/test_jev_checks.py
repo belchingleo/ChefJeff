@@ -98,6 +98,36 @@ class JevChecksTests(unittest.TestCase):
         self.assertEqual(report['arms']['as_logged']['chose_supply_walk'], 1.0)
         self.assertEqual(report['arms']['no_recent']['same_as_logged'], 1.0)
         self.assertEqual(report['arms']['no_supply_walks']['chose_use_or_put_down'], 1.0)
+        self.assertEqual(report['arms']['no_supply_walks']['chose_a_step_of_the_dish'], 0.0)   # bread on a board only parks it
+        self.assertEqual(report['groups']['waits']['count'], 0)
+
+    def test_answer_kinds_and_steps_of_the_dish(self):
+        full, empty = self.full, self.empty
+        self.assertEqual([jev_replay_check.kind(k, full) for k in ('take extinguisher', 'assemble plates', 'go lettuce', 'go serve')],
+                         ['swap', 'use_or_put_down', 'supply_walk', 'walk'])
+        self.assertEqual(jev_replay_check.kind('fetch bread', empty), 'take')
+        steps = {k: jev_replay_check.moves_forward(k, full) for k in ('assemble plates', 'put b1', 'put counter14', 'drop',
+                                                                       'throw partner', 'discard', 'go p1')}
+        self.assertEqual(steps, {'assemble plates': True, 'put b1': False, 'put counter14': False, 'drop': False,
+                                 'throw partner': False, 'discard': False, 'go p1': False})
+        lettuce = deepcopy(full)
+        lettuce['state']['kitchen']['chefs']['jeff']['holding'].update(ingredient='lettuce', chop_remaining=1.5)
+        self.assertTrue(jev_replay_check.moves_forward('put b1', lettuce))      # an ingredient still to chop
+        self.assertEqual((hands_full_check.held(full), hands_full_check.offered(full), hands_full_check.cooking(full)),
+                         ('ingredient', 'forward', False))
+        parked = deepcopy(full)
+        criteria = parked['questions']['next_action']['criteria']
+        for key in [k for k in criteria if k.startswith('assemble ')]:
+            del criteria[key]
+        self.assertEqual(hands_full_check.offered(parked), 'parking')
+        heating = deepcopy(full)
+        heating['state']['kitchen']['stations']['p1'].update(heating=True, food={'id': 'F9', 'stage': 'cooking'})
+        heating['state']['kitchen']['chefs']['jeff']['holding'] = {'id': 'D1', 'stage': 'clean_plate'}
+        self.assertEqual((hands_full_check.held(heating), hands_full_check.cooking(heating)), ('plate', True))
+        moments = [{'payload': p, 'logged_choice': 'wait', 'round': 1} for p in (full, parked, heating)]
+        self.assertEqual(hands_full_check.groups(moments)['waits'],
+                         {'count': 3, 'with_a_forward_option': 2, 'with_only_parking': 1, 'while_food_heating': 1,
+                          'holding_a_plate_while_food_heating': 1, 'by_held': {'ingredient': 2, 'plate': 1}})
 
     def test_a_dry_run_sends_nothing(self):
         logs = self.folder({'today.jsonl': journal('2026-11-04', [(self.full, 'go lettuce')], model='jev-1.14.0')})
@@ -108,6 +138,13 @@ class JevChecksTests(unittest.TestCase):
             self.assertEqual(hands_full_check.main([logs, '--dry-run']), 0)
             self.assertEqual(hands_full_check.main([logs, '--since', '2026-12-01', '--dry-run']), 1)
         self.assertIn('2 requests', err.getvalue())         # one request, sent twice
+        out = io.StringIO()
+        with patch.object(hands_full_check, 'client', side_effect=AssertionError('grouping sends nothing')), redirect_stdout(out):
+            self.assertEqual(hands_full_check.main([logs, '--groups-only', '--sample', '0']), 0)
+        grouped = json.loads(out.getvalue())
+        self.assertEqual((grouped['moments'], grouped['groups']['held'], grouped['groups']['options']), (1, {'ingredient': 1}, {'forward': 1}))
+        self.assertEqual(grouped['all_hands_full']['logged_kinds'], {'supply_walk': 1})
+        self.assertNotIn('Bread', out.getvalue())
         self.assertIn('3 requests', err.getvalue())         # one moment, three arms
         self.assertNotIn('Bread', out.getvalue() + err.getvalue())
 

@@ -156,6 +156,24 @@ class HandBuiltTests(unittest.TestCase):
                                         'knocked_off': 1, 'other_interruptions': 0})
         self.assertNotIn('plan', m)
 
+    def test_steps_undone_by_the_next_ones(self):
+        done = lambda t, action, n: row('action_done', t, actor='jeff', action=action, action_id=n)
+        rows = [row('start', 0, jeff_plan=None),
+                row('ai_request', 0, request_id=1, candidates=['wait']),
+                row('ai_response', 0, request_id=1, choice='wait', model='m', applied=True, fresh=True),
+                done(1, 'put counter3', 1), done(3, 'take counter3', 2),        # put down and taken straight back
+                done(4, 'drop', 3), done(5, 'pickup G1', 4),                    # dropped and picked up again
+                done(6, 'go lettuce', 5), done(8, 'go serve', 6), done(10, 'go lettuce', 7),   # A -> B -> A
+                done(11, 'put counter5', 8), done(30, 'take counter5', 9),      # taken back, but much later
+                done(31, 'put b1', 10), done(32, 'chop b1', 11),
+                row('action_done', 33, actor='human', action='take b1', action_id=12),
+                row('end', 60)]
+        undone = report([self.write(rows)])['models']['m']['undone']
+        self.assertEqual(undone, {'finished_steps': 11, 'walks_share': round(3 / 11, 4), 'put_then_taken_back': 2,
+                                  'put_then_taken_back_per_game_minute': 2.0, 'walk_round_trips': 1,
+                                  'walk_round_trips_per_game_minute': 1.0})
+        self.assertEqual(report([self.write(rows)], put_back=30)['models']['m']['undone']['put_then_taken_back'], 3)
+
     def test_unsure_with_a_plan_counts_only_after_the_plan_age(self):
         plan = {'steps': 4, 'current': {'steps': [{'work': 'fetch:beef', 'done': True}, {'work': 'chop:beef', 'done': False}],
                                         'set_at': 1.0}, 'options': None}
