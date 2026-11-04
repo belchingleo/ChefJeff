@@ -19,7 +19,8 @@ from cooperation_memory import PAST_EPISODES_RULE
 # v6: memory summaries distinguish historical work/messages from current roles and preferences.
 # v7: the human's preference messages say who will do the work ("Chef human will do the cooking.").
 # v8: chopping and washing need the hands over the station; two chefs may share it, side by side too.
-AGENT_RULES_VERSION = "rules-v8"
+# v9: boards and ingredient-source tops hold any one object, as counters do; a source with something on top gives no ingredient.
+AGENT_RULES_VERSION = "rules-v9"
 
 
 # How a recipe component's required state reads in model input: "tomato (chopped)".
@@ -54,6 +55,8 @@ def _with_required_states(value, required):
 def model_kitchen(state):
     """The kitchen state as the model sees it: display-only fields for the client are left out."""
     kitchen = {k: v for k, v in state.items() if k != 'items'}
+    if 'chefs' in kitchen:
+        kitchen['chefs'] = {who: {k: v for k, v in chef.items() if k != 'route_slide'} for who, chef in kitchen['chefs'].items()}
     for key in ('menu', 'dishes'):
         if key in kitchen:
             kitchen[key] = [{k: v for k, v in dish.items() if k != 'plating'} for dish in kitchen[key]]
@@ -163,12 +166,12 @@ def rules(state, spatial=False, per_area=2):
                     'shows its kind as vessel. An ingredient can be put only into the kind of vessel that cooks it.'),
         "plate_reuse": 'Dirty plates cannot hold food or substitute for clean plates. If no clean plate is available, dirty plates must be washed before plating and serving can continue. Waiting alone does not clean plates. Decide when to wash and how to divide work based on the situation.',
         "tableware": f'Tableware is limited and distributed across counters. Each counter holds one item: a plate, a pot, or an ingredient. There is no stacking rack. tableware.counters lists counter IDs; stations, ground, and chefs show actual locations. clean_plate means clean; dirty_plate means dirty; food is plated only when plate_id is nonempty. Use take/put at counters. Removing cooked food requires a container: hold a clean plate and use plate pN at a stove, hold a filled pot and use plate <counter_id> at a clean plate on a counter, or hold a clean plate and use plate <counter_id> at a filled pot on a counter. take pot pN lifts the pot and contents together. A pot occupies your hands; {pot_pass}. Off the stove heating stops; returning it resumes heating. contents is the food inside. An empty stove cannot accept ingredients until its pot is returned. Recycling: take returns collects a dirty plate; put sink puts it in an empty sink; wash with empty hands; take sink collects the clean plate for plating or storage. Washing can be interrupted and resumed by either chef with progress preserved. Diners return plates after the dining time. The return station holds one plate; further returns queue. Clean plates, dirty plates and plated food {plate_pass}. They can also be put down and picked up. Plates and pots cannot be destroyed. Discarding plated food leaves a dirty plate; emptying a pot leaves an empty pot, costing {discard} yuan. Decide when to wash, carry plates or lift pots; roles are not fixed.',
-        "resources": 'Each chef holds one item. With an item in hand you can only take the extinguisher or pick up a loose raw or chopped ingredient from the floor; the previously held item is then placed on nearby ground when the action completes and can be recovered without a penalty. If no nearby space is available, the swap fails and neither item changes. To take anything else, first put the held item down. Each pot and board holds one food item. Chopping requires empty hands; chopped food still occupies the board. Cooking is automatic; no chef needs to stay at the stove. There is no transfer window.',
+        "resources": 'Each chef holds one item. With an item in hand you can only take the extinguisher or pick up a loose raw or chopped ingredient from the floor; the previously held item is then placed on nearby ground when the action completes and can be recovered without a penalty. If no nearby space is available, the swap fails and neither item changes. To take anything else, first put the held item down. Each pot holds one food item. Each board, counter and the top of each ingredient source holds one object of any kind (an ingredient, a plate with or without food, a pot); take, put, plate, assemble, merge, load and swap pot work there as on a counter. Only a raw ingredient that needs chopping can be chopped, and only on a board; chopping requires empty hands and chopped food still occupies the board. While something rests on an ingredient source, take gives that object and the source gives no new ingredient; fetch from it returns once its top is clear. Cooking is automatic; no chef needs to stay at the stove. There is no transfer window.',
         "ground": (('Any held item can be put down with drop on the current or an adjacent free floor tile. Each tile holds one item. Actions walk to the destination; placing takes timing.handling seconds. No free tile means no drop. Either chef can use pickup <item_id> to walk to and pick up an item. With an item in hand you can only take the extinguisher or pick up a loose raw or chopped ingredient from the floor; the previous item then goes on nearby ground, and without free space nothing changes. To take anything else, put the held item down first; the person plays by the same rule. State and preparation progress are preserved, with no penalty, spoilage or heating. Only discard destroys food and costs money.') if spatial else
                    'Held items can be put down beside the current station using drop, taking timing.handling seconds, without a penalty or spoilage. ground lists all floor items and locations. Either chef can walk there and use pickup <item_id>; handling time is added to travel. Items retain their state and preparation progress; food on the floor is not heated. Cooked food must remain in a pot or on a plate. Dropping is different from discard at a bin: dropped items remain usable. Decide when to put down or pick up items.'),
         "timing": timing,
         "interrupt": 'continue keeps the current task; another action interrupts it. Chopping progress is preserved. Cooking in a pot does not stop when a chef switches tasks. Decide whether to continue or interrupt.',
-        "fire": f'Burnt food cannot be restored. Removing the whole pot stops heating. First take extinguisher from its rack, or pickup E1 from the floor; extinguish sprays it, and {t["extinguish"]:g} seconds of spraying in total put a fire out. Spraying lowers the fire_strength of that station (1 full, 0 out), which stays if you stop; after 2 seconds without spraying a fire grows back to full over 5 seconds. Both chefs follow the same rule. To reuse the pot, lift it (take pot pN) and empty the burnt food at a bin (discard). The extinguisher occupies your hands; a previously held item is automatically put on the floor. Return it with put extinguisher or drop it. There is one extinguisher, usable by either chef; it cannot be discarded or served. Extinguishing stops heating. Each burning stove, board or counter heats every combustible workstation in the eight cells around it, diagonals included: next to one burning workstation it ignites after {fire["flammability_seconds"]:g} game seconds, and several burning neighbours add up. The fire_heat of each station (0 to 1) shows how close it is to igniting; without a burning neighbour the heat drains again after a short delay, and a workstation just extinguished takes no heat for a moment. Fire never jumps across a floor gap or wall. Until the fire is out, a burning ingredient source cannot be used and nobody can chop on a burning board; but what rests on a burning board, counter or stove can still be taken and items put or plated there: a pan can be lifted off a burning stove, put back, or filled when empty. A burning stove does not heat; once it is put out, food in its pan that is not burnt cooks on. The same for both chefs. {fire["loss_threshold"]} simultaneously burning workstations immediately lose the round. Extinguish any burning workstation with the same extinguisher. An extinguished workstation can reignite from an adjacent fire; removing food does not remove a cabinet fire. Check kitchen.fire_safety and each station fire_neighbors and fire_heat. The extinguisher is a movable object.',
+        "fire": f'Burnt food cannot be restored. Removing the whole pot stops heating. First take extinguisher from its rack, or pickup E1 from the floor; extinguish sprays it, and {t["extinguish"]:g} seconds of spraying in total put a fire out. Spraying lowers the fire_strength of that station (1 full, 0 out), which stays if you stop; after 2 seconds without spraying a fire grows back to full over 5 seconds. Both chefs follow the same rule. To reuse the pot, lift it (take pot pN) and empty the burnt food at a bin (discard). The extinguisher occupies your hands; a previously held item is automatically put on the floor. Return it with put extinguisher or drop it. There is one extinguisher, usable by either chef; it cannot be discarded or served. Extinguishing stops heating. Each burning stove, board or counter heats every combustible workstation in the eight cells around it, diagonals included: next to one burning workstation it ignites after {fire["flammability_seconds"]:g} game seconds, and several burning neighbours add up. The fire_heat of each station (0 to 1) shows how close it is to igniting; without a burning neighbour the heat drains again after a short delay, and a workstation just extinguished takes no heat for a moment. Fire never jumps across a floor gap or wall. Until the fire is out, a burning ingredient source cannot be used and nobody can chop on a burning board; but what rests on a burning board, counter, ingredient source or stove can still be taken and items put or plated there: a pan can be lifted off a burning stove, put back, or filled when empty. A burning stove does not heat; once it is put out, food in its pan that is not burnt cooks on. The same for both chefs. {fire["loss_threshold"]} simultaneously burning workstations immediately lose the round. Extinguish any burning workstation with the same extinguisher. An extinguished workstation can reignite from an adjacent fire; removing food does not remove a cabinet fire. Check kitchen.fire_safety and each station fire_neighbors and fire_heat. The extinguisher is a movable object.',
         "score": score_text(state),
         "visibility": 'Both chefs see the same kitchen state. All available actions are in criteria; legal does not mean useful. Waiting and continuing are allowed. The program does not choose your strategy.' + ((
             ' go X is listed only when no other listed action already walks to X. Empty counters differ only in place, '
@@ -202,8 +205,8 @@ def rules(state, spatial=False, per_area=2):
                       "down-left, down-right) throws to full range that way. These are the throws the person can make too. " + reach +
                       "Each throw option names where the item would come down. Throws pass over equipment; the first wall stops them. "
                       "An empty-handed chef who is walking or standing close to the path catches the item; a chef who is working or holding "
-                      "something is not interrupted and it lands beside them. A raw or chopped ingredient that comes down on an empty board or "
-                      "counter rests there (chop only on boards; take from either), and one that comes down in an empty pan on a stove that cooks it "
+                      "something is not interrupted and it lands beside them. A raw or chopped ingredient that comes down on an empty board, "
+                      "counter or ingredient-source top rests there (chop only on boards; take from any), and one that comes down in an empty pan on a stove that cooks it "
                       "goes in and starts heating. Anything else lands on the nearest free floor tile; with none free the throw is unavailable. "
                       "incoming_item marks a station an item is flying to. projectiles lists in-flight items and landing times; they cannot be "
                       "picked up in flight. At release your hands become empty. Decide whether and where to throw yourself.")
@@ -261,8 +264,17 @@ NO_MEMORY = object()
 # changes the listed actions, and it has no clock. A step is ticked when Jeff finishes an action
 # doing it, in any order; the plan ends when every step is ticked, when Jeff drops it, or when the
 # human sends a new preference, and the next request asks for a new one.
+#
+# Rolling intent (plan mode 'rolling', a trial): every request asks, as notes on next_action, for the work item
+# the chosen action is for and the one after it. The newest notes ride on that decision in recent_decisions
+# (ticked as above), a record of what Jeff said then rather than a plan in the state, and each answer replaces
+# the last. There is no keep or drop. rolling-v1 showed the intent as state.jeff_plan; at a pan about to burn
+# it kept Jeff on the intent, so rolling-v2 shows it as history.
 PLAN_RULES_VERSION = 'plan-v2'
+ROLLING_RULES_VERSION = 'rolling-v2'
+PLAN_MODES = ('choice', 'rolling')
 PLAN_STEPS = 4
+ROLLING_STEPS = 2
 PLAN_NONE = 'none'
 PLAN_STEP_QUESTIONS = tuple(f'plan_step_{n}' for n in range(1, PLAN_STEPS + 1))
 PLAN_KEEP_QUESTION = 'plan_keep'
@@ -288,6 +300,25 @@ PLAN_RULE = ('jeff_plan, when present, is the plan you wrote: its steps are work
              'questions.plan_keep, or when the human sends a new preference; then questions.plan_step_1 to plan_step_{steps} ask for a '
              'new one, and your answer holds from your next request. The human sees your plan. It does not change your listed actions; '
              'an action that is not in it leaves it as it is.')
+ROLLING_RULE = ('In recent_decisions, a decision may carry intent: the two work items you noted with it, the work that action '
+                'was for and the work you intended after it, each marked done when you finished an action that does that work. It is '
+                'what you said then; the kitchen state is as it is now. A work item names a piece of work on this level\'s menu: '
+                'fetch, chop or cook an ingredient, put it on a plate, take a clean plate, serve a dish, collect dirty plates or wash a '
+                'plate. Every request asks for the two notes again (questions.plan_step_1 and plan_step_2), and only the newest is '
+                'kept. The human sees it. The notes do not change your listed actions.')
+ROLLING_QUESTIONS = ('A note on next_action, not a choice of action: the work item the action you choose there does or is for. '
+                     'It is kept with that decision in recent_decisions as intent.',
+                     'A note: the work item you intend after it, or {none}.')
+
+
+def plan_version(mode):
+    """The rules version of a plan mode."""
+    return ROLLING_RULES_VERSION if mode == 'rolling' else PLAN_RULES_VERSION
+
+
+def plan_condition(mode, steps):
+    """The jeff_plan condition a round's start row and research record carry."""
+    return {'mode': mode, 'steps': steps, 'rules_version': plan_version(mode)}
 
 
 def work_items(state):
@@ -389,15 +420,21 @@ def plan_answer(answers, payload):
 class Plan:
     """Jeff's current plan within one round: its steps, which are done, and when it ends."""
 
-    def __init__(self, steps=PLAN_STEPS):
-        self.steps = steps
+    def __init__(self, steps=None, mode='choice'):
+        if mode not in PLAN_MODES:
+            raise ValueError(f'unknown plan mode {mode!r}')
+        self.mode = mode
+        self.steps = steps or (ROLLING_STEPS if mode == 'rolling' else PLAN_STEPS)
         self.current = None     # {'steps': [{'work', 'done'}], 'set_at', 'preference'}
         self.ended = None       # why the last plan ended, until the next request reports it
 
     def accept(self, answer, now, offered, preference):
-        """Hold the steps Jeff wrote, if they were asked and the first is one of the offered work items."""
+        """Hold the steps Jeff wrote, if they were asked and the first is one of the offered work items.
+
+        A rolling intent is asked at every request and a valid answer replaces the last one; a missing or
+        invalid answer leaves the last one as it was."""
         steps = (answer or {}).get('steps')
-        if self.current or not offered or not steps or any(s not in offered for s in steps):
+        if (self.current and self.mode != 'rolling') or not offered or not steps or any(s not in offered for s in steps):
             return False
         self.current = {'steps': [{'work': s, 'done': False} for s in steps[:self.steps]], 'set_at': round(now, 3),
                         'preference': preference}
@@ -431,6 +468,8 @@ class Plan:
     def input(self, state):
         """Everything compose needs; research records keep it so requests can be rebuilt."""
         current = {'steps': [dict(s) for s in self.current['steps']], 'set_at': self.current['set_at']} if self.current else None
+        if self.mode == 'rolling':     # asked at every request, so the options always come along
+            return {'mode': 'rolling', 'steps': self.steps, 'current': current, 'options': work_items(state)}
         return {'steps': self.steps, 'current': current, 'options': None if current else work_items(state)}
 
 
@@ -451,7 +490,21 @@ def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY,
         payload['state']['past_episodes'] = memory
         payload['state']['rules']['past_episodes'] = PAST_EPISODES_RULE
     payload['state']['rules']['continuity'] = CONTINUITY_RULE
-    if plan is not None:
+    rolling = plan is not None and plan.get('mode') == 'rolling'
+    if rolling:
+        # The newest intent rides on the decision it was noted with, as a record of what Jeff said then.
+        payload['state']['rules']['intent'] = ROLLING_RULE
+        current = plan['current']
+        decisions = [dict(d) for d in recent_decisions]
+        noted = next((d for d in reversed(decisions) if current and abs(d.get('t', -1) - current['set_at']) < .011), None)
+        if noted is not None:
+            noted['intent'] = [dict(s) for s in current['steps']]
+        payload['state']['recent_decisions'] = decisions
+        for n, question in enumerate(PLAN_STEP_QUESTIONS[:plan['steps']]):
+            payload['questions'][question] = {
+                'type': 'choice', 'instructions': ROLLING_QUESTIONS[min(n, 1)].format(none=PLAN_NONE),
+                'criteria': dict(plan['options']) if n == 0 else {**plan['options'], PLAN_NONE: 'No further step'}}
+    elif plan is not None:
         payload['state']['rules']['jeff_plan'] = PLAN_RULE.format(steps=plan['steps'])
         if plan['current']:
             payload['state']['jeff_plan'] = {'steps': [dict(s) for s in plan['current']['steps']], 'set_at': plan['current']['set_at']}
@@ -470,5 +523,5 @@ def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY,
     payload['state']['input_language'] = INPUT_LANGUAGE_VERSION
     payload['state']['rules_version'] = AGENT_RULES_VERSION
     if plan is not None:
-        payload['state']['plan_rules_version'] = PLAN_RULES_VERSION
+        payload['state']['plan_rules_version'] = plan_version(plan.get('mode'))
     return payload

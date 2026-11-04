@@ -278,7 +278,9 @@ class DecisionLoop:
         urgent = urgency != self.last_urgency
         if not (changed or urgent or step_end or self.plan_due or age >= self.k.c["ai_refresh_seconds"]):
             return
-        if self.ask_on_step_end and job is not None and self.outlasts_reply(job):
+        # Rolling intent: a change of urgency (an order or a pan crossing a countdown band) asks even then.
+        rolling_urgent = urgent and self.plan is not None and self.plan.mode == 'rolling'
+        if self.ask_on_step_end and job is not None and self.outlasts_reply(job) and not rolling_urgent:
             # The answer would come after this step ends and be discarded; ask when it ends instead.
             return
         actions = self.k.actions("jeff")

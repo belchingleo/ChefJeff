@@ -344,6 +344,32 @@ class Kitchen:
         return [who for who,a in self.chefs.items() if a.job and a.job.working
                 and a.job.action.target==target and a.job.action.kind==kind]
 
+    def _surface_actions(self, who, key, add):
+        """What a counter offers, which a board and the top of an ingredient source offer too, as in Overcooked 2:
+        one object rests there, whatever it is; a board also chops (actions()), and a source that holds something
+        gives that thing instead of a new ingredient."""
+        a, s = self.chefs[who], self.stations[key]
+        board = key in self.boards
+        if s.food:
+            if self.can_swap_pots(a.hand,s.food):
+                add('swap pot '+key,f'与{s.name}的{self.vessel_name(s.food.id)}交换（各自保留里面的食物）','swap_pot',key)
+            if self.rules.multi_component and a.hand:
+                if self.can_add(s.food,a.hand) or self.can_add(a.hand,s.food):
+                    add('assemble '+key,self.assemble_label(s.name,s.food,a.hand),'assemble',key)
+            if self.rules.multi_component and self.can_merge_plates(a.hand,s.food):
+                add('merge '+key,'把'+s.name+'盘中食物合入手中盘（空盘留在原位）','merge_plates',key)
+            if self.can_load_pot(a.hand,s.food):
+                add('load '+key,f'把{self.load_label(a.hand)}放入{s.name}的空{self.vessel_name(s.food.id)}（离灶不加热）','load_counter',key)
+            kind = 'take_board' if board else 'take_plate' if s.food.stage == 'clean_plate' else 'take_counter'
+            add(f'take {key}', f'从{s.name}拿起{self.food_name(s.food)}', kind, key)
+            if a.hand and a.hand.stage == 'pot' and self.can_add(s.food,a.hand.contents):
+                v = self.vessel_name(a.hand.id)
+                add(f'plate {key}', f'把手中{v}里的菜盛到{s.name}的盘里（空{v}留在手中）', 'plate_counter', key)
+            if s.food.stage == 'pot' and a.hand and self.can_add(a.hand,s.food.contents):
+                add(f'plate {key}', f'用手中的盘盛出{s.name}的{self.vessel_name(s.food.id)}里的菜', 'plate_from_counter', key)
+        elif a.hand:
+            add(f'put {key}', f'把手中物品放到{s.name}（每格一件）', 'put_board' if board else 'put_counter', key)
+
     def actions(self, who):
         if self.ended:
             return []
@@ -358,6 +384,8 @@ class Kitchen:
             add("wait", "暂时等待", "wait")
         loss = -self.rules.penalty['discard']
         for i, (source, ingredient) in enumerate(self.ingredients.items()):
+            if self.stations[source].food:
+                continue
             name = self.state_label(ingredient, self.rules.items[ingredient]['initial_state'])
             if i == 0:
                 add("fetch", f"到{self.stations[source].name}取一份{name}", "fetch", source)
@@ -375,28 +403,11 @@ class Kitchen:
             out.append(Action("drop", f"将手中物品放到{self.place(a.location).name}旁的地上（可捡回，不扣钱）",
                               "drop", a.location, (a.hand.id, a.location)))
         for key in self.counters:
-            s = self.stations[key]
-            if s.lock not in (None, who):
-                continue
-            if s.food:
-                if self.can_swap_pots(a.hand,s.food):
-                    add('swap pot '+key,f'与{s.name}的{self.vessel_name(s.food.id)}交换（各自保留里面的食物）','swap_pot',key)
-                if self.rules.multi_component and a.hand:
-                    if self.can_add(s.food,a.hand) or self.can_add(a.hand,s.food):
-                        add('assemble '+key,self.assemble_label(s.name,s.food,a.hand),'assemble',key)
-                if self.rules.multi_component and self.can_merge_plates(a.hand,s.food):
-                    add('merge '+key,'把'+s.name+'盘中食物合入手中盘（空盘留在原位）','merge_plates',key)
-                if self.can_load_pot(a.hand,s.food):
-                    add('load '+key,f'把{self.load_label(a.hand)}放入{s.name}的空{self.vessel_name(s.food.id)}（离灶不加热）','load_counter',key)
-                kind = 'take_plate' if s.food.stage == 'clean_plate' else 'take_counter'
-                add(f'take {key}', f'从{s.name}拿起{self.food_name(s.food)}', kind, key)
-                if a.hand and a.hand.stage == 'pot' and self.can_add(s.food,a.hand.contents):
-                    v = self.vessel_name(a.hand.id)
-                    add(f'plate {key}', f'把手中{v}里的菜盛到{s.name}的盘里（空{v}留在手中）', 'plate_counter', key)
-                if s.food.stage == 'pot' and a.hand and self.can_add(a.hand,s.food.contents):
-                    add(f'plate {key}', f'用手中的盘盛出{s.name}的{self.vessel_name(s.food.id)}里的菜', 'plate_from_counter', key)
-            elif a.hand:
-                add(f'put {key}', f'把手中物品放到{s.name}（每格一件）', 'put_counter', key)
+            if self.stations[key].lock in (None, who):
+                self._surface_actions(who, key, add)
+        for key in self.ingredients:
+            if self.stations[key].lock in (None, who):
+                self._surface_actions(who, key, add)
         for key, kind in ((self.returns, 'take_return'), (self.sink, 'take_sink')):
             s = self.stations[key]
             if s.lock not in (None, who):
@@ -438,14 +449,9 @@ class Kitchen:
                 if not a.hand and s.food and self.rules.choppable(s.food) and self.can_share_work(who,'chop',key):
                     add(f'chop {key}',f'一起切配 {s.food.id}（共享进度）','chop',key)
                 continue
-            if not s.food and a.hand and a.hand.stage in ("raw", "chopped"):
-                add(f"put {key}", f"将手中食材放到{s.name}", "put_board", key)
-            if s.food:
-                if self.rules.multi_component and self.can_add(a.hand,s.food):
-                    add('assemble '+key,'用手中餐盘接取'+s.name+'的食材','assemble',key)
-                if self.rules.choppable(s.food) and not a.hand:
-                    add(f"chop {key}", f"到{s.name}切 {s.food.id}（剩 {max(0,self.rules.chop_work(s.food.ingredient)-s.food.chopped):.1f}s）", "chop", key)
-                add(f"take {key}", f"从{s.name}拿走 {s.food.id}（{self.food_name(s.food)}）", "take_board", key)
+            if s.food and self.rules.choppable(s.food) and not a.hand:
+                add(f"chop {key}", f"到{s.name}切 {s.food.id}（剩 {max(0,self.rules.chop_work(s.food.ingredient)-s.food.chopped):.1f}s）", "chop", key)
+            self._surface_actions(who, key, add)
         for key in self.pots:
             s = self.stations[key]
             if s.lock not in (None, who):
@@ -473,7 +479,7 @@ class Kitchen:
             out = [x for x in out if x.key != a.job.action.key]
         # A burning station cannot be used until extinguished; a burning board, counter or stove still takes and
         # gives items (SURFACE_KINDS). Both chefs see exactly the same actions.
-        surfaces = set(self.boards + self.counters + self.pots)
+        surfaces = set(self.boards + self.counters + self.pots + list(self.ingredients))
         out = [x for x in out if x.kind in ('go', 'extinguish') or not (x.target in self.stations and self.stations[x.target].fire)
                or (x.target in surfaces and x.kind in SURFACE_KINDS)]
         if a.hand:
@@ -669,10 +675,16 @@ class Kitchen:
         for key in self.pots:
             keys.extend([f'take pot {key}', f'put pot {key}'])
         keys.extend(f'plate {key}' for key in self.pots)
+        # Boards and source tops hold anything, as counters do; appended so older numbers stay.
+        keys.extend(f'plate {key}' for key in self.boards)
+        for key in self.ingredients:
+            keys.extend([f'take {key}', f'put {key}', f'plate {key}'])
         numbers = {key: i for i, key in enumerate(keys, 1)}
+        # Floor items count on from the next hundred above the fixed keys, so the two never share a number.
+        base = 100 * (len(keys) // 100 + 1)
         for item_id in self.ground:
             if item_id not in self.pickup_numbers:
-                self.pickup_numbers[item_id] = 100 + len(self.pickup_numbers)
+                self.pickup_numbers[item_id] = base + len(self.pickup_numbers)
         numbers.update({f'pickup {key}': value for key, value in self.pickup_numbers.items()})
         return numbers
 
@@ -1242,8 +1254,8 @@ class Kitchen:
                 j = self.chefs[item.lock].job
                 assert j and j.working and j.action.kind in ('pickup', 'plate_ground', 'load_ground','swap_ground_pot','assemble_ground') and j.action.expected[1] == item_id
         for key, s in self.stations.items():
-            if key in self.counters:
-                pass  # Each counter has exactly one physical item slot.
+            if key in self.counters or key in self.ingredients:
+                pass  # Each counter, and the top of each ingredient source, has exactly one physical item slot.
             elif key == self.rack:
                 assert s.food is None or s.food.stage == 'extinguisher'
             elif key in (self.returns, self.sink):
