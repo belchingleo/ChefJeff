@@ -212,7 +212,9 @@ def payload(kind, data, k):
                    'player_communication': deepcopy(body.get('state', {}).get('player_communication')),
                    'memory_input': memory_input(body),
                    # Only rounds with Jeff's plan switch on carry it (harness.Plan.input).
-                   **({'jeff_plan': deepcopy(data['jeff_plan'])} if data.get('jeff_plan') is not None else {})} if observed else {}
+                   **({'jeff_plan': deepcopy(data['jeff_plan'])} if data.get('jeff_plan') is not None else {}),
+                   # Only rounds with a one-press switch on carry them (one_press.flags).
+                   **({'one_press': deepcopy(data['one_press'])} if data.get('one_press') else {})} if observed else {}
         return {**rebuild, 'observed_state_seq': data.get('observed_state_seq'),
                 'candidates': [code(v) for v in candidates],
                 'candidate_actions': [action(a.key, a.target, a.kind) for a in k.actions('jeff') if a.key in candidates], 'stage': 'model_request',
@@ -229,7 +231,11 @@ def payload(kind, data, k):
                 'usage': {key: value for key, value in data.get('usage', {}).items()
                           if key in ('input_tokens', 'output_tokens') and type(value) is int and 0 <= value <= 10000000},
                 'usage_source': 'client-reported', 'provider_verified': False,
-                'probabilities': probabilities(data.get('probabilities'))}
+                'probabilities': probabilities(data.get('probabilities')),
+                # Only when the answer started a one-press choice (one_press.py): its first step and the put_where fallback.
+                **({'one_press_start': {'first': action(data['one_press'].get('first')),
+                                        'fallback': bool(data['one_press'].get('fallback'))}}
+                   if isinstance(data.get('one_press'), dict) else {})}
     if kind == 'request_unresolved':
         return {'reason': 'not_observed'}
     if kind == 'ai_error':
@@ -245,6 +251,12 @@ def payload(kind, data, k):
         return {'reason': data.get('reason') if data.get('reason') in REASONS else 'not_observed',
                 'speed': number(data.get('speed')), 'aborted': bool(k.aborted)}
     return None  # presets, bookmark texts, release metadata, raw errors: not this study
+
+
+def one_press_condition(session):
+    """The one-press switches as this round started with them; nothing when every one was off."""
+    import one_press
+    return one_press.condition(getattr(getattr(session, 'ai', None), 'one_press', None))
 
 
 def plan_condition(session):
@@ -298,7 +310,7 @@ def record(session):
             'config_projection_hash': 'sha256:' + cc.sha256(log.research_config),
             'conditions': {'cross_round_memory': memory_condition(session),
                            'memory_provenance': deepcopy(getattr(session, 'round_memory_provenance', None)),
-                           **plan_condition(session),
+                           **plan_condition(session), **one_press_condition(session),
                            'engine_semantics': k.rules.semantics,
                            'rules_version': _rules_version(),
                            'input_language': _input_language(),

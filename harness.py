@@ -232,6 +232,13 @@ def payload(state, actions, config, spatial=False):
     if spatial:
         kitchen['map'] = {k: v for k, v in kitchen['map'].items() if k not in OMITTED_MAP_FIELDS}
     listed = model_candidates(state, actions, per_area) if spatial else actions
+    import one_press
+    if any(a.kind in one_press.KINDS for a in listed) and (state['chefs']['jeff'].get('holding') is not None):
+        places = {a.key: a.label for a in listed if a.kind in one_press.PLACES}
+        if not places:     # nowhere to put the held item first: no one-press action
+            listed = [a for a in listed if a.kind not in one_press.KINDS]
+    else:
+        places = {}
     questions = {"next_action": {
         "type": "choice",
         "instructions": "Given the whole kitchen situation, which action should chef jeff take now? The goals and score are shared by both chefs. The state includes both chefs' current actions, occupied equipment, order deadlines, and burning/fire risks. Choose one action now; an ongoing task may be continued or interrupted.",
@@ -239,6 +246,11 @@ def payload(state, actions, config, spatial=False):
     }}
     if spatial:
         questions['sprint'] = {'type':'choice','instructions':'Request a short sprint for this accepted movement action or continuing travel?', 'criteria':{'yes':'Request sprint if moving and available','no':'Do not request sprint'}}
+    if places and any(a.kind in one_press.KINDS for a in listed):
+        questions[one_press.PUT_WHERE] = {
+            'type': 'choice', 'criteria': places,
+            'instructions': 'Only if next_action is a "put then take" or "wash from" action: where the held item goes first. '
+                            'Otherwise it is not used.'}
     return english_data({"model": config["model"],
                          "state": {"kitchen": kitchen, "rules": rules(state, spatial, per_area)},
                          "questions": questions})
@@ -410,6 +422,26 @@ def choices(answers, questions):
             if isinstance(answers.get(q), dict) and answers[q].get('type') == 'choice' and 'choice' in answers[q]}
 
 
+def choice_questions(payload):
+    """Every extra choice question a request asks besides next_action and sprint: the plan's, then put_where."""
+    import one_press
+    return plan_questions(payload) + ([one_press.PUT_WHERE] if one_press.PUT_WHERE in payload['questions'] else [])
+
+
+def choice_answer(answers, payload):
+    """plan_answer, plus put_where (an offered key, else None) when the request asked it."""
+    import one_press
+    answers = answers if isinstance(answers, dict) else {}
+    out = plan_answer({k: v for k, v in answers.items() if k != one_press.PUT_WHERE}, payload)
+    if one_press.PUT_WHERE in payload['questions']:
+        value = answers.get(one_press.PUT_WHERE)
+        out[one_press.PUT_WHERE] = value if isinstance(value, str) and value in payload['questions'][one_press.PUT_WHERE]['criteria'] else None
+    return out
+
+
+PUT_WHERE_CHAT_RULE = ' When questions.put_where is present, also include "put_where": "<key>", one key of its criteria.'
+
+
 def plan_answer(answers, payload):
     """A reply's plan, for a request that asked: {'plan': {'steps': [...]}} or {'plan': {'keep': ...}}.
 
@@ -490,7 +522,7 @@ class Plan:
         return {'steps': self.steps, 'current': current, 'options': None if current else work_items(state)}
 
 
-def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY, plan=None):
+def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY, plan=None, one_press=None):
     """Add what one request needs beyond the snapshot; research replay rebuilds requests here too.
 
     plan is Plan.input() when the plan switch is on, else None (the input is then unchanged).
@@ -536,9 +568,14 @@ def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY,
                                      if n == 1 else f'Your plan, step {n}: the work item you intend to do after step {n - 1}, '
                                                     f'or {PLAN_NONE} to end the plan at step {n - 1}.'),
                     'criteria': dict(plan['options']) if n == 1 else {**plan['options'], PLAN_NONE: 'No further step'}}
+    if one_press:
+        import one_press as presses
+        payload['state']['rules']['one_press'] = presses.RULE
     payload = english_data(payload)
     payload['state']['input_language'] = INPUT_LANGUAGE_VERSION
     payload['state']['rules_version'] = AGENT_RULES_VERSION
     if plan is not None:
         payload['state']['plan_rules_version'] = plan_version(plan.get('mode'))
+    if one_press:
+        payload['state']['one_press_version'] = presses.VERSION
     return payload

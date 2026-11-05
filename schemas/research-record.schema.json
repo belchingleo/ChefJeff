@@ -417,6 +417,28 @@
             "rules_version"
           ],
           "additionalProperties": false
+        },
+        "one_press": {
+          "description": "Only with a one-press switch on for this round (one_press.py).",
+          "type": "object",
+          "properties": {
+            "put_then_take": {
+              "type": "boolean"
+            },
+            "wash_from_returns": {
+              "type": "boolean"
+            },
+            "version": {
+              "type": "string",
+              "pattern": "^one-press-v[0-9]{1,3}$"
+            }
+          },
+          "required": [
+            "put_then_take",
+            "wash_from_returns",
+            "version"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [

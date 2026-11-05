@@ -86,13 +86,17 @@ console.log(JSON.stringify(JSON.parse(process.argv[1]).map(build)));
         from harness import PLAN_CHAT_RULE
         source = (Path(__file__).resolve().parents[1] / 'hosted' / 'browser-agent.js').read_text()
         self.assertEqual(re.findall(r"const PLAN_CHAT_RULE = '([^']*)';", source), [PLAN_CHAT_RULE])
+        from harness import PUT_WHERE_CHAT_RULE
+        self.assertEqual(re.findall(r"const PUT_WHERE_CHAT_RULE = '([^']*)';", source), [PUT_WHERE_CHAT_RULE])
 
     def test_browser_reads_the_same_plan_questions(self):
         import re
         from harness import PLAN_KEEP_QUESTION, PLAN_STEP_QUESTIONS
         source = (Path(__file__).resolve().parents[1] / 'hosted' / 'browser-agent.js').read_text()
         listed = re.findall(r"const PLAN_QUESTIONS = \[([^\]]*)\];", source)
-        self.assertEqual([re.findall(r"'([^']*)'", line) for line in listed], [[*PLAN_STEP_QUESTIONS, PLAN_KEEP_QUESTION]])
+        import one_press      # the same as harness.choice_questions: the plan's questions, then put_where
+        self.assertEqual([re.findall(r"'([^']*)'", line) for line in listed],
+                         [[*PLAN_STEP_QUESTIONS, PLAN_KEEP_QUESTION, one_press.PUT_WHERE]])
 
 
 if __name__ == '__main__':

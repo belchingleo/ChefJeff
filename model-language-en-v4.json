@@ -375,6 +375,18 @@
   },
   "templates": [
     [
+      "先把手中的{0}放到 put_where 选的位置，再从{1}拿起脏餐盘，放入{2}并洗碗",
+      "Put the held {0} where put_where says, then take the dirty plate from {1}, put it in {2} and wash it"
+    ],
+    [
+      "先把手中的{0}放到 put_where 选的位置，再从{1}拿起{2}",
+      "Put the held {0} where put_where says, then take {2} from {1}"
+    ],
+    [
+      "从{0}拿起脏餐盘，放入{1}并洗碗",
+      "Take the dirty plate from {0}, put it in {1} and wash it"
+    ],
+    [
       "端起{0}的{1}（{2}）",
       "Lift the {1} from {0} ({2})"
     ],

@@ -45,10 +45,10 @@ def parse_answer(raw, payload):
         if any(type(n) is not int or not 0 <= n <= 10000000 for n in counts.values()): raise ValueError()
         from research_record import probabilities
         # Never return provider model text, headers or raw replies; option probabilities only for offered keys.
-        from harness import choices, plan_answer, plan_questions
+        from harness import choices, choice_answer, choice_questions
         return {'choice':choice, 'sprint':sprint.get('choice')=='yes', 'usage':counts,
                 'probabilities':probabilities(answer.get('probabilities'), payload['questions']['next_action']['criteria']),
-                **plan_answer(choices(d['answers'], plan_questions(payload)), payload)}
+                **choice_answer(choices(d['answers'], choice_questions(payload)), payload)}
     except (ValueError,TypeError,KeyError,AttributeError):
         raise ForwardError(502,'Jev 返回了无效动作，未执行任何操作。') from None
 

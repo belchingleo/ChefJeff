@@ -62,7 +62,10 @@ SCENARIOS = {
     'level2-messages-memory': ('level-2', True, False),
     'level2-plan': ('level-2', True, True),
     'level2-rolling': ('level-2', True, 'rolling'),
+    'level2-one-press': ('level-2', False, False),
 }
+# Scenarios with the one-press switches on (one_press.py): the options and the put_where question.
+ONE_PRESS = {'level2-one-press': {'put_then_take': True, 'wash_from_returns': True}}
 MESSAGES = ((20.0, 'prep'), (70.0, 'mistake'), (120.0, 'wash'))
 COMPOSE = jev.compose_payload
 
@@ -247,6 +250,7 @@ def run(name):
         loop.cooperation_memory = memory
     if planned:
         loop.plan = Plan(mode='rolling' if planned == 'rolling' else 'choice')
+    loop.one_press = ONE_PRESS.get(name)
     pending = list(MESSAGES) if talk else []
     step = 0
     with (patch('jev.time.monotonic', lambda: 1000 + k.time / SPEED), patch('jev.threading.Thread', Inline),

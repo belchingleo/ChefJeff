@@ -352,7 +352,10 @@
       ]};
       endpoint = config.base_url + '/chat/completions';
       if(config.provider==='zhipu')body.messages[0].content=zhipuSystem(payload);
-      else if(planQuestions(payload).length)body.messages[0].content+=PLAN_CHAT_RULE;
+      else{
+        if(planQuestions(payload).some(q => q.startsWith('plan_')))body.messages[0].content+=PLAN_CHAT_RULE;
+        if('put_where' in payload.questions)body.messages[0].content+=PUT_WHERE_CHAT_RULE;
+      }
     }
     Object.assign(body, preset.extra || {});
     try {
@@ -382,7 +385,7 @@
             ('sprint' in payload.questions && preset.group !== 'decision' && 'sprint' in answer &&
              typeof answer.sprint !== 'boolean')) throw new Error();
       } catch (_) {throw new Error('模型返回了无效动作，未执行任何操作。');}
-      // The plan answers go to the server as given (offered keys or null); harness.plan_answer reads them there.
+      // The plan and put_where answers go to the server as given (offered keys or null); harness.choice_answer reads them there.
       // A missing or unknown one only leaves Jeff without a plan (or keeps it); the action stands.
       const asked = planQuestions(payload);
       const plan = asked.length ? {plan:Object.fromEntries(asked.map(q => [q, typeof answer[q] === 'string' &&
@@ -411,8 +414,9 @@
     return hint ? hint + '（' + text + '）' : '连接失败（' + text + '）';
   }
   function boundedCount(n) {return Number.isInteger(n) && n >= 0 && n <= 10000000 ? n : 0;}
-  // The same sentence as harness.PLAN_CHAT_RULE.
+  // The same sentences as harness.PLAN_CHAT_RULE and harness.PUT_WHERE_CHAT_RULE.
   const PLAN_CHAT_RULE = ' For each question whose name starts with plan_, also include "<question name>": "<key>", one key of the criteria of that question.';
+  const PUT_WHERE_CHAT_RULE = ' When questions.put_where is present, also include "put_where": "<key>", one key of its criteria.';
   function zhipuSystem(payload) {
     const properties={choice:{type:'string',enum:Object.keys(payload.questions.next_action.criteria)}};
     const required=['choice'];
@@ -428,11 +432,12 @@
       'Never encode sprint as a string, number or null. '+
       'When questions.sprint is absent, omit sprint. '+
       (Object.keys(payload.questions).some(q => q.startsWith('plan_')) ? 'Each question whose name starts with plan_ is a field whose value is one of its keys. ' : '')+
+      ('put_where' in payload.questions ? 'questions.put_where is a field whose value is one of its keys. ' : '')+
       'Do not explain or add other fields. '+
       'JSON Schema: '+JSON.stringify(schema);
   }
-  // The same questions, in the same order, as harness.plan_questions.
-  const PLAN_QUESTIONS = ['plan_step_1', 'plan_step_2', 'plan_step_3', 'plan_step_4', 'plan_keep'];
+  // The same questions, in the same order, as harness.choice_questions: the plan's, then put_where (one_press.py).
+  const PLAN_QUESTIONS = ['plan_step_1', 'plan_step_2', 'plan_step_3', 'plan_step_4', 'plan_keep', 'put_where'];
   function planQuestions(payload) {return PLAN_QUESTIONS.filter(q => q in payload.questions);}
   async function markReady(connected, body, config=setting) {
     if(connected && config?.free_model)return serverFetch('/api/model/free/select', {method:'POST',
