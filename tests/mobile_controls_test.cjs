@@ -150,7 +150,7 @@ function check(path){
  assert(!toss.disabled,'a held Throw stays enabled');h.clear();h.fire('touch-toss','pointerup',{pointerId:9});
  assert(callNames().includes('release'),'its release still arrives');
  h.publish({aiming:false,canThrow:false});h.clear();h.fire('touch-toss','pointerdown',{pointerId:7});
- assert(toss.disabled&&!callNames().includes('toss'),'Throw is unavailable with nothing throwable');
+ assert(toss.disabled&&!callNames().includes('toss'),'切/洗/扔 is unavailable with nothing to throw, chop or wash');
  h.publish({canThrow:true});
 
  // Floating stick: a press in the lower-left zone moves the stick under the thumb, drags like the stick,
@@ -165,15 +165,16 @@ function check(path){
  // Plain buttons: one word whatever the context (the toolbar names the action); haptics tick.
  assert.equal(h.elements.get('touch-action').textContent,'拿/放','no contextual text on the button');
  // 切/洗 (the keyboard's E) chops, washes or sprays on press, only when there is something to chop, wash or spray.
- const use=h.elements.get('touch-use');assert.equal(use.textContent,'切/洗');
- h.publish({aiming:false,canUse:false});h.clear();h.fire('touch-use','pointerdown',{pointerId:10});
- assert(use.disabled&&!callNames().includes('use'),'nothing to chop or wash disables 切/洗');
- h.publish({canUse:true});h.clear();h.fire('touch-use','pointerdown',{pointerId:10});
- assert.deepEqual(callNames(),['use'],'切/洗 uses once, on press');
+ // 切/洗/扔 is Overcooked 2's chop/throw button: without a throwable item it chops, washes or sprays once, on press.
+ assert.equal(toss.textContent,'切/洗/扔');assert.equal(h.elements.get('touch-use'),undefined,'no separate 切/洗 button');
+ h.publish({aiming:false,holding:null,canThrow:false,canUse:true});h.clear();h.fire('touch-toss','pointerdown',{pointerId:10});
+ assert.deepEqual(callNames(),['use'],'切/洗/扔 chops or washes at once with nothing to throw');
+ h.fire('touch-toss','pointerup',{pointerId:10});assert(!callNames().includes('release'),'and arms no throw');
+ h.publish({holding:true,canThrow:true,canUse:false});
  assert.equal(h.elements.get('touch-aim'),undefined,'no direction needle in the stick');
  h.clear();h.fire('touch-toss','pointerdown',{pointerId:5});
  h.publish({aiming:{x:Math.cos(1),y:Math.sin(1)}});
- assert.equal(joy.dataset.aiming,'true');assert.equal(h.elements.get('touch-toss').textContent,'扔');
+ assert.equal(joy.dataset.aiming,'true');assert.equal(h.elements.get('touch-toss').textContent,'切/洗/扔');
  assert(h.calls.some(c=>c[0]==='vibrate'),'aim start ticks');
  h.clear();h.fire('touch-toss','pointerup',{pointerId:5});
  assert(h.calls.some(c=>c[0]==='release')&&h.calls.some(c=>c[0]==='vibrate'),'release throws with a tick');
@@ -216,7 +217,7 @@ function check(path){
  const touchLaptop=harness(path,{width:1280,height:720,touch:true});touchLaptop.publish({});
  assert(touchLaptop.document.getElementById('kitchen-touch-ui').hidden,'large touch laptops retain desktop layout');
  const english=harness(path,{language:'en'});english.publish({interaction:'操作',handLabel:'手中：干净餐盘',mainLabel:'开始经营'});
- const translated=['touch-action','touch-use','touch-dash','touch-toss','touch-menu-title','touch-menu-copy','touch-main','touch-menu-toggle','touch-settings','touch-help','touch-end','touch-record','touch-bookmark','touch-communication','touch-pause','touch-cancel','touch-instructions','touch-rotate-title','touch-rotate-copy','touch-hand'];
+ const translated=['touch-action','touch-dash','touch-toss','touch-menu-title','touch-menu-copy','touch-main','touch-menu-toggle','touch-settings','touch-help','touch-end','touch-record','touch-bookmark','touch-communication','touch-pause','touch-cancel','touch-instructions','touch-rotate-title','touch-rotate-copy','touch-hand'];
  assert.deepEqual(translated.map(id=>[id,english.elements.get(id).textContent]).filter(([,value])=>/[\u3400-\u9fff]/.test(value)),[],
                   'English touch labels must all use the display catalog');
  english.w.kitchenI18n.setLanguage('zh');english.w.dispatchEvent(new english.Event('kitchen-language-changed'));

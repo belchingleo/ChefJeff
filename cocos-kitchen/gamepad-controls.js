@@ -26,7 +26,7 @@
       if (hint.hidden) return;
       const message = !hasStandard ? t('此手柄未提供标准映射，请使用键盘和鼠标。') : !armed || hardBlocked()
         ? t('手柄已连接') + ' · ' + t('请松开按键并将左摇杆回中')
-        : t('左摇杆或十字键移动 · A/× 拿放（长按投掷） · Y/△ 切洗 · X/□ 冲刺 · B/○ 取消 · Start/Options 暂停/继续');
+        : t('左摇杆或十字键移动 · A/× 拿放 · X/□ 切洗扔（长按瞄准） · Y/△ 冲刺 · B/○ 取消 · Start/Options 暂停/继续');
       if (hint.textContent !== message) hint.textContent = message;
     }
     function interrupt(pause = false) {
@@ -99,7 +99,7 @@
       }
       const edges = { a: input.a && !previousButtons.a, b: input.b && !previousButtons.b,
         x: input.x && !previousButtons.x, y: input.y && !previousButtons.y, start: input.start && !previousButtons.start,
-        release: !input.a && !!previousButtons.a };
+        release: !input.x && !!previousButtons.x };
       previousButtons = input;
       const running = state.phase === 'running' && state.canInput !== false;
       if (edges.start && (running || !state.pending)) {
@@ -114,12 +114,16 @@
       }
       const moveTime = Number.isFinite(now) ? now : performance.now();
       move(input.dx, input.dy, moveTime);
-      if (edges.a && !state.pending) { owned = actionDown = true; controls.press(); }
+      // Overcooked 2's buttons: A picks up and puts down; X chops, washes, sprays, or with a throwable item
+      // arms a throw (a tap throws ahead, holding aims, releasing X throws); Y dashes (Overcooked's B is Cancel here).
+      if (edges.a && !state.pending) { owned = true; controls.act(); }
+      if (edges.x && !state.pending && !state.aiming) {
+        owned = true;
+        if (state.holding && state.canThrow) { actionDown = true; controls.toss(); } else controls.use?.();
+      }
       if (edges.release && actionDown) { actionDown = false; controls.release(); }
-      // Y chops, washes or sprays (the keyboard's E), as Overcooked 2 gives chopping its own button.
-      if (edges.y && !state.pending && !state.aiming) { owned = true; controls.use?.(); }
       const sprint = state.sprint || {};
-      if (edges.x && (input.dx || input.dy) && !state.aiming && sprint.available !== false && !(sprint.active_remaining > 0) && !(sprint.cooldown_remaining > 0)) {
+      if (edges.y && (input.dx || input.dy) && !state.aiming && sprint.available !== false && !(sprint.active_remaining > 0) && !(sprint.cooldown_remaining > 0)) {
         move(input.dx, input.dy, moveTime, true);
         owned = true; controls.dash();
       }

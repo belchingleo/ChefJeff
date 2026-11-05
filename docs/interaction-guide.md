@@ -6,9 +6,9 @@ Use a desktop/laptop browser with a keyboard and mouse, or try the experimental 
 | --- | --- |
 | WASD / arrows | Hold to move; release to stop |
 | Shift | Dash while moving, with the shared cooldown |
-| Space | Take and put on the faced target (fetch, take, put, cook, plate, lift a pan or pot, serve, bin; a held extinguisher also sprays), never chop or wash; the target is the station most squarely ahead among the eight cells around the chef (within 0.85 cells of the feet), never one beside or behind (a diagonal only once the aim is about 30 degrees off straight), and the player works where they stand, chopping or washing after a short sideways slide onto the station's centre. With a throwable item in hand, a tap acts when released; empty-handed actions start on press. Once chopping or washing starts no button stops it; walking away does, keeping progress |
-| E | Chop, wash or extinguish the faced target, as Overcooked 2 gives these their own button. An ingredient part-way through chopping cannot be taken off its board, by either chef |
-| Hold Space | Holding a throwable item, hold for about 0.3 s to aim, whether facing a station or open floor. Turn with the direction keys and release to throw (to the partner when that way in range) |
+| Space | Take and put on the faced target (fetch, take, put, cook, plate, lift a pan or pot, serve, bin; a held extinguisher also sprays), never chop, wash or throw; the target is the station most squarely ahead among the eight cells around the chef (within 0.85 cells of the feet), never one beside or behind (a diagonal only once the aim is about 30 degrees off straight), and the player works where they stand, chopping or washing after a short sideways slide onto the station's centre. It acts on press, even with an item in hand, and never throws. Once chopping or washing starts no button stops it; walking away does, keeping progress |
+| E | Chop, wash or extinguish the faced target; with a throwable item, a tap throws it straight ahead. This is Overcooked 2's chop/throw key (left Ctrl there; in a browser Ctrl with W closes the tab). An ingredient part-way through chopping cannot be taken off its board, by either chef |
+| Hold E | Holding a throwable item, hold for about 0.3 s to aim, whether facing a station or open floor. Turn with the direction keys and release to throw (to the partner when that way in range) |
 | Esc or P / Ⅱ / ▶ / ■ | Esc or P pauses and resumes (P for keyboards without Esc, such as iPad) / pause / resume / end early (asks to confirm; restarting from pause also confirms) |
 | Enter | Bookmark a moment; nearby marks merge into intervals |
 | 1–5 / 6 | Which work you will do ("I'll cook"; a test feature) / perceived mistake, with a shared cooldown; the dock (open by default) also takes clicks |
@@ -21,8 +21,9 @@ Requires a browser Gamepad API on `localhost` or HTTPS, initially targeting Chro
 | Standard controller input | Behavior |
 | --- | --- |
 | Left stick / D-pad | Move; center/release to stop. While aiming, changes the throw direction. The stick allows continuous directions; keyboard/D-pad directions use the eight discrete directions |
-| A / × | Empty-handed actions start on press. Holding an item, a short press interacts on release; hold about 0.3 s to aim and release to throw, including in front of a station |
-| X / □ | Dash while moving, using the existing speed, duration and cooldown |
+| A / × | Take and put (the keyboard's Space), at once on press, even with an item in hand |
+| X / □ | Chop, wash or extinguish (the keyboard's E); with a throwable item a tap throws ahead, hold about 0.3 s to aim and release to throw, including in front of a station |
+| Y / △ | Dash while moving, using the existing speed, duration and cooldown |
 | B / ○ | Cancel the current controller aim without throwing |
 | Start / Options | Ready: start, or open Settings if no model is connected. Running: pause. Paused: resume. Result card: next round (A works too) |
 
@@ -46,7 +47,7 @@ The hand and hint line sits in the top toolbar, so nothing covers the kitchen. S
 
 The cooking loop is fetch → board → chop → pan → heat → plate → serve → dirty return → sink → clean plate. Bread skips chopping; vegetables skip heating. Partial burgers accept missing ingredients in any order, with fixed visual layers. Pans, pots and plates retain identity through swaps/merges. Shared chopping/washing requires available operation sides; active workers resist contact pushes.
 
-Space acts on what the chef aims at (Overcooked 2-style: the station most squarely ahead among the eight cells around the chef, diagonals included once the aim is about 30 degrees off straight, within 0.85 cells of the feet). The page frames that station the moment the chef turns (a loose item Space would take is ringed instead, as is a throw you will catch), in denim with a light fill when there is something to do there and in ink when it is targeted but idle, and the bottom line names the action, and "hold Space · aim and throw" where a throw is possible. With a throwable item in hand, releasing a short press starts the target interaction; holding instead aims a throw, including in front of a station. An unavailable station interaction shows a reason and never drops the held item on the floor. Throws can cross equipment; walls and available landing places still constrain them. Once a quick pick-up or put-down starts, a direction pressed during it takes effect after it finishes. Ground interactions include pickup, swapping loose ingredients, filling/serving/swapping pans and pots; direct loose-vegetable-to-plate and plate-to-plate merging on the ground are future additions.
+Space acts on what the chef aims at (Overcooked 2-style: the station most squarely ahead among the eight cells around the chef, diagonals included once the aim is about 30 degrees off straight, within 0.85 cells of the feet). The page frames that station the moment the chef turns (a loose item Space would take is ringed instead, as is a throw you will catch), in denim with a light fill when there is something to do there and in ink when it is targeted but idle, Space acts on press, even with an item in hand, and never throws; with a throwable item E throws (a tap ahead, a hold aims), including in front of a station. An unavailable station interaction never drops the held item on the floor. Throws can cross equipment; walls and available landing places still constrain them. Once a quick pick-up or put-down starts, a direction pressed during it takes effect after it finishes. Ground interactions include pickup, swapping loose ingredients, filling/serving/swapping pans and pots; direct loose-vegetable-to-plate and plate-to-plate merging on the ground are future additions.
 
 Hosted Settings additionally offer explicit contribution after the round (or, after agreeing, automatic upload of every later round until turned off), a data preview and deletion receipts. Hosted sessions do not use local disk memory. See [privacy](privacy-and-costs.md).
 
@@ -62,9 +63,9 @@ Hosted Settings additionally offer explicit contribution after the round (or, af
 | --- | --- |
 | WASD／方向键 | 按住移动，松开停止 |
 | Shift | 移动时冲刺，遵循共用冷却 |
-| 空格 | 对面前的目标拿和放（取料、拿起、放下、下锅、装盘、端锅、出餐、丢弃；拿着灭火器时也能喷），不切菜、不洗碗；目标是身边 8 格里最正对朝向的工位（离脚下 0.85 格以内；斜对角要瞄准偏离约 30° 才会选中），不会选身边或身后的，玩家原地操作，切菜或洗碗前先侧移到工位正中。手持可投掷物品时，短按松开后操作；空手时按下立即操作。切菜或洗碗开始后任何按键都不会中断，走开才停，进度保留 |
-| E | 对面前的目标切菜、洗碗或灭火，和《胡闹厨房 2》一样单独一个键。切到一半的食材谁都不能从案板上拿走 |
-| 按住空格 | 手持可投掷物品时，面前是工位或空地都能按住约 0.3 秒瞄准：方向键改方向，松开扔出（队友在这个方向的射程内则扔给他） |
+| 空格 | 对面前的目标拿和放（取料、拿起、放下、下锅、装盘、端锅、出餐、丢弃；拿着灭火器时也能喷），不切菜、不洗碗、不扔东西；目标是身边 8 格里最正对朝向的工位（离脚下 0.85 格以内；斜对角要瞄准偏离约 30° 才会选中），不会选身边或身后的，玩家原地操作，切菜或洗碗前先侧移到工位正中。按下立即操作，手里拿着东西也一样。切菜或洗碗开始后任何按键都不会中断，走开才停，进度保留 |
+| E | 对面前的目标切菜、洗碗或灭火；拿着能扔的东西时点按朝前扔出。相当于《胡闹厨房 2》的切/扔键（原作是左 Ctrl，网页里 Ctrl 加 W 会关掉标签页）。切到一半的食材谁都不能从案板上拿走 |
+| 按住 E | 手持可投掷物品时，面前是工位或空地都能按住约 0.3 秒瞄准：方向键改方向，松开扔出（队友在这个方向的射程内则扔给他） |
 | Esc 或 P／Ⅱ／▶／■ | Esc 或 P 暂停与继续（P 用于没有 Esc 键的键盘，如 iPad）／暂停／继续／提前结束（需确认；暂停中重新开局也需确认） |
 | Enter | 标记时刻，相近标记合并为区间 |
 | 1–5／6 | 由你来做哪类工作（“我来烹饪”，测试功能）／玩家认为出错，共用冷却；沟通面板默认展开，也可以用鼠标点 |
@@ -77,8 +78,9 @@ Hosted Settings additionally offer explicit contribution after the round (or, af
 | 标准手柄输入 | 行为 |
 | --- | --- |
 | 左摇杆／十字键 | 移动，归中／松开停止；瞄准时调整投掷方向。摇杆支持连续方向，键盘／十字键使用八个离散方向 |
-| A／× | 空手按下立即操作；持物时短按松开交互，长按约 0.3 秒瞄准、松开投掷，工位前也能投掷 |
-| X／□ | 移动时冲刺，沿用当前速度、时长和冷却 |
+| A／× | 拿和放（相当于键盘空格），按下立即操作，手里拿着东西也一样 |
+| X／□ | 切菜、洗碗或灭火（相当于键盘 E）；拿着能扔的东西时点按朝前扔，长按约 0.3 秒瞄准、松开投掷，工位前也能投掷 |
+| Y／△ | 移动时冲刺，沿用当前速度、时长和冷却 |
 | B／○ | 取消当前手柄瞄准，不投掷 |
 | Start／Options | 准备时开局，未连接模型则打开设置；经营中暂停，暂停时继续；结算卡片上进入下一局（A 键同样可以） |
 
@@ -102,6 +104,6 @@ Hosted Settings additionally offer explicit contribution after the round (or, af
 
 做菜循环为取料→案板→切配→装锅→加热→装盘→出餐→脏盘回收→水槽→净盘。面包不切，蔬菜不加热。半成品汉堡按任意顺序补齐配料，显示层级固定。锅盘交换／合并仍保留各自身份。合作切菜／洗碗要求有可用操作侧，工作中的角色不被碰撞推离。
 
-目标、高亮和提示指向同一对象。手持可投掷物品时，短按松开才执行目标交互，长按则瞄准投掷，站在工位前也一样。工位短按无效时会说明原因，不会把手里物品丢到地上，也不触发无关相邻操作。投掷可越过设备，仍受墙和可用落点约束。拿、放这类短动作开始后再按方向键，动作先完成再移动。地面支持拾取、散放原料换手、装锅／盛锅／换锅；地面散放蔬菜直接装盘和地面两盘合并留待后续。
+目标和高亮指向同一对象。空格按下立即操作，手里拿着东西也一样，不会投掷；手持可投掷物品时用 E 投掷（点按朝前扔，长按瞄准），站在工位前也一样。工位操作无效时不会把手里物品丢到地上，也不触发无关相邻操作。投掷可越过设备，仍受墙和可用落点约束。拿、放这类短动作开始后再按方向键，动作先完成再移动。地面支持拾取、散放原料换手、装锅／盛锅／换锅；地面散放蔬菜直接装盘和地面两盘合并留待后续。
 
 托管设置另提供结束后的自愿数据贡献（同意后也可开启以后每局自动上传，随时关闭）、预览和删除凭证，不使用本地磁盘记忆。详见[隐私说明](privacy-and-costs.md)。

@@ -77,9 +77,9 @@ The controls work much as in Overcooked:
 | Key | Action |
 | --- | --- |
 | WASD or arrow keys | Move; press **Shift** while moving to dash |
-| Space | Take and put: fetch, pick up, put down, put in the pan, plate, serve. With a throwable item in hand, a tap acts when released; empty-handed actions start on press |
-| E | Chop and wash, as Overcooked 2 gives them their own button: chop at a board, wash at a sink, spray with the extinguisher. Space never chops or washes |
-| Hold Space | Holding a throwable item, hold for about 0.3 s to aim, whether facing a station or open floor. Your chef stops and a translucent curved guide shows direction and range; turn it with the direction keys and release to throw. It flies to full range (4 tiles) that way, or to Jeff if he stands in its path; as in Overcooked 2, a raw or chopped ingredient that comes down on an empty board or counter rests there, and one that comes down in an empty pan that cooks it goes in. The extinguisher cannot be thrown |
+| Space | Take and put, Overcooked 2's pick-up key: fetch, pick up, put down, put in the pan, plate, serve. It acts on press, even with an item in hand |
+| E | Chop, wash and throw, Overcooked 2's chop/throw key (left Ctrl there; in a browser Ctrl with W closes the tab): chop at a board, wash at a sink, spray with the extinguisher; with a throwable item a tap throws it straight ahead. Space never chops, washes or throws |
+| Hold E | Holding a throwable item, hold for about 0.3 s to aim, whether facing a station or open floor. Your chef stops and a translucent curved guide shows direction and range; turn it with the direction keys and release to throw. It flies to full range (4 tiles) that way, or to Jeff if he stands in its path; as in Overcooked 2, a raw or chopped ingredient that comes down on an empty board or counter rests there, and one that comes down in an empty pan that cooks it goes in. The extinguisher cannot be thrown |
 | 1–6 | Tell Jeff what kind of work you want to do, or point out a mistake |
 | Enter | Bookmark the current moment without pausing or interrupting anything; bookmarks are included in the data export |
 | Esc or P | Pause (use P on iPad keyboards without an Esc key). Settings let you connect a model, switch language, adjust volume and export the run |

@@ -75,8 +75,8 @@ export class KitchenClient extends Component {
     private touchNodeVisibility=new Map<Node,boolean>();
     private controls:any=null;
     private controlsSignature='';
-    // Hold Space to aim a throw (Overcooked-style): after AIM_HOLD seconds the chef stops, a translucent
-    // arc guides the direction and maximum range; direction keys turn it, and releasing Space throws along it.
+    // Hold E to aim a throw (Overcooked 2's use button): after AIM_HOLD seconds the chef stops, a translucent
+    // arc guides the direction and maximum range; direction keys turn it, and releasing E throws along it.
     private spaceDownAt:number|null=null;
     private spaceItemId:string|null=null;
     // Touch Throw arms the same hold, but a release before AIM_HOLD throws straight ahead instead of interacting.
@@ -360,7 +360,7 @@ export class KitchenClient extends Component {
         this.controls={
             getState:()=>this.controlsState(),move:(x:number,y:number)=>this.setTouchMove(x,y),
             press:()=>this.pressInteract(),release:()=>this.releaseInteract(),
-            act:()=>this.pressInteract('act'),use:()=>this.pressUse(),toss:()=>this.pressInteract('toss'),
+            act:()=>this.pressInteract('act'),use:()=>this.pressUse(),useOrThrow:()=>this.pressUseOrThrow(),toss:()=>this.pressInteract('toss'),
             cancel:()=>this.clearInput(),dash:()=>this.dash(),block:(blocked:boolean)=>this.blockTouch(blocked),
             pause:()=>{this.clearInput();if(this.connected&&this.state?.phase==='running')this.post('/api/pause');},
             resume:()=>this.controlButton('resume'),main:()=>this.controlButton('main'),restart:()=>this.controlButton('reset'),
@@ -463,8 +463,9 @@ export class KitchenClient extends Component {
         if(!this.touchMoveDirty)return;this.touchMoveDirty=false;this.touchMoveAt=this.clock;
         this.refreshMovement();this.publishControls();
     }
-    /** Space ('hands'): with a throwable item the press arms a hold-to-aim, a tap acts on release. Touch
-     *  拿/放 ('act') takes and puts at once on press; touch 扔 ('toss') only arms the throw; 切/洗 is pressUse. */
+    /** Space, touch 拿/放 and gamepad A ('act') take and put at once on press and never throw; E, touch 切/洗/扔 and
+     *  gamepad X ('toss') arm a throw with a throwable item: a tap throws ahead, a hold aims. ('hands' arms a hold
+     *  that acts on a tap, kept for the gamepad's compatibility press.) */
     private pressInteract(kind:'hands'|'act'|'toss'='hands'){
         if(!this.canInput()||this.pending||this.spaceDownAt!==null||this.aiming)return;
         // Work is sticky (no button stops it), and a second press just after a pick-up is ignored (Overcooked's 0.5 s).
@@ -473,7 +474,12 @@ export class KitchenClient extends Component {
         if(kind!=='act'&&held&&c.can_throw!==false){this.spaceDownAt=this.clock;this.spaceItemId=held.id;this.tossOnly=kind==='toss';}
         else if(kind!=='toss')this.interact();
     }
-    /** E / touch 切/洗: chop, wash or spray what the chef faces (never a throw, which Space and 扔 do). */
+    /** E / touch 切/洗/扔 / gamepad X: a throwable item arms a throw (tap throws ahead, hold aims), else chop, wash or spray. */
+    private pressUseOrThrow(){
+        const c=this.state?.kitchen.chefs.human;
+        if(c?.holding&&c.can_throw!==false)this.pressInteract('toss');else this.pressUse();
+    }
+    /** The chop, wash or spray the chef faces, if any (the engine's use fallback, a forward throw, is left to the throw path). */
     private useAction(){const a=this.state?.use_interaction;return a&&['chop','wash','extinguish'].includes(a.kind)?a:null;}
     private pressUse(){
         if(!this.canInput()||this.pending||this.spaceDownAt!==null||this.aiming)return;
@@ -574,9 +580,10 @@ export class KitchenClient extends Component {
             return;
         }
         if(this.canInput()){
-            // Keys that keep the WASD fingers in place, split as in Overcooked 2: Space (thumb) takes, puts,
-            // plates and serves, hold Space to aim a throw; E chops, washes and extinguishes; Shift (little
-            // finger) = dash (Overcooked's Alt, which browsers reserve).
+            // Keys that keep the WASD fingers in place, Overcooked 2's two buttons: Space (its pick-up key) takes,
+            // puts, plates and serves; E (its left Ctrl, which with W would close the tab) chops, washes and
+            // sprays, and with a throwable item tap throws, hold aims; Shift (little finger) = dash (Overcooked's Alt,
+            // which browsers reserve).
             if(e.key==='Shift'){
                 e.preventDefault();
                 if(!e.repeat)this.dash();
@@ -584,14 +591,12 @@ export class KitchenClient extends Component {
             }
             if(e.code==='Space'){
                 e.preventDefault();
-                if(!e.repeat&&!e.ctrlKey&&!e.altKey&&!e.metaKey){
-                    this.pressInteract();
-                }
+                if(!e.repeat&&!e.ctrlKey&&!e.altKey&&!e.metaKey)this.pressInteract('act');
                 return;
             }
             if(e.code==='KeyE'){
                 e.preventDefault();
-                if(!e.repeat&&!e.ctrlKey&&!e.altKey&&!e.metaKey)this.pressUse();
+                if(!e.repeat&&!e.ctrlKey&&!e.altKey&&!e.metaKey)this.pressUseOrThrow();
                 return;
             }
             const key=e.key.toLowerCase();if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(key)){e.preventDefault();
@@ -624,7 +629,7 @@ export class KitchenClient extends Component {
     };
     private announce(message:string){if(!sys.isNative&&message)window.dispatchEvent(new CustomEvent('kitchen-announce',{detail:{message}}));}
     private onKeyUp=(e:KeyboardEvent)=>{
-        if(e.code==='Space'){
+        if(e.code==='KeyE'){
             this.releaseInteract();
             return;
         }
@@ -2286,7 +2291,14 @@ export class KitchenClient extends Component {
                 this.place(human,330,548);this.place(jeff,950,548);
                 this.placeText('coverTitle',316,plate?292:300,648,40);this.placeText('coverText',330,plate?346:356,620,56);
                 hide('create-level');
-                if(paused){btn('main',470,548,190,56,'primary');btn('reset',660,548,150,56);btn('help',815,548,150,56);}
+                if(paused){
+                    // Sized to their words like the start row, so "Restart round" stays on one line in English.
+                    const ws=([['main',190],['reset',150],['help',150]] as [string,number][]).map(([id,w])=>
+                        Math.max(w,Math.ceil(this.textWidth(this.tr(this.labelSources.get(this.buttons[id].label)||''),24))+24));
+                    const row=ws[0]+ws[1]+ws[2]+32;let x=640-row/2;
+                    this.place(human,Math.min(330,x-66),548);this.place(jeff,Math.max(950,640+row/2+66),548);
+                    (['main','reset','help'] as string[]).forEach((id,i)=>{btn(id,x+ws[i]/2,548,ws[i],56,id==='main'?'primary':'normal');x+=ws[i]+16;});
+                }
                 else{btn('main',560,548,220,56,'primary');btn('help',780,548,170,56);hide('reset');}
                 this.set('welcome-tip','');
             }

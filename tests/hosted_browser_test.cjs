@@ -267,34 +267,42 @@ async function checkClientInteractions(fromSource){
 
  const posts=[];client.post=(path,body)=>{posts.push({path,body});};client.state.phase='running';
  const human=client.state.kitchen.chefs.human;
- const press=(extra={})=>client.onKey({key:' ',code:'Space',preventDefault:()=>{},...extra});
- const release=()=>client.onKeyUp({key:' ',code:'Space'});
- const reset=()=>{client.clearInput();posts.length=0;client.clock=5;human.holding={id:'held'};human.can_throw=true;human.facing='up';};
- // A hold must not first consume the item through a legal station action. A tap
- // still sends interact once, including blocked targets whose reason comes from the server.
+ const space=(extra={})=>client.onKey({key:' ',code:'Space',preventDefault:()=>{},...extra});
+ const spaceUp=()=>client.onKeyUp({key:' ',code:'Space'});
+ const press=(extra={})=>client.onKey({key:'e',code:'KeyE',preventDefault:()=>{},...extra});
+ const release=()=>client.onKeyUp({key:'e',code:'KeyE'});
+ const reset=()=>{client.clearInput();posts.length=0;client.clock=5;human.holding={id:'held'};human.can_throw=true;human.facing='up';client.state.use_interaction=null;};
+ // Overcooked 2's two buttons. Space (pick up) acts at once on press, even holding a throwable item, and never aims;
+ // E (chop/throw) with a throwable item taps to throw ahead and holds to aim, never consuming it at a station.
  for(const [focus,kind] of [['counter14',null],['counter14','put_counter'],['serve','serve'],
    ['bin','discard'],['burning_stove','stop'],['floor_5_6',null],['floor_5_6','drop'],['floor_5_6','swap']]){
   reset();client.state.interaction_focus=focus;client.state.interaction=kind?{kind}:null;
-  press();assert.equal(client.spaceDownAt,5);assert.equal(posts.length,0,`keydown must defer ${kind||'blocked'} interaction`);
+  space();assert.equal(client.spaceDownAt,null,'Space never arms a throw');assert.equal(posts.length,1);
+  assert.equal(posts[0].path,'/api/interact');assert.equal(posts[0].body.expected_item,'held');
+  client.clock+=.4;space({repeat:true});spaceUp();assert.equal(posts.length,1,'holding Space does not aim or repeat');assert.equal(client.aiming,null);
+
+  reset();press();assert.equal(client.spaceDownAt,5);assert.equal(posts.length,0,`E keydown must defer at ${focus}`);
   client.clock+=.1;press({repeat:true});assert.equal(client.spaceDownAt,5,'repeat must not restart the hold');
-  release();release();assert.equal(posts.length,1);assert.equal(posts[0].path,'/api/interact');
-  assert.equal(posts[0].body.expected_item,'held');
+  release();release();assert.equal(posts.length,1);assert.equal(posts[0].path,'/api/throw','an E tap throws ahead');
+  assert.equal(posts[0].body.expected_item,'held');assert.deepEqual([...posts[0].body.direction],[0,-1]);
 
   reset();press();client.clock+=.31;client.startAim();
-  assert.deepEqual({...client.aiming},{x:0,y:-1},`holding Space can aim at ${focus}`);
+  assert.deepEqual({...client.aiming},{x:0,y:-1},`holding E can aim at ${focus}`);
   client.onKey({key:'d',code:'KeyD',preventDefault:()=>{}});
   client.onKeyUp({key:'d',code:'KeyD'});press({repeat:true});
   assert.equal(posts.length,0,'aiming must not interact with the workstation');
   release();release();assert.equal(posts.length,1);assert.equal(posts[0].path,'/api/throw');
   assert.equal(posts[0].body.expected_item,'held');assert.deepEqual([...posts[0].body.direction],[1,0]);
  }
- // Empty hands and rulesets that prohibit throwing keep their immediate interaction.
+ // Without a throwable item E chops, washes or sprays what is offered, and does nothing otherwise.
  for(const hand of [null,{id:'held'}]){
   reset();human.holding=hand;human.can_throw=false;
-  press();release();assert.equal(client.spaceDownAt,null);assert.equal(posts.length,1);
-  assert.equal(posts[0].path,'/api/interact');assert.equal(posts[0].body.expected_item,hand?.id||null);
+  press();release();assert.equal(client.spaceDownAt,null);assert.equal(posts.length,0,'nothing to chop, wash or spray');
+  client.state.use_interaction={kind:hand?'extinguish':'chop'};press();release();
+  assert.equal(posts.length,1);assert.equal(posts[0].path,'/api/interact');assert.equal(posts[0].body.mode,'use');
+  assert.equal(posts[0].body.expected_item,hand?.id||null);
  }
- // Never interact with or throw a replacement item acquired while Space was held.
+ // Never throw a replacement item acquired while E was held.
  for(const alreadyAiming of [false,true]){
   reset();press();if(alreadyAiming)client.startAim();human.holding={id:'replacement'};
   release();assert.equal(posts.length,0);assert.equal(client.aiming,null);

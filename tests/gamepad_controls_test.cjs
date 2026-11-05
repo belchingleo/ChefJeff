@@ -1,6 +1,6 @@
 // Gamepad API simulation: no physical controller, browser automation or model API.
 const vm=require('node:vm'),fs=require('node:fs'),assert=require('node:assert/strict');
-const buttons={A:0,B:1,X:2,Start:9,Up:12,Down:13,Left:14,Right:15};
+const buttons={A:0,B:1,X:2,Y:3,Start:9,Up:12,Down:13,Left:14,Right:15};
 function pad(index=0,mapping='standard'){
  return {index,id:'test-controller-'+index,mapping,connected:true,axes:[0,0,0,0],
   buttons:Array.from({length:17},()=>({pressed:false,touched:false,value:0}))};
@@ -38,7 +38,7 @@ function harness(path,{available=true,denied=false,secure=true}={}){
   performance:{now:()=>clock},matchMedia:()=>({matches:false}),kitchenI18n:{language:'zh',t:text=>text},innerWidth:1280,innerHeight:720,isSecureContext:secure};
  const state={phase:'running',game_id:'round',connected:true,pending:false,canInput:true,canInteract:true,canThrow:true,canDash:true,aiming:null,holding:{id:'held'},mainEnabled:true};
  const controls={getState:()=>({...state})};
- for(const name of ['move','press','release','cancel','dash','pause','resume','main','block'])controls[name]=(...args)=>{calls.push([name,...args]);if(name==='cancel'||name==='release')state.aiming=null;};
+ for(const name of ['move','press','act','toss','use','release','cancel','dash','pause','resume','main','block'])controls[name]=(...args)=>{calls.push([name,...args]);if(name==='cancel'||name==='release')state.aiming=null;};
  w.kitchenControls=controls;
  const timeout=fn=>{return ++nextFrame;};
  vm.runInNewContext(fs.readFileSync(path,'utf8'),{window:w,document,navigator,Event,CustomEvent:Event,
@@ -67,12 +67,18 @@ function check(path){
  button(controller,'Up',true);button(controller,'Right',true);controller.axes=[-1,0,0,0];h.step(4);movement=h.moves().at(-1);
  assert(Math.abs(movement[1]-Math.SQRT1_2)<1e-8&&Math.abs(movement[2]+Math.SQRT1_2)<1e-8,'D-pad takes priority over the analog stick');
  neutral(controller);h.step();assert.deepEqual(h.calls.filter(call=>call[0]==='move').at(-1),['move',0,0],'neutral movement stops immediately');
- button(controller,'A',true);h.step(60);assert.equal(h.count('press'),1,'holding A sends one press, preserving long-hold aiming');assert.equal(h.count('release'),0);
- button(controller,'A',false);h.step(2);assert.equal(h.count('release'),1,'lifting A releases once');
- controller.axes=[1,0,0,0];h.step();button(controller,'X',true);h.step(15);assert.equal(h.count('dash'),1,'X is an edge-triggered dash');
- button(controller,'X',false);h.step();h.publish({canDash:false,sprint:{available:false,active_remaining:0,cooldown_remaining:2}});button(controller,'X',true);h.step();assert.equal(h.count('dash'),1,'unavailable sprint is not sent');
+ // Overcooked 2's buttons: A picks up and puts down at once; X chops or, with a throwable item, holds to aim and
+ // releases to throw; Y dashes.
+ button(controller,'A',true);h.step(60);assert.equal(h.count('act'),1,'holding A sends one take or put');assert.equal(h.count('release'),0);
+ button(controller,'A',false);h.step(2);assert.equal(h.count('release'),0,'lifting A throws nothing');
+ button(controller,'X',true);h.step(60);assert.equal(h.count('toss'),1,'holding X with a throwable item arms one throw');
+ button(controller,'X',false);h.step(2);assert.equal(h.count('release'),1,'lifting X releases once');
+ h.publish({holding:null,canThrow:false});button(controller,'X',true);h.step(5);assert.equal(h.count('use'),1,'X with empty hands chops or washes once');
+ button(controller,'X',false);h.step();assert.equal(h.count('release'),1);h.publish({holding:{id:'held'},canThrow:true});
+ controller.axes=[1,0,0,0];h.step();button(controller,'Y',true);h.step(15);assert.equal(h.count('dash'),1,'Y is an edge-triggered dash');
+ button(controller,'Y',false);h.step();h.publish({canDash:false,sprint:{available:false,active_remaining:0,cooldown_remaining:2}});button(controller,'Y',true);h.step();assert.equal(h.count('dash'),1,'unavailable sprint is not sent');
 
- // X must flush this frame's direction before dashing, including a new push
+ // Y must flush this frame's direction before dashing, including a new push
  // 16 ms after stopping and a turn inside the movement throttle/noise window.
  ({h,controller}=armed(path));controller.axes=[1,0,0,0];h.step();neutral(controller);h.step();h.clear();
  controller.axes=[0,-1,0,0];h.step();
@@ -84,8 +90,8 @@ function check(path){
   h.controls.dash=()=>{assert(Math.abs(lastDirection.x-desired.x)<1e-8&&Math.abs(lastDirection.y-desired.y)<1e-8,`${timing} dash must use the latest direction`);h.calls.push(['dash']);};
   controller.axes=[1,0,0,0];h.step();
   if(timing==='after-stop'){neutral(controller);h.step();assert.deepEqual(lastDirection,{x:0,y:0});}
-  h.clear();controller.axes=timing==='small-turn'?[1,.001,0,0]:[0,-1,0,0];button(controller,'X',true);h.step();
-  assert.equal(h.count('dash'),1,`${timing} X triggers the dash within one frame`);
+  h.clear();controller.axes=timing==='small-turn'?[1,.001,0,0]:[0,-1,0,0];button(controller,'Y',true);h.step();
+  assert.equal(h.count('dash'),1,`${timing} Y triggers the dash within one frame`);
   const moveAt=h.calls.findIndex(call=>call[0]==='move'),dashAt=h.calls.findIndex(call=>call[0]==='dash');
   assert(moveAt>=0&&moveAt<dashAt,`${timing} direction is sent before the dash`);
  }
@@ -95,9 +101,9 @@ function check(path){
  assert(moveTimes.length>=10,'sustained steering continues to update direction');
  for(let i=1;i<moveTimes.length;i++)assert(moveTimes[i]-moveTimes[i-1]>=50,'ordinary continuous steering stays at most 20 Hz');
 
- ({h,controller}=armed(path));button(controller,'A',true);h.step();h.publish({aiming:{x:0,y:1}});button(controller,'B',true);h.step();
- assert.equal(h.count('cancel'),1,'B cancels the owned interaction or aim');button(controller,'B',false);button(controller,'A',false);h.step();
- assert.equal(h.count('release'),0,'the cancelled A release cannot throw');button(controller,'A',true);h.step();assert.equal(h.count('press'),2,'a fresh A press works after cancellation');
+ ({h,controller}=armed(path));button(controller,'X',true);h.step();h.publish({aiming:{x:0,y:1}});button(controller,'B',true);h.step();
+ assert.equal(h.count('cancel'),1,'B cancels the owned aim');button(controller,'B',false);button(controller,'X',false);h.step();
+ assert.equal(h.count('release'),0,'the cancelled X release cannot throw');h.publish({aiming:null});button(controller,'X',true);h.step();assert.equal(h.count('toss'),2,'a fresh X press works after cancellation');
 
  ({h,controller}=armed(path));button(controller,'Start',true);h.step(20);assert.equal(h.count('pause'),1,'Start pauses once');
  h.publish({phase:'paused',canInput:false});h.clear();h.step(5);assert.equal(h.count('resume'),0,'held Start does not immediately resume');
@@ -118,9 +124,9 @@ function check(path){
 
  // On connection, even unassigned buttons must return to neutral first.
  h=harness(path);controller=pad();controller.axes=[1,0,0,0];button(controller,'A',true);button(controller,5,true);h.connect(controller);h.step(10);
- assert.equal(h.moves().length,0);assert.equal(h.count('press'),0,'connecting a held controller sends no action');
- controller.axes.fill(0);button(controller,'A',false);h.step();button(controller,'A',true);h.step();assert.equal(h.count('press'),0,'an unassigned held button still prevents arming');
- neutral(controller);h.step();button(controller,'A',true);h.step();assert.equal(h.count('press'),1,'neutral then fresh input arms the controller');
+ assert.equal(h.moves().length,0);assert.equal(h.count('act'),0,'connecting a held controller sends no action');
+ controller.axes.fill(0);button(controller,'A',false);h.step();button(controller,'A',true);h.step();assert.equal(h.count('act'),0,'an unassigned held button still prevents arming');
+ neutral(controller);h.step();button(controller,'A',true);h.step();assert.equal(h.count('act'),1,'neutral then fresh input arms the controller');
 
  // Interruptions clear owned state and require a fresh neutral/button cycle.
  for(const kind of ['blur','hidden','editor','dialog','paused','new-round','offline','blocked','touch-mode']){
@@ -137,14 +143,14 @@ function check(path){
   h.step(3);assert(h.count('cancel')>=1,`${kind} cancels the controller's action`);assert.equal(h.count('release'),0,`${kind} cannot release a throw`);
   h.clear();h.emit('focus');h.document.hidden=false;h.document.activeElement=null;h.document.modal=null;
   h.publish({phase:'running',connected:true,canInput:true});h.emit('kitchen-touch-mode',{detail:{active:false}});h.step(5);
-  assert.equal(h.moves().length,0);assert.equal(h.count('press'),0,`${kind} recovery must not reuse held input`);
-  neutral(controller);h.step();button(controller,'A',true);h.step();assert.equal(h.count('press'),1,`${kind} accepts a fresh press after neutral`);
+  assert.equal(h.moves().length,0);assert.equal(h.count('act'),0,`${kind} recovery must not reuse held input`);
+  neutral(controller);h.step();button(controller,'A',true);h.step();assert.equal(h.count('act'),1,`${kind} accepts a fresh press after neutral`);
  }
 
  ({h,controller}=armed(path));controller.axes=[1,0,0,0];button(controller,'A',true);h.step();h.clear();h.disconnect(controller);h.step();
  assert(h.count('cancel')>=1,'disconnect cancels active gamepad input');assert.equal(h.count('release'),0);assert.equal(h.count('pause'),1,'disconnect pauses an owned live round');
- h.clear();h.connect(controller);h.step(5);assert.equal(h.moves().length,0);assert.equal(h.count('press'),0,'reconnecting cannot reuse the previously held controls');
- neutral(controller);h.step();button(controller,'A',true);h.step();assert.equal(h.count('press'),1,'reconnection accepts a fresh action after neutral');
+ h.clear();h.connect(controller);h.step(5);assert.equal(h.moves().length,0);assert.equal(h.count('act'),0,'reconnecting cannot reuse the previously held controls');
+ neutral(controller);h.step();button(controller,'A',true);h.step();assert.equal(h.count('act'),1,'reconnection accepts a fresh action after neutral');
  ({h,controller}=armed(path));h.clear();h.disconnect(controller);h.step();assert.equal(h.calls.length,0,'disconnecting an unused gamepad leaves keyboard input alone');
 
  for(const type of ['kitchen-manual-input','keydown','mousedown','pointerdown']){
