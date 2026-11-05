@@ -13,6 +13,7 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - All levels: four per row, the goal, whether it was reached and this browser's best result; a card for player-made levels marks what is coming. The current level is marked by its blue highlight alone.
 - Settings is its own card with tabs down the left (AI 搭档, 跨局记忆, 调用上限, 数据与贡献, 声音与语言). The 自定义模型 tile opens just the key form, with a help column.
 - Phone menus show the same level plate, partner tiles and result buttons. The language button always reads "English" in Chinese.
+- Result screen fixes: in English the round analysis, all levels and settings chips widen to fit their words instead of running into their icons, and Level 3's dish reads "Steak & Burger" under 下一关. 下一关 keeps its title above the level line when hovered, focused or reloaded; before, the two overlapped.
 
 ### Free models
 - Free models now need consent to contribute the round, since the site pays for them: the server refuses a free-model start without it, the card says so, and its decline button opens the own-key form. Own keys and the local version need no contribution.
@@ -187,6 +188,7 @@ First private release: a local browser game with three playable maps and player-
 - 全部关卡：每行四关，显示目标、是否达成和这个浏览器里的最佳成绩；最后一张是即将开放的自定义关卡。当前这一关只用蓝色高亮标出。
 - 设置改成独立卡片，页签在左边：AI 搭档、跨局记忆、调用上限、数据与贡献、声音与语言。点「自定义模型」只打开 Key 表单，旁边附说明。
 - 手机菜单也用同样的关卡牌、搭档方块和结算按钮。中文界面的语言按钮一律写「English」。
+- 结算页修正：英文界面里，本局分析、全部关卡和设置三个按钮按文字加宽，文字不再压到图标上；"下一关"下面的第三关菜名译为 "Steak & Burger"。鼠标移到"下一关"上、用键盘选中或刷新页面后，按钮标题仍在关卡小字上方，之前两行会叠在一起。
 
 ### 免费模型
 - 免费模型的费用由站点承担，所以使用免费模型的对局需要同意贡献：没有同意时服务器拒绝开局，卡片会写明这一点，拒绝按钮会打开填写自己 Key 的设置。用自己的 Key 或玩本地版不需要贡献。

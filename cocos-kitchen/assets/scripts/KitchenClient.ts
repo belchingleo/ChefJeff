@@ -807,6 +807,7 @@ export class KitchenClient extends Component {
     }
     private box(parent:Node,name:string,x:number,y:number,w:number,h:number,fill:string){const n=this.make(name,x,y,w,h,parent);this.paintBox(n,w,h,fill);return n;}
     /** Width a label needs, near enough to centre a row of separate labels (pixel face: CJK is square). */
+    private chipText(id:string){return ({record:'本局分析','level-picker':'全部关卡','cover-connection':'设置'} as Record<string,string>)[id]||'';}
     private textWidth(text:string,size:number){let w=0;for(const ch of text)w+=/[\x00-\x7f]/.test(ch)?size*.62:size;return w;}
     private place(n:Node|undefined,x:number,y:number){n?.setPosition(x-640,360-y);}
     private placeText(id:string,x:number,y:number,w:number,h:number){const l=this.labels[id];if(!l)return;l.node.setPosition(x+w/2-640,360-y);l.node.getComponent(UITransform)!.setContentSize(w,h);}
@@ -877,7 +878,8 @@ export class KitchenClient extends Component {
         g.strokeColor=color(flat&&!sel?COLORS.muted:COLORS.ink);g.lineWidth=2;g.rect(-w/2+1,-h/2+1+dy,w-2,h-2);g.stroke();
         // Keyboard focus: an ink ring outside the button (and its shadow) with a gap.
         if(this.focusId===id){g.strokeColor=color(COLORS.ink);g.lineWidth=3;g.rect(-w/2-5,-h/2-8,w+10,h+13);g.stroke();}
-        b.label.node.setPosition(0,dy);
+        // A result button with a second line keeps its title raised above it on every redraw (hover, focus).
+        b.label.node.setPosition(0,dy+(b.node.getChildByName('sub')?.active?8:0));
         b.label.color=color(sel?COLORS.ink:!b.enabled?COLORS.muted:b.tone==='primary'||b.tone==='danger'?COLORS.paper:COLORS.ink);
     }
     private proxyButton(id:string){
@@ -2223,7 +2225,7 @@ export class KitchenClient extends Component {
             this.writeLabel(this.buttons['next-alt'].label,acts.alt.label);this.enable('next-alt',!this.pending&&!this.countdown);
             for(const [id,a] of [['main',acts.main],['next-alt',acts.alt]] as [string,any][]){
                 const sub=this.subLabel(id),b=this.buttons[id];this.writeLabel(sub,a.sub);sub.node.active=!!a.sub;
-                sub.color=color(b.tone==='primary'?COLORS.paper:COLORS.ink);b.label.node.setPosition(0,a.sub?8:0);
+                sub.color=color(b.tone==='primary'?COLORS.paper:COLORS.ink);this.styleButton(id);
             }
             hide('reset','help');
             // On the last level the forward action is 全部关卡 itself, so L is not listed twice.
@@ -2231,18 +2233,20 @@ export class KitchenClient extends Component {
             this.set('welcome-tip',(s.won?`Enter ${fwd.label} · R 再来一次`:`Enter 再来一次 · ${last?'L':'N'} ${fwd.label}`)+(last?'':' · L 全部关卡'));this.placeText('welcome-tip',218,538,844,19);
             // Light chips: round analysis (when there is one), all levels, settings.
             const offer=!sys.isNative&&!!s.hosted?.contribution_offer;
-            const chips=[...(s.round_summary?[['record',150]]:[]),['level-picker',150],['cover-connection',110],...(offer?[['contribute',130]]:[])] as [string,number][];
+            // A chip widens when its words (English is longer) would reach the icon.
+            const fit=(id:string,w:number)=>id==='contribute'?w:Math.max(w,Math.ceil(this.textWidth(this.tr(this.chipText(id)),17))+50);
+            const chips=([...(s.round_summary?[['record',150]]:[]),['level-picker',150],['cover-connection',110],...(offer?[['contribute',130]]:[])] as [string,number][])
+                .map(([id,w])=>[id,fit(id,w)] as [string,number]);
             if(!offer)hide('contribute');
             let x=640-(chips.reduce((t,[,w])=>t+w,0)+16*(chips.length-1))/2;
             if(!s.round_summary)hide('record');
             for(const [id,w] of chips){btn(id,x+w/2,594,w,40,'chip');const b=this.buttons[id];
-                if(id==='level-picker')this.writeLabel(b.label,'全部关卡');if(id==='cover-connection')this.writeLabel(b.label,'设置');
+                if(id==='level-picker'||id==='cover-connection')this.writeLabel(b.label,this.chipText(id));
                 const icon=b.node.getChildByName('icon');on(icon,!!icon);icon?.setPosition(-w/2+24,0);
                 b.label.horizontalAlign=Label.HorizontalAlign.CENTER;this.pixel(b.label,17);b.label.node.setPosition(icon?12:0,0);x+=w+16;}
         }else{
             for(const id of ['next-alt','record','contribute'])hide(id);
-            for(const id of ['main','next-alt'])if(this.buttons[id].node.getChildByName('sub'))this.subLabel(id).node.active=false;
-            this.buttons.main.label.node.setPosition(0,0);
+            for(const id of ['main','next-alt'])if(this.buttons[id].node.getChildByName('sub')){this.subLabel(id).node.active=false;this.styleButton(id);}
             // Settings: a gear beside English at the top of the card.
             const gear=this.buttons['cover-connection'];btn('cover-connection',1046,140,46,34,'normal');
             this.writeLabel(gear.label,'');gear.label.string='';this.labelSources.set(gear.label,'设置');
