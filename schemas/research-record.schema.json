@@ -439,6 +439,30 @@
             "version"
           ],
           "additionalProperties": false
+        },
+        "features": {
+          "description": "Jeff's harness features as the round started (features.json, features.snapshot): each feature on or off, with the version the code implements.",
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-z][a-z0-9_]{0,39}$"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "on": {
+                "type": "boolean"
+              },
+              "version": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]{0,39}$"
+              }
+            },
+            "required": [
+              "on",
+              "version"
+            ],
+            "additionalProperties": false
+          }
         }
       },
       "required": [

@@ -20,6 +20,7 @@ import webbrowser
 from kitchen import Kitchen, ROOT, load_config
 from jev import JevClient, DecisionLoop
 from harness import Plan, PLAN_MODES, plan_condition
+import features
 import one_press
 from play import Journal
 from round_summary import round_summary
@@ -105,11 +106,11 @@ class GameSession:
         self.last_player_message_at = None
         self.bookmarks = []
         self.last_bookmark_at = None
-        # Plan mode (off or choice), off by default (a held plan drew Jev away from a pan about to burn in
-        # scripts/plan_probe.py); chosen before a round and kept for later rounds.
-        self.jeff_plan_mode = 'off'
-        # One-press options (one_press.py), each its own trial switch, off by default; set between rounds.
-        self.one_press = {name: False for name in one_press.NAMES}
+        # Jeff's harness features (features.json): what is released and what is on trial, read once.
+        self.features = features.current()
+        # Plan mode (off, choice or rolling), both on trial: the player picks one before a round among those with a
+        # switch (a held plan drew Jev away from a pan about to burn in scripts/plan_probe.py), kept for later rounds.
+        self.jeff_plan_mode = features.plan_default(self.features)
         # Every round of this play session, for the data export (feedback.play_export).
         self.history = []
         self.history_limit = HISTORY_LIMIT
@@ -437,15 +438,16 @@ class GameSession:
         return {'preference': preference['code'] if preference else None,
                 'cooldown_remaining': round(remaining,2), 'last_message': deepcopy(last),
                 'allowed': self.phase in ('running','paused') and not self.k.ended,
-                'jeff_plan': self.plan_state(),
-                'one_press': {**self.one_press, 'editable': self.phase in ('ready', 'ended')}}
+                'jeff_plan': self.plan_state()}
 
     def plan_state(self):
         """The plan switch for the next round, and Jeff's current plan as the player sees it: its steps, in Chinese, and which are done."""
         plan = getattr(self.ai, 'plan', None) if self.ai else None
         current = plan.current if plan and self.phase in ('running', 'paused') and not self.k.ended else None
         steps = [{**work_label(s['work'], self.k.rules.items), 'done': s['done']} for s in current['steps']] if current else None
-        return {'mode': self.jeff_plan_mode, 'editable': self.phase in ('ready', 'ended'), 'current': {'steps': steps} if current else None}
+        choices = features.plan_choices(self.features)
+        return {'mode': self.jeff_plan_mode, 'available': choices, 'editable': bool(choices) and self.phase in ('ready', 'ended'),
+                'current': {'steps': steps} if current else None}
 
     def _communicate(self, body):
         if self.phase not in ('running','paused') or self.k.ended or self.journal is None:
@@ -541,17 +543,10 @@ class GameSession:
             result = self._command('/api/level', {'level': body.get('level')})
             if result[0] != 200:return result
             return self._command('/api/start', {'speed': speed})
-        if path == '/api/one-press':
-            if self.phase not in ('ready', 'ended'):
-                return 409, {'error': '请在开局前或结算后修改一键操作。'}
-            if body.get('name') not in one_press.NAMES or not isinstance(body.get('on'), bool):
-                return 400, {'error': '一键操作设置无效。'}
-            self.one_press[body['name']] = body['on']
-            return 200, {'ok': True, 'one_press': {**self.one_press, 'editable': True}}
         if path == '/api/plan':
             if self.phase not in ('ready', 'ended'):
                 return 409, {'error': '请在开局前或结算后修改计划模式。'}
-            if body.get('mode') not in ('off', *PLAN_MODES):
+            if body.get('mode') not in ('off', *features.plan_choices(self.features)):
                 return 400, {'error': '计划模式设置无效。'}
             self.jeff_plan_mode = body['mode']
             return 200, {'ok': True, 'jeff_plan': self.plan_state()}
@@ -582,13 +577,14 @@ class GameSession:
             self.session_log = self.journal
             held = Plan(mode=self.jeff_plan_mode) if self.jeff_plan_mode in PLAN_MODES else None
             plan = {'jeff_plan': plan_condition(held.mode, held.steps)} if held else {}
+            pressed = features.one_press_flags(self.features)
             self.journal('start', {'config':self.c, 'config_hash':self.k.config_hash, 'speed':self.speed, 'state':self.k.snapshot(), **plan,
-                                   **one_press.condition(self.one_press)})
+                                   **one_press.condition(pressed), 'features': features.snapshot(self.features)})
             self.ai = DecisionLoop(self.k, client, self.journal, self.note)
             self.ai.game_speed = self.speed
             if held:
                 self.ai.plan = held
-            self.ai.one_press = one_press.flags(self.one_press)
+            self.ai.one_press = pressed
             self.phase = 'running'
             self.last_tick = self.last_seen = time.monotonic()
             self.wake.set()

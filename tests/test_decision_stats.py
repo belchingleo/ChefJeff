@@ -58,8 +58,14 @@ def play_round(folder, seconds=20.0, plan=True, ask_on_step_end=False):
         # The scripted timeline (the round's end stops Jeff mid-action) was written for the request timing
         # without ai_ask_on_step_end; only the step gap tests turn it on.
         config = {**level_config(load_config(), 'level-2'), 'ai_ask_on_step_end': ask_on_step_end}
-        game = GameSession(config, client_factory=lambda c: Scripted(c, lambda: game),
-                           journal_factory=play.Journal, kitchen_factory=SpatialKitchen, log_prefix='whitebox')
+        # The scripted timeline was written without the one-press options (released since); rounds with them are
+        # counted apart and tested in test_one_press.StatsTests.
+        import features
+        off = features.check({**json.loads(features.PATH.read_text(encoding='utf-8')),
+                              'one_press': {'stage': 'release', 'on': False, 'version': features.VERSIONS['one_press']}})
+        with patch.object(features, 'current', lambda: off):
+            game = GameSession(config, client_factory=lambda c: Scripted(c, lambda: game),
+                               journal_factory=play.Journal, kitchen_factory=SpatialKitchen, log_prefix='whitebox')
         if plan:
             game._command('/api/plan', {'mode': 'choice'})
         clock = [1000.0]
@@ -393,7 +399,7 @@ class ResearchRecordTests(paths.SavePathTests):
             export_package(self.game.store.path, package)
             from_record, from_package = report([download]), report([package])
         self.assertEqual(from_record['models'], from_package['models'])
-        m = from_record['models']['test/decider']
+        m = from_record['models']['test/decider [one-press]']   # one-press is released: every new round has it
         self.assertEqual(m['decisions']['answered'], 3)
         self.assertEqual(m['unsure']['below']['0.05']['count'], 1)
         self.assertEqual(m['unsure']['closest_pairs'], {'fetch/wait': 1})

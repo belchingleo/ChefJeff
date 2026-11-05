@@ -1,4 +1,5 @@
-"""One-press options for Jeff (experimental switches, off by default): several presses a player makes without
+"""One-press options for Jeff (released: features.json turns them on for every round, with no switch in the page;
+turning `one_press` off there rolls them back): several presses a player makes without
 thinking, offered as one choice and carried out as the same ordinary steps, one after another.
 
 - put then take <station>: Jeff holds an item and another item lies on <station> that he could take with empty
@@ -6,7 +7,8 @@ thinking, offered as one choice and carried out as the same ordinary steps, one 
   (one of the put places the request already lists), then takes the item from <station>.
 - put then chop <board> and put then wash <sink>: the same, for the work the engine lets him do there only with
   empty hands (chopping what lies on the board, washing the dirty plate in the sink): he puts the held item
-  where put_where says, then chops or washes. All three are behind the put_then_take switch.
+  where put_where says, then chops or washes. All three go with the put_then_take flag (one_press.flags; both
+  flags are on whenever the feature is, as features.one_press_flags gives them).
 - wash from <plate return>: a dirty plate is on the plate return, the sink is empty and not burning. Jeff puts
   down what he holds where put_where says (if he holds something), takes the dirty plate, puts it in the sink
   and washes it.

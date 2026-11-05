@@ -253,6 +253,13 @@ def payload(kind, data, k):
     return None  # presets, bookmark texts, release metadata, raw errors: not this study
 
 
+def features_condition(session):
+    """Jeff's harness features (features.json) as this round started with them; nothing for a session without them."""
+    import features
+    value = getattr(session, 'features', None)
+    return {'features': features.snapshot(value)} if isinstance(value, dict) else {}
+
+
 def one_press_condition(session):
     """The one-press switches as this round started with them; nothing when every one was off."""
     import one_press
@@ -310,7 +317,7 @@ def record(session):
             'config_projection_hash': 'sha256:' + cc.sha256(log.research_config),
             'conditions': {'cross_round_memory': memory_condition(session),
                            'memory_provenance': deepcopy(getattr(session, 'round_memory_provenance', None)),
-                           **plan_condition(session), **one_press_condition(session),
+                           **plan_condition(session), **one_press_condition(session), **features_condition(session),
                            'engine_semantics': k.rules.semantics,
                            'rules_version': _rules_version(),
                            'input_language': _input_language(),

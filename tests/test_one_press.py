@@ -242,27 +242,88 @@ class ChainTests(unittest.TestCase):
         self.assertNotIn('take b1', self.done(k))
 
 
+def with_features(**changes):
+    """The repository's features.json with some fields changed, checked like the file: {name: {field: value}}."""
+    import features
+    data = {name: {k: v for k, v in value.items() if k != 'player_switch' or value['stage'] == 'trial'}
+            for name, value in features.load().items()}
+    for name, fields in changes.items():
+        data[name].update(fields)
+    return features.check(data)
+
+
 class SessionTests(unittest.TestCase):
-    def test_each_switch_is_set_between_rounds_and_recorded(self):
-        g = GameSession(level_config(load_config(), 'level-2'), client_factory=lambda c: Answering(c),
-                        journal_factory=FakeJournal, kitchen_factory=SpatialKitchen)
+    """One-press is released (features.json): on in every round, with no switch; the file can turn it off."""
+
+    def game(self, value=None):
+        import features
+        with patch.object(features, 'current', lambda: value or with_features()):
+            g = GameSession(level_config(load_config(), 'level-2'), client_factory=lambda c: Answering(c),
+                            journal_factory=FakeJournal, kitchen_factory=SpatialKitchen)
         self.addCleanup(g.close)
-        self.assertEqual(g.communication_state()['one_press'], {'put_then_take': False, 'wash_from_returns': False, 'editable': True})
-        self.assertEqual(g._command('/api/one-press', {'name': 'dance', 'on': True})[0], 400)
-        self.assertEqual(g._command('/api/one-press', {'name': 'put_then_take', 'on': 'yes'})[0], 400)
-        self.assertEqual(g._command('/api/one-press', {'name': 'put_then_take', 'on': True})[0], 200)
+        return g
+
+    def start_row(self, g):
+        return next(d for kind, d in g.journal.journal.rows if kind == 'start')
+
+    def test_it_is_on_in_every_round_and_recorded(self):
+        g = self.game()
+        self.assertNotIn('one_press', g.communication_state())                       # no switch to show
+        self.assertNotEqual(g._command('/api/one-press', {'name': 'put_then_take', 'on': False})[0], 200)
         self.assertEqual(g._command('/api/start', {})[0], 200)
-        self.assertEqual(g.ai.one_press, {'put_then_take': True, 'wash_from_returns': False})
-        start_row = next(d for kind, d in g.journal.journal.rows if kind == 'start')
-        self.assertEqual(start_row['one_press'], {'put_then_take': True, 'wash_from_returns': False, 'version': one_press.VERSION})
-        self.assertEqual(g._command('/api/one-press', {'name': 'put_then_take', 'on': False})[0], 409)
-        g._command('/api/end', {})
-        self.assertEqual(g._command('/api/one-press', {'name': 'put_then_take', 'on': False})[0], 200)
-        g._command('/api/reset', {}); g._command('/api/start', {})
+        self.assertEqual(g.ai.one_press, {'put_then_take': True, 'wash_from_returns': True})
+        row = self.start_row(g)
+        self.assertEqual(row['one_press'], {'put_then_take': True, 'wash_from_returns': True, 'version': one_press.VERSION})
+        self.assertEqual(row['features'], {'one_press': {'on': True, 'version': one_press.VERSION},
+                                           'jeff_plan': {'on': False, 'version': 'plan-v2'},
+                                           'rolling_intent': {'on': False, 'version': 'rolling-v3'}})
+
+    def test_the_file_rolls_it_back(self):
+        g = self.game(with_features(one_press={'on': False}))
+        self.assertEqual(g._command('/api/start', {})[0], 200)
         self.assertIsNone(g.ai.one_press)
-        self.assertNotIn('one_press', next(d for kind, d in g.journal.journal.rows if kind == 'start'))
+        row = self.start_row(g)
+        self.assertNotIn('one_press', row)
+        self.assertEqual(row['features']['one_press'], {'on': False, 'version': one_press.VERSION})
+
+    def test_the_plan_modes_offered_follow_their_trial_switches(self):
+        g = self.game()
+        self.assertEqual(g.communication_state()['jeff_plan']['available'], ['choice', 'rolling'])
+        g = self.game(with_features(jeff_plan={'player_switch': False}))
+        state = g.communication_state()['jeff_plan']
+        self.assertEqual((state['available'], state['mode']), (['rolling'], 'off'))
+        self.assertEqual(g._command('/api/plan', {'mode': 'choice'})[0], 400)
+        self.assertEqual(g._command('/api/plan', {'mode': 'rolling'})[0], 200)
+        g = self.game(with_features(rolling_intent={'on': True}))                   # a trial that is on is the default
+        self.assertEqual(g.communication_state()['jeff_plan']['mode'], 'rolling')
+        g = self.game(with_features(jeff_plan={'player_switch': False}, rolling_intent={'player_switch': False}))
+        self.assertEqual(g.communication_state()['jeff_plan']['editable'], False)
 
 
+class FeaturesFileTests(unittest.TestCase):
+    def test_the_repository_file_is_valid_and_released_one_press_is_on(self):
+        import features
+        value = features.load()
+        self.assertEqual(value['one_press'], {'stage': 'release', 'on': True, 'player_switch': False, 'version': one_press.VERSION})
+        self.assertEqual({name: v['stage'] for name, v in value.items()},
+                         {'one_press': 'release', 'jeff_plan': 'trial', 'rolling_intent': 'trial'})
+
+    def test_a_wrong_file_stops_instead_of_running(self):
+        import features
+        good = json.loads(features.PATH.read_text(encoding='utf-8'))
+        broken = [
+            {**good, 'dance': {'stage': 'trial', 'on': False, 'version': 'x'}},          # unknown feature
+            {k: v for k, v in good.items() if k != 'one_press'},                          # missing feature
+            {**good, 'one_press': {**good['one_press'], 'version': 'one-press-v2'}},     # not the code's version
+            {**good, 'one_press': {**good['one_press'], 'stage': 'beta'}},
+            {**good, 'one_press': {**good['one_press'], 'on': 'yes'}},
+            {**good, 'one_press': {**good['one_press'], 'player_switch': True}},          # released: no switch
+            {**good, 'jeff_plan': {**good['jeff_plan'], 'on': True}, 'rolling_intent': {**good['rolling_intent'], 'on': True}},
+            {**good, 'jeff_plan': {**good['jeff_plan'], 'colour': 'red'}},
+        ]
+        for data in broken:
+            with self.subTest(data=data), self.assertRaises(ValueError):
+                features.check(data)
 
 class Pressing(Answering):
     """Takes a one-press option whenever one is offered (put_where: the first listed place), else the recipe's cook move."""
@@ -289,10 +350,10 @@ class StatsTests(unittest.TestCase):
         import play
         from test_decision_stats import Inline as Thread
         with patch('play.ROOT', Path(folder)):
-            game = GameSession(level_config(load_config(), 'level-2'), client_factory=lambda c: Pressing(c, lambda: game),
-                               journal_factory=play.Journal, kitchen_factory=SpatialKitchen, log_prefix='whitebox')
-            for name in one_press.NAMES if on else ():
-                self.assertEqual(game._command('/api/one-press', {'name': name, 'on': True})[0], 200)
+            import features
+            with patch.object(features, 'current', lambda: with_features(one_press={'on': on})):
+                game = GameSession(level_config(load_config(), 'level-2'), client_factory=lambda c: Pressing(c, lambda: game),
+                                   journal_factory=play.Journal, kitchen_factory=SpatialKitchen, log_prefix='whitebox')
             clock = [1000.0]
             with patch('jev.time.monotonic', lambda: clock[0]), patch('jev.threading.Thread', Thread):
                 game.last_tick = game.last_seen = clock[0]

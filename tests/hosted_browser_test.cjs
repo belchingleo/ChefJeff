@@ -821,18 +821,14 @@ function settingsHarness(){
  const rollingBefore=ui.requests(),rollingSaving=ui.el('jeff-rolling').onclick();
  assert.equal(ui.el('jeff-rolling').getAttribute('aria-busy'),'true');
  await rollingSaving;assert.equal(ui.requests(),rollingBefore+1,'one /api/plan request per toggle');
- // The two one-press test switches follow the server's flags, are locked during a round and save one at a time.
- detail.communication={jeff_plan:{mode:'off',editable:true,current:null},one_press:{put_then_take:true,wash_from_returns:false,editable:true}};
- ui.listeners.get('kitchen-state')({detail});
- assert.equal(ui.el('jeff-put-take').getAttribute('aria-checked'),'true');assert.equal(ui.el('jeff-wash').getAttribute('aria-checked'),'false');
- assert.equal(ui.el('jeff-put-take').disabled,false);assert.equal(ui.el('jeff-wash').disabled,false);
- detail.communication.one_press={put_then_take:true,wash_from_returns:false,editable:false};ui.listeners.get('kitchen-state')({detail});
- assert.equal(ui.el('jeff-put-take').disabled,true);assert.equal(ui.el('jeff-wash').disabled,true);
- detail.communication.one_press={put_then_take:false,wash_from_returns:false,editable:true};ui.listeners.get('kitchen-state')({detail});
- const pressBefore=ui.requests(),pressSaving=ui.el('jeff-wash').onclick();
- assert.equal(ui.el('jeff-wash').getAttribute('aria-busy'),'true');assert.equal(ui.el('jeff-put-take').getAttribute('aria-busy'),'true');
- await pressSaving;assert.equal(ui.requests(),pressBefore+1,'one /api/one-press request per toggle');
- assert.equal(ui.el('jeff-wash').getAttribute('aria-checked'),'false','a failed save leaves the switch on the server value');
+ // Only the plan modes with a player switch in features.json show; with none the plan card hides.
+ detail.communication={jeff_plan:{mode:'off',available:['choice','rolling'],editable:true,current:null}};ui.listeners.get('kitchen-state')({detail});
+ assert.equal(ui.el('plan-row').hidden,false);assert.equal(ui.el('rolling-row').hidden,false);assert.equal(ui.el('plan-setting').hidden,false);
+ detail.communication.jeff_plan={mode:'off',available:['rolling'],editable:true,current:null};ui.listeners.get('kitchen-state')({detail});
+ assert.equal(ui.el('plan-row').hidden,true);assert.equal(ui.el('plan-tip').hidden,true);assert.equal(ui.el('rolling-row').hidden,false);
+ detail.communication.jeff_plan={mode:'off',available:[],editable:false,current:null};ui.listeners.get('kitchen-state')({detail});
+ assert.equal(ui.el('plan-setting').hidden,true);
+ for(const page of ['cocos-kitchen/web-shell.html','cocos-kitchen/build/web/index.html'])assert(!/jeff-put-take|jeff-wash|one-press/.test(fs.readFileSync(page,'utf8')),'the released one-press options have no switch');
  console.log('Browser transport and settings: credential isolation, session retry/release, editable drafts and guarded connection checks passed.');
  await checkModelIdentity();
  await checkFreeModels();

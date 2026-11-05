@@ -181,13 +181,15 @@ class ReplayTests(paths.SavePathTests):
             self.assertNotIn('plan_keep', request['rebuilt']['questions'])
         self.assertEqual(requests[2]['rebuilt']['state']['plan_rules_version'], 'rolling-v3')
 
-    def test_a_round_with_one_press_keeps_the_condition_and_replays_exactly(self):
-        for name in one_press.NAMES:
-            self.assertEqual(self.command('one-press', name=name, on=True)[0], 200)
+    def test_a_round_keeps_the_released_one_press_and_replays_exactly(self):
+        self.assertEqual(self.command('one-press', name='put_then_take', on=False)[0], 400)   # released: no switch
         receipt = self.begin_manual_relay()
         initial = self.game.store.download(receipt['id'], receipt['deletion_token'])
         condition = {'put_then_take': True, 'wash_from_returns': True, 'version': one_press.VERSION}
         self.assertEqual(initial['conditions']['one_press'], condition)
+        self.assertEqual(initial['conditions']['features']['one_press'], {'on': True, 'version': one_press.VERSION})
+        self.assertEqual({name: value['on'] for name, value in initial['conditions']['features'].items()},
+                         {'one_press': True, 'jeff_plan': False, 'rolling_intent': False})
         with self.game.lock:                                    # the human leaves beef on a board
             k = self.game.k
             for chosen in (lambda a: a.key == 'fetch', lambda a: a.kind == 'put_board'):
