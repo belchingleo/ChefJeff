@@ -14,6 +14,9 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - Settings is its own card with tabs down the left (AI 搭档, 跨局记忆, 调用上限, 数据与贡献, 声音与语言). The 自定义模型 tile opens just the key form, with a help column.
 - Phone menus show the same level plate, partner tiles and result buttons. The language button always reads "English" in Chinese.
 - Result screen fixes: in English the round analysis, all levels and settings chips widen to fit their words instead of running into their icons, and Level 3's dish reads "Steak & Burger" under 下一关. 下一关 keeps its title above the level line when hovered, focused or reloaded; before, the two overlapped.
+- 创建关卡 (Create a level) sits beside 开始经营 and 操作说明 on the start card and among the result chips, wherever the server offers the level editor, so player-made levels no longer hide at the end of 全部关卡; that card and ▶ after the last level now say 创建关卡 too. The phone menu has no such button, as the editor opens only in a desktop browser.
+- The line under the kitchen that named the Space action or why it could not be done is gone: during play nobody reads it, and before and after a round it kept showing a hint for nothing. As in Overcooked 2, the outlined station and the chef show what Space will do.
+- 换一位搭档 on the result screen opens the AI 搭档 tab of settings. Before, it only opened the online free-model list, so it did nothing locally or for a free list that was off.
 
 ### Free models
 - Free models now need consent to contribute the round, since the site pays for them: the server refuses a free-model start without it, the card says so, and its decline button opens the own-key form. Own keys and the local version need no contribution.
@@ -189,6 +192,9 @@ First private release: a local browser game with three playable maps and player-
 - 设置改成独立卡片，页签在左边：AI 搭档、跨局记忆、调用上限、数据与贡献、声音与语言。点「自定义模型」只打开 Key 表单，旁边附说明。
 - 手机菜单也用同样的关卡牌、搭档方块和结算按钮。中文界面的语言按钮一律写「English」。
 - 结算页修正：英文界面里，本局分析、全部关卡和设置三个按钮按文字加宽，文字不再压到图标上；"下一关"下面的第三关菜名译为 "Steak & Burger"。鼠标移到"下一关"上、用键盘选中或刷新页面后，按钮标题仍在关卡小字上方，之前两行会叠在一起。
+- 开局卡片上，"创建关卡"和"开始经营""操作说明"并排；结算页底部的小按钮里也有它。服务器提供关卡编辑器时才显示，玩家自己做关卡不用再翻到全部关卡最后才找到。全部关卡列表最后那张卡片和最后一关的 ▶ 也改叫"创建关卡"。编辑器只能在电脑浏览器里用，所以手机菜单里不放这个按钮。
+- 去掉厨房下方那行操作提示（比如"选中目标暂不可操作，请靠近或检查物品状态"）。因为玩的时候没空看它，开局前和结算后它也一直挂着，所以和《胡闹厨房 2》一样，改由工位的框和角色动作来表现能做什么。
+- 结算页的"换一位搭档"改为打开设置里的"AI 搭档"页。之前它只会打开线上的免费模型列表，所以在本地、或者免费模型没开时，点了没有反应。
 
 ### 免费模型
 - 免费模型的费用由站点承担，所以使用免费模型的对局需要同意贡献：没有同意时服务器拒绝开局，卡片会写明这一点，拒绝按钮会打开填写自己 Key 的设置。用自己的 Key 或玩本地版不需要贡献。

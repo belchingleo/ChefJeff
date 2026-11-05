@@ -926,7 +926,7 @@ function kitchenTabs(dialog){
     const editor=window.chefjeffEditor,ready=!!editor?.available();
     const custom=document.createElement('button');custom.className='level-card level-custom';custom.type='button';custom.disabled=!ready;
     const plus=document.createElement('span');plus.className='level-plus';plus.textContent='+';plus.setAttribute('aria-hidden','true');
-    const label=document.createElement('span');label.className='level-dish';label.textContent=t('自定义关卡');
+    const label=document.createElement('span');label.className='level-dish';label.textContent=t('创建关卡');
     const what=document.createElement('span');what.className='level-target';what.textContent=t('做自己的地图和菜谱');
     custom.append(plus,label,what);
     if(!ready){const soon=document.createElement('span');soon.className='level-target';soon.textContent=t('即将开放');custom.append(soon);}

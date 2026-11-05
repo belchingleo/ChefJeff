@@ -299,7 +299,7 @@
         el('touch-level-prev').disabled = !card.stepEnabled || index <= 0;
         // After the last official level, ▶ opens 我的关卡 (card.nextEditor), as on the desktop card.
         el('touch-level-next').disabled = !card.stepEnabled || index < 0 || (index >= levels.length - 1 && !card.nextEditor);
-        const nextLabel = t(card.nextEditor ? '自定义关卡' : '下一关');
+        const nextLabel = t(card.nextEditor ? '创建关卡' : '下一关');
         if (el('touch-level-next').getAttribute('aria-label') !== nextLabel) el('touch-level-next').setAttribute('aria-label', nextLabel);
         el('touch-levels').disabled = !state.levelEnabled;
         // The title row is the 全部关卡 entry, as on the desktop card.

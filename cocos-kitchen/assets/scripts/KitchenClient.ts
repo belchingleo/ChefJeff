@@ -27,7 +27,7 @@ const RESULT_ANNOUNCE=new Set(['order','served','expired','ready','burn','fire',
 // Keyboard order; the level buttons (one per listed level, from the server) follow the language button.
 // The start card's partner row: heading line and the two tiles, centred between the level plate and the buttons.
 const PARTNER_Y=314,TILES_Y=398,START_Y=562;
-const TAB_ORDER=['language','cover-connection','level-prev','level-picker','level-next','free-limits','tile-free','free-pick','tile-key','main','next-alt','reset','help','partner-change','record','contribute','more','resume','pause','end'];
+const TAB_ORDER=['language','cover-connection','level-prev','level-picker','level-next','free-limits','tile-free','free-pick','tile-key','main','next-alt','reset','help','create-level','partner-change','record','contribute','more','resume','pause','end'];
 type ButtonView = {node:Node;label:Label;callback:()=>void;enabled:boolean;width:number;height:number;tone:string;hover:boolean;selected?:boolean};
 // Labels for things that are not recipe items; item and dish names come from the server's catalog.
 const STAGES: Record<string,string> = {extinguisher:'灭火器',clean_plate:'干净餐盘',dirty_plate:'脏餐盘'};
@@ -211,7 +211,6 @@ export class KitchenClient extends Component {
         this.button('end','■',1226,34,44,36,()=>this.confirm('end'),this.node,'danger');
         for(const id of ['pause','resume','end'])this.pixel(this.buttons[id].label,24);
         this.text('hand','',234,691,235,22,14).color=color(COLORS.ink);
-        this.text('interaction','',470,691,575,22,14).color=color(COLORS.ink);
         this.text('event','',234,709,500,18,13).color=color(COLORS.ink);
         this.text('ai-status','',744,709,302,18,13).horizontalAlign=Label.HorizontalAlign.RIGHT;
         this.cover=this.make('cover',640,360,1280,720);
@@ -267,7 +266,8 @@ export class KitchenClient extends Component {
         this.icon(this.cover,'welcome-food',640,332,'vessel',1.05);
         this.text('coverText','正在连接厨房…',330,362,620,56,16,this.cover).horizontalAlign=Label.HorizontalAlign.CENTER;
         const line=this.text('partner-line','',330,404,470,24,14,this.cover);line.color=color(COLORS.muted);line.horizontalAlign=Label.HorizontalAlign.RIGHT;
-        this.pixel(this.button('partner-change','换一位搭档',876,404,120,30,()=>this.coverEvent('kitchen-open-free-models'),this.cover).getComponentInChildren(Label)!,14);
+        // The AI 搭档 tab of settings: free models (where the site has them) and the custom model, so it works locally too.
+        this.pixel(this.button('partner-change','换一位搭档',876,404,120,30,()=>this.openConnection(),this.cover).getComponentInChildren(Label)!,14);
         this.button('main','开始经营',560,548,220,56,()=>{
             if(!this.connected){this.poll();return;}
             const phase=this.state?.phase;
@@ -283,6 +283,9 @@ export class KitchenClient extends Component {
         this.button('cover-connection','设置',1046,140,46,34,()=>this.openConnection(),this.cover);
         this.glyph(this.buttons['cover-connection'].node,'icon','gear',0,0);
         this.button('help','操作说明',780,548,170,56,()=>this.openHelp(),this.cover);
+        // Player-made levels are a headline feature, so the editor sits beside 开始经营, not only at the end of 全部关卡.
+        this.button('create-level','创建关卡',0,0,150,56,()=>this.openEditor(),this.cover);
+        this.glyph(this.buttons['create-level'].node,'icon','plus',0,0);
         // Language sits on the board where people look first, not only inside Settings. Always "English" in Chinese.
         this.pixel(this.button('language','English',976,140,104,34,()=>{const i18n=(window as any).kitchenI18n;i18n?.setLanguage(i18n.language==='en'?'zh':'en');},this.cover).getComponentInChildren(Label)!,14);
         if(sys.isNative)this.buttons.language.node.active=false;
@@ -807,7 +810,7 @@ export class KitchenClient extends Component {
     }
     private box(parent:Node,name:string,x:number,y:number,w:number,h:number,fill:string){const n=this.make(name,x,y,w,h,parent);this.paintBox(n,w,h,fill);return n;}
     /** Width a label needs, near enough to centre a row of separate labels (pixel face: CJK is square). */
-    private chipText(id:string){return ({record:'本局分析','level-picker':'全部关卡','cover-connection':'设置'} as Record<string,string>)[id]||'';}
+    private chipText(id:string){return ({record:'本局分析','level-picker':'全部关卡','create-level':'创建关卡','cover-connection':'设置'} as Record<string,string>)[id]||'';}
     private textWidth(text:string,size:number){let w=0;for(const ch of text)w+=/[\x00-\x7f]/.test(ch)?size*.62:size;return w;}
     private place(n:Node|undefined,x:number,y:number){n?.setPosition(x-640,360-y);}
     private placeText(id:string,x:number,y:number,w:number,h:number){const l=this.labels[id];if(!l)return;l.node.setPosition(x+w/2-640,360-y);l.node.getComponent(UITransform)!.setContentSize(w,h);}
@@ -816,11 +819,12 @@ export class KitchenClient extends Component {
         b.width=w;b.height=h;b.node.getComponent(UITransform)!.setContentSize(w,h);
         b.label.node.getComponent(UITransform)!.setContentSize(w-22,h-6);this.styleButton(id);
     }
-    /** Small pixel glyphs for the shop card: chart (round analysis), grid (levels), gear (settings). */
-    private glyph(parent:Node,name:string,kind:'chart'|'grid'|'gear',x:number,y:number){
+    /** Small pixel glyphs for the shop card: chart (round analysis), grid (levels), plus (create a level), gear (settings). */
+    private glyph(parent:Node,name:string,kind:'chart'|'grid'|'gear'|'plus',x:number,y:number){
         const n=this.child(parent,name,18,18,x,y),g=n.addComponent(Graphics),r=(a:number,b:number,w:number,h:number,c=COLORS.ink)=>this.rect(g,a,b,w,h,c);
         if(kind==='chart'){r(-8,-8,16,2);r(-7,-6,3,5);r(-2,-6,3,10);r(3,-6,3,7);}
         else if(kind==='grid'){r(-8,1,7,7);r(1,1,7,7);r(-8,-8,7,7);r(1,-8,7,7);}
+        else if(kind==='plus'){r(-8,-1.5,16,3);r(-1.5,-8,3,16);}
         else{
             // A cog: eight teeth joined to a ring around a round hole, never loose rays around a dot.
             const cog=['....XXXX....','.XX.XXXX.XX.','.XXXXXXXXXX.','..XXXXXXXX..','XXXXX..XXXXX','XXXX....XXXX',
@@ -1164,7 +1168,7 @@ export class KitchenClient extends Component {
         const s=this.state;if(!s||s.phase!=='ready'||this.pending||s.player_level)return;  // a player's level has no neighbours
         const ls=this.sortedLevels(s),i=ls.findIndex((l:any)=>l.id===s.kitchen?.level_id),to=ls[i+d];
         if(to)this.post('/api/level',{level:to.id});
-        else if(this.nextOpensEditor(s))this.coverEvent('kitchen-open-editor',{from:'card'});
+        else if(this.nextOpensEditor(s))this.openEditor();
     }
     /** The level editor (level-editor.js) is there when this server calibrates players' levels. */
     private editorReady(){return !sys.isNative&&!!(window as any).chefjeffEditor?.available?.();}
@@ -1173,6 +1177,7 @@ export class KitchenClient extends Component {
         if(!s||s.player_level)return false;
         const ls=this.sortedLevels(s);return ls.length>0&&ls[ls.length-1].id===s.kitchen?.level_id&&this.editorReady();
     }
+    private openEditor(){if(this.editorReady()&&!this.pending)this.coverEvent('kitchen-open-editor',{from:'card'});}
     private onEditorReady=()=>this.render();
     /** Hands a shop-card request to the page (lists, limits, free-model choice live in HTML). */
     private coverEvent(name:string,detail?:any){this.clearInput();if(!sys.isNative)window.dispatchEvent(new CustomEvent(name,{detail}));}
@@ -1979,13 +1984,6 @@ export class KitchenClient extends Component {
         for(const id of ['pause','resume','end'])this.buttons[id].node.active=true;
         const held=k.chefs.human.holding;this.set('hand','手中：'+(held?this.itemName(held):'空手'));
         if(held?.stage==='assembled')this.set('hand','缺少：'+held.missing.map((x:string)=>this.itemLabel(x)).join('+'));
-        {
-            const short=(a:Action)=>a.label.split('（')[0],parts:string[]=[];
-            if(s.interaction)parts.push('空格 · '+short(s.interaction));
-            else if(s.interaction_hint)parts.push(s.interaction_hint);
-            if(held&&k.chefs.human.can_throw!==false)parts.push('长按空格 · 瞄准投掷');
-            this.set('interaction',this.aiming?'松开空格投掷 · 方向键改方向':parts.length?parts.join('　'):(s.interaction_hint||'面向工位或物品按空格'));
-        }
         // Game results keep the event line; Jeff's decisions and errors use their own status.
         const results=s.events.filter(e=>!this.isAiNote(e));
         this.set('event',results.length?results[results.length-1].message:'');
@@ -2232,18 +2230,20 @@ export class KitchenClient extends Component {
             const fwd=acts.main.label==='再来一次'?acts.alt:acts.main,last=fwd.kind==='levels';
             this.set('welcome-tip',(s.won?`Enter ${fwd.label} · R 再来一次`:`Enter 再来一次 · ${last?'L':'N'} ${fwd.label}`)+(last?'':' · L 全部关卡'));this.placeText('welcome-tip',218,538,844,19);
             // Light chips: round analysis (when there is one), all levels, settings.
-            const offer=!sys.isNative&&!!s.hosted?.contribution_offer;
+            const offer=!sys.isNative&&!!s.hosted?.contribution_offer,create=this.editorReady();
             // A chip widens when its words (English is longer) would reach the icon.
-            const fit=(id:string,w:number)=>id==='contribute'?w:Math.max(w,Math.ceil(this.textWidth(this.tr(this.chipText(id)),17))+50);
-            const chips=([...(s.round_summary?[['record',150]]:[]),['level-picker',150],['cover-connection',110],...(offer?[['contribute',130]]:[])] as [string,number][])
-                .map(([id,w])=>[id,fit(id,w)] as [string,number]);
-            if(!offer)hide('contribute');
-            let x=640-(chips.reduce((t,[,w])=>t+w,0)+16*(chips.length-1))/2;
+            // When five chips would overrun the card, the padding and gaps shrink first.
+            const make=(pad:number)=>([...(s.round_summary?[['record',150]]:[]),['level-picker',150],...(create?[['create-level',150]]:[]),['cover-connection',110],...(offer?[['contribute',130]]:[])] as [string,number][])
+                .map(([id,w])=>[id,id==='contribute'?w:Math.max(w,Math.ceil(this.textWidth(this.tr(this.chipText(id)),17))+pad)] as [string,number]);
+            const span=(cs:[string,number][],gap:number)=>cs.reduce((t,[,w])=>t+w,0)+gap*(cs.length-1);
+            let chips=make(50),gap=16;if(span(chips,gap)>820){chips=make(40);gap=8;}
+            if(!offer)hide('contribute');if(!create)hide('create-level');
+            let x=640-span(chips,gap)/2;
             if(!s.round_summary)hide('record');
             for(const [id,w] of chips){btn(id,x+w/2,594,w,40,'chip');const b=this.buttons[id];
-                if(id==='level-picker'||id==='cover-connection')this.writeLabel(b.label,this.chipText(id));
+                if(['level-picker','create-level','cover-connection'].includes(id))this.writeLabel(b.label,this.chipText(id));
                 const icon=b.node.getChildByName('icon');on(icon,!!icon);icon?.setPosition(-w/2+24,0);
-                b.label.horizontalAlign=Label.HorizontalAlign.CENTER;this.pixel(b.label,17);b.label.node.setPosition(icon?12:0,0);x+=w+16;}
+                b.label.horizontalAlign=Label.HorizontalAlign.CENTER;this.pixel(b.label,17);b.label.node.setPosition(icon?12:0,0);x+=w+gap;}
         }else{
             for(const id of ['next-alt','record','contribute'])hide(id);
             for(const id of ['main','next-alt'])if(this.buttons[id].node.getChildByName('sub')){this.subLabel(id).node.active=false;this.styleButton(id);}
@@ -2252,14 +2252,27 @@ export class KitchenClient extends Component {
             this.writeLabel(gear.label,'');gear.label.string='';this.labelSources.set(gear.label,'设置');
             gear.node.getChildByName('icon')?.setPosition(0,0);
             if(ready){
-                this.place(human,330,START_Y);this.place(jeff,950,START_Y);
-                btn('main',560,START_Y,220,56,'primary');btn('help',780,START_Y,170,56);hide('reset');
+                const create=this.editorReady(),c=this.buttons['create-level'];
+                if(create){
+                    // Three buttons sized to their words (English runs longer), centred, with the chefs just outside the row.
+                    const ws=([['main',200],['help',150],['create-level',150]] as [string,number][]).map(([id,w])=>
+                        Math.max(w,Math.ceil(this.textWidth(this.tr(id==='create-level'?'创建关卡':this.labelSources.get(this.buttons[id].label)||''),24))+24));
+                    const row=ws[0]+ws[1]+ws[2]+32;let x=640-row/2;
+                    this.place(human,x-66,START_Y);this.place(jeff,640+row/2+66,START_Y);
+                    (['main','help','create-level'] as string[]).forEach((id,i)=>{btn(id,x+ws[i]/2,START_Y,ws[i],56,id==='main'?'primary':'normal');x+=ws[i]+16;});
+                    this.writeLabel(c.label,'创建关卡');this.pixel(c.label,24);on(c.node.getChildByName('icon'),false);
+                }else{
+                    this.place(human,330,START_Y);this.place(jeff,950,START_Y);
+                    btn('main',560,START_Y,220,56,'primary');btn('help',780,START_Y,170,56);hide('create-level');
+                }
+                hide('reset');
                 if(!partner){this.placeText('coverTitle',316,300,648,40);this.placeText('coverText',330,350,620,56);}
                 const name=this.partnerName(s);
                 this.set('welcome-tip',(s.player_level?'Enter 开始':'Enter 开始 · ← → 换关卡')+(name?` · 搭档：${name}`:''));this.placeText('welcome-tip',218,636,844,19);
             }else{
                 this.place(human,330,548);this.place(jeff,950,548);
                 this.placeText('coverTitle',316,plate?292:300,648,40);this.placeText('coverText',330,plate?346:356,620,56);
+                hide('create-level');
                 if(paused){btn('main',470,548,190,56,'primary');btn('reset',660,548,150,56);btn('help',815,548,150,56);}
                 else{btn('main',560,548,220,56,'primary');btn('help',780,548,170,56);hide('reset');}
                 this.set('welcome-tip','');
@@ -2273,7 +2286,7 @@ export class KitchenClient extends Component {
     }
     private syncAccess(){
         if(!this.controlAccess)return;
-        const icons:Record<string,string>={pause:'暂停',resume:'继续经营',end:'结束本局','cover-connection':'设置','level-prev':'上一关','level-next':this.nextOpensEditor()?'自定义关卡':'下一关',
+        const icons:Record<string,string>={pause:'暂停',resume:'继续经营',end:'结束本局','cover-connection':'设置','level-prev':'上一关','level-next':this.nextOpensEditor()?'创建关卡':'下一关',
             'tile-free':'免费模型','tile-key':'自定义模型（API Key）','level-picker':'全部关卡','free-limits':'免费使用限制'};
         for(const id of this.tabOrder()){
             const b=this.buttons[id],proxy=this.controlAccess.querySelector(`[data-control="${id}"]`) as HTMLButtonElement|null;if(!proxy)continue;
