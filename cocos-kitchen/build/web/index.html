@@ -348,7 +348,7 @@ function kitchenTabs(dialog){
    </div>
    <div class="switch-row" id="put-take-row">
     <button id="jeff-put-take" class="switch" type="button" role="switch" aria-checked="false" aria-labelledby="jeff-put-take-label" aria-describedby="plan-status"><span class="switch-knob" aria-hidden="true"></span></button>
-    <span class="switch-text"><label for="jeff-put-take" id="jeff-put-take-label" class="switch-label">先放下再拿（测试）</label></span>
+    <span class="switch-text"><label for="jeff-put-take" id="jeff-put-take-label" class="switch-label">先放下再拿/切/洗（测试）</label></span>
    </div>
    <div class="switch-row" id="wash-row">
     <button id="jeff-wash" class="switch" type="button" role="switch" aria-checked="false" aria-labelledby="jeff-wash-label" aria-describedby="plan-status"><span class="switch-knob" aria-hidden="true"></span></button>
@@ -405,7 +405,7 @@ function kitchenTabs(dialog){
  const requestId=()=>crypto.randomUUID?.()||Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('');
  let state=null,busy=false,memoryBusy=false,memoryMessage='',limitBusy=false,limitMessage='',planBusy=false,planMessage='',feedbackText='';
  const planSwitch=el('jeff-plan'),rollingSwitch=el('jeff-rolling');
- const pressSwitches=[[el('jeff-put-take'),'put_then_take','先放下再拿'],[el('jeff-wash'),'wash_from_returns','一键洗盘子']];
+ const pressSwitches=[[el('jeff-put-take'),'put_then_take','先放下再拿/切/洗'],[el('jeff-wash'),'wash_from_returns','一键洗盘子']];
  const message=(text,error=false)=>{el('api-message').textContent=text;el('api-message').className=error?'error':''};
  // Services from model-providers.json, grouped; the hosted page leaves out the ones its browser cannot reach.
  const catalog=window.chefjeffProviders||{groups:[],providers:[]};
@@ -675,7 +675,7 @@ function kitchenTabs(dialog){
   <dt>沟通 · 1–6 / 点击（测试功能）</dt><dd>这是测试中的功能，不是正式玩法，以后可能调整。打开左下角沟通菜单，点击即可告诉 AI 由你来做哪类工作；“你做错了”是独立的红色描边按钮。也可按 1–5 说明分工、按 6 纠错。共用 5 个实际秒冷却，暂停时也可发送。最新的说明只在本局有效；AI 在下一次正常请求中收到，自行判断如何配合，不强制分工或停止动作。纠错附带当时动作信息，但不指定正确答案。</dd>
   <dt>计划模式（测试）</dt><dd>默认关闭。Jeff 没有计划时，会在决定下一步动作的同时，写下接下来打算做的几道工序，最多 4 步，比如切生菜、生菜装盘、出餐。它每做完一道，那一步就打上勾。计划没有时限：全部做完、Jeff 自己放弃，或者你发了新的分工说明时才结束，Jeff 立刻再写一份。计划不限制 Jeff 的动作，它每次仍从全部可选动作里选；中途去做计划外的事，计划也照旧留着。沟通菜单里能看到 Jeff 当前的计划。开局前或结算后可以在「设置 → AI 搭档」里关掉，一局内不变。</dd>
   <dt>两步打算（测试）</dt><dd>默认关闭，和计划模式二选一。Jeff 每次决定动作时，同时说出这个动作是为了哪道工序，以及做完之后打算做的下一道工序。下一次请求把这两道工序带回给它，做完的打上勾，然后再问一遍，用新的回答换掉旧的。它不用决定留不留，也不限制动作，随时可以改。沟通菜单里能看到 Jeff 当前的打算。开局前或结算后可以在「设置 → AI 搭档」里打开或关掉，一局内不变。</dd>
-  <dt>先放下再拿（测试）</dt><dd>默认关闭。Jeff 手里拿着东西、别处放着他想拿的东西时，多一个选项：先把手里的放到他选的位置，再去拿那件东西。他在同一次决定里选拿哪件、放哪里，之后按普通规则一步一步做；中途哪一步做不了就停下，他选了别的动作也会停下。开局前或结算后可以在「设置 → AI 搭档」里打开或关掉，一局内不变。</dd>
+  <dt>先放下再拿/切/洗（测试）</dt><dd>默认关闭。Jeff 手里拿着东西时，多几种选项：先把手里的放到他选的位置，再去拿别处的一件东西、去切菜板上的食材，或去洗水槽里的脏盘子（切和洗都要空着手）。他在同一次决定里选做哪件、放哪里，之后按普通规则一步一步做；中途哪一步做不了就停下，他选了别的动作也会停下。开局前或结算后可以在「设置 → AI 搭档」里打开或关掉，一局内不变。</dd>
   <dt>一键洗盘子（测试）</dt><dd>默认关闭。回收口有脏盘子、水槽空着时，Jeff 多一个选项：把手里的东西放到他选的位置（手空就不用），拿起脏盘子，放进水槽，洗干净。之后按普通规则一步一步做；中途哪一步做不了就停下，他选了别的动作也会停下。开局前或结算后可以在「设置 → AI 搭档」里打开或关掉，一局内不变。</dd>
   <dt>标记片段 · Enter</dt><dd>营业中按 Enter 标记当前时刻，不暂停、不打断动作。相邻两次标记间隔不超过 5 个实际秒时合并为一个区间，长按不重复。设置中的“数据导出”包含全部标记；标记不会发送给 AI。</dd>
   <dt>暂停与继续 · Esc / P</dt><dd>暂停会停止锅火、订单和双方动作。再按 Esc 或 P（键盘没有 Esc 键时用，如 iPad）或点「继续经营」回到厨房；也可重新开局、打开设置或查看本说明。结束本局、暂停中重新开局都会先请你确认；重新开局沿用当前配置与速度。更换 API、记忆和调用上限请在结算后或开局前进行。</dd>
