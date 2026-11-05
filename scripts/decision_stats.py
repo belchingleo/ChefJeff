@@ -45,13 +45,16 @@ For each model it counts:
   followed by ` [one-press]`, so every count above compares them with the same model's rounds with both
   switches off; `one_press_rounds` at the top says how many there were. Their `one_press` section gives
   the switches the rounds had, the version (`one-press-v1`: put then take and wash from the plate return;
-  `one-press-v2` adds put then chop and put then wash), how often each kind of one-press option was offered and chosen, how many choices
+  `one-press-v2` adds put then chop and put then wash; `one-press-v3` gives those two the seconds of work
+  left, as the engine's own labels do), how often each kind of one-press option was offered and chosen, how many choices
   started, how often put_where fell back to the first listed put place, and how the chains ended
   (finished, step_not_possible, replaced, ...; research records do not keep the end, so it reads
   `not_recorded` there). `swap_backs` counts put-then-take choices that, within --put-back game seconds of
   the one before, took from the station where that one had put the held item down (he takes back what he
   just set aside), and `full_swaps` those of them that also put it down where the one before had taken
-  from, so the two items end up where they were.
+  from, so the two items end up where they were. `take_or_chop` takes the answered requests that offered
+  both put then take and put then chop on one board and counts whether Jeff took the item off it, chopped
+  it, or chose something else.
 
 Rates are per game minute. A round counts for the model that answered most of its requests.
 
@@ -69,7 +72,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from harness import PLAN_RULES_VERSION  # noqa: E402
 from research_record import SCHEMA as RECORD_SCHEMA  # noqa: E402
 
-VERSION = 'decision-stats-9'
+VERSION = 'decision-stats-10'
 MARGINS = (0.05, 0.1)
 PLAN_AGE = 5.0
 PUT_BACK = 10.0
@@ -195,7 +198,8 @@ def new_model():
             'round_trip_routes': Counter(), 'walked_to': Counter(),
             'one_press_rounds': 0, 'one_press_switches': Counter(), 'one_press_offered': Counter(),
             'one_press_chosen': Counter(), 'one_press_started': 0, 'one_press_fallback': 0, 'one_press_ends': Counter(),
-            'one_press_swap_backs': 0, 'one_press_full_swaps': 0, 'one_press_versions': Counter()}
+            'one_press_swap_backs': 0, 'one_press_full_swaps': 0, 'one_press_versions': Counter(),
+            'one_press_take_or_chop': Counter()}
 
 
 # One-press option keys (one_press.py) by their kind, and the switches that offer them.
@@ -238,6 +242,17 @@ def one_press_counts(rows, requests, responses, m, put_back=PUT_BACK):
             if pressed.get('ends') == 'not_recorded':
                 m['one_press_ends']['not_recorded'] += 1
     m['one_press_ends'].update(str(r.get('reason')) for r in rows if r.get('kind') == 'one_press_end')
+    # Requests offering both put then take and put then chop on one board: what Jeff answered.
+    take, chop = dict(ONE_PRESS_KEYS)['put_then_take'], dict(ONE_PRESS_KEYS)['put_then_chop']
+    answers = {r.get('request_id'): r.get('choice') for r in responses if r.get('request_id') is not None}
+    for request_id, request in requests.items():
+        keys = set(offered(request) or ())
+        boards = {k[len(chop):] for k in keys if k.startswith(chop) and take + k[len(chop):] in keys}
+        if not boards or request_id not in answers:
+            continue
+        choice = answers[request_id]
+        m['one_press_take_or_chop']['took' if choice in {take + b for b in boards} else
+                                    'chopped' if choice in {chop + b for b in boards} else 'other'] += 1
     # Started put-then-take choices in order: (game time, where the held item went, the station taken from).
     prefix = dict(ONE_PRESS_KEYS)['put_then_take']
     chains = [(game_time(r), put_place(r['one_press'].get('first')), r['choice'][len(prefix):]) for r in responses
@@ -490,7 +505,8 @@ def summary(m, margins=MARGINS):
                             'offered_in_requests': dict(m['one_press_offered']), 'chosen': dict(m['one_press_chosen']),
                             'started': m['one_press_started'], 'put_where_fallback': m['one_press_fallback'],
                             'ended': dict(m['one_press_ends']), 'swap_backs': m['one_press_swap_backs'],
-                            'full_swaps': m['one_press_full_swaps']}
+                            'full_swaps': m['one_press_full_swaps'],
+                            'take_or_chop': {k: m['one_press_take_or_chop'][k] for k in ('took', 'chopped', 'other')}}
     if m['gaps']:
         out['step_gaps'] = {policy: gap_summary(g) for policy, g in sorted(m['gaps'].items())}
     return out

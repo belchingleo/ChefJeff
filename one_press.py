@@ -19,7 +19,9 @@ from __future__ import annotations
 
 from kitchen import Action
 
-VERSION = 'one-press-v2'   # v1: put then take and wash from the plate return only
+VERSION = 'one-press-v3'
+# v1: put then take and wash from the plate return only; v2 added put then chop and put then wash; v3 gives those two
+# the seconds of work left, as the engine's own chop and wash labels do.
 NAMES = ('put_then_take', 'wash_from_returns')
 KINDS = ('put_then_take', 'put_then_chop', 'put_then_wash', 'wash_from_returns')
 PUT_WHERE = 'put_where'
@@ -98,7 +100,11 @@ def options(kitchen, who, actions, value):
             worked.add((work.kind, target))
             kind, prefix = PUT_THEN_WORK[work.kind]
             name, item = kitchen.stations[target].name, kitchen.food_name(food)
-            then = f'再到{name}切{item}' if work.kind == 'chop' else f'再到{name}洗碗'
+            # The seconds of work left, as the engine's own chop and wash labels give them.
+            if work.kind == 'chop':
+                then = f'再到{name}切{item}（剩 {max(0, kitchen.rules.chop_work(food.ingredient) - food.chopped):.1f}s）'
+            else:
+                then = f'再到{name}洗碗（剩 {max(0, kitchen.wash_seconds - food.washed):.1f}s）'
             out.append(Action(prefix + target, f'先把手中的{kitchen.food_name(held)}放到 put_where 选的位置，{then}', kind, target))
     if on['wash_from_returns']:
         returns = getattr(kitchen, 'returns', None)

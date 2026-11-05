@@ -68,7 +68,7 @@ class OptionTests(unittest.TestCase):
         self.assertEqual([(o.key, o.kind, o.target) for o in options],
                          [('put then take b1', 'put_then_take', 'b1'), ('put then chop b1', 'put_then_chop', 'b1')])
         self.assertEqual(options[0].label, '先把手中的面包放到 put_where 选的位置，再从案板 1拿起生菜')
-        self.assertEqual(options[1].label, '先把手中的面包放到 put_where 选的位置，再到案板 1切生菜')
+        self.assertEqual(options[1].label, '先把手中的面包放到 put_where 选的位置，再到案板 1切生菜（剩 3.0s）')   # as the engine's chop label
         self.assertEqual(one_press.options(k, 'jeff', actions, None), [])                     # switches off
         self.assertEqual(one_press.options(k, 'jeff', actions, {'wash_from_returns': True}), [])
         self.assertEqual(k.chefs['jeff'].hand.ingredient, 'bread')                            # the hands are as they were
@@ -104,7 +104,7 @@ class OptionTests(unittest.TestCase):
         k.stations[k.sink].food = Food('D8', 'dirty_plate')                                  # a dirty plate already in the sink
         washes = [o for o in one_press.options(k, 'jeff', k.actions('jeff'), BOTH) if o.kind == 'put_then_wash']
         self.assertEqual([o.key for o in washes], [f'put then wash {k.sink}'])
-        self.assertEqual(washes[0].label, f'先把手中的面包放到 put_where 选的位置，再到{k.stations[k.sink].name}洗碗')
+        self.assertEqual(washes[0].label, f'先把手中的面包放到 put_where 选的位置，再到{k.stations[k.sink].name}洗碗（剩 4.0s）')
         self.assertEqual(one_press.options(k, 'jeff', k.actions('jeff'), {'wash_from_returns': True}), [])   # its own switch
         self.assertEqual(one_press.steps(washes[0], k), [(('wash',), k.sink)])
 
@@ -114,7 +114,7 @@ class OptionTests(unittest.TestCase):
         payload = compose_payload(client, k, k.snapshot(), k.actions('jeff'), [], None, NO_MEMORY, None, BOTH)
         criteria = payload['questions']['next_action']['criteria']
         self.assertEqual(criteria['put then take b1'], 'Put the held Bread where put_where says, then take Lettuce from Board 1')
-        self.assertEqual(criteria['put then chop b1'], 'Put the held Bread where put_where says, then chop Lettuce at Board 1')
+        self.assertEqual(criteria['put then chop b1'], 'Put the held Bread where put_where says, then chop Lettuce at Board 1 (3.0s left)')
         self.assertNotIn('go b1', criteria)                    # the one-press option walks there, so the plain walk goes
         places = payload['questions']['put_where']['criteria']
         self.assertTrue(places and all(k2 == 'drop' or k2.startswith('put ') for k2 in places))
@@ -354,7 +354,24 @@ class StatsTests(unittest.TestCase):
         summary = decision_stats.summary(models['not reported [one-press]'])['one_press']
         self.assertEqual(summary, {'rounds': 1, 'switches': {'put_then_take': 1}, 'versions': {one_press.VERSION: 1}, 'offered_in_requests': {'put_then_take': 1},
                                    'chosen': {'put_then_take': 1}, 'started': 1, 'put_where_fallback': 1,
-                                   'ended': {'not_recorded': 1}, 'swap_backs': 0, 'full_swaps': 0})
+                                   'ended': {'not_recorded': 1}, 'swap_backs': 0, 'full_swaps': 0,
+                                   'take_or_chop': {'took': 0, 'chopped': 0, 'other': 0}})
+
+    def test_take_or_chop_counts_the_answers_when_both_are_offered(self):
+        from scripts import decision_stats
+        both = ['wait', 'put then take b1', 'put then chop b1', 'put then take plates']
+        asked = lambda n, keys: {'kind': 'ai_request', 'request_id': n, 'game_time_ms': n * 1000, 'candidates': keys}
+        answered = lambda n, choice: {'kind': 'ai_response', 'request_id': n, 'game_time_ms': n * 1000 + 500, 'model': 'm',
+                                      'choice': choice, 'applied': True, 'fresh': True}
+        rows = [{'kind': 'start', 'game_time_ms': 0, 'one_press': {'put_then_take': True, 'wash_from_returns': False}},
+                asked(1, both), answered(1, 'put then take b1'), asked(2, both), answered(2, 'put then chop b1'),
+                asked(3, both), answered(3, 'put then take plates'), asked(4, both), answered(4, 'put then take b1'),
+                asked(5, ['wait', 'put then take b1']), answered(5, 'put then take b1'),      # no chop on offer: not counted
+                {'kind': 'end', 'game_time_ms': 60000}]
+        models = decision_stats.defaultdict(decision_stats.new_model)
+        decision_stats.add_round(rows, models)
+        self.assertEqual(decision_stats.summary(models['m [one-press]'])['one_press']['take_or_chop'],
+                         {'took': 2, 'chopped': 1, 'other': 1})
 
     def test_swaps_back_are_counted(self):
         from scripts import decision_stats

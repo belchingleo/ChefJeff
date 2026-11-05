@@ -379,12 +379,12 @@
       "Put the held {0} where put_where says, then take the dirty plate from {1}, put it in {2} and wash it"
     ],
     [
-      "先把手中的{0}放到 put_where 选的位置，再到{1}洗碗",
-      "Put the held {0} where put_where says, then wash the dirty plate at {1}"
+      "先把手中的{0}放到 put_where 选的位置，再到{1}洗碗（剩 {2}s）",
+      "Put the held {0} where put_where says, then wash the dirty plate at {1} ({2}s left)"
     ],
     [
-      "先把手中的{0}放到 put_where 选的位置，再到{1}切{2}",
-      "Put the held {0} where put_where says, then chop {2} at {1}"
+      "先把手中的{0}放到 put_where 选的位置，再到{1}切{2}（剩 {3}s）",
+      "Put the held {0} where put_where says, then chop {2} at {1} ({3}s left)"
     ],
     [
       "先把手中的{0}放到 put_where 选的位置，再从{1}拿起{2}",
