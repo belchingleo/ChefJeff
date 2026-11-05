@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Why does Jeff walk back and forth with full hands? Real stuck moments, three ways. Run locally; it sends to Jev.
 
-    python3 scripts/hands_full_check.py logs/ --since 2026-11-04 [--sample 20] [--dry-run | --groups-only]
+    python3 scripts/hands_full_check.py logs/ --since 2026-11-04 [--sample 20] [--one-press on|off] [--dry-run | --groups-only]
 
 From local round journals it picks requests of Jev rounds where Jeff's hands were full and the logged
 answer was a walk or wait: the moments he got stuck. Each is sent to the current Jev in three arms:
@@ -29,6 +29,8 @@ also gives, for every request with full hands (stuck or not), the logged answer 
 The report holds counts and shares only (no request, state or model text). It reads the journals and
 changes nothing; the key is read the way the game reads it and is never printed. --dry-run picks the moments and prints their
 number and size; --groups-only groups every such moment (no sample) and sends nothing, so it costs nothing.
+--one-press on (or off) keeps only rounds with a one-press switch on (or both off), so the two can be
+grouped apart; by default every round is used.
 """
 from __future__ import annotations
 import argparse
@@ -177,9 +179,12 @@ def main(argv=None):
     parser.add_argument('--seed', type=int, default=1)
     parser.add_argument('--dry-run', action='store_true', help='pick the moments and print their number and size only')
     parser.add_argument('--groups-only', action='store_true', help='group every stuck moment from the journals and send nothing')
+    parser.add_argument('--one-press', choices=('on', 'off'), help='only rounds with a one-press switch on, or with both off')
     parser.add_argument('--out', help='write the JSON report here instead of printing it')
     args = parser.parse_args(argv)
     found = journal_requests(args.paths, args.since, args.until)
+    if args.one_press:
+        found = [i for i in found if i['one_press'] == (args.one_press == 'on')]
     items = [i for i in found if stuck(i)]
     if not args.groups_only:     # grouping sends nothing, so it uses every moment
         items = pick(items, args.sample, args.seed)

@@ -1,6 +1,9 @@
 """One-press options: offered by fixed conditions on top of the engine's actions, run as the same ordinary steps."""
+from collections import Counter
 from copy import deepcopy
 import json
+from pathlib import Path
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -228,6 +231,97 @@ class SessionTests(unittest.TestCase):
         self.assertIsNone(g.ai.one_press)
         self.assertNotIn('one_press', next(d for kind, d in g.journal.journal.rows if kind == 'start'))
 
+
+
+class Pressing(Answering):
+    """Takes a one-press option whenever one is offered (put_where: the first listed place), else the recipe's cook move."""
+
+    def __init__(self, config, game):
+        super().__init__(config)
+        self.game = game
+
+    def ask(self, payload):
+        import reference_policy
+        criteria = payload['questions']['next_action']['criteria']
+        pressed = next((key for key in criteria if key.startswith(('put then take ', 'wash from '))), None)
+        move = reference_policy.choose(self.game().k, 'jeff', 'cook')
+        choice = pressed or (move.key if move and move.key in criteria else 'wait')
+        places = (payload['questions'].get(one_press.PUT_WHERE) or {}).get('criteria') or {}
+        self.replies = [{'choice': choice, 'put_where': next(iter(places), None)}]
+        return super().ask(payload)
+
+
+class StatsTests(unittest.TestCase):
+    """decision_stats and hands_full_check keep rounds with a one-press switch on apart from rounds with both off."""
+
+    def play(self, folder, on):
+        import play
+        from test_decision_stats import Inline as Thread
+        with patch('play.ROOT', Path(folder)):
+            game = GameSession(level_config(load_config(), 'level-2'), client_factory=lambda c: Pressing(c, lambda: game),
+                               journal_factory=play.Journal, kitchen_factory=SpatialKitchen, log_prefix='whitebox')
+            for name in one_press.NAMES if on else ():
+                self.assertEqual(game._command('/api/one-press', {'name': name, 'on': True})[0], 200)
+            clock = [1000.0]
+            with patch('jev.time.monotonic', lambda: clock[0]), patch('jev.threading.Thread', Thread):
+                game.last_tick = game.last_seen = clock[0]
+                self.assertEqual(game._command('/api/start', {'speed': 1})[0], 200)
+                game.last_tick = game.last_seen = clock[0]
+                while game.k.time < 40:
+                    clock[0] += .05
+                    game.last_seen = clock[0]
+                    game.tick(clock[0])
+                game._command('/api/end', {})
+            game.close()
+
+    def test_rounds_with_a_switch_on_are_counted_apart(self):
+        from scripts import decision_stats, jev_replay_check
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        self.play(folder.name, on=False)
+        self.play(folder.name, on=True)
+        journals = sorted(Path(folder.name, 'logs').glob('*.jsonl'))
+        self.assertEqual(len(journals), 2)
+        rounds = [[json.loads(line) for line in path.read_text().splitlines()] for path in journals]
+        rows = next(r for r in rounds if r[0].get('one_press'))                       # the round with the switches on
+        result = decision_stats.report([Path(folder.name, 'logs')])
+        self.assertEqual(result['one_press_rounds'], 1)
+        self.assertEqual(sorted(result['models']), ['test-only', 'test-only [one-press]'])
+        off, on = result['models']['test-only'], result['models']['test-only [one-press]']
+        self.assertEqual((off['rounds'], on['rounds']), (1, 1))
+        self.assertNotIn('one_press', off)
+        pressed = on['one_press']
+        self.assertEqual(pressed['switches'], {'put_then_take+wash_from_returns': 1})
+        responses = [r for r in rows if r['kind'] == 'ai_response']
+        chosen = Counter(decision_stats.one_press_kind(r['choice']) for r in responses if decision_stats.one_press_kind(r['choice']))
+        self.assertGreater(sum(chosen.values()), 0)
+        self.assertEqual(pressed['chosen'], dict(chosen))
+        self.assertEqual(pressed['started'], sum('one_press' in r for r in responses))
+        self.assertEqual(pressed['put_where_fallback'], sum(r['one_press']['fallback'] for r in responses if 'one_press' in r))
+        self.assertEqual(pressed['ended'], dict(Counter(r['reason'] for r in rows if r['kind'] == 'one_press_end')))
+        self.assertEqual(on['decisions']['answered'], len(responses))
+        # hands_full_check and the other journal checks can take either group alone.
+        items = jev_replay_check.journal_requests([Path(folder.name, 'logs')], model_prefix='test')
+        self.assertEqual({i['one_press'] for i in items}, {False, True})
+        self.assertEqual(sum(i['one_press'] for i in items), len([r for r in responses if r.get('request_id') is not None
+                                                                  and isinstance(r.get('choice'), str)]))
+
+    def test_research_records_carry_the_switches_and_the_start(self):
+        from scripts import decision_stats
+        record = {'round_id': 'R1', 'duration': 60, 'conditions': {'one_press': {'put_then_take': True, 'wash_from_returns': False,
+                                                                                 'version': one_press.VERSION}},
+                  'events': [{'type': 'ai_request', 'request_id': 1, 'game_time_ms': 0,
+                              'payload': {'candidates': ['wait', 'put then take b1', 'put counter16'],
+                                          'one_press': {'put_then_take': True, 'wash_from_returns': False}}},
+                             {'type': 'ai_response', 'request_id': 1, 'game_time_ms': 100,
+                              'payload': {'choice': {'key': 'put then take b1'}, 'applied': True, 'fresh': True,
+                                          'one_press_start': {'first': {'key': 'put counter16'}, 'fallback': True}}}]}
+        models = decision_stats.defaultdict(decision_stats.new_model)
+        self.assertEqual(decision_stats.add_round(decision_stats.record_rows(record), models), 'not reported [one-press]')
+        summary = decision_stats.summary(models['not reported [one-press]'])['one_press']
+        self.assertEqual(summary, {'rounds': 1, 'switches': {'put_then_take': 1}, 'offered_in_requests': {'put_then_take': 1},
+                                   'chosen': {'put_then_take': 1}, 'started': 1, 'put_where_fallback': 1,
+                                   'ended': {'not_recorded': 1}})
 
 if __name__ == '__main__':
     unittest.main()

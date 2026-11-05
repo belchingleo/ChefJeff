@@ -46,7 +46,8 @@ def journals(paths):
 
 
 def journal_requests(paths, since=None, until=None, model_prefix='jev'):
-    """[{payload, logged_choice, logged_model, round}] for answered requests of matching rounds (dates are YYYY-MM-DD)."""
+    """[{payload, logged_choice, logged_model, round, one_press}] for answered requests of matching rounds (dates are
+    YYYY-MM-DD); one_press says whether the round had a one-press switch on."""
     found, number = [], 0
     for path in journals(paths):
         for rows in read_rounds(path)[0]:
@@ -61,7 +62,8 @@ def journal_requests(paths, since=None, until=None, model_prefix='jev'):
                 model = str(answer.get('model') or '')
                 if request is None or not model.startswith(model_prefix) or not isinstance(answer.get('choice'), str):
                     continue
-                found.append({'payload': request['payload'], 'logged_choice': answer['choice'], 'logged_model': model, 'round': number})
+                found.append({'payload': request['payload'], 'logged_choice': answer['choice'], 'logged_model': model, 'round': number,
+                              'one_press': bool(start.get('one_press'))})
     return found
 
 

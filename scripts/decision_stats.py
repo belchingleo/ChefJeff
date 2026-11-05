@@ -41,6 +41,13 @@ For each model it counts:
   reply) and reply (the request whose answer started the next step, until that answer). The answer
   that starts a step is found by its action_id, since research records log the step's start before
   that answer and local journals after it. Gaps with a pause, and rounds without wall times, are left out.
+- one_press: rounds with a one-press switch on (one_press.py) are counted apart, under the model's name
+  followed by ` [one-press]`, so every count above compares them with the same model's rounds with both
+  switches off; `one_press_rounds` at the top says how many there were. Their `one_press` section gives
+  the switches the rounds had, how often each one-press option was offered and chosen, how many choices
+  started, how often put_where fell back to the first listed put place, and how the chains ended
+  (finished, step_not_possible, replaced, ...; research records do not keep the end, so it reads
+  `not_recorded` there).
 
 Rates are per game minute. A round counts for the model that answered most of its requests.
 
@@ -58,7 +65,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from harness import PLAN_RULES_VERSION  # noqa: E402
 from research_record import SCHEMA as RECORD_SCHEMA  # noqa: E402
 
-VERSION = 'decision-stats-6'
+VERSION = 'decision-stats-7'
 MARGINS = (0.05, 0.1)
 PLAN_AGE = 5.0
 PUT_BACK = 10.0
@@ -95,7 +102,8 @@ def record_rows(record):
     events = record.get('events') or []
     policy = conditions.get('request_policy') or {}
     rows = [{'kind': 'start', 'jeff_plan': conditions.get('jeff_plan'), 'game_time_ms': 0, 'round_id': record.get('round_id'),
-             'ask_on_step_end': policy.get('ai_ask_on_step_end') is True}]
+             'ask_on_step_end': policy.get('ai_ask_on_step_end') is True,
+             **({'one_press': conditions['one_press']} if conditions.get('one_press') else {})}]
     previous = None     # the plan the previous request carried
     for e in events:
         p, at = e.get('payload') or {}, {'game_time_ms': e.get('game_time_ms'), 'wall_ms': e.get('elapsed_wall_ms')}
@@ -104,14 +112,18 @@ def record_rows(record):
             current = (plan or {}).get('current')
             ended = 'not_recorded' if previous and (not current or current['set_at'] != previous['set_at']) else None
             rows.append({'kind': 'ai_request', 'request_id': e.get('request_id'), 'candidates': p.get('candidates'),
-                         'jeff_plan': plan, **({'plan_ended': ended} if ended else {}), **at})
+                         'jeff_plan': plan, **({'plan_ended': ended} if ended else {}),
+                         **({'one_press': p['one_press']} if p.get('one_press') else {}), **at})
             previous = current
         elif e['type'] == 'ai_response':
             choice = p.get('choice') or {}
             chef = {'target': choice.get('target'), 'action_kind': choice.get('kind')}
             rows.append({'kind': 'ai_response', 'request_id': e.get('request_id'), 'model': model, 'choice': choice.get('key'),
                          'probabilities': p.get('probabilities'), 'applied': p.get('applied'), 'fresh': p.get('fresh'),
-                         'action_id': e.get('action_id'), 'current_state': {'chefs': {'jeff': chef}}, **at})
+                         'action_id': e.get('action_id'), 'current_state': {'chefs': {'jeff': chef}},
+                         **({'one_press': {'first': (p['one_press_start'].get('first') or {}).get('key'),
+                                           'fallback': p['one_press_start'].get('fallback'), 'ends': 'not_recorded'}}
+                            if p.get('one_press_start') else {}), **at})
         elif e['type'] in ('action_start', 'action_done', 'interrupted', 'knocked'):
             rows.append({'kind': e['type'], 'actor': e.get('actor_id'), 'action_id': e.get('action_id'),
                          'action': (p.get('action') or {}).get('key'), **at})
@@ -176,7 +188,44 @@ def new_model():
             'plan_rounds': 0, 'plan_older_rounds': 0, 'plan_rolling_rounds': 0, 'plans_set': 0, 'plan_ends': Counter(), 'holds': [], 'plan_steps': [],
             'held_decisions': 0, 'held_waits': 0, 'free_decisions': 0, 'free_waits': 0, 'unsure_with_plan': 0,
             'gaps': {}, 'done': 0, 'walks_done': 0, 'put_then_taken_back': 0, 'walk_round_trips': 0,
-            'round_trip_routes': Counter(), 'walked_to': Counter()}
+            'round_trip_routes': Counter(), 'walked_to': Counter(),
+            'one_press_rounds': 0, 'one_press_switches': Counter(), 'one_press_offered': Counter(),
+            'one_press_chosen': Counter(), 'one_press_started': 0, 'one_press_fallback': 0, 'one_press_ends': Counter()}
+
+
+# One-press option keys (one_press.py) by the switch that offers them.
+ONE_PRESS_KEYS = (('put_then_take', 'put then take '), ('wash_from_returns', 'wash from '))
+ONE_PRESS_SUFFIX = ' [one-press]'
+
+
+def one_press_kind(key):
+    return next((name for name, prefix in ONE_PRESS_KEYS if isinstance(key, str) and key.startswith(prefix)), None)
+
+
+def one_press_switches(rows):
+    """The one-press switches a round had on (its start row, else any request's flags), or None with both off."""
+    start = rows[0] if rows and rows[0].get('kind') == 'start' else {}
+    flags = start.get('one_press') or next((r['one_press'] for r in rows if r.get('kind') == 'ai_request'
+                                            and isinstance(r.get('one_press'), dict)), None)
+    on = tuple(name for name, _ in ONE_PRESS_KEYS if isinstance(flags, dict) and flags.get(name) is True)
+    return on or None
+
+
+def one_press_counts(rows, requests, responses, m):
+    """What one-press options a round offered, chose and started, and how the chains ended."""
+    for request in requests.values():
+        m['one_press_offered'].update({kind for kind in map(one_press_kind, offered(request) or ()) if kind})
+    for response in responses:
+        kind = one_press_kind(response.get('choice'))
+        if kind:
+            m['one_press_chosen'][kind] += 1
+        pressed = response.get('one_press')
+        if isinstance(pressed, dict):
+            m['one_press_started'] += 1
+            m['one_press_fallback'] += pressed.get('fallback') is True
+            if pressed.get('ends') == 'not_recorded':
+                m['one_press_ends']['not_recorded'] += 1
+    m['one_press_ends'].update(str(r.get('reason')) for r in rows if r.get('kind') == 'one_press_end')
 
 
 def undone(rows, m, put_back=PUT_BACK):
@@ -203,7 +252,9 @@ def add_round(rows, models, margins=MARGINS, plan_age=PLAN_AGE, put_back=PUT_BAC
     if not responses:
         return None
     requests = {r.get('request_id'): r for r in rows if r.get('kind') == 'ai_request'}
-    main = Counter(str(r.get('model') or 'unknown') for r in responses).most_common(1)[0][0]
+    switches = one_press_switches(rows)
+    name = lambda response: str(response.get('model') or 'unknown') + (ONE_PRESS_SUFFIX if switches else '')
+    main = Counter(map(name, responses)).most_common(1)[0][0]
     m = models[main]
     times = [t for t in map(game_time, rows) if t is not None]
     m['rounds'] += 1
@@ -230,7 +281,7 @@ def add_round(rows, models, margins=MARGINS, plan_age=PLAN_AGE, put_back=PUT_BAC
             m['plan_steps'].append(len(current['steps']))
         holding = current
     for response in responses:
-        model = models[str(response.get('model') or 'unknown')]
+        model = models[name(response)]
         request = requests.get(response.get('request_id'))
         model['decisions'] += 1
         model['fresh'] += bool(response.get('fresh'))
@@ -283,6 +334,10 @@ def add_round(rows, models, margins=MARGINS, plan_age=PLAN_AGE, put_back=PUT_BAC
                 m['knocked_off'] += 1
             else:
                 m['other_interruptions'] += 1
+    if switches:
+        m['one_press_rounds'] += 1
+        m['one_press_switches']['+'.join(switches)] += 1
+        one_press_counts(rows, requests, responses, m)
     step_gaps(rows, m)
     undone(rows, m, put_back)
     return main
@@ -406,6 +461,11 @@ def summary(m, margins=MARGINS):
                        'decisions_with_plan': m['held_decisions'], 'wait_share_with_plan': share(m['held_waits'], m['held_decisions']),
                        'decisions_without_plan': m['free_decisions'], 'wait_share_without_plan': share(m['free_waits'], m['free_decisions']),
                        'unsure_with_plan': m['unsure_with_plan']}
+    if m['one_press_rounds']:
+        out['one_press'] = {'rounds': m['one_press_rounds'], 'switches': dict(m['one_press_switches']),
+                            'offered_in_requests': dict(m['one_press_offered']), 'chosen': dict(m['one_press_chosen']),
+                            'started': m['one_press_started'], 'put_where_fallback': m['one_press_fallback'],
+                            'ended': dict(m['one_press_ends'])}
     if m['gaps']:
         out['step_gaps'] = {policy: gap_summary(g) for policy, g in sorted(m['gaps'].items())}
     return out
@@ -466,6 +526,7 @@ def report(paths, margins=MARGINS, plan_age=PLAN_AGE, put_back=PUT_BACK):
             'duplicate_rounds_dropped': duplicates,
             'rounds_without_model_answers': skipped, 'unsupported_records': unsupported,
             'unreadable_lines': unreadable, 'margins': list(margins), 'plan_age_seconds': plan_age, 'put_back_seconds': put_back,
+            'one_press_rounds': sum(m['one_press_rounds'] for m in models.values()),
             'models': {name: summary(m, margins) for name, m in sorted(models.items()) if m['decisions']}}
 
 
