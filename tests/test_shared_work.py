@@ -75,11 +75,11 @@ class SharedWorkTests(unittest.TestCase):
 
     def test_middle_board_is_shared_face_to_face(self):
         # Level 1's b2 sits between b1 and b3: Jeff chops it from the west, and the player standing on the
-        # free east side, facing it, joins with Space; both work and the chop runs at the shared rate.
+        # free east side, facing it, joins with E; both work and the chop runs at the shared rate.
         k=self.make();k.stations['b2'].food=Food('middle','raw',ingredient='beef')
         k.positions.update(jeff=(3.15,4.),human=(4.85,4.));k.facing.update(jeff='right',human='left')
         self.assertTrue(k.command('jeff','chop b2')[0]);k.advance(.01)
-        focus,action=k.facing_interaction('human')
+        focus,action=k.facing_interaction('human','use')
         self.assertEqual((focus,action.key),('b2','chop b2'))
         self.assertTrue(k.start('human',action)[0]);k.advance(.2)
         self.assertTrue(all(a.job and a.job.working and a.job.action.target=='b2' for a in k.chefs.values()))

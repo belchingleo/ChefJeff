@@ -65,9 +65,9 @@
       #touch-toss[data-pressed=true]{background-color:#2b1a1275;transform:scale(.95)}
       #touch-toss[data-aiming=true]{background-color:#2a5a9e80}
       #touch-dash{width:58px;height:58px;padding:0;font-size:14px;background-color:#2b1a1240}
-      #touch-dash:active:not(:disabled),#touch-action:active:not(:disabled){background-color:#2b1a1275;transform:scale(.95)}
+      #touch-dash:active:not(:disabled),#touch-action:active:not(:disabled),#touch-use:active:not(:disabled){background-color:#2b1a1275;transform:scale(.95)}
             /* Unavailable keeps the label legible on any ground: lighter fill and outline, not a faded button. */
-      #touch-action:disabled,#touch-dash:disabled,#touch-toss:disabled{opacity:1;color:#ffffffd9;border-color:#ffffff8c;background-color:#2b1a1230;text-shadow:0 1px 2px #2b1a12,0 0 4px #2b1a12}
+      #touch-action:disabled,#touch-dash:disabled,#touch-toss:disabled,#touch-use:disabled{opacity:1;color:#ffffffd9;border-color:#ffffff8c;background-color:#2b1a1230;text-shadow:0 1px 2px #2b1a12,0 0 4px #2b1a12}
       #touch-dash[data-cooling=true]{opacity:1}
       /* Action in the corner; Cancel is round and translucent like the others, red while the finger is on it. */
       .touch-buttons{width:80px;height:80px;display:block}
@@ -77,9 +77,11 @@
       #touch-dash{position:absolute;right:89px;bottom:32px}
       #touch-toss{position:absolute;width:58px;height:58px;padding:0;font-size:14px;background-color:#2b1a1240}
       #touch-toss{right:11px;bottom:95px}
+      /* 切/洗 between Dash and Throw, further out (128deg, radius 108); Cancel takes its place while aiming. */
+      #touch-use{position:absolute;width:58px;height:58px;padding:0;font-size:14px;background-color:#2b1a1240;right:78px;bottom:96px}
       #touch-cancel{right:calc(max(10px,env(safe-area-inset-right)) + 86px);bottom:calc(max(8px,env(safe-area-inset-bottom)) + 12px + 106px);width:52px;height:52px;min-height:0;border:2px solid #ffffffd9;border-radius:50%;background:#2b1a1247;box-shadow:0 0 0 1px #2b1a1259;color:#fff;text-shadow:0 1px 2px #2b1a12;font-size:14px;font-weight:750}
       /* Narrow phones: a slightly smaller arc (Action 72, the others 52, Cancel 48) so it clears the kitchen. */
-      @media(max-width:700px){.touch-buttons{width:72px;height:72px}#touch-action{width:72px;height:72px}#touch-dash,#touch-toss{width:52px;height:52px}#touch-dash{right:81px;bottom:29px}#touch-toss{right:10px;bottom:86px}#touch-cancel{width:48px;height:48px;right:calc(max(10px,env(safe-area-inset-right)) + 77px);bottom:calc(max(8px,env(safe-area-inset-bottom)) + 12px + 95px)}}
+      @media(max-width:700px){.touch-buttons{width:72px;height:72px}#touch-action{width:72px;height:72px}#touch-dash,#touch-toss,#touch-use{width:52px;height:52px}#touch-dash{right:81px;bottom:29px}#touch-toss{right:10px;bottom:86px}#touch-use{right:70px;bottom:87px}#touch-cancel{width:48px;height:48px;right:calc(max(10px,env(safe-area-inset-right)) + 77px);bottom:calc(max(8px,env(safe-area-inset-bottom)) + 12px + 95px)}}
       #touch-cancel[data-selected=true]{border-style:solid;border-color:#fff;background:#b8321ecc;transform:scale(1.12)}
     `;
     document.head.appendChild(style);
@@ -92,7 +94,7 @@
       <div id="touch-orders" class="touch-orders" role="region" aria-label="订单" tabindex="0"></div>
       <div id="touch-zone" aria-hidden="true"></div>
       <div id="touch-joystick" role="group" aria-label="移动" aria-disabled="true"><div id="touch-stick"></div></div>
-      <div class="touch-buttons"><button id="touch-dash" class="touch-round" type="button"></button><button id="touch-toss" class="touch-round" type="button"></button><button id="touch-action" class="touch-round" type="button"></button></div>
+      <div class="touch-buttons"><button id="touch-dash" class="touch-round" type="button"></button><button id="touch-toss" class="touch-round" type="button"></button><button id="touch-use" class="touch-round" type="button"></button><button id="touch-action" class="touch-round" type="button"></button></div>
       <div id="touch-cancel" hidden></div>
       <div id="touch-ai"></div>
       <section id="touch-menu" class="touch-menu" aria-labelledby="touch-menu-title" hidden><h2 id="touch-menu-title">ChefJeff</h2><p id="touch-menu-copy"></p><div id="touch-plate" class="touch-plate" hidden><button id="touch-level-prev" class="btn" type="button">◀</button><button id="touch-levels" class="touch-plate-mid" type="button"><strong id="touch-level-title"></strong><span id="touch-level-dish"></span><span class="touch-caret" aria-hidden="true">▾</span><span id="touch-level-target"></span><span id="touch-level-tag"></span></button><button id="touch-level-next" class="btn" type="button">▶</button></div><div id="touch-partner" class="touch-partner" hidden><button id="touch-free" class="touch-tile" type="button"><span id="touch-free-badge" class="touch-badge free"></span><span id="touch-free-name"></span><span id="touch-free-status" class="touch-tile-status"></span></button><button id="touch-custom" class="touch-tile" type="button"><span class="touch-badge">API Key</span><span id="touch-custom-title"></span><span id="touch-custom-status" class="touch-tile-status"></span></button></div><div class="touch-menu-actions"><button id="touch-main" class="btn primary" type="button"></button><button id="touch-retry" class="btn" type="button"></button><button id="touch-settings" class="btn" type="button"></button><button id="touch-help" class="btn" type="button"></button></div><div class="touch-menu-secondary"><button id="touch-end" class="btn danger" type="button"></button><button id="touch-record" class="btn" type="button"></button><button id="touch-more" class="btn" type="button"></button><button id="touch-contribute" class="btn" type="button"></button><button id="touch-language" class="btn" type="button" data-no-i18n></button><button id="touch-fullscreen" class="btn" type="button"></button><button id="touch-menu-close" class="btn" type="button"></button></div><p id="touch-instructions"></p><p id="touch-fullscreen-tip" hidden></p></section>
@@ -121,7 +123,7 @@
     window.addEventListener('kitchen-state', event => { jeffPlan = event.detail?.communication?.jeff_plan || null; render(); });
     const text = (id, value) => { const n = el(id); const next = t(String(value ?? '')); if (n.textContent !== next) n.textContent = next; };
     const stick = el('touch-stick'), joystick = el('touch-joystick'), action = el('touch-action'), dash = el('touch-dash');
-    const toss = el('touch-toss');
+    const toss = el('touch-toss'), use = el('touch-use');
     const dock = el('kitchen-communication');
     // On phones the panel pauses the round; it closes with this button, a tap outside it, or once a message is sent.
     const dockClose = Object.assign(document.createElement('button'), { id: 'touch-communication-close', type: 'button', className: 'btn' });
@@ -231,12 +233,13 @@
       el('touch-menu-toggle').setAttribute('aria-expanded', String(showMenu));
       joystick.hidden = !landscape || showMenu || hasModal || communicationOpen;
       joystick.setAttribute('aria-disabled', String(!playing));
-      action.hidden = dash.hidden = toss.hidden = joystick.hidden;
+      action.hidden = dash.hidden = toss.hidden = use.hidden = joystick.hidden;
       el('touch-hint').hidden = joystick.hidden;
       el('touch-zone').hidden = joystick.hidden;
       el('touch-ai').hidden = joystick.hidden;
       const throwable = !!(state.holding && state.canThrow);
       action.disabled = !playing || aiming || !state.canInteract;
+      use.disabled = !playing || aiming || !state.canUse;
       // Never disable Throw while it is held: Safari sends no pointerup to a disabled button, which left the aim stuck.
       toss.disabled = holdButton !== toss && (!playing || !throwable);
       const sprint = state.sprint || {};
@@ -246,8 +249,10 @@
       dash.style.setProperty('--cooldown', Math.max(0, Math.min(100, (sprint.cooldown_remaining || 0) / 3 * 100)) + '%');
       text('touch-dash', cooling ? Math.ceil(sprint.cooldown_remaining) + 's' : '冲刺');
       el('touch-cancel').hidden = !playing || holdPointer === null || !throwable;
-      // One word, like other mobile games; the toolbar line names the exact action.
-      text('touch-action', '操作'); text('touch-toss', '扔');
+      // Cancel takes 切/洗's place in the arc while a throw is armed.
+      if (!el('touch-cancel').hidden) use.hidden = true;
+      // Concrete verbs, split as in Overcooked 2: take and put, throw, and chop or wash.
+      text('touch-action', '拿/放'); text('touch-toss', '扔'); text('touch-use', '切/洗');
       text('touch-stick', aiming ? '瞄准' : '移动');
       joystick.dataset.aiming = String(aiming); toss.dataset.aiming = String(aiming);
       if (aiming && !wasAiming) buzz(12);
@@ -259,7 +264,8 @@
       if (el('touch-plan').textContent !== planText) el('touch-plan').textContent = planText;
       el('touch-plan').hidden = !plan || state.phase !== 'running';
       text('touch-ai', state.aiStatus || '');
-      text('touch-status', cancelSelected ? '松手取消' : aiming ? '松开投掷' : eventNotice || state.interactionHint || (throwable ? '按住「扔」瞄准' : ''));
+      // No standing hint about what cannot be done, as on the desktop: the framed station shows what will happen.
+      text('touch-status', cancelSelected ? '松手取消' : aiming ? '松开投掷' : eventNotice || (throwable ? '按住「扔」瞄准' : ''));
       text('touch-clock', state.timeLabel || '厨房连接中…');
       text('touch-money', state.money == null ? '' : '¥' + state.money);
       text('touch-served', state.served == null ? '' : t('已出餐') + ' ' + state.served);
@@ -270,7 +276,7 @@
       text('touch-menu-title', state.coverTitle || 'ChefJeff');
       // Results lead with the income line, as the card does.
       const income = state.phase === 'ended' && state.card?.money ? state.card.money + '\n' : '';
-      text('touch-menu-copy', !state.connected ? '连接已中断' : income + (state.coverText || '使用左侧摇杆移动，右侧按钮操作和冲刺。'));
+      text('touch-menu-copy', !state.connected ? '连接已中断' : income + (state.coverText || '使用左侧摇杆移动，右侧按钮拿放、切洗、扔和冲刺。'));
       text('touch-main', state.mainLabel || '开始经营');
       el('touch-main').disabled = !controls || state.mainEnabled === false || state.pending;
       el('touch-end').hidden = !['running', 'paused'].includes(state.phase);
@@ -385,7 +391,7 @@
         'touch-menu-toggle': '菜单', 'touch-settings': '设置', 'touch-help': '操作说明', 'touch-end': '结束本局', 'touch-record': '本局分析', 'touch-retry': '重新开局', 'touch-more': '更多',
         'touch-fullscreen': '全屏', 'touch-menu-close': '返回厨房', 'touch-free-badge': '免费', 'touch-custom-title': '自定义模型', 'touch-communication-close': '返回厨房', 'touch-cancel': '取消', 'touch-rotate-title': '请将手机横过来',
         'touch-rotate-copy': '横屏后点“继续经营”，厨房不会自动恢复。',
-        'touch-instructions': '「操作」按下立即做事，拿着东西也一样；「扔」点按直接扔出，长按瞄准、松开投掷；瞄准时滑到「取消」可取消。',
+        'touch-instructions': '「拿/放」按下立即拿起或放下，拿着东西也一样；「切/洗」切菜、洗碗、灭火；「扔」点按直接扔出，长按瞄准、松开投掷；瞄准时滑到「取消」可取消。',
         'touch-fullscreen-tip': 'iPhone 不支持网页全屏：在浏览器的分享菜单选「添加到主屏幕」，再从主屏幕打开即可全屏。' })) text(id, source);
       el('touch-language').textContent = window.kitchenI18n?.language === 'en' ? '中文' : 'English';
       joystick.setAttribute('aria-label', t('移动')); el('touch-orders').setAttribute('aria-label', t('订单'));
@@ -445,10 +451,10 @@
       const cancelHold = event => { if (event.pointerId !== holdPointer) return; endHold(event); cancelSelected = false; controls?.cancel(); render(); };
       button.addEventListener('pointercancel', cancelHold); button.addEventListener('lostpointercapture', cancelHold);
     }
-    // Action does everything but throw, at once on press, even holding a throwable item; Dash on press.
-    for (const [button, method] of [[dash, 'dash'], [action, 'act']])
+    // 拿/放 takes and puts at once on press, even holding a throwable item; 切/洗 and Dash on press.
+    for (const [button, method] of [[dash, 'dash'], [action, 'act'], [use, 'use']])
       button.addEventListener('pointerdown', event => { if (event.button > 0 || button.disabled || !canPlay()) return; event.preventDefault(); controls?.[method](); });
-    for (const area of [joystick, action, dash, toss]) area.addEventListener('contextmenu', event => event.preventDefault());
+    for (const area of [joystick, action, dash, toss, use]) area.addEventListener('contextmenu', event => event.preventDefault());
     el('touch-pause').addEventListener('click', () => {
       if (state.phase === 'running') { clearPointers(); controls?.pause(); }
       else if (state.phase === 'paused') { menuOpen = false; communication(false); block(); controls?.resume(); }

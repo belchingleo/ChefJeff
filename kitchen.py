@@ -361,7 +361,9 @@ class Kitchen:
             if self.can_load_pot(a.hand,s.food):
                 add('load '+key,f'把{self.load_label(a.hand)}放入{s.name}的空{self.vessel_name(s.food.id)}（离灶不加热）','load_counter',key)
             kind = 'take_board' if board else 'take_plate' if s.food.stage == 'clean_plate' else 'take_counter'
-            add(f'take {key}', f'从{s.name}拿起{self.food_name(s.food)}', kind, key)
+            # As in Overcooked 2 (ServerWorkstation.CanPickupItem): an ingredient part-way through chopping stays on the board.
+            if not (board and self.chopping_started(s.food)):
+                add(f'take {key}', f'从{s.name}拿起{self.food_name(s.food)}', kind, key)
             if a.hand and a.hand.stage == 'pot' and self.can_add(s.food,a.hand.contents):
                 v = self.vessel_name(a.hand.id)
                 add(f'plate {key}', f'把手中{v}里的菜盛到{s.name}的盘里（空{v}留在手中）', 'plate_counter', key)
@@ -498,6 +500,10 @@ class Kitchen:
     def load_label(self, food):
         """Name of held food going into a vessel, with its preparation."""
         return ('切好的' if food.stage == 'chopped' else '') + self.food_label(food)
+
+    def chopping_started(self, food):
+        """Chopped a little but not finished: neither chef can take it off the board until it is done."""
+        return bool(food and self.rules.choppable(food) and 0 < food.chopped < self.rules.chop_work(food.ingredient)-1e-9)
 
     def food_name(self, food):
         item = self.rules.items.get(food.ingredient)

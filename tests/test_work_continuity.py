@@ -81,7 +81,7 @@ class WorkContinuityTests(unittest.TestCase):
         self.assertEqual(command('start')[0],200)
         k=g.k;k.positions.update(human=(3.15,3.),jeff=(10.,6.))
         k.stations['b1'].food=Food('work-food','raw',ingredient='beef')
-        self.assertEqual(command('interact',expected_item=None,aim=[1,0],target='b1')[0],200)
+        self.assertEqual(command('interact',expected_item=None,aim=[1,0],target='b1',mode='use')[0],200)
         k.advance(.2);self.assertTrue(k.chefs['human'].job.working)
         progress=k.stations['b1'].food.chopped
         # The new facing points away; there is nothing to use there. Even a rejected

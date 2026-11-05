@@ -9,7 +9,7 @@ FACING_STEPS = {'up':(0,-1),'down':(0,1),'left':(-1,0),'right':(1,0)}
 # Jeff throws along the player's eight aim directions, always to full reach (see aimed_throw).
 THROW_DIRECTIONS = {'up':((0,-1),'上方'),'down':((0,1),'下方'),'left':((-1,0),'左方'),'right':((1,0),'右方'),
                     'up-left':((-1,-1),'左上方'),'up-right':((1,-1),'右上方'),'down-left':((-1,1),'左下方'),'down-right':((1,1),'右下方')}
-USE_KINDS = ('chop','wash','extinguish')  # E; Space takes, puts, plates and serves
+USE_KINDS = ('chop','wash','extinguish')  # E; Space takes, puts, plates, serves and extinguishes, never chops or washes
 
 THROW_RANGE = 4.0
 # Plates, plated food and pots; reference values of the service ruleset
@@ -1040,8 +1040,8 @@ class SpatialKitchen(Kitchen):
     def facing_interaction(self,who,mode='hands',actions=None,station=None):
         """(target, action) for Space ('hands') or E ('use').
 
-        Space does whatever the target needs: take, put, plate, serve, and also
-        chop, wash or extinguish. E only chops, washes or extinguishes. A candidate
+        Space takes, puts, plates, serves and sprays a held extinguisher; as in
+        Overcooked 2 it never chops or washes. E only chops, washes or extinguishes. A candidate
         with nothing to do falls through to the next; facing a station never
         drops the held item on the floor instead.
         """
@@ -1054,7 +1054,7 @@ class SpatialKitchen(Kitchen):
         if mode=='use':candidates=[c for c in candidates if c in self.equipment]
         for target in candidates:
             if target.startswith('floor_') and ahead:break
-            action=self.quick_interaction(who,actions,preferred=target,kinds=kinds)
+            action=self.quick_interaction(who,actions,preferred=target,kinds=kinds,skip=() if kinds else ('chop','wash'))
             if action:return target,action
         return (candidates[0] if candidates else None),None
 
@@ -1073,7 +1073,7 @@ class SpatialKitchen(Kitchen):
         if target and target.startswith('floor_') and target not in self.floor_places:return None
         return self.cell(target) if target else None
 
-    def quick_interaction(self, who, actions=None, preferred=None, kinds=None):
+    def quick_interaction(self, who, actions=None, preferred=None, kinds=None, skip=()):
         """One local, legal action. This is a player control, not an AI policy."""
         chef = self.chefs[who]
         actions = self.actions(who) if actions is None else actions
@@ -1089,6 +1089,7 @@ class SpatialKitchen(Kitchen):
         for a in actions:
             if a.kind not in priority:continue
             if kinds and a.kind not in kinds:continue
+            if a.kind in skip:continue
             if preferred:
                 if preferred.startswith('item:'):
                     if a.kind not in ('pickup','plate_ground','load_ground','swap_ground_pot','assemble_ground') or a.expected[1]!=preferred[5:]:continue

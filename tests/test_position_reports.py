@@ -178,7 +178,7 @@ class WebTests(unittest.TestCase):
         # the browser has already walked it to b2's row.
         k.positions.update(human=(3.15, 3.55), jeff=(10., 6.)); k.facing['human'] = 'right'
         k.stations['b2'].food = Food('B', 'raw', ingredient='beef')
-        status, _ = self.command(g, 'interact', expected_item=None, at=[3.15, 4.], base=0)
+        status, _ = self.command(g, 'interact', expected_item=None, at=[3.15, 4.], base=0, mode='use')
         self.assertEqual(status, 200)
         self.assertEqual(k.chefs['human'].job.action.key, 'chop b2')
         self.assertEqual(self.command(g, 'interact', expected_item=None, at=[3.15], base=0)[0], 400)

@@ -26,7 +26,7 @@
       if (hint.hidden) return;
       const message = !hasStandard ? t('此手柄未提供标准映射，请使用键盘和鼠标。') : !armed || hardBlocked()
         ? t('手柄已连接') + ' · ' + t('请松开按键并将左摇杆回中')
-        : t('左摇杆或十字键移动 · A/× 操作（长按投掷） · X/□ 冲刺 · B/○ 取消 · Start/Options 暂停/继续');
+        : t('左摇杆或十字键移动 · A/× 拿放（长按投掷） · Y/△ 切洗 · X/□ 冲刺 · B/○ 取消 · Start/Options 暂停/继续');
       if (hint.textContent !== message) hint.textContent = message;
     }
     function interrupt(pause = false) {
@@ -62,7 +62,7 @@
         dx /= length; dy /= length;
       }
       return { dx, dy, neutral: Math.hypot(x, y) <= DEADZONE && !buttons.some(pressed),
-        a: pressed(buttons[0]), b: pressed(buttons[1]), x: pressed(buttons[2]), start: pressed(buttons[9]) };
+        a: pressed(buttons[0]), b: pressed(buttons[1]), x: pressed(buttons[2]), y: pressed(buttons[3]), start: pressed(buttons[9]) };
     }
     function move(dx, dy, now, force = false) {
       if (dx === lastMove.x && dy === lastMove.y) return;
@@ -98,7 +98,7 @@
         showHint(); requestAnimationFrame(frame); return;
       }
       const edges = { a: input.a && !previousButtons.a, b: input.b && !previousButtons.b,
-        x: input.x && !previousButtons.x, start: input.start && !previousButtons.start,
+        x: input.x && !previousButtons.x, y: input.y && !previousButtons.y, start: input.start && !previousButtons.start,
         release: !input.a && !!previousButtons.a };
       previousButtons = input;
       const running = state.phase === 'running' && state.canInput !== false;
@@ -116,6 +116,8 @@
       move(input.dx, input.dy, moveTime);
       if (edges.a && !state.pending) { owned = actionDown = true; controls.press(); }
       if (edges.release && actionDown) { actionDown = false; controls.release(); }
+      // Y chops, washes or sprays (the keyboard's E), as Overcooked 2 gives chopping its own button.
+      if (edges.y && !state.pending && !state.aiming) { owned = true; controls.use?.(); }
       const sprint = state.sprint || {};
       if (edges.x && (input.dx || input.dy) && !state.aiming && sprint.available !== false && !(sprint.active_remaining > 0) && !(sprint.cooldown_remaining > 0)) {
         move(input.dx, input.dy, moveTime, true);

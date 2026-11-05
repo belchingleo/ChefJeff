@@ -65,7 +65,7 @@ function harness(path,{width=844,height=390,touch=true,language='zh',vibrate=tru
  w.kitchenI18n=locale.module.exports;
  const state={phase:'running',connected:true,pending:false,canInteract:true,canThrow:true,canDash:true,holding:true,interaction:'拿起番茄',interactionHint:'',aiming:false,sprint:{active_remaining:0,cooldown_remaining:0},orders:[],money:0,served:0,timeLabel:'180',handLabel:'番茄',aiStatus:'',mainLabel:'开始',mainEnabled:true,game_id:'round'};
  const controls={getState:()=>({...state})};
- for(const name of ['move','press','act','toss','release','cancel','dash','pause','resume','main','settings','help','end','record','bookmark','block'])controls[name]=(...args)=>{calls.push([name,...args]);};
+ for(const name of ['move','press','act','use','toss','release','cancel','dash','pause','resume','main','settings','help','end','record','bookmark','block'])controls[name]=(...args)=>{calls.push([name,...args]);};
  w.kitchenControls=controls;
  class MutationObserver{constructor(fn){this.fn=fn;observers.push(this);}observe(){}disconnect(){}}
  const context={window:w,document,navigator:w.navigator,innerWidth:width,innerHeight:height,Event,CustomEvent:Event,HTMLElement:Element,MutationObserver,performance:w.performance,queueMicrotask:fn=>fn(),setTimeout:fn=>{fn();return 1;},clearTimeout:()=>{},requestAnimationFrame:fn=>{fn();return 1;},cancelAnimationFrame:()=>{}};
@@ -140,7 +140,7 @@ function check(path){
  assert(callNames().includes('release')&&h.calls.some(c=>c[0]==='vibrate'),'a Throw tap throws on release with a tick');
  assert(cancel.hidden,'Cancel goes after the throw');
  h.fire('touch-toss','pointerdown',{pointerId:7});h.publish({aiming:{x:1,y:0}});
- assert.equal(toss.dataset.aiming,'true');assert.equal(action.textContent,'操作','aiming leaves Action as it is');
+ assert.equal(toss.dataset.aiming,'true');assert.equal(action.textContent,'拿/放','aiming leaves Take/Put as it is');
  h.clear();h.fire('touch-action','pointerdown',{pointerId:8});assert(action.disabled&&!callNames().includes('act'),'Action waits while aiming');
  h.fire('touch-toss','pointermove',{pointerId:7,clientX:450,clientY:225});h.fire('touch-toss','pointerup',{pointerId:7,clientX:450,clientY:225});
  assert(callNames().includes('cancel')&&!callNames().includes('release'),'Cancel cancels a Throw aim');
@@ -163,7 +163,13 @@ function check(path){
  h.fire('touch-joystick','pointerup',{pointerId:4});
  assert.equal(joy.dataset.floating,'false','released stick returns to its corner');assert.equal(joy.style.left,'');
  // Plain buttons: one word whatever the context (the toolbar names the action); haptics tick.
- assert.equal(h.elements.get('touch-action').textContent,'操作','no contextual text on the button');
+ assert.equal(h.elements.get('touch-action').textContent,'拿/放','no contextual text on the button');
+ // 切/洗 (the keyboard's E) chops, washes or sprays on press, only when there is something to chop, wash or spray.
+ const use=h.elements.get('touch-use');assert.equal(use.textContent,'切/洗');
+ h.publish({aiming:false,canUse:false});h.clear();h.fire('touch-use','pointerdown',{pointerId:10});
+ assert(use.disabled&&!callNames().includes('use'),'nothing to chop or wash disables 切/洗');
+ h.publish({canUse:true});h.clear();h.fire('touch-use','pointerdown',{pointerId:10});
+ assert.deepEqual(callNames(),['use'],'切/洗 uses once, on press');
  assert.equal(h.elements.get('touch-aim'),undefined,'no direction needle in the stick');
  h.clear();h.fire('touch-toss','pointerdown',{pointerId:5});
  h.publish({aiming:{x:Math.cos(1),y:Math.sin(1)}});
@@ -210,13 +216,13 @@ function check(path){
  const touchLaptop=harness(path,{width:1280,height:720,touch:true});touchLaptop.publish({});
  assert(touchLaptop.document.getElementById('kitchen-touch-ui').hidden,'large touch laptops retain desktop layout');
  const english=harness(path,{language:'en'});english.publish({interaction:'操作',handLabel:'手中：干净餐盘',mainLabel:'开始经营'});
- const translated=['touch-action','touch-dash','touch-toss','touch-menu-title','touch-menu-copy','touch-main','touch-menu-toggle','touch-settings','touch-help','touch-end','touch-record','touch-bookmark','touch-communication','touch-pause','touch-cancel','touch-instructions','touch-rotate-title','touch-rotate-copy','touch-hand'];
+ const translated=['touch-action','touch-use','touch-dash','touch-toss','touch-menu-title','touch-menu-copy','touch-main','touch-menu-toggle','touch-settings','touch-help','touch-end','touch-record','touch-bookmark','touch-communication','touch-pause','touch-cancel','touch-instructions','touch-rotate-title','touch-rotate-copy','touch-hand'];
  assert.deepEqual(translated.map(id=>[id,english.elements.get(id).textContent]).filter(([,value])=>/[\u3400-\u9fff]/.test(value)),[],
                   'English touch labels must all use the display catalog');
  english.w.kitchenI18n.setLanguage('zh');english.w.dispatchEvent(new english.Event('kitchen-language-changed'));
- assert.equal(english.elements.get('touch-action').textContent,'操作','touch labels switch back to Chinese');
+ assert.equal(english.elements.get('touch-action').textContent,'拿/放','touch labels switch back to Chinese');
  english.w.kitchenI18n.setLanguage('en');english.w.dispatchEvent(new english.Event('kitchen-language-changed'));
- assert.equal(english.elements.get('touch-action').textContent,'Action','touch labels switch back to English');
+ assert.equal(english.elements.get('touch-action').textContent,'Take/Put','touch labels switch back to English');
  console.log(`${path}: multi-touch movement/action/throw/dash, deadzone, cancellation, orientation, background and input gates passed.`);
 }
 

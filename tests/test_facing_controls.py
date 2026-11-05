@@ -15,15 +15,31 @@ def kitchen():
 
 
 class FacingControlTests(unittest.TestCase):
-    def test_space_and_e_both_chop_and_wash(self):
+    def test_space_takes_and_e_chops_and_washes(self):
+        # Overcooked 2 splits pick-up and use: Space takes a raw ingredient off the board, E chops it.
         k = kitchen()
         k.positions['human'] = (4., 6.); k.facing['human'] = 'down'
         k.stations['b1'].food = Food('L', 'raw', ingredient='lettuce')
-        self.assertEqual(k.facing_interaction('human', 'hands')[1].kind, 'chop')
+        self.assertEqual(k.facing_interaction('human', 'hands')[1].key, 'take b1')
         self.assertEqual(k.facing_interaction('human', 'use')[1].kind, 'chop')
         k.positions['human'] = (11., 3.); k.facing['human'] = 'right'
         k.stations['sink'].food = Food('D1', 'dirty_plate')
-        self.assertEqual(k.facing_interaction('human', 'hands')[1].kind, 'wash')
+        self.assertNotEqual(getattr(k.facing_interaction('human', 'hands')[1], 'kind', None), 'wash')
+        self.assertEqual(k.facing_interaction('human', 'use')[1].kind, 'wash')
+
+    def test_a_part_chopped_ingredient_stays_on_its_board_for_both_chefs(self):
+        # ServerWorkstation.CanPickupItem: untouched or finished can be taken, part-way through cannot.
+        k = kitchen()
+        k.positions['human'] = (4., 6.); k.facing['human'] = 'down'
+        food = Food('L', 'raw', ingredient='lettuce'); k.stations['b1'].food = food
+        self.assertIn('take b1', [a.key for a in k.actions('jeff')])
+        food.chopped = .5
+        self.assertNotIn('take b1', [a.key for a in k.actions('jeff')])
+        self.assertNotIn('take b1', [a.key for a in k.actions('human')])
+        self.assertIsNone(k.facing_interaction('human', 'hands')[1])
+        self.assertEqual(k.facing_interaction('human', 'use')[1].kind, 'chop')
+        k.stations['b1'].food = Food('L', 'chopped', ingredient='lettuce', chopped=k.rules.chop_work('lettuce'))
+        self.assertEqual(k.facing_interaction('human', 'hands')[1].key, 'take b1')
 
     def test_a_station_diagonally_ahead_is_picked_never_one_beside(self):
         # Overcooked 2: the stations around the chef's cell that lie ahead are scored by the aim. Floor

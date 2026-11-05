@@ -360,7 +360,7 @@ export class KitchenClient extends Component {
         this.controls={
             getState:()=>this.controlsState(),move:(x:number,y:number)=>this.setTouchMove(x,y),
             press:()=>this.pressInteract(),release:()=>this.releaseInteract(),
-            act:()=>this.pressInteract('act'),toss:()=>this.pressInteract('toss'),
+            act:()=>this.pressInteract('act'),use:()=>this.pressUse(),toss:()=>this.pressInteract('toss'),
             cancel:()=>this.clearInput(),dash:()=>this.dash(),block:(blocked:boolean)=>this.blockTouch(blocked),
             pause:()=>{this.clearInput();if(this.connected&&this.state?.phase==='running')this.post('/api/pause');},
             resume:()=>this.controlButton('resume'),main:()=>this.controlButton('main'),restart:()=>this.controlButton('reset'),
@@ -404,9 +404,9 @@ export class KitchenClient extends Component {
         const s=this.state,k=s?.kitchen,c=k?.chefs?.human;
         const text=(id:string)=>this.labels[id]?this.labelSources.get(this.labels[id])||'':'';
         return {game_id:s?.game_id,phase:s?.phase||'loading',connected:this.connected,pending:this.pending,canInput:this.canInput(),
-            canInteract:!!s?.interaction,canThrow:!!c?.holding&&c.can_throw!==false,
+            canInteract:!!s?.interaction,canUse:this.useAction()!==null,canThrow:!!c?.holding&&c.can_throw!==false,
             canDash:this.canInput()&&!this.aiming&&!!c?.sprint?.available&&(this.manualDirection.x!==0||this.manualDirection.y!==0),
-            holding:c?.holding||null,interaction:s?.interaction?.label.split('（')[0]||'',interactionHint:s?.interaction_hint||'',
+            holding:c?.holding||null,interaction:s?.interaction?.label.split('（')[0]||'',
             aiming:this.aiming?{...this.aiming}:null,sprint:c?.sprint||{},event:text('event'),
             orders:(k?.orders||[]).filter((o:any)=>o.status==='pending').map((o:any)=>this.touchOrder(o)),
             money:k?.money||0,served:k?.served||0,timeLabel:text('clock'),handLabel:text('hand'),aiStatus:text('ai-status'),
@@ -464,7 +464,7 @@ export class KitchenClient extends Component {
         this.refreshMovement();this.publishControls();
     }
     /** Space ('hands'): with a throwable item the press arms a hold-to-aim, a tap acts on release. Touch
-     *  Action ('act') does everything but throw, at once on press; touch Throw ('toss') only arms the throw. */
+     *  拿/放 ('act') takes and puts at once on press; touch 扔 ('toss') only arms the throw; 切/洗 is pressUse. */
     private pressInteract(kind:'hands'|'act'|'toss'='hands'){
         if(!this.canInput()||this.pending||this.spaceDownAt!==null||this.aiming)return;
         // Work is sticky (no button stops it), and a second press just after a pick-up is ignored (Overcooked's 0.5 s).
@@ -472,6 +472,14 @@ export class KitchenClient extends Component {
         if(c.working||this.clock-this.pickedAt<.5)return;
         if(kind!=='act'&&held&&c.can_throw!==false){this.spaceDownAt=this.clock;this.spaceItemId=held.id;this.tossOnly=kind==='toss';}
         else if(kind!=='toss')this.interact();
+    }
+    /** E / touch 切/洗: chop, wash or spray what the chef faces (never a throw, which Space and 扔 do). */
+    private useAction(){const a=this.state?.use_interaction;return a&&['chop','wash','extinguish'].includes(a.kind)?a:null;}
+    private pressUse(){
+        if(!this.canInput()||this.pending||this.spaceDownAt!==null||this.aiming)return;
+        const c=this.state!.kitchen.chefs.human;if(c.working||!this.useAction())return;
+        this.handsBusyUntil=this.clock+.35;this.actionCue();
+        this.post('/api/interact',{expected_item:c.holding?.id||null,mode:'use',...this.atBody(),...this.pickBody()});
     }
     private interact(){
         const s=this.state!;
@@ -566,9 +574,9 @@ export class KitchenClient extends Component {
             return;
         }
         if(this.canInput()){
-            // Keys that keep the WASD fingers in place: Space (thumb) = whatever the faced target needs,
-            // including chop, wash and extinguish; hold Space to aim a throw; Shift (little finger) =
-            // dash (Overcooked's Alt, which browsers reserve).
+            // Keys that keep the WASD fingers in place, split as in Overcooked 2: Space (thumb) takes, puts,
+            // plates and serves, hold Space to aim a throw; E chops, washes and extinguishes; Shift (little
+            // finger) = dash (Overcooked's Alt, which browsers reserve).
             if(e.key==='Shift'){
                 e.preventDefault();
                 if(!e.repeat)this.dash();
@@ -579,6 +587,11 @@ export class KitchenClient extends Component {
                 if(!e.repeat&&!e.ctrlKey&&!e.altKey&&!e.metaKey){
                     this.pressInteract();
                 }
+                return;
+            }
+            if(e.code==='KeyE'){
+                e.preventDefault();
+                if(!e.repeat&&!e.ctrlKey&&!e.altKey&&!e.metaKey)this.pressUse();
                 return;
             }
             const key=e.key.toLowerCase();if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(key)){e.preventDefault();

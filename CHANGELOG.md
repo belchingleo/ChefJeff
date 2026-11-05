@@ -15,7 +15,7 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - Phone menus show the same level plate, partner tiles and result buttons. The language button always reads "English" in Chinese.
 - Result screen fixes: in English the round analysis, all levels and settings chips widen to fit their words instead of running into their icons, and Level 3's dish reads "Steak & Burger" under 下一关. 下一关 keeps its title above the level line when hovered, focused or reloaded; before, the two overlapped.
 - 创建关卡 (Create a level) sits beside 开始经营 and 操作说明 on the start card and among the result chips, wherever the server offers the level editor, so player-made levels no longer hide at the end of 全部关卡; that card and ▶ after the last level now say 创建关卡 too. The phone menu has no such button, as the editor opens only in a desktop browser.
-- The line under the kitchen that named the Space action or why it could not be done is gone: during play nobody reads it, and before and after a round it kept showing a hint for nothing. As in Overcooked 2, the outlined station and the chef show what Space will do.
+- The line under the kitchen that named the Space action or why it could not be done is gone, and so is the same hint in the phone toolbar: during play nobody reads it, and before and after a round it kept showing a hint for nothing. As in Overcooked 2, the outlined station and the chef show what Space will do.
 - 换一位搭档 on the result screen opens the AI 搭档 tab of settings. Before, it only opened the online free-model list, so it did nothing locally or for a free list that was off.
 
 ### Free models
@@ -70,6 +70,8 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - `scripts/decision_stats.py` counts, per model, how Jeff decided in the local round logs: close calls between its top two options, actions it replaced with its own next choice before they were done, back-and-forth between two targets, and, with the plan on, how its actions matched the plan's part and how often the trigger proposed for the third tier (a close call while a plan has held for over 5 seconds) would have fired. It reads local journals (`logs/`), research packages pulled with `scripts/pull_research.py` (verified first, so an expired one is refused) and downloaded round records; in research data the model is the one the browser reported, and how a plan ended is not recorded. Record only: it changes nothing and calls no model.
 
 ### Kitchen and controls
+- Space and E split the work as in Overcooked 2: Space takes, puts, plates and serves, and E (Y on a gamepad) chops, washes and sprays; Space no longer chops or washes. On phones the buttons say what they do: 拿/放 (was 操作), 扔 and a new 切/洗. Before, Space chopped whenever it could, so the player could not take a raw ingredient off a board while Jeff could.
+- An ingredient on a board can be taken before chopping starts or once it is chopped, but not part-way through, for both chefs (Overcooked 2's `ServerWorkstation.CanPickupItem`). Jeff's rules say so (`rules-v10`).
 - As in Overcooked 2, a board is a counter that also chops, and an ingredient source holds one object on top. Anything that fits on a counter, plated dishes and pans included, can rest on a board or a source, with every counter action there; only a raw ingredient that needs chopping is chopped. While something rests on a source, Space takes that object and the source gives no new ingredient until its top is clear; with full hands, Space at an empty source puts the held item on it. A thrown ingredient can come down on an empty source too. Jeff gets the same actions (put, take, plate, assemble, merge, load at boards and sources) and his rules move to `rules-v9` with sentences saying so.
 - Chopping and washing need the hands over the station: the feet within half a cell of the centre line of one of its sides (after the short slide onto it) and at most half a cell behind the usual spot there. Facing a board from the next cell along the counter or diagonally no longer chops thin air; Space says 站到案板正前方才能切. As in Overcooked 2, both chefs can chop one board or wash at one sink together, side by side on a one-sided board too, and progress adds up; Jeff can join that way and, when the other chef stands in front, works beside them. Jeff's rules move to `rules-v8` with one sentence saying so.
 - Your own chef keeps the direction you last steered when you stop, as in Overcooked. It used to snap back to the server's older facing for a moment, most visibly after short moves online.
@@ -194,7 +196,7 @@ First private release: a local browser game with three playable maps and player-
 - 手机菜单也用同样的关卡牌、搭档方块和结算按钮。中文界面的语言按钮一律写「English」。
 - 结算页修正：英文界面里，本局分析、全部关卡和设置三个按钮按文字加宽，文字不再压到图标上；"下一关"下面的第三关菜名译为 "Steak & Burger"。鼠标移到"下一关"上、用键盘选中或刷新页面后，按钮标题仍在关卡小字上方，之前两行会叠在一起。
 - 开局卡片上，"创建关卡"和"开始经营""操作说明"并排；结算页底部的小按钮里也有它。服务器提供关卡编辑器时才显示，玩家自己做关卡不用再翻到全部关卡最后才找到。全部关卡列表最后那张卡片和最后一关的 ▶ 也改叫"创建关卡"。编辑器只能在电脑浏览器里用，所以手机菜单里不放这个按钮。
-- 去掉厨房下方那行操作提示（比如"选中目标暂不可操作，请靠近或检查物品状态"）。因为玩的时候没空看它，开局前和结算后它也一直挂着，所以和《胡闹厨房 2》一样，改由工位的框和角色动作来表现能做什么。
+- 去掉厨房下方那行操作提示（比如"选中目标暂不可操作，请靠近或检查物品状态"），手机顶栏里同样的提示也去掉。因为玩的时候没空看它，开局前和结算后它也一直挂着，所以和《胡闹厨房 2》一样，改由工位的框和角色动作来表现能做什么。
 - 结算页的"换一位搭档"改为打开设置里的"AI 搭档"页。之前它只会打开线上的免费模型列表，所以在本地、或者免费模型没开时，点了没有反应。
 
 ### 免费模型
@@ -249,6 +251,8 @@ First private release: a local browser game with three playable maps and player-
 - 新增 `scripts/decision_stats.py`，按模型统计本机对局日志里 Jeff 怎么做决定：第一、第二选项概率差得很近的次数，动作还没做完就被它自己的下一个选择换掉的次数，在两个目标之间来回改的次数；打开计划时，还统计它的动作和计划那一段是否一致，以及第三档设想的触发条件（计划已经定了超过 5 秒时又拿不准）会触发多少次。它能读本机日志（`logs/`）、用 `scripts/pull_research.py` 拉下来的研究数据包（先核对，过期的会拒绝）和单局下载的研究记录；研究数据里的模型名是浏览器报告的，计划是怎么结束的没有记录。只记录：它不改任何东西，也不调用模型。
 
 ### 厨房与操作
+- 空格和 E 按《胡闹厨房 2》分工：空格拿、放、装盘、出餐，E（手柄 Y）切菜、洗碗、灭火，空格不再切菜或洗碗。手机按钮直接写动作：「拿/放」（原来的「操作」）、「扔」，再加一个「切/洗」。以前空格能切就先切，所以玩家拿不走菜板上的生食材，Jeff 却能拿。
+- 菜板上的食材还没开始切或已经切好时可以拿走，切到一半谁都拿不走（《胡闹厨房 2》的 `ServerWorkstation.CanPickupItem`）。Jeff 的规则说明也写上了这一条（`rules-v10`）。
 - 和《胡闹厨房 2》一样，案板就是能切菜的柜台，食材箱顶上也能放一件东西。柜台上能放的东西，包括装好菜的盘子和锅，都能放在案板或食材箱上，柜台上的操作在那里也都能做；只有需要切的生食材才会被切。食材箱上放着东西时，按空格拿起的是那件东西，要等顶上空了才能再取料；手里拿着东西对着空食材箱按空格，会把东西放上去。扔出去的食材也能落在空食材箱上。Jeff 有同样的动作（在案板和食材箱上放下、拿起、装盘、加料、合盘、入锅），规则升到 `rules-v9`，加了几句说明。
 - 切菜和洗碗时手要在工位正上方：脚离某一侧的中线不超过半格（按侧移到中线之后的位置算），最多比平时的站位往后半格。从台面上隔壁一格或斜对角对着案板，不会再对着空气切菜，按空格会提示“站到案板正前方才能切”。和《胡闹厨房 2》一样，两位厨师可以一起切同一块案板、一起洗同一个水槽，单面案板也能并排，进度相加；Jeff 也能这样加入，对方站在正前方时它会站到旁边。Jeff 的规则升到 `rules-v8`，多了一句说明这件事。
 - 松开方向键时，自己的厨师保持最后按的方向，和《胡闹厨房》一样。以前会先转回服务器那边还没更新的旧朝向，再转回来，线上短距离挪位置时最明显。

@@ -6,7 +6,8 @@ Use a desktop/laptop browser with a keyboard and mouse, or try the experimental 
 | --- | --- |
 | WASD / arrows | Hold to move; release to stop |
 | Shift | Dash while moving, with the shared cooldown |
-| Space | Whatever the faced target needs (fetch, take, put, cook, plate, lift a pan or pot, chop, wash, extinguish, serve, bin); the target is the station most squarely ahead among the eight cells around the chef (within 0.85 cells of the feet), never one beside or behind (a diagonal only once the aim is about 30 degrees off straight), and the player works where they stand, chopping or washing after a short sideways slide onto the station's centre. With a throwable item in hand, a tap acts when released; empty-handed actions start on press. Once chopping or washing starts no button stops it; walking away does, keeping progress |
+| Space | Take and put on the faced target (fetch, take, put, cook, plate, lift a pan or pot, serve, bin; a held extinguisher also sprays), never chop or wash; the target is the station most squarely ahead among the eight cells around the chef (within 0.85 cells of the feet), never one beside or behind (a diagonal only once the aim is about 30 degrees off straight), and the player works where they stand, chopping or washing after a short sideways slide onto the station's centre. With a throwable item in hand, a tap acts when released; empty-handed actions start on press. Once chopping or washing starts no button stops it; walking away does, keeping progress |
+| E | Chop, wash or extinguish the faced target, as Overcooked 2 gives these their own button. An ingredient part-way through chopping cannot be taken off its board, by either chef |
 | Hold Space | Holding a throwable item, hold for about 0.3 s to aim, whether facing a station or open floor. Turn with the direction keys and release to throw (to the partner when that way in range) |
 | Esc or P / Ⅱ / ▶ / ■ | Esc or P pauses and resumes (P for keyboards without Esc, such as iPad) / pause / resume / end early (asks to confirm; restarting from pause also confirms) |
 | Enter | Bookmark a moment; nearby marks merge into intervals |
@@ -61,7 +62,8 @@ Hosted Settings additionally offer explicit contribution after the round (or, af
 | --- | --- |
 | WASD／方向键 | 按住移动，松开停止 |
 | Shift | 移动时冲刺，遵循共用冷却 |
-| 空格 | 对面前的目标做需要的事（取料、拿起、放下、下锅、装盘、端锅、切菜、洗碗、灭火、出餐、丢弃）；目标是身边 8 格里最正对朝向的工位（离脚下 0.85 格以内；斜对角要瞄准偏离约 30° 才会选中），不会选身边或身后的，玩家原地操作，切菜或洗碗前先侧移到工位正中。手持可投掷物品时，短按松开后操作；空手时按下立即操作。切菜或洗碗开始后任何按键都不会中断，走开才停，进度保留 |
+| 空格 | 对面前的目标拿和放（取料、拿起、放下、下锅、装盘、端锅、出餐、丢弃；拿着灭火器时也能喷），不切菜、不洗碗；目标是身边 8 格里最正对朝向的工位（离脚下 0.85 格以内；斜对角要瞄准偏离约 30° 才会选中），不会选身边或身后的，玩家原地操作，切菜或洗碗前先侧移到工位正中。手持可投掷物品时，短按松开后操作；空手时按下立即操作。切菜或洗碗开始后任何按键都不会中断，走开才停，进度保留 |
+| E | 对面前的目标切菜、洗碗或灭火，和《胡闹厨房 2》一样单独一个键。切到一半的食材谁都不能从案板上拿走 |
 | 按住空格 | 手持可投掷物品时，面前是工位或空地都能按住约 0.3 秒瞄准：方向键改方向，松开扔出（队友在这个方向的射程内则扔给他） |
 | Esc 或 P／Ⅱ／▶／■ | Esc 或 P 暂停与继续（P 用于没有 Esc 键的键盘，如 iPad）／暂停／继续／提前结束（需确认；暂停中重新开局也需确认） |
 | Enter | 标记时刻，相近标记合并为区间 |
