@@ -300,6 +300,8 @@ class StatsTests(unittest.TestCase):
         self.assertEqual(pressed['put_where_fallback'], sum(r['one_press']['fallback'] for r in responses if 'one_press' in r))
         self.assertEqual(pressed['ended'], dict(Counter(r['reason'] for r in rows if r['kind'] == 'one_press_end')))
         self.assertEqual(on['decisions']['answered'], len(responses))
+        self.assertLessEqual(pressed['full_swaps'], pressed['swap_backs'])
+        self.assertLessEqual(pressed['swap_backs'], pressed['chosen'].get('put_then_take', 0))
         # hands_full_check and the other journal checks can take either group alone.
         items = jev_replay_check.journal_requests([Path(folder.name, 'logs')], model_prefix='test')
         self.assertEqual({i['one_press'] for i in items}, {False, True})
@@ -321,7 +323,27 @@ class StatsTests(unittest.TestCase):
         summary = decision_stats.summary(models['not reported [one-press]'])['one_press']
         self.assertEqual(summary, {'rounds': 1, 'switches': {'put_then_take': 1}, 'offered_in_requests': {'put_then_take': 1},
                                    'chosen': {'put_then_take': 1}, 'started': 1, 'put_where_fallback': 1,
-                                   'ended': {'not_recorded': 1}})
+                                   'ended': {'not_recorded': 1}, 'swap_backs': 0, 'full_swaps': 0})
+
+    def test_swaps_back_are_counted(self):
+        from scripts import decision_stats
+
+        def chain(n, seconds, put, take):
+            return {'kind': 'ai_response', 'request_id': n, 'game_time_ms': seconds * 1000, 'model': 'm', 'applied': True,
+                    'fresh': True, 'choice': 'put then take ' + take, 'one_press': {'first': put, 'fallback': False}}
+        rows = [{'kind': 'start', 'game_time_ms': 0, 'one_press': {'put_then_take': True, 'wash_from_returns': True}},
+                chain(1, 5, 'put counter16', 'b1'),        # bread to counter 16, lettuce from board 1
+                chain(2, 9, 'put b1', 'counter16'),        # lettuce back on board 1, bread back: a full swap
+                chain(3, 14, 'drop', 'counter16'),         # takes from counter 16, where the last one did not put
+                chain(4, 30, 'put counter5', 'plates'),
+                chain(5, 45, 'put plates', 'counter5'),    # takes back what it put, but 15 s later
+                chain(6, 47, 'drop', 'counter9'),
+                chain(7, 50, 'put b2', 'floor'),           # takes back from the floor where it dropped: a swap back
+                {'kind': 'end', 'game_time_ms': 60000}]
+        models = decision_stats.defaultdict(decision_stats.new_model)
+        decision_stats.add_round(rows, models)
+        summary = decision_stats.summary(models['m [one-press]'])['one_press']
+        self.assertEqual((summary['swap_backs'], summary['full_swaps']), (2, 1))
 
 if __name__ == '__main__':
     unittest.main()
