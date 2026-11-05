@@ -47,7 +47,10 @@ For each model it counts:
   the switches the rounds had, how often each one-press option was offered and chosen, how many choices
   started, how often put_where fell back to the first listed put place, and how the chains ended
   (finished, step_not_possible, replaced, ...; research records do not keep the end, so it reads
-  `not_recorded` there).
+  `not_recorded` there). `swap_backs` counts put-then-take choices that, within --put-back game seconds of
+  the one before, took from the station where that one had put the held item down (he takes back what he
+  just set aside), and `full_swaps` those of them that also put it down where the one before had taken
+  from, so the two items end up where they were.
 
 Rates are per game minute. A round counts for the model that answered most of its requests.
 
@@ -65,7 +68,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from harness import PLAN_RULES_VERSION  # noqa: E402
 from research_record import SCHEMA as RECORD_SCHEMA  # noqa: E402
 
-VERSION = 'decision-stats-7'
+VERSION = 'decision-stats-8'
 MARGINS = (0.05, 0.1)
 PLAN_AGE = 5.0
 PUT_BACK = 10.0
@@ -190,7 +193,8 @@ def new_model():
             'gaps': {}, 'done': 0, 'walks_done': 0, 'put_then_taken_back': 0, 'walk_round_trips': 0,
             'round_trip_routes': Counter(), 'walked_to': Counter(),
             'one_press_rounds': 0, 'one_press_switches': Counter(), 'one_press_offered': Counter(),
-            'one_press_chosen': Counter(), 'one_press_started': 0, 'one_press_fallback': 0, 'one_press_ends': Counter()}
+            'one_press_chosen': Counter(), 'one_press_started': 0, 'one_press_fallback': 0, 'one_press_ends': Counter(),
+            'one_press_swap_backs': 0, 'one_press_full_swaps': 0}
 
 
 # One-press option keys (one_press.py) by the switch that offers them.
@@ -211,8 +215,13 @@ def one_press_switches(rows):
     return on or None
 
 
-def one_press_counts(rows, requests, responses, m):
-    """What one-press options a round offered, chose and started, and how the chains ended."""
+def put_place(key):
+    """The station a put action puts on, 'floor' for drop, else None."""
+    return key[4:] if isinstance(key, str) and key.startswith('put ') else 'floor' if key == 'drop' else None
+
+
+def one_press_counts(rows, requests, responses, m, put_back=PUT_BACK):
+    """What one-press options a round offered, chose and started, how the chains ended, and the swaps back."""
     for request in requests.values():
         m['one_press_offered'].update({kind for kind in map(one_press_kind, offered(request) or ()) if kind})
     for response in responses:
@@ -226,6 +235,15 @@ def one_press_counts(rows, requests, responses, m):
             if pressed.get('ends') == 'not_recorded':
                 m['one_press_ends']['not_recorded'] += 1
     m['one_press_ends'].update(str(r.get('reason')) for r in rows if r.get('kind') == 'one_press_end')
+    # Started put-then-take choices in order: (game time, where the held item went, the station taken from).
+    prefix = dict(ONE_PRESS_KEYS)['put_then_take']
+    chains = [(game_time(r), put_place(r['one_press'].get('first')), r['choice'][len(prefix):]) for r in responses
+              if isinstance(r.get('one_press'), dict) and one_press_kind(r.get('choice')) == 'put_then_take']
+    for (t0, put0, took0), (t1, put1, took1) in zip(chains, chains[1:]):
+        if t0 is None or t1 is None or t1 - t0 > put_back or put0 is None or took1 != put0:
+            continue
+        m['one_press_swap_backs'] += 1
+        m['one_press_full_swaps'] += put1 == took0
 
 
 def undone(rows, m, put_back=PUT_BACK):
@@ -337,7 +355,7 @@ def add_round(rows, models, margins=MARGINS, plan_age=PLAN_AGE, put_back=PUT_BAC
     if switches:
         m['one_press_rounds'] += 1
         m['one_press_switches']['+'.join(switches)] += 1
-        one_press_counts(rows, requests, responses, m)
+        one_press_counts(rows, requests, responses, m, put_back)
     step_gaps(rows, m)
     undone(rows, m, put_back)
     return main
@@ -465,7 +483,8 @@ def summary(m, margins=MARGINS):
         out['one_press'] = {'rounds': m['one_press_rounds'], 'switches': dict(m['one_press_switches']),
                             'offered_in_requests': dict(m['one_press_offered']), 'chosen': dict(m['one_press_chosen']),
                             'started': m['one_press_started'], 'put_where_fallback': m['one_press_fallback'],
-                            'ended': dict(m['one_press_ends'])}
+                            'ended': dict(m['one_press_ends']), 'swap_backs': m['one_press_swap_backs'],
+                            'full_swaps': m['one_press_full_swaps']}
     if m['gaps']:
         out['step_gaps'] = {policy: gap_summary(g) for policy, g in sorted(m['gaps'].items())}
     return out
