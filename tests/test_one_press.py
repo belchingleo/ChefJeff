@@ -393,6 +393,17 @@ class StatsTests(unittest.TestCase):
         self.assertEqual(pressed['ended'], dict(Counter(r['reason'] for r in rows if r['kind'] == 'one_press_end')))
         self.assertEqual(on['decisions']['answered'], len(responses))
         self.assertLessEqual(pressed['full_swaps'], pressed['swap_backs'])
+        # The end-of-round summary, the same numbers as the results page, per group.
+        end = next(r for r in reversed(rows) if r['kind'] == 'end')
+        summary = end['round_summary']
+        self.assertEqual(on['outcomes']['money_per_round'], [summary['result']['money']])
+        self.assertEqual((on['outcomes']['rounds'], on['outcomes']['reached_target']), (1, int(summary['result']['reached_target'])))
+        self.assertEqual(on['outcomes']['model_calls'], end['ai_calls'])
+        self.assertEqual({c: {w: v for w, v in counts.items() if w != 'jeff_share'} for c, counts in on['work'].items()},
+                         {r['category']: r['counts'] for r in summary['rows'] if any(r['counts'].values())})
+        self.assertEqual(on['contribution']['idle_seconds'], summary['contribution']['idle_seconds'])
+        self.assertEqual(off['outcomes']['rounds'], 1)
+        self.assertEqual(on['wasted']['jeff'].get('unused', 0), summary['not_displayed']['wasted']['jeff']['unused'])
         self.assertLessEqual(pressed['swap_backs'], pressed['chosen'].get('put_then_take', 0))
         # hands_full_check and the other journal checks can take either group alone.
         items = jev_replay_check.journal_requests([Path(folder.name, 'logs')], model_prefix='test')
@@ -433,6 +444,8 @@ class StatsTests(unittest.TestCase):
         decision_stats.add_round(rows, models)
         self.assertEqual(decision_stats.summary(models['m [one-press]'])['one_press']['take_or_chop'],
                          {'took': 2, 'chopped': 1, 'other': 1})
+        outcomes = decision_stats.summary(models['m [one-press]'])['outcomes']       # an end row without the summary
+        self.assertEqual((outcomes['rounds'], outcomes['rounds_without_summary'], outcomes['money_per_round']), (0, 1, []))
 
     def test_swaps_back_are_counted(self):
         from scripts import decision_stats

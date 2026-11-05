@@ -400,6 +400,12 @@ class ResearchRecordTests(paths.SavePathTests):
             from_record, from_package = report([download]), report([package])
         self.assertEqual(from_record['models'], from_package['models'])
         m = from_record['models']['test/decider [one-press]']   # one-press is released: every new round has it
+        # Replaying the record rebuilds the summary the results page showed for this round.
+        shown = self.game.round_record()
+        self.assertEqual(m['outcomes']['money_per_round'], [shown['result']['money']])
+        self.assertEqual(m['outcomes']['rounds_without_summary'], 0)
+        self.assertEqual({c: {w: v for w, v in counts.items() if w != 'jeff_share'} for c, counts in m['work'].items()},
+                         {r['category']: r['counts'] for r in shown['rows'] if any(r['counts'].values())})
         self.assertEqual(m['decisions']['answered'], 3)
         self.assertEqual(m['unsure']['below']['0.05']['count'], 1)
         self.assertEqual(m['unsure']['closest_pairs'], {'fetch/wait': 1})

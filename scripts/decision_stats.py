@@ -56,6 +56,17 @@ For each model it counts:
   both put then take and put then chop on one board and counts whether Jeff took the item off it, chopped
   it, or chose something else.
 
+- outcomes: the rounds' results as the game wrote them at the end (round_summary.py, the same numbers as
+  the results page): how many reached the goal, net revenue per round in the order read and its mean,
+  orders served, expired and left at closing, burns and fires, model errors (requests that failed) and
+  model calls. `work` adds, per chef, the completed work of each kind (fetch, chop, heat, assemble,
+  serve, wash, collect_plates, pass, extinguish, discard) with Jeff's share, and `contribution` the
+  per-round means of each chef's share of standard time, delay seconds and idle seconds, and `wasted` each
+  chef's wasted actions (loops, unused work, support that went unused) and harmful ones by reason, which
+  the summary keeps but the results page does not show. Local journals
+  carry the summary in their last row; a research record is replayed from its engine inputs to rebuild
+  it (a record without them counts in `rounds_without_summary`).
+
 Rates are per game minute. A round counts for the model that answered most of its requests.
 
 The report names models: keep it private like logs/, and do not publish per-model results.
@@ -64,6 +75,7 @@ from __future__ import annotations
 import argparse
 from collections import Counter, defaultdict
 import json
+import re
 from pathlib import Path
 from statistics import median
 import sys
@@ -71,8 +83,11 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from harness import PLAN_RULES_VERSION  # noqa: E402
 from research_record import SCHEMA as RECORD_SCHEMA  # noqa: E402
+from round_summary import CATEGORIES, CHEFS  # noqa: E402
 
-VERSION = 'decision-stats-10'
+WORK_CATEGORIES = tuple(name for name, _ in CATEGORIES)
+
+VERSION = 'decision-stats-11'
 MARGINS = (0.05, 0.1)
 PLAN_AGE = 5.0
 PUT_BACK = 10.0
@@ -136,8 +151,21 @@ def record_rows(record):
                          'action': (p.get('action') or {}).get('key'), **at})
         elif e['type'] in ('pause', 'resume'):
             rows.append({'kind': e['type'], **at})
-    rows.append({'kind': 'end', 'game_time_ms': round((record.get('duration') or 0) * 1000)})
+        elif e['type'] == 'ai_error':
+            rows.append({'kind': 'ai_error', 'request_id': e.get('request_id'), **at})
+    rows.append({'kind': 'end', 'game_time_ms': round((record.get('duration') or 0) * 1000), **rebuilt_summary(record)})
     return rows
+
+
+def rebuilt_summary(record):
+    """The round summary and result a local journal writes at the end, rebuilt by replaying the record; {} without inputs."""
+    try:
+        import research_replay
+        from round_summary import round_summary
+        k = research_replay.rebuild(record)
+    except Exception:       # no engine inputs, or a record this checkout cannot replay
+        return {}
+    return {'round_summary': round_summary(k), 'result': k.result()}
 
 
 def sources(path):
@@ -199,7 +227,50 @@ def new_model():
             'one_press_rounds': 0, 'one_press_switches': Counter(), 'one_press_offered': Counter(),
             'one_press_chosen': Counter(), 'one_press_started': 0, 'one_press_fallback': 0, 'one_press_ends': Counter(),
             'one_press_swap_backs': 0, 'one_press_full_swaps': 0, 'one_press_versions': Counter(),
-            'one_press_take_or_chop': Counter()}
+            'one_press_take_or_chop': Counter(),
+            'summary_rounds': 0, 'no_summary_rounds': 0, 'reached_target': 0, 'money': [], 'outcome': Counter(),
+            'model_errors': 0, 'model_calls': 0, 'work': defaultdict(Counter), 'shares': defaultdict(list),
+            'wasted': defaultdict(Counter)}
+
+
+BURNS_AND_FIRES = re.compile(r'糊锅 (\d+)，着火 (\d+)')
+
+
+def outcomes(rows, m):
+    """Add the round's end-of-round summary (results, work per chef, contribution) and its model errors."""
+    m['model_errors'] += sum(r.get('kind') == 'ai_error' for r in rows)
+    end = next((r for r in reversed(rows) if r.get('kind') == 'end'), {})
+    summary = end.get('round_summary')
+    if not isinstance(summary, dict) or not isinstance(summary.get('result'), dict):
+        m['no_summary_rounds'] += 1
+        return
+    m['summary_rounds'] += 1
+    result = summary['result']
+    m['reached_target'] += result.get('reached_target') is True
+    if isinstance(result.get('money'), (int, float)):
+        m['money'].append(result['money'])
+    m['outcome'].update({key: result.get(key) or 0 for key in ('served', 'expired', 'unresolved_at_close')})
+    found = BURNS_AND_FIRES.search(str(end.get('result') or ''))
+    if found:
+        m['outcome'].update({'burns': int(found.group(1)), 'fires': int(found.group(2))})
+    else:
+        m['outcome']['burns_fires_unknown'] += 1
+    calls = end.get('ai_calls')
+    m['model_calls'] += calls if type(calls) is int else sum(r.get('kind') == 'ai_request' for r in rows)
+    for row in summary.get('rows') or ():
+        m['work'][row['category']].update({who: n for who, n in (row.get('counts') or {}).items() if who in CHEFS})
+    contribution = summary.get('contribution') or {}
+    for key, value in (('standard_share', (contribution.get('standard') or {}).get('share')),
+                       ('delay_seconds', contribution.get('delay_seconds')), ('idle_seconds', contribution.get('idle_seconds'))):
+        for who in CHEFS:
+            if isinstance(value, dict) and isinstance(value.get(who), (int, float)):
+                m['shares'][f'{key}:{who}'].append(value[who])
+    hidden = summary.get('not_displayed') or {}
+    for group in ('wasted', 'harmful'):
+        for who, reasons in (hidden.get(group) or {}).items():
+            if who in CHEFS and isinstance(reasons, dict):
+                m['wasted'][who].update({(f'harmful:{r}' if group == 'harmful' else r): n for r, n in reasons.items()
+                                         if type(n) is int})
 
 
 # One-press option keys (one_press.py) by their kind, and the switches that offer them.
@@ -378,6 +449,7 @@ def add_round(rows, models, margins=MARGINS, plan_age=PLAN_AGE, put_back=PUT_BAC
         one_press_counts(rows, requests, responses, m, put_back)
     step_gaps(rows, m)
     undone(rows, m, put_back)
+    outcomes(rows, m)
     return main
 
 
@@ -507,6 +579,22 @@ def summary(m, margins=MARGINS):
                             'ended': dict(m['one_press_ends']), 'swap_backs': m['one_press_swap_backs'],
                             'full_swaps': m['one_press_full_swaps'],
                             'take_or_chop': {k: m['one_press_take_or_chop'][k] for k in ('took', 'chopped', 'other')}}
+    if m['summary_rounds'] or m['no_summary_rounds']:
+        n = m['summary_rounds']
+        out['outcomes'] = {'rounds': n, 'rounds_without_summary': m['no_summary_rounds'],
+                           'reached_target': m['reached_target'], 'money_per_round': m['money'],
+                           'money_mean': round(sum(m['money']) / len(m['money']), 1) if m['money'] else None,
+                           **{key: m['outcome'][key] for key in ('served', 'expired', 'unresolved_at_close', 'burns', 'fires')},
+                           **({'burns_fires_unknown': m['outcome']['burns_fires_unknown']} if m['outcome']['burns_fires_unknown'] else {}),
+                           'model_errors': m['model_errors'], 'model_calls': m['model_calls']}
+        out['work'] = {category: {**{who: m['work'][category][who] for who in CHEFS},
+                                  'jeff_share': share(m['work'][category]['jeff'], sum(m['work'][category].values()))}
+                       for category in WORK_CATEGORIES if sum(m['work'][category].values())}
+        out['contribution'] = {key: {who: round(sum(v) / len(v), 3) for who in CHEFS
+                                     if (v := m['shares'].get(f'{key}:{who}'))}
+                               for key in ('standard_share', 'delay_seconds', 'idle_seconds')
+                               if any(m['shares'].get(f'{key}:{who}') for who in CHEFS)}
+        out['wasted'] = {who: dict(sorted(m['wasted'][who].items())) for who in CHEFS if m['wasted'][who]}
     if m['gaps']:
         out['step_gaps'] = {policy: gap_summary(g) for policy, g in sorted(m['gaps'].items())}
     return out
