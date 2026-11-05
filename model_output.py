@@ -14,8 +14,8 @@ def zhipu_system(payload):
     if 'sprint' in questions:
         properties['sprint'] = {'type': 'boolean'}
         required.append('sprint')
-    from harness import plan_questions
-    for question in plan_questions(payload):
+    from harness import choice_questions
+    for question in choice_questions(payload):
         properties[question] = {'type': 'string', 'enum': list(questions[question]['criteria'])}
         required.append(question)
     schema = {'type': 'object', 'properties': properties, 'required': required,
@@ -31,6 +31,7 @@ def zhipu_system(payload):
         'When questions.sprint is absent, omit sprint. '
         + ('Each question whose name starts with plan_ is a field whose value is one of its keys. '
            if any(q.startswith('plan_') for q in questions) else '')
+        + ('questions.put_where is a field whose value is one of its keys. ' if 'put_where' in questions else '')
         + 'Do not explain or add other fields. '
         'JSON Schema: ' + json.dumps(schema, ensure_ascii=False, separators=(',', ':')))
 

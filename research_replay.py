@@ -113,6 +113,6 @@ def rebuild_requests(record):
             continue
         memory = memory_context(False, []) if data['memory_input'] == 'empty_placeholder' else NO_MEMORY
         payload = compose_payload(client, k, k.snapshot(), k.actions('jeff'), data['recent_decisions'],
-                                  data['player_communication'], memory, data.get('jeff_plan'))
+                                  data['player_communication'], memory, data.get('jeff_plan'), data.get('one_press'))
         yield {'request_id': row['request_id'], 'seq': row['seq'], 'rebuilt': payload,
                'status': 'verified' if cc.sha256(payload) == data['payload_sha256'] else 'diverged'}

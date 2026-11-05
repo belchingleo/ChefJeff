@@ -115,8 +115,8 @@ def chat_answer(raw, payload, provider='zhipu'):
         if not isinstance(content, str):
             raise ValueError()
         answer = json.loads(re.sub(r'\s*```$', '', re.sub(r'^```(?:json)?\s*', '', content.strip())))
-        from harness import plan_answer, plan_questions
-        if (not isinstance(answer, dict) or set(answer) - {'choice', 'sprint', *plan_questions(payload)}
+        from harness import choice_answer, choice_questions
+        if (not isinstance(answer, dict) or set(answer) - {'choice', 'sprint', *choice_questions(payload)}
                 or not isinstance(answer.get('choice'), str)
                 or answer['choice'] not in payload['questions']['next_action']['criteria']
                 or ('sprint' in answer and type(answer['sprint']) is not bool)):
@@ -127,7 +127,7 @@ def chat_answer(raw, payload, provider='zhipu'):
         if any(type(n) is not int or not 0 <= n <= 10000000 for n in counts.values()):
             raise ValueError()
         return {'choice': answer['choice'], 'sprint': answer.get('sprint') is True, 'usage': counts,
-                **plan_answer(answer, payload)}
+                **choice_answer(answer, payload)}
     except (ValueError, TypeError, KeyError, IndexError, AttributeError):
         raise ForwardError(502, model['name'] + ' 回复格式或动作无效，本次未执行。') from None
 

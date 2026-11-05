@@ -9,6 +9,7 @@ import tempfile
 import time
 from pathlib import Path
 
+import one_press
 import research_replay
 from research_record import validate_record
 from scripts.check_research_record import main as check_cli
@@ -179,6 +180,42 @@ class ReplayTests(paths.SavePathTests):
             self.assertIn('plan_step_1', request['rebuilt']['questions'])
             self.assertNotIn('plan_keep', request['rebuilt']['questions'])
         self.assertEqual(requests[2]['rebuilt']['state']['plan_rules_version'], 'rolling-v3')
+
+    def test_a_round_with_one_press_keeps_the_condition_and_replays_exactly(self):
+        for name in one_press.NAMES:
+            self.assertEqual(self.command('one-press', name=name, on=True)[0], 200)
+        receipt = self.begin_manual_relay()
+        initial = self.game.store.download(receipt['id'], receipt['deletion_token'])
+        condition = {'put_then_take': True, 'wash_from_returns': True, 'version': one_press.VERSION}
+        self.assertEqual(initial['conditions']['one_press'], condition)
+        with self.game.lock:                                    # the human leaves beef on a board
+            k = self.game.k
+            for chosen in (lambda a: a.key == 'fetch', lambda a: a.kind == 'put_board'):
+                k.start('human', next(a for a in k.actions('human') if chosen(a)))
+                while k.chefs['human'].job:
+                    k.advance(.05)
+            board = next(key for key, station in k.stations.items() if station.food is not None and key.startswith('b'))
+        self.assertEqual(self.answer_with(choice=lambda criteria, _: 'fetch')[0], 200)
+        with self.game.lock:
+            while self.game.k.chefs['jeff'].job:
+                self.game.k.advance(.05)
+        where = lambda criteria, _: {'put_where': next(key for key in criteria if key.startswith('put counter'))}
+        self.assertEqual(self.answer_with(choice=lambda criteria, _: 'put then take ' + board, plan=where)[0], 200)
+        self.natural_end()
+        self.assertEqual(self.contribute()[0], 200)
+        record = self.game.store.download(receipt['id'], receipt['deletion_token'])
+        validate_record(record)
+        self.assertEqual(record['conditions']['one_press'], condition)
+        flags = [e['payload']['one_press'] for e in record['events'] if e['type'] == 'ai_request']
+        self.assertEqual(flags[0], {'put_then_take': True, 'wash_from_returns': True})
+        started = [e['payload']['one_press_start'] for e in record['events'] if 'one_press_start' in e['payload']]
+        self.assertEqual([(s['first']['key'], s['fallback']) for s in started], [(started[0]['first']['key'], False)])
+        self.assertTrue(started[0]['first']['key'].startswith('put counter'))
+        requests = list(research_replay.rebuild_requests(record))
+        self.assertEqual({r['status'] for r in requests}, {'verified'})
+        asked = [r for r in requests if 'put_where' in r['rebuilt']['questions']]
+        self.assertTrue(asked and 'put then take ' + board in asked[0]['rebuilt']['questions']['next_action']['criteria'])
+        self.assertEqual(research_replay.check(record)['replay'], 'verified')
 
     def test_a_tampered_record_is_reported_as_diverged(self):
         receipt = self.play()
