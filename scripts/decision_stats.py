@@ -44,7 +44,8 @@ For each model it counts:
 - one_press: rounds with a one-press switch on (one_press.py) are counted apart, under the model's name
   followed by ` [one-press]`, so every count above compares them with the same model's rounds with both
   switches off; `one_press_rounds` at the top says how many there were. Their `one_press` section gives
-  the switches the rounds had, how often each one-press option was offered and chosen, how many choices
+  the switches the rounds had, the version (`one-press-v1`: put then take and wash from the plate return;
+  `one-press-v2` adds put then chop and put then wash), how often each kind of one-press option was offered and chosen, how many choices
   started, how often put_where fell back to the first listed put place, and how the chains ended
   (finished, step_not_possible, replaced, ...; research records do not keep the end, so it reads
   `not_recorded` there). `swap_backs` counts put-then-take choices that, within --put-back game seconds of
@@ -68,7 +69,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from harness import PLAN_RULES_VERSION  # noqa: E402
 from research_record import SCHEMA as RECORD_SCHEMA  # noqa: E402
 
-VERSION = 'decision-stats-8'
+VERSION = 'decision-stats-9'
 MARGINS = (0.05, 0.1)
 PLAN_AGE = 5.0
 PUT_BACK = 10.0
@@ -194,11 +195,13 @@ def new_model():
             'round_trip_routes': Counter(), 'walked_to': Counter(),
             'one_press_rounds': 0, 'one_press_switches': Counter(), 'one_press_offered': Counter(),
             'one_press_chosen': Counter(), 'one_press_started': 0, 'one_press_fallback': 0, 'one_press_ends': Counter(),
-            'one_press_swap_backs': 0, 'one_press_full_swaps': 0}
+            'one_press_swap_backs': 0, 'one_press_full_swaps': 0, 'one_press_versions': Counter()}
 
 
-# One-press option keys (one_press.py) by the switch that offers them.
-ONE_PRESS_KEYS = (('put_then_take', 'put then take '), ('wash_from_returns', 'wash from '))
+# One-press option keys (one_press.py) by their kind, and the switches that offer them.
+ONE_PRESS_KEYS = (('put_then_take', 'put then take '), ('put_then_chop', 'put then chop '), ('put_then_wash', 'put then wash '),
+                  ('wash_from_returns', 'wash from '))
+ONE_PRESS_SWITCHES = ('put_then_take', 'wash_from_returns')
 ONE_PRESS_SUFFIX = ' [one-press]'
 
 
@@ -211,7 +214,7 @@ def one_press_switches(rows):
     start = rows[0] if rows and rows[0].get('kind') == 'start' else {}
     flags = start.get('one_press') or next((r['one_press'] for r in rows if r.get('kind') == 'ai_request'
                                             and isinstance(r.get('one_press'), dict)), None)
-    on = tuple(name for name, _ in ONE_PRESS_KEYS if isinstance(flags, dict) and flags.get(name) is True)
+    on = tuple(name for name in ONE_PRESS_SWITCHES if isinstance(flags, dict) and flags.get(name) is True)
     return on or None
 
 
@@ -355,6 +358,8 @@ def add_round(rows, models, margins=MARGINS, plan_age=PLAN_AGE, put_back=PUT_BAC
     if switches:
         m['one_press_rounds'] += 1
         m['one_press_switches']['+'.join(switches)] += 1
+        start = rows[0] if rows[0].get('kind') == 'start' else {}
+        m['one_press_versions'][str((start.get('one_press') or {}).get('version') or 'not_recorded')] += 1
         one_press_counts(rows, requests, responses, m, put_back)
     step_gaps(rows, m)
     undone(rows, m, put_back)
@@ -481,6 +486,7 @@ def summary(m, margins=MARGINS):
                        'unsure_with_plan': m['unsure_with_plan']}
     if m['one_press_rounds']:
         out['one_press'] = {'rounds': m['one_press_rounds'], 'switches': dict(m['one_press_switches']),
+                            'versions': dict(m['one_press_versions']),
                             'offered_in_requests': dict(m['one_press_offered']), 'chosen': dict(m['one_press_chosen']),
                             'started': m['one_press_started'], 'put_where_fallback': m['one_press_fallback'],
                             'ended': dict(m['one_press_ends']), 'swap_backs': m['one_press_swap_backs'],

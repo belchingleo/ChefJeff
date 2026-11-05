@@ -4,6 +4,9 @@ thinking, offered as one choice and carried out as the same ordinary steps, one 
 - put then take <station>: Jeff holds an item and another item lies on <station> that he could take with empty
   hands, while no other listed action is at <station>. He puts the held item where questions.put_where says
   (one of the put places the request already lists), then takes the item from <station>.
+- put then chop <board> and put then wash <sink>: the same, for the work the engine lets him do there only with
+  empty hands (chopping what lies on the board, washing the dirty plate in the sink): he puts the held item
+  where put_where says, then chops or washes. All three are behind the put_then_take switch.
 - wash from <plate return>: a dirty plate is on the plate return, the sink is empty and not burning. Jeff puts
   down what he holds where put_where says (if he holds something), takes the dirty plate, puts it in the sink
   and washes it.
@@ -16,21 +19,24 @@ from __future__ import annotations
 
 from kitchen import Action
 
-VERSION = 'one-press-v1'
+VERSION = 'one-press-v2'   # v1: put then take and wash from the plate return only
 NAMES = ('put_then_take', 'wash_from_returns')
-KINDS = ('put_then_take', 'wash_from_returns')
+KINDS = ('put_then_take', 'put_then_chop', 'put_then_wash', 'wash_from_returns')
 PUT_WHERE = 'put_where'
 PUT_THEN_TAKE = 'put then take '
+# Work at a station the engine lists only with empty hands, offered after a put: kind -> (option kind, key prefix).
+PUT_THEN_WORK = {'chop': ('put_then_chop', 'put then chop '), 'wash': ('put_then_wash', 'put then wash ')}
 # What takes the item lying on a station with empty hands (the engine's own kinds).
 TAKES = ('take_board', 'take_counter', 'take_return', 'take_sink', 'take_plate', 'lift_pot')
 # Where a held item can be put down: the put places a request lists.
 PLACES = ('put_counter', 'put_board', 'put_tool', 'drop')
-RULE = ('Two actions save presses. "put then take <station>" puts the item you hold where questions.put_where says, then takes '
-        'the item lying on that station. "wash from <plate return>" puts down what you hold where questions.put_where says (if '
+RULE = ('Some actions save presses. "put then take <station>" puts the item you hold where questions.put_where says, then takes '
+        'the item lying on that station; "put then chop <board>" and "put then wash <sink>" put it there likewise, then chop what '
+        'lies on the board or wash the dirty plate in the sink. "wash from <plate return>" puts down what you hold where questions.put_where says (if '
         'you hold something), takes the dirty plate from the plate return, puts it in the sink and washes it. Each step follows '
         'the usual rules, as if you had chosen it; a step that cannot be done when it comes ends the action, and another '
         'action you choose meanwhile replaces it. questions.put_where lists the put places of next_action and is used only by '
-        'these two actions.')
+        'these actions.')
 
 
 def flags(value):
@@ -81,6 +87,19 @@ def options(kitchen, who, actions, value):
             label = (f'先把手中的{kitchen.food_name(held)}放到 put_where 选的位置，'
                      f'再从{kitchen.stations[target].name}拿起{kitchen.food_name(food)}')
             out.append(Action(PUT_THEN_TAKE + target, label, 'put_then_take', target))
+        worked = set()
+        for work in empty:
+            target = work.target
+            if work.kind not in PUT_THEN_WORK or target in acted or (work.kind, target) in worked or target not in kitchen.stations:
+                continue
+            food = kitchen.stations[target].food
+            if food is None:
+                continue
+            worked.add((work.kind, target))
+            kind, prefix = PUT_THEN_WORK[work.kind]
+            name, item = kitchen.stations[target].name, kitchen.food_name(food)
+            then = f'再到{name}切{item}' if work.kind == 'chop' else f'再到{name}洗碗'
+            out.append(Action(prefix + target, f'先把手中的{kitchen.food_name(held)}放到 put_where 选的位置，{then}', kind, target))
     if on['wash_from_returns']:
         returns = getattr(kitchen, 'returns', None)
         sink_key = getattr(kitchen, 'sink', None)
@@ -100,6 +119,9 @@ def steps(action, kitchen):
     """The steps after the first put (or, with empty hands, all of them), as (kinds, target) to find among the listed actions."""
     if action.kind == 'put_then_take':
         return [(TAKES, action.target)]
+    work = next((w for w, (kind, _) in PUT_THEN_WORK.items() if kind == action.kind), None)
+    if work:
+        return [((work,), action.target)]
     sink = getattr(kitchen, 'sink', None)
     return [(('take_return',), action.target), (('put_sink',), sink), (('wash',), sink)]
 

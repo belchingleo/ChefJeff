@@ -65,8 +65,10 @@ class OptionTests(unittest.TestCase):
         k = bread_and_lettuce()
         actions = k.actions('jeff')
         options = one_press.options(k, 'jeff', actions, BOTH)
-        self.assertEqual([(o.key, o.kind, o.target) for o in options], [('put then take b1', 'put_then_take', 'b1')])
+        self.assertEqual([(o.key, o.kind, o.target) for o in options],
+                         [('put then take b1', 'put_then_take', 'b1'), ('put then chop b1', 'put_then_chop', 'b1')])
         self.assertEqual(options[0].label, '先把手中的面包放到 put_where 选的位置，再从案板 1拿起生菜')
+        self.assertEqual(options[1].label, '先把手中的面包放到 put_where 选的位置，再到案板 1切生菜')
         self.assertEqual(one_press.options(k, 'jeff', actions, None), [])                     # switches off
         self.assertEqual(one_press.options(k, 'jeff', actions, {'wash_from_returns': True}), [])
         self.assertEqual(k.chefs['jeff'].hand.ingredient, 'bread')                            # the hands are as they were
@@ -94,12 +96,25 @@ class OptionTests(unittest.TestCase):
         empty.stations[empty.sink].food = Food('D8', 'dirty_plate')                           # the sink is taken: no wash
         self.assertEqual(one_press.options(empty, 'jeff', empty.actions('jeff'), BOTH), [])
 
+    def test_put_then_chop_and_wash_need_the_work_to_wait_for_empty_hands(self):
+        k = bread_and_lettuce()
+        k.stations['b1'].food.chopped = k.rules.chop_work('lettuce')                         # chopped: nothing left to chop
+        k.stations['b1'].food.stage = 'chopped'
+        self.assertNotIn('put then chop b1', [o.key for o in one_press.options(k, 'jeff', k.actions('jeff'), BOTH)])
+        k.stations[k.sink].food = Food('D8', 'dirty_plate')                                  # a dirty plate already in the sink
+        washes = [o for o in one_press.options(k, 'jeff', k.actions('jeff'), BOTH) if o.kind == 'put_then_wash']
+        self.assertEqual([o.key for o in washes], [f'put then wash {k.sink}'])
+        self.assertEqual(washes[0].label, f'先把手中的面包放到 put_where 选的位置，再到{k.stations[k.sink].name}洗碗')
+        self.assertEqual(one_press.options(k, 'jeff', k.actions('jeff'), {'wash_from_returns': True}), [])   # its own switch
+        self.assertEqual(one_press.steps(washes[0], k), [(('wash',), k.sink)])
+
     def test_the_request_asks_where_only_with_a_one_press_option_and_full_hands(self):
         k = bread_and_lettuce()
         client = SpatialJevClient(k.c, key='x')
         payload = compose_payload(client, k, k.snapshot(), k.actions('jeff'), [], None, NO_MEMORY, None, BOTH)
         criteria = payload['questions']['next_action']['criteria']
         self.assertEqual(criteria['put then take b1'], 'Put the held Bread where put_where says, then take Lettuce from Board 1')
+        self.assertEqual(criteria['put then chop b1'], 'Put the held Bread where put_where says, then chop Lettuce at Board 1')
         self.assertNotIn('go b1', criteria)                    # the one-press option walks there, so the plain walk goes
         places = payload['questions']['put_where']['criteria']
         self.assertTrue(places and all(k2 == 'drop' or k2.startswith('put ') for k2 in places))
@@ -175,6 +190,22 @@ class ChainTests(unittest.TestCase):
         self.assertEqual(self.rows('ai_response')[0]['one_press'], {'first': 'put counter16', 'fallback': False})
         self.assertEqual([(r['choice'], r['reason']) for r in self.rows('one_press_end')], [('put then take b1', 'finished')])
         self.assertEqual(self.rows('ai_request')[0]['one_press'], BOTH)
+
+    def test_put_then_chop_puts_where_he_chose_then_chops(self):
+        k = bread_and_lettuce()
+        self.loop(k, [{'choice': 'put then chop b1', 'put_where': 'put counter16'}])
+        self.run_for(k)
+        self.assertEqual(self.done(k)[-2:], ['put counter16', 'chop b1'])
+        self.assertEqual((k.stations['b1'].food.stage, k.chefs['jeff'].hand), ('chopped', None))
+        self.assertEqual([(r['choice'], r['reason']) for r in self.rows('one_press_end')], [('put then chop b1', 'finished')])
+
+    def test_put_then_wash_puts_where_he_chose_then_washes(self):
+        k = bread_and_lettuce()
+        k.stations[k.sink].food = Food('D8', 'dirty_plate')
+        self.loop(k, [{'choice': f'put then wash {k.sink}', 'put_where': 'put counter16'}])
+        self.run_for(k, polls=120)
+        self.assertEqual(self.done(k)[-2:], ['put counter16', 'wash'])
+        self.assertEqual(k.stations[k.sink].food.stage, 'clean_plate')
 
     def test_a_missing_place_falls_back_to_the_first_listed_put_and_says_so(self):
         k = bread_and_lettuce()
@@ -321,7 +352,7 @@ class StatsTests(unittest.TestCase):
         models = decision_stats.defaultdict(decision_stats.new_model)
         self.assertEqual(decision_stats.add_round(decision_stats.record_rows(record), models), 'not reported [one-press]')
         summary = decision_stats.summary(models['not reported [one-press]'])['one_press']
-        self.assertEqual(summary, {'rounds': 1, 'switches': {'put_then_take': 1}, 'offered_in_requests': {'put_then_take': 1},
+        self.assertEqual(summary, {'rounds': 1, 'switches': {'put_then_take': 1}, 'versions': {one_press.VERSION: 1}, 'offered_in_requests': {'put_then_take': 1},
                                    'chosen': {'put_then_take': 1}, 'started': 1, 'put_where_fallback': 1,
                                    'ended': {'not_recorded': 1}, 'swap_backs': 0, 'full_swaps': 0})
 
@@ -344,6 +375,8 @@ class StatsTests(unittest.TestCase):
         decision_stats.add_round(rows, models)
         summary = decision_stats.summary(models['m [one-press]'])['one_press']
         self.assertEqual((summary['swap_backs'], summary['full_swaps']), (2, 1))
+        self.assertEqual([decision_stats.one_press_kind(k) for k in ('put then chop b1', 'put then wash sink', 'wash from returns')],
+                         ['put_then_chop', 'put_then_wash', 'wash_from_returns'])
 
 if __name__ == '__main__':
     unittest.main()
