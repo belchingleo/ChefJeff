@@ -13,7 +13,7 @@ ChefJeff is a real-time cooking game in which a person and an AI cook together, 
 
 Where to start: [play online](#play-online) · [run it locally](#run-it-locally) · [connect your own model](#jeff-and-model-integration) · [change the configuration](#five-data-models) · [the environment and benchmark](#building-a-humanai-collaboration-environment-and-benchmark)
 
-> Current version: **0.6.0-beta.2**, the second public test release. You need your own model API, and interfaces and analysis rules may still change. We suggest starting with Jev models: they don't play especially well, but they are cheap. Results from other models are welcome.
+> Current version: **0.7.0-beta.1**, the third public test release. You need your own model API, and interfaces and analysis rules may still change. We suggest starting with Jev models: they don't play especially well, but they are cheap. Results from other models are welcome.
 
 ---
 
@@ -61,13 +61,13 @@ ChefJeff plays much like Overcooked: two chefs cook together. The difference is 
 
 You control one chef with the keyboard, experimental desktop controller support or experimental landscape touch controls: walk, fetch ingredients, chop, cook, plate, serve and wash plates. Jeff is the other chef, driven by a large language model, and every few seconds he decides what to do next. You share one kitchen and the same physical rules (walking speed, throwing distance, collisions), but you see the kitchen and act in it in different ways; see [Jeff and model integration](#jeff-and-model-integration).
 
-A round lasts 180 seconds. Orders arrive at regular intervals, each with its own countdown, and an order that expires costs you money. Reaching the target does not end the round early: the kitchen stays open until closing time, and the level is cleared if net revenue at closing meets the target. So once you've reached it, you and Jeff can keep going for more.
+A round lasts 180 seconds. As in Overcooked 2, two orders wait from the start, another comes at regular intervals and one at once whenever fewer than two wait, up to five at a time; so the faster you serve, the sooner the next order comes. Each order has its own countdown: an order that runs out costs you money and stays, its countdown starting again. Reaching the target does not end the round early: the kitchen stays open until closing time, and net revenue at closing earns one star at the target, two at 1.5 times it and three at twice it.
 
 | Level | Menu | What's special | Target |
 | --- | --- | --- | --- |
-| Level 1 · Steak | Steak ¥50 | Practice level: learn to chop, fry, plate and serve | ¥150 |
-| Level 2 · Burger | Burger ¥80 | A long counter splits the kitchen in two, so a lot has to be passed across it | ¥160 |
-| Level 3 · Steak and burger | Steak, burger | Two stoves and three frying pans; both dishes at once | ¥190 |
+| Level 1 · Steak | Steak ¥50 | Practice level: learn to chop, fry, plate and serve | ¥200 |
+| Level 2 · Burger | Burger ¥80 | A long counter splits the kitchen in two, so a lot has to be passed across it | ¥200 |
+| Level 3 · Steak and burger | Steak, burger | Two stoves and three frying pans; both dishes at once | ¥160 |
 
 Working together, you chop, cook, plate and serve between you. Along the way Jeff may pass you dishes, or chop, pass and wash up alongside you. He may also bump you aside to handle something himself, and you can do the same to him.
 If the model isn't doing what you want, press 1–6 to tell Jeff what kind of work you'd like to do, or that he just made a mistake.
@@ -98,7 +98,7 @@ Phones and small touch screens need landscape:
 
 **Desktop controller trial:** Chrome on `localhost` or HTTPS with the Gamepad API can use one `standard`-mapped controller. Press a button if it has not been discovered. Left stick/D-pad moves; A/× taps to interact or holds about 0.3 s with an item to aim and releases to throw; X/□ dashes; B/○ cancels the controller aim; Start/Options starts a ready round (or opens model Settings), pauses or resumes; on the result card Start or A goes on to the next round. Settings, communication and menus still use keyboard/mouse. Interruptions clear controller input; center the stick and release buttons before taking control again, with manual resume after a pause. Real-controller compatibility is unverified; see [device support](docs/device-support.md) and [interaction guide](docs/interaction-guide.md).
 
-After each round the result card stays on the kitchen with one button: **Next level** after a win, **Try again** otherwise (Space, Enter, A/Start or the phone's main button; a short 3·2·1 and the round starts at the same pace). **Round record** opens the full record, which shows how many times you and Jeff each fetched ingredients, chopped, cooked, served and washed plates, and each chef's contribution, delay and idle time (see [records and analysis](#records-and-analysis)).
+After each round the result card stays on the kitchen with the income against the goal and two big buttons, **Try again** and **Next level**; the next level leads after a win (Space, Enter, A/Start or the phone's main button; a short 3·2·1 and the round starts at the same pace). **Round record** opens the full record, which shows how many times you and Jeff each fetched ingredients, chopped, cooked, served and washed plates, and each chef's contribution, delay and idle time (see [records and analysis](#records-and-analysis)).
 
 The game has Chinese and English interfaces, with 8-bit style music and sound effects. A dash starts at 2× speed and eases back to walking over 1 second, ready again when it ends.
 
@@ -144,7 +144,7 @@ To connect your own model, implement two methods, `payload(state, actions)` and 
 
 1. **Round records and replay**: when a round starts, its configuration is frozen and hashed; from then on every step is stored as one event stream, together with the player's inputs. `python3 collaboration_analyzer.py logs/sessions/<round id>` replays the round without calling any model and checks the replay against the original record. Replays are only guaranteed to match within the same version; a round recorded by an older version may replay differently. See [session records](docs/architecture/session-record.md).
 2. **Item history and collaboration analysis**: the engine records whose hands every ingredient, plate and pan has passed through. Using the rules as currently defined, tracing back from each served dish shows how every action contributed to it. On top of this, the round record reports three measures; they are experimental, and feedback on whether they look right is welcome:
-   - **Contribution**: each chef's share of the standard time of the served dishes. Standard time = the configured work of each step (3 s to chop, 0.15 s to pick up or put down, and so on) + the shortest walk needed to carry things. Cooking counts for no one, and neither do dawdling or detours.
+   - **Contribution**: each chef's share of the standard time of the served dishes. Standard time = the configured work of each step (2.2 s to chop, 2 s to wash a plate, and so on; picking up and putting down are instant) + the shortest walk needed to carry things. Cooking counts for no one, and neither do dawdling or detours.
    - **Delay**: how many seconds later than ideal each dish went out. Ideal means the same steps at standard time, each started as soon as its inputs are there (without taking a chef away from other useful work). The delay is split by how much each chef would have saved by working ideally (Shapley values), so shared slowness is divided.
    - **Idle**: time on actions that were never used (such as swapping items back and forth) and waiting. The player's own walking cannot be told apart, so the player's idle time is a lower bound.
 
@@ -222,13 +222,13 @@ Each scenario is a single map:
 - **Metrics**: outcomes (net revenue, level cleared) and process (division of labour, contribution, delay, idle time, how many decisions were accepted and completed, response time), reported separately.
 - **Round collection**: rounds contributed by the community, with different players, models, maps and team setups.
 
-### Creative workshop (planned; the parts already in place are listed below)
+### Creative workshop (the level editor is here; the rest is planned)
 
 We want players to design their own levels, and to get a playable, difficulty-calibrated new level from a single sentence. The creative workshop will offer three ways to do it:
 
 - **Generate with a coding agent**: in tools such as Codex or Claude Code, a level-generation skill turns a description into JSON files for the map, recipes, orders and level, which you then import into the workshop.
 - **Use your own model in the workshop**: enter your own API, as you do for Jeff, and generate from a description right in the workshop.
-- **Edit visually**: place and change things directly in a map editor and a recipe editor. Small changes cost no tokens, and levels become easier to tweak and play again.
+- **Edit visually** (available now): **Create a level** on the start card or the result screen opens the level editor. Set the room size, walls, stations and dishes; the server checks the design and calibrates its target before you play it, and My levels keeps your levels in this browser. Small changes cost no tokens, and levels become easier to tweak and play again.
 
 All three produce the same data, and every imported level goes through the same validation and calibration before it can be played. Already in place:
 
@@ -242,6 +242,7 @@ All three produce the same data, and every imported level goes through the same 
 - **0.5.9-alpha** (2026-09-27): the first playable version. Three maps, with the rules written directly in the code.
 - **0.6.0-beta.1** (2026-10-01): the first public test release. Now driven by five data models, with one set of rules for all three levels (180-second rounds, judged on net revenue at closing); the old rules are gone. Adds round records and replay, behaviour fingerprints, collaboration analysis and the round record, along with reworked controls, music and sound effects.
 - **0.6.0-beta.2** (2026-10-20): controls and rules aligned with Overcooked 2 for the public test: dash and knockback, quicker chopping, standing at the counter line, aimed throws that land on boards and in pans, fire that spreads to every neighbour, sounds only for actions that happen. Jeff now has exactly the player's abilities. Maps are built from station coordinates alone; consent to share data comes before the first round.
+- **0.7.0-beta.1** (2026-11-06): the third public test release. A level editor for building and playing your own kitchens; rounds rated in one to three stars; timings, station choice, orders and fire follow Overcooked 2, with orders that keep coming and expired orders that start again; one-press options so Jeff can put down and take in one step; new contribution terms (v8, kept for at most two years), and free models need consent to contribute.
 
 See the [changelog](CHANGELOG.md) for everything.
 

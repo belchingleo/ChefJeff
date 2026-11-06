@@ -6,6 +6,8 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 
 ## Unreleased
 
+## 0.7.0-beta.1 — 2026-11-06 · third public test release
+
 ### Start, results and settings
 - Rounds are rated in stars, as in Overcooked 2: the target earns one star, 1.5 times it two and twice it three (Level 2: ¥160, ¥240, ¥320), so earning more than the target now counts. The level plate shows the three scores before a round, the level list shows them with the best round's stars (★★☆), and the result shows the stars earned and what the next one still needs; the HUD is unchanged. Jeff is told to earn as much net revenue as he can with the same three scores, and his rules move to `rules-v10`. The pixel font gains ☆; every other glyph is unchanged.
 - The start and result screens are one shop card. A level plate shows the dish, level and goal; ◀ ▶ change level and the title row (第 N 关 · dish ▾) opens all levels. Below it, pick an AI teammate from two entries: free models (no API key, listed by the server) or a custom model with your own key.
@@ -199,6 +201,8 @@ First private release: a local browser game with three playable maps and player-
 ## 更新记录
 
 ## 未发布
+
+## 0.7.0-beta.1 — 2026-11-06 · 第三个公开测试版
 
 ### 开局、结算与设置
 - 和《胡闹厨房 2》一样按星级评价：达到目标金额得 1 星，1.5 倍得 2 星，2 倍得 3 星（第二关：¥160、¥240、¥320），超过目标多赚的部分也算数了。开局前关卡牌上显示三档分数，全部关卡列表里显示三档分数和最佳一局的星数（★★☆），结算显示得了几颗星、下一颗还差多少；对局中的收入栏不变。Jeff 的目标改为关店时净收入尽量高，拿到同样的三档分数，规则升到 `rules-v10`。像素字体加了 ☆，其他字形不变。
