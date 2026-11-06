@@ -67,6 +67,11 @@ For each model it counts:
   carry the summary in their last row; a research record is replayed from its engine inputs to rebuild
   it (a record without them counts in `rounds_without_summary`).
 
+With --by-round the report also lists every counted round on its own (`by_round`, ordered by start time):
+its name (the journal file, or the record's round id), start time, level, group, one-press version, the
+outcome numbers above, walk round trips, each chef's work by kind and, with one-press, the options chosen,
+full swaps and take_or_chop, computed exactly as for the groups.
+
 Rates are per game minute. A round counts for the model that answered most of its requests.
 
 The report names models: keep it private like logs/, and do not publish per-model results.
@@ -87,7 +92,7 @@ from round_summary import CATEGORIES, CHEFS  # noqa: E402
 
 WORK_CATEGORIES = tuple(name for name, _ in CATEGORIES)
 
-VERSION = 'decision-stats-11'
+VERSION = 'decision-stats-12'
 MARGINS = (0.05, 0.1)
 PLAN_AGE = 5.0
 PUT_BACK = 10.0
@@ -619,7 +624,33 @@ def gap_summary(g):
             'share_of_round_wall_time': share(sum(g['total']), g['wall_seconds'])}
 
 
-def report(paths, margins=MARGINS, plan_age=PLAN_AGE, put_back=PUT_BACK):
+def round_row(label, rows, margins=MARGINS, plan_age=PLAN_AGE, put_back=PUT_BACK):
+    """One round on its own: counted as a group of one, then the numbers that tell rounds apart."""
+    alone = defaultdict(new_model)
+    group = add_round(rows, alone, margins, plan_age, put_back)
+    s = summary(alone[group], margins)
+    start = rows[0] if rows and rows[0].get('kind') == 'start' else {}
+    end = next((r for r in reversed(rows) if r.get('kind') == 'end'), {})
+    level = (end.get('round_summary') or {}).get('level_id') or ((start.get('state') or {}).get('kitchen') or {}).get('level_id')
+    outcome = s.get('outcomes') or {}
+    pressed = s.get('one_press')
+    return {'round': label, 'started': start.get('wall_time'), 'level': level, 'group': group,
+            'one_press': next(iter(pressed['versions']), None) if pressed else None,
+            'game_minutes': s['game_minutes'],
+            # Without an end-of-round summary (an unfinished journal, a record with no inputs) its numbers are unknown.
+            'reached_target': bool(outcome['reached_target']) if outcome.get('rounds') else None,
+            **{key: outcome.get(key) if outcome.get('rounds') else None
+               for key in ('served', 'expired', 'unresolved_at_close', 'burns', 'fires', 'model_calls')},
+            'model_errors': outcome.get('model_errors'),
+            'money': (outcome.get('money_per_round') or [None])[0],
+            'walk_round_trips': (s.get('undone') or {}).get('walk_round_trips'),
+            'walks_share': (s.get('undone') or {}).get('walks_share'),
+            'work': {category: {who: counts[who] for who in CHEFS} for category, counts in (s.get('work') or {}).items()},
+            **({'one_press_chosen': pressed['chosen'], 'full_swaps': pressed['full_swaps'],
+                'take_or_chop': pressed['take_or_chop']} if pressed else {})}
+
+
+def report(paths, margins=MARGINS, plan_age=PLAN_AGE, put_back=PUT_BACK, by_round=False):
     files = []
     for path in map(Path, paths):
         files += (sorted(p for pattern in ('*.jsonl', '*.cjresearch.zip', '*.json') for p in path.glob(pattern))
@@ -635,10 +666,10 @@ def report(paths, margins=MARGINS, plan_age=PLAN_AGE, put_back=PUT_BACK):
             continue
         unreadable += bad
         unsupported += legacy
-        for rows in rounds:
+        for index, rows in enumerate(rounds):
             identifier = rows[0].get('round_id') if rows else None
             if identifier is None:
-                journals.append(rows)
+                journals.append((path.stem if len(rounds) == 1 else f'{path.stem}#{index + 1}', rows))
             elif identifier in records:
                 # Overlapping packages hold one round twice; count it once, from its fullest copy.
                 duplicates += 1
@@ -646,17 +677,21 @@ def report(paths, margins=MARGINS, plan_age=PLAN_AGE, put_back=PUT_BACK):
                     records[identifier] = rows
             else:
                 records[identifier] = rows
-    for rows in journals + list(records.values()):
+    detail = []
+    for label, rows in journals + [(identifier, rows) for identifier, rows in records.items()]:
         if add_round(rows, models, margins, plan_age, put_back) is None:
             skipped += 1
-        else:
-            counted += 1
+            continue
+        counted += 1
+        if by_round:
+            detail.append(round_row(label, rows, margins, plan_age, put_back))
     return {'version': VERSION, 'files': len(files), 'refused_files': refused, 'rounds': counted,
             'duplicate_rounds_dropped': duplicates,
             'rounds_without_model_answers': skipped, 'unsupported_records': unsupported,
             'unreadable_lines': unreadable, 'margins': list(margins), 'plan_age_seconds': plan_age, 'put_back_seconds': put_back,
             'one_press_rounds': sum(m['one_press_rounds'] for m in models.values()),
-            'models': {name: summary(m, margins) for name, m in sorted(models.items()) if m['decisions']}}
+            'models': {name: summary(m, margins) for name, m in sorted(models.items()) if m['decisions']},
+            **({'by_round': sorted(detail, key=lambda r: (str(r['started'] or ''), r['round']))} if by_round else {})}
 
 
 def main(argv=None):
@@ -665,9 +700,10 @@ def main(argv=None):
     parser.add_argument('--margins', type=float, nargs='+', default=list(MARGINS), help='unsure below these margins')
     parser.add_argument('--plan-age', type=float, default=PLAN_AGE, help='seconds a plan has held before unsure counts')
     parser.add_argument('--put-back', type=float, default=PUT_BACK, help='game seconds within which a take undoes a put')
+    parser.add_argument('--by-round', action='store_true', help='also list every counted round on its own')
     parser.add_argument('--out', help='write the JSON report here instead of printing it')
     args = parser.parse_args(argv)
-    result = report(args.paths, tuple(sorted(args.margins)), args.plan_age, args.put_back)
+    result = report(args.paths, tuple(sorted(args.margins)), args.plan_age, args.put_back, args.by_round)
     text = json.dumps(result, ensure_ascii=False, indent=2)
     if args.out:
         Path(args.out).write_text(text + '\n', encoding='utf-8')

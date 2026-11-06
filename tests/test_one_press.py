@@ -403,6 +403,18 @@ class StatsTests(unittest.TestCase):
                          {r['category']: r['counts'] for r in summary['rows'] if any(r['counts'].values())})
         self.assertEqual(on['contribution']['idle_seconds'], summary['contribution']['idle_seconds'])
         self.assertEqual(off['outcomes']['rounds'], 1)
+        # --by-round: each round on its own, with the same numbers as its group of one.
+        detail = decision_stats.report([Path(folder.name, 'logs')], by_round=True)['by_round']
+        self.assertEqual([r['group'] for r in detail], ['test-only', 'test-only [one-press]'])    # off was played first
+        mine = detail[1]
+        self.assertEqual(mine['round'], next(p.stem for p, r in zip(journals, rounds) if r is rows))
+        self.assertEqual((mine['level'], mine['one_press'], mine['money'], mine['reached_target']),
+                         ('level-2', one_press.VERSION, summary['result']['money'], summary['result']['reached_target']))
+        self.assertEqual(mine['model_calls'], end['ai_calls'])
+        self.assertEqual(mine['one_press_chosen'], pressed['chosen'])
+        self.assertEqual(mine['work'], {c: {w: v for w, v in counts.items() if w != 'jeff_share'} for c, counts in on['work'].items()})
+        self.assertEqual((detail[0]['one_press'], 'one_press_chosen' in detail[0]), (None, False))
+        self.assertNotIn('by_round', result)                                          # only when asked
         self.assertEqual(on['wasted']['jeff'].get('unused', 0), summary['not_displayed']['wasted']['jeff']['unused'])
         self.assertLessEqual(pressed['swap_backs'], pressed['chosen'].get('put_then_take', 0))
         # hands_full_check and the other journal checks can take either group alone.

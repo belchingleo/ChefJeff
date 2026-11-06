@@ -404,6 +404,14 @@ class ResearchRecordTests(paths.SavePathTests):
         shown = self.game.round_record()
         self.assertEqual(m['outcomes']['money_per_round'], [shown['result']['money']])
         self.assertEqual(m['outcomes']['rounds_without_summary'], 0)
+        with tempfile.TemporaryDirectory() as folder:          # --by-round names a record by its round id
+            download = Path(folder, 'round.json')
+            download.write_text(json.dumps({'record': record}))
+            out = Path(folder, 'report.json')
+            self.assertEqual(main([str(download), '--by-round', '--out', str(out)]), 0)
+            (row,) = json.loads(out.read_text())['by_round']
+        self.assertEqual((row['round'], row['group'], row['money']), (record['round_id'], 'test/decider [one-press]',
+                                                                       shown['result']['money']))
         self.assertEqual({c: {w: v for w, v in counts.items() if w != 'jeff_share'} for c, counts in m['work'].items()},
                          {r['category']: r['counts'] for r in shown['rows'] if any(r['counts'].values())})
         self.assertEqual(m['decisions']['answered'], 3)
