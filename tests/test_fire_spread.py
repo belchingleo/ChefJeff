@@ -143,7 +143,7 @@ class FireSpreadTests(unittest.TestCase):
         import json,re
         text=json.dumps(payload,ensure_ascii=False)
         self.assertNotRegex(text,r'[\u3400-\u9fff]')
-        self.assertIn('5 simultaneously burning',text)
+        self.assertIn('5 workstations burning at once lose the round',text)
         self.assertIn('fire_heat',text)
 
 if __name__=='__main__':unittest.main()

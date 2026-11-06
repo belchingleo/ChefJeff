@@ -22,7 +22,9 @@ from cooperation_memory import PAST_EPISODES_RULE
 # v9: boards and ingredient-source tops hold any one object, as counters do; a source with something on top gives no ingredient.
 # v10: the objective is as much net revenue as possible, rated in stars (the target, 1.5 and 2 times it).
 # v10 also: an ingredient part-way through chopping cannot be taken off its board (Overcooked 2), for both chefs.
-AGENT_RULES_VERSION = "rules-v11"
+# v11: orders arrive as in Overcooked 2 (two from the start, top-up, at most five; an expired order restarts).
+# v12: the fire rule is short and in time order: food burns, its stove catches fire at once, then heat, spray, loss.
+AGENT_RULES_VERSION = "rules-v12"
 
 
 # How a recipe component's required state reads in model input: "tomato (chopped)".
@@ -185,7 +187,14 @@ def rules(state, spatial=False, per_area=2):
                    'Held items can be put down beside the current station using drop, taking timing.handling seconds, without a penalty or spoilage. ground lists all floor items and locations. Either chef can walk there and use pickup <item_id>; handling time is added to travel. Items retain their state and preparation progress; food on the floor is not heated. Cooked food must remain in a pot or on a plate. Dropping is different from discard at a bin: dropped items remain usable. Decide when to put down or pick up items.'),
         "timing": timing,
         "interrupt": 'continue keeps the current task; another action interrupts it. Chopping progress is preserved. Cooking in a pot does not stop when a chef switches tasks. Decide whether to continue or interrupt.',
-        "fire": f'Burnt food cannot be restored. Removing the whole pot stops heating. First take extinguisher from its rack, or pickup E1 from the floor; extinguish sprays it, and {t["extinguish"]:g} seconds of spraying in total put a fire out. Spraying lowers the fire_strength of that station (1 full, 0 out), which stays if you stop; after 2 seconds without spraying a fire grows back to full over 5 seconds. Both chefs follow the same rule. To reuse the pot, lift it (take pot pN) and empty the burnt food at a bin (discard). The extinguisher occupies your hands; a previously held item is automatically put on the floor. Return it with put extinguisher or drop it. There is one extinguisher, usable by either chef; it cannot be discarded or served. Extinguishing stops heating. Each burning stove, board or counter heats every combustible workstation in the eight cells around it, diagonals included: next to one burning workstation it ignites after {fire["flammability_seconds"]:g} game seconds, and several burning neighbours add up. The fire_heat of each station (0 to 1) shows how close it is to igniting; without a burning neighbour the heat drains again after a short delay, and a workstation just extinguished takes no heat for a moment. Fire never jumps across a floor gap or wall. Until the fire is out, a burning ingredient source cannot be used and nobody can chop on a burning board; but what rests on a burning board, counter, ingredient source or stove can still be taken and items put or plated there: a pan can be lifted off a burning stove, put back, or filled when empty. A burning stove does not heat; once it is put out, food in its pan that is not burnt cooks on. The same for both chefs. {fire["loss_threshold"]} simultaneously burning workstations immediately lose the round. Extinguish any burning workstation with the same extinguisher. An extinguished workstation can reignite from an adjacent fire; removing food does not remove a cabinet fire. Check kitchen.fire_safety and each station fire_neighbors and fire_heat. The extinguisher is a movable object.',
+        "fire": (f'Cooked food burns timing.ready_to_burn seconds after it is ready, and its stove catches fire at that moment. '
+                 f'A fire heats every combustible workstation in the eight cells around it; next to one fire it ignites after '
+                 f'{fire["flammability_seconds"]:g} seconds, more fires add up, and fire_heat (0 to 1) shows how close it is. '
+                 'Fire never crosses a floor gap or wall. To put a fire out, take the extinguisher (it fills your hands; a held '
+                 f'item goes to the floor) and extinguish: {t["extinguish"]:g} seconds of spraying in total. If you stop early, '
+                 'the fire grows back after 2 seconds. While burning, a stove does not heat, a source gives nothing and a board '
+                 'cannot chop, but items there can still be taken, put or plated. Burnt food can be served under the burnt-food '
+                 f'scoring or emptied at a bin. {fire["loss_threshold"]} workstations burning at once lose the round.'),
         "score": score_text(state),
         "visibility": 'Both chefs see the same kitchen state. All available actions are in criteria; legal does not mean useful. Waiting and continuing are allowed. The program does not choose your strategy.' + ((
             ' go X is listed only when no other listed action already walks to X. Empty counters differ only in place, '
