@@ -908,7 +908,7 @@ class SpatialKitchen(Kitchen):
         target = self.drop_cell(who)
         if chef.hand and target is not None and not (chef.job and chef.job.action.kind == 'drop'):
             location = tile_key(target)
-            actions.append(Action('drop', f'把手中物品放到{self.place(location).name}（可捡回、不扣钱）',
+            actions.append(Action('drop', f'把手中物品放到{self.place(location).name}',
                                   'drop', location, (chef.hand.id, location)))
         if self.can_throw(who) and not (chef.job and chef.job.action.kind == 'throw'):
             other = 'jeff' if who == 'human' else 'human'

@@ -66,6 +66,11 @@ For each model it counts:
   the summary keeps but the results page does not show. Local journals
   carry the summary in their last row; a research record is replayed from its engine inputs to rebuild
   it (a record without them counts in `rounds_without_summary`).
+- puts: where each chef's finished put-downs went, by kind of place (counter, board, supply top, floor, ...;
+  from the station types of the round's map), and how many items each picked up from the floor. With
+  one-press, `one_press.put_where_places` gives the same for the first step of the one-press choices that
+  put something down (the place put_where chose), so the two show whether one-press changes where Jeff
+  puts things.
 
 With --by-round the report also lists every counted round on its own (`by_round`, ordered by start time):
 its name (the journal file, or the record's round id), start time, level, group, one-press version, the
@@ -92,7 +97,7 @@ from round_summary import CATEGORIES, CHEFS  # noqa: E402
 
 WORK_CATEGORIES = tuple(name for name, _ in CATEGORIES)
 
-VERSION = 'decision-stats-12'
+VERSION = 'decision-stats-13'
 MARGINS = (0.05, 0.1)
 PLAN_AGE = 5.0
 PUT_BACK = 10.0
@@ -170,7 +175,9 @@ def rebuilt_summary(record):
         k = research_replay.rebuild(record)
     except Exception:       # no engine inputs, or a record this checkout cannot replay
         return {}
-    return {'round_summary': round_summary(k), 'result': k.result()}
+    stations = k.snapshot().get('stations') or {}
+    return {'round_summary': round_summary(k), 'result': k.result(),
+            'stations': {key: {'type': value.get('type')} for key, value in stations.items() if isinstance(value, dict)}}
 
 
 def sources(path):
@@ -235,7 +242,42 @@ def new_model():
             'one_press_take_or_chop': Counter(),
             'summary_rounds': 0, 'no_summary_rounds': 0, 'reached_target': 0, 'money': [], 'outcome': Counter(),
             'model_errors': 0, 'model_calls': 0, 'work': defaultdict(Counter), 'shares': defaultdict(list),
-            'wasted': defaultdict(Counter)}
+            'wasted': defaultdict(Counter), 'puts': defaultdict(Counter), 'put_where_places': Counter()}
+
+
+# Kinds of place for a put-down, by the station type of the map (anything else keeps its type).
+PLACE_KINDS = {'counter': 'counter', 'board': 'board', 'ingredient_source': 'supply'}
+
+
+def station_types(rows):
+    """Station id -> type, from the round's start state (journals) or the replayed kitchen (records)."""
+    start = rows[0] if rows and rows[0].get('kind') == 'start' else {}
+    end = next((r for r in reversed(rows) if r.get('kind') == 'end'), {})
+    stations = (start.get('state') or {}).get('stations') or end.get('stations') or {}
+    return {key: value.get('type') for key, value in stations.items() if isinstance(value, dict)}
+
+
+def place_kind(key, types):
+    """Where a put-down action puts the held item: floor for drop, else the kind of station; None for other actions."""
+    if key == 'drop':
+        return 'floor'
+    if isinstance(key, str) and key.startswith('put ') and not key.startswith(('put then ',)):
+        kind = types.get(key[4:])
+        return PLACE_KINDS.get(kind, kind or 'unknown')
+    return None
+
+
+def puts(rows, m):
+    """Each chef's finished put-downs by kind of place, and pick-ups from the floor."""
+    types = station_types(rows)
+    for r in rows:
+        if r.get('kind') != 'action_done' or r.get('actor') not in CHEFS or not isinstance(r.get('action'), str):
+            continue
+        place = place_kind(r['action'], types)
+        if place:
+            m['puts'][r['actor']][place] += 1
+        elif r['action'].startswith('pickup '):
+            m['puts'][r['actor']]['picked_up_from_floor'] += 1
 
 
 BURNS_AND_FIRES = re.compile(r'糊锅 (\d+)，着火 (\d+)')
@@ -305,6 +347,7 @@ def put_place(key):
 
 def one_press_counts(rows, requests, responses, m, put_back=PUT_BACK):
     """What one-press options a round offered, chose and started, how the chains ended, and the swaps back."""
+    types = station_types(rows)
     for request in requests.values():
         m['one_press_offered'].update({kind for kind in map(one_press_kind, offered(request) or ()) if kind})
     for response in responses:
@@ -313,6 +356,9 @@ def one_press_counts(rows, requests, responses, m, put_back=PUT_BACK):
             m['one_press_chosen'][kind] += 1
         pressed = response.get('one_press')
         if isinstance(pressed, dict):
+            place = place_kind(pressed.get('first'), types)
+            if place:
+                m['put_where_places'][place] += 1
             m['one_press_started'] += 1
             m['one_press_fallback'] += pressed.get('fallback') is True
             if pressed.get('ends') == 'not_recorded':
@@ -455,6 +501,7 @@ def add_round(rows, models, margins=MARGINS, plan_age=PLAN_AGE, put_back=PUT_BAC
     step_gaps(rows, m)
     undone(rows, m, put_back)
     outcomes(rows, m)
+    puts(rows, m)
     return main
 
 
@@ -583,7 +630,8 @@ def summary(m, margins=MARGINS):
                             'started': m['one_press_started'], 'put_where_fallback': m['one_press_fallback'],
                             'ended': dict(m['one_press_ends']), 'swap_backs': m['one_press_swap_backs'],
                             'full_swaps': m['one_press_full_swaps'],
-                            'take_or_chop': {k: m['one_press_take_or_chop'][k] for k in ('took', 'chopped', 'other')}}
+                            'take_or_chop': {k: m['one_press_take_or_chop'][k] for k in ('took', 'chopped', 'other')},
+                            'put_where_places': dict(m['put_where_places'].most_common())}
     if m['summary_rounds'] or m['no_summary_rounds']:
         n = m['summary_rounds']
         out['outcomes'] = {'rounds': n, 'rounds_without_summary': m['no_summary_rounds'],
@@ -600,6 +648,8 @@ def summary(m, margins=MARGINS):
                                for key in ('standard_share', 'delay_seconds', 'idle_seconds')
                                if any(m['shares'].get(f'{key}:{who}') for who in CHEFS)}
         out['wasted'] = {who: dict(sorted(m['wasted'][who].items())) for who in CHEFS if m['wasted'][who]}
+    if any(m['puts'].values()):
+        out['puts'] = {who: dict(m['puts'][who].most_common()) for who in CHEFS if m['puts'][who]}
     if m['gaps']:
         out['step_gaps'] = {policy: gap_summary(g) for policy, g in sorted(m['gaps'].items())}
     return out
@@ -646,8 +696,9 @@ def round_row(label, rows, margins=MARGINS, plan_age=PLAN_AGE, put_back=PUT_BACK
             'walk_round_trips': (s.get('undone') or {}).get('walk_round_trips'),
             'walks_share': (s.get('undone') or {}).get('walks_share'),
             'work': {category: {who: counts[who] for who in CHEFS} for category, counts in (s.get('work') or {}).items()},
+            'puts': s.get('puts') or {},
             **({'one_press_chosen': pressed['chosen'], 'full_swaps': pressed['full_swaps'],
-                'take_or_chop': pressed['take_or_chop']} if pressed else {})}
+                'take_or_chop': pressed['take_or_chop'], 'put_where_places': pressed['put_where_places']} if pressed else {})}
 
 
 def report(paths, margins=MARGINS, plan_age=PLAN_AGE, put_back=PUT_BACK, by_round=False):

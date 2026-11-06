@@ -402,7 +402,7 @@ class Kitchen:
             if a.hand.stage == 'pot' and a.hand.contents:
                 v = self.vessel_name(a.hand.id)
                 add('discard', f'倒掉手中{v}里的食物（损耗{loss}元，保留空{v}）', 'empty_pot', self.bins[0])
-            out.append(Action("drop", f"将手中物品放到{self.place(a.location).name}旁的地上（可捡回，不扣钱）",
+            out.append(Action("drop", f"将手中物品放到{self.place(a.location).name}旁的地上",
                               "drop", a.location, (a.hand.id, a.location)))
         for key in self.counters:
             if self.stations[key].lock in (None, who):

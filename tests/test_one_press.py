@@ -416,6 +416,17 @@ class StatsTests(unittest.TestCase):
         self.assertEqual((detail[0]['one_press'], 'one_press_chosen' in detail[0]), (None, False))
         self.assertNotIn('by_round', result)                                          # only when asked
         self.assertEqual(on['wasted']['jeff'].get('unused', 0), summary['not_displayed']['wasted']['jeff']['unused'])
+        # Where the put-downs went, by kind of place, from the round's own map.
+        types = {key: value['type'] for key, value in rows[0]['state']['stations'].items()}
+        kind = lambda key: 'floor' if key == 'drop' else {'counter': 'counter', 'board': 'board', 'ingredient_source': 'supply'}.get(
+            types[key[4:]], types[key[4:]])
+        mine = Counter(kind(r['action']) for r in rows if r['kind'] == 'action_done' and r.get('actor') == 'jeff'
+                       and (r['action'] == 'drop' or (r['action'].startswith('put ') and not r['action'].startswith('put then'))))
+        self.assertEqual({k: v for k, v in on['puts']['jeff'].items() if k != 'picked_up_from_floor'}, dict(mine))
+        firsts = Counter(kind(r['one_press']['first']) for r in responses if 'one_press' in r and r['one_press']['first']
+                         and (r['one_press']['first'] == 'drop' or r['one_press']['first'].startswith('put ')))
+        self.assertEqual(pressed['put_where_places'], dict(firsts))
+        self.assertTrue(set(pressed['put_where_places']) <= {'counter', 'board', 'supply', 'floor'})
         self.assertLessEqual(pressed['swap_backs'], pressed['chosen'].get('put_then_take', 0))
         # hands_full_check and the other journal checks can take either group alone.
         items = jev_replay_check.journal_requests([Path(folder.name, 'logs')], model_prefix='test')
@@ -439,7 +450,8 @@ class StatsTests(unittest.TestCase):
         self.assertEqual(summary, {'rounds': 1, 'switches': {'put_then_take': 1}, 'versions': {one_press.VERSION: 1}, 'offered_in_requests': {'put_then_take': 1},
                                    'chosen': {'put_then_take': 1}, 'started': 1, 'put_where_fallback': 1,
                                    'ended': {'not_recorded': 1}, 'swap_backs': 0, 'full_swaps': 0,
-                                   'take_or_chop': {'took': 0, 'chopped': 0, 'other': 0}})
+                                   'take_or_chop': {'took': 0, 'chopped': 0, 'other': 0},
+                                   'put_where_places': {'unknown': 1}})      # no engine inputs: the map's stations are unknown
 
     def test_take_or_chop_counts_the_answers_when_both_are_offered(self):
         from scripts import decision_stats
