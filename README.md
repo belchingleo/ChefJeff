@@ -158,7 +158,8 @@ To connect your own model, implement two methods, `payload(state, actions)` and 
 | --- | --- |
 | Kitchen rules | `kitchen.py`, `rules.py`, `config_contract.py` |
 | Maps and space | `maps/`, `spatial_kitchen.py`, `navigation.py` |
-| Jeff's input: rule text, listed actions, request assembly | `harness.py` |
+| Jeff's input: rule text, listed actions, request assembly | `harness.py`, `one_press.py` |
+| Jeff's harness switches (released or on trial) | `features.json`, `features.py` |
 | Jeff's decision loop and model adapters | `jev.py`, `whitebox_server.py`, `player_api.py`, `model_language.py` |
 | Round records and analysis | `session_record.py`, `provenance.py`, `collaboration_analyzer.py`, `round_summary.py`, `capacity_analyzer.py`, `scripts/decision_stats.py` |
 | Local servers | `web_server.py`, `cocos_server.py` |
@@ -242,7 +243,7 @@ All three produce the same data, and every imported level goes through the same 
 - **0.5.9-alpha** (2026-09-27): the first playable version. Three maps, with the rules written directly in the code.
 - **0.6.0-beta.1** (2026-10-01): the first public test release. Now driven by five data models, with one set of rules for all three levels (180-second rounds, judged on net revenue at closing); the old rules are gone. Adds round records and replay, behaviour fingerprints, collaboration analysis and the round record, along with reworked controls, music and sound effects.
 - **0.6.0-beta.2** (2026-10-20): controls and rules aligned with Overcooked 2 for the public test: dash and knockback, quicker chopping, standing at the counter line, aimed throws that land on boards and in pans, fire that spreads to every neighbour, sounds only for actions that happen. Jeff now has exactly the player's abilities. Maps are built from station coordinates alone; consent to share data comes before the first round.
-- **0.7.0-beta.1** (2026-11-06): the third public test release. A level editor for building and playing your own kitchens; rounds rated in one to three stars; timings, station choice, orders and fire follow Overcooked 2, with orders that keep coming and expired orders that start again; one-press options so Jeff can put down and take in one step; new contribution terms (v8, kept for at most two years), and free models need consent to contribute.
+- **0.7.0-beta.1** (2026-11-06): the third public test release. A level editor for building and playing your own kitchens; rounds rated in one to three stars; timings, station choice, orders and fire follow Overcooked 2, with orders that keep coming and expired orders that start again; a rebuilt harness for Jeff: his whole input is assembled in `harness.py` and guarded by payload fingerprints, `features.json` switches harness features (one-press options released, plan modes on trial) and every round records which were on; new contribution terms (v8, kept for at most two years), and free models need consent to contribute.
 
 See the [changelog](CHANGELOG.md) for everything.
 
