@@ -1383,6 +1383,29 @@
           ],
           "additionalProperties": false
         },
+        "undo_note": {
+          "description": "Only with the undo_note switch on: Jeff's last step (undo_note.step) as this request was sent, enough to rebuild its notes.",
+          "type": "object",
+          "properties": {
+            "step": {
+              "oneOf": [
+                {"type": "null"},
+                {
+                  "type": "object",
+                  "properties": {
+                    "t": {"type": "number", "minimum": 0},
+                    "put": {"oneOf": [{"type": "null"}, {"type": "object", "properties": {"station": {"type": "string", "maxLength": 80}, "id": {"type": "string", "maxLength": 80}}, "required": ["station", "id"], "additionalProperties": false}]},
+                    "take": {"oneOf": [{"type": "null"}, {"type": "object", "properties": {"station": {"type": "string", "maxLength": 80}, "id": {"type": "string", "maxLength": 80}}, "required": ["station", "id"], "additionalProperties": false}]}
+                  },
+                  "required": ["t", "put", "take"],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "required": ["step"],
+          "additionalProperties": false
+        },
         "one_press_start": {
           "description": "Only on an ai_response that started a one-press choice: its first step (the put that put_where chose, or the first step itself with empty hands) and whether put_where was missing or unlisted, so the first listed put was used.",
           "type": "object",

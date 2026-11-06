@@ -17,6 +17,7 @@ from harness import (AGENT_RULES_VERSION, CONTINUITY_RULE, NO_MEMORY, PLAYER_COM
                      STATE_WORDS, model_kitchen, objective_text, score_text)
 import harness
 import one_press
+import undo_note
 
 ENDPOINT = "https://api.typesafe.ai/v1/systemone"
 
@@ -94,7 +95,8 @@ class JevClient:
                 "usage": result.get("usage", {}), "latency": time.monotonic()-start, **plan}
 
 
-def compose_payload(client, kitchen, state, actions, recent_decisions, communication, memory=NO_MEMORY, plan=None, one_press=None):
+def compose_payload(client, kitchen, state, actions, recent_decisions, communication, memory=NO_MEMORY, plan=None, one_press=None,
+                    undo=None):
     """Jeff's request from the kitchen and the few parts it cannot derive; research replay rebuilds it here too.
 
     one_press is the round's one-press switches (one_press.flags), or None: the options are added to the
@@ -103,7 +105,7 @@ def compose_payload(client, kitchen, state, actions, recent_decisions, communica
         import one_press as presses
         keys = {a.key for a in actions}
         actions = list(actions) + [a for a in presses.options(kitchen, 'jeff', actions, one_press) if a.key not in keys]
-    return harness.compose(client.payload(state, actions), kitchen, recent_decisions, communication, memory, plan, one_press)
+    return harness.compose(client.payload(state, actions), kitchen, recent_decisions, communication, memory, plan, one_press, undo)
 
 
 class DecisionLoop:
@@ -156,6 +158,8 @@ class DecisionLoop:
         self.one_press = None
         self.chain = None           # {'key', 'steps': [(kinds, target)], 'job': action id of the step under way, 'done'}
         self.chain_cursor = 0
+        # Undo notes (undo_note.py) when the round's switch is on: Jeff's last step, as {'step': ...}; None when off.
+        self.undo = None
 
     def reply_time(self):
         """The typical recent reply time, or None before any answer."""
@@ -302,13 +306,19 @@ class DecisionLoop:
                 if not fresh:self.stale_count += 1
                 elif not applied:self.rejected_count += 1
                 chef_job = self.k.chefs["jeff"].job
+                current_state = self.k.snapshot()
+                if self.undo is not None and applied:
+                    # Read from the snapshot logged below, so replay finds the same step in the journal.
+                    last = undo_note.step(current_state, result["choice"], (pressed or {}).get('first'), self.k.time)
+                    if last is not None:
+                        self.undo = {'step': last}
                 self.log("ai_response", {"request_id": context["id"], **result, "applied": applied, "execution": message, "sprint_applied":sprint_applied,
                                          "fresh": fresh, **({"plan_set": plan_set, "plan_dropped": plan_dropped} if self.plan else {}),
                                          **({"one_press": pressed} if pressed else {}),
                                          "server_received_wall_ms": round((context["returned_monotonic"]-self.log.monotonic_start)*1000) if "returned_monotonic" in context and hasattr(self.log,"monotonic_start") else None,
                                          "server_transport_started_wall_ms": round((context["transport_started_monotonic"]-self.log.monotonic_start)*1000) if "transport_started_monotonic" in context and hasattr(self.log,"monotonic_start") else None,
                                          "action_id": chef_job.id if applied and chef_job and decision.kind not in ("continue", "wait") else None,
-                                         "accepted_engine_seq": self.k.event_seq, "current_state": self.k.snapshot()})
+                                         "accepted_engine_seq": self.k.event_seq, "current_state": current_state})
                 self.last_choice = result["choice"] + ("" if applied else "（未执行）")
                 self.recent_decisions.append({"t": round(self.k.time, 2), "choice": result["choice"],
                                               "accepted": applied, "result": message, "sprint_applied":sprint_applied})
@@ -394,10 +404,12 @@ class DecisionLoop:
             plan = self.plan.input(state)
             context['plan_offered'] = plan['options']
         payload = compose_payload(self.client, self.k, state, actions, self.recent_decisions, communication,
-                                  self.cooperation_memory if hasattr(self, 'cooperation_memory') else NO_MEMORY, plan, self.one_press)
+                                  self.cooperation_memory if hasattr(self, 'cooperation_memory') else NO_MEMORY, plan, self.one_press,
+                                  deepcopy(self.undo))
         self.log("ai_request", {"request_id": self.calls, "triggers": causes, "observed_state_seq": self.k.event_seq, "payload": payload,
                                 **({"jeff_plan": plan, "plan_ended": plan_ended} if plan is not None else {}),
-                                **({"one_press": dict(self.one_press)} if self.one_press else {})})
+                                **({"one_press": dict(self.one_press)} if self.one_press else {}),
+                                **({"undo_note": deepcopy(self.undo)} if self.undo is not None else {})})
         self.last_request = now
         self.last_revision = self.k.revision
         self.last_urgency = urgency

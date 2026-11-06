@@ -6,6 +6,9 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 
 ## Unreleased
 
+### Jeff
+- New trial switch `undo_note` in `features.json`, off by default and with no switch in the page. With it on, an option that would take back what Jeff's last step put down, or put back what it took, says so in its label with the time, as a fact; nothing is forbidden and the player sees no note. Each request's research record keeps that step, so the request can still be rebuilt exactly. `scripts/undo_note_check.py` re-asks logged moments with and without the notes and compares how often Jeff takes his last step back.
+
 ## 0.7.0-beta.1 — 2026-11-06 · third public test release
 
 ### Start, results and settings
@@ -202,6 +205,9 @@ First private release: a local browser game with three playable maps and player-
 ## 更新记录
 
 ## 未发布
+
+### Jeff
+- `features.json` 新增测试开关 `undo_note`，默认关闭，页面上没有它的开关。打开后，如果某个选项正好会把 Jeff 上一步放下的东西拿回来，或者把他上一步拿起的东西放回原处，这个选项后面会写明这件事和发生的时间。这只是陈述事实，不禁止任何选择，玩家也看不到。每次请求的研究记录会存下这一步，所以请求仍能原样重建。`scripts/undo_note_check.py` 拿记录里的时刻，加说明和不加说明各问一遍模型，比较 Jeff 撤销上一步的比例。
 
 ## 0.7.0-beta.1 — 2026-11-06 · 第三个公开测试版
 

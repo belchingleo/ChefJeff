@@ -1,5 +1,6 @@
 {
   "one_press": {"stage": "release", "on": true, "version": "one-press-v3"},
   "jeff_plan": {"stage": "trial", "on": false, "player_switch": true, "version": "plan-v2"},
-  "rolling_intent": {"stage": "trial", "on": false, "player_switch": true, "version": "rolling-v3"}
+  "rolling_intent": {"stage": "trial", "on": false, "player_switch": true, "version": "rolling-v3"},
+  "undo_note": {"stage": "trial", "on": false, "version": "undo-note-v1"}
 }

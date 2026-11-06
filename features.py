@@ -22,13 +22,14 @@ from pathlib import Path
 
 import harness
 import one_press
+import undo_note
 
 ROOT = Path(__file__).resolve().parent
 PATH = ROOT / 'features.json'
 STAGES = ('release', 'trial')
 # name -> the version the code implements.
 VERSIONS = {'one_press': one_press.VERSION, 'jeff_plan': harness.PLAN_RULES_VERSION,
-            'rolling_intent': harness.ROLLING_RULES_VERSION}
+            'rolling_intent': harness.ROLLING_RULES_VERSION, 'undo_note': undo_note.VERSION}
 # The plan modes (harness.PLAN_MODES), one at a time, and the feature of each.
 PLAN_FEATURES = {'choice': 'jeff_plan', 'rolling': 'rolling_intent'}
 FIELDS = {'stage', 'on', 'player_switch', 'version'}
@@ -87,6 +88,11 @@ def plan_default(features) -> str:
 def plan_choices(features) -> list:
     """The plan modes the player can pick in Settings (besides off): those with a player switch."""
     return [mode for mode, name in PLAN_FEATURES.items() if features[name]['player_switch']]
+
+
+def undo_start(features):
+    """The decision loop's undo-note state for a new round: {'step': None} when undo_note is on, else None."""
+    return {'step': None} if features['undo_note']['on'] else None
 
 
 def one_press_flags(features):

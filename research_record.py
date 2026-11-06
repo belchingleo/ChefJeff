@@ -214,7 +214,9 @@ def payload(kind, data, k):
                    # Only rounds with Jeff's plan switch on carry it (harness.Plan.input).
                    **({'jeff_plan': deepcopy(data['jeff_plan'])} if data.get('jeff_plan') is not None else {}),
                    # Only rounds with a one-press switch on carry them (one_press.flags).
-                   **({'one_press': deepcopy(data['one_press'])} if data.get('one_press') else {})} if observed else {}
+                   **({'one_press': deepcopy(data['one_press'])} if data.get('one_press') else {}),
+                   # Only rounds with the undo_note switch on carry Jeff's last step (undo_note.step).
+                   **({'undo_note': deepcopy(data['undo_note'])} if data.get('undo_note') is not None else {})} if observed else {}
         return {**rebuild, 'observed_state_seq': data.get('observed_state_seq'),
                 'candidates': [code(v) for v in candidates],
                 'candidate_actions': [action(a.key, a.target, a.kind) for a in k.actions('jeff') if a.key in candidates], 'stage': 'model_request',

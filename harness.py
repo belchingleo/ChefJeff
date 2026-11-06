@@ -542,10 +542,11 @@ class Plan:
         return {'steps': self.steps, 'current': current, 'options': None if current else work_items(state)}
 
 
-def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY, plan=None, one_press=None):
+def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY, plan=None, one_press=None, undo=None):
     """Add what one request needs beyond the snapshot; research replay rebuilds requests here too.
 
     plan is Plan.input() when the plan switch is on, else None (the input is then unchanged).
+    undo is {'step': Jeff's last step (undo_note.step) or None} when the undo_note switch is on, else None.
     """
     # HTTP choices are stateless: return actual outcomes, not just today's snapshot.
     # Walking starts/stops are already in each chef's position and move_direction; as events
@@ -598,4 +599,7 @@ def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY,
         payload['state']['plan_rules_version'] = plan_version(plan.get('mode'))
     if one_press:
         payload['state']['one_press_version'] = presses.VERSION
+    if undo is not None:
+        import undo_note
+        undo_note.apply(payload, undo)
     return payload

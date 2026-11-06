@@ -189,7 +189,7 @@ class ReplayTests(paths.SavePathTests):
         self.assertEqual(initial['conditions']['one_press'], condition)
         self.assertEqual(initial['conditions']['features']['one_press'], {'on': True, 'version': one_press.VERSION})
         self.assertEqual({name: value['on'] for name, value in initial['conditions']['features'].items()},
-                         {'one_press': True, 'jeff_plan': False, 'rolling_intent': False})
+                         {'one_press': True, 'jeff_plan': False, 'rolling_intent': False, 'undo_note': False})
         with self.game.lock:                                    # the human leaves beef on a board
             k = self.game.k
             for chosen in (lambda a: a.key == 'fetch', lambda a: a.kind == 'put_board'):
@@ -217,6 +217,46 @@ class ReplayTests(paths.SavePathTests):
         self.assertEqual({r['status'] for r in requests}, {'verified'})
         asked = [r for r in requests if 'put_where' in r['rebuilt']['questions']]
         self.assertTrue(asked and 'put then take ' + board in asked[0]['rebuilt']['questions']['next_action']['criteria'])
+        self.assertEqual(research_replay.check(record)['replay'], 'verified')
+
+    def test_a_round_with_undo_notes_keeps_the_step_and_replays_exactly(self):
+        import undo_note
+        with self.game.lock:
+            self.game.features = {**self.game.features, 'undo_note': {**self.game.features['undo_note'], 'on': True}}
+        receipt = self.begin_manual_relay()
+        initial = self.game.store.download(receipt['id'], receipt['deletion_token'])
+        self.assertEqual(initial['conditions']['features']['undo_note'], {'on': True, 'version': undo_note.VERSION})
+        with self.game.lock:                                    # the human leaves beef on a board
+            k = self.game.k
+            for chosen in (lambda a: a.key == 'fetch', lambda a: a.kind == 'put_board'):
+                k.start('human', next(a for a in k.actions('human') if chosen(a)))
+                while k.chefs['human'].job:
+                    k.advance(.05)
+            board = next(key for key, station in k.stations.items() if station.food is not None and key.startswith('b'))
+        self.assertEqual(self.answer_with(choice=lambda criteria, _: 'fetch')[0], 200)
+        with self.game.lock:
+            while self.game.k.chefs['jeff'].job:
+                self.game.k.advance(.05)
+        where = lambda criteria, _: {'put_where': next(key for key in criteria if key.startswith('put counter'))}
+        self.assertEqual(self.answer_with(choice=lambda criteria, _: 'put then take ' + board, plan=where)[0], 200)
+        with self.game.lock:
+            for _ in range(200):
+                self.game.k.advance(.05)
+                self.game.ai.poll()
+                if self.game.ai.chain is None and self.game.k.chefs['jeff'].job is None:
+                    break
+        self.assertEqual(self.answer_with(choice=lambda criteria, _: 'wait')[0], 200)
+        self.natural_end()
+        self.assertEqual(self.contribute()[0], 200)
+        record = self.game.store.download(receipt['id'], receipt['deletion_token'])
+        validate_record(record)
+        steps = [e['payload']['undo_note']['step'] for e in record['events'] if e['type'] == 'ai_request']
+        self.assertIsNone(steps[0])
+        self.assertTrue(any(s and s['take'] and s['take']['station'] == board for s in steps))
+        requests = list(research_replay.rebuild_requests(record))
+        self.assertEqual({r['status'] for r in requests}, {'verified'})
+        self.assertTrue(any('(Note: this puts' in label for r in requests
+                            for label in r['rebuilt']['questions']['next_action']['criteria'].values()))
         self.assertEqual(research_replay.check(record)['replay'], 'verified')
 
     def test_a_tampered_record_is_reported_as_diverged(self):
