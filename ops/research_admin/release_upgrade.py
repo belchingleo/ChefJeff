@@ -17,21 +17,21 @@ RELEASES = Path('/opt/chefjeff/releases')
 ADMIN_RELEASES = Path('/opt/chefjeff-admin/releases')
 ADMIN_UNIT = Path('/etc/systemd/system/chefjeff-admin.service')
 DATA_UNIT = Path('/etc/systemd/system/chefjeff-data.service')
-# The live Shanghai state this upgrade starts from (checked 2026-11-02 after the 377bf0b deploy):
-# the game link and the console binding on the same 377bf0b release, and the console and the
+# The live Shanghai state this upgrade starts from (checked 2026-11-06 after the 98585b5 deploy):
+# the game link and the console binding on the same 98585b5 release, and the console and the
 # shared-data service running that release's admin package from one folder.
-LEGACY_GAME = Path('/opt/chefjeff/releases/china-free-377bf0b666f0/chefjeff-web-demo')
-LEGACY_ADMIN = Path('/opt/chefjeff-admin/releases/v2-a28df71cf538fb4c')
+LEGACY_GAME = Path('/opt/chefjeff/releases/china-free-98585b5ec8e8/chefjeff-web-demo')
+LEGACY_ADMIN = Path('/opt/chefjeff-admin/releases/v2-dadcd751a556e002')
 LEGACY_PROGRAMS = {
-    'admin_server.py': '7b6ee7ec13ecad8fba925c38af4ffb0074728cf472c2d6c87eed3dbe0d407a28',
-    'admin_data.py': '80d5ae4631fefe26c83a798024681bd50b0c1c286c2e5ea4ccdd661300e6c4a9',
-    'source_observer.py': '291b3197fc5aeed3937a00a56d97da9905ab0f8784dbc265618d5ce3ebc1d88d',
+    'admin_server.py': '2e4921f59c8e5c40758e13b27bf5dad31e76e049b4ed9d5eb6145ae10c86a564',
+    'admin_data.py': 'cc6c7df5b36ca74cbefee72230ca66702297d72ec03979b5db17c50f7816f3a0',
+    'source_observer.py': '7ef9f933d78eb97ccd1ca84c8ac55cec8cb3d149a633b830a6a0542b33a81d67',
     'authority_runner.py': '2b20dd59a2641ed6f482eaa5080b6ef8e6d46dad9d32ab5f899f409ec9239f36',
     'app.js': '1755af29a27df57b455eaa87a236f2c729ea0d766e8f2e683a5c0d5f0b103bdf',
-    'dashboard.js': '9d37bd3cc59268e38494f1ea230c2084f702a0616bdc9644dacad387434d9580',
+    'dashboard.js': 'b07829a19086345be5cc0c462ee4c2c7a80baeda3ec4e38c6db463c8f38ff316',
     'charts.js': '82ea010e0b7520515b97ff53b7e75c26806c641905a1dc2f20d95b9bad75abf9',
     'app.css': '5cb7301f321c604243344e3d5b5cbce39acc3bcf32d40430e3206df5ab66156d',
-    'index.html': 'be3a544f0984a1d5618081ba353a7e9c00785ce1bf97977cbaf6746888e306b1',
+    'index.html': '60bada84bd01700022cf4dafda9d5732d711b845cc378c7b2f3ac64ba5f7e19e',
     'login.html': '93ecd860987f80c978b3eb72527977d2690504842aca1e6f87dd1e7eed7545f4',
     'chefjeff-pixel.woff2': '043eae5e616b0d1e75dc746d3d687b4413f9f1c70c1a09bc4ebb705ef1cc8e32',
     'OFL.txt': 'a0e37147ea540c0a2f46039aac2c8fa42b0457018cb49bcd6a5771619c46a7a7',
@@ -68,7 +68,7 @@ def prepare(target, bundle):
         raise ValueError('已有发布升级状态；请先核对，不会覆盖回退资料。')
     target=verify_game_release(target,bundle)
     if CURRENT.resolve(strict=True)!=LEGACY_GAME:
-        raise ValueError('当前游戏不是已核对的 377bf0b 版本。')
+        raise ValueError('当前游戏不是已核对的 98585b5 版本。')
     config_raw=CONFIG.read_bytes();cfg=json.loads(config_raw)
     if (Path(cfg['release']).resolve()!=LEGACY_GAME or cfg['origin']!='https://'+legacy.DOMAIN
             or cfg['database']!='/var/lib/chefjeff-data/contributions.sqlite3'
