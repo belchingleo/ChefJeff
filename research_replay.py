@@ -76,6 +76,10 @@ def check(record):
         for item in replay['inputs'][done:row['engine_input_n']]:
             apply_input(k, item)
         done = row['engine_input_n']
+        if row['trigger'] == 'final' and record.get('aborted') and not getattr(k, 'aborted', True):
+            # A round the session closes early (page closed, idle, ended or restarted) gets its aborted
+            # flag from the session, not from an engine input; the record keeps the flag itself.
+            k.aborted = True
         if rr.state(k) != row['state']:
             mismatches.append({'seq': row['seq'], 'engine_input_n': done, 'game_time_ms': row['game_time_ms']})
     for item in replay['inputs'][done:]:

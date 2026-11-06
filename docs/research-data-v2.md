@@ -190,4 +190,12 @@ python3 scripts/check_research_record.py --database /path/to/contributions.sqlit
 
 每局输出一行 JSON：是否开局、结束时间、`complete`、是否确认关闭、`truncated`/`dropped`/`loss_ranges`、序号缺口 `seq_gaps`，以及 `replay`（`verified`、`diverged` 或 `not_available`）和比较过的状态数。`tests/test_research_replay.py`、`tests/test_arrival_records.py` 用合成对局覆盖这些路径。
 
+旧对局要用录下它的那个版本的代码回放，因为引擎每次发布都可能变。下面这条命令按记录里的版本指纹找到对应的提交，把那次提交的代码取到私有缓存（`~/.cache/chefjeff/release-code`）里回放。引擎、状态投影和请求组装用旧提交的代码，回放检查本身用当前代码。报告只有局号和计数（只读，不调用模型）：
+
+```bash
+python3 scripts/replay_release.py check ~/ChefJeff-research
+```
+
+版本指纹和提交的对应关系记在 `deploy/release-fingerprints.json`。每次部署后运行 `python3 scripts/replay_release.py record <提交>`，把这次部署的版本记进去。表里没有的版本指纹，脚本会逐个计算更早提交的指纹去找，找到后补进表里。
+
 线上真人对局的检查步骤：在实验室外按平常方式开启“每局自动贡献”，完整打一局到结算；在「设置 → 数据与贡献」下载本局记录；运行第一条命令。期望 `complete` 为 true、`seq_gaps` 为空、`replay` 为 `verified`。

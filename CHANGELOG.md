@@ -9,6 +9,10 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 ### Jeff
 - New trial switch `undo_note` in `features.json`, off by default and with no switch in the page. With it on, an option that would take back what Jeff's last step put down, or put back what it took, says so in its label with the time, as a fact; nothing is forbidden and the player sees no note. Each request's research record keeps that step, so the request can still be rebuilt exactly. `scripts/undo_note_check.py` re-asks logged moments with and without the notes and compares how often Jeff takes his last step back.
 
+### Research records
+- `scripts/replay_release.py check <packages>` replays research rounds with the code of the release that recorded them. It looks up each record's build fingerprint in `deploy/release-fingerprints.json` (or finds the commit by fingerprinting earlier commits and adds it), extracts that commit into a private cache with `git archive`, and replays there; the report keeps refs and counts only. `replay_release.py record <commit>` adds a deployed build to the table. All 28 server rounds with replay data recorded so far (five builds labelled 0.6.0-beta.2) replay exactly with their own commits, and 1188 of their 1189 requests rebuild exactly.
+- A round the session closes early (page closed, idle, ended or restarted) is marked aborted by the session, not by an engine input, so its final state used to fail the replay check. `research_replay.check` now takes that flag from the record.
+
 ## 0.7.0-beta.1 — 2026-11-06 · third public test release
 
 ### Start, results and settings
@@ -208,6 +212,10 @@ First private release: a local browser game with three playable maps and player-
 
 ### Jeff
 - `features.json` 新增测试开关 `undo_note`，默认关闭，页面上没有它的开关。打开后，如果某个选项正好会把 Jeff 上一步放下的东西拿回来，或者把他上一步拿起的东西放回原处，这个选项后面会写明这件事和发生的时间。这只是陈述事实，不禁止任何选择，玩家也看不到。每次请求的研究记录会存下这一步，所以请求仍能原样重建。`scripts/undo_note_check.py` 拿记录里的时刻，加说明和不加说明各问一遍模型，比较 Jeff 撤销上一步的比例。
+
+### 研究记录
+- `scripts/replay_release.py check <研究包>` 用录下这一局的那个版本的代码回放研究记录。它先按记录里的版本指纹在 `deploy/release-fingerprints.json` 里查对应的提交，查不到就逐个计算更早提交的版本指纹，找到后记进这个表。然后用 `git archive` 把那次提交的代码取到私有缓存里，在那里回放。报告只有局号和计数。`replay_release.py record <提交>` 把一个已部署的版本记进表里。服务器上目前所有带回放数据的 28 局（版本号都标为 0.6.0-beta.2，实际是 5 个不同的构建）用各自的提交都能完全回放，1189 次请求里有 1188 次能原样重建。
+- 对局被中途结束时（关掉页面、长时间没操作、手动结束或重开），"中途结束"标记是会话直接改的，不经过引擎输入，所以这类局最后一个状态以前过不了回放检查。现在 `research_replay.check` 从记录里读这个标记。
 
 ## 0.7.0-beta.1 — 2026-11-06 · 第三个公开测试版
 

@@ -259,6 +259,18 @@ class ReplayTests(paths.SavePathTests):
                             for label in r['rebuilt']['questions']['next_action']['criteria'].values()))
         self.assertEqual(research_replay.check(record)['replay'], 'verified')
 
+    def test_a_round_closed_mid_way_replays_with_its_aborted_flag(self):
+        # The session marks the round aborted when the page closes; no engine input carries that.
+        receipt = self.play()
+        self.assertEqual(self.request('/api/session/close', {}, self.token)[0], 200)
+        record = self.saved(receipt, aborted=True, reason='page_close_request')
+        self.assertTrue(record['aborted'])
+        report = research_replay.check(record)
+        self.assertEqual(report['replay'], 'verified', report['replay_mismatches'])
+        # The flag is taken from the record only when the record says so.
+        record['aborted'] = False
+        self.assertEqual(research_replay.check(record)['replay'], 'diverged')
+
     def test_a_tampered_record_is_reported_as_diverged(self):
         receipt = self.play()
         self.natural_end()

@@ -1,0 +1,29 @@
+{
+  "format": "chefjeff-release-fingerprints-v1",
+  "releases": {
+    "05cc319eb15c833e819760a628e14d0d1de4c1cbadd30a8505707601069c5f6b": {
+      "commit": "bf11efd9b0cce022140c44f6504d1e8d97c2b171",
+      "version": "0.6.0-beta.2"
+    },
+    "4237f25da5e73cd11d8555f6d38db9d37c6c57d512e7bfc8855658496bd3881e": {
+      "commit": "314f912ca47bc5ecf9c1f914dbac8776ac82234c",
+      "version": "0.6.0-beta.2"
+    },
+    "7445b3673e5a0d30d7d2cb0164d14948d7dc6a0011e9607371db412acd4a22ad": {
+      "commit": "b98a4fc6b8e8bfb58c72210afa3add9bceecd951",
+      "version": "0.6.0-beta.2"
+    },
+    "a8424a4d6e77b1cabcc0ad7eaeb7bd726503765859e336d351e5bf6de38d1ae7": {
+      "commit": "c4fcc6627493e0beb5f83a5905cd5396515ecfe3",
+      "version": "0.6.0-beta.2"
+    },
+    "de6ee155a72a64734ee5b1ce6db72b1a75d6749a3f0399f0d7f71ab630743e53": {
+      "commit": "98585b5ec8e84871a343987583b9d2615b19abca",
+      "version": "0.7.0-beta.1"
+    },
+    "f5dfc809bf44919c5713cfa938c62e5c8e448167e45ad1aeab07d9cf17a8df52": {
+      "commit": "8a020a974a3ce18bbd9533e4192ef31e92ef0382",
+      "version": "0.6.0-beta.2"
+    }
+  }
+}
