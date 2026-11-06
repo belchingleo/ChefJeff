@@ -163,10 +163,28 @@ def pick(items, sample, seed):
     return random.Random(seed).sample(items, min(sample, len(items)))
 
 
-def client():
-    from jev import JevClient
+CONNECTION = ROOT / '.player-api.json'
+
+
+def client(config=None):
+    """The model connection the game itself uses: the one saved in the game (.player-api.json, read the way
+    player_api.PlayerGameSession reads it), else the local Jev key (.env, TYPESAFE_API_KEY). It says on stderr
+    which one and which provider and model; the key itself is never read here or printed."""
     from kitchen import load_config
-    return JevClient(load_config())
+    config = config or load_config()
+    if CONNECTION.is_file():
+        import player_api
+        try:
+            setting = player_api.settings_from(json.loads(CONNECTION.read_text(encoding='utf-8')))
+        except (OSError, ValueError, TypeError):
+            setting = None
+        if setting:
+            print(f"asking through the game's saved connection: {setting['provider']}, {setting.get('model') or 'default model'}",
+                  file=sys.stderr)
+            return player_api.create_client(config, setting)
+    from jev import JevClient
+    print('asking through the local Jev key (.env); no connection is saved in the game', file=sys.stderr)
+    return JevClient(config)
 
 
 def main(argv=None):

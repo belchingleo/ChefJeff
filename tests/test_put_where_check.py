@@ -78,5 +78,31 @@ class PutWhereCheckTests(unittest.TestCase):
         self.assertIn('6 requests', err.getvalue())                                     # three moments, two arms
 
 
+
+class ConnectionTests(unittest.TestCase):
+    """The replay scripts ask through the game's saved connection, else the local Jev key, and never print the key."""
+
+    def test_the_saved_connection_comes_first(self):
+        from scripts import jev_replay_check
+        from whitebox_server import SpatialJevClient
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder, '.player-api.json')
+            path.write_text(json.dumps({'provider': 'jev', 'api_key': 'unit-test-not-a-real-key', 'remember': True}))
+            err = io.StringIO()
+            with patch.object(jev_replay_check, 'CONNECTION', path), redirect_stderr(err):
+                client = jev_replay_check.client()
+            self.assertIsInstance(client, SpatialJevClient)
+            self.assertIn("game's saved connection: jev, jev-latest", err.getvalue())
+            self.assertNotIn('unit-test-not-a-real-key', err.getvalue())
+            path.write_text('not json')                                                    # unreadable: the .env key
+            err = io.StringIO()
+            with patch.object(jev_replay_check, 'CONNECTION', path), patch('jev.JevClient', lambda config: 'env client'), \
+                    redirect_stderr(err):
+                self.assertEqual(jev_replay_check.client(), 'env client')
+            self.assertIn('local Jev key', err.getvalue())
+            with patch.object(jev_replay_check, 'CONNECTION', Path(folder, 'missing.json')), \
+                    patch('jev.JevClient', lambda config: 'env client'), redirect_stderr(io.StringIO()):
+                self.assertEqual(jev_replay_check.client(), 'env client')
+
 if __name__ == '__main__':
     unittest.main()

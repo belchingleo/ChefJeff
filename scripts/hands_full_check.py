@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Why does Jeff walk back and forth with full hands? Real stuck moments, three ways. Run locally; it sends to Jev.
+"""Why does Jeff walk back and forth with full hands? Real stuck moments, three ways. Run locally; it sends to the game's model.
 
     python3 scripts/hands_full_check.py logs/ --since 2026-11-04 [--sample 20] [--one-press on|off] [--dry-run | --groups-only]
 

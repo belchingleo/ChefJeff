@@ -236,7 +236,8 @@ def main(argv=None):
         tokens = sum(sizes) * args.repeats / 4
         print(f'{sends} requests, about {tokens / 1e6:.2f}M input tokens, about ${tokens / 1e6 * PRICE_PER_M:.2f}')
         return 0
-    report = run(SpatialJevClient(config), args.repeats, mode=args.mode)
+    from scripts.jev_replay_check import client
+    report = run(client(config), args.repeats, mode=args.mode)
     text = json.dumps(report, ensure_ascii=False, indent=2)
     if args.out:
         Path(args.out).write_text(text + '\n', encoding='utf-8')

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Does Jeff walk less when each walk says there is nothing listed to do there? Run locally; it sends to Jev.
+"""Does Jeff walk less when each walk says there is nothing listed to do there? Run locally; it sends to the game's model.
 
     python3 scripts/walk_label_check.py logs/ --since 2026-11-04 [--sample 20] [--arms as_logged,walks_labeled] [--dry-run]
 

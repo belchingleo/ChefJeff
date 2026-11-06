@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Where does Jeff put things down before a one-press step, and does the floor's label pull him there? Run locally; it sends to Jev.
+"""Where does Jeff put things down before a one-press step, and does the floor's label pull him there? Run locally; it sends to the game's model.
 
     python3 scripts/put_where_check.py logs/ --since 2026-11-06 [--sample 20] [--arms as_logged,plain_drop] [--dry-run]
 
@@ -15,7 +15,8 @@ Jev, re-asking the logged request instead of playing new rounds:
 For each arm it reports how often the answer was the logged one, a one-press option, and where put_where put
 the held item, by kind of place (counter, board, supply top, floor, none), with the logged answers' places for
 comparison. The report holds counts and shares only (no request, state or model text). It reads the journals
-and changes nothing; the key is read the way the game reads it and is never printed. --dry-run picks the
+and changes nothing. It asks through the connection saved in the game (jev_replay_check.client), else the local Jev
+key; the key is read the way the game reads it and is never printed. --dry-run picks the
 moments and prints their number and size.
 """
 from __future__ import annotations
