@@ -431,8 +431,8 @@ class StatsTests(unittest.TestCase):
         self.assertEqual(on['wasted']['jeff'].get('unused', 0), summary['not_displayed']['wasted']['jeff']['unused'])
         # Where the put-downs went, by kind of place, from the round's own map.
         types = {key: value['type'] for key, value in rows[0]['state']['stations'].items()}
-        kind = lambda key: 'floor' if key == 'drop' else {'counter': 'counter', 'board': 'board', 'ingredient_source': 'supply'}.get(
-            types[key[4:]], types[key[4:]])
+        kind = lambda key: 'floor' if key == 'drop' else 'pan_to_stove' if key.startswith('put pot ') else {
+            'counter': 'counter', 'board': 'board', 'ingredient_source': 'supply'}.get(types[key[4:]], types[key[4:]])
         mine = Counter(kind(r['action']) for r in rows if r['kind'] == 'action_done' and r.get('actor') == 'jeff'
                        and (r['action'] == 'drop' or (r['action'].startswith('put ') and not r['action'].startswith('put then'))))
         self.assertEqual({k: v for k, v in on['puts']['jeff'].items() if k != 'picked_up_from_floor'}, dict(mine))
@@ -440,6 +440,8 @@ class StatsTests(unittest.TestCase):
                          and (r['one_press']['first'] == 'drop' or r['one_press']['first'].startswith('put ')))
         self.assertEqual(pressed['put_where_places'], dict(firsts))
         self.assertTrue(set(pressed['put_where_places']) <= {'counter', 'board', 'supply', 'floor'})
+        self.assertEqual(decision_stats.place_kind('put pot p1', types), 'pan_to_stove')
+        self.assertNotIn('unknown', on['puts']['jeff'])
         self.assertLessEqual(pressed['swap_backs'], pressed['chosen'].get('put_then_take', 0))
         # hands_full_check and the other journal checks can take either group alone.
         items = jev_replay_check.journal_requests([Path(folder.name, 'logs')], model_prefix='test')

@@ -67,7 +67,9 @@ For each model it counts:
   carry the summary in their last row; a research record is replayed from its engine inputs to rebuild
   it (a record without them counts in `rounds_without_summary`).
 - puts: where each chef's finished put-downs went, by kind of place (counter, board, supply top, floor, ...;
-  from the station types of the round's map), and how many items each picked up from the floor. With
+  from the station types of the round's map), and how many items each picked up from the floor. Some are
+  steps of the dish rather than setting an item aside: stove (food into a pan), pan_to_stove (the held pan
+  put back), sink (a dirty plate in) and tool_rack (the extinguisher back). With
   one-press, `one_press.put_where_places` gives the same for the first step of the one-press choices that
   put something down (the place put_where chose), so the two show whether one-press changes where Jeff
   puts things.
@@ -104,7 +106,7 @@ from round_summary import CATEGORIES, CHEFS  # noqa: E402
 
 WORK_CATEGORIES = tuple(name for name, _ in CATEGORIES)
 
-VERSION = 'decision-stats-14'
+VERSION = 'decision-stats-15'
 MARGINS = (0.05, 0.1)
 PLAN_AGE = 5.0
 PUT_BACK = 10.0
@@ -269,6 +271,8 @@ def place_kind(key, types):
     """Where a put-down action puts the held item: floor for drop, else the kind of station; None for other actions."""
     if key == 'drop':
         return 'floor'
+    if isinstance(key, str) and key.startswith('put pot '):
+        return 'pan_to_stove'           # return_pot: the held pan put back on a stove
     if isinstance(key, str) and key.startswith('put ') and not key.startswith(('put then ',)):
         kind = types.get(key[4:])
         return PLACE_KINDS.get(kind, kind or 'unknown')
