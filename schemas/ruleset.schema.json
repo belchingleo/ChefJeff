@@ -71,7 +71,7 @@
       ],
       "properties": {
         "handling_game_ms": {
-          "$ref": "common.schema.json#/$defs/positive_game_ms"
+          "$ref": "common.schema.json#/$defs/game_ms"
         },
         "extinguish_game_ms": {
           "$ref": "common.schema.json#/$defs/positive_game_ms"

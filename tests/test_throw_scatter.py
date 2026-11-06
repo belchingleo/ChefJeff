@@ -7,7 +7,8 @@ from level_one import neighbors
 
 class ThrowScatterTests(unittest.TestCase):
     def make(self, human=(5., 4.), jeff=(6., 5.)):
-        k = SpatialKitchen(load_config() | {'spawn_seed': 0})
+        # A 0.15 s take/put leaves a window to test interruptions; the shipped game takes and puts instantly, as Overcooked 2.
+        k = SpatialKitchen(load_config() | {'spawn_seed': 0, 'handling_seconds': .15})
         k.positions.update(human=human, jeff=jeff)
         k.chefs['human'].location = tile_key(k.anchor('human'))
         k.chefs['jeff'].location = tile_key(k.anchor('jeff'))
@@ -22,7 +23,7 @@ class ThrowScatterTests(unittest.TestCase):
         return action
 
     def make_level_corner(self, level, corner, human_has_food=False):
-        k = SpatialKitchen(load_config() | {'spawn_seed': 0, 'level': level})
+        k = SpatialKitchen(load_config() | {'spawn_seed': 0, 'level': level, 'handling_seconds': .15})
         access = k.equipment[corner]['access']
         k.positions.update(human=tuple(map(float, access)), jeff=tuple(map(float, access)))
         k.chefs['human'].location = tile_key(access)
@@ -117,7 +118,7 @@ class ThrowScatterTests(unittest.TestCase):
     def test_every_maps_corner_counter_accepts_throw_and_normal_take_uses_corner_access(self):
         for level in (1, 2, 3):
             with self.subTest(level=level):
-                k = SpatialKitchen(load_config() | {'spawn_seed': 0, 'level': level})
+                k = SpatialKitchen(load_config() | {'spawn_seed': 0, 'level': level, 'handling_seconds': .15})
                 corners = [key for key, station in k.equipment.items()
                            if station.get('reach') == 'corner']
                 self.assertTrue(corners)

@@ -8,7 +8,8 @@ from test_web import Client, FakeJournal
 
 class GroundInteractionTests(unittest.TestCase):
     def make(self, spatial=True):
-        config=load_config();config.update(round_seconds=500,order_patience=450,order_interval=100)
+        # A 0.15 s take/put leaves a window to test interruptions; the shipped game takes and puts instantly, as Overcooked 2.
+        config=load_config();config.update(round_seconds=500,order_patience=450,order_interval=100,handling_seconds=.15)
         return (SpatialKitchen if spatial else Kitchen)(config)
 
     def setup_pot(self,k,who='human',stage='ready'):

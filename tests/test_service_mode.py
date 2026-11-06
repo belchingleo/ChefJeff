@@ -24,6 +24,30 @@ def level(n, **edits):
     return cc.freeze_bundle(bundle)
 
 
+# The order policy without Overcooked 2's flow: the plan's fixed times, an expired order leaves.
+FIXED_TIMES = lambda o: [o.pop(key, None) for key in ('keep_open', 'max_open', 'on_expire')]
+
+
+class OrderFlowTests(unittest.TestCase):
+    """Overcooked 2's order flow (ServerOrderControllerBase.Update) on the shipped levels."""
+
+    def test_two_wait_from_the_start_and_a_served_one_is_replaced_at_once(self):
+        k = Kitchen(level(1))
+        pending = lambda: [o for o in k.orders if o['status'] == 'pending']
+        self.assertEqual(len(pending()), 2)
+        first = pending()[0];first['status'] = 'served';k.advance(.05)
+        self.assertEqual(len(pending()), 2)
+        self.assertAlmostEqual(pending()[-1]['arrival'], k.time, places=6)
+
+    def test_one_more_every_interval_and_never_more_than_five(self):
+        k = Kitchen(level(1))
+        interval = k.order_flow['interval']
+        k.advance(interval + .01)
+        self.assertEqual(sum(o['status'] == 'pending' for o in k.orders), 3)
+        k.advance(10 * interval)
+        self.assertLessEqual(sum(o['status'] == 'pending' for o in k.orders), 5)
+
+
 class ServeTests(unittest.TestCase):
     def kitchen(self, n=3, **edits):
         k = Kitchen(level(n, **edits))
@@ -69,13 +93,16 @@ class ServeTests(unittest.TestCase):
         self.assertEqual(o['status'], 'served');self.assertEqual(k.money, 80)
 
     def test_dish_goes_to_the_next_waiting_order_when_the_first_expired(self):
+        # Overcooked 2: the expired order stays and starts its countdown again, so the dish goes to the
+        # waiting order with the earliest deadline, now the second.
         k = self.kitchen(2)
-        k.advance(k.rules.resolved['order_policy']['interval_game_ms'] / 1000)  # second order arrives
         first, second = [o for o in k.orders if o['status'] == 'pending'][:2]
         first['deadline'] = k.time + .02;k.advance(.05)
-        self.assertEqual(first['status'], 'expired');self.assertEqual(k.money, -10)
+        self.assertEqual(first['status'], 'pending');self.assertEqual(first['expired_times'], 1)
+        self.assertAlmostEqual(first['deadline'], k.time + first['patience'], places=1);self.assertEqual(k.money, -10)
         self.plate(k, 'burger');self.serve(k)
-        self.assertEqual(second['status'], 'served');self.assertEqual(k.money, -10 + 80)
+        self.assertEqual(second['status'], 'served');self.assertEqual(first['status'], 'pending')
+        self.assertEqual(k.money, -10 + 80)
 
     def test_burnt_up_to_five_seconds_is_accepted_at_price_minus_ten(self):
         for dish in ('steak', 'burger'):
@@ -111,13 +138,22 @@ class ServeTests(unittest.TestCase):
         k = self.kitchen(1)
         self.plate(k, 'burger');self.serve(k)
         self.assertEqual(k.money, -20)
-        k = self.kitchen(2)
+        # With the plan's fixed times (Overcooked 2's flow always keeps two orders waiting).
+        k = self.kitchen(2, order_policy=FIXED_TIMES)
         self.first(k)['status'] = 'served'  # nothing waiting; later burger orders have not arrived
         self.plate(k, 'burger');self.serve(k)
         self.assertEqual(k.money, -20)
 
-    def test_expiry_costs_ten(self):
+    def test_expiry_costs_ten_and_the_order_starts_again(self):
         k = self.kitchen(1);o = self.first(k)
+        waiting = sum(x['status'] == 'pending' for x in k.orders)
+        k.advance(o['deadline'] - k.time + .1)
+        self.assertEqual(o['status'], 'pending');self.assertEqual(o['expired_times'], 1)
+        self.assertEqual(k.money, -10 * waiting);self.assertEqual(k.expired_count(), waiting)
+        self.assertGreater(o['deadline'], k.time + o['patience'] - .5)
+
+    def test_without_the_flow_an_expired_order_leaves(self):
+        k = self.kitchen(1, order_policy=FIXED_TIMES);o = self.first(k)
         k.advance(o['deadline'] - k.time + .1)
         self.assertEqual(o['status'], 'expired');self.assertEqual(k.money, -10)
 
@@ -129,15 +165,17 @@ class FixedSeedTests(unittest.TestCase):
             self.assertEqual(a['seeds']['source'], 'configured')
             self.assertEqual(a['config_hash'], b['config_hash'])
         orders = [o['recipe_ref'] for o in cc.load_level('level-3')['order_plan']['orders']]
-        self.assertEqual(orders, ['steak', 'burger', 'burger', 'steak', 'burger', 'steak'])
+        self.assertEqual(orders[:6], ['steak', 'burger', 'burger', 'steak', 'burger', 'steak'])
+        self.assertEqual(len(orders), 180000 // cc.OPEN_ORDER_PLAN_GAP_MS + 2)  # enough for any pace
 
     def test_targets_are_whole_tens(self):
         for n in (1, 2, 3):
             self.assertEqual(cc.load_level(f'level-{n}')['level']['goal']['min_money'] % 10, 0)
 
-    # Targets the owner set apart from the calibration (level: target): level 3 stays at 190, above
-    # half of its 21-seed median (160), owner decision 2026-10-06.
-    OWNER_TARGETS = {3: 190}
+    # Targets the owner set apart from the calibration (level: target). Level 3 was kept at 190 above its
+    # calibration (owner decision 2026-10-06); since calibration-v2 (owner decision 2026-11-06) every level
+    # uses its calibrated target.
+    OWNER_TARGETS = {}
 
     @staticmethod
     def sweep():
@@ -171,7 +209,7 @@ class FixedSeedTests(unittest.TestCase):
                 # The recorded best pairing and the solo rung (replaying all four pairings costs too much here).
                 pair, swapped = recorded['pair'].split(' ')[0], recorded['pair'].endswith('swapped')
                 policy = cc.load_level(f'level-{n}')['order_policy']
-                k = sweep.play(n, policy['interval_game_ms'], policy['patience_by_recipe'], seed, 'fast', pair, swapped)
+                k = sweep.play(n, policy['interval_game_ms'], policy['patience_by_recipe'], seed, report['run_set']['variant'], pair, swapped)
                 self.assertEqual(k.money, recorded['money'])
                 self.assertEqual(sweep.solo(n, seed).money, recorded['solo'])
 
@@ -228,7 +266,7 @@ class ServiceWordingTests(unittest.TestCase):
 
 class RoundTests(unittest.TestCase):
     def test_orders_arrive_until_closing_and_open_orders_end_without_penalty(self):
-        resolved = level(3)
+        resolved = level(3, order_policy=FIXED_TIMES)
         interval = resolved['order_policy']['interval_game_ms']
         plan = resolved['order_plan']['orders']
         self.assertEqual([o['arrival_game_ms'] for o in plan], list(range(0, 180000, interval)))
@@ -253,7 +291,7 @@ class RoundTests(unittest.TestCase):
         self.assertTrue(k.ended);self.assertFalse(k.won());self.assertIn('未达目标', k.result())
 
     def test_unreachable_target_is_announced_once(self):
-        k = Kitchen(level(1, level=lambda d: d['goal'].update(min_money=300)))
+        k = Kitchen(level(1, level=lambda d: d['goal'].update(min_money=300), order_policy=FIXED_TIMES))
         k.advance(179.)
         self.assertEqual([e['kind'] for e in k.events].count('goal_unreachable'), 1)
         self.assertFalse(k.ended)

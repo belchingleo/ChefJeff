@@ -450,7 +450,7 @@ class SessionLog:
             },
             'artifacts': artifacts,
             'outcome': {'engine_result': k.result(), 'end_reason': end_reason, 'goal_status': status,
-                        'served': k.served, 'expired': sum(o['status'] == 'expired' for o in k.orders),
+                        'served': k.served, 'expired': k.expired_count(),
                         'unresolved_at_close': sum(o['status'] == 'unresolved_at_close' for o in k.orders),
                         'money': k.money, 'raw_score': k.money},
             'contribution_meta': getattr(s, 'contribution_meta', {'status': 'not_contributed'}),

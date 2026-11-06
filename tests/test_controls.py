@@ -11,7 +11,8 @@ from test_web import Client, FakeJournal
 
 class ControlsTests(unittest.TestCase):
     def make(self):
-        c=load_config();c.update(spawn_seed=0,round_seconds=500,order_patience=450,order_interval=100)
+        # A 0.15 s take/put leaves a window to test interruptions; the shipped game takes and puts instantly, as Overcooked 2.
+        c=load_config();c.update(spawn_seed=0,round_seconds=500,order_patience=450,order_interval=100,handling_seconds=.15)
         return SpatialKitchen(c)
 
     def throw(self,k,who,target):
@@ -21,7 +22,7 @@ class ControlsTests(unittest.TestCase):
     def service(self):
         # The levels' ruleset: throws reach 4 tiles.
         from levels import level_config
-        return SpatialKitchen(level_config(load_config(),1)|{'spawn_seed':0})
+        return SpatialKitchen(level_config(load_config(),1)|{'spawn_seed':0,'handling_seconds':.15})
 
     def test_free_aim_exact_range_and_wall(self):
         k=self.service();k.positions['human']=(3.,4.);k.chefs['human'].hand=Food('test')
@@ -181,7 +182,8 @@ class ControlsTests(unittest.TestCase):
             self.cmd(g,'move',dx=1,dy=0,seq=13)
         with patch.object(g.ai,'poll'):g.tick(101)
         # Movement expiry is applied at fixed game-tick boundaries: within one tick.
-        self.assertLessEqual(abs(g.k.positions['human'][0]-(5+.5*g.speed*WALK_SPEED)),g.k.rules.tick*WALK_SPEED+1e-9)
+        # Walking runs in real time (set_clock): half a real second walks half of WALK_SPEED at any game clock.
+        self.assertLessEqual(abs(g.k.positions['human'][0]-(5+.5*WALK_SPEED)),g.k.rules.tick*g.k.rules.walk_speed+1e-9)
         self.assertFalse(any(g.k.manual['human']))
         self.cmd(g,'move',dx=1,dy=0,seq=14);self.cmd(g,'pause')
         self.assertFalse(any(g.k.manual['human']))

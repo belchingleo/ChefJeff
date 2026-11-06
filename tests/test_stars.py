@@ -12,7 +12,7 @@ class StarTests(unittest.TestCase):
         return SpatialKitchen(level_config(load_config(), level))
 
     def test_star_scores_follow_the_target(self):
-        for level, scores in (('level-1', [150, 225, 300]), ('level-2', [160, 240, 320]), ('level-3', [190, 285, 380])):
+        for level, scores in (('level-1', [200, 300, 400]), ('level-2', [200, 300, 400]), ('level-3', [160, 240, 320])):
             k = self.make(level)
             self.assertEqual(k.star_scores(), scores)
             self.assertEqual(k.snapshot()['goals']['star_scores'], scores)
@@ -20,10 +20,10 @@ class StarTests(unittest.TestCase):
 
     def test_stars_count_the_scores_reached(self):
         k = self.make('level-2')
-        self.assertEqual([k.stars(m) for m in (0, 159, 160, 239, 240, 319, 320, 500)], [0, 0, 1, 1, 2, 2, 3, 3])
-        k.money = 250
+        self.assertEqual([k.stars(m) for m in (0, 199, 200, 299, 300, 399, 400, 800)], [0, 0, 1, 1, 2, 2, 3, 3])
+        k.money = 350
         status = k.goal_status()
-        self.assertEqual((status['stars_now'], status['met_now'], status['target_money']), (2, True, 160))
+        self.assertEqual((status['stars_now'], status['met_now'], status['target_money']), (2, True, 200))
 
     def test_an_odd_target_rounds_the_middle_score_down(self):
         k = self.make('level-2')
@@ -34,7 +34,7 @@ class StarTests(unittest.TestCase):
         k = self.make('level-2')
         text = harness.objective_text(k.snapshot())
         self.assertIn('as much net revenue as you can', text)
-        self.assertIn('160 yuan or more earns one star and reaches the target, 240 two stars, 320 three stars', text)
+        self.assertIn('200 yuan or more earns one star and reaches the target, 300 two stars, 400 three stars', text)
         self.assertNotIn('at least', text)
 
 

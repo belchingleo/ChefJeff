@@ -179,4 +179,4 @@ class FixedTickTests(unittest.TestCase):
                 g.tick(i * 3 / polls)
             results.append((g.ticks, round(g.k.time, 9), [e['t'] for e in g.k.events]))
         self.assertEqual(results[0], results[1]);self.assertEqual(results[1], results[2])
-        self.assertEqual(results[0][0], 45)  # 3 s wall x 0.75 / 0.05 s ticks
+        self.assertEqual(results[0][0], 60)  # 3 s wall at the real clock / 0.05 s ticks

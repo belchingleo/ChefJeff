@@ -88,7 +88,7 @@ Common: `patience_default_game_ms`, `patience_by_recipe`. The algorithm name is 
 | `actors[]` | `human` and `jeff` with `controller_type`; model/provider settings and keys are bound at round start, never stored here |
 | `spawns` | `nearest_floor_to_center_shuffled`: nearest floor cell to each center on its side of `partition`, then shuffled with the spawn seed |
 | `initial_inventory[]` | `{object: plate|pot|pan|extinguisher, id, state?, at | at_type}`; `at` names a station, `at_type` a station type (the first station of that type, in map order, not held by an earlier row or named by an `at` row), so a level can run on any map; IDs `D1..Dn`, `P1..Pn`, exactly one `E1`; one object per slot |
-| `clock` | default and allowed game-per-real-time speeds (shipped 0.75; options 0.5 / 0.75 / 1) |
+| `clock` | default and allowed game-per-real-time speeds (shipped 1, as in Overcooked 2; options 0.5 / 0.75 / 1) |
 | `round_limit_game_ms` | D |
 | `goal` | `minimum_money {min_money}`: net revenue at closing |
 | `end_policy` | `fixed_round`: the round always runs to D and settles there |

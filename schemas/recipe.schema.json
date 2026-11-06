@@ -229,7 +229,7 @@
               "$ref": "common.schema.json#/$defs/positive_game_ms"
             },
             "fire_after_overcook_game_ms": {
-              "$ref": "common.schema.json#/$defs/positive_game_ms"
+              "$ref": "common.schema.json#/$defs/game_ms"
             }
           },
           "additionalProperties": false

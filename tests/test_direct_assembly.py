@@ -7,7 +7,8 @@ from model_language import english_data
 import json,re
 
 class DirectAssemblyTests(unittest.TestCase):
-    def make(self):return SpatialKitchen({**load_config(),'level':3,'spawn_seed':0,'order_seed':42})
+    # A 0.15 s take/put leaves a window to test interruptions; the shipped game takes and puts instantly, as Overcooked 2.
+    def make(self):return SpatialKitchen({**load_config(),'level':3,'spawn_seed':0,'order_seed':42,'handling_seconds':.15})
     def plate(self,k,who,station='plates',parts=()):
         p=k.stations[station].food;k.stations[station].food=None
         for name in parts:

@@ -50,7 +50,12 @@ class ProvenanceTests(unittest.TestCase):
     def test_pot_returned_to_the_stove_counts_for_the_next_beef(self):
         p, r = self.l1.provenance, analyze_collaboration(self.l1)
         last_serve = max(s['t'] for s in p.serves)
-        returns = [aid for aid, a in p.actions.items() if a['kind'] == 'return_pot' and a['t'] < last_serve - 20]
+        returned = sorted((a['t'], aid) for aid, a in p.actions.items() if a['kind'] == 'return_pot')
+        # A pot whose next beef burnt (the stove catches fire as it burns, as in Overcooked 2) feeds no dish.
+        burns = [e['t'] for e in self.l1.events if e.get('kind') == 'burn']
+        nexts = [t for t, _ in returned[1:]] + [float('inf')]
+        returns = [aid for (t, aid), until in zip(returned, nexts)
+                   if t < last_serve - 20 and not any(t < b < until for b in burns)]
         self.assertTrue(returns)
         contributing = set()
         for serve in p.serves:

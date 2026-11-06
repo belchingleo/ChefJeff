@@ -86,7 +86,7 @@ class GameSession:
         self.game_id = uuid.uuid4().hex
         self.phase = 'ready'
         self.faulted = False
-        self.speed = .75
+        self.speed = 1
         self.ai = None
         self.journal = None
         self.cursor = 0
@@ -562,7 +562,7 @@ class GameSession:
         if path == '/api/start':
             if self.phase != 'ready':
                 return 409, {'error': '本局已经开始。'}
-            speed = body.get('speed', .75)
+            speed = body.get('speed', 1)
             if isinstance(speed, bool) or speed not in (.5, .75, 1):
                 return 400, {'error': '请选择页面中的游戏节奏。'}
             try:
@@ -570,6 +570,9 @@ class GameSession:
             except (RuntimeError, OSError, ValueError):
                 return 503, {'error': '没有读到可用的本地 Jev 配置，请检查 .env。厨房尚未开始计时。'}
             self.speed = speed
+            # Walking is set in real time: a slower clock gives more cells per game second (see set_clock).
+            if hasattr(self.k, 'set_clock'):
+                self.k.set_clock(speed)
             self.round_close_reason = 'not_observed'
             self.round_started_at = datetime.now().astimezone().isoformat(timespec='seconds')
             self.journal = SessionLog(self, self.journal_factory(self.log_prefix+'-'+self.game_id[:8]),

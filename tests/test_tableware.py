@@ -13,7 +13,8 @@ from levels import level_config
 class TablewareTests(unittest.TestCase):
     def make(self, spatial=False, **overrides):
         config = load_config()
-        config.update(round_seconds=500, order_patience=400, order_interval=100)
+        # A 0.15 s take/put leaves a window to test interruptions; the shipped game takes and puts instantly, as Overcooked 2.
+        config.update(round_seconds=500, order_patience=400, order_interval=100, handling_seconds=.15)
         config.update(overrides)
         return (SpatialKitchen if spatial else Kitchen)(config)
 
@@ -61,7 +62,7 @@ class TablewareTests(unittest.TestCase):
             self.ready(k, 'third')
             self.assertNotIn('plate', [a.key for a in k.actions('human')])
             self.assertFalse(k.command('human', 'serve')[0])
-            k.advance(8)
+            k.advance(k.rules.dining)
             for action in ('take returns', 'put sink', 'wash', 'take sink', 'put plates'):
                 self.do(k, 'jeff', action)
             self.plate(k)
@@ -98,20 +99,21 @@ class TablewareTests(unittest.TestCase):
 
     def dirty_in_sink(self, k):
         plate = self.serve(k, 'first')
-        k.advance(8)
+        k.advance(k.rules.dining)
         self.do(k, 'human', 'take returns'); self.do(k, 'human', 'put sink')
         return plate
 
     def test_wash_interruption_and_other_chef_continues(self):
         k = self.make()
         plate = self.dirty_in_sink(k)
-        self.assertTrue(k.command('human', 'wash')[0]); k.advance(1.5)
+        self.assertTrue(k.command('human', 'wash')[0]); k.advance(.5)
         self.assertFalse(k.command('jeff', 'wash')[0])
         self.do(k, 'human', 'stop')
-        self.assertAlmostEqual(k.stations['sink'].food.washed, 1.5)
+        self.assertAlmostEqual(k.stations['sink'].food.washed, .5)
         self.assertTrue(k.command('jeff', 'wash')[0])
-        self.assertAlmostEqual(k.chefs['jeff'].job.work, 2.5)
-        k.advance(k.chefs['jeff'].job.travel+2.5)
+        left = k.wash_seconds-.5
+        self.assertAlmostEqual(k.chefs['jeff'].job.work, left)
+        k.advance(k.chefs['jeff'].job.travel+left)
         self.assertEqual(k.stations['sink'].food.stage, 'clean_plate')
         self.do(k, 'jeff', 'take sink')
         self.assertEqual(k.chefs['jeff'].hand.id, plate)
@@ -178,7 +180,7 @@ class TablewareTests(unittest.TestCase):
         self.assertEqual(k.money, 0)
         self.assertIn('dish_rejected', [e.get('kind') for e in k.events])
         self.assertEqual(k.orders[0]['status'], 'pending')
-        k.advance(8)
+        k.advance(k.rules.dining)
         self.assertEqual(k.stations['returns'].food.id, plate)
         k.assert_invariants()
 
@@ -230,7 +232,7 @@ class TablewareTests(unittest.TestCase):
         payload = JevClient(k.c, key='offline-test-only').payload(k.snapshot(), k.actions('jeff'))
         self.assertIn('wash', payload['questions']['next_action']['criteria'])
         self.assertIn('tableware', payload['state']['rules'])
-        self.assertEqual(payload['state']['kitchen']['stations']['sink']['food']['wash_remaining'], 4)
+        self.assertEqual(payload['state']['kitchen']['stations']['sink']['food']['wash_remaining'], k.wash_seconds)
         self.assertEqual(payload['state']['kitchen']['tableware']['total'], 2)
 
     def test_dirty_plates_rejected_for_all_plating_routes(self):

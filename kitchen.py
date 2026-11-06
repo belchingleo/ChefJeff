@@ -120,6 +120,8 @@ def engine_input(method):
             record = {'n': len(self.inputs), 'call': method.__name__, 'game_time_ms': round(started*1000)}
             if method.__name__ == 'advance':
                 record['seconds'] = args[0]
+            elif method.__name__ == 'set_clock':
+                record['speed'] = args[0]
             elif args:
                 record['actor'] = args[0]
             if method.__name__ == 'start':
@@ -181,6 +183,8 @@ def apply_input(k, record):
         k.report_position(record['actor'], *record['at'], record['base'], record['settle'], record.get('press', False))
     elif call == 'abort':
         k.abort()
+    elif call == 'set_clock':
+        k.set_clock(record['speed'])
     else:
         raise ValueError(f'unknown engine input {call!r}')
     return k
@@ -256,6 +260,18 @@ class Kitchen:
                         'patience': sec(o['patience_game_ms']), 'deadline': sec(o['deadline_game_ms']),
                         'status': 'future', 'ingredients': list(parts[o['recipe_ref']])}
                        for o in self.resolved['order_plan']['orders']]
+        # Overcooked 2's order flow (ServerOrderControllerBase.Update), when the policy asks for it: a new order
+        # every interval, at once whenever fewer than keep_open wait, never more than max_open waiting; an
+        # expired order costs its penalty and starts its countdown again (ResetOrderLifetime). Without it the
+        # plan's arrival times hold and an expired order leaves.
+        policy = self.resolved['order_policy']
+        self.order_flow = {'keep_open': policy.get('keep_open', 0), 'max_open': policy.get('max_open'),
+                           'on_expire': policy.get('on_expire', 'leave'),
+                           'interval': sec(policy['interval_game_ms']) if policy.get('interval_game_ms') else None,
+                           'first': sec(policy.get('first_spawn_game_ms', 0)),
+                           'stop': sec(policy.get('stop_spawn_game_ms', self.resolved['level']['round_limit_game_ms']))}
+        self._next_order_at = self.order_flow['first']
+        self.expirations = 0
         self._arrivals()
 
     def _place_inventory(self):
@@ -295,7 +311,26 @@ class Kitchen:
         if observer is not None:
             observer.observe_event(self.events[-1])
 
+    @property
+    def open_orders(self):
+        """Whether orders arrive as Overcooked 2's do (see order_flow), not at the plan's times."""
+        flow = getattr(self, 'order_flow', None)
+        return bool(flow and (flow['keep_open'] or flow['max_open']))
+
     def _arrivals(self):
+        if self.open_orders:
+            flow, now = self.order_flow, round(self.time, 6)
+            while not self.ended and now < flow['stop'] - 1e-8:
+                waiting = sum(o['status'] == 'pending' for o in self.orders)
+                nxt = next((o for o in self.orders if o['status'] == 'future'), None)
+                if nxt is None or (flow['max_open'] and waiting >= flow['max_open']):
+                    break
+                if not (now >= self._next_order_at - 1e-8 or waiting < flow['keep_open']):
+                    break
+                nxt['arrival'], nxt['deadline'], nxt['status'] = now, round(now + nxt['patience'], 6), 'pending'
+                self._next_order_at = round(now + flow['interval'], 6)
+                self.emit(f"新订单 {nxt['id']}：{self.recipe_name(nxt['dish'])}，截止 {nxt['deadline']:.0f}s", kind="order", order_id=nxt['id'])
+            return
         for o in self.orders:
             if o["status"] == "future" and o["arrival"] <= self.time + 1e-8:
                 o["status"] = "pending"
@@ -1083,10 +1118,20 @@ class Kitchen:
                 if closing and o["deadline"] >= self.rules.round_limit-1e-8:
                     continue
                 if o["status"] == "pending" and self.time >= o["deadline"]-1e-8:
-                    o["status"] = "expired"
                     penalty = self.rules.penalty['expired_order']
                     self.money += penalty
-                    self.emit(f"{o['id']}超时，顾客离开，扣 {-penalty} 元", kind="expired", order_id=o['id'])
+                    self.expirations += 1
+                    if self.order_flow['on_expire'] == 'restart':
+                        # Overcooked 2: the order stays on the rail and its countdown starts again.
+                        o['expired_times'] = o.get('expired_times', 0) + 1
+                        o['deadline'] = round(self.time + o['patience'], 6)
+                        self.emit(f"{o['id']}超时，扣 {-penalty} 元，订单重新计时", kind="expired", order_id=o['id'])
+                    else:
+                        o["status"] = "expired"
+                        self.emit(f"{o['id']}超时，顾客离开，扣 {-penalty} 元", kind="expired", order_id=o['id'])
+            if self.open_orders:
+                # A served or expired order may free a place on the rail (Overcooked 2 checks every frame).
+                self._arrivals()
             self._goal_notices()
             if closing:
                 self._end()
@@ -1158,6 +1203,10 @@ class Kitchen:
             self._goal_unreachable_noted = True
             self.emit(f"已无法达成目标金额 {self.rules.goal['min_money']} 元；本局继续至关店", kind='goal_unreachable')
 
+    def expired_count(self):
+        """How many times an order ran out of time (an order that starts again can expire more than once)."""
+        return getattr(self, 'expirations', sum(o['status'] == 'expired' for o in self.orders))
+
     def won(self):
         return not self.failure_reason and self.money >= self.rules.goal['min_money']
 
@@ -1165,7 +1214,7 @@ class Kitchen:
         label = '火势失控' if self.failure_reason == 'fire_spread' else ("提前退出" if self.aborted else ("目标达成" if self.won() else "未达目标"))
         count = lambda status: sum(o['status'] == status for o in self.orders)
         refused = sum(e.get('kind') == 'dish_rejected' for e in self.events)
-        return (f"{label}：净收入 {self.money}/{self.rules.goal['min_money']} 元；完成 {self.served} 单；超时 {count('expired')}；"
+        return (f"{label}：净收入 {self.money}/{self.rules.goal['min_money']} 元；完成 {self.served} 单；超时 {self.expired_count()}；"
                 f"拒收 {refused}；关店未完成 {count('unresolved_at_close')}；糊锅 {self.burns}，着火 {self.fires}")
 
     def snapshot(self):
@@ -1228,6 +1277,9 @@ class Kitchen:
                 "orders": [{**o, "remaining": round(o["deadline"]-self.time,2)} for o in self.orders if o["status"] != "future"],
                 # Reveal only whether more orders will come, not how many.
                 "future_orders": int(any(o["status"] == "future" for o in self.orders)),
+                # How orders arrive (Overcooked 2's flow), when the level uses it; see objective_text.
+                **({'order_flow': {k: v for k, v in self.order_flow.items() if k in ('keep_open', 'max_open', 'on_expire', 'interval')}}
+                   if self.open_orders else {}),
                 'goal_status': self.goal_status(), 'end_policy': self.rules.end_policy,
                 # Rules visible to both chefs, from the same frozen configuration the engine runs.
                 'menu': [self._dish_view(r) for r in self.rules.menu],

@@ -18,7 +18,7 @@ class CounterLevelTests(unittest.TestCase):
     def test_new_map_resources_orders_and_every_workstation_reachable(self):
         k=self.make()
         self.assertEqual((len(k.pots),k.pot_count,k.plate_count,len(k.boards)),(1,1,2,2))
-        self.assertEqual([o['dish'] for o in k.orders],['burger']*5)
+        self.assertEqual({o['dish'] for o in k.orders},{'burger'})
         self.assertEqual(k.c['round_seconds'],180)
         self.assertTrue(all(o['deadline']<=180 for o in k.orders))
         self.assertEqual(k.floor & {(x,4) for x in range(14)},{(10,4),(11,4)})
@@ -42,7 +42,7 @@ class CounterLevelTests(unittest.TestCase):
             self.do(k,'take '+counter);k.advance(12);self.do(k,'plate p1')
             if k.orders[i]['arrival']>k.time:k.advance(k.orders[i]['arrival']-k.time+.01)
             self.do(k,'serve')
-        self.assertEqual(k.served,3);self.assertTrue(k.won());k.assert_invariants()
+        self.assertEqual(k.served,3);self.assertEqual(k.money,3*k.rules.prices['burger']);k.assert_invariants()
     def test_all_levels_sprint_and_english_model_contract(self):
         for level in (1,2,3):
             k=self.make(level);k.positions['human']=(2,2);k.set_manual('human',1,0)

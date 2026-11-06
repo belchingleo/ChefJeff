@@ -22,7 +22,7 @@ from cooperation_memory import PAST_EPISODES_RULE
 # v9: boards and ingredient-source tops hold any one object, as counters do; a source with something on top gives no ingredient.
 # v10: the objective is as much net revenue as possible, rated in stars (the target, 1.5 and 2 times it).
 # v10 also: an ingredient part-way through chopping cannot be taken off its board (Overcooked 2), for both chefs.
-AGENT_RULES_VERSION = "rules-v10"
+AGENT_RULES_VERSION = "rules-v11"
 
 
 # How a recipe component's required state reads in model input: "tomato (chopped)".
@@ -75,8 +75,17 @@ def objective_text(state):
     return (f"Earn as much net revenue as you can by closing time, {state['round_limit']:g} game seconds. The round is rated in "
             f"stars by the net revenue at closing: {one} yuan or more earns one star and reaches the target, {two} two stars, "
             f"{three} three stars; below {one} the target is missed. The round always runs until closing and only the net revenue "
-            "at closing counts: penalties can take you below a star again. Orders keep arriving until closing; orders still "
+            "at closing counts: penalties can take you below a star again. " + arrival_text(state) + " Orders still "
             "waiting at closing carry no penalty. There is no bonus for remaining time.")
+
+
+def arrival_text(state):
+    """How orders arrive: Overcooked 2's flow when the level uses it, else one per interval."""
+    flow = state.get('order_flow')
+    if not flow:
+        return "Orders keep arriving until closing."
+    return (f"Orders keep arriving until closing: one every {flow['interval']:g} game seconds, and at once whenever fewer than "
+            f"{flow['keep_open']} are waiting, so serving quickly brings the next order sooner; at most {flow['max_open']} wait at a time.")
 
 
 def score_text(state):
@@ -93,7 +102,8 @@ def score_text(state):
             "serving exactly at the deadline still counts. A plate can be served when its components are exactly those of one dish in kitchen.dishes; "
             "orders show which dishes customers are waiting for. Unplated food, or a plate that matches no dish, cannot be served. "
             "If any component was burnt, what counts is how long it had been burnt when it left the heat: " + '; '.join(tiers) + ". "
-            f"Serving a dish that no shown order is waiting for: {p['wrong_dish']} yuan. Expired order: {p['expired_order']} yuan. "
+            f"Serving a dish that no shown order is waiting for: {p['wrong_dish']} yuan. Expired order: {p['expired_order']} yuan"
+            + ("; the order stays and its countdown starts again. " if (state.get('order_flow') or {}).get('on_expire') == 'restart' else ". ") +
             f"Fire: {p['new_fire']} yuan per burning workstation. Discarding food or emptying a pot: {p['discard']} yuan. There are no bad reviews.")
 
 

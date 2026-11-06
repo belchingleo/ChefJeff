@@ -11,7 +11,8 @@ import config_contract as cc
 class ThrowTests(unittest.TestCase):
     def make(self, stage='chopped', service=True):
         # service=True: a Level 1 service kitchen, whose ruleset allows passing plates, pots and tools.
-        k=SpatialKitchen((level_config(load_config(),1) if service else load_config()) | {'spawn_seed':0})
+        # A 0.15 s take/put leaves a window to test interruptions; the shipped game takes and puts instantly, as Overcooked 2.
+        k=SpatialKitchen((level_config(load_config(),1) if service else load_config()) | {'spawn_seed':0,'handling_seconds':.15})
         k.positions.update(jeff=(5.,5.),human=(8.,4.))
         k.chefs['jeff'].location='b2';k.chefs['human'].location='p1'
         k.chefs['jeff'].hand=Food('pass',stage,6,3)

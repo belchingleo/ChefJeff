@@ -76,8 +76,9 @@ class SelectedTargetTests(unittest.TestCase):
         self.assertEqual(g.k.chefs['human'].hand.id,'P1');g.k.assert_invariants()
     def test_facing_locks_front_and_explicit_selection_overrides(self):
         k=self.make();k.positions['human']=(2,6);k.chefs['human'].hand=Food('meat')
-        # Facing right the floor tile is open, but board b2 lies diagonally ahead: Overcooked 2 picks it.
-        for facing,target,kind in [('down','b1','put_board'),('left','bin','discard'),('right','b2','put_board')]:
+        # Facing right the floor tile is open: Overcooked 2 never picks the diagonal b2, but b1 at the chef's
+        # side (90 degrees off, nothing better ahead).
+        for facing,target,kind in [('down','b1','put_board'),('left','bin','discard'),('right','b1','put_board')]:
             k.facing['human']=facing
             focus=k.interaction_target('human');self.assertEqual(focus,target)
             self.assertEqual(k.quick_interaction('human',preferred=focus).kind,kind)

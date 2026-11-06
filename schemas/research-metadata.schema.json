@@ -764,7 +764,8 @@
                       "face",
                       "pick_station",
                       "report_position",
-                      "abort"
+                      "abort",
+                      "set_clock"
                     ]
                   },
                   "game_time_ms": {

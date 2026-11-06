@@ -76,13 +76,14 @@ class FireSpreadTests(unittest.TestCase):
         for who in ['human','jeff']:
             k=self.make();target=k.counters[0];k.ignite(target);s=k.stations[target]
             tool=k.stations['extinguisher'].food;k.stations['extinguisher'].food=None;k.chefs[who].hand=tool
-            k.command(who,'extinguish '+target);j=k.chefs[who].job;k.advance(j.travel+2)
+            # Half of a fire's spraying time (Overcooked 2's 0.5 s by default), then stop.
+            full=k.rules.extinguish;k.command(who,'extinguish '+target);j=k.chefs[who].job;k.advance(j.travel+full/2)
             self.assertAlmostEqual(s.fire_strength,.5,places=1);self.assertTrue(s.fire)
-            self.assertIn('2s',next(a.label for a in k.actions(who) if a.key=='extinguish '+target))
+            self.assertIn(f'{round(s.fire_strength*full,1):g}s',next(a.label for a in k.actions(who) if a.key=='extinguish '+target))
             sprayed=s.fire_strength;k.stop(who);k.advance(1.9);self.assertAlmostEqual(s.fire_strength,.5,places=1)
             k.advance(1.1);self.assertAlmostEqual(s.fire_strength,.68,places=1);regrown=s.fire_strength
             # Spraying again only has what is left to put out.
-            self.assertTrue(k.command(who,'extinguish '+target)[0]);self.assertAlmostEqual(k.chefs[who].job.work,s.fire_strength*4,places=2)
+            self.assertTrue(k.command(who,'extinguish '+target)[0]);self.assertAlmostEqual(k.chefs[who].job.work,s.fire_strength*full,places=2)
             k.advance(k.chefs[who].job.travel+k.chefs[who].job.work+.1);self.assertFalse(s.fire)
             seen.append((round(sprayed,3),round(regrown,3)));k.assert_invariants()
         self.assertEqual(seen[0],seen[1])

@@ -24,6 +24,9 @@ class ApproachPartnerTests(unittest.TestCase):
                             k.advance(.05)
                             steps += 1
                         self.assertIsNone(k.chefs[who].job)
+                        # The walk ends on contact; a dash's knock-back plays out over the next 0.2 s.
+                        for _ in range(10):
+                            k.advance(.05)
                         self.assertGreaterEqual(math.dist(start, k.positions[other]), least)
                         self.assertLessEqual(math.dist(start, k.positions[other]), k.rules.sprint_push + .1)
                         k.assert_invariants()

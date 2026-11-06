@@ -1,4 +1,5 @@
-"""A running station action cannot keep progressing after its operator turns away."""
+"""A running station action cannot keep progressing after its operator turns away (the station leaves the
+Overcooked 2 pick: behind the chef; a station at the chef's side is still picked)."""
 import time
 import unittest
 
@@ -24,7 +25,9 @@ class WorkContinuityTests(unittest.TestCase):
         for who in ('human','jeff'):
             with self.subTest(who=who):
                 k=self.make(who);progress=k.stations['b1'].food.chopped
-                self.assertTrue(k.face(who,0,1))
+                # Turned to the side the board is still the pick, as in Overcooked 2: the work goes on.
+                self.assertTrue(k.face(who,0,1));self.assertTrue(k.chefs[who].job.working)
+                self.assertTrue(k.face(who,-1,0))
                 self.assertIsNone(k.chefs[who].job)
                 self.assertIsNone(k.stations['b1'].lock)
                 k.advance(.5)
@@ -58,7 +61,7 @@ class WorkContinuityTests(unittest.TestCase):
         self.assertTrue(k.chefs['jeff'].job.working)
         progress=k.stations['b1'].food.chopped
         overlap=k.shared_overlap['b1']
-        k.face('human',0,1);k.advance(.5)
+        k.face('human',-1,0);k.advance(.5)
         self.assertIsNone(k.chefs['human'].job)
         self.assertEqual(k.stations['b1'].lock,'jeff')
         self.assertAlmostEqual(k.stations['b1'].food.chopped-progress,.5)

@@ -177,10 +177,21 @@ def _producible(recipe_catalog, map_types, item, state, vessels):
     return False, f'state {state!r} is not reachable from {items[item]["initial_state"]!r} with equipment on this map'
 
 
+# With Overcooked 2's order flow (keep_open / max_open) orders come as fast as the kitchen serves them, so the
+# plan lists enough for one every OPEN_ORDER_PLAN_GAP_MS, faster than any pair can serve, plus the first keep_open.
+OPEN_ORDER_PLAN_GAP_MS = 5000
+
+
+def open_orders(policy):
+    return bool(policy.get('keep_open') or policy.get('max_open'))
+
+
 def _order_count(policy, round_limit):
     if policy['mode'] == 'fixed_table':
         return len(policy['arrivals'])
     t0, stop, interval = policy['first_spawn_game_ms'], policy.get('stop_spawn_game_ms', round_limit), policy['interval_game_ms']
+    if open_orders(policy):
+        return max(0, math.ceil((stop - t0) / OPEN_ORDER_PLAN_GAP_MS)) + policy.get('keep_open', 0)
     return max(0, math.ceil((stop - t0) / interval))
 
 
@@ -461,7 +472,10 @@ def order_plan(policy, seed, round_limit_game_ms, recipe_ids):
         menu = sorted(policy['menu'], key=lambda e: e['recipe_ref'])
         total = sum(e['weight'] for e in menu)
         arrival = policy['first_spawn_game_ms']
-        while arrival < policy.get('stop_spawn_game_ms', round_limit_game_ms):
+        # Overcooked 2's flow: the engine sets each arrival (see Kitchen._arrivals); the plan gives the sequence,
+        # with the arrival each order would have if nothing were served (one per interval).
+        planned = _order_count(policy, round_limit_game_ms) if open_orders(policy) else None
+        while (len(rows) < planned) if planned is not None else arrival < policy.get('stop_spawn_game_ms', round_limit_game_ms):
             pick, acc = rng.random() * total, 0.
             recipe = menu[-1]['recipe_ref']
             for e in menu:
@@ -476,7 +490,7 @@ def order_plan(policy, seed, round_limit_game_ms, recipe_ids):
         for _, a in table:
             p = a.get('patience_game_ms', patience(a['recipe_ref']))
             rows.append((a['recipe_ref'], a['arrival_game_ms'], p, min(a['arrival_game_ms'] + p, round_limit_game_ms)))
-    return {'algorithm': ORDER_ALGORITHMS[mode],
+    return {'algorithm': ORDER_ALGORITHMS[mode] + ('+open-orders-v1' if open_orders(policy) else ''),
             'orders': [{'order_id': f'O{i + 1}', 'recipe_ref': r, 'arrival_game_ms': a, 'deadline_game_ms': d,
                         'patience_game_ms': p} for i, (r, a, p, d) in enumerate(rows)]}
 

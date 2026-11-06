@@ -6,7 +6,7 @@ from whitebox_server import SpatialJevClient
 
 class PartnerStateTests(unittest.TestCase):
     def test_jev_receives_players_real_position_hand_job_and_remaining_time(self):
-        k=SpatialKitchen(load_config());client=SpatialJevClient(k.c,key='test-only')
+        k=SpatialKitchen(load_config()|{'handling_seconds':.15});client=SpatialJevClient(k.c,key='test-only')
         k.chefs['human'].hand=Food('player-meat','chopped',6,0)
         k.command('human','put p1');k.advance(min(.1,k.chefs['human'].job.travel/2))
         p=client.payload(k.snapshot(),k.actions('jeff'))['state']

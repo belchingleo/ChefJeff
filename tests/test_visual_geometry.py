@@ -305,6 +305,48 @@ assert.strictEqual(geometry.steeredFacing(-1,0),'left');
 assert.strictEqual(geometry.steeredFacing(0,1),'down');
 assert.strictEqual(geometry.steeredFacing(.7,-.71),'up');
 
+// Reported: the game did not follow the hands. As in Overcooked 2 (m_pickupDelay), only a second pick-up waits
+// 0.5 s; what was just taken can be put down at once.
+assert.strictEqual(geometry.pickupWaits(true,.1),false);
+assert.strictEqual(geometry.pickupWaits(false,.1),true);
+assert.strictEqual(geometry.pickupWaits(false,.5),false);
+// A take or put lands a moment after the reply: the page asks again right then (real seconds, after the clock).
+assert(Math.abs(geometry.handsLandIn({speed:.75,kitchen:{chefs:{human:{job_id:3,working:false,travel_remaining:0,work_remaining:.15}}}})-(.2+.02))<1e-9);
+assert.strictEqual(geometry.handsLandIn({speed:1,kitchen:{chefs:{human:{job_id:3,working:true,work_remaining:2}}}}),null);
+assert.strictEqual(geometry.handsLandIn({speed:1,kitchen:{chefs:{human:{job_id:null}}}}),null);
+assert.strictEqual(geometry.handsLandIn(null),null);
+
+// Reported twice: the player's chef ended a put with its back to the board, plate or pot. The press lean
+// (KitchenClient.actionCue: 4 px over 0.16 s along a sine) swings back away from the station, and that swing
+// was read as a step. As in Overcooked 2, only a held direction turns the player's own chef.
+const OWN={own:true,steer:null,steered:true,slide:false,travelling:false,working:false};
+const SCREEN={up:[0,1],down:[0,-1],left:[-1,0],right:[1,0]};
+for(const facing of ['up','down','left','right']){
+  let drawn=facing,last=0;
+  for(let frame=1;frame<=12;frame++){
+    const lean=4*Math.sin(Math.PI*Math.min(1,frame/(60*.16))),step=lean-last;last=lean;
+    drawn=geometry.drawnFacing({...OWN,drawn,engine:facing,walked:[SCREEN[facing][0]*step,SCREEN[facing][1]*step]});
+    assert.strictEqual(drawn,facing,`the press lean turned a chef facing ${facing} at frame ${frame}`);
+  }
+}
+// Nothing but a held direction turns the player's chef: not a centring slide, a knock-back, a push or a
+// correction, before or after the engine's facing arrives, steered or not.
+for(const engine of ['down',undefined])for(const slide of [false,true])
+  assert.strictEqual(geometry.drawnFacing({...OWN,drawn:'down',engine,slide,walked:[0,3]}),'down');
+assert.strictEqual(geometry.drawnFacing({...OWN,drawn:'down',engine:'down',walked:[-5,0],travelling:true,slide:true}),'down');
+assert.strictEqual(geometry.drawnFacing({...OWN,drawn:'down',engine:'left',walked:[0,3],steer:'right'}),'right');
+// A real walk the engine makes for it (e.g. to a work spot) turns it with the engine; work faces the station.
+assert.strictEqual(geometry.drawnFacing({...OWN,drawn:'down',engine:'left',walked:[-1,0],travelling:true}),'left');
+assert.strictEqual(geometry.drawnFacing({...OWN,drawn:'up',engine:'down',walked:null,working:true,steer:'up'}),'down');
+// Not steered yet (a new round): the resting chef takes the engine's facing.
+assert.strictEqual(geometry.drawnFacing({...OWN,steered:false,drawn:'down',engine:'right',walked:null}),'right');
+// Jeff turns along his drawn walk, not on a centring slide, and rests on the engine's facing.
+const JEFF={own:false,steer:null,steered:false,slide:false,travelling:true,working:false};
+assert.strictEqual(geometry.drawnFacing({...JEFF,drawn:'down',engine:'down',walked:[-2,.5]}),'left');
+assert.strictEqual(geometry.drawnFacing({...JEFF,drawn:'down',engine:'down',walked:[0,2]}),'up');
+assert.strictEqual(geometry.drawnFacing({...JEFF,drawn:'down',engine:'down',walked:[0,2],slide:true}),'down');
+assert.strictEqual(geometry.drawnFacing({...JEFF,drawn:'down',engine:'right',walked:null,travelling:false}),'right');
+
 // Held-key prediction lands where the server's manual step does, including wall slides.
 const walks = JSON.parse(fs.readFileSync(process.argv[4], 'utf8'));
 for (const {level, map, steps} of walks) {

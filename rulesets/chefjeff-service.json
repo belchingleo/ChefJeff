@@ -18,12 +18,12 @@
     "tool_rack"
   ],
   "operations": {
-    "handling_game_ms": 150,
-    "extinguish_game_ms": 4000,
+    "handling_game_ms": 0,
+    "extinguish_game_ms": 500,
     "ground_assembly": true
   },
   "movement": {
-    "walk_cells_per_game_s": 4.5,
+    "walk_cells_per_game_s": 5.0,
     "sprint_multiplier": 2.0,
     "sprint_duration_game_ms": 1000,
     "sprint_cooldown_game_ms": 0,
@@ -52,7 +52,7 @@
     "catch_radius_cells": 0.75
   },
   "tableware": {
-    "dining_game_ms": 8000,
+    "dining_game_ms": 10000,
     "return_capacity": 1
   },
   "fire": {

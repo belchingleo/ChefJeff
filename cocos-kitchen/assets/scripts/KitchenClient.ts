@@ -2,7 +2,7 @@ import { _decorator, Component, Node, UITransform, Graphics, Color, Label, Layer
     view, ResolutionPolicy, sys, game, Game, profiler, Mask, Vec2, Camera, director, Sprite } from 'cc';
 import { LevelOneArt } from './LevelOneArt';
 import { KitchenAudio } from './KitchenAudio';
-import { levelButtonLayout, GRID_ART, stationView, cabinetModule, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, floorItemDepth, workingChefDepth, flightDepth, predictWalk, spaceTarget, segmentDistance, plateLayers, heatCountdown, behindCounter, throwPose, throwDiagonal, throwItemPoint, panHandleSide, restingFacing, steeredFacing } from './KitchenGeometry';
+import { levelButtonLayout, GRID_ART, stationView, cabinetModule, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, floorItemDepth, workingChefDepth, flightDepth, predictWalk, spaceTarget, segmentDistance, plateLayers, heatCountdown, behindCounter, throwPose, throwDiagonal, throwItemPoint, panHandleSide, steeredFacing, drawnFacing, pickupWaits, handsLandIn } from './KitchenGeometry';
 const { ccclass } = _decorator;
 type Action = { key: string; label: string; kind: string; target: string; expected: unknown[] };
 type KitchenState = { game_id: string; state_seq?: number; phase: string; speed: number; kitchen: any; actions: Action[]; levels?:any[]; limits?:any; capacity?:any; release?:any; player_level?:any; interaction?:Action; use_interaction?:Action; interaction_hint?:string; interaction_focus?:string; interaction_cell?:number[];
@@ -273,8 +273,8 @@ export class KitchenClient extends Component {
             const phase=this.state?.phase;
             if(phase==='ready'&&this.state?.connection&&!this.state.connection.configured){this.set('coverText','请先选一位 AI 搭档，再开始经营。');return;}
             if(phase==='ended'){this.endedAction(this.resultActions(this.state!).main);return;}
-            // The online version plays at the real clock (1x); the local default stays at 0.75.
-            this.post(phase==='ready'?'/api/start':phase==='paused'?'/api/resume':'/api/reset',phase==='ready'?{speed:this.state?.hosted?1:.75}:{});
+            // Local and online play both run at the real clock (1x), as Overcooked 2 does.
+            this.post(phase==='ready'?'/api/start':phase==='paused'?'/api/resume':'/api/reset',phase==='ready'?{speed:1}:{});
         },this.cover,'primary');
         // The result card's second big button: 下一关 after a loss, 再来一次 after a win.
         this.button('next-alt','',790,470,270,64,()=>{if(this.state?.phase==='ended')this.endedAction(this.resultActions(this.state).alt);},this.cover);
@@ -468,9 +468,10 @@ export class KitchenClient extends Component {
      *  that acts on a tap, kept for the gamepad's compatibility press.) */
     private pressInteract(kind:'hands'|'act'|'toss'='hands'){
         if(!this.canInput()||this.pending||this.spaceDownAt!==null||this.aiming)return;
-        // Work is sticky (no button stops it), and a second press just after a pick-up is ignored (Overcooked's 0.5 s).
+        // Work is sticky (no button stops it). Within 0.5 s of a pick-up only another pick-up waits, as in Overcooked 2
+        // (m_pickupDelay guards the pick-up branch alone): putting down or throwing what was just taken acts at once.
         const c=this.state!.kitchen.chefs.human,held=c.holding;
-        if(c.working||this.clock-this.pickedAt<.5)return;
+        if(c.working||pickupWaits(!!held,this.clock-this.pickedAt))return;
         if(kind!=='act'&&held&&c.can_throw!==false){this.spaceDownAt=this.clock;this.spaceItemId=held.id;this.tossOnly=kind==='toss';}
         else if(kind!=='toss')this.interact();
     }
@@ -489,7 +490,8 @@ export class KitchenClient extends Component {
     }
     private interact(){
         const s=this.state!;
-        this.handsBusyUntil=this.clock+.35;this.actionCue();
+        // A take or put never holds the walk: as in Overcooked 2, only work at a station (E) or aiming a throw does.
+        this.actionCue();
         this.post('/api/interact',{expected_item:s.kitchen.chefs.human.holding?.id||null,...this.atBody(),...this.pickBody()});
     }
     private releaseInteract(){
@@ -714,7 +716,8 @@ export class KitchenClient extends Component {
         // Knocked back by a dash: the engine moves the chef; follow it until it lands.
         if(c.knocked){const pull=Math.min(1,dt*14);this.predicted=[this.predicted[0]+(c.position[0]-this.predicted[0])*pull,this.predicted[1]+(c.position[1]-this.predicted[1])*pull];this.walkRamp=0;return this.predicted;}
         const d=this.manualDirection,walk=(k.map.walk_speed||4.5)*this.sprintFactor(c),other=k.chefs.jeff?.position,game=dt*this.state!.speed;
-        // A quick take/put finishes before the held direction starts, as on the server.
+        // Starting work with E holds the walk briefly (Overcooked 2 suppresses walking during station work); a take
+        // or put does not, and the engine finishes it while the chef walks on.
         if(this.clock<this.handsBusyUntil||(d.x===0&&d.y===0)){
             this.pressing=false;this.walkRamp=0;
             // Work started in place first slides to the station's centre (the engine's route): follow it.
@@ -1374,6 +1377,9 @@ export class KitchenClient extends Component {
             this.pending=false;
             // Gameplay replies carry the resulting state: draw it now instead of a round trip later.
             if(reply?.state){try{this.applyState(reply.state,sent);}catch(_){this.poll();}}else this.poll();
+            // A take or put lands a moment after the reply: ask again right then, not at the next 0.2 s poll.
+            const land=path==='/api/interact'?handsLandIn(reply?.state):null;
+            if(land!==null)setTimeout(()=>{if(this.isValid)this.poll();},land*1000);
         }
     }
     private act(key:string){const a=this.state?.actions.find(a=>a.key===key);if(a)this.post('/api/action',{action:key,expected:a.expected});}
@@ -2392,14 +2398,12 @@ export class KitchenClient extends Component {
                 // A held direction turns the player's chef at once, moving or pressed against a counter, so the
                 // chef faces the station its white frame marks (Overcooked 2 turns the chef to the stick).
                 const steer=who==='human'&&(c.manual_moving||predicted)&&!this.aiming?steeredFacing(this.manualDirection.x,this.manualDirection.y):null;
-                if(steer){motion.facing=steer;this.steeredFacing=true;}
-                // Centring on the tile (e.g. before putting something down) is not a walk: the chef keeps facing ahead.
-                else if(moved&&!c.route_slide){
-                if(Math.abs(dx)>=Math.abs(dy))motion.facing=dx<0?'left':'right';
-                else motion.facing=dy>0?'up':'down';
-                }
-                if(!moved&&!steer)motion.facing=restingFacing(motion.facing,c.facing,!!predicted&&this.steeredFacing);
-                if(c.working&&c.facing)motion.facing=c.facing;
+                if(steer)this.steeredFacing=true;
+                // Only a held direction turns the player's chef; the press lean, slides, knocks and pushes never do
+                // (see drawnFacing). Jeff turns along his drawn walk.
+                motion.facing=drawnFacing({drawn:motion.facing,engine:c.facing,own:who==='human'&&!!predicted,steer,
+                    steered:!!predicted&&this.steeredFacing,walked:moved?[dx,dy]:null,slide:!!c.route_slide,
+                    travelling:(c.travel_remaining||0)>0,working:!!c.working});
                 const held=who==='human'&&(this.manualDirection.x!==0||this.manualDirection.y!==0);
                 const walkIntent=(predicted?held:!!c.manual_moving)||(!c.working&&(c.travel_remaining||0)>0);
                 if(this.characterArt(motion.body,who,motion.facing,animate&&walkIntent,!!c.working))continue;

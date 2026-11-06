@@ -64,7 +64,10 @@ VARIANTS = {'fast': 10, 'latency': 60}  # jeff decision period in 0.05 s ticks (
 # seed and keeps the better pairing (pair x role assignment). Reference income = the median run.
 # 21 seeds: level 3's median only settles from about 16 seeds (with fewer it sits on the 340/338 edge
 # where half of it flips between 170 and 160); levels 1 and 2 earn the same on every seed.
-CALIBRATION = {'version': 'calibration-v1', 'variant': 'fast', 'seeds': list(range(1, 22)),
+# calibration-v2 (owner decision 2026-11-06): with Overcooked 2's order flow the scripted pair is no longer
+# held back by a fixed number of orders, so targets come from the 'latency' variant, Jeff deciding every 3 s,
+# nearer a player with a model partner than the 0.5 s 'fast' one.
+CALIBRATION = {'version': 'calibration-v2', 'variant': 'latency', 'seeds': list(range(1, 22)),
                'pairs': ['classic', 'zoned'], 'swap': [False, True]}
 
 
@@ -181,7 +184,7 @@ def rung(level, name, seed=0):
         label = name
     report = analyze_collaboration(k)
     return {'level': level, 'rung': name, 'policy': label, 'money': k.money, 'served': k.served,
-            'expired': sum(o['status'] == 'expired' for o in k.orders),
+            'expired': k.expired_count(),
             'contribution_rate': report['contribution_rate'], 'harmful': report['harmful']['by_reason'],
             'wasted': report['wasted']['by_label'], 'dishes_with_both_chefs': report['dishes_with_both_chefs'],
             'cross_chef_handoffs': report['cross_chef_handoffs'],
@@ -213,7 +216,7 @@ def run(job):
     return {'level': level, 'interval': interval, 'countdowns': countdowns, 'seed': seed, 'variant': variant,
             'pair': pair + (' swapped' if swap else ''),
             'money': k.money, 'served': k.served, 'orders': len(k.orders),
-            'expired': sum(o['status'] == 'expired' for o in k.orders),
+            'expired': k.expired_count(),
             'open_at_close': sum(o['status'] == 'unresolved_at_close' for o in k.orders),
             'refused': kinds.count('dish_rejected'), 'wrong_dish': kinds.count('wrong_dish'),
             'burnt_accepted': sum(1 for e in k.events if e['kind'] == 'served' and e.get('adjustment')),
