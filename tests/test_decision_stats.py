@@ -412,6 +412,10 @@ class ResearchRecordTests(paths.SavePathTests):
             (row,) = json.loads(out.read_text())['by_round']
         self.assertEqual((row['round'], row['group'], row['money']), (record['round_id'], 'test/decider [one-press]',
                                                                        shown['result']['money']))
+        self.assertEqual((row['config'], row['speed'], row['rules'], row['level']),
+                         (record['config_hash'].removeprefix('sha256:')[:8], record['speed'],
+                          record['conditions']['rules_version'], shown['level_id']))
+        self.assertEqual(row['started'], record['started_at'])
         self.assertEqual({c: {w: v for w, v in counts.items() if w != 'jeff_share'} for c, counts in m['work'].items()},
                          {r['category']: r['counts'] for r in shown['rows'] if any(r['counts'].values())})
         self.assertEqual(m['decisions']['answered'], 3)

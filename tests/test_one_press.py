@@ -415,6 +415,19 @@ class StatsTests(unittest.TestCase):
         self.assertEqual(mine['work'], {c: {w: v for w, v in counts.items() if w != 'jeff_share'} for c, counts in on['work'].items()})
         self.assertEqual((detail[0]['one_press'], 'one_press_chosen' in detail[0]), (None, False))
         self.assertNotIn('by_round', result)                                          # only when asked
+        # What tells rounds apart, and counting them apart by it.
+        import harness
+        config = rows[0]['config_hash'].removeprefix('sha256:')[:8]
+        self.assertEqual((mine['level'], mine['config'], mine['speed'], mine['rules']),
+                         ('level-2', config, 1, harness.AGENT_RULES_VERSION))
+        split = decision_stats.report([Path(folder.name, 'logs')], split=('level', 'config', 'speed'))
+        self.assertEqual(set(split['models']), {f'test-only · level-2 · cfg {config} · speed 1',
+                                                f'test-only [one-press] · level-2 · cfg {config} · speed 1'})
+        self.assertEqual(split['models'][f'test-only [one-press] · level-2 · cfg {config} · speed 1']['decisions'], on['decisions'])
+        day = mine['started'][:10]
+        self.assertEqual(decision_stats.report([Path(folder.name, 'logs')], since=day, until=day)['rounds'], 2)
+        later = decision_stats.report([Path(folder.name, 'logs')], since='2999-01-01')
+        self.assertEqual((later['rounds'], later['rounds_outside_dates'], later['models']), (0, 2, {}))
         self.assertEqual(on['wasted']['jeff'].get('unused', 0), summary['not_displayed']['wasted']['jeff']['unused'])
         # Where the put-downs went, by kind of place, from the round's own map.
         types = {key: value['type'] for key, value in rows[0]['state']['stations'].items()}

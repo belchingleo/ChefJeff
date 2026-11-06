@@ -77,6 +77,13 @@ its name (the journal file, or the record's round id), start time, level, group,
 outcome numbers above, walk round trips, each chef's work by kind and, with one-press, the options chosen,
 full swaps and take_or_chop, computed exactly as for the groups.
 
+Each by_round row also names what tells rounds apart: the level, the config hash (`config`, its first 8
+hex digits; it changes with any change of rules, timings or level), the game speed and the version of
+Jeff's rule text. --split level,config,speed,rules counts the groups apart by those too (the group name
+gains them, e.g. "jev-1.14.0 [one-press] · level-2 · cfg 1a2b3c4d"), so rounds before and after a
+change of timings are not added together; by default groups are by model and one-press only.
+--since and --until keep only rounds started on those days (YYYY-MM-DD, local time of the round).
+
 Rates are per game minute. A round counts for the model that answered most of its requests.
 
 The report names models: keep it private like logs/, and do not publish per-model results.
@@ -97,7 +104,7 @@ from round_summary import CATEGORIES, CHEFS  # noqa: E402
 
 WORK_CATEGORIES = tuple(name for name, _ in CATEGORIES)
 
-VERSION = 'decision-stats-13'
+VERSION = 'decision-stats-14'
 MARGINS = (0.05, 0.1)
 PLAN_AGE = 5.0
 PUT_BACK = 10.0
@@ -134,7 +141,8 @@ def record_rows(record):
     events = record.get('events') or []
     policy = conditions.get('request_policy') or {}
     rows = [{'kind': 'start', 'jeff_plan': conditions.get('jeff_plan'), 'game_time_ms': 0, 'round_id': record.get('round_id'),
-             'ask_on_step_end': policy.get('ai_ask_on_step_end') is True,
+             'ask_on_step_end': policy.get('ai_ask_on_step_end') is True, 'wall_time': record.get('started_at'),
+             'config_hash': record.get('config_hash'), 'speed': record.get('speed'), 'rules_version': conditions.get('rules_version'),
              **({'one_press': conditions['one_press']} if conditions.get('one_press') else {})}]
     previous = None     # the plan the previous request carried
     for e in events:
@@ -405,13 +413,43 @@ def undone(rows, m, put_back=PUT_BACK):
             m['round_trip_routes']['/'.join(sorted((a['action'][3:], b['action'][3:])))] += 1
 
 
-def add_round(rows, models, margins=MARGINS, plan_age=PLAN_AGE, put_back=PUT_BACK):
+SPLITS = ('level', 'config', 'speed', 'rules')
+
+
+def round_meta(rows):
+    """What tells a round's conditions apart: level, config hash, speed, Jeff's rule text version and start day."""
+    start = rows[0] if rows and rows[0].get('kind') == 'start' else {}
+    end = next((r for r in reversed(rows) if r.get('kind') == 'end'), {})
+    state = start.get('state') or {}
+    payload = next(((r.get('payload') or {}).get('state') or {} for r in rows
+                    if r.get('kind') == 'ai_request' and isinstance(r.get('payload'), dict)), {})
+    config = start.get('config_hash') or state.get('config_hash')
+    return {'level': (end.get('round_summary') or {}).get('level_id') or state.get('level_id')
+                     or (state.get('kitchen') or {}).get('level_id'),
+            'config': str(config).removeprefix('sha256:')[:8] if config else None,
+            'speed': start.get('speed'),
+            'rules': start.get('rules_version') or payload.get('rules_version'),
+            'day': str(start.get('wall_time') or '')[:10] or None}
+
+
+def split_suffix(rows, split):
+    """The group name's tail for --split: the chosen conditions of this round."""
+    if not split:
+        return ''
+    meta = round_meta(rows)
+    label = {'level': lambda v: v, 'config': lambda v: f'cfg {v}', 'speed': lambda v: f'speed {v:g}' if isinstance(v, (int, float)) else f'speed {v}',
+             'rules': lambda v: v}
+    return ''.join(f' · {label[key](meta[key]) if meta[key] is not None else key + " unknown"}' for key in split)
+
+
+def add_round(rows, models, margins=MARGINS, plan_age=PLAN_AGE, put_back=PUT_BACK, split=()):
     responses = [r for r in rows if r.get('kind') == 'ai_response']
     if not responses:
         return None
     requests = {r.get('request_id'): r for r in rows if r.get('kind') == 'ai_request'}
     switches = one_press_switches(rows)
-    name = lambda response: str(response.get('model') or 'unknown') + (ONE_PRESS_SUFFIX if switches else '')
+    tail = split_suffix(rows, split)
+    name = lambda response: str(response.get('model') or 'unknown') + (ONE_PRESS_SUFFIX if switches else '') + tail
     main = Counter(map(name, responses)).most_common(1)[0][0]
     m = models[main]
     times = [t for t in map(game_time, rows) if t is not None]
@@ -674,17 +712,18 @@ def gap_summary(g):
             'share_of_round_wall_time': share(sum(g['total']), g['wall_seconds'])}
 
 
-def round_row(label, rows, margins=MARGINS, plan_age=PLAN_AGE, put_back=PUT_BACK):
+def round_row(label, rows, margins=MARGINS, plan_age=PLAN_AGE, put_back=PUT_BACK, split=()):
     """One round on its own: counted as a group of one, then the numbers that tell rounds apart."""
     alone = defaultdict(new_model)
-    group = add_round(rows, alone, margins, plan_age, put_back)
+    group = add_round(rows, alone, margins, plan_age, put_back, split)
+    meta = round_meta(rows)
     s = summary(alone[group], margins)
     start = rows[0] if rows and rows[0].get('kind') == 'start' else {}
     end = next((r for r in reversed(rows) if r.get('kind') == 'end'), {})
-    level = (end.get('round_summary') or {}).get('level_id') or ((start.get('state') or {}).get('kitchen') or {}).get('level_id')
     outcome = s.get('outcomes') or {}
     pressed = s.get('one_press')
-    return {'round': label, 'started': start.get('wall_time'), 'level': level, 'group': group,
+    return {'round': label, 'started': start.get('wall_time'), 'level': meta['level'], 'config': meta['config'],
+            'speed': meta['speed'], 'rules': meta['rules'], 'group': group,
             'one_press': next(iter(pressed['versions']), None) if pressed else None,
             'game_minutes': s['game_minutes'],
             # Without an end-of-round summary (an unfinished journal, a record with no inputs) its numbers are unknown.
@@ -701,7 +740,7 @@ def round_row(label, rows, margins=MARGINS, plan_age=PLAN_AGE, put_back=PUT_BACK
                 'take_or_chop': pressed['take_or_chop'], 'put_where_places': pressed['put_where_places']} if pressed else {})}
 
 
-def report(paths, margins=MARGINS, plan_age=PLAN_AGE, put_back=PUT_BACK, by_round=False):
+def report(paths, margins=MARGINS, plan_age=PLAN_AGE, put_back=PUT_BACK, by_round=False, split=(), since=None, until=None):
     files = []
     for path in map(Path, paths):
         files += (sorted(p for pattern in ('*.jsonl', '*.cjresearch.zip', '*.json') for p in path.glob(pattern))
@@ -728,16 +767,22 @@ def report(paths, margins=MARGINS, plan_age=PLAN_AGE, put_back=PUT_BACK, by_roun
                     records[identifier] = rows
             else:
                 records[identifier] = rows
-    detail = []
+    detail, outside = [], 0
     for label, rows in journals + [(identifier, rows) for identifier, rows in records.items()]:
-        if add_round(rows, models, margins, plan_age, put_back) is None:
+        day = round_meta(rows)['day']
+        if (since and (not day or day < since)) or (until and (not day or day > until)):
+            outside += 1
+            continue
+        if add_round(rows, models, margins, plan_age, put_back, split) is None:
             skipped += 1
             continue
         counted += 1
         if by_round:
-            detail.append(round_row(label, rows, margins, plan_age, put_back))
+            detail.append(round_row(label, rows, margins, plan_age, put_back, split))
     return {'version': VERSION, 'files': len(files), 'refused_files': refused, 'rounds': counted,
             'duplicate_rounds_dropped': duplicates,
+            **({'rounds_outside_dates': outside, 'since': since, 'until': until} if since or until else {}),
+            **({'split': list(split)} if split else {}),
             'rounds_without_model_answers': skipped, 'unsupported_records': unsupported,
             'unreadable_lines': unreadable, 'margins': list(margins), 'plan_age_seconds': plan_age, 'put_back_seconds': put_back,
             'one_press_rounds': sum(m['one_press_rounds'] for m in models.values()),
@@ -752,9 +797,16 @@ def main(argv=None):
     parser.add_argument('--plan-age', type=float, default=PLAN_AGE, help='seconds a plan has held before unsure counts')
     parser.add_argument('--put-back', type=float, default=PUT_BACK, help='game seconds within which a take undoes a put')
     parser.add_argument('--by-round', action='store_true', help='also list every counted round on its own')
+    parser.add_argument('--split', default='', help='also count groups apart by: ' + ', '.join(SPLITS) + ' (comma-separated)')
+    parser.add_argument('--since', help='first day of rounds to use, YYYY-MM-DD')
+    parser.add_argument('--until', help='last day of rounds to use, YYYY-MM-DD')
     parser.add_argument('--out', help='write the JSON report here instead of printing it')
     args = parser.parse_args(argv)
-    result = report(args.paths, tuple(sorted(args.margins)), args.plan_age, args.put_back, args.by_round)
+    split = tuple(key for key in args.split.split(',') if key)
+    if set(split) - set(SPLITS):
+        parser.error('--split takes ' + ', '.join(SPLITS))
+    result = report(args.paths, tuple(sorted(args.margins)), args.plan_age, args.put_back, args.by_round, split,
+                    args.since, args.until)
     text = json.dumps(result, ensure_ascii=False, indent=2)
     if args.out:
         Path(args.out).write_text(text + '\n', encoding='utf-8')
