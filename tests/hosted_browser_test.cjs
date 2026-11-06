@@ -78,7 +78,11 @@ function clientHarness(h, fromSource){
    _decorator:{ccclass:()=>cls=>cls},cclegacy:{_RF:{push:()=>{},pop:()=>{}}}};
  h.cc=cc;
  const art={LevelOneArt:class{}},audio={KitchenAudio:class{onState(){}play(){}}};
- const geometry={GRID_ART:TEST_GRID};
+ // The input helpers the key handler and replies call, taken from the real source (not restated here).
+ const geoContext=vm.createContext({});
+ vm.runInContext(require('node:module').stripTypeScriptTypes(fs.readFileSync('cocos-kitchen/assets/scripts/KitchenGeometry.ts','utf8')
+  .replace(/^export /gm,''))+'\nglobalThis.input={pickupWaits,handsLandIn};',geoContext);
+ const geometry={GRID_ART:TEST_GRID,...geoContext.input};
  const context=vm.createContext({...cc,...art,...audio,...geometry,window:h.w,document:h.document,
    URLSearchParams,location:{search:''},Event:class{constructor(type){this.type=type;}},
    CustomEvent:class{constructor(type,options={}){this.type=type;this.detail=options.detail;}}});

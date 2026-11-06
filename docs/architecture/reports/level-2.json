@@ -1,6 +1,6 @@
 {
   "analyzer_version": "capacity-analyzer-0.1",
-  "input_config_hash": "sha256:eb2189d656e636e3b314683e2569357f76a6e50d8e4aaee40ff1334fb196750e",
+  "input_config_hash": "sha256:69dfcee1e3f6b201a56c6e323b75ce3a3731583c9cf3c4b84a84e75aad9a0b5c",
   "input_status": "frozen",
   "level_id": "level-2",
   "schema_valid": true,
@@ -91,8 +91,8 @@
             "fetch",
             "plate"
           ],
-          "duration_game_ms": 300,
-          "chef_time_game_ms": 300
+          "duration_game_ms": 0,
+          "chef_time_game_ms": 0
         },
         {
           "item": "lettuce",
@@ -104,8 +104,8 @@
             "take_board",
             "plate"
           ],
-          "duration_game_ms": 3600,
-          "chef_time_game_ms": 3600
+          "duration_game_ms": 2200,
+          "chef_time_game_ms": 2200
         },
         {
           "item": "tomato",
@@ -117,8 +117,8 @@
             "take_board",
             "plate"
           ],
-          "duration_game_ms": 3600,
-          "chef_time_game_ms": 3600
+          "duration_game_ms": 2200,
+          "chef_time_game_ms": 2200
         },
         {
           "item": "beef",
@@ -132,23 +132,23 @@
             "heat",
             "plate"
           ],
-          "duration_game_ms": 15750,
-          "chef_time_game_ms": 3750
+          "duration_game_ms": 12200,
+          "chef_time_game_ms": 2200
         }
       ],
-      "critical_path_game_ms": 15900,
-      "chef_time_game_ms": 11550,
-      "first_dish_lower_bound_game_ms": 15900,
+      "critical_path_game_ms": 12200,
+      "chef_time_game_ms": 6600,
+      "first_dish_lower_bound_game_ms": 12200,
       "first_dish_lower_bound_basis": "max(critical path, chef time / chefs); transport excluded",
       "single_chef_walking_reference_game_ms": {
-        "assignment_0:human": 41462,
-        "assignment_0:jeff": 43551,
-        "assignment_1:human": 43551,
-        "assignment_1:jeff": 41462
+        "assignment_0:human": 32721,
+        "assignment_0:jeff": 34601,
+        "assignment_1:human": 34601,
+        "assignment_1:jeff": 32721
       },
       "walking_reference_range_game_ms": [
-        41462,
-        43551
+        32721,
+        34601
       ]
     }
   },
@@ -160,65 +160,65 @@
       "capacity": 2,
       "unit": "chefs",
       "demand_per_dish_game_ms": {
-        "burger": 16000
+        "burger": 8600
       }
     },
     "board": {
       "capacity": 2.0,
       "unit": "work-seconds per second",
       "demand_per_dish_game_ms": {
-        "burger": 9000
+        "burger": 6600
       }
     },
     "stove_with_pot": {
       "capacity": 1,
       "unit": "stoves holding a pot",
       "demand_per_dish_game_ms": {
-        "burger": 12000
+        "burger": 10000
       }
     },
     "sink": {
       "capacity": 1.0,
       "unit": "work-seconds per second",
       "demand_per_dish_game_ms": {
-        "burger": 4000
+        "burger": 2000
       }
     },
     "plate": {
       "capacity": 2,
       "unit": "plates",
       "demand_per_dish_game_ms": {
-        "burger": 12300
+        "burger": 12000
       }
     }
   },
   "resource_lower_bounds_game_ms": {
-    "chef": 8000,
-    "board": 4500,
-    "stove_with_pot": 12000,
-    "sink": 4000,
-    "plate": 6150
+    "chef": 4300,
+    "board": 3300,
+    "stove_with_pot": 10000,
+    "sink": 2000,
+    "plate": 6000
   },
   "resource_loads": {
-    "chef": 0.2,
-    "board": 0.1125,
-    "stove_with_pot": 0.3,
-    "sink": 0.1,
-    "plate": 0.1537
+    "chef": 0.1075,
+    "board": 0.0825,
+    "stove_with_pot": 0.25,
+    "sink": 0.05,
+    "plate": 0.15
   },
-  "I_resource_lb_game_ms": 12000,
+  "I_resource_lb_game_ms": 10000,
   "binding_resource": "stove_with_pot",
   "plan": {
-    "orders": 5,
+    "orders": 38,
     "goal": {
       "type": "minimum_money",
-      "target_money": 160,
-      "revenue_ceiling": 400,
-      "orders_too_late_to_cook_from_scratch": 0
+      "target_money": 200,
+      "revenue_ceiling": 3040,
+      "orders_too_late_to_cook_from_scratch": 33
     },
     "round_limit_game_ms": 180000,
     "configured_interval_game_ms": 40000,
-    "order_algorithm": "fixed_interval_seeded/weighted-cumulative-v1"
+    "order_algorithm": "fixed_interval_seeded/weighted-cumulative-v1+open-orders-v1"
   },
   "suggested_interval_game_ms": null,
   "suggestion_reason": "no calibration reference (measured or reference-schedule runs) exists; I_resource_lb is a necessary lower bound, not a safe interval",

@@ -126,7 +126,8 @@ class GentleCollisionTests(unittest.TestCase):
 
     def test_food_overlap_does_not_trigger_assembly_or_chain_reaction(self):
         k=self.make();a=self.item(k);b=self.item(k,'other','chopped','floor_11_4');b.offset=(-.65,0.)
-        k.set_manual('human',1,0);k.sprint('human');k.advance(.1)
+        # A dash 0.9 cells long (the chef stops short of b itself), whatever the walking pace.
+        k.set_manual('human',1,0);k.sprint('human');k.advance(.1*4.5/WALK_SPEED)
         self.assertGreater(k.ground_position(a)[0],10)
         self.assertEqual(k.ground_position(b),(10.35,4))
         self.assertEqual(a.food.stage,'raw');self.assertEqual(b.food.stage,'chopped')
@@ -171,14 +172,15 @@ class GentleCollisionTests(unittest.TestCase):
             self.assertTrue(all(k.nav.walkable_point(p) for p in k.positions.values()))
         self.assertGreater(k.positions['human'][0],k.positions['jeff'][0])
 
-    def test_shared_movement_speed_is_one_and_a_half_for_both_chefs(self):
-        self.assertEqual(WALK_SPEED,4.5)
+    def test_both_chefs_walk_at_overcooked_pace(self):
+        # Measured from Overcooked 2 play: about 5 counters a second. At a real-time clock that is 5 a game second.
+        self.assertEqual(WALK_SPEED,5.0)
         for who in ('human','jeff'):
             k=self.make();other='jeff' if who=='human' else 'human'
             k.positions.update({who:(8.,4.),other:(11.,6.)})
             k.set_manual(who,1,0);k.advance(.2)
-            self.assertAlmostEqual(k.positions[who][0],8.9)
-            self.assertEqual(k.snapshot()['map']['walk_speed'],4.5)
+            self.assertAlmostEqual(k.positions[who][0],8+WALK_SPEED*.2)
+            self.assertEqual(k.snapshot()['map']['walk_speed'],WALK_SPEED)
 
     def test_contact_pinning_a_worker_to_the_station_cannot_displace_or_interrupt_the_work(self):
         for kind in ('chop','wash'):

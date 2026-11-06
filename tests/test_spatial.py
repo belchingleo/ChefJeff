@@ -88,15 +88,16 @@ class SpatialTests(unittest.TestCase):
         self.assertFalse(k.ground)
 
     def test_putting_down_where_the_chef_stands_keeps_the_facing(self):
-        # As in Overcooked: past the tile's centre, centring to drop is no walk back and no half turn.
+        # As in Overcooked 2 the carrier just lets go: putting down on the chef's own tile moves and turns nobody
+        # (before, the chef was walked to the tile's centre, half a cell back from a counter it stood against).
         for who in ('human','jeff'):
             for facing,offset in (('right',(.3,0)),('left',(-.3,0)),('down',(0,.3)),('up',(0,-.3))):
                 k=self.make(level=2);k.positions[who]=(10+offset[0],3+offset[1]);k.facing[who]=facing
                 k.chefs[who].hand=Food('T9',ingredient='tomato')
                 self.assertTrue(k.command(who,'drop')[0])
-                self.assertTrue(k.snapshot()['chefs'][who]['route_slide'])
                 for _ in range(30):
                     k.advance(.02);self.assertEqual(k.facing[who],facing,(who,facing))
+                    self.assertEqual(k.positions[who],(10+offset[0],3+offset[1]),(who,facing))
                 self.assertEqual([g.location for g in k.ground.values()],['floor_10_3'])
                 self.assertNotIn('route_slide',__import__('harness').model_kitchen(k.snapshot())['chefs'][who])
 
@@ -154,6 +155,20 @@ class SpatialTests(unittest.TestCase):
         self.assertNotIn('walk_cross_area',payload['state']['rules']['timing'])
         # No free floor destinations; only the partner approach walks to a floor tile.
         self.assertEqual([a.key for a in k.actions('jeff') if a.kind=='go' and a.target.startswith('floor_')],['go partner'])
+
+    def test_walking_keeps_overcooked_pace_at_every_game_clock(self):
+        # Reported: the game did not follow the hands. Overcooked 2 walks about 5 counters a real second; local play
+        # runs the kitchen clock at 0.75, which used to slow walking with it. Both chefs now walk 5 a real second.
+        for speed in (.5, .75, 1):
+            g=GameSession(kitchen_factory=SpatialKitchen,client_factory=Client,journal_factory=FakeJournal)
+            self.addCleanup(g.close)
+            self.assertEqual(g.command('/api/start',{'game_id':g.game_id,'request_id':'s','speed':speed})[0],200)
+            self.assertAlmostEqual(g.k.rules.walk_speed*speed,WALK_SPEED)
+            self.assertAlmostEqual(g.public_state()['kitchen']['map']['walk_speed']*speed,WALK_SPEED)
+            g.k.set_clock(speed)  # applying it again does not compound
+            self.assertAlmostEqual(g.k.rules.walk_speed*speed,WALK_SPEED)
+        # Without a session clock (simulations, payload fingerprints) the game second is a real second.
+        self.assertEqual(self.make().rules.walk_speed,WALK_SPEED)
 
     def test_web_reset_keeps_spatial_engine_and_new_round_position(self):
         g=GameSession(kitchen_factory=SpatialKitchen,client_factory=Client,journal_factory=FakeJournal)

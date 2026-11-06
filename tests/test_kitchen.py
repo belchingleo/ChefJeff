@@ -6,7 +6,8 @@ from kitchen import Kitchen, Food, load_config
 class RulesTest(unittest.TestCase):
     def make(self, **updates):
         c = load_config()
-        c.update(round_seconds=500, order_patience=300, order_interval=100)
+        # A 0.15 s take/put leaves a window to test interruptions; the shipped game takes and puts instantly, as Overcooked 2.
+        c.update(round_seconds=500, order_patience=300, order_interval=100, handling_seconds=.15)
         c.update(updates)
         return Kitchen(c)
 
@@ -137,16 +138,18 @@ class RulesTest(unittest.TestCase):
         self.assertEqual(s.food.id,'fresh')
 
     def test_food_can_burn_during_pickup(self):
-        k=self.make()
+        # With a delay between burning and the fire (the shipped kitchen, as Overcooked 2, ignites as it burns).
+        k=self.make(fire_after_burn=8)
         k.chefs['jeff'].hand=k.stations['plates'].food;k.stations['plates'].food=None
-        self.pot(k,22-k.c['handling_seconds']/2,'ready')
+        burn=k.rules.heat_thresholds('beef')[1]
+        self.pot(k,burn-k.c['handling_seconds']/2,'ready')
         self.do(k,'jeff','plate p1')
         self.assertEqual(k.chefs['jeff'].hand.stage,'burnt')
 
     def test_fire_interrupts_removal(self):
         k=self.make()
         k.chefs['jeff'].hand=k.stations['plates'].food;k.stations['plates'].food=None
-        s=self.pot(k,30-k.c['handling_seconds']/2,'burnt')
+        s=self.pot(k,k.rules.heat_thresholds('beef')[2]-k.c['handling_seconds']/2,'ready')
         self.do(k,'jeff','plate p1')
         self.assertTrue(s.fire)
         self.assertEqual(k.chefs['jeff'].hand.stage,'clean_plate')
@@ -161,11 +164,14 @@ class RulesTest(unittest.TestCase):
         self.assertEqual(k.chefs['jeff'].hand.stage,'ready')
         self.assertEqual(k.burns,0)
 
-    def test_expired_order_penalty_only_once(self):
+    def test_expired_order_penalty_once_per_expiry(self):
+        # As in Overcooked 2 an expired order stays and starts again: one penalty each time it runs out.
         k=self.make(order_interval=100,order_patience=10)
-        k.advance(30)
-        self.assertEqual(k.money,k.rules.penalty['expired_order'])
-        self.assertEqual(k.orders[0]['status'],'expired')
+        waiting=sum(o['status']=='pending' for o in k.orders)
+        k.advance(10.5)
+        self.assertEqual(k.money,waiting*k.rules.penalty['expired_order'])
+        self.assertEqual(k.orders[0]['status'],'pending');self.assertEqual(k.orders[0]['expired_times'],1)
+        self.assertEqual(k.expired_count(),waiting)
 
     def test_delivery_at_exact_deadline_is_accepted(self):
         k=self.make(order_patience=self.make().rules.handling)

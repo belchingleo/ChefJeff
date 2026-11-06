@@ -15,26 +15,22 @@ THROW_RANGE = 4.0
 # Plates, plated food and pots; reference values of the service ruleset
 # (throw.range_cells / throw.pass_range_cells). Live kitchens read the ruleset.
 PASS_RANGE = 4.0
-WALK_SPEED = 4.5  # Both chefs: 1.5x the original 3 cells per game second
+WALK_SPEED = 5.0  # Both chefs, cells per real second: Overcooked 2's pace measured from play (set_clock scales it for a slower game clock)
 CHEF_SEPARATION = .4  # two small foot circles, not the full tall sprite
 UP_STANDOFF = -.22  # tiles a south-side operator stands back from the cabinet
 # Facing left or right, the hands and knife are drawn about this far above the feet (side chop poses:
 # fist 0.38-0.48 cells up at the strike, blade landing 0.06-0.22), so the front point is raised to hand
 # height and the station the knife points at is the target. Up and down are unchanged.
 SIDE_HAND_RISE = .35
-# Space's station, as Overcooked 2 picks it (PlayerControls.FindNearbyObjects, InteractWithItemHelper
-# .GetFacingGridOccupant): among the stations in the eight cells around the chef's own cell, the one
-# whose direction best matches where the chef last aimed; ties go to the one nearest a point SELECT_AHEAD
-# ahead (at hand height when aiming sideways). Only stations ahead count, never beside or behind, and
-# within SELECT_REACH cells of the feet. The pick is purely geometric, so what is highlighted is what
-# Space acts on: a station with nothing to do never hands Space to another one.
-# Unlike Overcooked 2, which scores the raw offset (a diagonal cell, 1.41 long, wins as soon as the
-# stick leans a little its way), directions are compared by angle and the straight cells get
-# SELECT_STRAIGHT_BONUS: a phone stick is never exactly straight, so a diagonal station is picked only
-# when the aim is about 30 degrees or more off the straight one.
+# Space's and E's station, as Overcooked 2 picks it (InteractWithItemHelper.GetFacingGridOccupant, with grid
+# selection on): of the stations in the four cells beside the chef's own cell (right, left, up, down; never a
+# diagonal; aiming sideways, the cell under the hands, see hand_cell), the one whose offset best matches the aim (largest dot product); a station up to 135 degrees off
+# the aim still counts when nothing better is there, so with open floor ahead the counter at the chef's side is
+# picked, and only the cell behind never is. Ties go in Overcooked 2's order: right, left, up, down. The pick
+# is purely geometric, so what is highlighted is what Space or E acts on.
 SELECT_AHEAD = .5
-SELECT_STRAIGHT_BONUS = .1
-SELECT_REACH = .85  # Overcooked 2's 1-unit radius, about 1.2 units per cell
+SELECT_MIN_DOT = math.cos(math.radians(135))
+SELECT_ORDER = ((1, 0), (-1, 0), (0, -1), (0, 1))  # Overcooked 2's offsets: +X, -X, +Z (north, up here), -Z
 # Chopping and washing need the hands over the station: the feet within this many cells of the centre
 # line of one of its floor sides (after the short slide onto that line). Any number of such spots may be
 # used together, side by side included, as in Overcooked 2 (ServerWorkstation keeps a list of choppers).
@@ -648,16 +644,28 @@ class SpatialKitchen(Kitchen):
         station=self.stations[target]
         return not station.fire and not self.chefs[who].hand and bool(self.shared_access(who,target))
 
-    def _centred(self, who, target):
-        """Where a chef working in place slides to first: the station's centre line along its run, at the
-        same distance from it (never a step toward it), at most 0.6 cells (about 0.1 s of walking). None when already there,
+    def _centred(self, who, target, forward=False):
+        """Where a chef working in place slides to first: the station's centre line along its run (at most
+        0.6 cells), and with forward (chopping, washing) also up to the edge a routed chef stands at, from at
+        most WORK_BACK behind it, so the hands are over the station rather than half a cell short of it. About
+        0.1 s of walking. Beside the other chef only the forward part is taken. None when already there,
         blocked or too near the other chef."""
         here=self.positions[who];cell=min(self.equipment[target].get('cells',[self.equipment[target]['cell']]),key=lambda c:math.dist(c,here))
         side=self.station_side(target,here)
-        point=(cell[0],here[1]) if side[0]==cell[0] else (here[0],cell[1])
+        along=0 if side[0]==cell[0] else 1   # the axis along the station's side
+        depth=1-along
+        centre=list(here);centre[along]=cell[along]
+        if forward and self.equipment[target].get('reach')!='corner' and tuple(side) in self.floor:
+            edge=self.operation_point(target,side)[depth]
+            back=abs(here[depth]-cell[depth])-abs(edge-cell[depth])
+            if 1e-6<back<=WORK_BACK+1e-9:
+                centre[depth]=edge
         other=self.positions['jeff' if who=='human' else 'human']
-        if not 1e-6<math.dist(here,point)<=.6 or not self.nav.clear_walk_line(here,point) or math.dist(point,other)<CHEF_SEPARATION:return None
-        return point
+        def ok(point):
+            return (1e-6<math.dist(here,point) and abs(point[along]-here[along])<=.6 and self.nav.clear_walk_line(here,point)
+                    and math.dist(point,other)>=CHEF_SEPARATION)
+        ahead=list(here);ahead[depth]=centre[depth]
+        return next((tuple(p) for p in (centre,ahead) if ok(p)),None)
 
     def operation_point(self, target, access):
         """Move an explicitly enabled access endpoint toward its working edge.
@@ -856,6 +864,17 @@ class SpatialKitchen(Kitchen):
         return landing[0] if landing else None
 
     @engine_input
+    def set_clock(self, speed):
+        """Chefs walk in real time. The ruleset's walk speed is what a player sees (5 cells a real second, as
+        measured from Overcooked 2 play); a game clock slower than real time (the 0.5 and 0.75 options) gives
+        both chefs more cells per game second, so the walk looks the same while cooking and orders keep the pace.
+        Recorded as an engine input, so a replay walks exactly as the round did."""
+        base = getattr(self, '_walk_at_real_time', None)
+        if base is None:
+            base = self._walk_at_real_time = self.rules.walk_speed
+        self.rules.walk_speed = base / speed
+
+    @engine_input
     def set_manual(self, who, dx, dy):
         length = math.hypot(dx,dy)
         vector = (dx/max(1.,length),dy/max(1.,length))
@@ -966,27 +985,37 @@ class SpatialKitchen(Kitchen):
         return self.space_pick[who] is not None
 
     def selectable_stations(self,who):
-        """Stations Space may pick, best first (see SELECT_AHEAD): ahead of the aim, around the chef's cell."""
-        ax,ay=self.aim_of(who);x,y=self.positions[who];cx,cy=self.anchor(who)
-        probe=(x+ax*SELECT_AHEAD,y+ay*SELECT_AHEAD-SIDE_HAND_RISE*abs(ax))
-        hx,hy=self.hand_cell(who)
+        """Stations Space or E may pick, best first (see SELECT_MIN_DOT): beside the chef's own cell, never
+        behind. Aiming sideways the own cell is the one under the hands (see hand_cell), as the knife is drawn."""
+        ax,ay=self.aim_of(who);cx,cy=self.anchor(who);hx,hy=self.hand_cell(who)
+        length=math.hypot(ax,ay)
+        if not length:return []
+        ax,ay=ax/length,ay/length
         ranked={}
         for key,e in self.equipment.items():
-            corner=e.get('reach')=='corner'
-            if corner and tuple(e['access'])!=(cx,cy):continue
-            for c in (e.get('cells',[e['cell']]) if not corner else [e['cell']]):
-                ox,oy=(c[0]-cx,c[1]-cy) if corner else (c[0]-hx,c[1]-hy)
-                if not corner and max(abs(ox),abs(oy))!=1:continue
-                if ax*ox+ay*oy<=1e-6:continue
-                score=(ax*ox+ay*oy)/math.hypot(ox,oy)+(SELECT_STRAIGHT_BONUS if abs(ox)+abs(oy)==1 else 0)
-                if max(abs(x-c[0]),abs(y-c[1]))-.5>SELECT_REACH+1e-9:continue
-                rank=(-round(score,6),round(math.dist(probe,c),6),key)
-                if key not in ranked or rank<ranked[key]:ranked[key]=rank
-        return [key for key,_ in sorted(ranked.items(),key=lambda kv:kv[1])]
+            if e.get('reach')=='corner':
+                # An authored corner counter is reached from its access cell, by facing its side.
+                if tuple(e['access'])!=(cx,cy):continue
+                ox,oy=e['cell'][0]-cx,e['cell'][1]-cy
+                dot=(ax*ox+ay*oy)/math.hypot(ox,oy)
+                if dot<=1e-6:continue
+                rank=(-round(dot,6),len(SELECT_ORDER))
+            else:
+                rank=None
+                for c in e.get('cells',[e['cell']]):
+                    offset=(c[0]-hx,c[1]-hy)
+                    if offset not in SELECT_ORDER:continue
+                    dot=ax*offset[0]+ay*offset[1]
+                    if dot<SELECT_MIN_DOT-1e-9:continue
+                    here=(-round(dot,6),SELECT_ORDER.index(offset))
+                    if rank is None or here<rank:rank=here
+                if rank is None:continue
+            ranked[key]=rank
+        return [key for key,_ in sorted(ranked.items(),key=lambda kv:(kv[1],kv[0]))]
 
     def hand_cell(self,who):
-        """The floor cell the hands are over: Space's directions are taken from it (raised when aiming
-        sideways, as the knife is drawn), so the board the knife points at is the straight one."""
+        """The floor cell the hands are over: the pick counts from it (raised when aiming sideways, as the knife
+        is drawn), so the board the knife points at is the one picked."""
         x,y=self.positions[who];hand=(x,y-SIDE_HAND_RISE*abs(self.aim_of(who)[0]))
         return min(self.floor,key=lambda c:(math.dist(c,hand),c[1],c[0]))
 
@@ -995,12 +1024,16 @@ class SpatialKitchen(Kitchen):
         return found[0] if found else None
 
     def station_ahead(self,who):
-        """The Space pick when it is straight ahead of the hands' cell (or an authored corner reached from
-        here), never a diagonal one: a chef there works in place instead of walking to the station."""
+        """The Space or E pick when it is straight ahead of the chef's own cell (or an authored corner reached
+        from here), not one at its side: a chef there works in place instead of walking to the station. A
+        side pick the player pressed for is worked in place through pick_station."""
         key=self.selected_station(who)
         if not key:return None
-        e=self.equipment[key];hx,hy=self.hand_cell(who)
-        return key if e.get('reach')=='corner' or any(abs(c[0]-hx)+abs(c[1]-hy)==1 for c in e.get('cells',[e['cell']])) else None
+        e=self.equipment[key]
+        if e.get('reach')=='corner':return key
+        ax,ay=self.aim_of(who);cx,cy=self.hand_cell(who);length=math.hypot(ax,ay) or 1
+        return key if any(abs(c[0]-cx)+abs(c[1]-cy)==1 and (ax*(c[0]-cx)+ay*(c[1]-cy))/length>math.sqrt(.5)
+                          for c in e.get('cells',[e['cell']])) else None
 
     def facing_candidates(self,who,station=None):
         """What Space acts on, best first (Overcooked 2-style, no remembered selection).
@@ -1184,7 +1217,7 @@ class SpatialKitchen(Kitchen):
 
     def _start(self, who, action):
         if (action.kind in ('chop','wash') and self.reported[who] and action.target in self.equipment
-                and not self.in_work_reach(action.target,self._centred(who,action.target) or self.positions[who])):
+                and not self.in_work_reach(action.target,self._centred(who,action.target,True) or self.positions[who])):
             # A player at the keyboard works where they stand (after the short slide), never walked to a
             # spot: the hands must already be over the station.
             return False, f"站到{self.place(action.target).name}正前方才能{'切' if action.kind=='chop' else '洗'}"
@@ -1211,10 +1244,13 @@ class SpatialKitchen(Kitchen):
         if ok and action.kind not in ('continue', 'wait', 'stop'):
             job = self.chefs[who].job
             points = self.path(who, action.target)
-            slide = action.kind in USE_KINDS and len(points) == 1 and self._centred(who, action.target)
+            slide = action.kind in USE_KINDS and len(points) == 1 and self._centred(who, action.target, action.kind in ('chop','wash'))
             if slide:points = [points[0], slide]
-            # Putting something down on the chef's own tile only centres them there; as in Overcooked, they keep facing ahead.
-            if action.kind == 'drop' and self.cell(action.target) == self.anchor(who):slide = True
+            if action.kind == 'drop' and self.cell(action.target) == self.anchor(who):
+                # Putting something down on the chef's own tile: as in Overcooked 2 (the carrier lets go), the
+                # chef stays where it stands, facing ahead; before, it was walked to the tile's centre, half a cell
+                # back from a counter it stood against. The slide flag keeps the facing as it is.
+                points, slide = [self.positions[who]], True
             if action.kind in ('chop','wash') and action.target in self.equipment and not self.in_work_reach(action.target,points[-1]):
                 # A whole action facing it from out of reach walks to a work spot instead.
                 points, slide = self.path(who, action.target, in_place=False), False
@@ -1281,6 +1317,8 @@ class SpatialKitchen(Kitchen):
             target = self.interaction_cell(who,action.target)
         else:
             target = self.cell(action.target)
+            # Putting down at the feet lets go where the chef stands: no turn toward the tile's centre.
+            if action.kind == 'drop' and tuple(target) == tuple(self.anchor(who)):return True
         origin = self.positions[who]
         self._face_vector(who,target[0]-origin[0],target[1]-origin[1])
         return True

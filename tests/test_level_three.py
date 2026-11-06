@@ -30,10 +30,10 @@ class LevelThreeTests(unittest.TestCase):
     def test_seeded_orders_counts_deadlines(self):
         k=self.kitchen();other=self.kitchen()
         self.assertEqual(k.orders,other.orders)
-        self.assertEqual(len(k.orders),6);self.assertEqual(k.c['target_money'],190)
+        self.assertEqual(len(k.orders),38);self.assertEqual(k.c['target_money'],k.rules.goal['min_money'])
         self.assertEqual(k.c['round_seconds'],180)
-        self.assertEqual([o['dish'] for o in k.orders].count('burger'),3)
-        self.assertEqual([o['dish'] for o in k.orders].count('steak'),3)
+        self.assertEqual([o['dish'] for o in k.orders[:6]].count('burger'),3)
+        self.assertEqual([o['dish'] for o in k.orders[:6]].count('steak'),3)
         self.assertGreater(len({tuple(o['dish'] for o in self.kitchen(seed).orders) for seed in range(10)}),1)
         self.assertLessEqual(max(o['deadline'] for o in k.orders),180)
     def test_bread_needs_no_chop_and_vegetables_cannot_cook(self):

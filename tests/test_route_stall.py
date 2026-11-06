@@ -60,6 +60,7 @@ class RouteStallTests(unittest.TestCase):
         # With the service body clearance the x=10..11 gap above no longer stalls;
         # these crossing routes still do, and must recover by re-planning.
         k=self.make((9,6),(10,4))
+        k.rules.walk_speed=4.5  # these crossing routes were laid out to stall at this pace; the re-plan is pace-free
         self.route(k,'human','counter5');self.route(k,'jeff','returns')
         self.walk(k,6)
         self.assertTrue(all(c.job is None for c in k.chefs.values()),k.positions)
@@ -96,7 +97,8 @@ class RouteStallTests(unittest.TestCase):
         # by the other chef stops the walker beside them (no back-and-forth sliding),
         # without a re-plan event every check.
         # Pressed against the counter, the idle chef cannot be nudged aside.
-        k=self.make((6,2),(9.1,1.7));self.route(k,'human','floor_9_2')
+        k=self.make((6,2),(9.1,1.7));k.rules.walk_speed=4.5  # stopping point laid out at this pace
+        self.route(k,'human','floor_9_2')
         for _ in range(round(10*STALL_SECONDS/.05)):k.advance(.05)
         self.assertIsNone(k.chefs['human'].job)
         self.assertLess(math.dist(k.positions['human'],(9,2)),1.)

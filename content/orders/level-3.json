@@ -17,10 +17,13 @@
       "weight": 1
     }
   ],
-  "patience_default_game_ms": 105000,
+  "keep_open": 2,
+  "max_open": 5,
+  "on_expire": "restart",
+  "patience_default_game_ms": 90000,
   "patience_by_recipe": {
-    "steak": 75000,
-    "burger": 105000
+    "steak": 60000,
+    "burger": 90000
   },
   "extensions": {
     "chefjeff.status": "calibrated: reference pair earns 390 on this fixed plan (slower-Jeff variant 260); target = 50% rounded down to 10"

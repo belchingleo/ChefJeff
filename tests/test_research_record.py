@@ -50,7 +50,7 @@ class ResearchTests(unittest.TestCase):
 
     def test_observer_does_not_change_rules_revision_choices_or_engine_events(self):
         s=self.game();start(s)
-        again=SpatialKitchen(deepcopy(s.k.resolved))
+        again=SpatialKitchen(deepcopy(s.k.resolved));again.set_clock(s.speed)  # the same game clock as the round
         for k in (s.k,again):
             k.command('human','fetch');k.advance(12);k.command('human','put b1');k.advance(12)
             k.command('human','chop b1');k.advance(15)

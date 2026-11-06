@@ -7,7 +7,8 @@ from whitebox_server import SpatialJevClient
 
 class HandlingTests(unittest.TestCase):
     def make(self):
-        c=load_config();c.update(round_seconds=500,order_patience=400,order_interval=100)
+        # A 0.15 s take/put leaves a window to test interruptions; the shipped game takes and puts instantly, as Overcooked 2.
+        c=load_config();c.update(round_seconds=500,order_patience=400,order_interval=100,handling_seconds=.15)
         return SpatialKitchen(c)
     def do(self,k,who,key):
         ok,msg=k.command(who,key);self.assertTrue(ok,(key,msg))

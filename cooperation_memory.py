@@ -92,7 +92,7 @@ def episode(kitchen, game_id, model, messages=(), summary=None):
     events, count = sample_events(kitchen.events)
     outcome = {'served': kitchen.served, 'money': kitchen.money,
                'target_money': kitchen.c['target_money'], 'reached_target': kitchen.won(),
-               'expired': sum(o.get('status') == 'expired' for o in kitchen.orders),
+               'expired': kitchen.expired_count(),
                'burns': getattr(kitchen, 'burns', 0), 'fires': getattr(kitchen, 'fires', 0)}
     work = {actor: {} for actor in ('human', 'jeff')}
     for row in (summary or {}).get('rows', []):

@@ -75,7 +75,7 @@ class LayoutInteractionTests(unittest.TestCase):
         self.stand(k,'p1');self.assertEqual(self.press(k),'put_pot');k.advance(12)
         self.stand(k,'plates');self.assertEqual(self.press(k),'take_plate')
         self.stand(k,'p1');self.assertEqual(self.press(k),'plate_pot')
-        self.stand(k,'serve');self.assertEqual(self.press(k),'serve');k.advance(8)
+        self.stand(k,'serve');self.assertEqual(self.press(k),'serve');k.advance(k.rules.dining)
         self.stand(k,'returns');self.assertEqual(self.press(k),'take_return')
         self.stand(k,'sink');self.assertEqual(self.press(k),'put_sink')
         self.assertEqual(self.press(k),'wash');self.assertEqual(self.press(k),'take_sink')

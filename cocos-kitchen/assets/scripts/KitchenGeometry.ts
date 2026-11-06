@@ -243,16 +243,55 @@ export function throwDiagonal(dx:number,dy:number):string{
     for(let i=0;i<4;i++){const centre=45+90*i,off=Math.abs(((t-centre)%360+540)%360-180);if(off<22.5)return names[i];}
     return '';
 }
-/** The facing a chef keeps while standing still. The engine's facing wins (it turns a chef for work between
- * polls), except for the player's own steered chef: as in Overcooked, the local chef keeps the page's facing,
- * since the engine's arrives a round trip after the key and would flash the old direction on release. */
 /** The facing a held direction turns the chef to: at once, even against a counter, as in Overcooked 2. */
 export function steeredFacing(x:number,y:number):string|null{
     if(x===0&&y===0)return null;
     return Math.abs(x)>=Math.abs(y)?(x<0?'left':'right'):(y<0?'up':'down');
 }
+/** The facing a chef keeps while standing still. The engine's facing wins (it turns a chef for work between
+ * polls), except for the player's own steered chef: as in Overcooked, the local chef keeps the page's facing,
+ * since the engine's arrives a round trip after the key and would flash the old direction on release. */
 export function restingFacing(drawn:string,engine:string|undefined,steered:boolean):string{
     return steered||!engine?drawn:engine;
+}
+/** Whether a Space press waits: as in Overcooked 2 (ClientPlayerControlsImpl_Default, m_pickupDelay 0.5 s),
+ * only a pick-up within 0.5 s of the last one does. With something in hand the press puts it down at once. */
+export function pickupWaits(holding:boolean,sincePickup:number):boolean{
+    return !holding&&sincePickup<.5;
+}
+/** Real seconds until the player's take or put lands, from the state a Space reply carries (null when nothing
+ * is under way or it is station work). The page asks for the state then instead of waiting for its next poll. */
+export function handsLandIn(state:any):number|null{
+    const h=state?.kitchen?.chefs?.human,speed=state?.speed||1;
+    if(!h?.job_id||h.working)return null;
+    const left=((h.travel_remaining||0)+(h.work_remaining||0))/speed;
+    return left>0&&left<1?left+.02:null;
+}
+/** The facing a chef is drawn with this frame.
+ *
+ * The player's own chef (`own`: the page walks it) turns only with a held direction, as in Overcooked 2,
+ * whose chef turns only with the stick (ClientPlayerControlsImpl_Default.Update_Rotation reads the input
+ * axes alone). Nothing else that moves the drawn chef turns it: the lean on a Space or E press (its swing
+ * back points away from the station), the centring slide before a put or a chop, a dash knock-back, a push
+ * from Jeff or a position correction. Only a real walk the engine makes for it (`travelling`, not a slide)
+ * turns it with the engine's facing.
+ *
+ * Any other chef turns along the way it is drawn walking (`walked`, from the engine's positions), except on a
+ * centring slide, and otherwise rests on the engine's facing. Working at a station, every chef faces the
+ * station as the engine says. */
+export function drawnFacing(o:{drawn:string; engine?:string; own:boolean; steer:string|null; steered:boolean;
+        walked:number[]|null; slide:boolean; travelling:boolean; working:boolean}):string{
+    if(o.working&&o.engine)return o.engine;
+    if(o.steer)return o.steer;
+    if(o.own){
+        if(o.travelling&&!o.slide&&o.engine)return o.engine;
+        return restingFacing(o.drawn,o.engine,o.steered);
+    }
+    if(o.walked&&!o.slide){
+        const [dx,dy]=o.walked;
+        return Math.abs(dx)>=Math.abs(dy)?(dx<0?'left':'right'):(dy>0?'up':'down');
+    }
+    return restingFacing(o.drawn,o.engine,false);
 }
 /** The chef's own cell (engine anchor()): the nearest floor cell, ties to the lower row, then column. */
 export function anchorCell(map:any,pos:number[]):number[]|null{
@@ -294,33 +333,35 @@ export function spaceTarget(map:any,pos:number[],aim:number[],ground:any[]):stri
     ranked.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
     return ranked.length?ranked[0][2]:null;
 }
-/** Space's station, picked as the engine does (spatial_kitchen.selectable_stations; Overcooked 2's grid
- * pick): stations in the eight cells around the chef's own floor cell that lie ahead of the aim, best
- * matching direction first, ties to the one nearest a point half a cell ahead (at hand height when aiming
- * sideways), within 0.85 cells of the feet. Beside or behind never counts. Directions compare by angle,
- * with a 0.1 bonus for the straight cells, so a diagonal wins only about 30 degrees off straight. */
+/** Space's and E's station, picked as the engine does (spatial_kitchen.selectable_stations; Overcooked 2's
+ * GetFacingGridOccupant with grid selection): of the stations in the four cells beside the chef's own floor
+ * cell (aiming sideways, the cell under the hands), never a diagonal, the one whose offset best matches the aim; up to 135 degrees off still counts when
+ * nothing better is there (the counter at the chef's side, with open floor ahead), the cell behind never.
+ * Ties go right, left, up, down. An authored corner counter counts from its access cell when ahead. */
 export function selectableStations(map:any,pos:number[],aim:number[]):string[]{
-    const SELECT_AHEAD=.5,SELECT_REACH=.85,SIDE_HAND_RISE=.35,SELECT_STRAIGHT_BONUS=.1;
+    const MIN_DOT=Math.cos(135*Math.PI/180),ORDER=[[1,0],[-1,0],[0,-1],[0,1]];
     const length=Math.hypot(aim[0],aim[1]);if(!length)return [];
     const ax=aim[0]/length,ay=aim[1]/length,anchor=anchorCell(map,pos);
     if(!anchor)return [];
-    const [cx,cy]=anchor,probe=[pos[0]+ax*SELECT_AHEAD,pos[1]+ay*SELECT_AHEAD-SIDE_HAND_RISE*Math.abs(ax)];
-    // Directions from the cell the hands are over (raised when aiming sideways), as the engine does.
-    const [hx,hy]=anchorCell(map,[pos[0],pos[1]-SIDE_HAND_RISE*Math.abs(ax)])||anchor;
+    // Directions from the cell the hands are over (raised when aiming sideways, as the knife is drawn).
+    const [cx,cy]=anchor,[hx,hy]=anchorCell(map,[pos[0],pos[1]-.35*Math.abs(ax)])||anchor,round=(v:number)=>Math.round(v*1e6)/1e6;
     const ranked=new Map<string,[number,number]>();
     for(const [id,e] of Object.entries(map.equipment||{}) as [string,any][]){
-        const corner=e.reach==='corner';
-        if(corner&&(e.access?.[0]!==cx||e.access?.[1]!==cy))continue;
-        for(const c of (corner?[e.cell]:(e.cells||[e.cell])) as number[][]){
-            const ox=c[0]-(corner?cx:hx),oy=c[1]-(corner?cy:hy);
-            if(!corner&&Math.max(Math.abs(ox),Math.abs(oy))!==1)continue;
-            if(ax*ox+ay*oy<=1e-6)continue;
-            const score=(ax*ox+ay*oy)/Math.hypot(ox,oy)+(Math.abs(ox)+Math.abs(oy)===1?SELECT_STRAIGHT_BONUS:0);
-            if(Math.max(Math.abs(pos[0]-c[0]),Math.abs(pos[1]-c[1]))-.5>SELECT_REACH+1e-9)continue;
-            const rank:[number,number]=[-Math.round(score*1e6)/1e6,Math.round(Math.hypot(probe[0]-c[0],probe[1]-c[1])*1e6)/1e6];
-            const old=ranked.get(id);
-            if(!old||rank[0]<old[0]||(rank[0]===old[0]&&rank[1]<old[1]))ranked.set(id,rank);
+        let rank:[number,number]|null=null;
+        if(e.reach==='corner'){
+            if(e.access?.[0]!==cx||e.access?.[1]!==cy)continue;
+            const ox=e.cell[0]-cx,oy=e.cell[1]-cy,dot=(ax*ox+ay*oy)/Math.hypot(ox,oy);
+            if(dot<=1e-6)continue;
+            rank=[-round(dot),ORDER.length];
+        }else for(const c of (e.cells||[e.cell]) as number[][]){
+            const ox=c[0]-hx,oy=c[1]-hy,order=ORDER.findIndex(([x,y])=>x===ox&&y===oy);
+            if(order<0)continue;
+            const dot=ax*ox+ay*oy;
+            if(dot<MIN_DOT-1e-9)continue;
+            const here:[number,number]=[-round(dot),order];
+            if(!rank||here[0]<rank[0]||(here[0]===rank[0]&&here[1]<rank[1]))rank=here;
         }
+        if(rank)ranked.set(id,rank);
     }
     return Array.from(ranked.entries()).sort((a,b)=>a[1][0]-b[1][0]||a[1][1]-b[1][1]||(a[0]<b[0]?-1:a[0]>b[0]?1:0)).map(([id])=>id);
 }

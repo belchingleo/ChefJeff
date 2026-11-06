@@ -31,16 +31,19 @@ class OperationDockingTests(unittest.TestCase):
                 self.assertFalse(k.nav.walkable_point((4,6.51)))
                 k.assert_invariants()
 
-    def test_a_chef_facing_the_board_works_where_it_stands(self):
+    def test_a_chef_facing_the_board_from_half_a_cell_back_slides_up_to_it(self):
+        # On the tile in front but half a cell short of the board (where putting something down at the feet
+        # used to leave Jeff), chopping first slides forward to the edge, hands over the board.
         for who in ('human','jeff'):
             with self.subTest(who=who):
                 k=self.make();k.positions[who]=(4,6);k.facing[who]='down'
                 k.stations['b1'].food=Food('test','raw',ingredient='beef')
                 ok,message=k.command(who,'chop b1');self.assertTrue(ok,message)
-                self.assertEqual(k.chefs[who].job.travel,0)
-                k.advance(.1)
+                self.assertAlmostEqual(k.chefs[who].job.travel,.49/k.rules.walk_speed)
+                k.advance(.15)
                 self.assertTrue(k.chefs[who].job.working)
-                self.assertEqual(k.positions[who],(4,6))
+                self.assertEqual(k.positions[who],(4,6.49))
+                self.assertEqual(k.facing[who],'down')
 
     def test_stop_and_retarget_keep_continuous_real_position(self):
         k=self.make();k.positions['human']=(4,6);k.facing['human']='up'

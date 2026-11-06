@@ -43,6 +43,18 @@
       "$ref": "common.schema.json#/$defs/positive_game_ms",
       "description": "Optional; defaults to the round limit (orders keep arriving until closing)."
     },
+    "keep_open": {
+      "type": "integer", "minimum": 0, "maximum": 5,
+      "description": "Overcooked 2's order flow: whenever fewer orders than this are waiting, the next one arrives at once (its default is 2). Absent or 0: orders keep the plan's times."
+    },
+    "max_open": {
+      "type": "integer", "minimum": 1, "maximum": 5,
+      "description": "Overcooked 2's order flow: no new order while this many are waiting (its default is 5); the timed one waits for a place."
+    },
+    "on_expire": {
+      "enum": ["leave", "restart"],
+      "description": "An order whose time runs out: leave (it is gone, the default) or restart (it stays and its countdown starts again, as Overcooked 2's ResetOrderLifetime). Both cost the expired-order penalty."
+    },
     "patience_default_game_ms": {
       "$ref": "common.schema.json#/$defs/positive_game_ms"
     },

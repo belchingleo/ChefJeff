@@ -109,9 +109,14 @@ def emergencies():
 
 
 def nothing_left(limit=180.0):
-    """Level 1 played by the reference policy for both chefs until every order is served and none is still to come."""
+    """Level 1 played by the reference policy for both chefs until every order is served and none is still to come.
+    Level 1's orders come as Overcooked 2's do, without end, so this round keeps the plan's fixed times instead."""
     import reference_policy
-    k = SpatialKitchen(level_config(load_config(), 'level-1'))
+    import config_contract as cc
+    bundle = cc.level_bundle('level-1', embed=True)
+    for key in ('keep_open', 'max_open', 'on_expire'):
+        bundle['order_policy'].pop(key, None)
+    k = SpatialKitchen(cc.freeze_bundle(bundle))
     step = 0
     while not k.ended and k.time < limit:
         if (all(o['status'] not in ('pending', 'future') for o in k.orders)

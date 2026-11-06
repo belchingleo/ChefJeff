@@ -6,8 +6,8 @@ Three frying pans and three clean plates are available: two pans start on stoves
 
 ## Recipes and assembly
 
-- Steak: chop beef for 3 seconds, cook for 12, and plate it.
-- Burger: one bun, chopped lettuce, sliced tomato and cooked beef. Vegetables take 3 seconds to prepare and need no cooking; bread is ready to use.
+- Steak: chop beef for 2.2 seconds, cook for 10, and plate it.
+- Burger: one bun, chopped lettuce, sliced tomato and cooked beef. Vegetables take 2.2 seconds to prepare and need no cooking; bread is ready to use.
 - Hold a clean/compatible plate to collect ingredients from boards/counters or beef from pans. Add ingredients to a partner's plate without taking their item. Duplicate ingredients and dirty plates are rejected.
 - Merge compatible plates without destroying a plate. Burnt contents retain their state.
 - Assembly order is free. A plate containing only cooked beef can be served as steak; once other burger ingredients are added, all four are required. Incomplete plates may be carried and placed, with missing-ingredient hints.
@@ -15,7 +15,7 @@ Three frying pans and three clean plates are available: two pans start on stoves
 
 ## Orders and movement
 
-An order arrives every 30 game seconds until closing: steak, burger, burger, steak, burger, steak (the same sequence every round). Steaks have 75 seconds and burgers 105. The round always lasts 180 game seconds. Prices are 50/80. The goal is at least 190 net revenue at closing, with the global penalties. Orders are matched by recipe and earliest deadline; a dish served exactly at the deadline still counts.
+Orders: two from the start, then one every 30 seconds and at once whenever fewer than two wait, at most five at a time, in a fixed sequence that starts steak, burger, burger, steak, burger, steak; an expired one starts again. Steaks have 60 seconds and burgers 90. The round always lasts 180 seconds. Prices are 50/80. The goal is at least 160 net revenue at closing, with the global penalties. Orders are matched by recipe and earliest deadline; a dish served exactly at the deadline still counts.
 
 Order and spawn seeds are fixed per level version and recorded with the round; the session record's inputs replay a complete game.
 
@@ -35,8 +35,8 @@ Click-selected targets take priority for Space, with a reason when unavailable. 
 
 ## 菜谱与组装
 
-- 牛排：牛肉切配 3 秒、烹饪 12 秒后装盘。
-- 汉堡：面包、切好生菜、番茄片、熟牛肉各一份；蔬菜切配 3 秒但不煮，面包直接用。
+- 牛排：牛肉切配 2.2 秒、烹饪 10 秒后装盘。
+- 汉堡：面包、切好生菜、番茄片、熟牛肉各一份；蔬菜切配 2.2 秒但不煮，面包直接用。
 - 手持净盘／兼容盘收取案板／柜台配料或平底锅中牛肉；也可给队友盘加料但不夺取物品。拒绝重复配料与脏盘。
 - 兼容两盘可合并但不销毁盘子，糊食物保留糊的状态。
 - 添加顺序不限。仅装熟牛肉时可出牛排；加入其他汉堡配料后须四种齐全。缺料盘可搬动暂放，并显示缺料提示。
@@ -44,7 +44,7 @@ Click-selected targets take priority for Space, with a reason when unavailable. 
 
 ## 订单与移动
 
-关店前每 30 游戏秒来一单，顺序固定为：牛排、汉堡、汉堡、牛排、汉堡、牛排。牛排 75 秒、汉堡 105 秒内出餐，每局固定 180 游戏秒。单价 50／80；目标为关店时净收入至少 190 元，罚款按全局规则。同菜品优先匹配最早到期订单，恰好在截止时刻出餐仍算成功。
+订单开局就有两张，之后每 30 秒来一张，等待中的少于两张时立刻补，最多同时 5 张，顺序固定，开头是牛排、汉堡、汉堡、牛排、汉堡、牛排；超时后重新计时。牛排 60 秒、汉堡 90 秒内出餐，每局固定 180 秒。单价 50／80；目标为关店时净收入至少 160 元，罚款按全局规则。同菜品优先匹配最早到期订单，恰好在截止时刻出餐仍算成功。
 
 订单与出生种子按关卡版本固定并随对局记录；对局记录中的输入可完整重放一局。
 

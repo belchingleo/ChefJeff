@@ -6,10 +6,11 @@ from navigation import Navigation
 
 class SharedWorkTests(unittest.TestCase):
     def make(self):
-        k=SpatialKitchen(load_config()|{'level':1,'spawn_seed':0,'round_seconds':500})
+        # A 3 s chop leaves room to watch shared rates and hand-offs, whatever the shipped duration.
+        k=SpatialKitchen(load_config()|{'level':1,'spawn_seed':0,'round_seconds':500,'chop_seconds':3})
         k.stations['b1'].food=Food('shared-food')
-        # Both on b1's centre lines (north, west), so neither slides before working.
-        k.positions.update(human=(4,2.49),jeff=(3.15,3.))
+        # Both where a routed chef stands on b1's north and west sides, so neither slides before working.
+        k.positions.update(human=(4,2.49),jeff=k.operation_point('b1',(3,3)))
         return k
 
     def start_pair(self,k,kind='chop',target='b1'):
@@ -44,13 +45,13 @@ class SharedWorkTests(unittest.TestCase):
 
     def test_player_joins_a_shared_chop_where_they_stand(self):
         # Jeff chops b1 from the north; the player, pressed against b1's west side and facing it, joins
-        # with E, only sliding onto b1's row centre. From the same (north) side the join is refused.
+        # with E, sliding onto b1's row centre and up to the edge a routed chef stands at.
         k=self.make();k.positions.update(jeff=(4,2.49),human=(3.1,3.2));k.facing.update(jeff='down',human='right')
         self.assertTrue(k.command('jeff','chop b1')[0]);k.advance(.01)
         focus,action=k.facing_interaction('human','use')
         self.assertEqual((focus,action.key),('b1','chop b1'))
         self.assertTrue(k.start('human',action)[0]);k.advance(.2)
-        self.assertEqual(k.positions['human'],(3.1,3.))
+        self.assertEqual(k.positions['human'],(k.operation_point('b1',(3,3))[0],3.))
         self.assertTrue(all(a.job and a.job.working for a in k.chefs.values()))
         k.assert_invariants()
         # From the same (north) side, beside Jeff and within half a cell of the centre line, the
@@ -129,10 +130,12 @@ class WorkReachTests(unittest.TestCase):
         return k
 
     def test_the_player_does_not_chop_from_the_next_cell(self):
-        # Diagonal from the board, one cell along the counter: Space picks b1 but the hands are not over it.
+        # Diagonal from the board, one cell along the counter: as in Overcooked 2 (four cells, never a
+        # diagonal) the board is not picked, so E has nothing to chop; started anyway, it is refused.
         k=self.make((4.95,6.5),(4.,6.49));k._face_vector('human',-.95,.5)
-        focus,action=k.facing_interaction('human','use')
-        self.assertEqual((focus,action.key),('b1','chop b1'))
+        self.assertNotIn('b1',k.selectable_stations('human'))
+        self.assertIsNone(k.facing_interaction('human','use')[1])
+        action=next(a for a in k.actions('human') if a.key=='chop b1')
         ok,message=k.start('human',action)
         self.assertFalse(ok);self.assertIn('正前方',message);self.assertIsNone(k.chefs['human'].job)
 

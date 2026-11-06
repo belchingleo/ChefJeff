@@ -41,23 +41,24 @@ class FacingControlTests(unittest.TestCase):
         k.stations['b1'].food = Food('L', 'chopped', ingredient='lettuce', chopped=k.rules.chop_work('lettuce'))
         self.assertEqual(k.facing_interaction('human', 'hands')[1].key, 'take b1')
 
-    def test_a_station_diagonally_ahead_is_picked_never_one_beside(self):
-        # Overcooked 2: the stations around the chef's cell that lie ahead are scored by the aim. Floor
-        # straight ahead, the bread box diagonally ahead is picked; counter 17 beside (up) never is.
+    def test_a_station_beside_is_picked_never_one_diagonally_ahead(self):
+        # Overcooked 2 (GetFacingGridOccupant): only the four cells beside the chef's own cell count, scored by
+        # the aim. Floor straight ahead, counter 17 at the chef's side (up, 90 degrees off) is picked; the bread
+        # box diagonally ahead never is.
         k = kitchen()
         k.positions['human'] = (7., 2.3); k.face('human', -1, 0)
-        self.assertEqual(k.selectable_stations('human'), ['bread'])
-        self.assertEqual(k.facing_interaction('human', 'hands')[1].key, 'fetch bread')
+        self.assertEqual(k.selectable_stations('human'), ['counter17'])
+        self.assertNotIn('bread', k.selectable_stations('human'))
         k.face('human', 1, 0)
-        self.assertNotIn('counter17', k.selectable_stations('human'))
+        self.assertEqual(k.selectable_stations('human'), ['counter17'])
 
     def test_a_stick_leaning_toward_a_diagonal_keeps_the_station_straight_ahead(self):
         # Player report: under the tomato box (level 2), stick up but a little left, and the lettuce box
-        # up-left was framed. Overcooked 2's raw offset score lets a diagonal win at any lean; here the
-        # straight station holds until the aim is about 30 degrees off.
+        # up-left was framed. As in Overcooked 2 a diagonal cell is never picked: the tomato box straight
+        # up holds at any lean that is not behind.
         k = kitchen()
         k.positions['human'] = (5., 2.)
-        for degrees, want in ((0, 'tomato'), (15, 'tomato'), (28, 'tomato'), (32, 'lettuce'), (45, 'lettuce')):
+        for degrees, want in ((0, 'tomato'), (15, 'tomato'), (32, 'tomato'), (45, 'tomato'), (80, 'tomato')):
             r = math.radians(degrees)
             k.face('human', -math.sin(r), -math.cos(r))
             self.assertEqual(k.selected_station('human'), want, degrees)
@@ -79,11 +80,12 @@ class FacingControlTests(unittest.TestCase):
         self.assertEqual(k.selected_station('human'), 'b2')
         k.positions['human'] = (4.85, 4.); k.facing['human'] = 'left'
         self.assertEqual(k.selected_station('human'), 'b2')
-        # Too far back: nothing is targeted, and the held item is not dropped instead.
-        k.positions['human'] = (2.55, 4.); k.facing['human'] = 'right'
+        # Off the neighbouring tile no station is picked: as in Overcooked 2 (the carrier lets go), Space
+        # puts the held item down on the floor.
+        k.positions['human'] = (2.45, 4.); k.facing['human'] = 'right'
         k.chefs['human'].hand = Food('held', 'raw', ingredient='beef')
         self.assertIsNone(k.selected_station('human'))
-        self.assertIsNone(k.facing_interaction('human', 'hands')[1])
+        self.assertEqual(k.facing_interaction('human', 'hands')[1].kind, 'drop')
 
     def test_every_station_side_targets_its_station(self):
         # All levels, every station type and every floor side: pressed against it at the walk limit, or
@@ -143,17 +145,20 @@ class FacingControlTests(unittest.TestCase):
             self.assertEqual(k.selected_station('jeff'), board)
 
     def test_the_player_works_where_they_stand_after_centring(self):
-        # Work starts where the player stands, after a sideways slide of at most 0.6 cells (about 0.1 s) onto
-        # the station's centre line; the distance to the station and the facing never change.
+        # Work starts where the player stands, after a slide of about 0.1 s: sideways (at most 0.6 cells) onto
+        # the station's centre line and, from at most half a cell back, forward to the edge a routed chef
+        # stands at, so the hands are over the board. The facing never changes.
         k = SpatialKitchen(level_config(load_config() | {'spawn_seed': 0, 'order_seed': 1}, 1))
         k.positions['jeff'] = (10., 6.)
         k.stations['b2'].food = Food('F2', 'raw', ingredient='beef')
-        for here in ((3., 4.), (3.15, 4.4)):
+        edge = k.operation_point('b2', (3, 4))[0]
+        self.assertGreater(edge, 3.)
+        for here in ((3., 4.), (3.15, 4.4), (edge, 4.3)):
             k.stop('human')
             k.positions['human'] = here; k.facing['human'] = 'right'
             self.assertTrue(k.start('human', k.facing_interaction('human', 'use')[1])[0])
             k.advance(.15)
-            self.assertEqual(k.positions['human'], (here[0], 4.))
+            self.assertEqual(k.positions['human'], (edge, 4.))
             self.assertTrue(k.chefs['human'].job.working)
             self.assertEqual(k.facing['human'], 'right')
         # Too far off the line (or with the partner in the way) it works where it stands.

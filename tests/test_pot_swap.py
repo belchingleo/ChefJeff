@@ -9,7 +9,8 @@ from whitebox_server import SpatialJevClient
 
 class PotSwapTests(unittest.TestCase):
     def make(self):
-        return SpatialKitchen({**load_config(), 'level': 3, 'spawn_seed': 0})
+        # A 0.15 s take/put leaves a window to test interruptions; the shipped game takes and puts instantly, as Overcooked 2.
+        return SpatialKitchen({**load_config(), 'level': 3, 'spawn_seed': 0, 'handling_seconds': .15})
 
     def finish(self,k,who,key):
         action=next(a for a in k.actions(who) if a.key==key)

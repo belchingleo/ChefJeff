@@ -1455,6 +1455,10 @@
       "{0} expired: the customer left, -¥{1}"
     ],
     [
+      "{0}超时，扣 {1} 元，订单重新计时",
+      "{0} expired: -¥{1}, the order starts again"
+    ],
+    [
       "已无法达成目标金额 {0} 元；本局继续至关店",
       "The ¥{0} target can no longer be reached; the round continues until closing"
     ],

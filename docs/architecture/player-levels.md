@@ -37,7 +37,7 @@ Jeff reads dish ids and names, so a player's text never enters the game (owner d
 Owner decision 2026-11-01:
 
 - one order every 30 game seconds, as on levels 1 and 3;
-- each dish waits 5 × its chop and cook seconds, rounded to 15 s, within 60–135 s. 135 s is the longest wait that keeps at most five tickets open at this pace, the most the order rail shows. Steak (75 s) and burger (105 s) come out as authored;
+- each dish waits 5 × its chop and cook seconds, rounded to 15 s, within 60–135 s. 135 s is the longest wait that keeps at most five tickets open at this pace, the most the order rail shows. Steak (60 s) and burger (90 s) come out as authored (Overcooked 2's 2.2 s chop and 10 s cook);
 - the target is half the scripted pair's median income over 7 order seeds (both pairings and swapped roles, as in `scripts/reference_sweep.py`), rounded down to 10. Authored levels use 21 seeds; a player level reviewed into an official one is rerun on 21.
 
 A level the pair serves nothing on is not playable. One the solo chef can pass (`solo_reaches_target`) is playable with a note.

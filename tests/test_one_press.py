@@ -68,7 +68,7 @@ class OptionTests(unittest.TestCase):
         self.assertEqual([(o.key, o.kind, o.target) for o in options],
                          [('put then take b1', 'put_then_take', 'b1'), ('put then chop b1', 'put_then_chop', 'b1')])
         self.assertEqual(options[0].label, '先把手中的面包放到 put_where 选的位置，再从案板 1拿起生菜')
-        self.assertEqual(options[1].label, '先把手中的面包放到 put_where 选的位置，再到案板 1切生菜（剩 3.0s）')   # as the engine's chop label
+        self.assertEqual(options[1].label, f'先把手中的面包放到 put_where 选的位置，再到案板 1切生菜（剩 {k.rules.chop_work("lettuce"):.1f}s）')   # as the engine's chop label
         self.assertEqual(one_press.options(k, 'jeff', actions, None), [])                     # switches off
         self.assertEqual(one_press.options(k, 'jeff', actions, {'wash_from_returns': True}), [])
         self.assertEqual(k.chefs['jeff'].hand.ingredient, 'bread')                            # the hands are as they were
@@ -104,7 +104,7 @@ class OptionTests(unittest.TestCase):
         k.stations[k.sink].food = Food('D8', 'dirty_plate')                                  # a dirty plate already in the sink
         washes = [o for o in one_press.options(k, 'jeff', k.actions('jeff'), BOTH) if o.kind == 'put_then_wash']
         self.assertEqual([o.key for o in washes], [f'put then wash {k.sink}'])
-        self.assertEqual(washes[0].label, f'先把手中的面包放到 put_where 选的位置，再到{k.stations[k.sink].name}洗碗（剩 4.0s）')
+        self.assertEqual(washes[0].label, f'先把手中的面包放到 put_where 选的位置，再到{k.stations[k.sink].name}洗碗（剩 {k.wash_seconds:.1f}s）')
         self.assertEqual(one_press.options(k, 'jeff', k.actions('jeff'), {'wash_from_returns': True}), [])   # its own switch
         self.assertEqual(one_press.steps(washes[0], k), [(('wash',), k.sink)])
 
@@ -114,7 +114,7 @@ class OptionTests(unittest.TestCase):
         payload = compose_payload(client, k, k.snapshot(), k.actions('jeff'), [], None, NO_MEMORY, None, BOTH)
         criteria = payload['questions']['next_action']['criteria']
         self.assertEqual(criteria['put then take b1'], 'Put the held Bread where put_where says, then take Lettuce from Board 1')
-        self.assertEqual(criteria['put then chop b1'], 'Put the held Bread where put_where says, then chop Lettuce at Board 1 (3.0s left)')
+        self.assertEqual(criteria['put then chop b1'], f'Put the held Bread where put_where says, then chop Lettuce at Board 1 ({k.rules.chop_work("lettuce"):.1f}s left)')
         self.assertNotIn('go b1', criteria)                    # the one-press option walks there, so the plain walk goes
         places = payload['questions']['put_where']['criteria']
         self.assertTrue(places and all(k2 == 'drop' or k2.startswith('put ') for k2 in places))

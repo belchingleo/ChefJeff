@@ -58,23 +58,23 @@ class BoundTests(unittest.TestCase):
     def test_first_dish_bound_uses_shared_chopping_only_where_geometry_allows(self):
         level1 = ca.analyze_capacity(frozen('level-1'))
         self.assertEqual(level1['geometry']['shared_work_capable']['board'], ['b1', 'b2', 'b3'])
-        # 6 handling steps x 0.15 + chop 3 / 2 + heat 12
-        self.assertEqual(level1['dishes']['steak']['first_dish_lower_bound_game_ms'], 14400)
+        # 6 instant handling steps + chop 2.2 / 2 + heat 10
+        self.assertEqual(level1['dishes']['steak']['first_dish_lower_bound_game_ms'], 11100)
         solo = ca.analyze_capacity(frozen('level-1'), {'shared_work': False})
-        self.assertEqual(solo['dishes']['steak']['first_dish_lower_bound_game_ms'], 15900)
+        self.assertEqual(solo['dishes']['steak']['first_dish_lower_bound_game_ms'], 12200)
         level3 = ca.analyze_capacity(frozen('level-3'))
         self.assertEqual(level3['geometry']['shared_work_capable']['board'], [])  # not a defect
-        self.assertEqual(level3['dishes']['steak']['first_dish_lower_bound_game_ms'], 15900)
+        self.assertEqual(level3['dishes']['steak']['first_dish_lower_bound_game_ms'], 12200)
 
     def test_parallel_branches_take_the_critical_path_not_the_sum(self):
         burger = ca.analyze_capacity(frozen('level-2'))['dishes']['burger']
-        self.assertEqual(burger['critical_path_game_ms'], 15900)  # beef branch
-        self.assertEqual(burger['chef_time_game_ms'], 11550)       # all attended work
-        self.assertEqual(burger['first_dish_lower_bound_game_ms'], max(15900, 11550 // 2))
+        self.assertEqual(burger['critical_path_game_ms'], 12200)  # beef branch: chop 2.2 + heat 10
+        self.assertEqual(burger['chef_time_game_ms'], 6600)        # all attended work: three 2.2 s chops
+        self.assertEqual(burger['first_dish_lower_bound_game_ms'], max(12200, 6600 // 2))
 
     def test_resource_loads_follow_data(self):
         base = ca.analyze_capacity(frozen('level-2'))
-        self.assertEqual(base['resource_lower_bounds_game_ms']['board'], 4500)  # 3 x 3 s over 2 boards
+        self.assertEqual(base['resource_lower_bounds_game_ms']['board'], 3300)  # 3 x 2.2 s over 2 boards
         slower = ca.analyze_capacity(frozen('level-2', recipe_catalog=lambda r: [t.update(work_game_ms=8000)
                                                                                for t in r['transforms'] if t['operation'] == 'chop']))
         self.assertEqual(slower['resource_lower_bounds_game_ms']['board'], 12000)
@@ -106,13 +106,15 @@ class DiagnosticBoundaryTests(unittest.TestCase):
 
     def test_provably_insufficient_chef_time_is_an_error(self):
         edit_level = lambda d: (d.update(round_limit_game_ms=60000), d['goal'].update(min_money=3000))
-        edit_orders = lambda o: (o.update(interval_game_ms=1000), o['patience_by_recipe'].update(burger=4000))
+        # The plan's fixed times: with Overcooked 2's flow the plan lists only enough orders for its pace.
+        edit_orders = lambda o: (o.update(interval_game_ms=1000), o['patience_by_recipe'].update(burger=4000),
+                                 [o.pop(key, None) for key in ('keep_open', 'max_open', 'on_expire')])
         report = ca.analyze_capacity(frozen('level-2', level=edit_level, order_policy=edit_orders))
         self.assertIn('GOAL_EXCEEDS_CAPACITY', codes(report, 'ERROR'))
         self.assertFalse(report['structurally_valid'])
 
     def test_tight_windows_warn_without_rejecting(self):
-        report = ca.analyze_capacity(frozen('level-1', order_policy=lambda o: o['patience_by_recipe'].update(steak=12000)))
+        report = ca.analyze_capacity(frozen('level-1', order_policy=lambda o: o['patience_by_recipe'].update(steak=10000)))
         self.assertIn('PATIENCE_BELOW_PROCESSING', codes(report, 'WARNING'))
         self.assertEqual(codes(report, 'ERROR'), set())
 

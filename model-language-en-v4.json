@@ -371,7 +371,9 @@
     "葱箱": "Scallion supply",
     "面条箱": "Noodle supply",
     "鸡肉箱": "Chicken supply",
-    "一起洗碗（共享进度）": "Join washing dishes (shared progress)"
+    "一起洗碗（共享进度）": "Join washing dishes (shared progress)",
+    "不在工位正前方，本次操作取消": "Not in front of the workstation; the action was cancelled",
+    "共同操作的位置已被占用，本次操作取消": "The shared working spot is taken; the action was cancelled"
   },
   "templates": [
     [
@@ -717,6 +719,10 @@
     [
       "{0}超时，顾客离开，扣 {1} 元",
       "{0} expired: the customer left, −{1} yuan"
+    ],
+    [
+      "{0}超时，扣 {1} 元，订单重新计时",
+      "{0} expired: −{1} yuan; the order stays and its countdown starts again"
     ],
     [
       "已无法达成目标金额 {0} 元；本局继续至关店",
