@@ -52,6 +52,7 @@
   - 每百万 token 0.1 美元：一局约 0.1–0.2 美元；
   - 每百万 token 0.3 美元：一局约 0.3–0.7 美元。
 - 服务商的缓存折扣可能让实际费用更低；失败的请求也可能计费。以上只是估算，以服务商账单为准。
+- 正在测试的紧凑格式（`compact_input`，默认关闭）把整局不变的部分放在请求开头：同一局里这部分每次都一样，支持前缀缓存的服务商（如 DeepSeek）从第二次请求起就能按缓存价计费，每次真正变化的部分只有今天的五分之一到四分之一。它在本机实测通过之前不会打开。
 - 每局结束后，「设置 → 调用上限」会显示本局的调用次数和成功回复的 token 数，可以据此算出你自己的实际用量。
 - 想省钱：在「调用上限」把每局次数调低（默认 200 次，例如 60 次约为一半费用），Jeff 达到上限后不再请求，你仍可以继续操作。
 
@@ -109,5 +110,6 @@ On 2026-10-19 and 2026-10-20 we confirmed that the other online endpoints above 
   - at USD 0.10 per million: about USD 0.10–0.20 per round;
   - at USD 0.30 per million: about USD 0.30–0.70 per round.
 - Provider caching discounts may lower this; failed requests may also be billed. These are estimates; your provider's bill is what counts.
+- A compact format on trial (`compact_input`, off by default) puts the parts that stay the same for the whole round at the start of each request: within a round they are identical every time, so providers with prompt caching (such as DeepSeek) can bill them at the cache price from the second request on, and the part that really changes is a fifth to a quarter of today's. It stays off until measured locally.
 - After each round, Settings → Call limit shows that round's calls and the tokens of successful replies, so you can work out your own usage.
 - To spend less, lower the per-round call limit (default 200; 60 calls is roughly half the cost). Once Jeff reaches the limit he stops asking and you can keep playing.

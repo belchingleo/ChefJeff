@@ -302,7 +302,9 @@
     }
     return provenanceDigests.get(context);
   }
-  async function modelRequest(config, payload, outerSignal, relayContext) {
+  // The chat instructions, as player_api.CHAT_SYSTEM says them to the blue chef: here the page says "chef jeff".
+  const CHAT_SYSTEM = 'You control chef jeff in a shared kitchen. Using the supplied state and rules, choose exactly one action key from questions.next_action.criteria. Return only a JSON object of the form {"choice": "<action key>", "sprint": <true or false>}, where <action key> is one key of questions.next_action.criteria; include sprint only if questions.sprint is present. Do not explain or choose an action outside the candidate set.';
+  async function modelRequest(config, payload, outerSignal, relayContext, wire) {
     const memory=payload.state?.rules && activeMemory?.game_id===state?.game_id ? activeMemory.context:null;
     if(memory)payload={...payload,state:{...payload.state,past_episodes:clone(memory)}};
     const controller = new AbortController(), started = performance.now();
@@ -344,10 +346,15 @@
     let body, endpoint;
     const preset = providers()[config.provider];
     if (preset.group === 'decision') {
-      body = {...payload, model: config.model}; endpoint = config.base_url;
+      body = wire ? {...payload, state:{static: compactParts(wire, memory).fixed, live: wire.live}, model: config.model} :
+        {...payload, model: config.model};
+      endpoint = config.base_url;
+    } else if (wire) {
+      body = {model:config.model, max_tokens:128, messages: compactMessages(payload, wire, memory, config.provider==='zhipu')};
+      endpoint = config.base_url + '/chat/completions';
     } else {
       body = {model:config.model, max_tokens:128, messages:[
-        {role:'system', content:'You control chef jeff in a shared kitchen. Using the supplied state and rules, choose exactly one action key from questions.next_action.criteria. Return only a JSON object of the form {"choice": "<action key>", "sprint": <true or false>}, where <action key> is one key of questions.next_action.criteria; include sprint only if questions.sprint is present. Do not explain or choose an action outside the candidate set.'},
+        {role:'system', content:CHAT_SYSTEM},
         {role:'user', content:JSON.stringify({state:payload.state, questions:payload.questions})},
       ]};
       endpoint = config.base_url + '/chat/completions';
@@ -417,12 +424,21 @@
   // The same sentences as harness.PLAN_CHAT_RULE and harness.PUT_WHERE_CHAT_RULE.
   const PLAN_CHAT_RULE = ' For each question whose name starts with plan_, also include "<question name>": "<key>", one key of the criteria of that question.';
   const PUT_WHERE_CHAT_RULE = ' When questions.put_where is present, also include "put_where": "<key>", one key of its criteria.';
-  function zhipuSystem(payload) {
+  function zhipuSystem(payload) {return zhipuInstructions(payload)+zhipuSchema(payload);}
+  // model_output.zhipu_schema: names the offered keys, so it changes with every request.
+  function zhipuSchema(payload) {
     const properties={choice:{type:'string',enum:Object.keys(payload.questions.next_action.criteria)}};
     const required=['choice'];
     if('sprint' in payload.questions){properties.sprint={type:'boolean'};required.push('sprint');}
     for(const q of planQuestions(payload)){properties[q]={type:'string',enum:Object.keys(payload.questions[q].criteria)};required.push(q);}
     const schema={type:'object',properties,required,additionalProperties:false};
+    return 'JSON Schema: '+JSON.stringify(schema);
+  }
+  // model_output.zhipu_instructions: plan and put_where say whether those questions can come (fixed per round in the
+  // compact format); by default, whether this request asks them.
+  function zhipuInstructions(payload, plan, putWhere) {
+    if(plan===undefined)plan=Object.keys(payload.questions).some(q => q.startsWith('plan_'));
+    if(putWhere===undefined)putWhere='put_where' in payload.questions;
     return 'You control chef jeff in a shared kitchen. Using the supplied state and rules, '+
       'choose exactly one action key from questions.next_action.criteria. '+
       'Return only one JSON object matching the following JSON Schema. '+
@@ -431,10 +447,31 @@
       'sprint as the JSON boolean true for yes or false for no. '+
       'Never encode sprint as a string, number or null. '+
       'When questions.sprint is absent, omit sprint. '+
-      (Object.keys(payload.questions).some(q => q.startsWith('plan_')) ? 'Each question whose name starts with plan_ is a field whose value is one of its keys. ' : '')+
-      ('put_where' in payload.questions ? 'questions.put_where is a field whose value is one of its keys. ' : '')+
-      'Do not explain or add other fields. '+
-      'JSON Schema: '+JSON.stringify(schema);
+      (plan ? 'Each question whose name starts with plan_ is a field whose value is one of its keys. ' : '')+
+      (putWhere ? 'questions.put_where is a field whose value is one of its keys. ' : '')+
+      'Do not explain or add other fields. ';
+  }
+  // The compact format (wire_format.py, features.json compact_input): the server sends the round's static part and
+  // this request's live part; the page only places them. The same text as wire_format.CHAT_STATIC_INTRO and CHAT_LIVE_NOTE.
+  const CHAT_STATIC_INTRO = '\n\nThe fixed part of the state for this round (static):\n';
+  const CHAT_LIVE_NOTE = 'The changing part of the state (live) and the questions for this request:\n';
+  // Like wire_format.dumps: sorted keys and no spaces, so the same object always gives the same text.
+  const stableJSON = value => Array.isArray(value) ? '['+value.map(stableJSON).join(',')+']' :
+    value && typeof value === 'object' ? '{'+Object.keys(value).sort().map(k => JSON.stringify(k)+':'+stableJSON(value[k])).join(',')+'}' :
+    JSON.stringify(value);
+  // The browser keeps cross-round memory, so it joins the static part here (it is fixed for the round as well).
+  function compactParts(wire, memory) {
+    const fixed = memory ? {...wire.static, past_episodes: clone(memory)} : wire.static;
+    const rules = fixed.rules || {};
+    return {fixed, plan: 'jeff_plan' in rules || 'intent' in rules, putWhere: 'one_press' in rules};
+  }
+  function compactMessages(payload, wire, memory, zhipu) {
+    const {fixed, plan, putWhere} = compactParts(wire, memory);
+    const instructions = zhipu ? zhipuInstructions(payload, plan, putWhere) :
+      CHAT_SYSTEM + (plan ? PLAN_CHAT_RULE : '') + (putWhere ? PUT_WHERE_CHAT_RULE : '');
+    return [{role:'system', content: instructions + CHAT_STATIC_INTRO + stableJSON(fixed)},
+            {role:'user', content: CHAT_LIVE_NOTE + stableJSON({live: wire.live, questions: payload.questions}) +
+              (zhipu ? '\n' + zhipuSchema(payload) : '')}];
   }
   // The same questions, in the same order, as harness.choice_questions: the plan's, then put_where (one_press.py).
   const PLAN_QUESTIONS = ['plan_step_1', 'plan_step_2', 'plan_step_3', 'plan_step_4', 'plan_keep', 'put_where'];
@@ -627,7 +664,7 @@
       const startedAt=performance.now();
       let errorType=null;
       try {answer = await modelRequest(activeRoundConfig || setting, request.payload, undefined,
-        {game_id:state.game_id,id:request.id,test:false});delete answer.latency;}
+        {game_id:state.game_id,id:request.id,test:false}, request.wire);delete answer.latency;}
       catch (e) {
         answer = {failed:true};
         errorType=e.name==='AbortError'?'timeout':'transport_or_response_error';

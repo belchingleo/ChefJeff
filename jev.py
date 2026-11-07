@@ -18,6 +18,7 @@ from harness import (AGENT_RULES_VERSION, CONTINUITY_RULE, NO_MEMORY, PLAYER_COM
 import harness
 import one_press
 import undo_note
+import wire_format
 
 ENDPOINT = "https://api.typesafe.ai/v1/systemone"
 
@@ -72,7 +73,9 @@ class JevClient:
     def ask(self, payload):
         payload = english_data(payload)
         start = time.monotonic()
-        request = urllib.request.Request(self.endpoint, data=json.dumps(payload, ensure_ascii=False).encode(),
+        # The compact format (features.json compact_input) sends the state as {static, live}; the payload stays as it is.
+        body = wire_format.decision_body(payload) if wire_format.enabled() else payload
+        request = urllib.request.Request(self.endpoint, data=json.dumps(body, ensure_ascii=False).encode(),
                                          headers={"Authorization": "Bearer " + self.key, "Content-Type": "application/json"}, method="POST")
         try:
             with urllib.request.urlopen(request, timeout=self.c["ai_timeout_seconds"]) as r:

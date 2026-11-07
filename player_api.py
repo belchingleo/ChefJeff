@@ -15,6 +15,7 @@ from whitebox_server import SpatialJevClient
 from jev import http_error_detail
 from harness import PLAN_CHAT_RULE, PUT_WHERE_CHAT_RULE, choice_answer, plan_questions
 from model_language import english_data
+import wire_format
 from cooperation_memory import CooperationMemory, round_scope, episode, ROUNDS
 from release_info import release_info
 from feedback import play_export
@@ -63,6 +64,16 @@ def settings_from(body):
             **({'account_id':account} if preset.get('account_id') else {})}
 
 
+CHAT_SYSTEM='You control the blue chef in a shared kitchen. Using the supplied state and rules, choose exactly one action key from questions.next_action.criteria. Return only a JSON object of the form {"choice": "<action key>", "sprint": <true or false>}, where <action key> is one key of questions.next_action.criteria; include sprint only if questions.sprint is present. Do not explain or choose an action outside the candidate set.'
+
+
+def cached_tokens(usage):
+    """Prompt tokens the provider served from its cache, when it says so (DeepSeek, OpenAI-style); else nothing."""
+    details=usage.get('prompt_tokens_details') if isinstance(usage.get('prompt_tokens_details'),dict) else {}
+    value=usage.get('prompt_cache_hit_tokens',details.get('cached_tokens'))
+    return {'cached_input_tokens':value} if type(value) is int and value>=0 else {}
+
+
 class CompatibleClient(SpatialJevClient):
     def __init__(self,config,setting):
         super().__init__(config,key=setting['api_key'])
@@ -75,10 +86,20 @@ class CompatibleClient(SpatialJevClient):
         payload=english_data(payload)
         started=time.monotonic()
         body={'model':self.setting['model'],'messages':[
-            {'role':'system','content':'You control the blue chef in a shared kitchen. Using the supplied state and rules, choose exactly one action key from questions.next_action.criteria. Return only a JSON object of the form {"choice": "<action key>", "sprint": <true or false>}, where <action key> is one key of questions.next_action.criteria; include sprint only if questions.sprint is present. Do not explain or choose an action outside the candidate set.'},
+            {'role':'system','content':CHAT_SYSTEM},
             {'role':'user','content':json.dumps({'state':payload['state'],'questions':payload['questions']},ensure_ascii=False)}],
             'max_tokens':128}
-        if self.setting['provider']=='zhipu':
+        if wire_format.enabled():
+            # Compact format: the fixed instructions and the round's static part first, a prompt prefix providers can
+            # cache; live and the questions last. The plan and put_where sentences follow what the round can ask.
+            if self.setting['provider']=='zhipu':
+                from model_output import compact_chat_messages
+                body['messages']=compact_chat_messages(payload)
+            else:
+                static,_=wire_format.split(payload['state'])
+                body['messages']=wire_format.chat_messages(payload,CHAT_SYSTEM+(PLAN_CHAT_RULE if wire_format.plan_possible(static) else '')
+                                                           +(PUT_WHERE_CHAT_RULE if wire_format.put_where_possible(static) else ''))
+        elif self.setting['provider']=='zhipu':
             from model_output import zhipu_system
             body['messages'][0]['content']=zhipu_system(payload)
         else:
@@ -111,7 +132,8 @@ class CompatibleClient(SpatialJevClient):
             # A missing or unknown plan answer only leaves Jeff without a plan (or keeps it); the action stands.
             plan=choice_answer(parsed,payload)
             return {**plan,'sprint':parsed.get('sprint',False),**({'sprint_missing':True} if sprint_missing else {}),'choice':choice,'confidence':None,'probabilities':{},'model':self.setting['model'],
-                    'usage':{'input_tokens':int(usage.get('prompt_tokens',0)),'output_tokens':int(usage.get('completion_tokens',0))},
+                    'usage':{'input_tokens':int(usage.get('prompt_tokens',0)),'output_tokens':int(usage.get('completion_tokens',0)),
+                             **cached_tokens(usage)},
                     'latency':time.monotonic()-started}
         except (KeyError,IndexError,TypeError,AttributeError,ValueError):
             # The model's own words (never the key or request) go into the local log, so a failing model can be diagnosed.

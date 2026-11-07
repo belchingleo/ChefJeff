@@ -34,7 +34,7 @@ class NeutralRulesTests(unittest.TestCase):
 
     def test_system_prompts_are_neutral(self):
         source = (Path(player_api.__file__).read_text() + (ROOT / 'hosted' / 'browser-agent.js').read_text())
-        prompts = re.findall(r"(?:content'?\s*:\s*)'([^']*)'", source)
+        prompts = re.findall(r"(?:content'?\s*:\s*|CHAT_SYSTEM\s*=\s*)'([^']*)'", source)
         self.assertTrue(prompts)
         for prompt in prompts:
             self.assertIsNone(VALUE_WORDING.search(prompt), prompt)

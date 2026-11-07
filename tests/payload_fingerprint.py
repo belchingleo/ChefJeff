@@ -63,7 +63,11 @@ SCENARIOS = {
     'level2-messages-memory': ('level-2', True, False),
     'level2-plan': ('level-2', True, True),
     'level2-rolling': ('level-2', True, 'rolling'),
+    'level2-compact': ('level-2', False, False),
 }
+# Scenarios sent in the compact format (wire_format.py, features.json compact_input on): the payload sections
+# must equal level2's, and only the request bodies (wire) differ.
+COMPACT = {'level2-compact'}
 MESSAGES = ((20.0, 'prep'), (70.0, 'mistake'), (120.0, 'wash'))
 COMPOSE = jev.compose_payload
 
@@ -234,6 +238,15 @@ def message(k, loop, code):
 
 
 def run(name):
+    if name in COMPACT:
+        on = {key: dict(value) for key, value in features.current().items()}
+        on['compact_input']['on'] = True
+        with patch.object(features, 'current', lambda: {key: dict(value) for key, value in on.items()}):
+            return _run(name)
+    return _run(name)
+
+
+def _run(name):
     level, talk, planned = SCENARIOS[name]
     memory = previous_round_memory(level) if talk else None
     # Start like a freshly started server. Kitchens on one map share a navigation object and its

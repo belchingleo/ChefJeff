@@ -7,6 +7,7 @@ import hashlib
 import ipaddress
 from copy import deepcopy
 import json
+import wire_format
 import math
 import mimetypes
 from pathlib import Path
@@ -77,7 +78,12 @@ class BrowserRelay(SpatialJevClient):
         with self.guard:
             task = self.pending
             if not task or task['event'].is_set(): return None
-            return {'id': task['id'], 'payload': deepcopy(task['payload'])}
+            request = {'id': task['id'], 'payload': deepcopy(task['payload'])}
+        # The compact format (features.json compact_input): the static and live parts made here, once, for the page to
+        # place; the payload still comes along for checking the answer.
+        if wire_format.enabled():
+            request['wire'] = wire_format.relay(request['payload'])
+        return request
 
     def mark_failure(self,ident,error):
         with self.guard:

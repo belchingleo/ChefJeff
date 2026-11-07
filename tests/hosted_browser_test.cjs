@@ -773,6 +773,34 @@ function settingsHarness(){
   const system=JSON.parse(h.calls.find(c=>c.init?.body?.includes('"messages"')).init.body).messages[0].content;
   assert(system.endsWith(' For each question whose name starts with plan_, also include "<question name>": "<key>", one key of the criteria of that question.'));
  }
+ // The compact format (wire_format.py): the server sends static and live; the page places them. A chat model gets one
+ // system message for the whole round (instructions, the round's sentences, static) and live with the questions after it.
+ const fixed={rules:{one_press:'One-press rule',compact_input:'Two parts'},kitchen:{map:{w:2},stations:{b1:{name:'Board 1'}}},defaults:{stations:{fire:false}}};
+ const systems=[];
+ for(const [n,time] of [[1,3.5],[2,9.25]]){
+  upstream=()=>new Response(JSON.stringify({choices:[{message:{content:'{"choice":"wait","sprint":false}'}}],usage:{prompt_tokens:1,completion_tokens:1}}));
+  modelTask={id:'compact-'+n,payload:{state:{kitchen:{time}},questions:{next_action:{type:'choice',criteria:{wait:'Wait',['go b'+n]:'Walk'}},sprint:{type:'choice',criteria:{yes:'Yes',no:'No'}}}},
+   wire:{version:'compact-v1',static:fixed,live:{kitchen:{time}}}};
+  h=harness(cfg.remember?cfg:{...cfg,remember:true},false,{game_id:'round',phase:'running',limits:{},connection:{configured:true}});
+  await h.w.fetch('/api/state');await h.timers.find(fn=>fn.name==='poll')();
+  const messages=JSON.parse(h.calls.find(c=>c.init?.body?.includes('"messages"')).init.body).messages;
+  systems.push(messages[0].content);
+  assert(messages[0].content.includes('\n\nThe fixed part of the state for this round (static):\n{"defaults":{"stations":{"fire":false}},"kitchen":{"map":{"w":2},"stations":{"b1":{"name":"Board 1"}}},"rules":{'));
+  assert(messages[0].content.includes(' When questions.put_where is present, also include "put_where"'),'the round can ask put_where');
+  assert(!messages[0].content.includes('time'),'nothing that changes is in the system message');
+  assert(messages[1].content.startsWith('The changing part of the state (live) and the questions for this request:\n{"live":{"kitchen":{"time":'+time+'}},"questions":'));
+  assert.equal(JSON.parse(h.calls.find(c=>c.url==='/api/model/result').init.body).choice,'wait');
+ }
+ assert.equal(systems[0],systems[1],'one system message for the round');
+ // A decision service gets state.static before state.live; without wire the request is as before.
+ upstream=()=>new Response(JSON.stringify({answers:{next_action:{type:'choice',choice:'wait'},sprint:{type:'choice',choice:'no'}},usage:{input_tokens:5,output_tokens:7}}));
+ modelTask={id:'compact-decision',payload:{model:'jev-latest',state:{kitchen:{time:1}},questions:{next_action:{type:'choice',criteria:{wait:'Wait'}},sprint:{type:'choice',criteria:{yes:'Yes',no:'No'}}}},
+  wire:{version:'compact-v1',static:fixed,live:{kitchen:{time:1}}}};
+ h=harness({...startlux,remember:true},false,{game_id:'round',phase:'running',limits:{},connection:{configured:true}});
+ await h.w.fetch('/api/state');await h.timers.find(fn=>fn.name==='poll')();
+ sent=JSON.parse(h.calls.find(c=>c.url==='https://api.bamboonode.dev/v1/decisions').init.body);
+ assert.deepEqual(Object.keys(sent.state),['static','live']);assert.deepEqual(sent.state.static,fixed);assert.deepEqual(sent.state.live,{kitchen:{time:1}});
+ assert.deepEqual(sent.questions,modelTask.payload.questions);
  upstream=null;modelTask=null;
  h=harness();r=await h.w.fetch('/api/connection',{body:JSON.stringify({...cfg,provider:'compatible',base_url:'https://kitchen.example'})});assert.equal(r.status,400);
  h=harness();d=await (await h.w.fetch('/api/state')).json();assert.equal(d.connection.configured,false);

@@ -6,6 +6,9 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 
 ## Unreleased
 
+### Jeff's input (model input change, off by default)
+- A compact request format on trial: `compact_input` in `features.json` (version `compact-v1`, no player switch, off). With it on, every client (local chat and decision clients, the hosted Jev relay, the free models and Cloudflare, and the hosted page, which gets both parts from the server) sends the request as `static`, what stays the same for the whole round, placed first (the system message for chat models, `state.static` for decision services), and `live`, the rest. In the payload fingerprints `static` is one byte-identical text per round for every client, including rounds with player messages, plans and one-press, and `live` is 20–25% of today's message. The request itself is unchanged: journals, research records, replays and analysis see the same payload, `wire_format.expand` gives back its state exactly on every fingerprint request, and with the switch off every client sends today's bytes. A seventh payload fingerprint, `level2-compact`, has the same payload sections as `level2` and different request bodies for every client. Local chat clients record `cached_input_tokens` when the provider reports prompt cache hits.
+
 ### Jeff
 - The route points in Jeff's input are now rounded to four decimals, like positions. They used to be full floats, whose last digit can differ between machines: 1 of the 1189 server requests could not be rebuilt exactly on another machine for that reason. Rules and Jeff's actions are unchanged.
 - New trial switch `undo_note` in `features.json`, off by default and with no switch in the page. With it on, an option that would take back what Jeff's last step put down, or put back what it took, says so in its label with the time, as a fact; nothing is forbidden and the player sees no note. Each request's research record keeps that step, so the request can still be rebuilt exactly. `scripts/undo_note_check.py` re-asks logged moments with and without the notes and compares how often Jeff takes his last step back.
@@ -210,6 +213,9 @@ First private release: a local browser game with three playable maps and player-
 ## 更新记录
 
 ## 未发布
+
+### Jeff 的输入（模型输入改动，默认关闭）
+- 新增测试中的紧凑请求格式：`features.json` 里的 `compact_input`（版本 `compact-v1`，没有玩家开关，默认关闭）。打开后，每个客户端（本地对话和决策客户端、在线版的 Jev 转发、免费模型和 Cloudflare，以及由服务器给出两部分的在线页面）把请求分成两部分发出：`static` 是整局不变的部分，放在最前面（对话模型放在 system 消息里，决策服务放在 `state.static`）；`live` 是其余部分。在请求录像里，每个客户端的 `static` 在同一局里都是逐字节相同的同一段文字，有玩家消息、计划和一键操作的局也一样；`live` 只有今天整条消息的 20%–25%。请求本身不变：日志、研究记录、回放和分析看到的是同一个请求，`wire_format.expand` 在每一份请求录像的每一次请求上都能原样还原 state；开关关闭时，每个客户端发出的字节和今天完全一样。新增第七份请求录像 `level2-compact`，请求内容各节和 `level2` 相同，每个客户端的请求体都不同。服务商报告提示缓存命中时，本地对话客户端会记下 `cached_input_tokens`。
 
 ### Jeff
 - Jeff 看到的行走路线点现在和位置一样保留四位小数。以前路线点是完整小数，不同机器算出的最后一位可能不同，服务器上 1189 次请求里有 1 次因此在另一台机器上重建不出原样。游戏规则和 Jeff 能做的操作都没变。
