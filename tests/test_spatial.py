@@ -63,6 +63,18 @@ class SpatialTests(unittest.TestCase):
         k.command('human','go floor_2_5')
         self.assertEqual(k.routes['human']['points'],[current,(2,5)])
 
+    def test_the_snapshot_route_is_rounded_like_position(self):
+        # Full floats differ in the last digit between machines; Jeff's request must not.
+        k=self.make();k.positions['human']=(2.3000000000000003,3.4000000000000004)
+        k.command('human','go floor_3_5');k.advance(.13)
+        raw=k.routes['human']['points']
+        self.assertNotEqual([round(v,4) for v in raw[0]],list(raw[0]))
+        chef=k.snapshot()['chefs']['human']
+        self.assertEqual(chef['route'],[[round(v,4) for v in point] for point in raw])
+        self.assertEqual(chef['route'][0],chef['position'])
+        k.advance(5)
+        self.assertEqual(k.snapshot()['chefs']['human']['route'],[])
+
     def test_move_interrupt_keeps_real_position_and_replans_around_wall(self):
         k=self.make();k.command('human','go p1');k.advance(.73)
         position=k.positions['human']

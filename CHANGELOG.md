@@ -7,6 +7,7 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 ## Unreleased
 
 ### Jeff
+- The route points in Jeff's input are now rounded to four decimals, like positions. They used to be full floats, whose last digit can differ between machines: 1 of the 1189 server requests could not be rebuilt exactly on another machine for that reason. Rules and Jeff's actions are unchanged.
 - New trial switch `undo_note` in `features.json`, off by default and with no switch in the page. With it on, an option that would take back what Jeff's last step put down, or put back what it took, says so in its label with the time, as a fact; nothing is forbidden and the player sees no note. Each request's research record keeps that step, so the request can still be rebuilt exactly. `scripts/undo_note_check.py` re-asks logged moments with and without the notes and compares how often Jeff takes his last step back.
 
 ### Research records
@@ -211,6 +212,7 @@ First private release: a local browser game with three playable maps and player-
 ## 未发布
 
 ### Jeff
+- Jeff 看到的行走路线点现在和位置一样保留四位小数。以前路线点是完整小数，不同机器算出的最后一位可能不同，服务器上 1189 次请求里有 1 次因此在另一台机器上重建不出原样。游戏规则和 Jeff 能做的操作都没变。
 - `features.json` 新增测试开关 `undo_note`，默认关闭，页面上没有它的开关。打开后，如果某个选项正好会把 Jeff 上一步放下的东西拿回来，或者把他上一步拿起的东西放回原处，这个选项后面会写明这件事和发生的时间。这只是陈述事实，不禁止任何选择，玩家也看不到。每次请求的研究记录会存下这一步，所以请求仍能原样重建。`scripts/undo_note_check.py` 拿记录里的时刻，加说明和不加说明各问一遍模型，比较 Jeff 撤销上一步的比例。
 
 ### 研究记录

@@ -1548,7 +1548,10 @@ class SpatialKitchen(Kitchen):
             data['position'] = [round(v, 4) for v in self.positions[who]]
             data['resync'] = self.resync[who]
             data['location_name'] = self.place(self.chefs[who].location).name
-            data['route'] = self.routes.get(who, {}).get('points', []) if self.chefs[who].job else []
+            # Rounded like position: full floats differ in the last digit between machines, and the
+            # request digest research replay checks must not depend on the machine.
+            data['route'] = ([[round(v, 4) for v in point] for point in self.routes.get(who, {}).get('points', [])]
+                             if self.chefs[who].job else [])
             # A centring slide, not a walk: the client keeps the chef's facing (display only, not sent to Jeff).
             data['route_slide'] = bool(self.chefs[who].job and self.routes.get(who, {}).get('slide'))
         for item in state['ground']:
