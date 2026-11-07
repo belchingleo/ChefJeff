@@ -216,7 +216,9 @@ def payload(kind, data, k):
                    # Only rounds with a one-press switch on carry them (one_press.flags).
                    **({'one_press': deepcopy(data['one_press'])} if data.get('one_press') else {}),
                    # Only rounds with the undo_note switch on carry Jeff's last step (undo_note.step).
-                   **({'undo_note': deepcopy(data['undo_note'])} if data.get('undo_note') is not None else {})} if observed else {}
+                   **({'undo_note': deepcopy(data['undo_note'])} if data.get('undo_note') is not None else {}),
+                   # Only requests asked ahead (ask_ahead.py): the step they were asked about, to redo the prediction.
+                   **({'ask_ahead': deepcopy(data['ask_ahead'])} if data.get('ask_ahead') else {})} if observed else {}
         return {**rebuild, 'observed_state_seq': data.get('observed_state_seq'),
                 'candidates': [code(v) for v in candidates],
                 'candidate_actions': [action(a.key, a.target, a.kind) for a in k.actions('jeff') if a.key in candidates], 'stage': 'model_request',
@@ -237,7 +239,11 @@ def payload(kind, data, k):
                 # Only when the answer started a one-press choice (one_press.py): its first step and the put_where fallback.
                 **({'one_press_start': {'first': action(data['one_press'].get('first')),
                                         'fallback': bool(data['one_press'].get('fallback'))}}
-                   if isinstance(data.get('one_press'), dict) else {})}
+                   if isinstance(data.get('one_press'), dict) else {}),
+                # Only answers asked ahead: carried out at the step's end, or dropped and why.
+                **({'ask_ahead_result': {'result': code(data['ask_ahead'].get('result')),
+                                         'reason': code(data['ask_ahead'].get('reason'))}}
+                   if isinstance(data.get('ask_ahead'), dict) else {})}
     if kind == 'request_unresolved':
         return {'reason': 'not_observed'}
     if kind == 'ai_error':
@@ -330,6 +336,7 @@ def record(session):
                            'model_parameters': {'sampling': None, 'reasoning': None, 'safety': None, 'upstream_adapter': None, 'status': 'not_collected_from_browser'},
                            'request_policy': {key: number(k.c.get(key)) for key in ('ai_min_interval', 'ai_refresh_seconds', 'ai_timeout_seconds', 'ai_max_response_age')} | {'max_calls': getattr(getattr(session, 'ai', None), 'call_limit', None),
                                               'ai_ask_on_step_end': bool(k.c.get('ai_ask_on_step_end', False)),
+                                              'ask_ahead': bool(getattr(getattr(session, 'ai', None), 'ask_ahead', False)),
                                               # Hosted pages: whether this page asked for the model requests by long poll.
                                               **({'relay_long_poll': bool(getattr(session, 'relay_long_poll', False))}
                                                  if hasattr(session, 'relay') else {})}},

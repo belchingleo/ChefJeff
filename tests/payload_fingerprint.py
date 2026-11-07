@@ -64,7 +64,12 @@ SCENARIOS = {
     'level2-plan': ('level-2', True, True),
     'level2-rolling': ('level-2', True, 'rolling'),
     'level2-compact': ('level-2', False, False),
+    'level2-ask-ahead': ('level-2', False, False),
 }
+# Scenarios with ask_ahead on (ask_ahead.py): replies take REPLY_SECONDS of wall time, so Jeff's steps end before
+# some of them come and he is asked ahead.
+AHEAD = {'level2-ask-ahead'}
+REPLY_SECONDS = 1.2
 # Scenarios sent in the compact format (wire_format.py, features.json compact_input on): the payload sections
 # must equal level2's, and only the request bodies (wire) differ.
 COMPACT = {'level2-compact'}
@@ -167,14 +172,16 @@ class StandIn(SpatialJevClient):
         if self.sample is None:
             self.sample = deepcopy(payload)
         criteria = payload['questions']['next_action']['criteria']
-        move = reference_policy.choose(self.k, 'jeff', 'cook')
+        # The kitchen the request describes: the real one, or for a request asked ahead the fork at the step's end.
+        described = self.arguments[0] if self.arguments else self.k
+        move = reference_policy.choose(described, 'jeff', 'cook')
         choice = (move.key if move and move.key in criteria else
                   next((key for key in ('wait', 'continue') if key in criteria), sorted(criteria)[0]))
         plan = {}
         asked = plan_questions(payload)
         if PLAN_STEP_QUESTIONS[0] in asked:
             # The work of the move it is about to make and what follows it, else no plan.
-            first = work_item(move, self.k.snapshot()) if move and move.key in criteria else None
+            first = work_item(move, described.snapshot()) if move and move.key in criteria else None
             chain = following(first, payload['questions'][PLAN_STEP_QUESTIONS[0]]['criteria'])
             plan = plan_answer({q: chain[n] if n < len(chain) else 'none' for n, q in enumerate(PLAN_STEP_QUESTIONS)}, payload)
         elif PLAN_KEEP_QUESTION in asked:
@@ -238,6 +245,11 @@ def message(k, loop, code):
 
 
 def run(name):
+    if name in AHEAD:
+        on = {key: dict(value) for key, value in features.current().items()}
+        on['ask_ahead']['on'] = True
+        with patch.object(features, 'current', lambda: {key: dict(value) for key, value in on.items()}):
+            return _run(name)
     if name in COMPACT:
         on = {key: dict(value) for key, value in features.current().items()}
         on['compact_input']['on'] = True
@@ -262,11 +274,24 @@ def _run(name):
     if planned:
         loop.plan = Plan(mode='rolling' if planned == 'rolling' else 'choice')
     loop.one_press = features.one_press_flags(features.current())   # the released features, as a new session has them
+    loop.ask_ahead = features.current()['ask_ahead']['on']
     pending = list(MESSAGES) if talk else []
     step = 0
-    with (patch('jev.time.monotonic', lambda: 1000 + k.time / SPEED), patch('jev.threading.Thread', Inline),
+    replies = []                # (wall time due, request thread) when replies take time
+
+    class Delayed:
+        def __init__(self, target, daemon=None):
+            self.target = target
+
+        def start(self):
+            replies.append((1000 + k.time / SPEED + REPLY_SECONDS, self.target))
+    thread = Delayed if name in AHEAD else Inline
+    with (patch('jev.time.monotonic', lambda: 1000 + k.time / SPEED), patch('jev.threading.Thread', thread),
           patch('jev.compose_payload', model.compose)):
         while not k.ended:
+            for reply in [r for r in replies if r[0] <= 1000 + k.time / SPEED]:
+                replies.remove(reply)
+                reply[1]()
             if step % HUMAN_EVERY == 0:
                 action = reference_policy.choose(k, 'human', 'assembler')
                 if action:

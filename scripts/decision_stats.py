@@ -34,7 +34,9 @@ For each model it counts:
   `unsure_with_plan` counts the decisions that were unsure (first margin) while a plan had held
   for more than --plan-age seconds: the trigger proposed for the third tier, here only counted.
 - step_gaps: how long Jeff stood between steps, in wall seconds, from the end of a step (action_done)
-  to the start of his next (action_start), grouped by the round's request policy:
+  to the start of his next (action_start), grouped by the round's request policy (`ask_ahead` when that trial
+  was on: an answer asked ahead was requested before the step ended, so its waiting_to_ask is negative, and
+  `asked_ahead` counts those gaps):
   `ask_on_step_end` (ai_ask_on_step_end on) or `min_interval_only` (off, or a record from before the
   switch existed). Each gap is split into waiting_to_ask (until the first request after the step),
   answers_before_the_step (earlier answers that started nothing: a wait, a rejected or a discarded
@@ -106,7 +108,7 @@ from round_summary import CATEGORIES, CHEFS  # noqa: E402
 
 WORK_CATEGORIES = tuple(name for name, _ in CATEGORIES)
 
-VERSION = 'decision-stats-15'
+VERSION = 'decision-stats-16'
 MARGINS = (0.05, 0.1)
 PLAN_AGE = 5.0
 PUT_BACK = 10.0
@@ -144,6 +146,7 @@ def record_rows(record):
     policy = conditions.get('request_policy') or {}
     rows = [{'kind': 'start', 'jeff_plan': conditions.get('jeff_plan'), 'game_time_ms': 0, 'round_id': record.get('round_id'),
              'ask_on_step_end': policy.get('ai_ask_on_step_end') is True, 'wall_time': record.get('started_at'),
+             'ask_ahead': policy.get('ask_ahead') is True,
              'config_hash': record.get('config_hash'), 'speed': record.get('speed'), 'rules_version': conditions.get('rules_version'),
              **({'one_press': conditions['one_press']} if conditions.get('one_press') else {})}]
     previous = None     # the plan the previous request carried
@@ -155,7 +158,8 @@ def record_rows(record):
             ended = 'not_recorded' if previous and (not current or current['set_at'] != previous['set_at']) else None
             rows.append({'kind': 'ai_request', 'request_id': e.get('request_id'), 'candidates': p.get('candidates'),
                          'jeff_plan': plan, **({'plan_ended': ended} if ended else {}),
-                         **({'one_press': p['one_press']} if p.get('one_press') else {}), **at})
+                         **({'one_press': p['one_press']} if p.get('one_press') else {}),
+                         **({'ask_ahead': p['ask_ahead']} if p.get('ask_ahead') else {}), **at})
             previous = current
         elif e['type'] == 'ai_response':
             choice = p.get('choice') or {}
@@ -555,6 +559,9 @@ def wall(row):
 
 def request_policy(rows):
     start = rows[0] if rows and rows[0].get('kind') == 'start' else {}
+    # ask_ahead (a trial on top of ask_on_step_end) is its own group: its requests may come before a step ends.
+    if ((start.get('features') or {}).get('ask_ahead') or {}).get('on') is True or start.get('ask_ahead') is True:
+        return 'ask_ahead'
     on = start.get('ask_on_step_end')
     if on is None:
         on = (start.get('config') or {}).get('ai_ask_on_step_end')
@@ -568,7 +575,7 @@ def step_gaps(rows, m):
         return
     g = m['gaps'].setdefault(request_policy(rows), {'rounds': 0, 'wall_seconds': 0.0, 'total': [], 'waiting_to_ask': [],
                                                     'answers_before_the_step': [], 'reply': [], 'with_discarded': 0,
-                                                    'unexplained': 0})
+                                                    'unexplained': 0, 'asked_ahead': 0})
     paused, since = 0.0, None
     for r in rows:
         if r.get('kind') == 'pause' and wall(r) is not None:
@@ -613,10 +620,18 @@ def step_gaps(rows, m):
         # Sent before the step ended (by game time; wall times of one tick follow the journal's write order).
         before = (game_time(request) < ended if game_time(request) is not None and ended is not None
                   else wall(request) is not None and wall(request) < t0) if request else True
-        if answer is None or request is None or wall(answer) is None or wall(request) is None or before:
+        ahead = bool(request and request.get('ask_ahead'))       # asked ahead: sent before the step ended, by design
+        if answer is None or request is None or wall(answer) is None or wall(request) is None or (before and not ahead):
             g['unexplained'] += 1
             continue
         sent = wall(request)
+        g['asked_ahead'] += ahead
+        if ahead:
+            # Its wait to ask is negative: how long before the step ended it was sent.
+            g['waiting_to_ask'].append(sent - t0)
+            g['answers_before_the_step'].append(0.0)
+            g['reply'].append(max(0.0, wall(answer) - sent))
+            continue
         first = sent if first is None else min(first, sent)
         g['waiting_to_ask'].append(max(0.0, first - t0))
         g['answers_before_the_step'].append(max(0.0, sent - first))
@@ -710,7 +725,7 @@ def gap_summary(g):
     n = len(g['total'])
     return {'rounds': g['rounds'], 'gaps': n, 'total': spread(g['total']),
             'waiting_to_ask': spread(g['waiting_to_ask']), 'answers_before_the_step': spread(g['answers_before_the_step']),
-            'reply': spread(g['reply']), 'split_unknown': g['unexplained'],
+            'reply': spread(g['reply']), 'split_unknown': g['unexplained'], 'asked_ahead': g.get('asked_ahead', 0),
             'with_discarded_reply_share': share(g['with_discarded'], n),
             'seconds_per_round': round(sum(g['total']) / g['rounds'], 1) if g['rounds'] else None,
             'share_of_round_wall_time': share(sum(g['total']), g['wall_seconds'])}

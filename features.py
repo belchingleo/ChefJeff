@@ -23,6 +23,7 @@ from pathlib import Path
 import harness
 import one_press
 import wire_format
+import ask_ahead
 import undo_note
 
 ROOT = Path(__file__).resolve().parent
@@ -31,7 +32,7 @@ STAGES = ('release', 'trial')
 # name -> the version the code implements.
 VERSIONS = {'one_press': one_press.VERSION, 'jeff_plan': harness.PLAN_RULES_VERSION,
             'rolling_intent': harness.ROLLING_RULES_VERSION, 'undo_note': undo_note.VERSION,
-            'compact_input': wire_format.VERSION}
+            'compact_input': wire_format.VERSION, 'ask_ahead': ask_ahead.VERSION}
 # The plan modes (harness.PLAN_MODES), one at a time, and the feature of each.
 PLAN_FEATURES = {'choice': 'jeff_plan', 'rolling': 'rolling_intent'}
 FIELDS = {'stage', 'on', 'player_switch', 'version'}

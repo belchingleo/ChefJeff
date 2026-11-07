@@ -7,6 +7,7 @@ no per-level branches.
 from __future__ import annotations
 from dataclasses import dataclass
 import functools
+from copy import deepcopy
 import json
 import math
 from pathlib import Path
@@ -672,6 +673,25 @@ class Kitchen:
                 if item.lock == who:
                     item.lock = None
             a.job = None
+
+    # Attributes a fork leaves behind: the session's record hooks, and lists it rebuilds itself.
+    FORK_DETACHED = ('_record_observer', '_research_state_ref', 'inputs', 'events', 'nav')
+
+    def fork(self):
+        """An engine-only copy to play forward and throw away (ask_ahead.py). Nothing it does reaches this kitchen:
+        it has no record observer or research state reference, records its own inputs, appends to its own event
+        list (the events so far are shared, and events are never changed once emitted), keeps its own random state,
+        and gets route caches of its own (navigation.Navigation.isolated), so its walks cannot fill this kitchen's."""
+        held = {name: self.__dict__.pop(name) for name in self.FORK_DETACHED if name in self.__dict__}
+        try:
+            twin = deepcopy(self)
+        finally:
+            self.__dict__.update(held)
+        twin.inputs = []
+        twin.events = list(held.get('events', []))
+        if 'nav' in held:
+            twin.nav = held['nav'].isolated()
+        return twin
 
     @engine_input
     def start(self, who, action):

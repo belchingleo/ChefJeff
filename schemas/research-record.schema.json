@@ -340,6 +340,10 @@
             "relay_long_poll": {
               "description": "Hosted pages only: whether the page asked for model requests by long poll (GET /api/model/request?wait=1).",
               "type": "boolean"
+            },
+            "ask_ahead": {
+              "description": "Whether the ask_ahead trial (ask_ahead.py) was on: requests asked before Jeff's step ended, about the kitchen at its end.",
+              "type": "boolean"
             }
           },
           "required": [

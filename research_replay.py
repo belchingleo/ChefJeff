@@ -116,7 +116,15 @@ def rebuild_requests(record):
             yield {'request_id': row['request_id'], 'seq': row['seq'], 'status': 'memory_not_stored', 'rebuilt': None}
             continue
         memory = memory_context(False, []) if data['memory_input'] == 'empty_placeholder' else NO_MEMORY
-        payload = compose_payload(client, k, k.snapshot(), k.actions('jeff'), data['recent_decisions'],
+        source = k
+        if data.get('ask_ahead'):
+            # Asked ahead: redo the prediction the round made, the kitchen played forward to the end of Jeff's step.
+            import ask_ahead
+            source = ask_ahead.predict(k) if (k.chefs['jeff'].job and k.chefs['jeff'].job.id == data['ask_ahead']['job_id']) else None
+            if source is None:
+                yield {'request_id': row['request_id'], 'seq': row['seq'], 'status': 'diverged', 'rebuilt': None}
+                continue
+        payload = compose_payload(client, source, source.snapshot(), source.actions('jeff'), data['recent_decisions'],
                                   data['player_communication'], memory, data.get('jeff_plan'), data.get('one_press'),
                                   data.get('undo_note'))
         yield {'request_id': row['request_id'], 'seq': row['seq'], 'rebuilt': payload,

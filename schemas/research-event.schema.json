@@ -1389,21 +1389,80 @@
           "properties": {
             "step": {
               "oneOf": [
-                {"type": "null"},
+                {
+                  "type": "null"
+                },
                 {
                   "type": "object",
                   "properties": {
-                    "t": {"type": "number", "minimum": 0},
-                    "put": {"oneOf": [{"type": "null"}, {"type": "object", "properties": {"station": {"type": "string", "maxLength": 80}, "id": {"type": "string", "maxLength": 80}}, "required": ["station", "id"], "additionalProperties": false}]},
-                    "take": {"oneOf": [{"type": "null"}, {"type": "object", "properties": {"station": {"type": "string", "maxLength": 80}, "id": {"type": "string", "maxLength": 80}}, "required": ["station", "id"], "additionalProperties": false}]}
+                    "t": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "put": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "station": {
+                              "type": "string",
+                              "maxLength": 80
+                            },
+                            "id": {
+                              "type": "string",
+                              "maxLength": 80
+                            }
+                          },
+                          "required": [
+                            "station",
+                            "id"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ]
+                    },
+                    "take": {
+                      "oneOf": [
+                        {
+                          "type": "null"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "station": {
+                              "type": "string",
+                              "maxLength": 80
+                            },
+                            "id": {
+                              "type": "string",
+                              "maxLength": 80
+                            }
+                          },
+                          "required": [
+                            "station",
+                            "id"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ]
+                    }
                   },
-                  "required": ["t", "put", "take"],
+                  "required": [
+                    "t",
+                    "put",
+                    "take"
+                  ],
                   "additionalProperties": false
                 }
               ]
             }
           },
-          "required": ["step"],
+          "required": [
+            "step"
+          ],
           "additionalProperties": false
         },
         "one_press_start": {
@@ -1420,6 +1479,49 @@
           "required": [
             "first",
             "fallback"
+          ],
+          "additionalProperties": false
+        },
+        "ask_ahead": {
+          "description": "Only on an ai_request asked ahead (ask_ahead.py): the step it was asked about and the game time the prediction played forward to; replay redoes the prediction.",
+          "type": "object",
+          "properties": {
+            "job_id": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "predicted_end_t": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "job_id",
+            "predicted_end_t"
+          ],
+          "additionalProperties": false
+        },
+        "ask_ahead_result": {
+          "description": "Only on an ai_response asked ahead: applied at the end of the step, or discarded with why (step_interrupted, hand_differs, urgency_changed, not_listed, too_old, ...).",
+          "type": "object",
+          "properties": {
+            "result": {
+              "enum": [
+                "applied",
+                "discarded"
+              ]
+            },
+            "reason": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^[a-z_]{1,40}$"
+            }
+          },
+          "required": [
+            "result",
+            "reason"
           ],
           "additionalProperties": false
         },

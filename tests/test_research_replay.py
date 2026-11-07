@@ -191,7 +191,7 @@ class ReplayTests(paths.SavePathTests):
         self.assertEqual(initial['conditions']['features']['one_press'], {'on': True, 'version': one_press.VERSION})
         self.assertEqual({name: value['on'] for name, value in initial['conditions']['features'].items()},
                          {'one_press': True, 'jeff_plan': False, 'rolling_intent': False, 'undo_note': False,
-                          'compact_input': False})
+                          'compact_input': False, 'ask_ahead': False})
         with self.game.lock:                                    # the human leaves beef on a board
             k = self.game.k
             for chosen in (lambda a: a.key == 'fetch', lambda a: a.kind == 'put_board'):
@@ -299,6 +299,49 @@ class ReplayTests(paths.SavePathTests):
         requests = list(research_replay.rebuild_requests(record))
         self.assertGreater(len(requests), 2)
         self.assertEqual({r['status'] for r in requests}, {'verified'})      # the record keeps the payload, not the wire
+        self.assertEqual(research_replay.check(record)['replay'], 'verified')
+
+    def test_a_request_asked_ahead_replays_exactly(self):
+        import ask_ahead
+        receipt = self.begin_manual_relay()
+        with self.game.lock:
+            self.game.ai.ask_ahead = True
+        # Jeff walks somewhere; while he walks, replies are slow enough that his step will end first.
+        walk = lambda criteria, _: next(key for key in criteria if key.startswith('go '))
+        self.assertEqual(self.answer_with(choice=walk)[0], 200)
+        with self.game.lock:
+            self.assertIsNotNone(self.game.k.chefs['jeff'].job)
+            self.game.ai.reply_times = [60.0]
+        self.due()
+        with self.game.lock:
+            self.game.ai.poll()
+        deadline = time.monotonic() + 2
+        while time.monotonic() < deadline and not self.game.relay.request():
+            time.sleep(.005)
+        self.assertEqual(self.answer_with()[0], 200)
+        with self.game.lock:                     # the answer waits for the walk to end, then is carried out or dropped
+            k, held = self.game.k, self.game.ai.held
+            self.assertIsNotNone(held)
+            walking = held[0]['ahead']['job_id']
+            while k.chefs['jeff'].job is not None and k.chefs['jeff'].job.id == walking:
+                k.advance(.05)
+            self.game.ai.poll()
+            self.assertIsNone(self.game.ai.held)
+        self.natural_end()
+        self.assertEqual(self.contribute()[0], 200)
+        record = self.game.store.download(receipt['id'], receipt['deletion_token'])
+        validate_record(record)
+        self.assertTrue(record['conditions']['request_policy']['ask_ahead'])
+        asked = [e for e in record['events'] if e['type'] == 'ai_request' and 'ask_ahead' in e['payload']]
+        self.assertGreaterEqual(len(asked), 1)          # the next step, as slow, is asked ahead again
+        self.assertEqual(set(asked[0]['payload']['ask_ahead']), {'job_id', 'predicted_end_t'})
+        requests = list(research_replay.rebuild_requests(record))
+        self.assertEqual({r['status'] for r in requests}, {'verified'})
+        ahead = next(r for r in requests if r['request_id'] == asked[0]['request_id'])
+        self.assertEqual(ahead['rebuilt']['state']['kitchen']['time'], asked[0]['payload']['ask_ahead']['predicted_end_t'])
+        answered = [e for e in record['events'] if e['type'] == 'ai_response' and 'ask_ahead_result' in e['payload']]
+        self.assertGreaterEqual(len(answered), 1)
+        self.assertIn(answered[0]['payload']['ask_ahead_result']['result'], ('applied', 'discarded'))
         self.assertEqual(research_replay.check(record)['replay'], 'verified')
 
     def test_a_tampered_record_is_reported_as_diverged(self):

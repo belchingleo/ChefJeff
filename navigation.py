@@ -1,6 +1,7 @@
 """Per-map navigation; no global geometry changes when switching levels."""
 import heapq
 import math
+import copy
 from functools import lru_cache
 EPSILON = 1e-9
 WALK_CLEARANCE = .2
@@ -40,6 +41,13 @@ class Navigation:
         self.graph=self.navigation_graph()
         self._cached_shortest_path=lru_cache(maxsize=1024)(self._cached_shortest_path)
         self._visible_corners=lru_cache(maxsize=256)(self._visible_corners)
+    def isolated(self):
+        """The same navigation with route caches of its own: a kitchen fork walks without filling these caches."""
+        twin = copy.copy(self)
+        twin._cached_shortest_path = lru_cache(maxsize=1024)(type(self)._cached_shortest_path.__get__(twin))
+        twin._visible_corners = lru_cache(maxsize=256)(type(self)._visible_corners.__get__(twin))
+        return twin
+
     def neighbors(self, cell):
         x, y = cell
         return [(x+dx, y+dy) for dx, dy in ((1, 0), (0, 1), (-1, 0), (0, -1))

@@ -588,6 +588,7 @@ class GameSession:
             if held:
                 self.ai.plan = held
             self.ai.one_press = pressed
+            self.ai.ask_ahead = self.features['ask_ahead']['on']
             self.ai.undo = features.undo_start(self.features)
             self.phase = 'running'
             self.last_tick = self.last_seen = time.monotonic()

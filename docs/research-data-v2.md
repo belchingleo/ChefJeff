@@ -152,6 +152,8 @@ provider 取自 `model-providers.json` 的服务名。2026-11-01 新增 `cloudfl
 
 `conditions.request_policy` 记下本局 Jeff 的提问规则：两次请求的最短间隔 `ai_min_interval`、定期刷新 `ai_refresh_seconds`、超时、回复最长有效时间和每局调用上限。新增的 `ai_ask_on_step_end` 为 `true` 时，Jeff 做完一步（完成、被打断或被撞开）就马上请求下一步，不受最短间隔限制；一步剩下的时间短于最近几次回复时间的中位数时，不在这一步中途提问。没有这一项的旧记录按原规则：所有请求都受最短间隔限制。比较 Jeff 的反应时间、停顿和调用次数时，要按这一项分组。
 
+`request_policy.ask_ahead` 为 `true` 时（测试中的 `ask_ahead`，`ask_ahead.py`），在上面“不在中途提问”的那一刻，改为把厨房的一个副本推演到这一步结束，按那时的状态提前问；回复要等这一步结束、并且结果和预测一致才执行，否则作废并马上照常重问。提前问的 `ai_request` 带 `ask_ahead`：`job_id`（问的是哪一步之后）和 `predicted_end_t`（推演到的游戏时刻）；回放时用同一个推演重建请求。对应的 `ai_response` 带 `ask_ahead_result`：`result` 为 `applied` 或 `discarded`，作废时 `reason` 说明原因（`step_interrupted`、`hand_differs`、`urgency_changed`、`not_listed`、`too_old` 等）。`scripts/decision_stats.py` 把这类对局的停顿单独归为 `ask_ahead` 一组，提前问的那一段 `waiting_to_ask` 是负数。在线对局的 `request_policy.relay_long_poll` 记下页面是否用长轮询取模型请求。
+
 ## 两年保存、公开数据集与旧对局（同意版本 v8）
 
 v8 改了保存期和用途，所以每位玩家都会按新说明重新被问一次。
