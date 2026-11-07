@@ -4,6 +4,7 @@ Synthetic loopback rounds only: the model answers come from the real BrowserRela
 (test_research_http), never a provider. Each round is read back from SQLite, through the
 player's own download and through the private export package.
 """
+from contextlib import closing
 import sqlite3
 import tempfile
 import time
@@ -70,7 +71,7 @@ class SavePathTests(base.ResearchHTTPTests):
 
     def saved(self, receipt, aborted, reason=None):
         """The finished round as stored, as downloaded and as exported."""
-        with sqlite3.connect(self.game.store.path) as db:
+        with closing(sqlite3.connect(self.game.store.path)) as db, db:
             rows = db.execute('SELECT count(*) FROM records').fetchone()[0]
         stored = self.game.store.download(receipt['id'], receipt['deletion_token'])
         status, data = self.request('/api/contribution/download',

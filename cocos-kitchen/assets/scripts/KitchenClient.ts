@@ -23,6 +23,9 @@ const PIXEL='ChefJeffPixel, sans-serif';
 const CUE_SECONDS=.16;
 // Seconds without any state before the page calls it a disconnect (below the server's 8 s auto-pause).
 const NETWORK_GRACE_SECONDS=6;
+/** The page/kitchen-server contract (release_info.CLIENT_PROTOCOL): a server with another number is an old kitchen
+ * still running after the page was updated. Bumped with the contract, not with each release. */
+const CLIENT_PROTOCOL=1;
 const RESULT_ANNOUNCE=new Set(['order','served','expired','ready','burn','fire','fire_spread','fire_loss']);
 // Keyboard order; the level buttons (one per listed level, from the server) follow the language button.
 // The start card's partner row: heading line and the two tiles, centred between the level plate and the buttons.
@@ -1311,7 +1314,7 @@ export class KitchenClient extends Component {
         if(older&&this.connected&&next.game_id===this.state!.game_id)return;
         // A live old round may keep its backend until the player approves
         // restarting it. Do not pair new Space controls with old rules.
-        if(!next.kitchen?.map?.layout_version||next.release?.version!=='0.7.0-beta.1'){
+        if(!next.kitchen?.map?.layout_version||next.release?.client_protocol!==CLIENT_PROTOCOL){
             this.connected=false;this.clearInput();this.cover.active=true;
             this.set('coverTitle','等待厨房更新');
             this.set('coverText','新版页面已就绪，厨房服务仍在保留旧对局。\n服务更新后会自动连接，请先完成更新确认。');

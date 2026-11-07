@@ -244,7 +244,7 @@ async function checkLaterModels(){
 }
 
 async function checkClientInteractions(fromSource){
- const gameState={game_id:'round',phase:'ended',limits:{},release:{version:'0.7.0-beta.1'},
+ const gameState={game_id:'round',phase:'ended',limits:{},release:{version:'0.7.0-beta.1',client_protocol:1},
   hosted:{contribution_enabled:true},interaction:null,interaction_focus:'counter14',
   kitchen:{map:{layout_version:'island-2'},stations:{counter14:{}},chefs:{human:{holding:{id:'held'}}}}};
  const h=harness(null,false,gameState),client=clientHarness(h,fromSource);
@@ -321,6 +321,24 @@ async function checkClientInteractions(fromSource){
  assert.equal(posts.length,0,'losing focus cancels aiming');
 }
 
+async function checkServerProtocol(fromSource){
+ // The page checks the page/server contract (release_info.CLIENT_PROTOCOL), not the release version.
+ const connects=async release=>{
+  const gameState={game_id:'round',phase:'ready',limits:{},release,
+   kitchen:{map:{layout_version:'island-2'},stations:{},chefs:{human:{}}}};
+  const h=harness(null,false,gameState),client=clientHarness(h,fromSource);
+  h.listeners.DOMContentLoaded();
+  client.request=async()=>await (await h.w.fetch('/api/state')).json();
+  client.mountedLayout='island-2';client.cover={active:false};await client.poll();
+  return {connected:client.connected,cover:client.cover.active};
+ };
+ assert.deepEqual(await connects({version:'9.9.9-later',client_protocol:1}),{connected:true,cover:false},
+  'a later release with the same contract needs no web rebuild');
+ for(const release of [{version:'0.7.0-beta.1'},{version:'9.9.9-later',client_protocol:2},undefined])
+  assert.deepEqual(await connects(release),{connected:false,cover:true},
+   'an old kitchen server, or one with another contract, waits for the update: '+JSON.stringify(release));
+}
+
 async function checkClientTouchBridge(fromSource){
  const h=harness(),client=clientHarness(h,fromSource),posts=[],moves=[];
  client.clock=5;
@@ -377,7 +395,7 @@ async function checkClientTouchBridge(fromSource){
  for(const changed of [{holding:{id:'replacement'}},{holding:null},{can_throw:false}]){
   clear();controls.press();client.clock+=.31;client.startAim();assert(client.aiming);
   Object.assign(human,changed);
-  client.request=async()=>({...client.state,release:{version:'0.7.0-beta.1'}});
+  client.request=async()=>({...client.state,release:{version:'0.7.0-beta.1',client_protocol:1}});
   await client.poll();assert.equal(client.aiming,null,'a changed held-item snapshot cancels aiming immediately');
   controls.release();assert.equal(posts.length,0,'a cancelled snapshot cannot throw or tap');
  }
@@ -838,11 +856,12 @@ function settingsHarness(){
  await checkFreeModels();
  await checkLaterModels();
  await checkClientInteractions(false);
+ await checkServerProtocol(false);
  await checkClientTouchBridge(false);
  checkClientOrderBridge(false);
  checkClientAimRender(false);
  checkClientDiagnostics(false);
- if(require('node:module').stripTypeScriptTypes){await checkClientInteractions(true);await checkClientTouchBridge(true);checkClientOrderBridge(true);checkClientAimRender(true);checkClientDiagnostics(true);}
+ if(require('node:module').stripTypeScriptTypes){await checkClientInteractions(true);await checkServerProtocol(true);await checkClientTouchBridge(true);checkClientOrderBridge(true);checkClientAimRender(true);checkClientDiagnostics(true);}
  else console.log('TypeScript source execution requires Node 22.13+; included runtime checked.');
  console.log('Browser transport: memory/remember/clear, reload, CORS failure, origin guard and no-key-to-server checks passed.');
  console.log('Client interactions: workstation/floor tap and hold, item changes, cancellation and hosted contribution state passed.');

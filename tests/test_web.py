@@ -180,3 +180,27 @@ class FixedTickTests(unittest.TestCase):
             results.append((g.ticks, round(g.k.time, 9), [e['t'] for e in g.k.events]))
         self.assertEqual(results[0], results[1]);self.assertEqual(results[1], results[2])
         self.assertEqual(results[0][0], 60)  # 3 s wall at the real clock / 0.05 s ticks
+
+
+class LogRootTests(unittest.TestCase):
+    """Local journals and session bundles share one folder, which tests can move away from the project."""
+
+    def test_default_is_the_project_logs_folder(self):
+        import play
+        from kitchen import ROOT
+        import os
+        with patch.dict(os.environ):
+            os.environ.pop('CHEFJEFF_LOG_DIR', None)
+            self.assertEqual(play.log_root(), ROOT / 'logs')
+
+    def test_journal_and_session_bundles_follow_the_environment(self):
+        import tempfile
+        from pathlib import Path
+        import play
+        with tempfile.TemporaryDirectory() as folder, patch.dict('os.environ', {'CHEFJEFF_LOG_DIR': folder}):
+            journal = play.Journal('test')
+            journal.close()
+            self.assertEqual(journal.path.parent, Path(folder))
+            g = GameSession(client_factory=Client, journal_factory=play.Journal)
+            g.close()
+            self.assertEqual(g.bundle_root, Path(folder) / 'sessions')

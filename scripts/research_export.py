@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Private, read-only SQLite research export. No game HTTP endpoint or credentials."""
+from contextlib import closing
 import argparse
 from datetime import datetime, timezone
 import hashlib
@@ -23,7 +24,7 @@ FORMAT = 'chefjeff-research-package-v1'
 def rows(database, schema=None, level=None, since=None, until=None, now=None):
     """Read active rows only; never construct a store or prune the source database."""
     uri = Path(database).resolve().as_uri() + '?mode=ro'
-    with sqlite3.connect(uri, uri=True) as db:
+    with closing(sqlite3.connect(uri, uri=True)) as db, db:
         db.execute('PRAGMA query_only=ON')
         identifiers = db.execute('SELECT id FROM records WHERE expires>? ORDER BY expires,id',
                                  (time.time() if now is None else now,)).fetchall()

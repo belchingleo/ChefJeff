@@ -87,10 +87,19 @@ class ReplayReleaseTests(paths.SavePathTests):
     def test_the_shipped_table_maps_fingerprints_to_known_commits(self):
         releases = rr.read_table()
         self.assertTrue(releases)
+        missing = []
         for fp, entry in releases.items():
             self.assertEqual(len(fp), 64)
-            self.assertEqual(rr.full_sha(entry['commit']), entry['commit'])
             self.assertTrue(entry['version'])
+            try:
+                self.assertEqual(rr.full_sha(entry['commit']), entry['commit'])
+            except rr.ReleaseError:
+                missing.append(entry['commit'][:7])
+        if missing and rr.git('rev-parse', '--is-shallow-repository').strip() == 'true':
+            # A shallow clone (git clone --depth 1, many CI defaults) lacks older release commits.
+            self.skipTest(f'shallow clone: release commits {", ".join(missing)} are not fetched; '
+                          'run git fetch --unshallow to check them')
+        self.assertEqual(missing, [], 'release commits missing from the repository')
 
 
 # Only the cases above; the inherited ones already run in their own modules.

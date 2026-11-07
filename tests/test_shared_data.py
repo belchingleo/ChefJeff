@@ -97,7 +97,7 @@ class SharedDataTests(unittest.TestCase):
         receipt = store.save(self.record)
         older = {**self.record, 'consent_version': 'pilot-session-2026-10-v7'}
         six_months = time.time() + 100 * 86400
-        with sqlite3.connect(path) as db:
+        with closing(sqlite3.connect(path)) as db, db:
             db.execute('UPDATE records SET record=?,expires=? WHERE id=?', (json.dumps(older), six_months, receipt['id']))
         return receipt, older
 
@@ -114,7 +114,7 @@ class SharedDataTests(unittest.TestCase):
             self.assertEqual(kept['consent_version'], 'pilot-session-2026-10-v7')     # what it was collected under
             self.assertEqual(kept['terms']['version'], CONSENT_VERSION)
             self.assertEqual({k: v for k, v in kept.items() if k != 'terms'}, older)
-            with sqlite3.connect(path) as db:
+            with closing(sqlite3.connect(path)) as db, db:
                 expires = db.execute('SELECT expires FROM records WHERE id=?', (receipt['id'],)).fetchone()[0]
             self.assertAlmostEqual(expires, max(time.time() + 100 * 86400, min(started, time.time()) + RETENTION_SECONDS), delta=5)
             # Asking again changes nothing.

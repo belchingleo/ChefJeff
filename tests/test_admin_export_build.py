@@ -2,6 +2,7 @@
 
 Synthetic records only, through the real console handlers on loopback.
 """
+from contextlib import closing
 import json
 import sqlite3
 import time
@@ -81,7 +82,7 @@ class BuildTests(baseline.AdminTests):
                 while self.server.build is not None and self.server.build.finished is None and time.monotonic() < deadline:
                     time.sleep(.05)
             # The record's stored text changes after the package was built and checked.
-            with sqlite3.connect(self.db) as db:
+            with closing(sqlite3.connect(self.db)) as db, db:
                 identifier = next(i for (i,) in db.execute('SELECT id FROM records') if app.data.reference(i) == refs[0])
                 text = db.execute('SELECT record FROM records WHERE id=?', (identifier,)).fetchone()[0]
                 db.execute('UPDATE records SET record=? WHERE id=?', (text + ' ', identifier))

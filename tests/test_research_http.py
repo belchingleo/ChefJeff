@@ -1,4 +1,5 @@
 """Live loopback boundaries; upstream requests stay in BrowserRelay, never a provider."""
+from contextlib import closing
 import http.client
 import json
 import sqlite3
@@ -173,7 +174,7 @@ class ResearchHTTPTests(unittest.TestCase):
         receipt=self.begin()
         self.assertEqual(self.command('end')[0],200)
         credentials={key:receipt[key] for key in ('id','deletion_token')}
-        with sqlite3.connect(self.game.store.path) as db:     # as a round saved under the v7 terms sits there
+        with closing(sqlite3.connect(self.game.store.path)) as db, db:     # as a round saved under the v7 terms sits there
             raw=db.execute('SELECT record FROM records WHERE id=?',(receipt['id'],)).fetchone()[0]
             db.execute('UPDATE records SET record=? WHERE id=?',(raw.replace(CONSENT_VERSION,'pilot-session-2026-10-v7'),receipt['id']))
         self.assertEqual(self.request('/api/contribution/terms',{**credentials,'consent_version':'pilot-session-2026-10-v7'})[0],400)
