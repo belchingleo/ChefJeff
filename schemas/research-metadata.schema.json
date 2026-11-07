@@ -333,6 +333,10 @@
             },
             "ai_ask_on_step_end": {
               "type": "boolean"
+            },
+            "relay_long_poll": {
+              "description": "Hosted pages only: whether the page asked for model requests by long poll (GET /api/model/request?wait=1).",
+              "type": "boolean"
             }
           },
           "required": [

@@ -17,7 +17,7 @@ import sqlite3
 import threading
 import time
 from collections import Counter, OrderedDict, deque
-from urllib.parse import urlsplit, unquote
+from urllib.parse import parse_qs, urlsplit, unquote
 from http.server import ThreadingHTTPServer
 from kitchen import ROOT
 from levels import level_number
@@ -55,6 +55,9 @@ class BrowserRelay(SpatialJevClient):
         # Payload construction only; never loads a machine credential or uses ask().
         super().__init__(config, key='browser-transport-no-server-credential')
         self.guard = threading.Lock()
+        # Wakes a page's long poll (wait_request) when a request is set, cancelled or the relay closes.
+        self.changed = threading.Condition(self.guard)
+        self.cancels = 0          # cancel() ends a waiting poll even with no request pending (pause, end)
         self.pending = None
         self.closed = False
 
@@ -64,6 +67,7 @@ class BrowserRelay(SpatialJevClient):
         with self.guard:
             if self.closed: raise RuntimeError('Browser connection closed')
             self.pending = task
+            self.changed.notify_all()
         try:
             completed=task['event'].wait(24)
             if task.get('failure') is not None:raise task['failure']
@@ -76,14 +80,34 @@ class BrowserRelay(SpatialJevClient):
 
     def request(self):
         with self.guard:
-            task = self.pending
-            if not task or task['event'].is_set(): return None
-            request = {'id': task['id'], 'payload': deepcopy(task['payload'])}
+            return self.with_wire(self._current())
+
+    def with_wire(self, request):
         # The compact format (features.json compact_input): the static and live parts made here, once, for the page to
         # place; the payload still comes along for checking the answer.
-        if wire_format.enabled():
+        if request is not None and wire_format.enabled():
             request['wire'] = wire_format.relay(request['payload'])
         return request
+
+    def _current(self):
+        task = self.pending
+        if self.closed or not task or task['event'].is_set(): return None
+        return {'id': task['id'], 'payload': deepcopy(task['payload'])}
+
+    def wait_request(self, timeout, waiting=lambda: True):
+        """The pending request, waiting up to timeout seconds for one (a page's long poll). It returns at once when a
+        request is set, and None when the relay closes, the request is cancelled (pause, end) or waiting() turns false
+        (checked every quarter second: the round ended or the session closed)."""
+        deadline = time.monotonic() + timeout
+        with self.guard:
+            cancels = self.cancels
+            while True:
+                current = self._current()
+                left = deadline - time.monotonic()
+                if current is not None or self.closed or self.cancels != cancels or left <= 0 or not waiting():
+                    break
+                self.changed.wait(min(left, .25))
+        return self.with_wire(current)
 
     def mark_failure(self,ident,error):
         with self.guard:
@@ -119,11 +143,14 @@ class BrowserRelay(SpatialJevClient):
     def cancel(self):
         with self.guard:
             if self.pending: self.pending['event'].set()
+            self.cancels += 1
+            self.changed.notify_all()
 
     def close(self):
         with self.guard:
             self.closed = True
             if self.pending: self.pending['event'].set()
+            self.changed.notify_all()
 
 
 class HostedSession(GameSession):
@@ -619,6 +646,8 @@ class RuntimeMetrics:
         self.statuses = Counter()
         self.latencies = deque(maxlen=4096)
         self.overloaded = 0
+        # Long polls are counted apart: their held time would read as slow responses.
+        self.long_polls = Counter()
         self.last_wall = time.monotonic()
         self.last_cpu = time.process_time()
 
@@ -636,6 +665,7 @@ class RuntimeMetrics:
             rows = sorted(self.latencies)
             percentile = lambda p: round(rows[min(len(rows)-1, int((len(rows)-1)*p))], 2) if rows else None
             state = {'responses':dict(self.statuses), 'recent_latency_ms':{'p95':percentile(.95), 'p99':percentile(.99)},
+                     'model_long_polls':dict(self.long_polls),
                      'overload_rejections':self.overloaded, 'python_cpu_percent_one_core':round(percent, 1),
                      'python_threads':threading.active_count()}
         try:
@@ -660,7 +690,31 @@ class HostedHTTPServer(ThreadingHTTPServer):
     def __init__(self, *args, **kwargs):
         self.request_slots = threading.BoundedSemaphore(32)
         self.metrics = RuntimeMetrics()
+        # Which request threads still hold one of the shared request slots; a long poll gives its slot back.
+        self._slot = threading.local()
+        # Long polls waiting, per page session: at most one each, and no more than the kitchens that are running.
+        self.long_poll_lock = threading.Lock()
+        self.long_polls = Counter()
         super().__init__(*args, **kwargs)
+
+    def release_slot(self):
+        """Give this request's shared slot back early (a long poll, before it waits); the thread then holds none."""
+        if getattr(self._slot, 'held', False):
+            self._slot.held = False
+            self.request_slots.release()
+
+    def begin_long_poll(self, key, running):
+        with self.long_poll_lock:
+            if self.long_polls[key] or sum(self.long_polls.values()) >= running:
+                return False
+            self.long_polls[key] += 1
+            return True
+
+    def end_long_poll(self, key):
+        with self.long_poll_lock:
+            self.long_polls[key] -= 1
+            if self.long_polls[key] <= 0:
+                del self.long_polls[key]
 
     def process_request(self, request, address):
         if not self.request_slots.acquire(blocking=False):
@@ -682,10 +736,11 @@ class HostedHTTPServer(ThreadingHTTPServer):
             raise
 
     def process_request_thread(self, request, address):
+        self._slot.held = True
         try:
             super().process_request_thread(request, address)
         finally:
-            self.request_slots.release()
+            self.release_slot()
 
     def server_close(self):
         close_free = getattr(getattr(self, 'free_models', None), 'close', None)
@@ -699,7 +754,39 @@ class HostedHTTPServer(ThreadingHTTPServer):
         super().server_close()
 
 
+LONG_POLL_SECONDS = 12   # under nginx's proxy_read_timeout (30 s in deploy/nginx-https.conf)
+
+
 class HostedHandler(Handler):
+    def model_request(self, game):
+        """The request the page should send to its model. With ?wait=1 the answer waits up to LONG_POLL_SECONDS for
+        one, outside game.lock and outside the shared request slots, so a waiting page holds up neither its kitchen
+        nor other pages; without it (pages from before) the answer comes at once, as it always did."""
+        wait = parse_qs(urlsplit(self.path).query).get('wait') == ['1']
+        with game.lock:
+            relay = game.relay if game.relay and game.phase == 'running' else None
+            current = relay.request() if relay else None
+            if wait and relay:
+                game.relay_long_poll = True
+        if current is not None or not wait or relay is None:
+            return self.reply(200, {'request': current})
+        key = self.headers.get('X-ChefJeff-Session', '')
+        sessions = self.server.sessions
+        with sessions.lock:
+            running = sum(g.phase == 'running' and not g.stop_event.is_set() for g, _ in sessions.entries.values())
+        if not self.server.begin_long_poll(key, max(1, running)):
+            return self.reply(200, {'request': None})      # this page already waits, or every running kitchen's page does
+        try:
+            self.server.release_slot()
+            current = relay.wait_request(LONG_POLL_SECONDS, lambda: game.relay is relay and game.phase == 'running'
+                                         and not game.stop_event.is_set())
+        finally:
+            self.server.end_long_poll(key)
+        self._long_poll = 'answered' if current is not None else 'empty'
+        # This connection gave its shared slot back, so it carries no further request.
+        self.close_connection = True
+        return self.reply(200, {'request': current})
+
     def reply(self, status, data, content_type='application/json; charset=utf-8',
               cache_control='no-store', etag=None):
         raw = json.dumps(data, ensure_ascii=False).encode() if isinstance(data, dict) else data
@@ -717,7 +804,10 @@ class HostedHandler(Handler):
         except (BrokenPipeError, ConnectionResetError):
             pass
         finally:
-            self.server.metrics.record(status, time.monotonic()-getattr(self, '_request_started', time.monotonic()))
+            if getattr(self, '_long_poll', None) is not None:
+                with self.server.metrics.lock: self.server.metrics.long_polls[self._long_poll] += 1
+            else:
+                self.server.metrics.record(status, time.monotonic()-getattr(self, '_request_started', time.monotonic()))
 
     def setup(self):
         super().setup()
@@ -764,6 +854,7 @@ class HostedHandler(Handler):
 
     def do_GET(self):
         self._request_started = time.monotonic()
+        self._long_poll = None
         if not self.valid_origin(): return self.reply(403, {'error': '请求来源不允许。'})
         path = unquote(urlsplit(self.path).path)
         if path == '/healthz': return self.reply(200, {'ok': True})
@@ -800,13 +891,13 @@ class HostedHandler(Handler):
             if self.limited(): return
             if path == '/api/model/free/catalog':
                 return self.reply(200, self.server.free_models.catalog())
+            if path == '/api/model/request':
+                return self.model_request(game)
             with game.lock:
                 if path == '/api/state':
                     state = game.public_state()
                     state['capacity'] = self.server.sessions.capacity_state(self.headers.get('X-ChefJeff-Session',''))
                     return self.reply(200, state)
-                if path == '/api/model/request':
-                    return self.reply(200, {'request': game.relay.request() if game.relay and game.phase == 'running' else None})
             if path == '/api/player-level/status':
                 return self.player_level_status(self.headers.get('X-ChefJeff-Session', ''))
             if path == '/api/player-level/catalog':
@@ -837,6 +928,7 @@ class HostedHandler(Handler):
 
     def do_POST(self):
         self._request_started = time.monotonic()
+        self._long_poll = None
         if not self.valid_origin(post=True): return self.reply(403, {'error': '请求来源不允许。'})
         path = urlsplit(self.path).path
         if self.headers.get('Content-Type', '').split(';')[0] != 'application/json':

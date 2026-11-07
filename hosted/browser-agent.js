@@ -650,12 +650,22 @@
     }
   }
 
+  // Long poll (hosted_server.LONG_POLL_SECONDS = 12): the server answers as soon as Jeff has a request, so the page
+  // asks again at once; a quick empty answer (an older server answers at once) waits the old 200 ms, an error 1 s.
+  const LONG_POLL_MS = 12000;
   async function poll() {
+    let next = 200;
     try {
       if (document.hidden || !setting || !state || state.phase !== 'running') return;
-      const r = await serverFetch('/api/model/request');
+      const controller = new AbortController(), asked = performance.now();
+      const timer = setTimeout(() => controller.abort(), LONG_POLL_MS + 3000);
+      let r;
+      try {r = await serverFetch('/api/model/request?wait=1', {signal: controller.signal});}
+      finally {clearTimeout(timer);}
+      next = 1000;
       if (!r.ok) return;
       const {request} = await r.json();
+      next = request || performance.now() - asked >= 1000 ? 0 : 200;
       if (!request || handled.has(request.id)) return;
       handled.add(request.id);
       while (handled.size > 100) handled.delete(handled.values().next().value);
@@ -680,7 +690,7 @@
             used_rounds:reportedMemory.episodes.length,omitted_rounds:reportedMemory.omitted_rounds}}:{}),
           ...(provenance?{memory_provenance:provenance}:{})})});
     } catch (_) { /* Next normal state poll displays session/network failures. */ }
-    finally {setTimeout(poll, 200);}
+    finally {setTimeout(poll, next);}
   }
   setTimeout(poll, 200);
   const CHOICE_KEY = 'chefjeff.contribution-choice.v1', RECEIPTS_KEY = 'chefjeff.contribution-receipts.v1';

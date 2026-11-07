@@ -329,7 +329,10 @@ def record(session):
                            'decision_telemetry': bool(getattr(session, 'research_telemetry', False)),
                            'model_parameters': {'sampling': None, 'reasoning': None, 'safety': None, 'upstream_adapter': None, 'status': 'not_collected_from_browser'},
                            'request_policy': {key: number(k.c.get(key)) for key in ('ai_min_interval', 'ai_refresh_seconds', 'ai_timeout_seconds', 'ai_max_response_age')} | {'max_calls': getattr(getattr(session, 'ai', None), 'call_limit', None),
-                                              'ai_ask_on_step_end': bool(k.c.get('ai_ask_on_step_end', False))}},
+                                              'ai_ask_on_step_end': bool(k.c.get('ai_ask_on_step_end', False)),
+                                              # Hosted pages: whether this page asked for the model requests by long poll.
+                                              **({'relay_long_poll': bool(getattr(session, 'relay_long_poll', False))}
+                                                 if hasattr(session, 'relay') else {})}},
             'events': rows, 'replay': replay,
             'termination': {'game_condition': game_reason, 'session_close': ending,
                             'confirmed': ending is not None and ending['reason'] != 'not_observed', 'last_game_time_ms': round(k.time * 1000),

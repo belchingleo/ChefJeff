@@ -715,6 +715,8 @@ function settingsHarness(){
  assert.equal(sent.allow_none,false);assert(!Object.hasOwn(modelTask.payload,'allow_none'));
  assert.equal(sent.think_mode,'never');assert(!Object.hasOwn(modelTask.payload,'think_mode'));
  const startluxResult=JSON.parse(h.calls.find(c=>c.url==='/api/model/result').init.body);
+ // The page asks for Jeff's requests by long poll; the server holds the answer until one comes (hosted_server.model_request).
+ assert(h.calls.some(c=>c.url==='/api/model/request?wait=1'),'long poll');assert(!h.calls.some(c=>c.url==='/api/model/request'));
  assert.equal(startluxResult.choice,'wait');assert.equal(startluxResult.sprint,false);
  assert.deepEqual(startluxResult.usage,{input_tokens:5,output_tokens:7});assert(!JSON.stringify(startluxResult).includes(key));
  // A decision model's option probabilities reach the server for offered keys only; chat replies carry none.

@@ -8,7 +8,11 @@ pages past --capacity must wait ("等待空位": can_start false, reason "full")
 model answers and moves. Halfway, half of the running pages leave, and waiting pages must take the
 free slots. Never point this at a real server; it is not part of the runtime package.
 
-    python3 scripts/load_test_hosted.py --pages 44 --capacity 8 --max-waiting 32 --seconds 30
+    python3 scripts/load_test_hosted.py --pages 44 --capacity 8 --max-waiting 32 --seconds 30 [--long-poll]
+
+Each started page asks for Jeff's model requests in a loop of its own beside its state polls, as the page does:
+every 200 ms, or with --long-poll by long poll (?wait=1), asking again as each answer comes. Held polls are
+counted apart and left out of the latencies.
 """
 import argparse
 import http.client
@@ -39,7 +43,7 @@ class Page:
             raw = json.dumps(body).encode()
             headers.update({'Origin': self.run.origin, 'Content-Type': 'application/json'})
         started = time.monotonic()
-        c = http.client.HTTPConnection('127.0.0.1', self.run.port, timeout=10)
+        c = http.client.HTTPConnection('127.0.0.1', self.run.port, timeout=20)
         try:
             c.request(method, path, raw, headers)
             r = c.getresponse()
@@ -49,7 +53,7 @@ class Page:
             return 0, {}
         finally:
             c.close()
-        self.run.record(path, r.status, (time.monotonic()-started)*1000)
+        self.run.record(path, r.status, None if path.endswith('wait=1') else (time.monotonic()-started)*1000)
         return r.status, data
 
     def post(self, path, **body):
@@ -84,15 +88,31 @@ class Page:
                 # Waiting: the page's button comes back once can_start is true; the player presses it.
                 if (state.get('capacity') or {}).get('can_start') and self.try_start(): continue
                 time.sleep(1); continue
-            request = self.call('GET', '/api/model/request')[1].get('request')
-            if request:
-                self.call('POST', '/api/model/result', {'id': request['id'], 'choice': 'wait', 'sprint': False, 'usage': {}})
+            if not getattr(self, 'polling', None) or not self.polling.is_alive():
+                self.polling = threading.Thread(target=self.model_poll, args=(until,), daemon=True)
+                self.polling.start()
             step += 1
             if step % 5 == 0:
                 seq += 1
                 dx, dy = [(1, 0), (0, 1), (-1, 0), (0, -1)][seq % 4]
                 self.post('/api/move', dx=dx, dy=dy, seq=seq)
             time.sleep(.2)
+
+
+    def answer(self, request):
+        if request:
+            self.call('POST', '/api/model/result', {'id': request['id'], 'choice': 'wait', 'sprint': False, 'usage': {}})
+
+    def model_poll(self, until):
+        long_poll = self.run.args.long_poll
+        while time.monotonic() < until and self.left_at is None:
+            status, data = self.call('GET', '/api/model/request?wait=1' if long_poll else '/api/model/request')
+            if status != 200:
+                time.sleep(1)
+                continue
+            self.answer(data.get('request'))
+            if not long_poll:
+                time.sleep(.2)
 
 
 class Run:
@@ -103,13 +123,18 @@ class Run:
         self.host = f'127.0.0.1:{self.port}'
         self.origin = 'http://' + self.host
         self.lock = threading.Lock()
-        self.latencies, self.statuses, self.used = [], {}, []
+        self.latencies, self.statuses, self.used, self.state_latencies = [], {}, [], []
+        # 503s once pages play (the opening burst of pages opening and starting at once comes before).
+        self.playing_since, self.play_rejections = None, {}
 
     def record(self, path, status, ms):
         with self.lock:
             key = f'{path} {status}'
             self.statuses[key] = self.statuses.get(key, 0) + 1
-            if status: self.latencies.append(ms)
+            if status and ms is not None: self.latencies.append(ms)
+            if path == '/api/state' and status == 200: self.state_latencies.append(ms)
+            if status == 503 and self.playing_since is not None and time.monotonic() >= self.playing_since:
+                self.play_rejections[path.split('?')[0]] = self.play_rejections.get(path.split('?')[0], 0) + 1
 
     def ops(self):
         c = http.client.HTTPConnection('127.0.0.1', self.port, timeout=5)
@@ -147,7 +172,7 @@ class Run:
             opened = [p for p in pages if p.token]
             waiting = [p for p in opened if not p.started_at]
             capacity_at_start = self.ops()['capacity']
-            begin = time.monotonic()
+            begin = self.playing_since = time.monotonic()
             until, half = begin + a.seconds, begin + a.seconds / 2
             leaving = set([p for p in started if p not in shared][:len(started) // 2])
             sampler = threading.Thread(target=self.sample, args=(until,))
@@ -155,6 +180,8 @@ class Run:
             threads = [threading.Thread(target=p.play, args=(until, half if p in leaving else None)) for p in opened]
             for t in threads: t.start()
             for t in threads: t.join()
+            for p in opened:            # a long poll still open ends within its hold, before the server stops
+                if getattr(p, 'polling', None): p.polling.join(20)
             sampler.join()
             final = self.ops()
         finally:
@@ -163,9 +190,12 @@ class Run:
         late = [p for p in waiting if p.started_at]
         rows = sorted(self.latencies)
         pct = lambda q: round(rows[min(len(rows)-1, int((len(rows)-1)*q))], 1) if rows else None
+        states = sorted(self.state_latencies)
+        spread = lambda q: round(states[min(len(states)-1, int((len(states)-1)*q))], 1) if states else None
         server_errors = {k: v for k, v in self.statuses.items() if k.split()[-1] == '500' or k.startswith('error')}
         report = {
-            'settings': {'pages': a.pages, 'capacity': a.capacity, 'max_waiting': a.max_waiting, 'per_network': a.per_network, 'seconds': a.seconds},
+            'settings': {'pages': a.pages, 'capacity': a.capacity, 'max_waiting': a.max_waiting, 'per_network': a.per_network, 'seconds': a.seconds,
+                         'long_poll': a.long_poll},
             'opened_pages': len(opened), 'session_rejections': a.pages - len(opened),
             'started_at_once': len(started), 'shared_network_started': sum(bool(p.started_at) for p in shared),
             'waiting_reasons': {r: sum(r in p.rejections for p in waiting) for r in ('network', 'full')},
@@ -174,6 +204,8 @@ class Run:
             'max_active_kitchens_seen': max(self.used or [capacity_at_start['used']]),
             'requests': sum(self.statuses.values()), 'latency_ms': {'p50': pct(.5), 'p95': pct(.95), 'p99': pct(.99), 'max': rows[-1] if rows else None,
                                                                     'mean': round(statistics.fmean(rows), 1) if rows else None},
+            'state_latency_ms': {'p50': spread(.5), 'p95': spread(.95)},
+            'rejections_while_playing': dict(sorted(self.play_rejections.items())),
             'statuses': dict(sorted(self.statuses.items())), 'server_errors': server_errors,
             'server_runtime': final['runtime'], 'server_capacity': final['capacity']}
         checks = {
@@ -201,6 +233,7 @@ def main(argv=None):
     p.add_argument('--max-waiting', type=int, default=32)
     p.add_argument('--per-network', type=int, default=4)
     p.add_argument('--seconds', type=float, default=30)
+    p.add_argument('--long-poll', action='store_true', help='pages ask for model requests by long poll (?wait=1)')
     args = p.parse_args(argv)
     if args.pages < args.per_network + 3: p.error('Use more pages than one network may start, plus others.')
     return 0 if Run(args).main() else 1
