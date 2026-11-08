@@ -5,7 +5,7 @@
     python3 scripts/reask.py <check> [the check's own arguments, e.g. logs/ --since 2026-11-04 --dry-run]
 
 Each check keeps its own question: which logged moments it picks (walks, full hands, one-press put_where answers,
-undo notes, any answered request, or fixed emergencies), what each arm changes in the request, and the outcomes it
+undo notes, split-floor passes, any answered request, or fixed emergencies), what each arm changes in the request, and the outcomes it
 counts. They share what is the same in all of them, here:
 
 - ask_arms: every arm asks every moment, the same number of times, in one fixed order (arm, then moment, then
@@ -36,6 +36,7 @@ CHECKS = {
     'put_where': ('scripts.put_where_check', 'where one-press puts the held item, with and without the floor note'),
     'undo_note': ('scripts.undo_note_check', 'moments that could take back the last step, with and without the undo note'),
     'plan': ('scripts.plan_probe', 'fixed emergencies with Jeff\'s plan off, asked for, and held'),
+    'reach_note': ('scripts.reach_note_check', 'split-floor moments Jeff could pass, with and without the reach note'),
 }
 SINGLE_MODEL = ('one model answered every arm; a change that helps it need not help another model, so check '
                 'with a second connection before changing what Jeff is sent')
