@@ -1,7 +1,7 @@
 System.register("chunks:///_virtual/KitchenAudio.ts", ["cc"], function (exports_1, context_1) {
-    // source-sha256: a15d1a6b7e1bd0138fbb330bf1c4c7234df91c9eef35ea78a4400925b3435817
+    // source-sha256: ea807245ca87e0370b328806770e309dc47e878325b3a0906f488e8235c668c3
     "use strict";
-    var cc_1, STORAGE, LOOPS, MUSIC, EVENT_SOUNDS, board, cooking, KitchenAudio;
+    var cc_1, STORAGE, LOOPS, MUSIC, EVENT_SOUNDS, cooking, KitchenAudio;
     var __moduleName = context_1 && context_1.id;
     return {
         setters: [
@@ -23,7 +23,6 @@ System.register("chunks:///_virtual/KitchenAudio.ts", ["cc"], function (exports_
             EVENT_SOUNDS = { order: 'order_new', ready: 'food_ready', burn: 'burnt_warn', fire: 'fire_ignite',
                 fire_spread: 'fire_spread', served: 'serve_ok', wrong_dish: 'serve_bad', dish_rejected: 'serve_bad', bad_service: 'serve_bad', expired: 'order_expired', thrown: 'throw',
                 caught: 'catch', dropped: 'land', plate_returned: 'plate_return' };
-            board = (id) => !!id && id.startsWith('b') && !id.startsWith('bin');
             cooking = (stage) => !!stage && /^(pot_)?(cooking|chopped|ready|burnt)$/.test(stage);
             /** Presentation only: reads kitchen snapshots and plays sounds; never alters observations or rules. */
             KitchenAudio = class KitchenAudio {
@@ -221,7 +220,7 @@ System.register("chunks:///_virtual/KitchenAudio.ts", ["cc"], function (exports_
                     this.channels.wash_duo.target = running && washers >= 2 ? 1 : 0;
                 }
                 chefChange(a, b) {
-                    var _a, _b, _c, _d;
+                    var _a, _b, _c, _d, _e, _f, _g, _h;
                     const before = a.holding, after = b.holding, kind = a.action_kind || b.action_kind, target = a.target || b.target;
                     const sameItem = before && after && before.id === after.id;
                     // Sounds follow confirmed hand changes only (Overcooked 2's OnCarriedItemChanged): a failed press is silent.
@@ -247,8 +246,8 @@ System.register("chunks:///_virtual/KitchenAudio.ts", ["cc"], function (exports_
                             this.play('discard');
                         else if (target === 'serve' || ((_d = (_c = (_b = (_a = this.last) === null || _a === void 0 ? void 0 : _a.kitchen) === null || _b === void 0 ? void 0 : _b.stations) === null || _c === void 0 ? void 0 : _c[target]) === null || _d === void 0 ? void 0 : _d.stove))
                             return; // serving/pan sounds come from events/stations
-                        else if (board(target))
-                            this.play('place_board');
+                        else if (((_h = (_g = (_f = (_e = this.last) === null || _e === void 0 ? void 0 : _e.kitchen) === null || _f === void 0 ? void 0 : _f.stations) === null || _g === void 0 ? void 0 : _g[target]) === null || _h === void 0 ? void 0 : _h.type) === 'board')
+                            this.play('place_board'); // by type: the bread crate is no board
                         else
                             this.play(/plate/.test(before.stage) ? 'plate_place' : 'place_board');
                         return;
@@ -370,7 +369,7 @@ System.register("chunks:///_virtual/KitchenAudio.ts", ["cc"], function (exports_
 });
 
 System.register("chunks:///_virtual/KitchenClient.ts", ["cc", "./LevelOneArt.ts", "./KitchenAudio.ts", "./KitchenGeometry.ts"], function (exports_1, context_1) {
-    // source-sha256: c4e402fe069aeb70b8275fc51279953267fef885ce1998047487cfb3c021115c
+    // source-sha256: 65370d17a733aef00580e5f5c123520effb41049008849366fe6240d0c24fca0
     "use strict";
     var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
         var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -3531,7 +3530,7 @@ System.register("chunks:///_virtual/KitchenClient.ts", ["cc", "./LevelOneArt.ts"
                         let progress = -1;
                         if (id === 'sink' && st.food)
                             progress = 1 - st.food.wash_remaining / k.tableware.wash_seconds;
-                        if (st.food && !st.food.plate_id && !(st.food.stage === 'raw' && !st.food.chop_remaining) && id.startsWith('b') && !id.startsWith('bin'))
+                        if (st.food && !st.food.plate_id && !(st.food.stage === 'raw' && !st.food.chop_remaining) && st.type === 'board')
                             progress = 1 - st.food.chop_remaining / (((_l = s.rules) === null || _l === void 0 ? void 0 : _l.chop_seconds) || 6);
                         if (st.food && st.stove)
                             progress = Math.min(1, st.food.heat_elapsed / (((_m = s.rules) === null || _m === void 0 ? void 0 : _m.cook_seconds) || 12));

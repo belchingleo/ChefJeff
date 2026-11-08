@@ -1959,7 +1959,7 @@ export class KitchenClient extends Component {
             if(id==='sink'&&st.food)this.writeLabel(dev.label,st.food.stage==='dirty_plate'?`待洗 ${Math.ceil(st.food.wash_remaining)}s`:'洗好了');
             let progress=-1;
             if(id==='sink'&&st.food)progress=1-st.food.wash_remaining/k.tableware.wash_seconds;
-            if(st.food&&!st.food.plate_id&&!(st.food.stage==='raw'&&!st.food.chop_remaining)&&id.startsWith('b')&&!id.startsWith('bin'))progress=1-st.food.chop_remaining/(s.rules?.chop_seconds||6);
+            if(st.food&&!st.food.plate_id&&!(st.food.stage==='raw'&&!st.food.chop_remaining)&&st.type==='board')progress=1-st.food.chop_remaining/(s.rules?.chop_seconds||6);
             if(st.food&&st.stove)progress=Math.min(1,st.food.heat_elapsed/(s.rules?.cook_seconds||12));
             // As in Overcooked 2, a station a fire next to it is heating shows a fire bar until it ignites.
             const igniting=!st.fire&&st.fire_heat>0;if(igniting)progress=st.fire_heat;

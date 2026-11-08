@@ -16,7 +16,6 @@ const MUSIC=['bgm_menu','bgm_service','bgm_rush'];
 const EVENT_SOUNDS:Record<string,string>={order:'order_new',ready:'food_ready',burn:'burnt_warn',fire:'fire_ignite',
     fire_spread:'fire_spread',served:'serve_ok',wrong_dish:'serve_bad',dish_rejected:'serve_bad',bad_service:'serve_bad',expired:'order_expired',thrown:'throw',
     caught:'catch',dropped:'land',plate_returned:'plate_return'};
-const board=(id?:string|null)=>!!id&&id.startsWith('b')&&!id.startsWith('bin');
 const cooking=(stage?:string)=>!!stage&&/^(pot_)?(cooking|chopped|ready|burnt)$/.test(stage);
 
 /** Presentation only: reads kitchen snapshots and plays sounds; never alters observations or rules. */
@@ -174,7 +173,7 @@ export class KitchenAudio {
         if(before&&!after){
             if(['discard','empty_pot'].includes(kind))this.play('discard');
             else if(target==='serve'||this.last?.kitchen?.stations?.[target]?.stove)return; // serving/pan sounds come from events/stations
-            else if(board(target))this.play('place_board');
+            else if(this.last?.kitchen?.stations?.[target]?.type==='board')this.play('place_board'); // by type: the bread crate is no board
             else this.play(/plate/.test(before.stage)?'plate_place':'place_board');
             return;
         }
