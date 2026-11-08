@@ -279,7 +279,8 @@ class SessionTests(unittest.TestCase):
                                            'rolling_intent': {'on': False, 'version': 'rolling-v3'},
                                            'undo_note': {'on': False, 'version': 'undo-note-v1'},
                                            'compact_input': {'on': False, 'version': 'compact-v1'},
-                                           'ask_ahead': {'on': False, 'version': 'ask-ahead-v1'}})
+                                           'ask_ahead': {'on': False, 'version': 'ask-ahead-v1'},
+                                           'reach_note': {'on': False, 'version': 'reach-v1'}})
 
     def test_the_file_rolls_it_back(self):
         g = self.game(with_features(one_press={'on': False}))
@@ -310,7 +311,7 @@ class FeaturesFileTests(unittest.TestCase):
         self.assertEqual(value['one_press'], {'stage': 'release', 'on': True, 'player_switch': False, 'version': one_press.VERSION})
         self.assertEqual({name: v['stage'] for name, v in value.items()},
                          {'one_press': 'release', 'jeff_plan': 'trial', 'rolling_intent': 'trial', 'undo_note': 'trial',
-                          'compact_input': 'trial', 'ask_ahead': 'trial'})
+                          'compact_input': 'trial', 'ask_ahead': 'trial', 'reach_note': 'trial'})
 
     def test_a_wrong_file_stops_instead_of_running(self):
         import features

@@ -191,7 +191,7 @@ class ReplayTests(paths.SavePathTests):
         self.assertEqual(initial['conditions']['features']['one_press'], {'on': True, 'version': one_press.VERSION})
         self.assertEqual({name: value['on'] for name, value in initial['conditions']['features'].items()},
                          {'one_press': True, 'jeff_plan': False, 'rolling_intent': False, 'undo_note': False,
-                          'compact_input': False, 'ask_ahead': False})
+                          'compact_input': False, 'ask_ahead': False, 'reach_note': False})
         with self.game.lock:                                    # the human leaves beef on a board
             k = self.game.k
             for chosen in (lambda a: a.key == 'fetch', lambda a: a.kind == 'put_board'):

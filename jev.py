@@ -101,7 +101,7 @@ class JevClient:
 
 
 def compose_payload(client, kitchen, state, actions, recent_decisions, communication, memory=NO_MEMORY, plan=None, one_press=None,
-                    undo=None):
+                    undo=None, reach=False):
     """Jeff's request from the kitchen and the few parts it cannot derive; research replay rebuilds it here too.
 
     one_press is the round's one-press switches (one_press.flags), or None: the options are added to the
@@ -110,7 +110,8 @@ def compose_payload(client, kitchen, state, actions, recent_decisions, communica
         import one_press as presses
         keys = {a.key for a in actions}
         actions = list(actions) + [a for a in presses.options(kitchen, 'jeff', actions, one_press) if a.key not in keys]
-    return harness.compose(client.payload(state, actions), kitchen, recent_decisions, communication, memory, plan, one_press, undo)
+    return harness.compose(client.payload(state, actions), kitchen, recent_decisions, communication, memory, plan, one_press, undo,
+                           reach)
 
 
 class DecisionLoop:
@@ -168,6 +169,8 @@ class DecisionLoop:
         self.chain_cursor = 0
         # Undo notes (undo_note.py) when the round's switch is on: Jeff's last step, as {'step': ...}; None when off.
         self.undo = None
+        # The reach_note trial (reach_note.py): on a split floor, which stations each chef can reach.
+        self.reach = False
         # Ask ahead (ask_ahead.py) when the round's switch is on: an answer about the next step, held until this step
         # ends, and the step it was asked for (asked once per step).
         self.ask_ahead = False
@@ -506,7 +509,7 @@ class DecisionLoop:
             context['plan_offered'] = plan['options']
         payload = compose_payload(self.client, source, state, actions, self.recent_decisions, communication,
                                   self.cooperation_memory if hasattr(self, 'cooperation_memory') else NO_MEMORY, plan, self.one_press,
-                                  deepcopy(self.undo))
+                                  deepcopy(self.undo), self.reach)
         self.log("ai_request", {"request_id": self.calls, "triggers": causes, "observed_state_seq": self.k.event_seq, "payload": payload,
                                 **({"jeff_plan": plan, "plan_ended": plan_ended} if plan is not None else {}),
                                 **({"one_press": dict(self.one_press)} if self.one_press else {}),
