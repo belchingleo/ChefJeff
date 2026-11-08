@@ -2,6 +2,8 @@
 
 Cocos provides rendering and player input; Python maintains authoritative kitchen state. The agent selects an action, and the engine validates and executes it.
 
+A new agent does not have to be Jeff with another model: it can play through the environment interface directly, `observe()` and `act()` on an `AgentPort` ([env-v1](architecture/environment-api.md)); `example_agent.py` is a complete one, and `scripts/benchmark.py` runs either kind.
+
 ## Decision flow
 
 `SpatialKitchen.snapshot()` and `actions('jeff')` → client `payload(state, actions)` → asynchronous `ask(payload)` → `DecisionLoop` validation → `kitchen.start()` → movement/work → completion event.
@@ -58,6 +60,8 @@ Future benchmark work will define a complete-session scenario schema, partner/co
 # Agent 接入
 
 Cocos 提供画面与玩家输入，Python 维护权威厨房状态。Agent 选择动作，由引擎校验并执行。
+
+新的 agent 不一定是"换个模型的 Jeff"：也可以直接通过环境接口来玩，即 `AgentPort` 上的 `observe()` 和 `act()`（[env-v1](architecture/environment-api.md)）。`example_agent.py` 是一个完整的例子，`scripts/benchmark.py` 两种 agent 都能跑。
 
 ## 决策链路
 

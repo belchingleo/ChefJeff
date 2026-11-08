@@ -46,6 +46,11 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - `docs/research/trial-protocol.md` says what to write down before a trial is measured (one primary outcome, guard outcomes, size, at least two models, budget, decision rule), with worked examples for the compact input and asking ahead. Telling a 0.75 repeat agreement from 0.60, for example, takes about 152 moments per arm.
 - The journal-reading tests set `CHEFJEFF_LOG_DIR` themselves instead of patching `play.ROOT`, so they pass when the variable is set in the developer's shell.
 
+### Environment interface and Benchmark v1
+- Agents play through an environment interface (`environment.py`, `env-v1`) instead of the kitchen object. An `AgentPort` gives plain data any agent can rely on, `observe()` (the kitchen in English without display-only fields, every listed action unpruned, the event sequence) and `act()` (checked when it arrives, with an optional job guard), and a read-only view of the engine for in-process agents that refuses every engine input, so whatever an agent does is a recorded input and replays exactly. Jeff's decision loop reads through the view and acts through the port; what he is sent and every engine decision are byte for byte unchanged (payload and behaviour fingerprints, research replay). `agent_loop.py` runs any `environment.Agent` in the game's session, and `example_agent.py` is a complete agent on `observe()` and `act()` alone: a floor to beat, not a cook. See `docs/architecture/environment-api.md`.
+- Benchmark v1 (`benchmark/v1/manifest.json`, `scripts/benchmark.py run|verify|report`): levels 1–3 with the scripted `assembler` partner, 12 rounds per level on a real clock, for Jeff on your model (`--agent jeff`) or your own agent (`--agent module:Class`). Each result keeps every round's bundle and replay check and reports money and goal rate with 95% intervals, the gain over the scripted chef alone and the agent's share of the work. The manifest freezes the interface version, each level's configuration hash, the hash of its golden reference trace and the partner policy; a test fails when the code no longer matches it, and `verify` refuses a result made for another manifest, with the wrong number of rounds, on a virtual clock or with a round that does not replay. `--dry-run` prices a run (36 rounds, 108 minutes of play). Level 4 joins in v1.1. See `benchmark/README.md`.
+- `release_info.RUNTIME_FILES` ships `environment.py` and `agent_loop.py`, and a test checks that every project module a runtime file imports is in the list.
+
 ## 0.7.0-beta.1 — 2026-11-06 · third public test release
 
 ### Start, results and settings
@@ -280,6 +285,11 @@ First private release: a local browser game with three playable maps and player-
 - `scripts/model_rounds.py` 让脚本扮演的人类（`reference_policy`：assembler、cook、solo 或 idle）和真实的 Jeff 打完整对局。对局使用本地游戏自己的会话，按真实时间进行，用游戏里保存的连接。这就是基线阶梯的第 4 级，预算允许跑多少局就跑多少局。日志和会话包写到 `--out`（不会写进 `logs/`），能精确回放，`decision_stats.py` 也能读取；`--dry-run` 只打印这组对局最多花多少钱，不调用任何模型。
 - `docs/research/trial-protocol.md` 说明测量一个试验开关前要先写下什么：一个主要指标、底线指标、样本量、至少两个模型、预算和决策规则，并附两个填好的例子，分别是紧凑输入和提前问。举例来说，要分辨 0.75 和 0.60 的重复一致率，每组大约需要 152 个时刻。
 - 读日志的测试改为自己设置 `CHEFJEFF_LOG_DIR`，不再修改 `play.ROOT`；开发者在自己的终端里设置了这个变量时，测试也能通过。
+
+### 环境接口与 Benchmark v1
+- agent 现在通过环境接口（`environment.py`，`env-v1`）来玩，不再直接拿厨房对象。`AgentPort` 分两层。第一层是任何 agent 都可以依赖的普通数据：`observe()` 给出英文的厨房状态（去掉只供页面显示的字段）、不裁剪的全部合法动作和事件序号；`act()` 在动作到达时校验，可以附带"只有还在做那件事时才执行"的保护。第二层是给本进程 agent 用的只读引擎视图，所有引擎输入都会被拒绝，所以 agent 做的任何事都是有记录的输入，能精确回放。Jeff 的决策循环改为通过只读视图读、通过端口执行；发给他的内容和引擎的每个决定都逐字节不变（payload 指纹、行为指纹、研究回放都核对过）。`agent_loop.py` 能在游戏会话里运行任何 `environment.Agent`；`example_agent.py` 是一个只用 `observe()` 和 `act()` 的完整 agent，是用来超越的底线，不是好厨师。详见 `docs/architecture/environment-api.md`。
+- Benchmark v1（`benchmark/v1/manifest.json`，`scripts/benchmark.py run|verify|report`）：第 1–3 关、脚本搭档 `assembler`、每关 12 局、真实时间。可以让 Jeff 用你的模型来跑（`--agent jeff`），也可以跑你自己的 agent（`--agent 模块:类名`）。每份结果都保存每一局的会话包和回放检查结果，并报告带 95% 区间的收入和达标率、相对脚本单人的增益，以及 agent 承担的工作占比。清单冻结了接口版本、每关的配置哈希、黄金参考轨迹的哈希和搭档策略。代码与清单不一致时测试会失败；以下几种结果 `verify` 会拒收：为别的清单生成的、局数不对的、用虚拟时钟跑的、有局不能回放的。`--dry-run` 估算一次运行的费用（36 局，108 分钟）。第四关在 v1.1 加入。详见 `benchmark/README.md`。
+- `release_info.RUNTIME_FILES` 现在包含 `environment.py` 和 `agent_loop.py`，并新增测试：运行时文件引用的每个项目模块都必须在这个列表里。
 
 ## 0.7.0-beta.1 — 2026-11-06 · 第三个公开测试版
 

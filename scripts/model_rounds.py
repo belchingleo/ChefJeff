@@ -84,9 +84,10 @@ def play_round(level, client_factory, human='assembler', max_calls=None, clock=t
             step += 1
             wait(STEP)
         goal = game.k.snapshot().get('goal_status') or {}
-        return {'game_id': game.game_id, 'level': level, 'human': human, 'phase': game.phase,
+        return {'game_id': game.game_id, 'level': level, 'human': human, 'phase': game.phase, 'config_hash': game.k.config_hash,
                 'money': game.k.money, 'goal_reached': bool(goal.get('met_now')), 'stars': goal.get('stars_now'),
                 'result': game.k.result(), 'ai_calls': game.ai.calls if game.ai else 0,
+                'model': getattr(game.ai, 'actual_model', None) if game.ai else None,
                 'journal': Path(journal).name, 'bundle': f'sessions/{game.game_id}'}
     finally:
         game.close()
