@@ -131,6 +131,9 @@ class ReplayTests(paths.SavePathTests):
         self.assertEqual((kept['source_round_ids'], kept['context_sha256'], kept['source']), ([source], 'cd' * 32, 'browser-reported'))
 
     def test_a_round_with_jeffs_plan_keeps_the_condition_and_replays_exactly(self):
+        from test_one_press import plan_trials
+        with self.game.lock:                      # plan mode offered behind a trial switch, as it was
+            self.game.features, self.game.jeff_plan_mode = plan_trials(), 'off'
         self.assertEqual(self.command('plan', mode='choice')[0], 200)
         receipt = self.begin_manual_relay()
         initial = self.game.store.download(receipt['id'], receipt['deletion_token'])
@@ -157,7 +160,7 @@ class ReplayTests(paths.SavePathTests):
         self.assertEqual(requests[1]['rebuilt']['state']['jeff_plan']['steps'][0]['work'], 'fetch:beef')
 
     def test_a_round_with_the_rolling_intent_keeps_the_condition_and_replays_exactly(self):
-        self.assertEqual(self.command('plan', mode='rolling')[0], 200)
+        self.assertEqual(self.command('plan', mode='off')[0], 400)        # released: every round has it, no switch
         receipt = self.begin_manual_relay()
         initial = self.game.store.download(receipt['id'], receipt['deletion_token'])
         self.assertEqual(initial['conditions']['jeff_plan'], {'mode': 'rolling', 'steps': 2, 'rules_version': 'rolling-v3'})
@@ -190,7 +193,7 @@ class ReplayTests(paths.SavePathTests):
         self.assertEqual(initial['conditions']['one_press'], condition)
         self.assertEqual(initial['conditions']['features']['one_press'], {'on': True, 'version': one_press.VERSION})
         self.assertEqual({name: value['on'] for name, value in initial['conditions']['features'].items()},
-                         {'one_press': True, 'jeff_plan': False, 'rolling_intent': False, 'undo_note': False,
+                         {'one_press': True, 'jeff_plan': False, 'rolling_intent': True, 'undo_note': False,
                           'compact_input': False, 'ask_ahead': False, 'reach_note': False})
         with self.game.lock:                                    # the human leaves beef on a board
             k = self.game.k
@@ -303,6 +306,9 @@ class ReplayTests(paths.SavePathTests):
 
     def test_a_request_asked_ahead_replays_exactly(self):
         import ask_ahead
+        from test_one_press import plan_trials
+        with self.game.lock:                      # ask_ahead only asks when no plan mode is on
+            self.game.features, self.game.jeff_plan_mode = plan_trials(ask_ahead={'on': True}), 'off'
         receipt = self.begin_manual_relay()
         with self.game.lock:
             self.game.ai.ask_ahead = True

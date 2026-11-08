@@ -140,8 +140,12 @@ class RollingConditionTests(unittest.TestCase):
             Plan(mode='deep')
 
     def test_the_session_switch_takes_rolling_between_rounds(self):
-        g = GameSession(level_config(load_config(), 'level-2'), client_factory=lambda c: Scripted(c, [['fetch:lettuce']]),
-                        journal_factory=FakeJournal, kitchen_factory=SpatialKitchen)
+        # The switch as it works when two-step intent is on trial behind a player switch (test_one_press.plan_trials).
+        import features
+        from test_one_press import plan_trials
+        with patch.object(features, 'current', plan_trials):
+            g = GameSession(level_config(load_config(), 'level-2'), client_factory=lambda c: Scripted(c, [['fetch:lettuce']]),
+                            journal_factory=FakeJournal, kitchen_factory=SpatialKitchen)
         self.addCleanup(g.close)
         self.assertEqual(g._command('/api/plan', {'mode': 'rolling'})[0], 200)
         self.assertEqual(g.communication_state()['jeff_plan']['mode'], 'rolling')

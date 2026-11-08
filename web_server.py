@@ -547,7 +547,9 @@ class GameSession:
         if path == '/api/plan':
             if self.phase not in ('ready', 'ended'):
                 return 409, {'error': '请在开局前或结算后修改计划模式。'}
-            if body.get('mode') not in ('off', *features.plan_choices(self.features)):
+            # With no plan switch offered (two-step intent released) the round's plan mode is not the player's to change.
+            choices = features.plan_choices(self.features)
+            if not choices or body.get('mode') not in ('off', *choices):
                 return 400, {'error': '计划模式设置无效。'}
             self.jeff_plan_mode = body['mode']
             return 200, {'ok': True, 'jeff_plan': self.plan_state()}

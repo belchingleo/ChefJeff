@@ -252,6 +252,16 @@ def with_features(**changes):
     return features.check(data)
 
 
+def plan_trials(**changes):
+    """The repository's features with both plan modes back on trial behind a player switch, off: for tests of the
+    switch, and of rounds played without a plan (two-step intent is released and on in the repository)."""
+    base = {'jeff_plan': {'stage': 'trial', 'on': False, 'player_switch': True},
+            'rolling_intent': {'stage': 'trial', 'on': False, 'player_switch': True}}
+    for name, fields in changes.items():
+        base[name] = {**base.get(name, {}), **fields}
+    return with_features(**base)
+
+
 class SessionTests(unittest.TestCase):
     """One-press is released (features.json): on in every round, with no switch; the file can turn it off."""
 
@@ -276,11 +286,12 @@ class SessionTests(unittest.TestCase):
         self.assertEqual(row['one_press'], {'put_then_take': True, 'wash_from_returns': True, 'version': one_press.VERSION})
         self.assertEqual(row['features'], {'one_press': {'on': True, 'version': one_press.VERSION},
                                            'jeff_plan': {'on': False, 'version': 'plan-v2'},
-                                           'rolling_intent': {'on': False, 'version': 'rolling-v3'},
+                                           'rolling_intent': {'on': True, 'version': 'rolling-v3'},
                                            'undo_note': {'on': False, 'version': 'undo-note-v1'},
                                            'compact_input': {'on': False, 'version': 'compact-v1'},
                                            'ask_ahead': {'on': False, 'version': 'ask-ahead-v1'},
                                            'reach_note': {'on': False, 'version': 'reach-v1'}})
+        self.assertEqual(row['jeff_plan'], {'mode': 'rolling', 'steps': 2, 'rules_version': 'rolling-v3'})
 
     def test_the_file_rolls_it_back(self):
         g = self.game(with_features(one_press={'on': False}))
@@ -290,17 +301,25 @@ class SessionTests(unittest.TestCase):
         self.assertNotIn('one_press', row)
         self.assertEqual(row['features']['one_press'], {'on': False, 'version': one_press.VERSION})
 
-    def test_the_plan_modes_offered_follow_their_trial_switches(self):
+    def test_two_step_intent_is_released_with_no_plan_switch(self):
         g = self.game()
+        self.assertEqual(g.communication_state()['jeff_plan'], {'mode': 'rolling', 'available': [], 'editable': False, 'current': None})
+        for mode in ('off', 'choice', 'rolling'):
+            self.assertEqual(g._command('/api/plan', {'mode': mode})[0], 400)
+        self.assertEqual(g._command('/api/start', {})[0], 200)
+        self.assertEqual((g.ai.plan.mode, g.ai.plan.steps), ('rolling', 2))
+
+    def test_the_plan_modes_offered_follow_their_trial_switches(self):
+        g = self.game(plan_trials())
         self.assertEqual(g.communication_state()['jeff_plan']['available'], ['choice', 'rolling'])
-        g = self.game(with_features(jeff_plan={'player_switch': False}))
+        g = self.game(plan_trials(jeff_plan={'player_switch': False}))
         state = g.communication_state()['jeff_plan']
         self.assertEqual((state['available'], state['mode']), (['rolling'], 'off'))
         self.assertEqual(g._command('/api/plan', {'mode': 'choice'})[0], 400)
         self.assertEqual(g._command('/api/plan', {'mode': 'rolling'})[0], 200)
-        g = self.game(with_features(rolling_intent={'on': True}))                   # a trial that is on is the default
+        g = self.game(plan_trials(rolling_intent={'on': True}))                     # a trial that is on is the default
         self.assertEqual(g.communication_state()['jeff_plan']['mode'], 'rolling')
-        g = self.game(with_features(jeff_plan={'player_switch': False}, rolling_intent={'player_switch': False}))
+        g = self.game(plan_trials(jeff_plan={'player_switch': False}, rolling_intent={'player_switch': False}))
         self.assertEqual(g.communication_state()['jeff_plan']['editable'], False)
 
 
@@ -309,8 +328,10 @@ class FeaturesFileTests(unittest.TestCase):
         import features
         value = features.load()
         self.assertEqual(value['one_press'], {'stage': 'release', 'on': True, 'player_switch': False, 'version': one_press.VERSION})
+        self.assertEqual(value['rolling_intent'], {'stage': 'release', 'on': True, 'player_switch': False, 'version': 'rolling-v3'})
+        self.assertEqual(value['jeff_plan'], {'stage': 'trial', 'on': False, 'player_switch': False, 'version': 'plan-v2'})
         self.assertEqual({name: v['stage'] for name, v in value.items()},
-                         {'one_press': 'release', 'jeff_plan': 'trial', 'rolling_intent': 'trial', 'undo_note': 'trial',
+                         {'one_press': 'release', 'jeff_plan': 'trial', 'rolling_intent': 'release', 'undo_note': 'trial',
                           'compact_input': 'trial', 'ask_ahead': 'trial', 'reach_note': 'trial'})
 
     def test_a_wrong_file_stops_instead_of_running(self):

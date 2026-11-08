@@ -394,8 +394,12 @@ class OnlineTests(unittest.TestCase):
 
 class SessionTests(unittest.TestCase):
     def session(self):
-        g = GameSession(level_config(load_config(), 'level-2'), client_factory=lambda c: Scripted(c, [['fetch:lettuce']]),
-                        journal_factory=FakeJournal, kitchen_factory=SpatialKitchen)
+        # The switch as it works when plan mode is on trial behind a player switch (test_one_press.plan_trials).
+        import features
+        from test_one_press import plan_trials
+        with patch.object(features, 'current', plan_trials):
+            g = GameSession(level_config(load_config(), 'level-2'), client_factory=lambda c: Scripted(c, [['fetch:lettuce']]),
+                            journal_factory=FakeJournal, kitchen_factory=SpatialKitchen)
         self.addCleanup(g.close)
         return g
 

@@ -60,9 +60,10 @@ def play_round(folder, seconds=20.0, plan=True, ask_on_step_end=False):
         config = {**level_config(load_config(), 'level-2'), 'ai_ask_on_step_end': ask_on_step_end}
         # The scripted timeline was written without the one-press options (released since); rounds with them are
         # counted apart and tested in test_one_press.StatsTests.
+        # The scripted timeline was also written without two-step intent (released since): plan modes on trial, off.
         import features
-        off = features.check({**json.loads(features.PATH.read_text(encoding='utf-8')),
-                              'one_press': {'stage': 'release', 'on': False, 'version': features.VERSIONS['one_press']}})
+        from test_one_press import plan_trials
+        off = plan_trials(one_press={'on': False})
         with patch.object(features, 'current', lambda: off):
             game = GameSession(config, client_factory=lambda c: Scripted(c, lambda: game),
                                journal_factory=play.Journal, kitchen_factory=SpatialKitchen, log_prefix='whitebox')
@@ -392,6 +393,9 @@ class ResearchRecordTests(paths.SavePathTests):
             self.game.ai.poll()
 
     def test_a_record_and_its_package_give_the_same_counts(self):
+        from test_one_press import plan_trials
+        with self.game.lock:                      # plan mode offered behind a trial switch, as it was
+            self.game.features, self.game.jeff_plan_mode = plan_trials(), 'off'
         self.assertEqual(self.command('plan', mode='choice')[0], 200)
         with self.game.lock:
             self.game.stop_event.set()
