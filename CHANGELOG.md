@@ -4,7 +4,7 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 
 [中文](#更新记录)
 
-## Unreleased
+## 0.8.0-beta.1 — 2026-11-08 · fourth public test release
 
 ### Level 4: across the counter
 
@@ -253,7 +253,7 @@ First private release: a local browser game with three playable maps and player-
 
 ## 更新记录
 
-## 未发布
+## 0.8.0-beta.1 — 2026-11-08 · 第四个公开测试版
 
 ### 第四关：隔台协作
 
