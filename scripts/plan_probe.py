@@ -49,6 +49,7 @@ from kitchen import load_config  # noqa: E402
 from levels import level_config  # noqa: E402
 from spatial_kitchen import SpatialKitchen  # noqa: E402
 from whitebox_server import SpatialJevClient  # noqa: E402
+import research_stats  # noqa: E402
 
 LEVEL = 'level-2'
 UNRELATED = ('fetch:lettuce', 'chop:lettuce', 'plate:lettuce', 'serve')
@@ -194,7 +195,10 @@ def run(client, repeats=3, ask=None, mode='choice'):
             arms[arm] = summary(answers, urgent)
         held, off = arms['plan_held'].get('chose_emergency_action'), arms['plan_off'].get('chose_emergency_action')
         report['emergencies'][name] = {'emergency_actions': urgent, 'game_time': round(k.time, 2), 'arms': arms,
-                                       'plan_held_not_below_plan_off': None if held is None or off is None else held >= off}
+                                       'plan_held_not_below_plan_off': None if held is None or off is None else held >= off,
+                                       # One request asked repeats times per arm: the intervals show how little a few asks settle.
+                                       'stats': {arm: research_stats.share(sum(n for c, n in s.get('choices', {}).items() if c in urgent),
+                                                                           s['answered']) for arm, s in arms.items()}}
     k = nothing_left()
     payload = stale_payload(client, k, mode)
     answers = []
