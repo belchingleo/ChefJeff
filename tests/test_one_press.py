@@ -350,7 +350,7 @@ class StatsTests(unittest.TestCase):
     def play(self, folder, on):
         import play
         from test_decision_stats import Inline as Thread
-        with patch('play.ROOT', Path(folder)):
+        with patch.dict('os.environ', {'CHEFJEFF_LOG_DIR': str(Path(folder, 'logs'))}):
             import features
             with patch.object(features, 'current', lambda: with_features(one_press={'on': on})):
                 game = GameSession(level_config(load_config(), 'level-2'), client_factory=lambda c: Pressing(c, lambda: game),

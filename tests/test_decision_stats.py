@@ -54,7 +54,7 @@ class Scripted(SpatialJevClient):
 
 
 def play_round(folder, seconds=20.0, plan=True, ask_on_step_end=False):
-    with patch('play.ROOT', Path(folder)):
+    with patch.dict('os.environ', {'CHEFJEFF_LOG_DIR': str(Path(folder, 'logs'))}):
         # The scripted timeline (the round's end stops Jeff mid-action) was written for the request timing
         # without ai_ask_on_step_end; only the step gap tests turn it on.
         config = {**level_config(load_config(), 'level-2'), 'ai_ask_on_step_end': ask_on_step_end}
