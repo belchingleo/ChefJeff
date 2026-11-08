@@ -543,12 +543,14 @@ class Plan:
 
 
 def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY, plan=None, one_press=None, undo=None,
-            reach=False):
+            reach=False, names=False):
     """Add what one request needs beyond the snapshot; research replay rebuilds requests here too.
 
     plan is Plan.input() when the plan switch is on, else None (the input is then unchanged).
     undo is {'step': Jeff's last step (undo_note.step) or None} when the undo_note switch is on, else None.
     reach is whether the reach_note switch is on: on a split floor, which stations each chef can reach.
+    names is whether the food_names switch is on: the request's food names are marked (jev.compose_payload) and
+    the marks come off here, after translation.
     """
     # HTTP choices are stateless: return actual outcomes, not just today's snapshot.
     # Walking starts/stops are already in each chef's position and move_direction; as events
@@ -595,6 +597,9 @@ def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY,
         import one_press as presses
         payload['state']['rules']['one_press'] = presses.RULE
     payload = english_data(payload)
+    if names:
+        import food_names
+        payload = food_names.apply(payload)
     payload['state']['input_language'] = INPUT_LANGUAGE_VERSION
     payload['state']['rules_version'] = AGENT_RULES_VERSION
     if plan is not None:

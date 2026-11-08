@@ -194,7 +194,7 @@ class ReplayTests(paths.SavePathTests):
         self.assertEqual(initial['conditions']['features']['one_press'], {'on': True, 'version': one_press.VERSION})
         self.assertEqual({name: value['on'] for name, value in initial['conditions']['features'].items()},
                          {'one_press': True, 'jeff_plan': False, 'rolling_intent': True, 'undo_note': False,
-                          'compact_input': False, 'ask_ahead': False, 'reach_note': False})
+                          'compact_input': False, 'ask_ahead': False, 'reach_note': False, 'food_names': False})
         with self.game.lock:                                    # the human leaves beef on a board
             k = self.game.k
             for chosen in (lambda a: a.key == 'fetch', lambda a: a.kind == 'put_board'):
@@ -303,6 +303,35 @@ class ReplayTests(paths.SavePathTests):
         self.assertGreater(len(requests), 2)
         self.assertEqual({r['status'] for r in requests}, {'verified'})      # the record keeps the payload, not the wire
         self.assertEqual(research_replay.check(record)['replay'], 'verified')
+
+    def test_a_round_with_food_names_replays_exactly(self):
+        import features
+        import food_names
+        on = {key: dict(value) for key, value in features.current().items()}
+        on['food_names']['on'] = True
+        with patch.object(features, 'current', lambda: {key: dict(value) for key, value in on.items()}):
+            self.game.features = features.current()          # as a session started with the switch on
+            receipt = self.begin_manual_relay()
+            self.assertTrue(self.game.ai.names)
+            self.human_action()
+            for _ in range(3):
+                with self.game.lock:
+                    self.game.ai.poll()
+                deadline = time.monotonic() + 2
+                while time.monotonic() < deadline and not self.game.relay.request():
+                    time.sleep(.005)
+                self.assertEqual(self.game.relay.request()['payload']['state']['food_names_version'], food_names.VERSION)
+                self.assertEqual(self.answer_with()[0], 200)
+            self.natural_end()
+            self.assertEqual(self.contribute()[0], 200)
+        record = self.game.store.download(receipt['id'], receipt['deletion_token'])
+        validate_record(record)
+        self.assertEqual(record['conditions']['features']['food_names'], {'on': True, 'version': food_names.VERSION})
+        requests = list(research_replay.rebuild_requests(record))
+        self.assertGreater(len(requests), 2)
+        self.assertEqual({r['status'] for r in requests}, {'verified'})
+        self.assertIn('fetch', requests[0]['rebuilt']['questions']['next_action']['criteria'])
+        self.assertEqual(requests[0]['rebuilt']['questions']['next_action']['criteria']['fetch'], 'Fetch beef (as fetched)')
 
     def test_a_request_asked_ahead_replays_exactly(self):
         import ask_ahead

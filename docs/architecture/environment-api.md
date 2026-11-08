@@ -45,7 +45,7 @@ class MyAgent(environment.Agent):
 
 ## Jeff on the port
 
-`jev.DecisionLoop` reads the kitchen through `view` and starts actions and sprints through the port. His helpers (`harness`, `one_press`, `undo_note`, `ask_ahead`, `reach_note`) read the same view. Moving him there changed no byte of what he is sent and no engine decision. The payload and behaviour fingerprints are unchanged and research replay rebuilds every request.
+`jev.DecisionLoop` reads the kitchen through `view` and starts actions and sprints through the port. His helpers (`harness`, `one_press`, `undo_note`, `ask_ahead`, `reach_note`, `food_names`) read the same view; `food_names` switches the engine's naming mode with a context variable, not an attribute, so the view stays read-only. Moving him there changed no byte of what he is sent and no engine decision. The payload and behaviour fingerprints are unchanged and research replay rebuilds every request.
 
 ## Versions
 
@@ -93,7 +93,7 @@ agent 拿到的是自己那名厨师的 `AgentPort`，拿不到厨房对象本�
 
 ## Jeff 改为通过端口工作
 
-`jev.DecisionLoop` 通过 `view` 读厨房，通过端口开始动作和冲刺。他的辅助模块（`harness`、`one_press`、`undo_note`、`ask_ahead`、`reach_note`）读的也是同一个只读视图。这次迁移没有改变发给他的任何一个字节，也没有改变引擎的任何一个决定：payload 指纹和行为指纹不变，研究回放能重建每一次请求。
+`jev.DecisionLoop` 通过 `view` 读厨房，通过端口开始动作和冲刺。他的辅助模块（`harness`、`one_press`、`undo_note`、`ask_ahead`、`reach_note`、`food_names`）读的也是同一个只读视图；`food_names` 用上下文变量切换引擎的命名模式，不写任何属性，所以视图仍然只读。这次迁移没有改变发给他的任何一个字节，也没有改变引擎的任何一个决定：payload 指纹和行为指纹不变，研究回放能重建每一次请求。
 
 ## 版本
 

@@ -106,6 +106,7 @@ def rebuild_requests(record):
     client = SpatialJevClient(k.c, key='research-replay-no-credential')
     # A round-wide switch: the record's feature snapshot says whether Jeff was told which stations he reaches.
     reach = bool(((record.get('conditions') or {}).get('features') or {}).get('reach_note', {}).get('on'))
+    names = bool(((record.get('conditions') or {}).get('features') or {}).get('food_names', {}).get('on'))
     done = 0
     for row in record['events']:
         data = row['payload']
@@ -128,6 +129,6 @@ def rebuild_requests(record):
                 continue
         payload = compose_payload(client, source, source.snapshot(), source.actions('jeff'), data['recent_decisions'],
                                   data['player_communication'], memory, data.get('jeff_plan'), data.get('one_press'),
-                                  data.get('undo_note'), reach)
+                                  data.get('undo_note'), reach, names)
         yield {'request_id': row['request_id'], 'seq': row['seq'], 'rebuilt': payload,
                'status': 'verified' if cc.sha256(payload) == data['payload_sha256'] else 'diverged'}

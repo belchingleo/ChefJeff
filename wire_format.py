@@ -28,7 +28,7 @@ KITCHEN_STATIC = ('map', 'menu', 'dishes', 'vessels', 'timing', 'scoring', 'goal
                   'end_policy', 'level', 'level_id', 'round_limit', 'order_seed', 'config_hash', 'assembly',
                   'ground_assembly')
 # A station's fixed attributes; its other fields change.
-STATION_STATIC = ('name', 'area', 'type', 'counter', 'stove', 'fire_neighbors')
+STATION_STATIC = ('name', 'area', 'type', 'counter', 'stove', 'fire_neighbors', 'supplies')
 STATION_DEFAULTS = {'food': None, 'used_by': None, 'fire': False, 'heating': False, 'pot_id': None, 'fire_heat': 0.0,
                     'fire_strength': None, 'workers': [], 'incoming_item': None}
 CHEF_DEFAULTS = {'holding': None, 'job_id': None, 'target': None, 'action_kind': None, 'working': False,
@@ -37,7 +37,7 @@ CHEF_DEFAULTS = {'holding': None, 'job_id': None, 'target': None, 'action_kind':
 SPRINT_STATIC = ('multiplier', 'duration', 'cooldown_after')
 # State fields outside the kitchen that stay the same for the whole round.
 STATE_STATIC = ('past_episodes', 'input_language', 'rules_version', 'plan_rules_version', 'one_press_version',
-                'undo_note_version', 'reach_note_version')
+                'undo_note_version', 'reach_note_version', 'food_names_version')
 # Rules that are not fixed for the round: player messages appear with the first one.
 LIVE_RULES = ('player_communication',)
 RULE = ('The state comes in two parts: static, the same for the whole round (rules, map, menu, station layout and the '

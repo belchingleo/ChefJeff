@@ -104,7 +104,7 @@ class JevClient:
 
 
 def compose_payload(client, kitchen, state, actions, recent_decisions, communication, memory=NO_MEMORY, plan=None, one_press=None,
-                    undo=None, reach=False):
+                    undo=None, reach=False, names=False):
     """Jeff's request from the kitchen and the few parts it cannot derive; research replay rebuilds it here too.
 
     one_press is the round's one-press switches (one_press.flags), or None: the options are added to the
@@ -113,8 +113,12 @@ def compose_payload(client, kitchen, state, actions, recent_decisions, communica
         import one_press as presses
         keys = {a.key for a in actions}
         actions = list(actions) + [a for a in presses.options(kitchen, 'jeff', actions, one_press) if a.key not in keys]
+    if names:
+        # The food_names trial (food_names.py): every food named from its ingredient and state, labels included.
+        import food_names
+        state, actions = food_names.state(state), food_names.labels(kitchen, actions, one_press)
     return harness.compose(client.payload(state, actions), kitchen, recent_decisions, communication, memory, plan, one_press, undo,
-                           reach)
+                           reach, names)
 
 
 class DecisionLoop:
@@ -174,6 +178,8 @@ class DecisionLoop:
         self.undo = None
         # The reach_note trial (reach_note.py): on a split floor, which stations each chef can reach.
         self.reach = False
+        # The food_names trial (food_names.py): food named "<item> (<state>)" in Jeff's request.
+        self.names = False
         # Ask ahead (ask_ahead.py) when the round's switch is on: an answer about the next step, held until this step
         # ends, and the step it was asked for (asked once per step).
         self.ask_ahead = False
@@ -512,7 +518,7 @@ class DecisionLoop:
             context['plan_offered'] = plan['options']
         payload = compose_payload(self.client, source, state, actions, self.recent_decisions, communication,
                                   self.cooperation_memory if hasattr(self, 'cooperation_memory') else NO_MEMORY, plan, self.one_press,
-                                  deepcopy(self.undo), self.reach)
+                                  deepcopy(self.undo), self.reach, self.names)
         self.log("ai_request", {"request_id": self.calls, "triggers": causes, "observed_state_seq": self.k.event_seq, "payload": payload,
                                 **({"jeff_plan": plan, "plan_ended": plan_ended} if plan is not None else {}),
                                 **({"one_press": dict(self.one_press)} if self.one_press else {}),

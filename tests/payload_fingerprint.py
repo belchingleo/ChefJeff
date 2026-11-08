@@ -65,6 +65,7 @@ SCENARIOS = {
     'level2-rolling': ('level-2', True, 'rolling'),
     'level2-compact': ('level-2', False, False),
     'level2-ask-ahead': ('level-2', False, False),
+    'level2-food-names': ('level-2', False, False),
 }
 # Scenarios with ask_ahead on (ask_ahead.py): replies take REPLY_SECONDS of wall time, so Jeff's steps end before
 # some of them come and he is asked ahead.
@@ -73,6 +74,8 @@ REPLY_SECONDS = 1.2
 # Scenarios sent in the compact format (wire_format.py, features.json compact_input on): the payload sections
 # must equal level2's, and only the request bodies (wire) differ.
 COMPACT = {'level2-compact'}
+# Scenarios with food_names on (food_names.py): every food named from its ingredient and state.
+NAMES = {'level2-food-names'}
 MESSAGES = ((20.0, 'prep'), (70.0, 'mistake'), (120.0, 'wash'))
 COMPOSE = jev.compose_payload
 
@@ -250,6 +253,11 @@ def run(name):
         on['ask_ahead']['on'] = True
         with patch.object(features, 'current', lambda: {key: dict(value) for key, value in on.items()}):
             return _run(name)
+    if name in NAMES:
+        on = {key: dict(value) for key, value in features.current().items()}
+        on['food_names']['on'] = True
+        with patch.object(features, 'current', lambda: {key: dict(value) for key, value in on.items()}):
+            return _run(name)
     if name in COMPACT:
         on = {key: dict(value) for key, value in features.current().items()}
         on['compact_input']['on'] = True
@@ -275,6 +283,7 @@ def _run(name):
         loop.plan = Plan(mode='rolling' if planned == 'rolling' else 'choice')
     loop.one_press = features.one_press_flags(features.current())   # the released features, as a new session has them
     loop.ask_ahead = features.current()['ask_ahead']['on']
+    loop.names = features.current()['food_names']['on']
     pending = list(MESSAGES) if talk else []
     step = 0
     replies = []                # (wall time due, request thread) when replies take time

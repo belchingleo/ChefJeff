@@ -4,6 +4,13 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 
 [中文](#更新记录)
 
+## Unreleased
+
+### Food named by ingredient and state (off by default)
+
+- A trial, `food_names` in `features.json` (version `names-v1`, no player switch, off). Jeff's food names were the page's display names, translated; beef's dated from when it was the only ingredient, so raw beef reached him as "Raw meat", chopped beef as "Chopped" and cooked beef as "Cooked", while the recipes and a plate's missing list say "beef (cooked)", the fridge's fetch said "raw meat" and no station said what it supplies. On level 2 a scripted assembler partnered with Jev left him waiting in 57% of his answers, and fetching beef was not among his 20 most frequent answers; replayed offline, the request at such a moment names beef nowhere in a fetch or a station. With the switch on, every loose ingredient is named "<item> (<state>)" in the recipes' words, a plate by its dish when the round's orders can ask for it (else "plate with" its components), a pan or pot by its kind and contents, every action label that names food uses the same name, each ingredient source carries `supplies`, and `rules.food_names` says how food is named. Names are built from the ingredient ids and states, so all twelve ingredients a player level can use are named alike; `tests/test_food_names.py` lays out every state of each and fails on any food name or label that does not name its ingredient, or on Chinese anywhere in the request. With the switch off, every request is byte-identical; the page, the engine's events and the records' engine inputs are unchanged with it on. A new payload fingerprint, `level2-food-names`, plays the same round as `level2`; research replay rebuilds named requests exactly. `scripts/food_names_check.py` (`reask.py food_names`) replays logged rounds from their session bundles and re-asks the moments Jeff waited empty-handed while an ingredient the menu needs was nowhere, as logged and as the switch builds them.
+- Found by the same test and left for a separate change: on a player level the extinguisher rack is not named 灭火器架, so its take label is not in the translation catalog and reaches Jeff half in Chinese ("去extinguisher拿Extinguisher").
+
 ## 0.8.0-beta.1 — 2026-11-08 · fourth public test release
 
 ### Level 4: across the counter
@@ -252,6 +259,13 @@ First private release: a local browser game with three playable maps and player-
 ---
 
 ## 更新记录
+
+## 未发布
+
+### 按食材和状态给食物命名（默认关闭）
+
+- 新增测试中的 `food_names`（`features.json`，版本 `names-v1`，没有玩家开关，默认关闭）。Jeff 读到的食物名字原来是页面显示用的名字翻译过来的；牛肉那组名字写于它还是唯一食材的时候，所以生牛肉在他那里叫 "Raw meat"，切好的叫 "Chopped"，熟的叫 "Cooked"，而菜谱和盘子的缺料写的是 "beef (cooked)"；冰箱的取货动作写的是 "raw meat"，也没有工位说明自己出什么食材。第二关里脚本装盘手配 Jev 时，他 57% 的回答是等待，最常见的 20 种回答里没有一种是取牛肉；离线重放那样的时刻，请求里没有任何取货动作或工位提到 beef。打开后，散放的食材一律写成 "<食材> (<状态>)"，用菜谱里的词；盘子在这一局的订单会点这道菜时写菜名，否则写 "plate with" 加配料；锅写种类和里面的东西；所有提到食物的动作文字都用同一个名字；每个食材箱带 `supplies`；`rules.food_names` 说明命名方式。名字由食材编号和状态拼出来，所以玩家关卡能用的 12 种食材都按同一规则命名；`tests/test_food_names.py` 把每种食材的每个状态都摆一遍，只要有食物名字或动作文字没说出是哪种食材，或者请求里任何地方出现中文，测试就失败。开关关闭时，每个请求逐字节不变；打开后，页面、引擎事件和记录里的引擎输入也都不变。新增请求录像 `level2-food-names`，打的是和 `level2` 同一局；研究回放能原样重建命名后的请求。`scripts/food_names_check.py`（`reask.py food_names`）用会话包重放记录里的对局，挑出 Jeff 空着手等待、而菜单需要的某种食材厨房里一份都没有的时刻，原样问一次、按开关打开后的样子再问一次。
+- 同一项测试还发现一个问题，留给单独的改动：玩家关卡里的灭火器架不叫"灭火器架"，它的拿取动作不在翻译表里，发给 Jeff 时一半是中文（"去extinguisher拿Extinguisher"）。
 
 ## 0.8.0-beta.1 — 2026-11-08 · 第四个公开测试版
 

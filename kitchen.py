@@ -6,6 +6,7 @@ no per-level branches.
 """
 from __future__ import annotations
 from dataclasses import dataclass
+import food_names
 import functools
 from copy import deepcopy
 import json
@@ -211,6 +212,12 @@ def hand_swap_allowed(kind, incoming=None):
 
 
 class Kitchen:
+    # Naming mode (food_names.py): while Jeff's request is built with the food_names trial on, every food name in a
+    # label is the marked "<item> (<state>)" name instead of the display name. Off everywhere else.
+    @property
+    def food_names(self):
+        return food_names.NAMING.get()
+
     def __init__(self, config=None, rng=None):
         self.resolved, self.c = runtime_config(config, rng)
         self.rules = r = Rules(self.resolved)
@@ -289,10 +296,16 @@ class Kitchen:
                 station.food = Food(entry['id'], 'extinguisher')
 
     def state_label(self, item, stage):
+        if self.food_names:
+            return food_names.mark(food_names.item_state(item, stage))
         definition = self.rules.items[item]
         return definition.get('state_names', {}).get(stage, definition['name'])
 
     def food_label(self, food):
+        if self.food_names:
+            named = food_names.describe(self, food)
+            if named:
+                return named
         return self.rules.item_names.get(food.ingredient, food.ingredient)
 
     def assemble_label(self, place_name, placed, held):
@@ -426,7 +439,9 @@ class Kitchen:
             if self.stations[source].food:
                 continue
             name = self.state_label(ingredient, self.rules.items[ingredient]['initial_state'])
-            if i == 0:
+            if self.food_names:     # every source alike, its ingredient named (the key stays the same)
+                add("fetch" if i == 0 else 'fetch '+source, '取一份'+name, 'fetch', source)
+            elif i == 0:
                 add("fetch", f"到{self.stations[source].name}取一份{name}", "fetch", source)
             else:
                 add('fetch '+source, '取一份'+name, 'fetch', source)
@@ -486,10 +501,10 @@ class Kitchen:
             s = self.stations[key]
             if s.lock not in (None, who):
                 if not a.hand and s.food and self.rules.choppable(s.food) and self.can_share_work(who,'chop',key):
-                    add(f'chop {key}',f'一起切配 {s.food.id}（共享进度）','chop',key)
+                    add(f'chop {key}',f'一起切配 {food_names.describe(self, s.food) + " " if self.food_names else ""}{s.food.id}（共享进度）','chop',key)
                 continue
             if s.food and self.rules.choppable(s.food) and not a.hand:
-                add(f"chop {key}", f"到{s.name}切 {s.food.id}（剩 {max(0,self.rules.chop_work(s.food.ingredient)-s.food.chopped):.1f}s）", "chop", key)
+                add(f"chop {key}", f"到{s.name}切 {food_names.describe(self, s.food) + ' ' if self.food_names else ''}{s.food.id}（剩 {max(0,self.rules.chop_work(s.food.ingredient)-s.food.chopped):.1f}s）", "chop", key)
             self._surface_actions(who, key, add)
         for key in self.pots:
             s = self.stations[key]
@@ -536,6 +551,8 @@ class Kitchen:
 
     def load_label(self, food):
         """Name of held food going into a vessel, with its preparation."""
+        if self.food_names:
+            return food_names.describe(self, food) or self.food_label(food)
         return ('切好的' if food.stage == 'chopped' else '') + self.food_label(food)
 
     def chopping_started(self, food):
@@ -543,6 +560,10 @@ class Kitchen:
         return bool(food and self.rules.choppable(food) and 0 < food.chopped < self.rules.chop_work(food.ingredient)-1e-9)
 
     def food_name(self, food):
+        if self.food_names:
+            named = food_names.describe(self, food)
+            if named:
+                return named
         item = self.rules.items.get(food.ingredient)
         if item and not food.plate_id and 'state_names' not in item:
             return item['name']+(' · 切好' if food.stage=='chopped' else '')

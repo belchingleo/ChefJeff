@@ -627,6 +627,7 @@ class GameSession:
             self.ai.ask_ahead = self.features['ask_ahead']['on']
             self.ai.undo = features.undo_start(self.features)
             self.ai.reach = self.features['reach_note']['on']
+            self.ai.names = self.features['food_names']['on']
             self.phase = 'running'
             self.last_tick = self.last_seen = time.monotonic()
             self.wake.set()
