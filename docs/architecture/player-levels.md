@@ -19,7 +19,7 @@ The local game server (`cocos_server.py`) offers both endpoints. The hosted serv
 
 The editor sends a design (`level_design.py`, `"format": "chefjeff-player-level-1"`): the level's name, the room size (12×8, 14×9 or 16×10), walls inside the room, the stations (`type`, `x`, `y`, plus `item` for an ingredient source and `vessel` `pan`/`pot` for a stove; the outer wall holds nothing, and serving windows and the plate return stand against it, facing into the room) and up to four dishes (`name`, `price`, `items`). The server builds the bundle from it:
 
-- the map with `map_definition.build_map`. Station ids follow the client's drawing conventions (`serve`, `sink`, `returns`, `extinguisher`, `bin`, `b1`, `p1`, `counter1`, sources by item, beef as `fridge`), and each station faces the free floor neighbour most towards the room's centre;
+- the map with `map_definition.build_map`. Station ids follow the client's drawing conventions (`serve`, `sink`, `returns`, `extinguisher`, `bin`, `b1`, `p1`, `counter1`, sources by item, beef as `fridge`), their names follow the authored maps (柜台 1, 案板 1, 灶台 1, 出餐口, 水槽, 脏盘回收, 灭火器架, 垃圾桶, 冰箱, 生菜箱: a source by its ingredient), so Jeff's request translates them like the release's, and each station faces the free floor neighbour most towards the room's centre;
 - one chef spawning in each half of the longer side;
 - the starting inventory: the extinguisher, three clean plates on counters and each stove's own pan or pot;
 - the recipes, with each ingredient in the state its cooking step gives (cooked, chopped, or as dispensed).

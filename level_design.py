@@ -99,6 +99,29 @@ def _ids(stations):
     return out
 
 
+# Station names as the authored maps write them (maps/level-*.json), so the page and Jeff's request name a player's
+# stations the way they name the release's: 柜台 3, 灶台 1, 灭火器架, 冰箱, 生菜箱. Every name is in the model
+# language catalog and the page's, so nothing reaches Jeff untranslated (tests/test_food_names.py).
+NAMES = {'serving_window': '出餐口', 'sink': '水槽', 'plate_return': '脏盘回收', 'tool_rack': '灭火器架', 'bin': '垃圾桶'}
+NUMBERED = {'counter': '柜台', 'board': '案板', 'stove': '灶台'}
+
+
+def _names(stations, catalog_items):
+    """Each station's display name: numbered kinds count up, a second one of a single kind gets a 2, and an ingredient
+    source is named by its ingredient (beef's is the fridge, 冰箱, as on the authored maps)."""
+    seen, out = {}, []
+    for s in stations:
+        kind = s['type']
+        if kind == 'ingredient_source':
+            base = '冰箱' if s['item'] == 'beef' else catalog_items[s['item']]['name'] + '箱'
+            key = (kind, s['item'])
+        else:
+            base, key = NUMBERED.get(kind) or NAMES[kind], kind
+        n = seen[key] = seen.get(key, 0) + 1
+        out.append(f'{base} {n}' if kind in NUMBERED else base if n == 1 else f'{base} {n}')
+    return out
+
+
 def _facing(cell, open_cells, size, wall_behind=False):
     """Face a free floor neighbour, the one most towards the room's centre; None when there is none. With
     ``wall_behind`` only a side whose opposite neighbour is the outer wall counts: food leaves and dirty plates
@@ -219,14 +242,15 @@ def bundle(design, registry=None):
     # Each station faces free floor; a counter boxed in by counters may still reach round a corner.
     open_cells = {(x, y) for x in range(1, width - 1) for y in range(1, height - 1)} - walls - taken
     ids = _ids(stations)
+    names = _names(stations, items)
     rows = []
-    for s, sid in zip(stations, ids):
+    for s, sid, name in zip(stations, ids, names):
         facing = _facing(s['cell'], open_cells, size, wall_behind=s['type'] in AGAINST_THE_WALL)
         if facing is None and s['type'] != 'counter':
             problems.append(_problem(f'/stations/{stations.index(s)}', f'{sid} has no floor to stand on in front of it',
                                      'STATION_UNREACHABLE'))
             continue
-        row = {'id': sid, 'type': s['type'], 'cell': list(s['cell']), 'facing': facing or 'south'}
+        row = {'id': sid, 'type': s['type'], 'name': name, 'cell': list(s['cell']), 'facing': facing or 'south'}
         if s['type'] == 'ingredient_source':
             row['params'] = {'item': s['item']}
         rows.append(row)

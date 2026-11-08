@@ -36,9 +36,9 @@ EVERY = {
                {'name': '面条', 'price': 60, 'items': ['noodles']}],
 }
 CJK = re.compile(r'[㐀-鿿]')
-# Known before this switch and outside it: on a player level the extinguisher rack is not named 灭火器架, so its take
-# label is not in the translation catalog and reaches Jeff half in Chinese. Any other Chinese fails these tests.
-KNOWN_UNTRANSLATED = {'take extinguisher'}
+# Player levels name their stations as the authored maps do (level_design._names), so nothing in a request is left
+# untranslated: on a player level the extinguisher rack was once its id, and its take label reached Jeff half in Chinese.
+KNOWN_UNTRANSLATED = set()
 
 
 def kitchen():
@@ -68,10 +68,11 @@ class NamesTests(unittest.TestCase):
         self.assertEqual(payload['state']['food_names_version'], food_names.VERSION)
         return payload
 
-    def test_the_known_untranslated_label_is_still_the_only_one(self):
-        # When the catalog learns it, drop it from KNOWN_UNTRANSLATED.
-        criteria = ask(self.k)['questions']['next_action']['criteria']
-        self.assertEqual({k for k, v in criteria.items() if CJK.search(v)}, KNOWN_UNTRANSLATED)
+    def test_no_label_is_left_untranslated_even_with_the_switch_off(self):
+        for names in (False, True):
+            criteria = ask(self.k, names=names)['questions']['next_action']['criteria']
+            self.assertEqual({k for k, v in criteria.items() if CJK.search(v)}, set())
+            self.assertEqual(criteria['take extinguisher'], 'Take the extinguisher (occupies your hands)')
 
     def test_the_kitchen_uses_every_ingredient(self):
         self.assertEqual(set(self.k.ingredients.values()), set(cc.level_bundle('level-1', embed=True)['recipe_catalog']['items']))
