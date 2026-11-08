@@ -64,6 +64,8 @@ class JevClient:
     # The plain kitchen; whitebox_server.SpatialJevClient (every listed level) sets spatial.
     spatial = False
 
+    timeout = None              # seconds one decision may take; None: the config's ai_timeout_seconds
+
     def __init__(self, config, key=None):
         self.key = key or load_key()
         self.c = config
@@ -78,9 +80,10 @@ class JevClient:
         # The compact format (features.json compact_input) sends the state as {static, live}; the payload stays as it is.
         body = wire_format.decision_body(payload) if wire_format.enabled() else payload
         request = urllib.request.Request(self.endpoint, data=json.dumps(body, ensure_ascii=False).encode(),
-                                         headers={"Authorization": "Bearer " + self.key, "Content-Type": "application/json"}, method="POST")
+                                         headers={**({"Authorization": "Bearer " + self.key} if self.key else {}),
+                                                  "Content-Type": "application/json"}, method="POST")
         try:
-            with urllib.request.urlopen(request, timeout=self.c["ai_timeout_seconds"]) as r:
+            with urllib.request.urlopen(request, timeout=self.timeout or self.c["ai_timeout_seconds"]) as r:
                 result = json.load(r)
         except urllib.error.HTTPError as e:
             # Only the status and the provider's short message; no headers, request or key.

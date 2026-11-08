@@ -51,12 +51,14 @@ def settings_from(body):
     if not isinstance(base,str) or not isinstance(model,str) or not model.strip() or len(model)>120:
         raise ValueError('请填写接口地址和模型名称。')
     base=base.strip().rstrip('/')
-    if base.endswith('/chat/completions'):base=base[:-17].rstrip('/')
+    if preset['group']=='chat' and base.endswith('/chat/completions'):base=base[:-17].rstrip('/')
     u=urllib.parse.urlsplit(base)
     host=(u.hostname or '').lower()
     # This local game (not the hosted site, which never reads these settings) may use a model served on this
     # computer: a custom endpoint at localhost or a loopback address, over http, with no key.
     loopback=bool(preset.get('custom')) and host in LOOPBACK_HOSTS
+    if preset.get('local_only') and not loopback:
+        raise ValueError('这里只能填这台电脑上的地址（localhost、127.0.0.1 或 [::1]）。')
     if u.scheme not in (('http','https') if loopback else ('https',)) or not u.hostname or u.username or u.password or u.query or u.fragment:
         raise ValueError('接口地址需要是 HTTPS Base URL，不能包含密码、查询参数或片段。')
     if not loopback:
@@ -154,10 +156,15 @@ class CompatibleClient(SpatialJevClient):
 
 
 class DecisionClient(SpatialJevClient):
-    """A systemone-style decision service other than TypeSafe (e.g. Microsoft-Decision-1 on OpenRouter)."""
+    """A systemone-style decision service other than TypeSafe (e.g. Microsoft-Decision-1 on OpenRouter, or one on
+    this computer such as StartLux 2B)."""
     def __init__(self,config,setting):
-        super().__init__(config,key=setting['api_key'])
+        super().__init__(config,key=setting['api_key'] or 'no-key')
+        # A service on this computer may need no key: send none, never the Jev key JevClient would load instead.
+        self.key=setting['api_key']
         self.setting=setting
+        # A model on this computer can take minutes per decision; the preset says how long one may take.
+        self.timeout=PROVIDERS[setting['provider']].get('timeout_seconds')
         self.endpoint,self.vendor=setting['base_url'],PROVIDERS[setting['provider']]['label']
     def payload(self,state,actions):
         payload=super().payload(state,actions)

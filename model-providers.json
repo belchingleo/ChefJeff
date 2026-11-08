@@ -1,5 +1,5 @@
 {
-  "description": "Model services Jeff can use, read by the local server, the hosted page and the settings dialog. decision: a systemone-style decision API (state + questions, answered with option probabilities). chat: an OpenAI-compatible Chat Completions API. extra holds vendor request fields for either group (model_extra adds fields for one model ID; account_id: the base URL takes the player\u2019s account ID), such as requiring a listed decision option, turning chat thinking off or asking for JSON. hosted: direct (the browser calls it), relay (through the demo server, with consent; relay_models lists what it forwards) or none (local game only). tested: a whole round has been played with it.",
+  "description": "Model services Jeff can use, read by the local server, the hosted page and the settings dialog. decision: a systemone-style decision API (state + questions, answered with option probabilities). chat: an OpenAI-compatible Chat Completions API. extra holds vendor request fields for either group (model_extra adds fields for one model ID; account_id: the base URL takes the player\u2019s account ID), such as requiring a listed decision option, turning chat thinking off or asking for JSON. hosted: direct (the browser calls it), relay (through the demo server, with consent; relay_models lists what it forwards) or none (local game only). custom: the player types the address (a decision service: its full URL; chat: the base URL); local_only: only an address on this computer (localhost, 127.0.0.1, ::1), over http, key optional. timeout_seconds: how long one decision may take, instead of ai_timeout_seconds. tested: a whole round has been played with it.",
   "groups": [
     {"id": "decision", "label": "决策模型"},
     {"id": "chat", "label": "快思考模型"}
@@ -15,6 +15,9 @@
      "endpoint": "https://api.bamboonode.dev/v1/decisions", "model": "startlux-decision-27b-autothink", "model_editable": true,
      "extra": {"allow_none": false, "think_mode": "never"},
      "key_url": "https://bamboonode.dev/", "hosted": "direct", "tested": false},
+    {"id": "local-decision", "group": "decision", "label": "本机决策模型（仅本地游戏）", "note": "填这台电脑上决策服务的完整地址，如 http://127.0.0.1:8090/v1/systemone · 不用 Key · 电脑算得慢时一次决策可能要几分钟",
+     "custom": true, "local_only": true, "model": "startlux-local-2b-instant-q4", "model_editable": true, "timeout_seconds": 600,
+     "extra": {"allow_none": false, "think_mode": "never"}, "hosted": "none", "tested": false},
     {"id": "decision3", "group": "decision", "label": "Decision 3.0（需本地部署，待接入）", "disabled": true},
     {"id": "deepseek", "group": "chat", "label": "DeepSeek", "note": "约 ¥1–3/局",
      "base_url": "https://api.deepseek.com", "model": "deepseek-flash", "model_editable": true,

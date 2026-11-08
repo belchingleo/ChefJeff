@@ -198,11 +198,12 @@ class CompatibleTests(unittest.TestCase):
                     with self.assertRaises(ValueError):settings_from({'provider':preset['id'],'api_key':KEY})
                     continue
                 body={'provider':preset['id'],'api_key':KEY}
-                if preset.get('custom'):body.update(base_url='https://api.example.com/v1',model='m')
+                custom_url='http://127.0.0.1:8090/v1/systemone' if preset.get('local_only') else 'https://api.example.com/v1'
+                if preset.get('custom'):body.update(base_url=custom_url,model='m')
                 elif not preset.get('model'):body['model']='vendor/model'
                 if preset.get('account_id'):body['account_id']='0'*32
                 setting=settings_from(body)
-                self.assertEqual(setting['base_url'],'https://api.example.com/v1' if preset.get('custom') else
+                self.assertEqual(setting['base_url'],custom_url if preset.get('custom') else
                                  (preset.get('endpoint') or preset['base_url']).replace('{account_id}','0'*32))
                 client=create_client(load_config(),setting)
                 self.assertIsInstance(client,DecisionClient if preset['group']=='decision' and preset['id']!='jev' else (CompatibleClient if preset['group']=='chat' else object))
@@ -219,6 +220,39 @@ class CompatibleTests(unittest.TestCase):
         self.assertEqual(set(json.loads(req.data)),{'model','state','questions'})
         self.assertEqual(json.loads(req.data)['model'],'microsoft/microsoft-decision-1')
         self.assertEqual((result['choice'],result['sprint']),('wait',False))
+    def test_a_decision_model_on_this_computer_is_asked_there_without_a_key(self):
+        url='http://127.0.0.1:8090/v1/systemone'
+        setting=settings_from({'provider':'local-decision','base_url':url,'model':'startlux-local-2b-instant-q4'})
+        self.assertEqual((setting['base_url'],setting['api_key']),(url,''))
+        self.assertEqual(settings_from(json.loads(json.dumps(setting))),setting)   # a remembered setting reloads unchanged
+        with patch('jev.load_key',side_effect=AssertionError('the Jev key must not be loaded')):
+            client=create_client(load_config(),setting)
+        self.assertIsInstance(client,DecisionClient)
+        answer={'answers':{'next_action':{'type':'choice','choice':'wait','probabilities':{'wait':1.0}},'sprint':{'type':'choice','choice':'no'}},
+                'model':'startlux-local-2b-instant-q4','usage':{'input_tokens':5,'output_tokens':0}}
+        payload={'model':setting['model'],'state':{'kitchen':{}},'questions':{'next_action':{'type':'choice','criteria':{'wait':'等待'}},'sprint':{'type':'choice','criteria':{'yes':'','no':''}}}}
+        with patch('jev.urllib.request.urlopen',return_value=io.BytesIO(json.dumps(answer).encode())) as opened:
+            result=client.ask(payload)
+        req=opened.call_args.args[0]
+        self.assertEqual(req.full_url,url)                       # the full address, no /chat/completions trimmed or added
+        self.assertIsNone(req.get_header('Authorization'))
+        self.assertEqual(json.loads(req.data)['think_mode'],'never')
+        self.assertEqual(json.loads(req.data)['allow_none'],False)
+        self.assertEqual(opened.call_args.kwargs['timeout'],600)   # minutes on a slow computer, not ai_timeout_seconds
+        self.assertEqual(result['choice'],'wait')
+    def test_the_decision_model_on_this_computer_takes_no_other_address(self):
+        for url in ['https://api.example.com/v1/systemone','http://192.168.1.5:8090/v1/systemone','http://10.0.0.2/v1',
+                    'http://127.0.0.2:8090/v1','http://chef.localhost:8090/v1','http://user:pw@127.0.0.1:8090/v1','ftp://127.0.0.1/v1']:
+            with self.subTest(url=url),self.assertRaises(ValueError):
+                settings_from({'provider':'local-decision','base_url':url,'model':'m','api_key':KEY})
+    def test_other_services_keep_their_timeout_and_key(self):
+        client=create_client(load_config(),settings_from({'provider':'openrouter-decision','api_key':KEY}))
+        self.assertIsNone(client.timeout)
+        answer={'answers':{'next_action':{'type':'choice','choice':'wait'}}}
+        with patch('jev.urllib.request.urlopen',return_value=io.BytesIO(json.dumps(answer).encode())) as opened:
+            client.ask({'state':{},'questions':{'next_action':{'type':'choice','criteria':{'wait':''}}}})
+        self.assertEqual(opened.call_args.kwargs['timeout'],load_config()['ai_timeout_seconds'])
+        self.assertEqual(opened.call_args.args[0].get_header('Authorization'),'Bearer '+KEY)
     def test_refused_request_reports_status_and_provider_message_without_the_key(self):
         client=DecisionClient(load_config(),settings_from({'provider':'openrouter-decision','api_key':KEY}))
         body=json.dumps({'error':{'message':f'questions.next_action: too many options for key {KEY}'}}).encode()
