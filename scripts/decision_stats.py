@@ -43,6 +43,10 @@ For each model it counts:
   reply) and reply (the request whose answer started the next step, until that answer). The answer
   that starts a step is found by its action_id, since research records log the step's start before
   that answer and local journals after it. Gaps with a pause, and rounds without wall times, are left out.
+- uncertainty (decision-stats-18): 95% intervals for what a comparison is read from: the shares of rounds that
+  reached the target, of decisions that chose the top option and of steps replaced by Jeff's own next choice
+  (Wilson), and the mean money, cooperation gain and Jeff's standard-time share per round and the median step gap
+  per request policy (seeded bootstrap, research_stats.py). Every other field is as before.
 - one_press: rounds with a one-press switch on (one_press.py) are counted apart, under the model's name
   followed by ` [one-press]`, so every count above compares them with the same model's rounds with both
   switches off; `one_press_rounds` at the top says how many there were. Their `one_press` section gives
@@ -108,12 +112,13 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from harness import PLAN_RULES_VERSION  # noqa: E402
+import research_stats  # noqa: E402
 from research_record import SCHEMA as RECORD_SCHEMA  # noqa: E402
 from round_summary import CATEGORIES, CHEFS  # noqa: E402
 
 WORK_CATEGORIES = tuple(name for name, _ in CATEGORIES)
 
-VERSION = 'decision-stats-17'
+VERSION = 'decision-stats-18'
 # The solo baseline of the cooperation gain: the median income of the solo reference chef over the calibration
 # run set (scripts/reference_sweep.py --calibrate), for the level configuration each entry was made for.
 CALIBRATION_REPORT = Path(__file__).resolve().parents[1] / 'docs' / 'architecture' / 'reports' / 'calibration.json'
@@ -744,6 +749,24 @@ def summary(m, margins=MARGINS):
         out['puts'] = {who: dict(m['puts'][who].most_common()) for who in CHEFS if m['puts'][who]}
     if m['gaps']:
         out['step_gaps'] = {policy: gap_summary(g) for policy, g in sorted(m['gaps'].items())}
+    out['uncertainty'] = uncertainty(m)
+    return out
+
+
+def uncertainty(m):
+    """95% intervals for the numbers a decision is read from: shares (Wilson) and per-round or per-gap means and
+    medians (seeded bootstrap, research_stats). The fields above stay as they were; this only says how sure they are."""
+    out = {'chose_the_top_option': research_stats.share(m['chose_top'], len(m['margins'])),
+           'replaced_by_own_next_choice': research_stats.share(m['replaced'], m['started'])}
+    if m['summary_rounds']:
+        out['reached_target'] = research_stats.share(m['reached_target'], m['summary_rounds'])
+        out['money_mean_ci95'] = research_stats.bootstrap(m['money'])
+        out['cooperation_gain_mean_ci95'] = research_stats.bootstrap(m['gains'])
+        jeff = m['shares'].get('standard_share:jeff')
+        out['jeff_standard_share_mean_ci95'] = research_stats.bootstrap(jeff) if jeff else None
+    if m['gaps']:
+        out['step_gap_median_ci95'] = {policy: research_stats.bootstrap(g['total'], statistic=median)
+                                       for policy, g in sorted(m['gaps'].items())}
     return out
 
 

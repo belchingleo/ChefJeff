@@ -124,6 +124,18 @@ class RealJournalTests(unittest.TestCase):
         self.assertEqual(plan['decisions_without_plan'], len(answers) - len(held))
         self.assertEqual(plan['wait_share_with_plan'], round(sum(r['choice'] == 'wait' for r in held) / len(held), 4))
 
+    def test_uncertainty_gives_intervals_beside_the_counts(self):
+        sure = self.model['uncertainty']
+        actions = self.model['actions']
+        self.assertEqual(sure['replaced_by_own_next_choice']['k'], actions['replaced_by_own_next_choice'])
+        self.assertEqual(sure['replaced_by_own_next_choice']['n'], actions['started'])
+        self.assertEqual(sure['chose_the_top_option']['share'], self.model['unsure']['chose_the_top_option'])
+        low, high = sure['chose_the_top_option']['ci95']
+        self.assertLess(low, 1.0)                                   # all of a handful is not all of every round
+        self.assertEqual(high, 1.0)
+        if self.model.get('outcomes'):
+            self.assertEqual(sure['reached_target']['n'], self.model['outcomes']['rounds'])
+
     def test_the_command_line_writes_the_same_report(self):
         out = Path(self.folder.name, 'report.json')
         self.assertEqual(main([str(self.path), '--out', str(out)]), 0)
