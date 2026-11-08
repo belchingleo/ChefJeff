@@ -43,7 +43,7 @@
     "level": {
       "type": "integer",
       "minimum": 0,
-      "maximum": 3
+      "maximum": 4
     },
     "speed": {
       "enum": [
