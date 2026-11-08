@@ -24,6 +24,12 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - SQLite connections are closed after use: `scripts/research_export.rows()` (used by the research console's package build) only committed them, and so did 17 places in the tests. The test run no longer warns about unclosed databases.
 - `docs/status.md` names the two current sites and the level editor; two release notes that 0.7.0-beta.1 listed twice (in both languages) are removed, and a test keeps a release from listing a change twice.
 
+### Research tools
+- Every re-ask check reports how sure its shares are. `research_stats.py` (standard library) gives Wilson intervals, seeded bootstrap intervals, the exact McNemar test for paired yes/no outcomes and the moments or rounds per arm a difference needs, tested against published values. `scripts/reask.py` holds what the checks share: one ask loop (each arm asks each moment the same number of times, in one order, recording which model answered) and a `stats` block in each report (every outcome's share with its 95% interval, the paired difference against the first arm with its McNemar p, how often the model gave the same answer twice, and a note when one model answered everything). `walk_label_check`, `hands_full_check`, `put_where_check`, `undo_note_check` and `jev_replay_check` ask through it and `plan_probe` adds intervals; on fixed inputs every existing report field is unchanged. `python3 scripts/reask.py list` names the checks and `reask.py <check> ...` runs one.
+- `scripts/model_rounds.py` plays whole rounds of a scripted human (`reference_policy`: assembler, cook, solo or idle) and the real Jeff, in the local game's own session and in real time, on the connection saved in the game: the baseline ladder's fourth rung, as many rounds as a budget allows. Journals and session bundles go to `--out` (never `logs/`), replay exactly and are read by `decision_stats.py`; `--dry-run` prints the most a set can cost and calls nothing.
+- `docs/research/trial-protocol.md` says what to write down before a trial is measured (one primary outcome, guard outcomes, size, at least two models, budget, decision rule), with worked examples for the compact input and asking ahead. Telling a 0.75 repeat agreement from 0.60, for example, takes about 152 moments per arm.
+- The journal-reading tests set `CHEFJEFF_LOG_DIR` themselves instead of patching `play.ROOT`, so they pass when the variable is set in the developer's shell.
+
 ## 0.7.0-beta.1 — 2026-11-06 · third public test release
 
 ### Start, results and settings
@@ -236,6 +242,12 @@ First private release: a local browser game with three playable maps and player-
 - 在浅克隆（`git clone --depth 1`）里，检查 `deploy/release-fingerprints.json` 中每个版本都对应已知提交的测试会跳过，并列出缺少的提交，不再报错。
 - SQLite 连接用完后会关闭：研究管理台打包时用到的 `scripts/research_export.rows()`，以及测试里的 17 处，以前都只提交不关闭。现在跑测试不再出现未关闭数据库的警告。
 - `docs/status.md` 改为当前的两个站点地址，并写上关卡编辑器；删掉 0.7.0-beta.1 里重复列出的两条（中英文各两条），并新增测试，防止同一版本里重复列出同一项改动。
+
+### 研究工具
+- 每个重问检查报告比例时，都会说明这个比例有多可靠。`research_stats.py`（只用标准库）提供 Wilson 区间、带固定种子的 bootstrap 区间、成对是/否结果的精确 McNemar 检验，以及"看出某个差别每组需要多少个时刻或多少局"的估算，都对照已发表的数值做了测试。`scripts/reask.py` 放各检查共用的部分。一是同一个提问循环：每组对每个时刻问同样多次，顺序固定，并记录作答的模型。二是每份报告里的 `stats` 部分，包括：每个指标的比例和 95% 区间；与第一组的成对差别和 McNemar p 值；模型两次给出相同回答的比例；全部回答来自同一个模型时给出提示。`walk_label_check`、`hands_full_check`、`put_where_check`、`undo_note_check` 和 `jev_replay_check` 都通过它提问，`plan_probe` 也加上了区间。用固定输入检验过，原有报告字段全部不变。`python3 scripts/reask.py list` 列出所有检查，`reask.py <检查名> ...` 运行其中一个。
+- `scripts/model_rounds.py` 让脚本扮演的人类（`reference_policy`：assembler、cook、solo 或 idle）和真实的 Jeff 打完整对局。对局使用本地游戏自己的会话，按真实时间进行，用游戏里保存的连接。这就是基线阶梯的第 4 级，预算允许跑多少局就跑多少局。日志和会话包写到 `--out`（不会写进 `logs/`），能精确回放，`decision_stats.py` 也能读取；`--dry-run` 只打印这组对局最多花多少钱，不调用任何模型。
+- `docs/research/trial-protocol.md` 说明测量一个试验开关前要先写下什么：一个主要指标、底线指标、样本量、至少两个模型、预算和决策规则，并附两个填好的例子，分别是紧凑输入和提前问。举例来说，要分辨 0.75 和 0.60 的重复一致率，每组大约需要 152 个时刻。
+- 读日志的测试改为自己设置 `CHEFJEFF_LOG_DIR`，不再修改 `play.ROOT`；开发者在自己的终端里设置了这个变量时，测试也能通过。
 
 ## 0.7.0-beta.1 — 2026-11-06 · 第三个公开测试版
 

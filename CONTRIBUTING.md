@@ -8,7 +8,7 @@ Help build the cooperative game and its whole-session benchmark together. Contri
    Changes to game behaviour are checked against the behaviour fingerprints in `tests/golden/`: fixed scripted rounds per level whose event sequences must not change by accident. If a change is intended, explain it and regenerate them with `python3 tests/fingerprint.py --update`.
    Jeff's model input is checked the same way against the payload fingerprints in `tests/golden/payloads/`: fixed rounds in which Jeff is driven by the real decision loop with a scripted stand-in model, recording every request's payload and the exact bodies each client would send. A refactor must leave them unchanged; an intended change to the input is a model-prompt change, so explain it separately and regenerate them with `python3 tests/payload_fingerprint.py --update`.
 4. Frontend changes use Cocos Creator 3.8.8 and `python3 scripts/build_cocos.py web`. Check affected browser views and interactions; omit Creator caches and personal settings from commits. The page refuses a kitchen server whose `client_protocol` differs from its own: when a change alters what the page and the server expect of each other, bump `release_info.CLIENT_PROTOCOL` and `CLIENT_PROTOCOL` in `KitchenClient.ts` together. A release alone does not need the web build rebuilt.
-5. Keep real model calls out of external PR checks and offline CI. Agree on a protocol and budget before collecting live comparisons. Model failures remain visible instead of being replaced with a scripted teammate.
+5. Keep real model calls out of external PR checks and offline CI. Agree on a protocol and budget before collecting live comparisons ([trial protocol](docs/research/trial-protocol.md): one primary outcome, guard outcomes, size from `research_stats.py`, at least two models, the tool's `--dry-run` cost). Model failures remain visible instead of being replaced with a scripted teammate.
 6. Run `git diff --check`. Exclude credentials, local configuration, raw logs, memory, contribution databases, and machine paths. Review feedback before sharing.
 7. Write reader-facing documentation in English first, followed by a matching Chinese version. Put planned capabilities in the roadmap.
 
@@ -30,7 +30,7 @@ Original code is [AGPL-3.0-only](LICENSE). Contribute only code and assets you h
    玩法行为的改动会与 `tests/golden/` 里的行为指纹比对：每一关用固定脚本跑出的事件序列，不应意外改变。确属有意的改动，请说明原因，并用 `python3 tests/fingerprint.py --update` 重新生成。
    Jeff 的模型输入也用同样的方式，与 `tests/golden/payloads/` 里的输入指纹比对：在固定对局中，Jeff 由真实的决策循环驱动、由脚本代替模型作答，记录每次请求的输入，以及各客户端实际会发出的请求内容。代码整理必须保持它们不变；有意修改输入属于模型提示的改动，请单独说明原因，并用 `python3 tests/payload_fingerprint.py --update` 重新生成。
 4. 前端使用 Cocos Creator 3.8.8，通过 `python3 scripts/build_cocos.py web` 构建并检查受影响页面和交互，不提交 Creator 缓存或私人设置。页面只连接 `client_protocol` 与自己一致的厨房服务：改动若改变了页面与服务器之间的约定，就同时把 `release_info.CLIENT_PROTOCOL` 和 `KitchenClient.ts` 里的 `CLIENT_PROTOCOL` 加一；只是发新版本不需要重新构建网页。
-5. 外部 PR 检查与离线 CI 不调用真实模型。实时对照需先确定协议与预算；模型失败明确显示，不以脚本队友替代。
+5. 外部 PR 检查与离线 CI 不调用真实模型。实时对照需先确定协议与预算（见[试验方案](docs/research/trial-protocol.md)：一个主要指标、底线指标、用 `research_stats.py` 估算样本量、至少两个模型、工具 `--dry-run` 给出的费用）；模型失败明确显示，不以脚本队友替代。
 6. 提交前运行 `git diff --check`，排除凭据、本地配置、原始日志、记忆、贡献数据库及本机路径；分享反馈前先检查内容。
 7. 面向读者的说明采用英文在前、中文在后的对应版本；计划能力集中写入路线图。
 

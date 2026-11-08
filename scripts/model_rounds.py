@@ -119,8 +119,10 @@ def estimate(level, rounds, max_calls=None, price_per_m=DEFAULT_PRICE_PER_M):
 def summary(results, out):
     """Each round's result and decision_stats' outcomes for the set (read from the journals in out)."""
     from scripts import decision_stats
+    from scripts.reask import SINGLE_MODEL
     stats = decision_stats.report([out])
-    return {'rounds': results, 'decision_stats': stats}
+    # One connection per run: compare with a second model's run before reading a change as Jeff's.
+    return {'rounds': results, 'decision_stats': stats, 'note': SINGLE_MODEL}
 
 
 def main(argv=None):
