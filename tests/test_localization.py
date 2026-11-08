@@ -3,6 +3,7 @@ import ast
 from html.parser import HTMLParser
 import json
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import unittest
@@ -99,3 +100,84 @@ assert.equal(i.t('Kitchen timeout'),'Kitchen timeout');
                   '你离开案板 1的共同操作，进度保留']
         corpus += [e['message'] for e in k.events]
         self.run_js("const missing=corpus.filter(x=>/[\\u3400-\\u9fff]/.test(i.t(x)));assert.deepEqual(missing,[]);",corpus)
+
+
+# Where server text reaches the page: error replies, session notes and notices, and the exceptions whose messages
+# become them. The guard reads these places in every module that serves the page, so a new or reworded Chinese
+# message without an English entry fails here instead of reaching English players half translated.
+PAGE_MODULES = ('web_server.py', 'player_api.py', 'hosted_server.py', 'hosted_jev.py', 'hosted_cloudflare.py',
+                'hosted_free_models.py', 'hosted_records.py', 'hosted_capacity.py', 'hosted_usage.py',
+                'player_level_queue.py', 'level_design.py', 'level_calibration.py', 'jev.py', 'whitebox_server.py',
+                'cocos_server.py', 'free_model_client.py', 'model_status.py', 'feedback.py', 'cooperation_memory.py',
+                'kitchen.py', 'spatial_kitchen.py')
+MESSAGE_KEYS = ('error', 'message')
+MESSAGE_CALLS = ('note', 'notify', 'ValueError', 'RuntimeError', 'ModelWait', 'GatewayError', 'PermissionError',
+                 'LookupError')
+# Messages that never reach a page, each with where it goes instead (file, Chinese text with placeholders as 7).
+NOT_ON_A_PAGE = {
+    ('kitchen.py', '配置 7 必须是 true 或 false'): 'config.json check at server start, printed in the terminal',
+    ('kitchen.py', '配置 7 必须是正数'): 'config.json check at server start, printed in the terminal',
+    ('kitchen.py', '配置 7 必须是整数'): 'config.json check at server start, printed in the terminal',
+    ('kitchen.py', '文字原型最多支持 8 块案板和 8 口锅'): 'config.json check at server start, printed in the terminal',
+    ('kitchen.py', 'ai_max_calls 不能超过 2000'): 'config.json check at server start, printed in the terminal',
+    ('kitchen.py', '时间增量无效'): "engine guard on its own clock; the session's fixed ticks never trigger it",
+    ('spatial_kitchen.py', '未知地面位置'): 'routing fallback caught inside the engine',
+    ('spatial_kitchen.py', '工位没有可操作的一侧'): 'routing fallback caught inside the engine',
+    ('spatial_kitchen.py', '操作停靠点超出安全地面'): 'routing fallback caught inside the engine',
+}
+
+
+def page_messages():
+    """(file, line, text) for every Chinese message the page modules send to a page; f-string fields read 7."""
+    cjk = re.compile(r'[㐀-鿿]')
+
+    def text(node):
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            return node.value
+        if isinstance(node, ast.JoinedStr):
+            return ''.join(v.value if isinstance(v, ast.Constant) else '7' for v in node.values)
+        return None
+
+    found = []
+    for name in PAGE_MODULES:
+        for node in ast.walk(ast.parse((ROOT / name).read_text(encoding='utf-8'))):
+            values = []
+            if isinstance(node, ast.Dict):
+                values = [v for k, v in zip(node.keys, node.values) if isinstance(k, ast.Constant) and k.value in MESSAGE_KEYS]
+            elif isinstance(node, ast.Call) and node.args:
+                called = node.func.attr if isinstance(node.func, ast.Attribute) else getattr(node.func, 'id', None)
+                values = [node.args[0]] if called in MESSAGE_CALLS else []
+            for value in values:
+                message = text(value)
+                if message and cjk.search(message):
+                    found.append((name, node.lineno, message))
+    return found
+
+
+@unittest.skipUnless(shutil.which('node'), 'Node.js is needed to verify the browser localization bundle')
+class PageMessageGuardTests(LocalizationTests):
+    def test_every_page_message_has_english(self):
+        found = page_messages()
+        self.assertGreater(len(found), 150)
+        corpus = [message for name, _, message in found if (name, message) not in NOT_ON_A_PAGE]
+        # Messages composed from others, as the page receives them.
+        corpus += ['模型没有返回可执行的合法动作（不是 JSON；回复：\'wash now\'）；本次不执行。',
+                   '模型没有返回可执行的合法动作（choice 不在候选动作里）；本次不执行。',
+                   'Jeff 请求失败：模型接口连接失败或返回了无效数据；4s 后重试。无脚本队友代替。',
+                   'Jeff 请求失败：TypeSafe 网络连接失败或超时；2s 后重试。无脚本队友代替。']
+        self.run_js("const missing=corpus.filter(x=>/[\\u3400-\\u9fff]/.test(i.t(x)));assert.deepEqual(missing,[]);", corpus)
+
+    def test_the_built_page_carries_the_current_catalog(self):
+        # build_cocos.py writes kitchen-i18n.js from i18n.js and i18n.json; a catalog change needs it rewritten.
+        built = (ROOT / 'cocos-kitchen/i18n.js').read_text().replace('__KITCHEN_CATALOG__', (ROOT / 'cocos-kitchen/i18n.json').read_text())
+        self.assertEqual((ROOT / 'cocos-kitchen/build/web/kitchen-i18n.js').read_text(), built)
+
+    def test_the_allowlist_names_only_messages_that_exist(self):
+        found = {(name, message) for name, _, message in page_messages()}
+        self.assertEqual(set(NOT_ON_A_PAGE) - found, set())
+
+
+# Only the cases above; the inherited ones already run in LocalizationTests.
+for _name in dir(LocalizationTests):
+    if _name.startswith('test_'):
+        setattr(PageMessageGuardTests, _name, None)

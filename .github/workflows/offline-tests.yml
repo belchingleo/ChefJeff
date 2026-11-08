@@ -39,6 +39,9 @@ jobs:
       - run: node tests/mobile_controls_test.cjs
       - run: node tests/gamepad_controls_test.cjs
       - run: python -m unittest discover -s tests
+      - name: Tests leave the project's logs folder alone
+        run: |
+          if [ -e logs ]; then echo "The test run wrote into logs/; use a temporary folder (CHEFJEFF_LOG_DIR)."; find logs | head; exit 1; fi
       - name: Private console TLS, selection, preview and chart browser checks
         if: matrix.python == '3.12'
         run: python tests/run_admin_browser.py

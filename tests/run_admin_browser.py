@@ -1,4 +1,5 @@
 """Local TLS/Nginx/browser integration using only synthetic SQLite fixtures."""
+from contextlib import closing
 import hashlib
 import json
 from pathlib import Path
@@ -35,7 +36,7 @@ for site,views in [('cn',10),('global',20)]:
     for _ in range(views):stats.increment('page_views')
     usage.apply(site,('a' if site=='cn' else 'b')*32,usage_payload(stats.snapshot()))
 import sqlite3
-with sqlite3.connect(usage.path) as db:db.execute('UPDATE totals SET page_views=page_views+12 WHERE id=1')
+with closing(sqlite3.connect(usage.path)) as db, db:db.execute('UPDATE totals SET page_views=page_views+12 WHERE id=1')
 with patch.object(source_observer.time,'time',return_value=time.time()-300):
     observer=SourceObserver(case.db.parent,RETENTION_SECONDS)
 observer.save_receipt('cn',case.full)

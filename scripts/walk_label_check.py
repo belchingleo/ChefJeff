@@ -41,6 +41,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from scripts.jev_replay_check import (ask_once, client, estimate, hands_full, journal_requests, kind,  # noqa: E402
                                       moves_forward, pick, share)
+from scripts import reask  # noqa: E402
 
 ARMS = ('as_logged', 'walks_labeled', 'walks_explained', 'no_aimed_throws')
 DEFAULT_ARMS = ('as_logged', 'walks_labeled')
@@ -127,13 +128,21 @@ def arm_report(answers):
             'errors': dict(Counter(a['error'] for _, _, a in answers if 'error' in a).most_common())}
 
 
+# Outcomes with intervals and paired differences (reask.stats); the shares above stay as they were.
+OUTCOMES = {
+    'same_as_logged': lambda i, p, a: a['choice'] == i['logged_choice'],
+    'chose_walk': lambda i, p, a: kind(a['choice'], p) in ('walk', 'supply_walk'),
+    'chose_wait': lambda i, p, a: kind(a['choice'], p) == 'wait',
+    'chose_use_or_put_down': lambda i, p, a: kind(a['choice'], p) == 'use_or_put_down',
+    'chose_a_step_of_the_dish': lambda i, p, a: moves_forward(a['choice'], p),
+}
+
+
 def run(items, ask, arms_asked=DEFAULT_ARMS):
+    asked = reask.ask_arms(items, arms_asked, lambda item, name: arm(item['payload'], name), ask, ask_once)
     arms = {}
-    for name in arms_asked:
-        answers = []
-        for item in items:
-            payload = arm(item['payload'], name)
-            answers.append((item, payload, ask_once(ask, payload)))
+    for name, rows in asked['arms'].items():
+        answers = [(item, payload, replies[0]) for item, payload, replies in rows]
         full = [x for x in answers if hands_full(x[0]['payload'])]
         empty = [x for x in answers if not hands_full(x[0]['payload'])]
         arms[name] = {'all': arm_report(answers), 'hands_full': arm_report(full), 'hands_empty': arm_report(empty)}
@@ -142,7 +151,7 @@ def run(items, ask, arms_asked=DEFAULT_ARMS):
     return {'moments': len(items), 'rounds': len({i['round'] for i in items}),
             'hands_full': sum(hands_full(i['payload']) for i in items),
             'walks_labeled_per_request': round(sum(labeled) / len(labeled), 2) if labeled else None,
-            'arms': arms}
+            'arms': arms, 'stats': reask.stats(asked, OUTCOMES)}
 
 
 def main(argv=None):

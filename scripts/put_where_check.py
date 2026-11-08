@@ -31,6 +31,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from scripts.decision_stats import PLACE_KINDS, read_rounds  # noqa: E402
 from scripts.jev_replay_check import client, estimate, journals, pick, share  # noqa: E402
+from scripts import reask  # noqa: E402
 
 ARMS = ('as_logged', 'plain_drop')
 NOTES = (' (recoverable, no charge)', '（可捡回、不扣钱）', '（可捡回，不扣钱）')
@@ -106,17 +107,27 @@ def arm_report(answers):
             'errors': dict(Counter(a['error'] for _, _, a in answers if 'error' in a).most_common())}
 
 
+def pressed(answer):
+    return str(answer['choice']).startswith(ONE_PRESS_PREFIXES)
+
+
+# Outcomes with intervals and paired differences (reask.stats); floor applies only to one-press answers.
+OUTCOMES = {
+    'same_as_logged': lambda i, p, a: a['choice'] == i['logged_choice'],
+    'chose_one_press': lambda i, p, a: pressed(a),
+    'put_on_the_floor': lambda i, p, a: place(a.get('put_where'), p) == 'floor' if pressed(a) else None,
+}
+
+
 def run(items, ask, arms_asked=ARMS):
     logged = Counter(place(i['logged_put_where'], i['payload']) for i in items)
     out = {'moments': len(items), 'rounds': len({i['round'] for i in items}),
            'logged': {'put_where_places': dict(logged.most_common()), 'floor_share': share(logged['floor'], len(items))},
            'arms': {}}
-    for name in arms_asked:
-        answers = []
-        for item in items:
-            payload = arm(item['payload'], name)
-            answers.append((item, payload, ask_once(ask, payload)))
-        out['arms'][name] = arm_report(answers)
+    asked = reask.ask_arms(items, arms_asked, lambda item, name: arm(item['payload'], name), ask, ask_once)
+    for name, rows in asked['arms'].items():
+        out['arms'][name] = arm_report([(item, payload, replies[0]) for item, payload, replies in rows])
+    out['stats'] = reask.stats(asked, OUTCOMES)
     return out
 
 

@@ -44,6 +44,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from scripts.jev_replay_check import (ask_once, client, estimate, hands_full, jeff, journal_requests, kind,  # noqa: E402
                                       moves_forward, pick, share, stations, supplies)
+from scripts import reask  # noqa: E402
 
 ARMS = ('as_logged', 'no_recent', 'no_supply_walks')
 STUCK = ('supply_walk', 'walk', 'wait')
@@ -147,13 +148,21 @@ def groups(items):
                                                           for i in walks).most_common(10))}}
 
 
+# Outcomes with intervals and paired differences (reask.stats); the shares below stay as they were.
+OUTCOMES = {
+    'same_as_logged': lambda i, p, a: a['choice'] == i['logged_choice'],
+    'chose_supply_walk': lambda i, p, a: kind(a['choice'], p) == 'supply_walk',
+    'chose_walk': lambda i, p, a: kind(a['choice'], p) == 'walk',
+    'chose_wait': lambda i, p, a: kind(a['choice'], p) == 'wait',
+    'chose_a_step_of_the_dish': lambda i, p, a: moves_forward(a['choice'], p),
+}
+
+
 def run(items, ask):
+    asked = reask.ask_arms(items, ARMS, lambda item, name: arm(item['payload'], name), ask, ask_once)
     arms = {}
-    for name in ARMS:
-        answers = []
-        for item in items:
-            payload = arm(item['payload'], name)
-            answers.append((item, payload, ask_once(ask, payload)))
+    for name, rows in asked['arms'].items():
+        answers = [(item, payload, replies[0]) for item, payload, replies in rows]
         ok = [(i, p, a) for i, p, a in answers if 'choice' in a]
         kinds = Counter(kind(a['choice'], p) for _, p, a in ok)
         arms[name] = {'asked': len(answers), 'answered': len(ok),
@@ -167,7 +176,7 @@ def run(items, ask):
             'logged_kinds': dict(logged.most_common()),
             'with_supply_walks_offered': sum(any(k.startswith('go ') and k[3:] in supplies(i['payload'])
                                                  for k in i['payload']['questions']['next_action']['criteria']) for i in items),
-            'groups': groups(items), 'arms': arms}
+            'groups': groups(items), 'arms': arms, 'stats': reask.stats(asked, OUTCOMES)}
 
 
 def main(argv=None):

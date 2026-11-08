@@ -1,4 +1,5 @@
 """Synthetic fixtures only; no production database, account or model access."""
+from contextlib import closing
 from copy import deepcopy
 import hashlib
 import http.client
@@ -60,7 +61,7 @@ class AdminTests(unittest.TestCase):
         expired = store.save(self.sample)
         withdrawn = store.save(self.sample)
         store.delete(withdrawn['id'], withdrawn['deletion_token'])
-        with sqlite3.connect(self.db) as c:
+        with closing(sqlite3.connect(self.db)) as c, c:
             c.execute('UPDATE records SET expires=? WHERE id=?', (time.time()-1, expired['id']))
         self.before = hashlib.sha256(self.db.read_bytes()).hexdigest()
         self.usage = ThreadingHTTPServer(('127.0.0.1', 0), UsageHandler)
@@ -118,7 +119,7 @@ class AdminTests(unittest.TestCase):
         self.assertEqual(hashlib.sha256(self.db.read_bytes()).hexdigest(),self.before)
 
     def test_model_metadata_names(self):
-        with sqlite3.connect(self.db) as c:
+        with closing(sqlite3.connect(self.db)) as c, c:
             data=deepcopy(self.sample)
             data['conditions']['model_identity']={'provider':'custom','model_id':'synthetic-model'}
             c.execute('UPDATE records SET record=? WHERE id=?',(json.dumps(data),self.full['id']))

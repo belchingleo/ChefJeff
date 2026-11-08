@@ -1,4 +1,5 @@
 """Read-only export token: synthetic database, isolated services and files; no live server or real token."""
+from contextlib import closing
 import contextlib
 import hashlib
 import http.client
@@ -46,7 +47,7 @@ class SyntheticAdmin(unittest.TestCase):
         sample = json.loads((ROOT/'tests/fixtures/research-v2-short.json').read_text())
         self.saved = [store.save(sample), store.save(sample)]
         expired = store.save(sample)
-        with sqlite3.connect(self.db) as c:
+        with closing(sqlite3.connect(self.db)) as c, c:
             c.execute('UPDATE records SET expires=? WHERE id=?', (time.time()-1, expired['id']))
         self.before = hashlib.sha256(self.db.read_bytes()).hexdigest()
         config = dict(auth=str(self.auth), origin=ORIGIN, database=str(self.db), temporary=str(self.root), game_port=1)
@@ -272,7 +273,7 @@ class PullScriptTests(SyntheticAdmin):
         index = json.loads((self.out/pull.SYNC_INDEX).read_text())
         identifiers = {app.data.reference(record['id']): record['id'] for record in self.saved}
         gone, updated = sorted(index['records'])
-        with sqlite3.connect(self.db) as db:
+        with closing(sqlite3.connect(self.db)) as db, db:
             db.execute('UPDATE records SET expires=? WHERE id=?', (time.time()-1, identifiers[gone]))
             text = db.execute('SELECT record FROM records WHERE id=?', (identifiers[updated],)).fetchone()[0]
             record = json.loads(text)

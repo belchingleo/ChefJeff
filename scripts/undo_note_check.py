@@ -32,6 +32,7 @@ sys.path.insert(0, str(ROOT))
 import undo_note  # noqa: E402
 from scripts.decision_stats import read_rounds  # noqa: E402
 from scripts.jev_replay_check import client, estimate, journals, pick, share  # noqa: E402
+from scripts import reask  # noqa: E402
 
 ARMS = ('as_logged', 'undo_note')
 KINDS = ('take_back', 'put_back')
@@ -111,20 +112,28 @@ def shares(pairs):
             'same_as_logged': share(sum(c == i['logged_choice'] for i, c, _ in pairs), len(pairs))}
 
 
+# Outcomes with intervals and paired differences (reask.stats); the shares above stay as they were.
+OUTCOMES = {
+    'took_back': lambda i, p, a: took_back(i, a['choice'], a['put_where'])[0],
+    'full_swap': lambda i, p, a: took_back(i, a['choice'], a['put_where'])[1],
+    'same_as_logged': lambda i, p, a: a['choice'] == i['logged_choice'],
+}
+
+
 def run(items, ask, arms_asked=ARMS, repeats=1):
     out = {'moments': len(items), 'rounds': len({i['round'] for i in items}), 'repeats': repeats,
            'logged': shares([(i, i['logged_choice'], i['logged_put_where']) for i in items]), 'arms': {}}
-    for name in arms_asked:
+    asked = reask.ask_arms(items, arms_asked, arm, ask, ask_once, repeats)
+    for name, rows in asked['arms'].items():
         pairs, errors = [], Counter()
-        for item in items:
-            payload = arm(item, name)
-            for _ in range(repeats):
-                answer = ask_once(ask, payload)
+        for item, _, replies in rows:
+            for answer in replies:
                 if 'error' in answer:
                     errors[answer['error']] += 1
                 else:
                     pairs.append((item, answer['choice'], answer['put_where']))
         out['arms'][name] = {**shares(pairs), 'asked': len(items) * repeats, 'errors': dict(errors.most_common())}
+    out['stats'] = reask.stats(asked, OUTCOMES)
     return out
 
 

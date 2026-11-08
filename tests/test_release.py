@@ -215,3 +215,22 @@ class PackageTests(unittest.TestCase):
         self.assertNotIn(secret.decode(),str(markers(secret)))
 
 if __name__=='__main__':unittest.main()
+
+
+class ClientProtocolTests(unittest.TestCase):
+    """The page checks the page/server contract, so a release alone needs no web rebuild."""
+    ROOT = Path(__file__).resolve().parents[1]
+
+    def test_the_server_sends_the_protocol_the_page_was_built_for(self):
+        import release_info as info
+        self.assertEqual(release_info()['client_protocol'], info.CLIENT_PROTOCOL)
+        source = (self.ROOT / 'cocos-kitchen/assets/scripts/KitchenClient.ts').read_text(encoding='utf-8')
+        self.assertEqual(re.findall(r'^const CLIENT_PROTOCOL=(\d+);', source, re.M), [str(info.CLIENT_PROTOCOL)])
+
+    def test_no_page_script_names_the_release_version(self):
+        import release_info as info
+        scripts = [self.ROOT / 'cocos-kitchen/assets/scripts' / name for name in
+                   ('KitchenClient.ts', 'KitchenGeometry.ts', 'KitchenAudio.ts', 'LevelOneArt.ts')]
+        scripts += sorted((self.ROOT / 'cocos-kitchen/build/web').rglob('*.js'))
+        for path in scripts:
+            self.assertNotIn(info.VERSION, path.read_text(encoding='utf-8', errors='replace'), path.name)

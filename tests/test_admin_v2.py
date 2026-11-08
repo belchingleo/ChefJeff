@@ -1,4 +1,5 @@
 """Synthetic-only tests for selection, previews, analysis and authenticated source tagging."""
+from contextlib import closing
 from copy import deepcopy
 from datetime import datetime, timezone
 import hashlib
@@ -62,7 +63,7 @@ class V2Tests(baseline.AdminTests):
         self.assertEqual(self.selected(refs,None)[0],401)
         for invalid in ([],refs+refs,[refs[0]]*51,['../../anything'],[1]):
             self.assertEqual(self.selected(invalid,cookie)[0],400)
-        with sqlite3.connect(self.db) as c:c.execute('DELETE FROM records WHERE id=?',(self.full['id'],))
+        with closing(sqlite3.connect(self.db)) as c, c:c.execute('DELETE FROM records WHERE id=?',(self.full['id'],))
         self.assertEqual(self.selected([data.reference(self.full['id'])],cookie)[0],410)
 
     def test_preview_paginates_events_and_preserves_original_record(self):
@@ -105,7 +106,7 @@ class V2Tests(baseline.AdminTests):
         status,_,raw=self.request('/research-admin/download/research.cjresearch.zip?site=cn',cookie=cookie)
         self.assertEqual(status,200)
         target=self.root/'region.zip';target.write_bytes(raw);self.assertEqual(baseline.verify_package(target,database=self.db)['rounds'],1)
-        with sqlite3.connect(self.db) as c:
+        with closing(sqlite3.connect(self.db)) as c, c:
             # Metadata selector supports future IDs; old record validation remains strict.
             future=deepcopy(self.sample);future['level']=7
             c.execute('INSERT INTO records VALUES (?,?,?,?)',('synthetic-future-level','unused',time.time()+1000,json.dumps(future)))
@@ -117,7 +118,7 @@ class V2Tests(baseline.AdminTests):
             stats=UsageStats()
             for _ in range(views):stats.increment('page_views')
             usage.apply(site,secrets.token_hex(16),usage_payload(stats.snapshot()))
-        with sqlite3.connect(usage.path) as c:c.execute('UPDATE totals SET page_views=page_views+12 WHERE id=1')
+        with closing(sqlite3.connect(usage.path)) as c, c:c.execute('UPDATE totals SET page_views=page_views+12 WHERE id=1')
         before=hashlib.sha256(usage.path.read_bytes()).hexdigest()
         result=data.regional_usage(self.db)
         self.assertEqual(result['totals']['page_views'],42)
@@ -169,15 +170,15 @@ class SourceTests(unittest.TestCase):
     def test_a_round_moved_to_the_new_terms_keeps_its_site_until_the_new_expiry(self):
         receipt=self.client('global').request('records/save',self.body());ref=data.reference(receipt['id'])
         older={**self.record,'consent_version':'pilot-session-2026-10-v7'};soon=time.time()+100*86400
-        with sqlite3.connect(self.root/'data/contributions.sqlite3') as db:
+        with closing(sqlite3.connect(self.root/'data/contributions.sqlite3')) as db, db:
             db.execute('UPDATE records SET record=?,expires=? WHERE id=?',(json.dumps(older),soon,receipt['id']))
-        with sqlite3.connect(self.server.source_observer.path) as db:
+        with closing(sqlite3.connect(self.server.source_observer.path)) as db, db:
             db.execute('UPDATE sources SET expires=? WHERE ref=?',(soon,ref))
         self.assertIsNone(self.client('cn').request('records/terms',{'id':receipt['id'],'deletion_token':secrets.token_urlsafe(32)}))
         moved=self.client('cn').request('records/terms',{'id':receipt['id'],'deletion_token':receipt['deletion_token']})
         later=datetime.fromisoformat(moved['expires_at']).timestamp()
         self.assertGreater(later,soon)
-        with sqlite3.connect(self.server.source_observer.path) as db:
+        with closing(sqlite3.connect(self.server.source_observer.path)) as db, db:
             self.assertEqual(db.execute('SELECT expires FROM sources WHERE ref=?',(ref,)).fetchone()[0],later)
         # Past the old expiry the round still carries the site it came from.
         with patch.object(source_observer.time,'time',return_value=soon+86400):
@@ -192,7 +193,7 @@ class SourceTests(unittest.TestCase):
     def test_restart_does_not_backfill_records_from_a_prior_capture_gap(self):
         body=self.body(time.time()-600)
         receipt=self.server.records.create(body['request_id'],body['deletion_token'],body['created_at'],body['record'])
-        with sqlite3.connect(self.server.source_observer.path) as db:
+        with closing(sqlite3.connect(self.server.source_observer.path)) as db, db:
             db.execute('UPDATE meta SET tracking_since=? WHERE id=1',(time.time()-1000,))
         restarted=SourceObserver(self.root/'data',RETENTION_SECONDS)
         restarted.save_receipt('global',receipt)

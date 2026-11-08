@@ -1118,7 +1118,25 @@
     "「拿/放」按下立即拿起或放下，拿着东西也一样；「切/洗/扔」空手时切菜、洗碗，拿着灭火器时灭火，拿着能扔的东西时点按直接扔出、长按瞄准、松开投掷；瞄准时滑到「取消」可取消。": "Take/Put picks up or puts down at once, even with an item in hand. Chop/Wash/Throw chops and washes with empty hands and puts out fires with the extinguisher; with a throwable item, tap to throw straight ahead, or hold to aim and release to throw; while aiming, slide onto Cancel to cancel.",
     "使用左侧摇杆移动，右侧按钮拿放、切洗扔和冲刺。": "Move with the left joystick. Use the right buttons to take and put, chop, wash and throw, and dash.",
     "切/洗/扔": "Chop/Wash/Throw",
-    "按住「切/洗/扔」瞄准": "Hold Chop/Wash/Throw to aim"
+    "按住「切/洗/扔」瞄准": "Hold Chop/Wash/Throw to aim",
+    "请选择 API 服务。": "Choose an API service.",
+    "请填写完整的 API Key，不要包含空格或换行。": "Enter the complete API key, without spaces or line breaks.",
+    "请填写接口地址和模型名称。": "Enter the base URL and the model name.",
+    "接口地址需要是 HTTPS Base URL，不能包含密码、查询参数或片段。": "The base URL must be an HTTPS URL without a password, query string or fragment.",
+    "第一版仅支持公网 HTTPS 模型接口。": "Only public HTTPS model endpoints are supported for now.",
+    "不支持内网接口地址。": "Private network addresses are not supported.",
+    "保存选项无效。": "Invalid save option.",
+    "需要配置玩家 API": "Set up your own model API first",
+    "模型接口连接失败或返回了无效数据": "Could not reach the model API, or it returned invalid data",
+    "回复里没有文本": "the reply has no text",
+    "不是 JSON": "not JSON",
+    "缺少 choice": "choice is missing",
+    "sprint 不是真假值": "sprint is not true or false",
+    "choice 不在候选动作里": "choice is not one of the offered actions",
+    "本局 AI 调用已达上限，不再发起请求；已有动作继续，玩家仍可操作。": "This round's AI call limit is reached; no more requests are sent. Actions under way continue and you can keep playing.",
+    "未找到 TYPESAFE_API_KEY。请在本地 .env 中配置，不要把密钥发到聊天。": "TYPESAFE_API_KEY was not found. Set it in your local .env; never paste the key into a chat.",
+    "仅允许本机或 USB 转发访问。": "Only this computer or USB forwarding may connect.",
+    "请先构建 Cocos Web 预览，或检查路径。": "Build the Cocos web preview first, or check the path."
   },
   "templates": [
     [
@@ -2040,6 +2058,30 @@
     [
       "站到{0}正前方才能洗",
       "Stand right in front of {0} to wash"
+    ],
+    [
+      "对局记录包未能保存（{0}）",
+      "The round record bundle could not be saved ({0})"
+    ],
+    [
+      "模型没有返回可执行的合法动作（{0}）；本次不执行。",
+      "The model returned no valid action to carry out ({0}); nothing was done this time."
+    ],
+    [
+      "{0}；回复：{1}",
+      "{0}; reply: {1}"
+    ],
+    [
+      "{0} 返回了不符合候选集的选择",
+      "{0} returned a choice outside the offered actions"
+    ],
+    [
+      "{0} 网络连接失败或超时",
+      "{0}: network connection failed or timed out"
+    ],
+    [
+      "Jeff 请求失败：{0}；{1}s 后重试。无脚本队友代替。",
+      "Jeff's request failed: {0}; retrying in {1}s. No scripted teammate stands in."
     ]
   ]
 }

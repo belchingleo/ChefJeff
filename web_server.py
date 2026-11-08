@@ -22,7 +22,7 @@ from jev import JevClient, DecisionLoop
 from harness import Plan, PLAN_MODES, plan_condition
 import features
 import one_press
-from play import Journal
+from play import Journal, log_root
 from round_summary import round_summary
 from session_record import SessionLog, write_bundle
 from levels import available_levels
@@ -118,7 +118,7 @@ class GameSession:
         self.round_started_at = None
         # Local play keeps a Session bundle beside the journal; other sinks keep records in memory only.
         self.session_log = None
-        self.bundle_root = ROOT / 'logs' / 'sessions' if journal_factory is Journal else None
+        self.bundle_root = log_root() / 'sessions' if journal_factory is Journal else None
         self.deployment_mode = 'local'
 
     def note(self, message):

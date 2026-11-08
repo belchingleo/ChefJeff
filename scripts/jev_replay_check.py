@@ -26,6 +26,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from scripts.decision_stats import read_rounds  # noqa: E402
+import research_stats  # noqa: E402
 
 PRICE_PER_M = 0.042     # USD per million input tokens, for the estimate only
 # Keys that use or put down what Jeff holds; with full hands, these are the ways forward.
@@ -133,11 +134,9 @@ def estimate(items, sends_each):
 
 def replay(items, ask):
     """Each request twice now; agreement with the logged answer and between the two answers now."""
-    rows = []
-    for item in items:
-        first, second = ask_once(ask, item['payload']), ask_once(ask, item['payload'])
-        rows.append({**item, 'first': first, 'second': second})
-    return rows
+    from scripts import reask
+    asked = reask.ask_arms(items, ('as_logged',), lambda item, name: item['payload'], ask, ask_once, repeats=2)
+    return [{**item, 'first': replies[0], 'second': replies[1]} for item, _, replies in asked['arms']['as_logged']]
 
 
 def summary(rows):
@@ -156,7 +155,12 @@ def summary(rows):
             'logged_models': dict(Counter(r['logged_model'] for r in rows).most_common()),
             'models_now': dict(Counter(r[k]['model'] for r in rows for k in ('first', 'second') if r[k].get('model')).most_common()),
             'all': part(rows), 'hands_full': part([r for r in rows if hands_full(r['payload'])]),
-            'hands_empty': part([r for r in rows if not hands_full(r['payload'])])}
+            'hands_empty': part([r for r in rows if not hands_full(r['payload'])]),
+            # The first share close to the second means today's model answers as it did then; intervals say how close.
+            'stats': {'same_as_logged': research_stats.share(sum(r['first']['choice'] == r['logged_choice'] for r in answered),
+                                                             len(answered)),
+                      'same_on_resend': research_stats.share(sum(r['first']['choice'] == r['second']['choice'] for r in paired),
+                                                             len(paired))}}
 
 
 def pick(items, sample, seed):

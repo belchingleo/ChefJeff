@@ -13,10 +13,15 @@ from kitchen import Kitchen, ROOT, STATES, load_config
 from jev import JevClient, DecisionLoop
 
 
+def log_root():
+    """Where local journals and session bundles go: $CHEFJEFF_LOG_DIR when set, else logs/ in the project."""
+    return Path(os.environ.get("CHEFJEFF_LOG_DIR") or ROOT / "logs")
+
+
 class Journal:
     def __init__(self, name="game"):
-        folder = ROOT / "logs"
-        folder.mkdir(exist_ok=True)
+        folder = log_root()
+        folder.mkdir(parents=True, exist_ok=True)
         self.path = folder / f"{name}-{datetime.now().strftime('%Y%m%d-%H%M%S')}-{os.getpid()}.jsonl"
         fd = os.open(self.path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         self.f = os.fdopen(fd, "w", encoding="utf-8")
