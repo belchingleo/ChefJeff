@@ -107,11 +107,15 @@ class GameSession:
         self.last_player_message_at = None
         self.bookmarks = []
         self.last_bookmark_at = None
-        # Jeff's harness features (features.json): what is released and what is on trial, read once.
-        self.features = features.current()
-        # Plan mode (off, choice or rolling), both on trial: the player picks one before a round among those with a
-        # switch (a held plan drew Jev away from a pan about to burn in scripts/plan_probe.py), kept for later rounds.
+        # Jeff's harness features (features.json and the server's override): taken again from feature_source as each
+        # round starts (next_features), so a running round keeps its own. Assigning self.features pins a set.
+        self.feature_source = features.current
+        self._features = self.feature_source()
+        # Plan mode (off, choice or rolling): the default from the features, or, where the features offer a switch,
+        # the player's pick before a round (a held plan drew Jev away from a pan about to burn in
+        # scripts/plan_probe.py), kept for later rounds while it is still offered.
         self.jeff_plan_mode = features.plan_default(self.features)
+        self.plan_mode_chosen = False
         # Every round of this play session, for the data export (feedback.play_export).
         self.history = []
         self.history_limit = HISTORY_LIMIT
@@ -441,14 +445,36 @@ class GameSession:
                 'allowed': self.phase in ('running','paused') and not self.k.ended,
                 'jeff_plan': self.plan_state()}
 
+    @property
+    def features(self):
+        """The features of the round running, or of the last one started."""
+        return self._features
+
+    @features.setter
+    def features(self, value):
+        self._features = value
+        self.feature_source = lambda: value
+
+    def next_features(self):
+        """The features the next round takes: the latest between rounds, the running round's own during one."""
+        return self.feature_source() if self.phase in ('ready', 'ended') else self._features
+
+    def next_plan_mode(self, value):
+        """The plan mode a round with these features runs: the player's pick while it is still offered, else the default."""
+        if self.plan_mode_chosen and self.jeff_plan_mode in ('off', *features.plan_choices(value)):
+            return self.jeff_plan_mode
+        return features.plan_default(value)
+
     def plan_state(self):
         """The plan switch for the next round, and Jeff's current plan as the player sees it: its steps, in Chinese, and which are done."""
         plan = getattr(self.ai, 'plan', None) if self.ai else None
+        between = self.phase in ('ready', 'ended')
         current = plan.current if plan and self.phase in ('running', 'paused') and not self.k.ended else None
         steps = [{**work_label(s['work'], self.k.rules.items), 'done': s['done']} for s in current['steps']] if current else None
-        choices = features.plan_choices(self.features)
-        return {'mode': self.jeff_plan_mode, 'available': choices, 'editable': bool(choices) and self.phase in ('ready', 'ended'),
-                'current': {'steps': steps} if current else None}
+        value = self.next_features()
+        choices = features.plan_choices(value)
+        return {'mode': self.next_plan_mode(value) if between else self.jeff_plan_mode, 'available': choices,
+                'editable': bool(choices) and between, 'current': {'steps': steps} if current else None}
 
     def _communicate(self, body):
         if self.phase not in ('running','paused') or self.k.ended or self.journal is None:
@@ -548,10 +574,10 @@ class GameSession:
             if self.phase not in ('ready', 'ended'):
                 return 409, {'error': '请在开局前或结算后修改计划模式。'}
             # With no plan switch offered (two-step intent released) the round's plan mode is not the player's to change.
-            choices = features.plan_choices(self.features)
+            choices = features.plan_choices(self.next_features())
             if not choices or body.get('mode') not in ('off', *choices):
                 return 400, {'error': '计划模式设置无效。'}
-            self.jeff_plan_mode = body['mode']
+            self.jeff_plan_mode, self.plan_mode_chosen = body['mode'], True
             return 200, {'ok': True, 'jeff_plan': self.plan_state()}
         if path == '/api/restart':
             if self.phase not in ('paused','ended'):
@@ -581,6 +607,9 @@ class GameSession:
             self.journal = SessionLog(self, self.journal_factory(self.log_prefix+'-'+self.game_id[:8]),
                                       keep_payloads=self.bundle_root is not None, deployment_mode=self.deployment_mode)
             self.session_log = self.journal
+            # The switches as of this round's start (features.json and the server's override); kept for the round.
+            self._features = self.feature_source()
+            self.jeff_plan_mode = self.next_plan_mode(self._features)
             held = Plan(mode=self.jeff_plan_mode) if self.jeff_plan_mode in PLAN_MODES else None
             plan = {'jeff_plan': plan_condition(held.mode, held.steps)} if held else {}
             pressed = features.one_press_flags(self.features)

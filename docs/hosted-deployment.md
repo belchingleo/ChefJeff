@@ -64,6 +64,18 @@ With `--data-dir`, the private `usage.sqlite3` contains one totals row and bound
 
 After an approved release is installed, run `python3 /opt/chefjeff/current/deploy/set_kitchen_capacity.py 8` in the server's root SSH terminal to explicitly replace the old two-kitchen command. Existing memory/data/VPN settings remain in place. The helper restarts ChefJeff (ending current rounds), checks the effective limit and restores its previous drop-in if verification fails. A normal release update intentionally preserves existing capacity overrides.
 
+### Switching Jeff's features on a server
+
+The release's `features.json` sets which of Jeff's harness features are on. A server can change them without a new release, through `/etc/chefjeff/features.override.json`, which `features.py` writes and checks. Run it as root from the live release, on each site you want to change:
+
+```bash
+sudo python3 /opt/chefjeff/current/features.py show
+sudo python3 /opt/chefjeff/current/features.py set rolling_intent off
+sudo python3 /opt/chefjeff/current/features.py unset rolling_intent
+```
+
+`set NAME on|off [--switch on|off]` changes a feature (and, for a trial, its Settings switch); `unset` gives it back to the release; `check [FILE]` checks a file without using it. Only features the release has, and only `on` and `player_switch`, can be set; a change that would break `features.json`'s rules (a switch on a released feature, two plan modes) is refused and nothing is written. No restart is needed: new rounds take the change, a round already running keeps its switches, and `compact_input` applies from the next request. Research records mark a feature set this way with `"source": "server"`. A deploy leaves the override file in place, so after each deploy run `show` (or `check`) to see it still applies to the new release; one that no longer applies is not used and the game service log says why.
+
 ### Raising capacity
 
 Two limits apply: `--max-sessions` (active kitchens, 1–16) and `--max-waiting` (extra page sessions that can browse, set up a model and wait, 0–32). A page beyond both cannot open a kitchen and retries every 15 seconds. `--max-per-network` (default 4) is separate. On the server, as root in its SSH terminal:
@@ -172,6 +184,18 @@ JavaScript 压缩同时覆盖 `text/javascript` 与 `application/javascript`，�
 `/ops/capacity` 仅从回环后端读取，公开 Nginx 入口拒绝访问。指标包含保留名额、按网络拒绝次数、页面会话数、拒绝数、近期响应 P95／P99、Python CPU／内存／线程和可用时的 Linux 服务 cgroup 内存；不包含会话 token、游戏 ID、IP 或模型正文。这些是后端指标，不是浏览器／网络延迟或整机 CPU。
 
 获得合并及部署授权、安装新版后，在服务器 root SSH 终端执行 `python3 /opt/chefjeff/current/deploy/set_kitchen_capacity.py 8`，显式替换原来的两个厨房命令。内存／数据／VPN 设置保留；脚本重启厨房（结束现有对局），校验实际容量，失败则恢复原补充配置。普通版本更新会保留现有容量覆盖配置。
+
+### 在服务器上开关 Jeff 的功能
+
+发布包里的 `features.json` 决定 Jeff 的哪些功能打开。服务器可以不发新版本，用 `/etc/chefjeff/features.override.json` 改开关，这个文件由 `features.py` 写入并检查。在要改的站上，用 root 从正在运行的版本执行：
+
+```bash
+sudo python3 /opt/chefjeff/current/features.py show
+sudo python3 /opt/chefjeff/current/features.py set rolling_intent off
+sudo python3 /opt/chefjeff/current/features.py unset rolling_intent
+```
+
+`set 名字 on|off [--switch on|off]` 打开或关闭一个功能（测试中的功能还可以显示或隐藏它在设置里的开关）；`unset` 恢复成发布包里的值；`check [文件]` 只检查、不使用。只能改发布包里已有的功能，而且只能改 `on` 和 `player_switch`；违反 `features.json` 规则的修改（给已上线的功能加开关、同时开两种计划模式）会被拒绝，文件不变。不需要重启：新开的局按新开关来，正在进行的局保持开局时的开关；`compact_input` 从下一次请求起生效。用这种方式设置的功能，研究记录里会标上 `"source": "server"`。部署新版本不会删掉覆盖文件，所以每次部署后都运行一次 `show`（或 `check`），确认它对新版本仍然有效；不再有效的覆盖文件不会被使用，游戏服务的日志里会写明原因。
 
 ### 提高容量
 
