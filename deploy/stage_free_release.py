@@ -9,8 +9,8 @@ import re
 import shutil
 import tempfile
 
-# The release both regions run now (98585b5, 0.7.0-beta.1, verified on both servers 2026-11-06).
-BASE_MANIFEST_SHA='998f39fcc98c1367da1e8b82fd0a73b27bb642f96b9768078bf556c60d30e017'
+# The release both regions run now (d99e933, 0.8.0-beta.1, verified on both servers 2026-11-08).
+BASE_MANIFEST_SHA='927e2aab1178528671a7cf899b8b4ab4afd7a6e1b2a4849bd52fd4878b99be2f'
 
 
 def sha(path):

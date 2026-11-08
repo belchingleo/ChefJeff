@@ -13,6 +13,10 @@
       "commit": "b98a4fc6b8e8bfb58c72210afa3add9bceecd951",
       "version": "0.6.0-beta.2"
     },
+    "8cc97839f0e6240d6366eb442e4f14f4eb313892a12d5e5218f0c10246a59d30": {
+      "commit": "d99e933efc181905623a5ad5a3521f0e76096a4b",
+      "version": "0.8.0-beta.1"
+    },
     "a8424a4d6e77b1cabcc0ad7eaeb7bd726503765859e336d351e5bf6de38d1ae7": {
       "commit": "c4fcc6627493e0beb5f83a5905cd5396515ecfe3",
       "version": "0.6.0-beta.2"

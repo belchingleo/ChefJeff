@@ -16,7 +16,8 @@ from shared_client import SharedClient
 from shared_server import read_private_json
 
 UNIT=Path('/etc/systemd/system/chefjeff-free.service')
-# The gateway Shanghai runs now (98585b5, upgraded with --extra-models on 2026-11-06).
+# The gateway Shanghai runs now (98585b5, upgraded with --extra-models on 2026-11-06; kept when the game
+# sites moved to d99e933 on 2026-11-08, since nothing it runs changed but compact_input, which is off).
 PREVIOUS=Path('/opt/chefjeff/releases/china-free-98585b5ec8e8/chefjeff-web-demo')
 PREVIOUS_MANIFEST='998f39fcc98c1367da1e8b82fd0a73b27bb642f96b9768078bf556c60d30e017'
 UNIT_NAME='chefjeff-free.service'
