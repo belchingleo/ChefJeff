@@ -407,6 +407,8 @@ function kitchenTabs(dialog){
   const p=el('api-provider').value,preset=presets[p]||{};
   el('api-url-row').hidden=!preset.custom;el('api-model-row').hidden=!preset.model_editable;
   el('api-url').required=!!preset.custom;el('api-model').required=!!preset.model_editable;
+  // The local game (not the hosted page) may use a model on this computer, which needs no key (player_api.LOOPBACK_HOSTS).
+  el('api-key').required=!(preset.custom&&!window.chefjeffJevRelayAvailable&&/^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?(\/|$)/i.test(el('api-url').value.trim()));
   el('api-provider-note').textContent=preset.note||'';
   el('api-get-key').hidden=!preset.key_url;if(preset.key_url)el('api-get-key').href=preset.key_url;
   el('api-jev-relay-row').hidden=!window.chefjeffJevRelayAvailable||p!=='jev';
@@ -465,6 +467,7 @@ function kitchenTabs(dialog){
   showTab(el('tab-connection'));if(!dialog.open)dialog.showModal();
  });
  el('api-provider').addEventListener('change',()=>{el('api-model').value=presets[el('api-provider').value]?.model||'';el('api-key').value='';el('api-jev-relay').checked=false;el('api-cf-relay').checked=false;fields()});
+ el('api-url').addEventListener('input',fields);
  el('api-close').onclick=()=>{el('api-key').value='';dialog.close()};
  const showKey=on=>{el('api-key').type=on?'text':'password';el('api-key-show').textContent=on?'隐藏':'显示';el('api-key-show').setAttribute('aria-pressed',String(on))};
  el('api-key-show').onclick=()=>showKey(el('api-key').type==='password');

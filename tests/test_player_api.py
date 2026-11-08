@@ -106,9 +106,20 @@ class PlayerApiTests(unittest.TestCase):
         self.assertEqual(self.g.c['ai_max_response_age'],15)
         self.assertEqual(self.make().c['ai_max_response_age'],15)
     def test_reject_unsafe_urls(self):
-        for url in ['http://api.example.com','https://127.0.0.1/v1','https://localhost','https://[::1]','https://user:pass@example.com','https://example.com?key=secret']:
+        for url in ['http://api.example.com','https://192.168.1.5/v1','http://10.0.0.2:8000/v1','https://printer.local/v1',
+                    'https://model.localhost/v1','http://127.0.0.2:8000/v1','https://user:pass@example.com','https://example.com?key=secret',
+                    'http://user:pass@127.0.0.1:8000/v1','ftp://127.0.0.1/v1']:
             with self.subTest(url=url),self.assertRaises(ValueError):
                 settings_from({'provider':'compatible','base_url':url,'model':'fast','api_key':KEY})
+        with self.assertRaises(ValueError):                                     # a public address still needs a key
+            settings_from({'provider':'compatible','base_url':'https://api.example.com/v1','model':'fast','api_key':''})
+    def test_a_model_on_this_computer_needs_no_https_and_no_key(self):
+        for url in ['http://127.0.0.1:8000/v1','http://localhost:11434/v1','http://[::1]:1234/v1','https://127.0.0.1/v1']:
+            for key in (None,'',KEY):
+                with self.subTest(url=url,key=key):
+                    setting=settings_from({'provider':'compatible','base_url':url,'model':'local-2b',**({'api_key':key} if key is not None else {})})
+                    self.assertEqual((setting['base_url'],setting['api_key']),(url,key or ''))
+                    self.assertEqual(settings_from(json.loads(json.dumps(setting))),setting)  # a remembered setting reloads unchanged
 
 
 class CompatibleTests(unittest.TestCase):
@@ -163,6 +174,14 @@ class CompatibleTests(unittest.TestCase):
             body=json.loads(req.data)
             self.assertEqual((body['model'],body['response_format']),(model,{'type':'json_object'}))
             self.assertEqual('chat_template_kwargs' in body,thinking)
+    def test_a_keyless_local_model_gets_no_authorization_and_never_the_jev_key(self):
+        setting=settings_from({'provider':'compatible','base_url':'http://127.0.0.1:8000/v1','model':'local-2b'})
+        with patch('jev.load_key',side_effect=AssertionError('the Jev key must not be loaded')):
+            self.client=CompatibleClient(load_config(),setting)
+        result,req=self.ask('{"choice":"wait"}')
+        self.assertEqual(result['choice'],'wait')
+        self.assertEqual(req.full_url,'http://127.0.0.1:8000/v1/chat/completions')
+        self.assertIsNone(req.get_header('Authorization'))
     def test_missing_sprint_means_no_sprint_and_is_logged(self):
         self.payload['questions']['sprint']={}
         result,_=self.ask('{"choice":"wait"}')

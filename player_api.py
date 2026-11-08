@@ -30,14 +30,16 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 PROVIDERS={p['id']:p for p in json.loads((ROOT/'model-providers.json').read_text())['providers'] if not p.get('disabled')}
 
 
+# A model served on this computer (settings_from): these hosts only, never another private address.
+LOOPBACK_HOSTS=('localhost','127.0.0.1','::1')
+
+
 def settings_from(body):
     provider=body.get('provider')
     if provider not in PROVIDERS:
         raise ValueError('请选择 API 服务。')
     preset=PROVIDERS[provider]
     key=body.get('api_key')
-    if not isinstance(key,str) or not 8<=len(key.strip())<=2048 or any(c.isspace() for c in key.strip()):
-        raise ValueError('请填写完整的 API Key，不要包含空格或换行。')
     base=body.get('base_url','') if preset.get('custom') else preset.get('endpoint') or preset['base_url']
     account=body.get('account_id')
     if preset.get('account_id'):
@@ -51,14 +53,22 @@ def settings_from(body):
     base=base.strip().rstrip('/')
     if base.endswith('/chat/completions'):base=base[:-17].rstrip('/')
     u=urllib.parse.urlsplit(base)
-    if u.scheme!='https' or not u.hostname or u.username or u.password or u.query or u.fragment:
+    host=(u.hostname or '').lower()
+    # This local game (not the hosted site, which never reads these settings) may use a model served on this
+    # computer: a custom endpoint at localhost or a loopback address, over http, with no key.
+    loopback=bool(preset.get('custom')) and host in LOOPBACK_HOSTS
+    if u.scheme not in (('http','https') if loopback else ('https',)) or not u.hostname or u.username or u.password or u.query or u.fragment:
         raise ValueError('接口地址需要是 HTTPS Base URL，不能包含密码、查询参数或片段。')
-    host=u.hostname.lower()
-    if host=='localhost' or host.endswith(('.localhost','.local','.internal')):
-        raise ValueError('第一版仅支持公网 HTTPS 模型接口。')
-    try:address=ipaddress.ip_address(host)
-    except ValueError:address=None
-    if address is not None and not address.is_global:raise ValueError('不支持内网接口地址。')
+    if not loopback:
+        if host=='localhost' or host.endswith(('.localhost','.local','.internal')):
+            raise ValueError('第一版仅支持公网 HTTPS 模型接口。')
+        try:address=ipaddress.ip_address(host)
+        except ValueError:address=None
+        if address is not None and not address.is_global:raise ValueError('不支持内网接口地址。')
+    if loopback and (key is None or (isinstance(key,str) and not key.strip())):
+        key=''
+    elif not isinstance(key,str) or not 8<=len(key.strip())<=2048 or any(c.isspace() for c in key.strip()):
+        raise ValueError('请填写完整的 API Key，不要包含空格或换行。')
     if type(body.get('remember',False)) is not bool:raise ValueError('保存选项无效。')
     return {'provider':provider,'base_url':base,'model':model.strip(),'api_key':key.strip(),'remember':body.get('remember',False),
             **({'account_id':account} if preset.get('account_id') else {})}
@@ -76,7 +86,9 @@ def cached_tokens(usage):
 
 class CompatibleClient(SpatialJevClient):
     def __init__(self,config,setting):
-        super().__init__(config,key=setting['api_key'])
+        super().__init__(config,key=setting['api_key'] or 'no-key')
+        # A model on this computer may need no key: send none, never the Jev key JevClient would load instead.
+        self.key=setting['api_key']
         self.setting=setting
     def payload(self,state,actions):
         payload=super().payload(state,actions)
@@ -110,7 +122,7 @@ class CompatibleClient(SpatialJevClient):
         preset=PROVIDERS[self.setting['provider']]
         body.update(preset.get('extra',{}));body.update(preset.get('model_extra',{}).get(self.setting['model'],{}))
         req=urllib.request.Request(self.setting['base_url']+'/chat/completions',data=json.dumps(body).encode(),
-            headers={'Authorization':'Bearer '+self.key,'Content-Type':'application/json'})
+            headers={**({'Authorization':'Bearer '+self.key} if self.key else {}),'Content-Type':'application/json'})
         try:
             with urllib.request.build_opener(NoRedirect).open(req,timeout=20) as r:data=json.load(r)
         except urllib.error.HTTPError as e:raise RuntimeError(f'模型接口 HTTP {e.code}{http_error_detail(e,self.key)}') from None
