@@ -221,6 +221,10 @@
       },
       "additionalProperties": false
     },
+    "requires_pair": {
+      "type": "boolean",
+      "description": "true: one chef alone cannot reach the goal. Checked against the committed calibration report (tests/test_level_four.py): no solo calibration run reaches min_money."
+    },
     "end_policy": {
       "type": "object",
       "required": [

@@ -67,11 +67,11 @@ class UsageStoreTests(unittest.TestCase):
             stats.start_round(0)
             stats.end_round(0, 'completed', 180, 1)
             data = UsageStats(directory).snapshot()
-            self.assertEqual([row['level'] for row in data['levels']], [1, 2, 3, 0])
+            self.assertEqual([row['level'] for row in data['levels']], [1, 2, 3, 4, 0])
             self.assertEqual(data['levels'][0]['started_rounds'], 4)
-            self.assertEqual(data['levels'][3], {'level': 0, 'started_rounds': 1, 'completed_rounds': 1})
+            self.assertEqual(data['levels'][4], {'level': 0, 'started_rounds': 1, 'completed_rounds': 1})
             with self.assertRaises(ValueError):
-                stats.start_round(4)
+                stats.start_round(5)
 
     def test_concurrent_requests_do_not_lose_increments(self):
         with tempfile.TemporaryDirectory() as directory:

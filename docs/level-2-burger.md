@@ -22,7 +22,7 @@ Observations include active orders, ingredient states, held items, occupied work
 
 # 第二关：汉堡
 
-适用当前三关版本。开局前或结算后选择第二关。原窄巷地图移到第三关。
+适用当前各关版本。开局前或结算后选择第二关。原窄巷地图移到第三关。
 
 ## 布局与资源
 

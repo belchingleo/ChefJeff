@@ -91,6 +91,7 @@ Common: `patience_default_game_ms`, `patience_by_recipe`. The algorithm name is 
 | `clock` | default and allowed game-per-real-time speeds (shipped 1, as in Overcooked 2; options 0.5 / 0.75 / 1) |
 | `round_limit_game_ms` | D |
 | `goal` | `minimum_money {min_money}`: net revenue at closing |
+| `requires_pair` | optional; `true` claims one chef alone cannot reach `min_money`. `tests/test_level_four.py` checks the claim against the committed calibration report (no solo run of the run set reaches the target, and the entry's configuration hash is the level's current one) |
 | `end_policy` | `fixed_round`: the round always runs to D and settles there |
 | `seeds.orders` / `seeds.spawn` | fixed integers, or `null` to draw at freeze time (recorded) |
 

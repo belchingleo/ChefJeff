@@ -15,8 +15,12 @@ round; --seeds N instead samples order seeds 1..N as a robustness check.
 --calibrate gives the reference income that level targets are set from (owner decision
 2026-10-06): the median over the versioned run set CALIBRATION (each level's configured
 pacing, order seeds 1-21, best pairing per seed), with the solo rung on the same seeds.
-The target is half of that median, rounded down to a multiple of 10; level 3 is kept
-above it at 190 by owner decision (2026-10-06).
+The target is half of that median, rounded down to a multiple of 10 (calibration-v2 gives level 3 160;
+the 190 it was once kept at is gone). On the single-dish levels 1 and 2 the 21 seeds give only one or two
+distinct results: the seed only changes the order of identical tickets and the spawn sides. Each level's
+entry carries the configuration hash of the level as played (cc.load_level) and whether the level
+requires a pair; tests/test_level_four.py fails when a level marked requires_pair has a stale entry
+or a solo run that reaches its target.
 
     python scripts/reference_sweep.py --calibrate --workers 4 --out docs/architecture/reports/calibration.json
 
@@ -57,7 +61,7 @@ from level_calibration import drive  # noqa: E402  (also imported from here by a
 
 INTERVALS = (20000, 25000, 30000, 35000, 40000, 45000)
 COUNTDOWNS = {'steak': (60000, 75000, 90000), 'burger': (75000, 90000, 105000, 120000, 135000)}
-MENUS = {1: ('steak',), 2: ('burger',), 3: ('steak', 'burger')}
+MENUS = {1: ('steak',), 2: ('burger',), 3: ('steak', 'burger'), 4: ('steak', 'burger')}
 VARIANTS = {'fast': 10, 'latency': 60}  # jeff decision period in 0.05 s ticks (0.5 s / 3 s)
 # The calibration run set, versioned so a report can be reproduced: each level's configured order
 # pacing, played on every listed order seed (spawn = seed % 2) by each reference pairing; a run is one
@@ -141,13 +145,47 @@ def calibrate(levels, seeds=None, workers=None):
         money = sorted(r['money'] for r in runs)
         solo_money = sorted(r['solo'] for r in runs)
         median = statistics.median(money)
-        target = cc.load_level(f'level-{level}')['level']['goal']['min_money']
-        out.append({'level': level, 'runs': runs, 'pair_min': money[0], 'pair_median': median, 'pair_max': money[-1],
+        configured = cc.load_level(f'level-{level}')
+        target = configured['level']['goal']['min_money']
+        out.append({'level': level, 'config_hash': configured['config_hash'],
+                    'requires_pair': configured['level'].get('requires_pair') is True, 'runs': runs,
+                    'pair_min': money[0], 'pair_median': median, 'pair_max': money[-1],
                     'target_50pct': max(0, int(median * .5) // 10 * 10), 'current_target': target,
                     'runs_reaching_current_target': sum(m >= target for m in money),
                     'solo_min': solo_money[0], 'solo_median': statistics.median(solo_money), 'solo_max': solo_money[-1],
                     'solo_runs_reaching_current_target': sum(m >= target for m in solo_money)})
     return {'run_set': dict(CALIBRATION, seeds=list(seeds)), 'levels': out}
+
+
+REPORT = ROOT / 'docs' / 'architecture' / 'reports' / 'calibration.json'
+
+
+def pair_check(report, registry=None):
+    """What is wrong with the report for each listed level that says it requires a pair: no entry, an entry from
+    another run set or another configuration of the level (stale: recalibrate), or a solo run reaching the target."""
+    registry = registry or cc.Registry()
+    problems = []
+    entries = {row['level']: row for row in report.get('levels', [])}
+    for document in registry.levels():
+        if document.get('menu_order') is None or document.get('requires_pair') is not True:
+            continue
+        number, name = document['menu_order'], document['id']
+        row = entries.get(number)
+        if row is None:
+            problems.append(f'{name}: no calibration entry')
+            continue
+        if report.get('run_set', {}).get('version') != CALIBRATION['version'] or report['run_set'].get('seeds') != CALIBRATION['seeds']:
+            problems.append(f'{name}: the report is not from run set {CALIBRATION["version"]} on seeds 1-21')
+        configured = cc.load_level(name, registry)
+        if row.get('config_hash') != configured['config_hash']:
+            problems.append(f'{name}: the report was made for another configuration of the level (recalibrate)')
+        target = configured['level']['goal']['min_money']
+        solo = sum(run['solo'] >= target for run in row.get('runs', []))
+        if not row.get('runs') or solo or row.get('solo_runs_reaching_current_target') != 0:
+            problems.append(f'{name}: {solo} solo runs reach the target {target}')
+        if statistics.median(run['money'] for run in row.get('runs') or [{'money': 0}]) < target:
+            problems.append(f'{name}: the reference pair does not reach the target {target}')
+    return problems
 
 
 def random_partner(seed):
@@ -249,7 +287,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--seeds', type=int, default=8)
     parser.add_argument('--fixed', action='store_true', help="use each level's configured seeds (one run per candidate)")
-    parser.add_argument('--levels', default='1,2,3')
+    parser.add_argument('--levels', default='1,2,3,4')
     parser.add_argument('--variants', default='fast,latency')
     parser.add_argument('--only', help='JSON {level: [[interval_ms, {dish: countdown_ms}], ...]} to restrict candidates')
     parser.add_argument('--ladder', action='store_true', help="baseline ladder on each level's configured round")

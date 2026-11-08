@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "kind": "order_policy",
+  "id": "level-4",
+  "version": 1,
+  "name": "第4关订单",
+  "mode": "fixed_interval_seeded",
+  "first_spawn_game_ms": 0,
+  "interval_game_ms": 30000,
+  "menu": [
+    {
+      "recipe_ref": "steak",
+      "weight": 1
+    },
+    {
+      "recipe_ref": "burger",
+      "weight": 1
+    }
+  ],
+  "keep_open": 2,
+  "max_open": 5,
+  "on_expire": "restart",
+  "patience_default_game_ms": 90000,
+  "patience_by_recipe": {
+    "steak": 60000,
+    "burger": 90000
+  },
+  "extensions": {
+    "chefjeff.status": "calibrated: the pacing rule of player levels (level_calibration.py): one order every 30 s, each dish waits 5 times its chop and cook seconds"
+  }
+}

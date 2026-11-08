@@ -47,6 +47,9 @@ SCENARIOS = {
     'level2-random': ('level-2', 4, 'random'),
     'level3-greedy': ('level-3', 5, 'greedy'),
     'level3-random': ('level-3', 6, 'random'),
+    # level 4: a row of counters splits the floor; zoned: the runner and maker either side, passing across.
+    'level4-zoned': ('level-4', 0, 'zoned'),
+    'level4-greedy': ('level-4', 7, 'greedy'),
 }
 ROLES = {'human': 'assembler', 'jeff': 'cook'}
 
@@ -54,6 +57,8 @@ ROLES = {'human': 'assembler', 'jeff': 'cook'}
 def choose(k, who, rng, policy):
     if policy == 'reference':
         return reference_policy.choose(k, who, ROLES[who])
+    if policy == 'zoned':
+        return reference_policy.choose_zoned(k, who, reference_policy._cell_side(k, k.anchor(who)))
     chef = k.chefs[who]
     if chef.job:
         return None

@@ -19,7 +19,7 @@ from test_visual_geometry import ROOT, TYPESCRIPT
 def cases():
     """Every level, positions all over the walkable floor, aims in sixteen directions."""
     rng, out = random.Random(7), []
-    for level in (1, 2, 3):
+    for level in (1, 2, 3, 4):
         k = SpatialKitchen(level_config(load_config() | {'spawn_seed': 0, 'order_seed': 1}, level))
         rows = []
         while len(rows) < 600:

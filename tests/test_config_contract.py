@@ -80,7 +80,7 @@ class MapInstanceTests(unittest.TestCase):
         from kitchen import load_config
         from spatial_kitchen import SpatialKitchen
         areas = {'处理区': 'prep', '烹饪区': 'cook'}
-        for n in (1, 2, 3):
+        for n in (1, 2, 3, 4):
             with self.subTest(level=n):
                 resolved = cc.load_level(f'level-{n}', seeds={'orders': 1, 'spawn': 0})
                 k = SpatialKitchen(load_config() | {'level_id': f'level-{n}', 'order_seed': 1, 'spawn_seed': 0})
@@ -118,7 +118,7 @@ class FreezeTests(unittest.TestCase):
 
 class DiagnosticTests(unittest.TestCase):
     def test_shipped_levels_have_no_diagnostics(self):
-        for n in (1, 2, 3):
+        for n in (1, 2, 3, 4):
             draft, diagnostics = cc.resolve_config(cc.level_bundle(f'level-{n}'))
             self.assertIsNotNone(draft)
             self.assertEqual(diagnostics, [])

@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "kind": "level",
+  "id": "level-4",
+  "version": 1,
+  "name": "第四关 · 隔台协作",
+  "menu_order": 4,
+  "ruleset_ref": {
+    "id": "chefjeff-service",
+    "version": 1
+  },
+  "map_ref": {
+    "id": "level-4",
+    "version": 1
+  },
+  "equipment_catalog_ref": {
+    "id": "chefjeff-core",
+    "version": 1
+  },
+  "recipe_catalog_ref": {
+    "id": "chefjeff-service",
+    "version": 3
+  },
+  "order_policy_ref": {
+    "id": "level-4",
+    "version": 1
+  },
+  "actors": [
+    {
+      "actor_id": "human",
+      "controller_type": "human"
+    },
+    {
+      "actor_id": "jeff",
+      "controller_type": "agent"
+    }
+  ],
+  "spawns": {
+    "rule": "nearest_floor_to_center_shuffled",
+    "centers": [
+      [
+        6.5,
+        2.0
+      ],
+      [
+        6.5,
+        6.0
+      ]
+    ],
+    "partition": {
+      "axis": "y",
+      "split": 4
+    }
+  },
+  "initial_inventory": [
+    {
+      "object": "extinguisher",
+      "id": "E1",
+      "at_type": "tool_rack"
+    },
+    {
+      "object": "plate",
+      "id": "D1",
+      "state": "clean",
+      "at_type": "counter"
+    },
+    {
+      "object": "plate",
+      "id": "D2",
+      "state": "clean",
+      "at_type": "counter"
+    },
+    {
+      "object": "plate",
+      "id": "D3",
+      "state": "clean",
+      "at_type": "counter"
+    },
+    {
+      "object": "pan",
+      "id": "P1",
+      "at": "p1"
+    },
+    {
+      "object": "pan",
+      "id": "P2",
+      "at": "p2"
+    }
+  ],
+  "clock": {
+    "game_per_wall_default": 0.75,
+    "game_per_wall_options": [
+      0.5,
+      0.75,
+      1.0
+    ]
+  },
+  "round_limit_game_ms": 180000,
+  "goal": {
+    "type": "minimum_money",
+    "min_money": 100
+  },
+  "requires_pair": true,
+  "end_policy": {
+    "type": "fixed_round"
+  },
+  "seeds": {
+    "orders": 26,
+    "spawn": 0
+  },
+  "extensions": {
+    "chefjeff.status": "calibrated (calibration-v2): a row of counters splits the floor, so every dish needs both chefs; the reference pair with Jeff deciding every 3 s has a median of 200 over seeds 1-21 and one chef alone serves nothing; target = 50% rounded down to 10",
+    "chefjeff.seeds": "fixed (owner decision B): every round of this level version gets the same orders and spawn sides"
+  }
+}

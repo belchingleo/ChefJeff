@@ -67,7 +67,12 @@ For each model it counts:
   chef's wasted actions (loops, unused work, support that went unused) and harmful ones by reason, which
   the summary keeps but the results page does not show. Local journals
   carry the summary in their last row; a research record is replayed from its engine inputs to rebuild
-  it (a record without them counts in `rounds_without_summary`).
+  it (a record without them counts in `rounds_without_summary`). `cooperation_gain`, labelled "relative to
+  the solo script baseline", is each round's net revenue minus the median income of the solo reference chef
+  (one scripted chef, the other idle) over the calibration run set, taken from
+  docs/architecture/reports/calibration.json for the entry made for the round's exact config hash; a round
+  on a configuration the report has no entry for counts in `rounds_without_baseline`. It is measured
+  against a script, not against the same player alone.
 - puts: where each chef's finished put-downs went, by kind of place (counter, board, supply top, floor, ...;
   from the station types of the round's map), and how many items each picked up from the floor. Some are
   steps of the dish rather than setting an item aside: stove (food into a pan), pan_to_stove (the held pan
@@ -108,7 +113,25 @@ from round_summary import CATEGORIES, CHEFS  # noqa: E402
 
 WORK_CATEGORIES = tuple(name for name, _ in CATEGORIES)
 
-VERSION = 'decision-stats-16'
+VERSION = 'decision-stats-17'
+# The solo baseline of the cooperation gain: the median income of the solo reference chef over the calibration
+# run set (scripts/reference_sweep.py --calibrate), for the level configuration each entry was made for.
+CALIBRATION_REPORT = Path(__file__).resolve().parents[1] / 'docs' / 'architecture' / 'reports' / 'calibration.json'
+GAIN_BASELINE = 'relative to the solo script baseline'
+_BASELINES = {}
+
+
+def solo_baselines(path=None):
+    """config hash -> median solo reference income, from the calibration report (entries with a hash only)."""
+    path = Path(path or CALIBRATION_REPORT)
+    if path not in _BASELINES:
+        try:
+            report = json.loads(path.read_text(encoding='utf-8'))
+        except (OSError, ValueError):
+            report = {}
+        _BASELINES[path] = {row['config_hash']: median(run['solo'] for run in row['runs'])
+                            for row in report.get('levels', []) if row.get('config_hash') and row.get('runs')}
+    return _BASELINES[path]
 MARGINS = (0.05, 0.1)
 PLAN_AGE = 5.0
 PUT_BACK = 10.0
@@ -255,6 +278,7 @@ def new_model():
             'one_press_swap_backs': 0, 'one_press_full_swaps': 0, 'one_press_versions': Counter(),
             'one_press_take_or_chop': Counter(),
             'summary_rounds': 0, 'no_summary_rounds': 0, 'reached_target': 0, 'money': [], 'outcome': Counter(),
+            'gains': [], 'no_baseline_rounds': 0,
             'model_errors': 0, 'model_calls': 0, 'work': defaultdict(Counter), 'shares': defaultdict(list),
             'wasted': defaultdict(Counter), 'puts': defaultdict(Counter), 'put_where_places': Counter()}
 
@@ -312,6 +336,13 @@ def outcomes(rows, m):
     m['reached_target'] += result.get('reached_target') is True
     if isinstance(result.get('money'), (int, float)):
         m['money'].append(result['money'])
+        # Cooperation gain: net revenue minus the solo reference chef's median on this exact level configuration.
+        start = rows[0] if rows and rows[0].get('kind') == 'start' else {}
+        baseline = solo_baselines().get(start.get('config_hash') or (start.get('state') or {}).get('config_hash'))
+        if baseline is None:
+            m['no_baseline_rounds'] += 1
+        else:
+            m['gains'].append(round(result['money'] - baseline, 1))
     m['outcome'].update({key: result.get(key) or 0 for key in ('served', 'expired', 'unresolved_at_close')})
     found = BURNS_AND_FIRES.search(str(end.get('result') or ''))
     if found:
@@ -696,7 +727,11 @@ def summary(m, margins=MARGINS):
                            'money_mean': round(sum(m['money']) / len(m['money']), 1) if m['money'] else None,
                            **{key: m['outcome'][key] for key in ('served', 'expired', 'unresolved_at_close', 'burns', 'fires')},
                            **({'burns_fires_unknown': m['outcome']['burns_fires_unknown']} if m['outcome']['burns_fires_unknown'] else {}),
-                           'model_errors': m['model_errors'], 'model_calls': m['model_calls']}
+                           'model_errors': m['model_errors'], 'model_calls': m['model_calls'],
+                           'cooperation_gain': {'baseline': GAIN_BASELINE, 'rounds': len(m['gains']),
+                                                'per_round': m['gains'],
+                                                'mean': round(sum(m['gains']) / len(m['gains']), 1) if m['gains'] else None,
+                                                'rounds_without_baseline': m['no_baseline_rounds']}}
         out['work'] = {category: {**{who: m['work'][category][who] for who in CHEFS},
                                   'jeff_share': share(m['work'][category]['jeff'], sum(m['work'][category].values()))}
                        for category in WORK_CATEGORIES if sum(m['work'][category].values())}
@@ -751,6 +786,7 @@ def round_row(label, rows, margins=MARGINS, plan_age=PLAN_AGE, put_back=PUT_BACK
                for key in ('served', 'expired', 'unresolved_at_close', 'burns', 'fires', 'model_calls')},
             'model_errors': outcome.get('model_errors'),
             'money': (outcome.get('money_per_round') or [None])[0],
+            'cooperation_gain': ((outcome.get('cooperation_gain') or {}).get('per_round') or [None])[0],
             'walk_round_trips': (s.get('undone') or {}).get('walk_round_trips'),
             'walks_share': (s.get('undone') or {}).get('walks_share'),
             'work': {category: {who: counts[who] for who in CHEFS} for category, counts in (s.get('work') or {}).items()},

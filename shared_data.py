@@ -106,8 +106,8 @@ def validate_usage(value):
         return type(n) in (int, float) and math.isfinite(n) and 0 <= n <= 10**15
     if not isinstance(counts, dict) or set(counts) != set(COUNTERS) or not all(integer(n) for n in counts.values()):
         raise ValueError('Invalid counters')
-    # A region on an older release reports levels 1-3 only, without the player-level row.
-    if not isinstance(levels, list) or len(levels) not in (len(LEVELS) - 1, len(LEVELS)):
+    # A region on an older release reports levels 1-3 only, without the level-4 or the player-level row.
+    if not isinstance(levels, list) or not 3 <= len(levels) <= len(LEVELS):
         raise ValueError('Invalid levels')
     seen = set()
     for row in levels:

@@ -208,16 +208,18 @@ class SharedDataTests(unittest.TestCase):
             previous = json.loads(db.execute('SELECT aggregate FROM shared_streams').fetchone()[0])
         self.assertEqual(previous['counts']['page_views'], 1)
 
-    def test_a_region_on_an_older_release_reports_without_the_player_level_row(self):
+    def test_a_region_on_an_older_release_reports_without_the_level_four_or_player_level_row(self):
         local = UsageStats()
-        local.start_round(1);local.start_round(0)
+        local.start_round(1);local.start_round(0);local.start_round(4)
         current = usage_payload(local.snapshot())
-        older = dict(current, levels=[row for row in current['levels'] if row['level'] != 0])
+        oldest = dict(current, levels=[row for row in current['levels'] if row['level'] not in (0, 4)])
+        older = dict(current, levels=[row for row in current['levels'] if row['level'] != 4])
+        self.server.usage.apply('cn', secrets.token_hex(16), oldest)
         self.server.usage.apply('cn', secrets.token_hex(16), older)
         self.server.usage.apply('global', secrets.token_hex(16), current)
         totals = {row['level']: row['started_rounds'] for row in UsageStats(self.root/'central').snapshot()['levels']}
-        self.assertEqual(totals, {1: 2, 2: 0, 3: 0, 0: 1})
-        extra = {'level': 4, 'started_rounds': 0, 'completed_rounds': 0}
+        self.assertEqual(totals, {1: 3, 2: 0, 3: 0, 4: 1, 0: 2})
+        extra = {'level': 5, 'started_rounds': 0, 'completed_rounds': 0}
         for levels in ([row for row in current['levels'] if row['level'] != 1], current['levels'] + [extra]):
             with self.assertRaises(ValueError):
                 self.server.usage.apply('cn', secrets.token_hex(16), dict(current, levels=levels))

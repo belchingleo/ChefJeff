@@ -68,19 +68,22 @@ Each level's configured round is played three ways. The fourth rung, a model-con
 | solo + random | the same chef, with a partner choosing uniformly among its legal actions (seeded) |
 | pair | the best scripted reference pair (the calibration pair) |
 
-Results for 2026-09-30, after stations are worked from the walk limit (`reports/baseline-ladder.json`):
+Results for 2026-11-08, on each level's configured round with Jeff deciding every 0.5 s (`reports/baseline-ladder.json`):
 
 | Level | Target | Solo | Solo + random | Pair | Pair contribution rate |
 |---|---|---|---|---|---|
-| 1 | 150 | **300** | 20 | 300 | 0.85 |
-| 2 | 150 | 146 | −26 | 318 | 0.88 |
-| 3 | 190 | 103 | 93 | 390 | 0.96 |
+| 1 | 200 | **450** | −30 | 450 | 0.87 |
+| 2 | 200 | **209** | −81 | 560 | 0.95 |
+| 3 | 160 | **283** | 6 | 490 | 0.95 |
+| 4 | 100 | −50 | −54 | 440 | 0.91 |
 
 How to read this:
 
 - A model-controlled Jeff should at least beat the human playing alone. A random partner costs far more than it helps.
-- Level design must need both chefs, so the solo rung has to stay below the target (owner decision). `test_collaboration_analyzer` checks it on the solo median of the calibration run set (`reports/calibration.json`); Level 2 meets it. Level 1 is the practice tutorial and is exempt (owner decision, 2026-09-29): one scripted chef earns as much as the pair there. Level 3 is exempt for now (owner decision, 2026-10-06): its solo script reaches ¥190 on 15 of 21 runs; one chef can finish it, two are faster.
-- The solo policy is scripted and simple, so it is a lower bound on solo play. A skilled person could do better. The level-2 margin is ¥4.
+- Only Level 4 is built to need both chefs: a row of counters runs from wall to wall, the ingredients, stoves and serving window are on one side and the boards and sink on the other, so one chef alone serves nothing. The level says so (`requires_pair: true`), and `tests/test_level_four.py` checks it against the calibration run set (`reports/calibration.json`): no solo run of the 21 reaches the target, and the report's entry must have been made for the level's current configuration hash and run set, or the test fails until it is recalibrated.
+- Levels 1–3 do not force cooperation. One scripted chef reaches the target on Level 1 on every calibration seed (more than the pair: the practice level, exempt since 2026-09-29), on Level 2 on 10 of 21 (its median, 116, stays below the target, which `test_collaboration_analyzer` checks; the configured round above is one of the 10), and on Level 3 on 19 of 21 (exempt since 2026-10-06). Two chefs are faster on Levels 2 and 3.
+- `scripts/decision_stats.py` reports a cooperation gain for played rounds: net revenue minus the solo script's calibration median on the same level configuration, labelled relative to the solo script baseline.
+- The solo policy is scripted and simple, so it is a lower bound on solo play. A skilled person could do better on Levels 1–3; on Level 4 the split floor, not the script, keeps one chef from serving.
 
 ## Limits
 

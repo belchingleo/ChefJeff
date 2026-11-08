@@ -12,8 +12,8 @@ COUNTERS = ('page_views', 'started_sessions', 'started_rounds', 'completed_round
             'estimated_visitor_browsers', 'estimated_player_browsers')
 OUTCOMES = ('completed', 'manual_end', 'page_close', 'disconnected', 'restart', 'shutdown')
 # Effective running seconds (game progress / the round's fixed speed), not page-open time.
-# Levels 1-3, and 0 for every level a player built (levels.PLAYER_LEVEL), counted together.
-LEVELS = (1, 2, 3, 0)
+# Levels 1-4, and 0 for every level a player built (levels.PLAYER_LEVEL), counted together.
+LEVELS = (1, 2, 3, 4, 0)
 DURATION_BUCKETS = ((10, '0–10s'), (30, '10–30s'), (60, '30–60s'), (120, '1–2min'),
                     (180, '2–3min'), (300, '3–5min'), (math.inf, '5min+'))
 

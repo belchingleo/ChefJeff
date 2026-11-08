@@ -190,9 +190,9 @@ class SingleChefTests(unittest.TestCase):
     def test_one_chef_cannot_reach_the_target(self):
         # Owner decisions: a level must need both chefs (2026-09-28); level 1 is the
         # practice tutorial and is exempt (2026-09-29): one chef can serve every order there.
-        # Level 3 is exempt too (2026-10-06): its solo script reaches the ¥190 target on 15 of the
+        # Level 3 is exempt too (2026-10-06): its solo script reaches the ¥160 target on 19 of the
         # 21 calibration runs; the level does not force cooperation by money alone (one chef can
-        # do it, two are faster).
+        # do it, two are faster). Level 4 needs both chefs by its map (tests/test_level_four.py).
         # Judged like the targets: the solo script's median over the calibration run set
         # (docs/architecture/reports/calibration.json) must fall short of the target.
         import json
