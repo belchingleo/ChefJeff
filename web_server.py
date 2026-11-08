@@ -20,6 +20,7 @@ import webbrowser
 from kitchen import Kitchen, ROOT, load_config
 from jev import JevClient, DecisionLoop
 from harness import Plan, PLAN_MODES, plan_condition
+import environment
 import features
 import one_press
 from play import Journal, log_root
@@ -583,7 +584,11 @@ class GameSession:
             pressed = features.one_press_flags(self.features)
             self.journal('start', {'config':self.c, 'config_hash':self.k.config_hash, 'speed':self.speed, 'state':self.k.snapshot(), **plan,
                                    **one_press.condition(pressed), 'features': features.snapshot(self.features)})
-            self.ai = DecisionLoop(self.k, client, self.journal, self.note)
+            if isinstance(client, environment.Agent):     # any agent on the environment's interface (agent_loop.py)
+                from agent_loop import AgentLoop
+                self.ai = AgentLoop(self.k, client, self.journal, self.note)
+            else:
+                self.ai = DecisionLoop(self.k, client, self.journal, self.note)
             self.ai.game_speed = self.speed
             if held:
                 self.ai.plan = held

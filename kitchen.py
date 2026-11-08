@@ -147,6 +147,7 @@ def engine_input(method):
             if observer is not None:
                 observer.observe_input(record)
         return result
+    wrapper.__engine_input__ = True    # changes the kitchen: environment.ReadOnlyKitchen refuses it
     return wrapper
 
 

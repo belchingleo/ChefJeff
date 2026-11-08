@@ -18,6 +18,7 @@ from harness import (AGENT_RULES_VERSION, CONTINUITY_RULE, NO_MEMORY, PLAYER_COM
 import harness
 import one_press
 import undo_note
+import environment
 import wire_format
 import ask_ahead
 
@@ -114,7 +115,10 @@ def compose_payload(client, kitchen, state, actions, recent_decisions, communica
 
 class DecisionLoop:
     def __init__(self, kitchen, client, log, notify):
-        self.k = kitchen
+        # Jeff plays through an AgentPort (environment.py): he reads the kitchen through its read-only view and
+        # changes it only through the port, like any other agent.
+        self.port = kitchen if isinstance(kitchen, environment.AgentPort) else environment.AgentPort(kitchen, 'jeff')
+        self.k = self.port.view
         self.client = client
         self.log = log
         self.notify = notify
@@ -201,7 +205,7 @@ class DecisionLoop:
             first, steps = one_press.find(self.k, 'jeff', steps[0]), steps[1:]
         if first is None:
             return False, '一键操作的第一步现在做不了', {'first': None, 'fallback': fallback}
-        applied, message = self.k.start('jeff', first)
+        applied, message = self.port.start(first)
         self.end_chain('replaced')
         job = self.k.chefs['jeff'].job
         if applied and job is not None:
@@ -235,7 +239,7 @@ class DecisionLoop:
             self.end_chain('finished')
             return
         action = one_press.find(self.k, 'jeff', self.chain['steps'].pop(0))
-        applied = action is not None and self.k.start('jeff', action)[0]
+        applied = action is not None and self.port.start(action)[0]
         job = self.k.chefs['jeff'].job
         if not applied or job is None:
             self.end_chain('step_not_possible')
@@ -357,7 +361,7 @@ class DecisionLoop:
                 if fresh and decision.kind in one_press.KINDS:
                     applied, message, pressed = self.start_chain(decision, result.get(one_press.PUT_WHERE))
                 elif fresh:
-                    applied, message = self.k.start("jeff", decision)
+                    applied, message = self.port.start(decision)
                     if applied and decision.kind != 'continue':
                         self.end_chain('replaced')
                 elif context.get('ahead'):
@@ -366,7 +370,7 @@ class DecisionLoop:
                     applied, message = False, "回复已过期、任务已变化或游戏已暂停"
                 if applied and work and self.k.chefs["jeff"].job:
                     self.plan_work[self.k.chefs["jeff"].job.id] = work
-                sprint_applied=bool(applied and result.get('sprint') is True and hasattr(self.k,'sprint') and self.k.sprint('jeff'))
+                sprint_applied=bool(applied and result.get('sprint') is True and self.port.sprint())
                 # A plan answer counts like the action: only from a fresh reply, and only for the questions asked.
                 plan_set = plan_dropped = False
                 if self.plan and fresh:

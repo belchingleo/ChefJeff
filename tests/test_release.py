@@ -234,3 +234,24 @@ class ClientProtocolTests(unittest.TestCase):
         scripts += sorted((self.ROOT / 'cocos-kitchen/build/web').rglob('*.js'))
         for path in scripts:
             self.assertNotIn(info.VERSION, path.read_text(encoding='utf-8', errors='replace'), path.name)
+
+
+class RuntimeFilesTests(unittest.TestCase):
+    def test_every_project_module_a_runtime_file_imports_ships_with_it(self):
+        """A release carries RUNTIME_FILES only: a project module they import and the list leaves out would be
+        missing on the server."""
+        import ast
+        root = Path(__file__).resolve().parents[1]
+        modules = {p.stem for p in root.glob('*.py')}
+        listed = {Path(name).stem for name in RUNTIME_FILES if name.endswith('.py') and '/' not in name}
+        missing = {}
+        for name in sorted(listed):
+            tree = ast.parse((root / f'{name}.py').read_text(encoding='utf-8'))
+            for node in ast.walk(tree):
+                names = ([a.name for a in node.names] if isinstance(node, ast.Import)
+                         else [node.module] if isinstance(node, ast.ImportFrom) and node.module and not node.level else [])
+                for imported in names:
+                    top = imported.split('.')[0]
+                    if top in modules and top not in listed:
+                        missing.setdefault(top, []).append(name)
+        self.assertEqual(missing, {})
