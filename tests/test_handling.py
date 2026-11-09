@@ -56,6 +56,23 @@ class HandlingTests(unittest.TestCase):
         self.do(k,'human','put extinguisher')
         self.assertEqual(k.stations['extinguisher'].food.id,'E1')
 
+    def test_swap_flush_against_the_extinguisher_rack_puts_the_item_on_floor(self):
+        # Level 2, 2026-11-09: taking the extinguisher with full hands from across the counter row, the swap spot rounded
+        # to the rack's own tile, the item went to a ground spot that is not floor and every snapshot failed.
+        from levels import level_config
+        k=SpatialKitchen(level_config(load_config(),'level-2'))
+        rack=k.snapshot()['map']['equipment']['extinguisher']['cell']
+        self.do(k,'human','fetch tomato')
+        tomato=k.chefs['human'].hand.id
+        # North of the counter row at y = 3.5: round() takes 3.5 to 4, the rack's own row (where the player stood).
+        k.positions['human']=(float(rack[0]),rack[1]-.5)
+        self.assertTrue(k.nav.walkable_point(k.positions['human']))
+        self.assertEqual(tuple(round(v) for v in k.path('human','extinguisher')[-1]),tuple(rack))
+        self.do(k,'human','take extinguisher')
+        self.assertEqual(k.chefs['human'].hand.id,'E1')
+        self.assertIn(k.ground[tomato].location,k.floor_places)
+        k.snapshot()
+
     def test_full_hands_fetch_or_take_nothing_for_either_chef(self):
         # As with the player's Space: no automatic swap at the fridge, a board or a stove.
         for who in ('human','jeff'):

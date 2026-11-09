@@ -714,7 +714,9 @@ class SpatialKitchen(Kitchen):
     def swap_cell(self, who, target, incoming=None):
         occupied = self.occupied_floor(who, excluding=incoming)
         origin = tuple(round(v) for v in self.path(who,target)[-1]) if target in self.equipment else self.cell(target)
-        return next((p for p in [origin] + self.nav.neighbors(origin) if p not in occupied), None)
+        # The rounded spot can be a station's own tile (round() takes 3.5 to 4, a counter row): only floor tiles hold items.
+        return next((p for p in [origin] + self.nav.neighbors(origin) if p not in occupied and tile_key(p) in self.floor_places),
+                    None)
 
     def clear_throw_line(self, start, end):
         # Segment vs closed wall tiles; even a corner clip blocks the throw.
