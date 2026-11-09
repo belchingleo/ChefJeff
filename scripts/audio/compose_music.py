@@ -7,10 +7,9 @@ their entries (gain, loop length, bar length) in index.json. Needs numpy, scipy,
 - bgm_menu   "午后小馆": C major, 92 BPM, gentle broken chords. Played before the round.
 - bgm_service "厨房进行曲": a march with an oom-pah bass and chords, 112 BPM. One bar of oom-pah-oom-pah opens
   every loop, so the melody enters about 2 s after the round starts.
-- bgm_rush   the same march in harmonic minor at 132 BPM with the oom-pah doubled and a soft clock tick, for the
-  last 30 s. Its first 8 bars keep the in-round lead sound and turn it into a punchier one, so the switch does
-  not sound like a different piece. The file is 32 bars (about 58 s); the rush lasts about 30 s, so it does not
-  loop at normal speed.
+- bgm_rush   the same march in harmonic minor at 160 BPM with the oom-pah doubled and a soft clock tick, for the
+  last 30 s. The lead keeps the in-round sound, so the switch does not sound like a different piece. The file is
+  32 bars (48 s); the rush lasts about 30 s, so it does not loop at normal speed.
 
 The client switches from service to rush on the service's next bar line (index.json "bar"), so the rush's
 first beat lands where the next downbeat would have been. Every melody bar has four beats and no melody note on
@@ -112,12 +111,11 @@ A2 = ('C5:.5 C5:.5 F5:1 A5:1 F5:1 | G5:1.5 F5:.5 E5:1 C5:1 | A4:.5 C5:.5 F5:1 A5
       'D5:.5 F5:.5 Bb5:1 F5:1 D5:1 | A5:1.5 G5:.5 F5:1 C5:1 | E5:1 G5:1 Bb5:1 G5:1 | F5:2 C5:1 r:1')
 B1 = ('D5:1 F5:1 A5:2 | E5:1 C5:1 A4:2 | D5:.5 D5:.5 F5:1 Bb5:1 A5:1 | A5:2 F5:1 r:1 | '
       'G5:1 Bb5:1 D5:1 G5:1 | E5:1.5 F5:.5 G5:2 | F5:1 D5:1 E5:1 C5:1 | F5:3 r:1')
-SERVICE_LEAD = (.5, 0.0, .015, .72)          # duty, octave-below mix, attack, gate: round and soft
-PUNCHY_LEAD = (.25, .55, .003, .55)          # narrower, harder, doubled an octave below
+LEAD = (.5, .015, .72)                       # duty, attack, gate: a round, soft square for both march pieces
 OOMPAH_LIFT = 10 ** (3 / 20)                 # the oom-pah sits 3 dB forward in the mix
 
 
-def arrange(bpm, form, lines, bass, comp, transpose, vamp=0, lead_curve=None):
+def arrange(bpm, form, lines, bass, comp, transpose, vamp=0):
     beat = 60 / bpm
     T = lambda n: shift(n, transpose)
     bass_vol, comp_vol, drum = .5 * OOMPAH_LIFT, .07 * OOMPAH_LIFT, .7
@@ -128,14 +126,9 @@ def arrange(bpm, form, lines, bass, comp, transpose, vamp=0, lead_curve=None):
     for line in lines:
         for name, beats in parse(line):
             if name:
-                env = {'a': .015, 'd': .18, 's': .5, 'r': .08}
-                duty, octave_mix, gate = SERVICE_LEAD[0], SERVICE_LEAD[1], SERVICE_LEAD[3]
-                if lead_curve:
-                    duty, octave_mix, env['a'], gate = lead_curve(t)
+                duty, attack, gate = LEAD
+                env = {'a': attack, 'd': .18, 's': .5, 'r': .08}
                 ev.append(('lead', t, note('pulse', T(name), beats * beat, gate=gate, vol=.38, duty=duty, vibrato=.003, env=env)))
-                if octave_mix:                                # the same line an octave below: weight, not brightness
-                    ev.append(('lead', t, note('pulse', shift(T(name), -12), beats * beat, gate=gate, vol=.38 * octave_mix,
-                                               duty=.5, env=env)))
             t += beats
     assert abs(t - vamp - len(form) * 4) < 1e-9, (t, len(form) * 4)
     if vamp:                                                  # oom-pah-oom-pah before the melody enters
@@ -194,14 +187,6 @@ def minorize(line, form):
     return ' '.join(out)
 
 
-def morph(beats=32):
-    """Start with the in-round lead and become the punchy lead over `beats` (eased)."""
-    def curve(t):
-        k = min(1.0, t / beats); k = k * k * (3 - 2 * k)
-        return tuple(a + (b - a) * k for a, b in zip(SERVICE_LEAD, PUNCHY_LEAD))
-    return curve
-
-
 def woodblock(vol):
     """A soft clock tick: a short hollow knock around 900 Hz, nothing bright."""
     n = int(.06 * SR); t = np.arange(n) / SR
@@ -211,7 +196,7 @@ def woodblock(vol):
 def rush(passes=2):
     minor = [{'F': 'Fm', 'Bb': 'Bbm'}.get(c, c) for c in MARCH_A]
     lines = [minorize(A1, MARCH_A), minorize(A2, MARCH_A)] * passes
-    piece = arrange(132, minor * 2 * passes, lines, 'doubled', 'offbeats', transpose=-3, lead_curve=morph(32))
+    piece = arrange(160, minor * 2 * passes, lines, 'doubled', 'offbeats', transpose=-3)
     piece['events'] += [('drums', b, woodblock(.05)) for b in range(piece['beats'])]
     return piece
 

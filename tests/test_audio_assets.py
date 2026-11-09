@@ -67,7 +67,7 @@ class AudioAssetTests(unittest.TestCase):
         tick = CLIENT.read_text().split('private tick(')[1].split('\n    }\n')[0]
         self.assertIn('this.stepPendingMusic(dt);', tick, 'the bar-line switch must be checked every frame')
         # Only pause -> resume continues a piece in place; a new round or the rush must start from the top
-        # (the service's oom-pah opening, the rush's gradual change of lead sound).
+        # (the service's oom-pah opening, the rush's first bar).
         self.assertIn("was==='paused'&&!fresh", CLIENT.read_text())
 
     def test_loops_end_just_inside_the_buffer(self):

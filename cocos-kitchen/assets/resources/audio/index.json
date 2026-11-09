@@ -21,8 +21,8 @@
    "loop": true,
    "kind": "music",
    "gain": 0.55,
-   "seconds": 58.182,
-   "bar": 1.818182,
+   "seconds": 48.0,
+   "bar": 1.5,
    "source": "composed",
    "crisp": true,
    "on_bar": true
