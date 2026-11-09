@@ -1,8 +1,8 @@
 # Project status
 
-ChefJeff 0.8.0-beta.1 is a playable human–AI cooperative cooking game on a data-driven core. Local play runs the Cocos browser client and Python game engine on a keyboard-and-mouse computer.
+ChefJeff 0.8.1-beta.1 is a playable human–AI cooperative cooking game on a data-driven core. Local play runs the Cocos browser client and Python game engine on a keyboard-and-mouse computer.
 
-Implemented: four levels and a level editor whose designs the server checks and calibrates before they are played; shared kitchen rules; continuous movement and sprint; direction-aware workstation docking; cooperative chopping and washing; sliding and pushing between chefs, with walking never pushing a working chef; Overcooked-style dash knockback; plate return and washing; movable pans and pots with preserved heat progress, one vessel per stove; model adapters; preset communication; bounded local memory; and data-driven maps. Existing maps do not yet offer a shared sink; the shared-washing rule has a dedicated test layout.
+Implemented: four levels (level 4 switched off for players for now, `level_switches.json`) and a level editor whose designs the server checks and calibrates before they are played; shared kitchen rules; continuous movement and sprint; direction-aware workstation docking; cooperative chopping and washing; sliding and pushing between chefs, with walking never pushing a working chef; Overcooked-style dash knockback; plate return and washing; movable pans and pots with preserved heat progress, one vessel per stove; model adapters; preset communication; bounded local memory; and data-driven maps. Existing maps do not yet offer a shared sink; the shared-washing rule has a dedicated test layout.
 
 The hosted runtime adds independent browser sessions, browser-direct model calls and optional anonymous contributions kept for at most two years, with deletion receipts. Public play is open at [China · Shanghai](https://chefjeff.belchingleo.online/) and [Overseas · Germany](https://global.belchingleo.online/); the original domain, `chefjeff.online`, is unavailable while its ICP filing is under review. The [README](../README.md) also explains how to run it locally.
 
@@ -14,9 +14,9 @@ Next: community playtesting and pacing; asset/license review; recipe data contra
 
 # 项目状态
 
-ChefJeff 0.8.0-beta.1 是一款可以玩的人与 AI 合作做菜游戏，运行在数据驱动的内核上。本地版在配备键鼠的电脑上运行 Cocos 浏览器客户端和 Python 游戏引擎。
+ChefJeff 0.8.1-beta.1 是一款可以玩的人与 AI 合作做菜游戏，运行在数据驱动的内核上。本地版在配备键鼠的电脑上运行 Cocos 浏览器客户端和 Python 游戏引擎。
 
-已实现：四个关卡，以及由服务器检查并校准后才能开玩的关卡编辑器；共用厨房规则、连续移动与冲刺、按方向停靠工位、合作切菜与洗碗、厨师间滑动与推挤（走路推不动干活的人）、《胡闹厨房》式冲刺撞开、餐盘回收清洗、保留加热进度的搬锅、模型适配、预设沟通、有限本地记忆及数据化地图。现有地图尚未提供共用水槽布局；合作洗碗规则有专门测试布局。
+已实现：四个关卡（第四关暂时对玩家关闭，见 `level_switches.json`），以及由服务器检查并校准后才能开玩的关卡编辑器；共用厨房规则、连续移动与冲刺、按方向停靠工位、合作切菜与洗碗、厨师间滑动与推挤（走路推不动干活的人）、《胡闹厨房》式冲刺撞开、餐盘回收清洗、保留加热进度的搬锅、模型适配、预设沟通、有限本地记忆及数据化地图。现有地图尚未提供共用水槽布局；合作洗碗规则有专门测试布局。
 
 托管运行时增加独立浏览器会话、浏览器直连模型，以及附删除凭证、最长保存两年的自愿匿名数据贡献。在线试玩已开放：[国内站（上海）](https://chefjeff.belchingleo.online/)、[海外站（德国）](https://global.belchingleo.online/)；原域名 `chefjeff.online` 正在办理 ICP 备案，审核期间暂停访问。也可按 [README](../README.md) 在本地启动。
 

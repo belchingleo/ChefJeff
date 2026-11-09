@@ -4,7 +4,13 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 
 [中文](#更新记录)
 
-## Unreleased
+## 0.8.1-beta.1 — 2026-11-09 · fifth public test release
+
+### Music and fixes
+
+- The three music pieces are composed in code (`scripts/audio/compose_music.py`, `music_synth.py`): "午后小馆" before the round, the "厨房进行曲" march in service, and the same march in minor at 160 BPM for the last 30 seconds, with the in-round lead throughout. Service and rush start at full level, the rush on the service's next bar line; only a resume after a pause continues a piece in place.
+- Music no longer stops after its first loop in some browsers: Chromium-based ones could freeze a looping buffer at its end, so a loop now ends a millisecond inside the buffer.
+- Taking the extinguisher with full hands from across a counter row no longer breaks the round: the swapped-out item could land on the rack's own tile, which is not floor, and every later state failed. A swapped-out item now goes only to a floor tile.
 
 ### Level 4 behind a switch, off
 
@@ -282,7 +288,13 @@ First private release: a local browser game with three playable maps and player-
 
 ## 更新记录
 
-## 未发布
+## 0.8.1-beta.1 — 2026-11-09 · 第五个公开测试版
+
+### 音乐和修复
+
+- 三首音乐改为代码作曲（`scripts/audio/compose_music.py`、`music_synth.py`）：开门前的「午后小馆」，营业中的「厨房进行曲」，最后 30 秒是同一首进行曲的小调版，160 拍，主旋律音色前后一样。营业中和冲刺都直接以正常音量开始，冲刺在营业中音乐的下一个小节线进入；只有暂停后继续才接着原处播放。
+- 背景音乐不再在第一次循环后停掉：部分基于 Chromium 的浏览器播放循环音乐到结尾时会卡住，现在循环在结尾前 1 毫秒结束。
+- 隔着一排柜台、手里拿着东西去拿灭火器时，对局不再出错：换下来的东西可能落到灭火器架自己的那一格，那一格不是地板，之后每次刷新状态都会失败。现在换下来的东西只会放到地板格上。
 
 ### 第四关改由开关控制，默认关闭
 
