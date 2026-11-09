@@ -13,7 +13,7 @@ ChefJeff is a real-time cooking game in which a person and an AI cook together, 
 
 Where to start: [play online](#play-online) · [run it locally](#run-it-locally) · [connect your own model](#jeff-and-model-integration) · [change the configuration](#five-data-models) · [the environment and benchmark](#building-a-humanai-collaboration-environment-and-benchmark)
 
-> Current version: **0.8.1-beta.1**, the fifth public test release. You need your own model API, and interfaces and analysis rules may still change. We suggest starting with Jev models: they don't play especially well, but they are cheap. Results from other models are welcome.
+> Current version: **0.8.1-beta.2**, a fix release of the fifth public test release. You need your own model API, and interfaces and analysis rules may still change. We suggest starting with Jev models: they don't play especially well, but they are cheap. Results from other models are welcome.
 
 ---
 
@@ -249,6 +249,7 @@ All three produce the same data, and every imported level goes through the same 
 - **0.7.0-beta.1** (2026-11-06): the third public test release. A level editor for building and playing your own kitchens; rounds rated in one to three stars; timings, station choice, orders and fire follow Overcooked 2, with orders that keep coming and expired orders that start again; a rebuilt harness for Jeff: his whole input is assembled in `harness.py` and guarded by payload fingerprints, `features.json` switches harness features (one-press options released, plan modes on trial) and every round records which were on; new contribution terms (v8, kept for at most two years), and free models need consent to contribute.
 - **0.8.0-beta.1** (2026-11-08): the fourth public test release. Level 4, Across the counter: counters split the kitchen in two, so the dishes need both chefs. Jeff's two-step intent is on in every round (he says what each step is for and what comes next, shown in the communication bar), and the plan switches are gone from Settings. A server can now switch Jeff's features from the command line, without a new release, and each round records which were set that way. Online, Jeff's requests reach the page sooner (long poll), and the English page has the server's messages in English. The local game can use a decision model served on the same computer, such as StartLux 2B. For research: an environment interface and Benchmark v1, replays with the code of the release that recorded a round, and re-ask checks with intervals on every share.
 - **0.8.1-beta.1** (2026-11-09): the fifth public test release. Level 4 is switched off for players for now (`level_switches.json`; a server can show it without a new release). Jeff's requests name food by ingredient and state and note when an option would take back his last step; he gets a put-down-then-fetch option. Full-reach throws land where they fly, as in Overcooked 2. New music composed in code, a fix for music that stopped after its first loop, and a fix for the extinguisher swap that could break a round.
+- **0.8.1-beta.2** (2026-11-09): the phone stick no longer sticks when iPhone Safari misses the thumb's lift, and Zhipu and Llama are withdrawn from the free trial (StartLux and Gemma remain).
 
 See the [changelog](CHANGELOG.md) for everything.
 

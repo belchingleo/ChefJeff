@@ -4,7 +4,7 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 
 [中文](#更新记录)
 
-## Unreleased
+## 0.8.1-beta.2 — 2026-11-09 · fix release
 
 ### Touch stick and free models
 
@@ -295,7 +295,7 @@ First private release: a local browser game with three playable maps and player-
 
 ## 更新记录
 
-## 未发布
+## 0.8.1-beta.2 — 2026-11-09 · 修复版
 
 ### 手机摇杆和免费模型
 
