@@ -11,7 +11,7 @@ from deploy.free_gateway_config import EXTRA_KEYS, gateway_unit
 from deploy.free_install_common import atomic, digest, load, property_of, public_release, run, save, work_path
 from deploy.install_free_region import validate_import
 from free_model_client import FreeGatewayClient
-from hosted_free_models import MODELS, ORIGINAL, read_extra_keys
+from hosted_free_models import MODELS, ORIGINAL, WITHDRAWN, read_extra_keys
 from shared_client import SharedClient
 from shared_server import read_private_json
 
@@ -35,9 +35,11 @@ def client():
 
 
 def capacity_ok(catalog):
-    """The original two always, any later model only if the code knows it, one global seat each."""
+    """The original two that are still offered always, any later model only if the code knows it and offers it, one
+    global seat each (models in hosted_free_models.WITHDRAWN are never offered)."""
     rows=catalog.get('global_capacity',{})
-    return set(ORIGINAL)<=set(rows)<=set(MODELS) and all(row.get('limit')==1 for row in rows.values())
+    offered=set(MODELS)-set(WITHDRAWN)
+    return set(ORIGINAL)&offered<=set(rows)<=offered and all(row.get('limit')==1 for row in rows.values())
 
 
 def review_kind(extra_models):
@@ -85,7 +87,7 @@ def verify(work):
     catalog=status['catalog']
     if catalog.get('enabled') is not True or catalog.get('diagnostics_version')!=1:
         raise ValueError('Gateway diagnostics unavailable')
-    if not capacity_ok(catalog) or set(catalog['global_capacity'])!=set(ORIGINAL)|set(state.get('later_models',[])):
+    if not capacity_ok(catalog) or set(catalog['global_capacity'])!=(set(ORIGINAL)|set(state.get('later_models',[])))-set(WITHDRAWN):
         raise ValueError('Unexpected capacity')
     print(json.dumps({'status':'gateway-diagnostics-upgrade-verified','release':state['release'],
         'process_started_after_switch':True,'diagnostics_version':1,'both_global_seat_limits':1,

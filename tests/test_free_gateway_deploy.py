@@ -235,6 +235,16 @@ class ExistingFreeRegionUpgradeTests(unittest.TestCase):
 
 
 class GatewayUpgradeTests(unittest.TestCase):
+    def test_the_upgraded_gateway_offers_no_withdrawn_model(self):
+        from deploy import upgrade_free_gateway as upgrade
+        seat = {'limit': 1}
+        offered = {'startlux': seat, 'cloudflare-gemma': seat}
+        self.assertTrue(upgrade.capacity_ok({'global_capacity': offered}))
+        self.assertTrue(upgrade.capacity_ok({'global_capacity': {'startlux': seat}}))
+        self.assertFalse(upgrade.capacity_ok({'global_capacity': {**offered, 'zhipu': seat}}), 'Zhipu is withdrawn')
+        self.assertFalse(upgrade.capacity_ok({'global_capacity': {**offered, 'cloudflare-llama': seat}}), 'Llama is withdrawn')
+        self.assertFalse(upgrade.capacity_ok({'global_capacity': {'cloudflare-gemma': seat}}), 'StartLux is always offered')
+
     def exercise(self,fail=False,changed=False,allow=True):
         from deploy import upgrade_free_gateway as upgrade
         with tempfile.TemporaryDirectory() as d:
