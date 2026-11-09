@@ -1,12 +1,12 @@
 {
-  "_doc": "Every generated sound. kind: chip = 8-bit (UI/orders/serve/results), real = recorded-style SFX, music = 8-bit loop, ambience = real loop. takes: prompt + seeds (+ optional seconds) per listening round; 'pick' is the approved candidate (a seed, 'synth_*' for code-synthesised chiptune, or 'reuse' for another approved sound). The model fills the requested duration, so max_seconds caps one-shots and single keeps only the first event; cut_first_gap_after drops a stray trailing note. Fixed entries were settled in listening rounds.",
+  "_doc": "Every generated sound. kind: chip = 8-bit (UI/orders/serve/results), real = recorded-style SFX, music = 8-bit loop, ambience = real loop. takes: prompt + seeds (+ optional seconds) per listening round; 'pick' is the approved candidate (a seed, 'synth_*' for code-synthesised chiptune, or 'reuse' for another approved sound). The model fills the requested duration, so max_seconds caps one-shots and single keeps only the first event; cut_first_gap_after drops a stray trailing note. Fixed entries were settled in listening rounds. pick 'composed' means the sound is composed in code by compose_music.py (2026-11: players found the model-made music noisy and repetitive); model_pick keeps the earlier model choice for reference.",
   "sounds": [
     {
       "id": "bgm_menu",
       "kind": "music",
       "loop": true,
       "seconds": 32,
-      "zh": "开门前音乐",
+      "zh": "开门前音乐（午后小馆）",
       "takes": [
         {
           "name": "v1",
@@ -29,14 +29,15 @@
           ]
         }
       ],
-      "pick": 5
+      "pick": "composed",
+      "model_pick": 5
     },
     {
       "id": "bgm_service",
       "kind": "music",
       "loop": true,
       "seconds": 64,
-      "zh": "营业中音乐",
+      "zh": "营业中音乐（厨房进行曲）",
       "takes": [
         {
           "name": "v1",
@@ -59,15 +60,16 @@
           ]
         }
       ],
-      "pick": 3
+      "pick": "composed",
+      "model_pick": 3
     },
     {
       "id": "bgm_rush",
       "kind": "music",
       "loop": true,
       "seconds": 32,
-      "zh": "最后冲刺音乐",
-      "pick": 2,
+      "zh": "最后冲刺音乐（厨房进行曲·冲刺）",
+      "pick": "composed",
       "takes": [
         {
           "name": "v1",
@@ -79,7 +81,8 @@
             4
           ]
         }
-      ]
+      ],
+      "model_pick": 2
     },
     {
       "id": "amb_kitchen",

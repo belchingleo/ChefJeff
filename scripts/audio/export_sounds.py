@@ -2,9 +2,8 @@
 
     .tools/audio-venv/bin/python scripts/audio/export_sounds.py
 Reads the picks in sound_manifest.json and writes cocos-kitchen/assets/resources/audio/<id>.mp3 plus
-audio/index.json (loop flags, mix gains, chop strike list). Loops are made seamless: music loops at the
-point where the piece best repeats its opening (so the beat stays in phase), noisy textures use an
-equal-power crossfade of the tail into the head.
+audio/index.json (loop flags, mix gains, chop strike list). Noisy texture loops use an equal-power
+crossfade of the tail into the head. Music whose pick is 'composed' is rendered by compose_music.py.
 """
 import json, subprocess, sys
 from pathlib import Path
@@ -94,6 +93,11 @@ def main():
     index = {'sounds': {}, 'chop': [], 'wash': {}}
     for s in MANIFEST['sounds']:
         if s.get('fixed'):
+            continue
+        if s.get('pick') == 'composed':                 # music composed in code, not picked from the model
+            from compose_music import export as compose_export
+            index['sounds'][s['id']] = compose_export(s['id'])
+            print(f'{s["id"]:16s} composed')
             continue
         x = pick_audio(s, sounds)
         loop = bool(s.get('loop'))

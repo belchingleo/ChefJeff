@@ -1,6 +1,8 @@
 import { AudioClip, AudioSource, JsonAsset, Node, resources, sys } from 'cc';
 
-type Entry = { loop:boolean; kind?:string; gain:number; seconds:number };
+// bar: loop bar length (s). crisp: start at full level (a fade-in would swallow the first beat).
+// on_bar: when this piece follows another, wait for that piece's next bar line.
+type Entry = { loop:boolean; kind?:string; gain:number; seconds:number; bar?:number; crisp?:boolean; on_bar?:boolean };
 type Index = { sounds:Record<string,Entry>; chop:string[]; wash:Record<string,Entry> };
 type Channel = { src:AudioSource; clip:string; level:number; target:number; fadeIn:number; fadeOut:number; randomStart:boolean };
 const STORAGE='chefjeff-audio';
@@ -26,6 +28,8 @@ export class KitchenAudio {
     private channels:Record<string,Channel>={};
     private music:Channel[]=[];
     private musicClip='';
+    // A switch into a piece marked on_bar (the rush) waits for the playing piece's next bar line.
+    private pendingMusic:{name:string;from:Channel;at:number;lastTime:number}|null=null;
     private last:any=null;
     private seen=new Set<string>();
     private urgent=new Set<string>();
@@ -135,6 +139,8 @@ export class KitchenAudio {
         const k=s.kitchen,fresh=!prev||prev.game_id!==s.game_id;
         if(fresh){this.seen=new Set((s.events||[]).map((e:any)=>e.t+'|'+e.message));this.urgent.clear();}
         this.phaseMusic(prev,s,fresh);
+        if(s.phase==='ready')this.ensureClip('bgm_service');
+        if(s.phase==='running')this.ensureClip('bgm_rush');
         const running=s.phase==='running';
         if(!fresh&&running){
             const events=(s.events||[]).filter((e:any)=>!this.seen.has(e.t+'|'+e.message));
@@ -199,20 +205,50 @@ export class KitchenAudio {
             return;
         }
         if(now==='ended'){if(this.menuAfter&&this.clock<this.menuAfter)return;this.setMusic('bgm_menu');return;}
-        if(now==='running')this.setMusic(s.kitchen.round_remaining<=30?'bgm_rush':'bgm_service');
+        // Only pause -> resume continues a piece where it stopped; a new round or the rush starts from the top.
+        if(now==='running')this.setMusic(s.kitchen.round_remaining<=30?'bgm_rush':'bgm_service',was==='paused'&&!fresh);
         else if(now==='paused')this.setMusic('');
         else this.setMusic('bgm_menu');
     }
-    private setMusic(name:string){
+    private bar(name:string){return this.index?.sounds[name]?.bar||0;}
+    private crisp(name:string){return !!this.index?.sounds[name]?.crisp;}
+    private setMusic(name:string,resume=false){
         if(name===this.musicClip)return;
+        const was=this.musicClip;
+        const playing=this.music.find(ch=>ch.clip===was&&ch.level>0&&ch.src.playing);
+        this.pendingMusic=null;
+        // Service -> rush: let the service reach its next bar line, so the rush's first beat lands
+        // where the next downbeat would have been (a crossfade swallowed the first "oom").
+        if(name&&playing&&this.bar(was)&&this.index?.sounds[name]?.on_bar){
+            const bar=this.bar(was),t=playing.src.currentTime;
+            this.pendingMusic={name,from:playing,at:Math.min(playing.src.duration||Infinity,Math.ceil((t+1e-3)/bar)*bar),lastTime:t};
+            this.musicClip=name;
+            return;
+        }
         this.musicClip=name;
-        for(const ch of this.music)if(ch.clip!==name)ch.target=0;
+        this.startMusic(name,this.crisp(name)?.3:.8,resume);
+    }
+    /** Fade out whatever else plays (over `release` s) and bring `name` in: rhythmic pieces start at once. */
+    private startMusic(name:string,release:number,resume=false){
+        for(const ch of this.music)if(ch.clip!==name){ch.target=0;ch.fadeOut=release;}
         if(!name)return;
-        // Pausing keeps the position, so resuming the same piece continues where it stopped.
+        const fadeIn=this.crisp(name)?.02:1.2;
         const same=this.music.find(ch=>ch.clip===name);
-        if(same){same.target=1;return;}
+        if(same){
+            // Pausing keeps the position, so resuming continues where it stopped; any other entry starts at the top.
+            if(!resume){same.src.stop();if(fadeIn<.1)same.level=1;}
+            same.target=1;same.fadeIn=fadeIn;return;
+        }
         const free=this.music[0].level<=this.music[1].level?this.music[0]:this.music[1];
-        free.src.stop();free.clip=name;free.src.clip=this.clips[name]||null;free.level=0;free.target=1;
+        free.src.stop();free.clip=name;free.src.clip=this.clips[name]||null;free.target=1;free.fadeIn=fadeIn;
+        free.level=fadeIn<.1?1:0;
+    }
+    private stepPendingMusic(dt:number){
+        const p=this.pendingMusic;if(!p)return;
+        const t=p.from.src.currentTime,wrapped=t+1e-3<p.lastTime;
+        p.lastTime=t;
+        // Switch on whichever frame lands nearest the bar line: within half a frame of it, not up to a frame late.
+        if(!p.from.src.playing||wrapped||t>=p.at-dt/2){this.pendingMusic=null;this.startMusic(p.name,.06);}
     }
 
     update(dt:number){this.safely(()=>this.tick(dt));}
@@ -220,6 +256,7 @@ export class KitchenAudio {
         this.clock+=dt;if(!this.ready)return;
         if(this.menuAfter&&this.clock>=this.menuAfter){this.menuAfter=0;if(this.last?.phase==='ended')this.setMusic('bgm_menu');}
         for(const ch of Object.values(this.channels))this.step(ch,dt,this.volume.sfx,true);
+        this.stepPendingMusic(dt);
         for(const ch of this.music)this.step(ch,dt,this.volume.music,false);
     }
     private step(ch:Channel,dt:number,master:number,sfx:boolean){

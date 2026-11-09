@@ -48,6 +48,28 @@ class AudioAssetTests(unittest.TestCase):
         # load() is async and guards itself: a failed download leaves the kitchen silent, not broken.
         self.assertRegex(source.split('async load(')[1].split('\n    }\n')[0], r'catch\(error\)\{console\.warn')
 
+    def test_composed_music_loops_on_bar_lines(self):
+        # The client moves from service to rush on the service's next bar line; that only works if every loop
+        # is a whole number of bars, so bar lines fall in the same place on every pass.
+        manifest = {s['id']: s for s in json.loads(MANIFEST.read_text())['sounds']}
+        for name in ('bgm_menu', 'bgm_service', 'bgm_rush'):
+            entry = self.index['sounds'][name]
+            self.assertEqual((entry.get('source'), manifest[name]['pick']), ('composed', 'composed'), name)
+            bars = entry['seconds'] / entry['bar']
+            self.assertAlmostEqual(bars, round(bars), delta=.002, msg=f'{name}: {bars} bars')
+        # Starting a round must not wait for the menu's bar line; only the rush enters on a bar line, and the
+        # march pieces start at full level so their first beat is heard.
+        flags = {n: (bool(self.index['sounds'][n].get('crisp')), bool(self.index['sounds'][n].get('on_bar')))
+                 for n in ('bgm_menu', 'bgm_service', 'bgm_rush')}
+        self.assertEqual(flags, {'bgm_menu': (False, False), 'bgm_service': (True, False), 'bgm_rush': (True, True)})
+        composer = (ROOT / 'scripts/audio/compose_music.py').read_text()
+        self.assertIn("PIECES = {'bgm_menu': menu, 'bgm_service': service, 'bgm_rush': rush}", composer)
+        tick = CLIENT.read_text().split('private tick(')[1].split('\n    }\n')[0]
+        self.assertIn('this.stepPendingMusic(dt);', tick, 'the bar-line switch must be checked every frame')
+        # Only pause -> resume continues a piece in place; a new round or the rush must start from the top
+        # (the service's oom-pah opening, the rush's gradual change of lead sound).
+        self.assertIn("was==='paused'&&!fresh", CLIENT.read_text())
+
     def test_manifest_picks_match_the_export(self):
         manifest = json.loads(MANIFEST.read_text())
         unpicked = [s['id'] for s in manifest['sounds'] if not s.get('fixed') and 'pick' not in s]

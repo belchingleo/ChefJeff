@@ -4,19 +4,28 @@
    "loop": true,
    "kind": "music",
    "gain": 0.55,
-   "seconds": 26.67
+   "seconds": 83.478,
+   "bar": 2.608696,
+   "source": "composed"
   },
   "bgm_service": {
    "loop": true,
    "kind": "music",
    "gain": 0.55,
-   "seconds": 56.0
+   "seconds": 70.714,
+   "bar": 2.142857,
+   "source": "composed",
+   "crisp": true
   },
   "bgm_rush": {
    "loop": true,
    "kind": "music",
    "gain": 0.55,
-   "seconds": 22.4
+   "seconds": 58.182,
+   "bar": 1.818182,
+   "source": "composed",
+   "crisp": true,
+   "on_bar": true
   },
   "amb_kitchen": {
    "loop": true,
