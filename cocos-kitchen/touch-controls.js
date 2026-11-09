@@ -412,7 +412,8 @@
     joystick.addEventListener('pointermove', event => { if (event.pointerId !== joyPointer) return; event.preventDefault(); if (canPlay()) joyMove(event); else clearPointers(); });
     // The stick returns to its corner when released; while held it stays where the thumb landed.
     const homeStick = () => { if (joystick.dataset.floating !== 'true') return; joystick.dataset.floating = 'false'; joystick.style.left = joystick.style.top = ''; };
-    const joyEnd = event => { if (event.pointerId !== joyPointer) return; event.preventDefault(); const id = joyPointer; joyPointer = null; uncapture(joystick, id); stick.style.transform = 'translate(0px,0px)'; homeStick(); controls?.move(0, 0); };
+    const joyRelease = () => { const id = joyPointer; joyPointer = null; uncapture(joystick, id); stick.style.transform = 'translate(0px,0px)'; homeStick(); controls?.move(0, 0); };
+    const joyEnd = event => { if (event.pointerId !== joyPointer) return; event.preventDefault(); joyRelease(); };
     // Floating stick: a press anywhere in the lower-left zone puts the stick's centre under the thumb.
     el('touch-zone').addEventListener('pointerdown', event => {
       if (event.button > 0 || joyPointer !== null || !canPlay()) return;
@@ -425,6 +426,17 @@
     });
     el('touch-zone').addEventListener('contextmenu', event => event.preventDefault());
     joystick.addEventListener('pointerup', joyEnd); joystick.addEventListener('pointercancel', joyEnd); joystick.addEventListener('lostpointercapture', joyEnd);
+    // iPhone Safari does not always hand the stick its finger's lift (seen 2026-11-09: the chef kept walking up to
+    // the end of a round with the thumb off the screen). So the stick's finger lifting anywhere on the page ends it,
+    // and so does a touch ending with no finger left that began on the stick or its zone (a touch keeps the element
+    // it began on as its target however far it moves).
+    window.addEventListener('pointerup', joyEnd, true); window.addEventListener('pointercancel', joyEnd, true);
+    const zone = el('touch-zone');
+    const joyTouchEnd = event => {
+      if (joyPointer === null) return;
+      if (![...(event.touches || [])].some(touch => joystick.contains(touch.target) || zone.contains(touch.target))) joyRelease();
+    };
+    window.addEventListener('touchend', joyTouchEnd, true); window.addEventListener('touchcancel', joyTouchEnd, true);
     // 切/洗/扔 holding a throwable item: tap throws straight ahead, hold aims, release throws (or cancels over Cancel).
     // Without one it chops, washes or sprays at once, as Overcooked 2's use button does.
     const endHold = event => { event.preventDefault(); const id = holdPointer, button = holdButton; holdPointer = holdButton = null; uncapture(button, id); button.dataset.pressed = 'false'; };

@@ -162,6 +162,21 @@ function check(path){
  assert(h.calls.some(c=>c[0]==='move'&&(c[1]!==0||c[2]!==0)),'zone press drags the stick');
  h.fire('touch-joystick','pointerup',{pointerId:4});
  assert.equal(joy.dataset.floating,'false','released stick returns to its corner');assert.equal(joy.style.left,'');
+ // iPhone Safari may not hand the stick its finger's lift (2026-11-09: the chef walked on to the round's end).
+ const lastMove=()=>h.calls.filter(c=>c[0]==='move').at(-1);
+ h.fire('touch-zone','pointerdown',{pointerId:11,clientX:300,clientY:300});h.fire('touch-joystick','pointermove',{pointerId:11,clientX:130,clientY:230});
+ h.w.dispatchEvent(new h.Event('pointerup',{pointerId:11}));
+ assert.deepEqual(lastMove().slice(1),[0,0],'the stick finger lifting anywhere on the page stops the chef');
+ assert.equal(joy.dataset.floating,'false','and sends the stick home');
+ h.fire('touch-joystick','pointerdown',{pointerId:12});h.fire('touch-joystick','pointermove',{pointerId:12,clientX:130,clientY:230});
+ h.w.dispatchEvent(new h.Event('pointerup',{pointerId:13}));
+ assert.notDeepEqual(lastMove().slice(1),[0,0],'another finger lifting leaves the stick held');
+ const button=h.elements.get('touch-action');
+ h.w.dispatchEvent(new h.Event('touchend',{touches:[{target:joy,clientX:130,clientY:230}]}));
+ assert.notDeepEqual(lastMove().slice(1),[0,0],'a touch end with the stick finger still down leaves it held');
+ h.w.dispatchEvent(new h.Event('touchend',{touches:[{target:button,clientX:700,clientY:300}]}));
+ assert.deepEqual(lastMove().slice(1),[0,0],'a touch end with no finger left on the stick releases it');
+ h.fire('touch-joystick','pointerup',{pointerId:12});
  // Plain buttons: one word whatever the context (the toolbar names the action); haptics tick.
  assert.equal(h.elements.get('touch-action').textContent,'拿/放','no contextual text on the button');
  // 切/洗 (the keyboard's E) chops, washes or sprays on press, only when there is something to chop, wash or spray.
