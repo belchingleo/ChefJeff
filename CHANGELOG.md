@@ -6,6 +6,10 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 
 ## Unreleased
 
+### Put down, then fetch (one-press v4, model input change)
+
+- A new one-press option, `put then fetch <ingredient>` (the key is the fetch key with "put then " in front, e.g. `put then fetch beef`): while Jeff holds an item the engine lists no fetch, because fetching needs empty hands, so he had to choose a put and then, in a second request, the fetch. The option puts the held item where `put_where` says and fetches from that source, as two ordinary steps, like the put then take, chop and wash options. It is offered for each source whose fetch his full hands keep from the list, and not when the source's top is taken. A player makes the same two presses. Replayed offline at level 2's 146-second moment with a scripted partner, Jev holding a plate noted "fetch beef" as his next work while no option fetched. `one_press` is now `one-press-v4`; `put_where` now says it goes with any "put then ..." action. Engine, rules and the page are unchanged; the payload fingerprints change where Jeff holds an item.
+
 ### Food named by ingredient and state (off by default)
 
 - A trial, `food_names` in `features.json` (version `names-v1`, no player switch, off). Jeff's food names were the page's display names, translated; beef's dated from when it was the only ingredient, so raw beef reached him as "Raw meat", chopped beef as "Chopped" and cooked beef as "Cooked", while the recipes and a plate's missing list say "beef (cooked)", the fridge's fetch said "raw meat" and no station said what it supplies. On level 2 a scripted assembler partnered with Jev left him waiting in 57% of his answers, and fetching beef was not among his 20 most frequent answers; replayed offline, the request at such a moment names beef nowhere in a fetch or a station. With the switch on, every loose ingredient is named "<item> (<state>)" in the recipes' words, a plate by its dish when the round's orders can ask for it (else "plate with" its components), a pan or pot by its kind and contents, every action label that names food uses the same name, each ingredient source carries `supplies`, and `rules.food_names` says how food is named. Names are built from the ingredient ids and states, so all twelve ingredients a player level can use are named alike; `tests/test_food_names.py` lays out every state of each and fails on any food name or label that does not name its ingredient, or on Chinese anywhere in the request. With the switch off, every request is byte-identical; the page, the engine's events and the records' engine inputs are unchanged with it on. A new payload fingerprint, `level2-food-names`, plays the same round as `level2`; research replay rebuilds named requests exactly. `scripts/food_names_check.py` (`reask.py food_names`) replays logged rounds from their session bundles and re-asks the moments Jeff waited empty-handed while an ingredient the menu needs was nowhere, as logged and as the switch builds them.
@@ -267,6 +271,10 @@ First private release: a local browser game with three playable maps and player-
 ## 更新记录
 
 ## 未发布
+
+### 先放下再取（一键操作 v4，改变模型输入）
+
+- 新增一键操作 `put then fetch <食材>`（代号是取货代号前面加 "put then "，比如 `put then fetch beef`）。Jeff 手里拿着东西时，引擎不会列出取货，因为取货要空手，所以他得先选一个放下的位置，下一次请求才能去取。新选项把手里的东西放到 `put_where` 选的位置，再去那个食材箱取，和"先放下再拿／切／洗"一样是两个普通步骤。只有因为手满而没列出的取货才会出现，食材箱顶上有东西时不出现。玩家做这件事也是按两下键。离线重放第二关 146 秒的局面（脚本搭档配合）时，Jev 端着盘子，打算写着"拿牛肉"，但没有一个选项能直接去取。`one_press` 升到 `one-press-v4`；`put_where` 的说明改为适用于所有 "put then ..." 选项。引擎、规则和页面都没变；Jeff 手里有东西的请求指纹会变。
 
 ### 按食材和状态给食物命名（默认关闭）
 

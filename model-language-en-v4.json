@@ -394,6 +394,10 @@
       "Put the held {0} where put_where says, then chop {2} at {1} ({3}s left)"
     ],
     [
+      "先把手中的{0}放到 put_where 选的位置，再到{1}取一份{2}",
+      "Put the held {0} where put_where says, then fetch {2} from {1}"
+    ],
+    [
       "先把手中的{0}放到 put_where 选的位置，再从{1}拿起{2}",
       "Put the held {0} where put_where says, then take {2} from {1}"
     ],

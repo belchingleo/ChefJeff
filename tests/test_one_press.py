@@ -64,7 +64,7 @@ class OptionTests(unittest.TestCase):
     def test_put_then_take_names_what_he_takes(self):
         k = bread_and_lettuce()
         actions = k.actions('jeff')
-        options = one_press.options(k, 'jeff', actions, BOTH)
+        options = [o for o in one_press.options(k, 'jeff', actions, BOTH) if o.kind != 'put_then_fetch']
         self.assertEqual([(o.key, o.kind, o.target) for o in options],
                          [('put then take b1', 'put_then_take', 'b1'), ('put then chop b1', 'put_then_chop', 'b1')])
         self.assertEqual(options[0].label, '先把手中的面包放到 put_where 选的位置，再从案板 1拿起生菜')
@@ -82,6 +82,43 @@ class OptionTests(unittest.TestCase):
         start(k, 'jeff', 'take plates')                                                       # a clean plate: assemble b1 is listed
         self.assertTrue(any(a.key == 'assemble b1' for a in k.actions('jeff')))
         self.assertNotIn('put then take b1', [o.key for o in one_press.options(k, 'jeff', k.actions('jeff'), BOTH)])
+
+    def test_put_then_fetch_offers_each_source_his_full_hands_keep_him_from(self):
+        k = bread_and_lettuce()
+        self.assertFalse(any(a.kind == 'fetch' for a in k.actions('jeff')))                # full hands: no fetch listed
+        fetches = [o for o in one_press.options(k, 'jeff', k.actions('jeff'), BOTH) if o.kind == 'put_then_fetch']
+        sources = [s for s in k.ingredients if k.stations[s].food is None]
+        self.assertEqual([(o.key, o.target) for o in fetches], [('put then ' + k.fetch_key(s), s) for s in sources])
+        self.assertIn('put then fetch beef', [o.key for o in fetches])
+        beef = next(o for o in fetches if o.key == 'put then fetch beef')
+        name = k.state_label('beef', k.rules.items['beef']['initial_state'])
+        self.assertEqual(beef.label, f'先把手中的面包放到 put_where 选的位置，再到{k.stations[beef.target].name}取一份{name}')
+        self.assertEqual(one_press.steps(beef, k), [(('fetch',), beef.target)])
+        k.stations[beef.target].food = Food('F99', 'raw', ingredient='lettuce')                # the source's top is taken
+        self.assertNotIn('put then fetch beef', [o.key for o in one_press.options(k, 'jeff', k.actions('jeff'), BOTH)])
+        empty = SpatialKitchen(level_config(load_config(), 'level-2'))                        # empty hands: plain fetch only
+        self.assertFalse([o for o in one_press.options(empty, 'jeff', empty.actions('jeff'), BOTH) if o.kind == 'put_then_fetch'])
+
+    def test_put_then_fetch_runs_as_a_put_and_a_fetch(self):
+        k = bread_and_lettuce()
+        loop = DecisionLoop(k, Answering(k.c, [{'choice': 'put then fetch beef', one_press.PUT_WHERE: 'put counter16'}]),
+                            lambda kind, data: None, lambda _: None)
+        loop.one_press = BOTH
+        payload = compose_payload(loop.client, k, k.snapshot(), k.actions('jeff'), [], None, NO_MEMORY, None, BOTH)
+        criteria = payload['questions']['next_action']['criteria']
+        self.assertEqual(criteria['put then fetch beef'], 'Put the held Bread where put_where says, then fetch Raw meat from Fridge')
+        self.assertIn('put counter16', payload['questions']['put_where']['criteria'])
+        beef = next(o for o in one_press.options(k, 'jeff', k.actions('jeff'), BOTH) if o.key == 'put then fetch beef')
+        applied, _, pressed = loop.start_chain(beef, 'put counter16')
+        self.assertTrue(applied)
+        self.assertEqual(pressed, {'first': 'put counter16', 'fallback': False})
+        for _ in range(400):
+            k.advance(.05)
+            loop.advance_chain()
+            if loop.chain is None and k.chefs['jeff'].job is None:
+                break
+        self.assertEqual(k.stations['counter16'].food.ingredient, 'bread')
+        self.assertEqual((k.chefs['jeff'].hand.ingredient, k.chefs['jeff'].hand.stage), ('beef', 'raw'))
 
     def test_wash_from_returns_with_and_without_something_in_hand(self):
         k = bread_and_lettuce()

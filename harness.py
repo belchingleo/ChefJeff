@@ -269,7 +269,7 @@ def payload(state, actions, config, spatial=False):
     if places and any(a.kind in one_press.KINDS for a in listed):
         questions[one_press.PUT_WHERE] = {
             'type': 'choice', 'criteria': places,
-            'instructions': 'Only if next_action is a "put then take" or "wash from" action: where the held item goes first. '
+            'instructions': 'Only if next_action is a "put then ..." or "wash from" action: where the held item goes first. '
                             'Otherwise it is not used.'}
     return english_data({"model": config["model"],
                          "state": {"kitchen": kitchen, "rules": rules(state, spatial, per_area)},

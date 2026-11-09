@@ -52,7 +52,7 @@ For each model it counts:
   switches off; `one_press_rounds` at the top says how many there were. Their `one_press` section gives
   the switches the rounds had, the version (`one-press-v1`: put then take and wash from the plate return;
   `one-press-v2` adds put then chop and put then wash; `one-press-v3` gives those two the seconds of work
-  left, as the engine's own labels do), how often each kind of one-press option was offered and chosen, how many choices
+  left, as the engine's own labels do; `one-press-v4` adds put then fetch), how often each kind of one-press option was offered and chosen, how many choices
   started, how often put_where fell back to the first listed put place, and how the chains ended
   (finished, step_not_possible, replaced, ...; research records do not keep the end, so it reads
   `not_recorded` there). `swap_backs` counts put-then-take choices that, within --put-back game seconds of
@@ -374,6 +374,7 @@ def outcomes(rows, m):
 
 # One-press option keys (one_press.py) by their kind, and the switches that offer them.
 ONE_PRESS_KEYS = (('put_then_take', 'put then take '), ('put_then_chop', 'put then chop '), ('put_then_wash', 'put then wash '),
+                  ('put_then_fetch', 'put then fetch '),
                   ('wash_from_returns', 'wash from '))
 ONE_PRESS_SWITCHES = ('put_then_take', 'wash_from_returns')
 ONE_PRESS_SUFFIX = ' [one-press]'
