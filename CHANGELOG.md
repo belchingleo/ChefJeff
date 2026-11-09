@@ -6,11 +6,15 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 
 ## Unreleased
 
+### Food names and undo notes on by default (model input change)
+
+- `food_names` (below) and `undo_note` (0.8.0-beta.1) are now on in `features.json`. Both stay trials, so a server can turn either off through its override file without a new release, and every round's record says which were on. They were checked together with the released one-press and two-step intent, and with the plan and reach_note trials, in model-free rounds: all four combinations ran to the end with all their notes and questions in each request. `undo_note` still keeps asking ahead from running; that trial is off. The payload fingerprints are re-recorded: only the food names, `rules.food_names`, `food_names_version` and the continuity rule's wording changed; every round's result, request count and request times are the same.
+
 ### Put down, then fetch (one-press v4, model input change)
 
 - A new one-press option, `put then fetch <ingredient>` (the key is the fetch key with "put then " in front, e.g. `put then fetch beef`): while Jeff holds an item the engine lists no fetch, because fetching needs empty hands, so he had to choose a put and then, in a second request, the fetch. The option puts the held item where `put_where` says and fetches from that source, as two ordinary steps, like the put then take, chop and wash options. It is offered for each source whose fetch his full hands keep from the list, and not when the source's top is taken. A player makes the same two presses. Replayed offline at level 2's 146-second moment with a scripted partner, Jev holding a plate noted "fetch beef" as his next work while no option fetched. `one_press` is now `one-press-v4`; `put_where` now says it goes with any "put then ..." action. Engine, rules and the page are unchanged; the payload fingerprints change where Jeff holds an item.
 
-### Food named by ingredient and state (off by default)
+### Food named by ingredient and state (trial)
 
 - A trial, `food_names` in `features.json` (version `names-v1`, no player switch, off). Jeff's food names were the page's display names, translated; beef's dated from when it was the only ingredient, so raw beef reached him as "Raw meat", chopped beef as "Chopped" and cooked beef as "Cooked", while the recipes and a plate's missing list say "beef (cooked)", the fridge's fetch said "raw meat" and no station said what it supplies. On level 2 a scripted assembler partnered with Jev left him waiting in 57% of his answers, and fetching beef was not among his 20 most frequent answers; replayed offline, the request at such a moment names beef nowhere in a fetch or a station. With the switch on, every loose ingredient is named "<item> (<state>)" in the recipes' words, a plate by its dish when the round's orders can ask for it (else "plate with" its components), a pan or pot by its kind and contents, every action label that names food uses the same name, each ingredient source carries `supplies`, and `rules.food_names` says how food is named. Names are built from the ingredient ids and states, so all twelve ingredients a player level can use are named alike; `tests/test_food_names.py` lays out every state of each and fails on any food name or label that does not name its ingredient, or on Chinese anywhere in the request. With the switch off, every request is byte-identical; the page, the engine's events and the records' engine inputs are unchanged with it on. A new payload fingerprint, `level2-food-names`, plays the same round as `level2`; research replay rebuilds named requests exactly. `scripts/food_names_check.py` (`reask.py food_names`) replays logged rounds from their session bundles and re-asks the moments Jeff waited empty-handed while an ingredient the menu needs was nowhere, as logged and as the switch builds them.
 - Player levels name their stations as the authored maps do (`level_design._names`: 柜台 3, 灶台 1, 灭火器架, 冰箱, 生菜箱; an ingredient source by its ingredient), where they used to show the station id. The same test found that a player level's extinguisher rack, named by its id, gave a take label the translation catalog did not know, so it reached Jeff half in Chinese ("去extinguisher拿Extinguisher"); now every label is translated, with the switch on or off. The five supply names missing from the catalogs (cucumber, onion, cheese, fish, flatbread) are added for Jeff and the page. A round already recorded keeps its frozen configuration and its station names, so its replay is unchanged.
@@ -272,11 +276,15 @@ First private release: a local browser game with three playable maps and player-
 
 ## 未发布
 
+### 食物命名和撤回说明默认打开（改变模型输入）
+
+- `features.json` 里的 `food_names`（见下）和 `undo_note`（0.8.0-beta.1 加入）改为默认打开。两者仍是测试开关，所以服务器不用发新版本，就能通过覆盖文件关掉其中任何一个；每局记录都写明当局开了哪些开关。我们在不调用模型的整局里，把它们和已发布的一键操作、两步打算，以及计划、reach_note 两个测试开关组合起来跑过，四种组合都跑完了，每次请求里各自的说明和问题都在。开着 `undo_note` 时仍不会提前问下一步，不过那个测试开关本来是关的。请求录像已重新录制，只有食物名称、`rules.food_names`、`food_names_version` 和 continuity 规则的措辞变了，每局的结果、请求次数和请求时刻都不变。
+
 ### 先放下再取（一键操作 v4，改变模型输入）
 
 - 新增一键操作 `put then fetch <食材>`（代号是取货代号前面加 "put then "，比如 `put then fetch beef`）。Jeff 手里拿着东西时，引擎不会列出取货，因为取货要空手，所以他得先选一个放下的位置，下一次请求才能去取。新选项把手里的东西放到 `put_where` 选的位置，再去那个食材箱取，和"先放下再拿／切／洗"一样是两个普通步骤。只有因为手满而没列出的取货才会出现，食材箱顶上有东西时不出现。玩家做这件事也是按两下键。离线重放第二关 146 秒的局面（脚本搭档配合）时，Jev 端着盘子，打算写着"拿牛肉"，但没有一个选项能直接去取。`one_press` 升到 `one-press-v4`；`put_where` 的说明改为适用于所有 "put then ..." 选项。引擎、规则和页面都没变；Jeff 手里有东西的请求指纹会变。
 
-### 按食材和状态给食物命名（默认关闭）
+### 按食材和状态给食物命名（测试开关）
 
 - 新增测试中的 `food_names`（`features.json`，版本 `names-v1`，没有玩家开关，默认关闭）。Jeff 读到的食物名字原来是页面显示用的名字翻译过来的；牛肉那组名字写于它还是唯一食材的时候，所以生牛肉在他那里叫 "Raw meat"，切好的叫 "Chopped"，熟的叫 "Cooked"，而菜谱和盘子的缺料写的是 "beef (cooked)"；冰箱的取货动作写的是 "raw meat"，也没有工位说明自己出什么食材。第二关里脚本装盘手配 Jev 时，他 57% 的回答是等待，最常见的 20 种回答里没有一种是取牛肉；离线重放那样的时刻，请求里没有任何取货动作或工位提到 beef。打开后，散放的食材一律写成 "<食材> (<状态>)"，用菜谱里的词；盘子在这一局的订单会点这道菜时写菜名，否则写 "plate with" 加配料；锅写种类和里面的东西；所有提到食物的动作文字都用同一个名字；每个食材箱带 `supplies`；`rules.food_names` 说明命名方式。名字由食材编号和状态拼出来，所以玩家关卡能用的 12 种食材都按同一规则命名；`tests/test_food_names.py` 把每种食材的每个状态都摆一遍，只要有食物名字或动作文字没说出是哪种食材，或者请求里任何地方出现中文，测试就失败。开关关闭时，每个请求逐字节不变；打开后，页面、引擎事件和记录里的引擎输入也都不变。新增请求录像 `level2-food-names`，打的是和 `level2` 同一局；研究回放能原样重建命名后的请求。`scripts/food_names_check.py`（`reask.py food_names`）用会话包重放记录里的对局，挑出 Jeff 空着手等待、而菜单需要的某种食材厨房里一份都没有的时刻，原样问一次、按开关打开后的样子再问一次。
 - 玩家关卡的工位改按官方地图的写法命名（`level_design._names`：柜台 3、灶台 1、灭火器架、冰箱、生菜箱；食材箱按食材命名），以前显示的是工位编号。同一项测试发现：玩家关卡的灭火器架用编号当名字，它的拿取动作翻译表里没有，发给 Jeff 时一半是中文（"去extinguisher拿Extinguisher"）；现在不论开关开不开，所有动作文字都有翻译。翻译表里缺的五个食材箱名字（黄瓜、洋葱、奶酪、鱼、薄饼）也给 Jeff 和页面补上了。已经记录下来的对局保留它冻结的配置和原来的工位名，重放结果不变。

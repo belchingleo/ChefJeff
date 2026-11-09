@@ -324,11 +324,11 @@ class SessionTests(unittest.TestCase):
         self.assertEqual(row['features'], {'one_press': {'on': True, 'version': one_press.VERSION},
                                            'jeff_plan': {'on': False, 'version': 'plan-v2'},
                                            'rolling_intent': {'on': True, 'version': 'rolling-v3'},
-                                           'undo_note': {'on': False, 'version': 'undo-note-v1'},
+                                           'undo_note': {'on': True, 'version': 'undo-note-v1'},
                                            'compact_input': {'on': False, 'version': 'compact-v1'},
                                            'ask_ahead': {'on': False, 'version': 'ask-ahead-v1'},
                                            'reach_note': {'on': False, 'version': 'reach-v1'},
-                                           'food_names': {'on': False, 'version': 'names-v1'}})
+                                           'food_names': {'on': True, 'version': 'names-v1'}})
         self.assertEqual(row['jeff_plan'], {'mode': 'rolling', 'steps': 2, 'rules_version': 'rolling-v3'})
 
     def test_the_file_rolls_it_back(self):

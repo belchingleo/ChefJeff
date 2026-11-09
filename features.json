@@ -2,9 +2,9 @@
   "one_press": {"stage": "release", "on": true, "version": "one-press-v4"},
   "jeff_plan": {"stage": "trial", "on": false, "version": "plan-v2"},
   "rolling_intent": {"stage": "release", "on": true, "version": "rolling-v3"},
-  "undo_note": {"stage": "trial", "on": false, "version": "undo-note-v1"},
+  "undo_note": {"stage": "trial", "on": true, "version": "undo-note-v1"},
   "compact_input": {"stage": "trial", "on": false, "version": "compact-v1"},
   "ask_ahead": {"stage": "trial", "on": false, "version": "ask-ahead-v1"},
   "reach_note": {"stage": "trial", "on": false, "version": "reach-v1"},
-  "food_names": {"stage": "trial", "on": false, "version": "names-v1"}
+  "food_names": {"stage": "trial", "on": true, "version": "names-v1"}
 }

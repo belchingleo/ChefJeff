@@ -157,8 +157,8 @@ class NamesTests(unittest.TestCase):
 
 
 class SwitchTests(unittest.TestCase):
-    def test_off_by_default_and_off_changes_nothing(self):
-        self.assertEqual(features.current()['food_names'], {'stage': 'trial', 'on': False, 'player_switch': False,
+    def test_on_by_default_and_off_changes_nothing(self):
+        self.assertEqual(features.current()['food_names'], {'stage': 'trial', 'on': True, 'player_switch': False,
                                                             'version': food_names.VERSION})
         k = SpatialKitchen(level_config(load_config(), 'level-2'))
         k.stations['b1'].food = Food('F50', 'chopped', ingredient='beef')
@@ -218,10 +218,12 @@ class CheckTests(unittest.TestCase):
                 return {'choice': 'wait', 'sprint': False, 'sprint_answer': {}, 'confidence': None, 'probabilities': {},
                         'model': 'stand-in', 'usage': {}, 'latency': .5}
         model = cls.MODEL
+        current = features.current()
+        off = {**current, 'food_names': {**current['food_names'], 'on': False}}   # the check reads rounds played without names
         cls.folder = tempfile.TemporaryDirectory()
         clock = Clock()
         with patch.dict(os.environ, {'CHEFJEFF_LOG_DIR': cls.folder.name}), patch('jev.time.monotonic', clock), \
-                patch('jev.threading.Thread', Inline):
+                patch('jev.threading.Thread', Inline), patch.object(features, 'current', lambda: off):
             cls.result = model_rounds.play_round('level-2', Waiter, 'assembler', 40, clock=clock, wait=clock.wait)
 
     @classmethod

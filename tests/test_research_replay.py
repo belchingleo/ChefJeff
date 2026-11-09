@@ -193,8 +193,8 @@ class ReplayTests(paths.SavePathTests):
         self.assertEqual(initial['conditions']['one_press'], condition)
         self.assertEqual(initial['conditions']['features']['one_press'], {'on': True, 'version': one_press.VERSION})
         self.assertEqual({name: value['on'] for name, value in initial['conditions']['features'].items()},
-                         {'one_press': True, 'jeff_plan': False, 'rolling_intent': True, 'undo_note': False,
-                          'compact_input': False, 'ask_ahead': False, 'reach_note': False, 'food_names': False})
+                         {'one_press': True, 'jeff_plan': False, 'rolling_intent': True, 'undo_note': True,
+                          'compact_input': False, 'ask_ahead': False, 'reach_note': False, 'food_names': True})
         with self.game.lock:                                    # the human leaves beef on a board
             k = self.game.k
             for chosen in (lambda a: a.key == 'fetch beef', lambda a: a.kind == 'put_board'):
@@ -337,7 +337,7 @@ class ReplayTests(paths.SavePathTests):
         import ask_ahead
         from test_one_press import plan_trials
         with self.game.lock:                      # ask_ahead only asks when no plan mode is on
-            self.game.features, self.game.jeff_plan_mode = plan_trials(ask_ahead={'on': True}), 'off'
+            self.game.features, self.game.jeff_plan_mode = plan_trials(ask_ahead={'on': True}, undo_note={'on': False}), 'off'
         receipt = self.begin_manual_relay()
         with self.game.lock:
             self.game.ai.ask_ahead = True
