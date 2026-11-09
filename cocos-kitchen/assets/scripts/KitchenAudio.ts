@@ -6,6 +6,8 @@ type Entry = { loop:boolean; kind?:string; gain:number; seconds:number; bar?:num
 type Index = { sounds:Record<string,Entry>; chop:string[]; wash:Record<string,Entry> };
 type Channel = { src:AudioSource; clip:string; level:number; target:number; fadeIn:number; fadeOut:number; randomStart:boolean };
 const STORAGE='chefjeff-audio';
+// A looping buffer restarts this far before its last sample (see holdLoopEnd).
+const LOOP_END_INSET=.001;
 const LOOPS:[string,string,number,number,boolean][]=[
     // name, clip, fade in (s), fade out (s), start at a random offset
     ['ambience','amb_kitchen',1.5,.6,false],
@@ -259,6 +261,15 @@ export class KitchenAudio {
         this.stepPendingMusic(dt);
         for(const ch of this.music)this.step(ch,dt,this.volume.music,false);
     }
+    /** Some browsers (seen in an embedded Chromium) stop a looping buffer for good at its very end for certain
+     *  buffer lengths: the in-round music went silent after its first pass while the engine still reported it
+     *  playing. An explicit loop end a millisecond inside the buffer avoids that. The engine starts a new source
+     *  node on every play or seek, so this is checked each frame; if engine internals change it does nothing. */
+    private holdLoopEnd(src:AudioSource){
+        const node:AudioBufferSourceNode|undefined=(src as any)._player?._player?._sourceNode;
+        if(!node||!node.loop||!node.buffer||node.loopEnd>0)return;
+        node.loopEnd=Math.max(0,node.buffer.duration-LOOP_END_INSET);
+    }
     private step(ch:Channel,dt:number,master:number,sfx:boolean){
         const clip=this.clips[ch.clip];if(!clip){
             ch.level=0;if(master>0&&ch.target>0)this.ensureClip(ch.clip);return;
@@ -274,6 +285,7 @@ export class KitchenAudio {
                 if(ch.randomStart&&sfx)src.currentTime=Math.random()*Math.max(0,clip.getDuration()-.2);
             }
             src.volume=ch.level*this.gain(ch.clip)*master;
+            this.holdLoopEnd(src);
         }else if(src.playing){
             // Loops pause at silence; texture loops restart elsewhere next time, music resumes in place.
             if(sfx&&ch.randomStart)src.stop();else src.pause();

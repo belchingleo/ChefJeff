@@ -70,6 +70,18 @@ class AudioAssetTests(unittest.TestCase):
         # (the service's oom-pah opening, the rush's gradual change of lead sound).
         self.assertIn("was==='paused'&&!fresh", CLIENT.read_text())
 
+    def test_loops_end_just_inside_the_buffer(self):
+        # The embedded Chromium froze the in-round music for good at its first loop point when the loop ran to the
+        # buffer's very end; every playing loop gets an explicit loop end a little inside it, each frame, since the
+        # engine makes a new source node on every play or seek.
+        source = CLIENT.read_text()
+        step = source.split('private step(')[1].split('\n    }\n')[0]
+        self.assertIn('this.holdLoopEnd(src);', step.split('}else if(src.playing)')[0])
+        hold = source.split('private holdLoopEnd(')[1].split('\n    }\n')[0]
+        self.assertIn('node.loopEnd=Math.max(0,node.buffer.duration-LOOP_END_INSET)', hold)
+        inset = float(re.search(r'const LOOP_END_INSET=([\d.]+);', source).group(1))
+        self.assertTrue(.0005 <= inset <= .002, inset)
+
     def test_manifest_picks_match_the_export(self):
         manifest = json.loads(MANIFEST.read_text())
         unpicked = [s['id'] for s in manifest['sounds'] if not s.get('fixed') and 'pick' not in s]
