@@ -28,6 +28,10 @@
     "f5dfc809bf44919c5713cfa938c62e5c8e448167e45ad1aeab07d9cf17a8df52": {
       "commit": "8a020a974a3ce18bbd9533e4192ef31e92ef0382",
       "version": "0.6.0-beta.2"
+    },
+    "fc97db752a9271df0768b36fa2525b559fa29fbe996a565690b439a0adaef140": {
+      "commit": "f82a8e812670319d0e91653588f9e18d1a86149a",
+      "version": "0.8.1-beta.1"
     }
   }
 }

@@ -132,8 +132,8 @@ The most recent result is shared across players; it is not a full per-player his
 
 ### Upgrade an already running free-model deployment
 
-This upgrade expects the game release `d99e933efc18` (0.8.0-beta.1) on both regions and the gateway
-running from the earlier `98585b5ec8e8` release in Shanghai with the later models enabled (both checked on the servers after the 2026-11-08 deploy, which left the gateway as it was). Build the pinned GitHub commit
+This upgrade expects the game release `f82a8e812670` (0.8.1-beta.1) on both regions and the gateway
+running from the earlier `98585b5ec8e8` release in Shanghai with the later models enabled (both checked on the servers after the 2026-11-09 deploy, which, like the 2026-11-08 one, left the gateway as it was). Build the pinned GitHub commit
 archive twice and require matching SHA-256 before staging. The regional installer
 preserves and restores the existing free-model startup override on rollback.
 
