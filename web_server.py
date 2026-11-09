@@ -26,7 +26,7 @@ import one_press
 from play import Journal, log_root
 from round_summary import round_summary
 from session_record import SessionLog, write_bundle
-from levels import available_levels
+from levels import shown_levels
 from feedback import HISTORY_LIMIT, round_export
 
 
@@ -301,7 +301,7 @@ class GameSession:
                     'aborted': self.k.aborted,
                     'won': self.k.won() and not self.k.aborted if self.phase == 'ended' else False,
                     'round_summary': self.round_record() if self.phase == 'ended' else None,
-                    'levels': available_levels(),
+                    'levels': shown_levels(),
                     'player_level': {'id': self.k.resolved['level']['id'], 'name': self.player_level['name'],
                                      'names': self.player_level['names'], 'looks': self.player_level['looks'],
                                      **{key: self.player_level['report'][key] for key in ('target', 'solo_reaches_target')}}
@@ -541,9 +541,9 @@ class GameSession:
         if path == '/api/level':
             if self.phase not in ('ready','ended') or not hasattr(self.k,'nav'):
                 return 409,{'error':'Choose a level before starting or after the round ends.'}
-            from levels import level_config, level_id
+            from levels import level_config, shown_level_id
             level=body.get('level')
-            try:level_id(level)
+            try:shown_level_id(level)       # a level switched off (level_switches.json) cannot be chosen
             except ValueError:return 400,{'error':'Unknown level.'}
             if hasattr(self, '_record_context_close'): self._record_context_close('next_level')
             self._finish(aborted=self.phase!='ended')

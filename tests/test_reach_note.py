@@ -5,6 +5,7 @@ No model is called: requests are composed locally, and the round is a loopback r
 import json
 import unittest
 import uuid
+from unittest.mock import patch
 
 import features
 import reach_note
@@ -70,7 +71,9 @@ class ReachReplayTests(paths.SavePathTests):
     def test_a_level_four_round_with_the_note_replays_exactly(self):
         with self.game.lock:
             self.game.features = {**self.game.features, 'reach_note': {**self.game.features['reach_note'], 'on': True}}
-        status, data = self.request('/api/level', {'game_id': self.game.game_id, 'request_id': uuid.uuid4().hex, 'level': 4}, self.token)
+        import levels
+        with patch.object(levels, 'switches', lambda: {'level-4': True}):    # level 4 is switched off for players
+            status, data = self.request('/api/level', {'game_id': self.game.game_id, 'request_id': uuid.uuid4().hex, 'level': 4}, self.token)
         self.assertEqual(status, 200, data)
         receipt = self.play()
         self.natural_end()

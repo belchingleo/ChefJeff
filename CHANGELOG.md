@@ -6,6 +6,10 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 
 ## Unreleased
 
+### Level 4 behind a switch, off
+
+- `level_switches.json` says which listed levels players see; it holds `{"level-4": {"on": false}}`, so level 4 leaves the page's level list and `/api/level` refuses it, while the engine, tests, research replay and the research console still have it. A level the file does not name is shown. A machine shows or hides a level without a new release through `/etc/chefjeff/levels.override.json` (or the path in `CHEFJEFF_LEVELS_OVERRIDE`), in the same shape and read again when it changes; a wrong override is not used. `python3 levels.py show` and `python3 levels.py set level-4 on|off` read and write it.
+
 ### Full-reach throws land on the far tile
 
 - A throw that reached a floor tile only past its centre was cut short. A floor tile counted as reached only when its centre was within reach, while a station counted when its nearest edge was, so from a spot a little off a tile centre a full 4-tile throw fell a tile short. On level 4, with Jeff at a stove 0.15 off centre holding beef and the player 4.11 tiles away across the counter row, "throw partner" was not offered at all (every tile beside the player was a few thousandths of a tile too far for a missed catch to land on) and "throw down" came down on his own side. As in Overcooked 2, where a throw lands wherever it flies, a floor tile now counts as reached like a station; the same rule holds for both chefs. The behaviour and payload fingerprints are re-recorded: each recording first changes at a throw now landing a tile farther, the four reference rounds are unchanged, and every payload round keeps its result and request count.
@@ -279,6 +283,10 @@ First private release: a local browser game with three playable maps and player-
 ## 更新记录
 
 ## 未发布
+
+### 第四关改由开关控制，默认关闭
+
+- 新增 `level_switches.json`，决定玩家能看到哪些关卡。文件里写的是 `{"level-4": {"on": false}}`，所以页面的关卡列表里不再有第四关，`/api/level` 也拒绝切到第四关；引擎、测试、研究回放和研究管理台仍然认得它。文件里没写的关卡照常显示。每台机器都可以不发新版本，用 `/etc/chefjeff/levels.override.json`（或 `CHEFJEFF_LEVELS_OVERRIDE` 指定的路径）显示或隐藏某一关，格式相同，文件改了会重新读取，写错了就不用。`python3 levels.py show` 查看，`python3 levels.py set level-4 on|off` 修改。
 
 ### 满距离扔出的东西落到远处那一格
 

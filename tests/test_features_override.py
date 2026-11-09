@@ -153,7 +153,9 @@ class OverrideRecordTests(paths.SavePathTests):
         super().setUp()
 
     def test_a_round_under_an_override_is_recorded_with_its_source_and_replays_exactly(self):
-        status, data = self.request('/api/level', {'game_id': self.game.game_id, 'request_id': uuid.uuid4().hex, 'level': 4}, self.token)
+        import levels
+        with patch.object(levels, 'switches', lambda: {'level-4': True}):    # level 4 is switched off for players
+            status, data = self.request('/api/level', {'game_id': self.game.game_id, 'request_id': uuid.uuid4().hex, 'level': 4}, self.token)
         self.assertEqual(status, 200, data)
         receipt = self.play()
         self.natural_end()
