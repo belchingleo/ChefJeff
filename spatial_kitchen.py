@@ -762,9 +762,7 @@ class SpatialKitchen(Kitchen):
         if target not in self.floor_places:
             return False
         cell = self.cell(target)
-        return (cell not in self.occupied_floor(who)
-                and math.dist(self.positions[who], cell) <= self.throw_range(who) + 1e-8
-                and self.clear_throw_line(self.positions[who], cell))
+        return cell not in self.occupied_floor(who) and self.throw_reaches(who, cell)
 
     def throw_station(self, who, cell):
         """The station a thrown ingredient coming down on ``cell`` rests on, as in Overcooked 2: an empty
@@ -813,9 +811,9 @@ class SpatialKitchen(Kitchen):
         end = tuple(start[i]+(end[i]-start[i])*limit for i in (0,1))
         occupied = self.occupied_floor(who)
         def available(cell):
-            return (cell in self.floor and cell not in occupied
-                    and math.dist(start,cell) <= reach+1e-8
-                    and self.clear_throw_line(start,cell))
+            # As for stations (throw_reaches): a full-reach throw from a spot off a tile centre still comes down
+            # on the tile its flight ends in, as in Overcooked 2, where a throw lands wherever it flies.
+            return cell in self.floor and cell not in occupied and self.throw_reaches(who, cell)
         cell = tuple(math.floor(v+.5) for v in end)
         other = 'jeff' if who == 'human' else 'human'
         # A missed/busy catch lands beside the chef, never on top of their work.

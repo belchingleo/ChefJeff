@@ -6,6 +6,10 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 
 ## Unreleased
 
+### Full-reach throws land on the far tile
+
+- A throw that reached a floor tile only past its centre was cut short. A floor tile counted as reached only when its centre was within reach, while a station counted when its nearest edge was, so from a spot a little off a tile centre a full 4-tile throw fell a tile short. On level 4, with Jeff at a stove 0.15 off centre holding beef and the player 4.11 tiles away across the counter row, "throw partner" was not offered at all (every tile beside the player was a few thousandths of a tile too far for a missed catch to land on) and "throw down" came down on his own side. As in Overcooked 2, where a throw lands wherever it flies, a floor tile now counts as reached like a station; the same rule holds for both chefs. The behaviour and payload fingerprints are re-recorded: each recording first changes at a throw now landing a tile farther, the four reference rounds are unchanged, and every payload round keeps its result and request count.
+
 ### Food names and undo notes on by default (model input change)
 
 - `food_names` (below) and `undo_note` (0.8.0-beta.1) are now on in `features.json`. Both stay trials, so a server can turn either off through its override file without a new release, and every round's record says which were on. They were checked together with the released one-press and two-step intent, and with the plan and reach_note trials, in model-free rounds: all four combinations ran to the end with all their notes and questions in each request. `undo_note` still keeps asking ahead from running; that trial is off. The payload fingerprints are re-recorded: only the food names, `rules.food_names`, `food_names_version` and the continuity rule's wording changed; every round's result, request count and request times are the same.
@@ -275,6 +279,10 @@ First private release: a local browser game with three playable maps and player-
 ## 更新记录
 
 ## 未发布
+
+### 满距离扔出的东西落到远处那一格
+
+- 以前扔东西时，地板格要格子中心在射程内才算够得着，柜台却是最近的边在射程内就算，所以人站得稍微偏离格子中心时，满 4 格的扔会少飞一格。第四关里，Jeff 站在灶台前偏 0.15 格、手拿牛肉，玩家隔着中间柜台在 4.11 格外：「扔给队友」整个没有出现，因为玩家身边每一格都远了千分之几格，接不住时没有地方落；「往下扔」也落回了他自己那一侧。现在照《胡闹厨房 2》，扔出的东西飞到哪里就落在哪里，地板格和柜台用同一条判断，两位厨师一样。行为指纹和请求录像已重新录制：每份录像第一处变化都是一次扔出的东西多飞了一格，四份参考对局不变，每份请求录像的结果和请求次数不变。
 
 ### 食物命名和撤回说明默认打开（改变模型输入）
 

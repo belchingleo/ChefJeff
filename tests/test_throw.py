@@ -8,6 +8,26 @@ from levels import level_config
 import config_contract as cc
 
 
+class ReachTests(unittest.TestCase):
+    def test_a_full_throw_from_off_centre_still_reaches_across_the_counter(self):
+        # Level 4, 2026-11-09: Jeff at a stove 0.15 off a tile centre held raw beef, the player stood across the
+        # counter row 4.11 tiles away. The throw would end 0.1 from the player, but every tile beside them had its
+        # centre a hair beyond 4 tiles, so "throw partner" was not offered and "throw down" fell on his own side.
+        # As in Overcooked 2 a throw lands wherever it flies; a floor tile counts as reached like a station does.
+        k=SpatialKitchen(level_config(load_config(),'level-4'))
+        k.chefs['jeff'].hand=Food('beef','raw',ingredient='beef')
+        k.positions.update(jeff=(8.15,1.),human=(7.,4.95))
+        throws={a.key:a for a in k.actions('jeff') if a.kind=='throw'}
+        self.assertIn('throw partner',throws)
+        self.assertEqual(throws['throw down'].target,tile_key((8,5)))           # the player's side of the counter row
+        self.assertTrue(k.command('jeff','throw partner')[0])
+        for _ in range(100):
+            if k.chefs['human'].hand:break
+            k.advance(.05)
+        self.assertEqual(k.chefs['human'].hand.id,'beef')                        # caught in flight
+        k.assert_invariants()
+
+
 class ThrowTests(unittest.TestCase):
     def make(self, stage='chopped', service=True):
         # service=True: a Level 1 service kitchen, whose ruleset allows passing plates, pots and tools.
@@ -37,7 +57,9 @@ class ThrowTests(unittest.TestCase):
         self.assertFalse(k.clear_throw_line((6,2),(8,2)))
         self.assertTrue(k.clear_throw_line((3,3),(5,3))) # board can be thrown over
         self.assertTrue(k.can_throw_to('jeff',tile_key((9,5))))  # exactly the 4-tile limit
-        self.assertFalse(k.can_throw_to('jeff',tile_key((9,6))))
+        # (9,6)'s centre is 4.12 away, but a 4-tile throw toward it ends inside it, at (8.88, 5.97)
+        self.assertTrue(k.can_throw_to('jeff',tile_key((9,6))))
+        self.assertFalse(k.can_throw_to('jeff',tile_key((10,5))))  # its nearest edge is 4.5 away
         k.positions.update(jeff=(6,1),human=(8,1))
         self.assertEqual(k.handoff_target('jeff'),'floor_6_1')
         self.assertTrue(k.command('jeff','throw partner')[0]);k.advance(1)
