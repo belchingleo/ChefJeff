@@ -43,11 +43,16 @@ def sha(path):
     return 'sha256:' + hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+# The version runs and verify default to. v1 (2026-11-08) was never run; it retired on 2026-11-09 when the
+# first ingredient source's action key became "fetch beef", which changed the reference traces it froze.
+CURRENT = 'v2'
+
+
 def manifest_path(version):
     return ROOT / 'benchmark' / version / 'manifest.json'
 
 
-def read_manifest(version='v1'):
+def read_manifest(version=CURRENT):
     return json.loads(manifest_path(version).read_text(encoding='utf-8'))
 
 
@@ -198,7 +203,7 @@ def main(argv=None):
     playing = commands.add_parser('run', help='play every cell of a benchmark version')
     playing.add_argument('--agent', required=True, help="jeff, or module:Class of an environment.Agent")
     playing.add_argument('--out', required=True, help='folder for journals, bundles and result.json (not logs/)')
-    playing.add_argument('--version', default='v1')
+    playing.add_argument('--version', default=CURRENT)
     playing.add_argument('--parallel', type=int, default=1)
     playing.add_argument('--dry-run', action='store_true', help="print the most it can cost and play nothing")
     checking = commands.add_parser('verify', help='check a result against its benchmark version')
@@ -208,7 +213,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.command == 'verify':
         result = json.loads(Path(args.result).read_text(encoding='utf-8'))
-        problems = verify(result, read_manifest(result.get('version', 'v1')))
+        problems = verify(result, read_manifest(result.get('version', CURRENT)))
         print(json.dumps({'counts': not problems, 'problems': problems}, ensure_ascii=False, indent=2))
         return 0 if not problems else 1
     if args.command == 'report':

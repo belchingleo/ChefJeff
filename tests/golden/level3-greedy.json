@@ -202,7 +202,7 @@
   [
    15.0,
    "jeff",
-   "fetch",
+   "fetch beef",
    true
   ],
   [
@@ -592,7 +592,7 @@
   [
    51.5,
    "jeff",
-   "fetch",
+   "fetch beef",
    true
   ],
   [
@@ -1083,7 +1083,7 @@
    15.0,
    "action_start",
    "jeff",
-   "fetch",
+   "fetch beef",
    "Jeff开始：到冰箱取一份生肉（路程 1s + 操作 0.0s）"
   ],
   [
@@ -1097,7 +1097,7 @@
    15.9,
    "action_done",
    "jeff",
-   "fetch",
+   "fetch beef",
    "Jeff完成动作：到冰箱取一份生肉"
   ],
   [
@@ -2133,7 +2133,7 @@
    51.5,
    "action_start",
    "jeff",
-   "fetch",
+   "fetch beef",
    "Jeff开始：到冰箱取一份生肉（路程 2s + 操作 0.0s）"
   ],
   [

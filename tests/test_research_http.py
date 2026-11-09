@@ -143,7 +143,7 @@ class ResearchHTTPTests(unittest.TestCase):
 
     def test_continue_response_survives_page_close_save_and_own_download(self):
         receipt=self.begin_manual_relay()
-        with self.game.lock:self.assertTrue(self.game.k.command('jeff','fetch')[0])
+        with self.game.lock:self.assertTrue(self.game.k.command('jeff','fetch beef')[0])
         self.browser_answer('continue')
         self.assertEqual(self.request('/api/session/close',{},self.token)[0],200)
         record=self.saved_null_action_response(receipt,'continue',True)
@@ -151,13 +151,13 @@ class ResearchHTTPTests(unittest.TestCase):
 
     def test_stale_choice_with_no_applied_action_still_saves_the_round(self):
         receipt=self.begin_manual_relay()
-        self.browser_answer('fetch',stale=True)
+        self.browser_answer('fetch beef',stale=True)
         self.assertEqual(self.command('end')[0],200)
-        self.saved_null_action_response(receipt,'fetch',False)
+        self.saved_null_action_response(receipt,'fetch beef',False)
 
     def test_preview_exact_saved_projection_and_own_download_delete(self):
         receipt=self.begin()
-        with self.game.lock:self.game.k.command('human','fetch');self.game.k.advance(1.2)
+        with self.game.lock:self.game.k.command('human','fetch beef');self.game.k.advance(1.2)
         self.assertEqual(self.command('end')[0],200)
         status,preview=self.command('contribution/preview');self.assertEqual(status,200)
         status,saved=self.request('/api/contribution/download',{'id':receipt['id'],'deletion_token':receipt['deletion_token']})

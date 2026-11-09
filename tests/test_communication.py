@@ -33,13 +33,13 @@ class CommunicationTests(unittest.TestCase):
         self.assertEqual(self.g.player_messages[-1]['kind'],'correction')
     def test_message_is_non_interrupting_and_records_context(self):
         self.cmd('start');g=self.g
-        g.k.start('jeff',next(a for a in g.k.actions('jeff') if a.key=='fetch'))
+        g.k.start('jeff',next(a for a in g.k.actions('jeff') if a.key=='fetch beef'))
         before=deepcopy(g.k.snapshot());events=deepcopy(g.k.events);epoch=g.ai.epoch
         with patch.object(g.ai,'poll') as poll,patch.object(g.ai,'invalidate') as invalidate:
             self.assertEqual(self.send('mistake',100)[0],200)
             poll.assert_not_called();invalidate.assert_not_called()
         self.assertEqual(before,g.k.snapshot());self.assertEqual(events,g.k.events);self.assertEqual(epoch,g.ai.epoch)
-        message=g.player_messages[0];self.assertEqual(message['context']['current_action'],'fetch')
+        message=g.player_messages[0];self.assertEqual(message['context']['current_action'],'fetch beef')
         record=next(data for kind,data in g.journal.rows if kind=='player_message')
         self.assertEqual(record['state'],before)
     def test_next_request_contains_english_messages_and_delivery_is_logged_once(self):

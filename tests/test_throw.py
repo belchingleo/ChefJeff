@@ -131,7 +131,7 @@ class ThrowTests(unittest.TestCase):
 
     def test_departed_projectile_survives_senders_next_job(self):
         k=self.make();k.command('jeff','throw partner');k.advance(.15)
-        k.command('jeff','fetch');k.command('jeff','stop');k.advance(1)
+        k.command('jeff','fetch beef');k.command('jeff','stop');k.advance(1)
         self.assertEqual(k.chefs['human'].hand.id,'pass');k.assert_invariants()
 
     def test_stale_target_and_competing_drop_revalidate(self):

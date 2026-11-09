@@ -27,7 +27,7 @@ class RulesTest(unittest.TestCase):
 
     def test_full_chain_and_automatic_matching(self):
         k = self.make()
-        for command in ('fetch','put b1','chop b1','take b1','put p1'):
+        for command in ('fetch beef','put b1','chop b1','take b1','put p1'):
             self.do(k, 'human', command)
         self.assertIsNone(k.stations['b1'].food)
         self.assertIsNone(k.chefs['human'].hand)
@@ -42,7 +42,7 @@ class RulesTest(unittest.TestCase):
     def test_both_chefs_have_same_abilities(self):
         k = self.make()
         self.assertEqual({a.key for a in k.actions('human') if a.kind!='go'}, {a.key for a in k.actions('jeff') if a.kind!='go'})
-        for command in ('fetch','put b1','chop b1','take b1','put p1'):
+        for command in ('fetch beef','put b1','chop b1','take b1','put p1'):
             self.do(k,'jeff',command)
         k.advance(k.c['cook_seconds'])
         self.do(k,'human','take plates')
@@ -52,7 +52,7 @@ class RulesTest(unittest.TestCase):
 
     def test_chopping_survives_interruption_and_handoff(self):
         k = self.make()
-        self.do(k,'human','fetch')
+        self.do(k,'human','fetch beef')
         self.do(k,'human','put b1')
         k.command('human','chop b1')
         k.advance(2)
@@ -284,3 +284,27 @@ class RulesTest(unittest.TestCase):
 
 if __name__=='__main__':
     unittest.main()
+
+
+class FetchKeyTests(unittest.TestCase):
+    """Fetch keys name the ingredient; rounds recorded with the older keys still replay."""
+
+    def kitchen(self):
+        from levels import level_config
+        from spatial_kitchen import SpatialKitchen
+        return SpatialKitchen(dict(level_config(load_config(), 2)))
+
+    def test_every_source_is_fetched_by_its_ingredient(self):
+        k = self.kitchen()
+        self.assertEqual([a.key for a in k.actions('jeff') if a.kind == 'fetch'],
+                         ['fetch beef', 'fetch lettuce', 'fetch tomato', 'fetch bread'])
+
+    def test_an_older_recorded_key_starts_the_same_fetch_and_keeps_its_key(self):
+        from kitchen import Action
+        for old in ('fetch', 'fetch fridge'):
+            with self.subTest(old=old):
+                k = self.kitchen()
+                real = next(a for a in k.actions('jeff') if a.key == 'fetch beef')
+                self.assertTrue(k.start('jeff', Action(old, real.label, 'fetch', 'fridge', real.expected))[0])
+                self.assertEqual(k.chefs['jeff'].job.action.target, 'fridge')
+                self.assertEqual([e['action'] for e in k.events if e.get('kind') == 'action_start'], [old])

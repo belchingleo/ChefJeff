@@ -24,7 +24,7 @@ class HandlingTests(unittest.TestCase):
     def test_fast_fetch_put_take_drop_pickup_and_serve_for_both_chefs(self):
         for who in ('human','jeff'):
             k=self.make()
-            for key in ('fetch','put b1','chop b1','take b1','drop','pickup F1','put p1'):
+            for key in ('fetch beef','put b1','chop b1','take b1','drop','pickup F1','put p1'):
                 ok,msg=k.command(who,key);self.assertTrue(ok,msg)
                 j=k.chefs[who].job
                 self.assertAlmostEqual(j.work,k.c['chop_seconds'] if key=='chop b1' else .15)
@@ -59,7 +59,7 @@ class HandlingTests(unittest.TestCase):
     def test_full_hands_fetch_or_take_nothing_for_either_chef(self):
         # As with the player's Space: no automatic swap at the fridge, a board or a stove.
         for who in ('human','jeff'):
-            for key,command in (('fridge','fetch'),('b1','take b1'),('p1','take pot p1')):
+            for key,command in (('fridge','fetch beef'),('b1','take b1'),('p1','take pot p1')):
                 k=self.make();k.chefs[who].hand=Food('old')
                 if key!='fridge':k.stations[key].food=Food('new','chopped' if key=='b1' else 'ready',6,12)
                 self.assertNotIn(command,[a.key for a in k.actions(who)])
@@ -122,7 +122,7 @@ class HandlingTests(unittest.TestCase):
     def test_jev_has_drop_discard_swap_and_tool_rules(self):
         k=self.make();k.chefs['jeff'].hand=Food('meat')
         actions=k.actions('jeff');keys={a.key for a in actions}
-        self.assertTrue({'drop','discard','take extinguisher'}<=keys);self.assertNotIn('fetch',keys)
+        self.assertTrue({'drop','discard','take extinguisher'}<=keys);self.assertNotIn('fetch beef',keys)
         payload=SpatialJevClient(k.c,key='test-only').payload(k.snapshot(),actions)
         self.assertEqual(payload['state']['rules']['timing']['handling'],.15)
         self.assertIn('put the held item down first',payload['state']['rules']['ground'])

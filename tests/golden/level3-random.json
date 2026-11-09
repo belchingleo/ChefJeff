@@ -106,7 +106,7 @@
   [
    9.0,
    "jeff",
-   "fetch",
+   "fetch beef",
    true
   ],
   [
@@ -460,7 +460,7 @@
   [
    42.5,
    "jeff",
-   "fetch",
+   "fetch beef",
    true
   ],
   [
@@ -568,7 +568,7 @@
   [
    56.0,
    "human",
-   "fetch",
+   "fetch beef",
    true
   ],
   [
@@ -640,7 +640,7 @@
   [
    66.5,
    "jeff",
-   "fetch",
+   "fetch beef",
    true
   ],
   [
@@ -886,7 +886,7 @@
   [
    89.0,
    "jeff",
-   "fetch",
+   "fetch beef",
    true
   ],
   [
@@ -910,7 +910,7 @@
   [
    92.5,
    "jeff",
-   "fetch",
+   "fetch beef",
    true
   ],
   [
@@ -934,7 +934,7 @@
   [
    94.0,
    "jeff",
-   "fetch",
+   "fetch beef",
    true
   ],
   [
@@ -958,7 +958,7 @@
   [
    95.5,
    "jeff",
-   "fetch",
+   "fetch beef",
    true
   ],
   [
@@ -1156,7 +1156,7 @@
   [
    114.5,
    "human",
-   "fetch",
+   "fetch beef",
    true
   ],
   [
@@ -1330,7 +1330,7 @@
   [
    130.0,
    "human",
-   "fetch",
+   "fetch beef",
    true
   ],
   [
@@ -1798,13 +1798,13 @@
   [
    175.5,
    "jeff",
-   "fetch",
+   "fetch beef",
    true
   ],
   [
    176.0,
    "human",
-   "fetch",
+   "fetch beef",
    true
   ],
   [
@@ -2136,7 +2136,7 @@
    9.0,
    "action_start",
    "jeff",
-   "fetch",
+   "fetch beef",
    "Jeff开始：到冰箱取一份生肉（路程 2s + 操作 0.0s）"
   ],
   [
@@ -2178,7 +2178,7 @@
    11.1,
    "action_done",
    "jeff",
-   "fetch",
+   "fetch beef",
    "Jeff完成动作：到冰箱取一份生肉"
   ],
   [
@@ -3130,7 +3130,7 @@
    42.5,
    "action_start",
    "jeff",
-   "fetch",
+   "fetch beef",
    "Jeff开始：到冰箱取一份生肉（路程 2s + 操作 0.0s）"
   ],
   [
@@ -3151,7 +3151,7 @@
    44.65,
    "action_done",
    "jeff",
-   "fetch",
+   "fetch beef",
    "Jeff完成动作：到冰箱取一份生肉"
   ],
   [
@@ -3417,7 +3417,7 @@
    56.0,
    "action_start",
    "human",
-   "fetch",
+   "fetch beef",
    "你开始：到冰箱取一份生肉（路程 2s + 操作 0.0s）"
   ],
   [
@@ -3445,7 +3445,7 @@
    58.1,
    "action_done",
    "human",
-   "fetch",
+   "fetch beef",
    "你完成动作：到冰箱取一份生肉"
   ],
   [
@@ -3641,7 +3641,7 @@
    66.5,
    "action_start",
    "jeff",
-   "fetch",
+   "fetch beef",
    "Jeff开始：到冰箱取一份生肉（路程 2s + 操作 0.0s）"
   ],
   [
@@ -3676,7 +3676,7 @@
    68.45,
    "action_done",
    "jeff",
-   "fetch",
+   "fetch beef",
    "Jeff完成动作：到冰箱取一份生肉"
   ],
   [
@@ -4418,7 +4418,7 @@
    89.0,
    "action_start",
    "jeff",
-   "fetch",
+   "fetch beef",
    "Jeff开始：到冰箱取一份生肉（路程 2s + 操作 0.0s）"
   ],
   [
@@ -4453,7 +4453,7 @@
    91.35,
    "action_done",
    "jeff",
-   "fetch",
+   "fetch beef",
    "Jeff完成动作：到冰箱取一份生肉"
   ],
   [
@@ -4495,7 +4495,7 @@
    92.5,
    "action_start",
    "jeff",
-   "fetch",
+   "fetch beef",
    "Jeff开始：到冰箱取一份生肉（路程 1s + 操作 0.0s）"
   ],
   [
@@ -4516,7 +4516,7 @@
    93.3,
    "action_done",
    "jeff",
-   "fetch",
+   "fetch beef",
    "Jeff完成动作：到冰箱取一份生肉"
   ],
   [
@@ -4565,7 +4565,7 @@
    94.0,
    "action_start",
    "jeff",
-   "fetch",
+   "fetch beef",
    "Jeff开始：到冰箱取一份生肉（路程 0s + 操作 0.0s）"
   ],
   [
@@ -4586,7 +4586,7 @@
    94.05,
    "action_done",
    "jeff",
-   "fetch",
+   "fetch beef",
    "Jeff完成动作：到冰箱取一份生肉"
   ],
   [
@@ -4635,7 +4635,7 @@
    95.5,
    "action_start",
    "jeff",
-   "fetch",
+   "fetch beef",
    "Jeff开始：到冰箱取一份生肉（路程 1s + 操作 0.0s）"
   ],
   [
@@ -4677,7 +4677,7 @@
    96.3,
    "action_done",
    "jeff",
-   "fetch",
+   "fetch beef",
    "Jeff完成动作：到冰箱取一份生肉"
   ],
   [
@@ -5251,7 +5251,7 @@
    114.5,
    "action_start",
    "human",
-   "fetch",
+   "fetch beef",
    "你开始：到冰箱取一份生肉（路程 2s + 操作 0.0s）"
   ],
   [
@@ -5286,7 +5286,7 @@
    117.9,
    "action_done",
    "human",
-   "fetch",
+   "fetch beef",
    "你完成动作：到冰箱取一份生肉"
   ],
   [
@@ -5825,14 +5825,14 @@
    130.0,
    "action_start",
    "human",
-   "fetch",
+   "fetch beef",
    "你开始：到冰箱取一份生肉（路程 1s + 操作 0.0s）"
   ],
   [
    130.85,
    "action_done",
    "human",
-   "fetch",
+   "fetch beef",
    "你完成动作：到冰箱取一份生肉"
   ],
   [
@@ -7239,7 +7239,7 @@
    175.5,
    "action_start",
    "jeff",
-   "fetch",
+   "fetch beef",
    "Jeff开始：到冰箱取一份生肉（路程 1s + 操作 0.0s）"
   ],
   [
@@ -7253,14 +7253,14 @@
    176.0,
    "action_start",
    "human",
-   "fetch",
+   "fetch beef",
    "你开始：到冰箱取一份生肉（路程 2s + 操作 0.0s）"
   ],
   [
    176.4,
    "action_done",
    "jeff",
-   "fetch",
+   "fetch beef",
    "Jeff完成动作：到冰箱取一份生肉"
   ],
   [
@@ -7288,7 +7288,7 @@
    178.05,
    "action_done",
    "human",
-   "fetch",
+   "fetch beef",
    "你完成动作：到冰箱取一份生肉"
   ],
   [
@@ -7406,7 +7406,7 @@
  ],
  "checkpoints": [
   "0be4fbd2a66b4bd6",
-  "91c28f17d942cf21",
+  "6d7c3a2a96c6a1bf",
   "478099700871c8e8",
   "25c40d0a78a41226",
   "18d7597de04185bb",
@@ -7422,12 +7422,12 @@
   "2f38491aaca7f003",
   "a5dc8daa9efcff8e",
   "357c907f0e427696",
-  "27677e5e6ed46149",
+  "8bb78f32bd120f06",
   "b442ff7e43a57918",
   "e53c2dcbcb847015",
   "ec2d2790f0c1c39f",
   "dedbadc9468b4d0d",
-  "2d407136cc810ab3",
+  "aa6df30a1a14633d",
   "19f32ca50d27c145",
   "1c8c1bb953adce5c",
   "533424c98c1d2a18",

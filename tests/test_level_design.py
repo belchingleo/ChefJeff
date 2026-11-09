@@ -61,6 +61,18 @@ class BuildTests(unittest.TestCase):
         self.assertEqual(snapshot['stations']['p2']['vessel'], 'pot')
         self.assertNotEqual(k.positions['human'][0] < 7, k.positions['jeff'][0] < 7)  # one chef on each side
 
+    def test_fetching_is_named_by_ingredient_and_two_sources_of_one_add_where(self):
+        """A fetch key says what is fetched; a second source of the same ingredient adds which one, never only the station."""
+        def keys(d):
+            level, problems = level_design.bundle(d)
+            self.assertEqual(problems, [])
+            k = SpatialKitchen(lc.finalize(level, {'playable': True, 'target': 100}))
+            return [a.key for a in k.actions('jeff') if a.kind == 'fetch']
+        self.assertEqual(keys(design()), ['fetch beef', 'fetch noodles', 'fetch scallion', 'fetch chicken'])
+        two = design()
+        two['stations'].append({'type': 'ingredient_source', 'x': 6, 'y': 1, 'item': 'beef'})
+        self.assertEqual(keys(two), ['fetch beef fridge', 'fetch noodles', 'fetch scallion', 'fetch chicken', 'fetch beef fridge2'])
+
     def test_the_rules_the_editor_shows_are_enforced_here_too(self):
         stations = DESIGN['stations']
         cases = {

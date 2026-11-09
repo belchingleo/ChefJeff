@@ -88,7 +88,7 @@ class SpatialTests(unittest.TestCase):
         k.assert_invariants()
 
     def test_drop_during_walk_uses_current_position_and_can_be_picked_up(self):
-        k=self.make();self.do(k,'human','fetch')
+        k=self.make();self.do(k,'human','fetch beef')
         k.command('human','go p1');k.advance(2)
         point=k.anchor('human')
         self.do(k,'human','drop')
@@ -140,7 +140,7 @@ class SpatialTests(unittest.TestCase):
 
     def test_full_chain_ground_handoff_and_serving(self):
         k=self.make()
-        for key in ('fetch','put b1','chop b1','take b1','drop'):self.do(k,'human',key)
+        for key in ('fetch beef','put b1','chop b1','take b1','drop'):self.do(k,'human',key)
         for key in ('pickup F1','put p1'):self.do(k,'jeff',key)
         k.advance(12)
         for key in ('take plates','plate p1','drop'):self.do(k,'jeff',key)
@@ -159,7 +159,7 @@ class SpatialTests(unittest.TestCase):
         self.assertEqual(k.money,-7)
 
     def test_snapshot_and_real_client_payload_describe_spatial_rules(self):
-        k=self.make();self.do(k,'human','fetch');self.do(k,'human','drop')
+        k=self.make();self.do(k,'human','fetch beef');self.do(k,'human','drop')
         payload=SpatialJevClient(k.c,key='test-only').payload(k.snapshot(),k.actions('jeff'))
         self.assertIn('pickup F1',payload['questions']['next_action']['criteria'])
         self.assertIn('position',payload['state']['kitchen']['chefs']['jeff'])

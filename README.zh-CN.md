@@ -226,7 +226,7 @@ Overcooked-AI（Carroll 等，2019）用胡闹厨房式的环境研究人和强�
 - **指标**：结果（净收入、过关）和过程（分工、贡献、拖延、空转、决策被接受和完成的比例、响应时间）分开报告；
 - **对局集**：社区贡献的不同玩家、模型、地图和组队方式的对局。
 
-**Benchmark v1 现在就能跑。** 它冻结了第 1–3 关、脚本搭档 `assembler`、每关 12 局，以及任何 agent 都要通过的环境接口（[env-v1](docs/architecture/environment-api.md)）。用 `python3 scripts/benchmark.py run --agent jeff` 让 Jeff 用你的模型来跑，或者用 `--agent 模块:类名` 跑你自己的 agent。每份结果都带 95% 区间，`verify` 检查结果是否有效。详见 [benchmark/README.md](benchmark/README.md)。第四关在 v1.1 加入。
+**Benchmark v2 现在就能跑**（测的内容和 v1 一样；冰箱的动作代号改成 `fetch beef` 后，还没人跑过的 v1 就退役了）。 它冻结了第 1–3 关、脚本搭档 `assembler`、每关 12 局，以及任何 agent 都要通过的环境接口（[env-v1](docs/architecture/environment-api.md)）。用 `python3 scripts/benchmark.py run --agent jeff` 让 Jeff 用你的模型来跑，或者用 `--agent 模块:类名` 跑你自己的 agent。每份结果都带 95% 区间，`verify` 检查结果是否有效。详见 [benchmark/README.md](benchmark/README.md)。第四关在 v1.1 加入。
 
 ### 创作工坊（关卡编辑器已上线，其余在计划中）
 

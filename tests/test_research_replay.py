@@ -197,12 +197,12 @@ class ReplayTests(paths.SavePathTests):
                           'compact_input': False, 'ask_ahead': False, 'reach_note': False, 'food_names': False})
         with self.game.lock:                                    # the human leaves beef on a board
             k = self.game.k
-            for chosen in (lambda a: a.key == 'fetch', lambda a: a.kind == 'put_board'):
+            for chosen in (lambda a: a.key == 'fetch beef', lambda a: a.kind == 'put_board'):
                 k.start('human', next(a for a in k.actions('human') if chosen(a)))
                 while k.chefs['human'].job:
                     k.advance(.05)
             board = next(key for key, station in k.stations.items() if station.food is not None and key.startswith('b'))
-        self.assertEqual(self.answer_with(choice=lambda criteria, _: 'fetch')[0], 200)
+        self.assertEqual(self.answer_with(choice=lambda criteria, _: 'fetch beef')[0], 200)
         with self.game.lock:
             while self.game.k.chefs['jeff'].job:
                 self.game.k.advance(.05)
@@ -233,12 +233,12 @@ class ReplayTests(paths.SavePathTests):
         self.assertEqual(initial['conditions']['features']['undo_note'], {'on': True, 'version': undo_note.VERSION})
         with self.game.lock:                                    # the human leaves beef on a board
             k = self.game.k
-            for chosen in (lambda a: a.key == 'fetch', lambda a: a.kind == 'put_board'):
+            for chosen in (lambda a: a.key == 'fetch beef', lambda a: a.kind == 'put_board'):
                 k.start('human', next(a for a in k.actions('human') if chosen(a)))
                 while k.chefs['human'].job:
                     k.advance(.05)
             board = next(key for key, station in k.stations.items() if station.food is not None and key.startswith('b'))
-        self.assertEqual(self.answer_with(choice=lambda criteria, _: 'fetch')[0], 200)
+        self.assertEqual(self.answer_with(choice=lambda criteria, _: 'fetch beef')[0], 200)
         with self.game.lock:
             while self.game.k.chefs['jeff'].job:
                 self.game.k.advance(.05)
@@ -330,8 +330,8 @@ class ReplayTests(paths.SavePathTests):
         requests = list(research_replay.rebuild_requests(record))
         self.assertGreater(len(requests), 2)
         self.assertEqual({r['status'] for r in requests}, {'verified'})
-        self.assertIn('fetch', requests[0]['rebuilt']['questions']['next_action']['criteria'])
-        self.assertEqual(requests[0]['rebuilt']['questions']['next_action']['criteria']['fetch'], 'Fetch beef (as fetched)')
+        self.assertIn('fetch beef', requests[0]['rebuilt']['questions']['next_action']['criteria'])
+        self.assertEqual(requests[0]['rebuilt']['questions']['next_action']['criteria']['fetch beef'], 'Fetch beef (as fetched)')
 
     def test_a_request_asked_ahead_replays_exactly(self):
         import ask_ahead

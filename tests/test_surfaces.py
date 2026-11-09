@@ -60,7 +60,7 @@ class SurfaceTests(unittest.TestCase):
 
     def test_the_first_source_loses_its_fetch_key_while_occupied(self):
         k=self.make();k.stations['fridge'].food=Food('X1','clean_plate')
-        self.assertNotIn('fetch',self.keys(k))
+        self.assertNotIn('fetch beef',self.keys(k))
         self.assertIn('take fridge',self.keys(k))
 
     def test_space_puts_on_an_empty_source_and_takes_from_an_occupied_one(self):

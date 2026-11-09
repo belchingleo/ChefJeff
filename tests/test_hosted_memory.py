@@ -32,7 +32,7 @@ class HostedMemoryTests(unittest.TestCase):
     def test_summaries_are_engine_facts_exposed_only_by_the_own_kitchen(self):
         game=self.game();other=self.game();self.start(game)
         self.assertIsNone(game.public_state()['memory']['episode'])
-        game.k.command('human','fetch');game.k.advance(15)
+        game.k.command('human','fetch beef');game.k.advance(15)
         game._command('/api/communicate',{'code':'prep'})
         game.k.emit(KEY,kind='caught',actor='world',action='debug '+KEY)
         self.finish(game)

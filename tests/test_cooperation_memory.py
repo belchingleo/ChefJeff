@@ -164,7 +164,7 @@ class CooperationMemoryTests(unittest.TestCase):
 
     def test_summary_contains_completed_work_and_past_communication_without_inferred_roles(self):
         g=self.game();self.command(g,'start')
-        self.assertTrue(g.k.command('human','fetch')[0])
+        self.assertTrue(g.k.command('human','fetch beef')[0])
         g.k.advance(15)
         self.assertEqual(self.command(g,'communicate',code='prep')[0],200)
         g.k.advance(3)

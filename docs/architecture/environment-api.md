@@ -2,7 +2,7 @@
 
 `environment.py` is the line between the game and whoever plays a chef in it. On one side is the environment: the engine, levels and configuration, real-time ticking, recording and replay, the human's input. On the other side is an agent. Jeff is one agent, the reference one, and everything that makes him Jeff belongs to his side: the rule text he reads, which options his model is shown, one-press actions, plans, undo notes, the compact request format, when he asks and how he asks ahead.
 
-Benchmark v1 freezes this line, not Jeff. An agent's score means the same as long as `ENV_API_VERSION` and the benchmark manifest are unchanged, however Jeff's harness moves on.
+The benchmark (now v2) freezes this line, not Jeff. An agent's score means the same as long as `ENV_API_VERSION` and the benchmark manifest are unchanged, however Jeff's harness moves on.
 
 ## The port
 
@@ -63,7 +63,7 @@ class MyAgent(environment.Agent):
 - **环境一侧**：引擎、关卡与配置、实时推进、记录与回放、人这一方的输入。
 - **agent 一侧**：Jeff 是其中一个，也是参考 agent。凡是让 Jeff 成为 Jeff 的东西都归他这一侧：他读的规则说明、给模型看哪些选项、one-press、计划、撤销提示、紧凑请求格式、什么时候问、怎样提前问。
 
-Benchmark v1 冻结的是这条线，不是 Jeff。只要 `ENV_API_VERSION` 和 benchmark 清单不变，不管 Jeff 的 harness 怎么改，一个 agent 的分数含义都不变。
+Benchmark（现在是 v2）冻结的是这条线，不是 Jeff。只要 `ENV_API_VERSION` 和 benchmark 清单不变，不管 Jeff 的 harness 怎么改，一个 agent 的分数含义都不变。
 
 ## 端口
 

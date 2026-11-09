@@ -27,7 +27,7 @@ class RepeatDeliveryTests(unittest.TestCase):
     def test_order_and_inventory_information_is_visible_without_future_dishes(self):
         k=SpatialKitchen(load_config()|{'level':2,'spawn_seed':0,'order_seed':42})
         k.advance(65)
-        self.finish(k,'jeff','fetch')
+        self.finish(k,'jeff','fetch beef')
         state=SpatialJevClient(k.c,key='offline').payload(k.snapshot(),k.actions('jeff'))['state']['kitchen']
         self.assertEqual(len([o for o in state['orders'] if o['status']=='pending']),3)  # two from the start, one at 40 s
         self.assertTrue(all(o['ingredients']==['bread','lettuce','tomato','beef'] for o in state['orders']))

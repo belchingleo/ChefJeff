@@ -38,7 +38,7 @@ class CounterLevelTests(unittest.TestCase):
                 if ingredient!='bread':
                     self.do(k,'put b1');self.do(k,'chop b1');self.do(k,'take b1')
                 self.do(k,'assemble '+counter)
-            self.do(k,'fetch');self.do(k,'put b2');self.do(k,'chop b2');self.do(k,'take b2');self.do(k,'put p1')
+            self.do(k,'fetch beef');self.do(k,'put b2');self.do(k,'chop b2');self.do(k,'take b2');self.do(k,'put p1')
             self.do(k,'take '+counter);k.advance(12);self.do(k,'plate p1')
             if k.orders[i]['arrival']>k.time:k.advance(k.orders[i]['arrival']-k.time+.01)
             self.do(k,'serve')

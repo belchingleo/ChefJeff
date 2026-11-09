@@ -27,7 +27,7 @@ class Clock:
 
 
 class BundleTests(unittest.TestCase):
-    def play(self, reply='fetch', seconds=40):
+    def play(self, reply='fetch beef', seconds=40):
         from web_server import GameSession
         tmp = tempfile.TemporaryDirectory();self.addCleanup(tmp.cleanup)
         g = GameSession(config=load_config() | {'order_seed': 1, 'spawn_seed': 0},

@@ -98,7 +98,7 @@ for _name in dir(paths.SavePathTests):
 def holding_beef():
     """A level-4 kitchen with Jeff just back from the fridge with raw beef (the boards are on the human's side)."""
     k = kitchen(4)
-    k.start('jeff', next(a for a in k.actions('jeff') if a.key == 'fetch'))
+    k.start('jeff', next(a for a in k.actions('jeff') if a.key == 'fetch beef'))
     while k.chefs['jeff'].job is not None:
         k.advance(0.1)
     return k

@@ -47,7 +47,7 @@ class WebSessionTests(unittest.TestCase):
         self.assertEqual(g.public_state()['speed'],.5)
     def test_pause_blocks_actions_and_clock(self):
         g=self.make();self.start(g)
-        self.act(g,'fetch')
+        self.act(g,'fetch beef')
         self.command(g,'pause')
         old=g.k.time
         with patch.object(g.ai,'poll'):
@@ -69,7 +69,7 @@ class WebSessionTests(unittest.TestCase):
 
     def test_end_running_or_paused_round_stops_clock_ai_and_closes_log_once(self):
         for paused in (False,True):
-            g=self.make();self.start(g);self.act(g,'fetch')
+            g=self.make();self.start(g);self.act(g,'fetch beef')
             if paused:self.command(g,'pause')
             log=g.journal;ai=g.ai;t=g.k.time
             self.assertEqual(self.command(g,'end')[0],200)
@@ -98,7 +98,7 @@ class WebSessionTests(unittest.TestCase):
         self.assertEqual(g.phase,'ready')
     def test_repeated_click_id_cannot_restart_action(self):
         g=self.make();self.start(g)
-        a=next(a for a in g.k.actions('human') if a.key=='fetch')
+        a=next(a for a in g.k.actions('human') if a.key=='fetch beef')
         body={'game_id':g.game_id,'request_id':'double-click','action':a.key,'expected':list(a.expected)}
         first=g.command('/api/action',body)
         job=g.k.chefs['human'].job.id

@@ -33,7 +33,7 @@ class ResearchTests(unittest.TestCase):
 
     def test_projection_and_state_references_restore_engine_facts(self):
         s=self.game();start(s)
-        self.assertTrue(s.k.command('human','fetch')[0]);s.k.advance(12)
+        self.assertTrue(s.k.command('human','fetch beef')[0]);s.k.advance(12)
         s._command('/api/end',{})
         r=record(s)
         self.assertTrue(validate_record(r))
@@ -52,7 +52,7 @@ class ResearchTests(unittest.TestCase):
         s=self.game();start(s)
         again=SpatialKitchen(deepcopy(s.k.resolved));again.set_clock(s.speed)  # the same game clock as the round
         for k in (s.k,again):
-            k.command('human','fetch');k.advance(12);k.command('human','put b1');k.advance(12)
+            k.command('human','fetch beef');k.advance(12);k.command('human','put b1');k.advance(12)
             k.command('human','chop b1');k.advance(15)
         self.assertEqual(s.k.events,again.events)
         self.assertEqual(s.k.revision,again.revision)
@@ -82,7 +82,7 @@ class ResearchTests(unittest.TestCase):
     def test_decision_choice_and_engine_execution_share_request_action_links(self):
         from test_jev import NoKeyClient
         s=self.game();start(s)
-        s.ai.client=NoKeyClient(s.c,'fetch')
+        s.ai.client=NoKeyClient(s.c,'fetch beef')
         s.ai.poll()
         deadline=time.monotonic()+2
         while s.ai.q.empty() and time.monotonic()<deadline:time.sleep(.001)

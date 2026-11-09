@@ -224,7 +224,7 @@ Each scenario is a single map:
 - **Metrics**: outcomes (net revenue, level cleared) and process (division of labour, contribution, delay, idle time, how many decisions were accepted and completed, response time), reported separately.
 - **Round collection**: rounds contributed by the community, with different players, models, maps and team setups.
 
-**Benchmark v1 runs now.** It freezes levels 1–3, the scripted `assembler` partner, 12 rounds per level and the environment interface any agent plays through ([env-v1](docs/architecture/environment-api.md)). `python3 scripts/benchmark.py run --agent jeff` runs it with your model, or `--agent module:Class` with your own agent; every result reports its 95% intervals, and `verify` checks that a result counts. See [benchmark/README.md](benchmark/README.md). Level 4 joins in v1.1.
+**Benchmark v2 runs now** (v2 measures what v1 did; v1 retired unrun when the fridge's action key became `fetch beef`). It freezes levels 1–3, the scripted `assembler` partner, 12 rounds per level and the environment interface any agent plays through ([env-v1](docs/architecture/environment-api.md)). `python3 scripts/benchmark.py run --agent jeff` runs it with your model, or `--agent module:Class` with your own agent; every result reports its 95% intervals, and `verify` checks that a result counts. See [benchmark/README.md](benchmark/README.md). Level 4 joins in v1.1.
 
 ### Creative workshop (the level editor is here; the rest is planned)
 

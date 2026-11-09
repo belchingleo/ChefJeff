@@ -73,7 +73,7 @@ class SchedulerTest(unittest.TestCase):
     def test_a_finished_step_asks_at_once_instead_of_waiting_out_the_interval(self):
         for on,calls in ((True,2),(False,1)):
             with self.subTest(ai_ask_on_step_end=on):
-                k,client,ai,records=self.make('fetch')
+                k,client,ai,records=self.make('fetch beef')
                 ai.ask_on_step_end=on
                 with patch('jev.time.monotonic',return_value=100):ai.poll()
                 self.ready(ai)
@@ -90,7 +90,7 @@ class SchedulerTest(unittest.TestCase):
                     self.assertTrue([d for kind,d in records if kind=='ai_response'][-1]['fresh'])
 
     def test_no_request_the_current_step_will_outlast(self):
-        k,client,ai,records=self.make('fetch')
+        k,client,ai,records=self.make('fetch beef')
         with patch('jev.time.monotonic',return_value=100):ai.poll()
         self.ready(ai)
         with patch('jev.time.monotonic',return_value=100.1):ai.poll()
@@ -104,7 +104,7 @@ class SchedulerTest(unittest.TestCase):
         self.assertEqual(ai.calls,2)
         self.ready(ai)
         # A step that outlasts the reply time is still asked about while it runs.
-        k,client,ai,records=self.make('fetch')
+        k,client,ai,records=self.make('fetch beef')
         with patch('jev.time.monotonic',return_value=100):ai.poll()
         self.ready(ai)
         with patch('jev.time.monotonic',return_value=100.1):ai.poll()
@@ -151,7 +151,7 @@ class SchedulerTest(unittest.TestCase):
         self.assertEqual(ai.calls,0)
 
     def test_pause_discards_pending_choice(self):
-        k,client,ai,records=self.make('fetch')
+        k,client,ai,records=self.make('fetch beef')
         ai.poll()
         self.ready(ai)
         ai.invalidate()
@@ -160,7 +160,7 @@ class SchedulerTest(unittest.TestCase):
         self.assertFalse([d for kind,d in records if kind=='ai_response'][-1]['applied'])
 
     def test_old_response_cannot_interrupt_a_new_job(self):
-        k,client,ai,records=self.make('fetch')
+        k,client,ai,records=self.make('fetch beef')
         ai.poll()
         self.ready(ai)
         k.command('jeff','go b1')
@@ -170,7 +170,7 @@ class SchedulerTest(unittest.TestCase):
         self.assertFalse([d for kind,d in records if kind=='ai_response'][-1]['applied'])
 
     def test_expired_response_rejected(self):
-        k,client,ai,records=self.make('fetch')
+        k,client,ai,records=self.make('fetch beef')
         with patch('jev.time.monotonic',return_value=100):
             ai.poll()
         self.ready(ai)
@@ -190,7 +190,7 @@ class SchedulerTest(unittest.TestCase):
 
     def test_busy_chef_can_choose_to_continue_or_change(self):
         k,client,ai,records=self.make('continue')
-        k.command('jeff','fetch')
+        k.command('jeff','fetch beef')
         job=k.chefs['jeff'].job.id
         ai.poll()
         self.ready(ai)
@@ -202,7 +202,7 @@ class SchedulerTest(unittest.TestCase):
         self.assertIn('go b1',options)
 
     def test_recent_results_are_sent_on_next_request_without_growing_forever(self):
-        k,client,ai,records=self.make('fetch')
+        k,client,ai,records=self.make('fetch beef')
         with patch('jev.time.monotonic',return_value=100):ai.poll()
         self.ready(ai)
         with patch('jev.time.monotonic',return_value=100.1):ai.poll()
@@ -211,7 +211,7 @@ class SchedulerTest(unittest.TestCase):
         with patch('jev.time.monotonic',return_value=102):ai.poll()
         self.ready(ai)
         payload=[d for kind,d in records if kind=='ai_request'][-1]['payload']
-        self.assertEqual(payload['state']['recent_decisions'][-1]['choice'],'fetch')
+        self.assertEqual(payload['state']['recent_decisions'][-1]['choice'],'fetch beef')
         self.assertTrue(payload['state']['recent_decisions'][-1]['accepted'])
         self.assertEqual(len(payload['state']['recent_events']),20)
         self.assertEqual(payload['state']['recent_events'][-1]['message'],'实际结果 24')

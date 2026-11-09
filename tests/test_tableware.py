@@ -73,7 +73,7 @@ class TablewareTests(unittest.TestCase):
 
     def test_complete_cooking_chain_with_clean_plate_at_pot(self):
         k = self.make(True)
-        for key in ('fetch', 'put b1', 'chop b1', 'take b1', 'put p1', 'take plates'):
+        for key in ('fetch beef', 'put b1', 'chop b1', 'take b1', 'put p1', 'take plates'):
             self.do(k, 'human', key)
         k.advance(12)
         plate = k.chefs['human'].hand.id

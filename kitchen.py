@@ -439,12 +439,13 @@ class Kitchen:
             if self.stations[source].food:
                 continue
             name = self.state_label(ingredient, self.rules.items[ingredient]['initial_state'])
+            key = self.fetch_key(source)
             if self.food_names:     # every source alike, its ingredient named (the key stays the same)
-                add("fetch" if i == 0 else 'fetch '+source, '取一份'+name, 'fetch', source)
+                add(key, '取一份'+name, 'fetch', source)
             elif i == 0:
-                add("fetch", f"到{self.stations[source].name}取一份{name}", "fetch", source)
+                add(key, f"到{self.stations[source].name}取一份{name}", "fetch", source)
             else:
-                add('fetch '+source, '取一份'+name, 'fetch', source)
+                add(key, '取一份'+name, 'fetch', source)
         if a.hand:
             if a.hand.plate_id and self.dish(a.hand):
                 for i, key in enumerate(self.serves):
@@ -715,9 +716,23 @@ class Kitchen:
             twin.nav = held['nav'].isolated()
         return twin
 
+    def fetch_key(self, source):
+        """The key of fetching from an ingredient source, named by what it supplies: "fetch beef", and when two
+        sources supply the same ingredient, "fetch beef fridge" and "fetch beef fridge2", so the key alone says what
+        is fetched and from where. (Before 2026-11-09 the first source was a bare "fetch" and the others "fetch
+        <source>"; start() still replays those.)"""
+        ingredient = self.ingredients[source]
+        if sum(i == ingredient for i in self.ingredients.values()) == 1:
+            return 'fetch ' + ingredient
+        return f'fetch {ingredient} {source}'
+
     @engine_input
     def start(self, who, action):
         current = next((x for x in self.actions(who) if x.key == action.key and x.expected == action.expected), None)
+        if current is None and action.kind == 'fetch':
+            # A round recorded with an older fetch key ("fetch", "fetch <source>") replays the same source's fetch.
+            current = next((x for x in self.actions(who) if x.kind == 'fetch' and x.target == action.target
+                            and x.expected == action.expected), None)
         if not current:
             return False, "状态已变化，该动作已失效；请重新查看选项"
         if action.kind == "continue":

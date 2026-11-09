@@ -51,7 +51,7 @@ class LevelThreeTests(unittest.TestCase):
             if ingredient!='bread':
                 self.do(k,'put b1');self.do(k,'chop b1');self.do(k,'take b1')
             self.do(k,'assemble plates')
-        self.do(k,'fetch');self.do(k,'put b1');self.do(k,'chop b1');self.do(k,'take b1');self.do(k,'put p1')
+        self.do(k,'fetch beef');self.do(k,'put b1');self.do(k,'chop b1');self.do(k,'take b1');self.do(k,'put p1')
         self.do(k,'take plates');k.advance(12)
         self.do(k,'plate p1')
         held=k.chefs['human'].hand;self.assertEqual(k.dish(held),'burger');self.assertEqual(held.stage,'ready')

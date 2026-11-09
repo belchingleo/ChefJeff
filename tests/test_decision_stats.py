@@ -33,7 +33,7 @@ class Scripted(SpatialJevClient):
 
     def __init__(self, config, game):
         super().__init__(config, key='unit-test-not-a-real-key')
-        self.game, self.script = game, ['fetch', 'go serve', 'fetch']
+        self.game, self.script = game, ['fetch beef', 'go serve', 'fetch beef']
 
     def ask(self, payload):
         criteria = payload['questions']['next_action']['criteria']
@@ -104,7 +104,7 @@ class RealJournalTests(unittest.TestCase):
 
     def test_its_own_changes_of_mind_are_replacements_and_one_back_and_forth(self):
         starts = [r for r in self.rows if r['kind'] == 'action_start' and r['actor'] == 'jeff']
-        self.assertEqual([r['action'] for r in starts[:3]], ['fetch', 'go serve', 'fetch'])
+        self.assertEqual([r['action'] for r in starts[:3]], ['fetch beef', 'go serve', 'fetch beef'])
         actions = self.model['actions']
         self.assertEqual(actions['started'], len(starts))
         self.assertEqual(actions['replaced_by_own_next_choice'], 2)
@@ -402,9 +402,9 @@ class ResearchRecordTests(paths.SavePathTests):
             self.game.wake.set()
         receipt = self.begin(True, {'provider': 'compatible', 'model_id': 'test/decider'})
         # To the fridge, then the serving window, then the fridge again: two replacements, one back-and-forth.
-        self.answer('fetch', .5, .48)
+        self.answer('fetch beef', .5, .48)
         self.answer('go serve', .7, .2)
-        self.answer('fetch', .9, .05)
+        self.answer('fetch beef', .9, .05)
         self.natural_end()
         self.assertEqual(self.contribute()[0], 200)
         record = self.game.store.download(receipt['id'], receipt['deletion_token'])

@@ -24,7 +24,7 @@ from scripts.audit_release import markers
 class BudgetTests(unittest.TestCase):
     def make(self,error=False):
         c=load_config();c['ai_max_calls']=1
-        k=SpatialKitchen(c);client=NoKeyClient(c,reply='fetch',error=error);rows=[]
+        k=SpatialKitchen(c);client=NoKeyClient(c,reply='fetch beef',error=error);rows=[]
         ai=DecisionLoop(k,client,lambda kind,data:rows.append((kind,data)),lambda text:None)
         return k,ai,client,rows
     def finish_response(self,ai):

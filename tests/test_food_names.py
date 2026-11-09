@@ -165,13 +165,13 @@ class SwitchTests(unittest.TestCase):
         plain = ask(k, names=False)
         self.assertNotIn('food_names_version', plain['state'])
         self.assertEqual(plain['state']['kitchen']['stations']['b1']['food']['meaning'], 'Chopped')    # today's name
-        self.assertEqual(plain['questions']['next_action']['criteria']['fetch'], 'Take raw meat from the fridge')
+        self.assertEqual(plain['questions']['next_action']['criteria']['fetch beef'], 'Take raw meat from the fridge')
         named = ask(k)
         self.assertEqual(named['state']['kitchen']['stations']['b1']['food']['meaning'], 'beef (chopped)')
         self.assertEqual(set(named['questions']['next_action']['criteria']), set(plain['questions']['next_action']['criteria']))
         self.assertFalse(food_names.NAMING.get())                     # naming mode ends with the request
         self.assertEqual([a.label for a in k.actions('jeff')][:3], [a.label for a in k.actions('jeff')][:3])
-        self.assertTrue(CJK.search(next(a.label for a in k.actions('jeff') if a.key == 'fetch')))   # the page keeps Chinese
+        self.assertTrue(CJK.search(next(a.label for a in k.actions('jeff') if a.key == 'fetch beef')))   # the page keeps Chinese
 
     def test_the_fingerprint_round_with_the_switch_on_is_the_same_round(self):
         named = json.loads((pf.GOLDEN / 'level2-food-names.json').read_text())
@@ -235,10 +235,10 @@ class CheckTests(unittest.TestCase):
         self.assertGreater(len(found), 3)
         for item in found:
             self.assertEqual(item['logged_choice'], 'wait')
-            self.assertIn('fetch', item['fetching'])                     # beef is nowhere: the fridge is offered
+            self.assertIn('fetch beef', item['fetching'])                     # beef is nowhere: the fridge is offered
             self.assertEqual(item['named']['state']['food_names_version'], food_names.VERSION)
             self.assertNotIn('food_names_version', item['payload']['state'])
-            self.assertEqual(item['named']['questions']['next_action']['criteria']['fetch'], 'Fetch beef (as fetched)')
+            self.assertEqual(item['named']['questions']['next_action']['criteria']['fetch beef'], 'Fetch beef (as fetched)')
             self.assertEqual(set(item['named']['questions']['next_action']['criteria']),
                              set(item['payload']['questions']['next_action']['criteria']))
 
@@ -249,8 +249,8 @@ class CheckTests(unittest.TestCase):
 
         def ask(payload):
             named = 'food_names_version' in payload['state']
-            return {'choice': 'fetch' if named else 'wait', 'model': 'm',
-                    'probabilities': {'fetch': .7, 'wait': .3} if named else {'fetch': .2, 'wait': .8}}
+            return {'choice': 'fetch beef' if named else 'wait', 'model': 'm',
+                    'probabilities': {'fetch beef': .7, 'wait': .3} if named else {'fetch beef': .2, 'wait': .8}}
         report = check.run(items, ask)
         self.assertEqual((report['arms']['as_logged']['fetched_missing'], report['arms']['food_names']['fetched_missing']), (0, 1))
         self.assertEqual(report['arms']['food_names']['fetch_probability_change']['mean'], .5)

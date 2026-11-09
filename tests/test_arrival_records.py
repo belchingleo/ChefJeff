@@ -26,7 +26,7 @@ def local_round(record_rows=True):
     from web_server import GameSession
     tmp = tempfile.TemporaryDirectory()
     g = GameSession(config=load_config() | {'order_seed': 1, 'spawn_seed': 0},
-                    client_factory=lambda c: NoKeyClient(c, 'fetch'), journal_factory=FakeJournal,
+                    client_factory=lambda c: NoKeyClient(c, 'fetch beef'), journal_factory=FakeJournal,
                     kitchen_factory=SpatialKitchen)
     g.bundle_root = Path(tmp.name)
     clock = Clock()

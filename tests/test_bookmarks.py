@@ -41,7 +41,7 @@ class BookmarkTests(unittest.TestCase):
         self.assertEqual(list(folded.values()),self.g.bookmarks)
     def test_annotation_does_not_interrupt_or_change_model_observation(self):
         self.start();g=self.g
-        action=next(a for a in g.k.actions('human') if a.key=='fetch')
+        action=next(a for a in g.k.actions('human') if a.key=='fetch beef')
         g.k.start('human',action)
         before=deepcopy(g.k.snapshot());events=deepcopy(g.k.events);epoch=g.ai.epoch
         timing=(g.last_tick,g.last_seen,g.move_until,g.speed)

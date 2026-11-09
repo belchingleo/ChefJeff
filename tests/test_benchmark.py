@@ -25,16 +25,25 @@ def play_offline(job):
 
 
 class ManifestTests(unittest.TestCase):
-    def test_v1_is_frozen(self):
-        """What v1 measures (interface, level configurations, engine traces, partner) is what this code does.
-        If this fails, the change altered what a v1 score means: make benchmark/v2 rather than editing v1."""
-        manifest = benchmark.read_manifest('v1')
+    def test_the_current_version_is_frozen(self):
+        """What the current version measures (interface, level configurations, engine traces, partner) is what this
+        code does. If this fails, the change altered what its score means: make the next version rather than editing it."""
+        self.assertEqual(benchmark.CURRENT, 'v2')
+        manifest = benchmark.read_manifest(benchmark.CURRENT)
         self.assertEqual(benchmark.refreeze(manifest), manifest)
         self.assertEqual([level['id'] for level in manifest['levels']], ['level-1', 'level-2', 'level-3'])
         self.assertEqual((manifest['partner'], manifest['rounds_per_cell'], manifest['clock']), ('assembler', 12, 'real'))
 
+    def test_v1_is_kept_and_retired(self):
+        """v1 stays as it was frozen; the "fetch beef" key changed its reference traces, so it no longer matches."""
+        v1, v2 = benchmark.read_manifest('v1'), benchmark.read_manifest('v2')
+        self.assertNotEqual(benchmark.refreeze(v1), v1)
+        self.assertEqual({k: v for k, v in v1.items() if k not in ('version', 'levels')},
+                         {k: v for k, v in v2.items() if k not in ('version', 'levels')})
+        self.assertEqual([(a['id'], a['config_hash']) for a in v1['levels']], [(a['id'], a['config_hash']) for a in v2['levels']])
+
     def test_a_change_to_what_is_frozen_shows(self):
-        manifest = benchmark.read_manifest('v1')
+        manifest = benchmark.read_manifest(benchmark.CURRENT)
         with patch.object(benchmark, 'sha', lambda path: 'sha256:changed'):
             self.assertNotEqual(benchmark.refreeze(manifest), manifest)
 
@@ -85,7 +94,7 @@ class RunTests(unittest.TestCase):
 
 
 class CommandTests(unittest.TestCase):
-    def test_a_dry_run_prices_v1_and_plays_nothing(self):
+    def test_a_dry_run_prices_the_current_version_and_plays_nothing(self):
         err = io.StringIO()
         with tempfile.TemporaryDirectory() as folder, redirect_stderr(err), \
                 patch.object(benchmark, 'run', side_effect=AssertionError('a dry run plays nothing')):
