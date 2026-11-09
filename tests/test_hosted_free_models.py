@@ -137,6 +137,26 @@ class LaterModelTests(unittest.TestCase):
         self.assertEqual([m['provider'] for m in catalog['models']], ['zhipu', 'startlux', 'cloudflare-gemma', 'cloudflare-llama'])
         self.assertEqual(catalog['default'], 'startlux')
 
+    def test_the_gateway_withdraws_zhipu_and_llama_but_keeps_their_keys_valid(self):
+        # 2026-11-09: from Shanghai both timed out and were blocked; players saw them listed but unavailable.
+        import free_model_gateway
+        from hosted_free_models import WITHDRAWN
+        self.assertEqual(WITHDRAWN, ('zhipu', 'cloudflare-llama'))
+        self.assertIn('withdrawn=WITHDRAWN', Path(free_model_gateway.__file__).read_text())
+        extra = {p: {'key': 'synthetic-' + p + '-key', 'endpoint': 'https://example.invalid/' + p}
+                 for p in ('cloudflare-gemma', 'cloudflare-llama')}
+        models = FreeModels(KEYS, verified=True, extra=extra, withdrawn=WITHDRAWN)
+        catalog = models.catalog()
+        self.assertEqual([m['provider'] for m in catalog['models']], ['startlux', 'cloudflare-gemma'])
+        self.assertEqual(catalog['default'], 'startlux')
+        game = unittest.mock.Mock(game_id='g', phase='ready', lock=threading.Lock())
+        game.stop_event.is_set.return_value = False
+        for provider in WITHDRAWN:
+            self.assertEqual(models.select(game, {'provider': provider, 'game_id': 'g'})[0], 400)
+        self.assertEqual(models.select(game, {'provider': 'cloudflare-gemma', 'game_id': 'g'})[0], 200)
+        with self.assertRaises(ValueError):                      # a withdrawn model cannot be the default
+            FreeModels(KEYS, verified=True, default='zhipu', extra=extra, withdrawn=WITHDRAWN)
+
     def test_requests_use_probed_fields_and_replies_must_name_the_fixed_model(self):
         extra = {p: {'key': 'synthetic-' + p + '-key', 'endpoint': 'https://example.invalid/' + p}
                  for p in ('cloudflare-gemma', 'cloudflare-llama')}

@@ -15,7 +15,7 @@ import time
 from free_model_budget import CallBudget, BudgetError
 from free_model_diagnostics import Diagnostics
 from model_status import clean
-from hosted_free_models import FreeModels, FreeCallError, MODELS, ORIGINAL, read_trial_keys, read_extra_keys
+from hosted_free_models import FreeModels, FreeCallError, MODELS, ORIGINAL, WITHDRAWN, read_trial_keys, read_extra_keys
 from hosted_jev import ForwardError
 
 PREFIX = '/v1/free-models/'
@@ -361,7 +361,8 @@ def main():
     try:
         extra = read_extra_keys(args.extra_keys_file) if args.extra_keys_file else None
         pools = platform_pools(args.state_dir) if extra else ()
-        sender = FreeModels(read_trial_keys(args.keys_file), verified=True, default=args.default_model, extra=extra)
+        sender = FreeModels(read_trial_keys(args.keys_file), verified=True, default=args.default_model, extra=extra,
+                            withdrawn=WITHDRAWN)
         server = GatewayServer(args.port, FreeCoordinator(sender, budget, pools=pools), config['sites'])
         signal.signal(signal.SIGTERM, lambda *_: threading.Thread(target=server.shutdown, daemon=True).start())
         try:

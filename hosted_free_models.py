@@ -40,6 +40,10 @@ MODELS = {
                          'extra': {'response_format': {'type': 'json_object'}}},
 }
 ORIGINAL = ('zhipu', 'startlux')
+# Withdrawn from the free trial (2026-11-09): from Shanghai both timed out after 18 s and the gateway blocked them, so
+# players saw them listed but unavailable. Their keys stay valid input (the key files are unchanged), but they are
+# neither listed, chosen nor called. The gateway passes this list (free_model_gateway.py); remove a name to offer it again.
+WITHDRAWN = ('zhipu', 'cloudflare-llama')
 EXTRA_FIELDS = {'cloudflare_api_key', 'cloudflare_account_id'}
 # Gemini was a later free model until it was dropped: its free tier allows one call every 4.3 s, and Jeff
 # asks at least every 2 s and right after each step. A key file that still holds its field keeps working;
@@ -134,7 +138,7 @@ def chat_answer(raw, payload, provider='zhipu'):
 
 
 class FreeModels:
-    def __init__(self, keys=None, verified=False, default='startlux', clock=time.monotonic, extra=None):
+    def __init__(self, keys=None, verified=False, default='startlux', clock=time.monotonic, extra=None, withdrawn=()):
         if default not in ORIGINAL:
             raise ValueError('Unknown default free model')
         if keys is not None and (verified is not True or set(keys) != set(ORIGINAL)
@@ -147,6 +151,10 @@ class FreeModels:
         self.endpoints = {p: MODELS[p]['endpoint'] for p in self.keys}
         for provider, value in (extra or {}).items():
             self.keys[provider], self.endpoints[provider] = value['key'], value['endpoint']
+        for provider in withdrawn:                    # checked above with the rest, then never offered
+            self.keys.pop(provider, None); self.endpoints.pop(provider, None)
+        if self.keys and default not in self.keys:
+            raise ValueError('The default free model is withdrawn')
         self.default, self.clock = default, clock
         self.lock = threading.Lock()
         self.slots = {p: threading.BoundedSemaphore(1) for p in MODELS}

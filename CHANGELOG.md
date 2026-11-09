@@ -4,6 +4,13 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 
 [中文](#更新记录)
 
+## Unreleased
+
+### Touch stick and free models
+
+- On phones the stick no longer sticks. iPhone Safari did not always hand the stick its finger's lift (a round on 2026-11-09 kept walking up for its last five seconds with the thumb off the screen); now the stick's finger lifting anywhere on the page releases it, and so does a touch ending with no finger left that began on the stick or its zone.
+- Zhipu GLM-4.7-Flash and Llama 3.1 8B are withdrawn from the free trial (`hosted_free_models.WITHDRAWN`, passed by the gateway): from Shanghai both timed out after 18 s and were blocked, so players saw them listed but unavailable. Their keys are still checked as before; they are no longer listed, chosen or called. StartLux (the default) and Gemma 4 26B remain.
+
 ## 0.8.1-beta.1 — 2026-11-09 · fifth public test release
 
 ### Music and fixes
@@ -287,6 +294,13 @@ First private release: a local browser game with three playable maps and player-
 ---
 
 ## 更新记录
+
+## 未发布
+
+### 手机摇杆和免费模型
+
+- 手机上的摇杆不再卡住。iPhone 的 Safari 有时不把手指抬起的事件交给摇杆（2026-11-09 有一局，拇指已经离开屏幕，角色还一直往上走到结束）；现在摇杆那根手指在页面任何地方抬起都会松开摇杆，任何一次触摸结束时，如果剩下的手指里没有从摇杆或左下区域开始的，也会松开。
+- 智谱 GLM-4.7-Flash 和 Llama 3.1 8B 从免费试玩下架（`hosted_free_models.WITHDRAWN`，由协调服务传入）：从上海调用两者都在 18 秒后超时、被自动停用，玩家只能看到「暂不可用」。它们的 Key 仍照原样检查，只是不再列出、不能选、也不会被调用。保留 StartLux（默认）和 Gemma 4 26B。
 
 ## 0.8.1-beta.1 — 2026-11-09 · 第五个公开测试版
 
