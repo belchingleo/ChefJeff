@@ -194,6 +194,7 @@ if __name__ == '__main__':
 
 class CheckTests(unittest.TestCase):
     """scripts/food_names_check.py on a real offline round: a stand-in Jeff that only waits, on level 2."""
+    MODEL = None          # the model the round's client names in its requests (None: Jev's own)
 
     @classmethod
     def setUpClass(cls):
@@ -207,9 +208,16 @@ class CheckTests(unittest.TestCase):
             def __init__(self, config):
                 super().__init__(config, key='food-names-check-test')
 
+            def payload(self, state, actions):
+                payload = super().payload(state, actions)
+                if model:                     # as CompatibleClient and DecisionClient name the player's model
+                    payload['model'] = model
+                return payload
+
             def ask(self, payload):
                 return {'choice': 'wait', 'sprint': False, 'sprint_answer': {}, 'confidence': None, 'probabilities': {},
                         'model': 'stand-in', 'usage': {}, 'latency': .5}
+        model = cls.MODEL
         cls.folder = tempfile.TemporaryDirectory()
         clock = Clock()
         with patch.dict(os.environ, {'CHEFJEFF_LOG_DIR': cls.folder.name}), patch('jev.time.monotonic', clock), \
@@ -247,3 +255,9 @@ class CheckTests(unittest.TestCase):
         self.assertEqual((report['arms']['as_logged']['fetched_missing'], report['arms']['food_names']['fetched_missing']), (0, 1))
         self.assertEqual(report['arms']['food_names']['fetch_probability_change']['mean'], .5)
         self.assertNotIn('payload', json.dumps(report))
+
+
+class OtherModelCheckTests(CheckTests):
+    """The same checks on a round whose requests name another model, as a round on DeepSeek or on any connection
+    other than Jev does: the request is still rebuilt exactly."""
+    MODEL = 'deepseek-flash'
