@@ -4,7 +4,7 @@ each later model is enabled only by its own verified private key.
 Only server-created pending kitchen requests can consume the private credentials.
 No arbitrary prompts, endpoints, paid fallback, automatic retries or raw replies.
 """
-from collections import OrderedDict, deque
+from collections import deque
 from copy import deepcopy
 import json
 import wire_format

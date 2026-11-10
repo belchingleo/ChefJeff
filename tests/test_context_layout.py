@@ -1,8 +1,7 @@
-import math
 import unittest
 from kitchen import Food, GroundItem, load_config
 from spatial_kitchen import SpatialKitchen, tile_key
-from level_one import EQUIPMENT, FLOOR, neighbors, clear_walk_line
+from level_one import EQUIPMENT, FLOOR, neighbors
 
 class LayoutInteractionTests(unittest.TestCase):
     def make(self,seed=0):

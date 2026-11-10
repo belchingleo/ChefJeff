@@ -5,7 +5,6 @@ import io
 import json
 from pathlib import Path
 import tempfile
-import time
 import unittest
 from unittest.mock import Mock, patch
 import urllib.error

@@ -11,7 +11,6 @@ import urllib.error
 
 from hosted_jev import CONSENT_VERSION, ENDPOINT, ForwardError, JevForwarder, NoRedirect, TEST_PAYLOAD, parse_answer
 from hosted_server import BrowserRelay, make_server
-from cooperation_memory import memory_context
 
 KEY = 'unit-test-jev-key-not-a-real-secret'
 ANSWER = {'choice':'wait','sprint':False,'usage':{'input_tokens':3,'output_tokens':0},'probabilities':{}}

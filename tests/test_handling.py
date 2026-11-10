@@ -1,5 +1,5 @@
 import unittest
-from kitchen import Food, GroundItem, TAKE_KINDS, load_config
+from kitchen import Food, GroundItem, load_config
 from spatial_kitchen import SpatialKitchen, tile_key
 from level_one import EQUIPMENT, neighbors
 from whitebox_server import SpatialJevClient

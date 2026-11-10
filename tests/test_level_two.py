@@ -2,7 +2,7 @@ import math
 import json
 import re
 import unittest
-from kitchen import Food, load_config
+from kitchen import load_config
 from spatial_kitchen import WALK_SPEED, SpatialKitchen
 from whitebox_server import SpatialJevClient
 from web_server import GameSession

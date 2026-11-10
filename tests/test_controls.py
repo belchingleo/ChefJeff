@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import patch
 from kitchen import Food, GroundItem, load_config
 from spatial_kitchen import SpatialKitchen, WALK_SPEED, tile_key, PASS_RANGE
-from level_one import FLOOR, neighbors, walkable_point
+from level_one import neighbors, walkable_point
 from web_server import GameSession
 from test_web import Client, FakeJournal
 

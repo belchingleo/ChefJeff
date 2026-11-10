@@ -5,7 +5,6 @@ import sys
 import time
 import unittest
 from collections import Counter
-from pathlib import Path
 
 import config_contract as cc
 from kitchen import ROOT

@@ -124,7 +124,6 @@ def runtime_config(config=None, rng=None):
         return resolved, flat
     source = dict(SETTINGS if config is None else config)
     level_id = source.get("level_id") or f"level-{source.get('level', 1)}"
-    registry = cc.Registry()
     base = cc.flat_config({**_frozen_from_flat(level_id, '{}'), 'seeds': {'orders': None, 'spawn': None}})
     overrides = {}
     for key, value in source.items():

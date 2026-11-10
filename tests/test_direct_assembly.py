@@ -1,7 +1,7 @@
 """Direct assembly conserves containers and rechecks asynchronous handoffs."""
 import unittest
 from kitchen import Food,load_config
-from spatial_kitchen import SpatialKitchen,tile_key
+from spatial_kitchen import SpatialKitchen
 from whitebox_server import SpatialJevClient
 from model_language import english_data
 import json,re

@@ -2,7 +2,6 @@ import unittest
 from kitchen import load_config, Food
 from spatial_kitchen import SpatialKitchen
 from jev import JevClient
-from model_language import english_data
 
 
 class FireSpreadTests(unittest.TestCase):
@@ -140,7 +139,7 @@ class FireSpreadTests(unittest.TestCase):
     def test_fire_rule_and_state_reach_model_in_english(self):
         k=self.make();k.ignite('p1')
         payload=JevClient(k.c,key='offline-test').payload(k.snapshot(),k.actions('jeff'))
-        import json,re
+        import json
         text=json.dumps(payload,ensure_ascii=False)
         self.assertNotRegex(text,r'[\u3400-\u9fff]')
         self.assertIn('5 workstations burning at once lose the round',text)

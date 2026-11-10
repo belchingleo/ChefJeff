@@ -136,7 +136,6 @@ class DecisionLoop:
         self.last_revision = -1
         self.next_allowed = 0.0
         self.last_urgency = None
-        self.last_job = None
         self.failures = 0
         self.calls = 0
         self.successes = 0

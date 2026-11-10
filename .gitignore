@@ -12,6 +12,8 @@ __pycache__/
 *.sqlite3
 *.sqlite3-*
 hosted-data/
+# What scenarios/*/run.py writes (states, decision inputs, reference traces)
+scenarios/*/data/
 .DS_Store
 .tools/
 dist/

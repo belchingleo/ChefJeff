@@ -11,7 +11,7 @@ import config_contract as cc
 import schema_check
 from kitchen import Food, Kitchen, load_config, replay
 from session_record import read_bundle, replay_bundle
-from spatial_kitchen import SpatialKitchen, tile_key
+from spatial_kitchen import SpatialKitchen
 from test_jev import NoKeyClient
 from test_web import FakeJournal
 

@@ -3,7 +3,7 @@ import random
 import unittest
 from kitchen import Food, load_config
 from spatial_kitchen import SpatialKitchen, WALK_SPEED, tile_key
-from level_one import FLOOR, EQUIPMENT, BLOCKED, shortest_path, clear_walk_line, walkable_point
+from level_one import FLOOR, EQUIPMENT, BLOCKED, shortest_path, clear_walk_line
 from whitebox_server import SpatialJevClient
 from web_server import GameSession
 from test_web import Client, FakeJournal

@@ -1,7 +1,6 @@
 """The listed service levels must keep their recorded behaviour; update goldens only for reviewed rule changes."""
 import json
 import unittest
-from pathlib import Path
 
 from fingerprint import GOLDEN, SCENARIOS, run
 

@@ -5,7 +5,7 @@ Reads the picks in sound_manifest.json and writes cocos-kitchen/assets/resources
 audio/index.json (loop flags, mix gains, chop strike list). Noisy texture loops use an equal-power
 crossfade of the tail into the head. Music whose pick is 'composed' is rendered by compose_music.py.
 """
-import json, subprocess, sys
+import json, sys
 from pathlib import Path
 import numpy as np, soundfile as sf
 

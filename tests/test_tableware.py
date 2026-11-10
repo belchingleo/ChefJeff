@@ -1,10 +1,8 @@
 """Offline lifecycle tests: real rules/actions, no model/network fallback."""
 import random
 import unittest
-from unittest.mock import patch
 from kitchen import Kitchen, Food, load_config
 from spatial_kitchen import SpatialKitchen
-from level_one import EQUIPMENT
 from jev import JevClient
 from web_server import GameSession
 from levels import level_config

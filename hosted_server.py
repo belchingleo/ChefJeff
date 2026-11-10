@@ -8,7 +8,6 @@ import ipaddress
 from copy import deepcopy
 import json
 import wire_format
-import math
 import mimetypes
 from pathlib import Path
 import secrets
@@ -25,7 +24,7 @@ from spatial_kitchen import SpatialKitchen
 from whitebox_server import SpatialJevClient
 from web_server import GameSession, Handler, PLAYER_LEVEL_BODY, player_level_entry, player_level_submission
 from release_info import release_info
-from model_status import clean as clean_diagnostic, ModelWait
+from model_status import clean as clean_diagnostic
 from feedback import play_export
 from hosted_records import ContributionStore, pilot_record, CONSENT_VERSION
 from hosted_capacity import ActiveKitchens, RequestBudget, NETWORK_FULL

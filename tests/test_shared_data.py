@@ -17,7 +17,7 @@ from hosted_records import ContributionStore, RETENTION_SECONDS, CONSENT_VERSION
 from hosted_usage import UsageStats
 from hosted_server import make_server
 from shared_client import SharedClient, RegionalUsage, RemoteRecords
-from shared_data import Gone, SharedRecords, SharedUsage, usage_payload
+from shared_data import Gone, SharedUsage, usage_payload
 from shared_server import DataServer
 
 

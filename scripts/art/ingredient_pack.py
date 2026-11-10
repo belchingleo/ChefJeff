@@ -16,7 +16,7 @@ Frames follow the conventions of the current four ingredients:
 
 Run: python3 scripts/art/ingredient_pack.py  (needs Pillow and numpy)
 """
-import json, math, sys, uuid
+import json, math, uuid
 from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw

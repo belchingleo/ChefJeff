@@ -2,7 +2,6 @@
 import ast
 from html.parser import HTMLParser
 import json
-from pathlib import Path
 import re
 import shutil
 import subprocess

@@ -146,7 +146,6 @@ def analyze_capacity(resolved, profile=None):
     boards, stoves, sinks = r.of_type('board'), r.of_type('stove'), r.of_type('sink')
     shared_capable = {'board': [b for b in boards if r.shared(b, 'chop') and geo.second_side(b)],
                       'sink': [s for s in sinks if r.shared(s, 'wash') and geo.second_side(s)]}
-    board_rate = max((r.work_rate(b, 'chop') for b in boards), default=None)
     fastest_chop = max((r.work_rate(b, 'chop') * best_multiplier(b, 'chop') for b in boards), default=None)
     chop_factor = min((chef_time_factor(b, 'chop') / r.work_rate(b, 'chop') for b in boards), default=None)
     stove_rate = max((r.work_rate(s, 'heat') for s in stoves), default=None)

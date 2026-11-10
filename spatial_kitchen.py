@@ -2,7 +2,7 @@
 from functools import lru_cache
 import math
 import random
-from kitchen import Kitchen, Action, Station, NAMES, TAKE_KINDS, Job, GroundItem, STATES, engine_input
+from kitchen import Kitchen, Action, Station, NAMES, TAKE_KINDS, Job, GroundItem, engine_input
 from map_definition import floor_parts, geometry
 from navigation import WALK_CLEARANCE, Navigation, contact_fraction
 FACING_STEPS = {'up':(0,-1),'down':(0,1),'left':(-1,0),'right':(1,0)}

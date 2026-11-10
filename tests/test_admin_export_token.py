@@ -5,7 +5,6 @@ import hashlib
 import http.client
 import io
 import json
-import os
 from pathlib import Path
 import secrets
 import sqlite3

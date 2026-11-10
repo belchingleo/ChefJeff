@@ -2,13 +2,10 @@
 """Prepare/review then activate the independent gateway. Never restarts game/data/admin services."""
 import argparse
 import difflib
-import grp
-import http.client
 import json
 import os
 from pathlib import Path
 import pwd
-import re
 import subprocess
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))

@@ -220,7 +220,7 @@ class SessionLog:
     def capture_state(self, trigger, force=False):
         if not self.research or self.closed or (not self.capture_observations and trigger not in ('initial', 'final')):
             return self.state_ref
-        from research_record import state, PERIOD_MS, CHECKPOINT_MS
+        from research_record import state, CHECKPOINT_MS
         now = round(self.session.k.time * 1000)
         current = state(self.session.k)
         full = self.last_state is None or force or now - self.last_checkpoint_ms >= CHECKPOINT_MS
@@ -284,7 +284,7 @@ class SessionLog:
         if self.closed or not self.research:
             return
         try:
-            from research_record import action, PERIOD_MS, code, point
+            from research_record import action, PERIOD_MS, point
             call = data['call']
             before = self.state_ref
             low_frequency = call in ('advance','report_position','set_manual','face','pick_station')
@@ -355,9 +355,6 @@ class SessionLog:
             self.termination = {'reason': reason, 'source': 'server'}
         finally:
             self.closed = was_closed
-
-    def engine_events(self):
-        return [r for r in self.records if r['source'] == 'engine']
 
     def close(self):
         if not self.closed:

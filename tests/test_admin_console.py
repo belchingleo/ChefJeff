@@ -14,7 +14,6 @@ import time
 import unittest
 from unittest.mock import patch
 from urllib.parse import urlencode
-import zipfile
 
 import sys
 ROOT = Path(__file__).resolve().parents[1]

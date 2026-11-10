@@ -1,6 +1,5 @@
 """One-press options: offered by fixed conditions on top of the engine's actions, run as the same ordinary steps."""
 from collections import Counter
-from copy import deepcopy
 import json
 from pathlib import Path
 import tempfile

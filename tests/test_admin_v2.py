@@ -1,7 +1,7 @@
 """Synthetic-only tests for selection, previews, analysis and authenticated source tagging."""
 from contextlib import closing
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import datetime
 import hashlib
 import json
 from pathlib import Path

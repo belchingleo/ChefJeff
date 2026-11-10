@@ -797,7 +797,6 @@ def round_row(label, rows, margins=MARGINS, plan_age=PLAN_AGE, put_back=PUT_BACK
     meta = round_meta(rows)
     s = summary(alone[group], margins)
     start = rows[0] if rows and rows[0].get('kind') == 'start' else {}
-    end = next((r for r in reversed(rows) if r.get('kind') == 'end'), {})
     outcome = s.get('outcomes') or {}
     pressed = s.get('one_press')
     return {'round': label, 'started': start.get('wall_time'), 'level': meta['level'], 'config': meta['config'],

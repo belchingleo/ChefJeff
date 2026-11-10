@@ -107,19 +107,6 @@ def anchored(target, key, x, y, surface=False, sprite_lift=0):
     target.alpha_composite(source, (round(x - anchor[0] * scale), round(y - anchor[1] * scale)))
 
 
-def work_surface_bounds(metadata, cell_center, tile=TILE, unit=UNIT, sprite_lift=0):
-    """Return the cabinet worktop rectangle after Cocos ground-anchor placement."""
-    left, top, width, height = metadata['surfaceRect']
-    anchor_x, anchor_y = metadata['groundAnchor']
-    scale = tile / unit
-    cx, cy = cell_center
-    lifted_y = cy + sprite_lift * scale
-    return (round(cx + (left - anchor_x) * scale),
-            round(lifted_y + (top - anchor_y) * scale),
-            round(cx + (left + width - anchor_x) * scale),
-            round(lifted_y + (top + height - anchor_y) * scale))
-
-
 def station_view(document, station_id):
     authored = document.get('presentation', {}).get('station_views', {}).get(station_id)
     if authored:

@@ -13,35 +13,46 @@ from levels import level_config
 from spatial_kitchen import SpatialKitchen
 
 
-def predicting_everywhere(kitchen_class):
-    """The kitchen class's advance, predicting Jeff's step end before every tick he has a step (and throwing it away)."""
-    advance, inside = kitchen_class.advance, []
+# A prediction forks the kitchen and plays the fork to the end of Jeff's step, so one before every tick of every
+# fingerprint round took 200 s, a third of the whole test run. One round is still predicted at every tick; the others
+# every SPARSE-th tick (a prime, so over a round the predictions fall on every phase of the 10-tick decision period).
+SPARSE = 7
+EVERY_TICK = 'level2-reference'
+
+
+def predicting_everywhere(kitchen_class, every=1):
+    """The kitchen class's advance, predicting Jeff's step end before every ``every``-th tick he has a step (and
+    throwing the prediction away)."""
+    advance, inside, ticks = kitchen_class.advance, [], [0]
 
     def predict_then_advance(self, seconds):
         if self.chefs['jeff'].job is not None and not inside:      # not again inside the fork's own advance
-            inside.append(True)
-            try:
-                ask_ahead.predict(self)
-            finally:
-                inside.clear()
+            ticks[0] += 1
+            if ticks[0] % every == 0:
+                inside.append(True)
+                try:
+                    ask_ahead.predict(self)
+                finally:
+                    inside.clear()
         return advance(self, seconds)
     return patch.object(kitchen_class, 'advance', predict_then_advance)
 
 
 class IsolationTests(unittest.TestCase):
-    def test_predicting_at_every_moment_changes_no_behaviour_fingerprint(self):
+    def test_predicting_through_every_round_changes_no_behaviour_fingerprint(self):
+        self.assertIn(EVERY_TICK, fingerprint.SCENARIOS)
         for name in fingerprint.SCENARIOS:
             with self.subTest(name):
                 golden = json.loads((fingerprint.GOLDEN / f'{name}.json').read_text())
-                with predicting_everywhere(SpatialKitchen):
+                with predicting_everywhere(SpatialKitchen, 1 if name == EVERY_TICK else SPARSE):
                     actual = fingerprint.run(name)
                 self.assertEqual(golden, json.loads(json.dumps(actual)))
 
-    def test_predicting_at_every_moment_changes_no_payload_fingerprint(self):
+    def test_predicting_through_a_round_changes_no_payload_fingerprint(self):
         for name in ('level2', 'level3'):
             with self.subTest(name):
                 golden = json.loads((pf.GOLDEN / f'{name}.json').read_text())
-                with predicting_everywhere(SpatialKitchen):
+                with predicting_everywhere(SpatialKitchen, SPARSE):
                     actual = pf.run(name)
                 self.assertEqual(golden['requests'], actual['requests'])
 

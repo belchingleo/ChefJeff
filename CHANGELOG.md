@@ -4,6 +4,16 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 
 [中文](#更新记录)
 
+## Unreleased
+
+### Fixes and cleanup from a project audit
+
+- The text kitchen (`python3 play.py`) opens its menu again. Its fixed list of numbered actions still had the bare `fetch` key, which became `fetch beef` on 2026-11-09, so the menu failed on its first line; and the list never had the keys for assembling on a plate, loading a pan off the stove or swapping pans, so on levels 2 and 3, and on level 1 once a pan was off its stove, it failed the same way. `Kitchen.menu_numbers` now lists the real fetch keys and gives any other listed action a number of its own that it keeps for the round (`tests/test_text_menu.py`).
+- `map_definition.load_map` takes every authored level by number (it refused 4); `docs/map-format.md` says levels 1–4 are included.
+- README: the Gemini preset is 3.5 Flash-Lite, as in Settings and the model guide (it said 2.5); the list of ready-made services names the local decision model and Cloudflare Workers AI; the level table says Level 4 is switched off for players for now. `docs/agent-integration.md` says `food_names` and `undo_note` are on in `features.json` (it described them as off), and that with today's switches turning `ask_ahead` on changes nothing, since it never asks while a plan mode or the undo note is on.
+- Tests: the two ask-ahead isolation tests predicted before every tick of every fingerprint round and took 200 of the run's 600 seconds; one round is still predicted at every tick and the others at every 7th, in 60 seconds.
+- Removed what nothing uses: unused imports and locals in 13 runtime, script and deploy files and 25 test files, `DecisionLoop.last_job`, `SessionLog.engine_events`, `work_surface_bounds` in `scripts/preview_map_art.py`, an unused `Registry()` built for every kitchen made from a flat configuration, and a file listed twice in `scripts/package_web.py`. `scenarios/*/data/`, which the fixed-entry runner writes, is ignored by git.
+
 ## 0.8.1-beta.2 — 2026-11-09 · fix release
 
 ### Touch stick and free models
@@ -294,6 +304,16 @@ First private release: a local browser game with three playable maps and player-
 ---
 
 ## 更新记录
+
+## 未发布
+
+### 项目审查中的修复和清理
+
+- 文字厨房（`python3 play.py`）的菜单又能打开了。它那张固定的动作编号表里还是旧的 `fetch`，而这个动作代号在 2026-11-09 改成了 `fetch beef`，所以菜单第一行就报错；表里也一直没有"往盘里加料""往离灶的锅里放料""换锅"这几种动作，所以在第二、三关，以及第一关有锅离灶之后，同样会报错。现在 `Kitchen.menu_numbers` 列出真实的取货代号，其他出现在菜单里的动作也各得一个整局不变的编号（`tests/test_text_menu.py`）。
+- `map_definition.load_map` 可以按编号加载每一张官方地图（以前不接受 4）；`docs/map-format.md` 改为"提供第 1–4 关"。
+- README：Gemini 预设是 3.5 Flash-Lite，和设置页、模型连接说明一致（原来写的是 2.5）；现成服务的列表补上了本机决策模型和 Cloudflare Workers AI；关卡表注明第四关暂时对玩家关闭。`docs/agent-integration.md` 写明 `food_names` 和 `undo_note` 在 `features.json` 里是打开的（原来写成关闭时的样子），并写明按今天的开关，打开 `ask_ahead` 不会有任何变化，因为开着计划模式或撤销提示时它从不提前问。
+- 测试：两项提前问的隔离测试原来在每份行为录像的每个游戏刻都推演一次，全套 600 秒里占了 200 秒；现在保留一局逐刻推演，其余每 7 刻推演一次，用时 60 秒。
+- 删掉了没有任何地方使用的东西：13 个运行、脚本和部署文件以及 25 个测试文件里没用到的导入和局部变量，`DecisionLoop.last_job`，`SessionLog.engine_events`，`scripts/preview_map_art.py` 里的 `work_surface_bounds`，用平铺配置创建厨房时每次多建的一个没用的 `Registry()`，以及 `scripts/package_web.py` 里重复列出的一个文件。固定入口用例运行时写出的 `scenarios/*/data/` 加进了 git 忽略列表。
 
 ## 0.8.1-beta.2 — 2026-11-09 · 修复版
 

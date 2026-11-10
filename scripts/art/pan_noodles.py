@@ -22,8 +22,8 @@ import json, math
 import numpy as np
 from PIL import Image, ImageDraw
 import ingredient_pack as ip
-from ingredient_pack import (Piece, render, ramp, mix, grain, Noise, local, dome, capsule, disc_piece, tone, cubes,
-                             scallion_ring, plate, bbox, crop_to_content, INK, SS)
+from ingredient_pack import (Piece, render, ramp, mix, grain, Noise, local, dome, capsule, disc_piece, cubes,
+                             scallion_ring, plate, bbox, crop_to_content, SS)
 
 ip.RAMPS.update({
     'steel': [(44, 52, 74), (70, 84, 112), (118, 132, 160), (186, 196, 214), (240, 242, 246)],

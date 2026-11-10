@@ -1,5 +1,4 @@
 """New game binding and rollback are exercised on isolated files and synthetic units."""
-import hashlib
 import json
 from pathlib import Path
 import sys

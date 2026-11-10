@@ -3,8 +3,8 @@ import math
 import re
 import unittest
 from unittest.mock import patch
-from kitchen import Food,GroundItem,load_config
-from spatial_kitchen import SpatialKitchen,tile_key,WALK_SPEED,PASS_RANGE
+from kitchen import Food, load_config
+from spatial_kitchen import SpatialKitchen, WALK_SPEED, PASS_RANGE
 from whitebox_server import SpatialJevClient
 from web_server import GameSession
 from jev import DecisionLoop

@@ -8,8 +8,8 @@ import unittest
 from unittest.mock import patch
 
 import config_contract as cc
-from hosted_records import ContributionStore, CONSENT_VERSION, pilot_record
-from hosted_server import HostedSession, Sessions
+from hosted_records import ContributionStore, CONSENT_VERSION
+from hosted_server import HostedSession
 from kitchen import Food
 from research_record import (record, restored_states, validate_record, validate_telemetry, config)
 from scripts.research_export import export_package, verify_package, rows, legacy_quality
