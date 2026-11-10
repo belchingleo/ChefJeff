@@ -33,8 +33,8 @@ Paired moments are stronger than separate rounds: the same request asked two way
 ## Example 2: `ask_ahead` (Jeff asks for his next step before the current one ends)
 
 - **Question:** does asking ahead shorten Jeff's wait between steps without making him handle emergencies worse?
-- **Change:** `ask_ahead` on; `request_policy.ask_ahead` keeps rounds apart in the stats.
-- **Rounds:** `scripts/model_rounds.py --level level-2 --human assembler`, 12 rounds per arm and per model, two models.
+- **Change:** `ask_ahead` on; `request_policy.ask_ahead` keeps rounds apart in the stats. Jeff asks ahead only with no plan and no undo note (`DecisionLoop.can_ask_ahead`), and today's `features.json` has `rolling_intent` and `undo_note` on, so with today's switches the two arms would be the same. Run both arms in the trial worktree with `rolling_intent` and `undo_note` off there, and say so with the result: it measures asking ahead on its own, not with today's released input.
+- **Rounds:** `scripts/model_rounds.py --level level-2 --human assembler`, 12 rounds per arm and per model, two models. First play two rounds per model and check that dishes are served: in an earlier check the scripted assembler and Jev served no dish, and rounds without a dish say nothing about the goal rate. If they still serve none, use `--human cook`, or real rounds through `decision_stats.py`.
 - **Primary:** median gap between steps (`decision_stats.py` `step_gaps`), with the bootstrap interval of the difference between arms.
 - **Guards:** fires and burnt food per round (must not rise), goal rate, rejected and discarded replies. A goal rate moving from 0.5 to 0.8 needs about 39 rounds per arm to show, so 12 rounds watch the guards and the gap; they do not prove a better goal rate.
 - **Decision:** release when the gap is shorter and the guards are not worse; otherwise switch it off.
@@ -86,8 +86,8 @@ Paired moments are stronger than separate rounds: the same request asked two way
 ## 例二：`ask_ahead`（当前这一步结束前，Jeff 就先问下一步）
 
 - **问题：** 提前问能不能缩短 Jeff 两步之间的等待，同时不让他应付紧急情况的表现变差？
-- **改动：** 打开 `ask_ahead`；`request_policy.ask_ahead` 会把开关前后的对局分开统计。
-- **按整局比较：** `scripts/model_rounds.py --level level-2 --human assembler`，每组、每个模型各 12 局，用两个模型。
+- **改动：** 打开 `ask_ahead`；`request_policy.ask_ahead` 会把开关前后的对局分开统计。Jeff 只在没有计划、也没有撤销提示时才提前问（`DecisionLoop.can_ask_ahead`），而现在的 `features.json` 打开了 `rolling_intent` 和 `undo_note`，所以照现在的开关跑，两组其实一样。两组都在试验工作区里跑，并在那里关掉 `rolling_intent` 和 `undo_note`，报告结果时写明：测的是单独提前问的效果，不是叠加在现在上线输入上的效果。
+- **按整局比较：** `scripts/model_rounds.py --level level-2 --human assembler`，每组、每个模型各 12 局，用两个模型。正式跑之前，每个模型先跑两局，确认能出餐：之前一次检查里，脚本装盘手和 Jev 一道菜也没送出，没有出餐的对局说明不了达标率。如果仍然出不了餐，改用 `--human cook`，或者用 `decision_stats.py` 统计真人对局。
 - **主要指标：** 两步之间间隔的中位数（`decision_stats.py` 的 `step_gaps`），附两组之差的 bootstrap 区间。
 - **底线指标：** 每局着火和烧糊次数（不能增加）、达标率、被拒绝和被丢弃的回复数。达标率从 0.5 提到 0.8，每组大约需要 39 局才看得出来。所以这 12 局只用来盯住底线指标和间隔，不能证明达标率提高了。
 - **决策：** 间隔变短、底线指标没有变差，就上线；否则关掉开关。

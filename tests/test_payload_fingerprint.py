@@ -41,7 +41,7 @@ class PayloadFingerprintTests(unittest.TestCase):
         for name in pf.SCENARIOS:
             with self.subTest(scenario=name):
                 golden = json.loads((pf.GOLDEN / f'{name}.json').read_text())
-                actual = pf.run(name)
+                actual = pf.recorded(name)[0]
                 self.assertEqual(golden['requests'], actual['requests'],
                                  first_difference(golden['requests'], actual['requests'])
                                  + ' If the change to Jeff\'s input is intended, run '

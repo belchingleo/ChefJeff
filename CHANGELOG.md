@@ -13,6 +13,15 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - README: the Gemini preset is 3.5 Flash-Lite, as in Settings and the model guide (it said 2.5); the list of ready-made services names the local decision model and Cloudflare Workers AI; the level table says Level 4 is switched off for players for now. `docs/agent-integration.md` says `food_names` and `undo_note` are on in `features.json` (it described them as off), and that with today's switches turning `ask_ahead` on changes nothing, since it never asks while a plan mode or the undo note is on.
 - Tests: the two ask-ahead isolation tests predicted before every tick of every fingerprint round and took 200 of the run's 600 seconds; one round is still predicted at every tick and the others at every 7th, in 60 seconds.
 - Removed what nothing uses: unused imports and locals in 13 runtime, script and deploy files and 25 test files, `DecisionLoop.last_job`, `SessionLog.engine_events`, `work_surface_bounds` in `scripts/preview_map_art.py`, an unused `Registry()` built for every kitchen made from a flat configuration, and a file listed twice in `scripts/package_web.py`. `scenarios/*/data/`, which the fixed-entry runner writes, is ignored by git.
+- Jeff's level 1 rule said `fetch takes raw meat`, but since 2026-11-09 the key is `fetch beef`; it now says `fetch <ingredient> takes that raw ingredient from its source` (levels 2–4 use the assembly rule and were right). His rules move to `rules-v13`; only level 1's request and the rules version change in the payload fingerprints.
+- The capacity analyzer failed on level 4: neither chef can walk to every station alone, and the infinite walk could not be written as milliseconds. A chef who cannot reach every station now has no single-chef walking reference (`null`), and the sample reports include level 4 (`docs/architecture/reports/level-4.json`). `scripts/preview_map_art.py` draws all four maps.
+- The help's levels tab lists only the levels the server offers (`level_switches.json`), so the description of Level 4, switched off, no longer shows.
+- The page's state, asked for five times a second while a round runs, no longer carries the listed actions, boards and pots, which the page never read: about a third smaller (30 KB to 20 KB, 5.8 KB to 4.6 KB compressed).
+- `scripts/model_rounds.py` (its estimate) and `scripts/plan_probe.py` build Jeff's request with the switches a new round has, through `features.compose_options` (they left out one-press, the undo note and food names). A test checks it against a started round.
+- `docs/research-benchmark.json` and the numbers in `docs/research-data-v2.md` are measured again (record about 1.35–1.47 MB, peak 7.5–8.2 MB; with 20 inputs a second about 7.6 MB, peak 28.7–29.3 MB; nothing dropped). They were from October.
+- `docs/research/trial-protocol.md`, example 2: with today's switches `ask_ahead` never asks, so both arms run with `rolling_intent` and `undo_note` off in the trial worktree; and two rounds per model first check that the scripted assembler and Jeff serve at all.
+- Removed: the stand-alone entry points of `web_server.py` and `whitebox_server.py` (they served `web/` and `whitebox/`, which no longer exist; `cocos_server.py` and `hosted_server.py` are the servers), the `/api/select` command no page sends, `make_server`'s `free_model_keys` and `free_models_verified` (it only refused them; the free models go through the gateway), the root `release-manifest.json` from October (every package writes its own), two pacing-sweep reports nothing reads, and 40 page translations whose text no page, script or server message has any more. The versioned model catalog `model-language-en-v4.json` is unchanged.
+- Tests: the payload-fingerprint test and the wire-format tests read one recording of each round instead of playing it twice (about 85 to 55 seconds).
 
 ## 0.8.1-beta.2 — 2026-11-09 · fix release
 
@@ -314,6 +323,15 @@ First private release: a local browser game with three playable maps and player-
 - README：Gemini 预设是 3.5 Flash-Lite，和设置页、模型连接说明一致（原来写的是 2.5）；现成服务的列表补上了本机决策模型和 Cloudflare Workers AI；关卡表注明第四关暂时对玩家关闭。`docs/agent-integration.md` 写明 `food_names` 和 `undo_note` 在 `features.json` 里是打开的（原来写成关闭时的样子），并写明按今天的开关，打开 `ask_ahead` 不会有任何变化，因为开着计划模式或撤销提示时它从不提前问。
 - 测试：两项提前问的隔离测试原来在每份行为录像的每个游戏刻都推演一次，全套 600 秒里占了 200 秒；现在保留一局逐刻推演，其余每 7 刻推演一次，用时 60 秒。
 - 删掉了没有任何地方使用的东西：13 个运行、脚本和部署文件以及 25 个测试文件里没用到的导入和局部变量，`DecisionLoop.last_job`，`SessionLog.engine_events`，`scripts/preview_map_art.py` 里的 `work_surface_bounds`，用平铺配置创建厨房时每次多建的一个没用的 `Registry()`，以及 `scripts/package_web.py` 里重复列出的一个文件。固定入口用例运行时写出的 `scenarios/*/data/` 加进了 git 忽略列表。
+- Jeff 第一关的规则写的是 `fetch takes raw meat`，但从 2026-11-09 起这个动作代号是 `fetch beef`；现在改为 `fetch <ingredient> takes that raw ingredient from its source`（第二到四关用的是组装规则，本来就对）。规则升到 `rules-v13`；输入指纹里只有第一关的请求和规则版本号变了。
+- 容量分析在第四关会报错：两个厨师都没法独自走到所有工位，路程是无穷大，换算成毫秒时出错。现在走不到所有工位的厨师没有单人步行参考值（`null`），样例报告加上了第四关（`docs/architecture/reports/level-4.json`）。`scripts/preview_map_art.py` 画出全部四张地图。
+- 操作说明的「关卡」页只列出服务器开放的关卡（`level_switches.json`），所以已关闭的第四关不再显示说明。
+- 对局进行时页面每秒取五次状态，这份状态不再带页面从来不读的可选动作、案板和锅列表，小了约三分之一（30 KB 到 20 KB，压缩后 5.8 KB 到 4.6 KB）。
+- `scripts/model_rounds.py`（估算部分）和 `scripts/plan_probe.py` 通过 `features.compose_options`，用新开一局时的开关组 Jeff 的请求（原来漏掉了一键操作、撤销提示和食物命名）。有测试拿它和真实开局对比。
+- 重新测了 `docs/research-benchmark.json` 和 `docs/research-data-v2.md` 里的数字（每局记录约 1.35–1.47 MB，峰值 7.5–8.2 MB；每秒 20 次输入时约 7.6 MB，峰值 28.7–29.3 MB；都没有丢失）。原来是 10 月的数字。
+- `docs/research/trial-protocol.md` 例二：按今天的开关 `ask_ahead` 从不提前问，所以两组都在试验工作区里关掉 `rolling_intent` 和 `undo_note` 再跑；正式跑之前每个模型先跑两局，确认脚本装盘手和 Jeff 能出餐。
+- 删掉了：`web_server.py` 和 `whitebox_server.py` 的独立启动入口（它们提供的 `web/` 和 `whitebox/` 早已不存在；现在的服务是 `cocos_server.py` 和 `hosted_server.py`）；没有页面发送的 `/api/select` 命令；`make_server` 的 `free_model_keys` 和 `free_models_verified` 参数（只用来拒绝调用；免费模型走统一网关）；根目录里 10 月的 `release-manifest.json`（每个发布包自己生成）；两份没人读的节奏扫描报告；以及 40 条页面翻译，它们的原文已经不在任何页面、脚本或服务器消息里。带版本号的模型翻译表 `model-language-en-v4.json` 没有改。
+- 测试：输入指纹测试和传输格式测试共用每局的一次录制，不再各跑一遍（约 85 秒降到 55 秒）。
 
 ## 0.8.1-beta.2 — 2026-11-09 · 修复版
 

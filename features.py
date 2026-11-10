@@ -175,6 +175,13 @@ def one_press_flags(features):
     return one_press.flags({name: True for name in one_press.NAMES}) if features['one_press']['on'] else None
 
 
+def compose_options(features):
+    """compose_payload's switches for a new round with these features (as the session sets the decision loop),
+    for scripts that build Jeff's request outside a session."""
+    return {'one_press': one_press_flags(features), 'undo': undo_start(features),
+            'reach': features['reach_note']['on'], 'names': features['food_names']['on']}
+
+
 def _write_override(value, path):
     """Write the override atomically, readable by the game's service account, after checking it applies."""
     raw, _ = _release()

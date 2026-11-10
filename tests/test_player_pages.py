@@ -40,6 +40,17 @@ class PlayerPageTests(unittest.TestCase):
         self.assertIn('href="privacy.html" target="_blank"', shell)
         self.assertIn('href="model-guide.html" target="_blank"', shell)
 
+    def test_help_names_each_authored_level_and_hides_the_ones_not_offered(self):
+        # The help's levels tab tags each entry with its level; the shell hides the levels the server does not
+        # offer (level_switches.json), so a level switched off is not described to players.
+        from levels import available_levels
+        shell = (ROOT / 'cocos-kitchen/web-shell.html').read_text()
+        section = shell[shell.index('<section id="help-levels"'):]
+        section = section[:section.index('</section>')]
+        self.assertEqual(re.findall(r'<dt data-level="([^"]+)">', section), [level['id'] for level in available_levels()])
+        self.assertEqual(len(re.findall(r'<dd data-level=', section)), len(available_levels()))
+        self.assertIn("querySelectorAll('[data-level]')", shell)
+
     def test_markup_is_escaped_and_links_are_restricted(self):
         self.assertIn('&lt;script&gt;', render('<script>alert(1)</script>'))
         with self.assertRaises(ValueError):

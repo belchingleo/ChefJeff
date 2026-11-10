@@ -144,9 +144,10 @@ def wire_clients(config):
 class StandIn(SpatialJevClient):
     """Scripted stand-in model: the recipe policy's cook move when offered, otherwise wait."""
 
-    def __init__(self, config, kitchen, wires):
+    def __init__(self, config, kitchen, wires, keep=None):
         super().__init__(config, key=KEY)
         self.k, self.wires, self.requests = kitchen, wires, []
+        self.keep = keep        # a list to receive each payload whole (recorded), or None
         self.sections = {}
         self.arguments = None   # what the loop passed to compose_payload for this request
         self.sample = None      # the first payload, kept whole in the golden file
@@ -160,6 +161,8 @@ class StandIn(SpatialJevClient):
         return COMPOSE(client, kitchen, *frozen(arguments), **frozen(options))
 
     def ask(self, payload):
+        if self.keep is not None:
+            self.keep.append(json.loads(json.dumps(payload, ensure_ascii=False)))
         row = {'t': round(self.k.time, 3), 'payload': h(payload)}
         sections = {'top.' + key: h(value) for key, value in payload.items() if key != 'state'}
         sections.update({'state.' + key: h(value) for key, value in payload['state'].items() if key != 'rules'})
@@ -247,33 +250,45 @@ def message(k, loop, code):
                         'event_index': len(k.events)}}
 
 
-def run(name):
+_RECORDED = {}
+
+
+def recorded(name):
+    """One scenario's fingerprint and every payload it sent, recorded once per process: the fingerprint test and
+    the wire-format tests (tests/test_wire_format.py) read the same round instead of playing it twice."""
+    if name not in _RECORDED:
+        payloads = []
+        _RECORDED[name] = (run(name, keep=payloads), payloads)
+    return _RECORDED[name]
+
+
+def run(name, keep=None):
     if name in AHEAD:
         on = {key: dict(value) for key, value in features.current().items()}
         on['ask_ahead']['on'] = True
         with patch.object(features, 'current', lambda: {key: dict(value) for key, value in on.items()}):
-            return _run(name)
+            return _run(name, keep)
     if name in NAMES:
         on = {key: dict(value) for key, value in features.current().items()}
         on['food_names']['on'] = True
         with patch.object(features, 'current', lambda: {key: dict(value) for key, value in on.items()}):
-            return _run(name)
+            return _run(name, keep)
     if name in COMPACT:
         on = {key: dict(value) for key, value in features.current().items()}
         on['compact_input']['on'] = True
         with patch.object(features, 'current', lambda: {key: dict(value) for key, value in on.items()}):
-            return _run(name)
-    return _run(name)
+            return _run(name, keep)
+    return _run(name, keep)
 
 
-def _run(name):
+def _run(name, keep=None):
     level, talk, planned = SCENARIOS[name]
     memory = previous_round_memory(level) if talk else None
     # Start like a freshly started server. Kitchens on one map share a navigation object and its
     # route caches, so rounds or tests run earlier in the same process never reach this recording.
     spatial_kitchen._map_navigation.cache_clear()
     k = SpatialKitchen(level_config(load_config(), level))
-    model = StandIn(k.c, k, wire_clients(k.c))
+    model = StandIn(k.c, k, wire_clients(k.c), keep)
     loop = DecisionLoop(k, model, lambda *_: None, lambda *_: None)
     loop.game_speed = SPEED   # as the session sets it
     loop.player_messages = []

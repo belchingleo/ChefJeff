@@ -108,8 +108,9 @@ def estimate(level, rounds, max_calls=None, price_per_m=DEFAULT_PRICE_PER_M):
     from whitebox_server import SpatialJevClient
     config = config_for(level, max_calls)
     k = SpatialKitchen(config)
+    import features
     payload = compose_payload(SpatialJevClient(config, key='model-rounds-estimate'), k, k.snapshot(), k.actions('jeff'),
-                              [], None, NO_MEMORY)
+                              [], None, NO_MEMORY, **features.compose_options(features.current()))
     requests = rounds * config['ai_max_calls']
     tokens = len(json.dumps(payload, ensure_ascii=False)) / 4 * requests
     return {'rounds': rounds, 'max_requests': requests, 'max_input_tokens_m': round(tokens / 1e6, 2),

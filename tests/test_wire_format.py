@@ -16,21 +16,11 @@ import wire_format as w
 ROOT = Path(__file__).resolve().parents[1]
 SCENARIOS = ('level1', 'level2', 'level3', 'level2-plan', 'level2-rolling', 'level2-messages-memory')
 CANON = lambda value: json.dumps(value, ensure_ascii=False, sort_keys=True)
-_RECORDED = {}
 
 
 def requests(name):
     """Every payload one fingerprint scenario sends (one round each), recorded once per test run."""
-    if name not in _RECORDED:
-        rows, ask = [], pf.StandIn.ask
-
-        def keep(self, payload):
-            rows.append(json.loads(json.dumps(payload, ensure_ascii=False)))
-            return ask(self, payload)
-        with patch.object(pf.StandIn, 'ask', keep):
-            pf.run(name)
-        _RECORDED[name] = rows
-    return _RECORDED[name]
+    return pf.recorded(name)[1]
 
 
 def compact(on=True):

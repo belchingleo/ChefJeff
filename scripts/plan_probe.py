@@ -43,6 +43,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT), str(ROOT / 'tests')]
+import features  # noqa: E402
 from harness import Plan, work_item, work_items  # noqa: E402
 from jev import NO_MEMORY, compose_payload  # noqa: E402
 from kitchen import load_config  # noqa: E402
@@ -145,7 +146,8 @@ def stale_payload(client, k, mode='choice'):
     at = max(0.0, k.time - 5)
     assert held.accept({'steps': list(STALE_PLAN)[:held.steps]}, at, work_items(state), None)
     recent = [previous_decision(at)] if mode == 'rolling' else []
-    return compose_payload(client, k, deepcopy(state), k.actions('jeff'), recent, None, NO_MEMORY, held.input(state))
+    return compose_payload(client, k, deepcopy(state), k.actions('jeff'), recent, None, NO_MEMORY, held.input(state),
+                           **features.compose_options(features.current()))
 
 
 def arm_payload(client, k, arm, mode='choice'):
@@ -162,7 +164,8 @@ def arm_payload(client, k, arm, mode='choice'):
             steps = [s for s in UNRELATED if s in offered][:held.steps]
             assert held.accept({'steps': steps}, at, offered, None)
         plan = held.input(state)
-    return compose_payload(client, k, deepcopy(state), actions, recent, None, NO_MEMORY, plan)
+    return compose_payload(client, k, deepcopy(state), actions, recent, None, NO_MEMORY, plan,
+                           **features.compose_options(features.current()))
 
 
 def summary(answers, urgent):

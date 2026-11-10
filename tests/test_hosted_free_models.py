@@ -2,6 +2,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 import http.client
+import inspect
 import io
 import json
 import os
@@ -70,12 +71,12 @@ class ConfigTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 read_trial_keys(path)
 
-    def test_enable_flag_does_not_read_file_before_both_services_are_verified(self):
-        with patch('hosted_server.read_trial_keys', side_effect=AssertionError('must not read')):
-            with self.assertRaises(ValueError):
-                make_server(0, 'http://localhost', free_model_keys='/nonexistent-private-file')
-        with self.assertRaises(ValueError):
-            make_server(0, 'http://localhost', free_model_keys=Path(__file__).resolve().parents[1] / 'keys.json', free_models_verified=True)
+    def test_regional_servers_take_no_model_credentials(self):
+        # A regional service cannot call a shared single-concurrency account itself: it reaches the free
+        # models only through the one shared gateway, so it neither takes nor reads a key file.
+        import hosted_server
+        self.assertFalse({'free_model_keys', 'free_models_verified'} & set(inspect.signature(make_server).parameters))
+        self.assertFalse(hasattr(hosted_server, 'read_trial_keys'))
 
     def test_fixed_upstreams_no_redirect_retry_or_paid_fallback_and_sanitized_errors(self):
         models = FreeModels(KEYS, verified=True)

@@ -35,6 +35,13 @@ class WebSessionTests(unittest.TestCase):
     def act(self,g,key):
         a=next(a for a in g.k.actions('human') if a.key==key)
         return self.command(g,'action',action=a.key,expected=list(a.expected))
+    def test_scripts_compose_with_the_switches_a_new_round_has(self):
+        # model_rounds.estimate and plan_probe build Jeff's request outside a session (features.compose_options):
+        # with the default switches they must ask what a started round's decision loop asks.
+        import features
+        g=self.make();self.start(g)
+        loop={'one_press':g.ai.one_press,'undo':g.ai.undo,'reach':g.ai.reach,'names':g.ai.names}
+        self.assertEqual(features.compose_options(g.features),loop)
     def test_no_clock_or_ai_before_start(self):
         g=self.make();g.tick(g.last_tick+10)
         self.assertEqual(g.k.time,0)
@@ -126,7 +133,8 @@ class WebSessionTests(unittest.TestCase):
         g.k.advance(1)
         state=g.public_state()
         self.assertEqual(state['kitchen']['ground'][0]['food']['id'],'held')
-        self.assertTrue(any(a['key']=='pickup held' for a in state['actions']))
+        self.assertTrue(any(a.key=='pickup held' for a in g.k.actions('human')))
+        self.assertFalse({'actions','boards','pots'}&set(state))
         self.assertEqual(self.act(g,'pickup held')[0],200)
         g.k.advance(1)
         self.assertFalse(g.public_state()['kitchen']['ground'])
@@ -153,7 +161,7 @@ class WebSessionTests(unittest.TestCase):
         self.assertNotIn('TYPESAFE_API_KEY',public)
         self.assertNotIn('env_file',public)
         self.assertNotIn('Authorization',public)
-        self.assertIn('expected',public)
+        self.assertIn('stations',public)
     def test_reset_rejected_while_running(self):
         g=self.make();self.start(g)
         self.assertEqual(self.command(g,'reset')[0],409)

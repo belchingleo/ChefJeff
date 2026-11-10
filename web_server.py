@@ -1,23 +1,19 @@
-#!/usr/bin/env python3
-"""Local click-to-play interface around the existing kitchen and real Jev loop."""
+"""Local game session and request handler around the kitchen and the real Jev loop (served by cocos_server.py and hosted_server.py)."""
 from __future__ import annotations
-import argparse
 from collections import OrderedDict
 from dataclasses import asdict
 from copy import deepcopy
 from datetime import datetime
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler
 import json
 import math
-import mimetypes
 import threading
 import traceback
 import time
 from urllib.parse import parse_qs, urlparse
 import uuid
-import webbrowser
 
-from kitchen import Kitchen, ROOT, load_config
+from kitchen import Kitchen, load_config
 from jev import JevClient, DecisionLoop
 from harness import Plan, PLAN_MODES, plan_condition
 import environment
@@ -291,8 +287,9 @@ class GameSession:
                     'interaction_focus': focus,
                     'interaction_cell': cell,
                     'interaction_hint': hint,
-                    'kitchen': state, 'actions': [asdict(a) for a in actions],
-                    'boards': self.k.boards, 'pots': self.k.pots, 'events': events,
+                    # The page acts by keys and the station it faces; the listed actions, boards and pots are
+                    # in the engine (and Jeff's request), not in the state polled every 0.2 s.
+                    'kitchen': state, 'events': events,
                     'ai': {'connected': bool(self.ai and self.ai.successes),
                            'thinking': bool(self.ai and self.ai.inflight),
                            'error': self.ai_error, 'calls': self.ai.calls if self.ai else 0,
@@ -695,28 +692,6 @@ class GameSession:
             self.ai_error = None
             self.totals = {}
             return 200, {'ok': True}
-        if path == '/api/select':
-            if self.phase!='running' or not hasattr(self.k,'quick_interaction'):
-                return 409,{'error':'当前不能操作'}
-            target=body.get('target')
-            if not isinstance(target,str):return 400,{'error':'目标无效'}
-            actions=self.k.actions('human')
-            if target.startswith('item:'):
-                item=self.k.ground.get(target[5:])
-                if not item:return 409,{'error':'地上物品已变化，请重新选择'}
-                destination=item.location
-            elif target in self.k.equipment:
-                destination=target
-            else:
-                destination=target
-                if not any(a.kind=='go' and a.target==target for a in actions) and target!=self.k.chefs['human'].location:
-                    return 400,{'error':'目标无效'}
-            # Clicking walks there and faces it; Space then acts on what the chef faces.
-            action=next((a for a in actions if a.kind=='go' and a.target==destination),None)
-            if action:
-                result=self._command('/api/action',{'action':action.key,'expected':list(action.expected)})
-                if result[0]!=200:return result
-            return 200,{'ok':True}
         if path == '/api/interact':
             if self.phase != 'running' or not hasattr(self.k, 'quick_interaction'):
                 return 409, {'error': '当前不能操作'}
@@ -832,8 +807,6 @@ def player_level_entry(found):
 
 
 class Handler(BaseHTTPRequestHandler):
-    web_root = ROOT/'web'
-    static_files = {'/':'index.html','/app.js':'app.js','/style.css':'style.css'}
     def log_message(self, format, *args):
         pass
 
@@ -887,12 +860,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.player_level_catalog()
         if path=='/api/player-level/status':
             return self.player_level_status()
-        files=self.static_files
-        if path not in files:
-            return self.reply(404,{'error':'页面不存在。'})
-        file=self.web_root/files[path]
-        mime=mimetypes.guess_type(str(file))[0] or 'text/plain'
-        self.reply(200,file.read_bytes(),mime+'; charset=utf-8')
+        return self.reply(404,{'error':'页面不存在。'})
 
     def do_POST(self):
         if not self.local_request() or self.headers.get('Sec-Fetch-Site') == 'cross-site':
@@ -932,32 +900,3 @@ class Handler(BaseHTTPRequestHandler):
             return self.reply(status,data)
         status,data=game.command(path,body)
         self.reply(status,data)
-
-
-def main():
-    p=argparse.ArgumentParser(description='打开可点击的本地文字厨房')
-    p.add_argument('--port',type=int,default=8767)
-    p.add_argument('--open',action='store_true')
-    args=p.parse_args()
-    game=GameSession()
-    try:
-        server=ThreadingHTTPServer(('127.0.0.1',args.port),Handler)
-    except OSError as e:
-        raise SystemExit(f'无法启动本地厨房：{e}')
-    server.game=game
-    threading.Thread(target=game.run,daemon=True).start()
-    url=f'http://127.0.0.1:{server.server_port}'
-    print(f'文字厨房已就绪：{url}\n点击页面中的「开始一起做菜」才会计时和调用 Jev。Ctrl+C 关闭服务。',flush=True)
-    if args.open:
-        webbrowser.open(url)
-    try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        pass
-    finally:
-        game.close()
-        server.server_close()
-
-
-if __name__=='__main__':
-    main()

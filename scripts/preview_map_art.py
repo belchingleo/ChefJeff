@@ -258,5 +258,5 @@ def render(level):
 
 
 if __name__ == '__main__':
-    for level in (1, 2, 3):
+    for level in (1, 2, 3, 4):
         render(level)

@@ -56,21 +56,20 @@ class SelectedTargetTests(unittest.TestCase):
             k=self.make(level);p=self.setup_floor_pot(k,'human');del k.ground[p.id];key=next(c for c in k.counters if not k.stations[c].food);k.stations[key].food=p
             a=next(a for a in k.actions('human') if a.key=='load '+key);self.finish(k,'human',a)
             self.assertEqual(p.contents.id,'meat');self.assertIsNone(k.chefs['human'].hand);k.advance(5);self.assertEqual(p.contents.heated,0)
-    def test_http_click_walks_there_and_space_uses_the_facing(self):
+    def test_http_walk_then_space_uses_the_facing(self):
         g=GameSession(config={**load_config(),'level':3},kitchen_factory=SpatialKitchen,client_factory=Client,journal_factory=FakeJournal);self.addCleanup(g.close)
         def cmd(path,**kw):return g.command('/api/'+path,{'game_id':g.game_id,'request_id':str(time.monotonic_ns()),**kw})
         cmd('start');g.k.positions['human']=(2,6);g.k.facing['human']='right';g.k.chefs['human'].hand=Food('meat')
-        self.assertEqual(cmd('select',target='b1')[0],200);g.k.advance(.5)
+        go=next(a for a in g.k.actions('human') if a.kind=='go' and a.target=='b1')
+        self.assertEqual(cmd('action',action=go.key,expected=list(go.expected))[0],200);g.k.advance(.5)
         state=g.public_state();self.assertEqual(state['interaction_focus'],'b1');self.assertEqual(state['interaction']['key'],'put b1')
         self.assertEqual(cmd('interact',expected_item='meat')[0],200);g.k.advance(.5);self.assertEqual(g.k.stations['b1'].food.id,'meat')
         # Nothing is remembered: turning away changes what Space acts on.
         g.k.facing['human']='left';self.assertEqual(g.public_state()['interaction_focus'],'bin')
-        self.assertEqual(cmd('select',target='item:missing')[0],409)
     def test_ground_focus_at_feet_survives_two_space_presses(self):
         g=GameSession(config={**load_config(),'level':3},kitchen_factory=SpatialKitchen,client_factory=Client,journal_factory=FakeJournal);self.addCleanup(g.close)
         def cmd(path,**kw):return g.command('/api/'+path,{'game_id':g.game_id,'request_id':str(time.monotonic_ns()),**kw})
         cmd('start');self.setup_floor_pot(g.k,'human')
-        self.assertEqual(cmd('select',target='item:P1')[0],200)
         self.assertEqual(cmd('interact',expected_item='meat')[0],200);g.k.advance(.5)
         self.assertEqual(cmd('interact',expected_item=None)[0],200);g.k.advance(.5)
         self.assertEqual(g.k.chefs['human'].hand.id,'P1');g.k.assert_invariants()

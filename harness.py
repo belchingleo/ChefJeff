@@ -24,7 +24,7 @@ from cooperation_memory import PAST_EPISODES_RULE
 # v10 also: an ingredient part-way through chopping cannot be taken off its board (Overcooked 2), for both chefs.
 # v11: orders arrive as in Overcooked 2 (two from the start, top-up, at most five; an expired order restarts).
 # v12: the fire rule is short and in time order: food burns, its stove catches fire at once, then heat, spray, loss.
-AGENT_RULES_VERSION = "rules-v12"
+AGENT_RULES_VERSION = "rules-v13"
 
 
 # How a recipe component's required state reads in model input: "tomato (chopped)".
@@ -176,7 +176,7 @@ def rules(state, spatial=False, per_area=2):
         "role": 'You control chef jeff. Chef human is controlled by a person in the same kitchen. Both chefs can perform the same actions; neither has a fixed role. Choose one next action for your own chef.',
         "objective": objective_text(state),
         "flow": _assembly_flow(state, geometry) if spatial and state.get('assembly') else (
-            'fetch takes raw meat -> put bN places it on an empty board -> chop bN prepares it -> take bN picks up the chopped ingredient -> put pN puts it in the pot -> cooking runs automatically. take <counter_id> takes a clean plate -> plate pN transfers cooked food into the held plate -> serve delivers it. Alternatively, take pot pN lifts the whole pot off the stove; plate <counter_id> transfers its food onto a clean plate on that counter, leaving the plated food there and the empty pot in your hands. Return the pot with put pot pN, then collect the plated food. With a clean plate, plate ground <item_id> serves food from a pot on the floor; the empty pot remains there. Food cannot be removed from a pot with bare hands. Actions automatically walk to the target and then work; go only moves.'),
+            'fetch <ingredient> takes that raw ingredient from its source -> put bN places it on an empty board -> chop bN prepares it -> take bN picks up the chopped ingredient -> put pN puts it in the pot -> cooking runs automatically. take <counter_id> takes a clean plate -> plate pN transfers cooked food into the held plate -> serve delivers it. Alternatively, take pot pN lifts the whole pot off the stove; plate <counter_id> transfers its food onto a clean plate on that counter, leaving the plated food there and the empty pot in your hands. Return the pot with put pot pN, then collect the plated food. With a clean plate, plate ground <item_id> serves food from a pot on the floor; the empty pot remains there. Food cannot be removed from a pot with bare hands. Actions automatically walk to the target and then work; go only moves.'),
         "vessels": ('In action keys and these rules, pot means any cooking vessel on a stove or held. kitchen.vessels lists each kind of '
                     'vessel in this level, its name and the ingredients it cooks; each stove, held item or floor item that is a vessel '
                     'shows its kind as vessel. An ingredient can be put only into the kind of vessel that cooks it.'),

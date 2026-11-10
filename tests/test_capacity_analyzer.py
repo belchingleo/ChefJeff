@@ -8,7 +8,7 @@ import capacity_analyzer as ca
 import config_contract as cc
 
 REPORTS = Path(ca.__file__).resolve().parent / 'docs' / 'architecture' / 'reports'
-SAMPLES = ('level-1', 'level-2', 'level-3')
+SAMPLES = ('level-1', 'level-2', 'level-3', 'level-4')
 
 
 def frozen(level_id='level-1', seeds=(1, 0), **edits):
@@ -95,6 +95,16 @@ class BoundTests(unittest.TestCase):
         self.assertGreaterEqual(low, report['dishes']['burger']['first_dish_lower_bound_game_ms'])
         draft = cc.resolve_config(cc.level_bundle('level-2'))[0]
         self.assertIsNone(ca.analyze_capacity(draft)['spawns']['configured'])
+
+    def test_a_split_floor_has_no_single_chef_walking_reference(self):
+        # Level 4's counter row splits the floor: neither chef can walk to every station a dish needs alone,
+        # which the analyzer reports as no route (it used to fail on the infinite walk).
+        report = ca.analyze_capacity(frozen('level-4'))
+        for dish in report['dishes'].values():
+            self.assertTrue(dish['single_chef_walking_reference_game_ms'])
+            self.assertEqual(set(dish['single_chef_walking_reference_game_ms'].values()), {None})
+            self.assertIsNone(dish['walking_reference_range_game_ms'])
+            self.assertIsNotNone(dish['first_dish_lower_bound_game_ms'])
 
 
 class DiagnosticBoundaryTests(unittest.TestCase):

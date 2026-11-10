@@ -227,14 +227,16 @@ def analyze_capacity(resolved, profile=None):
                 plate = min(plate_homes, key=lambda s: geo.walk(position, s))
                 walked += geo.walk(position, plate) + geo.walk(plate, min(serves, key=lambda s: geo.walk(plate, s)))
                 processing = sum(c['duration_game_ms'] for c in components) / 1000 + 2 * h
-                routes[f'assignment_{i}:{who}'] = _ms(walked / r.walk_speed + processing)
+                # None: this chef cannot walk to every station the dish needs (a split floor, as on level 4).
+                routes[f'assignment_{i}:{who}'] = None if math.isinf(walked) else _ms(walked / r.walk_speed + processing)
         dishes[recipe] = {
             'name': r.recipe_names[recipe], 'price': r.prices[recipe], 'components': components,
             'critical_path_game_ms': _ms(critical), 'chef_time_game_ms': _ms(chef_time),
             'first_dish_lower_bound_game_ms': _ms(bound),
             'first_dish_lower_bound_basis': 'max(critical path, chef time / chefs); transport excluded',
             'single_chef_walking_reference_game_ms': routes,
-            'walking_reference_range_game_ms': [min(routes.values()), max(routes.values())] if routes else None,
+            'walking_reference_range_game_ms': ([min(walkable), max(walkable)]
+                                                if (walkable := [v for v in routes.values() if v is not None]) else None),
         }
         for c in components:
             c.pop('station_groups')

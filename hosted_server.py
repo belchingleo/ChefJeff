@@ -31,7 +31,7 @@ from hosted_capacity import ActiveKitchens, RequestBudget, NETWORK_FULL
 from hosted_jev import JevForwarder
 from player_level_queue import CalibrationQueue
 from hosted_cloudflare import CloudflareForwarder
-from hosted_free_models import FreeModels, read_trial_keys
+from hosted_free_models import FreeModels
 from free_model_client import RegionalFreeModels, FreeGatewayClient, public_error
 from free_model_gateway import GatewayError
 from hosted_usage import UsageStats
@@ -241,7 +241,7 @@ class HostedSession(GameSession):
         with self.lock:
             log = self.journal
             input_id = None
-            gameplay = path in ('/api/action', '/api/interact', '/api/throw', '/api/select', '/api/move', '/api/position')
+            gameplay = path in ('/api/action', '/api/interact', '/api/throw', '/api/move', '/api/position')
             if log and gameplay and body.get('game_id') == self.game_id:
                 row = log._envelope('browser_input', {'command': path[5:], 'stage': 'server_received',
                                                      'raw_device_input': 'not_collected'}, 'session')
@@ -468,7 +468,7 @@ FIELDS = {
     '/api/resume': set(), '/api/end': set(), '/api/reset': set(), '/api/restart': set(),
     '/api/level': {'level'}, '/api/next': {'level'}, '/api/player-level/submit': {'level', 'design'}, '/api/player-level/play': {'job'}, '/api/plan': {'mode'}, '/api/limits': {'max_calls'}, '/api/export-run': set(),
     '/api/feedback': set(), '/api/bookmark': set(), '/api/communicate': {'code'},
-    '/api/move': {'dx', 'dy', 'seq', 'sprint'}, '/api/position': {'seq', 'base', 'at', 'press'}, '/api/select': {'target'},
+    '/api/move': {'dx', 'dy', 'seq', 'sprint'}, '/api/position': {'seq', 'base', 'at', 'press'},
     '/api/interact': {'expected_item', 'mode', 'at', 'base', 'aim', 'target'}, '/api/throw': {'direction', 'expected_item', 'at', 'base'},
     '/api/action': {'action', 'expected'},
     '/api/model/result': {'id', 'choice', 'sprint', 'plan', 'usage', 'failed','memory_condition','telemetry','probabilities','memory_provenance'},
@@ -1074,7 +1074,7 @@ class HostedHandler(Handler):
 
 
 def make_server(port, origin, capacity=8, web_root=None, data_dir=None, max_waiting=32, per_network=4, shared_config=None,
-                free_model_keys=None, free_models_verified=False, default_free_model='startlux', free_model_gateway=False,
+                default_free_model='startlux', free_model_gateway=False,
                 player_levels=False):
     if type(capacity) is not int or not 1 <= capacity <= 16 or type(max_waiting) is not int or not 0 <= max_waiting <= 32:
         raise ValueError('Use 1–16 active kitchens and 0–32 waiting pages.')
@@ -1082,9 +1082,6 @@ def make_server(port, origin, capacity=8, web_root=None, data_dir=None, max_wait
         raise ValueError('Use 1–16 active kitchens per network.')
     if shared_config is not None and data_dir is None:
         raise ValueError('Shared mode requires a persistent regional usage outbox')
-    # Regional services cannot independently call a shared single-concurrency account.
-    if free_model_keys is not None:
-        raise ValueError('Use the one shared free-model gateway, not regional model credentials')
     client = None
     if shared_config is not None:
         from shared_client import SharedClient
