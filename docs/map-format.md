@@ -1,6 +1,6 @@
 # Map data format — schema versions 1 and 2
 
-Maps are UTF-8 JSON at `maps/<map-id>.json`. Levels 1–3 are included and use schema 2. `map_definition.py` loads, validates, atomically saves and extracts geometry; invalid documents cannot replace the target file.
+Maps are UTF-8 JSON at `maps/<map-id>.json`. Levels 1–4 are included and use schema 2. `map_definition.py` loads, validates, atomically saves and extracts geometry; invalid documents cannot replace the target file.
 
 A map contains `schema_version`, `id`, `revision`, `size`, `walls`, `equipment` and optional `presentation`. Coordinates start at the top-left: x increases right, y down. Width and height must be integers from 5 to 64. Walls form a complete outer boundary without duplicate cells. Walls may not cut the room in two: every cell that is not a wall is connected. Counters and other stations may, so the walkable floor is in one or two parts; with two, the engine spawns one chef in each, offers each chef only what it can reach, and food is thrown across (the configuration check requires a cell in each part within throw reach).
 
@@ -48,7 +48,7 @@ To ship a map, save it with `save_map` as `maps/<id>.json`, add a level in `cont
 
 # 地图数据格式（schema version 1 与 2）
 
-地图以 UTF-8 JSON 保存于 `maps/<地图 id>.json`。当前提供第 1–3 关，均为 schema 2。
+地图以 UTF-8 JSON 保存于 `maps/<地图 id>.json`。当前提供第 1–4 关，均为 schema 2。
 
 **Schema 2** 保留下文全部几何规则，并增加设备实例语义：顶层 `areas`（如 `{"prep": {"name": "处理区"}}`）与可选 `floor_areas`；每个工位增加 `type`（设备目录中的类型，如 `board`、`stove`、`counter`、`ingredient_source`）、`name`、`area` 和可选 `params`（食材源需 `{"item": "beef"}`）。类型是否存在由关卡引用的设备目录判定；工位顺序即引擎工位顺序；斜角访问适用于 `type: counter`。Schema 1 地图仍可加载，按历史 ID 约定推断类型。详见[配置契约](architecture/configuration-contract.md)。`map_definition.py` 提供本地加载、校验、原子保存和几何提取；保存前会再次校验，非法文档不会覆盖目标文件。
 
