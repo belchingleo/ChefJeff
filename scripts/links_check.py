@@ -201,7 +201,8 @@ def run(items, ask, repeats=1):
             summary[name] = {'answered': len(replies),
                              'chose_linked_work': share(sum(a['choice'] in i['target'] for i, a in replies), len(replies)),
                              'waited': share(sum(a['choice'] == 'wait' for i, a in replies), len(replies)),
-                             'errors': sum(1 for i, _, rs in rows for a in rs if 'error' in a)}
+                             'errors': sum(1 for i, _, rs in rows for a in rs if 'error' in a),
+                             'error_messages': dict(Counter(a['error'][:160] for i, _, rs in rows for a in rs if 'error' in a))}
         out['by_kind'][kind] = {'moments': len(part['arms']['A']), 'arms': summary, 'stats': reask.stats(part, OUTCOMES)}
     out['models'] = asked['models']
     return out
@@ -233,11 +234,17 @@ def main(argv=None):
     parser.add_argument('--bamboo', action='store_true', help='StartLux on Bamboo Relay, key from ' + str(clients.BAMBOO_KEY))
     parser.add_argument('--openrouter', metavar='MODEL', help='a decision model on OpenRouter (e.g. parallel/decisions-fast:free), '
                         'as the game\'s openrouter-decision setting asks it, key from ' + str(OPENROUTER_KEY))
+    parser.add_argument('--moments', help='a file of picked-from moments: read it if it exists, else write it after replaying')
     parser.add_argument('--examples', help='write both arms of a few moments here, for checking the links by eye')
     parser.add_argument('--dry-run', action='store_true')
     parser.add_argument('--out', help='write the JSON report here instead of printing it')
     args = parser.parse_args(argv)
-    found, counts = moments(args.paths)
+    if args.moments and Path(args.moments).exists():
+        found, counts = json.loads(Path(args.moments).read_text())
+    else:
+        found, counts = moments(args.paths)
+        if args.moments:
+            Path(args.moments).write_text(json.dumps([found, counts], ensure_ascii=False))
     items = pick(found, args.per_kind, args.seed)
     print(f'moments found: {counts}; picked {Counter(i["kind"] for i in items)}', file=sys.stderr)
     with_links = [i for i in found if i['kind'] != 'control']
@@ -250,15 +257,22 @@ def main(argv=None):
     print(estimate([{'payload': arm(i, 'B')} for i in items], len(ARMS) * args.repeats), file=sys.stderr)
     if args.dry_run:
         return 0
+    # The logged requests name the model of the rounds they came from (jev-latest): a request to another service must
+    # name that service's model, or the service refuses it (Bamboo) or routes it to the logged model (OpenRouter).
     if args.openrouter:
-        ask = openrouter_client(args.openrouter).ask
+        ask, model = openrouter_client(args.openrouter).ask, args.openrouter
     elif args.local:
-        ask = clients.local_client(args.local, args.model).ask
+        ask, model = clients.local_client(args.local, args.model).ask, args.model
     elif args.bamboo:
-        ask = clients.bamboo_client().ask
+        ask, model = clients.bamboo_client().ask, 'startlux-decision-27b-autothink'
     else:
         from scripts.jev_replay_check import client
-        ask = client().ask
+        ask, model = client().ask, None
+    if model:
+        send = ask
+
+        def ask(payload):
+            return send({**payload, 'model': model})
     report = run(items, ask, args.repeats)
     text = json.dumps(report, ensure_ascii=False, indent=1)
     if args.out:
