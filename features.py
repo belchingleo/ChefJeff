@@ -52,7 +52,8 @@ VERSIONS = {'one_press': one_press.VERSION, 'jeff_plan': harness.PLAN_RULES_VERS
             'compact_input': wire_format.VERSION, 'ask_ahead': ask_ahead.VERSION,
             'reach_note': reach_note.VERSION, 'food_names': food_names.VERSION,
             'intent_layer': intent_layer.VERSION,
-            'option_links': links.SWITCH_VERSION}
+            'option_links': links.SWITCH_VERSION,
+            'option_links_partner': links.PARTNER_VERSION}
 # The plan modes (harness.PLAN_MODES), one at a time, and the feature of each.
 PLAN_FEATURES = {'choice': 'jeff_plan', 'rolling': 'rolling_intent'}
 FIELDS = {'stage', 'on', 'player_switch', 'version'}
@@ -176,6 +177,14 @@ def intents_on(features) -> bool:
     return bool(features.get('intent_layer', {}).get('on'))
 
 
+def links_option(features):
+    """The decision loop's links setting: False, True (option_links) or 'partner' (with option_links_partner: the other
+    chef's side too). option_links_partner alone does nothing."""
+    if not features['option_links']['on']:
+        return False
+    return 'partner' if features['option_links_partner']['on'] else True
+
+
 def undo_start(features):
     """The decision loop's undo-note state for a new round: {'step': None} when undo_note is on, else None."""
     return {'step': None} if features['undo_note']['on'] else None
@@ -192,7 +201,7 @@ def compose_options(features):
     # The intent layer changes the options themselves (intent_layer.build) and is not one of these switches.
     return {'one_press': one_press_flags(features), 'undo': undo_start(features),
             'reach': features['reach_note']['on'], 'names': features['food_names']['on'],
-            'links': features['option_links']['on']}
+            'links': links_option(features)}
 
 
 def _write_override(value, path):

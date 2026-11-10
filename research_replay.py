@@ -107,7 +107,9 @@ def rebuild_requests(record):
     # A round-wide switch: the record's feature snapshot says whether Jeff was told which stations he reaches.
     reach = bool(((record.get('conditions') or {}).get('features') or {}).get('reach_note', {}).get('on'))
     names = bool(((record.get('conditions') or {}).get('features') or {}).get('food_names', {}).get('on'))
-    links = bool(((record.get('conditions') or {}).get('features') or {}).get('option_links', {}).get('on'))
+    import features as switches
+    snapshot = (record.get('conditions') or {}).get('features') or {}
+    links = switches.links_option({name: {'on': bool((snapshot.get(name) or {}).get('on'))} for name in ('option_links', 'option_links_partner')})
     done = 0
     for row in record['events']:
         data = row['payload']

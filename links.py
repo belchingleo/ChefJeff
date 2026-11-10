@@ -99,9 +99,10 @@ def _work(actions):
     return {(a.kind, a.target): a for a in actions if a.kind in WORK}
 
 
-def link(kitchen, who, option, now, place=None):
+def link(kitchen, who, option, now, place=None, seen=None):
     """The work actions (engine Actions) the option leads to: listed after it, not listed now. [] when none or when the
-    option cannot be carried out to its end in the fork."""
+    option cannot be carried out to its end in the fork. seen, a dict, receives the fork as it is after the option
+    ('twin'), for partner_link."""
     import one_press
     if FAST and option.kind in NO_EFFECT:
         return []
@@ -122,6 +123,8 @@ def link(kitchen, who, option, now, place=None):
         elif not _carry_out(twin, who, first, rest, place):
             return []
         else:
+            if seen is not None:
+                seen['twin'] = twin
             return [a for key, a in _work(twin.actions(who)).items() if key not in _work(now)][:MOST]
     if option.kind in ('wait', 'stop'):
         return []
@@ -147,6 +150,8 @@ def link(kitchen, who, option, now, place=None):
             return []
     elif first is None or not _carry_out(twin, who, first, rest, place):
         return []
+    if seen is not None:
+        seen['twin'] = twin
     before = _work(now)
     after = _work(twin.actions(who))
     return [a for key, a in after.items() if key not in before][:MOST]
@@ -246,10 +251,38 @@ def location(kitchen, target):
     return ', '.join(part for part in (name, english_text(area) if area else '', cell, reach) if part)
 
 
-def table(kitchen, who, actions, keys, names=False):
-    """{option key: [the work it leads to, in the request's English]} for the listed options that lead to new work."""
+# The partner's side (option_links_partner, partner-links-v1): after the option, what the other chef can newly do with
+# the item the chef held, taking it or working on it, or that the item is in the other chef's hands. Only actions whose
+# engine signature names that item count, so work the other chef gains only because time passed in the fork is left out.
+PARTNER_VERSION = 'partner-links-v1'
+PARTNER_KINDS = WORK + ('take_counter', 'take_board', 'take_plate', 'take_return', 'take_sink', 'pickup', 'lift_pot')
+HELD = 'would hold it'
+PARTNER_RULE = ('option_links_partner lists, for some options of next_action (by key), what the other chef could newly do '
+                'with the item you hold after that option (take it, or work on it), or that they would hold it, as the '
+                'game computes it if nothing else changes first. It does not say whether you should choose that option.')
+
+
+def _names_item(expected, item):
+    return any(isinstance(x, str) and x.split(':')[0] == item for x in expected or ())
+
+
+def partner_link(kitchen, twin, who, item):
+    """What the other chef can newly do with this item once the option is carried out (engine Actions), and whether
+    the item ends in their hands."""
+    other = 'human' if who == 'jeff' else 'jeff'
+    held = twin.chefs[other].hand is not None and twin.chefs[other].hand.id == item
+    before = {(a.kind, a.target) for a in kitchen.actions(other)}
+    gained = [a for a in twin.actions(other) if a.kind in PARTNER_KINDS and (a.kind, a.target) not in before
+              and _names_item(a.expected, item)]
+    return held, gained[:MOST]
+
+
+def table(kitchen, who, actions, keys, names=False, partner=None):
+    """{option key: [the work it leads to, in the request's English]} for the listed options that lead to new work.
+    partner, a dict, receives {option key: [what the other chef could then do with the held item]} (partner_link)."""
     import contextlib
     import food_names
+    import one_press
     unmark = food_names.unmark if names else (lambda text: text)
     by_key = {a.key: a for a in actions}
     out = {}
@@ -257,19 +290,35 @@ def table(kitchen, who, actions, keys, names=False):
         now = kitchen.actions(who)
         for key in keys:
             option = by_key.get(key)
-            linked = link(kitchen, who, option, now) if option is not None else []
+            seen = {}
+            linked = link(kitchen, who, option, now, seen=seen) if option is not None else []
             if linked:
                 out[key] = [unmark(english_text(a.label)) for a in linked]
+            held_item = kitchen.chefs[who].hand
+            # Where a one-press option or an intent that puts first leaves the held item depends on put_where, which is
+            # not known yet (the fork takes the first place), so those options get no partner line.
+            guessed = option is not None and (option.kind in one_press.KINDS or (option.kind == 'intent' and option.expected[0] == 'put'))
+            if partner is not None and 'twin' in seen and held_item is not None and not guessed:
+                held, gained = partner_link(kitchen, seen['twin'], who, held_item.id)
+                lines = ([HELD] if held else []) + [unmark(english_text(a.label)) for a in gained]
+                if lines:
+                    partner[key] = lines
     return out
 
 
-def apply(payload, kitchen, who, actions, names=False):
+def apply(payload, kitchen, who, actions, names=False, partner=False):
     """The option_links switch on a composed request (translated, as sent): state.option_links, rules.links and
-    links_version; no option changes."""
+    links_version; no option changes. partner (option_links_partner): also state.option_links_partner, its rule and
+    partner_links_version."""
     keys = list(payload['questions']['next_action']['criteria'])
-    payload['state']['option_links'] = table(kitchen, who, actions, keys, names)
+    other = {} if partner else None
+    payload['state']['option_links'] = table(kitchen, who, actions, keys, names, other)
     payload['state']['rules']['links'] = SEPARATE_RULE
     payload['state']['links_version'] = SWITCH_VERSION
+    if partner:
+        payload['state']['option_links_partner'] = other
+        payload['state']['rules']['links_partner'] = PARTNER_RULE
+        payload['state']['partner_links_version'] = PARTNER_VERSION
     return payload
 
 

@@ -133,5 +133,39 @@ class FastForkTests(unittest.TestCase):
         self.assertEqual(links.table(k, 'jeff', actions, keys), plain)
 
 
+class PartnerTests(unittest.TestCase):
+    """option_links_partner: on a split floor, a put on a shared counter says the other chef can take the item there."""
+
+    def setUp(self):
+        self.k = SpatialKitchen(level_config(load_config(), 'level-4'))
+        run(self.k, 'jeff', 'fetch beef')
+
+    def payload(self, links_value):
+        client = SpatialJevClient(self.k.c, key='unit-test-not-a-real-key')
+        return jev.compose_payload(client, self.k, self.k.snapshot(), self.k.actions('jeff'), [], None, links=links_value)
+
+    def test_a_shared_counter_put_names_what_the_other_chef_can_take(self):
+        state = self.payload('partner')['state']
+        self.assertEqual(state['partner_links_version'], links.PARTNER_VERSION)
+        self.assertIn('links_partner', state['rules'])
+        shared = [key for key in state['option_links_partner'] if key.startswith('put counter')]
+        self.assertTrue(shared)
+        self.assertTrue(all(any(line.startswith('Take') for line in state['option_links_partner'][key]) for key in shared))
+
+    def test_without_the_partner_switch_nothing_of_the_partner_is_sent(self):
+        state = self.payload(True)['state']
+        self.assertNotIn('option_links_partner', state)
+        self.assertNotIn('links_partner', state['rules'])
+
+    def test_the_switch_is_a_trial_and_off_and_needs_option_links(self):
+        loaded = features.load()
+        self.assertFalse(loaded['option_links_partner']['on'])
+        on = {name: dict(value) for name, value in loaded.items()}
+        on['option_links_partner']['on'] = True
+        self.assertIs(features.links_option(on), False)
+        on['option_links']['on'] = True
+        self.assertEqual(features.links_option(on), 'partner')
+
+
 if __name__ == '__main__':
     unittest.main()

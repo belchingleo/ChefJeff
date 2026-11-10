@@ -113,7 +113,8 @@ def compose_payload(client, kitchen, state, actions, recent_decisions, communica
     listed actions here, unless the caller already did. intent is the intent layer's part of the request
     (DecisionLoop.intent_input) when that switch is on; its options are then the actions (intent_layer.build).
     links is whether the option_links switch is on (links.py): the table is computed here, from this kitchen and
-    these actions (intents too: links.link carries an intent's steps out), after the request is composed."""
+    these actions (intents too: links.link carries an intent's steps out), after the request is composed; 'partner'
+    adds the other chef's side (option_links_partner)."""
     if one_press:
         import one_press as presses
         keys = {a.key for a in actions}
@@ -127,7 +128,7 @@ def compose_payload(client, kitchen, state, actions, recent_decisions, communica
                               undo, reach, names, intent)
     if links:
         import links as option_links
-        payload = option_links.apply(payload, kitchen, 'jeff', actions, names)
+        payload = option_links.apply(payload, kitchen, 'jeff', actions, names, partner=links == 'partner')
     return payload
 
 
