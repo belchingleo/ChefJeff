@@ -7,5 +7,6 @@
   "ask_ahead": {"stage": "trial", "on": false, "version": "ask-ahead-v1"},
   "reach_note": {"stage": "trial", "on": false, "version": "reach-v1"},
   "food_names": {"stage": "trial", "on": true, "version": "names-v1"},
-  "intent_layer": {"stage": "trial", "on": false, "version": "intent-v1"}
+  "intent_layer": {"stage": "trial", "on": false, "version": "intent-v1"},
+  "option_links": {"stage": "trial", "on": false, "version": "option-links-v1"}
 }

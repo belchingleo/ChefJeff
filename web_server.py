@@ -629,6 +629,7 @@ class GameSession:
             self.ai.intents = intents
             self.ai.reach = self.features['reach_note']['on']
             self.ai.names = self.features['food_names']['on']
+            self.ai.links = self.features['option_links']['on']
             self.phase = 'running'
             self.last_tick = self.last_seen = time.monotonic()
             self.wake.set()

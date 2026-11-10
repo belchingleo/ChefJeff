@@ -51,6 +51,8 @@ For each model it counts:
   name followed by ` [intent]`: there one decision is one intent (a piece of work, several steps), so a count
   per decision is not comparable with other rounds. Their `intent_layer` section gives the versions, how the
   intents ended (finished, step_not_possible, knocked, interrupted, replaced) and how many steps each had.
+- option_links: rounds with the option_links switch on (links.py) are counted apart, under the model's name
+  followed by ` [links]`, so they compare with the same model's rounds without it.
 - one_press: rounds with a one-press switch on (one_press.py) are counted apart, under the model's name
   followed by ` [one-press]`, so every count above compares them with the same model's rounds with both
   switches off; `one_press_rounds` at the top says how many there were. Their `one_press` section gives
@@ -384,6 +386,7 @@ ONE_PRESS_KEYS = (('put_then_take', 'put then take '), ('put_then_chop', 'put th
 ONE_PRESS_SWITCHES = ('put_then_take', 'wash_from_returns')
 ONE_PRESS_SUFFIX = ' [one-press]'
 INTENT_SUFFIX = ' [intent]'     # a round with the intent_layer switch on: one decision is one intent, not one step
+LINKS_SUFFIX = ' [links]'    # a round with the option_links switch on (links.py), counted apart
 
 
 def one_press_kind(key):
@@ -502,8 +505,9 @@ def add_round(rows, models, margins=MARGINS, plan_age=PLAN_AGE, put_back=PUT_BAC
     tail = split_suffix(rows, split)
     start = rows[0] if rows and rows[0].get('kind') == 'start' else {}
     intents = start.get('intent_layer') or None      # the intent layer's rounds are counted apart (intent_layer.py)
+    linked = bool(((start.get('features') or {}).get('option_links') or {}).get('on'))
     name = lambda response: (str(response.get('model') or 'unknown') + (ONE_PRESS_SUFFIX if switches else '')
-                             + (INTENT_SUFFIX if intents else '') + tail)
+                             + (INTENT_SUFFIX if intents else '') + (LINKS_SUFFIX if linked else '') + tail)
     main = Counter(map(name, responses)).most_common(1)[0][0]
     m = models[main]
     times = [t for t in map(game_time, rows) if t is not None]

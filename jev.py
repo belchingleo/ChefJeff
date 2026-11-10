@@ -106,12 +106,14 @@ class JevClient:
 
 
 def compose_payload(client, kitchen, state, actions, recent_decisions, communication, memory=NO_MEMORY, plan=None, one_press=None,
-                    undo=None, reach=False, names=False, intent=None):
+                    undo=None, reach=False, names=False, intent=None, links=False):
     """Jeff's request from the kitchen and the few parts it cannot derive; research replay rebuilds it here too.
 
     one_press is the round's one-press switches (one_press.flags), or None: the options are added to the
     listed actions here, unless the caller already did. intent is the intent layer's part of the request
-    (DecisionLoop.intent_input) when that switch is on; its options are then the actions (intent_layer.build)."""
+    (DecisionLoop.intent_input) when that switch is on; its options are then the actions (intent_layer.build).
+    links is whether the option_links switch is on (links.py): the table is computed here, from this kitchen and
+    these actions (intents too: links.link carries an intent's steps out), after the request is composed."""
     if one_press:
         import one_press as presses
         keys = {a.key for a in actions}
@@ -121,8 +123,12 @@ def compose_payload(client, kitchen, state, actions, recent_decisions, communica
         import food_names
         # The intents are built in naming mode already (intent_layer.build), so their labels stay as written.
         state, actions = food_names.state(state), (actions if intent is not None else food_names.labels(kitchen, actions, one_press))
-    return harness.compose(client.payload(state, actions), kitchen, recent_decisions, communication, memory, plan, one_press, undo,
-                           reach, names, intent)
+    payload = harness.compose(client.payload(state, actions), kitchen, recent_decisions, communication, memory, plan, one_press,
+                              undo, reach, names, intent)
+    if links:
+        import links as option_links
+        payload = option_links.apply(payload, kitchen, 'jeff', actions, names)
+    return payload
 
 
 class DecisionLoop:
@@ -183,6 +189,10 @@ class DecisionLoop:
         self.reach = False
         # The food_names trial (food_names.py): food named "<item> (<state>)" in Jeff's request.
         self.names = False
+        # The option_links trial (links.py): each request lists the work each option leads to; the time it takes to
+        # compute is counted in when deciding whether to ask ahead (link_times, recent seconds).
+        self.links = False
+        self.link_times = []
         # Ask ahead (ask_ahead.py) when the round's switch is on: an answer about the next step, held until this step
         # ends, and the step it was asked for (asked once per step).
         self.ask_ahead = False
@@ -212,6 +222,8 @@ class DecisionLoop:
         if expected is None:
             return False
         remaining = max(0.0, job.travel) + max(0.0, job.work)
+        if self.links and self.link_times:
+            expected += sorted(self.link_times[-5:])[len(self.link_times[-5:]) // 2]
         return remaining / max(self.game_speed, 1e-6) < expected
 
     def start_chain(self, decision, put_where):
@@ -627,16 +639,20 @@ class DecisionLoop:
             plan_ended = self.plan.check(context['preference'])
             plan = self.plan.input(state)
             context['plan_offered'] = plan['options']
+        built = time.monotonic()
         payload = compose_payload(self.client, source, state, actions, self.recent_decisions, communication,
                                   self.cooperation_memory if hasattr(self, 'cooperation_memory') else NO_MEMORY, plan, self.one_press,
                                   deepcopy(self.undo), self.reach, self.names,
-                                  self.intent_input(source is not self.k, since) if self.intents else None)
+                                  self.intent_input(source is not self.k, since) if self.intents else None, self.links)
+        if self.links:
+            self.link_times = (self.link_times + [time.monotonic() - built])[-5:]
         self.log("ai_request", {"request_id": self.calls, "triggers": causes, "observed_state_seq": self.k.event_seq, "payload": payload,
                                 **({"jeff_plan": plan, "plan_ended": plan_ended} if plan is not None else {}),
                                 **({"one_press": dict(self.one_press)} if self.one_press else {}),
                                 **({"undo_note": deepcopy(self.undo)} if self.undo is not None else {}),
                                 **({"ask_ahead": ahead} if ahead else {}),
-                                **({"intent_layer": intent_layer.VERSION} if self.intents else {})})
+                                **({"intent_layer": intent_layer.VERSION} if self.intents else {}),
+                                **({"links_ms": round(self.link_times[-1] * 1000)} if self.links else {})})
         self.last_request = now
         self.last_revision = self.k.revision
         self.last_urgency = urgency
