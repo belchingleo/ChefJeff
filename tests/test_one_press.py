@@ -329,7 +329,7 @@ class SessionTests(unittest.TestCase):
                                            'reach_note': {'on': False, 'version': 'reach-v1'},
                                            'food_names': {'on': True, 'version': 'names-v1'},
                                            'intent_layer': {'on': False, 'version': 'intent-v1'},
-                                           'option_links': {'on': False, 'version': 'option-links-v1'}})
+                                           'option_links': {'on': False, 'version': 'option-links-v2'}})
         self.assertEqual(row['jeff_plan'], {'mode': 'rolling', 'steps': 2, 'rules_version': 'rolling-v3'})
 
     def test_the_file_rolls_it_back(self):

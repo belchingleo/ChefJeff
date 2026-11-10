@@ -10,7 +10,7 @@ An option that leads to no new work gets no line.
 
 It says what becomes possible, never what Jeff should do, and the same rule holds for every level and ingredient
 (nothing is written by hand). The links check (scripts/links_check.py) re-asks logged moments in four arms; the
-game uses arm D through the option_links switch (features.json, a trial, off by default, option-links-v1): each
+game uses arm D through the option_links switch (features.json, a trial, off by default, option-links-v2): each
 request gets state.option_links, a table computed afresh for that request from the kitchen it describes, and
 rules.links, while every option stays as it is (apply).
 """
@@ -19,7 +19,10 @@ from __future__ import annotations
 from model_language import english_text
 
 VERSION = 'links-v1'
-SWITCH_VERSION = 'option-links-v1'     # the game's option_links switch: arm D
+SWITCH_VERSION = 'option-links-v2'     # the game's option_links switch: arm D
+# v1 also carried out walks, waits and stops in the fork, so a walk could pick up work that only time made possible
+# (a pan finishing while Jeff walked); v2 skips them, as they change no hand and no station, and forks share the
+# kitchen's unchanging parts and a route cache (about 0.45 s -> 0.18 s per request on level 2).
 # The work an option can lead to: harness.WORK_KINDS without fetching and taking, plus putting a dirty plate in the sink.
 WORK = ('chop', 'put_pot', 'load_counter', 'load_ground', 'assemble', 'assemble_ground', 'plate_pot', 'plate_counter',
         'plate_from_counter', 'plate_ground', 'plate_partner', 'serve', 'put_sink', 'wash')
@@ -64,6 +67,34 @@ def _carry_out(twin, who, first, rest, place):
     return True
 
 
+# A kitchen's parts no step of play changes (config, rules, the map and what is derived from it). A fork for a link
+# shares them instead of deep-copying them for every option, and the forks of one map share one route cache of
+# their own (route results depend on the walls only), so a request's table is cheaper and comes out the same.
+SHARED = ('rules', 'resolved', 'map_document', 'floor_places', 'equipment', 'floor_part', 'floor', 'operation_insets',
+          'walls', '_fire_neighbors', 'c')      # not provenance: it records each food's history as play goes on
+NO_EFFECT = ('go', 'wait', 'stop')     # change no hand and no station, so they never lead to new work
+FAST = True                            # False: fork as Kitchen.fork does, every option (kept for the equivalence check)
+_ROUTES = {}                           # id(map navigation) -> (that navigation, the links forks' isolated copy)
+
+
+def _fork(kitchen):
+    if not FAST:
+        return kitchen.fork()
+    state = kitchen.__dict__
+    held = {name: state.pop(name) for name in SHARED if name in state}
+    try:
+        twin = kitchen.fork()
+    finally:
+        state.update(held)
+    twin.__dict__.update(held)
+    nav = state.get('nav')
+    if nav is not None:
+        if id(nav) not in _ROUTES:
+            _ROUTES[id(nav)] = (nav, nav.isolated())
+        twin.nav = _ROUTES[id(nav)][1]
+    return twin
+
+
 def _work(actions):
     return {(a.kind, a.target): a for a in actions if a.kind in WORK}
 
@@ -72,7 +103,9 @@ def link(kitchen, who, option, now, place=None):
     """The work actions (engine Actions) the option leads to: listed after it, not listed now. [] when none or when the
     option cannot be carried out to its end in the fork."""
     import one_press
-    twin = kitchen.fork()
+    if FAST and option.kind in NO_EFFECT:
+        return []
+    twin = _fork(kitchen)
     other = 'human' if who == 'jeff' else 'jeff'
     if any(getattr(twin, 'manual', {}).get(other, (0.0, 0.0))):
         twin.set_manual(other, 0, 0)
@@ -81,6 +114,8 @@ def link(kitchen, who, option, now, place=None):
         # put_where says) and the steps after it, as the decision loop runs them.
         first, rest = option.expected
         if first != 'put' and first.kind in ('wait', 'stop'):
+            return []
+        if FAST and first != 'put' and first.kind in NO_EFFECT and not rest:
             return []
         if first != 'put' and first.kind == 'continue':
             option = first

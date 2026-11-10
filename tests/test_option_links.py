@@ -55,7 +55,7 @@ class RequestTests(unittest.TestCase):
 
     def test_switch_is_a_trial_and_off(self):
         self.assertEqual(features.load()['option_links'],
-                         {'stage': 'trial', 'on': False, 'player_switch': False, 'version': 'option-links-v1'})
+                         {'stage': 'trial', 'on': False, 'player_switch': False, 'version': 'option-links-v2'})
 
 
 class LoopTests(unittest.TestCase):
@@ -69,10 +69,6 @@ class LoopTests(unittest.TestCase):
         request = next(d for kind, d in records if kind == 'ai_request')
         self.assertIn('links_ms', request)
         self.assertIn('option_links', request['payload']['state'])
-
-
-if __name__ == '__main__':
-    unittest.main()
 
 
 class IntentTests(unittest.TestCase):
@@ -101,3 +97,41 @@ class IntentTests(unittest.TestCase):
         option = next(o for o in intents if o.key == 'put then fetch bread')
         work = links.link(k, 'jeff', option, k.actions('jeff'))
         self.assertTrue(work and all(a.kind in links.WORK for a in work))
+
+
+
+class FastForkTests(unittest.TestCase):
+    """v2: forks share the unchanging parts and a route cache; the kitchen itself is never changed."""
+
+    def test_a_table_leaves_the_kitchen_as_it_was(self):
+        import copy
+        k = holding_beef()
+        run(k, 'human', 'fetch lettuce')
+        keep = {n: copy.deepcopy(vars(k.__dict__[n]) if hasattr(k.__dict__[n], '__dict__') else k.__dict__[n])
+                for n in links.SHARED + ('provenance',) if n in k.__dict__}
+        snapshot = k.snapshot()
+        links.table(k, 'jeff', k.actions('jeff'), [a.key for a in k.actions('jeff')], True)
+        self.assertEqual(k.snapshot(), snapshot)
+        for n, v in keep.items():
+            self.assertEqual(vars(k.__dict__[n]) if hasattr(k.__dict__[n], '__dict__') else k.__dict__[n], v, n)
+
+    def test_walks_waits_and_stops_have_no_link(self):
+        k = holding_beef()
+        table = links.table(k, 'jeff', k.actions('jeff'), [a.key for a in k.actions('jeff')])
+        self.assertFalse([key for key in table if key.split(' ')[0] in ('go', 'wait', 'stop')])
+        self.assertIn('put b1', table)
+
+    def test_fast_and_plain_forks_agree_on_every_option_but_walks(self):
+        k = holding_beef()
+        actions = [a for a in k.actions('jeff') if a.kind not in links.NO_EFFECT]
+        keys = [a.key for a in actions]
+        try:
+            links.FAST = False
+            plain = links.table(k, 'jeff', actions, keys)
+        finally:
+            links.FAST = True
+        self.assertEqual(links.table(k, 'jeff', actions, keys), plain)
+
+
+if __name__ == '__main__':
+    unittest.main()
