@@ -41,7 +41,7 @@ from scripts import reask  # noqa: E402
 from scripts import reach_note_check as clients  # noqa: E402
 import links  # noqa: E402
 
-ARMS = ('A', 'B')
+ARMS = ('A', 'B', 'C', 'D')
 KINDS = ('pan_ready', 'raw_to_chop', 'dirty_only', 'control')
 TARGET = {'pan_ready': ('plate_pot', 'plate_counter', 'plate_from_counter', 'plate_ground', 'plate_partner'),
           'raw_to_chop': ('chop',), 'dirty_only': ('put_sink', 'wash'), 'control': ()}
@@ -116,11 +116,11 @@ def moments(paths):
                 if plain != payload or kind is None:
                     counts['not_rebuilt'] += 1
                     continue
-                b, linked = links.annotate(deepcopy(plain), k, 'jeff', listed(k, row), names)
+                variants, linked = links.arms(deepcopy(plain), k, 'jeff', listed(k, row), names)
                 held = k.chefs['jeff'].hand.id if kind == 'raw_to_chop' else None
                 target = sorted(key for key, pairs in linked.items() if _leads_to(k, pairs, TARGET[kind], held))
                 counts[kind] += 1
-                found.append({'kind': kind, 'payload': payload, 'linked': b, 'links': linked, 'target': target,
+                found.append({'kind': kind, 'payload': payload, 'arms': variants, 'links': linked, 'target': target,
                               'logged_choice': answer.get('choice'), 'round': number, 't': round(at / 1000, 2)})
     counts['rounds'] = number
     return found, dict(counts)
@@ -147,7 +147,7 @@ def _leads_to(k, pairs, kinds, held=None):
 
 
 def arm(item, name):
-    payload = deepcopy(item['linked'] if name == 'B' else item['payload'])
+    payload = deepcopy(item['payload'] if name == 'A' else item['arms'][name])
     payload['questions'] = {'next_action': payload['questions']['next_action']}
     return payload
 
@@ -174,9 +174,11 @@ def examples(items, path, most=2):
     for kind in KINDS:
         for item in [i for i in items if i['kind'] == kind][:most]:
             a = item['payload']['questions']['next_action']['criteria']
-            b = item['linked']['questions']['next_action']['criteria']
+            b = item['arms']['B']['questions']['next_action']['criteria']
+            c = item['arms']['C']['questions']['next_action']['criteria']
             out.append({'kind': kind, 't': item['t'], 'logged_choice': item['logged_choice'], 'target': item['target'],
-                        'options_with_links': {key: b[key] for key in item['links']},
+                        'options_with_links': {key: {'B': b[key], 'C': c[key]} for key in item['links']},
+                        'D_option_links': item['arms']['D']['state']['option_links'],
                         'options': len(a)})
     Path(path).write_text(json.dumps(out, ensure_ascii=False, indent=1))
 

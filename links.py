@@ -108,27 +108,94 @@ def sentence(actions):
     return LEAD + '; '.join(english_text(a.label) for a in actions)
 
 
-def annotate(payload, kitchen, who, actions, names=False):
-    """Condition B of a request (a translated payload, as sent): the same request with each option's link added to its
-    label, the rule, and the version. actions are the request's listed actions (the engine's and one-press options),
-    in the kitchen the request describes. Returns (payload, {option key: [(linked key, engine label)]})."""
+def _end(text):
+    return text + ('' if text.endswith('.') else '.')
+
+
+def arms(payload, kitchen, who, actions, names=False):
+    """The request in the three arms that add to it (a translated payload, as sent), and the links found:
+
+    - B: each option that leads to new work ends with that work (the link), with RULE and links_version links-v1;
+    - C: the same options end instead with where their station is (LOCATION_LEAD), a fact about no work, with
+      LOCATION_RULE and links_version location-v1, so B and C differ only in what the added line says;
+    - D: no option changes; state.option_links lists each linked option's work, with SEPARATE_RULE and
+      links_version separate-v1, so the links come without making any option longer.
+
+    actions are the request's listed actions (the engine's and one-press options), in the kitchen the request
+    describes. Returns ({'B': payload, 'C': payload, 'D': payload}, {option key: [(linked key, engine label)]})."""
     import contextlib
+    import copy
     import food_names
-    criteria = payload['questions']['next_action']['criteria']
+    unmark = food_names.unmark if names else (lambda text: text)
     by_key = {a.key: a for a in actions}
-    found = {}
+    found, lines, places = {}, {}, {}
     with (food_names.naming() if names else contextlib.nullcontext()):
         now = kitchen.actions(who)
-        for key in list(criteria):
+        for key in list(payload['questions']['next_action']['criteria']):
             option = by_key.get(key)
             if option is None:
                 continue
             linked = link(kitchen, who, option, now)
             if linked:
                 found[key] = [(a.key, a.label) for a in linked]
-                line = sentence(linked)
-                criteria[key] = criteria[key] + ('' if criteria[key].endswith('.') else '.') + (
-                    food_names.unmark(line) if names else line)
-    payload['state']['rules']['links'] = RULE
-    payload['state']['links_version'] = VERSION
-    return payload, found
+                lines[key] = [unmark(english_text(a.label)) for a in linked]
+                places[key] = location(kitchen, option.target)
+    out = {}
+    b = copy.deepcopy(payload)
+    for key, work in lines.items():
+        b['questions']['next_action']['criteria'][key] = _end(b['questions']['next_action']['criteria'][key]) + LEAD + '; '.join(work)
+    b['state']['rules']['links'] = RULE
+    b['state']['links_version'] = VERSION
+    out['B'] = b
+    c = copy.deepcopy(payload)
+    for key, where in places.items():
+        c['questions']['next_action']['criteria'][key] = _end(c['questions']['next_action']['criteria'][key]) + LOCATION_LEAD + where
+    c['state']['rules']['links'] = LOCATION_RULE
+    c['state']['links_version'] = 'location-v1'
+    out['C'] = c
+    d = copy.deepcopy(payload)
+    d['state']['option_links'] = {key: work for key, work in lines.items()}
+    d['state']['rules']['links'] = SEPARATE_RULE
+    d['state']['links_version'] = 'separate-v1'
+    out['D'] = d
+    return out, found
+
+
+LOCATION_LEAD = ' Location: '
+LOCATION_RULE = ('Some options of next_action end with "Location: ...". It gives where the station or floor tile that option '
+                 'uses is: its name, its area, its map cell and the cell it is used from. It does not say whether you '
+                 'should choose that option.')
+SEPARATE_RULE = ('option_links lists, for some options of next_action (by key), the work (chop, put in a pan or pot, plate '
+                 'or assemble, serve, put a dirty plate in the sink, wash) you could do after that option and cannot do now, '
+                 'as the game computes it with the other chef going on with what they are doing, if nothing else changes '
+                 'first. It does not say whether you should choose that option.')
+
+
+def location(kitchen, target):
+    """Where an option's station or floor tile is, in the request's English: name, area and map cell."""
+    try:
+        place = kitchen.place(target)
+    except (KeyError, AttributeError):
+        return 'not on the map'
+    name = english_text(getattr(place, 'name', str(target)))
+    area = getattr(place, 'area', None)
+    cell = reach = ''
+    equipment = getattr(kitchen, 'equipment', {}).get(target)
+    try:
+        if equipment is not None:
+            x, y = equipment['cell']
+            ax, ay = equipment['access']
+            cell, reach = f'map cell ({x:g}, {y:g})', f'used from map cell ({ax:g}, {ay:g})'
+        else:
+            x, y = kitchen.cell(target)
+            cell = reach = f'map cell ({x:g}, {y:g})'
+            reach = 'used from that cell'
+    except (ValueError, KeyError, AttributeError, TypeError):
+        pass
+    return ', '.join(part for part in (name, english_text(area) if area else '', cell, reach) if part)
+
+
+def annotate(payload, kitchen, who, actions, names=False):
+    """Condition B alone (see arms): (payload, links found)."""
+    out, found = arms(payload, kitchen, who, actions, names)
+    return out['B'], found
