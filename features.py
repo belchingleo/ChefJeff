@@ -40,6 +40,7 @@ import ask_ahead
 import undo_note
 import reach_note
 import food_names
+import links
 
 ROOT = Path(__file__).resolve().parent
 PATH = ROOT / 'features.json'
@@ -48,7 +49,8 @@ STAGES = ('release', 'trial')
 VERSIONS = {'one_press': one_press.VERSION, 'jeff_plan': harness.PLAN_RULES_VERSION,
             'rolling_intent': harness.ROLLING_RULES_VERSION, 'undo_note': undo_note.VERSION,
             'compact_input': wire_format.VERSION, 'ask_ahead': ask_ahead.VERSION,
-            'reach_note': reach_note.VERSION, 'food_names': food_names.VERSION}
+            'reach_note': reach_note.VERSION, 'food_names': food_names.VERSION,
+            'option_links': links.SWITCH_VERSION}
 # The plan modes (harness.PLAN_MODES), one at a time, and the feature of each.
 PLAN_FEATURES = {'choice': 'jeff_plan', 'rolling': 'rolling_intent'}
 FIELDS = {'stage', 'on', 'player_switch', 'version'}

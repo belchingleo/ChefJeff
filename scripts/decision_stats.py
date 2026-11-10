@@ -47,6 +47,8 @@ For each model it counts:
   reached the target, of decisions that chose the top option and of steps replaced by Jeff's own next choice
   (Wilson), and the mean money, cooperation gain and Jeff's standard-time share per round and the median step gap
   per request policy (seeded bootstrap, research_stats.py). Every other field is as before.
+- option_links: rounds with the option_links switch on (links.py) are counted apart, under the model's name
+  followed by ` [links]`, so they compare with the same model's rounds without it.
 - one_press: rounds with a one-press switch on (one_press.py) are counted apart, under the model's name
   followed by ` [one-press]`, so every count above compares them with the same model's rounds with both
   switches off; `one_press_rounds` at the top says how many there were. Their `one_press` section gives
@@ -378,6 +380,7 @@ ONE_PRESS_KEYS = (('put_then_take', 'put then take '), ('put_then_chop', 'put th
                   ('wash_from_returns', 'wash from '))
 ONE_PRESS_SWITCHES = ('put_then_take', 'wash_from_returns')
 ONE_PRESS_SUFFIX = ' [one-press]'
+LINKS_SUFFIX = ' [links]'    # a round with the option_links switch on (links.py), counted apart
 
 
 def one_press_kind(key):
@@ -494,7 +497,10 @@ def add_round(rows, models, margins=MARGINS, plan_age=PLAN_AGE, put_back=PUT_BAC
     requests = {r.get('request_id'): r for r in rows if r.get('kind') == 'ai_request'}
     switches = one_press_switches(rows)
     tail = split_suffix(rows, split)
-    name = lambda response: str(response.get('model') or 'unknown') + (ONE_PRESS_SUFFIX if switches else '') + tail
+    start = rows[0] if rows and rows[0].get('kind') == 'start' else {}
+    linked = bool(((start.get('features') or {}).get('option_links') or {}).get('on'))
+    name = lambda response: (str(response.get('model') or 'unknown') + (ONE_PRESS_SUFFIX if switches else '')
+                             + (LINKS_SUFFIX if linked else '') + tail)
     main = Counter(map(name, responses)).most_common(1)[0][0]
     m = models[main]
     times = [t for t in map(game_time, rows) if t is not None]

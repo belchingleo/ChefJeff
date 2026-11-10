@@ -9,13 +9,17 @@ walking, putting down, throwing, fetching or taking, so the line names where an 
 An option that leads to no new work gets no line.
 
 It says what becomes possible, never what Jeff should do, and the same rule holds for every level and ingredient
-(nothing is written by hand). Built offline for re-asking logged moments; the game does not use it.
+(nothing is written by hand). The links check (scripts/links_check.py) re-asks logged moments in four arms; the
+game uses arm D through the option_links switch (features.json, a trial, off by default, option-links-v1): each
+request gets state.option_links, a table computed afresh for that request from the kitchen it describes, and
+rules.links, while every option stays as it is (apply).
 """
 from __future__ import annotations
 
 from model_language import english_text
 
 VERSION = 'links-v1'
+SWITCH_VERSION = 'option-links-v1'     # the game's option_links switch: arm D
 # The work an option can lead to: harness.WORK_KINDS without fetching and taking, plus putting a dirty plate in the sink.
 WORK = ('chop', 'put_pot', 'load_counter', 'load_ground', 'assemble', 'assemble_ground', 'plate_pot', 'plate_counter',
         'plate_from_counter', 'plate_ground', 'plate_partner', 'serve', 'put_sink', 'wash')
@@ -193,6 +197,33 @@ def location(kitchen, target):
     except (ValueError, KeyError, AttributeError, TypeError):
         pass
     return ', '.join(part for part in (name, english_text(area) if area else '', cell, reach) if part)
+
+
+def table(kitchen, who, actions, keys, names=False):
+    """{option key: [the work it leads to, in the request's English]} for the listed options that lead to new work."""
+    import contextlib
+    import food_names
+    unmark = food_names.unmark if names else (lambda text: text)
+    by_key = {a.key: a for a in actions}
+    out = {}
+    with (food_names.naming() if names else contextlib.nullcontext()):
+        now = kitchen.actions(who)
+        for key in keys:
+            option = by_key.get(key)
+            linked = link(kitchen, who, option, now) if option is not None else []
+            if linked:
+                out[key] = [unmark(english_text(a.label)) for a in linked]
+    return out
+
+
+def apply(payload, kitchen, who, actions, names=False):
+    """The option_links switch on a composed request (translated, as sent): state.option_links, rules.links and
+    links_version; no option changes."""
+    keys = list(payload['questions']['next_action']['criteria'])
+    payload['state']['option_links'] = table(kitchen, who, actions, keys, names)
+    payload['state']['rules']['links'] = SEPARATE_RULE
+    payload['state']['links_version'] = SWITCH_VERSION
+    return payload
 
 
 def annotate(payload, kitchen, who, actions, names=False):

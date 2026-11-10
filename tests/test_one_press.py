@@ -328,7 +328,8 @@ class SessionTests(unittest.TestCase):
                                            'compact_input': {'on': False, 'version': 'compact-v1'},
                                            'ask_ahead': {'on': False, 'version': 'ask-ahead-v1'},
                                            'reach_note': {'on': False, 'version': 'reach-v1'},
-                                           'food_names': {'on': True, 'version': 'names-v1'}})
+                                           'food_names': {'on': True, 'version': 'names-v1'},
+                                           'option_links': {'on': False, 'version': 'option-links-v1'}})
         self.assertEqual(row['jeff_plan'], {'mode': 'rolling', 'steps': 2, 'rules_version': 'rolling-v3'})
 
     def test_the_file_rolls_it_back(self):
@@ -370,7 +371,8 @@ class FeaturesFileTests(unittest.TestCase):
         self.assertEqual(value['jeff_plan'], {'stage': 'trial', 'on': False, 'player_switch': False, 'version': 'plan-v2'})
         self.assertEqual({name: v['stage'] for name, v in value.items()},
                          {'one_press': 'release', 'jeff_plan': 'trial', 'rolling_intent': 'release', 'undo_note': 'trial',
-                          'compact_input': 'trial', 'ask_ahead': 'trial', 'reach_note': 'trial', 'food_names': 'trial'})
+                          'compact_input': 'trial', 'ask_ahead': 'trial', 'reach_note': 'trial', 'food_names': 'trial',
+                          'option_links': 'trial'})
 
     def test_a_wrong_file_stops_instead_of_running(self):
         import features
