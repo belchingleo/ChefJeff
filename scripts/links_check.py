@@ -207,6 +207,21 @@ def run(items, ask, repeats=1):
     return out
 
 
+OPENROUTER_KEY = Path.home() / '.config/chefjeff/openrouter.key'
+
+
+def openrouter_client(model, path=OPENROUTER_KEY, timeout=120):
+    """A decision model on OpenRouter, as the game's openrouter-decision setting asks it, with the key from a private
+    file (written by the user, readable only by them; never printed)."""
+    from kitchen import load_config
+    import player_api
+    setting = player_api.settings_from({'provider': 'openrouter-decision', 'api_key': clients.private_secret(path), 'model': model})
+    client = player_api.create_client(load_config(), setting)
+    client.timeout = timeout
+    print(f'asking {setting["base_url"]} ({setting["model"]}) with the key from {path} (not printed)', file=sys.stderr)
+    return client
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('paths', nargs='+')
@@ -216,6 +231,8 @@ def main(argv=None):
     parser.add_argument('--local', metavar='URL')
     parser.add_argument('--model', default='startlux-local-2b-instant-q4')
     parser.add_argument('--bamboo', action='store_true', help='StartLux on Bamboo Relay, key from ' + str(clients.BAMBOO_KEY))
+    parser.add_argument('--openrouter', metavar='MODEL', help='a decision model on OpenRouter (e.g. parallel/decisions-fast:free), '
+                        'as the game\'s openrouter-decision setting asks it, key from ' + str(OPENROUTER_KEY))
     parser.add_argument('--examples', help='write both arms of a few moments here, for checking the links by eye')
     parser.add_argument('--dry-run', action='store_true')
     parser.add_argument('--out', help='write the JSON report here instead of printing it')
@@ -233,7 +250,9 @@ def main(argv=None):
     print(estimate([{'payload': arm(i, 'B')} for i in items], len(ARMS) * args.repeats), file=sys.stderr)
     if args.dry_run:
         return 0
-    if args.local:
+    if args.openrouter:
+        ask = openrouter_client(args.openrouter).ask
+    elif args.local:
         ask = clients.local_client(args.local, args.model).ask
     elif args.bamboo:
         ask = clients.bamboo_client().ask
