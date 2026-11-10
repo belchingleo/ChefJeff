@@ -223,6 +223,21 @@ def openrouter_client(model, path=OPENROUTER_KEY, timeout=120):
     return client
 
 
+PERPLEXITY = 'https://api.perplexity.ai/v1/decisions'
+PERPLEXITY_KEY = Path.home() / '.config/chefjeff/perplexity.key'
+
+
+def perplexity_client(path=PERPLEXITY_KEY, timeout=60):
+    """Perplexity's Decisions API: the same state + questions request as Jev's (model, state, questions only; unknown
+    fields are refused), Bearer key from a private file (written by the user, never printed)."""
+    from kitchen import load_config
+    from whitebox_server import SpatialJevClient
+    client = SpatialJevClient(load_config(), key=clients.private_secret(path))
+    client.endpoint, client.vendor, client.timeout = PERPLEXITY, 'Perplexity', timeout
+    print(f'asking {PERPLEXITY} with the key from {path} (not printed)', file=sys.stderr)
+    return client
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('paths', nargs='+')
@@ -235,6 +250,8 @@ def main(argv=None):
     parser.add_argument('--openrouter', metavar='MODEL', help='a decision model on OpenRouter (e.g. parallel/decisions-fast:free), '
                         'as the game\'s openrouter-decision setting asks it, key from ' + str(OPENROUTER_KEY))
     parser.add_argument('--moments', help='a file of picked-from moments: read it if it exists, else write it after replaying')
+    parser.add_argument('--perplexity', metavar='MODEL', help='a Perplexity decision model (e.g. pplx-decider-v1.2) at '
+                        + PERPLEXITY + ', key from ' + str(PERPLEXITY_KEY))
     parser.add_argument('--examples', help='write both arms of a few moments here, for checking the links by eye')
     parser.add_argument('--dry-run', action='store_true')
     parser.add_argument('--out', help='write the JSON report here instead of printing it')
@@ -259,7 +276,9 @@ def main(argv=None):
         return 0
     # The logged requests name the model of the rounds they came from (jev-latest): a request to another service must
     # name that service's model, or the service refuses it (Bamboo) or routes it to the logged model (OpenRouter).
-    if args.openrouter:
+    if args.perplexity:
+        ask, model = perplexity_client().ask, args.perplexity
+    elif args.openrouter:
         ask, model = openrouter_client(args.openrouter).ask, args.openrouter
     elif args.local:
         ask, model = clients.local_client(args.local, args.model).ask, args.model
