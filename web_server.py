@@ -23,6 +23,7 @@ from harness import Plan, PLAN_MODES, plan_condition
 import environment
 import features
 import one_press
+import intent_layer
 from play import Journal, log_root
 from round_summary import round_summary
 from session_record import SessionLog, write_bundle
@@ -610,11 +611,13 @@ class GameSession:
             # The switches as of this round's start (features.json and the server's override); kept for the round.
             self._features = self.feature_source()
             self.jeff_plan_mode = self.next_plan_mode(self._features)
-            held = Plan(mode=self.jeff_plan_mode) if self.jeff_plan_mode in PLAN_MODES else None
+            intents = features.intents_on(self.features)
+            held = Plan(mode=self.jeff_plan_mode) if self.jeff_plan_mode in PLAN_MODES and not intents else None
             plan = {'jeff_plan': plan_condition(held.mode, held.steps)} if held else {}
-            pressed = features.one_press_flags(self.features)
+            pressed = None if intents else features.one_press_flags(self.features)
             self.journal('start', {'config':self.c, 'config_hash':self.k.config_hash, 'speed':self.speed, 'state':self.k.snapshot(), **plan,
-                                   **one_press.condition(pressed), 'features': features.snapshot(self.features)})
+                                   **one_press.condition(pressed), **intent_layer.condition(intents),
+                                   'features': features.snapshot(self.features)})
             if isinstance(client, environment.Agent):     # any agent on the environment's interface (agent_loop.py)
                 from agent_loop import AgentLoop
                 self.ai = AgentLoop(self.k, client, self.journal, self.note)
@@ -624,8 +627,9 @@ class GameSession:
             if held:
                 self.ai.plan = held
             self.ai.one_press = pressed
-            self.ai.ask_ahead = self.features['ask_ahead']['on']
-            self.ai.undo = features.undo_start(self.features)
+            self.ai.ask_ahead = self.features['ask_ahead']['on'] or intents
+            self.ai.undo = None if intents else features.undo_start(self.features)
+            self.ai.intents = intents
             self.ai.reach = self.features['reach_note']['on']
             self.ai.names = self.features['food_names']['on']
             self.phase = 'running'

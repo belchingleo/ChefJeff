@@ -40,6 +40,7 @@ import ask_ahead
 import undo_note
 import reach_note
 import food_names
+import intent_layer
 
 ROOT = Path(__file__).resolve().parent
 PATH = ROOT / 'features.json'
@@ -48,7 +49,8 @@ STAGES = ('release', 'trial')
 VERSIONS = {'one_press': one_press.VERSION, 'jeff_plan': harness.PLAN_RULES_VERSION,
             'rolling_intent': harness.ROLLING_RULES_VERSION, 'undo_note': undo_note.VERSION,
             'compact_input': wire_format.VERSION, 'ask_ahead': ask_ahead.VERSION,
-            'reach_note': reach_note.VERSION, 'food_names': food_names.VERSION}
+            'reach_note': reach_note.VERSION, 'food_names': food_names.VERSION,
+            'intent_layer': intent_layer.VERSION}
 # The plan modes (harness.PLAN_MODES), one at a time, and the feature of each.
 PLAN_FEATURES = {'choice': 'jeff_plan', 'rolling': 'rolling_intent'}
 FIELDS = {'stage', 'on', 'player_switch', 'version'}
@@ -163,6 +165,13 @@ def plan_default(features) -> str:
 def plan_choices(features) -> list:
     """The plan modes the player can pick in Settings (besides off): those with a player switch."""
     return [mode for mode, name in PLAN_FEATURES.items() if features[name]['player_switch']]
+
+
+def intents_on(features) -> bool:
+    """Whether the round's options are intents (intent_layer.py). While it is on, the plan modes, one-press and
+    the undo note are not used (the intents replace them) and ask_ahead is (its answer about the next intent
+    arrives as the last step of this one ends); food_names applies as usual."""
+    return bool(features.get('intent_layer', {}).get('on'))
 
 
 def undo_start(features):

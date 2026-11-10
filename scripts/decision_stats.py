@@ -47,6 +47,10 @@ For each model it counts:
   reached the target, of decisions that chose the top option and of steps replaced by Jeff's own next choice
   (Wilson), and the mean money, cooperation gain and Jeff's standard-time share per round and the median step gap
   per request policy (seeded bootstrap, research_stats.py). Every other field is as before.
+- intent_layer: rounds with the intent_layer switch on (intent_layer.py) are counted apart, under the model's
+  name followed by ` [intent]`: there one decision is one intent (a piece of work, several steps), so a count
+  per decision is not comparable with other rounds. Their `intent_layer` section gives the versions, how the
+  intents ended (finished, step_not_possible, knocked, interrupted, replaced) and how many steps each had.
 - one_press: rounds with a one-press switch on (one_press.py) are counted apart, under the model's name
   followed by ` [one-press]`, so every count above compares them with the same model's rounds with both
   switches off; `one_press_rounds` at the top says how many there were. Their `one_press` section gives
@@ -282,6 +286,7 @@ def new_model():
             'one_press_chosen': Counter(), 'one_press_started': 0, 'one_press_fallback': 0, 'one_press_ends': Counter(),
             'one_press_swap_backs': 0, 'one_press_full_swaps': 0, 'one_press_versions': Counter(),
             'one_press_take_or_chop': Counter(),
+            'intent_rounds': 0, 'intent_versions': Counter(), 'intent_ends': Counter(), 'intent_steps': Counter(),
             'summary_rounds': 0, 'no_summary_rounds': 0, 'reached_target': 0, 'money': [], 'outcome': Counter(),
             'gains': [], 'no_baseline_rounds': 0,
             'model_errors': 0, 'model_calls': 0, 'work': defaultdict(Counter), 'shares': defaultdict(list),
@@ -378,6 +383,7 @@ ONE_PRESS_KEYS = (('put_then_take', 'put then take '), ('put_then_chop', 'put th
                   ('wash_from_returns', 'wash from '))
 ONE_PRESS_SWITCHES = ('put_then_take', 'wash_from_returns')
 ONE_PRESS_SUFFIX = ' [one-press]'
+INTENT_SUFFIX = ' [intent]'     # a round with the intent_layer switch on: one decision is one intent, not one step
 
 
 def one_press_kind(key):
@@ -494,7 +500,10 @@ def add_round(rows, models, margins=MARGINS, plan_age=PLAN_AGE, put_back=PUT_BAC
     requests = {r.get('request_id'): r for r in rows if r.get('kind') == 'ai_request'}
     switches = one_press_switches(rows)
     tail = split_suffix(rows, split)
-    name = lambda response: str(response.get('model') or 'unknown') + (ONE_PRESS_SUFFIX if switches else '') + tail
+    start = rows[0] if rows and rows[0].get('kind') == 'start' else {}
+    intents = start.get('intent_layer') or None      # the intent layer's rounds are counted apart (intent_layer.py)
+    name = lambda response: (str(response.get('model') or 'unknown') + (ONE_PRESS_SUFFIX if switches else '')
+                             + (INTENT_SUFFIX if intents else '') + tail)
     main = Counter(map(name, responses)).most_common(1)[0][0]
     m = models[main]
     times = [t for t in map(game_time, rows) if t is not None]
@@ -575,6 +584,13 @@ def add_round(rows, models, margins=MARGINS, plan_age=PLAN_AGE, put_back=PUT_BAC
                 m['knocked_off'] += 1
             else:
                 m['other_interruptions'] += 1
+    if intents:
+        m['intent_rounds'] += 1
+        m['intent_versions'][str(intents.get('version') or 'not_recorded')] += 1
+        for r in rows:
+            if r.get('kind') == 'intent_end':
+                m['intent_ends'][str(r.get('reason'))] += 1
+                m['intent_steps'][str(r.get('steps'))] += 1
     if switches:
         m['one_press_rounds'] += 1
         m['one_press_switches']['+'.join(switches)] += 1
@@ -717,6 +733,9 @@ def summary(m, margins=MARGINS):
                        'decisions_with_plan': m['held_decisions'], 'wait_share_with_plan': share(m['held_waits'], m['held_decisions']),
                        'decisions_without_plan': m['free_decisions'], 'wait_share_without_plan': share(m['free_waits'], m['free_decisions']),
                        'unsure_with_plan': m['unsure_with_plan']}
+    if m['intent_rounds']:
+        out['intent_layer'] = {'rounds': m['intent_rounds'], 'versions': dict(m['intent_versions']),
+                               'ended': dict(m['intent_ends']), 'steps_per_intent': dict(m['intent_steps'])}
     if m['one_press_rounds']:
         out['one_press'] = {'rounds': m['one_press_rounds'], 'switches': dict(m['one_press_switches']),
                             'versions': dict(m['one_press_versions']),
