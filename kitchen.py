@@ -242,6 +242,7 @@ class Kitchen:
         self.events = []
         self.ground = {}
         self.pickup_numbers = {}
+        self.menu_extra = {}
         self.swap_slots = {}
         self.plate_count = r.plate_count
         self.pot_count = r.pot_count
@@ -756,9 +757,12 @@ class Kitchen:
         action = next((x for x in self.actions(who) if x.key == key), None)
         return self.start(who, action) if action else (False, "当前无法执行；输入 m 查看可用动作")
 
-    def menu_numbers(self):
+    def menu_numbers(self, listed=()):
+        """The text kitchen's number for each action key (play.py). ``listed`` are the keys on the menu now: one the
+        fixed list below does not have (assembling, loading a pan off the stove, swapping pans, ...) gets a number of
+        its own the first time it is listed and keeps it, so every listed action can be chosen by number."""
         # Stable for the whole round: an asynchronous refresh never repurposes a number.
-        keys = ["wait", "continue", "stop", "fetch", "serve", "discard"]
+        keys = ["wait", "continue", "stop", *(self.fetch_key(source) for source in self.ingredients), "serve", "discard"]
         for key in self.boards:
             keys.extend([f"put {key}", f"chop {key}", f"take {key}"])
         for key in self.pots:
@@ -784,6 +788,11 @@ class Kitchen:
             if item_id not in self.pickup_numbers:
                 self.pickup_numbers[item_id] = base + len(self.pickup_numbers)
         numbers.update({f'pickup {key}': value for key, value in self.pickup_numbers.items()})
+        # Counting on from the next thousand, clear of the fixed keys and the floor items.
+        for key in listed:
+            if key not in numbers and key not in self.menu_extra:
+                self.menu_extra[key] = 1000 * (base // 1000 + 1) + len(self.menu_extra)
+        numbers.update(self.menu_extra)
         return numbers
 
     def _reserve_hand_swap(self, who, job):

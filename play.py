@@ -143,7 +143,7 @@ def describe(k):
 
 def show_menu(k, console):
     actions = k.actions("human")
-    numbers = k.menu_numbers()
+    numbers = k.menu_numbers(a.key for a in actions)
     console.write("\n你的可选动作（编号全局固定；过期动作会拒绝执行）：\n" + "\n".join(
         f"  {numbers[a.key]:2}. {a.label}  [{a.key}]" for a in actions) +
         "\n  m 菜单 | s 全局状态 | j Jev 状态 | pause 暂停全局 | resume 继续 | quit 退出")

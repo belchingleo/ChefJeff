@@ -245,7 +245,7 @@ def build_map(name, size, stations, theme='street', revision=1, walls=()):
 
 def load_map(level):
     """Load an authored map by legacy level number or by map id (``level-1``)."""
-    if type(level) is int and level in (1,2,3):
+    if type(level) is int:
         level = f'level-{level}'
     if not isinstance(level, str) or not STATION_ID.match(level) or not (MAP_ROOT / f'{level}.json').is_file():
         raise ValueError('Unknown authored map')

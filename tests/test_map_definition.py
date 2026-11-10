@@ -176,6 +176,14 @@ class MapDocumentTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate_map(doc)
 
+    def test_every_authored_level_loads_by_number_or_id(self):
+        for level in (1, 2, 3, 4):
+            self.assertEqual(load_map(level), load_map(f'level-{level}'))
+            self.assertEqual(load_map(level)['id'], f'level-{level}')
+        for unknown in (0, 5, True, '4', 'level-9'):
+            with self.assertRaises(ValueError):
+                load_map(unknown)
+
     def test_round_trip_preserves_geometry_and_independent_decor(self):
         for level in (1,2,3):
             doc = load_map(level)
