@@ -348,6 +348,8 @@
     if (preset.group === 'decision') {
       body = wire ? {...payload, state:{static: compactParts(wire, memory).fixed, live: wire.live}, model: config.model} :
         {...payload, model: config.model};
+      // A service that refuses unknown fields is sent no model name (send_model: false), as in the local game.
+      if (preset.send_model === false) delete body.model;
       endpoint = config.base_url;
     } else if (wire) {
       body = {model:config.model, max_tokens:128, messages: compactMessages(payload, wire, memory, config.provider==='zhipu')};
@@ -369,7 +371,8 @@
       // No cookies, redirects, proxy fallback, or credentials in the URL/body.
       const r = await nativeFetch(endpoint, {method:'POST', mode:'cors', credentials:'omit', redirect:'error',
         referrerPolicy:'no-referrer', signal:controller.signal,
-        headers:{Authorization:'Bearer ' + config.api_key, 'Content-Type':'application/json'}, body:JSON.stringify(body)});
+        headers:{...(preset.key_header ? {[preset.key_header]:config.api_key} : {Authorization:'Bearer ' + config.api_key}),
+          'Content-Type':'application/json'}, body:JSON.stringify(body)});
       if (!r.ok) throw new Error(await refusal(r, config.api_key));
       const text = await r.text();
       if (text.length > 262144) throw new Error('模型回复过大。');

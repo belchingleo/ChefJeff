@@ -27,6 +27,9 @@
     "操作说明": "Controls",
     "手柄已连接": "Controller connected",
     "请松开按键并将左摇杆回中": "Release the buttons and center the left stick",
+    "按输入计费，约每百万 token 0.02 美元 · 请求只含 model、state、questions": "Billed by input, about USD 0.02 per million tokens · requests carry only model, state and questions",
+    "Parallel Decisions（仅本地游戏）": "Parallel Decisions (local game only)",
+    "Key 放在 x-api-key 请求头里 · 请求只含 state、questions 和 mode（fast）": "The key goes in the x-api-key header · requests carry only state, questions and mode (fast)",
     "此手柄未提供标准映射，请使用键盘和鼠标。": "This controller has no standard mapping; use the keyboard and mouse.",
     "手柄：左摇杆或十字键移动，A/× 拿放，X/□ 切、洗、扔（持物长按瞄准、松手投掷），B/○ 冲刺；Start/Options 开始或暂停、继续。Switch 单只手柄横握（Safari，左右手柄都行）：右键拿放，左键切洗扔，下键冲刺，左手柄 − 暂停，右手柄 + 暂停。": "Controller: Left stick or D-pad to move; A/× to take or put; X/□ to chop, wash or throw (hold with an item to aim, release to throw); B/○ to dash; Start/Options to start, pause or resume. One Switch Joy-Con held sideways, left or right (Safari): right button takes or puts, left button chops, washes or throws, bottom button dashes, − (left) or + (right) pauses.",
     "首次连接后先按一下手柄按键，再放开按键并将左摇杆回中。设置和沟通菜单仍使用键盘和鼠标；只支持浏览器识别为标准布局的手柄。": "After connecting, press a controller button, then release the buttons and center the left stick. Settings and communication menus still use the keyboard and mouse. Only controllers the browser recognizes as standard are supported.",
@@ -2047,6 +2050,10 @@
     [
       "{0} 返回了不符合候选集的选择",
       "{0} returned a choice outside the offered actions"
+    ],
+    [
+      "{0} 拒绝回答这一题",
+      "{0} refused to answer this question"
     ],
     [
       "{0} 网络连接失败或超时",

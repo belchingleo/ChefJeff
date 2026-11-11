@@ -712,6 +712,16 @@ function settingsHarness(){
   assert(!h.calls.some(c=>c.url==='/api/model/jev'),'StartLux never uses the demo-server Jev relay');
   for(const c of h.calls.filter(c=>c!==call))assert(!JSON.stringify(c).includes(key));
  }
+ // Perplexity's decision API accepts browser calls: Bearer key and the model name, directly from the page.
+ upstream=()=>new Response(JSON.stringify({answers:{next_action:{type:'choice',choice:'ready'}},usage:{input_tokens:5,output_tokens:1}}));
+ h=harness();r=await h.w.fetch('/api/connection',{body:JSON.stringify({provider:'perplexity',api_key:key,game_id:'round'})});
+ assert.equal(r.status,200);
+ call=h.calls.find(c=>c.url==='https://api.perplexity.ai/v1/decisions');sent=JSON.parse(call.init.body);
+ assert.equal(call.init.headers.Authorization,'Bearer '+key);assert.equal(call.init.mode,'cors');assert.equal(call.init.credentials,'omit');
+ assert.deepEqual(Object.keys(sent).sort(),['model','questions','state']);assert.equal(sent.model,'pplx-decider-v1.2');
+ // Parallel refuses browser calls (no CORS), so the online page does not offer it.
+ h=harness();r=await h.w.fetch('/api/connection',{body:JSON.stringify({provider:'parallel',api_key:key,game_id:'round'})});
+ assert.notEqual(r.status,200);assert(!h.calls.some(c=>String(c.url).includes('api.parallel.ai')),'Parallel is never called from the online page');
  // Both documented string errors and relay-style nested errors retain the reason and redact the key.
  for(const [status,error] of [[401,'Invalid API key '+key],[400,{message:'Unsupported model for '+key}]]){
   upstream=()=>new Response(JSON.stringify({error}),{status});

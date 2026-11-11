@@ -6,6 +6,11 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 
 ## Unreleased
 
+### Two more decision services: Perplexity and Parallel
+
+- Perplexity Decider (`pplx-decider-v1.2`, `https://api.perplexity.ai/v1/decisions`) is listed in the local game and online: its API accepts browser calls, with the key as Bearer and the model name in the request.
+- Parallel Decisions (`https://api.parallel.ai/v1/decisions`, mode fast) is listed in the local game only: its API does not accept browser calls. The key goes in the `x-api-key` header and the request carries no model name (the API refuses other fields); a refusal to answer counts as a failed request. Services can now say which header carries the key (`key_header`) and that no model name is sent (`send_model: false`), in the local game and the online page alike.
+
 ### Controllers: one right Joy-Con, the controller named when it is not supported
 
 - One right Joy-Con held sideways works in Safari ("Joy-Con (R) Gamepad", no standard mapping), with the same buttons as the left one: right takes and puts, left chops, washes or throws, bottom dashes, + pauses. The picture hint shows + for it.
@@ -19,6 +24,7 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - Level 4: the extinguisher moves to Jeff's side beside the stoves; the plate return moves right, five cells from the sink.
 - Jeff's rules say how the sink and rack work and that a pan scoops (`rules-v14`).
 - The level editor's sink tool places the sink with its rack as one unit; erasing either removes both.
+- The sink unit turns to face the chef: its frames have the tap on the wall side for a chef below or to the left; a sink the chef reaches from above (level 4) or from the right is drawn mirrored, so the tap stays on the wall side. Only the steel mirrors; the plates on the rack and the wires holding them stay upright.
 - The sink and rack are drawn as one steel unit across two cells from the art pack (`modular/sink_unit_<side>` in `grid-foundation-v1`): basin, tap and drain on the sink's cell, a drainboard with plates standing in the rack on the rack's cell, and a count when several dirty plates wait. A plate in the basin is drawn small enough to sit inside its rim, in line with the tap; a vertical unit shows its wash bar just outside its far end.
 - Both chefs walk 4 cells per second (was 5), the pace chosen in playtesting.
 - Walking into the other chef on purpose (`go partner`) ends only on a step that touches them, so it always pushes. At 4 cells a second the last step could stop a few thousandths of a cell short, and that used to count as arriving, with no push.
@@ -347,6 +353,11 @@ First private release: a local browser game with three playable maps and player-
 
 ## 未发布
 
+### 新增两个决策模型：Perplexity 和 Parallel
+
+- 本地游戏和在线版都可以选 Perplexity Decider（`pplx-decider-v1.2`，接口 `https://api.perplexity.ai/v1/decisions`）。它的接口允许浏览器直连，Key 按 Bearer 发送，请求里带模型名。
+- Parallel Decisions（接口 `https://api.parallel.ai/v1/decisions`，fast 模式）只能在本地游戏里选，因为它的接口不接受浏览器直接调用。Key 放在 `x-api-key` 请求头里，请求不带模型名（接口不接受其他字段）；拒绝作答按请求失败处理。服务列表现在可以写明 Key 放在哪个请求头（`key_header`）、不发模型名（`send_model: false`），本地游戏和在线页都照此处理。
+
 ### 手柄：单只右手柄，认不出的手柄会显示名称
 
 - Safari 里可以横握单只右手柄玩（“Joy-Con (R) Gamepad”，没有标准映射）。按键和左手柄一样：右键拿放，左键切、洗、扔，下键冲刺，+ 暂停。图示提示里暂停键画成 +。
@@ -360,6 +371,7 @@ First private release: a local browser game with three playable maps and player-
 - 第四关：灭火器挪到 Jeff 那一侧的灶台旁；回盘口往右挪，离水槽 5 格。
 - Jeff 的规则说明写了水槽和沥水架怎么用、锅能盛菜（`rules-v14`）。
 - 关卡编辑器的水槽工具一次放下水槽和沥水架；删掉其中一个两个都删。
+- 水槽会按厨师站的一侧摆向：素材里水龙头在靠墙一侧，厨师在下方或左侧时照原样画；厨师从上方（第四关）或右侧来时画成镜像，水龙头仍在靠墙一侧。只翻转不锈钢台面，沥水架上的盘子和托架保持正立。
 - 水槽和沥水架用美术素材画成跨两格的一整块不锈钢台面（`grid-foundation-v1` 里的 `modular/sink_unit_<方向>`）：水槽那格是水盆、水龙头和下水口，沥水架那格是沥水板，盘子竖着插在架上；水槽里有几个脏盘就标数字。水盆里的盘子画得小一些，放得进盆沿，正对水龙头；竖着摆时，洗碗进度条在整块水槽的外侧。
 - 两位厨师都改为每秒走 4 格（原来 5 格），这是试玩后选定的速度。
 - 故意走向对方厨师（`go partner`）时，只有真的碰到对方的那一步才算走到，所以一定会推到对方。按每秒 4 格走时，最后一步可能差千分之几格碰不到，以前也算走到了，结果没有推。

@@ -220,6 +220,50 @@ class CompatibleTests(unittest.TestCase):
         self.assertEqual(set(json.loads(req.data)),{'model','state','questions'})
         self.assertEqual(json.loads(req.data)['model'],'microsoft/microsoft-decision-1')
         self.assertEqual((result['choice'],result['sprint']),('wait',False))
+    def test_perplexity_gets_the_key_as_bearer_and_the_model_name(self):
+        setting=settings_from({'provider':'perplexity','api_key':KEY})
+        client=create_client(load_config(),setting)
+        self.assertIsInstance(client,DecisionClient)
+        answer={'answers':{'next_action':{'type':'choice','choice':'wait'},'sprint':{'type':'choice','choice':'no'}}}
+        payload=client.payload(*self._kitchen())
+        payload['questions']={'next_action':{'type':'choice','criteria':{'wait':'Wait'}},'sprint':{'type':'choice','criteria':{'yes':'','no':''}}}
+        with patch('jev.urllib.request.urlopen',return_value=io.BytesIO(json.dumps(answer).encode())) as opened:
+            self.assertEqual(client.ask(payload)['choice'],'wait')
+        req=opened.call_args.args[0]
+        self.assertEqual(req.full_url,'https://api.perplexity.ai/v1/decisions')
+        self.assertEqual(req.get_header('Authorization'),'Bearer '+KEY)
+        self.assertEqual(set(json.loads(req.data)),{'model','state','questions'})
+        self.assertEqual(json.loads(req.data)['model'],'pplx-decider-v1.2')
+    def test_parallel_gets_the_key_in_x_api_key_and_no_model_field(self):
+        # Parallel refuses unknown top-level fields (422) and takes its key in x-api-key, not Authorization.
+        setting=settings_from({'provider':'parallel','api_key':KEY})
+        client=create_client(load_config(),setting)
+        answer={'answers':{'next_action':{'type':'choice','choice':'wait'},'sprint':{'type':'choice','choice':'no'}}}
+        payload=client.payload(*self._kitchen())
+        payload['questions']={'next_action':{'type':'choice','criteria':{'wait':'Wait'}},'sprint':{'type':'choice','criteria':{'yes':'','no':''}}}
+        with patch('jev.urllib.request.urlopen',return_value=io.BytesIO(json.dumps(answer).encode())) as opened:
+            self.assertEqual(client.ask(payload)['choice'],'wait')
+        req=opened.call_args.args[0]
+        self.assertEqual(req.full_url,'https://api.parallel.ai/v1/decisions')
+        self.assertEqual(req.get_header('X-api-key'),KEY)
+        self.assertIsNone(req.get_header('Authorization'))
+        self.assertEqual(set(json.loads(req.data)),{'state','questions','mode'})
+        self.assertEqual(json.loads(req.data)['mode'],'fast')
+        # A refusal is a failed request (Jeff waits and the failure is shown), never a choice.
+        # The connection test builds its own request with a model name; Parallel still gets none.
+        probe={'model':setting['model'],'state':{'purpose':'API connection check'},
+               'questions':{'next_action':{'type':'choice','criteria':{'ready':'Connection ready','wait':'Not ready yet'}}}}
+        with patch('jev.urllib.request.urlopen',return_value=io.BytesIO(json.dumps({'answers':{'next_action':{'type':'choice','choice':'ready'}}}).encode())) as opened:
+            client.ask(probe)
+        self.assertEqual(set(json.loads(opened.call_args.args[0].data)),{'state','questions','mode'})
+        refusal={'answers':{'next_action':{'type':'refusal'}}}
+        with patch('jev.urllib.request.urlopen',return_value=io.BytesIO(json.dumps(refusal).encode())):
+            with self.assertRaises(RuntimeError):client.ask(payload)
+    def _kitchen(self):
+        import config_contract as cc
+        from spatial_kitchen import SpatialKitchen
+        k=SpatialKitchen(cc.load_level('level-1'))
+        return k.snapshot(),k.actions('jeff')
     def test_a_decision_model_on_this_computer_is_asked_there_without_a_key(self):
         url='http://127.0.0.1:8090/v1/systemone'
         setting=settings_from({'provider':'local-decision','base_url':url,'model':'startlux-local-2b-instant-q4'})

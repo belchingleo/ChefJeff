@@ -1,5 +1,5 @@
 {
-  "description": "Model services Jeff can use, read by the local server, the hosted page and the settings dialog. decision: a systemone-style decision API (state + questions, answered with option probabilities). chat: an OpenAI-compatible Chat Completions API. extra holds vendor request fields for either group (model_extra adds fields for one model ID; account_id: the base URL takes the player\u2019s account ID), such as requiring a listed decision option, turning chat thinking off or asking for JSON. hosted: direct (the browser calls it), relay (through the demo server, with consent; relay_models lists what it forwards) or none (local game only). custom: the player types the address (a decision service: its full URL; chat: the base URL); local_only: only an address on this computer (localhost, 127.0.0.1, ::1), over http, key optional. timeout_seconds: how long one decision may take, instead of ai_timeout_seconds. tested: a whole round has been played with it.",
+  "description": "Model services Jeff can use, read by the local server, the hosted page and the settings dialog. decision: a systemone-style decision API (state + questions, answered with option probabilities). chat: an OpenAI-compatible Chat Completions API. extra holds vendor request fields for either group (model_extra adds fields for one model ID; account_id: the base URL takes the player\u2019s account ID), such as requiring a listed decision option, turning chat thinking off or asking for JSON. hosted: direct (the browser calls it), relay (through the demo server, with consent; relay_models lists what it forwards) or none (local game only). custom: the player types the address (a decision service: its full URL; chat: the base URL); local_only: only an address on this computer (localhost, 127.0.0.1, ::1), over http, key optional. timeout_seconds: how long one decision may take, instead of ai_timeout_seconds. key_header: the request header that carries the key instead of Authorization: Bearer (Parallel: x-api-key). send_model false: the request names no model (the service refuses unknown fields); model then only names the service in records. tested: a whole round has been played with it.",
   "groups": [
     {"id": "decision", "label": "决策模型"},
     {"id": "chat", "label": "快思考模型"}
@@ -11,6 +11,12 @@
     {"id": "openrouter-decision", "group": "decision", "label": "OpenRouter 决策模型", "note": "可填 OpenRouter 上任一决策模型的 ID（默认 Microsoft-Decision-1，约 ¥0.3–0.7/局）",
      "endpoint": "https://openrouter.ai/api/alpha/decisions", "model": "microsoft/microsoft-decision-1", "model_editable": true,
      "key_url": "https://openrouter.ai/keys", "hosted": "direct", "tested": true},
+    {"id": "perplexity", "group": "decision", "label": "Perplexity Decider", "note": "按输入计费，约每百万 token 0.02 美元 · 请求只含 model、state、questions",
+     "endpoint": "https://api.perplexity.ai/v1/decisions", "model": "pplx-decider-v1.2", "model_editable": true,
+     "key_url": "https://www.perplexity.ai/account/api", "hosted": "direct", "tested": true},
+    {"id": "parallel", "group": "decision", "label": "Parallel Decisions（仅本地游戏）", "note": "Key 放在 x-api-key 请求头里 · 请求只含 state、questions 和 mode（fast）",
+     "endpoint": "https://api.parallel.ai/v1/decisions", "model": "decisions-fast", "model_editable": false, "send_model": false, "key_header": "x-api-key",
+     "extra": {"mode": "fast"}, "key_url": "https://platform.parallel.ai/", "hosted": "none", "tested": true},
     {"id": "startlux", "group": "decision", "label": "StartLux-Decision（Bamboo 存在延迟，免费接口）", "note": "免费测试额度 · 请求经第三方中转 Bamboo Relay · 已关闭自动思考",
      "endpoint": "https://api.bamboonode.dev/v1/decisions", "model": "startlux-decision-27b-autothink", "model_editable": true,
      "extra": {"allow_none": false, "think_mode": "never"},

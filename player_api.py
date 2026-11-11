@@ -166,13 +166,23 @@ class DecisionClient(SpatialJevClient):
         # A model on this computer can take minutes per decision; the preset says how long one may take.
         self.timeout=PROVIDERS[setting['provider']].get('timeout_seconds')
         self.endpoint,self.vendor=setting['base_url'],PROVIDERS[setting['provider']]['label']
+    def key_headers(self):
+        # A service may take the key in its own header (Parallel: x-api-key) rather than Authorization: Bearer.
+        header=PROVIDERS[self.setting['provider']].get('key_header')
+        return ({header:self.key} if self.key else {}) if header else super().key_headers()
     def payload(self,state,actions):
         payload=super().payload(state,actions)
-        payload['model']=self.setting['model']
+        # A service that refuses unknown fields (Parallel) is sent no model name.
+        if PROVIDERS[self.setting['provider']].get('send_model',True):payload['model']=self.setting['model']
+        else:payload.pop('model',None)
         return payload
     def ask(self,payload):
-        # Connection probes and gameplay both need the provider's request fields.
-        return super().ask({**payload,**PROVIDERS[self.setting['provider']].get('extra',{})})
+        # Connection probes and gameplay both need the provider's request fields; a service that refuses unknown
+        # fields (Parallel, send_model false) gets no model name, whoever built the request.
+        preset=PROVIDERS[self.setting['provider']]
+        body={**payload,**preset.get('extra',{})}
+        if not preset.get('send_model',True):body.pop('model',None)
+        return super().ask(body)
 
 
 def is_decision(setting):

@@ -850,11 +850,15 @@ export class KitchenClient extends Component {
         if(!this.useModularArt||!this.sinkUnit())return null;
         const [dx,dy]=this.unitSide('sink'),side=dx>0?'east':dx<0?'west':dy>0?'north':'south',key='modular/sink_unit_'+side;
         const meta=this.art.meta(key);if(!meta||!this.art.has(key))return null;
-        return {key,side,meta,s:TILE/64,offset:[dx*TILE/2,dy*TILE/2] as [number,number]};
+        // The frames put the tap on the wall side for a chef below (horizontal) or on the left (vertical). A chef
+        // above or on the right gets the frame mirrored, so the tap stays on the wall side, facing the chef.
+        const sink=this.state!.kitchen.map.equipment.sink,a=sink.access||sink.cell,c=sink.cell;
+        const flip:[number,number]=[dx===0&&a[0]>c[0]?-1:1,dx!==0&&a[1]<c[1]?-1:1];
+        return {key,side,meta,flip,s:TILE/64,offset:[dx*TILE/2,dy*TILE/2] as [number,number]};
     }
     /** A point given in the unit frame's canvas (pixels, origin top-left) in the unit node's own coordinates. */
     private unitPoint(u:any,p:number[]):[number,number]{
-        const [cw,ch]=u.meta.canvasSize;return [(p[0]-cw/2)*u.s,(ch/2-p[1])*u.s];
+        const [cw,ch]=u.meta.canvasSize;return [u.flip[0]*(p[0]-cw/2)*u.s,u.flip[1]*(ch/2-p[1])*u.s];
     }
     /** Each cell draws its own half of the unit frame, cut at the line between the cells, so neither half is covered
      *  by the other cell's counter top: the basin half on the sink, the rack half on the rack with its plates and then
@@ -871,7 +875,9 @@ export class KitchenClient extends Component {
         if(!half){half=this.child(n,'sink-unit',10,10,0,0);for(const name of ['base','plates','front'])this.child(half,name,10,10,0,0);}
         half.setPosition(ox,oy);
         const place=(name:string,key:string)=>{const part=half!.getChildByName(name)!;part.setPosition(hx,hy);
-            this.art.region(part,key,crop[0],crop[1],crop[2],crop[3],crop[2]*u.s,crop[3]*u.s);};
+            this.art.region(part,key,crop[0],crop[1],crop[2],crop[3],crop[2]*u.s,crop[3]*u.s);
+            // Only the steel mirrors: the plates standing in the rack and the wires holding them stay upright.
+            part.setScale(name==='base'?u.flip[0]:1,name==='base'?u.flip[1]:1,1);};
         place('base',u.key);
         if(rack)place('front',u.meta.rackFront);else{const f=half.getChildByName('front')!;f.active=false;}
     }
@@ -2118,7 +2124,9 @@ export class KitchenClient extends Component {
                 // A sink in a vertical unit shows its bar just outside the unit's far end (above it when the rack lies
                 // below, below it when the rack lies above), so the bar neither cuts the unit in two nor covers its rim.
                 const dy=id==='sink'&&this.sinkUnit()?this.unitSide('sink')[1]:0,ws=this.workSurfaceY(id);
-                const py=this.useModularArt?(dy<0?ws+TILE/2-1:dy>0?ws-TILE/2-3:ws-TILE/2+3):-18;
+                // A horizontal unit mirrored for a chef above has its tap on the lower edge: the bar goes above it.
+                const tapBelow=id==='sink'&&!dy&&(this.sinkUnitArt()?.flip[1]??1)<0;
+                const py=this.useModularArt?(dy<0||tapBelow?ws+TILE/2-1:dy>0?ws-TILE/2-3:ws-TILE/2+3):-18;
                 this.rect(g,-23,py-1,46,6,COLORS.ink);this.rect(g,-22,py,44*progress,4,st.fire||igniting?COLORS.hot:COLORS.paper);
             }
             const effects=this.potEffects[id];if(effects){

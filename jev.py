@@ -74,14 +74,17 @@ class JevClient:
         return harness.payload(state, actions, self.c, spatial=self.spatial)
 
 
+    def key_headers(self):
+        """The key as Authorization: Bearer (systemone); a service that wants another header overrides this."""
+        return {"Authorization": "Bearer " + self.key} if self.key else {}
+
     def ask(self, payload):
         payload = english_data(payload)
         start = time.monotonic()
         # The compact format (features.json compact_input) sends the state as {static, live}; the payload stays as it is.
         body = wire_format.decision_body(payload) if wire_format.enabled() else payload
         request = urllib.request.Request(self.endpoint, data=json.dumps(body, ensure_ascii=False).encode(),
-                                         headers={**({"Authorization": "Bearer " + self.key} if self.key else {}),
-                                                  "Content-Type": "application/json"}, method="POST")
+                                         headers={**self.key_headers(), "Content-Type": "application/json"}, method="POST")
         try:
             with urllib.request.urlopen(request, timeout=self.timeout or self.c["ai_timeout_seconds"]) as r:
                 result = json.load(r)
@@ -91,6 +94,8 @@ class JevClient:
         except (urllib.error.URLError, TimeoutError, OSError):
             raise RuntimeError(f"{self.vendor} 网络连接失败或超时") from None
         answer = result.get("answers", {}).get("next_action", {})
+        if answer.get("type") == "refusal":
+            raise RuntimeError(f"{self.vendor} 拒绝回答这一题")
         if answer.get("type") != "choice" or answer.get("choice") not in payload["questions"]["next_action"]["criteria"]:
             raise RuntimeError(f"{self.vendor} 返回了不符合候选集的选择")
         sprint_answer=result.get('answers',{}).get('sprint',{})
