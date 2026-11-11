@@ -33,6 +33,8 @@ const PARTNER_Y=314,TILES_Y=398,START_Y=562;
 const TAB_ORDER=['language','cover-connection','level-prev','level-picker','level-next','free-limits','tile-free','free-pick','tile-key','main','next-alt','reset','help','create-level','partner-change','record','contribute','more','resume','pause','end'];
 type ButtonView = {node:Node;label:Label;callback:()=>void;enabled:boolean;width:number;height:number;tone:string;hover:boolean;selected?:boolean};
 // Labels for things that are not recipe items; item and dish names come from the server's catalog.
+/** A plate drawn in the sink unit's basin (27 art px across its short side) fits inside the basin's rim. */
+const SINK_PLATE=.55;
 const STAGES: Record<string,string> = {extinguisher:'灭火器',clean_plate:'干净餐盘',dirty_plate:'脏餐盘'};
 // Art stem for a vessel kind that has no art of its own yet (the soup pot's frames).
 const VESSEL_ART_FALLBACK='pot';
@@ -840,6 +842,51 @@ export class KitchenClient extends Component {
         const side=this.unitSide('sink'),[px,py]=[-3,-2];
         return side[0]>0?[px,py]:side[0]<0?[-px,py]:side[1]>0?[-py,px]:[py,-px];
     }
+    /** The art for the level's sink unit: the frame named by where the rack lies from the basin, its manifest entry,
+     *  the art-to-screen scale (64 art px a cell) and where the unit's centre (the line between the two cells) lies
+     *  from the sink's own centre; null when the level has no rack or the art is not loaded. */
+    private sinkUnitArt(){
+        if(!this.useModularArt||!this.sinkUnit())return null;
+        const [dx,dy]=this.unitSide('sink'),side=dx>0?'east':dx<0?'west':dy>0?'north':'south',key='modular/sink_unit_'+side;
+        const meta=this.art.meta(key);if(!meta||!this.art.has(key))return null;
+        return {key,side,meta,s:TILE/64,offset:[dx*TILE/2,dy*TILE/2] as [number,number]};
+    }
+    /** A point given in the unit frame's canvas (pixels, origin top-left) in the unit node's own coordinates. */
+    private unitPoint(u:any,p:number[]):[number,number]{
+        const [cw,ch]=u.meta.canvasSize;return [(p[0]-cw/2)*u.s,(ch/2-p[1])*u.s];
+    }
+    /** Each cell draws its own half of the unit frame, cut at the line between the cells, so neither half is covered
+     *  by the other cell's counter top: the basin half on the sink, the rack half on the rack with its plates and then
+     *  its front wires over them. */
+    private placeSinkUnit(n:Node,id:string){
+        const u=this.sinkUnitArt()!,[cw,ch]=u.meta.canvasSize,rack=id!=='sink',across=u.side==='east'||u.side==='west';
+        // The half this cell shows, in canvas pixels (x, y, w, h), and where its centre lies from this cell's centre.
+        const towardRack=u.side==='east'||u.side==='south';      // the rack is the canvas's second half
+        const second=rack===towardRack;
+        const crop=across?[second?cw/2:0,0,cw/2,ch]:[0,second?ch/2:0,cw,ch/2];
+        const [hx,hy]=this.unitPoint(u,[crop[0]+crop[2]/2,crop[1]+crop[3]/2]);
+        const [ox,oy]=rack?[-u.offset[0],-u.offset[1]]:u.offset;   // the unit's centre from this cell's centre
+        let half=n.getChildByName('sink-unit');
+        if(!half){half=this.child(n,'sink-unit',10,10,0,0);for(const name of ['base','plates','front'])this.child(half,name,10,10,0,0);}
+        half.setPosition(ox,oy);
+        const place=(name:string,key:string)=>{const part=half!.getChildByName(name)!;part.setPosition(hx,hy);
+            this.art.region(part,key,crop[0],crop[1],crop[2],crop[3],crop[2]*u.s,crop[3]*u.s);};
+        place('base',u.key);
+        if(rack)place('front',u.meta.rackFront);else{const f=half.getChildByName('front')!;f.active=false;}
+    }
+    /** Clean plates standing in the rack: n spread evenly from the rack's start to its end (squeezed past its slots),
+     *  drawn from start to end so on a north or south rack the front plate covers the one behind. */
+    private placeRackPlates(count:number){
+        const u=this.sinkUnitArt(),dev=this.devices[this.sinkUnit()!];if(!u||!dev)return;
+        const unit=dev.node.getChildByName('equipment')?.getChildByName('sink-unit'),layer=unit?.getChildByName('plates');if(!layer)return;
+        while(layer.children.length<count)this.child(layer,'plate-'+layer.children.length,10,10,0,0);
+        const {start,end}=u.meta.rack,pd=this.art.meta(u.meta.rackPlate),[pw,ph]=pd.canvasSize;
+        layer.children.forEach((plate:Node,i:number)=>{
+            plate.active=i<count;if(!plate.active)return;
+            const t=count===1?.5:i/(count-1),[x,y]=this.unitPoint(u,[start[0]+(end[0]-start[0])*t,start[1]+(end[1]-start[1])*t]);
+            this.art.show(plate,u.meta.rackPlate,pw*u.s,ph*u.s,x,y);
+        });
+    }
     /** The sink and its drying rack as one steel unit across two cells, as Overcooked 2's sink with its drainboard:
      *  one slab whose rim runs round the outside only (no seam where the cells meet), a basin with its tap and drain
      *  in the sink's half, and in the rack's half a drainboard whose ridges run toward the basin. */
@@ -866,7 +913,13 @@ export class KitchenClient extends Component {
             const badge=this.child(node,'count',24,14,0,0).addComponent(Label);this.pixel(badge,11);badge.color=color(COLORS.paper);}
         const g=node.getComponent(Graphics)!;g.clear();node.setPosition(food.position.x,food.position.y);
         const badge=node.getChildByName('count')!;badge.active=false;
-        const plates=(st.food?1:0)+(st.stack||[]).length;
+        const plates=(st.food?1:0)+(st.stack||[]).length,u=this.sinkUnitArt();
+        if(u&&this.state!.kitchen.map.equipment[id]?.type==='drying_rack'){food.active=false;node.active=false;this.placeRackPlates(plates);return;}
+        if(u&&id==='sink'){
+            const [bx,by]=this.unitPoint(u,u.meta.basin),eq=dev.node.getChildByName('equipment')!;
+            food.setPosition(u.offset[0]+bx,eq.position.y+u.offset[1]+by);food.setScale(SINK_PLATE,SINK_PLATE,1);
+            node.setPosition(food.position.x,food.position.y);
+        }
         if(this.state!.kitchen.map.equipment[id]?.type==='drying_rack'){
             food.active=false;node.active=plates>0;if(!plates)return;
             const eq=this.state!.kitchen.map.equipment,across=eq.sink&&eq.sink.cell[0]!==eq[id].cell[0];
@@ -1517,7 +1570,12 @@ export class KitchenClient extends Component {
             for(const x of [-10,5]){g.moveTo(x-5,-12);g.lineTo(x+6,0);g.lineTo(x-5,12);g.lineTo(x-5,5);g.lineTo(x-1,0);g.lineTo(x-5,-5);g.close();g.fill();}
             return;
         }
-        if(this.sinkUnit()&&(id==='sink'||this.state!.kitchen.map.equipment[id]?.type==='drying_rack')){this.drawSinkUnit(g,id);return;}
+        if(this.sinkUnit()&&(id==='sink'||this.state!.kitchen.map.equipment[id]?.type==='drying_rack')){
+            // The art unit (grid-foundation-v1 sink_unit_*) hangs on the sink's node and covers both cells; the rack's
+            // own node draws nothing. Without the art, the code-drawn unit stays.
+            if(this.sinkUnitArt()){this.placeSinkUnit(n,id);return;}
+            this.drawSinkUnit(g,id);return;
+        }
         const kind=/^b[0-9]+$/.test(id)?'board':id==='returns'?'returns':id==='sink'?'sink':'';
         if(kind){this.art.centered(n,'modular/device_'+kind+'_'+axis,TILE*.84,this.prepSampleBoard(id)?28:TILE*.84);return;}
         if(st.stove){this.art.centered(n,'modular/top_stove',TILE*.82,TILE*.82);return;}
@@ -1584,7 +1642,7 @@ export class KitchenClient extends Component {
                 // A plate in the sink sits in the basin, clear of the tap: the tap is at the top of a horizontal
                 // sink and on the right of a vertical one (grid-foundation-v1 device_sink_*).
                 if(id==='sink'){
-                    if(this.sinkUnit()){const [bx,by]=this.sinkBasin();status.setPosition(bx,this.workSurfaceY(id)+by);status.setScale(.72,.72,1);}
+                    if(this.sinkUnit()){const [bx,by]=this.sinkBasin();status.setPosition(bx,this.workSurfaceY(id)+by);status.setScale(SINK_PLATE,SINK_PLATE,1);}
                     else{const vertical=stationView(this.state!.kitchen.map,id).device_axis==='vertical';
                         status.setPosition(vertical?-TILE*.12:0,this.workSurfaceY(id)-(vertical?0:TILE*.12));status.setScale(.8,.8,1);}
                 }
@@ -2056,9 +2114,10 @@ export class KitchenClient extends Component {
             // A fire being sprayed shows how much is left (Overcooked 2's fire bar); full fires show none.
             if(st.fire&&st.fire_strength<1)progress=st.fire_strength;
             if(progress>=0){
-                // A sink whose drying rack lies below it shows its bar along the top, so the unit is not cut in two.
-                const rackBelow=id==='sink'&&!!this.sinkUnit()&&this.unitSide('sink')[1]<0;
-                const py=this.useModularArt?(rackBelow?this.workSurfaceY(id)+TILE/2-9:this.workSurfaceY(id)-TILE/2+3):-18;
+                // A sink in a vertical unit shows its bar just outside the unit's far end (above it when the rack lies
+                // below, below it when the rack lies above), so the bar neither cuts the unit in two nor covers its rim.
+                const dy=id==='sink'&&this.sinkUnit()?this.unitSide('sink')[1]:0,ws=this.workSurfaceY(id);
+                const py=this.useModularArt?(dy<0?ws+TILE/2-1:dy>0?ws-TILE/2-3:ws-TILE/2+3):-18;
                 this.rect(g,-23,py-1,46,6,COLORS.ink);this.rect(g,-22,py,44*progress,4,st.fire||igniting?COLORS.hot:COLORS.paper);
             }
             const effects=this.potEffects[id];if(effects){
