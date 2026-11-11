@@ -1208,6 +1208,606 @@
         47,
         50
       ]
+    },
+    "modular/rack_plate_horizontal": {
+      "canvasSize": [
+        12,
+        28
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        12,
+        28
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        2,
+        464,
+        12,
+        28
+      ],
+      "note": "clean plate standing edge-on in an east/west rack"
+    },
+    "modular/rack_plate_vertical": {
+      "canvasSize": [
+        28,
+        20
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        28,
+        20
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        18,
+        464,
+        28,
+        20
+      ],
+      "note": "clean plate standing face-on in a north/south rack"
+    },
+    "modular/sink_unit_east": {
+      "canvasSize": [
+        118,
+        45
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        118,
+        45
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        50,
+        464,
+        118,
+        45
+      ],
+      "side": "east",
+      "cells": 2,
+      "basinCell": [
+        30.2,
+        24.0
+      ],
+      "rackCell": [
+        87.8,
+        24.0
+      ],
+      "basin": [
+        30.8,
+        29.5
+      ],
+      "tap": [
+        30.8,
+        15.0
+      ],
+      "rack": {
+        "axis": "x",
+        "start": [
+          73.0,
+          22.0
+        ],
+        "end": [
+          101.5,
+          22.0
+        ],
+        "slots": 4
+      },
+      "rackSlots": [
+        [
+          73.0,
+          22.0
+        ],
+        [
+          82.5,
+          22.0
+        ],
+        [
+          92.0,
+          22.0
+        ],
+        [
+          101.5,
+          22.0
+        ]
+      ],
+      "rackPlate": "modular/rack_plate_horizontal",
+      "rackFront": "modular/sink_unit_rack_front_east"
+    },
+    "modular/sink_unit_rack_front_east": {
+      "canvasSize": [
+        118,
+        45
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        118,
+        45
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        172,
+        464,
+        118,
+        45
+      ],
+      "side": "east",
+      "over": "modular/sink_unit_east"
+    },
+    "modular/sink_unit_west": {
+      "canvasSize": [
+        118,
+        45
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        118,
+        45
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        294,
+        464,
+        118,
+        45
+      ],
+      "side": "west",
+      "cells": 2,
+      "basinCell": [
+        87.8,
+        24.0
+      ],
+      "rackCell": [
+        30.2,
+        24.0
+      ],
+      "basin": [
+        87.2,
+        29.5
+      ],
+      "tap": [
+        87.2,
+        15.0
+      ],
+      "rack": {
+        "axis": "x",
+        "start": [
+          16.5,
+          22.0
+        ],
+        "end": [
+          45.0,
+          22.0
+        ],
+        "slots": 4
+      },
+      "rackSlots": [
+        [
+          16.5,
+          22.0
+        ],
+        [
+          26.0,
+          22.0
+        ],
+        [
+          35.5,
+          22.0
+        ],
+        [
+          45.0,
+          22.0
+        ]
+      ],
+      "rackPlate": "modular/rack_plate_horizontal",
+      "rackFront": "modular/sink_unit_rack_front_west"
+    },
+    "modular/sink_unit_rack_front_west": {
+      "canvasSize": [
+        118,
+        45
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        118,
+        45
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        416,
+        464,
+        118,
+        45
+      ],
+      "side": "west",
+      "over": "modular/sink_unit_west"
+    },
+    "modular/sink_unit_south": {
+      "canvasSize": [
+        45,
+        118
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        45,
+        118
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        2,
+        513,
+        45,
+        118
+      ],
+      "side": "south",
+      "cells": 2,
+      "basinCell": [
+        19.0,
+        30.2
+      ],
+      "rackCell": [
+        19.0,
+        87.5
+      ],
+      "basin": [
+        15.0,
+        41.2
+      ],
+      "tap": [
+        29.5,
+        25.5
+      ],
+      "rack": {
+        "axis": "y",
+        "start": [
+          18.5,
+          69.0
+        ],
+        "end": [
+          18.5,
+          98.0
+        ],
+        "slots": 4
+      },
+      "rackSlots": [
+        [
+          18.5,
+          69.0
+        ],
+        [
+          18.5,
+          78.7
+        ],
+        [
+          18.5,
+          88.3
+        ],
+        [
+          18.5,
+          98.0
+        ]
+      ],
+      "rackPlate": "modular/rack_plate_vertical",
+      "rackFront": "modular/sink_unit_rack_front_south"
+    },
+    "modular/sink_unit_rack_front_south": {
+      "canvasSize": [
+        45,
+        118
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        45,
+        118
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        51,
+        513,
+        45,
+        118
+      ],
+      "side": "south",
+      "over": "modular/sink_unit_south"
+    },
+    "modular/sink_unit_north": {
+      "canvasSize": [
+        45,
+        118
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        45,
+        118
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        100,
+        513,
+        45,
+        118
+      ],
+      "side": "north",
+      "cells": 2,
+      "basinCell": [
+        19.0,
+        87.5
+      ],
+      "rackCell": [
+        19.0,
+        30.2
+      ],
+      "basin": [
+        15.0,
+        95.3
+      ],
+      "tap": [
+        29.5,
+        82.5
+      ],
+      "rack": {
+        "axis": "y",
+        "start": [
+          18.5,
+          12.5
+        ],
+        "end": [
+          18.5,
+          45.0
+        ],
+        "slots": 4
+      },
+      "rackSlots": [
+        [
+          18.5,
+          12.5
+        ],
+        [
+          18.5,
+          23.3
+        ],
+        [
+          18.5,
+          34.2
+        ],
+        [
+          18.5,
+          45.0
+        ]
+      ],
+      "rackPlate": "modular/rack_plate_vertical",
+      "rackFront": "modular/sink_unit_rack_front_north"
+    },
+    "modular/sink_unit_rack_front_north": {
+      "canvasSize": [
+        45,
+        118
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        45,
+        118
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        149,
+        513,
+        45,
+        118
+      ],
+      "side": "north",
+      "over": "modular/sink_unit_north"
+    },
+    "modular/sink_unit_horizontal": {
+      "canvasSize": [
+        118,
+        45
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        118,
+        45
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        50,
+        464,
+        118,
+        45
+      ],
+      "side": "east",
+      "cells": 2,
+      "basinCell": [
+        30.2,
+        24.0
+      ],
+      "rackCell": [
+        87.8,
+        24.0
+      ],
+      "basin": [
+        30.8,
+        29.5
+      ],
+      "tap": [
+        30.8,
+        15.0
+      ],
+      "rack": {
+        "axis": "x",
+        "start": [
+          73.0,
+          22.0
+        ],
+        "end": [
+          101.5,
+          22.0
+        ],
+        "slots": 4
+      },
+      "rackSlots": [
+        [
+          73.0,
+          22.0
+        ],
+        [
+          82.5,
+          22.0
+        ],
+        [
+          92.0,
+          22.0
+        ],
+        [
+          101.5,
+          22.0
+        ]
+      ],
+      "rackPlate": "modular/rack_plate_horizontal",
+      "rackFront": "modular/sink_unit_rack_front_east",
+      "alias": "modular/sink_unit_east"
+    },
+    "modular/sink_unit_vertical": {
+      "canvasSize": [
+        45,
+        118
+      ],
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "alpha_bbox": [
+        0,
+        0,
+        45,
+        118
+      ],
+      "sampling": "nearest",
+      "fit": "uniform",
+      "rect": [
+        2,
+        513,
+        45,
+        118
+      ],
+      "side": "south",
+      "cells": 2,
+      "basinCell": [
+        19.0,
+        30.2
+      ],
+      "rackCell": [
+        19.0,
+        87.5
+      ],
+      "basin": [
+        15.0,
+        41.2
+      ],
+      "tap": [
+        29.5,
+        25.5
+      ],
+      "rack": {
+        "axis": "y",
+        "start": [
+          18.5,
+          69.0
+        ],
+        "end": [
+          18.5,
+          98.0
+        ],
+        "slots": 4
+      },
+      "rackSlots": [
+        [
+          18.5,
+          69.0
+        ],
+        [
+          18.5,
+          78.7
+        ],
+        [
+          18.5,
+          88.3
+        ],
+        [
+          18.5,
+          98.0
+        ]
+      ],
+      "rackPlate": "modular/rack_plate_vertical",
+      "rackFront": "modular/sink_unit_rack_front_south",
+      "alias": "modular/sink_unit_south"
     }
   }
 }
