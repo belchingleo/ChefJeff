@@ -65,8 +65,12 @@ class LoopTests(unittest.TestCase):
         loop = DecisionLoop(k, Answering(k.c), lambda kind, data: records.append((kind, data)), lambda _: None)
         loop.links, loop.player_messages = True, []
         with patch('jev.time.monotonic', lambda: clock[0]), patch('jev.threading.Thread', Inline):
-            loop.poll()
+            loop.poll()                       # builds the request; the table is filled off the game loop
+            built_at = len(k.inputs)
+            self.assertFalse([d for kind, d in records if kind == 'ai_request'])
+            loop.poll()                       # and the request goes out at the next poll (its reply then moves Jeff)
         request = next(d for kind, d in records if kind == 'ai_request')
+        self.assertEqual(request['engine_input_n'], built_at)
         self.assertIn('links_ms', request)
         self.assertIn('option_links', request['payload']['state'])
 

@@ -207,7 +207,9 @@ def payload(kind, data, k):
         candidates = body.get('questions', {}).get('next_action', {}).get('criteria', {})
         observed = getattr(getattr(k, '_record_observer', None), 'capture_observations', False)
         # With the engine inputs, these few parts rebuild the request exactly (jev.compose_payload).
-        rebuild = {'engine_input_n': len(k.inputs), 'payload_sha256': cc.sha256(body),
+        # A request whose links table was computed off the game loop (jev.DecisionLoop.send) is logged a moment after it
+        # was built; it carries where the engine was then.
+        rebuild = {'engine_input_n': data.get('engine_input_n', len(k.inputs)), 'payload_sha256': cc.sha256(body),
                    'recent_decisions': deepcopy(body.get('state', {}).get('recent_decisions', [])),
                    'player_communication': deepcopy(body.get('state', {}).get('player_communication')),
                    'memory_input': memory_input(body),
@@ -221,8 +223,9 @@ def payload(kind, data, k):
                    **({'ask_ahead': deepcopy(data['ask_ahead'])} if data.get('ask_ahead') else {})} if observed else {}
         return {**rebuild, 'observed_state_seq': data.get('observed_state_seq'),
                 'candidates': [code(v) for v in candidates],
-                'candidate_actions': [action(a.key, a.target, a.kind) for a in k.actions('jeff') if a.key in candidates], 'stage': 'model_request',
-                'choice_source': 'not_observed', 'state_ref': getattr(k, '_research_state_ref', None) if getattr(getattr(k, '_record_observer', None), 'capture_observations', False) else None}
+                'candidate_actions': ([action(key, target, kind) for key, target, kind in data['candidate_source']] if data.get('candidate_source')
+                                      else [action(a.key, a.target, a.kind) for a in k.actions('jeff') if a.key in candidates]), 'stage': 'model_request',
+                'choice_source': 'not_observed', 'state_ref': (data['state_ref'] if 'state_ref' in data else getattr(k, '_research_state_ref', None)) if getattr(getattr(k, '_record_observer', None), 'capture_observations', False) else None}
     if kind == 'ai_response':
         fresh, applied = bool(data.get('fresh')), bool(data.get('applied'))
         return {'choice': action(data.get('choice')), 'fresh': fresh, 'applied': applied,

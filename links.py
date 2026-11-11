@@ -89,9 +89,14 @@ def _fork(kitchen):
     twin.__dict__.update(held)
     nav = state.get('nav')
     if nav is not None:
-        if id(nav) not in _ROUTES:
-            _ROUTES[id(nav)] = (nav, nav.isolated())
-        twin.nav = _ROUTES[id(nav)][1]
+        # Keyed by the map's walking graph, which every navigation of one map shares (Navigation.isolated copies the
+        # object, not the graph), so each map has one cache however many forks or rounds there are.
+        key = id(getattr(nav, 'graph', nav))
+        if key not in _ROUTES:
+            if len(_ROUTES) >= 16:
+                _ROUTES.clear()
+            _ROUTES[key] = (nav, nav.isolated())
+        twin.nav = _ROUTES[key][1]
     return twin
 
 

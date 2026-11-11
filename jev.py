@@ -194,6 +194,9 @@ class DecisionLoop:
         # compute is counted in when deciding whether to ask ahead (link_times, recent seconds).
         self.links = False
         self.link_times = []
+        # The table is computed outside the game loop (prepare in send_request): a thread fills it on a private fork,
+        # and the next poll logs and sends the request it completes.
+        self.prepared = queue.Queue()
         # Ask ahead (ask_ahead.py) when the round's switch is on: an answer about the next step, held until this step
         # ends, and the step it was asked for (asked once per step).
         self.ask_ahead = False
@@ -412,8 +415,43 @@ class DecisionLoop:
         self.held = None
         return {**context, 'ahead_check': reason, 'decision': decision}, result, error
 
+    def send_prepared(self):
+        """A request whose links table a thread has finished: logged and sent now, from the game loop."""
+        try:
+            context, payload, record, seconds, error = self.prepared.get_nowait()
+        except queue.Empty:
+            return
+        self.link_times = (self.link_times + [seconds])[-5:]
+        if error is not None:
+            # No request without the table it was built for: this one is dropped and Jeff is asked again.
+            self.inflight = False
+            self.last_revision = -1
+            self.log('ai_error', {'request_id': context['id'], 'error': f'联系表计算失败（{type(error).__name__}）', 'retry_in': 0})
+            return
+        self.send(context, payload, {**record, 'links_ms': round(seconds * 1000)})
+
+    def send(self, context, payload, record):
+        self.log("ai_request", {**record, "payload": payload})
+
+        def work():
+            try:
+                context['transport_started_monotonic'] = time.monotonic()
+                result = self.client.ask(payload)
+                context['returned_monotonic'] = time.monotonic()
+                self.q.put((context, result, None))
+            except ModelWait as exc:
+                context['returned_monotonic']=time.monotonic()
+                self.q.put((context,None,exc))
+            except Exception as exc:
+                context['returned_monotonic'] = time.monotonic()
+                # Only our sanitized failures should reach logs.
+                message = str(exc) if type(exc) is RuntimeError else f"响应读取失败（{type(exc).__name__}）"
+                self.q.put((context, None, message))
+        threading.Thread(target=work, daemon=True).start()
+
     def poll(self, enabled=True):
         now = time.monotonic()
+        self.send_prepared()
         packet = None
         if self.held is not None:
             packet = self.release_held(now)
@@ -640,20 +678,16 @@ class DecisionLoop:
             plan_ended = self.plan.check(context['preference'])
             plan = self.plan.input(state)
             context['plan_offered'] = plan['options']
-        built = time.monotonic()
         payload = compose_payload(self.client, source, state, actions, self.recent_decisions, communication,
                                   self.cooperation_memory if hasattr(self, 'cooperation_memory') else NO_MEMORY, plan, self.one_press,
                                   deepcopy(self.undo), self.reach, self.names,
-                                  self.intent_input(source is not self.k, since) if self.intents else None, self.links)
-        if self.links:
-            self.link_times = (self.link_times + [time.monotonic() - built])[-5:]
-        self.log("ai_request", {"request_id": self.calls, "triggers": causes, "observed_state_seq": self.k.event_seq, "payload": payload,
-                                **({"jeff_plan": plan, "plan_ended": plan_ended} if plan is not None else {}),
-                                **({"one_press": dict(self.one_press)} if self.one_press else {}),
-                                **({"undo_note": deepcopy(self.undo)} if self.undo is not None else {}),
-                                **({"ask_ahead": ahead} if ahead else {}),
-                                **({"intent_layer": intent_layer.VERSION} if self.intents else {}),
-                                **({"links_ms": round(self.link_times[-1] * 1000)} if self.links else {})})
+                                  self.intent_input(source is not self.k, since) if self.intents else None)
+        record = {"request_id": self.calls, "triggers": causes, "observed_state_seq": self.k.event_seq,
+                  **({"jeff_plan": plan, "plan_ended": plan_ended} if plan is not None else {}),
+                  **({"one_press": dict(self.one_press)} if self.one_press else {}),
+                  **({"undo_note": deepcopy(self.undo)} if self.undo is not None else {}),
+                  **({"ask_ahead": ahead} if ahead else {}),
+                  **({"intent_layer": intent_layer.VERSION} if self.intents else {})}
         self.last_request = now
         self.last_revision = self.k.revision
         self.last_urgency = urgency
@@ -661,18 +695,25 @@ class DecisionLoop:
         self.plan_due = False
         self.knocked_ask = False
         self.inflight = True
-        def work():
+        if not self.links:
+            self.send(context, payload, record)
+            return
+        # The links table (links.py) takes a few tenths of a second; computed here it would hold the whole kitchen
+        # (both chefs) still. A private fork of the kitchen the request describes goes to a thread instead, and the
+        # request is logged and sent at the next poll once the table is in. The record keeps where the engine was now,
+        # so research replay rebuilds this request, not a later one.
+        twin = source if source is not self.k else source.fork()
+        criteria = payload['questions']['next_action']['criteria']
+        record.update(engine_input_n=len(self.k.inputs), state_ref=getattr(self.k, '_research_state_ref', None),
+                      candidate_source=[[a.key, a.target, a.kind] for a in self.k.actions('jeff') if a.key in criteria])
+        mode, names, listed = self.links, self.names, list(actions)
+
+        def prepare():
+            start = time.monotonic()
             try:
-                context['transport_started_monotonic'] = time.monotonic()
-                result = self.client.ask(payload)
-                context['returned_monotonic'] = time.monotonic()
-                self.q.put((context, result, None))
-            except ModelWait as exc:
-                context['returned_monotonic']=time.monotonic()
-                self.q.put((context,None,exc))
-            except Exception as exc:
-                context['returned_monotonic'] = time.monotonic()
-                # Only our sanitized failures should reach logs.
-                message = str(exc) if type(exc) is RuntimeError else f"响应读取失败（{type(exc).__name__}）"
-                self.q.put((context, None, message))
-        threading.Thread(target=work, daemon=True).start()
+                import links as option_links
+                option_links.apply(payload, twin, 'jeff', listed, names, partner=mode == 'partner')
+                self.prepared.put((context, payload, record, time.monotonic() - start, None))
+            except Exception as error:      # never the payload or a key: only the kind of failure is logged
+                self.prepared.put((context, payload, record, time.monotonic() - start, error))
+        threading.Thread(target=prepare, daemon=True).start()

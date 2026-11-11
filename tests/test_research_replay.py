@@ -306,6 +306,38 @@ class ReplayTests(paths.SavePathTests):
         self.assertEqual({r['status'] for r in requests}, {'verified'})      # the record keeps the payload, not the wire
         self.assertEqual(research_replay.check(record)['replay'], 'verified')
 
+    def test_a_round_with_option_links_replays_exactly_though_the_table_is_built_off_the_game_loop(self):
+        # The table is computed in a thread and the request sent at a later poll; an engine input that arrives
+        # meanwhile must not change what research replay rebuilds.
+        import features
+        import links
+        on = {key: dict(value) for key, value in features.current().items()}
+        on['option_links']['on'] = True
+        with patch.object(features, 'current', lambda: {key: dict(value) for key, value in on.items()}):
+            self.game.features = features.current()
+            receipt = self.begin_manual_relay()
+            self.assertTrue(self.game.ai.links)
+            self.human_action()
+            for _ in range(3):
+                with self.game.lock:
+                    self.game.ai.poll()                      # builds the request; the table goes to a thread
+                self.human_action()                          # an engine input before the request is sent
+                deadline = time.monotonic() + 5
+                while time.monotonic() < deadline and not self.game.relay.request():
+                    with self.game.lock:
+                        self.game.ai.poll()                  # sends it once the table is in
+                    time.sleep(.005)
+                self.assertEqual(self.game.relay.request()['payload']['state']['links_version'], links.SWITCH_VERSION)
+                self.assertEqual(self.answer_with()[0], 200)
+            self.natural_end()
+            self.assertEqual(self.contribute()[0], 200)
+        record = self.game.store.download(receipt['id'], receipt['deletion_token'])
+        validate_record(record)
+        self.assertEqual(record['conditions']['features']['option_links'], {'on': True, 'version': links.SWITCH_VERSION})
+        requests = list(research_replay.rebuild_requests(record))
+        self.assertGreater(len(requests), 2)
+        self.assertEqual({r['status'] for r in requests}, {'verified'})
+
     def test_a_round_with_food_names_replays_exactly(self):
         import features
         import food_names
