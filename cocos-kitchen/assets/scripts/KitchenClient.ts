@@ -819,6 +819,74 @@ export class KitchenClient extends Component {
         const n=new Node(name);n.layer=Layers.Enum.UI_2D;parent.addChild(n);n.addComponent(UITransform).setContentSize(w,h);n.setPosition(x,y);return n;
     }
     private rect(g:Graphics,x:number,y:number,w:number,h:number,fill:string){g.fillColor=color(fill);g.rect(x,y,w,h);g.fill();}
+    /** The level's drying rack id, when it has one beside the sink. */
+    private sinkUnit():string|null{
+        const eq=this.state?.kitchen.map.equipment||{};
+        return Object.keys(eq).find(k=>eq[k].type==='drying_rack')||null;
+    }
+    /** The way from this half of the sink unit to the other half, in screen axes (x right, y up). */
+    private unitSide(id:string):[number,number]{
+        const eq=this.state!.kitchen.map.equipment,rack=this.sinkUnit()!,me=eq[id].cell,other=eq[id==='sink'?rack:'sink'].cell;
+        return [Math.sign(other[0]-me[0]),-Math.sign(other[1]-me[1])];
+    }
+    /** A rect drawn as if the other half lay to the right (+x), turned to where it really lies. */
+    private unitRect(g:Graphics,side:[number,number],x:number,y:number,w:number,h:number,fill:string){
+        const pts=[[x,y],[x+w,y+h]].map(([px,py])=>side[0]>0?[px,py]:side[0]<0?[-px,py]:side[1]>0?[-py,px]:[py,-px]);
+        const x0=Math.min(pts[0][0],pts[1][0]),y0=Math.min(pts[0][1],pts[1][1]);
+        this.rect(g,x0,y0,Math.abs(pts[0][0]-pts[1][0]),Math.abs(pts[0][1]-pts[1][1]),fill);
+    }
+    /** Where the basin's middle is in the sink's own node, for the plate washed there. */
+    private sinkBasin():[number,number]{
+        const side=this.unitSide('sink'),[px,py]=[-3,-2];
+        return side[0]>0?[px,py]:side[0]<0?[-px,py]:side[1]>0?[-py,px]:[py,-px];
+    }
+    /** The sink and its drying rack as one steel unit across two cells, as Overcooked 2's sink with its drainboard:
+     *  one slab whose rim runs round the outside only (no seam where the cells meet), a basin with its tap and drain
+     *  in the sink's half, and in the rack's half a drainboard whose ridges run toward the basin. */
+    private drawSinkUnit(g:Graphics,id:string){
+        const side=this.unitSide(id),R=(x:number,y:number,w:number,h:number,c:string)=>this.unitRect(g,side,x,y,w,h,c);
+        const edge=TILE/2+1,outline='#2f3236',rim='#d3d7db',slab='#aab1b7',ridge='#868d94',shine='#e6e9ec';
+        // The slab: from the outer side to the shared cell edge, rim on the three outer sides only.
+        R(-22,-18,22+edge,36,outline);R(-20,-16,20+edge,32,rim);R(-18,-14,18+edge,28,slab);
+        if(id==='sink'){
+            R(-17,-13,28,24,outline);R(-16,-12,26,22,'#7b838a');R(-14,-10,22,18,'#99a2a9');R(-14,4,22,4,'#879097');
+            R(-5,-4,6,6,outline);R(-4,-3,4,4,'#41474d');                       // drain
+            R(-6,14,8,6,outline);R(-5,15,6,4,'#c9cfd4');R(-4,7,4,9,outline);R(-3,8,2,8,'#dfe3e6');   // tap at the back
+        }else{
+            for(let y=-11;y<=9;y+=5){R(-edge+2,y,edge+16,2,ridge);R(-edge+2,y+2,edge+16,1,shine);}
+            R(18,-14,2,28,'#9aa1a7');
+        }
+    }
+    /** Plates on the drying rack stand in it side by side, as on a dish rack (up to five drawn); the sink shows how
+     *  many dirty plates wait in it when more than one does. From state.stations[*].food and .stack. */
+    private drawPlateStack(dev:any,id:string,st:any){
+        const food=dev.node.getChildByName('food')!;
+        let node=dev.node.getChildByName('plate-stack');
+        if(!node){node=this.child(dev.node,'plate-stack',48,48,0,0);node.addComponent(Graphics);
+            const badge=this.child(node,'count',24,14,0,0).addComponent(Label);this.pixel(badge,11);badge.color=color(COLORS.paper);}
+        const g=node.getComponent(Graphics)!;g.clear();node.setPosition(food.position.x,food.position.y);
+        const badge=node.getChildByName('count')!;badge.active=false;
+        const plates=(st.food?1:0)+(st.stack||[]).length;
+        if(this.state!.kitchen.map.equipment[id]?.type==='drying_rack'){
+            food.active=false;node.active=plates>0;if(!plates)return;
+            const eq=this.state!.kitchen.map.equipment,across=eq.sink&&eq.sink.cell[0]!==eq[id].cell[0];
+            const shown=Math.min(5,plates),gap=6,first=-(shown-1)*gap/2;
+            for(let i=0;i<shown;i++){
+                const o=first+i*gap;
+                // A plate on edge: a white slat with a grey rim, leaning in the rack's two wires.
+                if(across){this.rect(g,o-2.5,-11,5,22,'#5d6a70');this.rect(g,o-1.5,-10,3,20,'#f3f5f6');this.rect(g,o-1.5,-10,1,20,'#ffffff');}
+                else{this.rect(g,-11,o-2.5,22,5,'#5d6a70');this.rect(g,-10,o-1.5,20,3,'#f3f5f6');this.rect(g,-10,o-1.5,20,1,'#ffffff');}
+            }
+            // The rack's wires in front of the plates.
+            if(across){this.rect(g,-17,-5,34,2,'#2f3236');this.rect(g,-17,4,34,2,'#2f3236');}
+            else{this.rect(g,-5,-17,2,34,'#2f3236');this.rect(g,4,-17,2,34,'#2f3236');}
+            return;
+        }
+        // The sink: a count in the corner when more than one dirty plate waits.
+        node.active=plates>1;if(plates<=1)return;
+        this.rect(g,8,6,14,12,COLORS.ink);this.rect(g,9,7,12,10,COLORS.hot);
+        badge.active=true;badge.setPosition(15,12);this.writeLabel(badge.getComponent(Label)!,String(plates));
+    }
     private pixel(l:Label,size:number){l.fontFamily=PIXEL;l.fontSize=size;l.lineHeight=size+4;l.isBold=false;return l;}
     // What Space or E would act on: a faint lift of that surface (Overcooked-style), no frame.
     /** The station Space/E acts on (the one under the chef's front point): a light fill and a 2px denim
@@ -1449,6 +1517,7 @@ export class KitchenClient extends Component {
             for(const x of [-10,5]){g.moveTo(x-5,-12);g.lineTo(x+6,0);g.lineTo(x-5,12);g.lineTo(x-5,5);g.lineTo(x-1,0);g.lineTo(x-5,-5);g.close();g.fill();}
             return;
         }
+        if(this.sinkUnit()&&(id==='sink'||this.state!.kitchen.map.equipment[id]?.type==='drying_rack')){this.drawSinkUnit(g,id);return;}
         const kind=/^b[0-9]+$/.test(id)?'board':id==='returns'?'returns':id==='sink'?'sink':'';
         if(kind){this.art.centered(n,'modular/device_'+kind+'_'+axis,TILE*.84,this.prepSampleBoard(id)?28:TILE*.84);return;}
         if(st.stove){this.art.centered(n,'modular/top_stove',TILE*.82,TILE*.82);return;}
@@ -1515,8 +1584,9 @@ export class KitchenClient extends Component {
                 // A plate in the sink sits in the basin, clear of the tap: the tap is at the top of a horizontal
                 // sink and on the right of a vertical one (grid-foundation-v1 device_sink_*).
                 if(id==='sink'){
-                    const vertical=stationView(this.state!.kitchen.map,id).device_axis==='vertical';
-                    status.setPosition(vertical?-TILE*.12:0,this.workSurfaceY(id)-(vertical?0:TILE*.12));status.setScale(.8,.8,1);
+                    if(this.sinkUnit()){const [bx,by]=this.sinkBasin();status.setPosition(bx,this.workSurfaceY(id)+by);status.setScale(.72,.72,1);}
+                    else{const vertical=stationView(this.state!.kitchen.map,id).device_axis==='vertical';
+                        status.setPosition(vertical?-TILE*.12:0,this.workSurfaceY(id)-(vertical?0:TILE*.12));status.setScale(.8,.8,1);}
                 }
                 ln.active=false; // Workstations are identified by equipment, not map captions.
             }
@@ -1955,6 +2025,7 @@ export class KitchenClient extends Component {
             dev.label.color=color(st.fire||st.food?.stage==='ready'||st.food?.stage==='burnt'?COLORS.hot:COLORS.ink);
             // What rests on a burning station stays drawn (the flames go over it), so an item never seems to vanish.
             const food=dev.node.getChildByName('food')!;food.active=!!st.food||st.fire;if(food.active)this.drawIcon(food.getComponent(Graphics)!,st.food?this.itemStage(st.food):'fire');
+            if(st.stack)this.drawPlateStack(dev,id,st);
             if(this.cabinetFires[id]){this.cabinetFires[id].active=!!st.fire;if(st.fire&&!st.food)food.active=false;}
             // An item resting on a source sits in the middle; the source's own ingredient shrinks to a corner mark so the source stays recognisable.
             if(this.useModularArt&&this.state!.kitchen.map.equipment[id]?.type==='ingredient_source'){
@@ -1985,7 +2056,9 @@ export class KitchenClient extends Component {
             // A fire being sprayed shows how much is left (Overcooked 2's fire bar); full fires show none.
             if(st.fire&&st.fire_strength<1)progress=st.fire_strength;
             if(progress>=0){
-                const py=this.useModularArt?this.workSurfaceY(id)-TILE/2+3:-18;
+                // A sink whose drying rack lies below it shows its bar along the top, so the unit is not cut in two.
+                const rackBelow=id==='sink'&&!!this.sinkUnit()&&this.unitSide('sink')[1]<0;
+                const py=this.useModularArt?(rackBelow?this.workSurfaceY(id)+TILE/2-9:this.workSurfaceY(id)-TILE/2+3):-18;
                 this.rect(g,-23,py-1,46,6,COLORS.ink);this.rect(g,-22,py,44*progress,4,st.fire||igniting?COLORS.hot:COLORS.paper);
             }
             const effects=this.potEffects[id];if(effects){
