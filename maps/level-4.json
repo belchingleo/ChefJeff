@@ -543,10 +543,10 @@
         7
       ],
       "access": [
-        3,
-        6
+        4,
+        7
       ],
-      "facing": "north"
+      "facing": "east"
     },
     {
       "id": "sink",
@@ -569,11 +569,11 @@
       "name": "脏盘回收",
       "area": "prep",
       "cell": [
-        6,
+        10,
         7
       ],
       "access": [
-        6,
+        10,
         6
       ],
       "facing": "north"
@@ -597,16 +597,16 @@
       "id": "extinguisher",
       "type": "tool_rack",
       "name": "灭火器架",
-      "area": "prep",
+      "area": "cook",
       "cell": [
-        10,
-        7
+        8,
+        1
       ],
       "access": [
-        9,
-        7
+        8,
+        2
       ],
-      "facing": "west"
+      "facing": "south"
     },
     {
       "id": "counter14",
@@ -629,11 +629,11 @@
       "name": "沥水架",
       "area": "prep",
       "cell": [
-        4,
+        6,
         7
       ],
       "access": [
-        4,
+        6,
         6
       ],
       "facing": "north"
