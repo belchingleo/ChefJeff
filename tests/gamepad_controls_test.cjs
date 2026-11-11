@@ -72,6 +72,22 @@ function check(path){
   for(const [reported,dx,dy] of [['Left',0,-1],['Right',0,1],['Down',-1,0],['Up',1,0]]){
    neutral(pair);j.step(2);button(pair,reported,true);j.step(4);const m=j.moves().at(-1);
    assert(m&&m[1]===dx&&m[2]===dy,'merged Joy-Con '+reported+' moves '+dx+','+dy);}}
+ // One left Joy-Con held sideways in Safari: no standard mapping; the stick is a D-pad already turned for the hold,
+ // and the round buttons sit where they would on an upright controller (right 2 takes/puts, left 1 chops/throws,
+ // top 3 dashes, bottom 0 cancels, − 9 pauses).
+ {const j=harness(path),one=pad(0,'');one.id='Joy-Con (L) Gamepad';j.connect(one);j.step(2);
+  assert.equal(j.document.getElementById('kitchen-gamepad-hint').textContent,'摇杆移动 · 右键 拿放 · 左键 切洗扔（长按瞄准） · 上键 冲刺 · 下键 取消 · − 暂停/继续','sideways hint');
+  for(const [reported,dx,dy] of [['Up',0,-1],['Down',0,1],['Left',-1,0],['Right',1,0]]){
+   neutral(one);j.step(2);button(one,reported,true);j.step(4);const m=j.moves().at(-1);
+   assert(m&&m[1]===dx&&m[2]===dy,'sideways Joy-Con '+reported+' moves '+dx+','+dy);}
+  neutral(one);j.step(2);j.clear();
+  button(one,2,true);j.step(3);assert.equal(j.count('act'),1,'right button takes or puts');button(one,2,false);j.step(2);
+  button(one,1,true);j.step(3);assert.equal(j.count('toss'),1,'left button arms a throw');button(one,1,false);j.step(2);assert.equal(j.count('release'),1);
+  button(one,'Right',true);j.step(2);button(one,3,true);j.step(3);assert.equal(j.count('dash'),1,'top button dashes');neutral(one);j.step(2);
+  button(one,1,true);j.step(3);button(one,0,true);j.step(3);assert(j.count('cancel')>=1,'bottom button cancels an aim');neutral(one);j.step(2);
+  button(one,9,true);j.step(3);assert.equal(j.count('pause'),1,'− pauses');neutral(one);j.step(2);
+  const other=harness(path),stranger=pad(0,'');stranger.id='Unknown Gamepad';other.connect(stranger);other.step(2);button(stranger,0,true);other.step(4);
+  assert.equal(other.calls.length,0,'other controllers without a standard mapping stay ignored');}
  // Overcooked 2's buttons: A picks up and puts down at once; X chops or, with a throwable item, holds to aim and
  // releases to throw; Y dashes.
  button(controller,'A',true);h.step(60);assert.equal(h.count('act'),1,'holding A sends one take or put');assert.equal(h.count('release'),0);

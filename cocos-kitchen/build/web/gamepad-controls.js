@@ -13,7 +13,7 @@
     let controls = window.kitchenControls || null, state = controls?.getState?.() || {};
     let activeIndex = null, activeId = '', owned = false, actionDown = false, armed = false;
     let lastMove = { x: 0, y: 0 }, lastMoveAt = -Infinity, previousButtons = {}, blocked = null;
-    let focused = !document.hasFocus || document.hasFocus(), apiDisabled = false, hasStandard = false, hasAny = false;
+    let focused = !document.hasFocus || document.hasFocus(), apiDisabled = false, hasStandard = false, hasAny = false, sidewaysActive = false;
     const t = source => window.kitchenI18n?.t(source) || source;
     const pressed = button => typeof button === 'number' ? button > .5 : !!button?.pressed || Number(button?.value) > .5;
     const axis = value => Number.isFinite(value) ? Math.max(-1, Math.min(1, value)) : 0;
@@ -26,6 +26,7 @@
       if (hint.hidden) return;
       const message = !hasStandard ? t('此手柄未提供标准映射，请使用键盘和鼠标。') : !armed || hardBlocked()
         ? t('手柄已连接') + ' · ' + t('请松开按键并将左摇杆回中')
+        : sidewaysActive ? t('摇杆移动 · 右键 拿放 · 左键 切洗扔（长按瞄准） · 上键 冲刺 · 下键 取消 · − 暂停/继续')
         : t('左摇杆或十字键移动 · A/× 拿放 · X/□ 切洗扔（长按瞄准） · Y/△ 冲刺 · B/○ 取消 · Start/Options 暂停/继续');
       if (hint.textContent !== message) hint.textContent = message;
     }
@@ -51,14 +52,23 @@
       try { return Array.from(navigator.getGamepads() || []).filter(pad => pad && pad.connected !== false); }
       catch (_) { apiDisabled = true; interrupt(true); hint.hidden = true; return []; }
     }
+    // Button indices: a takes and puts, x chops/washes/throws, y dashes, b cancels, start pauses; then the D-pad.
+    const STANDARD = { a: 0, b: 1, x: 2, y: 3, start: 9, up: 12, down: 13, left: 14, right: 15 };
     // macOS merges a pair of Joy-Cons into one "Joy-Con (L/R)" device that the browser reads in the Joy-Con's simple
     // mode: the left stick (and the left arrow buttons) arrive as the D-pad, turned for a Joy-Con held sideways
     // (stick up is reported as left, down as right, left as down, right as up). Turn it back for the pair held upright.
-    const SIDEWAYS_HAT = /joy-con \(l\/r\)/i;
+    const MERGED_PAIR = { ...STANDARD, up: 14, down: 15, left: 13, right: 12 };
+    // One left Joy-Con held sideways, as Safari reports it ("Joy-Con (L) Gamepad", no standard mapping): the stick
+    // arrives as the D-pad already turned for the sideways hold, and the four round buttons are placed as on an
+    // upright controller: right takes and puts, left chops, top dashes, bottom cancels; − pauses.
+    const SIDEWAYS_LEFT = { a: 2, b: 0, x: 1, y: 3, start: 9, up: 12, down: 13, left: 14, right: 15 };
+    const layout = pad => pad.mapping === 'standard' ? (/joy-con \(l\/r\)/i.test(pad.id || '') ? MERGED_PAIR : STANDARD)
+      : /joy-con \(l\)/i.test(pad.id || '') ? SIDEWAYS_LEFT : null;
+    const sideways = pad => layout(pad) === SIDEWAYS_LEFT;
     function sample(pad) {
-      const buttons = pad.buttons || [], x = axis(pad.axes?.[0]), y = axis(pad.axes?.[1]);
-      const [U, D, L, R] = SIDEWAYS_HAT.test(pad.id || '') ? [14, 15, 13, 12] : [12, 13, 14, 15];
-      const up = pressed(buttons[U]), down = pressed(buttons[D]), left = pressed(buttons[L]), right = pressed(buttons[R]);
+      const buttons = pad.buttons || [], at = layout(pad) || STANDARD;
+      const x = sideways(pad) ? 0 : axis(pad.axes?.[0]), y = sideways(pad) ? 0 : axis(pad.axes?.[1]);
+      const up = pressed(buttons[at.up]), down = pressed(buttons[at.down]), left = pressed(buttons[at.left]), right = pressed(buttons[at.right]);
       const dpad = up || down || left || right;
       let dx = dpad ? Number(right) - Number(left) : x, dy = dpad ? Number(down) - Number(up) : y;
       const length = Math.hypot(dx, dy);
@@ -67,7 +77,7 @@
         dx /= length; dy /= length;
       }
       return { dx, dy, neutral: Math.hypot(x, y) <= DEADZONE && !buttons.some(pressed),
-        a: pressed(buttons[0]), b: pressed(buttons[1]), x: pressed(buttons[2]), y: pressed(buttons[3]), start: pressed(buttons[9]) };
+        a: pressed(buttons[at.a]), b: pressed(buttons[at.b]), x: pressed(buttons[at.x]), y: pressed(buttons[at.y]), start: pressed(buttons[at.start]) };
     }
     function move(dx, dy, now, force = false) {
       if (dx === lastMove.x && dy === lastMove.y) return;
@@ -85,7 +95,7 @@
       if (apiDisabled) return;
       const available = pads();
       hasAny = available.length > 0;
-      const standard = available.filter(pad => pad.mapping === 'standard');
+      const standard = available.filter(pad => layout(pad));
       hasStandard = standard.length > 0;
       let pad = standard.find(p => p.index === activeIndex && p.id === activeId);
       if (activeIndex !== null && !pad) { interrupt(true); activeIndex = null; activeId = ''; }
@@ -93,6 +103,7 @@
         pad = standard[0]; activeIndex = pad.index; activeId = pad.id;
         armed = false; previousButtons = {}; lastMove = { x: 0, y: 0 }; lastMoveAt = -Infinity;
       }
+      sidewaysActive = !!pad && sideways(pad);
       if (pad && controls?.getState) updateState(controls.getState());
       const unavailable = hardBlocked();
       if (unavailable !== blocked) { blocked = unavailable; if (unavailable) interrupt(); }
