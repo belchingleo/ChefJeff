@@ -16,15 +16,14 @@ Use a desktop/laptop browser with a keyboard and mouse, or try the experimental 
 
 ## Experimental desktop controller
 
-Requires a browser Gamepad API on `localhost` or HTTPS, initially targeting Chrome. Press a controller button if the browser has not discovered it. Only one active `standard`-mapped controller is used; the phone touch layout suppresses controller takeover. Real-controller testing is still pending.
+Requires a browser Gamepad API on `localhost` or HTTPS, initially targeting Chrome. Press a controller button if the browser has not discovered it. Only one active `standard`-mapped controller is used; the phone touch layout suppresses controller takeover. One Switch Joy-Con held sideways in Safari, left or right, also plays: stick moves, right button takes and puts, left button chops, washes or throws, bottom button dashes, − (left) or + (right) pauses or resumes. Real-controller testing is still pending.
 
 | Standard controller input | Behavior |
 | --- | --- |
 | Left stick / D-pad | Move; center/release to stop. While aiming, changes the throw direction. The stick allows continuous directions; keyboard/D-pad directions use the eight discrete directions |
 | A / × | Take and put (the keyboard's Space), at once on press, even with an item in hand |
 | X / □ | Chop, wash or extinguish (the keyboard's E); with a throwable item a tap throws ahead, hold about 0.3 s to aim and release to throw, including in front of a station |
-| Y / △ | Dash while moving, using the existing speed, duration and cooldown |
-| B / ○ | Cancel the current controller aim without throwing |
+| B / ○ | Dash while moving, using the existing speed, duration and cooldown (as in Overcooked 2; there is no button to cancel an aim, releasing X throws) |
 | Start / Options | Ready: start, or open Settings if no model is connected. Running: pause. Paused: resume. Result card: next round (A works too) |
 
 Keep the keyboard/mouse for model setup, communication and menus; complete controller menu navigation is not included. Focus loss, backgrounding, disconnects, input fields, dialogs, keyboard/mouse takeover and new rounds clear controller input and cancel pending actions. Center the stick and release buttons before taking control again. An active-controller disconnect pauses the round; initial connection or an unused controller does not interrupt keyboard play. Paused rounds require explicit resume.
@@ -73,7 +72,7 @@ Hosted Settings additionally offer explicit contribution after the round (or, af
 
 ## 试验版桌面手柄
 
-要求浏览器在 `localhost` 或 HTTPS 页面提供 Gamepad API，首轮以 Chrome 为目标；未发现设备时可先按手柄按钮。只使用一个采用 `standard` 映射的活动手柄，手机触控布局启用时不接管。Switch 单只左手柄横握（Safari）也可以玩：摇杆移动，右键拿放，左键切洗扔，下键冲刺，− 暂停或继续。真实手柄验证仍待完成。
+要求浏览器在 `localhost` 或 HTTPS 页面提供 Gamepad API，首轮以 Chrome 为目标；未发现设备时可先按手柄按钮。只使用一个采用 `standard` 映射的活动手柄，手机触控布局启用时不接管。Switch 单只手柄横握（Safari，左右手柄都行）也可以玩：摇杆移动，右键拿放，左键切洗扔，下键冲刺，左手柄 −、右手柄 + 暂停或继续。真实手柄验证仍待完成。
 
 | 标准手柄输入 | 行为 |
 | --- | --- |

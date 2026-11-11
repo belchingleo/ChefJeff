@@ -29,6 +29,7 @@
       left: ['...##...', '...##...', '........', '##....##', '##....##', '........', '...##...', '...##...'],
       bottom: ['...##...', '...##...', '........', '##....##', '##....##', '........', '...##...', '...##...'],
       minus: ['........', '........', '........', '.######.', '.######.', '........', '........', '........'],
+      plus: ['........', '...##...', '...##...', '.######.', '.######.', '...##...', '...##...', '........'],
     };
     const LIT = { right: [[6, 3], [7, 3], [6, 4], [7, 4]], left: [[0, 3], [1, 3], [0, 4], [1, 4]], bottom: [[3, 6], [4, 6], [3, 7], [4, 7]] };
     function picture(name, size, colour, dim) {
@@ -59,12 +60,13 @@
       letters: [['A', 'hand'], ['X', 'knife'], ['B', 'dash'], ['menu', 'pause']],
       shapes: [['cross', 'hand'], ['square', 'knife'], ['circle', 'dash'], ['menu', 'pause']],
       sideways: [['right', 'hand'], ['left', 'knife'], ['bottom', 'dash'], ['minus', 'pause']],
+      sidewaysRight: [['right', 'hand'], ['left', 'knife'], ['bottom', 'dash'], ['plus', 'pause']],
     };
     let drawn = '';
     let controls = window.kitchenControls || null, state = controls?.getState?.() || {};
     let activeIndex = null, activeId = '', owned = false, actionDown = false, armed = false;
     let lastMove = { x: 0, y: 0 }, lastMoveAt = -Infinity, previousButtons = {}, blocked = null;
-    let focused = !document.hasFocus || document.hasFocus(), apiDisabled = false, hasStandard = false, hasAny = false, sidewaysActive = false;
+    let focused = !document.hasFocus || document.hasFocus(), apiDisabled = false, hasStandard = false, hasAny = false, sidewaysActive = false, unknownPad = '';
     const t = source => window.kitchenI18n?.t(source) || source;
     const pressed = button => typeof button === 'number' ? button > .5 : !!button?.pressed || Number(button?.value) > .5;
     const axis = value => Number.isFinite(value) ? Math.max(-1, Math.min(1, value)) : 0;
@@ -76,11 +78,14 @@
       hint.hidden = apiDisabled || !hasAny || mobile();
       if (hint.hidden) return;
       const waiting = !armed || hardBlocked();
-      const message = !hasStandard ? t('此手柄未提供标准映射，请使用键盘和鼠标。')
-        : (waiting ? t('手柄已连接') + ' · ' + t('请松开按键并将左摇杆回中') + ' · ' : '') + (sidewaysActive
+      // A controller the page cannot map names itself, so a player can report which one it is.
+      const message = !hasStandard ? t('此手柄未提供标准映射，请使用键盘和鼠标。') + (unknownPad ? ' (' + unknownPad + ')' : '')
+        : (waiting ? t('手柄已连接') + ' · ' + t('请松开按键并将左摇杆回中') + ' · ' : '') + (sidewaysActive && RIGHT.test(activeId)
+          ? t('摇杆移动 · 右键 拿放 · 左键 切洗扔（长按瞄准） · 下键 冲刺 · + 暂停/继续')
+          : sidewaysActive
           ? t('摇杆移动 · 右键 拿放 · 左键 切洗扔（长按瞄准） · 下键 冲刺 · − 暂停/继续')
           : t('左摇杆或十字键移动 · A/× 拿放 · X/□ 切洗扔（长按瞄准） · B/○ 冲刺 · Start/Options 暂停/继续'));
-      const kind = !hasStandard ? 'words' : sidewaysActive ? 'sideways' : PLAYSTATION.test(activeId) ? 'shapes' : 'letters';
+      const kind = !hasStandard ? 'words' : sidewaysActive ? (RIGHT.test(activeId) ? 'sidewaysRight' : 'sideways') : PLAYSTATION.test(activeId) ? 'shapes' : 'letters';
       if (hint.getAttribute('aria-label') !== message) { hint.setAttribute('aria-label', message); hint.title = message; }
       // The pictures stay faint until the stick is centred and the buttons released (the gamepad is not yet in use).
       hint.style.opacity = waiting && hasStandard ? '.55' : '1';
@@ -122,17 +127,18 @@
     // mode: the left stick (and the left arrow buttons) arrive as the D-pad, turned for a Joy-Con held sideways
     // (stick up is reported as left, down as right, left as down, right as up). Turn it back for the pair held upright.
     const MERGED_PAIR = { ...STANDARD, up: 14, down: 15, left: 13, right: 12 };
-    // One left Joy-Con held sideways, as Safari reports it ("Joy-Con (L) Gamepad", no standard mapping): the stick
-    // arrives as the D-pad already turned for the sideways hold, and the four round buttons are placed as on an
-    // Switch controller by label: right (A) takes and puts, left (Y position, Overcooked's chop) chops, bottom (B)
-    // dashes; − pauses.
-    const SIDEWAYS_LEFT = { a: 2, b: 0, x: 1, start: 9, up: 12, down: 13, left: 14, right: 15 };
+    // One Joy-Con held sideways, as Safari reports it ("Joy-Con (L) Gamepad" or "Joy-Con (R) Gamepad", no standard
+    // mapping): the stick arrives as the D-pad already turned for the sideways hold, and the four round buttons are
+    // placed as on a Switch controller by label: right (A) takes and puts, left (Y position, Overcooked's chop) chops,
+    // bottom (B) dashes; − on the left one and + on the right one pause. Both report the same indices (measured).
+    const SIDEWAYS = { a: 2, b: 0, x: 1, start: 9, up: 12, down: 13, left: 14, right: 15 };
+    const RIGHT = /joy-con \(r\)/i;
     // Safari reads the same pair through Apple's game controller framework ("Joy-Con (L/R) Extended Gamepad"),
     // which reports the stick on its axes and the arrow buttons upright, so only the browser's own reading turns.
     const merged = id => /joy-con \(l\/r\)/i.test(id) && !/extended gamepad/i.test(id);
     const layout = pad => pad.mapping === 'standard' ? (merged(pad.id || '') ? MERGED_PAIR : STANDARD)
-      : /joy-con \(l\)/i.test(pad.id || '') ? SIDEWAYS_LEFT : null;
-    const sideways = pad => layout(pad) === SIDEWAYS_LEFT;
+      : /joy-con \([lr]\)/i.test(pad.id || '') ? SIDEWAYS : null;
+    const sideways = pad => layout(pad) === SIDEWAYS;
     function sample(pad) {
       const buttons = pad.buttons || [], at = layout(pad) || STANDARD;
       const x = sideways(pad) ? 0 : axis(pad.axes?.[0]), y = sideways(pad) ? 0 : axis(pad.axes?.[1]);
@@ -165,6 +171,7 @@
       hasAny = available.length > 0;
       const standard = available.filter(pad => layout(pad));
       hasStandard = standard.length > 0;
+      unknownPad = hasStandard || !available.length ? '' : `${available[0].id || '?'} · mapping ${available[0].mapping || '-'}`;
       let pad = standard.find(p => p.index === activeIndex && p.id === activeId);
       if (activeIndex !== null && !pad) { interrupt(true); activeIndex = null; activeId = ''; }
       if (!pad && standard.length) {

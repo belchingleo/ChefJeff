@@ -6,6 +6,12 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 
 ## Unreleased
 
+### Controllers: one right Joy-Con, the controller named when it is not supported
+
+- One right Joy-Con held sideways works in Safari ("Joy-Con (R) Gamepad", no standard mapping), with the same buttons as the left one: right takes and puts, left chops, washes or throws, bottom dashes, + pauses. The picture hint shows + for it.
+- A controller the page cannot map is named in its notice (its id and mapping), so a player can say which one it is.
+- The English controller docs said Y dashes and B cancels an aim; they now match the game (B dashes, no aim cancel).
+
 ### Drying racks, pans that scoop, level 4 rearranged (rule change, model input change)
 
 - Every sink has a drying rack beside it, as Overcooked 2's washing station: dirty plates stack in the sink and stay there until washed (first in, washed first; none can be taken back out), each washed plate goes onto the rack (the newest on top), and Space at the sink with empty hands takes a clean plate from the rack. Both chefs play by it. Level 1 moves its stove and plate counter one cell right for the rack (its corner counter is now counter 2); levels 2 and 3 turn the counter beside the sink into it; on level 4 it stands on the sink's right. Maps, levels, the equipment catalog (`drying_rack`) and the ruleset move up a version; the contract and the level editor keep exactly one rack, beside the sink.
@@ -340,6 +346,12 @@ First private release: a local browser game with three playable maps and player-
 ## 更新记录
 
 ## 未发布
+
+### 手柄：单只右手柄，认不出的手柄会显示名称
+
+- Safari 里可以横握单只右手柄玩（“Joy-Con (R) Gamepad”，没有标准映射）。按键和左手柄一样：右键拿放，左键切、洗、扔，下键冲刺，+ 暂停。图示提示里暂停键画成 +。
+- 页面认不出的手柄，提示里会写出它的名称和 mapping，方便玩家说明用的是哪一种。
+- 英文的手柄说明还写着 Y 冲刺、B 取消瞄准，现在改成和游戏一致（B 冲刺，没有取消瞄准）。
 
 ### 沥水架、锅能盛菜、第四关重排（规则改动，模型输入改动）
 

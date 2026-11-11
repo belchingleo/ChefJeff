@@ -39,9 +39,9 @@ Use Safari or Chrome directly for the first trial. In-app browsers have not been
 
 ## Experimental desktop controller
 
-Use a WebGL-capable desktop browser with the Gamepad API on `localhost` or HTTPS; Chrome is the initial browser target. The browser may not expose a connected controller until you press a button. Only one active controller reporting the browser's `standard` mapping is used; nonstandard mappings are not guessed. This does not change the desktop layout or take over input while the phone touch layout is active.
+Use a WebGL-capable desktop browser with the Gamepad API on `localhost` or HTTPS; Chrome is the initial browser target. The browser may not expose a connected controller until you press a button. Only one active controller is used: one reporting the browser's `standard` mapping, or one of two Switch Joy-Con cases. A pair that macOS merges into "Joy-Con (L/R)" reports its left stick as a D-pad turned for a sideways hold, and the game turns it back. One left or right Joy-Con held sideways in Safari ("Joy-Con (L)" / "Joy-Con (R)", no standard mapping) has its own button table, the same for both. Other nonstandard mappings are not guessed; the notice names the controller. This does not change the desktop layout or take over input while the phone touch layout is active.
 
-The left stick or D-pad moves; A/× interacts (with an item, a tap acts on release and a hold of about 0.3 seconds aims, then releases to throw). X/□ dashes, B/○ cancels a controller aim without throwing, and Start/Options starts a ready round or opens Settings if no model is connected, pauses a running round, or resumes a paused one. At the result screen, A/× or Start/Options activates the next-round button. Model setup, communication and menu navigation still need the keyboard/mouse; this trial does not provide complete controller menu navigation. See [interaction guide](interaction-guide.md).
+The left stick or D-pad moves; A/× takes and puts; X/□ chops, washes or sprays, and with an item a tap throws ahead while a hold of about 0.3 seconds aims, then releasing throws; B/○ dashes. As in Overcooked 2 there is no button to cancel an aim. One Joy-Con held sideways: right button takes and puts, left button chops, washes or throws, bottom button dashes, − (left Joy-Con) or + (right) pauses or resumes. Start/Options starts a ready round or opens Settings if no model is connected, pauses a running round, or resumes a paused one. At the result screen, A/× or Start/Options activates the next-round button. Model setup, communication and menu navigation still need the keyboard/mouse; this trial does not provide complete controller menu navigation. See [interaction guide](interaction-guide.md).
 
 Losing focus, hiding the page, disconnecting, focusing an input field, opening a dialog, keyboard/mouse takeover or starting a new round clears held controller input and cancels pending actions. Center the stick and release buttons before taking control again; paused rounds never resume automatically. Disconnecting the active controller pauses play, while first connection or a controller not used for the game does not interrupt keyboard play. Real-controller compatibility remains unverified; scripted Gamepad/browser checks cannot establish hardware compatibility.
 
@@ -96,9 +96,9 @@ iPhone 上的所有浏览器（Safari、Chrome 等都使用 WebKit）都不支�
 
 ## 试验版桌面手柄
 
-使用支持 WebGL 和 Gamepad API 的桌面浏览器，网页需要在 `localhost` 或 HTTPS 上打开，首轮以 Chrome 为目标。浏览器可能需要先按一下手柄按钮才会发现设备。只接管一个采用浏览器 `standard` 映射的活动手柄，另外认得两种 Switch Joy-Con：macOS 把两只合成的“Joy-Con (L/R)”会把左摇杆按横握方向报成十字键，游戏把方向转回竖握；Safari 里单只左手柄横握（“Joy-Con (L)”，没有标准映射）有自己的按键表。其他非标准映射不猜测。桌面布局不变，手机触控布局启用时手柄不抢占输入。
+使用支持 WebGL 和 Gamepad API 的桌面浏览器，网页需要在 `localhost` 或 HTTPS 上打开，首轮以 Chrome 为目标。浏览器可能需要先按一下手柄按钮才会发现设备。只接管一个采用浏览器 `standard` 映射的活动手柄，另外认得两种 Switch Joy-Con：macOS 把两只合成的“Joy-Con (L/R)”会把左摇杆按横握方向报成十字键，游戏把方向转回竖握；Safari 里单只左手柄或右手柄横握（“Joy-Con (L)”“Joy-Con (R)”，没有标准映射）有自己的按键表，两只的键号相同。其他非标准映射不猜测。桌面布局不变，手机触控布局启用时手柄不抢占输入。
 
-左摇杆或十字键移动；A/× 拿放；X/□ 切、洗、喷，持物时短按向前扔，长按瞄准、松开投掷；B/○ 冲刺。和《Overcooked 2》一样，没有取消瞄准的键。单只左手柄横握时，右键拿放，左键切洗扔，下键冲刺，− 暂停或继续。Start/Options 在准备阶段开局（未连接模型时打开设置）、经营中暂停、暂停时继续。结算后 A/× 或 Start/Options 触发下一局主按钮。模型设置、沟通及菜单导航仍需键鼠，本轮不提供完整手柄菜单导航。见[交互指南](interaction-guide.md)。
+左摇杆或十字键移动；A/× 拿放；X/□ 切、洗、喷，持物时短按向前扔，长按瞄准、松开投掷；B/○ 冲刺。和《Overcooked 2》一样，没有取消瞄准的键。单只手柄横握时，右键拿放，左键切洗扔，下键冲刺，左手柄按 −、右手柄按 + 暂停或继续。Start/Options 在准备阶段开局（未连接模型时打开设置）、经营中暂停、暂停时继续。结算后 A/× 或 Start/Options 触发下一局主按钮。模型设置、沟通及菜单导航仍需键鼠，本轮不提供完整手柄菜单导航。见[交互指南](interaction-guide.md)。
 
 失焦、切后台、手柄断连、聚焦输入框、打开对话框、键鼠接管或新一局开始后，都会清理持续手柄输入并取消待执行动作。摇杆先归中、按键先放开，才能重新接管；暂停的对局不会自动继续。活动手柄断连会暂停，而初次连接或尚未用于游戏的手柄不会打断键盘操作。真实手柄兼容性尚未验证，脚本注入的 Gamepad／浏览器检查不能证明硬件兼容。
 
