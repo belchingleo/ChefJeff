@@ -823,10 +823,20 @@ export class KitchenClient extends Component {
     // What Space or E would act on: a faint lift of that surface (Overcooked-style), no frame.
     /** The station Space/E acts on (the one under the chef's front point): a light fill and a 2px denim
      * frame when there is something to do there, an ink frame alone when it is targeted but idle. */
+    /** The station Space or E would act on, as Overcooked 2 marks its highlighted object: a bright fill and a
+     *  thick frame with corner brackets just outside the tile (they stay visible over tall station art). Something
+     *  to do there is the player's blue; nothing to do (a full counter for what is held, the plate return for a
+     *  dirty plate) is the hot red, so a press that will not land shows before it is made. */
     private facedGlow(g:Graphics,x:number,y:number,w:number,h:number,actionable=true){
-        if(actionable){g.fillColor=new Color(255,250,236,70);g.rect(x,y,w,h);g.fill();}
-        const c=color(actionable?COLORS.human:COLORS.ink);if(!actionable)c.a=150;
-        g.strokeColor=c;g.lineWidth=2;g.rect(x+1,y+1,w-2,h-2);g.stroke();
+        const c=color(actionable?COLORS.human:COLORS.hot);
+        if(actionable){g.fillColor=new Color(255,250,236,110);g.rect(x,y,w,h);g.fill();}
+        g.strokeColor=c;g.lineWidth=3;g.rect(x+1.5,y+1.5,w-3,h-3);g.stroke();
+        // Corner brackets 3 px outside the tile, 4 px thick, 11 px long.
+        const o=3,t=4,l=11;g.fillColor=c;
+        for(const [cx,cy,sx,sy] of [[x-o,y-o,1,1],[x+w+o,y-o,-1,1],[x-o,y+h+o,1,-1],[x+w+o,y+h+o,-1,-1]] as number[][]){
+            g.rect(sx>0?cx:cx-l,sy>0?cy:cy-t,l,t);g.rect(sx>0?cx:cx-t,sy>0?cy:cy-l,t,l);
+        }
+        g.fill();
     }
     private paintBox(n:Node,w:number,h:number,fill:string){
         const g=n.getComponent(Graphics)||n.addComponent(Graphics);g.clear();
