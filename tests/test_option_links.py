@@ -138,7 +138,8 @@ class FastForkTests(unittest.TestCase):
 
 
 class PartnerTests(unittest.TestCase):
-    """option_links_partner: on a split floor, a put on a shared counter says the other chef can take the item there."""
+    """option_links_partner (v2): on a split floor, a put on a shared counter carries the other chef's chain on the item
+    in Jeff's own line, up to their first work on it."""
 
     def setUp(self):
         self.k = SpatialKitchen(level_config(load_config(), 'level-4'))
@@ -148,18 +149,22 @@ class PartnerTests(unittest.TestCase):
         client = SpatialJevClient(self.k.c, key='unit-test-not-a-real-key')
         return jev.compose_payload(client, self.k, self.k.snapshot(), self.k.actions('jeff'), [], None, links=links_value)
 
-    def test_a_shared_counter_put_names_what_the_other_chef_can_take(self):
+    def test_a_shared_counter_put_names_the_other_chefs_chain_up_to_chopping(self):
         state = self.payload('partner')['state']
         self.assertEqual(state['partner_links_version'], links.PARTNER_VERSION)
-        self.assertIn('links_partner', state['rules'])
-        shared = [key for key in state['option_links_partner'] if key.startswith('put counter')]
+        self.assertIn('then the other chef could', state['rules']['links'])
+        shared = [key for key in state['option_links'] if key.startswith('put counter')]
         self.assertTrue(shared)
-        self.assertTrue(all(any(line.startswith('Take') for line in state['option_links_partner'][key]) for key in shared))
-
-    def test_without_the_partner_switch_nothing_of_the_partner_is_sent(self):
-        state = self.payload(True)['state']
+        for key in shared:
+            chain = [line for line in state['option_links'][key] if line.startswith(links.THEN)]
+            self.assertEqual(len(chain), 1)
+            self.assertIn('Chop', chain[0])
         self.assertNotIn('option_links_partner', state)
-        self.assertNotIn('links_partner', state['rules'])
+
+    def test_without_the_partner_switch_no_chain_is_sent(self):
+        state = self.payload(True)['state']
+        self.assertFalse(any(line.startswith(links.THEN) for lines in state['option_links'].values() for line in lines))
+        self.assertNotIn('partner_links_version', state)
 
     def test_the_switch_is_a_trial_and_off_and_needs_option_links(self):
         loaded = features.load()

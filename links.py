@@ -259,32 +259,71 @@ def location(kitchen, target):
 # The partner's side (option_links_partner, partner-links-v1): after the option, what the other chef can newly do with
 # the item the chef held, taking it or working on it, or that the item is in the other chef's hands. Only actions whose
 # engine signature names that item count, so work the other chef gains only because time passed in the fork is left out.
-PARTNER_VERSION = 'partner-links-v1'
+# The partner's side (option_links_partner, partner-links-v2): for an option that leaves the held item where the other
+# chef can take it or in their hands, Jeff's own line goes on with what the other chef could then do with the item,
+# up to their first work on it ("then the other chef could: take it from Counter 4, then put it on Board 1, then chop
+# it"). Re-asked on level 4, this wording in Jeff's own table moved the most choices; v1 listed only the first step, in a
+# table of its own. The chain follows only the other chef's actions whose engine signature names the item, and never
+# steps that move it to another counter, the floor, the bin or the extinguisher, so it follows the item towards work.
+PARTNER_VERSION = 'partner-links-v2'
 PARTNER_KINDS = WORK + ('take_counter', 'take_board', 'take_plate', 'take_return', 'take_sink', 'pickup', 'lift_pot')
-HELD = 'would hold it'
-PARTNER_RULE = ('option_links_partner lists, for some options of next_action (by key), what the other chef could newly do '
-                'with the item you hold after that option (take it, or work on it), or that they would hold it, as the '
-                'game computes it if nothing else changes first. It does not say whether you should choose that option.')
+CHAIN_SKIP = ('go', 'throw', 'drop', 'discard', 'wait', 'stop', 'put_counter', 'take_tool')
+CHAIN_DEPTH = 3
+THEN = 'then the other chef could: '
+PARTNER_RULE = (' A line starting "then the other chef could" says what the other chef could do next with the item you '
+                'hold after that option, up to their first work on it, as the game computes it if nothing else changes '
+                'first.')
 
 
 def _names_item(expected, item):
     return any(isinstance(x, str) and x.split(':')[0] == item for x in expected or ())
 
 
-def partner_link(kitchen, twin, who, item):
-    """What the other chef can newly do with this item once the option is carried out (engine Actions), and whether
-    the item ends in their hands."""
+def _run(twin, who, action):
+    started = twin.start(who, action)
+    if not (started[0] if isinstance(started, tuple) else started):
+        return False
+    job = twin.chefs[who].job
+    if job is None:
+        return True
+    waited, limit = 0.0, max(0.0, job.travel) + max(0.0, job.work) + GRACE
+    while not twin.ended and waited < limit and twin.chefs[who].job is not None and twin.chefs[who].job.id == job.id:
+        twin.advance(STEP)
+        waited += STEP
+    return twin.chefs[who].job is None or twin.chefs[who].job.id != job.id
+
+
+def partner_chain(kitchen, twin, who, item):
+    """The other chef's shortest run of actions on the held item, after the option, that ends in work (breadth first,
+    at most CHAIN_DEPTH steps), or [] when the item is not where they can take it."""
     other = 'human' if who == 'jeff' else 'jeff'
     held = twin.chefs[other].hand is not None and twin.chefs[other].hand.id == item
     before = {(a.kind, a.target) for a in kitchen.actions(other)}
-    gained = [a for a in twin.actions(other) if a.kind in PARTNER_KINDS and (a.kind, a.target) not in before
-              and _names_item(a.expected, item)]
-    return held, gained[:MOST]
+    if not held and not any(a.kind in PARTNER_KINDS and (a.kind, a.target) not in before and _names_item(a.expected, item)
+                            for a in twin.actions(other)):
+        return []
+    frontier = [(twin, [])]
+    first = None
+    for _ in range(CHAIN_DEPTH):
+        nxt = []
+        for state, path in frontier:
+            for a in state.actions(other):
+                if a.kind in CHAIN_SKIP or not _names_item(a.expected, item):
+                    continue
+                if a.kind in WORK:
+                    return path + [a]
+                if first is None:
+                    first = path + [a]
+                fork = _fork(state)
+                if _run(fork, other, a):
+                    nxt.append((fork, path + [a]))
+        frontier = nxt[:6]
+    return first or []
 
 
-def table(kitchen, who, actions, keys, names=False, partner=None):
-    """{option key: [the work it leads to, in the request's English]} for the listed options that lead to new work.
-    partner, a dict, receives {option key: [what the other chef could then do with the held item]} (partner_link)."""
+def table(kitchen, who, actions, keys, names=False, partner=False):
+    """{option key: [the work it leads to, in the request's English]} for the listed options that lead to new work;
+    with partner (option_links_partner) also the other chef's chain on the held item (partner_chain)."""
     import contextlib
     import food_names
     import one_press
@@ -293,36 +332,33 @@ def table(kitchen, who, actions, keys, names=False, partner=None):
     out = {}
     with (food_names.naming() if names else contextlib.nullcontext()):
         now = kitchen.actions(who)
+        held_item = kitchen.chefs[who].hand
         for key in keys:
             option = by_key.get(key)
             seen = {}
             linked = link(kitchen, who, option, now, seen=seen) if option is not None else []
-            if linked:
-                out[key] = [unmark(english_text(a.label)) for a in linked]
-            held_item = kitchen.chefs[who].hand
+            lines = [unmark(english_text(a.label)) for a in linked]
             # Where a one-press option or an intent that puts first leaves the held item depends on put_where, which is
             # not known yet (the fork takes the first place), so those options get no partner line.
             guessed = option is not None and (option.kind in one_press.KINDS or (option.kind == 'intent' and option.expected[0] == 'put'))
-            if partner is not None and 'twin' in seen and held_item is not None and not guessed:
-                held, gained = partner_link(kitchen, seen['twin'], who, held_item.id)
-                lines = ([HELD] if held else []) + [unmark(english_text(a.label)) for a in gained]
-                if lines:
-                    partner[key] = lines
+            if partner and 'twin' in seen and held_item is not None and not guessed:
+                chain = partner_chain(kitchen, seen['twin'], who, held_item.id)
+                if chain:
+                    lines.append(THEN + ', then '.join(unmark(english_text(a.label)) for a in chain))
+            if lines:
+                out[key] = lines
     return out
 
 
 def apply(payload, kitchen, who, actions, names=False, partner=False):
     """The option_links switch on a composed request (translated, as sent): state.option_links, rules.links and
-    links_version; no option changes. partner (option_links_partner): also state.option_links_partner, its rule and
-    partner_links_version."""
+    links_version; no option changes. partner (option_links_partner): the other chef's chains in the same table, the
+    rule says so, and partner_links_version."""
     keys = list(payload['questions']['next_action']['criteria'])
-    other = {} if partner else None
-    payload['state']['option_links'] = table(kitchen, who, actions, keys, names, other)
-    payload['state']['rules']['links'] = SEPARATE_RULE
+    payload['state']['option_links'] = table(kitchen, who, actions, keys, names, partner)
+    payload['state']['rules']['links'] = SEPARATE_RULE + (PARTNER_RULE if partner else '')
     payload['state']['links_version'] = SWITCH_VERSION
     if partner:
-        payload['state']['option_links_partner'] = other
-        payload['state']['rules']['links_partner'] = PARTNER_RULE
         payload['state']['partner_links_version'] = PARTNER_VERSION
     return payload
 
