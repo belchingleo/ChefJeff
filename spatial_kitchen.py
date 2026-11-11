@@ -29,6 +29,10 @@ SIDE_HAND_RISE = .35
 # picked, and only the cell behind never is. Ties go in Overcooked 2's order: right, left, up, down. The pick
 # is purely geometric, so what is highlighted is what Space or E acts on.
 SELECT_AHEAD = .5
+# Overcooked 2's InteractWithItemHelper: a loose item counts when it lies in the half-disc ahead (c_InteractArc = pi)
+# within c_InteractRadius = 1 of the chef, measured to the item's edge (about 0.2 here); the one nearest the point
+# SELECT_AHEAD ahead is taken. Running past an item beside the chef still picks it up.
+ITEM_REACH = 1.2
 SELECT_MIN_DOT = math.cos(math.radians(135))
 SELECT_ORDER = ((1, 0), (-1, 0), (0, -1), (0, 1))  # Overcooked 2's offsets: +X, -X, +Z (north, up here), -Z
 # Chopping and washing need the hands over the station: the feet within this many cells of the centre
@@ -1039,8 +1043,8 @@ class SpatialKitchen(Kitchen):
         """What Space acts on, best first (Overcooked 2-style, no remembered selection).
 
         The selected station (see selectable_stations; `station` picks another one from that list,
-        as the player's page highlighted it), then a loose item on the aimed tile, one at the feet
-        and the partner standing there; the aimed floor tile comes last. Stations beside or behind
+        as the player's page highlighted it), then the loose items in the half-disc ahead within
+        ITEM_REACH (as Overcooked 2), and the partner standing there; the aimed floor tile comes last. Stations beside or behind
         are never picked. Returns (candidates, whether a station is ahead): facing a counter that is
         still out of reach never drops the held item on the floor instead.
         """
@@ -1060,10 +1064,13 @@ class SpatialKitchen(Kitchen):
         if station:
             cell=min(self.equipment[station].get('cells',[self.equipment[station]['cell']]),key=lambda c:math.dist(c,(px,py)))
             ranked.append((math.dist((px+ax*SELECT_AHEAD,py+ay*SELECT_AHEAD-SIDE_HAND_RISE*abs(ax)),cell),0,station))
-        for order,cell in ((1,front),(2,(x,y))):
-            for key,item in self.ground.items():
-                if self.cell(item.location)==cell:
-                    ranked.append((math.dist((px+ax*SELECT_AHEAD,py+ay*SELECT_AHEAD),self.ground_position(item)),order,'item:'+key));break
+        for key,item in self.ground.items():
+            ix,iy=self.ground_position(item)
+            # In the half-disc ahead within reach, or on the chef's own tile; the aimed tile ranks first on a tie.
+            feet=self.cell(item.location)==(x,y)
+            if not feet and (math.dist((px,py),(ix,iy))>ITEM_REACH or (ix-px)*ax+(iy-py)*ay<-1e-9):continue
+            order=1 if self.cell(item.location)==front else 2 if feet else 3
+            ranked.append((math.dist((px+ax*SELECT_AHEAD,py+ay*SELECT_AHEAD),(ix,iy)),order,'item:'+key))
         out=[key for *_,key in sorted(ranked,key=lambda r:(round(r[0],6),r[1]))]
         other='jeff' if who=='human' else 'human'
         if self.anchor(other)==front:out.append('partner')

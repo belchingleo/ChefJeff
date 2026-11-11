@@ -314,6 +314,8 @@ export function segmentDistance(p:number[],a:number[],b:number[]){
  * station and the first loose item on the aimed tile and on the feet tile, nearest first to a point half a
  * cell ahead (the station's at hand height when aiming sideways); ties keep station, aimed tile, feet.
  * Returns a station id, 'item:<food id>' or null. */
+/** spatial_kitchen.ITEM_REACH: how far a loose item may lie (to its centre) and still be picked. */
+export const ITEM_REACH=1.2;
 export function spaceTarget(map:any,pos:number[],aim:number[],ground:any[]):string|null{
     const length=Math.hypot(aim[0],aim[1]),anchor=anchorCell(map,pos);
     if(!length||!anchor)return null;
@@ -325,11 +327,15 @@ export function spaceTarget(map:any,pos:number[],aim:number[],ground:any[]):stri
         ranked.push([near(Math.hypot(pos[0]+ax*.5-cell[0],pos[1]+ay*.5-.35*Math.abs(ax)-cell[1])),0,station]);
     }
     const front=[anchor[0]+(Math.abs(ax)>=.38?Math.sign(ax):0),anchor[1]+(Math.abs(ay)>=.38?Math.sign(ay):0)];
-    [front,anchor].forEach((tile,i)=>{
-        // The tile an item rests on is its location key (floor_x_y), as in the engine.
-        const item=ground.find((g:any)=>g.position&&g.location===`floor_${tile[0]}_${tile[1]}`);
-        if(item)ranked.push([near(Math.hypot(pos[0]+ax*.5-item.position[0],pos[1]+ay*.5-item.position[1])),i+1,'item:'+item.food.id]);
-    });
+    // As the engine (spatial_kitchen ITEM_REACH, Overcooked 2's 180-degree interact arc): a loose item in the
+    // half-disc ahead within reach, or on the chef's own tile; the aimed tile ranks first on a tie, then the feet.
+    for(const item of ground){
+        if(!item.position)continue;
+        const at=(t:number[])=>item.location===`floor_${t[0]}_${t[1]}`,feet=at(anchor);
+        const dx=item.position[0]-pos[0],dy=item.position[1]-pos[1];
+        if(!feet&&(Math.hypot(dx,dy)>ITEM_REACH||dx*ax+dy*ay<-1e-9))continue;
+        ranked.push([near(Math.hypot(pos[0]+ax*.5-item.position[0],pos[1]+ay*.5-item.position[1])),at(front)?1:feet?2:3,'item:'+item.food.id]);
+    }
     ranked.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
     return ranked.length?ranked[0][2]:null;
 }
