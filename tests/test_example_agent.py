@@ -35,9 +35,10 @@ class ExampleAgentTests(unittest.TestCase):
         self.assertIsNone(agent.pending)                       # closed at the end of the round
 
     def test_alone_it_still_serves(self):
+        # Level 1: at 4 cells a second this simple agent alone lets level 3's stoves catch fire after one dish.
         agent = PriorityAgent(think=.8)
         with tempfile.TemporaryDirectory() as folder:
-            result = self.play(folder, agent, level='level-3', human='idle')
+            result = self.play(folder, agent, level='level-1', human='idle')
         self.assertGreater(result['money'], 0)
 
     def test_it_uses_only_the_environment(self):

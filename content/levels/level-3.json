@@ -103,7 +103,7 @@
   "round_limit_game_ms": 180000,
   "goal": {
     "type": "minimum_money",
-    "min_money": 160
+    "min_money": 140
   },
   "end_policy": {
     "type": "fixed_round"

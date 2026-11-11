@@ -24,7 +24,7 @@
     "ground_assembly": true
   },
   "movement": {
-    "walk_cells_per_game_s": 5.0,
+    "walk_cells_per_game_s": 4.0,
     "sprint_multiplier": 2.0,
     "sprint_duration_game_ms": 1000,
     "sprint_cooldown_game_ms": 0,

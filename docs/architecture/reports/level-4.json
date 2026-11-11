@@ -1,6 +1,6 @@
 {
   "analyzer_version": "capacity-analyzer-0.1",
-  "input_config_hash": "sha256:357ee9eef5d9ffc7788a918236313b324e3ff875d7c7b09aacc6a703150e22d3",
+  "input_config_hash": "sha256:2601414f8b24861fc0c1850045c97b84ba743bef82a10896558b659269aee032",
   "input_status": "frozen",
   "level_id": "level-4",
   "schema_valid": true,
@@ -252,7 +252,7 @@
     "orders": 38,
     "goal": {
       "type": "minimum_money",
-      "target_money": 100,
+      "target_money": 90,
       "revenue_ceiling": 2650,
       "orders_too_late_to_cook_from_scratch": 32
     },

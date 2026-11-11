@@ -8,933 +8,849 @@
    true
   ],
   [
-   2.0,
+   2.5,
    "jeff",
    "put b1",
    true
   ],
   [
-   3.0,
+   4.0,
    "jeff",
    "chop b1",
    true
   ],
   [
-   3.5,
+   4.5,
    "human",
    "chop b1",
    true
   ],
   [
-   5.0,
+   6.0,
    "jeff",
    "take b1",
    true
   ],
   [
-   5.5,
+   6.5,
    "jeff",
    "put p1",
    true
   ],
   [
-   17.5,
+   19.0,
    "jeff",
    "take pot p1",
    true
   ],
   [
-   18.0,
+   19.5,
    "jeff",
    "plate counter2",
    true
   ],
   [
-   19.0,
+   21.0,
    "human",
    "take counter2",
    true
   ],
   [
-   19.0,
+   21.0,
    "jeff",
    "put pot p1",
    true
   ],
   [
-   20.0,
+   22.5,
    "jeff",
    "fetch beef",
    true
   ],
   [
-   21.0,
+   23.5,
    "human",
    "serve",
    true
   ],
   [
-   22.0,
+   24.5,
    "human",
    "fetch bread",
    true
   ],
   [
-   22.0,
+   25.0,
    "jeff",
    "put b1",
    true
   ],
   [
-   23.0,
+   26.5,
    "jeff",
    "chop b1",
    true
   ],
   [
-   24.0,
+   27.0,
    "human",
    "assemble counter3",
    true
   ],
   [
-   25.5,
+   29.0,
    "jeff",
    "take b1",
    true
   ],
   [
-   26.0,
+   29.5,
    "jeff",
    "put p1",
-   true
-  ],
-  [
-   26.5,
-   "human",
-   "fetch lettuce",
-   true
-  ],
-  [
-   29.0,
-   "human",
-   "put b1",
    true
   ],
   [
    30.0,
    "human",
-   "chop b1",
+   "fetch lettuce",
    true
   ],
   [
-   30.5,
-   "jeff",
-   "chop b1",
+   34.0,
+   "human",
+   "put b1",
    true
   ],
   [
-   32.5,
+   35.0,
    "human",
    "take returns",
    true
   ],
   [
-   34.5,
+   37.5,
    "human",
    "put sink",
    true
   ],
   [
-   36.5,
+   40.0,
    "human",
    "wash",
-   true
-  ],
-  [
-   37.0,
-   "jeff",
-   "wash",
-   true
-  ],
-  [
-   38.5,
-   "human",
-   "take b1",
-   true
-  ],
-  [
-   38.5,
-   "jeff",
-   "take pot p1",
-   true
-  ],
-  [
-   39.5,
-   "human",
-   "assemble counter3",
    true
   ],
   [
    40.5,
    "jeff",
-   "plate counter3",
-   true
-  ],
-  [
-   41.5,
-   "jeff",
-   "put pot p1",
+   "wash",
    true
   ],
   [
    42.0,
    "human",
-   "assemble counter3",
+   "chop b1",
    true
   ],
   [
-   42.5,
-   "human",
-   "fetch tomato",
-   true
-  ],
-  [
-   42.5,
+   43.5,
    "jeff",
-   "fetch beef",
-   true
-  ],
-  [
-   44.5,
-   "human",
-   "put b1",
-   true
-  ],
-  [
-   44.5,
-   "jeff",
-   "put b1",
-   true
-  ],
-  [
-   45.0,
-   "human",
    "chop b1",
    true
   ],
   [
    45.5,
-   "jeff",
-   "put b2",
-   true
-  ],
-  [
-   46.0,
-   "jeff",
-   "chop b2",
-   true
-  ],
-  [
-   47.5,
    "human",
    "take b1",
    true
   ],
   [
-   48.0,
+   45.5,
+   "jeff",
+   "take pot p1",
+   true
+  ],
+  [
+   46.0,
    "human",
    "assemble counter3",
    true
   ],
   [
-   48.5,
+   48.0,
+   "jeff",
+   "plate counter3",
+   true
+  ],
+  [
+   49.0,
+   "human",
+   "fetch tomato",
+   true
+  ],
+  [
+   49.5,
+   "jeff",
+   "plate counter3",
+   true
+  ],
+  [
+   50.0,
+   "jeff",
+   "put pot p1",
+   true
+  ],
+  [
+   51.5,
+   "jeff",
+   "fetch beef",
+   true
+  ],
+  [
+   52.0,
+   "human",
+   "put b1",
+   true
+  ],
+  [
+   53.0,
+   "human",
+   "chop b1",
+   true
+  ],
+  [
+   54.0,
+   "jeff",
+   "put b2",
+   true
+  ],
+  [
+   55.5,
+   "human",
+   "take b1",
+   true
+  ],
+  [
+   55.5,
+   "jeff",
+   "chop b2",
+   true
+  ],
+  [
+   56.0,
+   "human",
+   "assemble counter3",
+   true
+  ],
+  [
+   58.0,
    "jeff",
    "take b2",
    true
   ],
   [
-   49.0,
+   58.5,
    "jeff",
    "put p1",
    true
   ],
   [
-   50.5,
+   59.0,
    "human",
    "take counter3",
    true
   ],
   [
-   51.0,
+   59.5,
    "human",
    "serve",
    true
   ],
   [
-   61.0,
-   "jeff",
-   "take pot p1",
-   true
-  ],
-  [
-   61.5,
+   60.5,
    "human",
-   "take returns",
+   "fetch bread",
    true
   ],
   [
-   61.5,
-   "jeff",
-   "plate plates",
-   true
-  ],
-  [
-   62.0,
+   63.0,
    "human",
-   "put sink",
+   "assemble plates",
    true
   ],
   [
-   62.5,
-   "jeff",
-   "put pot p1",
-   true
-  ],
-  [
-   63.5,
-   "jeff",
-   "fetch beef",
-   true
-  ],
-  [
-   64.0,
+   65.5,
    "human",
-   "take plates",
+   "fetch lettuce",
    true
   ],
   [
-   66.0,
-   "jeff",
+   68.0,
+   "human",
    "put b1",
    true
   ],
   [
-   66.5,
+   69.0,
    "human",
-   "serve",
-   true
-  ],
-  [
-   67.0,
-   "jeff",
    "chop b1",
-   true
-  ],
-  [
-   67.5,
-   "human",
-   "wash",
    true
   ],
   [
    69.5,
    "jeff",
-   "take b1",
-   true
-  ],
-  [
-   70.0,
-   "jeff",
-   "put p1",
+   "chop b1",
    true
   ],
   [
    71.5,
    "human",
-   "take dryer",
+   "take returns",
    true
   ],
   [
    72.0,
-   "human",
-   "put plates",
+   "jeff",
+   "take pot p1",
    true
   ],
   [
    74.0,
    "human",
-   "fetch bread",
+   "put sink",
+   true
+  ],
+  [
+   74.5,
+   "jeff",
+   "plate plates",
    true
   ],
   [
    76.0,
+   "jeff",
+   "put pot p1",
+   true
+  ],
+  [
+   76.5,
+   "human",
+   "wash",
+   true
+  ],
+  [
+   77.5,
+   "jeff",
+   "fetch beef",
+   true
+  ],
+  [
+   78.5,
+   "human",
+   "take b1",
+   true
+  ],
+  [
+   80.0,
    "human",
    "assemble plates",
    true
   ],
   [
-   78.0,
-   "human",
-   "take returns",
-   true
-  ],
-  [
-   79.0,
-   "human",
-   "put sink",
-   true
-  ],
-  [
-   81.0,
-   "human",
-   "wash",
+   80.0,
+   "jeff",
+   "put b1",
    true
   ],
   [
    81.5,
    "jeff",
-   "wash",
-   true
-  ],
-  [
-   83.0,
-   "human",
-   "fetch lettuce",
-   true
-  ],
-  [
-   83.5,
-   "human",
-   "put b1",
-   true
-  ],
-  [
-   83.5,
-   "jeff",
-   "take pot p1",
-   true
-  ],
-  [
-   84.5,
-   "human",
    "chop b1",
    true
   ],
   [
-   85.5,
-   "jeff",
-   "plate plates",
-   true
-  ],
-  [
-   86.5,
-   "jeff",
-   "put pot p1",
-   true
-  ],
-  [
-   87.0,
-   "human",
-   "take b1",
-   true
-  ],
-  [
-   87.5,
-   "human",
-   "assemble plates",
-   true
-  ],
-  [
-   87.5,
-   "jeff",
-   "fetch beef",
-   true
-  ],
-  [
-   89.5,
+   82.5,
    "human",
    "fetch tomato",
    true
   ],
   [
-   89.5,
+   84.0,
    "jeff",
+   "take b1",
+   true
+  ],
+  [
+   84.5,
+   "jeff",
+   "put p1",
+   true
+  ],
+  [
+   85.0,
+   "human",
    "put b1",
    true
   ],
   [
-   90.5,
+   86.0,
+   "human",
+   "chop b1",
+   true
+  ],
+  [
+   87.0,
    "jeff",
    "chop b1",
+   true
+  ],
+  [
+   88.5,
+   "human",
+   "take b1",
+   true
+  ],
+  [
+   89.0,
+   "human",
+   "assemble plates",
    true
   ],
   [
    91.5,
    "human",
-   "put b2",
-   true
-  ],
-  [
-   92.5,
-   "human",
-   "chop b2",
-   true
-  ],
-  [
-   93.0,
-   "jeff",
-   "take b1",
-   true
-  ],
-  [
-   93.5,
-   "jeff",
-   "put p1",
-   true
-  ],
-  [
-   95.0,
-   "human",
-   "take b2",
-   true
-  ],
-  [
-   95.5,
-   "human",
-   "assemble plates",
-   true
-  ],
-  [
-   97.5,
-   "human",
    "take plates",
    true
   ],
   [
-   98.0,
+   92.0,
    "human",
    "serve",
    true
   ],
   [
-   99.0,
+   93.0,
    "human",
    "take dryer",
    true
   ],
   [
-   101.0,
+   95.5,
    "human",
    "put plates",
    true
   ],
   [
-   103.0,
-   "human",
-   "fetch bread",
-   true
-  ],
-  [
-   105.0,
-   "human",
-   "assemble plates",
-   true
-  ],
-  [
-   105.5,
+   98.0,
    "jeff",
    "take pot p1",
    true
   ],
   [
-   106.0,
+   100.5,
    "jeff",
    "plate plates",
    true
   ],
   [
-   107.0,
-   "human",
-   "fetch lettuce",
-   true
-  ],
-  [
-   107.0,
-   "jeff",
-   "plate plates",
-   true
-  ],
-  [
-   107.5,
-   "jeff",
-   "put pot p1",
-   true
-  ],
-  [
-   108.5,
-   "jeff",
-   "fetch beef",
-   true
-  ],
-  [
-   109.0,
-   "human",
-   "put b1",
-   true
-  ],
-  [
-   110.0,
-   "human",
-   "take returns",
-   true
-  ],
-  [
-   110.5,
-   "jeff",
-   "put b2",
-   true
-  ],
-  [
-   111.5,
-   "jeff",
-   "chop b2",
-   true
-  ],
-  [
-   112.0,
-   "human",
-   "put sink",
-   true
-  ],
-  [
-   114.0,
-   "human",
-   "wash",
-   true
-  ],
-  [
-   114.0,
-   "jeff",
-   "take b2",
-   true
-  ],
-  [
-   114.5,
-   "jeff",
-   "put p1",
-   true
-  ],
-  [
-   116.0,
-   "human",
-   "chop b1",
-   true
-  ],
-  [
-   117.0,
-   "jeff",
-   "chop b1",
-   true
-  ],
-  [
-   119.0,
-   "human",
-   "take b1",
-   true
-  ],
-  [
-   119.5,
-   "human",
-   "assemble plates",
-   true
-  ],
-  [
-   121.5,
-   "human",
-   "fetch tomato",
-   true
-  ],
-  [
-   123.5,
-   "human",
-   "put b1",
-   true
-  ],
-  [
-   124.0,
-   "human",
-   "chop b1",
-   true
-  ],
-  [
-   124.5,
-   "jeff",
-   "chop b1",
-   true
-  ],
-  [
-   125.5,
-   "human",
-   "take b1",
-   true
-  ],
-  [
-   126.0,
-   "human",
-   "assemble plates",
-   true
-  ],
-  [
-   128.0,
+   102.0,
    "human",
    "take plates",
    true
   ],
   [
-   128.5,
+   102.0,
+   "jeff",
+   "put pot p1",
+   true
+  ],
+  [
+   102.5,
    "human",
    "serve",
    true
   ],
   [
-   129.5,
+   103.5,
+   "human",
+   "take dryer",
+   true
+  ],
+  [
+   103.5,
+   "jeff",
+   "fetch beef",
+   true
+  ],
+  [
+   106.0,
+   "human",
+   "put plates",
+   true
+  ],
+  [
+   106.5,
+   "jeff",
+   "put b1",
+   true
+  ],
+  [
+   108.0,
+   "jeff",
+   "chop b1",
+   true
+  ],
+  [
+   108.5,
+   "human",
+   "take returns",
+   true
+  ],
+  [
+   109.5,
+   "human",
+   "put sink",
+   true
+  ],
+  [
+   110.5,
+   "jeff",
+   "take b1",
+   true
+  ],
+  [
+   111.0,
+   "jeff",
+   "put p1",
+   true
+  ],
+  [
+   112.0,
+   "human",
+   "wash",
+   true
+  ],
+  [
+   113.5,
+   "jeff",
+   "wash",
+   true
+  ],
+  [
+   114.0,
+   "human",
+   "take returns",
+   true
+  ],
+  [
+   116.5,
+   "human",
+   "put sink",
+   true
+  ],
+  [
+   119.0,
+   "human",
+   "wash",
+   true
+  ],
+  [
+   119.5,
+   "jeff",
+   "wash",
+   true
+  ],
+  [
+   123.5,
+   "jeff",
+   "take pot p1",
+   true
+  ],
+  [
+   126.0,
+   "jeff",
+   "plate plates",
+   true
+  ],
+  [
+   127.5,
+   "human",
+   "take plates",
+   true
+  ],
+  [
+   127.5,
+   "jeff",
+   "put pot p1",
+   true
+  ],
+  [
+   129.0,
+   "jeff",
+   "fetch beef",
+   true
+  ],
+  [
+   130.0,
+   "human",
+   "serve",
+   true
+  ],
+  [
+   131.0,
    "human",
    "take dryer",
    true
   ],
   [
    131.5,
-   "human",
-   "put plates",
+   "jeff",
+   "put b1",
+   true
+  ],
+  [
+   133.0,
+   "jeff",
+   "chop b1",
    true
   ],
   [
    133.5,
-   "jeff",
-   "take pot p1",
+   "human",
+   "put plates",
    true
   ],
   [
    135.5,
    "jeff",
-   "plate plates",
+   "take b1",
    true
   ],
   [
-   136.5,
+   136.0,
    "human",
-   "take plates",
+   "fetch bread",
    true
   ],
   [
-   136.5,
+   136.0,
    "jeff",
-   "put pot p1",
+   "put p1",
    true
   ],
   [
-   137.0,
+   138.5,
    "human",
-   "serve",
+   "assemble plates",
    true
   ],
   [
-   137.5,
-   "jeff",
-   "fetch beef",
-   true
-  ],
-  [
-   138.0,
+   141.0,
    "human",
-   "take dryer",
-   true
-  ],
-  [
-   139.5,
-   "jeff",
-   "put b1",
-   true
-  ],
-  [
-   140.0,
-   "human",
-   "put plates",
-   true
-  ],
-  [
-   140.5,
-   "jeff",
-   "chop b1",
+   "take returns",
    true
   ],
   [
    142.0,
    "human",
-   "take returns",
-   true
-  ],
-  [
-   143.0,
-   "human",
    "put sink",
    true
   ],
   [
-   143.0,
-   "jeff",
-   "take b1",
-   true
-  ],
-  [
-   143.5,
-   "jeff",
-   "put p1",
-   true
-  ],
-  [
-   145.0,
+   144.5,
    "human",
    "wash",
    true
   ],
   [
-   145.5,
+   145.0,
    "jeff",
    "wash",
+   true
+  ],
+  [
+   146.5,
+   "human",
+   "fetch lettuce",
+   true
+  ],
+  [
+   147.0,
+   "human",
+   "put b1",
    true
   ],
   [
    148.0,
    "human",
-   "take returns",
+   "chop b1",
    true
   ],
   [
-   150.0,
-   "human",
-   "put sink",
+   148.5,
+   "jeff",
+   "take pot p1",
    true
   ],
   [
-   152.0,
+   150.5,
    "human",
-   "wash",
+   "take b1",
+   true
+  ],
+  [
+   151.0,
+   "human",
+   "assemble plates",
+   true
+  ],
+  [
+   151.0,
+   "jeff",
+   "plate plates",
    true
   ],
   [
    152.5,
    "jeff",
-   "wash",
-   true
-  ],
-  [
-   155.5,
-   "jeff",
-   "take pot p1",
-   true
-  ],
-  [
-   157.5,
-   "jeff",
-   "plate plates",
-   true
-  ],
-  [
-   158.5,
-   "human",
-   "take plates",
-   true
-  ],
-  [
-   158.5,
-   "jeff",
    "put pot p1",
    true
   ],
   [
-   159.5,
+   153.5,
+   "human",
+   "assemble plates",
+   true
+  ],
+  [
+   154.0,
+   "human",
+   "fetch tomato",
+   true
+  ],
+  [
+   154.0,
    "jeff",
    "fetch beef",
    true
   ],
   [
-   160.5,
+   156.5,
    "human",
-   "serve",
+   "put b1",
    true
   ],
   [
-   161.5,
-   "human",
-   "take dryer",
-   true
-  ],
-  [
-   161.5,
+   156.5,
    "jeff",
    "put b1",
    true
   ],
   [
-   162.5,
-   "jeff",
+   157.5,
+   "human",
    "chop b1",
    true
   ],
   [
-   163.5,
-   "human",
-   "put plates",
+   158.0,
+   "jeff",
+   "put b2",
    true
   ],
   [
-   165.0,
+   158.5,
    "jeff",
+   "chop b2",
+   true
+  ],
+  [
+   160.0,
+   "human",
    "take b1",
    true
   ],
   [
-   165.5,
+   160.5,
+   "human",
+   "assemble plates",
+   true
+  ],
+  [
+   161.0,
+   "jeff",
+   "take b2",
+   true
+  ],
+  [
+   161.5,
    "jeff",
    "put p1",
    true
   ],
   [
-   171.5,
+   163.0,
    "human",
-   "take returns",
+   "take plates",
    true
   ],
   [
-   172.5,
+   163.5,
    "human",
-   "put sink",
+   "serve",
    true
   ],
   [
-   174.5,
+   164.5,
    "human",
-   "wash",
+   "take dryer",
    true
   ],
   [
-   175.0,
-   "jeff",
-   "wash",
+   167.0,
+   "human",
+   "put plates",
    true
   ],
   [
-   177.5,
+   174.0,
    "jeff",
    "take pot p1",
    true
   ],
   [
-   179.5,
+   174.5,
+   "human",
+   "take returns",
+   true
+  ],
+  [
+   174.5,
    "jeff",
    "plate plates",
+   true
+  ],
+  [
+   175.5,
+   "human",
+   "put sink",
+   true
+  ],
+  [
+   176.0,
+   "jeff",
+   "put pot p1",
+   true
+  ],
+  [
+   177.5,
+   "jeff",
+   "fetch beef",
+   true
+  ],
+  [
+   178.0,
+   "human",
+   "take plates",
    true
   ]
  ],
@@ -961,2475 +877,2230 @@
    "Jeff开始：到冰箱取一份生肉（路程 2s + 操作 0.0s）"
   ],
   [
-   1.75,
+   2.2,
    "action_done",
    "jeff",
    "fetch beef",
    "Jeff完成动作：到冰箱取一份生肉"
   ],
   [
-   2.0,
+   2.5,
    "action_start",
    "jeff",
    "put b1",
    "Jeff开始：把手中物品放到案板 1（每格一件）（路程 1s + 操作 0.0s）"
   ],
   [
-   2.9,
+   3.65,
    "action_done",
    "jeff",
    "put b1",
    "Jeff完成动作：把手中物品放到案板 1（每格一件）"
   ],
   [
-   3.0,
+   4.0,
    "action_start",
    "jeff",
    "chop b1",
    "Jeff开始：到案板 1切 F1（剩 2.2s）（路程 0s + 操作 2.2s）"
   ],
   [
-   3.5,
+   4.5,
    "action_start",
    "human",
    "chop b1",
    "你开始：一起切配 F1（共享进度）（路程 1s + 操作 1.7s）"
   ],
   [
-   4.05,
+   5.15,
    "shared_work_join",
    "human",
    null,
    "你加入案板 1的共同操作（2人）"
   ],
   [
-   4.65,
+   5.7,
    "action_done",
    "human",
    "chop b1",
    "你完成动作：一起切配 F1（共享进度）"
   ],
   [
-   4.65,
+   5.7,
    "action_done",
    "jeff",
    "chop b1",
    "Jeff共同完成：到案板 1切 F1（剩 2.2s）"
   ],
   [
-   5.0,
+   6.0,
    "action_start",
    "jeff",
    "take b1",
    "Jeff开始：从案板 1拿起切好（路程 0s + 操作 0.0s）"
   ],
   [
-   5.05,
+   6.05,
    "action_done",
    "jeff",
    "take b1",
    "Jeff完成动作：从案板 1拿起切好"
   ],
   [
-   5.5,
+   6.5,
    "action_start",
    "jeff",
    "put p1",
    "Jeff开始：将切好的牛肉放进灶台 1的平底锅，开始自动加热（路程 2s + 操作 0.0s）"
   ],
   [
-   7.45,
+   8.9,
    "action_done",
    "jeff",
    "put p1",
    "Jeff完成动作：将切好的牛肉放进灶台 1的平底锅，开始自动加热"
   ],
   [
-   17.45,
+   18.9,
    "ready",
    null,
    null,
    "灶台 1的 F1 熟了！10s 后糊锅"
   ],
   [
-   17.5,
+   19.0,
    "action_start",
    "jeff",
    "take pot p1",
    "Jeff开始：端起灶台 1的平底锅（离开灶台停止加热，占手持位）（路程 0s + 操作 0.0s）"
   ],
   [
-   17.55,
+   19.05,
    "action_done",
    "jeff",
    "take pot p1",
    "Jeff完成动作：端起灶台 1的平底锅（离开灶台停止加热，占手持位）"
   ],
   [
-   18.0,
+   19.5,
    "action_start",
    "jeff",
    "plate counter2",
    "Jeff开始：把手中平底锅里的菜盛到柜台 2的盘里（空平底锅留在手中）（路程 1s + 操作 0.0s）"
   ],
   [
-   18.95,
+   20.7,
    "action_done",
    "jeff",
    "plate counter2",
    "Jeff完成动作：把手中平底锅里的菜盛到柜台 2的盘里（空平底锅留在手中）"
   ],
   [
-   19.0,
+   21.0,
    "action_start",
    "human",
    "take counter2",
    "你开始：从柜台 2拿起熟了（路程 2s + 操作 0.0s）"
   ],
   [
-   19.0,
+   21.0,
    "action_start",
    "jeff",
    "put pot p1",
    "Jeff开始：把手中的平底锅放回灶台 1（有食物时恢复加热）（路程 1s + 操作 0.0s）"
   ],
   [
-   19.95,
+   22.2,
    "action_done",
    "jeff",
    "put pot p1",
    "Jeff完成动作：把手中的平底锅放回灶台 1（有食物时恢复加热）"
   ],
   [
-   20.0,
+   22.5,
    "action_start",
    "jeff",
    "fetch beef",
    "Jeff开始：到冰箱取一份生肉（路程 2s + 操作 0.0s）"
   ],
   [
-   20.85,
+   23.3,
    "action_done",
    "human",
    "take counter2",
    "你完成动作：从柜台 2拿起熟了"
   ],
   [
-   21.0,
+   23.5,
    "action_start",
    "human",
    "serve",
    "你开始：拿已装盘的菜出餐（没有订单在等这道菜会扣钱，糊太久会被拒收）（路程 1s + 操作 0.0s）"
   ],
   [
-   21.6,
+   24.25,
    "served",
    "human",
    null,
    "你完成 O1，收入 +50 元"
   ],
   [
-   21.6,
+   24.25,
    "action_done",
    "human",
    "serve",
    "你完成动作：拿已装盘的菜出餐（没有订单在等这道菜会扣钱，糊太久会被拒收）"
   ],
   [
-   21.6,
+   24.25,
    "order",
    null,
    null,
-   "新订单 O3：汉堡，截止 112s"
+   "新订单 O3：汉堡，截止 114s"
   ],
   [
-   21.95,
-   "action_done",
-   "jeff",
-   "fetch beef",
-   "Jeff完成动作：到冰箱取一份生肉"
-  ],
-  [
-   22.0,
+   24.5,
    "action_start",
    "human",
    "fetch bread",
    "你开始：取一份面包（路程 2s + 操作 0.0s）"
   ],
   [
-   22.0,
+   24.9,
+   "action_done",
+   "jeff",
+   "fetch beef",
+   "Jeff完成动作：到冰箱取一份生肉"
+  ],
+  [
+   25.0,
    "action_start",
    "jeff",
    "put b1",
    "Jeff开始：把手中物品放到案板 1（每格一件）（路程 1s + 操作 0.0s）"
   ],
   [
-   22.9,
+   26.15,
    "action_done",
    "jeff",
    "put b1",
    "Jeff完成动作：把手中物品放到案板 1（每格一件）"
   ],
   [
-   23.0,
+   26.5,
    "action_start",
    "jeff",
    "chop b1",
    "Jeff开始：到案板 1切 F2（剩 2.2s）（路程 0s + 操作 2.2s）"
   ],
   [
-   23.9,
+   26.85,
    "action_done",
    "human",
    "fetch bread",
    "你完成动作：取一份面包"
   ],
   [
-   24.0,
+   27.0,
    "action_start",
    "human",
    "assemble counter3",
-   "你开始：把手中的面包放进柜台 3的盘里（路程 2s + 操作 0.0s）"
+   "你开始：把手中的面包放进柜台 3的盘里（路程 3s + 操作 0.0s）"
   ],
   [
-   25.2,
+   28.7,
    "action_done",
    "jeff",
    "chop b1",
    "Jeff完成动作：到案板 1切 F2（剩 2.2s）"
   ],
   [
-   25.5,
+   29.0,
    "action_start",
    "jeff",
    "take b1",
    "Jeff开始：从案板 1拿起切好（路程 0s + 操作 0.0s）"
   ],
   [
-   25.55,
+   29.05,
    "action_done",
    "jeff",
    "take b1",
    "Jeff完成动作：从案板 1拿起切好"
   ],
   [
-   26.0,
+   29.5,
    "action_start",
    "jeff",
    "put p1",
    "Jeff开始：将切好的牛肉放进灶台 1的平底锅，开始自动加热（路程 2s + 操作 0.0s）"
   ],
   [
-   26.05,
+   29.55,
    "action_done",
    "human",
    "assemble counter3",
    "你完成动作：把手中的面包放进柜台 3的盘里"
   ],
   [
-   26.5,
+   30.0,
    "action_start",
    "human",
    "fetch lettuce",
-   "你开始：取一份生菜（路程 2s + 操作 0.0s）"
+   "你开始：取一份生菜（路程 3s + 操作 0.0s）"
   ],
   [
-   27.95,
+   32.6,
+   "route_replanned",
+   "jeff",
+   null,
+   "Jeff受阻，重新规划路线"
+  ],
+  [
+   33.55,
    "action_done",
    "jeff",
    "put p1",
    "Jeff完成动作：将切好的牛肉放进灶台 1的平底锅，开始自动加热"
   ],
   [
-   28.6,
+   33.9,
    "action_done",
    "human",
    "fetch lettuce",
    "你完成动作：取一份生菜"
   ],
   [
-   29.0,
+   34.0,
    "action_start",
    "human",
    "put b1",
    "你开始：把手中物品放到案板 1（每格一件）（路程 1s + 操作 0.0s）"
   ],
   [
-   29.7,
-   "action_done",
-   "human",
-   "put b1",
-   "你完成动作：把手中物品放到案板 1（每格一件）"
-  ],
-  [
-   30.0,
-   "action_start",
-   "human",
-   "chop b1",
-   "你开始：到案板 1切 F4（剩 2.2s）（路程 0s + 操作 2.2s）"
-  ],
-  [
-   30.5,
-   "action_start",
-   "jeff",
-   "chop b1",
-   "Jeff开始：一起切配 F4（共享进度）（路程 2s + 操作 1.7s）"
-  ],
-  [
-   31.6,
+   34.25,
    "plate_returned",
    null,
    null,
    "D2 已回到脏盘回收点，洗净后可复用"
   ],
   [
-   32.2,
+   34.9,
    "action_done",
    "human",
-   "chop b1",
-   "你完成动作：到案板 1切 F4（剩 2.2s）"
+   "put b1",
+   "你完成动作：把手中物品放到案板 1（每格一件）"
   ],
   [
-   32.35,
-   "arrival_conflict",
-   "jeff",
-   null,
-   "Jeff到达后发现食材已不需要切配，动作取消"
-  ],
-  [
-   32.35,
-   "interrupted",
-   "jeff",
-   null,
-   "Jeff中断：一起切配 F4（共享进度）"
-  ],
-  [
-   32.5,
+   35.0,
    "action_start",
    "human",
    "take returns",
    "你开始：从脏盘回收拿起脏餐盘（路程 2s + 操作 0.0s）"
   ],
   [
-   34.5,
+   37.5,
    "action_done",
    "human",
    "take returns",
    "你完成动作：从脏盘回收拿起脏餐盘"
   ],
   [
-   34.5,
+   37.5,
    "action_start",
    "human",
    "put sink",
    "你开始：把脏餐盘放入水槽（路程 2s + 操作 0.0s）"
   ],
   [
-   36.35,
+   39.8,
    "action_done",
    "human",
    "put sink",
    "你完成动作：把脏餐盘放入水槽"
   ],
   [
-   36.5,
+   40.0,
    "action_start",
    "human",
    "wash",
    "你开始：洗碗（剩 2.0s；可中断续洗）（路程 0s + 操作 2.0s）"
-  ],
-  [
-   37.0,
-   "action_start",
-   "jeff",
-   "wash",
-   "Jeff开始：一起洗碗（共享进度）（路程 1s + 操作 1.5s）"
-  ],
-  [
-   37.9,
-   "shared_work_join",
-   "jeff",
-   null,
-   "Jeff加入水槽的共同操作（2人）"
-  ],
-  [
-   37.95,
-   "ready",
-   null,
-   null,
-   "灶台 1的 F2 熟了！10s 后糊锅"
-  ],
-  [
-   38.2,
-   "washed",
-   "jeff",
-   null,
-   "Jeff洗好了 D2，放在沥水架"
-  ],
-  [
-   38.2,
-   "action_done",
-   "jeff",
-   "wash",
-   "Jeff完成动作：一起洗碗（共享进度）"
-  ],
-  [
-   38.2,
-   "action_done",
-   "human",
-   "wash",
-   "你共同完成：洗碗（剩 2.0s；可中断续洗）"
-  ],
-  [
-   38.5,
-   "action_start",
-   "human",
-   "take b1",
-   "你开始：从案板 1拿起生菜 · 切好（路程 1s + 操作 0.0s）"
-  ],
-  [
-   38.5,
-   "action_start",
-   "jeff",
-   "take pot p1",
-   "Jeff开始：端起灶台 1的平底锅（离开灶台停止加热，占手持位）（路程 2s + 操作 0.0s）"
-  ],
-  [
-   39.45,
-   "action_done",
-   "human",
-   "take b1",
-   "你完成动作：从案板 1拿起生菜 · 切好"
-  ],
-  [
-   39.5,
-   "action_start",
-   "human",
-   "assemble counter3",
-   "你开始：把手中的生菜放进柜台 3的盘里（路程 2s + 操作 0.0s）"
-  ],
-  [
-   40.35,
-   "action_done",
-   "jeff",
-   "take pot p1",
-   "Jeff完成动作：端起灶台 1的平底锅（离开灶台停止加热，占手持位）"
   ],
   [
    40.5,
    "action_start",
    "jeff",
-   "plate counter3",
-   "Jeff开始：把手中平底锅里的菜盛到柜台 3的盘里（空平底锅留在手中）（路程 1s + 操作 0.0s）"
-  ],
-  [
-   41.45,
-   "action_done",
-   "jeff",
-   "plate counter3",
-   "Jeff完成动作：把手中平底锅里的菜盛到柜台 3的盘里（空平底锅留在手中）"
-  ],
-  [
-   41.5,
-   "action_start",
-   "jeff",
-   "put pot p1",
-   "Jeff开始：把手中的平底锅放回灶台 1（有食物时恢复加热）（路程 1s + 操作 0.0s）"
-  ],
-  [
-   41.65,
-   "arrival_conflict",
-   "human",
-   null,
-   "你到达后发现目标已变化或被占用，动作取消"
+   "wash",
+   "Jeff开始：一起洗碗（共享进度）（路程 2s + 操作 1.5s）"
   ],
   [
    42.0,
-   "action_start",
-   "human",
-   "assemble counter3",
-   "你开始：把手中的生菜放进柜台 3的盘里（路程 0s + 操作 0.0s）"
-  ],
-  [
-   42.05,
-   "action_done",
-   "human",
-   "assemble counter3",
-   "你完成动作：把手中的生菜放进柜台 3的盘里"
-  ],
-  [
-   42.5,
-   "action_done",
-   "jeff",
-   "put pot p1",
-   "Jeff完成动作：把手中的平底锅放回灶台 1（有食物时恢复加热）"
-  ],
-  [
-   42.5,
-   "action_start",
-   "human",
-   "fetch tomato",
-   "你开始：取一份番茄（路程 2s + 操作 0.0s）"
-  ],
-  [
-   42.5,
-   "action_start",
-   "jeff",
-   "fetch beef",
-   "Jeff开始：到冰箱取一份生肉（路程 2s + 操作 0.0s）"
-  ],
-  [
-   44.45,
-   "action_done",
-   "jeff",
-   "fetch beef",
-   "Jeff完成动作：到冰箱取一份生肉"
-  ],
-  [
-   44.5,
-   "action_done",
-   "human",
-   "fetch tomato",
-   "你完成动作：取一份番茄"
-  ],
-  [
-   44.5,
-   "action_start",
-   "human",
-   "put b1",
-   "你开始：把手中物品放到案板 1（每格一件）（路程 0s + 操作 0.0s）"
-  ],
-  [
-   44.5,
-   "action_start",
-   "jeff",
-   "put b1",
-   "Jeff开始：把手中物品放到案板 1（每格一件）（路程 1s + 操作 0.0s）"
-  ],
-  [
-   45.0,
-   "action_done",
-   "human",
-   "put b1",
-   "你完成动作：把手中物品放到案板 1（每格一件）"
-  ],
-  [
-   45.0,
-   "action_start",
-   "human",
-   "chop b1",
-   "你开始：到案板 1切 F6（剩 2.2s）（路程 0s + 操作 2.2s）"
-  ],
-  [
-   45.45,
-   "arrival_conflict",
-   "jeff",
-   null,
-   "Jeff到达后发现目标已变化或被占用，动作取消"
-  ],
-  [
-   45.5,
-   "action_start",
-   "jeff",
-   "put b2",
-   "Jeff开始：把手中物品放到案板 2（每格一件）（路程 0s + 操作 0.0s）"
-  ],
-  [
-   45.65,
-   "action_done",
-   "jeff",
-   "put b2",
-   "Jeff完成动作：把手中物品放到案板 2（每格一件）"
-  ],
-  [
-   46.0,
-   "action_start",
-   "jeff",
-   "chop b2",
-   "Jeff开始：到案板 2切 F5（剩 2.2s）（路程 0s + 操作 2.2s）"
-  ],
-  [
-   47.2,
-   "action_done",
-   "human",
-   "chop b1",
-   "你完成动作：到案板 1切 F6（剩 2.2s）"
-  ],
-  [
-   47.5,
-   "action_start",
-   "human",
-   "take b1",
-   "你开始：从案板 1拿起番茄 · 切好（路程 0s + 操作 0.0s）"
-  ],
-  [
-   47.55,
-   "action_done",
-   "human",
-   "take b1",
-   "你完成动作：从案板 1拿起番茄 · 切好"
-  ],
-  [
-   48.0,
-   "action_start",
-   "human",
-   "assemble counter3",
-   "你开始：把手中的番茄放进柜台 3的盘里（路程 2s + 操作 0.0s）"
-  ],
-  [
-   48.2,
-   "action_done",
-   "jeff",
-   "chop b2",
-   "Jeff完成动作：到案板 2切 F5（剩 2.2s）"
-  ],
-  [
-   48.5,
-   "action_start",
-   "jeff",
-   "take b2",
-   "Jeff开始：从案板 2拿起切好（路程 0s + 操作 0.0s）"
-  ],
-  [
-   48.55,
-   "action_done",
-   "jeff",
-   "take b2",
-   "Jeff完成动作：从案板 2拿起切好"
-  ],
-  [
-   49.0,
-   "action_start",
-   "jeff",
-   "put p1",
-   "Jeff开始：将切好的牛肉放进灶台 1的平底锅，开始自动加热（路程 2s + 操作 0.0s）"
-  ],
-  [
-   50.1,
-   "action_done",
-   "human",
-   "assemble counter3",
-   "你完成动作：把手中的番茄放进柜台 3的盘里"
-  ],
-  [
-   50.5,
-   "action_start",
-   "human",
-   "take counter3",
-   "你开始：从柜台 3拿起汉堡（路程 0s + 操作 0.0s）"
-  ],
-  [
-   50.55,
-   "action_done",
-   "human",
-   "take counter3",
-   "你完成动作：从柜台 3拿起汉堡"
-  ],
-  [
-   50.75,
-   "action_done",
-   "jeff",
-   "put p1",
-   "Jeff完成动作：将切好的牛肉放进灶台 1的平底锅，开始自动加热"
-  ],
-  [
-   51.0,
-   "action_start",
-   "human",
-   "serve",
-   "你开始：拿已装盘的菜出餐（没有订单在等这道菜会扣钱，糊太久会被拒收）（路程 0s + 操作 0.0s）"
-  ],
-  [
-   51.5,
-   "served",
-   "human",
-   null,
-   "你完成 O2，收入 +80 元"
-  ],
-  [
-   51.5,
-   "action_done",
-   "human",
-   "serve",
-   "你完成动作：拿已装盘的菜出餐（没有订单在等这道菜会扣钱，糊太久会被拒收）"
-  ],
-  [
-   51.5,
-   "order",
-   null,
-   null,
-   "新订单 O4：牛排，截止 112s"
-  ],
-  [
-   60.75,
-   "ready",
-   null,
-   null,
-   "灶台 1的 F5 熟了！10s 后糊锅"
-  ],
-  [
-   61.0,
-   "action_start",
-   "jeff",
-   "take pot p1",
-   "Jeff开始：端起灶台 1的平底锅（离开灶台停止加热，占手持位）（路程 0s + 操作 0.0s）"
-  ],
-  [
-   61.05,
-   "action_done",
-   "jeff",
-   "take pot p1",
-   "Jeff完成动作：端起灶台 1的平底锅（离开灶台停止加热，占手持位）"
-  ],
-  [
-   61.5,
-   "plate_returned",
-   null,
-   null,
-   "D3 已回到脏盘回收点，洗净后可复用"
-  ],
-  [
-   61.5,
-   "action_start",
-   "human",
-   "take returns",
-   "你开始：从脏盘回收拿起脏餐盘（路程 0s + 操作 0.0s）"
-  ],
-  [
-   61.5,
-   "action_start",
-   "jeff",
-   "plate plates",
-   "Jeff开始：把手中平底锅里的菜盛到柜台 1的盘里（空平底锅留在手中）（路程 1s + 操作 0.0s）"
-  ],
-  [
-   61.7,
-   "action_done",
-   "human",
-   "take returns",
-   "你完成动作：从脏盘回收拿起脏餐盘"
-  ],
-  [
-   62.0,
-   "action_start",
-   "human",
-   "put sink",
-   "你开始：把脏餐盘放入水槽（路程 2s + 操作 0.0s）"
-  ],
-  [
-   62.45,
-   "action_done",
-   "jeff",
-   "plate plates",
-   "Jeff完成动作：把手中平底锅里的菜盛到柜台 1的盘里（空平底锅留在手中）"
-  ],
-  [
-   62.5,
-   "action_start",
-   "jeff",
-   "put pot p1",
-   "Jeff开始：把手中的平底锅放回灶台 1（有食物时恢复加热）（路程 1s + 操作 0.0s）"
-  ],
-  [
-   63.45,
-   "action_done",
-   "jeff",
-   "put pot p1",
-   "Jeff完成动作：把手中的平底锅放回灶台 1（有食物时恢复加热）"
-  ],
-  [
-   63.5,
-   "action_start",
-   "jeff",
-   "fetch beef",
-   "Jeff开始：到冰箱取一份生肉（路程 2s + 操作 0.0s）"
-  ],
-  [
-   63.85,
-   "action_done",
-   "human",
-   "put sink",
-   "你完成动作：把脏餐盘放入水槽"
-  ],
-  [
-   64.0,
-   "action_start",
-   "human",
-   "take plates",
-   "你开始：从柜台 1拿起熟了（路程 2s + 操作 0.0s）"
-  ],
-  [
-   65.2,
-   "route_replanned",
-   "human",
-   null,
-   "你受阻，重新规划路线"
-  ],
-  [
-   65.55,
-   "action_done",
-   "jeff",
-   "fetch beef",
-   "Jeff完成动作：到冰箱取一份生肉"
-  ],
-  [
-   66.0,
-   "action_start",
-   "jeff",
-   "put b1",
-   "Jeff开始：把手中物品放到案板 1（每格一件）（路程 1s + 操作 0.0s）"
-  ],
-  [
-   66.15,
-   "action_done",
-   "human",
-   "take plates",
-   "你完成动作：从柜台 1拿起熟了"
-  ],
-  [
-   66.5,
-   "action_start",
-   "human",
-   "serve",
-   "你开始：拿已装盘的菜出餐（没有订单在等这道菜会扣钱，糊太久会被拒收）（路程 1s + 操作 0.0s）"
-  ],
-  [
-   66.9,
-   "action_done",
-   "jeff",
-   "put b1",
-   "Jeff完成动作：把手中物品放到案板 1（每格一件）"
-  ],
-  [
-   67.0,
-   "action_start",
-   "jeff",
-   "chop b1",
-   "Jeff开始：到案板 1切 F7（剩 2.2s）（路程 0s + 操作 2.2s）"
-  ],
-  [
-   67.2,
-   "served",
-   "human",
-   null,
-   "你完成 O4，收入 +50 元"
-  ],
-  [
-   67.2,
-   "action_done",
-   "human",
-   "serve",
-   "你完成动作：拿已装盘的菜出餐（没有订单在等这道菜会扣钱，糊太久会被拒收）"
-  ],
-  [
-   67.2,
-   "order",
-   null,
-   null,
-   "新订单 O5：汉堡，截止 157s"
-  ],
-  [
-   67.5,
-   "action_start",
-   "human",
-   "wash",
-   "你开始：洗碗（剩 2.0s；可中断续洗）（路程 2s + 操作 2.0s）"
-  ],
-  [
-   69.2,
-   "action_done",
-   "jeff",
-   "chop b1",
-   "Jeff完成动作：到案板 1切 F7（剩 2.2s）"
-  ],
-  [
-   69.5,
-   "action_start",
-   "jeff",
-   "take b1",
-   "Jeff开始：从案板 1拿起切好（路程 0s + 操作 0.0s）"
-  ],
-  [
-   69.55,
-   "action_done",
-   "jeff",
-   "take b1",
-   "Jeff完成动作：从案板 1拿起切好"
-  ],
-  [
-   70.0,
-   "action_start",
-   "jeff",
-   "put p1",
-   "Jeff开始：将切好的牛肉放进灶台 1的平底锅，开始自动加热（路程 2s + 操作 0.0s）"
-  ],
-  [
-   71.3,
-   "washed",
-   "human",
-   null,
-   "你洗好了 D3，放在沥水架"
-  ],
-  [
-   71.3,
-   "action_done",
-   "human",
-   "wash",
-   "你完成动作：洗碗（剩 2.0s；可中断续洗）"
-  ],
-  [
-   71.5,
-   "action_start",
-   "human",
-   "take dryer",
-   "你开始：从沥水架拿起干净餐盘（路程 0s + 操作 0.0s）"
-  ],
-  [
-   71.7,
-   "action_done",
-   "human",
-   "take dryer",
-   "你完成动作：从沥水架拿起干净餐盘"
-  ],
-  [
-   71.9,
-   "action_done",
-   "jeff",
-   "put p1",
-   "Jeff完成动作：将切好的牛肉放进灶台 1的平底锅，开始自动加热"
-  ],
-  [
-   72.0,
-   "action_start",
-   "human",
-   "put plates",
-   "你开始：把手中物品放到柜台 1（每格一件）（路程 2s + 操作 0.0s）"
-  ],
-  [
-   73.65,
-   "action_done",
-   "human",
-   "put plates",
-   "你完成动作：把手中物品放到柜台 1（每格一件）"
-  ],
-  [
-   74.0,
-   "action_start",
-   "human",
-   "fetch bread",
-   "你开始：取一份面包（路程 2s + 操作 0.0s）"
-  ],
-  [
-   75.85,
-   "action_done",
-   "human",
-   "fetch bread",
-   "你完成动作：取一份面包"
-  ],
-  [
-   76.0,
-   "action_start",
-   "human",
-   "assemble plates",
-   "你开始：把手中的面包放进柜台 1的盘里（路程 2s + 操作 0.0s）"
-  ],
-  [
-   77.2,
-   "plate_returned",
-   null,
-   null,
-   "D1 已回到脏盘回收点，洗净后可复用"
-  ],
-  [
-   77.85,
-   "action_done",
-   "human",
-   "assemble plates",
-   "你完成动作：把手中的面包放进柜台 1的盘里"
-  ],
-  [
-   78.0,
-   "action_start",
-   "human",
-   "take returns",
-   "你开始：从脏盘回收拿起脏餐盘（路程 1s + 操作 0.0s）"
-  ],
-  [
-   78.55,
-   "action_done",
-   "human",
-   "take returns",
-   "你完成动作：从脏盘回收拿起脏餐盘"
-  ],
-  [
-   79.0,
-   "action_start",
-   "human",
-   "put sink",
-   "你开始：把脏餐盘放入水槽（路程 2s + 操作 0.0s）"
-  ],
-  [
-   80.85,
-   "action_done",
-   "human",
-   "put sink",
-   "你完成动作：把脏餐盘放入水槽"
-  ],
-  [
-   81.0,
-   "action_start",
-   "human",
-   "wash",
-   "你开始：洗碗（剩 2.0s；可中断续洗）（路程 0s + 操作 2.0s）"
-  ],
-  [
-   81.5,
-   "action_start",
-   "jeff",
-   "wash",
-   "Jeff开始：一起洗碗（共享进度）（路程 2s + 操作 1.5s）"
-  ],
-  [
-   81.9,
-   "ready",
-   null,
-   null,
-   "灶台 1的 F7 熟了！10s 后糊锅"
-  ],
-  [
-   83.0,
-   "washed",
-   "human",
-   null,
-   "你洗好了 D1，放在沥水架"
-  ],
-  [
-   83.0,
-   "action_done",
-   "human",
-   "wash",
-   "你完成动作：洗碗（剩 2.0s；可中断续洗）"
-  ],
-  [
-   83.0,
-   "action_start",
-   "human",
-   "fetch lettuce",
-   "你开始：取一份生菜（路程 0s + 操作 0.0s）"
-  ],
-  [
-   83.2,
-   "interrupted",
-   "jeff",
-   null,
-   "Jeff中断：一起洗碗（共享进度）"
-  ],
-  [
-   83.35,
-   "action_done",
-   "human",
-   "fetch lettuce",
-   "你完成动作：取一份生菜"
-  ],
-  [
-   83.5,
-   "action_start",
-   "human",
-   "put b1",
-   "你开始：把手中物品放到案板 1（每格一件）（路程 1s + 操作 0.0s）"
-  ],
-  [
-   83.5,
-   "action_start",
-   "jeff",
-   "take pot p1",
-   "Jeff开始：端起灶台 1的平底锅（离开灶台停止加热，占手持位）（路程 2s + 操作 0.0s）"
-  ],
-  [
-   84.2,
-   "action_done",
-   "human",
-   "put b1",
-   "你完成动作：把手中物品放到案板 1（每格一件）"
-  ],
-  [
-   84.5,
-   "action_start",
-   "human",
-   "chop b1",
-   "你开始：到案板 1切 F9（剩 2.2s）（路程 0s + 操作 2.2s）"
-  ],
-  [
-   85.2,
-   "action_done",
-   "jeff",
-   "take pot p1",
-   "Jeff完成动作：端起灶台 1的平底锅（离开灶台停止加热，占手持位）"
-  ],
-  [
-   85.5,
-   "action_start",
-   "jeff",
-   "plate plates",
-   "Jeff开始：把手中平底锅里的菜盛到柜台 1的盘里（空平底锅留在手中）（路程 1s + 操作 0.0s）"
-  ],
-  [
-   86.45,
-   "action_done",
-   "jeff",
-   "plate plates",
-   "Jeff完成动作：把手中平底锅里的菜盛到柜台 1的盘里（空平底锅留在手中）"
-  ],
-  [
-   86.5,
-   "action_start",
-   "jeff",
-   "put pot p1",
-   "Jeff开始：把手中的平底锅放回灶台 1（有食物时恢复加热）（路程 1s + 操作 0.0s）"
-  ],
-  [
-   86.7,
-   "action_done",
-   "human",
-   "chop b1",
-   "你完成动作：到案板 1切 F9（剩 2.2s）"
-  ],
-  [
-   87.0,
-   "action_start",
-   "human",
-   "take b1",
-   "你开始：从案板 1拿起生菜 · 切好（路程 0s + 操作 0.0s）"
-  ],
-  [
-   87.05,
-   "action_done",
-   "human",
-   "take b1",
-   "你完成动作：从案板 1拿起生菜 · 切好"
-  ],
-  [
-   87.45,
-   "action_done",
-   "jeff",
-   "put pot p1",
-   "Jeff完成动作：把手中的平底锅放回灶台 1（有食物时恢复加热）"
-  ],
-  [
-   87.5,
-   "action_start",
-   "human",
-   "assemble plates",
-   "你开始：把手中的生菜放进柜台 1的盘里（路程 2s + 操作 0.0s）"
-  ],
-  [
-   87.5,
-   "action_start",
-   "jeff",
-   "fetch beef",
-   "Jeff开始：到冰箱取一份生肉（路程 2s + 操作 0.0s）"
-  ],
-  [
-   89.5,
-   "action_done",
-   "human",
-   "assemble plates",
-   "你完成动作：把手中的生菜放进柜台 1的盘里"
-  ],
-  [
-   89.5,
-   "action_done",
-   "jeff",
-   "fetch beef",
-   "Jeff完成动作：到冰箱取一份生肉"
-  ],
-  [
-   89.5,
-   "action_start",
-   "human",
-   "fetch tomato",
-   "你开始：取一份番茄（路程 2s + 操作 0.0s）"
-  ],
-  [
-   89.5,
-   "action_start",
-   "jeff",
-   "put b1",
-   "Jeff开始：把手中物品放到案板 1（每格一件）（路程 1s + 操作 0.0s）"
-  ],
-  [
-   90.4,
-   "action_done",
-   "jeff",
-   "put b1",
-   "Jeff完成动作：把手中物品放到案板 1（每格一件）"
-  ],
-  [
-   90.5,
-   "action_start",
-   "jeff",
-   "chop b1",
-   "Jeff开始：到案板 1切 F10（剩 2.2s）（路程 0s + 操作 2.2s）"
-  ],
-  [
-   91.35,
-   "action_done",
-   "human",
-   "fetch tomato",
-   "你完成动作：取一份番茄"
-  ],
-  [
-   91.5,
-   "action_start",
-   "human",
-   "put b2",
-   "你开始：把手中物品放到案板 2（每格一件）（路程 1s + 操作 0.0s）"
-  ],
-  [
-   92.05,
-   "action_done",
-   "human",
-   "put b2",
-   "你完成动作：把手中物品放到案板 2（每格一件）"
-  ],
-  [
-   92.5,
-   "action_start",
-   "human",
-   "chop b2",
-   "你开始：到案板 2切 F11（剩 2.2s）（路程 0s + 操作 2.2s）"
-  ],
-  [
-   92.7,
-   "action_done",
-   "jeff",
-   "chop b1",
-   "Jeff完成动作：到案板 1切 F10（剩 2.2s）"
-  ],
-  [
-   93.0,
-   "action_start",
-   "jeff",
-   "take b1",
-   "Jeff开始：从案板 1拿起切好（路程 0s + 操作 0.0s）"
-  ],
-  [
-   93.05,
-   "action_done",
-   "jeff",
-   "take b1",
-   "Jeff完成动作：从案板 1拿起切好"
-  ],
-  [
-   93.5,
-   "action_start",
-   "jeff",
-   "put p1",
-   "Jeff开始：将切好的牛肉放进灶台 1的平底锅，开始自动加热（路程 2s + 操作 0.0s）"
-  ],
-  [
-   94.7,
-   "action_done",
-   "human",
-   "chop b2",
-   "你完成动作：到案板 2切 F11（剩 2.2s）"
-  ],
-  [
-   95.0,
-   "action_start",
-   "human",
-   "take b2",
-   "你开始：从案板 2拿起番茄 · 切好（路程 0s + 操作 0.0s）"
-  ],
-  [
-   95.05,
-   "action_done",
-   "human",
-   "take b2",
-   "你完成动作：从案板 2拿起番茄 · 切好"
-  ],
-  [
-   95.4,
-   "action_done",
-   "jeff",
-   "put p1",
-   "Jeff完成动作：将切好的牛肉放进灶台 1的平底锅，开始自动加热"
-  ],
-  [
-   95.5,
-   "action_start",
-   "human",
-   "assemble plates",
-   "你开始：把手中的番茄放进柜台 1的盘里（路程 2s + 操作 0.0s）"
-  ],
-  [
-   97.2,
-   "order",
-   null,
-   null,
-   "新订单 O6：牛排，截止 157s"
-  ],
-  [
-   97.25,
-   "action_done",
-   "human",
-   "assemble plates",
-   "你完成动作：把手中的番茄放进柜台 1的盘里"
-  ],
-  [
-   97.5,
-   "action_start",
-   "human",
-   "take plates",
-   "你开始：从柜台 1拿起汉堡（路程 0s + 操作 0.0s）"
-  ],
-  [
-   97.55,
-   "action_done",
-   "human",
-   "take plates",
-   "你完成动作：从柜台 1拿起汉堡"
-  ],
-  [
-   98.0,
-   "action_start",
-   "human",
-   "serve",
-   "你开始：拿已装盘的菜出餐（没有订单在等这道菜会扣钱，糊太久会被拒收）（路程 1s + 操作 0.0s）"
-  ],
-  [
-   98.7,
-   "served",
-   "human",
-   null,
-   "你完成 O3，收入 +80 元"
-  ],
-  [
-   98.7,
-   "action_done",
-   "human",
-   "serve",
-   "你完成动作：拿已装盘的菜出餐（没有订单在等这道菜会扣钱，糊太久会被拒收）"
-  ],
-  [
-   99.0,
-   "action_start",
-   "human",
-   "take dryer",
-   "你开始：从沥水架拿起干净餐盘（路程 2s + 操作 0.0s）"
-  ],
-  [
-   100.7,
-   "action_done",
-   "human",
-   "take dryer",
-   "你完成动作：从沥水架拿起干净餐盘"
-  ],
-  [
-   101.0,
-   "action_start",
-   "human",
-   "put plates",
-   "你开始：把手中物品放到柜台 1（每格一件）（路程 2s + 操作 0.0s）"
-  ],
-  [
-   102.65,
-   "action_done",
-   "human",
-   "put plates",
-   "你完成动作：把手中物品放到柜台 1（每格一件）"
-  ],
-  [
-   103.0,
-   "action_start",
-   "human",
-   "fetch bread",
-   "你开始：取一份面包（路程 2s + 操作 0.0s）"
-  ],
-  [
-   104.85,
-   "action_done",
-   "human",
-   "fetch bread",
-   "你完成动作：取一份面包"
-  ],
-  [
-   105.0,
-   "action_start",
-   "human",
-   "assemble plates",
-   "你开始：把手中的面包放进柜台 1的盘里（路程 2s + 操作 0.0s）"
-  ],
-  [
-   105.4,
-   "ready",
-   null,
-   null,
-   "灶台 1的 F10 熟了！10s 后糊锅"
-  ],
-  [
-   105.5,
-   "action_start",
-   "jeff",
-   "take pot p1",
-   "Jeff开始：端起灶台 1的平底锅（离开灶台停止加热，占手持位）（路程 0s + 操作 0.0s）"
-  ],
-  [
-   105.55,
-   "action_done",
-   "jeff",
-   "take pot p1",
-   "Jeff完成动作：端起灶台 1的平底锅（离开灶台停止加热，占手持位）"
-  ],
-  [
-   106.0,
-   "action_start",
-   "jeff",
-   "plate plates",
-   "Jeff开始：把手中平底锅里的菜盛到柜台 1的盘里（空平底锅留在手中）（路程 1s + 操作 0.0s）"
-  ],
-  [
-   106.85,
-   "action_done",
-   "human",
-   "assemble plates",
-   "你完成动作：把手中的面包放进柜台 1的盘里"
-  ],
-  [
-   106.95,
-   "arrival_conflict",
-   "jeff",
-   null,
-   "Jeff到达后发现目标已变化或被占用，动作取消"
-  ],
-  [
-   107.0,
-   "action_start",
-   "human",
-   "fetch lettuce",
-   "你开始：取一份生菜（路程 2s + 操作 0.0s）"
-  ],
-  [
-   107.0,
-   "action_start",
-   "jeff",
-   "plate plates",
-   "Jeff开始：把手中平底锅里的菜盛到柜台 1的盘里（空平底锅留在手中）（路程 0s + 操作 0.0s）"
-  ],
-  [
-   107.05,
-   "action_done",
-   "jeff",
-   "plate plates",
-   "Jeff完成动作：把手中平底锅里的菜盛到柜台 1的盘里（空平底锅留在手中）"
-  ],
-  [
-   107.5,
-   "action_start",
-   "jeff",
-   "put pot p1",
-   "Jeff开始：把手中的平底锅放回灶台 1（有食物时恢复加热）（路程 1s + 操作 0.0s）"
-  ],
-  [
-   108.45,
-   "action_done",
-   "jeff",
-   "put pot p1",
-   "Jeff完成动作：把手中的平底锅放回灶台 1（有食物时恢复加热）"
-  ],
-  [
-   108.5,
-   "action_start",
-   "jeff",
-   "fetch beef",
-   "Jeff开始：到冰箱取一份生肉（路程 2s + 操作 0.0s）"
-  ],
-  [
-   108.7,
-   "plate_returned",
-   null,
-   null,
-   "D3 已回到脏盘回收点，洗净后可复用"
-  ],
-  [
-   108.85,
-   "action_done",
-   "human",
-   "fetch lettuce",
-   "你完成动作：取一份生菜"
-  ],
-  [
-   109.0,
-   "action_start",
-   "human",
-   "put b1",
-   "你开始：把手中物品放到案板 1（每格一件）（路程 1s + 操作 0.0s）"
-  ],
-  [
-   109.7,
-   "action_done",
-   "human",
-   "put b1",
-   "你完成动作：把手中物品放到案板 1（每格一件）"
-  ],
-  [
-   110.0,
-   "action_start",
-   "human",
-   "take returns",
-   "你开始：从脏盘回收拿起脏餐盘（路程 2s + 操作 0.0s）"
-  ],
-  [
-   110.45,
-   "action_done",
-   "jeff",
-   "fetch beef",
-   "Jeff完成动作：到冰箱取一份生肉"
-  ],
-  [
-   110.5,
-   "action_start",
-   "jeff",
-   "put b2",
-   "Jeff开始：把手中物品放到案板 2（每格一件）（路程 1s + 操作 0.0s）"
-  ],
-  [
-   111.45,
-   "action_done",
-   "jeff",
-   "put b2",
-   "Jeff完成动作：把手中物品放到案板 2（每格一件）"
-  ],
-  [
-   111.5,
-   "action_start",
-   "jeff",
-   "chop b2",
-   "Jeff开始：到案板 2切 F14（剩 2.2s）（路程 0s + 操作 2.2s）"
-  ],
-  [
-   112.0,
-   "action_done",
-   "human",
-   "take returns",
-   "你完成动作：从脏盘回收拿起脏餐盘"
-  ],
-  [
-   112.0,
-   "action_start",
-   "human",
-   "put sink",
-   "你开始：把脏餐盘放入水槽（路程 2s + 操作 0.0s）"
-  ],
-  [
-   113.7,
-   "action_done",
-   "jeff",
-   "chop b2",
-   "Jeff完成动作：到案板 2切 F14（剩 2.2s）"
-  ],
-  [
-   113.85,
-   "action_done",
-   "human",
-   "put sink",
-   "你完成动作：把脏餐盘放入水槽"
-  ],
-  [
-   114.0,
-   "action_start",
-   "human",
-   "wash",
-   "你开始：洗碗（剩 2.0s；可中断续洗）（路程 0s + 操作 2.0s）"
-  ],
-  [
-   114.0,
-   "action_start",
-   "jeff",
-   "take b2",
-   "Jeff开始：从案板 2拿起切好（路程 0s + 操作 0.0s）"
-  ],
-  [
-   114.05,
-   "action_done",
-   "jeff",
-   "take b2",
-   "Jeff完成动作：从案板 2拿起切好"
-  ],
-  [
-   114.5,
-   "action_start",
-   "jeff",
-   "put p1",
-   "Jeff开始：将切好的牛肉放进灶台 1的平底锅，开始自动加热（路程 2s + 操作 0.0s）"
-  ],
-  [
-   116.0,
-   "washed",
-   "human",
-   null,
-   "你洗好了 D3，放在沥水架"
-  ],
-  [
-   116.0,
-   "action_done",
-   "human",
-   "wash",
-   "你完成动作：洗碗（剩 2.0s；可中断续洗）"
-  ],
-  [
-   116.0,
-   "action_start",
-   "human",
-   "chop b1",
-   "你开始：到案板 1切 F13（剩 2.2s）（路程 1s + 操作 2.2s）"
-  ],
-  [
-   116.25,
-   "action_done",
-   "jeff",
-   "put p1",
-   "Jeff完成动作：将切好的牛肉放进灶台 1的平底锅，开始自动加热"
-  ],
-  [
-   117.0,
-   "action_start",
-   "jeff",
-   "chop b1",
-   "Jeff开始：一起切配 F13（共享进度）（路程 2s + 操作 2.1s）"
-  ],
-  [
-   118.85,
-   "shared_work_join",
-   "jeff",
-   null,
-   "Jeff加入案板 1的共同操作（2人）"
-  ],
-  [
-   119.0,
-   "action_done",
-   "human",
-   "chop b1",
-   "你完成动作：到案板 1切 F13（剩 2.2s）"
-  ],
-  [
-   119.0,
-   "action_done",
-   "jeff",
-   "chop b1",
-   "Jeff共同完成：一起切配 F13（共享进度）"
-  ],
-  [
-   119.0,
-   "action_start",
-   "human",
-   "take b1",
-   "你开始：从案板 1拿起生菜 · 切好（路程 0s + 操作 0.0s）"
-  ],
-  [
-   119.05,
-   "action_done",
-   "human",
-   "take b1",
-   "你完成动作：从案板 1拿起生菜 · 切好"
-  ],
-  [
-   119.5,
-   "action_start",
-   "human",
-   "assemble plates",
-   "你开始：把手中的生菜放进柜台 1的盘里（路程 2s + 操作 0.0s）"
-  ],
-  [
-   121.45,
-   "action_done",
-   "human",
-   "assemble plates",
-   "你完成动作：把手中的生菜放进柜台 1的盘里"
-  ],
-  [
-   121.5,
-   "action_start",
-   "human",
-   "fetch tomato",
-   "你开始：取一份番茄（路程 2s + 操作 0.0s）"
-  ],
-  [
-   123.35,
-   "action_done",
-   "human",
-   "fetch tomato",
-   "你完成动作：取一份番茄"
-  ],
-  [
-   123.5,
-   "action_start",
-   "human",
-   "put b1",
-   "你开始：把手中物品放到案板 1（每格一件）（路程 0s + 操作 0.0s）"
-  ],
-  [
-   124.0,
-   "action_done",
-   "human",
-   "put b1",
-   "你完成动作：把手中物品放到案板 1（每格一件）"
-  ],
-  [
-   124.0,
-   "action_start",
-   "human",
-   "chop b1",
-   "你开始：到案板 1切 F15（剩 2.2s）（路程 0s + 操作 2.2s）"
-  ],
-  [
-   124.5,
-   "action_start",
-   "jeff",
-   "chop b1",
-   "Jeff开始：一起切配 F15（共享进度）（路程 0s + 操作 1.7s）"
-  ],
-  [
-   124.55,
-   "shared_work_join",
-   "jeff",
-   null,
-   "Jeff加入案板 1的共同操作（2人）"
-  ],
-  [
-   125.4,
-   "action_done",
-   "human",
-   "chop b1",
-   "你完成动作：到案板 1切 F15（剩 2.2s）"
-  ],
-  [
-   125.4,
-   "action_done",
-   "jeff",
-   "chop b1",
-   "Jeff共同完成：一起切配 F15（共享进度）"
-  ],
-  [
-   125.5,
-   "action_start",
-   "human",
-   "take b1",
-   "你开始：从案板 1拿起番茄 · 切好（路程 0s + 操作 0.0s）"
-  ],
-  [
-   125.55,
-   "action_done",
-   "human",
-   "take b1",
-   "你完成动作：从案板 1拿起番茄 · 切好"
-  ],
-  [
-   126.0,
-   "action_start",
-   "human",
-   "assemble plates",
-   "你开始：把手中的番茄放进柜台 1的盘里（路程 2s + 操作 0.0s）"
-  ],
-  [
-   126.25,
-   "ready",
-   null,
-   null,
-   "灶台 1的 F14 熟了！10s 后糊锅"
-  ],
-  [
-   127.2,
-   "order",
-   null,
-   null,
-   "新订单 O7：牛排，截止 187s"
-  ],
-  [
-   127.95,
-   "action_done",
-   "human",
-   "assemble plates",
-   "你完成动作：把手中的番茄放进柜台 1的盘里"
-  ],
-  [
-   128.0,
-   "action_start",
-   "human",
-   "take plates",
-   "你开始：从柜台 1拿起汉堡（路程 0s + 操作 0.0s）"
-  ],
-  [
-   128.05,
-   "action_done",
-   "human",
-   "take plates",
-   "你完成动作：从柜台 1拿起汉堡"
-  ],
-  [
-   128.5,
-   "action_start",
-   "human",
-   "serve",
-   "你开始：拿已装盘的菜出餐（没有订单在等这道菜会扣钱，糊太久会被拒收）（路程 1s + 操作 0.0s）"
-  ],
-  [
-   129.2,
-   "served",
-   "human",
-   null,
-   "你完成 O5，收入 +80 元"
-  ],
-  [
-   129.2,
-   "action_done",
-   "human",
-   "serve",
-   "你完成动作：拿已装盘的菜出餐（没有订单在等这道菜会扣钱，糊太久会被拒收）"
-  ],
-  [
-   129.5,
-   "action_start",
-   "human",
-   "take dryer",
-   "你开始：从沥水架拿起干净餐盘（路程 2s + 操作 0.0s）"
-  ],
-  [
-   131.2,
-   "action_done",
-   "human",
-   "take dryer",
-   "你完成动作：从沥水架拿起干净餐盘"
-  ],
-  [
-   131.5,
-   "action_start",
-   "human",
-   "put plates",
-   "你开始：把手中物品放到柜台 1（每格一件）（路程 2s + 操作 0.0s）"
-  ],
-  [
-   133.15,
-   "action_done",
-   "human",
-   "put plates",
-   "你完成动作：把手中物品放到柜台 1（每格一件）"
-  ],
-  [
-   133.5,
-   "action_start",
-   "jeff",
-   "take pot p1",
-   "Jeff开始：端起灶台 1的平底锅（离开灶台停止加热，占手持位）（路程 2s + 操作 0.0s）"
-  ],
-  [
-   135.35,
-   "action_done",
-   "jeff",
-   "take pot p1",
-   "Jeff完成动作：端起灶台 1的平底锅（离开灶台停止加热，占手持位）"
-  ],
-  [
-   135.5,
-   "action_start",
-   "jeff",
-   "plate plates",
-   "Jeff开始：把手中平底锅里的菜盛到柜台 1的盘里（空平底锅留在手中）（路程 1s + 操作 0.0s）"
-  ],
-  [
-   136.45,
-   "action_done",
-   "jeff",
-   "plate plates",
-   "Jeff完成动作：把手中平底锅里的菜盛到柜台 1的盘里（空平底锅留在手中）"
-  ],
-  [
-   136.5,
-   "action_start",
-   "human",
-   "take plates",
-   "你开始：从柜台 1拿起熟了（路程 0s + 操作 0.0s）"
-  ],
-  [
-   136.5,
-   "action_start",
-   "jeff",
-   "put pot p1",
-   "Jeff开始：把手中的平底锅放回灶台 1（有食物时恢复加热）（路程 1s + 操作 0.0s）"
-  ],
-  [
-   136.55,
-   "action_done",
-   "human",
-   "take plates",
-   "你完成动作：从柜台 1拿起熟了"
-  ],
-  [
-   137.0,
-   "action_start",
-   "human",
-   "serve",
-   "你开始：拿已装盘的菜出餐（没有订单在等这道菜会扣钱，糊太久会被拒收）（路程 1s + 操作 0.0s）"
-  ],
-  [
-   137.45,
-   "action_done",
-   "jeff",
-   "put pot p1",
-   "Jeff完成动作：把手中的平底锅放回灶台 1（有食物时恢复加热）"
-  ],
-  [
-   137.5,
-   "action_start",
-   "jeff",
-   "fetch beef",
-   "Jeff开始：到冰箱取一份生肉（路程 2s + 操作 0.0s）"
-  ],
-  [
-   137.7,
-   "served",
-   "human",
-   null,
-   "你完成 O6，收入 +50 元"
-  ],
-  [
-   137.7,
-   "action_done",
-   "human",
-   "serve",
-   "你完成动作：拿已装盘的菜出餐（没有订单在等这道菜会扣钱，糊太久会被拒收）"
-  ],
-  [
-   137.7,
-   "order",
-   null,
-   null,
-   "新订单 O8：汉堡，截止 228s"
-  ],
-  [
-   138.0,
-   "action_start",
-   "human",
-   "take dryer",
-   "你开始：从沥水架拿起干净餐盘（路程 2s + 操作 0.0s）"
-  ],
-  [
-   139.2,
-   "plate_returned",
-   null,
-   null,
-   "D1 已回到脏盘回收点，洗净后可复用"
-  ],
-  [
-   139.45,
-   "action_done",
-   "jeff",
-   "fetch beef",
-   "Jeff完成动作：到冰箱取一份生肉"
-  ],
-  [
-   139.5,
-   "action_start",
-   "jeff",
-   "put b1",
-   "Jeff开始：把手中物品放到案板 1（每格一件）（路程 1s + 操作 0.0s）"
-  ],
-  [
-   139.7,
-   "action_done",
-   "human",
-   "take dryer",
-   "你完成动作：从沥水架拿起干净餐盘"
-  ],
-  [
-   140.0,
-   "action_start",
-   "human",
-   "put plates",
-   "你开始：把手中物品放到柜台 1（每格一件）（路程 2s + 操作 0.0s）"
-  ],
-  [
-   140.4,
-   "action_done",
-   "jeff",
-   "put b1",
-   "Jeff完成动作：把手中物品放到案板 1（每格一件）"
-  ],
-  [
-   140.5,
-   "action_start",
-   "jeff",
-   "chop b1",
-   "Jeff开始：到案板 1切 F16（剩 2.2s）（路程 0s + 操作 2.2s）"
-  ],
-  [
-   141.65,
-   "action_done",
-   "human",
-   "put plates",
-   "你完成动作：把手中物品放到柜台 1（每格一件）"
-  ],
-  [
-   142.0,
-   "action_start",
-   "human",
-   "take returns",
-   "你开始：从脏盘回收拿起脏餐盘（路程 1s + 操作 0.0s）"
-  ],
-  [
-   142.55,
-   "action_done",
-   "human",
-   "take returns",
-   "你完成动作：从脏盘回收拿起脏餐盘"
-  ],
-  [
-   142.7,
-   "action_done",
-   "jeff",
-   "chop b1",
-   "Jeff完成动作：到案板 1切 F16（剩 2.2s）"
-  ],
-  [
-   143.0,
-   "action_start",
-   "human",
-   "put sink",
-   "你开始：把脏餐盘放入水槽（路程 2s + 操作 0.0s）"
-  ],
-  [
-   143.0,
-   "action_start",
-   "jeff",
-   "take b1",
-   "Jeff开始：从案板 1拿起切好（路程 0s + 操作 0.0s）"
-  ],
-  [
-   143.05,
-   "action_done",
-   "jeff",
-   "take b1",
-   "Jeff完成动作：从案板 1拿起切好"
-  ],
-  [
-   143.5,
-   "action_start",
-   "jeff",
-   "put p1",
-   "Jeff开始：将切好的牛肉放进灶台 1的平底锅，开始自动加热（路程 2s + 操作 0.0s）"
-  ],
-  [
-   144.85,
-   "action_done",
-   "human",
-   "put sink",
-   "你完成动作：把脏餐盘放入水槽"
-  ],
-  [
-   145.0,
-   "action_start",
-   "human",
-   "wash",
-   "你开始：洗碗（剩 2.0s；可中断续洗）（路程 0s + 操作 2.0s）"
-  ],
-  [
-   145.4,
-   "action_done",
-   "jeff",
-   "put p1",
-   "Jeff完成动作：将切好的牛肉放进灶台 1的平底锅，开始自动加热"
-  ],
-  [
-   145.5,
-   "action_start",
-   "jeff",
-   "wash",
-   "Jeff开始：一起洗碗（共享进度）（路程 2s + 操作 1.5s）"
-  ],
-  [
-   147.0,
-   "washed",
-   "human",
-   null,
-   "你洗好了 D1，放在沥水架"
-  ],
-  [
-   147.0,
-   "action_done",
-   "human",
-   "wash",
-   "你完成动作：洗碗（剩 2.0s；可中断续洗）"
-  ],
-  [
-   147.2,
-   "interrupted",
-   "jeff",
-   null,
-   "Jeff中断：一起洗碗（共享进度）"
-  ],
-  [
-   147.7,
-   "plate_returned",
-   null,
-   null,
-   "D3 已回到脏盘回收点，洗净后可复用"
-  ],
-  [
-   148.0,
-   "action_start",
-   "human",
-   "take returns",
-   "你开始：从脏盘回收拿起脏餐盘（路程 2s + 操作 0.0s）"
-  ],
-  [
-   149.85,
-   "action_done",
-   "human",
-   "take returns",
-   "你完成动作：从脏盘回收拿起脏餐盘"
-  ],
-  [
-   150.0,
-   "action_start",
-   "human",
-   "put sink",
-   "你开始：把脏餐盘放入水槽（路程 2s + 操作 0.0s）"
-  ],
-  [
-   151.85,
-   "action_done",
-   "human",
-   "put sink",
-   "你完成动作：把脏餐盘放入水槽"
-  ],
-  [
-   152.0,
-   "action_start",
-   "human",
-   "wash",
-   "你开始：洗碗（剩 2.0s；可中断续洗）（路程 0s + 操作 2.0s）"
-  ],
-  [
-   152.5,
-   "action_start",
-   "jeff",
-   "wash",
-   "Jeff开始：一起洗碗（共享进度）（路程 0s + 操作 1.5s）"
-  ],
-  [
-   152.55,
-   "shared_work_join",
-   "jeff",
-   null,
-   "Jeff加入水槽的共同操作（2人）"
-  ],
-  [
-   153.25,
-   "washed",
-   "jeff",
-   null,
-   "Jeff洗好了 D3，放在沥水架"
-  ],
-  [
-   153.25,
-   "action_done",
-   "jeff",
-   "wash",
-   "Jeff完成动作：一起洗碗（共享进度）"
-  ],
-  [
-   153.25,
-   "action_done",
-   "human",
-   "wash",
-   "你共同完成：洗碗（剩 2.0s；可中断续洗）"
-  ],
-  [
-   155.4,
-   "ready",
-   null,
-   null,
-   "灶台 1的 F16 熟了！10s 后糊锅"
-  ],
-  [
-   155.5,
-   "action_start",
-   "jeff",
-   "take pot p1",
-   "Jeff开始：端起灶台 1的平底锅（离开灶台停止加热，占手持位）（路程 2s + 操作 0.0s）"
-  ],
-  [
-   157.2,
-   "action_done",
-   "jeff",
-   "take pot p1",
-   "Jeff完成动作：端起灶台 1的平底锅（离开灶台停止加热，占手持位）"
-  ],
-  [
-   157.5,
-   "action_start",
-   "jeff",
-   "plate plates",
-   "Jeff开始：把手中平底锅里的菜盛到柜台 1的盘里（空平底锅留在手中）（路程 1s + 操作 0.0s）"
-  ],
-  [
-   158.45,
-   "action_done",
-   "jeff",
-   "plate plates",
-   "Jeff完成动作：把手中平底锅里的菜盛到柜台 1的盘里（空平底锅留在手中）"
-  ],
-  [
-   158.5,
-   "action_start",
-   "human",
-   "take plates",
-   "你开始：从柜台 1拿起熟了（路程 2s + 操作 0.0s）"
-  ],
-  [
-   158.5,
-   "action_start",
-   "jeff",
-   "put pot p1",
-   "Jeff开始：把手中的平底锅放回灶台 1（有食物时恢复加热）（路程 1s + 操作 0.0s）"
-  ],
-  [
-   159.45,
-   "action_done",
-   "jeff",
-   "put pot p1",
-   "Jeff完成动作：把手中的平底锅放回灶台 1（有食物时恢复加热）"
-  ],
-  [
-   159.5,
-   "action_start",
-   "jeff",
-   "fetch beef",
-   "Jeff开始：到冰箱取一份生肉（路程 2s + 操作 0.0s）"
-  ],
-  [
-   160.3,
-   "action_done",
-   "human",
-   "take plates",
-   "你完成动作：从柜台 1拿起熟了"
-  ],
-  [
-   160.5,
-   "action_start",
-   "human",
-   "serve",
-   "你开始：拿已装盘的菜出餐（没有订单在等这道菜会扣钱，糊太久会被拒收）（路程 1s + 操作 0.0s）"
-  ],
-  [
-   161.15,
-   "served",
-   "human",
-   null,
-   "你完成 O7，收入 +50 元"
-  ],
-  [
-   161.15,
-   "action_done",
-   "human",
-   "serve",
-   "你完成动作：拿已装盘的菜出餐（没有订单在等这道菜会扣钱，糊太久会被拒收）"
-  ],
-  [
-   161.15,
-   "order",
-   null,
-   null,
-   "新订单 O9：牛排，截止 221s"
-  ],
-  [
-   161.45,
-   "action_done",
-   "jeff",
-   "fetch beef",
-   "Jeff完成动作：到冰箱取一份生肉"
-  ],
-  [
-   161.5,
-   "action_start",
-   "human",
-   "take dryer",
-   "你开始：从沥水架拿起干净餐盘（路程 2s + 操作 0.0s）"
-  ],
-  [
-   161.5,
-   "action_start",
-   "jeff",
-   "put b1",
-   "Jeff开始：把手中物品放到案板 1（每格一件）（路程 1s + 操作 0.0s）"
-  ],
-  [
-   162.4,
-   "action_done",
-   "jeff",
-   "put b1",
-   "Jeff完成动作：把手中物品放到案板 1（每格一件）"
-  ],
-  [
-   162.5,
-   "action_start",
-   "jeff",
-   "chop b1",
-   "Jeff开始：到案板 1切 F17（剩 2.2s）（路程 0s + 操作 2.2s）"
-  ],
-  [
-   163.2,
-   "action_done",
-   "human",
-   "take dryer",
-   "你完成动作：从沥水架拿起干净餐盘"
-  ],
-  [
-   163.5,
-   "action_start",
-   "human",
-   "put plates",
-   "你开始：把手中物品放到柜台 1（每格一件）（路程 2s + 操作 0.0s）"
-  ],
-  [
-   164.7,
-   "action_done",
-   "jeff",
-   "chop b1",
-   "Jeff完成动作：到案板 1切 F17（剩 2.2s）"
-  ],
-  [
-   165.0,
-   "action_start",
-   "jeff",
-   "take b1",
-   "Jeff开始：从案板 1拿起切好（路程 0s + 操作 0.0s）"
-  ],
-  [
-   165.05,
-   "action_done",
-   "jeff",
-   "take b1",
-   "Jeff完成动作：从案板 1拿起切好"
-  ],
-  [
-   165.15,
-   "action_done",
-   "human",
-   "put plates",
-   "你完成动作：把手中物品放到柜台 1（每格一件）"
-  ],
-  [
-   165.5,
-   "action_start",
-   "jeff",
-   "put p1",
-   "Jeff开始：将切好的牛肉放进灶台 1的平底锅，开始自动加热（路程 2s + 操作 0.0s）"
-  ],
-  [
-   167.4,
-   "action_done",
-   "jeff",
-   "put p1",
-   "Jeff完成动作：将切好的牛肉放进灶台 1的平底锅，开始自动加热"
-  ],
-  [
-   171.15,
-   "plate_returned",
-   null,
-   null,
-   "D2 已回到脏盘回收点，洗净后可复用"
-  ],
-  [
-   171.5,
-   "action_start",
-   "human",
-   "take returns",
-   "你开始：从脏盘回收拿起脏餐盘（路程 1s + 操作 0.0s）"
-  ],
-  [
-   172.05,
-   "action_done",
-   "human",
-   "take returns",
-   "你完成动作：从脏盘回收拿起脏餐盘"
-  ],
-  [
-   172.5,
-   "action_start",
-   "human",
-   "put sink",
-   "你开始：把脏餐盘放入水槽（路程 2s + 操作 0.0s）"
-  ],
-  [
-   174.35,
-   "action_done",
-   "human",
-   "put sink",
-   "你完成动作：把脏餐盘放入水槽"
-  ],
-  [
-   174.5,
-   "action_start",
-   "human",
-   "wash",
-   "你开始：洗碗（剩 2.0s；可中断续洗）（路程 0s + 操作 2.0s）"
-  ],
-  [
-   175.0,
-   "action_start",
-   "jeff",
-   "wash",
-   "Jeff开始：一起洗碗（共享进度）（路程 2s + 操作 1.5s）"
-  ],
-  [
-   176.5,
    "washed",
    "human",
    null,
    "你洗好了 D2，放在沥水架"
   ],
   [
-   176.5,
+   42.0,
    "action_done",
    "human",
    "wash",
    "你完成动作：洗碗（剩 2.0s；可中断续洗）"
   ],
   [
-   176.7,
+   42.0,
+   "action_start",
+   "human",
+   "chop b1",
+   "你开始：到案板 1切 F4（剩 2.2s）（路程 1s + 操作 2.2s）"
+  ],
+  [
+   42.6,
    "interrupted",
    "jeff",
    null,
    "Jeff中断：一起洗碗（共享进度）"
   ],
   [
-   177.4,
+   43.5,
+   "action_start",
+   "jeff",
+   "chop b1",
+   "Jeff开始：一起切配 F4（共享进度）（路程 1s + 操作 1.9s）"
+  ],
+  [
+   43.55,
    "ready",
    null,
    null,
-   "灶台 1的 F17 熟了！10s 后糊锅"
+   "灶台 1的 F2 熟了！10s 后糊锅"
   ],
   [
-   177.5,
+   44.7,
+   "shared_work_join",
+   "jeff",
+   null,
+   "Jeff加入案板 1的共同操作（2人）"
+  ],
+  [
+   45.05,
+   "action_done",
+   "human",
+   "chop b1",
+   "你完成动作：到案板 1切 F4（剩 2.2s）"
+  ],
+  [
+   45.05,
+   "action_done",
+   "jeff",
+   "chop b1",
+   "Jeff共同完成：一起切配 F4（共享进度）"
+  ],
+  [
+   45.5,
+   "action_start",
+   "human",
+   "take b1",
+   "你开始：从案板 1拿起生菜 · 切好（路程 0s + 操作 0.0s）"
+  ],
+  [
+   45.5,
    "action_start",
    "jeff",
    "take pot p1",
    "Jeff开始：端起灶台 1的平底锅（离开灶台停止加热，占手持位）（路程 2s + 操作 0.0s）"
   ],
   [
-   179.2,
+   45.55,
+   "action_done",
+   "human",
+   "take b1",
+   "你完成动作：从案板 1拿起生菜 · 切好"
+  ],
+  [
+   46.0,
+   "action_start",
+   "human",
+   "assemble counter3",
+   "你开始：把手中的生菜放进柜台 3的盘里（路程 3s + 操作 0.0s）"
+  ],
+  [
+   47.8,
    "action_done",
    "jeff",
    "take pot p1",
    "Jeff完成动作：端起灶台 1的平底锅（离开灶台停止加热，占手持位）"
   ],
   [
-   179.5,
+   48.0,
+   "action_start",
+   "jeff",
+   "plate counter3",
+   "Jeff开始：把手中平底锅里的菜盛到柜台 3的盘里（空平底锅留在手中）（路程 1s + 操作 0.0s）"
+  ],
+  [
+   48.6,
+   "action_done",
+   "human",
+   "assemble counter3",
+   "你完成动作：把手中的生菜放进柜台 3的盘里"
+  ],
+  [
+   49.0,
+   "action_start",
+   "human",
+   "fetch tomato",
+   "你开始：取一份番茄（路程 2s + 操作 0.0s）"
+  ],
+  [
+   49.05,
+   "arrival_conflict",
+   "jeff",
+   null,
+   "Jeff到达后发现目标已变化或被占用，动作取消"
+  ],
+  [
+   49.5,
+   "action_start",
+   "jeff",
+   "plate counter3",
+   "Jeff开始：把手中平底锅里的菜盛到柜台 3的盘里（空平底锅留在手中）（路程 0s + 操作 0.0s）"
+  ],
+  [
+   49.8,
+   "action_done",
+   "jeff",
+   "plate counter3",
+   "Jeff完成动作：把手中平底锅里的菜盛到柜台 3的盘里（空平底锅留在手中）"
+  ],
+  [
+   50.0,
+   "action_start",
+   "jeff",
+   "put pot p1",
+   "Jeff开始：把手中的平底锅放回灶台 1（有食物时恢复加热）（路程 1s + 操作 0.0s）"
+  ],
+  [
+   51.25,
+   "action_done",
+   "jeff",
+   "put pot p1",
+   "Jeff完成动作：把手中的平底锅放回灶台 1（有食物时恢复加热）"
+  ],
+  [
+   51.5,
+   "action_start",
+   "jeff",
+   "fetch beef",
+   "Jeff开始：到冰箱取一份生肉（路程 2s + 操作 0.0s）"
+  ],
+  [
+   51.55,
+   "action_done",
+   "human",
+   "fetch tomato",
+   "你完成动作：取一份番茄"
+  ],
+  [
+   52.0,
+   "action_start",
+   "human",
+   "put b1",
+   "你开始：把手中物品放到案板 1（每格一件）（路程 1s + 操作 0.0s）"
+  ],
+  [
+   52.65,
+   "action_done",
+   "human",
+   "put b1",
+   "你完成动作：把手中物品放到案板 1（每格一件）"
+  ],
+  [
+   53.0,
+   "action_start",
+   "human",
+   "chop b1",
+   "你开始：到案板 1切 F5（剩 2.2s）（路程 0s + 操作 2.2s）"
+  ],
+  [
+   53.9,
+   "action_done",
+   "jeff",
+   "fetch beef",
+   "Jeff完成动作：到冰箱取一份生肉"
+  ],
+  [
+   54.0,
+   "action_start",
+   "jeff",
+   "put b2",
+   "Jeff开始：把手中物品放到案板 2（每格一件）（路程 1s + 操作 0.0s）"
+  ],
+  [
+   54.25,
+   "order",
+   null,
+   null,
+   "新订单 O4：牛排，截止 114s"
+  ],
+  [
+   55.2,
+   "action_done",
+   "human",
+   "chop b1",
+   "你完成动作：到案板 1切 F5（剩 2.2s）"
+  ],
+  [
+   55.2,
+   "action_done",
+   "jeff",
+   "put b2",
+   "Jeff完成动作：把手中物品放到案板 2（每格一件）"
+  ],
+  [
+   55.5,
+   "action_start",
+   "human",
+   "take b1",
+   "你开始：从案板 1拿起番茄 · 切好（路程 0s + 操作 0.0s）"
+  ],
+  [
+   55.5,
+   "action_start",
+   "jeff",
+   "chop b2",
+   "Jeff开始：到案板 2切 F6（剩 2.2s）（路程 0s + 操作 2.2s）"
+  ],
+  [
+   55.55,
+   "action_done",
+   "human",
+   "take b1",
+   "你完成动作：从案板 1拿起番茄 · 切好"
+  ],
+  [
+   56.0,
+   "action_start",
+   "human",
+   "assemble counter3",
+   "你开始：把手中的番茄放进柜台 3的盘里（路程 3s + 操作 0.0s）"
+  ],
+  [
+   57.7,
+   "action_done",
+   "jeff",
+   "chop b2",
+   "Jeff完成动作：到案板 2切 F6（剩 2.2s）"
+  ],
+  [
+   58.0,
+   "action_start",
+   "jeff",
+   "take b2",
+   "Jeff开始：从案板 2拿起切好（路程 0s + 操作 0.0s）"
+  ],
+  [
+   58.05,
+   "action_done",
+   "jeff",
+   "take b2",
+   "Jeff完成动作：从案板 2拿起切好"
+  ],
+  [
+   58.5,
+   "action_start",
+   "jeff",
+   "put p1",
+   "Jeff开始：将切好的牛肉放进灶台 1的平底锅，开始自动加热（路程 2s + 操作 0.0s）"
+  ],
+  [
+   58.6,
+   "action_done",
+   "human",
+   "assemble counter3",
+   "你完成动作：把手中的番茄放进柜台 3的盘里"
+  ],
+  [
+   59.0,
+   "action_start",
+   "human",
+   "take counter3",
+   "你开始：从柜台 3拿起汉堡（路程 0s + 操作 0.0s）"
+  ],
+  [
+   59.05,
+   "action_done",
+   "human",
+   "take counter3",
+   "你完成动作：从柜台 3拿起汉堡"
+  ],
+  [
+   59.5,
+   "action_start",
+   "human",
+   "serve",
+   "你开始：拿已装盘的菜出餐（没有订单在等这道菜会扣钱，糊太久会被拒收）（路程 1s + 操作 0.0s）"
+  ],
+  [
+   60.15,
+   "served",
+   "human",
+   null,
+   "你完成 O2，收入 +80 元"
+  ],
+  [
+   60.15,
+   "action_done",
+   "human",
+   "serve",
+   "你完成动作：拿已装盘的菜出餐（没有订单在等这道菜会扣钱，糊太久会被拒收）"
+  ],
+  [
+   60.5,
+   "action_start",
+   "human",
+   "fetch bread",
+   "你开始：取一份面包（路程 2s + 操作 0.0s）"
+  ],
+  [
+   60.7,
+   "action_done",
+   "jeff",
+   "put p1",
+   "Jeff完成动作：将切好的牛肉放进灶台 1的平底锅，开始自动加热"
+  ],
+  [
+   62.85,
+   "action_done",
+   "human",
+   "fetch bread",
+   "你完成动作：取一份面包"
+  ],
+  [
+   63.0,
+   "action_start",
+   "human",
+   "assemble plates",
+   "你开始：把手中的面包放进柜台 1的盘里（路程 2s + 操作 0.0s）"
+  ],
+  [
+   65.3,
+   "action_done",
+   "human",
+   "assemble plates",
+   "你完成动作：把手中的面包放进柜台 1的盘里"
+  ],
+  [
+   65.5,
+   "action_start",
+   "human",
+   "fetch lettuce",
+   "你开始：取一份生菜（路程 2s + 操作 0.0s）"
+  ],
+  [
+   67.8,
+   "action_done",
+   "human",
+   "fetch lettuce",
+   "你完成动作：取一份生菜"
+  ],
+  [
+   68.0,
+   "action_start",
+   "human",
+   "put b1",
+   "你开始：把手中物品放到案板 1（每格一件）（路程 1s + 操作 0.0s）"
+  ],
+  [
+   68.9,
+   "action_done",
+   "human",
+   "put b1",
+   "你完成动作：把手中物品放到案板 1（每格一件）"
+  ],
+  [
+   69.0,
+   "action_start",
+   "human",
+   "chop b1",
+   "你开始：到案板 1切 F8（剩 2.2s）（路程 0s + 操作 2.2s）"
+  ],
+  [
+   69.5,
+   "action_start",
+   "jeff",
+   "chop b1",
+   "Jeff开始：一起切配 F8（共享进度）（路程 2s + 操作 1.7s）"
+  ],
+  [
+   70.15,
+   "plate_returned",
+   null,
+   null,
+   "D3 已回到脏盘回收点，洗净后可复用"
+  ],
+  [
+   70.7,
+   "ready",
+   null,
+   null,
+   "灶台 1的 F6 熟了！10s 后糊锅"
+  ],
+  [
+   71.2,
+   "action_done",
+   "human",
+   "chop b1",
+   "你完成动作：到案板 1切 F8（剩 2.2s）"
+  ],
+  [
+   71.5,
+   "action_start",
+   "human",
+   "take returns",
+   "你开始：从脏盘回收拿起脏餐盘（路程 2s + 操作 0.0s）"
+  ],
+  [
+   71.6,
+   "arrival_conflict",
+   "jeff",
+   null,
+   "不在工位正前方，本次操作取消"
+  ],
+  [
+   71.6,
+   "interrupted",
+   "jeff",
+   null,
+   "Jeff中断：一起切配 F8（共享进度）"
+  ],
+  [
+   72.0,
+   "action_start",
+   "jeff",
+   "take pot p1",
+   "Jeff开始：端起灶台 1的平底锅（离开灶台停止加热，占手持位）（路程 2s + 操作 0.0s）"
+  ],
+  [
+   74.0,
+   "action_done",
+   "human",
+   "take returns",
+   "你完成动作：从脏盘回收拿起脏餐盘"
+  ],
+  [
+   74.0,
+   "action_start",
+   "human",
+   "put sink",
+   "你开始：把脏餐盘放入水槽（路程 2s + 操作 0.0s）"
+  ],
+  [
+   74.05,
+   "action_done",
+   "jeff",
+   "take pot p1",
+   "Jeff完成动作：端起灶台 1的平底锅（离开灶台停止加热，占手持位）"
+  ],
+  [
+   74.5,
    "action_start",
    "jeff",
    "plate plates",
    "Jeff开始：把手中平底锅里的菜盛到柜台 1的盘里（空平底锅留在手中）（路程 1s + 操作 0.0s）"
+  ],
+  [
+   75.65,
+   "action_done",
+   "jeff",
+   "plate plates",
+   "Jeff完成动作：把手中平底锅里的菜盛到柜台 1的盘里（空平底锅留在手中）"
+  ],
+  [
+   76.0,
+   "action_start",
+   "jeff",
+   "put pot p1",
+   "Jeff开始：把手中的平底锅放回灶台 1（有食物时恢复加热）（路程 1s + 操作 0.0s）"
+  ],
+  [
+   76.3,
+   "action_done",
+   "human",
+   "put sink",
+   "你完成动作：把脏餐盘放入水槽"
+  ],
+  [
+   76.5,
+   "action_start",
+   "human",
+   "wash",
+   "你开始：洗碗（剩 2.0s；可中断续洗）（路程 0s + 操作 2.0s）"
+  ],
+  [
+   77.15,
+   "action_done",
+   "jeff",
+   "put pot p1",
+   "Jeff完成动作：把手中的平底锅放回灶台 1（有食物时恢复加热）"
+  ],
+  [
+   77.5,
+   "action_start",
+   "jeff",
+   "fetch beef",
+   "Jeff开始：到冰箱取一份生肉（路程 2s + 操作 0.0s）"
+  ],
+  [
+   78.5,
+   "washed",
+   "human",
+   null,
+   "你洗好了 D3，放在沥水架"
+  ],
+  [
+   78.5,
+   "action_done",
+   "human",
+   "wash",
+   "你完成动作：洗碗（剩 2.0s；可中断续洗）"
+  ],
+  [
+   78.5,
+   "action_start",
+   "human",
+   "take b1",
+   "你开始：从案板 1拿起生菜 · 切好（路程 1s + 操作 0.0s）"
+  ],
+  [
+   79.7,
+   "action_done",
+   "human",
+   "take b1",
+   "你完成动作：从案板 1拿起生菜 · 切好"
+  ],
+  [
+   79.9,
+   "action_done",
+   "jeff",
+   "fetch beef",
+   "Jeff完成动作：到冰箱取一份生肉"
+  ],
+  [
+   80.0,
+   "action_start",
+   "human",
+   "assemble plates",
+   "你开始：把手中的生菜放进柜台 1的盘里（路程 2s + 操作 0.0s）"
+  ],
+  [
+   80.0,
+   "action_start",
+   "jeff",
+   "put b1",
+   "Jeff开始：把手中物品放到案板 1（每格一件）（路程 1s + 操作 0.0s）"
+  ],
+  [
+   81.15,
+   "action_done",
+   "jeff",
+   "put b1",
+   "Jeff完成动作：把手中物品放到案板 1（每格一件）"
+  ],
+  [
+   81.5,
+   "action_start",
+   "jeff",
+   "chop b1",
+   "Jeff开始：到案板 1切 F9（剩 2.2s）（路程 0s + 操作 2.2s）"
+  ],
+  [
+   82.4,
+   "action_done",
+   "human",
+   "assemble plates",
+   "你完成动作：把手中的生菜放进柜台 1的盘里"
+  ],
+  [
+   82.5,
+   "action_start",
+   "human",
+   "fetch tomato",
+   "你开始：取一份番茄（路程 2s + 操作 0.0s）"
+  ],
+  [
+   83.85,
+   "action_done",
+   "jeff",
+   "chop b1",
+   "Jeff完成动作：到案板 1切 F9（剩 2.2s）"
+  ],
+  [
+   84.0,
+   "action_start",
+   "jeff",
+   "take b1",
+   "Jeff开始：从案板 1拿起切好（路程 0s + 操作 0.0s）"
+  ],
+  [
+   84.05,
+   "action_done",
+   "jeff",
+   "take b1",
+   "Jeff完成动作：从案板 1拿起切好"
+  ],
+  [
+   84.25,
+   "order",
+   null,
+   null,
+   "新订单 O5：汉堡，截止 174s"
+  ],
+  [
+   84.5,
+   "action_start",
+   "jeff",
+   "put p1",
+   "Jeff开始：将切好的牛肉放进灶台 1的平底锅，开始自动加热（路程 2s + 操作 0.0s）"
+  ],
+  [
+   84.8,
+   "action_done",
+   "human",
+   "fetch tomato",
+   "你完成动作：取一份番茄"
+  ],
+  [
+   85.0,
+   "action_start",
+   "human",
+   "put b1",
+   "你开始：把手中物品放到案板 1（每格一件）（路程 1s + 操作 0.0s）"
+  ],
+  [
+   85.65,
+   "action_done",
+   "human",
+   "put b1",
+   "你完成动作：把手中物品放到案板 1（每格一件）"
+  ],
+  [
+   86.0,
+   "action_start",
+   "human",
+   "chop b1",
+   "你开始：到案板 1切 F10（剩 2.2s）（路程 0s + 操作 2.2s）"
+  ],
+  [
+   86.9,
+   "action_done",
+   "jeff",
+   "put p1",
+   "Jeff完成动作：将切好的牛肉放进灶台 1的平底锅，开始自动加热"
+  ],
+  [
+   87.0,
+   "action_start",
+   "jeff",
+   "chop b1",
+   "Jeff开始：一起切配 F10（共享进度）（路程 2s + 操作 1.2s）"
+  ],
+  [
+   88.2,
+   "action_done",
+   "human",
+   "chop b1",
+   "你完成动作：到案板 1切 F10（剩 2.2s）"
+  ],
+  [
+   88.5,
+   "action_start",
+   "human",
+   "take b1",
+   "你开始：从案板 1拿起番茄 · 切好（路程 0s + 操作 0.0s）"
+  ],
+  [
+   88.55,
+   "action_done",
+   "human",
+   "take b1",
+   "你完成动作：从案板 1拿起番茄 · 切好"
+  ],
+  [
+   89.0,
+   "action_start",
+   "human",
+   "assemble plates",
+   "你开始：把手中的番茄放进柜台 1的盘里（路程 2s + 操作 0.0s）"
+  ],
+  [
+   89.1,
+   "arrival_conflict",
+   "jeff",
+   null,
+   "不在工位正前方，本次操作取消"
+  ],
+  [
+   89.1,
+   "interrupted",
+   "jeff",
+   null,
+   "Jeff中断：一起切配 F10（共享进度）"
+  ],
+  [
+   91.4,
+   "action_done",
+   "human",
+   "assemble plates",
+   "你完成动作：把手中的番茄放进柜台 1的盘里"
+  ],
+  [
+   91.5,
+   "action_start",
+   "human",
+   "take plates",
+   "你开始：从柜台 1拿起汉堡（路程 0s + 操作 0.0s）"
+  ],
+  [
+   91.55,
+   "action_done",
+   "human",
+   "take plates",
+   "你完成动作：从柜台 1拿起汉堡"
+  ],
+  [
+   92.0,
+   "action_start",
+   "human",
+   "serve",
+   "你开始：拿已装盘的菜出餐（没有订单在等这道菜会扣钱，糊太久会被拒收）（路程 1s + 操作 0.0s）"
+  ],
+  [
+   92.85,
+   "served",
+   "human",
+   null,
+   "你完成 O3，收入 +80 元"
+  ],
+  [
+   92.85,
+   "action_done",
+   "human",
+   "serve",
+   "你完成动作：拿已装盘的菜出餐（没有订单在等这道菜会扣钱，糊太久会被拒收）"
+  ],
+  [
+   93.0,
+   "action_start",
+   "human",
+   "take dryer",
+   "你开始：从沥水架拿起干净餐盘（路程 2s + 操作 0.0s）"
+  ],
+  [
+   95.1,
+   "action_done",
+   "human",
+   "take dryer",
+   "你完成动作：从沥水架拿起干净餐盘"
+  ],
+  [
+   95.5,
+   "action_start",
+   "human",
+   "put plates",
+   "你开始：把手中物品放到柜台 1（每格一件）（路程 2s + 操作 0.0s）"
+  ],
+  [
+   96.9,
+   "ready",
+   null,
+   null,
+   "灶台 1的 F9 熟了！10s 后糊锅"
+  ],
+  [
+   97.55,
+   "action_done",
+   "human",
+   "put plates",
+   "你完成动作：把手中物品放到柜台 1（每格一件）"
+  ],
+  [
+   98.0,
+   "action_start",
+   "jeff",
+   "take pot p1",
+   "Jeff开始：端起灶台 1的平底锅（离开灶台停止加热，占手持位）（路程 2s + 操作 0.0s）"
+  ],
+  [
+   100.05,
+   "action_done",
+   "jeff",
+   "take pot p1",
+   "Jeff完成动作：端起灶台 1的平底锅（离开灶台停止加热，占手持位）"
+  ],
+  [
+   100.5,
+   "action_start",
+   "jeff",
+   "plate plates",
+   "Jeff开始：把手中平底锅里的菜盛到柜台 1的盘里（空平底锅留在手中）（路程 1s + 操作 0.0s）"
+  ],
+  [
+   101.65,
+   "action_done",
+   "jeff",
+   "plate plates",
+   "Jeff完成动作：把手中平底锅里的菜盛到柜台 1的盘里（空平底锅留在手中）"
+  ],
+  [
+   102.0,
+   "action_start",
+   "human",
+   "take plates",
+   "你开始：从柜台 1拿起熟了（路程 0s + 操作 0.0s）"
+  ],
+  [
+   102.0,
+   "action_start",
+   "jeff",
+   "put pot p1",
+   "Jeff开始：把手中的平底锅放回灶台 1（有食物时恢复加热）（路程 1s + 操作 0.0s）"
+  ],
+  [
+   102.05,
+   "action_done",
+   "human",
+   "take plates",
+   "你完成动作：从柜台 1拿起熟了"
+  ],
+  [
+   102.5,
+   "action_start",
+   "human",
+   "serve",
+   "你开始：拿已装盘的菜出餐（没有订单在等这道菜会扣钱，糊太久会被拒收）（路程 1s + 操作 0.0s）"
+  ],
+  [
+   102.85,
+   "plate_returned",
+   null,
+   null,
+   "D1 已回到脏盘回收点，洗净后可复用"
+  ],
+  [
+   103.15,
+   "action_done",
+   "jeff",
+   "put pot p1",
+   "Jeff完成动作：把手中的平底锅放回灶台 1（有食物时恢复加热）"
+  ],
+  [
+   103.35,
+   "served",
+   "human",
+   null,
+   "你完成 O4，收入 +50 元"
+  ],
+  [
+   103.35,
+   "action_done",
+   "human",
+   "serve",
+   "你完成动作：拿已装盘的菜出餐（没有订单在等这道菜会扣钱，糊太久会被拒收）"
+  ],
+  [
+   103.35,
+   "order",
+   null,
+   null,
+   "新订单 O6：牛排，截止 163s"
+  ],
+  [
+   103.5,
+   "action_start",
+   "human",
+   "take dryer",
+   "你开始：从沥水架拿起干净餐盘（路程 2s + 操作 0.0s）"
+  ],
+  [
+   103.5,
+   "action_start",
+   "jeff",
+   "fetch beef",
+   "Jeff开始：到冰箱取一份生肉（路程 2s + 操作 0.0s）"
+  ],
+  [
+   105.55,
+   "action_done",
+   "human",
+   "take dryer",
+   "你完成动作：从沥水架拿起干净餐盘"
+  ],
+  [
+   106.0,
+   "action_start",
+   "human",
+   "put plates",
+   "你开始：把手中物品放到柜台 1（每格一件）（路程 2s + 操作 0.0s）"
+  ],
+  [
+   106.05,
+   "action_done",
+   "jeff",
+   "fetch beef",
+   "Jeff完成动作：到冰箱取一份生肉"
+  ],
+  [
+   106.5,
+   "action_start",
+   "jeff",
+   "put b1",
+   "Jeff开始：把手中物品放到案板 1（每格一件）（路程 1s + 操作 0.0s）"
+  ],
+  [
+   107.65,
+   "action_done",
+   "jeff",
+   "put b1",
+   "Jeff完成动作：把手中物品放到案板 1（每格一件）"
+  ],
+  [
+   108.0,
+   "action_start",
+   "jeff",
+   "chop b1",
+   "Jeff开始：到案板 1切 F11（剩 2.2s）（路程 0s + 操作 2.2s）"
+  ],
+  [
+   108.05,
+   "action_done",
+   "human",
+   "put plates",
+   "你完成动作：把手中物品放到柜台 1（每格一件）"
+  ],
+  [
+   108.5,
+   "action_start",
+   "human",
+   "take returns",
+   "你开始：从脏盘回收拿起脏餐盘（路程 1s + 操作 0.0s）"
+  ],
+  [
+   109.2,
+   "action_done",
+   "human",
+   "take returns",
+   "你完成动作：从脏盘回收拿起脏餐盘"
+  ],
+  [
+   109.5,
+   "action_start",
+   "human",
+   "put sink",
+   "你开始：把脏餐盘放入水槽（路程 2s + 操作 0.0s）"
+  ],
+  [
+   110.2,
+   "action_done",
+   "jeff",
+   "chop b1",
+   "Jeff完成动作：到案板 1切 F11（剩 2.2s）"
+  ],
+  [
+   110.5,
+   "action_start",
+   "jeff",
+   "take b1",
+   "Jeff开始：从案板 1拿起切好（路程 0s + 操作 0.0s）"
+  ],
+  [
+   110.55,
+   "action_done",
+   "jeff",
+   "take b1",
+   "Jeff完成动作：从案板 1拿起切好"
+  ],
+  [
+   111.0,
+   "action_start",
+   "jeff",
+   "put p1",
+   "Jeff开始：将切好的牛肉放进灶台 1的平底锅，开始自动加热（路程 2s + 操作 0.0s）"
+  ],
+  [
+   111.8,
+   "action_done",
+   "human",
+   "put sink",
+   "你完成动作：把脏餐盘放入水槽"
+  ],
+  [
+   112.0,
+   "action_start",
+   "human",
+   "wash",
+   "你开始：洗碗（剩 2.0s；可中断续洗）（路程 0s + 操作 2.0s）"
+  ],
+  [
+   113.35,
+   "plate_returned",
+   null,
+   null,
+   "D3 已回到脏盘回收点，洗净后可复用"
+  ],
+  [
+   113.4,
+   "action_done",
+   "jeff",
+   "put p1",
+   "Jeff完成动作：将切好的牛肉放进灶台 1的平底锅，开始自动加热"
+  ],
+  [
+   113.5,
+   "action_start",
+   "jeff",
+   "wash",
+   "Jeff开始：一起洗碗（共享进度）（路程 2s + 操作 0.5s）"
+  ],
+  [
+   114.0,
+   "washed",
+   "human",
+   null,
+   "你洗好了 D1，放在沥水架"
+  ],
+  [
+   114.0,
+   "action_done",
+   "human",
+   "wash",
+   "你完成动作：洗碗（剩 2.0s；可中断续洗）"
+  ],
+  [
+   114.0,
+   "action_start",
+   "human",
+   "take returns",
+   "你开始：从脏盘回收拿起脏餐盘（路程 2s + 操作 0.0s）"
+  ],
+  [
+   115.75,
+   "interrupted",
+   "jeff",
+   null,
+   "Jeff中断：一起洗碗（共享进度）"
+  ],
+  [
+   116.35,
+   "action_done",
+   "human",
+   "take returns",
+   "你完成动作：从脏盘回收拿起脏餐盘"
+  ],
+  [
+   116.5,
+   "action_start",
+   "human",
+   "put sink",
+   "你开始：把脏餐盘放入水槽（路程 2s + 操作 0.0s）"
+  ],
+  [
+   118.8,
+   "action_done",
+   "human",
+   "put sink",
+   "你完成动作：把脏餐盘放入水槽"
+  ],
+  [
+   119.0,
+   "action_start",
+   "human",
+   "wash",
+   "你开始：洗碗（剩 2.0s；可中断续洗）（路程 0s + 操作 2.0s）"
+  ],
+  [
+   119.5,
+   "action_start",
+   "jeff",
+   "wash",
+   "Jeff开始：一起洗碗（共享进度）（路程 0s + 操作 1.5s）"
+  ],
+  [
+   119.55,
+   "shared_work_join",
+   "jeff",
+   null,
+   "Jeff加入水槽的共同操作（2人）"
+  ],
+  [
+   120.25,
+   "washed",
+   "jeff",
+   null,
+   "Jeff洗好了 D3，放在沥水架"
+  ],
+  [
+   120.25,
+   "action_done",
+   "jeff",
+   "wash",
+   "Jeff完成动作：一起洗碗（共享进度）"
+  ],
+  [
+   120.25,
+   "action_done",
+   "human",
+   "wash",
+   "你共同完成：洗碗（剩 2.0s；可中断续洗）"
+  ],
+  [
+   123.4,
+   "ready",
+   null,
+   null,
+   "灶台 1的 F11 熟了！10s 后糊锅"
+  ],
+  [
+   123.5,
+   "action_start",
+   "jeff",
+   "take pot p1",
+   "Jeff开始：端起灶台 1的平底锅（离开灶台停止加热，占手持位）（路程 2s + 操作 0.0s）"
+  ],
+  [
+   125.6,
+   "action_done",
+   "jeff",
+   "take pot p1",
+   "Jeff完成动作：端起灶台 1的平底锅（离开灶台停止加热，占手持位）"
+  ],
+  [
+   126.0,
+   "action_start",
+   "jeff",
+   "plate plates",
+   "Jeff开始：把手中平底锅里的菜盛到柜台 1的盘里（空平底锅留在手中）（路程 1s + 操作 0.0s）"
+  ],
+  [
+   127.15,
+   "action_done",
+   "jeff",
+   "plate plates",
+   "Jeff完成动作：把手中平底锅里的菜盛到柜台 1的盘里（空平底锅留在手中）"
+  ],
+  [
+   127.5,
+   "action_start",
+   "human",
+   "take plates",
+   "你开始：从柜台 1拿起熟了（路程 2s + 操作 0.0s）"
+  ],
+  [
+   127.5,
+   "action_start",
+   "jeff",
+   "put pot p1",
+   "Jeff开始：把手中的平底锅放回灶台 1（有食物时恢复加热）（路程 1s + 操作 0.0s）"
+  ],
+  [
+   128.65,
+   "action_done",
+   "jeff",
+   "put pot p1",
+   "Jeff完成动作：把手中的平底锅放回灶台 1（有食物时恢复加热）"
+  ],
+  [
+   129.0,
+   "action_start",
+   "jeff",
+   "fetch beef",
+   "Jeff开始：到冰箱取一份生肉（路程 2s + 操作 0.0s）"
+  ],
+  [
+   129.7,
+   "action_done",
+   "human",
+   "take plates",
+   "你完成动作：从柜台 1拿起熟了"
+  ],
+  [
+   130.0,
+   "action_start",
+   "human",
+   "serve",
+   "你开始：拿已装盘的菜出餐（没有订单在等这道菜会扣钱，糊太久会被拒收）（路程 1s + 操作 0.0s）"
+  ],
+  [
+   130.8,
+   "served",
+   "human",
+   null,
+   "你完成 O6，收入 +50 元"
+  ],
+  [
+   130.8,
+   "action_done",
+   "human",
+   "serve",
+   "你完成动作：拿已装盘的菜出餐（没有订单在等这道菜会扣钱，糊太久会被拒收）"
+  ],
+  [
+   130.8,
+   "order",
+   null,
+   null,
+   "新订单 O7：牛排，截止 191s"
+  ],
+  [
+   131.0,
+   "action_start",
+   "human",
+   "take dryer",
+   "你开始：从沥水架拿起干净餐盘（路程 2s + 操作 0.0s）"
+  ],
+  [
+   131.4,
+   "action_done",
+   "jeff",
+   "fetch beef",
+   "Jeff完成动作：到冰箱取一份生肉"
+  ],
+  [
+   131.5,
+   "action_start",
+   "jeff",
+   "put b1",
+   "Jeff开始：把手中物品放到案板 1（每格一件）（路程 1s + 操作 0.0s）"
+  ],
+  [
+   132.65,
+   "action_done",
+   "jeff",
+   "put b1",
+   "Jeff完成动作：把手中物品放到案板 1（每格一件）"
+  ],
+  [
+   133.0,
+   "action_start",
+   "jeff",
+   "chop b1",
+   "Jeff开始：到案板 1切 F12（剩 2.2s）（路程 0s + 操作 2.2s）"
+  ],
+  [
+   133.1,
+   "action_done",
+   "human",
+   "take dryer",
+   "你完成动作：从沥水架拿起干净餐盘"
+  ],
+  [
+   133.5,
+   "action_start",
+   "human",
+   "put plates",
+   "你开始：把手中物品放到柜台 1（每格一件）（路程 2s + 操作 0.0s）"
+  ],
+  [
+   135.2,
+   "action_done",
+   "jeff",
+   "chop b1",
+   "Jeff完成动作：到案板 1切 F12（剩 2.2s）"
+  ],
+  [
+   135.5,
+   "action_start",
+   "jeff",
+   "take b1",
+   "Jeff开始：从案板 1拿起切好（路程 0s + 操作 0.0s）"
+  ],
+  [
+   135.55,
+   "action_done",
+   "human",
+   "put plates",
+   "你完成动作：把手中物品放到柜台 1（每格一件）"
+  ],
+  [
+   135.55,
+   "action_done",
+   "jeff",
+   "take b1",
+   "Jeff完成动作：从案板 1拿起切好"
+  ],
+  [
+   136.0,
+   "action_start",
+   "human",
+   "fetch bread",
+   "你开始：取一份面包（路程 2s + 操作 0.0s）"
+  ],
+  [
+   136.0,
+   "action_start",
+   "jeff",
+   "put p1",
+   "Jeff开始：将切好的牛肉放进灶台 1的平底锅，开始自动加热（路程 2s + 操作 0.0s）"
+  ],
+  [
+   138.35,
+   "action_done",
+   "human",
+   "fetch bread",
+   "你完成动作：取一份面包"
+  ],
+  [
+   138.45,
+   "action_done",
+   "jeff",
+   "put p1",
+   "Jeff完成动作：将切好的牛肉放进灶台 1的平底锅，开始自动加热"
+  ],
+  [
+   138.5,
+   "action_start",
+   "human",
+   "assemble plates",
+   "你开始：把手中的面包放进柜台 1的盘里（路程 2s + 操作 0.0s）"
+  ],
+  [
+   140.8,
+   "plate_returned",
+   null,
+   null,
+   "D2 已回到脏盘回收点，洗净后可复用"
+  ],
+  [
+   140.8,
+   "action_done",
+   "human",
+   "assemble plates",
+   "你完成动作：把手中的面包放进柜台 1的盘里"
+  ],
+  [
+   141.0,
+   "action_start",
+   "human",
+   "take returns",
+   "你开始：从脏盘回收拿起脏餐盘（路程 1s + 操作 0.0s）"
+  ],
+  [
+   141.7,
+   "action_done",
+   "human",
+   "take returns",
+   "你完成动作：从脏盘回收拿起脏餐盘"
+  ],
+  [
+   142.0,
+   "action_start",
+   "human",
+   "put sink",
+   "你开始：把脏餐盘放入水槽（路程 2s + 操作 0.0s）"
+  ],
+  [
+   144.3,
+   "action_done",
+   "human",
+   "put sink",
+   "你完成动作：把脏餐盘放入水槽"
+  ],
+  [
+   144.5,
+   "action_start",
+   "human",
+   "wash",
+   "你开始：洗碗（剩 2.0s；可中断续洗）（路程 0s + 操作 2.0s）"
+  ],
+  [
+   145.0,
+   "action_start",
+   "jeff",
+   "wash",
+   "Jeff开始：一起洗碗（共享进度）（路程 2s + 操作 1.5s）"
+  ],
+  [
+   146.5,
+   "washed",
+   "human",
+   null,
+   "你洗好了 D2，放在沥水架"
+  ],
+  [
+   146.5,
+   "action_done",
+   "human",
+   "wash",
+   "你完成动作：洗碗（剩 2.0s；可中断续洗）"
+  ],
+  [
+   146.5,
+   "action_start",
+   "human",
+   "fetch lettuce",
+   "你开始：取一份生菜（路程 0s + 操作 0.0s）"
+  ],
+  [
+   146.9,
+   "action_done",
+   "human",
+   "fetch lettuce",
+   "你完成动作：取一份生菜"
+  ],
+  [
+   147.0,
+   "action_start",
+   "human",
+   "put b1",
+   "你开始：把手中物品放到案板 1（每格一件）（路程 1s + 操作 0.0s）"
+  ],
+  [
+   147.1,
+   "interrupted",
+   "jeff",
+   null,
+   "Jeff中断：一起洗碗（共享进度）"
+  ],
+  [
+   147.9,
+   "action_done",
+   "human",
+   "put b1",
+   "你完成动作：把手中物品放到案板 1（每格一件）"
+  ],
+  [
+   148.0,
+   "action_start",
+   "human",
+   "chop b1",
+   "你开始：到案板 1切 F14（剩 2.2s）（路程 0s + 操作 2.2s）"
+  ],
+  [
+   148.45,
+   "ready",
+   null,
+   null,
+   "灶台 1的 F12 熟了！10s 后糊锅"
+  ],
+  [
+   148.5,
+   "action_start",
+   "jeff",
+   "take pot p1",
+   "Jeff开始：端起灶台 1的平底锅（离开灶台停止加热，占手持位）（路程 2s + 操作 0.0s）"
+  ],
+  [
+   150.2,
+   "action_done",
+   "human",
+   "chop b1",
+   "你完成动作：到案板 1切 F14（剩 2.2s）"
+  ],
+  [
+   150.5,
+   "action_start",
+   "human",
+   "take b1",
+   "你开始：从案板 1拿起生菜 · 切好（路程 0s + 操作 0.0s）"
+  ],
+  [
+   150.55,
+   "action_done",
+   "human",
+   "take b1",
+   "你完成动作：从案板 1拿起生菜 · 切好"
+  ],
+  [
+   150.6,
+   "action_done",
+   "jeff",
+   "take pot p1",
+   "Jeff完成动作：端起灶台 1的平底锅（离开灶台停止加热，占手持位）"
+  ],
+  [
+   151.0,
+   "action_start",
+   "human",
+   "assemble plates",
+   "你开始：把手中的生菜放进柜台 1的盘里（路程 2s + 操作 0.0s）"
+  ],
+  [
+   151.0,
+   "action_start",
+   "jeff",
+   "plate plates",
+   "Jeff开始：把手中平底锅里的菜盛到柜台 1的盘里（空平底锅留在手中）（路程 1s + 操作 0.0s）"
+  ],
+  [
+   152.15,
+   "action_done",
+   "jeff",
+   "plate plates",
+   "Jeff完成动作：把手中平底锅里的菜盛到柜台 1的盘里（空平底锅留在手中）"
+  ],
+  [
+   152.5,
+   "action_start",
+   "jeff",
+   "put pot p1",
+   "Jeff开始：把手中的平底锅放回灶台 1（有食物时恢复加热）（路程 1s + 操作 0.0s）"
+  ],
+  [
+   153.4,
+   "arrival_conflict",
+   "human",
+   null,
+   "你到达后发现目标已变化或被占用，动作取消"
+  ],
+  [
+   153.5,
+   "action_start",
+   "human",
+   "assemble plates",
+   "你开始：把手中的生菜放进柜台 1的盘里（路程 0s + 操作 0.0s）"
+  ],
+  [
+   153.55,
+   "action_done",
+   "human",
+   "assemble plates",
+   "你完成动作：把手中的生菜放进柜台 1的盘里"
+  ],
+  [
+   153.65,
+   "action_done",
+   "jeff",
+   "put pot p1",
+   "Jeff完成动作：把手中的平底锅放回灶台 1（有食物时恢复加热）"
+  ],
+  [
+   154.0,
+   "action_start",
+   "human",
+   "fetch tomato",
+   "你开始：取一份番茄（路程 2s + 操作 0.0s）"
+  ],
+  [
+   154.0,
+   "action_start",
+   "jeff",
+   "fetch beef",
+   "Jeff开始：到冰箱取一份生肉（路程 2s + 操作 0.0s）"
+  ],
+  [
+   156.25,
+   "action_done",
+   "human",
+   "fetch tomato",
+   "你完成动作：取一份番茄"
+  ],
+  [
+   156.45,
+   "action_done",
+   "jeff",
+   "fetch beef",
+   "Jeff完成动作：到冰箱取一份生肉"
+  ],
+  [
+   156.5,
+   "action_start",
+   "human",
+   "put b1",
+   "你开始：把手中物品放到案板 1（每格一件）（路程 1s + 操作 0.0s）"
+  ],
+  [
+   156.5,
+   "action_start",
+   "jeff",
+   "put b1",
+   "Jeff开始：把手中物品放到案板 1（每格一件）（路程 1s + 操作 0.0s）"
+  ],
+  [
+   157.15,
+   "action_done",
+   "human",
+   "put b1",
+   "你完成动作：把手中物品放到案板 1（每格一件）"
+  ],
+  [
+   157.5,
+   "action_start",
+   "human",
+   "chop b1",
+   "你开始：到案板 1切 F15（剩 2.2s）（路程 0s + 操作 2.2s）"
+  ],
+  [
+   157.65,
+   "arrival_conflict",
+   "jeff",
+   null,
+   "Jeff到达后发现目标已变化或被占用，动作取消"
+  ],
+  [
+   158.0,
+   "action_start",
+   "jeff",
+   "put b2",
+   "Jeff开始：把手中物品放到案板 2（每格一件）（路程 0s + 操作 0.0s）"
+  ],
+  [
+   158.15,
+   "action_done",
+   "jeff",
+   "put b2",
+   "Jeff完成动作：把手中物品放到案板 2（每格一件）"
+  ],
+  [
+   158.5,
+   "action_start",
+   "jeff",
+   "chop b2",
+   "Jeff开始：到案板 2切 F16（剩 2.2s）（路程 0s + 操作 2.2s）"
+  ],
+  [
+   159.7,
+   "action_done",
+   "human",
+   "chop b1",
+   "你完成动作：到案板 1切 F15（剩 2.2s）"
+  ],
+  [
+   160.0,
+   "action_start",
+   "human",
+   "take b1",
+   "你开始：从案板 1拿起番茄 · 切好（路程 0s + 操作 0.0s）"
+  ],
+  [
+   160.05,
+   "action_done",
+   "human",
+   "take b1",
+   "你完成动作：从案板 1拿起番茄 · 切好"
+  ],
+  [
+   160.5,
+   "action_start",
+   "human",
+   "assemble plates",
+   "你开始：把手中的番茄放进柜台 1的盘里（路程 2s + 操作 0.0s）"
+  ],
+  [
+   160.7,
+   "action_done",
+   "jeff",
+   "chop b2",
+   "Jeff完成动作：到案板 2切 F16（剩 2.2s）"
+  ],
+  [
+   160.8,
+   "order",
+   null,
+   null,
+   "新订单 O8：汉堡，截止 251s"
+  ],
+  [
+   161.0,
+   "action_start",
+   "jeff",
+   "take b2",
+   "Jeff开始：从案板 2拿起切好（路程 0s + 操作 0.0s）"
+  ],
+  [
+   161.05,
+   "action_done",
+   "jeff",
+   "take b2",
+   "Jeff完成动作：从案板 2拿起切好"
+  ],
+  [
+   161.5,
+   "action_start",
+   "jeff",
+   "put p1",
+   "Jeff开始：将切好的牛肉放进灶台 1的平底锅，开始自动加热（路程 2s + 操作 0.0s）"
+  ],
+  [
+   162.9,
+   "action_done",
+   "human",
+   "assemble plates",
+   "你完成动作：把手中的番茄放进柜台 1的盘里"
+  ],
+  [
+   163.0,
+   "action_start",
+   "human",
+   "take plates",
+   "你开始：从柜台 1拿起汉堡（路程 0s + 操作 0.0s）"
+  ],
+  [
+   163.05,
+   "action_done",
+   "human",
+   "take plates",
+   "你完成动作：从柜台 1拿起汉堡"
+  ],
+  [
+   163.5,
+   "action_start",
+   "human",
+   "serve",
+   "你开始：拿已装盘的菜出餐（没有订单在等这道菜会扣钱，糊太久会被拒收）（路程 1s + 操作 0.0s）"
+  ],
+  [
+   163.7,
+   "action_done",
+   "jeff",
+   "put p1",
+   "Jeff完成动作：将切好的牛肉放进灶台 1的平底锅，开始自动加热"
+  ],
+  [
+   164.35,
+   "served",
+   "human",
+   null,
+   "你完成 O5，收入 +80 元"
+  ],
+  [
+   164.35,
+   "action_done",
+   "human",
+   "serve",
+   "你完成动作：拿已装盘的菜出餐（没有订单在等这道菜会扣钱，糊太久会被拒收）"
+  ],
+  [
+   164.5,
+   "action_start",
+   "human",
+   "take dryer",
+   "你开始：从沥水架拿起干净餐盘（路程 2s + 操作 0.0s）"
+  ],
+  [
+   166.6,
+   "action_done",
+   "human",
+   "take dryer",
+   "你完成动作：从沥水架拿起干净餐盘"
+  ],
+  [
+   167.0,
+   "action_start",
+   "human",
+   "put plates",
+   "你开始：把手中物品放到柜台 1（每格一件）（路程 2s + 操作 0.0s）"
+  ],
+  [
+   169.05,
+   "action_done",
+   "human",
+   "put plates",
+   "你完成动作：把手中物品放到柜台 1（每格一件）"
+  ],
+  [
+   173.7,
+   "ready",
+   null,
+   null,
+   "灶台 1的 F16 熟了！10s 后糊锅"
+  ],
+  [
+   174.0,
+   "action_start",
+   "jeff",
+   "take pot p1",
+   "Jeff开始：端起灶台 1的平底锅（离开灶台停止加热，占手持位）（路程 0s + 操作 0.0s）"
+  ],
+  [
+   174.05,
+   "action_done",
+   "jeff",
+   "take pot p1",
+   "Jeff完成动作：端起灶台 1的平底锅（离开灶台停止加热，占手持位）"
+  ],
+  [
+   174.35,
+   "plate_returned",
+   null,
+   null,
+   "D3 已回到脏盘回收点，洗净后可复用"
+  ],
+  [
+   174.5,
+   "action_start",
+   "human",
+   "take returns",
+   "你开始：从脏盘回收拿起脏餐盘（路程 1s + 操作 0.0s）"
+  ],
+  [
+   174.5,
+   "action_start",
+   "jeff",
+   "plate plates",
+   "Jeff开始：把手中平底锅里的菜盛到柜台 1的盘里（空平底锅留在手中）（路程 1s + 操作 0.0s）"
+  ],
+  [
+   175.2,
+   "action_done",
+   "human",
+   "take returns",
+   "你完成动作：从脏盘回收拿起脏餐盘"
+  ],
+  [
+   175.5,
+   "action_start",
+   "human",
+   "put sink",
+   "你开始：把脏餐盘放入水槽（路程 2s + 操作 0.0s）"
+  ],
+  [
+   175.65,
+   "action_done",
+   "jeff",
+   "plate plates",
+   "Jeff完成动作：把手中平底锅里的菜盛到柜台 1的盘里（空平底锅留在手中）"
+  ],
+  [
+   176.0,
+   "action_start",
+   "jeff",
+   "put pot p1",
+   "Jeff开始：把手中的平底锅放回灶台 1（有食物时恢复加热）（路程 1s + 操作 0.0s）"
+  ],
+  [
+   177.15,
+   "action_done",
+   "jeff",
+   "put pot p1",
+   "Jeff完成动作：把手中的平底锅放回灶台 1（有食物时恢复加热）"
+  ],
+  [
+   177.5,
+   "action_start",
+   "jeff",
+   "fetch beef",
+   "Jeff开始：到冰箱取一份生肉（路程 2s + 操作 0.0s）"
+  ],
+  [
+   177.8,
+   "action_done",
+   "human",
+   "put sink",
+   "你完成动作：把脏餐盘放入水槽"
+  ],
+  [
+   178.0,
+   "action_start",
+   "human",
+   "take plates",
+   "你开始：从柜台 1拿起熟了（路程 2s + 操作 0.0s）"
+  ],
+  [
+   180.0,
+   "unresolved_at_close",
+   null,
+   null,
+   "O7在关店时仍未完成"
   ],
   [
    180.0,
@@ -3440,100 +3111,73 @@
   ],
   [
    180.0,
-   "unresolved_at_close",
-   null,
-   null,
-   "O9在关店时仍未完成"
-  ],
-  [
-   180.0,
    "round_end",
    null,
    null,
-   "目标达成：净收入 440/160 元；完成 7 单；超时 0；拒收 0；关店未完成 2；糊锅 0，着火 0"
+   "目标达成：净收入 390/140 元；完成 6 单；超时 0；拒收 0；关店未完成 2；糊锅 0，着火 0"
   ]
  ],
  "checkpoints": [
-  "37021a682d68777e",
-  "83c12c7b7a312b0b",
-  "bedcf7330fa082b3",
-  "7267acacb8b623ae",
-  "fdadc7d37418e8ab",
-  "1ffad726d5e78e38",
-  "2db219552dc479c0",
-  "58fdc96b9bd5930a",
-  "b858bd1c005cfa38",
-  "f715d2c55e5caa80",
-  "b853e137fa06e59b",
-  "d8e0155493105bde",
-  "2c31a610176d19bd",
-  "7051c5a069e10f45",
-  "4e6af7185beb15b8",
-  "479a0ee5691f7fda",
-  "e1a0ed620cca0af5",
-  "998704885ab766fa",
-  "89ebe5cfa6bc3fc6",
-  "ce0579427f768ce4",
-  "5b0ec1bb14e2ae7f",
-  "d2e23031e8a6530a",
-  "6209b5141b89802f",
-  "692ff5e35d990c52",
-  "825c10adbb1ce2e3",
-  "1ce0ad550b529c71",
-  "1da1bea21a07e820",
-  "6115055a73fb8113",
-  "3aed7fa22fab590e",
-  "19271652d463f20f",
-  "b4430e4d4151e1ac",
-  "8f2af8875781a97c",
-  "58bd9753392afaa5",
-  "d619aafe9d6bf5a1",
-  "a95fc40b799e0a70",
-  "1f367c521a9d435c"
+  "bed578fbcde7ce84",
+  "7e4c85b76742a317",
+  "d6143ac55851ac79",
+  "0208d06b0598c6b7",
+  "2dde9a4be6d3f665",
+  "5c109e348071142c",
+  "3d3d757e82f781a3",
+  "0db543c7383ca4c7",
+  "284bb1deb90e9a29",
+  "51e4ae3ef2b3a0e3",
+  "1333fe853bad6208",
+  "614ff0aa28c68247",
+  "b4774e0ac6a06028",
+  "a1931d229c0320f8",
+  "d85185c0c47545c5",
+  "982614a4c77897d5",
+  "2b0fab8cb633cd5b",
+  "3ce2f3b55a9975f9",
+  "c8904500d093e96e",
+  "f29deb6dde103468",
+  "c32438f782b6887f",
+  "2c94d00b109f8d16",
+  "bd22add49fd24c38",
+  "00d2e78667f1b460",
+  "901a8f50d8744cf2",
+  "795f78f3fd520e3b",
+  "6b93cdf63fc0508e",
+  "68e99331554eb78b",
+  "27c66b8fdd73278c",
+  "b48fed31b0566a81",
+  "e662f6f2b2a24eb5",
+  "b4da865a63e19fc8",
+  "948784f0c454cff0",
+  "72a6045fc724a08b",
+  "42a8d972867cc8a2",
+  "c2d8c5bb697b73b7"
  ],
  "final": {
   "t": 180.0,
-  "money": 440,
-  "served": 7,
+  "money": 390,
+  "served": 6,
   "ended": true,
   "failure": null,
   "chefs": {
    "human": [
     [
-     3.0,
-     1.95
+     8.927,
+     5.517
     ],
     null,
-    null,
+    "take plates",
     false
    ],
    "jeff": [
     [
-     9.0,
-     4.45
+     1.933,
+     2.049
     ],
-    [
-     "P1",
-     "pot",
-     0,
-     0,
-     null,
-     0,
-     "beef",
-     [],
-     [
-      "F17",
-      "ready",
-      2.2,
-      11.8,
-      null,
-      0,
-      "beef",
-      [],
-      null
-     ]
-    ],
-    "plate plates",
+    null,
+    "fetch beef",
     false
    ]
   },
@@ -3753,7 +3397,7 @@
    ],
    "dryer": [
     [
-     "D2",
+     "D1",
      "clean_plate",
      0,
      0,
@@ -3804,7 +3448,7 @@
     null,
     false,
     false,
-    null
+    "P1"
    ],
    "p2": [
     null,
@@ -3815,14 +3459,16 @@
    ],
    "plates": [
     [
-     "D3",
-     "clean_plate",
+     "F16",
+     "ready",
+     2.2,
+     10.35,
+     "D2",
      0,
-     0,
-     null,
-     2,
-     "beef",
-     [],
+     "dish",
+     [
+      "beef"
+     ],
      null
     ],
     null,
@@ -3845,7 +3491,17 @@
     null
    ],
    "sink": [
-    null,
+    [
+     "D3",
+     "dirty_plate",
+     0,
+     0,
+     null,
+     0,
+     "beef",
+     [],
+     null
+    ],
     null,
     false,
     false,
@@ -3878,51 +3534,51 @@
    [
     "O3",
     "burger",
-    21.6,
-    111.6,
+    24.25,
+    114.25,
     "served"
    ],
    [
     "O4",
     "steak",
-    51.5,
-    111.5,
+    54.25,
+    114.25,
     "served"
    ],
    [
     "O5",
     "burger",
-    67.2,
-    157.2,
+    84.25,
+    174.25,
     "served"
    ],
    [
     "O6",
     "steak",
-    97.2,
-    157.2,
+    103.35,
+    163.35,
     "served"
    ],
    [
     "O7",
     "steak",
-    127.2,
-    187.2,
-    "served"
+    130.8,
+    190.8,
+    "unresolved_at_close"
    ],
    [
     "O8",
     "burger",
-    137.7,
-    227.7,
+    160.8,
+    250.8,
     "unresolved_at_close"
    ],
    [
     "O9",
     "steak",
-    161.15,
-    221.15,
-    "unresolved_at_close"
+    240,
+    180,
+    "future"
    ],
    [
     "O10",
@@ -4129,5 +3785,5 @@
    ]
   ]
  },
- "result": "目标达成：净收入 440/160 元；完成 7 单；超时 0；拒收 0；关店未完成 2；糊锅 0，着火 0"
+ "result": "目标达成：净收入 390/140 元；完成 6 单；超时 0；拒收 0；关店未完成 2；糊锅 0，着火 0"
 }

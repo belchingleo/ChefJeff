@@ -15,7 +15,7 @@ THROW_RANGE = 4.0
 # Plates, plated food and pots; reference values of the service ruleset
 # (throw.range_cells / throw.pass_range_cells). Live kitchens read the ruleset.
 PASS_RANGE = 4.0
-WALK_SPEED = 5.0  # Both chefs, cells per real second: Overcooked 2's pace measured from play (set_clock scales it for a slower game clock)
+WALK_SPEED = 4.0  # Both chefs, cells per real second, as rulesets/chefjeff-service.json sets it: chosen in playtesting (Overcooked 2's measured pace is about 5; set_clock scales it for a slower game clock)
 CHEF_SEPARATION = .4  # two small foot circles, not the full tall sprite
 UP_STANDOFF = -.22  # tiles a south-side operator stands back from the cabinet
 # Facing left or right, the hands and knife are drawn about this far above the feet (side chop poses:
@@ -208,14 +208,17 @@ class SpatialKitchen(Kitchen):
                 # stop beside them instead of sliding back and forth every frame.
                 self._face_vector(who,goal[0]-before[0],goal[1]-before[1])
                 points.clear();break
+            touched=approach and contact_fraction(before,end,other_pos,self.rules.chef_separation)<1.-1e-8
             self._move_with_chef_contact(who,end,fast>0)
             moved=math.dist(before,self.positions[who])
             # Facing follows real progress, not a sideways contact slide or the centring slide.
             if moved>step*.5 and not route.get('slide'):self._face_vector(who,goal[0]-before[0],goal[1]-before[1])
             if fast>0:self._nudge_food(who,before,self.positions[who])
             spent+=step;budget-=step
-            if approach and math.dist(self.positions[who],self.positions['jeff' if who=='human' else 'human'])<=self.rules.chef_separation+.05:
-                # Contact made (and pushed): the approach is complete.
+            if touched:
+                # Contact made (and pushed): the approach is complete. A step that stops short of the partner, or
+                # just touching them, walks on into them next tick, so the approach always ends in a push, whatever
+                # the walking pace.
                 self._face_vector(who,goal[0]-before[0],goal[1]-before[1])
                 points.clear();break
             if math.dist(self.positions[who],goal)<1e-8:points.pop(0)

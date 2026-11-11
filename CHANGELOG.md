@@ -13,8 +13,10 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 - Level 4: the extinguisher moves to Jeff's side beside the stoves; the plate return moves right, five cells from the sink.
 - Jeff's rules say how the sink and rack work and that a pan scoops (`rules-v14`).
 - The level editor's sink tool places the sink with its rack as one unit; erasing either removes both.
-- The sink and rack are drawn as one steel unit across two cells, plates standing in the rack and a count when several dirty plates wait. This drawing is a placeholder until the art for it is done.
-- Calibration on the new maps leaves every target as it was (200, 200, 160, 100); level 4 still needs both chefs (no solo run reaches its target). The benchmark moves to v3 (v2 retired: its levels play differently).
+- The sink and rack are drawn as one steel unit across two cells from the art pack (`modular/sink_unit_<side>` in `grid-foundation-v1`): basin, tap and drain on the sink's cell, a drainboard with plates standing in the rack on the rack's cell, and a count when several dirty plates wait. A plate in the basin is drawn small enough to sit inside its rim, in line with the tap; a vertical unit shows its wash bar just outside its far end.
+- Both chefs walk 4 cells per second (was 5), the pace chosen in playtesting.
+- Walking into the other chef on purpose (`go partner`) ends only on a step that touches them, so it always pushes. At 4 cells a second the last step could stop a few thousandths of a cell short, and that used to count as arriving, with no push.
+- Calibration on the new maps at the new walking pace: the scripted pair earns less, so by the calibration rule (half the median, rounded down to 10) level 2's target falls from 200 to 160, level 3's from 160 to 140 and level 4's from 100 to 90; level 1 stays at 200. Level 4 still needs both chefs (the solo script earns −80 to −40 on every seed). The benchmark moves to v3 (v2 retired: its levels play differently).
 
 ### Picking up as in Overcooked 2, a clearer target, plates drawn in flight
 
@@ -346,8 +348,10 @@ First private release: a local browser game with three playable maps and player-
 - 第四关：灭火器挪到 Jeff 那一侧的灶台旁；回盘口往右挪，离水槽 5 格。
 - Jeff 的规则说明写了水槽和沥水架怎么用、锅能盛菜（`rules-v14`）。
 - 关卡编辑器的水槽工具一次放下水槽和沥水架；删掉其中一个两个都删。
-- 水槽和沥水架画成跨两格的一整块不锈钢台面，盘子竖着插在架上，水槽里有几个脏盘就标数字。这是占位画法，等美术素材替换。
-- 按新地图重新校准后，四关达标线都不变（200、200、160、100）；第四关仍然必须两人配合，一个人单独玩一局都达不到线。基准测试升到 v3（v2 退役：关卡玩法变了）。
+- 水槽和沥水架用美术素材画成跨两格的一整块不锈钢台面（`grid-foundation-v1` 里的 `modular/sink_unit_<方向>`）：水槽那格是水盆、水龙头和下水口，沥水架那格是沥水板，盘子竖着插在架上；水槽里有几个脏盘就标数字。水盆里的盘子画得小一些，放得进盆沿，正对水龙头；竖着摆时，洗碗进度条在整块水槽的外侧。
+- 两位厨师都改为每秒走 4 格（原来 5 格），这是试玩后选定的速度。
+- 故意走向对方厨师（`go partner`）时，只有真的碰到对方的那一步才算走到，所以一定会推到对方。按每秒 4 格走时，最后一步可能差千分之几格碰不到，以前也算走到了，结果没有推。
+- 按新地图和新步速重新校准：脚本双人组合挣得比原来少，所以按校准规则（中位数的一半，向下取整到 10 元），第二关达标线从 200 降到 160，第三关从 160 降到 140，第四关从 100 降到 90；第一关仍是 200。第四关仍然必须两人配合，单人脚本每个种子都是 −80 到 −40。基准测试升到 v3（v2 退役：关卡玩法变了）。
 
 ### 拾取照《Overcooked 2》、对准的工位更醒目、飞行中的盘子
 

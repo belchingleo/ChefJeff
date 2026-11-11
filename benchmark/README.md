@@ -4,7 +4,7 @@ Run an agent on fixed levels with a fixed scripted partner, many rounds each, an
 
 ## v3
 
-`v3/manifest.json` freezes the same things as v2 (the `env-v1` interface, levels 1–3, the scripted partner `assembler`, 12 rounds per level on a real clock), measured on the kitchen as it is from 2026-11-11: every sink has a drying rack beside it, as in Overcooked 2 (dirty plates stack in the sink and stay there until washed; each washed plate goes onto the rack); level 1 moved its stove and plates one cell to make room for the rack, levels 2 and 3 turned the counter beside the sink into it; and a held empty pan scoops an ingredient off a board or counter. Jeff's rules are `rules-v14`.
+`v3/manifest.json` freezes the same things as v2 (the `env-v1` interface, levels 1–3, the scripted partner `assembler`, 12 rounds per level on a real clock), measured on the kitchen as it is from 2026-11-11: every sink has a drying rack beside it, as in Overcooked 2 (dirty plates stack in the sink and stay there until washed; each washed plate goes onto the rack); level 1 moved its stove and plates one cell to make room for the rack, levels 2 and 3 turned the counter beside the sink into it; a held empty pan scoops an ingredient off a board or counter; and both chefs walk 4 cells per second (was 5), with the targets of levels 2 and 3 recalibrated to 160 and 140. Jeff's rules are `rules-v14`.
 
 v2 (`v2/manifest.json`, kept as it was frozen) retired on 2026-11-11 with that change: its levels now play differently, so v2 and v3 scores are not compared.
 
@@ -71,7 +71,7 @@ Put a result that `verify` accepts under `v2/results/<agent>-<model>.json`; `rep
 
 ## v3
 
-`v3/manifest.json` 冻结的内容和 v2 相同（`env-v1` 接口、第 1–3 关、脚本搭档 `assembler`、每关 12 局、真实时钟），只是量的是 2026-11-11 起的厨房：每个水槽旁都有沥水架，和《Overcooked 2》一样，脏盘在水槽里叠放、洗好才离开，洗好的盘子放到沥水架上；第一关把灶台和盘子各挪一格给沥水架让位，第二、三关把水槽旁的柜台改成沥水架；手里拿着空锅可以盛起案板或柜台上的食材。Jeff 的规则是 `rules-v14`。
+`v3/manifest.json` 冻结的内容和 v2 相同（`env-v1` 接口、第 1–3 关、脚本搭档 `assembler`、每关 12 局、真实时钟），只是量的是 2026-11-11 起的厨房：每个水槽旁都有沥水架，和《Overcooked 2》一样，脏盘在水槽里叠放、洗好才离开，洗好的盘子放到沥水架上；第一关把灶台和盘子各挪一格给沥水架让位，第二、三关把水槽旁的柜台改成沥水架；手里拿着空锅可以盛起案板或柜台上的食材；两位厨师每秒走 4 格（原来 5 格），第二、三关达标线随之重新校准为 160 和 140。Jeff 的规则是 `rules-v14`。
 
 v2（`v2/manifest.json`，保持冻结时的样子）在 2026-11-11 随这次改动退役：它的关卡现在玩法不同，v2 和 v3 的成绩不放在一起比较。
 

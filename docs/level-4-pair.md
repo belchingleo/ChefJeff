@@ -12,7 +12,7 @@ Every dish needs both chefs. Beef, lettuce and tomato are chopped on the lower s
 
 ## Orders and target
 
-Orders: two from the start, then one every 30 seconds and at once whenever fewer than two wait, at most five at a time, in a fixed sequence that starts steak, burger, burger, steak, burger, steak; an expired one starts again. Steaks have 60 seconds and burgers 90 (the pacing rule of player levels: five times each dish's chop and cook time). The round lasts 180 seconds. Prices are 50/80. The goal is at least 100 net revenue at closing: half the median of the scripted pair (a runner above and a maker below, Jeff deciding every 3 seconds) over order seeds 1–21, which ranged from 108 to 230; the solo script earned −80 to −40.
+Orders: two from the start, then one every 30 seconds and at once whenever fewer than two wait, at most five at a time, in a fixed sequence that starts steak, burger, burger, steak, burger, steak; an expired one starts again. Steaks have 60 seconds and burgers 90 (the pacing rule of player levels: five times each dish's chop and cook time). The round lasts 180 seconds. Prices are 50/80. The goal is at least 90 net revenue at closing: half the median of the scripted pair (a runner above and a maker below, Jeff deciding every 3 seconds) over order seeds 1–21, which ranged from 88 to 290; the solo script earned −80 to −40.
 
 Order and spawn seeds are fixed per level version and recorded with the round.
 
@@ -34,6 +34,6 @@ Order and spawn seeds are fixed per level version and recorded with the round.
 
 ## 订单与目标
 
-订单开局就有两张，之后每 30 秒来一张，等待中的少于两张时立刻补，最多同时 5 张，顺序固定，开头是牛排、汉堡、汉堡、牛排、汉堡、牛排；超时后重新计时。牛排 60 秒、汉堡 90 秒内出餐（沿用玩家关卡的节奏规则：每道菜切和煮总时长的 5 倍）。每局 180 秒，单价 50／80。目标为关店时净收入至少 100 元：取脚本双人组合（上面一人跑菜、下面一人备料，Jeff 每 3 秒决定一次）在订单种子 1–21 上收入中位数的一半，这 21 局在 108 到 230 之间；单人脚本是 −80 到 −40。
+订单开局就有两张，之后每 30 秒来一张，等待中的少于两张时立刻补，最多同时 5 张，顺序固定，开头是牛排、汉堡、汉堡、牛排、汉堡、牛排；超时后重新计时。牛排 60 秒、汉堡 90 秒内出餐（沿用玩家关卡的节奏规则：每道菜切和煮总时长的 5 倍）。每局 180 秒，单价 50／80。目标为关店时净收入至少 90 元：取脚本双人组合（上面一人跑菜、下面一人备料，Jeff 每 3 秒决定一次）在订单种子 1–21 上收入中位数的一半，这 21 局在 88 到 290 之间；单人脚本是 −80 到 −40。
 
 订单与出生种子按关卡版本固定并随对局记录。

@@ -66,9 +66,9 @@ A round lasts 180 seconds. As in Overcooked 2, two orders wait from the start, a
 | Level | Menu | What's special | Target |
 | --- | --- | --- | --- |
 | Level 1 · Steak | Steak ¥50 | Practice level: learn to chop, fry, plate and serve | ¥200 |
-| Level 2 · Burger | Burger ¥80 | A long counter splits the kitchen in two, so a lot has to be passed across it | ¥200 |
-| Level 3 · Steak and burger | Steak, burger | Two stoves and three frying pans; both dishes at once | ¥160 |
-| Level 4 · Across the counter (switched off for players for now, `level_switches.json`) | Steak, burger | A row of counters runs from wall to wall: one side has the ingredients, stoves and serving window, the other the boards and sink, so every dish needs both chefs | ¥100 |
+| Level 2 · Burger | Burger ¥80 | A long counter splits the kitchen in two, so a lot has to be passed across it | ¥160 |
+| Level 3 · Steak and burger | Steak, burger | Two stoves and three frying pans; both dishes at once | ¥140 |
+| Level 4 · Across the counter (switched off for players for now, `level_switches.json`) | Steak, burger | A row of counters runs from wall to wall: one side has the ingredients, stoves and serving window, the other the boards and sink, so every dish needs both chefs | ¥90 |
 
 Working together, you chop, cook, plate and serve between you. Along the way Jeff may pass you dishes, or chop, pass and wash up alongside you. He may also bump you aside to handle something himself, and you can do the same to him.
 If the model isn't doing what you want, press 1–6 to tell Jeff what kind of work you'd like to do, or that he just made a mistake.

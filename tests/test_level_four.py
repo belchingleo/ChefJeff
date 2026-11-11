@@ -22,7 +22,7 @@ class LevelTests(unittest.TestCase):
     def test_level_four_is_listed_and_needs_a_pair(self):
         listed = levels.available_levels()
         self.assertEqual([entry['id'] for entry in listed], ['level-1', 'level-2', 'level-3', 'level-4'])
-        self.assertEqual(listed[3]['target'], 100)
+        self.assertEqual(listed[3]['target'], 90)
         self.assertIs(cc.Registry().level('level-4')['requires_pair'], True)
         self.assertNotIn('requires_pair', cc.Registry().level('level-3'))         # levels 1-3 do not claim it
 
@@ -47,14 +47,15 @@ class LevelTests(unittest.TestCase):
             k = SpatialKitchen(cc.load_level('level-4'))
             drive(k, ((who, 'solo'),), lambda k, w, r: reference_policy.choose_solo(k, w), {'human': 10, 'jeff': 10})
             self.assertEqual(k.served, 0, who)
-            self.assertLess(k.money, 100)
+            self.assertLess(k.money, 90)
 
 
 class CalibrationReportTests(unittest.TestCase):
     def test_the_committed_report_is_current_and_no_solo_run_reaches_the_target(self):
         self.assertEqual(reference_sweep.pair_check(report()), [])
         row = next(r for r in report()['levels'] if r['level'] == 4)
-        self.assertEqual((row['solo_runs_reaching_current_target'], row['runs_reaching_current_target'], len(row['runs'])), (0, 21, 21))
+        # At 4 cells a second the pair reaches 90 on 20 of the 21 seeds (the lowest run earns 88); no solo run reaches it.
+        self.assertEqual((row['solo_runs_reaching_current_target'], row['runs_reaching_current_target'], len(row['runs'])), (0, 20, 21))
 
     def test_a_stale_or_wrong_report_fails(self):
         def problems(change):

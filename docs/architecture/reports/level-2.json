@@ -1,6 +1,6 @@
 {
   "analyzer_version": "capacity-analyzer-0.1",
-  "input_config_hash": "sha256:ec628e008f7a18638271c8d2253b3c552cf6489fa59cf6459e06ad39c6caeded",
+  "input_config_hash": "sha256:811e5132ec8c7fb78a9b3633215d7266eccff6045c55360091f878124cbee758",
   "input_status": "frozen",
   "level_id": "level-2",
   "schema_valid": true,
@@ -141,14 +141,14 @@
       "first_dish_lower_bound_game_ms": 12200,
       "first_dish_lower_bound_basis": "max(critical path, chef time / chefs); transport excluded",
       "single_chef_walking_reference_game_ms": {
-        "assignment_0:human": 32721,
-        "assignment_0:jeff": 34601,
-        "assignment_1:human": 34601,
-        "assignment_1:jeff": 32721
+        "assignment_0:human": 36751,
+        "assignment_0:jeff": 39101,
+        "assignment_1:human": 39101,
+        "assignment_1:jeff": 36751
       },
       "walking_reference_range_game_ms": [
-        32721,
-        34601
+        36751,
+        39101
       ]
     }
   },
@@ -212,7 +212,7 @@
     "orders": 38,
     "goal": {
       "type": "minimum_money",
-      "target_money": 200,
+      "target_money": 160,
       "revenue_ceiling": 3040,
       "orders_too_late_to_cook_from_scratch": 33
     },

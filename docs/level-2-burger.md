@@ -6,7 +6,7 @@ One frying pan starts on the stove; two plates rest on counters. Each counter sl
 
 ## Orders
 
-Burger orders: two from the start, then one every 40 seconds and at once whenever fewer than two wait, at most five at a time; each has 120 seconds, and an expired one starts again. The round always lasts 180 game seconds. Each burger earns 80. The goal is at least 200 net revenue at closing, with the global penalties (expired −10, unwanted dish −20, fire −5, discard −2, burnt tiers). Two plates require at least one wash cycle. Sources and the stove sit above the long counter and the boards below it, so passing food and dishes across the counter saves the walk round through the passage.
+Burger orders: two from the start, then one every 40 seconds and at once whenever fewer than two wait, at most five at a time; each has 120 seconds, and an expired one starts again. The round always lasts 180 game seconds. Each burger earns 80. The goal is at least 160 net revenue at closing, with the global penalties (expired −10, unwanted dish −20, fire −5, discard −2, burnt tiers). Two plates require at least one wash cycle. Sources and the stove sit above the long counter and the boards below it, so passing food and dishes across the counter saves the walk round through the passage.
 
 Each burger needs a bun, chopped lettuce, sliced tomato and cooked chopped beef, assembled in any order on a clean plate. Bread needs no chopping, vegetables no heat, and raw beef cannot be plated. Global preparation, burning and penalty rules apply.
 
@@ -32,7 +32,7 @@ Observations include active orders, ingredient states, held items, occupied work
 
 ## 订单
 
-汉堡单开局就有两张，之后每 40 秒来一张，等待中的少于两张时立刻补，最多同时 5 张；每单 120 秒，超时后重新计时。每局固定 180 游戏秒。每份 80 元；目标为关店时净收入至少 200 元，罚款按全局规则（超时 −10、没人等的菜 −20、着火 −5、丢弃 −2、糊菜分档）。只有两只盘，至少要回收洗净一次。食材和灶台在长柜台上方、案板在下方，隔着柜台传食材和菜能省去绕通道的路。
+汉堡单开局就有两张，之后每 40 秒来一张，等待中的少于两张时立刻补，最多同时 5 张；每单 120 秒，超时后重新计时。每局固定 180 游戏秒。每份 80 元；目标为关店时净收入至少 160 元，罚款按全局规则（超时 −10、没人等的菜 −20、着火 −5、丢弃 −2、糊菜分档）。只有两只盘，至少要回收洗净一次。食材和灶台在长柜台上方、案板在下方，隔着柜台传食材和菜能省去绕通道的路。
 
 汉堡为一份面包、切好生菜、切好番茄及切配后煎熟的牛肉，任意顺序装入干净盘。面包不用切，蔬菜不烹饪，生牛肉不能装盘。加工、糊锅、处罚和餐具循环沿用全局规则。
 

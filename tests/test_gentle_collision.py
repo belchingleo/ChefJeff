@@ -172,9 +172,9 @@ class GentleCollisionTests(unittest.TestCase):
             self.assertTrue(all(k.nav.walkable_point(p) for p in k.positions.values()))
         self.assertGreater(k.positions['human'][0],k.positions['jeff'][0])
 
-    def test_both_chefs_walk_at_overcooked_pace(self):
-        # Measured from Overcooked 2 play: about 5 counters a second. At a real-time clock that is 5 a game second.
-        self.assertEqual(WALK_SPEED,5.0)
+    def test_both_chefs_walk_at_the_chosen_pace(self):
+        # Chosen in playtesting: 4 cells a second (Overcooked 2's measured pace is about 5). At a real-time clock that is 4 a game second.
+        self.assertEqual(WALK_SPEED,4.0)
         for who in ('human','jeff'):
             k=self.make();other='jeff' if who=='human' else 'human'
             k.positions.update({who:(8.,4.),other:(11.,6.)})
