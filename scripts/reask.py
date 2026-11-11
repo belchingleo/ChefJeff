@@ -38,6 +38,7 @@ CHECKS = {
     'plan': ('scripts.plan_probe', 'fixed emergencies with Jeff\'s plan off, asked for, and held'),
     'reach_note': ('scripts.reach_note_check', 'split-floor moments Jeff could pass, with and without the reach note'),
     'food_names': ('scripts.food_names_check', 'waits while an ingredient is nowhere, with food named as today and by ingredient and state'),
+    'links': ('scripts.links_check', 'moments a step leads to work, as sent and with each option\'s link to the work it makes possible'),
 }
 SINGLE_MODEL = ('one model answered every arm; a change that helps it need not help another model, so check '
                 'with a second connection before changing what Jeff is sent')

@@ -40,7 +40,7 @@ class WebSessionTests(unittest.TestCase):
         # with the default switches they must ask what a started round's decision loop asks.
         import features
         g=self.make();self.start(g)
-        loop={'one_press':g.ai.one_press,'undo':g.ai.undo,'reach':g.ai.reach,'names':g.ai.names}
+        loop={'one_press':g.ai.one_press,'undo':g.ai.undo,'reach':g.ai.reach,'names':g.ai.names,'links':g.ai.links}
         self.assertEqual(features.compose_options(g.features),loop)
     def test_no_clock_or_ai_before_start(self):
         g=self.make();g.tick(g.last_tick+10)

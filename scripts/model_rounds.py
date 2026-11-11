@@ -10,6 +10,8 @@ a scripted reference chef (reference_policy), choosing every half second:
 
 - assembler / cook: the reference pair's two roles (the calibration pair plays both);
 - solo: the scripted chef that does everything by itself, ignoring Jeff;
+- maker / runner: the zoned pair's roles for a floor split by counters (level 4): the maker works the board side
+  (chops, washes, passes prepared food back), the runner the ingredient side (fetches, cooks, assembles, serves);
 - idle: nobody, so Jeff alone.
 
 A scripted human is not a person: these rounds measure Jeff with a steady, known partner, many times and cheaply,
@@ -33,7 +35,7 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-HUMANS = ('assembler', 'cook', 'solo', 'idle')
+HUMANS = ('assembler', 'cook', 'solo', 'idle', 'maker', 'runner')
 STEP = .05             # wall seconds between session ticks, as the game's own loop
 HUMAN_EVERY = 10       # the scripted human chooses every 10 steps (0.5 s), as the calibration's fast chefs
 DEFAULT_PRICE_PER_M = .042    # USD per million input tokens (Jev), for the estimate only
@@ -45,6 +47,9 @@ def human_choice(k, human):
         return None
     if human == 'solo':
         return reference_policy.choose_solo(k, 'human')
+    if human in ('maker', 'runner'):
+        # a floor split by counters (level 4): the zoned pair's roles, each working its own side and passing across
+        return reference_policy.choose_zoned(k, 'human', human)
     return reference_policy.choose(k, 'human', human)
 
 
