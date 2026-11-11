@@ -40,6 +40,7 @@ GRID = ROOT / 'cocos-kitchen/assets/resources/art/grid-foundation-v1'
 INK = (10, 16, 23)                    # outline of device_sink_*
 PLATE_INK = (0, 8, 32)                # outline of objects/clean_plate
 PREFIXES = ('modular/sink_unit_', 'modular/rack_plate_')
+TAP_BODY_MID = 6.0                    # the vertical tap cut-out's body spans its rows 2-9
 SLOTS = 4                             # at most 3 plates per level (rules.py plate_count 1-3); one spare
 
 ip.RAMPS.update({
@@ -80,11 +81,15 @@ class Geo:
             self.basin = (4.5, by0, 31.5, by1)
             ry0 = rack_rows[0] + (2.0 if side == 'south' else 3.0); ry1 = rack_rows[1] - (6.0 if side == 'south' else 2.0)
             self.board = (4.5, ry0, 33.5, ry1)
-            # tap: from the wall on the right, over the slab's right rim, mouth over the basin's right edge
-            self.tap_at = (28, round(self.basin[1]) + 15)            # device_sink_vertical's tap: cols 28-44, from row 19
-            ty = self.tap_at[1] + 5.5
-            self.tap = ((44.0, ty), (30.0, ty)); self.mouth = (29.5, ty + 1.0)
-            self.plate_at = (17.0, self.mouth[1])                  # level with the tap's mouth, as a horizontal unit's plate lines up with its tap
+            # The horizontal layout turned 90 degrees: the tap comes from the wall on the right at the middle of the
+            # basin's long side; the drain is in the middle of the basin; the plate sits on the drain, level with the tap,
+            # between the basin's left rim and the tap's mouth.
+            mid = (self.basin[1] + self.basin[3]) / 2
+            self.tap_at = (28, math.floor(mid - TAP_BODY_MID + 0.5))  # device_sink_vertical's tap: cols 28-44
+            ty = self.tap_at[1] + TAP_BODY_MID
+            self.tap = ((44.0, ty), (29.0, ty)); self.mouth = (29.0, ty)
+            self.drain = ((self.basin[0] + self.basin[2]) / 2, mid)
+            self.plate_at = (self.tap_at[0] - 11.5, ty)               # a 22 px plate ends half a pixel short of the mouth
             self.rack_line = ((18.5, self.board[1] + 8.0), (18.5, self.board[3] - 12.0))
             self.slots = [lerp(*self.rack_line, k / (SLOTS - 1)) for k in range(SLOTS)]
         else:
@@ -100,6 +105,7 @@ class Geo:
             self.tap_at = (round(cx - 4.5), 0)                       # device_sink_horizontal's tap: cols 22-31, rows 0-16
             self.tap = ((cx, 1.5), (cx, 13.0)); self.mouth = (cx, 15.0)
             self.plate_at = (cx, 29.5)
+            self.drain = None                                          # where basin_piece has always put it
             self.rack_line = ((self.board[0] + 12.0, 22.0), (self.board[2] - 12.0, 22.0))
             self.slots = [lerp(*self.rack_line, k / (SLOTS - 1)) for k in range(SLOTS)]
         self.ridges_along_x = not self.vertical       # drainboard grooves run toward the basin
@@ -147,7 +153,7 @@ def basin_piece(g):
         rgb[wall] = ramp('basin', 0.12 + 0.22 * (Y[wall] - y0) / depth + 0.08 * (1 - u[wall]))
         fx0, fy0, fx1, fy1 = x0 + 3.2, y0 + depth, x1 - 3.2, y1 - 2.2
         floor, finside = rbox(X, Y, fx0, fy0, fx1, fy1, 2.4)
-        dx, dy = (x0 + x1) / 2 + (2.0 if not g.vertical else -1.0), fy0 + (fy1 - fy0) * 0.62
+        dx, dy = g.drain or ((x0 + x1) / 2 + 2.0, fy0 + (fy1 - fy0) * 0.62)
         glow = np.exp(-(((X - dx) / (fx1 - fx0) * 2.2) ** 2 + ((Y - dy) / (fy1 - fy0) * 2.0) ** 2))
         ft = 0.52 + 0.3 * glow + 0.08 * (1 - u) + 0.02 * grain(X, Y, 6)
         rgb[floor] = ramp('basin', ft)[floor]
