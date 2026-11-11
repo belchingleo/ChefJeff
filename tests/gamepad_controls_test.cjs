@@ -67,6 +67,11 @@ function check(path){
  button(controller,'Up',true);button(controller,'Right',true);controller.axes=[-1,0,0,0];h.step(4);movement=h.moves().at(-1);
  assert(Math.abs(movement[1]-Math.SQRT1_2)<1e-8&&Math.abs(movement[2]+Math.SQRT1_2)<1e-8,'D-pad takes priority over the analog stick');
  neutral(controller);h.step();assert.deepEqual(h.calls.filter(call=>call[0]==='move').at(-1),['move',0,0],'neutral movement stops immediately');
+ // A merged Joy-Con pair on macOS reports its left stick as a D-pad turned for a sideways Joy-Con; it is turned back.
+ {const j=harness(path),pair=pad();pair.id='Joy-Con (L/R) (STANDARD GAMEPAD)';j.connect(pair);j.step(2);
+  for(const [reported,dx,dy] of [['Left',0,-1],['Right',0,1],['Down',-1,0],['Up',1,0]]){
+   neutral(pair);j.step(2);button(pair,reported,true);j.step(4);const m=j.moves().at(-1);
+   assert(m&&m[1]===dx&&m[2]===dy,'merged Joy-Con '+reported+' moves '+dx+','+dy);}}
  // Overcooked 2's buttons: A picks up and puts down at once; X chops or, with a throwable item, holds to aim and
  // releases to throw; Y dashes.
  button(controller,'A',true);h.step(60);assert.equal(h.count('act'),1,'holding A sends one take or put');assert.equal(h.count('release'),0);

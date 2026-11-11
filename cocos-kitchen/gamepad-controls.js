@@ -51,9 +51,14 @@
       try { return Array.from(navigator.getGamepads() || []).filter(pad => pad && pad.connected !== false); }
       catch (_) { apiDisabled = true; interrupt(true); hint.hidden = true; return []; }
     }
+    // macOS merges a pair of Joy-Cons into one "Joy-Con (L/R)" device that the browser reads in the Joy-Con's simple
+    // mode: the left stick (and the left arrow buttons) arrive as the D-pad, turned for a Joy-Con held sideways
+    // (stick up is reported as left, down as right, left as down, right as up). Turn it back for the pair held upright.
+    const SIDEWAYS_HAT = /joy-con \(l\/r\)/i;
     function sample(pad) {
       const buttons = pad.buttons || [], x = axis(pad.axes?.[0]), y = axis(pad.axes?.[1]);
-      const up = pressed(buttons[12]), down = pressed(buttons[13]), left = pressed(buttons[14]), right = pressed(buttons[15]);
+      const [U, D, L, R] = SIDEWAYS_HAT.test(pad.id || '') ? [14, 15, 13, 12] : [12, 13, 14, 15];
+      const up = pressed(buttons[U]), down = pressed(buttons[D]), left = pressed(buttons[L]), right = pressed(buttons[R]);
       const dpad = up || down || left || right;
       let dx = dpad ? Number(right) - Number(left) : x, dy = dpad ? Number(down) - Number(up) : y;
       const length = Math.hypot(dx, dy);
