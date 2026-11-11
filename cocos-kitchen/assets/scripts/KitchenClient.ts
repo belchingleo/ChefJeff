@@ -823,13 +823,13 @@ export class KitchenClient extends Component {
     // What Space or E would act on: a faint lift of that surface (Overcooked-style), no frame.
     /** The station Space/E acts on (the one under the chef's front point): a light fill and a 2px denim
      * frame when there is something to do there, an ink frame alone when it is targeted but idle. */
-    /** The station Space or E would act on, as Overcooked 2 marks its highlighted object: a bright fill and a
-     *  thick frame with corner brackets just outside the tile (they stay visible over tall station art). Something
-     *  to do there is the player's blue; nothing to do (a full counter for what is held, the plate return for a
-     *  dirty plate) is the hot red, so a press that will not land shows before it is made. */
+    /** The station Space or E would act on, as Overcooked 2 marks its highlighted object. With something to do
+     *  there: a bright fill and a thick blue frame with corner brackets just outside the tile (they stay visible
+     *  over tall station art). With nothing to do: the quiet thin frame it always had. */
     private facedGlow(g:Graphics,x:number,y:number,w:number,h:number,actionable=true){
-        const c=color(actionable?COLORS.human:COLORS.hot);
-        if(actionable){g.fillColor=new Color(255,250,236,110);g.rect(x,y,w,h);g.fill();}
+        if(!actionable){const c=color(COLORS.ink);c.a=150;g.strokeColor=c;g.lineWidth=2;g.rect(x+1,y+1,w-2,h-2);g.stroke();return;}
+        const c=color(COLORS.human);
+        g.fillColor=new Color(255,250,236,110);g.rect(x,y,w,h);g.fill();
         g.strokeColor=c;g.lineWidth=3;g.rect(x+1.5,y+1.5,w-3,h-3);g.stroke();
         // Corner brackets 3 px outside the tile, 4 px thick, 11 px long.
         const o=3,t=4,l=11;g.fillColor=c;
@@ -1271,6 +1271,9 @@ export class KitchenClient extends Component {
             // Burnt plates keep their layers (burnt dishes can be served); items that burn are drawn charred.
             return 'assembly:'+this.plateItems(f).join(',')+(f.stage==='burnt'?',burnt':'');
         }
+        // A plate or an extinguisher is drawn as itself: the engine's plate still carries a default ingredient
+        // field, which drew a thrown or dropped plate as an ingredient picture that does not exist.
+        if(f?.stage&&STAGES[f.stage])return f.stage;
         if(f?.ingredient){
             const chopping=this.useArt&&f.stage==='raw'&&f.chop_remaining<(this.state?.rules?.chop_seconds||6)&&this.art.has(`ingredients/${f.ingredient}/processing`);
             return `item:${f.ingredient}:${chopping?'processing':f.stage}`;
