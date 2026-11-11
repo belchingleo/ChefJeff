@@ -1,6 +1,6 @@
 {
   "analyzer_version": "capacity-analyzer-0.1",
-  "input_config_hash": "sha256:cfe2bf8a67fed67b8405cf83fa1b9b72671dc1a9315d709c49ade2cab3b7d025",
+  "input_config_hash": "sha256:357ee9eef5d9ffc7788a918236313b324e3ff875d7c7b09aacc6a703150e22d3",
   "input_status": "frozen",
   "level_id": "level-4",
   "schema_valid": true,
@@ -76,9 +76,12 @@
     "unreachable_stations": [],
     "shared_work_capable": {
       "board": [
-        "b1"
+        "b1",
+        "b2"
       ],
-      "sink": []
+      "sink": [
+        "sink"
+      ]
     }
   },
   "dishes": {
@@ -197,7 +200,7 @@
       }
     },
     "board": {
-      "capacity": 3.0,
+      "capacity": 4.0,
       "unit": "work-seconds per second",
       "demand_per_dish_game_ms": {
         "steak": 2200,
@@ -213,7 +216,7 @@
       }
     },
     "sink": {
-      "capacity": 1.0,
+      "capacity": 2.0,
       "unit": "work-seconds per second",
       "demand_per_dish_game_ms": {
         "steak": 2000,
@@ -224,24 +227,24 @@
       "capacity": 3,
       "unit": "plates",
       "demand_per_dish_game_ms": {
-        "steak": 12000,
-        "burger": 12000
+        "steak": 11000,
+        "burger": 11000
       }
     }
   },
   "resource_lower_bounds_game_ms": {
     "chef": 3200,
-    "board": 1467,
+    "board": 1100,
     "stove_with_pot": 5000,
-    "sink": 2000,
-    "plate": 4000
+    "sink": 1000,
+    "plate": 3667
   },
   "resource_loads": {
     "chef": 0.1067,
-    "board": 0.0489,
+    "board": 0.0367,
     "stove_with_pot": 0.1667,
-    "sink": 0.0667,
-    "plate": 0.1333
+    "sink": 0.0333,
+    "plate": 0.1222
   },
   "I_resource_lb_game_ms": 5000,
   "binding_resource": "stove_with_pot",

@@ -28,7 +28,7 @@ class ManifestTests(unittest.TestCase):
     def test_the_current_version_is_frozen(self):
         """What the current version measures (interface, level configurations, engine traces, partner) is what this
         code does. If this fails, the change altered what its score means: make the next version rather than editing it."""
-        self.assertEqual(benchmark.CURRENT, 'v2')
+        self.assertEqual(benchmark.CURRENT, 'v3')
         manifest = benchmark.read_manifest(benchmark.CURRENT)
         self.assertEqual(benchmark.refreeze(manifest), manifest)
         self.assertEqual([level['id'] for level in manifest['levels']], ['level-1', 'level-2', 'level-3'])
@@ -41,6 +41,14 @@ class ManifestTests(unittest.TestCase):
         self.assertEqual({k: v for k, v in v1.items() if k not in ('version', 'levels')},
                          {k: v for k, v in v2.items() if k not in ('version', 'levels')})
         self.assertEqual([(a['id'], a['config_hash']) for a in v1['levels']], [(a['id'], a['config_hash']) for a in v2['levels']])
+
+    def test_v2_is_kept_and_retired(self):
+        """v2 stays as it was frozen; the drying rack changed levels 1-3 and the reference traces, so it no longer matches."""
+        v2, v3 = benchmark.read_manifest('v2'), benchmark.read_manifest('v3')
+        self.assertNotEqual(benchmark.refreeze(v2), v2)
+        self.assertEqual({k: v for k, v in v2.items() if k not in ('version', 'levels', 'partner_policy')},
+                         {k: v for k, v in v3.items() if k not in ('version', 'levels', 'partner_policy')})
+        self.assertEqual([a['id'] for a in v2['levels']], [a['id'] for a in v3['levels']])
 
     def test_a_change_to_what_is_frozen_shows(self):
         manifest = benchmark.read_manifest(benchmark.CURRENT)

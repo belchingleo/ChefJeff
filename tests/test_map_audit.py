@@ -17,7 +17,7 @@ import audit_map  # noqa: E402
 PILLARS = {'name': 'pillars', 'size': [13, 9], 'stations': [
     ['fridge', 2, 1, 'south'], ['lettuce', 3, 1, 'south'], ['tomato', 4, 1, 'south'], ['bread', 5, 1, 'south'],
     ['p1', 8, 1, 'south'], ['c1', 9, 1, 'south'], ['c2', 11, 3, 'west'], ['serve', 11, 4, 'west'],
-    ['sink', 11, 6, 'west'], ['b1', 3, 7, 'north'], ['b2', 5, 7, 'north'], ['plates', 7, 7, 'north'],
+    ['dryer', 11, 5, 'west'], ['sink', 11, 6, 'west'], ['b1', 3, 7, 'north'], ['b2', 5, 7, 'north'], ['plates', 7, 7, 'north'],
     ['bin', 9, 7, 'north'], ['extinguisher', 1, 3, 'east'], ['returns', 1, 5, 'east'], ['c3', 4, 4, 'south'],
     ['c4', 7, 3, 'west'], ['c5', 7, 4, 'east'], ['c6', 9, 5, 'north']]}
 

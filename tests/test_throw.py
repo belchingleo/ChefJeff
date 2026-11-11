@@ -16,10 +16,11 @@ class ReachTests(unittest.TestCase):
         # As in Overcooked 2 a throw lands wherever it flies; a floor tile counts as reached like a station does.
         k=SpatialKitchen(level_config(load_config(),'level-4'))
         k.chefs['jeff'].hand=Food('beef','raw',ingredient='beef')
-        k.positions.update(jeff=(8.15,1.),human=(7.,4.95))
+        # Moved one tile pair left on 2026-11-11: the extinguisher now stands at (8,1); same 4.11-tile geometry.
+        k.positions.update(jeff=(6.15,1.),human=(5.,4.95))
         throws={a.key:a for a in k.actions('jeff') if a.kind=='throw'}
         self.assertIn('throw partner',throws)
-        self.assertEqual(throws['throw down'].target,tile_key((8,5)))           # the player's side of the counter row
+        self.assertEqual(throws['throw down'].target,tile_key((6,5)))           # the player's side of the counter row
         self.assertTrue(k.command('jeff','throw partner')[0])
         for _ in range(100):
             if k.chefs['human'].hand:break

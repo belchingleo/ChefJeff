@@ -11,7 +11,7 @@ import audit_map  # noqa: E402
 
 # Two counter rows joined only by a one-cell passage at x=6, too narrow (0.3 walkable) for two chefs to pass.
 PASSAGE=build_map('passage',[12,8],[('fridge',1,1,'south'),('lettuce',2,1,'south'),('tomato',3,1,'south'),('bread',4,1,'south'),
-    ('p1',8,1,'south'),('sink',9,1,'south'),('serve',10,6,'north'),('returns',9,6,'north'),('plates',8,6,'north'),('bin',1,6,'north'),
+    ('p1',8,1,'south'),('sink',9,1,'south'),('dryer',10,1,'south'),('serve',10,6,'north'),('returns',9,6,'north'),('plates',8,6,'north'),('bin',1,6,'north'),
     ('extinguisher',2,6,'north'),('b1',3,6,'north'),('b2',4,6,'north')]
     +[(f'c{x}_{y}',x,y,'north' if y==3 else 'south') for y in (3,4) for x in range(1,11) if x!=6])
 

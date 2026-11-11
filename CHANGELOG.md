@@ -6,6 +6,16 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 
 ## Unreleased
 
+### Drying racks, pans that scoop, level 4 rearranged (rule change, model input change)
+
+- Every sink has a drying rack beside it, as Overcooked 2's washing station: dirty plates stack in the sink and stay there until washed (first in, washed first; none can be taken back out), each washed plate goes onto the rack (the newest on top), and Space at the sink with empty hands takes a clean plate from the rack. Both chefs play by it. Level 1 moves its stove and plate counter one cell right for the rack (its corner counter is now counter 2); levels 2 and 3 turn the counter beside the sink into it; on level 4 it stands on the sink's right. Maps, levels, the equipment catalog (`drying_rack`) and the ruleset move up a version; the contract and the level editor keep exactly one rack, beside the sink.
+- A held empty pan or pot over a loose ingredient it can cook scoops it up and stays in the hands (`scoop <station>`), as a held plate takes an ingredient: one press for the player, one choice for Jeff.
+- Level 4: the extinguisher moves to Jeff's side beside the stoves; the plate return moves right, five cells from the sink.
+- Jeff's rules say how the sink and rack work and that a pan scoops (`rules-v14`).
+- The level editor's sink tool places the sink with its rack as one unit; erasing either removes both.
+- The sink and rack are drawn as one steel unit across two cells, plates standing in the rack and a count when several dirty plates wait. This drawing is a placeholder until the art for it is done.
+- Calibration on the new maps leaves every target as it was (200, 200, 160, 100); level 4 still needs both chefs (no solo run reaches its target). The benchmark moves to v3 (v2 retired: its levels play differently).
+
 ### Picking up as in Overcooked 2, a clearer target, plates drawn in flight
 
 - A loose item is picked up within Overcooked 2's reach (InteractWithItemHelper: the half-disc ahead): within 1.2 cells of the chef and not behind, the one nearest a point half a cell ahead; the aimed tile still wins a tie, then the feet. Before, only the aimed tile and the feet counted, so running past an item beside the chef missed it. The page highlights the same item the engine takes (`tests/test_item_reach.py`). Stations are chosen as before (the four cells beside the chef's own, as Overcooked 2's grid selection).
@@ -328,6 +338,16 @@ First private release: a local browser game with three playable maps and player-
 ## 更新记录
 
 ## 未发布
+
+### 沥水架、锅能盛菜、第四关重排（规则改动，模型输入改动）
+
+- 每个水槽旁都有沥水架，照《Overcooked 2》的洗碗台：脏盘在水槽里叠放，洗好之前不能再拿出来，先放先洗；洗好的盘子放到沥水架上，新洗的在最上面；空手对着水槽按拾取，拿到沥水架上的干净盘。两位厨师规则相同。第一关把灶台和放盘子的柜台各往右挪一格给沥水架让位（角落柜台改名为柜台 2）；第二、三关把水槽旁的柜台改成沥水架；第四关放在水槽右边。地图、关卡、工位表（新增 `drying_rack`）和规则集都升了版本；配置检查和关卡编辑器都要求恰好一个沥水架，并且紧挨水槽。
+- 手里拿着空锅，对着案板或柜台上锅能煮的食材按一下，食材盛进锅里，锅仍在手上（`scoop <工位>`），和拿着盘子装食材一样：玩家按一下，Jeff 选一次。
+- 第四关：灭火器挪到 Jeff 那一侧的灶台旁；回盘口往右挪，离水槽 5 格。
+- Jeff 的规则说明写了水槽和沥水架怎么用、锅能盛菜（`rules-v14`）。
+- 关卡编辑器的水槽工具一次放下水槽和沥水架；删掉其中一个两个都删。
+- 水槽和沥水架画成跨两格的一整块不锈钢台面，盘子竖着插在架上，水槽里有几个脏盘就标数字。这是占位画法，等美术素材替换。
+- 按新地图重新校准后，四关达标线都不变（200、200、160、100）；第四关仍然必须两人配合，一个人单独玩一局都达不到线。基准测试升到 v3（v2 退役：关卡玩法变了）。
 
 ### 拾取照《Overcooked 2》、对准的工位更醒目、飞行中的盘子
 

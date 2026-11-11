@@ -44,8 +44,10 @@ def sha(path):
 
 
 # The version runs and verify default to. v1 (2026-11-08) was never run; it retired on 2026-11-09 when the
-# first ingredient source's action key became "fetch beef", which changed the reference traces it froze.
-CURRENT = 'v2'
+# first ingredient source's action key became "fetch beef", which changed the reference traces it froze. v2 retired
+# on 2026-11-11 when every sink gained a drying rack (dirty plates stack, washed plates go onto the rack), level 1
+# moved its stove and plates and levels 2-3 turned a counter into the rack, and a held empty pan scoops an ingredient.
+CURRENT = 'v3'
 
 
 def manifest_path(version):
