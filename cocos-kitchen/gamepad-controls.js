@@ -8,8 +8,59 @@
     const hint = document.createElement('aside');
     hint.id = 'kitchen-gamepad-hint'; hint.hidden = true;
     hint.setAttribute('data-no-i18n', ''); hint.setAttribute('role', 'status'); hint.setAttribute('aria-live', 'polite');
-    hint.style.cssText = 'position:fixed;left:calc(var(--gx,0px) + 1052px * var(--gs,1));right:calc(var(--gx,0px) + 12px * var(--gs,1));bottom:calc(var(--gy,0px) + 36px * var(--gs,1));z-index:17;box-sizing:border-box;padding:6px 8px;color:var(--paper);background:#2b1a12b8;border:1px solid var(--walnut);font:12px/18px var(--body);text-align:right;pointer-events:none;';
+    // As in Overcooked 2's prompts, each action is its button and a picture of the action, in a narrow column at
+    // the right edge that clears the start and result cards. Words stay in the accessible label (and in the help).
+    hint.style.cssText = 'position:fixed;right:calc(var(--gx,0px) + 12px * var(--gs,1));bottom:calc(var(--gy,0px) + 36px * var(--gs,1));transform:scale(var(--gs,1));transform-origin:right bottom;z-index:17;box-sizing:border-box;padding:6px;color:var(--paper);background:#2b1a12b8;border:1px solid var(--walnut);font:12px/16px var(--body);pointer-events:none;';
     document.body.appendChild(hint);
+    const SVG = 'http://www.w3.org/2000/svg';
+    // 8x8 pixel pictures, drawn in the page's paper colour (# is a filled pixel).
+    const PICTURES = {
+      hand: ['..#.#.#.', '..#.#.#.', '#.#####.', '########', '.#######', '.######.', '..#####.', '..####..'],
+      knife: ['........', '#####...', '########', '#####.##', '#####...', '#####...', '.####...', '........'],
+      // Dash: the puffs of dust a dashing chef kicks up behind them in the kitchen.
+      dash: ['........', '.....##.', '....####', '..#.####', '.###.##.', '#####...', '.###....', '........'],
+      pause: ['........', '.##..##.', '.##..##.', '.##..##.', '.##..##.', '.##..##.', '.##..##.', '........'],
+      menu: ['........', '........', '.######.', '........', '.######.', '........', '.######.', '........'],
+      cross: ['#......#', '.#....#.', '..#..#..', '...##...', '...##...', '..#..#..', '.#....#.', '#......#'],
+      circle: ['..####..', '.#....#.', '#......#', '#......#', '#......#', '#......#', '.#....#.', '..####..'],
+      square: ['########', '#......#', '#......#', '#......#', '#......#', '#......#', '#......#', '########'],
+      // The four round buttons of a sideways Joy-Con; the filled one is the button to press.
+      right: ['...##...', '...##...', '........', '##....##', '##....##', '........', '...##...', '...##...'],
+      left: ['...##...', '...##...', '........', '##....##', '##....##', '........', '...##...', '...##...'],
+      bottom: ['...##...', '...##...', '........', '##....##', '##....##', '........', '...##...', '...##...'],
+      minus: ['........', '........', '........', '.######.', '.######.', '........', '........', '........'],
+    };
+    const LIT = { right: [[6, 3], [7, 3], [6, 4], [7, 4]], left: [[0, 3], [1, 3], [0, 4], [1, 4]], bottom: [[3, 6], [4, 6], [3, 7], [4, 7]] };
+    function picture(name, size, colour, dim) {
+      const svg = document.createElementNS(SVG, 'svg');
+      svg.setAttribute('viewBox', '0 0 8 8'); svg.setAttribute('width', size); svg.setAttribute('height', size);
+      svg.setAttribute('shape-rendering', 'crispEdges'); svg.setAttribute('aria-hidden', 'true');
+      const lit = new Set((LIT[name] || []).map(([x, y]) => x + ',' + y));
+      PICTURES[name].forEach((row, y) => [...row].forEach((c, x) => {
+        if (c !== '#') return;
+        const r = document.createElementNS(SVG, 'rect');
+        r.setAttribute('x', x); r.setAttribute('y', y); r.setAttribute('width', 1); r.setAttribute('height', 1);
+        r.setAttribute('fill', lit.size && !lit.has(x + ',' + y) ? dim : colour); svg.appendChild(r);
+      }));
+      return svg;
+    }
+    // A key cap in the page's keyboard-key style, holding a letter or a pixel picture, then the action's picture.
+    function row(cap, action) {
+      const line = document.createElement('div');
+      line.style.cssText = 'display:flex;align-items:center;gap:6px;height:24px;';
+      const key = document.createElement('span');
+      key.style.cssText = 'display:inline-grid;place-items:center;box-sizing:border-box;width:24px;height:22px;background:var(--paper);color:var(--ink);border:2px solid var(--ink);box-shadow:0 2px 0 var(--ink);font:12px/12px var(--pixel);';
+      if (PICTURES[cap]) key.appendChild(picture(cap, 12, 'var(--ink)', '#c9b08a')); else key.textContent = cap;
+      line.append(key, picture(action, 16, 'var(--paper)'));
+      return line;
+    }
+    const PLAYSTATION = /playstation|dualsense|dualshock|054c/i;
+    const LAYOUTS = {
+      letters: [['A', 'hand'], ['X', 'knife'], ['B', 'dash'], ['menu', 'pause']],
+      shapes: [['cross', 'hand'], ['square', 'knife'], ['circle', 'dash'], ['menu', 'pause']],
+      sideways: [['right', 'hand'], ['left', 'knife'], ['bottom', 'dash'], ['minus', 'pause']],
+    };
+    let drawn = '';
     let controls = window.kitchenControls || null, state = controls?.getState?.() || {};
     let activeIndex = null, activeId = '', owned = false, actionDown = false, armed = false;
     let lastMove = { x: 0, y: 0 }, lastMoveAt = -Infinity, previousButtons = {}, blocked = null;
@@ -24,11 +75,24 @@
     function showHint() {
       hint.hidden = apiDisabled || !hasAny || mobile();
       if (hint.hidden) return;
-      const message = !hasStandard ? t('此手柄未提供标准映射，请使用键盘和鼠标。') : !armed || hardBlocked()
-        ? t('手柄已连接') + ' · ' + t('请松开按键并将左摇杆回中')
-        : sidewaysActive ? t('摇杆移动 · 右键 拿放 · 左键 切洗扔（长按瞄准） · 下键 冲刺 · − 暂停/继续')
-        : t('左摇杆或十字键移动 · A/× 拿放 · X/□ 切洗扔（长按瞄准） · B/○ 冲刺 · Start/Options 暂停/继续');
-      if (hint.textContent !== message) hint.textContent = message;
+      const waiting = !armed || hardBlocked();
+      const message = !hasStandard ? t('此手柄未提供标准映射，请使用键盘和鼠标。')
+        : (waiting ? t('手柄已连接') + ' · ' + t('请松开按键并将左摇杆回中') + ' · ' : '') + (sidewaysActive
+          ? t('摇杆移动 · 右键 拿放 · 左键 切洗扔（长按瞄准） · 下键 冲刺 · − 暂停/继续')
+          : t('左摇杆或十字键移动 · A/× 拿放 · X/□ 切洗扔（长按瞄准） · B/○ 冲刺 · Start/Options 暂停/继续'));
+      const kind = !hasStandard ? 'words' : sidewaysActive ? 'sideways' : PLAYSTATION.test(activeId) ? 'shapes' : 'letters';
+      if (hint.getAttribute('aria-label') !== message) { hint.setAttribute('aria-label', message); hint.title = message; }
+      // The pictures stay faint until the stick is centred and the buttons released (the gamepad is not yet in use).
+      hint.style.opacity = waiting && hasStandard ? '.55' : '1';
+      if (drawn === kind + message) return;
+      drawn = kind + message;
+      hint.replaceChildren();
+      if (kind === 'words') {
+        // An unsupported controller gets the sentence, kept inside the right-hand column.
+        hint.style.width = '160px'; hint.textContent = message; return;
+      }
+      hint.style.width = '';
+      hint.append(...LAYOUTS[kind].map(([cap, action]) => row(cap, action)));
     }
     function interrupt(pause = false) {
       const wasOwned = owned;

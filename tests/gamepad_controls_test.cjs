@@ -23,12 +23,13 @@ function harness(path,{available=true,denied=false,secure=true}={}){
   appendChild(child){child.parentElement=this;this.children.push(child);return child;}
   setAttribute(name,value){this.attributes[name]=String(value);}getAttribute(name){return this.attributes[name]??null;}
   removeAttribute(name){delete this.attributes[name];}addEventListener(){}removeEventListener(){}remove(){}
+  append(...nodes){nodes.forEach(n=>this.appendChild(n));}replaceChildren(...nodes){this.children=[];this.textContent='';this.append(...nodes);}
   closest(selector){if(selector.split(',').some(part=>{part=part.trim();const not=part.match(/^(\w+):not\(\[([\w-]+)\]\)$/);
     return not?not[1]===this.tagName.toLowerCase()&&!(not[2] in (this.attributes||{})):part===this.tagName.toLowerCase();}))return this;return null;}
  }
  const document={...target(documentListeners),readyState:'complete',hidden:false,activeElement:null,
   body:new Element('body'),head:new Element('head'),documentElement:new Element('html'),
-  createElement:tag=>new Element(tag),getElementById:id=>elements.get(id)||null,
+  createElement:tag=>new Element(tag),createElementNS:(ns,tag)=>new Element(tag),getElementById:id=>elements.get(id)||null,
   querySelector:selector=>selector==='dialog[open]'&&document.modal?document.modal:null,
   querySelectorAll:()=>[],hasFocus:()=>document.focused!==false};
  const requestAnimationFrame=fn=>{const id=++nextFrame;frames.set(id,fn);return id;};
@@ -75,7 +76,9 @@ function check(path){
  // One left Joy-Con held sideways in Safari: no standard mapping; the stick is a D-pad already turned for the hold,
  // and the round buttons follow the Switch labels (right 2 takes/puts, left 1 chops/throws, bottom 0 dashes, − 9 pauses).
  {const j=harness(path),one=pad(0,'');one.id='Joy-Con (L) Gamepad';j.connect(one);j.step(2);
-  assert.equal(j.document.getElementById('kitchen-gamepad-hint').textContent,'摇杆移动 · 右键 拿放 · 左键 切洗扔（长按瞄准） · 下键 冲刺 · − 暂停/继续','sideways hint');
+  {const hint=j.document.getElementById('kitchen-gamepad-hint');
+  assert.equal(hint.getAttribute('aria-label'),'摇杆移动 · 右键 拿放 · 左键 切洗扔（长按瞄准） · 下键 冲刺 · − 暂停/继续','sideways hint label');
+  assert.equal(hint.children.length,4,'sideways hint draws four button rows');}
   for(const [reported,dx,dy] of [['Up',0,-1],['Down',0,1],['Left',-1,0],['Right',1,0]]){
    neutral(one);j.step(2);button(one,reported,true);j.step(4);const m=j.moves().at(-1);
    assert(m&&m[1]===dx&&m[2]===dy,'sideways Joy-Con '+reported+' moves '+dx+','+dy);}
