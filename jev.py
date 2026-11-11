@@ -431,7 +431,7 @@ class DecisionLoop:
             # No request without the table it was built for: this one is dropped and Jeff is asked again.
             self.inflight = False
             self.last_revision = -1
-            self.log('ai_error', {'request_id': context['id'], 'error': f'联系表计算失败（{type(error).__name__}）', 'retry_in': 0})
+            self.log('ai_error', {'request_id': context['id'], 'error': f'步骤提示计算失败（{type(error).__name__}）', 'retry_in': 0})
             return
         self.send(context, payload, {**record, 'links_ms': round(seconds * 1000)})
 

@@ -43,6 +43,8 @@ class CooperationMemoryTests(unittest.TestCase):
                               kitchen_factory=SpatialKitchen,connector=lambda *_:client,
                               journal_factory=FakeJournal)
         g.setting = self.setting.copy()
+        from test_one_press import with_features
+        g.feature_source = lambda: with_features(option_links={'on': False})  # these checks read the request as logged at once: no step-hint table, which a thread computes first
         self.addCleanup(g.close)
         return g
 

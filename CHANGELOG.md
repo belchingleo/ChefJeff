@@ -6,6 +6,13 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 
 ## Unreleased
 
+### Step hints on by default with a player switch; Jeff asks ahead (model input change)
+
+- Jeff's default set-up changes to the one that played best in the 2026-11-10 trials: ask_ahead on, two-step intent and the undo note off, and step hints (`option_links`, links table v3) on. Each request then lists, for every option, the work it leads to (as the game computes it from the kitchen); options are unchanged. Two-step intent stays released, off; a server can still turn any of these on or off with `features.py`.
+- Step hints have a player switch in Settings → AI teammate, on by default; a change applies from the next round, and a round played with the player's own setting records it as `"source": "player"` (research record and metadata schemas allow it).
+- The links table counts a held pan scooping an ingredient off a counter as work (`option-links-v3`).
+- The links table (option_links, option_links_partner) and the intent layer are merged from their trial branches; option_links_partner and the intent layer stay off.
+
 ### Two more decision services: Perplexity and Parallel
 
 - Perplexity Decider (`pplx-decider-v1.2`, `https://api.perplexity.ai/v1/decisions`) is listed in the local game and online: its API accepts browser calls, with the key as Bearer and the model name in the request.
@@ -352,6 +359,13 @@ First private release: a local browser game with three playable maps and player-
 ## 更新记录
 
 ## 未发布
+
+### 步骤提示默认开启并可由玩家开关；Jeff 提前问下一步（模型输入改动）
+
+- Jeff 的默认设置改成 11 月 10 日测试里表现最好的组合：提前问（ask_ahead）开，两步打算和撤回提示关，步骤提示（`option_links`，联系表 v3）开。每次请求都会列出每个选项接下来能做成的事，由游戏按厨房现状算出，选项本身不变。两步打算仍是正式功能，只是默认关；服务器仍可用 `features.py` 开关其中任何一项。
+- 步骤提示在「设置 → AI 队友」里有玩家开关，默认开，改动从下一局起生效；玩家自己改过的一局记为 `"source": "player"`（研究记录和元数据的结构定义已允许）。
+- 联系表把“手里的锅盛起柜台上的食材”也算作能做成的事（`option-links-v3`）。
+- 联系表（option_links、option_links_partner）和意图层从试验分支合入主线；option_links_partner 和意图层仍然关闭。
 
 ### 新增两个决策模型：Perplexity 和 Parallel
 

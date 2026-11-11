@@ -113,6 +113,9 @@ class GameSession:
         # scripts/plan_probe.py), kept for later rounds while it is still offered.
         self.jeff_plan_mode = features.plan_default(self.features)
         self.plan_mode_chosen = False
+        # The player's own pick for a feature with a player switch (option_links: 步骤提示), kept for later rounds while
+        # the switch is offered; None: the default from the features.
+        self.links_choice = None
         # Every round of this play session, for the data export (feedback.play_export).
         self.history = []
         self.history_limit = HISTORY_LIMIT
@@ -441,7 +444,7 @@ class GameSession:
         return {'preference': preference['code'] if preference else None,
                 'cooldown_remaining': round(remaining,2), 'last_message': deepcopy(last),
                 'allowed': self.phase in ('running','paused') and not self.k.ended,
-                'jeff_plan': self.plan_state()}
+                'jeff_plan': self.plan_state(), 'links': self.links_state()}
 
     @property
     def features(self):
@@ -462,6 +465,22 @@ class GameSession:
         if self.plan_mode_chosen and self.jeff_plan_mode in ('off', *features.plan_choices(value)):
             return self.jeff_plan_mode
         return features.plan_default(value)
+
+    def with_player_switches(self, value):
+        """These features with the player's own pick applied where the features offer a switch; a pick that differs
+        from the default is recorded as "source": "player"."""
+        links = value.get('option_links')
+        if not links or not links.get('player_switch') or self.links_choice is None or self.links_choice == links['on']:
+            return value
+        return {**value, 'option_links': {**links, 'on': self.links_choice, 'source': 'player'}}
+
+    def links_state(self):
+        """The 步骤提示 switch (option_links) as the player sees it: on for the next round (or this one while it runs),
+        whether it is offered, and whether it can be changed now (between rounds)."""
+        between = self.phase in ('ready', 'ended')
+        offered = bool(self.next_features().get('option_links', {}).get('player_switch'))
+        value = self.with_player_switches(self.next_features()) if between else self.features
+        return {'on': bool(value.get('option_links', {}).get('on')), 'available': offered, 'editable': offered and between}
 
     def plan_state(self):
         """The plan switch for the next round, and Jeff's current plan as the player sees it: its steps, in Chinese, and which are done."""
@@ -568,6 +587,13 @@ class GameSession:
             result = self._command('/api/level', {'level': body.get('level')})
             if result[0] != 200:return result
             return self._command('/api/start', {'speed': speed})
+        if path == '/api/links':
+            if self.phase not in ('ready', 'ended'):
+                return 409, {'error': '请在开局前或结算后修改步骤提示。'}
+            if not self.next_features().get('option_links', {}).get('player_switch') or type(body.get('on')) is not bool:
+                return 400, {'error': '步骤提示设置无效。'}
+            self.links_choice = body['on']
+            return 200, {'ok': True, 'links': self.links_state()}
         if path == '/api/plan':
             if self.phase not in ('ready', 'ended'):
                 return 409, {'error': '请在开局前或结算后修改计划模式。'}
@@ -606,7 +632,7 @@ class GameSession:
                                       keep_payloads=self.bundle_root is not None, deployment_mode=self.deployment_mode)
             self.session_log = self.journal
             # The switches as of this round's start (features.json and the server's override); kept for the round.
-            self._features = self.feature_source()
+            self._features = self.with_player_switches(self.feature_source())
             self.jeff_plan_mode = self.next_plan_mode(self._features)
             intents = features.intents_on(self.features)
             held = Plan(mode=self.jeff_plan_mode) if self.jeff_plan_mode in PLAN_MODES and not intents else None

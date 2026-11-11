@@ -115,9 +115,9 @@ class SimulationTests(unittest.TestCase):
                 self.assertGreaterEqual(on['ahead_results'].get('applied', 0), .7 * on['asked_ahead'])
                 self.assertEqual(sum(on['ahead_discarded_why'].values()), on['ahead_results'].get('discarded', 0))
 
-    def test_off_by_default_and_the_switch_is_recorded(self):
+    def test_on_by_default_and_the_switch_is_recorded(self):
         import features
-        self.assertEqual(features.current()['ask_ahead'], {'stage': 'trial', 'on': False, 'player_switch': False,
+        self.assertEqual(features.current()['ask_ahead'], {'stage': 'trial', 'on': True, 'player_switch': False,
                                                            'version': ask_ahead.VERSION})
 
 

@@ -220,6 +220,8 @@ class CheckTests(unittest.TestCase):
         model = cls.MODEL
         current = features.current()
         off = {**current, 'food_names': {**current['food_names'], 'on': False}}   # the check reads rounds played without names
+        # food_names_check rebuilds requests without a step-hint table, from rounds that asked nothing ahead (its trial).
+        off = {**off, 'option_links': {**current['option_links'], 'on': False}, 'ask_ahead': {**current['ask_ahead'], 'on': False}}
         cls.folder = tempfile.TemporaryDirectory()
         clock = Clock()
         with patch.dict(os.environ, {'CHEFJEFF_LOG_DIR': cls.folder.name}), patch('jev.time.monotonic', clock), \

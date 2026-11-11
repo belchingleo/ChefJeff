@@ -33,6 +33,7 @@ class HostedTests(unittest.TestCase):
             for _ in range(200):
                 task = s.relay.request()
                 if task:break
+                s.tick()                     # sends the request once its step-hint table is in
                 time.sleep(.005)
             self.assertEqual(task['payload']['questions']['next_action']['criteria']['chop b1'], 'Join chopping beef (as fetched) shared-food (shared progress)')
             self.assertEqual([c for c in json.dumps(task['payload'], ensure_ascii=False) if ord(c) > 127], [])

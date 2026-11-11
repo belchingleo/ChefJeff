@@ -297,6 +297,12 @@ function kitchenTabs(dialog){
     <span class="switch-text"><label for="jeff-rolling" id="jeff-rolling-label" class="switch-label">两步打算（测试）</label></span>
    </div>
    <p id="plan-status" role="status" aria-live="polite"></p>
+   <div class="switch-row" id="links-row">
+    <button id="jeff-links" class="switch" type="button" role="switch" aria-checked="false" aria-labelledby="jeff-links-label" aria-describedby="links-status"><span class="switch-knob" aria-hidden="true"></span></button>
+    <span class="switch-text"><label for="jeff-links" id="jeff-links-label" class="switch-label">步骤提示</label><button id="links-info" class="info-btn" type="button" aria-label="步骤提示说明" aria-expanded="false" aria-controls="links-tip" aria-describedby="links-tip">i</button></span>
+   </div>
+   <div id="links-tip" class="tip" role="tooltip" hidden>告诉 Jeff 每个选项接下来能做成什么事，适合不太会自己串步骤的模型</div>
+   <p id="links-status" role="status" aria-live="polite"></p>
   </div>
  </section>
  <section aria-labelledby="audio-title" id="audio-panel" role="tabpanel">
@@ -345,8 +351,8 @@ function kitchenTabs(dialog){
  const el=id=>document.getElementById(id),dialog=el('kitchen-api-dialog'),showTab=kitchenTabs(dialog);
  // randomUUID exists only on secure pages; a phone on the LAN (plain HTTP) still has getRandomValues.
  const requestId=()=>crypto.randomUUID?.()||Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('');
- let state=null,busy=false,memoryBusy=false,memoryMessage='',limitBusy=false,limitMessage='',planBusy=false,planMessage='',feedbackText='';
- const planSwitch=el('jeff-plan'),rollingSwitch=el('jeff-rolling');
+ let state=null,busy=false,memoryBusy=false,memoryMessage='',limitBusy=false,limitMessage='',planBusy=false,planMessage='',linksBusy=false,linksMessage='',feedbackText='';
+ const planSwitch=el('jeff-plan'),rollingSwitch=el('jeff-rolling'),linksSwitch=el('jeff-links');
  const message=(text,error=false)=>{el('api-message').textContent=text;el('api-message').className=error?'error':''};
  // Services from model-providers.json, grouped; the hosted page leaves out the ones its browser cannot reach.
  const catalog=window.chefjeffProviders||{groups:[],providers:[]};
@@ -439,7 +445,13 @@ function kitchenTabs(dialog){
   // Only the plan modes on trial with a player switch (features.json, web_server.plan_state available) show.
   const choices=plan?.available||[];
   el('plan-row').hidden=!choices.includes('choice');if(!choices.includes('choice'))el('plan-tip').hidden=true;el('rolling-row').hidden=!choices.includes('rolling');
-  el('plan-setting').hidden=!!plan&&!choices.length;
+  // 步骤提示 (option_links) shows while the features offer its player switch (web_server.links_state available).
+  const links=state?.communication?.links;
+  el('links-row').hidden=!links?.available;if(!links?.available)el('links-tip').hidden=true;
+  if(links)linksSwitch.setAttribute('aria-checked',String(!!links.on));linksSwitch.disabled=!links?.editable;linksSwitch.setAttribute('aria-busy',String(linksBusy));
+  el('links-status').hidden=!links?.available;
+  el('links-status').textContent=links&&!links.editable&&!linksBusy?'本局进行中；结束本局后可以修改。':linksMessage||'';
+  el('plan-setting').hidden=!!plan&&!choices.length&&!links?.available;
   // While locked the reason wins over the last save message; the switch alone shows on/off.
   el('plan-status').textContent=plan&&!plan.editable&&!planBusy?'本局进行中；结束本局后可以修改。':planMessage||'';
   const l=state?.limits;
@@ -524,6 +536,13 @@ function kitchenTabs(dialog){
  };
  planSwitch.onclick=()=>savePlan(planSwitch,'choice',['下一局起开启计划模式。','下一局起关闭计划模式。']);
  rollingSwitch.onclick=()=>savePlan(rollingSwitch,'rolling',['下一局起开启两步打算。','下一局起关闭两步打算。']);
+ linksSwitch.onclick=async()=>{
+  if(linksBusy||linksSwitch.disabled)return;const on=linksSwitch.getAttribute('aria-checked')!=='true';
+  linksBusy=true;linksMessage='正在保存…';status();
+  try{const d=await localCommand('/api/links',{on});state.communication={...state.communication,links:d.links};
+   linksMessage=d.links.on?'下一局起开启步骤提示。':'下一局起关闭步骤提示。';
+  }catch(e){linksMessage=e.message}finally{linksBusy=false;status()}
+ };
  el('limit-save').onclick=async()=>{
   if(limitBusy)return;limitBusy=true;limitMessage='正在保存…';status();
   try{const d=await localCommand('/api/limits',{max_calls:Number(el('call-limit').value)});
@@ -546,7 +565,7 @@ function kitchenTabs(dialog){
 </script>
 <script>
 // 计划模式 info button: hover shows the tip with a mouse; touch and keyboard toggle it; Esc or a tap elsewhere closes it.
-(()=>{const btn=document.getElementById('plan-info'),tip=document.getElementById('plan-tip');if(!btn||!tip)return;
+for(const [infoId,tipId] of [['plan-info','plan-tip'],['links-info','links-tip']])(()=>{const btn=document.getElementById(infoId),tip=document.getElementById(tipId);if(!btn||!tip)return;
  let pinned=false;const inside=t=>!!t&&(btn.contains(t)||tip.contains(t));
  const show=v=>{tip.hidden=!v;btn.setAttribute('aria-expanded',String(v));if(!v)return;
   const card=tip.parentElement.getBoundingClientRect(),b=btn.getBoundingClientRect(),row=btn.closest('.switch-row').getBoundingClientRect();
@@ -614,6 +633,7 @@ function kitchenTabs(dialog){
   <dt>沟通 · 1–6 / 点击（测试功能）</dt><dd>这是测试中的功能，不是正式玩法，以后可能调整。打开左下角沟通菜单，点击即可告诉 AI 由你来做哪类工作；“你做错了”是独立的红色描边按钮。也可按 1–5 说明分工、按 6 纠错。共用 5 个实际秒冷却，暂停时也可发送。最新的说明只在本局有效；AI 在下一次正常请求中收到，自行判断如何配合，不强制分工或停止动作。纠错附带当时动作信息，但不指定正确答案。</dd>
   <dt>计划模式（测试）</dt><dd>默认关闭。Jeff 没有计划时，会在决定下一步动作的同时，写下接下来打算做的几道工序，最多 4 步，比如切生菜、生菜装盘、出餐。它每做完一道，那一步就打上勾。计划没有时限：全部做完、Jeff 自己放弃，或者你发了新的分工说明时才结束，Jeff 立刻再写一份。计划不限制 Jeff 的动作，它每次仍从全部可选动作里选；中途去做计划外的事，计划也照旧留着。沟通菜单里能看到 Jeff 当前的计划。开局前或结算后可以在「设置 → AI 搭档」里关掉，一局内不变。</dd>
   <dt>两步打算（测试）</dt><dd>默认关闭，和计划模式二选一。Jeff 每次决定动作时，同时说出这个动作是为了哪道工序，以及做完之后打算做的下一道工序。下一次请求把这两道工序带回给它，做完的打上勾，然后再问一遍，用新的回答换掉旧的。它不用决定留不留，也不限制动作，随时可以改。沟通菜单里能看到 Jeff 当前的打算。开局前或结算后可以在「设置 → AI 搭档」里打开或关掉，一局内不变。</dd>
+  <dt>步骤提示</dt><dd>默认开启。Jeff 每次决定时，会同时看到每个选项接下来能做成什么事（比如拿起生牛肉以后可以切），由游戏按厨房现状算出，不替他做决定。不太会自己串起步骤的模型用它更顺手；本来就能串起来的模型可以关掉。在设置的「AI 队友」里开关，下一局起生效。</dd>
   <dt>标记片段 · Enter</dt><dd>营业中按 Enter 标记当前时刻，不暂停、不打断动作。相邻两次标记间隔不超过 5 个实际秒时合并为一个区间，长按不重复。设置中的“数据导出”包含全部标记；标记不会发送给 AI。</dd>
   <dt>暂停与继续 · Esc / P</dt><dd>暂停会停止锅火、订单和双方动作。再按 Esc 或 P（键盘没有 Esc 键时用，如 iPad）或点「继续经营」回到厨房；也可重新开局、打开设置或查看本说明。结束本局、暂停中重新开局都会先请你确认；重新开局沿用当前配置与速度。更换 API、记忆和调用上限请在结算后或开局前进行。</dd>
   </dl>

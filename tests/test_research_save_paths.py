@@ -40,6 +40,8 @@ class SavePathTests(base.ResearchHTTPTests):
             self.game.ai.poll()
         deadline = time.monotonic() + 2
         while time.monotonic() < deadline and not self.game.relay.request():
+            with self.game.lock:
+                self.game.ai.poll()      # sends the request once its step-hint table is in
             time.sleep(.005)
         criteria = self.game.relay.request()['payload']['questions']['next_action']['criteria']
         return next(key for key in criteria if key not in ('wait', 'continue'))

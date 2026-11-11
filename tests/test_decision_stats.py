@@ -375,6 +375,8 @@ class ResearchRecordTests(paths.SavePathTests):
             self.game.ai.poll()
         deadline = time.monotonic() + 2
         while time.monotonic() < deadline and not self.game.relay.request():
+            with self.game.lock:
+                self.game.ai.poll()      # sends the request once its step-hint table is in
             time.sleep(.005)
         pending = self.game.relay.request()
         criteria = pending['payload']['questions']['next_action']['criteria']

@@ -19,6 +19,8 @@ class CommunicationTests(unittest.TestCase):
             kitchen_factory=SpatialKitchen,journal_factory=FakeJournal,connector=lambda c,s:NoKeyClient(c))
         self.addCleanup(self.g.close)
         self.g.setting={'provider':'compatible','api_key':'secret-test','model':'secret-test'}
+        from test_one_press import with_features
+        self.g.feature_source=lambda:with_features(option_links={'on':False})  # these checks read the request as logged at once: no step-hint table, which a thread computes first
     def cmd(self,path,**data):return self.g.command('/api/'+path,{'game_id':self.g.game_id,'request_id':uuid.uuid4().hex,**data})
     def send(self,code,now):
         with patch('web_server.time.monotonic',return_value=now):return self.cmd('communicate',code=code)

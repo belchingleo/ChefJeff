@@ -10,7 +10,7 @@ An option that leads to no new work gets no line.
 
 It says what becomes possible, never what Jeff should do, and the same rule holds for every level and ingredient
 (nothing is written by hand). The links check (scripts/links_check.py) re-asks logged moments in four arms; the
-game uses arm D through the option_links switch (features.json, a trial, off by default, option-links-v2): each
+game uses arm D through the option_links switch (features.json, a trial with a player switch, on by default, option-links-v3): each
 request gets state.option_links, a table computed afresh for that request from the kitchen it describes, and
 rules.links, while every option stays as it is (apply).
 """
@@ -19,12 +19,13 @@ from __future__ import annotations
 from model_language import english_text
 
 VERSION = 'links-v1'
-SWITCH_VERSION = 'option-links-v2'     # the game's option_links switch: arm D
+SWITCH_VERSION = 'option-links-v3'     # the game's option_links switch: arm D
+# v3 counts a held pan scooping an ingredient off a counter (scoop_counter, rules-v14) as work, as putting it in a pan.
 # v1 also carried out walks, waits and stops in the fork, so a walk could pick up work that only time made possible
 # (a pan finishing while Jeff walked); v2 skips them, as they change no hand and no station, and forks share the
 # kitchen's unchanging parts and a route cache (about 0.45 s -> 0.18 s per request on level 2).
 # The work an option can lead to: harness.WORK_KINDS without fetching and taking, plus putting a dirty plate in the sink.
-WORK = ('chop', 'put_pot', 'load_counter', 'load_ground', 'assemble', 'assemble_ground', 'plate_pot', 'plate_counter',
+WORK = ('chop', 'put_pot', 'scoop_counter', 'load_counter', 'load_ground', 'assemble', 'assemble_ground', 'plate_pot', 'plate_counter',
         'plate_from_counter', 'plate_ground', 'plate_partner', 'serve', 'put_sink', 'wash')
 STEP = .05
 GRACE = 1.0

@@ -292,7 +292,10 @@ def plan_trials(**changes):
     """The repository's features with both plan modes back on trial behind a player switch, off: for tests of the
     switch, and of rounds played without a plan (two-step intent is released and on in the repository)."""
     base = {'jeff_plan': {'stage': 'trial', 'on': False, 'player_switch': True},
-            'rolling_intent': {'stage': 'trial', 'on': False, 'player_switch': True}}
+            'rolling_intent': {'stage': 'trial', 'on': False, 'player_switch': True},
+            # The scripted rounds these tests play were timed with no request asked ahead and no step-hint table
+            # (both on in the repository since option-links-v3); tests of those switches set them themselves.
+            'ask_ahead': {'on': False}, 'option_links': {'on': False}}
     for name, fields in changes.items():
         base[name] = {**base.get(name, {}), **fields}
     return with_features(**base)
@@ -322,16 +325,16 @@ class SessionTests(unittest.TestCase):
         self.assertEqual(row['one_press'], {'put_then_take': True, 'wash_from_returns': True, 'version': one_press.VERSION})
         self.assertEqual(row['features'], {'one_press': {'on': True, 'version': one_press.VERSION},
                                            'jeff_plan': {'on': False, 'version': 'plan-v2'},
-                                           'rolling_intent': {'on': True, 'version': 'rolling-v3'},
-                                           'undo_note': {'on': True, 'version': 'undo-note-v1'},
+                                           'rolling_intent': {'on': False, 'version': 'rolling-v3'},
+                                           'undo_note': {'on': False, 'version': 'undo-note-v1'},
                                            'compact_input': {'on': False, 'version': 'compact-v1'},
-                                           'ask_ahead': {'on': False, 'version': 'ask-ahead-v1'},
+                                           'ask_ahead': {'on': True, 'version': 'ask-ahead-v1'},
                                            'reach_note': {'on': False, 'version': 'reach-v1'},
                                            'food_names': {'on': True, 'version': 'names-v1'},
                                            'intent_layer': {'on': False, 'version': 'intent-v1'},
-                                           'option_links': {'on': False, 'version': 'option-links-v2'},
+                                           'option_links': {'on': True, 'version': 'option-links-v3'},
                                            'option_links_partner': {'on': False, 'version': 'partner-links-v2'}})
-        self.assertEqual(row['jeff_plan'], {'mode': 'rolling', 'steps': 2, 'rules_version': 'rolling-v3'})
+        self.assertNotIn('jeff_plan', row)                 # two-step intent is off in the repository since option-links-v3
 
     def test_the_file_rolls_it_back(self):
         g = self.game(with_features(one_press={'on': False}))
@@ -342,7 +345,7 @@ class SessionTests(unittest.TestCase):
         self.assertEqual(row['features']['one_press'], {'on': False, 'version': one_press.VERSION})
 
     def test_two_step_intent_is_released_with_no_plan_switch(self):
-        g = self.game()
+        g = self.game(with_features(rolling_intent={'on': True}))        # released, off in the repository; a server can turn it on
         self.assertEqual(g.communication_state()['jeff_plan'], {'mode': 'rolling', 'available': [], 'editable': False, 'current': None})
         for mode in ('off', 'choice', 'rolling'):
             self.assertEqual(g._command('/api/plan', {'mode': mode})[0], 400)
@@ -368,7 +371,7 @@ class FeaturesFileTests(unittest.TestCase):
         import features
         value = features.load()
         self.assertEqual(value['one_press'], {'stage': 'release', 'on': True, 'player_switch': False, 'version': one_press.VERSION})
-        self.assertEqual(value['rolling_intent'], {'stage': 'release', 'on': True, 'player_switch': False, 'version': 'rolling-v3'})
+        self.assertEqual(value['rolling_intent'], {'stage': 'release', 'on': False, 'player_switch': False, 'version': 'rolling-v3'})
         self.assertEqual(value['jeff_plan'], {'stage': 'trial', 'on': False, 'player_switch': False, 'version': 'plan-v2'})
         self.assertEqual({name: v['stage'] for name, v in value.items()},
                          {'one_press': 'release', 'jeff_plan': 'trial', 'rolling_intent': 'release', 'undo_note': 'trial',
@@ -419,7 +422,9 @@ class StatsTests(unittest.TestCase):
         from test_decision_stats import Inline as Thread
         with patch.dict('os.environ', {'CHEFJEFF_LOG_DIR': str(Path(folder, 'logs'))}):
             import features
-            with patch.object(features, 'current', lambda: with_features(one_press={'on': on})):
+            # The pressing timeline was written with nothing asked ahead and no step-hint table.
+            with patch.object(features, 'current', lambda: with_features(one_press={'on': on}, ask_ahead={'on': False},
+                                                                         option_links={'on': False})):
                 game = GameSession(level_config(load_config(), 'level-2'), client_factory=lambda c: Pressing(c, lambda: game),
                                    journal_factory=play.Journal, kitchen_factory=SpatialKitchen, log_prefix='whitebox')
             clock = [1000.0]

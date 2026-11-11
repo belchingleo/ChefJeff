@@ -77,7 +77,7 @@ class OverrideTests(unittest.TestCase):
         for wrong in ({'dance': {'on': True}},                                   # not in this release
                       {'rolling_intent': {'version': 'rolling-v9'}},            # versions belong to the code
                       {'one_press': {'player_switch': True}},                   # released: no switch
-                      {'jeff_plan': {'on': True}},                              # two plan modes at once
+                      {'jeff_plan': {'on': True}, 'rolling_intent': {'on': True}},  # two plan modes at once
                       {'reach_note': {'on': 'yes'}},
                       {'reach_note': {}},
                       [],
@@ -101,7 +101,7 @@ class OverrideTests(unittest.TestCase):
         self.assertEqual(quietly(features.main, ['unset', 'jeff_plan'])[0], 0)
         self.assertEqual(json.loads(self.file.path.read_text()), {'rolling_intent': {'on': False}})
         bad = self.file.path.with_name('bad.json')
-        bad.write_text(json.dumps({'jeff_plan': {'on': True}}))
+        bad.write_text(json.dumps({'jeff_plan': {'on': True}, 'rolling_intent': {'on': True}}))
         self.assertEqual(quietly(features.main, ['check', str(bad)])[0], 1)
         self.assertEqual(quietly(features.main, ['check'])[0], 0)
         out = io.StringIO()
@@ -121,6 +121,7 @@ class SessionTests(unittest.TestCase):
         return [d for kind, d in self.g.journal.journal.rows if kind == 'start']
 
     def test_a_round_keeps_its_switches_and_the_next_takes_the_new_ones(self):
+        self.file.write({'rolling_intent': {'on': True}})                     # off in the repository; the server turns it on
         self.assertEqual(self.g._command('/api/start', {})[0], 200)
         self.assertEqual(self.g.ai.plan.mode, 'rolling')
         self.file.write({'rolling_intent': {'on': False}})                    # changed during the round
@@ -133,7 +134,7 @@ class SessionTests(unittest.TestCase):
         self.assertEqual(self.g._command('/api/start', {})[0], 200)
         self.assertIsNone(self.g.ai.plan)
         second = self.starts()[-1]
-        self.assertEqual(first['features']['rolling_intent'], {'on': True, 'version': 'rolling-v3'})
+        self.assertEqual(first['features']['rolling_intent'], {'on': True, 'version': 'rolling-v3', 'source': 'server'})
         self.assertEqual(second['features']['rolling_intent'], {'on': False, 'version': 'rolling-v3', 'source': 'server'})
         self.assertNotIn('jeff_plan', second)
 

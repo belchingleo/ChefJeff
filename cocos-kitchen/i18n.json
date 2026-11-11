@@ -1037,6 +1037,14 @@
     "下一局起开启计划模式。": "Plan mode is on from the next round.",
     "下一局起关闭计划模式。": "Plan mode is off from the next round.",
     "两步打算（测试）": "Two-step intent (trial)",
+    "步骤提示": "Step hints",
+    "步骤提示说明": "About step hints",
+    "告诉 Jeff 每个选项接下来能做成什么事，适合不太会自己串步骤的模型": "Tells Jeff what each option lets him do next; useful for models that do not chain steps on their own",
+    "默认开启。Jeff 每次决定时，会同时看到每个选项接下来能做成什么事（比如拿起生牛肉以后可以切），由游戏按厨房现状算出，不替他做决定。不太会自己串起步骤的模型用它更顺手；本来就能串起来的模型可以关掉。在设置的「AI 队友」里开关，下一局起生效。": "On by default. Each time Jeff decides, he also sees what each option lets him do next (after picking up raw beef he can chop it), worked out by the game from the kitchen as it is; it never decides for him. Models that do not chain steps on their own play more smoothly with it; models that already do can turn it off. Switch it in Settings → AI teammate; it applies from the next round.",
+    "请在开局前或结算后修改步骤提示。": "Change step hints before a round starts or after it ends.",
+    "步骤提示设置无效。": "Invalid step hints setting.",
+    "下一局起开启步骤提示。": "Step hints are on from the next round.",
+    "下一局起关闭步骤提示。": "Step hints are off from the next round.",
     "下一局起开启两步打算。": "Two-step intent is on from the next round.",
     "下一局起关闭两步打算。": "Two-step intent is off from the next round.",
     "默认关闭，和计划模式二选一。Jeff 每次决定动作时，同时说出这个动作是为了哪道工序，以及做完之后打算做的下一道工序。下一次请求把这两道工序带回给它，做完的打上勾，然后再问一遍，用新的回答换掉旧的。它不用决定留不留，也不限制动作，随时可以改。沟通菜单里能看到 Jeff 当前的打算。开局前或结算后可以在「设置 → AI 搭档」里打开或关掉，一局内不变。": "Off by default; use it or plan mode, not both. Each time Jeff decides an action, it also says which piece of work that action is for, and the piece of work it intends to do after it. The next request shows these two back to Jeff, ticking what it has finished, and asks again; the new answer replaces the old one. Jeff never has to decide whether to keep it, it does not limit Jeff's actions, and Jeff can change it at any time. The communication menu shows Jeff's current intent. Turn it on or off in Settings → AI teammate before a round or after the results; it stays the same during a round.",
@@ -2047,6 +2055,10 @@
     [
       "{0} 返回了不符合候选集的选择",
       "{0} returned a choice outside the offered actions"
+    ],
+    [
+      "步骤提示计算失败（{0}）",
+      "Step hints could not be worked out ({0})"
     ],
     [
       "{0} 拒绝回答这一题",

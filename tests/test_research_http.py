@@ -53,6 +53,7 @@ class ResearchHTTPTests(unittest.TestCase):
         while time.monotonic()<deadline:
             pending=self.game.relay.request()
             if pending:break
+            with self.game.lock:self.game.ai.poll()   # sends the request once its step-hint table is in
             time.sleep(.005)
         self.assertIsNotNone(pending)
         self.assertEqual(self.request('/api/model/result',{

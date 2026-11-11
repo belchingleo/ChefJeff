@@ -42,8 +42,8 @@ class BundleTests(unittest.TestCase):
                 clock.now += .1
                 g.last_seen = clock.now
                 g.tick(clock.now)
-                deadline = time.monotonic() + .5
-                while g.ai.inflight and g.ai.q.empty() and time.monotonic() < deadline:
+                deadline = time.perf_counter() + 5
+                while g.ai.inflight and g.ai.q.empty() and g.ai.prepared.empty() and time.perf_counter() < deadline:
                     time.sleep(.0005)
                 if step == 20:
                     cmd('communicate', code='cook')

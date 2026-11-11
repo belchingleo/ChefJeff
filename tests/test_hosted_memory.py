@@ -19,6 +19,8 @@ KEY='memory-test-jev-key-not-a-real-secret'
 class HostedMemoryTests(unittest.TestCase):
     def game(self):
         game=HostedSession();self.addCleanup(game.close)
+        from test_one_press import with_features
+        game.feature_source=lambda:with_features(option_links={'on':False})  # these checks read the request as logged at once: no step-hint table, which a thread computes first
         return game
 
     def start(self,game):

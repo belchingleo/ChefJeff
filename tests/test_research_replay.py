@@ -46,6 +46,10 @@ class ReplayTests(paths.SavePathTests):
         self.assertEqual(self.command('communicate', code=next(iter(PLAYER_MESSAGES)))[0], 200)
 
     def test_a_consented_round_replays_exactly_from_its_record(self):
+        # Answered one request at a time, so the request after the player's message carries it: nothing asked ahead
+        # and no step-hint table (asking ahead and step hints replay in their own tests below).
+        from test_one_press import with_features
+        self.game.feature_source = lambda: with_features(ask_ahead={'on': False}, option_links={'on': False})
         receipt = self.play()
         self.browser_inputs()
         self.browser_answer(self.legal_choice())
@@ -90,6 +94,8 @@ class ReplayTests(paths.SavePathTests):
             self.game.ai.poll()
         deadline = time.monotonic() + 2
         while time.monotonic() < deadline and not self.game.relay.request():
+            with self.game.lock:
+                self.game.ai.poll()      # sends the request once its step-hint table is in
             time.sleep(.005)
         pending = self.game.relay.request()
         criteria = pending['payload']['questions']['next_action']['criteria']
@@ -160,6 +166,10 @@ class ReplayTests(paths.SavePathTests):
         self.assertEqual(requests[1]['rebuilt']['state']['jeff_plan']['steps'][0]['work'], 'fetch:beef')
 
     def test_a_round_with_the_rolling_intent_keeps_the_condition_and_replays_exactly(self):
+        # Two-step intent is released but off in the repository since option-links-v3; a server can turn it on.
+        from test_one_press import with_features
+        self.game.feature_source = lambda: with_features(rolling_intent={'on': True}, ask_ahead={'on': False},
+                                                         option_links={'on': False})
         self.assertEqual(self.command('plan', mode='off')[0], 400)        # released: every round has it, no switch
         receipt = self.begin_manual_relay()
         initial = self.game.store.download(receipt['id'], receipt['deletion_token'])
@@ -193,10 +203,10 @@ class ReplayTests(paths.SavePathTests):
         self.assertEqual(initial['conditions']['one_press'], condition)
         self.assertEqual(initial['conditions']['features']['one_press'], {'on': True, 'version': one_press.VERSION})
         self.assertEqual({name: value['on'] for name, value in initial['conditions']['features'].items()},
-                         {'one_press': True, 'jeff_plan': False, 'rolling_intent': True, 'undo_note': True,
-                          'compact_input': False, 'ask_ahead': False, 'reach_note': False, 'food_names': True,
+                         {'one_press': True, 'jeff_plan': False, 'rolling_intent': False, 'undo_note': False,
+                          'compact_input': False, 'ask_ahead': True, 'reach_note': False, 'food_names': True,
                           'intent_layer': False,
-                          'option_links': False, 'option_links_partner': False})
+                          'option_links': True, 'option_links_partner': False})
         with self.game.lock:                                    # the human leaves beef on a board
             k = self.game.k
             for chosen in (lambda a: a.key == 'fetch beef', lambda a: a.kind == 'put_board'):
@@ -292,6 +302,8 @@ class ReplayTests(paths.SavePathTests):
                     self.game.ai.poll()
                 deadline = time.monotonic() + 2
                 while time.monotonic() < deadline and not self.game.relay.request():
+                    with self.game.lock:
+                        self.game.ai.poll()      # sends the request once its step-hint table is in
                     time.sleep(.005)
                 sent = self.game.relay.request()
                 self.assertEqual(sent['wire']['version'], wire_format.VERSION)          # the page gets the two parts
@@ -353,6 +365,8 @@ class ReplayTests(paths.SavePathTests):
                     self.game.ai.poll()
                 deadline = time.monotonic() + 2
                 while time.monotonic() < deadline and not self.game.relay.request():
+                    with self.game.lock:
+                        self.game.ai.poll()      # sends the request once its step-hint table is in
                     time.sleep(.005)
                 self.assertEqual(self.game.relay.request()['payload']['state']['food_names_version'], food_names.VERSION)
                 self.assertEqual(self.answer_with()[0], 200)
@@ -386,6 +400,8 @@ class ReplayTests(paths.SavePathTests):
             self.game.ai.poll()
         deadline = time.monotonic() + 2
         while time.monotonic() < deadline and not self.game.relay.request():
+            with self.game.lock:
+                self.game.ai.poll()      # sends the request once its step-hint table is in
             time.sleep(.005)
         self.assertEqual(self.answer_with()[0], 200)
         with self.game.lock:                     # the answer waits for the walk to end, then is carried out or dropped

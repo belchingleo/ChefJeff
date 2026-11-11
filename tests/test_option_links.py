@@ -53,9 +53,18 @@ class RequestTests(unittest.TestCase):
         self.assertEqual(self.payload(k, True), self.payload(k, True))
         self.assertEqual(k.chefs['jeff'].hand.ingredient, 'beef')
 
-    def test_switch_is_a_trial_and_off(self):
+    def test_the_work_listed_follows_the_game_s_work_kinds(self):
+        # Every chop, cook (a held pan scooping off a counter included), plate, serve and wash kind counts as work;
+        # fetching and taking (a plate, a return) do not, and putting a dirty plate in the sink does.
+        import harness
+        kinds = harness.WORK_KINDS
+        expected = {*kinds['chop'], *kinds['cook'], *kinds['plate'], *kinds['serve'], *kinds['wash_plates'], 'put_sink'}
+        self.assertEqual(set(links.WORK), expected)
+        self.assertIn('scoop_counter', links.WORK)
+
+    def test_switch_is_a_trial_on_by_default_with_a_player_switch(self):
         self.assertEqual(features.load()['option_links'],
-                         {'stage': 'trial', 'on': False, 'player_switch': False, 'version': 'option-links-v2'})
+                         {'stage': 'trial', 'on': True, 'player_switch': True, 'version': links.SWITCH_VERSION})
 
 
 class LoopTests(unittest.TestCase):
@@ -171,6 +180,7 @@ class PartnerTests(unittest.TestCase):
         self.assertFalse(loaded['option_links_partner']['on'])
         on = {name: dict(value) for name, value in loaded.items()}
         on['option_links_partner']['on'] = True
+        on['option_links']['on'] = False
         self.assertIs(features.links_option(on), False)
         on['option_links']['on'] = True
         self.assertEqual(features.links_option(on), 'partner')
@@ -178,3 +188,44 @@ class PartnerTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class PlayerSwitchTests(unittest.TestCase):
+    """步骤提示: option_links carries a player switch; the player's pick applies from the next round and is recorded."""
+
+    def game(self, value=None):
+        from test_one_press import Answering as Replying, with_features
+        from test_web import FakeJournal
+        from web_server import GameSession
+        with patch.object(features, 'current', lambda: value or with_features()):
+            g = GameSession(level_config(load_config(), 'level-2'), client_factory=lambda c: Replying(c),
+                            journal_factory=FakeJournal, kitchen_factory=SpatialKitchen)
+        self.addCleanup(g.close)
+        return g
+
+    def start_row(self, g):
+        return [d for kind, d in g.journal.journal.rows if kind == 'start'][-1]
+
+    def test_on_by_default_with_a_switch_the_player_can_turn_off_between_rounds(self):
+        g = self.game()
+        self.assertEqual(g.communication_state()['links'], {'on': True, 'available': True, 'editable': True})
+        self.assertEqual(g._command('/api/links', {'on': 'no'})[0], 400)
+        self.assertEqual(g._command('/api/links', {'on': False})[0], 200)
+        self.assertEqual(g.communication_state()['links'], {'on': False, 'available': True, 'editable': True})
+        self.assertEqual(g._command('/api/start', {})[0], 200)
+        self.assertIs(g.ai.links, False)
+        self.assertEqual(self.start_row(g)['features']['option_links'],
+                         {'on': False, 'version': links.SWITCH_VERSION, 'source': 'player'})
+        self.assertEqual(g.communication_state()['links']['editable'], False)        # fixed while the round runs
+        self.assertEqual(g._command('/api/links', {'on': True})[0], 409)
+
+    def test_the_default_needs_no_source_and_no_switch_means_no_change(self):
+        from test_one_press import with_features
+        g = self.game()
+        self.assertEqual(g._command('/api/links', {'on': True})[0], 200)               # the same as the default
+        self.assertEqual(g._command('/api/start', {})[0], 200)
+        self.assertIs(g.ai.links, True)
+        self.assertEqual(self.start_row(g)['features']['option_links'], {'on': True, 'version': links.SWITCH_VERSION})
+        g = self.game(with_features(option_links={'player_switch': False}))
+        self.assertEqual(g.communication_state()['links']['available'], False)
+        self.assertEqual(g._command('/api/links', {'on': False})[0], 400)

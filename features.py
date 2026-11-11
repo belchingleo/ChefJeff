@@ -154,9 +154,9 @@ def current() -> dict:
 
 def snapshot(features) -> dict:
     """What a round records: each feature on or off, with its version, and "source": "server" where the server's
-    override set it."""
+    override set it, or "player" where the player's own switch did (web_server.with_player_switches)."""
     return {name: {'on': value['on'], 'version': value['version'],
-                   **({'source': 'server'} if value.get('source') == 'server' else {})}
+                   **({'source': value['source']} if value.get('source') in ('server', 'player') else {})}
             for name, value in features.items()}
 
 

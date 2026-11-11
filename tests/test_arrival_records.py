@@ -39,8 +39,8 @@ def local_round(record_rows=True):
             clock.now += .1
             g.last_seen = clock.now
             g.tick(clock.now)
-            deadline = time.monotonic() + .5
-            while g.ai.inflight and g.ai.q.empty() and time.monotonic() < deadline:
+            deadline = time.perf_counter() + 5
+            while g.ai.inflight and g.ai.q.empty() and g.ai.prepared.empty() and time.perf_counter() < deadline:
                 time.sleep(.0005)
             if step % 25 == 5 and not g.k.chefs['human'].job:
                 action = next(x for x in g.k.actions('human') if x.kind not in ('wait', 'continue', 'stop'))
