@@ -6,6 +6,12 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 
 ## Unreleased
 
+### Picking up as in Overcooked 2, a clearer target, plates drawn in flight
+
+- A loose item is picked up within Overcooked 2's reach (InteractWithItemHelper: the half-disc ahead): within 1.2 cells of the chef and not behind, the one nearest a point half a cell ahead; the aimed tile still wins a tie, then the feet. Before, only the aimed tile and the feet counted, so running past an item beside the chef missed it. The page highlights the same item the engine takes (`tests/test_item_reach.py`). Stations are chosen as before (the four cells beside the chef's own, as Overcooked 2's grid selection).
+- The targeted station with something to do is marked plainly: a bright fill, a thick blue frame and corner brackets just outside the tile. One with nothing to do keeps the quiet thin frame.
+- A thrown or dropped plate is drawn as a plate. The engine's plate carries a default ingredient field, and the page looked up an ingredient picture that does not exist.
+
 ### Controllers: Switch Joy-Cons, dash on B, a picture hint
 
 - A pair of Joy-Cons that macOS merges into one "Joy-Con (L/R)" device reports its left stick as a D-pad turned for a sideways Joy-Con (stick up came out as left); the page turns it back for the pair held upright. Safari reads the same pair through Apple's framework ("Joy-Con (L/R) Extended Gamepad") with the stick and arrows already upright, so it is left as it is.
@@ -322,6 +328,12 @@ First private release: a local browser game with three playable maps and player-
 ## 更新记录
 
 ## 未发布
+
+### 拾取照《Overcooked 2》、对准的工位更醒目、飞行中的盘子
+
+- 地上的物品按《Overcooked 2》的范围拾取（InteractWithItemHelper，面前半圆）：离厨师 1.2 格以内、不在身后，挑离身前半格那一点最近的一个；正前方那一格平手时仍然优先，其次是脚下。以前只认正前方和脚下两格，从身边跑过时捡不到。网页亮起的就是引擎会拿的那一个（`tests/test_item_reach.py`）。工位的选法不变（脚下那一格的上下左右四格，同原作的格子选取）。
+- 对准的工位如果按下去有动作，用亮底、蓝色粗框和露在格子外的四个角标出；没有动作的仍是原来的细框。
+- 扔出去或掉在地上的盘子画成盘子。引擎里的盘子带着一个默认的食材字段，网页原来去找一张并不存在的食材图。
 
 ### 手柄：Switch Joy-Con、冲刺改到 B、图示提示
 
