@@ -2,7 +2,7 @@
   "schema_version": 1,
   "kind": "equipment_catalog",
   "id": "chefjeff-core",
-  "version": 1,
+  "version": 2,
   "name": "ChefJeff core equipment",
   "types": {
     "ingredient_source": {"name": "食材箱", "capabilities": ["dispense"], "slots": 0, "worker_requirement": "none",
@@ -21,6 +21,7 @@
              "shared_work": {"wash": {"max_workers": 2, "rate_multiplier": {"1": 1.0, "2": 2.0}}},
              "combustible": false},
     "plate_return": {"name": "脏盘回收", "capabilities": ["return_plates"], "slots": 1, "worker_requirement": "none", "combustible": false},
+    "drying_rack": {"name": "沥水架", "capabilities": ["dry_plates"], "slots": 1, "worker_requirement": "none", "combustible": false},
     "tool_rack": {"name": "灭火器架", "capabilities": ["store_tool"], "slots": 1, "worker_requirement": "none", "combustible": false}
   }
 }

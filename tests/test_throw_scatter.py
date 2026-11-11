@@ -24,6 +24,10 @@ class ThrowScatterTests(unittest.TestCase):
 
     def make_level_corner(self, level, corner, human_has_food=False):
         k = SpatialKitchen(load_config() | {'spawn_seed': 0, 'level': level, 'handling_seconds': .15})
+        # These cases start from an empty corner counter: a starting plate there moves to a free counter.
+        if k.stations[corner].food:
+            free = next(c for c in k.counters if c != corner and not k.stations[c].food)
+            k.stations[free].food, k.stations[corner].food = k.stations[corner].food, None
         access = k.equipment[corner]['access']
         k.positions.update(human=tuple(map(float, access)), jeff=tuple(map(float, access)))
         k.chefs['human'].location = tile_key(access)
@@ -144,32 +148,32 @@ class ThrowScatterTests(unittest.TestCase):
                         k.assert_invariants()
 
     def test_in_flight_corner_throw_blocks_put_counter(self):
-        k = self.make_level_corner(1, 'counter_corner1', human_has_food=True)
-        action = self.throw_toward(k, 'jeff', k.equipment['counter_corner1']['cell'])
+        k = self.make_level_corner(1, 'counter2', human_has_food=True)
+        action = self.throw_toward(k, 'jeff', k.equipment['counter2']['cell'])
         k.advance(.05)
-        self.assertEqual(k.drop_locks.get('counter_corner1'), 'jeff')
-        self.assertFalse(k.command('human', 'put counter_corner1')[0])
+        self.assertEqual(k.drop_locks.get('counter2'), 'jeff')
+        self.assertFalse(k.command('human', 'put counter2')[0])
         k.advance(1.)
-        self.assertEqual(k.stations['counter_corner1'].food.id, 'jeff-food')
+        self.assertEqual(k.stations['counter2'].food.id, 'jeff-food')
         self.assertEqual(k.chefs['human'].hand.id, 'human-food')
         k.assert_invariants()
 
     def test_competing_corner_counter_throw_keeps_one_item_on_counter_and_spills_one_to_floor(self):
-        k = self.make_level_corner(1, 'counter_corner1', human_has_food=True)
-        cell = k.equipment['counter_corner1']['cell']
+        k = self.make_level_corner(1, 'counter2', human_has_food=True)
+        cell = k.equipment['counter2']['cell']
         spare = Food('jeff-spare', 'raw')
         k.ground[spare.id] = GroundItem(spare, tile_key((10, 2)))
         first_food = k.chefs['jeff'].hand
         first = self.throw_toward(k, 'jeff', cell)
-        self.assertEqual(first.target, 'counter_corner1')
+        self.assertEqual(first.target, 'counter2')
         k.advance(.4)
-        self.assertIs(k.stations['counter_corner1'].food, first_food)
+        self.assertIs(k.stations['counter2'].food, first_food)
         second = self.throw_toward(k, 'human', cell)
         self.assertIn(second.target, k.floor_places)
         self.assertTrue(k.command('jeff', f'pickup {spare.id}')[0])
         k.advance(.5)
 
-        self.assertEqual(k.stations['counter_corner1'].food.id, 'jeff-food')
+        self.assertEqual(k.stations['counter2'].food.id, 'jeff-food')
         self.assertEqual(set(k.ground), {'human-food'})
         self.assertIn(k.ground['human-food'].location, k.floor_places)
         self.assertIs(k.chefs['jeff'].hand, spare)

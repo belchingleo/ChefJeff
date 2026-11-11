@@ -1,6 +1,6 @@
 {
   "analyzer_version": "capacity-analyzer-0.1",
-  "input_config_hash": "sha256:bb867f3ad8aa69a19ba7d4fa141ae6714d097848a830cbf30b659f71c1db133d",
+  "input_config_hash": "sha256:9d8e6921cb62693de8916185d3f30838d7fd76ed18ef440ce6121048df18fbf1",
   "input_status": "frozen",
   "level_id": "level-1",
   "schema_valid": true,
@@ -109,14 +109,14 @@
       "first_dish_lower_bound_game_ms": 11100,
       "first_dish_lower_bound_basis": "max(critical path, chef time / chefs); transport excluded",
       "single_chef_walking_reference_game_ms": {
-        "assignment_0:human": 14582,
-        "assignment_0:jeff": 15745,
-        "assignment_1:human": 15745,
-        "assignment_1:jeff": 14582
+        "assignment_0:human": 14683,
+        "assignment_0:jeff": 15846,
+        "assignment_1:human": 15846,
+        "assignment_1:jeff": 14683
       },
       "walking_reference_range_game_ms": [
-        14582,
-        15745
+        14683,
+        15846
       ]
     }
   },

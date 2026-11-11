@@ -12,6 +12,12 @@ takes them as they come), assembles, serves and washes.
 """
 
 
+
+def _rack_plate(k, stations):
+    """The drying rack beside the sink, when a clean plate waits on it (levels with a rack; washed plates go there)."""
+    rack = getattr(k, 'dryer', None)
+    return rack if rack and (stations.get(rack) or {}).get('food') else None
+
 def _pick(actions, kind, target=None, key=None):
     for a in actions:
         if a.kind == kind and (target is None or a.target == target) and (key is None or a.key == key):
@@ -198,6 +204,9 @@ def choose(k, who, role):
         return _pick(actions, 'wash', 'sink')
     if sink and sink['stage'] == 'clean_plate' and not counter:
         return _pick(actions, 'take_sink', 'sink')
+    rack = _rack_plate(k, state['stations'])
+    if rack and not counter:
+        return _pick(actions, 'take_plate', rack)
     ret = state['stations']['returns'].get('food')
     if ret and not sink:
         return _pick(actions, 'take_return', 'returns')
@@ -396,6 +405,9 @@ def choose_zoned(k, who, role):
             sink = st['sink'].get('food')
             if sink and sink['stage'] == 'clean_plate':
                 return _pick(actions, 'take_sink', 'sink')
+            rack = _rack_plate(k, st)
+            if rack:
+                return _pick(actions, 'take_plate', rack)
             for key, s in sorted(st.items()):
                 f = s.get('food')
                 if s.get('counter') and key not in runner_counters and f and f['stage'] == 'clean_plate':
@@ -435,6 +447,8 @@ def choose_zoned(k, who, role):
     sink_food = st['sink'].get('food')
     if split and not assembly and dishes and sink_food and sink_food['stage'] == 'clean_plate':
         return _pick(actions, 'take_sink', 'sink')
+    if split and not assembly and dishes and _rack_plate(k, st):
+        return _pick(actions, 'take_plate', _rack_plate(k, st))
     for g in state['ground']:
         f = g['food']
         if f.get('plate_id') and f.get('dish') in dishes:

@@ -16,7 +16,7 @@ SPLIT = {
         [{'type': 'ingredient_source', 'x': x, 'y': 1, 'item': item} for x, item in ((2, 'beef'), (3, 'lettuce'), (4, 'tomato'), (5, 'bread'))]
         + [{'type': 'counter', 'x': 7, 'y': 1}, {'type': 'stove', 'x': 9, 'y': 1, 'vessel': 'pan'}, {'type': 'serving_window', 'x': 12, 'y': 2}]
         + [{'type': 'counter', 'x': x, 'y': 4} for x in range(1, 13)]
-        + [{'type': 'board', 'x': 2, 'y': 7}, {'type': 'board', 'x': 3, 'y': 7}, {'type': 'sink', 'x': 5, 'y': 7},
+        + [{'type': 'board', 'x': 2, 'y': 7}, {'type': 'board', 'x': 3, 'y': 7}, {'type': 'drying_rack', 'x': 4, 'y': 7}, {'type': 'sink', 'x': 5, 'y': 7},
            {'type': 'plate_return', 'x': 6, 'y': 7}, {'type': 'bin', 'x': 8, 'y': 7}, {'type': 'tool_rack', 'x': 10, 'y': 7},
            {'type': 'counter', 'x': 11, 'y': 7}]),
     'dishes': [{'name': '汉堡', 'price': 80, 'items': ['bread', 'lettuce', 'tomato', 'beef']}],

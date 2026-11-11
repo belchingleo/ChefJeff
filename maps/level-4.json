@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "id": "level-4",
-  "revision": 1,
+  "revision": 2,
   "size": [
     14,
     9
@@ -543,10 +543,10 @@
         7
       ],
       "access": [
-        4,
-        7
+        3,
+        6
       ],
-      "facing": "east"
+      "facing": "north"
     },
     {
       "id": "sink",
@@ -619,6 +619,21 @@
       ],
       "access": [
         11,
+        6
+      ],
+      "facing": "north"
+    },
+    {
+      "id": "dryer",
+      "type": "drying_rack",
+      "name": "沥水架",
+      "area": "prep",
+      "cell": [
+        4,
+        7
+      ],
+      "access": [
+        4,
         6
       ],
       "facing": "north"

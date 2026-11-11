@@ -105,7 +105,7 @@ class FreezeTests(unittest.TestCase):
         frozen, _ = cc.freeze_config(draft, random.Random(9))
         self.assertEqual(frozen['seeds']['source'], 'drawn_at_freeze')
         self.assertIsInstance(frozen['seeds']['orders'], int)
-        self.assertEqual(frozen['sources']['map'], {'id': 'level-1', 'version': 4, 'sha256': frozen['sources']['map']['sha256']})
+        self.assertEqual(frozen['sources']['map'], {'id': 'level-1', 'version': 5, 'sha256': frozen['sources']['map']['sha256']})
 
     def test_freeze_does_not_change_the_draft(self):
         draft, _ = cc.resolve_config(cc.level_bundle('level-3'))

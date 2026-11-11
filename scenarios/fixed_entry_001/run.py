@@ -126,10 +126,10 @@ def export():
     payload["state"]["recent_decisions"] = []
     write("decision_input.json", payload)
     plans = [
-        ("rescue_counter", ["take pot p1", "put counter2", "wash", "take sink", "plate counter2", "serve"], 0),
-        ("rescue_ground", ["take pot p1", "drop", "wash", "take sink", "plate ground P1", "serve"], 0),
-        ("wash_first", ["wash", "take sink", "plate p1", "serve"], 0),
-        ("rescue_counter_delay1", ["take pot p1", "put counter2", "wash", "take sink", "plate counter2", "serve"], 1),
+        ("rescue_counter", ["take pot p1", "put counter2", "wash", "take dryer", "plate counter2", "serve"], 0),
+        ("rescue_ground", ["take pot p1", "drop", "wash", "take dryer", "plate ground P1", "serve"], 0),
+        ("wash_first", ["wash", "take dryer", "plate p1", "serve"], 0),
+        ("rescue_counter_delay1", ["take pot p1", "put counter2", "wash", "take dryer", "plate counter2", "serve"], 1),
     ]
     summaries = []
     for name, actions, delay in plans:

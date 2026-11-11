@@ -32,7 +32,7 @@ def legacy_equipment_type(station_id):
         return 'ingredient_source'
     for pattern, kind in ((r'b\d+', 'board'), (r'p\d+', 'stove'), (r'plates|counter.*', 'counter'),
                           (r'serve', 'serving_window'), (r'bin.*', 'bin'), (r'sink', 'sink'),
-                          (r'returns', 'plate_return'), (r'extinguisher', 'tool_rack')):
+                          (r'returns', 'plate_return'), (r'dryer', 'drying_rack'), (r'extinguisher', 'tool_rack')):
         if re.fullmatch(pattern, station_id):
             return kind
     return None

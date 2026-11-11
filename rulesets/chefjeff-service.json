@@ -2,7 +2,7 @@
   "schema_version": 1,
   "kind": "ruleset",
   "id": "chefjeff-service",
-  "version": 1,
+  "version": 2,
   "name": "Continuous service rules",
   "engine_semantics": "continuous-2026-10b",
   "tick_game_ms": 50,
@@ -15,6 +15,7 @@
     "bin",
     "sink",
     "plate_return",
+    "drying_rack",
     "tool_rack"
   ],
   "operations": {

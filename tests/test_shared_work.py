@@ -114,7 +114,7 @@ class SharedWorkTests(unittest.TestCase):
         self.assertAlmostEqual(k.stations['sink'].food.washed-before,1)
         k.stop('human');self.assertEqual(k.stations['sink'].lock,'jeff')
         k.advance(4)
-        self.assertEqual(k.stations['sink'].food.stage,'clean_plate')
+        self.assertEqual(k.stations[k.dryer].food.stage,'clean_plate')
         self.assertIsNone(k.chefs['jeff'].job);k.assert_invariants()
 
 

@@ -72,6 +72,7 @@
     "出餐口": "Serve",
     "水槽": "Sink",
     "脏盘回收": "Plate return",
+    "沥水架": "Drying rack",
     "脏盘待洗": "Dirty plate",
     "洗好了": "Washed",
     "着火了！": "Fire!",

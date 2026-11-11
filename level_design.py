@@ -24,8 +24,8 @@ from map_definition import STEP, build_map
 
 FORMAT = 'chefjeff-player-level-1'
 SIZES = ((12, 8), (14, 9), (16, 10))
-TYPES = ('counter', 'board', 'stove', 'ingredient_source', 'serving_window', 'sink', 'plate_return', 'bin', 'tool_rack')
-EXACTLY_ONE = ('sink', 'plate_return', 'tool_rack')
+TYPES = ('counter', 'board', 'stove', 'ingredient_source', 'serving_window', 'sink', 'drying_rack', 'plate_return', 'bin', 'tool_rack')
+EXACTLY_ONE = ('sink', 'drying_rack', 'plate_return', 'tool_rack')
 AGAINST_THE_WALL = ('serving_window', 'plate_return')  # food leaves and dirty plates come back through the wall
 SERVING_WINDOWS = (1, 2)
 VESSELS = ('pan', 'pot')
@@ -82,7 +82,7 @@ def editor_catalog(registry=None):
 
 def _ids(stations):
     """Station ids by the conventions the client draws by; a second one of a kind gets a number."""
-    fixed = {'serving_window': 'serve', 'sink': 'sink', 'plate_return': 'returns', 'tool_rack': 'extinguisher', 'bin': 'bin'}
+    fixed = {'serving_window': 'serve', 'sink': 'sink', 'drying_rack': 'dryer', 'plate_return': 'returns', 'tool_rack': 'extinguisher', 'bin': 'bin'}
     prefix = {'board': 'b', 'stove': 'p', 'counter': 'counter'}
     seen, out = {}, []
     for s in stations:
@@ -102,7 +102,7 @@ def _ids(stations):
 # Station names as the authored maps write them (maps/level-*.json), so the page and Jeff's request name a player's
 # stations the way they name the release's: 柜台 3, 灶台 1, 灭火器架, 冰箱, 生菜箱. Every name is in the model
 # language catalog and the page's, so nothing reaches Jeff untranslated (tests/test_food_names.py).
-NAMES = {'serving_window': '出餐口', 'sink': '水槽', 'plate_return': '脏盘回收', 'tool_rack': '灭火器架', 'bin': '垃圾桶'}
+NAMES = {'serving_window': '出餐口', 'sink': '水槽', 'drying_rack': '沥水架', 'plate_return': '脏盘回收', 'tool_rack': '灭火器架', 'bin': '垃圾桶'}
 NUMBERED = {'counter': '柜台', 'board': '案板', 'stove': '灶台'}
 
 
@@ -206,6 +206,11 @@ def bundle(design, registry=None):
     for kind in EXACTLY_ONE:
         if counts[kind] != 1:
             problems.append(_problem('/stations', f'exactly one {kind} (found {counts[kind]})', 'UNSUPPORTED_EQUIPMENT_COUNT'))
+    # The drying rack is part of the sink, as in Overcooked 2: in a cell beside the sink.
+    sinks = [s['cell'] for s in stations if s['type'] == 'sink']
+    for rack in (s for s in stations if s['type'] == 'drying_rack'):
+        if not any(abs(rack['cell'][0] - c[0]) + abs(rack['cell'][1] - c[1]) == 1 for c in sinks):
+            problems.append(_problem('/stations', 'the drying_rack stands beside the sink', 'DRYING_RACK_APART'))
     if not SERVING_WINDOWS[0] <= counts['serving_window'] <= SERVING_WINDOWS[1]:
         problems.append(_problem('/stations', f'one or two serving_window (found {counts["serving_window"]})',
                                  'UNSUPPORTED_EQUIPMENT_COUNT'))

@@ -5,7 +5,7 @@ resolved configuration (see ``config_contract`` and ``rules``); the engine has
 no per-level branches.
 """
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import food_names
 import functools
 from copy import deepcopy
@@ -97,6 +97,9 @@ class Station:
     fire_idle: float = 0.0
     fire_strength: float = 0.0
     sprayed: float = 0.0
+    # Plates under the one on top: the sink's dirty plates waiting to be washed (first in, washed first) and the
+    # drying rack's clean ones (the newest on top), as Overcooked 2's washing station and clean-plate stack.
+    stack: list = field(default_factory=list)
 
 
 @dataclass
@@ -262,6 +265,8 @@ class Kitchen:
         self.rack = r.of_type('tool_rack')[0]
         self.returns = r.of_type('plate_return')[0]
         self.sink = r.of_type('sink')[0]
+        # As Overcooked 2's WashingStation and its drying station: washed plates go onto the rack beside the sink.
+        self.dryer = (r.of_type('drying_rack') or [None])[0]
         self._place_inventory()
         self.chefs = {"human": Chef(next(iter(self.ingredients))), "jeff": Chef(self.pots[0])}
         sec = lambda ms: ms // 1000 if ms % 1000 == 0 else ms / 1000
@@ -477,13 +482,18 @@ class Kitchen:
                 if key==self.sink and not a.hand and s.food and s.food.stage=='dirty_plate' and self.can_share_work(who,'wash',key):
                     add('wash','一起洗碗（共享进度）','wash',key)
                 continue
-            if s.food:
+            # With a drying rack, dirty plates in the sink stay there until washed (Overcooked 2 has no way back out).
+            if s.food and not (key == self.sink and self.dryer):
                 add(f'take {key}', f'从{s.name}拿起{self.food_name(s.food)}', kind, key)
             if key == self.sink:
-                if not s.food and a.hand and a.hand.stage == 'dirty_plate':
+                if (not s.food or self.dryer) and a.hand and a.hand.stage == 'dirty_plate':
                     add(f'put {key}', f'把脏餐盘放入{s.name}', 'put_sink', key)
                 if s.food and s.food.stage == 'dirty_plate' and not a.hand:
                     add('wash', f'洗碗（剩 {max(0, self.wash_seconds-s.food.washed):.1f}s；可中断续洗）', 'wash', key)
+        if self.dryer:
+            d = self.stations[self.dryer]
+            if d.food and d.lock in (None, who):
+                add(f'take {self.dryer}', f'从{d.name}拿起干净餐盘', 'take_plate', self.dryer)
         rack = self.stations[self.rack]
         if rack.lock in (None, who):
             if rack.food:
@@ -884,14 +894,27 @@ class Kitchen:
             a.hand = Food(f"F{self.serial}",ingredient=self.ingredients[job.action.target])
         elif k in ('take_plate', 'take_return', 'take_sink', 'take_counter'):
             a.hand, s.food = s.food, None
+            if s.stack:
+                s.food = s.stack.pop()
         elif k == 'put_counter':
             s.food, a.hand = a.hand, None
         elif k == 'put_sink':
-            s.food, a.hand = a.hand, None
+            if s.food:
+                s.stack.append(a.hand)
+            else:
+                s.food = a.hand
+            a.hand = None
         elif k == 'wash':
             s.food.stage = 'clean_plate'
             s.food.washed = self.wash_seconds
-            self.emit(f'{NAMES[who]}洗好了 {s.food.id}，可取走盛菜或放到空柜台', kind='washed', actor=who)
+            if self.dryer:
+                d, plate = self.stations[self.dryer], s.food
+                if d.food:
+                    d.stack.append(d.food)
+                d.food, s.food = plate, (s.stack.pop(0) if s.stack else None)
+                self.emit(f'{NAMES[who]}洗好了 {plate.id}，放在{d.name}', kind='washed', actor=who)
+            else:
+                self.emit(f'{NAMES[who]}洗好了 {s.food.id}，可取走盛菜或放到空柜台', kind='washed', actor=who)
         elif k == 'lift_pot':
             a.hand = Food(s.pot_id, 'pot', contents=s.food)
             s.pot_id, s.food, s.heating = None, None, False
@@ -1329,6 +1352,8 @@ class Kitchen:
             record['fire_strength'] = round(s.fire_strength, 3) if s.fire else None
             record['fire_neighbors'] = self.fire_neighbors(key)
             record['workers']=self.work_participants(key,'chop')+self.work_participants(key,'wash')
+            if key in (self.sink, self.dryer):
+                record['stack'] = [food(f) for f in s.stack]
             if s.pot_id:
                 record['vessel'] = self.rules.vessels.get(s.pot_id)
             if key in self.pots and s.food:
@@ -1392,6 +1417,7 @@ class Kitchen:
 
     def assert_invariants(self):
         foods = ([s.food for s in self.stations.values() if s.food]
+                 + [f for s in self.stations.values() for f in s.stack]
                  + [a.hand for a in self.chefs.values() if a.hand]
                  + [item.food for item in self.ground.values()])
         assert len({f.id for f in foods}) == len(foods), "物品重复"
@@ -1406,8 +1432,12 @@ class Kitchen:
             elif key == self.rack:
                 assert s.food is None or s.food.stage == 'extinguisher'
             elif key in (self.returns, self.sink):
-                allowed = ('dirty_plate',) if key == self.returns else ('clean_plate', 'dirty_plate')
+                allowed = ('dirty_plate',) if key == self.returns or self.dryer else ('clean_plate', 'dirty_plate')
                 assert s.food is None or s.food.stage in allowed
+                assert all(f.stage == 'dirty_plate' for f in s.stack) and (s.food or not s.stack)
+            elif key == self.dryer:
+                assert s.food is None or s.food.stage == 'clean_plate'
+                assert all(f.stage == 'clean_plate' for f in s.stack) and (s.food or not s.stack)
             elif key not in self.boards + self.pots:
                 assert s.food is None, "禁止将食材存入出餐口或虚构窗口"
             if s.lock:

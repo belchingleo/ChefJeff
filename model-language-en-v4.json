@@ -51,6 +51,7 @@
     "出餐口": "Serve",
     "水槽": "Sink",
     "脏盘回收": "Plate return",
+    "沥水架": "Drying rack",
     "脏盘待洗": "Dirty plate",
     "洗好了": "Washed",
     "着火了！": "Fire!",
@@ -488,6 +489,10 @@
     [
       "{0}洗好了 {1}，可取走盛菜或放到空柜台",
       "{0} washed {1}; take it to plate food or put it on a counter"
+    ],
+    [
+      "{0}洗好了 {1}，放在{2}",
+      "{0} washed {1} and put it on the {2}"
     ],
     [
       "{0}把 {1} 放在{2}旁的地上，双方都可以捡",

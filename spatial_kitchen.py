@@ -1096,6 +1096,11 @@ class SpatialKitchen(Kitchen):
             if target.startswith('floor_') and ahead:break
             action=self.quick_interaction(who,actions,preferred=target,kinds=kinds,skip=() if kinds else ('chop','wash'))
             if action:return target,action
+            # As Overcooked 2's HandlePickupReferral: Space at the sink with empty hands takes a clean plate from
+            # the drying rack beside it.
+            if target==self.sink and self.dryer and not kinds and not chef.hand:
+                action=next((a for a in actions if a.kind=='take_plate' and a.target==self.dryer),None)
+                if action:return target,action
         return (candidates[0] if candidates else None),None
 
     def interaction_target(self,who,preferred=None):

@@ -2,20 +2,20 @@
   "schema_version": 1,
   "kind": "level",
   "id": "level-1",
-  "version": 4,
+  "version": 5,
   "name": "第一关 · 牛排",
   "menu_order": 1,
   "ruleset_ref": {
     "id": "chefjeff-service",
-    "version": 1
+    "version": 2
   },
   "map_ref": {
     "id": "level-1",
-    "version": 4
+    "version": 5
   },
   "equipment_catalog_ref": {
     "id": "chefjeff-core",
-    "version": 1
+    "version": 2
   },
   "recipe_catalog_ref": {
     "id": "chefjeff-service",

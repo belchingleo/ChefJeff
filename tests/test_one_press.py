@@ -241,7 +241,7 @@ class ChainTests(unittest.TestCase):
         self.loop(k, [{'choice': f'put then wash {k.sink}', 'put_where': 'put counter16'}])
         self.run_for(k, polls=120)
         self.assertEqual(self.done(k)[-2:], ['put counter16', 'wash'])
-        self.assertEqual(k.stations[k.sink].food.stage, 'clean_plate')
+        self.assertEqual(k.stations[k.dryer].food.stage, 'clean_plate')
 
     def test_a_missing_place_falls_back_to_the_first_listed_put_and_says_so(self):
         k = bread_and_lettuce()
@@ -257,7 +257,7 @@ class ChainTests(unittest.TestCase):
         self.loop(k, [{'choice': f'wash from {k.returns}'}])
         self.run_for(k, polls=120)
         self.assertEqual(self.done(k), [f'take {k.returns}', f'put {k.sink}', 'wash'])
-        self.assertEqual(k.stations[k.sink].food.stage, 'clean_plate')
+        self.assertEqual(k.stations[k.dryer].food.stage, 'clean_plate')
         self.assertEqual([r['reason'] for r in self.rows('one_press_end')], ['finished'])
 
     def test_a_step_that_cannot_be_done_ends_it(self):

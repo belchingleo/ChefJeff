@@ -6,8 +6,8 @@ from level_one import EQUIPMENT, FLOOR, neighbors
 class LayoutInteractionTests(unittest.TestCase):
     def make(self,seed=0):
         return SpatialKitchen(load_config() | {'spawn_seed':seed,'round_seconds':500,'order_patience':450,'order_interval':100})
-    def press(self,k):
-        a=k.quick_interaction('human');self.assertIsNotNone(a)
+    def press(self,k,at=None):
+        a=k.quick_interaction('human',preferred=at);self.assertIsNotNone(a)
         self.assertTrue(k.start('human',a)[0]);j=k.chefs['human'].job
         if j:k.advance(j.travel+j.work+.001)
         k.assert_invariants();return a.kind
@@ -44,7 +44,7 @@ class LayoutInteractionTests(unittest.TestCase):
             sides.add(k.positions['human'][0]<7);k.assert_invariants()
         self.assertEqual(sides,{True,False})
     def test_all_equipment_has_a_reachable_service_side(self):
-        k=self.make();self.assertEqual(len(k.boards),3);self.assertEqual(len(k.counters),12)
+        k=self.make();self.assertEqual(len(k.boards),3);self.assertEqual(len(k.counters),11)
         for key in EQUIPMENT:
             route=k.path('human',key)
             sides=[EQUIPMENT[key]['access']] if EQUIPMENT[key].get('reach')=='corner' else [n for c in EQUIPMENT[key].get('cells',[EQUIPMENT[key]['cell']]) for n in neighbors(c)]
@@ -72,12 +72,15 @@ class LayoutInteractionTests(unittest.TestCase):
         self.stand(k,'b1');self.assertEqual(self.press(k),'put_board')
         self.assertEqual(self.press(k),'chop');self.assertEqual(self.press(k),'take_board')
         self.stand(k,'p1');self.assertEqual(self.press(k),'put_pot');k.advance(12)
-        self.stand(k,'plates');self.assertEqual(self.press(k),'take_plate')
+        # The plates counter and the extinguisher share an access cell on level 1: name the counter, as facing it would.
+        self.stand(k,'plates');self.assertEqual(self.press(k,'plates'),'take_plate')
         self.stand(k,'p1');self.assertEqual(self.press(k),'plate_pot')
         self.stand(k,'serve');self.assertEqual(self.press(k),'serve');k.advance(k.rules.dining)
         self.stand(k,'returns');self.assertEqual(self.press(k),'take_return')
         self.stand(k,'sink');self.assertEqual(self.press(k),'put_sink')
-        self.assertEqual(self.press(k),'wash');self.assertEqual(self.press(k),'take_sink')
+        self.assertEqual(self.press(k),'wash')
+        # The washed plate goes onto the drying rack beside the sink; Space there takes it.
+        self.stand(k,'dryer');self.assertEqual(self.press(k),'take_plate')
         self.assertEqual(k.chefs['human'].hand.stage,'clean_plate')
     def test_space_ground_plating_and_counters(self):
         k=self.make();st=k.stations['p1'];pot=Food(st.pot_id,'pot',contents=Food('meal','ready',6,12));st.pot_id=None

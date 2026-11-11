@@ -25,7 +25,7 @@ DESIGN = {
         {'type': 'board', 'x': 1, 'y': 3}, {'type': 'board', 'x': 1, 'y': 4}, {'type': 'counter', 'x': 1, 'y': 5},
         {'type': 'stove', 'x': 12, 'y': 3, 'vessel': 'pan'}, {'type': 'stove', 'x': 12, 'y': 4, 'vessel': 'pot'},
         {'type': 'counter', 'x': 12, 'y': 5}, {'type': 'counter', 'x': 6, 'y': 4}, {'type': 'counter', 'x': 7, 'y': 4},
-        {'type': 'sink', 'x': 3, 'y': 7}, {'type': 'plate_return', 'x': 4, 'y': 7}, {'type': 'counter', 'x': 6, 'y': 7},
+        {'type': 'drying_rack', 'x': 2, 'y': 7}, {'type': 'sink', 'x': 3, 'y': 7}, {'type': 'plate_return', 'x': 4, 'y': 7}, {'type': 'counter', 'x': 6, 'y': 7},
         {'type': 'counter', 'x': 7, 'y': 7}, {'type': 'bin', 'x': 9, 'y': 7}, {'type': 'tool_rack', 'x': 10, 'y': 7}],
     'dishes': [{'name': '红烧牛肉面', 'price': 90, 'items': ['noodles', 'beef', 'scallion']},
                {'name': '鸡丝面', 'price': 90, 'items': ['noodles', 'chicken', 'scallion']}],
@@ -140,7 +140,7 @@ class LookTests(unittest.TestCase):
     def test_bread_wraps_a_players_dish_as_the_burgers_bun(self):
         dishes = DESIGN['dishes'] + [{'name': '芝士牛肉堡', 'price': 90, 'items': ['beef', 'bread', 'cheese']}]
         level, _ = level_design.bundle(design(dishes=dishes, stations=DESIGN['stations'] + [
-            {'type': 'ingredient_source', 'x': 1, 'y': 6, 'item': 'bread'}, {'type': 'ingredient_source', 'x': 2, 'y': 7, 'item': 'cheese'}]))
+            {'type': 'ingredient_source', 'x': 1, 'y': 6, 'item': 'bread'}, {'type': 'ingredient_source', 'x': 5, 'y': 7, 'item': 'cheese'}]))
         normalized, problems = lc.normalize(level)
         self.assertEqual(problems, [])
         recipes = normalized['recipe_catalog']['recipes']

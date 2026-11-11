@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "id": "level-1",
-  "revision": 4,
+  "revision": 5,
   "size": [
     14,
     9
@@ -308,11 +308,11 @@
       "name": "柜台 1",
       "area": "cook",
       "cell": [
-        10,
+        11,
         1
       ],
       "access": [
-        10,
+        11,
         2
       ],
       "facing": "south"
@@ -323,14 +323,15 @@
       "name": "柜台 2",
       "area": "cook",
       "cell": [
-        11,
+        12,
         1
       ],
       "access": [
         11,
         2
       ],
-      "facing": "south"
+      "facing": "south",
+      "reach": "corner"
     },
     {
       "id": "counter3",
@@ -398,11 +399,11 @@
       "name": "灶台 1",
       "area": "cook",
       "cell": [
-        9,
+        10,
         1
       ],
       "access": [
-        9,
+        10,
         2
       ],
       "facing": "south"
@@ -498,22 +499,6 @@
       "facing": "north"
     },
     {
-      "id": "counter_corner1",
-      "type": "counter",
-      "name": "柜台 _corner1",
-      "area": "cook",
-      "cell": [
-        12,
-        1
-      ],
-      "access": [
-        11,
-        2
-      ],
-      "facing": "south",
-      "reach": "corner"
-    },
-    {
       "id": "counter_corner2",
       "type": "counter",
       "name": "柜台 _corner2",
@@ -543,6 +528,21 @@
         4
       ],
       "facing": "west"
+    },
+    {
+      "id": "dryer",
+      "type": "drying_rack",
+      "name": "沥水架",
+      "area": "cook",
+      "cell": [
+        9,
+        1
+      ],
+      "access": [
+        9,
+        2
+      ],
+      "facing": "south"
     }
   ],
   "presentation": {
@@ -647,10 +647,6 @@
         "run_axis": "horizontal",
         "device_axis": "horizontal"
       },
-      "counter2": {
-        "run_axis": "horizontal",
-        "device_axis": "horizontal"
-      },
       "counter3": {
         "run_axis": "horizontal",
         "device_axis": "horizontal"
@@ -687,10 +683,6 @@
         "run_axis": "horizontal",
         "device_axis": "horizontal"
       },
-      "counter_corner1": {
-        "run_axis": "horizontal",
-        "device_axis": "horizontal"
-      },
       "counter_corner2": {
         "run_axis": "horizontal",
         "device_axis": "horizontal"
@@ -698,6 +690,14 @@
       "counter5": {
         "run_axis": "vertical",
         "device_axis": "vertical"
+      },
+      "dryer": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
+      },
+      "counter2": {
+        "run_axis": "horizontal",
+        "device_axis": "horizontal"
       }
     }
   }

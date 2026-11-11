@@ -121,7 +121,7 @@ class MapDocumentTests(unittest.TestCase):
             doc = load_map(level)
             views = doc['presentation']['station_views']
             self.assertEqual(set(views), {station['id'] for station in doc['equipment']})
-            self.assertEqual(doc['revision'], 4)
+            self.assertEqual(doc['revision'], 5)
             for station in doc['equipment']:
                 axis = views[station['id']]['run_axis']
                 x, y = station['cell']

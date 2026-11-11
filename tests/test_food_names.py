@@ -26,7 +26,7 @@ EVERY = {
             ('beef', 'lettuce', 'tomato', 'bread', 'chicken', 'cucumber', 'onion', 'cheese', 'fish', 'scallion', 'flatbread',
              'noodles'), 2)]
         + [{'type': 'stove', 'x': 1, 'y': 3, 'vessel': 'pan'}, {'type': 'stove', 'x': 1, 'y': 4, 'vessel': 'pot'},
-           {'type': 'serving_window', 'x': 14, 'y': 4}, {'type': 'sink', 'x': 14, 'y': 6},
+           {'type': 'serving_window', 'x': 14, 'y': 4}, {'type': 'drying_rack', 'x': 14, 'y': 5}, {'type': 'sink', 'x': 14, 'y': 6},
            {'type': 'plate_return', 'x': 14, 'y': 7}, {'type': 'tool_rack', 'x': 1, 'y': 8}, {'type': 'bin', 'x': 1, 'y': 6}]
         + [{'type': 'board', 'x': x, 'y': 8} for x in (3, 4)]
         + [{'type': 'counter', 'x': x, 'y': 5} for x in range(5, 11)]),

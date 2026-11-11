@@ -59,6 +59,7 @@
           "bin",
           "sink",
           "plate_return",
+          "drying_rack",
           "tool_rack"
         ]
       }

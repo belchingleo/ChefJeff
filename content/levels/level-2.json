@@ -2,20 +2,20 @@
   "schema_version": 1,
   "kind": "level",
   "id": "level-2",
-  "version": 5,
+  "version": 6,
   "name": "第二关 · 汉堡",
   "menu_order": 2,
   "ruleset_ref": {
     "id": "chefjeff-service",
-    "version": 1
+    "version": 2
   },
   "map_ref": {
     "id": "level-2",
-    "version": 4
+    "version": 5
   },
   "equipment_catalog_ref": {
     "id": "chefjeff-core",
-    "version": 1
+    "version": 2
   },
   "recipe_catalog_ref": {
     "id": "chefjeff-service",

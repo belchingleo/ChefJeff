@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "id": "level-2",
-  "revision": 4,
+  "revision": 5,
   "size": [
     14,
     9
@@ -720,21 +720,6 @@
       "facing": "west"
     },
     {
-      "id": "counter28",
-      "type": "counter",
-      "name": "柜台 28",
-      "area": "cook",
-      "cell": [
-        12,
-        4
-      ],
-      "access": [
-        11,
-        4
-      ],
-      "facing": "west"
-    },
-    {
       "id": "counter29",
       "type": "counter",
       "name": "柜台 29",
@@ -843,6 +828,21 @@
         6
       ],
       "facing": "north"
+    },
+    {
+      "id": "dryer",
+      "type": "drying_rack",
+      "name": "沥水架",
+      "area": "cook",
+      "cell": [
+        12,
+        4
+      ],
+      "access": [
+        11,
+        4
+      ],
+      "facing": "west"
     }
   ],
   "presentation": {
@@ -1047,10 +1047,6 @@
         "run_axis": "vertical",
         "device_axis": "vertical"
       },
-      "counter28": {
-        "run_axis": "vertical",
-        "device_axis": "vertical"
-      },
       "counter29": {
         "run_axis": "vertical",
         "device_axis": "vertical"
@@ -1078,6 +1074,10 @@
       "counter11": {
         "run_axis": "horizontal",
         "device_axis": "horizontal"
+      },
+      "dryer": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
       }
     }
   }

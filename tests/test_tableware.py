@@ -61,7 +61,7 @@ class TablewareTests(unittest.TestCase):
             self.assertNotIn('plate', [a.key for a in k.actions('human')])
             self.assertFalse(k.command('human', 'serve')[0])
             k.advance(k.rules.dining)
-            for action in ('take returns', 'put sink', 'wash', 'take sink', 'put plates'):
+            for action in ('take returns', 'put sink', 'wash', f'take {k.dryer}', 'put plates'):
                 self.do(k, 'jeff', action)
             self.plate(k)
             self.assertEqual(k.chefs['human'].hand.plate_id, first)
@@ -112,8 +112,8 @@ class TablewareTests(unittest.TestCase):
         left = k.wash_seconds-.5
         self.assertAlmostEqual(k.chefs['jeff'].job.work, left)
         k.advance(k.chefs['jeff'].job.travel+left)
-        self.assertEqual(k.stations['sink'].food.stage, 'clean_plate')
-        self.do(k, 'jeff', 'take sink')
+        self.assertEqual(k.stations[k.dryer].food.stage, 'clean_plate')
+        self.do(k, 'jeff', f'take {k.dryer}')
         self.assertEqual(k.chefs['jeff'].hand.id, plate)
 
     def test_dropped_plated_food_and_taken_plate_keep_their_state(self):
@@ -167,7 +167,7 @@ class TablewareTests(unittest.TestCase):
         for key in ('serve', 'discard', 'plate'):
             self.assertFalse(k.command('human', key)[0])
         self.do(k, 'human', 'put sink'); self.do(k, 'human', 'wash')
-        self.do(k, 'human', 'take sink')
+        self.do(k, 'human', f'take {k.dryer}')
         for key in ('serve', 'discard', 'put sink'):
             self.assertFalse(k.command('human', key)[0])
 

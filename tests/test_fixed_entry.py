@@ -32,7 +32,7 @@ class FixedEntryTests(unittest.TestCase):
         for storage, plate in [('put counter2', 'plate counter2'),
                                ('drop', 'plate ground P1')]:
             result, _ = run_reference('rescue', ['take pot p1', storage, 'wash',
-                                                'take sink', plate, 'serve'])
+                                                'take dryer', plate, 'serve'])
             self.assertTrue(result['success'])
             self.assertTrue(result['target_F1_served_unburnt'])
             self.assertEqual(result['money'], build_scene().rules.prices['steak'])
@@ -49,14 +49,14 @@ class FixedEntryTests(unittest.TestCase):
     def test_wash_first_is_legal_but_misses_the_thermal_deadline(self):
         self.assertIn('wash', [a.key for a in build_scene().actions('jeff')])
         result, _ = run_reference('failure_control',
-                                  ['wash', 'take sink', 'plate p1', 'serve'])
+                                  ['wash', 'take dryer', 'plate p1', 'serve'])
         self.assertFalse(result['success'])
         self.assertEqual(result['burns'], 1)
         self.assertFalse(result['target_F1_served_unburnt'])
 
     def test_one_second_per_decision_still_leaves_a_feasible_reference(self):
         result, _ = run_reference('delayed', ['take pot p1', 'put counter2',
-                                             'wash', 'take sink', 'plate counter2', 'serve'], 1)
+                                             'wash', 'take dryer', 'plate counter2', 'serve'], 1)
         self.assertTrue(result['success'])
         self.assertLess(result['time'], 35)
 

@@ -272,12 +272,17 @@ def resolve_config(bundle, registry=None):
         if params:
             record['params'] = dict(params)
         stations.append(record)
-    for type_id, needed in (('serving_window', 'at least one'), ('sink', 'exactly one'), ('plate_return', 'exactly one'),
-                            ('tool_rack', 'exactly one')):
+    for type_id, needed in (('serving_window', 'at least one'), ('sink', 'exactly one'), ('drying_rack', 'exactly one'),
+                            ('plate_return', 'exactly one'), ('tool_rack', 'exactly one')):
         n = counts.get(type_id, 0)
         if n == 0 or (needed == 'exactly one' and n != 1):
             out.append(diag('UNSUPPORTED_EQUIPMENT_COUNT', 'ERROR', '/map/equipment',
                             f'this engine version needs {needed} {type_id} (found {n})'))
+    # The drying rack is part of the sink (Overcooked 2's washing station hands its plates to it): beside it.
+    cells = lambda kind: [tuple(c) for e in game_map['equipment'] if e['type'] == kind for c in e.get('cells', [e['cell']])]
+    for rack in cells('drying_rack'):
+        if not any(abs(rack[0] - c[0]) + abs(rack[1] - c[1]) == 1 for c in cells('sink')):
+            out.append(diag('DRYING_RACK_APART', 'ERROR', '/map/equipment', f'the drying_rack at {list(rack)} is not beside the sink'))
 
     # Recipe catalog consistency.
     for i, t in enumerate(recipes['transforms']):

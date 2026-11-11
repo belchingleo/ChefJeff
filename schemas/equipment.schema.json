@@ -19,7 +19,7 @@
   },
   "additionalProperties": false,
   "$defs": {
-    "capability": {"enum": ["dispense", "chop", "heat", "store", "assemble", "serve", "discard", "wash", "return_plates", "store_tool"]},
+    "capability": {"enum": ["dispense", "chop", "heat", "store", "assemble", "serve", "discard", "wash", "return_plates", "dry_plates", "store_tool"]},
     "shared_work": {
       "description": "Optional concurrent work. Effective rate = work_rate * rate_multiplier[active workers]. Geometry decides whether a second operation side exists.",
       "type": "object",

@@ -31,7 +31,7 @@ class CounterLevelTests(unittest.TestCase):
         # Real processing actions, with walking removed to isolate recipe/resource flow.
         for i in range(3):
             if i==2:
-                k.advance(8);self.do(k,'take returns');self.do(k,'put sink');self.do(k,'wash');self.do(k,'take sink');self.do(k,'put plates')
+                k.advance(8);self.do(k,'take returns');self.do(k,'put sink');self.do(k,'wash');self.do(k,'take dryer');self.do(k,'put plates')
             counter='counter2' if i==1 else 'plates'
             for ingredient in ('bread','lettuce','tomato'):
                 self.do(k,'fetch '+ingredient)
