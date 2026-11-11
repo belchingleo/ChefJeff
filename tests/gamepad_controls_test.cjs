@@ -73,33 +73,32 @@ function check(path){
    neutral(pair);j.step(2);button(pair,reported,true);j.step(4);const m=j.moves().at(-1);
    assert(m&&m[1]===dx&&m[2]===dy,'merged Joy-Con '+reported+' moves '+dx+','+dy);}}
  // One left Joy-Con held sideways in Safari: no standard mapping; the stick is a D-pad already turned for the hold,
- // and the round buttons sit where they would on an upright controller (right 2 takes/puts, left 1 chops/throws,
- // top 3 dashes, bottom 0 cancels, − 9 pauses).
+ // and the round buttons follow the Switch labels (right 2 takes/puts, left 1 chops/throws, bottom 0 dashes, − 9 pauses).
  {const j=harness(path),one=pad(0,'');one.id='Joy-Con (L) Gamepad';j.connect(one);j.step(2);
-  assert.equal(j.document.getElementById('kitchen-gamepad-hint').textContent,'摇杆移动 · 右键 拿放 · 左键 切洗扔（长按瞄准） · 上键 冲刺 · 下键 取消 · − 暂停/继续','sideways hint');
+  assert.equal(j.document.getElementById('kitchen-gamepad-hint').textContent,'摇杆移动 · 右键 拿放 · 左键 切洗扔（长按瞄准） · 下键 冲刺 · − 暂停/继续','sideways hint');
   for(const [reported,dx,dy] of [['Up',0,-1],['Down',0,1],['Left',-1,0],['Right',1,0]]){
    neutral(one);j.step(2);button(one,reported,true);j.step(4);const m=j.moves().at(-1);
    assert(m&&m[1]===dx&&m[2]===dy,'sideways Joy-Con '+reported+' moves '+dx+','+dy);}
   neutral(one);j.step(2);j.clear();
   button(one,2,true);j.step(3);assert.equal(j.count('act'),1,'right button takes or puts');button(one,2,false);j.step(2);
   button(one,1,true);j.step(3);assert.equal(j.count('toss'),1,'left button arms a throw');button(one,1,false);j.step(2);assert.equal(j.count('release'),1);
-  button(one,'Right',true);j.step(2);button(one,3,true);j.step(3);assert.equal(j.count('dash'),1,'top button dashes');neutral(one);j.step(2);
-  button(one,1,true);j.step(3);button(one,0,true);j.step(3);assert(j.count('cancel')>=1,'bottom button cancels an aim');neutral(one);j.step(2);
+  button(one,'Right',true);j.step(2);button(one,0,true);j.step(3);assert.equal(j.count('dash'),1,'bottom button dashes');neutral(one);j.step(2);
+  button(one,3,true);j.step(3);assert.equal(j.calls.filter(c=>c[0]!=='move').length,j.count('act')+j.count('toss')+j.count('release')+j.count('dash'),'the top button does nothing');neutral(one);j.step(2);
   button(one,9,true);j.step(3);assert.equal(j.count('pause'),1,'− pauses');neutral(one);j.step(2);
   const other=harness(path),stranger=pad(0,'');stranger.id='Unknown Gamepad';other.connect(stranger);other.step(2);button(stranger,0,true);other.step(4);
   assert.equal(other.calls.length,0,'other controllers without a standard mapping stay ignored');}
  // Overcooked 2's buttons: A picks up and puts down at once; X chops or, with a throwable item, holds to aim and
- // releases to throw; Y dashes.
+ // releases to throw; B dashes, and no button cancels an aim.
  button(controller,'A',true);h.step(60);assert.equal(h.count('act'),1,'holding A sends one take or put');assert.equal(h.count('release'),0);
  button(controller,'A',false);h.step(2);assert.equal(h.count('release'),0,'lifting A throws nothing');
  button(controller,'X',true);h.step(60);assert.equal(h.count('toss'),1,'holding X with a throwable item arms one throw');
  button(controller,'X',false);h.step(2);assert.equal(h.count('release'),1,'lifting X releases once');
  h.publish({holding:null,canThrow:false});button(controller,'X',true);h.step(5);assert.equal(h.count('use'),1,'X with empty hands chops or washes once');
  button(controller,'X',false);h.step();assert.equal(h.count('release'),1);h.publish({holding:{id:'held'},canThrow:true});
- controller.axes=[1,0,0,0];h.step();button(controller,'Y',true);h.step(15);assert.equal(h.count('dash'),1,'Y is an edge-triggered dash');
- button(controller,'Y',false);h.step();h.publish({canDash:false,sprint:{available:false,active_remaining:0,cooldown_remaining:2}});button(controller,'Y',true);h.step();assert.equal(h.count('dash'),1,'unavailable sprint is not sent');
+ controller.axes=[1,0,0,0];h.step();button(controller,'B',true);h.step(15);assert.equal(h.count('dash'),1,'B is an edge-triggered dash');
+ button(controller,'B',false);h.step();h.publish({canDash:false,sprint:{available:false,active_remaining:0,cooldown_remaining:2}});button(controller,'B',true);h.step();assert.equal(h.count('dash'),1,'unavailable sprint is not sent');
 
- // Y must flush this frame's direction before dashing, including a new push
+ // B must flush this frame's direction before dashing, including a new push
  // 16 ms after stopping and a turn inside the movement throttle/noise window.
  ({h,controller}=armed(path));controller.axes=[1,0,0,0];h.step();neutral(controller);h.step();h.clear();
  controller.axes=[0,-1,0,0];h.step();
@@ -111,8 +110,8 @@ function check(path){
   h.controls.dash=()=>{assert(Math.abs(lastDirection.x-desired.x)<1e-8&&Math.abs(lastDirection.y-desired.y)<1e-8,`${timing} dash must use the latest direction`);h.calls.push(['dash']);};
   controller.axes=[1,0,0,0];h.step();
   if(timing==='after-stop'){neutral(controller);h.step();assert.deepEqual(lastDirection,{x:0,y:0});}
-  h.clear();controller.axes=timing==='small-turn'?[1,.001,0,0]:[0,-1,0,0];button(controller,'Y',true);h.step();
-  assert.equal(h.count('dash'),1,`${timing} Y triggers the dash within one frame`);
+  h.clear();controller.axes=timing==='small-turn'?[1,.001,0,0]:[0,-1,0,0];button(controller,'B',true);h.step();
+  assert.equal(h.count('dash'),1,`${timing} B triggers the dash within one frame`);
   const moveAt=h.calls.findIndex(call=>call[0]==='move'),dashAt=h.calls.findIndex(call=>call[0]==='dash');
   assert(moveAt>=0&&moveAt<dashAt,`${timing} direction is sent before the dash`);
  }
@@ -122,9 +121,10 @@ function check(path){
  assert(moveTimes.length>=10,'sustained steering continues to update direction');
  for(let i=1;i<moveTimes.length;i++)assert(moveTimes[i]-moveTimes[i-1]>=50,'ordinary continuous steering stays at most 20 Hz');
 
- ({h,controller}=armed(path));button(controller,'X',true);h.step();h.publish({aiming:{x:0,y:1}});button(controller,'B',true);h.step();
- assert.equal(h.count('cancel'),1,'B cancels the owned aim');button(controller,'B',false);button(controller,'X',false);h.step();
- assert.equal(h.count('release'),0,'the cancelled X release cannot throw');h.publish({aiming:null});button(controller,'X',true);h.step();assert.equal(h.count('toss'),2,'a fresh X press works after cancellation');
+ // As in Overcooked 2 no button cancels an aim: B while aiming neither cancels nor dashes, and releasing X throws.
+ ({h,controller}=armed(path));button(controller,'X',true);h.step();h.publish({aiming:{x:0,y:1}});controller.axes=[1,0,0,0];button(controller,'B',true);h.step();
+ assert.equal(h.count('cancel'),0,'B does not cancel an aim');assert.equal(h.count('dash'),0,'B does not dash while aiming');
+ button(controller,'B',false);button(controller,'X',false);h.step();assert.equal(h.count('release'),1,'releasing X throws');
 
  ({h,controller}=armed(path));button(controller,'Start',true);h.step(20);assert.equal(h.count('pause'),1,'Start pauses once');
  h.publish({phase:'paused',canInput:false});h.clear();h.step(5);assert.equal(h.count('resume'),0,'held Start does not immediately resume');

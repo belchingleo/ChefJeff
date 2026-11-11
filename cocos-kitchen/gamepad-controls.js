@@ -26,8 +26,8 @@
       if (hint.hidden) return;
       const message = !hasStandard ? t('此手柄未提供标准映射，请使用键盘和鼠标。') : !armed || hardBlocked()
         ? t('手柄已连接') + ' · ' + t('请松开按键并将左摇杆回中')
-        : sidewaysActive ? t('摇杆移动 · 右键 拿放 · 左键 切洗扔（长按瞄准） · 上键 冲刺 · 下键 取消 · − 暂停/继续')
-        : t('左摇杆或十字键移动 · A/× 拿放 · X/□ 切洗扔（长按瞄准） · Y/△ 冲刺 · B/○ 取消 · Start/Options 暂停/继续');
+        : sidewaysActive ? t('摇杆移动 · 右键 拿放 · 左键 切洗扔（长按瞄准） · 下键 冲刺 · − 暂停/继续')
+        : t('左摇杆或十字键移动 · A/× 拿放 · X/□ 切洗扔（长按瞄准） · B/○ 冲刺 · Start/Options 暂停/继续');
       if (hint.textContent !== message) hint.textContent = message;
     }
     function interrupt(pause = false) {
@@ -52,16 +52,17 @@
       try { return Array.from(navigator.getGamepads() || []).filter(pad => pad && pad.connected !== false); }
       catch (_) { apiDisabled = true; interrupt(true); hint.hidden = true; return []; }
     }
-    // Button indices: a takes and puts, x chops/washes/throws, y dashes, b cancels, start pauses; then the D-pad.
-    const STANDARD = { a: 0, b: 1, x: 2, y: 3, start: 9, up: 12, down: 13, left: 14, right: 15 };
+    // Button indices: a takes and puts, x chops/washes/throws, b dashes, start pauses; then the D-pad.
+    const STANDARD = { a: 0, b: 1, x: 2, start: 9, up: 12, down: 13, left: 14, right: 15 };
     // macOS merges a pair of Joy-Cons into one "Joy-Con (L/R)" device that the browser reads in the Joy-Con's simple
     // mode: the left stick (and the left arrow buttons) arrive as the D-pad, turned for a Joy-Con held sideways
     // (stick up is reported as left, down as right, left as down, right as up). Turn it back for the pair held upright.
     const MERGED_PAIR = { ...STANDARD, up: 14, down: 15, left: 13, right: 12 };
     // One left Joy-Con held sideways, as Safari reports it ("Joy-Con (L) Gamepad", no standard mapping): the stick
     // arrives as the D-pad already turned for the sideways hold, and the four round buttons are placed as on an
-    // upright controller: right takes and puts, left chops, top dashes, bottom cancels; − pauses.
-    const SIDEWAYS_LEFT = { a: 2, b: 0, x: 1, y: 3, start: 9, up: 12, down: 13, left: 14, right: 15 };
+    // Switch controller by label: right (A) takes and puts, left (Y position, Overcooked's chop) chops, bottom (B)
+    // dashes; − pauses.
+    const SIDEWAYS_LEFT = { a: 2, b: 0, x: 1, start: 9, up: 12, down: 13, left: 14, right: 15 };
     const layout = pad => pad.mapping === 'standard' ? (/joy-con \(l\/r\)/i.test(pad.id || '') ? MERGED_PAIR : STANDARD)
       : /joy-con \(l\)/i.test(pad.id || '') ? SIDEWAYS_LEFT : null;
     const sideways = pad => layout(pad) === SIDEWAYS_LEFT;
@@ -77,7 +78,7 @@
         dx /= length; dy /= length;
       }
       return { dx, dy, neutral: Math.hypot(x, y) <= DEADZONE && !buttons.some(pressed),
-        a: pressed(buttons[at.a]), b: pressed(buttons[at.b]), x: pressed(buttons[at.x]), y: pressed(buttons[at.y]), start: pressed(buttons[at.start]) };
+        a: pressed(buttons[at.a]), b: pressed(buttons[at.b]), x: pressed(buttons[at.x]), start: pressed(buttons[at.start]) };
     }
     function move(dx, dy, now, force = false) {
       if (dx === lastMove.x && dy === lastMove.y) return;
@@ -114,7 +115,7 @@
         showHint(); requestAnimationFrame(frame); return;
       }
       const edges = { a: input.a && !previousButtons.a, b: input.b && !previousButtons.b,
-        x: input.x && !previousButtons.x, y: input.y && !previousButtons.y, start: input.start && !previousButtons.start,
+        x: input.x && !previousButtons.x, start: input.start && !previousButtons.start,
         release: !input.x && !!previousButtons.x };
       previousButtons = input;
       const running = state.phase === 'running' && state.canInput !== false;
@@ -125,13 +126,11 @@
       // A on the result card presses its main button (next level); the page ignores it for the card's first second.
       if (!running && edges.a && state.phase === 'ended' && state.mainEnabled && !state.pending) { owned = true; controls.main(); }
       if (!running) { showHint(); requestAnimationFrame(frame); return; }
-      if (edges.b && owned && (actionDown || state.aiming)) {
-        interrupt(); requestAnimationFrame(frame); return;
-      }
       const moveTime = Number.isFinite(now) ? now : performance.now();
       move(input.dx, input.dy, moveTime);
       // Overcooked 2's buttons: A picks up and puts down; X chops, washes, sprays, or with a throwable item
-      // arms a throw (a tap throws ahead, holding aims, releasing X throws); Y dashes (Overcooked's B is Cancel here).
+      // arms a throw (a tap throws ahead, holding aims, releasing X throws); B dashes. As in Overcooked, no button
+      // cancels an aim: releasing X throws.
       if (edges.a && !state.pending) { owned = true; controls.act(); }
       if (edges.x && !state.pending && !state.aiming) {
         owned = true;
@@ -139,7 +138,7 @@
       }
       if (edges.release && actionDown) { actionDown = false; controls.release(); }
       const sprint = state.sprint || {};
-      if (edges.y && (input.dx || input.dy) && !state.aiming && sprint.available !== false && !(sprint.active_remaining > 0) && !(sprint.cooldown_remaining > 0)) {
+      if (edges.b && (input.dx || input.dy) && !state.aiming && sprint.available !== false && !(sprint.active_remaining > 0) && !(sprint.cooldown_remaining > 0)) {
         move(input.dx, input.dy, moveTime, true);
         owned = true; controls.dash();
       }
