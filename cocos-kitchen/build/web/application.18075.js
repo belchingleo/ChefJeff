@@ -14,7 +14,7 @@ System.register([], function (_export, _context) {
       _export("Application", Application = /*#__PURE__*/function () {
         function Application() {
           _classCallCheck(this, Application);
-          this.settingsPath = 'src/settings.4949c.json';
+          this.settingsPath = 'src/settings.55c9a.json';
           this.showFPS = false;
         }
         _createClass(Application, [{

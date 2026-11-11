@@ -1512,6 +1512,12 @@ export class KitchenClient extends Component {
             if(this.useModularArt){
                 status.setPosition(0,this.workSurfaceY(id)+(this.prepSampleBoard(id)?18:0));
                 if(this.prepSampleBoard(id))status.setScale(.5,.5,1);
+                // A plate in the sink sits in the basin, clear of the tap: the tap is at the top of a horizontal
+                // sink and on the right of a vertical one (grid-foundation-v1 device_sink_*).
+                if(id==='sink'){
+                    const vertical=stationView(this.state!.kitchen.map,id).device_axis==='vertical';
+                    status.setPosition(vertical?-TILE*.12:0,this.workSurfaceY(id)-(vertical?0:TILE*.12));status.setScale(.8,.8,1);
+                }
                 ln.active=false; // Workstations are identified by equipment, not map captions.
             }
             if(id==='sink'){
