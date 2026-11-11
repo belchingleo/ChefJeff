@@ -1118,7 +1118,7 @@ class SpatialKitchen(Kitchen):
         chef = self.chefs[who]
         actions = self.actions(who) if actions is None else actions
         if chef.job and chef.job.working:return None
-        priority = {'swap_pot':0,'swap_ground_pot':0,'load_ground':0,'assemble_ground':0,'load_counter':0,'plate_ground':0,'plate_pot':0,'plate_counter':0,'plate_from_counter':0,
+        priority = {'swap_pot':0,'swap_ground_pot':0,'load_ground':0,'assemble_ground':0,'load_counter':0,'scoop_counter':0,'plate_ground':0,'plate_pot':0,'plate_counter':0,'plate_from_counter':0,
                     'plate_partner':0,'extinguish':0,'put_board':1,'put_pot':1,'return_pot':1,
                     'put_counter':1,'put_sink':1,'put_tool':1,'serve':1,'wash':1,'chop':1,
                     'pickup':2,'take_board':3,'take_plate':3,'take_counter':3,'take_return':3,

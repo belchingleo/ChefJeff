@@ -200,7 +200,7 @@ TAKE_KINDS = {"fetch", "take_board", "take_tool", "pickup", "take_plate", "take_
 # rests on a burning board, counter or stove can still be taken, and things put or plated there; a pan can be
 # lifted off a burning stove, put back, or filled when empty. A burning stove does not heat.
 SURFACE_KINDS = {"take_counter", "take_plate", "take_board", "put_counter", "put_board", "assemble", "merge_plates",
-                 "load_counter", "plate_counter", "plate_from_counter", "swap_pot",
+                 "load_counter", "scoop_counter", "plate_counter", "plate_from_counter", "swap_pot",
                  "lift_pot", "return_pot", "put_pot", "plate_pot"}
 
 
@@ -411,6 +411,13 @@ class Kitchen:
                 add('merge '+key,'把'+s.name+'盘中食物合入手中盘（空盘留在原位）','merge_plates',key)
             if self.can_load_pot(a.hand,s.food):
                 add('load '+key,f'把{self.load_label(a.hand)}放入{s.name}的空{self.vessel_name(s.food.id)}（离灶不加热）','load_counter',key)
+            # An empty pan or pot held over a loose ingredient it can cook scoops it up and stays in the hands, as a
+            # held plate takes an ingredient (assemble): one press for the player, one choice for Jeff. Off the stove
+            # it does not heat. (Overcooked 2 sets the container down there instead; kept as a held container so the
+            # player and Jeff do the same in one step.)
+            if (a.hand and a.hand.stage == 'pot' and a.hand.contents is None and self.can_load_pot(s.food, a.hand)
+                    and not (board and self.chopping_started(s.food))):
+                add('scoop '+key,f'用手中的{self.vessel_name(a.hand.id)}盛起{s.name}上的{self.load_label(s.food)}（离灶不加热）','scoop_counter',key)
             kind = 'take_board' if board else 'take_plate' if s.food.stage == 'clean_plate' else 'take_counter'
             # As in Overcooked 2 (ServerWorkstation.CanPickupItem): an ingredient part-way through chopping stays on the board.
             if not (board and self.chopping_started(s.food)):
@@ -929,6 +936,8 @@ class Kitchen:
             a.hand=self.merge_plate(a.hand,s.food);s.food=None;s.heating=False
         elif k == 'load_counter':
             s.food.contents,a.hand=a.hand,None
+        elif k == 'scoop_counter':
+            a.hand.contents,s.food=s.food,None
         elif k == 'assemble_ground':
             item_id=job.action.expected[1]
             if not self.can_assemble_ground(who,item_id) or self.ground_assembly_signature(who,item_id)!=job.action.expected:

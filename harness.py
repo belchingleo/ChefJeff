@@ -321,7 +321,7 @@ PLAN_KEEP = {'keep': 'Keep this plan', 'drop': 'Drop this plan; the next request
 WORK_KINDS = {
     'fetch': ('fetch',),
     'chop': ('chop',),
-    'cook': ('put_pot', 'load_counter', 'load_ground'),
+    'cook': ('put_pot', 'load_counter', 'scoop_counter', 'load_ground'),
     'plate': ('assemble', 'assemble_ground', 'plate_pot', 'plate_counter', 'plate_from_counter', 'plate_ground',
               'plate_partner'),
     'take_plate': ('take_plate', 'take_sink'),

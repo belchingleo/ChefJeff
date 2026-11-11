@@ -414,6 +414,10 @@
       "Load {0} into the empty {2} at {1} ({3})"
     ],
     [
+      "用手中的{0}盛起{1}上的{2}（{3}）",
+      "Scoop {2} from {1} into the {0} in hand ({3})"
+    ],
+    [
       "把{0}放入地上空{1}（{2}）",
       "Load {0} into the empty {1} on the floor ({2})"
     ],
