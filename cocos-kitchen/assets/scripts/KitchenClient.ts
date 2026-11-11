@@ -33,8 +33,9 @@ const PARTNER_Y=314,TILES_Y=398,START_Y=562;
 const TAB_ORDER=['language','cover-connection','level-prev','level-picker','level-next','free-limits','tile-free','free-pick','tile-key','main','next-alt','reset','help','create-level','partner-change','record','contribute','more','resume','pause','end'];
 type ButtonView = {node:Node;label:Label;callback:()=>void;enabled:boolean;width:number;height:number;tone:string;hover:boolean;selected?:boolean};
 // Labels for things that are not recipe items; item and dish names come from the server's catalog.
-/** A plate drawn in the sink unit's basin (27 art px across its short side) fits inside the basin's rim. */
-const SINK_PLATE=.55;
+/** A plate in the sink unit's basin: item art fills TILE*.76 with the plate itself (28x20 of its 32 px), so .45 makes it
+ *  about 22x16 unit art px, inside the 27 px the vertical basin has across and clear of the tap, the same in every direction. */
+const SINK_PLATE=.45;
 const STAGES: Record<string,string> = {extinguisher:'灭火器',clean_plate:'干净餐盘',dirty_plate:'脏餐盘'};
 // Art stem for a vessel kind that has no art of its own yet (the soup pot's frames).
 const VESSEL_ART_FALLBACK='pot';

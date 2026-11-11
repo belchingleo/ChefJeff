@@ -84,7 +84,7 @@ class Geo:
             self.tap_at = (28, round(self.basin[1]) + 15)            # device_sink_vertical's tap: cols 28-44, from row 19
             ty = self.tap_at[1] + 5.5
             self.tap = ((44.0, ty), (30.0, ty)); self.mouth = (29.5, ty + 1.0)
-            self.plate_at = (15.0, self.basin[1] + (self.basin[3] - self.basin[1]) * 0.7)
+            self.plate_at = (17.0, self.mouth[1])                  # level with the tap's mouth, as a horizontal unit's plate lines up with its tap
             self.rack_line = ((18.5, self.board[1] + 8.0), (18.5, self.board[3] - 12.0))
             self.slots = [lerp(*self.rack_line, k / (SLOTS - 1)) for k in range(SLOTS)]
         else:
@@ -387,7 +387,7 @@ def update_meta(atlas):
     v['rawPosition'] = [-hw, -hh, 0, hw, -hh, 0, -hw, hh, 0, hw, hh, 0]
     v['rawPosition'] = [int(p) if float(p).is_integer() else p for p in v['rawPosition']]
     uv = [tx, H - ty, tx + w, H - ty, tx, H - ty - h, tx + w, H - ty - h]
-    v['uv'] = uv; v['nuv'] = [p / (W if i % 2 == 0 else H) for i, p in enumerate(uv)]
+    v['uv'] = uv; v['nuv'] = [p / W if i % 2 == 0 else (2 * H - 2 * ty - h - p) / H for i, p in enumerate(uv)]
     v['minPos'] = [v['rawPosition'][0], v['rawPosition'][1], 0]; v['maxPos'] = [v['rawPosition'][9], v['rawPosition'][10], 0]
     path.write_text(json.dumps(meta, indent=2) + '\n')
 
