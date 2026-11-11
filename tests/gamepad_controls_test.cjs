@@ -73,6 +73,11 @@ function check(path){
   for(const [reported,dx,dy] of [['Left',0,-1],['Right',0,1],['Down',-1,0],['Up',1,0]]){
    neutral(pair);j.step(2);button(pair,reported,true);j.step(4);const m=j.moves().at(-1);
    assert(m&&m[1]===dx&&m[2]===dy,'merged Joy-Con '+reported+' moves '+dx+','+dy);}}
+ // Safari reads the same pair upright ("Joy-Con (L/R) Extended Gamepad"): its arrow buttons are not turned.
+ {const j=harness(path),pair=pad();pair.id='Joy-Con (L/R) Extended Gamepad';j.connect(pair);j.step(2);
+  for(const [reported,dx,dy] of [['Up',0,-1],['Down',0,1],['Left',-1,0],['Right',1,0]]){
+   neutral(pair);j.step(2);button(pair,reported,true);j.step(4);const m=j.moves().at(-1);
+   assert(m&&m[1]===dx&&m[2]===dy,'Safari Joy-Con pair '+reported+' moves '+dx+','+dy);}}
  // One left Joy-Con held sideways in Safari: no standard mapping; the stick is a D-pad already turned for the hold,
  // and the round buttons follow the Switch labels (right 2 takes/puts, left 1 chops/throws, bottom 0 dashes, − 9 pauses).
  {const j=harness(path),one=pad(0,'');one.id='Joy-Con (L) Gamepad';j.connect(one);j.step(2);

@@ -118,7 +118,7 @@
     }
     // Button indices: a takes and puts, x chops/washes/throws, b dashes, start pauses; then the D-pad.
     const STANDARD = { a: 0, b: 1, x: 2, start: 9, up: 12, down: 13, left: 14, right: 15 };
-    // macOS merges a pair of Joy-Cons into one "Joy-Con (L/R)" device that the browser reads in the Joy-Con's simple
+    // macOS merges a pair of Joy-Cons into one "Joy-Con (L/R)" device that Chromium reads in the Joy-Con's simple
     // mode: the left stick (and the left arrow buttons) arrive as the D-pad, turned for a Joy-Con held sideways
     // (stick up is reported as left, down as right, left as down, right as up). Turn it back for the pair held upright.
     const MERGED_PAIR = { ...STANDARD, up: 14, down: 15, left: 13, right: 12 };
@@ -127,7 +127,10 @@
     // Switch controller by label: right (A) takes and puts, left (Y position, Overcooked's chop) chops, bottom (B)
     // dashes; − pauses.
     const SIDEWAYS_LEFT = { a: 2, b: 0, x: 1, start: 9, up: 12, down: 13, left: 14, right: 15 };
-    const layout = pad => pad.mapping === 'standard' ? (/joy-con \(l\/r\)/i.test(pad.id || '') ? MERGED_PAIR : STANDARD)
+    // Safari reads the same pair through Apple's game controller framework ("Joy-Con (L/R) Extended Gamepad"),
+    // which reports the stick on its axes and the arrow buttons upright, so only the browser's own reading turns.
+    const merged = id => /joy-con \(l\/r\)/i.test(id) && !/extended gamepad/i.test(id);
+    const layout = pad => pad.mapping === 'standard' ? (merged(pad.id || '') ? MERGED_PAIR : STANDARD)
       : /joy-con \(l\)/i.test(pad.id || '') ? SIDEWAYS_LEFT : null;
     const sideways = pad => layout(pad) === SIDEWAYS_LEFT;
     function sample(pad) {
