@@ -8,7 +8,7 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 
 ### Controllers: Switch Joy-Cons, dash on B, a picture hint
 
-- A pair of Joy-Cons that macOS merges into one "Joy-Con (L/R)" device reports its left stick as a D-pad turned for a sideways Joy-Con (stick up came out as left); the page turns it back for the pair held upright.
+- A pair of Joy-Cons that macOS merges into one "Joy-Con (L/R)" device reports its left stick as a D-pad turned for a sideways Joy-Con (stick up came out as left); the page turns it back for the pair held upright. Safari reads the same pair through Apple's framework ("Joy-Con (L/R) Extended Gamepad") with the stick and arrows already upright, so it is left as it is.
 - One left Joy-Con held sideways works in Safari ("Joy-Con (L) Gamepad", no standard mapping): the stick moves, the right button takes and puts, the left button chops, washes or throws, the bottom button dashes, − pauses or resumes. Other controllers without a standard mapping are still left alone.
 - Dash moves to B (○), as in Overcooked 2; Y no longer dashes. B no longer cancels an aim: as in Overcooked 2, releasing X throws. The help, `docs/interaction-guide.md` and `docs/device-support.md` say so (the help still said X dashes).
 - The controller hint is pictures instead of a sentence, as in Overcooked 2's prompts: each action is its button (letters, PlayStation shapes, or the lit button of a sideways Joy-Con) and a pixel picture (hand, cleaver, dust puffs, pause). It sits in a narrow column at the right edge and no longer covers the start and result cards; the words stay in its accessible label.
@@ -325,7 +325,7 @@ First private release: a local browser game with three playable maps and player-
 
 ### 手柄：Switch Joy-Con、冲刺改到 B、图示提示
 
-- macOS 会把两只 Joy-Con 合成一个“Joy-Con (L/R)”设备，它把左摇杆按横握方向报成十字键（往上推报成往左）；页面现在把方向转回竖握。
+- macOS 会把两只 Joy-Con 合成一个“Joy-Con (L/R)”设备，它把左摇杆按横握方向报成十字键（往上推报成往左）；页面现在把方向转回竖握。Safari 通过苹果的手柄框架读同一对手柄（“Joy-Con (L/R) Extended Gamepad”），摇杆和方向键本来就是竖握方向，保持不动。
 - Safari 里可以横握单只左手柄玩（“Joy-Con (L) Gamepad”，没有标准映射）：摇杆移动，右键拿放，左键切、洗、扔，下键冲刺，− 暂停或继续。其他没有标准映射的手柄仍然不接管。
 - 冲刺改到 B（○），和《Overcooked 2》一样；Y 不再冲刺。B 不再取消瞄准，和原作一样，松开 X 就扔出。帮助、`docs/interaction-guide.md` 和 `docs/device-support.md` 都已改过（帮助里原来还写着 X 冲刺）。
 - 手柄提示从一句话改成图示，和《Overcooked 2》的按键提示一样：每个动作是“按键 + 像素图”（字母、PlayStation 的形状，或横握 Joy-Con 上亮起的那颗键；手、菜刀、扬尘、暂停）。它放在右边一窄列，不再挡住开始和结算卡片；文字仍留在无障碍标签里。
