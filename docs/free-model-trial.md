@@ -134,8 +134,8 @@ The most recent result is shared across players; it is not a full per-player his
 
 ### Upgrade an already running free-model deployment
 
-This upgrade expects the game release `7ad158c42c0a` (0.8.1-beta.2) on both regions and the gateway
-running from that same release in Shanghai with the later models enabled (both checked on the servers after the 2026-11-09 deploy, which upgraded the gateway to withdraw Zhipu and Llama). Build the pinned GitHub commit
+This upgrade expects the game release `cd73cce90927` (0.9.0-beta.1) on both regions and the gateway
+running from the `7ad158c42c0a` (0.8.1-beta.2) release in Shanghai with the later models enabled (both checked on the servers after the 2026-11-11 deploy, which left the gateway as the 2026-11-09 deploy upgraded it to withdraw Zhipu and Llama). Build the pinned GitHub commit
 archive twice and require matching SHA-256 before staging. The regional installer
 preserves and restores the existing free-model startup override on rollback.
 
