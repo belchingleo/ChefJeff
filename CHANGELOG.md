@@ -4,7 +4,7 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 
 [中文](#更新记录)
 
-## Unreleased
+## 0.9.0-beta.1 — 2026-11-11 · sixth public test release
 
 ### Step hints on by default with a player switch; Jeff asks ahead (model input change)
 
@@ -358,7 +358,7 @@ First private release: a local browser game with three playable maps and player-
 
 ## 更新记录
 
-## 未发布
+## 0.9.0-beta.1 — 2026-11-11 · 第六个公开测试版
 
 ### 步骤提示默认开启并可由玩家开关；Jeff 提前问下一步（模型输入改动）
 

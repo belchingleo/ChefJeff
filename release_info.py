@@ -2,7 +2,7 @@
 import hashlib
 from pathlib import Path
 
-VERSION = '0.8.1-beta.2'
+VERSION = '0.9.0-beta.1'
 # The page/kitchen-server contract. The page refuses a server with another number (an old server still running
 # after the page was updated); bump it, and KitchenClient.ts's CLIENT_PROTOCOL with it, only when the contract
 # changes, so a release alone does not need the web build rebuilt.
