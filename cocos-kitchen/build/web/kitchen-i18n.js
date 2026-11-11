@@ -1106,7 +1106,9 @@
     "本局 AI 调用已达上限，不再发起请求；已有动作继续，玩家仍可操作。": "This round's AI call limit is reached; no more requests are sent. Actions under way continue and you can keep playing.",
     "未找到 TYPESAFE_API_KEY。请在本地 .env 中配置，不要把密钥发到聊天。": "TYPESAFE_API_KEY was not found. Set it in your local .env; never paste the key into a chat.",
     "仅允许本机或 USB 转发访问。": "Only this computer or USB forwarding may connect.",
-    "请先构建 Cocos Web 预览，或检查路径。": "Build the Cocos web preview first, or check the path."
+    "请先构建 Cocos Web 预览，或检查路径。": "Build the Cocos web preview first, or check the path.",
+    "水槽旁边要留一格空位放沥水架": "Leave a free cell beside the sink for its drying rack",
+    "沥水架要紧挨着水槽": "The drying rack goes right beside the sink"
   },
   "templates": [
     [

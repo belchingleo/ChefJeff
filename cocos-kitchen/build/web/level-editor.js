@@ -17,11 +17,12 @@
     ingredient_source: {name: '食材箱', bg: '#fdf3e1', fg: '#6b3418', line: '#6b3418'},
     serving_window: {name: '出餐口', bg: '#2a5a9e', fg: '#fdf3e1', line: INK},
     sink: {name: '水槽', bg: '#3d5566', fg: '#fdf3e1', line: INK},
+    drying_rack: {name: '沥水架', bg: '#c9cdd1', fg: INK, line: INK},
     plate_return: {name: '脏盘回收', bg: '#f0d9b5', fg: INK, line: INK},
     bin: {name: '垃圾桶', bg: INK, fg: '#fdf3e1', line: INK},
     tool_rack: {name: '灭火器架', bg: '#b8321e', fg: '#fdf3e1', line: INK}
   };
-  const GLYPHS = {counter: ['柜', 'Ctr'], board: ['板', 'Brd'], serving_window: ['出', 'Out'], sink: ['洗', 'Sink'], plate_return: ['收', 'Ret'], bin: ['桶', 'Bin'], tool_rack: ['灭', 'Ext']}; // i18n: bilingual
+  const GLYPHS = {counter: ['柜', 'Ctr'], board: ['板', 'Brd'], serving_window: ['出', 'Out'], sink: ['洗', 'Sink'], drying_rack: ['架', 'Rack'], plate_return: ['收', 'Ret'], bin: ['桶', 'Bin'], tool_rack: ['灭', 'Ext']}; // i18n: bilingual
   const FLOOR = [['#f0d9b5', '#ecd0a6'], ['#fbe3b8', '#f6d79f'], ['#e7cfa9', '#dfc49a']];
   const STEPS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
@@ -100,7 +101,7 @@
     return {format: catalog.format, name: '新关卡', size: [14, 9], walls: [],
       stations: [at('ingredient_source', 2, 1, {item: first.id}), at('counter', 7, 1), at('counter', 8, 1), at('counter', 9, 1),
         at('serving_window', 12, 2), at('board', 1, 3), at('board', 1, 4), at('counter', 1, 5), at('stove', 12, 3, {vessel: pan}),
-        at('stove', 12, 4, {vessel: pot}), at('counter', 12, 5), at('counter', 6, 4), at('counter', 7, 4), at('sink', 3, 7),
+        at('stove', 12, 4, {vessel: pot}), at('counter', 12, 5), at('counter', 6, 4), at('counter', 7, 4), at('drying_rack', 2, 7), at('sink', 3, 7),
         at('plate_return', 4, 7), at('counter', 6, 7), at('bin', 9, 7), at('tool_rack', 10, 7)],
       dishes: [{name: '新菜', price: suggestedPrice([first.id]), items: [first.id]}]};
   }
@@ -195,6 +196,8 @@
     const [low, high] = catalog.serving_windows, windows = count.serving_window || 0;
     if (windows < low) err(fmt('还缺：{0}', TOOLS.serving_window.name));
     if (windows > high) err(fmt('出餐口最多 {0} 个，现在有 {1} 个', high, windows));
+    const sink = design.stations.find(s => s.type === 'sink'), rack = design.stations.find(s => s.type === 'drying_rack');
+    if (sink && rack && Math.abs(sink.x - rack.x) + Math.abs(sink.y - rack.y) !== 1) err('沥水架要紧挨着水槽');
     if ((count.counter || 0) < catalog.plates) err(fmt('柜台至少 {0} 个，用来放开局的盘子', catalog.plates));
     if (!count.bin) err(fmt('还缺：{0}', TOOLS.bin.name));
     needs(design).forEach(n => {if (!n.placed(count, sources)) err(fmt('还缺：{0}', n.name));});
@@ -519,17 +522,37 @@
         if (!how.any && !sameAt(g, key)) return;
         if (!wallHere && !here) return;
         design.walls = design.walls.filter(([wx, wy]) => wx + ',' + wy !== key);
-        design.stations = design.stations.filter(s => s.x + ',' + s.y !== key);
+        // The sink and its drying rack are one unit: erasing either takes both away.
+        const unit = here && ['sink', 'drying_rack'].includes(here.type);
+        design.stations = design.stations.filter(s => s.x + ',' + s.y !== key && !(unit && ['sink', 'drying_rack'].includes(s.type)));
       } else {
         if (!g.inside(x, y)) return;
         // Serving windows and the plate return stand only against the outer wall.
         if (catalog.against_the_wall.includes(tool) && !g.againstWall(x, y)) return;
+        if (tool === 'sink') {
+          // As in Overcooked 2 the sink comes with its drying rack, in the cell beside it (right, left, below, above
+          // as there is room); the kitchen has one of each, so the old pair moves.
+          const rest = design.stations.filter(s => !['sink', 'drying_rack'].includes(s.type));
+          const taken = new Set(rest.map(s => s.x + ',' + s.y).concat(design.walls.map(w => w.join(','))));
+          const beside = STEPS.map(([dx, dy]) => [x + dx, y + dy]).find(([bx, by]) => g.inside(bx, by) && !taken.has(bx + ',' + by));
+          if (!beside) {notice(x, y, '水槽旁边要留一格空位放沥水架'); return;}
+          design.walls = design.walls.filter(([wx, wy]) => wx + ',' + wy !== key && wx + ',' + wy !== beside.join(','));
+          design.stations = rest.filter(s => s.x + ',' + s.y !== key).concat([toolStation('sink', x, y), {type: 'drying_rack', x: beside[0], y: beside[1]}]);
+          saveLevel(rec); paint(); return;
+        }
         design.walls = design.walls.filter(([wx, wy]) => wx + ',' + wy !== key);
-        design.stations = design.stations.filter(s => s.x + ',' + s.y !== key);
+        const unit = here && ['sink', 'drying_rack'].includes(here.type);
+        design.stations = design.stations.filter(s => s.x + ',' + s.y !== key && !(unit && ['sink', 'drying_rack'].includes(s.type)));
         if (tool === 'wall') design.walls.push([x, y]); else design.stations.push(toolStation(tool, x, y));
       }
       saveLevel(rec);
       paint();
+    }
+    function notice(x, y, text) {
+      const n = (view.notice?.n || 0) + 1;
+      view.notice = {n, x, y, text};
+      paint();
+      setTimeout(() => {if (view.notice?.n === n) {view.notice = null; paint();}}, 2600);
     }
     function warnInside(x, y, how) {
       const g = geometry(design);
