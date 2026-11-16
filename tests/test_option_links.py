@@ -1,4 +1,5 @@
 """The option_links switch (links.py, features.json option_links): each request lists the work each option leads to."""
+import json
 import unittest
 from unittest.mock import patch
 
@@ -289,6 +290,39 @@ class V4Tests(unittest.TestCase):
         self.assertEqual(features.links_option(on), 'partner+v4')
         self.assertEqual(links.flags('partner+v4'), {'partner': True, 'v4': True})
         self.assertEqual(links.flags(True), {'partner': False, 'v4': False})
+
+
+class V4CheckTests(unittest.TestCase):
+    """scripts/links_v4_check.py: logged moments re-asked with the v3 and the v4 table, no model called."""
+
+    def test_moments_are_sorted_by_what_changed(self):
+        from scripts.links_v4_check import _kind
+        plate, chop = 'Plate food from Stove 1', 'Chop F1 at Board 1 (2.2s left)'
+        self.assertEqual(_kind({'take plates': [plate]}, {'wait': [plate]}, None), 'pan_soon')
+        self.assertEqual(_kind({'chop b2': ['Wash dishes']}, {'wait': ['Wash dishes']}, None), 'wait_other')
+        shared = {'options': ['put fridge', 'drop', 'discard'], 'work': [chop]}
+        self.assertEqual(_kind({'put fridge': [chop], 'drop': [chop], 'discard': [chop]}, {}, shared), 'shared_only')
+        self.assertEqual(_kind({'put fridge': [chop]}, {}, None), 'moved')
+        self.assertIsNone(_kind({'put b1': [chop]}, {'put b1': [chop]}, None))
+
+    def test_each_moment_is_asked_in_both_arms_and_the_outcomes_are_counted(self):
+        from scripts import links_v4_check as check
+        sent = []
+
+        def ask(payload):
+            sent.append(payload['state'].get('links_version'))
+            return {'choice': 'wait' if payload['state'].get('links_version') == links.V4_VERSION else 'put then take p1',
+                    'probabilities': {}, 'model': 'test-model'}
+        a = {'state': {'links_version': links.SWITCH_VERSION}, 'questions': {}}
+        b = {'state': {'links_version': links.V4_VERSION}, 'questions': {}}
+        item = {'payload': a, 'B': b, 'kind': 'pan_soon', 'abandon': ['put then take p1'], 'moved_from': ['put then take plates'],
+                'shared': [], 'logged_choice': 'put then take p1'}
+        report = check.run([item], ask, repeats=2)
+        self.assertEqual(sent, [links.SWITCH_VERSION] * 2 + [links.V4_VERSION] * 2)
+        outcomes = report['by_kind']['pan_soon']['stats']['outcomes']
+        self.assertEqual((outcomes['put_item_down_for_pan']['A']['k'], outcomes['put_item_down_for_pan']['B']['k']), (2, 0))
+        self.assertEqual((outcomes['waited']['A']['k'], outcomes['waited']['B']['k']), (0, 2))
+        self.assertNotIn('payload', json.dumps(report))
 
 
 if __name__ == '__main__':
