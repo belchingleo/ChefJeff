@@ -324,6 +324,22 @@ class V4CheckTests(unittest.TestCase):
         self.assertEqual((outcomes['waited']['A']['k'], outcomes['waited']['B']['k']), (0, 2))
         self.assertNotIn('payload', json.dumps(report))
 
+    def test_moments_are_asked_in_both_arms_before_the_next_and_failures_are_tried_again(self):
+        from scripts import links_v4_check as check
+        sent, fails = [], [2]
+
+        def ask(payload):
+            if fails[0]:
+                fails[0] -= 1
+                raise RuntimeError('network')
+            sent.append((payload['state']['id'], payload['state']['links_version']))
+            return {'choice': 'wait', 'probabilities': {}, 'model': 'test-model'}
+        items = [{'payload': {'state': {'id': n, 'links_version': 'v3'}}, 'B': {'state': {'id': n, 'links_version': 'v4'}},
+                  'kind': 'control', 'abandon': [], 'moved_from': [], 'shared': [], 'logged_choice': 'wait'} for n in (1, 2)]
+        report = check.run(items, check.patient(ask, sleep=lambda s: None), repeats=1)
+        self.assertEqual(sent, [(1, 'v3'), (1, 'v4'), (2, 'v3'), (2, 'v4')])
+        self.assertEqual(report['by_kind']['control']['errors'], {'A': {}, 'B': {}})
+
 
 if __name__ == '__main__':
     unittest.main()

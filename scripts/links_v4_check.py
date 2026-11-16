@@ -25,6 +25,7 @@ The outcomes are whether the answer was wait; for pan_soon, whether it put the h
 (the options "put then take ... from Stove"); whether it chose an option that lost a line in B; whether it chose one
 of the options in B's shared row; and whether it agreed with the logged answer. Reports hold counts and shares only
 (no request, state or model text). --dry-run replays and picks the moments and prints how many requests it would send.
+Each moment is asked in both arms before the next, a failed request is tried again twice, and progress goes to stderr.
 The clients: the connection saved in the game (--connection names the .player-api.json to use, for a worktree that
 has none; run that in your own terminal) or --perplexity MODEL with the key in ~/.config/chefjeff/perplexity.key.
 """
@@ -136,9 +137,36 @@ OUTCOMES = {
 }
 
 
-def run(items, ask, repeats):
+def patient(ask, tries=3, waits=(5, 15), sleep=None):
+    """ask, tried again after a refusal or a failed connection (the client's RuntimeError), at most tries times: a slow
+    stretch of the service should not leave one arm with no answers."""
+    import time
+    sleep = sleep or time.sleep
+
+    def again(payload):
+        for n in range(tries):
+            try:
+                return ask(payload)
+            except RuntimeError:
+                if n == tries - 1:
+                    raise
+                sleep(waits[min(n, len(waits) - 1)])
+    return again
+
+
+def run(items, ask, repeats, progress=None):
+    """Each moment in both arms before the next (so a slow stretch of the service falls on both arms alike)."""
     out = {'moments': len(items), 'repeats': repeats, 'questions_asked': ['next_action'], 'by_kind': {}}
-    asked = reask.ask_arms(items, ARMS, arm, ask, clients.ask_once, repeats)
+    asked = {'arms': {name: [] for name in ARMS}, 'models': Counter()}
+    for n, item in enumerate(items, 1):
+        one = reask.ask_arms([item], ARMS, arm, ask, clients.ask_once, repeats)
+        for name in ARMS:
+            asked['arms'][name] += one['arms'][name]
+        asked['models'].update(one['models'])
+        if progress and (n % 10 == 0 or n == len(items)):
+            errors = sum('error' in a for rows in asked['arms'].values() for _, _, rs in rows for a in rs)
+            progress(f'{n}/{len(items)} moments asked, {errors} failed requests so far')
+    asked['models'] = dict(asked['models'].most_common())
     for kind in KINDS:
         part = {'arms': {name: [r for r in rows if r[0]['kind'] == kind] for name, rows in asked['arms'].items()},
                 'models': asked['models']}
@@ -159,6 +187,7 @@ def main(argv=None):
     parser.add_argument('--moments', help='a file of replayed moments: read it if it exists, else write it after replaying')
     parser.add_argument('--connection', help="the game's saved connection to use (.player-api.json; never printed)")
     parser.add_argument('--perplexity', metavar='MODEL', help='a Perplexity decision model (e.g. pplx-decider-v1.2)')
+    parser.add_argument('--timeout', type=float, default=60, help='seconds one answer may take (saved connection)')
     parser.add_argument('--dry-run', action='store_true')
     parser.add_argument('--out', help='write the JSON report here instead of printing it')
     args = parser.parse_args(argv)
@@ -184,8 +213,10 @@ def main(argv=None):
         from scripts import jev_replay_check
         if args.connection:
             jev_replay_check.CONNECTION = Path(args.connection).expanduser().resolve()
-        ask = jev_replay_check.client().ask
-    report = run(items, ask, args.repeats)
+        client = jev_replay_check.client()
+        client.timeout = args.timeout          # the game's own limit (ai_timeout_seconds) is for play, not for a re-ask
+        ask = client.ask
+    report = run(items, patient(ask), args.repeats, lambda text: print(text, file=sys.stderr, flush=True))
     text = json.dumps(report, ensure_ascii=False, indent=1)
     if args.out:
         Path(args.out).write_text(text)
