@@ -322,6 +322,7 @@ class V4CheckTests(unittest.TestCase):
         outcomes = report['by_kind']['pan_soon']['stats']['outcomes']
         self.assertEqual((outcomes['put_item_down_for_pan']['A']['k'], outcomes['put_item_down_for_pan']['B']['k']), (2, 0))
         self.assertEqual((outcomes['waited']['A']['k'], outcomes['waited']['B']['k']), (0, 2))
+        self.assertEqual(report['by_kind']['pan_soon']['chosen'], {'A': {'put_item_down_for_pan': 2}, 'B': {'wait': 2}})
         self.assertNotIn('payload', json.dumps(report))
 
     def test_moments_are_asked_in_both_arms_before_the_next_and_failures_are_tried_again(self):

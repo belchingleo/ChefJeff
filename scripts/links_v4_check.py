@@ -154,6 +154,20 @@ def patient(ask, tries=3, waits=(5, 15), sleep=None):
     return again
 
 
+def choice_kind(item, choice):
+    """What kind of option an answer chose, for the counts by kind (no option text is kept)."""
+    if choice == 'wait':
+        return 'wait'
+    if choice in item['abandon']:
+        return 'put_item_down_for_pan'
+    for prefix, name in (('merge', 'merge_plates'), ('assemble', 'add_to_held_plate'), ('plate', 'plate'),
+                         ('serve', 'serve'), ('chop', 'chop'), ('put then', 'put_then'), ('put', 'put'),
+                         ('throw', 'throw'), ('drop', 'put'), ('take', 'take'), ('fetch', 'fetch'), ('go', 'walk')):
+        if choice.startswith(prefix):
+            return name
+    return 'other'
+
+
 def run(items, ask, repeats, progress=None):
     """Each moment in both arms before the next (so a slow stretch of the service falls on both arms alike)."""
     out = {'moments': len(items), 'repeats': repeats, 'questions_asked': ['next_action'], 'by_kind': {}}
@@ -173,7 +187,10 @@ def run(items, ask, repeats, progress=None):
         if not part['arms']['A']:
             continue
         errors = {name: dict(Counter(a['error'][:160] for _, _, rs in rows for a in rs if 'error' in a)) for name, rows in part['arms'].items()}
-        out['by_kind'][kind] = {'moments': len(part['arms']['A']), 'errors': errors, 'stats': reask.stats(part, OUTCOMES)}
+        chosen = {name: dict(Counter(choice_kind(i, a['choice']) for i, _, rs in rows for a in rs if 'choice' in a).most_common())
+                  for name, rows in part['arms'].items()}
+        out['by_kind'][kind] = {'moments': len(part['arms']['A']), 'errors': errors, 'chosen': chosen,
+                                'stats': reask.stats(part, OUTCOMES)}
     out['models'] = asked['models']
     return out
 
@@ -188,6 +205,7 @@ def main(argv=None):
     parser.add_argument('--connection', help="the game's saved connection to use (.player-api.json; never printed)")
     parser.add_argument('--perplexity', metavar='MODEL', help='a Perplexity decision model (e.g. pplx-decider-v1.2)')
     parser.add_argument('--timeout', type=float, default=60, help='seconds one answer may take (saved connection)')
+    parser.add_argument('--kinds', help='ask only these kinds of moment, comma-separated (e.g. pan_soon)')
     parser.add_argument('--dry-run', action='store_true')
     parser.add_argument('--out', help='write the JSON report here instead of printing it')
     args = parser.parse_args(argv)
@@ -199,6 +217,8 @@ def main(argv=None):
             Path(args.moments).write_text(json.dumps([changed, unchanged, counts], ensure_ascii=False))
     control = random.Random(args.seed).sample(unchanged, min(args.control, len(unchanged)))
     items = changed + control
+    if args.kinds:
+        items = [i for i in items if i['kind'] in args.kinds.split(',')]
     print(f'replayed: {counts}; asking {Counter(i["kind"] for i in items)}', file=sys.stderr)
     print(estimate([{'payload': arm(i, 'B')} for i in items], len(ARMS) * args.repeats), file=sys.stderr)
     if args.dry_run or not items:
@@ -209,6 +229,7 @@ def main(argv=None):
 
         def ask(payload):
             return send({**payload, 'model': model})
+        ask = patient(ask)
     else:
         from scripts import jev_replay_check
         if args.connection:
@@ -216,7 +237,8 @@ def main(argv=None):
         client = jev_replay_check.client()
         client.timeout = args.timeout          # the game's own limit (ai_timeout_seconds) is for play, not for a re-ask
         ask = client.ask
-    report = run(items, patient(ask), args.repeats, lambda text: print(text, file=sys.stderr, flush=True))
+        ask = patient(ask)
+    report = run(items, ask, args.repeats, lambda text: print(text, file=sys.stderr, flush=True))
     text = json.dumps(report, ensure_ascii=False, indent=1)
     if args.out:
         Path(args.out).write_text(text)
