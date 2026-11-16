@@ -119,7 +119,7 @@ def compose_payload(client, kitchen, state, actions, recent_decisions, communica
     (DecisionLoop.intent_input) when that switch is on; its options are then the actions (intent_layer.build).
     links is whether the option_links switch is on (links.py): the table is computed here, from this kitchen and
     these actions (intents too: links.link carries an intent's steps out), after the request is composed; 'partner'
-    adds the other chef's side (option_links_partner)."""
+    adds the other chef's side (option_links_partner), 'v4' computes the table against waiting (option_links_v4)."""
     if one_press:
         import one_press as presses
         keys = {a.key for a in actions}
@@ -133,7 +133,7 @@ def compose_payload(client, kitchen, state, actions, recent_decisions, communica
                               undo, reach, names, intent)
     if links:
         import links as option_links
-        payload = option_links.apply(payload, kitchen, 'jeff', actions, names, partner=links == 'partner')
+        payload = option_links.apply(payload, kitchen, 'jeff', actions, names, **option_links.flags(links))
     return payload
 
 
@@ -717,7 +717,7 @@ class DecisionLoop:
             start = time.monotonic()
             try:
                 import links as option_links
-                option_links.apply(payload, twin, 'jeff', listed, names, partner=mode == 'partner')
+                option_links.apply(payload, twin, 'jeff', listed, names, **option_links.flags(mode))
                 self.prepared.put((context, payload, record, time.monotonic() - start, None))
             except Exception as error:      # never the payload or a key: only the kind of failure is logged
                 self.prepared.put((context, payload, record, time.monotonic() - start, error))

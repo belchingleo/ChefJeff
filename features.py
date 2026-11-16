@@ -53,7 +53,8 @@ VERSIONS = {'one_press': one_press.VERSION, 'jeff_plan': harness.PLAN_RULES_VERS
             'reach_note': reach_note.VERSION, 'food_names': food_names.VERSION,
             'intent_layer': intent_layer.VERSION,
             'option_links': links.SWITCH_VERSION,
-            'option_links_partner': links.PARTNER_VERSION}
+            'option_links_partner': links.PARTNER_VERSION,
+            'option_links_v4': links.V4_VERSION}
 # The plan modes (harness.PLAN_MODES), one at a time, and the feature of each.
 PLAN_FEATURES = {'choice': 'jeff_plan', 'rolling': 'rolling_intent'}
 FIELDS = {'stage', 'on', 'player_switch', 'version'}
@@ -178,11 +179,14 @@ def intents_on(features) -> bool:
 
 
 def links_option(features):
-    """The decision loop's links setting: False, True (option_links) or 'partner' (with option_links_partner: the other
-    chef's side too). option_links_partner alone does nothing."""
+    """The decision loop's links setting: False, True (option_links), or the extras on with it joined by '+': 'partner'
+    (option_links_partner: the other chef's side too), 'v4' (option_links_v4: the table against waiting, links.table_v4),
+    'partner+v4'. Neither extra does anything alone."""
     if not features['option_links']['on']:
         return False
-    return 'partner' if features['option_links_partner']['on'] else True
+    extras = [part for part, name in (('partner', 'option_links_partner'), ('v4', 'option_links_v4'))
+              if (features.get(name) or {}).get('on')]
+    return '+'.join(extras) or True
 
 
 def undo_start(features):

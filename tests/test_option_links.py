@@ -186,6 +186,111 @@ class PartnerTests(unittest.TestCase):
         self.assertEqual(features.links_option(on), 'partner')
 
 
+def pan_nearly_done(heated):
+    """Level 2: chopped beef in the pan on Stove 1, Jeff holding a clean plate, the beef heated this long (of 10 s)."""
+    k = SpatialKitchen(level_config(load_config(), 'level-2'))
+    for step in ('fetch beef', 'put b1', 'chop b1', 'take b1', 'put p1', 'take plates'):
+        run(k, 'jeff', step)
+    while k.stations['p1'].food.heated < heated:
+        k.advance(.05)
+    return k
+
+
+def with_presses(k):
+    import one_press
+    actions = k.actions('jeff')
+    return actions + one_press.options(k, 'jeff', actions, one_press.flags({name: True for name in one_press.NAMES}))
+
+
+class V4Tests(unittest.TestCase):
+    """option_links_v4: the table against waiting (a wait row, and option rows without what waiting opens), and the work
+    every single-step option that empties Jeff's hands opens written once."""
+
+    def payload(self, k, value, actions=None):
+        client = SpatialJevClient(k.c, key='unit-test-not-a-real-key')
+        return jev.compose_payload(client, k, k.snapshot(), actions or k.actions('jeff'), [], None, links=value)
+
+    def test_a_pan_finishing_is_listed_under_wait_and_under_no_other_option(self):
+        k = pan_nearly_done(8.6)
+        actions = with_presses(k)
+        keys = [a.key for a in actions]
+        self.assertNotIn('wait', links.table(k, 'jeff', actions, keys))
+        rows, _ = links.table_v4(k, 'jeff', actions, keys)
+        self.assertEqual(rows['wait'], ['Plate food from Stove 1'])
+        self.assertFalse([key for key, lines in rows.items() if key != 'wait' and 'Plate food from Stove 1' in lines])
+
+    def test_an_option_keeps_only_what_it_opens_beyond_waiting(self):
+        # Taking the plate back after putting it down takes long enough for the beef to finish: v3 credits the plating
+        # to that option, v4 leaves it to wait.
+        k = pan_nearly_done(8.6)
+        actions = with_presses(k)
+        keys = [a.key for a in actions]
+        v3 = links.table(k, 'jeff', actions, keys)
+        rows, _ = links.table_v4(k, 'jeff', actions, keys)
+        credited = [key for key, lines in v3.items() if 'Plate food from Stove 1' in lines]
+        for key in credited:
+            self.assertNotIn('Plate food from Stove 1', rows.get(key, []))
+        for key, lines in rows.items():
+            if key != 'wait':
+                self.assertTrue(set(lines) <= set(v3.get(key, [])), key)
+
+    def test_work_from_freed_hands_is_written_once(self):
+        k = SpatialKitchen(level_config(load_config(), 'level-2'))
+        run(k, 'human', 'fetch lettuce')
+        run(k, 'human', 'put b1')
+        run(k, 'jeff', 'fetch beef')
+        state = self.payload(k, 'v4', with_presses(k))['state']
+        shared = state['option_links_shared']
+        self.assertEqual(shared['work'], ['Chop F1 at Board 1 (2.2s left)'])
+        self.assertIn('put fridge', shared['options'])
+        self.assertIn('throw partner', shared['options'])
+        self.assertNotIn('put then chop b1', shared['options'])        # a later step uses the freed hands' work up
+        self.assertNotIn('put fridge', state['option_links'])
+        self.assertEqual(state['option_links']['put b2'], ['Chop F2 at Board 2 (2.2s left)'])
+        for key in shared['options']:
+            self.assertNotIn('Chop F1 at Board 1 (2.2s left)', state['option_links'].get(key, []))
+        self.assertEqual(state['links_version'], links.V4_VERSION)
+        self.assertEqual(state['rules']['links'], links.V4_RULE)
+
+    def test_no_option_changes_and_the_kitchen_stays_as_it_was(self):
+        k = pan_nearly_done(8.6)
+        snapshot = k.snapshot()
+        on, off = self.payload(k, 'v4'), self.payload(k, False)
+        self.assertEqual(k.snapshot(), snapshot)
+        self.assertEqual(on['questions'], off['questions'])
+        self.assertEqual(on, self.payload(k, 'v4'))
+
+    def test_with_a_step_under_way_there_is_no_wait_row(self):
+        k = pan_nearly_done(8.6)
+        k.start('jeff', next(a for a in k.actions('jeff') if a.key == 'go serve'))
+        k.advance(.05)
+        self.assertIsNotNone(k.chefs['jeff'].job)
+        rows, _ = links.table_v4(k, 'jeff', k.actions('jeff'), [a.key for a in k.actions('jeff')])
+        self.assertNotIn('wait', rows)
+
+    def test_off_the_table_is_v3(self):
+        k = pan_nearly_done(8.6)
+        state = self.payload(k, True)['state']
+        self.assertEqual(state['links_version'], links.SWITCH_VERSION)
+        self.assertNotIn('option_links_shared', state)
+        self.assertNotIn('wait', state['option_links'])
+
+    def test_the_switch_is_a_trial_and_off_and_needs_option_links(self):
+        loaded = features.load()
+        self.assertEqual(loaded['option_links_v4'], {'stage': 'trial', 'on': False, 'player_switch': False,
+                                                     'version': links.V4_VERSION})
+        on = {name: dict(value) for name, value in loaded.items()}
+        on['option_links_v4']['on'] = True
+        on['option_links']['on'] = False
+        self.assertIs(features.links_option(on), False)
+        on['option_links']['on'] = True
+        self.assertEqual(features.links_option(on), 'v4')
+        on['option_links_partner']['on'] = True
+        self.assertEqual(features.links_option(on), 'partner+v4')
+        self.assertEqual(links.flags('partner+v4'), {'partner': True, 'v4': True})
+        self.assertEqual(links.flags(True), {'partner': False, 'v4': False})
+
+
 if __name__ == '__main__':
     unittest.main()
 
