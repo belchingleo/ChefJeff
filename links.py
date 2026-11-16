@@ -356,9 +356,13 @@ def table(kitchen, who, actions, keys, names=False, partner=False):
 # v3 compares each option's fork with now, so work that time alone opens while the option is carried out (a pan
 # finishing, the other chef putting food on a board or a dirty plate in the sink) is credited to the option, and wait,
 # which is never forked, has no row. v4 forks once more: Jeff starts nothing while the other chef goes on, as in the
-# option forks. What that fork opens by the time Jeff would be asked again (ai_refresh_seconds) is the row for wait,
-# and each option's row leaves out what that fork has opened by the time the option ends. Only while Jeff has nothing
-# under way: with a step under way, waiting is going on with it (Kitchen.start), which the continue row already shows.
+# option forks, and each option's row leaves out what that fork has opened by the time the option ends. The row for
+# wait is only what time alone opens on Jeff's side (food finishing cooking): what that fork has opened by the time
+# Jeff would be asked again (ai_refresh_seconds) and a fork where the other chef stops too has opened as well. Work the
+# other chef's current step opens (a dirty plate they put in the sink, food they put on a board) is usually their own
+# next step, and re-asked with it under wait Jev gave up his own preparation to wait for it, so it is in no row. Only
+# while Jeff has nothing under way: with a step under way, waiting is going on with it (Kitchen.start), which the
+# continue row already shows.
 #
 # Work every single-step option that empties Jeff's hands opens (freed hands, wherever the item goes) is written once, in
 # state.option_links_shared with those options' keys, and left out of their rows, when at least SHARED_MIN of them
@@ -368,20 +372,23 @@ SHARED_MIN = 3
 V4_RULE = ('option_links lists, for some options of next_action (by key), the work (chop, put in a pan or pot, plate or '
            'assemble, serve, put a dirty plate in the sink, wash) you could do after that option and cannot do now, as the '
            'game computes it with the other chef going on with what they are doing, if nothing else changes first. When '
-           'you have nothing under way, the game also works out what waiting alone would open (the other chef finishing '
-           'a step, food finishing cooking): that work is listed under wait, for the time until you are asked again, and '
-           'left out of the other options\' rows, which keep only what they open beyond waiting. option_links_shared, '
+           'you have nothing under way, the game also works out what waiting would open: work that time alone opens on '
+           'your side (food finishing cooking) is listed under wait, for the time until you are asked again; that work, '
+           'and work the other chef\'s current step would open, is left out of the other options\' rows, which keep only '
+           'what they open beyond waiting. option_links_shared, '
            'when present, lists options (by key) that all open the same work; that work is written once there and not in '
            'their own rows. None of this says whether you should choose an option.')
 
 
-def _waiting(kitchen, who, times):
+def _waiting(kitchen, who, times, other_goes_on=True):
     """{t: {(kind, target): Action}}: the work Jeff could newly do (not now) at each of these times (seconds after now)
-    if he started nothing, in a fork where the other chef goes on as in the option forks."""
+    if he started nothing, in a fork where the other chef goes on as in the option forks (other_goes_on) or stops."""
     twin = _fork(kitchen)
     other = 'human' if who == 'jeff' else 'jeff'
     if any(getattr(twin, 'manual', {}).get(other, (0.0, 0.0))):
         twin.set_manual(other, 0, 0)
+    if not other_goes_on:
+        twin.stop(other)
     before = _work(kitchen.actions(who))
     start, out = kitchen.time, {}
     for t in sorted(set(times)):
@@ -414,6 +421,7 @@ def table_v4(kitchen, who, actions, keys, names=False, partner=False):
         idle = kitchen.chefs[who].job is None
         window = float(kitchen.c.get('ai_refresh_seconds', 4))
         waiting = _waiting(kitchen, who, [window] + [e for *_, e in forks.values() if e is not None]) if idle else {}
+        alone = _waiting(kitchen, who, [window], other_goes_on=False)[window] if idle else {}
         rows = {}
         for key, (option, linked, twin, e) in forks.items():
             gone = waiting.get(e, {}) if e is not None else {}
@@ -433,7 +441,7 @@ def table_v4(kitchen, who, actions, keys, names=False, partner=False):
         out = {}
         for key in keys:
             if key == 'wait' and idle and key in by_key:
-                lines = [text(a) for a in list(waiting[window].values())[:MOST]]
+                lines = [text(a) for key, a in waiting[window].items() if key in alone][:MOST]
             elif key in forks:
                 option, _, twin, _ = forks[key]
                 lines = [text(a) for a in rows[key][:MOST]]

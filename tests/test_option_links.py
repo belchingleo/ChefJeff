@@ -235,6 +235,25 @@ class V4Tests(unittest.TestCase):
             if key != 'wait':
                 self.assertTrue(set(lines) <= set(v3.get(key, [])), key)
 
+    def test_work_the_other_chef_s_step_opens_is_in_no_row(self):
+        # The other chef is about to put lettuce on Board 1 while Jeff could chop the tomato on Board 2: v3 credits
+        # chopping the lettuce to chopping the tomato; v4 lists it neither there nor under wait (it is usually their
+        # own next step).
+        k = SpatialKitchen(level_config(load_config(), 'level-2'))
+        run(k, 'jeff', 'fetch tomato')
+        run(k, 'jeff', 'put b2')
+        run(k, 'human', 'fetch lettuce')
+        k.start('human', next(a for a in k.actions('human') if a.key == 'put b1'))
+        for _ in range(30):
+            k.advance(.05)
+        actions = k.actions('jeff')
+        keys = [a.key for a in actions]
+        lettuce = k.chefs['human'].hand.id
+        self.assertTrue(any(lettuce in line for line in links.table(k, 'jeff', actions, keys).get('chop b2', [])))
+        rows, _ = links.table_v4(k, 'jeff', actions, keys)
+        self.assertFalse([key for key, lines in rows.items() if any(lettuce in line for line in lines)])
+        self.assertNotIn('wait', rows)
+
     def test_work_from_freed_hands_is_written_once(self):
         k = SpatialKitchen(level_config(load_config(), 'level-2'))
         run(k, 'human', 'fetch lettuce')

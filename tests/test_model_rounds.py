@@ -85,6 +85,28 @@ class ModelRoundsTests(unittest.TestCase):
         with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
             model_rounds.main(['--out', str(ROOT / 'logs'), '--dry-run'])
 
+    def test_perplexity_is_asked_as_the_game_asks_it_with_the_key_from_its_file(self):
+        from kitchen import load_config
+        with tempfile.TemporaryDirectory() as folder:
+            key = Path(folder, 'perplexity.key')
+            key.write_text('test-not-a-real-key\n')
+            key.chmod(0o600)
+            with patch.object(model_rounds, 'PERPLEXITY_KEY', key), redirect_stderr(io.StringIO()) as err:
+                client = model_rounds.connect(perplexity='pplx-decider-v1.2')(load_config())
+        self.assertIn('perplexity', client.endpoint)
+        self.assertNotIn('test-not-a-real-key', err.getvalue())
+
+    def test_a_named_saved_connection_is_the_one_read(self):
+        from scripts import jev_replay_check
+        before = jev_replay_check.CONNECTION
+        try:
+            with tempfile.TemporaryDirectory() as folder, patch('scripts.jev_replay_check.client') as client:
+                model_rounds.connect(connection=str(Path(folder, '.player-api.json')))('config')
+                self.assertEqual(jev_replay_check.CONNECTION, Path(folder, '.player-api.json').resolve())
+                client.assert_called_once_with('config')
+        finally:
+            jev_replay_check.CONNECTION = before
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -98,12 +98,32 @@ def play_round(level, client_factory, human='assembler', max_calls=None, clock=t
         game.close()
 
 
+PERPLEXITY_KEY = Path.home() / '.config/chefjeff/perplexity.key'
+
+
+def connect(connection=None, perplexity=None):
+    """The client factory for a round: the game's saved connection (connection names the .player-api.json to use, for
+    a worktree that has none), or with perplexity a Perplexity decision model as the game's perplexity setting asks it,
+    the key from a private file the user wrote (never printed)."""
+    if perplexity:
+        import player_api
+        from scripts.reach_note_check import private_secret
+        setting = player_api.settings_from({'provider': 'perplexity', 'api_key': private_secret(PERPLEXITY_KEY),
+                                            'model': perplexity})
+        print(f'asking {setting["base_url"]} ({setting["model"]}) with the key from {PERPLEXITY_KEY} (not printed)',
+              file=sys.stderr)
+        return lambda config: player_api.create_client(config, setting)
+    from scripts import jev_replay_check
+    if connection:
+        jev_replay_check.CONNECTION = Path(connection).expanduser().resolve()
+    return lambda config: jev_replay_check.client(config)
+
+
 def _one(job):
     """A round in its own process, so journals never share a name and a crash takes one round down only."""
-    level, human, max_calls, out = job
+    level, human, max_calls, out, connection, perplexity = job
     os.environ['CHEFJEFF_LOG_DIR'] = out
-    from scripts.jev_replay_check import client
-    return play_round(level, lambda config: client(config), human, max_calls)
+    return play_round(level, connect(connection, perplexity), human, max_calls)
 
 
 def estimate(level, rounds, max_calls=None, price_per_m=DEFAULT_PRICE_PER_M):
@@ -142,6 +162,9 @@ def main(argv=None):
     parser.add_argument('--out', required=True, help='folder for journals, bundles and the report (not logs/)')
     parser.add_argument('--price-per-m', type=float, default=DEFAULT_PRICE_PER_M, help='USD per million input tokens')
     parser.add_argument('--dry-run', action='store_true', help='print the most the set can cost and call nothing')
+    parser.add_argument('--connection', help="the game's saved connection to use (.player-api.json; never printed)")
+    parser.add_argument('--perplexity', metavar='MODEL', help='a Perplexity decision model (e.g. pplx-decider-v1.2), '
+                        'key from ' + str(PERPLEXITY_KEY))
     args = parser.parse_args(argv)
     if args.rounds < 1 or args.parallel < 1:
         parser.error('--rounds and --parallel take 1 or more')
@@ -153,14 +176,13 @@ def main(argv=None):
     print(json.dumps(cost), file=sys.stderr)
     if args.dry_run:
         return 0
-    from scripts.jev_replay_check import client
     try:
-        client(config_for(args.level, args.max_calls))       # says on stderr which connection it will use
-    except RuntimeError as error:                             # no saved connection and no local Jev key
+        connect(args.connection, args.perplexity)(config_for(args.level, args.max_calls))   # says on stderr which one
+    except (RuntimeError, ValueError, OSError) as error:      # no saved connection, no local Jev key, no key file
         print(f'no model connection: {error}', file=sys.stderr)
         return 1
     out.mkdir(parents=True, exist_ok=True)
-    jobs = [(args.level, args.human, args.max_calls, str(out))] * args.rounds
+    jobs = [(args.level, args.human, args.max_calls, str(out), args.connection, args.perplexity)] * args.rounds
     with ProcessPoolExecutor(max_workers=args.parallel) as pool:
         results = list(pool.map(_one, jobs))
     # Beside the journals, not among them: decision_stats reads every *.json in the folder it is given.
