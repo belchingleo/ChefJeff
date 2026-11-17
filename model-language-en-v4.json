@@ -403,6 +403,10 @@
       "Put the held {0} where put_where says, then take {2} from {1}"
     ],
     [
+      "先把手中的{0}放到 put_where 选的位置，再端起{1}的{2}（{3}）",
+      "Put the held {0} where put_where says, then lift the {2} from {1} ({3})"
+    ],
+    [
       "从{0}拿起脏餐盘，放入{1}并洗碗",
       "Take the dirty plate from {0}, put it in {1} and wash it"
     ],

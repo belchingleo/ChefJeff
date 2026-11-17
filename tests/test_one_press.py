@@ -72,6 +72,28 @@ class OptionTests(unittest.TestCase):
         self.assertEqual(one_press.options(k, 'jeff', actions, {'wash_from_returns': True}), [])
         self.assertEqual(k.chefs['jeff'].hand.ingredient, 'bread')                            # the hands are as they were
 
+    def test_put_then_take_of_a_pan_on_a_stove_says_it_lifts_the_pan_as_the_engine_does(self):
+        # v5: a pan or pot on a stove is lifted, and stops heating off the stove: the engine's own lift label, not
+        # "take <its food> from Stove N" (Jev took pans still cooking far more often with that wording).
+        k = SpatialKitchen(level_config(load_config(), 'level-2'))
+        for key in ('fetch beef', 'put b1', 'chop b1', 'take b1', 'put p1', 'fetch bread'):
+            start(k, 'jeff', key)
+        self.assertEqual(k.stations['p1'].food.stage, 'cooking')
+        lift = next(o for o in one_press.options(k, 'jeff', k.actions('jeff'), BOTH) if o.key == 'put then take p1')
+        self.assertEqual(lift.label, '先把手中的面包放到 put_where 选的位置，再端起灶台 1的平底锅（离开灶台停止加热，占手持位）')
+        kinds, target = one_press.steps(lift, k)[-1]                  # the step itself is as before
+        self.assertEqual(target, 'p1')
+        self.assertIn('lift_pot', kinds)
+        criteria = compose_payload(SpatialJevClient(k.c, key='x'), k, k.snapshot(), k.actions('jeff'), [], None, NO_MEMORY,
+                                   None, BOTH)['questions']['next_action']['criteria']
+        self.assertEqual(criteria['put then take p1'], 'Put the held Bread where put_where says, then lift the frying pan '
+                                                       'from Stove 1 (stops heating off the stove; occupies your hands)')
+        self.assertEqual(one_press.VERSION, 'one-press-v5')
+        # scripts/lift_label_check.py rewrites a logged v4 text into exactly this one
+        from scripts.lift_label_check import new_text
+        old = 'Put the held Bread where put_where says, then take Beef (cooking) from Stove 1'
+        self.assertEqual(new_text(old, 'frying pan', 'Stove 1'), criteria['put then take p1'])
+
     def test_nothing_when_an_action_is_already_there_or_the_hands_are_empty(self):
         k = SpatialKitchen(level_config(load_config(), 'level-2'))
         self.assertEqual(one_press.options(k, 'jeff', k.actions('jeff'), BOTH), [])           # empty hands, no dirty plate

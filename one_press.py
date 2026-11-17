@@ -24,9 +24,12 @@ from __future__ import annotations
 
 from kitchen import Action
 
-VERSION = 'one-press-v4'
+VERSION = 'one-press-v5'
 # v1: put then take and wash from the plate return only; v2 added put then chop and put then wash; v3 gives those two
-# the seconds of work left, as the engine's own chop and wash labels do; v4 adds put then fetch.
+# the seconds of work left, as the engine's own chop and wash labels do; v4 adds put then fetch; v5 words put then take
+# of a pan or pot on a stove as the engine's own lift does (lift the pan, which stops heating off the stove), where v4
+# said "take <its food> from Stove N": Jev took a pan whose food was still cooking about 20% of the times that option
+# was offered and 1% of the times the plain lift was.
 NAMES = ('put_then_take', 'wash_from_returns')
 KINDS = ('put_then_take', 'put_then_chop', 'put_then_wash', 'put_then_fetch', 'wash_from_returns')
 PUT_WHERE = 'put_where'
@@ -92,8 +95,12 @@ def options(kitchen, who, actions, value):
             if food is None:
                 continue
             seen.add(target)
-            label = (f'先把手中的{kitchen.food_name(held)}放到 put_where 选的位置，'
-                     f'再从{kitchen.stations[target].name}拿起{kitchen.food_name(food)}')
+            if take.kind == 'lift_pot':
+                # The engine's own lift label: the pan or pot is what is taken, and it stops heating off the stove.
+                label = f'先把手中的{kitchen.food_name(held)}放到 put_where 选的位置，再{take.label}'
+            else:
+                label = (f'先把手中的{kitchen.food_name(held)}放到 put_where 选的位置，'
+                         f'再从{kitchen.stations[target].name}拿起{kitchen.food_name(food)}')
             out.append(Action(PUT_THEN_TAKE + target, label, 'put_then_take', target))
         worked = set()
         for work in empty:
