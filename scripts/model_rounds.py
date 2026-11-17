@@ -99,19 +99,25 @@ def play_round(level, client_factory, human='assembler', max_calls=None, clock=t
 
 
 PERPLEXITY_KEY = Path.home() / '.config/chefjeff/perplexity.key'
+OPENROUTER_KEY = Path.home() / '.config/chefjeff/openrouter.key'
+PARALLEL_KEY = Path.home() / '.config/chefjeff/parallel.key'
 
 
-def connect(connection=None, perplexity=None):
+def connect(connection=None, perplexity=None, openrouter=None, parallel=False):
     """The client factory for a round: the game's saved connection (connection names the .player-api.json to use, for
     a worktree that has none), or with perplexity a Perplexity decision model as the game's perplexity setting asks it,
-    the key from a private file the user wrote (never printed)."""
-    if perplexity:
+    the key from a private file the user wrote (never printed), or with openrouter a decision model on OpenRouter as the
+    game's openrouter-decision setting asks it (e.g. perplexity/pplx-decider-v1.3:free), its key from its own file, or with
+    parallel Parallel's own decision API (no model name; its key, with the account's credit, from its own file)."""
+    if perplexity or openrouter or parallel:
         import player_api
         from scripts.reach_note_check import private_secret
-        setting = player_api.settings_from({'provider': 'perplexity', 'api_key': private_secret(PERPLEXITY_KEY),
-                                            'model': perplexity})
-        print(f'asking {setting["base_url"]} ({setting["model"]}) with the key from {PERPLEXITY_KEY} (not printed)',
-              file=sys.stderr)
+        provider, key, model = (('perplexity', PERPLEXITY_KEY, perplexity) if perplexity else
+                                ('openrouter-decision', OPENROUTER_KEY, openrouter) if openrouter else
+                                ('parallel', PARALLEL_KEY, None))
+        setting = player_api.settings_from({'provider': provider, 'api_key': private_secret(key),
+                                            **({'model': model} if model else {})})
+        print(f'asking {setting["base_url"]} ({setting["model"]}) with the key from {key} (not printed)', file=sys.stderr)
         return lambda config: player_api.create_client(config, setting)
     from scripts import jev_replay_check
     if connection:
@@ -121,9 +127,9 @@ def connect(connection=None, perplexity=None):
 
 def _one(job):
     """A round in its own process, so journals never share a name and a crash takes one round down only."""
-    level, human, max_calls, out, connection, perplexity = job
+    level, human, max_calls, out, connection, perplexity, openrouter, parallel = job
     os.environ['CHEFJEFF_LOG_DIR'] = out
-    return play_round(level, connect(connection, perplexity), human, max_calls)
+    return play_round(level, connect(connection, perplexity, openrouter, parallel), human, max_calls)
 
 
 def estimate(level, rounds, max_calls=None, price_per_m=DEFAULT_PRICE_PER_M):
@@ -165,7 +171,13 @@ def main(argv=None):
     parser.add_argument('--connection', help="the game's saved connection to use (.player-api.json; never printed)")
     parser.add_argument('--perplexity', metavar='MODEL', help='a Perplexity decision model (e.g. pplx-decider-v1.2), '
                         'key from ' + str(PERPLEXITY_KEY))
+    parser.add_argument('--openrouter', metavar='MODEL', help='a decision model on OpenRouter (e.g. '
+                        'perplexity/pplx-decider-v1.3:free), key from ' + str(OPENROUTER_KEY))
+    parser.add_argument('--parallel-ai', action='store_true', help="Parallel's own decision API (not OpenRouter's), "
+                        'key from ' + str(PARALLEL_KEY))
     args = parser.parse_args(argv)
+    if sum(map(bool, (args.perplexity, args.openrouter, args.parallel_ai))) > 1:
+        parser.error('ask one service: --perplexity, --openrouter or --parallel-ai')
     if args.rounds < 1 or args.parallel < 1:
         parser.error('--rounds and --parallel take 1 or more')
     out = Path(args.out).resolve()
@@ -177,12 +189,13 @@ def main(argv=None):
     if args.dry_run:
         return 0
     try:
-        connect(args.connection, args.perplexity)(config_for(args.level, args.max_calls))   # says on stderr which one
+        connect(args.connection, args.perplexity, args.openrouter, args.parallel_ai)(config_for(args.level, args.max_calls))
     except (RuntimeError, ValueError, OSError) as error:      # no saved connection, no local Jev key, no key file
         print(f'no model connection: {error}', file=sys.stderr)
         return 1
     out.mkdir(parents=True, exist_ok=True)
-    jobs = [(args.level, args.human, args.max_calls, str(out), args.connection, args.perplexity)] * args.rounds
+    jobs = [(args.level, args.human, args.max_calls, str(out), args.connection, args.perplexity, args.openrouter,
+             args.parallel_ai)] * args.rounds
     with ProcessPoolExecutor(max_workers=args.parallel) as pool:
         results = list(pool.map(_one, jobs))
     # Beside the journals, not among them: decision_stats reads every *.json in the folder it is given.

@@ -96,6 +96,34 @@ class ModelRoundsTests(unittest.TestCase):
         self.assertIn('perplexity', client.endpoint)
         self.assertNotIn('test-not-a-real-key', err.getvalue())
 
+    def test_an_openrouter_decision_model_is_asked_as_the_game_asks_it_with_its_own_key(self):
+        from kitchen import load_config
+        with tempfile.TemporaryDirectory() as folder:
+            key = Path(folder, 'openrouter.key')
+            key.write_text('test-not-a-real-key\n')
+            key.chmod(0o600)
+            with patch.object(model_rounds, 'OPENROUTER_KEY', key), redirect_stderr(io.StringIO()) as err:
+                client = model_rounds.connect(openrouter='perplexity/pplx-decider-v1.3:free')(load_config())
+        self.assertIn('openrouter.ai', client.endpoint)
+        self.assertEqual(client.setting['model'], 'perplexity/pplx-decider-v1.3:free')
+        self.assertNotIn('test-not-a-real-key', err.getvalue())
+        with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            model_rounds.main(['--out', folder, '--perplexity', 'a', '--openrouter', 'b', '--dry-run'])
+
+    def test_parallel_is_asked_on_its_own_api_with_its_own_key_and_no_model_name(self):
+        from kitchen import load_config
+        with tempfile.TemporaryDirectory() as folder:
+            key = Path(folder, 'parallel.key')
+            key.write_text('test-not-a-real-key\n')
+            key.chmod(0o600)
+            with patch.object(model_rounds, 'PARALLEL_KEY', key), redirect_stderr(io.StringIO()) as err:
+                client = model_rounds.connect(parallel=True)(load_config())
+        self.assertIn('api.parallel.ai', client.endpoint)
+        self.assertEqual(client.key_headers(), {'x-api-key': 'test-not-a-real-key'})
+        import player_api
+        self.assertIs(player_api.PROVIDERS[client.setting['provider']].get('send_model'), False)   # it refuses a model name
+        self.assertNotIn('test-not-a-real-key', err.getvalue())
+
     def test_a_named_saved_connection_is_the_one_read(self):
         from scripts import jev_replay_check
         before = jev_replay_check.CONNECTION
