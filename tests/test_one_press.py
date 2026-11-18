@@ -355,7 +355,7 @@ class SessionTests(unittest.TestCase):
                                            'food_names': {'on': True, 'version': 'names-v1'},
                                            'intent_layer': {'on': False, 'version': 'intent-v1'},
                                            'option_links': {'on': True, 'version': 'option-links-v3'},
-                                           'option_links_partner': {'on': False, 'version': 'partner-links-v2'},
+                                           'option_links_partner': {'on': False, 'version': 'partner-links-v3'},
                                            'option_links_v4': {'on': False, 'version': 'option-links-v4'},
                                            'split_floor': {'on': False, 'version': 'split-floor-v1'},
                                            'burn_note': {'on': False, 'version': 'burn-note-v1'}})

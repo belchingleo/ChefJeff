@@ -148,8 +148,8 @@ class FastForkTests(unittest.TestCase):
 
 
 class PartnerTests(unittest.TestCase):
-    """option_links_partner (v2): on a split floor, a put on a shared counter carries the other chef's chain on the item
-    in Jeff's own line, up to their first work on it."""
+    """option_links_partner (v3): on a split floor, a put on a shared counter, or a throw across, carries the other
+    chef's chain on the item in Jeff's own line, up to their first work on it."""
 
     def setUp(self):
         self.k = SpatialKitchen(level_config(load_config(), 'level-4'))
@@ -170,6 +170,14 @@ class PartnerTests(unittest.TestCase):
             self.assertEqual(len(chain), 1)
             self.assertIn('Chop', chain[0])
         self.assertNotIn('option_links_partner', state)
+
+    def test_a_throw_to_the_other_chef_names_their_chain_once_it_has_landed_or_been_caught(self):
+        # v3: the throw ends when the item leaves the hand; the fork runs on until it is down, then follows it.
+        state = self.payload('partner')['state']
+        chain = [line for line in state['option_links'].get('throw partner', []) if line.startswith(links.THEN)]
+        self.assertEqual(len(chain), 1)
+        self.assertIn('Chop', chain[0])
+        self.assertFalse(self.k.projectiles)                     # the request's kitchen threw nothing
 
     def test_without_the_partner_switch_no_chain_is_sent(self):
         state = self.payload(True)['state']

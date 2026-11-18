@@ -266,7 +266,11 @@ def location(kitchen, target):
 # it"). Re-asked on level 4, this wording in Jeff's own table moved the most choices; v1 listed only the first step, in a
 # table of its own. The chain follows only the other chef's actions whose engine signature names the item, and never
 # steps that move it to another counter, the floor, the bin or the extinguisher, so it follows the item towards work.
-PARTNER_VERSION = 'partner-links-v2'
+# partner-links-v3: a throw ends, in the fork as in the game, when the item leaves the hand, so v2 looked for the item
+# while it was still in the air and no throw ever got a partner line, while a put on a dividing counter did. v3 lets
+# the fork run on until a thrown item has landed or been caught (_settle), then follows it as v2 does.
+PARTNER_VERSION = 'partner-links-v3'
+SETTLE = 3.0                    # game seconds a thrown item may still be in the air when the throw ends
 PARTNER_KINDS = WORK + ('take_counter', 'take_board', 'take_plate', 'take_return', 'take_sink', 'pickup', 'lift_pot')
 CHAIN_SKIP = ('go', 'throw', 'drop', 'discard', 'wait', 'stop', 'put_counter', 'take_tool')
 CHAIN_DEPTH = 3
@@ -294,10 +298,21 @@ def _run(twin, who, action):
     return twin.chefs[who].job is None or twin.chefs[who].job.id != job.id
 
 
+def _settle(twin, item):
+    """Let a thrown item land or be caught in the fork (the other chef going on as before); True when it has."""
+    waited = 0.0
+    while item in getattr(twin, 'projectiles', {}) and not twin.ended and waited < SETTLE:
+        twin.advance(STEP)
+        waited += STEP
+    return item not in getattr(twin, 'projectiles', {})
+
+
 def partner_chain(kitchen, twin, who, item):
     """The other chef's shortest run of actions on the held item, after the option, that ends in work (breadth first,
     at most CHAIN_DEPTH steps), or [] when the item is not where they can take it."""
     other = 'human' if who == 'jeff' else 'jeff'
+    if not _settle(twin, item):
+        return []
     held = twin.chefs[other].hand is not None and twin.chefs[other].hand.id == item
     before = {(a.kind, a.target) for a in kitchen.actions(other)}
     if not held and not any(a.kind in PARTNER_KINDS and (a.kind, a.target) not in before and _names_item(a.expected, item)
