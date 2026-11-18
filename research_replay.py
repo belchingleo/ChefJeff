@@ -109,6 +109,8 @@ def rebuild_requests(record):
     names = bool(((record.get('conditions') or {}).get('features') or {}).get('food_names', {}).get('on'))
     split = bool(((record.get('conditions') or {}).get('features') or {}).get('split_floor', {}).get('on'))
     burn = bool(((record.get('conditions') or {}).get('features') or {}).get('burn_note', {}).get('on'))
+    serve_note = bool(((record.get('conditions') or {}).get('features') or {}).get('serve_note', {}).get('on'))
+    wait_note = bool(((record.get('conditions') or {}).get('features') or {}).get('wait_note', {}).get('on'))
     import features as switches
     snapshot = (record.get('conditions') or {}).get('features') or {}
     links = switches.links_option({name: {'on': bool((snapshot.get(name) or {}).get('on'))} for name in ('option_links', 'option_links_partner', 'option_links_v4')})
@@ -134,6 +136,7 @@ def rebuild_requests(record):
                 continue
         payload = compose_payload(client, source, source.snapshot(), source.actions('jeff'), data['recent_decisions'],
                                   data['player_communication'], memory, data.get('jeff_plan'), data.get('one_press'),
-                                  data.get('undo_note'), reach, names, links=links, split=split, burn=burn)
+                                  data.get('undo_note'), reach, names, links=links, split=split, burn=burn,
+                                  serve_note=serve_note, wait_note=wait_note)
         yield {'request_id': row['request_id'], 'seq': row['seq'], 'rebuilt': payload,
                'status': 'verified' if cc.sha256(payload) == data['payload_sha256'] else 'diverged'}

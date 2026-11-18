@@ -656,6 +656,8 @@ class GameSession:
             self.ai.reach = self.features['reach_note']['on']
             self.ai.split = self.features['split_floor']['on']
             self.ai.burn = self.features['burn_note']['on']
+            self.ai.serve_note = self.features['serve_note']['on']
+            self.ai.wait_note = self.features['wait_note']['on']
             self.ai.names = self.features['food_names']['on']
             self.ai.links = features.links_option(self.features)
             self.phase = 'running'
