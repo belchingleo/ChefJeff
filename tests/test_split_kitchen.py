@@ -67,6 +67,29 @@ class EngineTests(unittest.TestCase):
         drive(k, ((runner, 'runner'), (maker, 'maker')), reference_policy.choose_zoned, {'human': 10, 'jeff': 10})
         self.assertGreaterEqual(k.served, 3)
 
+    def test_the_rounds_maker_takes_a_raw_ingredient_to_chop_from_a_dividing_counter(self):
+        # As a person would: food the other chef puts on a counter between the parts is taken to a board
+        # (scripts/model_rounds.py --human maker; the calibration's maker is frozen into the benchmark).
+        from kitchen import load_config
+        config = load_config()
+        config.update(level=4)
+        k = SpatialKitchen(config)
+        k.start('jeff', next(a for a in k.actions('jeff') if a.key == 'fetch beef'))
+        while k.chefs['jeff'].job is not None:
+            k.advance(.05)
+        shared = next(a for a in k.actions('jeff') if a.kind == 'put_counter' and k.reaches('human', a.target))
+        k.start('jeff', shared)
+        while k.chefs['jeff'].job is not None:
+            k.advance(.05)
+        from scripts import model_rounds
+        self.assertIsNone(reference_policy.choose_zoned(k, 'human', 'maker'))      # the frozen calibration maker
+        action = model_rounds.human_choice(k, 'maker')
+        self.assertEqual(action.key, 'take ' + shared.target)
+        k.start('human', action)
+        while k.chefs['human'].job is not None:
+            k.advance(.05)
+        self.assertEqual(model_rounds.human_choice(k, 'maker').kind, 'put_board')
+
     def test_the_serve_hint_points_at_the_nearest_window(self):
         design = copy.deepcopy(SPLIT)
         design['stations'].append({'type': 'serving_window', 'x': 6, 'y': 1})

@@ -41,6 +41,39 @@ HUMAN_EVERY = 10       # the scripted human chooses every 10 steps (0.5 s), as t
 DEFAULT_PRICE_PER_M = .042    # USD per million input tokens (Jev), for the estimate only
 
 
+# What the zoned maker (reference_policy.choose_zoned) does after looking at the floor: chop or take what is on the
+# boards, wash, take returns. Before those, the maker of these rounds also looks at the counters (maker_counter_take).
+MAKER_LATER = ('chop', 'take_board', 'wash', 'take_return')
+
+
+def maker_counter_take(k, who='human'):
+    """A raw ingredient chopped before use, on a counter the maker reaches while a board is free: take it (a person
+    takes what the other chef leaves on a dividing counter as it takes it from the floor). None otherwise.
+    reference_policy.py is frozen into the benchmark (scripts/benchmark.py partner_policy), so the addition lives here,
+    for --human maker only; the maker's own passes are prepared food and stay where it put them."""
+    import reference_policy as rp
+    state = k.snapshot()
+    me = state['chefs'][who]
+    if me['job_id'] is not None or me['holding']:
+        return None
+    st = state['stations']
+    if any(s['fire'] for s in st.values()):
+        return None      # the zoned maker answers a fire first (and waits when it cannot reach the extinguisher)
+    heat = rp._heat(state)
+    prep = rp._prep(state, heat)
+    if not any(not st[b].get('food') for b in k.boards):
+        return None
+    actions = k.actions(who)
+    for key, s in sorted(st.items()):
+        f = s.get('food')
+        if (s.get('counter') and f and f.get('ingredient') and not f.get('plate_id') and f['stage'] == 'raw'
+                and rp._chopped_first(f['ingredient'], heat, prep) and k.reaches(who, key)):
+            a = rp._key(actions, 'take ' + key)
+            if a:
+                return a
+    return None
+
+
 def human_choice(k, human):
     import reference_policy
     if human == 'idle':
@@ -49,7 +82,10 @@ def human_choice(k, human):
         return reference_policy.choose_solo(k, 'human')
     if human in ('maker', 'runner'):
         # a floor split by counters (level 4): the zoned pair's roles, each working its own side and passing across
-        return reference_policy.choose_zoned(k, 'human', human)
+        action = reference_policy.choose_zoned(k, 'human', human)
+        if human == 'maker' and (action is None or action.kind in MAKER_LATER):
+            return maker_counter_take(k) or action
+        return action
     return reference_policy.choose(k, 'human', human)
 
 
