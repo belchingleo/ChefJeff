@@ -204,7 +204,7 @@ class ReplayTests(paths.SavePathTests):
         self.assertEqual(initial['conditions']['features']['one_press'], {'on': True, 'version': one_press.VERSION})
         self.assertEqual({name: value['on'] for name, value in initial['conditions']['features'].items()},
                          {'one_press': True, 'jeff_plan': False, 'rolling_intent': False, 'undo_note': False,
-                          'compact_input': False, 'ask_ahead': True, 'reach_note': False, 'food_names': True,
+                          'compact_input': False, 'ask_ahead': True, 'ahead_throw': False, 'reach_note': False, 'food_names': True,
                           'intent_layer': False,
                           'option_links': True, 'option_links_partner': False, 'option_links_v4': False,
                           'split_floor': False, 'burn_note': False,

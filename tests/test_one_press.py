@@ -351,6 +351,7 @@ class SessionTests(unittest.TestCase):
                                            'undo_note': {'on': False, 'version': 'undo-note-v1'},
                                            'compact_input': {'on': False, 'version': 'compact-v1'},
                                            'ask_ahead': {'on': True, 'version': 'ask-ahead-v1'},
+                                           'ahead_throw': {'on': False, 'version': 'ahead-throw-v1'},
                                            'reach_note': {'on': False, 'version': 'reach-v1'},
                                            'food_names': {'on': True, 'version': 'names-v1'},
                                            'intent_layer': {'on': False, 'version': 'intent-v1'},
@@ -364,7 +365,7 @@ class SessionTests(unittest.TestCase):
                                            'backlog_note': {'on': False, 'version': 'backlog-note-v2'},
                                            'option_links_burnt': {'on': False, 'version': 'burnt-links-v1'},
                                            'step_check': {'on': False, 'version': 'step-check-v1'},
-                                           'clear_names': {'on': False, 'version': 'clear-names-v1'},
+                                           'clear_names': {'on': False, 'version': 'clear-names-v2'},
                                            'pickup_press': {'on': False, 'version': 'put-then-pickup-v1'},
                                            'walk_note': {'on': False, 'version': 'walk-note-v1'},
                                            'engine_english': {'on': False, 'version': 'engine-english-v1'}})
@@ -409,7 +410,7 @@ class FeaturesFileTests(unittest.TestCase):
         self.assertEqual(value['jeff_plan'], {'stage': 'trial', 'on': False, 'player_switch': False, 'version': 'plan-v2'})
         self.assertEqual({name: v['stage'] for name, v in value.items()},
                          {'one_press': 'release', 'jeff_plan': 'trial', 'rolling_intent': 'release', 'undo_note': 'trial',
-                          'compact_input': 'trial', 'ask_ahead': 'trial', 'reach_note': 'trial', 'food_names': 'trial',
+                          'compact_input': 'trial', 'ask_ahead': 'trial', 'ahead_throw': 'trial', 'reach_note': 'trial', 'food_names': 'trial',
                           'intent_layer': 'trial',
                           'option_links': 'trial', 'option_links_partner': 'trial', 'option_links_v4': 'trial',
                           'split_floor': 'trial', 'burn_note': 'trial',

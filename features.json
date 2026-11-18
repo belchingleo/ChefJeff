@@ -5,6 +5,7 @@
   "undo_note": {"stage": "trial", "on": false, "version": "undo-note-v1"},
   "compact_input": {"stage": "trial", "on": false, "version": "compact-v1"},
   "ask_ahead": {"stage": "trial", "on": true, "version": "ask-ahead-v1"},
+  "ahead_throw": {"stage": "trial", "on": false, "version": "ahead-throw-v1"},
   "reach_note": {"stage": "trial", "on": false, "version": "reach-v1"},
   "food_names": {"stage": "trial", "on": true, "version": "names-v1"},
   "intent_layer": {"stage": "trial", "on": false, "version": "intent-v1"},
@@ -18,7 +19,7 @@
   "backlog_note": {"stage": "trial", "on": false, "version": "backlog-note-v2"},
   "option_links_burnt": {"stage": "trial", "on": false, "version": "burnt-links-v1"},
   "step_check": {"stage": "trial", "on": false, "version": "step-check-v1"},
-  "clear_names": {"stage": "trial", "on": false, "version": "clear-names-v1"},
+  "clear_names": {"stage": "trial", "on": false, "version": "clear-names-v2"},
   "pickup_press": {"stage": "trial", "on": false, "version": "put-then-pickup-v1"},
   "walk_note": {"stage": "trial", "on": false, "version": "walk-note-v1"},
   "engine_english": {"stage": "trial", "on": false, "version": "engine-english-v1"}

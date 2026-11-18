@@ -58,6 +58,7 @@ STAGES = ('release', 'trial')
 VERSIONS = {'one_press': one_press.VERSION, 'jeff_plan': harness.PLAN_RULES_VERSION,
             'rolling_intent': harness.ROLLING_RULES_VERSION, 'undo_note': undo_note.VERSION,
             'compact_input': wire_format.VERSION, 'ask_ahead': ask_ahead.VERSION,
+            'ahead_throw': ask_ahead.THROW_VERSION,
             'reach_note': reach_note.VERSION, 'food_names': food_names.VERSION,
             'intent_layer': intent_layer.VERSION,
             'option_links': links.SWITCH_VERSION,

@@ -8,10 +8,19 @@ step ended as predicted (action_done), what Jeff holds matches the prediction, n
 band since, the chosen action is still listed, and the answer is not too old; otherwise it is dropped and Jeff is
 asked at once as today. What Jeff knows of the other chef is as old either way; the kitchen's clocks (pans, orders)
 are more accurate, played forward to T. Research replay redoes the same prediction (predict) to rebuild the request.
+
+ahead-throw-v1 (features.json ahead_throw, a trial, off, no page switch): "still listed" means the same key for the
+same object, and a throw to the other chef aims at where they stand, so any step the other chef takes before Jeff's
+step ends dropped a held "throw partner" (in the five level-4 play rounds of 2026-11-18, 33 of the 38 answers dropped
+as not listed; asked again, 31 came back as the same throw, about 2.5 s later). With this switch on, a held "throw
+partner" is carried out while Jeff still holds the same item and can still throw to the other chef, aimed at where
+they stand now (the throw the engine lists then). Nothing in what Jeff is asked changes.
 """
 from __future__ import annotations
 
 VERSION = 'ask-ahead-v1'
+THROW_VERSION = 'ahead-throw-v1'
+PARTNER = 'throw partner'
 STEP = .05                      # the engine substep the fork advances by
 GRACE = 1.0                     # game seconds past the step's own time before the prediction gives up
 
@@ -43,3 +52,13 @@ def hand(kitchen, who='jeff'):
     """What the chef holds, as the check after the step compares it: the item's id and stage, or None."""
     item = kitchen.chefs[who].hand
     return [item.id, item.stage] if item else None
+
+
+def still_listed(listed, chosen, throw=False):
+    """The listed action that carries out a held answer, or None: the same key for the same object; with throw (the
+    ahead_throw switch) a throw to the other chef is the same throw while Jeff holds the same item, aimed where the
+    other chef stands now."""
+    same = next((a for a in listed if a.key == chosen.key and a.expected == chosen.expected), None)
+    if same is not None or not throw or chosen.key != PARTNER or chosen.kind != 'throw':
+        return same
+    return next((a for a in listed if a.key == PARTNER and a.kind == 'throw' and a.expected[:1] == chosen.expected[:1]), None)

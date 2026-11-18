@@ -1,4 +1,4 @@
-"""clear_names (clear-names-v1): no bare item ids or "the held item" in what Jeff reads.
+"""clear_names (clear-names-v2): no bare item ids or "the held item" in what Jeff reads.
 
 No model is called: requests are composed locally, and the round is a loopback relay round.
 """
@@ -32,9 +32,10 @@ def do(k, who, key):
         k.advance(0.05)
 
 
-def request(k, clear, links=False):
+def request(k, clear, links=False, wait_note=False):
     client = SpatialJevClient(k.c, key='test-no-credential')
-    payload = compose_payload(client, k, k.snapshot(), k.actions('jeff'), [], None, names=True, links=links, clear=clear)
+    payload = compose_payload(client, k, k.snapshot(), k.actions('jeff'), [], None, names=True, links=links, clear=clear,
+                              wait_note=wait_note)
     payload['state']['recent_events'] = payload['state'].get('recent_events', [])
     return payload
 
@@ -94,6 +95,25 @@ class ClearNamesTests(unittest.TestCase):
                 self.assertTrue(re.search(r'(beef|lettuce|tomato|bread|plate|pan|pot)[^,;]*$', before), text)
         again = clear_names.apply(copy.deepcopy(on), k)
         self.assertEqual(json.dumps(again), json.dumps(on))
+
+    def test_a_chef_task_and_the_continue_label_that_quotes_it_name_the_item(self):
+        k = kitchen(2)
+        do(k, 'jeff', 'fetch lettuce')
+        do(k, 'jeff', next(a for a in k.actions('jeff') if a.kind == 'put_board').key)
+        k.start('jeff', next(a for a in k.actions('jeff') if a.kind == 'chop'))
+        k.advance(0.3)
+        off, on = request(k, False, wait_note=True), request(k, True, wait_note=True)
+        self.assertRegex(off['state']['kitchen']['chefs']['jeff']['task'], r'^Chop F\d+ at Board 1 ')
+        task = on['state']['kitchen']['chefs']['jeff']['task']
+        self.assertRegex(task, r'^Chop lettuce \([^)]*\) F\d+ at Board 1 \(')
+        self.assertTrue(on['questions']['next_action']['criteria']['continue'].startswith('Continue current task: ' + task), on)
+        again = clear_names.apply(copy.deepcopy(on), k)
+        self.assertEqual(json.dumps(again), json.dumps(on))
+
+    def test_an_old_food_word_before_the_id_is_replaced_not_kept(self):
+        text = 'Continue current task: Pick up raw meat F2 at floor (3,5); 0.9 s left'
+        self.assertEqual(clear_names.name_ids(text, {'F2': 'beef (as fetched)'}),
+                         'Continue current task: Pick up beef (as fetched) F2 at floor (3,5); 0.9 s left')
 
     def test_off_the_request_is_as_before(self):
         for level in (1, 4):

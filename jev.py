@@ -243,6 +243,7 @@ class DecisionLoop:
         # Ask ahead (ask_ahead.py) when the round's switch is on: an answer about the next step, held until this step
         # ends, and the step it was asked for (asked once per step).
         self.ask_ahead = False
+        self.ahead_throw = False     # ahead-throw-v1: a held throw to the other chef follows where they stand
         self.held = None
         self.ahead_job = None
         self.step_end_seen = None   # (step id, countdown bands, hand) when Jeff's last step ended
@@ -453,7 +454,7 @@ class DecisionLoop:
                 listed = self.k.actions('jeff')
                 if self.one_press:
                     listed = listed + one_press.options(self.k, 'jeff', listed, self.one_press)
-            decision = next((a for a in listed if a.key == chosen.key and a.expected == chosen.expected), None)
+            decision = ask_ahead.still_listed(listed, chosen, self.ahead_throw)
             reason = None if decision is not None else 'not_listed'
         self.held = None
         return {**context, 'ahead_check': reason, 'decision': decision}, result, error

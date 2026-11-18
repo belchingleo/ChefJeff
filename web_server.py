@@ -651,6 +651,7 @@ class GameSession:
                 self.ai.plan = held
             self.ai.one_press = pressed
             self.ai.ask_ahead = self.features['ask_ahead']['on'] or intents
+            self.ai.ahead_throw = self.features['ahead_throw']['on']
             self.ai.undo = None if intents else features.undo_start(self.features)
             self.ai.intents = intents
             self.ai.reach = self.features['reach_note']['on']

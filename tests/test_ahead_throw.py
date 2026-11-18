@@ -1,0 +1,115 @@
+"""ahead_throw (ahead-throw-v1): a throw to the other chef asked ahead is not dropped because they took a step.
+
+No model is called: the kitchen is a local level-4 round and the held answer is built by hand.
+"""
+import json
+import unittest
+
+import ask_ahead
+import features
+from jev import DecisionLoop
+from kitchen import load_config
+from spatial_kitchen import SpatialKitchen
+from whitebox_server import SpatialJevClient
+
+
+def kitchen(level=4):
+    config = load_config()
+    config.update(level=level)
+    return SpatialKitchen(config)
+
+
+def do(k, who, key):
+    k.start(who, next(a for a in k.actions(who) if a.key == key))
+    while k.chefs[who].job is not None:
+        k.advance(0.05)
+
+
+def throw(k):
+    return next(a for a in k.actions('jeff') if a.key == ask_ahead.PARTNER)
+
+
+def step_aside(k, seconds=0.7):
+    """The human walks a couple of cells by hand, as a player does while Jeff's step goes on (the throw's aim is the
+    place and cell it lands on, which moves with them)."""
+    k.set_manual('human', 1, 0)
+    k.advance(seconds)
+    k.set_manual('human', 0, 0)
+    k.advance(0.05)
+
+
+class StillListedTests(unittest.TestCase):
+    def test_a_step_by_the_other_chef_drops_the_throw_unless_the_switch_is_on(self):
+        k = kitchen()
+        do(k, 'jeff', 'fetch beef')
+        asked = throw(k)
+        step_aside(k)
+        listed = k.actions('jeff')
+        now = next(a for a in listed if a.key == ask_ahead.PARTNER)
+        self.assertNotEqual(now.expected, asked.expected)             # the aim follows the other chef
+        self.assertIsNone(ask_ahead.still_listed(listed, asked))
+        self.assertIs(ask_ahead.still_listed(listed, asked, throw=True), now)
+        self.assertTrue(k.start('jeff', now)[0])
+
+    def test_a_different_item_in_hand_is_still_dropped(self):
+        k = kitchen()
+        do(k, 'jeff', 'fetch beef')
+        asked = throw(k)
+        do(k, 'jeff', 'drop')
+        do(k, 'jeff', 'fetch lettuce')
+        self.assertIsNone(ask_ahead.still_listed(k.actions('jeff'), asked, throw=True))
+
+    def test_other_answers_are_matched_as_before(self):
+        k = kitchen()
+        do(k, 'jeff', 'fetch beef')
+        listed = k.actions('jeff')
+        for a in listed:
+            self.assertIs(ask_ahead.still_listed(listed, a, throw=True), ask_ahead.still_listed(listed, a))
+
+
+class LoopTests(unittest.TestCase):
+    def held_throw(self, on):
+        """Jeff fetches beef; the loop holds a "throw partner" asked ahead; the human steps aside before it ends."""
+        k = kitchen()
+        loop = DecisionLoop(k, SpatialJevClient(k.c, key='test-no-credential'), lambda *a: None, lambda *a: None)
+        loop.player_messages = []
+        loop.ask_ahead, loop.ahead_throw = True, on
+        k.start('jeff', next(a for a in k.actions('jeff') if a.key == 'fetch beef'))
+        job = k.chefs['jeff'].job
+        source = ask_ahead.predict(k)
+        actions = {a.key: a for a in source.actions('jeff')}
+        context = {'id': 1, 'sent': 0.0, 'epoch': loop.epoch, 'job_id': job.id, 'actions': actions,
+                   'ahead': {'job_id': job.id, 'predicted_end_t': source.time, 'cursor': len(k.events),
+                             'hand': ask_ahead.hand(source), 'urgency': loop.urgency(source)}}
+        loop.held = (context, {'choice': ask_ahead.PARTNER}, None)
+        step_aside(k)
+        while k.chefs['jeff'].job is not None:
+            k.advance(0.05)
+        return k, loop.release_held(0.5)[0], actions[ask_ahead.PARTNER]
+
+    def test_off_the_held_throw_is_dropped_as_not_listed(self):
+        _, context, _ = self.held_throw(False)
+        self.assertEqual(context['ahead_check'], 'not_listed')
+        self.assertIsNone(context['decision'])
+
+    def test_on_it_is_carried_out_toward_where_the_other_chef_stands(self):
+        k, context, asked = self.held_throw(True)
+        self.assertIsNone(context['ahead_check'])
+        decision = context['decision']
+        self.assertEqual(decision.key, ask_ahead.PARTNER)
+        self.assertNotEqual(decision.expected, asked.expected)
+        self.assertEqual(decision.expected, throw(k).expected)
+
+
+class FeatureTests(unittest.TestCase):
+    def test_a_trial_off_by_default_without_a_page_switch(self):
+        self.assertEqual(features.current()['ahead_throw'],
+                         {'stage': 'trial', 'on': False, 'player_switch': False, 'version': ask_ahead.THROW_VERSION})
+
+    def test_it_changes_nothing_jeff_is_asked(self):
+        # Only the loop reads it: no request option, rule or state field names it.
+        self.assertNotIn('ahead_throw', json.dumps(features.compose_options(features.current())))
+
+
+if __name__ == '__main__':
+    unittest.main()

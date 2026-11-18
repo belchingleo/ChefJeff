@@ -1,4 +1,4 @@
-"""clear-names-v1: no bare item ids or "the held item" in what Jeff reads; each says what the thing is.
+"""clear-names-v2: no bare item ids or "the held item" in what Jeff reads; each says what the thing is.
 
 A trial (features.json clear_names, off by default, no page switch). food_names (names-v1) names food in the state and
 in the labels that name food, but left three kinds of text as before: labels that say only "the held item" ("Put the
@@ -18,7 +18,10 @@ dirty", "human started: Put the held item on Board 2"). With this switch on, in 
   step still under way from what the chef holds or what lies at its target;
 - "Empty the food from the held frying pan" names what is in the pan;
 - the decision loop's own result notes in recent_decisions that the language catalog does not cover (an answer asked
-  ahead and dropped) are given in English.
+  ahead and dropped) are given in English;
+- (v2) each chef's task in the state, and any option label that quotes it ("Continue current task: Chop F1 at Board
+  1"), names the item before its id as the option labels do ("Chop lettuce (as fetched) F1 at Board 1"), from what
+  the request's own kitchen shows of that item.
 
 Names come from the engine (provenance, vessels, the request's own state); nothing else changes, and applying it
 twice changes nothing more, so it runs after the links table too. clear_names_version goes with the static part.
@@ -27,11 +30,12 @@ from __future__ import annotations
 
 import re
 
-VERSION = 'clear-names-v1'
+VERSION = 'clear-names-v2'
 BARE = re.compile(r'\b([FDPE]\d+)\b(?! \()')
 PICKUP = re.compile(r'Pick up ([FDPE]\d+) \((.+?); auto-swap\) at ')
 # The page's own food words, which the engine's events keep (food_names leaves events as they were).
 OLD = re.compile(r'\b(raw meat|Raw meat|Chopped|Cooked|Burnt|Tomato|Lettuce|Bread|Pot)\b')
+OLD_BEFORE = re.compile(r'\b(?:raw meat|Raw meat|Chopped|Cooked|Burnt|Tomato|Lettuce|Bread|Pot) $')
 WORDS = {'raw': 'as fetched', 'chopped': 'chopped', 'cooking': 'cooking', 'ready': 'cooked', 'burnt': 'burnt'}
 # The decision loop's own result notes that the language catalog does not cover (they reached Jeff in Chinese).
 RESULTS = ((re.compile(r'提前问的回复作废\s*[（(]([^）)]*)[）)]\s*[，,]\s*马上重问'),
@@ -80,6 +84,42 @@ def _touched(kitchen):
                 out.setdefault(aid, []).append((item, t.state[0] if t.state else None,
                                                 tuple(t.state[1]) if t.state and len(t.state) > 1 and t.state[1] else ()))
     return out
+
+
+def _names(payload):
+    """{item id: what it is} for every item the request's own kitchen shows (stations, hands, floor, in flight)."""
+    out = {}
+
+    def add(food):
+        if isinstance(food, dict) and food.get('id') and food.get('meaning'):
+            out.setdefault(food['id'], _lower(food['meaning']))
+            add(food.get('contents'))
+    k = payload['state']['kitchen']
+    for s in (k.get('stations') or {}).values():
+        add(s.get('food'))
+    for c in (k.get('chefs') or {}).values():
+        add(c.get('holding'))
+    for g in k.get('ground') or []:
+        add(g.get('food'))
+    for item in k.get('projectiles') or []:
+        add(item)
+    return out
+
+
+def name_ids(text, names):
+    """An id that stands alone gets what it is before it ("Chop F1 at" -> "Chop lettuce (as fetched) F1 at"), in place
+    of one of the page's old food words there ("Pick up raw meat F2 at" -> "Pick up beef (as fetched) F2 at"); one
+    already named so is left as it is."""
+    out, last = [], 0
+    for m in BARE.finditer(text):
+        before, name = text[last:m.start()], names.get(m.group(1))
+        if name and not text[:m.start()].endswith(name + ' '):
+            old = OLD_BEFORE.search(before)
+            out.append((before[:old.start()] if old else before) + f'{name} {m.group(1)}')
+        else:
+            out.append(before + m.group(0))
+        last = m.end()
+    return ''.join(out) + text[last:]
 
 
 def _pickup(label, held):
@@ -163,11 +203,15 @@ def apply(payload, kitchen):
     holding = payload['state']['kitchen']['chefs'].get('jeff', {}).get('holding')
     inside = holding.get('contents') if isinstance(holding, dict) else None
     contents = _lower(inside.get('meaning')) if isinstance(inside, dict) and inside.get('meaning') else None
+    names = _names(payload)
+    for chef in (payload['state']['kitchen'].get('chefs') or {}).values():
+        if isinstance(chef.get('task'), str):
+            chef['task'] = name_ids(chef['task'], names)
     for q in payload.get('questions', {}).values():
         criteria = q.get('criteria') if isinstance(q, dict) else None
         if criteria:
             for key in criteria:
-                criteria[key] = label(criteria[key], held, contents=contents)
+                criteria[key] = name_ids(label(criteria[key], held, contents=contents), names)
     links = payload['state'].get('option_links')
     if isinstance(links, dict):
         # "The held item" in a partner line is the other chef's, which is the item Jeff passes; Jeff's own lines name

@@ -3,7 +3,8 @@
 With the switch off every request is byte-identical to the one before the switch existed: scripted rounds of
 levels 1-4 compose requests with no switch, the released switches and every trial switch, and their digests are
 compared with the ones recorded at b021713 (tests/golden/engine-english-off.json; ``python3
-tests/test_engine_english.py --record`` rewrites it, only for an intended change to Jeff's input).
+tests/test_engine_english.py --record`` rewrites it, only for an intended change to Jeff's input). Re-recorded once
+for clear-names-v2, which changes only the every-trial requests (its version, and chef tasks naming the item).
 """
 from __future__ import annotations
 
