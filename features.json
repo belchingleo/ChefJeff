@@ -11,5 +11,6 @@
   "option_links": {"stage": "trial", "on": true, "version": "option-links-v3", "player_switch": true},
   "option_links_partner": {"stage": "trial", "on": false, "version": "partner-links-v2"},
   "option_links_v4": {"stage": "trial", "on": false, "version": "option-links-v4"},
-  "split_floor": {"stage": "trial", "on": false, "version": "split-floor-v1"}
+  "split_floor": {"stage": "trial", "on": false, "version": "split-floor-v1"},
+  "burn_note": {"stage": "trial", "on": false, "version": "burn-note-v1"}
 }

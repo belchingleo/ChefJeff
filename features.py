@@ -40,6 +40,7 @@ import ask_ahead
 import undo_note
 import reach_note
 import split_floor
+import burn_note
 import food_names
 import intent_layer
 import links
@@ -56,7 +57,8 @@ VERSIONS = {'one_press': one_press.VERSION, 'jeff_plan': harness.PLAN_RULES_VERS
             'option_links': links.SWITCH_VERSION,
             'option_links_partner': links.PARTNER_VERSION,
             'option_links_v4': links.V4_VERSION,
-            'split_floor': split_floor.VERSION}
+            'split_floor': split_floor.VERSION,
+            'burn_note': burn_note.VERSION}
 # The plan modes (harness.PLAN_MODES), one at a time, and the feature of each.
 PLAN_FEATURES = {'choice': 'jeff_plan', 'rolling': 'rolling_intent'}
 FIELDS = {'stage', 'on', 'player_switch', 'version'}
@@ -207,7 +209,8 @@ def compose_options(features):
     # The intent layer changes the options themselves (intent_layer.build) and is not one of these switches.
     return {'one_press': one_press_flags(features), 'undo': undo_start(features),
             'reach': features['reach_note']['on'], 'names': features['food_names']['on'],
-            'links': links_option(features), 'split': features['split_floor']['on']}
+            'links': links_option(features), 'split': features['split_floor']['on'],
+            'burn': features['burn_note']['on']}
 
 
 def _write_override(value, path):
