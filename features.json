@@ -14,5 +14,6 @@
   "split_floor": {"stage": "trial", "on": false, "version": "split-floor-v1"},
   "burn_note": {"stage": "trial", "on": false, "version": "burn-note-v1"},
   "serve_note": {"stage": "trial", "on": false, "version": "serve-note-v1"},
-  "wait_note": {"stage": "trial", "on": false, "version": "wait-note-v1"}
+  "wait_note": {"stage": "trial", "on": false, "version": "wait-note-v1"},
+  "backlog_note": {"stage": "trial", "on": false, "version": "backlog-note-v1"}
 }

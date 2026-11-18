@@ -561,7 +561,7 @@ class Plan:
 
 def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY, plan=None, one_press=None, undo=None,
             reach=False, names=False, intent=None, split=False, burn=False,
-            serve_note=False, wait_note=False):
+            serve_note=False, wait_note=False, backlog=False):
     """Add what one request needs beyond the snapshot; research replay rebuilds requests here too.
 
     plan is Plan.input() when the plan switch is on, else None (the input is then unchanged).
@@ -571,7 +571,8 @@ def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY,
     which operations the menu needs are only on each side (split_floor.py); it comes right after rules.reach.
     burn is whether the burn_note switch is on: options on a stove whose food is cooked say when it burns (burn_note.py).
     serve_note and wait_note: the serve option names the waiting order the held dish goes to, the wait option what
-    stays in hand (option_notes.py).
+    stays in hand (option_notes.py). backlog: on a floor where only the other chef can chop, state.backlog counts what
+    the waiting orders still need chopped (backlog_note.py).
     names is whether the food_names switch is on: the request's food names are marked (jev.compose_payload) and
     the marks come off here, after translation.
     intent is the intent layer's part when its switch is on (jev.DecisionLoop.intent_input), else None:
@@ -663,4 +664,7 @@ def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY,
             option_notes.apply_serve(payload)
         if wait_note:
             option_notes.apply_wait(payload)
+    if backlog:
+        import backlog_note
+        backlog_note.apply(payload, kitchen)
     return payload

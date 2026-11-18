@@ -38,7 +38,8 @@ SPRINT_STATIC = ('multiplier', 'duration', 'cooldown_after')
 # State fields outside the kitchen that stay the same for the whole round.
 STATE_STATIC = ('past_episodes', 'input_language', 'rules_version', 'plan_rules_version', 'one_press_version',
                 'undo_note_version', 'reach_note_version', 'food_names_version', 'split_floor_version',
-                'burn_note_version', 'serve_note_version', 'wait_note_version')
+                'burn_note_version', 'serve_note_version', 'wait_note_version',
+                'backlog_note_version')
 # Rules that are not fixed for the round: player messages appear with the first one.
 LIVE_RULES = ('player_communication',)
 RULE = ('The state comes in two parts: static, the same for the whole round (rules, map, menu, station layout and the '
