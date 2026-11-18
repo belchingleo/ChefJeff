@@ -63,7 +63,8 @@ VERSIONS = {'one_press': one_press.VERSION, 'jeff_plan': harness.PLAN_RULES_VERS
             'burn_note': burn_note.VERSION,
             'serve_note': option_notes.SERVE_VERSION,
             'wait_note': option_notes.WAIT_VERSION,
-            'backlog_note': backlog_note.VERSION}
+            'backlog_note': backlog_note.VERSION,
+            'option_links_burnt': links.BURNT_VERSION}
 # The plan modes (harness.PLAN_MODES), one at a time, and the feature of each.
 PLAN_FEATURES = {'choice': 'jeff_plan', 'rolling': 'rolling_intent'}
 FIELDS = {'stage', 'on', 'player_switch', 'version'}
@@ -193,7 +194,8 @@ def links_option(features):
     'partner+v4'. Neither extra does anything alone."""
     if not features['option_links']['on']:
         return False
-    extras = [part for part, name in (('partner', 'option_links_partner'), ('v4', 'option_links_v4'))
+    extras = [part for part, name in (('partner', 'option_links_partner'), ('v4', 'option_links_v4'),
+                                      ('burnt', 'option_links_burnt'))
               if (features.get(name) or {}).get('on')]
     return '+'.join(extras) or True
 

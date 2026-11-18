@@ -307,6 +307,23 @@ def _settle(twin, item):
     return item not in getattr(twin, 'projectiles', {})
 
 
+# burnt-links-v1 (the option_links_burnt switch, a trial, off): emptying a pan or pot that holds burnt food at a bin
+# counts as work in the table too. WORK leaves emptying out, as emptying good food is a loss, so lifting a burnt pan
+# listed nothing it led to; the engine offers emptying only while the pan is held, so the fork after the lift has it.
+BURNT_VERSION = 'burnt-links-v1'
+BURNT_RULE = (' Emptying a held pan or pot that holds burnt food at a bin counts as such work too.')
+
+
+def burnt_empty(twin, who, now):
+    """In the fork after an option: the engine's actions that empty the held pan or pot of burnt food, not listed now."""
+    hand = twin.chefs[who].hand
+    contents = getattr(hand, 'contents', None) if hand is not None else None
+    if hand is None or hand.stage != 'pot' or contents is None or contents.stage != 'burnt':
+        return []
+    listed = {(a.kind, a.target) for a in now}
+    return [a for a in twin.actions(who) if a.kind == 'empty_pot' and (a.kind, a.target) not in listed]
+
+
 def partner_chain(kitchen, twin, who, item):
     """The other chef's shortest run of actions on the held item, after the option, that ends in work (breadth first,
     at most CHAIN_DEPTH steps), or [] when the item is not where they can take it."""
@@ -337,7 +354,7 @@ def partner_chain(kitchen, twin, who, item):
     return first or []
 
 
-def table(kitchen, who, actions, keys, names=False, partner=False):
+def table(kitchen, who, actions, keys, names=False, partner=False, burnt=False):
     """{option key: [the work it leads to, in the request's English]} for the listed options that lead to new work;
     with partner (option_links_partner) also the other chef's chain on the held item (partner_chain)."""
     import contextlib
@@ -354,6 +371,8 @@ def table(kitchen, who, actions, keys, names=False, partner=False):
             seen = {}
             linked = link(kitchen, who, option, now, seen=seen) if option is not None else []
             lines = [unmark(english_text(a.label)) for a in linked]
+            if burnt and 'twin' in seen:
+                lines += [unmark(english_text(a.label)) for a in burnt_empty(seen['twin'], who, now)]
             # Where a one-press option or an intent that puts first leaves the held item depends on put_where, which is
             # not known yet (the fork takes the first place), so those options get no partner line.
             guessed = option is not None and (option.kind in one_press.KINDS or (option.kind == 'intent' and option.expected[0] == 'put'))
@@ -413,7 +432,7 @@ def _waiting(kitchen, who, times, other_goes_on=True):
     return out
 
 
-def table_v4(kitchen, who, actions, keys, names=False, partner=False):
+def table_v4(kitchen, who, actions, keys, names=False, partner=False, burnt=False):
     """option-links-v4: ({option key: [work lines]}, {'options': [keys], 'work': [lines]} or None), see V4_RULE."""
     import contextlib
     import food_names
@@ -460,6 +479,8 @@ def table_v4(kitchen, who, actions, keys, names=False, partner=False):
             elif key in forks:
                 option, _, twin, _ = forks[key]
                 lines = [text(a) for a in rows[key][:MOST]]
+                if burnt and twin is not None:
+                    lines += [text(a) for a in burnt_empty(twin, who, now)]
                 # As in table: a one-press option or an intent that puts first gets no partner line.
                 guessed = option.kind in one_press.KINDS or (option.kind == 'intent' and option.expected[0] == 'put')
                 if partner and twin is not None and held_item is not None and not guessed:
@@ -475,31 +496,34 @@ def table_v4(kitchen, who, actions, keys, names=False, partner=False):
 
 
 def flags(mode):
-    """apply's switches from the decision loop's links setting (features.links_option): True, 'partner', 'v4' or
-    'partner+v4'."""
+    """apply's switches from the decision loop's links setting (features.links_option): True, or the extras joined by
+    '+' ('partner', 'v4', 'burnt')."""
     parts = mode.split('+') if isinstance(mode, str) else []
-    return {'partner': 'partner' in parts, 'v4': 'v4' in parts}
+    return {'partner': 'partner' in parts, 'v4': 'v4' in parts, 'burnt': 'burnt' in parts}
 
 
-def apply(payload, kitchen, who, actions, names=False, partner=False, v4=False):
+def apply(payload, kitchen, who, actions, names=False, partner=False, v4=False, burnt=False):
     """The option_links switch on a composed request (translated, as sent): state.option_links, rules.links and
     links_version; no option changes. partner (option_links_partner): the other chef's chains in the same table, the
     rule says so, and partner_links_version. v4 (option_links_v4): the table against waiting, with
     state.option_links_shared when some options share work (table_v4), V4_RULE and links_version option-links-v4."""
     keys = list(payload['questions']['next_action']['criteria'])
     if v4:
-        rows, together = table_v4(kitchen, who, actions, keys, names, partner)
+        rows, together = table_v4(kitchen, who, actions, keys, names, partner, burnt)
         payload['state']['option_links'] = rows
         if together:
             payload['state']['option_links_shared'] = together
         payload['state']['rules']['links'] = V4_RULE + (PARTNER_RULE if partner else '')
         payload['state']['links_version'] = V4_VERSION
     else:
-        payload['state']['option_links'] = table(kitchen, who, actions, keys, names, partner)
+        payload['state']['option_links'] = table(kitchen, who, actions, keys, names, partner, burnt)
         payload['state']['rules']['links'] = SEPARATE_RULE + (PARTNER_RULE if partner else '')
         payload['state']['links_version'] = SWITCH_VERSION
     if partner:
         payload['state']['partner_links_version'] = PARTNER_VERSION
+    if burnt:
+        payload['state']['rules']['links'] += BURNT_RULE
+        payload['state']['burnt_links_version'] = BURNT_VERSION
     return payload
 
 

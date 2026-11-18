@@ -15,5 +15,6 @@
   "burn_note": {"stage": "trial", "on": false, "version": "burn-note-v2"},
   "serve_note": {"stage": "trial", "on": false, "version": "serve-note-v1"},
   "wait_note": {"stage": "trial", "on": false, "version": "wait-note-v2"},
-  "backlog_note": {"stage": "trial", "on": false, "version": "backlog-note-v1"}
+  "backlog_note": {"stage": "trial", "on": false, "version": "backlog-note-v1"},
+  "option_links_burnt": {"stage": "trial", "on": false, "version": "burnt-links-v1"}
 }
