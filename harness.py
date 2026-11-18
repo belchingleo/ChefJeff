@@ -8,6 +8,7 @@ model-prompt change.
 """
 from __future__ import annotations
 import math
+import engine_english
 from model_language import english_data, INPUT_LANGUAGE_VERSION
 from cooperation_memory import PAST_EPISODES_RULE
 
@@ -267,9 +268,9 @@ def payload(state, actions, config, spatial=False):
     listed = ([a for a in actions if a.kind == intent_layer.KIND] if intents
               else model_candidates(state, actions, per_area) if spatial else actions)
     if intents:
-        places = {a.key: a.label for a in actions if a.kind == intent_layer.PLACE}
+        places = {a.key: engine_english.label(a) for a in actions if a.kind == intent_layer.PLACE}
     elif any(a.kind in one_press.KINDS for a in listed) and (state['chefs']['jeff'].get('holding') is not None):
-        places = {a.key: a.label for a in listed if a.kind in one_press.PLACES}
+        places = {a.key: engine_english.label(a) for a in listed if a.kind in one_press.PLACES}
         if not places:     # nowhere to put the held item first: no one-press action
             listed = [a for a in listed if a.kind not in one_press.KINDS]
     else:
@@ -277,7 +278,7 @@ def payload(state, actions, config, spatial=False):
     questions = {"next_action": {
         "type": "choice",
         "instructions": "Given the whole kitchen situation, which action should chef jeff take now? The goals and score are shared by both chefs. The state includes both chefs' current actions, occupied equipment, order deadlines, and burning/fire risks. Choose one action now; an ongoing task may be continued or interrupted.",
-        "criteria": {a.key: a.label for a in listed}
+        "criteria": {a.key: engine_english.label(a) for a in listed}
     }}
     if spatial:
         questions['sprint'] = {'type':'choice','instructions':'Request a short sprint for this accepted movement action or continuing travel?', 'criteria':{'yes':'Request sprint if moving and available','no':'Do not request sprint'}}
@@ -585,6 +586,8 @@ def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY,
     # Walking starts/stops are already in each chef's position and move_direction; as events
     # they only push outcomes out of the window. The run log keeps them.
     shown = [e for e in kitchen.events if e.get('kind') not in ('manual_move', 'position_resync')]
+    # The engine_english trial (engine_english.py): the events the engine wrote in English too, in its English.
+    shown = engine_english.events(kitchen, shown)
     if intent is not None:
         # Jeff is not asked during an intent, so every event since his previous request is shown (at least 20).
         since = len([e for e in kitchen.events[:intent.get('since', len(kitchen.events))]
@@ -640,6 +643,8 @@ def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY,
     if names:
         import food_names
         payload = food_names.apply(payload)
+    if engine_english.ON.get():
+        engine_english.apply(payload, kitchen)
     payload['state']['input_language'] = INPUT_LANGUAGE_VERSION
     payload['state']['rules_version'] = AGENT_RULES_VERSION
     if plan is not None:

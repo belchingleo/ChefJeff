@@ -23,6 +23,7 @@ import environment
 import wire_format
 import ask_ahead
 import intent_layer
+import engine_english
 
 ENDPOINT = "https://api.typesafe.ai/v1/systemone"
 
@@ -112,7 +113,8 @@ class JevClient:
 
 def compose_payload(client, kitchen, state, actions, recent_decisions, communication, memory=NO_MEMORY, plan=None, one_press=None,
                     undo=None, reach=False, names=False, intent=None, links=False, split=False, burn=False,
-                    serve_note=False, wait_note=False, backlog=False, steps=False, clear=False, walk=False):
+                    serve_note=False, wait_note=False, backlog=False, steps=False, clear=False, walk=False,
+                    english=False):
     """Jeff's request from the kitchen and the few parts it cannot derive; research replay rebuilds it here too.
 
     one_press is the round's one-press switches (one_press.flags), or None: the options are added to the
@@ -124,7 +126,15 @@ def compose_payload(client, kitchen, state, actions, recent_decisions, communica
     split is whether the split_floor switch is on (split_floor.py), burn whether burn_note is (burn_note.py),
     serve_note and wait_note whether those are (option_notes.py), backlog whether backlog_note is (backlog_note.py),
     steps whether step_check is (step_check.py), clear whether clear_names is (clear_names.py; it runs again after
-    the links table, which it may name in), walk whether walk_note is (walk_note.py: each option's walk)."""
+    the links table, which it may name in), walk whether walk_note is (walk_note.py: each option's walk), english
+    whether engine_english is (engine_english.py: the engine's own English where the catalog garbles it)."""
+    with engine_english.writing(english):
+        return _compose(client, kitchen, state, actions, recent_decisions, communication, memory, plan, one_press,
+                        undo, reach, names, intent, links, split, burn, serve_note, wait_note, backlog, steps, clear, walk)
+
+
+def _compose(client, kitchen, state, actions, recent_decisions, communication, memory, plan, one_press,
+             undo, reach, names, intent, links, split, burn, serve_note, wait_note, backlog, steps, clear, walk):
     if one_press:
         import one_press as presses
         keys = {a.key for a in actions}
@@ -219,6 +229,8 @@ class DecisionLoop:
         self.clear = False
         # The walk_note trial (walk_note.py): each option's walk in seconds.
         self.walk = False
+        # The engine_english trial (engine_english.py): the engine's own English where the catalog garbles it.
+        self.english = False
         # The food_names trial (food_names.py): food named "<item> (<state>)" in Jeff's request.
         self.names = False
         # The option_links trial (links.py): each request lists the work each option leads to; the time it takes to
@@ -554,6 +566,15 @@ class DecisionLoop:
                     applied, message = False, f"提前问的回复作废（{context['ahead_check'] or '已暂停或本局结束'}），马上重问"
                 else:
                     applied, message = False, "回复已过期、任务已变化或游戏已暂停"
+                note = message      # what recent_decisions keeps; the player's notice below stays as written
+                if self.english and not applied:
+                    # The engine_english trial (engine_english.py): the loop's own notes in English.
+                    if not fresh and context.get('ahead'):
+                        note = engine_english.ahead_dropped(context['ahead_check'])
+                    elif fresh and decision.kind == intent_layer.KIND and started and started['first'] is None:
+                        note = engine_english.INTENT_NOT_NOW
+                    elif fresh and decision.kind in one_press.KINDS and pressed and pressed['first'] is None:
+                        note = engine_english.CHAIN_NOT_NOW
                 if applied and work and self.k.chefs["jeff"].job:
                     self.plan_work[self.k.chefs["jeff"].job.id] = work
                 sprint_applied=bool(applied and result.get('sprint') is True and self.port.sprint())
@@ -586,7 +607,7 @@ class DecisionLoop:
                                          "accepted_engine_seq": self.k.event_seq, "current_state": current_state})
                 self.last_choice = result["choice"] + ("" if applied else "（未执行）")
                 self.recent_decisions.append({"t": round(self.k.time, 2), "choice": result["choice"],
-                                              "accepted": applied, "result": message, "sprint_applied":sprint_applied})
+                                              "accepted": applied, "result": note, "sprint_applied":sprint_applied})
                 self.recent_decisions = self.recent_decisions[-8:]
                 quiet = decision.kind in ("continue", "wait") or (decision.kind == intent_layer.KIND and decision.key in ("continue", "wait"))
                 if not quiet or not applied or now-self.last_wait_notice >= 8:
@@ -714,7 +735,8 @@ class DecisionLoop:
                                   deepcopy(self.undo), self.reach, self.names,
                                   self.intent_input(source is not self.k, since) if self.intents else None, split=self.split,
                                   burn=self.burn, serve_note=self.serve_note, wait_note=self.wait_note,
-                                  backlog=self.backlog, steps=self.steps, clear=self.clear, walk=self.walk)
+                                  backlog=self.backlog, steps=self.steps, clear=self.clear, walk=self.walk,
+                                  english=self.english)
         record = {"request_id": self.calls, "triggers": causes, "observed_state_seq": self.k.event_seq,
                   **({"jeff_plan": plan, "plan_ended": plan_ended} if plan is not None else {}),
                   **({"one_press": dict(self.one_press)} if self.one_press else {}),
@@ -739,16 +761,18 @@ class DecisionLoop:
         criteria = payload['questions']['next_action']['criteria']
         record.update(engine_input_n=len(self.k.inputs), state_ref=getattr(self.k, '_research_state_ref', None),
                       candidate_source=[[a.key, a.target, a.kind] for a in self.k.actions('jeff') if a.key in criteria])
-        mode, names, listed, clear = self.links, self.names, list(actions), self.clear
+        mode, names, listed, clear, english = self.links, self.names, list(actions), self.clear, self.english
 
         def prepare():
             start = time.monotonic()
             try:
                 import links as option_links
-                option_links.apply(payload, twin, 'jeff', listed, names, **option_links.flags(mode))
-                if clear:
-                    import clear_names
-                    clear_names.apply(payload, twin)
+                # A context variable does not cross into a thread: the engine_english switch is set here again.
+                with engine_english.writing(english):
+                    option_links.apply(payload, twin, 'jeff', listed, names, **option_links.flags(mode))
+                    if clear:
+                        import clear_names
+                        clear_names.apply(payload, twin)
                 self.prepared.put((context, payload, record, time.monotonic() - start, None))
             except Exception as error:      # never the payload or a key: only the kind of failure is logged
                 self.prepared.put((context, payload, record, time.monotonic() - start, error))

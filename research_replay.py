@@ -115,6 +115,7 @@ def rebuild_requests(record):
     steps = bool(((record.get('conditions') or {}).get('features') or {}).get('step_check', {}).get('on'))
     clear = bool(((record.get('conditions') or {}).get('features') or {}).get('clear_names', {}).get('on'))
     walk = bool(((record.get('conditions') or {}).get('features') or {}).get('walk_note', {}).get('on'))
+    english = bool(((record.get('conditions') or {}).get('features') or {}).get('engine_english', {}).get('on'))
     import features as switches
     snapshot = (record.get('conditions') or {}).get('features') or {}
     links = switches.links_option({name: {'on': bool((snapshot.get(name) or {}).get('on'))} for name in ('option_links', 'option_links_partner', 'option_links_v4', 'option_links_burnt')})
@@ -142,6 +143,6 @@ def rebuild_requests(record):
                                   data['player_communication'], memory, data.get('jeff_plan'), data.get('one_press'),
                                   data.get('undo_note'), reach, names, links=links, split=split, burn=burn,
                                   serve_note=serve_note, wait_note=wait_note, backlog=backlog,
-                                  steps=steps, clear=clear, walk=walk)
+                                  steps=steps, clear=clear, walk=walk, english=english)
         yield {'request_id': row['request_id'], 'seq': row['seq'], 'rebuilt': payload,
                'status': 'verified' if cc.sha256(payload) == data['payload_sha256'] else 'diverged'}

@@ -128,6 +128,44 @@ class NoChineseTests(unittest.TestCase):
                     text = json.dumps(payload, ensure_ascii=False)
                     self.assertIsNone(CJK.search(text), (level, key, CJK.findall(text)[:5]))
 
+    def test_no_chinese_with_every_trial_on_and_engine_english_where_food_is_plated(self):
+        import test_engine_english as ee
+        switches = dict(reach=True, links='partner+burnt', split=True, burn=True, serve_note=True, wait_note=True,
+                        steps=True, clear=True, walk=True, english=True)
+        decisions, _ = ee.loop_notes(True)
+        for level in (1, 2, 3, 4):
+            k = kitchen(level)
+            for key in ('fetch beef', 'drop', 'fetch lettuce'):
+                if any(a.key == key for a in k.actions('jeff')):
+                    do(k, 'jeff', key)
+                    payload, _ = request(k, {**PRESSES, 'put_then_pickup': True}, **switches)
+                    text = json.dumps(payload, ensure_ascii=False)
+                    self.assertIsNone(CJK.search(text), (level, key, CJK.findall(text)[:5]))
+        for k in (ee.plating(), ee.played()):
+            payload, _ = request(k, {**PRESSES, 'put_then_pickup': True}, **switches)
+            payload['state']['recent_decisions'] = decisions
+            text = json.dumps(payload, ensure_ascii=False)
+            self.assertIsNone(CJK.search(text), CJK.findall(text)[:5])
+
+    def test_no_chinese_with_the_released_switches_and_engine_english(self):
+        # features.json as released (one_press, food_names, option_links, ask_ahead), engine_english on: the plating
+        # labels, the events that carry them (started, stopped, completed) and the loop's own notes.
+        import test_engine_english as ee
+        options = {**features.compose_options(features.load()), 'english': True}
+        decisions, _ = ee.loop_notes(True)
+        self.assertEqual(len(decisions), 4)
+        for k in (ee.plating(), ee.played()):
+            k.advance(.2)
+            client = SpatialJevClient(k.c, key='test-no-credential')
+            payload = compose_payload(client, k, k.snapshot(), k.actions('jeff'), decisions, None, **options)
+            text = json.dumps(payload, ensure_ascii=False)
+            self.assertIsNone(CJK.search(text), CJK.findall(text)[:5])
+        events = [e['message'] for e in payload['state']['recent_events']]
+        for word in ('started', 'stopped', 'completed'):
+            self.assertTrue(any(m.startswith(f'jeff {word}: Plate food from the frying pan') for m in events), word)
+        self.assertEqual(payload['state']['kitchen']['chefs']['jeff']['task'],
+                         'Plate food from the frying pan on the floor (empty frying pan stays in place)')
+
     def test_the_loops_note_about_a_dropped_ahead_answer_is_given_in_english(self):
         import clear_names
         k = kitchen(4)

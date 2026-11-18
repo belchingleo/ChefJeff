@@ -16,6 +16,7 @@ rules.links, while every option stays as it is (apply).
 """
 from __future__ import annotations
 
+import engine_english
 from model_language import english_text
 
 VERSION = 'links-v1'
@@ -167,7 +168,7 @@ def sentence(actions):
     """The line added to an option, in the request's English, or '' for no new work."""
     if not actions:
         return ''
-    return LEAD + '; '.join(english_text(a.label) for a in actions)
+    return LEAD + '; '.join(engine_english.text(a) for a in actions)
 
 
 def _end(text):
@@ -200,7 +201,7 @@ def arms(payload, kitchen, who, actions, names=False):
             linked = link(kitchen, who, option, now)
             if linked:
                 found[key] = [(a.key, a.label) for a in linked]
-                lines[key] = [unmark(english_text(a.label)) for a in linked]
+                lines[key] = [unmark(engine_english.text(a)) for a in linked]
                 places[key] = location(kitchen, option.target)
     out = {}
     b = copy.deepcopy(payload)
@@ -390,9 +391,9 @@ def table(kitchen, who, actions, keys, names=False, partner=False, burnt=False):
             option = by_key.get(key)
             seen = {}
             linked = link(kitchen, who, option, now, seen=seen) if option is not None else []
-            lines = [unmark(english_text(a.label)) for a in linked]
+            lines = [unmark(engine_english.text(a)) for a in linked]
             if burnt and 'twin' in seen:
-                lines += [unmark(english_text(a.label)) for a in burnt_empty(seen['twin'], who, now)]
+                lines += [unmark(engine_english.text(a)) for a in burnt_empty(seen['twin'], who, now)]
             # Where a one-press option or an intent that puts first leaves the held item depends on put_where, which is
             # not known yet (the fork takes the first place), so those options get no partner line.
             guessed = option is not None and (option.kind in one_press.KINDS or (option.kind == 'intent' and option.expected[0] == 'put'))
@@ -401,7 +402,7 @@ def table(kitchen, who, actions, keys, names=False, partner=False, burnt=False):
                     other_now = {(a.kind, a.target) for a in kitchen.actions('human' if who == 'jeff' else 'jeff')}
                 chain = partner_chain(kitchen, seen['twin'], who, held_item.id, other_now)
                 if chain:
-                    lines.append(THEN + ', then '.join(unmark(english_text(a.label)) for a in chain))
+                    lines.append(THEN + ', then '.join(unmark(engine_english.text(a)) for a in chain))
             if lines:
                 out[key] = lines
     return out
@@ -460,7 +461,7 @@ def table_v4(kitchen, who, actions, keys, names=False, partner=False, burnt=Fals
     import food_names
     import one_press
     unmark = food_names.unmark if names else (lambda text: text)
-    text = lambda a: unmark(english_text(a.label))
+    text = lambda a: unmark(engine_english.text(a))
     by_key = {a.key: a for a in actions}
     with (food_names.naming() if names else contextlib.nullcontext()):
         now = kitchen.actions(who)

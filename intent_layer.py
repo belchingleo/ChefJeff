@@ -65,7 +65,8 @@ def _en(text):
 
 
 def _intent(action, first, rest=(), key=None, label=None):
-    return Action(key or action.key, label or action.label, KIND, action.target, (first, tuple(rest)))
+    return Action(key or action.key, label or action.label, KIND, action.target, (first, tuple(rest)),
+                  '' if label else action.english)
 
 
 def steps_of(option):

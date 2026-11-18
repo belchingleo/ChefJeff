@@ -46,6 +46,7 @@ import backlog_note
 import step_check
 import clear_names
 import walk_note
+import engine_english
 import food_names
 import intent_layer
 import links
@@ -71,7 +72,8 @@ VERSIONS = {'one_press': one_press.VERSION, 'jeff_plan': harness.PLAN_RULES_VERS
             'step_check': step_check.VERSION,
             'clear_names': clear_names.VERSION,
             'pickup_press': one_press.PICKUP_VERSION,
-            'walk_note': walk_note.VERSION}
+            'walk_note': walk_note.VERSION,
+            'engine_english': engine_english.VERSION}
 # The plan modes (harness.PLAN_MODES), one at a time, and the feature of each.
 PLAN_FEATURES = {'choice': 'jeff_plan', 'rolling': 'rolling_intent'}
 FIELDS = {'stage', 'on', 'player_switch', 'version'}
@@ -230,7 +232,8 @@ def compose_options(features):
             'burn': features['burn_note']['on'],
             'serve_note': features['serve_note']['on'], 'wait_note': features['wait_note']['on'],
             'backlog': features['backlog_note']['on'], 'steps': features['step_check']['on'],
-            'clear': features['clear_names']['on'], 'walk': features['walk_note']['on']}
+            'clear': features['clear_names']['on'], 'walk': features['walk_note']['on'],
+            'english': features['engine_english']['on']}
 
 
 def _write_override(value, path):

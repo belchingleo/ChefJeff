@@ -662,6 +662,7 @@ class GameSession:
             self.ai.steps = self.features['step_check']['on']
             self.ai.clear = self.features['clear_names']['on']
             self.ai.walk = self.features['walk_note']['on']
+            self.ai.english = self.features['engine_english']['on']
             self.ai.names = self.features['food_names']['on']
             self.ai.links = features.links_option(self.features)
             self.phase = 'running'

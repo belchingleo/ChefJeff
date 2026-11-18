@@ -5,7 +5,9 @@ resolved configuration (see ``config_contract`` and ``rules``); the engine has
 no per-level branches.
 """
 from __future__ import annotations
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
+import engine_english
+from model_language import english_text
 import food_names
 import functools
 from copy import deepcopy
@@ -63,6 +65,8 @@ class Action:
     target: str = ""
     # Bind every displayed/requested action to its actual object and held item.
     expected: tuple = ()
+    # The label in English where the engine writes it itself (engine_english.py); not compared, not shown.
+    english: str = field(default='', compare=False, repr=False)
 
 
 @dataclass
@@ -243,6 +247,8 @@ class Kitchen:
         self.aborted = False
         self.failure_reason = None
         self.events = []
+        # Event seq -> the message in English, for the events the engine writes in English too (engine_english.py).
+        self.english_events = {}
         self.ground = {}
         self.pickup_numbers = {}
         self.menu_extra = {}
@@ -323,9 +329,12 @@ class Kitchen:
     def recipe_name(self, dish):
         return self.rules.recipe_names.get(dish, dish)
 
-    def emit(self, message, **extra):
+    def emit(self, message, english=None, **extra):
         self.revision += 1
         self.event_seq += 1
+        if english is not None:
+            # Kept beside the event, never in it: the page, journals and research records see the event as before.
+            self.__dict__.setdefault('english_events', {})[self.event_seq] = english
         self.events.append({"t": round(self.time, 3), "message": message, **extra,
                             "seq": self.event_seq, "game_time_ms": round(self.time*1000)})
         observer = getattr(self, '_record_observer', None)
@@ -431,7 +440,8 @@ class Kitchen:
                 v = self.vessel_name(a.hand.id)
                 add(f'plate {key}', f'把手中{v}里的菜盛到{s.name}的盘里（空{v}留在手中）', 'plate_counter', key)
             if s.food.stage == 'pot' and a.hand and self.can_add(a.hand,s.food.contents):
-                add(f'plate {key}', f'用手中的盘盛出{s.name}的{self.vessel_name(s.food.id)}里的菜', 'plate_from_counter', key)
+                add(f'plate {key}', f'用手中的盘盛出{s.name}的{self.vessel_name(s.food.id)}里的菜', 'plate_from_counter', key,
+                    english=f'Plate food from the {self.vessel_english(s.food.id)} on {english_text(s.name)}')
         elif a.hand:
             add(f'put {key}', f'把手中物品放到{s.name}（每格一件）', 'put_board' if board else 'put_counter', key)
 
@@ -440,8 +450,8 @@ class Kitchen:
             return []
         a = self.chefs[who]
         out = []
-        def add(key, label, kind, target=""):
-            out.append(Action(key, label, kind, target, () if kind == "go" else self.signature(who, target)))
+        def add(key, label, kind, target="", english=''):
+            out.append(Action(key, label, kind, target, () if kind == "go" else self.signature(who, target), english))
         if a.job:
             out.append(Action("continue", "继续当前动作", "continue", expected=(a.job.id,)))
             out.append(Action("stop", "中断当前动作（切配进度保留；锅具继续加热）", "stop", expected=(a.job.id,)))
@@ -513,9 +523,10 @@ class Kitchen:
                     out.append(Action('assemble ground '+item_id,self.assemble_label(self.place(item.location).name,item.food,a.hand),'assemble_ground',
                                       item.location,self.ground_assembly_signature(who,item_id)))
                 if self.can_plate_ground(who, item_id):
-                    v = self.vessel_name(item_id)
+                    v, english = self.vessel_name(item_id), self.vessel_english(item_id)
                     out.append(Action(f'plate ground {item_id}', f'用手中的干净盘盛出地上{v}里的菜（空{v}留在原地）',
-                                      'plate_ground', item.location, self.ground_plate_signature(who, item_id)))
+                                      'plate_ground', item.location, self.ground_plate_signature(who, item_id),
+                                      f'Plate food from the {english} on the floor (empty {english} stays in place)'))
         for key in self.boards:
             s = self.stations[key]
             if s.lock not in (None, who):
@@ -567,6 +578,10 @@ class Kitchen:
     def vessel_name(self, vessel_id):
         """Display name of a cooking vessel (汤锅 boils, 平底锅 fries), from the recipe catalog."""
         return self.rules.vessel_names.get(self.rules.vessels.get(vessel_id), '锅')
+
+    def vessel_english(self, vessel_id):
+        """A cooking vessel in English by its kind (frying pan, soup pot; pot when the kind is not known)."""
+        return engine_english.vessel(self.rules.vessels.get(vessel_id))
 
     def load_label(self, food):
         """Name of held food going into a vessel, with its preparation."""
@@ -699,7 +714,9 @@ class Kitchen:
         a = self.chefs[who]
         if a.job:
             self.swap_slots.pop(a.job.id, None)
-            self.emit(f"{NAMES[who]}中断：{a.job.action.label}", kind="interrupted", actor=who, action_id=a.job.id)
+            english = a.job.action.english
+            self.emit(f"{NAMES[who]}中断：{a.job.action.label}", engine_english.stopped(who, english) if english else None,
+                      kind="interrupted", actor=who, action_id=a.job.id)
             job = a.job
             if job.working and job.action.kind in ('chop', 'wash'):
                 remaining = [p for p in self.work_participants(job.action.target, job.action.kind) if p != who]
@@ -765,9 +782,14 @@ class Kitchen:
         work = {"chop": (self.rules.chop_work(s.food.ingredient)-s.food.chopped) if s.food else 0,
                 "wash": self.wash_seconds-(s.food.washed if s.food else 0),
                 "extinguish": s.fire_strength*self.rules.extinguish, "go": 0}.get(action.kind, self.rules.handling)
+        if current.english and not action.english:
+            # An action replayed from its record carries no English; the engine's own listing does.
+            action = replace(action, english=current.english)
         self.job_serial += 1
         a.job = Job(self.job_serial, action, self.travel_time(a, action.target), work)
-        self.emit(f"{NAMES[who]}开始：{action.label}（路程 {a.job.travel:.0f}s + 操作 {work:.1f}s）", kind="action_start", actor=who, action=action.key, action_id=a.job.id)
+        english = action.english and engine_english.started(who, action.english, a.job.travel, work)
+        self.emit(f"{NAMES[who]}开始：{action.label}（路程 {a.job.travel:.0f}s + 操作 {work:.1f}s）", english or None,
+                  kind="action_start", actor=who, action=action.key, action_id=a.job.id)
         return True, "开始"
 
     def command(self, who, key):
@@ -1036,13 +1058,17 @@ class Kitchen:
         if s.lock == who:
             s.lock = None
         a.job = None
-        self.emit(f"{NAMES[who]}完成动作：{job.action.label}", kind="action_done", actor=who, action=job.action.key, action_id=job.id)
+        self.emit(f"{NAMES[who]}完成动作：{job.action.label}",
+                  engine_english.completed(who, job.action.english) if job.action.english else None,
+                  kind="action_done", actor=who, action=job.action.key, action_id=job.id)
         for partner in partners:
             other=self.chefs[partner];other_job=other.job
             other.job=None
             if s.lock==partner:s.lock=None
             getattr(self,'routes',{}).pop(partner,None)
-            self.emit(f'{NAMES[partner]}共同完成：{other_job.action.label}',kind='action_done',actor=partner,action=other_job.action.key,action_id=other_job.id)
+            self.emit(f'{NAMES[partner]}共同完成：{other_job.action.label}',
+                      engine_english.completed_together(partner, other_job.action.english) if other_job.action.english else None,
+                      kind='action_done',actor=partner,action=other_job.action.key,action_id=other_job.id)
 
     def _serve(self, who, job, food, order):
         """Match the waiting order of this dish with the earliest deadline.

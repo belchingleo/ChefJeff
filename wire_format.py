@@ -41,7 +41,7 @@ STATE_STATIC = ('past_episodes', 'input_language', 'rules_version', 'plan_rules_
                 'burn_note_version', 'serve_note_version', 'wait_note_version',
                 'backlog_note_version', 'burnt_links_version',
                 'step_check_version', 'clear_names_version',
-                'walk_note_version')
+                'walk_note_version', 'engine_english_version')
 # Rules that are not fixed for the round: player messages appear with the first one.
 LIVE_RULES = ('player_communication',)
 RULE = ('The state comes in two parts: static, the same for the whole round (rules, map, menu, station layout and the '

@@ -366,7 +366,8 @@ class SessionTests(unittest.TestCase):
                                            'step_check': {'on': False, 'version': 'step-check-v1'},
                                            'clear_names': {'on': False, 'version': 'clear-names-v1'},
                                            'pickup_press': {'on': False, 'version': 'put-then-pickup-v1'},
-                                           'walk_note': {'on': False, 'version': 'walk-note-v1'}})
+                                           'walk_note': {'on': False, 'version': 'walk-note-v1'},
+                                           'engine_english': {'on': False, 'version': 'engine-english-v1'}})
         self.assertNotIn('jeff_plan', row)                 # two-step intent is off in the repository since option-links-v3
 
     def test_the_file_rolls_it_back(self):
@@ -414,7 +415,8 @@ class FeaturesFileTests(unittest.TestCase):
                           'split_floor': 'trial', 'burn_note': 'trial',
                           'serve_note': 'trial', 'wait_note': 'trial', 'backlog_note': 'trial',
                           'option_links_burnt': 'trial', 'step_check': 'trial',
-                          'clear_names': 'trial', 'pickup_press': 'trial', 'walk_note': 'trial'})
+                          'clear_names': 'trial', 'pickup_press': 'trial', 'walk_note': 'trial',
+                          'engine_english': 'trial'})
 
     def test_a_wrong_file_stops_instead_of_running(self):
         import features
