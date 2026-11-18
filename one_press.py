@@ -31,7 +31,13 @@ VERSION = 'one-press-v5'
 # said "take <its food> from Stove N": Jev took a pan whose food was still cooking about 20% of the times that option
 # was offered and 1% of the times the plain lift was.
 NAMES = ('put_then_take', 'wash_from_returns')
-KINDS = ('put_then_take', 'put_then_chop', 'put_then_wash', 'put_then_fetch', 'wash_from_returns')
+# put then pickup <item> (the pickup_press switch, a trial, off; put-then-pickup-v1): Jeff holds an item and the engine
+# lists picking an item up off the floor only as a swap that leaves the held one on that floor tile. He puts the held
+# item where put_where says, then picks the floor item up with empty hands. Its flag is not one of NAMES, so the
+# released one-press options and their records stay as they are while the switch is off.
+EXTRA = ('put_then_pickup',)
+PICKUP_VERSION = 'put-then-pickup-v1'
+KINDS = ('put_then_take', 'put_then_chop', 'put_then_wash', 'put_then_fetch', 'wash_from_returns', 'put_then_pickup')
 PUT_WHERE = 'put_where'
 PUT_THEN_TAKE = 'put then take '
 # Work at a station the engine lists only with empty hands, offered after a put: kind -> (option kind, key prefix).
@@ -48,11 +54,13 @@ RULE = ('Some actions save presses. "put then take <station>" puts the item you 
         'the usual rules, as if you had chosen it; a step that cannot be done when it comes ends the action, and another '
         'action you choose meanwhile replaces it. questions.put_where lists the put places of next_action and is used only by '
         'these actions.')
+PICKUP_RULE = (' "put then pickup <item>" puts the item you hold there likewise, then picks up that item from the floor.')
 
 
 def flags(value):
     """The switches as a dict of booleans, or None when none is on."""
     on = {name: bool((value or {}).get(name)) for name in NAMES}
+    on.update({name: True for name in EXTRA if (value or {}).get(name)})
     return on if any(on.values()) else None
 
 
@@ -129,6 +137,19 @@ def options(kitchen, who, actions, value):
             item = kitchen.state_label(ingredient, kitchen.rules.items[ingredient]['initial_state'])   # as the fetch label
             out.append(Action('put then ' + fetch.key, f'先把手中的{kitchen.food_name(held)}放到 put_where 选的位置，'
                               f'再到{kitchen.stations[target].name}取一份{item}', 'put_then_fetch', target))
+    if on.get('put_then_pickup') and held is not None:
+        listed = {a.key for a in actions}
+        for pick in empty:
+            if pick.kind != 'pickup' or ('put then ' + pick.key) in listed:
+                continue
+            item = pick.expected[1] if len(pick.expected) > 1 else None
+            ground = getattr(kitchen, 'ground', {}).get(item)
+            if ground is None or not str(pick.target).startswith('floor_'):
+                continue
+            _, x, y = pick.target.split('_')
+            # Worded as put then take (the request's own template), with the floor tile as the place it is taken from.
+            out.append(Action('put then ' + pick.key, f'先把手中的{kitchen.food_name(held)}放到 put_where 选的位置，'
+                              f'再从地面({x},{y})拿起{kitchen.food_name(ground.food)}', 'put_then_pickup', pick.target))
     if on['wash_from_returns']:
         returns = getattr(kitchen, 'returns', None)
         sink_key = getattr(kitchen, 'sink', None)
@@ -150,6 +171,8 @@ def steps(action, kitchen):
         return [(TAKES, action.target)]
     if action.kind == 'put_then_fetch':
         return [(('fetch',), action.target)]
+    if action.kind == 'put_then_pickup':
+        return [(('pickup',), action.target)]
     work = next((w for w, (kind, _) in PUT_THEN_WORK.items() if kind == action.kind), None)
     if work:
         return [((work,), action.target)]

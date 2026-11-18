@@ -561,7 +561,7 @@ class Plan:
 
 def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY, plan=None, one_press=None, undo=None,
             reach=False, names=False, intent=None, split=False, burn=False,
-            serve_note=False, wait_note=False, backlog=False, steps=False):
+            serve_note=False, wait_note=False, backlog=False, steps=False, clear=False):
     """Add what one request needs beyond the snapshot; research replay rebuilds requests here too.
 
     plan is Plan.input() when the plan switch is on, else None (the input is then unchanged).
@@ -573,7 +573,8 @@ def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY,
     serve_note and wait_note: the serve option names the waiting order the held dish goes to, the wait option what
     stays in hand (option_notes.py). backlog: on a floor where only the other chef can chop, state.backlog counts what
     the waiting orders still need chopped (backlog_note.py). steps: state.step_check, whether each kind of step the
-    waiting orders need is possible now and what stands in the way (step_check.py).
+    waiting orders need is possible now and what stands in the way (step_check.py). clear: item ids and "the held
+    item" say what the thing is (clear_names.py); it runs again after the links table.
     names is whether the food_names switch is on: the request's food names are marked (jev.compose_payload) and
     the marks come off here, after translation.
     intent is the intent layer's part when its switch is on (jev.DecisionLoop.intent_input), else None:
@@ -630,7 +631,7 @@ def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY,
                     'criteria': dict(plan['options']) if n == 1 else {**plan['options'], PLAN_NONE: 'No further step'}}
     if one_press:
         import one_press as presses
-        payload['state']['rules']['one_press'] = presses.RULE
+        payload['state']['rules']['one_press'] = presses.RULE + (presses.PICKUP_RULE if one_press.get('put_then_pickup') else '')
     if intent is not None:
         import intent_layer
         payload['state']['rules']['intent_layer'] = intent_layer.RULE
@@ -671,4 +672,7 @@ def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY,
     if steps:
         import step_check
         step_check.apply(payload, kitchen)
+    if clear:
+        import clear_names
+        clear_names.apply(payload, kitchen)
     return payload

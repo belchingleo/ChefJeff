@@ -44,6 +44,8 @@ import burn_note
 import option_notes
 import backlog_note
 import step_check
+import clear_names
+import walk_note
 import food_names
 import intent_layer
 import links
@@ -66,7 +68,10 @@ VERSIONS = {'one_press': one_press.VERSION, 'jeff_plan': harness.PLAN_RULES_VERS
             'wait_note': option_notes.WAIT_VERSION,
             'backlog_note': backlog_note.VERSION,
             'option_links_burnt': links.BURNT_VERSION,
-            'step_check': step_check.VERSION}
+            'step_check': step_check.VERSION,
+            'clear_names': clear_names.VERSION,
+            'pickup_press': one_press.PICKUP_VERSION,
+            'walk_note': walk_note.VERSION}
 # The plan modes (harness.PLAN_MODES), one at a time, and the feature of each.
 PLAN_FEATURES = {'choice': 'jeff_plan', 'rolling': 'rolling_intent'}
 FIELDS = {'stage', 'on', 'player_switch', 'version'}
@@ -209,7 +214,10 @@ def undo_start(features):
 
 def one_press_flags(features):
     """The decision loop's one-press switches (one_press.flags) for these features: all on, or None."""
-    return one_press.flags({name: True for name in one_press.NAMES}) if features['one_press']['on'] else None
+    names = {name: True for name in one_press.NAMES}
+    if (features.get('pickup_press') or {}).get('on'):
+        names['put_then_pickup'] = True      # put then pickup <item> (a trial on top of the released options)
+    return one_press.flags(names) if features['one_press']['on'] else None
 
 
 def compose_options(features):
@@ -221,7 +229,8 @@ def compose_options(features):
             'links': links_option(features), 'split': features['split_floor']['on'],
             'burn': features['burn_note']['on'],
             'serve_note': features['serve_note']['on'], 'wait_note': features['wait_note']['on'],
-            'backlog': features['backlog_note']['on'], 'steps': features['step_check']['on']}
+            'backlog': features['backlog_note']['on'], 'steps': features['step_check']['on'],
+            'clear': features['clear_names']['on'], 'walk': features['walk_note']['on']}
 
 
 def _write_override(value, path):
