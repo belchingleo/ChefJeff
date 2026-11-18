@@ -75,6 +75,14 @@ class BacklogNoteTests(unittest.TestCase):
         self.assertIn('Already fetched (in any state, plates included): beef 1.', on['state']['backlog'])
         self.assertIn('Within the other chef\'s reach to chop now: beef 1.', on['state']['backlog'])
 
+    def test_it_says_how_many_stoves_have_a_pan_and_where_the_others_are(self):
+        # v2: from the stoves' pot_id and the vessels lying elsewhere in the same request.
+        k = kitchen(4)
+        self.assertTrue(request(k, True)['state']['backlog'].endswith('Frying pans on stoves: 2 of 2.'))
+        do(k, 'jeff', 'take pot p1')
+        self.assertTrue(request(k, True)['state']['backlog'].endswith(
+            'Frying pans on stoves: 1 of 2 (Stove 1 without one); elsewhere: your hands.'))
+
     def test_the_switch_adds_the_field_and_the_version_and_nothing_else(self):
         k = kitchen(4)
         on, off = request(k, True), request(k, False)
