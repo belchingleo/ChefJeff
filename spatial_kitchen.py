@@ -75,6 +75,8 @@ def _map_navigation(size,walls,cells,cabinet_clearance=None):
     return Navigation(*size,walls,{key:{'cell':cell} for key,cell in cells},cabinet_clearance)
 
 
+_ANCHORS = {}      # id(a map's floor) -> (that floor, {position: nearest floor cell}), for SpatialKitchen.anchor
+
 class SpatialKitchen(Kitchen):
     def __init__(self, config=None, rng=None):
         super().__init__(config, rng)
@@ -512,7 +514,23 @@ class SpatialKitchen(Kitchen):
 
     def anchor(self, who):
         p = self.positions[who]
-        return min(self.floor, key=lambda c: (math.dist(c, p), c[1], c[0]))
+        # The nearest floor cell depends only on the map's floor and the position, and reaches() asks for it for every
+        # station of every action listing; remember it per floor and position (_ANCHORS) instead of scanning the floor
+        # each time. The answer is the same.
+        floor = self.floor
+        entry = _ANCHORS.get(id(floor))
+        if entry is None or entry[0] is not floor:
+            if len(_ANCHORS) >= 32:
+                _ANCHORS.clear()
+            entry = _ANCHORS[id(floor)] = (floor, {})
+        cells = entry[1]
+        key = tuple(p)
+        cell = cells.get(key)
+        if cell is None:
+            if len(cells) >= 4096:
+                cells.clear()
+            cell = cells[key] = min(floor, key=lambda c: (math.dist(c, p), c[1], c[0]))
+        return cell
 
     def reaches(self, who, target):
         """Whether the chef can walk to work ``target`` (a station or a floor place) from the part of the floor it stands on."""

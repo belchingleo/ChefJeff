@@ -324,14 +324,33 @@ def burnt_empty(twin, who, now):
     return [a for a in twin.actions(who) if a.kind == 'empty_pot' and (a.kind, a.target) not in listed]
 
 
-def partner_chain(kitchen, twin, who, item):
+def _out_of_reach(twin, who, other, item):
+    """Whether the item lies loose where the other chef cannot take it (in the chef's own hands, or on a station or
+    floor place the other chef does not reach): then no action of theirs can name it, and listing them is skipped."""
+    hand = twin.chefs[who].hand
+    if hand is not None and hand.id == item:
+        return True
+    for sid, station in twin.stations.items():
+        if station.food is not None and station.food.id == item:
+            return not twin.reaches(other, sid)
+    for place, ground in twin.ground.items():
+        if ground.food is not None and ground.food.id == item:
+            return not twin.reaches(other, ground.location)
+    return False
+
+
+def partner_chain(kitchen, twin, who, item, before=None):
     """The other chef's shortest run of actions on the held item, after the option, that ends in work (breadth first,
-    at most CHAIN_DEPTH steps), or [] when the item is not where they can take it."""
+    at most CHAIN_DEPTH steps), or [] when the item is not where they can take it. before: the other chef's
+    (kind, target) pairs in the request's kitchen, when the caller has them already (one listing per table)."""
     other = 'human' if who == 'jeff' else 'jeff'
     if not _settle(twin, item):
         return []
+    if _out_of_reach(twin, who, other, item):
+        return []
     held = twin.chefs[other].hand is not None and twin.chefs[other].hand.id == item
-    before = {(a.kind, a.target) for a in kitchen.actions(other)}
+    if before is None:
+        before = {(a.kind, a.target) for a in kitchen.actions(other)}
     if not held and not any(a.kind in PARTNER_KINDS and (a.kind, a.target) not in before and _names_item(a.expected, item)
                             for a in twin.actions(other)):
         return []
@@ -366,6 +385,7 @@ def table(kitchen, who, actions, keys, names=False, partner=False, burnt=False):
     with (food_names.naming() if names else contextlib.nullcontext()):
         now = kitchen.actions(who)
         held_item = kitchen.chefs[who].hand
+        other_now = None
         for key in keys:
             option = by_key.get(key)
             seen = {}
@@ -377,7 +397,9 @@ def table(kitchen, who, actions, keys, names=False, partner=False, burnt=False):
             # not known yet (the fork takes the first place), so those options get no partner line.
             guessed = option is not None and (option.kind in one_press.KINDS or (option.kind == 'intent' and option.expected[0] == 'put'))
             if partner and 'twin' in seen and held_item is not None and not guessed:
-                chain = partner_chain(kitchen, seen['twin'], who, held_item.id)
+                if other_now is None:
+                    other_now = {(a.kind, a.target) for a in kitchen.actions('human' if who == 'jeff' else 'jeff')}
+                chain = partner_chain(kitchen, seen['twin'], who, held_item.id, other_now)
                 if chain:
                     lines.append(THEN + ', then '.join(unmark(english_text(a.label)) for a in chain))
             if lines:
