@@ -124,6 +124,28 @@ class ClearNamesTests(unittest.TestCase):
             self.assertNotEqual(json.dumps(on), json.dumps(off))       # named
             self.assertNotIn('clear_names_version', off['state'])
 
+    def test_the_dropped_ahead_note_reaches_jeff_in_english_as_the_loop_writes_it(self):
+        # The loop writes it in Chinese; the catalog runs first and half-translates it ("提前问的回复作废 (已Pause或本局结束),
+        # 马上重问)"), and v1 left the paused reason in Chinese and a stray ")" after every other reason.
+        k = kitchen(4)
+        client = SpatialJevClient(k.c, key='test-no-credential')
+        notes = [{'t': 1.0, 'choice': 'wait', 'accepted': False, 'result': f'提前问的回复作废（{reason}），马上重问',
+                  'sprint_applied': False} for reason in ('已暂停或本局结束', 'not_listed', 'too_old')]
+        for clear in (False, True):
+            payload = compose_payload(client, k, k.snapshot(), k.actions('jeff'), copy.deepcopy(notes), None,
+                                      names=True, clear=clear)
+            results = [d['result'] for d in payload['state']['recent_decisions']]
+            if clear:
+                self.assertEqual(results, [
+                    'the answer asked ahead was dropped (paused, or the round ended); asked again at once',
+                    'the answer asked ahead was dropped (not_listed); asked again at once',
+                    'the answer asked ahead was dropped (too_old); asked again at once'])
+                clear_names.apply(payload, k)          # a second pass (after the links table) changes nothing
+                self.assertEqual([d['result'] for d in payload['state']['recent_decisions']], results)
+            else:
+                self.assertEqual(results[:2], ['提前问的回复作废 (已Pause或本局结束), 马上重问)',
+                                               '提前问的回复作废 (not_listed), 马上重问)'])
+
     def test_the_version_is_static(self):
         self.assertIn('clear_names_version', wire_format.STATE_STATIC)
 

@@ -21,7 +21,10 @@ dirty", "human started: Put the held item on Board 2"). With this switch on, in 
   ahead and dropped) are given in English;
 - (v2) each chef's task in the state, and any option label that quotes it ("Continue current task: Chop F1 at Board
   1"), names the item before its id as the option labels do ("Chop lettuce (as fetched) F1 at Board 1"), from what
-  the request's own kitchen shows of that item.
+  the request's own kitchen shows of that item;
+- (v2) the dropped-ahead note is read in the form the catalog leaves it too: v1 read it after the catalog had
+  half-translated it, so the paused case stayed "dropped (已Pause或本局结束); asked again at once)" and every other one
+  kept a stray ")" the catalog adds.
 
 Names come from the engine (provenance, vessels, the request's own state); nothing else changes, and applying it
 twice changes nothing more, so it runs after the links table too. clear_names_version goes with the static part.
@@ -29,6 +32,9 @@ twice changes nothing more, so it runs after the links table too. clear_names_ve
 from __future__ import annotations
 
 import re
+
+import engine_english
+from model_language import english_text
 
 VERSION = 'clear-names-v2'
 BARE = re.compile(r'\b([FDPE]\d+)\b(?! \()')
@@ -38,10 +44,11 @@ OLD = re.compile(r'\b(raw meat|Raw meat|Chopped|Cooked|Burnt|Tomato|Lettuce|Brea
 OLD_BEFORE = re.compile(r'\b(?:raw meat|Raw meat|Chopped|Cooked|Burnt|Tomato|Lettuce|Bread|Pot) $')
 WORDS = {'raw': 'as fetched', 'chopped': 'chopped', 'cooking': 'cooking', 'ready': 'cooked', 'burnt': 'burnt'}
 # The decision loop's own result notes that the language catalog does not cover (they reached Jeff in Chinese).
-RESULTS = ((re.compile(r'提前问的回复作废\s*[（(]([^）)]*)[）)]\s*[，,]\s*马上重问'),
-            lambda m: 'the answer asked ahead was dropped ('
-                      + {'已暂停或本局结束': 'paused, or the round ended'}.get(m.group(1).strip(), m.group(1).strip())
-                      + '); asked again at once'),)
+# They arrive here translated (harness.compose runs the catalog first): "提前问的回复作废 (not_listed), 马上重问)", the
+# catalog's own ")" at the end and the paused reason half-translated ("已Pause或本局结束"); as written they match too.
+PAUSED = {'已暂停或本局结束', english_text('已暂停或本局结束')}
+RESULTS = ((re.compile(r'提前问的回复作废\s*[（(]([^）)]*)[）)]\s*[，,]\s*马上重问[）)]?'),
+            lambda m: engine_english.ahead_dropped(None if m.group(1).strip() in PAUSED else m.group(1).strip())),)
 
 
 def _lower(text):
