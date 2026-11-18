@@ -82,6 +82,17 @@ class OptionNoteTests(unittest.TestCase):
         on['questions']['next_action']['criteria']['wait'] = off['questions']['next_action']['criteria']['wait']
         self.assertEqual(json.dumps(without(on, 'wait_note_version')), json.dumps(off))
 
+    def test_continue_says_which_step_it_continues_and_what_is_left(self):
+        # wait-note-v2: from the chef's task, travel_remaining and work_remaining in the same request.
+        k = kitchen(1)
+        k.start('jeff', next(a for a in k.actions('jeff') if a.key == 'go serve'))
+        k.advance(0.2)
+        on, off = request(k, wait=True), request(k)
+        me = off['state']['kitchen']['chefs']['jeff']
+        left = float(me['travel_remaining'] or 0) + float(me['work_remaining'] or 0)
+        self.assertEqual(on['questions']['next_action']['criteria']['continue'],
+                         f"{off['questions']['next_action']['criteria']['continue']}: {me['task']}; {left:.1f} s left")
+
     def test_empty_hands_and_no_dish_leave_the_labels_as_they_were(self):
         for level in (1, 4):
             k = kitchen(level)
