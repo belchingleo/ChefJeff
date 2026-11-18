@@ -111,7 +111,7 @@ class JevClient:
 
 
 def compose_payload(client, kitchen, state, actions, recent_decisions, communication, memory=NO_MEMORY, plan=None, one_press=None,
-                    undo=None, reach=False, names=False, intent=None, links=False):
+                    undo=None, reach=False, names=False, intent=None, links=False, split=False):
     """Jeff's request from the kitchen and the few parts it cannot derive; research replay rebuilds it here too.
 
     one_press is the round's one-press switches (one_press.flags), or None: the options are added to the
@@ -119,7 +119,8 @@ def compose_payload(client, kitchen, state, actions, recent_decisions, communica
     (DecisionLoop.intent_input) when that switch is on; its options are then the actions (intent_layer.build).
     links is whether the option_links switch is on (links.py): the table is computed here, from this kitchen and
     these actions (intents too: links.link carries an intent's steps out), after the request is composed; 'partner'
-    adds the other chef's side (option_links_partner), 'v4' computes the table against waiting (option_links_v4)."""
+    adds the other chef's side (option_links_partner), 'v4' computes the table against waiting (option_links_v4).
+    split is whether the split_floor switch is on (split_floor.py)."""
     if one_press:
         import one_press as presses
         keys = {a.key for a in actions}
@@ -130,7 +131,7 @@ def compose_payload(client, kitchen, state, actions, recent_decisions, communica
         # The intents are built in naming mode already (intent_layer.build), so their labels stay as written.
         state, actions = food_names.state(state), (actions if intent is not None else food_names.labels(kitchen, actions, one_press))
     payload = harness.compose(client.payload(state, actions), kitchen, recent_decisions, communication, memory, plan, one_press,
-                              undo, reach, names, intent)
+                              undo, reach, names, intent, split)
     if links:
         import links as option_links
         payload = option_links.apply(payload, kitchen, 'jeff', actions, names, **option_links.flags(links))
@@ -193,6 +194,8 @@ class DecisionLoop:
         self.undo = None
         # The reach_note trial (reach_note.py): on a split floor, which stations each chef can reach.
         self.reach = False
+        # The split_floor trial (split_floor.py): on such a floor, that no dish can be made by one chef alone.
+        self.split = False
         # The food_names trial (food_names.py): food named "<item> (<state>)" in Jeff's request.
         self.names = False
         # The option_links trial (links.py): each request lists the work each option leads to; the time it takes to
@@ -686,7 +689,7 @@ class DecisionLoop:
         payload = compose_payload(self.client, source, state, actions, self.recent_decisions, communication,
                                   self.cooperation_memory if hasattr(self, 'cooperation_memory') else NO_MEMORY, plan, self.one_press,
                                   deepcopy(self.undo), self.reach, self.names,
-                                  self.intent_input(source is not self.k, since) if self.intents else None)
+                                  self.intent_input(source is not self.k, since) if self.intents else None, split=self.split)
         record = {"request_id": self.calls, "triggers": causes, "observed_state_seq": self.k.event_seq,
                   **({"jeff_plan": plan, "plan_ended": plan_ended} if plan is not None else {}),
                   **({"one_press": dict(self.one_press)} if self.one_press else {}),
