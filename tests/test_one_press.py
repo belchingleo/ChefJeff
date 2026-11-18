@@ -362,7 +362,8 @@ class SessionTests(unittest.TestCase):
                                            'serve_note': {'on': False, 'version': 'serve-note-v1'},
                                            'wait_note': {'on': False, 'version': 'wait-note-v2'},
                                            'backlog_note': {'on': False, 'version': 'backlog-note-v2'},
-                                           'option_links_burnt': {'on': False, 'version': 'burnt-links-v1'}})
+                                           'option_links_burnt': {'on': False, 'version': 'burnt-links-v1'},
+                                           'step_check': {'on': False, 'version': 'step-check-v1'}})
         self.assertNotIn('jeff_plan', row)                 # two-step intent is off in the repository since option-links-v3
 
     def test_the_file_rolls_it_back(self):
@@ -409,7 +410,7 @@ class FeaturesFileTests(unittest.TestCase):
                           'option_links': 'trial', 'option_links_partner': 'trial', 'option_links_v4': 'trial',
                           'split_floor': 'trial', 'burn_note': 'trial',
                           'serve_note': 'trial', 'wait_note': 'trial', 'backlog_note': 'trial',
-                          'option_links_burnt': 'trial'})
+                          'option_links_burnt': 'trial', 'step_check': 'trial'})
 
     def test_a_wrong_file_stops_instead_of_running(self):
         import features

@@ -43,6 +43,7 @@ import split_floor
 import burn_note
 import option_notes
 import backlog_note
+import step_check
 import food_names
 import intent_layer
 import links
@@ -64,7 +65,8 @@ VERSIONS = {'one_press': one_press.VERSION, 'jeff_plan': harness.PLAN_RULES_VERS
             'serve_note': option_notes.SERVE_VERSION,
             'wait_note': option_notes.WAIT_VERSION,
             'backlog_note': backlog_note.VERSION,
-            'option_links_burnt': links.BURNT_VERSION}
+            'option_links_burnt': links.BURNT_VERSION,
+            'step_check': step_check.VERSION}
 # The plan modes (harness.PLAN_MODES), one at a time, and the feature of each.
 PLAN_FEATURES = {'choice': 'jeff_plan', 'rolling': 'rolling_intent'}
 FIELDS = {'stage', 'on', 'player_switch', 'version'}
@@ -219,7 +221,7 @@ def compose_options(features):
             'links': links_option(features), 'split': features['split_floor']['on'],
             'burn': features['burn_note']['on'],
             'serve_note': features['serve_note']['on'], 'wait_note': features['wait_note']['on'],
-            'backlog': features['backlog_note']['on']}
+            'backlog': features['backlog_note']['on'], 'steps': features['step_check']['on']}
 
 
 def _write_override(value, path):

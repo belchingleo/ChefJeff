@@ -659,6 +659,7 @@ class GameSession:
             self.ai.serve_note = self.features['serve_note']['on']
             self.ai.wait_note = self.features['wait_note']['on']
             self.ai.backlog = self.features['backlog_note']['on']
+            self.ai.steps = self.features['step_check']['on']
             self.ai.names = self.features['food_names']['on']
             self.ai.links = features.links_option(self.features)
             self.phase = 'running'

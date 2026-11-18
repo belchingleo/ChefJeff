@@ -135,11 +135,12 @@ def vessels(kitchen, payload):
     return ' '.join(parts)
 
 
-def line(kitchen, payload):
+def line(kitchen, payload, pans=True):
+    """The field's text, or None on another floor. pans=False leaves the vessels sentence out (step_check says it)."""
     if not applies(kitchen):
         return None
-    pans = vessels(kitchen, payload)
-    tail = (' ' + pans) if pans else ''
+    vessel_text = vessels(kitchen, payload) if pans else ''
+    tail = (' ' + vessel_text) if vessel_text else ''
     order, need, have, ready = counts(kitchen, payload)
 
     def listed(counter):
