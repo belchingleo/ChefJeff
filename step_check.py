@@ -8,6 +8,10 @@ that says, in this order:
 
 - what the waiting orders still need chopped (backlog below: needed, already fetched, still to fetch, within the
   other chef's reach to chop now);
+- (v2) fetching: from which supplies of what the waiting orders need fetching is possible now, and which give
+  nothing while something lies on them (the engine lists no fetch from a supply that holds an item), and whose side
+  they are on; in a 2026-11-19 play round a thrown bread landed on the fridge and no beef could be fetched for the
+  rest of the round, while nothing in the request said why;
 - chopping: which boards are free or hold something to chop, or that every board holds other food, and whose side
   they are on;
 - cooking, for each vessel the waiting orders cook in: on which stoves it can start now, or that no stove has that
@@ -23,7 +27,7 @@ from __future__ import annotations
 
 from collections import Counter
 
-VERSION = 'step-check-v1'
+VERSION = 'step-check-v2'
 
 
 def _chopped_first(kitchen, item, state):
@@ -155,6 +159,34 @@ def _vessel_places(k, kind):
     return places
 
 
+def fetching(kitchen, payload):
+    """(v2) Fetching what the waiting orders need: possible now from which supplies, and which give nothing while
+    something lies on them."""
+    k = payload['state']['kitchen']
+    stations = k.get('stations', {})
+    needed = []
+    for o in k.get('orders', []):
+        if o.get('status') != 'pending' or o.get('dish') not in kitchen.rules.recipes:
+            continue
+        for c in kitchen.rules.recipes[o['dish']]['components']:
+            if c['item'] not in needed:
+                needed.append(c['item'])
+    sources = sorted(((sid, item) for sid, item in kitchen.ingredients.items() if item in needed),
+                     key=lambda s: needed.index(s[1]))
+    if not sources:
+        return None
+    free, blocked = [], []
+    for sid, item in sources:
+        food = stations.get(sid, {}).get('food')
+        if food is None:
+            free.append(f'{_name(stations, sid)} ({item})')
+        else:
+            blocked.append(f'{_name(stations, sid)} ({item}) gives nothing while {_food(food)} lies on it')
+    side = _side(kitchen, [sid for sid, _ in sources])
+    parts = ([f"possible now from {', '.join(free)}"] if free else ['not possible now from any supply']) + blocked
+    return f"Fetching: {'; '.join(parts)}; the supplies are on {side}."
+
+
 def chopping(kitchen, payload, need):
     if not any(need.values()):
         return None
@@ -265,7 +297,7 @@ def line(kitchen, payload):
     if not applies(kitchen):
         return None
     _, need, _, _ = counts(kitchen, payload)
-    parts = [backlog(kitchen, payload), chopping(kitchen, payload, need), *cooking(kitchen, payload),
+    parts = [backlog(kitchen, payload), fetching(kitchen, payload), chopping(kitchen, payload, need), *cooking(kitchen, payload),
              plating(kitchen, payload), serving(kitchen, payload)]
     return ' '.join(p for p in parts if p)
 

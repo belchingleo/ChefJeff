@@ -1,4 +1,4 @@
-"""step_check (step-check-v1): whether each kind of step the waiting orders need is possible now, from the engine.
+"""step_check (step-check-v2): whether each kind of step the waiting orders need is possible now, from the engine.
 
 No model is called: requests are composed locally, and the round is a loopback relay round.
 """
@@ -42,10 +42,24 @@ class StepCheckTests(unittest.TestCase):
         self.assertIn('Cooking beef in a frying pan: possible now on Stove 1, Stove 2; the stoves are on your side.', text)
         self.assertIn('Plating: possible now (clean plates:', text)
         self.assertIn('Serving: at Serve, on your side.', text)
-        self.assertIn('Still to fetch:', text)                          # the backlog counts come first
+        self.assertIn('Fetching: possible now from Fridge (beef), Bread supply (bread), Lettuce supply (lettuce), '
+                      'Tomato supply (tomato); the supplies are on your side.', text)
+        self.assertLess(text.index('Still to fetch:'), text.index('Fetching:'))     # the backlog counts come first
+        self.assertLess(text.index('Fetching:'), text.index('Chopping:'))
         self.assertNotIn('Frying pans on stoves', text)                 # without the backlog's own pans sentence
         for word in ('should', 'next', 'please'):                       # facts, not advice
             self.assertNotIn(word, text.lower())
+
+    def test_a_supply_with_something_on_it_gives_nothing_and_says_what_lies_there(self):
+        # (v2) The engine lists no fetch from a supply that holds an item: in a 2026-11-19 round a thrown bread on the
+        # fridge took beef away for the rest of the round.
+        k = kitchen(4)
+        do(k, 'jeff', 'fetch bread')
+        do(k, 'jeff', 'put fridge')
+        self.assertNotIn('fetch beef', [a.key for a in k.actions('jeff')])
+        text = request(k, True)['state']['step_check']
+        self.assertIn('Fetching: possible now from Bread supply (bread), Lettuce supply (lettuce), Tomato supply (tomato); '
+                      'Fridge (beef) gives nothing while bread (as fetched) lies on it; the supplies are on your side.', text)
 
     def test_with_no_pan_on_a_stove_cooking_says_so_and_where_the_pans_are(self):
         k = kitchen(4)

@@ -356,7 +356,7 @@ class SessionTests(unittest.TestCase):
                                            'split_floor': {'on': False, 'version': 'split-floor-v1'},
                                            'burn_note': {'on': False, 'version': 'burn-note-v2'},
                                            'option_links_burnt': {'on': False, 'version': 'burnt-links-v1'},
-                                           'step_check': {'on': False, 'version': 'step-check-v1'},
+                                           'step_check': {'on': False, 'version': 'step-check-v2'},
                                            'pickup_press': {'on': False, 'version': 'put-then-pickup-v1'},
                                            'walk_note': {'on': False, 'version': 'walk-note-v1'},
                                            'clear_text': {'on': True, 'version': 'clear-text-v1'},
