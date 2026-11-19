@@ -114,6 +114,7 @@ def rebuild_requests(record):
         return bool((feats.get(name) or {}).get('on'))
     text, notes = on('clear_text'), on('option_notes')
     reach, split, burn, steps, walk = on('reach_note'), on('split_floor'), on('burn_note'), on('step_check'), on('walk_note')
+    effects = on('option_effects')
     names, clear, english, plate = (text or on('food_names'), text or on('clear_names'), text or on('engine_english'),
                                     text or on('plate_names'))
     serve_note, wait_note = notes or on('serve_note'), notes or on('wait_note')
@@ -145,6 +146,6 @@ def rebuild_requests(record):
                                   data.get('undo_note'), reach, names, links=links, split=split, burn=burn,
                                   serve_note=serve_note, wait_note=wait_note,
                                   steps=steps, clear=clear, walk=walk, english=english,
-                                  plate=plate)
+                                  plate=plate, effects=effects)
         yield {'request_id': row['request_id'], 'seq': row['seq'], 'rebuilt': payload,
                'status': 'verified' if cc.sha256(payload) == data['payload_sha256'] else 'diverged'}

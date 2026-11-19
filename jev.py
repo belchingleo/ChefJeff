@@ -110,7 +110,7 @@ class JevClient:
 def compose_payload(client, kitchen, state, actions, recent_decisions, communication, memory=NO_MEMORY, plan=None, one_press=None,
                     undo=None, reach=False, names=False, links=False, split=False, burn=False,
                     serve_note=False, wait_note=False, steps=False, clear=False, walk=False,
-                    english=False, plate=False):
+                    english=False, plate=False, effects=False):
     """Jeff's request from the kitchen and the few parts it cannot derive; research replay rebuilds it here too.
 
     one_press is the round's one-press switches (one_press.flags), or None: the options are added to the
@@ -123,14 +123,15 @@ def compose_payload(client, kitchen, state, actions, recent_decisions, communica
     steps whether step_check is (step_check.py), clear whether clear_names is (clear_names.py; it runs again after
     the links table, which it may name in), walk whether walk_note is (walk_note.py: each option's walk), english
     whether engine_english is (engine_english.py: the engine's own English where the catalog garbles it), plate
-    whether plate_names is (plate_names.py: a plating option says what the plate there holds)."""
+    whether plate_names is (plate_names.py: a plating option says what the plate there holds), effects whether
+    option_effects is (option_effects.py: an option says what carrying it out directly does, after the links table)."""
     with engine_english.writing(english):
         return _compose(client, kitchen, state, actions, recent_decisions, communication, memory, plan, one_press,
-                        undo, reach, names, links, split, burn, serve_note, wait_note, steps, clear, walk, plate)
+                        undo, reach, names, links, split, burn, serve_note, wait_note, steps, clear, walk, plate, effects)
 
 
 def _compose(client, kitchen, state, actions, recent_decisions, communication, memory, plan, one_press,
-             undo, reach, names, links, split, burn, serve_note, wait_note, steps, clear, walk, plate):
+             undo, reach, names, links, split, burn, serve_note, wait_note, steps, clear, walk, plate, effects):
     if one_press:
         import one_press as presses
         keys = {a.key for a in actions}
@@ -153,6 +154,9 @@ def _compose(client, kitchen, state, actions, recent_decisions, communication, m
         if clear:
             import clear_names
             clear_names.apply(payload, kitchen)
+    if effects:
+        import option_effects
+        option_effects.apply(payload, kitchen, 'jeff', actions)
     return payload
 
 
@@ -235,6 +239,9 @@ class DecisionLoop:
         # compute is counted in when deciding whether to ask ahead (link_times, recent seconds).
         self.links = False
         self.link_times = []
+        # The option_effects trial (option_effects.py): an option says what carrying it out directly does; computed
+        # in the same thread as the links table (prepare in send_request), its time counted in link_times too.
+        self.effects = False
         # The table is computed outside the game loop (prepare in send_request): a thread fills it on a private fork,
         # and the next poll logs and sends the request it completes.
         self.prepared = queue.Queue()
@@ -641,7 +648,7 @@ class DecisionLoop:
         self.step_ended = False
         self.plan_due = False
         self.inflight = True
-        if not self.links:
+        if not self.links and not self.effects:
             self.send(context, payload, record)
             return
         # The links table (links.py) takes a few tenths of a second; computed here it would hold the whole kitchen
@@ -653,6 +660,7 @@ class DecisionLoop:
         record.update(engine_input_n=len(self.k.inputs), state_ref=getattr(self.k, '_research_state_ref', None),
                       candidate_source=[[a.key, a.target, a.kind] for a in self.k.actions('jeff') if a.key in criteria])
         mode, names, listed, clear, english = self.links, self.names, list(actions), self.clear, self.english
+        effects = self.effects
 
         def prepare():
             start = time.monotonic()
@@ -660,10 +668,14 @@ class DecisionLoop:
                 import links as option_links
                 # A context variable does not cross into a thread: the engine_english switch is set here again.
                 with engine_english.writing(english):
-                    option_links.apply(payload, twin, 'jeff', listed, names, **option_links.flags(mode))
-                    if clear:
-                        import clear_names
-                        clear_names.apply(payload, twin)
+                    if mode:
+                        option_links.apply(payload, twin, 'jeff', listed, names, **option_links.flags(mode))
+                        if clear:
+                            import clear_names
+                            clear_names.apply(payload, twin)
+                    if effects:
+                        import option_effects
+                        option_effects.apply(payload, twin, 'jeff', listed)
                 self.prepared.put((context, payload, record, time.monotonic() - start, None))
             except Exception as error:      # never the payload or a key: only the kind of failure is logged
                 self.prepared.put((context, payload, record, time.monotonic() - start, error))

@@ -674,6 +674,7 @@ class GameSession:
             # clear_text: food names, item names, the engine's English and plate names, together.
             self.ai.names = self.ai.clear = self.ai.english = self.ai.plate = self.features['clear_text']['on']
             self.ai.links = features.links_option(self.features)
+            self.ai.effects = self.features['option_effects']['on']
             self.phase = 'running'
             self.last_tick = self.last_seen = time.monotonic()
             self.wake.set()

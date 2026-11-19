@@ -116,7 +116,7 @@ class NoChineseTests(unittest.TestCase):
 
     def test_no_chinese_in_requests_with_every_trial_on(self):
         switches = dict(reach=True, links='partner+burnt', split=True, burn=True, serve_note=True, wait_note=True,
-                        steps=True, clear=True, walk=True)
+                        steps=True, clear=True, walk=True, effects=True)
         for level in (1, 2, 3, 4):
             k = kitchen(level)
             for key in ('fetch beef', 'drop', 'fetch lettuce'):
@@ -129,7 +129,7 @@ class NoChineseTests(unittest.TestCase):
     def test_no_chinese_with_every_trial_on_and_engine_english_where_food_is_plated(self):
         import test_engine_english as ee
         switches = dict(reach=True, links='partner+burnt', split=True, burn=True, serve_note=True, wait_note=True,
-                        steps=True, clear=True, walk=True, english=True)
+                        steps=True, clear=True, walk=True, english=True, effects=True)
         decisions, _ = ee.loop_notes(True)
         for level in (1, 2, 3, 4):
             k = kitchen(level)

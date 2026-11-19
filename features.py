@@ -53,6 +53,7 @@ import plate_names
 import engine_english
 import food_names
 import links
+import option_effects
 
 ROOT = Path(__file__).resolve().parent
 PATH = ROOT / 'features.json'
@@ -71,7 +72,8 @@ VERSIONS = {'one_press': one_press.VERSION, 'jeff_plan': harness.PLAN_RULES_VERS
             'pickup_press': one_press.PICKUP_VERSION,
             'walk_note': walk_note.VERSION,
             'clear_text': 'clear-text-v1',
-            'option_notes': option_notes.VERSION}
+            'option_notes': option_notes.VERSION,
+            'option_effects': option_effects.VERSION}
 # clear_text (2026-11-19: was food_names, clear_names, engine_english and plate_names) turns those four on together;
 # clear-text-v1 is names-v1, clear-names-v3, engine-english-v1 and plate-names-v1. option_notes (was serve_note and
 # wait_note) is serve-note-v1 and wait-note-v2.
@@ -245,7 +247,8 @@ def compose_options(features):
             'serve_note': features['option_notes']['on'], 'wait_note': features['option_notes']['on'],
             'steps': features['step_check']['on'],
             'clear': features['clear_text']['on'], 'walk': features['walk_note']['on'],
-            'english': features['clear_text']['on'], 'plate': features['clear_text']['on']}
+            'english': features['clear_text']['on'], 'plate': features['clear_text']['on'],
+            'effects': features['option_effects']['on']}
 
 
 def _write_override(value, path):
