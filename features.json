@@ -10,7 +10,7 @@
   "split_floor": {"stage": "trial", "on": false, "version": "split-floor-v1"},
   "burn_note": {"stage": "trial", "on": false, "version": "burn-note-v3"},
   "option_links_burnt": {"stage": "trial", "on": false, "version": "burnt-links-v1"},
-  "step_check": {"stage": "trial", "on": false, "version": "step-check-v2"},
+  "step_check": {"stage": "trial", "on": false, "version": "step-check-v3"},
   "pickup_press": {"stage": "trial", "on": false, "version": "put-then-pickup-v1"},
   "walk_note": {"stage": "trial", "on": false, "version": "walk-note-v1"},
   "clear_text": {"stage": "trial", "on": true, "version": "clear-text-v1"},

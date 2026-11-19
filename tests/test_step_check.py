@@ -1,4 +1,4 @@
-"""step_check (step-check-v2): whether each kind of step the waiting orders need is possible now, from the engine.
+"""step_check (step-check-v3): whether each kind of step the waiting orders need is possible now, from the engine.
 
 No model is called: requests are composed locally, and the round is a loopback relay round.
 """
@@ -61,15 +61,47 @@ class StepCheckTests(unittest.TestCase):
         self.assertIn('Fetching: possible now from Bread supply (bread), Lettuce supply (lettuce), Tomato supply (tomato); '
                       'Fridge (beef) gives nothing while bread (as fetched) lies on it; the supplies are on your side.', text)
 
-    def test_with_no_pan_on_a_stove_cooking_says_so_and_where_the_pans_are(self):
+    def test_with_no_pan_on_a_stove_cooking_is_possible_once_one_is_put_there(self):
+        # (v3) v1 and v2 said "not possible now: no stove has a frying pan" while the pans were in hand or on a counter.
         k = kitchen(4)
         do(k, 'jeff', 'take pot p1')
         put = next(a for a in k.actions('jeff') if a.kind == 'put_counter')
         do(k, 'jeff', put.key)
         do(k, 'jeff', 'take pot p2')
-        text = request(k, True)['state']['step_check']
-        self.assertIn('Cooking beef in a frying pan: not possible now: no stove has a frying pan (frying pans: ', text)
-        self.assertIn('your hands).', text)
+        payload = request(k, True)
+        counter = payload['state']['kitchen']['stations'][put.target]['name']
+        self.assertIn('Cooking beef in a frying pan: possible once a frying pan is put on Stove 1 or Stove 2 (no frying pan '
+                      f'there); frying pans off the stoves: {counter} (empty frying pan), your hands (empty frying pan); '
+                      'the stoves are on your side.', payload['state']['step_check'])
+
+    def pan_on_a_counter_and_burnt_food_on_the_other_stove(self, stage):
+        """Level 4: Stove 1's pan on a counter holding beef in this stage, Stove 2's pan holding burnt beef."""
+        k = kitchen(4)
+        do(k, 'jeff', 'take pot p1')
+        put = next(a for a in k.actions('jeff') if a.kind == 'put_counter')
+        do(k, 'jeff', put.key)
+        payload = request(k, False)
+        stations = payload['state']['kitchen']['stations']
+        stations['p2']['food'] = {'id': 'F9', 'stage': 'burnt', 'meaning': 'beef (burnt)', 'ingredient': 'beef'}
+        pan = stations[put.target]['food']
+        pan['contents'] = {'id': 'F8', 'stage': stage, 'meaning': f'beef ({stage})', 'ingredient': 'beef'}
+        pan['meaning'] = f'frying pan with beef ({stage})'
+        return k, payload, stations[put.target]['name']
+
+    def test_a_free_stove_and_a_pan_of_chopped_beef_on_a_counter_make_cooking_possible(self):
+        # (v3) A 2026-11-19 play round: v2 said "not possible now: every frying pan on a stove holds food or is on fire
+        # (Stove 2 holds beef (burnt))" for 100 s while this pan stood on Counter 7.
+        k, payload, counter = self.pan_on_a_counter_and_burnt_food_on_the_other_stove('chopped')
+        self.assertEqual(step_check.cooking(k, payload), [
+            'Cooking beef in a frying pan: possible once a frying pan is put on Stove 1 (no frying pan there); frying '
+            f'pans off the stoves: {counter} (frying pan with beef (chopped)); Stove 2 holds beef (burnt); the stoves are '
+            'on your side.'])
+
+    def test_a_pan_off_the_stove_holding_cooked_food_does_not_make_cooking_possible(self):
+        k, payload, _ = self.pan_on_a_counter_and_burnt_food_on_the_other_stove('ready')
+        self.assertEqual(step_check.cooking(k, payload), [
+            'Cooking beef in a frying pan: not possible now: every frying pan on a stove holds food or is on fire '
+            '(Stove 2 holds beef (burnt)).'])
 
     def test_a_pan_holding_food_is_named_and_the_free_one_offered(self):
         k = kitchen(4)

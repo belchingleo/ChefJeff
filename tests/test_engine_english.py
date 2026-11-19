@@ -12,7 +12,8 @@ plate or pick an item up naming that item (v3), and plating labels and chef task
 Rewritten once more when backlog_note was removed: the level-4 every_trial requests lose state.backlog and its version
 and are otherwise the same; for step-check-v2, whose fetching sentence is all they gain (with the version); and for
 undo-note-v2, whose version field is all that changes; and for burn-note-v3 and undo-note-v3: the two versions, and the
-options that put a held pan of cooked food on a stove say when it burns.
+options that put a held pan of cooked food on a stove say when it burns; and for step-check-v3, whose version field is
+all that changes in these rounds.
 """
 from __future__ import annotations
 

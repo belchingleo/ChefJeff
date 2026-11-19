@@ -1,4 +1,4 @@
-"""step-check-v1: for each kind of step the waiting orders need, whether the kitchen allows it now and, if not, what
+"""step-check-v3: for each kind of step the waiting orders need, whether the kitchen allows it now and, if not, what
 stands in the way, from the engine's state and recipes.
 
 A trial (features.json step_check, off by default, no page switch). Jeff reads the kitchen as some thirty stations of
@@ -14,11 +14,19 @@ that says, in this order:
   rest of the round, while nothing in the request said why;
 - chopping: which boards are free or hold something to chop, or that every board holds other food, and whose side
   they are on;
-- cooking, for each vessel the waiting orders cook in: on which stoves it can start now, or that no stove has that
-  vessel (and where the vessels are), or that every one holds food or is on fire;
+- cooking, for each vessel the waiting orders cook in: on which stoves it can start now; (v3) if none, but a stove has
+  no vessel and a vessel of that kind that is empty or holds food still to cook is off the stoves, that it is
+  possible once one is put on that stove, naming the stove and each vessel off the stoves with where it is and what
+  it holds; only otherwise that it is not possible now (no
+  vessel anywhere to put on a free stove, or no stove free);
 - plating: where the clean plates and the plates with food are, or that there is no clean plate (where the dirty
   ones are, and how many are still with diners);
 - serving: where it is done and whose side that is.
+
+v3 (2026-11-19): v1 and v2 said "not possible now: every frying pan on a stove holds food or is on fire (Stove 2 holds
+beef (burnt))" while Stove 1 had no pan and a pan of chopped beef stood on Counter 7; in that play round Jeff left the
+pan there for 100 s and cooked nothing more. In the day's level-4 rounds 678 of the 739 requests that said cooking was
+not possible had a stove without a pan and a pan elsewhere (in a hand, on a counter or on the floor).
 
 Facts only, nothing about who should do what. It changes with every request (live part); step_check_version goes
 with the static part. On any other floor nothing is added.
@@ -27,7 +35,7 @@ from __future__ import annotations
 
 from collections import Counter
 
-VERSION = 'step-check-v2'
+VERSION = 'step-check-v3'
 
 
 def _chopped_first(kitchen, item, state):
@@ -141,22 +149,38 @@ def _food(food):
     return food.get('meaning') or food.get('stage') if isinstance(food, dict) else None
 
 
-def _vessel_places(k, kind):
-    """Where the vessels of a kind lie off the stoves: station names, hands, floor places."""
-    places = []
+def _vessels_off(k, kind):
+    """[(where, the vessel as the request names it)] for the vessels of a kind off the stoves: on a station, in a hand,
+    on the floor."""
+    found = []
     for sid, station in k.get('stations', {}).items():
         food = station.get('food')
         if isinstance(food, dict) and food.get('stage') == 'pot' and food.get('vessel') == kind and not station.get('stove'):
-            places.append(station.get('name', sid))
+            found.append((station.get('name', sid), food))
     for who, chef in k.get('chefs', {}).items():
         food = chef.get('holding')
         if isinstance(food, dict) and food.get('stage') == 'pot' and food.get('vessel') == kind:
-            places.append('your hands' if who == 'jeff' else "the other chef's hands")
+            found.append(('your hands' if who == 'jeff' else "the other chef's hands", food))
     for g in k.get('ground', []):
         food = g.get('food')
         if isinstance(food, dict) and food.get('stage') == 'pot' and food.get('vessel') == kind:
-            places.append(g.get('near') or g.get('location'))
-    return places
+            found.append((g.get('near') or g.get('location'), food))
+    return found
+
+
+def _usable(vessel, items, cooks):
+    """(v3) Whether a vessel off the stoves would cook on a stove: empty, or holding an item the orders cook in it, in the
+    state it cooks from or still cooking."""
+    contents = vessel.get('contents')
+    if not isinstance(contents, dict):
+        return not contents
+    item = contents.get('ingredient')
+    return item in items and contents.get('stage') in (cooks.get(item), 'cooking')
+
+
+def _vessel_places(k, kind):
+    """Where the vessels of a kind lie off the stoves: station names, hands, floor places."""
+    return [where for where, _ in _vessels_off(k, kind)]
 
 
 def fetching(kitchen, payload):
@@ -230,11 +254,6 @@ def cooking(kitchen, payload):
         name = names.get(kind, kind)
         what = f"Cooking {', '.join(items)} in a {name}"
         holding = [sid for sid in stoves if stations[sid].get('pot_id') and stations[sid].get('vessel') == kind]
-        if not holding:
-            places = _vessel_places(k, kind)
-            where = f" ({name}s: {', '.join(places)})" if places else ''
-            lines.append(f'{what}: not possible now: no stove has a {name}{where}.')
-            continue
         free = [sid for sid in holding if not stations[sid].get('food') and not stations[sid].get('fire')]
         busy = []
         for sid in holding:
@@ -242,10 +261,24 @@ def cooking(kitchen, payload):
                 busy.append(f'{_name(stations, sid)} is on fire')
             elif stations[sid].get('food'):
                 busy.append(f"{_name(stations, sid)} holds {_food(stations[sid]['food'])}")
-        side = _side(kitchen, holding)
+        rest = f"; {'; '.join(busy)}" if busy else ''
         if free:
-            rest = f"; {'; '.join(busy)}" if busy else ''
-            lines.append(f"{what}: possible now on {', '.join(_name(stations, s) for s in free)}{rest}; the stoves are on {side}.")
+            lines.append(f"{what}: possible now on {', '.join(_name(stations, s) for s in free)}{rest}; the stoves are on "
+                         f"{_side(kitchen, holding)}.")
+            continue
+        # (v3) A stove with no vessel, not on fire, and a vessel of this kind off the stoves: possible once it is put there.
+        bare = [sid for sid in stoves if not stations[sid].get('pot_id') and not stations[sid].get('fire')]
+        off = _vessels_off(k, kind)
+        cooks = {c.get('item'): c.get('from') for c in ((k.get('vessels') or {}).get(kind) or {}).get('cooks', [])}
+        if bare and any(_usable(food, items, cooks) for _, food in off):
+            vessels = ', '.join(f'{where} ({_food(food)})' for where, food in off)
+            lines.append(f"{what}: possible once a {name} is put on {' or '.join(_name(stations, s) for s in bare)} (no "
+                         f"{name} there); {name}s off the stoves: {vessels}{rest}; the stoves are on {_side(kitchen, bare)}.")
+        elif not holding:
+            places = [where for where, _ in off]
+            where = f" ({name}s: {', '.join(places)})" if places else ''
+            fires = [f'{_name(stations, sid)} is on fire' for sid in stoves if stations[sid].get('fire')]
+            lines.append(f"{what}: not possible now: no stove has a {name}{where}{('; ' + '; '.join(fires)) if fires else ''}.")
         else:
             lines.append(f"{what}: not possible now: every {name} on a stove holds food or is on fire ({'; '.join(busy)}).")
     return lines
