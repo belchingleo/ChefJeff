@@ -718,7 +718,7 @@ function settingsHarness(){
  assert.equal(r.status,200);
  call=h.calls.find(c=>c.url==='https://api.perplexity.ai/v1/decisions');sent=JSON.parse(call.init.body);
  assert.equal(call.init.headers.Authorization,'Bearer '+key);assert.equal(call.init.mode,'cors');assert.equal(call.init.credentials,'omit');
- assert.deepEqual(Object.keys(sent).sort(),['model','questions','state']);assert.equal(sent.model,'pplx-decider-v1.2');
+ assert.deepEqual(Object.keys(sent).sort(),['model','questions','state']);assert.equal(sent.model,'pplx-decider-v1.3');
  // Parallel refuses browser calls (no CORS), so the online page does not offer it.
  h=harness();r=await h.w.fetch('/api/connection',{body:JSON.stringify({provider:'parallel',api_key:key,game_id:'round'})});
  assert.notEqual(r.status,200);assert(!h.calls.some(c=>String(c.url).includes('api.parallel.ai')),'Parallel is never called from the online page');

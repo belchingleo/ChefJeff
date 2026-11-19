@@ -233,7 +233,7 @@ class CompatibleTests(unittest.TestCase):
         self.assertEqual(req.full_url,'https://api.perplexity.ai/v1/decisions')
         self.assertEqual(req.get_header('Authorization'),'Bearer '+KEY)
         self.assertEqual(set(json.loads(req.data)),{'model','state','questions'})
-        self.assertEqual(json.loads(req.data)['model'],'pplx-decider-v1.2')
+        self.assertEqual(json.loads(req.data)['model'],'pplx-decider-v1.3')
     def test_parallel_gets_the_key_in_x_api_key_and_no_model_field(self):
         # Parallel refuses unknown top-level fields (422) and takes its key in x-api-key, not Authorization.
         setting=settings_from({'provider':'parallel','api_key':KEY})
