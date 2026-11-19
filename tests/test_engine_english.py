@@ -385,30 +385,6 @@ class OffIsByteIdenticalTests(unittest.TestCase):
         self.assertFalse(any(CJK.search(t) for t in text))
 
 
-class EngineEnglishReplayTests(paths.SavePathTests):
-    def test_a_round_with_the_switch_on_replays_exactly(self):
-        with self.game.lock:
-            self.game.features = {**self.game.features,
-                                  'engine_english': {**self.game.features['engine_english'], 'on': True}}
-        receipt = self.play()
-        self.natural_end()
-        self.assertEqual(self.contribute()[0], 200)
-        record = self.game.store.download(receipt['id'], receipt['deletion_token'])
-        validate_record(record)
-        self.assertEqual(record['conditions']['features']['engine_english'], {'on': True, 'version': engine_english.VERSION})
-        rows = list(research_replay.rebuild_requests(record))
-        self.assertTrue(rows)
-        self.assertEqual({row['status'] for row in rows}, {'verified'})
-        record['conditions']['features']['engine_english']['on'] = False
-        self.assertEqual({row['status'] for row in research_replay.rebuild_requests(record)}, {'diverged'})
-
-
-# Only the case above; the inherited ones already run in their own module.
-for _name in dir(paths.SavePathTests):
-    if _name.startswith('test_'):
-        setattr(EngineEnglishReplayTests, _name, None)
-
-
 if __name__ == '__main__':
     if '--record' in sys.argv:
         GOLDEN.write_text(json.dumps(digests(), indent=1, sort_keys=True) + '\n', encoding='utf-8')

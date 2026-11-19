@@ -93,7 +93,7 @@ def moments(paths):
             k = factory(data['session']['runtime_versions']['engine'])(deepcopy(data['resolved']))
             inputs, n = data['inputs'], 0
             reach = bool((features.get('reach_note') or {}).get('on'))
-            names = bool((features.get('food_names') or {}).get('on'))
+            names = bool((features.get('food_names') or {}).get('on') or (features.get('clear_text') or {}).get('on'))
             answers = {r.get('request_id'): r for r in rows if r.get('kind') == 'ai_response'}
             for row in rows:
                 payload = row.get('payload')

@@ -158,8 +158,6 @@ class NamesTests(unittest.TestCase):
 
 class SwitchTests(unittest.TestCase):
     def test_on_by_default_and_off_changes_nothing(self):
-        self.assertEqual(features.current()['food_names'], {'stage': 'trial', 'on': True, 'player_switch': False,
-                                                            'version': food_names.VERSION})
         k = SpatialKitchen(level_config(load_config(), 'level-2'))
         k.stations['b1'].food = Food('F50', 'chopped', ingredient='beef')
         plain = ask(k, names=False)
@@ -211,7 +209,7 @@ class CheckTests(unittest.TestCase):
                         'model': 'stand-in', 'usage': {}, 'latency': .5}
         model = cls.MODEL
         current = features.current()
-        off = {**current, 'food_names': {**current['food_names'], 'on': False}}   # the check reads rounds played without names
+        off = {**current, 'clear_text': {**current['clear_text'], 'on': False}}   # the check reads rounds played without names
         # food_names_check rebuilds requests without a step-hint table, from rounds that asked nothing ahead (its trial).
         off = {**off, 'option_links': {**current['option_links'], 'on': False}, 'ask_ahead': {**current['ask_ahead'], 'on': False}}
         cls.folder = tempfile.TemporaryDirectory()

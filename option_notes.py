@@ -15,6 +15,8 @@ from __future__ import annotations
 
 SERVE_VERSION = 'serve-note-v1'
 WAIT_VERSION = 'wait-note-v2'
+# The option_notes switch (2026-11-19: was serve_note and wait_note) turns both on: serve-note-v1 + wait-note-v2.
+VERSION = 'option-notes-v1'
 SERVE_FOR = ' (the held {food} goes to order {order}, which waits for {dish}: {seconds:.0f} s left)'
 SERVE_NONE = ' (no order is waiting for {dish} now)'
 WAIT_HOLDING = 'Wait, keeping the held {food} in hand'

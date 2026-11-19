@@ -100,20 +100,23 @@ class OptionNoteTests(unittest.TestCase):
             self.assertEqual(json.dumps(without(on, 'serve_note_version', 'wait_note_version')), json.dumps(off))
 
 
-    def test_both_are_trials_off_by_default_without_a_page_switch(self):
-        for name, version in (('serve_note', option_notes.SERVE_VERSION), ('wait_note', option_notes.WAIT_VERSION)):
-            self.assertEqual(features.current()[name], {'stage': 'trial', 'on': False, 'player_switch': False, 'version': version})
-            on = {**features.current(), name: {**features.current()[name], 'on': True}}
-            self.assertTrue(features.compose_options(on)[name])
-            self.assertFalse(features.compose_options(features.current())[name])
+    def test_one_switch_a_trial_off_by_default_without_a_page_switch_turns_both_on(self):
+        self.assertEqual(features.current()['option_notes'],
+                         {'stage': 'trial', 'on': False, 'player_switch': False, 'version': option_notes.VERSION})
+        self.assertEqual((option_notes.VERSION, option_notes.SERVE_VERSION, option_notes.WAIT_VERSION),
+                         ('option-notes-v1', 'serve-note-v1', 'wait-note-v2'))     # a new part needs a new VERSION
+        for name in ('serve_note', 'wait_note'):
+            self.assertNotIn(name, features.current())
+        on = {**features.current(), 'option_notes': {**features.current()['option_notes'], 'on': True}}
+        self.assertEqual({k: features.compose_options(on)[k] for k in ('serve_note', 'wait_note')}, {'serve_note': True, 'wait_note': True})
+        self.assertEqual({k: features.compose_options(features.current())[k] for k in ('serve_note', 'wait_note')},
+                         {'serve_note': False, 'wait_note': False})
 
 
 class OptionNoteReplayTests(paths.SavePathTests):
     def test_a_round_with_both_notes_replays_exactly(self):
         with self.game.lock:
-            self.game.features = {**self.game.features,
-                                  'serve_note': {**self.game.features['serve_note'], 'on': True},
-                                  'wait_note': {**self.game.features['wait_note'], 'on': True}}
+            self.game.features = {**self.game.features, 'option_notes': {**self.game.features['option_notes'], 'on': True}}
         status, data = self.request('/api/level', {'game_id': self.game.game_id, 'request_id': uuid.uuid4().hex, 'level': 1}, self.token)
         self.assertEqual(status, 200, data)
         receipt = self.play()
@@ -121,11 +124,16 @@ class OptionNoteReplayTests(paths.SavePathTests):
         self.assertEqual(self.contribute()[0], 200)
         record = self.game.store.download(receipt['id'], receipt['deletion_token'])
         validate_record(record)
-        self.assertEqual(record['conditions']['features']['wait_note'], {'on': True, 'version': option_notes.WAIT_VERSION})
+        self.assertEqual(record['conditions']['features']['option_notes'], {'on': True, 'version': option_notes.VERSION})
         rows = list(research_replay.rebuild_requests(record))
         self.assertTrue(rows)
         self.assertEqual({row['status'] for row in rows}, {'verified'})
-        record['conditions']['features']['wait_note']['on'] = False
+        # A record from before the merge names serve_note and wait_note.
+        old = json.loads(json.dumps(record))
+        del old['conditions']['features']['option_notes']
+        old['conditions']['features'].update(serve_note={'on': True, 'version': 'v'}, wait_note={'on': True, 'version': 'v'})
+        self.assertEqual({row['status'] for row in research_replay.rebuild_requests(old)}, {'verified'})
+        record['conditions']['features']['option_notes']['on'] = False
         self.assertEqual({row['status'] for row in research_replay.rebuild_requests(record)}, {'diverged'})
 
 

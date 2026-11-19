@@ -349,23 +349,18 @@ class SessionTests(unittest.TestCase):
                                            'jeff_plan': {'on': False, 'version': 'plan-v2'},
                                            'rolling_intent': {'on': False, 'version': 'rolling-v3'},
                                            'undo_note': {'on': False, 'version': 'undo-note-v1'},
-                                           'ask_ahead': {'on': True, 'version': 'ask-ahead-v1'},
-                                           'ahead_throw': {'on': False, 'version': 'ahead-throw-v1'},
+                                           'ask_ahead': {'on': True, 'version': 'ask-ahead-v2'},
                                            'reach_note': {'on': False, 'version': 'reach-v1'},
-                                           'food_names': {'on': True, 'version': 'names-v1'},
                                            'option_links': {'on': True, 'version': 'option-links-v3'},
                                            'option_links_partner': {'on': False, 'version': 'partner-links-v3'},
                                            'split_floor': {'on': False, 'version': 'split-floor-v1'},
                                            'burn_note': {'on': False, 'version': 'burn-note-v2'},
-                                           'serve_note': {'on': False, 'version': 'serve-note-v1'},
-                                           'wait_note': {'on': False, 'version': 'wait-note-v2'},
                                            'option_links_burnt': {'on': False, 'version': 'burnt-links-v1'},
                                            'step_check': {'on': False, 'version': 'step-check-v1'},
-                                           'clear_names': {'on': False, 'version': 'clear-names-v3'},
                                            'pickup_press': {'on': False, 'version': 'put-then-pickup-v1'},
                                            'walk_note': {'on': False, 'version': 'walk-note-v1'},
-                                           'engine_english': {'on': False, 'version': 'engine-english-v1'},
-                                           'plate_names': {'on': False, 'version': 'plate-names-v1'}})
+                                           'clear_text': {'on': True, 'version': 'clear-text-v1'},
+                                           'option_notes': {'on': False, 'version': 'option-notes-v1'}})
         self.assertNotIn('jeff_plan', row)                 # two-step intent is off in the repository since option-links-v3
 
     def test_the_file_rolls_it_back(self):
@@ -407,11 +402,12 @@ class FeaturesFileTests(unittest.TestCase):
         self.assertEqual(value['jeff_plan'], {'stage': 'trial', 'on': False, 'player_switch': False, 'version': 'plan-v2'})
         self.assertEqual({name: v['stage'] for name, v in value.items()},
                          {'one_press': 'release', 'jeff_plan': 'trial', 'rolling_intent': 'release', 'undo_note': 'trial',
-                          'ask_ahead': 'trial', 'ahead_throw': 'trial', 'reach_note': 'trial', 'food_names': 'trial',
-                                                    'option_links': 'trial', 'option_links_partner': 'trial',                           'split_floor': 'trial', 'burn_note': 'trial',
-                          'serve_note': 'trial', 'wait_note': 'trial',                           'option_links_burnt': 'trial', 'step_check': 'trial',
-                          'clear_names': 'trial', 'pickup_press': 'trial', 'walk_note': 'trial',
-                          'engine_english': 'trial', 'plate_names': 'trial'})
+                          'ask_ahead': 'trial', 'reach_note': 'trial',
+                          'option_links': 'trial', 'option_links_partner': 'trial',
+                          'split_floor': 'trial', 'burn_note': 'trial',
+                          'option_links_burnt': 'trial', 'step_check': 'trial',
+                          'pickup_press': 'trial', 'walk_note': 'trial',
+                          'clear_text': 'trial', 'option_notes': 'trial'})
 
     def test_a_wrong_file_stops_instead_of_running(self):
         import features

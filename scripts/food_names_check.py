@@ -116,8 +116,8 @@ def moments(paths, since=None, until=None):
             if (since and (not day or day < since)) or (until and (not day or day > until)):
                 continue
             features = start.get('features') or {}
-            if (features.get('food_names') or {}).get('on'):
-                continue                      # already named: nothing to compare
+            if (features.get('food_names') or {}).get('on') or (features.get('clear_text') or {}).get('on'):
+                continue                      # already named (clear_text since 2026-11-19): nothing to compare
             bundle = bundle_for(path)
             if bundle is None:
                 counts['rounds_without_bundle'] += 1

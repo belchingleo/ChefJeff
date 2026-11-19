@@ -79,34 +79,5 @@ class PlateNamesTests(unittest.TestCase):
         on['questions'] = off['questions']
         self.assertEqual(on, off)       # the labels are all it changes
 
-    def test_the_feature_is_a_trial_off_by_default_without_a_page_switch(self):
-        self.assertEqual(features.current()['plate_names'],
-                         {'stage': 'trial', 'on': False, 'player_switch': False, 'version': plate_names.VERSION})
-        on = {**features.current(), 'plate_names': {**features.current()['plate_names'], 'on': True}}
-        self.assertTrue(features.compose_options(on)['plate'])
-        self.assertFalse(features.compose_options(features.current())['plate'])
-
-
-class PlateNamesReplayTests(paths.SavePathTests):
-    def test_a_round_with_plate_names_replays_exactly(self):
-        with self.game.lock:
-            self.game.features = {**self.game.features, 'plate_names': {**self.game.features['plate_names'], 'on': True}}
-        receipt = self.play()
-        self.natural_end()
-        self.assertEqual(self.contribute()[0], 200)
-        record = self.game.store.download(receipt['id'], receipt['deletion_token'])
-        validate_record(record)
-        self.assertEqual(record['conditions']['features']['plate_names'], {'on': True, 'version': plate_names.VERSION})
-        rows = list(research_replay.rebuild_requests(record))
-        self.assertTrue(rows)
-        self.assertEqual({row['status'] for row in rows}, {'verified'})
-
-
-# Only the case above; the inherited ones already run in their own module.
-for _name in dir(paths.SavePathTests):
-    if _name.startswith('test_'):
-        setattr(PlateNamesReplayTests, _name, None)
-
-
 if __name__ == '__main__':
     unittest.main()

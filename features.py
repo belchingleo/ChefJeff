@@ -55,21 +55,20 @@ STAGES = ('release', 'trial')
 VERSIONS = {'one_press': one_press.VERSION, 'jeff_plan': harness.PLAN_RULES_VERSION,
             'rolling_intent': harness.ROLLING_RULES_VERSION, 'undo_note': undo_note.VERSION,
             'ask_ahead': ask_ahead.VERSION,
-            'ahead_throw': ask_ahead.THROW_VERSION,
-            'reach_note': reach_note.VERSION, 'food_names': food_names.VERSION,
+            'reach_note': reach_note.VERSION,
             'option_links': links.SWITCH_VERSION,
             'option_links_partner': links.PARTNER_VERSION,
             'split_floor': split_floor.VERSION,
             'burn_note': burn_note.VERSION,
-            'serve_note': option_notes.SERVE_VERSION,
-            'wait_note': option_notes.WAIT_VERSION,
             'option_links_burnt': links.BURNT_VERSION,
             'step_check': step_check.VERSION,
-            'clear_names': clear_names.VERSION,
             'pickup_press': one_press.PICKUP_VERSION,
             'walk_note': walk_note.VERSION,
-            'engine_english': engine_english.VERSION,
-            'plate_names': plate_names.VERSION}
+            'clear_text': 'clear-text-v1',
+            'option_notes': option_notes.VERSION}
+# clear_text (2026-11-19: was food_names, clear_names, engine_english and plate_names) turns those four on together;
+# clear-text-v1 is names-v1, clear-names-v3, engine-english-v1 and plate-names-v1. option_notes (was serve_note and
+# wait_note) is serve-note-v1 and wait-note-v2.
 # The plan modes (harness.PLAN_MODES), one at a time, and the feature of each.
 PLAN_FEATURES = {'choice': 'jeff_plan', 'rolling': 'rolling_intent'}
 FIELDS = {'stage', 'on', 'player_switch', 'version'}
@@ -214,13 +213,13 @@ def compose_options(features):
     """compose_payload's switches for a new round with these features (as the session sets the decision loop),
     for scripts that build Jeff's request outside a session."""
     return {'one_press': one_press_flags(features), 'undo': undo_start(features),
-            'reach': features['reach_note']['on'], 'names': features['food_names']['on'],
+            'reach': features['reach_note']['on'], 'names': features['clear_text']['on'],
             'links': links_option(features), 'split': features['split_floor']['on'],
             'burn': features['burn_note']['on'],
-            'serve_note': features['serve_note']['on'], 'wait_note': features['wait_note']['on'],
+            'serve_note': features['option_notes']['on'], 'wait_note': features['option_notes']['on'],
             'steps': features['step_check']['on'],
-            'clear': features['clear_names']['on'], 'walk': features['walk_note']['on'],
-            'english': features['engine_english']['on'], 'plate': features['plate_names']['on']}
+            'clear': features['clear_text']['on'], 'walk': features['walk_note']['on'],
+            'english': features['clear_text']['on'], 'plate': features['clear_text']['on']}
 
 
 def _write_override(value, path):

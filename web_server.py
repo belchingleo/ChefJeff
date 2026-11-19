@@ -648,19 +648,15 @@ class GameSession:
                 self.ai.plan = held
             self.ai.one_press = pressed
             self.ai.ask_ahead = self.features['ask_ahead']['on']
-            self.ai.ahead_throw = self.features['ahead_throw']['on']
             self.ai.undo = features.undo_start(self.features)
             self.ai.reach = self.features['reach_note']['on']
             self.ai.split = self.features['split_floor']['on']
             self.ai.burn = self.features['burn_note']['on']
-            self.ai.serve_note = self.features['serve_note']['on']
-            self.ai.wait_note = self.features['wait_note']['on']
+            self.ai.serve_note = self.ai.wait_note = self.features['option_notes']['on']
             self.ai.steps = self.features['step_check']['on']
-            self.ai.clear = self.features['clear_names']['on']
             self.ai.walk = self.features['walk_note']['on']
-            self.ai.english = self.features['engine_english']['on']
-            self.ai.plate = self.features['plate_names']['on']
-            self.ai.names = self.features['food_names']['on']
+            # clear_text: food names, item names, the engine's English and plate names, together.
+            self.ai.names = self.ai.clear = self.ai.english = self.ai.plate = self.features['clear_text']['on']
             self.ai.links = features.links_option(self.features)
             self.phase = 'running'
             self.last_tick = self.last_seen = time.monotonic()

@@ -146,10 +146,11 @@ class NoChineseTests(unittest.TestCase):
             self.assertIsNone(CJK.search(text), CJK.findall(text)[:5])
 
     def test_no_chinese_with_the_released_switches_and_engine_english(self):
-        # features.json as released (one_press, food_names, option_links, ask_ahead), engine_english on: the plating
-        # labels, the events that carry them (started, stopped, completed) and the loop's own notes.
+        # features.json as released (one_press, clear_text, option_links, ask_ahead): the plating labels, the events
+        # that carry them (started, stopped, completed) and the loop's own notes, in English.
         import test_engine_english as ee
-        options = {**features.compose_options(features.load()), 'english': True}
+        options = features.compose_options(features.load())
+        self.assertTrue(options['english'])
         decisions, _ = ee.loop_notes(True)
         self.assertEqual(len(decisions), 3)
         for k in (ee.plating(), ee.played()):
@@ -162,7 +163,7 @@ class NoChineseTests(unittest.TestCase):
         for word in ('started', 'stopped', 'completed'):
             self.assertTrue(any(m.startswith(f'jeff {word}: Plate food from the frying pan') for m in events), word)
         self.assertEqual(payload['state']['kitchen']['chefs']['jeff']['task'],
-                         'Plate food from the frying pan on the floor (empty frying pan stays in place)')
+                         'Plate food from the frying pan on the floor onto the held clean plate (empty frying pan stays in place)')
 
     def test_the_loops_note_about_a_dropped_ahead_answer_is_given_in_english(self):
         import clear_names

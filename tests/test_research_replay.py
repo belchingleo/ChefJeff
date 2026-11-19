@@ -204,11 +204,12 @@ class ReplayTests(paths.SavePathTests):
         self.assertEqual(initial['conditions']['features']['one_press'], {'on': True, 'version': one_press.VERSION})
         self.assertEqual({name: value['on'] for name, value in initial['conditions']['features'].items()},
                          {'one_press': True, 'jeff_plan': False, 'rolling_intent': False, 'undo_note': False,
-                          'ask_ahead': True, 'ahead_throw': False, 'reach_note': False, 'food_names': True,
-                                                    'option_links': True, 'option_links_partner': False,                           'split_floor': False, 'burn_note': False,
-                          'serve_note': False, 'wait_note': False,                           'option_links_burnt': False, 'step_check': False,
-                          'clear_names': False, 'pickup_press': False, 'walk_note': False,
-                          'engine_english': False, 'plate_names': False})
+                          'ask_ahead': True, 'reach_note': False,
+                          'option_links': True, 'option_links_partner': False,
+                          'split_floor': False, 'burn_note': False,
+                          'option_links_burnt': False, 'step_check': False,
+                          'pickup_press': False, 'walk_note': False,
+                          'clear_text': True, 'option_notes': False})
         with self.game.lock:                                    # the human leaves beef on a board
             k = self.game.k
             for chosen in (lambda a: a.key == 'fetch beef', lambda a: a.kind == 'put_board'):
@@ -322,11 +323,11 @@ class ReplayTests(paths.SavePathTests):
         self.assertGreater(len(requests), 2)
         self.assertEqual({r['status'] for r in requests}, {'verified'})
 
-    def test_a_round_with_food_names_replays_exactly(self):
+    def test_a_round_with_clear_text_replays_exactly(self):
         import features
         import food_names
         on = {key: dict(value) for key, value in features.current().items()}
-        on['food_names']['on'] = True
+        on['clear_text']['on'] = True
         with patch.object(features, 'current', lambda: {key: dict(value) for key, value in on.items()}):
             self.game.features = features.current()          # as a session started with the switch on
             receipt = self.begin_manual_relay()
@@ -346,7 +347,7 @@ class ReplayTests(paths.SavePathTests):
             self.assertEqual(self.contribute()[0], 200)
         record = self.game.store.download(receipt['id'], receipt['deletion_token'])
         validate_record(record)
-        self.assertEqual(record['conditions']['features']['food_names'], {'on': True, 'version': food_names.VERSION})
+        self.assertEqual(record['conditions']['features']['clear_text'], {'on': True, 'version': 'clear-text-v1'})
         requests = list(research_replay.rebuild_requests(record))
         self.assertGreater(len(requests), 2)
         self.assertEqual({r['status'] for r in requests}, {'verified'})

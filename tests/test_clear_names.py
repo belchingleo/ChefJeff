@@ -168,36 +168,5 @@ class ClearNamesTests(unittest.TestCase):
                                                '提前问的回复作废 (not_listed), 马上重问)'])
 
 
-    def test_the_feature_is_a_trial_off_by_default_without_a_page_switch(self):
-        self.assertEqual(features.current()['clear_names'],
-                         {'stage': 'trial', 'on': False, 'player_switch': False, 'version': clear_names.VERSION})
-        on = {**features.current(), 'clear_names': {**features.current()['clear_names'], 'on': True}}
-        self.assertTrue(features.compose_options(on)['clear'])
-        self.assertFalse(features.compose_options(features.current())['clear'])
-
-
-class ClearNamesReplayTests(paths.SavePathTests):
-    def test_a_round_with_clear_names_replays_exactly(self):
-        with self.game.lock:
-            self.game.features = {**self.game.features, 'clear_names': {**self.game.features['clear_names'], 'on': True}}
-        receipt = self.play()
-        self.natural_end()
-        self.assertEqual(self.contribute()[0], 200)
-        record = self.game.store.download(receipt['id'], receipt['deletion_token'])
-        validate_record(record)
-        self.assertEqual(record['conditions']['features']['clear_names'], {'on': True, 'version': clear_names.VERSION})
-        rows = list(research_replay.rebuild_requests(record))
-        self.assertTrue(rows)
-        self.assertEqual({row['status'] for row in rows}, {'verified'})
-        record['conditions']['features']['clear_names']['on'] = False
-        self.assertEqual({row['status'] for row in research_replay.rebuild_requests(record)}, {'diverged'})
-
-
-# Only the case above; the inherited ones already run in their own module.
-for _name in dir(paths.SavePathTests):
-    if _name.startswith('test_'):
-        setattr(ClearNamesReplayTests, _name, None)
-
-
 if __name__ == '__main__':
     unittest.main()

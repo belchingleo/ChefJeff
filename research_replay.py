@@ -105,17 +105,18 @@ def rebuild_requests(record):
     k = factory(replay['engine'])(deepcopy(replay['resolved_config']))
     client = SpatialJevClient(k.c, key='research-replay-no-credential')
     # A round-wide switch: the record's feature snapshot says whether Jeff was told which stations he reaches.
-    reach = bool(((record.get('conditions') or {}).get('features') or {}).get('reach_note', {}).get('on'))
-    names = bool(((record.get('conditions') or {}).get('features') or {}).get('food_names', {}).get('on'))
-    split = bool(((record.get('conditions') or {}).get('features') or {}).get('split_floor', {}).get('on'))
-    burn = bool(((record.get('conditions') or {}).get('features') or {}).get('burn_note', {}).get('on'))
-    serve_note = bool(((record.get('conditions') or {}).get('features') or {}).get('serve_note', {}).get('on'))
-    wait_note = bool(((record.get('conditions') or {}).get('features') or {}).get('wait_note', {}).get('on'))
-    steps = bool(((record.get('conditions') or {}).get('features') or {}).get('step_check', {}).get('on'))
-    clear = bool(((record.get('conditions') or {}).get('features') or {}).get('clear_names', {}).get('on'))
-    walk = bool(((record.get('conditions') or {}).get('features') or {}).get('walk_note', {}).get('on'))
-    english = bool(((record.get('conditions') or {}).get('features') or {}).get('engine_english', {}).get('on'))
-    plate = bool(((record.get('conditions') or {}).get('features') or {}).get('plate_names', {}).get('on'))
+    # Round-wide switches, from the record's feature snapshot. A record from before 2026-11-19 names food_names,
+    # clear_names, engine_english and plate_names (since then clear_text) and serve_note and wait_note (since then
+    # option_notes) one by one.
+    feats = (record.get('conditions') or {}).get('features') or {}
+
+    def on(name):
+        return bool((feats.get(name) or {}).get('on'))
+    text, notes = on('clear_text'), on('option_notes')
+    reach, split, burn, steps, walk = on('reach_note'), on('split_floor'), on('burn_note'), on('step_check'), on('walk_note')
+    names, clear, english, plate = (text or on('food_names'), text or on('clear_names'), text or on('engine_english'),
+                                    text or on('plate_names'))
+    serve_note, wait_note = notes or on('serve_note'), notes or on('wait_note')
     import features as switches
     snapshot = (record.get('conditions') or {}).get('features') or {}
     links = switches.links_option({name: {'on': bool((snapshot.get(name) or {}).get('on'))} for name in ('option_links', 'option_links_partner', 'option_links_burnt')})

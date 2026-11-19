@@ -266,7 +266,7 @@ def run(name, keep=None):
             return _run(name, keep)
     if name in NAMES:
         on = {key: dict(value) for key, value in features.current().items()}
-        on['food_names']['on'] = True
+        on['clear_text']['on'] = True
         with patch.object(features, 'current', lambda: {key: dict(value) for key, value in on.items()}):
             return _run(name, keep)
     return _run(name, keep)
@@ -289,7 +289,8 @@ def _run(name, keep=None):
         loop.plan = Plan(mode='rolling' if planned == 'rolling' else 'choice')
     loop.one_press = features.one_press_flags(features.current())   # the released features, as a new session has them
     loop.ask_ahead = features.current()['ask_ahead']['on']
-    loop.names = features.current()['food_names']['on']
+    # clear_text: food names, item names, the engine's English and plate names, as a new session sets them.
+    loop.names = loop.clear = loop.english = loop.plate = features.current()['clear_text']['on']
     pending = list(MESSAGES) if talk else []
     step = 0
     replies = []                # (wall time due, request thread) when replies take time

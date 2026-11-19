@@ -1,4 +1,4 @@
-"""ahead_throw (ahead-throw-v1): a throw to the other chef asked ahead is not dropped because they took a step.
+"""ask-ahead-v2 (was the ahead_throw trial): a throw to the other chef asked ahead is not dropped because they took a step.
 
 No model is called: the kitchen is a local level-4 round and the held answer is built by hand.
 """
@@ -39,7 +39,7 @@ def step_aside(k, seconds=0.7):
 
 
 class StillListedTests(unittest.TestCase):
-    def test_a_step_by_the_other_chef_drops_the_throw_unless_the_switch_is_on(self):
+    def test_a_step_by_the_other_chef_keeps_the_throw_aimed_where_they_stand(self):
         k = kitchen()
         do(k, 'jeff', 'fetch beef')
         asked = throw(k)
@@ -47,8 +47,7 @@ class StillListedTests(unittest.TestCase):
         listed = k.actions('jeff')
         now = next(a for a in listed if a.key == ask_ahead.PARTNER)
         self.assertNotEqual(now.expected, asked.expected)             # the aim follows the other chef
-        self.assertIsNone(ask_ahead.still_listed(listed, asked))
-        self.assertIs(ask_ahead.still_listed(listed, asked, throw=True), now)
+        self.assertIs(ask_ahead.still_listed(listed, asked), now)
         self.assertTrue(k.start('jeff', now)[0])
 
     def test_a_different_item_in_hand_is_still_dropped(self):
@@ -57,23 +56,23 @@ class StillListedTests(unittest.TestCase):
         asked = throw(k)
         do(k, 'jeff', 'drop')
         do(k, 'jeff', 'fetch lettuce')
-        self.assertIsNone(ask_ahead.still_listed(k.actions('jeff'), asked, throw=True))
+        self.assertIsNone(ask_ahead.still_listed(k.actions('jeff'), asked))
 
     def test_other_answers_are_matched_as_before(self):
         k = kitchen()
         do(k, 'jeff', 'fetch beef')
         listed = k.actions('jeff')
         for a in listed:
-            self.assertIs(ask_ahead.still_listed(listed, a, throw=True), ask_ahead.still_listed(listed, a))
+            self.assertIs(ask_ahead.still_listed(listed, a), a)       # the same key for the same object
 
 
 class LoopTests(unittest.TestCase):
-    def held_throw(self, on):
+    def test_a_held_throw_is_carried_out_toward_where_the_other_chef_stands(self):
         """Jeff fetches beef; the loop holds a "throw partner" asked ahead; the human steps aside before it ends."""
         k = kitchen()
         loop = DecisionLoop(k, SpatialJevClient(k.c, key='test-no-credential'), lambda *a: None, lambda *a: None)
         loop.player_messages = []
-        loop.ask_ahead, loop.ahead_throw = True, on
+        loop.ask_ahead = True
         k.start('jeff', next(a for a in k.actions('jeff') if a.key == 'fetch beef'))
         job = k.chefs['jeff'].job
         source = ask_ahead.predict(k)
@@ -85,30 +84,23 @@ class LoopTests(unittest.TestCase):
         step_aside(k)
         while k.chefs['jeff'].job is not None:
             k.advance(0.05)
-        return k, loop.release_held(0.5)[0], actions[ask_ahead.PARTNER]
-
-    def test_off_the_held_throw_is_dropped_as_not_listed(self):
-        _, context, _ = self.held_throw(False)
-        self.assertEqual(context['ahead_check'], 'not_listed')
-        self.assertIsNone(context['decision'])
-
-    def test_on_it_is_carried_out_toward_where_the_other_chef_stands(self):
-        k, context, asked = self.held_throw(True)
+        context = loop.release_held(0.5)[0]
         self.assertIsNone(context['ahead_check'])
         decision = context['decision']
         self.assertEqual(decision.key, ask_ahead.PARTNER)
-        self.assertNotEqual(decision.expected, asked.expected)
+        self.assertNotEqual(decision.expected, actions[ask_ahead.PARTNER].expected)
         self.assertEqual(decision.expected, throw(k).expected)
 
 
 class FeatureTests(unittest.TestCase):
-    def test_a_trial_off_by_default_without_a_page_switch(self):
-        self.assertEqual(features.current()['ahead_throw'],
-                         {'stage': 'trial', 'on': False, 'player_switch': False, 'version': ask_ahead.THROW_VERSION})
+    def test_part_of_ask_ahead_with_no_switch_of_its_own(self):
+        self.assertNotIn('ahead_throw', features.current())
+        self.assertEqual(features.current()['ask_ahead']['version'], ask_ahead.VERSION)
+        self.assertEqual(ask_ahead.VERSION, 'ask-ahead-v2')
 
     def test_it_changes_nothing_jeff_is_asked(self):
         # Only the loop reads it: no request option, rule or state field names it.
-        self.assertNotIn('ahead_throw', json.dumps(features.compose_options(features.current())))
+        self.assertNotIn('throw', json.dumps(features.compose_options(features.current())))
 
 
 if __name__ == '__main__':
