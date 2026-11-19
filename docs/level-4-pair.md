@@ -1,6 +1,6 @@
 # Level 4 — Across the counter
 
-A row of counters runs from wall to wall across the middle of the kitchen and splits the floor in two. Above it are the four ingredient sources (beef, lettuce, tomato, bread), two stoves with a frying pan each, the serving window and a bin; below it are two boards, the sink, the dirty-plate return, the extinguisher rack and a second bin. One chef spawns on each side, sides set by the level's spawn seed, and nobody can walk round: food, plates, pans and tools cross by being put on the dividing counters, which both sides can reach, or thrown within 4 cells.
+A row of counters runs from wall to wall across the middle of the kitchen and splits the floor in two. Above it are the four ingredient sources (beef, lettuce, tomato, bread), two stoves with a frying pan each, the extinguisher rack, the serving window and a bin; below it are two boards, the sink and drying rack, the dirty-plate return and a second bin. One chef spawns on each side, sides set by the level's spawn seed, and nobody can walk round: food, plates, pans and tools cross by being put on the dividing counters, which both sides can reach, or thrown within 4 cells.
 
 Every dish needs both chefs. Beef, lettuce and tomato are chopped on the lower side, beef is cooked and every plate is served on the upper side, and clean plates come out of the sink below. One chef alone serves nothing (`requires_pair: true`; `tests/test_level_four.py` checks this against the committed calibration report).
 
@@ -22,7 +22,7 @@ Order and spawn seeds are fixed per level version and recorded with the round.
 
 # 第四关：隔台协作
 
-一排柜台从墙边连到墙边，横穿厨房中间，把地面隔成两块。上面是四个食材箱（牛肉、生菜、番茄、面包）、两个各放一口平底锅的灶台、出餐口和一个垃圾桶；下面是两块案板、水槽、脏盘回收、灭火器架和第二个垃圾桶。两名厨师一边一个出生，谁在哪边由本关的出生种子决定，谁也绕不过去：食物、盘子、锅和工具只能放到中间那排两边都够得着的柜台上，或者在 4 格内扔过去。
+一排柜台从墙边连到墙边，横穿厨房中间，把地面隔成两块。上面是四个食材箱（牛肉、生菜、番茄、面包）、两个各放一口平底锅的灶台、灭火器架、出餐口和一个垃圾桶；下面是两块案板、水槽和沥水架、脏盘回收和第二个垃圾桶。两名厨师一边一个出生，谁在哪边由本关的出生种子决定，谁也绕不过去：食物、盘子、锅和工具只能放到中间那排两边都够得着的柜台上，或者在 4 格内扔过去。
 
 每道菜都要两个人。牛肉、生菜、番茄在下面切，牛肉在上面煎，每一盘都从上面出餐，干净盘子从下面的水槽出来。一个人单干一单也出不了（`requires_pair: true`；`tests/test_level_four.py` 拿已提交的校准报告核对这一点）。
 
