@@ -3,11 +3,12 @@ stands in the way, from the engine's state and recipes.
 
 A trial (features.json step_check, off by default, no page switch). Jeff reads the kitchen as some thirty stations of
 fields, where a missing pan is only empty fields among many; he was told such things one note at a time. With this
-switch on, a request on a floor where every board is on the other chef's side gets one live field, state.step_check,
+switch on, a request on a floor where every board is on one chef's side gets one live field, state.step_check,
 that says, in this order:
 
 - what the waiting orders still need chopped (backlog below: needed, already fetched, still to fetch, within the
-  other chef's reach to chop now);
+  reach of the chef on the boards' side to chop now: "the other chef's reach" on level 4, "your reach" when Jeff is on
+  that side, as on level 5);
 - (v2) fetching: from which supplies of what the waiting orders need fetching is possible now, and which give
   nothing while something lies on them (the engine lists no fetch from a supply that holds an item), and whose side
   they are on; in a 2026-11-19 play round a thrown bread landed on the fridge and no beef could be fetched for the
@@ -23,6 +24,9 @@ that says, in this order:
   ones are, and how many are still with diners);
 - serving: where it is done and whose side that is.
 
+Level 5 (2026-11-19) swaps the chefs of level 4, so Jeff is the one on the boards' side: the field is given there too
+(before, only while every board was on the other chef's side), its counts are of what is within his own reach to chop,
+and the sides are named from his view as everywhere else. On level 4 nothing changes.
 v3 (2026-11-19): v1 and v2 said "not possible now: every frying pan on a stove holds food or is on fire (Stove 2 holds
 beef (burnt))" while Stove 1 had no pan and a pan of chopped beef stood on Counter 7; in that play round Jeff left the
 pan there for 100 s and cooked nothing more. In the day's level-4 rounds 678 of the 739 requests that said cooking was
@@ -43,11 +47,20 @@ def _chopped_first(kitchen, item, state):
     return state == 'chopped' or (state == 'ready' and bool(heat) and heat.get('from') == 'chopped')
 
 
-def applies(kitchen):
-    """A split floor where every board is reached by the other chef only (Jeff cannot chop)."""
+def chopper(kitchen):
+    """The chef who alone reaches every board on a split floor ('human' or 'jeff'), else None."""
     boards = [s for s, e in kitchen.equipment.items() if e.get('type') == 'board']
-    return (getattr(kitchen, 'split_floor', False) and bool(boards)
-            and all(kitchen.reaches('human', b) and not kitchen.reaches('jeff', b) for b in boards))
+    if not getattr(kitchen, 'split_floor', False) or not boards:
+        return None
+    for who, other in (('human', 'jeff'), ('jeff', 'human')):
+        if all(kitchen.reaches(who, b) and not kitchen.reaches(other, b) for b in boards):
+            return who
+    return None
+
+
+def applies(kitchen):
+    """A split floor where every board is reached by one chef only: the other chef (level 4) or Jeff (level 5)."""
+    return chopper(kitchen) is not None
 
 
 def _items(food):
@@ -65,7 +78,8 @@ def _items(food):
 
 
 def counts(kitchen, payload):
-    """(needed, fetched, to chop now within the other chef's reach), each a Counter of ingredient ids."""
+    """(needed, fetched, to chop now within reach of the chef on the boards' side), each a Counter of ingredient ids."""
+    cutter = chopper(kitchen) or 'human'
     k = payload['state']['kitchen']
     order = []
     need = Counter()
@@ -86,24 +100,24 @@ def counts(kitchen, payload):
     for sid, station in k.get('stations', {}).items():
         food = station.get('food')
         have.update(x for x in _items(food) if x in need)
-        if raw_to_chop(food) and kitchen.reaches('human', sid):
+        if raw_to_chop(food) and kitchen.reaches(cutter, sid):
             ready[food['ingredient']] += 1
     for who, chef in k.get('chefs', {}).items():
         food = chef.get('holding')
         have.update(x for x in _items(food) if x in need)
-        if who == 'human' and raw_to_chop(food):
+        if who == cutter and raw_to_chop(food):
             ready[food['ingredient']] += 1
     for g in k.get('ground', []):
         food = g.get('food')
         have.update(x for x in _items(food) if x in need)
-        if raw_to_chop(food) and kitchen.reaches('human', g.get('location')):
+        if raw_to_chop(food) and kitchen.reaches(cutter, g.get('location')):
             ready[food['ingredient']] += 1
     for p in k.get('projectiles', []):
         have.update(x for x in _items(p) if x in need)
         cell = p.get('landing_cell') or [None, None]
         place = p.get('onto') or f'floor_{cell[0]}_{cell[1]}'
         try:
-            reach = kitchen.reaches('human', place)
+            reach = kitchen.reaches(cutter, place)
         except (KeyError, ValueError, TypeError):
             reach = False
         if raw_to_chop(p) and reach:
@@ -116,6 +130,7 @@ def backlog(kitchen, payload):
     if not applies(kitchen):
         return None
     tail = ''
+    reach = "the other chef's reach" if chopper(kitchen) == 'human' else 'your reach'
     order, need, have, ready = counts(kitchen, payload)
 
     def listed(counter):
@@ -125,7 +140,7 @@ def backlog(kitchen, payload):
         return 'The waiting orders need nothing that is chopped first.' + tail
     todo = Counter({item: max(0, need[item] - have[item]) for item in order})
     return (f'The waiting orders need, chopped first: {listed(need)}. Already fetched (in any state, plates included): '
-            f'{listed(have)}. Still to fetch: {listed(todo)}. Within the other chef\'s reach to chop now: {listed(ready)}.'
+            f'{listed(have)}. Still to fetch: {listed(todo)}. Within {reach} to chop now: {listed(ready)}.'
             .replace('chop now: none.', 'chop now: nothing.') + tail)
 
 

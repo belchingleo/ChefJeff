@@ -21,7 +21,7 @@ def report():
 class LevelTests(unittest.TestCase):
     def test_level_four_is_listed_and_needs_a_pair(self):
         listed = levels.available_levels()
-        self.assertEqual([entry['id'] for entry in listed], ['level-1', 'level-2', 'level-3', 'level-4'])
+        self.assertEqual([entry['id'] for entry in listed], ['level-1', 'level-2', 'level-3', 'level-4', 'level-5'])
         self.assertEqual(listed[3]['target'], 90)
         self.assertIs(cc.Registry().level('level-4')['requires_pair'], True)
         self.assertNotIn('requires_pair', cc.Registry().level('level-3'))         # levels 1-3 do not claim it

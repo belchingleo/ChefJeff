@@ -1194,6 +1194,296 @@
    "solo_median": -60,
    "solo_max": -40,
    "solo_runs_reaching_current_target": 0
+  },
+  {
+   "level": 5,
+   "config_hash": "sha256:a2ea62e1858ee8423de939f93595edbd204149cd070c8816014155eac3e01fe2",
+   "requires_pair": true,
+   "runs": [
+    {
+     "level": 5,
+     "seed": 1,
+     "pairings": {
+      "classic": -60,
+      "classic swapped": -60,
+      "zoned": -60,
+      "zoned swapped": 290
+     },
+     "pair": "zoned swapped",
+     "money": 290,
+     "solo": -60
+    },
+    {
+     "level": 5,
+     "seed": 2,
+     "pairings": {
+      "classic": -70,
+      "classic swapped": -70,
+      "zoned": 200,
+      "zoned swapped": -70
+     },
+     "pair": "zoned",
+     "money": 200,
+     "solo": -70
+    },
+    {
+     "level": 5,
+     "seed": 3,
+     "pairings": {
+      "classic": -60,
+      "classic swapped": -60,
+      "zoned": -60,
+      "zoned swapped": 88
+     },
+     "pair": "zoned swapped",
+     "money": 88,
+     "solo": -60
+    },
+    {
+     "level": 5,
+     "seed": 4,
+     "pairings": {
+      "classic": -40,
+      "classic swapped": -40,
+      "zoned": 220,
+      "zoned swapped": -40
+     },
+     "pair": "zoned",
+     "money": 220,
+     "solo": -40
+    },
+    {
+     "level": 5,
+     "seed": 5,
+     "pairings": {
+      "classic": -80,
+      "classic swapped": -80,
+      "zoned": -80,
+      "zoned swapped": 230
+     },
+     "pair": "zoned swapped",
+     "money": 230,
+     "solo": -80
+    },
+    {
+     "level": 5,
+     "seed": 6,
+     "pairings": {
+      "classic": -60,
+      "classic swapped": -60,
+      "zoned": 160,
+      "zoned swapped": -60
+     },
+     "pair": "zoned",
+     "money": 160,
+     "solo": -60
+    },
+    {
+     "level": 5,
+     "seed": 7,
+     "pairings": {
+      "classic": -60,
+      "classic swapped": -60,
+      "zoned": -60,
+      "zoned swapped": 250
+     },
+     "pair": "zoned swapped",
+     "money": 250,
+     "solo": -60
+    },
+    {
+     "level": 5,
+     "seed": 8,
+     "pairings": {
+      "classic": -50,
+      "classic swapped": -50,
+      "zoned": 160,
+      "zoned swapped": -50
+     },
+     "pair": "zoned",
+     "money": 160,
+     "solo": -50
+    },
+    {
+     "level": 5,
+     "seed": 9,
+     "pairings": {
+      "classic": -40,
+      "classic swapped": -40,
+      "zoned": -40,
+      "zoned swapped": 240
+     },
+     "pair": "zoned swapped",
+     "money": 240,
+     "solo": -40
+    },
+    {
+     "level": 5,
+     "seed": 10,
+     "pairings": {
+      "classic": -70,
+      "classic swapped": -70,
+      "zoned": 150,
+      "zoned swapped": -70
+     },
+     "pair": "zoned",
+     "money": 150,
+     "solo": -70
+    },
+    {
+     "level": 5,
+     "seed": 11,
+     "pairings": {
+      "classic": -70,
+      "classic swapped": -70,
+      "zoned": -70,
+      "zoned swapped": 150
+     },
+     "pair": "zoned swapped",
+     "money": 150,
+     "solo": -70
+    },
+    {
+     "level": 5,
+     "seed": 12,
+     "pairings": {
+      "classic": -60,
+      "classic swapped": -60,
+      "zoned": 160,
+      "zoned swapped": -60
+     },
+     "pair": "zoned",
+     "money": 160,
+     "solo": -60
+    },
+    {
+     "level": 5,
+     "seed": 13,
+     "pairings": {
+      "classic": -60,
+      "classic swapped": -60,
+      "zoned": -60,
+      "zoned swapped": 220
+     },
+     "pair": "zoned swapped",
+     "money": 220,
+     "solo": -60
+    },
+    {
+     "level": 5,
+     "seed": 14,
+     "pairings": {
+      "classic": -60,
+      "classic swapped": -60,
+      "zoned": 200,
+      "zoned swapped": -60
+     },
+     "pair": "zoned",
+     "money": 200,
+     "solo": -60
+    },
+    {
+     "level": 5,
+     "seed": 15,
+     "pairings": {
+      "classic": -70,
+      "classic swapped": -70,
+      "zoned": -70,
+      "zoned swapped": 150
+     },
+     "pair": "zoned swapped",
+     "money": 150,
+     "solo": -70
+    },
+    {
+     "level": 5,
+     "seed": 16,
+     "pairings": {
+      "classic": -40,
+      "classic swapped": -40,
+      "zoned": 220,
+      "zoned swapped": -40
+     },
+     "pair": "zoned",
+     "money": 220,
+     "solo": -40
+    },
+    {
+     "level": 5,
+     "seed": 17,
+     "pairings": {
+      "classic": -80,
+      "classic swapped": -80,
+      "zoned": -80,
+      "zoned swapped": 115
+     },
+     "pair": "zoned swapped",
+     "money": 115,
+     "solo": -80
+    },
+    {
+     "level": 5,
+     "seed": 18,
+     "pairings": {
+      "classic": -50,
+      "classic swapped": -50,
+      "zoned": 190,
+      "zoned swapped": -50
+     },
+     "pair": "zoned",
+     "money": 190,
+     "solo": -50
+    },
+    {
+     "level": 5,
+     "seed": 19,
+     "pairings": {
+      "classic": -70,
+      "classic swapped": -70,
+      "zoned": -70,
+      "zoned swapped": 180
+     },
+     "pair": "zoned swapped",
+     "money": 180,
+     "solo": -70
+    },
+    {
+     "level": 5,
+     "seed": 20,
+     "pairings": {
+      "classic": -70,
+      "classic swapped": -70,
+      "zoned": 180,
+      "zoned swapped": -70
+     },
+     "pair": "zoned",
+     "money": 180,
+     "solo": -70
+    },
+    {
+     "level": 5,
+     "seed": 21,
+     "pairings": {
+      "classic": -60,
+      "classic swapped": -60,
+      "zoned": -60,
+      "zoned swapped": 290
+     },
+     "pair": "zoned swapped",
+     "money": 290,
+     "solo": -60
+    }
+   ],
+   "pair_min": 88,
+   "pair_median": 190,
+   "pair_max": 290,
+   "target_50pct": 90,
+   "current_target": 90,
+   "runs_reaching_current_target": 20,
+   "solo_min": -80,
+   "solo_median": -60,
+   "solo_max": -40,
+   "solo_runs_reaching_current_target": 0
   }
  ]
 }

@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "kind": "level",
+  "id": "level-5",
+  "version": 1,
+  "name": "第五关 · 换位协作",
+  "menu_order": 5,
+  "ruleset_ref": {
+    "id": "chefjeff-service",
+    "version": 2
+  },
+  "map_ref": {
+    "id": "level-4",
+    "version": 2
+  },
+  "equipment_catalog_ref": {
+    "id": "chefjeff-core",
+    "version": 2
+  },
+  "recipe_catalog_ref": {
+    "id": "chefjeff-service",
+    "version": 3
+  },
+  "order_policy_ref": {
+    "id": "level-4",
+    "version": 1
+  },
+  "actors": [
+    {
+      "actor_id": "human",
+      "controller_type": "human"
+    },
+    {
+      "actor_id": "jeff",
+      "controller_type": "agent"
+    }
+  ],
+  "spawns": {
+    "rule": "nearest_floor_to_center_shuffled",
+    "centers": [
+      [
+        6.5,
+        2.0
+      ],
+      [
+        6.5,
+        6.0
+      ]
+    ],
+    "partition": {
+      "axis": "y",
+      "split": 4
+    }
+  },
+  "initial_inventory": [
+    {
+      "object": "extinguisher",
+      "id": "E1",
+      "at_type": "tool_rack"
+    },
+    {
+      "object": "plate",
+      "id": "D1",
+      "state": "clean",
+      "at_type": "counter"
+    },
+    {
+      "object": "plate",
+      "id": "D2",
+      "state": "clean",
+      "at_type": "counter"
+    },
+    {
+      "object": "plate",
+      "id": "D3",
+      "state": "clean",
+      "at_type": "counter"
+    },
+    {
+      "object": "pan",
+      "id": "P1",
+      "at": "p1"
+    },
+    {
+      "object": "pan",
+      "id": "P2",
+      "at": "p2"
+    }
+  ],
+  "clock": {
+    "game_per_wall_default": 0.75,
+    "game_per_wall_options": [
+      0.5,
+      0.75,
+      1.0
+    ]
+  },
+  "round_limit_game_ms": 180000,
+  "goal": {
+    "type": "minimum_money",
+    "min_money": 90
+  },
+  "requires_pair": true,
+  "end_policy": {
+    "type": "fixed_round"
+  },
+  "seeds": {
+    "orders": 26,
+    "spawn": 1
+  },
+  "extensions": {
+    "chefjeff.status": "not calibrated: level 4 with the chefs swapped (the same map, orders and order seed; spawn seed 1 puts the human on the supplies, stoves and serving side and Jeff on the boards side); the target is level 4's until the reference sweep is run",
+    "chefjeff.seeds": "fixed, as level 4: every round of this level version gets the same orders and spawn sides"
+  }
+}

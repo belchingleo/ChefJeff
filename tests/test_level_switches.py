@@ -34,7 +34,7 @@ class LevelSwitchTests(unittest.TestCase):
         return g
 
     def test_level_four_is_off_in_the_release(self):
-        self.assertEqual(json.loads(levels.SWITCHES.read_text(encoding='utf-8')), {'level-4': {'on': False}})
+        self.assertEqual(json.loads(levels.SWITCHES.read_text(encoding='utf-8')), {'level-4': {'on': False}, 'level-5': {'on': False}})
         self.assertEqual([l['id'] for l in levels.shown_levels()], ['level-1', 'level-2', 'level-3'])
         self.assertIn('level-4', [l['id'] for l in levels.available_levels()])         # the engine still has it
         self.assertEqual(levels.level_config(load_config(), 'level-4')['level'], 4)
