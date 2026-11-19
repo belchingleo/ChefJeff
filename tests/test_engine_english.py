@@ -13,7 +13,8 @@ Rewritten once more when backlog_note was removed: the level-4 every_trial reque
 and are otherwise the same; for step-check-v2, whose fetching sentence is all they gain (with the version); and for
 undo-note-v2, whose version field is all that changes; and for burn-note-v3 and undo-note-v3: the two versions, and the
 options that put a held pan of cooked food on a stove say when it burns; and for step-check-v3, whose version field is
-all that changes in these rounds.
+all that changes in these rounds; and for serve-note-v2: its version, the take options of a Steak lying on a counter in
+level 1 and the serve line the links table gives one of them.
 """
 from __future__ import annotations
 

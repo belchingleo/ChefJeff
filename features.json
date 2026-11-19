@@ -14,6 +14,6 @@
   "pickup_press": {"stage": "trial", "on": false, "version": "put-then-pickup-v1"},
   "walk_note": {"stage": "trial", "on": false, "version": "walk-note-v1"},
   "clear_text": {"stage": "trial", "on": true, "version": "clear-text-v1"},
-  "option_notes": {"stage": "trial", "on": false, "version": "option-notes-v1"},
+  "option_notes": {"stage": "trial", "on": false, "version": "option-notes-v2"},
   "option_effects": {"stage": "trial", "on": false, "version": "option-effects-v1"}
 }

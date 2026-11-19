@@ -154,6 +154,9 @@ def _compose(client, kitchen, state, actions, recent_decisions, communication, m
         if clear:
             import clear_names
             clear_names.apply(payload, kitchen)
+        if serve_note:
+            import option_notes
+            option_notes.apply_links(payload)
     if effects:
         import option_effects
         option_effects.apply(payload, kitchen, 'jeff', actions)
@@ -660,7 +663,7 @@ class DecisionLoop:
         record.update(engine_input_n=len(self.k.inputs), state_ref=getattr(self.k, '_research_state_ref', None),
                       candidate_source=[[a.key, a.target, a.kind] for a in self.k.actions('jeff') if a.key in criteria])
         mode, names, listed, clear, english = self.links, self.names, list(actions), self.clear, self.english
-        effects = self.effects
+        effects, serve_note = self.effects, self.serve_note
 
         def prepare():
             start = time.monotonic()
@@ -673,6 +676,9 @@ class DecisionLoop:
                         if clear:
                             import clear_names
                             clear_names.apply(payload, twin)
+                        if serve_note:
+                            import option_notes
+                            option_notes.apply_links(payload)
                     if effects:
                         import option_effects
                         option_effects.apply(payload, twin, 'jeff', listed)

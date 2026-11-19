@@ -360,7 +360,7 @@ class SessionTests(unittest.TestCase):
                                            'pickup_press': {'on': False, 'version': 'put-then-pickup-v1'},
                                            'walk_note': {'on': False, 'version': 'walk-note-v1'},
                                            'clear_text': {'on': True, 'version': 'clear-text-v1'},
-                                           'option_notes': {'on': False, 'version': 'option-notes-v1'},
+                                           'option_notes': {'on': False, 'version': 'option-notes-v2'},
                                            'option_effects': {'on': False, 'version': 'option-effects-v1'}})
         self.assertNotIn('jeff_plan', row)                 # two-step intent is off in the repository since option-links-v3
 

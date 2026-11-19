@@ -1,4 +1,4 @@
-"""serve_note (serve-note-v1) and wait_note (wait-note-v1): factual notes on the serve and wait options.
+"""serve_note (serve-note-v2) and wait_note (wait-note-v2), one switch (option_notes): factual notes on the serve and wait options.
 
 No model is called: requests are composed locally, and the round is a loopback relay round.
 """
@@ -41,9 +41,10 @@ def plated_steak():
     return k
 
 
-def request(k, serve=False, wait=False):
+def request(k, serve=False, wait=False, links=False):
     client = SpatialJevClient(k.c, key='test-no-credential')
-    return compose_payload(client, k, k.snapshot(), k.actions('jeff'), [], None, names=True, serve_note=serve, wait_note=wait)
+    return compose_payload(client, k, k.snapshot(), k.actions('jeff'), [], None, names=True, serve_note=serve, wait_note=wait,
+                           links=links)
 
 
 def without(payload, *versions):
@@ -66,6 +67,32 @@ class OptionNoteTests(unittest.TestCase):
         self.assertEqual(json.dumps(without(on, 'serve_note_version')), json.dumps(off))
         for word in ('should', 'hurry', 'now'):                # a fact, not advice
             self.assertNotIn(word, note.lower())
+
+    def test_taking_a_finished_dish_names_the_order_it_goes_to_and_so_does_its_serve_line(self):
+        # serve-note-v2: in a 2026-11-19 play round a Steak lay on Counter 6 for 97 s while an order waited for it.
+        k = plated_steak()
+        do(k, 'put counter3')
+        on, off = request(k, serve=True, links=True), request(k, links=True)
+        orders = [o for o in off['state']['kitchen']['orders'] if o['dish'] == 'steak']
+        first = min(orders, key=lambda o: (o['deadline'], o['id']))
+        tail = f"goes to order {first['id']}, which waits for Steak: {first['remaining']:.0f} s left)"
+        self.assertEqual(on['questions']['next_action']['criteria']['take counter3'],
+                         off['questions']['next_action']['criteria']['take counter3'] + ' (the Steak there ' + tail)
+        serve = [line for line in off['state']['option_links']['take counter3'] if line.startswith('Serve the plated dish')]
+        self.assertEqual(len(serve), 1)
+        self.assertIn(serve[0] + ' (the Steak ' + tail, on['state']['option_links']['take counter3'])
+        changed = {key for key, label in on['questions']['next_action']['criteria'].items()
+                   if label != off['questions']['next_action']['criteria'][key]}
+        self.assertEqual(changed, {'take counter3'})
+
+    def test_picking_a_finished_dish_up_from_the_floor_names_its_order(self):
+        k = plated_steak()
+        do(k, 'drop')
+        item = next(iter(k.ground))
+        on, off = request(k, serve=True), request(k)
+        key = f'pickup {item}'
+        self.assertTrue(on['questions']['next_action']['criteria'][key].startswith(off['questions']['next_action']['criteria'][key]
+                                                                                   + ' (the Steak there goes to order O'))
 
     def test_serve_says_when_no_order_waits_for_the_dish(self):
         k = plated_steak()
@@ -104,7 +131,7 @@ class OptionNoteTests(unittest.TestCase):
         self.assertEqual(features.current()['option_notes'],
                          {'stage': 'trial', 'on': False, 'player_switch': False, 'version': option_notes.VERSION})
         self.assertEqual((option_notes.VERSION, option_notes.SERVE_VERSION, option_notes.WAIT_VERSION),
-                         ('option-notes-v1', 'serve-note-v1', 'wait-note-v2'))     # a new part needs a new VERSION
+                         ('option-notes-v2', 'serve-note-v2', 'wait-note-v2'))     # a new part needs a new VERSION
         for name in ('serve_note', 'wait_note'):
             self.assertNotIn(name, features.current())
         on = {**features.current(), 'option_notes': {**features.current()['option_notes'], 'on': True}}
