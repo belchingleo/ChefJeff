@@ -365,10 +365,11 @@ class SessionTests(unittest.TestCase):
                                            'backlog_note': {'on': False, 'version': 'backlog-note-v2'},
                                            'option_links_burnt': {'on': False, 'version': 'burnt-links-v1'},
                                            'step_check': {'on': False, 'version': 'step-check-v1'},
-                                           'clear_names': {'on': False, 'version': 'clear-names-v2'},
+                                           'clear_names': {'on': False, 'version': 'clear-names-v3'},
                                            'pickup_press': {'on': False, 'version': 'put-then-pickup-v1'},
                                            'walk_note': {'on': False, 'version': 'walk-note-v1'},
-                                           'engine_english': {'on': False, 'version': 'engine-english-v1'}})
+                                           'engine_english': {'on': False, 'version': 'engine-english-v1'},
+                                           'plate_names': {'on': False, 'version': 'plate-names-v1'}})
         self.assertNotIn('jeff_plan', row)                 # two-step intent is off in the repository since option-links-v3
 
     def test_the_file_rolls_it_back(self):
@@ -417,7 +418,7 @@ class FeaturesFileTests(unittest.TestCase):
                           'serve_note': 'trial', 'wait_note': 'trial', 'backlog_note': 'trial',
                           'option_links_burnt': 'trial', 'step_check': 'trial',
                           'clear_names': 'trial', 'pickup_press': 'trial', 'walk_note': 'trial',
-                          'engine_english': 'trial'})
+                          'engine_english': 'trial', 'plate_names': 'trial'})
 
     def test_a_wrong_file_stops_instead_of_running(self):
         import features

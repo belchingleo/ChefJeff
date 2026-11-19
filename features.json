@@ -19,8 +19,9 @@
   "backlog_note": {"stage": "trial", "on": false, "version": "backlog-note-v2"},
   "option_links_burnt": {"stage": "trial", "on": false, "version": "burnt-links-v1"},
   "step_check": {"stage": "trial", "on": false, "version": "step-check-v1"},
-  "clear_names": {"stage": "trial", "on": false, "version": "clear-names-v2"},
+  "clear_names": {"stage": "trial", "on": false, "version": "clear-names-v3"},
   "pickup_press": {"stage": "trial", "on": false, "version": "put-then-pickup-v1"},
   "walk_note": {"stage": "trial", "on": false, "version": "walk-note-v1"},
-  "engine_english": {"stage": "trial", "on": false, "version": "engine-english-v1"}
+  "engine_english": {"stage": "trial", "on": false, "version": "engine-english-v1"},
+  "plate_names": {"stage": "trial", "on": false, "version": "plate-names-v1"}
 }

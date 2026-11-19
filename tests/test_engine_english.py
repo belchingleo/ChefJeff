@@ -6,7 +6,9 @@ compared with the ones recorded at b021713 (tests/golden/engine-english-off.json
 tests/test_engine_english.py --record`` rewrites it, only for an intended change to Jeff's input). Rewritten once since,
 for clear-names-v2: the every_trial requests (clear_names on) differ from b021713 only in clear_names_version, the
 dropped-ahead notes of recent_decisions and chef tasks (and continue labels quoting them) naming the item; the plain
-and released ones are b021713's.
+and released ones are b021713's. Rewritten again for clear-names-v3 and plate-names-v1 (every_trial now has plate_names
+on): the every_trial requests differ from aaf945d only in the two version fields, events of steps that add food to a
+plate or pick an item up naming that item (v3), and plating labels and chef tasks naming the plate there or in hand.
 """
 from __future__ import annotations
 
@@ -66,7 +68,7 @@ def every_trial():
     return {'one_press': one_press.flags({**{name: True for name in one_press.NAMES}, 'put_then_pickup': True}),
             'undo': {'step': None}, 'reach': True, 'names': True, 'links': 'partner+burnt', 'split': True,
             'burn': True, 'serve_note': True, 'wait_note': True, 'backlog': True, 'steps': True, 'clear': True,
-            'walk': True}
+            'walk': True, 'plate': True}
 
 
 COMBOS = {'plain': lambda: {}, 'released': released, 'every_trial': every_trial}

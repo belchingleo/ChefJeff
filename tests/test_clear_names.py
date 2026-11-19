@@ -1,4 +1,4 @@
-"""clear_names (clear-names-v2): no bare item ids or "the held item" in what Jeff reads.
+"""clear_names (clear-names-v3): no bare item ids or "the held item" in what Jeff reads.
 
 No model is called: requests are composed locally, and the round is a loopback relay round.
 """
@@ -114,6 +114,28 @@ class ClearNamesTests(unittest.TestCase):
         text = 'Continue current task: Pick up raw meat F2 at floor (3,5); 0.9 s left'
         self.assertEqual(clear_names.name_ids(text, {'F2': 'beef (as fetched)'}),
                          'Continue current task: Pick up beef (as fetched) F2 at floor (3,5); 0.9 s left')
+
+    def test_a_step_that_adds_food_to_a_plate_names_the_food_added(self):
+        # (v3) The plate's food keeps its first ingredient's id (lettuce here); the event names what was added.
+        k = kitchen(2)
+        for key in ('fetch lettuce', 'put b1', 'chop b1', 'take plates', 'assemble b1', 'put counter10',
+                    'fetch bread', 'assemble counter10'):
+            do(k, 'jeff', key)
+        events = [e['message'] for e in request(k, True)['state']['recent_events']]
+        self.assertIn('jeff completed: Add the lettuce (chopped) from Board 1 to the held plate', events)
+        self.assertIn('jeff completed: Put the held plate with lettuce on Counter 10 (one item per tile)', events)
+        self.assertIn('jeff completed: Put the held bread (as fetched) onto the plate at Counter 10', events)
+
+    def test_a_plated_dish_is_named_as_the_menu_names_it(self):
+        k = kitchen(3)
+        for key in ('fetch beef', 'put b1', 'chop b1', 'take b1', 'put p1'):
+            do(k, 'jeff', key)
+        while k.stations['p1'].food.stage != 'ready':
+            k.advance(0.05)
+        for key in ('take plates', 'plate p1', 'put counter10'):
+            do(k, 'jeff', key)
+        events = [e['message'] for e in request(k, True)['state']['recent_events']]
+        self.assertIn('jeff completed: Put the held Steak on Counter 10 (one item per tile)', events)
 
     def test_off_the_request_is_as_before(self):
         for level in (1, 4):

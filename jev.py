@@ -114,7 +114,7 @@ class JevClient:
 def compose_payload(client, kitchen, state, actions, recent_decisions, communication, memory=NO_MEMORY, plan=None, one_press=None,
                     undo=None, reach=False, names=False, intent=None, links=False, split=False, burn=False,
                     serve_note=False, wait_note=False, backlog=False, steps=False, clear=False, walk=False,
-                    english=False):
+                    english=False, plate=False):
     """Jeff's request from the kitchen and the few parts it cannot derive; research replay rebuilds it here too.
 
     one_press is the round's one-press switches (one_press.flags), or None: the options are added to the
@@ -127,14 +127,16 @@ def compose_payload(client, kitchen, state, actions, recent_decisions, communica
     serve_note and wait_note whether those are (option_notes.py), backlog whether backlog_note is (backlog_note.py),
     steps whether step_check is (step_check.py), clear whether clear_names is (clear_names.py; it runs again after
     the links table, which it may name in), walk whether walk_note is (walk_note.py: each option's walk), english
-    whether engine_english is (engine_english.py: the engine's own English where the catalog garbles it)."""
+    whether engine_english is (engine_english.py: the engine's own English where the catalog garbles it), plate
+    whether plate_names is (plate_names.py: a plating option says what the plate there holds)."""
     with engine_english.writing(english):
         return _compose(client, kitchen, state, actions, recent_decisions, communication, memory, plan, one_press,
-                        undo, reach, names, intent, links, split, burn, serve_note, wait_note, backlog, steps, clear, walk)
+                        undo, reach, names, intent, links, split, burn, serve_note, wait_note, backlog, steps, clear, walk,
+                        plate)
 
 
 def _compose(client, kitchen, state, actions, recent_decisions, communication, memory, plan, one_press,
-             undo, reach, names, intent, links, split, burn, serve_note, wait_note, backlog, steps, clear, walk):
+             undo, reach, names, intent, links, split, burn, serve_note, wait_note, backlog, steps, clear, walk, plate):
     if one_press:
         import one_press as presses
         keys = {a.key for a in actions}
@@ -149,6 +151,9 @@ def _compose(client, kitchen, state, actions, recent_decisions, communication, m
     if walk:
         import walk_note
         walk_note.apply(payload, kitchen, actions)
+    if plate:
+        import plate_names
+        plate_names.apply(payload)
     if links:
         import links as option_links
         payload = option_links.apply(payload, kitchen, 'jeff', actions, names, **option_links.flags(links))
@@ -229,6 +234,8 @@ class DecisionLoop:
         self.clear = False
         # The walk_note trial (walk_note.py): each option's walk in seconds.
         self.walk = False
+        # The plate_names trial (plate_names.py): a plating option says what the plate there holds.
+        self.plate = False
         # The engine_english trial (engine_english.py): the engine's own English where the catalog garbles it.
         self.english = False
         # The food_names trial (food_names.py): food named "<item> (<state>)" in Jeff's request.
@@ -737,7 +744,7 @@ class DecisionLoop:
                                   self.intent_input(source is not self.k, since) if self.intents else None, split=self.split,
                                   burn=self.burn, serve_note=self.serve_note, wait_note=self.wait_note,
                                   backlog=self.backlog, steps=self.steps, clear=self.clear, walk=self.walk,
-                                  english=self.english)
+                                  english=self.english, plate=self.plate)
         record = {"request_id": self.calls, "triggers": causes, "observed_state_seq": self.k.event_seq,
                   **({"jeff_plan": plan, "plan_ended": plan_ended} if plan is not None else {}),
                   **({"one_press": dict(self.one_press)} if self.one_press else {}),

@@ -1,4 +1,4 @@
-"""clear-names-v2: no bare item ids or "the held item" in what Jeff reads; each says what the thing is.
+"""clear-names-v3: no bare item ids or "the held item" in what Jeff reads; each says what the thing is.
 
 A trial (features.json clear_names, off by default, no page switch). food_names (names-v1) names food in the state and
 in the labels that name food, but left three kinds of text as before: labels that say only "the held item" ("Put the
@@ -24,7 +24,14 @@ dirty", "human started: Put the held item on Board 2"). With this switch on, in 
   the request's own kitchen shows of that item;
 - (v2) the dropped-ahead note is read in the form the catalog leaves it too: v1 read it after the catalog had
   half-translated it, so the paused case stayed "dropped (已Pause或本局结束); asked again at once)" and every other one
-  kept a stray ")" the catalog adds.
+  kept a stray ")" the catalog adds;
+- (v3) an action event of a step that adds food to a plate names the food added, as it was when the step began
+  ("Put the held bread (as fetched) onto the plate at Counter 2"): v2 named the first item the step changed, which
+  could be the plate's own food, named after its first ingredient and stage ("Put the held lettuce (cooked) onto
+  the plate"); and food on a plate is named as food_names names it (its dish, or "plate with" its components), not
+  as its first ingredient ("Put the held plate with lettuce on Counter 10", not "the held lettuce"); a pick-up
+  names the item its id says, also when the chef's hands swap (v2 could name the item put down) or the step is still
+  under way (v2 named what the chef held).
 
 Names come from the engine (provenance, vessels, the request's own state); nothing else changes, and applying it
 twice changes nothing more, so it runs after the links table too. clear_names_version goes with the static part.
@@ -32,16 +39,19 @@ twice changes nothing more, so it runs after the links table too. clear_names_ve
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 
 import engine_english
 from model_language import english_text
 
-VERSION = 'clear-names-v2'
+VERSION = 'clear-names-v3'
 BARE = re.compile(r'\b([FDPE]\d+)\b(?! \()')
 PICKUP = re.compile(r'Pick up ([FDPE]\d+) \((.+?); auto-swap\) at ')
 # The page's own food words, which the engine's events keep (food_names leaves events as they were).
 OLD = re.compile(r'\b(raw meat|Raw meat|Chopped|Cooked|Burnt|Tomato|Lettuce|Bread|Pot)\b')
 OLD_BEFORE = re.compile(r'\b(?:raw meat|Raw meat|Chopped|Cooked|Burnt|Tomato|Lettuce|Bread|Pot) $')
+# The old words that name one ingredient (the others name a state or a vessel).
+FOOD_WORDS = {'raw meat': 'beef', 'Raw meat': 'beef', 'Tomato': 'tomato', 'Lettuce': 'lettuce', 'Bread': 'bread'}
 WORDS = {'raw': 'as fetched', 'chopped': 'chopped', 'cooking': 'cooking', 'ready': 'cooked', 'burnt': 'burnt'}
 # The decision loop's own result notes that the language catalog does not cover (they reached Jeff in Chinese).
 # They arrive here translated (harness.compose runs the catalog first): "提前问的回复作废 (not_listed), 马上重问)", the
@@ -82,14 +92,35 @@ def _kind(kitchen, item, stage=None):
     return None
 
 
+@dataclass(frozen=True)
+class Touched:
+    """An item one completed step changed, from the kitchen's provenance."""
+    item: str
+    stage: str | None           # after the step (None: it left the kitchen or went into a plate)
+    components: tuple           # after the step
+    before: tuple | None        # (stage, components) after the item's previous step, None if it had none
+    held_by: str | None         # the chef holding it after its previous step
+    gone: bool                  # it went into a plate or left the kitchen in this step
+
+
+def _state(touch):
+    if not touch or not touch.state:
+        return None, ()
+    return touch.state[0], tuple(touch.state[1]) if len(touch.state) > 1 and touch.state[1] else ()
+
+
 def _touched(kitchen):
-    """{action id: [(item, stage after the step)]} from the kitchen's provenance."""
+    """{action id: [Touched]} from the kitchen's provenance."""
     out = {}
     for item, touches in kitchen.provenance.history.items():
-        for t in touches:
+        for i, t in enumerate(touches):
+            previous = touches[i - 1] if i else None
+            stage, components = _state(t)
+            touched = Touched(item, stage, components, _state(previous) if previous and previous.state else None,
+                              previous.place[5:] if previous and previous.place.startswith('hand:') else None,
+                              not t.place)
             for aid in t.action_ids:
-                out.setdefault(aid, []).append((item, t.state[0] if t.state else None,
-                                                tuple(t.state[1]) if t.state and len(t.state) > 1 and t.state[1] else ()))
+                out.setdefault(aid, []).append(touched)
     return out
 
 
@@ -153,6 +184,15 @@ def _recipe_name(kitchen, item, stage, components=()):
             return stage.replace('_', ' ')
         return 'plate with ' + ', '.join(components) if components else 'plate'
     if item[:1] == 'F':
+        if components:
+            # (v3) Food on a plate is named as food_names names it: its dish when this round's orders can ask for
+            # it, else "plate with" its components. Its id is its first ingredient's, which is not what it is now.
+            if stage == 'burnt':
+                return 'burnt dish'
+            dish = kitchen.rules.dish(components)
+            if dish and dish in kitchen.rules.menu:
+                return english_text(kitchen.recipe_name(dish))     # as the request's menu names it
+            return 'plate with ' + ', '.join(components)
         ingredient = kitchen.provenance.ingredients.get(item)
         if not ingredient:
             return None
@@ -160,20 +200,52 @@ def _recipe_name(kitchen, item, stage, components=()):
     return _kind(kitchen, item)
 
 
-def _action_item(kitchen, e, touched, payload):
+def _step_item(kitchen, items, actor, message):
+    """(v3) Which of the items a plating step changed its event speaks of, named as it was when the step began.
+
+    Adding food to a plate changes two items: the food added (gone into the plate) and the plate's food (which keeps
+    its first ingredient's id). The event names one: the ingredient its old food word says ("Put the held Bread onto
+    the plate", "Add the Tomato from Board 2"), else the one the chef held."""
+    pickup = PICKUP.search(message)
+    if pickup:
+        # A pick-up that swaps hands changes the item picked up and the one put down; its event says the id.
+        same = [t for t in items if t.item == pickup.group(1)]
+        if same:
+            return same[0]
+    words = [FOOD_WORDS[m.group(1)] for m in OLD.finditer(message) if m.group(1) in FOOD_WORDS]
+    if words:
+        same = [t for t in items if t.item[:1] == 'F' and kitchen.provenance.ingredients.get(t.item) == words[0]
+                and not (t.before and t.before[1])]
+        if same:
+            return min(same, key=lambda t: not t.gone)
+    held = [t for t in items if t.held_by == actor]
+    if held:
+        return held[0]
+    return None
+
+
+def _action_item(kitchen, e, touched, payload, message=''):
     """The name of what an action event's step touched: from provenance once the step completed, else what the chef
     holds (a put or throw under way) or what lies at the step's target (a take under way)."""
     items = touched.get(e['action_id'])
     if items:
-        # A plate's own touch names a dish being put together; an ingredient merged into it names what was added.
-        for item, stage, components in items:
-            if item[:1] in 'FPD':
-                return _recipe_name(kitchen, item, stage, components)
+        foods = [t for t in items if t.item[:1] in 'FPD']
+        if len(foods) > 1:
+            chosen = _step_item(kitchen, foods, e.get('actor'), message)
+            if chosen:
+                stage, components = chosen.before or (chosen.stage, chosen.components)
+                return _recipe_name(kitchen, chosen.item, stage, components)
+        for t in foods:
+            return _recipe_name(kitchen, t.item, t.stage, t.components)
         return None
     k = payload['state']['kitchen']
     chef = k.get('chefs', {}).get(e.get('actor'), {})
     if chef.get('job_id') != e['action_id']:
         return None
+    pickup = PICKUP.search(message)
+    if pickup and pickup.group(1) in _names(payload):
+        # (v3) A pick-up under way: the item still lies there, as the request shows it (not what the chef holds).
+        return _names(payload)[pickup.group(1)]
     if isinstance(chef.get('holding'), dict):
         return _lower(chef['holding'].get('meaning'))
     target = (e.get('action') or '').split()[-1:]
@@ -195,7 +267,7 @@ def event(kitchen, e, touched, payload):
     message = BARE.sub(sub, message)
     if e.get('action_id') is not None and e.get('kind') in ('action_start', 'action_done') and (
             'the held item' in message or OLD.search(message) or PICKUP.search(message)):
-        name = _action_item(kitchen, e, touched, payload)
+        name = _action_item(kitchen, e, touched, payload, message)
         if name:
             message = message.replace('the held item', f'the held {name}')
             message = PICKUP.sub(lambda m: f'Pick up {name} {m.group(1)} at ', message)
