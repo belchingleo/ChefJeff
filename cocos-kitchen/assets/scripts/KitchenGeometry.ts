@@ -20,10 +20,13 @@ export function cabinetModule(map:any,id:string):'counter_south'|'counter_east'{
     return stationView(map,id).run_axis==='vertical'&&covered?'counter_east':'counter_south';
 }
 /** The long edge faces the authored service side, independent of cabinet run. */
-export function trashView(map:any,id:string):{axis:Axis;mirror:boolean}{
+/** The trash art for a bin. Its lid is always on the wall side, opposite the access: a lid towards the chef is not
+ * how a bin is used. The side frame draws the lid east (mirrored when the access is east), the front frame north
+ * (flipped top to bottom when the access is north, as level 4's bin2). */
+export function trashView(map:any,id:string):{axis:Axis;mirror:boolean;flip:boolean}{
     const e=map.equipment[id],dx=e.access[0]-e.cell[0],dy=e.access[1]-e.cell[1];
     const side=e.facing==='west'||e.facing==='east'||Math.abs(dx)>Math.abs(dy);
-    return {axis:side?'vertical':'horizontal',mirror:side&&dx>0};
+    return {axis:side?'vertical':'horizontal',mirror:side&&dx>0,flip:!side&&dy<0};
 }
 export function wallNeighbours(walls:Set<string>,x:number,y:number){
     return {north:walls.has(`${x},${y-1}`),east:walls.has(`${x+1},${y}`),south:walls.has(`${x},${y+1}`),west:walls.has(`${x-1},${y}`)};

@@ -113,9 +113,20 @@ for (const level of [1, 2, 3]) {
   }
 }
 
-for(const [facing,access,axis,mirror] of [['west',[3,4],'vertical',false],['east',[5,4],'vertical',true],['north',[4,3],'horizontal',false],['south',[4,5],'horizontal',false]]) {
+// The lid stays on the wall side, opposite the access: the side frame's lid is east, the front frame's north.
+for(const [facing,access,axis,mirror,flip] of [['west',[3,4],'vertical',false,false],['east',[5,4],'vertical',true,false],['north',[4,3],'horizontal',false,true],['south',[4,5],'horizontal',false,false]]) {
  const map={equipment:{bin:{cell:[4,4],access,facing}}};
- assert.deepStrictEqual(geometry.trashView(map,'bin'),{axis,mirror});
+ assert.deepStrictEqual(geometry.trashView(map,'bin'),{axis,mirror,flip});
+}
+for (const level of [1, 2, 3, 4]) {
+  const map = JSON.parse(fs.readFileSync(path.join(root, `maps/level-${level}.json`), 'utf8'));
+  const equipment = Object.fromEntries(map.equipment.map(e => [e.id, e]));
+  for (const bin of map.equipment.filter(e => e.type === 'bin')) {
+    const view = geometry.trashView({equipment}, bin.id);
+    const lid = view.axis === 'vertical' ? [view.mirror ? -1 : 1, 0] : [0, view.flip ? 1 : -1];
+    const towards = [bin.access[0] - bin.cell[0], bin.access[1] - bin.cell[1]];
+    assert.deepStrictEqual(lid, towards.map(v => 0 - v), `level ${level} ${bin.id}: the lid faces away from the chef`);
+  }
 }
 const trash=JSON.parse(fs.readFileSync(path.join(root,'cocos-kitchen/assets/resources/art/trash-directions-v1/manifest.json'),'utf8')).frames['feedback/trash_opening_vertical'];
 assert(trash.rect[3]>trash.rect[2],'Side-access trash must be taller than wide');

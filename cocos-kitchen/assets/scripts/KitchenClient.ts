@@ -1565,7 +1565,7 @@ export class KitchenClient extends Component {
         if(this.prepSampleBoard(id))n.setPosition(0,this.workSurfaceY(id)+11);
         if(id.startsWith('bin')){
             const view=trashView(this.state!.kitchen.map,id);
-            n.setScale(view.mirror?-1:1,1,1);
+            n.setScale(view.mirror?-1:1,view.flip?-1:1,1);
             this.art.centered(n,view.axis==='vertical'?'feedback/trash_opening_vertical':'feedback/trash_opening',TILE*.8,TILE*.8);return;
         }
         if(st.counter)return;
