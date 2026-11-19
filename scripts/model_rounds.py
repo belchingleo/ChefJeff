@@ -6,7 +6,9 @@
 Each round is played by the same session the local game runs (web_server.GameSession): Jeff is the real decision
 loop asking the connection saved in the game (scripts/jev_replay_check.client: .player-api.json, else the local Jev
 key), and the round runs in real time, so the model's reply time counts as it does for a player. The human chef is
-a scripted reference chef (reference_policy), choosing every half second:
+a scripted reference chef (reference_policy), choosing every half second. The round takes Jeff's features as the
+game gives them to that connection's model service (features.model_defaults: a feature's off_for);
+an override (CHEFJEFF_FEATURES_OVERRIDE) with "off_for": [] gives a feature to every service, for a comparison.
 
 - assembler / cook: the reference pair's two roles (the calibration pair plays both);
 - solo: the scripted chef that does everything by itself, ignoring Jeff;
@@ -105,6 +107,9 @@ def play_round(level, client_factory, human='assembler', max_calls=None, clock=t
     from web_server import GameSession
     game = GameSession(config_for(level, max_calls), client_factory=client_factory, journal_factory=play.Journal,
                        kitchen_factory=SpatialKitchen, log_prefix='rounds')
+    # The features as the game gives them to this connection's service (connect names it on the factory).
+    service = getattr(client_factory, 'service', None)
+    game.model_service = lambda: service
     try:
         game.last_tick = game.last_seen = clock()
         status, reply = game._command('/api/start', {'speed': 1})
@@ -144,7 +149,8 @@ def connect(connection=None, perplexity=None, openrouter=None, parallel=False):
     a worktree that has none), or with perplexity a Perplexity decision model as the game's perplexity setting asks it,
     the key from a private file the user wrote (never printed), or with openrouter a decision model on OpenRouter as the
     game's openrouter-decision setting asks it (e.g. perplexity/pplx-decider-v1.3:free), its key from its own file, or with
-    parallel Parallel's own decision API (no model name; its key, with the account's credit, from its own file)."""
+    parallel Parallel's own decision API (no model name; its key, with the account's credit, from its own file). The
+    factory's service is the connection's model service (a model-providers.json id), for the features the game gives it."""
     if perplexity or openrouter or parallel:
         import player_api
         from scripts.reach_note_check import private_secret
@@ -154,11 +160,25 @@ def connect(connection=None, perplexity=None, openrouter=None, parallel=False):
         setting = player_api.settings_from({'provider': provider, 'api_key': private_secret(key),
                                             **({'model': model} if model else {})})
         print(f'asking {setting["base_url"]} ({setting["model"]}) with the key from {key} (not printed)', file=sys.stderr)
-        return lambda config: player_api.create_client(config, setting)
+        factory = lambda config: player_api.create_client(config, setting)    # noqa: E731
+        factory.service = setting['provider']
+        return factory
     from scripts import jev_replay_check
     if connection:
         jev_replay_check.CONNECTION = Path(connection).expanduser().resolve()
-    return lambda config: jev_replay_check.client(config)
+    factory = lambda config: jev_replay_check.client(config)    # noqa: E731
+    factory.service = saved_service(jev_replay_check.CONNECTION)
+    return factory
+
+
+def saved_service(path):
+    """The model service of the game's saved connection (only its provider field is used), else Jev's: the local
+    Jev key jev_replay_check.client falls back to."""
+    import player_api
+    try:
+        return player_api.settings_from(json.loads(Path(path).read_text(encoding='utf-8')))['provider']
+    except (OSError, ValueError, TypeError, KeyError):
+        return 'jev'
 
 
 def _one(job):

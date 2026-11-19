@@ -469,8 +469,8 @@
                 "pattern": "^[a-z][a-z0-9-]{0,39}$"
               },
               "source": {
-                "description": "Present when the server's override (features.py) set this feature for the round (server), or the player's own switch did (player).",
-                "enum": ["server", "player"]
+                "description": "Present when the server's override (features.py) set this feature for the round (server), the round's model service took it off (model: features.json off_for), or the player's own switch did (player).",
+                "enum": ["server", "model", "player"]
               }
             },
             "required": [

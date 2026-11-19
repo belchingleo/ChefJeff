@@ -201,6 +201,9 @@ class PlayerGameSession(GameSession):
     def _player_client(self,config):
         if not self.setting:raise RuntimeError('需要配置玩家 API')
         return self.connector(config,self.setting.copy())
+    def model_service(self):
+        # The saved connection's service: features.model_defaults gives its rounds that service's default.
+        return (self.setting or {}).get('provider')
     def connection_state(self):
         s=self.setting or {}
         return {'configured':bool(s),'provider':s.get('provider','jev'),'base_url':s.get('base_url',''),
@@ -289,6 +292,7 @@ class PlayerGameSession(GameSession):
                 try:self.credential_path.unlink(missing_ok=True)
                 except OSError:return 500,{'error':'无法清除保存的连接，请检查文件权限。'}
                 self.setting=None
+                self.connection_changed()
                 # Dispose the finished round's client reference too.
                 if self.ai and self.ai.closed:self.ai=None
                 response=(200,{'ok':True,'connection':self.connection_state()})
@@ -316,6 +320,7 @@ class PlayerGameSession(GameSession):
                         if os.path.exists(name):os.unlink(name)
                 else:self.credential_path.unlink(missing_ok=True)
                 self.setting=setting
+                self.connection_changed()
                 if self.ai and self.ai.closed:self.ai=None
                 self.c['ai_max_response_age']=6 if is_decision(setting) else 15
                 response=(200,{'ok':True,'connection':self.connection_state()})

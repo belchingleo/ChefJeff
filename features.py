@@ -7,6 +7,11 @@ Each feature has a stage:
 - trial: off unless the file says "on": true; with "player_switch": true it also shows in Settings -> AI teammate
   as a "(测试)" switch, and "on" is then its default for a new session.
 
+A feature that is on may name, in "off_for", the model services (ids in model-providers.json) whose rounds take it
+off by default (model_defaults); a server's override can set it too. The player's
+switch, where offered, still turns it back on; a round whose service's default turned a feature off records
+"source": "model" for it.
+
 "version" must be the version the code implements, so the file cannot name behaviour the code does not have:
 rolling a feature back to an older version still means rolling back the code. The file is read once and checked;
 a wrong name, stage or value stops the server instead of running with it. Every round's start row and research
@@ -14,7 +19,8 @@ record carry the snapshot (name -> on, version), so rounds stay comparable when 
 
 A server can switch features without a new release, through an override file outside the release
 (/etc/chefjeff/features.override.json, or the path in CHEFJEFF_FEATURES_OVERRIDE): {name: {"on": ..,
-"player_switch": ..}}, only those two fields, for features this release has. The result is checked like
+"player_switch": .., "off_for": [..]}}, only those three fields, for features this release has ("off_for": [] gives
+the feature to every service, as a comparison with it on for all needs). The result is checked like
 features.json (a released feature has no player switch, one plan mode at a time); a wrong override is not used,
 the release's file is, and the reason goes to stderr. The file is read again when it changes, and a session takes
 the switches as each round starts, so a round already running keeps its own. A feature the override sets is recorded with
@@ -71,7 +77,9 @@ VERSIONS = {'one_press': one_press.VERSION, 'jeff_plan': harness.PLAN_RULES_VERS
 # wait_note) is serve-note-v1 and wait-note-v2.
 # The plan modes (harness.PLAN_MODES), one at a time, and the feature of each.
 PLAN_FEATURES = {'choice': 'jeff_plan', 'rolling': 'rolling_intent'}
-FIELDS = {'stage', 'on', 'player_switch', 'version'}
+FIELDS = {'stage', 'on', 'player_switch', 'version', 'off_for'}
+# The model services a feature's off_for may name: every preset in the shared service list.
+SERVICES = frozenset(p['id'] for p in json.loads((ROOT / 'model-providers.json').read_text(encoding='utf-8'))['providers'])
 
 
 def check(data) -> dict:
@@ -84,7 +92,7 @@ def check(data) -> dict:
     out = {}
     for name, value in data.items():
         if not isinstance(value, dict) or set(value) - FIELDS or not {'stage', 'on', 'version'} <= set(value):
-            raise ValueError(f'features.json: {name} takes stage, on, version and (for a trial) player_switch')
+            raise ValueError(f'features.json: {name} takes stage, on, version, off_for and (for a trial) player_switch')
         stage, on, switch = value['stage'], value['on'], value.get('player_switch', False)
         if stage not in STAGES:
             raise ValueError(f'features.json: {name} stage must be one of {STAGES}')
@@ -95,6 +103,13 @@ def check(data) -> dict:
         if value['version'] != VERSIONS[name]:
             raise ValueError(f'features.json: {name} version {value["version"]!r} is not the code\'s {VERSIONS[name]!r}')
         out[name] = {'stage': stage, 'on': on, 'player_switch': switch, 'version': value['version']}
+        if 'off_for' in value:
+            services = value['off_for']
+            if (not isinstance(services, list) or len(set(map(str, services))) != len(services)
+                    or not all(isinstance(x, str) and x in SERVICES for x in services)):
+                raise ValueError(f'features.json: {name} off_for must list distinct model services from '
+                                 f'model-providers.json ({", ".join(sorted(SERVICES))})')
+            out[name]['off_for'] = list(services)
     if sum(out[name]['on'] for name in PLAN_FEATURES.values()) > 1:
         raise ValueError('features.json: one plan mode at a time (jeff_plan or rolling_intent)')
     return out
@@ -113,7 +128,7 @@ def _release():
 
 OVERRIDE_ENV = 'CHEFJEFF_FEATURES_OVERRIDE'
 DEFAULT_OVERRIDE = Path('/etc/chefjeff/features.override.json')
-OVERRIDE_FIELDS = ('on', 'player_switch')
+OVERRIDE_FIELDS = ('on', 'player_switch', 'off_for')
 _override_lock = threading.Lock()
 _override = {'key': object(), 'value': None}       # read on first use; key None means no override file
 
@@ -125,7 +140,7 @@ def override_path() -> Path:
 def with_override(raw, override) -> dict:
     """features.json as written with a server override applied, checked; ValueError naming what is wrong."""
     if not isinstance(override, dict):
-        raise ValueError('the override must hold an object {feature: {"on": ..., "player_switch": ...}}')
+        raise ValueError('the override must hold an object {feature: {"on": ..., "player_switch": ..., "off_for": [...]}}')
     merged = {name: dict(value) for name, value in raw.items()}
     for name, fields in override.items():
         if name not in merged:
@@ -167,11 +182,22 @@ def current() -> dict:
     return {name: dict(value) for name, value in _effective().items()}
 
 
+def model_defaults(features, service) -> dict:
+    """These features as a round with this model service (a model-providers.json id, or None where the session does
+    not know one) takes them before the player's switches: each feature that is on and names the service in off_for
+    is off, with "source": "model"."""
+    if not service:
+        return features
+    return {name: ({**value, 'on': False, 'source': 'model'} if value['on'] and service in value.get('off_for', ()) else value)
+            for name, value in features.items()}
+
+
 def snapshot(features) -> dict:
     """What a round records: each feature on or off, with its version, and "source": "server" where the server's
-    override set it, or "player" where the player's own switch did (web_server.with_player_switches)."""
+    override set it, "model" where the round's model service took it off (model_defaults), or "player" where the
+    player's own switch did (web_server.with_player_switches)."""
     return {name: {'on': value['on'], 'version': value['version'],
-                   **({'source': value['source']} if value.get('source') in ('server', 'player') else {})}
+                   **({'source': value['source']} if value.get('source') in ('server', 'model', 'player') else {})}
             for name, value in features.items()}
 
 
@@ -280,7 +306,8 @@ def main(argv=None) -> int:
     print(f'override file: {path}' + ('' if path.exists() else ' (none)'))
     for name, value in effective.items():
         print(f"  {name:15s} {'on ' if value['on'] else 'off'}  {value['stage']:7s} "
-              f"{'switch ' if value['player_switch'] else '       '}{value['version']:14s} {value.get('source', 'release')}")
+              f"{'switch ' if value['player_switch'] else '       '}{value['version']:14s} {value.get('source', 'release')}"
+              + (f"  off for {', '.join(value['off_for'])}" if value.get('off_for') else ''))
     return 0
 
 

@@ -113,8 +113,10 @@ class GameSession:
         self.jeff_plan_mode = features.plan_default(self.features)
         self.plan_mode_chosen = False
         # The player's own pick for a feature with a player switch (option_links: 步骤提示), kept for later rounds while
-        # the switch is offered; None: the default from the features.
+        # the switch is offered and the model connection stays the same (a new connection takes its service's default,
+        # features.model_defaults); None: the default. links_choice_service is the service the pick was made with.
         self.links_choice = None
+        self.links_choice_service = None
         # Every round of this play session, for the data export (feedback.play_export).
         self.history = []
         self.history_limit = HISTORY_LIMIT
@@ -465,11 +467,25 @@ class GameSession:
             return self.jeff_plan_mode
         return features.plan_default(value)
 
+    def model_service(self):
+        """The model service (a model-providers.json id) this session's rounds ask, where the session knows it: the
+        player's connection (player_api, hosted_server); None here."""
+        return None
+
+    def connection_changed(self):
+        """A new model connection: the player's pick of a switch is dropped, so its service's default holds."""
+        self.links_choice = self.links_choice_service = None
+
     def with_player_switches(self, value):
-        """These features with the player's own pick applied where the features offer a switch; a pick that differs
-        from the default is recorded as "source": "player"."""
+        """These features as this session's model service takes them (features.model_defaults), with the player's
+        own pick applied where the features offer a switch; a pick that differs from that default is recorded as
+        "source": "player"."""
+        service = self.model_service()
+        value = features.model_defaults(value, service)
         links = value.get('option_links')
-        if not links or not links.get('player_switch') or self.links_choice is None or self.links_choice == links['on']:
+        # A pick made with another service (or none) is not this one's: the player chose against another default.
+        if (not links or not links.get('player_switch') or self.links_choice is None or self.links_choice == links['on']
+                or self.links_choice_service != service):
             return value
         return {**value, 'option_links': {**links, 'on': self.links_choice, 'source': 'player'}}
 
@@ -591,7 +607,7 @@ class GameSession:
                 return 409, {'error': '请在开局前或结算后修改步骤提示。'}
             if not self.next_features().get('option_links', {}).get('player_switch') or type(body.get('on')) is not bool:
                 return 400, {'error': '步骤提示设置无效。'}
-            self.links_choice = body['on']
+            self.links_choice, self.links_choice_service = body['on'], self.model_service()
             return 200, {'ok': True, 'links': self.links_state()}
         if path == '/api/plan':
             if self.phase not in ('ready', 'ended'):

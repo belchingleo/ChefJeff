@@ -7,6 +7,7 @@ import hashlib
 import ipaddress
 from copy import deepcopy
 import json
+import features
 import mimetypes
 from pathlib import Path
 import secrets
@@ -170,6 +171,10 @@ class HostedSession(GameSession):
         self.jev_receipts = OrderedDict()  # Sanitized answers/statuses only, never keys.
         self.jev_last_check = float('-inf')
         self.free_model_provider = None
+        # The preset service of the browser's own connection (an id from model-providers.json, as /api/browser-ready
+        # reports it), only for the features the game gives that service (features.model_defaults); no endpoint,
+        # model name or key comes with it.
+        self.browser_service = None
         self.free_model_gate = threading.Lock()
         self.free_model_receipts = OrderedDict()
         self.free_model_budget_round = None
@@ -199,6 +204,10 @@ class HostedSession(GameSession):
                 self.free_diagnostics[ident]={'attempt':self.ai.calls if self.ai else 0,
                     'game_seconds':round(self.k.time,3),**clean_diagnostic(diagnostic)}
             while len(self.free_diagnostics)>256:self.free_diagnostics.popitem(last=False)
+
+    def model_service(self):
+        """The service this session's rounds ask: the free model the site lent, else the one the browser reported."""
+        return self.free_model_provider or (self.browser_service if self.connected else None)
 
     def _client(self, config):
         if self.relay: self.relay.close()
@@ -366,8 +375,14 @@ class HostedSession(GameSession):
             if self.free_admission_gate.locked(): return 409, {'error': '正在申请免费名额，请稍候。'}
             if self.phase not in ('ready', 'ended'): return 409, {'error': '请先结束当前对局。'}
             if type(body.get('connected')) is not bool: return 400, {'error': '连接状态无效。'}
+            service, changed = body.get('provider'), body.get('changed', False)
+            if (service is not None and service not in features.SERVICES) or type(changed) is not bool:
+                return 400, {'error': '连接状态无效。'}
             self.connected = body['connected']
             self.free_model_provider = None
+            self.browser_service = service if self.connected else None
+            if changed:
+                self.connection_changed()
             return 200, {'ok': True}
         if path in ('/api/start','/api/next') and not self.connected:
             return 428, {'error': '请先在当前浏览器连接模型服务。'}
@@ -456,7 +471,7 @@ FIELDS = {
     '/api/contribution/preview': set(),
     '/api/contribution/consent': {'consent', 'consent_version', 'decision_telemetry', 'model_identity'},
     '/api/contribution/save': {'consent', 'consent_version', 'consent_mode', 'model_identity'},
-    '/api/browser-ready': {'connected'}, '/api/start': {'speed'}, '/api/pause': {'reason'},
+    '/api/browser-ready': {'connected', 'provider', 'changed'}, '/api/start': {'speed'}, '/api/pause': {'reason'},
     '/api/resume': set(), '/api/end': set(), '/api/reset': set(), '/api/restart': set(),
     '/api/level': {'level'}, '/api/next': {'level'}, '/api/player-level/submit': {'level', 'design'}, '/api/player-level/play': {'job'}, '/api/plan': {'mode'}, '/api/links': {'on'}, '/api/limits': {'max_calls'}, '/api/export-run': set(),
     '/api/feedback': set(), '/api/bookmark': set(), '/api/communicate': {'code'},

@@ -452,12 +452,17 @@
   // The same questions, in the same order, as harness.choice_questions: the plan's, then put_where (one_press.py).
   const PLAN_QUESTIONS = ['plan_step_1', 'plan_step_2', 'plan_step_3', 'plan_step_4', 'plan_keep', 'put_where'];
   function planQuestions(payload) {return PLAN_QUESTIONS.filter(q => q in payload.questions);}
-  async function markReady(connected, body, config=setting) {
+  // The server learns only the preset service's id (features.model_defaults: Jeff's set-up for that service), never
+  // its endpoint, model name or key; changed says the player saved a new connection (their switch picks then reset).
+  let serviceReported = false;
+  async function markReady(connected, body, config=setting, changed=false) {
     if(connected && config?.free_model)return serverFetch('/api/model/free/select', {method:'POST',
       headers:{'Content-Type':'application/json'},body:JSON.stringify({game_id:body.game_id,
         request_id:crypto.randomUUID(),provider:config.provider})});
+    serviceReported = true;
     return serverFetch('/api/browser-ready', {method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({game_id:body.game_id, request_id:crypto.randomUUID(), connected})});
+      body:JSON.stringify({game_id:body.game_id, request_id:crypto.randomUUID(), connected, changed,
+        ...(connected && config ? {provider:config.provider} : {})})});
   }
   async function configure(body, signal) {
     if (!connection().editable) return response(409, {error:'请结束本局后再更换 API。'});
@@ -465,7 +470,7 @@
     try {
       freeAutoPicked=true;
       if (body.clear) {
-        const r = await markReady(false, body); if (!r.ok) return r;
+        const r = await markReady(false, body, setting, true); if (!r.ok) return r;
         setting = null;activeRoundConfig = null;
         try {localStorage.removeItem(storageName);} catch (_) {}
       } else {
@@ -487,7 +492,7 @@
             instructions:'Choose ready and return the required format.', criteria:{ready:'Connection ready',wait:'Not ready yet'}}}}, signal,
             {game_id:body.game_id,request_id:crypto.randomUUID(),test:true});
           if (signal?.aborted) throw new Error('连接测试已取消。');
-          const r = await markReady(true, body, candidate); if (!r.ok) return r;
+          const r = await markReady(true, body, candidate, true); if (!r.ok) return r;
         }
         // Remove any older remembered key even when the new choice is memory-only.
         try {
@@ -596,7 +601,17 @@
           contribution_busy: busyRound === d.game_id});
         return d;};
       const d = await result.json();
-      if (url.pathname === '/api/state') {await prepareFreeModels(d);return response(200, withConnection(d));}
+      if (url.pathname === '/api/state') {
+        await prepareFreeModels(d);
+        // A connection restored from this browser is reported once before the first round, so the settings show
+        // the switches its service starts with (a fresh server session knows no service until then).
+        if (setting && !setting.free_model && !serviceReported && ['ready','ended'].includes(d.phase)) {
+          const ready = await markReady(true, d);
+          const again = ready.ok ? await serverFetch(url.pathname, init) : null;
+          if (again?.ok) return response(200, withConnection(await again.json()));
+        }
+        return response(200, withConnection(d));
+      }
       if (d.state) d.state = withConnection(d.state);
       return response(200, d);
     } catch (_) {return response(503, {error:transportError || '厨房连接不可用，请刷新页面重新连接。'});}
