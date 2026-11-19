@@ -29,6 +29,7 @@ Paired moments are stronger than separate rounds: the same request asked two way
 - **Rounds (time and tokens):** `scripts/model_rounds.py --level level-2 --human assembler`, 12 rounds per arm and per model, with Jev and one chat model (DeepSeek). Primary: median reply time per round. Secondary: input tokens per request, and cache hits where the provider reports them. Guards: fires and burnt food per round, goal rate.
 - **Budget:** the dry run for 12 rounds is at most 2400 requests and 23.3M input tokens, about $0.98 at Jev's price. Each further arm or model adds as much.
 - **Decision:** release when the arms' agreement is not below the repeat agreement (interval of the paired difference includes 0), reply time is shorter, and no guard is worse. Roll back on a worse guard.
+- **Outcome (2026-11-10, Jev):** input tokens −9 %, reply time the same, no cache hit, goals 0 of 12 rounds against 3 of 12; the switch stayed off and was removed on 2026-11-19.
 
 ## Example 2: `ask_ahead` (Jeff asks for his next step before the current one ends)
 
@@ -82,6 +83,7 @@ Paired moments are stronger than separate rounds: the same request asked two way
 - **按整局比较（看时间和 token）：** `scripts/model_rounds.py --level level-2 --human assembler`，每组、每个模型各 12 局，模型用 Jev 和一个对话模型（DeepSeek）。主要指标是每局回复时间的中位数；次要指标是每次请求的输入 token，以及服务商报告的缓存命中。底线指标是每局着火和烧糊次数、达标率。
 - **预算：** 12 局的 dry run 显示，最多 2400 次请求、2330 万输入 token，按 Jev 的价格约 0.98 美元。每多一组或多一个模型，再加这么多。
 - **决策：** 同时满足以下三条就上线：两组之间的一致率不低于各自的重复一致率（成对差别的区间包含 0）；回复时间变短；底线指标没有变差。底线变差就回退。
+- **结果（2026-11-10，Jev）：** 输入 token 少 9%，回复时间不变，缓存一次都没命中，12 局达标 0 局（不开时 3 局）；开关一直关着，2026-11-19 删除。
 
 ## 例二：`ask_ahead`（当前这一步结束前，Jeff 就先问下一步）
 

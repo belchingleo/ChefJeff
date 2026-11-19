@@ -20,9 +20,7 @@ import harness
 import one_press
 import undo_note
 import environment
-import wire_format
 import ask_ahead
-import intent_layer
 import engine_english
 
 ENDPOINT = "https://api.typesafe.ai/v1/systemone"
@@ -84,9 +82,7 @@ class JevClient:
     def ask(self, payload):
         payload = english_data(payload)
         start = time.monotonic()
-        # The compact format (features.json compact_input) sends the state as {static, live}; the payload stays as it is.
-        body = wire_format.decision_body(payload) if wire_format.enabled() else payload
-        request = urllib.request.Request(self.endpoint, data=json.dumps(body, ensure_ascii=False).encode(),
+        request = urllib.request.Request(self.endpoint, data=json.dumps(payload, ensure_ascii=False).encode(),
                                          headers={**self.key_headers(), "Content-Type": "application/json"}, method="POST")
         try:
             with urllib.request.urlopen(request, timeout=self.timeout or self.c["ai_timeout_seconds"]) as r:
@@ -112,31 +108,29 @@ class JevClient:
 
 
 def compose_payload(client, kitchen, state, actions, recent_decisions, communication, memory=NO_MEMORY, plan=None, one_press=None,
-                    undo=None, reach=False, names=False, intent=None, links=False, split=False, burn=False,
-                    serve_note=False, wait_note=False, backlog=False, steps=False, clear=False, walk=False,
+                    undo=None, reach=False, names=False, links=False, split=False, burn=False,
+                    serve_note=False, wait_note=False, steps=False, clear=False, walk=False,
                     english=False, plate=False):
     """Jeff's request from the kitchen and the few parts it cannot derive; research replay rebuilds it here too.
 
     one_press is the round's one-press switches (one_press.flags), or None: the options are added to the
-    listed actions here, unless the caller already did. intent is the intent layer's part of the request
-    (DecisionLoop.intent_input) when that switch is on; its options are then the actions (intent_layer.build).
+    listed actions here, unless the caller already did.
     links is whether the option_links switch is on (links.py): the table is computed here, from this kitchen and
-    these actions (intents too: links.link carries an intent's steps out), after the request is composed; 'partner'
-    adds the other chef's side (option_links_partner), 'v4' computes the table against waiting (option_links_v4).
+    these actions, after the request is composed; 'partner' adds the other chef's side (option_links_partner),
+    'burnt' counts emptying a burnt pan (option_links_burnt).
     split is whether the split_floor switch is on (split_floor.py), burn whether burn_note is (burn_note.py),
-    serve_note and wait_note whether those are (option_notes.py), backlog whether backlog_note is (backlog_note.py),
+    serve_note and wait_note whether those are (option_notes.py),
     steps whether step_check is (step_check.py), clear whether clear_names is (clear_names.py; it runs again after
     the links table, which it may name in), walk whether walk_note is (walk_note.py: each option's walk), english
     whether engine_english is (engine_english.py: the engine's own English where the catalog garbles it), plate
     whether plate_names is (plate_names.py: a plating option says what the plate there holds)."""
     with engine_english.writing(english):
         return _compose(client, kitchen, state, actions, recent_decisions, communication, memory, plan, one_press,
-                        undo, reach, names, intent, links, split, burn, serve_note, wait_note, backlog, steps, clear, walk,
-                        plate)
+                        undo, reach, names, links, split, burn, serve_note, wait_note, steps, clear, walk, plate)
 
 
 def _compose(client, kitchen, state, actions, recent_decisions, communication, memory, plan, one_press,
-             undo, reach, names, intent, links, split, burn, serve_note, wait_note, backlog, steps, clear, walk, plate):
+             undo, reach, names, links, split, burn, serve_note, wait_note, steps, clear, walk, plate):
     if one_press:
         import one_press as presses
         keys = {a.key for a in actions}
@@ -144,10 +138,9 @@ def _compose(client, kitchen, state, actions, recent_decisions, communication, m
     if names:
         # The food_names trial (food_names.py): every food named from its ingredient and state, labels included.
         import food_names
-        # The intents are built in naming mode already (intent_layer.build), so their labels stay as written.
-        state, actions = food_names.state(state), (actions if intent is not None else food_names.labels(kitchen, actions, one_press))
+        state, actions = food_names.state(state), food_names.labels(kitchen, actions, one_press)
     payload = harness.compose(client.payload(state, actions), kitchen, recent_decisions, communication, memory, plan, one_press,
-                              undo, reach, names, intent, split, burn, serve_note, wait_note, backlog, steps, clear)
+                              undo, reach, names, split, burn, serve_note, wait_note, steps, clear)
     if walk:
         import walk_note
         walk_note.apply(payload, kitchen, actions)
@@ -226,8 +219,6 @@ class DecisionLoop:
         # The serve_note and wait_note trials (option_notes.py): factual notes on the serve and wait options.
         self.serve_note = False
         self.wait_note = False
-        # The backlog_note trial (backlog_note.py): what the waiting orders still need chopped.
-        self.backlog = False
         # The step_check trial (step_check.py): whether each step the waiting orders need is possible now.
         self.steps = False
         # The clear_names trial (clear_names.py): what each item id and "the held item" is.
@@ -254,11 +245,6 @@ class DecisionLoop:
         self.held = None
         self.ahead_job = None
         self.step_end_seen = None   # (step id, countdown bands, hand) when Jeff's last step ended
-        # The intent layer (intent_layer.py) when the round's switch is on: Jeff's intents run as chains (self.chain
-        # with 'intent' set), and how the previous one ended (its intent_end row) goes into the next request.
-        self.intents = False
-        self.intent_last = None
-        self.knocked_ask = False    # knocked out of an intent: ask now, even while the step he was walking goes on
 
     def reply_time(self):
         """The typical recent reply time, or None before any answer."""
@@ -301,18 +287,8 @@ class DecisionLoop:
         return applied, message, {'first': first.key, 'fallback': fallback}
 
     def end_chain(self, reason, failed=None):
-        """Drop the chain under way, if any, and log why (finished, replaced, interrupted, a step not possible; for an
-        intent also knocked)."""
-        if self.chain is not None and self.chain.get('intent'):
-            c = self.chain
-            record = {'choice': c['key'], 'label': c['label'], 'reason': reason, 'started': c['started'],
-                      't': round(self.k.time, 3), 'steps_done': c['done_steps'], 'steps': c['total'],
-                      'executed': list(c['executed']), 'put_where': c['put_where'], 'put_where_fallback': c['fallback'],
-                      'asked_ahead': c['ahead'], **({'step_not_possible': failed} if failed else {})}
-            self.log('intent_end', record)
-            self.intent_last = record
-            self.chain = None
-        elif self.chain is not None:
+        """Drop the chain under way, if any, and log why (finished, replaced, interrupted, a step not possible)."""
+        if self.chain is not None:
             self.log('one_press_end', {'choice': self.chain['key'], 'reason': reason, 'steps_left': len(self.chain['steps']),
                                        't': round(self.k.time, 3)})
             self.chain = None
@@ -320,14 +296,6 @@ class DecisionLoop:
     def advance_chain(self):
         """After the chain's step finishes, start its next step at once; a step the engine does not list ends it."""
         if self.chain is None:
-            return
-        if self.chain.get('intent') and any(e.get('actor') == 'jeff' and e.get('kind') == 'knocked'
-                                            for e in self.k.events[self.chain_cursor:]):
-            # The other chef's sprint knocked him away: the intent ends and he is asked at once, even if the step he
-            # was walking goes on (the request tells him who knocked him and what it interrupted).
-            self.end_chain('knocked')
-            self.knocked_ask = True
-            self.chain_cursor = len(self.k.events)
             return
         for event in self.k.events[self.chain_cursor:]:
             if event.get('actor') != 'jeff' or event.get('action_id') != self.chain['job']:
@@ -341,12 +309,8 @@ class DecisionLoop:
         if self.chain is None or not self.chain['done'] or self.k.chefs['jeff'].job is not None:
             return
         if not self.chain['steps']:
-            if self.chain.get('intent'):
-                self.chain['done_steps'] += 1
             self.end_chain('finished')
             return
-        if self.chain.get('intent'):
-            self.chain['done_steps'] += 1
         step = self.chain['steps'].pop(0)
         action = one_press.find(self.k, 'jeff', step)
         applied = action is not None and self.port.start(action)[0]
@@ -355,61 +319,7 @@ class DecisionLoop:
             self.end_chain('step_not_possible', failed={'kinds': list(step[0]), 'target': step[1]})
             return
         self.chain.update(job=job.id, done=False)
-        if self.chain.get('intent'):
-            self.chain['executed'].append(action.key)
         self.chain_cursor = len(self.k.events)
-
-    def start_intent(self, decision, put_where, ahead=False):
-        """Start an intent: its first step now (the put put_where chose, or the engine action itself); the rest follow
-        as each step finishes (advance_chain). Returns applied, message and how it started."""
-        c = self.chain
-        if (c is not None and c.get('intent') and not c['steps'] and any(
-                e.get('actor') == 'jeff' and e.get('action_id') == c['job'] and e.get('kind') == 'action_done'
-                for e in self.k.events[self.chain_cursor:])):
-            c['done_steps'] += 1        # its last step ended at this tick (an answer asked ahead): finished, not replaced
-            self.end_chain('finished')
-        first, rest = intent_layer.steps_of(decision)
-        fallback = False
-        if first == intent_layer.PUT:
-            first, fallback = intent_layer.place(self.k, 'jeff', put_where)
-        started = {'first': first.key if first is not None else None, 'fallback': fallback}
-        if first is None:
-            return False, '这个意图的第一步现在做不了', started
-        if first.kind == 'continue':
-            return (*self.port.start(first), started)       # the intent under way goes on
-        applied, message = self.port.start(first)
-        if not applied:
-            return applied, message, started
-        self.end_chain('replaced')
-        job = self.k.chefs['jeff'].job
-        if job is not None:
-            self.chain = {'key': decision.key, 'steps': list(rest), 'job': job.id, 'done': False, 'intent': True,
-                          'label': decision.label, 'total': 1 + len(rest), 'done_steps': 0, 'started': round(self.k.time, 3),
-                          'executed': [first.key], 'put_where': put_where if decision.expected[0] == intent_layer.PUT else None,
-                          'fallback': fallback, 'ahead': ahead}
-            self.chain_cursor = len(self.k.events)
-        return applied, message, started
-
-    def intent_options(self, kitchen):
-        """The request's intents and put places (intent_layer.build), "continue" named after the intent under way."""
-        intents, places = intent_layer.build(kitchen, 'jeff', self.k.c.get('ai_empty_counters_per_area', 2),
-                                             getattr(self.client, 'spatial', False), self.names)
-        if self.chain is not None and self.chain.get('intent') and kitchen is self.k:
-            c = self.chain
-            intents = [replace(o, label=f"Continue: {c['label']} (step {c['done_steps'] + 1} of {c['total']})")
-                       if o.key == 'continue' else o for o in intents]
-        return intents, places
-
-    def intent_input(self, ahead, since):
-        """The intent layer's part of a request: the intent under way and how the previous one ended. Asked ahead, the
-        request is about the moment the intent under way finishes, as predicted."""
-        chain = self.chain if self.chain is not None and self.chain.get('intent') else None
-        if ahead and chain is not None:
-            last = intent_layer.ended({'label': chain['label'], 'reason': 'finished', 'steps_done': chain['total'],
-                                       'steps': chain['total'], 't': None})
-            return {'current': None, 'last': last, 'since': since}
-        return {'current': intent_layer.describe(chain, self.k) if chain else None,
-                'last': intent_layer.ended(self.intent_last) if self.intent_last else None, 'since': since}
 
     def invalidate(self):
         self.epoch += 1
@@ -455,12 +365,9 @@ class DecisionLoop:
             reason = 'paused_or_restarted'
         else:
             chosen = context['actions'][result['choice']]
-            if self.intents:
-                listed = self.intent_options(self.k)[0]
-            else:
-                listed = self.k.actions('jeff')
-                if self.one_press:
-                    listed = listed + one_press.options(self.k, 'jeff', listed, self.one_press)
+            listed = self.k.actions('jeff')
+            if self.one_press:
+                listed = listed + one_press.options(self.k, 'jeff', listed, self.one_press)
             decision = ask_ahead.still_listed(listed, chosen, self.ahead_throw)
             reason = None if decision is not None else 'not_listed'
         self.held = None
@@ -560,11 +467,7 @@ class DecisionLoop:
                 # The work an action does is read from the kitchen as it starts (what is in hand, on the board).
                 work = harness.work_item(decision, self.k.snapshot()) if self.plan and fresh and harness.does_work(decision) else None
                 pressed = None      # how a one-press choice started: its first step and whether put_where fell back
-                started = None      # how an intent started: its first step and whether put_where fell back
-                if fresh and decision.kind == intent_layer.KIND:
-                    applied, message, started = self.start_intent(decision, result.get(intent_layer.PUT_WHERE),
-                                                                  bool(context.get('ahead')))
-                elif fresh and decision.kind in one_press.KINDS:
+                if fresh and decision.kind in one_press.KINDS:
                     applied, message, pressed = self.start_chain(decision, result.get(one_press.PUT_WHERE))
                 elif fresh:
                     applied, message = self.port.start(decision)
@@ -579,8 +482,6 @@ class DecisionLoop:
                     # The engine_english trial (engine_english.py): the loop's own notes in English.
                     if not fresh and context.get('ahead'):
                         note = engine_english.ahead_dropped(context['ahead_check'])
-                    elif fresh and decision.kind == intent_layer.KIND and started and started['first'] is None:
-                        note = engine_english.INTENT_NOT_NOW
                     elif fresh and decision.kind in one_press.KINDS and pressed and pressed['first'] is None:
                         note = engine_english.CHAIN_NOT_NOW
                 if applied and work and self.k.chefs["jeff"].job:
@@ -604,7 +505,6 @@ class DecisionLoop:
                 self.log("ai_response", {"request_id": context["id"], **result, "applied": applied, "execution": message, "sprint_applied":sprint_applied,
                                          "fresh": fresh, **({"plan_set": plan_set, "plan_dropped": plan_dropped} if self.plan else {}),
                                          **({"one_press": pressed} if pressed else {}),
-                                         **({"intent_start": started} if started else {}),
                                          **({"ask_ahead": {'result': 'applied' if applied else 'discarded',
                                                            'reason': None if applied else context['ahead_check'] or 'not_fresh'}}
                                             if context.get('ahead') else {}),
@@ -617,7 +517,7 @@ class DecisionLoop:
                 self.recent_decisions.append({"t": round(self.k.time, 2), "choice": result["choice"],
                                               "accepted": applied, "result": note, "sprint_applied":sprint_applied})
                 self.recent_decisions = self.recent_decisions[-8:]
-                quiet = decision.kind in ("continue", "wait") or (decision.kind == intent_layer.KIND and decision.key in ("continue", "wait"))
+                quiet = decision.kind in ("continue", "wait")
                 if not quiet or not applied or now-self.last_wait_notice >= 8:
                     self.notify(f"Jeff 选择：{decision.label} | {result['latency']:.2f}s" + ("" if applied else f" | 未执行：{message}"))
                     self.last_wait_notice = now
@@ -661,30 +561,21 @@ class DecisionLoop:
         # so the answer about his next step arrives as this one ends.
         ahead_now = (self.ask_on_step_end and job is not None and self.held is None and self.can_ask_ahead(job)
                      and self.outlasts_reply(job))
-        if age < self.k.c["ai_min_interval"] and not (step_end or plan_end or ahead_now or self.knocked_ask):
+        if age < self.k.c["ai_min_interval"] and not (step_end or plan_end or ahead_now):
             return
         urgency = self.urgency()
         changed = self.k.revision != self.last_revision
         urgent = urgency != self.last_urgency
-        if not (changed or urgent or step_end or self.plan_due or ahead_now or self.knocked_ask
+        if not (changed or urgent or step_end or self.plan_due or ahead_now
                 or age >= self.k.c["ai_refresh_seconds"]):
             return
-        intent_under_way = self.intents and self.chain is not None and self.chain.get('intent') and job is not None
-        if intent_under_way:
-            # During an intent Jeff is asked only when an order or a pan crosses a countdown band, when the human chef
-            # sends a message, or ahead of its last step; other changes go with the next request.
-            new_message = any(m.get('first_request_id') is None for m in getattr(self, 'player_messages', []))
-            if not (urgent or new_message or ahead_now):
-                return
-            urgent_now = urgent or new_message
-        else:
-            urgent_now = urgent or self.knocked_ask
+        urgent_now = urgent
         # Rolling intent or a one-press chain: a change of urgency (an order or a pan crossing a countdown band) asks even then.
         rolling_urgent = urgent_now and ((self.plan is not None and self.plan.mode == 'rolling') or self.chain is not None)
         source = self.k             # the kitchen the request describes: this one, or with ask_ahead its fork at the step's end
         if self.held is not None:
             return                  # an answer about the next step is waiting for this one to end
-        if self.ask_on_step_end and job is not None and self.outlasts_reply(job) and not rolling_urgent and not self.knocked_ask:
+        if self.ask_on_step_end and job is not None and self.outlasts_reply(job) and not rolling_urgent:
             # The answer would come after this step ends and be discarded; ask when it ends instead, or with
             # ask_ahead ask now about the kitchen as it will be when the step ends (once per step).
             if not self.can_ask_ahead(job):
@@ -693,15 +584,10 @@ class DecisionLoop:
             self.ahead_job = job.id
             if source is None:
                 return
-        if self.intents:
-            intents, places = self.intent_options(source)
-            actions = intents + places
-        else:
-            actions = source.actions("jeff")
-            if self.one_press:
-                actions = actions + one_press.options(source, 'jeff', actions, self.one_press)
+        actions = source.actions("jeff")
+        if self.one_press:
+            actions = actions + one_press.options(source, 'jeff', actions, self.one_press)
         state = source.snapshot()
-        since = self.event_cursor     # the first engine event after the previous request
         causes = [e["message"] for e in self.k.events[self.event_cursor:]]
         if urgent:
             causes.append("订单或锅的紧急倒计时档位变化")
@@ -740,23 +626,20 @@ class DecisionLoop:
             context['plan_offered'] = plan['options']
         payload = compose_payload(self.client, source, state, actions, self.recent_decisions, communication,
                                   self.cooperation_memory if hasattr(self, 'cooperation_memory') else NO_MEMORY, plan, self.one_press,
-                                  deepcopy(self.undo), self.reach, self.names,
-                                  self.intent_input(source is not self.k, since) if self.intents else None, split=self.split,
+                                  deepcopy(self.undo), self.reach, self.names, split=self.split,
                                   burn=self.burn, serve_note=self.serve_note, wait_note=self.wait_note,
-                                  backlog=self.backlog, steps=self.steps, clear=self.clear, walk=self.walk,
+                                  steps=self.steps, clear=self.clear, walk=self.walk,
                                   english=self.english, plate=self.plate)
         record = {"request_id": self.calls, "triggers": causes, "observed_state_seq": self.k.event_seq,
                   **({"jeff_plan": plan, "plan_ended": plan_ended} if plan is not None else {}),
                   **({"one_press": dict(self.one_press)} if self.one_press else {}),
                   **({"undo_note": deepcopy(self.undo)} if self.undo is not None else {}),
-                  **({"ask_ahead": ahead} if ahead else {}),
-                  **({"intent_layer": intent_layer.VERSION} if self.intents else {})}
+                  **({"ask_ahead": ahead} if ahead else {})}
         self.last_request = now
         self.last_revision = self.k.revision
         self.last_urgency = urgency
         self.step_ended = False
         self.plan_due = False
-        self.knocked_ask = False
         self.inflight = True
         if not self.links:
             self.send(context, payload, record)

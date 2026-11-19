@@ -7,7 +7,6 @@ No arbitrary prompts, endpoints, paid fallback, automatic retries or raw replies
 from collections import deque
 from copy import deepcopy
 import json
-import wire_format
 import http.client
 import os
 from pathlib import Path
@@ -191,7 +190,7 @@ class FreeModels:
     def send(self, provider, payload):
         model = MODELS[provider]
         body = (zhipu_body(payload) if provider == 'zhipu' else
-                {**(wire_format.decision_body(payload) if wire_format.enabled() else payload), 'model': model['model'],
+                {**payload, 'model': model['model'],
                  'think_mode': 'never', 'allow_none': False} if provider == 'startlux' else
                 chat_body(payload, model['model'], model['extra']))
         request = urllib.request.Request(self.endpoints[provider], data=json.dumps(body, ensure_ascii=False).encode(),

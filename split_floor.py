@@ -8,8 +8,7 @@ only on Jeff's, as the engine decides reach (SpatialKitchen.reaches), and the co
 facts only: nothing about who should do which step or when to pass. A dish needs the supplies and serving; chopping
 when a component is served chopped or cooked from chopped; cooking when a component is served cooked. On a floor in
 one piece, or when one chef alone could make some dish on the menu, nothing is added, so levels 1-3 are asked
-exactly as before. The line depends only on the map and the menu, so it is the same in every request of a round
-(compact_input sends it with the static part, like the other rules).
+exactly as before. The line depends only on the map and the menu, so it is the same in every request of a round.
 """
 from __future__ import annotations
 

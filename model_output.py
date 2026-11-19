@@ -28,12 +28,11 @@ def zhipu_schema(payload):
     return 'JSON Schema: ' + json.dumps(schema, ensure_ascii=False, separators=(',', ':'))
 
 
-def zhipu_instructions(payload, plan=None, put_where=None):
-    """The fixed sentences before the schema. plan and put_where say whether those questions can be asked (the
-    compact format fixes them for the round); by default, whether this request asks them."""
+def zhipu_instructions(payload):
+    """The fixed sentences before the schema, with the plan and put_where sentences when this request asks them."""
     questions = payload['questions']
-    plan = any(q.startswith('plan_') for q in questions) if plan is None else plan
-    put_where = 'put_where' in questions if put_where is None else put_where
+    plan = any(q.startswith('plan_') for q in questions)
+    put_where = 'put_where' in questions
     return (
         'You control chef jeff in a shared kitchen. Using the supplied state and rules, '
         'choose exactly one action key from questions.next_action.criteria. '
@@ -48,23 +47,8 @@ def zhipu_instructions(payload, plan=None, put_where=None):
         + 'Do not explain or add other fields. ')
 
 
-def compact_chat_messages(payload):
-    """The compact format's messages for this contract: fixed sentences and static first, the schema after live."""
-    import wire_format
-    static, _ = wire_format.split(payload['state'])
-    instructions = zhipu_instructions(payload, wire_format.plan_possible(static), wire_format.put_where_possible(static))
-    return wire_format.chat_messages(payload, instructions, '\n' + zhipu_schema(payload))
-
-
-def chat_body(payload, model, extra=None, compact=None):
-    """One OpenAI-compatible request: the full kitchen state, the offered actions and the vendor's fixed fields.
-    compact (by default the compact_input feature) sends the state as wire_format's static and live parts."""
-    if compact is None:
-        import wire_format
-        compact = wire_format.enabled()
-    if compact:
-        return {'model': model, 'max_tokens': 128, **json.loads(json.dumps(extra or {})),
-                'messages': compact_chat_messages(payload)}
+def chat_body(payload, model, extra=None):
+    """One OpenAI-compatible request: the full kitchen state, the offered actions and the vendor's fixed fields."""
     return {'model': model, 'max_tokens': 128, **json.loads(json.dumps(extra or {})),
             'messages': [{'role': 'system', 'content': zhipu_system(payload)},
                          {'role': 'user', 'content': json.dumps(

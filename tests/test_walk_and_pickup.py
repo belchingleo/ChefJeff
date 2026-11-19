@@ -12,7 +12,6 @@ import features
 import one_press
 import research_replay
 import walk_note
-import wire_format
 from research_record import validate_record
 from jev import compose_payload
 from kitchen import load_config
@@ -78,8 +77,7 @@ class WalkNoteTests(unittest.TestCase):
         self.assertGreater(checked, 5)
         self.assertEqual(on['state']['walk_note_version'], walk_note.VERSION)
 
-    def test_the_version_is_static_and_the_switch_a_trial(self):
-        self.assertIn('walk_note_version', wire_format.STATE_STATIC)
+    def test_the_switch_is_a_trial(self):
         self.assertEqual(features.current()['walk_note'],
                          {'stage': 'trial', 'on': False, 'player_switch': False, 'version': walk_note.VERSION})
         on = {**features.current(), 'walk_note': {**features.current()['walk_note'], 'on': True}}
@@ -153,7 +151,7 @@ class NoChineseTests(unittest.TestCase):
         import test_engine_english as ee
         options = {**features.compose_options(features.load()), 'english': True}
         decisions, _ = ee.loop_notes(True)
-        self.assertEqual(len(decisions), 4)
+        self.assertEqual(len(decisions), 3)
         for k in (ee.plating(), ee.played()):
             k.advance(.2)
             client = SpatialJevClient(k.c, key='test-no-credential')

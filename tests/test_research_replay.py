@@ -204,12 +204,9 @@ class ReplayTests(paths.SavePathTests):
         self.assertEqual(initial['conditions']['features']['one_press'], {'on': True, 'version': one_press.VERSION})
         self.assertEqual({name: value['on'] for name, value in initial['conditions']['features'].items()},
                          {'one_press': True, 'jeff_plan': False, 'rolling_intent': False, 'undo_note': False,
-                          'compact_input': False, 'ask_ahead': True, 'ahead_throw': False, 'reach_note': False, 'food_names': True,
-                          'intent_layer': False,
-                          'option_links': True, 'option_links_partner': False, 'option_links_v4': False,
-                          'split_floor': False, 'burn_note': False,
-                          'serve_note': False, 'wait_note': False, 'backlog_note': False,
-                          'option_links_burnt': False, 'step_check': False,
+                          'ask_ahead': True, 'ahead_throw': False, 'reach_note': False, 'food_names': True,
+                                                    'option_links': True, 'option_links_partner': False,                           'split_floor': False, 'burn_note': False,
+                          'serve_note': False, 'wait_note': False,                           'option_links_burnt': False, 'step_check': False,
                           'clear_names': False, 'pickup_press': False, 'walk_note': False,
                           'engine_english': False, 'plate_names': False})
         with self.game.lock:                                    # the human leaves beef on a board
@@ -292,36 +289,6 @@ class ReplayTests(paths.SavePathTests):
         # The flag is taken from the record only when the record says so.
         record['aborted'] = False
         self.assertEqual(research_replay.check(record)['replay'], 'diverged')
-
-    def test_a_round_sent_in_the_compact_format_replays_exactly(self):
-        import features
-        import wire_format
-        on = {key: dict(value) for key, value in features.current().items()}
-        on['compact_input']['on'] = True
-        with patch.object(features, 'current', lambda: {key: dict(value) for key, value in on.items()}):
-            self.game.features = features.current()          # as a session started with the switch on
-            receipt = self.begin_manual_relay()
-            self.human_action()
-            for _ in range(3):
-                with self.game.lock:
-                    self.game.ai.poll()
-                deadline = time.monotonic() + 2
-                while time.monotonic() < deadline and not self.game.relay.request():
-                    with self.game.lock:
-                        self.game.ai.poll()      # sends the request once its step-hint table is in
-                    time.sleep(.005)
-                sent = self.game.relay.request()
-                self.assertEqual(sent['wire']['version'], wire_format.VERSION)          # the page gets the two parts
-                self.assertEqual(self.answer_with()[0], 200)
-            self.natural_end()
-            self.assertEqual(self.contribute()[0], 200)
-        record = self.game.store.download(receipt['id'], receipt['deletion_token'])
-        validate_record(record)
-        self.assertEqual(record['conditions']['features']['compact_input'], {'on': True, 'version': wire_format.VERSION})
-        requests = list(research_replay.rebuild_requests(record))
-        self.assertGreater(len(requests), 2)
-        self.assertEqual({r['status'] for r in requests}, {'verified'})      # the record keeps the payload, not the wire
-        self.assertEqual(research_replay.check(record)['replay'], 'verified')
 
     def test_a_round_with_option_links_replays_exactly_though_the_table_is_built_off_the_game_loop(self):
         # The table is computed in a thread and the request sent at a later poll; an engine input that arrives

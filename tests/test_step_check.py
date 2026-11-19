@@ -10,7 +10,6 @@ from unittest.mock import patch
 import features
 import research_replay
 import step_check
-import wire_format
 from research_record import validate_record
 from jev import compose_payload
 from kitchen import load_config
@@ -77,9 +76,6 @@ class StepCheckTests(unittest.TestCase):
             k = kitchen(level)
             self.assertEqual(json.dumps(request(k, True)), json.dumps(request(k, False)))
 
-    def test_the_version_is_static_and_the_check_is_live(self):
-        self.assertIn('step_check_version', wire_format.STATE_STATIC)
-        self.assertNotIn('step_check', wire_format.STATE_STATIC)
 
     def test_the_feature_is_a_trial_off_by_default_without_a_page_switch(self):
         self.assertEqual(features.current()['step_check'],

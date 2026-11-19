@@ -9,7 +9,6 @@ import uuid
 import features
 import option_notes
 import research_replay
-import wire_format
 from research_record import validate_record
 from jev import compose_payload
 from kitchen import load_config
@@ -100,9 +99,6 @@ class OptionNoteTests(unittest.TestCase):
             self.assertEqual(on['questions']['next_action']['criteria']['wait'], 'Wait')
             self.assertEqual(json.dumps(without(on, 'serve_note_version', 'wait_note_version')), json.dumps(off))
 
-    def test_the_versions_go_with_the_static_part(self):
-        self.assertIn('serve_note_version', wire_format.STATE_STATIC)
-        self.assertIn('wait_note_version', wire_format.STATE_STATIC)
 
     def test_both_are_trials_off_by_default_without_a_page_switch(self):
         for name, version in (('serve_note', option_notes.SERVE_VERSION), ('wait_note', option_notes.WAIT_VERSION)):

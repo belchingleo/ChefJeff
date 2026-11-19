@@ -8,7 +8,6 @@ import unittest
 import features
 import plate_names
 import research_replay
-import wire_format
 from jev import compose_payload
 from research_record import validate_record
 from whitebox_server import SpatialJevClient
@@ -80,8 +79,7 @@ class PlateNamesTests(unittest.TestCase):
         on['questions'] = off['questions']
         self.assertEqual(on, off)       # the labels are all it changes
 
-    def test_the_version_is_static_and_the_feature_a_trial_off_by_default_without_a_page_switch(self):
-        self.assertIn('plate_names_version', wire_format.STATE_STATIC)
+    def test_the_feature_is_a_trial_off_by_default_without_a_page_switch(self):
         self.assertEqual(features.current()['plate_names'],
                          {'stage': 'trial', 'on': False, 'player_switch': False, 'version': plate_names.VERSION})
         on = {**features.current(), 'plate_names': {**features.current()['plate_names'], 'on': True}}

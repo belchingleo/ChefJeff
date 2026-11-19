@@ -9,6 +9,8 @@ dropped-ahead notes of recent_decisions and chef tasks (and continue labels quot
 and released ones are b021713's. Rewritten again for clear-names-v3 and plate-names-v1 (every_trial now has plate_names
 on): the every_trial requests differ from aaf945d only in the two version fields, events of steps that add food to a
 plate or pick an item up naming that item (v3), and plating labels and chef tasks naming the plate there or in hand.
+Rewritten once more when backlog_note was removed: the level-4 every_trial requests lose state.backlog and its version
+and are otherwise the same.
 """
 from __future__ import annotations
 
@@ -29,7 +31,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import config_contract as cc  # noqa: E402
 import engine_english  # noqa: E402
 import fingerprint  # noqa: E402
-import intent_layer  # noqa: E402
 import one_press  # noqa: E402
 import research_record as rr  # noqa: E402
 import research_replay  # noqa: E402
@@ -67,7 +68,7 @@ def released():
 def every_trial():
     return {'one_press': one_press.flags({**{name: True for name in one_press.NAMES}, 'put_then_pickup': True}),
             'undo': {'step': None}, 'reach': True, 'names': True, 'links': 'partner+burnt', 'split': True,
-            'burn': True, 'serve_note': True, 'wait_note': True, 'backlog': True, 'steps': True, 'clear': True,
+            'burn': True, 'serve_note': True, 'wait_note': True, 'steps': True, 'clear': True,
             'walk': True, 'plate': True}
 
 
@@ -218,7 +219,7 @@ def played():
 
 def loop_notes(english):
     """The decision loop's recent_decisions and notices after the three notes: an answer asked ahead dropped (once
-    paused, once not listed), a one-press choice and an intent whose first step cannot be done now."""
+    paused, once not listed) and a one-press choice whose first step cannot be done now."""
     from test_walk_and_pickup import floor_beef_and_lettuce_in_hand
     k = floor_beef_and_lettuce_in_hand()
     notices = []
@@ -230,8 +231,6 @@ def loop_notes(english):
     loop.one_press = flags
     wait = find(k, 'jeff', 'wait')
     press = one_press.options(k, 'jeff', k.actions('jeff'), flags)[0]
-    intent = Action('put down', 'Put down the held lettuce where put_where says', intent_layer.KIND, '',
-                    (intent_layer.PUT, ()))
     clock = [100.0]
 
     def reply(decision, **context):
@@ -252,8 +251,6 @@ def loop_notes(english):
     reply(wait, ahead={'job_id': 1}, ahead_check='not_listed')
     with patch('one_press.place', lambda actions, where: (None, False)):
         reply(press)
-    with patch('intent_layer.place', lambda kitchen, who, where: (None, False)):
-        reply(intent)
     return loop.recent_decisions, notices
 
 
@@ -287,13 +284,11 @@ class LabelTests(unittest.TestCase):
                                  'Plate food from 地上frying pan里 (the empty frying pan stays in place)')
                 self.assertNotIn('engine_english_version', payload['state'])
 
-    def test_the_links_table_and_the_intents_carry_them_too(self):
+    def test_the_links_table_carries_them_too(self):
         k = plating()
         payload = ask(k, english=True, names=True, links=True)
         self.assertIsNone(CJK.search(json.dumps(payload['state'].get('option_links'), ensure_ascii=False)))
-        listed = k.actions('jeff')
-        intents, _ = intent_layer.options(k, 'jeff', listed)
-        counter = next(i for i in intents if i.key == 'plate counter4')
+        counter = find(k, 'jeff', 'plate counter4')
         with engine_english.writing():
             self.assertEqual(engine_english.label(counter), 'Plate food from the frying pan on Counter 4')
         self.assertEqual(engine_english.label(counter), counter.label)       # off outside writing()
@@ -368,14 +363,13 @@ class LoopNoteTests(unittest.TestCase):
         self.assertEqual([d['result'] for d in decisions], [
             'the answer asked ahead was dropped (paused, or the round ended); asked again at once',
             'the answer asked ahead was dropped (not_listed); asked again at once',
-            'the first step of this one-press choice cannot be done now',
-            'the first step of this intent cannot be done now'])
+            'the first step of this one-press choice cannot be done now'])
         self.assertTrue(all(CJK.search(n) for n in notices))
-        self.assertIn('未执行：一键操作的第一步现在做不了', notices[-2])
+        self.assertIn('未执行：一键操作的第一步现在做不了', notices[-1])
         decisions, _ = loop_notes(False)
         self.assertEqual([d['result'] for d in decisions], [
             '提前问的回复作废（已暂停或本局结束），马上重问', '提前问的回复作废（not_listed），马上重问',
-            '一键操作的第一步现在做不了', '这个意图的第一步现在做不了'])
+            '一键操作的第一步现在做不了'])
 
 
 class OffIsByteIdenticalTests(unittest.TestCase):

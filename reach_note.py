@@ -6,7 +6,7 @@ gets one rule, rules.reach, that lists the stations only Jeff can reach, only th
 reach, as the engine decides it (SpatialKitchen.reaches). It states facts only: nothing about passing food or
 dividing work. On a floor in one piece nothing is added, so levels 1-3 are asked exactly as before. The lists
 depend only on the map and on which part each chef stands, which does not change in a round, so the rule is
-the same in every request of a round (compact_input sends it with the static part, like the other rules).
+the same in every request of a round.
 """
 from __future__ import annotations
 

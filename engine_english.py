@@ -9,8 +9,8 @@ reached Jeff half in Chinese, in about one request in six of the logged rounds:
   Counter 4的平底" (the catalog's "...{0}锅里的菜" template matches before "...{0}的{1}里的菜"); plating from one on
   the floor came out "Plate food from 地上frying pan里 (...)". Both are in the options, in the events that carry the
   label (started / stopped / completed / completed together) and in a chef's task while it does it;
-- the decision loop's own notes in recent_decisions: an answer asked ahead and dropped, and a one-press choice or
-  an intent whose first step cannot be done now, stayed Chinese.
+- the decision loop's own notes in recent_decisions: an answer asked ahead and dropped, and a one-press choice
+  whose first step cannot be done now, stayed Chinese.
 
 With this switch on, the engine writes these in English itself, next to the Chinese: an Action carries `english`
 (not compared, not shown), Kitchen.emit keeps an event's English in `Kitchen.english_events` by seq (never in the
@@ -38,7 +38,6 @@ VESSEL = 'pot'
 # The decision loop's result notes (jev.DecisionLoop.poll), as Jeff reads them with the switch on.
 AHEAD_REASONS = {'已暂停或本局结束': 'paused, or the round ended'}
 CHAIN_NOT_NOW = 'the first step of this one-press choice cannot be done now'
-INTENT_NOT_NOW = 'the first step of this intent cannot be done now'
 
 
 def ahead_dropped(reason=None):

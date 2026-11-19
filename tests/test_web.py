@@ -41,7 +41,7 @@ class WebSessionTests(unittest.TestCase):
         import features
         g=self.make();self.start(g)
         loop={'one_press':g.ai.one_press,'undo':g.ai.undo,'reach':g.ai.reach,'names':g.ai.names,'links':g.ai.links,'split':g.ai.split,'burn':g.ai.burn,
-              'serve_note':g.ai.serve_note,'wait_note':g.ai.wait_note,'backlog':g.ai.backlog,
+              'serve_note':g.ai.serve_note,'wait_note':g.ai.wait_note,
               'steps':g.ai.steps,'clear':g.ai.clear,'walk':g.ai.walk,
               'english':g.ai.english,'plate':g.ai.plate}
         self.assertEqual(features.compose_options(g.features),loop)

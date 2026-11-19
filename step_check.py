@@ -2,11 +2,12 @@
 stands in the way, from the engine's state and recipes.
 
 A trial (features.json step_check, off by default, no page switch). Jeff reads the kitchen as some thirty stations of
-fields, where a missing pan is only empty fields among many; he was told such things one note at a time (backlog_note,
-the pans line). With this switch on, a request on a floor where every board is on the other chef's side gets one live
-field, state.step_check, that says, in this order:
+fields, where a missing pan is only empty fields among many; he was told such things one note at a time. With this
+switch on, a request on a floor where every board is on the other chef's side gets one live field, state.step_check,
+that says, in this order:
 
-- what the waiting orders still need chopped (backlog_note's counts, without its pans sentence);
+- what the waiting orders still need chopped (backlog below: needed, already fetched, still to fetch, within the
+  other chef's reach to chop now);
 - chopping: which boards are free or hold something to chop, or that every board holds other food, and whose side
   they are on;
 - cooking, for each vessel the waiting orders cook in: on which stoves it can start now, or that no stove has that
@@ -20,9 +21,100 @@ with the static part. On any other floor nothing is added.
 """
 from __future__ import annotations
 
-import backlog_note
+from collections import Counter
 
 VERSION = 'step-check-v1'
+
+
+def _chopped_first(kitchen, item, state):
+    heat = kitchen.rules.heat.get(item)
+    return state == 'chopped' or (state == 'ready' and bool(heat) and heat.get('from') == 'chopped')
+
+
+def applies(kitchen):
+    """A split floor where every board is reached by the other chef only (Jeff cannot chop)."""
+    boards = [s for s, e in kitchen.equipment.items() if e.get('type') == 'board']
+    return (getattr(kitchen, 'split_floor', False) and bool(boards)
+            and all(kitchen.reaches('human', b) and not kitchen.reaches('jeff', b) for b in boards))
+
+
+def _items(food):
+    """The ingredient ids in one food entry of the request: a loose ingredient, a plate's components, a pot's contents."""
+    if not isinstance(food, dict) or food.get('stage') == 'burnt':
+        return []
+    if food.get('plate_id') or food.get('ingredient') == 'dish':
+        return list(food.get('components') or [])
+    contents = food.get('contents')
+    if isinstance(contents, dict):
+        return _items(contents)
+    if isinstance(contents, list):
+        return [x for c in contents for x in _items(c)]
+    return [food['ingredient']] if food.get('ingredient') else []
+
+
+def counts(kitchen, payload):
+    """(needed, fetched, to chop now within the other chef's reach), each a Counter of ingredient ids."""
+    k = payload['state']['kitchen']
+    order = []
+    need = Counter()
+    for o in k.get('orders', []):
+        if o.get('status') != 'pending' or o.get('dish') not in kitchen.rules.recipes:
+            continue
+        for c in kitchen.rules.recipes[o['dish']]['components']:
+            if _chopped_first(kitchen, c['item'], c['state']):
+                need[c['item']] += 1
+                if c['item'] not in order:
+                    order.append(c['item'])
+    have, ready = Counter(), Counter()
+
+    def raw_to_chop(food):
+        return (isinstance(food, dict) and not food.get('plate_id') and food.get('stage') == 'raw'
+                and food.get('ingredient') in need)
+
+    for sid, station in k.get('stations', {}).items():
+        food = station.get('food')
+        have.update(x for x in _items(food) if x in need)
+        if raw_to_chop(food) and kitchen.reaches('human', sid):
+            ready[food['ingredient']] += 1
+    for who, chef in k.get('chefs', {}).items():
+        food = chef.get('holding')
+        have.update(x for x in _items(food) if x in need)
+        if who == 'human' and raw_to_chop(food):
+            ready[food['ingredient']] += 1
+    for g in k.get('ground', []):
+        food = g.get('food')
+        have.update(x for x in _items(food) if x in need)
+        if raw_to_chop(food) and kitchen.reaches('human', g.get('location')):
+            ready[food['ingredient']] += 1
+    for p in k.get('projectiles', []):
+        have.update(x for x in _items(p) if x in need)
+        cell = p.get('landing_cell') or [None, None]
+        place = p.get('onto') or f'floor_{cell[0]}_{cell[1]}'
+        try:
+            reach = kitchen.reaches('human', place)
+        except (KeyError, ValueError, TypeError):
+            reach = False
+        if raw_to_chop(p) and reach:
+            ready[p['ingredient']] += 1
+    return order, need, have, ready
+
+
+def backlog(kitchen, payload):
+    """What the waiting orders still need chopped, or None on another floor."""
+    if not applies(kitchen):
+        return None
+    tail = ''
+    order, need, have, ready = counts(kitchen, payload)
+
+    def listed(counter):
+        parts = [f'{item} {counter[item]}' for item in order if counter[item] > 0]
+        return ', '.join(parts) if parts else 'none'
+    if not any(need.values()):
+        return 'The waiting orders need nothing that is chopped first.' + tail
+    todo = Counter({item: max(0, need[item] - have[item]) for item in order})
+    return (f'The waiting orders need, chopped first: {listed(need)}. Already fetched (in any state, plates included): '
+            f'{listed(have)}. Still to fetch: {listed(todo)}. Within the other chef\'s reach to chop now: {listed(ready)}.'
+            .replace('chop now: none.', 'chop now: nothing.') + tail)
 
 
 def _side(kitchen, sids):
@@ -170,10 +262,10 @@ def serving(kitchen, payload):
 
 
 def line(kitchen, payload):
-    if not backlog_note.applies(kitchen):
+    if not applies(kitchen):
         return None
-    _, need, _, _ = backlog_note.counts(kitchen, payload)
-    parts = [backlog_note.line(kitchen, payload, pans=False), chopping(kitchen, payload, need), *cooking(kitchen, payload),
+    _, need, _, _ = counts(kitchen, payload)
+    parts = [backlog(kitchen, payload), chopping(kitchen, payload, need), *cooking(kitchen, payload),
              plating(kitchen, payload), serving(kitchen, payload)]
     return ' '.join(p for p in parts if p)
 

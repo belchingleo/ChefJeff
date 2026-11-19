@@ -74,7 +74,7 @@ sudo python3 /opt/chefjeff/current/features.py set rolling_intent off
 sudo python3 /opt/chefjeff/current/features.py unset rolling_intent
 ```
 
-`set NAME on|off [--switch on|off]` changes a feature (and, for a trial, its Settings switch); `unset` gives it back to the release; `check [FILE]` checks a file without using it. Only features the release has, and only `on` and `player_switch`, can be set; a change that would break `features.json`'s rules (a switch on a released feature, two plan modes) is refused and nothing is written. No restart is needed: new rounds take the change, a round already running keeps its switches, and `compact_input` applies from the next request. Research records mark a feature set this way with `"source": "server"`. A deploy leaves the override file in place, so after each deploy run `show` (or `check`) to see it still applies to the new release; one that no longer applies is not used and the game service log says why.
+`set NAME on|off [--switch on|off]` changes a feature (and, for a trial, its Settings switch); `unset` gives it back to the release; `check [FILE]` checks a file without using it. Only features the release has, and only `on` and `player_switch`, can be set; a change that would break `features.json`'s rules (a switch on a released feature, two plan modes) is refused and nothing is written. No restart is needed: new rounds take the change, a round already running keeps its switches. Research records mark a feature set this way with `"source": "server"`. A deploy leaves the override file in place, so after each deploy run `show` (or `check`) to see it still applies to the new release; one that no longer applies is not used and the game service log says why.
 
 ### Raising capacity
 
@@ -195,7 +195,7 @@ sudo python3 /opt/chefjeff/current/features.py set rolling_intent off
 sudo python3 /opt/chefjeff/current/features.py unset rolling_intent
 ```
 
-`set 名字 on|off [--switch on|off]` 打开或关闭一个功能（测试中的功能还可以显示或隐藏它在设置里的开关）；`unset` 恢复成发布包里的值；`check [文件]` 只检查、不使用。只能改发布包里已有的功能，而且只能改 `on` 和 `player_switch`；违反 `features.json` 规则的修改（给已上线的功能加开关、同时开两种计划模式）会被拒绝，文件不变。不需要重启：新开的局按新开关来，正在进行的局保持开局时的开关；`compact_input` 从下一次请求起生效。用这种方式设置的功能，研究记录里会标上 `"source": "server"`。部署新版本不会删掉覆盖文件，所以每次部署后都运行一次 `show`（或 `check`），确认它对新版本仍然有效；不再有效的覆盖文件不会被使用，游戏服务的日志里会写明原因。
+`set 名字 on|off [--switch on|off]` 打开或关闭一个功能（测试中的功能还可以显示或隐藏它在设置里的开关）；`unset` 恢复成发布包里的值；`check [文件]` 只检查、不使用。只能改发布包里已有的功能，而且只能改 `on` 和 `player_switch`；违反 `features.json` 规则的修改（给已上线的功能加开关、同时开两种计划模式）会被拒绝，文件不变。不需要重启：新开的局按新开关来，正在进行的局保持开局时的开关。用这种方式设置的功能，研究记录里会标上 `"source": "server"`。部署新版本不会删掉覆盖文件，所以每次部署后都运行一次 `show`（或 `check`），确认它对新版本仍然有效；不再有效的覆盖文件不会被使用，游戏服务的日志里会写明原因。
 
 ### 提高容量
 

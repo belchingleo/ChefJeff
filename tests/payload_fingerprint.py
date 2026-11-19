@@ -63,7 +63,6 @@ SCENARIOS = {
     'level2-messages-memory': ('level-2', True, False),
     'level2-plan': ('level-2', True, True),
     'level2-rolling': ('level-2', True, 'rolling'),
-    'level2-compact': ('level-2', False, False),
     'level2-ask-ahead': ('level-2', False, False),
     'level2-food-names': ('level-2', False, False),
 }
@@ -71,9 +70,6 @@ SCENARIOS = {
 # some of them come and he is asked ahead.
 AHEAD = {'level2-ask-ahead'}
 REPLY_SECONDS = 1.2
-# Scenarios sent in the compact format (wire_format.py, features.json compact_input on): the payload sections
-# must equal level2's, and only the request bodies (wire) differ.
-COMPACT = {'level2-compact'}
 # Scenarios with food_names on (food_names.py): every food named from its ingredient and state.
 NAMES = {'level2-food-names'}
 MESSAGES = ((20.0, 'prep'), (70.0, 'mistake'), (120.0, 'wash'))
@@ -255,7 +251,7 @@ _RECORDED = {}
 
 def recorded(name):
     """One scenario's fingerprint and every payload it sent, recorded once per process: the fingerprint test and
-    the wire-format tests (tests/test_wire_format.py) read the same round instead of playing it twice."""
+    other tests read the same round instead of playing it twice."""
     if name not in _RECORDED:
         payloads = []
         _RECORDED[name] = (run(name, keep=payloads), payloads)
@@ -271,11 +267,6 @@ def run(name, keep=None):
     if name in NAMES:
         on = {key: dict(value) for key, value in features.current().items()}
         on['food_names']['on'] = True
-        with patch.object(features, 'current', lambda: {key: dict(value) for key, value in on.items()}):
-            return _run(name, keep)
-    if name in COMPACT:
-        on = {key: dict(value) for key, value in features.current().items()}
-        on['compact_input']['on'] = True
         with patch.object(features, 'current', lambda: {key: dict(value) for key, value in on.items()}):
             return _run(name, keep)
     return _run(name, keep)

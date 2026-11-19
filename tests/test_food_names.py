@@ -179,14 +179,6 @@ class SwitchTests(unittest.TestCase):
         self.assertEqual(named['result'], plain['result'])
         self.assertEqual(len(named['requests']), len(plain['requests']))
 
-    def test_names_reach_the_compact_static_part(self):
-        import wire_format
-        k = kitchen()
-        static, live = wire_format.split(ask(k)['state'])
-        self.assertTrue(all('supplies' in static['kitchen']['stations'][s] for s in k.ingredients))
-        self.assertEqual(static['food_names_version'], food_names.VERSION)
-        self.assertEqual(json.dumps(wire_format.expand(static, live), sort_keys=True), json.dumps(ask(k)['state'], sort_keys=True))
-
 
 if __name__ == '__main__':
     unittest.main()

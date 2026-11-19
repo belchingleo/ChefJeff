@@ -33,7 +33,24 @@ import one_press  # noqa: E402
 from scripts import reask  # noqa: E402
 from scripts import reach_note_check as clients  # noqa: E402
 from scripts.jev_replay_check import estimate  # noqa: E402
-from scripts.links_v4_check import patient  # noqa: E402
+
+
+def patient(ask, tries=3, waits=(5, 15), sleep=None):
+    """ask, tried again after a refusal or a failed connection (the client's RuntimeError), at most tries times: a slow
+    stretch of the service should not leave one arm with no answers."""
+    import time
+    sleep = sleep or time.sleep
+
+    def again(payload):
+        for n in range(tries):
+            try:
+                return ask(payload)
+            except RuntimeError:
+                if n == tries - 1:
+                    raise
+                sleep(waits[min(n, len(waits) - 1)])
+    return again
+
 
 ARMS = ('A', 'B')
 LIFT = ' then lift the {vessel} from {station} (stops heating off the stove; occupies your hands)'

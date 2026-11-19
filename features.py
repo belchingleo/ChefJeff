@@ -17,8 +17,7 @@ A server can switch features without a new release, through an override file out
 "player_switch": ..}}, only those two fields, for features this release has. The result is checked like
 features.json (a released feature has no player switch, one plan mode at a time); a wrong override is not used,
 the release's file is, and the reason goes to stderr. The file is read again when it changes, and a session takes
-the switches as each round starts, so a round already running keeps its own; compact_input, which only lays out a
-request and does not change it, applies from the next request. A feature the override sets is recorded with
+the switches as each round starts, so a round already running keeps its own. A feature the override sets is recorded with
 "source": "server". From the command line (python3 features.py ...): show, check [FILE], set NAME on|off
 [--switch on|off], unset NAME.
 Game rules, levels, player preferences (memory, language) and numbers (request spacing, call limits) stay where
@@ -35,21 +34,18 @@ import threading
 
 import harness
 import one_press
-import wire_format
 import ask_ahead
 import undo_note
 import reach_note
 import split_floor
 import burn_note
 import option_notes
-import backlog_note
 import step_check
 import clear_names
 import walk_note
 import plate_names
 import engine_english
 import food_names
-import intent_layer
 import links
 
 ROOT = Path(__file__).resolve().parent
@@ -58,18 +54,15 @@ STAGES = ('release', 'trial')
 # name -> the version the code implements.
 VERSIONS = {'one_press': one_press.VERSION, 'jeff_plan': harness.PLAN_RULES_VERSION,
             'rolling_intent': harness.ROLLING_RULES_VERSION, 'undo_note': undo_note.VERSION,
-            'compact_input': wire_format.VERSION, 'ask_ahead': ask_ahead.VERSION,
+            'ask_ahead': ask_ahead.VERSION,
             'ahead_throw': ask_ahead.THROW_VERSION,
             'reach_note': reach_note.VERSION, 'food_names': food_names.VERSION,
-            'intent_layer': intent_layer.VERSION,
             'option_links': links.SWITCH_VERSION,
             'option_links_partner': links.PARTNER_VERSION,
-            'option_links_v4': links.V4_VERSION,
             'split_floor': split_floor.VERSION,
             'burn_note': burn_note.VERSION,
             'serve_note': option_notes.SERVE_VERSION,
             'wait_note': option_notes.WAIT_VERSION,
-            'backlog_note': backlog_note.VERSION,
             'option_links_burnt': links.BURNT_VERSION,
             'step_check': step_check.VERSION,
             'clear_names': clear_names.VERSION,
@@ -193,21 +186,13 @@ def plan_choices(features) -> list:
     return [mode for mode, name in PLAN_FEATURES.items() if features[name]['player_switch']]
 
 
-def intents_on(features) -> bool:
-    """Whether the round's options are intents (intent_layer.py). While it is on, the plan modes, one-press and
-    the undo note are not used (the intents replace them) and ask_ahead is (its answer about the next intent
-    arrives as the last step of this one ends); food_names applies as usual."""
-    return bool(features.get('intent_layer', {}).get('on'))
-
-
 def links_option(features):
     """The decision loop's links setting: False, True (option_links), or the extras on with it joined by '+': 'partner'
-    (option_links_partner: the other chef's side too), 'v4' (option_links_v4: the table against waiting, links.table_v4),
-    'partner+v4'. Neither extra does anything alone."""
+    (option_links_partner: the other chef's side too), 'burnt' (option_links_burnt: emptying a burnt pan counts as
+    work). Neither extra does anything alone."""
     if not features['option_links']['on']:
         return False
-    extras = [part for part, name in (('partner', 'option_links_partner'), ('v4', 'option_links_v4'),
-                                      ('burnt', 'option_links_burnt'))
+    extras = [part for part, name in (('partner', 'option_links_partner'), ('burnt', 'option_links_burnt'))
               if (features.get(name) or {}).get('on')]
     return '+'.join(extras) or True
 
@@ -228,13 +213,12 @@ def one_press_flags(features):
 def compose_options(features):
     """compose_payload's switches for a new round with these features (as the session sets the decision loop),
     for scripts that build Jeff's request outside a session."""
-    # The intent layer changes the options themselves (intent_layer.build) and is not one of these switches.
     return {'one_press': one_press_flags(features), 'undo': undo_start(features),
             'reach': features['reach_note']['on'], 'names': features['food_names']['on'],
             'links': links_option(features), 'split': features['split_floor']['on'],
             'burn': features['burn_note']['on'],
             'serve_note': features['serve_note']['on'], 'wait_note': features['wait_note']['on'],
-            'backlog': features['backlog_note']['on'], 'steps': features['step_check']['on'],
+            'steps': features['step_check']['on'],
             'clear': features['clear_names']['on'], 'walk': features['walk_note']['on'],
             'english': features['engine_english']['on'], 'plate': features['plate_names']['on']}
 

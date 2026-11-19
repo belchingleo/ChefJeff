@@ -11,7 +11,6 @@ import uuid
 import clear_names
 import features
 import research_replay
-import wire_format
 from research_record import validate_record
 from jev import compose_payload
 from kitchen import load_config
@@ -168,8 +167,6 @@ class ClearNamesTests(unittest.TestCase):
                 self.assertEqual(results[:2], ['提前问的回复作废 (已Pause或本局结束), 马上重问)',
                                                '提前问的回复作废 (not_listed), 马上重问)'])
 
-    def test_the_version_is_static(self):
-        self.assertIn('clear_names_version', wire_format.STATE_STATIC)
 
     def test_the_feature_is_a_trial_off_by_default_without_a_page_switch(self):
         self.assertEqual(features.current()['clear_names'],

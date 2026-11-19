@@ -262,14 +262,8 @@ def payload(state, actions, config, spatial=False):
     if spatial:
         kitchen['map'] = {k: v for k, v in kitchen['map'].items() if k not in OMITTED_MAP_FIELDS}
     import one_press
-    import intent_layer
-    intents = any(a.kind == intent_layer.KIND for a in actions)
-    # The intent layer's options come already listed (intent_layer.build); its put places go under put_where.
-    listed = ([a for a in actions if a.kind == intent_layer.KIND] if intents
-              else model_candidates(state, actions, per_area) if spatial else actions)
-    if intents:
-        places = {a.key: engine_english.label(a) for a in actions if a.kind == intent_layer.PLACE}
-    elif any(a.kind in one_press.KINDS for a in listed) and (state['chefs']['jeff'].get('holding') is not None):
+    listed = model_candidates(state, actions, per_area) if spatial else actions
+    if any(a.kind in one_press.KINDS for a in listed) and (state['chefs']['jeff'].get('holding') is not None):
         places = {a.key: engine_english.label(a) for a in listed if a.kind in one_press.PLACES}
         if not places:     # nowhere to put the held item first: no one-press action
             listed = [a for a in listed if a.kind not in one_press.KINDS]
@@ -282,9 +276,7 @@ def payload(state, actions, config, spatial=False):
     }}
     if spatial:
         questions['sprint'] = {'type':'choice','instructions':'Request a short sprint for this accepted movement action or continuing travel?', 'criteria':{'yes':'Request sprint if moving and available','no':'Do not request sprint'}}
-    if places and intents:
-        questions[one_press.PUT_WHERE] = {'type': 'choice', 'criteria': places, 'instructions': intent_layer.PUT_WHERE_RULE}
-    elif places and any(a.kind in one_press.KINDS for a in listed):
+    if places and any(a.kind in one_press.KINDS for a in listed):
         questions[one_press.PUT_WHERE] = {
             'type': 'choice', 'criteria': places,
             'instructions': 'Only if next_action is a "put then ..." or "wash from" action: where the held item goes first. '
@@ -561,8 +553,8 @@ class Plan:
 
 
 def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY, plan=None, one_press=None, undo=None,
-            reach=False, names=False, intent=None, split=False, burn=False,
-            serve_note=False, wait_note=False, backlog=False, steps=False, clear=False):
+            reach=False, names=False, split=False, burn=False,
+            serve_note=False, wait_note=False, steps=False, clear=False):
     """Add what one request needs beyond the snapshot; research replay rebuilds requests here too.
 
     plan is Plan.input() when the plan switch is on, else None (the input is then unchanged).
@@ -572,15 +564,11 @@ def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY,
     which operations the menu needs are only on each side (split_floor.py); it comes right after rules.reach.
     burn is whether the burn_note switch is on: options on a stove whose food is cooked say when it burns (burn_note.py).
     serve_note and wait_note: the serve option names the waiting order the held dish goes to, the wait option what
-    stays in hand (option_notes.py). backlog: on a floor where only the other chef can chop, state.backlog counts what
-    the waiting orders still need chopped (backlog_note.py). steps: state.step_check, whether each kind of step the
+    stays in hand (option_notes.py). steps: state.step_check, whether each kind of step the
     waiting orders need is possible now and what stands in the way (step_check.py). clear: item ids and "the held
     item" say what the thing is (clear_names.py); it runs again after the links table.
     names is whether the food_names switch is on: the request's food names are marked (jev.compose_payload) and
     the marks come off here, after translation.
-    intent is the intent layer's part when its switch is on (jev.DecisionLoop.intent_input), else None:
-    {'current': the intent under way or None, 'last': how the previous one ended or None, 'since': the index of
-    the first engine event after the previous request}.
     """
     # HTTP choices are stateless: return actual outcomes, not just today's snapshot.
     # Walking starts/stops are already in each chef's position and move_direction; as events
@@ -588,13 +576,7 @@ def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY,
     shown = [e for e in kitchen.events if e.get('kind') not in ('manual_move', 'position_resync')]
     # The engine_english trial (engine_english.py): the events the engine wrote in English too, in its English.
     shown = engine_english.events(kitchen, shown)
-    if intent is not None:
-        # Jeff is not asked during an intent, so every event since his previous request is shown (at least 20).
-        since = len([e for e in kitchen.events[:intent.get('since', len(kitchen.events))]
-                     if e.get('kind') not in ('manual_move', 'position_resync')])
-        payload['state']['recent_events'] = shown[min(since, max(0, len(shown) - 20)):]
-    else:
-        payload['state']['recent_events'] = shown[-20:]
+    payload['state']['recent_events'] = shown[-20:]
     payload['state']['recent_decisions'] = list(recent_decisions)
     if communication is not None:
         payload['state']['player_communication'] = communication
@@ -635,10 +617,6 @@ def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY,
     if one_press:
         import one_press as presses
         payload['state']['rules']['one_press'] = presses.RULE + (presses.PICKUP_RULE if one_press.get('put_then_pickup') else '')
-    if intent is not None:
-        import intent_layer
-        payload['state']['rules']['intent_layer'] = intent_layer.RULE
-        payload['state']['intent'] = {'current': intent.get('current'), 'last': intent.get('last')}
     payload = english_data(payload)
     if names:
         import food_names
@@ -651,8 +629,6 @@ def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY,
         payload['state']['plan_rules_version'] = plan_version(plan.get('mode'))
     if one_press:
         payload['state']['one_press_version'] = presses.VERSION
-    if intent is not None:
-        payload['state']['intent_layer_version'] = intent_layer.VERSION
     if undo is not None:
         import undo_note
         undo_note.apply(payload, undo)
@@ -671,9 +647,6 @@ def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY,
             option_notes.apply_serve(payload)
         if wait_note:
             option_notes.apply_wait(payload)
-    if backlog:
-        import backlog_note
-        backlog_note.apply(payload, kitchen)
     if steps:
         import step_check
         step_check.apply(payload, kitchen)

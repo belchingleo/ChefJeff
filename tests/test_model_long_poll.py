@@ -54,16 +54,6 @@ class RelayWaitTests(unittest.TestCase):
         self.assertIsNone(BrowserRelay(load_config()).wait_request(5, lambda: bool(running)))
         self.assertLess(time.monotonic() - started, .45)        # checked every quarter second
 
-    def test_a_long_polled_request_carries_the_compact_parts_when_that_trial_is_on(self):
-        from unittest.mock import patch
-        import features
-        on = {key: dict(value) for key, value in features.current().items()}
-        on['compact_input']['on'] = True
-        self.ask_later(0)
-        with patch.object(features, 'current', lambda: {key: dict(value) for key, value in on.items()}):
-            got = self.relay.wait_request(2)
-        self.assertEqual(got['wire']['version'], 'compact-v1')
-
     def test_a_request_already_waiting_is_answered_without_waiting(self):
         self.ask_later(0)
         time.sleep(.05)

@@ -10,7 +10,6 @@ from unittest.mock import patch
 import features
 import research_replay
 import split_floor
-import wire_format
 from research_record import validate_record
 from jev import compose_payload
 from kitchen import load_config
@@ -66,8 +65,6 @@ class SplitFloorTests(unittest.TestCase):
             self.assertIsNone(split_floor.line(k))
             self.assertEqual(json.dumps(request(k, True, True)), json.dumps(request(k, False, True)))
 
-    def test_the_version_goes_with_the_static_part(self):
-        self.assertIn('split_floor_version', wire_format.STATE_STATIC)
 
     def test_the_feature_is_a_trial_off_by_default_without_a_page_switch(self):
         self.assertEqual(features.current()['split_floor'],

@@ -7,7 +7,6 @@ import urllib.request
 from copy import deepcopy
 from cooperation_memory import validate_browser_context, PAST_EPISODES_RULE
 from model_language import english_data
-import wire_format
 
 ENDPOINT = 'https://api.typesafe.ai/v1/systemone'
 CONSENT_VERSION = 'jev-relay-2026-10-v1'
@@ -71,7 +70,7 @@ class JevForwarder:
     def send(self, key, payload):
         """Fixed upstream, verified TLS/default runtime proxy, no redirects/retries."""
         request = urllib.request.Request(ENDPOINT,
-            data=json.dumps({**(wire_format.decision_body(payload) if wire_format.enabled() else payload),'model':'jev-latest'},
+            data=json.dumps({**payload,'model':'jev-latest'},
                             ensure_ascii=False).encode(),
             headers={'Authorization':'Bearer '+key,'Content-Type':'application/json'},method='POST')
         try:

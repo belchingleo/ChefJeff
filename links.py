@@ -109,7 +109,7 @@ def _work(actions):
 def link(kitchen, who, option, now, place=None, seen=None, most=MOST):
     """The work actions (engine Actions) the option leads to: listed after it, not listed now. [] when none or when the
     option cannot be carried out to its end in the fork. seen, a dict, receives the fork as it is after the option
-    ('twin'), for partner_link. most: how many are named (None: all, for option-links-v4, which leaves some out)."""
+    ('twin'), for partner_link. most: how many are named (None: all)."""
     import one_press
     if FAST and option.kind in NO_EFFECT:
         return []
@@ -117,22 +117,6 @@ def link(kitchen, who, option, now, place=None, seen=None, most=MOST):
     other = 'human' if who == 'jeff' else 'jeff'
     if any(getattr(twin, 'manual', {}).get(other, (0.0, 0.0))):
         twin.set_manual(other, 0, 0)
-    if option.kind == 'intent':
-        # An intent (intent_layer.py) carries its own steps: its first step (an engine action, or a put where
-        # put_where says) and the steps after it, as the decision loop runs them.
-        first, rest = option.expected
-        if first != 'put' and first.kind in ('wait', 'stop'):
-            return []
-        if FAST and first != 'put' and first.kind in NO_EFFECT and not rest:
-            return []
-        if first != 'put' and first.kind == 'continue':
-            option = first
-        elif not _carry_out(twin, who, first, rest, place):
-            return []
-        else:
-            if seen is not None:
-                seen['twin'] = twin
-            return [a for key, a in _work(twin.actions(who)).items() if key not in _work(now)][:most]
     if option.kind in ('wait', 'stop'):
         return []
     if option.kind in one_press.KINDS:
@@ -394,9 +378,9 @@ def table(kitchen, who, actions, keys, names=False, partner=False, burnt=False):
             lines = [unmark(engine_english.text(a)) for a in linked]
             if burnt and 'twin' in seen:
                 lines += [unmark(engine_english.text(a)) for a in burnt_empty(seen['twin'], who, now)]
-            # Where a one-press option or an intent that puts first leaves the held item depends on put_where, which is
-            # not known yet (the fork takes the first place), so those options get no partner line.
-            guessed = option is not None and (option.kind in one_press.KINDS or (option.kind == 'intent' and option.expected[0] == 'put'))
+            # Where a one-press option leaves the held item depends on put_where, which is not known yet (the fork
+            # takes the first place), so those options get no partner line.
+            guessed = option is not None and option.kind in one_press.KINDS
             if partner and 'twin' in seen and held_item is not None and not guessed:
                 if other_now is None:
                     other_now = {(a.kind, a.target) for a in kitchen.actions('human' if who == 'jeff' else 'jeff')}
@@ -408,140 +392,21 @@ def table(kitchen, who, actions, keys, names=False, partner=False, burnt=False):
     return out
 
 
-# option-links-v4 (the option_links_v4 switch, a trial, off): the table against waiting, and shared work written once.
-#
-# v3 compares each option's fork with now, so work that time alone opens while the option is carried out (a pan
-# finishing, the other chef putting food on a board or a dirty plate in the sink) is credited to the option, and wait,
-# which is never forked, has no row. v4 forks once more: Jeff starts nothing while the other chef goes on, as in the
-# option forks, and each option's row leaves out what that fork has opened by the time the option ends. The row for
-# wait is only what time alone opens on Jeff's side (food finishing cooking): what that fork has opened by the time
-# Jeff would be asked again (ai_refresh_seconds) and a fork where the other chef stops too has opened as well. Work the
-# other chef's current step opens (a dirty plate they put in the sink, food they put on a board) is usually their own
-# next step, and re-asked with it under wait Jev gave up his own preparation to wait for it, so it is in no row. Only
-# while Jeff has nothing under way: with a step under way, waiting is going on with it (Kitchen.start), which the
-# continue row already shows.
-#
-# Work every single-step option that empties Jeff's hands opens (freed hands, wherever the item goes) is written once, in
-# state.option_links_shared with those options' keys, and left out of their rows, when at least SHARED_MIN of them
-# share some. Still one step, no times, no results and nothing about which option to choose.
-V4_VERSION = 'option-links-v4'
-SHARED_MIN = 3
-V4_RULE = ('option_links lists, for some options of next_action (by key), the work (chop, put in a pan or pot, plate or '
-           'assemble, serve, put a dirty plate in the sink, wash) you could do after that option and cannot do now, as the '
-           'game computes it with the other chef going on with what they are doing, if nothing else changes first. When '
-           'you have nothing under way, the game also works out what waiting would open: work that time alone opens on '
-           'your side (food finishing cooking) is listed under wait, for the time until you are asked again; that work, '
-           'and work the other chef\'s current step would open, is left out of the other options\' rows, which keep only '
-           'what they open beyond waiting. option_links_shared, '
-           'when present, lists options (by key) that all open the same work; that work is written once there and not in '
-           'their own rows. None of this says whether you should choose an option.')
-
-
-def _waiting(kitchen, who, times, other_goes_on=True):
-    """{t: {(kind, target): Action}}: the work Jeff could newly do (not now) at each of these times (seconds after now)
-    if he started nothing, in a fork where the other chef goes on as in the option forks (other_goes_on) or stops."""
-    twin = _fork(kitchen)
-    other = 'human' if who == 'jeff' else 'jeff'
-    if any(getattr(twin, 'manual', {}).get(other, (0.0, 0.0))):
-        twin.set_manual(other, 0, 0)
-    if not other_goes_on:
-        twin.stop(other)
-    before = _work(kitchen.actions(who))
-    start, out = kitchen.time, {}
-    for t in sorted(set(times)):
-        while not twin.ended and twin.time - start < t - 1e-9:
-            twin.advance(STEP)
-        out[t] = {key: a for key, a in _work(twin.actions(who)).items() if key not in before}
-    return out
-
-
-def table_v4(kitchen, who, actions, keys, names=False, partner=False, burnt=False):
-    """option-links-v4: ({option key: [work lines]}, {'options': [keys], 'work': [lines]} or None), see V4_RULE."""
-    import contextlib
-    import food_names
-    import one_press
-    unmark = food_names.unmark if names else (lambda text: text)
-    text = lambda a: unmark(engine_english.text(a))
-    by_key = {a.key: a for a in actions}
-    with (food_names.naming() if names else contextlib.nullcontext()):
-        now = kitchen.actions(who)
-        held_item = kitchen.chefs[who].hand
-        forks = {}
-        for key in keys:
-            option = by_key.get(key)
-            if option is None:
-                continue
-            seen = {}
-            linked = link(kitchen, who, option, now, seen=seen, most=None)
-            twin = seen.get('twin')
-            forks[key] = (option, linked, twin, None if twin is None else round(twin.time - kitchen.time, 6))
-        idle = kitchen.chefs[who].job is None
-        window = float(kitchen.c.get('ai_refresh_seconds', 4))
-        waiting = _waiting(kitchen, who, [window] + [e for *_, e in forks.values() if e is not None]) if idle else {}
-        alone = _waiting(kitchen, who, [window], other_goes_on=False)[window] if idle else {}
-        rows = {}
-        for key, (option, linked, twin, e) in forks.items():
-            gone = waiting.get(e, {}) if e is not None else {}
-            rows[key] = [a for a in linked if (a.kind, a.target) not in gone]
-        shared_keys, shared = [], []
-        if held_item is not None:
-            # Single steps only: a one-press option or an intent may use up the freed hands' work in its later steps.
-            empty = [key for key, (option, _, twin, _) in forks.items() if twin is not None and twin.chefs[who].hand is None
-                     and option.kind not in one_press.KINDS and option.kind != 'intent']
-            if len(empty) >= SHARED_MIN:
-                common = set.intersection(*[{(a.kind, a.target) for a in rows[key]} for key in empty])
-                if common:
-                    shared_keys = empty
-                    shared = [a for a in rows[empty[0]] if (a.kind, a.target) in common]
-                    for key in empty:
-                        rows[key] = [a for a in rows[key] if (a.kind, a.target) not in common]
-        out = {}
-        for key in keys:
-            if key == 'wait' and idle and key in by_key:
-                lines = [text(a) for key, a in waiting[window].items() if key in alone][:MOST]
-            elif key in forks:
-                option, _, twin, _ = forks[key]
-                lines = [text(a) for a in rows[key][:MOST]]
-                if burnt and twin is not None:
-                    lines += [text(a) for a in burnt_empty(twin, who, now)]
-                # As in table: a one-press option or an intent that puts first gets no partner line.
-                guessed = option.kind in one_press.KINDS or (option.kind == 'intent' and option.expected[0] == 'put')
-                if partner and twin is not None and held_item is not None and not guessed:
-                    chain = partner_chain(kitchen, twin, who, held_item.id)
-                    if chain:
-                        lines.append(THEN + ', then '.join(text(a) for a in chain))
-            else:
-                continue
-            if lines:
-                out[key] = lines
-        together = {'options': shared_keys, 'work': [text(a) for a in shared[:MOST]]} if shared else None
-    return out, together
-
-
 def flags(mode):
     """apply's switches from the decision loop's links setting (features.links_option): True, or the extras joined by
-    '+' ('partner', 'v4', 'burnt')."""
+    '+' ('partner', 'burnt')."""
     parts = mode.split('+') if isinstance(mode, str) else []
-    return {'partner': 'partner' in parts, 'v4': 'v4' in parts, 'burnt': 'burnt' in parts}
+    return {'partner': 'partner' in parts, 'burnt': 'burnt' in parts}
 
 
-def apply(payload, kitchen, who, actions, names=False, partner=False, v4=False, burnt=False):
+def apply(payload, kitchen, who, actions, names=False, partner=False, burnt=False):
     """The option_links switch on a composed request (translated, as sent): state.option_links, rules.links and
     links_version; no option changes. partner (option_links_partner): the other chef's chains in the same table, the
-    rule says so, and partner_links_version. v4 (option_links_v4): the table against waiting, with
-    state.option_links_shared when some options share work (table_v4), V4_RULE and links_version option-links-v4."""
+    rule says so, and partner_links_version."""
     keys = list(payload['questions']['next_action']['criteria'])
-    if v4:
-        rows, together = table_v4(kitchen, who, actions, keys, names, partner, burnt)
-        payload['state']['option_links'] = rows
-        if together:
-            payload['state']['option_links_shared'] = together
-        payload['state']['rules']['links'] = V4_RULE + (PARTNER_RULE if partner else '')
-        payload['state']['links_version'] = V4_VERSION
-    else:
-        payload['state']['option_links'] = table(kitchen, who, actions, keys, names, partner, burnt)
-        payload['state']['rules']['links'] = SEPARATE_RULE + (PARTNER_RULE if partner else '')
-        payload['state']['links_version'] = SWITCH_VERSION
+    payload['state']['option_links'] = table(kitchen, who, actions, keys, names, partner, burnt)
+    payload['state']['rules']['links'] = SEPARATE_RULE + (PARTNER_RULE if partner else '')
+    payload['state']['links_version'] = SWITCH_VERSION
     if partner:
         payload['state']['partner_links_version'] = PARTNER_VERSION
     if burnt:

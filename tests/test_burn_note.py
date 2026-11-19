@@ -10,7 +10,6 @@ from unittest.mock import patch
 import burn_note
 import features
 import research_replay
-import wire_format
 from research_record import validate_record
 from jev import compose_payload
 from kitchen import load_config
@@ -90,8 +89,6 @@ class BurnNoteTests(unittest.TestCase):
             self.assertEqual(on['state'].pop('burn_note_version'), burn_note.VERSION)
             self.assertEqual(json.dumps(on), json.dumps(off))
 
-    def test_the_version_goes_with_the_static_part(self):
-        self.assertIn('burn_note_version', wire_format.STATE_STATIC)
 
     def test_the_feature_is_a_trial_off_by_default_without_a_page_switch(self):
         self.assertEqual(features.current()['burn_note'],

@@ -7,7 +7,6 @@ import hashlib
 import ipaddress
 from copy import deepcopy
 import json
-import wire_format
 import mimetypes
 from pathlib import Path
 import secrets
@@ -79,14 +78,7 @@ class BrowserRelay(SpatialJevClient):
 
     def request(self):
         with self.guard:
-            return self.with_wire(self._current())
-
-    def with_wire(self, request):
-        # The compact format (features.json compact_input): the static and live parts made here, once, for the page to
-        # place; the payload still comes along for checking the answer.
-        if request is not None and wire_format.enabled():
-            request['wire'] = wire_format.relay(request['payload'])
-        return request
+            return self._current()
 
     def _current(self):
         task = self.pending
@@ -106,7 +98,7 @@ class BrowserRelay(SpatialJevClient):
                 if current is not None or self.closed or self.cancels != cancels or left <= 0 or not waiting():
                     break
                 self.changed.wait(min(left, .25))
-        return self.with_wire(current)
+        return current
 
     def mark_failure(self,ident,error):
         with self.guard:
