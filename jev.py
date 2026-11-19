@@ -142,6 +142,9 @@ def _compose(client, kitchen, state, actions, recent_decisions, communication, m
         state, actions = food_names.state(state), food_names.labels(kitchen, actions, one_press)
     payload = harness.compose(client.payload(state, actions), kitchen, recent_decisions, communication, memory, plan, one_press,
                               undo, reach, names, split, burn, serve_note, wait_note, steps, clear)
+    if undo is not None:
+        # undo-note-v4: worked out on forks of this kitchen, before the links table (live and in replay alike).
+        undo_note.apply(payload, undo, kitchen)
     if walk:
         import walk_note
         walk_note.apply(payload, kitchen, actions)
@@ -215,7 +218,7 @@ class DecisionLoop:
         self.one_press = None
         self.chain = None           # {'key', 'steps': [(kinds, target)], 'job': action id of the step under way, 'done'}
         self.chain_cursor = 0
-        # Undo notes (undo_note.py) when the round's switch is on: Jeff's last step, as {'step': ...}; None when off.
+        # Undo notes (undo_note.py) when the round's switch is on: Jeff's last steps, as {'history': [...]}; None when off.
         self.undo = None
         # The reach_note trial (reach_note.py): on a split floor, which stations each chef can reach.
         self.reach = False
@@ -508,10 +511,12 @@ class DecisionLoop:
                 chef_job = self.k.chefs["jeff"].job
                 current_state = self.k.snapshot()
                 if self.undo is not None and applied:
-                    # Read from the snapshot logged below, so replay finds the same step in the journal.
-                    last = undo_note.step(current_state, result["choice"], (pressed or {}).get('first'), self.k.time)
-                    if last is not None:
-                        self.undo = {'step': last}
+                    # (undo-note-v4) The step as it starts: the kitchen's layout and the places it acts on, kept with
+                    # each request's record so research replay rebuilds the notes from the same history.
+                    listed = context.get('actions') or {}
+                    first = (pressed or {}).get('first')
+                    self.undo = undo_note.remember(self.undo, undo_note.record(
+                        self.k, listed.get(result["choice"]), listed.get(first) if first else None, self.k.time))
                 self.log("ai_response", {"request_id": context["id"], **result, "applied": applied, "execution": message, "sprint_applied":sprint_applied,
                                          "fresh": fresh, **({"plan_set": plan_set, "plan_dropped": plan_dropped} if self.plan else {}),
                                          **({"one_press": pressed} if pressed else {}),

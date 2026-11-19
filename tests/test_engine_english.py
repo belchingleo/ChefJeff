@@ -14,7 +14,8 @@ and are otherwise the same; for step-check-v2, whose fetching sentence is all th
 undo-note-v2, whose version field is all that changes; and for burn-note-v3 and undo-note-v3: the two versions, and the
 options that put a held pan of cooked food on a stove say when it burns; and for step-check-v3, whose version field is
 all that changes in these rounds; and for serve-note-v2: its version, the take options of a Steak lying on a counter in
-level 1 and the serve line the links table gives one of them.
+level 1 and the serve line the links table gives one of them; and for undo-note-v4, whose version field is all that
+changes (these requests carry no step history).
 """
 from __future__ import annotations
 
@@ -71,7 +72,7 @@ def released():
 
 def every_trial():
     return {'one_press': one_press.flags({**{name: True for name in one_press.NAMES}, 'put_then_pickup': True}),
-            'undo': {'step': None}, 'reach': True, 'names': True, 'links': 'partner+burnt', 'split': True,
+            'undo': {'history': []}, 'reach': True, 'names': True, 'links': 'partner+burnt', 'split': True,
             'burn': True, 'serve_note': True, 'wait_note': True, 'steps': True, 'clear': True,
             'walk': True, 'plate': True}
 

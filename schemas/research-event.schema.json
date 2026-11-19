@@ -1387,7 +1387,7 @@
           "additionalProperties": false
         },
         "undo_note": {
-          "description": "Only with the undo_note switch on: Jeff's last step (undo_note.step) as this request was sent, enough to rebuild its notes.",
+          "description": "Only with the undo_note switch on: the undo state as this request was sent, enough to rebuild its notes: Jeff's last step (undo-note-v1 to v3) or the layout at each of his last steps (history, undo-note-v4).",
           "type": "object",
           "properties": {
             "step": {
@@ -1461,12 +1461,47 @@
                   "additionalProperties": false
                 }
               ]
+            },
+            "history": {
+              "type": "array",
+              "maxItems": 4,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "t",
+                  "places",
+                  "layout"
+                ],
+                "properties": {
+                  "t": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "places": {
+                    "type": "array",
+                    "maxItems": 8,
+                    "items": {
+                      "type": "string",
+                      "maxLength": 80
+                    }
+                  },
+                  "layout": {
+                    "type": "object",
+                    "propertyNames": {
+                        "maxLength": 80
+                      },
+                    "additionalProperties": {
+                      "type": "string",
+                      "maxLength": 200
+                    }
+                  }
+                }
+              }
             }
           },
-          "required": [
-            "step"
-          ],
-          "additionalProperties": false
+          "additionalProperties": false,
+          "minProperties": 1
         },
         "one_press_start": {
           "description": "Only on an ai_response that started a one-press choice: its first step (the put that put_where chose, or the first step itself with empty hands) and whether put_where was missing or unlisted, so the first listed put was used.",

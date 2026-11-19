@@ -225,8 +225,9 @@ def links_option(features):
 
 
 def undo_start(features):
-    """The decision loop's undo-note state for a new round: {'step': None} when undo_note is on, else None."""
-    return {'step': None} if features['undo_note']['on'] else None
+    """The decision loop's undo-note state for a new round: {'history': []} when undo_note is on (undo-note-v4: the
+    layout at each of Jeff's last steps), else None."""
+    return {'history': []} if features['undo_note']['on'] else None
 
 
 def one_press_flags(features):

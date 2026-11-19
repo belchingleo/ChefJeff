@@ -558,7 +558,7 @@ def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY,
     """Add what one request needs beyond the snapshot; research replay rebuilds requests here too.
 
     plan is Plan.input() when the plan switch is on, else None (the input is then unchanged).
-    undo is {'step': Jeff's last step (undo_note.step) or None} when the undo_note switch is on, else None.
+    undo is the undo_note state when that switch is on (its notes are added by jev.compose_payload, undo-note-v4), else None.
     reach is whether the reach_note switch is on: on a split floor, which stations each chef can reach.
     split is whether the split_floor switch is on: on a split floor where no dish can be made by one chef alone,
     which operations the menu needs are only on each side (split_floor.py); it comes right after rules.reach.
@@ -629,9 +629,6 @@ def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY,
         payload['state']['plan_rules_version'] = plan_version(plan.get('mode'))
     if one_press:
         payload['state']['one_press_version'] = presses.VERSION
-    if undo is not None:
-        import undo_note
-        undo_note.apply(payload, undo)
     if reach:
         import reach_note
         reach_note.apply(payload, kitchen)

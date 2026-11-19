@@ -348,7 +348,7 @@ class SessionTests(unittest.TestCase):
         self.assertEqual(row['features'], {'one_press': {'on': True, 'version': one_press.VERSION},
                                            'jeff_plan': {'on': False, 'version': 'plan-v2'},
                                            'rolling_intent': {'on': False, 'version': 'rolling-v3'},
-                                           'undo_note': {'on': False, 'version': 'undo-note-v3'},
+                                           'undo_note': {'on': False, 'version': 'undo-note-v4'},
                                            'ask_ahead': {'on': True, 'version': 'ask-ahead-v2'},
                                            'reach_note': {'on': False, 'version': 'reach-v1'},
                                            'option_links': {'on': True, 'version': 'option-links-v3'},

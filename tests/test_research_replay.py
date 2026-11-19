@@ -270,12 +270,12 @@ class ReplayTests(paths.SavePathTests):
         self.assertEqual(self.contribute()[0], 200)
         record = self.game.store.download(receipt['id'], receipt['deletion_token'])
         validate_record(record)
-        steps = [e['payload']['undo_note']['step'] for e in record['events'] if e['type'] == 'ai_request']
-        self.assertIsNone(steps[0])
-        self.assertTrue(any(s and s['take'] and s['take']['station'] == board for s in steps))
+        histories = [e['payload']['undo_note']['history'] for e in record['events'] if e['type'] == 'ai_request']
+        self.assertEqual(histories[0], [])
+        self.assertTrue(any(board in h['places'] for history in histories for h in history))
         requests = list(research_replay.rebuild_requests(record))
         self.assertEqual({r['status'] for r in requests}, {'verified'})
-        self.assertTrue(any('(Note: this puts' in label for r in requests
+        self.assertTrue(any('(Note: ' in label and 'this brings back how things were at' in label for r in requests
                             for label in r['rebuilt']['questions']['next_action']['criteria'].values()))
         self.assertEqual(research_replay.check(record)['replay'], 'verified')
 

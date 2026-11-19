@@ -1,4 +1,5 @@
-"""Undo notes (undo_note.py, trial switch undo_note): a fact on the options that would take back Jeff's last step."""
+"""Undo notes (undo_note.py, trial switch undo_note): a fact on the options that would bring back how things were
+before one of Jeff's last steps (undo-note-v4, from the engine); scripts/undo_note_check.py keeps re-asking v3's."""
 import io
 import json
 import tempfile
@@ -30,7 +31,7 @@ class Loop:
         self.client = Answering(k.c, replies)
         self.ai = DecisionLoop(k, self.client, lambda kind, data: self.records.append((kind, data)), lambda _: None)
         self.ai.one_press = dict(BOTH)
-        self.ai.undo = {'step': None} if undo else None
+        self.ai.undo = {'history': []} if undo else None
         self.ai.player_messages = []
         self.clock = 1000.
 
@@ -55,57 +56,57 @@ class Loop:
 
 
 class NoteTests(unittest.TestCase):
-    def test_after_put_then_take_both_ways_back_carry_a_note(self):
+    """undo-note-v4: the engine finds an option that brings back how things were before one of Jeff's last steps."""
+
+    def test_after_put_then_take_the_swap_back_carries_a_note(self):
         # Jeff holds bread, lettuce lies on board 1: he puts the bread on counter 16 and takes the lettuce.
         loop = Loop(bread_and_lettuce(), [{'choice': 'put then take b1', 'put_where': 'put counter16'}])
         first = loop.until_asked(1)
         self.assertEqual(noted(first), {})                                       # no step yet
         self.assertEqual(first['state']['undo_note_version'], undo_note.VERSION)
         second = loop.until_asked(2)
-        self.assertEqual(loop.k.stations['counter16'].food.ingredient, 'bread')
-        self.assertEqual(loop.k.chefs['jeff'].hand.ingredient, 'lettuce')
-        notes = noted(second)
-        t = f"{loop.rows('ai_request')[1]['undo_note']['step']['t']:.1f}"
-        self.assertEqual(notes[('next_action', 'put then take counter16')],
-                         second['questions']['next_action']['criteria']['put then take counter16'])
-        self.assertIn(f'(Note: this takes back the Bread you put on Counter 16 at {t} s.)', notes[('next_action', 'put then take counter16')])
-        self.assertIn(f'(Note: this puts the Lettuce back on Board 1, where you took it at {t} s.)', notes[('put_where', 'put b1')])
-        self.assertIn(('next_action', 'put b1'), notes)
-        self.assertEqual({key for _, key in notes}, {'put then take counter16', 'put b1'})
+        history = loop.rows('ai_request')[1]['undo_note']['history']
+        self.assertEqual([h['places'] for h in history], [['b1', 'counter16', 'hand']])
+        t = f"{history[0]['t']:.1f}"
+        self.assertEqual(noted(second), {('next_action', 'put then take counter16'):
+            second['questions']['next_action']['criteria']['put then take counter16']})
+        self.assertIn(f'(Note: putting the held item on Board 1 first, this brings back how things were at {t} s, before '
+                      f'your last step: bread (as fetched) in your hands, lettuce (as fetched) on Board 1.)',
+                      noted(second)[('next_action', 'put then take counter16')])
         # Only the labels change: same questions, same keys, same state apart from the version.
         plain = deepcopy(second)
-        for (q, key) in notes:
+        for (q, key) in noted(second):
             plain['questions'][q]['criteria'][key] = plain['questions'][q]['criteria'][key].split(' (Note: ')[0]
         self.assertEqual(noted(plain), {})
-        step = loop.rows('ai_request')[1]['undo_note']['step']
-        self.assertEqual((step['put']['station'], step['take']['station']), ('counter16', 'b1'))
 
-    def test_the_note_needs_the_same_item_still_there(self):
-        loop = Loop(bread_and_lettuce(), [{'choice': 'put then take b1', 'put_where': 'put counter16'}], undo=False)
-        sent = loop.until_asked(2)
-        step = undo_note.step(loop.rows('ai_response')[0]['current_state'], 'put then take b1', 'put counter16', 5.0)
-        moved = deepcopy(sent)
-        moved['state']['kitchen']['stations']['counter16']['food'] = None        # someone took the bread meanwhile
-        undo_note.apply(moved, {'step': step})
-        self.assertEqual({key for _, key in noted(moved)}, {'put b1'})           # only the lettuce can still go back
-        other = deepcopy(sent)
-        other['state']['kitchen']['chefs']['jeff']['holding']['id'] = 'F999'     # a different item in his hand
-        undo_note.apply(other, {'step': step})
-        self.assertEqual({key for _, key in noted(other)}, {'put then take counter16'})
+    def test_a_return_over_linked_steps_is_noted_and_separate_undos_do_not_join(self):
+        # Bread to counter 16 and the lettuce taken, then the lettuce back on board 1: taking the bread again brings back
+        # the start, two steps linked through board 1.
+        loop = Loop(bread_and_lettuce(), [{'choice': 'put then take b1', 'put_where': 'put counter16'}, {'choice': 'put b1'}])
+        third = loop.until_asked(3)
+        history = loop.rows('ai_request')[2]['undo_note']['history']
+        self.assertEqual(len(history), 2)
+        self.assertIn(f"(Note: this brings back how things were at {history[0]['t']:.1f} s, before your last 2 steps: bread "
+                      f"(as fetched) in your hands, lettuce (as fetched) on Board 1.)",
+                      third['questions']['next_action']['criteria']['take counter16'])
+        # Bread put down, lettuce taken and put back: two separate undos, not one return of three steps.
+        loop = Loop(bread_and_lettuce(), [{'choice': 'put counter16'}, {'choice': 'take b1'}, {'choice': 'put b1'}])
+        fourth = loop.until_asked(4)
+        self.assertEqual(len(loop.rows('ai_request')[3]['undo_note']['history']), 3)
+        self.assertEqual({key for _, key in noted(fourth)}, {'take b1'})         # only the last step's own undo
 
-    def test_walking_keeps_the_step_and_another_step_replaces_it(self):
-        replies = [{'choice': 'put then take b1', 'put_where': 'put counter16'}, {'choice': 'go p1'}, {'choice': 'put counter14'}]
-        loop = Loop(bread_and_lettuce(), replies)
-        loop.until_asked(2)
-        third = loop.until_asked(3)                                              # after walking to the stove
-        self.assertIn('put then take counter16', {key for _, key in noted(third)})
-        fourth = loop.until_asked(4)                                             # after putting the lettuce elsewhere
-        self.assertEqual(loop.k.stations['counter14'].food.ingredient, 'lettuce')
-        self.assertNotIn('put then take counter16', {key for _, key in noted(fourth)})
-        self.assertEqual(loop.rows('ai_request')[3]['undo_note']['step']['put']['station'], 'counter14')
+    def test_the_note_needs_things_as_they_were(self):
+        k = bread_and_lettuce()
+        step = undo_note.record(k, next(a for a in k.actions('jeff') if a.key == 'put counter16'))
+        k.start('jeff', next(a for a in k.actions('jeff') if a.key == 'put counter16'))
+        while k.chefs['jeff'].job is not None:
+            k.advance(0.05)
+        self.assertIn('take counter16', undo_note.returns(k, [step], ['take counter16']))
+        k.stations['counter16'].food.stage = 'chopped'                           # changed meanwhile: no return
+        self.assertEqual(undo_note.returns(k, [step], ['take counter16']), {})
 
     def test_a_request_asked_ahead_carries_the_note_of_the_step_under_way(self):
-        # (v2) ask_ahead asks with the switch on: the step under way is Jeff's last step at the moment asked about.
+        # (v2) ask_ahead asks with the switch on: the step under way is in the history as it starts.
         loop = Loop(bread_and_lettuce(), [{'choice': 'put counter16'}])
         loop.ai.ask_ahead = True
         loop.ai.reply_times = [5.0]           # replies slower than any step: each step is asked about ahead
@@ -113,33 +114,33 @@ class NoteTests(unittest.TestCase):
         second = loop.until_asked(2)
         row = loop.rows('ai_request')[1]
         self.assertTrue(row.get('ask_ahead'))
-        self.assertEqual(row['undo_note']['step']['put']['station'], 'counter16')
-        self.assertEqual(noted(second), {('next_action', 'take counter16'):
-                                         'Take Bread from Counter 16 (Note: this takes back the Bread you put on Counter 16 at 6.7 s.)'})
+        self.assertEqual(row['undo_note']['history'][-1]['places'], ['counter16', 'hand'])
+        self.assertEqual({key for _, key in noted(second)}, {'take counter16'})
 
     def test_a_pan_lifted_and_put_straight_back_on_its_stove_carries_a_note_both_ways(self):
-        # (v3) Lifting a pan is a take, returning it a put; a pan returned after plating from it is no note.
         from test_burn_note import cooked_pan, do
-        from jev import compose_payload
         k = cooked_pan()
-        loop = Loop(k, [])
-
-        def asked(last):
-            return compose_payload(loop.client, k, k.snapshot(), k.actions('jeff'), [], None, names=True, clear=True,
-                                   undo={'step': last})['questions']['next_action']['criteria']
-        snapshot = k.snapshot()
-        lift = undo_note.step(snapshot, 'take pot p1', None, k.time)
-        self.assertEqual(lift['take'], {'station': 'p1', 'id': snapshot['stations']['p1']['pot_id']})
+        acts = {a.key: a for a in k.actions('jeff')}
+        lift = undo_note.record(k, acts['take pot p1'])
         do(k, 'take pot p1')
-        self.assertIn('(Note: this puts the frying pan with beef (cooked) back on Stove 1, where you took it at',
-                      asked(lift)['put pot p1'])
-        put = undo_note.step(k.snapshot(), 'put pot p1', None, k.time)
+        self.assertIn('this brings back how things were at', undo_note.returns(k, [lift], ['put pot p1'])['put pot p1'])
+        self.assertIn('frying pan with beef (cooked) on Stove 1, your hands empty',
+                      undo_note.returns(k, [lift], ['put pot p1'])['put pot p1'])
+        put = undo_note.record(k, {a.key: a for a in k.actions('jeff')}['put pot p1'])
         do(k, 'put pot p1')
-        self.assertIn('(Note: this takes back the frying pan with beef (cooked) you put on Stove 1 at',
-                      asked(put)['take pot p1'])
-        # Plating from the held pan replaces the lift as the last step: returning the empty pan is no note.
-        plated = undo_note.step(k.snapshot(), 'plate counter2', None, k.time)
-        self.assertEqual(plated, {'t': round(k.time, 2), 'put': None, 'take': None})
+        self.assertIn('frying pan with beef (cooked) in your hands', undo_note.returns(k, [put], ['take pot p1'])['take pot p1'])
+
+    def test_waiting_walking_and_throwing_are_no_step_and_the_history_keeps_four(self):
+        k = bread_and_lettuce()
+        acts = {a.key: a for a in k.actions('jeff')}
+        for key in ('wait', 'go p1', 'throw partner'):
+            if key in acts:
+                self.assertIsNone(undo_note.record(k, acts[key]), key)
+        state = {'history': []}
+        for _ in range(6):
+            state = undo_note.remember(state, undo_note.record(k, acts['put counter16']))
+        self.assertEqual(len(state['history']), undo_note.HISTORY)
+        self.assertEqual(undo_note.remember(state, None), state)
 
     def test_switch_off_changes_nothing(self):
         on, off = Loop(bread_and_lettuce(), [{'choice': 'put then take b1', 'put_where': 'put counter16'}]), \
@@ -148,15 +149,14 @@ class NoteTests(unittest.TestCase):
         self.assertEqual(noted(b), {})
         self.assertNotIn('undo_note_version', b['state'])
         self.assertTrue(all('undo_note' not in row for row in off.rows('ai_request')))
-        undo_note.apply(b, on.rows('ai_request')[1]['undo_note'])
+        undo_note.apply(b, on.rows('ai_request')[1]['undo_note'], off.k)
         self.assertEqual(json.dumps(a, sort_keys=True), json.dumps(b, sort_keys=True))  # the switch adds exactly this
 
     def test_the_feature_is_a_trial_off_by_default(self):
         current = features.current()
         self.assertEqual(current['undo_note'], {'stage': 'trial', 'on': False, 'player_switch': False, 'version': undo_note.VERSION})
         self.assertIsNone(features.undo_start(current))
-        self.assertIsNone(features.undo_start({**current, 'undo_note': {**current['undo_note'], 'on': False}}))
-        self.assertEqual(features.undo_start({**current, 'undo_note': {**current['undo_note'], 'on': True}}), {'step': None})
+        self.assertEqual(features.undo_start({**current, 'undo_note': {**current['undo_note'], 'on': True}}), {'history': []})
 
 
 class CheckTests(unittest.TestCase):
@@ -189,8 +189,11 @@ class CheckTests(unittest.TestCase):
             items = undo_note_check.moments([str(path)])
             self.assertEqual(len(items), 1)                                       # the second request: the swap back is listed
             self.assertEqual(items[0]['logged_choice'], 'put then take counter16')
+            v3 = deepcopy(items[0]['payload'])
+            undo_note.apply_v3(v3, {'step': items[0]['step']})
             self.assertEqual(json.dumps(undo_note_check.arm(items[0], 'undo_note'), sort_keys=True),
-                             json.dumps(on.client.asked[1], sort_keys=True))      # exactly what the switch sends
+                             json.dumps(v3, sort_keys=True))                      # exactly what undo-note-v3 added
+            self.assertEqual(v3['state']['undo_note_version'], undo_note.V3_VERSION)
             self.assertEqual(undo_note_check.arm(items[0], 'as_logged'), items[0]['payload'])
             self.assertEqual(undo_note_check.took_back(items[0], 'put then take counter16', 'put b1'), (True, True))
             self.assertEqual(undo_note_check.took_back(items[0], 'put then take counter16', 'put counter17'), (True, False))

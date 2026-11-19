@@ -9,8 +9,9 @@ only put back what it took (undo_note.py, worked out from the journal exactly as
 switch on), and sends each to the current model, re-asking the logged request instead of playing new rounds:
 
 - as_logged: exactly as it was sent (these rounds ran with the switch off);
-- undo_note: the same, with what the undo_note switch adds (undo_note.apply): the notes on those options and the
-  version; nothing else changes.
+- undo_note: the same, with what undo-note-v3 added (undo_note.apply_v3): the notes on those options and the
+  version; nothing else changes. (The game has used undo-note-v4 since 2026-11-19, which needs the engine; this check
+  reads journals only, so it keeps re-asking the v3 notes.)
 
 For each arm it reports how often the answer took back the last step (chose a noted next_action option), how
 often it was a full swap (also put the held item back where it was taken, through put_where), and how often it
@@ -84,7 +85,7 @@ def moments(paths, since=None, until=None, model_prefix='jev', kind='take_back')
 def arm(item, name):
     payload = deepcopy(item['payload'])
     if name == 'undo_note':
-        undo_note.apply(payload, {'step': item['step']})
+        undo_note.apply_v3(payload, {'step': item['step']})
     return payload
 
 
