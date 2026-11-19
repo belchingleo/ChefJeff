@@ -1464,7 +1464,7 @@
             },
             "history": {
               "type": "array",
-              "maxItems": 4,
+              "maxItems": 6,
               "items": {
                 "type": "object",
                 "additionalProperties": false,

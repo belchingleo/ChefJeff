@@ -130,12 +130,26 @@ class NoteTests(unittest.TestCase):
         do(k, 'put pot p1')
         self.assertIn('frying pan with beef (cooked) in your hands', undo_note.returns(k, [put], ['take pot p1'])['take pot p1'])
 
-    def test_waiting_walking_and_throwing_are_no_step_and_the_history_keeps_four(self):
+    def test_walking_back_and_forth_is_a_return_too(self):
+        # A 2026-11-19 level-5 round: Jeff walked between two empty boards 16 times in 35 s.
+        import levels
+        from kitchen import load_config
+        from spatial_kitchen import SpatialKitchen
+        loop = Loop(SpatialKitchen(levels.level_config(load_config(), 'level-5')), [{'choice': 'go b1'}, {'choice': 'go b2'}])
+        third = loop.until_asked(3)
+        history = loop.rows('ai_request')[2]['undo_note']['history']
+        self.assertEqual([h['places'] for h in history], [['at'], ['at']])
+        self.assertEqual(noted(third), {('next_action', 'go b1'): third['questions']['next_action']['criteria']['go b1']})
+        self.assertIn(f"(Note: this brings back how things were at {history[1]['t']:.1f} s, before your last step: you at "
+                      f"Board 1.)", third['questions']['next_action']['criteria']['go b1'])
+
+    def test_waiting_and_throwing_are_no_step_and_the_history_keeps_six(self):
         k = bread_and_lettuce()
         acts = {a.key: a for a in k.actions('jeff')}
-        for key in ('wait', 'go p1', 'throw partner'):
+        for key in ('wait', 'throw partner'):
             if key in acts:
                 self.assertIsNone(undo_note.record(k, acts[key]), key)
+        self.assertEqual(undo_note.record(k, acts['go p1'])['places'], ['at'])
         state = {'history': []}
         for _ in range(6):
             state = undo_note.remember(state, undo_note.record(k, acts['put counter16']))
