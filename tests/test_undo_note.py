@@ -104,6 +104,19 @@ class NoteTests(unittest.TestCase):
         self.assertNotIn('put then take counter16', {key for _, key in noted(fourth)})
         self.assertEqual(loop.rows('ai_request')[3]['undo_note']['step']['put']['station'], 'counter14')
 
+    def test_a_request_asked_ahead_carries_the_note_of_the_step_under_way(self):
+        # (v2) ask_ahead asks with the switch on: the step under way is Jeff's last step at the moment asked about.
+        loop = Loop(bread_and_lettuce(), [{'choice': 'put counter16'}])
+        loop.ai.ask_ahead = True
+        loop.ai.reply_times = [5.0]           # replies slower than any step: each step is asked about ahead
+        loop.until_asked(1)
+        second = loop.until_asked(2)
+        row = loop.rows('ai_request')[1]
+        self.assertTrue(row.get('ask_ahead'))
+        self.assertEqual(row['undo_note']['step']['put']['station'], 'counter16')
+        self.assertEqual(noted(second), {('next_action', 'take counter16'):
+                                         'Take Bread from Counter 16 (Note: this takes back the Bread you put on Counter 16 at 6.7 s.)'})
+
     def test_switch_off_changes_nothing(self):
         on, off = Loop(bread_and_lettuce(), [{'choice': 'put then take b1', 'put_where': 'put counter16'}]), \
             Loop(bread_and_lettuce(), [{'choice': 'put then take b1', 'put_where': 'put counter16'}], undo=False)

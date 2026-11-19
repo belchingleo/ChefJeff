@@ -13,10 +13,15 @@ again from the kitchen: a note appears only while the same item is still where J
   next_action and in questions.put_where) says "this puts the <item> back on <station>, where you took it at <t> s".
 
 Nothing is forbidden or advised: the options, their keys and the engine are unchanged, and the player sees no note.
+
+v2 (2026-11-19): ask_ahead no longer waits for this switch to be off. A request asked ahead describes the kitchen at
+the end of the step under way; that step is kept as Jeff's last step when it starts, so it is his last step at the
+moment asked about, and the notes are worked out from the kitchen as predicted then (the item put down is where he
+put it). v1 rounds with this switch on never asked ahead.
 """
 from __future__ import annotations
 
-VERSION = 'undo-note-v1'
+VERSION = 'undo-note-v2'
 KEEP = ('continue', 'wait')
 QUESTIONS = ('next_action', 'put_where')
 

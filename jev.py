@@ -252,9 +252,10 @@ class DecisionLoop:
 
     def can_ask_ahead(self, job):
         """Whether ask_ahead may ask about the end of this step: on, not asked for it yet, no one-press steps left to
-        come, no plan or undo note (their inputs follow Jeff's own steps), and an ordinary step."""
+        come, no plan (its input follows Jeff's own steps), and an ordinary step. The undo note may be on (undo-note-v2):
+        the step under way, kept as Jeff's last step when it started, is his last step at the moment asked about."""
         return (self.ask_ahead and self.ahead_job != job.id and (self.chain is None or not self.chain['steps'])
-                and self.plan is None and self.undo is None and job.action.kind not in ('continue', 'wait'))
+                and self.plan is None and job.action.kind not in ('continue', 'wait'))
 
     def outlasts_reply(self, job):
         """Whether Jeff's current step will end before a request sent now could be answered."""

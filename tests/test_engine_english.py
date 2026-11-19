@@ -10,7 +10,8 @@ and released ones are b021713's. Rewritten again for clear-names-v3 and plate-na
 on): the every_trial requests differ from aaf945d only in the two version fields, events of steps that add food to a
 plate or pick an item up naming that item (v3), and plating labels and chef tasks naming the plate there or in hand.
 Rewritten once more when backlog_note was removed: the level-4 every_trial requests lose state.backlog and its version
-and are otherwise the same; and for step-check-v2, whose fetching sentence is all they gain (with the version).
+and are otherwise the same; for step-check-v2, whose fetching sentence is all they gain (with the version); and for
+undo-note-v2, whose version field is all that changes.
 """
 from __future__ import annotations
 
