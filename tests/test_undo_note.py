@@ -117,6 +117,30 @@ class NoteTests(unittest.TestCase):
         self.assertEqual(noted(second), {('next_action', 'take counter16'):
                                          'Take Bread from Counter 16 (Note: this takes back the Bread you put on Counter 16 at 6.7 s.)'})
 
+    def test_a_pan_lifted_and_put_straight_back_on_its_stove_carries_a_note_both_ways(self):
+        # (v3) Lifting a pan is a take, returning it a put; a pan returned after plating from it is no note.
+        from test_burn_note import cooked_pan, do
+        from jev import compose_payload
+        k = cooked_pan()
+        loop = Loop(k, [])
+
+        def asked(last):
+            return compose_payload(loop.client, k, k.snapshot(), k.actions('jeff'), [], None, names=True, clear=True,
+                                   undo={'step': last})['questions']['next_action']['criteria']
+        snapshot = k.snapshot()
+        lift = undo_note.step(snapshot, 'take pot p1', None, k.time)
+        self.assertEqual(lift['take'], {'station': 'p1', 'id': snapshot['stations']['p1']['pot_id']})
+        do(k, 'take pot p1')
+        self.assertIn('(Note: this puts the frying pan with beef (cooked) back on Stove 1, where you took it at',
+                      asked(lift)['put pot p1'])
+        put = undo_note.step(k.snapshot(), 'put pot p1', None, k.time)
+        do(k, 'put pot p1')
+        self.assertIn('(Note: this takes back the frying pan with beef (cooked) you put on Stove 1 at',
+                      asked(put)['take pot p1'])
+        # Plating from the held pan replaces the lift as the last step: returning the empty pan is no note.
+        plated = undo_note.step(k.snapshot(), 'plate counter2', None, k.time)
+        self.assertEqual(plated, {'t': round(k.time, 2), 'put': None, 'take': None})
+
     def test_switch_off_changes_nothing(self):
         on, off = Loop(bread_and_lettuce(), [{'choice': 'put then take b1', 'put_where': 'put counter16'}]), \
             Loop(bread_and_lettuce(), [{'choice': 'put then take b1', 'put_where': 'put counter16'}], undo=False)

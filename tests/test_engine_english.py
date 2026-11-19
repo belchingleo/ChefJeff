@@ -11,7 +11,8 @@ on): the every_trial requests differ from aaf945d only in the two version fields
 plate or pick an item up naming that item (v3), and plating labels and chef tasks naming the plate there or in hand.
 Rewritten once more when backlog_note was removed: the level-4 every_trial requests lose state.backlog and its version
 and are otherwise the same; for step-check-v2, whose fetching sentence is all they gain (with the version); and for
-undo-note-v2, whose version field is all that changes.
+undo-note-v2, whose version field is all that changes; and for burn-note-v3 and undo-note-v3: the two versions, and the
+options that put a held pan of cooked food on a stove say when it burns.
 """
 from __future__ import annotations
 

@@ -18,10 +18,16 @@ v2 (2026-11-19): ask_ahead no longer waits for this switch to be off. A request 
 the end of the step under way; that step is kept as Jeff's last step when it starts, so it is his last step at the
 moment asked about, and the notes are worked out from the kitchen as predicted then (the item put down is where he
 put it). v1 rounds with this switch on never asked ahead.
+
+v3 (2026-11-19): a pan or pot lifted from a stove ("take pot <stove>") is a take of that vessel, and one put on a
+stove ("put pot <stove>") a put: putting a lifted pan straight back on its stove says "this puts the <pan> back on
+<stove>, where you took it at <t> s", and lifting one just put there says it takes it back. In a 2026-11-19 play round
+Jeff lifted a pan of cooked beef and put it back on its stove 2.5 s later, where it burnt; v2 left both steps out.
+A pan returned after plating from it is no note: plating is the last step then.
 """
 from __future__ import annotations
 
-VERSION = 'undo-note-v2'
+VERSION = 'undo-note-v3'
 KEEP = ('continue', 'wait')
 QUESTIONS = ('next_action', 'put_where')
 
@@ -40,9 +46,9 @@ def _held(kitchen):
 
 def _put_target(key):
     """The station a plain put action names, or None."""
-    if not isinstance(key, str) or not key.startswith('put ') or key.startswith(('put then ', 'put pot ')):
+    if not isinstance(key, str) or not key.startswith('put ') or key.startswith('put then '):
         return None
-    return key[4:]
+    return key[len('put pot '):] if key.startswith('put pot ') else key[4:]
 
 
 def _take_target(key):
@@ -50,9 +56,26 @@ def _take_target(key):
         return None
     if key.startswith('put then take '):
         return key[len('put then take '):]
-    if key.startswith('take ') and not key.startswith('take pot '):
+    if key.startswith('take pot '):
+        return key[len('take pot '):]
+    if key.startswith('take '):
         return key[5:]
     return None
+
+
+def _vessel(kitchen, station):
+    """(v3) The pan or pot on a stove, as {'id', 'meaning'}, or None."""
+    s = (kitchen.get('stations') or {}).get(station) or {}
+    if not s.get('stove') or not s.get('pot_id'):
+        return None
+    name = ((kitchen.get('vessels') or {}).get(s.get('vessel')) or {}).get('name') or 'pot'
+    food = _item(s.get('food'))
+    return {'id': s['pot_id'], 'meaning': f"{name} with {food.get('meaning')}" if food and food.get('meaning') else f'empty {name}'}
+
+
+def _at(kitchen, station):
+    """What a take from this station takes: the vessel on a stove, else the station's item."""
+    return _vessel(kitchen, station) or _food(kitchen, station)
 
 
 def step(kitchen, choice, first, t):
@@ -64,7 +87,7 @@ def step(kitchen, choice, first, t):
     held = _held(kitchen)
     put_at = _put_target(choice) or (_put_target(first) if choice.startswith(('put then ', 'wash from ')) else None)
     take_at = _take_target(choice)
-    taken = _food(kitchen, take_at) if take_at else None
+    taken = _at(kitchen, take_at) if take_at else None
     return {'t': round(float(t), 2),
             'put': {'station': put_at, 'id': held['id']} if put_at and held else None,
             'take': {'station': take_at, 'id': taken['id']} if taken else None}
@@ -80,7 +103,7 @@ def notes(kitchen, last):
     stations = kitchen.get('stations') or {}
     put, take = last.get('put'), last.get('take')
     if put:
-        food = _food(kitchen, put['station'])
+        food = _at(kitchen, put['station'])
         if food and food['id'] == put['id']:
             out['take_back'] = (put['station'], f"this takes back the {food.get('meaning') or 'item'} you put on "
                                                  f"{stations[put['station']].get('name') or put['station']} at {t} s")

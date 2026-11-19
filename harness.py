@@ -640,7 +640,7 @@ def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY,
         split_floor.apply(payload, kitchen)
     if burn:
         import burn_note
-        burn_note.apply(payload)
+        burn_note.apply(payload, kitchen)
     if serve_note or wait_note:
         import option_notes
         if serve_note:

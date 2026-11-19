@@ -82,6 +82,21 @@ class BurnNoteTests(unittest.TestCase):
             self.assertIn('p1', key.split())
             self.assertEqual(on['questions']['next_action']['criteria'][key], off['questions']['next_action']['criteria'][key] + note)
 
+    def test_putting_a_held_pan_of_cooked_food_back_on_a_stove_says_when_it_burns(self):
+        # (v3) Off the stove the food does not heat; back on the heat it burns at the engine's threshold.
+        k = cooked_pan()
+        do(k, 'take pot p1')
+        food = k.chefs['jeff'].hand.contents
+        burn = k.rules.heat_thresholds(food.ingredient)[1]
+        on, off = request(k, True), request(k, False)
+        label = on['questions']['next_action']['criteria']['put pot p1']
+        self.assertEqual(label, off['questions']['next_action']['criteria']['put pot p1']
+                         + f' (beef (cooked) in the held frying pan burns {burn - food.heated:.1f} s after it is back on the heat;'
+                           f' Stove 1 catches fire then)')
+        changed = {key for key, text in on['questions']['next_action']['criteria'].items()
+                   if text != off['questions']['next_action']['criteria'][key]}
+        self.assertEqual(changed, {'put pot p1'})        # plating it, putting it on a counter: no note
+
     def test_without_cooked_food_only_the_version_is_added(self):
         for level in (1, 4):
             k = kitchen(level)
