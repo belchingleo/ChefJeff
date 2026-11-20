@@ -117,8 +117,7 @@ class SimulationTests(unittest.TestCase):
 
     def test_on_by_default_and_the_switch_is_recorded(self):
         import features
-        self.assertEqual(features.current()['ask_ahead'], {'stage': 'trial', 'on': True, 'player_switch': False,
-                                                           'version': ask_ahead.VERSION})
+        self.assertEqual(features.current()['ask_ahead'], {'stage': 'trial', 'on': True, 'version': ask_ahead.VERSION})
 
 
 

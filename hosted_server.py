@@ -375,14 +375,12 @@ class HostedSession(GameSession):
             if self.free_admission_gate.locked(): return 409, {'error': '正在申请免费名额，请稍候。'}
             if self.phase not in ('ready', 'ended'): return 409, {'error': '请先结束当前对局。'}
             if type(body.get('connected')) is not bool: return 400, {'error': '连接状态无效。'}
-            service, changed = body.get('provider'), body.get('changed', False)
-            if (service is not None and service not in features.SERVICES) or type(changed) is not bool:
+            service = body.get('provider')
+            if service is not None and service not in features.SERVICES:
                 return 400, {'error': '连接状态无效。'}
             self.connected = body['connected']
             self.free_model_provider = None
             self.browser_service = service if self.connected else None
-            if changed:
-                self.connection_changed()
             return 200, {'ok': True}
         if path in ('/api/start','/api/next') and not self.connected:
             return 428, {'error': '请先在当前浏览器连接模型服务。'}
@@ -471,9 +469,9 @@ FIELDS = {
     '/api/contribution/preview': set(),
     '/api/contribution/consent': {'consent', 'consent_version', 'decision_telemetry', 'model_identity'},
     '/api/contribution/save': {'consent', 'consent_version', 'consent_mode', 'model_identity'},
-    '/api/browser-ready': {'connected', 'provider', 'changed'}, '/api/start': {'speed'}, '/api/pause': {'reason'},
+    '/api/browser-ready': {'connected', 'provider'}, '/api/start': {'speed'}, '/api/pause': {'reason'},
     '/api/resume': set(), '/api/end': set(), '/api/reset': set(), '/api/restart': set(),
-    '/api/level': {'level'}, '/api/next': {'level'}, '/api/player-level/submit': {'level', 'design'}, '/api/player-level/play': {'job'}, '/api/links': {'on'}, '/api/limits': {'max_calls'}, '/api/export-run': set(),
+    '/api/level': {'level'}, '/api/next': {'level'}, '/api/player-level/submit': {'level', 'design'}, '/api/player-level/play': {'job'}, '/api/limits': {'max_calls'}, '/api/export-run': set(),
     '/api/feedback': set(), '/api/bookmark': set(), '/api/communicate': {'code'},
     '/api/move': {'dx', 'dy', 'seq', 'sprint'}, '/api/position': {'seq', 'base', 'at', 'press'},
     '/api/interact': {'expected_item', 'mode', 'at', 'base', 'aim', 'target'}, '/api/throw': {'direction', 'expected_item', 'at', 'base'},

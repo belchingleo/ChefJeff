@@ -92,11 +92,6 @@ class GameSession:
         # round starts (next_features), so a running round keeps its own. Assigning self.features pins a set.
         self.feature_source = features.current
         self._features = self.feature_source()
-        # The player's own pick for a feature with a player switch (option_links: 步骤提示), kept for later rounds while
-        # the switch is offered and the model connection stays the same (a new connection takes its service's default,
-        # features.model_defaults); None: the default. links_choice_service is the service the pick was made with.
-        self.links_choice = None
-        self.links_choice_service = None
         # Every round of this play session, for the data export (feedback.play_export).
         self.history = []
         self.history_limit = HISTORY_LIMIT
@@ -424,8 +419,7 @@ class GameSession:
         remaining=max(0.,5-(time.monotonic()-self.last_player_message_at)) if self.last_player_message_at is not None else 0.
         return {'preference': preference['code'] if preference else None,
                 'cooldown_remaining': round(remaining,2), 'last_message': deepcopy(last),
-                'allowed': self.phase in ('running','paused') and not self.k.ended,
-                'links': self.links_state()}
+                'allowed': self.phase in ('running','paused') and not self.k.ended}
 
     @property
     def features(self):
@@ -445,31 +439,6 @@ class GameSession:
         """The model service (a model-providers.json id) this session's rounds ask, where the session knows it: the
         player's connection (player_api, hosted_server); None here."""
         return None
-
-    def connection_changed(self):
-        """A new model connection: the player's pick of a switch is dropped, so its service's default holds."""
-        self.links_choice = self.links_choice_service = None
-
-    def with_player_switches(self, value):
-        """These features as this session's model service takes them (features.model_defaults), with the player's
-        own pick applied where the features offer a switch; a pick that differs from that default is recorded as
-        "source": "player"."""
-        service = self.model_service()
-        value = features.model_defaults(value, service)
-        links = value.get('option_links')
-        # A pick made with another service (or none) is not this one's: the player chose against another default.
-        if (not links or not links.get('player_switch') or self.links_choice is None or self.links_choice == links['on']
-                or self.links_choice_service != service):
-            return value
-        return {**value, 'option_links': {**links, 'on': self.links_choice, 'source': 'player'}}
-
-    def links_state(self):
-        """The 步骤提示 switch (option_links) as the player sees it: on for the next round (or this one while it runs),
-        whether it is offered, and whether it can be changed now (between rounds)."""
-        between = self.phase in ('ready', 'ended')
-        offered = bool(self.next_features().get('option_links', {}).get('player_switch'))
-        value = self.with_player_switches(self.next_features()) if between else self.features
-        return {'on': bool(value.get('option_links', {}).get('on')), 'available': offered, 'editable': offered and between}
 
     def _communicate(self, body):
         if self.phase not in ('running','paused') or self.k.ended or self.journal is None:
@@ -565,13 +534,6 @@ class GameSession:
             result = self._command('/api/level', {'level': body.get('level')})
             if result[0] != 200:return result
             return self._command('/api/start', {'speed': speed})
-        if path == '/api/links':
-            if self.phase not in ('ready', 'ended'):
-                return 409, {'error': '请在开局前或结算后修改步骤提示。'}
-            if not self.next_features().get('option_links', {}).get('player_switch') or type(body.get('on')) is not bool:
-                return 400, {'error': '步骤提示设置无效。'}
-            self.links_choice, self.links_choice_service = body['on'], self.model_service()
-            return 200, {'ok': True, 'links': self.links_state()}
         if path == '/api/restart':
             if self.phase not in ('paused','ended'):
                 return 409, {'error': '请先暂停，再重新开局。'}
@@ -601,7 +563,7 @@ class GameSession:
                                       keep_payloads=self.bundle_root is not None, deployment_mode=self.deployment_mode)
             self.session_log = self.journal
             # The switches as of this round's start (features.json and the server's override); kept for the round.
-            self._features = self.with_player_switches(self.feature_source())
+            self._features = features.model_defaults(self.feature_source(), self.model_service())
             pressed = features.one_press_flags(self.features)
             self.journal('start', {'config':self.c, 'config_hash':self.k.config_hash, 'speed':self.speed, 'state':self.k.snapshot(),
                                    **one_press.condition(pressed), 'features': features.snapshot(self.features)})

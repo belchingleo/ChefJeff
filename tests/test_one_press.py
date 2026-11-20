@@ -302,8 +302,7 @@ class ChainTests(unittest.TestCase):
 def with_features(**changes):
     """The repository's features.json with some fields changed, checked like the file: {name: {field: value}}."""
     import features
-    data = {name: {k: v for k, v in value.items() if k != 'player_switch' or value['stage'] == 'trial'}
-            for name, value in features.load().items()}
+    data = {name: dict(value) for name, value in features.load().items()}
     for name, fields in changes.items():
         data[name].update(fields)
     return features.check(data)
@@ -367,13 +366,13 @@ class FeaturesFileTests(unittest.TestCase):
     def test_the_repository_file_is_valid_and_released_one_press_is_on(self):
         import features
         value = features.load()
-        self.assertEqual(value['one_press'], {'stage': 'release', 'on': True, 'player_switch': False, 'version': one_press.VERSION})
+        self.assertEqual(value['one_press'], {'stage': 'release', 'on': True, 'version': one_press.VERSION})
         self.assertNotIn('rolling_intent', value)
         self.assertNotIn('jeff_plan', value)
         self.assertEqual({name: v['stage'] for name, v in value.items()},
                          {'one_press': 'release', 'undo_note': 'trial',
                           'ask_ahead': 'trial', 'reach_note': 'trial',
-                          'option_links': 'trial', 'option_links_partner': 'trial',
+                          'option_links': 'release', 'option_links_partner': 'trial',
                           'split_floor': 'trial', 'burn_note': 'trial',
                           'step_check': 'trial', 'walk_note': 'trial',
                           'clear_text': 'trial', 'option_notes': 'trial'})
@@ -387,7 +386,7 @@ class FeaturesFileTests(unittest.TestCase):
             {**good, 'one_press': {**good['one_press'], 'version': 'one-press-v2'}},     # not the code's version
             {**good, 'one_press': {**good['one_press'], 'stage': 'beta'}},
             {**good, 'one_press': {**good['one_press'], 'on': 'yes'}},
-            {**good, 'one_press': {**good['one_press'], 'player_switch': True}},          # released: no switch
+            {**good, 'one_press': {**good['one_press'], 'player_switch': True}},          # no player switches since 2026-11-20
             {**good, 'jeff_plan': {'stage': 'trial', 'on': False, 'version': 'plan-v2'}},   # removed 2026-11-20
             {**good, 'walk_note': {**good['walk_note'], 'colour': 'red'}},
         ]

@@ -1,8 +1,8 @@
 """off_for: a feature is off by default for the rounds of the model services it names.
 
 features.json names none today; the local play set's override gives option_links_partner and split_floor to every
-service but Perplexity (2026-11-19). The tests of the player's switch use option_links (步骤提示) with off_for set: the
-switch still turns it back on, and a new connection drops the player's pick, so its service's default holds.
+service but Perplexity (2026-11-19). The session tests use option_links (步骤提示) with off_for set. There is no player
+switch any more (2026-11-20): the service a round asks alone decides.
 """
 import io
 import json
@@ -93,7 +93,8 @@ def start_row(g):
 class SessionTests(unittest.TestCase):
     def test_a_perplexity_round_starts_without_the_table_and_records_why(self):
         g = Session().make(self, 'perplexity')
-        self.assertEqual(g.communication_state()['links'], {'on': False, 'available': True, 'editable': True})
+        self.assertNotIn('links', g.communication_state())                        # no player switch
+        self.assertEqual(g._command('/api/links', {'on': True})[0], 404)
         self.assertEqual(g._command('/api/start', {})[0], 200)
         self.assertIs(g.ai.links, False)
         self.assertEqual(start_row(g)['features']['option_links'], {'on': False, 'version': links.SWITCH_VERSION, 'source': 'model'})
@@ -105,26 +106,6 @@ class SessionTests(unittest.TestCase):
                 self.assertEqual(g._command('/api/start', {})[0], 200)
                 self.assertIs(g.ai.links, True)
                 self.assertEqual(start_row(g)['features']['option_links'], {'on': True, 'version': links.SWITCH_VERSION})
-
-    def test_the_player_can_still_turn_it_on_for_perplexity(self):
-        g = Session().make(self, 'perplexity')
-        self.assertEqual(g._command('/api/links', {'on': True})[0], 200)
-        self.assertEqual(g.communication_state()['links']['on'], True)
-        self.assertEqual(g._command('/api/start', {})[0], 200)
-        self.assertIs(g.ai.links, True)
-        self.assertEqual(start_row(g)['features']['option_links'], {'on': True, 'version': links.SWITCH_VERSION, 'source': 'player'})
-
-    def test_a_pick_made_with_another_service_gives_way_to_the_new_default(self):
-        g = Session().make(self, 'jev')
-        self.assertEqual(g._command('/api/links', {'on': False})[0], 200)
-        g.service = 'perplexity'
-        g._command('/api/links', {'on': True})
-        g.service = 'jev'                           # the Perplexity pick is not Jev's
-        self.assertEqual(g.communication_state()['links']['on'], True)
-        g.service = 'perplexity'
-        self.assertEqual(g.communication_state()['links']['on'], True)
-        g.connection_changed()                      # a new connection: its service's default again
-        self.assertEqual(g.communication_state()['links']['on'], False)
 
 
 class PartnerAndSplitTests(unittest.TestCase):
@@ -157,22 +138,20 @@ class LocalConnectionTests(unittest.TestCase):
         return self.g.command('/api/connection', {'game_id': self.g.game_id, 'request_id': uuid.uuid4().hex,
                                                   'provider': provider, 'api_key': 'test-not-a-real-key', **extra})
 
-    def links(self):
-        return self.g.communication_state()['links']['on']
+    def start(self):
+        self.assertEqual(self.g._command('/api/start', {})[0], 200)
+        on = self.g.ai.links
+        self.assertEqual(self.g._command('/api/end', {})[0], 200)
+        self.assertEqual(self.g._command('/api/reset', {})[0], 200)
+        return on
 
-    def test_the_saved_connection_s_service_sets_the_default_and_a_new_one_drops_the_pick(self):
+    def test_the_saved_connection_s_service_sets_the_table(self):
         self.assertEqual(self.connect('jev')[0], 200)
-        self.assertIs(self.links(), True)
-        self.assertEqual(self.g._command('/api/links', {'on': False})[0], 200)
-        self.assertIs(self.links(), False)
+        self.assertIs(self.start(), True)
         self.assertEqual(self.connect('perplexity')[0], 200)
-        self.assertIs(self.links(), False)
-        self.assertEqual(self.g._command('/api/links', {'on': True})[0], 200)
-        self.assertIs(self.links(), True)
-        self.assertEqual(self.connect('perplexity', model='pplx-decider-v1.3')[0], 200)     # another model: its default
-        self.assertIs(self.links(), False)
+        self.assertIs(self.start(), False)
         self.assertEqual(self.g.command('/api/connection', {'game_id': self.g.game_id, 'request_id': 'clear', 'clear': True})[0], 200)
-        self.assertIs(self.links(), True)
+        self.assertEqual(self.g.model_service(), None)
 
 
 class HostedTests(unittest.TestCase):
@@ -185,37 +164,32 @@ class HostedTests(unittest.TestCase):
 
     def test_the_browser_reports_only_the_preset_service_and_the_round_takes_its_default(self):
         s = self.session()
-        self.assertEqual(s._command('/api/browser-ready', {'connected': True, 'provider': 'perplexity', 'changed': True})[0], 200)
-        self.assertEqual(s.communication_state()['links']['on'], False)
+        self.assertEqual(s._command('/api/browser-ready', {'connected': True, 'provider': 'perplexity'})[0], 200)
         self.assertEqual(s._command('/api/start', {})[0], 200)
         self.assertIs(s.ai.links, False)
         self.assertEqual(s.features['option_links']['source'], 'model')
 
     def test_a_bad_report_is_refused_and_an_old_page_s_report_keeps_the_table(self):
         s = self.session()
-        for body in ({'connected': True, 'provider': 'https://api.perplexity.ai'}, {'connected': True, 'provider': 'perplexity', 'changed': 'yes'}):
+        for body in ({'connected': True, 'provider': 'https://api.perplexity.ai'}, {'connected': 'yes', 'provider': 'perplexity'}):
             with self.subTest(body=body):
                 self.assertEqual(s._command('/api/browser-ready', body)[0], 400)
         self.assertEqual(s._command('/api/browser-ready', {'connected': True})[0], 200)
         self.assertIs(s.model_service(), None)
-        self.assertEqual(s.communication_state()['links']['on'], True)
+        self.assertEqual(s._command('/api/start', {})[0], 200)
+        self.assertIs(s.ai.links, True)
 
-    def test_a_new_connection_drops_the_pick_and_a_plain_report_keeps_it(self):
+    def test_a_disconnected_report_names_no_service(self):
         s = self.session()
-        s._command('/api/browser-ready', {'connected': True, 'provider': 'perplexity', 'changed': True})
-        self.assertEqual(s._command('/api/links', {'on': True})[0], 200)
-        s._command('/api/browser-ready', {'connected': True, 'provider': 'perplexity'})       # before a round starts
-        self.assertEqual(s.communication_state()['links']['on'], True)
-        s._command('/api/browser-ready', {'connected': True, 'provider': 'perplexity', 'changed': True})
-        self.assertEqual(s.communication_state()['links']['on'], False)
-        s._command('/api/browser-ready', {'connected': False, 'provider': 'perplexity', 'changed': True})
+        s._command('/api/browser-ready', {'connected': True, 'provider': 'perplexity'})
+        self.assertEqual(s.model_service(), 'perplexity')
+        s._command('/api/browser-ready', {'connected': False, 'provider': 'perplexity'})
         self.assertIs(s.model_service(), None)
 
     def test_a_free_model_is_the_site_s_own_service(self):
         s = self.session()
         s.free_model_provider, s.connected = 'zhipu', True
         self.assertEqual(s.model_service(), 'zhipu')
-        self.assertEqual(s.communication_state()['links']['on'], True)
 
 
 class RoundRunnerTests(unittest.TestCase):

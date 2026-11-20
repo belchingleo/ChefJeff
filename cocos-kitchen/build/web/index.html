@@ -238,36 +238,6 @@ function kitchenTabs(dialog){
 #kitchen-api-dialog[data-view=custom] .custom-only{display:flex}
 #kitchen-api-dialog[data-view=custom] .card-badge.custom-only{display:inline-block}
 #kitchen-api-dialog[data-view=custom] .settings-only{display:none}
-/* 步骤提示: a switch in the shell's square, ink-bordered, hard-shadow style; denim marks "on". */
-#links-setting{position:relative;margin-top:22px;padding-top:18px;border-top:2px dashed #e3c79a}
-.switch-row{display:flex;align-items:center;gap:12px;margin:0 0 4px}
-.switch-text{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;min-width:0}
-#kitchen-api-dialog label.switch-label{display:inline;margin:0;font:18px/24px var(--pixel);color:var(--ink);cursor:pointer}
-.switch{position:relative;flex:none;width:56px;height:30px;padding:0;box-sizing:border-box;border:3px solid var(--ink);background:var(--surface);box-shadow:0 3px 0 var(--ink);cursor:pointer}
-.switch-knob{position:absolute;top:3px;left:3px;width:18px;height:18px;box-sizing:border-box;background:var(--paper);border:3px solid var(--ink)}
-.switch[aria-checked=true]{background:var(--denim)}
-.switch[aria-checked=true] .switch-knob{left:29px}
-.switch:hover{background:var(--honey-tint)}
-.switch[aria-checked=true]:hover{background:var(--denim-hover)}
-.switch:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
-.switch:focus-visible,.info-btn:focus-visible{outline:3px solid var(--ink);outline-offset:3px}
-.switch:disabled{border-color:var(--muted);background:var(--surface);box-shadow:none;transform:none;cursor:default}
-.switch:disabled[aria-checked=true]{background:var(--muted)}
-.switch:disabled .switch-knob{border-color:var(--muted)}
-.switch:disabled+.switch-text .switch-label{color:var(--muted);cursor:default}
-.info-btn{position:relative;flex:none;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;padding:0;box-sizing:border-box;border:2px solid var(--ink);border-radius:50%;background:var(--paper);color:var(--ink);font:14px/14px var(--pixel);cursor:pointer}
-.info-btn:hover{background:var(--honey-tint)}
-/* Touch mode gives dialog buttons a 44px minimum height; these keep their shape and get the hit area from ::after. */
-#kitchen-api-dialog .switch,#kitchen-api-dialog .info-btn{min-height:0}
-.switch::after{content:"";position:absolute;inset:-10px -4px}
-.info-btn[aria-expanded=true]{background:var(--ink);color:var(--paper)}
-/* The tap target stays 44px on touch screens while the circle keeps its size. */
-.info-btn::after{content:"";position:absolute;inset:-9px}
-/* An overlay above the row (below when there is no room above), so it never shifts the page or gets clipped. */
-.tip{position:absolute;left:0;z-index:6;width:max-content;max-width:min(420px,100%);padding:10px 12px;box-sizing:border-box;background:var(--paper);border:3px solid var(--ink);box-shadow:0 5px 0 var(--ink);font-size:15px;line-height:22px;color:var(--ink)}
-.tip::before{content:"";position:absolute;left:var(--arrow-x,24px);width:12px;height:12px;margin-left:-6px;background:var(--paper);transform:rotate(45deg)}
-.tip[data-side=above]::before{bottom:-9px;border-right:3px solid var(--ink);border-bottom:3px solid var(--ink)}
-.tip[data-side=below]::before{top:-9px;border-left:3px solid var(--ink);border-top:3px solid var(--ink)}
 @media (max-width:760px){
  #kitchen-api-dialog .dlg-head{flex-wrap:wrap;gap:10px;padding:14px 16px 10px}
  #kitchen-api-dialog .dlg-head h2{font-size:26px;line-height:30px}
@@ -335,14 +305,6 @@ function kitchenTabs(dialog){
    <div class="dashed"><strong>两类模型</strong><p><b>决策模型</b>：直接从候选动作里选一个，还会给出每个选项的概率。</p><p><b>快思考模型</b>：通用对话模型，读完厨房状态后回一个动作。</p><p>调用按你在服务商那边的账号计费，或计入你的免费额度。Key 不会写进游戏记录或研究数据。</p></div>
   </aside>
   </div>
-  <div class="card-section settings-only" id="links-setting">
-   <div class="switch-row" id="links-row">
-    <button id="jeff-links" class="switch" type="button" role="switch" aria-checked="false" aria-labelledby="jeff-links-label" aria-describedby="links-status"><span class="switch-knob" aria-hidden="true"></span></button>
-    <span class="switch-text"><label for="jeff-links" id="jeff-links-label" class="switch-label">步骤提示</label><button id="links-info" class="info-btn" type="button" aria-label="步骤提示说明" aria-expanded="false" aria-controls="links-tip" aria-describedby="links-tip">i</button></span>
-   </div>
-   <div id="links-tip" class="tip" role="tooltip" hidden>告诉 Jeff 每个选项接下来能做成什么事，适合不太会自己串步骤的模型</div>
-   <p id="links-status" role="status" aria-live="polite"></p>
-  </div>
  </section>
  <section aria-labelledby="audio-title" id="audio-panel" role="tabpanel">
   <h3 id="audio-title">声音</h3>
@@ -390,8 +352,7 @@ function kitchenTabs(dialog){
  const el=id=>document.getElementById(id),dialog=el('kitchen-api-dialog'),showTab=kitchenTabs(dialog);
  // randomUUID exists only on secure pages; a phone on the LAN (plain HTTP) still has getRandomValues.
  const requestId=()=>crypto.randomUUID?.()||Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('');
- let state=null,busy=false,memoryBusy=false,memoryMessage='',limitBusy=false,limitMessage='',linksBusy=false,linksMessage='',feedbackText='';
- const linksSwitch=el('jeff-links');
+ let state=null,busy=false,memoryBusy=false,memoryMessage='',limitBusy=false,limitMessage='',feedbackText='';
  const message=(text,error=false)=>{el('api-message').textContent=text;el('api-message').className=error?'error':''};
  // Services from model-providers.json, grouped; the hosted page leaves out the ones its browser cannot reach.
  const catalog=window.chefjeffProviders||{groups:[],providers:[]};
@@ -477,14 +438,6 @@ function kitchenTabs(dialog){
   el('api-transport-status').textContent=c?.free_model?'当前连接：服务器提供的免费模型':c?.jev_relay?'当前连接：已同意服务器转发 Jev':c?.relay?'当前连接：已同意服务器转发 Cloudflare':'当前连接：浏览器直连模型';
   el('api-editing-status').textContent=!c?(window.chefjeffHostedStatus?.()||'等待厨房连接。可以先填写，连接成功后再测试。'):
    busy?'正在测试连接…':c.editable?'':'本局进行中，可以先填写；请结束本局后再测试或更换 API。';
-  // Saving must not disable the switch: a disabled button drops keyboard focus mid-toggle. Clicks are ignored while busy.
-  // 步骤提示 (option_links) shows while the features offer its player switch (web_server.links_state available).
-  const links=state?.communication?.links;
-  el('links-row').hidden=!links?.available;if(!links?.available)el('links-tip').hidden=true;
-  if(links)linksSwitch.setAttribute('aria-checked',String(!!links.on));linksSwitch.disabled=!links?.editable;linksSwitch.setAttribute('aria-busy',String(linksBusy));
-  el('links-status').hidden=!links?.available;
-  el('links-status').textContent=links&&!links.editable&&!linksBusy?'本局进行中；结束本局后可以修改。':linksMessage||'';
-  el('links-setting').hidden=!!state?.communication&&!links?.available;
   const l=state?.limits;
   el('call-limit').disabled=!l?.editable||limitBusy;el('limit-save').disabled=!l?.editable||limitBusy;
   el('limit-status').textContent=limitMessage||(l?`本局 ${l.calls} / ${l.max_calls} 次${l.reached?' · 已达上限':''}；成功回复 token：输入 ${l.usage.input_tokens} / 输出 ${l.usage.output_tokens}；本次服务连接测试 ${l.connection_checks} 次`:'需要新版厨房服务。');
@@ -558,13 +511,6 @@ function kitchenTabs(dialog){
   }catch(e){if(e.name==='AbortError')throw new Error('请求超时，请重新打开设置确认结果。');throw e;}
   finally{clearTimeout(timer);}
  }
- linksSwitch.onclick=async()=>{
-  if(linksBusy||linksSwitch.disabled)return;const on=linksSwitch.getAttribute('aria-checked')!=='true';
-  linksBusy=true;linksMessage='正在保存…';status();
-  try{const d=await localCommand('/api/links',{on});state.communication={...state.communication,links:d.links};
-   linksMessage=d.links.on?'下一局起开启步骤提示。':'下一局起关闭步骤提示。';
-  }catch(e){linksMessage=e.message}finally{linksBusy=false;status()}
- };
  el('limit-save').onclick=async()=>{
   if(limitBusy)return;limitBusy=true;limitMessage='正在保存…';status();
   try{const d=await localCommand('/api/limits',{max_calls:Number(el('call-limit').value)});
@@ -583,26 +529,6 @@ function kitchenTabs(dialog){
   if(!feedbackText)return;const url=URL.createObjectURL(new Blob([feedbackText],{type:'application/json'}));
   const a=document.createElement('a');a.href=url;const r=JSON.parse(feedbackText);a.download='chefjeff-play-'+String(r.session_started_at||r.exported_at||'').replace(/[^0-9]/g,'').slice(0,14)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
  };
-})();
-</script>
-<script>
-// 步骤提示 info button: hover shows the tip with a mouse; touch and keyboard toggle it; Esc or a tap elsewhere closes it.
-for(const [infoId,tipId] of [['links-info','links-tip']])(()=>{const btn=document.getElementById(infoId),tip=document.getElementById(tipId);if(!btn||!tip)return;
- let pinned=false;const inside=t=>!!t&&(btn.contains(t)||tip.contains(t));
- const show=v=>{tip.hidden=!v;btn.setAttribute('aria-expanded',String(v));if(!v)return;
-  const card=tip.parentElement.getBoundingClientRect(),b=btn.getBoundingClientRect(),row=btn.closest('.switch-row').getBoundingClientRect();
-  const view=(tip.closest('.settings-page')||document.documentElement).getBoundingClientRect(),h=tip.offsetHeight;
-  const above=row.top-Math.max(view.top,0)>=h+14;tip.dataset.side=above?'above':'below';
-  tip.style.top=(above?row.top-card.top-h-12:row.bottom-card.top+12)+'px';tip.style.setProperty('--arrow-x',(b.left+b.width/2-card.left)+'px')};
- // Hovering the i opens it; it stays open while the pointer is anywhere on the card or the tip
- // (the tip belongs to the card), so crossing from the i to the tip never closes it.
- btn.addEventListener('pointerenter',e=>{if(e.pointerType==='mouse'&&tip.hidden)show(true)});
- tip.parentElement.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse'&&!pinned)show(false)});
- btn.addEventListener('click',()=>{pinned=!(pinned&&!tip.hidden);show(pinned||tip.hidden)});
- btn.addEventListener('focus',()=>show(true));btn.addEventListener('blur',()=>{if(!pinned)show(false)});
- document.addEventListener('pointerdown',e=>{if(!tip.hidden&&!inside(e.target)){pinned=false;show(false)}});
- // Esc closes only the tip while it is open, not the settings dialog behind it.
- document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!tip.hidden){e.preventDefault();e.stopImmediatePropagation();pinned=false;show(false)}},true);
 })();
 </script>
 <style>
@@ -653,7 +579,6 @@ for(const [infoId,tipId] of [['links-info','links-tip']])(()=>{const btn=documen
   <dt>餐具和锅</dt><dd>干净盘才可装菜。脏盘回收点取盘 → 放入水槽 → 空手按 E 洗碗 → 取净盘。没盘时可空手到锅边端锅，离灶停止加热；空锅需放回灶台。</dd>
   <dt>丢弃与消防</dt><dd>拿食材靠近垃圾桶按空格会销毁，扣 2 元；端锅则倒掉锅里的食物，保留空锅。拿起灭火器后面向着火工位按 E（或空格）喷，累计喷 4 秒灭火；中途走开，进度保留，但停喷 2 秒后火会慢慢变旺。着火的工位会加热身边 8 格（含对角）的工位，旁边有一处着火 5 秒就会着火，多处同时着火更快，红色条显示进度；不跨空地或墙。同时 5 个工位着火，本局结束。</dd>
   <dt>沟通 · 1–6 / 点击（测试功能）</dt><dd>这是测试中的功能，不是正式玩法，以后可能调整。打开左下角沟通菜单，点击即可告诉 AI 由你来做哪类工作；“你做错了”是独立的红色描边按钮。也可按 1–5 说明分工、按 6 纠错。共用 5 个实际秒冷却，暂停时也可发送。最新的说明只在本局有效；AI 在下一次正常请求中收到，自行判断如何配合，不强制分工或停止动作。纠错附带当时动作信息，但不指定正确答案。</dd>
-  <dt>步骤提示</dt><dd>默认开启。Jeff 每次决定时，会同时看到每个选项接下来能做成什么事（比如拿起生牛肉以后可以切），由游戏按厨房现状算出，不替他做决定。不太会自己串起步骤的模型用它更顺手；本来就能串起来的模型可以关掉。在设置的「AI 队友」里开关，下一局起生效。</dd>
   <dt>标记片段 · Enter</dt><dd>营业中按 Enter 标记当前时刻，不暂停、不打断动作。相邻两次标记间隔不超过 5 个实际秒时合并为一个区间，长按不重复。设置中的“数据导出”包含全部标记；标记不会发送给 AI。</dd>
   <dt>暂停与继续 · Esc / P</dt><dd>暂停会停止锅火、订单和双方动作。再按 Esc 或 P（键盘没有 Esc 键时用，如 iPad）或点「继续经营」回到厨房；也可重新开局、打开设置或查看本说明。结束本局、暂停中重新开局都会先请你确认；重新开局沿用当前配置与速度。更换 API、记忆和调用上限请在结算后或开局前进行。</dd>
   </dl>

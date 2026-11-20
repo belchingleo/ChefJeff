@@ -79,7 +79,7 @@ class WalkNoteTests(unittest.TestCase):
 
     def test_the_switch_is_a_trial(self):
         self.assertEqual(features.current()['walk_note'],
-                         {'stage': 'trial', 'on': False, 'player_switch': False, 'version': walk_note.VERSION})
+                         {'stage': 'trial', 'on': False, 'version': walk_note.VERSION})
         on = {**features.current(), 'walk_note': {**features.current()['walk_note'], 'on': True}}
         self.assertTrue(features.compose_options(on)['walk'])
 

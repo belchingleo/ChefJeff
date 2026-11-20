@@ -107,7 +107,7 @@ class BurnNoteTests(unittest.TestCase):
 
     def test_the_feature_is_a_trial_off_by_default_without_a_page_switch(self):
         self.assertEqual(features.current()['burn_note'],
-                         {'stage': 'trial', 'on': False, 'player_switch': False, 'version': burn_note.VERSION})
+                         {'stage': 'trial', 'on': False, 'version': burn_note.VERSION})
         on = {**features.current(), 'burn_note': {**features.current()['burn_note'], 'on': True}}
         self.assertTrue(features.compose_options(on)['burn'])
         self.assertFalse(features.compose_options(features.current())['burn'])

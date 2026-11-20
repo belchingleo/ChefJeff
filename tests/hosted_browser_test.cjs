@@ -155,7 +155,7 @@ async function checkModelIdentity(){
 }
 
 // The server learns which preset service plays (features.model_defaults: Jeff's set-up for it), never its endpoint,
-// model name or key: from a saved connection (changed) and, once, from one this browser restores.
+// model name or key: from a saved connection and, once, from one this browser restores.
 async function checkServiceReport(){
  const ready=h=>h.calls.filter(c=>new URL(c.url,'https://kitchen.example').pathname==='/api/browser-ready').map(c=>JSON.parse(c.init.body));
  const own={provider:'perplexity',model:'pplx-decider-v1.3',api_key:key,remember:true};
@@ -164,16 +164,16 @@ async function checkServiceReport(){
   let h=harness();await h.w.fetch('/api/state');
   assert.equal((await h.w.fetch('/api/connection',{method:'POST',body:JSON.stringify({...own,game_id:'round'})})).status,200);
   let sent=ready(h);assert.equal(sent.length,1);
-  assert.deepEqual({...sent[0],request_id:'x'},{game_id:'round',request_id:'x',connected:true,changed:true,provider:'perplexity'});
+  assert.deepEqual({...sent[0],request_id:'x'},{game_id:'round',request_id:'x',connected:true,provider:'perplexity'});
   for(const text of [key,'pplx-decider-v1.3','api.perplexity.ai'])assert(!JSON.stringify(sent).includes(text),'only the service id reaches the server');
   await h.w.fetch('/api/connection',{method:'POST',body:JSON.stringify({game_id:'round',clear:true})});
-  assert.deepEqual(ready(h).slice(-1).map(b=>[b.connected,b.changed,'provider' in b]),[[false,true,false]]);
+  assert.deepEqual(ready(h).slice(-1).map(b=>[b.connected,'changed' in b,'provider' in b]),[[false,false,false]]);
   h=harness(own);await h.w.fetch('/api/state');await h.w.fetch('/api/state');
   sent=ready(h);assert.equal(sent.length,1,'a restored connection is reported once');
-  assert.deepEqual([sent[0].connected,sent[0].changed,sent[0].provider],[true,false,'perplexity']);
+  assert.deepEqual([sent[0].connected,'changed' in sent[0],sent[0].provider],[true,false,'perplexity']);
   assert.equal(h.calls.filter(c=>c.url==='/api/state').length,3,'the settings are read again after the report');
   await h.w.fetch('/api/start',{method:'POST',body:'{}'});
-  assert.deepEqual(ready(h).slice(-1).map(b=>[b.changed,b.provider]),[[false,'perplexity']],'each start reports it again');
+  assert.deepEqual(ready(h).slice(-1).map(b=>b.provider),['perplexity'],'each start reports it again');
  }finally{upstream=null;}
  console.log('Model service report: preset id only, on a new connection, once for a restored one and at each start passed.');
 }
@@ -852,12 +852,7 @@ function settingsHarness(){
  ui.el('api-form').onsubmit({preventDefault(){}});assert.equal(ui.requests(),0);
  detail.connection.editable=true;ui.listeners.get('kitchen-state')({detail});
  assert.equal(ui.el('api-connect').disabled,false);assert.equal(ui.el('api-key').value,key);
- // The step-hint card shows while the features offer its player switch, and hides when they do not.
- detail.communication={links:{on:true,available:true,editable:true}};ui.listeners.get('kitchen-state')({detail});
- assert.equal(ui.el('links-setting').hidden,false);assert.equal(ui.el('jeff-links').getAttribute('aria-checked'),'true');
- detail.communication={links:{on:false,available:false,editable:false}};ui.listeners.get('kitchen-state')({detail});
- assert.equal(ui.el('links-setting').hidden,true);
- for(const page of ['cocos-kitchen/web-shell.html','cocos-kitchen/build/web/index.html'])assert(!/jeff-plan|jeff-rolling|plan-setting|communication-plan/.test(fs.readFileSync(page,'utf8')),'the plan modes have no switch or line');
+ for(const page of ['cocos-kitchen/web-shell.html','cocos-kitchen/build/web/index.html'])assert(!/jeff-plan|jeff-rolling|plan-setting|communication-plan|jeff-links|links-setting/.test(fs.readFileSync(page,'utf8')),'no plan or step-hint switch in Settings');
  for(const page of ['cocos-kitchen/web-shell.html','cocos-kitchen/build/web/index.html'])assert(!/jeff-put-take|jeff-wash|one-press/.test(fs.readFileSync(page,'utf8')),'the released one-press options have no switch');
  console.log('Browser transport and settings: credential isolation, session retry/release, editable drafts and guarded connection checks passed.');
  await checkModelIdentity();

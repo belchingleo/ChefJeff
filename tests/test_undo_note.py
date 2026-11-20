@@ -154,7 +154,7 @@ class NoteTests(unittest.TestCase):
 
     def test_the_feature_is_a_trial_off_by_default(self):
         current = features.current()
-        self.assertEqual(current['undo_note'], {'stage': 'trial', 'on': False, 'player_switch': False, 'version': undo_note.VERSION})
+        self.assertEqual(current['undo_note'], {'stage': 'trial', 'on': False, 'version': undo_note.VERSION})
         self.assertIsNone(features.undo_start(current))
         self.assertEqual(features.undo_start({**current, 'undo_note': {**current['undo_note'], 'on': True}}), {'history': []})
 

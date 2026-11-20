@@ -1,7 +1,7 @@
 """A server's override of features.json: switches changed from the command line, taken as each round starts.
 
 The override lives outside the release (features.OVERRIDE_ENV here points it at a temporary file), may set only
-"on" and "player_switch", must still pass features.check, and is recorded as "source": "server".
+"on" and "off_for", must still pass features.check, and is recorded as "source": "server".
 """
 import contextlib
 import io
@@ -67,16 +67,16 @@ class OverrideTests(unittest.TestCase):
         self.assertTrue(features.compose_options(value)['walk'])
         self.assertEqual(features.snapshot(value)['walk_note'], {'on': True, 'version': 'walk-note-v1', 'source': 'server'})
         self.assertEqual(features.snapshot(value)['one_press'], {'on': True, 'version': self.release['one_press']['version']})
-        self.file.write({'walk_note': {'on': True}, 'step_check': {'on': True, 'player_switch': True}})
+        self.file.write({'walk_note': {'on': True}, 'step_check': {'on': True, 'off_for': ['perplexity']}})
         value = features.current()
-        self.assertEqual((value['step_check']['on'], value['step_check']['player_switch']), (True, True))
+        self.assertEqual((value['step_check']['on'], value['step_check']['off_for']), (True, ['perplexity']))
         self.file.path.unlink()
         self.assertEqual(features.current(), self.release)
 
     def test_a_wrong_override_is_not_used_and_says_why(self):
         for wrong in ({'dance': {'on': True}},                                   # not in this release
                       {'walk_note': {'version': 'walk-note-v9'}},               # versions belong to the code
-                      {'one_press': {'player_switch': True}},                   # released: no switch
+                      {'option_links': {'player_switch': True}},                # no player switches since 2026-11-20
                       {'jeff_plan': {'on': True}},                              # removed 2026-11-20
                       {'reach_note': {'on': 'yes'}},
                       {'reach_note': {}},
@@ -93,10 +93,11 @@ class OverrideTests(unittest.TestCase):
         self.assertEqual(value, 0)
         self.assertEqual(json.loads(self.file.path.read_text()), {'walk_note': {'on': True}})
         self.assertEqual(stat.S_IMODE(self.file.path.stat().st_mode), 0o644)     # readable by the game's account
-        self.assertEqual(quietly(features.main, ['set', 'step_check', 'on', '--switch', 'on'])[0], 0)
+        self.assertEqual(quietly(features.main, ['set', 'step_check', 'on'])[0], 0)
         before = self.file.path.read_text()
         self.assertEqual(quietly(features.main, ['set', 'rolling_intent', 'on'])[0], 1)   # not in this release
-        self.assertEqual(quietly(features.main, ['set', 'one_press', 'on', '--switch', 'on'])[0], 1)
+        with self.assertRaises(SystemExit):                                       # no --switch option any more
+            quietly(features.main, ['set', 'one_press', 'on', '--switch', 'on'])
         self.assertEqual(self.file.path.read_text(), before)                     # a refused change writes nothing
         self.assertEqual(quietly(features.main, ['unset', 'step_check'])[0], 0)
         self.assertEqual(json.loads(self.file.path.read_text()), {'walk_note': {'on': True}})

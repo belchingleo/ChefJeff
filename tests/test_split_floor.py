@@ -68,7 +68,7 @@ class SplitFloorTests(unittest.TestCase):
 
     def test_the_feature_is_a_trial_off_by_default_without_a_page_switch(self):
         self.assertEqual(features.current()['split_floor'],
-                         {'stage': 'trial', 'on': False, 'player_switch': False, 'version': split_floor.VERSION})
+                         {'stage': 'trial', 'on': False, 'version': split_floor.VERSION})
         on = {**features.current(), 'split_floor': {**features.current()['split_floor'], 'on': True}}
         self.assertTrue(features.compose_options(on)['split'])
         self.assertFalse(features.compose_options(features.current())['split'])

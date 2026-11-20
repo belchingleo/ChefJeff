@@ -64,7 +64,7 @@ class ReachNoteTests(unittest.TestCase):
 
     def test_the_feature_is_a_trial_off_by_default_without_a_page_switch(self):
         self.assertEqual(features.current()['reach_note'],
-                         {'stage': 'trial', 'on': False, 'player_switch': False, 'version': reach_note.VERSION})
+                         {'stage': 'trial', 'on': False, 'version': reach_note.VERSION})
 
 
 class ReachReplayTests(paths.SavePathTests):

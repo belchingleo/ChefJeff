@@ -10,7 +10,7 @@ An option that leads to no new work gets no line.
 
 It says what becomes possible, never what Jeff should do, and the same rule holds for every level and ingredient
 (nothing is written by hand). The links check (scripts/links_check.py) re-asks logged moments in four arms; the
-game uses arm D through the option_links switch (features.json, a trial with a player switch, on by default, option-links-v3): each
+game uses arm D through the option_links switch (features.json, released and on, option-links-v3): each
 request gets state.option_links, a table computed afresh for that request from the kitchen it describes, and
 rules.links, while every option stays as it is (apply).
 """

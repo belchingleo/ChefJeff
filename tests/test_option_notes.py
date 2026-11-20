@@ -120,7 +120,7 @@ class OptionNoteTests(unittest.TestCase):
 
     def test_one_switch_a_trial_off_by_default_without_a_page_switch(self):
         self.assertEqual(features.current()['option_notes'],
-                         {'stage': 'trial', 'on': False, 'player_switch': False, 'version': option_notes.VERSION})
+                         {'stage': 'trial', 'on': False, 'version': option_notes.VERSION})
         self.assertEqual((option_notes.VERSION, option_notes.SERVE_VERSION),
                          ('option-notes-v3', 'serve-note-v2'))     # a new part needs a new VERSION
         for name in ('serve_note', 'wait_note'):

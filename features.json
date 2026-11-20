@@ -3,7 +3,7 @@
   "undo_note": {"stage": "trial", "on": false, "version": "undo-note-v4"},
   "ask_ahead": {"stage": "trial", "on": true, "version": "ask-ahead-v2"},
   "reach_note": {"stage": "trial", "on": false, "version": "reach-v1"},
-  "option_links": {"stage": "trial", "on": true, "version": "option-links-v3", "player_switch": true},
+  "option_links": {"stage": "release", "on": true, "version": "option-links-v3"},
   "option_links_partner": {"stage": "trial", "on": false, "version": "partner-links-v3"},
   "split_floor": {"stage": "trial", "on": false, "version": "split-floor-v1"},
   "burn_note": {"stage": "trial", "on": false, "version": "burn-note-v3"},

@@ -21,7 +21,7 @@ OLD = ('food_names', 'clear_names', 'engine_english', 'plate_names')
 class SwitchTests(unittest.TestCase):
     def test_a_trial_on_by_default_without_a_page_switch(self):
         self.assertEqual(features.current()['clear_text'],
-                         {'stage': 'trial', 'on': True, 'player_switch': False, 'version': 'clear-text-v1'})
+                         {'stage': 'trial', 'on': True, 'version': 'clear-text-v1'})
         for name in OLD:
             self.assertNotIn(name, features.current())
 

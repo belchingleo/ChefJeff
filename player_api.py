@@ -289,7 +289,6 @@ class PlayerGameSession(GameSession):
                 try:self.credential_path.unlink(missing_ok=True)
                 except OSError:return 500,{'error':'无法清除保存的连接，请检查文件权限。'}
                 self.setting=None
-                self.connection_changed()
                 # Dispose the finished round's client reference too.
                 if self.ai and self.ai.closed:self.ai=None
                 response=(200,{'ok':True,'connection':self.connection_state()})
@@ -317,7 +316,6 @@ class PlayerGameSession(GameSession):
                         if os.path.exists(name):os.unlink(name)
                 else:self.credential_path.unlink(missing_ok=True)
                 self.setting=setting
-                self.connection_changed()
                 if self.ai and self.ai.closed:self.ai=None
                 self.c['ai_max_response_age']=6 if is_decision(setting) else 15
                 response=(200,{'ok':True,'connection':self.connection_state()})

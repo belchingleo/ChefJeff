@@ -447,15 +447,15 @@
   const EXTRA_QUESTIONS = ['put_where'];
   function extraQuestions(payload) {return EXTRA_QUESTIONS.filter(q => q in payload.questions);}
   // The server learns only the preset service's id (features.model_defaults: Jeff's set-up for that service), never
-  // its endpoint, model name or key; changed says the player saved a new connection (their switch picks then reset).
+  // its endpoint, model name or key.
   let serviceReported = false;
-  async function markReady(connected, body, config=setting, changed=false) {
+  async function markReady(connected, body, config=setting) {
     if(connected && config?.free_model)return serverFetch('/api/model/free/select', {method:'POST',
       headers:{'Content-Type':'application/json'},body:JSON.stringify({game_id:body.game_id,
         request_id:crypto.randomUUID(),provider:config.provider})});
     serviceReported = true;
     return serverFetch('/api/browser-ready', {method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({game_id:body.game_id, request_id:crypto.randomUUID(), connected, changed,
+      body:JSON.stringify({game_id:body.game_id, request_id:crypto.randomUUID(), connected,
         ...(connected && config ? {provider:config.provider} : {})})});
   }
   async function configure(body, signal) {
@@ -464,7 +464,7 @@
     try {
       freeAutoPicked=true;
       if (body.clear) {
-        const r = await markReady(false, body, setting, true); if (!r.ok) return r;
+        const r = await markReady(false, body, setting); if (!r.ok) return r;
         setting = null;activeRoundConfig = null;
         try {localStorage.removeItem(storageName);} catch (_) {}
       } else {
@@ -486,7 +486,7 @@
             instructions:'Choose ready and return the required format.', criteria:{ready:'Connection ready',wait:'Not ready yet'}}}}, signal,
             {game_id:body.game_id,request_id:crypto.randomUUID(),test:true});
           if (signal?.aborted) throw new Error('连接测试已取消。');
-          const r = await markReady(true, body, candidate, true); if (!r.ok) return r;
+          const r = await markReady(true, body, candidate); if (!r.ok) return r;
         }
         // Remove any older remembered key even when the new choice is memory-only.
         try {
