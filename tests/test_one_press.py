@@ -352,6 +352,7 @@ class SessionTests(unittest.TestCase):
                                            'walk_note': {'on': False, 'version': 'walk-note-v1'},
                                            'clear_text': {'on': True, 'version': 'clear-text-v1'},
                                            'option_notes': {'on': False, 'version': 'option-notes-v3'},
+                                           'go_note': {'on': False, 'version': 'go-note-v1'},
                                            **{name: {'on': False, 'version': version}
                                               for name, (_, version) in request_parts.SWITCHES.items()}})
         self.assertNotIn('jeff_plan', row)                 # the plan modes went 2026-11-20
@@ -378,7 +379,7 @@ class FeaturesFileTests(unittest.TestCase):
                           'option_links': 'release', 'option_links_partner': 'trial',
                           'split_floor': 'trial', 'burn_note': 'trial',
                           'step_check': 'trial', 'walk_note': 'trial',
-                          'clear_text': 'trial', 'option_notes': 'trial',
+                          'clear_text': 'trial', 'option_notes': 'trial', 'go_note': 'trial',
                           **{name: 'trial' for name in request_parts.SWITCHES}})
 
     def test_a_wrong_file_stops_instead_of_running(self):

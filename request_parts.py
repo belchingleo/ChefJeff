@@ -25,6 +25,7 @@ alike, so every combination rebuilds exactly. With every part off the request is
   stars, dishes, which vessel cooks what (v2), waiting and served orders, the two chefs, every station (empty counters in one line; on a split
   floor grouped by who reaches them), plates, the floor and items in the air. Walls, map cells, routes, collision
   numbers, hashes, seeds, the menu (the same as dishes), the numbers the rules already give, and empty fields go.
+  v3: a stove's line gives only the next thing to happen (cooked; then burns and catches fire; then catches fire).
   v2: a loose ingredient says what it still needs, from the same request's facts ("beef (as fetched) F3 (not chopped
   yet (2.2 s of chopping); a frying pan cooks it only once it is chopped)"); v1 dropped the chopping left and the
   vessels, and with rules_by_action v1 Perplexity and Jev walked raw beef between the stoves (user play 2026-11-20).
@@ -41,7 +42,7 @@ TIMELINE_VERSION = 'timeline-v2'
 NO_HISTORY_VERSION = 'no-history-v1'
 LINKS_ON_OPTIONS_VERSION = 'links-on-options-v1'
 RULES_BY_ACTION_VERSION = 'rules-by-action-v2'
-KITCHEN_VIEW_VERSION = 'kitchen-view-v2'
+KITCHEN_VIEW_VERSION = 'kitchen-view-v3'
 # features.json name -> (finish() argument, version).
 SWITCHES = {'place_names': ('place', PLACE_NAMES_VERSION), 'timeline': ('timeline', TIMELINE_VERSION),
             'no_history': ('no_history', NO_HISTORY_VERSION),
@@ -304,20 +305,26 @@ def _food(food, kj=None):
 
 
 def _stove(s):
+    """v3 (the user's wording, 2026-11-20): while the food cooks, only when it is cooked; once cooked, when it burns
+    and when the stove catches fire; once burnt, when the stove catches fire. v2 gave the burn and fire countdown
+    while the food was still cooking, and Jev took the extinguisher with nothing burning (7 times in 3 rounds)."""
     pan = f"{s.get('vessel_name') or 'pan'} {s['pot_id']}" if s.get('pot_id') else 'no pan'
     food = s.get('food')
     if not food:
         return f'{pan}, empty' if s.get('pot_id') else pan
-    times, ready, burn, fire = [], s.get('ready_in'), s.get('burn_in'), s.get('fire_in')
-    if ready:
+    stage, ready, burn, fire = food.get('stage'), s.get('ready_in'), s.get('burn_in'), s.get('fire_in')
+    times = []
+    if stage == 'cooking' and ready:
         times.append(f'cooked in {ready:.1f} s')
-    if burn and fire is not None and abs(fire - burn) < 1e-6:
-        times.append(f'burns and the stove catches fire in {burn:.1f} s')
-    else:
-        if burn:
+    elif stage == 'ready' and burn:
+        if fire is not None and abs(fire - burn) < 1e-6:
+            times.append(f'burns in {burn:.1f} s, and the stove catches fire then')
+        else:
             times.append(f'burns in {burn:.1f} s')
-        if fire:
-            times.append(f'the stove catches fire in {fire:.1f} s')
+            if fire:
+                times.append(f'the stove catches fire in {fire:.1f} s')
+    elif stage == 'burnt' and fire:
+        times.append(f'the stove catches fire in {fire:.1f} s')
     return f'{pan} with {_food(food)}' + (': ' + ', '.join(times) if times else '')
 
 

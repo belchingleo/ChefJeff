@@ -42,7 +42,7 @@ class WebSessionTests(unittest.TestCase):
         g=self.make();self.start(g)
         loop={'one_press':g.ai.one_press,'undo':g.ai.undo,'reach':g.ai.reach,'names':g.ai.names,'links':g.ai.links,'split':g.ai.split,'burn':g.ai.burn,
               'serve_note':g.ai.serve_note,
-              'steps':g.ai.steps,'clear':g.ai.clear,'walk':g.ai.walk,
+              'steps':g.ai.steps,'clear':g.ai.clear,'walk':g.ai.walk,'go':g.ai.go,
               'english':g.ai.english,'plate':g.ai.plate}
         self.assertEqual(features.compose_options(g.features),loop)
     def test_no_clock_or_ai_before_start(self):

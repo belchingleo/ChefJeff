@@ -589,6 +589,7 @@ class GameSession:
             self.ai.serve_note = self.features['option_notes']['on']
             self.ai.steps = self.features['step_check']['on']
             self.ai.walk = self.features['walk_note']['on']
+            self.ai.go = self.features['go_note']['on']
             # clear_text: food names, item names, the engine's English and plate names, together.
             self.ai.names = self.ai.clear = self.ai.english = self.ai.plate = self.features['clear_text']['on']
             self.ai.links = features.links_option(self.features)

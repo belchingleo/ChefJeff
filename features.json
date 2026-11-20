@@ -11,10 +11,11 @@
   "walk_note": {"stage": "trial", "on": false, "version": "walk-note-v1"},
   "clear_text": {"stage": "trial", "on": true, "version": "clear-text-v1"},
   "option_notes": {"stage": "trial", "on": false, "version": "option-notes-v3"},
+  "go_note": {"stage": "trial", "on": false, "version": "go-note-v1"},
   "place_names": {"stage": "trial", "on": false, "version": "place-names-v1"},
   "timeline": {"stage": "trial", "on": false, "version": "timeline-v2"},
   "no_history": {"stage": "trial", "on": false, "version": "no-history-v1"},
   "links_on_options": {"stage": "trial", "on": false, "version": "links-on-options-v1"},
   "rules_by_action": {"stage": "trial", "on": false, "version": "rules-by-action-v2"},
-  "kitchen_view": {"stage": "trial", "on": false, "version": "kitchen-view-v2"}
+  "kitchen_view": {"stage": "trial", "on": false, "version": "kitchen-view-v3"}
 }

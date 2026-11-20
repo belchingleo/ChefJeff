@@ -46,6 +46,7 @@ import option_notes
 import step_check
 import clear_names
 import walk_note
+import go_note
 import plate_names
 import engine_english
 import food_names
@@ -65,6 +66,7 @@ VERSIONS = {'one_press': one_press.VERSION, 'undo_note': undo_note.VERSION,
             'burn_note': burn_note.VERSION,
             'step_check': step_check.VERSION,
             'walk_note': walk_note.VERSION,
+            'go_note': go_note.VERSION,
             'clear_text': 'clear-text-v1',
             'option_notes': option_notes.VERSION,
             # The parts of the restructured request (request_parts.py), one switch each.
@@ -221,7 +223,7 @@ def compose_options(features):
             'burn': features['burn_note']['on'],
             'serve_note': features['option_notes']['on'],
             'steps': features['step_check']['on'],
-            'clear': features['clear_text']['on'], 'walk': features['walk_note']['on'],
+            'clear': features['clear_text']['on'], 'walk': features['walk_note']['on'], 'go': features['go_note']['on'],
             'english': features['clear_text']['on'], 'plate': features['clear_text']['on'],
             **({'parts': request_parts.parts(features)} if request_parts.parts(features) else {})}
 

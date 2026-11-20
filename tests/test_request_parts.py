@@ -247,9 +247,15 @@ class PartTests(unittest.TestCase):
         k.advance(2.0)
         stove = k.snapshot()['stations']['p1']
         text = request(k, parts={'view': True})['state']['kitchen']['stations']['Stove 1 (p1)']
-        self.assertTrue(text.startswith('frying pan P1 with beef (cooking) '), text)
-        self.assertIn(f"cooked in {stove['ready_in']:.1f} s", text)
-        self.assertIn(f"{stove['burn_in']:.1f} s", text)
+        self.assertEqual(text, f"frying pan P1 with beef (cooking) {stove['food']['id']}: cooked in {stove['ready_in']:.1f} s")
+        while k.stations['p1'].food.stage != 'ready':      # v3: the burn and the fire only once it is cooked
+            k.advance(0.1)
+        k.advance(1.0)
+        stove = k.snapshot()['stations']['p1']
+        text = request(k, parts={'view': True})['state']['kitchen']['stations']['Stove 1 (p1)']
+        self.assertTrue(text.startswith('frying pan P1 with beef (cooked) '), text)
+        self.assertIn(f"burns in {stove['burn_in']:.1f} s", text)
+        self.assertNotIn('cooked in', text)
 
     def test_all_parts_together(self):
         out = request(self.k, parts=ALL, decisions=self.decisions)
