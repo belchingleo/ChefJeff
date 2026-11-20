@@ -21,8 +21,9 @@ alike, so every combination rebuilds exactly. With every part off the request is
   option of that kind is listed; the fire rule also while food is on a stove or anything burns or heats up; the
   others always, the vessels rule included (v2: v1 left it out while no pot option was listed, so a chef holding raw
   beef read nowhere that a pan takes beef only once chopped). past_episodes, rule and state, goes while it is disabled.
-- kitchen_view (kitchen-view-v2): state.kitchen keeps what the kitchen is now, written out: the clock, money and
-  stars, dishes, which vessel cooks what (v2), waiting and served orders, the two chefs, every station (empty counters in one line; on a split
+- kitchen_view (kitchen-view-v5): state.kitchen keeps what the kitchen is now, written out: the clock, money and
+  stars, which vessel cooks what (v2), waiting and served orders (v5: no dishes block; the rules give the recipes and
+  prices), the two chefs, every station (empty counters in one line; on a split
   floor grouped by who reaches them), plates, the floor and items in the air. Walls, map cells, routes, collision
   numbers, hashes, seeds, the menu (the same as dishes), the numbers the rules already give, and empty fields go.
   v3: a stove's line gives only the next thing to happen (cooked; then burns and catches fire; then catches fire).
@@ -44,7 +45,7 @@ TIMELINE_VERSION = 'timeline-v3'
 NO_HISTORY_VERSION = 'no-history-v1'
 LINKS_ON_OPTIONS_VERSION = 'links-on-options-v1'
 RULES_BY_ACTION_VERSION = 'rules-by-action-v3'
-KITCHEN_VIEW_VERSION = 'kitchen-view-v4'
+KITCHEN_VIEW_VERSION = 'kitchen-view-v5'
 # features.json name -> (finish() argument, version).
 SWITCHES = {'place_names': ('place', PLACE_NAMES_VERSION), 'timeline': ('timeline', TIMELINE_VERSION),
             'no_history': ('no_history', NO_HISTORY_VERSION),
@@ -608,13 +609,12 @@ def kitchen_view(payload, kitchen):
         money += f"; target {goal['target_money']} " + ('reached' if goal.get('met_now') else 'not reached yet')
     if len(stars) >= 3:
         money += f'; {stars[1]} for two stars, {stars[2]} for three'
-    state_word = {'ready': 'cooked', 'raw': 'as fetched'}
+    # v5: no dishes block. The recipes are in rules.flow and the prices in rules.score; written out here as
+    # "Steak": "beef (cooked); 50 yuan" the block made Jev take a plate first at 18 of 18 openings (1/18 without it)
+    # and walk to the serving window 14/36 (6/36), the key steps unchanged (re-ask 2026-11-20).
     view = {
         'clock': f"{kj.get('time', 0):.1f} s of {kj.get('round_limit')} s ({kj.get('round_remaining', 0):.1f} s left)",
         'money': money,
-        'dishes': {d.get('name', d.get('id')): ', '.join(f"{c['item']} ({state_word.get(c['state'], c['state'])})"
-                                                         for c in d.get('components', [])) + f"; {d.get('price')} yuan"
-                   for d in kj.get('dishes') or []},
         'orders_waiting': [{'id': o['id'], 'dish': dishes.get(o['dish'], o['dish']),
                             'time_left': f"{o.get('remaining', 0):.1f} s"}
                            for o in kj.get('orders') or [] if o.get('status') == 'pending'],

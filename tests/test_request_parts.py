@@ -258,7 +258,7 @@ class PartTests(unittest.TestCase):
     def test_the_kitchen_view_writes_out_the_kitchen_without_the_map(self):
         out = self.part(view=True)
         view = out['state']['kitchen']
-        self.assertEqual(set(view), {'clock', 'money', 'dishes', 'vessels', 'orders_waiting', 'orders_served', 'chefs',
+        self.assertEqual(set(view), {'clock', 'money', 'vessels', 'orders_waiting', 'orders_served', 'chefs',
                                      'stations', 'plates'} | ({'floor'} if self.k.ground else set()))
         self.assertEqual(view['vessels'], {'frying pan': 'cooks beef (chopped)'})
         self.assertEqual(view['chefs']['you']['holding'],
