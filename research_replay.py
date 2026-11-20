@@ -120,6 +120,8 @@ def rebuild_requests(record):
     import features as switches
     snapshot = (record.get('conditions') or {}).get('features') or {}
     links = switches.links_option({name: {'on': bool((snapshot.get(name) or {}).get('on'))} for name in ('option_links', 'option_links_partner')})
+    import request_parts
+    parts = request_parts.parts(snapshot)
     done = 0
     for row in record['events']:
         data = row['payload']
@@ -145,6 +147,6 @@ def rebuild_requests(record):
                                   data.get('undo_note'), reach, names, links=links, split=split, burn=burn,
                                   serve_note=serve_note,
                                   steps=steps, clear=clear, walk=walk, english=english,
-                                  plate=plate)
+                                  plate=plate, parts=parts)
         yield {'request_id': row['request_id'], 'seq': row['seq'], 'rebuilt': payload,
                'status': 'verified' if cc.sha256(payload) == data['payload_sha256'] else 'diverged'}

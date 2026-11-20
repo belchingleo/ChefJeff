@@ -18,6 +18,7 @@ from jev import JevClient, DecisionLoop
 import environment
 import features
 import one_press
+import request_parts
 from play import Journal, log_root
 from round_summary import round_summary
 from session_record import SessionLog, write_bundle
@@ -585,6 +586,7 @@ class GameSession:
             # clear_text: food names, item names, the engine's English and plate names, together.
             self.ai.names = self.ai.clear = self.ai.english = self.ai.plate = self.features['clear_text']['on']
             self.ai.links = features.links_option(self.features)
+            self.ai.parts = request_parts.parts(self.features)
             self.phase = 'running'
             self.last_tick = self.last_seen = time.monotonic()
             self.wake.set()

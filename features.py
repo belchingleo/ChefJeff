@@ -50,6 +50,7 @@ import plate_names
 import engine_english
 import food_names
 import links
+import request_parts
 
 ROOT = Path(__file__).resolve().parent
 PATH = ROOT / 'features.json'
@@ -65,7 +66,9 @@ VERSIONS = {'one_press': one_press.VERSION, 'undo_note': undo_note.VERSION,
             'step_check': step_check.VERSION,
             'walk_note': walk_note.VERSION,
             'clear_text': 'clear-text-v1',
-            'option_notes': option_notes.VERSION}
+            'option_notes': option_notes.VERSION,
+            # The parts of the restructured request (request_parts.py), one switch each.
+            **{name: version for name, (_, version) in request_parts.SWITCHES.items()}}
 # clear_text (2026-11-19: was food_names, clear_names, engine_english and plate_names) turns those four on together;
 # clear-text-v1 is names-v1, clear-names-v3, engine-english-v1 and plate-names-v1. option_notes (was serve_note and
 # wait_note) is serve-note-v1 and wait-note-v2 in option-notes-v1, serve-note-v2 and wait-note-v2 in option-notes-v2,
@@ -219,7 +222,8 @@ def compose_options(features):
             'serve_note': features['option_notes']['on'],
             'steps': features['step_check']['on'],
             'clear': features['clear_text']['on'], 'walk': features['walk_note']['on'],
-            'english': features['clear_text']['on'], 'plate': features['clear_text']['on']}
+            'english': features['clear_text']['on'], 'plate': features['clear_text']['on'],
+            **({'parts': request_parts.parts(features)} if request_parts.parts(features) else {})}
 
 
 def _write_override(value, path):

@@ -210,7 +210,9 @@ def payload(kind, data, k):
         # A request whose links table was computed off the game loop (jev.DecisionLoop.send) is logged a moment after it
         # was built; it carries where the engine was then.
         rebuild = {'engine_input_n': data.get('engine_input_n', len(k.inputs)), 'payload_sha256': cc.sha256(body),
-                   'recent_decisions': deepcopy(body.get('state', {}).get('recent_decisions', [])),
+                   # As the loop gave them when the request parts (request_parts.py) were on, else as sent.
+                   'recent_decisions': deepcopy(data['recent_decisions'] if 'recent_decisions' in data
+                                                else body.get('state', {}).get('recent_decisions', [])),
                    'player_communication': deepcopy(body.get('state', {}).get('player_communication')),
                    'memory_input': memory_input(body),
                    # Only rounds with a one-press switch on carry them (one_press.flags).

@@ -110,7 +110,7 @@ class JevClient:
 def compose_payload(client, kitchen, state, actions, recent_decisions, communication, memory=NO_MEMORY, one_press=None,
                     undo=None, reach=False, names=False, links=False, split=False, burn=False,
                     serve_note=False, steps=False, clear=False, walk=False,
-                    english=False, plate=False):
+                    english=False, plate=False, parts=None):
     """Jeff's request from the kitchen and the few parts it cannot derive; research replay rebuilds it here too.
 
     one_press is the round's one-press switches (one_press.flags), or None: the options are added to the
@@ -122,14 +122,15 @@ def compose_payload(client, kitchen, state, actions, recent_decisions, communica
     steps whether step_check is (step_check.py), clear whether clear_names is (clear_names.py; it runs again after
     the links table, which it may name in), walk whether walk_note is (walk_note.py: each option's walk), english
     whether engine_english is (engine_english.py: the engine's own English where the catalog garbles it), plate
-    whether plate_names is (plate_names.py: a plating option says what the plate there holds)."""
+    whether plate_names is (plate_names.py: a plating option says what the plate there holds). parts is
+    request_parts.finish's switches (request_parts.parts), or None: they run last, after the links table."""
     with engine_english.writing(english):
         return _compose(client, kitchen, state, actions, recent_decisions, communication, memory, one_press,
-                        undo, reach, names, links, split, burn, serve_note, steps, clear, walk, plate)
+                        undo, reach, names, links, split, burn, serve_note, steps, clear, walk, plate, parts)
 
 
 def _compose(client, kitchen, state, actions, recent_decisions, communication, memory, one_press,
-             undo, reach, names, links, split, burn, serve_note, steps, clear, walk, plate):
+             undo, reach, names, links, split, burn, serve_note, steps, clear, walk, plate, parts):
     if one_press:
         import one_press as presses
         keys = {a.key for a in actions}
@@ -158,6 +159,9 @@ def _compose(client, kitchen, state, actions, recent_decisions, communication, m
         if serve_note:
             import option_notes
             option_notes.apply_links(payload)
+    if parts:
+        import request_parts
+        request_parts.finish(payload, kitchen, **parts)
     return payload
 
 
@@ -234,6 +238,9 @@ class DecisionLoop:
         # compute is counted in when deciding whether to ask ahead (link_times, recent seconds).
         self.links = False
         self.link_times = []
+        # The parts of the restructured request (request_parts.py): finish's switches, or None. They run last: in
+        # compose_payload, or at the end of the links thread when the table is computed there.
+        self.parts = None
         # The table is computed outside the game loop (prepare in send_request): a thread fills it on a private fork,
         # and the next poll logs and sends the request it completes.
         self.prepared = queue.Queue()
@@ -604,10 +611,13 @@ class DecisionLoop:
                                   deepcopy(self.undo), self.reach, self.names, split=self.split,
                                   burn=self.burn, serve_note=self.serve_note,
                                   steps=self.steps, clear=self.clear, walk=self.walk,
-                                  english=self.english, plate=self.plate)
+                                  english=self.english, plate=self.plate, parts=None if self.links else self.parts)
         record = {"request_id": self.calls, "triggers": causes, "observed_state_seq": self.k.event_seq,
                   **({"one_press": dict(self.one_press)} if self.one_press else {}),
                   **({"undo_note": deepcopy(self.undo)} if self.undo is not None else {}),
+                  # The request parts (request_parts.py) may leave the decisions out of the request or rewrite them;
+                  # research replay rebuilds from the loop's own list then.
+                  **({"recent_decisions": deepcopy(self.recent_decisions)} if self.parts else {}),
                   **({"ask_ahead": ahead} if ahead else {})}
         self.last_request = now
         self.last_revision = self.k.revision
@@ -626,7 +636,7 @@ class DecisionLoop:
         record.update(engine_input_n=len(self.k.inputs), state_ref=getattr(self.k, '_research_state_ref', None),
                       candidate_source=[[a.key, a.target, a.kind] for a in self.k.actions('jeff') if a.key in criteria])
         mode, names, listed, clear, english = self.links, self.names, list(actions), self.clear, self.english
-        serve_note = self.serve_note
+        serve_note, parts = self.serve_note, self.parts
 
         def prepare():
             start = time.monotonic()
@@ -641,6 +651,9 @@ class DecisionLoop:
                     if serve_note:
                         import option_notes
                         option_notes.apply_links(payload)
+                    if parts:
+                        import request_parts
+                        request_parts.finish(payload, twin, **parts)
                 self.prepared.put((context, payload, record, time.monotonic() - start, None))
             except Exception as error:      # never the payload or a key: only the kind of failure is logged
                 self.prepared.put((context, payload, record, time.monotonic() - start, error))

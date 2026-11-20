@@ -9,6 +9,7 @@ from unittest.mock import patch
 import harness
 import model_output
 import one_press
+import request_parts
 from jev import DecisionLoop, NO_MEMORY, compose_payload
 from kitchen import Food, load_config
 from levels import level_config
@@ -350,7 +351,9 @@ class SessionTests(unittest.TestCase):
                                            'step_check': {'on': False, 'version': 'step-check-v3'},
                                            'walk_note': {'on': False, 'version': 'walk-note-v1'},
                                            'clear_text': {'on': True, 'version': 'clear-text-v1'},
-                                           'option_notes': {'on': False, 'version': 'option-notes-v3'}})
+                                           'option_notes': {'on': False, 'version': 'option-notes-v3'},
+                                           **{name: {'on': False, 'version': version}
+                                              for name, (_, version) in request_parts.SWITCHES.items()}})
         self.assertNotIn('jeff_plan', row)                 # the plan modes went 2026-11-20
 
     def test_the_file_rolls_it_back(self):
@@ -375,7 +378,8 @@ class FeaturesFileTests(unittest.TestCase):
                           'option_links': 'release', 'option_links_partner': 'trial',
                           'split_floor': 'trial', 'burn_note': 'trial',
                           'step_check': 'trial', 'walk_note': 'trial',
-                          'clear_text': 'trial', 'option_notes': 'trial'})
+                          'clear_text': 'trial', 'option_notes': 'trial',
+                          **{name: 'trial' for name in request_parts.SWITCHES}})
 
     def test_a_wrong_file_stops_instead_of_running(self):
         import features
