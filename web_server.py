@@ -441,6 +441,11 @@ class GameSession:
         player's connection (player_api, hosted_server); None here."""
         return None
 
+    def model_connection(self):
+        """The service and model name this session's rounds ask, never a key, for the round's start row: config.model
+        is only the game's default request field, so it reads jev-latest whatever the connection is. None here."""
+        return None
+
     def _communicate(self, body):
         if self.phase not in ('running','paused') or self.k.ended or self.journal is None:
             return 409, {'error':'请在对局开始后、结束前发送沟通。'}
@@ -567,7 +572,8 @@ class GameSession:
             self._features = features.model_defaults(self.feature_source(), self.model_service())
             pressed = features.one_press_flags(self.features)
             self.journal('start', {'config':self.c, 'config_hash':self.k.config_hash, 'speed':self.speed, 'state':self.k.snapshot(),
-                                   **one_press.condition(pressed), 'features': features.snapshot(self.features)})
+                                   **one_press.condition(pressed), 'features': features.snapshot(self.features),
+                                   **({'connection': connection} if (connection := self.model_connection()) else {})})
             if isinstance(client, environment.Agent):     # any agent on the environment's interface (agent_loop.py)
                 from agent_loop import AgentLoop
                 self.ai = AgentLoop(self.k, client, self.journal, self.note)

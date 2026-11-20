@@ -201,6 +201,10 @@ class PlayerGameSession(GameSession):
     def model_service(self):
         # The saved connection's service: features.model_defaults gives its rounds that service's default.
         return (self.setting or {}).get('provider')
+    def model_connection(self):
+        # The saved connection's service and model name (never the key), for the round's start row.
+        s=self.setting or {}
+        return {'service':s.get('provider'),'model':s.get('model')} if s else None
     def connection_state(self):
         s=self.setting or {}
         return {'configured':bool(s),'provider':s.get('provider','jev'),'base_url':s.get('base_url',''),

@@ -145,6 +145,15 @@ class LocalConnectionTests(unittest.TestCase):
         self.assertEqual(self.g._command('/api/reset', {})[0], 200)
         return on
 
+    def test_the_start_row_names_the_connection_s_service_and_model_without_the_key(self):
+        # config.model is the game's default request field (jev-latest); the start row says what the round asks.
+        self.assertEqual(self.connect('perplexity')[0], 200)
+        self.assertEqual(self.g._command('/api/start', {})[0], 200)
+        row = start_row(self.g)
+        self.assertEqual(row['connection'], {'service': 'perplexity', 'model': self.g.setting['model']})
+        self.assertTrue(row['connection']['model'])
+        self.assertNotIn('test-not-a-real-key', json.dumps(row))
+
     def test_the_saved_connection_s_service_sets_the_table(self):
         self.assertEqual(self.connect('jev')[0], 200)
         self.assertIs(self.start(), True)
@@ -185,6 +194,13 @@ class HostedTests(unittest.TestCase):
         self.assertEqual(s.model_service(), 'perplexity')
         s._command('/api/browser-ready', {'connected': False, 'provider': 'perplexity'})
         self.assertIs(s.model_service(), None)
+
+    def test_the_start_row_names_the_reported_service(self):
+        s = self.session()
+        s._command('/api/browser-ready', {'connected': True, 'provider': 'perplexity'})
+        self.assertEqual(s.model_connection(), {'service': 'perplexity'})
+        s._command('/api/browser-ready', {'connected': False, 'provider': 'perplexity'})
+        self.assertIsNone(s.model_connection())
 
     def test_a_free_model_is_the_site_s_own_service(self):
         s = self.session()

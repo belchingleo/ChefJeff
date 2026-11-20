@@ -209,6 +209,11 @@ class HostedSession(GameSession):
         """The service this session's rounds ask: the free model the site lent, else the one the browser reported."""
         return self.free_model_provider or (self.browser_service if self.connected else None)
 
+    def model_connection(self):
+        """The service for the round's start row; the browser reports no model name, and no key ever reaches here."""
+        service = self.model_service()
+        return {'service': service} if service else None
+
     def _client(self, config):
         if self.relay: self.relay.close()
         self.relay = BrowserRelay(config)
