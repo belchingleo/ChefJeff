@@ -69,7 +69,7 @@ class PartTests(unittest.TestCase):
         self.k = level('level-4')
         do(self.k, 'fetch tomato')
         do(self.k, next(a.key for a in self.k.actions('human') if a.kind == 'go'), 'human')
-        self.decisions = [{'t': 1.0, 'choice': 'fetch tomato', 'accepted': True, 'result': 'Started', 'sprint_applied': False},
+        self.decisions = [{'t': 0.0, 'choice': 'fetch tomato', 'accepted': True, 'result': 'Started', 'sprint_applied': False},
                           {'t': 1.2, 'choice': 'put counter5', 'accepted': False, 'result': 'Not allowed now',
                            'sprint_applied': False}]
         self.base = request(self.k, decisions=self.decisions)
@@ -99,7 +99,7 @@ class PartTests(unittest.TestCase):
         state = out['state']
         self.assertNotIn('recent_events', state)
         self.assertNotIn('recent_decisions', state)
-        self.assertEqual(state['rules']['continuity'], request_parts.TIMELINE_RULE)
+        self.assertEqual(state['rules']['continuity'], request_parts.timeline_rule(self.base['state']['rules']['continuity']))
         lines = state['timeline']
         self.assertTrue(any(line.endswith('you: Fetch tomato (as fetched) (you chose fetch tomato)') for line in lines), lines)
         self.assertTrue(any('you chose put counter5: not done (Not allowed now)' in line for line in lines), lines)
@@ -112,8 +112,8 @@ class PartTests(unittest.TestCase):
     def test_the_timeline_says_where_jeffs_throw_came_down_and_what_went_wrong(self):
         k = level('level-4')
         do(k, 'fetch tomato')
-        do(k, 'throw down')
         decisions = [{'t': k.time, 'choice': 'throw down', 'accepted': True, 'result': 'Throw started', 'sprint_applied': False}]
+        do(k, 'throw down')
         k.advance(2.0)
         k.orders[0]['deadline'] = k.time + 0.1            # an order runs out: an event of the kitchen, not of a chef
         k.advance(0.5)
@@ -174,8 +174,9 @@ class PartTests(unittest.TestCase):
             self.assertIn(name, rules)
         self.assertIn('throw', rules)            # Jeff holds the tomato: the throws are listed
         self.assertNotIn('pot_swap', rules)      # no pan in hand
-        empty = level('level-4')
-        self.assertNotIn('throw', request(empty, parts={'rules': True})['state']['rules'])   # nothing to throw
+        empty = level('level-4')       # nothing to throw, but on a split floor items may be thrown to Jeff (v3)
+        self.assertIn('throw', request(empty, parts={'rules': True})['state']['rules'])
+        self.assertNotIn('throw', request(level('level-1'), parts={'rules': True})['state']['rules'])
         self.assertEqual(out['state'].pop('rules_by_action_version'), request_parts.RULES_BY_ACTION_VERSION)
         self.assertEqual(without(out, 'rules'), without(self.base, 'rules'))
 
@@ -193,7 +194,52 @@ class PartTests(unittest.TestCase):
         do(k, 'throw down')
         k.advance(2.0)
         floor = request(k, parts={'view': True})['state']['kitchen'].get('floor') or {}
-        self.assertTrue(any('only once it is chopped' in text for text in floor.values()) or k.chefs['human'].hand, floor)
+        texts = [text for side in floor.values() for text in side.values()]       # v4: grouped by side on a split floor
+        self.assertTrue(any('only once it is chopped' in text for text in texts) or k.chefs['human'].hand, floor)
+
+    def test_sink_and_rack_count_the_top_plate(self):
+        kj = {'tableware': {'wash_seconds': 2}}
+        rack = {'type': 'drying_rack', 'food': {'id': 'D2', 'stage': 'clean_plate'}, 'stack': []}
+        self.assertEqual(request_parts._station(rack, kj), '1 clean plate, D2 on top')
+        sink = {'type': 'sink', 'food': {'id': 'D9', 'stage': 'dirty_plate', 'wash_remaining': 1.2},
+                'stack': [{'id': 'D4', 'stage': 'dirty_plate', 'wash_remaining': 2}]}
+        self.assertEqual(request_parts._station(sink, kj), '2 dirty plates, D9 on top (1.2 s of washing left)')
+        self.assertEqual(request_parts._station({'type': 'sink', 'food': None, 'stack': []}, kj), 'empty')
+        self.assertEqual(request_parts._station({'type': 'serving_window'}, kj), 'serving window')
+
+    def test_a_pan_off_the_stove_says_when_its_food_burns_once_back_on_a_stove(self):
+        k = level('level-1')
+        for key in ('fetch beef', 'put b1', 'chop b1', 'take b1', 'put p1'):
+            do(k, key)
+        while k.stations['p1'].food.stage != 'ready':
+            k.advance(0.1)
+        k.advance(2.0)
+        do(k, 'take pot p1')
+        held = request(k, parts={'view': True})['state']['kitchen']['chefs']['you']['holding']
+        ready, burn, _ = k.rules.heat_thresholds('beef')
+        heated = k.chefs['jeff'].hand.contents.heated
+        self.assertIn(f'burns {burn - heated:.1f} s after it is back on a stove', held)
+
+    def test_items_in_the_air_are_named_and_say_who_they_are_aimed_at(self):
+        kj = {'time': 10.0, 'vessels': {'pan': {'name': 'frying pan'}}, 'dishes': [],
+              'chefs': {'human': {'position': [4.0, 6.0]}, 'jeff': {'position': [9.0, 2.0]}},
+              'projectiles': [{'id': 'P1', 'stage': 'pot', 'vessel': 'pan', 'contents': None, 'actor': 'jeff',
+                               'to': [4.0, 6.0], 'landing_cell': [4, 6], 'onto': None, 'lands_at': 10.4},
+                              {'id': 'F2', 'stage': 'raw', 'ingredient': 'lettuce', 'actor': 'human', 'to': [2, 2],
+                               'landing_cell': [2, 2], 'onto': None, 'lands_at': 10.2}]}
+        self.assertEqual(request_parts._in_the_air(kj, {}),
+                         ['P1 empty frying pan, thrown by you, aimed at the other chef: comes down at floor (4,6) in 0.4 s',
+                          'F2 lettuce (as fetched), thrown by the other chef: comes down at floor (2,2) in 0.2 s'])
+
+    def test_waits_fold_into_one_line_and_accepted_choices_without_steps_stay(self):
+        payload = {'state': {'rules': {'continuity': 'x. Use them to check for loops.'}, 'recent_events': [],
+                             'recent_decisions': [{'t': 1.0, 'choice': 'wait', 'accepted': True},
+                                                  {'t': 2.0, 'choice': 'wait', 'accepted': True},
+                                                  {'t': 3.0, 'choice': 'wait', 'accepted': True},
+                                                  {'t': 4.0, 'choice': 'fetch beef', 'accepted': True}]}}
+        request_parts.make_timeline(payload)
+        self.assertEqual(payload['state']['timeline'], ['1.0 s you chose wait 3 times, until 3.0 s', '4.0 s you chose fetch beef'])
+        self.assertTrue(payload['state']['rules']['continuity'].endswith('to check for loops. Accepted does not mean completed.'))
 
     def test_the_timeline_rule_keeps_the_continuity_checks(self):
         import harness
@@ -247,7 +293,8 @@ class PartTests(unittest.TestCase):
         k.advance(2.0)
         stove = k.snapshot()['stations']['p1']
         text = request(k, parts={'view': True})['state']['kitchen']['stations']['Stove 1 (p1)']
-        self.assertEqual(text, f"frying pan P1 with beef (cooking) {stove['food']['id']}: cooked in {stove['ready_in']:.1f} s")
+        self.assertTrue(text.startswith(f"frying pan P1 with beef (cooking) {stove['food']['id']}: cooked in {stove['ready_in']:.1f} s"), text)
+        self.assertNotIn('burns', text)
         while k.stations['p1'].food.stage != 'ready':      # v3: the burn and the fire only once it is cooked
             k.advance(0.1)
         k.advance(1.0)

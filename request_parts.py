@@ -35,14 +35,16 @@ every level. Each adds its version tag to state (left out of what a model is sen
 """
 from __future__ import annotations
 
+from collections import defaultdict
+import math
 import re
 
 PLACE_NAMES_VERSION = 'place-names-v1'
-TIMELINE_VERSION = 'timeline-v2'
+TIMELINE_VERSION = 'timeline-v3'
 NO_HISTORY_VERSION = 'no-history-v1'
 LINKS_ON_OPTIONS_VERSION = 'links-on-options-v1'
-RULES_BY_ACTION_VERSION = 'rules-by-action-v2'
-KITCHEN_VIEW_VERSION = 'kitchen-view-v3'
+RULES_BY_ACTION_VERSION = 'rules-by-action-v3'
+KITCHEN_VIEW_VERSION = 'kitchen-view-v4'
 # features.json name -> (finish() argument, version).
 SWITCHES = {'place_names': ('place', PLACE_NAMES_VERSION), 'timeline': ('timeline', TIMELINE_VERSION),
             'no_history': ('no_history', NO_HISTORY_VERSION),
@@ -102,71 +104,140 @@ def place_names(payload):
 
 # -- timeline / no_history -----------------------------------------------------------------------------------------
 
-# v2: the checks of the continuity rule it replaces come back word for word (v1 left them out, and a Jev round looped
-# go stove / drop / pick up for 75 s, 2026-11-20).
-TIMELINE_RULE = ('timeline lists, in time order, your own last steps, each with the option you chose; what became of '
-                 'the items you threw; options you chose that were not done, and why; and what went wrong in the '
-                 'kitchen (an order expired, a dish was refused or matched no order, food burnt, a fire). Use it to see '
-                 'whether your recent steps moved any dish forward, and to check for repeatedly picking up and putting '
-                 'down the same item, swapping between ingredients, or fetching without free space. Swapping changes '
-                 'locations, not preparation progress; fetching more raw meat does not advance prepared ingredients. '
-                 'Existing food keeps its preparation state until someone acts on it. If the situation is unchanged, '
-                 'assess what repeating an action would accomplish. You may continue, wait, or choose another action; '
-                 'the choice is yours. Accepted does not mean completed.')
+# What the timeline holds (v3), then the continuity rule's own checks as the request words them (v2 brought them back
+# after a Jev round looped go stove / drop / pick up for 75 s; v3 takes them from the request, so food_names' wording
+# stays: "fetching more of an ingredient", not "raw meat").
+TIMELINE_LISTS = ('timeline lists, in time order, your own last steps, each with the option you chose; options you '
+                  'chose whose steps are no longer in the list, and runs of waiting; what became of the items you '
+                  'threw, and of items the other chef threw to your side; options you chose that were not done, and '
+                  'why; and what went wrong in the kitchen (an order expired, a dish was refused or matched no order, '
+                  'food burnt, a fire).')
+TIMELINE_USE = ' Use it to see whether your recent steps moved any dish forward, and to '
+
+
+def timeline_rule(continuity=None):
+    import harness
+    text = continuity if isinstance(continuity, str) and 'Use them to ' in continuity else harness.CONTINUITY_RULE
+    return TIMELINE_LISTS + TIMELINE_USE + text.split('Use them to ', 1)[1] + ' Accepted does not mean completed.'
+
+
+TIMELINE_RULE = timeline_rule()
 # picked_up and dropped say again what the step's action_done says; swapped (where the held item went), washed (where
 # the plate went) and served (the money) say more.
 OWN_KINDS = ('action_done', 'thrown', 'interrupted', 'arrival_conflict', 'swapped', 'washed', 'served', 'knocked')
 KITCHEN_KINDS = ('expired', 'wrong_dish', 'dish_rejected', 'burn', 'fire', 'fire_spread')
-LEFT = re.compile(r' \(\d+(?:\.\d+)?s left\)')
+# A finished step's stale timer, also with a note after it ("(2.0s left; can stop and resume)").
+LEFT = re.compile(r' \(\d+(?:\.\d+)?s left(?:;[^)]*)?\)')
+DONE = re.compile(r'^(jeff|human) completed( together)?: ')
 WHO = (('jeff', 'you'), ('human', 'the other chef'))
+QUIET = ('wait', 'continue')
 
 
-def _speaker(message):
+def _speaker(message, actor=None):
+    """The engine's message with its chef named as the timeline names them ("you", "the other chef")."""
+    done = DONE.match(message)
+    if done:
+        who = dict(WHO)[done.group(1)]
+        return who + (' (together with the other chef)' if done.group(2) and done.group(1) == 'jeff' else '') + ': ' + message[done.end():]
     for engine, said in WHO:
-        if message.startswith(engine + ' '):
+        if message.startswith(engine + ' ') or message.startswith(engine + ':'):
             return said + message[len(engine):]
     return message
 
 
-def make_timeline(payload):
+def _said(d):
+    return str(d.get('choice')) + (f" at {d['place']}" if d.get('place') else '')
+
+
+def make_timeline(payload, kitchen=None):
+    """v3: each of Jeff's steps is credited to the latest accepted choice made by the time the step started (v2
+    matched option keys and missed one-press steps); accepted choices with no step in the list get a line of their
+    own, runs of waiting one line; a cancelled step names itself; items the other chef threw that landed where Jeff
+    reaches, or that he caught, are listed."""
     state = payload['state']
     events, decisions = state.get('recent_events') or [], state.get('recent_decisions') or []
-    chosen = {}
-    for d in decisions:
-        if d.get('accepted'):
-            # The option as Jeff chose it, with the stations it names when place_names gave them ("chop b1 at Board 1").
-            said = str(d.get('choice')) + (f" at {d['place']}" if d.get('place') else '')
-            key = str(d.get('choice'))
-            chosen.setdefault(key, said)
-            if key.startswith('put then '):          # a one-press option: its second step is the option named after it
-                chosen.setdefault(key[len('put then '):], said)
-    started = {e.get('action_id'): e.get('action') for e in events if e.get('kind') == 'action_start'}
-    lines = []
+    acting = [d for d in decisions if d.get('accepted') and d.get('choice') not in QUIET + ('stop',)]
+    started = {e.get('action_id'): e for e in events if e.get('kind') == 'action_start' and e.get('actor') == 'jeff'}
+    reaches = getattr(kitchen, 'reaches', None)
+
+    def decision_for(t):
+        found = None
+        for d in acting:
+            if float(d.get('t', 0)) <= float(t if t is not None else 0) + 0.06:
+                found = d
+        return found
+    def by_key(action, t):
+        found = None
+        for d in acting:
+            choice = str(d.get('choice'))
+            if action and float(d.get('t', 0)) <= float(t or 0) and (choice == action or choice == 'put then ' + action):
+                found = d
+        return found
+    steps, lines = defaultdict(list), []
     for e in events:
         kind, actor, message = e.get('kind'), e.get('actor'), str(e.get('message', ''))
         if kind == 'action_done' and str(e.get('action', '')).startswith('throw'):
             continue                                    # the thrown event says it, with the item and where
         mine = actor == 'jeff' and kind in OWN_KINDS
-        throw = (kind == 'caught' and e.get('thrower') == 'jeff') or (kind == 'landed' and actor == 'jeff')
-        if not (mine or throw or kind in KITCHEN_KINDS):
+        mine_thrown = (kind == 'caught' and e.get('thrower') == 'jeff') or (kind == 'landed' and actor == 'jeff')
+        to_me = (kind == 'caught' and actor == 'jeff') or (kind == 'landed' and actor == 'human' and e.get('target')
+                                                           and (reaches is None or reaches('jeff', e['target'])))
+        if not (mine or mine_thrown or to_me or kind in KITCHEN_KINDS):
             continue
-        if kind == 'action_done':
-            text = 'you: ' + LEFT.sub('', message.split('completed: ', 1)[-1])
+        start = started.get(e.get('action_id'))
+        if kind == 'arrival_conflict' and start is not None:
+            label = re.sub(r' \(travel [^)]*\)$', '', str(start.get('message', '')).split('started: ', 1)[-1])
+            reason = message.split(': ', 1)[-1].replace('; action cancelled', '')
+            text = f'you: {LEFT.sub("", label)} - cancelled ({reason})'
         else:
-            text = LEFT.sub('', _speaker(message))
-        action = e.get('action') or started.get(e.get('action_id'))
-        if mine and kind in ('action_done', 'thrown') and action in chosen:
-            text += f' (you chose {chosen[action]})'
+            text = LEFT.sub('', _speaker(message, actor))
+        if kind == 'landed' and actor == 'human':
+            text += ' (thrown by the other chef)'
+        if mine and kind in ('action_done', 'thrown', 'arrival_conflict', 'interrupted'):
+            # By the time the step started; a step that started before the list did is matched by its option name
+            # (a choice asked ahead is applied the moment the step before it ends, so the end time would mislead).
+            d = decision_for(start.get('t')) if start is not None else by_key(e.get('action'), e.get('t'))
+            if d is not None:
+                steps[id(d)].append(len(lines))
+                text += f' (you chose {_said(d)})'
         lines.append((e.get('t', 0), text))
+    latest = acting[-1] if acting else None
+    busy = kitchen is not None and getattr(kitchen.chefs.get('jeff'), 'job', None) is not None
+    run = []
+
+    def close_run():
+        if run:
+            first, last = run[0], run[-1]
+            word = first.get('choice')
+            if len(run) == 1:
+                lines.append((first.get('t', 0), f'you chose {word}'))
+            else:
+                lines.append((first.get('t', 0), f"you chose {word} {len(run)} times, until {float(last.get('t', 0)):.1f} s"))
+            run.clear()
     for d in decisions:
+        if d.get('accepted') and d.get('choice') in QUIET and (not run or run[0].get('choice') == d.get('choice')):
+            run.append(d)
+            continue
+        close_run()
+        if d.get('accepted') and d.get('choice') in QUIET:
+            run.append(d)
+            continue
         if not d.get('accepted'):
-            place = f" at {d['place']}" if d.get('place') else ''
-            lines.append((d.get('t', 0), f"you chose {d.get('choice')}{place}: not done ({d.get('result')})"))
+            lines.append((d.get('t', 0), f"you chose {_said(d)}: not done ({d.get('result')})"))
+        elif d.get('choice') in ('stop',):
+            lines.append((d.get('t', 0), 'you chose stop'))
+        elif not steps[id(d)]:
+            lines.append((d.get('t', 0), f'you chose {_said(d)}' + (' (under way)' if d is latest and busy else '')))
+        elif str(d.get('choice')).startswith('put then ') and len(steps[id(d)]) == 1 and d is not latest:
+            at = steps[id(d)][0]
+            when, text = lines[at]
+            lines[at] = (when, text[:-1] + '; its second step did not start)')
+    close_run()
     lines.sort(key=lambda line: line[0])                # stable: the engine's order within one moment
     state.pop('recent_events', None)
     state.pop('recent_decisions', None)
     state['timeline'] = [f'{t:.1f} s {text}' for t, text in lines]
-    state['rules']['continuity'] = TIMELINE_RULE
+    state['rules']['continuity'] = timeline_rule(state['rules'].get('continuity'))
     state['timeline_version'] = TIMELINE_VERSION
 
 
@@ -217,7 +288,7 @@ WASH_KINDS = ('take_return', 'put_sink', 'take_sink', 'wash', 'put_then_wash', '
 # always comes. v2: the vessels rule always comes: it also says why an option is missing (an ingredient goes only into
 # the vessel that cooks it, in the state it is cooked from), and v1 left it out exactly while Jeff held raw beef.
 RULE_KINDS = {
-    'tableware': POT_KINDS + WASH_KINDS + ('take_plate', 'plate_from_counter'),
+    'tableware': POT_KINDS + WASH_KINDS + ('take_plate', 'plate_from_counter', 'discard'),
     'plate_reuse': WASH_KINDS,
     'resources': ('put_counter', 'put_board', 'take_tool', 'pickup', 'take_counter', 'take_board'),
     'ground': ('drop', 'pickup', 'assemble_ground', 'load_ground', 'plate_ground', 'swap_ground_pot'),
@@ -251,6 +322,14 @@ def _heat(kitchen_state):
                for s in stations.values() if isinstance(s, dict))
 
 
+def _passing(kitchen_state, kitchen):
+    """v3: the throw rule also says how a thrown item is caught or lands; it stays on a split floor (Jeff may be the
+    one an item is thrown to) and while anything is in the air."""
+    stations = (kitchen_state or {}).get('stations') or {}
+    return (bool(getattr(kitchen, 'split_floor', False)) or bool((kitchen_state or {}).get('projectiles'))
+            or any(isinstance(s, dict) and s.get('incoming_item') for s in stations.values()))
+
+
 def rules_by_action(payload, kitchen):
     kinds = listed_kinds(payload, kitchen)
     state = payload['state']
@@ -259,6 +338,8 @@ def rules_by_action(payload, kitchen):
         if name not in rules or kinds & set(needs):
             continue
         if name == 'fire' and _heat(state.get('kitchen')):
+            continue
+        if name == 'throw' and _passing(state.get('kitchen'), kitchen):
             continue
         del rules[name]
     episodes = state.get('past_episodes')
@@ -292,22 +373,47 @@ def _needs(food, kj):
     return out
 
 
-def _food(food, kj=None):
+def _pan_next(food, kitchen):
+    """v4: for a pan or pot off the stove with food in it, the next thing that happens once it is back on a stove,
+    from the engine's heat thresholds and the food's heat so far (it keeps its heat off the stove)."""
+    contents = food.get('contents')
+    if food.get('stage') != 'pot' or not isinstance(contents, dict) or kitchen is None:
+        return None
+    try:
+        ready, burn, fire = kitchen.rules.heat_thresholds(contents.get('ingredient'))
+    except Exception:       # an item no vessel heats: nothing to say
+        return None
+    stage, heated = contents.get('stage'), float(contents.get('heat_elapsed') or 0)
+    if stage in ('chopped', 'cooking') and heated < ready:
+        return f'cooked {ready - heated:.1f} s after it is back on a stove'
+    if stage == 'ready' and heated < burn:
+        return f'burns {burn - heated:.1f} s after it is back on a stove'
+    if stage == 'burnt' and heated < fire:
+        return f'the stove catches fire {fire - heated:.1f} s after it is back on a stove'
+    return None
+
+
+def _food(food, kj=None, kitchen=None):
     if not isinstance(food, dict):
         return 'nothing'
     text = ' '.join(str(x) for x in (food.get('meaning') or food.get('stage'), food.get('id')) if x)
     if food.get('missing'):
         text += ' (still needs ' + ', '.join(food['missing']) + ')'
     needs = _needs(food, kj or {})
+    pan = _pan_next(food, kitchen)
+    if pan:
+        needs.append(pan)
     if needs:
         text += ' (' + '; '.join(needs) + ')'
     return text
 
 
-def _stove(s):
-    """v3 (the user's wording, 2026-11-20): while the food cooks, only when it is cooked; once cooked, when it burns
-    and when the stove catches fire; once burnt, when the stove catches fire. v2 gave the burn and fire countdown
-    while the food was still cooking, and Jev took the extinguisher with nothing burning (7 times in 3 rounds)."""
+def _stove(s, partner=None):
+    """Only the next thing to happen: while the food cooks when it is cooked (v3, the user's wording), once cooked
+    when it burns, once burnt when the stove catches fire. v2 gave the burn and fire countdown while the food was
+    still cooking, and Jev took the extinguisher with nothing burning (7 times in 3 rounds); v4 leaves the fire out
+    of a cooked pan's line too (re-ask: extinguisher 3/57 with it, 0/57 without; the fire rule says it). partner:
+    the other chef's walk to this stove in seconds, when the stove holds food (v4)."""
     pan = f"{s.get('vessel_name') or 'pan'} {s['pot_id']}" if s.get('pot_id') else 'no pan'
     food = s.get('food')
     if not food:
@@ -317,32 +423,38 @@ def _stove(s):
     if stage == 'cooking' and ready:
         times.append(f'cooked in {ready:.1f} s')
     elif stage == 'ready' and burn:
-        if fire is not None and abs(fire - burn) < 1e-6:
-            times.append(f'burns in {burn:.1f} s, and the stove catches fire then')
-        else:
-            times.append(f'burns in {burn:.1f} s')
-            if fire:
-                times.append(f'the stove catches fire in {fire:.1f} s')
+        times.append(f'burns in {burn:.1f} s')
     elif stage == 'burnt' and fire:
         times.append(f'the stove catches fire in {fire:.1f} s')
+    if partner is not None:
+        times.append(f'the other chef is {partner:.1f} s walk away')
     return f'{pan} with {_food(food)}' + (': ' + ', '.join(times) if times else '')
 
 
-def _station(s, kj):
+def _station(s, kj, kitchen=None, partner=None):
     kind, food = s.get('type'), s.get('food')
     if kind == 'ingredient_source':
-        text = f"gives {s.get('supplies')}" + (f'; {_food(food, kj)} lies on top, so it gives nothing' if food else '')
+        text = f"gives {s.get('supplies')}" + (f'; {_food(food, kj, kitchen)} lies on top, so it gives nothing' if food else '')
     elif kind == 'stove':
-        text = _stove(s)
+        text = _stove(s, partner)
     elif kind in ('sink', 'drying_rack'):
-        n = len(s.get('stack') or [])
-        text = f'{n} plate' + ('' if n == 1 else 's') if n else 'empty'
+        # v4: the top plate (the one being washed, or the clean one on top) is the station's food; the others stack
+        # under it (v3 counted only those, so one clean plate on the rack read 'empty').
+        plates = ([food] if food else []) + list(s.get('stack') or [])
+        if plates:
+            word = 'dirty' if kind == 'sink' else 'clean'
+            text = f"{len(plates)} {word} plate" + ('' if len(plates) == 1 else 's') + f", {plates[0].get('id')} on top"
+            washing, whole = (food or {}).get('wash_remaining'), (kj.get('tableware') or {}).get('wash_seconds')
+            if kind == 'sink' and washing and whole and washing < whole:
+                text += f' ({washing:.1f} s of washing left)'
+        else:
+            text = 'empty'
     elif kind == 'bin':
         text = 'bin'
     elif kind == 'serving_window':
-        text = 'serve finished dishes here'
+        text = 'serving window'     # v4: v3 wrote "serve finished dishes here", which reads like an instruction
     elif food:
-        text = _food(food, kj)
+        text = _food(food, kj, kitchen)
     else:
         text = 'empty'
     if s.get('fire'):
@@ -371,9 +483,28 @@ def _side(kitchen, sid):
     return SIDES[1] if mine and theirs else SIDES[0] if mine else SIDES[2]
 
 
+def _walk(twin, who, target):
+    """Seconds of walking from where the chef stands to the target, on a private fork; None when there is no route."""
+    if twin is None:
+        return None
+    try:
+        if not twin.reaches(who, target):
+            return None
+        return twin.travel_time(twin.chefs[who], target)
+    except Exception:
+        return None
+
+
 def _stations(kj, kitchen):
     split = bool(getattr(kitchen, 'split_floor', False))
     vessels = kj.get('vessels') or {}
+    forked = []
+
+    def twin():                 # one private fork, made only when a stove holds food
+        if not forked and kitchen is not None and hasattr(kitchen, 'travel_time'):
+            import links
+            forked.append(links._fork(kitchen))
+        return forked[0] if forked else None
     groups = {}
     for sid, s in (kj.get('stations') or {}).items():
         if s.get('vessel') in vessels:
@@ -383,7 +514,8 @@ def _stations(kj, kitchen):
     for side in (SIDES if split else ('all',)):
         listed, empty = {}, []
         for sid, s in groups.get(side, []):
-            text = _station(s, kj)
+            partner = _walk(twin(), 'human', sid) if s.get('type') == 'stove' and s.get('food') else None
+            text = _station(s, kj, kitchen, partner)
             if text == 'empty' and s.get('type') == 'counter':
                 empty.append(sid)
             else:
@@ -395,7 +527,18 @@ def _stations(kj, kitchen):
     return out if split else out.get('all', {})
 
 
-def _chefs(kj):
+def _nearest(kitchen, who):
+    """v4: the station nearest to a chef standing on the floor (straight line to its access cell), by name."""
+    try:
+        here = kitchen.positions[who]
+        best = min((math.dist(here, tuple(e.get('access') or e['cell'])), sid) for sid, e in kitchen.equipment.items()
+                   if kitchen.reaches(who, sid))
+    except Exception:
+        return None
+    return best[1]
+
+
+def _chefs(kj, kitchen=None):
     out = {}
     for who in ('jeff', 'human'):
         c = (kj.get('chefs') or {}).get(who)
@@ -406,22 +549,49 @@ def _chefs(kj):
         left = float(c.get('travel_remaining') or 0) + float(c.get('work_remaining') or 0)
         if doing != 'nothing' and left:
             doing += f' ({left:.1f} s left)'
-        out[WHO_LABEL[who]] = {'at': ', '.join(x for x in (c.get('location_name'), c.get('area')) if x),
-                               'holding': _food(c.get('holding'), kj), 'doing': doing}
+        at = ', '.join(x for x in (c.get('location_name'), c.get('area')) if x)
+        if kitchen is not None and str(c.get('location', '')).startswith('floor'):
+            near = _nearest(kitchen, who)
+            if near:
+                at += f", nearest station {(kj.get('stations') or {}).get(near, {}).get('name', near)} ({near})"
+        out[WHO_LABEL[who]] = {'at': at, 'holding': _food(c.get('holding'), kj, kitchen), 'doing': doing}
         if c.get('knocked'):
             out[WHO_LABEL[who]]['knocked back'] = True
     return out
 
 
+STATE_WORD = {'raw': 'as fetched', 'ready': 'cooked'}
+
+
+def _flying(p, kj):
+    """v4: an item in the air named as the request names food elsewhere (v3 printed the raw stage: "P1 beef (pot)")."""
+    stage = p.get('stage')
+    if stage == 'pot':
+        vessel = ((kj.get('vessels') or {}).get(p.get('vessel')) or {}).get('name', 'pan')
+        c = p.get('contents')
+        return f"{vessel} with {c['ingredient']} ({STATE_WORD.get(c['stage'], c['stage'])})" if c else f'empty {vessel}'
+    if stage in ('clean_plate', 'dirty_plate'):
+        return 'Clean plate' if stage == 'clean_plate' else 'Dirty plate'
+    if p.get('plate_id') or p.get('components'):
+        parts = sorted(p.get('components') or [])
+        dish = next((d.get('name') for d in kj.get('dishes') or []
+                     if sorted(c.get('item') for c in d.get('components', [])) == parts), None)
+        return dish or 'plate with ' + ', '.join(parts)
+    return f"{p.get('ingredient')} ({STATE_WORD.get(stage, stage)})"
+
+
 def _in_the_air(kj, names):
     out = []
+    chefs = kj.get('chefs') or {}
     for p in kj.get('projectiles') or []:
-        what = ' '.join(x for x in (p.get('id'), p.get('ingredient'), f"({p['stage']})" if p.get('stage') else '') if x)
         onto = p.get('onto')
         where = (f'{names.get(onto, onto)} ({onto})' if onto else
                  'floor ({},{})'.format(*p['landing_cell']) if p.get('landing_cell') else 'the floor')
         lands = max(0.0, float(p.get('lands_at', 0)) - float(kj.get('time', 0)))
-        out.append(f"{what}, thrown by {WHO_LABEL.get(p.get('actor'), p.get('actor'))}: comes down at {where} in {lands:.1f} s")
+        aimed = next((WHO_LABEL[who] for who, c in chefs.items() if who in WHO_LABEL and p.get('to') and c.get('position')
+                      and math.dist(tuple(p['to']), tuple(c['position'])) < 0.75), None)
+        out.append(f"{p.get('id')} {_flying(p, kj)}, thrown by {WHO_LABEL.get(p.get('actor'), p.get('actor'))}"
+                   + (f', aimed at {aimed}' if aimed else '') + f': comes down at {where} in {lands:.1f} s')
     return out
 
 
@@ -450,7 +620,7 @@ def kitchen_view(payload, kitchen):
                            for o in kj.get('orders') or [] if o.get('status') == 'pending'],
         'orders_served': ', '.join(f"{o['id']} {dishes.get(o['dish'], o['dish'])}" for o in kj.get('orders') or []
                                    if o.get('status') == 'served') or 'none',
-        'chefs': _chefs(kj),
+        'chefs': _chefs(kj, kitchen),
         'stations': _stations(kj, kitchen),
     }
     if kj.get('vessels'):       # v2: which vessel cooks what, from which state
@@ -463,7 +633,14 @@ def kitchen_view(payload, kitchen):
                                                     else f"in {float(c.get('returns_in') or 0):.1f} s")
             for c in tableware.get('customers') or [])
     if kj.get('ground'):
-        view['floor'] = {g.get('near', g.get('location')): _food(g.get('food'), kj) for g in kj['ground']}
+        # v4: on a split floor grouped by who reaches the tile; two items on one tile both listed.
+        split = bool(getattr(kitchen, 'split_floor', False))
+        floor = {}
+        for g in kj['ground']:
+            bucket = floor.setdefault(_side(kitchen, g.get('location')), {}) if split else floor
+            key, text = g.get('near', g.get('location')), _food(g.get('food'), kj, kitchen)
+            bucket[key] = f'{bucket[key]}; {text}' if key in bucket else text
+        view['floor'] = floor
     air = _in_the_air(kj, names)
     if air:
         view['in_the_air'] = air
@@ -486,7 +663,7 @@ def finish(payload, kitchen, place=False, timeline=False, no_history=False, link
     if no_history:
         drop_history(payload)
     elif timeline:
-        make_timeline(payload)
+        make_timeline(payload, kitchen)
     if links_on:
         links_on_options(payload)
     if rules:
