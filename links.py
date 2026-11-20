@@ -292,23 +292,6 @@ def _settle(twin, item):
     return item not in getattr(twin, 'projectiles', {})
 
 
-# burnt-links-v1 (the option_links_burnt switch, a trial, off): emptying a pan or pot that holds burnt food at a bin
-# counts as work in the table too. WORK leaves emptying out, as emptying good food is a loss, so lifting a burnt pan
-# listed nothing it led to; the engine offers emptying only while the pan is held, so the fork after the lift has it.
-BURNT_VERSION = 'burnt-links-v1'
-BURNT_RULE = (' Emptying a held pan or pot that holds burnt food at a bin counts as such work too.')
-
-
-def burnt_empty(twin, who, now):
-    """In the fork after an option: the engine's actions that empty the held pan or pot of burnt food, not listed now."""
-    hand = twin.chefs[who].hand
-    contents = getattr(hand, 'contents', None) if hand is not None else None
-    if hand is None or hand.stage != 'pot' or contents is None or contents.stage != 'burnt':
-        return []
-    listed = {(a.kind, a.target) for a in now}
-    return [a for a in twin.actions(who) if a.kind == 'empty_pot' and (a.kind, a.target) not in listed]
-
-
 def _out_of_reach(twin, who, other, item):
     """Whether the item lies loose where the other chef cannot take it (in the chef's own hands, or on a station or
     floor place the other chef does not reach): then no action of theirs can name it, and listing them is skipped."""
@@ -358,7 +341,7 @@ def partner_chain(kitchen, twin, who, item, before=None):
     return first or []
 
 
-def table(kitchen, who, actions, keys, names=False, partner=False, burnt=False):
+def table(kitchen, who, actions, keys, names=False, partner=False):
     """{option key: [the work it leads to, in the request's English]} for the listed options that lead to new work;
     with partner (option_links_partner) also the other chef's chain on the held item (partner_chain)."""
     import contextlib
@@ -376,8 +359,6 @@ def table(kitchen, who, actions, keys, names=False, partner=False, burnt=False):
             seen = {}
             linked = link(kitchen, who, option, now, seen=seen) if option is not None else []
             lines = [unmark(engine_english.text(a)) for a in linked]
-            if burnt and 'twin' in seen:
-                lines += [unmark(engine_english.text(a)) for a in burnt_empty(seen['twin'], who, now)]
             # Where a one-press option leaves the held item depends on put_where, which is not known yet (the fork
             # takes the first place), so those options get no partner line.
             guessed = option is not None and option.kind in one_press.KINDS
@@ -394,24 +375,21 @@ def table(kitchen, who, actions, keys, names=False, partner=False, burnt=False):
 
 def flags(mode):
     """apply's switches from the decision loop's links setting (features.links_option): True, or the extras joined by
-    '+' ('partner', 'burnt')."""
+    '+' ('partner')."""
     parts = mode.split('+') if isinstance(mode, str) else []
-    return {'partner': 'partner' in parts, 'burnt': 'burnt' in parts}
+    return {'partner': 'partner' in parts}
 
 
-def apply(payload, kitchen, who, actions, names=False, partner=False, burnt=False):
+def apply(payload, kitchen, who, actions, names=False, partner=False):
     """The option_links switch on a composed request (translated, as sent): state.option_links, rules.links and
     links_version; no option changes. partner (option_links_partner): the other chef's chains in the same table, the
     rule says so, and partner_links_version."""
     keys = list(payload['questions']['next_action']['criteria'])
-    payload['state']['option_links'] = table(kitchen, who, actions, keys, names, partner, burnt)
+    payload['state']['option_links'] = table(kitchen, who, actions, keys, names, partner)
     payload['state']['rules']['links'] = SEPARATE_RULE + (PARTNER_RULE if partner else '')
     payload['state']['links_version'] = SWITCH_VERSION
     if partner:
         payload['state']['partner_links_version'] = PARTNER_VERSION
-    if burnt:
-        payload['state']['rules']['links'] += BURNT_RULE
-        payload['state']['burnt_links_version'] = BURNT_VERSION
     return payload
 
 

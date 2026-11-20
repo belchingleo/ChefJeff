@@ -1,4 +1,4 @@
-"""Two factual notes on option labels, each its own trial switch (features.json, off by default, no page switch).
+"""A factual note on option labels that pick up or serve a finished dish (the option_notes switch, a trial).
 
 serve-note-v1 (serve_note): the serve option says which waiting order the held dish goes to and how long that order
 has left, as the score rule picks it (the waiting order of the same dish with the earliest deadline), or that no
@@ -9,27 +9,23 @@ does the serve line the links table gives such an option. In a 2026-11-19 play r
 while O4 waited for one and expired twice: its take option said only "Take Steak from Counter 6", and the links table's
 serve line said that serving a dish no order waits for costs money.
 
-wait-note-v2 (wait_note): the wait option says what Jeff keeps in hand while waiting ("Wait, keeping the held beef
-(as fetched) in hand"); with empty hands it stays "Wait". v2: the continue option says which step it continues and
-how many seconds of it are left ("Continue current task: Put the held item on Counter 2 (one item per tile); 0.3 s
-left"), from the chef's task, travel_remaining and work_remaining; v1 left it "Continue current task".
+wait-note-v2 (removed 2026-11-20 with option-notes-v3): the wait option said what Jeff keeps in hand while waiting
+and the continue option which step it continues and how long is left. In a 2026-11-19 re-ask of 40 moments where Jev
+waited, adding it left 39 of 40 still waiting, the same as without it.
 
-Both read only the request's own state (after translation and food names) and say nothing about what to do.
+It reads only the request's own state (after translation and food names) and says nothing about what to do.
 """
 from __future__ import annotations
 
 SERVE_VERSION = 'serve-note-v2'
-WAIT_VERSION = 'wait-note-v2'
-# The option_notes switch (2026-11-19: was serve_note and wait_note) turns both on. option-notes-v1: serve-note-v1 +
-# wait-note-v2; option-notes-v2: serve-note-v2 + wait-note-v2.
-VERSION = 'option-notes-v2'
+# The option_notes switch (2026-11-19: was serve_note and wait_note). option-notes-v1: serve-note-v1 + wait-note-v2;
+# option-notes-v2: serve-note-v2 + wait-note-v2; option-notes-v3: serve-note-v2 alone.
+VERSION = 'option-notes-v3'
 SERVE_FOR = ' (the held {food} goes to order {order}, which waits for {dish}: {seconds:.0f} s left)'
 SERVE_NONE = ' (no order is waiting for {dish} now)'
 TAKE_FOR = ' (the {food} there goes to order {order}, which waits for {dish}: {seconds:.0f} s left)'
 LINK_FOR = ' (the {food} goes to order {order}, which waits for {dish}: {seconds:.0f} s left)'
 SERVE_LINE = 'Serve the plated dish'
-WAIT_HOLDING = 'Wait, keeping the held {food} in hand'
-CONTINUE = '{label}: {task}; {seconds:.1f} s left'
 
 
 def _held(payload):
@@ -98,16 +94,3 @@ def apply_serve(payload):
     payload['state']['serve_note_version'] = SERVE_VERSION
     return note
 
-
-def apply_wait(payload):
-    """What the wait_note switch adds to an English request (harness.compose): the label and the version."""
-    criteria = payload.get('questions', {}).get('next_action', {}).get('criteria', {})
-    held = _held(payload)
-    if held and 'wait' in criteria:
-        criteria['wait'] = WAIT_HOLDING.format(food=held.get('meaning'))
-    me = payload['state']['kitchen']['chefs'].get('jeff', {})
-    if 'continue' in criteria and me.get('task') and me.get('task') != 'idle':
-        left = float(me.get('travel_remaining') or 0) + float(me.get('work_remaining') or 0)
-        criteria['continue'] = CONTINUE.format(label=criteria['continue'], task=me['task'], seconds=left)
-    payload['state']['wait_note_version'] = WAIT_VERSION
-    return criteria.get('wait')

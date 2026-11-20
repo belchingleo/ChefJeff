@@ -53,7 +53,6 @@ import plate_names
 import engine_english
 import food_names
 import links
-import option_effects
 
 ROOT = Path(__file__).resolve().parent
 PATH = ROOT / 'features.json'
@@ -67,16 +66,14 @@ VERSIONS = {'one_press': one_press.VERSION, 'jeff_plan': harness.PLAN_RULES_VERS
             'option_links_partner': links.PARTNER_VERSION,
             'split_floor': split_floor.VERSION,
             'burn_note': burn_note.VERSION,
-            'option_links_burnt': links.BURNT_VERSION,
             'step_check': step_check.VERSION,
-            'pickup_press': one_press.PICKUP_VERSION,
             'walk_note': walk_note.VERSION,
             'clear_text': 'clear-text-v1',
-            'option_notes': option_notes.VERSION,
-            'option_effects': option_effects.VERSION}
+            'option_notes': option_notes.VERSION}
 # clear_text (2026-11-19: was food_names, clear_names, engine_english and plate_names) turns those four on together;
 # clear-text-v1 is names-v1, clear-names-v3, engine-english-v1 and plate-names-v1. option_notes (was serve_note and
-# wait_note) is serve-note-v1 and wait-note-v2 in option-notes-v1, serve-note-v2 and wait-note-v2 in option-notes-v2.
+# wait_note) is serve-note-v1 and wait-note-v2 in option-notes-v1, serve-note-v2 and wait-note-v2 in option-notes-v2,
+# serve-note-v2 alone in option-notes-v3 (the wait note went 2026-11-20).
 # The plan modes (harness.PLAN_MODES), one at a time, and the feature of each.
 PLAN_FEATURES = {'choice': 'jeff_plan', 'rolling': 'rolling_intent'}
 FIELDS = {'stage', 'on', 'player_switch', 'version', 'off_for'}
@@ -214,13 +211,11 @@ def plan_choices(features) -> list:
 
 
 def links_option(features):
-    """The decision loop's links setting: False, True (option_links), or the extras on with it joined by '+': 'partner'
-    (option_links_partner: the other chef's side too), 'burnt' (option_links_burnt: emptying a burnt pan counts as
-    work). Neither extra does anything alone."""
+    """The decision loop's links setting: False, True (option_links), or 'partner' (option_links_partner: the other
+    chef's side too, which does nothing alone)."""
     if not features['option_links']['on']:
         return False
-    extras = [part for part, name in (('partner', 'option_links_partner'), ('burnt', 'option_links_burnt'))
-              if (features.get(name) or {}).get('on')]
+    extras = [part for part, name in (('partner', 'option_links_partner'),) if (features.get(name) or {}).get('on')]
     return '+'.join(extras) or True
 
 
@@ -233,8 +228,6 @@ def undo_start(features):
 def one_press_flags(features):
     """The decision loop's one-press switches (one_press.flags) for these features: all on, or None."""
     names = {name: True for name in one_press.NAMES}
-    if (features.get('pickup_press') or {}).get('on'):
-        names['put_then_pickup'] = True      # put then pickup <item> (a trial on top of the released options)
     return one_press.flags(names) if features['one_press']['on'] else None
 
 
@@ -245,11 +238,10 @@ def compose_options(features):
             'reach': features['reach_note']['on'], 'names': features['clear_text']['on'],
             'links': links_option(features), 'split': features['split_floor']['on'],
             'burn': features['burn_note']['on'],
-            'serve_note': features['option_notes']['on'], 'wait_note': features['option_notes']['on'],
+            'serve_note': features['option_notes']['on'],
             'steps': features['step_check']['on'],
             'clear': features['clear_text']['on'], 'walk': features['walk_note']['on'],
-            'english': features['clear_text']['on'], 'plate': features['clear_text']['on'],
-            'effects': features['option_effects']['on']}
+            'english': features['clear_text']['on'], 'plate': features['clear_text']['on']}
 
 
 def _write_override(value, path):

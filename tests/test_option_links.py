@@ -166,64 +166,6 @@ class PartnerTests(unittest.TestCase):
         self.assertEqual(features.links_option(on), 'partner')
 
 
-class BurntTests(unittest.TestCase):
-    """option_links_burnt (burnt-links-v1): lifting a pan that holds burnt food lists emptying it, as the engine offers
-    it once the pan is held; emptying good food is still not counted."""
-
-    def burnt_pan(self):
-        k = SpatialKitchen(level_config(load_config(), 'level-1'))
-        for step in ('fetch beef', 'put b1', 'chop b1', 'take b1', 'put p1'):
-            run(k, 'jeff', step)
-        while k.stations['p1'].food.stage != 'burnt':
-            k.advance(.1)
-        for step in ('take extinguisher', 'extinguish p1', 'put extinguisher'):
-            run(k, 'jeff', step)
-        return k
-
-    def payload(self, k, links_value):
-        client = SpatialJevClient(k.c, key='unit-test-not-a-real-key')
-        return jev.compose_payload(client, k, k.snapshot(), k.actions('jeff'), [], None, names=True, links=links_value)
-
-    def test_lifting_a_burnt_pan_lists_emptying_it(self):
-        k = self.burnt_pan()
-        on, off = self.payload(k, 'burnt')['state'], self.payload(k, True)['state']
-        self.assertTrue(any(line.startswith('Empty the food from the held') for line in on['option_links'].get('take pot p1', [])))
-        self.assertFalse(any(line.startswith('Empty the food') for line in off['option_links'].get('take pot p1', [])))
-        self.assertEqual(on['burnt_links_version'], links.BURNT_VERSION)
-        self.assertTrue(on['rules']['links'].endswith(links.BURNT_RULE))
-        self.assertNotIn('burnt_links_version', off)
-
-    def test_lifting_a_pan_of_good_food_lists_no_emptying(self):
-        k = SpatialKitchen(level_config(load_config(), 'level-1'))
-        for step in ('fetch beef', 'put b1', 'chop b1', 'take b1', 'put p1'):
-            run(k, 'jeff', step)
-        k.advance(2.0)
-        state = self.payload(k, 'burnt')['state']
-        self.assertFalse(any(line.startswith('Empty the food') for lines in state['option_links'].values() for line in lines))
-
-    def test_the_switch_is_a_trial_and_off_and_needs_option_links(self):
-        loaded = features.load()
-        self.assertFalse(loaded['option_links_burnt']['on'])
-        on = {name: dict(value) for name, value in loaded.items()}
-        on['option_links_burnt']['on'] = True
-        self.assertEqual(features.links_option(on), 'burnt')
-        on['option_links_partner']['on'] = True
-        self.assertEqual(features.links_option(on), 'partner+burnt')
-        self.assertEqual(links.flags('partner+burnt'), {'partner': True, 'burnt': True})
-        on['option_links']['on'] = False
-        self.assertIs(features.links_option(on), False)
-
-
-def pan_nearly_done(heated):
-    """Level 2: chopped beef in the pan on Stove 1, Jeff holding a clean plate, the beef heated this long (of 10 s)."""
-    k = SpatialKitchen(level_config(load_config(), 'level-2'))
-    for step in ('fetch beef', 'put b1', 'chop b1', 'take b1', 'put p1', 'take plates'):
-        run(k, 'jeff', step)
-    while k.stations['p1'].food.heated < heated:
-        k.advance(.05)
-    return k
-
-
 class PlayerSwitchTests(unittest.TestCase):
     """步骤提示: option_links carries a player switch; the player's pick applies from the next round and is recorded."""
 

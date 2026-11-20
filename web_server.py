@@ -668,13 +668,12 @@ class GameSession:
             self.ai.reach = self.features['reach_note']['on']
             self.ai.split = self.features['split_floor']['on']
             self.ai.burn = self.features['burn_note']['on']
-            self.ai.serve_note = self.ai.wait_note = self.features['option_notes']['on']
+            self.ai.serve_note = self.features['option_notes']['on']
             self.ai.steps = self.features['step_check']['on']
             self.ai.walk = self.features['walk_note']['on']
             # clear_text: food names, item names, the engine's English and plate names, together.
             self.ai.names = self.ai.clear = self.ai.english = self.ai.plate = self.features['clear_text']['on']
             self.ai.links = features.links_option(self.features)
-            self.ai.effects = self.features['option_effects']['on']
             self.phase = 'running'
             self.last_tick = self.last_seen = time.monotonic()
             self.wake.set()

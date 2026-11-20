@@ -355,13 +355,10 @@ class SessionTests(unittest.TestCase):
                                            'option_links_partner': {'on': False, 'version': 'partner-links-v3'},
                                            'split_floor': {'on': False, 'version': 'split-floor-v1'},
                                            'burn_note': {'on': False, 'version': 'burn-note-v3'},
-                                           'option_links_burnt': {'on': False, 'version': 'burnt-links-v1'},
                                            'step_check': {'on': False, 'version': 'step-check-v3'},
-                                           'pickup_press': {'on': False, 'version': 'put-then-pickup-v1'},
                                            'walk_note': {'on': False, 'version': 'walk-note-v1'},
                                            'clear_text': {'on': True, 'version': 'clear-text-v1'},
-                                           'option_notes': {'on': False, 'version': 'option-notes-v2'},
-                                           'option_effects': {'on': False, 'version': 'option-effects-v1'}})
+                                           'option_notes': {'on': False, 'version': 'option-notes-v3'}})
         self.assertNotIn('jeff_plan', row)                 # two-step intent is off in the repository since option-links-v3
 
     def test_the_file_rolls_it_back(self):
@@ -406,9 +403,8 @@ class FeaturesFileTests(unittest.TestCase):
                           'ask_ahead': 'trial', 'reach_note': 'trial',
                           'option_links': 'trial', 'option_links_partner': 'trial',
                           'split_floor': 'trial', 'burn_note': 'trial',
-                          'option_links_burnt': 'trial', 'step_check': 'trial',
-                          'pickup_press': 'trial', 'walk_note': 'trial',
-                          'clear_text': 'trial', 'option_notes': 'trial', 'option_effects': 'trial'})
+                          'step_check': 'trial', 'walk_note': 'trial',
+                          'clear_text': 'trial', 'option_notes': 'trial'})
 
     def test_a_wrong_file_stops_instead_of_running(self):
         import features

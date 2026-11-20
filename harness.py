@@ -554,7 +554,7 @@ class Plan:
 
 def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY, plan=None, one_press=None, undo=None,
             reach=False, names=False, split=False, burn=False,
-            serve_note=False, wait_note=False, steps=False, clear=False):
+            serve_note=False, steps=False, clear=False):
     """Add what one request needs beyond the snapshot; research replay rebuilds requests here too.
 
     plan is Plan.input() when the plan switch is on, else None (the input is then unchanged).
@@ -563,8 +563,8 @@ def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY,
     split is whether the split_floor switch is on: on a split floor where no dish can be made by one chef alone,
     which operations the menu needs are only on each side (split_floor.py); it comes right after rules.reach.
     burn is whether the burn_note switch is on: options on a stove whose food is cooked say when it burns (burn_note.py).
-    serve_note and wait_note: the serve option names the waiting order the held dish goes to, the wait option what
-    stays in hand (option_notes.py). steps: state.step_check, whether each kind of step the
+    serve_note: the serve option and options that pick up a finished dish name the waiting order it goes to
+    (option_notes.py). steps: state.step_check, whether each kind of step the
     waiting orders need is possible now and what stands in the way (step_check.py). clear: item ids and "the held
     item" say what the thing is (clear_names.py); it runs again after the links table.
     names is whether the food_names switch is on: the request's food names are marked (jev.compose_payload) and
@@ -616,7 +616,7 @@ def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY,
                     'criteria': dict(plan['options']) if n == 1 else {**plan['options'], PLAN_NONE: 'No further step'}}
     if one_press:
         import one_press as presses
-        payload['state']['rules']['one_press'] = presses.RULE + (presses.PICKUP_RULE if one_press.get('put_then_pickup') else '')
+        payload['state']['rules']['one_press'] = presses.RULE
     payload = english_data(payload)
     if names:
         import food_names
@@ -638,12 +638,9 @@ def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY,
     if burn:
         import burn_note
         burn_note.apply(payload, kitchen)
-    if serve_note or wait_note:
+    if serve_note:
         import option_notes
-        if serve_note:
-            option_notes.apply_serve(payload)
-        if wait_note:
-            option_notes.apply_wait(payload)
+        option_notes.apply_serve(payload)
     if steps:
         import step_check
         step_check.apply(payload, kitchen)

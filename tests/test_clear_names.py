@@ -31,10 +31,9 @@ def do(k, who, key):
         k.advance(0.05)
 
 
-def request(k, clear, links=False, wait_note=False):
+def request(k, clear, links=False):
     client = SpatialJevClient(k.c, key='test-no-credential')
-    payload = compose_payload(client, k, k.snapshot(), k.actions('jeff'), [], None, names=True, links=links, clear=clear,
-                              wait_note=wait_note)
+    payload = compose_payload(client, k, k.snapshot(), k.actions('jeff'), [], None, names=True, links=links, clear=clear)
     payload['state']['recent_events'] = payload['state'].get('recent_events', [])
     return payload
 
@@ -95,17 +94,16 @@ class ClearNamesTests(unittest.TestCase):
         again = clear_names.apply(copy.deepcopy(on), k)
         self.assertEqual(json.dumps(again), json.dumps(on))
 
-    def test_a_chef_task_and_the_continue_label_that_quotes_it_name_the_item(self):
+    def test_a_chef_task_names_the_item(self):
         k = kitchen(2)
         do(k, 'jeff', 'fetch lettuce')
         do(k, 'jeff', next(a for a in k.actions('jeff') if a.kind == 'put_board').key)
         k.start('jeff', next(a for a in k.actions('jeff') if a.kind == 'chop'))
         k.advance(0.3)
-        off, on = request(k, False, wait_note=True), request(k, True, wait_note=True)
+        off, on = request(k, False), request(k, True)
         self.assertRegex(off['state']['kitchen']['chefs']['jeff']['task'], r'^Chop F\d+ at Board 1 ')
         task = on['state']['kitchen']['chefs']['jeff']['task']
         self.assertRegex(task, r'^Chop lettuce \([^)]*\) F\d+ at Board 1 \(')
-        self.assertTrue(on['questions']['next_action']['criteria']['continue'].startswith('Continue current task: ' + task), on)
         again = clear_names.apply(copy.deepcopy(on), k)
         self.assertEqual(json.dumps(again), json.dumps(on))
 

@@ -114,13 +114,12 @@ def rebuild_requests(record):
         return bool((feats.get(name) or {}).get('on'))
     text, notes = on('clear_text'), on('option_notes')
     reach, split, burn, steps, walk = on('reach_note'), on('split_floor'), on('burn_note'), on('step_check'), on('walk_note')
-    effects = on('option_effects')
     names, clear, english, plate = (text or on('food_names'), text or on('clear_names'), text or on('engine_english'),
                                     text or on('plate_names'))
-    serve_note, wait_note = notes or on('serve_note'), notes or on('wait_note')
+    serve_note = notes or on('serve_note')
     import features as switches
     snapshot = (record.get('conditions') or {}).get('features') or {}
-    links = switches.links_option({name: {'on': bool((snapshot.get(name) or {}).get('on'))} for name in ('option_links', 'option_links_partner', 'option_links_burnt')})
+    links = switches.links_option({name: {'on': bool((snapshot.get(name) or {}).get('on'))} for name in ('option_links', 'option_links_partner')})
     done = 0
     for row in record['events']:
         data = row['payload']
@@ -144,8 +143,8 @@ def rebuild_requests(record):
         payload = compose_payload(client, source, source.snapshot(), source.actions('jeff'), data['recent_decisions'],
                                   data['player_communication'], memory, data.get('jeff_plan'), data.get('one_press'),
                                   data.get('undo_note'), reach, names, links=links, split=split, burn=burn,
-                                  serve_note=serve_note, wait_note=wait_note,
+                                  serve_note=serve_note,
                                   steps=steps, clear=clear, walk=walk, english=english,
-                                  plate=plate, effects=effects)
+                                  plate=plate)
         yield {'request_id': row['request_id'], 'seq': row['seq'], 'rebuilt': payload,
                'status': 'verified' if cc.sha256(payload) == data['payload_sha256'] else 'diverged'}

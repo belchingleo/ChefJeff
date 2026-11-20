@@ -1,4 +1,4 @@
-"""serve_note (serve-note-v2) and wait_note (wait-note-v2), one switch (option_notes): factual notes on the serve and wait options.
+"""option_notes (option-notes-v3 = serve-note-v2): options that serve or pick up a finished dish name the order it goes to.
 
 No model is called: requests are composed locally, and the round is a loopback relay round.
 """
@@ -41,10 +41,9 @@ def plated_steak():
     return k
 
 
-def request(k, serve=False, wait=False, links=False):
+def request(k, serve=False, links=False):
     client = SpatialJevClient(k.c, key='test-no-credential')
-    return compose_payload(client, k, k.snapshot(), k.actions('jeff'), [], None, names=True, serve_note=serve, wait_note=wait,
-                           links=links)
+    return compose_payload(client, k, k.snapshot(), k.actions('jeff'), [], None, names=True, serve_note=serve, links=links)
 
 
 def without(payload, *versions):
@@ -100,48 +99,40 @@ class OptionNoteTests(unittest.TestCase):
         payload['state']['kitchen']['orders'] = []
         self.assertEqual(option_notes.serve_note(payload), ' (no order is waiting for Steak now)')
 
-    def test_wait_says_what_stays_in_hand(self):
+    def test_the_wait_and_continue_options_are_left_as_they_are(self):
+        # wait-note-v2 went with option-notes-v3 (2026-11-20): no effect on Jev's waiting in a re-ask.
         k = kitchen(1)
         do(k, 'fetch beef')
-        on, off = request(k, wait=True), request(k)
-        self.assertEqual(on['questions']['next_action']['criteria']['wait'], 'Wait, keeping the held beef (as fetched) in hand')
-        on['questions']['next_action']['criteria']['wait'] = off['questions']['next_action']['criteria']['wait']
-        self.assertEqual(json.dumps(without(on, 'wait_note_version')), json.dumps(off))
-
-    def test_continue_says_which_step_it_continues_and_what_is_left(self):
-        # wait-note-v2: from the chef's task, travel_remaining and work_remaining in the same request.
-        k = kitchen(1)
-        k.start('jeff', next(a for a in k.actions('jeff') if a.key == 'go serve'))
+        on, off = request(k, serve=True), request(k)
+        self.assertEqual(on['questions']['next_action']['criteria']['wait'], off['questions']['next_action']['criteria']['wait'])
+        self.assertNotIn('wait_note_version', on['state'])
+        k.start('jeff', next(a for a in k.actions('jeff') if a.key.startswith('go ')))
         k.advance(0.2)
-        on, off = request(k, wait=True), request(k)
-        me = off['state']['kitchen']['chefs']['jeff']
-        left = float(me['travel_remaining'] or 0) + float(me['work_remaining'] or 0)
-        self.assertEqual(on['questions']['next_action']['criteria']['continue'],
-                         f"{off['questions']['next_action']['criteria']['continue']}: {me['task']}; {left:.1f} s left")
+        on, off = request(k, serve=True), request(k)
+        self.assertEqual(on['questions']['next_action']['criteria']['continue'], off['questions']['next_action']['criteria']['continue'])
 
     def test_empty_hands_and_no_dish_leave_the_labels_as_they_were(self):
         for level in (1, 4):
             k = kitchen(level)
-            on, off = request(k, serve=True, wait=True), request(k)
-            self.assertEqual(on['questions']['next_action']['criteria']['wait'], 'Wait')
-            self.assertEqual(json.dumps(without(on, 'serve_note_version', 'wait_note_version')), json.dumps(off))
+            on, off = request(k, serve=True), request(k)
+            self.assertEqual(json.dumps(without(on, 'serve_note_version')), json.dumps(off))
 
 
-    def test_one_switch_a_trial_off_by_default_without_a_page_switch_turns_both_on(self):
+    def test_one_switch_a_trial_off_by_default_without_a_page_switch(self):
         self.assertEqual(features.current()['option_notes'],
                          {'stage': 'trial', 'on': False, 'player_switch': False, 'version': option_notes.VERSION})
-        self.assertEqual((option_notes.VERSION, option_notes.SERVE_VERSION, option_notes.WAIT_VERSION),
-                         ('option-notes-v2', 'serve-note-v2', 'wait-note-v2'))     # a new part needs a new VERSION
+        self.assertEqual((option_notes.VERSION, option_notes.SERVE_VERSION),
+                         ('option-notes-v3', 'serve-note-v2'))     # a new part needs a new VERSION
         for name in ('serve_note', 'wait_note'):
             self.assertNotIn(name, features.current())
+        self.assertNotIn('wait_note', features.compose_options(features.current()))
         on = {**features.current(), 'option_notes': {**features.current()['option_notes'], 'on': True}}
-        self.assertEqual({k: features.compose_options(on)[k] for k in ('serve_note', 'wait_note')}, {'serve_note': True, 'wait_note': True})
-        self.assertEqual({k: features.compose_options(features.current())[k] for k in ('serve_note', 'wait_note')},
-                         {'serve_note': False, 'wait_note': False})
+        self.assertTrue(features.compose_options(on)['serve_note'])
+        self.assertFalse(features.compose_options(features.current())['serve_note'])
 
 
 class OptionNoteReplayTests(paths.SavePathTests):
-    def test_a_round_with_both_notes_replays_exactly(self):
+    def test_a_round_with_the_notes_replays_exactly(self):
         with self.game.lock:
             self.game.features = {**self.game.features, 'option_notes': {**self.game.features['option_notes'], 'on': True}}
         status, data = self.request('/api/level', {'game_id': self.game.game_id, 'request_id': uuid.uuid4().hex, 'level': 1}, self.token)
@@ -155,10 +146,10 @@ class OptionNoteReplayTests(paths.SavePathTests):
         rows = list(research_replay.rebuild_requests(record))
         self.assertTrue(rows)
         self.assertEqual({row['status'] for row in rows}, {'verified'})
-        # A record from before the merge names serve_note and wait_note.
+        # A record from before the merge names serve_note (and wait_note, which is no longer rebuilt).
         old = json.loads(json.dumps(record))
         del old['conditions']['features']['option_notes']
-        old['conditions']['features'].update(serve_note={'on': True, 'version': 'v'}, wait_note={'on': True, 'version': 'v'})
+        old['conditions']['features'].update(serve_note={'on': True, 'version': 'v'})
         self.assertEqual({row['status'] for row in research_replay.rebuild_requests(old)}, {'verified'})
         record['conditions']['features']['option_notes']['on'] = False
         self.assertEqual({row['status'] for row in research_replay.rebuild_requests(record)}, {'diverged'})

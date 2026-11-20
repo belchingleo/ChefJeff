@@ -71,9 +71,9 @@ def released():
 
 
 def every_trial():
-    return {'one_press': one_press.flags({**{name: True for name in one_press.NAMES}, 'put_then_pickup': True}),
-            'undo': {'history': []}, 'reach': True, 'names': True, 'links': 'partner+burnt', 'split': True,
-            'burn': True, 'serve_note': True, 'wait_note': True, 'steps': True, 'clear': True,
+    return {'one_press': one_press.flags({name: True for name in one_press.NAMES}),
+            'undo': {'history': []}, 'reach': True, 'names': True, 'links': 'partner', 'split': True,
+            'burn': True, 'serve_note': True, 'steps': True, 'clear': True,
             'walk': True, 'plate': True}
 
 

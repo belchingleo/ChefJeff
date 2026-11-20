@@ -1375,9 +1375,6 @@
             },
             "wash_from_returns": {
               "type": "boolean"
-            },
-            "put_then_pickup": {
-              "type": "boolean"
             }
           },
           "required": [

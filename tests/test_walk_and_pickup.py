@@ -1,4 +1,4 @@
-"""walk_note (walk-note-v1), pickup_press (put-then-pickup-v1), and no Chinese in a request with every trial on.
+"""walk_note (walk-note-v1), and no Chinese in a request with every trial on.
 
 No model is called: requests are composed locally, and the round is a loopback relay round.
 """
@@ -84,63 +84,36 @@ class WalkNoteTests(unittest.TestCase):
         self.assertTrue(features.compose_options(on)['walk'])
 
 
-class PickupPressTests(unittest.TestCase):
-    def test_holding_something_a_floor_item_can_be_picked_up_after_putting_it_down(self):
-        k = floor_beef_and_lettuce_in_hand()
-        item = next(iter(k.ground))
-        on, actions = request(k, {**PRESSES, 'put_then_pickup': True})
-        label = on['questions']['next_action']['criteria'][f'put then pickup {item}']
-        self.assertRegex(label, r'^Put the held lettuce \(as fetched\) where put_where says, then take beef \(as fetched\) '
-                                r'from floor \(\d+,\d+\)$')
-        self.assertIn('"put then pickup <item>"', on['state']['rules']['one_press'])
-        option = next(a for a in actions if a.key == f'put then pickup {item}')
-        put, _ = one_press.place(k.actions('jeff'), next(iter(on['questions']['put_where']['criteria'])))
-        do(k, 'jeff', put.key)
-        step = one_press.find(k, 'jeff', one_press.steps(option, k)[0])
-        do(k, 'jeff', step.key)
-        self.assertEqual(k.chefs['jeff'].hand.id, item)
-
-    def test_off_the_released_one_press_options_and_records_are_unchanged(self):
-        k = floor_beef_and_lettuce_in_hand()
-        released, _ = request(k, PRESSES)
-        self.assertFalse(any(key.startswith('put then pickup') for key in released['questions']['next_action']['criteria']))
-        self.assertNotIn('put then pickup', released['state']['rules']['one_press'])
-        self.assertEqual(one_press.flags(PRESSES), PRESSES)
-        self.assertEqual(features.one_press_flags(features.current()), PRESSES)
-        on = {**features.current(), 'pickup_press': {**features.current()['pickup_press'], 'on': True}}
-        self.assertEqual(features.one_press_flags(on), {**PRESSES, 'put_then_pickup': True})
-
-
 class NoChineseTests(unittest.TestCase):
     """With every trial addition on, nothing reaches Jeff in Chinese."""
 
     def test_no_chinese_in_requests_with_every_trial_on(self):
-        switches = dict(reach=True, links='partner+burnt', split=True, burn=True, serve_note=True, wait_note=True,
-                        steps=True, clear=True, walk=True, effects=True)
+        switches = dict(reach=True, links='partner', split=True, burn=True, serve_note=True,
+                        steps=True, clear=True, walk=True)
         for level in (1, 2, 3, 4):
             k = kitchen(level)
             for key in ('fetch beef', 'drop', 'fetch lettuce'):
                 if any(a.key == key for a in k.actions('jeff')):
                     do(k, 'jeff', key)
-                    payload, _ = request(k, {**PRESSES, 'put_then_pickup': True}, **switches)
+                    payload, _ = request(k, PRESSES, **switches)
                     text = json.dumps(payload, ensure_ascii=False)
                     self.assertIsNone(CJK.search(text), (level, key, CJK.findall(text)[:5]))
 
     def test_no_chinese_with_every_trial_on_and_engine_english_where_food_is_plated(self):
         import test_engine_english as ee
-        switches = dict(reach=True, links='partner+burnt', split=True, burn=True, serve_note=True, wait_note=True,
-                        steps=True, clear=True, walk=True, english=True, effects=True)
+        switches = dict(reach=True, links='partner', split=True, burn=True, serve_note=True,
+                        steps=True, clear=True, walk=True, english=True)
         decisions, _ = ee.loop_notes(True)
         for level in (1, 2, 3, 4):
             k = kitchen(level)
             for key in ('fetch beef', 'drop', 'fetch lettuce'):
                 if any(a.key == key for a in k.actions('jeff')):
                     do(k, 'jeff', key)
-                    payload, _ = request(k, {**PRESSES, 'put_then_pickup': True}, **switches)
+                    payload, _ = request(k, PRESSES, **switches)
                     text = json.dumps(payload, ensure_ascii=False)
                     self.assertIsNone(CJK.search(text), (level, key, CJK.findall(text)[:5]))
         for k in (ee.plating(), ee.played()):
-            payload, _ = request(k, {**PRESSES, 'put_then_pickup': True}, **switches)
+            payload, _ = request(k, PRESSES, **switches)
             payload['state']['recent_decisions'] = decisions
             text = json.dumps(payload, ensure_ascii=False)
             self.assertIsNone(CJK.search(text), CJK.findall(text)[:5])
@@ -180,11 +153,10 @@ class NoChineseTests(unittest.TestCase):
 
 
 class WalkPickupReplayTests(paths.SavePathTests):
-    def test_a_level_four_round_with_both_replays_exactly(self):
+    def test_a_level_four_round_with_the_walk_note_replays_exactly(self):
         with self.game.lock:
             self.game.features = {**self.game.features,
-                                  'walk_note': {**self.game.features['walk_note'], 'on': True},
-                                  'pickup_press': {**self.game.features['pickup_press'], 'on': True}}
+                                  'walk_note': {**self.game.features['walk_note'], 'on': True}}
         import levels
         with patch.object(levels, 'switches', lambda: {'level-4': True}):
             status, data = self.request('/api/level', {'game_id': self.game.game_id, 'request_id': uuid.uuid4().hex, 'level': 4}, self.token)

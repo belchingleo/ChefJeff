@@ -109,29 +109,27 @@ class JevClient:
 
 def compose_payload(client, kitchen, state, actions, recent_decisions, communication, memory=NO_MEMORY, plan=None, one_press=None,
                     undo=None, reach=False, names=False, links=False, split=False, burn=False,
-                    serve_note=False, wait_note=False, steps=False, clear=False, walk=False,
-                    english=False, plate=False, effects=False):
+                    serve_note=False, steps=False, clear=False, walk=False,
+                    english=False, plate=False):
     """Jeff's request from the kitchen and the few parts it cannot derive; research replay rebuilds it here too.
 
     one_press is the round's one-press switches (one_press.flags), or None: the options are added to the
     listed actions here, unless the caller already did.
     links is whether the option_links switch is on (links.py): the table is computed here, from this kitchen and
-    these actions, after the request is composed; 'partner' adds the other chef's side (option_links_partner),
-    'burnt' counts emptying a burnt pan (option_links_burnt).
+    these actions, after the request is composed; 'partner' adds the other chef's side (option_links_partner).
     split is whether the split_floor switch is on (split_floor.py), burn whether burn_note is (burn_note.py),
-    serve_note and wait_note whether those are (option_notes.py),
+    serve_note whether option_notes is (option_notes.py),
     steps whether step_check is (step_check.py), clear whether clear_names is (clear_names.py; it runs again after
     the links table, which it may name in), walk whether walk_note is (walk_note.py: each option's walk), english
     whether engine_english is (engine_english.py: the engine's own English where the catalog garbles it), plate
-    whether plate_names is (plate_names.py: a plating option says what the plate there holds), effects whether
-    option_effects is (option_effects.py: an option says what carrying it out directly does, after the links table)."""
+    whether plate_names is (plate_names.py: a plating option says what the plate there holds)."""
     with engine_english.writing(english):
         return _compose(client, kitchen, state, actions, recent_decisions, communication, memory, plan, one_press,
-                        undo, reach, names, links, split, burn, serve_note, wait_note, steps, clear, walk, plate, effects)
+                        undo, reach, names, links, split, burn, serve_note, steps, clear, walk, plate)
 
 
 def _compose(client, kitchen, state, actions, recent_decisions, communication, memory, plan, one_press,
-             undo, reach, names, links, split, burn, serve_note, wait_note, steps, clear, walk, plate, effects):
+             undo, reach, names, links, split, burn, serve_note, steps, clear, walk, plate):
     if one_press:
         import one_press as presses
         keys = {a.key for a in actions}
@@ -141,7 +139,7 @@ def _compose(client, kitchen, state, actions, recent_decisions, communication, m
         import food_names
         state, actions = food_names.state(state), food_names.labels(kitchen, actions, one_press)
     payload = harness.compose(client.payload(state, actions), kitchen, recent_decisions, communication, memory, plan, one_press,
-                              undo, reach, names, split, burn, serve_note, wait_note, steps, clear)
+                              undo, reach, names, split, burn, serve_note, steps, clear)
     if undo is not None:
         # undo-note-v4: worked out on forks of this kitchen, before the links table (live and in replay alike).
         undo_note.apply(payload, undo, kitchen)
@@ -160,9 +158,6 @@ def _compose(client, kitchen, state, actions, recent_decisions, communication, m
         if serve_note:
             import option_notes
             option_notes.apply_links(payload)
-    if effects:
-        import option_effects
-        option_effects.apply(payload, kitchen, 'jeff', actions)
     return payload
 
 
@@ -226,9 +221,8 @@ class DecisionLoop:
         self.split = False
         # The burn_note trial (burn_note.py): options on a stove with cooked food say when it burns.
         self.burn = False
-        # The serve_note and wait_note trials (option_notes.py): factual notes on the serve and wait options.
+        # The option_notes trial (option_notes.py): options that serve or pick up a finished dish name its order.
         self.serve_note = False
-        self.wait_note = False
         # The step_check trial (step_check.py): whether each step the waiting orders need is possible now.
         self.steps = False
         # The clear_names trial (clear_names.py): what each item id and "the held item" is.
@@ -245,9 +239,6 @@ class DecisionLoop:
         # compute is counted in when deciding whether to ask ahead (link_times, recent seconds).
         self.links = False
         self.link_times = []
-        # The option_effects trial (option_effects.py): an option says what carrying it out directly does; computed
-        # in the same thread as the links table (prepare in send_request), its time counted in link_times too.
-        self.effects = False
         # The table is computed outside the game loop (prepare in send_request): a thread fills it on a private fork,
         # and the next poll logs and sends the request it completes.
         self.prepared = queue.Queue()
@@ -642,7 +633,7 @@ class DecisionLoop:
         payload = compose_payload(self.client, source, state, actions, self.recent_decisions, communication,
                                   self.cooperation_memory if hasattr(self, 'cooperation_memory') else NO_MEMORY, plan, self.one_press,
                                   deepcopy(self.undo), self.reach, self.names, split=self.split,
-                                  burn=self.burn, serve_note=self.serve_note, wait_note=self.wait_note,
+                                  burn=self.burn, serve_note=self.serve_note,
                                   steps=self.steps, clear=self.clear, walk=self.walk,
                                   english=self.english, plate=self.plate)
         record = {"request_id": self.calls, "triggers": causes, "observed_state_seq": self.k.event_seq,
@@ -656,7 +647,7 @@ class DecisionLoop:
         self.step_ended = False
         self.plan_due = False
         self.inflight = True
-        if not self.links and not self.effects:
+        if not self.links:
             self.send(context, payload, record)
             return
         # The links table (links.py) takes a few tenths of a second; computed here it would hold the whole kitchen
@@ -668,7 +659,7 @@ class DecisionLoop:
         record.update(engine_input_n=len(self.k.inputs), state_ref=getattr(self.k, '_research_state_ref', None),
                       candidate_source=[[a.key, a.target, a.kind] for a in self.k.actions('jeff') if a.key in criteria])
         mode, names, listed, clear, english = self.links, self.names, list(actions), self.clear, self.english
-        effects, serve_note = self.effects, self.serve_note
+        serve_note = self.serve_note
 
         def prepare():
             start = time.monotonic()
@@ -676,17 +667,13 @@ class DecisionLoop:
                 import links as option_links
                 # A context variable does not cross into a thread: the engine_english switch is set here again.
                 with engine_english.writing(english):
-                    if mode:
-                        option_links.apply(payload, twin, 'jeff', listed, names, **option_links.flags(mode))
-                        if clear:
-                            import clear_names
-                            clear_names.apply(payload, twin)
-                        if serve_note:
-                            import option_notes
-                            option_notes.apply_links(payload)
-                    if effects:
-                        import option_effects
-                        option_effects.apply(payload, twin, 'jeff', listed)
+                    option_links.apply(payload, twin, 'jeff', listed, names, **option_links.flags(mode))
+                    if clear:
+                        import clear_names
+                        clear_names.apply(payload, twin)
+                    if serve_note:
+                        import option_notes
+                        option_notes.apply_links(payload)
                 self.prepared.put((context, payload, record, time.monotonic() - start, None))
             except Exception as error:      # never the payload or a key: only the kind of failure is logged
                 self.prepared.put((context, payload, record, time.monotonic() - start, error))

@@ -434,9 +434,6 @@
             "wash_from_returns": {
               "type": "boolean"
             },
-            "put_then_pickup": {
-              "type": "boolean"
-            },
             "version": {
               "type": "string",
               "pattern": "^one-press-v[0-9]{1,3}$"
