@@ -317,6 +317,17 @@ WORK_KINDS = {
 }
 
 
+def for_model(payload):
+    """The request as a model is sent it: without the version tags of the parts it was built from (state.*_version,
+    rules_version) and of its wording (input_language). They are bookkeeping, not facts about the kitchen; the round's
+    record keeps the payload with them, and research replay compares against that (2026-11-20)."""
+    state = payload.get('state') if isinstance(payload, dict) else None
+    if not isinstance(state, dict):
+        return payload
+    return {**payload, 'state': {key: value for key, value in state.items()
+                                 if not (key.endswith('_version') or key == 'input_language')}}
+
+
 def choices(answers, questions):
     """A decision API's choices for these questions: {question: choice}, leaving out any that are not choice answers."""
     answers = answers if isinstance(answers, dict) else {}

@@ -252,7 +252,8 @@ class ReplayTests(paths.SavePathTests):
                     with self.game.lock:
                         self.game.ai.poll()                  # sends it once the table is in
                     time.sleep(.005)
-                self.assertEqual(self.game.relay.request()['payload']['state']['links_version'], links.SWITCH_VERSION)
+                self.assertIn('option_links', self.game.relay.request()['payload']['state'])      # the browser is sent the table
+                self.assertNotIn('links_version', self.game.relay.request()['payload']['state'])  # but no version tags
                 self.assertEqual(self.answer_with()[0], 200)
             self.natural_end()
             self.assertEqual(self.contribute()[0], 200)
@@ -281,7 +282,8 @@ class ReplayTests(paths.SavePathTests):
                     with self.game.lock:
                         self.game.ai.poll()      # sends the request once its step-hint table is in
                     time.sleep(.005)
-                self.assertEqual(self.game.relay.request()['payload']['state']['food_names_version'], food_names.VERSION)
+                self.assertIn('food_names', self.game.relay.request()['payload']['state']['rules'])
+                self.assertNotIn('food_names_version', self.game.relay.request()['payload']['state'])   # tags stay in the record
                 self.assertEqual(self.answer_with()[0], 200)
             self.natural_end()
             self.assertEqual(self.contribute()[0], 200)

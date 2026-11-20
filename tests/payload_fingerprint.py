@@ -5,8 +5,9 @@ reference policy; Jeff is driven by the real ``DecisionLoop`` with a scripted
 stand-in model (no network, no key), on a clock that follows game time, so
 every request is reproducible. For each request we record the hash of:
 
-- the harness payload (``compose_payload``: what the loop logs and the online
-  version relays to the browser), and of each of its sections;
+- the payload as the model is sent it (``harness.for_model`` of what ``compose_payload``
+  builds and the loop logs: no version tags since 2026-11-20; the online version relays
+  the same to the browser), and of each of its sections;
 - on every 4th request, the exact request body every client would send: local
   Jev, decision and chat presets, and the online server's Jev and free-model
   forwarders. The bodies are fixed transforms of the payload, so a change to how

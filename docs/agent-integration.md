@@ -6,7 +6,7 @@ A new agent does not have to be Jeff with another model: it can play through the
 
 ## Decision flow
 
-`SpatialKitchen.snapshot()` and `actions('jeff')` → client `payload(state, actions)` → asynchronous `ask(payload)` → `DecisionLoop` validation → `kitchen.start()` → movement/work → completion event.
+`SpatialKitchen.snapshot()` and `actions('jeff')` → client `payload(state, actions)` → asynchronous `ask(payload)` → `DecisionLoop` validation → `kitchen.start()` → movement/work → completion event. Before a model is sent the request, `harness.for_model` leaves out its version tags (the `state` keys ending in `_version`, and `input_language`): they are bookkeeping, not facts about the kitchen. The round's record keeps the request with them, and research replay checks against that (since 2026-11-20).
 
 Use actor IDs `human` and `jeff`. TypeSafe's provider ID `jev`, model IDs and `jev.py` adapter name remain unchanged. Old local memory actor fields are normalized when read; model identities and historical files remain intact.
 
@@ -63,7 +63,7 @@ Cocos 提供画面与玩家输入，Python 维护权威厨房状态。Agent 选�
 
 ## 决策链路
 
-`SpatialKitchen.snapshot()` 与 `actions('jeff')` → client `payload(state, actions)` → 异步 `ask(payload)` → `DecisionLoop` 校验 → `kitchen.start()` → 移动／加工 → 完成事件。
+`SpatialKitchen.snapshot()` 与 `actions('jeff')` → client `payload(state, actions)` → 异步 `ask(payload)` → `DecisionLoop` 校验 → `kitchen.start()` → 移动／加工 → 完成事件。发给模型之前，`harness.for_model` 去掉请求里的版本标记（`state` 里以 `_version` 结尾的各项和 `input_language`）：它们只供记录核对，不是厨房里的事实。本局记录保留带标记的完整请求，研究重放照旧按它核对（2026-11-20 起）。
 
 角色 ID 使用 `human` 和 `jeff`。TypeSafe 的 provider ID `jev`、模型名及 `jev.py` 适配器名称保留。旧本地记忆读取时转换角色字段，模型身份与历史文件保持原样。
 

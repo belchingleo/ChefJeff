@@ -63,7 +63,8 @@ class NoteTests(unittest.TestCase):
         loop = Loop(bread_and_lettuce(), [{'choice': 'put then take b1', 'put_where': 'put counter16'}])
         first = loop.until_asked(1)
         self.assertEqual(noted(first), {})                                       # no step yet
-        self.assertEqual(first['state']['undo_note_version'], undo_note.VERSION)
+        self.assertEqual(loop.rows('ai_request')[0]['payload']['state']['undo_note_version'], undo_note.VERSION)   # in the record
+        self.assertNotIn('undo_note_version', first['state'])                    # not sent to the model
         second = loop.until_asked(2)
         history = loop.rows('ai_request')[1]['undo_note']['history']
         self.assertEqual([h['places'] for h in history], [['b1', 'counter16', 'hand']])
@@ -145,7 +146,8 @@ class NoteTests(unittest.TestCase):
     def test_switch_off_changes_nothing(self):
         on, off = Loop(bread_and_lettuce(), [{'choice': 'put then take b1', 'put_where': 'put counter16'}]), \
             Loop(bread_and_lettuce(), [{'choice': 'put then take b1', 'put_where': 'put counter16'}], undo=False)
-        a, b = on.until_asked(2), off.until_asked(2)
+        on.until_asked(2), off.until_asked(2)
+        a, b = on.rows('ai_request')[1]['payload'], off.rows('ai_request')[1]['payload']     # as recorded, tags included
         self.assertEqual(noted(b), {})
         self.assertNotIn('undo_note_version', b['state'])
         self.assertTrue(all('undo_note' not in row for row in off.rows('ai_request')))

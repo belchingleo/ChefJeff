@@ -13,7 +13,7 @@ from kitchen import ROOT
 from web_server import GameSession
 from whitebox_server import SpatialJevClient
 from jev import http_error_detail
-from harness import PUT_WHERE_CHAT_RULE, choice_answer
+from harness import PUT_WHERE_CHAT_RULE, choice_answer, for_model
 from model_language import english_data
 from cooperation_memory import CooperationMemory, round_scope, episode, ROUNDS
 from release_info import release_info
@@ -96,7 +96,7 @@ class CompatibleClient(SpatialJevClient):
         payload['model']=self.setting['model']
         return payload
     def ask(self,payload):
-        payload=english_data(payload)
+        payload=english_data(for_model(payload))
         started=time.monotonic()
         body={'model':self.setting['model'],'messages':[
             {'role':'system','content':CHAT_SYSTEM},

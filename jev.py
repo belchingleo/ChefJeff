@@ -80,7 +80,7 @@ class JevClient:
         return {"Authorization": "Bearer " + self.key} if self.key else {}
 
     def ask(self, payload):
-        payload = english_data(payload)
+        payload = english_data(harness.for_model(payload))
         start = time.monotonic()
         request = urllib.request.Request(self.endpoint, data=json.dumps(payload, ensure_ascii=False).encode(),
                                          headers={**self.key_headers(), "Content-Type": "application/json"}, method="POST")
@@ -393,7 +393,9 @@ class DecisionLoop:
         def work():
             try:
                 context['transport_started_monotonic'] = time.monotonic()
-                result = self.client.ask(payload)
+                # The record above keeps the payload as composed; the model is sent it without version tags (also the
+                # browser relay, which has no client of its own here).
+                result = self.client.ask(harness.for_model(payload))
                 context['returned_monotonic'] = time.monotonic()
                 self.q.put((context, result, None))
             except ModelWait as exc:
