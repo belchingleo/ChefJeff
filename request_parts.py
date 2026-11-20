@@ -7,23 +7,27 @@ alike, so every combination rebuilds exactly. With every part off the request is
 - place_names (place-names-v1): station ids written with their names where text lists them bare: the reach rule
   ("Board 1 (b1)"), the split_floor rule ("Board 1", "Counters 2–13"), and each recent decision gets "place", the
   stations its option names.
-- timeline (timeline-v1): recent_events and recent_decisions become one list, state.timeline, in time order: Jeff's
+- timeline (timeline-v2): recent_events and recent_decisions become one list, state.timeline, in time order: Jeff's
   own steps (each with the option he chose, and with place_names on the stations it names: "you chose chop b1 at
   Board 1"), what became of the items he threw, the options he chose that were not
   done, and what went wrong in the kitchen (an order expired, a dish refused or matching no order, food burnt, a
   fire). The other chef's actions are left out: a 2026-11-20 re-ask found no use in them. rules.continuity becomes
-  TIMELINE_RULE.
+  TIMELINE_RULE, which keeps the continuity rule's checks for repeated back-and-forth (v2; v1 had left them out).
 - no_history (no-history-v1): no recent_events, no recent_decisions and no continuity rule (it wins over timeline).
   With both off the request keeps the two lists.
 - links_on_options (links-on-options-v1): each option's lines from the links table (option_links) follow the option
   itself, as condition B of the 2026-11-10 links check wrote them; state.option_links goes and rules.links says so.
-- rules_by_action (rules-by-action-v1): a rule paragraph about a kind of action (RULE_KINDS) comes only while an
+- rules_by_action (rules-by-action-v2): a rule paragraph about a kind of action (RULE_KINDS) comes only while an
   option of that kind is listed; the fire rule also while food is on a stove or anything burns or heats up; the
-  others always. past_episodes, rule and state, goes while it is disabled.
-- kitchen_view (kitchen-view-v1): state.kitchen keeps what the kitchen is now, written out: the clock, money and
-  stars, dishes, waiting and served orders, the two chefs, every station (empty counters in one line; on a split
+  others always, the vessels rule included (v2: v1 left it out while no pot option was listed, so a chef holding raw
+  beef read nowhere that a pan takes beef only once chopped). past_episodes, rule and state, goes while it is disabled.
+- kitchen_view (kitchen-view-v2): state.kitchen keeps what the kitchen is now, written out: the clock, money and
+  stars, dishes, which vessel cooks what (v2), waiting and served orders, the two chefs, every station (empty counters in one line; on a split
   floor grouped by who reaches them), plates, the floor and items in the air. Walls, map cells, routes, collision
   numbers, hashes, seeds, the menu (the same as dishes), the numbers the rules already give, and empty fields go.
+  v2: a loose ingredient says what it still needs, from the same request's facts ("beef (as fetched) F3 (not chopped
+  yet (2.2 s of chopping); a frying pan cooks it only once it is chopped)"); v1 dropped the chopping left and the
+  vessels, and with rules_by_action v1 Perplexity and Jev walked raw beef between the stoves (user play 2026-11-20).
 
 Every part says what is, never what to do, and is worked out from the engine and the request alone, the same on
 every level. Each adds its version tag to state (left out of what a model is sent, harness.for_model).
@@ -33,11 +37,11 @@ from __future__ import annotations
 import re
 
 PLACE_NAMES_VERSION = 'place-names-v1'
-TIMELINE_VERSION = 'timeline-v1'
+TIMELINE_VERSION = 'timeline-v2'
 NO_HISTORY_VERSION = 'no-history-v1'
 LINKS_ON_OPTIONS_VERSION = 'links-on-options-v1'
-RULES_BY_ACTION_VERSION = 'rules-by-action-v1'
-KITCHEN_VIEW_VERSION = 'kitchen-view-v1'
+RULES_BY_ACTION_VERSION = 'rules-by-action-v2'
+KITCHEN_VIEW_VERSION = 'kitchen-view-v2'
 # features.json name -> (finish() argument, version).
 SWITCHES = {'place_names': ('place', PLACE_NAMES_VERSION), 'timeline': ('timeline', TIMELINE_VERSION),
             'no_history': ('no_history', NO_HISTORY_VERSION),
@@ -97,10 +101,17 @@ def place_names(payload):
 
 # -- timeline / no_history -----------------------------------------------------------------------------------------
 
+# v2: the checks of the continuity rule it replaces come back word for word (v1 left them out, and a Jev round looped
+# go stove / drop / pick up for 75 s, 2026-11-20).
 TIMELINE_RULE = ('timeline lists, in time order, your own last steps, each with the option you chose; what became of '
                  'the items you threw; options you chose that were not done, and why; and what went wrong in the '
                  'kitchen (an order expired, a dish was refused or matched no order, food burnt, a fire). Use it to see '
-                 'whether your recent steps moved any dish forward. Accepted does not mean completed.')
+                 'whether your recent steps moved any dish forward, and to check for repeatedly picking up and putting '
+                 'down the same item, swapping between ingredients, or fetching without free space. Swapping changes '
+                 'locations, not preparation progress; fetching more raw meat does not advance prepared ingredients. '
+                 'Existing food keeps its preparation state until someone acts on it. If the situation is unchanged, '
+                 'assess what repeating an action would accomplish. You may continue, wait, or choose another action; '
+                 'the choice is yours. Accepted does not mean completed.')
 # picked_up and dropped say again what the step's action_done says; swapped (where the held item went), washed (where
 # the plate went) and served (the money) say more.
 OWN_KINDS = ('action_done', 'thrown', 'interrupted', 'arrival_conflict', 'swapped', 'washed', 'served', 'knocked')
@@ -202,9 +213,9 @@ POT_KINDS = ('put_pot', 'lift_pot', 'return_pot', 'plate_pot', 'plate_counter', 
              'swap_pot', 'swap_ground_pot', 'load_counter', 'load_ground', 'empty_pot')
 WASH_KINDS = ('take_return', 'put_sink', 'take_sink', 'wash', 'put_then_wash', 'wash_from_returns')
 # Rule paragraph -> the engine action kinds that bring it (the same kinds on every level); a paragraph not named here
-# always comes.
+# always comes. v2: the vessels rule always comes: it also says why an option is missing (an ingredient goes only into
+# the vessel that cooks it, in the state it is cooked from), and v1 left it out exactly while Jeff held raw beef.
 RULE_KINDS = {
-    'vessels': POT_KINDS,
     'tableware': POT_KINDS + WASH_KINDS + ('take_plate', 'plate_from_counter'),
     'plate_reuse': WASH_KINDS,
     'resources': ('put_counter', 'put_board', 'take_tool', 'pickup', 'take_counter', 'take_board'),
@@ -262,12 +273,33 @@ SIDES = ('your side', 'shared', "other chef's side")
 WHO_LABEL = {'jeff': 'you', 'human': 'the other chef'}
 
 
-def _food(food):
+def _needs(food, kj):
+    """What a loose ingredient still needs before a dish takes it, from the engine's own facts in the request (v2):
+    chopping left, and the vessel that cooks it and from which state."""
+    item, stage = food.get('ingredient'), food.get('stage')
+    if not item or food.get('plate_id') or stage not in ('raw', 'chopped'):
+        return []
+    out = []
+    if stage == 'raw' and food.get('chop_remaining'):
+        out.append(f"not chopped yet ({food['chop_remaining']:.1f} s of chopping)")
+    cooked = any(c.get('item') == item and c.get('state') == 'ready'
+                 for d in kj.get('dishes') or [] for c in d.get('components', []))
+    for vessel in (kj.get('vessels') or {}).values():
+        for c in vessel.get('cooks', []):
+            if cooked and c.get('item') == item:
+                out.append(f"a {vessel.get('name')} cooks it" + ('' if c.get('from') == stage else f" only once it is {c.get('from')}"))
+    return out
+
+
+def _food(food, kj=None):
     if not isinstance(food, dict):
         return 'nothing'
     text = ' '.join(str(x) for x in (food.get('meaning') or food.get('stage'), food.get('id')) if x)
     if food.get('missing'):
         text += ' (still needs ' + ', '.join(food['missing']) + ')'
+    needs = _needs(food, kj or {})
+    if needs:
+        text += ' (' + '; '.join(needs) + ')'
     return text
 
 
@@ -289,10 +321,10 @@ def _stove(s):
     return f'{pan} with {_food(food)}' + (': ' + ', '.join(times) if times else '')
 
 
-def _station(s):
+def _station(s, kj):
     kind, food = s.get('type'), s.get('food')
     if kind == 'ingredient_source':
-        text = f"gives {s.get('supplies')}" + (f'; {_food(food)} lies on top, so it gives nothing' if food else '')
+        text = f"gives {s.get('supplies')}" + (f'; {_food(food, kj)} lies on top, so it gives nothing' if food else '')
     elif kind == 'stove':
         text = _stove(s)
     elif kind in ('sink', 'drying_rack'):
@@ -303,9 +335,7 @@ def _station(s):
     elif kind == 'serving_window':
         text = 'serve finished dishes here'
     elif food:
-        text = _food(food)
-        if kind == 'board' and food.get('stage') == 'raw' and food.get('chop_remaining'):
-            text += f" ({food['chop_remaining']:.1f} s of chopping)"
+        text = _food(food, kj)
     else:
         text = 'empty'
     if s.get('fire'):
@@ -346,7 +376,7 @@ def _stations(kj, kitchen):
     for side in (SIDES if split else ('all',)):
         listed, empty = {}, []
         for sid, s in groups.get(side, []):
-            text = _station(s)
+            text = _station(s, kj)
             if text == 'empty' and s.get('type') == 'counter':
                 empty.append(sid)
             else:
@@ -370,7 +400,7 @@ def _chefs(kj):
         if doing != 'nothing' and left:
             doing += f' ({left:.1f} s left)'
         out[WHO_LABEL[who]] = {'at': ', '.join(x for x in (c.get('location_name'), c.get('area')) if x),
-                               'holding': _food(c.get('holding')), 'doing': doing}
+                               'holding': _food(c.get('holding'), kj), 'doing': doing}
         if c.get('knocked'):
             out[WHO_LABEL[who]]['knocked back'] = True
     return out
@@ -416,6 +446,9 @@ def kitchen_view(payload, kitchen):
         'chefs': _chefs(kj),
         'stations': _stations(kj, kitchen),
     }
+    if kj.get('vessels'):       # v2: which vessel cooks what, from which state
+        view['vessels'] = {v.get('name', key): 'cooks ' + ', '.join(f"{c.get('item')} ({c.get('from')})" for c in v.get('cooks', []))
+                           for key, v in kj['vessels'].items()}
     tableware = kj.get('tableware') or {}
     if tableware.get('total'):
         view['plates'] = f"{tableware['total']} plates in all" + ''.join(
@@ -423,7 +456,7 @@ def kitchen_view(payload, kitchen):
                                                     else f"in {float(c.get('returns_in') or 0):.1f} s")
             for c in tableware.get('customers') or [])
     if kj.get('ground'):
-        view['floor'] = {g.get('near', g.get('location')): _food(g.get('food')) for g in kj['ground']}
+        view['floor'] = {g.get('near', g.get('location')): _food(g.get('food'), kj) for g in kj['ground']}
     air = _in_the_air(kj, names)
     if air:
         view['in_the_air'] = air

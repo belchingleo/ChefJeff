@@ -169,7 +169,8 @@ class PartTests(unittest.TestCase):
             self.assertEqual(text, before[name])
         for name in set(before) - set(rules):
             self.assertIn(name, request_parts.RULE_KINDS)
-        for name in ('role', 'objective', 'flow', 'score', 'visibility', 'movement', 'sprint', 'reach', 'split_floor', 'links'):
+        for name in ('role', 'objective', 'flow', 'score', 'visibility', 'movement', 'sprint', 'reach', 'split_floor', 'links',
+                     'vessels'):
             self.assertIn(name, rules)
         self.assertIn('throw', rules)            # Jeff holds the tomato: the throws are listed
         self.assertNotIn('pot_swap', rules)      # no pan in hand
@@ -177,6 +178,27 @@ class PartTests(unittest.TestCase):
         self.assertNotIn('throw', request(empty, parts={'rules': True})['state']['rules'])   # nothing to throw
         self.assertEqual(out['state'].pop('rules_by_action_version'), request_parts.RULES_BY_ACTION_VERSION)
         self.assertEqual(without(out, 'rules'), without(self.base, 'rules'))
+
+    def test_held_raw_beef_says_it_is_not_chopped_and_which_vessel_cooks_it(self):
+        # v2: with rules_by_action and kitchen_view v1 together, nothing in the request said raw beef needs chopping
+        # before a pan takes it, and Perplexity and Jev walked it between the stoves (user play, 2026-11-20).
+        k = level('level-4')
+        do(k, 'fetch beef')
+        with patch.object(request_parts, 'listed_kinds', lambda payload, kitchen: set()):
+            out = request(k, parts={'rules': True, 'view': True})
+        held = out['state']['kitchen']['chefs']['you']['holding']
+        self.assertEqual(held, f'beef (as fetched) {k.chefs["jeff"].hand.id} (not chopped yet (2.2 s of chopping); '
+                               'a frying pan cooks it only once it is chopped)')
+        self.assertIn('vessels', out['state']['rules'])
+        do(k, 'throw down')
+        k.advance(2.0)
+        floor = request(k, parts={'view': True})['state']['kitchen'].get('floor') or {}
+        self.assertTrue(any('only once it is chopped' in text for text in floor.values()) or k.chefs['human'].hand, floor)
+
+    def test_the_timeline_rule_keeps_the_continuity_checks(self):
+        import harness
+        checks = harness.CONTINUITY_RULE.split('Use them to ', 1)[1]
+        self.assertIn(checks.split('check for ', 1)[1], request_parts.TIMELINE_RULE)
 
     def test_the_fire_rule_stays_while_food_is_on_a_stove(self):
         # The extinguisher is listed nearly always; with no fire option listed at all, food on a stove keeps the rule.
@@ -190,9 +212,11 @@ class PartTests(unittest.TestCase):
     def test_the_kitchen_view_writes_out_the_kitchen_without_the_map(self):
         out = self.part(view=True)
         view = out['state']['kitchen']
-        self.assertEqual(set(view), {'clock', 'money', 'dishes', 'orders_waiting', 'orders_served', 'chefs', 'stations', 'plates'}
-                         | ({'floor'} if self.k.ground else set()))
-        self.assertEqual(view['chefs']['you']['holding'], 'tomato (as fetched) ' + self.k.chefs['jeff'].hand.id)
+        self.assertEqual(set(view), {'clock', 'money', 'dishes', 'vessels', 'orders_waiting', 'orders_served', 'chefs',
+                                     'stations', 'plates'} | ({'floor'} if self.k.ground else set()))
+        self.assertEqual(view['vessels'], {'frying pan': 'cooks beef (chopped)'})
+        self.assertEqual(view['chefs']['you']['holding'],
+                         f'tomato (as fetched) {self.k.chefs["jeff"].hand.id} (not chopped yet (2.2 s of chopping))')
         self.assertEqual(set(view['stations']), set(request_parts.SIDES))
         named, empty = set(), set()
         for side in view['stations'].values():
