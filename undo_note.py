@@ -15,9 +15,7 @@ Jeff moved half a burger between two plates on Counters 10 and 11 four times in 
 one-press option that starts by putting the held item down is worked out for
 each put_where place that held that item before; the note names the place. Items compare by id and name (food on a
 plate by the plate's id), so a newly fetched lettuce is not the one passed on, and a station on fire, or chopping or
-washing begun, is part of what lies there. Where Jeff stands is part of the layout too, and a walk is a step that acts
-on it alone: walking back to where he stood, with nothing else changed, is the same return (in a 2026-11-19 level-5
-round he walked between two empty boards 16 times in 35 s while lettuce to chop lay on a counter). Nothing is forbidden or advised; the player sees no note.
+washing begun, is part of what lies there. Nothing is forbidden or advised; the player sees no note.
 
 v1-v3 (below, kept for scripts/undo_note_check.py, which reads logged journals without an engine): when a listed
 option would take back what Jeff's last step put down, or put back what it took, the option's label says so.
@@ -50,7 +48,7 @@ from __future__ import annotations
 
 VERSION = 'undo-note-v4'
 V3_VERSION = 'undo-note-v3'
-HISTORY = 6
+HISTORY = 4
 KEEP = ('continue', 'wait')
 QUESTIONS = ('next_action', 'put_where')
 
@@ -166,7 +164,7 @@ def apply_v3(payload, undo):
 
 
 # v4: the generic check, from the engine.
-NO_STEP = ('continue', 'wait', 'stop', 'throw', 'aim')
+NO_STEP = ('continue', 'wait', 'stop', 'go', 'throw', 'aim')
 
 
 def _name(kitchen, food):
@@ -238,21 +236,15 @@ def layout(kitchen):
     held = kitchen.chefs['jeff'].hand
     if held is not None:
         out['hand'] = f'{_ident(held)}|{_name(kitchen, held)}{_progress(held)}'
-    # Where Jeff stands: only a walk acts on it, so only walks compare it (walking back and forth is a return too).
-    where = kitchen.chefs['jeff'].location
-    if where:
-        out['at'] = f'{where}|' + (english_text(kitchen.stations[where].name) if where in kitchen.stations else
-                                   'the floor at ({},{})'.format(*where.split('_')[1:3]) if str(where).startswith('floor_')
-                                   else str(where))
     return out
 
 
 def record(kitchen, action, first=None, t=None):
     """Jeff's step as it starts, for the history: {'t', 'places' (what the step acts on, his hands included), 'layout'};
     None for what is no step (continue, wait, walking, throwing). first: the put a one-press choice started with."""
-    if action is None or action.kind in NO_STEP:
+    if action is None or action.kind in NO_STEP or action.key.startswith('go '):
         return None
-    places = {'at'} if action.kind == 'go' else {'hand', action.target} | ({first.target} if first is not None else set())
+    places = {'hand', action.target} | ({first.target} if first is not None else set())
     return {'t': round(float(kitchen.time if t is None else t), 2), 'places': sorted(p for p in places if p),
             'layout': layout(kitchen)}
 
@@ -302,10 +294,9 @@ def _where(kitchen, place):
 
 
 def _then(kitchen, past, touched):
-    parts = [f"you at {past['at'].split('|', 1)[1]}"] if 'at' in touched and past.get('at') else []
-    parts += [f"{past[p].split('|', 1)[1]} {_where(kitchen, p)}" for p in sorted(touched, key=lambda p: (p != 'hand', p))
-              if past.get(p) and p != 'at']
-    if 'hand' in touched and not past.get('hand'):
+    parts = [f"{past[p].split('|', 1)[1]} {_where(kitchen, p)}" for p in sorted(touched, key=lambda p: (p != 'hand', p))
+             if past.get(p)]
+    if not past.get('hand'):
         parts.append('your hands empty')
     return ', '.join(parts)
 
@@ -347,8 +338,7 @@ def returns(kitchen, history, keys, put_places=()):
     out = {}
     for key in keys:
         option = actions.get(key)
-        walk = option is not None and option.kind == 'go'
-        if option is None or option.kind in NO_STEP or (('at' not in seen) if walk else (option.target not in seen)):
+        if option is None or option.kind in NO_STEP or key.startswith('go ') or option.target not in seen:
             continue
         places = [None]
         if option.kind in one_press.KINDS and held is not None:
@@ -359,7 +349,7 @@ def returns(kitchen, history, keys, put_places=()):
                 continue
             twin, put_at = done
             after = layout(twin)
-            mine = {'at'} if walk else {'hand', option.target} | ({put_at} if put_at else set())
+            mine = {'hand', option.target} | ({put_at} if put_at else set())
             for j in range(len(history) - 1, -1, -1):
                 if not _linked([h['places'] for h in history[j:]] + [mine]):
                     continue                # not one chain from here; an older step may still link them
