@@ -136,65 +136,6 @@ class ReplayTests(paths.SavePathTests):
         kept = record['conditions']['memory_provenance']
         self.assertEqual((kept['source_round_ids'], kept['context_sha256'], kept['source']), ([source], 'cd' * 32, 'browser-reported'))
 
-    def test_a_round_with_jeffs_plan_keeps_the_condition_and_replays_exactly(self):
-        from test_one_press import plan_trials
-        with self.game.lock:                      # plan mode offered behind a trial switch, as it was
-            self.game.features, self.game.jeff_plan_mode = plan_trials(), 'off'
-        self.assertEqual(self.command('plan', mode='choice')[0], 200)
-        receipt = self.begin_manual_relay()
-        initial = self.game.store.download(receipt['id'], receipt['deletion_token'])
-        self.assertEqual(initial['conditions']['jeff_plan'], {'mode': 'choice', 'steps': 4, 'rules_version': 'plan-v2'})
-        self.human_action()
-        self.assertEqual(self.answer_with(plan={'plan_step_1': 'fetch:beef', 'plan_step_2': 'chop:beef'})[0], 200)
-        self.assertEqual(self.answer_with()[0], 200)
-        self.natural_end()
-        self.assertEqual(self.contribute()[0], 200)
-        record = self.game.store.download(receipt['id'], receipt['deletion_token'])
-        validate_record(record)
-        self.assertEqual(record['conditions']['jeff_plan'], initial['conditions']['jeff_plan'])
-        with tempfile.TemporaryDirectory() as folder:     # the private export package keeps and verifies it too
-            package = Path(folder) / 'private.cjresearch.zip'
-            export_package(self.game.store.path, package)
-            self.assertEqual(verify_package(package)['rounds'], 1)
-        plans = [e['payload']['jeff_plan'] for e in record['events'] if e['type'] == 'ai_request']
-        self.assertIsNone(plans[0]['current'])
-        self.assertEqual(plans[1]['current']['steps'], [{'work': 'fetch:beef', 'done': False}, {'work': 'chop:beef', 'done': False}])
-        requests = list(research_replay.rebuild_requests(record))
-        self.assertEqual({r['status'] for r in requests}, {'verified'})
-        self.assertIn('plan_step_1', requests[0]['rebuilt']['questions'])
-        self.assertIn('plan_keep', requests[1]['rebuilt']['questions'])
-        self.assertEqual(requests[1]['rebuilt']['state']['jeff_plan']['steps'][0]['work'], 'fetch:beef')
-
-    def test_a_round_with_the_rolling_intent_keeps_the_condition_and_replays_exactly(self):
-        # Two-step intent is released but off in the repository since option-links-v3; a server can turn it on.
-        from test_one_press import with_features
-        self.game.feature_source = lambda: with_features(rolling_intent={'on': True}, ask_ahead={'on': False},
-                                                         option_links={'on': False})
-        self.assertEqual(self.command('plan', mode='off')[0], 400)        # released: every round has it, no switch
-        receipt = self.begin_manual_relay()
-        initial = self.game.store.download(receipt['id'], receipt['deletion_token'])
-        self.assertEqual(initial['conditions']['jeff_plan'], {'mode': 'rolling', 'steps': 2, 'rules_version': 'rolling-v3'})
-        self.human_action()
-        self.assertEqual(self.answer_with(plan={'plan_step_1': 'fetch:beef', 'plan_step_2': 'chop:beef'})[0], 200)
-        self.assertEqual(self.answer_with(plan={'plan_step_1': 'take_plate'})[0], 200)
-        self.assertEqual(self.answer_with()[0], 200)
-        self.natural_end()
-        self.assertEqual(self.contribute()[0], 200)
-        record = self.game.store.download(receipt['id'], receipt['deletion_token'])
-        validate_record(record)
-        self.assertEqual(record['conditions']['jeff_plan'], initial['conditions']['jeff_plan'])
-        plans = [e['payload']['jeff_plan'] for e in record['events'] if e['type'] == 'ai_request']
-        self.assertEqual({p['mode'] for p in plans}, {'rolling'})
-        self.assertIsNone(plans[0]['current'])
-        self.assertEqual([s['work'] for s in plans[1]['current']['steps']], ['fetch:beef', 'chop:beef'])
-        self.assertEqual([s['work'] for s in plans[2]['current']['steps']], ['take_plate'])    # each answer replaces the last
-        requests = list(research_replay.rebuild_requests(record))
-        self.assertEqual({r['status'] for r in requests}, {'verified'})
-        for request in requests[:3]:     # asked at every request, never keep or drop
-            self.assertIn('plan_step_1', request['rebuilt']['questions'])
-            self.assertNotIn('plan_keep', request['rebuilt']['questions'])
-        self.assertEqual(requests[2]['rebuilt']['state']['plan_rules_version'], 'rolling-v3')
-
     def test_a_round_keeps_the_released_one_press_and_replays_exactly(self):
         self.assertEqual(self.command('one-press', name='put_then_take', on=False)[0], 400)   # released: no switch
         receipt = self.begin_manual_relay()
@@ -203,7 +144,7 @@ class ReplayTests(paths.SavePathTests):
         self.assertEqual(initial['conditions']['one_press'], condition)
         self.assertEqual(initial['conditions']['features']['one_press'], {'on': True, 'version': one_press.VERSION})
         self.assertEqual({name: value['on'] for name, value in initial['conditions']['features'].items()},
-                         {'one_press': True, 'jeff_plan': False, 'rolling_intent': False, 'undo_note': False,
+                         {'one_press': True, 'undo_note': False,
                           'ask_ahead': True, 'reach_note': False,
                           'option_links': True, 'option_links_partner': False,
                           'split_floor': False, 'burn_note': False,
@@ -221,7 +162,7 @@ class ReplayTests(paths.SavePathTests):
             while self.game.k.chefs['jeff'].job:
                 self.game.k.advance(.05)
         where = lambda criteria, _: {'put_where': next(key for key in criteria if key.startswith('put counter'))}
-        self.assertEqual(self.answer_with(choice=lambda criteria, _: 'put then take ' + board, plan=where)[0], 200)
+        self.assertEqual(self.answer_with(choice=lambda criteria, _: 'put then take ' + board, answers=where)[0], 200)
         self.natural_end()
         self.assertEqual(self.contribute()[0], 200)
         record = self.game.store.download(receipt['id'], receipt['deletion_token'])
@@ -257,7 +198,7 @@ class ReplayTests(paths.SavePathTests):
             while self.game.k.chefs['jeff'].job:
                 self.game.k.advance(.05)
         where = lambda criteria, _: {'put_where': next(key for key in criteria if key.startswith('put counter'))}
-        self.assertEqual(self.answer_with(choice=lambda criteria, _: 'put then take ' + board, plan=where)[0], 200)
+        self.assertEqual(self.answer_with(choice=lambda criteria, _: 'put then take ' + board, answers=where)[0], 200)
         with self.game.lock:
             for _ in range(200):
                 self.game.k.advance(.05)
@@ -355,9 +296,9 @@ class ReplayTests(paths.SavePathTests):
 
     def test_a_request_asked_ahead_replays_exactly(self):
         import ask_ahead
-        from test_one_press import plan_trials
-        with self.game.lock:                      # ask_ahead only asks when no plan mode is on
-            self.game.features, self.game.jeff_plan_mode = plan_trials(ask_ahead={'on': True}, undo_note={'on': False}), 'off'
+        from test_one_press import scripted_features
+        with self.game.lock:
+            self.game.features = scripted_features(ask_ahead={'on': True}, undo_note={'on': False})
         receipt = self.begin_manual_relay()
         with self.game.lock:
             self.game.ai.ask_ahead = True

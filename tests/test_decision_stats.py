@@ -8,7 +8,6 @@ from unittest.mock import patch
 
 import play
 import reference_policy
-from harness import PLAN_KEEP_QUESTION, PLAN_STEP_QUESTIONS, plan_answer, plan_questions
 from kitchen import load_config
 from levels import level_config
 from scripts.decision_stats import main, report
@@ -46,29 +45,22 @@ class Scripted(SpatialJevClient):
         close = scripted is not None
         answer = {'choice': choice, 'sprint': False, 'confidence': None, 'model': 'test-model', 'usage': {}, 'latency': 0.0,
                   'probabilities': {choice: .5, other: .48} if close else {choice: .8, other: .1}}
-        if PLAN_STEP_QUESTIONS[0] in plan_questions(payload):
-            answer.update(plan_answer({'plan_step_1': 'fetch:beef', 'plan_step_2': 'chop:beef'}, payload))
-        elif PLAN_KEEP_QUESTION in plan_questions(payload):
-            answer.update(plan_answer({PLAN_KEEP_QUESTION: 'keep'}, payload))
         return answer
 
 
-def play_round(folder, seconds=20.0, plan=True, ask_on_step_end=False):
+def play_round(folder, seconds=20.0, ask_on_step_end=False):
     with patch.dict('os.environ', {'CHEFJEFF_LOG_DIR': str(Path(folder, 'logs'))}):
         # The scripted timeline (the round's end stops Jeff mid-action) was written for the request timing
         # without ai_ask_on_step_end; only the step gap tests turn it on.
         config = {**level_config(load_config(), 'level-2'), 'ai_ask_on_step_end': ask_on_step_end}
         # The scripted timeline was written without the one-press options (released since); rounds with them are
         # counted apart and tested in test_one_press.StatsTests.
-        # The scripted timeline was also written without two-step intent (released since): plan modes on trial, off.
         import features
-        from test_one_press import plan_trials
-        off = plan_trials(one_press={'on': False})
+        from test_one_press import scripted_features
+        off = scripted_features(one_press={'on': False})
         with patch.object(features, 'current', lambda: off):
             game = GameSession(config, client_factory=lambda c: Scripted(c, lambda: game),
                                journal_factory=play.Journal, kitchen_factory=SpatialKitchen, log_prefix='whitebox')
-        if plan:
-            game._command('/api/plan', {'mode': 'choice'})
         clock = [1000.0]
         with patch('jev.time.monotonic', lambda: clock[0]), patch('jev.threading.Thread', Inline):
             game.last_tick = game.last_seen = clock[0]
@@ -110,20 +102,6 @@ class RealJournalTests(unittest.TestCase):
         self.assertEqual(actions['replaced_by_own_next_choice'], 2)
         self.assertEqual(actions['back_and_forth'], 1)
         self.assertEqual((actions['knocked_off'], actions['other_interruptions']), (0, 1))   # the round's end stops Jeff
-
-    def test_the_plan_counts_follow_the_requests(self):
-        plan = self.model['plan']
-        requests = {r['request_id']: r for r in self.rows if r['kind'] == 'ai_request'}
-        current = lambda r: r['jeff_plan']['current']
-        set_at = [current(r)['set_at'] for r in requests.values() if current(r)]
-        self.assertEqual((plan['rounds'], plan['older_rules_rounds'], plan['set']), (1, 0, len(set(set_at))))
-        self.assertGreater(plan['set'], 0)
-        self.assertEqual(plan['ended'], dict(Counter(r['plan_ended'] for r in requests.values() if r['plan_ended'])))
-        answers = [r for r in self.rows if r['kind'] == 'ai_response']
-        held = [r for r in answers if current(requests[r['request_id']])]
-        self.assertEqual(plan['decisions_with_plan'], len(held))
-        self.assertEqual(plan['decisions_without_plan'], len(answers) - len(held))
-        self.assertEqual(plan['wait_share_with_plan'], round(sum(r['choice'] == 'wait' for r in held) / len(held), 4))
 
     def test_uncertainty_gives_intervals_beside_the_counts(self):
         sure = self.model['uncertainty']
@@ -384,9 +362,6 @@ class ResearchRecordTests(paths.SavePathTests):
         other = next(key for key in criteria if key != choice)
         body = {'id': pending['id'], 'choice': choice, 'sprint': False, 'usage': {'input_tokens': 1, 'output_tokens': 1},
                 'probabilities': {choice: top, other: second}}
-        asked = plan_questions(pending['payload'])
-        if asked:
-            body['plan'] = {'plan_step_1': 'fetch:beef'} if PLAN_STEP_QUESTIONS[0] in asked else {PLAN_KEEP_QUESTION: 'keep'}
         self.assertEqual(self.request('/api/model/result', body, self.token)[0], 200)
         deadline = time.monotonic() + 2
         while self.game.ai.q.empty() and time.monotonic() < deadline:
@@ -395,10 +370,9 @@ class ResearchRecordTests(paths.SavePathTests):
             self.game.ai.poll()
 
     def test_a_record_and_its_package_give_the_same_counts(self):
-        from test_one_press import plan_trials
-        with self.game.lock:                      # plan mode offered behind a trial switch, as it was
-            self.game.features, self.game.jeff_plan_mode = plan_trials(), 'off'
-        self.assertEqual(self.command('plan', mode='choice')[0], 200)
+        from test_one_press import scripted_features
+        with self.game.lock:
+            self.game.features = scripted_features()
         with self.game.lock:
             self.game.stop_event.set()
             self.game.wake.set()
@@ -442,10 +416,7 @@ class ResearchRecordTests(paths.SavePathTests):
         self.assertEqual((m['actions']['replaced_by_own_next_choice'], m['actions']['back_and_forth']), (2, 1))
         self.assertEqual(record['conditions']['request_policy']['ai_ask_on_step_end'], True)    # config.json
         self.assertEqual(set(m['step_gaps']), {'ask_on_step_end'})
-        plan = m['plan']
-        self.assertEqual(plan['set'], 1)          # answered with the first request, carried by the second and third
-        self.assertEqual((plan['decisions_with_plan'], plan['decisions_without_plan']), (2, 1))
-        self.assertEqual(plan['ended'], {})
+        self.assertNotIn('plan', m)                # no plan mode since 2026-11-20
 
     def test_an_expired_package_is_refused(self):
         receipt = self.play()

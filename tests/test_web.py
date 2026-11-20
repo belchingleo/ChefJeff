@@ -36,7 +36,7 @@ class WebSessionTests(unittest.TestCase):
         a=next(a for a in g.k.actions('human') if a.key==key)
         return self.command(g,'action',action=a.key,expected=list(a.expected))
     def test_scripts_compose_with_the_switches_a_new_round_has(self):
-        # model_rounds.estimate and plan_probe build Jeff's request outside a session (features.compose_options):
+        # model_rounds.estimate builds Jeff's request outside a session (features.compose_options):
         # with the default switches they must ask what a started round's decision loop asks.
         import features
         g=self.make();self.start(g)

@@ -71,32 +71,26 @@ console.log(JSON.stringify(JSON.parse(process.argv[1]).map(build)));
 """
         without = deepcopy(PAYLOAD)
         del without['questions']['sprint']
-        asking = deepcopy(PAYLOAD)
-        for n in range(1, 5):
-            asking['questions'][f'plan_step_{n}'] = {'type': 'choice', 'criteria': {'chop:lettuce': 'Chop lettuce', 'serve': 'Serve',
-                                                                                   **({'none': 'No further step'} if n > 1 else {})}}
-        holding = deepcopy(PAYLOAD)
-        holding['questions']['plan_keep'] = {'type': 'choice', 'criteria': {'keep': 'Keep this plan', 'drop': 'Drop this plan'}}
-        payloads = [PAYLOAD, without, asking, holding]
+        putting = deepcopy(PAYLOAD)
+        putting['questions']['put_where'] = {'type': 'choice', 'criteria': {'put counter2': 'Put it on Counter 2',
+                                                                            'put b1': 'Put it on Board 1'}}
+        payloads = [PAYLOAD, without, putting]
         result = subprocess.run(['node', '-e', js, json.dumps(payloads)], cwd=root, capture_output=True, text=True, check=True)
         self.assertEqual(json.loads(result.stdout), [zhipu_system(p) for p in payloads])
 
-    def test_browser_chat_prompt_adds_the_same_plan_sentence(self):
+    def test_browser_chat_prompt_adds_the_same_put_where_sentence(self):
         import re
-        from harness import PLAN_CHAT_RULE
         source = (Path(__file__).resolve().parents[1] / 'hosted' / 'browser-agent.js').read_text()
-        self.assertEqual(re.findall(r"const PLAN_CHAT_RULE = '([^']*)';", source), [PLAN_CHAT_RULE])
+        self.assertNotIn('PLAN_CHAT_RULE', source)
         from harness import PUT_WHERE_CHAT_RULE
         self.assertEqual(re.findall(r"const PUT_WHERE_CHAT_RULE = '([^']*)';", source), [PUT_WHERE_CHAT_RULE])
 
-    def test_browser_reads_the_same_plan_questions(self):
+    def test_browser_reads_the_same_extra_questions(self):
         import re
-        from harness import PLAN_KEEP_QUESTION, PLAN_STEP_QUESTIONS
         source = (Path(__file__).resolve().parents[1] / 'hosted' / 'browser-agent.js').read_text()
-        listed = re.findall(r"const PLAN_QUESTIONS = \[([^\]]*)\];", source)
-        import one_press      # the same as harness.choice_questions: the plan's questions, then put_where
-        self.assertEqual([re.findall(r"'([^']*)'", line) for line in listed],
-                         [[*PLAN_STEP_QUESTIONS, PLAN_KEEP_QUESTION, one_press.PUT_WHERE]])
+        listed = re.findall(r"const EXTRA_QUESTIONS = \[([^\]]*)\];", source)
+        import one_press      # the same as harness.choice_questions: put_where, when asked
+        self.assertEqual([re.findall(r"'([^']*)'", line) for line in listed], [[one_press.PUT_WHERE]])
 
 
 if __name__ == '__main__':

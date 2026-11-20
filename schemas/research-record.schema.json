@@ -401,7 +401,7 @@
           ]
         },
         "jeff_plan": {
-          "description": "Only with Jeff's plan switch on for this round.",
+          "description": "Rounds from before 2026-11-20 only, with a plan mode (jeff_plan or rolling_intent) on; the plan modes and their code are gone, so these rounds' requests are not rebuilt.",
           "type": "object",
           "properties": {
             "mode": {

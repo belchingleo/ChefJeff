@@ -213,8 +213,6 @@ def payload(kind, data, k):
                    'recent_decisions': deepcopy(body.get('state', {}).get('recent_decisions', [])),
                    'player_communication': deepcopy(body.get('state', {}).get('player_communication')),
                    'memory_input': memory_input(body),
-                   # Only rounds with Jeff's plan switch on carry it (harness.Plan.input).
-                   **({'jeff_plan': deepcopy(data['jeff_plan'])} if data.get('jeff_plan') is not None else {}),
                    # Only rounds with a one-press switch on carry them (one_press.flags).
                    **({'one_press': deepcopy(data['one_press'])} if data.get('one_press') else {}),
                    # Only rounds with the undo_note switch on carry Jeff's last step (undo_note.step).
@@ -277,15 +275,6 @@ def one_press_condition(session):
     return one_press.condition(getattr(getattr(session, 'ai', None), 'one_press', None))
 
 
-def plan_condition(session):
-    """Jeff's plan switch as this round started with it; nothing when it was off."""
-    plan = getattr(getattr(session, 'ai', None), 'plan', None)
-    if plan is None:
-        return {}
-    from harness import plan_condition as condition
-    return {'jeff_plan': condition(plan.mode, plan.steps)}
-
-
 def project_event(record):
     result = {key: deepcopy(record[key]) for key in ('seq', 'type', 'source', 'game_time_ms',
               'elapsed_wall_ms', 'clock_id', 'payload')}
@@ -328,7 +317,7 @@ def record(session):
             'config_projection_hash': 'sha256:' + cc.sha256(log.research_config),
             'conditions': {'cross_round_memory': memory_condition(session),
                            'memory_provenance': deepcopy(getattr(session, 'round_memory_provenance', None)),
-                           **plan_condition(session), **one_press_condition(session), **features_condition(session),
+                           **one_press_condition(session), **features_condition(session),
                            'engine_semantics': k.rules.semantics,
                            'rules_version': _rules_version(),
                            'input_language': _input_language(),

@@ -100,14 +100,14 @@ class JevClient:
         sprint_answer=result.get('answers',{}).get('sprint',{})
         if 'sprint' in payload['questions'] and (sprint_answer.get('type')!='choice' or sprint_answer.get('choice') not in ('yes','no')):
             raise RuntimeError('Invalid sprint decision')
-        # A missing or unknown plan answer only leaves Jeff without a plan (or keeps it); the action stands.
-        plan = harness.choice_answer(harness.choices(result.get('answers'), harness.choice_questions(payload)), payload)
+        # A missing or unknown put_where answer only leaves the one-press choice to its default place; the action stands.
+        extra = harness.choice_answer(harness.choices(result.get('answers'), harness.choice_questions(payload)), payload)
         return {"sprint_answer":sprint_answer, "sprint":sprint_answer.get('choice')=='yes', "choice": answer["choice"], "confidence": answer.get("confidence"),
                 "probabilities": answer.get("probabilities", {}), "model": result.get("model"),
-                "usage": result.get("usage", {}), "latency": time.monotonic()-start, **plan}
+                "usage": result.get("usage", {}), "latency": time.monotonic()-start, **extra}
 
 
-def compose_payload(client, kitchen, state, actions, recent_decisions, communication, memory=NO_MEMORY, plan=None, one_press=None,
+def compose_payload(client, kitchen, state, actions, recent_decisions, communication, memory=NO_MEMORY, one_press=None,
                     undo=None, reach=False, names=False, links=False, split=False, burn=False,
                     serve_note=False, steps=False, clear=False, walk=False,
                     english=False, plate=False):
@@ -124,11 +124,11 @@ def compose_payload(client, kitchen, state, actions, recent_decisions, communica
     whether engine_english is (engine_english.py: the engine's own English where the catalog garbles it), plate
     whether plate_names is (plate_names.py: a plating option says what the plate there holds)."""
     with engine_english.writing(english):
-        return _compose(client, kitchen, state, actions, recent_decisions, communication, memory, plan, one_press,
+        return _compose(client, kitchen, state, actions, recent_decisions, communication, memory, one_press,
                         undo, reach, names, links, split, burn, serve_note, steps, clear, walk, plate)
 
 
-def _compose(client, kitchen, state, actions, recent_decisions, communication, memory, plan, one_press,
+def _compose(client, kitchen, state, actions, recent_decisions, communication, memory, one_press,
              undo, reach, names, links, split, burn, serve_note, steps, clear, walk, plate):
     if one_press:
         import one_press as presses
@@ -138,7 +138,7 @@ def _compose(client, kitchen, state, actions, recent_decisions, communication, m
         # The food_names trial (food_names.py): every food named from its ingredient and state, labels included.
         import food_names
         state, actions = food_names.state(state), food_names.labels(kitchen, actions, one_press)
-    payload = harness.compose(client.payload(state, actions), kitchen, recent_decisions, communication, memory, plan, one_press,
+    payload = harness.compose(client.payload(state, actions), kitchen, recent_decisions, communication, memory, one_press,
                               undo, reach, names, split, burn, serve_note, steps, clear)
     if undo is not None:
         # undo-note-v4: worked out on forks of this kitchen, before the links table (live and in replay alike).
@@ -195,11 +195,6 @@ class DecisionLoop:
         self.deferred_count=0
         self.call_limit = self.k.c.get('ai_max_calls', 200)
         self.budget_notified = False
-        # Jeff's plan (harness.Plan) when the round's plan switch is on.
-        self.plan = None
-        self.plan_work = {}         # action id -> the work item it does, for Jeff's started actions
-        self.plan_cursor = 0        # engine events already checked for Jeff's finished actions
-        self.plan_due = False       # the plan ended and Jeff has not been asked for a new one since
         # ai_ask_on_step_end: when Jeff's step ends, ask at once instead of waiting out ai_min_interval,
         # and do not start a request his current step will outlast (its reply would be discarded as stale
         # and, while on its way, would hold back the question about his next step).
@@ -256,10 +251,10 @@ class DecisionLoop:
 
     def can_ask_ahead(self, job):
         """Whether ask_ahead may ask about the end of this step: on, not asked for it yet, no one-press steps left to
-        come, no plan (its input follows Jeff's own steps), and an ordinary step. The undo note may be on (undo-note-v2):
+        come, and an ordinary step. The undo note may be on (undo-note-v2):
         the step under way, kept as Jeff's last step when it started, is his last step at the moment asked about."""
         return (self.ask_ahead and self.ahead_job != job.id and (self.chain is None or not self.chain['steps'])
-                and self.plan is None and job.action.kind not in ('continue', 'wait'))
+                and job.action.kind not in ('continue', 'wait'))
 
     def outlasts_reply(self, job):
         """Whether Jeff's current step will end before a request sent now could be answered."""
@@ -468,8 +463,6 @@ class DecisionLoop:
                     fresh = (not self.closed and enabled and not self.k.ended and context["epoch"] == self.epoch
                              and now-context["sent"] <= self.k.c["ai_max_response_age"]
                              and context["job_id"] == current_job)
-                # The work an action does is read from the kitchen as it starts (what is in hand, on the board).
-                work = harness.work_item(decision, self.k.snapshot()) if self.plan and fresh and harness.does_work(decision) else None
                 pressed = None      # how a one-press choice started: its first step and whether put_where fell back
                 if fresh and decision.kind in one_press.KINDS:
                     applied, message, pressed = self.start_chain(decision, result.get(one_press.PUT_WHERE))
@@ -488,15 +481,7 @@ class DecisionLoop:
                         note = engine_english.ahead_dropped(context['ahead_check'])
                     elif fresh and decision.kind in one_press.KINDS and pressed and pressed['first'] is None:
                         note = engine_english.CHAIN_NOT_NOW
-                if applied and work and self.k.chefs["jeff"].job:
-                    self.plan_work[self.k.chefs["jeff"].job.id] = work
                 sprint_applied=bool(applied and result.get('sprint') is True and self.port.sprint())
-                # A plan answer counts like the action: only from a fresh reply, and only for the questions asked.
-                plan_set = plan_dropped = False
-                if self.plan and fresh:
-                    plan_set = self.plan.accept(result.get('plan'), self.k.time, context.get('plan_offered'), context.get('preference'))
-                    plan_dropped = self.plan.keep(result.get('plan'))
-                    self.plan_due = self.plan_due or plan_dropped
                 if not fresh:self.stale_count += 1
                 elif not applied:self.rejected_count += 1
                 chef_job = self.k.chefs["jeff"].job
@@ -509,7 +494,7 @@ class DecisionLoop:
                     self.undo = undo_note.remember(self.undo, undo_note.record(
                         self.k, listed.get(result["choice"]), listed.get(first) if first else None, self.k.time))
                 self.log("ai_response", {"request_id": context["id"], **result, "applied": applied, "execution": message, "sprint_applied":sprint_applied,
-                                         "fresh": fresh, **({"plan_set": plan_set, "plan_dropped": plan_dropped} if self.plan else {}),
+                                         "fresh": fresh,
                                          **({"one_press": pressed} if pressed else {}),
                                          **({"ask_ahead": {'result': 'applied' if applied else 'discarded',
                                                            'reason': None if applied else context['ahead_check'] or 'not_fresh'}}
@@ -531,16 +516,6 @@ class DecisionLoop:
                     self.last_revision = -1
                     if context.get('ahead') and self.k.chefs['jeff'].job is None:
                         self.step_ended = True      # dropped at the end of the step: ask at once, as today
-        if self.plan:
-            # Jeff's finished actions tick his plan; the step that finishes it asks for a new one at once.
-            for event in self.k.events[self.plan_cursor:]:
-                if event.get('actor') != 'jeff' or event.get('action_id') not in self.plan_work:
-                    continue
-                if event.get('kind') == 'action_done':
-                    self.plan_due = self.plan.tick(self.plan_work.pop(event['action_id'])) or self.plan_due
-                elif event.get('kind') == 'interrupted':
-                    self.plan_work.pop(event['action_id'])
-            self.plan_cursor = len(self.k.events)
         # A one-press chain goes on before anything else looks at Jeff's step, so its steps read as one.
         self.advance_chain()
         job = self.k.chefs["jeff"].job
@@ -561,27 +536,25 @@ class DecisionLoop:
             return
         age = now-self.last_request
         step_end = self.ask_on_step_end and self.step_ended
-        # A plan that just ended asks for the next one like a finished step does.
-        plan_end = self.ask_on_step_end and self.plan_due
         # Ask ahead: the moment a reply would come only after Jeff's step ends is itself a reason to ask (once per step),
         # so the answer about his next step arrives as this one ends.
         ahead_now = (self.ask_on_step_end and job is not None and self.held is None and self.can_ask_ahead(job)
                      and self.outlasts_reply(job))
-        if age < self.k.c["ai_min_interval"] and not (step_end or plan_end or ahead_now):
+        if age < self.k.c["ai_min_interval"] and not (step_end or ahead_now):
             return
         urgency = self.urgency()
         changed = self.k.revision != self.last_revision
         urgent = urgency != self.last_urgency
-        if not (changed or urgent or step_end or self.plan_due or ahead_now
+        if not (changed or urgent or step_end or ahead_now
                 or age >= self.k.c["ai_refresh_seconds"]):
             return
         urgent_now = urgent
-        # Rolling intent or a one-press chain: a change of urgency (an order or a pan crossing a countdown band) asks even then.
-        rolling_urgent = urgent_now and ((self.plan is not None and self.plan.mode == 'rolling') or self.chain is not None)
+        # A one-press chain: a change of urgency (an order or a pan crossing a countdown band) asks even then.
+        chain_urgent = urgent_now and self.chain is not None
         source = self.k             # the kitchen the request describes: this one, or with ask_ahead its fork at the step's end
         if self.held is not None:
             return                  # an answer about the next step is waiting for this one to end
-        if self.ask_on_step_end and job is not None and self.outlasts_reply(job) and not rolling_urgent:
+        if self.ask_on_step_end and job is not None and self.outlasts_reply(job) and not chain_urgent:
             # The answer would come after this step ends and be discarded; ask when it ends instead, or with
             # ask_ahead ask now about the kitchen as it will be when the step ends (once per step).
             if not self.can_ask_ahead(job):
@@ -624,20 +597,13 @@ class DecisionLoop:
                     self.log('player_message_delivery',{'message_id':message['id'],'request_id':self.calls,
                                                         't':round(self.k.time,3),'meaning':'included in request, not proof of understanding'})
                     message['first_request_id']=self.calls
-        plan = plan_ended = None
-        if self.plan:
-            context['preference'] = next((m['id'] for m in reversed(messages) if m['kind'] == 'preference'), None)
-            plan_ended = self.plan.check(context['preference'])
-            plan = self.plan.input(state)
-            context['plan_offered'] = plan['options']
         payload = compose_payload(self.client, source, state, actions, self.recent_decisions, communication,
-                                  self.cooperation_memory if hasattr(self, 'cooperation_memory') else NO_MEMORY, plan, self.one_press,
+                                  self.cooperation_memory if hasattr(self, 'cooperation_memory') else NO_MEMORY, self.one_press,
                                   deepcopy(self.undo), self.reach, self.names, split=self.split,
                                   burn=self.burn, serve_note=self.serve_note,
                                   steps=self.steps, clear=self.clear, walk=self.walk,
                                   english=self.english, plate=self.plate)
         record = {"request_id": self.calls, "triggers": causes, "observed_state_seq": self.k.event_seq,
-                  **({"jeff_plan": plan, "plan_ended": plan_ended} if plan is not None else {}),
                   **({"one_press": dict(self.one_press)} if self.one_press else {}),
                   **({"undo_note": deepcopy(self.undo)} if self.undo is not None else {}),
                   **({"ask_ahead": ahead} if ahead else {})}
@@ -645,7 +611,6 @@ class DecisionLoop:
         self.last_revision = self.k.revision
         self.last_urgency = urgency
         self.step_ended = False
-        self.plan_due = False
         self.inflight = True
         if not self.links:
             self.send(context, payload, record)

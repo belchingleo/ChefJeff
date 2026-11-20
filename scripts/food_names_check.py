@@ -94,7 +94,7 @@ def rebuild(k, row, reach, names):
             return None
     payload = compose_payload(SpatialJevClient(k.c, key='food-names-check-no-credential'), source, source.snapshot(),
                               source.actions('jeff'), state.get('recent_decisions', []), state.get('player_communication'),
-                              state['past_episodes'] if 'past_episodes' in state else NO_MEMORY, row.get('jeff_plan'),
+                              state['past_episodes'] if 'past_episodes' in state else NO_MEMORY,
                               row.get('one_press'), row.get('undo_note'), reach, names)
     # The model field is the client's (CompatibleClient and DecisionClient put the player's model there), not the
     # kitchen's: take it from the logged request, so rounds with any model rebuild exactly, not only Jev's.

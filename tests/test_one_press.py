@@ -13,7 +13,7 @@ from jev import DecisionLoop, NO_MEMORY, compose_payload
 from kitchen import Food, load_config
 from levels import level_config
 from spatial_kitchen import SpatialKitchen
-from test_jeff_plan import Inline, Reply
+from loop_helpers import Inline, Reply
 from test_web import FakeJournal
 from web_server import GameSession
 from whitebox_server import SpatialJevClient
@@ -85,7 +85,7 @@ class OptionTests(unittest.TestCase):
         self.assertEqual(target, 'p1')
         self.assertIn('lift_pot', kinds)
         criteria = compose_payload(SpatialJevClient(k.c, key='x'), k, k.snapshot(), k.actions('jeff'), [], None, NO_MEMORY,
-                                   None, BOTH)['questions']['next_action']['criteria']
+                                   BOTH)['questions']['next_action']['criteria']
         self.assertEqual(criteria['put then take p1'], 'Put the held Bread where put_where says, then lift the frying pan '
                                                        'from Stove 1 (stops heating off the stove; occupies your hands)')
         self.assertEqual(one_press.VERSION, 'one-press-v5')
@@ -125,7 +125,7 @@ class OptionTests(unittest.TestCase):
         loop = DecisionLoop(k, Answering(k.c, [{'choice': 'put then fetch beef', one_press.PUT_WHERE: 'put counter16'}]),
                             lambda kind, data: None, lambda _: None)
         loop.one_press = BOTH
-        payload = compose_payload(loop.client, k, k.snapshot(), k.actions('jeff'), [], None, NO_MEMORY, None, BOTH)
+        payload = compose_payload(loop.client, k, k.snapshot(), k.actions('jeff'), [], None, NO_MEMORY, BOTH)
         criteria = payload['questions']['next_action']['criteria']
         self.assertEqual(criteria['put then fetch beef'], 'Put the held Bread where put_where says, then fetch Raw meat from Fridge')
         self.assertIn('put counter16', payload['questions']['put_where']['criteria'])
@@ -169,7 +169,7 @@ class OptionTests(unittest.TestCase):
     def test_the_request_asks_where_only_with_a_one_press_option_and_full_hands(self):
         k = bread_and_lettuce()
         client = SpatialJevClient(k.c, key='x')
-        payload = compose_payload(client, k, k.snapshot(), k.actions('jeff'), [], None, NO_MEMORY, None, BOTH)
+        payload = compose_payload(client, k, k.snapshot(), k.actions('jeff'), [], None, NO_MEMORY, BOTH)
         criteria = payload['questions']['next_action']['criteria']
         self.assertEqual(criteria['put then take b1'], 'Put the held Bread where put_where says, then take Lettuce from Board 1')
         self.assertEqual(criteria['put then chop b1'], f'Put the held Bread where put_where says, then chop Lettuce at Board 1 ({k.rules.chop_work("lettuce"):.1f}s left)')
@@ -186,7 +186,7 @@ class OptionTests(unittest.TestCase):
 
     def test_answers_are_read_alike_by_every_client(self):
         k = bread_and_lettuce()
-        payload = compose_payload(SpatialJevClient(k.c, key='x'), k, k.snapshot(), k.actions('jeff'), [], None, NO_MEMORY, None, BOTH)
+        payload = compose_payload(SpatialJevClient(k.c, key='x'), k, k.snapshot(), k.actions('jeff'), [], None, NO_MEMORY, BOTH)
         place = next(iter(payload['questions']['put_where']['criteria']))
         self.assertEqual(harness.choice_questions(payload), ['put_where'])
         self.assertEqual(harness.choice_answer({'put_where': place}, payload), {'put_where': place})
@@ -212,7 +212,6 @@ class OptionTests(unittest.TestCase):
             answer = CompatibleClient(k.c, setting).ask(payload)
         self.assertEqual(answer['put_where'], place)
         self.assertTrue(sent[0]['messages'][0]['content'].endswith(harness.PUT_WHERE_CHAT_RULE))
-        self.assertNotIn(harness.PLAN_CHAT_RULE, sent[0]['messages'][0]['content'])
 
 
 class ChainTests(unittest.TestCase):
@@ -310,14 +309,10 @@ def with_features(**changes):
     return features.check(data)
 
 
-def plan_trials(**changes):
-    """The repository's features with both plan modes back on trial behind a player switch, off: for tests of the
-    switch, and of rounds played without a plan (two-step intent is released and on in the repository)."""
-    base = {'jeff_plan': {'stage': 'trial', 'on': False, 'player_switch': True},
-            'rolling_intent': {'stage': 'trial', 'on': False, 'player_switch': True},
-            # The scripted rounds these tests play were timed with no request asked ahead and no step-hint table
-            # (both on in the repository since option-links-v3); tests of those switches set them themselves.
-            'ask_ahead': {'on': False}, 'option_links': {'on': False}}
+def scripted_features(**changes):
+    """The repository's features for the scripted rounds these tests play: they were timed with no request asked ahead
+    and no step-hint table (both on in the repository since option-links-v3); tests of those switches set them."""
+    base = {'ask_ahead': {'on': False}, 'option_links': {'on': False}}
     for name, fields in changes.items():
         base[name] = {**base.get(name, {}), **fields}
     return with_features(**base)
@@ -346,8 +341,6 @@ class SessionTests(unittest.TestCase):
         row = self.start_row(g)
         self.assertEqual(row['one_press'], {'put_then_take': True, 'wash_from_returns': True, 'version': one_press.VERSION})
         self.assertEqual(row['features'], {'one_press': {'on': True, 'version': one_press.VERSION},
-                                           'jeff_plan': {'on': False, 'version': 'plan-v2'},
-                                           'rolling_intent': {'on': False, 'version': 'rolling-v3'},
                                            'undo_note': {'on': False, 'version': 'undo-note-v4'},
                                            'ask_ahead': {'on': True, 'version': 'ask-ahead-v2'},
                                            'reach_note': {'on': False, 'version': 'reach-v1'},
@@ -359,7 +352,7 @@ class SessionTests(unittest.TestCase):
                                            'walk_note': {'on': False, 'version': 'walk-note-v1'},
                                            'clear_text': {'on': True, 'version': 'clear-text-v1'},
                                            'option_notes': {'on': False, 'version': 'option-notes-v3'}})
-        self.assertNotIn('jeff_plan', row)                 # two-step intent is off in the repository since option-links-v3
+        self.assertNotIn('jeff_plan', row)                 # the plan modes went 2026-11-20
 
     def test_the_file_rolls_it_back(self):
         g = self.game(with_features(one_press={'on': False}))
@@ -369,37 +362,16 @@ class SessionTests(unittest.TestCase):
         self.assertNotIn('one_press', row)
         self.assertEqual(row['features']['one_press'], {'on': False, 'version': one_press.VERSION})
 
-    def test_two_step_intent_is_released_with_no_plan_switch(self):
-        g = self.game(with_features(rolling_intent={'on': True}))        # released, off in the repository; a server can turn it on
-        self.assertEqual(g.communication_state()['jeff_plan'], {'mode': 'rolling', 'available': [], 'editable': False, 'current': None})
-        for mode in ('off', 'choice', 'rolling'):
-            self.assertEqual(g._command('/api/plan', {'mode': mode})[0], 400)
-        self.assertEqual(g._command('/api/start', {})[0], 200)
-        self.assertEqual((g.ai.plan.mode, g.ai.plan.steps), ('rolling', 2))
-
-    def test_the_plan_modes_offered_follow_their_trial_switches(self):
-        g = self.game(plan_trials())
-        self.assertEqual(g.communication_state()['jeff_plan']['available'], ['choice', 'rolling'])
-        g = self.game(plan_trials(jeff_plan={'player_switch': False}))
-        state = g.communication_state()['jeff_plan']
-        self.assertEqual((state['available'], state['mode']), (['rolling'], 'off'))
-        self.assertEqual(g._command('/api/plan', {'mode': 'choice'})[0], 400)
-        self.assertEqual(g._command('/api/plan', {'mode': 'rolling'})[0], 200)
-        g = self.game(plan_trials(rolling_intent={'on': True}))                     # a trial that is on is the default
-        self.assertEqual(g.communication_state()['jeff_plan']['mode'], 'rolling')
-        g = self.game(plan_trials(jeff_plan={'player_switch': False}, rolling_intent={'player_switch': False}))
-        self.assertEqual(g.communication_state()['jeff_plan']['editable'], False)
-
 
 class FeaturesFileTests(unittest.TestCase):
     def test_the_repository_file_is_valid_and_released_one_press_is_on(self):
         import features
         value = features.load()
         self.assertEqual(value['one_press'], {'stage': 'release', 'on': True, 'player_switch': False, 'version': one_press.VERSION})
-        self.assertEqual(value['rolling_intent'], {'stage': 'release', 'on': False, 'player_switch': False, 'version': 'rolling-v3'})
-        self.assertEqual(value['jeff_plan'], {'stage': 'trial', 'on': False, 'player_switch': False, 'version': 'plan-v2'})
+        self.assertNotIn('rolling_intent', value)
+        self.assertNotIn('jeff_plan', value)
         self.assertEqual({name: v['stage'] for name, v in value.items()},
-                         {'one_press': 'release', 'jeff_plan': 'trial', 'rolling_intent': 'release', 'undo_note': 'trial',
+                         {'one_press': 'release', 'undo_note': 'trial',
                           'ask_ahead': 'trial', 'reach_note': 'trial',
                           'option_links': 'trial', 'option_links_partner': 'trial',
                           'split_floor': 'trial', 'burn_note': 'trial',
@@ -416,8 +388,8 @@ class FeaturesFileTests(unittest.TestCase):
             {**good, 'one_press': {**good['one_press'], 'stage': 'beta'}},
             {**good, 'one_press': {**good['one_press'], 'on': 'yes'}},
             {**good, 'one_press': {**good['one_press'], 'player_switch': True}},          # released: no switch
-            {**good, 'jeff_plan': {**good['jeff_plan'], 'on': True}, 'rolling_intent': {**good['rolling_intent'], 'on': True}},
-            {**good, 'jeff_plan': {**good['jeff_plan'], 'colour': 'red'}},
+            {**good, 'jeff_plan': {'stage': 'trial', 'on': False, 'version': 'plan-v2'}},   # removed 2026-11-20
+            {**good, 'walk_note': {**good['walk_note'], 'colour': 'red'}},
         ]
         for data in broken:
             with self.subTest(data=data), self.assertRaises(ValueError):

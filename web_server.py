@@ -15,7 +15,6 @@ import uuid
 
 from kitchen import Kitchen, load_config
 from jev import JevClient, DecisionLoop
-from harness import Plan, PLAN_MODES, plan_condition
 import environment
 import features
 import one_press
@@ -43,20 +42,6 @@ PLAYER_MESSAGES = {
     'wash': 'Chef human will wash the dishes.',
     'mistake': 'You made a mistake. Please reassess your recent or current action.'
 }
-
-
-WORK_LABELS = {'fetch': ('取{}', 'Fetch {}'), 'chop': ('切{}', 'Chop {}'), 'cook': ('{}下锅', 'Cook {}'), 'plate': ('{}装盘', 'Plate {}'),
-               'take_plate': ('拿干净盘子', 'Take a clean plate'), 'serve': ('出餐', 'Serve'),
-               'collect_plates': ('收脏盘', 'Collect dirty plates'), 'wash_plates': ('洗盘子', 'Wash a plate')}
-
-
-def work_label(work, items):
-    """A plan step as the player reads it (harness.work_items keys): Chinese with the level's ingredient names, and English."""
-    kind, _, name = work.partition(':')
-    if kind not in WORK_LABELS:
-        return {'label': work, 'label_en': work}
-    zh, en = WORK_LABELS[kind]
-    return {'label': zh.format((items.get(name) or {}).get('name', name)), 'label_en': en.format(name)}
 
 
 class GameSession:
@@ -107,11 +92,6 @@ class GameSession:
         # round starts (next_features), so a running round keeps its own. Assigning self.features pins a set.
         self.feature_source = features.current
         self._features = self.feature_source()
-        # Plan mode (off, choice or rolling): the default from the features, or, where the features offer a switch,
-        # the player's pick before a round (a held plan drew Jev away from a pan about to burn in
-        # scripts/plan_probe.py), kept for later rounds while it is still offered.
-        self.jeff_plan_mode = features.plan_default(self.features)
-        self.plan_mode_chosen = False
         # The player's own pick for a feature with a player switch (option_links: 步骤提示), kept for later rounds while
         # the switch is offered and the model connection stays the same (a new connection takes its service's default,
         # features.model_defaults); None: the default. links_choice_service is the service the pick was made with.
@@ -445,7 +425,7 @@ class GameSession:
         return {'preference': preference['code'] if preference else None,
                 'cooldown_remaining': round(remaining,2), 'last_message': deepcopy(last),
                 'allowed': self.phase in ('running','paused') and not self.k.ended,
-                'jeff_plan': self.plan_state(), 'links': self.links_state()}
+                'links': self.links_state()}
 
     @property
     def features(self):
@@ -460,12 +440,6 @@ class GameSession:
     def next_features(self):
         """The features the next round takes: the latest between rounds, the running round's own during one."""
         return self.feature_source() if self.phase in ('ready', 'ended') else self._features
-
-    def next_plan_mode(self, value):
-        """The plan mode a round with these features runs: the player's pick while it is still offered, else the default."""
-        if self.plan_mode_chosen and self.jeff_plan_mode in ('off', *features.plan_choices(value)):
-            return self.jeff_plan_mode
-        return features.plan_default(value)
 
     def model_service(self):
         """The model service (a model-providers.json id) this session's rounds ask, where the session knows it: the
@@ -496,17 +470,6 @@ class GameSession:
         offered = bool(self.next_features().get('option_links', {}).get('player_switch'))
         value = self.with_player_switches(self.next_features()) if between else self.features
         return {'on': bool(value.get('option_links', {}).get('on')), 'available': offered, 'editable': offered and between}
-
-    def plan_state(self):
-        """The plan switch for the next round, and Jeff's current plan as the player sees it: its steps, in Chinese, and which are done."""
-        plan = getattr(self.ai, 'plan', None) if self.ai else None
-        between = self.phase in ('ready', 'ended')
-        current = plan.current if plan and self.phase in ('running', 'paused') and not self.k.ended else None
-        steps = [{**work_label(s['work'], self.k.rules.items), 'done': s['done']} for s in current['steps']] if current else None
-        value = self.next_features()
-        choices = features.plan_choices(value)
-        return {'mode': self.next_plan_mode(value) if between else self.jeff_plan_mode, 'available': choices,
-                'editable': bool(choices) and between, 'current': {'steps': steps} if current else None}
 
     def _communicate(self, body):
         if self.phase not in ('running','paused') or self.k.ended or self.journal is None:
@@ -609,15 +572,6 @@ class GameSession:
                 return 400, {'error': '步骤提示设置无效。'}
             self.links_choice, self.links_choice_service = body['on'], self.model_service()
             return 200, {'ok': True, 'links': self.links_state()}
-        if path == '/api/plan':
-            if self.phase not in ('ready', 'ended'):
-                return 409, {'error': '请在开局前或结算后修改计划模式。'}
-            # With no plan switch offered (two-step intent released) the round's plan mode is not the player's to change.
-            choices = features.plan_choices(self.next_features())
-            if not choices or body.get('mode') not in ('off', *choices):
-                return 400, {'error': '计划模式设置无效。'}
-            self.jeff_plan_mode, self.plan_mode_chosen = body['mode'], True
-            return 200, {'ok': True, 'jeff_plan': self.plan_state()}
         if path == '/api/restart':
             if self.phase not in ('paused','ended'):
                 return 409, {'error': '请先暂停，再重新开局。'}
@@ -648,11 +602,8 @@ class GameSession:
             self.session_log = self.journal
             # The switches as of this round's start (features.json and the server's override); kept for the round.
             self._features = self.with_player_switches(self.feature_source())
-            self.jeff_plan_mode = self.next_plan_mode(self._features)
-            held = Plan(mode=self.jeff_plan_mode) if self.jeff_plan_mode in PLAN_MODES else None
-            plan = {'jeff_plan': plan_condition(held.mode, held.steps)} if held else {}
             pressed = features.one_press_flags(self.features)
-            self.journal('start', {'config':self.c, 'config_hash':self.k.config_hash, 'speed':self.speed, 'state':self.k.snapshot(), **plan,
+            self.journal('start', {'config':self.c, 'config_hash':self.k.config_hash, 'speed':self.speed, 'state':self.k.snapshot(),
                                    **one_press.condition(pressed), 'features': features.snapshot(self.features)})
             if isinstance(client, environment.Agent):     # any agent on the environment's interface (agent_loop.py)
                 from agent_loop import AgentLoop
@@ -660,8 +611,6 @@ class GameSession:
             else:
                 self.ai = DecisionLoop(self.k, client, self.journal, self.note)
             self.ai.game_speed = self.speed
-            if held:
-                self.ai.plan = held
             self.ai.one_press = pressed
             self.ai.ask_ahead = self.features['ask_ahead']['on']
             self.ai.undo = features.undo_start(self.features)

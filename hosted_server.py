@@ -128,7 +128,7 @@ class BrowserRelay(SpatialJevClient):
             task['result'] = {'choice': choice, 'sprint': body['sprint'], 'model': 'browser-model',
                               'usage': usage, 'latency': time.monotonic() - task['sent'],
                               'confidence': None, 'probabilities': probabilities(reported, criteria),
-                              **choice_answer(body.get('plan'), task['payload'])}
+                              **choice_answer(body.get('answers'), task['payload'])}
             task['event'].set()
             return True
 
@@ -473,12 +473,12 @@ FIELDS = {
     '/api/contribution/save': {'consent', 'consent_version', 'consent_mode', 'model_identity'},
     '/api/browser-ready': {'connected', 'provider', 'changed'}, '/api/start': {'speed'}, '/api/pause': {'reason'},
     '/api/resume': set(), '/api/end': set(), '/api/reset': set(), '/api/restart': set(),
-    '/api/level': {'level'}, '/api/next': {'level'}, '/api/player-level/submit': {'level', 'design'}, '/api/player-level/play': {'job'}, '/api/plan': {'mode'}, '/api/links': {'on'}, '/api/limits': {'max_calls'}, '/api/export-run': set(),
+    '/api/level': {'level'}, '/api/next': {'level'}, '/api/player-level/submit': {'level', 'design'}, '/api/player-level/play': {'job'}, '/api/links': {'on'}, '/api/limits': {'max_calls'}, '/api/export-run': set(),
     '/api/feedback': set(), '/api/bookmark': set(), '/api/communicate': {'code'},
     '/api/move': {'dx', 'dy', 'seq', 'sprint'}, '/api/position': {'seq', 'base', 'at', 'press'},
     '/api/interact': {'expected_item', 'mode', 'at', 'base', 'aim', 'target'}, '/api/throw': {'direction', 'expected_item', 'at', 'base'},
     '/api/action': {'action', 'expected'},
-    '/api/model/result': {'id', 'choice', 'sprint', 'plan', 'usage', 'failed','memory_condition','telemetry','probabilities','memory_provenance'},
+    '/api/model/result': {'id', 'choice', 'sprint', 'answers', 'usage', 'failed','memory_condition','telemetry','probabilities','memory_provenance'},
 }
 
 

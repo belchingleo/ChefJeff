@@ -319,25 +319,10 @@ function checkIosHaptic(path){
  h.clear();h.fire('touch-action','pointerdown',{pointerId:2});h.fire('touch-action','pointerup',{pointerId:2});
  assert(h.calls.some(c=>c[0]==='act'),'touch Action still works after a tick');
 }
-// Jeff's plan shows in the toolbar during play, the same words as the communication dock.
-function checkPlan(path){
+// The plan modes went 2026-11-20: no plan line in the toolbar.
+function checkNoPlan(path){
  const h=harness(path);h.publish({});
- const plan=()=>h.document.getElementById('touch-plan');
- assert.equal(plan().hidden,true,'no plan line while the switch is off');
- const send=jeff_plan=>h.w.dispatchEvent(new h.Event('kitchen-state',{detail:{communication:{jeff_plan}}}));
- send({mode:'choice',editable:false,current:null});
- assert.equal(plan().hidden,false);assert.equal(plan().textContent,'Jeff：还没定计划');
- const steps=[{label:'取生菜',label_en:'Fetch lettuce',done:true},{label:'生菜装盘',label_en:'Plate lettuce',done:false},{label:'出餐',label_en:'Serve',done:false}];
- send({mode:'choice',editable:false,current:{steps}});
- assert.equal(plan().textContent,'Jeff 计划：取生菜 ✓ → 生菜装盘 → 出餐');
- const english=harness(path,{language:'en'});english.publish({});
- english.w.dispatchEvent(new english.Event('kitchen-state',{detail:{communication:{jeff_plan:{mode:'choice',editable:false,current:{steps}}}}}));
- assert.equal(english.document.getElementById('touch-plan').textContent,"Jeff's plan: Fetch lettuce ✓ → Plate lettuce → Serve");
- send({mode:'rolling',editable:false,current:null});assert.equal(plan().textContent,'Jeff：还没说打算');
- send({mode:'rolling',editable:false,current:{steps:steps.slice(0,2)}});assert.equal(plan().textContent,'Jeff 打算：取生菜 ✓ → 生菜装盘');
- english.w.dispatchEvent(new english.Event('kitchen-state',{detail:{communication:{jeff_plan:{mode:'rolling',editable:false,current:{steps:steps.slice(0,2)}}}}}));
- assert.equal(english.document.getElementById('touch-plan').textContent,"Jeff's intent: Fetch lettuce ✓ → Plate lettuce");
- h.publish({phase:'paused'});assert.equal(plan().hidden,true,'the plan line belongs to a running round');
- h.publish({phase:'running'});send({mode:'off',editable:true,current:null});assert.equal(plan().hidden,true);
+ assert.equal(h.document.getElementById('touch-plan'),null,'no plan line');
+ assert.equal(typeof h.w.kitchenPlanLine,'undefined');
 }
-for(const path of entries){check(path);checkOrderCards(path);checkIosHaptic(path);checkPlan(path);}
+for(const path of entries){check(path);checkOrderCards(path);checkIosHaptic(path);checkNoPlan(path);}

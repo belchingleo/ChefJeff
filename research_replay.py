@@ -141,7 +141,7 @@ def rebuild_requests(record):
                 yield {'request_id': row['request_id'], 'seq': row['seq'], 'status': 'diverged', 'rebuilt': None}
                 continue
         payload = compose_payload(client, source, source.snapshot(), source.actions('jeff'), data['recent_decisions'],
-                                  data['player_communication'], memory, data.get('jeff_plan'), data.get('one_press'),
+                                  data['player_communication'], memory, data.get('one_press'),
                                   data.get('undo_note'), reach, names, links=links, split=split, burn=burn,
                                   serve_note=serve_note,
                                   steps=steps, clear=clear, walk=walk, english=english,

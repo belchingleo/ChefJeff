@@ -42,7 +42,6 @@
       .touch-toolbar{height:34px}
       .touch-toolbar .touch-hint{position:static;flex:1;min-width:0;display:flex;align-items:baseline;justify-content:center;gap:8px;padding:2px 8px;margin:0 6px;background:transparent;color:var(--ink);text-shadow:none;font-size:12px;line-height:15px;overflow:hidden;white-space:nowrap}
       .touch-toolbar .touch-hint #touch-hand{flex:none;max-width:45%;overflow:hidden;text-overflow:ellipsis}
-      .touch-toolbar .touch-hint #touch-plan{flex:none;color:var(--denim,#2a5a9e);font-weight:650}
       .touch-toolbar .touch-hint #touch-status{flex:0 1 auto;min-width:0;max-height:none;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}
       #touch-zone{position:absolute;left:0;bottom:0;width:42%;height:58%;pointer-events:auto;touch-action:none;background:transparent}
       #touch-joystick{z-index:1}#touch-joystick[data-floating=true]{bottom:auto;transition:none}
@@ -89,7 +88,7 @@
     ui.hidden = true;
     ui.setAttribute('data-no-i18n', '');
     ui.innerHTML = `
-      <header class="touch-toolbar"><strong id="touch-clock" class="touch-clock"></strong><span id="touch-money" class="touch-money"></span><span id="touch-served"></span><div id="touch-hint" class="touch-hint touch-spacer"><span id="touch-hand"></span><span id="touch-plan" data-no-i18n hidden></span><span id="touch-status" role="status" aria-live="polite"></span></div><button id="touch-pause" class="btn" type="button"></button><button id="touch-communication" class="btn" type="button" aria-expanded="false" aria-controls="kitchen-communication"></button><button id="touch-bookmark" class="btn" type="button"></button><button id="touch-menu-toggle" class="btn" type="button" aria-expanded="false" aria-controls="touch-menu"></button></header>
+      <header class="touch-toolbar"><strong id="touch-clock" class="touch-clock"></strong><span id="touch-money" class="touch-money"></span><span id="touch-served"></span><div id="touch-hint" class="touch-hint touch-spacer"><span id="touch-hand"></span><span id="touch-status" role="status" aria-live="polite"></span></div><button id="touch-pause" class="btn" type="button"></button><button id="touch-communication" class="btn" type="button" aria-expanded="false" aria-controls="kitchen-communication"></button><button id="touch-bookmark" class="btn" type="button"></button><button id="touch-menu-toggle" class="btn" type="button" aria-expanded="false" aria-controls="touch-menu"></button></header>
       <div id="touch-orders" class="touch-orders" role="region" aria-label="订单" tabindex="0"></div>
       <div id="touch-zone" aria-hidden="true"></div>
       <div id="touch-joystick" role="group" aria-label="移动" aria-disabled="true"><div id="touch-stick"></div></div>
@@ -109,17 +108,6 @@
     const el = id => document.getElementById(id);
     // The kitchen's own translation where it is ready: it also shows a player's dish names as written.
     const t = text => window.kitchenControls?.translate ? window.kitchenControls.translate(text) : window.kitchenI18n?.t(text) || text;
-    let jeffPlan = null;
-    // Jeff's plan as one line in the player's language: its steps in order, done ones ticked (web_server.plan_state).
-    // The communication dock (web-shell) shows the same line.
-    window.kitchenPlanLine = plan => {
-      if (plan?.mode !== 'choice' && plan?.mode !== 'rolling') return '';
-      const en = window.kitchenI18n?.language === 'en', steps = plan.current?.steps, rolling = plan.mode === 'rolling';
-      if (!steps) return rolling ? (en ? 'Jeff: no intent yet' : 'Jeff：还没说打算') : (en ? 'Jeff: no plan yet' : 'Jeff：还没定计划');
-      return (rolling ? (en ? "Jeff's intent: " : 'Jeff 打算：') : (en ? "Jeff's plan: " : 'Jeff 计划：'))
-        + steps.map(s => (en ? s.label_en : s.label) + (s.done ? ' ✓' : '')).join(' → ');
-    };
-    window.addEventListener('kitchen-state', event => { jeffPlan = event.detail?.communication?.jeff_plan || null; render(); });
     const text = (id, value) => { const n = el(id); const next = t(String(value ?? '')); if (n.textContent !== next) n.textContent = next; };
     const stick = el('touch-stick'), joystick = el('touch-joystick'), action = el('touch-action'), dash = el('touch-dash');
     const toss = el('touch-toss');
@@ -255,11 +243,6 @@
       if (aiming && !wasAiming) buzz(12);
       wasAiming = aiming;
       text('touch-hand', state.handLabel || '');
-      // Jeff's plan, the same line as the communication dock, already in the player's language.
-      const plan = jeffPlan?.mode === 'choice' || jeffPlan?.mode === 'rolling' ? jeffPlan : null;
-      const planText = window.kitchenPlanLine(plan);
-      if (el('touch-plan').textContent !== planText) el('touch-plan').textContent = planText;
-      el('touch-plan').hidden = !plan || state.phase !== 'running';
       text('touch-ai', state.aiStatus || '');
       // No standing hint about what cannot be done, as on the desktop: the framed station shows what will happen.
       text('touch-status', cancelSelected ? '松手取消' : aiming ? '松开投掷' : eventNotice || (throwable ? '按住「切/洗/扔」瞄准' : ''));

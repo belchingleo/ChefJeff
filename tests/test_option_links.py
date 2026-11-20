@@ -10,7 +10,7 @@ from jev import DecisionLoop
 from kitchen import load_config
 from levels import level_config
 from spatial_kitchen import SpatialKitchen
-from test_jeff_plan import Inline
+from loop_helpers import Inline
 from links_test_client import Answering
 from whitebox_server import SpatialJevClient
 

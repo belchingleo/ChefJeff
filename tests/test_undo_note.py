@@ -13,7 +13,7 @@ import features
 import undo_note
 from jev import DecisionLoop
 from scripts import undo_note_check
-from test_jeff_plan import Inline
+from loop_helpers import Inline
 from test_one_press import BOTH, Answering, bread_and_lettuce
 
 

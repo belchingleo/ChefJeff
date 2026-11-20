@@ -35,7 +35,6 @@ CHECKS = {
     'hands_full': ('scripts.hands_full_check', 'stuck moments with full hands, as logged, without history, without supply walks'),
     'put_where': ('scripts.put_where_check', 'where one-press puts the held item, with and without the floor note'),
     'undo_note': ('scripts.undo_note_check', 'moments that could take back the last step, with and without the undo note'),
-    'plan': ('scripts.plan_probe', 'fixed emergencies with Jeff\'s plan off, asked for, and held'),
     'reach_note': ('scripts.reach_note_check', 'split-floor moments Jeff could pass, with and without the reach note'),
     'food_names': ('scripts.food_names_check', 'waits while an ingredient is nowhere, with food named as today and by ingredient and state'),
     'links': ('scripts.links_check', 'moments a step leads to work, as sent and with each option\'s link to the work it makes possible'),

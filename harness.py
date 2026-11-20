@@ -303,30 +303,6 @@ CONTINUITY_RULE = (
 NO_MEMORY = object()
 
 
-# Jeff's plan: in the same request as an action, Jeff writes the few pieces of work it intends to do
-# next, in order. Each piece is a work item of this level (fetch, chop, cook or plate an ingredient,
-# take a clean plate, serve, collect or wash plates). The plan only adds to the input: it never
-# changes the listed actions, and it has no clock. A step is ticked when Jeff finishes an action
-# doing it, in any order; the plan ends when every step is ticked, when Jeff drops it, or when the
-# human sends a new preference, and the next request asks for a new one.
-#
-# Rolling intent (plan mode 'rolling', a trial): every request asks, as notes on next_action, for the work item
-# the chosen action is for and the one after it. The newest notes ride on that decision in recent_decisions
-# (ticked as above), a record of what Jeff said then rather than a plan in the state, and each answer replaces
-# the last. There is no keep or drop. rolling-v1 showed the intent as state.jeff_plan and rolling-v2 as
-# history; either way, at a pan about to burn Jeff kept to an unrelated intent shown to him (while being asked
-# for one did not pull him). rolling-v3 leaves the intent out of a request while food in a pan on a stove is
-# within ROLLING_YIELD_SECONDS of burning; it is still asked, and shown again once no pan is that close.
-PLAN_RULES_VERSION = 'plan-v2'
-ROLLING_RULES_VERSION = 'rolling-v3'
-ROLLING_YIELD_SECONDS = 8.0   # a pan within this many game seconds of burning hides the intent
-PLAN_MODES = ('choice', 'rolling')
-PLAN_STEPS = 4
-ROLLING_STEPS = 2
-PLAN_NONE = 'none'
-PLAN_STEP_QUESTIONS = tuple(f'plan_step_{n}' for n in range(1, PLAN_STEPS + 1))
-PLAN_KEEP_QUESTION = 'plan_keep'
-PLAN_KEEP = {'keep': 'Keep this plan', 'drop': 'Drop this plan; the next request asks for a new one'}
 # Engine action kinds that do each kind of work (engine semantics only, the same on every level).
 WORK_KINDS = {
     'fetch': ('fetch',),
@@ -339,110 +315,6 @@ WORK_KINDS = {
     'collect_plates': ('take_return',),
     'wash_plates': ('wash',),
 }
-PLAN_CHAT_RULE = (' For each question whose name starts with plan_, also include "<question name>": "<key>", '
-                  'one key of the criteria of that question.')
-PLAN_RULE = ('jeff_plan, when present, is the plan you wrote: its steps are work items in the order you gave them, and a step is '
-             'marked done when you finish an action that does that work, whichever step comes first. A work item names a piece of work '
-             'on this level\'s menu: fetch, chop or cook an ingredient, put it on a plate, take a clean plate, serve a dish, collect dirty '
-             'plates or wash a plate. The plan has no time limit. It ends when all its steps are done, when you answer drop to '
-             'questions.plan_keep, or when the human sends a new preference; then questions.plan_step_1 to plan_step_{steps} ask for a '
-             'new one, and your answer holds from your next request. The human sees your plan. It does not change your listed actions; '
-             'an action that is not in it leaves it as it is.')
-ROLLING_RULE = ('In recent_decisions, a decision may carry intent: the two work items you noted with it, the work that action '
-                'was for and the work you intended after it, each marked done when you finished an action that does that work. It is '
-                'what you said then; the kitchen state is as it is now. A work item names a piece of work on this level\'s menu: '
-                'fetch, chop or cook an ingredient, put it on a plate, take a clean plate, serve a dish, collect dirty plates or wash a '
-                'plate. Every request asks for the two notes again (questions.plan_step_1 and plan_step_2), and only the newest is '
-                'kept. It is left out of a request while food in a pan on a stove is within {seconds:g} game seconds of burning. '
-                'The human sees it. The notes do not change your listed actions.')
-ROLLING_QUESTIONS = ('A note on next_action, not a choice of action: the work item the action you choose there does or is for. '
-                     'It is kept with that decision in recent_decisions as intent.',
-                     'A note: the work item you intend after it, or {none}.')
-
-
-def burning_soon(kitchen, within=ROLLING_YIELD_SECONDS):
-    """Whether food in a pan on a stove is within this many game seconds of burning (the engine's own thresholds)."""
-    for key in getattr(kitchen, 'pots', ()):
-        food = kitchen.stations[key].food
-        if food is not None and food.stage in ('cooking', 'ready') and food.ingredient in kitchen.rules.heat:
-            if kitchen.rules.heat_thresholds(food.ingredient)[1] - food.heated <= within:
-                return True
-    return False
-
-
-def plan_version(mode):
-    """The rules version of a plan mode."""
-    return ROLLING_RULES_VERSION if mode == 'rolling' else PLAN_RULES_VERSION
-
-
-def plan_condition(mode, steps):
-    """The jeff_plan condition a round's start row and research record carry."""
-    return {'mode': mode, 'steps': steps, 'rules_version': plan_version(mode)}
-
-
-def work_items(state):
-    """The work items of this level, from its menu and equipment, in menu order: key -> English label."""
-    kinds = {e.get('type') for e in state['map']['equipment'].values()}
-    sources = {e.get('item') for e in state['map']['equipment'].values() if e.get('type') == 'ingredient_source'}
-    cooked = {c['item'] for v in (state.get('vessels') or {}).values() for c in v.get('cooks', [])}
-    items = {}
-    for dish in state.get('dishes', []):
-        for c in dish.get('components', []):
-            name = c['item']
-            if name in sources:
-                items[f'fetch:{name}'] = f'Fetch {name}'
-            if c.get('state') == 'chopped' or (c.get('state') == 'ready' and name in cooked):
-                items[f'chop:{name}'] = f'Chop {name}'
-            if c.get('state') == 'ready' and name in cooked and 'stove' in kinds:
-                items[f'cook:{name}'] = f'Put chopped {name} into a pan to cook'
-            items[f'plate:{name}'] = f'Put {name} on a plate'
-    ordered = dict(sorted(items.items(), key=lambda kv: ('fetch', 'chop', 'cook', 'plate').index(kv[0].split(':')[0])))
-    if 'serving_window' in kinds:
-        ordered['take_plate'] = 'Take a clean plate'
-        ordered['serve'] = 'Serve a dish at the serving window'
-    if 'sink' in kinds:
-        ordered['collect_plates'] = 'Collect dirty plates from the plate return'
-        ordered['wash_plates'] = 'Wash a dirty plate at the sink'
-    return ordered
-
-
-def _ingredient(food):
-    """The ingredient of a food, or of the food in a pot; None for plates, tools and empty pots."""
-    if isinstance(food, dict) and food.get('stage') == 'pot':
-        food = food.get('contents')
-    if not isinstance(food, dict) or food.get('plate_id') or food.get('stage') in ('clean_plate', 'dirty_plate', 'assembled'):
-        return None
-    return food.get('ingredient')
-
-
-def does_work(action):
-    """Whether an action's kind does a kind of work at all (cheap: no state needed)."""
-    return any(action.kind in kinds for kinds in WORK_KINDS.values())
-
-
-def work_item(action, state):
-    """The work item an action does, from the state when it starts, or None (walking, waiting, tools, carrying)."""
-    work = next((w for w, kinds in WORK_KINDS.items() if action.kind in kinds), None)
-    if work is None:
-        return None
-    if work in ('take_plate', 'serve', 'collect_plates', 'wash_plates'):
-        return work
-    held = state['chefs']['jeff'].get('holding')
-    station = (state.get('stations') or {}).get(action.target) or {}
-    if work == 'fetch':
-        name = (state['map']['equipment'].get(action.target) or {}).get('item')
-    elif work == 'chop':
-        name = _ingredient(station.get('food'))
-    elif work == 'cook':
-        name = _ingredient(held)
-    else:   # plate: what is moved onto a plate, from the hands or from the target
-        name = _ingredient(held) or _ingredient(station.get('food'))
-    return f'{work}:{name}' if name else None
-
-
-def plan_questions(payload):
-    """The plan questions a request asks, in order."""
-    return [q for q in (*PLAN_STEP_QUESTIONS, PLAN_KEEP_QUESTION) if q in payload['questions']]
 
 
 def choices(answers, questions):
@@ -453,16 +325,16 @@ def choices(answers, questions):
 
 
 def choice_questions(payload):
-    """Every extra choice question a request asks besides next_action and sprint: the plan's, then put_where."""
+    """Every extra choice question a request asks besides next_action and sprint: put_where (one_press.py), if asked."""
     import one_press
-    return plan_questions(payload) + ([one_press.PUT_WHERE] if one_press.PUT_WHERE in payload['questions'] else [])
+    return [one_press.PUT_WHERE] if one_press.PUT_WHERE in payload['questions'] else []
 
 
 def choice_answer(answers, payload):
-    """plan_answer, plus put_where (an offered key, else None) when the request asked it."""
+    """put_where (an offered key, else None) when the request asked it; {} otherwise."""
     import one_press
     answers = answers if isinstance(answers, dict) else {}
-    out = plan_answer({k: v for k, v in answers.items() if k != one_press.PUT_WHERE}, payload)
+    out = {}
     if one_press.PUT_WHERE in payload['questions']:
         value = answers.get(one_press.PUT_WHERE)
         out[one_press.PUT_WHERE] = value if isinstance(value, str) and value in payload['questions'][one_press.PUT_WHERE]['criteria'] else None
@@ -472,92 +344,11 @@ def choice_answer(answers, payload):
 PUT_WHERE_CHAT_RULE = ' When questions.put_where is present, also include "put_where": "<key>", one key of its criteria.'
 
 
-def plan_answer(answers, payload):
-    """A reply's plan, for a request that asked: {'plan': {'steps': [...]}} or {'plan': {'keep': ...}}.
-
-    answers maps each plan question to the model's choice. A step outside its criteria, or none, ends
-    the steps there; no valid first step means no plan. keep is None for a missing or unknown answer,
-    which keeps the plan. Requests that did not ask get no plan field at all.
-    """
-    asked = plan_questions(payload)
-    if not asked:
-        return {}
-    answers = answers if isinstance(answers, dict) else {}
-    if PLAN_KEEP_QUESTION in asked:
-        value = answers.get(PLAN_KEEP_QUESTION)
-        return {'plan': {'keep': {'keep': True, 'drop': False}.get(value) if isinstance(value, str) else None}}
-    steps = []
-    for question in PLAN_STEP_QUESTIONS:
-        value = answers.get(question)
-        if question not in asked or not isinstance(value, str) or value == PLAN_NONE \
-                or value not in payload['questions'][question]['criteria']:
-            break
-        steps.append(value)
-    return {'plan': {'steps': steps}}
-
-
-class Plan:
-    """Jeff's current plan within one round: its steps, which are done, and when it ends."""
-
-    def __init__(self, steps=None, mode='choice'):
-        if mode not in PLAN_MODES:
-            raise ValueError(f'unknown plan mode {mode!r}')
-        self.mode = mode
-        self.steps = steps or (ROLLING_STEPS if mode == 'rolling' else PLAN_STEPS)
-        self.current = None     # {'steps': [{'work', 'done'}], 'set_at', 'preference'}
-        self.ended = None       # why the last plan ended, until the next request reports it
-
-    def accept(self, answer, now, offered, preference):
-        """Hold the steps Jeff wrote, if they were asked and the first is one of the offered work items.
-
-        A rolling intent is asked at every request and a valid answer replaces the last one; a missing or
-        invalid answer leaves the last one as it was."""
-        steps = (answer or {}).get('steps')
-        if (self.current and self.mode != 'rolling') or not offered or not steps or any(s not in offered for s in steps):
-            return False
-        self.current = {'steps': [{'work': s, 'done': False} for s in steps[:self.steps]], 'set_at': round(now, 3),
-                        'preference': preference}
-        return True
-
-    def keep(self, answer):
-        """Jeff's answer to plan_keep: drop ends the plan. Returns True when it did."""
-        if self.current and (answer or {}).get('keep') is False:
-            self.current, self.ended = None, 'dropped'
-            return True
-        return False
-
-    def tick(self, work):
-        """Jeff finished an action doing this work: tick its first open step. Returns True when that ended the plan."""
-        step = next((s for s in (self.current or {}).get('steps', []) if not s['done'] and s['work'] == work), None)
-        if step is None:
-            return False
-        step['done'] = True
-        if all(s['done'] for s in self.current['steps']):
-            self.current, self.ended = None, 'done'
-            return True
-        return False
-
-    def check(self, preference):
-        """At a request: end the plan on a new preference. Returns why the last plan ended since the previous request, or None."""
-        if self.current and preference != self.current['preference']:
-            self.current, self.ended = None, 'new_preference'
-        reason, self.ended = self.ended, None
-        return reason
-
-    def input(self, state):
-        """Everything compose needs; research records keep it so requests can be rebuilt."""
-        current = {'steps': [dict(s) for s in self.current['steps']], 'set_at': self.current['set_at']} if self.current else None
-        if self.mode == 'rolling':     # asked at every request, so the options always come along
-            return {'mode': 'rolling', 'steps': self.steps, 'current': current, 'options': work_items(state)}
-        return {'steps': self.steps, 'current': current, 'options': None if current else work_items(state)}
-
-
-def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY, plan=None, one_press=None, undo=None,
+def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY, one_press=None, undo=None,
             reach=False, names=False, split=False, burn=False,
             serve_note=False, steps=False, clear=False):
     """Add what one request needs beyond the snapshot; research replay rebuilds requests here too.
 
-    plan is Plan.input() when the plan switch is on, else None (the input is then unchanged).
     undo is the undo_note state when that switch is on (its notes are added by jev.compose_payload, undo-note-v4), else None.
     reach is whether the reach_note switch is on: on a split floor, which stations each chef can reach.
     split is whether the split_floor switch is on: on a split floor where no dish can be made by one chef alone,
@@ -585,35 +376,6 @@ def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY,
         payload['state']['past_episodes'] = memory
         payload['state']['rules']['past_episodes'] = PAST_EPISODES_RULE
     payload['state']['rules']['continuity'] = CONTINUITY_RULE
-    rolling = plan is not None and plan.get('mode') == 'rolling'
-    if rolling:
-        # The newest intent rides on the decision it was noted with, as a record of what Jeff said then.
-        payload['state']['rules']['intent'] = ROLLING_RULE.format(seconds=ROLLING_YIELD_SECONDS)
-        current = None if burning_soon(kitchen) else plan['current']
-        decisions = [dict(d) for d in recent_decisions]
-        noted = next((d for d in reversed(decisions) if current and abs(d.get('t', -1) - current['set_at']) < .011), None)
-        if noted is not None:
-            noted['intent'] = [dict(s) for s in current['steps']]
-        payload['state']['recent_decisions'] = decisions
-        for n, question in enumerate(PLAN_STEP_QUESTIONS[:plan['steps']]):
-            payload['questions'][question] = {
-                'type': 'choice', 'instructions': ROLLING_QUESTIONS[min(n, 1)].format(none=PLAN_NONE),
-                'criteria': dict(plan['options']) if n == 0 else {**plan['options'], PLAN_NONE: 'No further step'}}
-    elif plan is not None:
-        payload['state']['rules']['jeff_plan'] = PLAN_RULE.format(steps=plan['steps'])
-        if plan['current']:
-            payload['state']['jeff_plan'] = {'steps': [dict(s) for s in plan['current']['steps']], 'set_at': plan['current']['set_at']}
-            payload['questions'][PLAN_KEEP_QUESTION] = {
-                'type': 'choice', 'instructions': 'Keep the plan in jeff_plan, or drop it?', 'criteria': dict(PLAN_KEEP)}
-        else:
-            for n, question in enumerate(PLAN_STEP_QUESTIONS[:plan['steps']], 1):
-                payload['questions'][question] = {
-                    'type': 'choice',
-                    'instructions': ('Your plan, step 1: the first work item you intend to do. Your plan is shown to the human chef and '
-                                     'returned to you as jeff_plan, each step marked done when you finish it; it does not limit your actions.'
-                                     if n == 1 else f'Your plan, step {n}: the work item you intend to do after step {n - 1}, '
-                                                    f'or {PLAN_NONE} to end the plan at step {n - 1}.'),
-                    'criteria': dict(plan['options']) if n == 1 else {**plan['options'], PLAN_NONE: 'No further step'}}
     if one_press:
         import one_press as presses
         payload['state']['rules']['one_press'] = presses.RULE
@@ -625,8 +387,6 @@ def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY,
         engine_english.apply(payload, kitchen)
     payload['state']['input_language'] = INPUT_LANGUAGE_VERSION
     payload['state']['rules_version'] = AGENT_RULES_VERSION
-    if plan is not None:
-        payload['state']['plan_rules_version'] = plan_version(plan.get('mode'))
     if one_press:
         payload['state']['one_press_version'] = presses.VERSION
     if reach:

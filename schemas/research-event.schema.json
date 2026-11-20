@@ -1286,7 +1286,7 @@
           ]
         },
         "jeff_plan": {
-          "description": "Only with Jeff's plan switch on: harness.Plan.input() for this request, enough to rebuild it. mode appears only for the rolling intent trial.",
+          "description": "Requests from before 2026-11-20 only, with a plan mode on: the plan input of that request. The plan modes and their code are gone (2026-11-20), so such a request is not rebuilt.",
           "type": "object",
           "properties": {
             "mode": {

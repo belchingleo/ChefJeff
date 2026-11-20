@@ -798,34 +798,29 @@ function settingsHarness(){
   assert.deepEqual({choice:result.choice,sprint:result.sprint,failed:result.failed},{choice:expected.choice,sprint:expected.sprint,failed:expected.failed});
   assert(!Object.hasOwn(result,'probabilities'));
  }
- // Jeff's plan: each plan question is answered with the action and sent as given (offered keys or null) under plan;
- // the server reads them (harness.plan_answer). Requests without plan questions send no plan field.
- const offer={'fetch:beef':'Fetch beef','serve':'Serve'},stepsAsked={plan_step_1:{type:'choice',criteria:offer},
-  plan_step_2:{type:'choice',criteria:{...offer,none:'No further step'}},plan_step_3:{type:'choice',criteria:{...offer,none:'No further step'}},
-  plan_step_4:{type:'choice',criteria:{...offer,none:'No further step'}}},keepAsked={plan_keep:{type:'choice',criteria:{keep:'Keep',drop:'Drop'}}};
- assert(!Object.hasOwn(startluxResult,'plan'),'requests without plan questions send no plan field');
+ // put_where (one_press.py) is answered with the action and sent as given (an offered key or null) under answers;
+ // the server reads it (harness.choice_answer). Requests without it send no answers field.
+ const places={'put counter2':'Put it on Counter 2','put b1':'Put it on Board 1'},putAsked={put_where:{type:'choice',criteria:places}};
+ assert(!Object.hasOwn(startluxResult,'answers'),'requests without extra questions send no answers field');
+ assert(!Object.hasOwn(startluxResult,'plan'),'no plan field since the plan modes went');
  const choice=value=>({type:'choice',choice:value});
- for(const [questions,answers,expected] of [
-  [stepsAsked,{plan_step_1:choice('fetch:beef'),plan_step_2:choice('none')},{plan_step_1:'fetch:beef',plan_step_2:'none',plan_step_3:null,plan_step_4:null}],
-  [stepsAsked,{plan_step_1:choice('dance')},{plan_step_1:null,plan_step_2:null,plan_step_3:null,plan_step_4:null}],
-  [keepAsked,{plan_keep:choice('drop')},{plan_keep:'drop'}],[keepAsked,{},{plan_keep:null}]]){
+ for(const [answers,expected] of [[{put_where:choice('put b1')},{put_where:'put b1'}],[{put_where:choice('dance')},{put_where:null}],[{},{put_where:null}]]){
   upstream=()=>new Response(JSON.stringify({answers:{next_action:{type:'choice',choice:'wait'},sprint:{type:'choice',choice:'no'},...answers},usage:{input_tokens:5,output_tokens:7}}));
-  modelTask={id:'plan-task',payload:{model:'jev-latest',state:{kitchen:{}},questions:{next_action:{type:'choice',criteria:{wait:'Wait'}},sprint:{type:'choice',criteria:{yes:'Yes',no:'No'}},...questions}}};
+  modelTask={id:'put-task',payload:{model:'jev-latest',state:{kitchen:{}},questions:{next_action:{type:'choice',criteria:{wait:'Wait'}},sprint:{type:'choice',criteria:{yes:'Yes',no:'No'}},...putAsked}}};
   h=harness({...startlux,remember:true},false,{game_id:'round',phase:'running',limits:{},connection:{configured:true}});
   await h.w.fetch('/api/state');await h.timers.find(fn=>fn.name==='poll')();
   const result=JSON.parse(h.calls.find(c=>c.url==='/api/model/result').init.body);
-  assert.equal(result.choice,'wait');assert.deepEqual(result.plan,expected,'decision plan answers '+JSON.stringify(answers));
+  assert.equal(result.choice,'wait');assert.deepEqual(result.answers,expected,'decision put_where answers '+JSON.stringify(answers));
  }
- for(const [content,expected] of [['{"choice":"wait","plan_step_1":"serve","plan_step_2":"none"}',{plan_step_1:'serve',plan_step_2:'none',plan_step_3:null,plan_step_4:null}],
-  ['{"choice":"wait","plan_step_1":"Serve!"}',{plan_step_1:null,plan_step_2:null,plan_step_3:null,plan_step_4:null}]]){
+ for(const [content,expected] of [['{"choice":"wait","put_where":"put b1"}',{put_where:'put b1'}],['{"choice":"wait","put_where":"Board!"}',{put_where:null}]]){
   upstream=()=>new Response(JSON.stringify({choices:[{message:{content}}],usage:{prompt_tokens:1,completion_tokens:1}}));
-  modelTask={id:'task',payload:{state:{},questions:{next_action:{type:'choice',criteria:{wait:'Wait'}},...stepsAsked}}};
+  modelTask={id:'task',payload:{state:{},questions:{next_action:{type:'choice',criteria:{wait:'Wait'}},...putAsked}}};
   h=harness(cfg.remember?cfg:{...cfg,remember:true},false,{game_id:'round',phase:'running',limits:{},connection:{configured:true}});
   await h.w.fetch('/api/state');await h.timers.find(fn=>fn.name==='poll')();
   const result=JSON.parse(h.calls.find(c=>c.url==='/api/model/result').init.body);
-  assert.equal(result.choice,'wait');assert.deepEqual(result.plan,expected,'chat plan answers '+content);
+  assert.equal(result.choice,'wait');assert.deepEqual(result.answers,expected,'chat put_where answers '+content);
   const system=JSON.parse(h.calls.find(c=>c.init?.body?.includes('"messages"')).init.body).messages[0].content;
-  assert(system.endsWith(' For each question whose name starts with plan_, also include "<question name>": "<key>", one key of the criteria of that question.'));
+  assert(system.endsWith(' When questions.put_where is present, also include "put_where": "<key>", one key of its criteria.'));
  }
  upstream=null;modelTask=null;
  h=harness();r=await h.w.fetch('/api/connection',{body:JSON.stringify({...cfg,provider:'compatible',base_url:'https://kitchen.example'})});assert.equal(r.status,400);
@@ -857,35 +852,12 @@ function settingsHarness(){
  ui.el('api-form').onsubmit({preventDefault(){}});assert.equal(ui.requests(),0);
  detail.connection.editable=true;ui.listeners.get('kitchen-state')({detail});
  assert.equal(ui.el('api-connect').disabled,false);assert.equal(ui.el('api-key').value,key);
- // Jeff's plan switch follows the server's setting and is locked during a round.
- detail.communication={jeff_plan:{mode:'choice',editable:true,current:null}};ui.listeners.get('kitchen-state')({detail});
- assert.equal(ui.el('jeff-plan').getAttribute('aria-checked'),'true');assert.equal(ui.el('jeff-plan').disabled,false);
- detail.communication.jeff_plan={mode:'off',editable:false,current:null};ui.listeners.get('kitchen-state')({detail});
- assert.equal(ui.el('jeff-plan').getAttribute('aria-checked'),'false');assert.equal(ui.el('jeff-plan').disabled,true);
- assert(ui.el('plan-status').textContent.includes('本局进行中'));
- // Saving keeps the switch enabled (disabling it would drop keyboard focus mid-toggle) and marks it busy.
- detail.communication.jeff_plan={mode:'off',editable:true,current:null};ui.listeners.get('kitchen-state')({detail});
- const before=ui.requests(),saving=ui.el('jeff-plan').onclick();
- assert.equal(ui.el('jeff-plan').disabled,false);assert.equal(ui.el('jeff-plan').getAttribute('aria-busy'),'true');
- await saving;assert.equal(ui.requests(),before+1,'one /api/plan request per toggle');
- assert.equal(ui.el('jeff-plan').getAttribute('aria-busy'),'false');assert.equal(ui.el('jeff-plan').getAttribute('aria-checked'),'false','a failed save leaves the switch on the server value');
- // The two-step intent switch shows the same single mode: on with rolling, while the plan switch shows off.
- detail.communication.jeff_plan={mode:'rolling',editable:true,current:null};ui.listeners.get('kitchen-state')({detail});
- assert.equal(ui.el('jeff-rolling').getAttribute('aria-checked'),'true');assert.equal(ui.el('jeff-plan').getAttribute('aria-checked'),'false');
- assert.equal(ui.el('jeff-rolling').disabled,false);
- detail.communication.jeff_plan={mode:'rolling',editable:false,current:null};ui.listeners.get('kitchen-state')({detail});
- assert.equal(ui.el('jeff-rolling').disabled,true);assert.equal(ui.el('jeff-plan').disabled,true);
- detail.communication.jeff_plan={mode:'off',editable:true,current:null};ui.listeners.get('kitchen-state')({detail});
- const rollingBefore=ui.requests(),rollingSaving=ui.el('jeff-rolling').onclick();
- assert.equal(ui.el('jeff-rolling').getAttribute('aria-busy'),'true');
- await rollingSaving;assert.equal(ui.requests(),rollingBefore+1,'one /api/plan request per toggle');
- // Only the plan modes with a player switch in features.json show; with none the plan card hides.
- detail.communication={jeff_plan:{mode:'off',available:['choice','rolling'],editable:true,current:null}};ui.listeners.get('kitchen-state')({detail});
- assert.equal(ui.el('plan-row').hidden,false);assert.equal(ui.el('rolling-row').hidden,false);assert.equal(ui.el('plan-setting').hidden,false);
- detail.communication.jeff_plan={mode:'off',available:['rolling'],editable:true,current:null};ui.listeners.get('kitchen-state')({detail});
- assert.equal(ui.el('plan-row').hidden,true);assert.equal(ui.el('plan-tip').hidden,true);assert.equal(ui.el('rolling-row').hidden,false);
- detail.communication.jeff_plan={mode:'off',available:[],editable:false,current:null};ui.listeners.get('kitchen-state')({detail});
- assert.equal(ui.el('plan-setting').hidden,true);
+ // The step-hint card shows while the features offer its player switch, and hides when they do not.
+ detail.communication={links:{on:true,available:true,editable:true}};ui.listeners.get('kitchen-state')({detail});
+ assert.equal(ui.el('links-setting').hidden,false);assert.equal(ui.el('jeff-links').getAttribute('aria-checked'),'true');
+ detail.communication={links:{on:false,available:false,editable:false}};ui.listeners.get('kitchen-state')({detail});
+ assert.equal(ui.el('links-setting').hidden,true);
+ for(const page of ['cocos-kitchen/web-shell.html','cocos-kitchen/build/web/index.html'])assert(!/jeff-plan|jeff-rolling|plan-setting|communication-plan/.test(fs.readFileSync(page,'utf8')),'the plan modes have no switch or line');
  for(const page of ['cocos-kitchen/web-shell.html','cocos-kitchen/build/web/index.html'])assert(!/jeff-put-take|jeff-wash|one-press/.test(fs.readFileSync(page,'utf8')),'the released one-press options have no switch');
  console.log('Browser transport and settings: credential isolation, session retry/release, editable drafts and guarded connection checks passed.');
  await checkModelIdentity();

@@ -29,9 +29,8 @@ def zhipu_schema(payload):
 
 
 def zhipu_instructions(payload):
-    """The fixed sentences before the schema, with the plan and put_where sentences when this request asks them."""
+    """The fixed sentences before the schema, with the put_where sentence when this request asks it."""
     questions = payload['questions']
-    plan = any(q.startswith('plan_') for q in questions)
     put_where = 'put_where' in questions
     return (
         'You control chef jeff in a shared kitchen. Using the supplied state and rules, '
@@ -42,7 +41,6 @@ def zhipu_instructions(payload):
         'sprint as the JSON boolean true for yes or false for no. '
         'Never encode sprint as a string, number or null. '
         'When questions.sprint is absent, omit sprint. '
-        + ('Each question whose name starts with plan_ is a field whose value is one of its keys. ' if plan else '')
         + ('questions.put_where is a field whose value is one of its keys. ' if put_where else '')
         + 'Do not explain or add other fields. ')
 

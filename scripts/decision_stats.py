@@ -118,7 +118,8 @@ from statistics import median
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from harness import PLAN_RULES_VERSION  # noqa: E402
+# The last plan mode's rules version (the plan modes and their code went 2026-11-20; older journals still carry them).
+PLAN_RULES_VERSION = 'plan-v2'
 import research_stats  # noqa: E402
 from research_record import SCHEMA as RECORD_SCHEMA  # noqa: E402
 from round_summary import CATEGORIES, CHEFS  # noqa: E402

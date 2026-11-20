@@ -21,7 +21,7 @@ from kitchen import load_config
 from levels import level_config
 from spatial_kitchen import SpatialKitchen
 from test_web import FakeJournal
-from test_jeff_plan import Scripted
+from loop_helpers import Scripted
 from web_server import GameSession
 import test_research_save_paths as paths
 
@@ -61,23 +61,23 @@ class OverrideTests(unittest.TestCase):
         self.assertNotIn('source', json.dumps(features.snapshot(features.current())))
 
     def test_an_override_applies_without_a_restart_and_is_marked(self):
-        self.file.write({'rolling_intent': {'on': False}})
+        self.file.write({'walk_note': {'on': True}})
         value = features.current()
-        self.assertEqual((value['rolling_intent']['on'], value['rolling_intent']['source']), (False, 'server'))
-        self.assertEqual(features.plan_default(value), 'off')
-        self.assertEqual(features.snapshot(value)['rolling_intent'], {'on': False, 'version': 'rolling-v3', 'source': 'server'})
+        self.assertEqual((value['walk_note']['on'], value['walk_note']['source']), (True, 'server'))
+        self.assertTrue(features.compose_options(value)['walk'])
+        self.assertEqual(features.snapshot(value)['walk_note'], {'on': True, 'version': 'walk-note-v1', 'source': 'server'})
         self.assertEqual(features.snapshot(value)['one_press'], {'on': True, 'version': self.release['one_press']['version']})
-        self.file.write({'rolling_intent': {'on': False}, 'jeff_plan': {'on': True, 'player_switch': True}})
+        self.file.write({'walk_note': {'on': True}, 'step_check': {'on': True, 'player_switch': True}})
         value = features.current()
-        self.assertEqual((features.plan_default(value), features.plan_choices(value)), ('choice', ['choice']))
+        self.assertEqual((value['step_check']['on'], value['step_check']['player_switch']), (True, True))
         self.file.path.unlink()
         self.assertEqual(features.current(), self.release)
 
     def test_a_wrong_override_is_not_used_and_says_why(self):
         for wrong in ({'dance': {'on': True}},                                   # not in this release
-                      {'rolling_intent': {'version': 'rolling-v9'}},            # versions belong to the code
+                      {'walk_note': {'version': 'walk-note-v9'}},               # versions belong to the code
                       {'one_press': {'player_switch': True}},                   # released: no switch
-                      {'jeff_plan': {'on': True}, 'rolling_intent': {'on': True}},  # two plan modes at once
+                      {'jeff_plan': {'on': True}},                              # removed 2026-11-20
                       {'reach_note': {'on': 'yes'}},
                       {'reach_note': {}},
                       [],
@@ -89,31 +89,31 @@ class OverrideTests(unittest.TestCase):
                 self.assertIn('not used', said)
 
     def test_the_command_line_sets_checks_and_unsets(self):
-        value, _ = quietly(features.main, ['set', 'rolling_intent', 'off'])
+        value, _ = quietly(features.main, ['set', 'walk_note', 'on'])
         self.assertEqual(value, 0)
-        self.assertEqual(json.loads(self.file.path.read_text()), {'rolling_intent': {'on': False}})
+        self.assertEqual(json.loads(self.file.path.read_text()), {'walk_note': {'on': True}})
         self.assertEqual(stat.S_IMODE(self.file.path.stat().st_mode), 0o644)     # readable by the game's account
-        self.assertEqual(quietly(features.main, ['set', 'jeff_plan', 'on', '--switch', 'on'])[0], 0)
+        self.assertEqual(quietly(features.main, ['set', 'step_check', 'on', '--switch', 'on'])[0], 0)
         before = self.file.path.read_text()
-        self.assertEqual(quietly(features.main, ['set', 'rolling_intent', 'on'])[0], 1)   # two plan modes: refused
+        self.assertEqual(quietly(features.main, ['set', 'rolling_intent', 'on'])[0], 1)   # not in this release
         self.assertEqual(quietly(features.main, ['set', 'one_press', 'on', '--switch', 'on'])[0], 1)
         self.assertEqual(self.file.path.read_text(), before)                     # a refused change writes nothing
-        self.assertEqual(quietly(features.main, ['unset', 'jeff_plan'])[0], 0)
-        self.assertEqual(json.loads(self.file.path.read_text()), {'rolling_intent': {'on': False}})
+        self.assertEqual(quietly(features.main, ['unset', 'step_check'])[0], 0)
+        self.assertEqual(json.loads(self.file.path.read_text()), {'walk_note': {'on': True}})
         bad = self.file.path.with_name('bad.json')
-        bad.write_text(json.dumps({'jeff_plan': {'on': True}, 'rolling_intent': {'on': True}}))
+        bad.write_text(json.dumps({'walk_note': {'on': 'yes'}}))
         self.assertEqual(quietly(features.main, ['check', str(bad)])[0], 1)
         self.assertEqual(quietly(features.main, ['check'])[0], 0)
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
             features.main(['show'])
-        self.assertIn('rolling_intent  off  release        rolling-v3     server', out.getvalue())
+        self.assertRegex(out.getvalue(), r'walk_note\s+on\s+trial\s+walk-note-v1\s+server')
 
 
 class SessionTests(unittest.TestCase):
     def setUp(self):
         self.file = OverrideFile(self)
-        self.g = GameSession(level_config(load_config(), 'level-2'), client_factory=lambda c: Scripted(c, [['fetch:lettuce']]),
+        self.g = GameSession(level_config(load_config(), 'level-2'), client_factory=lambda c: Scripted(c),
                              journal_factory=FakeJournal, kitchen_factory=SpatialKitchen)
         self.addCleanup(self.g.close)
 
@@ -121,36 +121,26 @@ class SessionTests(unittest.TestCase):
         return [d for kind, d in self.g.journal.journal.rows if kind == 'start']
 
     def test_a_round_keeps_its_switches_and_the_next_takes_the_new_ones(self):
-        self.file.write({'rolling_intent': {'on': True}})                     # off in the repository; the server turns it on
+        self.file.write({'walk_note': {'on': True}})                          # off in the repository; the server turns it on
         self.assertEqual(self.g._command('/api/start', {})[0], 200)
-        self.assertEqual(self.g.ai.plan.mode, 'rolling')
-        self.file.write({'rolling_intent': {'on': False}})                    # changed during the round
-        self.assertEqual(self.g.features['rolling_intent']['on'], True)
-        self.assertEqual(self.g.plan_state()['mode'], 'rolling')
+        self.assertTrue(self.g.ai.walk)
+        self.file.write({'walk_note': {'on': False}})                         # changed during the round
+        self.assertEqual(self.g.features['walk_note']['on'], True)
         first = self.starts()[-1]                                              # each round writes its own log
         self.assertEqual(self.g._command('/api/end', {})[0], 200)
-        self.assertEqual(self.g.plan_state()['mode'], 'off')                   # between rounds: what the next takes
         self.assertEqual(self.g._command('/api/reset', {})[0], 200)
         self.assertEqual(self.g._command('/api/start', {})[0], 200)
-        self.assertIsNone(self.g.ai.plan)
+        self.assertFalse(self.g.ai.walk)
         second = self.starts()[-1]
-        self.assertEqual(first['features']['rolling_intent'], {'on': True, 'version': 'rolling-v3', 'source': 'server'})
-        self.assertEqual(second['features']['rolling_intent'], {'on': False, 'version': 'rolling-v3', 'source': 'server'})
+        self.assertEqual(first['features']['walk_note'], {'on': True, 'version': 'walk-note-v1', 'source': 'server'})
+        self.assertEqual(second['features']['walk_note'], {'on': False, 'version': 'walk-note-v1', 'source': 'server'})
         self.assertNotIn('jeff_plan', second)
-
-    def test_a_switch_the_server_offers_shows_between_rounds_and_is_taken(self):
-        self.file.write({'rolling_intent': {'on': False}, 'jeff_plan': {'player_switch': True}})
-        self.assertEqual(self.g.plan_state(), {'mode': 'off', 'available': ['choice'], 'editable': True, 'current': None})
-        self.assertEqual(self.g._command('/api/plan', {'mode': 'choice'})[0], 200)
-        self.assertEqual(self.g._command('/api/start', {})[0], 200)
-        self.assertEqual(self.g.ai.plan.mode, 'choice')
-        self.assertEqual(self.starts()[-1]['features']['jeff_plan'], {'on': False, 'version': 'plan-v2', 'source': 'server'})
 
 
 class OverrideRecordTests(paths.SavePathTests):
     def setUp(self):
         self.file = OverrideFile(self)
-        self.file.write({'rolling_intent': {'on': False}, 'reach_note': {'on': True}})
+        self.file.write({'walk_note': {'on': False}, 'reach_note': {'on': True}})
         super().setUp()
 
     def test_a_round_under_an_override_is_recorded_with_its_source_and_replays_exactly(self):
@@ -164,10 +154,10 @@ class OverrideRecordTests(paths.SavePathTests):
         record = self.game.store.download(receipt['id'], receipt['deletion_token'])
         validate_record(record)
         kept = record['conditions']['features']
-        self.assertEqual(kept['rolling_intent'], {'on': False, 'version': 'rolling-v3', 'source': 'server'})
+        self.assertEqual(kept['walk_note'], {'on': False, 'version': 'walk-note-v1', 'source': 'server'})
         self.assertEqual(kept['reach_note'], {'on': True, 'version': 'reach-v1', 'source': 'server'})
         self.assertNotIn('source', kept['one_press'])
-        self.assertFalse(record['conditions'].get('jeff_plan'))                  # no plan mode in this round
+        self.assertNotIn('jeff_plan', record['conditions'])                      # plan modes are gone
         self.assertEqual(research_replay.check(record)['replay'], 'verified')
 
 

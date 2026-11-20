@@ -357,10 +357,7 @@
       ]};
       endpoint = config.base_url + '/chat/completions';
       if(config.provider==='zhipu')body.messages[0].content=zhipuSystem(payload);
-      else{
-        if(planQuestions(payload).some(q => q.startsWith('plan_')))body.messages[0].content+=PLAN_CHAT_RULE;
-        if('put_where' in payload.questions)body.messages[0].content+=PUT_WHERE_CHAT_RULE;
-      }
+      else if('put_where' in payload.questions)body.messages[0].content+=PUT_WHERE_CHAT_RULE;
     }
     Object.assign(body, preset.extra || {});
     try {
@@ -377,7 +374,7 @@
         d = JSON.parse(text);
         if (preset.group === 'decision') {
           answer = {choice:d.answers?.next_action?.choice, sprint:d.answers?.sprint?.choice === 'yes',
-            ...Object.fromEntries(planQuestions(payload).map(q => [q, d.answers?.[q]?.type === 'choice' ? d.answers[q].choice : null])),
+            ...Object.fromEntries(extraQuestions(payload).map(q => [q, d.answers?.[q]?.type === 'choice' ? d.answers[q].choice : null])),
             probabilities:offered(d.answers?.next_action?.probabilities, payload.questions.next_action.criteria)};
           if (d.answers?.next_action?.type !== 'choice' || ('sprint' in payload.questions &&
               !['yes','no'].includes(d.answers?.sprint?.choice))) throw new Error();
@@ -391,12 +388,12 @@
             ('sprint' in payload.questions && preset.group !== 'decision' && 'sprint' in answer &&
              typeof answer.sprint !== 'boolean')) throw new Error();
       } catch (_) {throw new Error('模型返回了无效动作，未执行任何操作。');}
-      // The plan and put_where answers go to the server as given (offered keys or null); harness.choice_answer reads them there.
-      // A missing or unknown one only leaves Jeff without a plan (or keeps it); the action stands.
-      const asked = planQuestions(payload);
-      const plan = asked.length ? {plan:Object.fromEntries(asked.map(q => [q, typeof answer[q] === 'string' &&
+      // The put_where answer goes to the server as given (an offered key or null); harness.choice_answer reads it there.
+      // A missing or unknown one only leaves the one-press choice to its default place; the action stands.
+      const asked = extraQuestions(payload);
+      const extra = asked.length ? {answers:Object.fromEntries(asked.map(q => [q, typeof answer[q] === 'string' &&
         Object.hasOwn(payload.questions[q].criteria, answer[q]) ? answer[q] : null]))} : {};
-      return {choice:answer.choice, sprint:answer.sprint === true, ...plan,
+      return {choice:answer.choice, sprint:answer.sprint === true, ...extra,
         ...(preset.group === 'decision' && Object.keys(answer.probabilities).length?{probabilities:answer.probabilities}:{}), usage:{
         input_tokens:boundedCount(usage.input_tokens), output_tokens:boundedCount(usage.output_tokens)},
         latency:(performance.now()-started)/1000};
@@ -420,8 +417,7 @@
     return hint ? hint + '（' + text + '）' : '连接失败（' + text + '）';
   }
   function boundedCount(n) {return Number.isInteger(n) && n >= 0 && n <= 10000000 ? n : 0;}
-  // The same sentences as harness.PLAN_CHAT_RULE and harness.PUT_WHERE_CHAT_RULE.
-  const PLAN_CHAT_RULE = ' For each question whose name starts with plan_, also include "<question name>": "<key>", one key of the criteria of that question.';
+  // The same sentence as harness.PUT_WHERE_CHAT_RULE.
   const PUT_WHERE_CHAT_RULE = ' When questions.put_where is present, also include "put_where": "<key>", one key of its criteria.';
   function zhipuSystem(payload) {return zhipuInstructions(payload)+zhipuSchema(payload);}
   // model_output.zhipu_schema: names the offered keys, so it changes with every request.
@@ -429,13 +425,12 @@
     const properties={choice:{type:'string',enum:Object.keys(payload.questions.next_action.criteria)}};
     const required=['choice'];
     if('sprint' in payload.questions){properties.sprint={type:'boolean'};required.push('sprint');}
-    for(const q of planQuestions(payload)){properties[q]={type:'string',enum:Object.keys(payload.questions[q].criteria)};required.push(q);}
+    for(const q of extraQuestions(payload)){properties[q]={type:'string',enum:Object.keys(payload.questions[q].criteria)};required.push(q);}
     const schema={type:'object',properties,required,additionalProperties:false};
     return 'JSON Schema: '+JSON.stringify(schema);
   }
-  // model_output.zhipu_instructions: the plan and put_where sentences when this request asks those questions.
+  // model_output.zhipu_instructions: the put_where sentence when this request asks it.
   function zhipuInstructions(payload) {
-    const plan=Object.keys(payload.questions).some(q => q.startsWith('plan_'));
     const putWhere='put_where' in payload.questions;
     return 'You control chef jeff in a shared kitchen. Using the supplied state and rules, '+
       'choose exactly one action key from questions.next_action.criteria. '+
@@ -445,13 +440,12 @@
       'sprint as the JSON boolean true for yes or false for no. '+
       'Never encode sprint as a string, number or null. '+
       'When questions.sprint is absent, omit sprint. '+
-      (plan ? 'Each question whose name starts with plan_ is a field whose value is one of its keys. ' : '')+
       (putWhere ? 'questions.put_where is a field whose value is one of its keys. ' : '')+
       'Do not explain or add other fields. ';
   }
-  // The same questions, in the same order, as harness.choice_questions: the plan's, then put_where (one_press.py).
-  const PLAN_QUESTIONS = ['plan_step_1', 'plan_step_2', 'plan_step_3', 'plan_step_4', 'plan_keep', 'put_where'];
-  function planQuestions(payload) {return PLAN_QUESTIONS.filter(q => q in payload.questions);}
+  // The same questions as harness.choice_questions: put_where (one_press.py), when asked.
+  const EXTRA_QUESTIONS = ['put_where'];
+  function extraQuestions(payload) {return EXTRA_QUESTIONS.filter(q => q in payload.questions);}
   // The server learns only the preset service's id (features.model_defaults: Jeff's set-up for that service), never
   // its endpoint, model name or key; changed says the player saved a new connection (their switch picks then reset).
   let serviceReported = false;

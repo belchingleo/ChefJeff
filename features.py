@@ -21,7 +21,7 @@ A server can switch features without a new release, through an override file out
 (/etc/chefjeff/features.override.json, or the path in CHEFJEFF_FEATURES_OVERRIDE): {name: {"on": ..,
 "player_switch": .., "off_for": [..]}}, only those three fields, for features this release has ("off_for": [] gives
 the feature to every service, as a comparison with it on for all needs). The result is checked like
-features.json (a released feature has no player switch, one plan mode at a time); a wrong override is not used,
+features.json (a released feature has no player switch); a wrong override is not used,
 the release's file is, and the reason goes to stderr. The file is read again when it changes, and a session takes
 the switches as each round starts, so a round already running keeps its own. A feature the override sets is recorded with
 "source": "server". From the command line (python3 features.py ...): show, check [FILE], set NAME on|off
@@ -38,7 +38,6 @@ from pathlib import Path
 import sys
 import threading
 
-import harness
 import one_press
 import ask_ahead
 import undo_note
@@ -58,8 +57,7 @@ ROOT = Path(__file__).resolve().parent
 PATH = ROOT / 'features.json'
 STAGES = ('release', 'trial')
 # name -> the version the code implements.
-VERSIONS = {'one_press': one_press.VERSION, 'jeff_plan': harness.PLAN_RULES_VERSION,
-            'rolling_intent': harness.ROLLING_RULES_VERSION, 'undo_note': undo_note.VERSION,
+VERSIONS = {'one_press': one_press.VERSION, 'undo_note': undo_note.VERSION,
             'ask_ahead': ask_ahead.VERSION,
             'reach_note': reach_note.VERSION,
             'option_links': links.SWITCH_VERSION,
@@ -74,8 +72,6 @@ VERSIONS = {'one_press': one_press.VERSION, 'jeff_plan': harness.PLAN_RULES_VERS
 # clear-text-v1 is names-v1, clear-names-v3, engine-english-v1 and plate-names-v1. option_notes (was serve_note and
 # wait_note) is serve-note-v1 and wait-note-v2 in option-notes-v1, serve-note-v2 and wait-note-v2 in option-notes-v2,
 # serve-note-v2 alone in option-notes-v3 (the wait note went 2026-11-20).
-# The plan modes (harness.PLAN_MODES), one at a time, and the feature of each.
-PLAN_FEATURES = {'choice': 'jeff_plan', 'rolling': 'rolling_intent'}
 FIELDS = {'stage', 'on', 'player_switch', 'version', 'off_for'}
 # The model services a feature's off_for may name: every preset in the shared service list.
 SERVICES = frozenset(p['id'] for p in json.loads((ROOT / 'model-providers.json').read_text(encoding='utf-8'))['providers'])
@@ -109,8 +105,6 @@ def check(data) -> dict:
                 raise ValueError(f'features.json: {name} off_for must list distinct model services from '
                                  f'model-providers.json ({", ".join(sorted(SERVICES))})')
             out[name]['off_for'] = list(services)
-    if sum(out[name]['on'] for name in PLAN_FEATURES.values()) > 1:
-        raise ValueError('features.json: one plan mode at a time (jeff_plan or rolling_intent)')
     return out
 
 
@@ -198,16 +192,6 @@ def snapshot(features) -> dict:
     return {name: {'on': value['on'], 'version': value['version'],
                    **({'source': value['source']} if value.get('source') in ('server', 'model', 'player') else {})}
             for name, value in features.items()}
-
-
-def plan_default(features) -> str:
-    """The plan mode a session starts with: the plan feature that is on, else off."""
-    return next((mode for mode, name in PLAN_FEATURES.items() if features[name]['on']), 'off')
-
-
-def plan_choices(features) -> list:
-    """The plan modes the player can pick in Settings (besides off): those with a player switch."""
-    return [mode for mode, name in PLAN_FEATURES.items() if features[name]['player_switch']]
 
 
 def links_option(features):

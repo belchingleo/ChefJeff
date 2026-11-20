@@ -39,7 +39,6 @@ import player_api  # noqa: E402
 import reference_policy  # noqa: E402
 import spatial_kitchen  # noqa: E402
 from cooperation_memory import episode, memory_context  # noqa: E402
-from harness import PLAN_KEEP_QUESTION, PLAN_STEP_QUESTIONS, Plan, plan_answer, plan_questions, work_item  # noqa: E402
 from jev import DecisionLoop  # noqa: E402
 from kitchen import load_config  # noqa: E402
 from levels import level_config  # noqa: E402
@@ -56,15 +55,14 @@ SPEED = .75         # default game seconds per wall second; the loop's clock is 
 KEY = 'payload-fingerprint-key'
 WALL_TIME = '2026-11-03T12:00:00+08:00'
 SCENARIOS = {
-    # name: (level id, with player messages and cross-round memory, Jeff's plan mode: off, on, or 'rolling')
-    'level1': ('level-1', False, False),
-    'level2': ('level-2', False, False),
-    'level3': ('level-3', False, False),
-    'level2-messages-memory': ('level-2', True, False),
-    'level2-plan': ('level-2', True, True),
-    'level2-rolling': ('level-2', True, 'rolling'),
-    'level2-ask-ahead': ('level-2', False, False),
-    'level2-food-names': ('level-2', False, False),
+    # name: (level id, with player messages and cross-round memory). The plan scenarios went with the plan modes
+    # (2026-11-20).
+    'level1': ('level-1', False),
+    'level2': ('level-2', False),
+    'level3': ('level-3', False),
+    'level2-messages-memory': ('level-2', True),
+    'level2-ask-ahead': ('level-2', False),
+    'level2-food-names': ('level-2', False),
 }
 # Scenarios with ask_ahead on (ask_ahead.py): replies take REPLY_SECONDS of wall time, so Jeff's steps end before
 # some of them come and he is asked ahead.
@@ -179,28 +177,8 @@ class StandIn(SpatialJevClient):
         move = reference_policy.choose(described, 'jeff', 'cook')
         choice = (move.key if move and move.key in criteria else
                   next((key for key in ('wait', 'continue') if key in criteria), sorted(criteria)[0]))
-        plan = {}
-        asked = plan_questions(payload)
-        if PLAN_STEP_QUESTIONS[0] in asked:
-            # The work of the move it is about to make and what follows it, else no plan.
-            first = work_item(move, described.snapshot()) if move and move.key in criteria else None
-            chain = following(first, payload['questions'][PLAN_STEP_QUESTIONS[0]]['criteria'])
-            plan = plan_answer({q: chain[n] if n < len(chain) else 'none' for n, q in enumerate(PLAN_STEP_QUESTIONS)}, payload)
-        elif PLAN_KEEP_QUESTION in asked:
-            plan = plan_answer({PLAN_KEEP_QUESTION: 'keep'}, payload)
         return {'sprint_answer': {}, 'sprint': False, 'choice': choice, 'confidence': None,
-                'probabilities': {}, 'model': 'payload-fingerprint', 'usage': {}, 'latency': 0.0, **plan}
-
-
-def following(work, offered):
-    """A work item and the ones that follow it for the same ingredient or plate, as offered (a stand-in's plan)."""
-    if work is None:
-        return []
-    kind, _, name = work.partition(':')
-    stages = (['fetch', 'chop', 'cook', 'plate'] if name else
-              ['take_plate', 'serve'] if kind in ('take_plate', 'serve') else ['collect_plates', 'wash_plates'])
-    later = stages[stages.index(kind):] if kind in stages else [kind]
-    return [w for w in (f'{s}:{name}' if name else s for s in later) if w in offered][:len(PLAN_STEP_QUESTIONS)]
+                'probabilities': {}, 'model': 'payload-fingerprint', 'usage': {}, 'latency': 0.0}
 
 
 class Inline:
@@ -273,7 +251,7 @@ def run(name, keep=None):
 
 
 def _run(name, keep=None):
-    level, talk, planned = SCENARIOS[name]
+    level, talk = SCENARIOS[name]
     memory = previous_round_memory(level) if talk else None
     # Start like a freshly started server. Kitchens on one map share a navigation object and its
     # route caches, so rounds or tests run earlier in the same process never reach this recording.
@@ -285,8 +263,6 @@ def _run(name, keep=None):
     loop.player_messages = []
     if talk:
         loop.cooperation_memory = memory
-    if planned:
-        loop.plan = Plan(mode='rolling' if planned == 'rolling' else 'choice')
     loop.one_press = features.one_press_flags(features.current())   # the released features, as a new session has them
     loop.ask_ahead = features.current()['ask_ahead']['on']
     # clear_text: food names, item names, the engine's English and plate names, as a new session sets them.
