@@ -35,3 +35,5 @@ cocos-kitchen/settings/v2/packages/program.json
 **/shared-client.json
 **/data-server.json
 node_modules/
+# The lab's built data (scripts/build_lab.py): moments of the researcher's own rounds; not published until decided.
+lab/data/

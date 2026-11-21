@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ChefJeff 实验室</title>
+<link rel="stylesheet" href="lab.css?v=4">
+</head>
+<body>
+<header class="top">
+  <div class="wrap top-row">
+    <div class="brand">
+      <span class="mark" aria-hidden="true">J</span>
+      <div>
+        <h1 data-t="title">ChefJeff 实验室</h1>
+        <p class="sub" data-t="subtitle">同一个厨房、同一时刻，给 Jeff 不同的信息，他会怎么选</p>
+      </div>
+    </div>
+    <button id="lang" class="lang" type="button">English</button>
+  </div>
+  <nav class="wrap tabs" role="tablist">
+    <button class="tab" role="tab" data-tab="overview" data-t="tab_overview">概览</button>
+    <button class="tab" role="tab" data-tab="moments" data-t="tab_moments">时刻</button>
+    <button class="tab" role="tab" data-tab="results" data-t="tab_results">结果</button>
+  </nav>
+</header>
+
+<main class="wrap">
+  <section id="overview" class="panel" role="tabpanel"></section>
+  <section id="moments" class="panel" role="tabpanel" hidden>
+    <div class="moments">
+      <aside class="list">
+        <div class="filters">
+          <label><span data-t="f_level">关卡</span>
+            <select id="f-level"><option value="" data-t="all">全部</option></select></label>
+          <label><span data-t="f_label">类型</span>
+            <select id="f-label"><option value="" data-t="all">全部</option></select></label>
+        </div>
+        <ol id="moment-list"></ol>
+      </aside>
+      <div class="detail" id="detail"><p class="hint" data-t="pick">从左边选一个时刻。</p></div>
+    </div>
+  </section>
+  <section id="results" class="panel" role="tabpanel" hidden></section>
+</main>
+
+<footer class="wrap foot">
+  <p data-t="foot">这里的回答都是事先记录的，页面不会调用任何模型。</p>
+</footer>
+<script src="lab.js?v=4"></script>
+</body>
+</html>
