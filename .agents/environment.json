@@ -1,0 +1,3 @@
+{
+  "install": "set -euo pipefail; npm ci --no-audit --no-fund; mkdir -p .tools; [ -x .tools/venv/bin/python ] || python3 -m venv .tools/venv; .tools/venv/bin/pip install --no-input -r tests/requirements.txt; touch \"$HOME/.bashrc\"; sed -i '/case \\$- in/,/esac/d' \"$HOME/.bashrc\" 2>/dev/null || true; line=\"export PATH=\\\"$PWD/.tools/venv/bin:$PWD/node_modules/.bin:\\$PATH\\\"\"; grep -qxF \"$line\" \"$HOME/.bashrc\" || printf '%s\\n' \"$line\" >> \"$HOME/.bashrc\""
+}
