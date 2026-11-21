@@ -22,7 +22,8 @@ if args.platform=='android':
         for key,value in json.loads(local.read_text()).items():
             os.environ.setdefault(key,value)
     missing=[name for name in ('ANDROID_SDK_ROOT','NDK_ROOT','JAVA_HOME') if not Path(os.environ.get(name,'/not-configured')).is_dir()]
-    if missing:sys.exit('Android 构建环境未配置：'+', '.join(missing)+'。请参考 安卓Demo方案.md。')
+    if missing:sys.exit('Android 构建环境未配置：'+', '.join(missing)+'。ANDROID_SDK_ROOT、NDK_ROOT、JAVA_HOME 都要指向已有的目录；'
+        '可以设成环境变量，也可以写进 .tools/android-env.json（一个 JSON 对象，键是变量名，值是目录路径；已设的环境变量优先）。')
 config=ROOT/'cocos-kitchen'/f'build-{args.platform}.json'
 with tempfile.TemporaryDirectory(prefix='chefjeff-build-') as temporary:
     build_config=config
