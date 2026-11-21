@@ -67,7 +67,7 @@
   }
   function chrome() {
     doc.documentElement.lang=locale==='en'?'en':'zh-CN';
-    doc.title=locale==='en'?'ChefJeff · Cook together':'ChefJeff · 一起出餐';
+    doc.title=locale==='en'?'ChefJeff · Cook together':'ChefJeff·不分手厨房';
     const toggle=doc.getElementById('kitchen-language');
     if(toggle){toggle.textContent=locale==='en'?'中文':'English';toggle.setAttribute('aria-label',locale==='en'?'Switch to Chinese':'切换到英文');}
   }
