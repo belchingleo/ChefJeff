@@ -110,7 +110,7 @@ class JevClient:
 def compose_payload(client, kitchen, state, actions, recent_decisions, communication, memory=NO_MEMORY, one_press=None,
                     undo=None, reach=False, names=False, links=False, split=False, burn=False,
                     serve_note=False, steps=False, clear=False, walk=False,
-                    english=False, plate=False, parts=None, go=False):
+                    english=False, plate=False, parts=None, go=False, work=None):
     """Jeff's request from the kitchen and the few parts it cannot derive; research replay rebuilds it here too.
 
     one_press is the round's one-press switches (one_press.flags), or None: the options are added to the
@@ -124,14 +124,15 @@ def compose_payload(client, kitchen, state, actions, recent_decisions, communica
     whether engine_english is (engine_english.py: the engine's own English where the catalog garbles it), plate
     whether plate_names is (plate_names.py: a plating option says what the plate there holds). parts is
     request_parts.finish's switches (request_parts.parts), or None: they run last, after the links table. go whether
-    go_note is (go_note.py: a "go X" option says when nothing there takes what Jeff holds)."""
+    go_note is (go_note.py: a "go X" option says when nothing there takes what Jeff holds). work is work_notes.flags
+    (own_chain, plate_result, board_taken: facts on options about the work they lead to), or None."""
     with engine_english.writing(english):
         return _compose(client, kitchen, state, actions, recent_decisions, communication, memory, one_press,
-                        undo, reach, names, links, split, burn, serve_note, steps, clear, walk, plate, parts, go)
+                        undo, reach, names, links, split, burn, serve_note, steps, clear, walk, plate, parts, go, work)
 
 
 def _compose(client, kitchen, state, actions, recent_decisions, communication, memory, one_press,
-             undo, reach, names, links, split, burn, serve_note, steps, clear, walk, plate, parts, go=False):
+             undo, reach, names, links, split, burn, serve_note, steps, clear, walk, plate, parts, go=False, work=None):
     if one_press:
         import one_press as presses
         keys = {a.key for a in actions}
@@ -154,6 +155,9 @@ def _compose(client, kitchen, state, actions, recent_decisions, communication, m
     if plate:
         import plate_names
         plate_names.apply(payload)
+    if work:
+        import work_notes
+        work_notes.apply(payload, kitchen, actions, names=names, **work)
     if links:
         import links as option_links
         payload = option_links.apply(payload, kitchen, 'jeff', actions, names, **option_links.flags(links))
@@ -234,6 +238,8 @@ class DecisionLoop:
         self.walk = False
         # The go_note trial (go_note.py): a "go X" option says when nothing there takes what Jeff holds.
         self.go = False
+        # The work notes trials (work_notes.py): own_chain, plate_result, board_taken; None when all are off.
+        self.work = None
         # The plate_names trial (plate_names.py): a plating option says what the plate there holds.
         self.plate = False
         # The engine_english trial (engine_english.py): the engine's own English where the catalog garbles it.
@@ -618,7 +624,7 @@ class DecisionLoop:
                                   burn=self.burn, serve_note=self.serve_note,
                                   steps=self.steps, clear=self.clear, walk=self.walk,
                                   english=self.english, plate=self.plate, parts=None if self.links else self.parts,
-                                  go=self.go)
+                                  go=self.go, work=self.work)
         record = {"request_id": self.calls, "triggers": causes, "observed_state_seq": self.k.event_seq,
                   **({"one_press": dict(self.one_press)} if self.one_press else {}),
                   **({"undo_note": deepcopy(self.undo)} if self.undo is not None else {}),

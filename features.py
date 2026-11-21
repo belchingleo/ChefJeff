@@ -47,6 +47,7 @@ import step_check
 import clear_names
 import walk_note
 import go_note
+import work_notes
 import plate_names
 import engine_english
 import food_names
@@ -70,6 +71,7 @@ VERSIONS = {'one_press': one_press.VERSION, 'undo_note': undo_note.VERSION,
             'clear_text': 'clear-text-v1',
             'option_notes': option_notes.VERSION,
             'throw_to': one_press.THROW_TO_VERSION,
+            **{name: version for name, (_, version) in work_notes.SWITCHES.items()},
             # The parts of the restructured request (request_parts.py), one switch each.
             **{name: version for name, (_, version) in request_parts.SWITCHES.items()}}
 # clear_text (2026-11-19: was food_names, clear_names, engine_english and plate_names) turns those four on together;
@@ -229,7 +231,8 @@ def compose_options(features):
             'steps': features['step_check']['on'],
             'clear': features['clear_text']['on'], 'walk': features['walk_note']['on'], 'go': features['go_note']['on'],
             'english': features['clear_text']['on'], 'plate': features['clear_text']['on'],
-            **({'parts': request_parts.parts(features)} if request_parts.parts(features) else {})}
+            **({'parts': request_parts.parts(features)} if request_parts.parts(features) else {}),
+            **({'work': work_notes.flags(features)} if work_notes.flags(features) else {})}
 
 
 def _write_override(value, path):

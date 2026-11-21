@@ -18,5 +18,8 @@
   "links_on_options": {"stage": "trial", "on": false, "version": "links-on-options-v1"},
   "rules_by_action": {"stage": "trial", "on": false, "version": "rules-by-action-v3"},
   "kitchen_view": {"stage": "trial", "on": false, "version": "kitchen-view-v6"},
-  "throw_to": {"stage": "trial", "on": false, "version": "throw-to-v1"}
+  "throw_to": {"stage": "trial", "on": false, "version": "throw-to-v1"},
+  "own_chain": {"stage": "trial", "on": false, "version": "own-chain-v1"},
+  "plate_result": {"stage": "trial", "on": false, "version": "plate-result-v1"},
+  "board_taken": {"stage": "trial", "on": false, "version": "board-taken-v1"}
 }
