@@ -751,10 +751,11 @@ class GameSession:
             self._events()
             return (200, {'ok':True, 'message':action.label}) if ok else (409, {'error':message})
         if path == '/api/page-frames':
-            # The page's frame times this round (frames, p50/p90/max ms, frames over 25 and 50 ms, frame rate): the
-            # round's end row keeps the latest, so a choppy round shows whether the page or the server was slow.
+            # The page's frame times this round (frames, p50/p90/max ms, frames over 25 and 50 ms and over 1.5 times
+            # the frame time it aims at, frame rate): the round's end row keeps the latest (the page reports every
+            # second near the end), so a choppy round shows whether the page or the server was slow.
             frames = body.get('frames')
-            keys = ('frames', 'p50_ms', 'p90_ms', 'max_ms', 'over_25ms', 'over_50ms', 'frame_rate')
+            keys = ('frames', 'p50_ms', 'p90_ms', 'max_ms', 'over_25ms', 'over_50ms', 'slow_frames', 'frame_rate')
             number = lambda v: v is None or (isinstance(v, (int, float)) and not isinstance(v, bool) and 0 <= v < 1e7)
             if (self.phase not in ('running', 'paused') or not isinstance(frames, dict)
                     or frames.get('game_id') != self.game_id or not all(number(frames.get(k)) for k in keys)):

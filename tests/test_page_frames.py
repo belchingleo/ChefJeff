@@ -10,7 +10,7 @@ from test_jev import NoKeyClient
 from test_web import FakeJournal
 
 FRAMES = {'frames': 3318, 'p50_ms': 21.8, 'p90_ms': 23.6, 'max_ms': 95.4, 'over_25ms': 120, 'over_50ms': 3,
-          'frame_rate': 45.9}
+          'slow_frames': 4, 'frame_rate': 45.9}
 
 
 class PageFrameTests(unittest.TestCase):
@@ -35,6 +35,17 @@ class PageFrameTests(unittest.TestCase):
         self.assertEqual(self.cmd('end')[0], 200)
         end = next(v for k, v in log.rows if k == 'end')
         self.assertEqual(end['page_frames'], {**FRAMES, 'frames': 4000})
+
+    def test_a_page_built_before_slow_frames_still_reports(self):
+        self.assertEqual(self.cmd('start')[0], 200)
+        older = {k: v for k, v in FRAMES.items() if k != 'slow_frames'}
+        self.assertEqual(self.cmd('page-frames', frames={**older, 'game_id': self.g.game_id})[0], 200)
+        self.assertEqual(self.g.page_frames, {**older, 'slow_frames': None})
+
+    def test_a_paused_round_still_takes_the_last_report(self):
+        self.assertEqual(self.cmd('start')[0], 200)
+        self.assertEqual(self.cmd('pause')[0], 200)
+        self.assertEqual(self.cmd('page-frames', frames={**FRAMES, 'game_id': self.g.game_id})[0], 200)
 
     def test_bad_or_foreign_frames_are_refused(self):
         self.assertEqual(self.cmd('start')[0], 200)
