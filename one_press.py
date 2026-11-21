@@ -4,7 +4,8 @@ thinking, offered as one choice and carried out as the same ordinary steps, one 
 
 - put then take <station>: Jeff holds an item and another item lies on <station> that he could take with empty
   hands, while no other listed action is at <station>. He puts the held item where questions.put_where says
-  (one of the put places the request already lists), then takes the item from <station>.
+  (one of the put places the request already lists; a free stove for a held pan or pot is one of them since v6),
+  then takes the item from <station>.
 - put then chop <board> and put then wash <sink>: the same, for the work the engine lets him do there only with
   empty hands (chopping what lies on the board, washing the dirty plate in the sink): he puts the held item
   where put_where says, then chops or washes. All three go with the put_then_take flag (one_press.flags; both
@@ -24,12 +25,15 @@ from __future__ import annotations
 
 from kitchen import Action
 
-VERSION = 'one-press-v5'
+VERSION = 'one-press-v6'
 # v1: put then take and wash from the plate return only; v2 added put then chop and put then wash; v3 gives those two
 # the seconds of work left, as the engine's own chop and wash labels do; v4 adds put then fetch; v5 words put then take
 # of a pan or pot on a stove as the engine's own lift does (lift the pan, which stops heating off the stove), where v4
 # said "take <its food> from Stove N": Jev took a pan whose food was still cooking about 20% of the times that option
-# was offered and 1% of the times the plain lift was.
+# was offered and 1% of the times the plain lift was. v6 adds a free stove to the put places (the engine's own "put pot
+# <stove>", listed while Jeff holds a pan or pot and the stove is free): before it, after plating from a pan Jeff could
+# put the empty pan only on a counter, a supply or the floor, and in the user's 2026-11-21 level-4 rounds he set it
+# down off the stoves about 3.5 times a round and never straight back.
 NAMES = ('put_then_take', 'wash_from_returns')
 KINDS = ('put_then_take', 'put_then_chop', 'put_then_wash', 'put_then_fetch', 'wash_from_returns')
 PUT_WHERE = 'put_where'
@@ -39,7 +43,7 @@ PUT_THEN_WORK = {'chop': ('put_then_chop', 'put then chop '), 'wash': ('put_then
 # What takes the item lying on a station with empty hands (the engine's own kinds).
 TAKES = ('take_board', 'take_counter', 'take_return', 'take_sink', 'take_plate', 'lift_pot')
 # Where a held item can be put down: the put places a request lists.
-PLACES = ('put_counter', 'put_board', 'put_tool', 'drop')
+PLACES = ('put_counter', 'put_board', 'put_tool', 'drop', 'return_pot')
 RULE = ('Some actions save presses. "put then take <station>" puts the item you hold where questions.put_where says, then takes '
         'the item lying on that station; "put then chop <board>" and "put then wash <sink>" put it there likewise, then chop what '
         'lies on the board or wash the dirty plate in the sink; "put then fetch <ingredient>" puts it there likewise, then '

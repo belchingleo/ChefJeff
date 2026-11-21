@@ -89,11 +89,28 @@ class OptionTests(unittest.TestCase):
                                    BOTH)['questions']['next_action']['criteria']
         self.assertEqual(criteria['put then take p1'], 'Put the held Bread where put_where says, then lift the frying pan '
                                                        'from Stove 1 (stops heating off the stove; occupies your hands)')
-        self.assertEqual(one_press.VERSION, 'one-press-v5')
         # scripts/lift_label_check.py rewrites a logged v4 text into exactly this one
         from scripts.lift_label_check import new_text
         old = 'Put the held Bread where put_where says, then take Beef (cooking) from Stove 1'
         self.assertEqual(new_text(old, 'frying pan', 'Stove 1'), criteria['put then take p1'])
+
+    def test_a_held_pan_can_go_back_on_a_free_stove_first(self):
+        # v6: the engine's "put pot <stove>" is a put place, so "put then take" can return an empty pan to its stove;
+        # before it the pan could only go to a counter, a supply or the floor.
+        self.assertEqual(one_press.VERSION, 'one-press-v6')
+        k = SpatialKitchen(level_config(load_config(), 'level-2'))
+        start(k, 'jeff', 'take pot p1')
+        acts = k.actions('jeff')
+        places = compose_payload(SpatialJevClient(k.c, key='x'), k, k.snapshot(), acts, [], None, NO_MEMORY,
+                                 BOTH)['questions'][one_press.PUT_WHERE]['criteria']
+        self.assertIn('Stove 1', places['put pot p1'])
+        put, fallback = one_press.place(acts, 'put pot p1')
+        self.assertEqual((put.key, put.kind, fallback), ('put pot p1', 'return_pot', False))
+        k.start('jeff', put)
+        idle(k, 'jeff')
+        self.assertIsNone(k.chefs['jeff'].hand)
+        self.assertIn('take pot p1', [a.key for a in k.actions('jeff')])          # the pan is on its stove again
+        self.assertIn('take counter2', [a.key for a in k.actions('jeff')])        # the take that follows
 
     def test_nothing_when_an_action_is_already_there_or_the_hands_are_empty(self):
         k = SpatialKitchen(level_config(load_config(), 'level-2'))
