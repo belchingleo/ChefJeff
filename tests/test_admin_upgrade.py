@@ -1,5 +1,7 @@
 """Isolated filesystem and mocked service-manager lifecycle; no live root operations."""
+from contextlib import redirect_stdout
 import hashlib
+import io
 import json
 from pathlib import Path
 import tempfile
@@ -76,28 +78,44 @@ class UpgradeTests(unittest.TestCase):
         for p in reversed(self.patchers):p.stop()
         self.temp.cleanup()
 
+    def printed(self,step,refused=None):
+        out=io.StringIO()
+        with redirect_stdout(out):
+            if refused is None:step()
+            else:
+                with self.assertRaises(refused):step()
+        return out.getvalue()
+
+    def prepare(self):
+        status=json.loads(self.printed(up.prepare))
+        self.assertEqual((status['status'],status['database_opened'],status['services_restarted'],status['game_service_will_not_restart']),
+                         ('admin-v2-prepared',False,False,True))
+
     def test_prepare_activate_idempotence_rollback_and_preserved_account_game_nginx(self):
-        up.prepare();self.assertEqual(self.admin.read_text(),ADMIN);self.assertEqual(self.data.read_text(),DATA);self.assertEqual(self.calls,[])
-        up.activate();self.assertIn('authority_runner.py',self.data.read_text());self.assertEqual(self.pids['chefjeff.service'],'100')
+        self.prepare();self.assertEqual(self.admin.read_text(),ADMIN);self.assertEqual(self.data.read_text(),DATA);self.assertEqual(self.calls,[])
+        status=json.loads(self.printed(up.activate))
+        self.assertEqual((status['status'],status['game_process_unchanged'],status['nginx_unchanged']),('admin-v2-active',True,True))
+        self.assertIn('authority_runner.py',self.data.read_text());self.assertEqual(self.pids['chefjeff.service'],'100')
         self.assertEqual(self.auth.read_bytes(),self.auth_before);self.assertEqual(self.site.read_text(),'synthetic unchanged nginx config')
-        count=len(self.calls);up.activate();self.assertEqual(len(self.calls),count)
-        up.rollback();self.assertEqual(self.admin.read_text(),ADMIN);self.assertEqual(self.data.read_text(),DATA)
+        count=len(self.calls);self.assertEqual(self.printed(up.activate),'v2已启用，无需重复升级。\n');self.assertEqual(len(self.calls),count)
+        self.assertEqual(self.printed(up.rollback),'已恢复原管理台和共享服务入口；账号、游戏、研究记录和新来源索引均保留，没有回填或恢复数据库。\n')
+        self.assertEqual(self.admin.read_text(),ADMIN);self.assertEqual(self.data.read_text(),DATA)
         self.assertEqual(self.auth.read_bytes(),self.auth_before)
         for call in self.calls:
             self.assertNotIn('nginx',call);self.assertNotIn('nginx.service',call)
             if call[:2]==('systemctl','restart'):self.assertNotEqual(call[-1],'chefjeff.service')
 
     def test_failed_https_rolls_back_both_units_and_keeps_account(self):
-        up.prepare()
+        self.prepare()
         with patch.object(up,'protected_https',side_effect=ValueError('synthetic failed probe')):
-            with self.assertRaises(ValueError):up.activate()
+            self.assertEqual(self.printed(up.activate,ValueError),'')
         self.assertEqual(self.admin.read_text(),ADMIN);self.assertEqual(self.data.read_text(),DATA)
         self.assertEqual(json.loads((self.work/'state.json').read_text())['phase'],'rolled-back')
         self.assertEqual(self.auth.read_bytes(),self.auth_before)
 
     def test_refuse_changed_unit_before_restarting_any_service(self):
-        up.prepare();self.data.write_text(DATA+'# newer edit\n')
-        with self.assertRaises(ValueError):up.activate()
+        self.prepare();self.data.write_text(DATA+'# newer edit\n')
+        self.assertEqual(self.printed(up.activate,ValueError),'')
         self.assertEqual(self.calls,[]);self.assertIn('newer edit',self.data.read_text())
 
     def test_unit_transform_preserves_hardening_and_rejects_unknown_arguments(self):

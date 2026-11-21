@@ -58,7 +58,8 @@ class SinkUnitArtTest(unittest.TestCase):
             from PIL import Image
         except ImportError:
             self.skipTest('Pillow not installed')
-        w, h = Image.open(GRID / 'atlas.png').size
+        with Image.open(GRID / 'atlas.png') as atlas:
+            w, h = atlas.size
         for key, f in self.frames.items():
             x, y, fw, fh = f['rect']
             self.assertTrue(x >= 0 and y >= 0 and x + fw <= w and y + fh <= h, key)

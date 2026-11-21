@@ -1,9 +1,10 @@
 """Synthetic fixtures only; no production database, account or model access."""
-from contextlib import closing
+from contextlib import closing, redirect_stderr, redirect_stdout
 from copy import deepcopy
 import hashlib
 import http.client
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import io
 import json
 from pathlib import Path
 import sqlite3
@@ -84,11 +85,12 @@ class AdminTests(unittest.TestCase):
         if origin: headers['Origin'] = origin
         if content_type: headers['Content-Type'] = content_type
         if body is not None: body = body.encode()
-        c.request(method, path, body=body, headers=headers)
-        response = c.getresponse()
-        status, headers, raw = response.status, dict(response.getheaders()), response.read()
-        c.close()
-        return status, headers, raw
+        try:
+            c.request(method, path, body=body, headers=headers)
+            response = c.getresponse()
+            return response.status, dict(response.getheaders()), response.read()
+        finally:
+            c.close()
 
     def login(self):
         status, headers, raw = self.request(app.PREFIX+'login', 'POST', urlencode(dict(username='admin', password=PASSWORD)),
@@ -165,10 +167,14 @@ class AdminTests(unittest.TestCase):
 
     def test_export_recheck_failure_releases_lock_and_sends_no_zip(self):
         cookie=self.login()
-        with patch.object(self.server,'verifier',side_effect=ValueError('withdrawn')):
-            status,headers,raw=self.request(app.PREFIX+'download/research.cjresearch.zip',cookie=cookie)
-            self.assertEqual(status,503);self.assertNotIn('Content-Disposition',headers)
-        self.assertEqual(self.request(app.PREFIX+'download/research.cjresearch.zip',cookie=cookie)[0],200)
+        log=io.StringIO()
+        with redirect_stderr(log):
+            with patch.object(self.server,'verifier',side_effect=ValueError('withdrawn')):
+                status,headers,raw=self.request(app.PREFIX+'download/research.cjresearch.zip',cookie=cookie)
+                self.assertEqual(status,503);self.assertNotIn('Content-Disposition',headers)
+            self.assertEqual(self.request(app.PREFIX+'download/research.cjresearch.zip',cookie=cookie)[0],200)
+        # One fixed line: no error text, path, cookie or record detail reaches the log.
+        self.assertEqual(log.getvalue(),'Admin export failed.\n')
 
     def test_usage_read_and_download(self):
         cookie=self.login()
@@ -276,16 +282,30 @@ class InstallationLifecycleTests(unittest.TestCase):
         for p in reversed(self.patchers):p.stop()
         self.temp.cleanup()
 
+    def printed(self,step,refused=None):
+        out=io.StringIO()
+        with redirect_stdout(out):
+            if refused is None:step()
+            else:
+                with self.assertRaises(refused):step()
+        return out.getvalue()
+
+    def prepare(self):
+        # The installer prints the reviewed Nginx diff, then its status.
+        out=self.printed(installer.prepare)
+        self.assertIn('+++ 候选游戏配置',out);self.assertIn('include '+str(self.config/'nginx-location.conf')+';',out)
+        self.assertIn('"status": "admin-prepared"',out)
+
     def test_prepare_activate_idempotence_and_rollback_no_game_restart(self):
-        installer.prepare()
+        self.prepare()
         self.assertEqual(self.site.read_text(),self.original)
         self.assertFalse(self.unit.exists())
-        installer.activate()
+        self.assertIn('"status": "admin-active"',self.printed(installer.activate))
         self.assertTrue(self.unit.exists())
         self.assertEqual(json.loads((self.review/'state.json').read_text())['phase'],'active')
         self.assertEqual(installer.Path('/opt/chefjeff/current').resolve(),self.release)
-        installer.activate()
-        installer.rollback()
+        self.assertEqual(self.printed(installer.activate),'管理入口已启用，无需重复激活。\n')
+        self.assertEqual(self.printed(installer.rollback),'已移除管理入口；游戏、共享数据服务与数据库未改动，账号和代码保留。\n')
         self.assertEqual(self.site.read_text(),self.original)
         self.assertFalse(self.unit.exists())
         for call in self.commands.call_args_list:
@@ -296,9 +316,9 @@ class InstallationLifecycleTests(unittest.TestCase):
         self.assertFalse(installer.Path('/var/lib/chefjeff-data/contributions.sqlite3').exists())
 
     def test_activation_failure_restores_only_candidate_site(self):
-        installer.prepare()
+        self.prepare()
         with patch.object(installer,'https_check',side_effect=ValueError('synthetic failed probe')):
-            with self.assertRaises(ValueError):installer.activate()
+            self.assertEqual(self.printed(installer.activate,ValueError),'')
         self.assertEqual(self.site.read_text(),self.original)
         self.assertFalse(self.unit.exists())
         self.assertEqual(installer.Path('/opt/chefjeff/current').resolve(),self.release)
@@ -309,9 +329,9 @@ class InstallationLifecycleTests(unittest.TestCase):
         self.assertFalse(self.unit.exists())
 
     def test_refuse_overwriting_changed_nginx(self):
-        installer.prepare()
+        self.prepare()
         self.site.write_text(self.original+'# newer owner edit\n')
-        with self.assertRaises(ValueError):installer.activate()
+        self.assertEqual(self.printed(installer.activate,ValueError),'')
         self.assertIn('newer owner edit',self.site.read_text())
         self.assertFalse(self.unit.exists())
 

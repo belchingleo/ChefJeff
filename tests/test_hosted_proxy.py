@@ -74,7 +74,10 @@ class HostedProxyTests(unittest.TestCase):
                           f'uwsgi_temp_path {directory}/uwsgi;\n'
                           f'scgi_temp_path {directory}/scgi;\naccess_log off;\n'
                           + zones + site + '\n}\n')
-        subprocess.run([NGINX, '-t', '-p', str(directory) + '/', '-c', str(config)], check=True)
+        checked = subprocess.run([NGINX, '-t', '-p', str(directory) + '/', '-c', str(config)],
+                                 capture_output=True, text=True)
+        if checked.returncode:
+            raise AssertionError('nginx -t rejected the test configuration:\n' + checked.stderr)
         cls.process = subprocess.Popen([NGINX, '-p', str(directory) + '/', '-c', str(config),
                                         '-g', 'daemon off;'])
         cls.addClassCleanup(cls.stop_proxy)

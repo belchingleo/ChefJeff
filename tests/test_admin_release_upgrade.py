@@ -1,4 +1,6 @@
 """New game binding and rollback are exercised on isolated files and synthetic units."""
+from contextlib import redirect_stdout
+import io
 import json
 from pathlib import Path
 import sys
@@ -70,10 +72,25 @@ class ReleaseUpgradeTests(unittest.TestCase):
     def switch(self):
         self.current.unlink();self.current.symlink_to(self.target);self.game_state='inactive'
 
+    def printed(self,step,*args,refused=None):
+        out=io.StringIO()
+        with redirect_stdout(out):
+            if refused is None:step(*args)
+            else:
+                with self.assertRaises(refused):step(*args)
+        return out.getvalue()
+
+    def prepare(self):
+        status=json.loads(self.printed(up.prepare,self.target,self.bundle))
+        self.assertEqual((status['status'],status['target'],status['database_opened'],status['services_restarted']),
+                         ('admin-release-prepared',str(self.target),False,False))
+
     def test_preparation_is_inert_and_activation_binds_new_validator_then_rollback_restores_config(self):
-        up.prepare(self.target,self.bundle)
+        self.prepare()
         self.assertEqual(self.config.read_bytes(),self.original);self.assertEqual(self.calls,[])
-        self.switch();up.activate()
+        self.switch()
+        status=json.loads(self.printed(up.activate))
+        self.assertEqual((status['status'],status['game_release']),('admin-release-active',str(self.target)))
         self.assertEqual(json.loads(self.config.read_text())['release'],str(self.target))
         new=up.read_state()['new_admin']
         self.assertIn(new+'/admin_server.py',self.admin.read_text())
@@ -82,7 +99,7 @@ class ReleaseUpgradeTests(unittest.TestCase):
         self.assertIn('WorkingDirectory=/opt/chefjeff/current',self.data.read_text())  # data still follows the game link
         self.assertIn('ProtectSystem=strict',self.admin.read_text())
         self.assertIn('ReadWritePaths=/var/lib/chefjeff-data',self.data.read_text())
-        up.rollback()
+        self.assertEqual(self.printed(up.rollback),'已恢复管理配置和单元，服务保持停止；请协调回退两站游戏目录后再启动。\n')
         self.assertEqual(self.config.read_bytes(),self.original)
         self.assertEqual(self.admin.read_bytes(),self.original_admin)
         self.assertEqual(self.data.read_bytes(),self.original_data)
@@ -91,11 +108,11 @@ class ReleaseUpgradeTests(unittest.TestCase):
         self.assertFalse(any(a[-1:] in [('chefjeff.service',),('nginx.service',)] for a in self.calls))
 
     def test_requires_game_stop_and_exact_prepared_config_before_restarting(self):
-        up.prepare(self.target,self.bundle)
-        with self.assertRaises(ValueError):up.activate()
+        self.prepare()
+        self.assertEqual(self.printed(up.activate,refused=ValueError),'')
         self.assertEqual(self.calls,[])
         self.switch();self.config.write_text('{}')
-        with self.assertRaises(ValueError):up.activate()
+        self.assertEqual(self.printed(up.activate,refused=ValueError),'')
         self.assertEqual(self.calls,[])
 
     def test_changed_schema_is_rejected_even_with_identical_exporter(self):
@@ -104,9 +121,9 @@ class ReleaseUpgradeTests(unittest.TestCase):
         self.assertFalse((self.work/'state.json').exists());self.assertEqual(self.calls,[])
 
     def test_failed_https_restores_old_config_and_leaves_authority_stopped_for_coordinated_rollback(self):
-        up.prepare(self.target,self.bundle);self.switch()
+        self.prepare();self.switch()
         with patch.object(up.legacy,'protected_https',side_effect=ValueError('synthetic probe failure')):
-            with self.assertRaises(ValueError):up.activate()
+            self.assertEqual(self.printed(up.activate,refused=ValueError),'')
         self.assertEqual(self.config.read_bytes(),self.original)
         self.assertEqual(self.admin.read_bytes(),self.original_admin)
         self.assertEqual(self.data.read_bytes(),self.original_data)

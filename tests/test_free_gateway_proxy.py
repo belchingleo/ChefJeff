@@ -37,7 +37,8 @@ class GatewayProxyTests(unittest.TestCase):
                 '\nlocation /v1/ { return 200 "old-data-route"; }\n}\n}\n')
             process=None
             try:
-                subprocess.run([NGINX,'-t','-p',d+'/', '-c',str(config)],check=True)
+                checked=subprocess.run([NGINX,'-t','-p',d+'/', '-c',str(config)],capture_output=True,text=True)
+                self.assertEqual(checked.returncode,0,checked.stderr)
                 process=subprocess.Popen([NGINX,'-p',d+'/', '-c',str(config),'-g','daemon off;'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
                 def request(path,body='{}',extra=None):
                     connection=http.client.HTTPConnection('127.0.0.1',port,timeout=2)

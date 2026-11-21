@@ -1,6 +1,7 @@
 """Verify region configuration and private transfer invariants before deployment."""
-from contextlib import closing
+from contextlib import closing, redirect_stdout
 import hashlib
+import io
 import json
 import os
 from pathlib import Path
@@ -100,9 +101,11 @@ class RegionDeployTests(unittest.TestCase):
             ' --origin https://global.chefjeff.online --max-sessions 8 --data-dir /var/lib/chefjeff'
             ' --shared-config /etc/chefjeff/shared-client.json --max-per-network 2')
         states = [{'capacity': {'limit': 8, 'session_limit': 40}}, {'capacity': {'limit': 12, 'session_limit': 44}}]
+        out = io.StringIO()
         with patch.object(capacity, 'read_metrics', side_effect=states), patch.object(capacity, 'run'), \
-                patch.object(capacity.subprocess, 'check_output', return_value=command):
+                patch.object(capacity.subprocess, 'check_output', return_value=command), redirect_stdout(out):
             path = self.root/'region.conf';capacity.apply(12, path, domain='global.chefjeff.online')
+        self.assertEqual(out.getvalue().splitlines()[-1], 'Verified active kitchen limit: 12; waiting pages: 32')
         self.assertIn('--shared-config /etc/chefjeff/shared-client.json', path.read_text())
         self.assertIn('--max-per-network 2', path.read_text())
         unit = preserve_limits(game_unit('global.chefjeff.online'), command.replace('--max-sessions 8', '--max-sessions 12'))

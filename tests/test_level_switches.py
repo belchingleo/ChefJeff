@@ -1,5 +1,6 @@
 import json
 import os
+from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -63,7 +64,7 @@ class LevelSwitchTests(unittest.TestCase):
     def test_the_command_line_sets_the_override(self):
         with patch('sys.stdout'):
             self.assertEqual(levels.main(['set', 'level-4', 'on']), 0)
-        self.assertEqual(json.loads(open(self.override, encoding='utf-8').read()), {'level-4': {'on': True}})
+        self.assertEqual(json.loads(Path(self.override).read_text(encoding='utf-8')), {'level-4': {'on': True}})
         with patch('sys.stdout'):
             self.assertEqual(levels.main(['set', 'level-4', 'off']), 0)
         self.assertNotIn('level-4', [l['id'] for l in levels.shown_levels()])

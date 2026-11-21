@@ -2,6 +2,8 @@
 
 No model is called: requests are composed locally, and the round is a loopback relay round.
 """
+import contextlib
+import io
 import json
 import unittest
 import uuid
@@ -113,10 +115,11 @@ class ReachNoteCheckTests(unittest.TestCase):
     def journal(self, rows):
         import tempfile
         from pathlib import Path
-        folder = tempfile.mkdtemp()
-        path = Path(folder) / 'round.jsonl'
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        path = Path(folder.name) / 'round.jsonl'
         path.write_text(''.join(json.dumps(r) + '\n' for r in rows), encoding='utf-8')
-        return folder
+        return folder.name
 
     def rows(self, k, choice='wait', reach=False):
         payload = request(k, reach)
@@ -190,9 +193,12 @@ class ReachNoteCheckTests(unittest.TestCase):
         from unittest.mock import patch
         from scripts import reach_note_check as check
         from player_api import DecisionClient
+        log = io.StringIO()
         with patch('scripts.jev_replay_check.client', side_effect=AssertionError('the saved connection must not be read')), \
-             patch('jev.load_key', side_effect=AssertionError('the Jev key must not be read')):
+             patch('jev.load_key', side_effect=AssertionError('the Jev key must not be read')), contextlib.redirect_stderr(log):
             client = check.local_client('http://127.0.0.1:8090/v1/systemone', 'startlux-local-2b-instant-q4')
+        self.assertTrue(log.getvalue().startswith('asking the decision service at http://127.0.0.1:8090/v1/systemone '), log.getvalue())
+        self.assertTrue(log.getvalue().endswith(', no key\n'), log.getvalue())
         self.assertIsInstance(client, DecisionClient)
         self.assertEqual((client.key, client.endpoint), ('', 'http://127.0.0.1:8090/v1/systemone'))
         with self.assertRaises(ValueError):
@@ -206,14 +212,20 @@ class BambooKeyFileTests(unittest.TestCase):
         from unittest.mock import patch
         from scripts import reach_note_check as check
         from player_api import DecisionClient
-        path = Path(tempfile.mkdtemp()) / 'bamboo.key'
+        folder = tempfile.TemporaryDirectory()
+        self.addCleanup(folder.cleanup)
+        path = Path(folder.name) / 'bamboo.key'
         path.write_text('test-bamboo-key-never-real\n')
         os.chmod(path, 0o644)
         with self.assertRaises(SystemExit):
             check.bamboo_client(path)
         os.chmod(path, 0o600)
-        with patch('jev.load_key', side_effect=AssertionError('the Jev key must not be read')):
+        log = io.StringIO()
+        with patch('jev.load_key', side_effect=AssertionError('the Jev key must not be read')), contextlib.redirect_stderr(log):
             client = check.bamboo_client(path)
+        self.assertTrue(log.getvalue().startswith('asking https://api.bamboonode.dev/v1/decisions '), log.getvalue())
+        self.assertIn(str(path) + ' (not printed)', log.getvalue())
+        self.assertNotIn('test-bamboo-key', log.getvalue())
         self.assertIsInstance(client, DecisionClient)
         self.assertEqual((client.endpoint, client.key, client.timeout),
                          ('https://api.bamboonode.dev/v1/decisions', 'test-bamboo-key-never-real', 120))

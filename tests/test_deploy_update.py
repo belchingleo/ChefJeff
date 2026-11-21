@@ -1,4 +1,6 @@
 """Verify failed deployments restore the running release and proxy configuration."""
+from contextlib import redirect_stdout
+import io
 from pathlib import Path
 import subprocess
 import tempfile
@@ -7,6 +9,9 @@ from unittest.mock import patch
 
 from deploy import update_hetzner as update
 from deploy import set_kitchen_capacity as capacity
+
+RESTORED = 'Update failed; previous release and Nginx configuration restored.\n'
+RESTARTING = 'Restarting ChefJeff ends current trial rounds.'
 
 
 class UpdateTests(unittest.TestCase):
@@ -27,18 +32,22 @@ class UpdateTests(unittest.TestCase):
 
     def test_health_failure_rolls_back_release_and_proxy(self):
         old, new, current, site = self.fixture()
+        out = io.StringIO()
         with patch.object(update, 'run') as run, patch.object(update, 'health', side_effect=RuntimeError('Unhealthy')):
-            with self.assertRaisesRegex(RuntimeError, 'Unhealthy'):
+            with redirect_stdout(out), self.assertRaisesRegex(RuntimeError, 'Unhealthy'):
                 update.install(new, current, site)
+        self.assertEqual(out.getvalue(), RESTORED)
         self.assertEqual(current.resolve(), old)
         self.assertEqual(site.read_text(), 'old proxy')
         self.assertEqual(sum(c.args == ('systemctl', 'restart', 'chefjeff.service') for c in run.call_args_list), 2)
 
     def test_invalid_proxy_never_restarts_backend(self):
         old, new, current, site = self.fixture()
+        out = io.StringIO()
         with patch.object(update, 'run', side_effect=[subprocess.CalledProcessError(1, 'nginx'), None, None]) as run:
-            with self.assertRaises(subprocess.CalledProcessError):
+            with redirect_stdout(out), self.assertRaises(subprocess.CalledProcessError):
                 update.install(new, current, site)
+        self.assertEqual(out.getvalue(), RESTORED)
         self.assertEqual(current.resolve(), old)
         self.assertEqual(site.read_text(), 'old proxy')
         self.assertFalse(any(c.args[:2] == ('systemctl', 'restart') for c in run.call_args_list))
@@ -78,10 +87,12 @@ class UpdateTests(unittest.TestCase):
         old, new, current, site = self.fixture()
         unit, dropin = self.units()
         before = unit.read_text(), dropin.read_text()
+        out = io.StringIO()
         with patch.object(update, 'UNIT_FILES', (unit, dropin)), patch.object(update, 'run'), \
                 patch.object(update, 'health', side_effect=RuntimeError('Unhealthy')):
-            with self.assertRaisesRegex(RuntimeError, 'Unhealthy'):
+            with redirect_stdout(out), self.assertRaisesRegex(RuntimeError, 'Unhealthy'):
                 update.install(new, current, site)
+        self.assertEqual(out.getvalue(), RESTORED)
         self.assertEqual((unit.read_text(), dropin.read_text()), before)
         self.assertEqual(site.read_text(), 'old proxy')
 
@@ -89,13 +100,26 @@ class UpdateTests(unittest.TestCase):
 class CapacityUpdateTests(unittest.TestCase):
     unit = '/usr/bin/python3 /opt/chefjeff/current/hosted_server.py --port 8780 --origin https://chefjeff.online --max-sessions 2 --data-dir /var/lib/chefjeff'
 
+    def printed(self,*args,refused=None,**kwargs):
+        out=io.StringIO()
+        with redirect_stdout(out):
+            if refused is None:capacity.apply(*args,**kwargs)
+            else:
+                with self.assertRaisesRegex(*refused):capacity.apply(*args,**kwargs)
+        return out.getvalue()
+
+    def restarted(self,out,last):
+        # The restart warning comes before the restart; the last line is the result.
+        self.assertTrue(out.startswith(RESTARTING),out)
+        self.assertEqual(out.splitlines()[-1],last)
+
     def test_verified_change_preserves_other_unit_settings(self):
         with tempfile.TemporaryDirectory() as td:
             root=Path(td);old=root/'hetzner.conf';old.write_text('MemoryMax=512M\n')
             dropin=root/'zz-chefjeff-capacity.conf'
             states=[{'capacity':{'limit':2,'session_limit':34}},{'capacity':{'limit':8,'session_limit':40}}]
             with patch.object(capacity,'read_metrics',side_effect=states),patch.object(capacity,'run') as run,patch.object(capacity.subprocess,'check_output',return_value=self.unit):
-                capacity.apply(8,dropin)
+                self.restarted(self.printed(8,dropin),'Verified active kitchen limit: 8; waiting pages: 32')
             self.assertEqual(old.read_text(),'MemoryMax=512M\n')
             self.assertIn('--max-sessions 8 --max-waiting 32',dropin.read_text())
             self.assertEqual(run.call_args_list[-1].args,('systemctl','restart','chefjeff.service'))
@@ -105,10 +129,10 @@ class CapacityUpdateTests(unittest.TestCase):
             dropin=Path(td)/'zz-chefjeff-capacity.conf'
             states=[{'capacity':{'limit':8,'session_limit':24}},{'capacity':{'limit':8,'session_limit':40}}]
             with patch.object(capacity,'read_metrics',side_effect=states),patch.object(capacity,'run'),patch.object(capacity.subprocess,'check_output',return_value=self.unit):
-                capacity.apply(8,dropin,waiting=32)
+                self.restarted(self.printed(8,dropin,waiting=32),'Verified active kitchen limit: 8; waiting pages: 32')
             self.assertIn('--max-sessions 8 --max-waiting 32',dropin.read_text())
             with patch.object(capacity,'read_metrics',return_value={'capacity':{'limit':8,'session_limit':40}}),patch.object(capacity,'run') as run:
-                capacity.apply(8,dropin,waiting=32)
+                self.assertEqual(self.printed(8,dropin,waiting=32),'Active kitchen limit is already 8 with 32 waiting pages. No restart needed.\n')
             run.assert_not_called()
             with self.assertRaises(ValueError):capacity.apply(8,dropin,waiting=33)
 
@@ -118,6 +142,7 @@ class CapacityUpdateTests(unittest.TestCase):
             states=[{'capacity':{'limit':2,'session_limit':34}}]
             states.extend([OSError('not ready')]*30)
             with patch.object(capacity,'read_metrics',side_effect=states),patch.object(capacity,'run') as run,patch.object(capacity.subprocess,'check_output',return_value=self.unit),patch.object(capacity.time,'sleep'):
-                with self.assertRaisesRegex(RuntimeError,'does not match'):capacity.apply(8,dropin)
+                self.restarted(self.printed(8,dropin,refused=(RuntimeError,'does not match')),
+                               'Capacity change failed; the previous drop-in was restored.')
             self.assertEqual(dropin.read_bytes(),b'old reviewed command\n')
             self.assertEqual(sum(c.args==('systemctl','restart','chefjeff.service') for c in run.call_args_list),2)
