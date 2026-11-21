@@ -48,6 +48,10 @@ class CocosHandler(Handler):
 
 
 def main():
+    # The links thread's CPU work holds the GIL; a shorter switch interval lets the HTTP threads (state polls,
+    # position reports, Space/E) back in within about 1 ms instead of 5 (2026-11-21: /api/state p90 22 -> 6 ms).
+    import sys as _sys
+    _sys.setswitchinterval(0.001)
     p=argparse.ArgumentParser();p.add_argument('--port',type=int,default=8769);p.add_argument('--open',action='store_true');args=p.parse_args()
     session=PlayerGameSession(kitchen_factory=SpatialKitchen,log_prefix='cocos')
     try:server=ThreadingHTTPServer(('127.0.0.1',args.port),CocosHandler)

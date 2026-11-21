@@ -481,6 +481,7 @@ FIELDS = {
     '/api/move': {'dx', 'dy', 'seq', 'sprint'}, '/api/position': {'seq', 'base', 'at', 'press'},
     '/api/interact': {'expected_item', 'mode', 'at', 'base', 'aim', 'target'}, '/api/throw': {'direction', 'expected_item', 'at', 'base'},
     '/api/action': {'action', 'expected'},
+    '/api/page-frames': {'frames'},
     '/api/model/result': {'id', 'choice', 'sprint', 'answers', 'usage', 'failed','memory_condition','telemetry','probabilities','memory_provenance'},
 }
 
@@ -1132,6 +1133,10 @@ def make_server(port, origin, capacity=8, web_root=None, data_dir=None, max_wait
 
 
 def main():
+    # The links thread's CPU work holds the GIL; a shorter switch interval lets the HTTP threads (state polls,
+    # position reports, Space/E) back in within about 1 ms instead of 5 (2026-11-21: /api/state p90 22 -> 6 ms).
+    import sys as _sys
+    _sys.setswitchinterval(0.001)
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--port', type=int, default=8780)
     p.add_argument('--origin', required=True)

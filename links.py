@@ -79,16 +79,30 @@ FAST = True                            # False: fork as Kitchen.fork does, every
 _ROUTES = {}                           # id(map navigation) -> (that navigation, the links forks' isolated copy)
 
 
+class _NoHistory:
+    """A fork's provenance that records nothing: the forks for options (links, work, undo, go and walk notes) never read
+    the item history, only the request's own kitchen does (clear_names), and deep-copying it for every option was about
+    a quarter of the links thread's CPU (2026-11-21 profile)."""
+
+    def around_finish(self, k, who, job, finish):
+        finish()
+
+
+NO_HISTORY = _NoHistory()
+
+
 def _fork(kitchen):
     if not FAST:
         return kitchen.fork()
     state = kitchen.__dict__
-    held = {name: state.pop(name) for name in SHARED if name in state}
+    held = {name: state.pop(name) for name in SHARED + ('provenance',) if name in state}
     try:
         twin = kitchen.fork()
     finally:
         state.update(held)
-    twin.__dict__.update(held)
+    twin.__dict__.update({name: value for name, value in held.items() if name != 'provenance'})
+    if 'provenance' in held:
+        twin.provenance = NO_HISTORY
     nav = state.get('nav')
     if nav is not None:
         # Keyed by the map's walking graph, which every navigation of one map shares (Navigation.isolated copies the

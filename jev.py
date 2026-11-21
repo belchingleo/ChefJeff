@@ -110,7 +110,7 @@ class JevClient:
 def compose_payload(client, kitchen, state, actions, recent_decisions, communication, memory=NO_MEMORY, one_press=None,
                     undo=None, reach=False, names=False, links=False, split=False, burn=False,
                     serve_note=False, steps=False, clear=False, walk=False,
-                    english=False, plate=False, parts=None, go=False, work=None):
+                    english=False, plate=False, parts=None, go=False, work=None, defer=False):
     """Jeff's request from the kitchen and the few parts it cannot derive; research replay rebuilds it here too.
 
     one_press is the round's one-press switches (one_press.flags), or None: the options are added to the
@@ -125,24 +125,39 @@ def compose_payload(client, kitchen, state, actions, recent_decisions, communica
     whether plate_names is (plate_names.py: a plating option says what the plate there holds). parts is
     request_parts.finish's switches (request_parts.parts), or None: they run last, after the links table. go whether
     go_note is (go_note.py: a "go X" option says when nothing there takes what Jeff holds). work is work_notes.flags
-    (own_chain, plate_result, board_taken: facts on options about the work they lead to), or None."""
+    (own_chain, plate_result, board_taken: facts on options about the work they lead to), or None.
+
+    defer: return (payload, actions) once the request is translated (harness.compose), before the notes that fork the
+    kitchen for each option; finish_payload then adds them in this same order (the decision loop does that in its
+    links thread, so the game loop does not stand still while they are worked out)."""
     with engine_english.writing(english):
         return _compose(client, kitchen, state, actions, recent_decisions, communication, memory, one_press,
-                        undo, reach, names, links, split, burn, serve_note, steps, clear, walk, plate, parts, go, work)
+                        undo, reach, names, links, split, burn, serve_note, steps, clear, walk, plate, parts, go, work,
+                        defer)
 
 
 def _compose(client, kitchen, state, actions, recent_decisions, communication, memory, one_press,
-             undo, reach, names, links, split, burn, serve_note, steps, clear, walk, plate, parts, go=False, work=None):
+             undo, reach, names, links, split, burn, serve_note, steps, clear, walk, plate, parts, go=False, work=None,
+             defer=False):
     if one_press:
         import one_press as presses
-        keys = {a.key for a in actions}
-        actions = list(actions) + [a for a in presses.options(kitchen, 'jeff', actions, one_press) if a.key not in keys]
+        if not any(a.kind in presses.KINDS for a in actions):     # the decision loop adds them itself
+            keys = {a.key for a in actions}
+            actions = list(actions) + [a for a in presses.options(kitchen, 'jeff', actions, one_press) if a.key not in keys]
     if names:
         # The food_names trial (food_names.py): every food named from its ingredient and state, labels included.
         import food_names
         state, actions = food_names.state(state), food_names.labels(kitchen, actions, one_press)
     payload = harness.compose(client.payload(state, actions), kitchen, recent_decisions, communication, memory, one_press,
                               undo, reach, names, split, burn, serve_note, steps, clear)
+    if defer:
+        return payload, actions
+    return finish_payload(payload, kitchen, actions, undo, names, links, serve_note, clear, walk, plate, parts, go, work)
+
+
+def finish_payload(payload, kitchen, actions, undo, names, links, serve_note, clear, walk, plate, parts, go=False, work=None):
+    """The notes that fork the kitchen for each option, the links table and the request parts, in compose_payload's
+    order (see defer there)."""
     if undo is not None:
         # undo-note-v4: worked out on forks of this kitchen, before the links table (live and in replay alike).
         undo_note.apply(payload, undo, kitchen)
@@ -171,6 +186,14 @@ def _compose(client, kitchen, state, actions, recent_decisions, communication, m
         import request_parts
         request_parts.finish(payload, kitchen, **parts)
     return payload
+
+
+def more_urgent(before, now):
+    """Whether an order or a pan that is in both urgency tuples (DecisionLoop.urgency) has crossed into a more urgent
+    band; one that appeared or went (a new order, an order served, food put on or taken off a stove) does not count.
+    (2026-11-21: an ask-ahead answer was dropped on any change, and asked again it came back the same 13 times in 16.)"""
+    old = {item[0]: item[1:] for item in before or ()}
+    return any(key in old and any(n > o for n, o in zip(bands, old[key])) for key, *bands in now or ())
 
 
 class DecisionLoop:
@@ -240,6 +263,9 @@ class DecisionLoop:
         self.go = False
         # The work notes trials (work_notes.py): own_chain, plate_result, board_taken; None when all are off.
         self.work = None
+        # Called when a request is ready to send or a reply has come (the session's wake event): the game loop then
+        # handles it at once instead of at its next tick.
+        self.wake = None
         # The plate_names trial (plate_names.py): a plating option says what the plate there holds.
         self.plate = False
         # The engine_english trial (engine_english.py): the engine's own English where the catalog garbles it.
@@ -377,7 +403,7 @@ class DecisionLoop:
             reason = 'new_step_started'
         elif holding != ahead['hand']:
             reason = 'hand_differs'
-        elif urgency != ahead['urgency']:
+        elif more_urgent(ahead['urgency'], urgency):
             reason = 'urgency_changed'
         elif self.epoch != context['epoch']:
             reason = 'paused_or_restarted'
@@ -417,6 +443,8 @@ class DecisionLoop:
                 result = self.client.ask(harness.for_model(payload))
                 context['returned_monotonic'] = time.monotonic()
                 self.q.put((context, result, None))
+                if self.wake:
+                    self.wake()             # take the reply at once, not at the next tick
             except ModelWait as exc:
                 context['returned_monotonic']=time.monotonic()
                 self.q.put((context,None,exc))
@@ -580,13 +608,13 @@ class DecisionLoop:
         if not (changed or urgent or step_end or ahead_now
                 or age >= self.k.c["ai_refresh_seconds"]):
             return
-        urgent_now = urgent
-        # A one-press chain: a change of urgency (an order or a pan crossing a countdown band) asks even then.
-        chain_urgent = urgent_now and self.chain is not None
+        # (2026-11-21) A change of urgency during a one-press chain no longer asks when the reply would come only after
+        # the step ends: such a reply could be carried out only as "continue" (the chain's next step is a new job), so
+        # it was dropped about 5 times a round; the chain's last step is asked about ahead as usual.
         source = self.k             # the kitchen the request describes: this one, or with ask_ahead its fork at the step's end
         if self.held is not None:
             return                  # an answer about the next step is waiting for this one to end
-        if self.ask_on_step_end and job is not None and self.outlasts_reply(job) and not chain_urgent:
+        if self.ask_on_step_end and job is not None and self.outlasts_reply(job):
             # The answer would come after this step ends and be discarded; ask when it ends instead, or with
             # ask_ahead ask now about the kitchen as it will be when the step ends (once per step).
             if not self.can_ask_ahead(job):
@@ -631,13 +659,17 @@ class DecisionLoop:
                     self.log('player_message_delivery',{'message_id':message['id'],'request_id':self.calls,
                                                         't':round(self.k.time,3),'meaning':'included in request, not proof of understanding'})
                     message['first_request_id']=self.calls
-        payload = compose_payload(self.client, source, state, actions, self.recent_decisions, communication,
-                                  self.cooperation_memory if hasattr(self, 'cooperation_memory') else NO_MEMORY, self.one_press,
-                                  deepcopy(self.undo), self.reach, self.names, split=self.split,
-                                  burn=self.burn, serve_note=self.serve_note,
-                                  steps=self.steps, clear=self.clear, walk=self.walk,
-                                  english=self.english, plate=self.plate, parts=None if self.links else self.parts,
-                                  go=self.go, work=None if self.links else self.work)
+        undo = deepcopy(self.undo)
+        # With the links table on, only the translation is done here; the notes that fork the kitchen per option (undo,
+        # walk, go, plate names, work notes) and the table follow in its thread (finish_payload, same order).
+        composed = compose_payload(self.client, source, state, actions, self.recent_decisions, communication,
+                                   self.cooperation_memory if hasattr(self, 'cooperation_memory') else NO_MEMORY, self.one_press,
+                                   undo, self.reach, self.names, split=self.split,
+                                   burn=self.burn, serve_note=self.serve_note,
+                                   steps=self.steps, clear=self.clear, walk=self.walk,
+                                   english=self.english, plate=self.plate, parts=self.parts,
+                                   go=self.go, work=self.work, defer=bool(self.links))
+        payload, tail_actions = composed if self.links else (composed, None)
         record = {"request_id": self.calls, "triggers": causes, "observed_state_seq": self.k.event_seq,
                   **({"one_press": dict(self.one_press)} if self.one_press else {}),
                   **({"undo_note": deepcopy(self.undo)} if self.undo is not None else {}),
@@ -661,32 +693,21 @@ class DecisionLoop:
         criteria = payload['questions']['next_action']['criteria']
         record.update(engine_input_n=len(self.k.inputs), state_ref=getattr(self.k, '_research_state_ref', None),
                       candidate_source=[[a.key, a.target, a.kind] for a in self.k.actions('jeff') if a.key in criteria])
-        mode, names, listed, clear, english = self.links, self.names, list(actions), self.clear, self.english
-        serve_note, parts, work = self.serve_note, self.parts, self.work
+        mode, names, clear, english = self.links, self.names, self.clear, self.english
+        serve_note, parts, work, walk, go, plate = self.serve_note, self.parts, self.work, self.walk, self.go, self.plate
 
         def prepare():
             start = time.monotonic()
             try:
-                import links as option_links
                 # A context variable does not cross into a thread: the engine_english switch is set here again.
+                # (2026-11-21: the per-option notes moved here from the game loop, where they held both chefs still
+                # about 0.2 s a request; the request is byte for byte what compose_payload builds.)
                 with engine_english.writing(english):
-                    if work:
-                        # The work notes (work_notes.py) fork the kitchen for each option, so they run here too, in
-                        # the same order as compose_payload (before the links table); in the game loop they held
-                        # both chefs still for 0.1-0.45 s a request.
-                        import work_notes
-                        work_notes.apply(payload, twin, listed, names=names, **work)
-                    option_links.apply(payload, twin, 'jeff', listed, names, **option_links.flags(mode))
-                    if clear:
-                        import clear_names
-                        clear_names.apply(payload, twin)
-                    if serve_note:
-                        import option_notes
-                        option_notes.apply_links(payload)
-                    if parts:
-                        import request_parts
-                        request_parts.finish(payload, twin, **parts)
-                self.prepared.put((context, payload, record, time.monotonic() - start, None))
+                    done = finish_payload(payload, twin, tail_actions, undo, names, mode, serve_note, clear, walk, plate,
+                                          parts, go, work)
+                self.prepared.put((context, done, record, time.monotonic() - start, None))
             except Exception as error:      # never the payload or a key: only the kind of failure is logged
                 self.prepared.put((context, payload, record, time.monotonic() - start, error))
+            if self.wake:
+                self.wake()                 # send it at once, not at the next tick
         threading.Thread(target=prepare, daemon=True).start()

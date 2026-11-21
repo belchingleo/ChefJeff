@@ -89,6 +89,7 @@ class GameSession:
         self.last_player_message_at = None
         self.bookmarks = []
         self.last_bookmark_at = None
+        self.page_frames = None     # the page's frame times this round (KitchenClient round_frames), for the journal
         # Jeff's harness features (features.json and the server's override): taken again from feature_source as each
         # round starts (next_features), so a running round keeps its own. Assigning self.features pins a set.
         self.feature_source = features.current
@@ -141,6 +142,7 @@ class GameSession:
                                 'ai_successes': self.ai.successes, 'usage': self.ai.tokens,
                                 'bookmarks': deepcopy(self.bookmarks),
                                 'player_messages': deepcopy(self.player_messages),
+                                'page_frames': deepcopy(getattr(self, 'page_frames', None)),
                                 'round_summary': self.round_record()})
             self.journal.close()
             self.history = (self.history+[round_export(self, 'aborted' if aborted else 'finished')])[-self.history_limit:]
@@ -271,6 +273,8 @@ class GameSession:
                     # The page acts by keys and the station it faces; the listed actions, boards and pots are
                     # in the engine (and Jeff's request), not in the state polled every 0.2 s.
                     'kitchen': state, 'events': events,
+                    # The page sends its frame times (POST /api/page-frames) only when the server keeps them.
+                    'page_frames': True,
                     'ai': {'connected': bool(self.ai and self.ai.successes),
                            'thinking': bool(self.ai and self.ai.inflight),
                            'error': self.ai_error, 'calls': self.ai.calls if self.ai else 0,
@@ -590,6 +594,7 @@ class GameSession:
             self.ai.steps = self.features['step_check']['on']
             self.ai.walk = self.features['walk_note']['on']
             self.ai.go = self.features['go_note']['on']
+            self.ai.wake = self.wake.set     # a ready request or a reply is handled at once, not at the next tick
             import work_notes
             self.ai.work = work_notes.flags(self.features)
             # clear_text: food names, item names, the engine's English and plate names, together.
@@ -654,6 +659,7 @@ class GameSession:
             self.last_player_message_at=None
             self.bookmarks=[]
             self.last_bookmark_at=None
+            self.page_frames=None
             self.game_id = uuid.uuid4().hex
             self.phase = 'ready'
             self.faulted = False
@@ -744,6 +750,17 @@ class GameSession:
                 self.totals.setdefault(j.id,j.travel+j.work)
             self._events()
             return (200, {'ok':True, 'message':action.label}) if ok else (409, {'error':message})
+        if path == '/api/page-frames':
+            # The page's frame times this round (frames, p50/p90/max ms, frames over 25 and 50 ms, frame rate): the
+            # round's end row keeps the latest, so a choppy round shows whether the page or the server was slow.
+            frames = body.get('frames')
+            keys = ('frames', 'p50_ms', 'p90_ms', 'max_ms', 'over_25ms', 'over_50ms', 'frame_rate')
+            number = lambda v: v is None or (isinstance(v, (int, float)) and not isinstance(v, bool) and 0 <= v < 1e7)
+            if (self.phase not in ('running', 'paused') or not isinstance(frames, dict)
+                    or frames.get('game_id') != self.game_id or not all(number(frames.get(k)) for k in keys)):
+                return 400, {'error': '请求无效。'}
+            self.page_frames = {k: frames.get(k) for k in keys}
+            return 200, {'ok': True}
         return 404, {'error':'没有这个操作。'}
 
 
