@@ -21,9 +21,11 @@ alike, so every combination rebuilds exactly. With every part off the request is
   option of that kind is listed; the fire rule also while food is on a stove or anything burns or heats up; the
   others always, the vessels rule included (v2: v1 left it out while no pot option was listed, so a chef holding raw
   beef read nowhere that a pan takes beef only once chopped). past_episodes, rule and state, goes while it is disabled.
-- kitchen_view (kitchen-view-v5): state.kitchen keeps what the kitchen is now, written out: the clock, money and
+- kitchen_view (kitchen-view-v6): state.kitchen keeps what the kitchen is now, written out: the clock, money and
   stars, which vessel cooks what (v2), waiting and served orders (v5: no dishes block; the rules give the recipes and
-  prices), the two chefs, every station (empty counters in one line; on a split
+  prices), the two chefs (v6: Jeff's own line only while he holds something, and then only what he holds; with "you:
+  at Counter 4, holding nothing, doing nothing" Jev took back what he had just put down for the other chef in 52 of
+  147 re-asks of the user's level-4 rounds, without that line in 8 of 147), every station (empty counters in one line; on a split
   floor grouped by who reaches them), plates, the floor and items in the air. Walls, map cells, routes, collision
   numbers, hashes, seeds, the menu (the same as dishes), the numbers the rules already give, and empty fields go.
   v3: a stove's line gives only the next thing to happen (cooked; then burns and catches fire; then catches fire).
@@ -45,7 +47,7 @@ TIMELINE_VERSION = 'timeline-v3'
 NO_HISTORY_VERSION = 'no-history-v1'
 LINKS_ON_OPTIONS_VERSION = 'links-on-options-v1'
 RULES_BY_ACTION_VERSION = 'rules-by-action-v3'
-KITCHEN_VIEW_VERSION = 'kitchen-view-v5'
+KITCHEN_VIEW_VERSION = 'kitchen-view-v6'
 # features.json name -> (finish() argument, version).
 SWITCHES = {'place_names': ('place', PLACE_NAMES_VERSION), 'timeline': ('timeline', TIMELINE_VERSION),
             'no_history': ('no_history', NO_HISTORY_VERSION),
@@ -555,6 +557,11 @@ def _chefs(kj, kitchen=None):
             near = _nearest(kitchen, who)
             if near:
                 at += f", nearest station {(kj.get('stations') or {}).get(near, {}).get('name', near)} ({near})"
+        if who == 'jeff':
+            # v6: what Jeff holds (and what it still needs), nothing else; with empty hands no line at all.
+            if c.get('holding'):
+                out[WHO_LABEL[who]] = {'holding': _food(c.get('holding'), kj, kitchen)}
+            continue
         out[WHO_LABEL[who]] = {'at': at, 'holding': _food(c.get('holding'), kj, kitchen), 'doing': doing}
         if c.get('knocked'):
             out[WHO_LABEL[who]]['knocked back'] = True

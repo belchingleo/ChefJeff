@@ -220,6 +220,18 @@ class PartTests(unittest.TestCase):
         heated = k.chefs['jeff'].hand.contents.heated
         self.assertIn(f'burns {burn - heated:.1f} s after it is back on a stove', held)
 
+    def test_jeffs_own_line_says_only_what_he_holds_and_goes_with_empty_hands(self):
+        # v6: "you: at Counter 4, holding nothing, doing nothing" drew Jev back to what he had just put down for the
+        # other chef (hand-back re-ask 2026-11-21); the other chef's line stays as it was.
+        k = level('level-1')
+        chefs = request(k, parts={'view': True})['state']['kitchen']['chefs']
+        self.assertNotIn('you', chefs)
+        self.assertEqual(set(chefs['the other chef']), {'at', 'holding', 'doing'})
+        do(k, 'fetch beef')
+        chefs = request(k, parts={'view': True})['state']['kitchen']['chefs']
+        self.assertEqual(set(chefs['you']), {'holding'})
+        self.assertIn('not chopped yet', chefs['you']['holding'])
+
     def test_items_in_the_air_are_named_and_say_who_they_are_aimed_at(self):
         kj = {'time': 10.0, 'vessels': {'pan': {'name': 'frying pan'}}, 'dishes': [],
               'chefs': {'human': {'position': [4.0, 6.0]}, 'jeff': {'position': [9.0, 2.0]}},

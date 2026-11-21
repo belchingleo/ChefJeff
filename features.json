@@ -17,6 +17,6 @@
   "no_history": {"stage": "trial", "on": false, "version": "no-history-v1"},
   "links_on_options": {"stage": "trial", "on": false, "version": "links-on-options-v1"},
   "rules_by_action": {"stage": "trial", "on": false, "version": "rules-by-action-v3"},
-  "kitchen_view": {"stage": "trial", "on": false, "version": "kitchen-view-v5"},
+  "kitchen_view": {"stage": "trial", "on": false, "version": "kitchen-view-v6"},
   "throw_to": {"stage": "trial", "on": false, "version": "throw-to-v1"}
 }
