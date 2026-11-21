@@ -1,0 +1,94 @@
+# Modules for `python3 tests/run_tests.py --fast`, one per line with its time in seconds.
+# Each took 1 s or less in a serial run of the whole suite on 2026-11-21 (one module at a time);
+# the number is that time. Left out although they were quick there: test_free_gateway_proxy,
+# test_hosted_proxy and test_region_deploy need Nginx, and test_ingredient_pack, test_sink_unit and
+# test_throw_diagonals need Pillow or numpy. Without those tools these modules skip; with them they
+# take longer.
+# --fast compares each module with these numbers and prints every module that took over 1.5 s. It
+# names one as out of line when its time divided by the median slowdown of the modules that ran
+# alongside it is still over 1.5 s, or when it slowed down more than twice as much as they did (a
+# module that now waits on a sleep or a timeout while the machine is busy). A module added without
+# a number gets the first check only. Take a module out when it stays over 1.5 s alone:
+# python3 tests/run_tests.py -j 1 -v <module>
+test_admin_package           0.39
+test_admin_release_upgrade   0.38
+test_admin_upgrade           0.22
+test_agent_input             0.59
+test_agent_rules_neutral     0.16
+test_ahead_throw             0.30
+test_approach_partner        0.60
+test_assemble_labels         0.04
+test_audio_assets            0.01
+test_bookmarks               0.52
+test_build_lab               0.01
+test_cabinet_front           0.35
+test_capacity_analyzer       0.54
+test_changelog               0.00
+test_clear_names             0.44
+test_client_catalog          0.09
+test_cocos_server            0.02
+test_communication           0.50
+test_config_contract         0.58
+test_context_layout          0.90
+test_corner_slide            0.23
+test_data_driven             0.21
+test_decision_timing         0.02
+test_deploy_update           0.06
+test_direct_assembly         0.23
+test_drying_rack             0.05
+test_environment             0.06
+test_facing_controls         0.13
+test_fire_spread             0.23
+test_fixed_entry             0.29
+test_for_model               0.35
+test_free_gateway_deploy     0.18
+test_free_model_diagnostics  0.27
+test_gentle_collision        0.66
+test_ground_assembly         0.17
+test_ground_interaction      0.36
+test_handling                0.27
+test_heat_resume             0.19
+test_hosted_cloudflare       0.66
+test_hosted_records          0.60
+test_item_reach              0.26
+test_jev                     0.08
+test_jev_checks              0.07
+test_kitchen                 0.95
+test_level_switches          0.04
+test_level_three             0.70
+test_level_two               0.40
+test_links                   0.11
+test_links_by_model          0.87
+test_map_definition          0.15
+test_model_language          0.20
+test_model_output            0.16
+test_navigation_cache        0.25
+test_operation_docking       0.20
+test_option_counts           0.07
+test_page_frames             0.53
+test_partner_state           0.04
+test_plate_names             0.41
+test_player_pages            0.02
+test_position_reports        0.35
+test_pot_swap                0.31
+test_reask                   0.07
+test_repeat_delivery         0.13
+test_research_levels         0.00
+test_research_stats          0.12
+test_route_stall             0.60
+test_scoop                   0.06
+test_selected_target         0.35
+test_serving_footprint       0.19
+test_shared_work             0.23
+test_stars                   0.03
+test_station_kinds           0.01
+test_surfaces                0.11
+test_tableware               0.99
+test_throw                   0.35
+test_throw_scatter           0.17
+test_throw_to                0.50
+test_undo_note               0.84
+test_vessels                 0.52
+test_walk_checks             0.07
+test_web                     0.23
+test_work_continuity         0.06
