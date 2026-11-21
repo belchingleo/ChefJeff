@@ -624,7 +624,7 @@ class DecisionLoop:
                                   burn=self.burn, serve_note=self.serve_note,
                                   steps=self.steps, clear=self.clear, walk=self.walk,
                                   english=self.english, plate=self.plate, parts=None if self.links else self.parts,
-                                  go=self.go, work=self.work)
+                                  go=self.go, work=None if self.links else self.work)
         record = {"request_id": self.calls, "triggers": causes, "observed_state_seq": self.k.event_seq,
                   **({"one_press": dict(self.one_press)} if self.one_press else {}),
                   **({"undo_note": deepcopy(self.undo)} if self.undo is not None else {}),
@@ -649,7 +649,7 @@ class DecisionLoop:
         record.update(engine_input_n=len(self.k.inputs), state_ref=getattr(self.k, '_research_state_ref', None),
                       candidate_source=[[a.key, a.target, a.kind] for a in self.k.actions('jeff') if a.key in criteria])
         mode, names, listed, clear, english = self.links, self.names, list(actions), self.clear, self.english
-        serve_note, parts = self.serve_note, self.parts
+        serve_note, parts, work = self.serve_note, self.parts, self.work
 
         def prepare():
             start = time.monotonic()
@@ -657,6 +657,12 @@ class DecisionLoop:
                 import links as option_links
                 # A context variable does not cross into a thread: the engine_english switch is set here again.
                 with engine_english.writing(english):
+                    if work:
+                        # The work notes (work_notes.py) fork the kitchen for each option, so they run here too, in
+                        # the same order as compose_payload (before the links table); in the game loop they held
+                        # both chefs still for 0.1-0.45 s a request.
+                        import work_notes
+                        work_notes.apply(payload, twin, listed, names=names, **work)
                     option_links.apply(payload, twin, 'jeff', listed, names, **option_links.flags(mode))
                     if clear:
                         import clear_names
