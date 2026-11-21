@@ -2,11 +2,12 @@ import { _decorator, Component, Node, UITransform, Graphics, Color, Label, Layer
     view, ResolutionPolicy, sys, game, Game, profiler, Mask, Vec2, Camera, director, Sprite } from 'cc';
 import { LevelOneArt } from './LevelOneArt';
 import { KitchenAudio } from './KitchenAudio';
-import { levelButtonLayout, GRID_ART, stationView, cabinetModule, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, floorItemDepth, workingChefDepth, flightDepth, predictWalk, spaceTarget, segmentDistance, plateLayers, heatCountdown, behindCounter, throwPose, throwDiagonal, throwItemPoint, panHandleSide, steeredFacing, drawnFacing, pickupWaits, handsLandIn } from './KitchenGeometry';
+import { levelButtonLayout, GRID_ART, stationView, cabinetModule, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, floorItemDepth, workingChefDepth, flightDepth, predictWalk, spaceTarget, segmentDistance, plateLayers, heatCountdown, behindCounter, throwPose, throwDiagonal, throwItemPoint, panHandleSide, steeredFacing, drawnFacing, pickupWaits, handsLandIn, jeffDraw, JEFF_DRAW, JeffWalk, followRoute } from './KitchenGeometry';
 const { ccclass } = _decorator;
 type Action = { key: string; label: string; kind: string; target: string; expected: unknown[] };
-type KitchenState = { game_id: string; state_seq?: number; phase: string; speed: number; kitchen: any; actions: Action[]; levels?:any[]; limits?:any; capacity?:any; release?:any; player_level?:any; interaction?:Action; use_interaction?:Action; interaction_hint?:string; interaction_focus?:string; interaction_cell?:number[];
+type KitchenState = { game_id: string; state_seq?: number; phase: string; speed: number; page_frames?: boolean; kitchen: any; actions: Action[]; levels?:any[]; limits?:any; capacity?:any; release?:any; player_level?:any; interaction?:Action; use_interaction?:Action; interaction_hint?:string; interaction_focus?:string; interaction_cell?:number[];
     events: {t:number; message:string; kind?:string; actor?:string}[]; ai: {thinking:boolean; error:string|null}; won:boolean; aborted?:boolean; round_summary?:any; rules?:Record<string,number>; connection?:any; memory?:any; communication?:any; hosted?:any };
+type RoundFrames = {game:string;bins:number[];frames:number;max:number;over25:number;over50:number;slow:number;frameRate:number};
 type ChefMotion = {body:Node; leftLeg:Node; rightLeg:Node; leftArm:Node; rightArm:Node; knife:Node; facing:string; step:number};
 type PotEffects = {steam:Node; smoke:Node; fire:Node; ready:Node};
 // Tokens from the "ChefJeff 厨房 UI" design system: every colour is sampled from the art
@@ -47,6 +48,16 @@ const KNIFE_VIEW:Record<string,[string,boolean]>={down:['knife/v1/front_',false]
 const color=(hex:string)=>new Color().fromHEX(hex);
 const AIM_HOLD=.3;
 const FACING_DIR:Record<string,[number,number]>={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
+// The game clock estimate (real time): each running state's game time is a lower bound (it was taken before it
+// arrived); the estimate keeps the highest, falls at most GAME_CLOCK_DRIFT s per s, and restarts after a drop over
+// GAME_CLOCK_RESET s. Jeff is drawn on it between polls (KitchenGeometry.jeffDraw), sized by the gaps between the last
+// STATE_GAPS_KEPT running states.
+const GAME_CLOCK_DRIFT=.02,GAME_CLOCK_RESET=.75,STATE_GAPS_KEPT=6;
+// Per-round frame times: every running frame's dt is counted in FRAME_BIN_MS bins up to FRAME_BINS of them (the last
+// bin also counts longer frames), so the percentiles cost the same at any round length. Reported every
+// FRAME_REPORT_SECONDS, every second in the round's last FRAME_LAST_SECONDS (none in its last FRAME_END_GUARD s: a
+// report after the end is refused), and once when the round pauses.
+const FRAME_BIN_MS=.25,FRAME_BINS=1000,FRAME_ROUNDS_KEPT=5,FRAME_REPORT_SECONDS=5,FRAME_LAST_SECONDS=6,FRAME_END_GUARD=.3;
 
 @ccclass('KitchenClient')
 export class KitchenClient extends Component {
@@ -114,6 +125,21 @@ export class KitchenClient extends Component {
      * frames, sampled 5 times a second, and update-loop errors, each kept once with a count. */
     private frames:any[]=[];
     private frameAt=-Infinity;
+    /** This round's running frame times (dt of each update, binned), and the last rounds' summaries, newest last. */
+    private roundFrames:RoundFrames|null=null;
+    private pastRoundFrames:any[]=[];
+    private frameWasRunning=false;
+    private roundFramesSentAt=-Infinity;
+    /** The kitchen's game clock as this page estimates it: game time = wall*speed+offset (see GAME_CLOCK_DRIFT). */
+    private gameClock:{game:string;speed:number;offset:number;at:number}|null=null;
+    /** Real time (s) when this frame started; Jeff is drawn at the game time estimated for it. */
+    private frameWall=0;
+    /** Counts applied states, so a frame sees every new one (two can land between frames). */
+    private stateSerial=0;
+    /** Real times the last running states of this round arrived, oldest first (how long Jeff is walked on). */
+    private stateArrivals:number[]=[];
+    /** Jeff drawn between polls (KitchenGeometry.jeffDraw). */
+    private jeffWalk:JeffWalk|null=null;
     private loopErrors:{message:string;stack:string;count:number;first:number;last:number}[]=[];
     private qaNoMotion=!sys.isNative&&new URLSearchParams(location.search).get('qaMotion')==='off';
     // Isolated visual pilot; not enabled at the fixed gameplay entry.
@@ -336,7 +362,7 @@ export class KitchenClient extends Component {
             // Labels drawn before the pixel face arrived keep the fallback until re-rendered.
             for(const l of this.node.getComponentsInChildren(Label))l.updateRenderData(true);
             this.tagText={};if(this.state&&this.mounted)this.render();
-        }).catch(()=>{});this.schedule(this.scheduledPoll,.2);
+        }).catch(()=>{});this.schedule(this.scheduledPoll,.05);
     }
     // The page's loading screen stays up until the kitchen first answers (or fails), so the
     // cover never flashes placeholder art or a second "connecting" state.
@@ -726,10 +752,10 @@ export class KitchenClient extends Component {
         // or put does not, and the engine finishes it while the chef walks on.
         if(this.clock<this.handsBusyUntil||(d.x===0&&d.y===0)){
             this.pressing=false;this.walkRamp=0;
-            // Work started in place first slides to the station's centre (the engine's route): follow it.
-            const end=(c.travel_remaining||0)>0&&c.route?.length?c.route[c.route.length-1]:null;
-            if(end){const p=this.predicted,gap=Math.hypot(end[0]-p[0],end[1]-p[1]),step=Math.min(gap,walk*game);
-                if(gap>1e-6)this.predicted=[p[0]+(end[0]-p[0])*step/gap,p[1]+(end[1]-p[1])*step/gap];}
+            // Work started in place first slides to the station's centre, and a take from the far side of the sink
+            // walks round it to the drying rack (the engine's route): follow the route corner by corner.
+            const route=(c.travel_remaining||0)>0&&c.route?.length?c.route:null;
+            if(route)this.predicted=followRoute(route,this.predicted,walk*game);
             return this.predicted;
         }
         // As in Overcooked, the page moves its own chef in 60 steps a game second, so every drawn point is a
@@ -753,6 +779,40 @@ export class KitchenClient extends Component {
             const step=walk*sub*this.walkRamp;this.predicted=predictWalk(k.map,this.predicted,d.x*step,d.y*step,other,step);
         }
         return this.predicted;
+    }
+    private wallNow(){return (typeof performance!=='undefined'&&performance.now?performance.now():Date.now())/1000;}
+    /** A running state's game time was taken before it arrived, so game time - arrival*speed bounds the offset from
+     * below: keep the highest bound (the least delayed state), let it fall slowly, restart on a pause or new round. */
+    private noteGameClock(next:KitchenState){
+        if(next.phase!=='running'||typeof next.kitchen?.time!=='number'){this.gameClock=null;this.stateArrivals=[];return;}
+        const speed=next.speed||1,at=this.wallNow(),bound=next.kitchen.time-at*speed,g=this.gameClock;
+        if(!g||g.game!==next.game_id||g.speed!==speed||bound>g.offset||g.offset-bound>GAME_CLOCK_RESET)this.gameClock={game:next.game_id,speed,offset:bound,at};
+        else{g.offset=Math.max(bound,g.offset-(at-g.at)*GAME_CLOCK_DRIFT);g.at=at;}
+        if(g&&g.game!==next.game_id)this.stateArrivals=[];
+        this.stateArrivals.push(at);if(this.stateArrivals.length>STATE_GAPS_KEPT+1)this.stateArrivals.shift();
+    }
+    /** The kitchen's game time at this frame, estimated; null while no round runs. */
+    private gameNow(){const g=this.gameClock;return g&&this.state?.game_id===g.game&&this.state.phase==='running'?this.frameWall*g.speed+g.offset:null;}
+    /** How long past a state's arrival Jeff is walked on (game s): until the next state is due, from the recent gaps. */
+    private jeffLead(){
+        const a=this.stateArrivals,J=JEFF_DRAW;let gap=0;
+        for(let i=1;i<a.length;i++)gap=Math.max(gap,a[i]-a[i-1]);
+        return Math.min(J.LEAD_LONGEST,Math.max(J.LEAD_SHORTEST,gap*(this.state?.speed||1)+J.LEAD_MARGIN));
+    }
+    /** Jeff faces his drawn walk; after a short one he keeps that direction until a state shows him stopped, never
+     * turning back to the facing a state from before the walk had. */
+    private jeffLastDir:number[]|null=null;
+    private jeffFacing(dir:number[]|null,c:any):number[]|null{
+        if(dir)this.jeffLastDir=[dir[0],-dir[1]];
+        else if(!((c.travel_remaining||0)>0)||c.working)this.jeffLastDir=null;
+        return this.jeffLastDir;
+    }
+    /** Where Jeff is drawn this frame (map cells), display only: KitchenGeometry.jeffDraw walks him on from the newest
+     * state along the engine's path and never into the player's chef. */
+    private jeffAt(k:any,dt:number,n:Node){
+        const r=jeffDraw(this.jeffWalk,{serial:this.stateSerial,k,now:this.gameNow(),dt:dt*(this.state?.speed||1),wall:dt,
+            drawn:this.mapPoint(n),other:this.predicted||k.chefs.human?.position,lead:this.jeffLead()});
+        this.jeffWalk=r.walk;return r;
     }
     private updatePick(k:any,c:any){
         const d=this.manualDirection;
@@ -1444,9 +1504,11 @@ export class KitchenClient extends Component {
             if(body)xhr.setRequestHeader('Content-Type','application/json');xhr.send(body?JSON.stringify(body):null);
         });
     }
+    // Checked every 0.05 s: the next poll starts once the interval has passed and no poll is in flight, so a slow
+    // reply delays it only until that reply lands, not by another whole interval.
     private scheduledPoll=()=>{
         const interval=this.state?.phase==='running'?.2:1;
-        if(this.clock-this.lastScheduledPoll<interval-.01)return;
+        if(this.polling||this.clock-this.lastScheduledPoll<interval-.01)return;
         this.lastScheduledPoll=this.clock;this.poll();
     };
     /** Show a state from a poll or from a gameplay reply; an older reply arriving late is ignored. */
@@ -1465,17 +1527,17 @@ export class KitchenClient extends Component {
         this.enable('cover-connection',true);
         if(this.mounted&&this.mountedLayout!==next.kitchen.map.layout_version){
             for(const n of [...this.mapNodes,...Object.values(this.ground),...Object.values(this.flights)])n.destroy();
-            this.devices={};this.people={};this.motions={};this.potEffects={};this.cabinetFires={};this.ground={};this.flights={};this.groundStages={};this.mounted=false;
+            this.devices={};this.people={};this.motions={};this.potEffects={};this.cabinetFires={};this.ground={};this.flights={};this.groundStages={};this.mounted=false;this.jeffWalk=null;
         }
         if(next.game_id!==this.state?.game_id||!this.connected){this.menuSignature='';this.foodStages={};this.readyUntil={};this.activeClock=0;
-            if(this.mounted)for(const who of ['human','jeff'])this.locate(this.people[who],next.kitchen.chefs[who].position);}
+            if(this.mounted)for(const who of ['human','jeff'])this.locate(this.people[who],next.kitchen.chefs[who].position);this.jeffWalk=null;}
         if(next.phase!=='running'||next.game_id!==this.state?.game_id||(this.spaceItemId!==null&&(next.kitchen.chefs.human.holding?.id!==this.spaceItemId||next.kitchen.chefs.human.can_throw===false)))this.clearInput();
         if(next.game_id!==this.state?.game_id){this.moveSeq=Date.now()*1000;this.steeredFacing=false;this.predicted=this.lastReported=this.lastAim=null;this.resyncSeen=-1;this.sprintAt=-Infinity;}
         if(next.phase!=='running')this.localPick=undefined;
         const was=next.game_id===this.state?.game_id?this.state?.kitchen?.chefs?.human:null,now=next.kitchen?.chefs?.human;
         const working=(c:any)=>!!c&&['chop','wash','extinguish'].includes(c.action_kind)&&(c.working||(c.travel_remaining||0)>0);
         if(was&&!was.holding&&now?.holding)this.pickedAt=this.clock;
-        this.state=next;this.connected=true;this.received=this.lastStateAt=this.clock;this.stateSentAt=sent;
+        this.state=next;this.connected=true;this.received=this.lastStateAt=this.clock;this.stateSentAt=sent;this.stateSerial++;this.noteGameClock(next);
         if(working(now)&&!working(was)){this.heldThrough=this.rawDirection();this.refreshMovement();}
         const frameRate=next.phase==='running'?(this.touchLayout?.active?30:60):15;
         if(game.frameRate!==frameRate)game.frameRate=frameRate;
@@ -2507,13 +2569,49 @@ export class KitchenClient extends Component {
             hands_busy:this.clock<this.handsBusyUntil,resync:this.resyncSeen,connected:this.connected,hidden:this.hidden});
         if(this.frames.length>150)this.frames.shift();
     }
+    /** Every running frame's dt for this round; the first frame after a pause (or the 15 fps idle rate) is left out. */
+    private noteFrameTime(dt:number){
+        const s=this.state,running=!!s&&s.phase==='running'&&this.connected&&!this.hidden;
+        let r=this.roundFrames;
+        if(running&&this.frameWasRunning){
+            if(!r||r.game!==s!.game_id){
+                if(r){this.pastRoundFrames.push(this.frameSummary(r));if(this.pastRoundFrames.length>FRAME_ROUNDS_KEPT)this.pastRoundFrames.shift();}
+                r=this.roundFrames={game:s!.game_id,bins:new Array(FRAME_BINS).fill(0),frames:0,max:0,over25:0,over50:0,slow:0,frameRate:Number(game.frameRate)||0};
+            }
+            const ms=dt*1000,target=1000/(Number(game.frameRate)||60);r.frames++;r.bins[Math.min(FRAME_BINS-1,Math.floor(ms/FRAME_BIN_MS+1e-9))]++;
+            if(ms>r.max)r.max=ms;if(ms>25)r.over25++;if(ms>50)r.over50++;if(ms>target*1.5)r.slow++;
+            // Where the kitchen keeps them in the round record (state.page_frames): the round so far every few seconds,
+            // every second near the end (a post after the end is refused).
+            const left=Number(s!.kitchen?.round_remaining),every=Number.isFinite(left)&&left<FRAME_LAST_SECONDS?1:FRAME_REPORT_SECONDS;
+            const ending=Number.isFinite(left)&&left<FRAME_END_GUARD;   // a report after the end is refused
+            if(s!.page_frames===true&&!ending&&this.clock-this.roundFramesSentAt>=every)this.sendRoundFrames(r);
+        }else if(!running&&this.frameWasRunning&&r&&s?.page_frames===true&&s.phase==='paused'&&s.game_id===r.game)this.sendRoundFrames(r);
+        this.frameWasRunning=running;
+    }
+    private sendRoundFrames(r:RoundFrames){
+        this.roundFramesSentAt=this.clock;
+        this.request('/api/page-frames',{game_id:r.game,request_id:Date.now().toString(36)+'-'+Math.random().toString(36).slice(2),
+            frames:this.frameSummary(r)}).catch(()=>{});
+    }
+    /** p50/p90: the lower edge of the FRAME_BIN_MS bin the percentile falls in. slow_frames: over 1.5 times the frame
+     * time the page aims at (60 or 30 fps), so it means the same at both rates; over_25ms counts every 30 fps frame. */
+    private frameSummary(r:RoundFrames){
+        const at=(p:number)=>{
+            if(!r.frames)return null;const need=Math.max(1,Math.ceil(p*r.frames));let seen=0;
+            for(let i=0;i<FRAME_BINS;i++){seen+=r.bins[i];if(seen>=need)return Math.round(i*FRAME_BIN_MS*10)/10;}
+            return null;
+        };
+        return {game_id:r.game,frames:r.frames,p50_ms:at(.5),p90_ms:at(.9),max_ms:Math.round(r.max*10)/10,over_25ms:r.over25,over_50ms:r.over50,
+            slow_frames:r.slow,frame_rate:r.frameRate};
+    }
     private diagnostics(){
         return {schema:'chefjeff-page-diagnostics-v1',sample_hz:5,window_seconds:30,frames:this.frames.slice(),loop_errors:this.loopErrors.map(e=>({...e})),
+            round_frames:[...this.pastRoundFrames,...(this.roundFrames?[this.frameSummary(this.roundFrames)]:[])],
             viewport:[innerWidth,innerHeight],device_pixel_ratio:devicePixelRatio,touch_layout:!!this.touchLayout?.active,user_agent:navigator.userAgent,
-            coverage:'Running frames only, newest last; no keys, typed text or model data.'};
+            coverage:'Running frames only, newest last; round_frames: each running frame\'s time for the last rounds; no keys, typed text or model data.'};
     }
     private frame(dt:number){
-        this.clock+=dt;this.audio.update(dt);if(!this.state||!this.mounted)return;const k=this.state.kitchen;
+        this.clock+=dt;this.frameWall=this.wallNow();this.audio.update(dt);this.noteFrameTime(dt);if(!this.state||!this.mounted)return;const k=this.state.kitchen;
         if(this.touchMoveDirty&&this.clock-this.touchMoveAt>=.05)this.flushTouchMove();
         if(this.spaceDownAt!==null&&this.clock-this.spaceDownAt>=AIM_HOLD)this.startAim();
         if(this.aiming&&this.state.phase!=='running')this.endAim();
@@ -2546,10 +2644,14 @@ export class KitchenClient extends Component {
                 else if(this.useArt&&this.art.show(dust,`vfx/landing_${frame}`,52,28))g.clear();
                 else {g.clear();for(let i=0;i<3;i++)this.rect(g,-20+i*13,-3+(frame+i)%3*3,7,5,'#d8bf93');}
             }
+            // Paused or ended: Jeff settles where the engine stopped him (he may have been drawn a little ahead).
+            if(!running&&who==='jeff'&&p&&this.connected){this.jeffWalk=null;
+                const x=MAPX+(p[0]+.5)*TILE-640,y=360-MAPY-(p[1]+.5)*TILE,t=Math.min(1,dt*10);n.setPosition(n.position.x+(x-n.position.x)*t,n.position.y+(y-n.position.y)*t);}
             if(running&&p){
-                const predicted=who==='human'?this.predictHuman(k,c,dt,n):null,at=predicted||p;
+                // The player's chef walks on this page; Jeff walks on along the engine's path between polls (jeffAt).
+                const predicted=who==='human'?this.predictHuman(k,c,dt,n):null,jeff=who==='jeff'?this.jeffAt(k,dt,n):null,at=predicted||jeff?.at||p;
                 if(predicted){this.reportPosition();this.updatePick(k,c);}
-                const x=MAPX+(at[0]+.5)*TILE-640,y=360-MAPY-(at[1]+.5)*TILE,t=predicted?1:Math.min(1,dt*16);
+                const x=MAPX+(at[0]+.5)*TILE-640,y=360-MAPY-(at[1]+.5)*TILE,t=predicted||jeff?1:Math.min(1,dt*16);
                 const oldX=n.position.x,oldY=n.position.y;
                 n.setPosition(oldX+(x-oldX)*t,oldY+(y-oldY)*t);
                 if(who==='human'&&predicted&&this.clock<this.cueUntil){
@@ -2563,12 +2665,13 @@ export class KitchenClient extends Component {
                 const steer=who==='human'&&(c.manual_moving||predicted)&&!this.aiming?steeredFacing(this.manualDirection.x,this.manualDirection.y):null;
                 if(steer)this.steeredFacing=true;
                 // Only a held direction turns the player's chef; the press lean, slides, knocks and pushes never do
-                // (see drawnFacing). Jeff turns along his drawn walk.
+                // (see drawnFacing). Jeff turns along the route where he is drawn, not along a correction's glide.
                 motion.facing=drawnFacing({drawn:motion.facing,engine:c.facing,own:who==='human'&&!!predicted,steer,
-                    steered:!!predicted&&this.steeredFacing,walked:moved?[dx,dy]:null,slide:!!c.route_slide,
+                    steered:!!predicted&&this.steeredFacing,walked:jeff?this.jeffFacing(jeff.dir,c):moved?[dx,dy]:null,slide:!!c.route_slide,
                     travelling:(c.travel_remaining||0)>0,working:!!c.working});
                 const held=who==='human'&&(this.manualDirection.x!==0||this.manualDirection.y!==0);
-                const walkIntent=(predicted?held:!!c.manual_moving)||(!c.working&&(c.travel_remaining||0)>0);
+                // Jeff's legs walk while he is drawn walking (jeffDraw), not by what the last state said.
+                const walkIntent=jeff?jeff.walking:(predicted?held:!!c.manual_moving)||(!c.working&&(c.travel_remaining||0)>0);
                 if(this.characterArt(motion.body,who,motion.facing,animate&&walkIntent,!!c.working))continue;
                 motion.body.angle=0;
                 const side=motion.facing==='left'||motion.facing==='right';

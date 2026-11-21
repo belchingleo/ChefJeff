@@ -134,6 +134,15 @@ function checkClientDiagnostics(fromSource){
  const error=console.error;console.error=()=>{};
  try{client.frame=()=>{throw new Error('boom');};for(let i=0;i<3;i++)client.update(.016);}finally{console.error=error;}
  assert.equal(client.loopErrors.length,1);assert.equal(client.loopErrors[0].message,'boom');assert.equal(client.loopErrors[0].count,3);
+ // Each round's running frame times: the first frame after a stop is left out; the kitchen gets them only when it asks.
+ const timed=clientHarness(harness(),fromSource),posts=[];timed.request=(path,body)=>{posts.push([path,body]);return Promise.resolve({});};
+ const rounds=()=>[...timed.pastRoundFrames,timed.frameSummary(timed.roundFrames)];   // diagnostics().round_frames
+ timed.state={game_id:'r1',phase:'running'};for(const dt of [.016,.016,.03,.06,.016])timed.noteFrameTime(dt);
+ assert.equal(JSON.stringify(rounds()),JSON.stringify([{game_id:'r1',frames:4,p50_ms:16,p90_ms:60,max_ms:60,over_25ms:2,over_50ms:1,slow_frames:0,frame_rate:15}]));
+ assert.equal(posts.length,0,'no report unless the state asks for one');
+ timed.state={game_id:'r2',phase:'running',page_frames:true};timed.noteFrameTime(.02);
+ assert.equal(JSON.stringify(rounds().map(r=>[r.game_id,r.frames])),'[["r1",4],["r2",1]]');
+ assert.equal(posts.length,1);assert.equal(posts[0][0],'/api/page-frames');assert.equal(posts[0][1].frames.game_id,'r2');
 }
 
 async function checkModelIdentity(){
