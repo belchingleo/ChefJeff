@@ -33,7 +33,8 @@ without Google Fonts or any CDN.
 
 - `today`: today's request (every request part and the go note off).
 - `restructured`: four request parts (place names, timeline, links on options, rules by action) and the go note on.
-- `with_kitchen_view`: the same with the kitchen view too (off in play: it made Jev take a plate first at every level-5 opening).
+- `with_kitchen_view`: the same with the kitchen view too, as in the local play set (it made Jev take a plate first at
+  every level-5 opening, but in the user's level-4 rounds it went with more money).
 
 The results tab compares each condition with today's request over the same moments only (those with recorded answers
 for both).

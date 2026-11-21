@@ -56,7 +56,7 @@
       <div class="card"><h2>几种请求</h2><ul class="plain">
         <li><b>今天的请求</b>：游戏现在发给 Jeff 的样子。</li>
         <li><b>重构后的请求</b>：打开名字、时间线、联动挂到选项上、规则按动作挑这四块，加走路提示。</li>
-        <li><b>再加精简厨房</b>：在上面基础上再打开精简厨房。它让请求小了一半，但 Jev 在第 5 关开局总是先拿盘子、也更常把刚做的一步退回去，所以试玩时关着。</li></ul></div>
+        <li><b>再加精简厨房</b>：在上面基础上再打开精简厨房。它让请求小了一半。Jev 在第 5 关开局总是先拿盘子，也更常把刚做的一步退回去；但用户打第 4 关时，开着它的局赚得更多。</li></ul></div>
       <div class="card"><h2>五块改写分别做什么</h2><ul class="plain">
         <li><b>名字</b>：规则和历史里光写编号的工作台写上名字（“Board 1 (b1)”）。</li>
         <li><b>时间线</b>：最近事件和最近决定合成一张按时间排的表：Jeff 自己的每一步和他选的选项、连续等待、扔出去的东西落到哪、没执行的选择和原因、厨房里出的问题。</li>
@@ -76,7 +76,7 @@
       <div class="card"><h2>The requests</h2><ul class="plain">
         <li><b>Today's request</b>: what the game sends Jeff now.</li>
         <li><b>Restructured</b>: four parts on (place names, timeline, links on options, rules by action) and the walk note.</li>
-        <li><b>Plus the kitchen view</b>: the same with the kitchen view too. It halves the request, but with it Jev took a plate first at every level-5 opening and undid his own steps far more often, so it is off in play.</li></ul></div>
+        <li><b>Plus the kitchen view</b>: the same with the kitchen view too. It halves the request. With it Jev took a plate first at every level-5 opening and undid his own steps far more often, yet the user's level-4 rounds with it made more money.</li></ul></div>
       <div class="card"><h2>The five parts</h2><ul class="plain">
         <li><b>Place names</b>: stations listed by id in the rules and the history get their names ("Board 1 (b1)").</li>
         <li><b>Timeline</b>: recent events and decisions become one time-ordered list: Jeff's own steps with the option chosen, runs of waiting, where his throws came down, choices not done and why, what went wrong in the kitchen.</li>

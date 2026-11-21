@@ -10,10 +10,9 @@ byte-identical (sha256 of the canonical JSON) to the rebuilt one, so every answe
 request it shows. Conditions:
 
 - today: today's request (every request part and the go note off);
-- restructured: four request parts (place_names, timeline, links_on_options, rules_by_action) and the go note on,
-  the local play set since 2026-11-21;
-- with_kitchen_view: the same with kitchen_view too (off in the play set: with it Jev took a plate first at every
-  level-5 opening and repeated undone steps far more often).
+- restructured: four request parts (place_names, timeline, links_on_options, rules_by_action) and the go note on;
+- with_kitchen_view: the same with kitchen_view too, the local play set (with it Jev took a plate first at every
+  level-5 opening and repeated undone steps far more often, but the user's level-4 rounds made more money).
 
 Each service gets its own requests (its local play set: the features override with off_for read for it).
 Writes data/index.json (moments, conditions, switches, results) and data/moments/<id>.json (requests and answers).
