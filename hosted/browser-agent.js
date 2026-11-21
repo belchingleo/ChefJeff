@@ -567,7 +567,8 @@
       // Publish before awaiting the start acknowledgement: a state poll can see a
       // running kitchen first, and a lost acknowledgement must not lose its context.
       if(opening)activeMemory=opening;
-      const result = await serverFetch(url.pathname, init);
+      // The query string goes too: /api/player-level/status?job=... was polled without it and always answered 404.
+      const result = await serverFetch(url.pathname + url.search, init);
       if(result.status===403 && isOpening) {
         const refused=await result.clone().json().catch(()=>({}));
         if(refused.free_model_needs_consent)setTimeout(()=>ask('free/'+Date.now()),0);
@@ -601,7 +602,7 @@
         // the switches its service starts with (a fresh server session knows no service until then).
         if (setting && !setting.free_model && !serviceReported && ['ready','ended'].includes(d.phase)) {
           const ready = await markReady(true, d);
-          const again = ready.ok ? await serverFetch(url.pathname, init) : null;
+          const again = ready.ok ? await serverFetch(url.pathname + url.search, init) : null;
           if (again?.ok) return response(200, withConnection(await again.json()));
         }
         return response(200, withConnection(d));
