@@ -6,8 +6,8 @@
 | Phone or small touch viewport | Experimental landscape touch controls; real-device validation pending |
 | Large touch-only tablet | Touch controls do not enable automatically at large viewports; compatibility unverified |
 | iPad with external keyboard and mouse | Existing keyboard input is available; iPad compatibility remains unverified |
-| Desktop controller with standard Gamepad mapping | Experimental; requires browser Gamepad API, real-controller validation pending |
-| Nonstandard controller mapping or other terminal | Not mapped; future work |
+| Desktop controller with standard Gamepad mapping, a Joy-Con pair merged by macOS, or one Joy-Con held sideways in Safari | Experimental; requires browser Gamepad API, real-controller validation pending |
+| Other nonstandard controller mapping or other terminal | Not mapped; future work |
 
 ## Landscape touch trial
 
@@ -19,18 +19,18 @@ Touch devices show a landscape prompt in portrait and cannot start cooking until
 
 On iPhone every browser (Safari, Chrome and others use WebKit) lacks the Fullscreen API, so the Full screen button is replaced by a tip: choose Add to Home Screen in the Share menu and open ChefJeff from the Home Screen, which shows the page without browser bars, with the pot icon and the name ChefJeff.
 
-The left joystick moves; releasing stops. On the right, Action does what is in front of the chef at once on press, even with an item in hand; Throw (above it) aims while held, steered by the joystick while the chef stands still, and throws on release, or throws straight away on a quick tap; slide onto Cancel before letting go to cancel. After a throw, or once work starts, the direction still held waits until the joystick returns to the centre or turns about 15 degrees. The Dash button starts at 2× speed and eases back to walking over 1 game second; the next dash is ready when it ends; it is unavailable while standing still or aiming. The communication panel is collapsed on touch devices; open it to send the existing preset messages. Bookmark, pause and menu buttons provide the other keyboard functions. See [interaction guide](interaction-guide.md).
+The left joystick moves; releasing stops. On the right, Take/Put works like Space: on press it takes or puts what is in front of the chef at once, even with an item in hand, and never throws. Chop/Wash/Throw (above it) works like E: it chops, washes or sprays; with a throwable item it aims while held, steered by the joystick while the chef stands still, and throws on release, or throws straight away on a quick tap; slide onto Cancel before letting go to cancel. After a throw, or once work starts, the direction still held waits until the joystick returns to the centre or turns about 15 degrees. The Dash button starts at 2× speed and eases back to walking over 1 game second; the next dash is ready when it ends; it is unavailable while standing still or aiming. The communication panel is collapsed on touch devices; open it to send the existing preset messages. Bookmark, pause and menu buttons provide the other keyboard functions. See [interaction guide](interaction-guide.md).
 
 Desktop orders remain in the top horizontal rail. In the touch layout, orders use a 112 CSS-pixel-wide vertical column on the left, with vertical scrolling when needed. Each card shows the dish name, countdown, ingredient icons and patience bar. Missing ingredient artwork falls back to a text label.
 
-The joystick appears where you touch within its left zone and changes colour while aiming. Round Action, Dash and Cancel controls follow a thumb arc; translucent controls, centered kitchen framing, toolbar hints and 14-pixel labels keep the scene readable. Android vibration is optional feedback when the browser supports it.
+The joystick appears where you touch within its left zone and changes colour while aiming. The round Take/Put, Chop/Wash/Throw, Dash and Cancel controls follow a thumb arc; translucent controls, centered kitchen framing, toolbar hints and 14-pixel labels keep the scene readable. Android vibration is optional feedback when the browser supports it.
 
 After a round, one press starts the next level after a win, retries after a loss, or replays the final level. Use the result button, Space/Enter on its focused main action, or controller A/Start. A short countdown preserves the current game speed; the first second ignores stray presses and repeated presses cannot start two rounds. The record remains available from its separate button.
 
 **This is experimental support, not a claim of full phone compatibility.** Desktop browser emulation can check layout and input state, but does not establish iPhone Safari, Android Chrome, or iPad compatibility. Real-device checks must include:
 
 - WebGL rendering, a complete round, performance and heat during play;
-- two simultaneous fingers (move + Action/Dash), hold/release timing, pointer cancellation and screen-edge gestures;
+- two simultaneous fingers (move + Take/Put, Chop/Wash/Throw or Dash), hold/release timing, pointer cancellation and screen-edge gestures;
 - portrait/landscape changes, browser address bars, safe areas, full-screen exit and no unwanted resume;
 - backgrounding, lock screen, interruption and reconnection without stuck movement or an unintended throw;
 - API settings, paste/soft keyboard, model-provider CORS, sound unlock, records, export and optional contribution.
@@ -47,7 +47,7 @@ Losing focus, hiding the page, disconnecting, focusing an input field, opening a
 
 ## Keyboard devices
 
-The desktop controls are unchanged: held WASD/arrows move, Space interacts (hold it to aim a throw), Shift dashes, Enter bookmarks, 1–6 sends messages and Esc or P pauses. P is available for keyboards without Esc, such as the iPad Magic Keyboard; menus also take pointer input.
+The desktop controls are unchanged: held WASD/arrows move; Space takes and puts and never throws; E chops, washes or sprays, and with a throwable item a tap throws straight ahead while a hold of about 0.3 seconds aims and releasing throws; Shift dashes, Enter bookmarks, 1–6 sends messages and Esc or P pauses. P is available for keyboards without Esc, such as the iPad Magic Keyboard; menus also take pointer input.
 
 Apple documents [mouse support on iPad](https://support.apple.com/en-ie/guide/ipad/ipad10939edf/ipados), but accessory support alone does not establish game compatibility. An actual iPad validation pass should also record accessory versions and check held/simultaneous keys, repeat suppression, pointer buttons, input-field focus and a complete round. Desktop device emulation cannot substitute for these checks.
 
@@ -63,8 +63,8 @@ Apple documents [mouse support on iPad](https://support.apple.com/en-ie/guide/ip
 | 手机或小尺寸触屏视口 | 试验版横屏触控，尚待真机验证 |
 | 大尺寸纯触屏平板 | 大视口不会自动启用触控，兼容性尚未验证 |
 | 外接键鼠的 iPad | 可使用现有键盘输入，iPad 兼容性尚未验证 |
-| 标准 Gamepad 映射的桌面手柄 | 试验支持，需浏览器 Gamepad API，真实手柄验证尚待完成 |
-| 非标准映射手柄或其他终端 | 暂不映射，后续开发目标 |
+| 标准 Gamepad 映射的桌面手柄、macOS 合成的一对 Joy-Con，或在 Safari 里横握的单只 Joy-Con | 试验支持，需浏览器 Gamepad API，真实手柄验证尚待完成 |
+| 其他非标准映射手柄或其他终端 | 暂不映射，后续开发目标 |
 
 ## 横屏触控试玩
 
@@ -76,18 +76,18 @@ Apple documents [mouse support on iPad](https://support.apple.com/en-ie/guide/ip
 
 iPhone 上的所有浏览器（Safari、Chrome 等都使用 WebKit）都不支持网页全屏接口，因此「全屏」按钮换成提示：在分享菜单选「添加到主屏幕」，从主屏幕打开即可去掉浏览器栏，图标为像素锅，名称为 ChefJeff。
 
-左摇杆控制移动，松手停止。右侧「操作」按下立即做面前需要的事，手里拿着东西也一样；「扔」（操作上方）按住瞄准，角色停下、左摇杆改方向，松开扔出，快速点按直接扔出；松手前滑到「取消」则取消。扔出东西或开始工作后，仍按着的方向要等摇杆回到中间或转过约 15° 才会移动。「冲刺」起步 2 倍速，1 游戏秒内平滑回落，结束后即可再冲；静止和瞄准时不可用。手机沟通面板默认折叠，打开后发送原有预设消息；标记、暂停和菜单按钮提供其余键盘功能。见[交互指南](interaction-guide.md)。
+左摇杆控制移动，松手停止。右侧「拿/放」和空格一样，按下立即拿起或放下面前的东西，手里拿着东西也一样，不会扔。「切/洗/扔」（在「拿/放」上方）和 E 一样，切菜、洗盘子、灭火；拿着能扔的东西时按住瞄准，角色停下、左摇杆改方向，松开扔出，快速点按直接扔出；松手前滑到「取消」则取消。扔出东西或开始工作后，仍按着的方向要等摇杆回到中间或转过约 15° 才会移动。「冲刺」起步 2 倍速，1 游戏秒内平滑回落，结束后即可再冲；静止和瞄准时不可用。手机沟通面板默认折叠，打开后发送原有预设消息；标记、暂停和菜单按钮提供其余键盘功能。见[交互指南](interaction-guide.md)。
 
 桌面订单仍位于顶部横栏；手机触控布局将订单放在左侧宽 112 CSS 像素的纵向列，内容超出时可上下滚动。每张卡片显示菜名、倒计时、材料图标和耐心条；缺少材料美术时显示文字标签。
 
-左侧区域按下的位置就是浮动摇杆中心，瞄准时改变颜色。右侧圆形「操作」「冲刺」「取消」沿拇指弧线排列；透明控件、厨房居中、工具栏提示和 14 像素标签减少遮挡。浏览器支持时，Android 可用短震动提供反馈。
+左侧区域按下的位置就是浮动摇杆中心，瞄准时改变颜色。右侧圆形「拿/放」「切/洗/扔」「冲刺」「取消」沿拇指弧线排列；透明控件、厨房居中、工具栏提示和 14 像素标签减少遮挡。浏览器支持时，Android 可用短震动提供反馈。
 
 结算后按一次主按钮，胜利进入下一关，失败重试本关，最后一关胜利则再玩本关。可触摸／点击结算按钮、聚焦主按钮后按空格或 Enter，或使用手柄 A／Start。短倒计时后按原速度开局；首秒忽略误触，重复按键不会连开两局。记录仍可通过单独按钮查看。
 
 **这是试验支持，不代表已经完成手机兼容验证。** 电脑浏览器模拟能检查布局和输入状态，不能证明 iPhone Safari、Android Chrome 或 iPad 已兼容。真机验证至少需要：
 
 - WebGL 画面、完整一局、持续游玩的性能和发热；
-- 双指同时操作（移动＋操作／冲刺）、长按松开、触摸取消和屏幕边缘系统手势；
+- 双指同时操作（移动＋拿/放、切/洗/扔或冲刺）、长按松开、触摸取消和屏幕边缘系统手势；
 - 横竖屏变化、浏览器地址栏、安全区、退出全屏及不会自动恢复；
 - 切后台、锁屏、中断和重连后，不持续走动、不误投掷；
 - API 设置、粘贴和软键盘、模型服务商 CORS、声音解锁、记录、导出及自愿贡献数据。
@@ -104,6 +104,6 @@ iPhone 上的所有浏览器（Safari、Chrome 等都使用 WebKit）都不支�
 
 ## 键盘设备
 
-电脑操作保持不变：按住 WASD／方向键移动，空格操作（按住可瞄准投掷）、Shift 冲刺、Enter 标记、1–6 发消息、Esc 或 P 暂停。没有 Esc 键的键盘（如 iPad 妙控键盘）可用 P；菜单也可以用鼠标点。
+电脑操作保持不变：按住 WASD／方向键移动；空格拿放，不会扔；E 切菜、洗盘子、灭火，拿着能扔的东西时点按朝前扔出，按住约 0.3 秒瞄准、松开扔出；Shift 冲刺、Enter 标记、1–6 发消息、Esc 或 P 暂停。没有 Esc 键的键盘（如 iPad 妙控键盘）可用 P；菜单也可以用鼠标点。
 
 Apple 提供了 [iPad 鼠标支持说明](https://support.apple.com/en-ie/guide/ipad/ipad10939edf/ipados)，外设能连接不代表游戏已经兼容。实际 iPad 验证还需记录外设版本，检查持续／组合按键、重复处理、鼠标按钮、输入框焦点和完整一局；电脑模拟不能代替这些检查。

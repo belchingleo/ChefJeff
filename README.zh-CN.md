@@ -94,12 +94,12 @@ ChefJeff 的玩法和《胡闹厨房》很像：两个人一起做菜，但区�
 | 触屏 | 作用 |
 | --- | --- |
 | 左下摇杆 | 移动，松手停止；在左下区域任意位置按下，摇杆会跟到拇指下 |
-| 操作 | 按下立即对面前的东西做该做的事，手里拿着东西也一样（不会扔） |
-| 扔 | 点按直接朝面前扔出；按住进入瞄准（用摇杆调方向），松手扔出；拖到「取消」上松手可取消 |
+| 拿/放 | 和空格一样：按下立即拿起或放下面前的东西（也用来下锅、装盘、出餐），手里拿着东西也一样；不会扔 |
+| 切/洗/扔（在「拿/放」上方） | 和 E 一样：在案板前切菜、在水槽前洗盘子、拿着灭火器时灭火；拿着能扔的东西时点按直接朝前扔出，按住进入瞄准（用摇杆调方向），松手扔出；瞄准时滑到圆形「取消」上松手可取消 |
 | 冲刺 | 移动时按下，和键盘 Shift 相同 |
 | 顶部按钮 | 沟通（相当于键盘 1–6）、标记、暂停、设置和本局记录 |
 
-**桌面手柄试玩：**Chrome 在 `localhost` 或 HTTPS 网页提供 Gamepad API 时，可接管一个采用 `standard` 映射的手柄；浏览器未发现设备时先按一下手柄按钮。左摇杆／十字键移动；A/× 短按操作，持物时长按约 0.3 秒瞄准、松开投掷；X/□ 冲刺；B/○ 取消手柄瞄准；Start/Options 在准备时开局（或打开模型设置）、经营中暂停、暂停时继续；结算卡片上按 Start 或 A 进入下一局。设置、沟通和菜单仍用键鼠。中断后会清理输入，摇杆先归中、按键先放开才能重新接管，暂停后手动继续。真实手柄兼容性尚未验证，见[设备支持](docs/device-support.md)及[交互指南](docs/interaction-guide.md)。
+**桌面手柄试玩：**浏览器（首选 Chrome）在 `localhost` 或 HTTPS 网页提供 Gamepad API 时，可接管一个手柄：采用 `standard` 映射的手柄、macOS 合成为一个“Joy-Con (L/R)”的一对 Joy-Con，或在 Safari 里横握的单只左手柄或右手柄。浏览器未发现设备时先按一下手柄按钮。按键沿用《胡闹厨房 2》的布局。左摇杆／十字键移动；A/× 拿放，和空格一样；X/□ 切菜、洗盘子、灭火，和 E 一样，拿着能扔的东西时短按朝前扔出，按住约 0.3 秒瞄准（用摇杆调方向）、松开扔出；B/○ 移动时冲刺。和《胡闹厨房 2》一样，没有取消瞄准的键。单只手柄横握时，右键拿放，左键切洗扔（按住瞄准），下键冲刺，左手柄按 −、右手柄按 + 暂停或继续。Start/Options 在准备时开局（或打开模型设置）、经营中暂停、暂停时继续；结算卡片上按 Start 或 A 进入下一局。设置、沟通和菜单仍用键鼠。中断后会清理输入，摇杆先归中、按键先放开才能重新接管，暂停后手动继续。见[设备支持](docs/device-support.md)及[交互指南](docs/interaction-guide.md)。
 
 每局结束后，结算卡片留在厨房画面上，显示收入和目标，以及「再来一次」「下一关」两个大按钮，达成目标时「下一关」在前（空格、Enter、手柄 A/Start 或手机主按钮都可以；短暂 3·2·1 后按原节奏开局）。点「本局记录」可看完整记录：你和 Jeff 各自取了多少次食材、切了几份、下了几次锅、出了几单、洗了几个盘子，以及两人的贡献、拖延和空转（算法见[记录与分析](#记录与分析)）。
 
@@ -157,16 +157,112 @@ Jeff 不看画面，他读的是结构化的游戏状态，从当前合法的动
 
 ### 代码结构
 
-| 模块 | 主要文件 |
+下面按七组列出仓库根目录下的全部 Python 模块。标 **直接运行** 的模块用 `python3 <模块>` 启动，其余的由别的模块导入。标 **开关** 的模块实现 `features.json` 里列出的开关；每个开关处在哪个阶段（已上线或测试中）、有没有打开，以 `features.json` 为准。
+
+**引擎：规则、地图与关卡**
+
+| 模块 | 作用 |
 | --- | --- |
-| 厨房规则 | `kitchen.py`、`rules.py`、`config_contract.py` |
-| 地图与空间 | `maps/`、`spatial_kitchen.py`、`navigation.py` |
-| Jeff 的输入：规则说明、可选动作、请求拼装 | `harness.py`、`one_press.py` |
-| Jeff 的 harness 开关（已上线或测试中） | `features.json`、`features.py` |
-| Jeff 的决策调度与模型适配 | `jev.py`、`whitebox_server.py`、`player_api.py`、`model_language.py` |
-| 对局记录与分析 | `session_record.py`、`provenance.py`、`collaboration_analyzer.py`、`round_summary.py`、`capacity_analyzer.py`、`scripts/decision_stats.py` |
-| 本地服务 | `web_server.py`、`cocos_server.py` |
-| 画面与声音 | `cocos-kitchen/`（Cocos Creator 3.8.8，TypeScript） |
+| `kitchen.py` | 确定性的厨房规则：每个工位、菜谱、时长和罚款都来自一份固定下来的配置，不为某一关写分支 |
+| `spatial_kitchen.py` | 同一套厨房规则放到可行走的网格上，不含 AI 策略 |
+| `rules.py` | 从一份固定下来的配置得出运行时的规则表 |
+| `config_contract.py` | **直接运行。** 校验、解析并固定一份关卡配置；`python3 config_contract.py level-2` 输出诊断结果和配置哈希 |
+| `schema_check.py` | 只用标准库，按 `schemas/` 里用到的 JSON Schema 子集做校验 |
+| `map_definition.py` | 带版本的地图文件，画面和模拟共用：校验、保存、读取 |
+| `navigation.py` | 每张地图各自的走路路线；切换关卡不改动全局几何 |
+| `levels.py` | **直接运行。** 查找已有关卡，以及玩家能看到哪些关卡（`level_switches.json`，再叠加本机的覆盖文件）；`python3 levels.py show`；`set 关卡 on\|off` 写的是覆盖文件（`/etc/chefjeff/levels.override.json`，或 `CHEFJEFF_LEVELS_OVERRIDE` 指定的路径），不改 `level_switches.json` |
+| `level_design.py` | 把关卡编辑器里的设计（房间大小、墙、工位、菜品）变成一份关卡配置 |
+| `level_calibration.py` | 用脚本参考厨师测出玩家关卡的订单节奏和目标金额 |
+| `player_level_queue.py` | 在单独的低优先级进程里逐个跑这些校准，不拖慢正在进行的厨房 |
+| `reference_policy.py` | 照菜谱做菜的确定性脚本厨师，用于回归轨迹和校准；它不是 AI 队友 |
+
+**Jeff 的输入与 `features.json` 开关**
+
+| 模块 | 作用 |
+| --- | --- |
+| `harness.py` | Jeff 收到的全部内容：规则说明、模型看到的厨房、可选动作、最近的事件和决策、玩家消息和跨局记忆 |
+| `model_language.py` | 带版本的英文词表（`model-language-en-v4.json`），把引擎的文字转成 Jeff 读到的英文 |
+| `cooperation_memory.py` | 跨局记忆：往局的事实记录，有长度上限，不推测玩家偏好 |
+| `features.py` | **直接运行。** 读取并检查 `features.json` 和服务器的覆盖文件；`python3 features.py show`、`check [文件]`；`set 名称 on\|off` 和 `unset 名称` 写的是覆盖文件（`/etc/chefjeff/features.override.json`，或 `CHEFJEFF_FEATURES_OVERRIDE` 指定的路径），不改 `features.json` |
+| `one_press.py` | **开关** `one_press`、`throw_to`。把玩家顺手连按的几下合成一个选项（先放下再拿、先放下再切等），执行时仍是普通的几步 |
+| `links.py` | **开关** `option_links`、`option_links_partner`。在厨房的分叉副本上算出每个选项接下来能做成什么活 |
+| `ask_ahead.py` | **开关** `ask_ahead`。当前这一步还没做完，就用往后推演的厨房先问 Jeff 下一步 |
+| `undo_note.py` | **开关** `undo_note`。某个选项会让东西回到 Jeff 前几步之前的样子时，在选项上写明 |
+| `reach_note.py` | **开关** `reach_note`。地面被柜台隔开时，写明每位厨师能走到哪些工位 |
+| `split_floor.py` | **开关** `split_floor`。地面被隔开、菜单上没有一道菜能由一位厨师单独做完时，告诉 Jeff |
+| `burn_note.py` | **开关** `burn_note`。灶台上有菜时，选项写明菜什么时候熟、什么时候糊 |
+| `option_notes.py` | **开关** `option_notes`。拿起或送出做好的菜的选项，写明这道菜对应哪张等待中的订单、还剩多久 |
+| `step_check.py` | **开关** `step_check`。等待中的订单需要的每一类步骤，现在能不能做，不能做时是什么挡着 |
+| `walk_note.py` | **开关** `walk_note`。每个要走路的选项写明要走几秒 |
+| `go_note.py` | **开关** `go_note`。走到 X 的选项，在 X 处没有地方能接 Jeff 手里的东西时写明 |
+| `work_notes.py` | **开关** `own_chain`、`plate_result`、`board_taken`。在厨房的分叉副本上算出选项接下来通向哪些活，写在选项上 |
+| `request_parts.py` | **开关** `place_names`、`timeline`、`no_history`、`links_on_options`、`rules_by_action`、`kitchen_view`。重构后请求的各个部分，最后作用在拼好的英文请求上 |
+| `food_names.py` | **开关** `clear_text`（和下面三个模块共用）。每种食物都按食材和状态命名 |
+| `clear_names.py` | **开关** `clear_text`。Jeff 读到的内容里不出现光秃秃的物品编号或“the held item” |
+| `engine_english.py` | **开关** `clear_text`。词表翻错或漏翻的地方，由引擎直接写出 Jeff 读到的英文 |
+| `plate_names.py` | **开关** `clear_text`。把菜装到盘子上的选项，写明那个盘子里已经有什么 |
+
+**决策调度与模型客户端**
+
+| 模块 | 作用 |
+| --- | --- |
+| `jev.py` | Jeff 的决策调度（有上限的异步请求安排）和 TypeSafe Jev 的 HTTP Choice 客户端 |
+| `whitebox_server.py` | 空间厨房用的 Jeff 客户端，所有列出的关卡都用它 |
+| `player_api.py` | 本地游戏里玩家自己的凭据和模型连接，覆盖 `model-providers.json` 里的服务 |
+| `model_output.py` | 对话模型的输出格式约定；厨房、选项和规则保持原样 |
+| `model_status.py` | 模型调用的运行诊断，只收允许清单里的字段，和研究数据同意无关 |
+| `environment.py` | 任何 agent 都通过它来玩的接口（env-v1）：agent 只经由一个端口观察和行动，拿不到厨房本身 |
+| `agent_loop.py` | 让任意 `environment.Agent` 在游戏会话里替代 Jeff 的决策调度运行 |
+| `example_agent.py` | 只用 env-v1 接口玩 Jeff 的最小 agent，可以作为自己 agent 的起点 |
+
+**本地服务**
+
+| 模块 | 作用 |
+| --- | --- |
+| `cocos_server.py` | **直接运行。** 本地游戏：网页客户端和权威的游戏 API 在同一个本地地址上；`scripts/launch_web.py` 会启动它 |
+| `web_server.py` | 围绕厨房和 Jeff 决策调度的游戏会话与请求处理，由 `cocos_server.py` 和 `hosted_server.py` 提供服务 |
+| `play.py` | **直接运行。** 终端里的实时文字厨房：输入菜单编号或命令 |
+| `release_info.py` | 公开的版本信息：版本号、网页和服务器之间的协议编号、运行所需的文件清单 |
+
+**在线托管与共享数据**
+
+| 模块 | 作用 |
+| --- | --- |
+| `hosted_server.py` | **直接运行。** 在线游戏：放在 HTTPS 反向代理后面、彼此隔离、用完即弃的厨房；模型由浏览器直接调用，或经用户同意后由 Jev 中转 |
+| `hosted_capacity.py` | 活动厨房的租约上限，以及每个已验证会话的请求额度 |
+| `hosted_jev.py` | 经同意后的 Jev 转发；Key 只属于单次 HTTP 请求，不属于某一局 |
+| `hosted_cloudflare.py` | 经同意后的 Cloudflare Workers AI 转发，因为它的接口拒绝浏览器（CORS）请求 |
+| `hosted_records.py` | 经同意后贡献的对局记录，和用完即弃的厨房及模型通信分开 |
+| `hosted_usage.py` | 只记托管服务的汇总计数，不记访客、会话、对局或请求 |
+| `shared_server.py` | **直接运行。** 需要验证、只供后端访问的数据服务，保存贡献记录和用量汇总；只监听本机，放在 TLS 代理后面 |
+| `shared_client.py` | 游戏服务器访问这个数据服务的客户端；汇总数据的投递不占用游戏请求线程 |
+| `shared_data.py` | 数据服务的存储：单一来源的记录，以及原子、可安全重试的各站点用量汇总 |
+
+**免费模型**
+
+| 模块 | 作用 |
+| --- | --- |
+| `free_model_gateway.py` | **直接运行。** 两个站点共用的一个私有免费模型网关，不访问研究数据和用量数据 |
+| `free_model_client.py` | 访问站点网关的客户端，需要验证；上游模型的 Key 不离开上海 |
+| `free_model_budget.py` | 网关私有的汇总调用额度 |
+| `free_model_diagnostics.py` | 网关的运行摘要，有长度上限，不含玩家编号、提示词或 Key |
+| `hosted_free_models.py` | 在线免费模型试用：模型固定，每个模型要有自己经过验证的私有 Key 才开启，只有服务器的厨房发出的请求能用 |
+
+**研究与分析**
+
+| 模块 | 作用 |
+| --- | --- |
+| `session_record.py` | 每局一条事件流（`SessionLog`），以及由它生成的 `logs/sessions/` 记录包 |
+| `provenance.py` | 物品来历：哪些做完的动作碰过哪些物品，每道出了餐的菜由什么组成 |
+| `collaboration_analyzer.py` | **直接运行。** 哪些做完的动作做成了出餐的菜；`python3 collaboration_analyzer.py logs/sessions/<对局编号>` 不调用模型重放一个记录包 |
+| `round_summary.py` | 本局记录：谁做了哪类活 |
+| `capacity_analyzer.py` | **直接运行。** 一份配置的结构上限和负载风险；`python3 capacity_analyzer.py <关卡编号或 bundle.json>` |
+| `research_record.py` | 一局事件流的私有研究投影，贡献的记录用的就是它 |
+| `research_replay.py` | 对一份研究记录做只读的完整性检查和精确重放，不调用模型 |
+| `research_stats.py` | 研究工具用的置信区间（Wilson、bootstrap），只用标准库，结果可复现 |
+| `feedback.py` | 本次游玩的数据导出（「设置」→「数据与贡献」）：只含允许清单里的事件，不含原始请求和自由文本 |
+
+根目录以外：`cocos-kitchen/` 是网页客户端，包括画面和声音（Cocos Creator 3.8.8，TypeScript）；`content/` 和 `maps/` 放五个数据模型，`schemas/` 校验它们，`rulesets/` 放所有关卡共用的规则；`hosted/` 放在线页面自己的文件；`lab/` 是静态的实验室页面，展示真实对局里记录下的时刻、每种写法下 Jeff 会收到的请求和为这个请求录下的回答，不调用模型；`scenarios/` 放一个离线的固定入口回归用例和它的运行脚本（`scenarios/fixed_entry_001/run.py`）；`scripts/` 放启动器、构建脚本，以及基准测试和研究工具，比如 `scripts/decision_stats.py`；`deploy/` 和 `ops/` 放服务器部署和研究数据管理台；`docs/` 放规则、关卡、架构、部署和隐私说明；`benchmark/` 和 `tests/` 放基准和测试。
 
 ```sh
 python3 -m unittest discover -s tests     # 离线测试（不调用付费模型）

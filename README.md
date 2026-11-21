@@ -93,12 +93,12 @@ Phones and small touch screens need landscape:
 | Touch | Action |
 | --- | --- |
 | Joystick, lower left | Move; let go to stop. Press anywhere in the lower-left area and the stick moves under your thumb |
-| Action | Does what the thing in front of you needs, at once, even holding an item (it never throws) |
-| Throw | Tap to throw straight ahead; hold to aim (steer with the joystick) and let go to throw; drag onto Cancel and let go to cancel |
+| Take/Put | Like Space: takes or puts down what is in front of you at once (also to cook, plate and serve), even holding an item; it never throws |
+| Chop/Wash/Throw (above Take/Put) | Like E: chops at a board, washes at a sink, sprays with the extinguisher; holding a throwable item, tap to throw straight ahead, or hold to aim (steer with the joystick) and let go to throw; while aiming, slide onto the round Cancel and let go to cancel |
 | Dash | Press while moving, like Shift on the keyboard |
 | Top buttons | Communication (like keys 1–6), bookmark, pause, settings and the round record |
 
-**Desktop controller trial:** Chrome on `localhost` or HTTPS with the Gamepad API can use one `standard`-mapped controller. Press a button if it has not been discovered. Left stick/D-pad moves; A/× taps to interact or holds about 0.3 s with an item to aim and releases to throw; X/□ dashes; B/○ cancels the controller aim; Start/Options starts a ready round (or opens model Settings), pauses or resumes; on the result card Start or A goes on to the next round. Settings, communication and menus still use keyboard/mouse. Interruptions clear controller input; center the stick and release buttons before taking control again, with manual resume after a pause. Real-controller compatibility is unverified; see [device support](docs/device-support.md) and [interaction guide](docs/interaction-guide.md).
+**Desktop controller trial:** a browser with the Gamepad API (Chrome first) on `localhost` or HTTPS can use one controller: one that reports the `standard` mapping, a pair of Joy-Cons that macOS merges into one "Joy-Con (L/R)", or one left or right Joy-Con held sideways in Safari. Press a button if the browser has not discovered it. The buttons follow Overcooked 2. Left stick/D-pad moves; A/× takes and puts, like Space; X/□ chops, washes and sprays, like E, and with a throwable item a tap throws straight ahead, while a hold of about 0.3 s aims (steer with the stick) and releasing throws; B/○ dashes while moving. As in Overcooked 2, no button cancels an aim. One Joy-Con held sideways: the right button takes and puts, the left button chops, washes and throws (hold to aim), the bottom button dashes, and − on the left Joy-Con or + on the right one pauses and resumes. Start/Options starts a ready round (or opens model Settings), pauses or resumes; on the result card Start or A goes on to the next round. Settings, communication and menus still use keyboard/mouse. Interruptions clear controller input; center the stick and release buttons before taking control again, with manual resume after a pause. See [device support](docs/device-support.md) and [interaction guide](docs/interaction-guide.md).
 
 After each round the result card stays on the kitchen with the income against the goal and two big buttons, **Try again** and **Next level**; the next level leads after a win (Space, Enter, A/Start or the phone's main button; a short 3·2·1 and the round starts at the same pace). **Round record** opens the full record, which shows how many times you and Jeff each fetched ingredients, chopped, cooked, served and washed plates, and each chef's contribution, delay and idle time (see [records and analysis](#records-and-analysis)).
 
@@ -156,16 +156,112 @@ To connect your own model, implement two methods, `payload(state, actions)` and 
 
 ### Code layout
 
-| Area | Main files |
+Every Python module at the repository root, in seven groups. **Run** marks a module you start directly with `python3 <module>`; the others are imported. **Switch** names the `features.json` switches a module implements; `features.json` gives each switch its stage (released or on trial) and whether it is on.
+
+**Engine: rules, maps and levels**
+
+| Module | What it does |
 | --- | --- |
-| Kitchen rules | `kitchen.py`, `rules.py`, `config_contract.py` |
-| Maps and space | `maps/`, `spatial_kitchen.py`, `navigation.py` |
-| Jeff's input: rule text, listed actions, request assembly | `harness.py`, `one_press.py` |
-| Jeff's harness switches (released or on trial) | `features.json`, `features.py` |
-| Jeff's decision loop and model adapters | `jev.py`, `whitebox_server.py`, `player_api.py`, `model_language.py` |
-| Round records and analysis | `session_record.py`, `provenance.py`, `collaboration_analyzer.py`, `round_summary.py`, `capacity_analyzer.py`, `scripts/decision_stats.py` |
-| Local servers | `web_server.py`, `cocos_server.py` |
-| Graphics and sound | `cocos-kitchen/` (Cocos Creator 3.8.8, TypeScript) |
+| `kitchen.py` | Deterministic kitchen rules: every station, recipe, duration and penalty comes from one frozen configuration, with no per-level branches |
+| `spatial_kitchen.py` | The same kitchen rules on a walkable grid, with no AI policy |
+| `rules.py` | Runtime rule tables derived from one frozen resolved configuration |
+| `config_contract.py` | **Run.** Validate, resolve and freeze a level bundle; `python3 config_contract.py level-2` prints the diagnostics and the configuration hash |
+| `schema_check.py` | Standard-library validator for the JSON Schema subset used in `schemas/` |
+| `map_definition.py` | Versioned map documents shared by the renderer and the simulation: validate, save, load |
+| `navigation.py` | Per-map walking routes; switching levels changes no global geometry |
+| `levels.py` | **Run.** Authored level lookup and which levels players see (`level_switches.json`, then this machine's override); `python3 levels.py show`; `set LEVEL on\|off` writes the override (`/etc/chefjeff/levels.override.json`, or the path in `CHEFJEFF_LEVELS_OVERRIDE`), not `level_switches.json` |
+| `level_design.py` | Turns a level-editor design (room size, walls, stations, dishes) into a level bundle |
+| `level_calibration.py` | Order pacing and target money for a player's level, measured with the scripted reference chefs |
+| `player_level_queue.py` | Runs those calibrations one at a time in a separate lower-priority process, away from the kitchens being played |
+| `reference_policy.py` | A deterministic recipe-following scripted chef for regression traces and calibration; not an AI teammate |
+
+**Jeff's input and its `features.json` switches**
+
+| Module | What it does |
+| --- | --- |
+| `harness.py` | Everything Jeff is shown: the rule text, the kitchen as the model sees it, the listed actions, recent events and decisions, player messages and memory |
+| `model_language.py` | The versioned English catalog (`model-language-en-v4.json`) that turns the engine's text into what Jeff reads |
+| `cooperation_memory.py` | Cross-round memory: bounded factual records of earlier rounds, not inferred player preferences |
+| `features.py` | **Run.** Reads and checks `features.json` and a server's override; `python3 features.py show`, `check [FILE]`; `set NAME on\|off` and `unset NAME` write the override (`/etc/chefjeff/features.override.json`, or the path in `CHEFJEFF_FEATURES_OVERRIDE`), not `features.json` |
+| `one_press.py` | **Switch** `one_press`, `throw_to`. Several presses offered as one option (put then take, put then chop, …) and carried out as ordinary steps |
+| `links.py` | **Switch** `option_links`, `option_links_partner`. The work each option makes possible, worked out on a fork of the kitchen |
+| `ask_ahead.py` | **Switch** `ask_ahead`. Asks Jeff for his next step before the current one ends, from the kitchen played forward |
+| `undo_note.py` | **Switch** `undo_note`. An option that would bring back how things were before one of Jeff's last steps says so |
+| `reach_note.py` | **Switch** `reach_note`. On a split floor, which stations each chef can walk to |
+| `split_floor.py` | **Switch** `split_floor`. On a split floor where no dish on the menu can be made by one chef alone, Jeff is told so |
+| `burn_note.py` | **Switch** `burn_note`. An option on a stove with food says when it is cooked and when it burns |
+| `option_notes.py` | **Switch** `option_notes`. Options that pick up or serve a finished dish say which waiting order it goes to and how long that order has left |
+| `step_check.py` | **Switch** `step_check`. For each kind of step the waiting orders need, whether the kitchen allows it now and what stands in the way |
+| `walk_note.py` | **Switch** `walk_note`. Every walking option says how many seconds of walking it is |
+| `go_note.py` | **Switch** `go_note`. A "go X" option says when nothing at X takes what Jeff holds |
+| `work_notes.py` | **Switch** `own_chain`, `plate_result`, `board_taken`. Facts on options about the work they lead to, from forks of the kitchen |
+| `request_parts.py` | **Switch** `place_names`, `timeline`, `no_history`, `links_on_options`, `rules_by_action`, `kitchen_view`. The parts of the restructured request, applied last to the finished English request |
+| `food_names.py` | **Switch** `clear_text` (with the next three). Every food is named from its ingredient and state |
+| `clear_names.py` | **Switch** `clear_text`. No bare item ids or "the held item" in what Jeff reads |
+| `engine_english.py` | **Switch** `clear_text`. The engine writes the English Jeff reads where the catalog garbles or misses it |
+| `plate_names.py` | **Switch** `clear_text`. An option that puts food onto a plate says what that plate holds |
+
+**Decision loop and model clients**
+
+| Module | What it does |
+| --- | --- |
+| `jev.py` | Jeff's decision loop (bounded asynchronous scheduling of requests) and the TypeSafe Jev HTTP Choice client |
+| `whitebox_server.py` | Jeff's client for the spatial kitchen, used on every listed level |
+| `player_api.py` | Player-owned credentials and model connections for the local game, for the services in `model-providers.json` |
+| `model_output.py` | Output-only answer contracts for chat models; the kitchen, options and rules stay as they are |
+| `model_status.py` | Allowlisted operational diagnostics for model calls, independent of research consent |
+| `environment.py` | The interface any agent plays through (env-v1): it sees and acts through a port, never the kitchen itself |
+| `agent_loop.py` | Runs any `environment.Agent` in the game's session, where Jeff's decision loop would run |
+| `example_agent.py` | A minimal agent that plays Jeff through env-v1 alone, a starting point for your own |
+
+**Local servers**
+
+| Module | What it does |
+| --- | --- |
+| `cocos_server.py` | **Run.** The local game: the web client and the authoritative game API on one local origin; `scripts/launch_web.py` starts it |
+| `web_server.py` | The game session and request handler around the kitchen and Jeff's loop, served by `cocos_server.py` and `hosted_server.py` |
+| `play.py` | **Run.** A realtime text kitchen in the terminal: enter a menu number or a command |
+| `release_info.py` | Public build identity: the version, the page/server protocol number and the runtime file list |
+
+**Hosted and shared data**
+
+| Module | What it does |
+| --- | --- |
+| `hosted_server.py` | **Run.** The online game: isolated, short-lived kitchens behind an HTTPS reverse proxy; models are called from the browser or through the opt-in Jev relay |
+| `hosted_capacity.py` | Bounded leases on active kitchens and request budgets per authenticated session |
+| `hosted_jev.py` | Opt-in Jev forwarding; a key belongs to a single HTTP request, never a game |
+| `hosted_cloudflare.py` | Opt-in Cloudflare Workers AI forwarding, because its API refuses browser (CORS) requests |
+| `hosted_records.py` | Opt-in contributed session records, kept apart from the short-lived kitchen and the model transport |
+| `hosted_usage.py` | Aggregate hosted counters only: no visitor, session, round or request records |
+| `shared_server.py` | **Run.** The authenticated, backend-only data service for contributed records and usage aggregates; binds to loopback behind a TLS proxy |
+| `shared_client.py` | The game servers' clients for that service; aggregate delivery stays outside gameplay request threads |
+| `shared_data.py` | The service's storage: single-authority records and atomic, retry-safe regional usage aggregation |
+
+**Free models**
+
+| Module | What it does |
+| --- | --- |
+| `free_model_gateway.py` | **Run.** One private free-model gateway for both regions, with no access to the research or usage data |
+| `free_model_client.py` | Authenticated client for the regional gateway; upstream model keys never leave Shanghai |
+| `free_model_budget.py` | The gateway's private aggregate call budgets |
+| `free_model_diagnostics.py` | The gateway's bounded operational summaries, never player ids, prompts or keys |
+| `hosted_free_models.py` | The online free-model trials: fixed models, each enabled by its own verified private key, used only by requests the server's kitchens create |
+
+**Research and analysis**
+
+| Module | What it does |
+| --- | --- |
+| `session_record.py` | One event stream per round (`SessionLog`) and the record bundle in `logs/sessions/` derived from it |
+| `provenance.py` | Item provenance: which completed actions touched which items, and what each served dish is made of |
+| `collaboration_analyzer.py` | **Run.** Which completed actions made the served dishes; `python3 collaboration_analyzer.py logs/sessions/<round id>` replays a bundle with no model calls |
+| `round_summary.py` | The round record: who did which kind of work |
+| `capacity_analyzer.py` | **Run.** Structural bounds and load risks of one configuration; `python3 capacity_analyzer.py <level id or bundle.json>` |
+| `research_record.py` | The private research projection of a round's event stream, used for contributed records |
+| `research_replay.py` | A read-only integrity check and exact replay of one research record, with no model calls |
+| `research_stats.py` | Intervals for the research tools (Wilson, bootstrap), standard library only and deterministic |
+| `feedback.py` | The play-session data export (Settings → Data and contributions): allowlisted events only, never raw requests or free text |
+
+Outside the root: `cocos-kitchen/` is the web client, graphics and sound included (Cocos Creator 3.8.8, TypeScript); `content/` and `maps/` hold the five data models, `schemas/` validates them and `rulesets/` holds the rules every level shares; `hosted/` holds the online page's own files; `lab/` is the static lab page, which shows logged moments of real rounds, the request Jeff would be sent under each condition and the answers recorded for it, and calls no model; `scenarios/` holds an offline fixed-entry regression fixture and its runner (`scenarios/fixed_entry_001/run.py`); `scripts/` holds the launcher, the build and the benchmark and research tools such as `scripts/decision_stats.py`; `deploy/` and `ops/` hold the server setup and the research admin console; `docs/` holds the rules, level, architecture, deployment and privacy notes; `benchmark/` and `tests/` hold the benchmark and the tests.
 
 ```sh
 python3 -m unittest discover -s tests     # offline tests (no paid model calls)
