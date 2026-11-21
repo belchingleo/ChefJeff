@@ -484,8 +484,17 @@ class DecisionLoop:
                     fresh = (not self.closed and enabled and not self.k.ended and context["epoch"] == self.epoch
                              and now-context["sent"] <= self.k.c["ai_max_response_age"]
                              and context["job_id"] == current_job)
+                # "continue" to a request made during a one-press chain that is still under way: the chain has moved
+                # to its next step (a new job), so the reply used to be dropped as stale and Jeff asked again, while
+                # the step outlasted nothing he chose; it holds as long as that same chain goes on.
+                chain_goes_on = (not fresh and not context.get('ahead') and decision.kind == 'continue'
+                                 and context.get('chain') is not None and self.chain is context.get('chain')
+                                 and not self.closed and enabled and not self.k.ended and context["epoch"] == self.epoch
+                                 and now-context["sent"] <= self.k.c["ai_max_response_age"])
                 pressed = None      # how a one-press choice started: its first step and whether put_where fell back
-                if fresh and decision.kind in one_press.KINDS:
+                if chain_goes_on:
+                    applied, message = True, "继续"
+                elif fresh and decision.kind in one_press.KINDS:
                     applied, message, pressed = self.start_chain(decision, result.get(one_press.PUT_WHERE))
                 elif fresh:
                     applied, message = self.port.start(decision)
@@ -495,6 +504,7 @@ class DecisionLoop:
                     applied, message = False, f"提前问的回复作废（{context['ahead_check'] or '已暂停或本局结束'}），马上重问"
                 else:
                     applied, message = False, "回复已过期、任务已变化或游戏已暂停"
+                fresh = fresh or chain_goes_on
                 note = message      # what recent_decisions keeps; the player's notice below stays as written
                 if self.english and not applied:
                     # The engine_english trial (engine_english.py): the loop's own notes in English.
@@ -516,6 +526,7 @@ class DecisionLoop:
                         self.k, listed.get(result["choice"]), listed.get(first) if first else None, self.k.time))
                 self.log("ai_response", {"request_id": context["id"], **result, "applied": applied, "execution": message, "sprint_applied":sprint_applied,
                                          "fresh": fresh,
+                                         **({"chain_continue": True} if chain_goes_on else {}),
                                          **({"one_press": pressed} if pressed else {}),
                                          **({"ask_ahead": {'result': 'applied' if applied else 'discarded',
                                                            'reason': None if applied else context['ahead_check'] or 'not_fresh'}}
@@ -598,7 +609,9 @@ class DecisionLoop:
         chef = self.k.chefs["jeff"]
         context = {"id": self.calls, "sent": now, "epoch": self.epoch,
                    "job_id": chef.job.id if chef.job else None,
-                   "actions": {a.key: a for a in actions}}
+                   "actions": {a.key: a for a in actions},
+                   # The one-press chain under way when asked (the object itself), for a "continue" reply (below).
+                   "chain": self.chain}
         ahead = None
         if source is not self.k:
             ahead = {'job_id': chef.job.id, 'predicted_end_t': round(source.time, 3)}

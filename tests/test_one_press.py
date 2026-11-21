@@ -290,6 +290,44 @@ class ChainTests(unittest.TestCase):
         self.assertTrue(pressed['fallback'])
         self.assertEqual(self.done(k)[-2:], [pressed['first'], 'take b1'])
 
+    def continue_reply(self, k, chain_at_reply):
+        """A "continue" asked while the wash-from-returns chain's first step ran, answered once the chain had moved on
+        (chain_at_reply) or ended; returns the logged response."""
+        k.stations[k.returns].food = Food('D9', 'dirty_plate')
+        self.loop(k, [{'choice': f'wash from {k.returns}'}])
+        with patch('jev.time.monotonic', lambda: self.clock), patch('jev.threading.Thread', Inline):
+            self.ai.poll()                                          # asks, and the chain starts
+            while not self.ai.chain:
+                self.ai.poll()
+        chef = k.chefs['jeff']
+        context = {'id': 99, 'sent': self.clock, 'epoch': self.ai.epoch, 'job_id': chef.job.id,
+                   'actions': {a.key: a for a in k.actions('jeff')}, 'chain': self.ai.chain}
+        first_job = chef.job.id
+        while chef.job is not None and chef.job.id == first_job or (chain_at_reply and chef.job is None):
+            k.advance(.05)
+            with patch('jev.time.monotonic', lambda: self.clock), patch('jev.threading.Thread', Inline):
+                self.ai.advance_chain()
+        if not chain_at_reply:
+            self.ai.end_chain('finished')
+        before = len(self.rows('ai_request'))
+        self.ai.inflight = True
+        self.ai.q.put((context, {'choice': 'continue', 'sprint': False, 'confidence': None, 'probabilities': {},
+                                 'model': 'test-only', 'usage': {}, 'latency': 1.6}, None))
+        with patch('jev.time.monotonic', lambda: self.clock + 1.6), patch('jev.threading.Thread', Inline):
+            self.ai.poll()
+        reply = next(d for d in reversed(self.rows('ai_response')) if d['request_id'] == 99)
+        return reply, len(self.rows('ai_request')) - before
+
+    def test_a_continue_holds_while_the_same_chain_goes_on(self):
+        reply, _ = self.continue_reply(SpatialKitchen(level_config(load_config(), 'level-2')), True)
+        self.assertEqual((reply['applied'], reply['execution'], reply.get('chain_continue')), (True, '继续', True))
+        self.assertTrue(self.ai.chain)                              # the chain goes on
+
+    def test_a_continue_after_the_chain_ended_is_dropped_as_before(self):
+        reply, _ = self.continue_reply(SpatialKitchen(level_config(load_config(), 'level-2')), False)
+        self.assertFalse(reply['applied'])
+        self.assertNotIn('chain_continue', reply)
+
     def test_wash_from_returns_runs_every_step(self):
         k = SpatialKitchen(level_config(load_config(), 'level-2'))
         k.stations[k.returns].food = Food('D9', 'dirty_plate')
