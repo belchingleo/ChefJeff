@@ -39,10 +39,13 @@ def apply(payload, kitchen, actions):
         if twin is None:
             twin = links._fork(kitchen)
         try:
-            seconds = twin.travel_time(twin.chefs['jeff'], a.target)
+            # throw_to walks to its throw spot, not to the station it throws onto.
+            seconds = twin.travel_time(twin.chefs['jeff'], a.expected[1] if a.kind == one_press.THROW_TO else a.target)
         except Exception:      # no route the engine would walk: say nothing
             continue
-        if a.kind in one_press.KINDS:
+        if a.kind == one_press.THROW_TO:
+            criteria[key] += f' ({seconds:.1f} s walk)'
+        elif a.kind in one_press.KINDS:
             criteria[key] += f' ({_place(twin, a.target)}: {seconds:.1f} s walk from you)'
         else:
             criteria[key] += f' ({seconds:.1f} s walk)'

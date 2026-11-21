@@ -266,7 +266,8 @@ def _carried_out(kitchen, option, place):
     put_at = None
     if option.kind in one_press.KINDS:
         rest = one_press.steps(option, twin)
-        first = 'put' if twin.chefs['jeff'].hand is not None else one_press.find(twin, 'jeff', rest[0])
+        first = ('put' if twin.chefs['jeff'].hand is not None and option.kind in one_press.PUT_KINDS
+                 else one_press.find(twin, 'jeff', rest[0]))
         if first == 'put':
             action, _ = one_press.place(twin.actions('jeff'), place)
             if action is None:
@@ -341,7 +342,7 @@ def returns(kitchen, history, keys, put_places=()):
         if option is None or option.kind in NO_STEP or key.startswith('go ') or option.target not in seen:
             continue
         places = [None]
-        if option.kind in one_press.KINDS and held is not None:
+        if option.kind in one_press.PUT_KINDS and held is not None:
             places = [p for p in put_places if p in held_before]
         for place in places:
             done = _carried_out(kitchen, option, place)

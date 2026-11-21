@@ -284,7 +284,7 @@ class DecisionLoop:
         hands); the rest follow as each step finishes. Returns applied, message and how it started."""
         steps = one_press.steps(decision, self.k)
         fallback = False
-        if self.k.chefs['jeff'].hand is not None:
+        if self.k.chefs['jeff'].hand is not None and decision.kind in one_press.PUT_KINDS:
             first, fallback = one_press.place(self.k.actions('jeff'), put_where)
         else:
             first, steps = one_press.find(self.k, 'jeff', steps[0]), steps[1:]

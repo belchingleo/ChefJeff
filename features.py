@@ -69,6 +69,7 @@ VERSIONS = {'one_press': one_press.VERSION, 'undo_note': undo_note.VERSION,
             'go_note': go_note.VERSION,
             'clear_text': 'clear-text-v1',
             'option_notes': option_notes.VERSION,
+            'throw_to': one_press.THROW_TO_VERSION,
             # The parts of the restructured request (request_parts.py), one switch each.
             **{name: version for name, (_, version) in request_parts.SWITCHES.items()}}
 # clear_text (2026-11-19: was food_names, clear_names, engine_english and plate_names) turns those four on together;
@@ -211,7 +212,10 @@ def undo_start(features):
 def one_press_flags(features):
     """The decision loop's one-press switches (one_press.flags) for these features: all on, or None."""
     names = {name: True for name in one_press.NAMES}
-    return one_press.flags(names) if features['one_press']['on'] else None
+    on = one_press.flags(names) if features['one_press']['on'] else None
+    if on and features.get('throw_to', {}).get('on'):
+        on[one_press.THROW_TO] = True       # the throw_to trial rides on the one-press switches (one_press.py)
+    return on
 
 
 def compose_options(features):

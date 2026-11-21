@@ -121,7 +121,8 @@ def link(kitchen, who, option, now, place=None, seen=None, most=MOST):
         return []
     if option.kind in one_press.KINDS:
         rest = one_press.steps(option, twin)
-        first = 'put' if twin.chefs[who].hand is not None else one_press.find(twin, who, rest[0])
+        first = ('put' if twin.chefs[who].hand is not None and option.kind in one_press.PUT_KINDS
+                 else one_press.find(twin, who, rest[0]))
         if first != 'put':
             rest = rest[1:]
     elif option.kind == 'continue':
@@ -361,7 +362,7 @@ def table(kitchen, who, actions, keys, names=False, partner=False):
             lines = [unmark(engine_english.text(a)) for a in linked]
             # Where a one-press option leaves the held item depends on put_where, which is not known yet (the fork
             # takes the first place), so those options get no partner line.
-            guessed = option is not None and option.kind in one_press.KINDS
+            guessed = option is not None and option.kind in one_press.PUT_KINDS
             if partner and 'twin' in seen and held_item is not None and not guessed:
                 if other_now is None:
                     other_now = {(a.kind, a.target) for a in kitchen.actions('human' if who == 'jeff' else 'jeff')}

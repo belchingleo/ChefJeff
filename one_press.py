@@ -16,16 +16,22 @@ thinking, offered as one choice and carried out as the same ordinary steps, one 
 - wash from <plate return>: a dirty plate is on the plate return, the sink is empty and not burning. Jeff puts
   down what he holds where put_where says (if he holds something), takes the dirty plate, puts it in the sink
   and washes it.
+- throw to <station> (the throw_to trial, features.json, off by default; with it on the flags carry throw_to): on a
+  split floor Jeff holds an item a station on the other part would take and work on (an empty board while it still
+  needs chopping, an empty pan on a stove that cooks it), and no throw listed from where he stands lands there. He
+  walks to the nearest floor tile one of the player's eight aimed throws lands there from
+  (SpatialKitchen.throw_spots), then throws. No put first, so no put_where.
 
 Nothing here judges what he should do: the options only save presses, and each step is checked and started
 by the engine as if he had chosen it, so a step that cannot be done when it comes ends the chain. The engine
-itself is unchanged; the decision loop (jev.DecisionLoop) runs the steps. Both chefs keep the same rules.
+itself is unchanged, but for accepting the walk to a throw spot (SpatialKitchen.throw_spot_walk); the decision loop (jev.DecisionLoop) runs the steps. Both chefs keep the same rules.
 """
 from __future__ import annotations
 
 from kitchen import Action
 
 VERSION = 'one-press-v6'
+THROW_TO_VERSION = 'throw-to-v1'      # the throw_to trial (features.json)
 # v1: put then take and wash from the plate return only; v2 added put then chop and put then wash; v3 gives those two
 # the seconds of work left, as the engine's own chop and wash labels do; v4 adds put then fetch; v5 words put then take
 # of a pan or pot on a stove as the engine's own lift does (lift the pan, which stops heating off the stove), where v4
@@ -35,7 +41,10 @@ VERSION = 'one-press-v6'
 # put the empty pan only on a counter, a supply or the floor, and in the user's 2026-11-21 level-4 rounds he set it
 # down off the stoves about 3.5 times a round and never straight back.
 NAMES = ('put_then_take', 'wash_from_returns')
-KINDS = ('put_then_take', 'put_then_chop', 'put_then_wash', 'put_then_fetch', 'wash_from_returns')
+# The options that put the held item down first, where put_where says.
+PUT_KINDS = ('put_then_take', 'put_then_chop', 'put_then_wash', 'put_then_fetch', 'wash_from_returns')
+KINDS = PUT_KINDS + ('throw_to',)
+THROW_TO = 'throw_to'           # the trial's flag in the one-press switches (features.one_press_flags)
 PUT_WHERE = 'put_where'
 PUT_THEN_TAKE = 'put then take '
 # Work at a station the engine lists only with empty hands, offered after a put: kind -> (option kind, key prefix).
@@ -63,7 +72,8 @@ def flags(value):
 def condition(value):
     """The one_press condition a round's start row and research record carry; nothing when every switch is off."""
     on = flags(value)
-    return {'one_press': {**on, 'version': VERSION}} if on else {}
+    trial = {THROW_TO: True} if on and (value or {}).get(THROW_TO) else {}
+    return {'one_press': {**on, **trial, 'version': VERSION}} if on else {}
 
 
 def _empty_handed(kitchen, who):
@@ -133,6 +143,8 @@ def options(kitchen, who, actions, value):
             item = kitchen.state_label(ingredient, kitchen.rules.items[ingredient]['initial_state'])   # as the fetch label
             out.append(Action('put then ' + fetch.key, f'先把手中的{kitchen.food_name(held)}放到 put_where 选的位置，'
                               f'再到{kitchen.stations[target].name}取一份{item}', 'put_then_fetch', target))
+    if (value or {}).get(THROW_TO) and held is not None and hasattr(kitchen, 'throw_spots'):
+        out.extend(throw_to_options(kitchen, who, actions))
     if on['wash_from_returns']:
         returns = getattr(kitchen, 'returns', None)
         sink_key = getattr(kitchen, 'sink', None)
@@ -150,6 +162,8 @@ def options(kitchen, who, actions, value):
 
 def steps(action, kitchen):
     """The steps after the first put (or, with empty hands, all of them), as (kinds, target) to find among the listed actions."""
+    if action.kind == THROW_TO:
+        return [(('go',), action.expected[1]), (('throw',), action.target)]
     if action.kind == 'put_then_take':
         return [(TAKES, action.target)]
     if action.kind == 'put_then_fetch':
@@ -164,7 +178,12 @@ def steps(action, kitchen):
 def find(kitchen, who, step):
     """The listed action that does this step now, or None."""
     kinds, target = step
-    return next((a for a in kitchen.actions(who) if a.kind in kinds and a.target == target), None)
+    listed = next((a for a in kitchen.actions(who) if a.kind in kinds and a.target == target), None)
+    if listed is None and kinds == ('go',) and hasattr(kitchen, 'throw_spot_walk'):
+        # throw_to's walk to its throw spot: not listed for Jeff, accepted by the engine (throw_spot_walk).
+        walk = Action('go ' + target, f'走到{kitchen.place(target).name}', 'go', target)
+        return walk if kitchen.throw_spot_walk(who, walk) else None
+    return listed
 
 
 def place(actions, answer):
@@ -174,3 +193,35 @@ def place(actions, answer):
         return listed[answer], False
     fallback = next(iter(listed.values()), None)
     return fallback, fallback is not None
+
+
+def throw_to_options(kitchen, who, actions):
+    """The throw_to trial's options (see the module docstring): one per station, from its nearest throw spot."""
+    import food_names
+    from model_language import english_text
+    from spatial_kitchen import THROW_DIRECTIONS
+    held = kitchen.chefs[who].hand
+    hit = {a.target for a in actions if a.kind == 'throw'}
+    out = []
+    for station, spots in kitchen.throw_spots(who).items():
+        if station in hit:
+            continue
+        chef = kitchen.chefs[who]
+        timed = []
+        for tile, direction in spots:
+            try:
+                timed.append((kitchen.travel_time(chef, tile), tile, direction))
+            except Exception:       # no route the engine would walk
+                continue
+        if not timed:
+            continue
+        seconds, tile, direction = min(timed)
+        cell = kitchen.cell(tile)
+        name, floor = kitchen.stations[station].name, kitchen.place(tile).name
+        toward = THROW_DIRECTIONS[direction][1]
+        label = f'走到{floor}，向{toward}抛出手中物品（落到{name}）'
+        english = (f'Walk to floor ({cell[0]},{cell[1]}) and throw the held {food_names.plain(kitchen, held)} {direction} '
+                   f'onto {english_text(name)}')
+        out.append(Action(f'throw to {station}', label, THROW_TO, station, (held.id, tile, direction), english=english))
+    return out
+

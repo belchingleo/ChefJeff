@@ -888,6 +888,49 @@ class SpatialKitchen(Kitchen):
         landing = self.throw_landing(who,self.positions[other])
         return landing[0] if landing else None
 
+    def throw_spots(self, who):
+        """Where on its own part of a split floor this chef could stand to throw the held item, with one of the
+        player's eight aimed throws (aimed_throw), onto a station it cannot reach itself where the item is worked:
+        an empty board while the item still needs chopping, or an empty pan on a stove that cooks it (as
+        throw_station takes them). {station: [(floor tile, aim direction name), ...]}, tiles in floor order; {} off
+        a split floor, with empty hands or during a step. A player walks to such a spot and throws; the throw_to
+        trial (one_press.py) offers Jeff the same two steps, and _start accepts the walk (see throw_spot_walk)."""
+        chef = self.chefs[who]
+        hand = chef.hand
+        if (hand is None or chef.job is not None or not self.split_floor or not self.can_throw(who)
+                or not self.rules.throwable(hand)):
+            return {}
+        wanted = [k for k in self.boards if self.rules.choppable(hand)] + list(self.pots)
+        wanted = [k for k in wanted if not self.reaches(who, k) and self.station_catches(k, hand, who)]
+        if not wanted:
+            return {}
+        mine = self.floor_part.get(self.anchor(who))
+        targets = [tuple(c) for k in wanted for c in self.equipment[k].get('cells', [self.equipment[k]['cell']])]
+        reach = self.throw_range(who) + 1.0
+        saved = self.positions[who]
+        spots = {}
+        try:
+            for cell in sorted(self.floor):
+                if self.floor_part.get(cell) != mine or not any(math.dist(cell, t) <= reach for t in targets):
+                    continue
+                self.positions[who] = (float(cell[0]), float(cell[1]))
+                for name, (step, toward) in THROW_DIRECTIONS.items():
+                    action = self.aimed_throw(who, step, key='throw ' + name, toward=toward)
+                    if action is not None and action.target in wanted:
+                        spots.setdefault(action.target, []).append((tile_key(cell), name))
+        finally:
+            self.positions[who] = saved
+        return spots
+
+    def throw_spot_walk(self, who, action):
+        """Whether ``action`` is a walk to one of this chef's throw spots (throw_spots) that the engine does not list
+        for it: Jeff's floor walks are listed only for food, so the throw_to trial's first step is accepted here."""
+        if action.kind != 'go' or action.target not in self.floor_places or action.key != 'go ' + action.target:
+            return False
+        if any(a.key == action.key for a in self.actions(who)):
+            return False
+        return any(tile == action.target for spots in self.throw_spots(who).values() for tile, _ in spots)
+
     @engine_input
     def set_clock(self, speed):
         """Chefs walk in real time. The ruleset's walk speed is what a player sees (5 cells a real second, as
@@ -1271,6 +1314,15 @@ class SpatialKitchen(Kitchen):
             self.job_serial += 1
             self.chefs[who].job = Job(self.job_serial,action,self.travel_time(self.chefs[who],action.target),self.c.get('handling_seconds',.15))
             self.emit(f'{NAMES[who]}开始给队友装盘',kind='action_start',actor=who,action=action.key,action_id=self.job_serial)
+            ok, message = True, '开始'
+        elif self.throw_spot_walk(who, action):
+            # A walk to a spot a throw onto an out-of-reach station leaves from (throw_spots): a player walks there,
+            # and the throw_to trial's first step asks for it though the engine does not list it for Jeff.
+            self.stop(who)
+            self.job_serial += 1
+            self.chefs[who].job = Job(self.job_serial, action, self.travel_time(self.chefs[who], action.target), 0)
+            self.emit(f'{NAMES[who]}开始：{action.label}（路程 {self.chefs[who].job.travel:.0f}s + 操作 0.0s）',
+                      kind='action_start', actor=who, action=action.key, action_id=self.job_serial)
             ok, message = True, '开始'
         else:
             ok, message = super().start(who, action)

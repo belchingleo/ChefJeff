@@ -371,7 +371,8 @@ class SessionTests(unittest.TestCase):
                                            'option_notes': {'on': False, 'version': 'option-notes-v3'},
                                            'go_note': {'on': False, 'version': 'go-note-v1'},
                                            **{name: {'on': False, 'version': version}
-                                              for name, (_, version) in request_parts.SWITCHES.items()}})
+                                              for name, (_, version) in request_parts.SWITCHES.items()},
+                                           'throw_to': {'on': False, 'version': 'throw-to-v1'}})
         self.assertNotIn('jeff_plan', row)                 # the plan modes went 2026-11-20
 
     def test_the_file_rolls_it_back(self):
@@ -397,7 +398,7 @@ class FeaturesFileTests(unittest.TestCase):
                           'split_floor': 'trial', 'burn_note': 'trial',
                           'step_check': 'trial', 'walk_note': 'trial',
                           'clear_text': 'trial', 'option_notes': 'trial', 'go_note': 'trial',
-                          **{name: 'trial' for name in request_parts.SWITCHES}})
+                          **{name: 'trial' for name in request_parts.SWITCHES}, 'throw_to': 'trial'})
 
     def test_a_wrong_file_stops_instead_of_running(self):
         import features

@@ -263,10 +263,10 @@ def payload(state, actions, config, spatial=False):
         kitchen['map'] = {k: v for k, v in kitchen['map'].items() if k not in OMITTED_MAP_FIELDS}
     import one_press
     listed = model_candidates(state, actions, per_area) if spatial else actions
-    if any(a.kind in one_press.KINDS for a in listed) and (state['chefs']['jeff'].get('holding') is not None):
+    if any(a.kind in one_press.PUT_KINDS for a in listed) and (state['chefs']['jeff'].get('holding') is not None):
         places = {a.key: engine_english.label(a) for a in listed if a.kind in one_press.PLACES}
         if not places:     # nowhere to put the held item first: no one-press action
-            listed = [a for a in listed if a.kind not in one_press.KINDS]
+            listed = [a for a in listed if a.kind not in one_press.PUT_KINDS]
     else:
         places = {}
     questions = {"next_action": {
@@ -276,7 +276,7 @@ def payload(state, actions, config, spatial=False):
     }}
     if spatial:
         questions['sprint'] = {'type':'choice','instructions':'Request a short sprint for this accepted movement action or continuing travel?', 'criteria':{'yes':'Request sprint if moving and available','no':'Do not request sprint'}}
-    if places and any(a.kind in one_press.KINDS for a in listed):
+    if places and any(a.kind in one_press.PUT_KINDS for a in listed):
         questions[one_press.PUT_WHERE] = {
             'type': 'choice', 'criteria': places,
             'instructions': 'Only if next_action is a "put then ..." or "wash from" action: where the held item goes first. '
