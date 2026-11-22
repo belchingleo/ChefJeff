@@ -88,6 +88,16 @@ assert.equal(i.t('Kitchen timeout'),'Kitchen timeout');
                    # On a burning stove (kitchen.stove_heats): putting food or a pan there, and food thrown into its pan.
                    '将切好的牛肉放进灶台 1的平底锅，灭火后开始加热','把手中的平底锅放回灶台 1（灭火后恢复加热）',
                    'F7 落进灶台 1的平底锅，灭火后开始加热']
+        # The extinguish option whole, with what follows for the food in the pan (Kitchen.extinguish_after); the events
+        # that carry it leave that out, so they read like the first two.
+        extinguish = ['拿灭火器到灶台 1灭火（0.5s）', '拿灭火器到柜台 3灭火（0.5s）',
+                      '拿灭火器到灶台 1灭火（0.5s；随后糊菜可以装盘上菜（扣 10 元，还剩 3.0 秒），也可以端锅到垃圾桶倒掉）',
+                      '拿灭火器到灶台 1灭火（0.5s；随后糊菜可以装盘上菜（扣 30 元），也可以端锅到垃圾桶倒掉）',
+                      '拿灭火器到灶台 1灭火（0.5s；随后糊菜上菜会被拒收，只能端锅到垃圾桶倒掉（花 2 元））',
+                      '拿灭火器到灶台 1灭火（0.5s；锅里的菜没有糊，灭火后接着加热，再过 7.0 秒糊锅）',
+                      '拿灭火器到灶台 1灭火（0.5s；锅里的菜没有糊，灭火后接着加热）']
+        said = extinguish[:2]
+        corpus += extinguish + ['Jeff开始：%s（路程 1s + 操作 0.5s）' % x for x in said] + ['Jeff完成动作：' + x for x in said]
         self.run_js("const missing=corpus.filter(x=>/[\\u3400-\\u9fff]/.test(i.t(x)));assert.deepEqual(missing,[]);",corpus)
 
     def test_service_rules_copy_is_fully_translated(self):

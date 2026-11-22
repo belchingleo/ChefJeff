@@ -2,6 +2,12 @@
 
 Run an agent on fixed levels with a fixed scripted partner, many rounds each, and get a result whose every number carries its interval. The agent can be Jeff on your model, or your own agent on the environment interface ([env-v1](../docs/architecture/environment-api.md)).
 
+## v5
+
+`v5/manifest.json` freezes the same things as v4, on the same kitchen and with the same level configurations. One thing differs: from 2026-11-22 the option to put out a burning stove says what follows for the food in its pan, from the rules at that moment. Burnt food the −10 tier still accepts when the spray ends can be plated and served, with the seconds left in the tier, or emptied at a bin; burnt food past it by then is refused if served and can only be emptied at a bin (2 yuan); food a fire spread to is not burnt and cooks on once the fire is out (cooked food with the seconds until it burns); an empty pan or a stove without one gets nothing more. Jeff's task and the events that carry the option leave all of this out.
+
+v4 (`v4/manifest.json`, kept as it was frozen) retired on 2026-11-22 before anyone ran it: Jeff reads the option, and level 2's reference trace, whose events carry its label, changed with it, although the engine plays exactly as before.
+
 ## v4
 
 `v4/manifest.json` freezes the same things as v3 (the `env-v1` interface, levels 1–3, the scripted partner `assembler`, 12 rounds per level on a real clock), measured on the kitchen as it is from 2026-11-22: burnt food's burnt time runs while it stays on a stove, whether the stove is burning, put out or neither, and stops when it leaves the stove, so a pan of burnt food left on its stove goes past the −10 tier and is refused; burnt food sets its stove alight once, as it burns, and after that only a fire spreading from nearby sets the stove alight again; and a fire no longer burns the food in a pan: food still cooking when a fire reaches its stove is cooked and then waits, cooked food waits, and both cook on once the fire is out. Jeff's rules are `rules-v15` and the engine semantics `continuous-2026-11`.
@@ -65,7 +71,7 @@ Every round's journal and session bundle are kept under `--out`, and every round
 
 ## Results
 
-Put a result that `verify` accepts under `v4/results/<agent>-<model>.json`; `report` reads them all.
+Put a result that `verify` accepts under `v5/results/<agent>-<model>.json`; `report` reads them all.
 
 ---
 
@@ -74,6 +80,12 @@ Put a result that `verify` accepts under `v4/results/<agent>-<model>.json`; `rep
 # ChefJeff Benchmark
 
 让一个 agent 在固定的关卡、固定的脚本搭档下各打多局，结果里的每个数字都带置信区间。agent 可以是用你的模型的 Jeff，也可以是你自己基于环境接口（[env-v1](../docs/architecture/environment-api.md)）写的 agent。
+
+## v5
+
+`v5/manifest.json` 冻结的内容和 v4 相同，厨房一样，每关的配置也一样。只有一处不同：从 2026-11-22 起，给着火灶台灭火的选项会按当时的规则写明锅里的菜之后怎么办。喷完火时糊菜还在 −10 那一档里，选项写明可以装盘上菜、这一档还剩几秒，也可以端锅到垃圾桶倒掉；喷完火时已经超过这一档，选项写明上菜会被拒收，只能端锅到垃圾桶倒掉（花 2 元）；火是从旁边蔓延过来的，锅里的菜没有糊，选项写明灭火后接着加热（熟了的菜还写明再过几秒糊锅）；空锅或灶台上没有锅时，选项不加这些话。Jeff 当前任务和带着这个选项的事件不写这些话。
+
+v4（`v4/manifest.json`，保持冻结时的样子）在 2026-11-22 退役，退役前没有人跑过它。Jeff 会读这个选项，第二关参考轨迹里的事件带着这个选项的文字，也跟着变了，所以 v4 冻结的参考轨迹对不上了，尽管引擎的玩法和之前完全一样。
 
 ## v4
 
@@ -116,4 +128,4 @@ v2 测的内容和 v1 完全一样（关卡、搭档、局数和接口都相同�
 
 ## 结果
 
-通过 `verify` 的结果放到 `v4/results/<agent>-<模型>.json`，`report` 会把它们全部读进来。
+通过 `verify` 的结果放到 `v5/results/<agent>-<模型>.json`，`report` 会把它们全部读进来。

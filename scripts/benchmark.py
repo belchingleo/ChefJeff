@@ -49,8 +49,10 @@ def sha(path):
 # moved its stove and plates and levels 2-3 turned a counter into the rack, and a held empty pan scoops an ingredient.
 # v3 retired on 2026-11-22 when burnt food's burnt time began to run while it stays on a stove, burning or not, and a
 # fire stopped burning the food in a pan (engine semantics continuous-2026-11): every level's configuration and level
-# 2's reference trace changed.
-CURRENT = 'v4'
+# 2's reference trace changed. v4 was never run; it retired on 2026-11-22 when the extinguish option began to say what
+# follows for the food in the pan (served at the burnt tier's price with the seconds left, refused, or not burnt),
+# which changed level 2's reference trace although the engine plays exactly as before.
+CURRENT = 'v5'
 
 
 def manifest_path(version):

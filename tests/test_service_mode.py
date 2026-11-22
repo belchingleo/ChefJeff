@@ -13,6 +13,7 @@ import unittest
 import config_contract as cc
 from kitchen import Food, Kitchen
 from levels import available_levels
+from model_language import english_text
 from spatial_kitchen import SpatialKitchen
 from whitebox_server import SpatialJevClient
 
@@ -80,7 +81,7 @@ class BurntTimeTests(unittest.TestCase):
         k = self.k
         k.chefs['jeff'].hand, k.stations['extinguisher'].food = k.stations['extinguisher'].food, None
         label = next(a.label for a in k.actions('jeff') if a.key == 'extinguish p1')
-        self.assertIn('糊菜还在锅里，留在灶台上会越糊越久', label)
+        self.assertIn(f'随后糊菜可以装盘上菜（扣 10 元，还剩 {5 - self.burnt():.1f} 秒），也可以端锅到垃圾桶倒掉', label)
         self.do('jeff', 'extinguish p1')
         self.assertFalse(self.stove.fire)
 
@@ -142,6 +143,129 @@ class BurntTimeTests(unittest.TestCase):
         self.do('human', 'put pot p1');k.advance(2)
         self.assertAlmostEqual(self.burnt(), 33.5, places=2)  # back on a stove its burnt time runs again
         self.assertFalse(self.stove.fire);self.assertEqual((k.burns, k.fires), (1, 1))
+
+
+class ExtinguishLabelTests(unittest.TestCase):
+    """What the extinguish option of a burning stove says follows for the food in its pan, from the rules at listing
+    time (the burnt_service tiers, the discard cost, the heat thresholds); the language catalog gives Jeff the same."""
+
+    def kitchen(self, **edits):
+        k = Kitchen(level(1, **edits))
+        k.chefs['jeff'].hand, k.stations['extinguisher'].food = k.stations['extinguisher'].food, None
+        return k
+
+    def label(self, k):
+        label = next(a.label for a in k.actions('jeff') if a.key == 'extinguish p1')
+        self.assertNotRegex(english_text(label), r'[　-〿㐀-鿿＀-￯]')
+        return label
+
+    def burnt_for(self, k, seconds):
+        """Beef that burns in Stove 1's pan, setting the stove alight, and stays there `seconds` more."""
+        s = k.stations['p1']
+        s.food = Food('B', 'ready', 6, k.rules.heat_thresholds('beef')[1] - .5, ingredient='beef')
+        k.heat_stove(s);k.advance(.5 + seconds)
+        self.assertEqual((s.food.stage, s.fire), ('burnt', True))
+
+    def do(self, k, who, key):
+        ok, reason = k.command(who, key)
+        self.assertTrue(ok, (key, reason))
+        job = k.chefs[who].job
+        k.advance(job.travel + job.work + 1e-6)
+
+    def test_burnt_food_still_accepted_can_be_served_with_the_seconds_left_or_emptied(self):
+        k = self.kitchen();self.burnt_for(k, 2)
+        label = self.label(k)
+        self.assertEqual(label, '拿灭火器到灶台 1灭火（0.5s；随后糊菜可以装盘上菜（扣 10 元，还剩 3.0 秒），也可以端锅到垃圾桶倒掉）')
+        self.assertEqual(english_text(label), 'Use the extinguisher at Stove 1 (0.5s; then the burnt food can be plated and '
+                                              'served (10 yuan off, 3.0 s left), or the pan carried to a bin and emptied)')
+        k.advance(1)  # the burnt time runs on while the pan is on the stove
+        self.assertIn('还剩 2.0 秒', self.label(k))
+
+    def cooking_on_fire(self, k):
+        """Beef still cooking in Stove 1's pan when a fire spreads to the stove."""
+        s = k.stations['p1']
+        s.food = Food('B', 'cooking', 6, 1, ingredient='beef')
+        k.heat_stove(s);k.ignite('p1')
+
+    def test_the_task_and_the_events_leave_out_what_follows(self):
+        """What follows is true when the option is listed; the task and the events that carry the label outlast it."""
+        for setup in (lambda k: self.burnt_for(k, 2), lambda k: self.burnt_for(k, 5.5), self.cooking_on_fire,
+                      lambda k: k.ignite('p1')):
+            k = self.kitchen();setup(k)
+            self.assertTrue(self.label(k).startswith('拿灭火器到灶台 1灭火（0.5s'))
+            n = len(k.events)
+            self.assertTrue(k.command('jeff', 'extinguish p1')[0])
+            self.assertEqual(k.snapshot()['chefs']['jeff']['task'], '拿灭火器到灶台 1灭火（0.5s）')
+            job = k.chefs['jeff'].job;k.advance(job.travel + job.work + 1e-6)
+            events = [e['message'] for e in k.events[n:] if e['kind'] in ('action_start', 'action_done')]
+            self.assertEqual(events, ['Jeff开始：拿灭火器到灶台 1灭火（0.5s）（路程 0s + 操作 0.5s）', 'Jeff完成动作：拿灭火器到灶台 1灭火（0.5s）'])
+            self.assertEqual(english_text(events[-1]), 'jeff completed: Use the extinguisher at Stove 1 (0.5s)')
+
+    def test_the_tier_is_the_one_when_the_spray_ends(self):
+        """Burnt 4.6 s with 0.5 s of spraying left: accepted now, refused by the time the fire is out."""
+        k = self.kitchen();self.burnt_for(k, 4.6)
+        self.assertEqual(self.label(k), '拿灭火器到灶台 1灭火（0.5s；随后糊菜上菜会被拒收，只能端锅到垃圾桶倒掉（花 2 元））')
+        self.do(k, 'jeff', 'extinguish p1')
+        s = k.stations['p1']
+        self.assertFalse(s.fire)
+        self.assertEqual(k.rules.burnt_tier(k.rules.overcook(s.food, ('beef',)))['outcome'], 'rejected')
+        # Half the spray done: 0.25 s left, so burnt 4.6 s still ends the spray inside the tier.
+        k = self.kitchen();self.burnt_for(k, 4.6);k.stations['p1'].fire_strength = .5
+        self.assertIn('随后糊菜可以装盘上菜（扣 10 元，还剩 0.4 秒）', self.label(k))
+
+    def test_burnt_food_already_refused_can_only_be_emptied_at_the_discard_cost(self):
+        k = self.kitchen();self.burnt_for(k, 5.5)
+        label = self.label(k)
+        self.assertEqual(label, '拿灭火器到灶台 1灭火（0.5s；随后糊菜上菜会被拒收，只能端锅到垃圾桶倒掉（花 2 元））')
+        self.assertEqual(english_text(label), 'Use the extinguisher at Stove 1 (0.5s; then the burnt food would be refused if '
+                                              'served, so the pan can only be carried to a bin and emptied (costs 2 yuan))')
+
+    def test_the_numbers_are_the_rules(self):
+        def rules(tiers):
+            def edit(ruleset):
+                ruleset['burnt_service'] = tiers
+                ruleset['penalties']['discard'] = -4
+            return edit
+        tiers = [{'max_overcook_game_ms': 3000, 'outcome': 'accepted', 'adjustment': -15},
+                 {'max_overcook_game_ms': None, 'outcome': 'rejected', 'adjustment': 0}]
+        k = self.kitchen(ruleset=rules(tiers));self.burnt_for(k, 1)
+        self.assertIn('随后糊菜可以装盘上菜（扣 15 元，还剩 2.0 秒），也可以端锅到垃圾桶倒掉', self.label(k))
+        k.advance(2.5)
+        self.assertIn('随后糊菜上菜会被拒收，只能端锅到垃圾桶倒掉（花 4 元）', self.label(k))
+        # A last tier that accepts has no seconds left to give.
+        k = self.kitchen(ruleset=rules(tiers[:1] + [{**tiers[0], 'max_overcook_game_ms': None, 'adjustment': -30}]))
+        self.burnt_for(k, 4)
+        label = self.label(k)
+        self.assertIn('随后糊菜可以装盘上菜（扣 30 元），也可以端锅到垃圾桶倒掉', label)
+        self.assertIn('then the burnt food can be plated and served (30 yuan off), or the pan carried', english_text(label))
+
+    def test_food_a_fire_spread_to_is_not_burnt_and_cooks_on_once_the_fire_is_out(self):
+        k = self.kitchen();s = k.stations['p1']
+        ready, burn, _ = k.rules.heat_thresholds('beef')
+        s.food = Food('B', 'ready', 6, ready + 1, ingredient='beef');k.heat_stove(s);k.ignite('p1')
+        label = self.label(k)
+        self.assertEqual(label, f'拿灭火器到灶台 1灭火（0.5s；锅里的菜没有糊，灭火后接着加热，再过 {burn - ready - 1:.1f} 秒糊锅）')
+        self.assertEqual(english_text(label), 'Use the extinguisher at Stove 1 (0.5s; the food in the pan is not burnt and '
+                                              f'cooks on once the fire is out, burning {burn - ready - 1:.1f} s later)')
+        k.advance(3);self.assertIn(f'再过 {burn - ready - 1:.1f} 秒糊锅', self.label(k))  # it waits while the fire burns
+        self.do(k, 'jeff', 'extinguish p1')
+        k.advance(burn - ready - 1 - .05);self.assertEqual(s.food.stage, 'ready')
+        k.advance(.1);self.assertEqual(s.food.stage, 'burnt')
+        # Food still cooking: no seconds, it may cook on while the fire burns.
+        k = self.kitchen();s = k.stations['p1']
+        s.food = Food('B', 'cooking', 6, 1, ingredient='beef');k.heat_stove(s);k.ignite('p1')
+        label = self.label(k)
+        self.assertEqual(label, '拿灭火器到灶台 1灭火（0.5s；锅里的菜没有糊，灭火后接着加热）')
+        self.assertEqual(english_text(label), 'Use the extinguisher at Stove 1 (0.5s; the food in the pan is not burnt and '
+                                              'cooks on once the fire is out)')
+
+    def test_an_empty_pan_or_no_pan_has_no_follow_up(self):
+        k = self.kitchen();k.ignite('p1')
+        self.assertEqual(english_text(self.label(k)), 'Use the extinguisher at Stove 1 (0.5s)')
+        self.assertEqual(self.label(k), '拿灭火器到灶台 1灭火（0.5s）')
+        k = self.kitchen();self.do(k, 'human', 'take pot p1');k.ignite('p1')
+        self.assertIsNone(k.stations['p1'].pot_id)
+        self.assertEqual(self.label(k), '拿灭火器到灶台 1灭火（0.5s）')
 
 
 class ServeTests(unittest.TestCase):

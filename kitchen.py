@@ -543,9 +543,7 @@ class Kitchen:
             if s.lock not in (None, who):
                 continue
             if s.fire and a.hand and a.hand.stage == 'extinguisher':
-                # A fire burns no food; burnt food in the pan stays there and its burnt time runs on while it is on the stove.
-                after = '；糊菜还在锅里，留在灶台上会越糊越久' if s.food and s.food.stage == 'burnt' else ''
-                add(f"extinguish {key}", f"拿灭火器到{s.name}灭火（{round(s.fire_strength*self.rules.extinguish,1):g}s{after}）", "extinguish", key)
+                add(f"extinguish {key}", self.extinguish_label(s), "extinguish", key)
             if not s.pot_id:
                 if a.hand and a.hand.stage == 'pot':
                     # On a burning stove food that is not burnt waits until the fire is out (stove_heats).
@@ -581,7 +579,7 @@ class Kitchen:
         for key in self.boards + self.counters:
             s = self.stations[key]
             if s.fire and s.lock in (None, who) and a.hand and a.hand.stage == 'extinguisher':
-                add(f'extinguish {key}', f'拿灭火器到{s.name}灭火（{round(s.fire_strength*self.rules.extinguish,1):g}s）', 'extinguish', key)
+                add(f'extinguish {key}', self.extinguish_label(s), 'extinguish', key)
         return out
 
     def vessel_name(self, vessel_id):
@@ -705,6 +703,40 @@ class Kitchen:
         return bool(station.pot_id and station.food is not None
                     and (not station.fire or station.food.stage == 'burnt'))
 
+    def extinguish_label(self, station, follows=True):
+        """Putting out this burning station with the extinguisher, with the seconds of spraying left. With follows, a
+        stove's option also says what follows for the food in its pan (extinguish_after); a chef's task and the events
+        that carry the label leave that out (start), since it is true when the option is listed and goes stale after."""
+        after = self.extinguish_after(station) if follows else ''
+        return f"拿灭火器到{station.name}灭火（{round(station.fire_strength*self.rules.extinguish,1):g}s{'；' + after if after else ''}）"
+
+    def extinguish_after(self, station):
+        """What follows for the food in this burning stove's pan once the fire is out, as its extinguish label says it
+        at listing time, from the rules ('' for an empty pan or no pan); the language catalog gives Jeff the same in
+        English.
+
+        Burnt food stays in the pan, and its burnt time runs on while it is on the stove (stove_heats). The tier is
+        the one it is in when the spray left on the fire ends. While the burnt-food scoring still accepts it then, it
+        can be plated and served at that tier's price change, the label giving the seconds left in the tier at listing
+        time, or emptied at a bin; once refused, it can only be emptied at a bin, at the discard cost. Food that is not
+        burnt (a fire spread to its stove) cooks on from where it was once the fire is out (ignite); for cooked food
+        the label gives the heating left before it burns."""
+        food = station.food
+        if not station.pot_id or food is None:
+            return ''
+        if food.stage == 'burnt':
+            overcook = self.rules.overcook(food, food.components or (food.ingredient,))
+            tier = self.rules.burnt_tier(overcook + station.fire_strength*self.rules.extinguish)
+            if tier['outcome'] == 'rejected':
+                return f"随后糊菜上菜会被拒收，只能端锅到垃圾桶倒掉（花 {-self.rules.penalty['discard']} 元）"
+            limit = tier['max_overcook_game_ms']
+            left = '' if limit is None else f'，还剩 {max(0., limit/1000 - overcook):.1f} 秒'
+            return f"随后糊菜可以装盘上菜（扣 {-tier['adjustment']} 元{left}），也可以端锅到垃圾桶倒掉"
+        after = '锅里的菜没有糊，灭火后接着加热'
+        if food.stage == 'ready' and food.ingredient in self.rules.heat:
+            after += f'，再过 {max(0., self.rules.heat_thresholds(food.ingredient)[1] - food.heated):.1f} 秒糊锅'
+        return after
+
     def can_load_pot(self,hand,pot):
         return bool(hand and pot and pot.stage=='pot' and pot.contents is None
                     and self.rules.potable(hand, self.rules.vessels.get(pot.id)))
@@ -807,6 +839,8 @@ class Kitchen:
         if current.english and not action.english:
             # An action replayed from its record carries no English; the engine's own listing does.
             action = replace(action, english=current.english)
+        if action.kind == 'extinguish':
+            action = replace(action, label=self.extinguish_label(s, follows=False))
         self.job_serial += 1
         a.job = Job(self.job_serial, action, self.travel_time(a, action.target, action.kind), work)
         english = action.english and engine_english.started(who, action.english, a.job.travel, work)

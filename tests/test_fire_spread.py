@@ -253,7 +253,8 @@ class FireSpreadTests(unittest.TestCase):
         self.assertNotRegex(text,r'[\u3400-\u9fff]')
         self.assertIn('5 workstations burning at once lose the round',text)
         self.assertIn('A fire never burns food',text)
-        self.assertIn('the burnt food is still in the pan, and its burnt time keeps counting while it stays on the stove',text)
+        self.assertIn('then the burnt food can be plated and served (10 yuan off, 5.0 s left), or the pan carried to a bin '
+                      'and emptied',text)
         self.assertIn('fire_heat',text)
 
 if __name__=='__main__':unittest.main()

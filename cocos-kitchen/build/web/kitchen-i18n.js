@@ -1396,6 +1396,30 @@
       "Take the extinguisher to {0} and extinguish the fire (4s)."
     ],
     [
+      "拿灭火器到{0}灭火（{1}s）",
+      "Use the extinguisher at {0} ({1}s)"
+    ],
+    [
+      "拿灭火器到{0}灭火（{1}s；随后糊菜可以装盘上菜（扣 {2} 元，还剩 {3} 秒），也可以端锅到垃圾桶倒掉）",
+      "Use the extinguisher at {0} ({1}s; then the burnt food can be plated and served ({2} yuan off, {3} s left), or the pan carried to a bin and emptied)"
+    ],
+    [
+      "拿灭火器到{0}灭火（{1}s；随后糊菜可以装盘上菜（扣 {2} 元），也可以端锅到垃圾桶倒掉）",
+      "Use the extinguisher at {0} ({1}s; then the burnt food can be plated and served ({2} yuan off), or the pan carried to a bin and emptied)"
+    ],
+    [
+      "拿灭火器到{0}灭火（{1}s；随后糊菜上菜会被拒收，只能端锅到垃圾桶倒掉（花 {2} 元））",
+      "Use the extinguisher at {0} ({1}s; then the burnt food would be refused if served, so the pan can only be carried to a bin and emptied (costs {2} yuan))"
+    ],
+    [
+      "拿灭火器到{0}灭火（{1}s；锅里的菜没有糊，灭火后接着加热，再过 {2} 秒糊锅）",
+      "Use the extinguisher at {0} ({1}s; the food in the pan is not burnt and cooks on once the fire is out, burning {2} s later)"
+    ],
+    [
+      "拿灭火器到{0}灭火（{1}s；锅里的菜没有糊，灭火后接着加热）",
+      "Use the extinguisher at {0} ({1}s; the food in the pan is not burnt and cooks on once the fire is out)"
+    ],
+    [
       "着火工位 {0}/{1}",
       "Burning stations {0}/{1}"
     ],
