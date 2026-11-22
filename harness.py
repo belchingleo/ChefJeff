@@ -294,9 +294,7 @@ def payload(state, actions, config, spatial=False):
         questions['sprint'] = {'type':'choice','instructions':'Request a short sprint for this accepted movement action or continuing travel?', 'criteria':{'yes':'Request sprint if moving and available','no':'Do not request sprint'}}
     if places and any(a.kind in one_press.PUT_KINDS for a in listed):
         questions[one_press.PUT_WHERE] = {
-            'type': 'choice', 'criteria': places,
-            'instructions': 'Only if next_action is a "put then ..." or "wash from" action: where the held item goes first. '
-                            'Otherwise it is not used.'}
+            'type': 'choice', 'criteria': places, 'instructions': one_press.PUT_WHERE_INSTRUCTIONS}
     return english_data({"model": config["model"],
                          "state": {"kitchen": kitchen, "rules": rules(state, spatial, per_area)},
                          "questions": questions})

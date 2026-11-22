@@ -171,6 +171,30 @@ assert.equal(i.t('Kitchen timeout'),'Kitchen timeout');
                     "accepted at -10 yuan)');", [pickup])
         self.assertEqual(english_text(pickup), 'Pick up P1 (Pot; auto-swap) at Counter 3 (it holds burnt food: accepted '
                                                'at -10 yuan)')
+        # empty <station> (one_press, v8) with empty hands: the page shows it in the notice of Jeff's choice, without the
+        # tier (Kitchen.plain_action); the model catalog gives Jeff the whole label, tier included.
+        empties = {'端起灶台 1的平底锅': 'Lift the Frying pan from Stove 1', '从柜台 16拿起平底锅': 'Take the Frying pan from Counter 16',
+                   '去地面(9,2)捡起平底锅': 'Pick up the Frying pan at floor (9,2)'}
+        corpus = [f'{taking}，到最近的垃圾桶倒掉锅里的糊菜（损耗2元，保留空平底锅）' for taking in empties]
+        want = [f'{taking} and empty its burnt food at the nearest bin (¥2 cost; keep the empty Frying pan)'
+                for taking in empties.values()]
+        self.run_js("const want=" + json.dumps(want, ensure_ascii=False) + ";assert.deepEqual(corpus.map(x=>i.t(x)),want);",
+                    corpus)
+        self.assertEqual(english_text(corpus[0] + '（锅里是糊菜：端起时已糊太久，上菜会被拒收）'),
+                         'Lift the frying pan from Stove 1 and empty its burnt food at the nearest bin (2 yuan cost; keep the '
+                         'empty frying pan) (it holds burnt food: refused, burnt too long by the time it is lifted)')
+        for chinese, page in zip(corpus[1:], want[1:]):
+            self.assertEqual(english_text(chinese + '（锅里是糊菜：还能上菜，扣 10 元）'),
+                             page.replace('Frying pan', 'frying pan').replace('¥2', '2 yuan')
+                             + ' (it holds burnt food: accepted at -10 yuan)')
+        # Put first: the model catalog reads each whole, not as the shorter put then take it begins like.
+        for taking, english in (('端起灶台 1的平底锅', 'lift the frying pan from Stove 1'),
+                                ('从柜台 16拿起平底锅', 'take the frying pan from Counter 16'),
+                                ('去地面(9,2)捡起平底锅', 'pick up the frying pan at floor (9,2)')):
+            self.assertEqual(english_text(f'先把手中的面包放到 put_where 选的位置，再{taking}，到最近的垃圾桶倒掉锅里的糊菜'
+                                          '（损耗2元，保留空平底锅）（锅里是糊菜：还能上菜，扣 10 元）'),
+                             f'Put the held Bread where put_where says, then {english} and empty its burnt food at the '
+                             'nearest bin (2 yuan cost; keep the empty frying pan) (it holds burnt food: accepted at -10 yuan)')
 
     def test_service_rules_copy_is_fully_translated(self):
         import config_contract as cc

@@ -478,6 +478,30 @@
       "Put the held {0} where put_where says, then fetch {2} from {1}"
     ],
     [
+      "先把手中的{0}放到 put_where 选的位置，再端起{1}的{2}，到最近的垃圾桶倒掉锅里的糊菜（{3}）",
+      "Put the held {0} where put_where says, then lift the {2} from {1} and empty its burnt food at the nearest bin ({3})"
+    ],
+    [
+      "端起{0}的{1}，到最近的垃圾桶倒掉锅里的糊菜（{2}）",
+      "Lift the {1} from {0} and empty its burnt food at the nearest bin ({2})"
+    ],
+    [
+      "先把手中的{0}放到 put_where 选的位置，再从{1}拿起{2}，到最近的垃圾桶倒掉锅里的糊菜（{3}）",
+      "Put the held {0} where put_where says, then take the {2} from {1} and empty its burnt food at the nearest bin ({3})"
+    ],
+    [
+      "从{0}拿起{1}，到最近的垃圾桶倒掉锅里的糊菜（{2}）",
+      "Take the {1} from {0} and empty its burnt food at the nearest bin ({2})"
+    ],
+    [
+      "先把手中的{0}放到 put_where 选的位置，再去{1}捡起{2}，到最近的垃圾桶倒掉锅里的糊菜（{3}）",
+      "Put the held {0} where put_where says, then pick up the {2} at {1} and empty its burnt food at the nearest bin ({3})"
+    ],
+    [
+      "去{0}捡起{1}，到最近的垃圾桶倒掉锅里的糊菜（{2}）",
+      "Pick up the {1} at {0} and empty its burnt food at the nearest bin ({2})"
+    ],
+    [
       "先把手中的{0}放到 put_where 选的位置，再从{1}拿起{2}",
       "Put the held {0} where put_where says, then take {2} from {1}"
     ],

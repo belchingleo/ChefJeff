@@ -384,7 +384,7 @@ def outcomes(rows, m):
 # One-press option keys (one_press.py) by their kind, and the switches that offer them.
 ONE_PRESS_KEYS = (('put_then_take', 'put then take '), ('put_then_chop', 'put then chop '), ('put_then_wash', 'put then wash '),
                   ('put_then_fetch', 'put then fetch '),
-                  ('wash_from_returns', 'wash from '))
+                  ('wash_from_returns', 'wash from '), ('empty_burnt', 'empty '))
 ONE_PRESS_SWITCHES = ('put_then_take', 'wash_from_returns')
 ONE_PRESS_SUFFIX = ' [one-press]'
 INTENT_SUFFIX = ' [intent]'     # a round with the intent_layer switch on: one decision is one intent, not one step

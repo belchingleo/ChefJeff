@@ -307,7 +307,7 @@ WASH_KINDS = ('take_return', 'put_sink', 'take_sink', 'wash', 'put_then_wash', '
 # always comes. v2: the vessels rule always comes: it also says why an option is missing (an ingredient goes only into
 # the vessel that cooks it, in the state it is cooked from), and v1 left it out exactly while Jeff held raw beef.
 RULE_KINDS = {
-    'tableware': POT_KINDS + WASH_KINDS + ('take_plate', 'plate_from_counter', 'discard'),
+    'tableware': POT_KINDS + WASH_KINDS + ('take_plate', 'plate_from_counter', 'discard', 'empty_burnt'),
     'plate_reuse': WASH_KINDS,
     'resources': ('put_counter', 'put_board', 'take_tool', 'pickup', 'take_counter', 'take_board'),
     'ground': ('drop', 'pickup', 'assemble_ground', 'load_ground', 'plate_ground', 'swap_ground_pot'),
@@ -318,18 +318,20 @@ RULE_KINDS = {
     'pot_swap': ('swap_pot', 'swap_ground_pot'),
     'off_stove_pots': ('load_counter', 'load_ground'),
     'assembly': ('assemble', 'merge_plates', 'assemble_ground', 'plate_partner'),
-    'one_press': ('put_then_take', 'put_then_chop', 'put_then_wash', 'put_then_fetch', 'wash_from_returns'),
+    'one_press': ('put_then_take', 'put_then_chop', 'put_then_wash', 'put_then_fetch', 'wash_from_returns', 'empty_burnt'),
 }
 
 
 def listed_kinds(payload, kitchen):
     """The engine kinds of the options next_action lists; a one-press option is not in the engine's list, so its key
-    names it ("put then take ...", "wash from ...")."""
+    names it ("put then take ...", "wash from ...", "empty ...")."""
     criteria = payload['questions']['next_action']['criteria']
     kinds = {a.kind for a in kitchen.actions('jeff') if a.key in criteria} if kitchen is not None else set()
     for key in criteria:
         if key.startswith('wash from '):
             kinds.add('wash_from_returns')
+        elif key.startswith('empty '):
+            kinds.add('empty_burnt')
         elif key.startswith('put then '):
             kinds.add('put_then_' + key.split()[2])
     return kinds

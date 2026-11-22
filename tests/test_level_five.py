@@ -13,7 +13,7 @@ import reference_policy
 import research_replay
 import step_check
 from jev import compose_payload
-from kitchen import load_config
+from kitchen import Food, load_config
 from level_calibration import drive
 from research_record import validate_record
 from spatial_kitchen import SpatialKitchen
@@ -60,6 +60,24 @@ class LevelTests(unittest.TestCase):
                 self.assertTrue(k.reaches('human', station) and not k.reaches('jeff', station), (level, station))
         self.assertEqual(step_check.chopper(kitchen(4)), 'human')
         self.assertEqual(step_check.chopper(kitchen(5)), 'jeff')
+
+    def test_the_chef_on_the_boards_side_discards_at_its_own_bin(self):
+        # bin2, the map's second bin, is the only one on the boards side: the player there on level 4 and Jeff there on
+        # level 5 discard held food and empty a held pan at it (once neither had any discard listed: the second bin's
+        # was built only when the first bin's was in the chef's reach).
+        for level, who in ((4, 'human'), (5, 'jeff')):
+            for held, kind in ((lambda: Food('F1', 'raw', ingredient='beef'), 'discard'),
+                               (lambda: Food('P9', 'pot', contents=Food('F2', 'burnt', ingredient='beef', heated=99.)),
+                                'empty_pot')):
+                k = kitchen(level)
+                k.chefs[who].hand = held()
+                bins = [(a.key, a.kind) for a in k.actions(who) if a.kind in ('discard', 'empty_pot')]
+                self.assertEqual(bins, [('discard bin2', kind)], (level, who))
+                money = k.money
+                do(k, who, 'discard bin2')
+                hand = k.chefs[who].hand
+                self.assertEqual(hand.contents if kind == 'empty_pot' else hand, None, (level, who))
+                self.assertEqual(k.money - money, k.rules.penalty['discard'])
 
     def test_one_chef_alone_serves_nothing_on_the_configured_round(self):
         for who in ('human', 'jeff'):

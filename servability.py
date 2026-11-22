@@ -39,9 +39,10 @@ waiting for it, Kitchen.waiting_order):
 The player reads the same labels in Chinese. The links table and own_chain take their lines from the engine's labels
 in their forks, so after lifting a pan the line "Fill the plate on Counter 1 from your frying pan" says the dish is
 refused when, by the time the lift ends, it would be. These labels belong to the modules that write them (kitchen,
-one_press, whose one-press-v7 gives the tier, and the request's food_names and clear_names wording around them); what
-they say of the tier is this module's version, state.servability_version. With the option_notes trial on,
-serve-note-v3 names no order for a dish the engine refuses.
+one_press, whose one-press-v7 gives the tier and whose v8 empty option gives it as the engine's take of the same pan
+does, and the request's food_names and clear_names wording around them); what they say of the tier is this module's
+version, state.servability_version. With the option_notes trial on, serve-note-v3 names no order for a dish the engine
+refuses.
 
 A chef's task, the events that carry such a label and the player's notice of Jeff's choice leave the tier out
 (Kitchen.plain_action): it is true when the option is listed, and its seconds go stale after. Nothing here is per

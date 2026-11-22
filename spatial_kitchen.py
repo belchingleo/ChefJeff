@@ -1001,14 +1001,17 @@ class SpatialKitchen(Kitchen):
                                         and self.nav.clear_walk_line(self.positions[who],self.positions[other]))))
 
     def actions(self, who):
-        actions = [a for a in super().actions(who) if a.kind != 'drop' and self.reaches_action(who, a)]
+        base = super().actions(who)
+        actions = [a for a in base if a.kind != 'drop' and self.reaches_action(who, a)]
         actions = [a for a in actions if not (a.kind in ('put_board','put_counter','put_pot') and self.board_reserved(a.target))]
         actions = [a for a in actions if not (a.kind in ('chop','wash')
                    and self.shared_access(who,a.target)==[])]
         if self.ended:
             return actions
         chef = self.chefs[who]
-        discard = next((a for a in actions if a.key=='discard'),None)
+        # The other bins' discards are built from the first bin's before the reach filter: a chef whose part of a split
+        # floor has only a later bin (the player on level 4, Jeff on level 5) discards there; each is filtered below.
+        discard = next((a for a in base if a.key=='discard'),None)
         for extra in (self.bins[1:] if discard else []):
             actions.append(Action('discard '+extra,discard.label.replace(self.stations[self.bins[0]].name,self.stations[extra].name),discard.kind,extra,self.signature(who,extra)))
         if any(self.manual[who]) and not chef.job:

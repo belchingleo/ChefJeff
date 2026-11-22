@@ -35,7 +35,7 @@ from scripts import reask  # noqa: E402
 
 ARMS = ('as_logged', 'plain_drop')
 NOTES = (' (recoverable, no charge)', '（可捡回、不扣钱）', '（可捡回，不扣钱）')
-ONE_PRESS_PREFIXES = ('put then ', 'wash from ')
+ONE_PRESS_PREFIXES = ('put then ', 'wash from ', 'empty ')
 
 
 def moments(paths, since=None, until=None, model_prefix='jev'):

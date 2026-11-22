@@ -11,8 +11,9 @@ import model_output
 import one_press
 import request_parts
 from jev import DecisionLoop, NO_MEMORY, compose_payload
-from kitchen import Food, load_config
+from kitchen import Food, Kitchen, load_config
 from levels import level_config
+from model_language import english_text
 from spatial_kitchen import SpatialKitchen
 from loop_helpers import Inline, Reply
 from test_web import FakeJournal
@@ -39,6 +40,16 @@ def bread_and_lettuce():
     start(k, 'human', 'fetch lettuce')
     start(k, 'human', 'put b1')
     return k
+
+
+def burnt_pan(k, stove='p1', over=1.0):
+    """The pan on this stove holds beef burnt `over` seconds ago, and the stove is not burning (as after its fire is
+    put out): its burnt time runs on (Kitchen.stove_heats)."""
+    _, burn, _ = k.rules.heat_thresholds('beef')
+    s = k.stations[stove]
+    s.food = Food('F90', 'burnt', ingredient='beef', heated=burn + over)
+    k.heat_stove(s)
+    return s
 
 
 class Answering(SpatialJevClient):
@@ -97,7 +108,7 @@ class OptionTests(unittest.TestCase):
     def test_a_held_pan_can_go_back_on_a_free_stove_first(self):
         # v6: the engine's "put pot <stove>" is a put place, so "put then take" can return an empty pan to its stove;
         # before it the pan could only go to a counter, a supply or the floor.
-        self.assertEqual(one_press.VERSION, 'one-press-v7')
+        self.assertEqual(one_press.VERSION, 'one-press-v8')
         k = SpatialKitchen(level_config(load_config(), 'level-2'))
         start(k, 'jeff', 'take pot p1')
         acts = k.actions('jeff')
@@ -232,6 +243,154 @@ class OptionTests(unittest.TestCase):
         self.assertTrue(sent[0]['messages'][0]['content'].endswith(harness.PUT_WHERE_CHAT_RULE))
 
 
+class EmptyOptionTests(unittest.TestCase):
+    """empty <station> (v8): a pan of burnt food on a stove, a counter or the floor is taken, carried to the nearest bin
+    and emptied there, after a put when Jeff holds something."""
+
+    def empties(self, k, who='jeff'):
+        return [o for o in one_press.options(k, who, k.actions(who), BOTH) if o.kind == one_press.EMPTY]
+
+    def test_offered_with_empty_hands_with_the_tier_as_the_lift_leaves_it_and_the_cost(self):
+        k = SpatialKitchen(level_config(load_config(), 'level-2'))
+        burnt_pan(k)
+        loss = -k.rules.penalty['discard']
+        [empty] = self.empties(k)
+        self.assertEqual((empty.key, empty.target), ('empty p1', 'p1'))
+        # The tier as the engine's own lift label gives it: serving needs the lift, and the burnt time runs until it ends.
+        self.assertEqual(empty.label, f'端起灶台 1的平底锅，到最近的垃圾桶倒掉锅里的糊菜（损耗{loss}元，保留空平底锅）'
+                                      '（锅里是糊菜：2.2 秒内开始这一步，端起后还能上菜，扣 10 元）')
+        lift = next(a for a in k.actions('jeff') if a.key == 'take pot p1')
+        self.assertTrue(lift.label.endswith('（锅里是糊菜：2.2 秒内开始这一步，端起后还能上菜，扣 10 元）'))
+        self.assertEqual(one_press.steps(empty, k), [(('lift_pot',), 'p1', one_press.BURNT),
+                                                     (('empty_pot',), one_press.NEAREST_BIN, one_press.BURNT)])
+        # The player's notice of Jeff's choice drops the tier, as for the engine's own labels (Kitchen.plain_action).
+        self.assertEqual(Kitchen.plain_action(empty).label, f'端起灶台 1的平底锅，到最近的垃圾桶倒掉锅里的糊菜（损耗{loss}元，保留空平底锅）')
+        payload = compose_payload(SpatialJevClient(k.c, key='x'), k, k.snapshot(), k.actions('jeff'), [], None, NO_MEMORY, BOTH)
+        self.assertEqual(payload['questions']['next_action']['criteria']['empty p1'],
+                         f'Lift the frying pan from Stove 1 and empty its burnt food at the nearest bin ({loss} yuan cost; '
+                         'keep the empty frying pan) (it holds burnt food: accepted at -10 yuan if this starts within 2.2 s)')
+        self.assertNotIn('put_where', payload['questions'])                     # nothing in hand, nothing put first
+        self.assertIn('"empty <station>"', payload['state']['rules']['one_press'])
+        # rules_by_action keeps the one_press and tableware rules while it is listed
+        self.assertIn(one_press.EMPTY, request_parts.listed_kinds(payload, k))
+        self.assertTrue(all(one_press.EMPTY in request_parts.RULE_KINDS[rule] for rule in ('one_press', 'tableware')))
+        # Accepted as it is now, refused by the time the lift ends: the label says refused, as the lift's does.
+        burnt_pan(k, over=4.)
+        self.assertEqual(k.burnt_service(k.stations['p1'].food, k.heat_rate('p1'))['outcome'], 'accepted')
+        self.assertTrue(self.empties(k)[0].label.endswith('（锅里是糊菜：端起时已糊太久，上菜会被拒收）'))
+        self.assertTrue(english_text(self.empties(k)[0].label).endswith(
+            ' (it holds burnt food: refused, burnt too long by the time it is lifted)'))
+
+    def test_not_offered_on_a_burning_stove_for_an_empty_pan_or_food_not_burnt(self):
+        k = SpatialKitchen(level_config(load_config(), 'level-2'))
+        self.assertEqual(self.empties(k), [])                                    # an empty pan
+        s = burnt_pan(k)
+        s.fire = True                                                            # the stove is burning
+        self.assertEqual(self.empties(k), [])
+        s.fire = False
+        s.food.stage = 'ready'                                                   # cooked, not burnt
+        self.assertEqual(self.empties(k), [])
+        s.food.stage = 'burnt'
+        self.assertEqual([o.key for o in self.empties(k)], ['empty p1'])
+        self.assertEqual(one_press.options(k, 'jeff', k.actions('jeff'), {'wash_from_returns': True}), [])   # its switch
+
+    def test_the_bin_is_one_the_engine_lists_an_emptying_at(self):
+        # With the pan in his hands the engine would list no emptying: no option (whatever bins the map has).
+        k = SpatialKitchen(level_config(load_config(), 'level-2'))
+        burnt_pan(k)
+        listed = k.actions
+        with patch.object(k, 'actions', lambda who: [a for a in listed(who) if a.kind != 'empty_pot']):
+            self.assertEqual(self.empties(k), [])
+        self.assertEqual([o.key for o in self.empties(k)], ['empty p1'])
+
+    def test_on_a_split_floor_only_stoves_and_bins_on_his_part(self):
+        k = SpatialKitchen(level_config(load_config(), 'level-5'))              # level 4 with the chefs swapped
+        for stove in k.pots:
+            burnt_pan(k, stove)
+        self.assertFalse(any(k.reaches('jeff', stove) for stove in k.pots))
+        self.assertEqual(self.empties(k), [])
+        self.assertEqual([o.key for o in self.empties(k, 'human')], ['empty p1', 'empty p2'])   # the player's part
+        k = SpatialKitchen(level_config(load_config(), 'level-4'))              # both stoves and one bin on Jeff's part
+        burnt_pan(k, 'p2')
+        self.assertEqual([o.key for o in self.empties(k)], ['empty p2'])
+        start(k, 'jeff', 'take pot p2')
+        self.assertEqual([b for b in k.bins if not k.reaches('jeff', b)], ['bin2'])
+        self.assertEqual(one_press.find(k, 'jeff', (('empty_pot',), one_press.NEAREST_BIN, one_press.BURNT)).target, 'bin')
+
+    def test_with_something_in_hand_it_puts_it_first_and_needs_a_put_place(self):
+        k = SpatialKitchen(level_config(load_config(), 'level-2'))
+        start(k, 'jeff', 'fetch bread')
+        burnt_pan(k)
+        loss = -k.rules.penalty['discard']
+        [empty] = self.empties(k)
+        # The put comes first: the tier as it is now, as put then take gives it for the same lift (one-press-v7).
+        note = '（锅里是糊菜：还能上菜，扣 10 元，留在灶台上还剩 4.0 秒）'
+        self.assertEqual(empty.label, f'先把手中的面包放到 put_where 选的位置，再端起灶台 1的平底锅，到最近的垃圾桶倒掉锅里的糊菜'
+                                      f'（损耗{loss}元，保留空平底锅）' + note)
+        self.assertTrue(next(o for o in one_press.options(k, 'jeff', k.actions('jeff'), BOTH)
+                             if o.key == 'put then take p1').label.endswith(note))
+        client = SpatialJevClient(k.c, key='x')
+        payload = compose_payload(client, k, k.snapshot(), k.actions('jeff'), [], None, NO_MEMORY, BOTH)
+        self.assertEqual(payload['questions']['next_action']['criteria']['empty p1'],
+                         f'Put the held Bread where put_where says, then lift the frying pan from Stove 1 and empty its burnt '
+                         f'food at the nearest bin ({loss} yuan cost; keep the empty frying pan) (it holds burnt food: '
+                         'accepted at -10 yuan for 4.0 s more while on the stove)')
+        self.assertEqual(payload['questions']['put_where']['instructions'], one_press.PUT_WHERE_INSTRUCTIONS)
+        self.assertIn('"empty"', one_press.PUT_WHERE_INSTRUCTIONS)
+        # No put place listed (as when every one is taken): nowhere to put the bread first, so no empty option, as for
+        # every option that puts first.
+        nowhere = [a for a in k.actions('jeff') if a.kind not in one_press.PLACES]
+        payload = compose_payload(client, k, k.snapshot(), nowhere, [], None, NO_MEMORY, BOTH)
+        self.assertNotIn('empty p1', payload['questions']['next_action']['criteria'])
+        self.assertNotIn('put_where', payload['questions'])
+
+    def test_a_burnt_pan_on_a_counter_or_the_floor_gets_one_too(self):
+        # Off its stove the pan still holds up the next dish (level 2 has one pan, so stove 1 cooks nothing until it is
+        # emptied and put back): the same take, then the engine's emptying, with the tier as the take's label gives it.
+        k = SpatialKitchen(level_config(load_config(), 'level-2'))
+        burnt_pan(k)
+        loss = -k.rules.penalty['discard']
+        start(k, 'jeff', 'take pot p1')
+        start(k, 'jeff', 'put counter16')
+        self.assertIsNone(k.stations['p1'].pot_id)
+        [empty] = self.empties(k)
+        self.assertEqual((empty.key, empty.target), ('empty counter16', 'counter16'))
+        self.assertEqual(empty.label, f'从柜台 16拿起平底锅，到最近的垃圾桶倒掉锅里的糊菜（损耗{loss}元，保留空平底锅）'
+                                      '（锅里是糊菜：还能上菜，扣 10 元）')
+        take = next(a for a in k.actions('jeff') if a.key == 'take counter16')
+        self.assertTrue(take.label.endswith('（锅里是糊菜：还能上菜，扣 10 元）'))
+        self.assertEqual(english_text(empty.label), f'Take the frying pan from Counter 16 and empty its burnt food at the '
+                                                    f'nearest bin ({loss} yuan cost; keep the empty frying pan) (it holds '
+                                                    'burnt food: accepted at -10 yuan)')
+        self.assertEqual(one_press.steps(empty, k), [(('take_counter',), 'counter16', one_press.BURNT),
+                                                     (('empty_pot',), one_press.NEAREST_BIN, one_press.BURNT)])
+        k.stations['counter16'].fire = True                                       # a burning counter: none
+        self.assertEqual(self.empties(k), [])
+        k.stations['counter16'].fire = False
+        start(k, 'jeff', 'take counter16')
+        start(k, 'jeff', 'drop')
+        [(pan, item)] = k.ground.items()
+        [empty] = self.empties(k)
+        self.assertEqual((empty.key, empty.target), (f'empty ground {pan}', item.location))
+        place = k.place(item.location).name
+        self.assertEqual(empty.label, f'去{place}捡起平底锅，到最近的垃圾桶倒掉锅里的糊菜（损耗{loss}元，保留空平底锅）'
+                                      '（锅里是糊菜：还能上菜，扣 10 元）')
+        self.assertEqual(english_text(empty.label), f'Pick up the frying pan at {english_text(place)} and empty its burnt '
+                                                    f'food at the nearest bin ({loss} yuan cost; keep the empty frying pan) '
+                                                    '(it holds burnt food: accepted at -10 yuan)')
+        self.assertEqual(one_press.steps(empty, k)[0], (('pickup',), f'ground {pan}', one_press.BURNT))
+        start(k, 'jeff', 'fetch bread')                                          # something in hand: put first
+        [empty] = self.empties(k)
+        self.assertTrue(empty.label.startswith(f'先把手中的面包放到 put_where 选的位置，再去{place}捡起平底锅，'))
+        self.assertTrue(english_text(empty.label).startswith(
+            f'Put the held Bread where put_where says, then pick up the frying pan at {english_text(place)} and empty'))
+        # A pan of food that is not burnt, or an empty one: none.
+        k.ground[pan].food.contents.stage = 'ready'
+        self.assertEqual(self.empties(k), [])
+        k.ground[pan].food.contents = None
+        self.assertEqual(self.empties(k), [])
+
+
 class ChainTests(unittest.TestCase):
     def loop(self, k, replies):
         self.records = []
@@ -344,6 +503,107 @@ class ChainTests(unittest.TestCase):
         k.stations['b1'].food = None                   # the lettuce is gone before he can take it
         self.run_for(k)
         self.assertNotIn('take b1', self.done(k))
+        self.assertEqual([r['reason'] for r in self.rows('one_press_end')], ['step_not_possible'])
+
+    def test_empty_lifts_the_pan_walks_to_the_bin_and_empties_it(self):
+        k = SpatialKitchen(level_config(load_config(), 'level-2'))
+        burnt_pan(k)
+        money = k.money
+        self.loop(k, [{'choice': 'empty p1'}])
+        self.run_for(k)
+        self.assertEqual(self.done(k), ['take pot p1', 'discard'])
+        hand = k.chefs['jeff'].hand
+        self.assertEqual((hand.id, hand.stage, hand.contents), ('P1', 'pot', None))     # the empty pan stays in his hands
+        self.assertIsNone(k.stations['p1'].pot_id)
+        self.assertEqual(k.money - money, k.rules.penalty['discard'])                    # the food is gone, at its cost
+        self.assertEqual(self.rows('ai_response')[0]['one_press'], {'first': 'take pot p1', 'fallback': False})
+        self.assertEqual([(r['choice'], r['reason']) for r in self.rows('one_press_end')], [('empty p1', 'finished')])
+
+    def test_empty_with_something_in_hand_puts_it_first(self):
+        k = bread_and_lettuce()
+        burnt_pan(k)
+        money = k.money
+        self.loop(k, [{'choice': 'empty p1', 'put_where': 'put counter16'}])
+        self.run_for(k)
+        self.assertEqual(self.done(k)[-3:], ['put counter16', 'take pot p1', 'discard'])
+        self.assertEqual(k.stations['counter16'].food.ingredient, 'bread')
+        self.assertEqual((k.chefs['jeff'].hand.stage, k.chefs['jeff'].hand.contents), ('pot', None))
+        self.assertEqual(k.money - money, k.rules.penalty['discard'])
+        self.assertEqual(self.rows('ai_response')[0]['one_press'], {'first': 'put counter16', 'fallback': False})
+
+    def test_empty_walks_to_the_nearest_bin(self):
+        k = SpatialKitchen(level_config(load_config(), 'level-3'))              # two bins; bin2 is nearer the stoves
+        burnt_pan(k, 'p2')
+        self.loop(k, [{'choice': 'empty p2'}])
+        self.run_for(k)
+        self.assertEqual(self.done(k), ['take pot p2', 'discard bin2'])
+
+    def test_empty_from_a_counter_or_the_floor(self):
+        k = SpatialKitchen(level_config(load_config(), 'level-2'))
+        burnt_pan(k)
+        start(k, 'jeff', 'take pot p1')
+        start(k, 'jeff', 'put counter16')
+        money = k.money
+        self.loop(k, [{'choice': 'empty counter16'}])
+        self.run_for(k)
+        self.assertEqual(self.done(k)[-2:], ['take counter16', 'discard'])
+        self.assertEqual((k.chefs['jeff'].hand.stage, k.chefs['jeff'].hand.contents, k.stations['counter16'].food),
+                         ('pot', None, None))
+        self.assertEqual(k.money - money, k.rules.penalty['discard'])
+        k = SpatialKitchen(level_config(load_config(), 'level-2'))
+        burnt_pan(k)
+        start(k, 'jeff', 'take pot p1')
+        start(k, 'jeff', 'drop')
+        start(k, 'jeff', 'fetch bread')
+        money = k.money
+        self.loop(k, [{'choice': 'empty ground P1', 'put_where': 'put counter16'}])
+        self.run_for(k)
+        self.assertEqual(self.done(k)[-3:], ['put counter16', 'pickup P1', 'discard'])
+        self.assertEqual((k.chefs['jeff'].hand.id, k.chefs['jeff'].hand.contents, k.ground), ('P1', None, {}))
+        self.assertEqual(k.money - money, k.rules.penalty['discard'])
+        self.assertEqual([(r['choice'], r['reason']) for r in self.rows('one_press_end')], [('empty ground P1', 'finished')])
+
+    def test_a_pan_moved_off_the_counter_before_its_take_ends_the_chain(self):
+        k = bread_and_lettuce()
+        k.stations['counter15'].food = Food('P9', 'pot', contents=Food('F92', 'burnt', ingredient='beef', heated=99.))
+        self.loop(k, [{'choice': 'empty counter15', 'put_where': 'put counter16'}])
+        self.run_for(k, polls=1)                       # the put has started
+        k.stations['counter15'].food = None             # the other chef took the pan meanwhile
+        self.run_for(k, polls=10)
+        self.assertNotIn('take counter15', self.done(k))
+        self.assertEqual([r['reason'] for r in self.rows('one_press_end')], ['step_not_possible'])
+
+    def test_the_bin_comes_from_the_engine_on_a_split_floor(self):
+        # An editor level that lists Jeff's bin second (level 4 with its bins in the other order): the engine lists his
+        # emptying at that bin, and the chain ends there.
+        k = SpatialKitchen(level_config(load_config(), 'level-4'))
+        k.bins = list(reversed(k.bins))
+        burnt_pan(k, 'p2')
+        money = k.money
+        self.loop(k, [{'choice': 'empty p2'}])
+        self.run_for(k, polls=80)
+        self.assertEqual(self.done(k), ['take pot p2', 'discard bin'])
+        self.assertEqual((k.chefs['jeff'].hand.stage, k.chefs['jeff'].hand.contents), ('pot', None))
+        self.assertEqual(k.money - money, k.rules.penalty['discard'])
+        # Level 5: Jeff's part has only bin2, the map's second bin; a burnt pan on his part is emptied there.
+        k = SpatialKitchen(level_config(load_config(), 'level-5'))
+        counter = next(c for c in k.counters if k.reaches('jeff', c) and k.stations[c].food is None)
+        k.stations[counter].food = Food('P9', 'pot', contents=Food('F92', 'burnt', ingredient='beef', heated=99.))
+        self.assertEqual([b for b in k.bins if k.reaches('jeff', b)], ['bin2'])
+        self.loop(k, [{'choice': 'empty ' + counter}])
+        self.run_for(k, polls=80)
+        self.assertEqual(self.done(k), ['take ' + counter, 'discard bin2'])
+        self.assertIsNone(k.chefs['jeff'].hand.contents)
+
+    def test_a_pan_whose_food_is_not_burnt_when_the_lift_comes_is_left_alone(self):
+        k = bread_and_lettuce()
+        burnt_pan(k)
+        self.loop(k, [{'choice': 'empty p1', 'put_where': 'put counter16'}])
+        self.run_for(k, polls=1)                       # the put has started
+        k.stations['p1'].food = Food('F91', 'ready', ingredient='beef', heated=12.)     # cooked beef there instead
+        self.run_for(k, polls=10)
+        self.assertNotIn('take pot p1', self.done(k))
+        self.assertEqual(k.stations['p1'].food.id, 'F91')
         self.assertEqual([r['reason'] for r in self.rows('one_press_end')], ['step_not_possible'])
 
     def test_another_choice_replaces_it(self):
@@ -641,8 +901,9 @@ class StatsTests(unittest.TestCase):
         decision_stats.add_round(rows, models)
         summary = decision_stats.summary(models['m [one-press]'])['one_press']
         self.assertEqual((summary['swap_backs'], summary['full_swaps']), (2, 1))
-        self.assertEqual([decision_stats.one_press_kind(k) for k in ('put then chop b1', 'put then wash sink', 'wash from returns')],
-                         ['put_then_chop', 'put_then_wash', 'wash_from_returns'])
+        self.assertEqual([decision_stats.one_press_kind(k) for k in ('put then chop b1', 'put then wash sink', 'wash from returns',
+                                                                     'empty p1')],
+                         ['put_then_chop', 'put_then_wash', 'wash_from_returns', 'empty_burnt'])
 
 if __name__ == '__main__':
     unittest.main()

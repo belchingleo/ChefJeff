@@ -1186,6 +1186,18 @@
       "{0} s of standard time"
     ],
     [
+      "端起{0}的{1}，到最近的垃圾桶倒掉锅里的糊菜（{2}）",
+      "Lift the {1} from {0} and empty its burnt food at the nearest bin ({2})"
+    ],
+    [
+      "从{0}拿起{1}，到最近的垃圾桶倒掉锅里的糊菜（{2}）",
+      "Take the {1} from {0} and empty its burnt food at the nearest bin ({2})"
+    ],
+    [
+      "去{0}捡起{1}，到最近的垃圾桶倒掉锅里的糊菜（{2}）",
+      "Pick up the {1} at {0} and empty its burnt food at the nearest bin ({2})"
+    ],
+    [
       "端起{0}的{1}（{2}）",
       "Lift the {1} from {0} ({2})"
     ],

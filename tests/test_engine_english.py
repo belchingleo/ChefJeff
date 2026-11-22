@@ -37,7 +37,12 @@ lift leaves the pan in, its walk counted (" (it holds burnt food: accepted at -1
 " (it holds burnt food: refused, burnt too long by the time it is lifted)"). Rewritten once more for one-press-v7 and
 serve-note-v3, whose version fields are all that change here: every seconds figure in these rounds falls on a tenth of
 a second, so rounding them down (servability.tenths) changes none, and no option there serves or picks up a dish
-the engine refuses.
+the engine refuses. Rewritten again for one-press-v8, which adds "empty <station>": in the released and every_trial
+requests the one_press rule (it describes the new option), the put_where question's instructions (they name "empty"
+actions too) and one_press_version change, and no request in these rounds lists the new option. With it, the engine
+lists the second bin's discard for a chef whose part of a split floor has only that bin: the level-4 player now has
+"discard bin2" while holding food, so the greedy policy's seeded draws for the player go differently, and the level-4
+requests differ from 22 s on (plain ones too); levels 1 to 3 keep their plain requests.
 """
 from __future__ import annotations
 

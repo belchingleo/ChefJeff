@@ -1,5 +1,5 @@
 {
-  "one_press": {"stage": "release", "on": true, "version": "one-press-v7"},
+  "one_press": {"stage": "release", "on": true, "version": "one-press-v8"},
   "undo_note": {"stage": "trial", "on": false, "version": "undo-note-v4"},
   "ask_ahead": {"stage": "trial", "on": true, "version": "ask-ahead-v2"},
   "reach_note": {"stage": "trial", "on": false, "version": "reach-v1"},
