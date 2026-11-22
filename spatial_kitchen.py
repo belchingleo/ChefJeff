@@ -562,14 +562,38 @@ class SpatialKitchen(Kitchen):
             if abs(here[axis]-spot[axis])<=.02 and abs(here[1-axis]-cell[1-axis])<=.5:return True
         return False
 
-    def path(self, who, target, in_place=True):
+    def reaches_action(self, who, action):
+        """Whether ``action`` is open to the chef from the part of the floor it stands on: a throw by its own tests
+        (can_throw_to), a take of the rack's plate at the sink (rack_at_sink) where the chef stands, whichever side the
+        rack is on, and anything else when the chef can walk to its target (reaches)."""
+        return (action.kind == 'throw' or self.reaches(who, action.target)
+                or (action.kind == 'take_plate' and self.rack_at_sink(who, action.target)))
+
+    def works_here(self, who, target):
+        """Whether the chef works the station where it stands: it is straight ahead (station_ahead), Space picked it
+        (pick_station), or, with operate_at_walk_limit, the chef stands where walking toward one of its faces stops."""
+        return (self.station_ahead(who)==target or (self.at_walk_limit and self.at_station_face(who,target))
+                or self.space_pick[who]==target)
+
+    def rack_at_sink(self, who, target):
+        """Whether ``target`` is the drying rack and the chef works the sink where it stands (works_here). As Overcooked
+        2's HandlePickupReferral (the sink refers a pick-up to the rack's clean-plate stack), a take of the rack's top
+        plate (take_plate) is then done there: no walk to the rack and no turn toward it (the chef faces the sink, and its
+        location stays the sink). Only the take: any other action at the rack (go) still walks to it (path, reaches_action).
+        The same test for both chefs and on every level."""
+        return bool(self.dryer) and target==self.dryer and self.sink in self.equipment and self.works_here(who,self.sink)
+
+    def path(self, who, target, in_place=True, kind=None):
+        """The route the chef walks to work ``target``; ``kind`` is the action's (a take of the rack's plate at the sink,
+        rack_at_sink, stays where the chef stands)."""
         if target in self.equipment:
+            if in_place and kind=='take_plate' and self.rack_at_sink(who,target):
+                return [self.positions[who]]
             station=self.equipment[target]
             shared=self.shared_access(who,target)
             # Never repositioned at a station it already faces (or stands against): work where it stands,
             # unless a shared job needs a spot this chef is not on. in_place=False walks to a work spot.
-            here=in_place and (self.station_ahead(who)==target or (self.at_walk_limit and self.at_station_face(who,target))
-                               or self.space_pick[who]==target)
+            here=in_place and self.works_here(who,target)
             if here and (not shared or tuple(self.positions[who]) in shared):
                 return [self.positions[who]]
             if shared:
@@ -720,9 +744,9 @@ class SpatialKitchen(Kitchen):
             raise ValueError('操作停靠点超出安全地面')
         return point
 
-    def travel_time(self, chef, target):
+    def travel_time(self, chef, target, kind=None):
         who = next(who for who, a in self.chefs.items() if a is chef)
-        points = self.path(who, target)
+        points = self.path(who, target, kind=kind)
         return sum(math.dist(a, b) for a, b in zip(points, points[1:])) / self.rules.walk_speed
 
     def occupied_floor(self, who, excluding=None):
@@ -977,7 +1001,7 @@ class SpatialKitchen(Kitchen):
                                         and self.nav.clear_walk_line(self.positions[who],self.positions[other]))))
 
     def actions(self, who):
-        actions = [a for a in super().actions(who) if a.kind != 'drop' and (a.kind == 'throw' or self.reaches(who, a.target))]
+        actions = [a for a in super().actions(who) if a.kind != 'drop' and self.reaches_action(who, a)]
         actions = [a for a in actions if not (a.kind in ('put_board','put_counter','put_pot') and self.board_reserved(a.target))]
         actions = [a for a in actions if not (a.kind in ('chop','wash')
                    and self.shared_access(who,a.target)==[])]
@@ -1022,7 +1046,7 @@ class SpatialKitchen(Kitchen):
                     if not chef.job or chef.job.action.key != action.key:
                         actions.append(action)
         if self.split_floor:
-            actions = [a for a in actions if a.kind == 'throw' or self.reaches(who, a.target)]
+            actions = [a for a in actions if self.reaches_action(who, a)]
         return actions
 
     @engine_input
@@ -1216,7 +1240,7 @@ class SpatialKitchen(Kitchen):
                 origin=self.interaction_cell(who,a.target)
                 distance=math.dist(self.positions[who],origin)
                 if distance>1.5:continue
-                try:route=self.path(who,a.target)
+                try:route=self.path(who,a.target,kind=a.kind)
                 except ValueError:continue
                 if sum(math.dist(x,y) for x,y in zip(route,route[1:]))>1.5:continue
             nearby.append((round(distance,5),priority[a.kind],a.key,a))
@@ -1328,7 +1352,7 @@ class SpatialKitchen(Kitchen):
             ok, message = super().start(who, action)
         if ok and action.kind not in ('continue', 'wait', 'stop'):
             job = self.chefs[who].job
-            points = self.path(who, action.target)
+            points = self.path(who, action.target, kind=action.kind)
             slide = action.kind in USE_KINDS and len(points) == 1 and self._centred(who, action.target, action.kind in ('chop','wash'))
             if slide:points = [points[0], slide]
             if action.kind == 'drop' and self.cell(action.target) == self.anchor(who):
@@ -1341,6 +1365,9 @@ class SpatialKitchen(Kitchen):
                 points, slide = self.path(who, action.target, in_place=False), False
             self.routes[who] = {'job_id': job.id, 'points': points, 'slide': bool(slide),
                                 'length': sum(math.dist(a,b) for a,b in zip(points,points[1:]))}
+            if action.kind == 'take_plate' and self.rack_at_sink(who, action.target):
+                # The rack's plate taken at the sink (path stays where the chef stands): _begin_work faces the sink, not the rack.
+                self.routes[who]['at_sink'] = True
             if slide:job.travel = self.routes[who]['length']/self.rules.walk_speed
         return ok, message
 
@@ -1399,7 +1426,13 @@ class SpatialKitchen(Kitchen):
         elif action.kind == 'throw':
             target = action.expected[2:4]
         elif action.target in self.equipment:
-            target = self.interaction_cell(who,action.target)
+            route = self.routes.get(who)
+            # The rack's plate taken at the sink (rack_at_sink): the chef faces the sink it works from, never the rack,
+            # and stays at the sink (Kitchen._begin_work set the location to the rack, where it does not stand).
+            at_sink = route and route['job_id'] == job.id and route.get('at_sink')
+            if at_sink:
+                self.chefs[who].location = self.sink
+            target = self.interaction_cell(who,self.sink if at_sink else action.target)
         else:
             target = self.cell(action.target)
             # Putting down at the feet lets go where the chef stands: no turn toward the tile's centre.

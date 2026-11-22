@@ -45,7 +45,7 @@ Jeff's harness features, the ones that change what he is asked or how his answer
 
 ## Shared rules and extension points
 
-Human input is continuous movement plus nearby actions; agent input is higher-level action selection. Both share movement speed, contact, access sides, preparation times and item constraints. Working chefs cannot be pushed away; pans and pots heat only while on a stove.
+Human input is continuous movement plus nearby actions; agent input is higher-level action selection. Both share movement speed, contact, access sides, preparation times and item constraints. Working chefs cannot be pushed away; pans and pots heat only while on a stove. A chef at the sink takes the drying rack's top clean plate where it stands, as Overcooked 2's `HandlePickupReferral` refers a pick-up at the sink to the rack: for the player, Space at the sink with empty hands; for Jeff, `take <rack>` while he stands at the sink, which then has no walk (`SpatialKitchen.rack_at_sink`). From anywhere else `take <rack>` walks to the rack. Only the take is done at the sink: `go <rack>` walks to the rack from anywhere, the sink included. Jeff's rules say so (`rules-v15`).
 
 Maps are validated by `map_definition.py`. Recipe legality and some processing conditions remain in Python; the roadmap moves them into validated data before introducing map and recipe editors. Visual ingredient layers are independent from legality.
 
@@ -102,7 +102,7 @@ Jeff 的输入在 `harness.py` 中拼装：`harness.payload` 生成厨房状态�
 
 ## 共用规则与扩展点
 
-人类持续移动并执行就近动作，agent 选择较高层动作。双方共用移动速度、碰撞、操作侧、加工时间与物品约束。工作中的厨师不会被推离；锅仅在灶台上加热。
+人类持续移动并执行就近动作，agent 选择较高层动作。双方共用移动速度、碰撞、操作侧、加工时间与物品约束。工作中的厨师不会被推离；锅仅在灶台上加热。站在水槽前的厨师原地就能拿到沥水架最上面的干净盘子，因为《胡闹厨房 2》的 `HandlePickupReferral` 会把在水槽前的拿取转给沥水架：玩家是在水槽前空手按空格，Jeff 是站在水槽前时选 `take <沥水架 ID>`，这时不用走路（`SpatialKitchen.rack_at_sink`）。站在别处选 `take <沥水架 ID>`，就会走到沥水架前。只有取盘是在水槽前完成的：选 `go <沥水架 ID>`，站在哪里（包括水槽前）都会走到沥水架前。Jeff 的规则说明也写上了这一条（`rules-v15`）。
 
 地图由 `map_definition.py` 校验。菜谱合法性与部分加工条件仍在 Python 中，路线图是先转为可校验数据，再接地图与菜谱编辑器。视觉配料叠层独立于合法性判断。
 

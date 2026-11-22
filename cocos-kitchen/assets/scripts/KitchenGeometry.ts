@@ -230,9 +230,9 @@ export function routeProject(route:number[][],p:number[]):{along:number;offset:n
     }
     return best;
 }
-/** The player's chef drawn along a route the engine walks it on (the centring slide before work, or a take the engine
- * walks it to, such as the drying rack's plate taken from the far side of the sink): from the drawn point onto the
- * route, then `step` cells on along it, corner by corner, never straight across a counter to its end. */
+/** The player's chef drawn along a route the engine walks it on (the centring slide before work, or an action the
+ * engine walks it to): from the drawn point onto the route, then `step` cells on along it, corner by corner, never
+ * straight across a counter to its end. */
 export function followRoute(route:number[][],from:number[],step:number):number[]{
     const n=route?.length||0;
     if(!n||!(step>0))return from;

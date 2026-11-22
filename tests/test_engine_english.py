@@ -15,7 +15,10 @@ undo-note-v2, whose version field is all that changes; and for burn-note-v3 and 
 options that put a held pan of cooked food on a stove say when it burns; and for step-check-v3, whose version field is
 all that changes in these rounds; and for serve-note-v2: its version, the take options of a Steak lying on a counter in
 level 1 and the serve line the links table gives one of them; and for undo-note-v4, whose version field is all that
-changes (these requests carry no step history).
+changes (these requests carry no step history); and for rules-v15, whose tableware rule and rules_version change in
+every request: in level 1 Jeff takes the drying rack's plate at the sink where he stands, so that option's walk is
+0.0 s (was 0.2 s), and the requests from 54 to 64 s differ in positions, event times and a few options (at 60 s the
+player, who took the rack's plate at the sink, is at the sink, no longer at the rack); from 66 s on they are as before.
 """
 from __future__ import annotations
 

@@ -366,7 +366,8 @@ class Kitchen:
                 o["status"] = "pending"
                 self.emit(f"新订单 {o['id']}：{self.recipe_name(o['dish'])}，截止 {o['deadline']:.0f}s", kind="order", order_id=o['id'])
 
-    def travel_time(self, chef, target):
+    def travel_time(self, chef, target, kind=None):
+        # kind (the action's) matters only to the spatial kitchen (SpatialKitchen.path); areas take the same time for any.
         if chef.location == target:
             return 0
         same = self.stations[chef.location].area == self.stations[target].area
@@ -786,7 +787,7 @@ class Kitchen:
             # An action replayed from its record carries no English; the engine's own listing does.
             action = replace(action, english=current.english)
         self.job_serial += 1
-        a.job = Job(self.job_serial, action, self.travel_time(a, action.target), work)
+        a.job = Job(self.job_serial, action, self.travel_time(a, action.target, action.kind), work)
         english = action.english and engine_english.started(who, action.english, a.job.travel, work)
         self.emit(f"{NAMES[who]}开始：{action.label}（路程 {a.job.travel:.0f}s + 操作 {work:.1f}s）", english or None,
                   kind="action_start", actor=who, action=action.key, action_id=a.job.id)

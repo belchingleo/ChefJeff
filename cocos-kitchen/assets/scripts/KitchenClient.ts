@@ -752,8 +752,8 @@ export class KitchenClient extends Component {
         // or put does not, and the engine finishes it while the chef walks on.
         if(this.clock<this.handsBusyUntil||(d.x===0&&d.y===0)){
             this.pressing=false;this.walkRamp=0;
-            // Work started in place first slides to the station's centre, and a take from the far side of the sink
-            // walks round it to the drying rack (the engine's route): follow the route corner by corner.
+            // Work started in place first slides to the station's centre, and an action the engine walks the chef to
+            // follows its route: follow the route corner by corner.
             const route=(c.travel_remaining||0)>0&&c.route?.length?c.route:null;
             if(route)this.predicted=followRoute(route,this.predicted,walk*game);
             return this.predicted;

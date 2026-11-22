@@ -25,7 +25,10 @@ from cooperation_memory import PAST_EPISODES_RULE
 # v10 also: an ingredient part-way through chopping cannot be taken off its board (Overcooked 2), for both chefs.
 # v11: orders arrive as in Overcooked 2 (two from the start, top-up, at most five; an expired order restarts).
 # v12: the fire rule is short and in time order: food burns, its stove catches fire at once, then heat, spray, loss.
-AGENT_RULES_VERSION = "rules-v14"
+# v13: level 1's flow says fetch <ingredient> takes that raw ingredient from its source (the key is fetch beef).
+# v14: the sink stacks dirty plates and each washed plate goes onto the drying rack; a held pan scoops.
+# v15: standing at the sink, take <drying rack> takes the rack's top clean plate where the chef stands (Overcooked 2).
+AGENT_RULES_VERSION = "rules-v15"
 
 
 # How a recipe component's required state reads in model input: "tomato (chopped)".
@@ -167,7 +170,8 @@ def rules(state, spatial=False, per_area=2):
     dryer = next((key for key, st in state['stations'].items() if st.get('type') == 'drying_rack'), None)
     sink_rule = (f'put sink puts it in the sink, where dirty plates stack and stay until washed; wash with empty hands washes '
                  f'the first one in, and each washed plate goes onto the drying rack ({dryer}), the newest on top; take {dryer} '
-                 f'collects a clean plate for plating or storage.' if dryer else
+                 f'collects the top clean plate for plating or storage, and standing at the sink, take {dryer} takes it '
+                 f'where you stand.' if dryer else
                  'put sink puts it in an empty sink; wash with empty hands; take sink collects the clean plate for plating or storage.')
     stacking = ('Only the sink (dirty plates) and the drying rack (clean plates) stack plates.' if dryer else 'There is no stacking rack.')
     plate_pass = (f"can be passed to the other chef or the floor within {pass_range:g} tiles (never onto boards or counters); "

@@ -254,10 +254,10 @@ class JeffDrawTests(unittest.TestCase):
             self.assert_smooth(self.page(f'turn L{level} at {when}', drawn, pages=((1, .1), (1, .3))), step=.2,
                                back=False, p90=1.5)
 
-    def test_the_players_take_round_the_sink_is_drawn_along_its_route(self):
-        # Level 4: washing from the notch west of the sink, Space with empty hands takes the drying rack's plate, and
-        # the engine walks the chef round the sink to the rack. The page draws that walk (followRoute) on the floor,
-        # never straight across the sink and the rack.
+    def test_the_players_take_at_the_sink_is_drawn_where_the_chef_stands(self):
+        # Level 4: washing from the notch west of the sink, Space with empty hands takes the drying rack's plate where
+        # the chef stands (Overcooked 2's HandlePickupReferral): the engine's route is the chef's own spot and the page
+        # draws no walk round the sink to the rack.
         if self.geometry is None:
             self.skipTest('TypeScript compiler or Node.js unavailable')
         k = kitchen(4)
@@ -289,6 +289,7 @@ class JeffDrawTests(unittest.TestCase):
         finish()
         space('use')
         finish()
+        here = k.positions['human']
         take = space()
         self.assertEqual(take.target, k.dryer)
         states = []
@@ -296,7 +297,8 @@ class JeffDrawTests(unittest.TestCase):
             snap = k.snapshot()['chefs']['human']
             states.append({'route': snap['route'], 'travel': snap['travel_remaining'], 'position': snap['position']})
             k.advance(.05)
-        self.assertGreater(len(states[0]['route']), 2, 'the take walks round the sink')
+        self.assertEqual(states[0]['route'], [[round(v, 4) for v in here]], 'the take is done where the chef stands')
+        self.assertEqual((len(states), k.positions['human'], k.chefs['human'].hand.stage), (1, here, 'clean_plate'))
         script = Path(self.temp.name) / 'take.js'
         script.write_text(r"""
 const g=require(process.argv[2]),d=JSON.parse(require('fs').readFileSync(process.argv[3],'utf8'));
@@ -321,7 +323,7 @@ console.log(JSON.stringify({off,worst}));
         self.assertEqual(done.returncode, 0, done.stderr)
         result = json.loads(done.stdout)
         self.assertEqual(result['off'], 0, result)
-        self.assertLess(result['worst'], .15, result)
+        self.assertLess(result['worst'], 1e-6, result)
 
     def test_a_knock_is_followed_at_once(self):
         if self.geometry is None:

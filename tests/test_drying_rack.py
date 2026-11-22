@@ -1,7 +1,9 @@
 """The sink and its drying rack, as Overcooked 2's washing station: dirty plates stack in the sink and stay there until
 washed (first in, washed first); each washed plate goes onto the rack beside it, the newest on top; taking from the
-rack takes the top plate; Space at the sink with empty hands takes a clean plate from the rack (HandlePickupReferral).
+rack takes the top plate; Space at the sink with empty hands takes a clean plate from the rack (HandlePickupReferral),
+and a chef at the sink, either chef, takes it where it stands; from anywhere else the take walks to the rack.
 Every official level has one rack, beside its sink."""
+import math
 import unittest
 
 from kitchen import Food, load_config
@@ -90,6 +92,135 @@ class DryingRackTests(unittest.TestCase):
         k.stations[k.dryer].food = plate
         k.chefs['jeff'].hand = None
         self.assertTrue([a for a in k.actions('jeff') if a.kind == 'take_plate' and a.target == k.dryer])
+
+    def rack_plate(self, k):
+        """One of the kitchen's own clean plates, not one in the sink, moved onto the empty rack."""
+        key, plate = next((key, p) for key, p in self.plates(k) if p.stage == 'clean_plate' and key != k.dryer)
+        k.stations[key].food = None
+        k.stations[k.dryer].food = plate
+        return plate
+
+    def go_rack_walks(self, k, who):
+        """On a fork: the walk to the rack listed for a chef at the sink walks there, round the sink or beside it, as
+        any walk does (the take alone is done at the sink): travel, a route of more than one point, a new position and
+        the rack as the chef's location."""
+        k = k.fork()
+        go = next((a for a in k.actions(who) if a.key == f'go {k.dryer}'), None)
+        self.assertIsNotNone(go)
+        self.assertEqual(go.kind, 'go')
+        here = k.positions[who]
+        self.assertTrue(k.start(who, go)[0])
+        self.assertGreater(k.chefs[who].job.travel, 0)
+        self.assertGreater(len(k.routes[who]['points']), 1)
+        for _ in range(200):
+            k.advance(.05)
+            if not k.chefs[who].job:
+                break
+        self.assertIsNone(k.chefs[who].job)
+        self.assertGreater(math.dist(k.positions[who], here), .5)
+        self.assertEqual(k.chefs[who].location, k.dryer)
+        k.assert_invariants()
+
+    def take(self, k, who):
+        return next(a for a in k.actions(who) if a.kind == 'take_plate' and a.target == k.dryer)
+
+    def test_space_at_the_sink_takes_the_rack_plate_where_the_chef_stands(self):
+        """Level 4's notch west of the sink: Space aiming right at the sink takes the rack's plate there, as the page
+        sends it (aim, the highlighted station, then the action), with no walk round the sink and still facing it."""
+        for start in ((4.15, 7.0), (4.0, 7.3)):
+            with self.subTest(start=start):
+                k = self.kitchen(4)
+                plate = self.rack_plate(k)
+                k.chefs['human'].hand = None
+                k.positions['human'] = start
+                self.assertTrue(k.face('human', 1., 0.))
+                facing, aim = k.facing['human'], k.aim['human']
+                target, action = k.facing_interaction('human', 'hands', station=k.sink)
+                self.assertEqual((target, action.kind, action.target), (k.sink, 'take_plate', k.dryer))
+                self.assertTrue(k.pick_station('human', target))
+                self.assertEqual(k.path('human', action.target, kind=action.kind), [start])
+                # Only the take: a walk to the rack from here still goes round the sink.
+                self.assertGreater(len(k.path('human', action.target)), 1)
+                self.assertTrue(k.start('human', action)[0])
+                self.assertEqual(k.routes['human']['points'], [start])
+                self.assertEqual(k.chefs['human'].job.travel, 0)
+                k.advance(.05)
+                self.assertEqual(k.positions['human'], start)
+                self.assertIsNone(k.chefs['human'].job)
+                self.assertEqual(k.chefs['human'].hand.id, plate.id)
+                self.assertEqual(k.chefs['human'].hand.stage, 'clean_plate')
+                self.assertEqual(k.facing['human'], facing)
+                self.assertEqual(k.selected_station('human'), k.sink)
+                # The chef is still at the sink, and Jeff's request says so (not at the rack).
+                self.assertEqual(k.chefs['human'].location, k.sink)
+                self.assertEqual(k.snapshot()['chefs']['human']['location'], k.sink)
+                k.assert_invariants()
+
+    def test_jeff_at_the_sink_takes_the_rack_plate_where_he_stands(self):
+        """Jeff, walked to the sink by putting a dirty plate in it, takes the rack's plate there: travel 0, still facing
+        the sink. Turned away from it first, he stands at its face all the same and turns back to the sink, never to
+        the rack. Level 4 puts Jeff on the side away from the sink; level 5 is that kitchen with the chefs swapped.
+        Only the take is done at the sink: his walk to the rack walks there, with the rack empty (the dirty plate just
+        put in, or the rack's only plate just taken) and with a plate on it."""
+        for level, turned in ((1, False), (2, False), (3, False), (5, False), (1, True), (2, True), (3, True), (5, True)):
+            with self.subTest(level=level, turned_away=turned):
+                k = self.kitchen(level)
+                (key, dirty_plate), = self.plates(k)[:1]
+                k.stations[key].food = None
+                dirty_plate.stage = 'dirty_plate'
+                k.chefs['jeff'].hand = dirty_plate
+                put = next(a for a in k.actions('jeff') if a.kind == 'put_sink')
+                self.assertTrue(k.start('jeff', put)[0])
+                for _ in range(200):
+                    k.advance(.05)
+                    if not k.chefs['jeff'].job:
+                        break
+                self.assertIsNone(k.chefs['jeff'].hand)
+                self.assertIsNone(k.stations[k.dryer].food)
+                self.go_rack_walks(k, 'jeff')
+                plate = self.rack_plate(k)
+                self.go_rack_walks(k, 'jeff')
+                here, facing, aim = k.positions['jeff'], k.facing['jeff'], k.aim['jeff']
+                self.assertEqual(k.selected_station('jeff'), k.sink)
+                if turned:
+                    k._face_vector('jeff', -aim[0], -aim[1])
+                    self.assertNotEqual(k.facing['jeff'], facing)
+                self.assertTrue(k.rack_at_sink('jeff', k.dryer))
+                self.assertTrue(k.start('jeff', self.take(k, 'jeff'))[0])
+                self.assertEqual(k.chefs['jeff'].job.travel, 0)
+                self.assertEqual(k.routes['jeff']['points'], [here])
+                k.advance(.05)
+                self.assertIsNone(k.chefs['jeff'].job)
+                self.assertEqual(k.chefs['jeff'].hand.id, plate.id)
+                self.assertEqual(k.chefs['jeff'].hand.stage, 'clean_plate')
+                self.assertEqual((k.positions['jeff'], k.facing['jeff'], k.aim['jeff']), (here, facing, aim))
+                # He is still at the sink: no walk to the sink he stands at among his actions, and the rack is a walk.
+                self.assertEqual(k.chefs['jeff'].location, k.sink)
+                self.assertNotIn(f'go {k.sink}', {a.key for a in k.actions('jeff')})
+                self.assertIsNone(k.stations[k.dryer].food)
+                self.go_rack_walks(k, 'jeff')
+                k.assert_invariants()
+
+    def test_jeff_away_from_the_sink_walks_to_the_rack(self):
+        for level in (1, 2, 3, 5):
+            with self.subTest(level=level):
+                k = self.kitchen(level)
+                plate = self.rack_plate(k)
+                start = k.positions['jeff']
+                self.assertFalse(k.rack_at_sink('jeff', k.dryer))
+                self.assertTrue(k.start('jeff', self.take(k, 'jeff'))[0])
+                route = k.routes['jeff']['points']
+                self.assertGreater(k.chefs['jeff'].job.travel, 0)
+                self.assertGreater(len(route), 1)
+                for _ in range(200):
+                    k.advance(.05)
+                    if not k.chefs['jeff'].job:
+                        break
+                self.assertEqual(k.chefs['jeff'].hand.id, plate.id)
+                self.assertNotEqual(k.positions['jeff'], start)
+                self.assertLess(math.dist(k.positions['jeff'], route[-1]), 1e-6)
+                self.assertIn(k.dryer, k.selectable_stations('jeff'))
+                k.assert_invariants()
 
 
 if __name__ == '__main__':
