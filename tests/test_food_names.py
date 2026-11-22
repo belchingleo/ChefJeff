@@ -57,6 +57,14 @@ class NamesTests(unittest.TestCase):
         self.k = kitchen()
         self.items = {item: entry for item, entry in self.k.rules.items.items()}
 
+    def stated(self, name, stage, on_stove=False):
+        """A food's name as the state gives it: burnt food (here burnt for 0 s) with its tier (servability-v1)."""
+        if stage != 'burnt':
+            return name
+        tier = self.k.rules.burnt_service[0]
+        left = f" for {tier['max_overcook_game_ms'] / 1000:.1f} s more while on the stove" if on_stove else ''
+        return name[:-1] + f"; accepted at {tier['adjustment']} yuan{left})"
+
     def check_payload(self, payload):
         criteria = payload['questions']['next_action']['criteria']
         text = json.dumps({**payload, 'questions': {**payload['questions'], 'next_action': {
@@ -94,14 +102,14 @@ class NamesTests(unittest.TestCase):
                     self.k.stations[counter].food = Food('F900', stage, ingredient=item)
                     self.k.chefs['jeff'].hand = None
                     payload = self.check_payload(ask(self.k))
-                    self.assertEqual(payload['state']['kitchen']['stations'][counter]['food']['meaning'], name)
+                    self.assertEqual(payload['state']['kitchen']['stations'][counter]['food']['meaning'], self.stated(name, stage))
                     labels = [label for key, label in payload['questions']['next_action']['criteria'].items()
                               if key.endswith(' ' + counter) or key.endswith(' F900')]
                     self.assertTrue(labels and all(name in label for label in labels if 'F900' in label or 'Take' in label), labels)
                     self.k.stations[counter].food = None
                     self.k.chefs['jeff'].hand = Food('F901', stage, ingredient=item)
                     payload = self.check_payload(ask(self.k))
-                    self.assertEqual(payload['state']['kitchen']['chefs']['jeff']['holding']['meaning'], name)
+                    self.assertEqual(payload['state']['kitchen']['chefs']['jeff']['holding']['meaning'], self.stated(name, stage))
                     for label in payload['questions']['next_action']['criteria'].values():
                         if 'held' in label and 'put_where' in label:
                             self.assertIn(f'Put the held {name} where', label)
@@ -119,13 +127,13 @@ class NamesTests(unittest.TestCase):
                     self.k.stations[stove].food = Food('F902', stage, ingredient=item)
                     payload = self.check_payload(ask(self.k))
                     self.assertEqual(payload['state']['kitchen']['stations'][stove]['food']['meaning'],
-                                     f'{item} ({food_names.WORDS[stage]})')
+                                     self.stated(f'{item} ({food_names.WORDS[stage]})', stage, on_stove=True))
                     self.k.stations[stove].food = None
                     pot = Food(self.k.stations[stove].pot_id, 'pot', contents=Food('F903', stage, ingredient=item))
                     self.k.chefs['jeff'].hand = pot
                     held = self.check_payload(ask(self.k))['state']['kitchen']['chefs']['jeff']['holding']
                     kind = 'frying pan' if vessel == 'pan' else 'soup pot'
-                    self.assertEqual(held['meaning'], f'{kind} with {item} ({food_names.WORDS[stage]})')
+                    self.assertEqual(held['meaning'], self.stated(f'{kind} with {item} ({food_names.WORDS[stage]})', stage))
                     self.k.chefs['jeff'].hand = Food(pot.id, 'pot')
                     held = self.check_payload(ask(self.k))['state']['kitchen']['chefs']['jeff']['holding']
                     self.assertEqual(held['meaning'], f'empty {kind}')

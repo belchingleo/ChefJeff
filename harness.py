@@ -427,7 +427,7 @@ def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY,
         burn_note.apply(payload, kitchen)
     if serve_note:
         import option_notes
-        option_notes.apply_serve(payload)
+        option_notes.apply_serve(payload, kitchen)
     if steps:
         import step_check
         step_check.apply(payload, kitchen)

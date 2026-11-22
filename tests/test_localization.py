@@ -100,6 +100,78 @@ assert.equal(i.t('Kitchen timeout'),'Kitchen timeout');
         corpus += extinguish + ['Jeff开始：%s（路程 1s + 操作 0.5s）' % x for x in said] + ['Jeff完成动作：' + x for x in said]
         self.run_js("const missing=corpus.filter(x=>/[\\u3400-\\u9fff]/.test(i.t(x)));assert.deepEqual(missing,[]);",corpus)
 
+    def test_burnt_food_tiers_on_labels_are_translated(self):
+        """The tier a plating, lift, swap, take, pick-up or serve label gives burnt food (Kitchen.burnt_note,
+        Kitchen.serve_label), as the player reads it in English; the model catalog gives Jeff the same words."""
+        from model_language import english_text
+        lift = '端起灶台 1的平底锅（离开灶台停止加热，占手持位）'
+        lift_en = 'Lift the Frying pan from Stove 1 (stops heating off the stove; occupies your hands)'
+        cases = {
+            lift + '（锅里是糊菜：还能上菜，扣 10 元，留在灶台上还剩 2.1 秒）':
+                lift_en + ' (it holds burnt food: accepted at -10 yuan for 2.1 s more while on the stove)',
+            lift + '（锅里是糊菜：还能上菜，扣 10 元）': lift_en + ' (it holds burnt food: accepted at -10 yuan)',
+            lift + '（锅里是糊菜：糊太久，上菜会被拒收）': lift_en + ' (it holds burnt food: refused)',
+            lift + '（锅里是糊菜：1.5 秒内开始这一步，端起后还能上菜，扣 10 元）':
+                lift_en + ' (it holds burnt food: accepted at -10 yuan if this starts within 1.5 s)',
+            lift + '（锅里是糊菜：端起时已糊太久，上菜会被拒收）':
+                lift_en + ' (it holds burnt food: refused, burnt too long by the time it is lifted)',
+            lift + '（锅里是糊菜：还能上菜，扣 10 元，留在灶台上还剩不到 0.1 秒）':
+                lift_en + ' (it holds burnt food: accepted at -10 yuan for under 0.1 s more while on the stove)',
+            lift + '（锅里是糊菜：只有马上开始这一步，端起后才还能上菜，扣 10 元）':
+                lift_en + ' (it holds burnt food: accepted at -10 yuan only if this starts now)',
+            '用手中的干净盘盛出灶台 1的菜（糊菜：1.2 秒内开始这一步，装出的菜还能上菜，扣 10 元）':
+                'Plate food from Stove 1 (burnt food: accepted at -10 yuan if this starts within 1.2 s)',
+            '用手中的干净盘盛出灶台 1的菜（糊菜：只有马上开始这一步，装出的菜才还能上菜，扣 10 元）':
+                'Plate food from Stove 1 (burnt food: accepted at -10 yuan only if this starts now)',
+            '用手中的干净盘盛出灶台 1的菜（糊菜：装盘时已糊太久，上菜会被拒收）':
+                'Plate food from Stove 1 (burnt food: refused, burnt too long by the time it is plated)',
+            '从柜台 3拿起锅（锅里是糊菜：糊太久，上菜会被拒收）': 'Take Pot from Counter 3 (it holds burnt food: refused)',
+            '从柜台 3拿起糊了（糊菜：还能上菜，扣 10 元）': 'Take Burnt from Counter 3 (burnt food: accepted at -10 yuan)',
+            '把手中的生菜放进柜台 3的盘里（糊菜：还能上菜，扣 10 元）':
+                'Put the held Lettuce onto the plate at Counter 3 (burnt food: accepted at -10 yuan)',
+            '把柜台 3盘中食物合入手中盘（空盘留在原位）（糊菜：糊太久，上菜会被拒收）':
+                'Merge food from the plate at Counter 3 into the held plate (empty plate stays in place) (burnt food: refused)',
+            '走近，把食材加入队友手中的盘（容器留在原持有者手中）（糊菜：还能上菜，扣 10 元）':
+                "Approach and add food to the teammate's held plate (containers stay with their holders) (burnt food: "
+                'accepted at -10 yuan)',
+            '拿已装盘的菜出餐（没有订单在等这道菜会扣钱；这盘糊菜还能上菜，扣 10 元）':
+                'Serve the plated dish (serving a dish no order is waiting for costs money; this burnt dish is accepted '
+                'at -10 yuan)',
+            '拿已装盘的菜出餐（没有订单在等这道菜会扣钱；这盘糊菜会被拒收，不收钱，菜没了，订单继续等待）':
+                'Serve the plated dish (serving a dish no order is waiting for costs money; this burnt dish is refused '
+                'with no payment; the dish is lost and the order keeps waiting)',
+            '拿已装盘的菜出餐（现在没有订单在等这道菜，出餐扣 20 元）':
+                'Serve the plated dish (no order is waiting for this dish now, so serving it costs 20 yuan)',
+        }
+        self.run_js("const want=" + json.dumps(list(cases.values()), ensure_ascii=False) + ";"
+                    "assert.deepEqual(corpus.map(x=>i.t(x)),want);", list(cases))
+        for chinese, page in cases.items():
+            # The model catalog names the pan in lower case ("Lift the frying pan"); otherwise word for word.
+            self.assertEqual(english_text(chinese), page.replace('Frying pan', 'frying pan'))
+        # A swap: the page reads the label itself as it does without the note (its own catalog has no template for the
+        # whole label); the model catalog reads it whole.
+        swaps = {
+            '与灶台 1的平底锅交换（各自保留里面的食物）（锅里是糊菜：1.2 秒内开始这一步，换下后还能上菜，扣 10 元）':
+                ' (it holds burnt food: accepted at -10 yuan if this starts within 1.2 s)',
+            '与灶台 1的平底锅交换（各自保留里面的食物）（锅里是糊菜：只有马上开始这一步，换下后才还能上菜，扣 10 元）':
+                ' (it holds burnt food: accepted at -10 yuan only if this starts now)',
+            '与灶台 1的平底锅交换（各自保留里面的食物）（锅里是糊菜：换下时已糊太久，上菜会被拒收）':
+                ' (it holds burnt food: refused, burnt too long by the time the swap takes it off the stove)',
+            '与柜台 3的平底锅交换（各自保留里面的食物）（锅里是糊菜：还能上菜，扣 10 元）':
+                ' (it holds burnt food: accepted at -10 yuan)'}
+        self.run_js("const bare=corpus.map(x=>i.t(x.replace(/（锅里是糊菜：[^（）]*）$/,'')));"
+                    "const want=" + json.dumps(list(swaps.values()), ensure_ascii=False) + ";"
+                    "assert.deepEqual(corpus.map(x=>i.t(x)),bare.map((b,n)=>b+want[n]));", list(swaps))
+        for chinese, note in swaps.items():
+            place = 'Stove 1' if '灶台' in chinese else 'Counter 3'
+            self.assertEqual(english_text(chinese), f'Swap with the frying pan at {place} (contents stay where they are)' + note)
+        # A pick-up: the page keeps the label's own full-width marks inside it, as without the note.
+        pickup = '去柜台 3捡起 P1（锅；自动换手）（锅里是糊菜：还能上菜，扣 10 元）'
+        self.run_js("assert.equal(i.t(corpus[0]),'Pick up P1（Pot；auto-swap） at Counter 3 (it holds burnt food: "
+                    "accepted at -10 yuan)');", [pickup])
+        self.assertEqual(english_text(pickup), 'Pick up P1 (Pot; auto-swap) at Counter 3 (it holds burnt food: accepted '
+                                               'at -10 yuan)')
+
     def test_service_rules_copy_is_fully_translated(self):
         import config_contract as cc
         bundle = cc.level_bundle('level-3', embed=True);bundle['level']['seeds'] = {'orders': 1, 'spawn': 0}

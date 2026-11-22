@@ -29,7 +29,15 @@ gave when it burns), and the first request's go option to Stove 1, whose cooked 
 without heating it, which gets no note (v3 gave when it burns). Rewritten again when the fire rule said that food put
 on a burning stove waits whether its pot is put there or the food is put or thrown into its pot, and the swap rule
 that a pot can be lifted, put back or swapped on a burning stove (it said the stove had to be put out first): those two
-rules are all that change, in every request.
+rules are all that change, in every request. Rewritten again for servability-v1 (released): its version field in every
+request; in the 24 level-2 and level-3 requests with burnt beef on Stove 1 (8 per combination), that beef's meaning
+and the lift option of its pan say its tier ("beef (burnt; accepted at -10 yuan for 2.9 s more while on the stove)",
+"beef (burnt too long; refused)", "Burnt (accepted at ...)" with names off), and the lift label ends with the tier the
+lift leaves the pan in, its walk counted (" (it holds burnt food: accepted at -10 yuan if this starts within 0.6 s)",
+" (it holds burnt food: refused, burnt too long by the time it is lifted)"). Rewritten once more for one-press-v7 and
+serve-note-v3, whose version fields are all that change here: every seconds figure in these rounds falls on a tenth of
+a second, so rounding them down (servability.tenths) changes none, and no option there serves or picks up a dish
+the engine refuses.
 """
 from __future__ import annotations
 

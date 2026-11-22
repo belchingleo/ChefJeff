@@ -14,13 +14,29 @@ from copy import deepcopy
 import json
 import math
 from pathlib import Path
+import re
 
 from provenance import Provenance
 from rules import Rules, runtime_config
+import servability
 
 ROOT = Path(__file__).resolve().parent
 NAMES = {"human": "你", "jeff": "Jeff"}
 STATES = {"raw": "生肉", "chopped": "切好", "cooking": "加热中", "ready": "熟了", "burnt": "糊了", "extinguisher": "灭火器", "clean_plate": "干净餐盘", "dirty_plate": "脏餐盘", "pot": "锅", "assembled": "待组装菜品"}
+# The serve option as a chef's task and its events carry it; a held burnt dish's option says what serving it does
+# instead of the last clause (Kitchen.serve_label).
+SERVE_LABEL = "拿已装盘的菜出餐（没有订单在等这道菜会扣钱，糊太久会被拒收）"
+SERVE_HEAD = "拿已装盘的菜出餐（没有订单在等这道菜会扣钱；"
+# The tier note after a label that plates, lifts or picks up burnt food (lead 糊菜) or a pan of it (lead 锅里是糊菜), for
+# taking it off again (Kitchen.burnt_note).
+BURNT_NOTE = re.compile(r'（(?:糊菜|锅里是糊菜)：[^（）]*）$')
+# What the extinguish option says follows for the food in the stove's pan, for taking it off again (Kitchen.plain_action).
+EXTINGUISH_AFTER = re.compile(r'^(拿灭火器到.+?灭火（[\d.]+s)；.*）$', re.S)
+# The words of burnt_note for a step that takes the food off a stove: the step, and what it leaves.
+STEP_WORDS = {'装盘': '装出的菜', '端起': '端起后', '换下': '换下后'}
+# The engine's longest substep in game seconds (advance). In each the stoves heat first and the chefs' steps go on
+# after, so a step that takes food off a stove has heated it through the substep the step ends in (step_gain).
+SUBSTEP = .05
 
 
 def load_config(path=None):
@@ -324,8 +340,8 @@ class Kitchen:
     def assemble_label(self, place_name, placed, held):
         """Say which way the ingredient moves: onto the plate that is there, or onto the held plate."""
         if self.can_add(placed, held):
-            return f'把手中的{self.food_label(held)}放进{place_name}的盘里'
-        return f'把{place_name}的{self.food_label(placed)}加进手中的盘'
+            return f'把手中的{self.food_label(held)}放进{place_name}的盘里' + self.plating_note(placed, held)
+        return f'把{place_name}的{self.food_label(placed)}加进手中的盘' + self.plating_note(held, placed)
 
     def recipe_name(self, dish):
         return self.rules.recipe_names.get(dish, dish)
@@ -419,12 +435,14 @@ class Kitchen:
         board = key in self.boards
         if s.food:
             if self.can_swap_pots(a.hand,s.food):
-                add('swap pot '+key,f'与{s.name}的{self.vessel_name(s.food.id)}交换（各自保留里面的食物）','swap_pot',key)
+                add('swap pot '+key,f'与{s.name}的{self.vessel_name(s.food.id)}交换（各自保留里面的食物）'
+                    + self.food_note(s.food), 'swap_pot', key)
             if self.rules.multi_component and a.hand:
                 if self.can_add(s.food,a.hand) or self.can_add(a.hand,s.food):
                     add('assemble '+key,self.assemble_label(s.name,s.food,a.hand),'assemble',key)
             if self.rules.multi_component and self.can_merge_plates(a.hand,s.food):
-                add('merge '+key,'把'+s.name+'盘中食物合入手中盘（空盘留在原位）','merge_plates',key)
+                add('merge '+key,'把'+s.name+'盘中食物合入手中盘（空盘留在原位）'+self.plating_note(a.hand,s.food,merge=True),
+                    'merge_plates',key)
             if self.can_load_pot(a.hand,s.food):
                 add('load '+key,f'把{self.load_label(a.hand)}放入{s.name}的空{self.vessel_name(s.food.id)}（离灶不加热）','load_counter',key)
             # An empty pan or pot held over a loose ingredient it can cook scoops it up and stays in the hands, as a
@@ -437,13 +455,16 @@ class Kitchen:
             kind = 'take_board' if board else 'take_plate' if s.food.stage == 'clean_plate' else 'take_counter'
             # As in Overcooked 2 (ServerWorkstation.CanPickupItem): an ingredient part-way through chopping stays on the board.
             if not (board and self.chopping_started(s.food)):
-                add(f'take {key}', f'从{s.name}拿起{self.food_name(s.food)}', kind, key)
+                add(f'take {key}', f'从{s.name}拿起{self.food_name(s.food)}' + self.food_note(s.food), kind, key)
             if a.hand and a.hand.stage == 'pot' and self.can_add(s.food,a.hand.contents):
                 v = self.vessel_name(a.hand.id)
-                add(f'plate {key}', f'把手中{v}里的菜盛到{s.name}的盘里（空{v}留在手中）', 'plate_counter', key)
+                add(f'plate {key}', f'把手中{v}里的菜盛到{s.name}的盘里（空{v}留在手中）' + self.plating_note(s.food, a.hand.contents),
+                    'plate_counter', key)
             if s.food.stage == 'pot' and a.hand and self.can_add(a.hand,s.food.contents):
-                add(f'plate {key}', f'用手中的盘盛出{s.name}的{self.vessel_name(s.food.id)}里的菜', 'plate_from_counter', key,
-                    english=f'Plate food from the {self.vessel_english(s.food.id)} on {english_text(s.name)}')
+                add(f'plate {key}', f'用手中的盘盛出{s.name}的{self.vessel_name(s.food.id)}里的菜' + self.plating_note(a.hand, s.food.contents),
+                    'plate_from_counter', key,
+                    english=self.plating_english(f'Plate food from the {self.vessel_english(s.food.id)} on {english_text(s.name)}',
+                                                 a.hand, s.food.contents))
         elif a.hand:
             add(f'put {key}', f'把手中物品放到{s.name}（每格一件）', 'put_board' if board else 'put_counter', key)
 
@@ -474,7 +495,7 @@ class Kitchen:
         if a.hand:
             if a.hand.plate_id and self.dish(a.hand):
                 for i, key in enumerate(self.serves):
-                    add("serve" if i == 0 else f"serve {key}", "拿已装盘的菜出餐（没有订单在等这道菜会扣钱，糊太久会被拒收）", "serve", key)
+                    add("serve" if i == 0 else f"serve {key}", self.serve_label(a.hand), "serve", key)
             if a.hand.stage not in ('extinguisher', 'clean_plate', 'dirty_plate', 'pot'):
                 add("discard", f"去垃圾桶丢弃手中食物（损耗 {loss} 元，无法捡回）", "discard", self.bins[0])
             if a.hand.stage == 'pot' and a.hand.contents:
@@ -517,7 +538,8 @@ class Kitchen:
                 if self.can_swap_pots(a.hand,item.food):
                     out.append(Action('swap pot ground '+item_id,f'与地上的{self.vessel_name(item_id)}交换（各自保留里面的食物）','swap_ground_pot',item.location,self.ground_swap_signature(who,item_id)))
                 out.append(Action(f"pickup {item_id}",
-                                  f"去{self.place(item.location).name}捡起 {item_id}（{self.food_name(item.food)}；自动换手）",
+                                  f"去{self.place(item.location).name}捡起 {item_id}（{self.food_name(item.food)}；自动换手）"
+                                  + self.food_note(item.food),
                                   "pickup", item.location, (a.hand.id if a.hand else None, item_id, item.location)))
                 if self.can_load_ground(who,item_id):
                     out.append(Action('load ground '+item_id,f'把{self.load_label(a.hand)}放入地上空{self.vessel_name(item_id)}（离灶不加热）','load_ground',item.location,self.ground_plate_signature(who,item_id)))
@@ -526,9 +548,11 @@ class Kitchen:
                                       item.location,self.ground_assembly_signature(who,item_id)))
                 if self.can_plate_ground(who, item_id):
                     v, english = self.vessel_name(item_id), self.vessel_english(item_id)
-                    out.append(Action(f'plate ground {item_id}', f'用手中的干净盘盛出地上{v}里的菜（空{v}留在原地）',
+                    out.append(Action(f'plate ground {item_id}', f'用手中的干净盘盛出地上{v}里的菜（空{v}留在原地）'
+                                      + self.plating_note(a.hand, item.food.contents),
                                       'plate_ground', item.location, self.ground_plate_signature(who, item_id),
-                                      f'Plate food from the {english} on the floor (empty {english} stays in place)'))
+                                      self.plating_english(f'Plate food from the {english} on the floor (empty {english} stays in place)',
+                                                           a.hand, item.food.contents)))
         for key in self.boards:
             s = self.stations[key]
             if s.lock not in (None, who):
@@ -552,16 +576,22 @@ class Kitchen:
                         'return_pot', key)
                 continue
             v = self.vessel_name(s.pot_id)
-            add(f'take pot {key}', f'端起{s.name}的{v}（离开灶台停止加热，占手持位）', 'lift_pot', key)
+            # A pan of burnt food says its tier as the lift leaves it: its burnt time runs until the lift ends (step_service).
+            add(f'take pot {key}', f'端起{s.name}的{v}（离开灶台停止加热，占手持位）'
+                + self.burnt_note(self.step_service(who, key, 'lift_pot'), '锅里是糊菜', '端起'), 'lift_pot', key)
             if a.hand and a.hand.stage=='pot':
-                add('swap pot '+key,f'与{s.name}的{v}交换（各自保留里面的食物）','swap_pot',key)
+                # The swap takes the stove's pan off the stove, as a lift does: its tier as the swap leaves it.
+                add('swap pot '+key,f'与{s.name}的{v}交换（各自保留里面的食物）'
+                    + self.burnt_note(self.step_service(who, key, 'swap_pot'), '锅里是糊菜', '换下'), 'swap_pot', key)
             if not s.food and a.hand and self.rules.potable(a.hand, self.rules.vessels.get(s.pot_id)):
                 # Food put in a pan on a burning stove waits until the fire is out (stove_heats; it is never burnt).
                 add(f"put {key}", f"将{self.load_label(a.hand)}放进{s.name}的{v}，{'灭火后开始加热' if s.fire else '开始自动加热'}",
                     "put_pot", key)
             if s.food:
                 if a.hand and self.can_add(a.hand,s.food):
-                    add(f'plate {key}', f'用手中的干净盘盛出{s.name}的菜', 'plate_pot', key)
+                    # The tier of the dish the step makes: the burnt time runs until the food leaves the stove.
+                    add(f'plate {key}', f'用手中的干净盘盛出{s.name}的菜'
+                        + self.burnt_note(self.step_service(who, key, 'plate_pot', a.hand), step='装盘'), 'plate_pot', key)
         for target, s in self.stations.items():
             if target != a.location:
                 add(f"go {target}", f"走到{s.name}（{s.area}）", "go", target)
@@ -636,14 +666,19 @@ class Kitchen:
 
     def merge_plate(self,plate,ingredient):
         assert self.can_add(plate,ingredient)
-        parts=self.parts(plate)|{ingredient.ingredient}
-        stage=self._dish_stage(parts,plate.stage,ingredient.stage)
-        combined = Food(ingredient.id if not plate.plate_id else plate.id,stage,chopped=max(plate.chopped,ingredient.chopped),heated=max(plate.heated,ingredient.heated),plate_id=plate.plate_id or plate.id,
-                    ingredient='dish',components=tuple(sorted(parts)))
+        combined = self.combined(plate, ingredient)
         observer = getattr(self, '_record_observer', None)
         if observer is not None:
             observer.item_transform([plate.id, ingredient.id], [combined.id])
         return combined
+
+    def combined(self, plate, ingredient):
+        """The plate merge_plate makes of a plate and an ingredient, without recording it: what a plating step's
+        label reads the result from (plating_note)."""
+        parts=self.parts(plate)|{ingredient.ingredient}
+        stage=self._dish_stage(parts,plate.stage,ingredient.stage)
+        return Food(ingredient.id if not plate.plate_id else plate.id,stage,chopped=max(plate.chopped,ingredient.chopped),heated=max(plate.heated,ingredient.heated),plate_id=plate.plate_id or plate.id,
+                    ingredient='dish',components=tuple(sorted(parts)))
 
     def can_merge_plates(self, destination, source):
         if not source or not source.plate_id or source.stage not in ('ready','burnt','assembled'):
@@ -660,15 +695,189 @@ class Kitchen:
     def merge_plates(self, destination, source):
         """Return combined destination and the original, clean source plate."""
         assert self.can_merge_plates(destination,source)
-        parts=self.parts(destination)|self.parts(source)
-        stage=self._dish_stage(parts,destination.stage,source.stage)
-        combined=Food(destination.id,stage,chopped=max(destination.chopped,source.chopped),
-                      heated=max(destination.heated,source.heated),plate_id=destination.plate_id or destination.id,
-                      ingredient='dish',components=tuple(sorted(parts)))
+        combined=self.merged(destination,source)
         observer = getattr(self, '_record_observer', None)
         if observer is not None:
             observer.item_transform([destination.id, source.id], [combined.id, source.plate_id])
         return combined,Food(source.plate_id,'clean_plate')
+
+    def merged(self, destination, source):
+        """The plate merge_plates makes in the destination, without recording it (plating_note reads it too)."""
+        parts=self.parts(destination)|self.parts(source)
+        stage=self._dish_stage(parts,destination.stage,source.stage)
+        return Food(destination.id,stage,chopped=max(destination.chopped,source.chopped),
+                    heated=max(destination.heated,source.heated),plate_id=destination.plate_id or destination.id,
+                    ingredient='dish',components=tuple(sorted(parts)))
+
+    # Burnt food's tier (servability.py) -------------------------------------------------------------------------
+    def burnt_service(self, food, running=0., gained=0.):
+        """How the burnt-food scoring takes a dish with this food if it is served as the food is now, or None for food
+        that is not burnt (or rules without tiers): {'outcome': 'accepted' or 'rejected', 'adjustment': the tier's
+        price change, 'left': seconds}. Kitchen._serve reads the same when a dish is served, once an order waits for
+        the dish (waiting_order; with none, serving costs the wrong-dish penalty whatever the tier).
+
+        The burnt time is the worst heated component's (Rules.overcook), loose, in a pan or on a plate. running: the
+        rate it runs at now (heat_rate: the stove's, while the food is on a stove; True is 1); then left is the
+        seconds the food stays in its accepted tier, while off a stove the burnt time stands still and left is None
+        (also for an open last tier or a refusal). gained: burnt time the food gains before it is judged, as a step
+        that takes it off a stove gives it on the way (step_gain); left then counts from the moment the step would
+        start, so it is how long the start may wait."""
+        if food is None or food.stage != 'burnt':
+            return None
+        overcook = self.rules.overcook(food, food.components or (food.ingredient,)) + gained
+        tier = self.rules.burnt_tier(overcook)
+        if tier is None:
+            return None
+        limit = tier['max_overcook_game_ms']
+        left = (max(0., limit/1000 - overcook)/running if running and tier['outcome'] == 'accepted' and limit is not None
+                else None)
+        return {'outcome': tier['outcome'], 'adjustment': tier['adjustment'], 'left': left}
+
+    def heat_rate(self, key):
+        """The rate the food on this station heats at now, and burnt food's burnt time runs at: the stove's work rate
+        while it heats the food (stove_heats), 0 anywhere else."""
+        s = self.stations[key]
+        return self.rules.work_rate(key, 'heat') if key in self.pots and self.stove_heats(s) else 0.
+
+    def step_gain(self, who, key, kind):
+        """The heat the food on this stove gains if the chef starts this step now and the step takes the food off the
+        stove (a lift, a swap with its pan, plating from it): through the step's walk (travel_time) and handling,
+        counted in the engine's substeps (SUBSTEP; advance heats the stoves before the chefs' steps go on, so through at
+        least one), at the stove's rate. The walk is counted on a free route, as walk times are elsewhere: a walk the
+        other chef blocks takes longer, and the food gains more. A stove the chef cannot walk to has no such step
+        listed (SpatialKitchen.reaches_action), and gets the handling alone."""
+        try:
+            walk = self.travel_time(self.chefs[who], key, kind)
+        except ValueError:          # no route there from where the chef stands
+            walk = 0.
+        seconds = walk + self.rules.handling
+        return max(1, math.ceil(seconds/SUBSTEP - 1e-6)) * SUBSTEP * self.heat_rate(key)
+
+    def step_service(self, who, key, kind, plate=None):
+        """burnt_service of the food on this stove (with plate: of the plate the step makes of the plate and the food)
+        as the step of this kind leaves it if the chef starts it now: its burnt time runs on until the step takes it
+        off the stove (step_gain), and left is how long the start may wait for the tier to hold. None when no burnt
+        food is in it."""
+        food = self.stations[key].food
+        if food is None or (food.stage != 'burnt' and (plate is None or plate.stage != 'burnt')):
+            return None
+        rate = self.heat_rate(key) if food.stage == 'burnt' else 0.
+        gained = self.step_gain(who, key, kind) if rate else 0.
+        if plate is None:
+            return self.burnt_service(food, rate, gained)
+        return self.plating_service(plate, food, rate, gained=gained)
+
+    def burnt_places(self):
+        """[(where, key, food, burnt_service)] for each burnt food in the kitchen now, loose, plated or in a pan (food
+        is the burnt food itself, not its pan): where is 'station' (the food in a stove's pan with its burnt time
+        running), 'chef' or 'ground' (key: the item on the floor). Food in the air is not here (the kitchen view
+        names it with its tier, request_parts)."""
+        out = []
+
+        def add(where, key, food, running=0.):
+            if food is not None and food.stage == 'pot':
+                food = food.contents
+            status = self.burnt_service(food, running)
+            if status:
+                out.append((where, key, food, status))
+        for key, s in self.stations.items():
+            add('station', key, s.food, self.heat_rate(key))
+        for who, chef in self.chefs.items():
+            add('chef', who, chef.hand)
+        for item_id, item in self.ground.items():
+            add('ground', item_id, item.food)
+        return out
+
+    @staticmethod
+    def burnt_note(status, lead='糊菜', step=None):
+        """The note after a label whose step plates burnt food (lead 糊菜, "burnt food"), lifts a pan of it (lead
+        锅里是糊菜, "it holds burnt food") or picks either up: the tier a dish with it would be in ('' for food that is
+        not burnt). The language catalog gives Jeff the same in English, as servability.label_note does where the
+        engine writes its own.
+
+        Without step, as the food is now, with the seconds left while its burnt time runs on a stove. With step (装盘,
+        端起 or 换下, for a step that takes the food off a stove; status from step_service), as that step leaves it:
+        refused by then, or accepted, with how long the step may wait to start. The seconds are rounded down to the
+        tenth (servability.tenths); under a tenth, the step must start now, and food on a stove has under 0.1 s more."""
+        if not status:
+            return ''
+        price = -status['adjustment']
+        if status['outcome'] == 'rejected':
+            return f'（{lead}：{step}时已糊太久，上菜会被拒收）' if step else f'（{lead}：糊太久，上菜会被拒收）'
+        if status['left'] is None:
+            return f'（{lead}：还能上菜，扣 {price} 元）'
+        left = servability.tenths(status['left'])       # rounded down: never more time than the engine gives
+        if step and not left:
+            return f"（{lead}：只有马上开始这一步，{STEP_WORDS[step]}才还能上菜，扣 {price} 元）"
+        if step:
+            return f"（{lead}：{left:.1f} 秒内开始这一步，{STEP_WORDS[step]}还能上菜，扣 {price} 元）"
+        if not left:
+            return f"（{lead}：还能上菜，扣 {price} 元，留在灶台上还剩不到 0.1 秒）"
+        return f"（{lead}：还能上菜，扣 {price} 元，留在灶台上还剩 {left:.1f} 秒）"
+
+    def food_note(self, food):
+        """The note after a label whose step picks this food up where it lies off a stove (a take, a pick-up, a swap
+        with the pan on a counter): the tier of burnt food (lead 糊菜) or of a pan of it (lead 锅里是糊菜), whose
+        burnt time stands still there; '' for anything else."""
+        if food is not None and food.stage == 'pot':
+            return self.burnt_note(self.burnt_service(food.contents), '锅里是糊菜')
+        return self.burnt_note(self.burnt_service(food))
+
+    def plating_service(self, plate, food, running=0., merge=False, gained=0.):
+        """burnt_service of the plate a plating step makes of this plate and this food (merge: two plates), from the
+        engine's own result (combined, merged), or None when no burnt food is in it. running, gained: the food is on a
+        stove until the step ends (step_service), and its burnt food gains this much heat by then; the plate's burnt
+        time is its most heated part's (combined), so it runs only if that is the food on the stove."""
+        if plate is None or food is None or 'burnt' not in (plate.stage, food.stage):
+            return None
+        if gained and food.stage == 'burnt':
+            food = replace(food, heated=food.heated + gained)
+        result = self.merged(plate, food) if merge else self.combined(plate, food)
+        return self.burnt_service(result, running if food.heated >= plate.heated else 0.)
+
+    def plating_note(self, plate, food, running=0., merge=False):
+        """The note after a plating label off a stove: the tier of the plate it makes (burnt_note), '' with no burnt
+        food."""
+        return self.burnt_note(self.plating_service(plate, food, running, merge))
+
+    def plating_english(self, english, plate, food):
+        """An English label the engine writes itself (engine_english), with plating_note's English after it."""
+        return english + servability.label_note(self.plating_service(plate, food))
+
+    def waiting_order(self, food):
+        """The waiting order a dish served now goes to: of those waiting for this dish, the one with the earliest
+        deadline; None when none waits for it (serving it then costs the wrong-dish penalty, _serve)."""
+        dish = self.dish(food)
+        pending = [o for o in self.orders if o["status"] == "pending" and o["dish"] == dish]
+        return min(pending, key=lambda x: x["deadline"]) if pending else None
+
+    def serve_label(self, food):
+        """The serve option for the held dish. For a burnt one it says what serving it does now, as the serve step
+        decides (waiting_order, then _serve): with no order waiting for the dish, the wrong-dish cost, whatever the
+        tier; with one, the tier, accepted at its price change or refused with no payment, the dish lost and the order
+        still waiting."""
+        status = self.burnt_service(food)
+        if not status:
+            return SERVE_LABEL
+        if self.waiting_order(food) is None:
+            return f"拿已装盘的菜出餐（现在没有订单在等这道菜，出餐扣 {-self.rules.penalty['wrong_dish']} 元）"
+        if status['outcome'] == 'rejected':
+            return SERVE_HEAD + '这盘糊菜会被拒收，不收钱，菜没了，订单继续等待）'
+        return SERVE_HEAD + f"这盘糊菜还能上菜，扣 {-status['adjustment']} 元）"
+
+    @staticmethod
+    def plain_action(action):
+        """The action as a chef's task, the events and the player's notice of Jeff's choice carry it: without what its
+        label says at listing time of burnt food's tier (burnt_note, serve_label) or of what follows a fire for the
+        food in the stove's pan (extinguish_label), which goes stale after."""
+        if action.kind == 'serve':
+            return replace(action, label=SERVE_LABEL) if action.label != SERVE_LABEL else action
+        if action.kind == 'extinguish':
+            label = EXTINGUISH_AFTER.sub(r'\1）', action.label)
+        else:
+            label = BURNT_NOTE.sub('', action.label)
+        english = servability.LABEL_NOTE.sub('', action.english) if action.english else action.english
+        return replace(action, label=label, english=english) if (label, english) != (action.label, action.english) else action
 
     def ground_plate_signature(self, who, item_id):
         hand = self.chefs[who].hand
@@ -841,6 +1050,7 @@ class Kitchen:
             action = replace(action, english=current.english)
         if action.kind == 'extinguish':
             action = replace(action, label=self.extinguish_label(s, follows=False))
+        action = self.plain_action(action)
         self.job_serial += 1
         a.job = Job(self.job_serial, action, self.travel_time(a, action.target, action.kind), work)
         english = action.english and engine_english.started(who, action.english, a.job.travel, work)
@@ -1103,8 +1313,7 @@ class Kitchen:
             self.money += self.rules.penalty['discard']
         elif k == "serve":
             self.dining.append({'plate': Food(a.hand.plate_id, 'dirty_plate'), 'returns_at': self.time+self.dining_seconds})
-            pending = [o for o in self.orders if o["status"] == "pending" and o["dish"]==self.dish(a.hand)]
-            self._serve(who, job, a.hand, min(pending, key=lambda x: x["deadline"]) if pending else None)
+            self._serve(who, job, a.hand, self.waiting_order(a.hand))
             a.hand = None
         location = self.swap_slots.pop(job.id, None)
         if displaced:
@@ -1141,7 +1350,8 @@ class Kitchen:
                       action_id=job.id, dish=dish)
             return
         overcook = self.rules.overcook(food, self.parts(food))
-        tier = self.rules.burnt_tier(overcook) if food.stage == 'burnt' else None
+        # The tier the serve option and the plating and lift labels said (burnt_service).
+        tier = self.burnt_service(food)
         if tier and tier['outcome'] == 'rejected':
             self.emit(f"{order['id']}的顾客拒收糊菜，订单继续等待", kind='dish_rejected', actor=who, action_id=job.id,
                       order_id=order['id'], dish=dish, overcook_game_ms=round(overcook*1000))
@@ -1226,7 +1436,7 @@ class Kitchen:
             raise ValueError("时间增量无效")
         # Small deterministic substeps preserve thermal transitions and action order.
         while seconds > 1e-9 and not self.ended:
-            dt = min(seconds, .05, self.rules.round_limit-self.time)
+            dt = min(seconds, SUBSTEP, self.rules.round_limit-self.time)
             if dt <= 1e-9:
                 self._end()
                 break

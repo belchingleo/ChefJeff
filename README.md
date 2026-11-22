@@ -181,6 +181,7 @@ Every Python module at the repository root, in seven groups. **Run** marks a mod
 | --- | --- |
 | `harness.py` | Everything Jeff is shown: the rule text, the kitchen as the model sees it, the listed actions, recent events and decisions, player messages and memory |
 | `model_language.py` | The versioned English catalog (`model-language-en-v4.json`) that turns the engine's text into what Jeff reads |
+| `servability.py` | Released, no switch. Burnt food in the state, and the options that plate, lift, pick up or serve it, say whether a dish with it is still accepted, at what price, or refused |
 | `cooperation_memory.py` | Cross-round memory: bounded factual records of earlier rounds, not inferred player preferences |
 | `features.py` | **Run.** Reads and checks `features.json` and a server's override; `python3 features.py show`, `check [FILE]`; `set NAME on\|off` and `unset NAME` write the override (`/etc/chefjeff/features.override.json`, or the path in `CHEFJEFF_FEATURES_OVERRIDE`), not `features.json` |
 | `one_press.py` | **Switch** `one_press`, `throw_to`. Several presses offered as one option (put then take, put then chop, …) and carried out as ordinary steps |

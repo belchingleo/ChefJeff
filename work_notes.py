@@ -13,10 +13,16 @@ facts the others already had.
   "... then you could: Throw to the other chef; then the other chef could: Put the held beef (chopped) in the frying
   pan on Stove 1". A run of one work step is left out: the links table already names the work an option makes
   possible. Nothing when no such run exists.
-- plate_result (plate-result-v1): an option that puts food on a plate or fills one (assemble, plate from a pan or
+- plate_result (plate-result-v2): an option that puts food on a plate or fills one (assemble, plate from a pan or
   pot, add to the held plate) says what the plate is then and which waiting order asks for it: " (makes a Steak;
   order O4 waits for a Steak, 29.9 s left)", " (makes a Steak; no waiting order asks for a Steak)", or " (the plate
-  then still needs tomato (chopped) for a Burger; order O3 waits for a Burger, 31.7 s left)".
+  then still needs tomato (chopped) for a Burger; order O3 waits for a Burger, 31.7 s left)". v2 (2026-11-22): a
+  plate with burnt food says what serving it does, as the engine's serve step and burnt-food scoring give it once
+  plated (servability.py): with a waiting order for the dish, its tier (" (makes a burnt Steak: order O4 accepts it
+  at -10 yuan)", " (makes a burnt Steak: refused)"), and with none, the wrong-dish cost whatever the tier (" (makes a
+  burnt Steak; no waiting order asks for a Steak, so serving it costs 20 yuan)"); a part-made plate that a waiting
+  order's dish needs ends "; burnt food: refused)" or "; burnt food: accepted at -10 yuan)"; v1 said " (makes a
+  burnt dish)" whatever the tier.
 - board_taken (board-taken-v1): a put on a board of an item that is not chopped there (in next_action and in
   put_where) says " (Board 1 is then taken; 2 ingredients you can reach still need chopping)".
 
@@ -26,8 +32,10 @@ from __future__ import annotations
 
 import contextlib
 
+import servability
+
 OWN_CHAIN_VERSION = 'own-chain-v1'
-PLATE_RESULT_VERSION = 'plate-result-v1'
+PLATE_RESULT_VERSION = 'plate-result-v2'
 BOARD_TAKEN_VERSION = 'board-taken-v1'
 SWITCHES = {'own_chain': ('own', OWN_CHAIN_VERSION), 'plate_result': ('plate', PLATE_RESULT_VERSION),
             'board_taken': ('board', BOARD_TAKEN_VERSION)}
@@ -165,12 +173,22 @@ def _plate_note(kitchen, option):
         return None
     snapshot = twin.snapshot()
     names = {d['id']: _english(d.get('name', d['id'])) for d in snapshot.get('menu', [])}
-    if food.stage == 'burnt':
+    # v2: burnt food's tier as the dish is once plated (off the stove its burnt time stands still), from the engine,
+    # when a waiting order would take it; with none, serving it costs the wrong-dish penalty whatever the tier.
+    status = twin.burnt_service(food)
+    if food.stage == 'burnt' and status is None:        # rules without burnt tiers
         return ' (makes a burnt dish)'
     dish = twin.dish(food)
     if dish:
         order = _waiting(snapshot, dish)
         name = names.get(dish, dish)
+        if status and not order:
+            return (f" (makes a burnt {name}; no waiting order asks for a {name}, so serving it costs "
+                    f"{-twin.rules.penalty['wrong_dish']} yuan)")
+        if status and status['outcome'] == 'rejected':
+            return f' (makes a burnt {name}: refused)'
+        if status:
+            return f" (makes a burnt {name}: order {order['id']} accepts it at -{-status['adjustment']} yuan)"
         if order:
             return f" (makes a {name}; order {order['id']} waits for a {name}, {order['remaining']:.1f} s left)"
         return f' (makes a {name}; no waiting order asks for a {name})'
@@ -191,6 +209,8 @@ def _plate_note(kitchen, option):
     name = names.get(recipe['id'], recipe['id'])
     tail = (f"order {order['id']} waits for a {name}, {order['remaining']:.1f} s left" if order
             else f'no waiting order asks for a {name}')
+    if status and order:            # the tier only for an order that would take the dish
+        tail += '; burnt food: ' + ('refused' if status['outcome'] == 'rejected' else servability.accepted(status))
     return f' (the plate then still needs {missing} for a {name}; {tail})'
 
 

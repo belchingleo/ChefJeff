@@ -1104,9 +1104,86 @@
     "仅允许本机或 USB 转发访问。": "Only this computer or USB forwarding may connect.",
     "请先构建 Cocos Web 预览，或检查路径。": "Build the Cocos web preview first, or check the path.",
     "水槽旁边要留一格空位放沥水架": "Leave a free cell beside the sink for its drying rack",
-    "沥水架要紧挨着水槽": "The drying rack goes right beside the sink"
+    "沥水架要紧挨着水槽": "The drying rack goes right beside the sink",
+    "拿已装盘的菜出餐（没有订单在等这道菜会扣钱；这盘糊菜会被拒收，不收钱，菜没了，订单继续等待）": "Serve the plated dish (serving a dish no order is waiting for costs money; this burnt dish is refused with no payment; the dish is lost and the order keeps waiting)"
   },
   "templates": [
+    [
+      "{0}（糊菜：还能上菜，扣 {1} 元，留在灶台上还剩不到 0.1 秒）",
+      "{0} (burnt food: accepted at -{1} yuan for under 0.1 s more while on the stove)"
+    ],
+    [
+      "{0}（糊菜：还能上菜，扣 {1} 元，留在灶台上还剩 {2} 秒）",
+      "{0} (burnt food: accepted at -{1} yuan for {2} s more while on the stove)"
+    ],
+    [
+      "{0}（糊菜：还能上菜，扣 {1} 元）",
+      "{0} (burnt food: accepted at -{1} yuan)"
+    ],
+    [
+      "{0}（糊菜：糊太久，上菜会被拒收）",
+      "{0} (burnt food: refused)"
+    ],
+    [
+      "{0}（锅里是糊菜：还能上菜，扣 {1} 元，留在灶台上还剩不到 0.1 秒）",
+      "{0} (it holds burnt food: accepted at -{1} yuan for under 0.1 s more while on the stove)"
+    ],
+    [
+      "{0}（锅里是糊菜：还能上菜，扣 {1} 元，留在灶台上还剩 {2} 秒）",
+      "{0} (it holds burnt food: accepted at -{1} yuan for {2} s more while on the stove)"
+    ],
+    [
+      "{0}（锅里是糊菜：还能上菜，扣 {1} 元）",
+      "{0} (it holds burnt food: accepted at -{1} yuan)"
+    ],
+    [
+      "{0}（锅里是糊菜：糊太久，上菜会被拒收）",
+      "{0} (it holds burnt food: refused)"
+    ],
+    [
+      "拿已装盘的菜出餐（没有订单在等这道菜会扣钱；这盘糊菜还能上菜，扣 {0} 元）",
+      "Serve the plated dish (serving a dish no order is waiting for costs money; this burnt dish is accepted at -{0} yuan)"
+    ],
+    [
+      "{0}（糊菜：{1} 秒内开始这一步，装出的菜还能上菜，扣 {2} 元）",
+      "{0} (burnt food: accepted at -{2} yuan if this starts within {1} s)"
+    ],
+    [
+      "{0}（锅里是糊菜：{1} 秒内开始这一步，端起后还能上菜，扣 {2} 元）",
+      "{0} (it holds burnt food: accepted at -{2} yuan if this starts within {1} s)"
+    ],
+    [
+      "{0}（锅里是糊菜：{1} 秒内开始这一步，换下后还能上菜，扣 {2} 元）",
+      "{0} (it holds burnt food: accepted at -{2} yuan if this starts within {1} s)"
+    ],
+    [
+      "{0}（糊菜：只有马上开始这一步，装出的菜才还能上菜，扣 {1} 元）",
+      "{0} (burnt food: accepted at -{1} yuan only if this starts now)"
+    ],
+    [
+      "{0}（锅里是糊菜：只有马上开始这一步，端起后才还能上菜，扣 {1} 元）",
+      "{0} (it holds burnt food: accepted at -{1} yuan only if this starts now)"
+    ],
+    [
+      "{0}（锅里是糊菜：只有马上开始这一步，换下后才还能上菜，扣 {1} 元）",
+      "{0} (it holds burnt food: accepted at -{1} yuan only if this starts now)"
+    ],
+    [
+      "{0}（糊菜：装盘时已糊太久，上菜会被拒收）",
+      "{0} (burnt food: refused, burnt too long by the time it is plated)"
+    ],
+    [
+      "{0}（锅里是糊菜：端起时已糊太久，上菜会被拒收）",
+      "{0} (it holds burnt food: refused, burnt too long by the time it is lifted)"
+    ],
+    [
+      "{0}（锅里是糊菜：换下时已糊太久，上菜会被拒收）",
+      "{0} (it holds burnt food: refused, burnt too long by the time the swap takes it off the stove)"
+    ],
+    [
+      "拿已装盘的菜出餐（现在没有订单在等这道菜，出餐扣 {0} 元）",
+      "Serve the plated dish (no order is waiting for this dish now, so serving it costs {0} yuan)"
+    ],
     [
       "标准时间 {0} 秒",
       "{0} s of standard time"

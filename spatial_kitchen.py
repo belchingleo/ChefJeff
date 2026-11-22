@@ -1031,7 +1031,11 @@ class SpatialKitchen(Kitchen):
                 if action: actions.append(action)
         if self.can_plate_partner(who):
             other = 'jeff' if who == 'human' else 'human'
-            actions.append(Action('plate partner','走近，把食材加入队友手中的盘（容器留在原持有者手中）',
+            donor, plate = chef.hand, self.chefs[other].hand
+            # What the receiving plate becomes, as _finish makes it: the tier when burnt food is in it (burnt_note).
+            merge = self.can_merge_plates(plate, donor)
+            note = self.plating_note(plate, donor if merge or donor.stage != 'pot' else donor.contents, merge=merge)
+            actions.append(Action('plate partner','走近，把食材加入队友手中的盘（容器留在原持有者手中）' + note,
                                   'plate_partner',tile_key(self.anchor(other)),self.partner_signature(who)))
         # Both chefs can walk into the other on purpose; contact then pushes (sprint: one bounded shove).
         other = 'jeff' if who == 'human' else 'human'
@@ -1334,6 +1338,7 @@ class SpatialKitchen(Kitchen):
         if action.kind == 'plate_partner':
             if not self.can_plate_partner(who) or action.expected != self.partner_signature(who) or self.ended:
                 return False, '队友或锅中的物品已变化'
+            action = self.plain_action(action)      # the task leaves the burnt tier out, as Kitchen.start does
             self.stop(who)
             self.job_serial += 1
             self.chefs[who].job = Job(self.job_serial,action,self.travel_time(self.chefs[who],action.target),self.c.get('handling_seconds',.15))

@@ -30,7 +30,7 @@ from __future__ import annotations
 
 from kitchen import Action
 
-VERSION = 'one-press-v6'
+VERSION = 'one-press-v7'
 THROW_TO_VERSION = 'throw-to-v1'      # the throw_to trial (features.json)
 # v1: put then take and wash from the plate return only; v2 added put then chop and put then wash; v3 gives those two
 # the seconds of work left, as the engine's own chop and wash labels do; v4 adds put then fetch; v5 words put then take
@@ -39,7 +39,10 @@ THROW_TO_VERSION = 'throw-to-v1'      # the throw_to trial (features.json)
 # was offered and 1% of the times the plain lift was. v6 adds a free stove to the put places (the engine's own "put pot
 # <stove>", listed while Jeff holds a pan or pot and the stove is free): before it, after plating from a pan Jeff could
 # put the empty pan only on a counter, a supply or the floor, and in the user's 2026-11-21 level-4 rounds he set it
-# down off the stoves about 3.5 times a round and never straight back.
+# down off the stoves about 3.5 times a round and never straight back. v7 (2026-11-22, servability-v1): put then take
+# of burnt food or a pan of it ends with the tier a dish with it would be in, as the engine's take label does, and put
+# then lift of a pan of burnt food with the tier as it is now, since the put comes first (" (it holds burnt food:
+# accepted at -10 yuan for 2.1 s more while on the stove)"); v6 said nothing of the tier.
 NAMES = ('put_then_take', 'wash_from_returns')
 # The options that put the held item down first, where put_where says.
 PUT_KINDS = ('put_then_take', 'put_then_chop', 'put_then_wash', 'put_then_fetch', 'wash_from_returns')
@@ -110,11 +113,14 @@ def options(kitchen, who, actions, value):
                 continue
             seen.add(target)
             if take.kind == 'lift_pot':
-                # The engine's own lift label: the pan or pot is what is taken, and it stops heating off the stove.
-                label = f'先把手中的{kitchen.food_name(held)}放到 put_where 选的位置，再{take.label}'
+                # The engine's own lift label: the pan or pot is what is taken, and it stops heating off the stove. v7:
+                # its burnt food's tier is given as it is now (servability-v1): the lift's own label gives it as a lift
+                # started now leaves it, and here the put comes first.
+                label = (f'先把手中的{kitchen.food_name(held)}放到 put_where 选的位置，再{kitchen.plain_action(take).label}'
+                         + kitchen.burnt_note(kitchen.burnt_service(food, kitchen.heat_rate(target)), '锅里是糊菜'))
             else:
                 label = (f'先把手中的{kitchen.food_name(held)}放到 put_where 选的位置，'
-                         f'再从{kitchen.stations[target].name}拿起{kitchen.food_name(food)}')
+                         f'再从{kitchen.stations[target].name}拿起{kitchen.food_name(food)}' + kitchen.food_note(food))
             out.append(Action(PUT_THEN_TAKE + target, label, 'put_then_take', target))
         worked = set()
         for work in empty:

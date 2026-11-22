@@ -21,7 +21,7 @@ alike, so every combination rebuilds exactly. With every part off the request is
   option of that kind is listed; the fire rule also while food is on a stove or anything burns or heats up; the
   others always, the vessels rule included (v2: v1 left it out while no pot option was listed, so a chef holding raw
   beef read nowhere that a pan takes beef only once chopped). past_episodes, rule and state, goes while it is disabled.
-- kitchen_view (kitchen-view-v7): state.kitchen keeps what the kitchen is now, written out: the clock, money and
+- kitchen_view (kitchen-view-v8): state.kitchen keeps what the kitchen is now, written out: the clock, money and
   stars, which vessel cooks what (v2), waiting and served orders (v5: no dishes block; the rules give the recipes and
   prices), the two chefs (v6: Jeff's own line only while he holds something, and then only what he holds; with "you:
   at Counter 4, holding nothing, doing nothing" Jev took back what he had just put down for the other chef in 52 of
@@ -33,6 +33,14 @@ alike, so every combination rebuilds exactly. With every part off the request is
   burning, which a fire spreading to a stove made false once it stopped burning food, 2026-11-22); burnt food says
   how long it has been burnt, on a stove and off it (its burnt time runs while it stays on a stove, and the burnt-food
   scoring counts it); a pan off the stove gives its times for a stove that is not on fire while one is.
+  v8: burnt food's name says whether a dish with it is accepted, at what price change and, on a stove, for how many
+  seconds more, or refused (the state's food text, servability.py: "frying pan P1 with beef (burnt; accepted at -10
+  yuan for 2.1 s more while on the stove) B1: burnt for 2.9 s"), and so does burnt food in the air ("B2 burnt dish
+  (accepted at -10 yuan), thrown by you: ..."; a burnt dish read as its dish before); v7 said only how long it
+  had been burnt. The burnt time is rounded up to the tenth of a second (burnt_seconds), so food the tier refuses
+  never reads as burnt for the tier's limit ("burnt for 5.0 s" for 5.02 s), and the seconds left are rounded down
+  (servability.tenths), so on a stove at the standard heat rate the two never add up to more than the limit ("burnt
+  for 3.0 s" with "for 2.0 s more" for 2.94 s).
   v3: a stove's line gives only the next thing to happen (cooked; then burns and catches fire; then catches fire).
   v2: a loose ingredient says what it still needs, from the same request's facts ("beef (as fetched) F3 (not chopped
   yet (2.2 s of chopping); a frying pan cooks it only once it is chopped)"); v1 dropped the chopping left and the
@@ -48,12 +56,14 @@ import math
 import re
 from types import SimpleNamespace
 
+import servability
+
 PLACE_NAMES_VERSION = 'place-names-v1'
 TIMELINE_VERSION = 'timeline-v3'
 NO_HISTORY_VERSION = 'no-history-v1'
 LINKS_ON_OPTIONS_VERSION = 'links-on-options-v1'
 RULES_BY_ACTION_VERSION = 'rules-by-action-v3'
-KITCHEN_VIEW_VERSION = 'kitchen-view-v7'
+KITCHEN_VIEW_VERSION = 'kitchen-view-v8'
 # features.json name -> (finish() argument, version).
 SWITCHES = {'place_names': ('place', PLACE_NAMES_VERSION), 'timeline': ('timeline', TIMELINE_VERSION),
             'no_history': ('no_history', NO_HISTORY_VERSION),
@@ -394,6 +404,12 @@ def _burnt_for(food, kitchen):
         return None
 
 
+def burnt_seconds(burnt):
+    """v8: a burnt time as the view writes it, rounded up to the tenth of a second (within the 1e-8 s the tiers allow,
+    Rules.burnt_tier), so food burnt past a tier's limit never reads as burnt for the limit itself."""
+    return f'{math.ceil((burnt - 1e-8) * 10) / 10:.1f}'
+
+
 def _a_stove_burns(kitchen):
     try:
         return any(kitchen.stations[sid].fire for sid in kitchen.pots)
@@ -421,7 +437,7 @@ def _pan_next(food, kitchen):
         return f'burns {burn - heated:.1f} s after it is back on {stove}'
     if stage == 'burnt':
         burnt = _burnt_for(contents, kitchen)
-        out = [f'burnt for {burnt:.1f} s'] if burnt is not None else []
+        out = [f'burnt for {burnt_seconds(burnt)} s'] if burnt is not None else []
         if heated < fire:
             out.append(f'the stove catches fire {fire - heated:.1f} s after it is back on {stove}')
         return '; '.join(out) or None
@@ -440,7 +456,7 @@ def _food(food, kj=None, kitchen=None):
         needs.append(pan)
     burnt = _burnt_for(food, kitchen)       # v7: burnt food on a plate or loose
     if burnt is not None:
-        needs.append(f'burnt for {burnt:.1f} s')
+        needs.append(f'burnt for {burnt_seconds(burnt)} s')
     if needs:
         text += ' (' + '; '.join(needs) + ')'
     return text
@@ -472,7 +488,7 @@ def _stove(s, partner=None, kitchen=None):
     elif stage == 'burnt':
         burnt = _burnt_for(food, kitchen)
         if burnt is not None:
-            times.append(f'burnt for {burnt:.1f} s')
+            times.append(f'burnt for {burnt_seconds(burnt)} s')
         if fire and heating and not burning:
             times.append(f'the stove catches fire in {fire:.1f} s')
     if partner is not None:
@@ -617,24 +633,37 @@ def _chefs(kj, kitchen=None):
 STATE_WORD = {'raw': 'as fetched', 'ready': 'cooked'}
 
 
-def _flying(p, kj):
-    """v4: an item in the air named as the request names food elsewhere (v3 printed the raw stage: "P1 beef (pot)")."""
+def _flying(p, kj, kitchen=None):
+    """v4: an item in the air named as the request names food elsewhere (v3 printed the raw stage: "P1 beef (pot)").
+    v8: burnt food with its tier (_tiered); a burnt dish is a burnt dish, as food_names names it."""
     stage = p.get('stage')
     if stage == 'pot':
         vessel = ((kj.get('vessels') or {}).get(p.get('vessel')) or {}).get('name', 'pan')
         c = p.get('contents')
-        return f"{vessel} with {c['ingredient']} ({STATE_WORD.get(c['stage'], c['stage'])})" if c else f'empty {vessel}'
+        return _tiered(f"{vessel} with {c['ingredient']} ({STATE_WORD.get(c['stage'], c['stage'])})" if c
+                       else f'empty {vessel}', p, kitchen)
     if stage in ('clean_plate', 'dirty_plate'):
         return 'Clean plate' if stage == 'clean_plate' else 'Dirty plate'
     if p.get('plate_id') or p.get('components'):
+        if stage == 'burnt':
+            return _tiered('burnt dish', p, kitchen)
         parts = sorted(p.get('components') or [])
         dish = next((d.get('name') for d in kj.get('dishes') or []
                      if sorted(c.get('item') for c in d.get('components', [])) == parts), None)
         return dish or 'plate with ' + ', '.join(parts)
-    return f"{p.get('ingredient')} ({STATE_WORD.get(stage, stage)})"
+    return _tiered(f"{p.get('ingredient')} ({STATE_WORD.get(stage, stage)})", p, kitchen)
 
 
-def _in_the_air(kj, names):
+def _tiered(name, p, kitchen):
+    """v8: the name of burnt food in the air with its tier (servability.described; its burnt time stands still in
+    flight), from the engine's own item (Kitchen.burnt_service); the name as it is for anything else."""
+    flying = (getattr(kitchen, 'projectiles', None) or {}).get(p.get('id')) if kitchen is not None else None
+    food = flying.get('food') if isinstance(flying, dict) else None
+    status = kitchen.burnt_service(food.contents if food.stage == 'pot' else food) if food is not None else None
+    return servability.described(name, status) if status else name
+
+
+def _in_the_air(kj, names, kitchen=None):
     out = []
     chefs = kj.get('chefs') or {}
     for p in kj.get('projectiles') or []:
@@ -644,7 +673,7 @@ def _in_the_air(kj, names):
         lands = max(0.0, float(p.get('lands_at', 0)) - float(kj.get('time', 0)))
         aimed = next((WHO_LABEL[who] for who, c in chefs.items() if who in WHO_LABEL and p.get('to') and c.get('position')
                       and math.dist(tuple(p['to']), tuple(c['position'])) < 0.75), None)
-        out.append(f"{p.get('id')} {_flying(p, kj)}, thrown by {WHO_LABEL.get(p.get('actor'), p.get('actor'))}"
+        out.append(f"{p.get('id')} {_flying(p, kj, kitchen)}, thrown by {WHO_LABEL.get(p.get('actor'), p.get('actor'))}"
                    + (f', aimed at {aimed}' if aimed else '') + f': comes down at {where} in {lands:.1f} s')
     return out
 
@@ -694,7 +723,7 @@ def kitchen_view(payload, kitchen):
             key, text = g.get('near', g.get('location')), _food(g.get('food'), kj, kitchen)
             bucket[key] = f'{bucket[key]}; {text}' if key in bucket else text
         view['floor'] = floor
-    air = _in_the_air(kj, names)
+    air = _in_the_air(kj, names, kitchen)
     if air:
         view['in_the_air'] = air
     fire = kj.get('fire_safety') or {}

@@ -97,7 +97,7 @@ class OptionTests(unittest.TestCase):
     def test_a_held_pan_can_go_back_on_a_free_stove_first(self):
         # v6: the engine's "put pot <stove>" is a put place, so "put then take" can return an empty pan to its stove;
         # before it the pan could only go to a counter, a supply or the floor.
-        self.assertEqual(one_press.VERSION, 'one-press-v6')
+        self.assertEqual(one_press.VERSION, 'one-press-v7')
         k = SpatialKitchen(level_config(load_config(), 'level-2'))
         start(k, 'jeff', 'take pot p1')
         acts = k.actions('jeff')
@@ -406,13 +406,13 @@ class SessionTests(unittest.TestCase):
                                            'step_check': {'on': False, 'version': 'step-check-v3'},
                                            'walk_note': {'on': False, 'version': 'walk-note-v1'},
                                            'clear_text': {'on': True, 'version': 'clear-text-v1'},
-                                           'option_notes': {'on': False, 'version': 'option-notes-v3'},
+                                           'option_notes': {'on': False, 'version': 'option-notes-v4'},
                                            'go_note': {'on': False, 'version': 'go-note-v1'},
                                            **{name: {'on': False, 'version': version}
                                               for name, (_, version) in request_parts.SWITCHES.items()},
                                            'throw_to': {'on': False, 'version': 'throw-to-v1'},
                                            'own_chain': {'on': False, 'version': 'own-chain-v1'},
-                                           'plate_result': {'on': False, 'version': 'plate-result-v1'},
+                                           'plate_result': {'on': False, 'version': 'plate-result-v2'},
                                            'board_taken': {'on': False, 'version': 'board-taken-v1'}})
         self.assertNotIn('jeff_plan', row)                 # the plan modes went 2026-11-20
 

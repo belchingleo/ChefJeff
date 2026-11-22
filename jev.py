@@ -11,7 +11,7 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
-from kitchen import ROOT
+from kitchen import ROOT, Kitchen
 from model_language import english_data
 # Jeff's input is assembled in harness.py; these names stay importable from here.
 from harness import (AGENT_RULES_VERSION, CONTINUITY_RULE, NO_MEMORY, PLAYER_COMMUNICATION_RULE,  # noqa: F401
@@ -22,6 +22,7 @@ import undo_note
 import environment
 import ask_ahead
 import engine_english
+import servability
 
 ENDPOINT = "https://api.typesafe.ai/v1/systemone"
 
@@ -181,7 +182,10 @@ def finish_payload(payload, kitchen, actions, undo, names, links, serve_note, cl
             clear_names.apply(payload, kitchen)
         if serve_note:
             import option_notes
-            option_notes.apply_links(payload)
+            option_notes.apply_links(payload, kitchen)
+    # Released (servability-v1): each burnt food's tier in the state's food text. After the notes that read the
+    # state's names (clear_names puts them into labels), before the request parts (the kitchen view shows it too).
+    servability.apply(payload, kitchen)
     if parts:
         import request_parts
         request_parts.finish(payload, kitchen, **parts)
@@ -570,7 +574,10 @@ class DecisionLoop:
                 self.recent_decisions = self.recent_decisions[-8:]
                 quiet = decision.kind in ("continue", "wait")
                 if not quiet or not applied or now-self.last_wait_notice >= 8:
-                    self.notify(f"Jeff 选择：{decision.label} | {result['latency']:.2f}s" + ("" if applied else f" | 未执行：{message}"))
+                    # The label without what it said at listing time of burnt food's tier or of what follows a fire
+                    # (Kitchen.plain_action): the notice stays on the player's status line after its seconds go stale.
+                    shown = Kitchen.plain_action(decision).label
+                    self.notify(f"Jeff 选择：{shown} | {result['latency']:.2f}s" + ("" if applied else f" | 未执行：{message}"))
                     self.last_wait_notice = now
                 if not applied:
                     self.last_revision = -1

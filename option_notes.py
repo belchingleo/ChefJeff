@@ -8,19 +8,23 @@ that dish ("Take Steak from Counter 6 (the Steak there goes to order O4, which w
 does the serve line the links table gives such an option. In a 2026-11-19 play round a Steak lay on Counter 6 for 97 s
 while O4 waited for one and expired twice: its take option said only "Take Steak from Counter 6", and the links table's
 serve line said that serving a dish no order waits for costs money.
+serve-note-v3 (2026-11-22): a burnt dish the engine refuses (Kitchen.burnt_service, servability.py) gets no note
+naming the order it goes to: the order does not take it, and the serve label says so. v2 gave a held Steak burnt past
+the tier "(the held Steak goes to order O1, which waits for Steak: 60 s left)" next to "this burnt dish is refused".
 
 wait-note-v2 (removed 2026-11-20 with option-notes-v3): the wait option said what Jeff keeps in hand while waiting
 and the continue option which step it continues and how long is left. In a 2026-11-19 re-ask of 40 moments where Jev
 waited, adding it left 39 of 40 still waiting, the same as without it.
 
-It reads only the request's own state (after translation and food names) and says nothing about what to do.
+It reads the request's own state (after translation and food names), and the engine's kitchen only for a burnt dish's
+tier; it says nothing about what to do.
 """
 from __future__ import annotations
 
-SERVE_VERSION = 'serve-note-v2'
+SERVE_VERSION = 'serve-note-v3'
 # The option_notes switch (2026-11-19: was serve_note and wait_note). option-notes-v1: serve-note-v1 + wait-note-v2;
-# option-notes-v2: serve-note-v2 + wait-note-v2; option-notes-v3: serve-note-v2 alone.
-VERSION = 'option-notes-v3'
+# option-notes-v2: serve-note-v2 + wait-note-v2; option-notes-v3: serve-note-v2 alone; option-notes-v4: serve-note-v3.
+VERSION = 'option-notes-v4'
 SERVE_FOR = ' (the held {food} goes to order {order}, which waits for {dish}: {seconds:.0f} s left)'
 SERVE_NONE = ' (no order is waiting for {dish} now)'
 TAKE_FOR = ' (the {food} there goes to order {order}, which waits for {dish}: {seconds:.0f} s left)'
@@ -33,8 +37,18 @@ def _held(payload):
     return held if isinstance(held, dict) else None
 
 
-def _dish_note(payload, food, form):
-    """The note for a finished dish (a food entry of the request) in this form, or None for any other food."""
+def refused(kitchen, food):
+    """(v3) Whether the engine refuses this dish (a food entry of the request) if served to its order: burnt past the
+    last accepted tier (Kitchen.burnt_service, at the same places as servability.apply reads)."""
+    if kitchen is None or not isinstance(food, dict) or food.get('stage') != 'burnt':
+        return False
+    return any(burnt.id == food.get('id') and status['outcome'] == 'rejected'
+               for _, _, burnt, status in kitchen.burnt_places())
+
+
+def _dish_note(payload, food, form, engine=None):
+    """The note for a finished dish (a food entry of the request) in this form, or None for any other food and (v3)
+    for a burnt dish the engine (the request's Kitchen) refuses while an order waits for it."""
     if not isinstance(food, dict) or not food.get('dish'):
         return None
     kitchen = payload['state']['kitchen']
@@ -43,13 +57,15 @@ def _dish_note(payload, food, form):
     waiting = [o for o in kitchen.get('orders', []) if o.get('dish') == food['dish'] and o.get('status', 'pending') == 'pending']
     if not waiting:
         return SERVE_NONE.format(dish=dish)
+    if refused(engine, food):
+        return None
     first = min(waiting, key=lambda o: (o.get('deadline', float('inf')), o.get('id', '')))
     return form.format(food=food.get('meaning'), order=first.get('id'), dish=dish, seconds=max(0.0, first.get('remaining', 0)))
 
 
-def serve_note(payload):
-    """The note for the serve option, or None when Jeff holds no finished dish."""
-    return _dish_note(payload, _held(payload), SERVE_FOR)
+def serve_note(payload, kitchen=None):
+    """The note for the serve option, or None when Jeff holds no finished dish (or one the engine refuses)."""
+    return _dish_note(payload, _held(payload), SERVE_FOR, kitchen)
 
 
 def picked_dish(payload, key):
@@ -69,28 +85,29 @@ def picked_dish(payload, key):
     return None
 
 
-def apply_links(payload):
+def apply_links(payload, kitchen=None):
     """(v2) After the links table: the serve line given to an option that picks up a finished dish names its order."""
     table = payload['state'].get('option_links')
     if not isinstance(table, dict):
         return
     for key, lines in table.items():
         food = picked_dish(payload, key)
-        note = _dish_note(payload, food, LINK_FOR) if food else None
+        note = _dish_note(payload, food, LINK_FOR, kitchen) if food else None
         if note:
             table[key] = [line + note if line.startswith(SERVE_LINE) else line for line in lines]
 
 
-def apply_serve(payload):
+def apply_serve(payload, kitchen=None):
     """What the serve_note switch adds to an English request (harness.compose): the note and the version."""
     criteria = payload.get('questions', {}).get('next_action', {}).get('criteria', {})
-    note = serve_note(payload)
+    note = serve_note(payload, kitchen)
     if note and 'serve' in criteria:
         criteria['serve'] = criteria['serve'] + note
     for key in criteria:
         food = picked_dish(payload, key)
-        if food:
-            criteria[key] += _dish_note(payload, food, TAKE_FOR)
+        taken = _dish_note(payload, food, TAKE_FOR, kitchen) if food else None
+        if taken:
+            criteria[key] += taken
     payload['state']['serve_note_version'] = SERVE_VERSION
     return note
 

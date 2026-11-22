@@ -1,4 +1,4 @@
-"""option_notes (option-notes-v3 = serve-note-v2): options that serve or pick up a finished dish name the order it goes to.
+"""option_notes (option-notes-v4 = serve-note-v3): options that serve or pick up a finished dish name the order it goes to.
 
 No model is called: requests are composed locally, and the round is a loopback relay round.
 """
@@ -93,6 +93,26 @@ class OptionNoteTests(unittest.TestCase):
         self.assertTrue(on['questions']['next_action']['criteria'][key].startswith(off['questions']['next_action']['criteria'][key]
                                                                                    + ' (the Steak there goes to order O'))
 
+    def test_a_burnt_dish_the_engine_refuses_names_no_order(self):
+        """serve-note-v3: a steak burnt past the tier is refused by the order (the serve label says so), so neither its
+        serve option nor its take option says it goes to that order; one still accepted keeps the note."""
+        for seconds, noted in ((5.0, True), (5.01, False)):
+            with self.subTest(seconds=seconds):
+                k = plated_steak()
+                held = k.chefs['jeff'].hand
+                k.chefs['jeff'].hand = type(held)(held.id, 'burnt', held.chopped,
+                                                  k.rules.heat_thresholds('beef')[1] + seconds, plate_id=held.plate_id,
+                                                  ingredient='dish', components=held.components)
+                on, off = request(k, serve=True), request(k)
+                serve = on['questions']['next_action']['criteria']['serve']
+                self.assertTrue(serve.startswith(off['questions']['next_action']['criteria']['serve']))
+                self.assertEqual(' goes to order O' in serve, noted, serve)
+                self.assertEqual('refused' in serve, not noted)
+                do(k, 'put counter3')
+                on, off = request(k, serve=True), request(k)
+                take = on['questions']['next_action']['criteria']['take counter3']
+                self.assertEqual(take == off['questions']['next_action']['criteria']['take counter3'], not noted, take)
+
     def test_serve_says_when_no_order_waits_for_the_dish(self):
         k = plated_steak()
         payload = request(k)
@@ -122,7 +142,7 @@ class OptionNoteTests(unittest.TestCase):
         self.assertEqual(features.current()['option_notes'],
                          {'stage': 'trial', 'on': False, 'version': option_notes.VERSION})
         self.assertEqual((option_notes.VERSION, option_notes.SERVE_VERSION),
-                         ('option-notes-v3', 'serve-note-v2'))     # a new part needs a new VERSION
+                         ('option-notes-v4', 'serve-note-v3'))     # a new part needs a new VERSION
         for name in ('serve_note', 'wait_note'):
             self.assertNotIn(name, features.current())
         self.assertNotIn('wait_note', features.compose_options(features.current()))

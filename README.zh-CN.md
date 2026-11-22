@@ -182,6 +182,7 @@ Jeff 不看画面，他读的是结构化的游戏状态，从当前合法的动
 | --- | --- |
 | `harness.py` | Jeff 收到的全部内容：规则说明、模型看到的厨房、可选动作、最近的事件和决策、玩家消息和跨局记忆 |
 | `model_language.py` | 带版本的英文词表（`model-language-en-v4.json`），把引擎的文字转成 Jeff 读到的英文 |
+| `servability.py` | 已上线，没有开关。状态里的糊菜，以及装盘、端锅、拿起和出餐这些选项，会写明这份菜还能不能上菜、扣多少钱，或者会被拒收 |
 | `cooperation_memory.py` | 跨局记忆：往局的事实记录，有长度上限，不推测玩家偏好 |
 | `features.py` | **直接运行。** 读取并检查 `features.json` 和服务器的覆盖文件；`python3 features.py show`、`check [文件]`；`set 名称 on\|off` 和 `unset 名称` 写的是覆盖文件（`/etc/chefjeff/features.override.json`，或 `CHEFJEFF_FEATURES_OVERRIDE` 指定的路径），不改 `features.json` |
 | `one_press.py` | **开关** `one_press`、`throw_to`。把玩家顺手连按的几下合成一个选项（先放下再拿、先放下再切等），执行时仍是普通的几步 |

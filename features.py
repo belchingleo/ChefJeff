@@ -77,7 +77,7 @@ VERSIONS = {'one_press': one_press.VERSION, 'undo_note': undo_note.VERSION,
 # clear_text (2026-11-19: was food_names, clear_names, engine_english and plate_names) turns those four on together;
 # clear-text-v1 is names-v1, clear-names-v3, engine-english-v1 and plate-names-v1. option_notes (was serve_note and
 # wait_note) is serve-note-v1 and wait-note-v2 in option-notes-v1, serve-note-v2 and wait-note-v2 in option-notes-v2,
-# serve-note-v2 alone in option-notes-v3 (the wait note went 2026-11-20).
+# serve-note-v2 alone in option-notes-v3 (the wait note went 2026-11-20), serve-note-v3 in option-notes-v4.
 FIELDS = {'stage', 'on', 'version', 'off_for'}
 # The model services a feature's off_for may name: every preset in the shared service list.
 SERVICES = frozenset(p['id'] for p in json.loads((ROOT / 'model-providers.json').read_text(encoding='utf-8'))['providers'])
