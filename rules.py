@@ -294,17 +294,24 @@ class Rules:
         return ready, burn, burn + cc.seconds(t['overcook']['fire_after_overcook_game_ms'])
 
     def overcook(self, food, parts):
-        """Seconds the worst heated component had been burnt when it left the stove.
+        """Seconds the food counts as burnt for the burnt-food scoring: each heated component's own burnt time,
+        its heat past its own burn point, and the longest of them; a component that did not burn adds nothing.
 
         Burnt food's burnt time runs while it stays on a stove, whether the stove is burning, put out or
-        neither, and stops when it leaves the stove (the pan lifted or the food plated). A fire never burns
-        food, so burnt food has always reached its own burn point.
+        neither, and stops when it leaves the stove (the pan lifted or the food plated); a plated part never
+        heats again. A fire never burns food, so burnt food has always reached its own burn point. Loose food
+        and a dish with one heated component read it from their heat (a dish's heat is its most heated part's,
+        here that component's). A dish with two or more heated components keeps it as Food.overcook
+        (Kitchen.kept_overcook), because its heat cannot give it. Until 2026-11-22 such a dish read its most
+        heated part's heat against the lowest burn point among its parts, so beef burnt 1 s with cooked noodles
+        read as burnt 6 s.
         """
         heated = [item for item in parts if item in self.heat]
         if food.stage != 'burnt' or not heated:
             return 0.
-        burn = min(self.heat_thresholds(item)[1] for item in heated)
-        return max(0., food.heated - burn)
+        if len(heated) > 1:
+            return float(food.overcook)
+        return max(0., food.heated - self.heat_thresholds(heated[0])[1])
 
     def burnt_tier(self, overcook):
         for tier in self.burnt_service:

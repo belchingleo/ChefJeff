@@ -1,12 +1,15 @@
 """servability-v1: burnt food says whether a dish with it is still accepted, the same on every level (released, no
 switch; 2026-11-22).
 
-The burnt-food scoring (the ruleset's burnt_service tiers) accepts a dish whose worst heated component has been burnt
-up to a tier's limit, at that tier's price change, and refuses one burnt longer: no payment, the dish is lost and the
+The burnt-food scoring (the ruleset's burnt_service tiers) accepts a dish whose heated components have each been
+burnt, by their own burnt time, up to a tier's limit (the longest of them counts; a component that did not burn adds
+nothing), at that tier's price change, and refuses one burnt longer: no payment, the dish is lost and the
 order keeps waiting. The burnt time runs while the food stays on a stove, burning or not, and stops when it leaves
 the stove (Rules.overcook). Before this the state said only that food was burnt ("beef (burnt)", and with the
 kitchen view how long), and the options that plate, serve or lift it said nothing of the tier, so a pan burnt past
-the limit read the same as one still accepted.
+the limit read the same as one still accepted. Since 2026-11-22 a dish with two or more heated components (player
+levels) counts each component's own burnt time; before, it read its most heated part's heat against the lowest burn
+point among them, so beef burnt 1 s with cooked noodles read as burnt 6 s and was refused.
 
 The engine works the tier out (Kitchen.burnt_service, which Kitchen._serve reads when a dish is served to the order
 waiting for it, Kitchen.waiting_order):
@@ -20,7 +23,7 @@ waiting for it, Kitchen.waiting_order):
   own English). Off a stove, where the burnt time stands still: " (burnt food: accepted at -10 yuan)" or " (burnt
   food: refused)", and " (it holds burnt food: ...)" for a pan (plating from a pan or onto a plate, filling the
   other chef's plate, taking it from a counter, picking it up from the floor, swapping a held pan with a counter's
-  pan of it). A step that takes it off a stove (plating from it, lifting its pan, swapping a held pan with its pan)
+  or the floor's pan of it). A step that takes it off a stove (plating from it, lifting its pan, swapping a held pan with its pan)
   gives the tier as the step leaves it, the burnt time running on through the step's walk and handling
   (Kitchen.step_service): " (burnt food: accepted at -10 yuan if this starts within 1.6 s)", " (burnt food: refused,
   burnt too long by the time it is plated)", " (it holds burnt food: refused, burnt too long by the time it is

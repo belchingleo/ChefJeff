@@ -68,7 +68,10 @@ class WalkNoteTests(unittest.TestCase):
                 self.assertEqual(label, plain)
                 continue
             twin = k.fork()
-            seconds = twin.travel_time(twin.chefs['jeff'], a.target)
+            # As walk_note times it: by the option's kind (a take at the sink walks nowhere), and throw_to walks to
+            # its throw spot.
+            target = a.expected[1] if a.kind == one_press.THROW_TO else a.target
+            seconds = twin.travel_time(twin.chefs['jeff'], target, a.kind)
             if a.kind in one_press.KINDS:
                 self.assertTrue(label.startswith(plain) and label.endswith(f': {seconds:.1f} s walk from you)'), label)
             else:
@@ -76,6 +79,28 @@ class WalkNoteTests(unittest.TestCase):
             checked += 1
         self.assertGreater(checked, 5)
         self.assertEqual(on['state']['walk_note_version'], walk_note.VERSION)
+
+    def test_at_the_sink_the_racks_plate_is_no_walk_and_the_rack_still_is(self):
+        """Standing at the sink, taking the drying rack's plate happens where Jeff stands (rules-v15), so its walk is
+        0.0 s; with the rack empty, walking to the rack is a real walk."""
+        k = kitchen(2)
+        plates = [(key, s.food) for key, s in k.stations.items()
+                  if s.food and s.food.stage == 'clean_plate' and key != k.dryer]
+        (key, plate), (other_key, other) = plates[:2]
+        k.stations[key].food = None
+        plate.stage = 'dirty_plate'
+        k.chefs['jeff'].hand = plate
+        k.start('jeff', next(a for a in k.actions('jeff') if a.kind == 'put_sink'))
+        while k.chefs['jeff'].job is not None:
+            k.advance(0.05)
+        self.assertEqual(k.chefs['jeff'].location, k.sink)
+        on, _ = request(k, walk=True)
+        walk = re.search(r'\((\d+\.\d) s walk\)$', on['questions']['next_action']['criteria'][f'go {k.dryer}'])
+        self.assertGreater(float(walk.group(1)), 0)
+        k.stations[other_key].food, k.stations[k.dryer].food = None, other
+        on, actions = request(k, walk=True)
+        take = next(a.key for a in actions if a.kind == 'take_plate' and a.target == k.dryer)
+        self.assertTrue(on['questions']['next_action']['criteria'][take].endswith(' (0.0 s walk)'))
 
     def test_the_switch_is_a_trial(self):
         self.assertEqual(features.current()['walk_note'],

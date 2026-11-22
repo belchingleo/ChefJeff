@@ -26,8 +26,9 @@ thinking, offered as one choice and carried out as the same ordinary steps, one 
   ruleset's discard cost); the empty pan stays in his hands. The label gives the cost, and the burnt food's tier as
   the engine's own take of that pan gives it (servability): off a stove as it stands still there, on a stove as the
   lift leaves it, or, after a put, as it is now (as put then lift gives it), so serving it can be weighed against
-  emptying it. The take and the emptying are done only while the pan holds burnt food: a pan the other chef has
-  swapped in, moved or plated from meanwhile ends the chain instead. No listed action does this in one step (the
+  emptying it. The take and the emptying are done only while the pan holds burnt food: once it no longer does (the other
+  chef swapped it out, took it or plated from it meanwhile) the chain ends. On a stove, counter, board or supply a pan swapped in that also holds burnt
+  food is emptied all the same; on the floor a swap gives the ground item the incoming pan's id, so the chain ends. No listed action does this in one step (the
   engine empties only a pan in the hands). Also with the put_then_take flag.
   Counters, boards, supplies and the floor as well as stoves: emptying a pan there saves the same choice (the take,
   then the engine's emptying), and the pan holds up the next dish there too, since levels 1, 2, 4 and 5 have one pan

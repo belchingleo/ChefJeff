@@ -124,8 +124,10 @@ def model_candidates(state, actions, per_area, keep_go=False):
     """Legal actions listed to the model, without duplicates or interchangeable copies.
 
     Engine legality is unchanged. Two mechanical rules, the same for every level:
-    - "go X" is dropped when another listed action already walks to X (kept with keep_go, as the intent layer
-      does: there walking to X and waiting is not what the other option at X does);
+    - "go X" is dropped when another listed action already works at X (kept with keep_go, as the intent layer
+      does: there walking to X and waiting is not what the other option at X does). Usually that action walks to
+      X; standing at the sink, taking the drying rack's plate happens where the chef stands (rules-v15), and "go
+      <rack>" is dropped there too while a take of the rack is listed, since the rack is only for taking plates;
     - empty counters differ only by place, so per area only the per_area nearest
       (straight-line distance to their access cell) are offered for go/put.
     """

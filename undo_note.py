@@ -106,7 +106,11 @@ def step(kitchen, choice, first, t):
     if not isinstance(choice, str) or choice in KEEP or choice.startswith('go '):
         return None
     held = _held(kitchen)
-    put_at = _put_target(choice) or (_put_target(first) if choice.startswith(('put then ', 'wash from ')) else None)
+    # One-press choices that start with a put (one_press.PUT_KINDS): put then ..., wash from, and empty (v8), which
+    # puts down what is held before it takes the burnt pan. Its take is not recorded: the pan comes back emptied, so
+    # putting it back where it was undoes nothing.
+    put_at = _put_target(choice) or (_put_target(first) if choice.startswith(('put then ', 'wash from ', 'empty '))
+                                     else None)
     take_at = _take_target(choice)
     taken = _at(kitchen, take_at) if take_at else None
     return {'t': round(float(t), 2),

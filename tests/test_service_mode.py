@@ -11,6 +11,7 @@ at closing carry no penalty; countdowns are per dish; at most 5 tickets.
 import unittest
 
 import config_contract as cc
+import servability
 from kitchen import Food, Kitchen
 from levels import available_levels
 from model_language import english_text
@@ -81,7 +82,7 @@ class BurntTimeTests(unittest.TestCase):
         k = self.k
         k.chefs['jeff'].hand, k.stations['extinguisher'].food = k.stations['extinguisher'].food, None
         label = next(a.label for a in k.actions('jeff') if a.key == 'extinguish p1')
-        self.assertIn(f'随后糊菜可以装盘上菜（扣 10 元，还剩 {5 - self.burnt():.1f} 秒），也可以端锅到垃圾桶倒掉', label)
+        self.assertIn(f'随后糊菜可以装盘上菜（扣 10 元，还剩 {servability.tenths(5 - self.burnt()):.1f} 秒），也可以端锅到垃圾桶倒掉', label)
         self.do('jeff', 'extinguish p1')
         self.assertFalse(self.stove.fire)
 

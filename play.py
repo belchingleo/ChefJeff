@@ -128,7 +128,7 @@ def describe(k):
             ready = k.c['cook_seconds']
             burn = ready+k.c['burn_after_ready']
             if s.fire:
-                desc += "，正在着火！"
+                desc += "，正在着火"
             if f.stage == 'burnt':
                 # Burnt time runs while the pan stays on a stove, burning or not.
                 fire = burn+k.c['fire_after_burn']
@@ -139,6 +139,8 @@ def describe(k):
                 desc += f"，距{title} {max(0,limit-f.heated):.1f}s" + ("，熟了以后等灭火再加热" if s.fire else "")
             elif s.fire:
                 desc += "，灭火后接着加热"
+            if s.fire:
+                desc += "！"
         lines.append(f"  {key} {s.name}：{desc}" + (f"（{'你' if s.lock=='human' else 'Jev'}操作中）" if s.lock else ""))
     for item in k.ground.values():
         lines.append(f"  地上：{item.food.id} {STATES[item.food.stage]}，在{k.stations[item.location].name}旁")

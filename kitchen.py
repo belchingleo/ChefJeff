@@ -71,6 +71,10 @@ class Food:
     contents: Food | None = None
     ingredient: str = "beef"
     components: tuple = ()
+    # A dish with two or more heated components: the longest of their own burnt times when they were plated, in game
+    # seconds (Kitchen.kept_overcook; Rules.overcook reads it). 0 for anything else, whose own heat says it. A plated
+    # part never heats again, so the figure stays exact.
+    overcook: float = 0.
 
 
 @dataclass(frozen=True)
@@ -536,7 +540,8 @@ class Kitchen:
         for item_id, item in self.ground.items():
             if item.lock in (None, who):
                 if self.can_swap_pots(a.hand,item.food):
-                    out.append(Action('swap pot ground '+item_id,f'与地上的{self.vessel_name(item_id)}交换（各自保留里面的食物）','swap_ground_pot',item.location,self.ground_swap_signature(who,item_id)))
+                    out.append(Action('swap pot ground '+item_id,f'与地上的{self.vessel_name(item_id)}交换（各自保留里面的食物）'
+                                      + self.food_note(item.food),'swap_ground_pot',item.location,self.ground_swap_signature(who,item_id)))
                 out.append(Action(f"pickup {item_id}",
                                   f"去{self.place(item.location).name}捡起 {item_id}（{self.food_name(item.food)}；自动换手）"
                                   + self.food_note(item.food),
@@ -674,11 +679,11 @@ class Kitchen:
 
     def combined(self, plate, ingredient):
         """The plate merge_plate makes of a plate and an ingredient, without recording it: what a plating step's
-        label reads the result from (plating_note)."""
+        label reads the result from (plating_note). overcook: kept_overcook."""
         parts=self.parts(plate)|{ingredient.ingredient}
         stage=self._dish_stage(parts,plate.stage,ingredient.stage)
         return Food(ingredient.id if not plate.plate_id else plate.id,stage,chopped=max(plate.chopped,ingredient.chopped),heated=max(plate.heated,ingredient.heated),plate_id=plate.plate_id or plate.id,
-                    ingredient='dish',components=tuple(sorted(parts)))
+                    ingredient='dish',components=tuple(sorted(parts)),overcook=self.kept_overcook(parts,plate,ingredient))
 
     def can_merge_plates(self, destination, source):
         if not source or not source.plate_id or source.stage not in ('ready','burnt','assembled'):
@@ -702,26 +707,38 @@ class Kitchen:
         return combined,Food(source.plate_id,'clean_plate')
 
     def merged(self, destination, source):
-        """The plate merge_plates makes in the destination, without recording it (plating_note reads it too)."""
+        """The plate merge_plates makes in the destination, without recording it (plating_note reads it too).
+        overcook: kept_overcook."""
         parts=self.parts(destination)|self.parts(source)
         stage=self._dish_stage(parts,destination.stage,source.stage)
         return Food(destination.id,stage,chopped=max(destination.chopped,source.chopped),
                     heated=max(destination.heated,source.heated),plate_id=destination.plate_id or destination.id,
-                    ingredient='dish',components=tuple(sorted(parts)))
+                    ingredient='dish',components=tuple(sorted(parts)),overcook=self.kept_overcook(parts,destination,source))
+
+    def kept_overcook(self, parts, *made_of):
+        """Food.overcook of the dish of these parts that these foods make (combined, merged): with two or more heated
+        parts, the longest of their own burnt times (Rules.overcook of each input: a loose part's heat past its own
+        burn point, a plate's own figure); 0 with fewer, whose heat says it."""
+        if sum(part in self.rules.heat for part in parts) < 2:
+            return 0.
+        return float(max(self.rules.overcook(f, f.components or (f.ingredient,)) for f in made_of))
 
     # Burnt food's tier (servability.py) -------------------------------------------------------------------------
-    def burnt_service(self, food, running=0., gained=0.):
+    def burnt_service(self, food, running=0., gained=0., runs=None):
         """How the burnt-food scoring takes a dish with this food if it is served as the food is now, or None for food
         that is not burnt (or rules without tiers): {'outcome': 'accepted' or 'rejected', 'adjustment': the tier's
         price change, 'left': seconds}. Kitchen._serve reads the same when a dish is served, once an order waits for
         the dish (waiting_order; with none, serving costs the wrong-dish penalty whatever the tier).
 
-        The burnt time is the worst heated component's (Rules.overcook), loose, in a pan or on a plate. running: the
+        The burnt time is the longest own burnt time among its heated components (Rules.overcook), loose, in a pan or
+        on a plate. running: the
         rate it runs at now (heat_rate: the stove's, while the food is on a stove; True is 1); then left is the
         seconds the food stays in its accepted tier, while off a stove the burnt time stands still and left is None
         (also for an open last tier or a refusal). gained: burnt time the food gains before it is judged, as a step
         that takes it off a stove gives it on the way (step_gain); left then counts from the moment the step would
-        start, so it is how long the start may wait."""
+        start, so it is how long the start may wait. runs: the burnt time that runs on while running, when it is not
+        the food's own: a plating step from a stove passes the stove food's own burnt time (plating_service), since
+        parts already on the plate stand still; left is then how long until that part passes the tier's limit."""
         if food is None or food.stage != 'burnt':
             return None
         overcook = self.rules.overcook(food, food.components or (food.ingredient,)) + gained
@@ -729,7 +746,8 @@ class Kitchen:
         if tier is None:
             return None
         limit = tier['max_overcook_game_ms']
-        left = (max(0., limit/1000 - overcook)/running if running and tier['outcome'] == 'accepted' and limit is not None
+        runs = overcook if runs is None else runs
+        left = (max(0., limit/1000 - runs)/running if running and tier['outcome'] == 'accepted' and limit is not None
                 else None)
         return {'outcome': tier['outcome'], 'adjustment': tier['adjustment'], 'left': left}
 
@@ -817,7 +835,7 @@ class Kitchen:
 
     def food_note(self, food):
         """The note after a label whose step picks this food up where it lies off a stove (a take, a pick-up, a swap
-        with the pan on a counter): the tier of burnt food (lead 糊菜) or of a pan of it (lead 锅里是糊菜), whose
+        with the pan on a counter or the floor): the tier of burnt food (lead 糊菜) or of a pan of it (lead 锅里是糊菜), whose
         burnt time stands still there; '' for anything else."""
         if food is not None and food.stage == 'pot':
             return self.burnt_note(self.burnt_service(food.contents), '锅里是糊菜')
@@ -826,14 +844,18 @@ class Kitchen:
     def plating_service(self, plate, food, running=0., merge=False, gained=0.):
         """burnt_service of the plate a plating step makes of this plate and this food (merge: two plates), from the
         engine's own result (combined, merged), or None when no burnt food is in it. running, gained: the food is on a
-        stove until the step ends (step_service), and its burnt food gains this much heat by then; the plate's burnt
-        time is its most heated part's (combined), so it runs only if that is the food on the stove."""
+        stove until the step ends (step_service), and its burnt food gains this much heat by then. The dish's burnt
+        time is the longest of its parts' own (Rules.overcook), and only the stove food's own runs: the tier is the
+        dish's, and left counts until the stove food's own burnt time passes the tier's limit; with stove food that is
+        not burnt nothing runs."""
         if plate is None or food is None or 'burnt' not in (plate.stage, food.stage):
             return None
         if gained and food.stage == 'burnt':
             food = replace(food, heated=food.heated + gained)
         result = self.merged(plate, food) if merge else self.combined(plate, food)
-        return self.burnt_service(result, running if food.heated >= plate.heated else 0.)
+        if not running or food.stage != 'burnt':
+            return self.burnt_service(result)
+        return self.burnt_service(result, running, runs=self.rules.overcook(food, food.components or (food.ingredient,)))
 
     def plating_note(self, plate, food, running=0., merge=False):
         """The note after a plating label off a stove: the tier of the plate it makes (burnt_note), '' with no burnt
@@ -939,7 +961,9 @@ class Kitchen:
             if tier['outcome'] == 'rejected':
                 return f"随后糊菜上菜会被拒收，只能端锅到垃圾桶倒掉（花 {-self.rules.penalty['discard']} 元）"
             limit = tier['max_overcook_game_ms']
-            left = '' if limit is None else f'，还剩 {max(0., limit/1000 - overcook):.1f} 秒'
+            # Rounded down to the tenth (servability.tenths), as every other tier's seconds: never more time than the
+            # engine gives (rounding to the nearest tenth could promise up to 0.05 s more; 2026-11-22).
+            left = '' if limit is None else f'，还剩 {servability.tenths(max(0., limit/1000 - overcook)):.1f} 秒'
             return f"随后糊菜可以装盘上菜（扣 {-tier['adjustment']} 元{left}），也可以端锅到垃圾桶倒掉"
         after = '锅里的菜没有糊，灭火后接着加热'
         if food.stage == 'ready' and food.ingredient in self.rules.heat:
@@ -1646,7 +1670,11 @@ class Kitchen:
                     "ingredient": f.ingredient, "components": list(f.components), "dish": self.dish(f),
                     "missing": self.rules.missing(self.parts(f)) if f.plate_id and self.rules.multi_component else [],
                     "chop_remaining": round(max(0, self.rules.chop_work(f.ingredient)-f.chopped), 2),
-                    "heat_elapsed": round(f.heated, 2)}
+                    "heat_elapsed": round(f.heated, 2),
+                    # A burnt dish with two or more heated components: its burnt time (Food.overcook), which its
+                    # heat_elapsed (its most heated part's heat) cannot give. Nothing for any other food.
+                    **({'burnt_elapsed': round(f.overcook, 2)} if f.stage == 'burnt' and f.plate_id
+                       and sum(p in self.rules.heat for p in f.components) > 1 else {})}
         chefs = {}
         for who, a in self.chefs.items():
             j = a.job

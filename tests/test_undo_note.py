@@ -96,6 +96,16 @@ class NoteTests(unittest.TestCase):
         self.assertEqual(len(loop.rows('ai_request')[3]['undo_note']['history']), 3)
         self.assertEqual({key for _, key in noted(fourth)}, {'take b1'})         # only the last step's own undo
 
+    def test_an_empty_chain_that_puts_first_records_its_put(self):
+        """one-press v8's "empty <stove>" puts down what Jeff holds first, as put then take does; its take is not a
+        step to undo (the pan comes back emptied)."""
+        k = bread_and_lettuce()
+        snapshot = k.snapshot()
+        held = snapshot['chefs']['jeff']['holding']
+        step = undo_note.step(snapshot, 'empty p1', 'put counter16', 12.0)
+        self.assertEqual(step, {'t': 12.0, 'put': {'station': 'counter16', 'id': held['id']}, 'take': None})
+        self.assertEqual(undo_note.step(snapshot, 'put then take b1', 'put counter16', 12.0)['put'], step['put'])
+
     def test_the_note_needs_things_as_they_were(self):
         k = bread_and_lettuce()
         step = undo_note.record(k, next(a for a in k.actions('jeff') if a.key == 'put counter16'))

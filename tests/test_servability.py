@@ -226,6 +226,14 @@ class LabelTests(unittest.TestCase):
             self.assertEqual(option.label, '与柜台 3的平底锅交换（各自保留里面的食物）' + note)
             self.assertEqual(english(option.label), 'Swap with the frying pan at Counter 3 (contents stay where they are)'
                              + note_en)
+            # The same pan on the floor by Counter 3.
+            k = kitchen(1)
+            pan = pan_of(k, seconds)
+            k.ground[pan.id] = GroundItem(pan, 'counter3')
+            option = label(k, f'swap pot ground {pan.id}')
+            self.assertEqual(option.label, '与地上的平底锅交换（各自保留里面的食物）' + note)
+            self.assertEqual(english(option.label), 'Swap with the frying pan on the floor (contents stay where they are)'
+                             + note_en)
 
     def test_plating_from_a_stove_gives_the_tier_of_the_dish_it_makes_and_off_it_no_seconds(self):
         k = level('level-1')
@@ -703,6 +711,165 @@ class RequestTests(unittest.TestCase):
         payload = request(k)
         self.assertEqual(payload['state']['kitchen']['stations']['p1']['food']['meaning'], 'beef (cooked)')
         self.assertNotIn('burnt food', ' '.join(payload['questions']['next_action']['criteria'].values()))
+
+
+def noodle_kitchen():
+    """The noodle player level (tests/test_player_level_play.noodle_design): beef or chicken with noodles and
+    scallion, two heated parts in each dish."""
+    import level_calibration as lc
+    from test_player_level_play import noodle_design
+    design, _ = lc.normalize(noodle_design())
+    return SpatialKitchen(lc.finalize(design, {'playable': True, 'target': 170}))
+
+
+def part(k, item, burnt_for=None, heat=None, id=None):
+    """A loose heated part: burnt for `burnt_for` s by its own burn point, or cooked (at `heat`, else its cook point)."""
+    ready, burn, _ = k.rules.heat_thresholds(item)
+    id = id or item[0].upper() + '1'
+    if burnt_for is None:
+        return Food(id, 'ready', 6, ready if heat is None else heat, ingredient=item)
+    return Food(id, 'burnt', 6, burn + burnt_for, ingredient=item)
+
+
+def scallion():
+    return Food('S1', 'chopped', 9, 0, ingredient='scallion')
+
+
+def assembled(k, *foods, plate='D9'):
+    plate = Food(plate, 'clean_plate')
+    for f in foods:
+        plate = k.merge_plate(plate, f)
+    return plate
+
+
+class DishOfTwoHeatedPartsTests(unittest.TestCase):
+    """A dish's burnt time is the longest of its heated parts' own burnt times (2026-11-22). Before, a dish with two
+    heated parts read its most heated part's heat against the lowest burn point among them, so beef burnt 1 s with
+    cooked noodles read as burnt 6 s and was refused. Levels 1-5 have one heated part per dish and are unchanged."""
+
+    # (meat, meat burnt for, noodles burnt for, the dish's burnt time); None: cooked (noodles at heat 26, past their
+    # cook point but under their burn point, the case the old formula got wrong).
+    CASES = (('beef', 1.0, None, 1.0), ('beef', JUST_OVER, None, JUST_OVER), ('beef', None, .5, .5),
+             ('beef', 2.0, 3.0, 3.0), ('beef', 4.0, 1.0, 4.0), ('beef', 1.0, 5.5, 5.5), ('beef', 5.5, 1.0, 5.5),
+             ('chicken', 1.0, None, 1.0), ('chicken', JUST_OVER, None, JUST_OVER), ('chicken', None, .5, .5))
+
+    def parts(self, k, meat, meat_s, noodles_s):
+        return (part(k, meat, meat_s), part(k, 'noodles', noodles_s, heat=26))
+
+    def test_a_dish_counts_each_heated_parts_own_burnt_time_in_any_order(self):
+        for meat, meat_s, noodles_s, want in self.CASES:
+            with self.subTest(meat=meat, meat_s=meat_s, noodles_s=noodles_s):
+                k = noodle_kitchen()
+                m, n = self.parts(k, meat, meat_s, noodles_s)
+                for order in ((m, n, scallion()), (n, m, scallion()), (scallion(), n, m)):
+                    plate = assembled(k, *order)
+                    self.assertAlmostEqual(k.rules.overcook(plate, k.parts(plate)), want, places=6)
+                halves = (assembled(k, m, plate='D8'), assembled(k, n, scallion()))
+                for a, b in (halves, halves[::-1]):
+                    merged, _ = k.merge_plates(a, b)
+                    self.assertAlmostEqual(k.rules.overcook(merged, k.parts(merged)), want, places=6)
+
+    def test_serving_takes_the_tier_of_the_longest_burnt_part(self):
+        for meat, meat_s, noodles_s, want in self.CASES:
+            with self.subTest(meat=meat, meat_s=meat_s, noodles_s=noodles_s):
+                k = noodle_kitchen()
+                plate = assembled(k, *self.parts(k, meat, meat_s, noodles_s), scallion())
+                while k.waiting_order(plate) is None:
+                    k.advance(.5)
+                order = k.waiting_order(plate)
+                k.chefs['jeff'].hand = plate
+                refused = want > LIMIT
+                self.assertTrue(k.serve_label(plate).endswith(
+                    '这盘糊菜会被拒收，不收钱，菜没了，订单继续等待）' if refused else '这盘糊菜还能上菜，扣 10 元）'))
+                money = k.money
+                run(k, 'jeff', 'serve')
+                event = [e for e in k.events if e.get('kind') in ('served', 'dish_rejected')][-1]
+                if refused:
+                    self.assertEqual((event['kind'], event['overcook_game_ms'], k.money - money, order['status']),
+                                     ('dish_rejected', round(want * 1000), 0, 'pending'))
+                    self.assertIsNone(k.chefs['jeff'].hand)
+                else:
+                    self.assertEqual((event['kind'], event['adjustment'], order['status']), ('served', -10, 'served'))
+                    self.assertEqual(k.money - money, 80)
+
+    def test_the_state_and_its_readers_agree_with_the_scoring(self):
+        import request_parts
+        for meat, meat_s, noodles_s, want in self.CASES:
+            with self.subTest(meat=meat, meat_s=meat_s, noodles_s=noodles_s):
+                k = noodle_kitchen()
+                k.chefs['jeff'].hand = plate = assembled(k, *self.parts(k, meat, meat_s, noodles_s), scallion())
+                held = k.snapshot()['chefs']['jeff']['holding']
+                self.assertAlmostEqual(held['burnt_elapsed'], want, places=2)
+                self.assertEqual(held['heat_elapsed'], round(plate.heated, 2))
+                self.assertAlmostEqual(request_parts._burnt_for(held, k), k.rules.overcook(plate, k.parts(plate)),
+                                       places=2)
+                meaning = request(k)['state']['kitchen']['chefs']['jeff']['holding']['meaning']
+                self.assertEqual(meaning, 'burnt dish (burnt too long; refused)' if want > LIMIT
+                                 else 'burnt dish (accepted at -10 yuan)')
+
+    def test_plating_from_a_stove_counts_the_seconds_from_the_food_on_the_stove(self):
+        # (part on the plate, its burnt time or None for cooked, food on the stove, its burnt time)
+        for frozen, frozen_s, cooking, stove_s in (('beef', 3.0, 'noodles', .5), ('noodles', 4.9, 'beef', .2),
+                                                  ('beef', 5.5, 'noodles', .2), ('beef', 1.0, 'noodles', 4.0),
+                                                  ('beef', None, 'noodles', 1.0)):
+            for who in ('jeff', 'human'):
+                with self.subTest(frozen=frozen, frozen_s=frozen_s, stove_s=stove_s, who=who):
+                    def setup():
+                        k = noodle_kitchen()
+                        stove = next(p for p in k.pots if k.rules.heat[cooking].get('container', 'pot')
+                                     == k.rules.vessels.get(k.stations[p].pot_id))
+                        k.chefs[who].hand = assembled(k, part(k, frozen, frozen_s), scallion())
+                        s = k.stations[stove]
+                        s.food = part(k, cooking, stove_s, id='Y1')
+                        k.heat_stove(s)
+                        return k, stove
+                    k, stove = setup()
+                    gain = k.step_gain(who, stove, 'plate_pot')
+                    left = min(LIMIT - stove_s - gain, LIMIT - (frozen_s or 0) - 0)
+                    text = label(k, f'plate {stove}', who).label
+                    if frozen_s is not None and frozen_s > LIMIT or left < -1e-9:
+                        self.assertTrue(text.endswith('（糊菜：装盘时已糊太久，上菜会被拒收）'), text)
+                        run(k, who, f'plate {stove}')
+                        self.assertEqual(k.burnt_service(k.chefs[who].hand)['outcome'], 'rejected')
+                        continue
+                    left = LIMIT - stove_s - gain
+                    said = servability.tenths(left)
+                    if said > 0:
+                        self.assertTrue(text.endswith(f'（糊菜：{said:.1f} 秒内开始这一步，装出的菜还能上菜，扣 10 元）'), text)
+                        self.assertTrue(english(text).endswith(
+                            f' (burnt food: accepted at -10 yuan if this starts within {said} s)'), english(text))
+                    self.assertEqual(started(k, who, f'plate {stove}', said), 'accepted')
+                    k, stove = setup()
+                    self.assertEqual(started(k, who, f'plate {stove}', left + SUBSTEP), 'rejected')
+
+    def test_only_a_burnt_dish_of_two_heated_parts_carries_the_figure(self):
+        k = noodle_kitchen()
+        k.chefs['jeff'].hand = cooked = assembled(k, part(k, 'beef'), part(k, 'noodles', heat=26), scallion())
+        self.assertEqual(cooked.overcook, 0)
+        self.assertNotIn('burnt_elapsed', k.snapshot()['chefs']['jeff']['holding'])
+        # Level 1, a pan of beef burnt 2 s plated: one heated part, read from its heat as before.
+        k = level('level-1')
+        k.chefs['jeff'].hand = pan_of(k, 2.0)
+        run(k, 'jeff', 'plate plates')
+        k.chefs['jeff'].hand, k.stations['plates'].food = k.stations['plates'].food, None
+        dish = k.chefs['jeff'].hand
+        self.assertEqual((dish.stage, dish.overcook), ('burnt', 0))
+        self.assertNotIn('burnt_elapsed', k.snapshot()['chefs']['jeff']['holding'])
+        # Level 3, a burger with burnt beef.
+        k = level('level-3')
+        burger = assembled(k, burnt(k, 2.0), Food('R1', 'raw', 0, 0, ingredient='bread'),
+                           Food('L1', 'chopped', 9, 0, ingredient='lettuce'), Food('T1', 'chopped', 9, 0, ingredient='tomato'))
+        k.chefs['jeff'].hand = burger
+        self.assertEqual((burger.stage, burger.overcook), ('burnt', 0))
+        self.assertNotIn('burnt_elapsed', k.snapshot()['chefs']['jeff']['holding'])
+        self.assertAlmostEqual(k.rules.overcook(burger, k.parts(burger)), 2.0, places=6)
+
+    def test_research_records_keep_their_food_fields(self):
+        import research_record
+        k = noodle_kitchen()
+        plate = assembled(k, part(k, 'beef', 1.0), part(k, 'noodles', heat=26), scallion())
+        self.assertEqual(set(research_record.food(plate)), {'id', 'stage', 'ingredient', 'components', 'plate_id',
+                                                             'chopped', 'heated', 'washed', 'contents'})
 
 
 if __name__ == '__main__':

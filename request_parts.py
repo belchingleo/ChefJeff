@@ -40,7 +40,9 @@ alike, so every combination rebuilds exactly. With every part off the request is
   had been burnt. The burnt time is rounded up to the tenth of a second (burnt_seconds), so food the tier refuses
   never reads as burnt for the tier's limit ("burnt for 5.0 s" for 5.02 s), and the seconds left are rounded down
   (servability.tenths), so on a stove at the standard heat rate the two never add up to more than the limit ("burnt
-  for 3.0 s" with "for 2.0 s more" for 2.94 s).
+  for 3.0 s" with "for 2.0 s more" for 2.94 s). A dish with two or more heated components takes its burnt time from
+  the state's burnt_elapsed (the engine's own, Rules.overcook), since its heat_elapsed is its most heated part's heat
+  (2026-11-22; before, such a dish read that heat against the lowest burn point among its parts).
   v3: a stove's line gives only the next thing to happen (cooked; then burns and catches fire; then catches fire).
   v2: a loose ingredient says what it still needs, from the same request's facts ("beef (as fetched) F3 (not chopped
   yet (2.2 s of chopping); a frying pan cooks it only once it is chopped)"); v1 dropped the chopping left and the
@@ -396,12 +398,14 @@ def _needs(food, kj):
 
 def _burnt_for(food, kitchen):
     """v7: how long burnt food has been burnt, by the engine's own measure (Rules.overcook, what the burnt-food scoring
-    reads); None for food that is not burnt."""
+    reads); None for food that is not burnt. A dish with two or more heated components gives it as burnt_elapsed (its
+    heat_elapsed is its most heated part's)."""
     if not isinstance(food, dict) or food.get('stage') != 'burnt' or kitchen is None:
         return None
     parts = food.get('components') or [food.get('ingredient')]
     try:
-        return kitchen.rules.overcook(SimpleNamespace(stage='burnt', heated=float(food.get('heat_elapsed') or 0)), parts)
+        return kitchen.rules.overcook(SimpleNamespace(stage='burnt', heated=float(food.get('heat_elapsed') or 0),
+                                                      overcook=float(food.get('burnt_elapsed') or 0)), parts)
     except Exception:
         return None
 
