@@ -294,15 +294,17 @@ class Rules:
         return ready, burn, burn + cc.seconds(t['overcook']['fire_after_overcook_game_ms'])
 
     def overcook(self, food, parts):
-        """Seconds the worst heated component was past burning when it left the heat.
+        """Seconds the worst heated component had been burnt when it left the stove.
 
-        Food burnt by a fire (before its own burn point) counts as burnt beyond every tier.
+        Burnt food's burnt time runs while it stays on a stove, whether the stove is burning, put out or
+        neither, and stops when it leaves the stove (the pan lifted or the food plated). A fire never burns
+        food, so burnt food has always reached its own burn point.
         """
         heated = [item for item in parts if item in self.heat]
         if food.stage != 'burnt' or not heated:
             return 0.
         burn = min(self.heat_thresholds(item)[1] for item in heated)
-        return food.heated - burn if food.heated >= burn - 1e-8 else float('inf')
+        return max(0., food.heated - burn)
 
     def burnt_tier(self, overcook):
         for tier in self.burnt_service:

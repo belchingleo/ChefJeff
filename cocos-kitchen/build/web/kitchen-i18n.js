@@ -235,6 +235,7 @@
     "可捡回，不扣钱": "recoverable, no charge",
     "每格一件": "one item per tile",
     "有食物时恢复加热": "resume heating if filled",
+    "灭火后恢复加热": "resume heating once the fire is out",
     "离开灶台停止加热，占手持位": "stops heating off the stove; occupies your hands",
     "占用手持位": "occupies your hands",
     "可中断续洗": "can stop and resume",
@@ -243,6 +244,7 @@
     "损耗 2 元": "¥2 cost",
     "没有订单在等这道菜会扣钱，糊太久会被拒收": "serving a dish no order is waiting for costs money; a dish burnt too long is refused",
     "随后仍须端锅到垃圾桶倒掉糊菜": "then carry the pan to a bin to empty the burnt food",
+    "糊菜还在锅里，留在灶台上会越糊越久": "the burnt food is still in the pan, and its burnt time keeps counting while it stays on the stove",
     "抛出物品": "throw item",
     "糊了的菜": "burnt food",
     "没有待完成订单": "no pending order",
@@ -1274,6 +1276,10 @@
       "{1} in {0} is ready! Burns in {2}s"
     ],
     [
+      "{0}的 {1} 熟了！灶台着火，火灭后再过 {2}s 糊锅",
+      "{1} in {0} is ready! {0} is on fire; it burns {2}s after the fire is out"
+    ],
+    [
       "{0}抛出了 {1}，落点为 {2}",
       "{0} threw {1} toward {2}"
     ],
@@ -1514,6 +1520,10 @@
       "Put {0} into the {2} on {1}; it starts heating"
     ],
     [
+      "将{0}放进{1}的{2}，灭火后开始加热",
+      "Put {0} into the {2} on {1}; it starts heating once the fire is out"
+    ],
+    [
       "把{0}放入地上空{1}",
       "Load {0} into the empty {1} on the floor"
     ],
@@ -1624,6 +1634,10 @@
     [
       "{0} 落进{1}的{2}，开始加热",
       "{0} landed in the {2} on {1} and started heating"
+    ],
+    [
+      "{0} 落进{1}的{2}，灭火后开始加热",
+      "{0} landed in the {2} on {1}; it starts heating once the fire is out"
     ],
     [
       "向上方抛出手中物品（落到{0}）",

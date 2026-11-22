@@ -205,7 +205,8 @@ TAKE_KINDS = {"fetch", "take_board", "take_tool", "pickup", "take_plate", "take_
 
 # As in Overcooked 2, fire turns off using a station (chopping, an ingredient source) but not its surface: what
 # rests on a burning board, counter or stove can still be taken, and things put or plated there; a pan can be
-# lifted off a burning stove, put back, or filled when empty. A burning stove does not heat.
+# lifted off a burning stove, put back, or filled when empty. What still heats on a burning stove is in
+# Kitchen.ignite and Kitchen.stove_heats.
 SURFACE_KINDS = {"take_counter", "take_plate", "take_board", "put_counter", "put_board", "assemble", "merge_plates",
                  "load_counter", "scoop_counter", "plate_counter", "plate_from_counter", "swap_pot",
                  "lift_pot", "return_pot", "put_pot", "plate_pot"}
@@ -542,17 +543,24 @@ class Kitchen:
             if s.lock not in (None, who):
                 continue
             if s.fire and a.hand and a.hand.stage == 'extinguisher':
-                add(f"extinguish {key}", f"拿灭火器到{s.name}灭火（{round(s.fire_strength*self.rules.extinguish,1):g}s；随后仍须端锅到垃圾桶倒掉糊菜）", "extinguish", key)
+                # A fire burns no food; burnt food in the pan stays there and its burnt time runs on while it is on the stove.
+                after = '；糊菜还在锅里，留在灶台上会越糊越久' if s.food and s.food.stage == 'burnt' else ''
+                add(f"extinguish {key}", f"拿灭火器到{s.name}灭火（{round(s.fire_strength*self.rules.extinguish,1):g}s{after}）", "extinguish", key)
             if not s.pot_id:
                 if a.hand and a.hand.stage == 'pot':
-                    add(f'put pot {key}', f'把手中的{self.vessel_name(a.hand.id)}放回{s.name}（有食物时恢复加热）', 'return_pot', key)
+                    # On a burning stove food that is not burnt waits until the fire is out (stove_heats).
+                    waits = s.fire and a.hand.contents is not None and a.hand.contents.stage != 'burnt'
+                    add(f'put pot {key}', f'把手中的{self.vessel_name(a.hand.id)}放回{s.name}（{"灭火后恢复加热" if waits else "有食物时恢复加热"}）',
+                        'return_pot', key)
                 continue
             v = self.vessel_name(s.pot_id)
             add(f'take pot {key}', f'端起{s.name}的{v}（离开灶台停止加热，占手持位）', 'lift_pot', key)
             if a.hand and a.hand.stage=='pot':
                 add('swap pot '+key,f'与{s.name}的{v}交换（各自保留里面的食物）','swap_pot',key)
             if not s.food and a.hand and self.rules.potable(a.hand, self.rules.vessels.get(s.pot_id)):
-                add(f"put {key}", f"将{self.load_label(a.hand)}放进{s.name}的{v}，开始自动加热", "put_pot", key)
+                # Food put in a pan on a burning stove waits until the fire is out (stove_heats; it is never burnt).
+                add(f"put {key}", f"将{self.load_label(a.hand)}放进{s.name}的{v}，{'灭火后开始加热' if s.fire else '开始自动加热'}",
+                    "put_pot", key)
             if s.food:
                 if a.hand and self.can_add(a.hand,s.food):
                     add(f'plate {key}', f'用手中的干净盘盛出{s.name}的菜', 'plate_pot', key)
@@ -679,10 +687,23 @@ class Kitchen:
         return self.ground_plate_signature(who,item_id)+(hand.contents.id if hand and hand.contents else None,)
 
     def heat_stove(self, station):
-        station.heating=station.food is not None
         t=self.rules.heat.get(station.food.ingredient) if station.food else None
         if t and station.food.stage==t['from']:
             station.food.stage='cooking'
+        station.heating=self.stove_heats(station)
+
+    @staticmethod
+    def stove_heats(station):
+        """Whether the food in the pan or pot on this stove heats once it is put there or the stove's fire is put
+        out (owner decision 2026-11-22).
+
+        Burnt food's burnt time runs on while it stays on a stove, whether the stove is burning, put out
+        or neither, and stops when it leaves the stove. Other food put on a burning stove does not cook
+        there, as on Overcooked 2's burning hob, and goes on from where it was once the fire is out (the
+        owner's rule; see ignite, which also says what a fire reaching a stove does to food already there).
+        Only stoves hold a pot_id."""
+        return bool(station.pot_id and station.food is not None
+                    and (not station.fire or station.food.stage == 'burnt'))
 
     def can_load_pot(self,hand,pot):
         return bool(hand and pot and pot.stage=='pot' and pot.contents is None
@@ -1034,14 +1055,15 @@ class Kitchen:
         elif k == "put_pot":
             s.food, a.hand = a.hand, None
             s.food.stage = "cooking"
-            s.heating = True
+            s.heating = self.stove_heats(s)
         elif k == "chop":
             s.food.chopped = self.rules.chop_work(s.food.ingredient)
             s.food.stage = self.rules.chop[s.food.ingredient]['to']
         elif k == "extinguish":
             s.fire, s.fire_strength = False, 0.
-            # A pan put on the burning stove, holding food that is not burnt, cooks once the fire is out.
-            s.heating = bool(job.action.target in self.pots and s.pot_id and s.food and s.food.stage != 'burnt')
+            # Food in a pan on the stove heats once the fire is out: food that waited goes on from where it was
+            # (the owner's rule, see ignite), and burnt food's burnt time never stopped.
+            s.heating = bool(job.action.target in self.pots and self.stove_heats(s))
         elif k == "discard":
             a.hand = Food(a.hand.plate_id, 'dirty_plate') if a.hand.plate_id else None
             self.money += self.rules.penalty['discard']
@@ -1088,7 +1110,7 @@ class Kitchen:
         tier = self.rules.burnt_tier(overcook) if food.stage == 'burnt' else None
         if tier and tier['outcome'] == 'rejected':
             self.emit(f"{order['id']}的顾客拒收糊菜，订单继续等待", kind='dish_rejected', actor=who, action_id=job.id,
-                      order_id=order['id'], dish=dish, overcook_game_ms=None if overcook == float('inf') else round(overcook*1000))
+                      order_id=order['id'], dish=dish, overcook_game_ms=round(overcook*1000))
             return
         price, adjustment = self.rules.prices[order['dish']], tier['adjustment'] if tier else 0
         order['status'] = 'served'
@@ -1116,10 +1138,18 @@ class Kitchen:
         s = self.stations[key]
         if s.fire:
             return
-        s.fire, s.fire_heat, s.fire_idle, s.fire_strength, s.heating = True, 0., 0., 1., False
-        if key in self.pots and s.food and s.food.stage != 'burnt':
-            s.food.stage = 'burnt'
-            self.burns += 1
+        s.fire, s.fire_heat, s.fire_idle, s.fire_strength = True, 0., 0., 1.
+        # A fire never burns the food in a pan (owner decision 2026-11-22), and burnt food's burnt time runs on
+        # (stove_heats). Food that is not burnt cooks as on Overcooked 2's hob, whose cooking station is not told
+        # about a fire: its cooking goes on to the food's next cooking stage and stops there. So food still cooking
+        # cooks on until it is cooked and then waits (advance). Overcooked 2's next stage for cooked food is an
+        # over-doing warning at 1.3 times the cooking time, still cooked, and burnt after that. This engine has no
+        # stage between cooked and burnt, so cooked food waits from the moment the fire arrives. Once the fire is out,
+        # food that waits cooks on from where it was (extinguish). That part is the owner's rule, also the one for a
+        # pan put on a burning stove; on Overcooked 2's hob the cooking stays off after the fire is put out until the
+        # pan is lifted and put back.
+        if key in self.pots and s.food and s.food.stage == 'ready':
+            s.heating = False
         self.fires += 1
         penalty = self.rules.penalty['new_fire']
         self.money += penalty
@@ -1173,19 +1203,31 @@ class Kitchen:
             self._return_plates()
             for key in self.pots:
                 s = self.stations[key]
-                if not s.food or s.fire or not s.heating:
+                # On a burning stove only food still cooking and burnt food heat (ignite, stove_heats).
+                if not s.food or not s.heating:
                     continue
                 f = s.food
+                before = f.heated
                 f.heated += dt*self.rules.work_rate(key,'heat')
                 ready, burn, fire = self.rules.heat_thresholds(f.ingredient)
                 if f.stage == "cooking" and f.heated >= ready-1e-8:
                     f.stage = "ready"
-                    self.emit(f"{s.name}的 {f.id} 熟了！{burn-ready:g}s 后糊锅", kind="ready", station=key, item=f.id)
-                if f.stage == "ready" and f.heated >= burn-1e-8:
+                    if s.fire:
+                        # Cooked on a burning stove: it waits from here until the fire is out (ignite).
+                        s.heating = False
+                        self.emit(f"{s.name}的 {f.id} 熟了！灶台着火，火灭后再过 {burn-ready:g}s 糊锅",
+                                  kind="ready", station=key, item=f.id)
+                    else:
+                        self.emit(f"{s.name}的 {f.id} 熟了！{burn-ready:g}s 后糊锅", kind="ready", station=key, item=f.id)
+                burnt_now = f.stage == "ready" and f.heated >= burn-1e-8
+                if burnt_now:
                     f.stage = "burnt"
                     self.burns += 1
                     self.emit(f"{s.name}糊锅！{fire-burn:g}s 后着火；糊太久上桌会被拒收", kind="burn", station=key, item=f.id)
-                if f.stage == "burnt" and f.heated >= fire-1e-8:
+                # One fire per burning: when the food's heat reaches its fire point on this stove (as it burns, on the
+                # shipped levels). As in Overcooked 2, burnt food left on the stove after the fire is put out, or
+                # lifted and put back on a stove, never sets it alight again.
+                if f.stage == "burnt" and f.heated >= fire-1e-8 and (burnt_now or before < fire-1e-8):
                     self.ignite(key)
             self._advance_fire(dt)
             if self.ended:
@@ -1474,6 +1516,8 @@ class Kitchen:
                 assert self.rules.combustible(key)
             if key in self.pots and not s.pot_id:
                 assert s.food is None and not s.heating
+            if key in self.pots and s.fire and s.heating:
+                assert s.food and s.food.stage in ('cooking', 'burnt'), '着火的灶台上只有没熟的菜和糊菜在加热'
         all_items = foods + [d['plate'] for d in self.dining]
         all_items += [p['food'] for p in getattr(self, 'projectiles', {}).values()]
         # In flight counts too: a passed extinguisher is neither in a hand nor on the rack.

@@ -2906,8 +2906,8 @@
   "f17a7d67e68e409c",
   "dd31c9c3aeb5d672",
   "34096e8c89ade268",
-  "b9ea31b62a8d594b",
-  "af31475e07bd6cb8"
+  "8913f2344ba74ae3",
+  "fd53e7e1e13e14f8"
  ],
  "final": {
   "t": 89.8,
@@ -3266,7 +3266,7 @@
      "F7",
      "burnt",
      2.2,
-     20.0,
+     29.95,
      null,
      0,
      "beef",
@@ -3275,7 +3275,7 @@
     ],
     null,
     true,
-    false,
+    true,
     "P1"
    ],
    "plates": [

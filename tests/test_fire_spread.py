@@ -2,6 +2,7 @@ import unittest
 from kitchen import load_config, Food
 from spatial_kitchen import SpatialKitchen
 from jev import JevClient
+from model_language import english_text
 
 
 class FireSpreadTests(unittest.TestCase):
@@ -108,13 +109,119 @@ class FireSpreadTests(unittest.TestCase):
             k.positions[who]=tuple(map(float,k.equipment['p1']['access']))
             def do(key):
                 self.assertTrue(k.command(who,key)[0],key);j=k.chefs[who].job;k.advance(j.travel+j.work+.01)
-            do('take pot p1');pan=k.chefs[who].hand;self.assertEqual(pan.contents.stage,'burnt');self.assertTrue(s.fire)
-            pan.contents=None;do('put pot p1');self.assertEqual(s.pot_id,pan.id)
-            k.chefs[who].hand=Food('cut','chopped',6,ingredient='beef');do('put p1')
+            # The fire did not burn the food, and food still cooking cooks on while the stove burns (kitchen.ignite).
+            do('take pot p1');pan=k.chefs[who].hand;self.assertEqual(pan.contents.stage,'cooking')
+            self.assertGreater(pan.contents.heated,0);self.assertTrue(s.fire)
+            # The labels say what stove_heats does: back on the burning stove, food that is not burnt waits.
+            label=lambda key:next(a.label for a in k.actions(who) if a.key==key)
+            self.assertTrue(label('put pot p1').endswith('（灭火后恢复加热）'),label('put pot p1'))
+            pan.contents=None;self.assertTrue(label('put pot p1').endswith('（有食物时恢复加热）'))
+            do('put pot p1');self.assertEqual(s.pot_id,pan.id)
+            k.chefs[who].hand=Food('cut','chopped',6,ingredient='beef')
+            self.assertEqual(label('put p1'),f'将切好的牛肉放进{s.name}的平底锅，灭火后开始加热')
+            self.assertEqual(english_text(label('put p1')),
+                             f'Put chopped beef into the frying pan on {english_text(s.name)}; it starts heating once the fire is out')
+            do('put p1')
             heated=s.food.heated;k.advance(1);self.assertEqual(s.food.heated,heated)  # no heat while burning
             tool=k.stations['extinguisher'].food;k.stations['extinguisher'].food=None;k.chefs[who].hand=tool
             do('extinguish p1');self.assertFalse(s.fire);self.assertTrue(s.heating)
             k.advance(1);self.assertGreater(s.food.heated,heated);k.assert_invariants()
+            k.chefs[who].hand=None;do('take pot p1');self.assertTrue(label('put pot p1').endswith('（有食物时恢复加热）'))
+            k.chefs[who].hand=None
+
+    def test_food_thrown_into_a_pan_on_a_burning_stove_waits_until_the_fire_is_out(self):
+        # As food put there does: the landing event says it starts heating once the fire is out, and it does.
+        for who in ['human','jeff']:
+            other='jeff' if who=='human' else 'human'
+            k=self.make();s=k.stations['p1'];s.food=None;k.ignite('p1');k.rules.flammability=1e9
+            k.chefs[who].hand=Food('F7','chopped',6,ingredient='beef')
+            k.chefs[other].hand=k.stations['extinguisher'].food;k.stations['extinguisher'].food=None  # cannot catch
+            throw=None
+            for cell in sorted(k.floor):
+                k.positions[who]=tuple(map(float,cell))
+                throw=next((a for a in k.actions(who) if a.kind=='throw' and a.target=='p1'),None)
+                if throw:break
+            self.assertIsNotNone(throw)
+            self.assertTrue(k.command(who,throw.key)[0])
+            for _ in range(100):
+                if any(e['kind']=='landed' for e in k.events):break
+                k.advance(.05)
+            landed=next(e for e in k.events if e['kind']=='landed')
+            self.assertEqual(landed['message'],f'F7 落进{s.name}的平底锅，灭火后开始加热')
+            self.assertEqual(english_text(landed['message']),
+                             f'F7 landed in the frying pan on {english_text(s.name)}; it starts heating once the fire is out')
+            self.assertEqual((s.food.id,s.food.stage,s.heating,s.food.heated),('F7','cooking',False,0))
+            k.advance(1);self.assertEqual(s.food.heated,0)
+            k.positions[other]=tuple(map(float,k.equipment['p1']['access']))
+            self.assertTrue(k.command(other,'extinguish p1')[0]);j=k.chefs[other].job;k.advance(j.travel+j.work+.01)
+            self.assertFalse(s.fire);self.assertTrue(s.heating)
+            k.advance(1);self.assertAlmostEqual(s.food.heated,1,places=1);k.assert_invariants()
+
+    def spread_to_p1(self,k,food):
+        """A neighbour of p1 burns until the fire spreads to p1 (5 s), with food put in p1's pan just before; from
+        then on only p1 burns (the fires the neighbour started elsewhere are put out at once, and no fire spreads)."""
+        s=k.stations['p1'];n=k.fire_neighbors('p1')[0]
+        k.ignite(n);k.advance(4.9);self.assertFalse(s.fire)
+        s.food=food;k.heat_stove(s)
+        k.advance(.15);self.assertTrue(s.fire)
+        self.assertEqual(next(e['kind'] for e in reversed(k.events) if e.get('station')=='p1'),'fire_spread')
+        for key,station in k.stations.items():
+            station.fire,station.fire_heat=station.fire and key=='p1',0.
+        k.rules.flammability=1e9
+        return s
+
+    def put_out_p1(self,k,who):
+        tool=k.stations['extinguisher'].food;k.stations['extinguisher'].food=None;k.chefs[who].hand=tool
+        k.positions[who]=tuple(map(float,k.equipment['p1']['access']))
+        label=next(a.label for a in k.actions(who) if a.key=='extinguish p1')
+        self.assertNotIn('糊菜',label)  # nothing in the pan is burnt
+        self.assertTrue(k.command(who,'extinguish p1')[0]);j=k.chefs[who].job;k.advance(j.travel+j.work+.01)
+        self.assertFalse(k.stations['p1'].fire)
+
+    def test_a_fire_spreading_to_a_pan_of_beef_two_seconds_in_cooks_it_and_then_it_waits_until_put_out(self):
+        # Owner decision 2026-11-22: a fire burns no food. As on Overcooked 2's hob, food still cooking when a fire
+        # reaches its stove cooks on until it is cooked and stops there; once the fire is out it cooks on from where it
+        # was (the owner's rule; kitchen.ignite). The same for both chefs.
+        for who in ['human','jeff']:
+            k=self.make();ready,burn,_=k.rules.heat_thresholds('beef')
+            s=self.spread_to_p1(k,Food('B','cooking',6,2,ingredient='beef'))
+            self.assertEqual((s.food.stage,k.burns,s.heating),('cooking',0,True))
+            heated=s.food.heated;self.assertTrue(2<heated<2.2,heated)
+            k.advance(1);self.assertAlmostEqual(s.food.heated,heated+1,places=6)  # it cooks on the burning stove
+            k.advance(ready-s.food.heated+.06)
+            self.assertEqual((s.food.stage,s.heating,k.burns),('ready',False,0));self.assertTrue(s.fire)
+            event=next(e for e in reversed(k.events) if e.get('kind')=='ready')
+            self.assertEqual(event['message'],f"{s.name}的 B 熟了！灶台着火，火灭后再过 {burn-ready:g}s 糊锅")
+            frozen=s.food.heated;self.assertLess(frozen-ready,.06)
+            k.advance(3);self.assertEqual(s.food.heated,frozen)       # cooked, it waits while the stove burns
+            self.put_out_p1(k,who);self.assertTrue(s.heating)
+            resumed=s.food.heated;self.assertEqual(resumed,frozen)
+            k.advance(1);self.assertAlmostEqual(s.food.heated,resumed+1,places=6)
+            self.assertEqual((s.food.stage,k.burns),('ready',0));k.assert_invariants()
+
+    def test_a_fire_spreading_to_a_pan_of_cooked_beef_leaves_it_cooked_until_it_is_put_out(self):
+        for who in ['human','jeff']:
+            k=self.make();burn=k.rules.heat_thresholds('beef')[1]
+            # Cooked, about 1 s from burning: it waits from the moment the fire arrives (this engine has no stage
+            # between cooked and burnt to cook on to; kitchen.ignite).
+            s=self.spread_to_p1(k,Food('B','ready',6,burn-1,ingredient='beef'))
+            self.assertFalse(s.heating);frozen=s.food.heated
+            k.advance(3)
+            self.assertEqual((s.food.stage,s.food.heated,k.burns),('ready',frozen,0))
+            self.put_out_p1(k,who);resumed=s.food.heated;self.assertEqual(resumed,frozen)
+            # Then it cooks on from where it was, burns at its own burn point and sets its stove alight then.
+            k.advance(burn-resumed-.1);self.assertEqual(s.food.stage,'ready');self.assertFalse(s.fire)
+            k.advance(.2);self.assertEqual((s.food.stage,k.burns),('burnt',1));self.assertTrue(s.fire)
+            k.assert_invariants()
+
+    def test_food_put_on_a_burning_stove_waits_and_burnt_food_heats_there(self):
+        # Overcooked 2: a burning hob does not start cooking a pan put on it. Burnt food's burnt time runs on any stove.
+        k=self.make();burn=k.rules.heat_thresholds('beef')[1];s=k.stations['p1'];k.ignite('p1')
+        s.food=Food('B','ready',6,burn-1,ingredient='beef');k.heat_stove(s);self.assertFalse(s.heating)
+        k.advance(1);self.assertEqual((s.food.stage,s.food.heated),('ready',burn-1))
+        s.food=Food('C','burnt',6,burn+1,ingredient='beef');k.heat_stove(s);self.assertTrue(s.heating)
+        k.advance(1);self.assertAlmostEqual(s.food.heated,burn+2,places=6);self.assertEqual(k.fires,1)
+        k.assert_invariants()
 
     def test_fifth_active_fire_ends_the_round_as_failed(self):
         k=self.make()
@@ -137,12 +244,16 @@ class FireSpreadTests(unittest.TestCase):
         self.assertTrue(k.station_catches('p1',Food('cut','chopped',ingredient='beef'),'human'));k.assert_invariants()
 
     def test_fire_rule_and_state_reach_model_in_english(self):
-        k=self.make();k.ignite('p1')
+        k=self.make();burn=k.rules.heat_thresholds('beef')[1]
+        k.stations['p1'].food=Food('B','burnt',6,burn,ingredient='beef');k.heat_stove(k.stations['p1']);k.ignite('p1')
+        k.chefs['jeff'].hand=k.stations['extinguisher'].food;k.stations['extinguisher'].food=None
         payload=JevClient(k.c,key='offline-test').payload(k.snapshot(),k.actions('jeff'))
         import json
         text=json.dumps(payload,ensure_ascii=False)
         self.assertNotRegex(text,r'[\u3400-\u9fff]')
         self.assertIn('5 workstations burning at once lose the round',text)
+        self.assertIn('A fire never burns food',text)
+        self.assertIn('the burnt food is still in the pan, and its burnt time keeps counting while it stays on the stove',text)
         self.assertIn('fire_heat',text)
 
 if __name__=='__main__':unittest.main()

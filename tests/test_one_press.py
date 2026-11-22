@@ -402,7 +402,7 @@ class SessionTests(unittest.TestCase):
                                            'option_links': {'on': True, 'version': 'option-links-v3'},
                                            'option_links_partner': {'on': False, 'version': 'partner-links-v3'},
                                            'split_floor': {'on': False, 'version': 'split-floor-v1'},
-                                           'burn_note': {'on': False, 'version': 'burn-note-v3'},
+                                           'burn_note': {'on': False, 'version': 'burn-note-v4'},
                                            'step_check': {'on': False, 'version': 'step-check-v3'},
                                            'walk_note': {'on': False, 'version': 'walk-note-v1'},
                                            'clear_text': {'on': True, 'version': 'clear-text-v1'},

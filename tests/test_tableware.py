@@ -173,8 +173,13 @@ class TablewareTests(unittest.TestCase):
 
     def test_bad_service_returns_plate_without_making_food_good(self):
         k = self.make()
-        plate = self.serve(k, 'burnt', stage='burnt')
-        # Service rules: a dish burnt too long is refused, earns nothing and the order keeps waiting.
+        # Service rules: a dish burnt too long (here 6 s, past the last accepted tier) is refused, earns nothing
+        # and the order keeps waiting.
+        self.ready(k, 'burnt', stage='burnt')
+        k.stations['p1'].food.heated = k.rules.heat_thresholds('beef')[1] + 6
+        self.plate(k)
+        plate = k.chefs['human'].hand.plate_id
+        self.do(k, 'human', 'serve')
         self.assertEqual(k.money, 0)
         self.assertIn('dish_rejected', [e.get('kind') for e in k.events])
         self.assertEqual(k.orders[0]['status'], 'pending')

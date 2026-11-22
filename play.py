@@ -125,16 +125,20 @@ def describe(k):
         if f and key in k.boards:
             desc += f"，切配 {f.chopped:.1f}/{k.c['chop_seconds']}s"
         if f and key in k.pots:
+            ready = k.c['cook_seconds']
+            burn = ready+k.c['burn_after_ready']
             if s.fire:
                 desc += "，正在着火！"
-            elif not s.heating:
-                desc += "，火已灭，待清理"
-            else:
-                ready = k.c['cook_seconds']
-                burn = ready+k.c['burn_after_ready']
+            if f.stage == 'burnt':
+                # Burnt time runs while the pan stays on a stove, burning or not.
                 fire = burn+k.c['fire_after_burn']
-                limit, title = (ready,"做熟") if f.heated < ready else ((burn,"糊锅") if f.heated < burn else (fire,"着火"))
-                desc += f"，距{title} {max(0,limit-f.heated):.1f}s"
+                desc += f"，已糊 {max(0,f.heated-burn):.1f}s" + (f"，距着火 {fire-f.heated:.1f}s" if f.heated < fire and not s.fire else "")
+            elif s.heating:
+                # On a burning stove food still cooking cooks on until it is cooked, then waits for the fire to go out.
+                limit, title = (ready,"做熟") if f.heated < ready else (burn,"糊锅")
+                desc += f"，距{title} {max(0,limit-f.heated):.1f}s" + ("，熟了以后等灭火再加热" if s.fire else "")
+            elif s.fire:
+                desc += "，灭火后接着加热"
         lines.append(f"  {key} {s.name}：{desc}" + (f"（{'你' if s.lock=='human' else 'Jev'}操作中）" if s.lock else ""))
     for item in k.ground.values():
         lines.append(f"  地上：{item.food.id} {STATES[item.food.stage]}，在{k.stations[item.location].name}旁")

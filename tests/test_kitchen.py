@@ -126,7 +126,9 @@ class RulesTest(unittest.TestCase):
         self.do(k,'jeff','extinguish p1')
         k.advance(5)
         self.assertFalse(s.fire)
-        self.assertFalse(s.heating)
+        # The burnt food's burnt time runs on while it stays on the stove, and it never sets the stove alight again.
+        self.assertTrue(s.heating)
+        self.assertEqual((k.burns,k.fires),(1,1))
         # No clearing in place: the pan goes to the bin, as in Overcooked 2.
         self.assertNotIn('clear p1',[a.key for a in k.actions('jeff')])
         self.do(k,'jeff','put extinguisher')

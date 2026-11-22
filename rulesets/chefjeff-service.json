@@ -4,7 +4,7 @@
   "id": "chefjeff-service",
   "version": 2,
   "name": "Continuous service rules",
-  "engine_semantics": "continuous-2026-10b",
+  "engine_semantics": "continuous-2026-11",
   "tick_game_ms": 50,
   "supported_equipment_types": [
     "ingredient_source",

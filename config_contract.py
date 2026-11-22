@@ -45,6 +45,9 @@ INVENTORY_HOSTS = {'plate': ('counter', 'sink', 'plate_return'), 'pot': ('stove'
 ORDER_ALGORITHMS = {'fixed_interval_seeded': 'fixed_interval_seeded/weighted-cumulative-v1',
                     'fixed_table': 'fixed_table/stable-sort-v1'}
 SEED_LIMIT = 2 ** 31
+# The rules this engine implements. The ruleset schema also names the semantics before it, so that research records
+# of rounds played under it still validate; a configuration resolved now must name this one.
+ENGINE_SEMANTICS = 'continuous-2026-11'
 
 
 def seconds(ms):
@@ -229,6 +232,10 @@ def resolve_config(bundle, registry=None):
         size = len(canonical(document).encode('utf-8'))
         if size > limits['max_document_bytes']:
             out.append(diag('LIMIT_DOCUMENT_SIZE', 'ERROR', f'/{kind}', f'{size} bytes exceeds {limits["max_document_bytes"]}'))
+
+    if ruleset['engine_semantics'] != ENGINE_SEMANTICS:
+        out.append(diag('UNSUPPORTED_ENGINE_SEMANTICS', 'ERROR', '/ruleset/engine_semantics',
+                        f'this engine implements {ENGINE_SEMANTICS!r}, not {ruleset["engine_semantics"]!r}'))
 
     # Equipment catalog against engine support.
     for type_id in catalog['types']:

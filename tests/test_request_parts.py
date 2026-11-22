@@ -316,6 +316,45 @@ class PartTests(unittest.TestCase):
         self.assertIn(f"burns in {stove['burn_in']:.1f} s", text)
         self.assertNotIn('cooked in', text)
 
+    def test_on_a_burning_stove_the_food_waits_and_burnt_food_says_how_long_it_has_been_burnt(self):
+        # v7: from the stove's heating (kitchen.ignite): v6 wrote the times of a stove that is not burning.
+        k = level('level-1')
+        for key in ('fetch beef', 'put b1', 'chop b1', 'take b1', 'put p1'):
+            do(k, key)
+        k.advance(2.0)
+        k.ignite('p1')                                      # a fire reaches the stove while the beef cooks
+        stove = k.snapshot()['stations']['p1']
+        view = lambda: request(k, parts={'view': True})['state']['kitchen']['stations']['Stove 1 (p1)']
+        self.assertIn(f"cooked in {stove['ready_in']:.1f} s, then waits until the fire on Stove 1 is out", view())
+        while k.stations['p1'].food.stage != 'ready':
+            k.advance(0.1)
+        text = view()
+        self.assertIn(': waits until the fire on Stove 1 is out', text)
+        self.assertNotIn('burns in', text)
+        self.assertTrue(text.endswith(' - ON FIRE'), text)
+        # Burnt food on the stove, and in a pan off it: its burnt time, by the engine's measure (Rules.overcook).
+        burn = k.rules.heat_thresholds('beef')[1]
+        k.stations['p1'].fire, k.stations['p1'].fire_strength = False, 0.
+        k.stations['p1'].food.heated, k.stations['p1'].food.stage = burn + 2.3, 'burnt'
+        self.assertIn(': burnt for 2.3 s', view())
+        self.assertNotIn('catches fire', view())            # past its fire point: the stove does not catch fire again
+        do(k, 'take pot p1')
+        held = request(k, parts={'view': True})['state']['kitchen']['chefs']['you']['holding']
+        self.assertIn('burnt for 2.3 s', held)
+
+    def test_while_a_stove_burns_a_held_pan_gives_its_times_for_a_stove_not_on_fire(self):
+        k = level('level-1')
+        for key in ('fetch beef', 'put b1', 'chop b1', 'take b1', 'put p1'):
+            do(k, key)
+        while k.stations['p1'].food.stage != 'ready':
+            k.advance(0.1)
+        do(k, 'take pot p1')
+        k.ignite('p1')
+        held = request(k, parts={'view': True})['state']['kitchen']['chefs']['you']['holding']
+        burn = k.rules.heat_thresholds('beef')[1]
+        heated = k.chefs['jeff'].hand.contents.heated
+        self.assertIn(f'burns {burn - heated:.1f} s after it is back on a stove that is not on fire', held)
+
     def test_all_parts_together(self):
         out = request(self.k, parts=ALL, decisions=self.decisions)
         state = out['state']

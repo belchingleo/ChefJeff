@@ -3,7 +3,8 @@
 Confirmed rules (2026-09-27): 180 game seconds; level menus steak / burger /
 steak + burger; prices 50 / 80; the goal is net revenue at closing; no bad
 reviews; wrong dish -20; expired order -10; a dish burnt up to 5 s is accepted
-at price -10, longer is refused (no money, the order keeps waiting); serving at
+at price -10, longer is refused (no money, the order keeps waiting), the burnt
+time running while it stays on a stove, burning or not (2026-11-22); serving at
 the deadline counts; orders keep arriving until closing and orders still open
 at closing carry no penalty; countdowns are per dish; at most 5 tickets.
 """
@@ -46,6 +47,101 @@ class OrderFlowTests(unittest.TestCase):
         self.assertEqual(sum(o['status'] == 'pending' for o in k.orders), 3)
         k.advance(10 * interval)
         self.assertLessEqual(sum(o['status'] == 'pending' for o in k.orders), 5)
+
+
+class BurntTimeTests(unittest.TestCase):
+    """Owner decision 2026-11-22: burnt food's burnt time runs while it stays on a stove, whether the stove is
+    burning, put out or neither, and stops when it leaves the stove; its stove catches fire once, as it burns.
+    Level 1 accepts a steak burnt up to 5 s at the price -10 and refuses one burnt longer."""
+
+    def setUp(self):
+        self.k = k = Kitchen(level(1))
+        self.burn = k.rules.heat_thresholds('beef')[1]
+        self.stove = s = k.stations['p1']
+        # Beef cooked in its own pan, 0.5 s from burning; both chefs stand at the stove (Jeff starts there).
+        s.food = Food('B', 'ready', 6, self.burn - .5, ingredient='beef')
+        k.heat_stove(s)
+        k.chefs['human'].location = 'p1'
+        k.advance(.5)
+        self.assertEqual((s.food.stage, s.fire, k.burns, k.fires), ('burnt', True, 1, 1))
+
+    def burnt(self, food=None):
+        return (food or self.stove.food).heated - self.burn
+
+    def do(self, who, key):
+        ok, reason = self.k.command(who, key)
+        self.assertTrue(ok, (key, reason))
+        job = self.k.chefs[who].job
+        self.k.advance(job.travel + job.work + 1e-6)
+        self.assertIsNone(self.k.chefs[who].job)
+
+    def put_out(self):
+        """Jeff, at the stove, takes the extinguisher and sprays the fire out (0.5 s)."""
+        k = self.k
+        k.chefs['jeff'].hand, k.stations['extinguisher'].food = k.stations['extinguisher'].food, None
+        label = next(a.label for a in k.actions('jeff') if a.key == 'extinguish p1')
+        self.assertIn('糊菜还在锅里，留在灶台上会越糊越久', label)
+        self.do('jeff', 'extinguish p1')
+        self.assertFalse(self.stove.fire)
+
+    def lift(self):
+        self.do('human', 'take pot p1')
+        return self.k.chefs['human'].hand
+
+    def serve(self):
+        """Plate the held pan's food on the plate counter, put the pan back and serve: (order, money gained)."""
+        k = self.k
+        order = min((o for o in k.orders if o['status'] == 'pending'), key=lambda o: o['deadline'])
+        money = k.money
+        for key in ('plate plates', 'put pot p1', 'take plates', 'serve'):
+            self.do('human', key)
+        return order, k.money - money
+
+    def test_put_out_at_three_seconds_and_lifted_at_four_is_accepted_at_minus_ten(self):
+        k = self.k
+        k.advance(2.5);self.put_out()
+        self.assertAlmostEqual(self.burnt(), 3, places=3)
+        self.assertTrue(self.stove.heating)  # the burnt time runs on once the fire is out
+        k.advance(1);pan = self.lift()
+        self.assertAlmostEqual(self.burnt(pan.contents), 4, places=3)
+        order, gained = self.serve()
+        self.assertEqual((order['status'], gained), ('served', k.rules.prices['steak'] - 10))
+        self.assertEqual(k.fires, 1)
+
+    def test_left_on_the_stove_past_the_limit_after_the_fire_is_out_is_refused(self):
+        k = self.k
+        k.advance(2.5);self.put_out();k.advance(2.5)
+        pan = self.lift()
+        self.assertAlmostEqual(self.burnt(pan.contents), 5.5, places=3)
+        order, gained = self.serve()
+        self.assertEqual((order['status'], gained), ('pending', 0))
+        self.assertIn('dish_rejected', [e['kind'] for e in k.events])
+
+    def test_lifted_off_a_stove_that_burnt_the_whole_time_past_the_limit_is_refused(self):
+        k = self.k
+        k.advance(5.5);self.assertTrue(self.stove.fire)
+        pan = self.lift()
+        self.assertAlmostEqual(self.burnt(pan.contents), 5.5, places=3)
+        order, gained = self.serve()
+        self.assertEqual((order['status'], gained), ('pending', 0))
+
+    def test_the_burnt_time_stops_when_the_pan_leaves_the_stove(self):
+        k = self.k
+        k.advance(2.5);self.put_out();k.advance(1)
+        pan = self.lift();k.advance(30)  # carried for 30 s
+        self.assertAlmostEqual(self.burnt(pan.contents), 4, places=3)
+        order, gained = self.serve()
+        self.assertEqual((order['status'], gained), ('served', k.rules.prices['steak'] - 10))
+
+    def test_burnt_food_on_a_stove_never_sets_it_alight_again(self):
+        # As in Overcooked 2: neither left on the stove after the fire is out nor lifted and put back on it.
+        k = self.k
+        k.advance(1);self.put_out();k.advance(30)
+        self.assertFalse(self.stove.fire);self.assertAlmostEqual(self.burnt(), 31.5, places=2)
+        pan = self.lift();k.advance(10);self.assertAlmostEqual(self.burnt(pan.contents), 31.5, places=2)
+        self.do('human', 'put pot p1');k.advance(2)
+        self.assertAlmostEqual(self.burnt(), 33.5, places=2)  # back on a stove its burnt time runs again
+        self.assertFalse(self.stove.fire);self.assertEqual((k.burns, k.fires), (1, 1))
 
 
 class ServeTests(unittest.TestCase):
@@ -127,12 +223,6 @@ class ServeTests(unittest.TestCase):
         self.assertTrue(k.dining)  # the plate still comes back to be washed
         self.plate(k, 'steak');self.serve(k)
         self.assertEqual(o['status'], 'served');self.assertEqual(k.money, 50)
-
-    def test_food_burnt_by_fire_is_refused(self):
-        k = self.kitchen(1);o = self.first(k)
-        self.plate(k, 'steak', 'burnt', heated=15)  # burnt by a spreading fire before its own burn point
-        self.serve(k)
-        self.assertEqual(o['status'], 'pending');self.assertEqual(k.money, 0)
 
     def test_wrong_dish_costs_twenty_and_hidden_future_orders_do_not_match(self):
         k = self.kitchen(1)

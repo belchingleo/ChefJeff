@@ -39,8 +39,10 @@
       "$ref": "common.schema.json#/$defs/display_name"
     },
     "engine_semantics": {
+      "description": "The rules the engine implements: continuous-2026-11. continuous-2026-10b, the semantics before it, stays valid here so that research records of rounds played under it still validate; a configuration resolved now must name continuous-2026-11 (config_contract.ENGINE_SEMANTICS).",
       "enum": [
-        "continuous-2026-10b"
+        "continuous-2026-10b",
+        "continuous-2026-11"
       ]
     },
     "tick_game_ms": {
@@ -358,7 +360,7 @@
       "$ref": "common.schema.json#/$defs/extensions"
     },
     "burnt_service": {
-      "description": "How a matched order treats a dish with burnt components, by how long the worst component was burnt when it left the heat. Tiers in ascending order; the last has max_overcook_game_ms null.",
+      "description": "How a matched order treats a dish with burnt components, by how long the worst component had been burnt when it left the stove (burnt time runs while it stays on a stove, burning or not). Tiers in ascending order; the last has max_overcook_game_ms null.",
       "type": "array",
       "minItems": 1,
       "items": {

@@ -2,6 +2,12 @@
 
 Run an agent on fixed levels with a fixed scripted partner, many rounds each, and get a result whose every number carries its interval. The agent can be Jeff on your model, or your own agent on the environment interface ([env-v1](../docs/architecture/environment-api.md)).
 
+## v4
+
+`v4/manifest.json` freezes the same things as v3 (the `env-v1` interface, levels 1–3, the scripted partner `assembler`, 12 rounds per level on a real clock), measured on the kitchen as it is from 2026-11-22: burnt food's burnt time runs while it stays on a stove, whether the stove is burning, put out or neither, and stops when it leaves the stove, so a pan of burnt food left on its stove goes past the −10 tier and is refused; burnt food sets its stove alight once, as it burns, and after that only a fire spreading from nearby sets the stove alight again; and a fire no longer burns the food in a pan: food still cooking when a fire reaches its stove is cooked and then waits, cooked food waits, and both cook on once the fire is out. Jeff's rules are `rules-v15` and the engine semantics `continuous-2026-11`.
+
+v3 (`v3/manifest.json`, kept as it was frozen) retired on 2026-11-22 with that change: every level's configuration changed with the engine semantics, and level 2's reference trace with the burnt time, so v3 and v4 scores are not compared.
+
 ## v3
 
 `v3/manifest.json` freezes the same things as v2 (the `env-v1` interface, levels 1–3, the scripted partner `assembler`, 12 rounds per level on a real clock), measured on the kitchen as it is from 2026-11-11: every sink has a drying rack beside it, as in Overcooked 2 (dirty plates stack in the sink and stay there until washed; each washed plate goes onto the rack); level 1 moved its stove and plates one cell to make room for the rack, levels 2 and 3 turned the counter beside the sink into it; a held empty pan scoops an ingredient off a board or counter; and both chefs walk 4 cells per second (was 5), with the targets of levels 2 and 3 recalibrated to 160 and 140. From 2026-11-22 one thing changed: a chef at the sink, either chef, takes the drying rack's top clean plate where it stands, as in Overcooked 2 (from anywhere else the take walks to the rack; before that date it always did), and Jeff's rules are `rules-v15` (before that, `rules-v14`). No v3 result had been made with `rules-v14`, and none of the values v3 freezes changed with this, so v3 was kept rather than retired.
@@ -59,7 +65,7 @@ Every round's journal and session bundle are kept under `--out`, and every round
 
 ## Results
 
-Put a result that `verify` accepts under `v2/results/<agent>-<model>.json`; `report` reads them all.
+Put a result that `verify` accepts under `v4/results/<agent>-<model>.json`; `report` reads them all.
 
 ---
 
@@ -68,6 +74,12 @@ Put a result that `verify` accepts under `v2/results/<agent>-<model>.json`; `rep
 # ChefJeff Benchmark
 
 让一个 agent 在固定的关卡、固定的脚本搭档下各打多局，结果里的每个数字都带置信区间。agent 可以是用你的模型的 Jeff，也可以是你自己基于环境接口（[env-v1](../docs/architecture/environment-api.md)）写的 agent。
+
+## v4
+
+`v4/manifest.json` 冻结的内容和 v3 相同（`env-v1` 接口、第 1–3 关、脚本搭档 `assembler`、每关 12 局、真实时钟），量的是 2026-11-22 起的厨房：糊了的菜只要留在灶台上，糊的时长就一直累计，灶台着火、火已扑灭或从没着火都一样，离开灶台才停止，所以糊菜一直留在灶台上就会超过 −10 那一档、被顾客拒收；糊菜只在烧糊那一刻让灶台起一次火，之后只有旁边的火蔓延过来才会再着火；火也不再把锅里的菜烧糊：火烧到灶台上时，还在煎的菜照样煎到熟再停下来等着，已经熟了的菜马上等着，灭火后都从原来的进度接着加热。Jeff 的规则是 `rules-v15`，引擎规则版本是 `continuous-2026-11`。
+
+v3（`v3/manifest.json`，保持冻结时的样子）在 2026-11-22 随这次改动退役：引擎规则版本一变，每关的配置都变了，第二关的参考轨迹也因为糊的计时而变了，所以 v3 和 v4 的成绩不放在一起比较。
 
 ## v3
 
@@ -104,4 +116,4 @@ v2 测的内容和 v1 完全一样（关卡、搭档、局数和接口都相同�
 
 ## 结果
 
-通过 `verify` 的结果放到 `v2/results/<agent>-<模型>.json`，`report` 会把它们全部读进来。
+通过 `verify` 的结果放到 `v4/results/<agent>-<模型>.json`，`report` 会把它们全部读进来。

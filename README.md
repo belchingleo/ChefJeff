@@ -189,7 +189,7 @@ Every Python module at the repository root, in seven groups. **Run** marks a mod
 | `undo_note.py` | **Switch** `undo_note`. An option that would bring back how things were before one of Jeff's last steps says so |
 | `reach_note.py` | **Switch** `reach_note`. On a split floor, which stations each chef can walk to |
 | `split_floor.py` | **Switch** `split_floor`. On a split floor where no dish on the menu can be made by one chef alone, Jeff is told so |
-| `burn_note.py` | **Switch** `burn_note`. An option on a stove with food says when it is cooked and when it burns |
+| `burn_note.py` | **Switch** `burn_note`. An option on a stove with food says when it is cooked and when it burns, or that it waits while the stove burns |
 | `option_notes.py` | **Switch** `option_notes`. Options that pick up or serve a finished dish say which waiting order it goes to and how long that order has left |
 | `step_check.py` | **Switch** `step_check`. For each kind of step the waiting orders need, whether the kitchen allows it now and what stands in the way |
 | `walk_note.py` | **Switch** `walk_note`. Every walking option says how many seconds of walking it is |

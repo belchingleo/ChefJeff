@@ -28,6 +28,12 @@ from cooperation_memory import PAST_EPISODES_RULE
 # v13: level 1's flow says fetch <ingredient> takes that raw ingredient from its source (the key is fetch beef).
 # v14: the sink stacks dirty plates and each washed plate goes onto the drying rack; a held pan scoops.
 # v15: standing at the sink, take <drying rack> takes the rack's top clean plate where the chef stands (Overcooked 2).
+# v15 also: burnt food's burnt time runs while it stays on a stove, burning or not, until it leaves the stove; a fire no
+# longer burns the food in a pan (food still cooking cooks on until it is cooked, then waits with cooked food and food
+# put on the burning stove, and all of it cooks on once the fire is out); one fire per burning. Food put on a burning
+# stove waits whether its pot is put there or the food is put or thrown into its pot (this rule had dropped the old
+# "while burning, a stove does not heat", which covered those). The swap rule says a pot can be lifted, put back or
+# swapped on a burning stove, as the engine has allowed since 2026-10-21 (it said the stove had to be put out first).
 AGENT_RULES_VERSION = "rules-v15"
 
 
@@ -107,7 +113,8 @@ def score_text(state):
     return (f"Serving a complete plated dish goes to the waiting order of the same dish with the earliest deadline and earns its price ({prices}); "
             "serving exactly at the deadline still counts. A plate can be served when its components are exactly those of one dish in kitchen.dishes; "
             "orders show which dishes customers are waiting for. Unplated food, or a plate that matches no dish, cannot be served. "
-            "If any component was burnt, what counts is how long it had been burnt when it left the heat: " + '; '.join(tiers) + ". "
+            "If any component was burnt, what counts is how long it had been burnt when it left the stove; that time runs while "
+            "it stays on a stove, burning or not, and stops when the pan is lifted or the food is plated: " + '; '.join(tiers) + ". "
             f"Serving a dish that no shown order is waiting for: {p['wrong_dish']} yuan. Expired order: {p['expired_order']} yuan"
             + ("; the order stays and its countdown starts again. " if (state.get('order_flow') or {}).get('on_expire') == 'restart' else ". ") +
             f"Fire: {p['new_fire']} yuan per burning workstation. Discarding food or emptying a pot: {p['discard']} yuan. There are no bad reviews.")
@@ -201,14 +208,19 @@ def rules(state, spatial=False, per_area=2):
                    'Held items can be put down beside the current station using drop, taking timing.handling seconds, without a penalty or spoilage. ground lists all floor items and locations. Either chef can walk there and use pickup <item_id>; handling time is added to travel. Items retain their state and preparation progress; food on the floor is not heated. Cooked food must remain in a pot or on a plate. Dropping is different from discard at a bin: dropped items remain usable. Decide when to put down or pick up items.'),
         "timing": timing,
         "interrupt": 'continue keeps the current task; another action interrupts it. Chopping progress is preserved. Cooking in a pot does not stop when a chef switches tasks. Decide whether to continue or interrupt.',
-        "fire": (f'Cooked food burns timing.ready_to_burn seconds after it is ready, and its stove catches fire at that moment. '
+        "fire": (f'Cooked food burns timing.ready_to_burn seconds after it is ready, and its stove catches fire at that moment; '
+                 'burnt food left on a stove does not set it alight again. '
                  f'A fire heats every combustible workstation in the eight cells around it; next to one fire it ignites after '
                  f'{fire["flammability_seconds"]:g} seconds, more fires add up, and fire_heat (0 to 1) shows how close it is. '
                  'Fire never crosses a floor gap or wall. To put a fire out, take the extinguisher (it fills your hands; a held '
                  f'item goes to the floor) and extinguish: {t["extinguish"]:g} seconds of spraying in total. If you stop early, '
-                 'the fire grows back after 2 seconds. While burning, a stove does not heat, a source gives nothing and a board '
-                 'cannot chop, but items there can still be taken, put or plated. Burnt food can be served under the burnt-food '
-                 f'scoring or emptied at a bin. {fire["loss_threshold"]} workstations burning at once lose the round.'),
+                 'the fire grows back after 2 seconds. A fire never burns food. When a fire reaches a stove, food still cooking '
+                 'there cooks on until it is cooked and then waits, and cooked food waits; food put on a burning stove waits too, '
+                 'whether its pot is put there or the food is put or thrown into its pot. Food that waits does not cook; once '
+                 'the fire is out it cooks on from where it was. Burnt food stays '
+                 'burnt and its burnt time keeps running. While burning, a source gives nothing and a board cannot chop, but items there '
+                 'can still be taken, put or plated. Burnt food can be served under the burnt-food scoring or emptied at a bin. '
+                 f'{fire["loss_threshold"]} workstations burning at once lose the round.'),
         "score": score_text(state),
         "visibility": 'Both chefs see the same kitchen state. All available actions are in criteria; legal does not mean useful. Waiting and continuing are allowed. The program does not choose your strategy.' + ((
             ' go X is listed only when no other listed action already walks to X. Empty counters differ only in place, '
@@ -248,7 +260,7 @@ def rules(state, spatial=False, per_area=2):
                       "incoming_item marks a station an item is flying to. projectiles lists in-flight items and landing times; they cannot be "
                       "picked up in flight. At release your hands become empty. Decide whether and where to throw yourself.")
     rules['partner_plating'] = ("plate partner: approach the other chef holding a clean or compatible partially assembled plate. Add your prepared ingredient, or transfer cooked/burnt food from your held pot. When the menu has multi-ingredient dishes, you can also transfer all ingredients from your held plate if none duplicate the receiving plate. Food stays on the receiving plate; your pot or emptied plate stays in your hands, or your hand becomes empty after donating a loose ingredient. A chef currently performing work cannot receive, and the transfer does not interrupt that work. Proximity and held items are checked again on arrival and completion; if they change, the transfer is cancelled. Neither chef can directly take an item from the other chef's hands.")
-    rules['pot_swap'] = 'swap pot <stove_or_counter_id> or swap pot ground <pot_id> exchanges your held pot with the target pot in place. Contents and cooking progress stay with each original pot. The incoming pot heats only on a stove; the outgoing pot stops heating in your hands. A chopped ingredient starts cooking when its pot reaches a stove. Empty pots do not heat; cooked or burnt food resumes its existing heat progress. A burning stove must be extinguished before exchanging pots. Both chefs have these actions.'
+    rules['pot_swap'] = 'swap pot <stove_or_counter_id> or swap pot ground <pot_id> exchanges your held pot with the target pot in place. Contents and cooking progress stay with each original pot. The incoming pot heats only on a stove; the outgoing pot stops heating in your hands. A chopped ingredient starts cooking when its pot reaches a stove. Empty pots do not heat; cooked or burnt food resumes its existing heat progress. A pot can be lifted, put back or swapped on a burning stove. Both chefs have these actions.'
     rules['off_stove_pots'] = 'load ground <pot_id> puts held food into an empty pot on the floor. load <counter_id> puts held food into an empty pot on that counter. The ingredient stays inside the pot; your hands become empty. Then pickup or take the pot and return it to a stove to heat it. Off-stove pots never heat food. Only food in the state that kitchen.vessels lists for that kind of vessel can be loaded. Rules are identical for both chefs and all levels.'
     if state.get('assembly'):
         rules['assembly']='assemble <counter_id> adds your ingredient to a counter plate, or the counter ingredient to your held plate. assemble <board_id> collects a prepared ingredient directly from that board into your held plate. Beef must be cooked before plating; chopped raw beef cannot be plated. merge <counter_id> transfers all ingredients from the counter plate into your held clean/partial plate if they do not overlap; the empty clean source plate stays on the counter. No plates disappear. plate partner can also add a prepared ingredient or merge a plate into the plate held by the other chef. Each ingredient appears once. plate actions transfer cooked beef from a pot into an empty plate or a partial burger plate without beef, on a counter, in your hand, on the floor (pot), or held by the other chef. Adding vegetables or bread to plated steak turns it into a partial burger until all four ingredients are present. One counter cell holds one object. Pots and plates cannot be stacked.'

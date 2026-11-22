@@ -190,7 +190,7 @@ Jeff 不看画面，他读的是结构化的游戏状态，从当前合法的动
 | `undo_note.py` | **开关** `undo_note`。某个选项会让东西回到 Jeff 前几步之前的样子时，在选项上写明 |
 | `reach_note.py` | **开关** `reach_note`。地面被柜台隔开时，写明每位厨师能走到哪些工位 |
 | `split_floor.py` | **开关** `split_floor`。地面被隔开、菜单上没有一道菜能由一位厨师单独做完时，告诉 Jeff |
-| `burn_note.py` | **开关** `burn_note`。灶台上有菜时，选项写明菜什么时候熟、什么时候糊 |
+| `burn_note.py` | **开关** `burn_note`。灶台上有菜时，选项写明菜什么时候熟、什么时候糊；灶台着火时写明菜在等灭火 |
 | `option_notes.py` | **开关** `option_notes`。拿起或送出做好的菜的选项，写明这道菜对应哪张等待中的订单、还剩多久 |
 | `step_check.py` | **开关** `step_check`。等待中的订单需要的每一类步骤，现在能不能做，不能做时是什么挡着 |
 | `walk_note.py` | **开关** `walk_note`。每个要走路的选项写明要走几秒 |

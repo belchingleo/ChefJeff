@@ -1594,9 +1594,14 @@ class SpatialKitchen(Kitchen):
             if self.station_catches(target, food, p['actor']):
                 station.food = food
                 if target in self.pots:
-                    food.stage, station.heating = 'cooking', True
-                    self.emit(f'{key} 落进{station.name}的{self.vessel_name(station.pot_id)}，开始加热',kind='landed',handoff_id=p['handoff_id'],
-                              outcome='landed_station',item=key,actor=p['actor'],target=target)
+                    food.stage = 'cooking'
+                    station.heating = self.stove_heats(station)  # on a burning stove it waits for the fire to be put out
+                    landed, vessel = dict(kind='landed', handoff_id=p['handoff_id'], outcome='landed_station', item=key,
+                                          actor=p['actor'], target=target), self.vessel_name(station.pot_id)
+                    if station.heating:
+                        self.emit(f'{key} 落进{station.name}的{vessel}，开始加热', **landed)
+                    else:
+                        self.emit(f'{key} 落进{station.name}的{vessel}，灭火后开始加热', **landed)
                 else:
                     self.emit(f'{key} 落到{station.name}，可取走',kind='landed',handoff_id=p['handoff_id'],outcome='landed_station',
                               item=key,actor=p['actor'],target=target)

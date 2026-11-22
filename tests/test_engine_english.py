@@ -19,6 +19,17 @@ changes (these requests carry no step history); and for rules-v15, whose tablewa
 every request: in level 1 Jeff takes the drying rack's plate at the sink where he stands, so that option's walk is
 0.0 s (was 0.2 s), and the requests from 54 to 64 s differ in positions, event times and a few options (at 60 s the
 player, who took the rack's plate at the sink, is at the sink, no longer at the rack); from 66 s on they are as before.
+Rewritten again for rules-v15's burnt and fire rules (engine semantics continuous-2026-11): every request's score and
+fire rules and its config_hash change; in levels 2 and 3 the beef that burns on Stove 1 keeps heating while the stove
+burns (heating true, heat_elapsed running on from 20.0); in level 3 the fire spreading to Stove 2 leaves its beef
+cooked (it was burnt), and it waits there. Rewritten once more when the fire rule said that food still cooking when a
+fire reaches its stove cooks on until it is cooked (every request's fire rule), and for burn-note-v4: its version, the
+take option of Stove 2's pan in that level-3 request, which says the beef waits until the fire on Stove 2 is out (v3
+gave when it burns), and the first request's go option to Stove 1, whose cooked beef the scripted round puts there
+without heating it, which gets no note (v3 gave when it burns). Rewritten again when the fire rule said that food put
+on a burning stove waits whether its pot is put there or the food is put or thrown into its pot, and the swap rule
+that a pot can be lifted, put back or swapped on a burning stove (it said the stove had to be put out first): those two
+rules are all that change, in every request.
 """
 from __future__ import annotations
 

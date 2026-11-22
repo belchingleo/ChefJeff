@@ -1,4 +1,4 @@
-"""burn_note (burn-note-v1): options on a stove whose food is cooked say, with the time, when it burns. Facts only.
+"""burn_note (burn-note-v1 to v4): options on a stove whose food is cooked say, with the time, when it burns. Facts only.
 
 No model is called: requests are composed locally, and the round is a loopback relay round.
 """
@@ -96,6 +96,40 @@ class BurnNoteTests(unittest.TestCase):
         changed = {key for key, text in on['questions']['next_action']['criteria'].items()
                    if text != off['questions']['next_action']['criteria'][key]}
         self.assertEqual(changed, {'put pot p1'})        # plating it, putting it on a counter: no note
+
+    def test_on_a_burning_stove_the_notes_say_the_food_waits_until_the_fire_is_out(self):
+        # (v4) A fire that reaches a stove burns no food: cooked food waits there until the fire is out, and food
+        # still cooking is cooked first (kitchen.ignite). No seconds for the wait.
+        k = cooked_pan()
+        k.ignite('p1')
+        self.assertFalse(k.stations['p1'].heating)
+        on, off = request(k, True), request(k, False)
+        note = ' (beef (cooked) on Stove 1 waits until the fire on Stove 1 is out)'
+        criteria = off['questions']['next_action']['criteria']
+        changed = {key for key, label in on['questions']['next_action']['criteria'].items() if label != criteria[key]}
+        self.assertTrue(changed)
+        for key in changed:
+            self.assertEqual(on['questions']['next_action']['criteria'][key], criteria[key] + note)
+
+        k = kitchen(1)
+        for key in ('fetch beef', 'put b1', 'chop b1', 'take b1', 'put p1'):
+            do(k, key)
+        k.advance(2.0)
+        k.ignite('p1')
+        self.assertTrue(k.stations['p1'].heating)
+        on = request(k, True)
+        stove = on['state']['kitchen']['stations']['p1']
+        self.assertIn(f" (beef (cooking) on Stove 1 is cooked in {stove['ready_in']:.1f} s, then waits until the fire on "
+                      'Stove 1 is out)', on['questions']['next_action']['criteria']['take pot p1'])
+
+    def test_putting_a_held_pan_on_a_burning_stove_says_the_food_waits_there(self):
+        k = cooked_pan()
+        do(k, 'take pot p1')
+        k.ignite('p1')
+        on, off = request(k, True), request(k, False)
+        self.assertEqual(on['questions']['next_action']['criteria']['put pot p1'],
+                         off['questions']['next_action']['criteria']['put pot p1']
+                         + ' (beef (cooked) in the held frying pan waits there until the fire on Stove 1 is out)')
 
     def test_without_cooked_food_only_the_version_is_added(self):
         for level in (1, 4):

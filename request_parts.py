@@ -21,13 +21,18 @@ alike, so every combination rebuilds exactly. With every part off the request is
   option of that kind is listed; the fire rule also while food is on a stove or anything burns or heats up; the
   others always, the vessels rule included (v2: v1 left it out while no pot option was listed, so a chef holding raw
   beef read nowhere that a pan takes beef only once chopped). past_episodes, rule and state, goes while it is disabled.
-- kitchen_view (kitchen-view-v6): state.kitchen keeps what the kitchen is now, written out: the clock, money and
+- kitchen_view (kitchen-view-v7): state.kitchen keeps what the kitchen is now, written out: the clock, money and
   stars, which vessel cooks what (v2), waiting and served orders (v5: no dishes block; the rules give the recipes and
   prices), the two chefs (v6: Jeff's own line only while he holds something, and then only what he holds; with "you:
   at Counter 4, holding nothing, doing nothing" Jev took back what he had just put down for the other chef in 52 of
   147 re-asks of the user's level-4 rounds, without that line in 8 of 147), every station (empty counters in one line; on a split
   floor grouped by who reaches them), plates, the floor and items in the air. Walls, map cells, routes, collision
   numbers, hashes, seeds, the menu (the same as dishes), the numbers the rules already give, and empty fields go.
+  v7: a stove's line follows the stove's heating too: food that does not heat on a burning stove waits until the fire
+  there is out, and food still cooking on one is cooked and then waits (v6 gave the times of a stove that is not
+  burning, which a fire spreading to a stove made false once it stopped burning food, 2026-11-22); burnt food says
+  how long it has been burnt, on a stove and off it (its burnt time runs while it stays on a stove, and the burnt-food
+  scoring counts it); a pan off the stove gives its times for a stove that is not on fire while one is.
   v3: a stove's line gives only the next thing to happen (cooked; then burns and catches fire; then catches fire).
   v2: a loose ingredient says what it still needs, from the same request's facts ("beef (as fetched) F3 (not chopped
   yet (2.2 s of chopping); a frying pan cooks it only once it is chopped)"); v1 dropped the chopping left and the
@@ -41,13 +46,14 @@ from __future__ import annotations
 from collections import defaultdict
 import math
 import re
+from types import SimpleNamespace
 
 PLACE_NAMES_VERSION = 'place-names-v1'
 TIMELINE_VERSION = 'timeline-v3'
 NO_HISTORY_VERSION = 'no-history-v1'
 LINKS_ON_OPTIONS_VERSION = 'links-on-options-v1'
 RULES_BY_ACTION_VERSION = 'rules-by-action-v3'
-KITCHEN_VIEW_VERSION = 'kitchen-view-v6'
+KITCHEN_VIEW_VERSION = 'kitchen-view-v7'
 # features.json name -> (finish() argument, version).
 SWITCHES = {'place_names': ('place', PLACE_NAMES_VERSION), 'timeline': ('timeline', TIMELINE_VERSION),
             'no_history': ('no_history', NO_HISTORY_VERSION),
@@ -376,9 +382,30 @@ def _needs(food, kj):
     return out
 
 
+def _burnt_for(food, kitchen):
+    """v7: how long burnt food has been burnt, by the engine's own measure (Rules.overcook, what the burnt-food scoring
+    reads); None for food that is not burnt."""
+    if not isinstance(food, dict) or food.get('stage') != 'burnt' or kitchen is None:
+        return None
+    parts = food.get('components') or [food.get('ingredient')]
+    try:
+        return kitchen.rules.overcook(SimpleNamespace(stage='burnt', heated=float(food.get('heat_elapsed') or 0)), parts)
+    except Exception:
+        return None
+
+
+def _a_stove_burns(kitchen):
+    try:
+        return any(kitchen.stations[sid].fire for sid in kitchen.pots)
+    except Exception:
+        return False
+
+
 def _pan_next(food, kitchen):
     """v4: for a pan or pot off the stove with food in it, the next thing that happens once it is back on a stove,
-    from the engine's heat thresholds and the food's heat so far (it keeps its heat off the stove)."""
+    from the engine's heat thresholds and the food's heat so far (it keeps its heat off the stove). v7: while a stove
+    burns, these times are for a stove that is not on fire (on a burning one food that is not burnt waits, and the
+    stove does not catch fire again); burnt food says how long it has been burnt."""
     contents = food.get('contents')
     if food.get('stage') != 'pot' or not isinstance(contents, dict) or kitchen is None:
         return None
@@ -387,12 +414,17 @@ def _pan_next(food, kitchen):
     except Exception:       # an item no vessel heats: nothing to say
         return None
     stage, heated = contents.get('stage'), float(contents.get('heat_elapsed') or 0)
+    stove = 'a stove that is not on fire' if _a_stove_burns(kitchen) else 'a stove'
     if stage in ('chopped', 'cooking') and heated < ready:
-        return f'cooked {ready - heated:.1f} s after it is back on a stove'
+        return f'cooked {ready - heated:.1f} s after it is back on {stove}'
     if stage == 'ready' and heated < burn:
-        return f'burns {burn - heated:.1f} s after it is back on a stove'
-    if stage == 'burnt' and heated < fire:
-        return f'the stove catches fire {fire - heated:.1f} s after it is back on a stove'
+        return f'burns {burn - heated:.1f} s after it is back on {stove}'
+    if stage == 'burnt':
+        burnt = _burnt_for(contents, kitchen)
+        out = [f'burnt for {burnt:.1f} s'] if burnt is not None else []
+        if heated < fire:
+            out.append(f'the stove catches fire {fire - heated:.1f} s after it is back on {stove}')
+        return '; '.join(out) or None
     return None
 
 
@@ -406,29 +438,43 @@ def _food(food, kj=None, kitchen=None):
     pan = _pan_next(food, kitchen)
     if pan:
         needs.append(pan)
+    burnt = _burnt_for(food, kitchen)       # v7: burnt food on a plate or loose
+    if burnt is not None:
+        needs.append(f'burnt for {burnt:.1f} s')
     if needs:
         text += ' (' + '; '.join(needs) + ')'
     return text
 
 
-def _stove(s, partner=None):
+def _stove(s, partner=None, kitchen=None):
     """Only the next thing to happen: while the food cooks when it is cooked (v3, the user's wording), once cooked
     when it burns, once burnt when the stove catches fire. v2 gave the burn and fire countdown while the food was
     still cooking, and Jev took the extinguisher with nothing burning (7 times in 3 rounds); v4 leaves the fire out
     of a cooked pan's line too (re-ask: extinguisher 3/57 with it, 0/57 without; the fire rule says it). partner:
-    the other chef's walk to this stove in seconds, when the stove holds food (v4)."""
+    the other chef's walk to this stove in seconds, when the stove holds food (v4). v7: from the stove's heating as
+    well, so on a burning stove food that does not heat waits until the fire is out and food still cooking is cooked
+    and then waits (kitchen.ignite); burnt food says how long it has been burnt, and a burning stove does not catch
+    fire again."""
     pan = f"{s.get('vessel_name') or 'pan'} {s['pot_id']}" if s.get('pot_id') else 'no pan'
     food = s.get('food')
     if not food:
         return f'{pan}, empty' if s.get('pot_id') else pan
     stage, ready, burn, fire = food.get('stage'), s.get('ready_in'), s.get('burn_in'), s.get('fire_in')
+    heating, burning = bool(s.get('heating')), bool(s.get('fire'))
+    wait = f"waits until the fire on {s.get('name') or 'this stove'} is out"
     times = []
-    if stage == 'cooking' and ready:
-        times.append(f'cooked in {ready:.1f} s')
-    elif stage == 'ready' and burn:
+    if stage == 'cooking' and heating and ready:
+        times.append(f'cooked in {ready:.1f} s' + (f', then {wait}' if burning else ''))
+    elif stage in ('cooking', 'ready') and burning and not heating:
+        times.append(wait)
+    elif stage == 'ready' and heating and burn:
         times.append(f'burns in {burn:.1f} s')
-    elif stage == 'burnt' and fire:
-        times.append(f'the stove catches fire in {fire:.1f} s')
+    elif stage == 'burnt':
+        burnt = _burnt_for(food, kitchen)
+        if burnt is not None:
+            times.append(f'burnt for {burnt:.1f} s')
+        if fire and heating and not burning:
+            times.append(f'the stove catches fire in {fire:.1f} s')
     if partner is not None:
         times.append(f'the other chef is {partner:.1f} s walk away')
     return f'{pan} with {_food(food)}' + (': ' + ', '.join(times) if times else '')
@@ -439,7 +485,7 @@ def _station(s, kj, kitchen=None, partner=None):
     if kind == 'ingredient_source':
         text = f"gives {s.get('supplies')}" + (f'; {_food(food, kj, kitchen)} lies on top, so it gives nothing' if food else '')
     elif kind == 'stove':
-        text = _stove(s, partner)
+        text = _stove(s, partner, kitchen)
     elif kind in ('sink', 'drying_rack'):
         # v4: the top plate (the one being washed, or the clean one on top) is the station's food; the others stack
         # under it (v3 counted only those, so one clean plate on the rack read 'empty').

@@ -164,6 +164,11 @@ class DiagnosticTests(unittest.TestCase):
         self.assertIn('UNSUPPORTED_EQUIPMENT_TYPE', codes(variant(equipment_catalog=catalog))[1])
         self.assertIn('MAP_UNKNOWN_ITEM', codes(variant(map=lambda m: m['equipment'][0]['params'].update(item='dragonfruit')))[1])
 
+    def test_a_ruleset_must_name_the_semantics_this_engine_implements(self):
+        # The schema still accepts continuous-2026-10b, for research records of rounds played under it.
+        _, found = codes(variant(ruleset=lambda r: r.update(engine_semantics='continuous-2026-10b')))
+        self.assertEqual(found, {'UNSUPPORTED_ENGINE_SEMANTICS'})
+
     def test_goal_that_exceeds_the_revenue_ceiling_is_an_error(self):
         _, found = codes(variant(level=lambda d: d['goal'].update(min_money=10 ** 6)))
         self.assertEqual(found, {'GOAL_EXCEEDS_REVENUE'})

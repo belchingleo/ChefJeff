@@ -28,7 +28,7 @@ class ManifestTests(unittest.TestCase):
     def test_the_current_version_is_frozen(self):
         """What the current version measures (interface, level configurations, engine traces, partner) is what this
         code does. If this fails, the change altered what its score means: make the next version rather than editing it."""
-        self.assertEqual(benchmark.CURRENT, 'v3')
+        self.assertEqual(benchmark.CURRENT, 'v4')
         manifest = benchmark.read_manifest(benchmark.CURRENT)
         self.assertEqual(benchmark.refreeze(manifest), manifest)
         self.assertEqual([level['id'] for level in manifest['levels']], ['level-1', 'level-2', 'level-3'])
@@ -49,6 +49,15 @@ class ManifestTests(unittest.TestCase):
         self.assertEqual({k: v for k, v in v2.items() if k not in ('version', 'levels', 'partner_policy')},
                          {k: v for k, v in v3.items() if k not in ('version', 'levels', 'partner_policy')})
         self.assertEqual([a['id'] for a in v2['levels']], [a['id'] for a in v3['levels']])
+
+    def test_v3_is_kept_and_retired(self):
+        """v3 stays as it was frozen; the burnt-time and fire rules (engine semantics continuous-2026-11) changed every
+        level's configuration and level 2's reference trace, so it no longer matches."""
+        v3, v4 = benchmark.read_manifest('v3'), benchmark.read_manifest('v4')
+        self.assertNotEqual(benchmark.refreeze(v3), v3)
+        self.assertEqual({k: v for k, v in v3.items() if k not in ('version', 'levels')},
+                         {k: v for k, v in v4.items() if k not in ('version', 'levels')})
+        self.assertEqual([a['id'] for a in v3['levels']], [a['id'] for a in v4['levels']])
 
     def test_a_change_to_what_is_frozen_shows(self):
         manifest = benchmark.read_manifest(benchmark.CURRENT)

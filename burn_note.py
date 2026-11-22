@@ -1,4 +1,4 @@
-"""burn-note-v2: an option on a stove whose food is cooking or cooked says, with the times, when it is cooked and burns.
+"""burn-note-v4: an option on a stove whose food is cooking or cooked says, with the times, when it is cooked and burns.
 
 A trial (features.json burn_note, off by default, no page switch). The request's state already gives each stove's
 burn_in, and the fire rule says the stove catches fire when its food burns; the option labels do not. With this
@@ -14,15 +14,24 @@ v3: while Jeff holds a pan or pot whose food is cooking or cooked, each option t
 is back on the heat; <stove> catches fire then)", the seconds from the engine's heat thresholds and the food's heat so
 far (off the stove it does not heat). In a 2026-11-19 play round Jeff put a pan of beef cooked 8 s before back on its
 stove; its label said only "resume heating if filled", and the beef burnt 1.5 s later.
+v4: the notes follow the stove's heating and fire as well (v3 gave the times of a stove that is not burning, which a
+fire spreading to a stove made false once it stopped burning food, 2026-11-22). On a burning stove food that does not
+heat gets " (<food> on <stove> waits until the fire on <stove> is out)", food still cooking there " (<food> on <stove>
+is cooked in <ready_in> s, then waits until the fire on <stove> is out)"; a held pan's food that is not burnt, for a
+burning stove, " (<food> in the held <vessel> waits there until the fire on <stove> is out)". No seconds for the wait:
+it lasts until someone puts the fire out.
 """
 from __future__ import annotations
 
-VERSION = 'burn-note-v3'
+VERSION = 'burn-note-v4'
 NOTE = ' ({food} on {stove} burns in {seconds:.1f} s; {stove} catches fire then)'
 COOKING = ' ({food} on {stove} is cooked in {ready:.1f} s and burns in {seconds:.1f} s; {stove} catches fire then)'
 HELD = ' ({food} in the held {vessel} burns {seconds:.1f} s after it is back on the heat; {stove} catches fire then)'
 HELD_COOKING = (' ({food} in the held {vessel} is cooked {ready:.1f} s and burns {seconds:.1f} s after it is back on the '
                 'heat; {stove} catches fire then)')
+WAIT = ' ({food} on {stove} waits until the fire on {stove} is out)'
+COOKING_FIRE = ' ({food} on {stove} is cooked in {ready:.1f} s, then waits until the fire on {stove} is out)'
+HELD_WAIT = ' ({food} in the held {vessel} waits there until the fire on {stove} is out)'
 QUESTIONS = ('next_action', 'put_where')
 
 
@@ -33,11 +42,17 @@ def notes(payload):
         food = station.get('food')
         if not (station.get('stove') and isinstance(food, dict) and station.get('burn_in') is not None):
             continue
-        if food.get('stage') == 'ready':
-            out[sid] = NOTE.format(food=food.get('meaning'), stove=station.get('name', sid), seconds=station['burn_in'])
-        elif food.get('stage') == 'cooking' and station.get('ready_in') is not None:
-            out[sid] = COOKING.format(food=food.get('meaning'), stove=station.get('name', sid), ready=station['ready_in'],
-                                      seconds=station['burn_in'])
+        stage, stove, meaning = food.get('stage'), station.get('name', sid), food.get('meaning')
+        heating, burning = bool(station.get('heating')), bool(station.get('fire'))
+        if stage not in ('ready', 'cooking'):
+            continue
+        if burning and not heating:             # v4: it waits on the burning stove
+            out[sid] = WAIT.format(food=meaning, stove=stove)
+        elif stage == 'ready' and heating:
+            out[sid] = NOTE.format(food=meaning, stove=stove, seconds=station['burn_in'])
+        elif stage == 'cooking' and heating and station.get('ready_in') is not None:
+            out[sid] = (COOKING_FIRE.format(food=meaning, stove=stove, ready=station['ready_in']) if burning else
+                        COOKING.format(food=meaning, stove=stove, ready=station['ready_in'], seconds=station['burn_in']))
     return out
 
 
@@ -62,7 +77,9 @@ def held_notes(payload, kitchen):
         if not station.get('stove'):
             continue
         stove = station.get('name', sid)
-        if food['stage'] == 'ready':
+        if station.get('fire'):                 # v4: on a burning stove it waits (kitchen.stove_heats)
+            text = HELD_WAIT.format(food=food.get('meaning'), vessel=vessel, stove=stove)
+        elif food['stage'] == 'ready':
             text = HELD.format(food=food.get('meaning'), vessel=vessel, seconds=max(0.0, burn - heated), stove=stove)
         else:
             text = HELD_COOKING.format(food=food.get('meaning'), vessel=vessel, ready=max(0.0, ready - heated),
