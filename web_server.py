@@ -574,7 +574,9 @@ class GameSession:
             self.session_log = self.journal
             # The switches as of this round's start (features.json and the server's override); kept for the round.
             self._features = features.model_defaults(self.feature_source(), self.model_service())
-            pressed = features.one_press_flags(self.features)
+            # The decision loop's switches for these features (features.loop_switches: compose_options and ask_ahead).
+            switches = features.loop_switches(self.features)
+            pressed = switches['one_press']
             self.journal('start', {'config':self.c, 'config_hash':self.k.config_hash, 'speed':self.speed, 'state':self.k.snapshot(),
                                    **one_press.condition(pressed), 'features': features.snapshot(self.features),
                                    **({'connection': connection} if (connection := self.model_connection()) else {})})
@@ -584,23 +586,9 @@ class GameSession:
             else:
                 self.ai = DecisionLoop(self.k, client, self.journal, self.note)
             self.ai.game_speed = self.speed
-            self.ai.one_press = pressed
-            self.ai.ask_ahead = self.features['ask_ahead']['on']
-            self.ai.undo = features.undo_start(self.features)
-            self.ai.reach = self.features['reach_note']['on']
-            self.ai.split = self.features['split_floor']['on']
-            self.ai.burn = self.features['burn_note']['on']
-            self.ai.serve_note = self.features['option_notes']['on']
-            self.ai.steps = self.features['step_check']['on']
-            self.ai.walk = self.features['walk_note']['on']
-            self.ai.go = self.features['go_note']['on']
+            for name, value in switches.items():
+                setattr(self.ai, name, value)
             self.ai.wake = self.wake.set     # a ready request or a reply is handled at once, not at the next tick
-            import work_notes
-            self.ai.work = work_notes.flags(self.features)
-            # clear_text: food names, item names, the engine's English and plate names, together.
-            self.ai.names = self.ai.clear = self.ai.english = self.ai.plate = self.features['clear_text']['on']
-            self.ai.links = features.links_option(self.features)
-            self.ai.parts = request_parts.parts(self.features)
             self.phase = 'running'
             self.last_tick = self.last_seen = time.monotonic()
             self.wake.set()

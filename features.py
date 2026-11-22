@@ -220,19 +220,49 @@ def one_press_flags(features):
     return on
 
 
+def _round_options(features):
+    """compose_payload's round-wide switches for these features (a feature they do not name is off): all but
+    one_press and undo, which a round sets as it starts and research replay takes from each request's record.
+    parts and work are None when off."""
+    def on(name):
+        return bool((features.get(name) or {}).get('on'))
+    flat = {name: {'on': on(name)} for name in VERSIONS}
+    text = on('clear_text')
+    return {'reach': on('reach_note'), 'names': text, 'links': links_option(flat), 'split': on('split_floor'),
+            'burn': on('burn_note'), 'serve_note': on('option_notes'), 'steps': on('step_check'), 'clear': text,
+            'walk': on('walk_note'), 'go': on('go_note'), 'english': text, 'plate': text,
+            'parts': request_parts.parts(flat), 'work': work_notes.flags(flat)}
+
+
 def compose_options(features):
-    """compose_payload's switches for a new round with these features (as the session sets the decision loop),
-    for scripts that build Jeff's request outside a session."""
-    return {'one_press': one_press_flags(features), 'undo': undo_start(features),
-            'reach': features['reach_note']['on'], 'names': features['clear_text']['on'],
-            'links': links_option(features), 'split': features['split_floor']['on'],
-            'burn': features['burn_note']['on'],
-            'serve_note': features['option_notes']['on'],
-            'steps': features['step_check']['on'],
-            'clear': features['clear_text']['on'], 'walk': features['walk_note']['on'], 'go': features['go_note']['on'],
-            'english': features['clear_text']['on'], 'plate': features['clear_text']['on'],
-            **({'parts': request_parts.parts(features)} if request_parts.parts(features) else {}),
-            **({'work': work_notes.flags(features)} if work_notes.flags(features) else {})}
+    """compose_payload's switches for a new round with these features: what the session sets on the decision loop
+    (loop_switches), and what scripts that build Jeff's request outside a session pass. parts and work only when on."""
+    options = {'one_press': one_press_flags(features), 'undo': undo_start(features), **_round_options(features)}
+    return {name: value for name, value in options.items() if value is not None or name not in ('parts', 'work')}
+
+
+def loop_switches(features):
+    """The decision loop's switches for a new round with these features, as the session sets them (web_server.py):
+    compose_options with parts and work None when off, and ask_ahead."""
+    return {'parts': None, 'work': None, **compose_options(features), 'ask_ahead': features['ask_ahead']['on']}
+
+
+# Names a round's snapshot gave, before 2026-11-19, to what one of compose_payload's switches does: since then
+# clear_text turns the first four on together and option_notes the last. A record's wait_note turns nothing on (its
+# note went 2026-11-20).
+NAMES_BEFORE_1119 = {'names': 'food_names', 'clear': 'clear_names', 'english': 'engine_english',
+                     'plate': 'plate_names', 'serve_note': 'serve_note'}
+
+
+def replay_options(snapshot):
+    """compose_payload's round-wide switches for research replay, from a round's recorded feature snapshot
+    (snapshot()): those of compose_options but one_press and undo, which each request's record carries; parts and
+    work None when off. A name the snapshot lacks is off, and a record from before 2026-11-19 is read with its own
+    names (NAMES_BEFORE_1119), so old rounds replay as they were played."""
+    options = _round_options(snapshot)
+    for option, old in NAMES_BEFORE_1119.items():
+        options[option] = options[option] or bool((snapshot.get(old) or {}).get('on'))
+    return options
 
 
 def _write_override(value, path):

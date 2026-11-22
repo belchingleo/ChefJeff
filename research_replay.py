@@ -104,27 +104,11 @@ def rebuild_requests(record):
         raise ValueError('This record carries no engine inputs; its requests cannot be rebuilt.')
     k = factory(replay['engine'])(deepcopy(replay['resolved_config']))
     client = SpatialJevClient(k.c, key='research-replay-no-credential')
-    # A round-wide switch: the record's feature snapshot says whether Jeff was told which stations he reaches.
-    # Round-wide switches, from the record's feature snapshot. A record from before 2026-11-19 names food_names,
-    # clear_names, engine_english and plate_names (since then clear_text) and serve_note and wait_note (since then
-    # option_notes) one by one.
-    feats = (record.get('conditions') or {}).get('features') or {}
-
-    def on(name):
-        return bool((feats.get(name) or {}).get('on'))
-    text, notes = on('clear_text'), on('option_notes')
-    reach, split, burn, steps, walk = on('reach_note'), on('split_floor'), on('burn_note'), on('step_check'), on('walk_note')
-    go = on('go_note')
-    import work_notes
-    work = work_notes.flags(feats)
-    names, clear, english, plate = (text or on('food_names'), text or on('clear_names'), text or on('engine_english'),
-                                    text or on('plate_names'))
-    serve_note = notes or on('serve_note')
-    import features as switches
-    snapshot = (record.get('conditions') or {}).get('features') or {}
-    links = switches.links_option({name: {'on': bool((snapshot.get(name) or {}).get('on'))} for name in ('option_links', 'option_links_partner')})
-    import request_parts
-    parts = request_parts.parts(snapshot)
+    # Round-wide switches, from the record's feature snapshot, mapped as a round maps them (features.replay_options;
+    # a record from before 2026-11-19 names food_names, clear_names, engine_english, plate_names and serve_note one by
+    # one, and those still count). one_press and the undo note come from each request's own record.
+    import features
+    options = features.replay_options((record.get('conditions') or {}).get('features') or {})
     done = 0
     for row in record['events']:
         data = row['payload']
@@ -147,9 +131,6 @@ def rebuild_requests(record):
                 continue
         payload = compose_payload(client, source, source.snapshot(), source.actions('jeff'), data['recent_decisions'],
                                   data['player_communication'], memory, data.get('one_press'),
-                                  data.get('undo_note'), reach, names, links=links, split=split, burn=burn,
-                                  serve_note=serve_note,
-                                  steps=steps, clear=clear, walk=walk, english=english,
-                                  plate=plate, parts=parts, go=go, work=work)
+                                  data.get('undo_note'), **options)
         yield {'request_id': row['request_id'], 'seq': row['seq'], 'rebuilt': payload,
                'status': 'verified' if cc.sha256(payload) == data['payload_sha256'] else 'diverged'}
