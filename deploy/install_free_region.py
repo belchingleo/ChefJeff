@@ -15,7 +15,16 @@ import time
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from deploy.free_install_common import atomic, digest, load, property_of, public_release, run, save, work_path
 
+# The origin each site was audited with (0.9.0-beta.1 and before: one --origin).
 DOMAINS={'cn':'chefjeff.belchingleo.online','de':'global.belchingleo.online'}
+# From 0.10.0-beta.1 (2026-11-23, the chefjeff.online filing passed): the origins each site's game accepts, the first
+# its public origin. The China site adds chefjeff.online and keeps chefjeff.belchingleo.online; the overseas site
+# moves to global.chefjeff.online, and Nginx sends global.belchingleo.online there (the game still accepts it, so a
+# page loaded before the move keeps working until it reloads).
+ORIGINS={'cn':('chefjeff.online','chefjeff.belchingleo.online'),'de':('global.chefjeff.online','global.belchingleo.online')}
+# The hosts that serve the page (checked after activation) and the old ones that must redirect to a new one.
+SERVED={'cn':('chefjeff.online','chefjeff.belchingleo.online'),'de':('global.chefjeff.online',)}
+LEGACY={'cn':{},'de':{'global.belchingleo.online':'global.chefjeff.online'}}
 # The release both regions run now (cd73cce, 0.9.0-beta.1, verified on both servers 2026-11-11).
 BASE_SERVER_SHA='f638b6ca7bc1ef87723a1c9d77abf75625fee9cc89e14294ea6869bcfe20918b'
 BASE_MANIFEST_SHA='b6bdce40839dee779653d71960e750a86791b6aa5535106f98feb6a3236842e8'
@@ -53,30 +62,46 @@ except BaseException as error:
             import_error=error if isinstance(error,str) and re.fullmatch('[A-Za-z]{1,64}',error) else 'unknown')
 
 
-def existing_arguments(value, domain):
+def existing_arguments(value, site):
+    """The running game's startup arguments, if they are the audited ones: one origin, the site's old domain (as
+    0.9.0-beta.1 runs), or the site's origins (ORIGINS, from 0.10.0-beta.1)."""
     match=re.search(r'argv\[\]=(.*?)\s*;\s*ignore_errors=',value)
     if not match:raise ValueError('Cannot isolate existing ExecStart')
     args=shlex.split(match[1])
     if args[:2]!=['/usr/bin/python3','/opt/chefjeff/current/hosted_server.py']:
         raise ValueError('Unexpected existing game entrypoint')
     allowed={'--port','--origin','--data-dir','--shared-config','--max-sessions','--max-waiting','--max-per-network','--web-root'}
-    values={}
+    values={};origins=[]
     options=args[2:]
     if '--free-model-gateway' in options:
         if options.count('--free-model-gateway')!=1:raise ValueError('Duplicate free gateway flag')
         options.remove('--free-model-gateway')
     for i in range(0,len(options),2):
-        if i+1>=len(options) or options[i] not in allowed or options[i] in values:
+        if i+1>=len(options) or options[i] not in allowed or (options[i] in values and options[i]!='--origin'):
             raise ValueError('Unknown or duplicate existing startup option')
         values[options[i]]=options[i+1]
+        if options[i]=='--origin':origins.append(options[i+1])
         if not re.fullmatch(r'[A-Za-z0-9_./:+-]+',options[i+1]):raise ValueError('Unexpected startup value')
-    if (values.get('--port')!='8780' or values.get('--origin')!='https://'+domain
+    if (values.get('--port')!='8780' or origins not in (['https://'+DOMAINS[site]],['https://'+d for d in ORIGINS[site]])
             or values.get('--shared-config')!='/etc/chefjeff/shared-client.json'
             or values.get('--data-dir')!='/var/lib/chefjeff'):
         raise ValueError('Existing region configuration does not match the audit')
     if '--web-root' in values and values['--web-root']!='/opt/chefjeff/current/cocos-kitchen/build/web':
         raise ValueError('An explicit old web directory requires separate review')
     return args
+
+
+def with_origins(args, site):
+    """The startup arguments with the site's origins (ORIGINS) in place of the origins they name."""
+    out=[];placed=False;i=2
+    while i<len(args):
+        if args[i]=='--origin':
+            if not placed:
+                for domain in ORIGINS[site]:out+=['--origin','https://'+domain]
+                placed=True
+            i+=2;continue
+        out.append(args[i]);i+=1
+    return [*args[:2],*out]
 
 
 def switch(target):
@@ -119,7 +144,30 @@ def verify(site,work,mark=lambda stage:None):
     if not Path(state['previous']).is_dir():raise InstallError('previous_release_missing')
     for unit,pid in state['other_pids'].items():
         if property_of(unit,'MainPID')!=pid:raise InstallError('data_or_admin_process_changed')
-    domain=DOMAINS[site];session=None;primary_failure=False
+    for domain in SERVED[site]:
+        verify_host(domain,manifest,mark)
+    for old,new in LEGACY[site].items():
+        mark('legacy_redirect')
+        for connection in (http.client.HTTPSConnection(old,timeout=8,context=ssl.create_default_context()),
+                           http.client.HTTPConnection(old,timeout=8)):
+            try:
+                connection.request('GET','/');response=connection.getresponse();response.read()
+                if response.status not in (301,308) or response.getheader('Location')!='https://'+new+'/':
+                    raise InstallError('legacy_redirect_failed',host=old,http_status=response.status)
+            finally:connection.close()
+    print(json.dumps({'status':'free-model-region-verified','site':site,'domains':list(SERVED[site]),
+        'legacy_redirects':LEGACY[site],
+        'previous_release':state['previous'],'current_release':str(release),'previous_release_preserved':True,
+        'fingerprint':manifest['release']['fingerprint'],'process_started_after_switch':True,
+        'healthz':200,'page':200,'session_post':201,'tls_verified':True,'http_redirect_verified':True,
+        'test_session_closed':True,'free_picker_inline':True,'free_gateway_available':True,'data_admin_processes_unchanged':True,
+        'model_calls':0,'round_started':False,'research_consent_sent':False,'player_database_opened':False},indent=2))
+
+
+def verify_host(domain,manifest,mark):
+    """One served host: health, the page, a test session (closed again), the fingerprint, the free models and the
+    HTTP to HTTPS redirect, without a model call or a round."""
+    session=None;primary_failure=False
     try:
         mark('public_healthz')
         status,_=request(domain,'/healthz')
@@ -158,14 +206,8 @@ def verify(site,work,mark=lambda stage:None):
     try:
         redirect_connection.request('GET','/');response=redirect_connection.getresponse();response.read()
         redirect=response.status in (301,308) and response.getheader('Location')=='https://'+domain+'/'
-        if not redirect:raise InstallError('https_redirect_failed',http_status=response.status)
+        if not redirect:raise InstallError('https_redirect_failed',host=domain,http_status=response.status)
     finally:redirect_connection.close()
-    print(json.dumps({'status':'free-model-region-verified','site':site,'domain':domain,
-        'previous_release':state['previous'],'current_release':str(release),'previous_release_preserved':True,
-        'fingerprint':manifest['release']['fingerprint'],'process_started_after_switch':True,
-        'healthz':200,'page':200,'session_post':201,'tls_verified':True,'http_redirect_verified':True,
-        'test_session_closed':True,'free_picker_inline':True,'free_gateway_available':True,'data_admin_processes_unchanged':True,
-        'model_calls':0,'round_started':False,'research_consent_sent':False,'player_database_opened':False},indent=2))
 
 
 def prepare(site,release,manifest_sha,work):
@@ -177,11 +219,13 @@ def prepare(site,release,manifest_sha,work):
     previous=CURRENT.resolve(strict=True)
     public_release(previous, BASE_MANIFEST_SHA)
     if digest(previous/'hosted_server.py')!=BASE_SERVER_SHA:raise ValueError('Current code differs from the audited free-model baseline')
-    args=existing_arguments(property_of('chefjeff.service','ExecStart'),DOMAINS[site])
-    unit='[Service]\nExecStart=\nExecStart='+' '.join(args if '--free-model-gateway' in args else [*args,'--free-model-gateway'])+'\n'
+    args=existing_arguments(property_of('chefjeff.service','ExecStart'),site)
+    def unit_of(arguments):
+        return '[Service]\nExecStart=\nExecStart='+' '.join(arguments if '--free-model-gateway' in arguments else [*arguments,'--free-model-gateway'])+'\n'
+    unit=unit_of(with_origins(args,site))
     previous_override=OVERRIDE.read_bytes() if OVERRIDE.exists() else None
     if previous_override is not None:
-        if previous_override!=unit.encode():raise ValueError('Existing free override differs from audited startup')
+        if previous_override!=unit_of(args).encode():raise ValueError('Existing free override differs from audited startup')
         atomic(work/'override.before.conf',previous_override,0o644)
     atomic(work/'free-region.conf',unit.encode(),0o644)
     state={'phase':'prepared','site':site,'release':str(release),'manifest_sha':manifest_sha,'previous':str(previous),
@@ -216,7 +260,7 @@ def activate(site,work,allow_round_end):
     if state['phase'] not in ('prepared','rolled-back') or CURRENT.resolve()!=Path(state['previous']) or not previous_override_matches(state):
         raise InstallError('installation_changed_after_review')
     if digest(work/'free-region.conf')!=state['unit_sha']:raise InstallError('reviewed_startup_changed')
-    live=existing_arguments(property_of('chefjeff.service','ExecStart'),DOMAINS[site])
+    live=existing_arguments(property_of('chefjeff.service','ExecStart'),site)
     if live!=state['startup_arguments']:raise InstallError('startup_arguments_changed_after_review')
     public_release(state['previous'],BASE_MANIFEST_SHA)
     release,manifest=public_release(state['release'],state['manifest_sha'])

@@ -2,7 +2,7 @@
 
 English · [中文](README.zh-CN.md)
 
-> **Online access update (2026-10-30):** The original domain, `chefjeff.online`, is undergoing ICP filing in China and is temporarily unavailable during review. Play at **[China · Shanghai](https://chefjeff.belchingleo.online/)** or **[Overseas · Germany](https://global.belchingleo.online/)**.
+> **Online addresses (2026-11-23):** the China site is at **[chefjeff.online](https://chefjeff.online/)** (Shanghai; its earlier address, chefjeff.belchingleo.online, keeps working) and the overseas site at **[global.chefjeff.online](https://global.chefjeff.online/)** (Germany; global.belchingleo.online now leads there). A key or contribution receipt saved in your browser belongs to the address it was saved on, so after changing address you enter it again.
 
 What can't be computed? We seem to have been asking this ever since computers appeared: what can a computer not do?
 My first answer was cooking. Does a computer know how to cook? Now we can ask: can an AI cook?
@@ -13,13 +13,13 @@ ChefJeff is a real-time cooking game in which a person and an AI cook together, 
 
 Where to start: [play online](#play-online) · [run it locally](#run-it-locally) · [connect your own model](#jeff-and-model-integration) · [change the configuration](#five-data-models) · [the environment and benchmark](#building-a-humanai-collaboration-environment-and-benchmark)
 
-> Current version: **0.9.0-beta.1**, the sixth public test release. You need your own model API, and interfaces and analysis rules may still change. We suggest starting with Jev models: they don't play especially well, but they are cheap. Results from other models are welcome.
+> Current version: **0.10.0-beta.1**, the seventh public test release. You need your own model API, and interfaces and analysis rules may still change. We suggest starting with Jev models: they don't play especially well, but they are cheap. Results from other models are welcome.
 
 ---
 
 ## Play online
 
-Choose the [China site (Shanghai)](https://chefjeff.belchingleo.online/) or the [overseas site (Germany)](https://global.belchingleo.online/) to play; nothing to install.
+Choose the [China site (Shanghai)](https://chefjeff.online/) or the [overseas site (Germany)](https://global.chefjeff.online/) to play; nothing to install.
 
 - Bring your own model key: choose a service under Settings → AI teammate and paste the key. By default the key stays in that page and your browser sends it straight to the provider; only Jev goes through the demo server, and only if you agree. The [model connection guide](https://chefjeff.belchingleo.online/model-guide.html) lists the services that work and roughly what a round costs.
 - Before your first round you are asked whether to contribute anonymous round data; you can change your mind at any time. Contributions are kept for at most two years and can be deleted with a deletion receipt; once the research is published, de-identified data may be made public; see [privacy and contact](https://chefjeff.belchingleo.online/privacy.html).
@@ -348,6 +348,7 @@ All three produce the same data, and every imported level goes through the same 
 - **0.8.0-beta.1** (2026-11-08): the fourth public test release. Level 4, Across the counter: counters split the kitchen in two, so the dishes need both chefs. Jeff's two-step intent is on in every round (he says what each step is for and what comes next, shown in the communication bar), and the plan switches are gone from Settings. A server can now switch Jeff's features from the command line, without a new release, and each round records which were set that way. Online, Jeff's requests reach the page sooner (long poll), and the English page has the server's messages in English. The local game can use a decision model served on the same computer, such as StartLux 2B. For research: an environment interface and Benchmark v1, replays with the code of the release that recorded a round, and re-ask checks with intervals on every share.
 - **0.8.1-beta.1** (2026-11-09): the fifth public test release. Level 4 is switched off for players for now (`level_switches.json`; a server can show it without a new release). Jeff's requests name food by ingredient and state and note when an option would take back his last step; he gets a put-down-then-fetch option. Full-reach throws land where they fly, as in Overcooked 2. New music composed in code, a fix for music that stopped after its first loop, and a fix for the extinguisher swap that could break a round.
 - **0.9.0-beta.1** (2026-11-11): sinks get a drying rack as in Overcooked 2 (dirty plates stack in the sink, washed plates go onto the rack), a held pan scoops food off a counter, level 4 is laid out again, both chefs walk 4 cells a second and the targets are recalibrated (200, 160, 140, 90). Jeff asks ahead and gets step hints (what each option leads to; a player switch in Settings), two-step intent and the undo note are off. Perplexity Decider joins the model list (online too) and Parallel Decisions (local game), and one right Joy-Con plays sideways in Safari.
+- **0.10.0-beta.1** (2026-11-23): the seventh public test release. Burnt food's burnt time runs while it stays on a stove, burning or not; a fire spreading to a stove no longer burns its food, which cooks at most until it is done, then waits and cooks on once the fire is out; either chef standing at the sink takes the drying rack's plate in place, and a chef who reaches only the second bin can discard there. Jeff reads whether burnt food would still be accepted or refused and gets a one-press option to empty a burnt pan at the bin, step hints stay on with no Settings switch, Jeff is drawn walking between state updates, and the Chinese page is now called ChefJeff·不分手厨房.
 - **0.8.1-beta.2** (2026-11-09): the phone stick no longer sticks when iPhone Safari misses the thumb's lift, and Zhipu and Llama are withdrawn from the free trial (StartLux and Gemma remain).
 
 See the [changelog](CHANGELOG.md) for everything.

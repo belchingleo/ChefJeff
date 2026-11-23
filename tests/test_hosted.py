@@ -189,6 +189,42 @@ class HostedHTTPTests(unittest.TestCase):
         self.assertEqual(self.request('/api/session/close', {}, token)[0], 200)
         self.assertEqual(self.request('/api/state', token=token)[0], 401)
 
+    def test_a_second_domain_serves_the_site_only_as_its_own_origin(self):
+        """Several origins (two domains serving one site): each host is accepted with its own Origin only."""
+        server = make_server(0, ['http://127.0.0.1', 'http://localhost'])
+        try:
+            self.assertEqual(server.extra_origins, ('http://localhost',))
+            port = server.server_address[1]
+            server.public_origin, server.extra_origins = f'http://127.0.0.1:{port}', (f'http://localhost:{port}',)
+            thread = threading.Thread(target=server.serve_forever, daemon=True); thread.start()
+            def post(host, origin):
+                c = http.client.HTTPConnection('127.0.0.1', port, timeout=3)
+                try:
+                    c.request('POST', '/api/session', '{}', {'Host': host, 'Origin': origin, 'Content-Type': 'application/json'})
+                    r = c.getresponse(); r.read(); return r.status
+                finally: c.close()
+            self.assertEqual(post(f'127.0.0.1:{port}', f'http://127.0.0.1:{port}'), 201)
+            self.assertEqual(post(f'localhost:{port}', f'http://localhost:{port}'), 201)
+            self.assertEqual(post(f'localhost:{port}', f'http://127.0.0.1:{port}'), 403)       # another origin's page
+            self.assertEqual(post(f'other.example:{port}', f'http://other.example:{port}'), 403)
+        finally:
+            server.shutdown(); server.sessions.close(); server.server_close()
+
+    def test_the_icp_filing_shows_on_the_filed_domains_only(self):
+        import hosted_server
+        line = hosted_server.icp_line()
+        self.assertIn('href="https://beian.miit.gov.cn/"', line)
+        self.assertIn('"chefjeff.online": "豫ICP备2026051937号-2"', line)
+        self.assertIn('"chefjeff.belchingleo.online": "豫ICP备2026051937号-1"', line)
+        self.assertNotIn('global.', line)                  # the overseas site has no filing to show
+        self.assertIn('[location.hostname]', line)
+        self.assertIn(' hidden ', line)                    # shown by the page script, on those hosts and off rounds
+        self.assertEqual(hosted_server.icp_line({}), '')
+        raw = (self.server.web_root / 'index.html').read_bytes()
+        self.assertIn('id="icp-filing"', hosted_server.hosted_html(raw).decode())
+        with patch.object(hosted_server, 'ICP_FILINGS', {}):
+            self.assertNotIn('id="icp-filing"', hosted_server.hosted_html(raw).decode())
+
     def test_shipped_audio_is_served_with_audio_mime_type(self):
         files = list((self.server.web_root / 'assets/resources/native').rglob('*.mp3'))
         self.assertTrue(files, 'The web build must include its game audio.')

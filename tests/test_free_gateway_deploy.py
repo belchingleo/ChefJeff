@@ -62,6 +62,34 @@ class DeploymentTests(unittest.TestCase):
             self.assertEqual([c for c in calls if c[:2]==('systemctl','restart')],
                 [('systemctl','restart','chefjeff.service')]*3)
 
+    def test_prepare_writes_the_sites_origins_over_the_audited_one(self):
+        """0.9.0-beta.1's override names one origin; prepare accepts it as the old unit and the candidate carries the
+        site's origins, so activation moves the China site onto chefjeff.online too."""
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d).resolve();previous=root/'old';previous.mkdir();(previous/'hosted_server.py').write_text('old')
+            current=root/'current';current.symlink_to(previous);override=root/'override.conf';work=root/'review';work.mkdir();(root/'review2').mkdir()
+            command=('/usr/bin/python3 /opt/chefjeff/current/hosted_server.py --port 8780 --origin https://chefjeff.belchingleo.online '
+                     '--data-dir /var/lib/chefjeff --shared-config /etc/chefjeff/shared-client.json')
+            raw='{ argv[]='+command+' --free-model-gateway ; ignore_errors=no ; pid=456; }'
+            override.write_text('[Service]\nExecStart=\nExecStart='+command+' --free-model-gateway\n')
+            def props(unit,name):return raw if name=='ExecStart' else '7'
+            with patch.object(region,'CURRENT',current),patch.object(region,'OVERRIDE',override),\
+                 patch.object(region,'property_of',side_effect=props),patch.object(region,'public_release'),\
+                 patch.object(region,'BASE_SERVER_SHA',digest(previous/'hosted_server.py')),\
+                 contextlib.redirect_stdout(io.StringIO()):
+                region.prepare('cn',root/'new',synthetic:='b'*64,work)
+            unit=(work/'free-region.conf').read_text()
+            self.assertIn('--origin https://chefjeff.online --origin https://chefjeff.belchingleo.online --data-dir',unit)
+            self.assertEqual(unit.count('--free-model-gateway'),1)
+            self.assertEqual((work/'override.before.conf').read_bytes(),override.read_bytes())
+            self.assertEqual(load(work)['startup_arguments'],(command+' --free-model-gateway').split())
+            # An override that is not the audited one stops it.
+            override.write_text('[Service]\nExecStart=\nExecStart='+command+' --max-sessions 9\n')
+            with patch.object(region,'CURRENT',current),patch.object(region,'OVERRIDE',override),\
+                 patch.object(region,'property_of',side_effect=props),patch.object(region,'public_release'),\
+                 patch.object(region,'BASE_SERVER_SHA',digest(previous/'hosted_server.py')):
+                with self.assertRaises(ValueError):region.prepare('cn',root/'new',synthetic,root/'review2')
+
     def test_changed_arguments_stop_before_switching_or_restarting(self):
         with tempfile.TemporaryDirectory() as d:
             previous,new,current,override,work,raw=self.activation_fixture(Path(d))
@@ -127,12 +155,13 @@ class DeploymentTests(unittest.TestCase):
                     '/api/session/close':(200,b'{}')}[path]
             class Redirect:
                 status=301
+                def __init__(self,host,timeout):self.host=host
                 def request(self,*args):calls.append('http-redirect')
                 def getresponse(self):return self
                 def read(self):return b''
-                def getheader(self,name):return 'https://chefjeff.belchingleo.online/'
+                def getheader(self,name):return 'https://'+self.host+'/'
                 def close(self):calls.append('http-connection-closed')
-            client=unittest.mock.Mock(return_value=Redirect())
+            client=unittest.mock.Mock(side_effect=Redirect)
             def props(unit,name):return '2' if name=='ExecMainStartTimestampMonotonic' else 'active'
             stages=[];output=io.StringIO()
             with patch.object(region,'CURRENT',current),patch.object(region,'property_of',side_effect=props),\
@@ -144,8 +173,51 @@ class DeploymentTests(unittest.TestCase):
             self.assertEqual(json.loads(output.getvalue())['status'],'free-model-region-verified')
             self.assertEqual(stages[-1],'http_redirect')
             self.assertEqual(calls[-2:],['http-redirect','http-connection-closed'])
-            self.assertEqual(calls.count('/api/session/close'),1)
-            client.assert_called_once_with('chefjeff.belchingleo.online',timeout=8)
+            # Both domains that serve the China site are checked, each with its own test session.
+            self.assertEqual(calls.count('/api/session/close'),2)
+            self.assertEqual([c.args[0] for c in client.call_args_list],['chefjeff.online','chefjeff.belchingleo.online'])
+            self.assertEqual(json.loads(output.getvalue())['domains'],['chefjeff.online','chefjeff.belchingleo.online'])
+
+    def test_the_overseas_site_checks_its_new_domain_and_the_old_ones_redirect(self):
+        with tempfile.TemporaryDirectory() as d:
+            previous,new,current,override,work,raw=self.activation_fixture(Path(d))
+            current.unlink();current.symlink_to(new)
+            state=load(work);state['switched_monotonic_us']=1;save(work,state)
+            hosts=[]
+            def request(domain,path,*args,**kwargs):
+                hosts.append(domain)
+                return {'/healthz':(200,b'{}'),'/':(200,b'<aside id="free-model-picker"></aside><script>inline</script>'),
+                    '/api/session':(201,b'{"session":"synthetic-session"}'),
+                    '/api/state':(200,b'{"release":{"fingerprint":"synthetic"}}'),
+                    '/api/model/free/catalog':(200,b'{"gateway_available":true,"diagnostics_version":1}'),
+                    '/api/session/close':(200,b'{}')}[path]
+            def connection(target):
+                class Connection:
+                    status=301
+                    def __init__(self,host,timeout,context=None):self.host=host
+                    def request(self,*args):pass
+                    def getresponse(self):return self
+                    def read(self):return b''
+                    def getheader(self,name):return target(self.host)
+                    def close(self):pass
+                return Connection
+            def props(unit,name):return '2' if name=='ExecMainStartTimestampMonotonic' else 'active'
+            for target,ok in ((lambda host:'https://'+('global.chefjeff.online' if host=='global.belchingleo.online' else host)+'/',True),
+                              (lambda host:'https://'+host+'/',False)):
+                fake=connection(target)
+                with patch.object(region,'CURRENT',current),patch.object(region,'property_of',side_effect=props),\
+                     patch.object(region,'public_release',return_value=(new,{'release':{'fingerprint':'synthetic'}})),\
+                     patch.object(region,'request',side_effect=request),\
+                     patch.object(region,'http',types.SimpleNamespace(client=types.SimpleNamespace(HTTPConnection=fake,HTTPSConnection=fake))),\
+                     contextlib.redirect_stdout(io.StringIO()) as output:
+                    if ok:
+                        region.verify('de',work,lambda stage:None)
+                        self.assertEqual(json.loads(output.getvalue())['legacy_redirects'],
+                                         {'global.belchingleo.online':'global.chefjeff.online'})
+                    else:
+                        with self.assertRaises(region.InstallError) as caught:region.verify('de',work,lambda stage:None)
+                        self.assertEqual(caught.exception.code,'legacy_redirect_failed')
+            self.assertEqual(set(hosts),{'global.chefjeff.online'})
 
     def test_existing_data_routes_are_preserved_with_one_scoped_include(self):
         original=data_nginx('data.belchingleo.online','2.31.58.179')
@@ -172,10 +244,20 @@ class DeploymentTests(unittest.TestCase):
     def test_existing_region_arguments_are_preserved_without_accepting_unknown_secret_flags(self):
         command='/usr/bin/python3 /opt/chefjeff/current/hosted_server.py --port 8780 --origin https://global.belchingleo.online --data-dir /var/lib/chefjeff --shared-config /etc/chefjeff/shared-client.json --max-sessions 6 --max-waiting 20'
         raw='{ path=/usr/bin/python3 ; argv[]='+command+' ; ignore_errors=no ; start_time=[today] ; pid=123; }'
-        args=existing_arguments(raw,'global.belchingleo.online')
+        args=existing_arguments(raw,'de')
         self.assertEqual(' '.join(args),command)
-        with self.assertRaises(ValueError):existing_arguments(raw.replace('--max-sessions 6','--api-key hidden'),'global.belchingleo.online')
-        with self.assertRaises(ValueError):existing_arguments(raw,'chefjeff.belchingleo.online')
+        with self.assertRaises(ValueError):existing_arguments(raw.replace('--max-sessions 6','--api-key hidden'),'de')
+        with self.assertRaises(ValueError):existing_arguments(raw,'cn')
+        # 0.10.0-beta.1 gives each site its origins in place of the one it was audited with, where that one stood.
+        moved=region.with_origins(args,'de')
+        self.assertEqual(' '.join(moved),command.replace('--origin https://global.belchingleo.online',
+            '--origin https://global.chefjeff.online --origin https://global.belchingleo.online'))
+        self.assertEqual(existing_arguments(raw.replace(command,' '.join(moved)),'de'),moved)       # the next release reads it
+        with self.assertRaises(ValueError):
+            existing_arguments(raw.replace('--origin https://global.belchingleo.online','--origin https://global.chefjeff.online'),'de')
+        cn='/usr/bin/python3 /opt/chefjeff/current/hosted_server.py --port 8780 --origin https://chefjeff.belchingleo.online --data-dir /var/lib/chefjeff --shared-config /etc/chefjeff/shared-client.json'
+        self.assertEqual(' '.join(region.with_origins(cn.split(),'cn')),cn.replace('--origin https://chefjeff.belchingleo.online',
+            '--origin https://chefjeff.online --origin https://chefjeff.belchingleo.online'))
 
     def test_shanghai_loopback_and_overseas_https_route_to_the_one_gateway(self):
         cn=SharedClient({'url':'http://127.0.0.1:8790','site':'cn','token':'c'*43})
@@ -231,7 +313,7 @@ class ExistingFreeRegionUpgradeTests(unittest.TestCase):
             self.assertEqual(current.resolve(),previous)
             self.assertEqual(override.read_bytes(),before)
             self.assertEqual(load(work)['phase'],'rolled-back')
-            self.assertEqual(region.existing_arguments(raw,'chefjeff.belchingleo.online').count('--free-model-gateway'),1)
+            self.assertEqual(region.existing_arguments(raw,'cn').count('--free-model-gateway'),1)
 
 
 class GatewayUpgradeTests(unittest.TestCase):

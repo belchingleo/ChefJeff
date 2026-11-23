@@ -627,6 +627,26 @@ CONTRIBUTION_BADGE = ('<p id="contribution-badge" role="status" hidden style="po
                       'transform:translateX(-50%);z-index:60;margin:0;padding:3px 10px;background:#2b1a12cc;'
                       'color:#fff;font:12px/16px system-ui,sans-serif;pointer-events:none"></p>')
 
+# The ICP filing number of each filed domain the China site is served on, shown at the foot of the start and result
+# screens, linked to the filing system, as the filing rules ask (chefjeff.online is filed as 豫ICP备2026051937号-2,
+# belchingleo.online as -1). The page picks the number by the address it was opened at; other hosts show nothing.
+ICP_FILINGS = {'chefjeff.online': '豫ICP备2026051937号-2', 'www.chefjeff.online': '豫ICP备2026051937号-2',
+               'chefjeff.belchingleo.online': '豫ICP备2026051937号-1'}
+
+
+def icp_line(filings=None):
+    filings = ICP_FILINGS if filings is None else filings
+    if not filings:
+        return ''
+    numbers = json.dumps(filings, ensure_ascii=False).replace('<', '\\u003c')
+    return ('<a id="icp-filing" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener" hidden '
+            'style="position:fixed;right:10px;bottom:6px;z-index:59;font:11px/14px system-ui,sans-serif;'
+            'color:#f3e6d6;opacity:.8;text-decoration:none"></a>'
+            '<script>(()=>{const a=document.getElementById("icp-filing"),n=(' + numbers + ')[location.hostname];'
+            'if(!a||!n)return;a.textContent=n;'
+            'const show=p=>{a.hidden=!(p===undefined||p==="ready"||p==="ended");};show();'
+            'window.addEventListener("kitchen-state",e=>show(e.detail&&e.detail.phase));})();</script>')
+
 
 def hosted_html(raw):
     page = raw.decode('utf-8')
@@ -641,7 +661,7 @@ def hosted_html(raw):
     # hosted-only control with its page instead of requiring another proxy rule.
     picker = picker.replace('<script src="/free-model-picker.js"></script>',
                             '<script>' + (ROOT / 'hosted' / 'free-model-picker.js').read_text() + '</script>')
-    page = page.replace('</body>', consent + CONTRIBUTION_BADGE + picker + '</body>', 1)
+    page = page.replace('</body>', consent + CONTRIBUTION_BADGE + icp_line() + picker + '</body>', 1)
     # Settings → AI 搭档 lists the same free models; the picker script fills both.
     page = page.replace(FREE_MODELS_SLOT, (ROOT / 'hosted' / 'free-model-settings.html').read_text(), 1)
     # Newer shells mark a slot in the Export tab; older builds append to the settings dialog.
@@ -831,8 +851,13 @@ class HostedHandler(Handler):
         super().end_headers()
 
     def valid_origin(self, post=False):
-        origin = self.server.public_origin
-        return (self.headers.get('Host') == urlsplit(origin).netloc
+        """The page's own origin only: the request's Host is one of the site's origins (the public origin or one of
+        its extra ones, a second domain serving the same site), and a browser's Origin, when sent, is that same one
+        (required on POST)."""
+        host = self.headers.get('Host')
+        origin = next((o for o in (self.server.public_origin, *getattr(self.server, 'extra_origins', ()))
+                       if urlsplit(o).netloc == host), None)
+        return (origin is not None
                 and self.headers.get('Origin', origin if not post else '') == origin
                 and self.headers.get('Sec-Fetch-Site') not in ('cross-site', 'same-site'))
 
@@ -1102,7 +1127,10 @@ def make_server(port, origin, capacity=8, web_root=None, data_dir=None, max_wait
         raise ValueError('The free-model gateway requires authenticated shared regional configuration')
     free_models = RegionalFreeModels(FreeGatewayClient(client)) if free_model_gateway else FreeModels()
     server = HostedHTTPServer(('127.0.0.1', port), HostedHandler)
-    server.public_origin = origin.rstrip('/')
+    # One origin, or several when more than one domain serves the site (the first is the public origin).
+    origins = [origin] if isinstance(origin, str) else list(origin)
+    server.public_origin = origins[0].rstrip('/')
+    server.extra_origins = tuple(o.rstrip('/') for o in origins[1:])
     # Build identity is immutable for the life of this release, not per page.
     release = release_info()
     if client:
@@ -1139,7 +1167,8 @@ def main():
     _sys.setswitchinterval(0.001)
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--port', type=int, default=8780)
-    p.add_argument('--origin', required=True)
+    p.add_argument('--origin', required=True, action='append',
+                   help='The public origin; give it more than once when several domains serve this site.')
     p.add_argument('--web-root', type=Path)
     p.add_argument('--data-dir', type=Path, help='Enable opt-in two-year contributions in this private directory.')
     p.add_argument('--shared-config', type=Path, help='Private backend data-service configuration; data-dir holds only regional usage in shared mode.')
@@ -1151,11 +1180,14 @@ def main():
     p.add_argument('--player-levels', action='store_true',
                    help="Calibrate levels players built, one at a time in a separate low-priority process; off by default.")
     args = p.parse_args()
-    url = urlsplit(args.origin)
-    if url.scheme != 'https' and url.hostname not in ('127.0.0.1', 'localhost'):
-        p.error('A public origin must use HTTPS.')
-    if url.path not in ('', '/') or url.query or url.fragment or url.username or not url.netloc:
-        p.error('Use an origin, without a path or credentials.')
+    for origin in args.origin:
+        url = urlsplit(origin)
+        if url.scheme != 'https' and url.hostname not in ('127.0.0.1', 'localhost'):
+            p.error('A public origin must use HTTPS.')
+        if url.path not in ('', '/') or url.query or url.fragment or url.username or not url.netloc:
+            p.error('Use an origin, without a path or credentials.')
+    if len({urlsplit(origin).netloc for origin in args.origin}) != len(args.origin):
+        p.error('Give each origin once.')
     server = make_server(args.port, args.origin, args.max_sessions, web_root=args.web_root, data_dir=args.data_dir, max_waiting=args.max_waiting,
                          per_network=args.max_per_network, shared_config=args.shared_config,
                          free_model_gateway=args.free_model_gateway, player_levels=args.player_levels)

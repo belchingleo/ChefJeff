@@ -4,6 +4,78 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 
 [中文](#更新记录)
 
+## 0.10.0-beta.1 — 2026-11-23 · seventh public test release
+
+### Online addresses
+
+- The China site (Shanghai) is served at chefjeff.online now that its ICP filing has passed, and at its earlier address, chefjeff.belchingleo.online; www.chefjeff.online leads to chefjeff.online. The overseas site (Germany) moves to global.chefjeff.online, and global.belchingleo.online leads there. A key or contribution receipt saved in the browser belongs to the address it was saved on.
+- A game server can serve one site from several domains: `hosted_server.py --origin` may be given more than once, and each domain is accepted only with its own page's origin. `deploy/install_free_region.py` writes each site's domains into the game's startup and, after switching, checks every domain the site serves and the old overseas address's redirect.
+- The China site's pages show the ICP filing number of the address they were opened at, at the foot of the start and result screens, linked to the filing system: 豫ICP备2026051937号-2 on chefjeff.online and www.chefjeff.online, 豫ICP备2026051937号-1 on chefjeff.belchingleo.online; not during a round. The overseas site shows none.
+
+### Burnt food and fire (rule change, model input change)
+
+- Burnt food's burnt time runs while it stays on a stove, whether the stove is burning, put out or neither, and stops once the pan is lifted or the food plated. Before, it stopped while the stove burned and stayed stopped after the fire was put out. A pan of burnt food left on its stove now goes past the −10 tier and is refused; lifted soon enough after a fire, it can still be served at −10.
+- A fire spreading to a stove no longer burns the food in its pan; food burns only by reaching its own burn point. Food still cooking there cooks on until it is cooked and then waits, cooked food waits from the moment the fire arrives, and food put on a burning stove (its pan put there, or the food put or thrown into its pan) waits too; once the fire is out, all of it cooks on from where it was. Overcooked 2's hob also cooks food on to its next stage during a fire, but there the cooking stays off after the fire until the pan is lifted and put back; here it resumes by itself. Before, a fire reaching a stove burnt its food, and a dish with it was refused.
+- Burnt food sets its stove alight once, as it burns. Left on the stove after the fire is out, or lifted and put back, it does not set the stove alight again; a fire nearby can still spread to the stove.
+- Jeff's rules describe all of this (`rules-v15`, together with the rack take below). His pot-swap rule said a burning stove had to be put out before swapping; it now says a pan can be lifted, put back or swapped on a burning stove, as the engine has allowed since 2026-10-21.
+- A dish with two or more heated parts counts each part's own burnt time, and the longest decides its tier. Before, it read its most heated part against the lowest burn point among them, so on a player level beef burnt 1 s with cooked noodles counted as burnt 6 s and was refused. Levels 1–5 have one heated part per dish, so only player-made levels change.
+- The help gave fire facts from an older ruleset: level 1's description said a stove catches fire 8 s after the food burns, and the fire help said 4 s of spraying. They now say the stove catches fire as the food burns, burnt food lifted within 5 s can still be served for ¥10 less, and 0.5 s of spraying puts a fire out.
+
+### What the kitchen says about burnt food (model input change)
+
+- The option to put out a burning stove says what follows for the food in its pan, from the rules at that moment. Burnt food the −10 tier still accepts can be plated and served, with the seconds left in the tier, or emptied at a bin; burnt food past the tier would be refused and can only be emptied (2 yuan); food the fire spread to is not burnt and cooks on once the fire is out. The Chinese and English texts say the same. Jeff's task and the events keep only the plain label, since the rest goes stale after listing.
+- Burnt food in the kitchen state, and the engine's labels of steps that plate, lift, pick up, swap or serve it, say whether a dish with it is still accepted and at what price (on a stove, for how many more seconds) or refused (`servability.py`, `servability-v1`, released with no switch). Seconds are rounded down, so a note never promises more time than the engine gives.
+- One-press options (`one_press`, on) go from `one-press-v4` to `one-press-v8`. v5 words put then take of a pan on a stove as the engine's own lift ("Lift the frying pan from Stove N (stops heating off the stove; occupies your hands)"); v4's wording hid that the pan stops heating. v6 offers a free stove as a place to put a held pan or pot first, so an empty pan can go straight back. v7 ends put then take of burnt food with its tier. v8 adds `empty <station>`: a pan of burnt food Jeff could take with empty hands is taken (after he puts down what he holds), carried to the nearest bin that lists the emptying and emptied at the discard cost, and the empty pan stays in his hands. Its label gives the cost and the tier.
+
+### The drying rack's plate at the sink; the second bin (rule change)
+
+- Standing at the sink, either chef takes the drying rack's top clean plate where they stand, facing the sink, as in Overcooked 2 (`HandlePickupReferral`). For the player this is Space at the sink with empty hands; Jeff's take of the rack from the sink has no walk. From anywhere else the take still walks to the rack (`rules-v15`).
+- A chef whose part of a split floor has only the second bin can discard there. Before, the player on level 4 and Jeff on level 5 could not discard at all.
+
+### Jeff's request and switches (model input change)
+
+- Step hints (`option_links`, `option-links-v3`) are released and on, with no player switch: the Settings row and `/api/links` are gone, and no feature has a player switch any more. A server override that still names `player_switch`, or a feature this release no longer has, is refused as a whole (the release's `features.json` is used and the reason goes to stderr), so check servers' overrides before upgrading. Records still read `"source": "player"` from earlier rounds.
+- The plan modes are removed: `jeff_plan` (plan-v2) and the two-step `rolling_intent`, both off in 0.9.0-beta.1; asking ahead took over what two-step intent was for. Their code goes, with `/api/plan`, their Settings switches and the plan line in the communication dock and the phone toolbar. The hosted page sends the one extra answer left, put_where, under `answers` instead of `plan`. `compact_input` and `intent_layer` (trials, off) are removed with their code.
+- `clear_text` (`clear-text-v1`, on) turns on four naming parts together: `food_names` (`names-v1`, on before) and three new ones. Option labels name the held item instead of "the held item", a pick-up leads with the food, and events name each item instead of bare ids such as "D1 returned dirty" (`clear-names-v3`). The engine writes the English where the language catalog left Chinese in Jeff's request, as in some plating labels and the note for an answer asked ahead and dropped (`engine-english-v1`). An option that names a plate by its place, or the plate in hand, says what the plate holds (`plate-names-v1`).
+- `ask-ahead-v2` (on): an answer asked ahead to throw to the other chef is carried out aimed where they stand now, as long as Jeff holds the same item and can still throw to them. Before, any step they took meanwhile made it "not listed", and Jeff was asked again. Nothing in the request changes.
+- A model is sent the request without its version tags: the state keys ending in `_version` and `input_language` (17 tags, about 640 characters on a level-5 request) are dropped before any model sees it, in the decision loop (the browser relay included) and in the Jev and chat clients. The round's record keeps them, and research replay checks against that.
+- Perplexity's preset model is `pplx-decider-v1.3` (was `pplx-decider-v1.2`); the model name stays editable.
+- A feature that is on can name model services in `off_for` (ids in `model-providers.json`): rounds with those services start with it off and record `"source": "model"`, and a server override can set it too. `features.json` names no service, so every service gets the same set-up. Online, the page tells the server which listed service is connected, by its id only (such as `perplexity`); the endpoint, model name and key stay in the browser, and the privacy notes say so.
+- New trial switches, all off in `features.json`, for a server override or a local trial: notes on options (`burn_note` `burn-note-v4`, `option_notes` `option-notes-v4` naming the order a finished dish goes to, `walk_note`, `go_note`, `step_check` `step-check-v3`, `split_floor`), `throw_to` (walk to a throw spot, then throw across a split floor), the request parts (`place_names`, `timeline` `timeline-v3`, `no_history`, `links_on_options`, `rules_by_action` `rules-by-action-v3`, `kitchen_view` `kitchen-view-v8`) and the work notes (`own_chain`, `plate_result` `plate-result-v2`, `board_taken`).
+- Still off: `undo_note`, now `undo-note-v4` (one engine-computed check of whether an option brings back how things stood before one of Jeff's last four steps), `option_links_partner`, now `partner-links-v3` (a throw across gets its "then the other chef could" line too), and `reach_note`.
+- The notes that fork the kitchen for each option are worked out in the thread that works out the step hints, so the game loop no longer holds both chefs still for about 0.2 s at every request.
+- A "continue" answer given during a one-press chain holds while that same chain goes on; before, it was dropped as stale once the chain reached its next step, about 5 replies a round. An urgency change during a chain no longer asks when the reply would come after the step ends, and an answer asked ahead is dropped for urgency only when an order or pan in the prediction got more urgent.
+
+### Level 5, Swapped sides (off for players); level 4's help
+
+- Level 5 · Swapped sides (`content/levels/level-5.json`) has level 4's map, orders, order seed and target (¥90), with the chefs swapped: the player on the supplies, stoves and serving side, Jeff on the boards side. Like level 4 it is switched off for players in `level_switches.json`; a server shows it with `python3 levels.py set level-5 on` or its levels override. Research schemas, usage statistics and the calibration report include it.
+- Level 4's help placed the extinguisher rack on the lower side and gave a target of 100; it now says the rack is beside the stoves and the target is 90.
+
+### Page
+
+- The Chinese page title is ChefJeff·不分手厨房 (was ChefJeff · 一起出餐), locally and online; the English title stays ChefJeff · Cook together.
+- Between state polls, Jeff is drawn walking on along the engine's path and eased into where the engine stops him; a newer state is joined along the engine's own path, and he slides round the player's chef, never through them or into a counter. The page polls again as soon as a slow reply lands, so a round trip over 0.2 s no longer halves the state rate.
+- When the engine walks the player's chef to an action, the walk is drawn along its route, corner by corner, never straight across a counter.
+- On a burning stove, a pan whose frame shows its food is drawn with that frame and the flames only. The loose food icon was drawn over it, and since a fire no longer burns food it showed as a steak over the pan.
+- Level 4's second bin, used from the north, had its lid toward the chef; every bin's lid now faces away from its access side.
+- Online with player levels, the level editor's calibration came back "No such calibration" 1.5 s after submitting whenever the cache did not answer it: the page dropped the query string of forwarded `/api/` requests. It keeps it now.
+
+### Research records and tools
+
+- Engine semantics `continuous-2026-11`: a configuration resolved now must name it, and the ruleset schema still accepts `continuous-2026-10b`, so records of earlier rounds validate. Every level's configuration hash changed.
+- Benchmark v4 froze the new burnt rules (v3 retired: every level's configuration changed), and v5 followed the same day with the extinguish and burnt-food texts (v4 retired before anyone ran it, since level 2's reference trace carries the extinguish label). v3 and v5 scores are not compared.
+- Each round's start row names the connection: the saved connection's service and model name in the local game, the service the browser reported or the free model the site lent online; never a key. Before, only `config.model` was there, and it read `jev-latest` whatever was connected.
+- The page's frame times reach the round's end row (`POST /api/page-frames`); `slow_frames` counts frames over 1.5 times the frame time the page aims at.
+- Records made with a removed switch on (`jeff_plan`, `rolling_intent`, `compact_input`, `intent_layer`) can no longer be rebuilt request by request; their journals stay. Records from before 2026-11-19 are replayed with their own switch names.
+- The lab page (`lab/`, built by `scripts/build_lab.py`) shows recorded re-asks moment by moment and compares conditions over the same moments; a recorded answer is attached only when the request it was given equals the rebuilt one byte for byte. Its data comes from the researcher's own rounds and is not in the repository.
+- `scripts/model_rounds.py` can ask a decision model on OpenRouter or on Parallel's own API, and its scripted maker takes a raw ingredient passed onto a dividing counter. `reference_policy.py` is unchanged, so the calibration pair and the benchmark partner are as before.
+
+### For developers
+
+- `tests/run_tests.py` runs the test modules in parallel workers, each with its own TMPDIR; `--fast` runs the modules in `tests/fast_modules.txt`. `python3 -m unittest discover -s tests` stays the reference command.
+- Byte nets for Jeff's requests: `features._round_options` is the one mapping from features to the decision loop's switches (`tests/test_switch_wiring.py`), and `tests/payload_fingerprint.py --switches` records request digests on levels 2 and 5 for six switch sets, the step hints and every trial included.
+- `tests/test_web_build_sync.py` checks that `build/web` matches its sources where no compiler is involved; tests close the files, sockets and temp folders they open and check their output instead of printing it; the README's module map lists every root module.
+
 ## 0.9.0-beta.1 — 2026-11-11 · sixth public test release
 
 ### Step hints on by default with a player switch; Jeff asks ahead (model input change)
@@ -357,6 +429,78 @@ First private release: a local browser game with three playable maps and player-
 ---
 
 ## 更新记录
+
+## 0.10.0-beta.1 — 2026-11-23 · 第七个公开测试版
+
+### 网址
+
+- 国内站（上海）的备案已经通过，现在用 chefjeff.online 访问，原来的 chefjeff.belchingleo.online 仍然可用；www.chefjeff.online 会跳到 chefjeff.online。海外站（德国）换到 global.chefjeff.online，打开原来的 global.belchingleo.online 会跳过去。浏览器里保存的 Key 和贡献凭据只属于保存时的网址。
+- 一个游戏服务器可以用几个域名服务同一个站：`hosted_server.py --origin` 可以给多次，每个域名只接受来自它自己页面的请求。`deploy/install_free_region.py` 把每个站的域名写进游戏的启动参数，切换版本后逐个检查这个站的每个域名，以及海外旧网址的跳转。
+- 国内站的页面按打开时的网址显示对应的 ICP 备案号，放在开店和结算画面的右下角，链接到工信部备案系统：chefjeff.online 和 www.chefjeff.online 显示 豫ICP备2026051937号-2，chefjeff.belchingleo.online 显示 豫ICP备2026051937号-1。海外站不显示。对局进行中不显示。
+
+### 糊菜和着火（规则改动，模型输入改动）
+
+- 糊了的菜只要还在灶台上，糊的时长就一直累计，灶台着火、火已扑灭或从没着火都一样；端起锅或盛出装盘后才停止。以前灶台着火时糊的时长会停住，灭火后也不再累计。所以现在糊菜一直留在灶台上，就会超过扣 10 元那一档而被拒收；灭火后端得够快，仍能按菜价 −10 上菜。
+- 火蔓延到灶台上，不再把锅里的菜烧糊，菜只有自己煮过了糊点才会糊。还没熟的菜照样煮，熟了就停下来等着；已经熟了的菜从着火那一刻起等着；放到着火灶台上的菜也一样等着，不管是把锅放上去，还是把菜放进或扔进锅里。灭火后，这些菜都从原来的进度接着加热。《Overcooked 2》的灶台着火时也会把菜煮到下一个阶段为止，但原作灭火后要把锅端起再放回去才会接着煮，这里会自己接着煮。以前火蔓延过来会把菜烧糊，这样的菜上桌会被拒收。
+- 糊菜只在烧糊那一刻让灶台起一次火。火扑灭后留在灶台上的糊菜，或者端起再放回去的糊菜，都不会让灶台再着火；旁边的火仍然可能蔓延过来。
+- Jeff 的规则说明写了这些（`rules-v15`，和下面在水槽前拿盘子的改动是同一版）。他的换锅规则原来说要先灭火才能换锅，现在改为着火的灶台上也能端锅、放回锅或换锅，引擎从 2026-10-21 起就是这样。
+- 一道菜里有两样或更多加热过的食材时，每样按它自己糊的时长算，最长的那个决定这道菜落在哪一档。以前是拿加热最久的那样去比所有食材里最低的糊点，所以在玩家自建的关卡里，牛肉糊了 1 秒、配上煮好的面条，会算成糊了 6 秒而被拒收。第 1–5 关每道菜只有一样加热的食材，所以只有玩家自建的关卡会受影响。
+- 帮助里的着火说明沿用了旧规则的数字，第一关的介绍写着糊了再过 8 秒着火，灭火说明写着要喷 4 秒。现在改为糊的那一刻灶台着火，糊了 5 秒内端起还能上菜（扣 ¥10），喷 0.5 秒就能灭火。
+
+### 厨房对糊菜的说明（模型输入改动）
+
+- 灭火这个选项会写明灭火后锅里的菜怎么样，按当时的规则算出。糊菜还在扣 10 元那一档时，写明可以装盘上菜（附这一档还剩几秒），也可以端到垃圾桶倒掉；已经超出那一档时，写明上菜会被拒收，只能端去倒掉（花 2 元）；火蔓延过来的菜没有糊，写明灭火后接着加热。中文和英文的写法一致。Jeff 手上的任务和事件里只留原来的选项名，因为后面那些话过一会儿就不准了。
+- 厨房状态里的糊菜，以及装盘、端锅、拿起、换锅和出餐这些步骤的选项，都会写明这份菜还能不能上菜。能上的写明扣多少钱，还在灶台上时再写还剩几秒；不能上的写明会被拒收（`servability.py`，`servability-v1`，正式上线，没有开关）。秒数向下取整，所以写出的时间不会比引擎实际给的多。
+- 一键选项（`one_press`，开启）从 `one-press-v4` 升到 `one-press-v8`。v5 把“先放下再端灶台上的锅”写成引擎自己的端锅说法（“端起……（离开灶台停止加热，占手持位）”），因为 v4 的写法看不出锅一端起就停止加热。v6 把空着的灶台也列为放下手中锅的位置，所以装完盘的空锅可以直接放回灶台。v7 给“先放下再拿糊菜”加上这份菜所在的那一档。v8 新增 `empty <工位>`：Jeff 空手能拿到的一锅糊菜，按一次就会放下手里的东西、端起锅、走到最近能倒掉它的垃圾桶倒掉，花的是丢弃费，空锅留在手上；选项里写明费用和这份菜所在的那一档。
+
+### 在水槽前拿沥水架的盘子、第二个垃圾桶（规则改动）
+
+- 站在水槽前的厨师原地就能拿到沥水架最上面的干净盘子，人仍面朝水槽，不用走到沥水架前，和《Overcooked 2》的 `HandlePickupReferral` 一样，两位厨师规则相同。玩家就是在水槽前空手按空格；Jeff 在水槽前拿沥水架上的盘子也不再走路。站在别处拿，仍会走到沥水架前（`rules-v15`）。
+- 在隔开的地面上，如果厨师那一边只有第二个垃圾桶，现在也能在那里丢弃。以前第四关的玩家和第五关的 Jeff 根本没法丢弃。
+
+### Jeff 收到的请求和功能开关（模型输入改动）
+
+- 步骤提示（`option_links`，`option-links-v3`）转为正式功能，默认开启，不再有玩家开关，设置里的那一行和 `/api/links` 都去掉了，现在所有功能都没有玩家开关。服务器的覆盖文件里如果还写着 `player_switch`，或者写了这一版已经没有的功能，整份覆盖都不会被采用，服务器改用发布包里的 `features.json`，原因写到 stderr，所以升级前要先检查服务器的覆盖文件。以前对局记录里的 `"source": "player"` 仍能读取。
+- 去掉了两种计划模式，即 `jeff_plan`（plan-v2）和两步打算 `rolling_intent`。两者在 0.9.0-beta.1 里都是关闭的，提前问已经接替了两步打算原来的用途。代码一并删除，包括 `/api/plan`、设置里的开关，以及沟通栏和手机工具栏里显示计划的那一行。在线页面把唯一剩下的额外回答 put_where 从 `plan` 下移到 `answers` 下发送。`compact_input` 和 `intent_layer`（都是关闭的测试开关）也连同代码一起删除。
+- `clear_text`（`clear-text-v1`，开启）把四项命名改动一起打开，其中 `food_names`（`names-v1`）原来就开着，另外三项是新的。`clear-names-v3` 让选项写出手里拿的是什么，不再只写 “the held item”，拾取选项先写食物，事件里用名称代替 “D1 returned dirty” 这样的裸编号。`engine-english-v1` 在语言词表翻不好、把中文留在 Jeff 请求里的地方，由引擎直接写英文，比如部分装盘选项和“提前问的回复作废”那条提示。`plate-names-v1` 让按位置提到的盘子或手里的盘子写明里面装了什么。
+- 提前问升到 `ask-ahead-v2`（开启）。提前问到的“扔给对方”，只要 Jeff 手里还是同一样东西、还能扔给对方，就照对方现在站的位置扔出去。以前对方在这期间走了一步，这个回答就会因为“不在选项里”作废，Jeff 要再被问一次。请求内容不变。
+- 发给模型的请求不再带版本标签。状态里以 `_version` 结尾的字段和 `input_language` 在任何模型看到之前删掉（第五关的一次请求里有 17 个，约 640 个字符），决策循环（包括浏览器转发）、Jev 和聊天客户端都这样处理。本局记录仍保留这些标签，研究回放按记录核对。
+- Perplexity 的预设模型改为 `pplx-decider-v1.3`（原来是 `pplx-decider-v1.2`），模型名仍可修改。
+- 开启的功能可以在 `off_for` 里列出模型服务（`model-providers.json` 里的编号），用这些服务的对局开局时就把它关掉，记录为 `"source": "model"`；服务器的覆盖文件也能设置。这一版的 `features.json` 没有列任何服务，所以每个服务的设置都一样。在线版页面会告诉服务器连的是列表里的哪个服务，只传编号（例如 `perplexity`），接口地址、模型名和 Key 都留在浏览器里，隐私说明里已写明。
+- 新增的测试开关在 `features.json` 里都是关闭的，供服务器的覆盖文件或本地试验打开。选项上的说明有 `burn_note`（`burn-note-v4`）、写明成品菜送往哪张订单的 `option_notes`（`option-notes-v4`）、`walk_note`、`go_note`、`step_check`（`step-check-v3`）和 `split_floor`；`throw_to` 让 Jeff 先走到投掷点，再隔着分开的地面扔过去；请求结构的几部分是 `place_names`、`timeline`（`timeline-v3`）、`no_history`、`links_on_options`、`rules_by_action`（`rules-by-action-v3`）和 `kitchen_view`（`kitchen-view-v8`）；工作提示是 `own_chain`、`plate_result`（`plate-result-v2`）和 `board_taken`。
+- 仍然关闭的有 `undo_note`，现在是 `undo-note-v4`（由引擎统一判断一个选项会不会把东西恢复成 Jeff 最近四步之一之前的样子）；`option_links_partner`，现在是 `partner-links-v3`（隔台扔过去的东西也有“接下来对方可以……”那一行）；以及 `reach_note`。
+- 需要为每个选项复制一份厨房来推算的提示，现在和步骤提示放在同一个线程里算，所以游戏循环不再在每次请求时让两位厨师停住约 0.2 秒。
+- 一键操作进行中收到的“继续”回答，只要还是同一串操作，就一直有效。以前这串操作一走到下一步，这个回答就被当作过期丢掉，每局约 5 次。一键操作进行中情况变急时，如果回答要等这一步做完才能到，就不再发问；提前问到的回答，只有预测里的订单或锅变得更急时，才会因为紧急而作废。
+
+### 第五关「换位协作」（对玩家关闭）、第四关的帮助
+
+- 新增第五关 · 换位协作（`content/levels/level-5.json`）。它和第四关是同一张地图、同一组订单和订单种子，达标线同样是 ¥90，只是两位厨师换了位置，玩家在食材箱、灶台和出餐口那一侧，Jeff 在案板那一侧。它和第四关一样在 `level_switches.json` 里对玩家关闭，服务器可以用 `python3 levels.py set level-5 on` 或关卡覆盖文件打开。研究记录的结构定义、使用统计和校准报告都已包括第五关。
+- 第四关的帮助原来把灭火器架写在下面一侧，达标线写成 100；现在改为灭火器架在灶台旁，达标线 90。
+
+### 页面
+
+- 中文页面标题改为 ChefJeff·不分手厨房（原来是 ChefJeff · 一起出餐），本地和在线版相同；英文标题仍是 ChefJeff · Cook together。
+- 两次取状态之间，Jeff 会沿引擎给的路线接着走，平滑地停在引擎让他停下的位置；新状态到来时，沿引擎自己的路线接上。他从玩家的厨师身边绕过去，不会穿过人，也不会走进柜台。慢的回复一到，页面就马上再取一次状态，所以一次往返超过 0.2 秒时，取状态的频率不再减半。
+- 引擎带着玩家的厨师走去做某个动作时，页面沿引擎的路线一段一段拐弯画出这段路，不会直接穿过柜台。
+- 着火灶台上的锅，如果锅的画面本身已经画出里面的菜，现在只画这口锅和火焰。以前还会在上面另叠一个食物图标，火不再烧糊菜以后，它看起来就是锅上多出一块牛排。
+- 第四关的第二个垃圾桶从北面使用，桶盖却朝着厨师；现在每个垃圾桶的盖子都朝向使用一侧的对面。
+- 在线版有玩家关卡时，关卡编辑器的校准只要没有直接从缓存得到结果，提交 1.5 秒后就会报“没有这项校准”，因为页面转发 `/api/` 请求时丢掉了查询参数。现在会保留。
+
+### 研究记录和工具
+
+- 引擎规则版本改为 `continuous-2026-11`。现在解析的配置必须写这个版本；规则集的结构定义仍接受 `continuous-2026-10b`，所以以前对局的研究记录仍能通过校验。每一关的配置哈希都变了。
+- 基准测试先升到 v4，固定了新的糊菜规则（v3 退役，因为每一关的配置都变了）；同一天又升到 v5，加上了灭火选项和糊菜分档的说明（v4 还没人跑过就退役了，因为第二关的参考轨迹里带着灭火选项的文字）。v3 和 v5 的分数不放在一起比较。
+- 每局的开局记录写明这局连的是什么。本地游戏写保存的连接的服务和模型名，在线版写浏览器报告的服务，或网站借出的免费模型，从不写 Key。以前只有 `config.model`，不管连的是什么都写 `jev-latest`。
+- 页面的帧时间会写进本局的结束记录（`POST /api/page-frames`），`slow_frames` 统计超过页面目标帧时长 1.5 倍的帧。
+- 用已删除的开关（`jeff_plan`、`rolling_intent`、`compact_input`、`intent_layer`）开着打的对局，不能再逐条重建请求，日志仍然保留。2026-11-19 以前的记录按它们自己的开关名回放。
+- 新增实验页面（`lab/`，由 `scripts/build_lab.py` 生成）。它按时刻列出记录下来的复问，并在同一批时刻上比较各个条件；只有当时发出的请求和重建出来的请求逐字节相同时，才附上记录的回答。数据来自研究者自己的对局，不在仓库里。
+- `scripts/model_rounds.py` 可以问 OpenRouter 上的决策模型，或 Parallel 自己的接口；脚本里扮演玩家的切菜手现在会拿走对方放到隔断柜台上的生食材。`reference_policy.py` 没有改，所以校准用的脚本组合和基准测试的搭档都和原来一样。
+
+### 开发者
+
+- `tests/run_tests.py` 用多个并行进程跑测试模块，每个进程有自己的 TMPDIR；`--fast` 只跑 `tests/fast_modules.txt` 列出的模块。参考命令仍是 `python3 -m unittest discover -s tests`。
+- 为 Jeff 的请求加了逐字节检查。`features._round_options` 是从功能开关到决策循环开关的唯一映射（`tests/test_switch_wiring.py`），`tests/payload_fingerprint.py --switches` 在第二关和第五关上为六组开关记录请求摘要，步骤提示和所有测试开关都包括在内。
+- `tests/test_web_build_sync.py` 检查 `build/web` 里不经编译器的文件和源文件一致；测试会关闭自己打开的文件、套接字和临时文件夹，原来打印的输出改为断言；README 的模块表列出根目录的每一个模块。
 
 ## 0.9.0-beta.1 — 2026-11-11 · 第六个公开测试版
 
