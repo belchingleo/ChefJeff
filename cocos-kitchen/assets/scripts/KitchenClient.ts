@@ -2167,8 +2167,10 @@ export class KitchenClient extends Component {
                     let vessel=dev.node.getChildByName('stove-vessel');
                     if(!vessel){vessel=this.child(dev.node,'stove-vessel',34,34,0,this.useModularArt?this.workSurfaceY(id):10);vessel.setSiblingIndex(dev.node.getChildByName('equipment')!.getSiblingIndex()+1);}
                     vessel.active=!!(st.vessel||st.pot_id);
-                    // A filled vessel frame already shows what is cooking: the separate food icon stays hidden.
-                    if(vessel.active&&this.drawVessel(vessel,st.vessel||'',.96,st.food?.ingredient,st.food?.stage)==='filled'&&!st.fire)food.active=false;
+                    // A filled vessel frame already shows what is cooking: the separate food icon stays hidden, on a
+                    // burning stove too, where the flames go over the frame (2026-11-23: a fire spreading to a stove
+                    // left its food cooking, and the loose icon was drawn over the pan's frame).
+                    if(vessel.active&&this.drawVessel(vessel,st.vessel||'',.96,st.food?.ingredient,st.food?.stage)==='filled')food.active=false;
                     food.setPosition(0,this.useModularArt?this.workSurfaceY(id)+3:13);food.setScale(.58,.58,1);
                 }
             }
