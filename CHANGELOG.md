@@ -4,6 +4,12 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 
 [中文](#更新记录)
 
+## 0.10.0-beta.2 — 2026-11-26 · fix release
+
+### Models reached through the demo server
+
+- Online, Jeff no longer stands still after his first step when his model is reached through the demo server: Jev with server forwarding, the free models (StartLux, Gemma) and the Cloudflare relay. Their answers carried the choice of where to put things down (`put_where`) outside the `answers` field that `/api/model/result` takes, so the server refused the page's post and the request ran out after 24 s, with the page saying Jeff could not connect. One-press asks `put_where` whenever Jeff holds something, so from 0.7.0-beta.1 on every request after Jeff first picked something up failed this way. Models the browser calls directly, such as Perplexity, were not affected. The routes now return it under `answers` (`hosted_jev.page_answers`), and a test posts a forwarded Jev and free-model answer back as the page does.
+
 ## 0.10.0-beta.1 — 2026-11-23 · seventh public test release
 
 ### Online addresses
@@ -429,6 +435,12 @@ First private release: a local browser game with three playable maps and player-
 ---
 
 ## 更新记录
+
+## 0.10.0-beta.2 — 2026-11-26 · 修复版
+
+### 经试玩服务器调用的模型
+
+- 在线版里，经试玩服务器调用模型时（勾了服务器转发的 Jev、免费模型 StartLux 和 Gemma、Cloudflare 转发），Jeff 不再走完第一步就不动。服务器转回的答案把“放在哪儿”（`put_where`）放在了 `/api/model/result` 只认的 `answers` 字段外面，页面交回时被服务器拒收，请求等满 24 秒后失败，页面显示 Jeff 连不上。一键动作在 Jeff 手里有东西时都会问 `put_where`，所以从 0.7.0-beta.1 起，Jeff 第一次拿起东西之后的每个请求都这样失败。浏览器直接调用的模型（例如 Perplexity）不受影响。现在这几条线路把它放进 `answers`（`hosted_jev.page_answers`），并有测试按页面的方式把转发回来的 Jev 和免费模型答案交回服务器。
 
 ## 0.10.0-beta.1 — 2026-11-23 · 第七个公开测试版
 
