@@ -4,6 +4,22 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 
 [中文](#更新记录)
 
+## 0.10.1-beta.1 — 2026-11-26 · update of the seventh public test release
+
+### Research records from the overseas site
+
+- Rounds played on the overseas site reach the research data again. Their records are stored by the shared data service in Shanghai, and every request there had 3 s; a whole round's record is about 1–5 MB, and on 2026-11-26 Germany fetched 1.6 MB from Shanghai in 6–11 s. So no full overseas round with Jeff at work all round was stored, only short rounds and rounds where he stood still. A round's opening record now has 8 s and a whole record 120 s (`shared_client.RemoteRecords`); a finished round's record goes out in a background thread, so the round never waits for the link, and a failed send is tried again after 10 s, 30 s, 1, 2 and 5 minutes, newest snapshot only (a withdrawn round's record is never sent). A stopping server sends what is still queued, waiting up to 45 s. A test sends a record over a throttled link: the code before this release held the round for 3 s and failed. Rounds already lost cannot be recovered.
+
+### What Jeff reads
+
+- Five features are released and on for every model (`features.json`; a server can still switch each off without a new release):
+  - `split_floor`: when no dish on the menu can be made by one chef alone, Jeff is told so.
+  - `reach_note`: on a split floor, which stations each chef can walk to.
+  - `option_links_partner`, now `partner-links-v4`: under an option that hands an item over, what the other chef can then do with it. v4 also finds it when the other chef first has to put down what they hold; before, an item thrown onto an empty board while the player's hands were full got no line.
+  - `undo_note`: an option that would bring back how things were before one of Jeff's last steps says so.
+  - `go_note`: a "go X" option says when nothing at X takes what Jeff holds.
+- Levels 4 and 5 are open to players (`level_switches.json`).
+
 ## 0.10.0-beta.2 — 2026-11-26 · fix release
 
 ### Models reached through the demo server
@@ -435,6 +451,22 @@ First private release: a local browser game with three playable maps and player-
 ---
 
 ## 更新记录
+
+## 0.10.1-beta.1 — 2026-11-26 · 第七个公开测试版的更新版
+
+### 海外站的研究记录
+
+- 海外站玩的局重新能存进研究数据。这些记录由上海的共享数据服务保存，以前每个请求只有 3 秒；一整局的记录大约 1–5 MB，而 2026-11-26 实测德国从上海下载 1.6 MB 要 6–11 秒。所以 Jeff 一直在动的海外完整对局一局都没存进去，存进去的只有短局和 Jeff 站着不动的局。现在开局记录有 8 秒、整局记录有 120 秒（`shared_client.RemoteRecords`）；一局结束后，整局记录交给后台线程发送，游戏不用等这条线路；发送失败会在 10 秒、30 秒、1 分钟、2 分钟和 5 分钟后再试，只发最新的一份（玩家撤回的记录不会再发）。服务器停止前会把还没发出的记录发完，最多等 45 秒。有测试通过一条限速线路发送记录：这一版之前的代码会把游戏卡住 3 秒然后失败。已经丢失的对局无法找回。
+
+### Jeff 读到的内容
+
+- 五项功能正式上线，对所有模型默认打开（`features.json`；服务器仍可不发新版本单独关掉其中任何一项）：
+  - `split_floor`：菜单上没有一道菜能由一位厨师单独做完时，告诉 Jeff。
+  - `reach_note`：地面被柜台隔开时，写明每位厨师能走到哪些工位。
+  - `option_links_partner`，现为 `partner-links-v4`：把东西交出去的选项下面，写明另一位厨师接着能用它做什么。v4 在对方要先放下手里的东西时也能算出来；以前玩家手里拿着东西时，扔到空案板上的东西没有这一行。
+  - `undo_note`：某个选项会让东西回到 Jeff 前几步之前的样子时，在选项上写明。
+  - `go_note`：走到 X 的选项，在 X 处没有地方能接 Jeff 手里的东西时写明。
+- 第四关、第五关对玩家开放（`level_switches.json`）。
 
 ## 0.10.0-beta.2 — 2026-11-26 · 修复版
 

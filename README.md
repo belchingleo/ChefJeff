@@ -13,7 +13,7 @@ ChefJeff is a real-time cooking game in which a person and an AI cook together, 
 
 Where to start: [play online](#play-online) · [run it locally](#run-it-locally) · [connect your own model](#jeff-and-model-integration) · [change the configuration](#five-data-models) · [the environment and benchmark](#building-a-humanai-collaboration-environment-and-benchmark)
 
-> Current version: **0.10.0-beta.2**, a fix release of the seventh public test release. You need your own model API, and interfaces and analysis rules may still change. We suggest starting with Jev models: they don't play especially well, but they are cheap. Results from other models are welcome.
+> Current version: **0.10.1-beta.1**, an update of the seventh public test release. You need your own model API, and interfaces and analysis rules may still change. We suggest starting with Jev models: they don't play especially well, but they are cheap. Results from other models are welcome.
 
 ---
 
@@ -68,8 +68,8 @@ A round lasts 180 seconds. As in Overcooked 2, two orders wait from the start, a
 | Level 1 · Steak | Steak ¥50 | Practice level: learn to chop, fry, plate and serve | ¥200 |
 | Level 2 · Burger | Burger ¥80 | A long counter splits the kitchen in two, so a lot has to be passed across it | ¥160 |
 | Level 3 · Steak and burger | Steak, burger | Two stoves and three frying pans; both dishes at once | ¥140 |
-| Level 4 · Across the counter (switched off for players for now, `level_switches.json`) | Steak, burger | A row of counters runs from wall to wall: one side has the ingredients, stoves and serving window, the other the boards and sink, so every dish needs both chefs | ¥90 |
-| Level 5 · Swapped sides (switched off for players, `level_switches.json`) | Steak, burger | Level 4 with the chefs swapped: the player fetches, cooks and serves, Jeff chops and washes | ¥90 |
+| Level 4 · Across the counter | Steak, burger | A row of counters runs from wall to wall: one side has the ingredients, stoves and serving window, the other the boards and sink, so every dish needs both chefs | ¥90 |
+| Level 5 · Swapped sides | Steak, burger | Level 4 with the chefs swapped: the player fetches, cooks and serves, Jeff chops and washes | ¥90 |
 
 Working together, you chop, cook, plate and serve between you. Along the way Jeff may pass you dishes, or chop, pass and wash up alongside you. He may also bump you aside to handle something himself, and you can do the same to him.
 If the model isn't doing what you want, press 1–6 to tell Jeff what kind of work you'd like to do, or that he just made a mistake.
@@ -350,6 +350,7 @@ All three produce the same data, and every imported level goes through the same 
 - **0.9.0-beta.1** (2026-11-11): sinks get a drying rack as in Overcooked 2 (dirty plates stack in the sink, washed plates go onto the rack), a held pan scoops food off a counter, level 4 is laid out again, both chefs walk 4 cells a second and the targets are recalibrated (200, 160, 140, 90). Jeff asks ahead and gets step hints (what each option leads to; a player switch in Settings), two-step intent and the undo note are off. Perplexity Decider joins the model list (online too) and Parallel Decisions (local game), and one right Joy-Con plays sideways in Safari.
 - **0.10.0-beta.1** (2026-11-23): the seventh public test release. Burnt food's burnt time runs while it stays on a stove, burning or not; a fire spreading to a stove no longer burns its food, which cooks at most until it is done, then waits and cooks on once the fire is out; either chef standing at the sink takes the drying rack's plate in place, and a chef who reaches only the second bin can discard there. Jeff reads whether burnt food would still be accepted or refused and gets a one-press option to empty a burnt pan at the bin, step hints stay on with no Settings switch, Jeff is drawn walking between state updates, and the Chinese page is now called ChefJeff·不分手厨房.
 - **0.10.0-beta.2** (2026-11-26): online, Jeff no longer stands still after his first step when his model is reached through the demo server (Jev with server forwarding, the free models, Cloudflare): the server's reply about where to put things down was refused, so every request after Jeff first picked something up ran out.
+- **0.10.1-beta.1** (2026-11-26): rounds played on the overseas site reach the research data again: a whole round's record now has time to cross to Shanghai and is sent in the background. Five context features are on for every model: the split-floor line, who can reach which stations, what the other chef can do next (now also when they first have to put down what they hold), the undo note and the go note. Levels 4 and 5 are open to players.
 - **0.8.1-beta.2** (2026-11-09): the phone stick no longer sticks when iPhone Safari misses the thumb's lift, and Zhipu and Llama are withdrawn from the free trial (StartLux and Gemma remain).
 
 See the [changelog](CHANGELOG.md) for everything.
