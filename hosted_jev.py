@@ -29,6 +29,14 @@ def valid_key(key):
     return isinstance(key,str) and 8 <= len(key) <= 2048 and key.isascii() and not any(c.isspace() or ord(c)<32 or ord(c)==127 for c in key)
 
 
+def page_answers(extra):
+    """The answers to a request's other questions (put_where, harness.choice_answer) in the shape the page posts to
+    /api/model/result with any answer: under 'answers', which BrowserRelay.resolve reads. A forwarded answer that
+    carried put_where at the top level was refused there (400, a field the route does not take), so every request
+    asking put_where ran out after 24 s."""
+    return {'answers': extra} if extra else {}
+
+
 def parse_answer(raw, payload):
     try:
         d = json.loads(raw)
@@ -48,7 +56,7 @@ def parse_answer(raw, payload):
         from harness import choices, choice_answer, choice_questions
         return {'choice':choice, 'sprint':sprint.get('choice')=='yes', 'usage':counts,
                 'probabilities':probabilities(answer.get('probabilities'), payload['questions']['next_action']['criteria']),
-                **choice_answer(choices(d['answers'], choice_questions(payload)), payload)}
+                **page_answers(choice_answer(choices(d['answers'], choice_questions(payload)), payload))}
     except (ValueError,TypeError,KeyError,AttributeError):
         raise ForwardError(502,'Jev 返回了无效动作，未执行任何操作。') from None
 

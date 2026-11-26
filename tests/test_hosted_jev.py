@@ -183,6 +183,28 @@ class ForwardHTTPTests(unittest.TestCase):
             self.assertEqual(pending.result(timeout=1)[0],409)
         game.journal=None;game.ai=None
 
+    def test_forwarded_answer_with_put_where_is_taken_as_the_page_posts_it(self):
+        # The page posts a forwarded answer as it came ({id, ...answer}). With put_where at the top level the post was
+        # refused (400) and every request asking put_where (Jeff holding something, one-press on) ran out after 24 s.
+        from hosted_free_models import MODELS, chat_answer
+        payload={'state':{'rules':{}},'questions':{
+            'next_action':{'type':'choice','criteria':{'wait':'Wait','put_then_take counter2':'Put, then take'}},
+            'put_where':{'type':'choice','criteria':{'counter3':'Counter 3','counter4':'Counter 4'}}}}
+        jev=json.dumps({'answers':{'next_action':{'type':'choice','choice':'put_then_take counter2'},
+                                   'put_where':{'type':'choice','choice':'counter3'}}}).encode()
+        chat=json.dumps({'model':MODELS['zhipu']['model'],'choices':[{'message':{'content':json.dumps(
+            {'choice':'put_then_take counter2','put_where':'counter4'})}}]}).encode()
+        token,game=self.page()
+        with game.lock:
+            game.connected=True
+            self.assertEqual(game._command('/api/start',{})[0],200)
+        for answer,where in ((parse_answer(jev,payload),'counter3'),(chat_answer(chat,payload,'zhipu'),'counter4')):
+            with self.subTest(where=where):
+                task=self.pending_task(game);task['payload']=payload
+                self.assertEqual(self.request('/api/model/result',{'id':task['id'],**answer},token),(200,{'ok':True}))
+                self.assertTrue(task['event'].is_set())
+                self.assertEqual(task['result']['put_where'],where)
+
     def test_global_concurrency_bound_releases_after_failure(self):
         token,game=self.page();self.server.jev_forwarder.slots=threading.BoundedSemaphore(1)
         self.server.jev_forwarder.slots.acquire()

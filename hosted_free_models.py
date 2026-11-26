@@ -18,7 +18,7 @@ import urllib.error
 import urllib.request
 
 from cooperation_memory import validate_browser_context, PAST_EPISODES_RULE
-from hosted_jev import ForwardError, NoRedirect, valid_key, parse_answer as decision_answer
+from hosted_jev import ForwardError, NoRedirect, valid_key, page_answers, parse_answer as decision_answer
 from model_language import english_data
 from model_output import chat_body, zhipu_body
 from model_status import ObservedAnswer, clean, numeric_provider_code, response_issue
@@ -131,7 +131,7 @@ def chat_answer(raw, payload, provider='zhipu'):
         if any(type(n) is not int or not 0 <= n <= 10000000 for n in counts.values()):
             raise ValueError()
         return {'choice': answer['choice'], 'sprint': answer.get('sprint') is True, 'usage': counts,
-                **choice_answer(answer, payload)}
+                **page_answers(choice_answer(answer, payload))}
     except (ValueError, TypeError, KeyError, IndexError, AttributeError):
         raise ForwardError(502, model['name'] + ' 回复格式或动作无效，本次未执行。') from None
 
