@@ -235,7 +235,12 @@ class HostedSession(GameSession):
             return
         try:
             data = {**pilot_record(self), 'consent_mode': self.research_mode}
-            if not self.store.update(self.receipt['id'], data):
+            later = getattr(self.store, 'update_later', None)
+            if later:
+                # The overseas site stores records on the shared service across a slow link: the round never waits
+                # for it, and a failed send is tried again (shared_client.RemoteRecords).
+                later(self.receipt['id'], data)
+            elif not self.store.update(self.receipt['id'], data):
                 self.research_active = False  # withdrawn or expired, never recreate
             self.research_error = None
         except (ValueError, OSError, sqlite3.Error):
@@ -599,6 +604,9 @@ class Sessions:
         for session, _ in games:
             session.usage_close_reason = 'shutdown'
             session.close()
+        closing = getattr(self.store, 'close', None)
+        if closing:
+            closing()                   # records still being sent to the shared service go out before the process ends
 
 
 # Hosted-only copy swapped into the local web shell. Each anchor must stay verbatim in

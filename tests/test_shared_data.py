@@ -1,11 +1,13 @@
 """Real two-region HTTP checks, retained receipts and retry-safe shared totals."""
-from contextlib import closing
+from contextlib import closing, redirect_stdout
 from datetime import datetime
 import hashlib
 import http.client
+import io
 import json
 from pathlib import Path
 import secrets
+import socket
 import sqlite3
 import tempfile
 import threading
@@ -22,6 +24,56 @@ from shared_server import DataServer
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+class SlowLink:
+    """A TCP link to the data service that carries requests at about `rate` bytes a second, like the link from the
+    overseas site to Shanghai (on 2026-11-26 Germany fetched 1.6 MB from Shanghai in 6-11 s)."""
+    def __init__(self, port, rate):
+        self.target, self.rate = port, rate
+        self.listener = socket.create_server(('127.0.0.1', 0))
+        self.port = self.listener.getsockname()[1]
+        threading.Thread(target=self.accept, daemon=True).start()
+
+    def accept(self):
+        while True:
+            try:
+                near, _ = self.listener.accept()
+            except OSError:
+                return
+            far = socket.create_connection(('127.0.0.1', self.target))
+            threading.Thread(target=self.pump, args=(near, far, True), daemon=True).start()
+            threading.Thread(target=self.pump, args=(far, near, False), daemon=True).start()
+
+    def pump(self, source, sink, slow):
+        try:
+            while True:
+                data = source.recv(2048 if slow else 65536)
+                if not data:
+                    break
+                sink.sendall(data)
+                if slow:
+                    time.sleep(len(data) / self.rate)
+        except OSError:
+            pass
+        finally:
+            for end in (source, sink):
+                try:
+                    end.shutdown(socket.SHUT_RDWR)
+                except OSError:
+                    pass
+                end.close()
+
+    def close(self):
+        self.listener.close()
+
+
+def wait_until(condition, seconds=20):
+    deadline = time.monotonic() + seconds
+    while not condition():
+        if time.monotonic() > deadline:
+            raise AssertionError('timed out')
+        time.sleep(0.02)
 
 
 class SharedDataTests(unittest.TestCase):
@@ -52,6 +104,120 @@ class SharedDataTests(unittest.TestCase):
         self.assertTrue(global_.delete(receipt['id'], receipt['deletion_token']))
         self.assertFalse(cn.update(receipt['id'], self.record))
         self.assertIsNone(cn.download(receipt['id'], receipt['deletion_token']))
+
+    def stored(self, receipt):
+        return RemoteRecords(self.client('cn')).download(receipt['id'], receipt['deletion_token'])
+
+    def test_a_whole_record_reaches_the_service_over_a_slow_link_without_the_round_waiting(self):
+        # Every overseas round with Jeff at work all round was lost until 2026-11-26: its record needed far more than
+        # the 3 s every request had. Here 46 KB at about 10 KB/s takes about 5 s.
+        link = SlowLink(self.server.server_port, 10_000)
+        self.addCleanup(link.close)
+        slow = RemoteRecords(SharedClient({**self.config('global'), 'url': f'http://127.0.0.1:{link.port}'}))
+        self.addCleanup(slow.close)
+        receipt = RemoteRecords(self.client('global')).save({**self.record, 'consent_mode': 'round'})
+        started = time.monotonic()
+        slow.update_later(receipt['id'], {**self.record, 'consent_mode': 'standing'})
+        self.assertLess(time.monotonic() - started, 0.5)
+        wait_until(lambda: slow.pending() == 0, 30)
+        self.assertGreater(time.monotonic() - started, 3)
+        self.assertEqual(slow.given_up, 0)
+        self.assertEqual(self.stored(receipt)['consent_mode'], 'standing')
+
+    def test_a_failed_send_is_tried_again_and_only_the_newest_snapshot_goes(self):
+        self.enterContext(redirect_stdout(io.StringIO()))   # the worker's retry lines
+        remote = RemoteRecords(self.client('global'), retry_seconds=(0.05, 0.05))
+        self.addCleanup(remote.close)
+        receipt = remote.save({**self.record, 'consent_mode': 'round'})
+        real, sent = remote.client.request, []
+        def flaky(operation, body, timeout=3):
+            if operation == 'records/update':
+                sent.append(body['record']['consent_mode'])
+                if len(sent) == 1:
+                    raise OSError('link dropped')
+            return real(operation, body, timeout)
+        with patch.object(remote.client, 'request', side_effect=flaky):
+            remote.update_later(receipt['id'], {**self.record, 'consent_mode': 'standing'})
+            wait_until(lambda: remote.pending() == 0)
+        self.assertEqual(sent, ['standing', 'standing'])
+        self.assertEqual(self.stored(receipt)['consent_mode'], 'standing')
+        # A newer snapshot queued while an older one waits for its retry replaces it.
+        receipt = remote.save({**self.record, 'consent_mode': 'round'})
+        sent.clear()
+        remote.retry_seconds = (5,)
+        with patch.object(remote.client, 'request', side_effect=flaky):
+            remote.update_later(receipt['id'], {**self.record, 'consent_mode': 'standing'})
+            wait_until(lambda: len(sent) == 1 and remote.sending is None)
+            remote.update_later(receipt['id'], {**self.record, 'consent_mode': 'round'})
+            wait_until(lambda: remote.pending() == 0)
+        self.assertEqual(sent, ['standing', 'round'])
+        self.assertEqual(self.stored(receipt)['consent_mode'], 'round')
+
+    def test_a_record_that_never_gets_through_is_given_up_and_a_withdrawn_one_is_not_brought_back(self):
+        self.enterContext(redirect_stdout(io.StringIO()))   # the worker's retry lines
+        remote = RemoteRecords(self.client('global'), retry_seconds=(0.02, 0.02))
+        self.addCleanup(remote.close)
+        receipt = remote.save({**self.record, 'consent_mode': 'round'})
+        real, tries = remote.client.request, []
+        def down(operation, body, timeout=3):
+            if operation == 'records/update':
+                tries.append(1)
+                raise OSError('link down')
+            return real(operation, body, timeout)
+        with patch.object(remote.client, 'request', side_effect=down):
+            remote.update_later(receipt['id'], {**self.record, 'consent_mode': 'standing'})
+            wait_until(lambda: remote.pending() == 0)
+        self.assertEqual((len(tries), remote.given_up), (3, 1))
+        self.assertEqual(self.stored(receipt)['consent_mode'], 'round')
+        self.assertTrue(remote.delete(receipt['id'], receipt['deletion_token']))
+        remote.update_later(receipt['id'], {**self.record, 'consent_mode': 'standing'})
+        wait_until(lambda: remote.pending() == 0)
+        self.assertIsNone(self.stored(receipt))
+        self.assertEqual(remote.given_up, 1)
+
+    def test_a_stopping_server_sends_the_records_still_waiting(self):
+        self.enterContext(redirect_stdout(io.StringIO()))   # the worker's retry lines
+        remote = RemoteRecords(self.client('global'), retry_seconds=(600,))
+        receipt = remote.save({**self.record, 'consent_mode': 'round'})
+        real, sent = remote.client.request, []
+        def once(operation, body, timeout=3):
+            if operation == 'records/update':
+                sent.append(1)
+                if len(sent) == 1:
+                    raise OSError('link dropped')
+            return real(operation, body, timeout)
+        with patch.object(remote.client, 'request', side_effect=once):
+            remote.update_later(receipt['id'], {**self.record, 'consent_mode': 'standing'})
+            wait_until(lambda: len(sent) == 1 and remote.sending is None)
+            self.assertEqual(remote.pending(), 1)          # waiting ten minutes for its retry
+            remote.close(wait=10)
+        self.assertEqual((len(sent), remote.pending()), (2, 0))
+        self.assertEqual(self.stored(receipt)['consent_mode'], 'standing')
+        with self.assertRaises(OSError):
+            remote.update_later(receipt['id'], self.record)
+
+    def test_the_overseas_site_hands_finished_rounds_to_the_background_and_flushes_them_on_shutdown(self):
+        server = make_server(0, 'https://global.chefjeff.online', data_dir=self.root/'global',
+                             shared_config=self.config('global'))
+        store = server.sessions.store
+        self.addCleanup(server.server_close)
+        game = server.sessions.factory()
+        game.store = store
+        with patch.object(store, 'update', side_effect=AssertionError('a round must not wait for the link')), \
+                patch.object(store, 'update_later') as later:
+            game._command('/api/browser-ready', {'connected': True})
+            self.assertEqual(game._command('/api/contribution/consent', {'consent': True, 'consent_version': CONSENT_VERSION})[0], 200)
+            self.assertEqual(game._command('/api/start', {})[0], 200)
+            game.tick()
+            game._command('/api/end', {})
+        receipt_id = game.receipt['id']
+        self.assertEqual(later.call_args.args[0], receipt_id)
+        self.assertEqual(later.call_args.args[1]['termination']['session_close']['reason'], 'manual_end')
+        self.assertIsNone(game.research_error)
+        game.close()
+        with patch.object(store, 'close') as close:
+            server.sessions.close()
+        close.assert_called_once_with()
 
     def test_retried_create_is_one_record_and_cannot_resurrect_a_deleted_record(self):
         client = self.client('cn')

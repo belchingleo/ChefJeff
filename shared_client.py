@@ -30,9 +30,10 @@ class SharedClient:
             raise ValueError('Invalid site credentials')
         self.site, self.token = config['site'], config['token']
 
-    def request(self, operation, body):
+    def request(self, operation, body, timeout=3):
+        # The timeout bounds the whole send (Python's sendall) and then each read of the reply.
         connection_class = http.client.HTTPSConnection if self.url.scheme == 'https' else http.client.HTTPConnection
-        options = {'timeout': 3}
+        options = {'timeout': timeout}
         if self.url.scheme == 'https':
             options['context'] = ssl.create_default_context()
         connection = connection_class(self.url.hostname, self.url.port, **options)
@@ -54,9 +55,25 @@ class SharedClient:
             connection.close()
 
 
+# Between the sites a whole round's record (about 1-5 MB) takes many seconds: on 2026-11-26 Germany fetched 1.6 MB from
+# Shanghai in 6-11 s (about 150-280 KB/s), so every full overseas round ran out of the 3 s that small requests get and
+# was never stored. Records get their own time; a finished round's record goes out in the background, retried.
+SAVE_SECONDS = 8                # a round's opening record (a few KB), sent while the round starts
+RECORD_SECONDS = 120            # a whole record either way (update, a receipt's download); the largest is 13 MB
+RETRY_SECONDS = (10, 30, 60, 120, 300)
+CLOSE_SECONDS = 45              # how long a stopping server waits for records still to be sent
+
+
 class RemoteRecords:
-    def __init__(self, client):
+    def __init__(self, client, retry_seconds=RETRY_SECONDS, record_seconds=RECORD_SECONDS):
         self.client = client
+        self.retry_seconds, self.record_seconds = tuple(retry_seconds), record_seconds
+        self.queue = {}                     # record id -> [record, failed tries, monotonic time it may go]
+        self.queue_changed = threading.Condition()
+        self.sending = None                 # the record id being sent now
+        self.closing = False
+        self.thread = None
+        self.given_up = 0                   # records dropped after every retry failed
 
     def save(self, record):
         body = {'request_id': secrets.token_hex(16), 'created_at': time.time(),
@@ -64,22 +81,85 @@ class RemoteRecords:
         # One bounded retry reuses the create ID, token and original timestamp.
         for attempt in range(2):
             try:
-                return self.client.request('records/save', body)
+                return self.client.request('records/save', body, SAVE_SECONDS)
             except OSError:
                 if attempt:
                     raise
 
     def update(self, identifier, record):
-        return self.client.request('records/update', {'id': identifier, 'record': record})
+        return self.client.request('records/update', {'id': identifier, 'record': record}, self.record_seconds)
+
+    def update_later(self, identifier, record):
+        """Send this record in the background and return at once, so a round never waits on the link between the
+        sites. Only the newest snapshot of a record is kept; a failed send is tried again after each of RETRY_SECONDS.
+        An update the service refuses because the record was withdrawn or has expired is dropped (it cannot bring the
+        record back)."""
+        with self.queue_changed:
+            if self.closing:
+                raise OSError('Record delivery has stopped')
+            self.queue[identifier] = [record, 0, 0.0]
+            if self.thread is None:
+                self.thread = threading.Thread(target=self._deliver, name='shared-records', daemon=True)
+                self.thread.start()
+            self.queue_changed.notify_all()
+
+    def pending(self):
+        with self.queue_changed:
+            return len(self.queue) + (self.sending is not None)
+
+    def _deliver(self):
+        while True:
+            with self.queue_changed:
+                while True:
+                    if not self.queue:
+                        if self.closing:
+                            return
+                        self.queue_changed.wait()
+                        continue
+                    identifier, (record, tries, due) = min(self.queue.items(), key=lambda item: item[1][2])
+                    wait = due - time.monotonic()
+                    if wait <= 0 or self.closing:
+                        break
+                    self.queue_changed.wait(wait)
+                del self.queue[identifier]
+                self.sending = identifier
+            try:
+                self.update(identifier, record)
+                error = None
+            except OSError as failure:
+                error = failure
+            with self.queue_changed:
+                self.sending = None
+                self.queue_changed.notify_all()
+                if error is None or identifier in self.queue:
+                    continue                # delivered, or a newer snapshot replaces this one
+                if self.closing or tries >= len(self.retry_seconds):
+                    self.given_up += 1
+                    print(f'shared records: gave up on a record after {tries + 1} tries ({error})', flush=True)
+                    continue
+                self.queue[identifier] = [record, tries + 1, time.monotonic() + self.retry_seconds[tries]]
+                print(f'shared records: sending a record failed ({error}); trying again in {self.retry_seconds[tries]} s',
+                      flush=True)
+
+    def close(self, wait=CLOSE_SECONDS):
+        """Stop taking records and send the ones still queued (each tried once more), waiting up to wait seconds."""
+        with self.queue_changed:
+            self.closing = True
+            self.queue_changed.notify_all()
+            thread = self.thread
+        if thread:
+            thread.join(timeout=wait)
 
     def delete(self, identifier, token):
-        return self.client.request('records/delete', {'id': identifier, 'deletion_token': token})
+        with self.queue_changed:
+            self.queue.pop(identifier, None)    # a withdrawn round's queued snapshot is never sent
+        return self.client.request('records/delete', {'id': identifier, 'deletion_token': token}, SAVE_SECONDS)
 
     def download(self, identifier, token):
-        return self.client.request('records/download', {'id': identifier, 'deletion_token': token})
+        return self.client.request('records/download', {'id': identifier, 'deletion_token': token}, self.record_seconds)
 
     def accept_terms(self, identifier, token):
-        return self.client.request('records/terms', {'id': identifier, 'deletion_token': token})
+        return self.client.request('records/terms', {'id': identifier, 'deletion_token': token}, SAVE_SECONDS)
 
     def prune(self):
         # The authoritative service owns expiry, independently of game processes.
