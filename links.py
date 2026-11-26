@@ -269,7 +269,13 @@ def location(kitchen, target):
 # partner-links-v3: a throw ends, in the fork as in the game, when the item leaves the hand, so v2 looked for the item
 # while it was still in the air and no throw ever got a partner line, while a put on a dividing counter did. v3 lets
 # the fork run on until a thrown item has landed or been caught (_settle), then follows it as v2 does.
-PARTNER_VERSION = 'partner-links-v3'
+# partner-links-v4: the other chef may first put down what they hold (on a counter or the floor, FREE_KINDS) when only
+# then an action on the item opens up. v3 looked only at actions naming the item, so an item thrown onto an empty board
+# got no line while the other chef held something (chopping needs free hands), though a throw onto the floor got one
+# through the pickup that swaps hands. Seen in the 2026-11-25 re-asks: every "throw to Board" without a line was one.
+PARTNER_VERSION = 'partner-links-v4'
+FREE_KINDS = ('put_counter', 'drop')     # how the other chef frees their hands first, counters before the floor
+FREE_TRIES = 3                           # put-downs tried before giving up (each is a fork)
 SETTLE = 3.0                    # game seconds a thrown item may still be in the air when the throw ends
 PARTNER_KINDS = WORK + ('take_counter', 'take_board', 'take_plate', 'take_return', 'take_sink', 'pickup', 'lift_pot')
 CHAIN_SKIP = ('go', 'throw', 'drop', 'discard', 'wait', 'stop', 'put_counter', 'take_tool')
@@ -331,17 +337,35 @@ def partner_chain(kitchen, twin, who, item, before=None):
         return []
     if _out_of_reach(twin, who, other, item):
         return []
-    held = twin.chefs[other].hand is not None and twin.chefs[other].hand.id == item
+    hand = twin.chefs[other].hand
+    held = hand is not None and hand.id == item
     if before is None:
         before = {(a.kind, a.target) for a in kitchen.actions(other)}
-    if not held and not any(a.kind in PARTNER_KINDS and (a.kind, a.target) not in before and _names_item(a.expected, item)
-                            for a in twin.actions(other)):
-        return []
+
+    def opens(state):
+        return any(a.kind in PARTNER_KINDS and (a.kind, a.target) not in before and _names_item(a.expected, item)
+                   for a in state.actions(other))
     frontier = [(twin, [])]
+    if not held and not opens(twin):
+        if hand is None:
+            return []
+        # v4: their hands are full; the item opens up once they put down what they hold.
+        frontier = []
+        frees = sorted((a for a in twin.actions(other) if a.kind in FREE_KINDS and not _names_item(a.expected, item)),
+                       key=lambda a: FREE_KINDS.index(a.kind))
+        for a in frees[:FREE_TRIES]:
+            fork = _fork(twin)
+            if _run(fork, other, a) and opens(fork):
+                frontier = [(fork, [a])]
+                break
+        if not frontier:
+            return []
     first = None
     for _ in range(CHAIN_DEPTH):
         nxt = []
         for state, path in frontier:
+            if len(path) >= CHAIN_DEPTH:
+                continue
             for a in state.actions(other):
                 if a.kind in CHAIN_SKIP or not _names_item(a.expected, item):
                     continue

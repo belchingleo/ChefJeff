@@ -66,12 +66,12 @@ class SplitFloorTests(unittest.TestCase):
             self.assertEqual(json.dumps(request(k, True, True)), json.dumps(request(k, False, True)))
 
 
-    def test_the_feature_is_a_trial_off_by_default_without_a_page_switch(self):
+    def test_the_feature_is_released_and_on_without_a_page_switch(self):
         self.assertEqual(features.current()['split_floor'],
-                         {'stage': 'trial', 'on': False, 'version': split_floor.VERSION})
-        on = {**features.current(), 'split_floor': {**features.current()['split_floor'], 'on': True}}
-        self.assertTrue(features.compose_options(on)['split'])
-        self.assertFalse(features.compose_options(features.current())['split'])
+                         {'stage': 'release', 'on': True, 'version': split_floor.VERSION})
+        off = {**features.current(), 'split_floor': {**features.current()['split_floor'], 'on': False}}
+        self.assertFalse(features.compose_options(off)['split'])
+        self.assertTrue(features.compose_options(features.current())['split'])
 
 
 class SplitFloorReplayTests(paths.SavePathTests):

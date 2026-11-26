@@ -100,7 +100,7 @@ class SwitchSetTests(unittest.TestCase):
         self.assertEqual(on['release-partner-links'], on['release'] | {'option_links_partner'})
         self.assertNotIn('links_on_options', on['release-partner-links'])
         golden = json.loads(pf.switch_golden('level-5', 'release').read_text(encoding='utf-8'))
-        self.assertIs(golden['switches']['links'], True)
+        self.assertEqual(golden['switches']['links'], 'partner')         # partner lines released in 0.10.1-beta.1
         self.assertTrue(any('wire' in row for w in golden['windows'] for row in w['requests']))
         partner = json.loads(pf.switch_golden('level-2', 'release-partner-links').read_text(encoding='utf-8'))
         self.assertEqual(partner['switches']['links'], 'partner')

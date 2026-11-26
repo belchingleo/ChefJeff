@@ -164,11 +164,11 @@ class NoteTests(unittest.TestCase):
         undo_note.apply(b, on.rows('ai_request')[1]['undo_note'], off.k)
         self.assertEqual(json.dumps(a, sort_keys=True), json.dumps(b, sort_keys=True))  # the switch adds exactly this
 
-    def test_the_feature_is_a_trial_off_by_default(self):
+    def test_the_feature_is_released_and_on(self):
         current = features.current()
-        self.assertEqual(current['undo_note'], {'stage': 'trial', 'on': False, 'version': undo_note.VERSION})
-        self.assertIsNone(features.undo_start(current))
-        self.assertEqual(features.undo_start({**current, 'undo_note': {**current['undo_note'], 'on': True}}), {'history': []})
+        self.assertEqual(current['undo_note'], {'stage': 'release', 'on': True, 'version': undo_note.VERSION})
+        self.assertEqual(features.undo_start(current), {'history': []})
+        self.assertIsNone(features.undo_start({**current, 'undo_note': {**current['undo_note'], 'on': False}}))
 
 
 class CheckTests(unittest.TestCase):

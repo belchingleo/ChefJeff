@@ -64,9 +64,9 @@ class ReachNoteTests(unittest.TestCase):
             self.assertFalse(k.split_floor)
             self.assertEqual(json.dumps(request(k, True), sort_keys=True), json.dumps(request(k, False), sort_keys=True))
 
-    def test_the_feature_is_a_trial_off_by_default_without_a_page_switch(self):
+    def test_the_feature_is_released_and_on_without_a_page_switch(self):
         self.assertEqual(features.current()['reach_note'],
-                         {'stage': 'trial', 'on': False, 'version': reach_note.VERSION})
+                         {'stage': 'release', 'on': True, 'version': reach_note.VERSION})
 
 
 class ReachReplayTests(paths.SavePathTests):

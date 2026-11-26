@@ -1,4 +1,4 @@
 {
-  "level-4": {"on": false},
-  "level-5": {"on": false}
+  "level-4": {"on": true},
+  "level-5": {"on": true}
 }

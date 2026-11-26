@@ -42,7 +42,10 @@ requests the one_press rule (it describes the new option), the put_where questio
 actions too) and one_press_version change, and no request in these rounds lists the new option. With it, the engine
 lists the second bin's discard for a chef whose part of a split floor has only that bin: the level-4 player now has
 "discard bin2" while holding food, so the greedy policy's seeded draws for the player go differently, and the level-4
-requests differ from 22 s on (plain ones too); levels 1 to 3 keep their plain requests.
+requests differ from 22 s on (plain ones too); levels 1 to 3 keep their plain requests. Rewritten again for
+partner-links-v4: only the every_trial requests that carry the links table (every 10th, five per level) change, through
+the partner links' version and the partner lines that now first free the other chef's hands; plain and released are
+as before.
 """
 from __future__ import annotations
 

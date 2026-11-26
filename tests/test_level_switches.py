@@ -34,9 +34,17 @@ class LevelSwitchTests(unittest.TestCase):
         self.addCleanup(g.close)
         return g
 
-    def test_level_four_is_off_in_the_release(self):
-        self.assertEqual(json.loads(levels.SWITCHES.read_text(encoding='utf-8')), {'level-4': {'on': False}, 'level-5': {'on': False}})
-        self.assertEqual([l['id'] for l in levels.shown_levels()], ['level-1', 'level-2', 'level-3'])
+    def test_every_level_is_shown_in_the_release(self):
+        # Levels 4 and 5 were hidden from players until 0.10.1-beta.1.
+        self.assertEqual(json.loads(levels.SWITCHES.read_text(encoding='utf-8')), {'level-4': {'on': True}, 'level-5': {'on': True}})
+        self.assertEqual([l['id'] for l in levels.shown_levels()], ['level-1', 'level-2', 'level-3', 'level-4', 'level-5'])
+        g = self.session()
+        self.assertIn('level-5', [l['id'] for l in g.public_state()['levels']])
+        self.assertEqual(g._command('/api/level', {'level': 'level-5'})[0], 200)
+
+    def test_an_override_hides_and_shows_a_level_without_a_new_release(self):
+        self.write({'level-4': {'on': False}})
+        self.assertNotIn('level-4', [l['id'] for l in levels.shown_levels()])
         self.assertIn('level-4', [l['id'] for l in levels.available_levels()])         # the engine still has it
         self.assertEqual(levels.level_config(load_config(), 'level-4')['level'], 4)
         g = self.session()
@@ -44,22 +52,16 @@ class LevelSwitchTests(unittest.TestCase):
         self.assertEqual(g._command('/api/level', {'level': 'level-4'})[0], 400)
         self.assertEqual(g._command('/api/level', {'level': 4})[0], 400)
         self.assertEqual(g._command('/api/level', {'level': 'level-3'})[0], 200)
-
-    def test_an_override_shows_it_without_a_new_release(self):
         self.write({'level-4': {'on': True}})
-        self.assertEqual([l['id'] for l in levels.shown_levels()][-1], 'level-4')
-        g = self.session()
-        self.assertIn('level-4', [l['id'] for l in g.public_state()['levels']])
+        self.assertIn('level-4', [l['id'] for l in levels.shown_levels()])
         self.assertEqual(g._command('/api/level', {'level': 'level-4'})[0], 200)
-        self.write({'level-4': {'on': False}})
-        self.assertNotIn('level-4', [l['id'] for l in levels.shown_levels()])
 
     def test_a_wrong_override_is_not_used(self):
-        for wrong in ('not json', {'level-9': {'on': True}}, {'level-4': {'on': 'yes'}}, {'level-4': {'on': True, 'x': 1}}):
+        for wrong in ('not json', {'level-9': {'on': False}}, {'level-4': {'on': 'no'}}, {'level-4': {'on': False, 'x': 1}}):
             with self.subTest(wrong=wrong):
                 self.write(wrong)
                 with patch('sys.stderr'):
-                    self.assertNotIn('level-4', [l['id'] for l in levels.shown_levels()])
+                    self.assertIn('level-4', [l['id'] for l in levels.shown_levels()])
 
     def test_the_command_line_sets_the_override(self):
         with patch('sys.stdout'):

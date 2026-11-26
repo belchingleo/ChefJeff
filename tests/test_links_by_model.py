@@ -23,7 +23,8 @@ from test_web import FakeJournal
 
 
 def table_off_for_perplexity():
-    return with_features(option_links={'off_for': ['perplexity']})
+    # The links table alone (since 0.10.1-beta.1 the release also gives partner lines, 'partner' in the loop).
+    return with_features(option_links={'off_for': ['perplexity']}, option_links_partner={'on': False})
 
 
 def partner_and_split_but_perplexity():

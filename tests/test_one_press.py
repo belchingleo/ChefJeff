@@ -656,18 +656,18 @@ class SessionTests(unittest.TestCase):
         row = self.start_row(g)
         self.assertEqual(row['one_press'], {'put_then_take': True, 'wash_from_returns': True, 'version': one_press.VERSION})
         self.assertEqual(row['features'], {'one_press': {'on': True, 'version': one_press.VERSION},
-                                           'undo_note': {'on': False, 'version': 'undo-note-v4'},
+                                           'undo_note': {'on': True, 'version': 'undo-note-v4'},
                                            'ask_ahead': {'on': True, 'version': 'ask-ahead-v2'},
-                                           'reach_note': {'on': False, 'version': 'reach-v1'},
+                                           'reach_note': {'on': True, 'version': 'reach-v1'},
                                            'option_links': {'on': True, 'version': 'option-links-v3'},
-                                           'option_links_partner': {'on': False, 'version': 'partner-links-v3'},
-                                           'split_floor': {'on': False, 'version': 'split-floor-v1'},
+                                           'option_links_partner': {'on': True, 'version': 'partner-links-v4'},
+                                           'split_floor': {'on': True, 'version': 'split-floor-v1'},
                                            'burn_note': {'on': False, 'version': 'burn-note-v4'},
                                            'step_check': {'on': False, 'version': 'step-check-v3'},
                                            'walk_note': {'on': False, 'version': 'walk-note-v1'},
                                            'clear_text': {'on': True, 'version': 'clear-text-v1'},
                                            'option_notes': {'on': False, 'version': 'option-notes-v4'},
-                                           'go_note': {'on': False, 'version': 'go-note-v1'},
+                                           'go_note': {'on': True, 'version': 'go-note-v1'},
                                            **{name: {'on': False, 'version': version}
                                               for name, (_, version) in request_parts.SWITCHES.items()},
                                            'throw_to': {'on': False, 'version': 'throw-to-v1'},
@@ -693,12 +693,12 @@ class FeaturesFileTests(unittest.TestCase):
         self.assertNotIn('rolling_intent', value)
         self.assertNotIn('jeff_plan', value)
         self.assertEqual({name: v['stage'] for name, v in value.items()},
-                         {'one_press': 'release', 'undo_note': 'trial',
-                          'ask_ahead': 'trial', 'reach_note': 'trial',
-                          'option_links': 'release', 'option_links_partner': 'trial',
-                          'split_floor': 'trial', 'burn_note': 'trial',
+                         {'one_press': 'release', 'undo_note': 'release',
+                          'ask_ahead': 'trial', 'reach_note': 'release',
+                          'option_links': 'release', 'option_links_partner': 'release',
+                          'split_floor': 'release', 'burn_note': 'trial',
                           'step_check': 'trial', 'walk_note': 'trial',
-                          'clear_text': 'trial', 'option_notes': 'trial', 'go_note': 'trial',
+                          'clear_text': 'trial', 'option_notes': 'trial', 'go_note': 'release',
                           **{name: 'trial' for name in request_parts.SWITCHES}, 'throw_to': 'trial',
                           'own_chain': 'trial', 'plate_result': 'trial', 'board_taken': 'trial'})
 

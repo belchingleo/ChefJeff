@@ -150,14 +150,34 @@ class PartnerTests(unittest.TestCase):
         self.assertIn('Chop', chain[0])
         self.assertFalse(self.k.projectiles)                     # the request's kitchen threw nothing
 
+    def test_v4_a_throw_onto_a_board_while_the_other_chef_holds_something_names_their_put_down_first(self):
+        # v3 found no chain here: chopping needs free hands and a put-down never names the thrown item.
+        import one_press
+        run(self.k, 'human', 'take counter2')                    # the player's hands are full
+        self.assertIsNotNone(self.k.chefs['human'].hand)
+        opts = features.compose_options(features.with_override(features.load(), {'one_press': {'on': True},
+                                                                                   'throw_to': {'on': True}}))
+        acts = self.k.actions('jeff')
+        throw = next(a for a in one_press.options(self.k, 'jeff', acts, opts['one_press']) if a.key == 'throw to b1')
+        seen = {}
+        links.link(self.k, 'jeff', throw, acts, seen=seen)
+        chain = links.partner_chain(self.k, seen['twin'], 'jeff', self.k.chefs['jeff'].hand.id)
+        self.assertEqual([a.kind for a in chain], ['put_counter', 'chop'])
+        self.assertEqual(chain[1].target, 'b1')
+
+    def test_with_free_hands_no_put_down_is_added(self):
+        state = self.payload('partner')['state']
+        chain = [line for line in state['option_links'].get('throw partner', []) if line.startswith(links.THEN)]
+        self.assertNotIn('Put the held', chain[0].split(links.THEN)[1].split(',')[0])
+
     def test_without_the_partner_switch_no_chain_is_sent(self):
         state = self.payload(True)['state']
         self.assertFalse(any(line.startswith(links.THEN) for lines in state['option_links'].values() for line in lines))
         self.assertNotIn('partner_links_version', state)
 
-    def test_the_switch_is_a_trial_and_off_and_needs_option_links(self):
+    def test_the_switch_is_released_and_on_and_needs_option_links(self):
         loaded = features.load()
-        self.assertFalse(loaded['option_links_partner']['on'])
+        self.assertTrue(loaded['option_links_partner']['on'])
         on = {name: dict(value) for name, value in loaded.items()}
         on['option_links_partner']['on'] = True
         on['option_links']['on'] = False

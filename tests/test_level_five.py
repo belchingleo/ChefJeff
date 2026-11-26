@@ -85,8 +85,8 @@ class LevelTests(unittest.TestCase):
             drive(k, ((who, 'solo'),), lambda k, w, r: reference_policy.choose_solo(k, w), {'human': 10, 'jeff': 10})
             self.assertEqual(k.served, 0, who)
 
-    def test_it_is_off_in_the_release_and_an_override_shows_it(self):
-        self.assertEqual(json.loads(levels.SWITCHES.read_text(encoding='utf-8'))['level-5'], {'on': False})
+    def test_it_is_shown_in_the_release_and_a_switch_can_hide_it(self):
+        self.assertEqual(json.loads(levels.SWITCHES.read_text(encoding='utf-8'))['level-5'], {'on': True})
         with patch.object(levels, 'switches', lambda: {'level-4': False, 'level-5': False}):
             self.assertNotIn('level-5', [l['id'] for l in levels.shown_levels()])
         with patch.object(levels, 'switches', lambda: {'level-4': True, 'level-5': True}):

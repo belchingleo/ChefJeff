@@ -67,9 +67,11 @@ class GoNoteTests(unittest.TestCase):
         with patch.object(SpatialKitchen, 'actions', lambda self, who: [go.__class__('serve', 'Serve', 'serve', 'serve')]):
             self.assertIsNone(go_note.note(k, go, 'Steak'))
 
-    def test_the_feature_is_a_trial_off_by_default(self):
-        self.assertEqual(features.current()['go_note'], {'stage': 'trial', 'on': False, 'version': go_note.VERSION})
-        self.assertFalse(features.compose_options(features.current())['go'])
+    def test_the_feature_is_released_and_on(self):
+        self.assertEqual(features.current()['go_note'], {'stage': 'release', 'on': True, 'version': go_note.VERSION})
+        self.assertTrue(features.compose_options(features.current())['go'])
+        off = {**features.current(), 'go_note': {**features.current()['go_note'], 'on': False}}
+        self.assertFalse(features.compose_options(off)['go'])
 
 
 class GoNoteReplayTests(paths.SavePathTests):
