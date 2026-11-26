@@ -25,10 +25,10 @@ ORIGINS={'cn':('chefjeff.online','chefjeff.belchingleo.online'),'de':('global.ch
 # The hosts that serve the page (checked after activation) and the old ones that must redirect to a new one.
 SERVED={'cn':('chefjeff.online','chefjeff.belchingleo.online'),'de':('global.chefjeff.online',)}
 LEGACY={'cn':{},'de':{'global.belchingleo.online':'global.chefjeff.online'}}
-# The release both regions run now (5daf6d9, 0.10.0-beta.1, verified on both servers 2026-11-23, each with its
-# ORIGINS in its startup).
+# The release both regions run now (d1563cb, 0.10.0-beta.2, verified on both servers 2026-11-26, each with its
+# ORIGINS in its startup; hosted_server.py is the same as 5daf6d9's).
 BASE_SERVER_SHA='25a959866d13d622b8316b1a4cdb8be270f9f0f487360730ac7d353ec809d394'
-BASE_MANIFEST_SHA='07ae2fbeaafa324b5b93ff3b57ffede2188bae728d50e89186a6a92a290a80d3'
+BASE_MANIFEST_SHA='8a71b38bbc81a6274dc814c90e1ad33e11535534c4a261459042491352635c59'
 OVERRIDE=Path('/etc/systemd/system/chefjeff.service.d/zzzzzzzz-chefjeff-free.conf')
 CURRENT=Path('/opt/chefjeff/current')
 

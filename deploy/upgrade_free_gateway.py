@@ -16,11 +16,10 @@ from shared_client import SharedClient
 from shared_server import read_private_json
 
 UNIT=Path('/etc/systemd/system/chefjeff-free.service')
-# The gateway Shanghai runs now (7ad158c, 0.8.1-beta.2, upgraded with --extra-models on 2026-11-09 to withdraw
-# Zhipu and Llama; before that it ran 98585b5's code from 2026-11-06). Kept when the game sites moved to cd73cce
-# on 2026-11-11 and to 5daf6d9 on 2026-11-23: the gateway's own code did not change in a way it uses.
-PREVIOUS=Path('/opt/chefjeff/releases/china-free-7ad158c42c0a/chefjeff-web-demo')
-PREVIOUS_MANIFEST='4532734aff6fdba6846edba1b794f7f35f90ec400d40120d3a4befa14626542a'
+# The gateway Shanghai runs now (d1563cb, 0.10.0-beta.2, upgraded with --extra-models on 2026-11-26 so that a
+# free model's answer carries put_where under "answers"; from 2026-11-09 to then it ran 7ad158c's code).
+PREVIOUS=Path('/opt/chefjeff/releases/china-free-d1563cb156e9/chefjeff-web-demo')
+PREVIOUS_MANIFEST='8a71b38bbc81a6274dc814c90e1ad33e11535534c4a261459042491352635c59'
 UNIT_NAME='chefjeff-free.service'
 
 
