@@ -179,8 +179,16 @@ class LaterModelTests(unittest.TestCase):
         opener.open.return_value = Reply({'model': '@cf/meta/llama-3.2-1b-instruct',
                                           'choices': [{'message': {'content': '{"choice":"wait"}'}}]})
         with patch('hosted_free_models.urllib.request.build_opener', return_value=opener):
-            with self.assertRaises(ForwardError): models.send('cloudflare-llama', deepcopy(TEST_PAYLOAD))
+            with self.assertRaises(ForwardError) as caught: models.send('cloudflare-llama', deepcopy(TEST_PAYLOAD))
         self.assertIn('cloudflare-llama', models.blocked)  # another model's reply never counts as this one
+        # The diagnostic names the model that answered (2026-11-27: StartLux through Bamboo answered as another
+        # model, and nothing said which), and only text that looks like a model name.
+        self.assertEqual(caught.exception.diagnostic['code'], 'model_mismatch')
+        self.assertEqual(caught.exception.diagnostic['returned_model'], '@cf/meta/llama-3.2-1b-instruct')
+        from model_status import clean
+        for bad in ('<script>', 'a' * 81, 'name with spaces', ''):
+            self.assertNotIn('returned_model', clean({'code': 'model_mismatch', 'returned_model': bad}))
+        self.assertNotIn('returned_model', clean({'code': 'ok', 'returned_model': 'some-model'}))
 
 
 class FreeHTTPTests(unittest.TestCase):

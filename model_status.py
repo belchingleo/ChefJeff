@@ -1,5 +1,6 @@
 """Allowlisted operational diagnostics, independent of research consent and schemas."""
 import math
+import re
 import time
 
 CODES=frozenset(('ok','upstream_rate_limited','upstream_overloaded','upstream_authentication',
@@ -9,6 +10,10 @@ CODES=frozenset(('ok','upstream_rate_limited','upstream_overloaded','upstream_au
 # The fixed free-model names (hosted_free_models.MODELS); a diagnostic never carries any other text.
 FREE_PROVIDERS=frozenset(('zhipu','startlux','cloudflare-gemma','cloudflare-llama'))
 FORMAT_ERRORS=frozenset(('invalid_json','invalid_action','invalid_sprint','invalid_usage','unknown'))
+# The one piece of upstream text a diagnostic keeps: the model name a reply carries when it is not the one asked
+# (model_mismatch), and only when it looks like a model name (2026-11-27: StartLux through Bamboo answered with
+# another model's name, and nothing said which).
+MODEL_NAME=re.compile(r'[A-Za-z0-9@][A-Za-z0-9._:/@+-]{0,79}')
 
 
 def clean(value):
@@ -23,6 +28,9 @@ def clean(value):
         n=value.get(key)
         if type(n) in (int,float) and math.isfinite(n) and low<=n<=high:out[key]=round(n) if key!='retry_after_seconds' else round(n,3)
     if isinstance(value.get('format_error'),str) and value['format_error'] in FORMAT_ERRORS:out['format_error']=value['format_error']
+    if (out.get('code')=='model_mismatch' and isinstance(value.get('returned_model'),str)
+            and MODEL_NAME.fullmatch(value['returned_model'])):
+        out['returned_model']=value['returned_model']
     return out
 
 

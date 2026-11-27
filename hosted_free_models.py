@@ -212,7 +212,8 @@ class FreeModels:
                 if returned is not None and returned != model['model']:
                     with self.lock:
                         self.blocked.add(provider)
-                    raise FreeCallError(502, '免费模型回复不符合预期，本次未执行。', 'model_mismatch',diagnostic('model_mismatch'))
+                    raise FreeCallError(502, '免费模型回复不符合预期，本次未执行。', 'model_mismatch',
+                                        diagnostic('model_mismatch', returned_model=returned))
                 if isinstance(data, dict) and 'error' in data:
                     with self.lock:
                         self.cooldown[provider] = self.clock() + 60
