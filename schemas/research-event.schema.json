@@ -1375,6 +1375,14 @@
             },
             "wash_from_returns": {
               "type": "boolean"
+            },
+            "throw_to": {
+              "description": "The throw_to trial's options were listed (one_press.THROW_TO; features.json).",
+              "const": true
+            },
+            "old_lift_text": {
+              "description": "The old_lift_text trial's wording of put then lift was used (one_press.OLD_LIFT_TEXT).",
+              "const": true
             }
           },
           "required": [
@@ -1486,8 +1494,8 @@
                   "layout": {
                     "type": "object",
                     "propertyNames": {
-                        "maxLength": 80
-                      },
+                      "maxLength": 80
+                    },
                     "additionalProperties": {
                       "type": "string",
                       "maxLength": 200
