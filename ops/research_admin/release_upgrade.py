@@ -17,12 +17,12 @@ RELEASES = Path('/opt/chefjeff/releases')
 ADMIN_RELEASES = Path('/opt/chefjeff-admin/releases')
 ADMIN_UNIT = Path('/etc/systemd/system/chefjeff-admin.service')
 DATA_UNIT = Path('/etc/systemd/system/chefjeff-data.service')
-# The live Shanghai state this upgrade starts from (checked 2026-11-26 after the d1563cb deploy):
-# the game link and the console binding on the same d1563cb release, and the console and the
+# The live Shanghai state this upgrade starts from (checked 2026-11-27 after the cb23977 deploy):
+# the game link and the console binding on the same cb23977 release, and the console and the
 # shared-data service running that release's admin package from one folder (its program files are
-# the same as cd73cce's and 5daf6d9's).
-LEGACY_GAME = Path('/opt/chefjeff/releases/china-free-d1563cb156e9/chefjeff-web-demo')
-LEGACY_ADMIN = Path('/opt/chefjeff-admin/releases/v2-4b5ddff0f697ce11')
+# the same as cd73cce's, 5daf6d9's and d1563cb's).
+LEGACY_GAME = Path('/opt/chefjeff/releases/china-free-cb23977729e0/chefjeff-web-demo')
+LEGACY_ADMIN = Path('/opt/chefjeff-admin/releases/v2-6ff13344a2e9f44d')
 LEGACY_PROGRAMS = {
     'admin_server.py': '2e4921f59c8e5c40758e13b27bf5dad31e76e049b4ed9d5eb6145ae10c86a564',
     'admin_data.py': 'cc6c7df5b36ca74cbefee72230ca66702297d72ec03979b5db17c50f7816f3a0',
@@ -69,7 +69,7 @@ def prepare(target, bundle):
         raise ValueError('已有发布升级状态；请先核对，不会覆盖回退资料。')
     target=verify_game_release(target,bundle)
     if CURRENT.resolve(strict=True)!=LEGACY_GAME:
-        raise ValueError('当前游戏不是已核对的 d1563cb 版本。')
+        raise ValueError('当前游戏不是已核对的 cb23977 版本。')
     config_raw=CONFIG.read_bytes();cfg=json.loads(config_raw)
     if (Path(cfg['release']).resolve()!=LEGACY_GAME or cfg['origin']!='https://'+legacy.DOMAIN
             or cfg['database']!='/var/lib/chefjeff-data/contributions.sqlite3'
