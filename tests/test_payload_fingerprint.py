@@ -97,7 +97,7 @@ class SwitchSetTests(unittest.TestCase):
         # no_history wins over timeline: this is the one set whose requests carry the timeline.
         self.assertEqual(on['all-but-no-history'], set(release) - {'no_history'})
         # The separate links table with the other chef's lines: option_links_partner on, links_on_options off.
-        self.assertEqual(on['release-partner-links'], on['release'] | {'option_links_partner'})
+        self.assertEqual(on['release-partner-links'], (on['release'] | {'option_links_partner'}) - {'links_on_options'})
         self.assertNotIn('links_on_options', on['release-partner-links'])
         golden = json.loads(pf.switch_golden('level-5', 'release').read_text(encoding='utf-8'))
         self.assertEqual(golden['switches']['links'], 'partner')         # partner lines released in 0.10.1-beta.1

@@ -138,17 +138,18 @@ class OptionNoteTests(unittest.TestCase):
             self.assertEqual(json.dumps(without(on, 'serve_note_version')), json.dumps(off))
 
 
-    def test_one_switch_a_trial_off_by_default_without_a_page_switch(self):
+    def test_one_switch_released_and_on_without_a_page_switch(self):
+        # Released with the 8775 play set as the defaults (0.11.0, 2026-11-27).
         self.assertEqual(features.current()['option_notes'],
-                         {'stage': 'trial', 'on': False, 'version': option_notes.VERSION})
+                         {'stage': 'release', 'on': True, 'version': option_notes.VERSION})
         self.assertEqual((option_notes.VERSION, option_notes.SERVE_VERSION),
                          ('option-notes-v4', 'serve-note-v3'))     # a new part needs a new VERSION
         for name in ('serve_note', 'wait_note'):
             self.assertNotIn(name, features.current())
         self.assertNotIn('wait_note', features.compose_options(features.current()))
-        on = {**features.current(), 'option_notes': {**features.current()['option_notes'], 'on': True}}
-        self.assertTrue(features.compose_options(on)['serve_note'])
-        self.assertFalse(features.compose_options(features.current())['serve_note'])
+        off = {**features.current(), 'option_notes': {**features.current()['option_notes'], 'on': False}}
+        self.assertFalse(features.compose_options(off)['serve_note'])
+        self.assertTrue(features.compose_options(features.current())['serve_note'])
 
 
 class OptionNoteReplayTests(paths.SavePathTests):

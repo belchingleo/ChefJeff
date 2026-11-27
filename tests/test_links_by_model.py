@@ -1,7 +1,7 @@
 """off_for: a feature is off by default for the rounds of the model services it names.
 
-features.json names none today; the local play set's override gives option_links_partner and split_floor to every
-service but Perplexity (2026-11-19). The session tests use option_links (步骤提示) with off_for set. There is no player
+features.json gives option_links_partner and split_floor to every service but Perplexity (since 0.11.0, 2026-11-27;
+the local play set's override did it from 2026-11-19). The session tests use option_links (步骤提示) with off_for set. There is no player
 switch any more (2026-11-20): the service a round asks alone decides.
 """
 import io
@@ -35,8 +35,10 @@ def partner_and_split_but_perplexity():
 
 
 class FileTests(unittest.TestCase):
-    def test_the_repository_file_names_no_service(self):
-        self.assertEqual([name for name, value in features.load().items() if value.get('off_for')], [])
+    def test_the_repository_file_turns_partner_lines_and_the_split_floor_off_only_for_perplexity(self):
+        # The 8775 play set as the defaults (0.11.0, 2026-11-27): Perplexity needs neither.
+        self.assertEqual({name: value['off_for'] for name, value in features.load().items() if value.get('off_for')},
+                         {'option_links_partner': ['perplexity'], 'split_floor': ['perplexity']})
 
     def test_an_override_gives_partner_lines_and_the_split_floor_line_to_every_service_but_perplexity(self):
         value = partner_and_split_but_perplexity()
@@ -55,7 +57,9 @@ class FileTests(unittest.TestCase):
         self.assertEqual(with_features(option_links={'off_for': []})['option_links']['off_for'], [])
 
     def test_the_service_default_turns_off_only_what_is_on_and_names_it(self):
-        value = with_features(option_links={'off_for': ['perplexity', 'jev']})
+        # Only option_links names services here (the release's own off_for set aside, as the file had none until 0.11.0).
+        value = with_features(option_links={'off_for': ['perplexity', 'jev']}, option_links_partner={'off_for': []},
+                              split_floor={'off_for': []})
         off = features.model_defaults(value, 'perplexity')
         self.assertEqual(off['option_links'], {**value['option_links'], 'on': False, 'source': 'model'})
         self.assertEqual({k: v for k, v in off.items() if k != 'option_links'}, {k: v for k, v in value.items() if k != 'option_links'})

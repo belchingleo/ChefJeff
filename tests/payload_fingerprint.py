@@ -421,7 +421,8 @@ def switch_set(name):
     if name == 'release':
         return release
     if name == 'release-partner-links':
-        on = {key for key, value in release.items() if value['on']} | {'option_links_partner'}
+        # links_on_options off: the separate table (the release turns links_on_options on since 0.11.0).
+        on = ({key for key, value in release.items() if value['on']} | {'option_links_partner'}) - {'links_on_options'}
     else:
         on = set(release) - set(SET_OFF[name])
     return {key: {**value, 'on': key in on} for key, value in release.items()}

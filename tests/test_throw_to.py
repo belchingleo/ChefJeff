@@ -84,10 +84,11 @@ class OptionTests(unittest.TestCase):
         import json
         from pathlib import Path
         raw = json.loads((Path(features.__file__).parent / 'features.json').read_text())
-        self.assertEqual(raw['throw_to'], {'stage': 'trial', 'on': False, 'version': 'throw-to-v1'})
-        self.assertNotIn(one_press.THROW_TO, features.one_press_flags(raw))
-        on = features.with_override(raw, {'throw_to': {'on': True}})
-        self.assertEqual(features.one_press_flags(on), ON)
+        # Released with the 8775 play set as the defaults (0.11.0, 2026-11-27).
+        self.assertEqual(raw['throw_to'], {'stage': 'release', 'on': True, 'version': 'throw-to-v1'})
+        self.assertEqual(features.one_press_flags(raw), ON)
+        off = features.with_override(raw, {'throw_to': {'on': False}})
+        self.assertNotIn(one_press.THROW_TO, features.one_press_flags(off))
         self.assertEqual(one_press.condition(ON)['one_press'][one_press.THROW_TO], True)
         self.assertNotIn(one_press.THROW_TO, one_press.condition(BOTH)['one_press'])
 

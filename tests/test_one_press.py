@@ -615,6 +615,10 @@ class ChainTests(unittest.TestCase):
         self.assertNotIn('take b1', self.done(k))
 
 
+# The request parts released with the 8775 play set as the defaults (0.11.0, 2026-11-27).
+RELEASED_PARTS = ('links_on_options', 'rules_by_action', 'kitchen_view')
+
+
 def with_features(**changes):
     """The repository's features.json with some fields changed, checked like the file: {name: {field: value}}."""
     import features
@@ -652,28 +656,30 @@ class SessionTests(unittest.TestCase):
         self.assertNotIn('one_press', g.communication_state())                       # no switch to show
         self.assertNotEqual(g._command('/api/one-press', {'name': 'put_then_take', 'on': False})[0], 200)
         self.assertEqual(g._command('/api/start', {})[0], 200)
-        self.assertEqual(g.ai.one_press, {'put_then_take': True, 'wash_from_returns': True})
+        # throw_to rides on the one-press switches; released with the 8775 play set as the defaults (0.11.0).
+        self.assertEqual(g.ai.one_press, {'put_then_take': True, 'wash_from_returns': True, 'throw_to': True})
         row = self.start_row(g)
-        self.assertEqual(row['one_press'], {'put_then_take': True, 'wash_from_returns': True, 'version': one_press.VERSION})
+        self.assertEqual(row['one_press'], {'put_then_take': True, 'wash_from_returns': True, 'throw_to': True,
+                                            'version': one_press.VERSION})
         self.assertEqual(row['features'], {'one_press': {'on': True, 'version': one_press.VERSION},
-                                           'undo_note': {'on': True, 'version': 'undo-note-v4'},
+                                           'undo_note': {'on': False, 'version': 'undo-note-v4'},
                                            'ask_ahead': {'on': True, 'version': 'ask-ahead-v2'},
                                            'reach_note': {'on': True, 'version': 'reach-v1'},
                                            'option_links': {'on': True, 'version': 'option-links-v3'},
                                            'option_links_partner': {'on': True, 'version': 'partner-links-v5'},
                                            'split_floor': {'on': True, 'version': 'split-floor-v1'},
-                                           'burn_note': {'on': False, 'version': 'burn-note-v6'},
+                                           'burn_note': {'on': True, 'version': 'burn-note-v6'},
                                            'step_check': {'on': False, 'version': 'step-check-v3'},
                                            'walk_note': {'on': False, 'version': 'walk-note-v1'},
                                            'clear_text': {'on': True, 'version': 'clear-text-v1'},
-                                           'option_notes': {'on': False, 'version': 'option-notes-v4'},
+                                           'option_notes': {'on': True, 'version': 'option-notes-v4'},
                                            'go_note': {'on': True, 'version': 'go-note-v1'},
-                                           **{name: {'on': False, 'version': version}
+                                           **{name: {'on': name in RELEASED_PARTS, 'version': version}
                                               for name, (_, version) in request_parts.SWITCHES.items()},
-                                           'throw_to': {'on': False, 'version': 'throw-to-v1'},
+                                           'throw_to': {'on': True, 'version': 'throw-to-v1'},
                                            'own_chain': {'on': False, 'version': 'own-chain-v1'},
-                                           'plate_result': {'on': False, 'version': 'plate-result-v2'},
-                                           'board_taken': {'on': False, 'version': 'board-taken-v1'}})
+                                           'plate_result': {'on': True, 'version': 'plate-result-v2'},
+                                           'board_taken': {'on': True, 'version': 'board-taken-v1'}})
         self.assertNotIn('jeff_plan', row)                 # the plan modes went 2026-11-20
 
     def test_the_file_rolls_it_back(self):
@@ -696,11 +702,11 @@ class FeaturesFileTests(unittest.TestCase):
                          {'one_press': 'release', 'undo_note': 'release',
                           'ask_ahead': 'trial', 'reach_note': 'release',
                           'option_links': 'release', 'option_links_partner': 'release',
-                          'split_floor': 'release', 'burn_note': 'trial',
+                          'split_floor': 'release', 'burn_note': 'release',
                           'step_check': 'trial', 'walk_note': 'trial',
-                          'clear_text': 'trial', 'option_notes': 'trial', 'go_note': 'release',
-                          **{name: 'trial' for name in request_parts.SWITCHES}, 'throw_to': 'trial',
-                          'own_chain': 'trial', 'plate_result': 'trial', 'board_taken': 'trial'})
+                          'clear_text': 'trial', 'option_notes': 'release', 'go_note': 'release',
+                          **{name: 'release' if name in RELEASED_PARTS else 'trial' for name in request_parts.SWITCHES},
+                          'throw_to': 'release', 'own_chain': 'trial', 'plate_result': 'release', 'board_taken': 'release'})
 
     def test_a_wrong_file_stops_instead_of_running(self):
         import features

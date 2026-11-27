@@ -30,7 +30,8 @@ def do(k, key):
 
 
 def request(k, go):
-    options = {**features.compose_options(features.current()), 'walk': True, 'go': go}
+    # The full kitchen (no request parts): the test reads the state's own keys.
+    options = {**features.compose_options(features.current()), 'walk': True, 'go': go, 'parts': None}
     return compose_payload(SpatialJevClient(k.c, key='test-no-credential'), k, k.snapshot(), k.actions('jeff'), [], None,
                            **options)
 

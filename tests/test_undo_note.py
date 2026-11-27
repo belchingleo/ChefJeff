@@ -164,11 +164,12 @@ class NoteTests(unittest.TestCase):
         undo_note.apply(b, on.rows('ai_request')[1]['undo_note'], off.k)
         self.assertEqual(json.dumps(a, sort_keys=True), json.dumps(b, sort_keys=True))  # the switch adds exactly this
 
-    def test_the_feature_is_released_and_on(self):
+    def test_the_feature_is_released_and_off(self):
+        # Off since 2026-11-27: in the steps re-ask the note raised Jev's undos (avoided 60% -> 45%).
         current = features.current()
-        self.assertEqual(current['undo_note'], {'stage': 'release', 'on': True, 'version': undo_note.VERSION})
-        self.assertEqual(features.undo_start(current), {'history': []})
-        self.assertIsNone(features.undo_start({**current, 'undo_note': {**current['undo_note'], 'on': False}}))
+        self.assertEqual(current['undo_note'], {'stage': 'release', 'on': False, 'version': undo_note.VERSION})
+        self.assertIsNone(features.undo_start(current))
+        self.assertEqual(features.undo_start({**current, 'undo_note': {**current['undo_note'], 'on': True}}), {'history': []})
 
 
 class CheckTests(unittest.TestCase):

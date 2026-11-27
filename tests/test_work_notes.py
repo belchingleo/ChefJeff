@@ -103,12 +103,16 @@ class WorkNoteTests(unittest.TestCase):
         self.assertEqual(sent['questions'], expected['questions'])
         self.assertIn('then you could', sent['questions']['next_action']['criteria']['take b1'])
 
-    def test_switches_are_trials_and_off(self):
+    def test_plate_result_and_board_taken_are_released_and_own_chain_is_a_trial(self):
+        # plate_result and board_taken released with the 8775 play set as the defaults (0.11.0, 2026-11-27).
         loaded = features.load()
         for name, (short, version) in work_notes.SWITCHES.items():
-            self.assertEqual(loaded[name], {'stage': 'trial', 'on': False, 'version': version} | {k: v for k, v in loaded[name].items() if k not in ('stage', 'on', 'version')})
-        self.assertIsNone(work_notes.flags(loaded))
-        self.assertEqual(work_notes.flags({**loaded, 'plate_result': {'on': True}}), {'own': False, 'plate': True, 'board': False})
+            stage, on = ('trial', False) if name == 'own_chain' else ('release', True)
+            self.assertEqual(loaded[name], {'stage': stage, 'on': on, 'version': version} | {k: v for k, v in loaded[name].items() if k not in ('stage', 'on', 'version')})
+        self.assertEqual(work_notes.flags(loaded), {'own': False, 'plate': True, 'board': True})
+        off = {**loaded, 'plate_result': {'on': False}, 'board_taken': {'on': False}}
+        self.assertIsNone(work_notes.flags(off))
+        self.assertEqual(work_notes.flags({**off, 'plate_result': {'on': True}}), {'own': False, 'plate': True, 'board': False})
 
 
 if __name__ == '__main__':

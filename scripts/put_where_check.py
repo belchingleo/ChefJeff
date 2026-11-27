@@ -83,7 +83,13 @@ def place(key, payload):
     if not isinstance(key, str) or not key.startswith('put '):
         return 'none'
     stations = ((payload.get('state') or {}).get('kitchen') or {}).get('stations') or {}
-    kind = (stations.get(key[4:]) or {}).get('type')
+    entry = stations.get(key[4:]) if isinstance(stations, dict) else None
+    kind = entry.get('type') if isinstance(entry, dict) else None
+    if kind is None:
+        # The short kitchen (kitchen_view, released in 0.11.0) names stations by text: the kind from the id, as the
+        # schema-1 maps encoded it.
+        from map_definition import legacy_equipment_type
+        kind = legacy_equipment_type(key[4:])
     return PLACE_KINDS.get(kind, kind or 'unknown')
 
 

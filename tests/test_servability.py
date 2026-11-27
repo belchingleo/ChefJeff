@@ -98,7 +98,9 @@ def started(k, who, key, wait):
 
 
 def request(k, **switches):
-    options = {**features.compose_options(features.current()), **switches}
+    # The full kitchen (no request parts): these tests read the state's own keys (kitchen_view, released in 0.11.0,
+    # writes it out another way).
+    options = {**features.compose_options(features.current()), 'parts': None, **switches}
     return compose_payload(SpatialJevClient(k.c, key='test-no-credential'), k, k.snapshot(), k.actions('jeff'), [],
                            None, **options)
 
@@ -403,7 +405,8 @@ class LabelTests(unittest.TestCase):
                 k = level('level-1')
                 k.stations['counter3'].food = plated(k, seconds)
                 self.assertEqual(label(k, 'take counter3').label, f'从柜台 3拿起糊了（糊菜：{tier}）')
-                self.assertEqual(request(k)['questions']['next_action']['criteria']['take counter3'],
+                # Without option_notes' order note (released in 0.11.0), which these labels do not test.
+                self.assertEqual(request(k, serve_note=False)['questions']['next_action']['criteria']['take counter3'],
                                  f'Take burnt dish from Counter 3 (burnt food: {tier_en})')
         k = level('level-1')
         k.stations['counter3'].food = Food('B2', 'ready', 6, 12, plate_id='D1', ingredient='dish', components=('beef',))

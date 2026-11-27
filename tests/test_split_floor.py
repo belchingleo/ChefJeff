@@ -67,8 +67,9 @@ class SplitFloorTests(unittest.TestCase):
 
 
     def test_the_feature_is_released_and_on_without_a_page_switch(self):
+        # Off for Perplexity since 2026-11-27 (the play set; it needs no split-floor line).
         self.assertEqual(features.current()['split_floor'],
-                         {'stage': 'release', 'on': True, 'version': split_floor.VERSION})
+                         {'stage': 'release', 'on': True, 'version': split_floor.VERSION, 'off_for': ['perplexity']})
         off = {**features.current(), 'split_floor': {**features.current()['split_floor'], 'on': False}}
         self.assertFalse(features.compose_options(off)['split'])
         self.assertTrue(features.compose_options(features.current())['split'])

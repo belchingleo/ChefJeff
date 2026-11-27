@@ -160,7 +160,9 @@ class NoChineseTests(unittest.TestCase):
         events = [e['message'] for e in payload['state']['recent_events']]
         for word in ('started', 'stopped', 'completed'):
             self.assertTrue(any(m.startswith(f'jeff {word}: Plate food from the frying pan') for m in events), word)
-        self.assertEqual(payload['state']['kitchen']['chefs']['jeff']['task'],
+        # Jeff's task as the full kitchen gives it (the released kitchen_view writes only what he holds).
+        full = compose_payload(client, k, k.snapshot(), k.actions('jeff'), decisions, None, **{**options, 'parts': None})
+        self.assertEqual(full['state']['kitchen']['chefs']['jeff']['task'],
                          'Plate food from the frying pan on the floor onto the held clean plate (empty frying pan stays in place)')
 
     def test_the_loops_note_about_a_dropped_ahead_answer_is_given_in_english(self):

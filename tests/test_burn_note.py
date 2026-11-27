@@ -133,12 +133,13 @@ class BurnNoteTests(unittest.TestCase):
             self.assertEqual(json.dumps(on), json.dumps(off))
 
 
-    def test_the_feature_is_a_trial_off_by_default_without_a_page_switch(self):
+    def test_the_feature_is_released_and_on_without_a_page_switch(self):
+        # Released with the 8775 play set as the defaults (0.11.0, 2026-11-27).
         self.assertEqual(features.current()['burn_note'],
-                         {'stage': 'trial', 'on': False, 'version': burn_note.VERSION})
-        on = {**features.current(), 'burn_note': {**features.current()['burn_note'], 'on': True}}
-        self.assertTrue(features.compose_options(on)['burn'])
-        self.assertFalse(features.compose_options(features.current())['burn'])
+                         {'stage': 'release', 'on': True, 'version': burn_note.VERSION})
+        self.assertTrue(features.compose_options(features.current())['burn'])
+        off = {**features.current(), 'burn_note': {**features.current()['burn_note'], 'on': False}}
+        self.assertFalse(features.compose_options(off)['burn'])
 
 
 class BurnNoteReplayTests(paths.SavePathTests):

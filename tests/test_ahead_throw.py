@@ -99,8 +99,11 @@ class FeatureTests(unittest.TestCase):
         self.assertEqual(ask_ahead.VERSION, 'ask-ahead-v2')
 
     def test_it_changes_nothing_jeff_is_asked(self):
-        # Only the loop reads it: no request option, rule or state field names it.
-        self.assertNotIn('throw', json.dumps(features.compose_options(features.current())))
+        # Only the loop reads it: no request option, rule or state field names it. (Since 0.11.0 the released throw_to
+        # puts "throw" in the one-press options, so this compares with ask_ahead off instead of searching for the word.)
+        current = features.current()
+        off = {**current, 'ask_ahead': {**current['ask_ahead'], 'on': False}}
+        self.assertEqual(json.dumps(features.compose_options(current)), json.dumps(features.compose_options(off)))
 
 
 if __name__ == '__main__':

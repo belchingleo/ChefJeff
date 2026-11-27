@@ -140,19 +140,20 @@ class ReplayTests(paths.SavePathTests):
         self.assertEqual(self.command('one-press', name='put_then_take', on=False)[0], 400)   # released: no switch
         receipt = self.begin_manual_relay()
         initial = self.game.store.download(receipt['id'], receipt['deletion_token'])
-        condition = {'put_then_take': True, 'wash_from_returns': True, 'version': one_press.VERSION}
+        # throw_to rides on the one-press condition since 0.11.0 released it.
+        condition = {'put_then_take': True, 'wash_from_returns': True, 'throw_to': True, 'version': one_press.VERSION}
         self.assertEqual(initial['conditions']['one_press'], condition)
         self.assertEqual(initial['conditions']['features']['one_press'], {'on': True, 'version': one_press.VERSION})
         self.assertEqual({name: value['on'] for name, value in initial['conditions']['features'].items()},
-                         {'one_press': True, 'undo_note': True,
+                         {'one_press': True, 'undo_note': False,
                           'ask_ahead': True, 'reach_note': True,
                           'option_links': True, 'option_links_partner': True,
-                          'split_floor': True, 'burn_note': False,
+                          'split_floor': True, 'burn_note': True,
                           'step_check': False, 'walk_note': False,
-                          'clear_text': True, 'option_notes': False, 'go_note': True,
+                          'clear_text': True, 'option_notes': True, 'go_note': True,
                           'place_names': False, 'timeline': False, 'no_history': False,
-                          'links_on_options': False, 'rules_by_action': False, 'kitchen_view': False,
-                          'throw_to': False, 'own_chain': False, 'plate_result': False, 'board_taken': False})
+                          'links_on_options': True, 'rules_by_action': True, 'kitchen_view': True,
+                          'throw_to': True, 'own_chain': False, 'plate_result': True, 'board_taken': True})
         with self.game.lock:                                    # the human leaves beef on a board
             k = self.game.k
             for chosen in (lambda a: a.key == 'fetch beef', lambda a: a.kind == 'put_board'):
@@ -172,7 +173,7 @@ class ReplayTests(paths.SavePathTests):
         validate_record(record)
         self.assertEqual(record['conditions']['one_press'], condition)
         flags = [e['payload']['one_press'] for e in record['events'] if e['type'] == 'ai_request']
-        self.assertEqual(flags[0], {'put_then_take': True, 'wash_from_returns': True})
+        self.assertEqual(flags[0], {'put_then_take': True, 'wash_from_returns': True, 'throw_to': True})
         started = [e['payload']['one_press_start'] for e in record['events'] if 'one_press_start' in e['payload']]
         self.assertEqual([(s['first']['key'], s['fallback']) for s in started], [(started[0]['first']['key'], False)])
         self.assertTrue(started[0]['first']['key'].startswith('put counter'))
@@ -241,6 +242,7 @@ class ReplayTests(paths.SavePathTests):
         import links
         on = {key: dict(value) for key, value in features.current().items()}
         on['option_links']['on'] = True
+        on['links_on_options']['on'] = False     # the table itself, not its lines on the options (released in 0.11.0)
         with patch.object(features, 'current', lambda: {key: dict(value) for key, value in on.items()}):
             self.game.features = features.current()
             receipt = self.begin_manual_relay()
@@ -303,7 +305,8 @@ class ReplayTests(paths.SavePathTests):
         import ask_ahead
         from test_one_press import scripted_features
         with self.game.lock:
-            self.game.features = scripted_features(ask_ahead={'on': True}, undo_note={'on': False})
+            # The full kitchen (kitchen_view, released in 0.11.0, writes the clock as text): the test reads its time.
+            self.game.features = scripted_features(ask_ahead={'on': True}, undo_note={'on': False}, kitchen_view={'on': False})
         receipt = self.begin_manual_relay()
         with self.game.lock:
             self.game.ai.ask_ahead = True

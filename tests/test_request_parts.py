@@ -37,8 +37,15 @@ def do(k, key, who='jeff'):
         k.advance(0.05)
 
 
+def base_features():
+    """The release's features with every request part off: each test turns on the parts it is about (since 0.11.0
+    the release turns links_on_options, rules_by_action and kitchen_view on)."""
+    current = features.current()
+    return {**current, **{name: {**current[name], 'on': False} for name in request_parts.SWITCHES}}
+
+
 def request(k, parts=None, decisions=(), **switches):
-    options = {**features.compose_options(features.current()), **PLAY, **switches}
+    options = {**features.compose_options(base_features()), **PLAY, **switches}
     return compose_payload(SpatialJevClient(k.c, key='test-no-credential'), k, k.snapshot(), k.actions('jeff'),
                            list(deepcopy(decisions)), None, parts=parts, **options)
 
@@ -48,13 +55,17 @@ def without(payload, *keys):
 
 
 class SwitchTests(unittest.TestCase):
-    def test_the_parts_are_server_trials_off_by_default(self):
+    def test_three_parts_are_released_and_on_and_three_are_trials(self):
+        # links_on_options, rules_by_action and kitchen_view released with the 8775 play set (0.11.0, 2026-11-27).
         current = features.current()
+        released = ('links_on_options', 'rules_by_action', 'kitchen_view')
         for name, (_, version) in request_parts.SWITCHES.items():
-            self.assertEqual(current[name], {'stage': 'trial', 'on': False, 'version': version})
-        self.assertNotIn('parts', features.compose_options(current))
-        self.assertIsNone(request_parts.parts(current))
-        on = {**current, 'timeline': {**current['timeline'], 'on': True}, 'kitchen_view': {**current['kitchen_view'], 'on': True}}
+            stage, on = ('release', True) if name in released else ('trial', False)
+            self.assertEqual(current[name], {'stage': stage, 'on': on, 'version': version})
+        self.assertEqual(features.compose_options(current)['parts'], {'links_on': True, 'rules': True, 'view': True})
+        base = base_features()
+        self.assertIsNone(request_parts.parts(base))
+        on = {**base, 'timeline': {**base['timeline'], 'on': True}, 'kitchen_view': {**base['kitchen_view'], 'on': True}}
         self.assertEqual(features.compose_options(on)['parts'], {'timeline': True, 'view': True})
 
     def test_with_every_part_off_the_request_is_unchanged(self):

@@ -53,6 +53,10 @@ def ask(k, names=True):
     return compose_payload(client, k, k.snapshot(), k.actions('jeff'), [], None, names=names)
 
 
+# Released with the 8775 play set as the defaults (0.11.0, 2026-11-27), after the rounds the checks read.
+RELEASED_0_11 = ('burn_note', 'option_notes', 'links_on_options', 'rules_by_action', 'kitchen_view', 'throw_to',
+                 'plate_result', 'board_taken')
+
 class NamesTests(unittest.TestCase):
     def setUp(self):
         self.k = kitchen()
@@ -222,8 +226,9 @@ class CheckTests(unittest.TestCase):
         off = {**current, 'clear_text': {**current['clear_text'], 'on': False}}   # the check reads rounds played without names
         # food_names_check rebuilds requests without a step-hint table, from rounds that asked nothing ahead (its trial).
         off = {**off, 'option_links': {**current['option_links'], 'on': False}, 'ask_ahead': {**current['ask_ahead'], 'on': False}}
-        # Nor go notes (released in 0.10.1-beta.1, after the rounds the check reads).
+        # Nor go notes (released in 0.10.1-beta.1, after the rounds the check reads), nor the switches released in 0.11.0.
         off = {**off, 'go_note': {**current['go_note'], 'on': False}}
+        off = {**off, **{name: {**current[name], 'on': False} for name in RELEASED_0_11}}
         cls.folder = tempfile.TemporaryDirectory()
         clock = Clock()
         with patch.dict(os.environ, {'CHEFJEFF_LOG_DIR': cls.folder.name}), patch('jev.time.monotonic', clock), \

@@ -76,7 +76,7 @@ class SwitchWiringTests(unittest.TestCase):
             with self.subTest(label):
                 self.assertEqual(expected(on), started(on))
             labels.append(label)
-        self.assertEqual(len(labels), 18)       # defaults, 16 trial switches alone, all on
+        self.assertEqual(len(labels), 10)       # defaults, 8 trial switches alone, all on
 
     def test_with_the_released_switches_off_too(self):
         for label, on in released_off():

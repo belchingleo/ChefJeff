@@ -44,6 +44,8 @@ class WebSessionTests(unittest.TestCase):
               'serve_note':g.ai.serve_note,
               'steps':g.ai.steps,'clear':g.ai.clear,'walk':g.ai.walk,'go':g.ai.go,
               'english':g.ai.english,'plate':g.ai.plate}
+        # parts and work only when on (since 0.11.0 the release turns request parts and work notes on).
+        loop.update({key:getattr(g.ai,key) for key in ('parts','work') if getattr(g.ai,key) is not None})
         self.assertEqual(features.compose_options(g.features),loop)
     def test_no_clock_or_ai_before_start(self):
         g=self.make();g.tick(g.last_tick+10)
