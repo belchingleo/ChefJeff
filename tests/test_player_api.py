@@ -143,7 +143,7 @@ class CompatibleTests(unittest.TestCase):
         self.assertEqual(body['model'],'deepseek-flash')
     def test_zhipu_preset_turns_thinking_off_and_asks_for_json(self):
         setting=settings_from({'provider':'zhipu','api_key':KEY})
-        self.assertEqual((setting['base_url'],setting['model']),('https://open.bigmodel.cn/api/paas/v4','glm-4.7-flash'))
+        self.assertEqual((setting['base_url'],setting['model']),('https://open.bigmodel.cn/api/paas/v4','glm-5.3-flash'))
         self.client=CompatibleClient(load_config(),setting)
         _,req=self.ask('{"choice":"wait"}')
         self.assertEqual(req.full_url,'https://open.bigmodel.cn/api/paas/v4/chat/completions')

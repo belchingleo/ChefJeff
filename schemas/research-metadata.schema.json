@@ -219,6 +219,8 @@
                   "enum": [
                     "jev",
                     "openrouter-decision",
+                    "perplexity",
+                    "parallel",
                     "startlux",
                     "local-decision",
                     "deepseek",

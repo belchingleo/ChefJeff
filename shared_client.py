@@ -59,7 +59,8 @@ class SharedClient:
 # Shanghai in 6-11 s (about 150-280 KB/s), so every full overseas round ran out of the 3 s that small requests get and
 # was never stored. Records get their own time; a finished round's record goes out in the background, retried.
 SAVE_SECONDS = 8                # a round's opening record (a few KB), sent while the round starts
-RECORD_SECONDS = 120            # a whole record either way (update, a receipt's download); the largest is 13 MB
+RECORD_SECONDS = 300            # a whole record either way (update, a receipt's download); the largest is 13 MB,
+                                # which needs 300 s at about 45 KB/s (0.11.1: 120 s left no room for a slow hour)
 RETRY_SECONDS = (10, 30, 60, 120, 300)
 CLOSE_SECONDS = 45              # how long a stopping server waits for records still to be sent
 

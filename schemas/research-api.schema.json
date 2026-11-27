@@ -35,6 +35,8 @@
                   "enum": [
                     "jev",
                     "openrouter-decision",
+                    "perplexity",
+                    "parallel",
                     "startlux",
                     "local-decision",
                     "deepseek",
@@ -126,6 +128,8 @@
                   "enum": [
                     "jev",
                     "openrouter-decision",
+                    "perplexity",
+                    "parallel",
                     "startlux",
                     "local-decision",
                     "deepseek",

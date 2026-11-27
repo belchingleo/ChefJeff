@@ -270,5 +270,30 @@ class PackageSchemaTests(unittest.TestCase):
             self.assertEqual(record['properties'][key],metadata['properties'][key],key)
         self.assertEqual(set(record['required'])-only_record,set(metadata['required'])-only_metadata)
 
+    def test_every_listed_model_service_is_a_valid_record_provider(self):
+        # Until 0.11.1 the schemas lacked perplexity and parallel: research_record accepted them, the data service's
+        # schema check refused the record, and every online Perplexity round from 2026-11-11 on was lost.
+        import research_record
+        listed=list(research_record.MODEL_PROVIDERS)
+        def enums(node):
+            if isinstance(node,dict):
+                if 'provider' in node.get('properties',{}) and 'model_id' in node['properties']:
+                    yield node['properties']['provider']['enum']
+                for value in node.values():yield from enums(value)
+            elif isinstance(node,list):
+                for value in node:yield from enums(value)
+        for name in ('research-record.schema.json','research-metadata.schema.json','research-api.schema.json'):
+            found=list(enums(json.loads((ROOT/'schemas'/name).read_text())))
+            self.assertTrue(found,name)
+            for enum in found:self.assertEqual(enum,listed,name)
+        s=HostedSession();self.addCleanup(s.close);start(s)
+        s._command('/api/end',{})
+        r=record(s)
+        for provider in listed:
+            with self.subTest(provider=provider):
+                r['conditions']['model_identity']=research_record.reported_model_identity(
+                    {'provider':provider,'model_id':'studio/not-in-presets-v2:fast'})
+                self.assertTrue(validate_record(r))
+
 
 if __name__=='__main__':unittest.main()

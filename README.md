@@ -13,7 +13,7 @@ ChefJeff is a real-time cooking game in which a person and an AI cook together, 
 
 Where to start: [play online](#play-online) · [run it locally](#run-it-locally) · [connect your own model](#jeff-and-model-integration) · [change the configuration](#five-data-models) · [the environment and benchmark](#building-a-humanai-collaboration-environment-and-benchmark)
 
-> Current version: **0.11.0-beta.1**. You need your own model API, and interfaces and analysis rules may still change. We suggest starting with Jev models: they don't play especially well, but they are cheap. Results from other models are welcome.
+> Current version: **0.11.1-beta.1**. You need your own model API, and interfaces and analysis rules may still change. We suggest starting with Jev models: they don't play especially well, but they are cheap. Results from other models are welcome.
 
 ---
 
@@ -352,6 +352,7 @@ All three produce the same data, and every imported level goes through the same 
 - **0.10.0-beta.2** (2026-11-26): online, Jeff no longer stands still after his first step when his model is reached through the demo server (Jev with server forwarding, the free models, Cloudflare): the server's reply about where to put things down was refused, so every request after Jeff first picked something up ran out.
 - **0.10.1-beta.1** (2026-11-26): rounds played on the overseas site reach the research data again: a whole round's record now has time to cross to Shanghai and is sent in the background. Five context features are on for every model: the split-floor line, who can reach which stations, what the other chef can do next (now also when they first have to put down what they hold), the undo note and the go note. Levels 4 and 5 are open to players.
 - **0.11.0-beta.1** (2026-11-27): online rounds are stored again (a server setting had made every record fail since that morning). As in Overcooked 2 there is no extinguisher rack: the extinguisher starts on a counter and goes on any counter. A throw is never refused for want of room. The release defaults are the settings the servers already used, and the line about what the other chef can do next appears only for work Jeff cannot reach. The overseas site opens in English.
+- **0.11.1-beta.1** (2026-11-27): rounds played with Perplexity or Parallel are stored again (the record format had left both services out since 2026-11-11), and whole records from the overseas site get more time on the slow link to Shanghai. The Alibaba and Zhipu presets now default to Qwen3.8-27B and GLM-5.3-Flash.
 - **0.8.1-beta.2** (2026-11-09): the phone stick no longer sticks when iPhone Safari misses the thumb's lift, and Zhipu and Llama are withdrawn from the free trial (StartLux and Gemma remain).
 
 See the [changelog](CHANGELOG.md) for everything.

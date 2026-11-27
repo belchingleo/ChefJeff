@@ -4,6 +4,17 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 
 [中文](#更新记录)
 
+## 0.11.1-beta.1 — 2026-11-27
+
+### Research records
+
+- Rounds played with Perplexity or Parallel are stored. The research record format listed every other model service but not these two, so since 2026-11-11 each such round played normally and its record was refused. Every service in the settings is now a valid record provider, and a test keeps the two lists equal. A model name the player types in (any service, including OpenRouter and other Chat Completions providers) was and is recorded as typed.
+- Whole round records from the overseas site reach Shanghai over a slow link: the data domain's nginx now takes the whole body before passing it on and waits 60 s between reads of it and 120 s for the reply (it was 10 s, unbuffered), and the overseas server allows 300 s per record (it was 120 s).
+
+### Model services
+
+- Alibaba's preset now uses Qwen3.8-27B (`qwen3.8-27b`); `qwen-flash` can still be entered. Zhipu's preset uses GLM-5.3-Flash (`glm-5.3-flash`, pay as you go, local game only); the free `glm-4.7-flash` can still be entered. Neither is tested yet.
+
 ## 0.11.0-beta.1 — 2026-11-27
 
 ### Research records
@@ -474,6 +485,17 @@ First private release: a local browser game with three playable maps and player-
 ---
 
 ## 更新记录
+
+## 0.11.1-beta.1 — 2026-11-27
+
+### 研究记录
+
+- 用 Perplexity 或 Parallel 玩的局能存进研究数据了。研究记录的格式列了其他所有模型服务，唯独漏了这两个，所以 2026-11-11 以来这样的局都能正常玩，但记录被拒收。现在设置里的每个服务都是记录认可的服务，并有测试保证两份名单一致。玩家自己填的模型名（任何服务，包括 OpenRouter 和其他兼容 Chat Completions 的服务）一直照填写的原样记录。
+- 海外站的整局记录经慢线路传到上海：数据入口的 nginx 现在先收完整个记录再转交，两次读取之间最多等 60 秒、等回复最多 120 秒（原来都是 10 秒，而且边收边转）；海外服务器每条记录最多发送 300 秒（原来 120 秒）。
+
+### 模型服务
+
+- 阿里的预设改用 Qwen3.8-27B（`qwen3.8-27b`），仍可改填 `qwen-flash`。智谱的预设改用 GLM-5.3-Flash（`glm-5.3-flash`，按量计费，只在本地版），仍可改填免费的 `glm-4.7-flash`。两者都还没实测。
 
 ## 0.11.0-beta.1 — 2026-11-27
 

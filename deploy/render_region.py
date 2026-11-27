@@ -48,6 +48,10 @@ def game_unit(domain):
 
 
 def data_nginx(domain, peer_ip):
+    # Whole round records come from the other site over a slow cross-border link (about 150-280 KB/s, with pauses).
+    # nginx takes the whole body first (request buffering on, up to 14 MB in memory), so a pause on the link no
+    # longer stalls the data service's 10 s reads; 60 s between reads of the body, 120 s for the service's reply.
+    # Before 0.11.1 (10 s, unbuffered) records from Germany failed with write timeouts and EOF.
     import ipaddress
     domain_name(domain)
     peer_ip = str(ipaddress.ip_address(peer_ip))
@@ -69,17 +73,17 @@ server {
     error_log /dev/null;
     client_max_body_size 14m;
     client_body_buffer_size 14m;
-    client_body_timeout 10s;
+    client_body_timeout 60s;
     location /v1/ {
         allow PEER;
         allow 127.0.0.1;
         deny all;
         proxy_http_version 1.1;
-        proxy_request_buffering off;
+        proxy_request_buffering on;
         proxy_buffering off;
         proxy_max_temp_file_size 0;
         proxy_connect_timeout 3s;
-        proxy_read_timeout 10s;
+        proxy_read_timeout 120s;
         proxy_set_header Host DOMAIN;
         proxy_set_header Authorization $http_authorization;
         proxy_set_header X-ChefJeff-Site $http_x_chefjeff_site;
