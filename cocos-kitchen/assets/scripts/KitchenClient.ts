@@ -1233,10 +1233,12 @@ export class KitchenClient extends Component {
         }
     }
     // Recipe data from the server snapshot: names, colours, cooking states and plating order.
-    /** A stove's countdown as of now: between states the page counts on from the last one while the round runs. */
+    /** A stove's countdown as of now: between states the page counts on from the last one at the round's own speed
+     * (a replay holding one state still sends a speed near 0, and its badge stays as the state says). */
     private stoveCountdown(st:any){
         const running=this.connected&&!this.hidden&&this.state?.phase==='running';
-        return heatCountdown(st,running?this.clock-this.lastStateAt:0,st.food?this.burnWindows[st.food.id]||0:0);
+        const speed=Number.isFinite(this.state?.speed)?Math.max(0,this.state!.speed):1;
+        return heatCountdown(st,running?(this.clock-this.lastStateAt)*speed:0,st.food?this.burnWindows[st.food.id]||0:0);
     }
     /** The countdown badge on a stove; lit marks a warning pulse (as Overcooked 2's flashing over-cooking icon). */
     private drawHeatCountdown(node:Node,id:string,countdown:ReturnType<typeof heatCountdown>,lit:boolean){
