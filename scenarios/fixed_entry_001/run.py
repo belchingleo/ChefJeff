@@ -15,7 +15,7 @@ HERE = Path(__file__).resolve().parent
 
 
 def build_scene():
-    spec = json.loads((HERE / "scenario.json").read_text())
+    spec = json.loads((HERE / "scenario.json").read_text(encoding="utf-8"))
     k = SpatialKitchen(spec["config"])
     initial = spec["initial"]
     assert k.time == initial["clock"] == 0
@@ -115,7 +115,7 @@ def export():
     out = HERE / "data"
     out.mkdir(exist_ok=True)
     k = build_scene()
-    write = lambda name, data: (out / name).write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n")
+    write = lambda name, data: (out / name).write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     write("initial_state.json", k.snapshot())
     # Explicit dummy key bypasses credential discovery. Only build the payload;
     # never call ask(), DecisionLoop, or a live GameSession.
@@ -134,7 +134,7 @@ def export():
     summaries = []
     for name, actions, delay in plans:
         summary, trace = run_reference(name, actions, delay)
-        (out / (name + ".jsonl")).write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in trace))
+        (out / (name + ".jsonl")).write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in trace), encoding="utf-8")
         summaries.append({key: value for key, value in summary.items() if key not in ("events", "final_state")})
     write("results.json", summaries)
     sources = ["kitchen.py", "spatial_kitchen.py", "navigation.py", "levels.py", "jev.py", "harness.py",

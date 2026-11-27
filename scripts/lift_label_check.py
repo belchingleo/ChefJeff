@@ -189,7 +189,7 @@ def main(argv=None):
     report = run(items, patient(client.ask), args.repeats, lambda text: print(text, file=sys.stderr, flush=True))
     text = json.dumps(report, ensure_ascii=False, indent=1)
     if args.out:
-        Path(args.out).write_text(text)
+        Path(args.out).write_text(text, encoding='utf-8')
     else:
         print(text)
     return 0

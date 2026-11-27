@@ -24,13 +24,13 @@ SOURCES = ['cocos-kitchen/assets/scripts/KitchenClient.ts', 'cocos-kitchen/web-s
 
 
 def ui_text():
-    catalog = json.loads((ROOT / 'cocos-kitchen' / 'i18n.json').read_text())
+    catalog = json.loads((ROOT / 'cocos-kitchen' / 'i18n.json').read_text(encoding='utf-8'))
     parts = [*catalog['messages'].keys(), *catalog['messages'].values()]
     parts += [text for pair in catalog['templates'] for text in pair]
-    parts += [(ROOT / path).read_text() for path in SOURCES]
+    parts += [(ROOT / path).read_text(encoding='utf-8') for path in SOURCES]
     # Names shown from content data (levels, items, dishes, vessels, stations) need glyphs too.
     for folder in ('content', 'maps'):
-        parts += [path.read_text() for path in sorted((ROOT / folder).rglob('*.json'))]
+        parts += [path.read_text(encoding='utf-8') for path in sorted((ROOT / folder).rglob('*.json'))]
     # Printable ASCII, currency, arrows and the HUD's control glyphs are always kept.
     parts.append(''.join(chr(c) for c in range(0x20, 0x7f)) + '¥·–—…»←→↑↓ⅡⅠ▶■！？：；，。、（）「」“”')
     return ''.join(parts)

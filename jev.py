@@ -34,13 +34,13 @@ def load_key():
     paths = [ROOT / ".env"]
     local = ROOT / ".local.json"
     if local.exists():
-        setting = json.loads(local.read_text())
+        setting = json.loads(local.read_text(encoding="utf-8"))
         if setting.get("env_file"):
             paths.append(Path(setting["env_file"]).expanduser())
     for path in paths:
         if not path.is_file():
             continue
-        for line in path.read_text().splitlines():
+        for line in path.read_text(encoding="utf-8").splitlines():
             if line.strip().startswith("TYPESAFE_API_KEY="):
                 key = line.split("=", 1)[1].strip().strip("\"'")
                 if key:

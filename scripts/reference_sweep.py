@@ -297,14 +297,14 @@ def main():
     args = parser.parse_args()
     if args.calibrate:
         report = calibrate([int(x) for x in args.levels.split(',')], workers=args.workers)
-        Path(args.out).write_text(json.dumps(report, ensure_ascii=False, indent=1) + '\n')
+        Path(args.out).write_text(json.dumps(report, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
         for row in report['levels']:
             print(row['level'], 'pair', row['pair_min'], row['pair_median'], row['pair_max'], 'target', row['target_50pct'],
                   '/', row['current_target'], 'solo median', row['solo_median'])
         return
     if args.ladder:
         rows = ladder([int(x) for x in args.levels.split(',')])
-        Path(args.out).write_text(json.dumps({'ladder': rows}, ensure_ascii=False, indent=1) + '\n')
+        Path(args.out).write_text(json.dumps({'ladder': rows}, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
         for row in rows:
             print(row['level'], row['rung'], row['money'], '/', row['target'], row['served'], row['contribution_rate'], row['harmful'], row['wasted'])
         return
@@ -320,7 +320,7 @@ def main():
     with Pool() as workers:
         rows = workers.map(run, jobs, chunksize=4)
     summary = summarize(rows)
-    Path(args.out).write_text(json.dumps({'seeds': 'fixed' if args.fixed else args.seeds, 'summary': summary}, ensure_ascii=False, indent=1) + '\n')
+    Path(args.out).write_text(json.dumps({'seeds': 'fixed' if args.fixed else args.seeds, 'summary': summary}, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     for row in summary:
         print(row['level'], row['variant'], row['interval_s'], row['countdowns_s'], row['orders'], row['money_median'],
               row['served_median'], row['expired_median'], row['target_50pct'])

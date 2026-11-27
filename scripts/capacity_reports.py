@@ -20,7 +20,7 @@ def main():
         bundle = config_contract.level_bundle(level, embed=True)
         bundle['level']['seeds'] = {'orders': 1, 'spawn': 0}
         report = capacity_analyzer.analyze_capacity(config_contract.freeze_bundle(bundle))
-        (folder / f'{level}.json').write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
+        (folder / f'{level}.json').write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
         print(level, report['I_resource_lb_game_ms'], report['binding_resource'], [d['code'] for d in report['diagnostics']])
 
 

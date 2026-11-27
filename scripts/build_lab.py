@@ -80,14 +80,14 @@ def canonical(body):
 def run_requests(runs, stem):
     """{(journal, request_id): {arm: request}} for one recorded run, with the run's derived arms rebuilt."""
     if stem.startswith('dishes-'):
-        store = json.loads((runs / f"v4-{stem.split('-', 1)[1]}.requests.json").read_text())['requests']
+        store = json.loads((runs / f"v4-{stem.split('-', 1)[1]}.requests.json").read_text(encoding='utf-8'))['requests']
         out = {}
         for key, e in store.items():
             body = deepcopy(e['arms']['V4G'])
             body['state']['kitchen'].pop('dishes', None)
             out[key] = {'NODISH': body}
         return store, out
-    store = json.loads((runs / f'{stem}.requests.json').read_text())['requests']
+    store = json.loads((runs / f'{stem}.requests.json').read_text(encoding='utf-8'))['requests']
     return store, {key: e['arms'] for key, e in store.items()}
 
 
@@ -96,7 +96,7 @@ def run_answers(runs, stem):
     path = runs / f'{stem}.answers.jsonl'
     if not path.exists():
         return answers
-    for line in path.read_text().splitlines():
+    for line in path.read_text(encoding='utf-8').splitlines():
         r = json.loads(line)
         if 'choice' in r['answer']:
             answers[(r['key'], r['arm'])].append(r['answer'])
@@ -125,8 +125,8 @@ def main():
     logs = ROOT / 'logs'
 
     def play_set(service):
-        raw = json.loads((ROOT / 'features.json').read_text())
-        value = features.model_defaults(features.with_override(raw, json.loads(override.read_text())), service)
+        raw = json.loads((ROOT / 'features.json').read_text(encoding='utf-8'))
+        value = features.model_defaults(features.with_override(raw, json.loads(override.read_text(encoding='utf-8'))), service)
         for name in list(request_parts.SWITCHES) + ['go_note']:
             value[name] = {**value[name], 'on': False}
         return value, features.compose_options(value)
@@ -196,40 +196,41 @@ def main():
         data = session_record.read_bundle(str(bundle))
         k = factory(data['session']['runtime_versions']['engine'])(deepcopy(data['resolved']))
         n = 0
-        for row in (json.loads(line) for line in open(path)):
-            if row.get('kind') != 'ai_request' or not isinstance(row.get('payload'), dict) or row.get('engine_input_n') is None:
-                continue
-            while n < row['engine_input_n']:
-                apply_input(k, data['inputs'][n]); n += 1
-            rid = row['request_id']
-            if rid not in rids:
-                continue
-            source = k
-            if row.get('ask_ahead'):
-                job = k.chefs['jeff'].job
-                source = ask_ahead.predict(k) if job and job.id == row['ask_ahead']['job_id'] else None
-                if source is None:
+        with open(path, encoding='utf-8') as journal_file:
+            for row in (json.loads(line) for line in journal_file):
+                if row.get('kind') != 'ai_request' or not isinstance(row.get('payload'), dict) or row.get('engine_input_n') is None:
                     continue
-            mid = f"{journal.split('-')[1]}-{rid}"
-            moment = {'id': mid, 'round': journal.split('-')[1], 'request_id': rid, 'level': source.c.get('level'),
-                      't': round(source.time, 1), 'labels': sorted(labels[(journal, rid)]),
-                      'steps': steps.get((journal, rid)), 'played': steps.get((journal, rid, 'played')),
-                      'holding': (source.snapshot()['chefs']['jeff'].get('holding') or {}).get('meaning'), 'services': {}}
-            for service, (_, opts) in sets.items():
-                moment['services'][service] = {}
-                for condition, (parts, go) in CONDITIONS.items():
-                    body = build(source, row, opts, parts, go, MODELS[service])
-                    answers = recorded.get((service, canonical(body)), [])
-                    moment['services'][service][condition] = {'request': body, 'answers': answers,
-                                                              'chars': len(json.dumps(body, ensure_ascii=False))}
-                    if answers:
-                        criteria = body['questions']['next_action']['criteria']
-                        scored[(service, mid)][condition] = [measure(a['choice'], moment, criteria) for a in answers]
-            (out / 'moments' / f'{mid}.json').write_text(json.dumps(moment, ensure_ascii=False))
-            summary = {key: value for key, value in moment.items() if key != 'services'}
-            summary['answered'] = {s: {c: len(v['answers']) for c, v in conds.items()} for s, conds in moment['services'].items()}
-            summary['chars'] = {s: {c: v['chars'] for c, v in conds.items()} for s, conds in moment['services'].items()}
-            index.append(summary)
+                while n < row['engine_input_n']:
+                    apply_input(k, data['inputs'][n]); n += 1
+                rid = row['request_id']
+                if rid not in rids:
+                    continue
+                source = k
+                if row.get('ask_ahead'):
+                    job = k.chefs['jeff'].job
+                    source = ask_ahead.predict(k) if job and job.id == row['ask_ahead']['job_id'] else None
+                    if source is None:
+                        continue
+                mid = f"{journal.split('-')[1]}-{rid}"
+                moment = {'id': mid, 'round': journal.split('-')[1], 'request_id': rid, 'level': source.c.get('level'),
+                          't': round(source.time, 1), 'labels': sorted(labels[(journal, rid)]),
+                          'steps': steps.get((journal, rid)), 'played': steps.get((journal, rid, 'played')),
+                          'holding': (source.snapshot()['chefs']['jeff'].get('holding') or {}).get('meaning'), 'services': {}}
+                for service, (_, opts) in sets.items():
+                    moment['services'][service] = {}
+                    for condition, (parts, go) in CONDITIONS.items():
+                        body = build(source, row, opts, parts, go, MODELS[service])
+                        answers = recorded.get((service, canonical(body)), [])
+                        moment['services'][service][condition] = {'request': body, 'answers': answers,
+                                                                  'chars': len(json.dumps(body, ensure_ascii=False))}
+                        if answers:
+                            criteria = body['questions']['next_action']['criteria']
+                            scored[(service, mid)][condition] = [measure(a['choice'], moment, criteria) for a in answers]
+                (out / 'moments' / f'{mid}.json').write_text(json.dumps(moment, ensure_ascii=False), encoding='utf-8')
+                summary = {key: value for key, value in moment.items() if key != 'services'}
+                summary['answered'] = {s: {c: len(v['answers']) for c, v in conds.items()} for s, conds in moment['services'].items()}
+                summary['chars'] = {s: {c: v['chars'] for c, v in conds.items()} for s, conds in moment['services'].items()}
+                index.append(summary)
         print(f'{journal}: {sum(1 for m in index if m["round"] == journal.split("-")[1])} moments', file=sys.stderr)
     # Paired: each condition against today's request over the moments where both have recorded answers.
     results = defaultdict(dict)
@@ -243,11 +244,11 @@ def main():
                                                'this': total([b for _, b in pair])}
     value, _ = sets['jev']
     switches = {name: {'on_today': bool(v.get('on')), 'version': v.get('version'), 'stage': v.get('stage')}
-                for name, v in features.with_override(json.loads((ROOT / 'features.json').read_text()), {}).items()}
+                for name, v in features.with_override(json.loads((ROOT / 'features.json').read_text(encoding='utf-8')), {}).items()}
     (out / 'index.json').write_text(json.dumps({
         'built_with': {'features_versions': {n: v['version'] for n, v in switches.items()}},
         'conditions': list(CONDITIONS), 'models': MODELS, 'moments': index,
-        'results': results}, ensure_ascii=False))
+        'results': results}, ensure_ascii=False), encoding='utf-8')
     attached = sum(sum(sum(v.values()) for v in m["answered"].values()) for m in index)
     print(f'{len(index)} moments, {attached} recorded answers attached -> {out}')
 

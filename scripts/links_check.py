@@ -180,7 +180,7 @@ def examples(items, path, most=2):
                         'options_with_links': {key: {'B': b[key], 'C': c[key]} for key in item['links']},
                         'D_option_links': item['arms']['D']['state']['option_links'],
                         'options': len(a)})
-    Path(path).write_text(json.dumps(out, ensure_ascii=False, indent=1))
+    Path(path).write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding='utf-8')
 
 
 def run(items, ask, repeats=1):
@@ -259,11 +259,11 @@ def main(argv=None):
     parser.add_argument('--out', help='write the JSON report here instead of printing it')
     args = parser.parse_args(argv)
     if args.moments and Path(args.moments).exists():
-        found, counts = json.loads(Path(args.moments).read_text())
+        found, counts = json.loads(Path(args.moments).read_text(encoding='utf-8'))
     else:
         found, counts = moments(args.paths)
         if args.moments:
-            Path(args.moments).write_text(json.dumps([found, counts], ensure_ascii=False))
+            Path(args.moments).write_text(json.dumps([found, counts], ensure_ascii=False), encoding='utf-8')
     items = pick(found, args.per_kind, args.seed)
     print(f'moments found: {counts}; picked {Counter(i["kind"] for i in items)}', file=sys.stderr)
     with_links = [i for i in found if i['kind'] != 'control']
@@ -297,7 +297,7 @@ def main(argv=None):
     report = run(items, ask, args.repeats)
     text = json.dumps(report, ensure_ascii=False, indent=1)
     if args.out:
-        Path(args.out).write_text(text)
+        Path(args.out).write_text(text, encoding='utf-8')
     else:
         print(text)
     return 0

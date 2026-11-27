@@ -17,7 +17,7 @@ import config_contract as cc
 
 ROOT = Path(__file__).resolve().parent
 # Agent and session settings (ai_*, model); game parameters come from the level documents.
-SETTINGS = json.loads((ROOT / 'config.json').read_text())
+SETTINGS = json.loads((ROOT / 'config.json').read_text(encoding='utf-8'))
 # Flat keys that describe the game; all other flat keys (ai_*, model, ...) are agent/session settings.
 GAME_KEYS = {'level', 'boards', 'pots', 'pot_count', 'plate_count', 'round_seconds', 'order_count', 'order_interval',
              'order_patience', 'target_money',

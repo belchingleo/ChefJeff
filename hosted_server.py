@@ -683,17 +683,17 @@ def hosted_html(raw):
                         '<script src="/hosted-agent.js"></script>', 1)
     for old, new in SHELL_REPLACEMENTS:
         page = page.replace(old, new)
-    panel = (ROOT / 'hosted' / 'contribution.html').read_text()
+    panel = (ROOT / 'hosted' / 'contribution.html').read_text(encoding='utf-8')
     # The one-time contribution question sits beside the dialogs, outside Settings.
-    consent = (ROOT / 'hosted' / 'consent.html').read_text()
-    picker = (ROOT / 'hosted' / 'free-model-picker.html').read_text()
+    consent = (ROOT / 'hosted' / 'consent.html').read_text(encoding='utf-8')
+    picker = (ROOT / 'hosted' / 'free-model-picker.html').read_text(encoding='utf-8')
     # Existing regional Nginx serves *.js directly from the web build. Keep this
     # hosted-only control with its page instead of requiring another proxy rule.
     picker = picker.replace('<script src="/free-model-picker.js"></script>',
-                            '<script>' + (ROOT / 'hosted' / 'free-model-picker.js').read_text() + '</script>')
+                            '<script>' + (ROOT / 'hosted' / 'free-model-picker.js').read_text(encoding='utf-8') + '</script>')
     page = page.replace('</body>', consent + CONTRIBUTION_BADGE + icp_line() + picker + '</body>', 1)
     # Settings → AI 搭档 lists the same free models; the picker script fills both.
-    page = page.replace(FREE_MODELS_SLOT, (ROOT / 'hosted' / 'free-model-settings.html').read_text(), 1)
+    page = page.replace(FREE_MODELS_SLOT, (ROOT / 'hosted' / 'free-model-settings.html').read_text(encoding='utf-8'), 1)
     # Newer shells mark a slot in the Export tab; older builds append to the settings dialog.
     page = page.replace(CONTRIBUTION_SLOT, panel, 1) if CONTRIBUTION_SLOT in page else page.replace('</dialog>', panel + '</dialog>', 1)
     return page.encode('utf-8')
@@ -735,10 +735,10 @@ class RuntimeMetrics:
             pass
         try:
             import os
-            state['python_rss_bytes'] = int(Path('/proc/self/statm').read_text().split()[1])*os.sysconf('SC_PAGE_SIZE')
-            cgroup = next(line.split(':',2)[2].strip() for line in Path('/proc/self/cgroup').read_text().splitlines() if line.startswith('0::'))
+            state['python_rss_bytes'] = int(Path('/proc/self/statm').read_text(encoding='utf-8').split()[1])*os.sysconf('SC_PAGE_SIZE')
+            cgroup = next(line.split(':',2)[2].strip() for line in Path('/proc/self/cgroup').read_text(encoding='utf-8').splitlines() if line.startswith('0::'))
             base = Path('/sys/fs/cgroup')/cgroup.lstrip('/')
-            state['service_memory_bytes'] = int((base/'memory.current').read_text())
+            state['service_memory_bytes'] = int((base/'memory.current').read_text(encoding='utf-8'))
         except (OSError, ValueError, StopIteration, IndexError):
             pass
         return state

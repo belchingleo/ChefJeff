@@ -21,7 +21,7 @@ def read_private_json(path):
     mode = path.stat().st_mode
     if path.is_symlink() or not stat.S_ISREG(mode) or mode & 0o027:
         raise ValueError('Configuration must be a private regular file')
-    value = json.loads(path.read_text())
+    value = json.loads(path.read_text(encoding='utf-8'))
     if not isinstance(value, dict):
         raise ValueError('Invalid configuration')
     return value

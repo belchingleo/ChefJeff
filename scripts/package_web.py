@@ -71,7 +71,7 @@ def package(root=ROOT, output=None):
         temp.replace(output)
     finally:temp.unlink(missing_ok=True)
     checksum=hashlib.sha256(output.read_bytes()).hexdigest()
-    output.with_suffix('.zip.sha256').write_text(checksum+'  '+output.name+'\n')
+    output.with_suffix('.zip.sha256').write_text(checksum+'  '+output.name+'\n', encoding='utf-8')
     return output,manifest
 
 

@@ -23,7 +23,7 @@ def main(argv=None):
         p.error('Give record files or --database.')
     sources = []
     for path in args.records:
-        data = json.loads(path.read_text())
+        data = json.loads(path.read_text(encoding='utf-8'))
         sources.append(data.get('record', data))  # the download reply wraps the record
     if args.database:
         from scripts.research_export import rows
