@@ -273,7 +273,15 @@ def location(kitchen, target):
 # then an action on the item opens up. v3 looked only at actions naming the item, so an item thrown onto an empty board
 # got no line while the other chef held something (chopping needs free hands), though a throw onto the floor got one
 # through the pickup that swaps hands. Seen in the 2026-11-25 re-asks: every "throw to Board" without a line was one.
-PARTNER_VERSION = 'partner-links-v4'
+# partner-links-v5: the chain counts only work the chef could not do there itself, at a place it cannot reach
+# (reaches_action), and a chain that reaches no such work gives no line. In the 2026-11-27 level-4 round 4012c0b3,
+# Jeff held bread next to a clean plate he could fill himself ("assemble counter2"), yet his throw read "then the other
+# chef could: Pick up bread at floor (4,5), then Put the held bread onto the plate at Counter 2", and he threw 16 times
+# that round: v4 counted putting food on a shared plate as the other chef's work, so a throw read as handing over work.
+# On a floor both chefs share, nothing is the other chef's alone, so no option there has a partner line, and the
+# chain is not searched (levels 1-3: a request took 0.47-0.75 s to build with v4 and about 0.1 s with v5; on level 4
+# a state with many hand-over options can take about 0.1 s longer, the search going on past work the chef reaches).
+PARTNER_VERSION = 'partner-links-v5'
 FREE_KINDS = ('put_counter', 'drop')     # how the other chef frees their hands first, counters before the floor
 FREE_TRIES = 3                           # put-downs tried before giving up (each is a fork)
 SETTLE = 3.0                    # game seconds a thrown item may still be in the air when the throw ends
@@ -282,8 +290,8 @@ CHAIN_SKIP = ('go', 'throw', 'drop', 'discard', 'wait', 'stop', 'put_counter', '
 CHAIN_DEPTH = 3
 THEN = 'then the other chef could: '
 PARTNER_RULE = (' A line starting "then the other chef could" says what the other chef could do next with the item you '
-                'hold after that option, up to their first work on it, as the game computes it if nothing else changes '
-                'first.')
+                'hold after that option, up to work on it at a place you cannot reach, as the game computes it if '
+                'nothing else changes first.')
 
 
 def _names_item(expected, item):
@@ -329,10 +337,13 @@ def _out_of_reach(twin, who, other, item):
 
 
 def partner_chain(kitchen, twin, who, item, before=None):
-    """The other chef's shortest run of actions on the held item, after the option, that ends in work (breadth first,
-    at most CHAIN_DEPTH steps), or [] when the item is not where they can take it. before: the other chef's
-    (kind, target) pairs in the request's kitchen, when the caller has them already (one listing per table)."""
+    """The other chef's shortest run of actions on the held item, after the option, that ends in work the chef cannot
+    reach itself (breadth first, at most CHAIN_DEPTH steps, v5), or [] when there is none or the item is not where they
+    can take it. before: the other chef's (kind, target) pairs in the request's kitchen, when the caller has them
+    already (one listing per table)."""
     other = 'human' if who == 'jeff' else 'jeff'
+    if not getattr(twin, 'split_floor', False):
+        return []           # v5: on a floor both chefs share, no work is the other chef's alone
     if not _settle(twin, item):
         return []
     if _out_of_reach(twin, who, other, item):
@@ -360,24 +371,24 @@ def partner_chain(kitchen, twin, who, item, before=None):
                 break
         if not frontier:
             return []
-    first = None
     for _ in range(CHAIN_DEPTH):
         nxt = []
         for state, path in frontier:
             if len(path) >= CHAIN_DEPTH:
                 continue
+            reaches = getattr(state, 'reaches_action', None)
             for a in state.actions(other):
                 if a.kind in CHAIN_SKIP or not _names_item(a.expected, item):
                     continue
                 if a.kind in WORK:
-                    return path + [a]
-                if first is None:
-                    first = path + [a]
+                    if reaches is not None and not reaches(who, a):
+                        return path + [a]
+                    continue            # v5: work the chef could do there itself is not the other chef's
                 fork = _fork(state)
                 if _run(fork, other, a):
                     nxt.append((fork, path + [a]))
         frontier = nxt[:6]
-    return first or []
+    return []
 
 
 def table(kitchen, who, actions, keys, names=False, partner=False):

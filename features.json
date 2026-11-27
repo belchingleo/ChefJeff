@@ -4,7 +4,7 @@
   "ask_ahead": {"stage": "trial", "on": true, "version": "ask-ahead-v2"},
   "reach_note": {"stage": "release", "on": true, "version": "reach-v1"},
   "option_links": {"stage": "release", "on": true, "version": "option-links-v3"},
-  "option_links_partner": {"stage": "release", "on": true, "version": "partner-links-v4"},
+  "option_links_partner": {"stage": "release", "on": true, "version": "partner-links-v5"},
   "split_floor": {"stage": "release", "on": true, "version": "split-floor-v1"},
   "burn_note": {"stage": "trial", "on": false, "version": "burn-note-v6"},
   "step_check": {"stage": "trial", "on": false, "version": "step-check-v3"},

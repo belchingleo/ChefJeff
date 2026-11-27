@@ -120,7 +120,8 @@ class FastForkTests(unittest.TestCase):
 
 class PartnerTests(unittest.TestCase):
     """option_links_partner (v3): on a split floor, a put on a shared counter, or a throw across, carries the other
-    chef's chain on the item in Jeff's own line, up to their first work on it."""
+    chef's chain on the item in Jeff's own line, up to their first work on it; v5: only work at a place Jeff cannot
+    reach counts."""
 
     def setUp(self):
         self.k = SpatialKitchen(level_config(load_config(), 'level-4'))
@@ -164,6 +165,25 @@ class PartnerTests(unittest.TestCase):
         chain = links.partner_chain(self.k, seen['twin'], 'jeff', self.k.chefs['jeff'].hand.id)
         self.assertEqual([a.kind for a in chain], ['put_counter', 'chop'])
         self.assertEqual(chain[1].target, 'b1')
+
+    def test_v5_bread_the_chef_can_plate_itself_gets_no_partner_line(self):
+        # 2026-11-27, round 4012c0b3: Jeff held bread beside a clean plate he could fill himself, and his throw read
+        # "then the other chef could: Pick up bread ..., then Put the held bread onto the plate at Counter 2".
+        k = SpatialKitchen(level_config(load_config(), 'level-4'))
+        run(k, 'jeff', 'fetch bread')
+        self.assertTrue(any(a.kind == 'assemble' for a in k.actions('jeff')))
+        client = SpatialJevClient(k.c, key='unit-test-not-a-real-key')
+        state = jev.compose_payload(client, k, k.snapshot(), k.actions('jeff'), [], None, links='partner')['state']
+        self.assertFalse([key for key, lines in state['option_links'].items()
+                          if any(line.startswith(links.THEN) for line in lines)])
+
+    def test_v5_on_a_floor_both_chefs_share_no_option_has_a_partner_line(self):
+        k = SpatialKitchen(level_config(load_config(), 'level-2'))
+        self.assertFalse(k.split_floor)
+        run(k, 'jeff', 'fetch beef')
+        client = SpatialJevClient(k.c, key='unit-test-not-a-real-key')
+        state = jev.compose_payload(client, k, k.snapshot(), k.actions('jeff'), [], None, links='partner')['state']
+        self.assertFalse(any(line.startswith(links.THEN) for lines in state['option_links'].values() for line in lines))
 
     def test_with_free_hands_no_put_down_is_added(self):
         state = self.payload('partner')['state']

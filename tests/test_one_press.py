@@ -660,7 +660,7 @@ class SessionTests(unittest.TestCase):
                                            'ask_ahead': {'on': True, 'version': 'ask-ahead-v2'},
                                            'reach_note': {'on': True, 'version': 'reach-v1'},
                                            'option_links': {'on': True, 'version': 'option-links-v3'},
-                                           'option_links_partner': {'on': True, 'version': 'partner-links-v4'},
+                                           'option_links_partner': {'on': True, 'version': 'partner-links-v5'},
                                            'split_floor': {'on': True, 'version': 'split-floor-v1'},
                                            'burn_note': {'on': False, 'version': 'burn-note-v6'},
                                            'step_check': {'on': False, 'version': 'step-check-v3'},

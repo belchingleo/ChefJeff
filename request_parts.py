@@ -273,8 +273,8 @@ def drop_history(payload):
 # -- links_on_options ----------------------------------------------------------------------------------------------
 
 PARTNER_OPTION_RULE = (' A part starting "then the other chef could" says what the other chef could do next with the '
-                       'item you hold after that option, up to their first work on it, as the game computes it if '
-                       'nothing else changes first.')
+                       'item you hold after that option, up to work on it at a place you cannot reach, as the game '
+                       'computes it if nothing else changes first.')
 
 
 def links_on_options(payload):
