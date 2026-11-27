@@ -1,6 +1,7 @@
 """Real two-region HTTP checks, retained receipts and retry-safe shared totals."""
 from contextlib import closing, redirect_stdout
 from datetime import datetime
+import gzip
 import hashlib
 import http.client
 import io
@@ -19,8 +20,8 @@ from hosted_records import ContributionStore, RETENTION_SECONDS, CONSENT_VERSION
 from hosted_usage import UsageStats
 from hosted_server import make_server
 from shared_client import SharedClient, RegionalUsage, RemoteRecords
-from shared_data import Gone, SharedUsage, usage_payload
-from shared_server import DataServer
+from shared_data import Gone, SharedUsage, encode, usage_payload
+from shared_server import DataServer, MAX_BODY
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,8 +30,11 @@ ROOT = Path(__file__).resolve().parents[1]
 class SlowLink:
     """A TCP link to the data service that carries requests at about `rate` bytes a second, like the link from the
     overseas site to Shanghai (on 2026-11-26 Germany fetched 1.6 MB from Shanghai in 6-11 s)."""
-    def __init__(self, port, rate):
+    def __init__(self, port, rate, stalled=0):
         self.target, self.rate = port, rate
+        self.carried = 0            # bytes carried towards the service
+        self.stalled = stalled      # this many first connections take the request and never pass it on
+        self.held = []
         self.listener = socket.create_server(('127.0.0.1', 0))
         self.port = self.listener.getsockname()[1]
         threading.Thread(target=self.accept, daemon=True).start()
@@ -41,6 +45,10 @@ class SlowLink:
                 near, _ = self.listener.accept()
             except OSError:
                 return
+            if self.stalled:
+                self.stalled -= 1
+                self.held.append(near)
+                continue
             far = socket.create_connection(('127.0.0.1', self.target))
             threading.Thread(target=self.pump, args=(near, far, True), daemon=True).start()
             threading.Thread(target=self.pump, args=(far, near, False), daemon=True).start()
@@ -53,6 +61,7 @@ class SlowLink:
                     break
                 sink.sendall(data)
                 if slow:
+                    self.carried += len(data)
                     time.sleep(len(data) / self.rate)
         except OSError:
             pass
@@ -66,6 +75,8 @@ class SlowLink:
 
     def close(self):
         self.listener.close()
+        for near in self.held:
+            near.close()
 
 
 def wait_until(condition, seconds=20):
@@ -116,8 +127,8 @@ class SharedDataTests(unittest.TestCase):
 
     def test_a_whole_record_reaches_the_service_over_a_slow_link_without_the_round_waiting(self):
         # Every overseas round with Jeff at work all round was lost until 2026-11-26: its record needed far more than
-        # the 3 s every request had. Here 46 KB at about 10 KB/s takes about 5 s.
-        link = SlowLink(self.server.server_port, 10_000)
+        # the 3 s every request had. Here 46 KB, about 7 KB compressed, at about 2 KB/s takes about 3.5 s.
+        link = SlowLink(self.server.server_port, 2_000)
         self.addCleanup(link.close)
         slow = RemoteRecords(SharedClient({**self.config('global'), 'url': f'http://127.0.0.1:{link.port}'}))
         self.addCleanup(slow.close)
@@ -126,14 +137,76 @@ class SharedDataTests(unittest.TestCase):
         slow.update_later(receipt['id'], {**self.record, 'consent_mode': 'standing'})
         self.assertLess(time.monotonic() - started, 0.5)
         wait_until(lambda: slow.pending() == 0, 30)
-        self.assertGreater(time.monotonic() - started, 3)
+        self.assertGreater(time.monotonic() - started, 2)
         self.assertEqual(slow.given_up, 0)
         self.assertEqual(self.stored(receipt)['consent_mode'], 'standing')
+
+    def test_a_record_crosses_the_link_compressed_and_arrives_whole(self):
+        # 2026-11-27: a three-minute round's record (7-8 MB) took minutes from Germany in the evening and its sends
+        # stalled; compressed it is about 20 times smaller.
+        link = SlowLink(self.server.server_port, 1_000_000)
+        self.addCleanup(link.close)
+        remote = RemoteRecords(SharedClient({**self.config('global'), 'url': f'http://127.0.0.1:{link.port}'}))
+        self.addCleanup(remote.close)
+        record = {**self.record, 'consent_mode': 'round'}
+        receipt = remote.save(record)
+        remote.update_later(receipt['id'], {**record, 'consent_mode': 'standing'})
+        wait_until(lambda: remote.pending() == 0)
+        whole = len(encode({'id': receipt['id'], 'record': {**record, 'consent_mode': 'standing'}}).encode())
+        self.assertLess(link.carried, whole / 2)        # the create and the update together
+        self.assertEqual(self.stored(receipt), {**record, 'consent_mode': 'standing'})
+
+    def test_a_stalled_send_is_dropped_and_the_record_goes_on_a_new_connection(self):
+        # The evening of 2026-11-27: one send from Germany made no progress for 5 minutes before it was tried again.
+        self.quiet()
+        link = SlowLink(self.server.server_port, 1_000_000, stalled=1)
+        self.addCleanup(link.close)
+        remote = RemoteRecords(SharedClient({**self.config('global'), 'url': f'http://127.0.0.1:{link.port}'}),
+                               retry_seconds=(0.05,), stall_seconds=0.5, reply_seconds=0.5)
+        self.addCleanup(remote.close)
+        receipt = RemoteRecords(self.client('global')).save({**self.record, 'consent_mode': 'round'})
+        started = time.monotonic()
+        remote.update_later(receipt['id'], {**self.record, 'consent_mode': 'standing'})
+        wait_until(lambda: remote.pending() == 0)
+        self.assertLess(time.monotonic() - started, 5)
+        self.assertEqual((len(link.held), remote.given_up), (1, 0))
+        self.assertEqual(self.stored(receipt)['consent_mode'], 'standing')
+
+    def test_a_service_that_cannot_read_compressed_records_gets_them_uncompressed(self):
+        # A data service from before 0.11.2 reads gzip as broken JSON and answers 400: the sites can update in any order.
+        remote = RemoteRecords(self.client('global'))
+        self.addCleanup(remote.close)
+        real, sent = remote.client.request, []
+        def counted(operation, body, timeout=3, **timing):
+            sent.append((operation, timing.get('compress', False)))
+            return real(operation, body, timeout, **timing)
+        with patch('shared_server.gunzip', side_effect=ValueError('old service')), \
+                patch.object(remote.client, 'request', side_effect=counted):
+            receipt = remote.save({**self.record, 'consent_mode': 'round'})
+        self.assertEqual(sent, [('records/save', True), ('records/save', False)])
+        self.assertEqual(self.stored(receipt)['consent_mode'], 'round')
+
+    def test_the_service_refuses_compressed_bodies_that_are_broken_or_expand_too_far(self):
+        def post(raw, encoding='gzip'):
+            connection = http.client.HTTPConnection('127.0.0.1', self.server.server_port, timeout=10)
+            headers = {'Authorization': 'Bearer '+self.tokens['cn'], 'X-ChefJeff-Site': 'cn',
+                       'Content-Type': 'application/json', 'Content-Encoding': encoding}
+            with closing(connection):
+                connection.request('POST', '/v1/health', raw, headers)
+                response = connection.getresponse()
+                response.read()
+                return response.status
+        self.assertEqual(post(gzip.compress(b'{}')), 200)
+        self.assertEqual(post(gzip.compress(b'{}'), encoding='br'), 400)
+        self.assertEqual(post(b'not gzip'), 400)
+        self.assertEqual(post(gzip.compress(b'{}') + b'trailing'), 400)
+        self.assertEqual(post(gzip.compress(b'{}') + gzip.compress(b'{}')), 400)
+        self.assertEqual(post(gzip.compress(b' ' * (MAX_BODY + 1) + b'{}')), 400)   # under 20 KB on the wire
 
     def test_a_receipt_comes_at_once_and_the_record_follows_over_a_slow_link(self):
         # 2026-11-27: 贡献本局 on the overseas site waited for the whole record to reach Shanghai; the page gave up
         # after 10 s ("贡献数据请求超时"). The receipt now comes at once and the record follows in the background.
-        link = SlowLink(self.server.server_port, 10_000)
+        link = SlowLink(self.server.server_port, 2_000)
         self.addCleanup(link.close)
         slow = RemoteRecords(SharedClient({**self.config('global'), 'url': f'http://127.0.0.1:{link.port}'}))
         self.addCleanup(slow.close)
@@ -143,7 +216,7 @@ class SharedDataTests(unittest.TestCase):
         self.assertEqual(set(receipt), {'id', 'deletion_token', 'expires_at', 'consent_version'})
         self.assertEqual(receipt['consent_version'], CONSENT_VERSION)
         wait_until(lambda: slow.pending() == 0, 30)
-        self.assertGreater(time.monotonic() - started, 3)
+        self.assertGreater(time.monotonic() - started, 2)
         self.assertEqual(self.stored(receipt)['consent_mode'], 'round')
         with self.server.records.connect() as db:
             expires = db.execute('SELECT expires FROM records WHERE id=?', (receipt['id'],)).fetchone()[0]
@@ -154,14 +227,14 @@ class SharedDataTests(unittest.TestCase):
         remote = RemoteRecords(self.client('global'), retry_seconds=(0.05,))
         self.addCleanup(remote.close)
         real, sent, bodies = remote.client.request, [], []
-        def slow_create(operation, body, timeout=3):
+        def slow_create(operation, body, timeout=3, **timing):
             sent.append(operation)
             if operation == 'records/save':
                 bodies.append(body)
                 time.sleep(0.2)
                 if len(bodies) == 1:
                     raise OSError('link dropped')
-            return real(operation, body, timeout)
+            return real(operation, body, timeout, **timing)
         with patch.object(remote.client, 'request', side_effect=slow_create):
             receipt = remote.save_later({**self.record, 'consent_mode': 'round'})
             wait_until(lambda: remote.sending == receipt['id'])
@@ -175,10 +248,10 @@ class SharedDataTests(unittest.TestCase):
         remote = RemoteRecords(self.client('global'))
         self.addCleanup(remote.close)
         real = remote.client.request
-        def slow_create(operation, body, timeout=3):
+        def slow_create(operation, body, timeout=3, **timing):
             if operation == 'records/save':
                 time.sleep(0.3)
-            return real(operation, body, timeout)
+            return real(operation, body, timeout, **timing)
         with patch.object(remote.client, 'request', side_effect=slow_create):
             receipt = remote.save_later({**self.record, 'consent_mode': 'round'})
             wait_until(lambda: remote.sending == receipt['id'])
@@ -192,12 +265,12 @@ class SharedDataTests(unittest.TestCase):
         self.addCleanup(remote.close)
         receipt = remote.save({**self.record, 'consent_mode': 'round'})
         real, sent = remote.client.request, []
-        def flaky(operation, body, timeout=3):
+        def flaky(operation, body, timeout=3, **timing):
             if operation == 'records/update':
                 sent.append(body['record']['consent_mode'])
                 if len(sent) == 1:
                     raise OSError('link dropped')
-            return real(operation, body, timeout)
+            return real(operation, body, timeout, **timing)
         with patch.object(remote.client, 'request', side_effect=flaky):
             remote.update_later(receipt['id'], {**self.record, 'consent_mode': 'standing'})
             wait_until(lambda: remote.pending() == 0)
@@ -221,11 +294,11 @@ class SharedDataTests(unittest.TestCase):
         self.addCleanup(remote.close)
         receipt = remote.save({**self.record, 'consent_mode': 'round'})
         real, tries = remote.client.request, []
-        def down(operation, body, timeout=3):
+        def down(operation, body, timeout=3, **timing):
             if operation == 'records/update':
                 tries.append(1)
                 raise OSError('link down')
-            return real(operation, body, timeout)
+            return real(operation, body, timeout, **timing)
         with patch.object(remote.client, 'request', side_effect=down):
             remote.update_later(receipt['id'], {**self.record, 'consent_mode': 'standing'})
             wait_until(lambda: remote.pending() == 0)
@@ -242,12 +315,12 @@ class SharedDataTests(unittest.TestCase):
         remote = RemoteRecords(self.client('global'), retry_seconds=(600,))
         receipt = remote.save({**self.record, 'consent_mode': 'round'})
         real, sent = remote.client.request, []
-        def once(operation, body, timeout=3):
+        def once(operation, body, timeout=3, **timing):
             if operation == 'records/update':
                 sent.append(1)
                 if len(sent) == 1:
                     raise OSError('link dropped')
-            return real(operation, body, timeout)
+            return real(operation, body, timeout, **timing)
         with patch.object(remote.client, 'request', side_effect=once):
             remote.update_later(receipt['id'], {**self.record, 'consent_mode': 'standing'})
             wait_until(lambda: len(sent) == 1 and remote.sending is None)

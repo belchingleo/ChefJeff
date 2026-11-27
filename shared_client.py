@@ -1,5 +1,6 @@
 """Backend clients. Aggregate delivery stays outside gameplay request threads."""
 from contextlib import closing
+import gzip
 import http.client
 import json
 from pathlib import Path
@@ -30,21 +31,43 @@ class SharedClient:
             raise ValueError('Invalid site credentials')
         self.site, self.token = config['site'], config['token']
 
-    def request(self, operation, body, timeout=3):
-        # The timeout bounds the whole send (Python's sendall) and then each read of the reply.
+    def request(self, operation, body, timeout=3, compress=False, total=None, reply=None):
+        """One call to the data service. Without total (small requests) the timeout bounds the send and then each read
+        of the reply. With total (a record), the timeout is how long a write may go without progress, total bounds the
+        whole send and reply bounds each read of the answer; compress sends the body gzip-compressed."""
         connection_class = http.client.HTTPSConnection if self.url.scheme == 'https' else http.client.HTTPConnection
         options = {'timeout': timeout}
         if self.url.scheme == 'https':
             options['context'] = ssl.create_default_context()
+        raw = encode(body).encode()
+        headers = {'Authorization': 'Bearer '+self.token, 'X-ChefJeff-Site': self.site, 'Content-Type': 'application/json'}
+        if compress:
+            raw = gzip.compress(raw, 6, mtime=0)
+            headers['Content-Encoding'] = 'gzip'
         connection = connection_class(self.url.hostname, self.url.port, **options)
         try:
-            connection.request('POST', '/v1/'+operation, encode(body).encode(),
-                               {'Authorization': 'Bearer '+self.token, 'X-ChefJeff-Site': self.site,
-                                'Content-Type': 'application/json'})
+            if total is None:
+                connection.request('POST', '/v1/'+operation, raw, headers)
+            else:
+                # Sent in pieces: over HTTPS a socket timeout bounds each write, not the whole send, so the deadline
+                # is checked between pieces (0.11.1 gave each write 300 s and an evening stall then held a record for
+                # 5 minutes before it was tried again).
+                deadline = time.monotonic() + total
+                connection.putrequest('POST', '/v1/'+operation)
+                for name, value in {**headers, 'Content-Length': str(len(raw))}.items():
+                    connection.putheader(name, value)
+                connection.endheaders()
+                for start in range(0, len(raw), SEND_PIECE):
+                    if time.monotonic() > deadline:
+                        raise TimeoutError('Record send ran out of time')
+                    connection.send(raw[start:start+SEND_PIECE])
+                # A compressed record often fits in the system's send buffer at once, so a stalled link shows only
+                # here, as an answer that does not come.
+                connection.sock.settimeout(reply or REPLY_SECONDS)
             response = connection.getresponse()
             raw = response.read(14_000_001)
             if response.status != 200 or len(raw) > 14_000_000:
-                raise OSError('Shared data request failed')
+                raise Refused(response.status)
             value = json.loads(raw)
             if not isinstance(value, dict) or set(value) != {'value'}:
                 raise OSError('Invalid shared data response')
@@ -55,20 +78,34 @@ class SharedClient:
             connection.close()
 
 
+class Refused(OSError):
+    """The data service answered, but not with 200 (status), or with a reply that is too large."""
+    def __init__(self, status):
+        super().__init__('Shared data request failed')
+        self.status = status
+
+
 # Between the sites a whole round's record (about 1-5 MB) takes many seconds: on 2026-11-26 Germany fetched 1.6 MB from
 # Shanghai in 6-11 s (about 150-280 KB/s), so every full overseas round ran out of the 3 s that small requests get and
 # was never stored. Records get their own time; a finished round's record goes out in the background, retried.
 SAVE_SECONDS = 8                # a round's opening record (a few KB), sent while the round starts
-RECORD_SECONDS = 300            # a whole record either way (update, a receipt's download); the largest is 13 MB,
-                                # which needs 300 s at about 45 KB/s (0.11.1: 120 s left no room for a slow hour)
+RECORD_SECONDS = 300            # a whole record either way (a create or update sent, a receipt's download); the largest
+                                # is 13 MB, about 20 times less compressed
+STALL_SECONDS = 30              # a record send that makes no progress this long is dropped and tried again; on the
+                                # evening of 2026-11-27 a send from Germany made no progress for 5 minutes
+REPLY_SECONDS = 60              # the service's answer once a record is handed to the link: it has to cross it first
+                                # (about 350 KB, seconds at the evening's 45 KB/s) and be stored
+SEND_PIECE = 65536
 RETRY_SECONDS = (10, 30, 60, 120, 300)
 CLOSE_SECONDS = 45              # how long a stopping server waits for records still to be sent
 
 
 class RemoteRecords:
-    def __init__(self, client, retry_seconds=RETRY_SECONDS, record_seconds=RECORD_SECONDS):
+    def __init__(self, client, retry_seconds=RETRY_SECONDS, record_seconds=RECORD_SECONDS, stall_seconds=STALL_SECONDS,
+                 reply_seconds=REPLY_SECONDS):
         self.client = client
         self.retry_seconds, self.record_seconds = tuple(retry_seconds), record_seconds
+        self.stall_seconds, self.reply_seconds = stall_seconds, reply_seconds
         # record id -> {'create': the create request still to send or None, 'record': the newest update still to send
         # or None, 'tries': failed sends so far, 'due': monotonic time it may go}
         self.queue = {}
@@ -88,7 +125,7 @@ class RemoteRecords:
         # One bounded retry reuses the create ID, token and original timestamp.
         for attempt in range(2):
             try:
-                return self.client.request('records/save', body, self.record_seconds)
+                return self.send('records/save', body)
             except OSError:
                 if attempt:
                     raise
@@ -114,7 +151,20 @@ class RemoteRecords:
                 'consent_version': CONSENT_VERSION}
 
     def update(self, identifier, record):
-        return self.client.request('records/update', {'id': identifier, 'record': record}, self.record_seconds)
+        return self.send('records/update', {'id': identifier, 'record': record})
+
+    def send(self, operation, body):
+        """A record's create or update, gzip-compressed: a three-minute round's record of 7-8 MB is about 350 KB, which
+        the evening link from Germany carries in seconds instead of minutes. A data service from before 0.11.2 cannot
+        read a compressed body and answers 400; the same body then goes once more uncompressed, so the two sites can be
+        updated in either order."""
+        timing = {'total': self.record_seconds, 'reply': self.reply_seconds}
+        try:
+            return self.client.request(operation, body, self.stall_seconds, compress=True, **timing)
+        except Refused as refused:
+            if refused.status != 400:
+                raise
+        return self.client.request(operation, body, self.stall_seconds, **timing)
 
     def update_later(self, identifier, record):
         """Send this record in the background and return at once, so a round never waits on the link between the
@@ -160,7 +210,7 @@ class RemoteRecords:
             create = entry['create']
             try:
                 if create:
-                    self.client.request('records/save', create, self.record_seconds)
+                    self.send('records/save', create)
                 else:
                     self.update(identifier, entry['record'])
                 error = None

@@ -10,10 +10,24 @@ import signal
 import sqlite3
 import stat
 import threading
+import zlib
 
 from shared_data import Gone, SharedRecords, SharedUsage, encode
 
 MAX_BODY = 14_000_000
+
+
+def gunzip(raw, limit=MAX_BODY):
+    """A gzip-compressed request body (records from 0.11.2 on), refused when it expands past limit or is not one whole
+    gzip stream."""
+    inflater = zlib.decompressobj(16 + zlib.MAX_WBITS)
+    try:
+        body = inflater.decompress(raw, limit + 1)
+    except zlib.error:
+        raise ValueError('Invalid compressed body') from None
+    if len(body) > limit or inflater.unconsumed_tail or inflater.unused_data or not inflater.eof:
+        raise ValueError('Invalid compressed body')
+    return body
 
 
 def read_private_json(path):
@@ -96,12 +110,15 @@ class DataHandler(BaseHTTPRequestHandler):
                 or self.headers.get('Origin') or self.headers.get('Cookie')):
             return self.reply(401, {'error': 'Unauthorized'})
         try:
-            if self.headers.get('Content-Type') != 'application/json' or self.headers.get('Transfer-Encoding'):
+            encoding = self.headers.get('Content-Encoding')
+            if (self.headers.get('Content-Type') != 'application/json' or self.headers.get('Transfer-Encoding')
+                    or encoding not in (None, 'gzip')):
                 raise ValueError('Invalid request')
             length = int(self.headers.get('Content-Length', '0'))
             if not 0 < length <= MAX_BODY:
                 raise ValueError('Invalid size')
-            body = json.loads(self.rfile.read(length))
+            raw = self.rfile.read(length)
+            body = json.loads(gunzip(raw) if encoding == 'gzip' else raw)
             if not isinstance(body, dict):
                 raise ValueError('Invalid request')
             records = self.server.records
