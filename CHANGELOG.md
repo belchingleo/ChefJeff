@@ -4,6 +4,29 @@ All notable changes to ChefJeff. Versions follow the in-game release identity (`
 
 [中文](#更新记录)
 
+## 0.11.0-beta.1 — 2026-11-27
+
+### Research records
+
+- Online rounds are stored again. A server setting turned `throw_to` on at about 03:00 UTC on 2026-11-27, and the research record format did not allow its flag, so every online round after that played normally but its record was refused ("contribution failed"). The format now allows it; those rounds cannot be recovered.
+- On the overseas site a round's receipt comes at once and its record goes to Shanghai in the background, so starting a round and 贡献本局 no longer wait for the slow link between the sites.
+- When a free model's reply names another model than the one asked, the server's diagnostic now records that name.
+
+### Rules
+
+- As in Overcooked 2, there is no extinguisher rack: on every level the extinguisher starts on a counter of its own, where the rack stood. It is taken from any counter, board or source top it rests on, with full hands too (the held item goes on nearby ground), and put down like anything else; the counter takes anything once it is free and burns like any counter. Benchmark v6 replaces v5.
+- A throw is never refused for want of room where it comes down: the item rests on the nearest free floor tile.
+
+### What Jeff reads
+
+- The release defaults are the settings the servers already used: `burn_note` (`burn-note-v6`: no note on a stove's options while its food is still cooking), `option_notes`, `links_on_options`, `rules_by_action`, `kitchen_view`, `throw_to`, `plate_result` and `board_taken` are on; `undo_note` is off; `option_links_partner` and `split_floor` are off for Perplexity.
+- `option_links_partner` is now `partner-links-v5`: the line under an option says what the other chef could do next only when that work is at a place Jeff cannot reach; on a floor both chefs share there is no such line.
+
+### Page
+
+- The overseas site opens in English, and the English page is titled "ChefJeff · Cooking with AI".
+- The communication menu opens folded and hides while a card is over the kitchen; after resuming, the status line says the kitchen is open again; the round analysis opens with each chef's share of the work, or says that Jeff took no action; the portrait screen before or after a round asks for landscape without mentioning 继续经营; the free-key tips no longer suggest Bamboo.
+
 ## 0.10.1-beta.1 — 2026-11-26 · update of the seventh public test release
 
 ### Research records from the overseas site
@@ -451,6 +474,29 @@ First private release: a local browser game with three playable maps and player-
 ---
 
 ## 更新记录
+
+## 0.11.0-beta.1 — 2026-11-27
+
+### 研究记录
+
+- 线上对局重新能存进研究数据。2026-11-27 大约 03:00（UTC）服务器设置打开了 `throw_to`，研究记录的格式不认它带的标记，此后线上每一局都能正常玩，但记录被拒收（"贡献保存失败"）。现在格式已经允许这个标记；那段时间的对局无法找回。
+- 海外站开局时马上拿到收据，整局记录在后台发往上海，开局和"贡献本局"都不再等两地之间的慢线路。
+- 免费模型的回复里写的型号和请求的不一样时，服务器的诊断信息会记下回复里的型号名。
+
+### 规则
+
+- 和《胡闹厨房 2》一样，不再有灭火器架：每一关的灭火器开局放在原来架子位置上的一个柜台上。灭火器放在柜台、案板或食材箱顶上都能拿，手里拿着东西也能拿（手里的东西放到旁边地上），放下和别的东西一样；这个柜台空出来后什么都能放，也和别的柜台一样会着火。基准测试升到 v6，替换 v5。
+- 扔东西不会因为落点没有空位而被拒绝：东西落在最近的空地上。
+
+### Jeff 读到的内容
+
+- 版本默认值就是服务器已经在用的设置：`burn_note`（`burn-note-v6`：灶台上的菜还在煎时，选项上不写糊锅提示）、`option_notes`、`links_on_options`、`rules_by_action`、`kitchen_view`、`throw_to`、`plate_result` 和 `board_taken` 打开；`undo_note` 关闭；`option_links_partner` 和 `split_floor` 对 Perplexity 关闭。
+- `option_links_partner` 升到 `partner-links-v5`：选项下面"另一位厨师接着能做什么"只写 Jeff 自己够不着的地方的活；两人共用地面的关卡没有这一行。
+
+### 页面
+
+- 海外站默认英文，英文页面标题是"ChefJeff · Cooking with AI"。
+- 沟通菜单默认收起，有卡片盖在厨房上时自动隐藏；继续经营后状态栏显示厨房继续营业；本局分析第一行写每人做了多少活，Jeff 一个动作都没做时直接写明；开局前和结算后手机竖屏时只提示横屏，不再提"继续经营"；免费 Key 的推荐里不再有 Bamboo。
 
 ## 0.10.1-beta.1 — 2026-11-26 · 第七个公开测试版的更新版
 
