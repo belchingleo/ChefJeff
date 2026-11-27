@@ -250,6 +250,8 @@
       text('touch-money', state.money == null ? '' : '¥' + state.money);
       text('touch-served', state.served == null ? '' : t('已出餐') + ' ' + state.served);
       text('touch-pause', state.phase === 'paused' ? '继续' : '暂停');
+      // Mid-round the kitchen pauses while the phone is upright; before or after a round there is nothing to resume.
+      text('touch-rotate-copy', ['running', 'paused'].includes(state.phase) ? '横屏后点“继续经营”，厨房不会自动恢复。' : '横屏游玩，工位和按钮会更清楚。');
       el('touch-pause').disabled = !state.connected || state.pending || !['running', 'paused'].includes(state.phase) || hasModal || communicationOpen;
       el('touch-bookmark').disabled = !state.connected || state.phase !== 'running' || state.pending;
       el('touch-communication').disabled = !state.communicationEnabled || !state.connected || hasModal;
@@ -370,7 +372,6 @@
       for (const [id, source] of Object.entries({ 'touch-pause': '暂停', 'touch-communication': '沟通', 'touch-bookmark': '标记',
         'touch-menu-toggle': '菜单', 'touch-settings': '设置', 'touch-help': '操作说明', 'touch-end': '结束本局', 'touch-record': '本局分析', 'touch-retry': '重新开局', 'touch-more': '更多',
         'touch-fullscreen': '全屏', 'touch-menu-close': '返回厨房', 'touch-free-badge': '免费', 'touch-custom-title': '自定义模型', 'touch-communication-close': '返回厨房', 'touch-cancel': '取消', 'touch-rotate-title': '请将手机横过来',
-        'touch-rotate-copy': '横屏后点“继续经营”，厨房不会自动恢复。',
         'touch-instructions': '「拿/放」按下立即拿起或放下，拿着东西也一样；「切/洗/扔」空手时切菜、洗碗，拿着灭火器时灭火，拿着能扔的东西时点按直接扔出、长按瞄准、松开投掷；瞄准时滑到「取消」可取消。',
         'touch-fullscreen-tip': 'iPhone 不支持网页全屏：在浏览器的分享菜单选「添加到主屏幕」，再从主屏幕打开即可全屏。' })) text(id, source);
       el('touch-language').textContent = window.kitchenI18n?.language === 'en' ? '中文' : 'English';

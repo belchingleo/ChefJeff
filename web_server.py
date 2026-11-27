@@ -612,6 +612,8 @@ class GameSession:
             self.last_tick = self.last_seen = time.monotonic()
             self.wake.set()
             self.ai.invalidate()
+            # The status line shows the latest note: without this one the pause's note ("页面已断开…") stayed up.
+            self.note('厨房继续营业。')
             self.journal('resume', {'t':self.k.time})
             return 200, {'ok': True}
         if path == '/api/end':

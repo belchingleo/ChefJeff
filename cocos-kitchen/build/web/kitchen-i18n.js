@@ -797,12 +797,12 @@
     "改用自定义模型（API Key）": "Use a custom model (API key) instead",
     "显示": "Show",
     "隐藏": "Hide",
-    "也可以填自己申请的免费 Key：智谱 GLM-4.7-Flash、StartLux（Bamboo）等平台都提供免费额度，申请后选对应的服务填进来即可。": "You can also use a free key of your own: Zhipu GLM-4.7-Flash, StartLux (Bamboo) and similar platforms offer free quotas. Apply, then choose that service here and paste the key.",
-    "也可以填自己申请的免费 Key：智谱 GLM-4.7-Flash、StartLux（Bamboo）等平台都提供免费额度，申请后选对应的服务填进来即可，不占免费模型的名额。": "You can also use a free key of your own: Zhipu GLM-4.7-Flash, StartLux (Bamboo) and similar platforms offer free quotas. Apply, then choose that service here and paste the key. It does not use a free-model seat.",
+    "也可以填自己申请的免费 Key：智谱 GLM-4.7-Flash 等平台都提供免费额度，申请后选对应的服务填进来即可。": "You can also use a free key of your own: Zhipu GLM-4.7-Flash and similar platforms offer free quotas. Apply, then choose that service here and paste the key.",
+    "也可以填自己申请的免费 Key：智谱 GLM-4.7-Flash 等平台都提供免费额度，申请后选对应的服务填进来即可，不占免费模型的名额。": "You can also use a free key of your own: Zhipu GLM-4.7-Flash and similar platforms offer free quotas. Apply, then choose that service here and paste the key. It does not use a free-model seat.",
     "怎么申请、一局大约多少钱 →": "How to apply, and what a round costs →",
     "还没有 Key？": "No key yet?",
-    "智谱 GLM-4.7-Flash、StartLux（Bamboo）等平台提供免费额度，自己申请一个就能填在这里。": "Zhipu GLM-4.7-Flash, StartLux (Bamboo) and similar platforms offer free quotas. Apply for a key and paste it here.",
-    "智谱 GLM-4.7-Flash、StartLux（Bamboo）等平台提供免费额度，自己申请一个就能填在这里，不占免费模型的名额。": "Zhipu GLM-4.7-Flash, StartLux (Bamboo) and similar platforms offer free quotas. Apply for a key and paste it here. It does not use a free-model seat.",
+    "智谱 GLM-4.7-Flash 等平台提供免费额度，自己申请一个就能填在这里。": "Zhipu GLM-4.7-Flash and similar platforms offer free quotas. Apply for a key and paste it here.",
+    "智谱 GLM-4.7-Flash 等平台提供免费额度，自己申请一个就能填在这里，不占免费模型的名额。": "Zhipu GLM-4.7-Flash and similar platforms offer free quotas. Apply for a key and paste it here. It does not use a free-model seat.",
     "DeepSeek、OpenRouter 等按用量付费，一局大约几毛到几块钱。": "DeepSeek, OpenRouter and similar services charge by usage, from under ¥1 to a few yuan per round.",
     "两类模型": "Two kinds of model",
     "决策模型": "Decision models",
@@ -822,7 +822,7 @@
     "免费使用限制": "Free-use limits",
     "每个免费模型同一时间只能一位玩家使用，国内站和海外站共用这个名额。": "Each free model serves one player at a time, and the China and international sites share that seat.",
     "名额满了不排队：可以稍后再试，或者换另一个免费模型。": "There is no queue when the seat is taken: try again later, or pick another free model.",
-    "不想等名额，可以自己去智谱、Bamboo 等平台申请免费的 API Key，填在“自定义模型”里使用。这样不占这里的名额，限额按你在服务商那边的账号算。": "If you would rather not wait, apply for a free API key on Zhipu, Bamboo or a similar platform and enter it under “Custom model”. It does not take a seat here, and its limits follow your account with that provider.",
+    "不想等名额，可以自己去智谱等平台申请免费的 API Key，填在“自定义模型”里使用。这样不占这里的名额，限额按你在服务商那边的账号算。": "If you would rather not wait, apply for a free API key on Zhipu or a similar platform and enter it under “Custom model”. It does not take a seat here, and its limits follow your account with that provider.",
     "开局时固定本局的模型，结算后才能换。": "The model is fixed when a round starts and can be changed after the results.",
     "列表由服务器提供，新接入的免费模型会直接出现在这里。": "The server provides this list; newly added free models appear here automatically.",
     "● 有空位": "● Seat available",
@@ -1025,7 +1025,7 @@
     "测试功能，不是正式玩法，以后可能调整。": "A test feature, not part of the regular game; it may change.",
     "沟通 · 1–6 / 点击（测试功能）": "Communicate · 1–6 / Click (test feature)",
     "这是测试中的功能，不是正式玩法，以后可能调整。打开左下角沟通菜单，点击偏好即可发送；“你做错了”是独立的红色描边按钮。也可按 1–5 表达偏好、按 6 纠错。共用 5 个实际秒冷却，暂停时也可发送。最新偏好只在本局有效；AI 在下一次正常请求中收到，自行判断如何配合，不强制分工或停止动作。纠错附带当时动作信息，但不指定正确答案。": "This is a test feature, not part of the regular game; it may change. Click a preference in the bottom-left menu, or the separate red-outlined correction button. Shortcuts: 1–5 for preferences, 6 for correction. All share a 5-real-second cooldown; messages also work while paused. The latest preference applies only to this round. The AI receives it in its next regular request and decides how to cooperate; jobs and roles are not forced. Corrections include action context, not a prescribed solution.",
-    "这是测试中的功能，不是正式玩法，以后可能调整。打开左下角沟通菜单，点击即可告诉 AI 由你来做哪类工作；“你做错了”是独立的红色描边按钮。也可按 1–5 说明分工、按 6 纠错。共用 5 个实际秒冷却，暂停时也可发送。最新的说明只在本局有效；AI 在下一次正常请求中收到，自行判断如何配合，不强制分工或停止动作。纠错附带当时动作信息，但不指定正确答案。": "This is a test feature, not part of the regular game; it may change. In the bottom-left menu, click to tell the AI which work you will do, or use the separate red-outlined correction button. Shortcuts: 1–5 to say who does what, 6 for correction. All share a 5-real-second cooldown; messages also work while paused. The latest message applies only to this round. The AI receives it in its next regular request and decides how to cooperate; jobs and roles are not forced. Corrections include action context, not a prescribed solution.",
+    "打开左下角沟通菜单，点击即可告诉 AI 由你来做哪类工作；“你做错了”是独立的红色描边按钮。也可按 1–5 说明分工、按 6 纠错。共用 5 个实际秒冷却，暂停时也可发送。最新的说明只在本局有效；AI 在下一次正常请求中收到，自行判断如何配合，不强制分工或停止动作。纠错附带当时动作信息，但不指定正确答案。": "In the bottom-left menu, click to tell the AI which work you will do, or use the separate red-outlined correction button. Shortcuts: 1–5 to say who does what, 6 for correction. All share a 5-real-second cooldown; messages also work while paused. The latest message applies only to this round. The AI receives it in its next regular request and decides how to cooperate; jobs and roles are not forced. Corrections include action context, not a prescribed solution.",
     "我来备菜": "I'll prep ingredients",
     "我来烹饪": "I'll cook",
     "我来摆盘": "I'll plate",
@@ -1071,7 +1071,7 @@
     "摇杆移动 · 右键 拿放 · 左键 切洗扔（长按瞄准） · 下键 冲刺 · − 暂停/继续": "Stick: Move · Right button: Take/put · Left button: Chop/wash/throw (hold to aim) · Bottom button: Dash · −: Pause/resume",
     "摇杆移动 · 右键 拿放 · 左键 切洗扔（长按瞄准） · 下键 冲刺 · + 暂停/继续": "Stick: Move · Right button: Take/put · Left button: Chop/wash/throw (hold to aim) · Bottom button: Dash · +: Pause/resume",
     "拿和放：对正前方的东西取料、拿起、放下、下锅、装盘、出餐。要操作的工位会框出来，原地转身操作，不会把你挪过去。按下立即操作，手里拿着东西也一样。": "Take and put: fetch, pick up, put down, cook, plate or serve what is straight ahead. The station to be used is framed, and you work where you stand, without being moved. It acts on press, even with an item in hand.",
-    "切、洗和扔：空手在案板前切菜、在水槽前洗碗，拿着灭火器时灭火；拿着能扔的东西时点按朝前扔出。和《胡闹厨房 2》的切/扔键一样，原作用左 Ctrl，网页里 Ctrl 加 W 会关掉标签页，所以用 E。": "Chop, wash and throw: with empty hands chop at a board or wash at a sink, spray when holding the extinguisher, and with a throwable item a tap throws it straight ahead. This is Overcooked 2's chop/throw key; it is left Ctrl there, but in a browser Ctrl with W closes the tab, so here it is E.",
+    "切、洗和扔：空手在案板前切菜、在水槽前洗碗，拿着灭火器时灭火；拿着能扔的东西时点按朝前扔出。": "Chop, wash and throw: with empty hands chop at a board or wash at a sink, spray when holding the extinguisher, and with a throwable item a tap throws it straight ahead.",
     "按住 E": "Hold E",
     "投掷：手持可投掷物品时，面前是工位或空地都能按住 E 约 0.3 秒瞄准，角色停下，半透明弧形带显示方向与射程参考；方向键改方向，松开扔出，最远 4 格；队友在这个方向上就扔给他。终点仅表示最大射程，实际落点和接取由引擎判定。": "Throw: holding a throwable item, hold E for about 0.3 s to aim, whether facing a station or open floor. Your chef stops; a translucent curved band shows direction and range. Turn it with the direction keys and release to throw, up to 4 tiles, to your teammate when they are that way. The endpoint marks maximum range; the engine determines the actual landing and catches.",
     "手机触屏（横屏）：左下区域按住，摇杆出现在拇指下，朝任意方向推动移动，松手停止。右侧「拿/放」按下立即拿起或放下面前的东西（也用来下锅、装盘、出餐），手里拿着东西也一样。「切/洗/扔」在「拿/放」上方：空手时切菜、洗碗，拿着灭火器时灭火；手持可扔的物品时点按朝前方直接扔出，长按瞄准、用摇杆调方向、松开投掷；瞄准时旁边出现圆形「取消」，手指滑上去再松开即可取消。「冲刺」在「拿/放」左侧，移动时点按。顶部有暂停和菜单（设置、操作说明、本局记录、结束本局），沟通和标记也有按钮。手机转回竖屏会自动暂停，横屏后点「继续经营」。": "Touch (landscape): press in the lower-left area and the joystick appears under your thumb; push in any direction to move, let go to stop. Take/Put on the right picks up or puts down what is in front of you at once (also to cook, plate and serve), even with an item in hand. Chop/Wash/Throw, above Take/Put, chops and washes with empty hands and puts out fires with the extinguisher; with a throwable item, tap to throw straight ahead, or hold to aim, steer with the stick and release to throw; while aiming, a round Cancel appears beside it: slide onto it and let go to cancel. Tap Dash, left of Take/Put, while moving. The top bar has pause and the menu (settings, controls, round record, end round), plus communication and bookmark buttons. Turning the phone upright pauses automatically; turn it back and tap Continue.",
@@ -1105,7 +1105,9 @@
     "请先构建 Cocos Web 预览，或检查路径。": "Build the Cocos web preview first, or check the path.",
     "水槽旁边要留一格空位放沥水架": "Leave a free cell beside the sink for its drying rack",
     "沥水架要紧挨着水槽": "The drying rack goes right beside the sink",
-    "拿已装盘的菜出餐（没有订单在等这道菜会扣钱；这盘糊菜会被拒收，不收钱，菜没了，订单继续等待）": "Serve the plated dish (serving a dish no order is waiting for costs money; this burnt dish is refused with no payment; the dish is lost and the order keeps waiting)"
+    "拿已装盘的菜出餐（没有订单在等这道菜会扣钱；这盘糊菜会被拒收，不收钱，菜没了，订单继续等待）": "Serve the plated dish (serving a dish no order is waiting for costs money; this burnt dish is refused with no payment; the dish is lost and the order keeps waiting)",
+    "Jeff 这局一个动作也没做。": "Jeff took no action this round.",
+    "厨房继续营业。": "The kitchen is open again."
   },
   "templates": [
     [
@@ -2187,6 +2189,10 @@
     [
       "Jeff 请求失败：{0}；{1}s 后重试。无脚本队友代替。",
       "Jeff's request failed: {0}; retrying in {1}s. No scripted teammate stands in."
+    ],
+    [
+      "按标准时间算，这局的活你做了 {0}，Jeff 做了 {1}。",
+      "By standard time, you did {0} of the work this round and Jeff {1}."
     ]
   ]
 }
