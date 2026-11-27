@@ -2,7 +2,7 @@ import { _decorator, Component, Node, UITransform, Graphics, Color, Label, Layer
     view, ResolutionPolicy, sys, game, Game, profiler, Mask, Vec2, Camera, director, Sprite } from 'cc';
 import { LevelOneArt } from './LevelOneArt';
 import { KitchenAudio } from './KitchenAudio';
-import { levelButtonLayout, GRID_ART, stationView, cabinetModule, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, floorItemDepth, workingChefDepth, flightDepth, predictWalk, spaceTarget, segmentDistance, plateLayers, heatCountdown, behindCounter, throwPose, throwDiagonal, throwItemPoint, panHandleSide, steeredFacing, drawnFacing, pickupWaits, handsLandIn, jeffDraw, JEFF_DRAW, JeffWalk, followRoute } from './KitchenGeometry';
+import { levelButtonLayout, GRID_ART, stationView, cabinetModule, trashView, wallNeighbours, surfaceOffset, wallOffset, depthOrder, floorItemDepth, workingChefDepth, flightDepth, predictWalk, spaceTarget, segmentDistance, plateLayers, heatCountdown, burnPulseRate, behindCounter, throwPose, throwDiagonal, throwItemPoint, panHandleSide, steeredFacing, drawnFacing, pickupWaits, handsLandIn, jeffDraw, JEFF_DRAW, JeffWalk, followRoute } from './KitchenGeometry';
 const { ccclass } = _decorator;
 type Action = { key: string; label: string; kind: string; target: string; expected: unknown[] };
 type KitchenState = { game_id: string; state_seq?: number; phase: string; speed: number; page_frames?: boolean; kitchen: any; actions: Action[]; levels?:any[]; limits?:any; capacity?:any; release?:any; player_level?:any; interaction?:Action; use_interaction?:Action; interaction_hint?:string; interaction_focus?:string; interaction_cell?:number[];
@@ -186,6 +186,10 @@ export class KitchenClient extends Component {
     private cabinetFires:Record<string,Node>={};
     private foodStages: Record<string,string>={};
     private readyUntil: Record<string,number>={};
+    // Seconds from cooked to burnt for each cooked food, noted when it turns cooked (the burn warning's length).
+    private burnWindows: Record<string,number>={};
+    // Each warning stove's pulse count so far (a pulse starts at every whole number).
+    private burnPulses: Record<string,number>={};
     private jeffThinking: Node|null=null;
     private jeffError: Node|null=null;
     private ground: Record<string,Node>={};
@@ -1229,6 +1233,47 @@ export class KitchenClient extends Component {
         }
     }
     // Recipe data from the server snapshot: names, colours, cooking states and plating order.
+    /** A stove's countdown as of now: between states the page counts on from the last one while the round runs. */
+    private stoveCountdown(st:any){
+        const running=this.connected&&!this.hidden&&this.state?.phase==='running';
+        return heatCountdown(st,running?this.clock-this.lastStateAt:0,st.food?this.burnWindows[st.food.id]||0:0);
+    }
+    /** The countdown badge on a stove; lit marks a warning pulse (as Overcooked 2's flashing over-cooking icon). */
+    private drawHeatCountdown(node:Node,id:string,countdown:ReturnType<typeof heatCountdown>,lit:boolean){
+        let timer=node.getChildByName('heat-countdown');
+        if(countdown&&!timer){
+            timer=this.child(node,'heat-countdown',48,15,0,this.workSurfaceY(id)+TILE/2-5);
+            timer.addComponent(Graphics);
+            const text=this.child(timer,'time',48,15).addComponent(Label);
+            this.pixel(text,12);text.overflow=Label.Overflow.SHRINK;
+        }
+        if(!timer)return;
+        timer.active=!!countdown;
+        if(!countdown)return;
+        timer.setSiblingIndex(node.children.length-1);
+        const tg=timer.getComponent(Graphics)!;tg.clear();
+        // A pulse rings the badge in honey and swells it a little; the badge and its paper text stay as they are, so
+        // the time reads the same on every frame (small pixel text on the honey itself was hard to read).
+        if(lit)this.rect(tg,-27,-10.5,54,21,COLORS.honey);
+        timer.setScale(lit?1.12:1,lit?1.12:1,1);
+        this.rect(tg,-24,-7.5,48,15,countdown.paused?COLORS.steel:countdown.ready?COLORS.hot:COLORS.walnut);
+        const label=timer.getChildByName('time')!.getComponent(Label)!;label.color=color(COLORS.paper);
+        this.writeLabel(label,`${countdown.paused?'Ⅱ ':''}${countdown.text}s ${countdown.ready?'糊':'熟'}`);
+    }
+    /** Every frame of a running round: the stove countdowns count on, and a stove whose food nears burning flashes
+     * and beeps, faster as it nears (Overcooked 2 warns from 1.3 times the cooking time until burning at 2 times). */
+    private stepBurnWarnings(dt:number,running:boolean){
+        for(const [id,st] of Object.entries<any>(this.state!.kitchen.stations)){
+            const dev=this.devices[id];if(!st.stove||!dev)continue;
+            const countdown=this.stoveCountdown(st),urgency=running?countdown?.urgency??null:null;
+            if(urgency===null){delete this.burnPulses[id];this.drawHeatCountdown(dev.node,id,countdown,false);continue;}
+            const before=this.burnPulses[id];
+            const after=before===undefined?0:before+dt*burnPulseRate(urgency);
+            if(before===undefined||Math.floor(after)>Math.floor(before))this.audio.play('cook_warn');
+            this.burnPulses[id]=after;
+            this.drawHeatCountdown(dev.node,id,countdown,!this.reduceMotion&&after%1<.45);
+        }
+    }
     private itemDef(item:string|undefined):any{return item?this.state?.kitchen.items?.[item]:undefined;}
     private itemLabel(item:string){return this.itemDef(item)?.name||item;}
     private cooks(item:string|undefined){return !!this.itemDef(item)?.states?.includes('cooking');}
@@ -1529,7 +1574,7 @@ export class KitchenClient extends Component {
             for(const n of [...this.mapNodes,...Object.values(this.ground),...Object.values(this.flights)])n.destroy();
             this.devices={};this.people={};this.motions={};this.potEffects={};this.cabinetFires={};this.ground={};this.flights={};this.groundStages={};this.mounted=false;this.jeffWalk=null;
         }
-        if(next.game_id!==this.state?.game_id||!this.connected){this.menuSignature='';this.foodStages={};this.readyUntil={};this.activeClock=0;
+        if(next.game_id!==this.state?.game_id||!this.connected){this.menuSignature='';this.foodStages={};this.readyUntil={};this.burnWindows={};this.burnPulses={};this.activeClock=0;
             if(this.mounted)for(const who of ['human','jeff'])this.locate(this.people[who],next.kitchen.chefs[who].position);this.jeffWalk=null;}
         if(next.phase!=='running'||next.game_id!==this.state?.game_id||(this.spaceItemId!==null&&(next.kitchen.chefs.human.holding?.id!==this.spaceItemId||next.kitchen.chefs.human.can_throw===false)))this.clearInput();
         if(next.game_id!==this.state?.game_id){this.moveSeq=Date.now()*1000;this.steeredFacing=false;this.predicted=this.lastReported=this.lastAim=null;this.resyncSeen=-1;this.sprintAt=-Infinity;}
@@ -2130,25 +2175,11 @@ export class KitchenClient extends Component {
                 if(this.useModularArt)this.facedGlow(g,-TILE/2,this.workSurfaceY(id)-TILE/2,TILE,TILE,actionable);
                 else this.facedGlow(g,-27,-27,54,54,actionable);
             }
-            this.writeLabel(dev.label,st.fire?'着火了！':st.food?(this.itemName(st.food)+(st.food.stage==='cooking'?` ${Math.ceil(st.ready_in)}s`:st.food.stage==='ready'&&st.heating&&st.burn_in!==undefined?` ${Math.ceil(st.burn_in)}s 后糊`:'')):this.state!.kitchen.map.equipment[id]?.type==='ingredient_source'&&this.useModularArt?this.itemLabel(this.sourceItem(id)):st.name);
-            const countdown=heatCountdown(st);
-            let timer=dev.node.getChildByName('heat-countdown');
-            if(countdown&&!timer){
-                timer=this.child(dev.node,'heat-countdown',48,15,0,this.workSurfaceY(id)+TILE/2-5);
-                timer.addComponent(Graphics);
-                const text=this.child(timer,'time',48,15).addComponent(Label);
-                this.pixel(text,12);text.overflow=Label.Overflow.SHRINK;
-            }
-            if(timer){
-                timer.active=!!countdown;
-                if(countdown){
-                    timer.setSiblingIndex(dev.node.children.length-1);
-                    const tg=timer.getComponent(Graphics)!;tg.clear();
-                    this.rect(tg,-24,-7.5,48,15,countdown.paused?COLORS.steel:countdown.ready?COLORS.hot:COLORS.walnut);
-                    const label=timer.getChildByName('time')!.getComponent(Label)!;label.color=color(COLORS.paper);
-                    this.writeLabel(label,`${countdown.paused?'Ⅱ ':''}${countdown.seconds}s ${countdown.ready?'糊':'熟'}`);
-                }
-            }
+            if(st.stove&&st.food?.stage==='ready'&&Number.isFinite(st.burn_in))
+                this.burnWindows[st.food.id]=Math.max(this.burnWindows[st.food.id]||0,st.burn_in);
+            const countdown=this.stoveCountdown(st);
+            this.writeLabel(dev.label,st.fire?'着火了！':st.food?(this.itemName(st.food)+(st.food.stage==='cooking'?` ${Math.ceil(st.ready_in)}s`:st.food.stage==='ready'&&st.heating&&st.burn_in!==undefined?` ${countdown?.text??Math.ceil(st.burn_in)}s 后糊`:'')):this.state!.kitchen.map.equipment[id]?.type==='ingredient_source'&&this.useModularArt?this.itemLabel(this.sourceItem(id)):st.name);
+            this.drawHeatCountdown(dev.node,id,countdown,false);
             dev.label.color=color(st.fire||st.food?.stage==='ready'||st.food?.stage==='burnt'?COLORS.hot:COLORS.ink);
             // What rests on a burning station stays drawn (the flames go over it), so an item never seems to vanish.
             const food=dev.node.getChildByName('food')!;food.active=!!st.food||st.fire;if(food.active)this.drawIcon(food.getComponent(Graphics)!,st.food?this.itemStage(st.food):'fire');
@@ -2633,6 +2664,7 @@ export class KitchenClient extends Component {
         const running=this.connected&&!this.hidden&&this.state.phase==='running';
         const animate=running&&!this.qaNoMotion;
         if(animate)this.activeClock+=dt;
+        this.stepBurnWarnings(dt,running);
         for(const who of ['human','jeff']){
             const c=k.chefs[who],p=c.position,n=this.people[who],motion=this.motions[who];
             // A chef who isn't chopping never shows a knife, even on frames that skip characterArt.

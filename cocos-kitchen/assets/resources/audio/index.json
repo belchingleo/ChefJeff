@@ -141,6 +141,12 @@
    "gain": 0.8,
    "seconds": 0.83
   },
+  "cook_warn": {
+   "loop": false,
+   "kind": "chip",
+   "gain": 0.45,
+   "seconds": 0.08
+  },
   "burnt_warn": {
    "loop": false,
    "kind": "real",

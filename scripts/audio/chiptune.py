@@ -57,6 +57,11 @@ CUES = {
         'synth_a': lambda: sequence([('G5', .12), ('C5', .30)], duty=.25, decay=4.5),
         'synth_b': lambda: sequence([('E5', .12), ('C5', .12), ('G4', .30, {'slide': -.04})], duty=.5, decay=4),
     },
+    # Burn warning (2026-11-27): one short blip a pulse, repeated faster as the food nears burning, as Overcooked 2's
+    # over-cooking beeps. Plain square blip, high enough to cut through the sizzle and music.
+    'cook_warn': {
+        'synth_a': lambda: sequence([('A5', .07)], duty=.25, decay=14),
+    },
     # Bad review. Round 3: the falling "uh-oh" (a/b) was too close to order_expired, so c-e are
     # different gestures: repeated low "bu-bu", a dissonant tritone buzz, and a sliding comic "wah".
     'serve_bad': {

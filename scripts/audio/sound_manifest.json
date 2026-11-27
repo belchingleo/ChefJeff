@@ -590,6 +590,14 @@
       ]
     },
     {
+      "id": "cook_warn",
+      "kind": "chip",
+      "seconds": 0.1,
+      "zh": "快糊了",
+      "synth": true,
+      "pick": "synth_a"
+    },
+    {
       "id": "burnt_warn",
       "kind": "real",
       "seconds": 3,

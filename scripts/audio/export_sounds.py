@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[2]
 DEST = ROOT / 'cocos-kitchen/assets/resources/audio'
 # Relative mix, applied in the client (0-1). One-shots are peak-normalised, loops RMS-normalised.
 GAIN = {'music': 0.55, 'ambience': 0.45, 'chip': 0.6, 'real': 0.8}
-GAIN_OVERRIDE = {'ui_click': 0.35, 'order_urgent': 0.5, 'sizzle_loop': 0.5, 'fire_loop': 0.6, 'jingle_win': 0.7,
+GAIN_OVERRIDE = {'ui_click': 0.35, 'cook_warn': 0.45, 'order_urgent': 0.5, 'sizzle_loop': 0.5, 'fire_loop': 0.6, 'jingle_win': 0.7,
                  'jingle_lose': 0.7}
 
 

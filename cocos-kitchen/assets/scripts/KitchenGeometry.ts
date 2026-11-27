@@ -518,14 +518,31 @@ export function plateLayers(plating:{layer:string;item:string}[]|undefined,compo
     if(plating?.length)return plating.filter(layer=>present.has(layer.item));
     return Array.from(present).map(item=>({layer:item,item}));
 }
-export function heatCountdown(st:any){
+/** As in Overcooked 2, which warns from 1.3 times an item's cooking time until it burns at 2 times: the warning runs
+ * over the last 70% of the time from cooked to burnt. */
+export const BURN_WARNING_SHARE=.7;
+/** Under this many seconds the burn countdown shows tenths: rounded up, the last second showed "1s" whether a second
+ * or a tenth of one was left. */
+export const BURN_TENTHS_BELOW=3;
+
+/** A stove's countdown to cooked or to burnt. elapsed: seconds since this state arrived, counted down while the stove
+ * heats. window: seconds from cooked to burnt for this food (the page notes it when the food turns cooked). urgency:
+ * 0 when the burn warning starts, 1 at burning; null outside the warning. */
+export function heatCountdown(st:any,elapsed=0,window=0){
     if(!st.stove||!st.food||st.fire)return null;
     const ready=st.food.stage==='ready',cooking=['chopped','cooking'].includes(st.food.stage);
     if(!ready&&!cooking)return null;
-    const seconds=ready?st.burn_in:st.ready_in;
-    if(!Number.isFinite(seconds))return null;
-    return {seconds:Math.max(0,Math.ceil(seconds)),ready,paused:!st.heating};
+    const left=ready?st.burn_in:st.ready_in;
+    if(!Number.isFinite(left))return null;
+    const paused=!st.heating,remaining=Math.max(0,left-(paused?0:Math.max(0,elapsed)));
+    const text=ready&&remaining<BURN_TENTHS_BELOW?remaining.toFixed(1):String(Math.ceil(remaining));
+    const span=window*BURN_WARNING_SHARE;
+    const urgency=ready&&!paused&&span>0&&remaining<=span?Math.min(1,1-remaining/span):null;
+    return {seconds:Math.ceil(remaining),text,ready,paused,urgency};
 }
+
+/** Warning pulses a second at this urgency (0..1): faster as the food nears burning, as Overcooked 2's warning. */
+export function burnPulseRate(urgency:number){return 1+3*Math.max(0,Math.min(1,urgency));}
 
 /** Level buttons on the cover, for any number of listed levels: one row of up to three, else two
  * balanced rows, inside the band between the cover text and the main buttons (design px, y down;

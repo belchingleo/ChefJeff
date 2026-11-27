@@ -21,6 +21,8 @@ const EVENT_SOUNDS:Record<string,string>={order:'order_new',ready:'food_ready',b
     fire_spread:'fire_spread',served:'serve_ok',wrong_dish:'serve_bad',dish_rejected:'serve_bad',bad_service:'serve_bad',expired:'order_expired',thrown:'throw',
     caught:'catch',dropped:'land',plate_returned:'plate_return'};
 const cooking=(stage?:string)=>!!stage&&/^(pot_)?(cooking|chopped|ready|burnt)$/.test(stage);
+/** What a held item carries: a plate's parts, a pan's contents. */
+const held=(item:any)=>JSON.stringify([item?.components??null,item?.contents?.id??null,item?.contents?.stage??null]);
 
 /** Presentation only: reads kitchen snapshots and plays sounds; never alters observations or rules. */
 export class KitchenAudio {
@@ -171,7 +173,11 @@ export class KitchenAudio {
         const sameItem=before&&after&&before.id===after.id;
         // Sounds follow confirmed hand changes only (Overcooked 2's OnCarriedItemChanged): a failed press is silent.
         if(sameItem&&before.contents&&!after.contents&&(kind==='empty_pot'||kind==='discard')){this.play('discard');return;}
-        if(sameItem&&before.stage!==after.stage){
+        // The same item with another stage, or what it holds changed (a pan emptied onto a plate on the counter, a
+        // held plate that takes more): the job is done whichever chef did it. Before 2026-11-27 a contents change
+        // only sounded when a state caught the chef at work, which the player's own reply always does and Jeff's
+        // quick jobs, between two 0.2 s polls, mostly did not: Jeff plated in silence.
+        if(sameItem&&(before.stage!==after.stage||held(before)!==held(after))){
             if(kind==='assemble')this.play('assemble');
             else if(kind==='empty_pot'||kind==='discard')this.play('discard');
             else if(/^plate|merge/.test(kind||''))this.play('plate_place');

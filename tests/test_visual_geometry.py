@@ -243,11 +243,26 @@ for (let n = 1; n <= 6; n++) {
 assert.deepStrictEqual(geometry.levelButtonLayout(0), []);
 
 const cooking = geometry.heatCountdown({stove:true, heating:true, food:{stage:'cooking'}, ready_in:2.2});
-assert.deepStrictEqual(cooking, {seconds:3, ready:false, paused:false});
+assert.deepStrictEqual(cooking, {seconds:3, text:'3', ready:false, paused:false, urgency:null});
+// The last 3 s before burning show tenths (rounded up, the last second read "1s" with a tenth left).
 const cooked = geometry.heatCountdown({stove:true, heating:true, food:{stage:'ready'}, burn_in:1.1});
-assert.deepStrictEqual(cooked, {seconds:2, ready:true, paused:false});
-const paused = geometry.heatCountdown({stove:true, heating:false, food:{stage:'ready'}, burn_in:4});
-assert.deepStrictEqual(paused, {seconds:4, ready:true, paused:true});
+assert.deepStrictEqual(cooked, {seconds:2, text:'1.1', ready:true, paused:false, urgency:null});
+assert.strictEqual(geometry.heatCountdown({stove:true, heating:true, food:{stage:'ready'}, burn_in:3.2}).text, '4');
+const paused = geometry.heatCountdown({stove:true, heating:false, food:{stage:'ready'}, burn_in:4}, 1, 10);
+assert.deepStrictEqual(paused, {seconds:4, text:'4', ready:true, paused:true, urgency:null});
+// Between states the countdown counts on while the stove heats.
+assert.strictEqual(geometry.heatCountdown({stove:true, heating:true, food:{stage:'ready'}, burn_in:2.5}, .5, 10).text, '2.0');
+assert.strictEqual(geometry.heatCountdown({stove:true, heating:true, food:{stage:'ready'}, burn_in:.2}, .5, 10).text, '0.0');
+// The burn warning covers the last 70% of cooked-to-burnt (Overcooked 2: from 1.3 to 2 times the cooking time).
+const urgency = (left, window) => geometry.heatCountdown({stove:true, heating:true, food:{stage:'ready'}, burn_in:left}, 0, window).urgency;
+assert.strictEqual(urgency(7.5, 10), null);
+assert.strictEqual(urgency(7, 10), 0);
+assert(Math.abs(urgency(3.5, 10) - .5) < 1e-9);
+assert.strictEqual(urgency(0, 10), 1);
+assert.strictEqual(urgency(2, 0), null);                      // no window noted: no warning
+assert.strictEqual(geometry.heatCountdown({stove:true, heating:true, food:{stage:'cooking'}, ready_in:1}, 0, 10).urgency, null);
+assert.strictEqual(geometry.burnPulseRate(0), 1);
+assert.strictEqual(geometry.burnPulseRate(1), 4);
 
 const groundDepth = geometry.depthOrder(4, 'item');
 const flyingDepth = geometry.flightDepth(4, tile*.5);
