@@ -77,6 +77,12 @@ def wait_until(condition, seconds=20):
 
 
 class SharedDataTests(unittest.TestCase):
+    def quiet(self):
+        """Hide the record worker's retry lines for this test (TestCase.enterContext needs Python 3.11; CI runs 3.10)."""
+        hidden = redirect_stdout(io.StringIO())
+        hidden.__enter__()
+        self.addCleanup(hidden.__exit__, None, None, None)
+
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
@@ -144,7 +150,7 @@ class SharedDataTests(unittest.TestCase):
         self.assertAlmostEqual(datetime.fromisoformat(receipt['expires_at']).timestamp(), expires, delta=1)
 
     def test_an_update_queued_before_its_create_lands_goes_after_it_and_a_failed_create_is_resent_unchanged(self):
-        self.enterContext(redirect_stdout(io.StringIO()))   # the worker's retry lines
+        self.quiet()
         remote = RemoteRecords(self.client('global'), retry_seconds=(0.05,))
         self.addCleanup(remote.close)
         real, sent, bodies = remote.client.request, [], []
@@ -181,7 +187,7 @@ class SharedDataTests(unittest.TestCase):
         self.assertEqual(remote.pending(), 0)
 
     def test_a_failed_send_is_tried_again_and_only_the_newest_snapshot_goes(self):
-        self.enterContext(redirect_stdout(io.StringIO()))   # the worker's retry lines
+        self.quiet()
         remote = RemoteRecords(self.client('global'), retry_seconds=(0.05, 0.05))
         self.addCleanup(remote.close)
         receipt = remote.save({**self.record, 'consent_mode': 'round'})
@@ -210,7 +216,7 @@ class SharedDataTests(unittest.TestCase):
         self.assertEqual(self.stored(receipt)['consent_mode'], 'round')
 
     def test_a_record_that_never_gets_through_is_given_up_and_a_withdrawn_one_is_not_brought_back(self):
-        self.enterContext(redirect_stdout(io.StringIO()))   # the worker's retry lines
+        self.quiet()
         remote = RemoteRecords(self.client('global'), retry_seconds=(0.02, 0.02))
         self.addCleanup(remote.close)
         receipt = remote.save({**self.record, 'consent_mode': 'round'})
@@ -232,7 +238,7 @@ class SharedDataTests(unittest.TestCase):
         self.assertEqual(remote.given_up, 1)
 
     def test_a_stopping_server_sends_the_records_still_waiting(self):
-        self.enterContext(redirect_stdout(io.StringIO()))   # the worker's retry lines
+        self.quiet()
         remote = RemoteRecords(self.client('global'), retry_seconds=(600,))
         receipt = remote.save({**self.record, 'consent_mode': 'round'})
         real, sent = remote.client.request, []
