@@ -48,7 +48,8 @@ the partner links' version and the partner lines that now first free the other c
 as before. Rewritten again for throw-rest-v1 (a throw with no free tile where it comes down rests on the nearest free
 floor tile instead of being refused): levels 1 to 3 are unchanged; in level 4 a throw that used to be refused is listed
 from 30 s on and the scripted round plays on differently, so the level-4 requests from the 16th on differ in all three
-combinations.
+combinations. Rewritten again for burn-note-v6: every_trial requests carry its version, and the options on a stove whose
+food is still cooking carry no note; plain and released are as before.
 """
 from __future__ import annotations
 

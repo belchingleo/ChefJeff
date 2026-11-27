@@ -6,7 +6,7 @@
   "option_links": {"stage": "release", "on": true, "version": "option-links-v3"},
   "option_links_partner": {"stage": "release", "on": true, "version": "partner-links-v4"},
   "split_floor": {"stage": "release", "on": true, "version": "split-floor-v1"},
-  "burn_note": {"stage": "trial", "on": false, "version": "burn-note-v4"},
+  "burn_note": {"stage": "trial", "on": false, "version": "burn-note-v6"},
   "step_check": {"stage": "trial", "on": false, "version": "step-check-v3"},
   "walk_note": {"stage": "trial", "on": false, "version": "walk-note-v1"},
   "clear_text": {"stage": "trial", "on": true, "version": "clear-text-v1"},

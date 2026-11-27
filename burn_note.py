@@ -1,4 +1,4 @@
-"""burn-note-v4: an option on a stove whose food is cooking or cooked says, with the times, when it is cooked and burns.
+"""burn-note-v6: an option on a stove whose food is cooked says when it burns and that the stove then catches fire.
 
 A trial (features.json burn_note, off by default, no page switch). The request's state already gives each stove's
 burn_in, and the fire rule says the stove catches fire when its food burns; the option labels do not. With this
@@ -20,12 +20,21 @@ heat gets " (<food> on <stove> waits until the fire on <stove> is out)", food st
 is cooked in <ready_in> s, then waits until the fire on <stove> is out)"; a held pan's food that is not burnt, for a
 burning stove, " (<food> in the held <vessel> waits there until the fire on <stove> is out)". No seconds for the wait:
 it lasts until someone puts the fire out.
+v5 (2026-11-27): while the food is still cooking, the options on its stove say only " (<food> on <stove> is cooked in
+<ready_in> s)"; the burn and fire times come once it is cooked, as in v1. In the 2026-11-27 re-ask (scripts/
+layer_reask.py steps, Jev, level 4) the facts step with v4 saved more cooked pans (10% to 53% of answers lifted or
+plated food about to burn) but lifted still-cooking pans at moments where no Jev answer had before (half the answers):
+the lift option of a cooking pan read "is cooked in 7.0 s and burns in 17.1 s; Stove 1 catches fire then".
+v6 (2026-11-27): no note while the food is still cooking on a stove that is not burning, as in v1. The follow-up
+re-ask showed it was the note itself, not its burn and fire times: at the same ten moments Jev left a still-cooking pan
+alone in 30 of 30 answers without the burn note, 15 of 30 with v4 alone, and 3 of 13 with v5 (six level-4 moments with
+the request-writing step on top: 2 of 18 with v4, 0 of 18 with v5). The note on cooked food, which made Jev lift or
+plate food about to burn in 17 of 30 answers against 3 of 30 without it, stays.
 """
 from __future__ import annotations
 
-VERSION = 'burn-note-v4'
+VERSION = 'burn-note-v6'
 NOTE = ' ({food} on {stove} burns in {seconds:.1f} s; {stove} catches fire then)'
-COOKING = ' ({food} on {stove} is cooked in {ready:.1f} s and burns in {seconds:.1f} s; {stove} catches fire then)'
 HELD = ' ({food} in the held {vessel} burns {seconds:.1f} s after it is back on the heat; {stove} catches fire then)'
 HELD_COOKING = (' ({food} in the held {vessel} is cooked {ready:.1f} s and burns {seconds:.1f} s after it is back on the '
                 'heat; {stove} catches fire then)')
@@ -50,9 +59,8 @@ def notes(payload):
             out[sid] = WAIT.format(food=meaning, stove=stove)
         elif stage == 'ready' and heating:
             out[sid] = NOTE.format(food=meaning, stove=stove, seconds=station['burn_in'])
-        elif stage == 'cooking' and heating and station.get('ready_in') is not None:
-            out[sid] = (COOKING_FIRE.format(food=meaning, stove=stove, ready=station['ready_in']) if burning else
-                        COOKING.format(food=meaning, stove=stove, ready=station['ready_in'], seconds=station['burn_in']))
+        elif stage == 'cooking' and heating and burning and station.get('ready_in') is not None:
+            out[sid] = COOKING_FIRE.format(food=meaning, stove=stove, ready=station['ready_in'])
     return out
 
 

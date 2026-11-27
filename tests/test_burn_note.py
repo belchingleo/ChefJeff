@@ -1,4 +1,4 @@
-"""burn_note (burn-note-v1 to v4): options on a stove whose food is cooked say, with the time, when it burns. Facts only.
+"""burn_note (burn-note-v1 to v6): options on a stove whose food is cooked say, with the time, when it burns. Facts only.
 
 No model is called: requests are composed locally, and the round is a loopback relay round.
 """
@@ -64,23 +64,17 @@ class BurnNoteTests(unittest.TestCase):
         for word in ('should', 'hurry', 'lift', 'take', 'now'):    # a fact, not advice
             self.assertNotIn(word, note.lower())
 
-    def test_while_it_cooks_the_options_on_the_stove_say_when_it_is_cooked_and_burns(self):
-        # v2: before the food is cooked as well, from the stove's ready_in and burn_in in the same request.
+    def test_while_it_cooks_the_options_on_the_stove_say_nothing(self):
+        # v6 (2026-11-27), as v1: v2-v5 noted the cooking food on its stove's options, and Jev then lifted
+        # still-cooking pans (the note itself drew it, whatever its words). Only the version is added.
         k = kitchen(1)
         for key in ('fetch beef', 'put b1', 'chop b1', 'take b1', 'put p1'):
             do(k, key)
         k.advance(2.0)
         self.assertEqual(k.stations['p1'].food.stage, 'cooking')
         on, off = request(k, True), request(k, False)
-        stove = off['state']['kitchen']['stations']['p1']
-        note = (f" (beef (cooking) on {stove['name']} is cooked in {stove['ready_in']:.1f} s and burns in "
-                f"{stove['burn_in']:.1f} s; {stove['name']} catches fire then)")
-        changed = {key for key, label in on['questions']['next_action']['criteria'].items()
-                   if label != off['questions']['next_action']['criteria'][key]}
-        self.assertTrue(changed)
-        for key in changed:
-            self.assertIn('p1', key.split())
-            self.assertEqual(on['questions']['next_action']['criteria'][key], off['questions']['next_action']['criteria'][key] + note)
+        self.assertEqual(on['questions'], off['questions'])
+        self.assertEqual(on['state']['burn_note_version'], burn_note.VERSION)
 
     def test_putting_a_held_pan_of_cooked_food_back_on_a_stove_says_when_it_burns(self):
         # (v3) Off the stove the food does not heat; back on the heat it burns at the engine's threshold.
