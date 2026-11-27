@@ -663,9 +663,24 @@ def icp_line(filings=None):
             'window.addEventListener("kitchen-state",e=>show(e.detail&&e.detail.phase));})();</script>')
 
 
+# The language a site opens in when the player has not chosen one with the language button (cocos-kitchen/i18n.js):
+# the overseas site opens in English, every other address in Chinese.
+DEFAULT_LANGUAGES = {'global.chefjeff.online': 'en'}
+
+
+def language_line(languages=None):
+    languages = DEFAULT_LANGUAGES if languages is None else languages
+    if not languages:
+        return ''
+    table = json.dumps(languages, ensure_ascii=False).replace('<', '\\u003c')
+    return '<script>(()=>{const l=(' + table + ')[location.hostname];if(l)window.chefjeffDefaultLanguage=l;})();</script>'
+
+
 def hosted_html(raw):
     page = raw.decode('utf-8')
-    page = page.replace('<head>', '<head><script src="/model-providers.js"></script><script src="/hosted-agent.js"></script>', 1)
+    # The language default comes first: the page's language script (in the body) reads it as it loads.
+    page = page.replace('<head>', '<head>' + language_line() + '<script src="/model-providers.js"></script>'
+                        '<script src="/hosted-agent.js"></script>', 1)
     for old, new in SHELL_REPLACEMENTS:
         page = page.replace(old, new)
     panel = (ROOT / 'hosted' / 'contribution.html').read_text()

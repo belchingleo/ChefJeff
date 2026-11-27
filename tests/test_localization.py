@@ -44,6 +44,27 @@ assert.equal(i.t('空格 · 洗碗'),'Space · Wash dishes');
 assert.equal(i.t('熟牛排 5s 后糊'),'Cooked steak · burns in 5s');
 assert.equal(i.t('Kitchen timeout'),'Kitchen timeout');
 """)
+    def test_a_site_may_open_in_english_and_the_player_s_choice_wins(self):
+        # The overseas page sets chefjeffDefaultLanguage 'en' by its address (hosted_server.language_line).
+        script = """
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const source=fs.readFileSync('cocos-kitchen/i18n.js','utf8').replace('__KITCHEN_CATALOG__',fs.readFileSync('cocos-kitchen/i18n.json','utf8'));
+function open(site,saved){
+  const root={localStorage:{getItem:()=>saved,setItem:()=>{}}};
+  if(site)root.chefjeffDefaultLanguage=site;
+  const ctx={module:{exports:{}},globalThis:root};vm.runInNewContext(source,ctx);return ctx.module.exports.language;
+}
+assert.equal(open('en',null),'en');
+assert.equal(open('en','zh'),'zh');
+assert.equal(open('en','en'),'en');
+assert.equal(open(undefined,null),'zh');
+assert.equal(open(undefined,'en'),'en');
+assert.equal(open('fr',null),'zh');
+assert.ok(source.includes("'ChefJeff · Cooking with AI'"));
+"""
+        result = subprocess.run(['node', '-e', script], cwd=ROOT, text=True, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_shell_and_server_errors_are_translated(self):
         parser=ShellTexts();parser.feed((ROOT/'cocos-kitchen/web-shell.html').read_text());corpus=parser.texts
         for file in ('web_server.py','player_api.py'):

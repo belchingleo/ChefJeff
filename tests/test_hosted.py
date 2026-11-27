@@ -103,7 +103,8 @@ class HostedTests(unittest.TestCase):
     def test_privacy_markup_only_affects_hosted_page(self):
         raw=(Path(__file__).resolve().parents[1]/'cocos-kitchen/build/web/index.html').read_bytes()
         html=hosted_html(raw).decode()
-        self.assertIn('<head><script src="/model-providers.js"></script><script src="/hosted-agent.js">',html)
+        from hosted_server import language_line
+        self.assertIn('<head>'+language_line()+'<script src="/model-providers.js"></script><script src="/hosted-agent.js">',html)
         self.assertIn('浏览器 localStorage',html)
         self.assertNotIn('记住后以明文保存在这台电脑的本地配置文件',html)
         self.assertIn('<section aria-labelledby="memory-title"',html)
@@ -224,6 +225,15 @@ class HostedHTTPTests(unittest.TestCase):
         self.assertIn('id="icp-filing"', hosted_server.hosted_html(raw).decode())
         with patch.object(hosted_server, 'ICP_FILINGS', {}):
             self.assertNotIn('id="icp-filing"', hosted_server.hosted_html(raw).decode())
+
+    def test_the_overseas_site_opens_in_english_before_the_page_s_language_script_runs(self):
+        import hosted_server
+        line = hosted_server.language_line()
+        self.assertIn('{"global.chefjeff.online": "en"}[location.hostname]', line.replace('(', '').replace(')', ''))
+        self.assertNotIn('"chefjeff.online"', line)                 # the China site opens in Chinese
+        self.assertEqual(hosted_server.language_line({}), '')
+        html = hosted_server.hosted_html((self.server.web_root / 'index.html').read_bytes()).decode()
+        self.assertLess(html.index('chefjeffDefaultLanguage'), html.index('kitchen-i18n.js'))
 
     def test_shipped_audio_is_served_with_audio_mime_type(self):
         files = list((self.server.web_root / 'assets/resources/native').rglob('*.mp3'))

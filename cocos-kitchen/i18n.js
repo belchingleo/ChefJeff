@@ -13,8 +13,10 @@
   }).sort((a,b) => b.source.replace(/\{\d+\}/g,'').length-a.source.replace(/\{\d+\}/g,'').length);
   const keys = Object.keys(catalog.messages).sort((a,b) => b.length-a.length);
   const fragments = new RegExp(keys.map(escape).join('|'),'g');
-  let locale = 'zh';
-  try { if (root.localStorage?.getItem('chefjeff-language') === 'en') locale='en'; } catch (_) {}
+  // The page opens in the site's language (the overseas page sets chefjeffDefaultLanguage 'en' by its address,
+  // hosted_server.DEFAULT_LANGUAGES); a language the player chose with the button wins.
+  let locale = root.chefjeffDefaultLanguage === 'en' ? 'en' : 'zh';
+  try { const chosen=root.localStorage?.getItem('chefjeff-language'); if (chosen==='en'||chosen==='zh') locale=chosen; } catch (_) {}
   function english(text, depth=0) {
     if (typeof text !== 'string' || !text || depth>8) return text;
     if (Object.prototype.hasOwnProperty.call(catalog.messages,text)) return catalog.messages[text];
@@ -67,7 +69,7 @@
   }
   function chrome() {
     doc.documentElement.lang=locale==='en'?'en':'zh-CN';
-    doc.title=locale==='en'?'ChefJeff · Cook together':'ChefJeff·不分手厨房';
+    doc.title=locale==='en'?'ChefJeff · Cooking with AI':'ChefJeff·不分手厨房';
     const toggle=doc.getElementById('kitchen-language');
     if(toggle){toggle.textContent=locale==='en'?'中文':'English';toggle.setAttribute('aria-label',locale==='en'?'Switch to Chinese':'切换到英文');}
   }
