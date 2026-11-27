@@ -68,23 +68,49 @@ class RemoteRecords:
     def __init__(self, client, retry_seconds=RETRY_SECONDS, record_seconds=RECORD_SECONDS):
         self.client = client
         self.retry_seconds, self.record_seconds = tuple(retry_seconds), record_seconds
-        self.queue = {}                     # record id -> [record, failed tries, monotonic time it may go]
+        # record id -> {'create': the create request still to send or None, 'record': the newest update still to send
+        # or None, 'tries': failed sends so far, 'due': monotonic time it may go}
+        self.queue = {}
         self.queue_changed = threading.Condition()
         self.sending = None                 # the record id being sent now
         self.closing = False
         self.thread = None
         self.given_up = 0                   # records dropped after every retry failed
 
-    def save(self, record):
-        body = {'request_id': secrets.token_hex(16), 'created_at': time.time(),
+    @staticmethod
+    def create_body(record):
+        return {'request_id': secrets.token_hex(16), 'created_at': time.time(),
                 'deletion_token': secrets.token_urlsafe(32), 'record': record}
+
+    def save(self, record):
+        body = self.create_body(record)
         # One bounded retry reuses the create ID, token and original timestamp.
         for attempt in range(2):
             try:
-                return self.client.request('records/save', body, SAVE_SECONDS)
+                return self.client.request('records/save', body, self.record_seconds)
             except OSError:
                 if attempt:
                     raise
+
+    def save_later(self, record):
+        """The receipt for this record at once, with the record sent in the background (2026-11-27). A round's start
+        and the player's 贡献本局 used to wait for the record to reach Shanghai, and a page gives up after 5 s (start)
+        or 10 s (contribution): on the overseas site a whole round's record never got there in time. The service keeps
+        the id and deletion token the create request names, and its expiry is the request's creation time plus the
+        retention period (shared_data, ContributionStore.create), so the receipt is known before the record is sent.
+        A failed create is sent again unchanged (the service takes a repeated create as the same record); updates
+        queued meanwhile go after it."""
+        from hosted_records import CONSENT_VERSION, RETENTION_SECONDS
+        from datetime import datetime, timezone
+        body = self.create_body(record)
+        with self.queue_changed:
+            if self.closing:
+                raise OSError('Record delivery has stopped')
+            self.queue[body['request_id']] = {'create': body, 'record': None, 'tries': 0, 'due': 0.0}
+            self._start_thread()
+        return {'id': body['request_id'], 'deletion_token': body['deletion_token'],
+                'expires_at': datetime.fromtimestamp(body['created_at'] + RETENTION_SECONDS, timezone.utc).isoformat(),
+                'consent_version': CONSENT_VERSION}
 
     def update(self, identifier, record):
         return self.client.request('records/update', {'id': identifier, 'record': record}, self.record_seconds)
@@ -97,11 +123,18 @@ class RemoteRecords:
         with self.queue_changed:
             if self.closing:
                 raise OSError('Record delivery has stopped')
-            self.queue[identifier] = [record, 0, 0.0]
-            if self.thread is None:
-                self.thread = threading.Thread(target=self._deliver, name='shared-records', daemon=True)
-                self.thread.start()
-            self.queue_changed.notify_all()
+            entry = self.queue.get(identifier)
+            if entry and entry['create']:
+                entry['record'] = record            # after the create still waiting to go
+            else:
+                self.queue[identifier] = {'create': None, 'record': record, 'tries': 0, 'due': 0.0}
+            self._start_thread()
+
+    def _start_thread(self):
+        if self.thread is None:
+            self.thread = threading.Thread(target=self._deliver, name='shared-records', daemon=True)
+            self.thread.start()
+        self.queue_changed.notify_all()
 
     def pending(self):
         with self.queue_changed:
@@ -116,28 +149,45 @@ class RemoteRecords:
                             return
                         self.queue_changed.wait()
                         continue
-                    identifier, (record, tries, due) = min(self.queue.items(), key=lambda item: item[1][2])
-                    wait = due - time.monotonic()
+                    identifier, entry = min(self.queue.items(), key=lambda item: item[1]['due'])
+                    wait = entry['due'] - time.monotonic()
                     if wait <= 0 or self.closing:
                         break
                     self.queue_changed.wait(wait)
                 del self.queue[identifier]
                 self.sending = identifier
+            create = entry['create']
             try:
-                self.update(identifier, record)
+                if create:
+                    self.client.request('records/save', create, self.record_seconds)
+                else:
+                    self.update(identifier, entry['record'])
                 error = None
             except OSError as failure:
                 error = failure
             with self.queue_changed:
                 self.sending = None
                 self.queue_changed.notify_all()
-                if error is None or identifier in self.queue:
-                    continue                # delivered, or a newer snapshot replaces this one
+                newer = self.queue.get(identifier)
+                if error is None:
+                    if create and entry['record'] is not None and newer is None:
+                        self.queue[identifier] = {'create': None, 'record': entry['record'], 'tries': 0, 'due': 0.0}
+                    continue                # created or updated; an update queued meanwhile goes next
+                if create:
+                    # The create must go first, unchanged; a newer snapshot queued meanwhile follows it.
+                    record = newer['record'] if newer else entry['record']
+                    retry = {'create': create, 'record': record}
+                elif newer:
+                    continue                # a newer snapshot replaces the one that failed
+                else:
+                    retry = {'create': None, 'record': entry['record']}
+                tries = entry['tries']
                 if self.closing or tries >= len(self.retry_seconds):
+                    self.queue.pop(identifier, None)
                     self.given_up += 1
                     print(f'shared records: gave up on a record after {tries + 1} tries ({error})', flush=True)
                     continue
-                self.queue[identifier] = [record, tries + 1, time.monotonic() + self.retry_seconds[tries]]
+                self.queue[identifier] = {**retry, 'tries': tries + 1, 'due': time.monotonic() + self.retry_seconds[tries]}
                 print(f'shared records: sending a record failed ({error}); trying again in {self.retry_seconds[tries]} s',
                       flush=True)
 
@@ -153,6 +203,11 @@ class RemoteRecords:
     def delete(self, identifier, token):
         with self.queue_changed:
             self.queue.pop(identifier, None)    # a withdrawn round's queued snapshot is never sent
+            # A create already on its way must land before the delete, or it would bring the round back after it.
+            deadline = time.monotonic() + self.record_seconds
+            while self.sending == identifier and time.monotonic() < deadline:
+                self.queue_changed.wait(deadline - time.monotonic())
+            self.queue.pop(identifier, None)
         return self.client.request('records/delete', {'id': identifier, 'deletion_token': token}, SAVE_SECONDS)
 
     def download(self, identifier, token):

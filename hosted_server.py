@@ -230,6 +230,13 @@ class HostedSession(GameSession):
             self.usage.end_round(level_number(self.c), 'completed' if completed else self.usage_end_reason,
                                  self.k.time, self.speed)
 
+    def _save_record(self, record):
+        """A new research record's receipt. The overseas site's store (shared_client.RemoteRecords.save_later) gives
+        it at once and sends the record to the shared service in the background: a round's start and the player's
+        贡献本局 never wait on the link between the sites (the page gives up after 5 s and 10 s)."""
+        later = getattr(self.store, 'save_later', None)
+        return later(record) if later else self.store.save(record)
+
     def _persist_research(self):
         if not self.research_active or not self.store or self.receipt_round != self.game_id:
             return
@@ -368,7 +375,7 @@ class HostedSession(GameSession):
                 if self.session_log and self.session_log.round_id == self.game_id and not getattr(self.session_log, 'model_identity', None):
                     self.session_log.model_identity = identity
                 try:
-                    self.receipt = self.store.save({**pilot_record(self), 'consent_mode':mode})
+                    self.receipt = self._save_record({**pilot_record(self), 'consent_mode':mode})
                 except (ValueError, OSError, sqlite3.Error):
                     return 503, {'error': '贡献保存失败，请下载本局预览并稍后重试。'}
                 self.receipt_round = self.game_id
@@ -434,7 +441,7 @@ class HostedSession(GameSession):
             self.session_log.model_identity = deepcopy((self.research_armed or {}).get('model_identity'))
             if self.research_armed and self.store:
                 try:
-                    self.receipt = self.store.save({**pilot_record(self), 'consent_mode': 'standing'})
+                    self.receipt = self._save_record({**pilot_record(self), 'consent_mode': 'standing'})
                     self.receipt_round = self.game_id
                     self.research_active = True
                     response = (response[0], {**response[1], 'receipt': self.receipt})
