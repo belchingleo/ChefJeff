@@ -20,7 +20,7 @@
     drying_rack: {name: '沥水架', bg: '#c9cdd1', fg: INK, line: INK},
     plate_return: {name: '脏盘回收', bg: '#f0d9b5', fg: INK, line: INK},
     bin: {name: '垃圾桶', bg: INK, fg: '#fdf3e1', line: INK},
-    tool_rack: {name: '灭火器架', bg: '#b8321e', fg: '#fdf3e1', line: INK}
+    tool_rack: {name: '灭火器', bg: '#b8321e', fg: '#fdf3e1', line: INK}
   };
   const GLYPHS = {counter: ['柜', 'Ctr'], board: ['板', 'Brd'], serving_window: ['出', 'Out'], sink: ['洗', 'Sink'], drying_rack: ['架', 'Rack'], plate_return: ['收', 'Ret'], bin: ['桶', 'Bin'], tool_rack: ['灭', 'Ext']}; // i18n: bilingual
   const FLOOR = [['#f0d9b5', '#ecd0a6'], ['#fbe3b8', '#f6d79f'], ['#e7cfa9', '#dfc49a']];
@@ -777,7 +777,7 @@
     WALLS_SPLIT_KITCHEN: '墙把厨房隔开了，两边没法传递东西',
     STATION_UNREACHABLE: '有设备跟前没有地方站',
     STATION_NOT_AGAINST_WALL: '出餐口和脏盘回收要贴着外墙摆',
-    UNSUPPORTED_EQUIPMENT_COUNT: '水槽、脏盘回收、灭火器架要各有 1 个，出餐口 1 到 2 个',
+    UNSUPPORTED_EQUIPMENT_COUNT: '水槽、脏盘回收、灭火器要各有 1 个，出餐口 1 到 2 个',
     INVENTORY_NO_FREE_STATION: '柜台不够放开局的盘子',
     FLOOR_PARTS_OUT_OF_REACH: '柜台隔开的两块地板离得太远，东西扔不过去',
     PRICE_OUT_OF_RANGE: '有菜的价格超出了范围',

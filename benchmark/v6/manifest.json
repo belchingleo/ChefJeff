@@ -1,0 +1,26 @@
+{
+  "benchmark": "chefjeff",
+  "version": "v6",
+  "env_api_version": "env-v1",
+  "clock": "real",
+  "partner": "assembler",
+  "rounds_per_cell": 12,
+  "partner_policy": "sha256:1fa3fa9a7c839b01087c3c0cdc53c55d0368f73c4278171b5e5195a34f156551",
+  "levels": [
+    {
+      "id": "level-1",
+      "config_hash": "sha256:23404b070744dfa8d3ffed9a0b5b9cbd7d7463e2141dd198661f38a6215c9d31",
+      "engine_trace": "sha256:399d21e5c67576418b5ef0a86d12439b0c69a20c8f00de4c25aa629b1abaa1e9"
+    },
+    {
+      "id": "level-2",
+      "config_hash": "sha256:e69d8448906dd9fab72537342edfbda8005823a06a5d5c0e364a30ebcbab02d4",
+      "engine_trace": "sha256:d544f57280ef00a6994698aec25467bbc419086e4af7dac5ce74529e0ad8e688"
+    },
+    {
+      "id": "level-3",
+      "config_hash": "sha256:9c9bb83e6b5e3259cd5151a15a73c8bb2567bf219e8065b184befbfa60f07fca",
+      "engine_trace": "sha256:90ac317c788c61ea3f9f8afa2cf736e4435109bc7ce06e5d4fe631408b3b142b"
+    }
+  ]
+}

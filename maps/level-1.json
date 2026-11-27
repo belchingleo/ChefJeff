@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "id": "level-1",
-  "revision": 5,
+  "revision": 6,
   "size": [
     14,
     9
@@ -258,9 +258,9 @@
       "facing": "west"
     },
     {
-      "id": "extinguisher",
-      "type": "tool_rack",
-      "name": "灭火器架",
+      "id": "counter13",
+      "type": "counter",
+      "name": "柜台 13",
       "area": "cook",
       "cell": [
         12,
@@ -639,10 +639,6 @@
         "run_axis": "vertical",
         "device_axis": "vertical"
       },
-      "extinguisher": {
-        "run_axis": "vertical",
-        "device_axis": "vertical"
-      },
       "plates": {
         "run_axis": "horizontal",
         "device_axis": "horizontal"
@@ -698,6 +694,10 @@
       "counter2": {
         "run_axis": "horizontal",
         "device_axis": "horizontal"
+      },
+      "counter13": {
+        "run_axis": "vertical",
+        "device_axis": "vertical"
       }
     }
   }

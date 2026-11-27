@@ -37,7 +37,7 @@
  "levels": [
   {
    "level": 1,
-   "config_hash": "sha256:c615e956c2ef347ab76b9ba032c8b8b7e2b2f8ae87ecaff494e8e9d0b1848fce",
+   "config_hash": "sha256:23404b070744dfa8d3ffed9a0b5b9cbd7d7463e2141dd198661f38a6215c9d31",
    "requires_pair": false,
    "runs": [
     {
@@ -327,7 +327,7 @@
   },
   {
    "level": 2,
-   "config_hash": "sha256:5e6b8fc748661cba493f21695ac4e46b30fa1b5e35a80bad4ce0e756b7c98102",
+   "config_hash": "sha256:e69d8448906dd9fab72537342edfbda8005823a06a5d5c0e364a30ebcbab02d4",
    "requires_pair": false,
    "runs": [
     {
@@ -617,7 +617,7 @@
   },
   {
    "level": 3,
-   "config_hash": "sha256:7d46136fa9ddb7ccdb817af2ee8d1b5b009a28001e72b1a927b865b4b9d9868c",
+   "config_hash": "sha256:9c9bb83e6b5e3259cd5151a15a73c8bb2567bf219e8065b184befbfa60f07fca",
    "requires_pair": false,
    "runs": [
     {
@@ -907,7 +907,7 @@
   },
   {
    "level": 4,
-   "config_hash": "sha256:0e08bc9d1f0e25e9bc13c3ccc3f449a62e8e41a9743db90d54a9d74129accce8",
+   "config_hash": "sha256:647132dfcb59bb9db297faa927a827b6c27dabe402c5e26d07540f703c847e2c",
    "requires_pair": true,
    "runs": [
     {
@@ -943,10 +943,10 @@
       "classic": -60,
       "classic swapped": -60,
       "zoned": -60,
-      "zoned swapped": 88
+      "zoned swapped": 78
      },
      "pair": "zoned swapped",
-     "money": 88,
+     "money": 78,
      "solo": -60
     },
     {
@@ -1184,7 +1184,7 @@
      "solo": -60
     }
    ],
-   "pair_min": 88,
+   "pair_min": 78,
    "pair_median": 190,
    "pair_max": 290,
    "target_50pct": 90,
@@ -1197,7 +1197,7 @@
   },
   {
    "level": 5,
-   "config_hash": "sha256:7afb648ad0f5a689ce841fa29406449366c8d73e48bf3a8f97fee0eca4e0e55f",
+   "config_hash": "sha256:7935968989033e6b4b4c66ff8c25f99c08a001945d9a9feb0a14722b852abba9",
    "requires_pair": true,
    "runs": [
     {
@@ -1233,10 +1233,10 @@
       "classic": -60,
       "classic swapped": -60,
       "zoned": -60,
-      "zoned swapped": 88
+      "zoned swapped": 78
      },
      "pair": "zoned swapped",
-     "money": 88,
+     "money": 78,
      "solo": -60
     },
     {
@@ -1474,7 +1474,7 @@
      "solo": -60
     }
    ],
-   "pair_min": 88,
+   "pair_min": 78,
    "pair_median": 190,
    "pair_max": 290,
    "target_50pct": 90,

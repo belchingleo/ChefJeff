@@ -364,8 +364,8 @@
     "隔台协作": "Across the Counter",
     "第五关 · 换位协作": "Level 5 · Swapped Sides",
     "换位协作": "Swapped Sides",
-    "和第四关同一间厨房、同一组订单，只是你和 Jeff 换了位置：你在上面，Jeff 在下面。上面是食材箱、两个灶台、灭火器架、出餐口和垃圾桶；下面是两块案板、水槽和沥水架、脏盘回收和第二个垃圾桶。你把生肉和蔬菜递给 Jeff 切，他切好递回来，你煎、装盘、出餐；脏盘子由 Jeff 在下面洗，干净盘子再递上来：每道菜都要两个人。180 游戏秒，每 30 秒来一单牛排或汉堡（¥50／¥80），关店时净收入达到 ¥90 即达标。": "The kitchen and orders of level 4, with you and Jeff swapped: you work the upper part, Jeff the lower. Above: the ingredient sources, two stoves, the extinguisher rack, the serving window and a bin. Below: two boards, the sink and drying rack, the dirty-plate return and a second bin. You pass raw beef and vegetables down for Jeff to chop; he passes them back for you to cook, plate and serve, and he washes the dirty plates and sends clean ones up: every dish needs both chefs. 180 game seconds; a steak or burger order (¥50/¥80) arrives every 30 seconds; reach ¥90 net revenue by closing time.",
-    "一排柜台从墙边连到墙边，把厨房隔成上下两块，谁也绕不过去。上面是食材箱、两个灶台、灭火器架、出餐口和垃圾桶；下面是两块案板、水槽和沥水架、脏盘回收和第二个垃圾桶。生肉和蔬菜递到下面切，切好递回上面煎、装盘、出餐，干净盘子从下面递上来：每道菜都要两个人。180 游戏秒，每 30 秒来一单牛排或汉堡（¥50／¥80），关店时净收入达到 ¥90 即达标。": "A row of counters runs from wall to wall and splits the kitchen into an upper and a lower part; nobody can walk round. Above: the ingredient sources, two stoves, the extinguisher rack, the serving window and a bin. Below: two boards, the sink and drying rack, the dirty-plate return and a second bin. Raw beef and vegetables are passed down to be chopped, then back up to be cooked, plated and served, and clean plates come up from the sink: every dish needs both chefs. 180 game seconds; a steak or burger order (¥50/¥80) arrives every 30 seconds; reach ¥90 net revenue by closing time.",
+    "和第四关同一间厨房、同一组订单，只是你和 Jeff 换了位置：你在上面，Jeff 在下面。上面是食材箱、两个灶台、放着灭火器的柜台、出餐口和垃圾桶；下面是两块案板、水槽和沥水架、脏盘回收和第二个垃圾桶。你把生肉和蔬菜递给 Jeff 切，他切好递回来，你煎、装盘、出餐；脏盘子由 Jeff 在下面洗，干净盘子再递上来：每道菜都要两个人。180 游戏秒，每 30 秒来一单牛排或汉堡（¥50／¥80），关店时净收入达到 ¥90 即达标。": "The kitchen and orders of level 4, with you and Jeff swapped: you work the upper part, Jeff the lower. Above: the ingredient sources, two stoves, the counter with the extinguisher, the serving window and a bin. Below: two boards, the sink and drying rack, the dirty-plate return and a second bin. You pass raw beef and vegetables down for Jeff to chop; he passes them back for you to cook, plate and serve, and he washes the dirty plates and sends clean ones up: every dish needs both chefs. 180 game seconds; a steak or burger order (¥50/¥80) arrives every 30 seconds; reach ¥90 net revenue by closing time.",
+    "一排柜台从墙边连到墙边，把厨房隔成上下两块，谁也绕不过去。上面是食材箱、两个灶台、放着灭火器的柜台、出餐口和垃圾桶；下面是两块案板、水槽和沥水架、脏盘回收和第二个垃圾桶。生肉和蔬菜递到下面切，切好递回上面煎、装盘、出餐，干净盘子从下面递上来：每道菜都要两个人。180 游戏秒，每 30 秒来一单牛排或汉堡（¥50／¥80），关店时净收入达到 ¥90 即达标。": "A row of counters runs from wall to wall and splits the kitchen into an upper and a lower part; nobody can walk round. Above: the ingredient sources, two stoves, the counter with the extinguisher, the serving window and a bin. Below: two boards, the sink and drying rack, the dirty-plate return and a second bin. Raw beef and vegetables are passed down to be chopped, then back up to be cooked, plated and served, and clean plates come up from the sink: every dish needs both chefs. 180 game seconds; a steak or burger order (¥50/¥80) arrives every 30 seconds; reach ¥90 net revenue by closing time.",
     "开始前选择第三关。两个灶台、三口锅，备用空锅在右上柜台。面包直接装盘；生菜和番茄切好，牛肉切好后煎熟。把配料加入柜台上的干净盘，可任意顺序组装；缺料不能出餐。牛排 2 单、汉堡 3 单，顺序每局随机。": "Choose Level 3 before starting. Two stoves and three pots; the spare pot is on the top-right counter. Bread needs no prep. Chop lettuce and tomato; chop and cook beef. Add ingredients to a clean plate on a counter in any order. Incomplete dishes cannot be served. Each round has 2 steaks and 3 burgers in shuffled order.",
     "开始前选择第三关。两个灶台、三口锅，备用空锅在右上柜台。面包直接装盘；生菜和番茄切好，牛肉切好后煎熟。可手持盘从案板或柜台收集切好蔬菜和面包，也能给队友手中盘加料。两盘无重复配料可合并：成品留手中，柜台留空盘。牛肉须先煎熟；缺料不能出餐。牛排 2 单、汉堡 3 单，顺序每局随机。": "Choose Level 3 before starting. Two stoves and three pots; the spare pot is on the top-right counter. Bread needs no prep. Chop lettuce and tomato; chop and cook beef. Add ingredients to a clean plate on a counter in any order. Incomplete dishes cannot be served. Each round has 2 steaks and 3 burgers in shuffled order. Held plates can collect prepared ingredients from boards/counters. Add food to a teammate's plate, or merge two non-overlapping plates; the empty source plate stays in place.",
     "火势失控": "Fire out of control",
@@ -1001,7 +1001,7 @@
     "交上去以后，服务器先当场检查一遍：价格对不对、菜在这张地图上做不做得出来。检查通过才会排队计算。": "The server first checks it at once: are the prices right, can each dish be made on this map? Only then does it queue the calculation.",
     "墙把厨房隔开了，两边没法传递东西": "Walls cut the kitchen in two, so nothing can pass between the sides",
     "有设备跟前没有地方站": "A station has nowhere to stand in front of it",
-    "水槽、脏盘回收、灭火器架要各有 1 个，出餐口 1 到 2 个": "One sink, one plate return and one extinguisher rack, and 1 or 2 serving windows",
+    "水槽、脏盘回收、灭火器要各有 1 个，出餐口 1 到 2 个": "One sink, one plate return and one extinguisher, and 1 or 2 serving windows",
     "柜台不够放开局的盘子": "Not enough counters for the starting plates",
     "柜台隔开的两块地板离得太远，东西扔不过去": "The two parts of the floor are too far apart to throw food across",
     "有菜的价格超出了范围": "A price is out of range",
@@ -1439,6 +1439,10 @@
     [
       "到{0}切 {1}",
       "Chop {1} at {0}"
+    ],
+    [
+      "从{0}拿起灭火器（占用手持位）",
+      "Take the extinguisher from {0} (occupies your hands)"
     ],
     [
       "从{0}拿起{1}",

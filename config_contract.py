@@ -41,7 +41,7 @@ REF_FIELDS = {'ruleset': 'ruleset_ref', 'map': 'map_ref', 'equipment_catalog': '
 OPERATION_CAPABILITY = {'chop': 'chop', 'heat': 'heat'}
 VESSELS = ('pot', 'pan')  # cooking vessels: pot boils, pan fries; they share the P1..Pn ID sequence
 INVENTORY_HOSTS = {'plate': ('counter', 'sink', 'plate_return'), 'pot': ('stove', 'counter'), 'pan': ('stove', 'counter'),
-                   'extinguisher': ('tool_rack',)}
+                   'extinguisher': ('counter', 'tool_rack')}     # a rack only on maps from before 2026-11-27
 ORDER_ALGORITHMS = {'fixed_interval_seeded': 'fixed_interval_seeded/weighted-cumulative-v1',
                     'fixed_table': 'fixed_table/stable-sort-v1'}
 SEED_LIMIT = 2 ** 31
@@ -279,10 +279,12 @@ def resolve_config(bundle, registry=None):
         if params:
             record['params'] = dict(params)
         stations.append(record)
+    # The extinguisher starts on a counter (2026-11-27, as Overcooked 2, which has no rack); a map from before then has
+    # its one rack.
     for type_id, needed in (('serving_window', 'at least one'), ('sink', 'exactly one'), ('drying_rack', 'exactly one'),
-                            ('plate_return', 'exactly one'), ('tool_rack', 'exactly one')):
+                            ('plate_return', 'exactly one'), ('tool_rack', 'at most one')):
         n = counts.get(type_id, 0)
-        if n == 0 or (needed == 'exactly one' and n != 1):
+        if (n == 0 and needed != 'at most one') or (needed == 'exactly one' and n != 1) or (needed == 'at most one' and n > 1):
             out.append(diag('UNSUPPORTED_EQUIPMENT_COUNT', 'ERROR', '/map/equipment',
                             f'this engine version needs {needed} {type_id} (found {n})'))
     # The drying rack is part of the sink (Overcooked 2's washing station hands its plates to it): beside it.

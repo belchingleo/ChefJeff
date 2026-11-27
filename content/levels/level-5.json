@@ -2,7 +2,7 @@
   "schema_version": 1,
   "kind": "level",
   "id": "level-5",
-  "version": 1,
+  "version": 2,
   "name": "第五关 · 换位协作",
   "menu_order": 5,
   "ruleset_ref": {
@@ -11,7 +11,7 @@
   },
   "map_ref": {
     "id": "level-4",
-    "version": 2
+    "version": 3
   },
   "equipment_catalog_ref": {
     "id": "chefjeff-core",
@@ -56,7 +56,7 @@
     {
       "object": "extinguisher",
       "id": "E1",
-      "at_type": "tool_rack"
+      "at": "counter15"
     },
     {
       "object": "plate",

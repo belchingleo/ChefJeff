@@ -80,7 +80,7 @@ class BurntTimeTests(unittest.TestCase):
     def put_out(self):
         """Jeff, at the stove, takes the extinguisher and sprays the fire out (0.5 s)."""
         k = self.k
-        k.chefs['jeff'].hand, k.stations['extinguisher'].food = k.stations['extinguisher'].food, None
+        k.chefs['jeff'].hand, k.stations[k.extinguisher_at()].food = k.stations[k.extinguisher_at()].food, None
         label = next(a.label for a in k.actions('jeff') if a.key == 'extinguish p1')
         self.assertIn(f'随后糊菜可以装盘上菜（扣 10 元，还剩 {servability.tenths(5 - self.burnt()):.1f} 秒），也可以端锅到垃圾桶倒掉', label)
         self.do('jeff', 'extinguish p1')
@@ -152,7 +152,7 @@ class ExtinguishLabelTests(unittest.TestCase):
 
     def kitchen(self, **edits):
         k = Kitchen(level(1, **edits))
-        k.chefs['jeff'].hand, k.stations['extinguisher'].food = k.stations['extinguisher'].food, None
+        k.chefs['jeff'].hand, k.stations[k.extinguisher_at()].food = k.stations[k.extinguisher_at()].food, None
         return k
 
     def label(self, k):
@@ -452,7 +452,9 @@ class ServiceWordingTests(unittest.TestCase):
         pot = k.stations['p1']
         pot.food = Food('fixture', stage='cooking', chopped=k.c['chop_seconds'], heated=0, ingredient='beef')
         pot.heating = True
-        k.advance(40)
+        # 25 s: since 2026-11-27 the extinguisher's counter burns like any counter (the rack did not), and by 40 s
+        # five stations burn and the round is over.
+        k.advance(25)
         burns = [e['message'] for e in k.events if e['kind'] == 'burn']
         self.assertTrue(burns)
         plate = k.stations['plates'].food

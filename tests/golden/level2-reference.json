@@ -514,7 +514,7 @@
   [
    109.0,
    "jeff",
-   "take extinguisher",
+   "take counter30",
    true
   ],
   [
@@ -538,7 +538,7 @@
   [
    112.0,
    "jeff",
-   "put extinguisher",
+   "put counter30",
    true
   ],
   [
@@ -2258,15 +2258,15 @@
    109.0,
    "action_start",
    "jeff",
-   "take extinguisher",
-   "Jeff开始：去灭火器架拿灭火器（占用手持位）（路程 1s + 操作 0.0s）"
+   "take counter30",
+   "Jeff开始：从柜台 30拿起灭火器（占用手持位）（路程 1s + 操作 0.0s）"
   ],
   [
    109.75,
    "action_done",
    "jeff",
-   "take extinguisher",
-   "Jeff完成动作：去灭火器架拿灭火器（占用手持位）"
+   "take counter30",
+   "Jeff完成动作：从柜台 30拿起灭火器（占用手持位）"
   ],
   [
    110.0,
@@ -2314,15 +2314,15 @@
    112.0,
    "action_start",
    "jeff",
-   "put extinguisher",
-   "Jeff开始：把灭火器放回架子（路程 0s + 操作 0.0s）"
+   "put counter30",
+   "Jeff开始：把手中物品放到柜台 30（每格一件）（路程 0s + 操作 0.0s）"
   ],
   [
    112.5,
    "action_done",
    "jeff",
-   "put extinguisher",
-   "Jeff完成动作：把灭火器放回架子"
+   "put counter30",
+   "Jeff完成动作：把手中物品放到柜台 30（每格一件）"
   ],
   [
    112.5,
@@ -3292,42 +3292,42 @@
   ]
  ],
  "checkpoints": [
-  "971647f953f01303",
-  "52657df877a7691e",
-  "55d2267ca52f30c6",
-  "de25b03c450b7a94",
-  "5a6cdadaa3af8c6d",
-  "de2735eef92cab5e",
-  "61e98faaf8bdb960",
-  "a08e34e6a2aed72a",
-  "02a4a8ec0beaeb99",
-  "c16859e91b210e95",
-  "8dac246ea1296ec9",
-  "6aeff003a7f67d98",
-  "f3615fc1fa562ca2",
-  "c3d413611a88b816",
-  "2e0c40e8c4956d62",
-  "0039a902c1cf15e2",
-  "2ff13ef2371dbca4",
-  "a28998ce5179a430",
-  "21c9790c0786f164",
-  "b33bb02c6f9d0754",
-  "6a94c5f2851b88cf",
-  "479feb40803117cc",
-  "28294d504a963011",
-  "4f256264b9170411",
-  "fbd328f0c697976f",
-  "ec664af1a445f538",
-  "0d690e8eb809bac1",
-  "e7540b783243bac8",
-  "1579bf2a1a40b92f",
-  "bc310961143ce875",
-  "7dc61ecfe1319d1f",
-  "ae925102733053a9",
-  "24ceae75d450f40f",
-  "51e67d8ee0d6267b",
-  "de15a60f1fc48987",
-  "2bc3ef5b9402628d"
+  "f5aaca572160ff70",
+  "816f5cf33fc45b3d",
+  "94a9d2111bcdaf38",
+  "037434f37dc14ff5",
+  "78f481a66007906e",
+  "06e915e19fc4535d",
+  "6afd2af75d1d482d",
+  "a84e4ef745c5ecb5",
+  "48fcc5d1649db892",
+  "aed09b3cdfd1914e",
+  "916d28e67e03ef20",
+  "4f9b3d02ef1bfc24",
+  "a83571bb03d51283",
+  "daffd505a7e7c664",
+  "c0a8fec542e1afe6",
+  "f2567ec15d511c2d",
+  "b30ae62154bf21c5",
+  "f0da4e04845313ad",
+  "20ef9804bec22787",
+  "925f6766385c8080",
+  "23da97dfcb91c26a",
+  "ab04ed83f7e16a3e",
+  "18c780bad1a84447",
+  "bb0902fa03524aa1",
+  "51624aabed39b628",
+  "2e3a0d830842860a",
+  "9fb352dc5518dfe2",
+  "e7883ae25898825c",
+  "4376cd6cd062fb0a",
+  "d61e561636d326a5",
+  "3126913a69e2468f",
+  "41d05cf3aea4817e",
+  "c2ec2061824d0ee9",
+  "eb59defd906530f8",
+  "a678395063d603ef",
+  "03572d1e6d990a7b"
  ],
  "final": {
   "t": 180.0,
@@ -3524,6 +3524,23 @@
     false,
     null
    ],
+   "counter30": [
+    [
+     "E1",
+     "extinguisher",
+     0,
+     0,
+     null,
+     0,
+     "beef",
+     [],
+     null
+    ],
+    null,
+    false,
+    false,
+    null
+   ],
    "counter5": [
     null,
     null,
@@ -3588,23 +3605,6 @@
      0,
      null,
      2,
-     "beef",
-     [],
-     null
-    ],
-    null,
-    false,
-    false,
-    null
-   ],
-   "extinguisher": [
-    [
-     "E1",
-     "extinguisher",
-     0,
-     0,
-     null,
-     0,
      "beef",
      [],
      null

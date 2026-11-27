@@ -10,6 +10,7 @@ import features
 import food_names
 import harness
 import level_calibration as lc
+from model_language import english_text
 import level_design
 import payload_fingerprint as pf
 from jev import compose_payload
@@ -80,7 +81,8 @@ class NamesTests(unittest.TestCase):
         for names in (False, True):
             criteria = ask(self.k, names=names)['questions']['next_action']['criteria']
             self.assertEqual({k for k, v in criteria.items() if CJK.search(v)}, set())
-            self.assertEqual(criteria['take extinguisher'], 'Take the extinguisher (occupies your hands)')
+            self.assertEqual(criteria['take ' + self.k.extinguisher_at()],
+                             f"Take the extinguisher from {english_text(self.k.stations[self.k.extinguisher_at()].name)} (occupies your hands)")
 
     def test_the_kitchen_uses_every_ingredient(self):
         self.assertEqual(set(self.k.ingredients.values()), set(cc.level_bundle('level-1', embed=True)['recipe_catalog']['items']))

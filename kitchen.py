@@ -227,7 +227,7 @@ TAKE_KINDS = {"fetch", "take_board", "take_tool", "pickup", "take_plate", "take_
 # rests on a burning board, counter or stove can still be taken, and things put or plated there; a pan can be
 # lifted off a burning stove, put back, or filled when empty. What still heats on a burning stove is in
 # Kitchen.ignite and Kitchen.stove_heats.
-SURFACE_KINDS = {"take_counter", "take_plate", "take_board", "put_counter", "put_board", "assemble", "merge_plates",
+SURFACE_KINDS = {"take_counter", "take_plate", "take_board", "take_tool", "put_counter", "put_board", "assemble", "merge_plates",
                  "load_counter", "scoop_counter", "plate_counter", "plate_from_counter", "swap_pot",
                  "lift_pot", "return_pot", "put_pot", "plate_pot"}
 
@@ -289,7 +289,9 @@ class Kitchen:
         self.ingredients = dict(r.sources)
         self.serves = r.of_type('serving_window')
         self.bins = r.of_type('bin')
-        self.rack = r.of_type('tool_rack')[0]
+        # As Overcooked 2, which has no rack: the extinguisher starts on a counter and is put down on any surface
+        # (2026-11-27). Only maps from before then still have a rack, kept so that their rounds replay.
+        self.rack = (r.of_type('tool_rack') or [None])[0]
         self.returns = r.of_type('plate_return')[0]
         self.sink = r.of_type('sink')[0]
         # As Overcooked 2's WashingStation and its drying station: washed plates go onto the rack beside the sink.
@@ -456,10 +458,14 @@ class Kitchen:
             if (a.hand and a.hand.stage == 'pot' and a.hand.contents is None and self.can_load_pot(s.food, a.hand)
                     and not (board and self.chopping_started(s.food))):
                 add('scoop '+key,f'用手中的{self.vessel_name(a.hand.id)}盛起{s.name}上的{self.load_label(s.food)}（离灶不加热）','scoop_counter',key)
-            kind = 'take_board' if board else 'take_plate' if s.food.stage == 'clean_plate' else 'take_counter'
+            # The extinguisher is taken as from its rack before (take_tool): with full hands too, the held item
+            # going on nearby ground (hand_swap_allowed), wherever it was put down.
+            kind = ('take_tool' if s.food.stage == 'extinguisher' else 'take_board' if board
+                    else 'take_plate' if s.food.stage == 'clean_plate' else 'take_counter')
             # As in Overcooked 2 (ServerWorkstation.CanPickupItem): an ingredient part-way through chopping stays on the board.
             if not (board and self.chopping_started(s.food)):
-                add(f'take {key}', f'从{s.name}拿起{self.food_name(s.food)}' + self.food_note(s.food), kind, key)
+                add(f'take {key}', f'从{s.name}拿起灭火器（占用手持位）' if kind == 'take_tool'
+                    else f'从{s.name}拿起{self.food_name(s.food)}' + self.food_note(s.food), kind, key)
             if a.hand and a.hand.stage == 'pot' and self.can_add(s.food,a.hand.contents):
                 v = self.vessel_name(a.hand.id)
                 add(f'plate {key}', f'把手中{v}里的菜盛到{s.name}的盘里（空{v}留在手中）' + self.plating_note(s.food, a.hand.contents),
@@ -531,8 +537,8 @@ class Kitchen:
             d = self.stations[self.dryer]
             if d.food and d.lock in (None, who):
                 add(f'take {self.dryer}', f'从{d.name}拿起干净餐盘', 'take_plate', self.dryer)
-        rack = self.stations[self.rack]
-        if rack.lock in (None, who):
+        rack = self.stations[self.rack] if self.rack else None
+        if rack is not None and rack.lock in (None, who):
             if rack.food:
                 add(f'take {self.rack}', f'去{rack.name}拿灭火器（占用手持位）', 'take_tool', self.rack)
             elif a.hand and a.hand.stage == 'extinguisher' and not rack.food:
@@ -616,6 +622,11 @@ class Kitchen:
             if s.fire and s.lock in (None, who) and a.hand and a.hand.stage == 'extinguisher':
                 add(f'extinguish {key}', self.extinguish_label(s), 'extinguish', key)
         return out
+
+    def extinguisher_at(self):
+        """The station the extinguisher rests on, or None while it is in a hand, on the floor or in the air."""
+        return next((key for key, s in self.stations.items() if s.food is not None and s.food.stage == 'extinguisher'),
+                    None)
 
     def vessel_name(self, vessel_id):
         """Display name of a cooking vessel (汤锅 boils, 平底锅 fries), from the recipe catalog."""
@@ -1098,7 +1109,8 @@ class Kitchen:
             keys.extend([f"put {key}", f"extinguish {key}"])
         keys.extend(f"go {key}" for key in self.stations)
         keys.append('drop')
-        keys.extend([f'take {self.rack}', f'put {self.rack}'])
+        if self.rack:
+            keys.extend([f'take {self.rack}', f'put {self.rack}'])
         keys.extend([f'take {self.returns}', f'put {self.sink}', 'wash', f'take {self.sink}'])
         for key in self.counters:
             keys.extend([f'take {key}', f'put {key}', f'plate {key}'])
@@ -1770,7 +1782,7 @@ class Kitchen:
         for key, s in self.stations.items():
             if key in self.counters or key in self.ingredients:
                 pass  # Each counter, and the top of each ingredient source, has exactly one physical item slot.
-            elif key == self.rack:
+            elif self.rack and key == self.rack:
                 assert s.food is None or s.food.stage == 'extinguisher'
             elif key in (self.returns, self.sink):
                 allowed = ('dirty_plate',) if key == self.returns or self.dryer else ('clean_plate', 'dirty_plate')

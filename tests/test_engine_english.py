@@ -52,7 +52,9 @@ combinations. Rewritten again for burn-note-v6: every_trial requests carry its v
 food is still cooking carry no note; plain and released are as before. Rewritten again for partner-links-v5 (a partner
 line only for work at a place the chef cannot reach itself): only the every_trial requests that carry the links table
 (every 10th, five per level) change, through the partner links' version and rule and the partner lines they drop;
-plain and released are as before.
+plain and released are as before. Rewritten again when the extinguisher's rack became a counter it starts on (as
+Overcooked 2, 2026-11-27): every request changes, from the first, since the kitchen lists that counter and the
+extinguisher on it, and the take reads "Take the extinguisher from Counter N".
 """
 from __future__ import annotations
 

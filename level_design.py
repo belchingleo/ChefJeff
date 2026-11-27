@@ -12,8 +12,8 @@ level_calibration then puts the bundle on the release's rules and measures it.
 
 Rules the editor shows as it goes (owner decisions 2026-11-01/02): three room sizes; the outer wall is
 wall and holds nothing; walls inside the room may not cut it in two; serving windows and the plate return
-stand against the outer wall, facing into the room; exactly one sink, plate return and extinguisher rack,
-one or two serving windows; three plates at the start; at most four dishes of one to four ingredients. Station ids follow
+stand against the outer wall, facing into the room; exactly one sink, plate return and extinguisher (its tile is a
+counter the extinguisher starts on, as Overcooked 2 has no rack: 2026-11-27), one or two serving windows; three plates at the start; at most four dishes of one to four ingredients. Station ids follow
 the client's drawing conventions (serve, sink, returns, extinguisher, b1, p1...).
 """
 import copy
@@ -246,12 +246,16 @@ def bundle(design, registry=None):
 
     # Each station faces free floor; a counter boxed in by counters may still reach round a corner.
     open_cells = {(x, y) for x in range(1, width - 1) for y in range(1, height - 1)} - walls - taken
+    # The extinguisher's tile is a counter it starts on; it still needs floor in front of it, as the rack did.
+    tool = next(i for i, s in enumerate(stations) if s['type'] == 'tool_rack')
+    needs_floor = [s['type'] != 'counter' for s in stations]
+    stations = [{**s, 'type': 'counter'} if s['type'] == 'tool_rack' else s for s in stations]
     ids = _ids(stations)
     names = _names(stations, items)
     rows = []
-    for s, sid, name in zip(stations, ids, names):
+    for s, sid, name, floor in zip(stations, ids, names, needs_floor):
         facing = _facing(s['cell'], open_cells, size, wall_behind=s['type'] in AGAINST_THE_WALL)
-        if facing is None and s['type'] != 'counter':
+        if facing is None and floor:
             problems.append(_problem(f'/stations/{stations.index(s)}', f'{sid} has no floor to stand on in front of it',
                                      'STATION_UNREACHABLE'))
             continue
@@ -278,7 +282,7 @@ def bundle(design, registry=None):
                        'partition': {'axis': 'xy'[axis], 'split': split}}
     stoves = [(row['id'], s['vessel']) for row, s in zip(rows, stations) if s['type'] == 'stove']
     level['initial_inventory'] = (
-        [{'object': 'extinguisher', 'id': 'E1', 'at_type': 'tool_rack'}]
+        [{'object': 'extinguisher', 'id': 'E1', 'at': ids[tool]}]
         + [{'object': 'plate', 'id': f'D{n}', 'state': 'clean', 'at_type': 'counter'} for n in range(1, PLATES + 1)]
         + [{'object': vessel, 'id': f'P{n}', 'at': sid} for n, (sid, vessel) in enumerate(stoves, 1)])
     level['goal'] = {'type': 'minimum_money', 'min_money': 0}

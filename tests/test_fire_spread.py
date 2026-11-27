@@ -54,7 +54,7 @@ class FireSpreadTests(unittest.TestCase):
     def test_counter_fire_blocks_use_and_both_chefs_can_extinguish(self):
         for who in ['human','jeff']:
             k=self.make();target=k.counters[0];k.ignite(target)
-            tool=k.stations['extinguisher'].food;k.stations['extinguisher'].food=None;k.chefs[who].hand=tool
+            tool=k.stations[k.extinguisher_at()].food;k.stations[k.extinguisher_at()].food=None;k.chefs[who].hand=tool
             options=k.actions(who)
             self.assertTrue(any(a.key=='extinguish '+target for a in options))
             self.assertTrue(all(a.kind in ['go','extinguish','put_counter'] for a in options if a.target==target))
@@ -75,7 +75,7 @@ class FireSpreadTests(unittest.TestCase):
         seen=[]
         for who in ['human','jeff']:
             k=self.make();target=k.counters[0];k.ignite(target);s=k.stations[target]
-            tool=k.stations['extinguisher'].food;k.stations['extinguisher'].food=None;k.chefs[who].hand=tool
+            tool=k.stations[k.extinguisher_at()].food;k.stations[k.extinguisher_at()].food=None;k.chefs[who].hand=tool
             # Half of a fire's spraying time (Overcooked 2's 0.5 s by default), then stop.
             full=k.rules.extinguish;k.command(who,'extinguish '+target);j=k.chefs[who].job;k.advance(j.travel+full/2)
             self.assertAlmostEqual(s.fire_strength,.5,places=1);self.assertTrue(s.fire)
@@ -92,7 +92,7 @@ class FireSpreadTests(unittest.TestCase):
         # Overcooked 2's fire turns off a station's use (Interactable, Workstation, PickupItemSpawner), not its
         # surface (AttachStation): the extinguisher put on a counter that catches fire can be taken back.
         for who in ['human','jeff']:
-            k=self.make();tool=k.stations['extinguisher'].food;k.stations['extinguisher'].food=None
+            k=self.make();tool=k.stations[k.extinguisher_at()].food;k.stations[k.extinguisher_at()].food=None
             spot=next(c for c in k.counters if k.stations[c].food is None)
             k.stations[spot].food=tool;k.ignite(spot)
             k.stations['b1'].food=Food('meat','raw',ingredient='beef');k.ignite('b1');k.ignite('p1')
@@ -123,7 +123,7 @@ class FireSpreadTests(unittest.TestCase):
                              f'Put chopped beef into the frying pan on {english_text(s.name)}; it starts heating once the fire is out')
             do('put p1')
             heated=s.food.heated;k.advance(1);self.assertEqual(s.food.heated,heated)  # no heat while burning
-            tool=k.stations['extinguisher'].food;k.stations['extinguisher'].food=None;k.chefs[who].hand=tool
+            tool=k.stations[k.extinguisher_at()].food;k.stations[k.extinguisher_at()].food=None;k.chefs[who].hand=tool
             do('extinguish p1');self.assertFalse(s.fire);self.assertTrue(s.heating)
             k.advance(1);self.assertGreater(s.food.heated,heated);k.assert_invariants()
             k.chefs[who].hand=None;do('take pot p1');self.assertTrue(label('put pot p1').endswith('（有食物时恢复加热）'))
@@ -135,7 +135,7 @@ class FireSpreadTests(unittest.TestCase):
             other='jeff' if who=='human' else 'human'
             k=self.make();s=k.stations['p1'];s.food=None;k.ignite('p1');k.rules.flammability=1e9
             k.chefs[who].hand=Food('F7','chopped',6,ingredient='beef')
-            k.chefs[other].hand=k.stations['extinguisher'].food;k.stations['extinguisher'].food=None  # cannot catch
+            k.chefs[other].hand=k.stations[k.extinguisher_at()].food;k.stations[k.extinguisher_at()].food=None  # cannot catch
             throw=None
             for cell in sorted(k.floor):
                 k.positions[who]=tuple(map(float,cell))
@@ -171,7 +171,7 @@ class FireSpreadTests(unittest.TestCase):
         return s
 
     def put_out_p1(self,k,who):
-        tool=k.stations['extinguisher'].food;k.stations['extinguisher'].food=None;k.chefs[who].hand=tool
+        tool=k.stations[k.extinguisher_at()].food;k.stations[k.extinguisher_at()].food=None;k.chefs[who].hand=tool
         k.positions[who]=tuple(map(float,k.equipment['p1']['access']))
         label=next(a.label for a in k.actions(who) if a.key=='extinguish p1')
         self.assertNotIn('糊菜',label)  # nothing in the pan is burnt
@@ -246,7 +246,7 @@ class FireSpreadTests(unittest.TestCase):
     def test_fire_rule_and_state_reach_model_in_english(self):
         k=self.make();burn=k.rules.heat_thresholds('beef')[1]
         k.stations['p1'].food=Food('B','burnt',6,burn,ingredient='beef');k.heat_stove(k.stations['p1']);k.ignite('p1')
-        k.chefs['jeff'].hand=k.stations['extinguisher'].food;k.stations['extinguisher'].food=None
+        k.chefs['jeff'].hand=k.stations[k.extinguisher_at()].food;k.stations[k.extinguisher_at()].food=None
         payload=JevClient(k.c,key='offline-test').payload(k.snapshot(),k.actions('jeff'))
         import json
         text=json.dumps(payload,ensure_ascii=False)

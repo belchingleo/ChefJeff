@@ -25,6 +25,13 @@ def _pick(actions, kind, target=None, key=None):
     return None
 
 
+def _put_tool(k, actions):
+    """Put the extinguisher back where it started: on the counter it starts on, or its rack on a map from before
+    2026-11-27."""
+    home = next((e['at'] for e in k.rules.inventory if e['object'] == 'extinguisher'), None)
+    return _pick(actions, 'put_tool') or (_pick(actions, 'put_counter', home) if home else None)
+
+
 def _needs(state):
     """Earliest pending dish and the components still missing on the assembly plate."""
     pending = sorted((o for o in state['orders'] if o['status'] == 'pending'), key=lambda o: (o['deadline'], o['id']))
@@ -150,7 +157,7 @@ def choose(k, who, role):
             if hand['stage'] == 'raw' and goes_in == 'chopped':
                 return _pick(actions, 'put_board')
         if hand and hand['stage'] == 'extinguisher':
-            return _pick(actions, 'extinguish') or _pick(actions, 'put_tool')
+            return _pick(actions, 'extinguish') or _put_tool(k, actions)
         if hand:
             return _pick(actions, 'drop')
         if any(s['fire'] for s in state['stations'].values()):
@@ -336,7 +343,7 @@ def choose_zoned(k, who, role):
     empty_boards = [b for b in k.boards if not st[b].get('food')]
     split = getattr(k, 'split_floor', False)
     if hand and hand['stage'] == 'extinguisher':
-        return _pick(actions, 'extinguish') or _pick(actions, 'put_tool')
+        return _pick(actions, 'extinguish') or _put_tool(k, actions)
     if hand and hand['stage'] == 'dirty_plate':
         return _pick(actions, 'put_sink')
 

@@ -91,6 +91,16 @@ def kitchen(document, level='level-2', seed=1):
     spawn either side of the map's floor-area split."""
     bundle = cc.level_bundle(level, embed=True)
     game_map, own = upgrade_map(document), bundle['map']['id'] == document['id']
+    if not own:
+        # A starting item the level puts on a station of its own map (the extinguisher on its counter since
+        # 2026-11-27) goes on the first free station of that type here, or on this map's rack when it has one.
+        kinds = {e['id']: e['type'] for e in bundle['map']['equipment']}
+        here = {e['id'] for e in game_map['equipment']}
+        racks = any(e['type'] == 'tool_rack' for e in game_map['equipment'])
+        for entry in bundle['level']['initial_inventory']:
+            if 'at' in entry and entry['at'] not in here:
+                entry['at_type'] = 'tool_rack' if entry['object'] == 'extinguisher' and racks else kinds[entry.pop('at')]
+                entry.pop('at', None)
     bundle['map'] = game_map
     bundle['level'].update(map_ref={'id': game_map['id'], 'version': game_map['revision']}, seeds={'orders': seed, 'spawn': seed % 2})
     if not own:

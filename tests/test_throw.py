@@ -107,7 +107,7 @@ class ThrowTests(unittest.TestCase):
     def test_extinguisher_cannot_be_thrown_by_either_chef(self):
         # As in Overcooked 2, the extinguisher is carried to the fire, never thrown.
         for who in ('human','jeff'):
-            k=self.make(service=True);tool=k.stations['extinguisher'].food;k.stations['extinguisher'].food=None
+            k=self.make(service=True);tool=k.stations[k.extinguisher_at()].food;k.stations[k.extinguisher_at()].food=None
             k.positions.update(jeff=(5.,5.),human=(7.,5.));k.chefs['jeff'].hand=None;k.chefs['human'].hand=None
             k.chefs[who].hand=tool
             self.assertFalse(k.can_throw(who));self.assertIsNone(k.throw_range(who))
@@ -210,13 +210,13 @@ class ThrowTests(unittest.TestCase):
 
     def test_full_swap_destination_filtered_and_rechecked_after_walk(self):
         # Taking the extinguisher is one of the swaps full hands may make (both chefs).
-        k=self.make();origin=tuple(round(v) for v in k.path('jeff','extinguisher')[-1])
-        self.assertTrue(k.command('jeff','take extinguisher')[0])
+        k=self.make();tool=k.extinguisher_at();origin=tuple(round(v) for v in k.path('jeff',tool)[-1])
+        self.assertTrue(k.command('jeff',f'take {tool}')[0])
         for i,p in enumerate([origin]+neighbors(origin)):
             k.ground[str(i)]=GroundItem(Food(str(i)),tile_key(p))
         k.advance(4)
-        self.assertEqual(k.chefs['jeff'].hand.id,'pass');self.assertFalse(k.command('jeff','take extinguisher')[0])
-        k.ground.pop('0');self.assertTrue(k.command('jeff','take extinguisher')[0]);k.assert_invariants()
+        self.assertEqual(k.chefs['jeff'].hand.id,'pass');self.assertFalse(k.command('jeff',f'take {tool}')[0])
+        k.ground.pop('0');self.assertTrue(k.command('jeff',f'take {tool}')[0]);k.assert_invariants()
 
     def test_throw_ending_inside_a_far_board_square_starts_and_lands_on_it(self):
         # Level 3: from the lettuce crate, board 1's centre is 4.003 cells away. The listed

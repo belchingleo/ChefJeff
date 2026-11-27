@@ -105,7 +105,7 @@ class FreezeTests(unittest.TestCase):
         frozen, _ = cc.freeze_config(draft, random.Random(9))
         self.assertEqual(frozen['seeds']['source'], 'drawn_at_freeze')
         self.assertIsInstance(frozen['seeds']['orders'], int)
-        self.assertEqual(frozen['sources']['map'], {'id': 'level-1', 'version': 5, 'sha256': frozen['sources']['map']['sha256']})
+        self.assertEqual(frozen['sources']['map'], {'id': 'level-1', 'version': 6, 'sha256': frozen['sources']['map']['sha256']})
 
     def test_freeze_does_not_change_the_draft(self):
         draft, _ = cc.resolve_config(cc.level_bundle('level-3'))
@@ -181,7 +181,7 @@ class DiagnosticTests(unittest.TestCase):
             'INVENTORY_UNKNOWN_STATION': at(1, 'nowhere'),
             'INVENTORY_ID_SEQUENCE': lambda d: d['initial_inventory'][2].update(id='D7'),
             'INVENTORY_EXTINGUISHER': lambda d: d['initial_inventory'].pop(0),
-            'INVENTORY_NO_FREE_STATION': lambda d: d['initial_inventory'][0].update(at_type='oven'),
+            'INVENTORY_NO_FREE_STATION': lambda d: d['initial_inventory'][1].update(at_type='oven'),
         }
         for code, edit in cases.items():
             with self.subTest(code=code):
@@ -190,9 +190,10 @@ class DiagnosticTests(unittest.TestCase):
         self.assertEqual(codes(variant(level=lambda d: d['initial_inventory'][1].update(at='plates')))[1], {'SCHEMA_INVALID'})
 
     def test_inventory_by_type_takes_the_first_free_station_in_map_order(self):
-        # Shipped levels place by type and land exactly where their former station IDs did.
-        expected = {'level-1': {'E1': 'extinguisher', 'D1': 'plates', 'D2': 'counter2', 'P1': 'p1'},
-                    'level-3': {'E1': 'extinguisher', 'D1': 'plates', 'D2': 'counter2', 'D3': 'counter3',
+        # Shipped levels place by type and land exactly where their former station IDs did; the extinguisher is
+        # named on the counter it starts on (its rack until 2026-11-27).
+        expected = {'level-1': {'E1': 'counter13', 'D1': 'plates', 'D2': 'counter2', 'P1': 'p1'},
+                    'level-3': {'E1': 'counter25', 'D1': 'plates', 'D2': 'counter2', 'D3': 'counter3',
                                 'P1': 'p1', 'P2': 'p2', 'P3': 'counter4'}}
         for level, places in expected.items():
             frozen = cc.load_level(level)
@@ -202,7 +203,7 @@ class DiagnosticTests(unittest.TestCase):
         # A row naming its station keeps it, even when a typed row comes first.
         draft, found = codes(variant(level=lambda d: place(d['initial_inventory'][2], 'plates')))
         self.assertEqual(found, set())
-        self.assertEqual([e['at'] for e in draft['level']['initial_inventory']], ['extinguisher', 'counter2', 'plates', 'p1'])
+        self.assertEqual([e['at'] for e in draft['level']['initial_inventory']], ['counter13', 'counter2', 'plates', 'p1'])
         # Nothing of the type left: one clear diagnostic at the row.
         _, diagnostics = cc.resolve_config(variant(level=lambda d: d['initial_inventory'].append(
             {'object': 'pan', 'id': 'P2', 'at_type': 'stove'})))

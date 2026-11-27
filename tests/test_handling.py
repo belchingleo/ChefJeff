@@ -2,6 +2,8 @@ import unittest
 from kitchen import Food, GroundItem, load_config
 from spatial_kitchen import SpatialKitchen, tile_key
 from level_one import EQUIPMENT, neighbors
+
+TOOL = 'counter13'   # the level-1 counter the extinguisher starts on (its rack until 2026-11-27)
 from whitebox_server import SpatialJevClient
 
 
@@ -46,29 +48,29 @@ class HandlingTests(unittest.TestCase):
     def test_meat_swaps_for_extinguisher_then_partner_can_pick_meat(self):
         k=self.make();old=Food('meat','chopped',6,3)
         k.chefs['human'].hand=old
-        self.do(k,'human','take extinguisher')
+        self.do(k,'human','take '+TOOL)
         self.assertEqual(k.chefs['human'].hand.id,'E1')
         self.assertIs(k.ground['meat'].food,old)
         self.assertEqual(old.heated,3)
         self.assertEqual(k.money,0)
         self.do(k,'jeff','pickup meat')
         self.assertIs(k.chefs['jeff'].hand,old)
-        self.do(k,'human','put extinguisher')
-        self.assertEqual(k.stations['extinguisher'].food.id,'E1')
+        self.do(k,'human','put '+TOOL)
+        self.assertEqual(k.stations[k.extinguisher_at()].food.id,'E1')
 
-    def test_swap_flush_against_the_extinguisher_rack_puts_the_item_on_floor(self):
+    def test_swap_flush_against_the_extinguishers_counter_puts_the_item_on_floor(self):
         # Level 2, 2026-11-09: taking the extinguisher with full hands from across the counter row, the swap spot rounded
         # to the rack's own tile, the item went to a ground spot that is not floor and every snapshot failed.
         from levels import level_config
-        k=SpatialKitchen(level_config(load_config(),'level-2'))
-        rack=k.snapshot()['map']['equipment']['extinguisher']['cell']
+        k=SpatialKitchen(level_config(load_config(),'level-2'));tool=k.extinguisher_at()   # the rack's cell until 2026-11-27
+        rack=k.snapshot()['map']['equipment'][tool]['cell']
         self.do(k,'human','fetch tomato')
         tomato=k.chefs['human'].hand.id
         # North of the counter row at y = 3.5: round() takes 3.5 to 4, the rack's own row (where the player stood).
         k.positions['human']=(float(rack[0]),rack[1]-.5)
         self.assertTrue(k.nav.walkable_point(k.positions['human']))
-        self.assertEqual(tuple(round(v) for v in k.path('human','extinguisher')[-1]),tuple(rack))
-        self.do(k,'human','take extinguisher')
+        self.assertEqual(tuple(round(v) for v in k.path('human',tool)[-1]),tuple(rack))
+        self.do(k,'human','take '+tool)
         self.assertEqual(k.chefs['human'].hand.id,'E1')
         self.assertIn(k.ground[tomato].location,k.floor_places)
         k.snapshot()
@@ -94,31 +96,31 @@ class HandlingTests(unittest.TestCase):
         self.assertNotIn('new',k.ground)
 
     def test_full_floor_rejects_tool_swap_without_losing_any_item(self):
-        k=self.make();cell=EQUIPMENT['extinguisher']['access']
+        k=self.make();cell=EQUIPMENT[TOOL]['access']
         k.chefs['human'].hand=Food('old')
         for i,p in enumerate([cell]+neighbors(cell)):
             f=Food('block'+str(i));k.ground[f.id]=GroundItem(f,tile_key(p))
-        self.assertFalse(k.command('human','take extinguisher')[0])
+        self.assertFalse(k.command('human','take '+TOOL)[0])
         self.assertEqual(k.chefs['human'].hand.id,'old')
-        self.assertEqual(k.stations['extinguisher'].food.id,'E1')
+        self.assertEqual(k.stations[k.extinguisher_at()].food.id,'E1')
         self.assertFalse(k.swap_slots);self.assertFalse(k.drop_locks)
 
     def test_interrupted_swap_leaves_both_items_untouched(self):
-        k=self.make();k.positions['human']=k.operation_point('extinguisher',EQUIPMENT['extinguisher']['access'])
+        k=self.make();k.positions['human']=k.operation_point(TOOL,EQUIPMENT[TOOL]['access'])
         k.chefs['human'].hand=Food('old')
-        k.command('human','take extinguisher');k.advance(.05)
+        k.command('human','take '+TOOL);k.advance(.05)
         self.assertTrue(k.drop_locks)
         k.command('human','stop')
         self.assertFalse(k.drop_locks);self.assertFalse(k.swap_slots)
         self.assertEqual(k.chefs['human'].hand.id,'old')
-        self.assertEqual(k.stations['extinguisher'].food.id,'E1')
+        self.assertEqual(k.stations[k.extinguisher_at()].food.id,'E1')
         k.assert_invariants()
 
     def test_fire_requires_actual_shared_extinguisher_and_allows_ground_handoff(self):
         k=self.make();pot=k.stations['p1'];pot.food=Food('burnt','burnt',6,30);pot.fire=True
         self.assertFalse(k.command('human','extinguish p1')[0])
-        self.do(k,'human','take extinguisher')
-        self.assertFalse(k.command('jeff','take extinguisher')[0])
+        self.do(k,'human','take '+TOOL)
+        self.assertFalse(k.command('jeff','take '+TOOL)[0])
         self.assertFalse(k.command('human','discard')[0])
         self.assertFalse(k.command('human','serve')[0])
         self.do(k,'human','drop');self.do(k,'jeff','pickup E1')
@@ -130,8 +132,8 @@ class HandlingTests(unittest.TestCase):
     def test_two_chefs_swapping_for_same_tool_cannot_duplicate(self):
         k=self.make()
         for who in k.chefs:
-            k.positions[who]=EQUIPMENT['extinguisher']['access'];k.chefs[who].hand=Food(who)
-            self.assertTrue(k.command(who,'take extinguisher')[0])
+            k.positions[who]=EQUIPMENT[TOOL]['access'];k.chefs[who].hand=Food(who)
+            self.assertTrue(k.command(who,'take '+TOOL)[0])
         k.advance(.2);k.assert_invariants()
         self.assertEqual(sum(a.hand.id=='E1' for a in k.chefs.values()),1)
         self.assertEqual(len(k.ground),1)
@@ -139,7 +141,7 @@ class HandlingTests(unittest.TestCase):
     def test_jev_has_drop_discard_swap_and_tool_rules(self):
         k=self.make();k.chefs['jeff'].hand=Food('meat')
         actions=k.actions('jeff');keys={a.key for a in actions}
-        self.assertTrue({'drop','discard','take extinguisher'}<=keys);self.assertNotIn('fetch beef',keys)
+        self.assertTrue({'drop','discard','take '+TOOL}<=keys);self.assertNotIn('fetch beef',keys)
         payload=SpatialJevClient(k.c,key='test-only').payload(k.snapshot(),actions)
         self.assertEqual(payload['state']['rules']['timing']['handling'],.15)
         self.assertIn('put the held item down first',payload['state']['rules']['ground'])

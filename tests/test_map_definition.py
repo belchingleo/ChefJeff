@@ -121,7 +121,7 @@ class MapDocumentTests(unittest.TestCase):
             doc = load_map(level)
             views = doc['presentation']['station_views']
             self.assertEqual(set(views), {station['id'] for station in doc['equipment']})
-            self.assertEqual(doc['revision'], 5)
+            self.assertEqual(doc['revision'], 6)     # 6: the extinguisher's rack became a counter (2026-11-27)
             for station in doc['equipment']:
                 axis = views[station['id']]['run_axis']
                 x, y = station['cell']

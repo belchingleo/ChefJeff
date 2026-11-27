@@ -44,7 +44,7 @@ class LayoutInteractionTests(unittest.TestCase):
             sides.add(k.positions['human'][0]<7);k.assert_invariants()
         self.assertEqual(sides,{True,False})
     def test_all_equipment_has_a_reachable_service_side(self):
-        k=self.make();self.assertEqual(len(k.boards),3);self.assertEqual(len(k.counters),11)
+        k=self.make();self.assertEqual(len(k.boards),3);self.assertEqual(len(k.counters),12)  # 12 with the extinguisher's counter (its rack until 2026-11-27)
         for key in EQUIPMENT:
             route=k.path('human',key)
             sides=[EQUIPMENT[key]['access']] if EQUIPMENT[key].get('reach')=='corner' else [n for c in EQUIPMENT[key].get('cells',[EQUIPMENT[key]['cell']]) for n in neighbors(c)]

@@ -2,6 +2,12 @@
 
 Run an agent on fixed levels with a fixed scripted partner, many rounds each, and get a result whose every number carries its interval. The agent can be Jeff on your model, or your own agent on the environment interface ([env-v1](../docs/architecture/environment-api.md)).
 
+## v6
+
+`v6/manifest.json` freezes the same things as v5 (the `env-v1` interface, levels 1–3, the scripted partner `assembler`, 12 rounds per level on a real clock), measured on the kitchen as it is from 2026-11-27: the extinguisher's rack is gone, as Overcooked 2 has none. On each level the extinguisher starts on a counter of its own, where the rack stood. It is taken from any counter, board or ingredient source top it rests on, with full hands too (the held item goes on nearby ground, as from the rack before), and put down on any of them. The counter it starts on takes anything else once it is free, and it burns like any counter. The scripted partner puts the extinguisher back on the counter it started on.
+
+v5 (`v5/manifest.json`, kept as it was frozen) retired on 2026-11-27 with that change: every level's configuration and reference trace changed, so v5 and v6 scores are not compared.
+
 ## v5
 
 `v5/manifest.json` freezes the same things as v4, on the same kitchen and with the same level configurations. Two things differ. First, from 2026-11-22 the option to put out a burning stove says what follows for the food in its pan, from the rules at that moment. Burnt food the −10 tier still accepts when the spray ends can be plated and served, with the seconds left in the tier, or emptied at a bin; burnt food past it by then is refused if served and can only be emptied at a bin (2 yuan); food a fire spread to is not burnt and cooks on once the fire is out (cooked food with the seconds until it burns); an empty pan or a stove without one gets nothing more. Jeff's task and the events that carry the option leave all of this out. Second, later on 2026-11-22: burnt food in Jeff's request, and the engine's labels that plate it, lift or swap its pan, take it, pick it up or serve it (the labels `env-v1` lists too), say whether a dish with it is still accepted and at what price, or refused (`servability-v1`); Jeff's task and the events leave this out too. No v5 result had been made before it, and none of the values v5 freezes changed with it, so v5 was kept rather than retired.
@@ -80,6 +86,12 @@ Put a result that `verify` accepts under `v5/results/<agent>-<model>.json`; `rep
 # ChefJeff Benchmark
 
 让一个 agent 在固定的关卡、固定的脚本搭档下各打多局，结果里的每个数字都带置信区间。agent 可以是用你的模型的 Jeff，也可以是你自己基于环境接口（[env-v1](../docs/architecture/environment-api.md)）写的 agent。
+
+## v6
+
+`v6/manifest.json` 冻结的内容和 v5 相同（`env-v1` 接口、第 1–3 关、脚本搭档 `assembler`、每关 12 局、真实时钟），量的是 2026-11-27 起的厨房：灭火器架去掉了，《胡闹厨房 2》里也没有这种架子。每关的灭火器开局放在原来架子位置上的一个柜台上。灭火器放在柜台、案板或食材箱顶上都能拿，手里拿着东西也能拿，手里的东西放到旁边地上，和原来从架子上拿一样；灭火器也能放到这些地方中的任何一处。灭火器开局所在的柜台空出来后，什么都能放，也和别的柜台一样会着火。脚本搭档用完灭火器，会放回它开局所在的柜台。
+
+v5（`v5/manifest.json`，保持冻结时的样子）在 2026-11-27 因这次改动退役：每关的配置和参考轨迹都变了，所以 v5 和 v6 的成绩不互相比较。
 
 ## v5
 

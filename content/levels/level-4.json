@@ -2,7 +2,7 @@
   "schema_version": 1,
   "kind": "level",
   "id": "level-4",
-  "version": 2,
+  "version": 3,
   "name": "第四关 · 隔台协作",
   "menu_order": 4,
   "ruleset_ref": {
@@ -11,7 +11,7 @@
   },
   "map_ref": {
     "id": "level-4",
-    "version": 2
+    "version": 3
   },
   "equipment_catalog_ref": {
     "id": "chefjeff-core",
@@ -56,7 +56,7 @@
     {
       "object": "extinguisher",
       "id": "E1",
-      "at_type": "tool_rack"
+      "at": "counter15"
     },
     {
       "object": "plate",

@@ -28,6 +28,7 @@ class TextMenuTests(unittest.TestCase):
                     self.assertIn(f'[{k.fetch_key(source)}]', console.lines[-1])
 
     def test_every_listed_action_keeps_one_number_for_the_round(self):
+        extra = set()
         for level in ('level-1', 'level-2', 'level-3'):
             with self.subTest(level):
                 rng, k, seen, step = random.Random(1), Kitchen(level_config(load_config(), level)), {}, 0
@@ -44,8 +45,10 @@ class TextMenuTests(unittest.TestCase):
                                 k.start(who, rng.choice(choices))
                     k.advance(.05)
                     step += 1
-                # The round reached actions the fixed list never had (the cause of the crash this test guards).
-                self.assertTrue({key.split(' ')[0] for key in k.menu_extra} & {'load', 'assemble', 'swap'}, k.menu_extra)
+                extra |= {key.split(' ')[0] for key in k.menu_extra}
+        # The rounds reached actions the fixed list never had (the cause of the crash this test guards). Counted over
+        # the three: since the extinguisher's rack became a counter (2026-11-27) the level-1 random round reaches none.
+        self.assertTrue(extra & {'load', 'assemble', 'swap'}, extra)
 
 
 if __name__ == '__main__':

@@ -122,7 +122,8 @@ class RulesTest(unittest.TestCase):
         s=self.pot(k)
         k.advance(31)
         self.assertFalse(k.command('human','take p1')[0])
-        self.do(k,'jeff','take extinguisher')
+        tool=k.extinguisher_at()
+        self.do(k,'jeff','take '+tool)
         self.do(k,'jeff','extinguish p1')
         k.advance(5)
         self.assertFalse(s.fire)
@@ -131,7 +132,7 @@ class RulesTest(unittest.TestCase):
         self.assertEqual((k.burns,k.fires),(1,1))
         # No clearing in place: the pan goes to the bin, as in Overcooked 2.
         self.assertNotIn('clear p1',[a.key for a in k.actions('jeff')])
-        self.do(k,'jeff','put extinguisher')
+        self.do(k,'jeff','put '+tool)
         self.do(k,'jeff','take pot p1');self.do(k,'jeff','discard');self.do(k,'jeff','put pot p1')
         self.assertIsNone(s.food)
         k.chefs['jeff'].hand=Food('fresh','chopped',6)

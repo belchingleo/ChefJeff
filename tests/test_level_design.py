@@ -45,12 +45,15 @@ class BuildTests(unittest.TestCase):
         level, problems = level_design.bundle(design())
         self.assertEqual(problems, [])
         stations = {e['id']: e for e in level['map']['equipment']}
-        self.assertLessEqual({'serve', 'sink', 'returns', 'extinguisher', 'bin', 'b1', 'b2', 'p1', 'p2', 'fridge', 'noodles'}, set(stations))
+        self.assertLessEqual({'serve', 'sink', 'returns', 'bin', 'b1', 'b2', 'p1', 'p2', 'fridge', 'noodles'}, set(stations))
+        # The extinguisher's tile is a counter it starts on (2026-11-27: Overcooked 2 has no rack).
+        self.assertEqual(stations['counter10']['type'], 'counter')
+        self.assertNotIn('tool_rack', {e['type'] for e in stations.values()})
         self.assertEqual(stations['fridge']['params'], {'item': 'beef'})
         self.assertEqual(stations['b1']['facing'], 'east')  # towards the free floor
         self.assertIn([9, 4], level['map']['walls'])
         self.assertEqual(level['level']['initial_inventory'], [
-            {'object': 'extinguisher', 'id': 'E1', 'at_type': 'tool_rack'},
+            {'object': 'extinguisher', 'id': 'E1', 'at': 'counter10'},
             {'object': 'plate', 'id': 'D1', 'state': 'clean', 'at_type': 'counter'},
             {'object': 'plate', 'id': 'D2', 'state': 'clean', 'at_type': 'counter'},
             {'object': 'plate', 'id': 'D3', 'state': 'clean', 'at_type': 'counter'},

@@ -226,7 +226,7 @@ class TablewareTests(unittest.TestCase):
         g.k._end(); before = g.k.snapshot(); g.k.advance(100)
         self.assertEqual(before, g.k.snapshot())
         reset = Kitchen(config)
-        self.assertEqual(sum(reset.stations[c].food is not None for c in reset.counters), 2)
+        self.assertEqual(sum(reset.stations[c].food is not None for c in reset.counters), 3)     # 2 plates, the extinguisher
         self.assertFalse(reset.dining); self.assertFalse(reset.stations['sink'].food)
         reset.assert_invariants()
 
@@ -285,7 +285,8 @@ class TablewareTests(unittest.TestCase):
 
     def test_counter_capacity_one_and_plates_start_spread_out(self):
         k = self.make()
-        self.assertEqual([k.stations[c].food.id for c in k.counters if k.stations[c].food], ['D1', 'D2'])
+        # The extinguisher starts on a counter of its own (2026-11-27).
+        self.assertEqual([k.stations[c].food.id for c in k.counters if k.stations[c].food], ['E1', 'D1', 'D2'])
         self.do(k, 'human', 'take plates')
         self.assertFalse(k.command('human', 'put counter2')[0])
         self.do(k, 'human', 'put counter3')

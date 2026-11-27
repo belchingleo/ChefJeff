@@ -770,6 +770,10 @@
       "Chop {1} at {0}"
     ],
     [
+      "从{0}拿起灭火器（占用手持位）",
+      "Take the extinguisher from {0} (occupies your hands)"
+    ],
+    [
       "从{0}拿起{1}",
       "Take {1} from {0}"
     ],

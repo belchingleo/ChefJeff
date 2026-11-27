@@ -153,7 +153,7 @@ class SpatialTests(unittest.TestCase):
         k=self.make(fire_flammability_seconds=1000);self.assertEqual(k.rules.flammability,1000);pot=k.stations['p1'];pot.food=Food('hot','cooking',6,0);pot.heating=True
         k.advance(31)
         self.assertTrue(pot.fire)
-        self.do(k,'human','take extinguisher');self.do(k,'human','extinguish p1');self.do(k,'human','put extinguisher')
+        tool=k.extinguisher_at();self.do(k,'human','take '+tool);self.do(k,'human','extinguish p1');self.do(k,'human','put '+tool)
         self.do(k,'human','take pot p1');self.do(k,'human','discard');self.do(k,'human','put pot p1')
         self.assertIsNone(pot.food);self.assertFalse(pot.fire)
         self.assertEqual(k.money,-7)

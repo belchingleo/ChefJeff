@@ -20,7 +20,7 @@ from spatial_kitchen import SpatialKitchen
 from whitebox_server import SpatialJevClient
 import test_research_save_paths as paths
 
-SUPPLY_SIDE = ('fridge', 'lettuce', 'tomato', 'bread', 'p1', 'p2', 'serve', 'bin', 'extinguisher')
+SUPPLY_SIDE = ('fridge', 'lettuce', 'tomato', 'bread', 'p1', 'p2', 'serve', 'bin', 'counter15')   # counter15: the extinguisher's
 BOARD_SIDE = ('b1', 'b2', 'sink', 'returns', 'bin2', 'dryer')
 
 
@@ -98,7 +98,7 @@ class RequestTests(unittest.TestCase):
         payload = request(kitchen(5), split=True)
         rules = payload['state']['rules']
         self.assertIn('Stations only you can reach: b1, b2, sink, returns, bin2, counter14, dryer. Stations only the human can '
-                      'reach: fridge, lettuce, tomato, bread, counter1, p1, p2, serve, bin, extinguisher.', rules['reach'])
+                      'reach: fridge, lettuce, tomato, bread, counter1, p1, p2, serve, bin, counter15.', rules['reach'])
         self.assertIn("the supplies (fridge, lettuce, tomato, bread), cooking (p1, p2) and serving (serve) are only on the "
                       "human's side; chopping (b1, b2) is only on your side", rules['split_floor'])
 

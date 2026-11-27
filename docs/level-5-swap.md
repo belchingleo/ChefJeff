@@ -1,6 +1,6 @@
 # Level 5 — Swapped sides
 
-Level 4 with the chefs swapped: the same kitchen, the same orders and order seed, the same target. Only the spawn seed differs (1 instead of 0), so the human starts on the upper side, with the four ingredient sources, the two stoves, the extinguisher rack, the serving window and a bin, and Jeff on the lower side, with the two boards, the sink and drying rack, the dirty-plate return and the second bin. Food, plates, pans and tools cross on the dividing counters or are thrown within 4 cells, as on Level 4.
+Level 4 with the chefs swapped: the same kitchen, the same orders and order seed, the same target. Only the spawn seed differs (1 instead of 0), so the human starts on the upper side, with the four ingredient sources, the two stoves, the counter the extinguisher starts on, the serving window and a bin, and Jeff on the lower side, with the two boards, the sink and drying rack, the dirty-plate return and the second bin. Food, plates, pans and tools cross on the dividing counters or are thrown within 4 cells, as on Level 4.
 
 Every dish needs both chefs: the human fetches and passes the raw beef and vegetables down, Jeff chops them and passes them back, the human cooks, plates and serves, and Jeff washes the plates and passes clean ones up. One chef alone serves nothing (`requires_pair: true`; `tests/test_level_five.py`).
 
@@ -14,7 +14,7 @@ What Jeff is told is worked out from the engine's reach, so every request switch
 
 # 第五关：换位协作
 
-第四关把两位厨师对调：同一间厨房、同一组订单和订单种子、同一个目标，只有出生种子不同（1，第四关是 0）。人类出生在上面，那里是四个食材箱、两个灶台、灭火器架、出餐口和一个垃圾桶；Jeff 在下面，那里是两块案板、水槽和沥水架、脏盘回收和第二个垃圾桶。食物、盘子、锅和工具和第四关一样，放到中间那排柜台上，或者在 4 格内扔过去。
+第四关把两位厨师对调：同一间厨房、同一组订单和订单种子、同一个目标，只有出生种子不同（1，第四关是 0）。人类出生在上面，那里是四个食材箱、两个灶台、放着灭火器的柜台、出餐口和一个垃圾桶；Jeff 在下面，那里是两块案板、水槽和沥水架、脏盘回收和第二个垃圾桶。食物、盘子、锅和工具和第四关一样，放到中间那排柜台上，或者在 4 格内扔过去。
 
 每道菜都要两个人：人类取生肉和蔬菜递下去，Jeff 切好递回来，人类煎、装盘、出餐；Jeff 洗盘子，把干净盘子递上来。一个人单干一单也出不了（`requires_pair: true`；`tests/test_level_five.py`）。
 
