@@ -119,10 +119,15 @@ class ControlsTests(unittest.TestCase):
         k.positions['jeff']=(10,6);k.advance(1)
         self.assertIsNone(k.chefs['jeff'].hand);self.assertIn('test',k.ground);k.assert_invariants()
 
-    def test_no_free_neighbor_retains_throwable(self):
+    def test_no_free_neighbor_lands_further_out(self):
+        # Until throw-rest-v1 (2026-11-27) this throw was refused and the item kept. As in Overcooked 2, where a
+        # throw rests on whatever it touches, it now rests on the nearest free floor tile, not on the receiver's own.
         k=self.make();k.positions.update(human=(8.,4.),jeff=(10.,4.));k.chefs['human'].hand=Food('test')
         for i,c in enumerate(neighbors((10,4))):k.ground[str(i)]=GroundItem(Food(str(i)),tile_key(c))
-        self.assertIsNone(k.throw_action('human',(10,4)));self.assertEqual(k.chefs['human'].hand.id,'test')
+        action=k.throw_action('human',(10,4));cell=k.cell(action.target)
+        self.assertIn(cell,k.floor);self.assertNotIn(cell,neighbors((10,4))+[(10,4)])
+        self.assertTrue(k.start('human',action)[0]);k.advance(1.)
+        self.assertIsNone(k.chefs['human'].hand);self.assertEqual(k.ground['test'].location,action.target);k.assert_invariants()
 
     def test_direct_movement_speed_release_and_collision(self):
         for vector in ((1,0),(1,1)):

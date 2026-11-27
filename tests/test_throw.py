@@ -129,12 +129,46 @@ class ThrowTests(unittest.TestCase):
                 k.advance(.05);k.assert_invariants()
             self.assertFalse(k.projectiles);self.assertIs(k.chefs['human'].hand,item)
 
-    def test_occupied_landing_uses_neighbor_and_full_area_disables_throw(self):
-        k=self.make();origin=k.anchor('human')
-        for i,p in enumerate([origin]+neighbors(origin)):
+    def test_occupied_landing_uses_neighbor_and_a_full_area_lands_further_out(self):
+        # Until throw-rest-v1 (2026-11-27) a receiver ringed by items made the throw impossible. In Overcooked 2 a
+        # throw is never refused for want of room (it rests on whatever it touches): here it rests on the nearest free
+        # floor tile, two steps out.
+        k=self.make();origin=k.anchor('human');ring=[origin]+neighbors(origin)
+        for i,p in enumerate(ring):
             k.ground[str(i)]=GroundItem(Food(str(i)),tile_key(p))
             if i==0:self.assertNotEqual(k.handoff_target('jeff'),tile_key(origin))
-        self.assertIsNone(k.handoff_target('jeff'));k.assert_invariants()
+        landing=k.cell(k.handoff_target('jeff'))
+        self.assertNotIn(landing,ring);self.assertIn(landing,k.floor)
+        self.assertEqual(min(abs(landing[0]-p[0])+abs(landing[1]-p[1]) for p in neighbors(origin)),1)
+        self.assertTrue(k.command('jeff','throw partner')[0]);k.assert_invariants()
+
+    def test_a_throw_is_never_refused_for_want_of_room_where_it_comes_down(self):
+        # Level 4, 2026-11-26 (round 4012c0b3): the player threw a plate to Jeff, who stood in a corner whose one floor
+        # neighbour held an item, and later threw facing a counter with a wall behind it. Both throws were refused.
+        k=SpatialKitchen(level_config(load_config(),'level-4'))
+        k.positions.update(jeff=(11.57,3.07),human=(12.,4.95));k.facing['human']='up'
+        k.ground['F6']=GroundItem(Food('F6','ready',ingredient='beef'),tile_key((11,3)))
+        plate=k.stations['counter1'].food;k.stations['counter1'].food=None;k.chefs['human'].hand=plate
+        self.assertEqual(k.anchor('jeff'),(12,3));self.assertEqual(k.nav.neighbors((12,3)),[(11,3)])
+        action=k.aimed_throw('human',(0,-1))
+        self.assertIsNotNone(action)
+        self.assertNotIn(k.cell(action.target),{(11,3)})
+        self.assertTrue(k.start('human',action)[0])
+        for _ in range(60):
+            k.advance(.05);k.assert_invariants()
+        self.assertIsNone(k.chefs['human'].hand)
+        self.assertTrue(k.chefs['jeff'].hand is plate or k.ground[plate.id].location==action.target)
+        # Facing a counter with the wall behind it: the plate drops on the floor at the player's feet.
+        k=SpatialKitchen(level_config(load_config(),'level-4'))
+        k.positions.update(jeff=(9.,1.95),human=(7.9964,6.5));k.facing['human']='down'
+        plate=k.stations['counter1'].food;k.stations['counter1'].food=None;k.chefs['human'].hand=plate
+        action=k.aimed_throw('human',(0,1))
+        self.assertIsNotNone(action)
+        self.assertEqual(k.cell(action.target),k.anchor('human'))
+        self.assertTrue(k.start('human',action)[0])
+        for _ in range(60):
+            k.advance(.05);k.assert_invariants()
+        self.assertEqual(k.ground[plate.id].location,action.target)
 
     def test_windup_and_flight_reserve_landing_from_drop_and_swap(self):
         k=self.make();k.chefs['human'].hand=Food('held')

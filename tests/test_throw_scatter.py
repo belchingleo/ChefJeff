@@ -86,7 +86,7 @@ class ThrowScatterTests(unittest.TestCase):
         self.assertTrue(any(cell in neighbors(shared) for cell in cells))
         k.assert_invariants()
 
-    def test_full_local_area_rejects_later_throw_and_conserves_food(self):
+    def test_full_local_area_sends_a_later_throw_further_out_and_conserves_food(self):
         k = self.make(human=(4., 6.), jeff=(6., 5.))
         target = (5, 4)
         # Occupy every legal adjacent landing while leaving the requested tile free.
@@ -96,15 +96,18 @@ class ThrowScatterTests(unittest.TestCase):
         first = self.throw_toward(k, 'jeff', target)
         self.assertEqual(first.target, tile_key(target))
         k.advance(.05)
-        # Every adjacent cell is occupied (including the first projectile only if
-        # its target is among them), so a second throw toward the shared tile fails.
+        # Every adjacent cell is occupied and the first projectile has the shared tile. Until throw-rest-v1
+        # (2026-11-27) a second throw toward it was refused; it now rests on the nearest free floor tile.
         second = k.throw_action('human', target)
-        self.assertIsNone(second)
-        self.assertIsNotNone(k.chefs['human'].hand)
+        self.assertIsNotNone(second)
+        taken = {g.location for g in k.ground.values()} | {p['target'] for p in k.projectiles.values()}
+        self.assertNotIn(second.target, taken)
+        self.assertTrue(k.start('human', second)[0])
         k.advance(1.)
-        self.assertEqual(k.chefs['human'].hand.id, 'human-food')
+        self.assertIsNone(k.chefs['human'].hand)
         self.assertIn('jeff-food', k.ground)
-        self.assertEqual(len(k.ground), len(neighbors(target)) + 1)
+        self.assertEqual(k.ground['human-food'].location, second.target)
+        self.assertEqual(len(k.ground), len(neighbors(target)) + 2)
         k.assert_invariants()
 
     def test_throw_clips_at_wall_and_does_not_land_beyond_it(self):

@@ -45,7 +45,10 @@ lists the second bin's discard for a chef whose part of a split floor has only t
 requests differ from 22 s on (plain ones too); levels 1 to 3 keep their plain requests. Rewritten again for
 partner-links-v4: only the every_trial requests that carry the links table (every 10th, five per level) change, through
 the partner links' version and the partner lines that now first free the other chef's hands; plain and released are
-as before.
+as before. Rewritten again for throw-rest-v1 (a throw with no free tile where it comes down rests on the nearest free
+floor tile instead of being refused): levels 1 to 3 are unchanged; in level 4 a throw that used to be refused is listed
+from 30 s on and the scripted round plays on differently, so the level-4 requests from the 16th on differ in all three
+combinations.
 """
 from __future__ import annotations
 

@@ -871,7 +871,7 @@ class SpatialKitchen(Kitchen):
             beside = next((p for p in candidates if available(p)),None)
             if beside is not None:
                 return tile_key(beside), end
-            return None
+            return self.throw_fallback(who, start, end)
         station = self.throw_station(who, cell)
         if station and self.throw_reaches(who, cell):
             return station, tuple(cell)
@@ -882,7 +882,7 @@ class SpatialKitchen(Kitchen):
             # actual landing cell, so two items never share a pickup location.
             candidates = sorted(self.nav.neighbors(cell),key=lambda p:(math.dist(p,end),math.dist(p,start),p))
             beside = next((p for p in candidates if available(p)),None)
-            return (tile_key(beside),tuple(beside)) if beside is not None else None
+            return (tile_key(beside),tuple(beside)) if beside is not None else self.throw_fallback(who, start, end)
         # Walk the same ray back towards the thrower. No teleporting across walls.
         for i in range(1, int(math.dist(start,end)*40)+2):
             length = math.dist(start,end)
@@ -891,7 +891,48 @@ class SpatialKitchen(Kitchen):
             candidate = tuple(math.floor(v+.5) for v in point)
             if available(candidate):
                 return tile_key(candidate), tuple(candidate)
-        return None
+        return self.throw_fallback(who, start, end)
+
+    def throw_fallback(self, who, start, end):
+        """Where a throw comes down when every tile the flight reaches is taken (throw-rest-v1, 2026-11-27).
+
+        In Overcooked 2 a throw is never refused for want of room: ServerThrowableItem ends the flight on the first
+        upward-facing surface it touches, other items included, or when it stops moving, so a thrown item comes to rest
+        on a pile or drops at the foot of a wall. Here a floor tile holds one item, so it rests on the free floor tile
+        nearest (by steps over floor) to the last floor tile under its flight, still within the throw's reach on a
+        clear line (as start() checks): the tile under the flight's end, else the last floor tile back along the
+        flight. With none free there it drops on the thrower's side, nearest the thrower first. The other chef's own
+        tile comes last, as a missed catch lands beside them. None only when no reachable floor tile is free."""
+        occupied = self.occupied_floor(who)
+        other = self.anchor('jeff' if who == 'human' else 'human')
+        length = math.dist(start, end)
+        origin = None
+        for i in range(int(length*40)+2):
+            fraction = max(0., 1-i*.025/max(length,.025))
+            point = tuple(start[j]+(end[j]-start[j])*fraction for j in (0,1))
+            cell = tuple(math.floor(v+.5) for v in point)
+            if cell in self.floor:
+                origin = cell
+                break
+        last = None
+        for seed, toward in ((origin, end), (self.anchor(who), start)):
+            if seed is None:
+                continue
+            seen, frontier = {seed}, [seed]
+            while frontier:
+                for cell in frontier:
+                    if cell not in occupied and self.throw_reaches(who, cell):
+                        if cell != other:
+                            return tile_key(cell), tuple(cell)
+                        last = cell
+                following = []
+                for cell in frontier:
+                    for step in self.nav.neighbors(cell):
+                        if step not in seen:
+                            seen.add(step)
+                            following.append(step)
+                frontier = sorted(following, key=lambda c: (math.dist(c, toward), c))
+        return (tile_key(last), tuple(last)) if last is not None else None
 
     def throw_action(self, who, target, key=None, toward=None):
         """Throw toward ``target``; it comes down where throw_landing says (partner, station or floor)."""
