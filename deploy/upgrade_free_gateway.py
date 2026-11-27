@@ -16,10 +16,10 @@ from shared_client import SharedClient
 from shared_server import read_private_json
 
 UNIT=Path('/etc/systemd/system/chefjeff-free.service')
-# The gateway Shanghai runs now (cb23977, 0.10.1-beta.1, upgraded with --extra-models on 2026-11-27 with the games;
-# before that d1563cb's code from 2026-11-26 and 7ad158c's from 2026-11-09).
-PREVIOUS=Path('/opt/chefjeff/releases/china-free-cb23977729e0/chefjeff-web-demo')
-PREVIOUS_MANIFEST='fdda8d10fbdaf16040b226c9767c33e43de9865e3b9a9c418796ec834491df8d'
+# The gateway Shanghai runs now (8d29cf0, 0.11.0-beta.1, upgraded with --extra-models on 2026-11-27 with the games;
+# before that cb23977's code from earlier that day, d1563cb's from 2026-11-26 and 7ad158c's from 2026-11-09).
+PREVIOUS=Path('/opt/chefjeff/releases/china-free-8d29cf024378/chefjeff-web-demo')
+PREVIOUS_MANIFEST='df7363069153d7a0bfb3dfe00229beb0a9db5d46f41d798c6ffe73e0bd93a492'
 UNIT_NAME='chefjeff-free.service'
 
 
