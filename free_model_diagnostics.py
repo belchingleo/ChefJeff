@@ -16,7 +16,7 @@ class Diagnostics:
             if path.exists():
                 try:
                     if path.is_symlink() or path.stat().st_size>65536 or path.stat().st_mode&0o077:raise ValueError()
-                    old=json.loads(path.read_text())
+                    old=json.loads(path.read_text(encoding='utf-8'))
                     for p in self.data['providers']:
                         if p not in old['providers']:continue  # a model enabled after the last save
                         value=old['providers'][p];n=value['upstream_attempts']
@@ -34,7 +34,7 @@ class Diagnostics:
         temp=None
         try:
             fd,name=tempfile.mkstemp(prefix='.diagnostic-',dir=self.directory);temp=Path(name)
-            with os.fdopen(fd,'w') as output:
+            with os.fdopen(fd,'w',encoding='utf-8') as output:
                 os.fchmod(output.fileno(),0o600);json.dump(self.data,output,separators=(',',':'),allow_nan=False)
                 output.flush();os.fsync(output.fileno())
             temp.replace(self.directory/'diagnostics.json');return True

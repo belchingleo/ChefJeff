@@ -222,7 +222,7 @@ class CooperationMemory:
             try:
                 if self.path.stat().st_size > 300_000:
                     raise ValueError()
-                value = json.loads(self.path.read_text())
+                value = json.loads(self.path.read_text(encoding='utf-8'))
                 if (value.get('version') != 1 or type(value.get('enabled')) is not bool
                         or not isinstance(value.get('scopes'), dict)):
                     raise ValueError()
@@ -256,7 +256,7 @@ class CooperationMemory:
     def save(self, data):
         fd, name = tempfile.mkstemp(prefix='.player-memory-', dir=self.path.parent)
         try:
-            with os.fdopen(fd, 'w') as f:
+            with os.fdopen(fd, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False)
             os.replace(name, self.path)
         finally:

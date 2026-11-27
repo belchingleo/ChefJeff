@@ -40,7 +40,7 @@ SUBSTEP = .05
 
 
 def load_config(path=None):
-    c = json.loads(Path(path or ROOT / "config.json").read_text())
+    c = json.loads(Path(path or ROOT / "config.json").read_text(encoding="utf-8"))
     for key, value in c.items():
         if key == "ai_ask_on_step_end":
             if type(value) is not bool:

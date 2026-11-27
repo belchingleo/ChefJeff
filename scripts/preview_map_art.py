@@ -12,7 +12,7 @@ from map_definition import load_map
 
 
 def read_grid_art():
-    source = (ROOT / 'cocos-kitchen/assets/scripts/KitchenGeometry.ts').read_text()
+    source = (ROOT / 'cocos-kitchen/assets/scripts/KitchenGeometry.ts').read_text(encoding='utf-8')
     match = re.search(r'export\s+const\s+GRID_ART\s*=\s*\{([^}]+)\}', source)
     if not match:
         raise RuntimeError('Could not read GRID_ART from KitchenGeometry.ts')
@@ -42,7 +42,7 @@ def load_atlas(folder, prefix='', override=False):
     if not (base / 'manifest.json').exists():
         return
     atlas = Image.open(base / 'atlas.png').convert('RGBA')
-    manifest = json.loads((base / 'manifest.json').read_text())
+    manifest = json.loads((base / 'manifest.json').read_text(encoding='utf-8'))
     for name, metadata in manifest['frames'].items():
         x, y, width, height = metadata['rect']
         key = prefix + name

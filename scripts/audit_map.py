@@ -157,8 +157,8 @@ def page_checks(maps):
         if geometry is None:
             return None
         data, runner = Path(temp) / 'maps.json', Path(temp) / 'run.js'
-        data.write_text(json.dumps([{'name': name, 'map': m} for name, m in maps.items()]))
-        runner.write_text(PAGE_RUNNER)
+        data.write_text(json.dumps([{'name': name, 'map': m} for name, m in maps.items()]), encoding='utf-8')
+        runner.write_text(PAGE_RUNNER, encoding='utf-8')
         result = subprocess.run(['node', str(runner), str(geometry), str(data)], capture_output=True, text=True)
         if result.returncode:
             raise RuntimeError(result.stderr)
@@ -168,7 +168,7 @@ def page_checks(maps):
 def corridors(document, movement=None):
     """1-cell-wide corridors whose removal separates stations and whose walkable band is narrower than two chefs
     passing (chef_separation_cells): chefs meeting there cannot pass side by side, one gives way."""
-    move = movement or json.loads((ROOT / 'rulesets/chefjeff-service.json').read_text())['movement']
+    move = movement or json.loads((ROOT / 'rulesets/chefjeff-service.json').read_text(encoding='utf-8'))['movement']
     clearance = move['cabinet_clearance_cells']
     width, height = document['size']
     blocked = {tuple(w) for w in document['walls']} | {tuple(c) for e in document['equipment'] for c in e.get('cells', [e['cell']])}

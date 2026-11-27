@@ -19,7 +19,7 @@ if not creator.is_file():sys.exit('未找到 Cocos Creator；通过 COCOS_CREATO
 if args.platform=='android':
     local=ROOT/'.tools/android-env.json'
     if local.is_file():
-        for key,value in json.loads(local.read_text()).items():
+        for key,value in json.loads(local.read_text(encoding='utf-8')).items():
             os.environ.setdefault(key,value)
     missing=[name for name in ('ANDROID_SDK_ROOT','NDK_ROOT','JAVA_HOME') if not Path(os.environ.get(name,'/not-configured')).is_dir()]
     if missing:sys.exit('Android 构建环境未配置：'+', '.join(missing)+'。ANDROID_SDK_ROOT、NDK_ROOT、JAVA_HOME 都要指向已有的目录；'
@@ -28,17 +28,17 @@ config=ROOT/'cocos-kitchen'/f'build-{args.platform}.json'
 with tempfile.TemporaryDirectory(prefix='chefjeff-build-') as temporary:
     build_config=config
     if args.preview:
-        data=json.loads(config.read_text());data['outputName']='web-feedback'
-        build_config=Path(temporary)/'build.json';build_config.write_text(json.dumps(data))
+        data=json.loads(config.read_text(encoding='utf-8'));data['outputName']='web-feedback'
+        build_config=Path(temporary)/'build.json';build_config.write_text(json.dumps(data),encoding='utf-8')
     result=subprocess.run([str(creator),'--project',str(config.parent),'--build',f'configPath={build_config};stage={"make" if args.make else "build"}'])
 if result.returncode==36 and args.platform=='web':
     page=ROOT/'cocos-kitchen/build'/('web-feedback' if args.preview else 'web')/'index.html'
-    content=page.read_text()
-    shell=(ROOT/'cocos-kitchen/web-shell.html').read_text()
-    catalog=(ROOT/'cocos-kitchen/i18n.json').read_text()
-    (page.parent/'kitchen-i18n.js').write_text((ROOT/'cocos-kitchen/i18n.js').read_text().replace('__KITCHEN_CATALOG__',catalog))
+    content=page.read_text(encoding='utf-8')
+    shell=(ROOT/'cocos-kitchen/web-shell.html').read_text(encoding='utf-8')
+    catalog=(ROOT/'cocos-kitchen/i18n.json').read_text(encoding='utf-8')
+    (page.parent/'kitchen-i18n.js').write_text((ROOT/'cocos-kitchen/i18n.js').read_text(encoding='utf-8').replace('__KITCHEN_CATALOG__',catalog),encoding='utf-8')
     # The model services the settings dialog lists (also read by the local server and the hosted page).
-    (page.parent/'model-providers.js').write_text('window.chefjeffProviders='+json.dumps(json.loads((ROOT/'model-providers.json').read_text()),ensure_ascii=False)+';\n')
+    (page.parent/'model-providers.js').write_text('window.chefjeffProviders='+json.dumps(json.loads((ROOT/'model-providers.json').read_text(encoding='utf-8')),ensure_ascii=False)+';\n',encoding='utf-8')
     shutil.copyfile(ROOT/'cocos-kitchen/touch-controls.js',page.parent/'touch-controls.js')
     shutil.copyfile(ROOT/'cocos-kitchen/gamepad-controls.js',page.parent/'gamepad-controls.js')
     shutil.copyfile(ROOT/'cocos-kitchen/level-editor.js',page.parent/'level-editor.js')
@@ -62,7 +62,7 @@ if result.returncode==36 and args.platform=='web':
     for name in ('chefjeff-pixel.woff2','OFL.txt'):shutil.copyfile(ROOT/'cocos-kitchen/fonts'/name,page.parent/'fonts'/name)
     # Privacy/contact and the model guide, rendered from docs/ so the README links the same text.
     write_pages(page.parent)
-    page.write_text(content.replace('</body>',shell+'</body>'))
+    page.write_text(content.replace('</body>',shell+'</body>'),encoding='utf-8')
     # Desktop exports default to a fixed subframe. Track the browser viewport so
     # SHOW_ALL can letterbox correctly after resizing instead of stretching CSS.
     # Release builds use md5Cache, so these names carry a content hash (settings.<hash>.json).
@@ -71,18 +71,18 @@ if result.returncode==36 and args.platform=='web':
         if len(found)!=1:raise RuntimeError(f'Expected one {pattern}, found {len(found)}')
         return found[0]
     settings_path=built('src/settings*.json')
-    settings=json.loads(settings_path.read_text())
+    settings=json.loads(settings_path.read_text(encoding='utf-8'))
     settings['screen']['exactFitScreen']=True
-    settings_path.write_text(json.dumps(settings,ensure_ascii=False,indent=2)+'\n')
+    settings_path.write_text(json.dumps(settings,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     # Bind the two presentation modules to their source for CI consistency checks,
     # whether compiled with Creator or the documented cloud TypeScript fallback.
     bundle=built('assets/main/index*.js')
-    code=bundle.read_text()
+    code=bundle.read_text(encoding='utf-8')
     for name in ('KitchenAudio','LevelOneArt','KitchenClient'):
         source=(ROOT/f'cocos-kitchen/assets/scripts/{name}.ts').read_bytes()
         marker='    // source-sha256: '+hashlib.sha256(source).hexdigest()+'\n'
         pattern=r'(System\.register\("chunks:///_virtual/'+name+r'\.ts"[^\n]*\n)'
         code,count=re.subn(pattern,lambda match:match[0]+marker,code)
         if count!=1:raise RuntimeError('Missing presentation module: '+name)
-    bundle.write_text(code)
+    bundle.write_text(code,encoding='utf-8')
 sys.exit(0 if result.returncode==36 else result.returncode or 0)

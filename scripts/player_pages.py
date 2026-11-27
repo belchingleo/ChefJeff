@@ -62,4 +62,4 @@ def render(markdown):
 
 def write_pages(folder):
     for source, target in PAGES.items():
-        (Path(folder) / target).write_text(render((ROOT / 'docs' / source).read_text()))
+        (Path(folder) / target).write_text(render((ROOT / 'docs' / source).read_text(encoding='utf-8')), encoding='utf-8')

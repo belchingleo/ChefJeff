@@ -26,7 +26,7 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 
 
 # The services Jeff can use (shared with the settings dialog and the hosted page): see model-providers.json.
-PROVIDERS={p['id']:p for p in json.loads((ROOT/'model-providers.json').read_text())['providers'] if not p.get('disabled')}
+PROVIDERS={p['id']:p for p in json.loads((ROOT/'model-providers.json').read_text(encoding='utf-8'))['providers'] if not p.get('disabled')}
 
 
 # A model served on this computer (settings_from): these hosts only, never another private address.
@@ -188,7 +188,7 @@ class PlayerGameSession(GameSession):
         self.connecting=False
         self.connection_checks=0
         if self.credential_path.is_file():
-            try:self.setting=settings_from(json.loads(self.credential_path.read_text()))
+            try:self.setting=settings_from(json.loads(self.credential_path.read_text(encoding='utf-8')))
             except (OSError,ValueError,TypeError):pass
         super().__init__(*args,client_factory=self._player_client,**kwargs)
         self.memory = CooperationMemory(memory_path or self.credential_path.parent/'.player-memory.json')
@@ -314,7 +314,7 @@ class PlayerGameSession(GameSession):
                 if setting['remember']:
                     fd,name=tempfile.mkstemp(prefix='.player-api-',dir=self.credential_path.parent)
                     try:
-                        with os.fdopen(fd,'w') as f:json.dump(setting,f)
+                        with os.fdopen(fd,'w',encoding='utf-8') as f:json.dump(setting,f)
                         os.replace(name,self.credential_path)
                     finally:
                         if os.path.exists(name):os.unlink(name)

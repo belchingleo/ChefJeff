@@ -249,7 +249,7 @@ def load_map(level):
         level = f'level-{level}'
     if not isinstance(level, str) or not STATION_ID.match(level) or not (MAP_ROOT / f'{level}.json').is_file():
         raise ValueError('Unknown authored map')
-    document = validate_map(json.loads((MAP_ROOT / f'{level}.json').read_text()))
+    document = validate_map(json.loads((MAP_ROOT / f'{level}.json').read_text(encoding='utf-8')))
     if document['id'] != level:
         raise ValueError('Map id does not match its file name')
     return upgrade_map(document)

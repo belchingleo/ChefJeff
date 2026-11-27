@@ -130,7 +130,7 @@ def code_root(commit, cache=CACHE):
     if work.exists():
         shutil.rmtree(work)
     extract(sha, work)
-    (work / '.complete').write_text(sha + '\n')
+    (work / '.complete').write_text(sha + '\n', encoding='utf-8')
     work.rename(root)
     return root
 

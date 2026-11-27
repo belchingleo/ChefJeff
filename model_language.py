@@ -6,7 +6,7 @@ import re
 
 # v4: joining shared chopping/washing, walking to a floor tile and spatial start events are translated (were partly Chinese).
 INPUT_LANGUAGE_VERSION = 'en-v4'
-_CATALOG = json.loads((Path(__file__).parent/'model-language-en-v4.json').read_text())
+_CATALOG = json.loads((Path(__file__).parent/'model-language-en-v4.json').read_text(encoding='utf-8'))
 _MESSAGES = _CATALOG['messages']
 # Chefs are named by their state keys (human, jeff) so "you" in the rules only ever means the model's own chef.
 _ACTORS = _CATALOG['actors']

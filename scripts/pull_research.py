@@ -66,7 +66,7 @@ def read_token(path=TOKEN_FILE):
         raise PullError('还没有保存导出令牌；先运行 python3 scripts/pull_research.py save-token。') from None
     if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077:
         raise PullError('令牌文件必须属于当前用户且权限为600：chmod 600 '+str(path))
-    token = path.read_text().strip()
+    token = path.read_text(encoding='utf-8').strip()
     if not TOKEN_PATTERN.fullmatch(token):
         raise PullError('令牌文件格式不对，请重新运行 save-token。')
     return token
@@ -83,7 +83,7 @@ def save_token(path=TOKEN_FILE, replace=False, prompt=getpass.getpass):
     fd, temporary = tempfile.mkstemp(dir=path.parent, prefix='.token-')
     try:
         os.fchmod(fd, 0o600)
-        with os.fdopen(fd, 'w') as output:
+        with os.fdopen(fd, 'w', encoding='utf-8') as output:
             output.write(token+'\n')
         os.replace(temporary, path)
     finally:
@@ -214,7 +214,7 @@ def load_index(out):
     path = out/SYNC_INDEX
     if not path.exists():
         return {'format': SYNC_FORMAT, 'packages': {}, 'records': {}}
-    index = json.loads(path.read_text())
+    index = json.loads(path.read_text(encoding='utf-8'))
     if index.get('format') != SYNC_FORMAT:
         raise PullError('同步目录里的清单格式不认识：'+str(path))
     return index
@@ -223,7 +223,7 @@ def load_index(out):
 def save_index(out, index):
     fd, temporary = tempfile.mkstemp(dir=out, prefix='.sync-', suffix='.part')
     try:
-        with os.fdopen(fd, 'w') as output:
+        with os.fdopen(fd, 'w', encoding='utf-8') as output:
             json.dump(index, output, ensure_ascii=False, indent=2)
         os.chmod(temporary, 0o600)
         os.replace(temporary, out/SYNC_INDEX)
