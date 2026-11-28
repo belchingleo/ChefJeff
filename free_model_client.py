@@ -3,7 +3,6 @@ from copy import deepcopy
 import http.client
 import json
 import secrets
-import ssl
 import threading
 import time
 import weakref
@@ -13,6 +12,7 @@ from free_model_gateway import GatewayError, CODES, PREFIX
 from hosted_free_models import MODELS
 from model_language import english_data
 from model_status import clean, ModelWait
+import tls_context
 
 ERRORS = {
     'seat_busy': '这个模型的免费厨房名额已满，请稍后开局或使用自己的模型。',
@@ -66,7 +66,7 @@ class FreeGatewayClient:
         kind = http.client.HTTPSConnection if self.url.scheme == 'https' else http.client.HTTPConnection
         options = {'timeout': 22 if operation == 'decide' else 3}
         if self.url.scheme == 'https':
-            options['context'] = ssl.create_default_context()
+            options['context'] = tls_context.context()
         connection = kind(self.url.hostname, self.url.port, **options)
         try:
             raw = json.dumps(body, ensure_ascii=False, allow_nan=False).encode()

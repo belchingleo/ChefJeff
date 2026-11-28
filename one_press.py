@@ -321,7 +321,16 @@ def _nearest(kitchen, who, actions):
 def find(kitchen, who, step):
     """The listed action that does this step now, or None. A step with BURNT as its third part is done only while its
     pan has burnt food in it (_burnt_pan); NEAREST_BIN is the listed one of its kinds at the bin nearest to the chef,
-    and GROUND and an item's id the listed pick-up of that item."""
+    and GROUND and an item's id the listed pick-up of that item. A throw step (throw_to) is found with throws listed,
+    also in a note fork that lists without them (links.LEAN)."""
+    if 'throw' in step[0]:
+        from kitchen import throw_listing
+        with throw_listing(True):
+            return _find(kitchen, who, step)
+    return _find(kitchen, who, step)
+
+
+def _find(kitchen, who, step):
     kinds, target = step[0], step[1]
     if len(step) > 2 and step[2] == BURNT and not _burnt_pan(kitchen, who, target):
         return None

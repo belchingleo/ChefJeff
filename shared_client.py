@@ -6,7 +6,6 @@ import json
 from pathlib import Path
 import re
 import secrets
-import ssl
 import sqlite3
 import threading
 import time
@@ -14,6 +13,7 @@ from urllib.parse import urlsplit
 
 from hosted_usage import UsageStats
 from shared_data import usage_payload, encode
+import tls_context
 
 
 class SharedClient:
@@ -38,7 +38,7 @@ class SharedClient:
         connection_class = http.client.HTTPSConnection if self.url.scheme == 'https' else http.client.HTTPConnection
         options = {'timeout': timeout}
         if self.url.scheme == 'https':
-            options['context'] = ssl.create_default_context()
+            options['context'] = tls_context.context()
         raw = encode(body).encode()
         headers = {'Authorization': 'Bearer '+self.token, 'X-ChefJeff-Site': self.site, 'Content-Type': 'application/json'}
         if compress:

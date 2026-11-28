@@ -159,6 +159,12 @@ def _waiting(snapshot, dish):
 
 
 def _plate_note(kitchen, option):
+    import links
+    with links.throws_left_out():       # the plating step and the dish it makes read no throw
+        return _plate_note_text(kitchen, option)
+
+
+def _plate_note_text(kitchen, option):
     import food_names
     import links
     if option.kind not in PLATING:

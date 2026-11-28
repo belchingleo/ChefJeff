@@ -16,6 +16,10 @@ rules.links, while every option stays as it is (apply).
 """
 from __future__ import annotations
 
+import contextlib
+import copy
+import pickle
+
 import engine_english
 from model_language import english_text
 
@@ -76,6 +80,13 @@ SHARED = ('rules', 'resolved', 'map_document', 'floor_places', 'equipment', 'flo
           'walls', '_fire_neighbors', 'c')      # not provenance: it records each food's history as play goes on
 NO_EFFECT = ('go', 'wait', 'stop')     # change no hand and no station, so they never lead to new work
 FAST = True                            # False: fork as Kitchen.fork does, every option (kept for the equivalence check)
+# The forks that build a request's notes list their actions without throws (kitchen.throw_listing) where only work,
+# put-downs and walks are read from the listing: the links table (with its partner chains), go_note's walk and the
+# plate note's step. A throw option is a landing computed for nine directions, and on level 4 with raw beef in Jeff's
+# hands that was about a quarter of the request's build (2026-11-28: 24-30 % faster there, 18-24 % on level 2, the
+# same request bytes). A step that is a throw (throw_to) is found with throws listed (one_press.find), and go_note
+# looks for something to do on arrival in the full listing. False: list throws everywhere (the equivalence check).
+LEAN = True
 _ROUTES = {}                           # id(map navigation) -> (that navigation, the links forks' isolated copy)
 
 
@@ -91,13 +102,29 @@ class _NoHistory:
 NO_HISTORY = _NoHistory()
 
 
+def _copy(kitchen):
+    """The fork's copy of the kitchen's own state: a pickle round trip, which makes the same objects as deepcopy
+    (every value the engine keeps is plain data: dataclasses, dicts, lists, numbers, strings) in about a fifth of the
+    time. A value pickle cannot write falls back to deepcopy, so a fork never fails for it."""
+    try:
+        return pickle.loads(pickle.dumps(kitchen, pickle.HIGHEST_PROTOCOL))
+    except Exception:       # pickle.PicklingError, TypeError, AttributeError, RecursionError, ...
+        return copy.deepcopy(kitchen)
+
+
+def throws_left_out():
+    """The scope a note fork is listed in: no throws (LEAN), or throws as always."""
+    import kitchen as engine
+    return engine.throw_listing(False) if LEAN else contextlib.nullcontext()
+
+
 def _fork(kitchen):
     if not FAST:
         return kitchen.fork()
     state = kitchen.__dict__
     held = {name: state.pop(name) for name in SHARED + ('provenance',) if name in state}
     try:
-        twin = kitchen.fork()
+        twin = kitchen.fork(copy=_copy)
     finally:
         state.update(held)
     twin.__dict__.update({name: value for name, value in held.items() if name != 'provenance'})
@@ -400,7 +427,7 @@ def table(kitchen, who, actions, keys, names=False, partner=False):
     unmark = food_names.unmark if names else (lambda text: text)
     by_key = {a.key: a for a in actions}
     out = {}
-    with (food_names.naming() if names else contextlib.nullcontext()):
+    with (food_names.naming() if names else contextlib.nullcontext()), throws_left_out():
         now = kitchen.actions(who)
         held_item = kitchen.chefs[who].hand
         other_now = None

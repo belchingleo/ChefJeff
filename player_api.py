@@ -10,6 +10,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from kitchen import ROOT
+import tls_context
 from web_server import GameSession
 from whitebox_server import SpatialJevClient
 from jev import http_error_detail
@@ -112,7 +113,7 @@ class CompatibleClient(SpatialJevClient):
         req=urllib.request.Request(self.setting['base_url']+'/chat/completions',data=json.dumps(body).encode(),
             headers={**({'Authorization':'Bearer '+self.key} if self.key else {}),'Content-Type':'application/json'})
         try:
-            with urllib.request.build_opener(NoRedirect).open(req,timeout=20) as r:data=json.load(r)
+            with urllib.request.build_opener(NoRedirect,tls_context.https_handler()).open(req,timeout=20) as r:data=json.load(r)
         except urllib.error.HTTPError as e:raise RuntimeError(f'模型接口 HTTP {e.code}{http_error_detail(e,self.key)}') from None
         except (OSError,ValueError):raise RuntimeError('模型接口连接失败或返回了无效数据') from None
         content,reason=None,'回复里没有文本'

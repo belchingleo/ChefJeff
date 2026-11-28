@@ -27,9 +27,10 @@ every feature on; every feature on but no_history, the only set with the timelin
 (no_history wins over it); and the release with option_links_partner, the only set
 with the separate links table's partner lines. Their decision loop gets its
 switches from a started session (web_server.GameSession), so a change to how a
-round wires them shows here too. Level 2 is played with the recipe roles; on level
-5's split floor both chefs play zoned (ZONED), so Jeff takes, passes and throws
-items there. The checked-in test plays a few sampled kitchen states per set
+round wires them shows here too. Level 2 is played with the recipe roles; on the
+split floors of levels 4 and 5 both chefs play zoned (ZONED), so Jeff takes, passes
+and throws items there (level 4: with raw beef in hand, throw_to options with link
+and partner lines). The checked-in test plays a few sampled kitchen states per set
 (SAMPLES: the level's policy plays both chefs up to a game time, then Jeff's loop
 makes a few requests); request bodies are sampled on the release set only.
 
@@ -122,7 +123,10 @@ COMPOSE = jev.compose_payload
 FINISH = jev.finish_payload
 
 GOLDEN_SWITCHES = Path(__file__).resolve().parent / 'golden' / 'payload-switches'
-SWITCH_LEVELS = ('level-2', 'level-5')      # level 5 has the split floor
+SWITCH_LEVELS = ('level-2', 'level-4', 'level-5')      # levels 4 and 5 have the split floor
+# Level 4 joined on 2026-11-28 for the links-build speed-up (links.LEAN): there, with the partner line on, Jeff holding
+# raw beef gets throw_to options whose link and partner lines need the throws listed in the fork (one_press.find).
+# Finding a throw step without throws changes 5 of level 4's 10 sampled release requests, 1 of level 5's 6.
 SWITCH_SETS = ('release', 'local', 'local-links-off', 'all', 'all-but-no-history', 'release-partner-links')
 LOCAL_OFF = ('timeline', 'no_history')      # the two trials the local play set leaves off
 # The features each set leaves off (release: as features.json has them). no_history wins over timeline, so only
@@ -131,10 +135,10 @@ LOCAL_OFF = ('timeline', 'no_history')      # the two trials the local play set 
 SET_OFF = {'local': LOCAL_OFF, 'local-links-off': LOCAL_OFF + ('option_links',), 'all': (),
            'all-but-no-history': ('no_history',)}
 ROLES = {'human': 'assembler', 'jeff': 'cook'}
-# Levels the switch net plays zoned: on level 5's split floor each chef works the part of the floor they stand in
+# Levels the switch net plays zoned: on the split floors of levels 4 and 5 each chef works the part of the floor they stand in
 # (reference_policy.choose_zoned, as tests/fingerprint.py plays level4-zoned), so Jeff holds, passes and throws items.
 # With the recipe roles there Jeff answers wait to every request. Other levels use the recipe roles.
-ZONED = {'level-5'}
+ZONED = {'level-4', 'level-5'}
 # The decision loop's switches, as a started round sets them (web_server.GameSession, /api/start).
 LOOP_SWITCHES = ('one_press', 'ask_ahead', 'undo', 'reach', 'names', 'links', 'split', 'burn', 'serve_note', 'steps',
                  'clear', 'walk', 'go', 'english', 'plate', 'parts', 'work')
@@ -143,7 +147,8 @@ LOOP_SWITCHES = ('one_press', 'ask_ahead', 'undo', 'reach', 'names', 'links', 's
 # release set, changes some request on one of the levels: burn_note on level 2 only; throw_to, option_notes and the
 # split-floor notes (reach_note, split_floor, step_check) on level 5 only. The release set's request bodies are sampled
 # on the first request of window WIRE_WINDOW.
-SAMPLES = {'level-2': ((0, 1), (10, 2), (50, 2)), 'level-5': ((30, 2), (110, 2), (150, 2))}
+SAMPLES = {'level-2': ((0, 1), (10, 2), (50, 2)), 'level-4': ((0, 3), (30, 3), (115, 4)),
+           'level-5': ((30, 2), (110, 2), (150, 2))}
 WIRE_WINDOW = 1
 FULL_WIRE_EVERY = 40
 

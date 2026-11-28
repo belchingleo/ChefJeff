@@ -5,6 +5,7 @@ resolved configuration (see ``config_contract`` and ``rules``); the engine has
 no per-level branches.
 """
 from __future__ import annotations
+import contextlib
 from dataclasses import dataclass, field, replace
 import engine_english
 from model_language import english_text
@@ -15,12 +16,35 @@ import json
 import math
 from pathlib import Path
 import re
+import threading
 
 from provenance import Provenance
 from rules import Rules, runtime_config
 import servability
 
 ROOT = Path(__file__).resolve().parent
+_LISTING = threading.local()
+
+
+def throws_listed():
+    """Whether actions() lists throws in this thread (yes unless a throw_listing(False) scope says otherwise)."""
+    return getattr(_LISTING, 'throws', True)
+
+
+@contextlib.contextmanager
+def throw_listing(on):
+    """In this thread only, have actions() list throws (on) or leave them out (not on) while the scope lasts.
+
+    For the forks that build a request's notes (links.LEAN): they read only work, put-downs and walks from a listing,
+    while each throw option costs a landing computed for nine directions. The engine starts a throw without listing
+    actions (SpatialKitchen._start), so a fork still carries out a throw step; one_press.find lists throws again for
+    a step that is one. The game's own kitchens never run inside such a scope."""
+    old = throws_listed()
+    _LISTING.throws = bool(on)
+    try:
+        yield
+    finally:
+        _LISTING.throws = old
 NAMES = {"human": "你", "jeff": "Jeff"}
 STATES = {"raw": "生肉", "chopped": "切好", "cooking": "加热中", "ready": "熟了", "burnt": "糊了", "extinguisher": "灭火器", "clean_plate": "干净餐盘", "dirty_plate": "脏餐盘", "pot": "锅", "assembled": "待组装菜品"}
 # The serve option as a chef's task and its events carry it; a held burnt dish's option says what serving it does
@@ -1033,14 +1057,15 @@ class Kitchen:
     # Attributes a fork leaves behind: the session's record hooks, and lists it rebuilds itself.
     FORK_DETACHED = ('_record_observer', '_research_state_ref', 'inputs', 'events', 'nav')
 
-    def fork(self):
+    def fork(self, copy=deepcopy):
         """An engine-only copy to play forward and throw away (ask_ahead.py). Nothing it does reaches this kitchen:
         it has no record observer or research state reference, records its own inputs, appends to its own event
         list (the events so far are shared, and events are never changed once emitted), keeps its own random state,
-        and gets route caches of its own (navigation.Navigation.isolated), so its walks cannot fill this kitchen's."""
+        and gets route caches of its own (navigation.Navigation.isolated), so its walks cannot fill this kitchen's.
+        copy makes the copy of the rest (links._fork passes a faster one that gives the same kitchen)."""
         held = {name: self.__dict__.pop(name) for name in self.FORK_DETACHED if name in self.__dict__}
         try:
-            twin = deepcopy(self)
+            twin = copy(self)
         finally:
             self.__dict__.update(held)
         twin.inputs = []

@@ -5,6 +5,8 @@ import re
 import urllib.error
 import urllib.request
 
+import tls_context
+
 from hosted_free_models import MODELS, chat_answer
 from hosted_jev import ForwardError, JevForwarder, NoRedirect
 from model_output import chat_body
@@ -34,7 +36,7 @@ class CloudflareForwarder(JevForwarder):
             data=json.dumps(chat_body(payload, model['model'], model['extra']), ensure_ascii=False).encode(),
             headers={'Authorization': 'Bearer ' + body['api_key'], 'Content-Type': 'application/json'}, method='POST')
         try:
-            with urllib.request.build_opener(NoRedirect()).open(request, timeout=18) as response:
+            with urllib.request.build_opener(NoRedirect(), tls_context.https_handler()).open(request, timeout=18) as response:
                 raw = response.read(262145)
             if len(raw) > 262144:
                 raise ForwardError(502, 'Cloudflare 回复过大。')

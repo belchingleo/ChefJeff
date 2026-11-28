@@ -2,7 +2,7 @@
 from functools import lru_cache
 import math
 import random
-from kitchen import Kitchen, Action, Station, NAMES, TAKE_KINDS, Job, GroundItem, engine_input
+from kitchen import Kitchen, Action, Station, NAMES, TAKE_KINDS, Job, GroundItem, engine_input, throws_listed
 from map_definition import floor_parts, geometry
 from navigation import WALK_CLEARANCE, Navigation, contact_fraction
 FACING_STEPS = {'up':(0,-1),'down':(0,1),'left':(-1,0),'right':(1,0)}
@@ -1065,7 +1065,7 @@ class SpatialKitchen(Kitchen):
             location = tile_key(target)
             actions.append(Action('drop', f'把手中物品放到{self.place(location).name}',
                                   'drop', location, (chef.hand.id, location)))
-        if self.can_throw(who) and not (chef.job and chef.job.action.kind == 'throw'):
+        if throws_listed() and self.can_throw(who) and not (chef.job and chef.job.action.kind == 'throw'):
             other = 'jeff' if who == 'human' else 'human'
             action = self.throw_action(who,self.positions[other],'throw partner')
             if action: actions.append(action)

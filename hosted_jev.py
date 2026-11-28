@@ -5,6 +5,7 @@ import time
 import urllib.error
 import urllib.request
 from copy import deepcopy
+import tls_context
 from cooperation_memory import validate_browser_context, PAST_EPISODES_RULE
 from model_language import english_data
 
@@ -82,7 +83,7 @@ class JevForwarder:
                             ensure_ascii=False).encode(),
             headers={'Authorization':'Bearer '+key,'Content-Type':'application/json'},method='POST')
         try:
-            with urllib.request.build_opener(NoRedirect()).open(request,timeout=18) as response:
+            with urllib.request.build_opener(NoRedirect(),tls_context.https_handler()).open(request,timeout=18) as response:
                 raw = response.read(262145)
             if len(raw)>262144: raise ForwardError(502,'Jev 回复过大。')
             return parse_answer(raw,payload)

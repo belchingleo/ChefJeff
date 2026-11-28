@@ -30,11 +30,14 @@ def _held(payload):
 def note(kitchen, action, held):
     """The note for one "go X" option, or None when something on arrival acts on X (or the walk cannot be made)."""
     import links
-    twin = links._fork(kitchen)
-    if not links._carry_out(twin, 'jeff', action, [], None):
-        return None
-    if any(a.target == action.target and a.kind not in IDLE for a in twin.actions('jeff')):
-        return None
+    from kitchen import throw_listing
+    with links.throws_left_out():       # the walk there reads no throw
+        twin = links._fork(kitchen)
+        if not links._carry_out(twin, 'jeff', action, [], None):
+            return None
+    with throw_listing(True):           # a throw onto X is something to do there
+        if any(a.target == action.target and a.kind not in IDLE for a in twin.actions('jeff')):
+            return None
     return f' (on arrival, nothing there takes the held {held})' if held else ' (on arrival, nothing to do there with empty hands)'
 
 

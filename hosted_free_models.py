@@ -17,6 +17,8 @@ import time
 import urllib.error
 import urllib.request
 
+import tls_context
+
 from cooperation_memory import validate_browser_context, PAST_EPISODES_RULE
 from hosted_jev import ForwardError, NoRedirect, valid_key, page_answers, parse_answer as decision_answer
 from model_language import english_data
@@ -200,7 +202,7 @@ class FreeModels:
             return clean({'code':code,'provider':provider,'upstream_called':True,
                 'upstream_http_status':http_status,'duration_ms':round((time.monotonic()-started)*1000),**extra})
         try:
-            with urllib.request.build_opener(NoRedirect()).open(request, timeout=18) as response:
+            with urllib.request.build_opener(NoRedirect(), tls_context.https_handler()).open(request, timeout=18) as response:
                 observed_status=getattr(response,'status',None)
                 http_status=observed_status if type(observed_status) is int else None
                 raw = response.read(262145)
