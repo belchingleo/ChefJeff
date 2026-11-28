@@ -1111,7 +1111,43 @@
     "沥水架要紧挨着水槽": "The drying rack goes right beside the sink",
     "拿已装盘的菜出餐（没有订单在等这道菜会扣钱；这盘糊菜会被拒收，不收钱，菜没了，订单继续等待）": "Serve the plated dish (serving a dish no order is waiting for costs money; this burnt dish is refused with no payment; the dish is lost and the order keeps waiting)",
     "Jeff 这局一个动作也没做。": "Jeff took no action this round.",
-    "厨房继续营业。": "The kitchen is open again."
+    "厨房继续营业。": "The kitchen is open again.",
+    "订单聚焦": "Order focus",
+    "共享订单聚焦": "Shared order focus",
+    "聚焦第 1 张订单": "Focus order 1",
+    "聚焦第 2 张订单": "Focus order 2",
+    "聚焦第 3 张订单": "Focus order 3",
+    "聚焦第 4 张订单": "Focus order 4",
+    "聚焦第 5 张订单": "Focus order 5",
+    "我管灶台": "I take stove",
+    "我管切配/装盘": "I take prep/plate",
+    "自由补位": "Flexible",
+    "点击聚焦此订单，与 Jeff 共同配合": "Click to focus this order with Jeff",
+    "聚焦中": "Focused",
+    "避险暂停": "Paused (risk)",
+    "Jeff 提议": "Jeff proposes",
+    "待回应": "Pending",
+    "起火避险暂停": "Paused for fire",
+    "快糊避险暂停": "Paused for burn risk",
+    "Jeff 提议聚焦": "Jeff proposes",
+    "等待 Jeff 回应": "Waiting for Jeff",
+    "共同聚焦": "Shared focus",
+    "同意 Y": "Accept (Y)",
+    "拒绝 N": "Decline (N)",
+    "共同聚焦的订单已完成：": "Focused order served: ",
+    "订单已超时重置，已解除聚焦：": "Order expired; focus released: ",
+    "Jeff 暂不聚焦该订单，转为自由配合": "Jeff declined this order focus",
+    "Jeff 已解除共同聚焦": "Jeff released the shared focus",
+    "已自动确认共同聚焦：": "Shared focus confirmed: ",
+    "请在对局开始后、结束前操作共享订单聚焦。": "Change shared order focus only while a round is running or paused.",
+    "当前对局未启用共享订单聚焦。": "Shared order focus is not enabled for this round.",
+    "不支持的聚焦操作。": "Unsupported order focus action.",
+    "订单编号无效。": "Invalid order ID.",
+    "分工选项无效。": "Invalid division option.",
+    "当前没有待确认的 Jeff 提议。": "There is no pending proposal from Jeff.",
+    "当前没有待拒绝的 Jeff 提议。": "There is no pending proposal from Jeff to decline.",
+    "该订单已结束。": "That order is no longer pending.",
+    "该订单当前不在等待列表中。": "That order is not currently waiting."
   },
   "templates": [
     [
@@ -2197,6 +2233,34 @@
     [
       "按标准时间算，这局的活你做了 {0}，Jeff 做了 {1}。",
       "By standard time, you did {0} of the work this round and Jeff {1}."
+    ],
+    [
+      "Jeff 提议共同聚焦订单 {0}（按 Y 同意 / N 拒绝）",
+      "Jeff proposes focusing order {0} (press Y to accept / N to decline)"
+    ],
+    [
+      "Jeff 同意共同聚焦订单 {0}",
+      "Jeff accepted focusing order {0}"
+    ],
+    [
+      "Jeff 暂不聚焦订单 {0}，转为自由配合",
+      "Jeff declined focusing order {0}"
+    ],
+    [
+      "Jeff 已解除订单 {0} 的共同聚焦",
+      "Jeff released shared focus on order {0}"
+    ],
+    [
+      "已自动确认共同聚焦订单 {0}",
+      "Shared focus confirmed for order {0}"
+    ],
+    [
+      "检测到{0}，已暂时挂起订单聚焦",
+      "Paused order focus due to {0}"
+    ],
+    [
+      "共同聚焦的订单 {0} 已完成",
+      "Focused order {0} completed"
     ]
   ]
 }

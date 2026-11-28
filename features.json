@@ -21,5 +21,6 @@
   "throw_to": {"stage": "release", "on": true, "version": "throw-to-v1"},
   "own_chain": {"stage": "trial", "on": false, "version": "own-chain-v1"},
   "plate_result": {"stage": "release", "on": true, "version": "plate-result-v2"},
-  "board_taken": {"stage": "release", "on": true, "version": "board-taken-v1"}
+  "board_taken": {"stage": "release", "on": true, "version": "board-taken-v1"},
+  "joint_plan": {"stage": "trial", "on": false, "version": "joint-plan-v1"}
 }

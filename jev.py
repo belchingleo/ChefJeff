@@ -23,6 +23,7 @@ import environment
 import ask_ahead
 import engine_english
 import servability
+import joint_plan
 
 ENDPOINT = "https://api.typesafe.ai/v1/systemone"
 
@@ -111,7 +112,8 @@ class JevClient:
 def compose_payload(client, kitchen, state, actions, recent_decisions, communication, memory=NO_MEMORY, one_press=None,
                     undo=None, reach=False, names=False, links=False, split=False, burn=False,
                     serve_note=False, steps=False, clear=False, walk=False,
-                    english=False, plate=False, parts=None, go=False, work=None, defer=False):
+                    english=False, plate=False, parts=None, go=False, work=None, defer=False,
+                    joint=None, is_ahead=False):
     """Jeff's request from the kitchen and the few parts it cannot derive; research replay rebuilds it here too.
 
     one_press is the round's one-press switches (one_press.flags), or None: the options are added to the
@@ -126,7 +128,8 @@ def compose_payload(client, kitchen, state, actions, recent_decisions, communica
     whether plate_names is (plate_names.py: a plating option says what the plate there holds). parts is
     request_parts.finish's switches (request_parts.parts), or None: they run last, after the links table. go whether
     go_note is (go_note.py: a "go X" option says when nothing there takes what Jeff holds). work is work_notes.flags
-    (own_chain, plate_result, board_taken: facts on options about the work they lead to), or None.
+    (own_chain, plate_result, board_taken: facts on options about the work they lead to), or None. joint is the
+    joint_plan state snapshot when that trial is on, or None.
 
     defer: return (payload, actions) once the request is translated (harness.compose), before the notes that fork the
     kitchen for each option; finish_payload then adds them in this same order (the decision loop does that in its
@@ -134,12 +137,12 @@ def compose_payload(client, kitchen, state, actions, recent_decisions, communica
     with engine_english.writing(english):
         return _compose(client, kitchen, state, actions, recent_decisions, communication, memory, one_press,
                         undo, reach, names, links, split, burn, serve_note, steps, clear, walk, plate, parts, go, work,
-                        defer)
+                        defer, joint, is_ahead)
 
 
 def _compose(client, kitchen, state, actions, recent_decisions, communication, memory, one_press,
              undo, reach, names, links, split, burn, serve_note, steps, clear, walk, plate, parts, go=False, work=None,
-             defer=False):
+             defer=False, joint=None, is_ahead=False):
     if one_press:
         import one_press as presses
         if not any(a.kind in presses.KINDS for a in actions):     # the decision loop adds them itself
@@ -153,10 +156,12 @@ def _compose(client, kitchen, state, actions, recent_decisions, communication, m
                               undo, reach, names, split, burn, serve_note, steps, clear)
     if defer:
         return payload, actions
-    return finish_payload(payload, kitchen, actions, undo, names, links, serve_note, clear, walk, plate, parts, go, work)
+    return finish_payload(payload, kitchen, actions, undo, names, links, serve_note, clear, walk, plate, parts, go, work,
+                          joint=joint, is_ahead=is_ahead)
 
 
-def finish_payload(payload, kitchen, actions, undo, names, links, serve_note, clear, walk, plate, parts, go=False, work=None):
+def finish_payload(payload, kitchen, actions, undo, names, links, serve_note, clear, walk, plate, parts, go=False,
+                   work=None, joint=None, is_ahead=False):
     """The notes that fork the kitchen for each option, the links table and the request parts, in compose_payload's
     order (see defer there)."""
     if undo is not None:
@@ -189,6 +194,8 @@ def finish_payload(payload, kitchen, actions, undo, names, links, serve_note, cl
     if parts:
         import request_parts
         request_parts.finish(payload, kitchen, **parts)
+    if joint is not None:
+        joint_plan.apply(payload, kitchen, joint, ask_ahead=is_ahead)
     return payload
 
 
@@ -292,6 +299,29 @@ class DecisionLoop:
         self.held = None
         self.ahead_job = None
         self.step_end_seen = None   # (step id, countdown bands, hand) when Jeff's last step ended
+        # Shared order focus (joint_plan.py) when the joint_plan trial is on; None when off.
+        self.joint_plan = None
+
+    def _notify_joint(self, entry):
+        """Short player notice when a shared order focus changes state."""
+        kind = entry.get('transition')
+        order_id = entry.get('order_id') or ''
+        by = entry.get('by')
+        if kind == 'proposed' and by == 'jeff':
+            self.notify(f'Jeff 提议共同聚焦订单 {order_id}（按 Y 同意 / N 拒绝）')
+        elif kind == 'accepted' and by == 'jeff':
+            self.notify(f'Jeff 同意共同聚焦订单 {order_id}')
+        elif kind == 'declined' and by == 'jeff':
+            self.notify(f'Jeff 暂不聚焦订单 {order_id}，转为自由配合')
+        elif kind == 'released' and by == 'jeff':
+            self.notify(f'Jeff 已解除订单 {order_id} 的共同聚焦')
+        elif kind == 'accepted_implicit':
+            self.notify(f'已自动确认共同聚焦订单 {order_id}')
+        elif kind == 'suspended':
+            reason = '起火' if entry.get('reason') == 'fire' else '炉灶快糊'
+            self.notify(f'检测到{reason}，已暂时挂起订单聚焦')
+        elif kind == 'completed':
+            self.notify(f'共同聚焦的订单 {order_id} 已完成')
 
     def reply_time(self):
         """The typical recent reply time, or None before any answer."""
@@ -437,6 +467,7 @@ class DecisionLoop:
         self.send(context, payload, {**record, 'links_ms': round(seconds * 1000)})
 
     def send(self, context, payload, record):
+        context['joint_questions'] = [q for q in joint_plan.QUESTIONS if q in payload.get('questions', {})]
         self.log("ai_request", {**record, "payload": payload})
 
         def work():
@@ -461,6 +492,10 @@ class DecisionLoop:
 
     def poll(self, enabled=True):
         now = time.monotonic()
+        if enabled and not self.closed and not self.k.ended and self.joint_plan is not None:
+            for entry in joint_plan.sync(self.joint_plan, self.k):
+                self.log('joint_plan', entry)
+                self._notify_joint(entry)
         self.send_prepared()
         packet = None
         if self.held is not None:
@@ -556,6 +591,11 @@ class DecisionLoop:
                     first = (pressed or {}).get('first')
                     self.undo = undo_note.remember(self.undo, undo_note.record(
                         self.k, listed.get(result["choice"]), listed.get(first) if first else None, self.k.time))
+                if fresh and self.joint_plan is not None and context.get('joint_questions'):
+                    jp_entry = joint_plan.apply_answer(self.joint_plan, self.k, result, context['joint_questions'])
+                    if jp_entry is not None:
+                        self.log('joint_plan', jp_entry)
+                        self._notify_joint(jp_entry)
                 self.log("ai_response", {"request_id": context["id"], **result, "applied": applied, "execution": message, "sprint_applied":sprint_applied,
                                          "fresh": fresh,
                                          **({"chain_continue": True} if chain_goes_on else {}),
@@ -667,6 +707,8 @@ class DecisionLoop:
                                                         't':round(self.k.time,3),'meaning':'included in request, not proof of understanding'})
                     message['first_request_id']=self.calls
         undo = deepcopy(self.undo)
+        plan_snap = joint_plan.snapshot_for_record(self.joint_plan)
+        is_ahead = source is not self.k
         # With the links table on, only the translation is done here; the notes that fork the kitchen per option (undo,
         # walk, go, plate names, work notes) and the table follow in its thread (finish_payload, same order).
         composed = compose_payload(self.client, source, state, actions, self.recent_decisions, communication,
@@ -675,11 +717,13 @@ class DecisionLoop:
                                    burn=self.burn, serve_note=self.serve_note,
                                    steps=self.steps, clear=self.clear, walk=self.walk,
                                    english=self.english, plate=self.plate, parts=self.parts,
-                                   go=self.go, work=self.work, defer=bool(self.links))
+                                   go=self.go, work=self.work, defer=bool(self.links),
+                                   joint=plan_snap, is_ahead=is_ahead)
         payload, tail_actions = composed if self.links else (composed, None)
         record = {"request_id": self.calls, "triggers": causes, "observed_state_seq": self.k.event_seq,
                   **({"one_press": dict(self.one_press)} if self.one_press else {}),
                   **({"undo_note": deepcopy(self.undo)} if self.undo is not None else {}),
+                  **({"joint_plan": plan_snap} if plan_snap is not None else {}),
                   # The request parts (request_parts.py) may leave the decisions out of the request or rewrite them;
                   # research replay rebuilds from the loop's own list then.
                   **({"recent_decisions": deepcopy(self.recent_decisions)} if self.parts else {}),
@@ -711,7 +755,7 @@ class DecisionLoop:
                 # about 0.2 s a request; the request is byte for byte what compose_payload builds.)
                 with engine_english.writing(english):
                     done = finish_payload(payload, twin, tail_actions, undo, names, mode, serve_note, clear, walk, plate,
-                                          parts, go, work)
+                                          parts, go, work, joint=plan_snap, is_ahead=is_ahead)
                 self.prepared.put((context, done, record, time.monotonic() - start, None))
             except Exception as error:      # never the payload or a key: only the kind of failure is logged
                 self.prepared.put((context, payload, record, time.monotonic() - start, error))

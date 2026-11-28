@@ -153,7 +153,8 @@ class ReplayTests(paths.SavePathTests):
                           'clear_text': True, 'option_notes': True, 'go_note': True,
                           'place_names': False, 'timeline': False, 'no_history': False,
                           'links_on_options': True, 'rules_by_action': True, 'kitchen_view': True,
-                          'throw_to': True, 'own_chain': False, 'plate_result': True, 'board_taken': True})
+                          'throw_to': True, 'own_chain': False, 'plate_result': True, 'board_taken': True,
+                          'joint_plan': False})
         with self.game.lock:                                    # the human leaves beef on a board
             k = self.game.k
             for chosen in (lambda a: a.key == 'fetch beef', lambda a: a.kind == 'put_board'):

@@ -1,7 +1,7 @@
 {
  "level":"level-2",
  "set":"all",
- "on":["ask_ahead","board_taken","burn_note","clear_text","go_note","kitchen_view","links_on_options","no_history","one_press","option_links","option_links_partner","option_notes","own_chain","place_names","plate_result","reach_note","rules_by_action","split_floor","step_check","throw_to","timeline","undo_note","walk_note"],
+ "on":["ask_ahead","board_taken","burn_note","clear_text","go_note","joint_plan","kitchen_view","links_on_options","no_history","one_press","option_links","option_links_partner","option_notes","own_chain","place_names","plate_result","reach_note","rules_by_action","split_floor","step_check","throw_to","timeline","undo_note","walk_note"],
  "switches":{"one_press":{"put_then_take":true,"wash_from_returns":true,"throw_to":true},"ask_ahead":true,"undo":{"history":[]},"reach":true,"names":true,"links":"partner","split":true,"burn":true,"serve_note":true,"steps":true,"clear":true,"walk":true,"go":true,"english":true,"plate":true,"parts":{"place":true,"timeline":true,"no_history":true,"links_on":true,"rules":true,"view":true},"work":{"own":true,"plate":true,"board":true}},
  "digest":"ede69f909d854a7c",
  "windows":[

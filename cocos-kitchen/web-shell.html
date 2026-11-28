@@ -887,3 +887,165 @@ function kitchenTabs(dialog){
  more.querySelectorAll('[data-cover-action]').forEach(button=>button.onclick=()=>{const action=button.dataset.coverAction;more.close();controls()?.[action]?.()});
 })();
 </script>
+<style>
+/* Shared order focus overlays (joint_plan trial): pixel-aligned to the five Cocos order slips at x=234+i*164, y=86. */
+#joint-order-rail{position:fixed;left:calc(var(--gx) + 234px * var(--gs));top:calc(var(--gy) + 86px * var(--gs));transform:scale(var(--gs));transform-origin:left top;z-index:16;
+ display:flex;gap:8px;pointer-events:none}
+#joint-order-rail .joint-slot{position:relative;width:156px;height:62px;padding:0;border:2px solid transparent;background:transparent;box-sizing:border-box;pointer-events:none;cursor:default}
+#joint-order-rail .joint-slot.pending{pointer-events:auto;cursor:pointer}
+#joint-order-rail .joint-slot.pending:hover{border-color:var(--denim);background:rgba(42,90,158,.1)}
+#joint-order-rail .joint-slot.active{border:3px solid var(--denim);box-shadow:0 0 0 2px var(--paper),0 3px 0 var(--ink)}
+#joint-order-rail .joint-slot.proposed-jeff{border:3px solid var(--honey);box-shadow:0 0 0 2px var(--paper),0 3px 0 var(--ink)}
+#joint-order-rail .joint-slot.proposed-human{border:3px solid var(--steel);box-shadow:0 0 0 2px var(--paper),0 3px 0 var(--ink)}
+#joint-order-rail .joint-slot.suspended{border:3px dashed var(--tomato);box-shadow:0 0 0 2px var(--paper)}
+#joint-order-rail .joint-badge{position:absolute;top:-11px;right:4px;padding:1px 5px;background:var(--denim);color:var(--paper);border:1px solid var(--ink);font:10px/13px var(--pixel);white-space:nowrap}
+#joint-order-rail .joint-slot.proposed-jeff .joint-badge{background:var(--honey);color:var(--ink)}
+#joint-order-rail .joint-slot.proposed-human .joint-badge{background:var(--steel);color:var(--paper)}
+#joint-order-rail .joint-slot.suspended .joint-badge{background:var(--tomato);color:var(--paper)}
+#joint-focus-bar{position:fixed;left:calc(var(--gx) + 640px * var(--gs));top:calc(var(--gy) + 152px * var(--gs));transform:translateX(-50%) scale(var(--gs));transform-origin:top center;z-index:16;
+ display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;max-width:860px;padding:5px 10px;background:var(--paper);color:var(--ink);border:2px solid var(--walnut);box-shadow:3px 3px 0 var(--ink);font:12px/16px var(--pixel)}
+#joint-focus-bar .jf-title{font-weight:700;color:var(--ink);white-space:nowrap}
+#joint-focus-bar .jf-items,#joint-focus-bar .jf-divs,#joint-focus-bar .jf-actions{display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap}
+#joint-focus-bar .jf-pill{padding:1px 6px;border:1px solid var(--ink);background:var(--surface);color:var(--muted);font:11px/15px var(--body)}
+#joint-focus-bar .jf-pill.done{background:#dff0d8;color:var(--herb);border-color:var(--herb)}
+#joint-focus-bar .jf-pill.work{background:var(--honey-tint);color:var(--walnut);border-color:var(--honey)}
+#joint-focus-bar button{padding:2px 7px;border:1px solid var(--ink);background:var(--surface);color:var(--ink);font:11px/15px var(--pixel);cursor:pointer}
+#joint-focus-bar button:hover:not(:disabled){background:var(--honey-tint)}
+#joint-focus-bar button[aria-pressed="true"]{background:var(--denim);color:var(--paper)}
+#joint-focus-bar button.accept{background:var(--herb);color:var(--paper)}
+#joint-focus-bar button.decline{background:var(--tomato);color:var(--paper)}
+#joint-focus-bar .jf-note{color:var(--muted);font:11px/15px var(--body)}
+body.kitchen-touch-mode #joint-order-rail{display:none}
+body.kitchen-touch-mode #joint-focus-bar{left:50%;top:max(6px,env(safe-area-inset-top));transform:translateX(-50%);max-width:calc(100vw - 16px)}
+</style>
+<div id="joint-order-rail" aria-label="订单聚焦" hidden>
+ <button class="joint-slot" type="button" data-slot="0" aria-label="聚焦第 1 张订单"></button>
+ <button class="joint-slot" type="button" data-slot="1" aria-label="聚焦第 2 张订单"></button>
+ <button class="joint-slot" type="button" data-slot="2" aria-label="聚焦第 3 张订单"></button>
+ <button class="joint-slot" type="button" data-slot="3" aria-label="聚焦第 4 张订单"></button>
+ <button class="joint-slot" type="button" data-slot="4" aria-label="聚焦第 5 张订单"></button>
+</div>
+<aside id="joint-focus-bar" aria-label="共享订单聚焦" role="status" aria-live="polite" hidden></aside>
+<script>
+(()=>{
+ const rail=document.getElementById('joint-order-rail'),bar=document.getElementById('joint-focus-bar');
+ const slots=[...rail.querySelectorAll('.joint-slot')];
+ const t=text=>window.kitchenI18n?.t(text)||text;
+ let state=null,busy=false,lastNoticeId=0,toastText='',toastUntil=0;
+ const divLabels={jeff_prep:'我管灶台',jeff_cook:'我管切配/装盘',shared:'自由补位'};
+ const noticeText=n=>{
+  if(!n)return '';
+  const ord=(n.order_id||'')+(n.dish_name?' '+t(n.dish_name):'');
+  if(n.kind==='completed')return t('共同聚焦的订单已完成：')+ord;
+  if(n.kind==='expired')return t('订单已超时重置，已解除聚焦：')+ord;
+  if(n.kind==='declined'&&n.actor==='jeff')return t('Jeff 暂不聚焦该订单，转为自由配合');
+  if(n.kind==='released'&&n.actor==='jeff')return t('Jeff 已解除共同聚焦');
+  if(n.kind==='accepted_implicit')return t('已自动确认共同聚焦：')+ord;
+  return '';
+ };
+ async function send(payload){
+  if(!state||state.phase!=='running'||!state.joint_plan?.enabled||busy)return;
+  busy=true;const round=state.game_id;
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),5000);
+  try{
+   const r=await fetch('/api/joint-plan',{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({game_id:round,request_id:Date.now().toString(36)+'-'+Math.random().toString(36).slice(2),...payload})});
+   const d=await r.json();
+   if(state?.game_id===round&&d.joint_plan){state.joint_plan=d.joint_plan;render();}
+  }catch(_){}
+  finally{clearTimeout(timer);busy=false;render();}
+ }
+ function render(){
+  const jp=state?.joint_plan,running=state?.phase==='running'&&!!jp?.enabled;
+  rail.hidden=!running;
+  if(!running){bar.hidden=true;return;}
+  if(jp.notice&&jp.notice.id!==lastNoticeId){
+   lastNoticeId=jp.notice.id;
+   const msg=noticeText(jp.notice);
+   if(msg){toastText=msg;toastUntil=performance.now()+2600;}
+  }
+  const pending=(state.kitchen?.orders||[]).filter(o=>o.status==='pending');
+  slots.forEach((slot,i)=>{
+   const o=pending[i];
+   slot.className='joint-slot';slot.replaceChildren();slot.dataset.orderId=o?o.id:'';
+   if(!o){slot.title='';return;}
+   slot.classList.add('pending');
+   slot.title=t('点击聚焦此订单，与 Jeff 共同配合');
+   if(jp.status!=='none'&&jp.order_id===o.id){
+    let cls='active',badge='聚焦中';
+    if(jp.suspended){cls='suspended';badge='避险暂停';}
+    else if(jp.status==='proposed'&&jp.proposer==='jeff'){cls='proposed-jeff';badge='Jeff 提议';}
+    else if(jp.status==='proposed'&&jp.proposer==='human'){cls='proposed-human';badge='待回应';}
+    slot.classList.add(cls);
+    const b=document.createElement('span');b.className='joint-badge';b.textContent=t(badge);slot.appendChild(b);
+   }
+  });
+  if(jp.status==='none'){
+   if(toastText&&performance.now()<toastUntil){
+    bar.hidden=false;bar.replaceChildren();
+    const note=document.createElement('span');note.className='jf-note';note.textContent=toastText;bar.appendChild(note);
+   }else{bar.hidden=true;}
+   return;
+  }
+  bar.hidden=false;bar.replaceChildren();
+  const dish=jp.dish_name?t(jp.dish_name):jp.dish||'';
+  const title=document.createElement('span');title.className='jf-title';
+  if(jp.suspended)title.textContent=`${t(jp.suspend_reason==='fire'?'起火避险暂停':'快糊避险暂停')} · ${jp.order_id} ${dish}`;
+  else if(jp.status==='proposed'&&jp.proposer==='jeff')title.textContent=`${t('Jeff 提议聚焦')} ${jp.order_id} ${dish}`;
+  else if(jp.status==='proposed'&&jp.proposer==='human')title.textContent=`${t('等待 Jeff 回应')} · ${jp.order_id} ${dish}`;
+  else title.textContent=`${t('共同聚焦')} ${jp.order_id} ${dish}`;
+  bar.appendChild(title);
+  if(jp.progress?.components?.length){
+   const items=document.createElement('span');items.className='jf-items';
+   for(const c of jp.progress.components){
+    const p=document.createElement('span');
+    const done=c.status==='on_plate'||c.status==='ready',work=c.status==='working'||c.status==='in_progress'||c.status==='fetched';
+    p.className='jf-pill'+(done?' done':work?' work':'');
+    p.textContent=(done?'✓':work?'●':'○')+' '+t(c.name||c.item);
+    items.appendChild(p);
+   }
+   bar.appendChild(items);
+  }
+  if((jp.divisions||[]).length>1&&!jp.suspended){
+   const divs=document.createElement('span');divs.className='jf-divs';
+   for(const d of ['jeff_prep','jeff_cook','shared']){
+    if(!jp.divisions.includes(d))continue;
+    const btn=document.createElement('button');btn.type='button';btn.disabled=busy;
+    btn.setAttribute('aria-pressed',String(jp.division===d));
+    btn.textContent=t(divLabels[d]);
+    btn.onclick=e=>{send({action:'focus',order_id:jp.order_id,division:d});if(e.detail)btn.blur();};
+    divs.appendChild(btn);
+   }
+   bar.appendChild(divs);
+  }
+  const actions=document.createElement('span');actions.className='jf-actions';
+  if(jp.status==='proposed'&&jp.proposer==='jeff'){
+   const yes=document.createElement('button');yes.type='button';yes.className='accept';yes.disabled=busy;yes.textContent=t('同意 Y');
+   yes.onclick=e=>{send({action:'accept'});if(e.detail)yes.blur();};
+   const no=document.createElement('button');no.type='button';no.className='decline';no.disabled=busy;no.textContent=t('拒绝 N');
+   no.onclick=e=>{send({action:'decline'});if(e.detail)no.blur();};
+   actions.append(yes,no);
+  }else{
+   const cancel=document.createElement('button');cancel.type='button';cancel.disabled=busy;cancel.textContent=t('取消');
+   cancel.onclick=e=>{send({action:'release'});if(e.detail)cancel.blur();};
+   actions.appendChild(cancel);
+  }
+  bar.appendChild(actions);
+ }
+ for(const slot of slots){
+  slot.onclick=e=>{const id=slot.dataset.orderId;if(id)send({action:'focus',order_id:id});if(e.detail)slot.blur();};
+ }
+ window.addEventListener('kitchen-state',event=>{state=event.detail;render();});
+ window.addEventListener('kitchen-language-changed',()=>render());
+ window.addEventListener('keydown',event=>{
+  if(event.isComposing||event.repeat||event.ctrlKey||event.altKey||event.metaKey||event.shiftKey||document.querySelector('dialog[open]'))return;
+  if(document.activeElement?.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"]'))return;
+  const jp=state?.joint_plan;
+  if(state?.phase==='running'&&jp?.enabled&&jp.status==='proposed'&&jp.proposer==='jeff'){
+   if(event.key==='y'||event.key==='Y'){event.preventDefault();event.stopImmediatePropagation();send({action:'accept'});}
+   else if(event.key==='n'||event.key==='N'){event.preventDefault();event.stopImmediatePropagation();send({action:'decline'});}
+  }
+ },true);
+ setInterval(()=>{if(!bar.hidden&&state?.joint_plan?.status==='none'&&performance.now()>=toastUntil)render();},300);
+})();
+</script>

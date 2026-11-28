@@ -489,7 +489,7 @@ FIELDS = {
     '/api/browser-ready': {'connected', 'provider'}, '/api/start': {'speed'}, '/api/pause': {'reason'},
     '/api/resume': set(), '/api/end': set(), '/api/reset': set(), '/api/restart': set(),
     '/api/level': {'level'}, '/api/next': {'level'}, '/api/player-level/submit': {'level', 'design'}, '/api/player-level/play': {'job'}, '/api/limits': {'max_calls'}, '/api/export-run': set(),
-    '/api/feedback': set(), '/api/bookmark': set(), '/api/communicate': {'code'},
+    '/api/feedback': set(), '/api/bookmark': set(), '/api/communicate': {'code'}, '/api/joint-plan': {'action', 'order_id', 'division'},
     '/api/move': {'dx', 'dy', 'seq', 'sprint'}, '/api/position': {'seq', 'base', 'at', 'press'},
     '/api/interact': {'expected_item', 'mode', 'at', 'base', 'aim', 'target'}, '/api/throw': {'direction', 'expected_item', 'at', 'base'},
     '/api/action': {'action', 'expected'},

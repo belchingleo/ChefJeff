@@ -352,23 +352,37 @@ def choices(answers, questions):
 
 
 def choice_questions(payload):
-    """Every extra choice question a request asks besides next_action and sprint: put_where (one_press.py), if asked."""
+    """Every extra choice question a request asks besides next_action and sprint: put_where and joint_plan questions."""
+    import joint_plan
     import one_press
-    return [one_press.PUT_WHERE] if one_press.PUT_WHERE in payload['questions'] else []
+    return [q for q in (one_press.PUT_WHERE, *joint_plan.QUESTIONS) if q in payload['questions']]
 
 
 def choice_answer(answers, payload):
-    """put_where (an offered key, else None) when the request asked it; {} otherwise."""
-    import one_press
+    """Answered values (offered key, else None) for each asked extra choice question; {} when none were asked."""
     answers = answers if isinstance(answers, dict) else {}
     out = {}
-    if one_press.PUT_WHERE in payload['questions']:
-        value = answers.get(one_press.PUT_WHERE)
-        out[one_press.PUT_WHERE] = value if isinstance(value, str) and value in payload['questions'][one_press.PUT_WHERE]['criteria'] else None
+    for question in choice_questions(payload):
+        value = answers.get(question)
+        out[question] = value if isinstance(value, str) and value in payload['questions'][question]['criteria'] else None
     return out
 
 
 PUT_WHERE_CHAT_RULE = ' When questions.put_where is present, also include "put_where": "<key>", one key of its criteria.'
+
+
+def chat_extra_rules(payload):
+    """Extra system-prompt sentences for OpenAI-compatible chat models for any asked extra choice questions."""
+    import joint_plan
+    import one_press
+    parts = []
+    questions = payload.get('questions') or {}
+    if one_press.PUT_WHERE in questions:
+        parts.append(PUT_WHERE_CHAT_RULE)
+    for question in joint_plan.QUESTIONS:
+        if question in questions:
+            parts.append(joint_plan.chat_rule_for(question))
+    return ''.join(parts)
 
 
 def compose(payload, kitchen, recent_decisions, communication, memory=NO_MEMORY, one_press=None, undo=None,

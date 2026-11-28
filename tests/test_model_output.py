@@ -74,23 +74,27 @@ console.log(JSON.stringify(JSON.parse(process.argv[1]).map(build)));
         putting = deepcopy(PAYLOAD)
         putting['questions']['put_where'] = {'type': 'choice', 'criteria': {'put counter2': 'Put it on Counter 2',
                                                                             'put b1': 'Put it on Board 1'}}
-        payloads = [PAYLOAD, without, putting]
+        joint = deepcopy(PAYLOAD)
+        joint['questions']['joint_reply'] = {'type': 'choice', 'criteria': {'accept:shared': 'Accept', 'decline': 'Decline'}}
+        payloads = [PAYLOAD, without, putting, joint]
         result = subprocess.run(['node', '-e', js, json.dumps(payloads)], cwd=root, capture_output=True, text=True, check=True)
         self.assertEqual(json.loads(result.stdout), [zhipu_system(p) for p in payloads])
 
     def test_browser_chat_prompt_adds_the_same_put_where_sentence(self):
         import re
-        source = (Path(__file__).resolve().parents[1] / 'hosted' / 'browser-agent.js').read_text()
+        source = (Path(__file__).resolve().parents[1] / 'hosted' / 'browser-agent.js').read_text(encoding='utf-8')
         self.assertNotIn('PLAN_CHAT_RULE', source)
         from harness import PUT_WHERE_CHAT_RULE
         self.assertEqual(re.findall(r"const PUT_WHERE_CHAT_RULE = '([^']*)';", source), [PUT_WHERE_CHAT_RULE])
 
     def test_browser_reads_the_same_extra_questions(self):
         import re
-        source = (Path(__file__).resolve().parents[1] / 'hosted' / 'browser-agent.js').read_text()
+        source = (Path(__file__).resolve().parents[1] / 'hosted' / 'browser-agent.js').read_text(encoding='utf-8')
         listed = re.findall(r"const EXTRA_QUESTIONS = \[([^\]]*)\];", source)
-        import one_press      # the same as harness.choice_questions: put_where, when asked
-        self.assertEqual([re.findall(r"'([^']*)'", line) for line in listed], [[one_press.PUT_WHERE]])
+        import joint_plan
+        import one_press
+        self.assertEqual([re.findall(r"'([^']*)'", line) for line in listed],
+                         [[one_press.PUT_WHERE, *joint_plan.QUESTIONS]])
 
 
 if __name__ == '__main__':

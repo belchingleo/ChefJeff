@@ -131,6 +131,7 @@ def rebuild_requests(record):
                 continue
         payload = compose_payload(client, source, source.snapshot(), source.actions('jeff'), data['recent_decisions'],
                                   data['player_communication'], memory, data.get('one_press'),
-                                  data.get('undo_note'), **options)
+                                  data.get('undo_note'), **options,
+                                  joint=data.get('joint_plan'), is_ahead=bool(data.get('ask_ahead')))
         yield {'request_id': row['request_id'], 'seq': row['seq'], 'rebuilt': payload,
                'status': 'verified' if cc.sha256(payload) == data['payload_sha256'] else 'diverged'}

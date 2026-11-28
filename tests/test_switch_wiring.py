@@ -8,7 +8,7 @@ import features
 from web_server import GameSession
 
 # The decision loop's switch attributes a started round sets.
-KEYS = ('one_press', 'ask_ahead', 'undo', 'reach', 'names', 'links', 'split', 'burn', 'serve_note', 'steps', 'clear',
+KEYS = ('one_press', 'ask_ahead', 'undo', 'joint_plan', 'reach', 'names', 'links', 'split', 'burn', 'serve_note', 'steps', 'clear',
         'walk', 'go', 'english', 'plate', 'parts', 'work')
 
 
@@ -65,8 +65,8 @@ def started(on):
 
 
 def expected(on):
-    """compose_options as the loop holds it: parts and work None when off, and ask_ahead."""
-    return {'parts': None, 'work': None, **features.compose_options(on), 'ask_ahead': on['ask_ahead']['on']}
+    """compose_options as the loop holds it: parts, work and joint_plan None when off, and ask_ahead."""
+    return {'parts': None, 'work': None, 'joint_plan': None, **features.compose_options(on), 'ask_ahead': on['ask_ahead']['on']}
 
 
 class SwitchWiringTests(unittest.TestCase):
@@ -76,7 +76,7 @@ class SwitchWiringTests(unittest.TestCase):
             with self.subTest(label):
                 self.assertEqual(expected(on), started(on))
             labels.append(label)
-        self.assertEqual(len(labels), 10)       # defaults, 8 trial switches alone, all on
+        self.assertEqual(len(labels), 11)       # defaults, 9 trial switches alone, all on
 
     def test_with_the_released_switches_off_too(self):
         for label, on in released_off():
@@ -93,7 +93,7 @@ class SwitchWiringTests(unittest.TestCase):
         for label, on in [*combinations(), *released_off()]:
             with self.subTest(label):
                 round_wide = {key: value for key, value in expected(on).items()
-                              if key not in ('one_press', 'undo', 'ask_ahead')}
+                              if key not in ('one_press', 'undo', 'ask_ahead', 'joint_plan')}
                 self.assertEqual(round_wide, features.replay_options(features.snapshot(on)))
 
     def test_replay_reads_the_names_of_before_2026_11_19(self):

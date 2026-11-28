@@ -53,6 +53,7 @@ import engine_english
 import food_names
 import links
 import request_parts
+import joint_plan
 
 ROOT = Path(__file__).resolve().parent
 PATH = ROOT / 'features.json'
@@ -71,6 +72,7 @@ VERSIONS = {'one_press': one_press.VERSION, 'undo_note': undo_note.VERSION,
             'clear_text': 'clear-text-v1',
             'option_notes': option_notes.VERSION,
             'throw_to': one_press.THROW_TO_VERSION,
+            'joint_plan': joint_plan.VERSION,
             **{name: version for name, (_, version) in work_notes.SWITCHES.items()},
             # The parts of the restructured request (request_parts.py), one switch each.
             **{name: version for name, (_, version) in request_parts.SWITCHES.items()}}
@@ -211,6 +213,11 @@ def undo_start(features):
     return {'history': []} if features['undo_note']['on'] else None
 
 
+def joint_plan_start(features):
+    """The decision loop's joint_plan state for a new round: joint_plan.start() when on, else None."""
+    return joint_plan.start() if (features.get('joint_plan') or {}).get('on') else None
+
+
 def one_press_flags(features):
     """The decision loop's one-press switches (one_press.flags) for these features: all on, or None."""
     names = {name: True for name in one_press.NAMES}
@@ -222,7 +229,7 @@ def one_press_flags(features):
 
 def _round_options(features):
     """compose_payload's round-wide switches for these features (a feature they do not name is off): all but
-    one_press and undo, which a round sets as it starts and research replay takes from each request's record.
+    one_press, undo and joint_plan, which a round sets as it starts and research replay takes from each request's record.
     parts and work are None when off."""
     def on(name):
         return bool((features.get(name) or {}).get('on'))
@@ -236,15 +243,16 @@ def _round_options(features):
 
 def compose_options(features):
     """compose_payload's switches for a new round with these features: what the session sets on the decision loop
-    (loop_switches), and what scripts that build Jeff's request outside a session pass. parts and work only when on."""
-    options = {'one_press': one_press_flags(features), 'undo': undo_start(features), **_round_options(features)}
-    return {name: value for name, value in options.items() if value is not None or name not in ('parts', 'work')}
+    (loop_switches), and what scripts that build Jeff's request outside a session pass. parts, work and joint_plan only when on."""
+    options = {'one_press': one_press_flags(features), 'undo': undo_start(features),
+               'joint_plan': joint_plan_start(features), **_round_options(features)}
+    return {name: value for name, value in options.items() if value is not None or name not in ('parts', 'work', 'joint_plan')}
 
 
 def loop_switches(features):
     """The decision loop's switches for a new round with these features, as the session sets them (web_server.py):
-    compose_options with parts and work None when off, and ask_ahead."""
-    return {'parts': None, 'work': None, **compose_options(features), 'ask_ahead': features['ask_ahead']['on']}
+    compose_options with parts, work and joint_plan None when off, and ask_ahead."""
+    return {'parts': None, 'work': None, 'joint_plan': None, **compose_options(features), 'ask_ahead': features['ask_ahead']['on']}
 
 
 # Names a round's snapshot gave, before 2026-11-19, to what one of compose_payload's switches does: since then
@@ -256,9 +264,9 @@ NAMES_BEFORE_1119 = {'names': 'food_names', 'clear': 'clear_names', 'english': '
 
 def replay_options(snapshot):
     """compose_payload's round-wide switches for research replay, from a round's recorded feature snapshot
-    (snapshot()): those of compose_options but one_press and undo, which each request's record carries; parts and
-    work None when off. A name the snapshot lacks is off, and a record from before 2026-11-19 is read with its own
-    names (NAMES_BEFORE_1119), so old rounds replay as they were played."""
+    (snapshot()): those of compose_options but one_press, undo and joint_plan, which each request's record carries;
+    parts and work None when off. A name the snapshot lacks is off, and a record from before 2026-11-19 is read with
+    its own names (NAMES_BEFORE_1119), so old rounds replay as they were played."""
     options = _round_options(snapshot)
     for option, old in NAMES_BEFORE_1119.items():
         options[option] = options[option] or bool((snapshot.get(old) or {}).get('on'))

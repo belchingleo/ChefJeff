@@ -29,9 +29,9 @@ def zhipu_schema(payload):
 
 
 def zhipu_instructions(payload):
-    """The fixed sentences before the schema, with the put_where sentence when this request asks it."""
-    questions = payload['questions']
-    put_where = 'put_where' in questions
+    """The fixed sentences before the schema, with one sentence per extra choice question this request asks."""
+    from harness import choice_questions
+    extra = ''.join(f'questions.{q} is a field whose value is one of its keys. ' for q in choice_questions(payload))
     return (
         'You control chef jeff in a shared kitchen. Using the supplied state and rules, '
         'choose exactly one action key from questions.next_action.criteria. '
@@ -41,7 +41,7 @@ def zhipu_instructions(payload):
         'sprint as the JSON boolean true for yes or false for no. '
         'Never encode sprint as a string, number or null. '
         'When questions.sprint is absent, omit sprint. '
-        + ('questions.put_where is a field whose value is one of its keys. ' if put_where else '')
+        + extra
         + 'Do not explain or add other fields. ')
 
 

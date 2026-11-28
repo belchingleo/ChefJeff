@@ -105,8 +105,9 @@ class CompatibleClient(SpatialJevClient):
         if self.setting['provider']=='zhipu':
             from model_output import zhipu_system
             body['messages'][0]['content']=zhipu_system(payload)
-        elif 'put_where' in payload['questions']:
-            body['messages'][0]['content']+=PUT_WHERE_CHAT_RULE
+        else:
+            from harness import chat_extra_rules
+            body['messages'][0]['content']+=chat_extra_rules(payload)
         preset=PROVIDERS[self.setting['provider']]
         body.update(preset.get('extra',{}));body.update(preset.get('model_extra',{}).get(self.setting['model'],{}))
         req=urllib.request.Request(self.setting['base_url']+'/chat/completions',data=json.dumps(body).encode(),

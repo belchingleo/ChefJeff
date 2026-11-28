@@ -19,6 +19,7 @@ import environment
 import features
 import one_press
 import request_parts
+import joint_plan
 from play import Journal, log_root
 from round_summary import round_summary
 from session_record import SessionLog, write_bundle
@@ -265,6 +266,7 @@ class GameSession:
             self.state_seq = getattr(self, 'state_seq', 0) + 1
             return {'game_id': self.game_id, 'state_seq': self.state_seq, 'phase': self.phase, 'speed': self.speed,
                     'communication': self.communication_state(),
+                    'joint_plan': joint_plan.public_state(getattr(self.ai, 'joint_plan', None) if self.ai else None, self.k),
                     'interaction': asdict(interaction) if interaction else None,
                     'use_interaction': asdict(use) if use else None,
                     'interaction_focus': focus,
@@ -476,9 +478,35 @@ class GameSession:
         except OSError:return 503, {'error':'沟通未保存，请重试。'}
         self.player_messages.append(message);self.last_player_message_at=now
         self.ai.player_messages=self.player_messages
+        if code == 'mistake' and getattr(self.ai, 'joint_plan', None) and self.ai.joint_plan.get('status') == 'active':
+            self.ai.joint_plan['recheck'] = True
         # Refresh at the normal decision cadence. Keep jobs and in-flight requests intact.
         self.ai.last_revision=-1
         return 200, {'ok':True,'communication':self.communication_state()}
+
+    def _joint_plan(self, body):
+        if self.phase not in ('running', 'paused') or self.k.ended or self.ai is None or self.journal is None:
+            return 409, {'error': '请在对局开始后、结束前操作共享订单聚焦。'}
+        plan = getattr(self.ai, 'joint_plan', None)
+        if plan is None:
+            return 409, {'error': '当前对局未启用共享订单聚焦。'}
+        action = body.get('action')
+        order_id = body.get('order_id')
+        division = body.get('division')
+        if not isinstance(action, str) or action not in ('focus', 'accept', 'decline', 'release'):
+            return 400, {'error': '不支持的聚焦操作。'}
+        if order_id is not None and (not isinstance(order_id, str) or not 1 <= len(order_id) <= 40):
+            return 400, {'error': '订单编号无效。'}
+        if division is not None and (not isinstance(division, str) or division not in joint_plan.DIVISIONS):
+            return 400, {'error': '分工选项无效。'}
+        ok, error, entry = joint_plan.human_action(plan, self.k, action, order_id=order_id, division=division)
+        if not ok:
+            return 409, {'error': error, 'joint_plan': joint_plan.public_state(plan, self.k)}
+        if entry is not None:
+            self.journal('joint_plan', entry)
+        self.ai.last_revision = -1
+        self.wake.set()
+        return 200, {'ok': True, 'joint_plan': joint_plan.public_state(plan, self.k)}
 
     def _bookmark(self):
         # Annotation only: never emit a kitchen event, revise state, or wake/invalidate AI.
@@ -512,6 +540,7 @@ class GameSession:
     def _command(self, path, body):
         if path == '/api/bookmark':return self._bookmark()
         if path == '/api/communicate':return self._communicate(body)
+        if path == '/api/joint-plan':return self._joint_plan(body)
         if path == '/api/level':
             if self.phase not in ('ready','ended') or not hasattr(self.k,'nav'):
                 return 409,{'error':'Choose a level before starting or after the round ends.'}

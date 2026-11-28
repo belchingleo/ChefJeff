@@ -1508,6 +1508,10 @@
           "additionalProperties": false,
           "minProperties": 1
         },
+        "joint_plan": {
+          "description": "Only with the joint_plan switch on: the shared order focus state as this request was sent, enough to rebuild it.",
+          "type": "object"
+        },
         "one_press_start": {
           "description": "Only on an ai_response that started a one-press choice: its first step (the put that put_where chose, or the first step itself with empty hands) and whether put_where was missing or unlisted, so the first listed put was used.",
           "type": "object",

@@ -679,7 +679,8 @@ class SessionTests(unittest.TestCase):
                                            'throw_to': {'on': True, 'version': 'throw-to-v1'},
                                            'own_chain': {'on': False, 'version': 'own-chain-v1'},
                                            'plate_result': {'on': True, 'version': 'plate-result-v2'},
-                                           'board_taken': {'on': True, 'version': 'board-taken-v1'}})
+                                           'board_taken': {'on': True, 'version': 'board-taken-v1'},
+                                           'joint_plan': {'on': False, 'version': 'joint-plan-v1'}})
         self.assertNotIn('jeff_plan', row)                 # the plan modes went 2026-11-20
 
     def test_the_file_rolls_it_back(self):
@@ -706,7 +707,8 @@ class FeaturesFileTests(unittest.TestCase):
                           'step_check': 'trial', 'walk_note': 'trial',
                           'clear_text': 'trial', 'option_notes': 'release', 'go_note': 'release',
                           **{name: 'release' if name in RELEASED_PARTS else 'trial' for name in request_parts.SWITCHES},
-                          'throw_to': 'release', 'own_chain': 'trial', 'plate_result': 'release', 'board_taken': 'release'})
+                          'throw_to': 'release', 'own_chain': 'trial', 'plate_result': 'release',
+                          'board_taken': 'release', 'joint_plan': 'trial'})
 
     def test_a_wrong_file_stops_instead_of_running(self):
         import features

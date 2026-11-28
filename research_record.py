@@ -219,6 +219,8 @@ def payload(kind, data, k):
                    **({'one_press': deepcopy(data['one_press'])} if data.get('one_press') else {}),
                    # Only rounds with the undo_note switch on carry Jeff's last step (undo_note.step).
                    **({'undo_note': deepcopy(data['undo_note'])} if data.get('undo_note') is not None else {}),
+                   # Only rounds with the joint_plan switch on carry the shared focus snapshot (joint_plan.py).
+                   **({'joint_plan': deepcopy(data['joint_plan'])} if data.get('joint_plan') is not None else {}),
                    # Only requests asked ahead (ask_ahead.py): the step they were asked about, to redo the prediction.
                    **({'ask_ahead': deepcopy(data['ask_ahead'])} if data.get('ask_ahead') else {})} if observed else {}
         return {**rebuild, 'observed_state_seq': data.get('observed_state_seq'),

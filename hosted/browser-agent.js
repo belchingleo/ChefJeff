@@ -357,7 +357,7 @@
       ]};
       endpoint = config.base_url + '/chat/completions';
       if(config.provider==='zhipu')body.messages[0].content=zhipuSystem(payload);
-      else if('put_where' in payload.questions)body.messages[0].content+=PUT_WHERE_CHAT_RULE;
+      else body.messages[0].content+=extraChatRules(payload);
     }
     Object.assign(body, preset.extra || {});
     try {
@@ -388,8 +388,8 @@
             ('sprint' in payload.questions && preset.group !== 'decision' && 'sprint' in answer &&
              typeof answer.sprint !== 'boolean')) throw new Error();
       } catch (_) {throw new Error('模型返回了无效动作，未执行任何操作。');}
-      // The put_where answer goes to the server as given (an offered key or null); harness.choice_answer reads it there.
-      // A missing or unknown one only leaves the one-press choice to its default place; the action stands.
+      // Extra choice answers go to the server as given (an offered key or null); harness.choice_answer reads them there.
+      // A missing or unknown one only leaves the extra question unhandled; the action stands.
       const asked = extraQuestions(payload);
       const extra = asked.length ? {answers:Object.fromEntries(asked.map(q => [q, typeof answer[q] === 'string' &&
         Object.hasOwn(payload.questions[q].criteria, answer[q]) ? answer[q] : null]))} : {};
@@ -419,6 +419,10 @@
   function boundedCount(n) {return Number.isInteger(n) && n >= 0 && n <= 10000000 ? n : 0;}
   // The same sentence as harness.PUT_WHERE_CHAT_RULE.
   const PUT_WHERE_CHAT_RULE = ' When questions.put_where is present, also include "put_where": "<key>", one key of its criteria.';
+  function extraChatRules(payload) {
+    return extraQuestions(payload).map(q => q === 'put_where' ? PUT_WHERE_CHAT_RULE :
+      ` When questions.${q} is present, also include "${q}": "<key>", one key of its criteria.`).join('');
+  }
   function zhipuSystem(payload) {return zhipuInstructions(payload)+zhipuSchema(payload);}
   // model_output.zhipu_schema: names the offered keys, so it changes with every request.
   function zhipuSchema(payload) {
@@ -429,9 +433,9 @@
     const schema={type:'object',properties,required,additionalProperties:false};
     return 'JSON Schema: '+JSON.stringify(schema);
   }
-  // model_output.zhipu_instructions: the put_where sentence when this request asks it.
+  // model_output.zhipu_instructions: one sentence per extra choice question this request asks.
   function zhipuInstructions(payload) {
-    const putWhere='put_where' in payload.questions;
+    const extra=extraQuestions(payload).map(q => `questions.${q} is a field whose value is one of its keys. `).join('');
     return 'You control chef jeff in a shared kitchen. Using the supplied state and rules, '+
       'choose exactly one action key from questions.next_action.criteria. '+
       'Return only one JSON object matching the following JSON Schema. '+
@@ -440,11 +444,11 @@
       'sprint as the JSON boolean true for yes or false for no. '+
       'Never encode sprint as a string, number or null. '+
       'When questions.sprint is absent, omit sprint. '+
-      (putWhere ? 'questions.put_where is a field whose value is one of its keys. ' : '')+
+      extra+
       'Do not explain or add other fields. ';
   }
-  // The same questions as harness.choice_questions: put_where (one_press.py), when asked.
-  const EXTRA_QUESTIONS = ['put_where'];
+  // The same questions as harness.choice_questions: put_where and joint_plan questions, when asked.
+  const EXTRA_QUESTIONS = ['put_where', 'joint_proposal', 'joint_reply', 'joint_status'];
   function extraQuestions(payload) {return EXTRA_QUESTIONS.filter(q => q in payload.questions);}
   // The server learns only the preset service's id (features.model_defaults: Jeff's set-up for that service), never
   // its endpoint, model name or key.
