@@ -16,6 +16,7 @@ counted apart and left out of the latencies.
 """
 import argparse
 import http.client
+import itertools
 import json
 from pathlib import Path
 import socket
@@ -34,6 +35,7 @@ class Page:
         self.token = self.game = None
         self.started_at = self.left_at = None
         self.rejections = []  # 'network' / 'full' reasons seen while trying to start
+        self._req_ids = itertools.count(1)
 
     def call(self, method, path, body=None):
         headers = {'Host': self.run.host, 'X-ChefJeff-Client': self.network}
@@ -57,7 +59,7 @@ class Page:
         return r.status, data
 
     def post(self, path, **body):
-        return self.call('POST', path, {'game_id': self.game, 'request_id': f'{time.monotonic_ns()}', **body})
+        return self.call('POST', path, {'game_id': self.game, 'request_id': f'req-{next(self._req_ids)}', **body})
 
     def open(self):
         status, data = self.call('POST', '/api/session', {})

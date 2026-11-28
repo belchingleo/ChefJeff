@@ -391,7 +391,7 @@ for (const {level, map, steps} of walks) {
             compile_result = subprocess.run(
                 [*tsc, str(TYPESCRIPT), '--target', 'ES2019', '--module', 'commonjs',
                  '--outDir', str(out_dir), '--skipLibCheck'],
-                cwd=ROOT, capture_output=True, text=True, check=False,
+                cwd=ROOT, capture_output=True, text=True, encoding='utf-8', check=False,
             )
             self.assertEqual(compile_result.returncode, 0,
                              f'Cocos TypeScript compile failed:\n{compile_result.stdout}\n{compile_result.stderr}')
@@ -401,7 +401,7 @@ for (const {level, map, steps} of walks) {
             walks_path.write_text(json.dumps(server_walks()))
             result = subprocess.run(
                 [node, str(runner_path), str(ROOT), str(out_dir), str(walks_path)],
-                cwd=ROOT, capture_output=True, text=True, check=False,
+                cwd=ROOT, capture_output=True, text=True, encoding='utf-8', check=False,
             )
             self.assertEqual(result.returncode, 0,
                              f'Node geometry contract failed:\n{result.stdout}\n{result.stderr}')

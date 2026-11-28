@@ -108,8 +108,10 @@ class SessionStateTests(unittest.TestCase):
         g = GameSession(config=level_config(load_config(), 1), client_factory=Client, journal_factory=FakeJournal)
         self.addCleanup(g.close)
 
+        import itertools
+        ids = itertools.count(1)
         def command(path):
-            return g.command('/api/' + path, {'game_id': g.game_id, 'request_id': str(time.monotonic_ns())})
+            return g.command('/api/' + path, {'game_id': g.game_id, 'request_id': f'req-{next(ids)}'})
         self.assertIsNone(g.public_state()['round_summary'])
         self.assertEqual(command('start')[0], 200)
         self.assertIsNone(g.public_state()['round_summary'])

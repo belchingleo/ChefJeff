@@ -30,6 +30,16 @@ def _missing_encoding_calls(path):
             mode = _const_str(node, 1, 'mode')
             if not (mode and 'b' in mode) and 'encoding' not in kw and len(node.args) < 5:
                 bad.append((node.lineno, 'os.fdopen'))
+        elif (isinstance(node.func, ast.Attribute) and node.func.attr in ('NamedTemporaryFile', 'TemporaryFile')
+              and isinstance(node.func.value, ast.Name) and node.func.value.id == 'tempfile'):
+            mode = _const_str(node, 0, 'mode')
+            if mode and 'b' not in mode and 'encoding' not in kw and len(node.args) < 3:
+                bad.append((node.lineno, f'tempfile.{node.func.attr}'))
+        elif (isinstance(node.func, ast.Attribute) and node.func.attr in ('run', 'Popen', 'check_output')
+              and isinstance(node.func.value, ast.Name) and node.func.value.id == 'subprocess'):
+            text_arg = next((k.value for k in node.keywords if k.arg in ('text', 'universal_newlines')), None)
+            if isinstance(text_arg, ast.Constant) and text_arg.value is True and 'encoding' not in kw:
+                bad.append((node.lineno, f'subprocess.{node.func.attr}'))
     return bad
 
 

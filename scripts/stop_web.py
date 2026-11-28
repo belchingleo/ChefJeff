@@ -15,7 +15,7 @@ def main():
         print('此停止入口用于 macOS。')
         return 1
     result = subprocess.run(['/usr/sbin/lsof', '-nP', f'-iTCP:{PORT}', '-sTCP:LISTEN', '-t'],
-                            capture_output=True, text=True)
+                            capture_output=True, text=True, encoding='utf-8')
     pids = set(result.stdout.split())
     if not pids:
         print('厨房已经停止。下次双击“start-web”即可。')
@@ -23,9 +23,9 @@ def main():
     if len(pids) != 1:
         raise RuntimeError('发现多个监听进程，未停止任何程序。')
     pid = int(pids.pop())
-    command = subprocess.check_output(['/bin/ps', '-p', str(pid), '-o', 'command='], text=True)
+    command = subprocess.check_output(['/bin/ps', '-p', str(pid), '-o', 'command='], text=True, encoding='utf-8')
     args = shlex.split(command)
-    cwd = subprocess.check_output(['/usr/sbin/lsof', '-a', '-p', str(pid), '-d', 'cwd', '-Fn'], text=True)
+    cwd = subprocess.check_output(['/usr/sbin/lsof', '-a', '-p', str(pid), '-d', 'cwd', '-Fn'], text=True, encoding='utf-8')
     if (len(args) < 2 or not any(a == 'cocos_server.py' or a == str(ROOT/'cocos_server.py') for a in args[1:])
             or f'n{ROOT}' not in cwd.splitlines()):
         raise RuntimeError('该端口不是本项目的厨房，未停止任何程序。')

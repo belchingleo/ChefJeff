@@ -89,7 +89,7 @@ function clientHarness(h, fromSource){
  let Client;
  if(fromSource){
   const ts=fs.readFileSync('cocos-kitchen/assets/scripts/KitchenClient.ts','utf8')
-   .replace(/^import[\s\S]*?;\n/gm,'').replace(/^@ccclass\('KitchenClient'\)\n/m,'')
+   .replace(/^import[\s\S]*?;\r?\n/gm,'').replace(/^@ccclass\('KitchenClient'\)\r?\n/m,'')
    .replace('export class KitchenClient','class KitchenClient');
   vm.runInContext(require('node:module').stripTypeScriptTypes(ts)+'\nglobalThis.TestClient=KitchenClient;',context);
   Client=context.TestClient;

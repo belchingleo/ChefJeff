@@ -81,7 +81,7 @@ console.log(JSON.stringify(data.cases.map(c=>ctx.spaceTarget(data.map,c.pos,c.ai
         try:
             out = subprocess.run(['node', '-e', script, str(ROOT / 'cocos-kitchen/assets/scripts/KitchenGeometry.ts')],
                                  input=json.dumps({'map': snap['map'], 'ground': ground, 'cases': cases}),
-                                 capture_output=True, text=True, timeout=60)
+                                 capture_output=True, text=True, encoding='utf-8', timeout=60)
         except subprocess.TimeoutExpired:
             self.skipTest('Node.js timed out')
         if out.returncode and 'stripTypeScriptTypes' in out.stderr:

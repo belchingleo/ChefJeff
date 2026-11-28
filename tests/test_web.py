@@ -1,9 +1,12 @@
+import itertools
 import json
 import time
 import unittest
 from unittest.mock import patch
 from kitchen import Food, load_config
 from web_server import GameSession
+
+_REQUEST_IDS = itertools.count(1)
 
 
 class FakeJournal:
@@ -29,7 +32,7 @@ class WebSessionTests(unittest.TestCase):
         self.addCleanup(g.close)
         return g
     def command(self,g,path,**extra):
-        return g.command('/api/'+path,{'game_id':g.game_id,'request_id':str(time.monotonic_ns()),**extra})
+        return g.command('/api/'+path,{'game_id':g.game_id,'request_id':f'req-{next(_REQUEST_IDS)}',**extra})
     def start(self,g,speed=.75):
         self.assertEqual(self.command(g,'start',speed=speed)[0],200)
     def act(self,g,key):

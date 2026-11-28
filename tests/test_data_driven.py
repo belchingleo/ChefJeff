@@ -39,7 +39,7 @@ class NoLevelBranchTests(unittest.TestCase):
         pattern = re.compile(r"""(get\(['"]level['"]\)|\[['"]level['"]\]|\blevel\b)\s*(==|!=|in\s*\(|not in)""")
         for name in ENGINE_FILES:
             with self.subTest(file=name):
-                self.assertEqual(pattern.findall((ROOT / name).read_text()), [])
+                self.assertEqual(pattern.findall((ROOT / name).read_text(encoding='utf-8')), [])
 
 
 class SharedWorkDataTests(unittest.TestCase):

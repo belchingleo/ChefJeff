@@ -175,7 +175,10 @@ class ControlsTests(unittest.TestCase):
         g=GameSession(client_factory=Client,journal_factory=FakeJournal,kitchen_factory=SpatialKitchen)
         self.addCleanup(g.close);self.cmd(g,'start');return g
     def cmd(self,g,path,**kw):
-        return g.command('/api/'+path,dict(game_id=g.game_id,request_id=str(time.monotonic_ns()),**kw))
+        import itertools
+        ids=getattr(self,'_req_ids',None)
+        if ids is None: ids=self._req_ids=itertools.count(1)
+        return g.command('/api/'+path,dict(game_id=g.game_id,request_id=f'req-{next(ids)}',**kw))
 
     def test_input_sequence_release_pause_and_watchdog(self):
         g=self.session();g.k.positions['human']=(5.,4.)

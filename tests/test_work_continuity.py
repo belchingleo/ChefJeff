@@ -79,8 +79,10 @@ class WorkContinuityTests(unittest.TestCase):
     def test_browser_aim_on_an_unsuccessful_interaction_still_stops_old_work(self):
         g=GameSession(kitchen_factory=SpatialKitchen,client_factory=Client,journal_factory=FakeJournal)
         self.addCleanup(g.close)
+        import itertools
+        ids = itertools.count(1)
         def command(path,**extra):
-            return g.command('/api/'+path,{'game_id':g.game_id,'request_id':str(time.monotonic_ns()),**extra})
+            return g.command('/api/'+path,{'game_id':g.game_id,'request_id':f'req-{next(ids)}',**extra})
         self.assertEqual(command('start')[0],200)
         k=g.k;k.positions.update(human=(3.15,3.),jeff=(10.,6.))
         k.stations['b1'].food=Food('work-food','raw',ingredient='beef')

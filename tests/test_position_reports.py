@@ -159,7 +159,10 @@ class WebTests(unittest.TestCase):
         return g
 
     def command(self, g, path, **extra):
-        return g.command('/api/'+path, {'game_id': g.game_id, 'request_id': str(time.monotonic_ns()), **extra})
+        import itertools
+        ids = getattr(self, '_req_ids', None)
+        if ids is None: ids = self._req_ids = itertools.count(1)
+        return g.command('/api/'+path, {'game_id': g.game_id, 'request_id': f'req-{next(ids)}', **extra})
 
     def test_position_requests_are_validated_and_ordered(self):
         g = self.make(); here = list(g.k.positions['human'])
@@ -192,7 +195,10 @@ class StateReplyTests(unittest.TestCase):
         return g
 
     def command(self, g, path, **extra):
-        return g.command('/api/'+path, {'game_id': g.game_id, 'request_id': str(time.monotonic_ns()), **extra})
+        import itertools
+        ids = getattr(self, '_req_ids', None)
+        if ids is None: ids = self._req_ids = itertools.count(1)
+        return g.command('/api/'+path, {'game_id': g.game_id, 'request_id': f'req-{next(ids)}', **extra})
 
     def test_actions_reply_with_the_new_state_and_a_newer_sequence(self):
         g = self.make(); self.assertEqual(self.command(g, 'start')[0], 200)

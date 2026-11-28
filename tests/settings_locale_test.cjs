@@ -1,7 +1,8 @@
 // Check actual local/hosted settings copy, including closed disclosure panels,
 // without translating user-entered values or raw record JSON.
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),{spawnSync}=require('node:child_process');
-const result=spawnSync('python3',['-c',String.raw`
+const python=process.env.PYTHON||(process.platform==='win32'?'python':'python3');
+const result=spawnSync(python,['-c',String.raw`
 import ast, json, re
 from html.parser import HTMLParser
 from pathlib import Path
@@ -28,20 +29,20 @@ for kind,html in [('local',raw),('hosted',hosted_html(raw))]:
     parser=Copy();parser.feed(html.decode());copies[kind]=parser.copy
 copies['errors']=[]
 for file in ('hosted_server.py','hosted_jev.py','hosted_free_models.py','free_model_client.py'):
-    for node in ast.walk(ast.parse(Path(file).read_text())):
+    for node in ast.walk(ast.parse(Path(file).read_text(encoding='utf-8'))):
         if isinstance(node,ast.Dict):
             for key,value in zip(node.keys,node.values):
                 if isinstance(key,ast.Constant) and (key.value=='error' or file=='free_model_client.py') and isinstance(value,ast.Constant) and isinstance(value.value,str):
                     copies['errors'].append(value.value)
         if isinstance(node,ast.Call) and isinstance(node.func,ast.Name) and node.func.id in ('ForwardError','FreeCallError') and len(node.args)>1 and isinstance(node.args[1],ast.Constant):
             copies['errors'].append(node.args[1].value)
-agent=Path('hosted/browser-agent.js').read_text()
+agent=Path('hosted/browser-agent.js').read_text(encoding='utf-8')
 copies['browser']=re.findall(r"throw new Error\('([^']+)'\)",agent)
 # Contribution choice, status and badge sentences the agent writes into the page.
-copies['contribution']=[s for s in re.findall(r"'([^'\n]*[\u4e00-\u9fff][^'\n]*。)'",agent) if not s.startswith('，')]
-print(json.dumps(copies,ensure_ascii=False))
+copies['contribution']=[s for s in re.findall(r"'([^'\n]*[\u4e00-\u9fff][^'\n]*\u3002)'",agent) if not s.startswith('\uff0c')]
+print(json.dumps(copies))
 `],{encoding:'utf8'});
-assert.equal(result.status,0,result.stderr);
+assert.equal(result.status,0,result.stderr||String(result.error));
 const copies=JSON.parse(result.stdout),sandbox={module:{exports:{}},globalThis:{}};
 vm.runInNewContext(fs.readFileSync('cocos-kitchen/build/web/kitchen-i18n.js','utf8'),sandbox);
 const locale=sandbox.module.exports;

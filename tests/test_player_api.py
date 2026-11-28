@@ -63,7 +63,8 @@ class PlayerApiTests(unittest.TestCase):
         self.assertNotIn(KEY, str(self.g.journal.rows))
     def test_remember_permissions_reload_and_clear(self):
         self.assertEqual(self.connect(remember=True)[0], 200)
-        self.assertEqual(self.path.stat().st_mode & 0o777, 0o600)
+        if __import__('os').name != 'nt':
+            self.assertEqual(self.path.stat().st_mode & 0o777, 0o600)
         loaded=self.make()
         self.assertEqual(loaded.setting['api_key'], KEY)
         self.assertTrue(loaded.public_state()['connection']['remembered'])
@@ -189,7 +190,7 @@ class CompatibleTests(unittest.TestCase):
         self.assertNotIn('sprint_missing',self.ask('{"choice":"wait","sprint":true}')[0])
         with self.assertRaises(RuntimeError):self.ask('{"choice":"wait","sprint":"yes"}')
     def test_every_listed_service_validates_with_its_own_address_and_vendor_fields(self):
-        catalog=json.loads((ROOT/'model-providers.json').read_text())
+        catalog=json.loads((ROOT/'model-providers.json').read_text(encoding='utf-8'))
         groups={g['id'] for g in catalog['groups']}
         for preset in catalog['providers']:
             with self.subTest(provider=preset['id']):
@@ -357,8 +358,8 @@ class CompatibleTests(unittest.TestCase):
                 with patch('jev.urllib.request.urlopen',return_value=io.BytesIO(json.dumps(invalid).encode())):
                     with self.assertRaises(RuntimeError):client.ask(payload)
     def test_listed_service_names_and_notes_have_english(self):
-        catalog=json.loads((ROOT/'model-providers.json').read_text())
-        messages=json.loads((ROOT/'cocos-kitchen/i18n.json').read_text())['messages']
+        catalog=json.loads((ROOT/'model-providers.json').read_text(encoding='utf-8'))
+        messages=json.loads((ROOT/'cocos-kitchen/i18n.json').read_text(encoding='utf-8'))['messages']
         for text in [g['label'] for g in catalog['groups']]+[p[k] for p in catalog['providers'] for k in ('label','note') if k in p]:
             if any('\u3400'<=c<='\u9fff' for c in text):self.assertIn(text,messages)
     def test_invalid_model_output_is_not_replaced_by_script(self):
