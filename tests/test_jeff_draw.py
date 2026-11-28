@@ -144,7 +144,7 @@ class JeffDrawTests(unittest.TestCase):
         data, runner = Path(self.temp.name) / 'cases.json', Path(self.temp.name) / 'page.js'
         data.write_text(json.dumps(cases))
         runner.write_text(PAGE)
-        done = subprocess.run(['node', str(runner), str(self.geometry), str(data)], capture_output=True, text=True)
+        done = subprocess.run(['node', str(runner), str(self.geometry), str(data)], capture_output=True, text=True, encoding='utf-8')
         if done.returncode:
             raise RuntimeError(done.stderr)
         return json.loads(done.stdout)
@@ -319,7 +319,7 @@ console.log(JSON.stringify({off,worst}));
 """)
         data = Path(self.temp.name) / 'take.json'
         data.write_text(json.dumps({'map': k.snapshot()['map'], 'states': states, 'end': list(k.positions['human'])}))
-        done = subprocess.run(['node', str(script), str(self.geometry), str(data)], capture_output=True, text=True)
+        done = subprocess.run(['node', str(script), str(self.geometry), str(data)], capture_output=True, text=True, encoding='utf-8')
         self.assertEqual(done.returncode, 0, done.stderr)
         result = json.loads(done.stdout)
         self.assertEqual(result['off'], 0, result)
@@ -342,7 +342,7 @@ for(let f=0;f<60;f++,t+=1/60){
 }
 console.log(JSON.stringify(trace));
 """)
-        done = subprocess.run(['node', str(script), str(self.geometry)], capture_output=True, text=True)
+        done = subprocess.run(['node', str(script), str(self.geometry)], capture_output=True, text=True, encoding='utf-8')
         self.assertEqual(done.returncode, 0, done.stderr)
         frames = json.loads(done.stdout)
         # Knocked state at frame 12 (3.75), landed at frame 24 (4.0): drawn there within 0.2 s each, legs still

@@ -44,7 +44,7 @@ class SelectionParityTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix='selection-parity-') as temp:
             out = Path(temp) / 'compiled'
             compiled = subprocess.run([*tsc, str(TYPESCRIPT), '--target', 'ES2019', '--module', 'commonjs',
-                                       '--outDir', str(out), '--skipLibCheck'], cwd=ROOT, capture_output=True, text=True)
+                                       '--outDir', str(out), '--skipLibCheck'], cwd=ROOT, capture_output=True, text=True, encoding='utf-8')
             self.assertEqual(compiled.returncode, 0, compiled.stdout + compiled.stderr)
             data = Path(temp) / 'cases.json'
             data.write_text(json.dumps(cases()))
@@ -55,7 +55,7 @@ for(const {level,map,rows} of JSON.parse(fs.readFileSync(process.argv[3],'utf8')
     if(JSON.stringify(got)!==JSON.stringify(want))bad.push({level,pos,aim,want,got});}
 console.log(JSON.stringify(bad.slice(0,5)));process.exit(bad.length?1:0);''')
             result = subprocess.run(['node', str(runner), str(out / 'KitchenGeometry.js'), str(data)],
-                                    capture_output=True, text=True)
+                                    capture_output=True, text=True, encoding='utf-8')
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_release_build_does_not_drop_iterator_spreads(self):
@@ -64,16 +64,16 @@ console.log(JSON.stringify(bad.slice(0,5)));process.exit(bad.length?1:0);''')
         scripts = TYPESCRIPT.parent
         spread = re.compile(r'\[\.\.\.(?!Object\.)[\w.]*(?:\.(?:entries|keys|values)\(\)|this\.seen)\]')
         for path in sorted(scripts.glob('*.ts')):
-            self.assertIsNone(spread.search(path.read_text()), path.name)
+            self.assertIsNone(spread.search(path.read_text(encoding='utf-8')), path.name)
         tsc = geometry_tests.KitchenGeometryExecutionTests.resolve_tsc(self)
         if not tsc:
             self.skipTest('TypeScript compiler unavailable')
         command = [*tsc, str(TYPESCRIPT), '--target', 'ES5', '--lib', 'es2019,dom', '--noEmit', '--skipLibCheck']
-        checked = subprocess.run(command, cwd=ROOT, capture_output=True, text=True)
+        checked = subprocess.run(command, cwd=ROOT, capture_output=True, text=True, encoding='utf-8')
         if 'TS5107' in checked.stdout + checked.stderr:
             # TypeScript 6 only deprecates the ES5 target, so the check still runs with the warning off;
             # TypeScript 5 refuses this value, so it is passed only when asked for.
-            checked = subprocess.run([*command, '--ignoreDeprecations', '6.0'], cwd=ROOT, capture_output=True, text=True)
+            checked = subprocess.run([*command, '--ignoreDeprecations', '6.0'], cwd=ROOT, capture_output=True, text=True, encoding='utf-8')
         if 'TS5108' in checked.stdout + checked.stderr:
             # TypeScript 6+ removed the ES5 target; the source rule above still runs.
             self.skipTest('this TypeScript no longer type-checks for ES5')

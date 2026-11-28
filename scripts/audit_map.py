@@ -154,7 +154,7 @@ def compile_geometry(folder):
         return None
     out = Path(folder) / 'compiled'
     compiled = subprocess.run([*tsc, str(TYPESCRIPT), '--target', 'ES2019', '--module', 'commonjs',
-                               '--outDir', str(out), '--skipLibCheck'], cwd=ROOT, capture_output=True, text=True)
+                               '--outDir', str(out), '--skipLibCheck'], cwd=ROOT, capture_output=True, text=True, encoding='utf-8')
     if compiled.returncode:
         raise RuntimeError(compiled.stdout + compiled.stderr)
     return out / 'KitchenGeometry.js'
@@ -169,7 +169,7 @@ def page_checks(maps):
         data, runner = Path(temp) / 'maps.json', Path(temp) / 'run.js'
         data.write_text(json.dumps([{'name': name, 'map': m} for name, m in maps.items()]), encoding='utf-8')
         runner.write_text(PAGE_RUNNER, encoding='utf-8')
-        result = subprocess.run(['node', str(runner), str(geometry), str(data)], capture_output=True, text=True)
+        result = subprocess.run(['node', str(runner), str(geometry), str(data)], capture_output=True, text=True, encoding='utf-8')
         if result.returncode:
             raise RuntimeError(result.stderr)
         return json.loads(result.stdout)

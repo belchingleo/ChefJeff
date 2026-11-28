@@ -157,7 +157,7 @@ class PackageTests(unittest.TestCase):
                     code = ('import importlib,sys;sys.path.insert(0,sys.argv[1]);'
                             'importlib.import_module(sys.argv[2])')
                     result = subprocess.run([sys.executable, '-I', '-B', '-c', code, str(demo), entry],
-                                            cwd=tmp, capture_output=True, text=True, timeout=60)
+                                            cwd=tmp, capture_output=True, text=True, encoding='utf-8', timeout=60)
                     self.assertEqual(result.returncode, 0, result.stderr[-2000:])
 
     def test_real_package_keeps_gamepad_controls_and_matching_web_entries(self):

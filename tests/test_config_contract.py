@@ -62,7 +62,7 @@ class SchemaFileTests(unittest.TestCase):
         for kind, folder in cc.CONTENT_DIRS.items():
             for path in sorted(folder.glob('*.json')):
                 with self.subTest(path=path.name):
-                    self.assertEqual(schema_check.validate(json.loads(path.read_text()), cc.SCHEMAS[kind]), [])
+                    self.assertEqual(schema_check.validate(json.loads(path.read_text(encoding='utf-8')), cc.SCHEMAS[kind]), [])
 
     def test_validator_rejects_non_finite_booleans_and_unknown_fields(self):
         self.assertTrue(schema_check.validate({'id': 'x', 'version': True}, 'common.schema.json') == [])  # annotation-only root

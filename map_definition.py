@@ -260,7 +260,7 @@ def save_map(document, path):
     d = validate_map(document)
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile(mode='w', dir=path.parent, suffix='.json', delete=False) as f:
+    with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=path.parent, suffix='.json', delete=False) as f:
         json.dump(d,f,ensure_ascii=False,indent=2)
         f.write('\n')
         temp = Path(f.name)

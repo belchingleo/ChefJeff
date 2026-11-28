@@ -261,11 +261,13 @@ class AimedThrowTests(unittest.TestCase):
 
 class ShortActionMoveTests(unittest.TestCase):
     def test_a_move_during_a_short_take_starts_after_it(self):
+        import itertools
+        ids = itertools.count(1)
         g = GameSession(config=level_config(load_config(), 2), kitchen_factory=SpatialKitchen,
                         client_factory=Client, journal_factory=FakeJournal)
         self.addCleanup(g.close)
         def cmd(path, **kw):
-            return g.command('/api/' + path, {'game_id': g.game_id, 'request_id': str(time.monotonic_ns()), **kw})
+            return g.command('/api/' + path, {'game_id': g.game_id, 'request_id': f'req-{next(ids)}', **kw})
         self.assertEqual(cmd('start', speed=.75)[0], 200)
         k = g.k
         k.positions['human'] = (5., 5.); k.facing['human'] = 'up'
@@ -280,11 +282,13 @@ class ShortActionMoveTests(unittest.TestCase):
         self.assertEqual(k.manual['human'], (0., 1.))
 
     def test_a_move_still_interrupts_chopping(self):
+        import itertools
+        ids = itertools.count(1)
         g = GameSession(config=level_config(load_config(), 2), kitchen_factory=SpatialKitchen,
                         client_factory=Client, journal_factory=FakeJournal)
         self.addCleanup(g.close)
         def cmd(path, **kw):
-            return g.command('/api/' + path, {'game_id': g.game_id, 'request_id': str(time.monotonic_ns()), **kw})
+            return g.command('/api/' + path, {'game_id': g.game_id, 'request_id': f'req-{next(ids)}', **kw})
         cmd('start', speed=.75)
         k = g.k
         k.positions['human'] = (4., 6.); k.facing['human'] = 'down'

@@ -28,12 +28,12 @@ class CooperationMemoryTests(unittest.TestCase):
         original={'version':1,'enabled':True,'scopes':{scope:[{
             'round_id':'old','model':'jev-latest','duration':1,'outcome':{},
             'events':[{'t':1,'kind':'action_done','actor':'jev','action':'wash'}]}]}}
-        self.path.write_text(json.dumps(original))
+        self.path.write_text(json.dumps(original), encoding='utf-8')
         memory=CooperationMemory(self.path)
         episode=memory.context(scope)['episodes'][0]
         self.assertEqual(episode['events'][0]['actor'],'jeff')
         self.assertEqual(episode['model'],'jev-latest')
-        self.assertEqual(json.loads(self.path.read_text()),original)
+        self.assertEqual(json.loads(self.path.read_text(encoding='utf-8')),original)
 
     def game(self):
         client = SpatialJevClient(load_config(), key=self.setting['api_key'])
@@ -62,8 +62,9 @@ class CooperationMemoryTests(unittest.TestCase):
         g=self.game();self.assertEqual(self.command(g,'start')[0],200)
         self.finish(g)
         self.assertEqual(g.memory_state()['saved_rounds'],1)
-        self.assertEqual(self.path.stat().st_mode & 0o777,0o600)
-        self.assertNotIn(self.setting['api_key'],self.path.read_text())
+        if __import__('os').name != 'nt':
+            self.assertEqual(self.path.stat().st_mode & 0o777,0o600)
+        self.assertNotIn(self.setting['api_key'],self.path.read_text(encoding='utf-8'))
         self.assertEqual(self.command(g,'reset')[0],200)
         self.assertEqual(self.command(g,'start')[0],200)
         self.assertEqual(len(g.ai.cooperation_memory['episodes']),1)

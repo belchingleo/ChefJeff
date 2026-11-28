@@ -190,7 +190,7 @@ class MapDocumentTests(unittest.TestCase):
             with tempfile.TemporaryDirectory() as folder:
                 path = Path(folder)/'map.json'
                 save_map(doc,path)
-                self.assertEqual(doc,json.loads(path.read_text()))
+                self.assertEqual(doc,json.loads(path.read_text(encoding='utf-8')))
             k = SpatialKitchen({**load_config(),'level':level,'spawn_seed':0})
             equipment,walls = geometry(doc)
             self.assertEqual(k.equipment,equipment)

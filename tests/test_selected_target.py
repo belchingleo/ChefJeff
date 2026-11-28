@@ -1,9 +1,11 @@
-import unittest,time,json,re
+import itertools,unittest,time,json,re
 from kitchen import Food,GroundItem,load_config
 from spatial_kitchen import SpatialKitchen,tile_key
 from web_server import GameSession
 from test_web import Client,FakeJournal
 from whitebox_server import SpatialJevClient
+
+_REQUEST_IDS=itertools.count(1)
 
 class SelectedTargetTests(unittest.TestCase):
     def make(self,level=3):return SpatialKitchen({**load_config(),'level':level,'spawn_seed':0})
@@ -58,7 +60,7 @@ class SelectedTargetTests(unittest.TestCase):
             self.assertEqual(p.contents.id,'meat');self.assertIsNone(k.chefs['human'].hand);k.advance(5);self.assertEqual(p.contents.heated,0)
     def test_http_walk_then_space_uses_the_facing(self):
         g=GameSession(config={**load_config(),'level':3},kitchen_factory=SpatialKitchen,client_factory=Client,journal_factory=FakeJournal);self.addCleanup(g.close)
-        def cmd(path,**kw):return g.command('/api/'+path,{'game_id':g.game_id,'request_id':str(time.monotonic_ns()),**kw})
+        def cmd(path,**kw):return g.command('/api/'+path,{'game_id':g.game_id,'request_id':f'req-{next(_REQUEST_IDS)}',**kw})
         cmd('start');g.k.positions['human']=(2,6);g.k.facing['human']='right';g.k.chefs['human'].hand=Food('meat')
         go=next(a for a in g.k.actions('human') if a.kind=='go' and a.target=='b1')
         self.assertEqual(cmd('action',action=go.key,expected=list(go.expected))[0],200);g.k.advance(.5)
@@ -68,7 +70,7 @@ class SelectedTargetTests(unittest.TestCase):
         g.k.facing['human']='left';self.assertEqual(g.public_state()['interaction_focus'],'bin')
     def test_ground_focus_at_feet_survives_two_space_presses(self):
         g=GameSession(config={**load_config(),'level':3},kitchen_factory=SpatialKitchen,client_factory=Client,journal_factory=FakeJournal);self.addCleanup(g.close)
-        def cmd(path,**kw):return g.command('/api/'+path,{'game_id':g.game_id,'request_id':str(time.monotonic_ns()),**kw})
+        def cmd(path,**kw):return g.command('/api/'+path,{'game_id':g.game_id,'request_id':f'req-{next(_REQUEST_IDS)}',**kw})
         cmd('start');self.setup_floor_pot(g.k,'human')
         self.assertEqual(cmd('interact',expected_item='meat')[0],200);g.k.advance(.5)
         self.assertEqual(cmd('interact',expected_item=None)[0],200);g.k.advance(.5)
@@ -113,7 +115,7 @@ class SelectedTargetTests(unittest.TestCase):
 
     def test_feet_focus_and_interact_agree_without_mouse_selection(self):
         g=GameSession(config={**load_config(),'level':3},kitchen_factory=SpatialKitchen,client_factory=Client,journal_factory=FakeJournal);self.addCleanup(g.close)
-        def cmd(path,**kw):return g.command('/api/'+path,{'game_id':g.game_id,'request_id':str(time.monotonic_ns()),**kw})
+        def cmd(path,**kw):return g.command('/api/'+path,{'game_id':g.game_id,'request_id':f'req-{next(_REQUEST_IDS)}',**kw})
         cmd('start');g.k.positions['human']=(2,6);g.k.facing['human']='down';g.k.chefs['human'].hand=None
         g.k.ground['feet']=GroundItem(Food('feet'),tile_key((2,6)))
         state=g.public_state();self.assertEqual(state['interaction_focus'],'item:feet')

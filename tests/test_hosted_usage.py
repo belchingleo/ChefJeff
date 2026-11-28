@@ -300,7 +300,7 @@ class UsageHTTPTests(unittest.TestCase):
         self.request('/')
         script = Path(__file__).resolve().parents[1] / 'scripts/hosted_usage.py'
         result = subprocess.run([sys.executable, str(script), '--port', str(self.server.server_port)],
-                                capture_output=True, text=True, timeout=10)
+                                capture_output=True, text=True, encoding='utf-8', timeout=10)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('页面访问次数： 1', result.stdout)
         self.assertIn('当前游戏中的会话数： 0', result.stdout)

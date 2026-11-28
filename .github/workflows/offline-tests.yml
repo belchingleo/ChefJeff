@@ -47,3 +47,59 @@ jobs:
         if: matrix.python == '3.12'
         run: python tests/run_admin_browser.py
       - run: python scripts/audit_release.py
+
+  windows-portable:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Browser and client checks
+        shell: pwsh
+        run: |
+          $tests = @(
+            'tests/hosted_browser_test.cjs',
+            'tests/hosted_query_test.cjs',
+            'tests/hosted_memory_browser_test.cjs',
+            'tests/hosted_usage_browser_test.cjs',
+            'tests/auto_contribution_test.cjs',
+            'tests/presentation_loading_test.cjs',
+            'tests/settings_locale_test.cjs',
+            'tests/mobile_controls_test.cjs',
+            'tests/gamepad_controls_test.cjs'
+          )
+          foreach ($t in $tests) {
+            node $t
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+      - name: Portable core and web tests under default Windows locale
+        shell: pwsh
+        env:
+          PYTHONPATH: "tests;."
+          CHEFJEFF_LOG_DIR: ${{ runner.temp }}\chefjeff-logs
+        run: |
+          python -m unittest `
+            test_utf8_encoding test_environment test_kitchen test_spatial `
+            test_config_contract test_map_definition test_model_language `
+            test_model_output test_facing_controls test_controls test_web `
+            test_selected_target test_position_reports test_round_summary `
+            test_work_continuity test_localization test_web_build_sync `
+            test_benchmark test_data_driven test_shared_work test_throw `
+            test_throw_scatter test_throw_to test_fire_spread test_tableware `
+            test_drying_rack test_handling test_item_reach test_navigation_cache `
+            test_level_three test_level_four test_level_five test_jev `
+            test_cooperation_memory test_player_api test_agent_input `
+            test_agent_rules_neutral
+      - name: Tests leave the project's logs folder alone
+        shell: pwsh
+        run: |
+          if (Test-Path logs) {
+            Write-Error "The test run wrote into logs/; use a temporary folder (CHEFJEFF_LOG_DIR)."
+            exit 1
+          }

@@ -31,7 +31,7 @@ const ctx={module:{exports:{}},globalThis:root};
 vm.runInNewContext(fs.readFileSync('cocos-kitchen/i18n.js','utf8').replace('__KITCHEN_CATALOG__',fs.readFileSync('cocos-kitchen/i18n.json','utf8')),ctx);
 const i=ctx.module.exports;
 """+"const corpus="+json.dumps(corpus or [],ensure_ascii=False)+";\n"+body
-        result=subprocess.run(['node','-e',script],cwd=ROOT,text=True,capture_output=True)
+        result=subprocess.run(['node'],input=script,cwd=ROOT,text=True,encoding='utf-8',capture_output=True)
         self.assertEqual(result.returncode,0,result.stderr)
     def test_switch_persistence_reversibility_and_user_identifiers(self):
         self.run_js("""
@@ -62,13 +62,13 @@ assert.equal(open(undefined,'en'),'en');
 assert.equal(open('fr',null),'zh');
 assert.ok(source.includes("'ChefJeff · Cooking with AI'"));
 """
-        result = subprocess.run(['node', '-e', script], cwd=ROOT, text=True, capture_output=True)
+        result = subprocess.run(['node'], input=script, cwd=ROOT, text=True, encoding='utf-8', capture_output=True)
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_shell_and_server_errors_are_translated(self):
-        parser=ShellTexts();parser.feed((ROOT/'cocos-kitchen/web-shell.html').read_text());corpus=parser.texts
+        parser=ShellTexts();parser.feed((ROOT/'cocos-kitchen/web-shell.html').read_text(encoding='utf-8'));corpus=parser.texts
         for file in ('web_server.py','player_api.py'):
-            for node in ast.walk(ast.parse((ROOT/file).read_text())):
+            for node in ast.walk(ast.parse((ROOT/file).read_text(encoding='utf-8'))):
                 if isinstance(node,ast.Dict):
                     for key,value in zip(node.keys,node.values):
                         if isinstance(key,ast.Constant) and key.value=='error' and isinstance(value,ast.Constant) and isinstance(value.value,str):corpus.append(value.value)
@@ -79,7 +79,7 @@ assert.ok(source.includes("'ChefJeff · Cooking with AI'"));
         import re
         import level_design
         corpus = []
-        for line in (ROOT / 'cocos-kitchen/level-editor.js').read_text().splitlines():
+        for line in (ROOT / 'cocos-kitchen/level-editor.js').read_text(encoding='utf-8').splitlines():
             if 'i18n: bilingual' in line:
                 continue
             for literal in re.findall(r"'((?:[^'\\\n]|\\.)*)'", line):
@@ -96,7 +96,7 @@ assert.ok(source.includes("'ChefJeff · Cooking with AI'"));
         corpus=['浏览器直连模型',
             '：在线版由浏览器直连模型；服务商必须允许跨域访问。跨域失败不会改由服务器代发 Key。',
             '本局 0 / 200 次；成功回复 token：输入 0 / 输出 0；本页面连接测试 0 次']
-        catalog=json.loads((ROOT/'cocos-kitchen/i18n.json').read_text())
+        catalog=json.loads((ROOT/'cocos-kitchen/i18n.json').read_text(encoding='utf-8'))
         corpus += [s for s in catalog['messages'] if '仅保留到当前页面会话结束' in s or '在线版没有可追溯的服务器对局日志' in s]
         self.run_js("const missing=corpus.filter(x=>/[\\u3400-\\u9fff]/.test(i.t(x)));assert.deepEqual(missing,[]);",corpus)
 
@@ -298,8 +298,8 @@ class PageMessageGuardTests(LocalizationTests):
 
     def test_the_built_page_carries_the_current_catalog(self):
         # build_cocos.py writes kitchen-i18n.js from i18n.js and i18n.json; a catalog change needs it rewritten.
-        built = (ROOT / 'cocos-kitchen/i18n.js').read_text().replace('__KITCHEN_CATALOG__', (ROOT / 'cocos-kitchen/i18n.json').read_text())
-        self.assertEqual((ROOT / 'cocos-kitchen/build/web/kitchen-i18n.js').read_text(), built)
+        built = (ROOT / 'cocos-kitchen/i18n.js').read_text(encoding='utf-8').replace('__KITCHEN_CATALOG__', (ROOT / 'cocos-kitchen/i18n.json').read_text(encoding='utf-8'))
+        self.assertEqual((ROOT / 'cocos-kitchen/build/web/kitchen-i18n.js').read_text(encoding='utf-8'), built)
 
     def test_the_allowlist_names_only_messages_that_exist(self):
         found = {(name, message) for name, _, message in page_messages()}

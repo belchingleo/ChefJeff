@@ -74,7 +74,7 @@ class ModelLanguageTests(unittest.TestCase):
     def test_event_templates_and_provider_identifiers(self):
         self.assertEqual(english_data({'model':'我的模型','action':'go p1'}),{'model':'我的模型','action':'go p1'})
         for file in ('kitchen.py','spatial_kitchen.py'):
-            for node in ast.walk(ast.parse(Path(file).read_text())):
+            for node in ast.walk(ast.parse(Path(file).read_text(encoding='utf-8'))):
                 if isinstance(node,ast.Call) and isinstance(node.func,ast.Attribute) and node.func.attr=='emit' and node.args:
                     value=node.args[0]
                     if isinstance(value,ast.JoinedStr):

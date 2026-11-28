@@ -14,7 +14,7 @@ class LoadTestScriptTests(unittest.TestCase):
     def test_small_run_checks_waiting_and_network_limits(self):
         result = subprocess.run([sys.executable, 'scripts/load_test_hosted.py', '--pages', '9', '--capacity', '3',
                                  '--max-waiting', '4', '--per-network', '1', '--seconds', '4'],
-                                cwd=ROOT, capture_output=True, text=True, timeout=60)
+                                cwd=ROOT, capture_output=True, text=True, encoding='utf-8', timeout=60)
         self.assertEqual(result.returncode, 0, result.stdout[-2000:] + result.stderr[-2000:])
         report = json.loads(result.stdout)
         self.assertEqual(report['session_rejections'], 2)

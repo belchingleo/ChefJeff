@@ -1,2 +1,8 @@
+# Keep LF line endings across platforms so byte hashes (benchmark manifests,
+# release fingerprints and presentation source hashes) match on Windows.
+* text=auto eol=lf
+
 # Preserve the vendored pixel-font license byte for byte.
-ops/research_admin/OFL.txt -whitespace
+ops/research_admin/OFL.txt -text -whitespace
+cocos-kitchen/fonts/OFL.txt -text -whitespace
+cocos-kitchen/build/web/fonts/OFL.txt -text -whitespace

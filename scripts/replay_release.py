@@ -97,7 +97,8 @@ class ReleaseError(Exception):
 
 
 def git(*args, text=True):
-    return subprocess.run(['git', '-C', str(ROOT), *args], check=True, capture_output=True, text=text).stdout
+    kw = {'text': True, 'encoding': 'utf-8'} if text else {'text': False}
+    return subprocess.run(['git', '-C', str(ROOT), *args], check=True, capture_output=True, **kw).stdout
 
 
 def full_sha(commit):
@@ -114,7 +115,7 @@ def extract(commit, dest):
 
 
 def fingerprint(root):
-    result = subprocess.run([sys.executable, '-I', '-c', FINGERPRINT, str(root)], capture_output=True, text=True)
+    result = subprocess.run([sys.executable, '-I', '-c', FINGERPRINT, str(root)], capture_output=True, text=True, encoding='utf-8')
     return result.stdout.strip() if result.returncode == 0 else None
 
 
@@ -158,7 +159,7 @@ def record_commit(commit, path=TABLE):
         extract(sha, root)
         fp = fingerprint(root)
         version = subprocess.run([sys.executable, '-I', '-c', FINGERPRINT.replace("['fingerprint']", "['version']"),
-                                  str(root)], capture_output=True, text=True).stdout.strip()
+                                  str(root)], capture_output=True, text=True, encoding='utf-8').stdout.strip()
     if not fp:
         raise ReleaseError(f'{sha[:7]} 算不出版本指纹（没有 release_info.py？）')
     releases = read_table(path)
@@ -268,7 +269,7 @@ def replay_group(root, items):
             path.write_text(json.dumps({'ref': ref, 'record': record}), encoding='utf-8')
             files.append(str(path))
         result = subprocess.run([sys.executable, '-I', '-c', DRIVER, str(root), str(TOOL), *files],
-                                capture_output=True, text=True)
+                                capture_output=True, text=True, encoding='utf-8')
     if result.returncode != 0:
         last = (result.stderr.strip().splitlines() or ['?'])[-1]
         return [{'ref': ref, 'replay': 'error', 'error': last[:200]} for ref, _ in items]

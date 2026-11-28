@@ -1,5 +1,8 @@
 """Private aggregate call budgets, never kitchen payloads, credentials or player records."""
-import fcntl
+try:
+    import fcntl
+except ImportError:
+    fcntl = None
 import json
 import math
 import os
@@ -54,6 +57,8 @@ class CallBudget:
                 raise
 
     def _open(self):
+        if fcntl is None:
+            raise RuntimeError('Persistent budget locking requires POSIX fcntl')
         p = self.directory
         if p.is_symlink():
             raise ValueError('Invalid budget directory')
